@@ -1,0 +1,106 @@
+@if (loading()) {
+  <p role="status" class="py-8 text-center text-sm text-text-secondary">
+    {{ 'XP.XpertSettings.Loading' | translate }}
+  </p>
+} @else if (error()) {
+  <div role="alert" class="space-y-4">
+    <p class="text-base text-text-destructive">{{ error() }}</p>
+    <button z-button zType="outline" (click)="load()">{{ 'XP.ACTIONS.Retry' | translate }}</button>
+  </div>
+} @else {
+  <div
+    class="grid gap-4 border-b border-divider-regular pb-4"
+    [class]="boundDays() === null ? 'grid-cols-2' : 'grid-cols-3'"
+  >
+    @if (boundDays() !== null) {
+      <div class="text-center">
+        <div class="text-lg font-semibold">{{ boundDays() }}</div>
+        <div class="mt-1 text-sm text-text-tertiary">{{ 'XP.Chat.ClawXpert.BoundDays' | translate }}</div>
+      </div>
+    }
+    <div class="text-center">
+      <div class="text-lg font-semibold">{{ conversations() }}</div>
+      <div class="mt-1 text-sm text-text-tertiary">{{ 'XP.Chat.ClawXpert.ConversationCount' | translate }}</div>
+    </div>
+    <div class="text-center">
+      <div class="text-lg font-semibold">{{ taskCount() }}</div>
+      <div class="mt-1 text-sm text-text-tertiary">{{ 'XP.Chat.ClawXpert.TaskCount' | translate }}</div>
+    </div>
+  </div>
+  <section class="pt-4">
+    <div class="flex flex-wrap items-start justify-between gap-4">
+      <div class="min-w-0 flex-1 basis-64">
+        <h3 class="text-lg font-semibold">{{ 'XP.Chat.ClawXpert.ConversationStatsTitle' | translate }}</h3>
+        <p class="mt-1 text-sm leading-5 text-text-secondary">
+          {{ 'XP.Chat.ClawXpert.ConversationStatsDesc' | translate }}
+        </p>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div
+          class="rounded-[var(--assistant-settings-item-radius)] border border-divider-regular px-3 py-2 text-center"
+        >
+          <div class="text-lg font-semibold">{{ heatmap().totalMessages }}</div>
+          <div class="mt-1 text-sm text-text-tertiary">{{ 'XP.Chat.ClawXpert.TotalMessages' | translate }}</div>
+        </div>
+        <div
+          class="rounded-[var(--assistant-settings-item-radius)] border border-divider-regular px-3 py-2 text-center"
+        >
+          <div class="text-lg font-semibold">{{ heatmap().activeDays }}</div>
+          <div class="mt-1 text-sm text-text-tertiary">{{ 'XP.Chat.ClawXpert.ActiveDays' | translate }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="mt-4 overflow-x-auto pb-2">
+      <div class="flex min-w-[520px] gap-3">
+        <div class="grid grid-rows-[24px_repeat(7,32px)] gap-2 text-sm text-text-tertiary">
+          <div></div>
+          @for (label of heatmap().dayLabels; track $index) {
+            <div class="flex items-center justify-end">{{ label }}</div>
+          }
+        </div>
+        <div class="min-w-0 flex-1">
+          <div class="grid grid-cols-12 gap-2 text-sm text-text-tertiary">
+            @for (week of heatmap().weeks; track week.key) {
+              <div class="h-6 truncate">{{ week.monthLabel }}</div>
+            }
+          </div>
+          <div class="mt-2 grid grid-cols-12 gap-2">
+            @for (week of heatmap().weeks; track week.key) {
+              <div class="grid grid-rows-7 gap-2">
+                @for (cell of week.cells; track cell.key) {
+                  <div
+                    class="h-8 rounded-lg border"
+                    [style.background-color]="cell.background"
+                    [style.border-color]="cell.borderColor"
+                    [style.opacity]="cell.opacity"
+                    [attr.aria-label]="cell.title"
+                    [attr.title]="cell.title"
+                  ></div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-text-tertiary">
+      <span>
+        @if (!heatmap().totalMessages) {
+          {{ 'XP.Chat.ClawXpert.NoMessageActivity' | translate }}
+        }
+      </span>
+      <div class="flex items-center gap-2">
+        <span>{{ 'XP.Chat.ClawXpert.HeatmapLegendQuiet' | translate }}</span>
+        @for (cell of legend; track cell.key) {
+          <div
+            class="size-4 rounded border"
+            [style.background-color]="cell.background"
+            [style.border-color]="cell.borderColor"
+            [style.opacity]="cell.opacity"
+          ></div>
+        }
+        <span>{{ 'XP.Chat.ClawXpert.HeatmapLegendBusy' | translate }}</span>
+      </div>
+    </div>
+  </section>
+}

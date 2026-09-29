@@ -1,5 +1,6 @@
 export * from './integration.module'
 export * from './integration.service'
+export * from './integration-qr.service'
 export * from './commands/index'
 export * from './queries/index'
 export * from './events/index'

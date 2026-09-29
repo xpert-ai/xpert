@@ -378,18 +378,23 @@ describe('ExploreAgentSquareComponent', () => {
     expect(dialog.open).not.toHaveBeenCalled()
   })
 
-  it('filters experts only by marketplace business category', async () => {
+  it('combines business domains and marketplace categories and resets both filters', async () => {
     fixture.componentInstance.selectedBusinessCategories.set(['sales'])
+    fixture.componentInstance.toggleBusinessArea('area-sales')
 
     await fixture.componentInstance.loadExperts()
 
     expect(marketplaceService.findMarketplace).toHaveBeenCalledWith({
       search: '',
+      businessAreaIds: ['area-sales'],
       businessCategories: ['sales'],
       sort: 'match',
       take: 60
     })
-    expect(fixture.componentInstance.activeExpertFilterCount()).toBe(1)
+    expect(fixture.componentInstance.activeExpertFilterCount()).toBe(2)
+    fixture.componentInstance.resetExpertFilters()
+    expect(fixture.componentInstance.selectedBusinessAreaIds()).toEqual([])
+    expect(fixture.componentInstance.activeExpertFilterCount()).toBe(0)
   })
 
   it('opens a ready App directly and routes an uninitialized App to setup', () => {

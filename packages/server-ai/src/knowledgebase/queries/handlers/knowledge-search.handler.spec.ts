@@ -1,6 +1,6 @@
 import { DocumentInterface } from '@langchain/core/documents'
 import { QueryBus } from '@nestjs/cqrs'
-import { DocumentMetadata, KnowledgebaseTypeEnum } from '@xpert-ai/contracts'
+import { DocumentMetadata, KnowledgebaseTypeEnum, VectorTypeEnum } from '@xpert-ai/contracts'
 import { KnowledgebaseService } from '../../knowledgebase.service'
 import { KnowledgeSearchQuery } from '../knowledge-search.query'
 import { KnowledgeGraphSearchQuery } from '../../../graphrag/queries'
@@ -604,8 +604,8 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
         expect(result.documents.map((document) => document.metadata.chunkId)).toEqual([
             'shared',
             'graph-only',
-            'keyword-only',
-            'vector-only'
+            'vector-only',
+            'keyword-only'
         ])
         expect(result.documents[0].metadata.rrfScore).toBeCloseTo(2.5)
         expect(result.diagnostics[0]).toEqual(
@@ -1168,6 +1168,7 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
 
     it('reranks the complete fused results once in hybrid mode', async () => {
         const vectorStore = {
+            vectorStoreType: VectorTypeEnum.PGVECTOR,
             embeddingModel: 'embedding-model',
             structuredSimilaritySearchWithScore: jest.fn(async () => ({
                 items: [[chunk('vector-1'), 0.2]],
@@ -1341,6 +1342,7 @@ describe('KnowledgeSearchQueryHandler GraphRAG modes', () => {
                 ]
             })),
             getActiveVectorStore: jest.fn(async () => ({
+                vectorStoreType: VectorTypeEnum.PGVECTOR,
                 embeddingModel: 'embedding-model',
                 structuredSimilaritySearchWithScore: jest.fn(async () => ({
                     items: [[chunk('chunk-1'), 0.3]],

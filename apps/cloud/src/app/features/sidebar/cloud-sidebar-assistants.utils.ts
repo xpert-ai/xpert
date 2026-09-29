@@ -46,36 +46,7 @@ export function filterAssistantXperts<T extends AssistantXpertLike>(items: T[], 
   })
 }
 
-export function orderAssistantXperts<T extends AssistantXpertLike>(items: T[], orderedIds: string[]) {
-  const itemById = new Map(
-    items
-      .filter((item): item is T & { id: string } => typeof item.id === 'string' && !!item.id.trim())
-      .map((item) => [item.id, item] as const)
-  )
-  const orderedIdSet = new Set(orderedIds)
-  const unorderedItems = items
-    .map((item, index) => ({ item, index }))
-    .filter(({ item }) => !item.id || !orderedIdSet.has(item.id))
-    .sort((left, right) => {
-      const leftCreatedAt = getAssistantCreatedAtTimestamp(left.item)
-      const rightCreatedAt = getAssistantCreatedAtTimestamp(right.item)
-
-      return leftCreatedAt === rightCreatedAt ? left.index - right.index : rightCreatedAt > leftCreatedAt ? 1 : -1
-    })
-    .map(({ item }) => item)
-
-  return [
-    ...unorderedItems,
-    ...orderedIds.map((id) => itemById.get(id)).filter((item): item is T & { id: string } => !!item)
-  ]
-}
-
-function getAssistantCreatedAtTimestamp(xpert: AssistantXpertLike) {
-  const value = xpert.createdAt
-  const timestamp = value instanceof Date ? value.getTime() : typeof value === 'string' ? Date.parse(value) : Number.NaN
-
-  return Number.isNaN(timestamp) ? Number.NEGATIVE_INFINITY : timestamp
-}
+export { orderAssistantXperts } from '@xpert-ai/contracts'
 
 export function getAssistantRouteId(xpert: AssistantXpertLike) {
   return xpert.slug || xpert.id || ''

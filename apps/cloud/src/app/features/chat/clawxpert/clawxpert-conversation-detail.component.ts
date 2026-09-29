@@ -1,19 +1,37 @@
+import { AGENT_WORKBENCH_SLOT, parseWorkbenchViewOpenEvent, type WorkbenchViewOpenEvent } from '@xpert-ai/contracts'
+import { FileChangeReviewComponent } from './file-change-review.component'
+import { createFileChangeReviewTab, upsertFileChangeReviewTab } from './file-change-review.types'
+import {
+  chatProjectCreateRequest,
+  executeChatProjectCreate,
+  type ChatProjectCreateRequest
+} from '../../project/project-chat-create'
+import { openWorkbenchProject } from './workbench-project-navigation'
+import { FileDocumentStore } from '../../../@shared/files/document/file-document-store'
 import { registerAssistantComposerAppendReferencesCommand } from '../../assistant/assistant-composer-client-command'
 import { CommonModule } from '@angular/common'
 import { Dialog } from '@angular/cdk/dialog'
-import { Component, computed, effect, ElementRef, inject, OnDestroy, Signal, signal, viewChild } from '@angular/core'
+import {
+  Component,
+  computed,
+  effect,
+  ElementRef,
+  inject,
+  OnDestroy,
+  signal,
+  untracked,
+  viewChild,
+  viewChildren
+} from '@angular/core'
 import { Router, RouterLink } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ChatKit, type ChatKitControl, type CreateChatKitOptions } from '@xpert-ai/chatkit-angular'
-import type { ChatKitQuoteReference, ChatKitReference, RuntimeCapabilitiesSelection } from '@xpert-ai/chatkit-types'
-import { ASSISTANT_CITATION_OPEN_EVENT, XpertWorkbenchInitialLayoutEnum } from '@xpert-ai/contracts'
+import type { ChatKitReference } from '@xpert-ai/chatkit-types'
 import type {
-  IconDefinition,
-  I18nObject,
+  ProjectSelection,
+  WorkbenchOpenFile,
   TChatElementReference,
-  TChatFileElementReference,
   XpertExtensionViewManifest,
-  WorkbenchAssistantConversationResolution,
   XpertViewQuery,
   XpertViewHostEventMessage,
   XpertViewRuntimeScopeInput
@@ -26,7 +44,7 @@ import {
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
-import type { FileWorkbenchFilePathReferenceRequest, FileWorkbenchReferenceRequest } from '../../../@shared/files'
+import type { FileWorkbenchReferenceRequest } from '../../../@shared/files'
 import { EmojiAvatarComponent, IconComponent } from '../../../@shared/avatar'
 import { ChatSharedTerminalComponent } from '../../../@shared/chat/terminal/terminal.component'
 import { ViewHostEventBus } from '../../../@shared/view-extension/view-host-event-bus.service'
@@ -42,10 +60,10 @@ import {
 } from '../../../@core'
 import {
   registerAssistantChatSendMessageCommand,
-  registerAssistantContextSetCommand,
-  type AssistantContextSetPayload
+  registerAssistantContextSetCommand
 } from '../../assistant/assistant-chat-client-command'
 import { injectHostedAssistantChatkitControl } from '../../assistant/assistant-chatkit.runtime'
+import { createChatkitWorkbenchClientCommandHandler } from '../../assistant/chatkit-workbench-client-command'
 import { createKnowledgebaseCitationOpenHostEvent } from '../../assistant/knowledgebase-citation-effect'
 import { registerWorkbenchFileOpenCommand } from '../../assistant/workbench-file-open-client-command'
 import {
@@ -88,85 +106,92 @@ import {
 } from './clawxpert-task-summary-effect.utils'
 import { ClawXpertFixedViewStackComponent, type ClawXpertFixedViewTab } from './clawxpert-fixed-view-stack.component'
 import { XpertProjectApiService } from '../../project/project-api.service'
+import { WorkbenchArtifactPanelComponent } from './workbench-artifact-panel.component'
+import {
+  fileTabsFromToolEvent,
+  createFileArtifactTab,
+  attachWorkspaceFile,
+  generatedConversationOutputs,
+  generatedOutputKey,
+  releaseArtifactTab,
+  sameArtifact,
+  updateArtifactTab,
+  type WorkbenchArtifactTab
+} from './workbench-artifact-tabs'
+import {
+  CHAT_MINIMIZED_TO_PET_ATTRIBUTE,
+  CHATKIT_DISPLAY_MODE_ATTRIBUTE,
+  CHATKIT_OPEN_ATTRIBUTE,
+  CLAWXPERT_CHATKIT_MIN_WIDTH_PX,
+  CLAWXPERT_CHATKIT_DEFAULT_WIDTH_PX,
+  CLAWXPERT_CHATKIT_MAX_WIDTH_PX,
+  CLAWXPERT_CHAT_COLUMN_MAX_WIDTH,
+  clampChatkitWidth,
+  toConfiguredWorkbenchLayoutState,
+  resolveEmbeddedChatkitElement,
+  isChatkitVisuallyMinimizedToPet
+} from './conversation-detail/chatkit/layout'
+import { installChatkitOverlayDialogControls } from './conversation-detail/chatkit/overlay-controls'
+import { startChatkitPanelResize } from './conversation-detail/chatkit/panel-resize'
+import { createWorkspaceLayoutClasses } from './conversation-detail/chatkit/workspace-layout'
+import { createWorkspacePanelClasses } from './conversation-detail/chatkit/workspace-panels'
+import {
+  CONVERSATION_DETAIL_RELATIONS,
+  type WorkbenchConversationChatkitScope,
+  resolveConversationId,
+  assertWorkbenchConversationHint,
+  hasTaskSummaryRefresh,
+  getOptionalSignalValue,
+  setWritableSignalValue,
+  normalizeConversationThreadId
+} from './conversation-detail/chatkit/conversation'
+import {
+  type AssistantWorkbenchRequestContext,
+  buildAssistantRequestContext,
+  normalizeAssistantWorkbenchContext
+} from './conversation-detail/composer/request-context'
+import {
+  toFileElementQuoteReference,
+  toFilePathQuoteReference,
+  toPageElementQuoteReference,
+  isFileElementReferenceRequest,
+  isFilePathReferenceRequest
+} from './conversation-detail/composer/references'
+import { toSkillTrialRuntimeCapabilities, readNonEmptyString } from './conversation-detail/composer/skill-trial'
+import {
+  type ClawXpertStaticTabId,
+  type ClawXpertAddableWorkspaceTabKind,
+  type ClawXpertWorkspaceTabKind,
+  type ClawXpertToolTab,
+  type ClawXpertWorkspaceTab,
+  type ClawXpertConversationPanel,
+  TASKS_WORKSPACE_TAB_ID
+} from './conversation-detail/workspace/tabs'
+import {
+  type ClawXpertBrowserTab,
+  type ClawXpertBrowserTabChange,
+  DEFAULT_BROWSER_ZOOM,
+  WORKBENCH_BROWSER_OPEN_COMMAND,
+  isMatchingBrowserTab,
+  toWorkbenchBrowserPreviewTarget,
+  readHttpUrl
+} from './conversation-detail/workspace/browser'
+import {
+  DEFAULT_FIXED_VIEW_ICON,
+  type ClawXpertFixedViewMenuItem,
+  initiallyOpenViews,
+  findFixedViewTab,
+  findResolvedViewByKey,
+  resolveI18nText,
+  equalViewQuery
+} from './conversation-detail/workspace/fixed-views'
+import {
+  KNOWLEDGEBASE_WORKBENCH_VIEW_KEY,
+  type KnowledgebaseCitationTarget,
+  getKnowledgebaseCitationTarget
+} from './conversation-detail/citations/knowledgebase'
 
 const WORKSPACE_FILE_REFRESH_DEBOUNCE_MS = 300
-const CONVERSATION_DETAIL_RELATIONS = ['messages']
-const CHAT_MINIMIZED_TO_PET_ATTRIBUTE = 'data-chat-minimized-to-pet'
-const CHATKIT_DISPLAY_MODE_ATTRIBUTE = 'data-display-mode'
-const CHATKIT_OPEN_ATTRIBUTE = 'data-chat-open'
-
-function getChatProjectCreateName(event: { name: string; data?: Record<string, unknown> }): string | null {
-  if (event.name !== 'project.create') {
-    return null
-  }
-
-  const name = event.data?.['name']
-  return typeof name === 'string' && name.trim() ? name.trim() : null
-}
-const CHATKIT_OVERLAY_DRAG_BAR_ATTRIBUTE = 'data-chatkit-overlay-drag-bar'
-const CHATKIT_OVERLAY_RESIZE_HANDLE_ATTRIBUTE = 'data-chatkit-overlay-resize-handle'
-const CHATKIT_OVERLAY_CONTROLS_STYLE_ATTRIBUTE = 'data-chatkit-overlay-controls-style'
-const CLAWXPERT_CHATKIT_MIN_WIDTH_PX = 384
-const CLAWXPERT_CHATKIT_DEFAULT_WIDTH_PX = 460
-const CLAWXPERT_CHATKIT_MAX_WIDTH_PX = 960
-const CLAWXPERT_CHAT_COLUMN_MAX_WIDTH_PX = 840
-const CLAWXPERT_OVERLAY_VIEWPORT_GUTTER_PX = 8
-const CLAWXPERT_OVERLAY_MIN_TOP_PX = 16
-const CLAWXPERT_CHAT_COLUMN_MAX_WIDTH = `${CLAWXPERT_CHAT_COLUMN_MAX_WIDTH_PX}px`
-const WORKSPACE_LAYOUT_TRANSITION_CLASSES =
-  'transition-[grid-template-columns,grid-template-rows,gap] duration-500 ease-out motion-reduce:transition-none'
-const CHAT_SHELL_TRANSITION_CLASSES =
-  'transition-[padding,opacity,border-color,background-color,box-shadow,border-radius] duration-500 ease-out motion-reduce:transition-none'
-const DETAIL_PANEL_SHELL_TRANSITION_CLASSES =
-  'transition-[max-height,opacity,transform] duration-500 ease-out motion-reduce:transition-none will-change-transform'
-const DETAIL_PANEL_CONTENT_TRANSITION_CLASSES =
-  'transition-[opacity,transform] duration-500 ease-out motion-reduce:transition-none will-change-transform'
-const INSPECTED_ELEMENT_ACTION_TARGET_TEXT =
-  'Action target: Apply to THIS inspected element only; do not change the rest of the file/page unless explicitly asked.'
-const AGENT_WORKBENCH_FIXED_SLOT = 'agent.workbench.fixed'
-const KNOWLEDGEBASE_WORKBENCH_VIEW_KEY = 'knowledgebase_workbench'
-const WORKBENCH_BROWSER_OPEN_COMMAND = 'workbench.browser.open'
-const DEFAULT_FIXED_VIEW_ICON = {
-  type: 'font',
-  value: 'ri-layout-grid-line',
-  alt: 'Fixed view'
-} satisfies IconDefinition
-
-type AssistantWorkbenchRequestContext = Omit<AssistantContextSetPayload, 'key' | 'clear'>
-type WorkbenchConversationChatkitScope = WorkbenchAssistantConversationResolution & {
-  hostRouteKey: string
-  requesterXpertId: string
-}
-type ClawXpertStaticTabId = 'files' | 'terminal' | 'tasks'
-type ClawXpertAddableWorkspaceTabKind = ClawXpertStaticTabId | 'browser'
-type ClawXpertWorkspaceTabKind = ClawXpertAddableWorkspaceTabKind | 'fixed-view'
-type ClawXpertToolTab = {
-  id: string
-  kind: ClawXpertStaticTabId
-}
-type ClawXpertBrowserTab = {
-  id: string
-  kind: 'browser'
-  serviceId: string | null
-  url: string | null
-  displayUrl: string | null
-  zoom: number
-  deviceToolbarVisible: boolean
-  reloadKey: number
-}
-type ClawXpertWorkspaceTab = ClawXpertToolTab | ClawXpertBrowserTab | ClawXpertFixedViewTab
-
-type ClawXpertConversationPanel = ClawXpertStaticTabId | 'preview' | 'fixed-view'
-type ClawXpertBrowserTabChange = Partial<Omit<ClawXpertBrowserTab, 'id' | 'kind'>>
-type ClawXpertFixedViewMenuItem = {
-  viewKey: string
-  title: string
-  description: string | null
-  icon: IconDefinition | null
-  order: number
-}
-const DEFAULT_BROWSER_ZOOM = 100
-const TASKS_WORKSPACE_TAB_ID = 'tasks'
 
 @Component({
   standalone: true,
@@ -189,12 +214,21 @@ const TASKS_WORKSPACE_TAB_ID = 'tasks'
     ChatSharedTerminalComponent,
     IconComponent,
     EmojiAvatarComponent,
-    ClawXpertFixedViewStackComponent
+    ClawXpertFixedViewStackComponent,
+    WorkbenchArtifactPanelComponent,
+    FileChangeReviewComponent
   ],
+  providers: [FileDocumentStore],
   templateUrl: './clawxpert-conversation-detail.component.html',
   styleUrl: './clawxpert-conversation-detail.component.css'
 })
 export class ClawXpertConversationDetailComponent implements OnDestroy {
+  #generatedOutputKeys = new Set<string>()
+  #generatedOutputThreadId: string | null = null
+  #generatedOutputRequest = 0
+  #artifactScopeHostId: string | null = null
+  #artifactScopeProjectId: string | null = null
+  #destroyed = false
   readonly #presentation = inject(WorkbenchPresentationService)
   readonly #element = inject<ElementRef<HTMLElement>>(ElementRef)
   readonly #threadService = inject(AiThreadService)
@@ -251,27 +285,32 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly runtimeProjectId = computed(() =>
     this.facade.projectId ? this.projectId() : (this.resolvedConversation()?.projectId ?? null)
   )
-  readonly #projectSelectionEnabled = computed(
-    () =>
-      !this.#workbenchConversationScope() &&
-      Boolean(this.facade.assistantId()?.trim()) &&
-      !this.facade.threadId()?.trim()
+  readonly #projectControlsEnabled = computed(
+    () => !this.#workbenchConversationScope() && Boolean(this.facade.assistantId()?.trim())
   )
+  readonly #projectSelectionEnabled = computed(() => this.#projectControlsEnabled() && !this.facade.threadId()?.trim())
   readonly #hostChatRouteKey = computed(() =>
     JSON.stringify([this.facade.assistantId()?.trim() || null, this.projectId(), this.facade.threadId()])
   )
   readonly #assistantWorkbenchContexts = signal<Record<string, AssistantWorkbenchRequestContext>>({})
+  private executionFocusSequence = 0
+  readonly #executionFocus = signal<{ threadId: string; executionId: string; requestId: string } | null>(null)
   readonly assistantRequestContext = computed(() =>
     buildAssistantRequestContext({
       workspaceId: getOptionalSignalValue(this.facade, 'currentWorkspaceId'),
       xpertId: this.#workbenchConversationScope()?.xpertId ?? this.facade.xpertId(),
-      contexts: this.#assistantWorkbenchContexts()
+      contexts: this.#assistantWorkbenchContexts(),
+      executionFocus: this.#executionFocus()?.threadId === this.activeChatkitThreadId() ? this.#executionFocus() : null
     })
   )
   readonly chatkitAssistantId = computed(() => this.#workbenchConversationScope()?.xpertId ?? this.facade.assistantId())
   readonly chatkitProjectId = computed(() => {
     const scope = this.#workbenchConversationScope()
-    return scope ? scope.projectId : this.projectId()
+    return scope
+      ? scope.projectId
+      : this.facade.chatkitMountProjectId
+        ? this.facade.chatkitMountProjectId()
+        : this.projectId()
   })
   readonly chatkitInitialThread = computed(() => this.#workbenchConversationScope()?.threadId ?? this.facade.threadId())
   readonly chatkitDelegatedConversation = computed(() => {
@@ -295,7 +334,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly activeChatkitThreadId = computed(
     () => this.#workbenchConversationScope()?.threadId ?? this.facade.threadId()
   )
-  readonly agentWorkbenchFixedSlot = AGENT_WORKBENCH_FIXED_SLOT
+  readonly agentWorkbenchFixedSlot = AGENT_WORKBENCH_SLOT
   readonly defaultFixedViewIcon = DEFAULT_FIXED_VIEW_ICON
   readonly startScreen = injectFrequentQuestionsStartScreen({
     xpert: computed(() => this.facade.currentXpert?.() ?? null),
@@ -310,8 +349,13 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     delegatedConversation: this.chatkitDelegatedConversation,
     composer: computed(() => ({
       projects: {
-        enabled: this.#projectSelectionEnabled(),
-        createEnabled: this.#projectSelectionEnabled()
+        enabled: this.#projectControlsEnabled(),
+        createEnabled: this.#projectSelectionEnabled(),
+        selection: this.#workbenchConversationScope() ? undefined : this.facade.chatkitProjectSelection?.(),
+        autoNewEnabled:
+          !this.#workbenchConversationScope() &&
+          this.facade.currentXpert?.()?.options?.workspaceScope?.onMissing === 'create',
+        allowNone: this.facade.currentXpert?.()?.options?.workspaceScope?.mode !== 'project-required'
       },
       connectors: { enabled: true }
     })),
@@ -324,7 +368,25 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     taskSummary: {
       enabled: true
     },
+    // Keep the final reply visible while retaining earlier process messages in an expandable section.
+    messagePresentation: {
+      collapseProcess: true
+    },
     workbench: {
+      // Temporary: enable the embedded Workbench for local ChatKit testing.
+      enabled: true,
+      viewRail: { enabled: true },
+      onClientCommand: createChatkitWorkbenchClientCommandHandler({
+        getScope: () => ({
+          assistantId: this.chatkitAssistantId(),
+          runtimeScope: {
+            projectId: this.chatkitProjectId(),
+            conversationId: this.#workbenchConversationScope()?.conversationId ?? this.resolvedConversationId()
+          }
+        }),
+        views: this.#viewExtensionApi,
+        commands: this.#clientCommands
+      }),
       sideChat: {
         enabled: true
       }
@@ -333,6 +395,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     titleDefault: this.facade.definition.defaultTitle,
     onThreadChange: ({ threadId }) => {
       const normalizedThreadId = normalizeConversationThreadId(threadId)
+      if (this.#executionFocus()?.threadId !== normalizedThreadId) this.#executionFocus.set(null)
       if (this.#workbenchConversationScope()) {
         if (normalizedThreadId) {
           this.#workbenchConversationScope.update((scope) =>
@@ -344,19 +407,20 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       this.#chatkitOriginThreadId = normalizedThreadId
       this.facade.onChatThreadChange(threadId)
     },
-    onProjectChange: ({ projectId }) => {
+    onProjectChange: ({ projectId, selection }: { projectId: string | null; selection?: ProjectSelection }) => {
       if (this.#workbenchConversationScope()) {
         return
       }
-      this.facade.onChatProjectChange?.(projectId)
+      this.facade.onChatProjectChange?.(projectId, undefined, selection)
     },
     onThreadLoadEnd: ({ threadId }) => {
       this.markChatkitThreadRead(threadId)
+      if (threadId && !this.#workbenchConversationScope()) void this.facade.syncConversationProject?.(threadId)
     },
     onEffect: (event) => {
-      const projectName = getChatProjectCreateName(event)
-      if (projectName) {
-        void this.createChatProject(projectName)
+      const projectRequest = chatProjectCreateRequest(event)
+      if (projectRequest) {
+        void this.createChatProject(projectRequest)
         return
       }
       const taskSummaryTarget = getTaskSummaryResourceTarget(event)
@@ -381,6 +445,17 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       }
     },
     onLog: (event) => {
+      if (event.name === 'lg.chat.event') {
+        const request = parseWorkbenchViewOpenEvent(event.data)
+        if (request) {
+          this.pendingViewOpen.set(request)
+          return
+        }
+      }
+      if (event.name === 'lg.conversation.start' && !this.#workbenchConversationScope()) {
+        const threadId = this.activeChatkitThreadId()
+        if (threadId) void this.facade.syncConversationProject?.(threadId)
+      }
       const toolCompletedEvent = createAssistantToolCompletedHostEvent(event, {
         hostType: 'agent',
         hostId: this.facade.xpertId(),
@@ -389,6 +464,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         userId: this.facade.userId()
       })
       if (toolCompletedEvent) {
+        this.openToolArtifacts(toolCompletedEvent)
         console.info('[view-extension] publishing assistant tool completed host event', {
           toolName: toolCompletedEvent.toolName,
           hostType: toolCompletedEvent.hostType,
@@ -406,12 +482,21 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       }
     },
     onResponseStart: () => {
+      ++this.#generatedOutputRequest
+      if (this.#generatedOutputThreadId !== this.activeChatkitThreadId()) this.#generatedOutputKeys.clear()
+      this.#generatedOutputThreadId = this.activeChatkitThreadId()
+      generatedConversationOutputs(this.resolvedConversation()).forEach((output) =>
+        this.#generatedOutputKeys.add(generatedOutputKey(output))
+      )
       this.#responseActive.set(true)
       if (!this.#workbenchConversationScope()) {
         this.facade.patchActiveConversationStatus('busy')
       }
     },
     onResponseEnd: () => {
+      const threadId = this.activeChatkitThreadId()
+      if (threadId && !this.#workbenchConversationScope()) void this.facade.syncConversationProject?.(threadId)
+      void this.openGeneratedOutputs()
       this.#responseActive.set(false)
       if (!this.#workbenchConversationScope()) {
         this.facade.patchActiveConversationStatus('idle')
@@ -421,6 +506,10 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   })
   readonly chatkitMountEntries = computed(() => [{ key: this.chatkitMountKey(), control: this.control()! }])
   readonly workspaceTabs = signal<ClawXpertWorkspaceTab[]>([])
+  readonly artifactTabs = computed(() =>
+    this.workspaceTabs().filter((tab): tab is WorkbenchArtifactTab => tab.kind === 'artifact')
+  )
+  readonly reviewTabs = computed(() => this.workspaceTabs().filter((tab) => tab.kind === 'file-review'))
   readonly browserTabs = computed<ClawXpertBrowserTab[]>(() =>
     this.workspaceTabs().filter((tab): tab is ClawXpertBrowserTab => tab.kind === 'browser')
   )
@@ -451,7 +540,10 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly fixedViewHostId = computed(() => (this.facade.viewState() === 'ready' ? this.facade.xpertId() : null))
   readonly loadingFixedViews = signal(false)
   readonly fixedViewError = signal<string | null>(null)
-  readonly fixedViewMenuItems = signal<ClawXpertFixedViewMenuItem[]>([])
+  readonly availableWorkbenchViews = signal<ClawXpertFixedViewMenuItem[]>([])
+  readonly fixedViewMenuItems = computed(() =>
+    this.availableWorkbenchViews().filter((view) => view.menuEnabled !== false)
+  )
   readonly fixedViewMenuVisible = computed(
     () => this.loadingFixedViews() || Boolean(this.fixedViewError()) || this.fixedViewMenuItems().length > 0
   )
@@ -477,44 +569,11 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly contextLoading = signal(false)
   readonly contextError = signal<string | null>(null)
   readonly isChatMinimizedToPet = signal(false)
+  readonly fileTreeTabs = computed(() => this.workspaceTabs().filter((tab) => tab.kind === 'files'))
+  readonly artifactPanels = viewChildren(WorkbenchArtifactPanelComponent)
   readonly chatkitHost = viewChild('chatkitHost', { read: ElementRef<HTMLElement> })
   readonly detailPanelVisible = signal(false)
   readonly workspaceMaximized = signal(false)
-  readonly chatkitLayoutMode = computed<'pet' | 'overlay' | 'pinned' | 'chat'>(() =>
-    this.isChatMinimizedToPet()
-      ? 'pet'
-      : this.overlayDialog()
-        ? 'overlay'
-        : this.chatkitPinnedToRight()
-          ? 'pinned'
-          : 'chat'
-  )
-  readonly chatkitLayoutModeIconClasses = computed(() => {
-    switch (this.chatkitLayoutMode()) {
-      case 'pet':
-        return 'ri-restart-line text-lg'
-      case 'overlay':
-      case 'chat':
-        return 'ri-layout-right-line text-lg'
-      case 'pinned':
-        return 'ri-picture-in-picture-2-line text-lg'
-    }
-  })
-  readonly chatkitLayoutActionLabel = computed(() => {
-    switch (this.chatkitLayoutMode()) {
-      case 'pet':
-        return this.#translate.instant('XP.Chat.ClawXpert.RestoreChatkit', { Default: 'Restore ChatKit' })
-      case 'overlay':
-      case 'chat':
-        return this.#translate.instant('XP.Chat.ClawXpert.PinOverlayDialog', {
-          Default: 'Pin ChatKit to the right'
-        })
-      case 'pinned':
-        return this.#translate.instant('XP.Chat.ClawXpert.SwitchToOverlayDialog', {
-          Default: 'Switch ChatKit to overlay'
-        })
-    }
-  })
   readonly #workbenchLayoutAssistantId = computed(
     () => this.facade.assistantId()?.trim() || this.facade.xpertId()?.trim() || null
   )
@@ -564,54 +623,13 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       !this.isChatMinimizedToPet() &&
       !this.chatkitHiddenFromWorkspace()
   )
-  readonly workspaceLayoutClasses = computed(() => {
-    const transitionClasses = this.isResizingChatkit() ? 'transition-none' : WORKSPACE_LAYOUT_TRANSITION_CLASSES
-
-    if (this.overlayDialog()) {
-      return `grid h-full min-h-0 grid-cols-1 grid-rows-[minmax(0,1fr)_0rem] ${transitionClasses} lg:grid-cols-[minmax(0,1fr)_0rem] lg:grid-rows-1`
-    }
-
-    if (this.isChatMinimizedToPet()) {
-      return this.showDetailPanel()
-        ? `grid h-full min-h-0 grid-cols-1 grid-rows-[minmax(0,1fr)_0rem] ${transitionClasses} lg:grid-cols-[minmax(0,1fr)_0rem] lg:grid-rows-1`
-        : `grid h-full min-h-0 grid-cols-1 grid-rows-[0rem_0rem] ${transitionClasses} lg:grid-cols-[0rem_0rem] lg:grid-rows-1`
-    }
-
-    if (this.chatkitHiddenFromWorkspace()) {
-      return `grid h-full min-h-0 grid-cols-1 grid-rows-[minmax(0,1fr)_0rem] ${transitionClasses} lg:grid-cols-[minmax(0,1fr)_0rem] lg:grid-rows-1`
-    }
-
-    return this.showDetailPanel()
-      ? `grid h-full min-h-0 grid-cols-1 grid-rows-[minmax(0,1fr)_minmax(24rem,32rem)] ${transitionClasses} lg:grid-cols-[minmax(0,1fr)_minmax(24rem,var(--clawxpert-chatkit-width))] lg:grid-rows-1`
-      : `grid h-full min-h-0 grid-cols-1 grid-rows-[0rem_minmax(0,1fr)] ${transitionClasses} lg:grid-cols-[0rem_minmax(0,1fr)] lg:grid-rows-1`
-  })
-  readonly detailPanelShellClasses = computed(() =>
-    this.showDetailPanel()
-      ? `min-h-0 min-w-0 overflow-hidden ${DETAIL_PANEL_SHELL_TRANSITION_CLASSES} max-h-[120rem] translate-y-0 opacity-100 lg:translate-x-0 lg:translate-y-0`
-      : `pointer-events-none min-h-0 min-w-0 overflow-hidden ${DETAIL_PANEL_SHELL_TRANSITION_CLASSES} max-h-0 -translate-y-4 opacity-0 lg:max-h-none lg:-translate-x-6 lg:translate-y-0`
-  )
-  readonly detailPanelContentClasses = computed(() =>
-    this.showDetailPanel()
-      ? `flex h-full min-h-0 flex-col overflow-hidden ${DETAIL_PANEL_CONTENT_TRANSITION_CLASSES} translate-y-0 opacity-100 lg:translate-x-0 lg:translate-y-0`
-      : `pointer-events-none flex h-full min-h-0 flex-col overflow-hidden ${DETAIL_PANEL_CONTENT_TRANSITION_CLASSES} -translate-y-3 opacity-0 lg:-translate-x-3 lg:translate-y-0`
-  )
-  readonly chatShellClasses = computed(() => {
-    if (this.overlayDialog()) {
-      return `relative min-h-0 min-w-0 overflow-visible p-0 ${CHAT_SHELL_TRANSITION_CLASSES} lg:w-0 lg:max-w-0 lg:justify-self-end`
-    }
-
-    if (this.chatkitHiddenFromWorkspace()) {
-      if (this.isChatMinimizedToPet()) {
-        return `relative min-h-0 min-w-0 overflow-visible p-0 ${CHAT_SHELL_TRANSITION_CLASSES} lg:w-0 lg:max-w-0 lg:justify-self-end`
-      }
-
-      return `pointer-events-none relative min-h-0 min-w-0 overflow-hidden p-0 opacity-0 ${CHAT_SHELL_TRANSITION_CLASSES} lg:w-0 lg:max-w-0 lg:justify-self-end`
-    }
-
-    return this.showDetailPanel()
-      ? `relative min-h-0 min-w-0 opacity-100 ${CHAT_SHELL_TRANSITION_CLASSES} lg:w-full lg:max-w-[var(--clawxpert-chatkit-width)] lg:justify-self-end`
-      : `relative min-h-0 min-w-0 rounded-none border border-transparent bg-transparent shadow-none opacity-100 ${CHAT_SHELL_TRANSITION_CLASSES} lg:w-full`
-  })
+  readonly workspaceLayoutClasses = createWorkspaceLayoutClasses(this)
+  readonly narrowChatSidebarCollapsed = signal(false)
+  readonly chatSidebarOpenerElement = viewChild('chatSidebarOpener', { read: ElementRef<HTMLButtonElement> })
+  private readonly workspacePanels = createWorkspacePanelClasses(this)
+  readonly detailPanelShellClasses = this.workspacePanels.detailPanelShellClasses
+  readonly detailPanelContentClasses = this.workspacePanels.detailPanelContentClasses
+  readonly chatShellClasses = this.workspacePanels.chatShellClasses
   readonly chatSurfaceClasses = computed(() =>
     this.showChatkitResizeHandle() ? 'bg-components-card-bg border-l border-border' : ''
   )
@@ -653,13 +671,14 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     })
     this.#unregisterFileOpenCommand = registerWorkbenchFileOpenCommand(this.#clientCommands, {
       openFile: (file) => {
-        openWorkbenchFilePreviewDialog(this.#dialog, file)
+        if (file.evidence) openWorkbenchFilePreviewDialog(this.#dialog, file)
+        else this.openFileArtifact(file)
       }
     })
     this.#unregisterNavigationOpenCommand = registerWorkbenchNavigationOpenCommand(this.#clientCommands, {
       navigate: (commands, options) => this.#router.navigate(commands, options),
       openAssistantConversation: (request) => this.openWorkbenchAssistantConversation(request),
-      openAssistantProject: ({ projectId }) => this.facade.onChatProjectChange?.(projectId),
+      openAssistantProject: (request) => openWorkbenchProject(request, this.availableWorkbenchViews(), this.facade),
       openWorkbenchView: (request) => this.openWorkbenchView(request)
     })
 
@@ -785,6 +804,11 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     effect((onCleanup) => {
       const hostId = this.fixedViewHostId()
       const runtimeScope = this.viewRuntimeScope()
+      if (hostId !== this.#artifactScopeHostId || (runtimeScope.projectId ?? null) !== this.#artifactScopeProjectId) {
+        this.#artifactScopeHostId = hostId
+        this.#artifactScopeProjectId = runtimeScope.projectId ?? null
+        this.clearArtifactTabs()
+      }
       const scopeKey = `${runtimeScope.projectId ?? 'personal'}:${runtimeScope.conversationId ?? 'new'}`
       if (!hostId) {
         this.#fixedViewsHostId = null
@@ -837,6 +861,11 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
           return
         }
 
+        const available = findResolvedViewByKey(this.availableWorkbenchViews(), requestedViewKey)
+        if (available) {
+          untracked(() => this.openFixedViewTab(available))
+          return
+        }
         const fallbackTab = findFixedViewTab(fixedTabs, this.facade.defaultViewKey()) ?? fixedTabs[0]
         if (fallbackTab) {
           this.activateWorkspaceTab(fallbackTab.id, 'none')
@@ -1049,6 +1078,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   }
 
   ngOnDestroy() {
+    this.#destroyed = true
+    ++this.#generatedOutputRequest
+    this.artifactTabs().forEach(releaseArtifactTab)
     this.#unregisterComposerCommand?.()
     this.#unregisterComposerCommand = null
     this.#unregisterAssistantCommand?.()
@@ -1131,22 +1163,6 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     this.openDetailPanel()
   }
 
-  toggleChatkitLayoutMode() {
-    switch (this.chatkitLayoutMode()) {
-      case 'pet':
-        this.restoreChatkitFromPet()
-        return
-      case 'overlay':
-        this.pinOverlayChatkit()
-        return
-      case 'pinned':
-        this.restoreOverlayChatkit()
-        return
-      case 'chat':
-        this.restoreWorkbenchLayout()
-    }
-  }
-
   toggleWorkbenchMaximized() {
     if (this.immersiveWorkbench()) {
       this.restoreWorkbenchLayout(false)
@@ -1209,36 +1225,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     }
   }
 
-  pinOverlayChatkit() {
-    if (!this.overlayDialog()) {
-      return
-    }
-
-    this.#pendingInitialOverlayOpen = false
-    this.chatkitPinnedToRight.set(true)
-    this.overlayDialog.set(false)
-    this.detailPanelVisible.set(true)
-    this.workspaceMaximized.set(false)
-  }
-
-  restoreOverlayChatkit() {
-    if (!this.chatkitPinnedToRight()) {
-      return
-    }
-
-    this.#pendingInitialOverlayOpen = true
-    this.chatkitPinnedToRight.set(false)
-    this.overlayDialog.set(true)
-    this.detailPanelVisible.set(true)
-    this.workspaceMaximized.set(false)
-
-    const chatkitHost = this.chatkitHost()?.nativeElement
-    if (chatkitHost) {
-      this.openInitialOverlayDialog(resolveEmbeddedChatkitElement(chatkitHost))
-    }
-  }
-
-  private restoreChatkitFromPet() {
+  restoreChatkitFromPet() {
     const chatkitHost = this.chatkitHost()?.nativeElement
     if (!chatkitHost) {
       return
@@ -1292,41 +1279,15 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
     event.preventDefault()
     this.stopChatkitResize()
-
-    const startX = event.clientX
-    const startWidth = this.chatkitWidthPx()
-    const previousCursor = document.body.style.cursor
-    const previousUserSelect = document.body.style.userSelect
-    const target = event.currentTarget
-
-    if (target instanceof HTMLElement && typeof target.setPointerCapture === 'function') {
-      target.setPointerCapture(event.pointerId)
-    }
-
-    const handlePointerMove = (moveEvent: PointerEvent) => {
-      moveEvent.preventDefault()
-      this.chatkitWidthPx.set(clampChatkitWidth(startWidth + startX - moveEvent.clientX))
-    }
-
-    const handlePointerEnd = () => {
-      this.stopChatkitResize()
-    }
-
-    document.body.style.cursor = 'col-resize'
-    document.body.style.userSelect = 'none'
     this.isResizingChatkit.set(true)
-    window.addEventListener('pointermove', handlePointerMove)
-    window.addEventListener('pointerup', handlePointerEnd, { once: true })
-    window.addEventListener('pointercancel', handlePointerEnd, { once: true })
-
-    this.#chatkitResizeCleanup = () => {
-      window.removeEventListener('pointermove', handlePointerMove)
-      window.removeEventListener('pointerup', handlePointerEnd)
-      window.removeEventListener('pointercancel', handlePointerEnd)
-      document.body.style.cursor = previousCursor
-      document.body.style.userSelect = previousUserSelect
-      this.isResizingChatkit.set(false)
-    }
+    this.#chatkitResizeCleanup = startChatkitPanelResize(event, this.chatkitWidthPx(), {
+      onWidth: (width) => this.chatkitWidthPx.set(width),
+      onEnd: () => {
+        this.isResizingChatkit.set(false)
+        this.#chatkitResizeCleanup = null
+      },
+      onMaximize: () => this.toggleWorkbenchMaximized()
+    })
   }
 
   resizeChatkitFromKeyboard(event: Event, delta: number) {
@@ -1520,6 +1481,16 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       await control.setThreadId(resolution.threadId)
       this.facade.onChatThreadChange(resolution.threadId)
     }
+    // Reuse ChatKit's exact execution focus after the authorized thread is active.
+    this.#executionFocus.set(
+      request.executionId
+        ? {
+            threadId: resolution.threadId,
+            executionId: request.executionId,
+            requestId: String(++this.executionFocusSequence)
+          }
+        : null
+    )
     this.markConversationRead(resolution.conversationId)
     return resolution
   }
@@ -1546,8 +1517,107 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     return tab
   }
 
+  openArtifactTab(tab: WorkbenchArtifactTab) {
+    tab = attachWorkspaceFile(tab, this.facade.xpertId(), this.resolvedConversationId(), this.runtimeProjectId())
+    const previous = this.artifactTabs().find((item) => sameArtifact(item, tab))
+    const panel = previous && this.artifactPanels().find((panel) => panel.tab().id === previous.id)
+    if (previous && panel && (panel.document.dirty() || panel.document.saving())) {
+      if (tab.resource.objectUrl !== previous.resource.objectUrl) releaseArtifactTab(tab)
+      this.activateWorkspaceTab(previous.id, 'replace')
+      return
+    }
+    const next = previous ? updateArtifactTab(previous, tab) : tab
+    this.workspaceTabs.update((tabs) =>
+      previous ? tabs.map((item) => (item.id === previous.id ? next : item)) : [...tabs, next]
+    )
+    this.activateWorkspaceTab(next.id, 'replace')
+  }
+
+  openFilesTab() {
+    const existing = this.fileTreeTabs()[0]
+    if (existing) this.activateWorkspaceTab(existing.id, 'push')
+    else this.addWorkspaceTab('files')
+  }
+
+  private openFileArtifact(file: WorkbenchOpenFile, objectUrl?: string, resourceId?: string) {
+    this.openArtifactTab(
+      createFileArtifactTab(file, this.fixedViewHostId() ?? '', this.viewRuntimeScope(), objectUrl, resourceId)
+    )
+  }
+
+  private openToolArtifacts(event: XpertViewHostEventMessage) {
+    if (event.hostId !== this.fixedViewHostId() || event.threadId !== this.activeChatkitThreadId()) return
+    for (const tab of fileTabsFromToolEvent(event, this.viewRuntimeScope())) this.openArtifactTab(tab)
+  }
+
+  private async openGeneratedOutputs() {
+    const threadId = this.activeChatkitThreadId()
+    const hostId = this.fixedViewHostId()
+    const projectId = this.runtimeProjectId()
+    const request = ++this.#generatedOutputRequest
+    if (!threadId || !hostId) return
+    try {
+      const base =
+        this.resolvedConversationId() ?? (await firstValueFrom(this.#conversationService.getByThreadId(threadId)))?.id
+      if (!base) return
+      const conversation = await this.loadConversationDetail(base)
+      if (
+        request !== this.#generatedOutputRequest ||
+        threadId !== this.activeChatkitThreadId() ||
+        hostId !== this.fixedViewHostId() ||
+        projectId !== this.runtimeProjectId()
+      )
+        return
+      this.#generatedOutputThreadId = threadId
+      for (const output of generatedConversationOutputs(conversation)) {
+        if (
+          request !== this.#generatedOutputRequest ||
+          threadId !== this.activeChatkitThreadId() ||
+          hostId !== this.fixedViewHostId() ||
+          projectId !== this.runtimeProjectId()
+        )
+          return
+        const key = generatedOutputKey(output)
+        if (this.#generatedOutputKeys.has(key)) continue
+        this.#generatedOutputKeys.add(key)
+        const target = getTaskSummaryResourceTarget({
+          name: 'task_summary.open_resource',
+          data: {
+            conversationId: base,
+            title: output.title,
+            resource: output.resource
+          }
+        })
+        if (target) await this.openTaskSummaryResource(target)
+      }
+    } catch {
+      // The response remains usable when its persisted outputs have not arrived yet.
+    }
+  }
+
+  private readonly pendingViewOpen = signal<WorkbenchViewOpenEvent | null>(null)
+  private readonly openRequestedView = effect(() => {
+    const request = this.pendingViewOpen()
+    if (!request || this.loadingFixedViews()) return
+    const scope = this.viewRuntimeScope()
+    // Project views intentionally omit conversationId from their stable data
+    // scope. Validate navigation against the active conversation instead.
+    const conversationId = this.resolvedConversationId()
+    if (request.projectId === scope.projectId && request.conversationId && !conversationId) return
+    if (
+      request.projectId !== scope.projectId ||
+      (request.conversationId && request.conversationId !== conversationId)
+    ) {
+      this.pendingViewOpen.set(null)
+      return
+    }
+    const available = findResolvedViewByKey(this.availableWorkbenchViews(), request.viewKey)
+    if (available) untracked(() => this.openWorkbenchView(request))
+    this.pendingViewOpen.set(null)
+  })
+
   openWorkbenchView(request: WorkbenchExtensionViewOpenRequest) {
-    const menuItem = findResolvedViewByKey(this.fixedViewMenuItems(), request.viewKey)
+    const menuItem = findResolvedViewByKey(this.availableWorkbenchViews(), request.viewKey)
     if (!menuItem) throw new Error(`Workbench view '${request.viewKey}' is not available.`)
     const resolvedViewKey = menuItem.viewKey
     const query: XpertViewQuery = {
@@ -1588,6 +1658,15 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     event.preventDefault()
     event.stopPropagation()
 
+    const panel = this.artifactPanels().find((panel) => panel.tab().id === tabId)
+    if (panel) {
+      void panel.document.guardDirtyBefore(() => this.removeWorkspaceTab(tabId))
+      return
+    }
+    this.removeWorkspaceTab(tabId)
+  }
+
+  private removeWorkspaceTab(tabId: string) {
     const tabs = this.workspaceTabs()
     const closedIndex = tabs.findIndex((tab) => tab.id === tabId)
     if (closedIndex < 0) {
@@ -1595,6 +1674,8 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     }
 
     const nextTabs = tabs.filter((tab) => tab.id !== tabId)
+    const closedTab = tabs[closedIndex]
+    if (closedTab.kind === 'artifact') releaseArtifactTab(closedTab)
     this.workspaceTabs.set(nextTabs)
     if (this.activeTabId() !== tabId && nextTabs.length > 0) {
       return
@@ -1649,6 +1730,14 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   }
 
   private async openTaskSummaryResource(target: ClawXpertTaskSummaryResourceTarget) {
+    const hostId = this.fixedViewHostId()
+    const threadId = this.activeChatkitThreadId()
+    const projectId = this.runtimeProjectId()
+    const isCurrent = () =>
+      !this.#destroyed &&
+      hostId === this.fixedViewHostId() &&
+      threadId === this.activeChatkitThreadId() &&
+      projectId === this.runtimeProjectId()
     try {
       const currentConversationId = this.resolvedConversationId() ?? this.resolvedConversation()?.id ?? null
       if (target.conversationId && currentConversationId && target.conversationId !== currentConversationId) {
@@ -1663,32 +1752,52 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
           const file = await firstValueFrom(
             this.#conversationService.getFile(conversationId, target.workspacePath, undefined, target.fileAssetId, true)
           )
+          if (!isCurrent()) return
           let objectUrl: string | null = null
           let url = readHttpUrl(file.fileUrl ?? file.url)
           if (!url) {
             const blob = await firstValueFrom(
               this.#conversationService.downloadFile(conversationId, target.workspacePath)
             )
+            if (!isCurrent()) return
             objectUrl = URL.createObjectURL(blob)
             url = objectUrl
           }
-          const dialogRef = openWorkbenchFilePreviewDialog(this.#dialog, {
-            id: target.fileAssetId,
-            fileAssetId: target.fileAssetId,
-            storageFileId: target.storageFileId,
-            name: target.title ?? target.workspacePath.split('/').pop() ?? target.workspacePath,
-            mimeType: file.mimeType,
-            size: file.size,
-            url,
-            previewUrl: url
-          })
-          if (objectUrl) {
-            dialogRef.closed.subscribe(() => URL.revokeObjectURL(objectUrl))
-          }
+          this.openFileArtifact(
+            {
+              id: target.fileAssetId,
+              fileAssetId: target.fileAssetId,
+              storageFileId: target.storageFileId,
+              name: target.title ?? target.workspacePath.split('/').pop() ?? target.workspacePath,
+              mimeType: file.mimeType,
+              size: file.size,
+              url,
+              previewUrl: url
+            },
+            objectUrl ?? undefined,
+            target.workspacePath
+          )
+          return
+        }
+        case 'file_change':
+        case 'file_change_set': {
+          const tab = createFileChangeReviewTab(threadId, conversationId, target)
+          this.workspaceTabs.update((tabs) => upsertFileChangeReviewTab(tabs, tab))
+          this.activateWorkspaceTab(tab.id, 'replace')
           return
         }
         case 'artifact': {
-          const link = await firstValueFrom(this.#artifactService.createSignedPreviewLink(target.artifactId))
+          const link = await firstValueFrom(
+            target.artifactVersionId
+              ? this.#artifactService.createSignedVersionPreviewLink(
+                  target.artifactId,
+                  target.artifactVersionId,
+                  300,
+                  true
+                )
+              : this.#artifactService.createSignedPreviewLink(target.artifactId)
+          )
+          if (!isCurrent()) return
           const url = readHttpUrl(link.publicUrl)
           if (!url) {
             throw new Error('Artifact preview URL is unavailable.')
@@ -1696,11 +1805,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
           const version = link.version ?? link.artifact?.currentVersion ?? null
           const mimeType = version?.mimeType ?? undefined
           const title = target.title ?? version?.title ?? link.artifact?.title ?? version?.fileName ?? 'Artifact'
-          if (mimeType === 'text/html') {
-            this.openBrowserTabFromSandboxEvent({ displayUrl: title, url })
-            return
-          }
-          openWorkbenchFilePreviewDialog(this.#dialog, {
+          this.openFileArtifact({
             id: link.artifactId,
             name: title,
             mimeType,
@@ -1727,7 +1832,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         }
       }
     } catch (error) {
-      this.#toastr.error(getErrorMessage(error) || 'Failed to open task summary resource.')
+      if (isCurrent()) this.#toastr.error(getErrorMessage(error) || 'Failed to open task summary resource.')
     }
   }
 
@@ -1752,7 +1857,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     return `${kind}-${Date.now()}-${this.workspaceTabs().length + 1}`
   }
 
-  private async createChatProject(name: string) {
+  private async createChatProject(request: ChatProjectCreateRequest) {
     const assistantId = this.facade.assistantId()?.trim()
     if (!assistantId || this.facade.threadId()?.trim() || this.#projectCreatePending) {
       return
@@ -1760,13 +1865,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
     this.#projectCreatePending = true
     try {
-      const project = await firstValueFrom(
-        this.#projectApi.create({
-          name,
-          xpertIds: [assistantId]
-        })
+      await executeChatProjectCreate(this.#projectApi, this.#router, request, assistantId, (projectId) =>
+        this.facade.onChatProjectChange?.(projectId)
       )
-      this.facade.onChatProjectChange?.(project.id)
     } catch (error) {
       this.#toastr.error(getErrorMessage(error) || 'Failed to create the Project.')
     } finally {
@@ -1781,26 +1882,26 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
     try {
       const manifests = await firstValueFrom(
-        this.#viewExtensionApi.getSlotViews('agent', hostId, AGENT_WORKBENCH_FIXED_SLOT, { runtimeScope })
+        this.#viewExtensionApi.getSlotViews('agent', hostId, AGENT_WORKBENCH_SLOT, { runtimeScope })
       )
       if (isCancelled() || version !== this.#fixedViewsLoadVersion || this.#fixedViewsHostId !== hostId) {
         return
       }
 
       const items = manifests
-        .filter((manifest) => shouldShowFixedViewInMenu(manifest))
+        .filter((manifest) => manifest.visible !== false)
         .map((manifest) => this.toFixedViewMenuItem(manifest))
         .sort((a, b) => a.order - b.order)
 
-      this.fixedViewMenuItems.set(items)
+      this.availableWorkbenchViews.set(items)
       this.syncFixedViewTabs(items)
     } catch (error) {
       if (isCancelled() || version !== this.#fixedViewsLoadVersion || this.#fixedViewsHostId !== hostId) {
         return
       }
 
-      this.fixedViewError.set(getErrorMessage(error) || 'Failed to load fixed views')
-      this.fixedViewMenuItems.set([])
+      this.fixedViewError.set(getErrorMessage(error) || 'Failed to load Workbench views')
+      this.availableWorkbenchViews.set([])
     } finally {
       if (!isCancelled() && version === this.#fixedViewsLoadVersion && this.#fixedViewsHostId === hostId) {
         this.loadingFixedViews.set(false)
@@ -1809,13 +1910,25 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   }
 
   private resetFixedViews(removeTabs: boolean) {
+    if (removeTabs) this.clearArtifactTabs()
     this.#fixedViewsLoadVersion += 1
     this.loadingFixedViews.set(false)
     this.fixedViewError.set(null)
-    this.fixedViewMenuItems.set([])
+    this.availableWorkbenchViews.set([])
     if (removeTabs) {
       this.removeFixedViewTabs()
     }
+  }
+
+  private clearArtifactTabs() {
+    untracked(() => {
+      const artifacts = this.artifactTabs()
+      if (!artifacts.length && !this.reviewTabs().length) return
+      artifacts.forEach(releaseArtifactTab)
+      const tabs = this.workspaceTabs().filter((tab) => tab.kind !== 'artifact' && tab.kind !== 'file-review')
+      this.workspaceTabs.set(tabs)
+      if (!tabs.some((tab) => tab.id === this.activeTabId())) this.activeTabId.set(tabs[0]?.id ?? '')
+    })
   }
 
   private removeFixedViewTabs() {
@@ -1837,7 +1950,11 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     const fixedTabsByViewKey = new Map(
       tabs.filter((tab): tab is ClawXpertFixedViewTab => tab.kind === 'fixed-view').map((tab) => [tab.viewKey, tab])
     )
-    const nextFixedTabs = items.map((item) => {
+    const nextFixedTabs = initiallyOpenViews(
+      items,
+      [...fixedTabsByViewKey.keys()],
+      this.#workbenchViewUrlState.viewKey()
+    ).map((item) => {
       const tab = fixedTabsByViewKey.get(item.viewKey)
       if (!tab) {
         return this.createFixedViewTab(item)
@@ -1898,7 +2015,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     if (target.faqId || target.wikiPageId || !target.documentId) {
       return false
     }
-    const menuItem = findResolvedViewByKey(this.fixedViewMenuItems(), KNOWLEDGEBASE_WORKBENCH_VIEW_KEY)
+    const menuItem = findResolvedViewByKey(this.availableWorkbenchViews(), KNOWLEDGEBASE_WORKBENCH_VIEW_KEY)
     if (!menuItem) {
       return false
     }
@@ -1988,6 +2105,8 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     const menu = manifest.workbench?.menu
     return {
       viewKey: manifest.key,
+      menuEnabled: menu?.enabled,
+      ...(manifest.workbench?.openMode ? { openMode: manifest.workbench.openMode } : {}),
       title: resolveI18nText(menu?.label ?? manifest.title, manifest.key, this.#translate.currentLang),
       description: resolveI18nText(manifest.description, '', this.#translate.currentLang) || null,
       icon: menu?.icon ?? manifest.icon ?? null,
@@ -2046,26 +2165,11 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   }
 
   private scheduleWorkspaceFileListRefresh() {
-    this.openDetailPanelForWorkspaceFileEvent()
     this.clearScheduledWorkspaceFileListRefresh()
     this.#workspaceFileRefreshTimer = setTimeout(() => {
       this.#workspaceFileRefreshTimer = null
       this.fileListReloadKey.update((value) => value + 1)
     }, WORKSPACE_FILE_REFRESH_DEBOUNCE_MS)
-  }
-
-  private openDetailPanelForWorkspaceFileEvent() {
-    const filesTab = this.workspaceTabs().find((tab) => tab.kind === 'files')
-    if (filesTab) {
-      if (!this.showDetailPanel()) {
-        this.activateWorkspaceTab(filesTab.id, 'push')
-        return
-      }
-      this.openDetailPanel()
-      return
-    }
-
-    this.addWorkspaceTab('files')
   }
 
   private clearScheduledWorkspaceFileListRefresh() {
@@ -2121,6 +2225,12 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
       const conversation = await this.loadConversationDetail(conversationId)
       if (isCancelled() || this.facade.threadId() !== threadId) {
+        return
+      }
+
+      const latestThreadId = normalizeConversationThreadId(conversation?.threadId ?? baseConversation?.threadId)
+      if (latestThreadId && latestThreadId !== threadId && !this.#workbenchConversationScope()) {
+        this.facade.onChatThreadChange(latestThreadId)
         return
       }
 
@@ -2236,803 +2346,4 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
     void firstValueFrom(this.#conversationService.markRead(conversationId)).catch(() => undefined)
   }
-}
-
-function resolveConversationId(metadata?: { id?: string }) {
-  const conversationId = metadata?.id
-  return typeof conversationId === 'string' && conversationId.trim() ? conversationId : null
-}
-
-function assertWorkbenchConversationHint(label: string, hint: string | undefined, canonical: string | null) {
-  const normalizedHint = hint?.trim()
-  if (normalizedHint && normalizedHint !== canonical) {
-    throw new Error(`The requested ${label} does not match the authorized Assistant conversation.`)
-  }
-}
-
-function clampChatkitWidth(width: number) {
-  return Math.min(CLAWXPERT_CHATKIT_MAX_WIDTH_PX, Math.max(CLAWXPERT_CHATKIT_MIN_WIDTH_PX, Math.round(width)))
-}
-
-function toConfiguredWorkbenchLayoutState(
-  layout: XpertWorkbenchInitialLayoutEnum | null
-): ClawXpertWorkbenchLayoutState | null {
-  if (layout === null) {
-    return 'minimized'
-  }
-  if (layout === XpertWorkbenchInitialLayoutEnum.TwoColumns) {
-    return 'normal'
-  }
-  if (layout === XpertWorkbenchInitialLayoutEnum.OverlayDialog) {
-    return 'overlay'
-  }
-  if (layout === XpertWorkbenchInitialLayoutEnum.ChatkitMaximized) {
-    return 'minimized'
-  }
-  if (layout === XpertWorkbenchInitialLayoutEnum.WorkbenchMaximized) {
-    return 'maximized'
-  }
-  return null
-}
-
-function isMatchingBrowserTab(tab: ClawXpertBrowserTab, target: ClawXpertSandboxPreviewTarget) {
-  if (typeof target.serviceId === 'string' && target.serviceId.trim() && tab.serviceId === target.serviceId) {
-    return true
-  }
-
-  const targetUrl = target.url ?? target.displayUrl
-  return typeof targetUrl === 'string' && targetUrl.trim()
-    ? tab.url === targetUrl || tab.displayUrl === targetUrl
-    : false
-}
-
-function toWorkbenchBrowserPreviewTarget(payload: unknown): ClawXpertSandboxPreviewTarget | null {
-  if (typeof payload === 'string' && payload.trim()) {
-    const url = payload.trim()
-    return {
-      displayUrl: url,
-      url
-    }
-  }
-
-  if (!isPreviewPayloadRecord(payload)) {
-    return null
-  }
-
-  const url =
-    readPreviewPayloadString(payload, 'url') ??
-    readPreviewPayloadString(payload, 'displayUrl') ??
-    readPreviewPayloadString(payload, 'deploymentUrl') ??
-    readPreviewPayloadString(payload, 'previewUrl')
-  if (!url) {
-    return null
-  }
-
-  return {
-    displayUrl: readPreviewPayloadString(payload, 'displayUrl') ?? url,
-    url
-  }
-}
-
-function readPreviewPayloadString(payload: Record<string, unknown>, key: string) {
-  const value = payload[key]
-  return typeof value === 'string' && value.trim() ? value.trim() : null
-}
-
-function isPreviewPayloadRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === 'object' && !Array.isArray(value))
-}
-
-function shouldShowFixedViewInMenu(manifest: XpertExtensionViewManifest) {
-  if (manifest.visible === false) {
-    return false
-  }
-  if (manifest.workbench?.fixed === false) {
-    return false
-  }
-  return manifest.workbench?.menu?.enabled !== false
-}
-
-function findFixedViewTab(tabs: ClawXpertFixedViewTab[], viewKey: string | null | undefined) {
-  return findResolvedViewByKey(tabs, viewKey)
-}
-
-function findResolvedViewByKey<T extends { viewKey: string }>(items: T[], viewKey: string | null | undefined) {
-  const normalizedViewKey = viewKey?.trim()
-  if (!normalizedViewKey) {
-    return undefined
-  }
-
-  const exact = items.find((item) => item.viewKey === normalizedViewKey)
-  if (exact) {
-    return exact
-  }
-
-  const aliases = items.filter((item) => item.viewKey.endsWith(`__${normalizedViewKey}`))
-  return aliases.length === 1 ? aliases[0] : undefined
-}
-
-type KnowledgebaseCitationTarget = {
-  knowledgebaseId?: string
-  documentId?: string
-  faqId?: string
-  wikiPageId?: string
-  section?: string
-  chunkId?: string
-  page?: number
-  sourceBlockIds?: string[]
-  evidenceText?: string
-}
-
-function getKnowledgebaseCitationTarget(event: XpertViewHostEventMessage): KnowledgebaseCitationTarget | null {
-  if (event.type !== ASSISTANT_CITATION_OPEN_EVENT || !event.data) {
-    return null
-  }
-
-  const documentId = getString(event.data['documentId'])
-  const faqId = getString(event.data['faqId'])
-  const wikiPageId = getString(event.data['wikiPageId'])
-  if (!documentId && !faqId && !wikiPageId) {
-    return null
-  }
-
-  const knowledgebaseId = getString(event.data['knowledgebaseId'])
-  const chunkId = getString(event.data['chunkId'])
-  const evidenceText = getString(event.data['evidenceText'])
-  const section = getString(event.data['section'])
-  const pageValue = event.data['page']
-  const parsedPage = typeof pageValue === 'number' ? pageValue : typeof pageValue === 'string' ? Number(pageValue) : 0
-  const page = Number.isInteger(parsedPage) && parsedPage > 0 ? parsedPage : undefined
-  const sourceBlockIdsValue = event.data['sourceBlockIds']
-  const sourceBlockIds = Array.isArray(sourceBlockIdsValue)
-    ? sourceBlockIdsValue
-        .filter((item): item is string => typeof item === 'string')
-        .map((item) => item.trim())
-        .filter(Boolean)
-        .slice(0, 20)
-    : []
-
-  return {
-    ...(documentId ? { documentId } : {}),
-    ...(faqId ? { faqId } : {}),
-    ...(wikiPageId ? { wikiPageId } : {}),
-    ...(section ? { section } : {}),
-    ...(knowledgebaseId ? { knowledgebaseId } : {}),
-    ...(chunkId ? { chunkId } : {}),
-    ...(page ? { page } : {}),
-    ...(sourceBlockIds.length ? { sourceBlockIds } : {}),
-    ...(evidenceText ? { evidenceText } : {})
-  }
-}
-
-function hasTaskSummaryRefresh(
-  facade: WorkbenchChatFacade
-): facade is WorkbenchChatFacade & { refreshTaskSummaries(): void } {
-  return 'refreshTaskSummaries' in facade && typeof facade.refreshTaskSummaries === 'function'
-}
-
-function getOptionalSignalValue<T extends string>(facade: WorkbenchChatFacade, key: T): string | null {
-  const value = (facade as WorkbenchChatFacade & Record<T, Signal<unknown> | undefined>)[key]
-  if (typeof value !== 'function') {
-    return null
-  }
-  return getString(value()) ?? null
-}
-
-function buildAssistantRequestContext(input: {
-  workspaceId: string | null
-  xpertId: string | null
-  contexts: Record<string, AssistantWorkbenchRequestContext>
-}) {
-  const env: Record<string, string> = {}
-  if (input.workspaceId) {
-    env['workspaceId'] = input.workspaceId
-  }
-  if (input.xpertId) {
-    env['xpertId'] = input.xpertId
-  }
-
-  const requestContext: Record<string, unknown> = {}
-  for (const [key, context] of Object.entries(input.contexts)) {
-    Object.assign(env, normalizeAssistantEnv(context.env))
-    if (isRecord(context.context)) {
-      requestContext[key] = context.context
-    }
-  }
-
-  if (Object.keys(env).length) {
-    requestContext['env'] = env
-  }
-
-  return requestContext
-}
-
-function normalizeAssistantWorkbenchContext(
-  context: AssistantWorkbenchRequestContext
-): AssistantWorkbenchRequestContext {
-  const env = normalizeAssistantEnv(context.env)
-  const structuredContext = isRecord(context.context) ? context.context : undefined
-  return {
-    ...(Object.keys(env).length ? { env } : {}),
-    ...(structuredContext ? { context: structuredContext } : {})
-  }
-}
-
-function normalizeAssistantEnv(env: unknown): Record<string, string> {
-  if (!isRecord(env)) {
-    return {}
-  }
-
-  return Object.fromEntries(
-    Object.entries(env)
-      .map(([key, value]) => [key, getString(value)] as const)
-      .filter((entry): entry is readonly [string, string] => Boolean(entry[1]))
-  )
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value && typeof value === 'object' && !Array.isArray(value))
-}
-
-function getString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim() ? value.trim() : undefined
-}
-
-function resolveI18nText(value: string | I18nObject | null | undefined, fallback: string, language?: string | null) {
-  if (typeof value === 'string') {
-    return value.trim() || fallback
-  }
-  if (!value || typeof value !== 'object') {
-    return fallback
-  }
-
-  const normalizedLanguage = (language ?? '').toLowerCase()
-  const preferredKeys =
-    normalizedLanguage.includes('hant') || normalizedLanguage.includes('tw')
-      ? ['zh_Hant', 'zh_Hans', 'en_US']
-      : normalizedLanguage.startsWith('zh')
-        ? ['zh_Hans', 'zh_Hant', 'en_US']
-        : ['en_US', 'zh_Hans', 'zh_Hant']
-
-  for (const key of preferredKeys) {
-    const text = Reflect.get(value, key)
-    if (typeof text === 'string' && text.trim()) {
-      return text.trim()
-    }
-  }
-
-  for (const text of Object.values(value)) {
-    if (typeof text === 'string' && text.trim()) {
-      return text.trim()
-    }
-  }
-
-  return fallback
-}
-
-function toFileElementQuoteReference(reference: TChatFileElementReference): ChatKitQuoteReference {
-  const source = formatFileElementSource(reference)
-
-  return {
-    type: 'quote',
-    label: reference.label?.trim() || `${reference.tagName.toLowerCase()} ${reference.selector}`,
-    source,
-    text: [
-      'Reference type: Target inspected HTML file element',
-      'Scope: This reference is the currently inspected element only, not the entire file.',
-      INSPECTED_ELEMENT_ACTION_TARGET_TEXT,
-      `Source location: ${source}`,
-      reference.documentTitle?.trim() ? `Document title: ${reference.documentTitle.trim()}` : null,
-      'Inspected element:',
-      `- Selector: ${reference.selector}`,
-      `- DOM path: ${reference.domPath}`,
-      `- Tag: ${reference.tagName.toLowerCase()}`,
-      reference.role?.trim() ? `- Role: ${reference.role.trim()}` : null,
-      `- Attributes: ${formatElementAttributes(reference.attributes)}`,
-      'Inspected element visible text:',
-      reference.text,
-      'Inspected element outerHTML:',
-      '```html',
-      reference.outerHtml,
-      '```'
-    ]
-      .filter((line): line is string => line !== null)
-      .join('\n')
-  }
-}
-
-function toFilePathQuoteReference(reference: FileWorkbenchFilePathReferenceRequest): ChatKitQuoteReference {
-  return {
-    type: 'quote',
-    label: reference.path,
-    source: 'Workspace file',
-    text: reference.path
-  }
-}
-
-function toPageElementQuoteReference(reference: TChatElementReference): ChatKitQuoteReference {
-  const source = reference.pageTitle?.trim() || reference.pageUrl.trim()
-
-  return {
-    type: 'quote',
-    label: reference.label?.trim() || `${reference.tagName.toLowerCase()} ${reference.selector}`,
-    source,
-    text: [
-      'Reference type: Target inspected page element',
-      'Scope: This reference is the currently inspected element only, not the entire page.',
-      INSPECTED_ELEMENT_ACTION_TARGET_TEXT,
-      source ? `Page: ${source}` : null,
-      `URL: ${reference.pageUrl}`,
-      `Service: ${reference.serviceId}`,
-      `Selector: ${reference.selector}`,
-      `Tag: ${reference.tagName.toLowerCase()}`,
-      reference.role?.trim() ? `Role: ${reference.role.trim()}` : null,
-      `Attributes: ${formatElementAttributes(reference.attributes)}`,
-      'Visible text:',
-      reference.text,
-      'HTML:',
-      '```html',
-      reference.outerHtml,
-      '```'
-    ]
-      .filter((line): line is string => line !== null)
-      .join('\n')
-  }
-}
-
-function resolveEmbeddedChatkitElement(host: HTMLElement) {
-  return host.querySelector<HTMLElement>('xpertai-chatkit') ?? host
-}
-
-function isChatkitVisuallyMinimizedToPet(chatkitElement: HTMLElement) {
-  return (
-    chatkitElement.dataset.chatMinimizedToPet === 'true' ||
-    (chatkitElement.dataset.displayMode === 'pet' && chatkitElement.dataset.chatOpen !== 'true')
-  )
-}
-
-function installChatkitOverlayDialogControls(
-  chatkitElement: HTMLElement,
-  options: { moveLabel: string; resizeLabel: string }
-) {
-  const shadowRoot = chatkitElement.shadowRoot
-  const wrapper = shadowRoot?.querySelector<HTMLElement>('.ck-wrapper')
-  const launcherCloseButton = wrapper?.querySelector<HTMLElement>('.ck-launcher-close') ?? null
-  const ownerDocument = chatkitElement.ownerDocument
-  const ownerWindow = ownerDocument.defaultView
-
-  if (!shadowRoot || !wrapper || !ownerWindow || !ownerDocument.body) {
-    return null
-  }
-
-  shadowRoot.querySelector(`[${CHATKIT_OVERLAY_DRAG_BAR_ATTRIBUTE}]`)?.remove()
-  shadowRoot.querySelector(`[${CHATKIT_OVERLAY_RESIZE_HANDLE_ATTRIBUTE}]`)?.remove()
-  shadowRoot.querySelector(`[${CHATKIT_OVERLAY_CONTROLS_STYLE_ATTRIBUTE}]`)?.remove()
-
-  const previousCloseButtonDisplay = launcherCloseButton?.style.getPropertyValue('display') ?? ''
-  const previousCloseButtonDisplayPriority = launcherCloseButton?.style.getPropertyPriority('display') ?? ''
-  const previousCloseButtonAriaHidden = launcherCloseButton?.getAttribute('aria-hidden') ?? null
-  const previousCloseButtonTabIndex = launcherCloseButton?.getAttribute('tabindex') ?? null
-  launcherCloseButton?.style.setProperty('display', 'none', 'important')
-  launcherCloseButton?.setAttribute('aria-hidden', 'true')
-  launcherCloseButton?.setAttribute('tabindex', '-1')
-
-  const controlsStyle = ownerDocument.createElement('style')
-  controlsStyle.setAttribute(CHATKIT_OVERLAY_CONTROLS_STYLE_ATTRIBUTE, '')
-  controlsStyle.textContent = `
-    .ck-launcher-close {
-      display: none !important;
-    }
-    [${CHATKIT_OVERLAY_DRAG_BAR_ATTRIBUTE}] {
-      position: absolute;
-      top: 1px;
-      right: 1px;
-      left: 1px;
-      z-index: 3;
-      height: 18px;
-      border: 0;
-      border-radius: 17px 17px 0 0;
-      background: transparent;
-      cursor: grab;
-      touch-action: none;
-      user-select: none;
-    }
-    [${CHATKIT_OVERLAY_DRAG_BAR_ATTRIBUTE}]::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      border-radius: inherit;
-      background: linear-gradient(
-        180deg,
-        color-mix(in oklab, var(--sys-border-strong) 72%, transparent) 0%,
-        color-mix(in oklab, var(--sys-surface-elevated) 36%, transparent) 52%,
-        transparent 100%
-      );
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 120ms ease;
-    }
-    [${CHATKIT_OVERLAY_DRAG_BAR_ATTRIBUTE}]:hover::after,
-    [${CHATKIT_OVERLAY_DRAG_BAR_ATTRIBUTE}]:focus-visible::after,
-    [${CHATKIT_OVERLAY_DRAG_BAR_ATTRIBUTE}][data-dragging='true']::after {
-      opacity: 1;
-    }
-    [${CHATKIT_OVERLAY_DRAG_BAR_ATTRIBUTE}]:focus-visible {
-      outline: none;
-    }
-    [${CHATKIT_OVERLAY_DRAG_BAR_ATTRIBUTE}][data-dragging='true'] {
-      cursor: grabbing;
-    }
-    [${CHATKIT_OVERLAY_RESIZE_HANDLE_ATTRIBUTE}] {
-      position: absolute;
-      top: 8px;
-      bottom: 8px;
-      left: -7px;
-      z-index: 3;
-      width: 14px;
-      border-radius: 999px;
-      cursor: ew-resize;
-      touch-action: none;
-      user-select: none;
-    }
-    [${CHATKIT_OVERLAY_RESIZE_HANDLE_ATTRIBUTE}]::after {
-      content: '';
-      position: absolute;
-      top: 50%;
-      bottom: auto;
-      left: 5px;
-      width: 3px;
-      height: 44px;
-      border-radius: 999px;
-      background: color-mix(in oklab, var(--sys-text-secondary) 58%, transparent);
-      opacity: 0;
-      transform: translateY(-50%);
-      transition: opacity 120ms ease;
-    }
-    [${CHATKIT_OVERLAY_RESIZE_HANDLE_ATTRIBUTE}]:hover::after,
-    [${CHATKIT_OVERLAY_RESIZE_HANDLE_ATTRIBUTE}]:focus-visible::after,
-    [${CHATKIT_OVERLAY_RESIZE_HANDLE_ATTRIBUTE}][data-resizing='true']::after {
-      opacity: 1;
-    }
-    [${CHATKIT_OVERLAY_RESIZE_HANDLE_ATTRIBUTE}]:focus-visible {
-      outline: 2px solid color-mix(in oklab, var(--sys-primary) 70%, transparent);
-      outline-offset: -2px;
-    }
-  `
-
-  const dragBar = ownerDocument.createElement('div')
-  dragBar.setAttribute(CHATKIT_OVERLAY_DRAG_BAR_ATTRIBUTE, '')
-  dragBar.setAttribute('aria-label', options.moveLabel)
-  dragBar.title = options.moveLabel
-  dragBar.tabIndex = 0
-
-  const resizeHandle = ownerDocument.createElement('div')
-  resizeHandle.setAttribute(CHATKIT_OVERLAY_RESIZE_HANDLE_ATTRIBUTE, '')
-  resizeHandle.setAttribute('role', 'separator')
-  resizeHandle.setAttribute('aria-orientation', 'vertical')
-  resizeHandle.setAttribute('aria-label', options.resizeLabel)
-  resizeHandle.setAttribute('aria-valuemin', `${CLAWXPERT_CHATKIT_MIN_WIDTH_PX}`)
-  resizeHandle.setAttribute('aria-valuemax', `${CLAWXPERT_CHATKIT_MAX_WIDTH_PX}`)
-  resizeHandle.title = options.resizeLabel
-  resizeHandle.tabIndex = 0
-
-  shadowRoot.appendChild(controlsStyle)
-  wrapper.append(dragBar, resizeHandle)
-
-  let activeInteractionCleanup: (() => void) | null = null
-
-  const stopActiveInteraction = () => {
-    activeInteractionCleanup?.()
-    activeInteractionCleanup = null
-  }
-
-  const startPointerInteraction = (
-    event: PointerEvent,
-    cursor: string,
-    onMove: (moveEvent: PointerEvent) => void,
-    activeAttribute: 'data-dragging' | 'data-resizing',
-    target: HTMLElement
-  ) => {
-    if (event.button !== 0) {
-      return
-    }
-
-    event.preventDefault()
-    event.stopPropagation()
-    stopActiveInteraction()
-
-    const previousCursor = ownerDocument.body.style.cursor
-    const previousUserSelect = ownerDocument.body.style.userSelect
-    const pointerId = event.pointerId
-
-    if (typeof pointerId === 'number' && typeof target.setPointerCapture === 'function') {
-      try {
-        target.setPointerCapture(pointerId)
-      } catch {
-        // Pointer capture is optional; window listeners keep the interaction active over the iframe.
-      }
-    }
-
-    const handlePointerMove = (moveEvent: PointerEvent) => {
-      if (typeof pointerId === 'number' && moveEvent.pointerId !== pointerId) {
-        return
-      }
-      moveEvent.preventDefault()
-      onMove(moveEvent)
-    }
-
-    const finishInteraction = () => {
-      cleanupInteraction()
-    }
-
-    const cleanupInteraction = () => {
-      ownerWindow.removeEventListener('pointermove', handlePointerMove)
-      ownerWindow.removeEventListener('pointerup', finishInteraction)
-      ownerWindow.removeEventListener('pointercancel', finishInteraction)
-      ownerDocument.body.style.cursor = previousCursor
-      ownerDocument.body.style.userSelect = previousUserSelect
-      target.removeAttribute(activeAttribute)
-      if (activeInteractionCleanup === cleanupInteraction) {
-        activeInteractionCleanup = null
-      }
-    }
-
-    ownerDocument.body.style.cursor = cursor
-    ownerDocument.body.style.userSelect = 'none'
-    target.setAttribute(activeAttribute, 'true')
-    ownerWindow.addEventListener('pointermove', handlePointerMove)
-    ownerWindow.addEventListener('pointerup', finishInteraction, { once: true })
-    ownerWindow.addEventListener('pointercancel', finishInteraction, { once: true })
-    activeInteractionCleanup = cleanupInteraction
-  }
-
-  const moveOverlayDialog = (left: number, top: number, width: number, height: number) => {
-    const maxLeft = Math.max(
-      CLAWXPERT_OVERLAY_VIEWPORT_GUTTER_PX,
-      ownerWindow.innerWidth - width - CLAWXPERT_OVERLAY_VIEWPORT_GUTTER_PX
-    )
-    const maxTop = Math.max(
-      CLAWXPERT_OVERLAY_MIN_TOP_PX,
-      ownerWindow.innerHeight - height - CLAWXPERT_OVERLAY_VIEWPORT_GUTTER_PX
-    )
-
-    wrapper.style.left = `${Math.round(clampNumber(left, CLAWXPERT_OVERLAY_VIEWPORT_GUTTER_PX, maxLeft))}px`
-    wrapper.style.top = `${Math.round(clampNumber(top, CLAWXPERT_OVERLAY_MIN_TOP_PX, maxTop))}px`
-    wrapper.style.right = 'auto'
-    wrapper.style.bottom = 'auto'
-  }
-
-  const resizeOverlayDialog = (right: number, desiredWidth: number) => {
-    const rightEdge = clampNumber(
-      right,
-      CLAWXPERT_OVERLAY_VIEWPORT_GUTTER_PX,
-      Math.max(CLAWXPERT_OVERLAY_VIEWPORT_GUTTER_PX, ownerWindow.innerWidth - CLAWXPERT_OVERLAY_VIEWPORT_GUTTER_PX)
-    )
-    const maxWidth = Math.max(
-      0,
-      Math.min(
-        CLAWXPERT_CHATKIT_MAX_WIDTH_PX,
-        ownerWindow.innerWidth - CLAWXPERT_OVERLAY_VIEWPORT_GUTTER_PX * 2,
-        rightEdge - CLAWXPERT_OVERLAY_VIEWPORT_GUTTER_PX
-      )
-    )
-    const minWidth = Math.min(CLAWXPERT_CHATKIT_MIN_WIDTH_PX, maxWidth)
-    const width = Math.round(clampNumber(desiredWidth, minWidth, maxWidth))
-
-    wrapper.style.left = `${Math.round(rightEdge - width)}px`
-    wrapper.style.right = 'auto'
-    wrapper.style.width = `${width}px`
-    resizeHandle.setAttribute('aria-valuenow', `${width}`)
-  }
-
-  const handleDragPointerDown = (event: PointerEvent) => {
-    const rect = wrapper.getBoundingClientRect()
-    const startX = event.clientX
-    const startY = event.clientY
-
-    startPointerInteraction(
-      event,
-      'grabbing',
-      (moveEvent) => {
-        moveOverlayDialog(
-          rect.left + moveEvent.clientX - startX,
-          rect.top + moveEvent.clientY - startY,
-          rect.width,
-          rect.height
-        )
-      },
-      'data-dragging',
-      dragBar
-    )
-  }
-
-  const handleResizePointerDown = (event: PointerEvent) => {
-    const rect = wrapper.getBoundingClientRect()
-    const startX = event.clientX
-
-    startPointerInteraction(
-      event,
-      'ew-resize',
-      (moveEvent) => {
-        resizeOverlayDialog(rect.right, rect.width + startX - moveEvent.clientX)
-      },
-      'data-resizing',
-      resizeHandle
-    )
-  }
-
-  const handleDragKeydown = (event: KeyboardEvent) => {
-    const direction =
-      event.key === 'ArrowLeft'
-        ? { x: -1, y: 0 }
-        : event.key === 'ArrowRight'
-          ? { x: 1, y: 0 }
-          : event.key === 'ArrowUp'
-            ? { x: 0, y: -1 }
-            : event.key === 'ArrowDown'
-              ? { x: 0, y: 1 }
-              : null
-    if (!direction) {
-      return
-    }
-
-    event.preventDefault()
-    const rect = wrapper.getBoundingClientRect()
-    const step = event.shiftKey ? 64 : 24
-    moveOverlayDialog(rect.left + direction.x * step, rect.top + direction.y * step, rect.width, rect.height)
-  }
-
-  const handleResizeKeydown = (event: KeyboardEvent) => {
-    if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') {
-      return
-    }
-
-    event.preventDefault()
-    const rect = wrapper.getBoundingClientRect()
-    resizeOverlayDialog(rect.right, rect.width + (event.key === 'ArrowLeft' ? 32 : -32))
-  }
-
-  const constrainOverlayDialogToViewport = () => {
-    if (!wrapper.style.left && !wrapper.style.top && !wrapper.style.width) {
-      return
-    }
-
-    const rect = wrapper.getBoundingClientRect()
-    const rightEdge = Math.min(rect.right, ownerWindow.innerWidth - CLAWXPERT_OVERLAY_VIEWPORT_GUTTER_PX)
-    resizeOverlayDialog(rightEdge, rect.width)
-    moveOverlayDialog(
-      Number.parseFloat(wrapper.style.left),
-      rect.top,
-      Number.parseFloat(wrapper.style.width),
-      rect.height
-    )
-  }
-
-  dragBar.addEventListener('pointerdown', handleDragPointerDown)
-  dragBar.addEventListener('keydown', handleDragKeydown)
-  resizeHandle.addEventListener('pointerdown', handleResizePointerDown)
-  resizeHandle.addEventListener('keydown', handleResizeKeydown)
-  ownerWindow.addEventListener('resize', constrainOverlayDialogToViewport)
-
-  const initialWidth = Math.round(wrapper.getBoundingClientRect().width)
-  if (initialWidth > 0) {
-    resizeHandle.setAttribute('aria-valuenow', `${initialWidth}`)
-  }
-
-  return () => {
-    stopActiveInteraction()
-    dragBar.removeEventListener('pointerdown', handleDragPointerDown)
-    dragBar.removeEventListener('keydown', handleDragKeydown)
-    resizeHandle.removeEventListener('pointerdown', handleResizePointerDown)
-    resizeHandle.removeEventListener('keydown', handleResizeKeydown)
-    ownerWindow.removeEventListener('resize', constrainOverlayDialogToViewport)
-    dragBar.remove()
-    resizeHandle.remove()
-    controlsStyle.remove()
-    if (launcherCloseButton) {
-      if (previousCloseButtonDisplay) {
-        launcherCloseButton.style.setProperty('display', previousCloseButtonDisplay, previousCloseButtonDisplayPriority)
-      } else {
-        launcherCloseButton.style.removeProperty('display')
-      }
-      restoreOptionalAttribute(launcherCloseButton, 'aria-hidden', previousCloseButtonAriaHidden)
-      restoreOptionalAttribute(launcherCloseButton, 'tabindex', previousCloseButtonTabIndex)
-    }
-    wrapper.style.removeProperty('left')
-    wrapper.style.removeProperty('top')
-    wrapper.style.removeProperty('right')
-    wrapper.style.removeProperty('bottom')
-    wrapper.style.removeProperty('width')
-  }
-}
-
-function clampNumber(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value))
-}
-
-function restoreOptionalAttribute(element: HTMLElement, name: string, value: string | null) {
-  if (value === null) {
-    element.removeAttribute(name)
-  } else {
-    element.setAttribute(name, value)
-  }
-}
-
-function toSkillTrialRuntimeCapabilities(intent: ClawXpertSkillTrialIntent): RuntimeCapabilitiesSelection {
-  return {
-    mode: 'allowlist',
-    skills: {
-      workspaceId: intent.workspaceId,
-      ids: [intent.skillPackageId]
-    },
-    plugins: {
-      nodeKeys: []
-    },
-    subAgents: {
-      nodeKeys: []
-    }
-  }
-}
-
-function readNonEmptyString(value: unknown) {
-  return typeof value === 'string' && value.trim() ? value.trim() : null
-}
-
-function readHttpUrl(value: unknown) {
-  const text = readNonEmptyString(value)
-  if (!text) {
-    return null
-  }
-  try {
-    const url = new URL(text)
-    return url.protocol === 'http:' || url.protocol === 'https:' ? url.toString() : null
-  } catch {
-    return null
-  }
-}
-
-function setWritableSignalValue<T>(signalValue: Signal<T>, value: T) {
-  const setter = (signalValue as Signal<T> & { set?: (next: T) => void }).set
-  if (typeof setter === 'function') {
-    setter.call(signalValue, value)
-  }
-}
-
-function normalizeConversationThreadId(threadId: string | null | undefined) {
-  return typeof threadId === 'string' && threadId.trim() ? threadId.trim() : null
-}
-
-function equalViewQuery(left: XpertViewQuery | null, right: XpertViewQuery | null) {
-  return JSON.stringify(left) === JSON.stringify(right)
-}
-
-function formatFileElementSource(reference: TChatFileElementReference) {
-  if (typeof reference.sourceStartLine !== 'number') {
-    return reference.filePath
-  }
-
-  const lineRange =
-    reference.sourceStartLine === reference.sourceEndLine
-      ? `${reference.sourceStartLine}`
-      : `${reference.sourceStartLine}-${reference.sourceEndLine ?? reference.sourceStartLine}`
-
-  return `${reference.filePath}:${lineRange}`
-}
-
-function formatElementAttributes(attributes: Array<{ name: string; value: string }>) {
-  if (!attributes.length) {
-    return '(none)'
-  }
-
-  return attributes.map((attribute) => `${attribute.name}="${attribute.value}"`).join(' ')
-}
-
-function isFileElementReferenceRequest(request: FileWorkbenchReferenceRequest): request is TChatFileElementReference {
-  return 'type' in request && request.type === 'file_element'
-}
-
-function isFilePathReferenceRequest(
-  request: FileWorkbenchReferenceRequest
-): request is FileWorkbenchFilePathReferenceRequest {
-  return 'type' in request && request.type === 'file_path'
 }

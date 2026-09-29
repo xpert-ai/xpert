@@ -85,6 +85,7 @@ export type ConnectorPermissionDeclaration = {
 }
 
 export type ConnectorDefinitionBase = {
+  runtimeUsage?: 'middleware' | 'credential'
   provider: string
   label: RuntimeI18nText
   description?: RuntimeI18nText
@@ -346,6 +347,11 @@ export type ConnectorBindingCreateRequest = {
 }
 
 export type ConnectorRuntimeOption = {
+  scope?: ConnectorScope
+  canManage?: boolean
+  managementUrl?: string
+
+  runtimeUsage?: 'middleware' | 'credential'
   bindingId: string
   provider: string
   authorizationMode: ConnectorAuthorizationMode
@@ -360,6 +366,10 @@ export type ConnectorRuntimeOption = {
 }
 
 export type ConnectorRuntimeOptions = {
+  workspaceScope?: ConnectorScope
+  canManageWorkspace?: boolean
+  managementUrl?: string
+
   scope: ConnectorScope
   items: ConnectorRuntimeOption[]
 }

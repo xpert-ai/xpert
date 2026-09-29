@@ -1,7 +1,10 @@
+import { McpAppsRuntimeController } from './mcp-apps-runtime.controller'
+import { XpertToolsetModule } from '../xpert-toolset/xpert-toolset.module'
 import { RedisModule, SecretTokenModule, StorageFileModule, TenantModule } from '@xpert-ai/server-core'
 import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { RouterModule } from '@nestjs/core'
+import { TypeOrmModule } from '@nestjs/typeorm'
 import { CopilotModule } from '../copilot'
 import { CopilotOrganizationModule } from '../copilot-organization/index'
 import { CopilotUserModule } from '../copilot-user/index'
@@ -32,6 +35,21 @@ import { RuntimeCapabilitiesService } from './runtime-capabilities.service'
 import { SseStreamModule } from '../shared/stream'
 import { XpertProjectModule } from '../xpert-project'
 import { FileUnderstandingModule } from '../file-understanding'
+import { XpertAgentExecutionModule } from '../xpert-agent-execution/agent-execution.module'
+import { ConversationAgentRunsService } from './conversation-agent-runs.service'
+
+import { RuntimeResourceController } from '../agent-plugin/runtime-resource.controller'
+import { ConnectorModule } from '../connector/connector.module'
+import { ConnectorRuntimeController } from './connector-runtime.controller'
+import { ConversationBranchController } from './conversation-branch.controller'
+import { ConversationBranchService } from '../chat-conversation/conversation-branch.service'
+import { CopilotCheckpointModule } from '../copilot-checkpoint/copilot-checkpoint.module'
+import { SandboxModule } from '../sandbox/sandbox.module'
+import { SandboxRuntimeController } from './sandbox-runtime.controller'
+import { AssistantThreadScopeGuard } from './assistant-thread-scope.guard'
+import { ChatConversation } from '../chat-conversation/conversation.entity'
+import { ChatConversationThread } from '../chat-conversation/conversation-thread.entity'
+import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organization-scope.module'
 
 @Module({
     imports: [
@@ -42,9 +60,14 @@ import { FileUnderstandingModule } from '../file-understanding'
             }
         ]),
         TenantModule,
+        TypeOrmModule.forFeature([ChatConversation, ChatConversationThread]),
+        SandboxModule,
+        SuperAdminOrganizationScopeModule,
+        CopilotCheckpointModule,
         SecretTokenModule,
         RedisModule,
         CqrsModule,
+        ConnectorModule,
         CopilotModule,
         CopilotUserModule,
         CopilotOrganizationModule,
@@ -62,18 +85,34 @@ import { FileUnderstandingModule } from '../file-understanding'
         forwardRef(() => ChatMessageFeedbackModule),
         forwardRef(() => FileUnderstandingModule),
         SseStreamModule,
-        XpertProjectModule
+        forwardRef(() => XpertAgentExecutionModule),
+        XpertProjectModule,
+        forwardRef(() => XpertToolsetModule)
     ],
     controllers: [
+        McpAppsRuntimeController,
+        SandboxRuntimeController,
+        ConversationBranchController,
         AIController,
         AIV1Controller,
         ContextsController,
         KnowledgesController,
         AssistantsController,
+        RuntimeResourceController,
+        ConnectorRuntimeController,
         ThreadsController,
         ConversationsController,
         StoreController
     ],
-    providers: [AiService, RuntimeCommandService, RuntimeCapabilitiesService, ...CommandHandlers, ...QueryHandlers]
+    providers: [
+        AssistantThreadScopeGuard,
+        ConversationBranchService,
+        AiService,
+        RuntimeCommandService,
+        RuntimeCapabilitiesService,
+        ConversationAgentRunsService,
+        ...CommandHandlers,
+        ...QueryHandlers
+    ]
 })
 export class AIModule {}

@@ -121,6 +121,26 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
     )
   }
 
+  searchMessages(
+    id: string,
+    options?: { threadId?: string; limit?: number; offset?: number },
+    organizationId?: string
+  ) {
+    const threadId = options?.threadId?.trim()
+    return this.httpClient.post<{ items: IChatMessage[]; total: number }>(
+      API_PREFIX + `/ai/conversations/${id}/messages/search`,
+      {
+        ...(threadId ? { where: { threadId } } : {}),
+        order: { createdAt: 'ASC' },
+        ...(options?.limit != null ? { limit: options.limit } : {}),
+        ...(options?.offset != null ? { offset: options.offset } : {})
+      },
+      {
+        params: appendOrganizationIdQueryParam(null, organizationId)
+      }
+    )
+  }
+
   cancelConversation(id: string, organizationId?: string) {
     return this.httpClient.post<{ canceledExecutionIds: string[] }>(
       this.apiBaseUrl + `/${id}/cancel`,
@@ -217,6 +237,13 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
     return this.httpClient.post<TFile>(this.apiBaseUrl + `/${id}/file/upload`, formData, {
       params: appendOrganizationIdQueryParam(null, organizationId)
     })
+  }
+
+  saveBinaryFile(id: string, path: string, file: Blob, organizationId?: string) {
+    const separator = path.lastIndexOf('/')
+    const name = path.slice(separator + 1)
+    const folder = separator < 0 ? '' : path.slice(0, separator)
+    return this.uploadFile(id, new File([file], name, { type: file.type }), folder, organizationId)
   }
 
   deleteFile(id: string, filePath: string, organizationId?: string) {

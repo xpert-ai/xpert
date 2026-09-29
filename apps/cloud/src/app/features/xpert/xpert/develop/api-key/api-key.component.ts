@@ -18,7 +18,7 @@ import {
 } from 'apps/cloud/src/app/@core'
 import { EMPTY, firstValueFrom, of } from 'rxjs'
 import { switchMap } from 'rxjs/operators'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { derivedAsync } from 'ngxtension/derived-async'
 
 type ApiKeyListItem = IApiKey & { copied?: boolean }
@@ -32,6 +32,7 @@ const EMPTY_API_KEYS: ApiKeyListItem[] = []
     ReactiveFormsModule,
     TranslateModule,
     ...ZardTooltipImports,
+    ZardButtonComponent,
     XpSpinComponent,
     MaskPipe,
     DateFormatPipe,
@@ -105,6 +106,10 @@ export class XpertDevelopApiKeyComponent {
   delete(key: ApiKeyListItem) {
     this.#dialog
       .open(CdkConfirmDeleteComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        width: '480px',
+        maxWidth: 'calc(100vw - 2rem)',
         data: {
           title: this.#translate.instant('XP.Xpert.DeleteApiKey', { Default: 'Delete this api key?' }),
           information: this.#translate.instant('XP.Xpert.ActionUndone', { Default: 'This action cannot be undone.' })

@@ -2,7 +2,9 @@ import { ForbiddenException } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import type { MultiServerMCPClient } from '@langchain/mcp-adapters'
 import type { TMcpToolAppMeta } from '@xpert-ai/contracts'
+import { ApiKeyBindingType, type IApiKey } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/server-core'
+import { RequestContext as SdkRequestContext } from '@xpert-ai/plugin-sdk'
 import { ChatMessageService } from '../chat-message/chat-message.service'
 import { McpAppAuditService, McpAppInstanceStoreService, McpAppToolApprovalService } from '../mcp-app-runtime'
 import { McpAppsService } from './mcp-apps.service'
@@ -134,6 +136,45 @@ describe('McpAppsService RPC approval orchestration', () => {
         jest.clearAllMocks()
     })
 
+    it('retains a paused native form on unmount and returns its scoped continuation', async () => {
+        const instance = mockGetMcpAppInstance('app-1')!
+        const assertAccess = jest.fn()
+        mockGetMcpAppInstance.mockReturnValue({
+            ...instance,
+            toolCallId: 'call-1',
+            executionContext: { xpertId: 'assistant', conversationId: 'conversation', executionId: 'run' },
+            middleware: {
+                source: {
+                    kind: 'middleware',
+                    provider: 'settings',
+                    nodeKey: 'settings',
+                    agentKey: 'Main',
+                    pluginName: 'test',
+                    interruptAfter: true
+                },
+                assertAccess,
+                callTool: jest.fn(),
+                listTools: jest.fn(),
+                readResource: jest.fn(),
+                requiresApproval: jest.fn()
+            }
+        })
+        await expect(service.teardown('app-1')).resolves.toEqual({ removed: false })
+        expect(instanceStore.delete).not.toHaveBeenCalled()
+        expect(mockRefreshMcpAppInstanceToken).toHaveBeenCalled()
+        const response = await service.handleRpc('app-1', {
+            jsonrpc: '2.0',
+            id: 1,
+            method: 'ui/message',
+            params: { role: 'user', content: [{ type: 'text', text: 'Continue' }] }
+        })
+        expect(response).toMatchObject({
+            result: { continuation: { type: 'tool_after', toolCallId: 'call-1', executionId: 'run' } }
+        })
+        expect(assertAccess).toHaveBeenCalled()
+        mockGetMcpAppInstance.mockReturnValue(instance)
+    })
+
     it('rejects an app instance bound to another user before invoking a tool', async () => {
         jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-2')
         const instance = mockGetMcpAppInstance('app-1')
@@ -153,6 +194,78 @@ describe('McpAppsService RPC approval orchestration', () => {
                 params: { name: 'write_file', arguments: { path: 'report.txt' } }
             })
         ).rejects.toBeInstanceOf(ForbiddenException)
+        expect(mockCallMcpAppTool).not.toHaveBeenCalled()
+    })
+
+    it('rejects a session bound to another Assistant before App RPC', async () => {
+        const instance = mockGetMcpAppInstance('app-1')!
+        mockGetMcpAppInstance.mockReturnValueOnce({
+            ...instance,
+            executionContext: { xpertId: 'assistant-a', conversationId: 'conversation', executionId: 'run' }
+        })
+        jest.spyOn(SdkRequestContext, 'currentApiKey').mockReturnValue({
+            type: ApiKeyBindingType.ASSISTANT,
+            entityId: 'assistant-b'
+        } as IApiKey)
+        await expect(
+            service.handleRpc('app-1', {
+                jsonrpc: '2.0',
+                id: 1,
+                method: 'tools/call',
+                params: { name: 'write_file', arguments: {} }
+            })
+        ).rejects.toBeInstanceOf(ForbiddenException)
+        expect(mockCallMcpAppTool).not.toHaveBeenCalled()
+    })
+
+    it('accepts an expert App only through its persisted same-thread delegation', async () => {
+        const instance = mockGetMcpAppInstance('app-1')!
+        mockGetMcpAppInstance.mockReturnValueOnce({
+            ...instance,
+            executionContext: {
+                xpertId: 'expert',
+                conversationId: 'conversation',
+                executionId: 'child',
+                threadId: 'thread'
+            }
+        })
+        jest.spyOn(SdkRequestContext, 'currentApiKey').mockReturnValue({
+            type: ApiKeyBindingType.ASSISTANT,
+            entityId: 'main'
+        } as IApiKey)
+        queryBus.execute.mockImplementation(async (query) =>
+            query.id === 'child'
+                ? { id: 'child', xpertId: 'expert', threadId: 'thread', parentId: 'root' }
+                : { id: 'root', xpertId: 'main', threadId: 'thread' }
+        )
+        approvals.risk.mockReturnValue('read')
+        await expect(
+            service.handleRpc('app-1', {
+                jsonrpc: '2.0',
+                id: 1,
+                method: 'tools/call',
+                params: { name: 'write_file', arguments: {} }
+            })
+        ).resolves.toMatchObject({ result: { content: [{ text: 'done' }] } })
+        expect(mockCallMcpAppTool).toHaveBeenCalledTimes(1)
+    })
+
+    it('rejects another Assistant audience before restoring an App backend', async () => {
+        mockGetMcpAppInstance.mockReturnValueOnce(null)
+        instanceStore.get.mockResolvedValue({ executionContext: { xpertId: 'assistant-a' } })
+        jest.spyOn(SdkRequestContext, 'currentApiKey').mockReturnValue({
+            type: ApiKeyBindingType.ASSISTANT,
+            entityId: 'assistant-b'
+        } as IApiKey)
+        await expect(
+            service.handleRpc('app-1', {
+                jsonrpc: '2.0',
+                id: 1,
+                method: 'tools/call',
+                params: { name: 'write_file', arguments: {} }
+            })
+        ).rejects.toBeInstanceOf(ForbiddenException)
+        expect(mockCreateMcpClient).not.toHaveBeenCalled()
         expect(mockCallMcpAppTool).not.toHaveBeenCalled()
     })
 
@@ -237,7 +350,14 @@ describe('McpAppsService RPC approval orchestration', () => {
         ).resolves.toMatchObject({ error: { code: -32000, message: expect.stringContaining('http or https') } })
     })
 
-    it('revives a historical App from persisted chat message metadata after API state is lost', async () => {
+    it.each([false, true])('revives a historical App with persisted execution context: %s', async (withContext) => {
+        const executionContext = {
+            xpertId: 'assistant-1',
+            conversationId: 'conversation-1',
+            executionId: 'execution-1',
+            projectId: 'project-1'
+        }
+        if (withContext) instanceStore.get.mockResolvedValue({ executionContext })
         const client = { close: jest.fn() } as unknown as MultiServerMCPClient
         const toolset = {
             id: 'toolset-history',
@@ -326,11 +446,12 @@ describe('McpAppsService RPC approval orchestration', () => {
             expect.any(Object),
             {},
             undefined,
-            expect.objectContaining({ appInstanceId: 'app-history' })
+            expect.objectContaining({ appInstanceId: 'app-history', ...(withContext ? executionContext : {}) })
         )
         expect(mockRestoreMcpAppInstance).toHaveBeenCalledWith(
             expect.objectContaining({
                 id: 'app-history',
+                executionContext: withContext ? executionContext : undefined,
                 toolset,
                 toolMeta,
                 toolCallId: 'call-history'

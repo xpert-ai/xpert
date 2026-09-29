@@ -1,0 +1,10 @@
+{
+  "name": "xpert-presentations-runtime",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Isolated open-source PPTX authoring runtime",
+  "dependencies": {
+    "pptxgenjs": "4.0.1",
+    "image-size": "1.2.1"
+  }
+}

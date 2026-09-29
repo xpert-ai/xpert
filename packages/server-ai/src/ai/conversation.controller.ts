@@ -1,3 +1,4 @@
+import { stripClientSkillContent, stripClientSkillSummary } from '../chat-message/client-skill-usage'
 import {
     BadRequestException,
     Body,
@@ -27,7 +28,7 @@ import {
     UUIDValidationPipe
 } from '@xpert-ai/server-core'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { FindOptionsOrder, In, Like } from 'typeorm'
+import { FindOptionsOrder, In, ILike } from 'typeorm'
 import {
     IChatConversation,
     IChatMessage,
@@ -59,6 +60,7 @@ import { bindConversationAssistantIfUnbound, bindConversationProjectIfUnbound } 
 import { PublishedXpertAccessService, XpertService } from '../xpert'
 import { XpertProjectService } from '../xpert-project'
 import { t } from 'i18next'
+import { ConversationAgentRunsService } from './conversation-agent-runs.service'
 
 type ConversationSearchRequest = {
     where?: Record<string, OperatorValue>
@@ -131,7 +133,8 @@ export class ConversationsController {
         private readonly publishedXpertAccessService: PublishedXpertAccessService,
         private readonly xpertService: XpertService,
         @Optional() private readonly projectService?: XpertProjectService,
-        @Optional() private readonly conversationThreadService?: ChatConversationThreadService
+        @Optional() private readonly conversationThreadService?: ChatConversationThreadService,
+        @Optional() private readonly agentRunsService?: ConversationAgentRunsService
     ) {}
 
     @Post()
@@ -241,7 +244,7 @@ export class ConversationsController {
     async searchConversations(@Body() body: ConversationSearchRequest) {
         const where = transformWhere(body.where ?? {})
         if (body.search) {
-            where['title'] = Like(`%${body.search}%`)
+            where['title'] = ILike(`%${body.search}%`)
         }
         const currentUser = RequestContext.currentUserId()
         const publicScope = getPublicXpertSessionConversationScope()
@@ -386,7 +389,7 @@ export class ConversationsController {
         if (!this.conversationThreadService) return []
         await this.conversationThreadService.ensurePrimary(conversation)
         const threads = await this.conversationThreadService.listByConversation(conversation.id)
-        return threads.map((thread) => new ThreadDTO(conversation, {}, thread))
+        return threads.map((thread) => new ThreadDTO(conversation, {}, thread, false))
     }
 
     @Get(':conversation_id/task-summary')
@@ -404,6 +407,15 @@ export class ConversationsController {
     ) {
         const conversation = await this.ensurePublicConversationAccess(conversationId)
         return this.taskSummaryService.listSection(conversation, section, offset, limit)
+    }
+
+    @Get(':conversation_id/messages/:message_id/file-changes')
+    async getMessageFileChanges(
+        @Param('conversation_id', UUIDValidationPipe) conversationId: string,
+        @Param('message_id', UUIDValidationPipe) messageId: string
+    ) {
+        const conversation = await this.ensurePublicConversationAccess(conversationId)
+        return this.taskSummaryService.getMessageFileChanges(conversation, messageId)
     }
 
     @Get(':conversation_id/messages')
@@ -426,7 +438,7 @@ export class ConversationsController {
                     new ChatMessageDTO(await this.messageService.filterAuthorizedFileRelations(item, conversation.id))
             )
         )
-        return { ...result, items }
+        return { ...result, items: await this.withAgentRuns(conversation, items) }
     }
 
     @HttpCode(HttpStatus.OK)
@@ -475,7 +487,7 @@ export class ConversationsController {
                     new ChatMessageDTO(await this.messageService.filterAuthorizedFileRelations(item, conversation.id))
             )
         )
-        return { ...result, items }
+        return { ...result, items: await this.withAgentRuns(conversation, items) }
     }
 
     @Post(':conversation_id/messages')
@@ -654,6 +666,19 @@ export class ConversationsController {
         await this.feedbackService.delete(feedbackId)
     }
 
+    private async withAgentRuns(conversation: IChatConversation, items: ChatMessageDTO[]) {
+        if (!this.agentRunsService || !items.some((item) => item.executionId)) return items
+        const branches = this.conversationThreadService
+            ? await this.conversationThreadService.listByConversation(conversation.id)
+            : []
+        const threadIds = [conversation.threadId, ...branches.map((branch) => branch.threadId)].filter(Boolean)
+        const runs = await this.agentRunsService.forMessages(items, threadIds)
+        for (const item of items) {
+            if (runs.has(item.id)) item.agentRuns = runs.get(item.id)
+        }
+        return items
+    }
+
     private async ensurePublicConversationAccess(conversationId: string) {
         return this.ensureConversationAccess(conversationId)
     }
@@ -681,11 +706,11 @@ export class ConversationsController {
             ...(body.parentId !== undefined ? { parentId: body.parentId } : {}),
             ...(body.role !== undefined ? { role: body.role } : {}),
             ...(body.status !== undefined ? { status: body.status } : {}),
-            ...(body.content !== undefined ? { content: body.content } : {}),
+            ...(body.content !== undefined ? { content: stripClientSkillContent(body.content) } : {}),
             ...(body.reasoning !== undefined ? { reasoning: body.reasoning } : {}),
             ...(body.error !== undefined ? { error: body.error } : {}),
             ...(body.references !== undefined ? { references: body.references } : {}),
-            ...(body.taskSummary !== undefined ? { taskSummary: body.taskSummary } : {}),
+            ...(body.taskSummary !== undefined ? { taskSummary: stripClientSkillSummary(body.taskSummary) } : {}),
             ...(body.thirdPartyMessage !== undefined ? { thirdPartyMessage: body.thirdPartyMessage } : {}),
             ...(body.events !== undefined ? { events: body.events } : {}),
             ...(body.executionId !== undefined ? { executionId: body.executionId } : {}),

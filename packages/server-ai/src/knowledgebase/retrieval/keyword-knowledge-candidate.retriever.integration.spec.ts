@@ -325,7 +325,10 @@ postgresDescribe('KeywordKnowledgeCandidateRetriever PostgreSQL integration', ()
         const all = await retriever.retrieve(input)
         const wiki = await retriever.retrieve({ ...input, contentScope: 'wiki' })
         const original = await retriever.retrieve({ ...input, contentScope: 'original' })
-        expect(all.candidates.map(({ document }) => document.metadata.chunkId)).toEqual(['scope-original'])
+        expect(all.candidates.map(({ document }) => document.metadata.chunkId)).toEqual([
+            'scope-original',
+            'scope-wiki'
+        ])
         expect(wiki.candidates.map(({ document }) => document.metadata.chunkId)).toEqual(['scope-wiki'])
         expect(original.candidates.map(({ document }) => document.metadata.chunkId)).toEqual(['scope-original'])
         expect([all, wiki, original].every((result) => !result.failed)).toBe(true)
@@ -388,15 +391,11 @@ postgresDescribe('KeywordKnowledgeCandidateRetriever PostgreSQL integration', ()
         )
     })
 
-    it('caps a document-title match that fans out to many chunks at top K', async () => {
+    it('returns one representative for a legacy title-only document match', async () => {
         const result = await retriever.retrieve(request('批量标题关键字', { k: 3 }))
 
-        expect(result.diagnostics.keywordCandidateCount).toBe(6)
-        expect(result.candidates).toHaveLength(3)
-        expect(result.candidates.map(({ document }) => document.metadata.chunkId)).toEqual([
-            'title-many-1',
-            'title-many-2',
-            'title-many-3'
-        ])
+        expect(result.diagnostics.keywordCandidateCount).toBe(1)
+        expect(result.candidates).toHaveLength(1)
+        expect(result.candidates.map(({ document }) => document.metadata.chunkId)).toEqual(['title-many-1'])
     })
 })

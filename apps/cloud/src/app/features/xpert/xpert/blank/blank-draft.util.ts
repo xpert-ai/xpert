@@ -1,5 +1,6 @@
 import {
   AiModelTypeEnum,
+  SKILLS_MIDDLEWARE_NAME,
   createAgentConnections,
   createXpertNodes,
   genJSONParseKey,
@@ -49,7 +50,7 @@ const KNOWLEDGE_STAGE_BASE_Y = 220
 const WORKFLOW_STAGE_X_GAP = 320
 const WORKFLOW_STAGE_BASE_Y = 0
 
-export const BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER = 'skillsMiddleware'
+export const BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER = SKILLS_MIDDLEWARE_NAME
 
 function genWorkflowDraftKnowledgeKey() {
   return letterStartSUID('Knowledge_')

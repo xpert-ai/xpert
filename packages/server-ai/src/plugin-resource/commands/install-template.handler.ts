@@ -12,6 +12,10 @@ import {
     XpertTemplatePluginToolsetDependency,
     XpertToolsetCategoryEnum
 } from '@xpert-ai/contracts'
+import { updateAssistantPrompt } from '../../xpert-template/capabilities/capability-state'
+import { randomUUID } from 'node:crypto'
+import { BLANK_ASSISTANT_TEMPLATE_ID } from '../../xpert-template/capabilities/blank-assistant-template'
+import { parseCapabilityTemplateId } from '../../xpert-template/capabilities/template-capability-reference'
 import { getErrorMessage, yaml } from '@xpert-ai/server-common'
 import { normalizePluginName } from '@xpert-ai/server-core'
 import { BadRequestException, Logger } from '@nestjs/common'
@@ -26,6 +30,8 @@ import { XpertService } from '../../xpert/xpert.service'
 import { XpertTemplateWorkspaceInitializer } from '../../xpert/template-workspace-initializer.service'
 import { createXpertTemplateSource } from '../../xpert/template-source'
 import { XpertTemplateService } from '../../xpert-template/xpert-template.service'
+import { AssistantCapabilityService } from '../../xpert-template/capabilities/assistant-capability.service'
+import { capabilityTemplateId } from '../../xpert-template/capabilities/template-capability-reference'
 import { XpertToolset } from '../../xpert-toolset/xpert-toolset.entity'
 import { XpertWorkspaceAccessService } from '../../xpert-workspace'
 import { PluginResourceInstallResult, PluginResourceInstallerService } from '../plugin-resource-installer.service'
@@ -51,24 +57,43 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
         private readonly commandBus: CommandBus,
         private readonly xpertService: XpertService,
         @InjectRepository(XpertToolset)
-        private readonly toolsetRepo: Repository<XpertToolset>
+        private readonly toolsetRepo: Repository<XpertToolset>,
+        private readonly capabilities: AssistantCapabilityService
     ) {}
 
     async execute(command: PluginTemplateInstallCommand): Promise<PluginResourceInstallResult> {
         await this.workspaceAccess.assertCanAuthor(command.workspaceId)
+        const templateId = capabilityTemplateId(command.templateId, command.capabilities)
         const template = command.locale
-            ? await this.xpertTemplateService.getTemplateDetail(command.templateId, command.language, {
+            ? await this.xpertTemplateService.getTemplateDetail(templateId, command.language, {
                   locale: command.locale
               })
-            : await this.xpertTemplateService.getTemplateDetail(command.templateId, command.language)
+            : await this.xpertTemplateService.getTemplateDetail(templateId, command.language)
         const parsed = yaml.parse(template.export_data) as unknown
         const sandboxProviders = await this.xpertService.getSandboxProviders()
         const draft = this.normalizeDraft(parsed, command.workspaceId, command.basic, sandboxProviders)
+        if ((parseCapabilityTemplateId(template.id)?.templateId ?? template.id) === BLANK_ASSISTANT_TEMPLATE_ID) {
+            draft.team.name = `assistant-${randomUUID()}`
+            const primary = draft.nodes.find((node) => node.type === 'agent' && node.key === draft.team.agent?.key)
+            if (primary?.type === 'agent') {
+                primary.entity.name = draft.team.name
+                primary.entity.title = draft.team.title
+            }
+        }
+        await this.capabilities.prepareInstallation(
+            template,
+            draft,
+            command.language,
+            command.capabilities,
+            command.basic?.copilotModel,
+            sandboxProviders
+        )
+        if (command.basic?.prompt !== undefined) updateAssistantPrompt(draft, command.basic.prompt)
         const xpert = await this.commandBus.execute<XpertImportCommand, IXpert>(
             new XpertImportCommand(draft, {
                 normalizeCopilotModels: !hasExplicitLlmCopilotModel(command.basic?.copilotModel),
                 language: command.language,
-                templateId: command.templateId,
+                templateId,
                 sourceTemplateId: template.id,
                 templateSource: createXpertTemplateSource(template),
                 workspaceDataScope: command.basic?.workspaceDataScope
@@ -130,7 +155,7 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
 
         const team = teamValue as TXpertTeamDraft['team']
         const features = normalizeTemplateSandboxFeatures(team.features, sandboxProviders)
-        const { workspaceDataScope: _workspaceDataScope, ...portableBasic } = basic ?? {}
+        const { workspaceDataScope: _workspaceDataScope, prompt: _prompt, ...portableBasic } = basic ?? {}
         return new XpertDraftDslDTO({
             team: {
                 ...team,

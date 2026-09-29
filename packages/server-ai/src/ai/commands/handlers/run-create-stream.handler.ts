@@ -1,10 +1,16 @@
+import { DesktopShellAuthService } from '../../../desktop-shell/desktop-shell-auth.service'
+import { getErrorMessage } from '@xpert-ai/plugin-sdk'
 import {
     IChatConversation,
     IEnvironment,
+    ProjectSelection,
+    TAgentExecutionMetadata,
+    TChatCheckpointReference,
     TChatRequest as TChatRequestV2,
     XpertAgentExecutionStatusEnum
 } from '@xpert-ai/contracts'
-import { TChatRequest as LegacyTChatRequest } from '@xpert-ai/chatkit-types'
+import { TChatRequest as ChatKitLegacyRequest } from '@xpert-ai/chatkit-types'
+import { clearContextProject, projectSelectionSchema, resolveSendProjectSelection } from '../../project-selection'
 import { BadRequestException, Logger, Optional } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { isNil, omitBy } from 'lodash'
@@ -14,14 +20,26 @@ import { t } from 'i18next'
 import z from 'zod'
 import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/upsert.command'
 import { ChatConversationThreadService } from '../../../chat-conversation/conversation-thread.service'
+import {
+    ThreadRunControlService,
+    threadGraphRevision,
+    threadControlConflict
+} from '../../../chat-conversation/thread-run-control.service'
+import { GetXpertWorkflowQuery, TXpertWorkflowQueryOutput } from '../../../xpert/queries'
 import { GetChatConversationQuery } from '../../../chat-conversation/queries/conversation-get.query'
 import { AssertChatConversationAccessQuery } from '../../../chat-conversation/queries/conversation-assert-access.query'
-import { EnvironmentService, getContextEnvState, mergeEnvironmentWithEnvState } from '../../../environment'
+import {
+    EnvironmentService,
+    getContextEnvState,
+    mergeEnvironmentWithEnvState,
+    mergeRuntimeContextWithEnv
+} from '../../../environment'
 import { PublishedXpertAccessService, XpertPrincipalService } from '../../../xpert'
 import { XpertChatCommand } from '../../../xpert/commands/chat.command'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands/upsert.command'
 import { AssertXpertAgentExecutionAccessQuery } from '../../../xpert-agent-execution/queries'
 import { XpertProjectService } from '../../../xpert-project'
+import { ConversationProjectService } from '../../../xpert-project/services/conversation-project.service'
 import { RunCreateStreamCommand } from '../run-create-stream.command'
 import { assertPublicXpertSessionConversationAccess } from '../../public-xpert-principal'
 import { getTrustedApiChatSource } from '../../api-chat-source'
@@ -32,6 +50,8 @@ import {
     bindConversationAssistantIfUnbound,
     resolveAssistantForRequest
 } from '../../assistant-request-context'
+
+type LegacyTChatRequest = ChatKitLegacyRequest & { projectSelection?: ProjectSelection }
 
 const humanInputSchema = z.object({}).passthrough()
 
@@ -64,6 +84,7 @@ const sendChatRequestSchema = z
         action: z.literal('send'),
         conversationId: z.string().optional(),
         projectId: z.string().optional(),
+        projectSelection: projectSelectionSchema.optional(),
         environmentId: z.string().optional(),
         sandboxEnvironmentId: z.string().optional(),
         message: z
@@ -251,6 +272,7 @@ function normalizeLegacyChatRequest(
             action: 'send',
             conversationId: input.conversationId,
             projectId: input.projectId,
+            projectSelection: input.projectSelection,
             environmentId: input.environmentId,
             sandboxEnvironmentId: input.sandboxEnvironmentId,
             agentKey: input.agentKey,
@@ -349,7 +371,10 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         private readonly publishedXpertAccessService: PublishedXpertAccessService,
         private readonly xpertPrincipalService?: XpertPrincipalService,
         @Optional() private readonly projectService?: XpertProjectService,
-        @Optional() private readonly conversationThreadService?: ChatConversationThreadService
+        @Optional() private readonly conversationThreadService?: ChatConversationThreadService,
+        @Optional() private readonly threadRunControl?: ThreadRunControlService,
+        @Optional() private readonly desktopShellAuth?: DesktopShellAuthService,
+        @Optional() private readonly conversationProjects?: ConversationProjectService
     ) {}
 
     private async resolveRequestEnvironment(
@@ -390,9 +415,26 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
             ...conversation,
             status: conversationThread?.status ?? conversation.status
         })
-        const runtimeContext = getRunCreateContext(runCreate.context)
-        if (chatRequest.action === 'send' && !chatRequest.projectId) {
-            chatRequest.projectId = getContextProjectId(runtimeContext)
+        if (
+            chatRequest.action === 'follow_up' &&
+            ['pausing', 'paused'].includes(conversationThread?.status ?? conversation.status)
+        ) {
+            throw threadControlConflict(
+                'ThreadIsPaused',
+                'Resume or stop the paused workflow before sending a follow-up.'
+            )
+        }
+        let runtimeContext = getRunCreateContext(runCreate.context)
+        if (chatRequest.action === 'send') {
+            const selection = resolveSendProjectSelection(
+                chatRequest,
+                conversation,
+                xpert,
+                getContextProjectId(runtimeContext)
+            )
+            chatRequest.projectId = selection.projectId
+            chatRequest.projectSelection = selection.selection
+            if (selection.selection) runtimeContext = clearContextProject(runtimeContext)
         }
 
         const referencedExecutionId =
@@ -403,9 +445,17 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
                   : undefined
         const referencedExecution = referencedExecutionId
             ? await this.queryBus.execute(
-                  new AssertXpertAgentExecutionAccessQuery(referencedExecutionId, 'contribute', conversation.threadId)
+                  new AssertXpertAgentExecutionAccessQuery(referencedExecutionId, 'contribute', threadId)
               )
             : null
+
+        if (command.resumePaused && this.threadRunControl) {
+            runtimeContext = await this.threadRunControl.getResumeContext(
+                threadId,
+                command.resumePaused.executionId,
+                command.resumePaused.pauseId
+            )
+        }
 
         // Backfill legacy threads independently with a compare-and-set update.
         conversation = await bindConversationAssistantIfUnbound(
@@ -417,6 +467,22 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         // Project scope is persisted before streaming and then treated as the
         // sole trusted source for runtime files and nested Agent execution.
         const requestedProjectId = chatRequest.action === 'send' ? chatRequest.projectId : undefined
+        if (
+            chatRequest.action === 'send' &&
+            !requestedProjectId &&
+            !conversation.projectId &&
+            chatRequest.projectSelection?.mode !== 'none' &&
+            xpert.options?.workspaceScope?.onMissing === 'create'
+        ) {
+            if (!this.conversationProjects) {
+                throw new BadRequestException(
+                    t('server-ai:Error.ProjectConversationUnavailable', {
+                        defaultValue: 'Project conversations are unavailable'
+                    })
+                )
+            }
+            conversation = await this.conversationProjects.prepare(conversation, xpert)
+        }
         const effectiveProjectId = conversation.projectId ?? requestedProjectId
         if (effectiveProjectId) {
             if (!this.projectService) {
@@ -438,6 +504,21 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
             // Replace transient request scope with the authorized persisted id.
             chatRequest.projectId = conversation.projectId
         }
+        if (chatRequest.action === 'send' && chatRequest.projectSelection?.mode === 'none') {
+            if (!this.conversationProjects) {
+                throw new BadRequestException(
+                    t('server-ai:Error.ProjectConversationUnavailable', {
+                        defaultValue: 'Project conversations are unavailable'
+                    })
+                )
+            }
+            conversation = await this.conversationProjects.selectNone(conversation)
+        }
+
+        if (runtimeContext?.desktopShellGrantId !== undefined) {
+            if (!this.desktopShellAuth) throw new BadRequestException(t('server-ai:DesktopShell.DEVICE_OFFLINE'))
+            await this.desktopShellAuth.bindForRun(runtimeContext.desktopShellGrantId, threadId, runCreate.assistant_id)
+        }
 
         applyAssistantScope(xpert)
         const environment = await this.resolveRequestEnvironment(xpert, chatRequest, runtimeContext)
@@ -456,7 +537,18 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         }
 
         const ownsRunClaim = chatRequest.action !== 'follow_up'
-        if (ownsRunClaim && this.conversationThreadService) {
+        let resumeCheckpoint: TChatCheckpointReference | undefined
+        if (command.resumePaused && this.threadRunControl) {
+            const workflow = await this.queryBus.execute<GetXpertWorkflowQuery, TXpertWorkflowQueryOutput>(
+                new GetXpertWorkflowQuery(xpert.id, referencedExecution.agentKey, false)
+            )
+            resumeCheckpoint = await this.threadRunControl.claimResume(
+                threadId,
+                command.resumePaused.executionId,
+                command.resumePaused.pauseId,
+                threadGraphRevision(workflow.graph)
+            )
+        } else if (ownsRunClaim && this.conversationThreadService) {
             await this.conversationThreadService.claimForRun(threadId)
         }
         let execution = chatRequest.action === 'follow_up' ? referencedExecution : null
@@ -469,12 +561,19 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
                         omitBy(
                             {
                                 id:
-                                    chatRequest.action === 'resume'
+                                    chatRequest.action === 'resume' && !command.resumePaused
                                         ? chatRequest.target.executionId
                                         : chatRequest.action === 'follow_up'
                                           ? chatRequest.target?.executionId
                                           : undefined,
                                 threadId,
+                                ...(command.resumePaused
+                                    ? {
+                                          metadata: {
+                                              resumedFromExecutionId: command.resumePaused.executionId
+                                          } satisfies TAgentExecutionMetadata
+                                      }
+                                    : {}),
                                 status: XpertAgentExecutionStatusEnum.RUNNING
                             },
                             isNil
@@ -487,13 +586,25 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
                 throw new BadRequestException('Execution ID could not be resolved')
             }
 
+            if (command.resumePaused) {
+                await this.threadRunControl.bindResumedExecution(threadId, command.resumePaused.pauseId, execution.id)
+            } else if (ownsRunClaim) {
+                await this.threadRunControl?.start(
+                    threadId,
+                    execution.id,
+                    mergeRuntimeContextWithEnv(runtimeContext, environment)
+                )
+            }
+
             stream = await this.commandBus.execute<XpertChatCommand, Observable<MessageEvent>>(
                 new XpertChatCommand(chatRequest, {
                     xpertId: xpert.id,
                     threadId,
                     isDerivedThread: conversation.threadId !== threadId,
                     ...chatSource,
-                    execution: chatRequest.action === 'resume' ? undefined : { id: execution.id },
+                    execution:
+                        chatRequest.action === 'resume' && !command.resumePaused ? undefined : { id: execution.id },
+                    ...(resumeCheckpoint ? { resumeCheckpoint } : {}),
                     ...(runtimeContext ? { context: runtimeContext } : {}),
                     environment,
                     sandboxEnvironmentId: conversation.options?.sandboxEnvironmentId,
@@ -506,8 +617,27 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
                 })
             )
         } catch (error) {
-            if (ownsRunClaim && this.conversationThreadService) {
-                await this.conversationThreadService.updateRuntimeState(threadId, 'idle')
+            if (execution?.id && ownsRunClaim) {
+                await this.commandBus.execute(
+                    new XpertAgentExecutionUpsertCommand({
+                        id: execution.id,
+                        status: XpertAgentExecutionStatusEnum.ERROR,
+                        error: getErrorMessage(error)
+                    })
+                )
+            }
+            if (command.resumePaused) {
+                await this.threadRunControl?.releaseResume(
+                    threadId,
+                    command.resumePaused.executionId,
+                    command.resumePaused.pauseId
+                )
+            } else if (ownsRunClaim && this.conversationThreadService) {
+                if (execution?.id && this.threadRunControl) {
+                    await this.threadRunControl.finish(threadId, execution.id, 'idle')
+                } else {
+                    await this.conversationThreadService.updateRuntimeState(threadId, 'idle')
+                }
             }
             throw error
         }

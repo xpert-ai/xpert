@@ -9,6 +9,7 @@ import {
 } from './keyword-knowledge-candidate.retriever'
 import { KnowledgeKeywordIndexService } from './knowledge-keyword-index.service'
 import { KnowledgeRetrievalRequest } from './types'
+import { FAQRetrievalBudget, FAQ_RETRIEVAL_LIMITS } from '../faq/faq-retrieval-budget'
 
 function knowledgebase(): IKnowledgebase {
     return {
@@ -251,14 +252,36 @@ describe('KeywordKnowledgeCandidateRetriever', () => {
         expect(result.diagnostics.keywordBranchHitCount).toBe(0)
     })
 
-    it('caps results at requested top K after parent-child collapse', async () => {
+    it('keeps the candidate window beyond final Top K after parent-child collapse', async () => {
         const query = mockQuery(async () => [row('first', 3), row('second', 2), row('third', 1)])
         const retriever = new KeywordKnowledgeCandidateRetriever(dataSource(query), keywordIndexService())
 
         const result = await retriever.retrieve(request({ k: 2 }))
 
-        expect(result.candidates.map(({ document }) => document.metadata.chunkId)).toEqual(['first', 'second'])
+        expect(result.candidates.map(({ document }) => document.metadata.chunkId)).toEqual(['first', 'second', 'third'])
         expect(query.mock.calls[0][1]?.at(-1)).toBe(8)
+    })
+
+    it('shares the 400 raw candidate limit across FAQ refill calls without re-reading prefixes', async () => {
+        const query = mockQuery(async (_sql, parameters) => {
+            const offset = Number(parameters?.at(-2) ?? 0)
+            const limit = Number(parameters?.at(-1) ?? 0)
+            return Array.from({ length: Math.min(limit, 450 - offset) }, (_, index) => row(`faq-${offset + index}`, 1))
+        })
+        const retriever = new KeywordKnowledgeCandidateRetriever(dataSource(query), keywordIndexService())
+        const faqSession = { budget: new FAQRetrievalBudget({ ...FAQ_RETRIEVAL_LIMITS, candidateSlots: 20_000 }) }
+        const sharedRequest = request({ faqSession })
+        let result = await retriever.retrieve({ ...sharedRequest, k: 5 })
+        result = await retriever.retrieve({ ...sharedRequest, k: 10 })
+        result = await retriever.retrieve({ ...sharedRequest, k: 20 })
+        result = await retriever.retrieve({ ...sharedRequest, k: 40 })
+        result = await retriever.retrieve({ ...sharedRequest, k: 80 })
+
+        expect(result.diagnostics.keywordCandidateCount).toBe(400)
+        expect(result.candidates).toHaveLength(400)
+        expect(result.budgetLimited).toBe(true)
+        expect(faqSession.budget.candidateSlots).toBe(400)
+        expect(query.mock.calls.map(([, parameters]) => parameters?.at(-2))).toEqual([0, 20, 60, 140, 300])
     })
 
     it('does not query the database for an empty keyword query', async () => {

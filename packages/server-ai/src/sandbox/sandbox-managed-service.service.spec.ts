@@ -8,6 +8,7 @@ import type { Request, Response } from 'express'
 import type { Repository } from 'typeorm'
 import { SandboxManagedServiceEntity } from './sandbox-managed-service.entity'
 import { SandboxManagedServiceService } from './sandbox-managed-service.service'
+import { ChatConversationThread } from '../chat-conversation/conversation-thread.entity'
 
 describe('SandboxManagedServiceService', () => {
     let repository: {
@@ -15,6 +16,9 @@ describe('SandboxManagedServiceService', () => {
     }
     let conversationRepository: {
         findOneBy: jest.Mock
+    }
+    let conversationThreadRepository: {
+        findOne: jest.Mock
     }
     let sandboxConversationContextService: {
         resolveConversationSandbox: jest.Mock
@@ -28,6 +32,9 @@ describe('SandboxManagedServiceService', () => {
         conversationRepository = {
             findOneBy: jest.fn().mockResolvedValue({ id: 'conversation-1' })
         }
+        conversationThreadRepository = {
+            findOne: jest.fn().mockResolvedValue(null)
+        }
         sandboxConversationContextService = {
             resolveConversationSandbox: jest.fn().mockResolvedValue({
                 provider: 'test-sandbox',
@@ -39,6 +46,7 @@ describe('SandboxManagedServiceService', () => {
         service = new SandboxManagedServiceService(
             repository as unknown as Repository<SandboxManagedServiceEntity>,
             conversationRepository as never,
+            conversationThreadRepository as never,
             sandboxConversationContextService as never
         )
     })

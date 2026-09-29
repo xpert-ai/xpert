@@ -1,3 +1,4 @@
+import { ASSISTANT_SETTINGS_CONTEXT } from '../../../@shared/xpert/assistant-settings/assistant-settings-context'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
@@ -100,7 +101,7 @@ export interface AssistantTriggerDialogData {
 export class AssistantTriggerDialogComponent {
   readonly data = inject<AssistantTriggerDialogData>(DIALOG_DATA)
   readonly dialogRef = inject<DialogRef<boolean>>(DialogRef)
-  readonly facade = inject(ClawXpertFacade)
+  readonly facade = inject(ASSISTANT_SETTINGS_CONTEXT, { optional: true }) ?? inject(ClawXpertFacade)
   private readonly toastr = inject(ToastrService)
   private readonly translate = inject(TranslateService)
   readonly initialConfig = structuredClone(

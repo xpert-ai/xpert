@@ -45,11 +45,6 @@ import { findPluginLoadFailure } from './plugin.helper'
 import { resolvePluginConfigSchema } from './plugin-config-schema'
 import { resolvePluginLevel } from './plugin-instance.entity'
 import { PluginInstanceService } from './plugin-instance.service'
-import {
-	PluginMarketplaceRegistryItemInput,
-	PluginMarketplaceService,
-	PluginMarketplaceSourceInput
-} from './plugin-marketplace.service'
 import { PluginManagementService } from './plugin-management.service'
 import { getCodeWorkspacePath } from './source-config'
 import {
@@ -63,7 +58,6 @@ import {
 import { GetPluginSkillDocumentQuery, ResolveLatestPluginVersionQuery } from './queries'
 import { UpdatePluginCommand } from './commands'
 import { UploadedPluginArchiveFile } from './plugin-archive'
-import { Public } from '../shared/decorators'
 import { LOADED_PLUGINS, LoadedPluginRecord, PluginInstallInput, normalizePluginName } from './types'
 
 type LoadedPluginScopeState = {
@@ -85,7 +79,6 @@ export class PluginController {
 		@Inject(LOADED_PLUGINS)
 		private readonly loadedPlugins: Array<LoadedPluginRecord>,
 		private readonly pluginInstanceService: PluginInstanceService,
-		private readonly pluginMarketplaceService: PluginMarketplaceService,
 		private readonly pluginManagementService: PluginManagementService,
 		private readonly toolProviderRegistry: XpertToolProviderRegistry,
 		private readonly queryBus: QueryBus,
@@ -259,90 +252,6 @@ export class PluginController {
 			configurationStatus: PLUGIN_CONFIGURATION_STATUS.VALID,
 			configurationError: null
 		}
-	}
-
-	@Get('marketplace')
-	async getMarketplace(
-		@Query('targetApp') targetApp?: string,
-		@Query('sourceId') sourceId?: string,
-		@Query('search') search?: string
-	) {
-		return this.pluginMarketplaceService.listMarketplace({ targetApp, sourceId, search })
-	}
-
-	@Get('marketplace/public')
-	@Public()
-	async getPublicMarketplace(@Query('targetApp') targetApp?: string) {
-		return this.pluginMarketplaceService.listPublicMarketplace({ targetApp })
-	}
-
-	@Get('marketplace/sources')
-	async getMarketplaceSources() {
-		return this.pluginMarketplaceService.listSources()
-	}
-
-	@Post('marketplace/sources')
-	async createMarketplaceSource(@Body() body: PluginMarketplaceSourceInput) {
-		return this.pluginMarketplaceService.createSource(body)
-	}
-
-	@Post('marketplace/sources/refresh')
-	async refreshMarketplaceSources() {
-		return this.pluginMarketplaceService.refreshSources()
-	}
-
-	@Put('marketplace/sources/:id')
-	async updateMarketplaceSource(@Param('id') id: string, @Body() body: PluginMarketplaceSourceInput) {
-		return this.pluginMarketplaceService.updateSource(id, body)
-	}
-
-	@Delete('marketplace/sources/:id')
-	async deleteMarketplaceSource(@Param('id') id: string) {
-		return this.pluginMarketplaceService.deleteSource(id)
-	}
-
-	@Post('marketplace/sources/:id/refresh')
-	async refreshMarketplaceSource(@Param('id') id: string) {
-		return this.pluginMarketplaceService.refreshSource(id)
-	}
-
-	@Get('marketplace/registry')
-	async getMarketplaceRegistryItems() {
-		return this.pluginMarketplaceService.listRegistryItems()
-	}
-
-	@Get('marketplace/detail')
-	async getMarketplacePluginDetail(
-		@Query('name') name?: string,
-		@Query('targetApp') targetApp?: string,
-		@Query('sourceId') sourceId?: string,
-		@Query('locale') locale?: string
-	) {
-		return this.pluginMarketplaceService.getMarketplacePluginDetail(name ?? '', {
-			targetApp,
-			sourceId,
-			locale
-		})
-	}
-
-	@Post('marketplace/registry')
-	async createMarketplaceRegistryItem(@Body() body: PluginMarketplaceRegistryItemInput) {
-		return this.pluginMarketplaceService.createRegistryItem(body)
-	}
-
-	@Put('marketplace/registry/:id')
-	async updateMarketplaceRegistryItem(@Param('id') id: string, @Body() body: PluginMarketplaceRegistryItemInput) {
-		return this.pluginMarketplaceService.updateRegistryItem(id, body)
-	}
-
-	@Delete('marketplace/registry/:id')
-	async deleteMarketplaceRegistryItem(@Param('id') id: string) {
-		return this.pluginMarketplaceService.deleteRegistryItem(id)
-	}
-
-	@Get('marketplace/:name')
-	async getMarketplacePlugin(@Param('name') name: string, @Query('targetApp') targetApp?: string) {
-		return this.pluginMarketplaceService.getMarketplacePlugin(name, { targetApp })
 	}
 
 	/**

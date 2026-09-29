@@ -1,3 +1,14 @@
+jest.mock('../../../chat-conversation/message-checkpoint.service', () => ({
+    MessageCheckpointService: class {}
+}))
+
+jest.mock('../../../chat-conversation/thread-run-control.service', () => ({
+    ThreadRunControlService: class {},
+    threadGraphRevision: () => 'graph-v1',
+    threadControlConflict: (_key: string, message: string) =>
+        new (jest.requireActual('@nestjs/common').ConflictException)(message)
+}))
+
 jest.mock('isolated-vm', () => ({
     ExternalCopy: class ExternalCopy {},
     Isolate: class Isolate {}
@@ -22,7 +33,7 @@ jest.mock('../../../copilot-checkpoint', () => ({
 }))
 
 jest.mock('../../agent', () => ({
-    createMapStreamEvents: () => (event: unknown) => event
+    createMapStreamEvents: jest.fn(() => (event: unknown) => event)
 }))
 
 jest.mock('../../../environment', () => {
@@ -66,8 +77,9 @@ jest.mock('../../../knowledgebase', () => ({
 
 import { RequestContext } from '@xpert-ai/server-core'
 import { I18nService } from 'nestjs-i18n'
-import { Observable } from 'rxjs'
-import { Command } from '@langchain/langgraph'
+import { Observable, Subscriber } from 'rxjs'
+import { createMapStreamEvents } from '../../agent'
+import { Command, getConfig } from '@langchain/langgraph'
 import { ChatMessageEventTypeEnum, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { CompileGraphCommand } from '../compile-graph.command'
 import { XpertAgentInvokeCommand } from '../invoke.command'
@@ -76,6 +88,7 @@ import { ExecutionCancelService, XpertWorkAreaResolver } from '../../../shared'
 import { SandboxAcquireBackendCommand } from '../../../sandbox/commands'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
 import { CompleteToolCallsQuery } from '../../queries'
+import { getExecutionContext } from '../../../shared/agent/execution-context'
 
 describe('XpertAgentInvokeHandler', () => {
     let commandBus: { execute: jest.Mock }
@@ -192,6 +205,39 @@ describe('XpertAgentInvokeHandler', () => {
 
         expect(compileCommand).not.toBeNull()
         expect(compileCommand!.options.planMode).toBe(true)
+    })
+
+    it('streams compiled external agents while still respecting explicit mute rules', async () => {
+        const graph = createGraph()
+        commandBus.execute.mockImplementation(async (command: unknown) => {
+            if (command instanceof CompileGraphCommand) {
+                command.options.unmutes.push(['Agent_external', 'expert-1'], ['Agent_muted', 'expert-2'])
+                command.options.mute.push(['expert-2', 'Agent_muted'])
+                return createCompiledGraph(graph)
+            }
+            return null
+        })
+        const stream = await handler.execute(
+            new XpertAgentInvokeCommand(
+                { human: { input: 'Delegate review' } },
+                'agent-1',
+                { id: 'xpert-1', workspaceDataScope: 'user' },
+                {
+                    isDraft: false,
+                    thread_id: 'thread-1',
+                    rootExecutionId: 'execution-1',
+                    execution: { id: 'execution-1', threadId: 'thread-1' },
+                    subscriber: new Subscriber<MessageEvent>(),
+                    store: null
+                }
+            )
+        )
+        await consumeStream(stream)
+        expect(createMapStreamEvents).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.anything(),
+            expect.objectContaining({ unmutes: [['Agent_external', 'expert-1']] })
+        )
     })
 
     it('preserves soul and profile in fresh graph input sys state', async () => {
@@ -442,16 +488,33 @@ describe('XpertAgentInvokeHandler', () => {
 
     it('uses the xpert workspace root as sandbox working directory', async () => {
         const graph = createGraph()
+        const sandbox = {
+            provider: 'local-shell-sandbox',
+            workingDirectory: '/tmp/xpert-workspace'
+        }
+        graph.streamEvents.mockImplementation((_input, config) => {
+            expect(config.context).toBe(getConfig().context)
+            expect(config.context).toBe(getExecutionContext())
+            expect(getExecutionContext()?.sandbox).toBe(sandbox)
+            return (async function* () {
+                await Promise.resolve()
+                expect(getExecutionContext()?.sandbox).toBe(sandbox)
+            })()
+        })
 
         commandBus.execute.mockImplementation(async (command) => {
             if (command instanceof SandboxAcquireBackendCommand) {
-                return {
-                    provider: 'local-shell-sandbox',
-                    workingDirectory: '/tmp/xpert-workspace'
-                }
+                return sandbox
             }
             if (command instanceof CompileGraphCommand) {
+                expect(getConfig().context).toBe(getExecutionContext())
+                expect(getConfig().context?.sandbox).toBe(sandbox)
+                expect(getExecutionContext()?.sandbox).toBe(sandbox)
+                expect(command.options).not.toHaveProperty('sandbox')
                 return createCompiledGraph(graph)
+            }
+            if (command instanceof XpertAgentExecutionUpsertCommand) {
+                expect(getExecutionContext()?.sandbox).toBe(sandbox)
             }
             return null
         })
@@ -489,7 +552,10 @@ describe('XpertAgentInvokeHandler', () => {
             )
         )
 
+        expect(graph.streamEvents).not.toHaveBeenCalled()
+        expect(getExecutionContext()).toBeUndefined()
         await consumeStream(stream)
+        expect(getExecutionContext()).toBeUndefined()
 
         expect(commandBus.execute).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -799,6 +865,8 @@ describe('XpertAgentInvokeHandler', () => {
 
     it('passes the active Project to interrupted tool-call completion', async () => {
         const graph = createGraph()
+        const sandbox = { provider: 'local-shell-sandbox', backend: { id: 'approval-backend' } }
+        const completionScopes: ReturnType<typeof getExecutionContext>[] = []
         graph.getState.mockResolvedValue({
             config: {
                 configurable: {
@@ -809,15 +877,20 @@ describe('XpertAgentInvokeHandler', () => {
             },
             parentConfig: null,
             values: {},
+            next: ['search'],
             tasks: [{ id: 'task-1', name: 'search' }]
         })
         commandBus.execute.mockImplementation(async (command) => {
+            if (command instanceof SandboxAcquireBackendCommand) return sandbox
             if (command instanceof CompileGraphCommand) {
                 return createCompiledGraph(graph)
             }
             return null
         })
-        queryBus.execute.mockResolvedValue({ tasks: [] })
+        queryBus.execute.mockImplementation(async (query) => {
+            if (query instanceof CompleteToolCallsQuery) completionScopes.push(getExecutionContext())
+            return { tasks: [] }
+        })
 
         const stream = await handler.execute(
             new XpertAgentInvokeCommand(
@@ -828,7 +901,7 @@ describe('XpertAgentInvokeHandler', () => {
                 {
                     id: 'xpert-1',
                     workspaceDataScope: 'user',
-                    features: {}
+                    features: { sandbox: { enabled: true, provider: 'local-shell-sandbox' } }
                 } as any,
                 {
                     isDraft: true,
@@ -852,6 +925,170 @@ describe('XpertAgentInvokeHandler', () => {
             ([query]) => query instanceof CompleteToolCallsQuery
         )?.[0] as CompleteToolCallsQuery
         expect(completeQuery.projectId).toBe('project-1')
+        expect(completeQuery).not.toHaveProperty('sandbox')
+        expect(completionScopes).toHaveLength(1)
+        expect(completionScopes[0]?.sandbox).toBe(sandbox)
+    })
+    it('emits a second tool approval even when a resumed dynamic task has an empty next list', async () => {
+        const graph = createGraph()
+        const pending = {
+            id: 'shell-task',
+            name: 'desktop_shell',
+            interrupts: [{ value: { actionRequests: [{ name: 'desktop_shell' }] } }]
+        }
+        graph.getState.mockResolvedValue({
+            config: { configurable: { thread_id: 'thread-1', checkpoint_ns: '', checkpoint_id: 'saved' } },
+            values: {},
+            next: [],
+            tasks: [{ id: 'finished', name: 'other', result: { output: 'done' }, interrupts: [] }, pending]
+        })
+        commandBus.execute.mockImplementation(async (command) =>
+            command instanceof CompileGraphCommand ? createCompiledGraph(graph) : null
+        )
+        queryBus.execute.mockResolvedValue({ tasks: [pending] })
+        const subscriber = { next: jest.fn() }
+        const stream = await handler.execute(
+            new XpertAgentInvokeCommand(
+                { human: { input: 'Run the tool' } } as never,
+                'agent-1',
+                { id: 'xpert-1', features: {} } as never,
+                {
+                    thread_id: 'thread-1',
+                    execution: { id: 'execution-1', threadId: 'thread-1' },
+                    subscriber,
+                    store: null
+                } as never
+            )
+        )
+        await consumeStream(stream).catch(() => undefined)
+        expect(subscriber.next).toHaveBeenCalledWith({
+            data: {
+                type: 'event',
+                event: ChatMessageEventTypeEnum.ON_INTERRUPT,
+                data: { tasks: [pending] }
+            }
+        })
+    })
+    it.each([
+        { label: 'pause only', completedTasks: [] },
+        {
+            label: 'completed parallel tool',
+            completedTasks: [{ id: 'done', name: 'search', interrupts: [], result: { output: 'done' } }]
+        },
+        { label: 'completed node without output', completedTasks: [{ id: 'done', name: 'search', interrupts: [] }] }
+    ])('stages a pause snapshot with $label without creating tool approvals', async ({ completedTasks }) => {
+        const graph = createGraph()
+        graph.getState.mockResolvedValue({
+            config: { configurable: { thread_id: 'thread-1', checkpoint_ns: '', checkpoint_id: 'saved' } },
+            values: {},
+            next: ['next'],
+            tasks: [...completedTasks, { id: 'task', name: 'next', interrupts: [{ value: { type: 'thread_pause' } }] }]
+        })
+        const control = {
+            recordGraph: jest.fn(),
+            shouldPause: jest.fn().mockResolvedValue(true),
+            stageCheckpoint: jest.fn()
+        }
+        const controlledHandler = new XpertAgentInvokeHandler(
+            commandBus as never,
+            queryBus as never,
+            checkpointSaver as never,
+            envService as never,
+            i18nService as never,
+            executionCancelService as never,
+            workAreaResolver as never,
+            undefined,
+            chatMessageRepository as never,
+            control as never
+        )
+        commandBus.execute.mockImplementation(async (command) =>
+            command instanceof CompileGraphCommand ? createCompiledGraph(graph) : null
+        )
+        const checkpoint = { threadId: 'thread-1', checkpointNs: '', checkpointId: 'paused-before' }
+        const stream = await controlledHandler.execute(
+            new XpertAgentInvokeCommand(
+                { human: { input: 'Do not resend this' } } as never,
+                'agent-1',
+                { id: 'xpert-1', features: {} } as never,
+                {
+                    thread_id: 'thread-1',
+                    execution: { id: 'execution-1', threadId: 'thread-1' },
+                    subscriber: { next: jest.fn() },
+                    store: null,
+                    resumeCheckpoint: checkpoint
+                } as never
+            )
+        )
+        await consumeStream(stream).catch(() => undefined)
+        expect(graph.streamEvents.mock.calls[0][0]).toBeNull()
+        expect(graph.streamEvents.mock.calls[0][1].configurable).toMatchObject({ xpertResumeCheckpoint: checkpoint })
+        expect(graph.streamEvents.mock.calls[0][1].configurable.checkpoint_id).toBeUndefined()
+        expect(control.stageCheckpoint).toHaveBeenCalledWith('thread-1', 'execution-1', {
+            threadId: 'thread-1',
+            checkpointNs: '',
+            checkpointId: 'saved'
+        })
+        expect(queryBus.execute.mock.calls.some(([query]) => query instanceof CompleteToolCallsQuery)).toBe(false)
+    })
+
+    it('stages a pause checkpoint when the graph has no pending tasks', async () => {
+        const graph = createGraph()
+        graph.getState.mockResolvedValue({
+            config: { configurable: { thread_id: 'thread-1', checkpoint_ns: '', checkpoint_id: 'saved' } },
+            values: {},
+            next: [],
+            tasks: []
+        })
+        const control = {
+            recordGraph: jest.fn(),
+            shouldPause: jest.fn().mockResolvedValue(true),
+            stageCheckpoint: jest.fn()
+        }
+        const controlledHandler = new XpertAgentInvokeHandler(
+            commandBus as never,
+            queryBus as never,
+            checkpointSaver as never,
+            envService as never,
+            i18nService as never,
+            executionCancelService as never,
+            workAreaResolver as never,
+            undefined,
+            chatMessageRepository as never,
+            control as never
+        )
+        commandBus.execute.mockImplementation(async (command) =>
+            command instanceof CompileGraphCommand ? createCompiledGraph(graph) : null
+        )
+
+        const stream = await controlledHandler.execute(
+            new XpertAgentInvokeCommand(
+                { human: { input: 'Pause after the current step' } } as never,
+                'agent-1',
+                { id: 'xpert-1', features: {} } as never,
+                {
+                    thread_id: 'thread-1',
+                    execution: { id: 'execution-1', threadId: 'thread-1' },
+                    subscriber: { next: jest.fn() },
+                    store: null
+                } as never
+            )
+        )
+
+        await consumeStream(stream).catch(() => undefined)
+
+        expect(control.stageCheckpoint).toHaveBeenCalledWith('thread-1', 'execution-1', {
+            threadId: 'thread-1',
+            checkpointNs: '',
+            checkpointId: 'saved'
+        })
+        expect(queryBus.execute.mock.calls.some(([query]) => query instanceof CompleteToolCallsQuery)).toBe(false)
+        expect(
+            commandBus.execute.mock.calls.some(
+                ([command]) =>
+                    command instanceof XpertAgentExecutionUpsertCommand &&
+                    command.execution.status === XpertAgentExecutionStatusEnum.SUCCESS
+            )
+        ).toBe(false)
     })
 })
 

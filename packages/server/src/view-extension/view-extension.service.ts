@@ -1,12 +1,12 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { ViewExtensionProviderRegistry } from '@xpert-ai/plugin-sdk'
 import {
+	resolveI18nText,
+	type RuntimeResourceView,
 	XpertExtensionViewManifest,
 	XpertRemoteComponentEntry,
 	XpertResolvedViewHostContext,
 	XpertViewActionRequest,
-	XpertViewActionResult,
-	XpertViewDataResult,
 	XpertViewFileAccessPurpose,
 	XpertViewFileAccessRequest,
 	XpertViewParameterOptionsQuery,
@@ -16,6 +16,7 @@ import {
 	SecretTokenBindingType
 } from '@xpert-ai/contracts'
 import { RequestContext } from '../core/context'
+import { readProviderViewManifests } from './workbench-manifest'
 import { ViewHostDefinitionRegistry } from './host-definition.registry'
 import { ViewExtensionFileActionFile, ViewHostResolutionOptions } from './host-definition.interface'
 import { ViewExtensionPermissionService } from './view-extension.permission.service'
@@ -53,7 +54,7 @@ export class ViewExtensionService {
 						continue
 					}
 
-					const providerManifests = await provider.getViewManifests(context, slot)
+					const providerManifests = await readProviderViewManifests(provider, context, slot)
 					manifests.push(
 						...providerManifests
 							.map((manifest) => normalizeManifest(manifest, providerKey, context, slot))
@@ -70,6 +71,42 @@ export class ViewExtensionService {
 				.filterVisibleManifests(manifests, context)
 				.sort((a, b) => (a.order ?? Number.MAX_SAFE_INTEGER) - (b.order ?? Number.MAX_SAFE_INTEGER))
 		})
+	}
+
+	/** Preview associations for selectable middleware without activating views or returning executable manifests. */
+	async listFeatureViewSummaries(
+		hostType: string,
+		hostId: string,
+		features: string[],
+		options?: ViewHostResolutionOptions
+	): Promise<RuntimeResourceView[]> {
+		if (!features.length) return []
+		const context = await this.resolveHostContext(hostType, hostId, options)
+		const manifests: XpertExtensionViewManifest[] = []
+		for (const { providerKey, provider } of this.providerRegistry.listEntries(context.organizationId)) {
+			try {
+				if (!(await provider.supports(context))) continue
+				for (const slot of context.slots) {
+					for (const manifest of await readProviderViewManifests(provider, context, slot.key)) {
+						if (!manifest.activation?.requiredFeatures?.some((feature) => features.includes(feature)))
+							continue
+						manifests.push(normalizeManifest(manifest, providerKey, context, slot.key))
+					}
+				}
+			} catch (error) {
+				this.logger.warn(
+					`Failed to load view summaries for provider '${providerKey}': ${error instanceof Error ? error.message : String(error)}`
+				)
+			}
+		}
+		const visible = this.permissionService.filterVisibleManifests(manifests, context)
+		return [...new Map(visible.map((manifest) => [manifest.key, manifest])).values()].map((manifest) => ({
+			key: manifest.key,
+			title: resolveI18nText(manifest.title, context.locale) || manifest.key,
+			description: resolveI18nText(manifest.description, context.locale) || undefined,
+			icon: manifest.icon,
+			requiredFeatures: manifest.activation?.requiredFeatures ?? []
+		}))
 	}
 
 	async getViewData(hostType: string, hostId: string, viewKey: string, query: XpertViewQuery) {
@@ -318,7 +355,7 @@ export class ViewExtensionService {
 		}
 
 		for (const slot of context.slots) {
-			const manifests = await Promise.resolve(provider.getViewManifests(context, slot.key))
+			const manifests = await readProviderViewManifests(provider, context, slot.key)
 			for (const manifest of manifests) {
 				if (manifest.key !== manifestKey) {
 					continue

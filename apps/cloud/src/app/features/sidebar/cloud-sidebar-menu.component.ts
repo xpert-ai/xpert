@@ -1,5 +1,14 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  inject,
+  input,
+  output,
+  ViewContainerRef,
+  viewChild
+} from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { NavigationEnd, Router, RouterModule } from '@angular/router'
 import { injectWorkspace, injectWorkspaceId } from '@cloud/app/@core/state'
@@ -12,10 +21,10 @@ import { CloudSidebarRecentTasksComponent } from './cloud-sidebar-recent-tasks.c
 import { CloudSidebarProjectsComponent } from './cloud-sidebar-projects.component'
 import { CloudSidebarWorkspacesComponent } from './cloud-sidebar-workspaces.component'
 import { ClawXpertConversationStartIntentService } from '../chat/clawxpert/clawxpert-conversation-start-intent.service'
+import { XpertSettingsService } from '../../@core/services/xpert-settings.service'
 import { CloudMenuItem } from './cloud-sidebar-menu.types'
 import {
   addWorkspaceExpertSkillsConnectorsMenuItem,
-  addWorkspaceAssistantMenuItem,
   addWorkspaceMoreMenuItem,
   buildWorkspaceModuleMenuLink,
   buildCloudSidebarMenuGroups,
@@ -57,10 +66,13 @@ export class CloudSidebarMenuComponent {
   readonly menus = input.required<CloudMenuItem[]>()
   readonly clicked = output<void>()
 
+  private readonly settings = inject(XpertSettingsService)
+  private readonly viewContainerRef = inject(ViewContainerRef)
   readonly #router = inject(Router)
   readonly #selectedWorkspace = injectWorkspace()
   readonly #workspaceId = injectWorkspaceId()
   readonly #conversationStartIntent = inject(ClawXpertConversationStartIntentService)
+  private readonly assistants = viewChild(CloudSidebarAssistantsComponent)
 
   readonly currentUrl = toSignal(
     this.#router.events.pipe(
@@ -74,12 +86,8 @@ export class CloudSidebarMenuComponent {
   readonly groups = computed(() => {
     const workspaceId = this.#selectedWorkspace()?.id ?? this.#workspaceId()
 
-    return addWorkspaceMoreMenuItem(
-      addWorkspaceExpertSkillsConnectorsMenuItem(
-        addWorkspaceAssistantMenuItem(buildCloudSidebarMenuGroups(this.menus()))
-      ),
-      workspaceId
-    )
+    const groups = addWorkspaceExpertSkillsConnectorsMenuItem(buildCloudSidebarMenuGroups(this.menus()))
+    return this.assistants()?.isClawXpertConfigured() ? addWorkspaceMoreMenuItem(groups, workspaceId) : groups
   })
 
   hasActiveChild(menu: CloudMenuItem) {
@@ -94,7 +102,7 @@ export class CloudSidebarMenuComponent {
 
   isMenuItemActive(item: CloudMenuItem, exact = true) {
     const link = item.link
-    if (!link || this.isExternalLink(item)) {
+    if (!link || item.data?.action === 'openAssistantSettings' || this.isExternalLink(item)) {
       return false
     }
 
@@ -156,6 +164,7 @@ export class CloudSidebarMenuComponent {
 
   routerLinkFor(item: CloudMenuItem) {
     if (
+      item.data?.action === 'openAssistantSettings' ||
       item.children?.length ||
       this.isExternalLink(item) ||
       getWorkspaceModuleSection(item) ||
@@ -168,6 +177,11 @@ export class CloudSidebarMenuComponent {
   }
 
   onMenuClick(event: MouseEvent, item: CloudMenuItem) {
+    if (item.data?.action === 'openAssistantSettings') {
+      event.preventDefault()
+      this.openSettings()
+      return
+    }
     if (isNewClawXpertTaskMenuItem(item)) {
       event.preventDefault()
       this.#conversationStartIntent.requestNewConversation()
@@ -201,17 +215,16 @@ export class CloudSidebarMenuComponent {
     this.clicked.emit()
   }
 
-  onAssistantSettings(event: MouseEvent) {
-    event.preventDefault()
-    event.stopPropagation()
-    void this.#router.navigateByUrl('/chat/clawxpert/settings').then((navigated) => {
-      if (navigated) {
-        this.clicked.emit()
-      }
-    })
+  private openSettings() {
+    this.clicked.emit()
+    void this.settings.openBoundAssistant(this.viewContainerRef)
   }
 
   navigateToWorkspaceModule(section: CloudWorkspaceModuleSection) {
+    if (section === 'settings') {
+      this.openSettings()
+      return
+    }
     const workspaceId = this.#selectedWorkspace()?.id ?? this.#workspaceId()
     const link = buildWorkspaceModuleMenuLink(section, workspaceId)
 
@@ -223,6 +236,11 @@ export class CloudSidebarMenuComponent {
   }
 
   onChildClick(event: MouseEvent, item: CloudMenuItem) {
+    if (item.data?.action === 'openAssistantSettings') {
+      event.preventDefault()
+      this.openSettings()
+      return
+    }
     const workspaceSection = getWorkspaceModuleSection(item)
     if (workspaceSection) {
       event.preventDefault()
@@ -253,7 +271,8 @@ export class CloudSidebarMenuComponent {
   }
 
   trackMenuEntry(index: number, entry: CloudSidebarMenuEntry) {
-    return entry.item ? this.trackMenuItem(index, entry.item) : `assistants-${index}`
+    // Keep the assistant state instance when the conditional More entry is inserted or removed.
+    return entry.item ? this.trackMenuItem(index, entry.item) : entry.kind
   }
 
   menuTitleKey(item: CloudMenuItem) {

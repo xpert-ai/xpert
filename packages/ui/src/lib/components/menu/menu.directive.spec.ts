@@ -1,10 +1,10 @@
-import { OverlayContainer } from '@angular/cdk/overlay';
-import { Component } from '@angular/core';
-import { TestBed } from '@angular/core/testing';
-import { By } from '@angular/platform-browser';
+import { OverlayContainer } from '@angular/cdk/overlay'
+import { Component } from '@angular/core'
+import { TestBed } from '@angular/core/testing'
+import { By } from '@angular/platform-browser'
 
-import { ZardMenuImports } from './menu.imports';
-import { ZardMenuDirective } from './menu.directive';
+import { ZardMenuImports } from './menu.imports'
+import { ZardMenuDirective } from './menu.directive'
 
 @Component({
   standalone: true,
@@ -25,88 +25,117 @@ import { ZardMenuDirective } from './menu.directive';
         <button type="button" z-menu-item data-testid="label-item">
           {{ label }}
         </button>
-        <button type="button" z-menu-item z-menu [zMenuTriggerFor]="submenu" data-testid="submenu-trigger">
-          More
-        </button>
+        <button type="button" z-menu-item z-menu [zMenuTriggerFor]="submenu" data-testid="submenu-trigger">More</button>
       </div>
     </ng-template>
 
     <ng-template #submenu>
       <div z-menu-content>
-        <button type="button" z-menu-item data-testid="submenu-item">
-          Nested Item
-        </button>
+        <button type="button" z-menu-item data-testid="submenu-item">Nested Item</button>
       </div>
     </ng-template>
-  `,
+  `
 })
 class HostComponent {
-  itemLabel = 'Dynamic Item';
+  itemLabel = 'Dynamic Item'
 }
 
 describe('ZardMenuDirective', () => {
   async function createHost() {
     const fixture = await TestBed.configureTestingModule({
-      imports: [HostComponent],
-    }).createComponent(HostComponent);
+      imports: [HostComponent]
+    }).createComponent(HostComponent)
 
-    fixture.detectChanges();
+    fixture.detectChanges()
 
-    const overlayContainer = TestBed.inject(OverlayContainer);
-    const trigger = fixture.debugElement.query(By.directive(ZardMenuDirective))
-      .injector.get(ZardMenuDirective);
+    const overlayContainer = TestBed.inject(OverlayContainer)
+    const trigger = fixture.debugElement.query(By.directive(ZardMenuDirective)).injector.get(ZardMenuDirective)
 
     return {
       fixture,
       overlayContainer,
       trigger,
-      triggerButton: fixture.nativeElement.querySelector('[data-testid="root-trigger"]') as HTMLButtonElement,
-    };
+      triggerButton: fixture.nativeElement.querySelector('[data-testid="root-trigger"]') as HTMLButtonElement
+    }
   }
 
   it('exposes trigger data to the template context', async () => {
-    const { fixture, overlayContainer, triggerButton } = await createHost();
+    const { fixture, overlayContainer, triggerButton } = await createHost()
 
-    triggerButton.click();
-    fixture.detectChanges();
-    await fixture.whenStable();
+    triggerButton.click()
+    fixture.detectChanges()
+    await fixture.whenStable()
 
-    expect(overlayContainer.getContainerElement().textContent).toContain('Dynamic Item');
-  });
+    expect(overlayContainer.getContainerElement().textContent).toContain('Dynamic Item')
+  })
+
+  it('uses updated trigger data when reopening a cached menu', async () => {
+    const { fixture, overlayContainer, trigger, triggerButton } = await createHost()
+
+    triggerButton.click()
+    fixture.detectChanges()
+    await fixture.whenStable()
+    trigger.close()
+
+    fixture.componentInstance.itemLabel = 'Updated Item'
+    fixture.detectChanges()
+    await fixture.whenStable()
+    triggerButton.click()
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    expect(overlayContainer.getContainerElement().textContent).toContain('Updated Item')
+    expect(overlayContainer.getContainerElement().textContent).not.toContain('Dynamic Item')
+  })
+
+  it('updates the context while a menu remains open', async () => {
+    const { fixture, overlayContainer, trigger, triggerButton } = await createHost()
+
+    triggerButton.click()
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    fixture.componentInstance.itemLabel = 'Updated Item'
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    expect(trigger.menuOpen).toBe(true)
+    expect(overlayContainer.getContainerElement().textContent).toContain('Updated Item')
+  })
 
   it('reflects open and close state through the exported trigger API', async () => {
-    const { fixture, trigger, triggerButton } = await createHost();
+    const { fixture, trigger, triggerButton } = await createHost()
 
-    expect(trigger.menuOpen).toBe(false);
+    expect(trigger.menuOpen).toBe(false)
 
-    triggerButton.click();
-    fixture.detectChanges();
-    await fixture.whenStable();
+    triggerButton.click()
+    fixture.detectChanges()
+    await fixture.whenStable()
 
-    expect(trigger.menuOpen).toBe(true);
+    expect(trigger.menuOpen).toBe(true)
 
-    trigger.close();
-    fixture.detectChanges();
-    await fixture.whenStable();
+    trigger.close()
+    fixture.detectChanges()
+    await fixture.whenStable()
 
-    expect(trigger.menuOpen).toBe(false);
-  });
+    expect(trigger.menuOpen).toBe(false)
+  })
 
   it('opens nested submenu content from a z-menu-item trigger', async () => {
-    const { fixture, overlayContainer, triggerButton } = await createHost();
+    const { fixture, overlayContainer, triggerButton } = await createHost()
 
-    triggerButton.click();
-    fixture.detectChanges();
-    await fixture.whenStable();
+    triggerButton.click()
+    fixture.detectChanges()
+    await fixture.whenStable()
 
     const submenuTrigger = overlayContainer
       .getContainerElement()
-      .querySelector('[data-testid="submenu-trigger"]') as HTMLButtonElement;
+      .querySelector('[data-testid="submenu-trigger"]') as HTMLButtonElement
 
-    submenuTrigger.click();
-    fixture.detectChanges();
-    await fixture.whenStable();
+    submenuTrigger.click()
+    fixture.detectChanges()
+    await fixture.whenStable()
 
-    expect(overlayContainer.getContainerElement().textContent).toContain('Nested Item');
-  });
-});
+    expect(overlayContainer.getContainerElement().textContent).toContain('Nested Item')
+  })
+})

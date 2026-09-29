@@ -4,48 +4,28 @@ import { BadRequestException, Inject, Injectable } from '@nestjs/common'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { t } from 'i18next'
 import { DataSource } from 'typeorm'
-import { TDocChunkMetadata } from '../../knowledge-document/types'
-import { compileKnowledgeFilterToPostgres } from '../filter'
-import { shiftKnowledgeFilterParameters } from '../filter/knowledge-graph-filter-scope'
-import { KnowledgeCandidateRetriever, KnowledgeRetrievalBatch, KnowledgeRetrievalRequest } from './types'
+import {
+    KeywordRetrievalDocument,
+    KeywordRetrievalRow,
+    KeywordRetrievalState,
+    KnowledgeCandidateRetriever,
+    KnowledgeRetrievalBatch,
+    KnowledgeRetrievalRequest
+} from './types'
 import { KnowledgeKeywordIndexService } from './knowledge-keyword-index.service'
 import { postgresContentScopePredicate } from './content-scope'
+import { KeywordQueryPlan } from '../analyzer/keyword-query'
+import { keywordCandidateQuery } from './keyword-candidate-query'
 import { KnowledgeKeywordAnalyzerService } from '../analyzer/keyword-analyzer.service'
 
 const MAX_KEYWORD_TERMS = 12
 const MAX_KEYWORD_CANDIDATES = 400
+// Final Top K is applied by the handler; this multiplier is the logical candidate target.
 const KEYWORD_OVERSAMPLING = 4
-const MIN_TRIGRAM_QUERY_LENGTH = 3
+// Double refill pages after parent collapse, while sharing the 400-row request budget.
+const KEYWORD_REFILL_GROWTH = 2
 
-type KeywordCandidateRow = {
-    chunkRowId: string
-    chunkId: string
-    parentChunkId?: string | null
-    pageContent: string | null
-    metadata: TDocChunkMetadata | null
-    documentId: string
-    documentName?: string | null
-    sourceType?: string | null
-    fileExtension?: string | null
-    category?: string | null
-    fileUrl?: string | null
-    keywordScore: number | string
-}
-
-type KeywordParentRow = Omit<KeywordCandidateRow, 'parentChunkId' | 'keywordScore'>
-
-type KeywordDocument = DocumentInterface<DocumentMetadata> & {
-    id: string
-    children?: KeywordDocument[]
-    document: {
-        id: string
-        name?: string | null
-        sourceType?: string | null
-        type?: string | null
-        category?: string | null
-        fileUrl?: string | null
-    }
-}
+type KeywordParentRow = Omit<KeywordRetrievalRow, 'parentChunkId' | 'keywordScore' | 'coverage' | 'titleOnly'>
 
 export function normalizeKeywordQuery(query: string) {
     return query.normalize('NFKC').trim().replace(/\s+/g, ' ').toLowerCase()
@@ -64,20 +44,23 @@ export function extractKeywordTerms(query: string) {
     ].slice(0, MAX_KEYWORD_TERMS)
 }
 
-function escapeLike(value: string) {
-    return value.replace(/[\\%_]/g, '\\$&')
-}
-
-function supportsTrigramSearch(value: string) {
-    return Array.from(value).length >= MIN_TRIGRAM_QUERY_LENGTH
-}
-
 function toFiniteNumber(value: number | string) {
     const number = typeof value === 'number' ? value : Number(value)
     return Number.isFinite(number) ? number : 0
 }
 
-function toKeywordDocument(row: KeywordParentRow | KeywordCandidateRow, keywordScore: number): KeywordDocument {
+function keywordRankingScore(row: KeywordRetrievalRow) {
+    const score = toFiniteNumber(row.keywordScore)
+    // The handler sorts by relevanceScore again. Keep FTS as a bounded tie-breaker
+    // so it cannot overturn coverage (and thus strict-before-relaxed) ordering.
+    return row.coverage == null ? score : toFiniteNumber(row.coverage) + score / (1 + score)
+}
+
+function toKeywordDocument(
+    row: KeywordParentRow | KeywordRetrievalRow,
+    keywordScore: number,
+    rankingScore: number
+): KeywordRetrievalDocument {
     return {
         id: row.chunkRowId,
         pageContent: row.pageContent ?? '',
@@ -86,8 +69,8 @@ function toKeywordDocument(row: KeywordParentRow | KeywordCandidateRow, keywordS
             documentId: row.documentId,
             chunkId: row.chunkId,
             keywordScore,
-            score: keywordScore,
-            relevanceScore: keywordScore
+            score: rankingScore,
+            relevanceScore: rankingScore
         },
         document: {
             id: row.documentId,
@@ -143,9 +126,9 @@ export class KeywordKnowledgeCandidateRetriever implements KnowledgeCandidateRet
         const startedAt = Date.now()
         try {
             const analyzedQuery = request.knowledgebase.keywordAnalyzer
-                ? await this.keywordAnalyzers.query(request.knowledgebase, request.query)
+                ? await this.keywordAnalyzers.queryPlan(request.knowledgebase, request.query)
                 : undefined
-            if (analyzedQuery === '') {
+            if (analyzedQuery?.strict === '') {
                 return {
                     source: this.source,
                     candidates: [],
@@ -174,18 +157,64 @@ export class KeywordKnowledgeCandidateRetriever implements KnowledgeCandidateRet
                 return this.failedBatch(diagnostics, error, startedAt)
             }
 
-            const requestedWindow = Math.min(
+            const candidateK = Math.min(
                 MAX_KEYWORD_CANDIDATES,
                 Math.max(1, request.k ?? request.knowledgebase.recall?.topK ?? 10) * KEYWORD_OVERSAMPLING
             )
-            const window = request.faqSession
-                ? request.faqSession.budget.reserveCandidates(requestedWindow)
-                : requestedWindow
-            const rows = window
-                ? await this.searchCandidates(request, normalizedQuery, terms, window, analyzedQuery)
-                : []
-            diagnostics.keywordCandidateCount = rows.length
-            const documents = await this.resolveDocuments(request, rows)
+            const phases = analyzedQuery?.relaxed ? [false, true] : [false]
+            const queryKey = `${request.knowledgebase.id}:${normalizedQuery}:${analyzedQuery?.strict ?? 'legacy'}`
+            const session = this.createOrReuseSession(request, queryKey, candidateK, phases)
+            let documents = session.documents
+            while (!session.exhausted && !session.budgetLimited && session.scanned < MAX_KEYWORD_CANDIDATES) {
+                const phase = session.phases[session.phaseIndex]
+                if (!phase) {
+                    session.exhausted = true
+                    break
+                }
+                const bodyBackedDocuments = new Set(
+                    session.rows.filter(({ titleOnly }) => !titleOnly).map(({ documentId }) => documentId)
+                )
+                const needsBodyRefill = !!analyzedQuery?.relaxed && bodyBackedDocuments.size < candidateK
+                if (documents.length >= candidateK && !needsBodyRefill) break
+                const requestedWindow = Math.min(phase.pageWindow, MAX_KEYWORD_CANDIDATES - session.scanned)
+                const window = request.faqSession
+                    ? request.faqSession.budget.reserveCandidates(requestedWindow)
+                    : requestedWindow
+                if (!window) {
+                    session.budgetLimited = true
+                    break
+                }
+                const page = await this.searchCandidates(
+                    request,
+                    normalizedQuery,
+                    terms,
+                    window,
+                    phase.offset,
+                    analyzedQuery,
+                    phase.relaxed
+                )
+                session.scanned += page.length
+                phase.offset += page.length
+                phase.pageWindow *= KEYWORD_REFILL_GROWTH
+                const seen = new Set(session.rows.map((row) => row.chunkRowId))
+                session.rows.push(...page.filter((row) => !seen.has(row.chunkRowId)))
+                documents = await this.resolveDocuments(request, session.rows)
+                session.documents = documents
+                const bodyBackedDocumentsAfterPage = new Set(
+                    session.rows.filter(({ titleOnly }) => !titleOnly).map(({ documentId }) => documentId)
+                )
+                const needsBodyRefillAfterPage =
+                    !!analyzedQuery?.relaxed && bodyBackedDocumentsAfterPage.size < candidateK
+                if (page.length < window) {
+                    phase.exhausted = true
+                    session.phaseIndex += 1
+                    if (session.phaseIndex >= session.phases.length) session.exhausted = true
+                } else if (documents.length >= candidateK && !needsBodyRefillAfterPage) {
+                    break
+                }
+            }
+            session.budgetLimited ||= session.scanned >= MAX_KEYWORD_CANDIDATES && !session.exhausted
+            diagnostics.keywordCandidateCount = session.scanned
             diagnostics.keywordLatency = Date.now() - startedAt
             diagnostics.keywordBranchHitCount = documents.length
             diagnostics.hitCount = documents.length
@@ -194,19 +223,35 @@ export class KeywordKnowledgeCandidateRetriever implements KnowledgeCandidateRet
             return {
                 source: this.source,
                 candidates: documents.map((document, index) => ({ document, rank: index + 1 })),
-                ...(request.faqSession
-                    ? {
-                          exhausted: window > 0 && rows.length < window,
-                          budgetLimited:
-                              window < requestedWindow ||
-                              (rows.length === MAX_KEYWORD_CANDIDATES && window === MAX_KEYWORD_CANDIDATES)
-                      }
-                    : {}),
+                exhausted: session.exhausted,
+                budgetLimited: session.budgetLimited,
                 diagnostics
             }
         } catch (error) {
             return this.failedBatch(diagnostics, getErrorMessage(error), startedAt)
         }
+    }
+
+    private createOrReuseSession(
+        request: KnowledgeRetrievalRequest,
+        queryKey: string,
+        candidateK: number,
+        phases: boolean[]
+    ): KeywordRetrievalState {
+        const existing = request.faqSession?.keywordState
+        if (existing?.queryKey === queryKey) return existing
+        const state: KeywordRetrievalState = {
+            queryKey,
+            rows: [],
+            documents: [],
+            scanned: 0,
+            phaseIndex: 0,
+            exhausted: false,
+            budgetLimited: false,
+            phases: phases.map((relaxed) => ({ relaxed, offset: 0, pageWindow: candidateK, exhausted: false }))
+        }
+        if (request.faqSession) request.faqSession.keywordState = state
+        return state
     }
 
     private failedBatch(
@@ -228,124 +273,42 @@ export class KeywordKnowledgeCandidateRetriever implements KnowledgeCandidateRet
         normalizedQuery: string,
         terms: string[],
         window: number,
-        analyzedQuery?: string
-    ): Promise<KeywordCandidateRow[]> {
-        const { knowledgebase: kb, preparedFilter } = request
-        const parameters: unknown[] = [request.scope.tenantId, request.scope.organizationId, kb.id]
-        const compiled = preparedFilter.effective
-            ? compileKnowledgeFilterToPostgres(preparedFilter.effective, preparedFilter.registry)
-            : { sql: 'TRUE', parameters: [] }
-        const compiledSql = shiftKnowledgeFilterParameters(compiled.sql, parameters.length)
-        parameters.push(...compiled.parameters)
-
-        parameters.push(normalizedQuery)
-        const exactQueryParameter = `$${parameters.length}`
-        const vectorExpression =
-            analyzedQuery !== undefined ? 'c."keywordVector"' : `to_tsvector('simple', COALESCE(c."pageContent", ''))`
-        if (analyzedQuery !== undefined) parameters.push(analyzedQuery)
-        const queryExpression =
-            analyzedQuery !== undefined
-                ? `$${parameters.length}::tsquery`
-                : `plainto_tsquery('simple', ${exactQueryParameter})`
-        const fullTextMatch = `${vectorExpression} @@ ${queryExpression}`
-        const fullTextRank = `ts_rank_cd(${vectorExpression}, ${queryExpression})`
-        const phrasePatternParameter =
-            analyzedQuery === undefined && supportsTrigramSearch(normalizedQuery)
-                ? (() => {
-                      parameters.push(`%${escapeLike(normalizedQuery)}%`)
-                      return `$${parameters.length}`
-                  })()
-                : undefined
-        const termPatternParameters = (analyzedQuery === undefined ? terms : [])
-            .filter(supportsTrigramSearch)
-            .map((term) => {
-                parameters.push(`%${escapeLike(term)}%`)
-                return `$${parameters.length}`
-            })
-        const searchableExpressions = [phrasePatternParameter, ...termPatternParameters]
-            .filter((parameter): parameter is string => !!parameter)
-            .map(
-                (parameter) =>
-                    `(c."pageContent" ILIKE ${parameter} ESCAPE '\\' OR COALESCE(d."name", '') ILIKE ${parameter} ESCAPE '\\')`
-            )
-        const termScore = termPatternParameters
-            .map(
-                (parameter) =>
-                    `(CASE WHEN c."pageContent" ILIKE ${parameter} ESCAPE '\\' THEN 1 ELSE 0 END + ` +
-                    `CASE WHEN COALESCE(d."name", '') ILIKE ${parameter} ESCAPE '\\' THEN 0.5 ELSE 0 END)`
-            )
-            .join(' + ')
-        const phraseContentScore = phrasePatternParameter
-            ? `CASE WHEN c."pageContent" ILIKE ${phrasePatternParameter} ESCAPE '\\' THEN 2 ELSE 0 END`
-            : '0'
-        const phraseDocumentScore = phrasePatternParameter
-            ? `CASE WHEN COALESCE(d."name", '') ILIKE ${phrasePatternParameter} ESCAPE '\\' THEN 1 ELSE 0 END`
-            : '0'
-        const matchExpressions = [fullTextMatch, ...searchableExpressions]
-        parameters.push(window)
-        const limitParameter = `$${parameters.length}`
-
-        return this.dataSource.query<KeywordCandidateRow[]>(
-            `SELECT
-                c."id" AS "chunkRowId",
-                COALESCE(c."metadata" ->> 'chunkId', c."id"::text) AS "chunkId",
-                c."metadata" ->> 'parentId' AS "parentChunkId",
-                c."pageContent" AS "pageContent",
-                c."metadata" AS "metadata",
-                d."id" AS "documentId",
-                d."name" AS "documentName",
-                d."sourceType" AS "sourceType",
-                d."type" AS "fileExtension",
-                d."category" AS "category",
-                d."fileUrl" AS "fileUrl",
-                (
-                    CASE WHEN lower(COALESCE(c."pageContent", '')) = ${exactQueryParameter} THEN 4 ELSE 0 END
-                    + ${fullTextRank} * 4
-                    + ${phraseContentScore}
-                    + ${phraseDocumentScore}
-                    + ${termScore || '0'}
-                )::double precision AS "keywordScore"
-             FROM "knowledge_document_chunk" c
-             INNER JOIN "knowledge_document" d ON d."id" = c."documentId"
-             WHERE c."tenantId" IS NOT DISTINCT FROM $1
-               AND c."organizationId" IS NOT DISTINCT FROM $2
-               AND c."knowledgebaseId" = $3
-               AND d."tenantId" IS NOT DISTINCT FROM $1
-               AND d."organizationId" IS NOT DISTINCT FROM $2
-               AND d."knowledgebaseId" = $3
-               AND COALESCE(d."disabled", FALSE) = FALSE
-               AND COALESCE(c."metadata" ->> 'enabled', 'true') <> 'false'
-               AND (${compiledSql})
-               AND (${postgresContentScopePredicate(request.contentScope)})
-               AND (${matchExpressions.join(' OR ')})
-             ORDER BY "keywordScore" DESC, length(COALESCE(c."pageContent", '')) ASC, c."id"
-             LIMIT ${limitParameter}`,
-            parameters
+        offset: number,
+        plan?: KeywordQueryPlan,
+        relaxed = false
+    ): Promise<KeywordRetrievalRow[]> {
+        const { sql, parameters } = keywordCandidateQuery(
+            request,
+            normalizedQuery,
+            terms,
+            window,
+            offset,
+            plan,
+            relaxed
         )
+        return this.dataSource.query<KeywordRetrievalRow[]>(sql, parameters)
     }
 
     private async resolveDocuments(
         request: KnowledgeRetrievalRequest,
-        rows: KeywordCandidateRow[]
-    ): Promise<KeywordDocument[]> {
-        const topK = request.faqSession
-            ? rows.length
-            : Math.max(1, request.k ?? request.knowledgebase.recall?.topK ?? 10)
+        rows: KeywordRetrievalRow[]
+    ): Promise<KeywordRetrievalDocument[]> {
         const parentChunkIds = new Set(
             rows.map(({ parentChunkId }) => parentChunkId).filter((id): id is string => !!id)
         )
+        const bodyDocumentIds = new Set(rows.filter(({ titleOnly }) => !titleOnly).map(({ documentId }) => documentId))
         const directDocuments = rows
+            .filter(
+                ({ parentChunkId, chunkId, documentId, titleOnly }) => !titleOnly || !bodyDocumentIds.has(documentId)
+            )
             .filter(({ parentChunkId, chunkId }) => !parentChunkId && !parentChunkIds.has(chunkId))
             .map((row) => ({
-                document: toKeywordDocument(row, toFiniteNumber(row.keywordScore)),
+                document: toKeywordDocument(row, toFiniteNumber(row.keywordScore), keywordRankingScore(row)),
                 rank: rows.indexOf(row) + 1
             }))
 
         if (!parentChunkIds.size) {
-            return directDocuments
-                .sort((left, right) => left.rank - right.rank)
-                .slice(0, topK)
-                .map(({ document }) => document)
+            return directDocuments.sort((left, right) => left.rank - right.rank).map(({ document }) => document)
         }
 
         const parents = await this.loadParents(request, [...parentChunkIds])
@@ -361,14 +324,15 @@ export class KeywordKnowledgeCandidateRetriever implements KnowledgeCandidateRet
             const contributingRows = matchedParent ? [matchedParent, ...childRows] : childRows
             const rank = Math.min(...contributingRows.map((row) => rows.indexOf(row) + 1))
             const keywordScore = Math.max(...contributingRows.map(({ keywordScore }) => toFiniteNumber(keywordScore)))
-            const document = toKeywordDocument(parent, keywordScore)
-            document.children = childRows.map((row) => toKeywordDocument(row, toFiniteNumber(row.keywordScore)))
+            const document = toKeywordDocument(parent, keywordScore, keywordRankingScore(rows[rank - 1]))
+            document.children = childRows.map((row) =>
+                toKeywordDocument(row, toFiniteNumber(row.keywordScore), keywordRankingScore(row))
+            )
             return [{ document, rank }]
         })
 
         return [...directDocuments, ...parentDocuments]
             .sort((left, right) => left.rank - right.rank)
-            .slice(0, topK)
             .map(({ document }) => document)
     }
 

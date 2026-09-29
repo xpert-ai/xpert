@@ -19,6 +19,7 @@ jest.mock('../../../xpert-template/xpert-template.service', () => ({
     XpertTemplateService: class XpertTemplateService {}
 }))
 
+import { capabilityTemplateId } from '../../../xpert-template/capabilities/template-capability-reference'
 import { XpertTemplateService } from '../../../xpert-template/xpert-template.service'
 import { XpertService } from '../../xpert.service'
 import { XpertImportCommand } from '../import.command'
@@ -69,6 +70,24 @@ describe('XpertSyncTemplateHandler', () => {
             )
         }
     }
+
+    it('preserves a capability variant of a plugin template instead of prepending the plugin namespace', async () => {
+        const id = capabilityTemplateId('@xpert-ai/plugin-example:assistant', ['document-analysis'])
+        const { handler, xpertTemplateService, commandBus } = buildHandler(
+            {
+                id: 'xpert-1',
+                name: 'My Assistant',
+                options: {
+                    templateSource: { templateId: id, templateKey: id, pluginName: '@xpert-ai/plugin-example' }
+                }
+            },
+            { id, key: id }
+        )
+        await handler.execute(new XpertSyncTemplateCommand('xpert-1'))
+        expect(xpertTemplateService.getTemplateDetail).toHaveBeenCalledWith(id, 'en')
+        const imported = commandBus.execute.mock.calls[0][0] as XpertImportCommand
+        expect(imported.options.templateSource.templateId).toBe(id)
+    })
 
     it('keeps the installed prompt language when the UI language changes', async () => {
         const { handler, xpertTemplateService } = buildHandler(

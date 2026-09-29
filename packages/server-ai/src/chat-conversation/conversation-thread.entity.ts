@@ -1,7 +1,13 @@
-import { TChatConversationStatus, TSensitiveOperation } from '@xpert-ai/contracts'
+import {
+    TChatConversationStatus,
+    TChatThreadMetadata,
+    TChatThreadRunControl,
+    TSensitiveOperation
+} from '@xpert-ai/contracts'
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsObject, IsOptional, IsString } from 'class-validator'
+import { Exclude } from 'class-transformer'
 import { Column, Entity, Index, JoinColumn, ManyToOne, RelationId } from 'typeorm'
 import type { ChatMessage } from '../chat-message/chat-message.entity'
 import type { ChatConversation } from './conversation.entity'
@@ -54,6 +60,14 @@ export class ChatConversationThread extends TenantOrganizationBaseEntity {
     @Column({ type: 'varchar', default: 'idle' })
     status: TChatConversationStatus
 
+    @Column({ type: 'jsonb', nullable: true })
+    runControl?: TChatThreadRunControl | null
+
+    // Runtime context may contain host-supplied secrets; never expose it in thread responses.
+    @Exclude({ toPlainOnly: true })
+    @Column({ type: 'text', nullable: true, select: false })
+    encryptedRunContext?: string | null
+
     @ApiPropertyOptional({ type: () => String })
     @IsString()
     @IsOptional()
@@ -70,5 +84,5 @@ export class ChatConversationThread extends TenantOrganizationBaseEntity {
     @IsObject()
     @IsOptional()
     @Column({ type: 'jsonb', default: () => "'{}'::jsonb" })
-    metadata: Record<string, unknown>
+    metadata: TChatThreadMetadata
 }

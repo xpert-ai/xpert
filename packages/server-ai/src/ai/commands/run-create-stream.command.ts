@@ -4,6 +4,7 @@ import { Observable } from 'rxjs'
 import type { components } from '../schemas/agent-protocol-schema'
 
 export type RunCreateStreamTransport = 'redis' | 'direct'
+export type RunCreateStreamInput = Omit<components['schemas']['RunCreateStateful'], 'input'> & { input?: unknown }
 
 export interface RunCreateStreamResult {
     execution: IXpertAgentExecution
@@ -18,7 +19,8 @@ export class RunCreateStreamCommand extends Command<RunCreateStreamResult> {
 
     constructor(
         public readonly threadId: string,
-        public readonly runCreate: components['schemas']['RunCreateStateful']
+        public readonly runCreate: RunCreateStreamInput,
+        public readonly resumePaused?: { executionId: string; pauseId: string }
     ) {
         super()
     }

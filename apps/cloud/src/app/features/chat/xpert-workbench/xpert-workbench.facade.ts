@@ -4,8 +4,8 @@ import { NavigationEnd, Router } from '@angular/router'
 import { environment } from '@cloud/environments/environment'
 import { TranslateService } from '@ngx-translate/core'
 import { ChatKitControl } from '@xpert-ai/chatkit-angular'
-import { firstValueFrom, of } from 'rxjs'
-import { catchError, filter, map, startWith } from 'rxjs/operators'
+import { firstValueFrom } from 'rxjs'
+import { filter, map, startWith } from 'rxjs/operators'
 import {
   AssistantBindingScope,
   AssistantBindingService,
@@ -14,10 +14,13 @@ import {
   getErrorMessage,
   IChatConversation,
   IXpert,
-  OrderTypeEnum,
   Store
 } from '../../../@core'
-import type { TXpertProjectAccessSummary } from '@xpert-ai/contracts'
+import type {
+  ProjectSelection,
+  TXpertProjectAccessSummary,
+  WorkbenchExtensionViewOpenRequest
+} from '@xpert-ai/contracts'
 import { sanitizeAssistantFrameUrl } from '../../assistant/assistant-chatkit.runtime'
 import { XpertProjectApiService } from '../../project/project-api.service'
 import { WorkbenchChatFacade, WorkbenchChatViewState } from '../workbench-chat/workbench-chat.facade'
@@ -26,7 +29,7 @@ import { WorkbenchChatFacade, WorkbenchChatViewState } from '../workbench-chat/w
 export class XpertWorkbenchFacade implements WorkbenchChatFacade {
   #loadRequestId = 0
   #projectAccessRequestId = 0
-  #conversationEntryRequestId = 0
+  #projectNavigationRequestId = 0
   #lastConversationEntryKey: string | null = null
   readonly #assistantBindingService = inject(AssistantBindingService)
   readonly #conversationService = inject(ChatConversationService)
@@ -54,7 +57,40 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
   )
   readonly slug = computed(() => parseWorkbenchSlug(this.currentUrl()))
   readonly projectId = computed(() => parseWorkbenchProjectId(this.currentUrl()))
+  readonly #routeProjectMode = toSignal(
+    this.#router.events.pipe(
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+      startWith(null),
+      map(() => {
+        const mode = this.#router.parseUrl(this.#router.url).queryParams['projectMode']
+        return mode === 'none' || mode === 'auto-new' ? mode : null
+      })
+    )
+  )
+  readonly #adoptedProject = signal<{
+    assistantId: string
+    threadId: string
+    projectId: string | null
+    mountProjectId: string | null
+    selection: ProjectSelection
+  } | null>(null)
+  readonly chatkitMountProjectId = computed(() => {
+    const adopted = this.#adoptedProject()
+    return adopted && adopted.assistantId === this.assistantId() && adopted.threadId === this.threadId()
+      ? adopted.mountProjectId
+      : this.projectId()
+  })
+  readonly chatkitProjectSelection = computed<ProjectSelection>(() => {
+    const adopted = this.#adoptedProject()
+    if (adopted?.assistantId === this.assistantId() && adopted.threadId === this.threadId()) return adopted.selection
+    const projectId = this.chatkitMountProjectId()
+    if (projectId) return { mode: 'existing', projectId }
+    const mode = this.#routeProjectMode()
+    if (mode) return { mode }
+    return { mode: this.currentXpert()?.options?.workspaceScope?.onMissing === 'create' ? 'auto-new' : 'none' }
+  })
   readonly projectAccess = signal<TXpertProjectAccessSummary | null>(null)
+  readonly projectName = signal<string | null>(null)
   readonly threadId = computed(() => parseWorkbenchThreadId(this.currentUrl()))
   readonly availableXperts = signal<IXpert[]>([])
   readonly loading = signal(false)
@@ -80,7 +116,7 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
   readonly defaultViewKey = computed(() => this.currentXpert()?.options?.workbench?.defaultViewKey?.trim() || null)
   readonly identity = computed(() => {
     const xpertId = this.xpertId()
-    const projectId = this.projectId()
+    const projectId = this.chatkitMountProjectId()
     return xpertId ? `chat-xpert-workbench:${xpertId}:${projectId ?? 'personal'}` : null
   })
   readonly viewState = computed<WorkbenchChatViewState>(() => {
@@ -101,6 +137,12 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
   })
 
   constructor() {
+    effect(() => {
+      const adopted = this.#adoptedProject()
+      if (adopted && (adopted.assistantId !== this.assistantId() || adopted.threadId !== this.threadId())) {
+        this.#adoptedProject.set(null)
+      }
+    })
     effect(() => {
       const organizationId = this.organizationId()
       const slug = this.slug()
@@ -129,12 +171,14 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
       const projectId = this.projectId()
       const requestId = ++this.#projectAccessRequestId
       this.projectAccess.set(null)
+      this.projectName.set(null)
 
       if (!organizationId || !projectId) {
         return
       }
 
       void this.loadProjectAccess(projectId, requestId)
+      void this.loadProjectName(projectId, requestId)
     })
   }
 
@@ -157,23 +201,114 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
     this.handleThreadChange(threadId)
   }
 
-  onChatProjectChange(projectId: string | null) {
+  /** Adopt only the server's saved scope, keeping the current stream and composer mounted. */
+  async syncConversationProject(threadId: string): Promise<void> {
+    const assistantId = this.assistantId()
+    if (!assistantId || this.threadId() !== threadId) return
+    const projectId = this.projectId()
+    try {
+      const conversation = await firstValueFrom(this.#conversationService.getByThreadId(threadId))
+      if (
+        !conversation ||
+        this.assistantId() !== assistantId ||
+        this.threadId() !== threadId ||
+        this.projectId() !== projectId
+      )
+        return
+      const savedProjectId = conversation.projectId ?? null
+      if (savedProjectId === projectId) {
+        if (projectId) await this.loadProjectName(projectId, this.#projectAccessRequestId)
+        return
+      }
+      const slug = this.currentXpert()?.slug ?? this.slug()
+      if (!slug) return
+      this.#adoptedProject.set({
+        assistantId,
+        threadId,
+        projectId: savedProjectId,
+        mountProjectId: this.chatkitMountProjectId(),
+        selection: this.chatkitProjectSelection()
+      })
+      const opened = await this.#router.navigate(
+        savedProjectId ? ['/chat/x', slug, 'p', savedProjectId, 'c', threadId] : ['/chat/x', slug, 'c', threadId],
+        projectId
+          ? {
+              queryParamsHandling: 'merge',
+              queryParams: { projectMode: null, viewSelection: null, viewParameters: null },
+              replaceUrl: true
+            }
+          : { queryParamsHandling: 'preserve', replaceUrl: true }
+      )
+      if (!opened && this.threadId() === threadId) this.#adoptedProject.set(null)
+    } catch {
+      // Route refresh is best effort; the persisted conversation remains the
+      // runtime authority, and the response-end event retries the refresh.
+    }
+  }
+
+  async onChatProjectChange(
+    projectId: string | null,
+    view?: WorkbenchExtensionViewOpenRequest,
+    selection?: ProjectSelection
+  ): Promise<boolean> {
     const normalizedProjectId = projectId?.trim() || null
-    if (normalizedProjectId === this.projectId()) {
-      return
-    }
-
+    if (normalizedProjectId === this.projectId() && !view && !selection) return true
     const slug = this.currentXpert()?.slug ?? this.slug()
-    if (!slug) {
-      return
+    if (!slug) return false
+    const navigationRequestId = ++this.#projectNavigationRequestId
+    const previous = {
+      url: this.#router.url,
+      conversation: this.activeConversation(),
+      access: this.projectAccess(),
+      adoptedProject: this.#adoptedProject(),
+      suppressAutoResume: this.suppressAutoResume()
     }
-
     this.suppressAutoResume.set(true)
+    this.#adoptedProject.set(null)
     this.activeConversation.set(null)
-    this.#projectAccessRequestId++
-    this.projectAccess.set(null)
+    if (normalizedProjectId !== this.projectId()) {
+      this.#projectAccessRequestId++
+      this.projectAccess.set(null)
+    }
     const commands = normalizedProjectId ? ['/chat/x', slug, 'p', normalizedProjectId, 'c'] : ['/chat/x', slug, 'c']
-    void this.#router.navigate(commands, { queryParamsHandling: 'preserve' })
+    const restore = () => {
+      if (navigationRequestId !== this.#projectNavigationRequestId || this.#router.url !== previous.url) return
+      this.activeConversation.set(previous.conversation)
+      this.projectAccess.set(previous.access)
+      this.#adoptedProject.set(previous.adoptedProject)
+      this.suppressAutoResume.set(previous.suppressAutoResume)
+      const projectId = this.projectId()
+      if (!previous.access && projectId) void this.loadProjectAccess(projectId, ++this.#projectAccessRequestId)
+    }
+    try {
+      const opened = await this.#router.navigate(
+        commands,
+        selection && !view
+          ? {
+              queryParamsHandling: 'merge',
+              queryParams: {
+                projectMode: selection.mode === 'existing' ? null : selection.mode,
+                viewSelection: null,
+                viewParameters: null
+              }
+            }
+          : view
+            ? {
+                queryParamsHandling: 'merge',
+                queryParams: {
+                  view: view.viewKey,
+                  viewSelection: view.selectionId ?? null,
+                  viewParameters: view.parameters ? JSON.stringify(view.parameters) : null
+                }
+              }
+            : { queryParamsHandling: 'preserve' }
+      )
+      if (!opened) restore()
+      return opened
+    } catch (error) {
+      restore()
+      throw error
+    }
   }
 
   async beginPendingConversation(startId: number, control: ChatKitControl) {
@@ -202,29 +337,13 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
       return
     }
 
-    const entryKey = `${xpertId}:${this.projectId() ?? 'personal'}:${this.suppressAutoResume() ? 'suppressed' : 'resume'}`
+    const entryKey = `${xpertId}:${JSON.stringify(this.chatkitProjectSelection())}`
     if (this.#lastConversationEntryKey === entryKey) {
       return
     }
 
     this.#lastConversationEntryKey = entryKey
-    const requestId = ++this.#conversationEntryRequestId
-
-    if (this.suppressAutoResume()) {
-      await control.focusComposer()
-      return
-    }
-
-    const threadId = await this.getLatestConversationThreadId(xpertId)
-    if (requestId !== this.#conversationEntryRequestId || !this.isConversationEntryRoute() || this.threadId()) {
-      return
-    }
-
-    if (threadId) {
-      this.navigateToThread(threadId)
-      return
-    }
-
+    await control.setThreadId(null)
     await control.focusComposer()
   }
 
@@ -303,6 +422,16 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
     }
   }
 
+  private async loadProjectName(projectId: string, requestId: number) {
+    try {
+      const project = await firstValueFrom(this.#projectApi.get(projectId))
+      if (requestId === this.#projectAccessRequestId && this.projectId() === projectId)
+        this.projectName.set(project.name)
+    } catch {
+      // Keep the generic Project label when metadata is temporarily unavailable.
+    }
+  }
+
   private handleThreadChange(threadId: string | null) {
     if (threadId === this.threadId()) {
       return
@@ -362,23 +491,6 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
     return projectId
       ? `/chat/x/${encodeURIComponent(slug)}/p/${encodeURIComponent(projectId)}/c`
       : `/chat/x/${encodeURIComponent(slug)}/c`
-  }
-
-  private async getLatestConversationThreadId(xpertId: string) {
-    const projectId = this.projectId()
-    const result = (await firstValueFrom(
-      this.#conversationService
-        .findAllByXpert(xpertId, {
-          take: 1,
-          where: projectId ? { projectId } : { projectId: { $isNull: true } },
-          order: {
-            updatedAt: OrderTypeEnum.DESC
-          }
-        })
-        .pipe(catchError(() => of({ items: [] as IChatConversation[] })))
-    )) as { items?: IChatConversation[] } | null
-
-    return normalizeThreadId(result?.items?.[0]?.threadId)
   }
 
   private isConversationEntryRoute() {

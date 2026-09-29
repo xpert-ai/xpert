@@ -585,6 +585,58 @@ describe('CloudSidebarAssistantsComponent', () => {
     expect(assistantBindingService.get).toHaveBeenCalledTimes(2)
   })
 
+  it.each([null, { assistantId: 'missing-xpert' }, { assistantId: 'bound-xpert', enabled: false }])(
+    'does not expose a configured ClawXpert for an unavailable binding: %j',
+    async (binding) => {
+      assistantBindingService.get.mockReturnValue(of(binding))
+      const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+      fixture.detectChanges()
+      await fixture.whenStable()
+      expect(fixture.componentInstance.isClawXpertConfigured()).toBe(false)
+    }
+  )
+
+  it('clears configuration on organization changes and ignores late responses from the previous organization', async () => {
+    const organizations = new BehaviorSubject('org-1')
+    store.selectOrganizationId.mockReturnValue(organizations)
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    expect(fixture.componentInstance.isClawXpertConfigured()).toBe(true)
+
+    const staleBinding = new Subject<{ assistantId: string }>()
+    assistantBindingService.get.mockReturnValueOnce(staleBinding)
+    assistantBindingChanges$.next({ code: 'clawxpert', scope: 'user' })
+    expect(fixture.componentInstance.isClawXpertConfigured()).toBe(false)
+
+    const nextBinding = new Subject<{ assistantId: string } | null>()
+    assistantBindingService.get.mockReturnValueOnce(nextBinding)
+    store.organizationId = 'org-2'
+    organizations.next('org-2')
+    scopeService.activeScope.set({ level: 'organization', organizationId: 'org-2' })
+    fixture.detectChanges()
+    await fixture.whenStable()
+    staleBinding.next({ assistantId: 'bound-xpert' })
+    staleBinding.complete()
+    expect(fixture.componentInstance.isClawXpertConfigured()).toBe(false)
+
+    nextBinding.next(null)
+    nextBinding.complete()
+    fixture.detectChanges()
+    expect(fixture.componentInstance.isClawXpertConfigured()).toBe(false)
+
+    assistantBindingService.get.mockReturnValue(of({ assistantId: 'bound-xpert' }))
+    assistantBindingChanges$.next({ code: 'clawxpert', scope: 'user' })
+    fixture.detectChanges()
+    await fixture.whenStable()
+    expect(fixture.componentInstance.isClawXpertConfigured()).toBe(true)
+
+    assistantBindingService.get.mockReturnValue(new Subject())
+    store.organizationId = 'org-3'
+    organizations.next('org-3')
+    expect(fixture.componentInstance.isClawXpertConfigured()).toBe(false)
+  })
+
   it('routes the current ClawXpert card actions without changing the binding', async () => {
     const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
     const router = TestBed.inject(Router)

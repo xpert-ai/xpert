@@ -1,3 +1,10 @@
+jest.mock('../../../chat-conversation/thread-run-control.service', () => ({
+    ThreadRunControlService: class {},
+    threadGraphRevision: () => 'graph-v1',
+    threadControlConflict: (_key: string, message: string) =>
+        new (jest.requireActual('@nestjs/common').ConflictException)(message)
+}))
+
 jest.mock('../../xpert.service', () => ({
     XpertService: class {}
 }))

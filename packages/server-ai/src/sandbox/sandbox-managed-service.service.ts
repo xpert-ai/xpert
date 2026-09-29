@@ -16,6 +16,7 @@ import { FindOptionsWhere, Repository } from 'typeorm'
 import type { Request, Response } from 'express'
 import { join } from 'path'
 import { ChatConversation } from '../chat-conversation/conversation.entity'
+import { ChatConversationThread } from '../chat-conversation/conversation-thread.entity'
 import { SandboxConversationContextService } from './sandbox-conversation-context.service'
 import { SandboxManagedServiceEntity } from './sandbox-managed-service.entity'
 import { SandboxManagedServiceError } from './sandbox-managed-service.error'
@@ -173,6 +174,8 @@ export class SandboxManagedServiceService implements OnModuleInit {
         private readonly repository: Repository<SandboxManagedServiceEntity>,
         @InjectRepository(ChatConversation)
         private readonly conversationRepository: Repository<ChatConversation>,
+        @InjectRepository(ChatConversationThread)
+        private readonly conversationThreadRepository: Repository<ChatConversationThread>,
         private readonly sandboxConversationContextService: SandboxConversationContextService
     ) {}
 
@@ -527,6 +530,16 @@ export class SandboxManagedServiceService implements OnModuleInit {
     }
 
     private async requireConversationByThreadId(threadId: string) {
+        const conversationThread = await this.conversationThreadRepository.findOne({
+            where: { threadId },
+            relations: { conversation: true }
+        })
+        if (conversationThread?.conversation) {
+            return conversationThread.conversation
+        }
+
+        // Root conversations created before the thread table was introduced
+        // keep their thread id on ChatConversation itself.
         const conversation = await this.conversationRepository.findOneBy({ threadId })
         if (!conversation) {
             throw new SandboxManagedServiceError(

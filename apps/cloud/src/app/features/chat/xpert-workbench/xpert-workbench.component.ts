@@ -15,7 +15,8 @@ import { XpertWorkbenchFacade } from './xpert-workbench.facade'
       useExisting: XpertWorkbenchFacade
     }
   ],
-  template: `<xp-clawxpert-conversation-detail />`,
+  host: { class: 'flex h-full min-h-0 flex-col' },
+  template: `<xp-clawxpert-conversation-detail class="min-h-0 flex-1" />`,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ChatXpertWorkbenchComponent {}

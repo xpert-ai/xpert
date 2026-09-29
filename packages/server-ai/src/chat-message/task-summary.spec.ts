@@ -147,7 +147,7 @@ describe('extractChatMessageTaskSummary', () => {
             })
         )
 
-        expect(summary.outputs).toEqual([
+        expect(summary.outputs).toMatchObject([
             {
                 id: 'artifact:files/videos/generated-video.mp4',
                 kind: 'file',
@@ -318,19 +318,13 @@ describe('extractChatMessageTaskSummary', () => {
             })
         )
 
-        expect(summary.outputs).toEqual([
-            {
-                id: 'workspace-file:reports/AI_Industry_Trends_Report_2026.md',
-                kind: 'document',
-                title: 'AI_Industry_Trends_Report_2026.md',
-                status: 'success',
-                resource: {
-                    type: 'workspace_file',
-                    workspacePath: 'reports/AI_Industry_Trends_Report_2026.md'
-                },
-                messageId: 'message-1',
-                updatedAt: '2026-07-13T01:00:00.000Z'
-            }
+        expect(summary.outputs).toMatchObject([])
+        expect(summary.fileChanges).toEqual([
+            expect.objectContaining({
+                workspacePath: 'reports/AI_Industry_Trends_Report_2026.md',
+                coverage: 'legacy',
+                operation: 'unknown'
+            })
         ])
         expect(summary.sources).toEqual([
             {

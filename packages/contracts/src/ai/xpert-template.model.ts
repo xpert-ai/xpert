@@ -1,6 +1,7 @@
 import { IBasePerTenantEntityModel } from '../base-entity.model'
 import { IconDefinition, TAvatar } from '../types'
 import { TCopilotModel } from './copilot-model.model'
+import { ModelFeature } from './ai-model.model'
 import { MCPServerType, TMCPServer } from './xpert-tool-mcp.model'
 import { XpertTypeEnum } from './xpert.model'
 import type { TPromptWorkflow } from './prompt-workflow.model'
@@ -117,6 +118,12 @@ export type TTemplate = {
   contentHash?: string
   xpertName?: string
   dependencies?: XpertTemplatePluginDependencies
+  /** Explicit capability requirements/options, implemented by registered providers. */
+  capabilities?: AssistantCapabilityDeclaration[]
+  /** Capabilities composed into this resolved template variant. */
+  enabledCapabilities?: string[]
+  /** Require an explicitly selected, authorized LLM even without capability constraints. */
+  requiresModelSelection?: boolean
   /** Trusted plugin App explicitly linked to this Assistant template. */
   application?: PluginTemplateApplicationSummary
 }
@@ -129,6 +136,24 @@ export type TXpertTemplate = TTemplate & {
 }
 
 export type TXpertTemplateSummary = Omit<TXpertTemplate, 'export_data'>
+
+/** Opt-in capabilities offered by the serving distribution for a template. */
+export type XpertTemplateCapability = string
+
+export interface AssistantCapabilityDeclaration {
+  key: string
+  /** Required capabilities cannot be disabled; optional capabilities default to off. */
+  required?: boolean
+}
+
+export interface XpertTemplateSetup {
+  requiresModel?: boolean
+  optionalCapabilities: { key: XpertTemplateCapability; label: string; description: string }[]
+  requiredModelFeatures: ModelFeature[]
+  models: { id: string; label: string; copilotModel: TCopilotModel }[]
+  canInstall: boolean
+  reason?: string
+}
 
 export interface TXpertTemplateCatalogQuery {
   search?: string

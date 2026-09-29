@@ -48,7 +48,17 @@ export async function createMCPClient(
                 server,
                 tenantId: runtimeContext.tenantId ?? toolset.tenantId,
                 organizationId: runtimeContext.organizationId ?? toolset.organizationId,
-                userId: runtimeContext.userId
+                userId: runtimeContext.userId,
+                runtimeScope: {
+                    tenantId: runtimeContext.tenantId ?? toolset.tenantId,
+                    organizationId: runtimeContext.organizationId ?? toolset.organizationId,
+                    userId: runtimeContext.userId,
+                    xpertId: runtimeContext.xpertId ?? xpertId,
+                    workspaceId: toolset.workspaceId,
+                    projectId: runtimeContext.projectId,
+                    conversationId: runtimeContext.conversationId,
+                    executionId: runtimeContext.executionId
+                }
             })
             const remoteServer = withoutConsumerAuth(server)
             mcpServers[name] = omitBy(
@@ -61,7 +71,7 @@ export async function createMCPClient(
                 isNil
             )
         } else if (transport === MCPServerType.SSE || (!transport && server.url)) {
-            if (server.auth?.type === 'oauth') {
+            if (server.auth?.type === 'oauth' || server.auth?.type === 'connector') {
                 throw new Error(`MCP OAuth requires Streamable HTTP; server '${name}' uses legacy SSE`)
             }
             const headers = await resolveRemoteHeaders(server, envState, xpertId)

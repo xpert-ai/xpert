@@ -1,3 +1,4 @@
+import { XpertSettingsService } from '../../@core/services/xpert-settings.service'
 import { TestBed } from '@angular/core/testing'
 import { NavigationEnd, Router } from '@angular/router'
 import { Store } from '@cloud/app/@core/state'
@@ -13,6 +14,7 @@ describe('CloudSidebarMenuComponent workspace navigation', () => {
     isActive: jest.fn(() => false),
     navigateByUrl: jest.fn(() => Promise.resolve(true))
   }
+  const settings = { openBoundAssistant: jest.fn() }
   const store = {
     selectedWorkspace$: new BehaviorSubject({ id: 'workspace-1' }),
     workspaceId$: new BehaviorSubject('workspace-1')
@@ -20,11 +22,13 @@ describe('CloudSidebarMenuComponent workspace navigation', () => {
 
   beforeEach(() => {
     router.navigateByUrl.mockClear()
+    settings.openBoundAssistant.mockClear()
     router.url = '/chat/clawxpert/c/thread-1'
 
     TestBed.configureTestingModule({
       imports: [CloudSidebarMenuComponent],
       providers: [
+        { provide: XpertSettingsService, useValue: settings },
         { provide: Router, useValue: router },
         { provide: Store, useValue: store }
       ]
@@ -40,8 +44,7 @@ describe('CloudSidebarMenuComponent workspace navigation', () => {
     ['skills', '/xpert/w/workspace-1/clawxpert-skills'],
     ['connectors', '/xpert/w/workspace-1/clawxpert-connectors'],
     ['files', '/xpert/w/workspace-1/files'],
-    ['knowledges', '/xpert/w/workspace-1/clawxpert-knowledges'],
-    ['settings', '/chat/clawxpert']
+    ['knowledges', '/xpert/w/workspace-1/clawxpert-knowledges']
   ] as const)('navigates the %s entry directly to its original workspace page', async (section, expectedUrl) => {
     const fixture = TestBed.createComponent(CloudSidebarMenuComponent)
     const component = fixture.componentInstance
@@ -60,6 +63,17 @@ describe('CloudSidebarMenuComponent workspace navigation', () => {
     expect(router.navigateByUrl).toHaveBeenCalledWith(expectedUrl)
   })
 
+  it('opens assistant settings in place, without navigation or resetting the conversation', () => {
+    const fixture = TestBed.createComponent(CloudSidebarMenuComponent)
+    const component = fixture.componentInstance
+    const item: CloudMenuItem = { title: 'Assistant settings', data: { action: 'openAssistantSettings' } }
+    expect(component.routerLinkFor(item)).toBeNull()
+    component.onChildClick(new MouseEvent('click'), item)
+    expect(settings.openBoundAssistant).toHaveBeenCalledTimes(1)
+    expect(router.navigateByUrl).not.toHaveBeenCalled()
+    expect(router.url).toBe('/chat/clawxpert/c/thread-1')
+  })
+
   it('navigates nested more entries without opening a conversation', async () => {
     const fixture = TestBed.createComponent(CloudSidebarMenuComponent)
     const component = fixture.componentInstance
@@ -67,7 +81,7 @@ describe('CloudSidebarMenuComponent workspace navigation', () => {
     const preventDefault = jest.spyOn(event, 'preventDefault')
 
     component.onChildClick(event, {
-      title: '资源库',
+      title: 'Resource library',
       data: { workspaceSection: 'files' }
     } as CloudMenuItem)
     await Promise.resolve()

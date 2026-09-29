@@ -1,11 +1,8 @@
-import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import {
   ChangeDetectionStrategy,
   Component,
-  DestroyRef,
   ElementRef,
-  TemplateRef,
   WritableSignal,
   computed,
   effect,
@@ -19,11 +16,8 @@ import {
 } from '@angular/core'
 import { injectConfirmDelete } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
-import { Observable, defaultIfEmpty, finalize, firstValueFrom, from, isObservable } from 'rxjs'
-import type { TChatFileElementReference } from '@xpert-ai/contracts'
-import { getErrorMessage, injectToastr, TFile, TFileDirectory } from '../../../@core'
-import { FileEditorSelection, mapFileLanguageFromPath } from '../editor/editor.component'
+import { defaultIfEmpty, finalize, firstValueFrom, from } from 'rxjs'
+import { getErrorMessage, injectToastr } from '../../../@core'
 import { FileTreeComponent, type FileTreeUploadKind } from '../tree/tree.component'
 import {
   collectExpandedDirectoryPaths,
@@ -35,96 +29,49 @@ import {
   updateFileTreeNode
 } from '../tree/tree.utils'
 import { type FileTreeSizeVariants } from '../tree/tree.component.variants'
-import { FilePanelMode, FileViewerComponent } from '../viewer/viewer.component'
-import { resolveFilePreviewKind, toFilePreviewSource, type FilePreviewKind } from '../preview/file-preview.utils'
-import { isSpreadsheetEditorFile } from '../spreadsheet-editor/spreadsheet-file.utils'
-import { isDocxEditorFile } from '../docx-editor/docx-file.utils'
-import { isPptxEditorFile } from '../pptx-editor/pptx-file.utils'
-
-type DirtyDialogAction = 'save' | 'discard' | 'cancel'
+import { FileDocumentComponent } from '../document/file-document.component'
+import {
+  FileDocumentState,
+  DEFAULT_EDITABLE_EXTENSIONS,
+  DEFAULT_MARKDOWN_EXTENSIONS
+} from '../document/file-document-state'
+import type {
+  FileWorkbenchLayout,
+  FileWorkbenchFilesLoader,
+  FileWorkbenchFileLoader,
+  FileWorkbenchFileSaver,
+  FileWorkbenchBinaryFileSaver,
+  FileWorkbenchFileDeleter,
+  FileWorkbenchFileUploader,
+  FileWorkbenchFileDownloader,
+  FileWorkbenchReferenceRequest
+} from './workbench.types'
+import {
+  filterFileTree,
+  findFileTreeNode,
+  fileModifiedFingerprint,
+  isPathSameOrDescendant,
+  fileNameFromPath,
+  resolveUploadTargetPath,
+  formatDirectoryPath,
+  resolveAsyncValue,
+  readSelectedFiles,
+  resolveUploadDestinationPath
+} from './workbench.utils'
+export * from './workbench.types'
 export type FileWorkbenchTreeItem = FileTreeNode
-type FileWorkbenchUploadSelection = {
-  file: File
-  relativePath: string | null
-}
-
-type AsyncValue<T> = T | Promise<T> | Observable<T>
-
-export type FileWorkbenchFilesLoader = (path?: string) => AsyncValue<TFileDirectory[] | null | undefined>
-export type FileWorkbenchFileLoader = (path: string) => AsyncValue<TFile | null | undefined>
-export type FileWorkbenchFileSaver = (path: string, content: string) => AsyncValue<TFile>
-export type FileWorkbenchBinaryFileSaver = (path: string, file: Blob) => AsyncValue<TFile>
-export type FileWorkbenchFileDeleter = (path: string) => AsyncValue<void>
-export type FileWorkbenchFileUploader = (file: File, path: string) => AsyncValue<unknown>
-export type FileWorkbenchDownloadPayload =
-  | { kind: 'url'; url: string; fileName?: string }
-  | { kind: 'blob'; blob: Blob; fileName?: string }
-export type FileWorkbenchFileDownloader = (
-  path: string,
-  item?: FileTreeNode
-) => AsyncValue<FileWorkbenchDownloadPayload | null | undefined>
-export type FileWorkbenchCodeReferenceRequest = {
-  path: string
-  text: string
-  startLine: number
-  endLine: number
-  language?: string
-}
-export type FileWorkbenchFilePathReferenceRequest = {
-  type: 'file_path'
-  path: string
-}
-export type FileWorkbenchReferenceRequest =
-  | FileWorkbenchFilePathReferenceRequest
-  | FileWorkbenchCodeReferenceRequest
-  | TChatFileElementReference
-
-export type FileWorkbenchLayout = 'default' | 'library'
-
-type FileWorkbenchPreviewResource = {
-  objectUrl: string | null
-  url: string | null
-  buffer: ArrayBuffer | null
-}
-
-type FileModifiedTimestamp = NonNullable<TFile['createdAt'] | TFile['updatedAt']>
-type FileWithModifiedTimestamp = TFile &
-  ({ readonly updatedAt: FileModifiedTimestamp } | { readonly createdAt: FileModifiedTimestamp })
 
 type LoadDirectoryChildrenOptions = {
   merge?: boolean
   requestToken?: number
 }
 
-const DEFAULT_EDITABLE_EXTENSIONS = [
-  'md',
-  'mdx',
-  'txt',
-  'js',
-  'jsx',
-  'ts',
-  'tsx',
-  'json',
-  'yml',
-  'yaml',
-  'py',
-  'sh',
-  'html',
-  'css',
-  'xml',
-  'env',
-  'docx',
-  'pptx'
-]
-
-const DEFAULT_MARKDOWN_EXTENSIONS = ['md', 'mdx']
-
 @Component({
   standalone: true,
   selector: 'xp-file-workbench',
   templateUrl: './workbench.component.html',
   styleUrls: ['./workbench.component.css'],
-  imports: [CommonModule, TranslateModule, ZardButtonComponent, FileTreeComponent, FileViewerComponent],
+  imports: [CommonModule, TranslateModule, FileTreeComponent, FileDocumentComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class.xp-file-workbench--tree-hidden]': '!fileTreeVisible()',
@@ -132,13 +79,13 @@ const DEFAULT_MARKDOWN_EXTENSIONS = ['md', 'mdx']
   }
 })
 export class FileWorkbenchComponent {
-  readonly #destroyRef = inject(DestroyRef)
-  readonly #dialog = inject(Dialog)
   readonly #toastr = injectToastr()
   readonly #translate = inject(TranslateService)
   readonly #confirmDelete = injectConfirmDelete()
 
   readonly rootId = input<string | null | undefined>(null)
+  readonly documentScope = input<string | null>(null)
+  readonly active = input(true)
   readonly rootLabel = input<string | null | undefined>(null)
   readonly layout = input<FileWorkbenchLayout>('default')
   readonly showTreeRefresh = input(false)
@@ -160,85 +107,57 @@ export class FileWorkbenchComponent {
   readonly mobilePane = model<'tree' | 'file'>('tree')
   readonly referenceRequest = output<FileWorkbenchReferenceRequest>()
 
-  readonly unsavedChangesDialog = viewChild<TemplateRef<unknown>>('unsavedChangesDialog')
   readonly uploadInput = viewChild<ElementRef<HTMLInputElement>>('uploadInput')
   readonly folderUploadInput = viewChild<ElementRef<HTMLInputElement>>('folderUploadInput')
-  readonly fileViewer = viewChild(FileViewerComponent)
+  readonly document = new FileDocumentState({
+    rootId: this.rootId,
+    documentScope: this.documentScope,
+    fileLoader: this.fileLoader,
+    fileSaver: this.fileSaver,
+    binaryFileSaver: this.binaryFileSaver,
+    fileUploader: this.fileUploader,
+    fileDownloader: this.fileDownloader,
+    editableExtensions: this.editableExtensions,
+    markdownExtensions: this.markdownExtensions,
+    referenceable: this.referenceable,
+    onReference: (request) => this.referenceRequest.emit(request)
+  })
+  readonly fileViewer = this.document.fileViewer
 
   readonly treeLoading = signal(false)
-  readonly saving = signal(false)
-  readonly fileLoading = signal(false)
+  readonly saving = this.document.saving
+  readonly fileLoading = this.document.fileLoading
   readonly fileTreeLoadingPaths = signal<Set<string>>(new Set())
-  readonly downloadingPaths = signal<Set<string>>(new Set())
+  readonly downloadingPaths = this.document.downloadingPaths
   readonly deletingPaths = signal<Set<string>>(new Set())
   readonly uploading = signal(false)
   readonly fileTreeVisible = signal(true)
   readonly fileTree = signal<FileTreeNode[]>([])
   readonly treeSearchQuery = signal('')
   readonly visibleFileTree = computed(() => filterFileTree(this.fileTree(), this.treeSearchQuery()))
-  readonly activeFilePath = signal<string | null>(null)
-  readonly activeFile = signal<TFile | null>(null)
-  readonly activePreviewUrl = signal<string | null>(null)
-  readonly draftContent = signal('')
-  readonly documentBuffer = signal<ArrayBuffer | null>(null)
-  readonly docxDirty = signal(false)
-  readonly spreadsheetDirty = signal(false)
-  readonly pptxDirty = signal(false)
-  readonly panelMode = signal<FilePanelMode>('view')
+  readonly activeFilePath = this.document.activeFilePath
+  readonly activeFile = this.document.activeFile
+  readonly activePreviewUrl = this.document.activePreviewUrl
+  readonly draftContent = this.document.draftContent
+  readonly documentBuffer = this.document.documentBuffer
+  readonly docxDirty = this.document.docxDirty
+  readonly spreadsheetDirty = this.document.spreadsheetDirty
+  readonly pptxDirty = this.document.pptxDirty
+  readonly panelMode = this.document.panelMode
   readonly selectedTreeItem = signal<{ path: string; isDirectory: boolean } | null>(null)
   readonly treeActivePath = computed(() => this.selectedTreeItem()?.path ?? this.activeFilePath())
-  readonly fileReadable = computed(() => typeof this.activeFile()?.contents === 'string')
-  readonly #editableExtensionSet = computed(
-    () => new Set((this.editableExtensions() ?? []).map((extension) => extension.toLowerCase()))
-  )
-  readonly #markdownExtensionSet = computed(
-    () => new Set((this.markdownExtensions() ?? []).map((extension) => extension.toLowerCase()))
-  )
-  readonly isActiveFileEditable = computed(() => {
-    const path = this.activeFilePath()
-    if (!path) {
-      return false
-    }
-    if (isSpreadsheetEditorFile(path)) {
-      return !!this.fileUploader() && !!this.activePreviewUrl()
-    }
-    if (isDocxEditorFile(path)) {
-      return !!this.fileUploader() && !!this.documentBuffer()
-    }
-    if (isPptxEditorFile(path)) {
-      return !!this.binaryFileSaver() && !!this.documentBuffer()
-    }
-    return !!this.fileSaver() && this.fileReadable() && this.isEditableFile(path)
-  })
-  readonly isMarkdownFile = computed(() => {
-    const path = this.activeFilePath()
-    return !!path && this.#markdownExtensionSet().has(fileExtension(path))
-  })
-  readonly isSpreadsheetFile = computed(() => isSpreadsheetEditorFile(this.activeFilePath()))
-  readonly isDocxFile = computed(() => isDocxEditorFile(this.activeFilePath()))
-  readonly isPptxFile = computed(() => isPptxEditorFile(this.activeFilePath()))
-  readonly dirty = computed(
-    () =>
-      this.isActiveFileEditable() &&
-      (this.isSpreadsheetFile()
-        ? this.spreadsheetDirty()
-        : this.isDocxFile()
-          ? this.docxDirty()
-          : this.isPptxFile()
-            ? this.pptxDirty()
-            : this.draftContent() !== (this.activeFile()?.contents ?? ''))
-  )
+  readonly fileReadable = this.document.fileReadable
+  readonly isActiveFileEditable = this.document.isActiveFileEditable
+  readonly isMarkdownFile = this.document.isMarkdownFile
+  readonly isSpreadsheetFile = this.document.isSpreadsheetFile
+  readonly isDocxFile = this.document.isDocxFile
+  readonly isPptxFile = this.document.isPptxFile
+  readonly dirty = this.document.dirty
   readonly canDeleteFiles = computed(() => !!this.fileDeleter())
   readonly canUploadFiles = computed(() => !!this.fileUploader() && !!this.rootId())
   readonly canDownloadFiles = computed(() => !!this.fileDownloader() || !!this.fileLoader())
   readonly canDownloadDirectories = computed(() => !!this.fileDownloader())
-  readonly canDownloadActiveFile = computed(() => {
-    const activeFile = this.activeFile()
-    return (
-      !!this.activeFilePath() &&
-      (!!this.fileDownloader() || !!normalizeDownloadUrl(activeFile?.fileUrl || activeFile?.url) || this.fileReadable())
-    )
-  })
+  readonly canDownloadActiveFile = this.document.canDownloadActiveFile
   readonly uploadTargetPath = computed(() => resolveUploadTargetPath(this.selectedTreeItem()))
   readonly uploadTargetDisplayPath = computed(() => formatDirectoryPath(this.uploadTargetPath()))
   readonly uploadTargetHint = computed(() => {
@@ -263,12 +182,8 @@ export class FileWorkbenchComponent {
     })
   })
 
-  #dirtyDialogRef: DialogRef<unknown, unknown> | null = null
-  #pendingNavigationAction: (() => Promise<void>) | null = null
   #treeRequestToken = 0
-  #fileRequestToken = 0
   #activeRootId: string | null = null
-  #activePreviewObjectUrl: string | null = null
 
   readonly #reloadRootEffect = effect(() => {
     const rootId = this.rootId() ?? null
@@ -294,15 +209,20 @@ export class FileWorkbenchComponent {
     })
   })
 
-  constructor() {
-    this.#destroyRef.onDestroy(() => {
-      revokeObjectUrl(this.#activePreviewObjectUrl)
-    })
-  }
-
-  isEditableFile(filePath: string | null | undefined) {
-    return !!filePath && this.#editableExtensionSet().has(fileExtension(filePath))
-  }
+  readonly isEditableFile = this.document.isEditableFile.bind(this.document)
+  readonly guardDirtyBefore = this.document.guardDirtyBefore.bind(this.document)
+  readonly switchPanelMode = this.document.switchPanelMode.bind(this.document)
+  readonly referenceActiveFile = this.document.referenceActiveFile.bind(this.document)
+  readonly referenceSelectedRange = this.document.referenceSelectedRange.bind(this.document)
+  readonly referenceFileElement = this.document.referenceFileElement.bind(this.document)
+  readonly discardActiveFileChanges = this.document.discardActiveFileChanges.bind(this.document)
+  readonly saveActiveFile = this.document.saveActiveFile.bind(this.document)
+  readonly downloadActiveFile = this.document.downloadActiveFile.bind(this.document)
+  readonly refreshActiveFile = this.document.refreshActiveFile.bind(this.document)
+  readonly handleDocumentError = this.document.handleDocumentError.bind(this.document)
+  readonly loadActiveFile = this.document.loadActiveFile.bind(this.document)
+  readonly downloadFileByPath = this.document.downloadFileByPath.bind(this.document)
+  readonly setActivePreviewResource = this.document.setActivePreviewResource.bind(this.document)
 
   updateTreeSearch(event: Event) {
     const target = event.target
@@ -324,19 +244,6 @@ export class FileWorkbenchComponent {
     }
 
     await this.refreshRootTree(rootId)
-  }
-
-  async guardDirtyBefore(action: () => Promise<void> | void) {
-    if (!this.dirty()) {
-      await action()
-      return true
-    }
-
-    this.#pendingNavigationAction = async () => {
-      await action()
-    }
-    this.openDirtyDialog()
-    return false
   }
 
   async openFile(item: FileTreeNode) {
@@ -379,158 +286,6 @@ export class FileWorkbenchComponent {
     }
   }
 
-  async switchPanelMode(mode: FilePanelMode) {
-    if (mode === 'edit' && !this.isActiveFileEditable()) {
-      return
-    }
-    this.panelMode.set(mode)
-  }
-
-  referenceActiveFile() {
-    const filePath = normalizeReferencePath(this.activeFilePath())
-    if (!this.referenceable() || !filePath) {
-      return
-    }
-
-    this.referenceRequest.emit({
-      type: 'file_path',
-      path: filePath
-    })
-  }
-
-  referenceSelectedRange(selection: FileEditorSelection) {
-    const filePath = normalizeReferencePath(this.activeFilePath())
-    if (!this.referenceable() || !filePath) {
-      return
-    }
-
-    const text = selection.text
-    if (!text.trim().length) {
-      return
-    }
-
-    this.referenceRequest.emit(createReferenceRequest(filePath, text, selection.startLine, selection.endLine))
-  }
-
-  referenceFileElement(reference: TChatFileElementReference) {
-    if (!this.referenceable()) {
-      return
-    }
-
-    this.referenceRequest.emit(reference)
-  }
-
-  discardActiveFileChanges() {
-    if (this.isDocxFile()) {
-      this.docxDirty.set(false)
-      this.fileViewer()?.reloadDocx()
-      this.panelMode.set('view')
-      return
-    }
-
-    if (this.isSpreadsheetFile()) {
-      this.spreadsheetDirty.set(false)
-      void this.fileViewer()?.reloadSpreadsheet()
-      this.panelMode.set('view')
-      return
-    }
-
-    if (this.isPptxFile()) {
-      this.pptxDirty.set(false)
-      this.fileViewer()?.reloadPptx()
-      this.panelMode.set('view')
-      return
-    }
-
-    this.draftContent.set(this.activeFile()?.contents ?? '')
-    this.panelMode.set('view')
-  }
-
-  async saveActiveFile(savedDocument?: File) {
-    const fileSaver = this.fileSaver()
-    const binaryFileSaver = this.binaryFileSaver()
-    const filePath = this.activeFilePath()
-    if (!filePath || !this.isActiveFileEditable() || !this.dirty()) {
-      return true
-    }
-
-    this.saving.set(true)
-    try {
-      if (this.isDocxFile()) {
-        const fileUploader = this.fileUploader()
-        const fileViewer = this.fileViewer()
-        if (!fileUploader || !fileViewer) {
-          throw new Error('DOCX editor is not ready')
-        }
-
-        const file = savedDocument ?? (await fileViewer.exportDocxFile())
-        if (!file) {
-          throw new Error('DOCX editor did not return a file')
-        }
-
-        await resolveAsyncValue(fileUploader(file, parentDirectoryPath(filePath)))
-        this.documentBuffer.set(await file.arrayBuffer())
-        const objectUrl = URL.createObjectURL(file)
-        this.setActivePreviewResource({
-          objectUrl,
-          url: objectUrl,
-          buffer: null
-        })
-        this.docxDirty.set(false)
-      } else if (this.isSpreadsheetFile()) {
-        const fileUploader = this.fileUploader()
-        const fileViewer = this.fileViewer()
-        if (!fileUploader || !fileViewer) {
-          throw new Error('Spreadsheet editor is not ready')
-        }
-
-        const file = await fileViewer.exportSpreadsheetFile()
-        await resolveAsyncValue(fileUploader(file, parentDirectoryPath(filePath)))
-        fileViewer.markSpreadsheetSaved()
-        const objectUrl = URL.createObjectURL(file)
-        this.setActivePreviewResource({ objectUrl, url: objectUrl, buffer: null })
-        this.spreadsheetDirty.set(false)
-      } else if (this.isPptxFile()) {
-        const fileViewer = this.fileViewer()
-        if (!binaryFileSaver || !fileViewer) {
-          throw new Error('PPTX editor is not ready')
-        }
-
-        const file = savedDocument ?? (await fileViewer.exportPptxFile())
-        if (!file) {
-          throw new Error('PPTX editor did not return a file')
-        }
-
-        const saved = await resolveAsyncValue(binaryFileSaver(filePath, file))
-        this.activeFile.set(saved)
-        this.documentBuffer.set(await file.arrayBuffer())
-        const objectUrl = URL.createObjectURL(file)
-        this.setActivePreviewResource({ objectUrl, url: objectUrl, buffer: null })
-        fileViewer.markPptxSaved()
-        this.pptxDirty.set(false)
-      } else {
-        if (!fileSaver) {
-          return false
-        }
-        const file = await resolveAsyncValue(fileSaver(filePath, this.draftContent()))
-        this.activeFile.set(file)
-        this.draftContent.set(file.contents ?? '')
-      }
-      this.panelMode.set('view')
-      this.#toastr.success(
-        this.#translate.instant('XP.Files.SkillFileSaved', {
-          Default: 'File saved'
-        })
-      )
-      return true
-    } catch (error) {
-      this.#toastr.danger(getErrorMessage(error))
-      return false
-    } finally {
-      this.saving.set(false)
-    }
-  }
-
   async downloadTreeFile(item: FileTreeNode) {
     const filePath = item.fullPath || item.filePath
     if (!filePath) {
@@ -538,26 +293,6 @@ export class FileWorkbenchComponent {
     }
 
     await this.downloadFileByPath(filePath, item)
-  }
-
-  async downloadActiveFile() {
-    const filePath = this.activeFilePath()
-    if (!filePath) {
-      return
-    }
-
-    await this.downloadFileByPath(filePath)
-  }
-
-  async refreshActiveFile() {
-    const filePath = this.activeFilePath()
-    if (!filePath || this.fileLoading()) {
-      return
-    }
-
-    await this.guardDirtyBefore(async () => {
-      await this.loadActiveFile(filePath)
-    })
   }
 
   requestUpload(kind: FileTreeUploadKind = 'file') {
@@ -702,47 +437,6 @@ export class FileWorkbenchComponent {
     }
   }
 
-  openDirtyDialog() {
-    if (this.#dirtyDialogRef) {
-      return
-    }
-
-    const dialogTemplate = this.unsavedChangesDialog()
-    if (!dialogTemplate) {
-      return
-    }
-
-    this.#dirtyDialogRef = this.#dialog.open(dialogTemplate, {
-      disableClose: true,
-      backdropClass: 'xp-overlay-share-sheet',
-      panelClass: 'xp-overlay-pane-share-sheet'
-    })
-  }
-
-  async resolveDirtyDialog(action: DirtyDialogAction) {
-    if (action === 'cancel') {
-      this.#pendingNavigationAction = null
-      this.closeDirtyDialog()
-      return
-    }
-
-    if (action === 'save') {
-      const saved = await this.saveActiveFile()
-      if (!saved) {
-        return
-      }
-    } else {
-      this.discardActiveFileChanges()
-    }
-
-    this.closeDirtyDialog()
-    const pendingAction = this.#pendingNavigationAction
-    this.#pendingNavigationAction = null
-    if (pendingAction) {
-      await pendingAction()
-    }
-  }
-
   private async reloadRootTree(rootId: string) {
     const filesLoader = this.filesLoader()
     if (!filesLoader) {
@@ -751,18 +445,9 @@ export class FileWorkbenchComponent {
     }
 
     const requestToken = ++this.#treeRequestToken
-    this.#fileRequestToken++
+    this.document.reset()
     this.treeLoading.set(true)
     this.fileTree.set([])
-    this.activeFilePath.set(null)
-    this.activeFile.set(null)
-    this.setActivePreviewResource({ objectUrl: null, url: null, buffer: null })
-    this.draftContent.set('')
-    this.documentBuffer.set(null)
-    this.docxDirty.set(false)
-    this.spreadsheetDirty.set(false)
-    this.pptxDirty.set(false)
-    this.panelMode.set('view')
 
     try {
       const files = await resolveAsyncValue(filesLoader())
@@ -913,112 +598,6 @@ export class FileWorkbenchComponent {
     await this.loadActiveFile(filePath)
   }
 
-  private async loadActiveFile(filePath: string) {
-    const fileLoader = this.fileLoader()
-    const rootId = this.rootId()
-    if (!fileLoader || !rootId) {
-      return
-    }
-
-    const requestToken = ++this.#fileRequestToken
-    this.fileLoading.set(true)
-    try {
-      const file = await resolveAsyncValue(fileLoader(filePath))
-      if (!file || requestToken !== this.#fileRequestToken || this.rootId() !== rootId) {
-        return
-      }
-
-      const previewResource = await this.resolvePreviewResource(file.filePath || filePath, file)
-      if (requestToken !== this.#fileRequestToken || this.rootId() !== rootId) {
-        revokeObjectUrl(previewResource.objectUrl)
-        return
-      }
-
-      this.activeFilePath.set(file.filePath || filePath)
-      this.activeFile.set(file)
-      this.setActivePreviewResource(previewResource)
-      this.draftContent.set(file.contents ?? '')
-      this.documentBuffer.set(previewResource.buffer)
-      this.docxDirty.set(false)
-      this.spreadsheetDirty.set(false)
-      this.pptxDirty.set(false)
-      const activePath = file.filePath || filePath
-      const opensInEditor = isSpreadsheetEditorFile(activePath)
-        ? !!previewResource.url
-        : isDocxEditorFile(activePath) && !!previewResource.buffer
-      this.panelMode.set(opensInEditor ? 'edit' : 'view')
-    } catch (error) {
-      this.#toastr.danger(
-        getErrorMessage(error) || this.#translate.instant('XP.Files.LoadFileFailed', { Default: 'Failed to load file' })
-      )
-    } finally {
-      if (requestToken === this.#fileRequestToken) {
-        this.fileLoading.set(false)
-      }
-    }
-  }
-
-  private async downloadFileByPath(filePath: string, item?: FileTreeNode) {
-    if (!filePath || this.downloadingPaths().has(filePath)) {
-      return
-    }
-
-    this.markPathBusy(this.downloadingPaths, filePath, true)
-    try {
-      const payload = await this.resolveDownloadPayload(filePath, item)
-      if (!payload) {
-        throw new Error(
-          this.#translate.instant('XP.Files.DownloadUnavailable', {
-            Default: 'This file is not available for download yet.'
-          })
-        )
-      }
-
-      triggerFileDownload(payload, filePath)
-    } catch (error) {
-      this.#toastr.danger(
-        getErrorMessage(error) ||
-          this.#translate.instant('XP.Files.DownloadFailed', {
-            Default: 'Failed to download file'
-          })
-      )
-    } finally {
-      this.markPathBusy(this.downloadingPaths, filePath, false)
-    }
-  }
-
-  private async resolveDownloadPayload(
-    filePath: string,
-    item?: FileTreeNode
-  ): Promise<FileWorkbenchDownloadPayload | null | undefined> {
-    if (this.activeFilePath() === filePath && this.isPptxFile() && this.pptxDirty()) {
-      const file = await this.fileViewer()?.exportPptxFile()
-      if (file) {
-        return { kind: 'blob', blob: file, fileName: file.name }
-      }
-    }
-    const fileDownloader = this.fileDownloader()
-    if (fileDownloader) {
-      const payload = await resolveAsyncValue(fileDownloader(filePath, item))
-      if (payload) {
-        return payload
-      }
-    }
-
-    const activeFile = this.activeFilePath() === filePath ? this.activeFile() : null
-    const file = activeFile ?? (await this.loadFileForDownload(filePath))
-    return createDownloadPayload(file, filePath, item)
-  }
-
-  private async loadFileForDownload(filePath: string) {
-    const fileLoader = this.fileLoader()
-    if (!fileLoader) {
-      return null
-    }
-
-    return resolveAsyncValue(fileLoader(filePath))
-  }
-
   private markPathBusy(target: WritableSignal<Set<string>>, filePath: string, busy: boolean) {
     target.update((paths) => {
       const next = new Set(paths)
@@ -1033,9 +612,7 @@ export class FileWorkbenchComponent {
 
   private resetState() {
     this.#treeRequestToken++
-    this.#fileRequestToken++
-    this.#pendingNavigationAction = null
-    this.closeDirtyDialog()
+    this.document.reset()
     this.treeLoading.set(false)
     this.fileLoading.set(false)
     this.saving.set(false)
@@ -1045,21 +622,7 @@ export class FileWorkbenchComponent {
     this.deletingPaths.set(new Set())
     this.fileTree.set([])
     this.treeSearchQuery.set('')
-    this.activeFilePath.set(null)
-    this.activeFile.set(null)
-    this.setActivePreviewResource({ objectUrl: null, url: null, buffer: null })
-    this.draftContent.set('')
-    this.documentBuffer.set(null)
-    this.docxDirty.set(false)
-    this.spreadsheetDirty.set(false)
-    this.pptxDirty.set(false)
-    this.panelMode.set('view')
     this.selectedTreeItem.set(null)
-  }
-
-  private closeDirtyDialog() {
-    this.#dirtyDialogRef?.close()
-    this.#dirtyDialogRef = null
   }
 
   private rememberSelectedTreeItem(item: FileTreeNode) {
@@ -1091,385 +654,4 @@ export class FileWorkbenchComponent {
     )
     await this.loadDirectoryChildren(targetPath)
   }
-
-  private async resolvePreviewResource(filePath: string, file: TFile): Promise<FileWorkbenchPreviewResource> {
-    const directUrl = normalizeDownloadUrl(file.fileUrl || file.url)
-    const previewKind = resolveFilePreviewKind(
-      toFilePreviewSource({
-        ...file,
-        filePath: file.filePath || filePath
-      })
-    )
-
-    if (directUrl) {
-      if (previewKind === 'document' || previewKind === 'presentation') {
-        return this.resolveDocumentUrl(directUrl)
-      }
-
-      return {
-        objectUrl: null,
-        url: directUrl,
-        buffer: null
-      }
-    }
-
-    if (!requiresPreviewUrl(previewKind, typeof file.contents === 'string')) {
-      return {
-        objectUrl: null,
-        url: null,
-        buffer: null
-      }
-    }
-
-    const fileDownloader = this.fileDownloader()
-    if (!fileDownloader) {
-      return {
-        objectUrl: null,
-        url: null,
-        buffer: null
-      }
-    }
-
-    const payload = await resolveAsyncValue(fileDownloader(file.filePath || filePath))
-    if (!payload) {
-      return {
-        objectUrl: null,
-        url: null,
-        buffer: null
-      }
-    }
-
-    if (payload.kind === 'url') {
-      if (previewKind === 'document' || previewKind === 'presentation') {
-        return this.resolveDocumentUrl(payload.url)
-      }
-
-      return {
-        objectUrl: null,
-        url: payload.url,
-        buffer: null
-      }
-    }
-
-    const objectUrl = URL.createObjectURL(payload.blob)
-    return {
-      objectUrl,
-      url: objectUrl,
-      buffer: previewKind === 'document' || previewKind === 'presentation' ? await payload.blob.arrayBuffer() : null
-    }
-  }
-
-  private async resolveDocumentUrl(url: string): Promise<FileWorkbenchPreviewResource> {
-    try {
-      const response = await fetch(url)
-      if (!response.ok) {
-        throw new Error(`Failed to load document: ${response.status}`)
-      }
-
-      const blob = await response.blob()
-      const objectUrl = URL.createObjectURL(blob)
-      return {
-        objectUrl,
-        url: objectUrl,
-        buffer: await blob.arrayBuffer()
-      }
-    } catch {
-      return {
-        objectUrl: null,
-        url,
-        buffer: null
-      }
-    }
-  }
-
-  handleDocumentError(error: Error) {
-    this.#toastr.danger(
-      getErrorMessage(error) ||
-        this.#translate.instant('XP.Files.LoadFileFailed', {
-          Default: 'Failed to load document editor'
-        })
-    )
-  }
-
-  private setActivePreviewResource(resource: FileWorkbenchPreviewResource) {
-    revokeObjectUrl(this.#activePreviewObjectUrl)
-    this.#activePreviewObjectUrl = resource.objectUrl
-    this.activePreviewUrl.set(resource.url)
-  }
-}
-
-function fileExtension(filePath: string) {
-  return filePath.split('.').pop()?.toLowerCase() ?? ''
-}
-
-function filterFileTree(items: FileTreeNode[], query: string): FileTreeNode[] {
-  const normalizedQuery = query.trim().toLocaleLowerCase()
-  if (!normalizedQuery) {
-    return items
-  }
-
-  return items.flatMap((item) => {
-    const itemPath = item.fullPath || item.filePath || ''
-    const matches = itemPath.toLocaleLowerCase().includes(normalizedQuery)
-    const children = Array.isArray(item.children) ? filterFileTree(item.children as FileTreeNode[], query) : []
-
-    if (!matches && !children.length) {
-      return []
-    }
-
-    return [
-      {
-        ...item,
-        expanded: children.length > 0 || item.expanded,
-        children: children.length ? children : item.children
-      }
-    ]
-  })
-}
-
-function findFileTreeNode(items: FileTreeNode[], filePath?: string | null): FileTreeNode | null {
-  const targetPath = normalizeComparableFilePath(filePath)
-  if (!targetPath) {
-    return null
-  }
-
-  for (const item of items ?? []) {
-    if (normalizeComparableFilePath(item.fullPath || item.filePath) === targetPath) {
-      return item
-    }
-
-    if (Array.isArray(item.children)) {
-      const child = findFileTreeNode(item.children as FileTreeNode[], targetPath)
-      if (child) {
-        return child
-      }
-    }
-  }
-
-  return null
-}
-
-function fileModifiedFingerprint(file: TFile | null | undefined): string | null {
-  if (!hasFileModifiedTimestamp(file)) {
-    return null
-  }
-
-  return normalizeFileTimestamp(file.updatedAt ?? file.createdAt)
-}
-
-function hasFileModifiedTimestamp(file: TFile | null | undefined): file is FileWithModifiedTimestamp {
-  return isFileModifiedTimestamp(file?.updatedAt) || isFileModifiedTimestamp(file?.createdAt)
-}
-
-function isFileModifiedTimestamp(
-  value: FileModifiedTimestamp | number | string | null | undefined
-): value is FileModifiedTimestamp {
-  if (value instanceof Date) {
-    return !Number.isNaN(value.getTime())
-  }
-
-  if (typeof value === 'number') {
-    return Number.isFinite(value)
-  }
-
-  if (typeof value === 'string') {
-    return value.trim().length > 0
-  }
-
-  return false
-}
-
-function normalizeFileTimestamp(value: FileModifiedTimestamp | number | string): string {
-  if (value instanceof Date) {
-    return String(value.getTime())
-  }
-
-  if (typeof value === 'number') {
-    return String(value)
-  }
-
-  const timestamp = value.trim()
-  const time = Date.parse(timestamp)
-  return Number.isNaN(time) ? timestamp : String(time)
-}
-
-function normalizeComparableFilePath(filePath?: string | null) {
-  return (filePath ?? '').replace(/\\/g, '/').replace(/^\/+/, '').replace(/\/+$/, '')
-}
-
-function isPathSameOrDescendant(parentPath?: string | null, childPath?: string | null) {
-  const parent = normalizeComparableFilePath(parentPath)
-  const child = normalizeComparableFilePath(childPath)
-  return !!parent && !!child && (child === parent || child.startsWith(`${parent}/`))
-}
-
-function normalizeReferencePath(filePath?: string | null) {
-  return (filePath ?? '').trim().replace(/\\/g, '/') || null
-}
-
-function fileNameFromPath(filePath: string) {
-  return filePath.split('/').pop() || filePath
-}
-
-function parentDirectoryPath(filePath: string) {
-  const normalized = filePath.replace(/\\/g, '/').replace(/^\/+/, '')
-  const index = normalized.lastIndexOf('/')
-  return index >= 0 ? normalized.slice(0, index) : ''
-}
-
-/**
- * Formats relative directory path for display.
- */
-function formatDirectoryPath(path: string) {
-  return path ? `./${path}` : './'
-}
-
-function resolveUploadTargetPath(selection: { path: string; isDirectory: boolean } | null) {
-  if (!selection?.path) {
-    return ''
-  }
-
-  return selection.isDirectory ? selection.path : parentDirectoryPath(selection.path)
-}
-
-function normalizeDownloadUrl(url?: string | null) {
-  if (!url) {
-    return null
-  }
-
-  return /^(https?:)?\/\//.test(url) || url.startsWith('/') ? url : null
-}
-
-function revokeObjectUrl(url?: string | null) {
-  if (typeof URL === 'undefined' || !url || !url.startsWith('blob:')) {
-    return
-  }
-
-  URL.revokeObjectURL(url)
-}
-
-function requiresPreviewUrl(previewKind: FilePreviewKind, hasContents: boolean) {
-  if (previewKind === 'text' || previewKind === 'code' || previewKind === 'html') {
-    return !hasContents
-  }
-
-  return (
-    previewKind === 'document' ||
-    previewKind === 'presentation' ||
-    previewKind === 'image' ||
-    previewKind === 'pdf' ||
-    previewKind === 'audio' ||
-    previewKind === 'video' ||
-    previewKind === 'spreadsheet'
-  )
-}
-
-function createDownloadPayload(
-  file: TFile | null | undefined,
-  filePath: string,
-  item?: FileTreeNode
-): FileWorkbenchDownloadPayload | null {
-  if (!file && !item) {
-    return null
-  }
-
-  const fileName = fileNameFromPath(file?.filePath || filePath)
-  const url = normalizeDownloadUrl(file?.fileUrl || file?.url || item?.url)
-  if (url) {
-    return {
-      kind: 'url',
-      url,
-      fileName
-    }
-  }
-
-  if (typeof file?.contents === 'string') {
-    return {
-      kind: 'blob',
-      blob: new Blob([file.contents], {
-        type: file.mimeType || 'text/plain;charset=utf-8'
-      }),
-      fileName
-    }
-  }
-
-  return null
-}
-
-function triggerFileDownload(payload: FileWorkbenchDownloadPayload, fallbackPath: string) {
-  if (payload.kind === 'url') {
-    const anchor = document.createElement('a')
-    anchor.href = appendDownloadQuery(payload.url)
-    anchor.target = '_blank'
-    anchor.rel = 'noopener'
-    anchor.download = payload.fileName || fileNameFromPath(fallbackPath)
-    document.body.appendChild(anchor)
-    anchor.click()
-    document.body.removeChild(anchor)
-    return
-  }
-
-  const anchor = document.createElement('a')
-  const objectUrl = URL.createObjectURL(payload.blob)
-  anchor.href = objectUrl
-  anchor.download = payload.fileName || fileNameFromPath(fallbackPath)
-  document.body.appendChild(anchor)
-  anchor.click()
-  document.body.removeChild(anchor)
-  URL.revokeObjectURL(objectUrl)
-}
-
-function appendDownloadQuery(url: string) {
-  const normalizedUrl = new URL(url, window.location.origin)
-  normalizedUrl.searchParams.set('download', '1')
-  return normalizedUrl.toString()
-}
-
-function createReferenceRequest(
-  path: string,
-  text: string,
-  startLine: number,
-  endLine: number
-): FileWorkbenchReferenceRequest {
-  const language = mapFileLanguageFromPath(path)
-
-  return {
-    path,
-    text,
-    startLine,
-    endLine,
-    ...(language !== 'plaintext' ? { language } : {})
-  }
-}
-
-function readSelectedFiles(event: Event, kind: FileTreeUploadKind): FileWorkbenchUploadSelection[] {
-  const input = event.target instanceof HTMLInputElement ? event.target : null
-  if (!input?.files) {
-    return []
-  }
-
-  return Array.from(input.files).map((file) => ({
-    file,
-    relativePath: kind === 'folder' ? normalizeUploadRelativePath(file.webkitRelativePath) : null
-  }))
-}
-
-function normalizeUploadRelativePath(relativePath?: string | null) {
-  const normalized = (relativePath ?? '').trim().replace(/\\/g, '/').replace(/^\/+/, '').replace(/^\.\//, '')
-
-  return normalized || null
-}
-
-function resolveUploadDestinationPath(targetPath: string, relativePath?: string | null) {
-  const normalizedTargetPath = normalizeReferencePath(targetPath) ?? ''
-  const normalizedRelativePath = normalizeUploadRelativePath(relativePath)
-  const relativeDirectoryPath = normalizedRelativePath ? parentDirectoryPath(normalizedRelativePath) : ''
-  return [normalizedTargetPath, relativeDirectoryPath].filter(Boolean).join('/')
-}
-
-async function resolveAsyncValue<T>(value: AsyncValue<T>): Promise<T> {
-  if (isObservable(value)) {
-    return firstValueFrom(value)
-  }
-  return Promise.resolve(value)
 }

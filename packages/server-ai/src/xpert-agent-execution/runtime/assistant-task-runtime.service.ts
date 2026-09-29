@@ -1,7 +1,10 @@
+import { AgentInvocationRuntime, invocationError } from '../../agent-invocation/invocation-runtime'
+import { invokeAssistantTask } from '../../agent-invocation/assistant-task-adapter'
 import { ModuleRef } from '@nestjs/core'
 import { AssistantModelSelectionService } from '../../xpert/assistant-model-selection.service'
 import { PublishedXpertAccessService } from '../../xpert/published-xpert-access.service'
 import { randomUUID } from 'crypto'
+import { t } from 'i18next'
 import {
     createRuntimeSkillCapabilityId,
     figureOutXpert,
@@ -93,6 +96,27 @@ export class AssistantTaskRuntimeService implements AgentMiddlewareAssistantTask
             threadId: execution?.threadId ?? conversation?.threadId ?? normalizeOptionalString(input.threadId),
             errorMessage: execution?.error ?? conversation?.error
         }
+    }
+
+    /** Re-resolve the published graph so required-edge changes take effect without persisted instance IDs. */
+    async assertExternalAssistantBinding(input: {
+        requesterXpertId: string
+        requesterAgentKey: string
+        executorXpertId: string
+        expectation: { pluginName: string; templateKey: string; agentKey: string }
+    }): Promise<AgentMiddlewareExternalAssistantBinding> {
+        const binding = await this.resolveExternalAssistantTarget({
+            kind: 'external_assistant',
+            requesterXpertId: input.requesterXpertId,
+            requesterAgentKey: input.requesterAgentKey,
+            expectation: input.expectation
+        })
+        if (binding.xpertId !== input.executorXpertId) {
+            throw new Error(
+                `assistant_binding_executor_mismatch: ${t('server-ai:Error.ProjectAssistantBindingIncompatible')}`
+            )
+        }
+        return safeExternalAssistantBinding(binding)
     }
 
     /** Re-resolve the published graph so required-edge changes take effect without persisted instance IDs. */
@@ -204,6 +228,55 @@ export class AssistantTaskRuntimeService implements AgentMiddlewareAssistantTask
 
     /** Starts a task on the current Assistant or one deterministically resolved external Assistant. */
     async startTask(input: AgentMiddlewareAssistantTaskInput): Promise<AgentMiddlewareAssistantTaskResult> {
+        if (!input.xpertId || !input.prompt?.trim()) throw invocationError('InvalidRequest')
+        if (input.target && input.target.requesterXpertId !== input.xpertId) throw invocationError('InvalidScope')
+        const resolve = async () =>
+            input.target
+                ? this.resolveExternalAssistantTarget(input.target)
+                : this.resolveAssistantExecutionDescriptor(input.xpertId)
+        const descriptor = await resolve()
+        if (!descriptor || descriptor.status !== 'available') throw invocationError('NotFound')
+        if (!descriptor.workspaceId) throw invocationError('InvalidScope')
+        const targetId = descriptor.xpertId || input.xpertId
+        const revision = descriptor.publishedVersion || targetId
+        return invokeAssistantTask(
+            this.moduleRef.get(AgentInvocationRuntime, { strict: false }),
+            input,
+            { id: targetId, revision, workspaceId: descriptor.workspaceId },
+            {
+                start: (operationId, checkpoint) =>
+                    this.dispatchTask(
+                        {
+                            ...input,
+                            executionId: input.executionId || operationId,
+                            conversationId: input.conversationId || operationId
+                        },
+                        checkpoint
+                    ),
+                inspect: (handle) =>
+                    this.getTaskStatus({ executionId: handle.runId, conversationId: handle.sessionId }),
+                cancel: async (handle) => {
+                    await this.cancelTask({ executionId: handle.runId, conversationId: handle.sessionId })
+                }
+            },
+            async () => {
+                const current = await resolve()
+                if (
+                    !current ||
+                    current.xpertId !== descriptor.xpertId ||
+                    current.publishedVersion !== descriptor.publishedVersion ||
+                    current.workspaceId !== descriptor.workspaceId
+                ) {
+                    throw invocationError('CallConflict')
+                }
+            }
+        )
+    }
+
+    private async dispatchTask(
+        input: AgentMiddlewareAssistantTaskInput,
+        checkpoint?: (task: AgentMiddlewareAssistantTaskResult) => Promise<void>
+    ): Promise<AgentMiddlewareAssistantTaskResult> {
         const requesterXpertId = normalizeOptionalString(input.xpertId)
         const prompt = normalizeOptionalString(input.prompt)
         if (!requesterXpertId) {
@@ -323,15 +396,7 @@ export class AssistantTaskRuntimeService implements AgentMiddlewareAssistantTask
             })
         )
 
-        stream.subscribe({
-            error: (error) =>
-                this.#logger.error(
-                    `Assistant task stream failed (${error instanceof Error ? error.name : 'UnknownError'})`
-                ),
-            complete: () => undefined
-        })
-
-        return {
+        const result: AgentMiddlewareAssistantTaskResult = {
             status: 'running',
             taskId,
             conversationId: conversation.id,
@@ -347,14 +412,47 @@ export class AssistantTaskRuntimeService implements AgentMiddlewareAssistantTask
                 ? { executorPublishedVersion: executionAssistant.publishedVersion }
                 : {})
         }
+
+        const observe = async (error?: unknown) => {
+            if (!checkpoint) return
+            try {
+                const latest = await this.getTaskStatus({
+                    executionId: result.executionId,
+                    conversationId: result.conversationId
+                })
+                if (latest) await checkpoint({ ...result, ...latest })
+                else if (error)
+                    await checkpoint({
+                        ...result,
+                        status: 'unknown',
+                        errorMessage: invocationError('DispatchUnknown').message
+                    })
+            } catch (observationError) {
+                this.#logger.warn(
+                    `Assistant task observation failed (${observationError instanceof Error ? observationError.name : 'UnknownError'})`
+                )
+            }
+        }
+        stream.subscribe({
+            error: (error) => {
+                this.#logger.error(
+                    `Assistant task stream failed (${error instanceof Error ? error.name : 'UnknownError'})`
+                )
+                void observe(error)
+            },
+            complete: () => {
+                void observe()
+            }
+        })
+        return result
     }
 
     /** Resolves optional display metadata for the actual execution Assistant. */
     private async resolveAssistantExecutionDescriptor(xpertId: string) {
         try {
-            const xpert = await this.queryBus.execute<FindXpertQuery, IXpert>(
-                new FindXpertQuery({ id: xpertId }, { relations: ['agent'] })
-            )
+            const xpert = await this.moduleRef
+                .get(PublishedXpertAccessService, { strict: false })
+                .getAccessiblePublishedXpert(xpertId, { relations: ['agent'] })
             return describeExternalAssistantBinding(xpert, xpert)
         } catch {
             return undefined

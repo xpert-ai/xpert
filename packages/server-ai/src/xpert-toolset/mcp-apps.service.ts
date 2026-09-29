@@ -1,7 +1,12 @@
+import { MiddlewareMcpAppsService } from '../mcp-app-runtime/middleware-mcp-apps.service'
+import { assertMcpAppAssistantAudience } from '../mcp-app-runtime/mcp-app-audience'
+import type { RuntimeResourceService } from '../agent-plugin/runtime-resource.service'
 import {
     BadRequestException,
     ForbiddenException,
     Injectable,
+    Inject,
+    Optional,
     Logger,
     NotFoundException,
     OnModuleDestroy,
@@ -224,7 +229,9 @@ export class McpAppsService implements OnModuleInit, OnModuleDestroy {
         private readonly messageService: ChatMessageService,
         private readonly audit: McpAppAuditService,
         private readonly instanceStore: McpAppInstanceStoreService,
-        private readonly approvals: McpAppToolApprovalService
+        private readonly approvals: McpAppToolApprovalService,
+        @Optional() @Inject('XpertRuntimeResourceService') private readonly runtimeResources?: RuntimeResourceService,
+        @Optional() private readonly middlewareApps?: MiddlewareMcpAppsService
     ) {}
 
     onModuleInit() {
@@ -260,15 +267,20 @@ export class McpAppsService implements OnModuleInit, OnModuleDestroy {
             if (snapshot) applyMcpAppInstanceSnapshot(instance, snapshot)
             this.assertInstanceUser(instance.userId)
             await this.assertAccessForInstance(instance, normalizedQuery, options)
+            if (instance.middleware) await instance.middleware.assertAccess()
+            else await this.runtimeResources?.assertToolsetAccess(instance.toolset)
             return instance
         }
 
         const snapshot = await this.instanceStore.get(appInstanceId)
+        await assertMcpAppAssistantAudience(snapshot?.executionContext, this.queryBus)
         normalizedQuery = reviveQueryFromSnapshot(normalizedQuery, snapshot)
         const revived = await this.reviveInstance(appInstanceId, normalizedQuery, options, snapshot)
         if (!revived) {
             throw new NotFoundException('MCP App instance was not found or has expired')
         }
+        if (revived.middleware) await revived.middleware.assertAccess()
+        else await this.runtimeResources?.assertToolsetAccess(revived.toolset)
         return revived
     }
 
@@ -277,6 +289,7 @@ export class McpAppsService implements OnModuleInit, OnModuleDestroy {
         query: NormalizedMcpAppReviveQuery,
         options?: { allowMessageBootstrap?: boolean }
     ) {
+        await assertMcpAppAssistantAudience(instance.executionContext, this.queryBus)
         try {
             this.assertTokenForInstance(instance, query)
             return
@@ -467,6 +480,14 @@ export class McpAppsService implements OnModuleInit, OnModuleDestroy {
         options?: { allowMessageBootstrap?: boolean },
         snapshot?: McpAppInstanceSnapshot | null
     ) {
+        if (snapshot?.source && this.middlewareApps) {
+            this.assertInstanceUser(snapshot.userId)
+            const restored = await this.middlewareApps.restore(snapshot)
+            if (!restored) return null
+            await this.assertAccessForInstance(restored, query, options)
+            await waitForMcpAppInstancePersistence(appInstanceId)
+            return restored
+        }
         if (!query.toolsetId || !query.resourceUri?.startsWith('ui://')) {
             return null
         }
@@ -482,6 +503,7 @@ export class McpAppsService implements OnModuleInit, OnModuleDestroy {
         const { client, destroy } = this.toolsetService.isPro()
             ? await createProMCPClient(toolset, null, this.commandBus, schema, envState)
             : await createMCPClient(toolset, schema, envState, undefined, {
+                  ...snapshot?.executionContext,
                   appInstanceId,
                   userId: snapshot?.userId
               })
@@ -502,6 +524,7 @@ export class McpAppsService implements OnModuleInit, OnModuleDestroy {
                 id: appInstanceId,
                 client,
                 userId: snapshot?.userId,
+                executionContext: snapshot?.executionContext,
                 destroy,
                 toolset,
                 toolMeta,
@@ -641,7 +664,10 @@ export class McpAppsService implements OnModuleInit, OnModuleDestroy {
                         }
                         toolName = toolMeta.name
                         risk = this.approvals.risk(toolMeta.annotations)
-                        if (risk !== 'read') {
+                        const requiresApproval = instance.middleware
+                            ? await instance.middleware.requiresApproval(name)
+                            : risk !== 'read'
+                        if (requiresApproval) {
                             approvalId = readApprovalId(request.params)
                             if (!approvalId) {
                                 const approval = await this.approvals.request({
@@ -650,7 +676,7 @@ export class McpAppsService implements OnModuleInit, OnModuleDestroy {
                                     workspaceId: instance.toolset.workspaceId,
                                     toolName: toolMeta.name,
                                     arguments: arguments_,
-                                    risk
+                                    risk: risk === 'read' ? 'write' : risk
                                 })
                                 return jsonRpcError(id, {
                                     code: -32001,
@@ -695,7 +721,18 @@ export class McpAppsService implements OnModuleInit, OnModuleDestroy {
                             appendMcpAppMessage(instance, request.params)
                             await waitForMcpAppInstancePersistence(appInstanceId)
                         })
-                        return jsonRpcResult(id, {})
+                        return jsonRpcResult(
+                            id,
+                            instance.middleware?.source.interruptAfter
+                                ? {
+                                      continuation: {
+                                          type: 'tool_after',
+                                          toolCallId: instance.toolCallId,
+                                          executionId: instance.executionContext?.executionId
+                                      }
+                                  }
+                                : {}
+                        )
                     }
                     case 'ui/update-model-context': {
                         await runMcpAppInstanceMutation(appInstanceId, async () => {
@@ -736,11 +773,7 @@ export class McpAppsService implements OnModuleInit, OnModuleDestroy {
                         return jsonRpcResult(id, {})
                     }
                     case 'ui/resource-teardown':
-                        await runMcpAppInstanceMutation(appInstanceId, async () => {
-                            removeMcpAppInstance(appInstanceId)
-                            await waitForMcpAppInstancePersistence(appInstanceId)
-                            await this.instanceStore.delete(appInstanceId)
-                        })
+                        await this.releaseInstance(instance)
                         return jsonRpcResult(id, {})
                     case 'ui/host-context-changed':
                         await runMcpAppInstanceMutation(appInstanceId, async () => {
@@ -828,20 +861,32 @@ export class McpAppsService implements OnModuleInit, OnModuleDestroy {
         const startedAt = Date.now()
         const audit = await this.audit.start({ instance, method: 'ui/resource-teardown' })
         try {
-            await runMcpAppInstanceMutation(appInstanceId, async () => {
-                removeMcpAppInstance(appInstanceId)
-                await waitForMcpAppInstancePersistence(appInstanceId)
-                await this.instanceStore.delete(appInstanceId)
-            })
+            await this.releaseInstance(instance)
             await this.audit.finish(audit, startedAt, 'succeeded')
-            return { removed: true }
+            return { removed: !instance.middleware?.source.interruptAfter }
         } catch (error) {
             await this.audit.finish(audit, startedAt, 'failed', { error })
             throw error
         }
     }
 
+    private async releaseInstance(instance: McpAppInstance) {
+        await runMcpAppInstanceMutation(instance.id, async () => {
+            // Unmounting a form releases its UI, not the paused tool's continuation.
+            // Retain the server-side identity so conversation history can reopen it.
+            if (instance.middleware?.source.interruptAfter) {
+                refreshMcpAppInstanceToken(instance)
+                await waitForMcpAppInstancePersistence(instance.id)
+                return
+            }
+            removeMcpAppInstance(instance.id)
+            await waitForMcpAppInstancePersistence(instance.id)
+            await this.instanceStore.delete(instance.id)
+        })
+    }
+
     private async listServerItems(instance: McpAppInstance, type: 'resources' | 'resourceTemplates' | 'prompts') {
+        if (instance.middleware) return { [type]: [] }
         const connection = new LangChainMcpConnection(instance.client)
         const resources = new McpConsumerResources(connection)
         const prompts = new McpConsumerPrompts(connection)

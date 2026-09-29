@@ -3,6 +3,9 @@ import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { TranslateModule } from '@ngx-translate/core'
 import { of, Subject } from 'rxjs'
 import { ChatConversationService, TChatConversationLog, XpertAPIService } from '@cloud/app/@core'
+
+jest.mock('../xpert.component', () => ({ XpertComponent: class XpertComponent {} }))
+
 import { XpertComponent } from '../xpert.component'
 import { XpertLogsComponent } from './logs.component'
 
@@ -144,6 +147,37 @@ describe('XpertLogsComponent', () => {
     localStorage.clear()
     TestBed.resetTestingModule()
     jest.restoreAllMocks()
+  })
+
+  it('includes paused and pausing in status filters and warning labels', async () => {
+    const context = await setup({
+      conversations: [
+        createConversation({ status: 'paused' }),
+        createConversation({ id: 'conversation-2', status: 'pausing' })
+      ]
+    })
+    fixture = context.fixture
+    const statusValues = context.component.statusOptions.map((option) => option.value)
+    expect(statusValues).toEqual(['busy', 'pausing', 'paused', 'error', 'interrupted', 'idle'])
+    expect(context.component.statusDefaultLabel('paused')).toBe('Paused')
+    expect(context.component.statusDefaultLabel('pausing')).toBe('Pausing')
+    expect(context.component.statusLabelKey('paused')).toBe('XP.Xpert.Paused')
+    expect(context.component.statusLabelKey('pausing')).toBe('XP.Xpert.Pausing')
+    context.component.setStatuses(['paused', 'pausing'])
+    await context.component.reloadConversations()
+    expect(context.xpertService.getConversations).toHaveBeenCalledWith(
+      'xpert-1',
+      expect.objectContaining({
+        where: {
+          status: { $in: ['paused', 'pausing'] }
+        }
+      }),
+      expect.any(Array),
+      ''
+    )
+    const pausedBadge = context.fixture.nativeElement.querySelector('.text-text-warning') as HTMLElement | null
+    expect(pausedBadge).not.toBeNull()
+    expect(pausedBadge?.textContent).toContain('Paused')
   })
 
   it('requests logs with server-side search, status filters, and source filters', async () => {

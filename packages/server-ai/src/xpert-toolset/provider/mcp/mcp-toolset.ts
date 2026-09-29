@@ -1,3 +1,4 @@
+import { readMcpAppExecutionContext } from '../../../mcp-app-runtime/mcp-app-execution-context'
 import { DynamicStructuredTool } from '@langchain/core/tools'
 import type { RunnableConfig } from '@langchain/core/runnables'
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
@@ -100,7 +101,7 @@ function wrapMCPTool(
     tool: DynamicStructuredTool,
     client: MultiServerMCPClient,
     toolset: IXpertToolset,
-    userId?: string
+    context?: Partial<TBuiltinToolsetParams>
 ) {
     return new DynamicStructuredTool({
         name: tool.name,
@@ -117,7 +118,8 @@ function wrapMCPTool(
             const result = await tool.func(input, runManager, runnableConfig)
             const appData = registerMcpAppInstance({
                 client,
-                userId,
+                userId: context?.userId,
+                executionContext: readMcpAppExecutionContext(context),
                 toolset,
                 tool,
                 toolCallId: config ? getToolCallIdFromConfig(config) : undefined,
@@ -183,7 +185,7 @@ export class MCPToolset extends _BaseToolset {
         this.destroy = destroy
         const tools = await this.consumer.tools.asLangChain()
         this.tools = filterMcpTools(this.toolset, tools).map((tool) =>
-            wrapMCPTool(tool, client, this.toolset, this.params?.userId)
+            wrapMCPTool(tool, client, this.toolset, this.params)
         )
         this.tools.forEach((tool) => ((<DynamicStructuredTool>tool).verboseParsingErrors = true))
         return this.tools

@@ -239,6 +239,10 @@ type QuoteSelectionState = {
   reference: XpertQuoteReference
 }
 
+function isLoadedPreviewMessage(value: Partial<IChatMessage> | null | undefined): value is IChatMessage {
+  return typeof value?.id === 'string' && value.id.length > 0 && typeof value.role === 'string'
+}
+
 @Component({
   standalone: true,
   imports: [
@@ -442,19 +446,16 @@ export class ChatConversationPreviewComponent {
   })
   readonly messages = computed(() => {
     const baseMessages = this._messages() ?? []
-    if (this.currentMessage()) {
-      const messages = baseMessages
-      const lastMessage = messages[messages.length - 1]
-      // Skip the last interrupted message when continuing the chat conversation
-      if (lastMessage?.status === XpertAgentExecutionStatusEnum.INTERRUPTED) {
-        return filterLatestMessages([
-          ...messages.slice(0, messages.length - 1),
-          this.currentMessage()
-        ] as IChatMessage[]) as IChatMessage[]
-      }
-      return filterLatestMessages([...messages, this.currentMessage()] as IChatMessage[]) as IChatMessage[]
+    const current = this.currentMessage()
+    if (!isLoadedPreviewMessage(current)) {
+      return baseMessages
     }
-    return (filterLatestMessages(baseMessages) ?? []) as IChatMessage[]
+    const lastMessage = baseMessages[baseMessages.length - 1]
+    const merged: IChatMessage[] =
+      lastMessage?.status === XpertAgentExecutionStatusEnum.INTERRUPTED
+        ? [...baseMessages.slice(0, Math.max(baseMessages.length - 1, 0)), current]
+        : [...baseMessages, current]
+    return filterLatestMessages(merged) ?? merged
   })
 
   readonly copiedMessages = signal<Record<string, boolean>>({})
@@ -479,7 +480,7 @@ export class ChatConversationPreviewComponent {
   )
     .pipe(
       switchMap(({ conversationId, organizationId }) =>
-        loadPreviewConversation(this.conversationService, conversationId, organizationId)
+        loadPreviewConversation(this.conversationService, conversationId, organizationId, this.aiThreadService)
       ),
       takeUntilDestroyed(this.#destroyRef)
     )
@@ -487,7 +488,7 @@ export class ChatConversationPreviewComponent {
       this.conversationLoadError.set(error ?? '')
       this.conversation.set(conv)
       if (conv) {
-        this._messages.set(filterLatestMessages(conv.messages) as IChatMessage[])
+        this._messages.set(conv.messages ?? [])
         if (!this.xpert()) {
           this.xpert.set(conv.xpert)
         }

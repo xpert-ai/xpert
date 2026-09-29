@@ -4,7 +4,6 @@ This repo uses NestJS + TypeORM on the server and Angular 17 (standalone, signal
 
 ## General
 
-- Prefer `rg` for search; keep edits ASCII; do not revert user changes.
 - Run pnpm commands through Corepack so the repo's `packageManager` is honored. Use `corepack pnpm ...` instead of bare `pnpm ...`; this repo currently expects `pnpm@10.24.0`, and using another pnpm version can rebuild an incompatible `node_modules` layout.
 - Golden rule: code files must not exceed 1,000 lines; when a file reaches that threshold, review its responsibilities and refactor coherent functionality into focused modules.
 - Golden rule: prefer writing Tailwind utility classes directly on HTML elements. Only extract component CSS when inline utilities are impractical, such as `:host`, pseudo-elements, or other selector-driven cases.
@@ -21,6 +20,7 @@ This repo uses NestJS + TypeORM on the server and Angular 17 (standalone, signal
 
 ## Backend (NestJS)
 
+- New code must import `RequestContext` from `@xpert-ai/plugin-sdk`, never `@xpert-ai/server-core`. The pre-commit check reads staged changes and rejects new legacy imports without requiring an unrelated migration of existing code.
 - Patterns: entities in `packages/server-ai/src/**`, services extend `TenantOrganizationAwareCrudService` or base classes, controllers extend `CrudController` when possible.
 - Register modules in `packages/server-ai/src/index.ts` and wire into `app.module.ts` as needed.
 - Keep TypeORM entities aligned with contract interfaces in `packages/contracts`.

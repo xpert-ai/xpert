@@ -47,6 +47,7 @@ class DecoratedTestProvider {
     inputSchema,
     outputSchema,
     middleware: true,
+    app: { resourceKey: dashboardApp.key, visibility: ['model', 'app'], approval: 'none' },
     mcp: {
       ...mcp,
       defaultApprovalMode: 'allow',
@@ -120,6 +121,13 @@ describe('decorated business Tool adapters', () => {
     expect(defaultStrategy.getToolNames()).toEqual(['default_tool'])
     expect(alternateStrategy.getToolNames()).toEqual(['alternate_tool'])
     expect(defaultMiddleware.tools?.map((tool) => Reflect.get(tool, 'name'))).toEqual(['default_tool'])
+    expect(defaultMiddleware.apps).toEqual({
+      definitions: [dashboardApp],
+      tools: {
+        default_tool: { resourceKey: dashboardApp.key, visibility: ['model', 'app'], approval: 'none' }
+      }
+    })
+    expect(alternateMiddleware.apps?.tools).toEqual({})
     expect(alternateMiddleware.tools?.map((tool) => Reflect.get(tool, 'name'))).toEqual(['alternate_tool'])
     await defaultMiddleware.tools?.[0]?.invoke({ value: 'agent' })
     expect(provider.contexts.at(-1)).toEqual({

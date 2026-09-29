@@ -1,6 +1,7 @@
+import { FileActivityStorage } from './file-activity-storage.service'
 import { tool } from '@langchain/core/tools'
 import { TAgentMiddlewareMeta, TAgentRunnableConfigurable } from '@xpert-ai/contracts'
-import { Injectable } from '@nestjs/common'
+import { Inject, Injectable } from '@nestjs/common'
 import {
     AgentMiddleware,
     AgentMiddlewareStrategy,
@@ -13,6 +14,9 @@ import {
 import { isAbsolute, resolve } from 'node:path'
 import { z } from 'zod/v3'
 import { getToolCallId, withToolMessage } from './tool-message.utils'
+import { observeFileChanges } from './file-activity'
+import { createPresentFilesTool } from './present-files.tool'
+import { FILE_PRESENTATION_DESCRIPTION } from './file-presentation-format'
 import { assertSandboxFeatureEnabled } from './xpert-feature-gate'
 
 const SANDBOX_FILE_MIDDLEWARE_NAME = 'SandboxFile'
@@ -158,6 +162,10 @@ function stringifyPortableFileResult(result: unknown, filePath: string) {
 @Injectable()
 @AgentMiddlewareStrategy(SANDBOX_FILE_MIDDLEWARE_NAME)
 export class SandboxFileMiddleware implements IAgentMiddlewareStrategy {
+    constructor(
+        @Inject(FileActivityStorage) private readonly fileActivityStorage: Pick<FileActivityStorage, 'persist'>
+    ) {}
+
     meta: TAgentMiddlewareMeta = {
         name: SANDBOX_FILE_MIDDLEWARE_NAME,
         icon: {
@@ -236,18 +244,21 @@ export class SandboxFileMiddleware implements IAgentMiddlewareStrategy {
 
         const editTool = tool(
             async ({ file_path, old_string, new_string, replace_all }, config) => {
+                const toolCallId = getToolCallId(config)
                 const backend = getBackend(config)
                 const resolvedFilePath = resolveSandboxPath(config, file_path)
-                return withToolMessage(
-                    getToolCallId(config),
-                    'sandbox_edit_file',
-                    file_path,
-                    { file_path },
-                    async () => {
-                        const result = await backend.edit(resolvedFilePath, old_string, new_string, replace_all)
-                        return stringifyPortableFileResult(result, file_path)
-                    }
-                )
+                return withToolMessage(toolCallId, 'sandbox_edit_file', file_path, { file_path }, async () => {
+                    const result = await observeFileChanges(
+                        this.fileActivityStorage,
+                        context,
+                        backend,
+                        toolCallId,
+                        'sandbox_edit_file',
+                        () => backend.edit(resolvedFilePath, old_string, new_string, replace_all),
+                        file_path
+                    )
+                    return stringifyPortableFileResult(result, file_path)
+                })
             },
             {
                 name: 'sandbox_edit_file',
@@ -259,19 +270,22 @@ export class SandboxFileMiddleware implements IAgentMiddlewareStrategy {
 
         const writeTool = tool(
             async ({ file_path, content }, config) => {
+                const toolCallId = getToolCallId(config)
                 const backend = getBackend(config)
                 const resolvedFilePath = resolveSandboxPath(config, file_path)
-                return withToolMessage(
-                    getToolCallId(config),
-                    'sandbox_write_file',
-                    file_path,
-                    { file_path },
-                    async () => {
-                        const normalizedContent = Array.isArray(content) ? content.join('') : content
-                        const result = await backend.write(resolvedFilePath, normalizedContent)
-                        return stringifyPortableFileResult(result, file_path)
-                    }
-                )
+                return withToolMessage(toolCallId, 'sandbox_write_file', file_path, { file_path }, async () => {
+                    const normalizedContent = Array.isArray(content) ? content.join('') : content
+                    const result = await observeFileChanges(
+                        this.fileActivityStorage,
+                        context,
+                        backend,
+                        toolCallId,
+                        'sandbox_write_file',
+                        () => backend.write(resolvedFilePath, normalizedContent),
+                        file_path
+                    )
+                    return stringifyPortableFileResult(result, file_path)
+                })
             },
             {
                 name: 'sandbox_write_file',
@@ -304,19 +318,22 @@ INCORRECT format (DO NOT USE):
 
         const appendTool = tool(
             async ({ file_path, content }, config) => {
+                const toolCallId = getToolCallId(config)
                 const backend = getBackend(config)
                 const resolvedFilePath = resolveSandboxPath(config, file_path)
-                return withToolMessage(
-                    getToolCallId(config),
-                    'sandbox_append_file',
-                    file_path,
-                    { file_path },
-                    async () => {
-                        const normalizedContent = Array.isArray(content) ? content.join('') : content
-                        const result = await backend.append(resolvedFilePath, normalizedContent)
-                        return stringifyPortableFileResult(result, file_path)
-                    }
-                )
+                return withToolMessage(toolCallId, 'sandbox_append_file', file_path, { file_path }, async () => {
+                    const normalizedContent = Array.isArray(content) ? content.join('') : content
+                    const result = await observeFileChanges(
+                        this.fileActivityStorage,
+                        context,
+                        backend,
+                        toolCallId,
+                        'sandbox_append_file',
+                        () => backend.append(resolvedFilePath, normalizedContent),
+                        file_path
+                    )
+                    return stringifyPortableFileResult(result, file_path)
+                })
             },
             {
                 name: 'sandbox_append_file',
@@ -339,18 +356,21 @@ CRITICAL FORMAT REQUIREMENTS:
 
         const multiEditTool = tool(
             async ({ file_path, edits }, config) => {
+                const toolCallId = getToolCallId(config)
                 const backend = getBackend(config)
                 const resolvedFilePath = resolveSandboxPath(config, file_path)
-                return withToolMessage(
-                    getToolCallId(config),
-                    'sandbox_multi_edit_file',
-                    file_path,
-                    { file_path },
-                    async () => {
-                        const result = await backend.multiEdit(resolvedFilePath, edits as EditOperation[])
-                        return stringifyPortableFileResult(result, file_path)
-                    }
-                )
+                return withToolMessage(toolCallId, 'sandbox_multi_edit_file', file_path, { file_path }, async () => {
+                    const result = await observeFileChanges(
+                        this.fileActivityStorage,
+                        context,
+                        backend,
+                        toolCallId,
+                        'sandbox_multi_edit_file',
+                        () => backend.multiEdit(resolvedFilePath, edits as EditOperation[]),
+                        file_path
+                    )
+                    return stringifyPortableFileResult(result, file_path)
+                })
             },
             {
                 name: 'sandbox_multi_edit_file',
@@ -380,9 +400,22 @@ CRITICAL FORMAT REQUIREMENTS:
             }
         )
 
+        for (const outputTool of [writeTool, appendTool, editTool, multiEditTool]) {
+            outputTool.description += `\n\n${FILE_PRESENTATION_DESCRIPTION}`
+        }
         return {
             name: SANDBOX_FILE_MIDDLEWARE_NAME,
-            tools: [readTool, globTool, grepTool, writeTool, appendTool, editTool, multiEditTool, listDirTool]
+            tools: [
+                readTool,
+                globTool,
+                grepTool,
+                writeTool,
+                appendTool,
+                editTool,
+                multiEditTool,
+                listDirTool,
+                createPresentFilesTool(this.fileActivityStorage, context)
+            ]
         }
     }
 }

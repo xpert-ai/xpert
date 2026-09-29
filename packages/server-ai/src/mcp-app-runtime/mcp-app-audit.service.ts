@@ -47,7 +47,17 @@ export class McpAppAuditService {
                 tenantId: input.instance.toolset.tenantId,
                 organizationId: input.instance.toolset.organizationId ?? null,
                 workspaceId: input.instance.toolset.workspaceId ?? null,
-                toolsetId: input.instance.toolset.id,
+                toolsetId: input.instance.toolset.id ?? null,
+                source: input.instance.middleware
+                    ? {
+                          kind: 'middleware',
+                          provider: input.instance.middleware.source.provider,
+                          nodeKey: input.instance.middleware.source.nodeKey,
+                          agentKey: input.instance.middleware.source.agentKey,
+                          pluginName: input.instance.middleware.source.pluginName,
+                          xpertId: input.instance.executionContext?.xpertId ?? null
+                      }
+                    : null,
                 appInstanceId: input.instance.id,
                 userId: RequestContext.currentUserId() ?? null,
                 method: input.method.slice(0, 191),

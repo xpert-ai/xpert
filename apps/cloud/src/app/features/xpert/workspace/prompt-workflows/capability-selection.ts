@@ -7,7 +7,7 @@ import {
   type RuntimeCapabilitiesSelectionSet
 } from '@xpert-ai/contracts'
 import { resolveLocalizedText } from '@xpert-ai/chatkit-types'
-import type { ConnectorRuntimeOptions } from '@xpert-ai/plugin-sdk'
+import type { ConnectorRuntimeOptions } from '@xpert-ai/plugin-sdk/connector'
 import type { IAiAssistantRuntimeCapabilities } from '../../../../@core/services/ai-assistant.service'
 
 export type PromptCapabilityKind = 'skill' | 'plugin' | 'subAgent' | 'connector'

@@ -22,7 +22,9 @@
   },
   "select": {
     "placeholder": "請選擇一個選項...",
-    "moreItemsSelected_other": "還有 {{count}} 項已選擇"
+    "moreItemsSelected_other": "還有 {{count}} 項已選擇",
+    "searchPlaceholder": "搜尋",
+    "noResults": "未找到結果"
   },
   "paginator": {
     "itemsPerPage": "每頁筆數：",

@@ -1,4 +1,6 @@
 import { EvolutionStrategyService } from './changes/strategy.service'
+import { EvolutionBaselineService } from './application/evolution-baseline.service'
+import { EvolutionBaselineController } from './controllers/evolution-baseline.controller'
 import { EvolutionEvaluationExecutor } from './changes/evaluation-executor.service'
 import { EvolutionPublicationExecutor } from './changes/publication-executor.service'
 import { EvolutionLifecycleController } from './changes/lifecycle.controller'
@@ -6,6 +8,7 @@ import { EvolutionLifecycleService } from './changes/lifecycle.service'
 import { EvolutionChangeService } from './changes/change.service'
 import { EvolutionChangeStore } from './changes/change.store'
 import { EvolutionChangeProcessor } from './changes/change.processor'
+import { EvolutionExecutionConversationService } from './changes/execution-conversation.service'
 import { EVOLUTION_RUNTIME_SERVICE_TOKEN, EvolutionTargetProviderRegistry } from '@xpert-ai/plugin-sdk'
 import { Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
@@ -33,8 +36,9 @@ import { AGENT_EVOLUTION_CONFORMANCE_PROVIDERS } from './providers'
         CqrsModule,
         DiscoveryModule
     ],
-    controllers: [EvolutionLifecycleController, AgentEvolutionController],
+    controllers: [EvolutionBaselineController, EvolutionLifecycleController, AgentEvolutionController],
     providers: [
+        EvolutionBaselineService,
         EvolutionChangeService,
         EvolutionStrategyService,
         EvolutionEvaluationExecutor,
@@ -42,6 +46,7 @@ import { AGENT_EVOLUTION_CONFORMANCE_PROVIDERS } from './providers'
         EvolutionChangeStore,
         EvolutionLifecycleService,
         EvolutionChangeProcessor,
+        EvolutionExecutionConversationService,
         AgentEvolutionStore,
         AgentEvolutionService,
         AgentEvolutionRuntimeService,

@@ -20,7 +20,7 @@ export type TConfirmDeleteInfo = {
   styleUrls: ['./confirm-delete.component.scss'],
   imports: [TranslateModule, A11yModule, DragDropModule, ZardButtonComponent],
   host: {
-    class: 'cdk-dialog-card'
+    '[class]': "hasDialogPanel ? 'p-6' : 'cdk-dialog-card'"
   }
 })
 export class CdkConfirmDeleteComponent {
@@ -28,6 +28,14 @@ export class CdkConfirmDeleteComponent {
   readonly dialogRef = inject(DialogRef)
 
   @HostBinding('class.xp-dialog-container') isDialogContainer = true
+
+  // Legacy callers still supply the surface on the content; standard panels own it themselves.
+  readonly hasDialogPanel = (() => {
+    const panelClass = this.dialogRef.config?.panelClass
+    return Array.isArray(panelClass)
+      ? panelClass.includes('xp-overlay-pane-dialog')
+      : panelClass === 'xp-overlay-pane-dialog'
+  })()
 
   readonly title = computed(() => this.#data?.title)
   readonly value = computed(() => this.#data?.value)
@@ -41,7 +49,10 @@ export function injectConfirmDelete() {
     return dialog
       .open(CdkConfirmDeleteComponent, {
         data: info,
-        minWidth: '480px'
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        width: '480px',
+        maxWidth: 'calc(100vw - 2rem)'
       })
       .closed.pipe(
         switchMap((confirm) => {

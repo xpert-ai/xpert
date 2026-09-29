@@ -7,6 +7,7 @@ import type {
   TXpertChatState,
   TXpertChatTarget
 } from '@xpert-ai/chatkit-types'
+import type { ProjectSelection } from './project-selection.model'
 
 export type TXpertFollowUpMode = FollowUpBehavior
 
@@ -24,6 +25,7 @@ export type TXpertChatSendRequest = {
   action: 'send'
   conversationId?: string
   projectId?: string
+  projectSelection?: ProjectSelection
   environmentId?: string
   sandboxEnvironmentId?: string
   message: {

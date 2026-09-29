@@ -1,0 +1,55 @@
+{
+  "name": "local-shell-sandbox",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/plugins/local-shell-sandbox/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/rollup:rollup",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/packages/plugins/local-shell-sandbox",
+        "main": "packages/plugins/local-shell-sandbox/src/index.ts",
+        "tsConfig": "packages/plugins/local-shell-sandbox/tsconfig.lib.json",
+        "assets": [
+          {
+            "glob": "check-terminal.cjs",
+            "input": "packages/plugins/local-shell-sandbox/tools",
+            "output": "tools"
+          },
+          {
+            "glob": "README.md",
+            "input": "packages/plugins/local-shell-sandbox",
+            "output": "."
+          },
+          {
+            "glob": "**/*",
+            "input": "packages/plugins/local-shell-sandbox/docs",
+            "output": "docs"
+          }
+        ],
+        "project": "packages/plugins/local-shell-sandbox/package.json",
+        "compiler": "swc",
+        "rollupConfig": "packages/plugins/local-shell-sandbox/rollup.config.cjs",
+        "format": ["cjs", "esm"],
+        "external": [
+          "node-pty",
+          "@nestjs/common",
+          "@nestjs/core",
+          "@xpert-ai/contracts",
+          "@xpert-ai/plugin-sdk",
+          "i18next",
+          "zod"
+        ]
+      }
+    },
+    "test": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
+      "options": {
+        "jestConfig": "packages/plugins/local-shell-sandbox/jest.config.cjs"
+      }
+    }
+  }
+}

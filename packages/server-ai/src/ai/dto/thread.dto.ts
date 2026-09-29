@@ -1,4 +1,11 @@
-import { IUser, TChatConversationStatus } from '@xpert-ai/contracts'
+import { DISPLAY_PAUSE_KEY, readThreadDisplayPause } from '../../chat-conversation/thread-display-pause'
+import {
+    IUser,
+    TChatConversationStatus,
+    TChatThreadDisplayPause,
+    TChatThreadRunControl,
+    TSensitiveOperation
+} from '@xpert-ai/contracts'
 import { pick } from '@xpert-ai/server-common'
 import { UserPublicDTO } from '@xpert-ai/server-core'
 import { Exclude, Expose, Transform } from 'class-transformer'
@@ -44,9 +51,34 @@ export class ThreadDTO {
     @Expose()
     values: Record<string, unknown>
 
-    constructor(conversation: ChatConversation, values?: Record<string, unknown>, thread?: ChatConversationThread) {
+    @Expose()
+    runControl?: TChatThreadRunControl | null
+
+    @Expose()
+    operation?: TSensitiveOperation | null
+
+    @Expose()
+    displayPause?: TChatThreadDisplayPause | null
+
+    constructor(
+        conversation: ChatConversation,
+        values?: Record<string, unknown>,
+        thread?: ChatConversationThread,
+        includeDisplaySnapshot = true
+    ) {
         Object.assign(this, conversation)
         if (thread) {
+            const displayPause = readThreadDisplayPause(thread)
+            this.displayPause =
+                displayPause && !includeDisplaySnapshot
+                    ? {
+                          executionId: displayPause.executionId,
+                          pauseId: displayPause.pauseId,
+                          createdAt: displayPause.createdAt
+                      }
+                    : displayPause
+            this.operation = thread.operation ?? null
+            this.runControl = thread.runControl ?? null
             this.threadId = thread.threadId
             this.status = thread.status
             this.createdAt = thread.createdAt
@@ -55,11 +87,12 @@ export class ThreadDTO {
             this.updatedBy = thread.updatedBy
         }
 
+        const { [DISPLAY_PAUSE_KEY]: _snapshot, ...publicMetadata } = thread?.metadata ?? {}
         this.metadata = {
             ...pick(conversation, 'id', 'title', 'fromEndUserId'),
             conversation_id: conversation.id,
             assistant_id: conversation.xpertId,
-            ...(thread?.metadata ?? {}),
+            ...publicMetadata,
             ...(thread?.parentThreadId ? { parent_thread_id: thread.parentThreadId } : {}),
             ...(thread?.forkedFromMessageId ? { forked_from_message_id: thread.forkedFromMessageId } : {})
         }

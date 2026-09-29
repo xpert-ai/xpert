@@ -1,3 +1,4 @@
+import { effectiveLoadedPlugins } from './effective-loaded-plugins'
 import { PluginApplicationSuiteService } from './plugin-application-suite.service'
 import {
     AiModelTypeEnum,
@@ -24,8 +25,8 @@ import {
     resolveI18nText
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
-import { LOADED_PLUGINS, LoadedPluginRecord, RequestContext, normalizePluginName } from '@xpert-ai/server-core'
-import { GLOBAL_ORGANIZATION_SCOPE, SYSTEM_GLOBAL_SCOPE, resolveTenantGlobalScopeKey } from '@xpert-ai/plugin-sdk'
+import { LOADED_PLUGINS, LoadedPluginRecord, normalizePluginName } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import {
     BadRequestException,
     ConflictException,
@@ -242,7 +243,8 @@ export class PluginApplicationService {
                     status: 'active',
                     ownerId: RequestContext.currentUserId(),
                     settings: {
-                        access: { visibility: 'organization-shared' },
+                        // Workspace maintenance requires explicit membership; runtime access uses Assistant grants.
+                        access: { visibility: 'private' },
                         system: {
                             kind: 'plugin-app',
                             pluginName: application.pluginName,
@@ -396,7 +398,12 @@ export class PluginApplicationService {
                     if (app.type !== 'app' || !app.name?.trim() || !app.appConfig) continue
                     const id = `${pluginName}:${app.name}`
                     if (applications.has(id)) continue
-                    const appConfig = resolvePluginApplicationConfigAssets(plugin, app.appConfig)
+                    const declaredConfig = resolvePluginApplicationConfigAssets(plugin, app.appConfig)
+                    // Keep legacy plugin declarations compatible without granting organization-wide authoring.
+                    const appConfig = {
+                        ...declaredConfig,
+                        workspace: { ...declaredConfig.workspace, sharing: 'private' as const }
+                    }
                     applications.set(id, {
                         application: {
                             id,
@@ -433,32 +440,7 @@ export class PluginApplicationService {
      * organization's application contribution discoverable or executable.
      */
     private effectiveLoadedPlugins(): LoadedPluginRecord[] {
-        const organizationId = RequestContext.getOrganizationId() ?? GLOBAL_ORGANIZATION_SCOPE
-        const tenantId = RequestContext.getScope()?.tenantId ?? RequestContext.currentTenantId()
-        const organizationScopeKey =
-            organizationId === GLOBAL_ORGANIZATION_SCOPE ? resolveTenantGlobalScopeKey(tenantId) : organizationId
-        const tenantScopeKey = resolveTenantGlobalScopeKey(tenantId)
-        const seen = new Set<string>()
-
-        return [...this.loadedPlugins]
-            .filter((plugin) => {
-                const scopeKey = plugin.scopeKey ?? plugin.organizationId
-                return (
-                    scopeKey === organizationScopeKey ||
-                    (organizationId !== GLOBAL_ORGANIZATION_SCOPE && scopeKey === tenantScopeKey) ||
-                    scopeKey === SYSTEM_GLOBAL_SCOPE
-                )
-            })
-            .reverse()
-            .filter((plugin) => {
-                const key = normalizePluginName(plugin.packageName ?? plugin.name ?? plugin.instance?.meta?.name ?? '')
-                if (!key || seen.has(key)) {
-                    return false
-                }
-                seen.add(key)
-                return true
-            })
-            .reverse()
+        return effectiveLoadedPlugins(this.loadedPlugins)
     }
 
     /** Computes role, scope, and organization-visible model prerequisites. */

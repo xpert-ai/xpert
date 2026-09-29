@@ -7,6 +7,7 @@ import { OfficeFileParser } from './office.parser'
 import { PdfFileParser } from './pdf.parser'
 import { SpreadsheetFileParser } from './spreadsheet.parser'
 import { TextFileParser } from './text.parser'
+import { UnsupportedFileContentError } from './unsupported-file-content.error'
 
 @Injectable()
 export class FileParserRegistry {
@@ -28,7 +29,9 @@ export class FileParserRegistry {
             this.archiveParser,
             this.textParser
         ]
-        return parsers.find((parser) => parser.supports(source)) ?? this.textParser
+        const parser = parsers.find((parser) => parser.supports(source))
+        if (!parser) throw new UnsupportedFileContentError()
+        return parser
     }
 }
 

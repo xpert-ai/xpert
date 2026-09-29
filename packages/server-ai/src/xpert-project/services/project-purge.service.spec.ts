@@ -13,6 +13,7 @@ function fixture() {
     const project = { id: 'p', tenantId: 't', ownerId: 'u', status: 'archived' }
     const access = { assertCanPurge: jest.fn(async () => ({ project, role: 'owner' })) }
     const projects = {
+        assertPlatformLifecycle: jest.fn(),
         findOne: jest.fn(async () => ({ xperts: [{ id: 'a' }] })),
         deleteProject: jest.fn(async () => ({}))
     }
@@ -38,6 +39,16 @@ describe('plugin-owned Project purge', () => {
         f.access.assertCanPurge.mockRejectedValueOnce(new ForbiddenException())
         await expect(f.service.purge({ projectId: 'p', xpertId: 'a' })).rejects.toBeInstanceOf(ForbiddenException)
         await expect(f.service.purge({ projectId: 'p', xpertId: 'other' })).rejects.toBeInstanceOf(ForbiddenException)
+        expect(f.authority.purgeProjectFile).not.toHaveBeenCalled()
+        expect(VolumeHandle.removePath).not.toHaveBeenCalled()
+    })
+    it('rejects application-managed deletion before touching files', async () => {
+        const f = fixture()
+        f.projects.assertPlatformLifecycle.mockImplementation(() => {
+            throw new ForbiddenException()
+        })
+        await expect(f.service.purge({ projectId: 'p', xpertId: 'a' })).rejects.toThrow()
+        expect(f.files.find).not.toHaveBeenCalled()
         expect(f.authority.purgeProjectFile).not.toHaveBeenCalled()
         expect(VolumeHandle.removePath).not.toHaveBeenCalled()
     })

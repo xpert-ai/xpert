@@ -2,6 +2,7 @@ import { DIALOG_DATA, Dialog, DialogRef } from '@angular/cdk/dialog'
 import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { TranslateModule } from '@ngx-translate/core'
+import { IXpert, TXpertTeamDraft, WorkflowNodeTypeEnum, XpertTypeEnum } from '@xpert-ai/contracts'
 import { of, Subject, throwError } from 'rxjs'
 import { AssistantBindingService, ToastrService, XpertAPIService } from '../../../@core'
 import type { TWorkflowTriggerMeta } from '../../../@core'
@@ -9,6 +10,8 @@ import { ClawXpertFacade } from '../../chat/clawxpert/clawxpert.facade'
 import { AssistantPersonalizationComponent } from './assistant-personalization.component'
 import { AssistantTriggerDialogComponent, AssistantTriggerDialogData } from './assistant-trigger-dialog.component'
 import { AssistantTriggersComponent } from './assistant-triggers.component'
+import { AssistantTriggerConnectionService } from './assistant-trigger-connection.service'
+import { buildEditableXpertDraft } from '../../xpert/draft'
 import { buildAssistantTriggerCards, isAssistantTriggerConnected } from './assistant-trigger.utils'
 
 jest.mock('../../../@core', () => ({
@@ -64,6 +67,9 @@ function facadeMock() {
     loading: signal(false),
     savingUserPreference: signal(false),
     savingTriggerDraft: signal(false),
+    triggerDraftSource: signal<IXpert | null>(null),
+    triggerDraft: signal<TXpertTeamDraft | null>(null),
+    triggerDraftErrorMessage: signal<string | null>(null),
     triggerEditorItems: signal<import('../../xpert/draft').XpertDraftTriggerEditorItem[]>([
       { nodeKey: 'other', provider: provider('other'), config: { integrationId: 'keep' } }
     ]),
@@ -117,18 +123,27 @@ async function trigger(
   return { component: fixture.componentInstance, facade, dialogRef }
 }
 
-async function triggers() {
+async function triggers(availableProviders = [provider('wecom')]) {
   const facade = facadeMock()
   const closed = new Subject<boolean>()
   const dialogRef = { closed, close: jest.fn(() => closed.next(false)) }
   const dialog = { open: jest.fn(() => dialogRef) }
   const toastr = { error: jest.fn() }
+  const api = {
+    getTriggerProviders: () => of(availableProviders),
+    getTeam: jest.fn(() => of({ id: 'xpert-1' } as IXpert))
+  }
+  const connections = {
+    statuses: jest.fn().mockResolvedValue([]),
+    disconnect: jest.fn().mockResolvedValue({ enabled: false, connected: false })
+  }
   await TestBed.configureTestingModule({
     imports: [TranslateModule.forRoot(), AssistantTriggersComponent],
     providers: [
       { provide: ClawXpertFacade, useValue: facade },
       { provide: Dialog, useValue: dialog },
-      { provide: XpertAPIService, useValue: { getTriggerProviders: () => of([provider('wecom')]) } },
+      { provide: XpertAPIService, useValue: api },
+      { provide: AssistantTriggerConnectionService, useValue: connections },
       { provide: ToastrService, useValue: toastr }
     ]
   })
@@ -137,7 +152,41 @@ async function triggers() {
   const fixture = TestBed.createComponent(AssistantTriggersComponent)
   fixture.detectChanges()
   await fixture.whenStable()
-  return { component: fixture.componentInstance, facade, closed, dialog, toastr }
+  await fixture.componentInstance.refresh()
+  return { component: fixture.componentInstance, facade, closed, dialog, toastr, api, connections, fixture }
+}
+
+function quickProvider(): TWorkflowTriggerMeta {
+  return {
+    ...provider('dingtalk'),
+    quickConnect: { method: 'qr', integrationProvider: 'dingtalk_long', configField: 'integrationId' }
+  }
+}
+
+function connectionXpert(enabled: boolean, integrationId: string): IXpert {
+  const graph: IXpert['graph'] = {
+    nodes: [
+      {
+        key: 'dingtalk-node',
+        type: 'workflow',
+        position: { x: 0, y: 0 },
+        entity: {
+          key: 'dingtalk-node',
+          type: WorkflowNodeTypeEnum.TRIGGER,
+          from: 'dingtalk',
+          config: { enabled, integrationId }
+        }
+      }
+    ],
+    connections: []
+  }
+  return {
+    id: 'xpert-1',
+    name: 'Assistant',
+    type: XpertTypeEnum.Agent,
+    graph,
+    draft: { ...graph, team: { id: 'xpert-1', title: 'Unpublished title' } }
+  }
 }
 
 describe('Assistant settings integration', () => {
@@ -335,5 +384,81 @@ describe('Assistant settings integration', () => {
         item: { nodeKey: 'a', provider: p, config: { enabled: true } }
       })
     ).toBe(false)
+  })
+
+  it('refreshes the shared workspace draft after QR connection succeeds', async () => {
+    const { component, facade, closed, api } = await triggers([quickProvider()])
+    const previous = connectionXpert(false, 'old-integration')
+    facade.triggerDraftSource.set(previous)
+    facade.triggerDraft.set(buildEditableXpertDraft(previous))
+    const saved = connectionXpert(true, 'authorized-integration')
+    api.getTeam.mockReturnValue(of(saved))
+    component.configure(component.cards().find((card) => card.provider.name === 'dingtalk'))
+    const refresh = jest.spyOn(component, 'refresh')
+    closed.next(true)
+    expect(refresh).toHaveBeenCalledTimes(1)
+    await refresh.mock.results[0].value
+    expect(facade.triggerDraft()?.nodes).toEqual(saved.draft.nodes)
+    expect(facade.triggerDraft()?.team.title).toBe('Unpublished title')
+    expect(facade.triggerDraftSource()?.graph).toEqual(saved.graph)
+    expect(facade.saveTriggerDraft).not.toHaveBeenCalled()
+  })
+
+  it('refreshes the workspace draft after immediate disconnection', async () => {
+    const { component, facade, api, connections } = await triggers([quickProvider()])
+    const previous = connectionXpert(true, 'existing-integration')
+    facade.triggerDraftSource.set(previous)
+    facade.triggerDraft.set(buildEditableXpertDraft(previous))
+    component.connectionStatuses.set([{ provider: 'dingtalk', enabled: true, connected: true, state: 'connected' }])
+    const saved = connectionXpert(false, 'existing-integration')
+    api.getTeam.mockReturnValue(of(saved))
+    await component.toggleConnection(component.cards().find((card) => card.provider.name === 'dingtalk'))
+    expect(connections.disconnect).toHaveBeenCalledWith('xpert-1', 'dingtalk')
+    expect(facade.triggerDraft()?.nodes).toEqual(saved.draft.nodes)
+    expect(facade.triggerDraftSource()?.draft).toEqual(saved.draft)
+    expect(facade.saveTriggerDraft).not.toHaveBeenCalled()
+  })
+
+  it('uses the latest published graph when no persisted draft exists', async () => {
+    const { component, facade, api } = await triggers([quickProvider()])
+    const previous = connectionXpert(true, 'existing-integration')
+    facade.triggerDraftSource.set(previous)
+    facade.triggerDraft.set(buildEditableXpertDraft(previous))
+    const saved = { ...connectionXpert(false, 'existing-integration'), draft: null }
+    api.getTeam.mockReturnValue(of(saved))
+    await component.refresh()
+    expect(facade.triggerDraftSource()?.draft).toBeNull()
+    expect(facade.triggerDraft()?.nodes).toEqual(saved.graph.nodes)
+  })
+
+  it('updates the shared draft when navigating away while the refresh is pending', async () => {
+    const { component, facade, api } = await triggers([quickProvider()])
+    const previous = connectionXpert(true, 'existing-integration')
+    facade.triggerDraftSource.set(previous)
+    facade.triggerDraft.set(buildEditableXpertDraft(previous))
+    const pending = new Subject<IXpert>()
+    api.getTeam.mockReturnValue(pending)
+    const refresh = component.refresh()
+    await Promise.resolve()
+    component.ngOnDestroy()
+    const saved = connectionXpert(false, 'existing-integration')
+    pending.next(saved)
+    await refresh
+    expect(facade.triggerDraft()?.nodes).toEqual(saved.draft.nodes)
+  })
+
+  it('ignores a draft response after switching organizations', async () => {
+    const { component, facade, api } = await triggers([quickProvider()])
+    const previous = connectionXpert(true, 'existing-integration')
+    facade.triggerDraftSource.set(previous)
+    facade.triggerDraft.set(buildEditableXpertDraft(previous))
+    const pending = new Subject<IXpert>()
+    api.getTeam.mockReturnValue(pending)
+    const refresh = component.refresh()
+    await Promise.resolve()
+    facade.organizationId.set('org-2')
+    pending.next(connectionXpert(false, 'existing-integration'))
+    await refresh
+    expect(facade.triggerDraftSource()).toBe(previous)
   })
 })

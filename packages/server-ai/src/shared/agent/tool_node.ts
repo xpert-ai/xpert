@@ -209,6 +209,7 @@ export class ToolNode<T = any> extends RunnableCallable<T, T> {
                     })
 
                     return new ToolMessage({
+                        status: 'error',
                         content: `Error: ${e.message}\n Please fix your mistakes.`,
                         name: call.name,
                         tool_call_id: call.id ?? ''

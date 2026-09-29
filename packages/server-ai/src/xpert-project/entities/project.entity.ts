@@ -21,7 +21,18 @@ import {
 import { StorageFile, TenantOrganizationBaseEntity, User } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsOptional, IsString } from 'class-validator'
-import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, OneToOne, RelationId } from 'typeorm'
+import {
+    Column,
+    Entity,
+    Index,
+    JoinColumn,
+    JoinTable,
+    ManyToMany,
+    ManyToOne,
+    OneToMany,
+    OneToOne,
+    RelationId
+} from 'typeorm'
 import {
     CopilotModel,
     Knowledgebase,
@@ -38,7 +49,20 @@ import { XpertProjectPlan } from './project-plan.entity'
 import { XpertProjectMembership } from './project-membership.entity'
 
 @Entity('xpert_project')
+@Index('IDX_project_application_type', ['tenantId', 'organizationId', 'applicationKey', 'projectTypeKey', 'status'])
 export class XpertProject extends TenantOrganizationBaseEntity implements IXpertProject {
+    @Column({ type: 'varchar', length: 320, nullable: true })
+    applicationKey?: string | null
+
+    @Column({ type: 'varchar', length: 100, nullable: true })
+    projectTypeKey?: string | null
+
+    @Column({ type: 'uuid', nullable: true })
+    applicationInstallationId?: string | null
+
+    @Column({ type: 'jsonb', nullable: true })
+    projectTypeSnapshot?: IXpertProject['projectTypeSnapshot']
+
     @ApiPropertyOptional({ type: () => String })
     @IsString()
     @Column()

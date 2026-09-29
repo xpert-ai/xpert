@@ -73,6 +73,9 @@ export class AgentEvolutionComponent {
   readonly localeChange = toSignal(this.#translate.onLangChange.pipe(startWith(null)), { initialValue: null })
   readonly activeSubtitleKey = computed(() => {
     const url = this.currentUrl()
+    if (url.includes('/targets')) {
+      return 'XP.AgentEvolution.SubtitleTargets'
+    }
     if (url.includes('/learning')) {
       return 'XP.AgentEvolution.SubtitleLearning'
     }
@@ -97,6 +100,7 @@ export class AgentEvolutionComponent {
 
   readonly tabs = [
     { path: 'overview', labelKey: 'XP.AgentEvolution.TabOverview', icon: 'ri-dashboard-line' },
+    { path: 'targets', labelKey: 'XP.AgentEvolution.TabTargets', icon: 'ri-focus-3-line' },
     { path: 'learning', labelKey: 'XP.AgentEvolution.TabLearning', icon: 'ri-lightbulb-flash-line' },
     { path: 'evaluation', labelKey: 'XP.AgentEvolution.TabEvaluation', icon: 'ri-flask-line' },
     { path: 'release', labelKey: 'XP.AgentEvolution.TabRelease', icon: 'ri-rocket-line' }
@@ -114,12 +118,23 @@ export class AgentEvolutionComponent {
   })
 
   constructor() {
-    effect(() => {
+    effect((onCleanup) => {
       this.#activeScope()
       untracked(() => {
         this.facade.resetScopeContext()
         void this.facade.load()
       })
+      let refreshing = false
+      const timer = globalThis.setInterval(async () => {
+        if (refreshing || this.facade.loading() || document.hidden) return
+        refreshing = true
+        try {
+          await this.facade.refreshChanges()
+        } finally {
+          refreshing = false
+        }
+      }, 4000)
+      onCleanup(() => globalThis.clearInterval(timer))
     })
   }
 

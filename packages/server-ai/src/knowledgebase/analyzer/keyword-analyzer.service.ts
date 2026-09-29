@@ -11,6 +11,7 @@ import { DataSource, EntityManager } from 'typeorm'
 import { t } from 'i18next'
 import { keywordTsQuery, keywordTsVector } from './keyword-lexemes'
 import { Knowledgebase } from '../knowledgebase.entity'
+import { keywordIdentifiers, keywordQueryPlan } from './keyword-query'
 
 type AnalyzerKnowledgebase = Pick<
     IKnowledgebase,
@@ -147,6 +148,15 @@ export class KnowledgeKeywordAnalyzerService {
     async query(knowledgebase: AnalyzerKnowledgebase, text: string) {
         const analyzer = this.resolvePersisted(knowledgebase)
         return keywordTsQuery(await analyzer.analyze(text, 'query'))
+    }
+
+    async queryPlan(knowledgebase: AnalyzerKnowledgebase, text: string) {
+        const analyzer = this.resolvePersisted(knowledgebase)
+        const terms = await analyzer.analyze(text, 'query')
+        const identifiers = await Promise.all(
+            keywordIdentifiers(text).map((identifier) => analyzer.analyze(identifier, 'query'))
+        )
+        return keywordQueryPlan(terms, identifiers)
     }
 
     private resolvePersisted(knowledgebase: AnalyzerKnowledgebase) {

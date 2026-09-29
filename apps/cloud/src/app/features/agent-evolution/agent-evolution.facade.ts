@@ -17,6 +17,7 @@ import { TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { AgentEvolutionApiService } from './agent-evolution-api.service'
 import { EMPTY_EVOLUTION_DASHBOARD, sameEvolutionScope, type AgentEvolutionDashboard } from './agent-evolution.types'
+import { loadAllEvolutionPages } from './shared/evolution-pagination'
 
 const EMPTY_PAGE = { items: [], total: 0, page: 1, pageSize: 20 }
 
@@ -138,6 +139,29 @@ export class AgentEvolutionFacade {
     this.error.set(null)
   }
 
+  async refreshChanges() {
+    const scopeRevision = this.#scopeRevision
+    const loadRevision = this.#loadRevision
+    try {
+      const activeJob = this.activeJob()
+      const [changes, lifecycle, job] = await Promise.all([
+        firstValueFrom(this.#api.listChanges()),
+        firstValueFrom(this.#api.listLifecycleRecords()),
+        activeJob && ['pending', 'running', 'queued'].includes(activeJob.status)
+          ? firstValueFrom(this.#api.getJob(activeJob.jobId))
+          : Promise.resolve(null)
+      ])
+      if (scopeRevision !== this.#scopeRevision || loadRevision !== this.#loadRevision) return
+      this.changes.set(changes)
+      this.lifecycleRecords.set(lifecycle.items)
+      if (job && this.activeJob()?.jobId === job.jobId) this.activeJob.set(job)
+      this.providerError.set(null)
+    } catch (error) {
+      if (scopeRevision === this.#scopeRevision && loadRevision === this.#loadRevision)
+        this.providerError.set(getErrorMessage(error))
+    }
+  }
+
   async load(options: { silent?: boolean } = {}) {
     const scopeRevision = this.#scopeRevision
     const loadRevision = ++this.#loadRevision
@@ -164,10 +188,10 @@ export class AgentEvolutionFacade {
         lifecycle
       ] = await Promise.all([
         firstValueFrom(this.#api.getDashboard()),
-        firstValueFrom(this.#api.listTargets({ page: 1, pageSize: 100 })),
+        loadAllEvolutionPages((page) => firstValueFrom(this.#api.listTargets({ page, pageSize: 100 }))),
         firstValueFrom(this.#api.listCapabilityVersions({ page: 1, pageSize: 100 })),
         firstValueFrom(this.#api.listCapabilityBundles({ page: 1, pageSize: 100 })),
-        firstValueFrom(this.#api.listActivePointers({ page: 1, pageSize: 100 })),
+        loadAllEvolutionPages((page) => firstValueFrom(this.#api.listActivePointers({ page, pageSize: 100 }))),
         firstValueFrom(this.#api.listLearningEvents({ page: 1, pageSize: 50 })),
         firstValueFrom(this.#api.listDiagnoses({ page: 1, pageSize: 50 })),
         firstValueFrom(this.#api.listClusters({ page: 1, pageSize: 50 })),
@@ -193,10 +217,10 @@ export class AgentEvolutionFacade {
       this.dashboard.set({
         ...EMPTY_EVOLUTION_DASHBOARD,
         ...dashboard,
-        targets: targets.items,
+        targets,
         versions: versions.items,
         bundles: bundles.items,
-        pointers: pointers.items,
+        pointers,
         events: events.items,
         diagnoses: diagnoses.items,
         clusters: clusters.items,
@@ -371,6 +395,73 @@ export class AgentEvolutionFacade {
     return this.decideCandidate(candidateId, evaluationRunId, 'approved', reason)
   }
 
+  async approveAndPublishChange(change: EvolutionChange, reason: string) {
+    const { candidate, evaluation } = change
+    if (
+      this.mutating() ||
+      change.strategy.definition.publication.mode !== 'version_write' ||
+      change.status !== 'pending_approval' ||
+      !candidate ||
+      !evaluation?.passed ||
+      !reason.trim()
+    )
+      return null
+    const scopeRevision = this.#scopeRevision
+    return this.withMutation(async () => {
+      try {
+        const approval = await firstValueFrom(
+          this.#api.decideChange(change.changeId, {
+            candidateHash: candidate.artifact.hash,
+            evaluationRunId: evaluation.runId,
+            decision: 'approved',
+            reason: reason.trim()
+          })
+        )
+        if (scopeRevision !== this.#scopeRevision) return approval
+        // The server decides whether all required human approvals are present.
+        if (approval.status !== 'approved') {
+          if (approval.status === 'pending_approval')
+            this.#toastr.info({
+              code: 'XP.AgentEvolution.ApprovalRecordedPending',
+              default: 'Approval recorded; waiting for the remaining required approvals.'
+            })
+          return approval
+        }
+        return await this.publishVersionChange(change.changeId)
+      } finally {
+        if (scopeRevision === this.#scopeRevision) await this.load({ silent: true })
+      }
+    })
+  }
+
+  async publishApprovedChange(change: EvolutionChange) {
+    if (
+      this.mutating() ||
+      change.strategy.definition.publication.mode !== 'version_write' ||
+      !['approved', 'publishing'].includes(change.status) ||
+      !change.evaluation?.passed
+    )
+      return null
+    const scopeRevision = this.#scopeRevision
+    return this.withMutation(async () => {
+      try {
+        return await this.publishVersionChange(change.changeId)
+      } finally {
+        if (scopeRevision === this.#scopeRevision) await this.load({ silent: true })
+      }
+    })
+  }
+
+  private async publishVersionChange(changeId: string) {
+    try {
+      return await firstValueFrom(this.#api.publishChange(changeId))
+    } catch (error) {
+      throw new Error(
+        this.#translate.instant('XP.AgentEvolution.ApprovedPublicationFailed', { reason: getErrorMessage(error) })
+      )
+    }
+  }
+
   async rejectCandidate(candidateId: string, evaluationRunId: string, reason: string) {
     return this.decideCandidate(candidateId, evaluationRunId, 'rejected', reason)
   }
@@ -467,7 +558,8 @@ export class AgentEvolutionFacade {
       }
       await new Promise<void>((resolve) => globalThis.setTimeout(resolve, 1000))
     }
-    throw new Error('Evolution job did not finish within 60 seconds')
+    // The wait window is not a job timeout. Progress continues through background refresh.
+    return this.activeJob() ?? initial
   }
 
   selectTarget(targetId: string) {

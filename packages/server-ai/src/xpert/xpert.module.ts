@@ -1,9 +1,14 @@
+import { AssistantConfigurationController } from './configuration/assistant-configuration.controller'
+import { AssistantConfigurationService } from './configuration/assistant-configuration.service'
+import { AssistantTriggerController } from './configuration/assistant-trigger.controller'
+import { AssistantTriggerService } from './configuration/assistant-trigger.service'
 import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { DiscoveryModule, RouterModule } from '@nestjs/core'
 import {
     BusinessArea,
+    IntegrationModule,
     RedisModule,
     SecretTokenModule,
     TenantModule,
@@ -60,6 +65,8 @@ import { AssistantUserPreferenceService } from './assistant-user-preference.serv
 import { AssistantModelSelectionService } from './assistant-model-selection.service'
 import { XpertProjectModule } from '../xpert-project/project.module'
 import { WorkspaceFilesRuntimeModule } from '../shared/runtime/workspace-files-runtime.module'
+import { XpertTriggerConnectionController } from './trigger-connection.controller'
+import { XpertTriggerConnectionService } from './trigger-connection.service'
 
 @Module({
     imports: [
@@ -73,6 +80,7 @@ import { WorkspaceFilesRuntimeModule } from '../shared/runtime/workspace-files-r
             AssistantUserPreference
         ]),
         DiscoveryModule,
+        IntegrationModule,
         TenantModule,
         SecretTokenModule,
         CqrsModule,
@@ -99,9 +107,20 @@ import { WorkspaceFilesRuntimeModule } from '../shared/runtime/workspace-files-r
         SseStreamModule,
         forwardRef(() => XpertProjectModule)
     ],
-    controllers: [XpertProfileController, XpertTagUsageController, XpertController, XpertAccessController],
+    controllers: [
+        AssistantTriggerController,
+        AssistantConfigurationController,
+        XpertTriggerConnectionController,
+        XpertProfileController,
+        XpertTagUsageController,
+        XpertController,
+        XpertAccessController
+    ],
     providers: [
+        AssistantTriggerService,
+        AssistantConfigurationService,
         XpertService,
+        XpertTriggerConnectionService,
         XpertTriggerBootstrapRecoveryService,
         AnonymousStrategy,
         WorkflowTriggerRegistry,

@@ -1,3 +1,5 @@
+import { parseMiddlewareAppSource, type MiddlewareAppSource } from './middleware-app-source'
+import { readMcpAppExecutionContext, type McpAppExecutionContext } from './mcp-app-execution-context'
 import { REDIS_CLIENT } from '@xpert-ai/server-core'
 import { Inject, Injectable } from '@nestjs/common'
 import type { RedisClientType } from 'redis'
@@ -14,7 +16,9 @@ export interface McpAppInstanceSnapshot {
     organizationId?: string
     workspaceId?: string
     userId?: string
-    toolsetId: string
+    executionContext?: McpAppExecutionContext
+    toolsetId?: string
+    source?: MiddlewareAppSource
     serverName: string
     toolName: string
     displayName: string
@@ -138,7 +142,7 @@ function parseSnapshot(value: unknown): McpAppInstanceSnapshot | null {
         !Number.isInteger(stateVersion) ||
         stateVersion < 1 ||
         !appInstanceId ||
-        !toolsetId ||
+        (!toolsetId && !parseMiddlewareAppSource(Reflect.get(value, 'source'))) ||
         !serverName ||
         !toolName ||
         !displayName ||
@@ -155,6 +159,7 @@ function parseSnapshot(value: unknown): McpAppInstanceSnapshot | null {
         stateVersion,
         appInstanceId,
         toolsetId,
+        source: parseMiddlewareAppSource(Reflect.get(value, 'source')),
         serverName,
         toolName,
         displayName,
@@ -162,6 +167,7 @@ function parseSnapshot(value: unknown): McpAppInstanceSnapshot | null {
         createdAt,
         expiresAt,
         ...optionalStringFields(value),
+        executionContext: readMcpAppExecutionContext(Reflect.get(value, 'executionContext')),
         ...(Reflect.has(value, 'toolInput') ? { toolInput: Reflect.get(value, 'toolInput') } : {}),
         ...(Reflect.has(value, 'toolResult') ? { toolResult: Reflect.get(value, 'toolResult') } : {}),
         ...(Reflect.has(value, 'modelContext') ? { modelContext: Reflect.get(value, 'modelContext') } : {}),

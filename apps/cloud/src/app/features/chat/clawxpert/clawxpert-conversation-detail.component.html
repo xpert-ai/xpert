@@ -2,6 +2,7 @@
   [attr.data-workbench-layout]="showDetailPanel() ? (immersiveWorkbench() ? 'maximized' : 'normal') : 'chat'"
   [class]="workspaceLayoutClasses()"
   [style.--clawxpert-chatkit-width]="chatkitWidthStyle()"
+  [attr.data-chat-sidebar-collapsed]="narrowChatSidebarCollapsed()"
 >
   <section [class]="detailPanelShellClasses()" [attr.aria-hidden]="showDetailPanel() ? null : 'true'">
     <div [class]="detailPanelContentClasses()">
@@ -64,7 +65,7 @@
                 type="button"
                 [attr.data-panel-button]="tab.kind === 'browser' ? 'browser' : tab.kind"
                 [attr.data-tab-id]="tab.id"
-                [attr.title]="tab.kind === 'fixed-view' ? tab.title : null"
+                [attr.title]="tab.kind === 'fixed-view' || tab.kind === 'artifact' ? tab.title : null"
                 class="group/tab relative flex h-9 min-w-0 items-center gap-2 rounded-lg border-0 bg-transparent pl-2 pr-3 text-sm font-medium text-text-secondary transition-[background-color,color] hover:text-text-primary data-[active=true]:!border-transparent data-[active=true]:!text-text-primary"
                 tabindex="0"
                 [active]="activeTabId() === tab.id"
@@ -73,6 +74,12 @@
                 <span data-workspace-tab-icon class="relative flex size-[20px] shrink-0 items-center justify-center">
                   <span class="flex size-full items-center justify-center text-text-primary">
                     @switch (tab.kind) {
+                      @case ('file-review') {
+                        <i class="ri-file-code-line shrink-0 text-lg"></i>
+                      }
+                      @case ('artifact') {
+                        <i class="ri-file-text-line shrink-0 text-lg"></i>
+                      }
                       @case ('files') {
                         <i class="ri-folder-3-line shrink-0 text-lg"></i>
                       }
@@ -102,7 +109,11 @@
                     [attr.data-close-tab]="tab.id"
                     [attr.aria-label]="
                       ('XP.ACTIONS.Close' | translate: { Default: 'Close' }) +
-                      (tab.kind === 'fixed-view' ? ' ' + tab.title : '')
+                      (tab.kind === 'file-review'
+                        ? ' ' + ('FileActivity.ReviewTab' | translate)
+                        : tab.kind === 'fixed-view' || tab.kind === 'artifact'
+                          ? ' ' + tab.title
+                          : '')
                     "
                     zType="ghost"
                     zSize="icon"
@@ -119,6 +130,12 @@
                 </span>
                 <span data-workspace-tab-label class="relative flex h-full min-w-0 items-center">
                   @switch (tab.kind) {
+                    @case ('file-review') {
+                      <span class="truncate">{{ 'FileActivity.ReviewTab' | translate }}</span>
+                    }
+                    @case ('artifact') {
+                      <span class="max-w-[12rem] truncate">{{ tab.title }}</span>
+                    }
                     @case ('files') {
                       <span class="truncate">{{ 'XP.Chat.ClawXpert.Files' | translate: { Default: 'Files' } }}</span>
                     }
@@ -197,14 +214,16 @@
             @if (fixedViewMenuVisible()) {
               <div class="my-1 border-t border-divider-regular"></div>
               <div class="px-2 py-1 text-xs font-medium text-text-tertiary">
-                {{ 'XP.Chat.ClawXpert.FixedViews' | translate: { Default: 'Fixed Views' } }}
+                {{ 'XP.Chat.ClawXpert.WorkbenchViews' | translate: { Default: 'Workbench Views' } }}
               </div>
               @if (loadingFixedViews()) {
                 <button type="button" z-menu-item disabled data-fixed-views-loading>
                   <span class="flex items-center gap-2 text-text-tertiary">
                     <i class="ri-loader-4-line text-base"></i>
                     <span>
-                      {{ 'XP.Chat.ClawXpert.LoadingFixedViews' | translate: { Default: 'Loading fixed views...' } }}
+                      {{
+                        'XP.Chat.ClawXpert.LoadingWorkbenchViews' | translate: { Default: 'Loading Workbench views...' }
+                      }}
                     </span>
                   </span>
                 </button>
@@ -214,7 +233,8 @@
                     <i class="ri-error-warning-line text-base"></i>
                     <span>
                       {{
-                        'XP.Chat.ClawXpert.FixedViewsLoadFailed' | translate: { Default: 'Failed to load fixed views' }
+                        'XP.Chat.ClawXpert.WorkbenchViewsLoadFailed'
+                          | translate: { Default: 'Failed to load Workbench views' }
                       }}
                     </span>
                   </span>
@@ -244,6 +264,23 @@
         </ng-template>
 
         <div data-workbench-header-actions class="ml-auto flex shrink-0 items-center justify-end gap-1">
+          <button
+            #chatSidebarOpener
+            z-button
+            type="button"
+            zType="ghost"
+            zSize="icon"
+            data-open-chat-sidebar
+            class="flex !h-9 !w-9 items-center justify-center rounded-xl text-text-secondary transition-[background-color,color] hover:bg-hover-bg hover:text-text-primary lg:hidden"
+            [attr.aria-label]="'XP.Chat.ClawXpert.OpenChatSidebar' | translate: { Default: 'Open chat sidebar' }"
+            [title]="'XP.Chat.ClawXpert.OpenChatSidebar' | translate: { Default: 'Open chat sidebar' }"
+            [zTooltip]="'XP.Chat.ClawXpert.OpenChatSidebar' | translate: { Default: 'Open chat sidebar' }"
+            zPosition="bottom"
+            [attr.aria-expanded]="!narrowChatSidebarCollapsed()"
+            (click)="narrowChatSidebarCollapsed.set(false)"
+          >
+            <i class="ri-chat-3-line text-lg" aria-hidden="true"></i>
+          </button>
           <button
             z-button
             type="button"
@@ -293,26 +330,27 @@
             (click)="toggleWorkbenchMaximized()"
           >
             <i
-              [class]="immersiveWorkbench() ? 'ri-fullscreen-exit-line text-lg' : 'ri-fullscreen-line text-lg'"
+              [class]="immersiveWorkbench() ? 'ri-collapse-diagonal-line text-lg' : 'ri-expand-diagonal-line text-lg'"
               aria-hidden="true"
             ></i>
           </button>
-          <button
-            z-button
-            type="button"
-            zType="ghost"
-            zSize="icon"
-            data-toggle-detail-panel
-            data-chatkit-layout-mode-toggle
-            [attr.data-chatkit-layout-mode]="chatkitLayoutMode()"
-            class="flex items-center justify-center rounded-xl text-text-secondary transition-[background-color,color] hover:bg-hover-bg hover:text-text-primary"
-            [title]="chatkitLayoutActionLabel()"
-            [zTooltip]="chatkitLayoutActionLabel()"
-            zPosition="bottom"
-            (click)="toggleChatkitLayoutMode()"
-          >
-            <i [class]="chatkitLayoutModeIconClasses()" aria-hidden="true"></i>
-          </button>
+          @if (isChatMinimizedToPet()) {
+            <button
+              z-button
+              type="button"
+              zType="ghost"
+              zSize="icon"
+              data-restore-chatkit-overlay
+              class="flex !h-9 !w-9 shrink-0 items-center justify-center rounded-xl text-text-secondary transition-[background-color,color] hover:bg-hover-bg hover:text-text-primary"
+              [attr.aria-label]="'XP.Chat.ClawXpert.RestoreChatkit' | translate: { Default: 'Restore ChatKit' }"
+              [title]="'XP.Chat.ClawXpert.RestoreChatkit' | translate: { Default: 'Restore ChatKit' }"
+              [zTooltip]="'XP.Chat.ClawXpert.RestoreChatkit' | translate: { Default: 'Restore ChatKit' }"
+              zPosition="bottom"
+              (click)="restoreChatkitFromPet()"
+            >
+              <i class="ri-picture-in-picture-2-line text-lg" aria-hidden="true"></i>
+            </button>
+          }
           <div
             data-workbench-account
             [attr.inert]="immersiveWorkbench() ? null : ''"
@@ -375,7 +413,8 @@
                   </div>
                   <div class="mt-2 text-lg text-text-secondary">
                     {{
-                      fixedView.description || ('XP.Chat.ClawXpert.FixedViews' | translate: { Default: 'Fixed Views' })
+                      fixedView.description ||
+                        ('XP.Chat.ClawXpert.WorkbenchViews' | translate: { Default: 'Workbench Views' })
                     }}
                   </div>
                 </button>
@@ -397,6 +436,45 @@
             </div>
           </div>
         } @else {
+          @if (resolvedConversationId()) {
+            @for (tab of fileTreeTabs(); track tab.id) {
+              <xp-clawxpert-conversation-files
+                class="h-full p-2 pr-0"
+                [class.hidden]="tab.id !== activeTabId()"
+                [attr.aria-hidden]="tab.id === activeTabId() ? null : 'true'"
+                [attr.inert]="tab.id === activeTabId() ? null : ''"
+                [active]="tab.id === activeTabId()"
+                [conversationId]="resolvedConversationId()"
+                [xpertId]="facade.xpertId()"
+                [projectId]="viewRuntimeScope().projectId"
+                [mode]="conversationFilesMode()"
+                [reloadKey]="fileListReloadKey()"
+                (referenceRequest)="handleWorkspaceReference($event)"
+              />
+            }
+          }
+          @for (tab of reviewTabs(); track tab.id) {
+            <xp-file-change-review
+              [class.hidden]="tab.id !== activeTabId()"
+              [attr.aria-hidden]="tab.id === activeTabId() ? null : 'true'"
+              [attr.inert]="tab.id === activeTabId() ? null : ''"
+              [tab]="tab"
+              [active]="tab.id === activeTabId()"
+            />
+          }
+          @for (tab of artifactTabs(); track tab.id) {
+            <xp-workbench-artifact-panel
+              [class.hidden]="tab.id !== activeTabId()"
+              [attr.aria-hidden]="tab.id === activeTabId() ? null : 'true'"
+              [attr.inert]="tab.id === activeTabId() ? null : ''"
+              [attr.data-artifact-tab-id]="tab.id"
+              [tab]="tab"
+              [active]="tab.id === activeTabId()"
+              [mode]="conversationFilesMode()"
+              (referenceRequest)="handleWorkspaceReference($event)"
+              (back)="openFilesTab()"
+            />
+          }
           @if (fixedViewHostId(); as hostId) {
             <xp-clawxpert-fixed-view-stack
               class="contents"
@@ -415,9 +493,10 @@
               <div
                 class="flex h-full min-h-[24rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary"
               >
-                {{ 'XP.Chat.ClawXpert.NoFixedViews' | translate: { Default: 'No fixed views' } }}
+                {{ 'XP.Chat.ClawXpert.NoWorkbenchViews' | translate: { Default: 'No Workbench views' } }}
               </div>
             }
+          } @else if (activeTab()?.kind === 'artifact' || activeTab()?.kind === 'file-review') {
           } @else if (activeTab()?.kind === 'tasks') {
             <div class="h-full min-h-0 overflow-hidden px-4 py-3">
               <xp-chat-tasks
@@ -489,15 +568,6 @@
               }
 
               @if (activeTab()?.kind === 'files') {
-                <xp-clawxpert-conversation-files
-                  class="h-full p-2 pr-0"
-                  [conversationId]="resolvedConversationId()"
-                  [xpertId]="facade.xpertId()"
-                  [projectId]="viewRuntimeScope().projectId"
-                  [mode]="conversationFilesMode()"
-                  [reloadKey]="fileListReloadKey()"
-                  (referenceRequest)="handleWorkspaceReference($event)"
-                />
               } @else if (activeTab()?.kind === 'browser') {
                 <xp-clawxpert-conversation-preview
                   class="h-full p-2 pr-0"
@@ -525,6 +595,15 @@
     </div>
   </section>
 
+  @if (showChatkitResizeHandle() && !narrowChatSidebarCollapsed()) {
+    <button
+      type="button"
+      data-chat-sidebar-backdrop
+      class="absolute inset-0 z-20 cursor-default bg-transparent lg:hidden"
+      [attr.aria-label]="'XP.Chat.ClawXpert.CloseChatSidebar' | translate: { Default: 'Close chat sidebar' }"
+      (click)="narrowChatSidebarCollapsed.set(true); chatSidebarOpenerElement()?.nativeElement?.focus()"
+    ></button>
+  }
   <section
     data-workbench-chat-shell
     [class]="chatShellClasses()"

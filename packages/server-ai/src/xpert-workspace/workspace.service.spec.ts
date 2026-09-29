@@ -264,6 +264,54 @@ describe('XpertWorkspaceService', () => {
         expect(workspaceRepository.save).not.toHaveBeenCalled()
     })
 
+    it.each(['organization-shared', 'private'] as const)(
+        'updates organization visibility to %s and preserves plugin settings',
+        async (visibility) => {
+            const workspace = Object.assign(new XpertWorkspace(), {
+                id: 'workspace-1',
+                organizationId: 'org-1',
+                settings: {
+                    access: { visibility: visibility === 'private' ? 'organization-shared' : 'private' },
+                    system: { kind: 'plugin-app', pluginName: 'test-plugin', appName: 'test-app' }
+                }
+            })
+            workspaceAccessService.assertCanManage.mockResolvedValue({ workspace })
+
+            const result = await service.updateVisibility('workspace-1', visibility)
+
+            expect(workspaceAccessService.assertCanManage).toHaveBeenCalledWith('workspace-1')
+            expect(result.settings?.access?.visibility).toBe(visibility)
+            expect(result.settings?.system).toEqual({
+                kind: 'plugin-app',
+                pluginName: 'test-plugin',
+                appName: 'test-app'
+            })
+            expect(workspaceAccessService.buildAccess).toHaveBeenCalledWith(workspace)
+        }
+    )
+
+    it('rejects organization sharing for tenant workspaces', async () => {
+        const workspace = Object.assign(new XpertWorkspace(), {
+            id: 'workspace-1',
+            organizationId: null
+        })
+        workspaceAccessService.assertCanManage.mockResolvedValue({ workspace })
+
+        await expect(service.updateVisibility('workspace-1', 'organization-shared')).rejects.toBeInstanceOf(
+            BadRequestException
+        )
+        expect(workspaceRepository.save).not.toHaveBeenCalled()
+    })
+
+    it('rejects visibility updates without management rights', async () => {
+        workspaceAccessService.assertCanManage.mockRejectedValue(new ForbiddenException())
+
+        await expect(service.updateVisibility('workspace-1', 'organization-shared')).rejects.toBeInstanceOf(
+            ForbiddenException
+        )
+        expect(workspaceRepository.save).not.toHaveBeenCalled()
+    })
+
     it('updates only mutable workspace fields after manage authorization', async () => {
         const workspace = Object.assign(new XpertWorkspace(), {
             id: 'workspace-1',

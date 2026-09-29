@@ -2,6 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
 import { API_AGENT_EVOLUTION } from '@cloud/app/@core/constants/app.constants'
 import type {
+  EvolutionBaselineInspection,
   EvolutionChange,
   EvolutionLifecycleRecord,
   ActiveCapabilityPointer,
@@ -79,6 +80,12 @@ export class AgentEvolutionApiService {
 
   synchronizeTargets() {
     return this.#http.post<EvolutionTargetDescriptor[]>(`${API_AGENT_EVOLUTION}/targets/synchronize`, {})
+  }
+
+  getRuleBaseline(targetId: string) {
+    return this.#http.get<EvolutionBaselineInspection>(
+      `${API_AGENT_EVOLUTION}/baselines/${encodeURIComponent(targetId)}`
+    )
   }
 
   listTargets(query: EvolutionPageQuery = {}) {

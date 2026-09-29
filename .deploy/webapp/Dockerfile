@@ -18,9 +18,8 @@ ARG NODE_OPTIONS
 
 ENV NODE_OPTIONS=${NODE_OPTIONS:-"--max-old-space-size=4096"}
 
-RUN apk --update add bash && \
+RUN apk add --no-cache bash && \
     corepack enable && corepack prepare pnpm@10.24.0 --activate && \
-    # apk add --no-cache --virtual build-dependencies dos2unix gcc g++ git make python3 vips-dev && \
     mkdir /srv/xpert && chown -R node:node /srv/xpert
 
 COPY wait .deploy/api/entrypoint.prod.sh .deploy/api/entrypoint.compose.sh /
@@ -28,23 +27,29 @@ RUN chmod +x /wait /entrypoint.compose.sh /entrypoint.prod.sh && dos2unix /entry
 
 WORKDIR /srv/xpert
 
-COPY --chown=node:node package.json ./package.json
-COPY --chown=node:node pnpm-lock.yaml ./pnpm-lock.yaml
-COPY --chown=node:node pnpm-workspace.yaml ./pnpm-workspace.yaml
-COPY --chown=node:node .npmrc ./.npmrc
-COPY --chown=node:node .eslintrc.json ./
-COPY nx.json ./
-COPY tsconfig.base.json ./
-COPY --chown=node:node tailwind-workspace-reference.css ./tailwind-workspace-reference.css
-COPY --chown=node:node tailwind.workspace.config.js ./tailwind.workspace.config.js
-COPY --chown=node:node tailwind.theme.vars.js ./tailwind.theme.vars.js
-COPY --chown=node:node apps ./apps
-COPY --chown=node:node packages ./packages
-COPY --chown=node:node libs ./libs
+# Install only Cloud and its shared frontend libraries, before copying sources.
+COPY --chown=node:node .deploy/webapp/package.json ./package.json
+COPY --chown=node:node .deploy/webapp/pnpm-lock.yaml ./pnpm-lock.yaml
+COPY --chown=node:node pnpm-workspace.yaml .npmrc ./
+COPY --chown=node:node apps/cloud/package.json ./apps/cloud/
+COPY --chown=node:node packages/contracts/package.json ./packages/contracts/
+COPY --chown=node:node packages/ui/package.json ./packages/ui/
+COPY --chown=node:node libs/formly/package.json ./libs/formly/
+COPY --chown=node:node .deploy/webapp/dependencies.cjs ./.deploy/webapp/
+RUN pnpm install --frozen-lockfile && node .deploy/webapp/dependencies.cjs check-installed
 
-RUN pnpm install --no-frozen-lockfile
+COPY --chown=node:node .eslintrc.json .nxignore nx.json tsconfig.base.json ./
+COPY --chown=node:node tailwind-workspace-reference.css tailwind.workspace.config.js tailwind.theme.vars.js ./
+COPY --chown=node:node apps/cloud ./apps/cloud
+COPY --chown=node:node packages/contracts ./packages/contracts
+COPY --chown=node:node packages/ui ./packages/ui
+COPY --chown=node:node libs/formly ./libs/formly
+# Connector contracts are browser-safe source; do not install the server SDK.
+COPY --chown=node:node packages/plugin-sdk/src/connector.ts ./packages/plugin-sdk/src/
+COPY --chown=node:node packages/plugin-sdk/src/lib/connector/strategy.interface.ts ./packages/plugin-sdk/src/lib/connector/
+RUN pnpm install --lockfile-only --frozen-lockfile --ignore-scripts --offline
 
-RUN pnpm nx build cloud --configuration=production
+RUN pnpm nx build cloud --configuration=production --verbose
 
 # ==================================================== Stage ==========================================================#
 FROM nginx:alpine AS production

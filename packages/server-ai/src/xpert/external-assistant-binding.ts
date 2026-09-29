@@ -22,9 +22,10 @@ export type ExternalAssistantBindingDescriptor = {
     status: ExternalAssistantBindingStatus
 }
 
-/** Server-only binding descriptor that retains the resolved Assistant instance ID. */
+/** Server-only binding descriptor that retains the resolved Assistant and workspace IDs. */
 export type ResolvedExternalAssistantBinding = ExternalAssistantBindingDescriptor & {
     xpertId: string
+    workspaceId?: string
 }
 
 /** Official template and primary Agent identity required by a plugin role. */
@@ -65,6 +66,7 @@ export function describeExternalAssistantBinding(
     const published = Boolean(runtime.publishAt && runtime.graph && runtime.agent?.key && runtime.active !== false)
     return {
         xpertId: runtime.id,
+        workspaceId: runtime.workspaceId,
         title: runtime.title?.trim() || runtime.name,
         name: runtime.name,
         ...(runtime.avatar ? { avatar: runtime.avatar } : {}),
@@ -89,10 +91,10 @@ export function matchesExternalAssistantExpectation(
     )
 }
 
-/** Removes the internal instance ID before returning binding metadata to plugins or Views. */
+/** Removes internal instance and workspace IDs before returning metadata to plugins or Views. */
 export function safeExternalAssistantBinding(
     binding: ResolvedExternalAssistantBinding
 ): ExternalAssistantBindingDescriptor {
-    const { xpertId: _xpertId, ...safe } = binding
+    const { xpertId: _xpertId, workspaceId: _workspaceId, ...safe } = binding
     return safe
 }

@@ -1,0 +1,121 @@
+<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+  <h3 class="text-lg font-semibold">
+    {{ 'XP.XpertSettings.Delegation.TeamAgents' | translate }}
+    <span class="text-sm text-text-tertiary">{{ agents().length }}</span>
+  </h3>
+  <button z-button zType="outline" [zDisabled]="dirty()" (click)="edit()">
+    <i class="ri-add-line" aria-hidden="true"></i>{{ 'XP.XpertSettings.Delegation.AddAgent' | translate }}
+  </button>
+</div>
+<div class="space-y-2">
+  @for (agent of agents(); track agent.key) {
+    <button
+      type="button"
+      class="flex w-full items-center justify-between gap-3 rounded-[var(--assistant-settings-item-radius)] border border-divider-regular px-3 py-2 text-left hover:bg-hover-bg disabled:opacity-50"
+      [class]="selectedKey() === agent.key ? 'bg-hover-bg' : ''"
+      [disabled]="dirty()"
+      (click)="edit(agent)"
+    >
+      <div class="min-w-0">
+        <h4 class="truncate text-base font-semibold">{{ agent.entity.title || agent.entity.name || agent.key }}</h4>
+        <p class="mt-1 text-sm text-text-tertiary">
+          {{ 'XP.XpertSettings.Delegation.Parent' | translate }}: {{ parentTitle(agent) }} ·
+          {{ agent.entity.copilotModel?.model || ('XP.XpertSettings.Delegation.InheritModel' | translate) }}
+        </p>
+      </div>
+      <i class="ri-arrow-right-s-line text-lg" aria-hidden="true"></i>
+    </button>
+  } @empty {
+    <p
+      class="rounded-[var(--assistant-settings-item-radius)] border border-dashed border-divider-regular p-4 text-sm text-text-tertiary"
+    >
+      {{ 'XP.XpertSettings.Delegation.NoAgents' | translate }}
+    </p>
+  }
+</div>
+@if (selectedKey()) {
+  <form class="mt-4 space-y-4 border-t border-divider-regular pt-4" [formGroup]="form" (ngSubmit)="save()">
+    <div class="grid gap-3 sm:grid-cols-2">
+      <label class="space-y-2 text-base"
+        ><span>{{ 'XP.XpertSettings.Delegation.Title' | translate }}</span
+        ><input z-input class="h-10 w-full" formControlName="title" />
+        @if (form.controls.title.invalid && form.controls.title.touched) {
+          <p role="alert" class="text-sm text-text-destructive">
+            {{ 'XP.XpertSettings.Delegation.TitleRequired' | translate }}
+          </p>
+        }
+      </label>
+      <label class="space-y-2 text-base"
+        ><span>{{ 'XP.XpertSettings.Delegation.Parent' | translate }}</span>
+        <z-select class="block" [zValue]="form.controls.parentKey.value" (zSelectionChange)="selectParent($event)">
+          @for (parent of parents(); track parent.key) {
+            <z-select-item [zValue]="parent.key">{{
+              parent.entity.title || parent.entity.name || parent.key
+            }}</z-select-item>
+          }
+        </z-select>
+      </label>
+    </div>
+    <label class="block space-y-2 text-base"
+      ><span>{{ 'XP.XpertSettings.Delegation.Description' | translate }}</span
+      ><textarea z-input class="min-h-20 w-full resize-y" formControlName="description"></textarea>
+    </label>
+    <div class="space-y-2">
+      <h4 class="text-base font-medium">{{ 'XP.XpertSettings.Delegation.Model' | translate }}</h4>
+      <xp-settings-model-select
+        class="block rounded-[var(--assistant-settings-item-radius)] border border-divider-regular px-2 py-1"
+        [control]="form.controls.copilotModel"
+      />
+      <p class="text-sm text-text-tertiary">{{ 'XP.XpertSettings.Delegation.InheritModel' | translate }}</p>
+    </div>
+    <label class="block space-y-2 text-base"
+      ><span>{{ 'XP.XpertSettings.Delegation.Prompt' | translate }}</span
+      ><textarea z-input class="min-h-36 w-full resize-y" formControlName="prompt"></textarea>
+    </label>
+    <div class="flex items-center justify-between gap-3">
+      <div>
+        <h4 class="text-base font-medium">{{ 'XP.XpertSettings.Delegation.Stateless' | translate }}</h4>
+        <p class="mt-1 text-sm leading-5 text-text-tertiary">
+          {{ 'XP.XpertSettings.Delegation.StatelessHint' | translate }}
+        </p>
+      </div>
+      <z-switch formControlName="disableMessageHistory"
+        ><span class="sr-only">{{ 'XP.XpertSettings.Delegation.Stateless' | translate }}</span></z-switch
+      >
+    </div>
+    <div class="flex items-center justify-between gap-3">
+      <div>
+        <h4 class="text-base font-medium">{{ 'XP.XpertSettings.Delegation.AlwaysAvailable' | translate }}</h4>
+        <p class="mt-1 text-sm leading-5 text-text-tertiary">
+          {{ 'XP.XpertSettings.Delegation.AlwaysAvailableHint' | translate }}
+        </p>
+      </div>
+      <z-switch formControlName="required"
+        ><span class="sr-only">{{ 'XP.XpertSettings.Delegation.AlwaysAvailable' | translate }}</span></z-switch
+      >
+    </div>
+    @if (error()) {
+      <p role="alert" class="text-sm text-text-destructive">{{ error() }}</p>
+    }
+    <div class="flex justify-end gap-2">
+      <button type="button" z-button zType="outline" [zDisabled]="!dirty()" (click)="reset()">
+        {{ 'XP.XpertSettings.Delegation.Reset' | translate }}</button
+      ><button type="submit" z-button [zDisabled]="!dirty() || editor.source.saving()">
+        {{ 'XP.XpertSettings.Delegation.SaveAgent' | translate }}
+      </button>
+    </div>
+  </form>
+}
+<div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-divider-regular pt-3">
+  <p class="min-w-0 flex-1 text-sm leading-5 text-text-tertiary">
+    {{ 'XP.XpertSettings.Delegation.AgentHint' | translate }}
+  </p>
+  <a
+    z-button
+    zType="outline"
+    [routerLink]="['/xpert/x', editor.source.id, 'agents']"
+    target="_blank"
+    rel="noopener noreferrer"
+    >{{ 'XP.XpertSettings.Delegation.OpenStudio' | translate }}<i class="ri-external-link-line" aria-hidden="true"></i
+  ></a>
+</div>

@@ -1,0 +1,96 @@
+@let state = document();
+@if (active()) {
+  <xp-file-viewer
+    class="block h-full min-h-0"
+    [surface]="surface()"
+    [file]="state.activeFile()"
+    [filePath]="state.activeFilePath()"
+    [content]="state.draftContent()"
+    [loading]="state.fileLoading() || state.draftLoading()"
+    [saving]="state.saving()"
+    [readable]="state.fileReadable()"
+    [editable]="state.isActiveFileEditable()"
+    [markdown]="state.isMarkdownFile()"
+    [docx]="state.isDocxFile()"
+    [pptx]="state.isPptxFile()"
+    [documentBuffer]="state.documentBuffer()"
+    [spreadsheet]="state.isSpreadsheetFile()"
+    [dirty]="state.dirty()"
+    [downloadable]="state.canDownloadActiveFile()"
+    [referenceable]="state.referenceable()"
+    [previewUrl]="state.activePreviewUrl()"
+    [sideMenuToggleVisible]="sideMenuToggleVisible()"
+    [backVisible]="backVisible()"
+    [sideMenuVisible]="sideMenuVisible()"
+    [mode]="state.panelMode()"
+    [readOnlyHint]="
+      'XP.Files.ReadOnlyFileHint'
+        | translate
+          : {
+              Default:
+                'This file is shown in read-only mode. Only markdown, code, and selected text formats can be edited.'
+            }
+    "
+    [unsupportedPreviewTitle]="
+      'XP.Files.BinaryPreviewUnsupported'
+        | translate
+          : {
+              Default: 'This file cannot be previewed here.'
+            }
+    "
+    [unsupportedPreviewHint]="
+      'XP.Files.BinaryPreviewHint'
+        | translate
+          : {
+              Default:
+                'This file is not a text-based format. Download it to inspect the original contents in another app.'
+            }
+    "
+    (modeChange)="state.switchPanelMode($event)"
+    (contentChange)="state.changeContent($event)"
+    (documentDirtyChange)="state.changeBinary($event)"
+    (documentSave)="state.saveActiveFile($event)"
+    (documentError)="state.handleDocumentError($event)"
+    (spreadsheetDirtyChange)="state.changeBinary($event)"
+    (pptxDirtyChange)="state.changeBinary($event)"
+    (pptxError)="state.handleDocumentError($event)"
+    (discard)="state.discardActiveFileChanges()"
+    (save)="state.saveActiveFile()"
+    (refresh)="state.refreshActiveFile()"
+    (download)="state.downloadActiveFile()"
+    (referenceFile)="state.referenceActiveFile()"
+    (referenceElement)="state.referenceFileElement($event)"
+    (referenceSelection)="state.referenceSelectedRange($event)"
+    (sideMenuToggle)="sideMenuToggle.emit()"
+    (back)="back.emit()"
+  />
+}
+
+<ng-template #unsavedChangesDialog>
+  <div class="w-[min(28rem,calc(100vw-2rem))] p-6">
+    <div class="text-lg font-semibold text-text-primary">
+      {{ 'XP.Files.UnsavedChangesTitle' | translate: { Default: 'Unsaved changes' } }}
+    </div>
+    <div class="mt-2 text-sm leading-6 text-text-tertiary">
+      {{
+        'XP.Files.UnsavedChangesInfo'
+          | translate
+            : {
+                Default:
+                  'You have unsaved edits in the current file. Save them before switching, or discard the pending changes.'
+              }
+      }}
+    </div>
+    <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+      <button z-button zType="secondary" type="button" (click)="state.resolveDirtyDialog('cancel')">
+        {{ 'COMPONENTS.COMMON.CANCEL' | translate: { Default: 'Cancel' } }}
+      </button>
+      <button z-button zType="secondary" type="button" (click)="state.resolveDirtyDialog('discard')">
+        {{ 'XP.Files.Discard' | translate: { Default: 'Discard' } }}
+      </button>
+      <button z-button zType="default" type="button" (click)="state.resolveDirtyDialog('save')">
+        {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
+      </button>
+    </div>
+  </div>
+</ng-template>

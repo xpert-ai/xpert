@@ -1,3 +1,10 @@
+jest.mock('./clawxpert-binding-wizard.component', () => {
+  const { Component } = jest.requireActual('@angular/core')
+  @Component({ standalone: true, selector: 'xp-clawxpert-binding-wizard', template: '' })
+  class ClawXpertBindingWizardComponent {}
+  return { ClawXpertBindingWizardComponent }
+})
+
 jest.mock('./clawxpert-conversation-pane.component', () => {
   const { Component } = jest.requireActual('@angular/core')
   @Component({
@@ -39,6 +46,7 @@ jest.mock('../../../@core', () => ({
   }
 }))
 
+import { TranslateModule } from '@ngx-translate/core'
 import { Dialog } from '@angular/cdk/dialog'
 import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
@@ -52,6 +60,7 @@ import { ClawXpertSetupWizardComponent } from './clawxpert-setup-wizard.componen
 
 function createFacadeMock(viewState: 'organization-required' | 'wizard' | 'ready' | 'error' = 'ready') {
   return {
+    loading: signal(false),
     currentUrl: signal('/chat/clawxpert'),
     userId: signal('user-1'),
     organizationId: signal('org-1'),
@@ -95,7 +104,7 @@ describe('ClawXpertComponent', () => {
 
     TestBed.resetTestingModule()
     await TestBed.configureTestingModule({
-      imports: [ClawXpertComponent],
+      imports: [TranslateModule.forRoot(), ClawXpertComponent],
       providers: [
         provideRouter([]),
         {
@@ -155,14 +164,15 @@ describe('ClawXpertComponent', () => {
     expect(dialog.open).not.toHaveBeenCalled()
   })
 
-  it('opens the binding overview when a conversation route finishes loading without a valid binding', async () => {
+  it('renders binding setup in place when a conversation has no valid binding', async () => {
     const { facade, fixture } = await setup('wizard')
 
     facade.isConversationRoute.set(true)
     facade.hasLoadedXperts.set(true)
     fixture.detectChanges()
 
-    expect(facade.navigateToOverview).toHaveBeenCalledTimes(1)
+    expect(facade.navigateToOverview).not.toHaveBeenCalled()
+    expect(fixture.nativeElement.querySelector('xp-clawxpert-binding-wizard')).not.toBeNull()
   })
 
   it('does not leave the conversation route before binding availability finishes loading', async () => {

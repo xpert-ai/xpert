@@ -7,10 +7,13 @@
       </div>
       <h2 class="mt-1 text-xl font-semibold text-text-primary">{{ resourceId }}</h2>
     </div>
-    <a z-button zType="outline" routerLink="../../"
+    <a z-button zType="outline" [routerLink]="kind === 'target' ? '/agent-evolution/targets' : '../../'"
       ><i class="ri-arrow-left-line"></i>{{ 'XP.AgentEvolution.Back' | translate }}</a
     >
   </div>
+  @if (kind === 'target') {
+    <xp-evolution-baseline-panel [targetId]="resourceId" />
+  }
   <z-card class="border border-divider-regular bg-components-card-bg shadow-none">
     <z-card-header class="border-b border-divider-subtle px-5 py-4">
       <div class="flex items-center justify-between">

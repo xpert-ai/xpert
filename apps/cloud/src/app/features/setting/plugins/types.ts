@@ -19,6 +19,8 @@ export type TPluginResourceContribution = TPluginMarketplaceContribution & {
 }
 
 export type TPluginWithDownloads = TPlugin & {
+  summary?: boolean
+  iconAsset?: string
   packageName?: string | null
   downloads?: PluginMarketplaceDownloads | null
   sourceId?: string | null

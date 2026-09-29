@@ -63,14 +63,19 @@ export class McpConsumerOAuthService implements OnModuleInit, OnModuleDestroy {
         configureMcpConsumerAuthProviderResolver(null)
     }
 
-    async begin(input: {
-        workspaceId: string
-        toolsetId: string
-        serverName: string
-        redirectUri: string
-    }): Promise<McpConsumerOAuthStatus> {
-        await this.workspaceAccess.assertCanManage(input.workspaceId)
+    async begin(
+        input: {
+            workspaceId: string
+            toolsetId: string
+            serverName: string
+            redirectUri: string
+        },
+        personalResource = false
+    ): Promise<McpConsumerOAuthStatus> {
         const { toolset, server, authConfig } = await this.requireOAuthServer(input)
+        if (personalResource && authConfig.binding !== 'organization')
+            await this.workspaceAccess.assertCanRun(input.workspaceId)
+        else await this.workspaceAccess.assertCanManage(input.workspaceId)
         const userId = RequestContext.currentUserId()
         if (!userId) throw new BadRequestException('MCP OAuth requires an authenticated user')
         const subject = resolveSubject(authConfig, userId, toolset.organizationId)

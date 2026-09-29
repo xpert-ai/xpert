@@ -1,3 +1,9 @@
+import type {
+  XpertProjectListFilter,
+  XpertProjectTypeCatalog,
+  XpertProjectTypeRef,
+  XpertProjectEntry
+} from '@xpert-ai/contracts'
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
 import type {
@@ -71,7 +77,7 @@ export class XpertProjectApiService {
   readonly #projectsChanged = new Subject<void>()
   readonly projectsChanged$ = this.#projectsChanged.asObservable()
 
-  list(params: { search?: string; status?: string; skip?: number; take?: number } = {}) {
+  list(params: XpertProjectListFilter & { status?: string; skip?: number; take?: number } = {}) {
     const data = {
       // The workspace owns the status filter, including archived projects.
       // Legacy callers still use the server's active-only default.
@@ -80,9 +86,26 @@ export class XpertProjectApiService {
       skip: params.skip ?? 0,
       take: params.take ?? 50
     }
+    let query = new HttpParams().set('data', JSON.stringify(data))
+    for (const key of ['search', 'applicationKey', 'projectTypeKey', 'unclassified'] as const) {
+      if (params[key] !== undefined) query = query.set(key, String(params[key]))
+    }
     return this.#http.get<IPagination<IXpertProject>>(`${API_XPERT_PROJECT}/my`, {
-      params: new HttpParams().set('data', JSON.stringify(data))
+      params: query
     })
+  }
+
+  types(xpertId?: string) {
+    return this.#http.get<XpertProjectTypeCatalog>(`${API_XPERT_PROJECT}/types`, {
+      params: xpertId ? { xpertId } : {}
+    })
+  }
+
+  typeEntry(type: XpertProjectTypeRef, options: { projectId?: string; xpertId?: string } = {}) {
+    let params = new HttpParams().set('applicationKey', type.applicationKey).set('projectTypeKey', type.projectTypeKey)
+    if (options.projectId) params = params.set('projectId', options.projectId)
+    if (options.xpertId) params = params.set('xpertId', options.xpertId)
+    return this.#http.get<XpertProjectEntry>(`${API_XPERT_PROJECT}/type-entry`, { params })
   }
 
   get(id: string) {

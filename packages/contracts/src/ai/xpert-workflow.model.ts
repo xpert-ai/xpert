@@ -3,6 +3,7 @@ import { ICopilotModel } from './copilot-model.model'
 import { TKBRecallParams } from './knowledgebase.model'
 import { ApiAuthType, JsonSchemaObjectType, TErrorHandling, TXpertRefParameter } from './types'
 import { TKBRetrievalSettings, TStateVariable, TXpertParameter } from './xpert.model'
+import type { AssistantTriggerPresentation } from './assistant-trigger.model'
 
 export type TWorkflowNodeMeta = {
   name: string
@@ -12,7 +13,21 @@ export type TWorkflowNodeMeta = {
   configSchema: JsonSchemaObjectType
 }
 
-export type TWorkflowTriggerMeta = TWorkflowNodeMeta
+export type TWorkflowTriggerMeta = TWorkflowNodeMeta & {
+  assistant?: AssistantTriggerPresentation
+  quickConnect?: {
+    method: 'qr'
+    integrationProvider: string
+    configField: string
+  }
+}
+
+export type TWorkflowTriggerConnectionStatus = {
+  provider: string
+  enabled: boolean
+  connected: boolean
+  state: 'disconnected' | 'connecting' | 'connected' | 'failed'
+}
 
 export enum WorkflowNodeTypeEnum {
   START = 'start',

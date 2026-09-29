@@ -201,6 +201,7 @@ import { redo, undo } from 'prosemirror-history'
       }
 
       .xp-docx-editor__pages {
+        --doc-bg: var(--color-background-default-subtle);
         position: relative;
         z-index: 1;
         min-height: 100%;
@@ -547,7 +548,7 @@ export class DocxEditorComponent implements OnDestroy {
 
   private dispatchTransaction(transaction: Parameters<EditorView['dispatch']>[0]) {
     const view = this.#view
-    if (!view || this.#destroyed) {
+    if (!view || this.#destroyed || (transaction.docChanged && !this.editable())) {
       return
     }
 
@@ -752,7 +753,7 @@ export class DocxEditorComponent implements OnDestroy {
   }
 
   private setDirty(dirty: boolean) {
-    if (this.#dirty === dirty) {
+    if (this.#dirty === dirty && !dirty) {
       return
     }
 

@@ -1,7 +1,7 @@
 import { BadRequestException, ForbiddenException, Inject } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
-import { RequestContext } from '@xpert-ai/server-core'
+import { needsFileContentTypeCheck, normalizeFileMimeType, RequestContext } from '@xpert-ai/server-core'
 import type { WorkspaceFileCatalog, WorkspaceUnderstandFileInput } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
 import mime from 'mime-types'
@@ -74,6 +74,10 @@ export class CreateWorkspaceFileAssetHandler implements ICommandHandler<CreateWo
             xpertId: conversation?.xpertId ?? command.input.xpertId
         }
         const filePath = normalizeWorkspaceFilePath(input.filePath)
+        const originalName = normalizeOptionalString(input.originalName) ?? path.posix.basename(filePath)
+        const detectedMimeType = mime.lookup(originalName)
+        let mimeType =
+            normalizeOptionalString(input.mimeType) ?? (detectedMimeType ? String(detectedMimeType) : undefined)
         const { volumeScope, catalog, scopeId } = this.resolveVolumeScope(input)
         const volume = await this.volumeClient.resolve(volumeScope).ensureRoot()
         const openedFile = await VolumeHandle.openExistingFile(volume.serverRoot, filePath, {
@@ -83,15 +87,17 @@ export class CreateWorkspaceFileAssetHandler implements ICommandHandler<CreateWo
             throw workspaceFileNotFound(filePath)
         }
         const stat = openedFile.fileStat
-        await openedFile.fileHandle.close()
-        if (!stat.isFile()) {
-            throw workspaceFileNotFound(filePath)
+        try {
+            if (!stat.isFile()) {
+                throw workspaceFileNotFound(filePath)
+            }
+            if (needsFileContentTypeCheck(mimeType)) {
+                mimeType = normalizeFileMimeType(await openedFile.fileHandle.readFile(), mimeType)
+            }
+        } finally {
+            await openedFile.fileHandle.close()
         }
 
-        const originalName = normalizeOptionalString(input.originalName) ?? path.posix.basename(filePath)
-        const detectedMimeType = mime.lookup(originalName)
-        const mimeType =
-            normalizeOptionalString(input.mimeType) ?? (detectedMimeType ? String(detectedMimeType) : undefined)
         const size = typeof input.size === 'number' && Number.isFinite(input.size) ? input.size : stat.size
         const purpose = resolvePurpose(input.purpose)
         const parseMode = resolveParseMode(input.parseMode)

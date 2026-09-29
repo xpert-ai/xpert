@@ -25,9 +25,12 @@ import { QueryHandlers } from './queries/handlers'
 import { LOADED_PLUGINS } from './types'
 import { PluginInstance } from './plugin-instance.entity'
 import { PluginInstanceService } from './plugin-instance.service'
-import { PluginMarketplaceRegistryItem } from './plugin-marketplace-registry-item.entity'
-import { PluginMarketplaceSource } from './plugin-marketplace-source.entity'
-import { PluginMarketplaceService } from './plugin-marketplace.service'
+import { PluginMarketplaceRegistryItem } from './marketplace/plugin-marketplace-registry-item.entity'
+import { PluginMarketplaceSource } from './marketplace/plugin-marketplace-source.entity'
+import { PluginMarketplaceService } from './marketplace/plugin-marketplace.service'
+import { RedisModule } from '../core/redis/redis.module'
+import { PluginMarketplaceSharedCache } from './marketplace/plugin-marketplace-shared-cache'
+import { PluginMarketplaceController } from './marketplace/plugin-marketplace.controller'
 import {
 	PluginAccountBindingPermissionService,
 	PluginBoundIdentityLoginPermissionService,
@@ -38,17 +41,19 @@ import {
 import { PLUGIN_WEBHOOK_CREDENTIAL_SERVICE_TOKEN } from './plugin-webhook.tokens'
 import { RuntimeControlModule } from '../runtime-control/runtime-control.module'
 import { PluginRuntimeStateService } from './plugin-runtime-state.service'
+import { PluginSchemaSyncService } from './plugin-schema-sync.service'
 
 @Global()
 @Module({
 	imports: [
 		ConfigModule,
+		RedisModule,
 		DiscoveryModule,
 		RuntimeControlModule,
 		TypeOrmModule.forFeature([PluginInstance, PluginMarketplaceSource, PluginMarketplaceRegistryItem]),
 		CqrsModule
 	],
-	controllers: [PluginController],
+	controllers: [PluginController, PluginMarketplaceController],
 	exports: [
 		StrategyBus,
 		XpertToolProviderRegistry,
@@ -90,6 +95,7 @@ import { PluginRuntimeStateService } from './plugin-runtime-state.service'
 		PluginConfigResolver,
 		PluginInstanceService,
 		PluginMarketplaceService,
+		PluginMarketplaceSharedCache,
 		PluginManagementService,
 		PluginBoundIdentityLoginPermissionService,
 		PluginSsoBindingPermissionService,
@@ -97,6 +103,7 @@ import { PluginRuntimeStateService } from './plugin-runtime-state.service'
 		PluginIntegrationPermissionService,
 		PluginUserPermissionService,
 		PluginRuntimeStateService,
+		PluginSchemaSyncService,
 		StrategyBus,
 		XpertToolProviderRegistry,
 		...CommandHandlers,

@@ -47,7 +47,7 @@
   }
 
   .xp-file-workbench__navigation.hidden,
-  xp-file-viewer.hidden {
+  xp-file-document.hidden {
     display: none;
   }
 }
@@ -73,7 +73,7 @@
     display: flex;
   }
 
-  :host(.xp-file-workbench--library) xp-file-viewer.hidden {
+  :host(.xp-file-workbench--library) xp-file-document.hidden {
     display: block;
   }
 

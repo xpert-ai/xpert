@@ -123,21 +123,19 @@
 <div class="flex">
   <button
     type="button"
-    class="btn disabled:btn-disabled btn-secondary btn-medium flex flex-shrink-0 mt-4"
+    z-button
+    zType="secondary"
+    zSize="default"
+    class="mt-4 h-[40px] px-4"
     [disabled]="!resolvedBindingType() || !resolvedBindingId()"
     (click)="createApiKey()"
   >
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 20 20"
-      fill="currentColor"
-      class="flex flex-shrink-0 w-4 h-4 mr-2"
-    >
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="size-4">
       <path
         d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z"
       ></path>
     </svg>
-    <div class="text-sm font-medium text-text-primary">
+    <div>
       @if (isWorkspaceBinding()) {
         {{ 'XP.Xpert.CreateWorkspaceSecretKey' | translate: { Default: 'Create workspace secret key' } }}
       } @else {

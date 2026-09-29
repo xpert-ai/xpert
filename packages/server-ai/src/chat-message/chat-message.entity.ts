@@ -5,6 +5,9 @@ import {
     IChatMessage,
     IStorageFile,
     IXpertAgentExecution,
+    TChatInputCheckpoint,
+    TChatOutputCheckpoint,
+    TChatAgentRunSummary,
     TChatMessageStep,
     TChatReference,
     TChatTaskSummaryContribution,
@@ -16,6 +19,7 @@ import {
 import { StorageFile, TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsOptional, IsString } from 'class-validator'
+import { Exclude } from 'class-transformer'
 import {
     Column,
     DeleteDateColumn,
@@ -55,6 +59,16 @@ export class ChatMessage extends TenantOrganizationBaseEntity implements IChatMe
     @IsOptional()
     @Column({ nullable: true })
     parentId?: string
+
+    @Column({ type: 'jsonb', nullable: true })
+    inputCheckpoint?: TChatInputCheckpoint | null
+
+    @Column({ type: 'jsonb', nullable: true })
+    @Exclude({ toPlainOnly: true })
+    outputCheckpoint?: TChatOutputCheckpoint | null
+
+    @Column({ type: 'jsonb', nullable: true })
+    historicalAgentRuns?: TChatAgentRunSummary[] | null
 
     @ApiProperty({ type: () => String })
     @IsString()

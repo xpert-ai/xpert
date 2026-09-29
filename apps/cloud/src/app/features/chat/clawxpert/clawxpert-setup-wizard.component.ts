@@ -27,7 +27,7 @@ import {
   XpertWorkspaceService
 } from '../../../@core'
 import { CopilotConfigFormComponent } from '../../../@shared/copilot'
-import { toPluginMarketplaceDetails } from '../../setting/plugins/plugin-marketplace-details'
+import { toPluginMarketplaceDetails } from '../../setting/plugins/marketplace/plugin-marketplace-details'
 import { PluginMarketplaceDetailComponent } from '../../setting/plugins/marketplace/marketplace-detail.component'
 import clawxpertRecommendedTemplates from './clawxpert-recommended-templates.json'
 import { ClawXpertBootstrapService, resolveFirstClawXpertLlmModel } from './clawxpert-bootstrap.service'

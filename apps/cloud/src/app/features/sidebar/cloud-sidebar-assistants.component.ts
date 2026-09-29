@@ -6,7 +6,7 @@ import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-i
 import { NavigationEnd, Router } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
-import type { IconDefinition, XpertExtensionViewManifest } from '@xpert-ai/contracts'
+import { AGENT_WORKBENCH_SLOT, type IconDefinition, type XpertExtensionViewManifest } from '@xpert-ai/contracts'
 import { Observable, combineLatest, debounceTime, forkJoin, merge, of } from 'rxjs'
 import { catchError, distinctUntilChanged, exhaustMap, filter, map, startWith, switchMap } from 'rxjs/operators'
 import {
@@ -60,13 +60,15 @@ export { formatConversationUpdatedAt } from './cloud-sidebar-assistants.utils'
 export type CloudSidebarAssistantState = {
   items: IXpert[]
   binding: IAssistantBinding | null
+  organizationId: string | null
 }
 
 export type CloudSidebarAssistantsMode = 'list' | 'current-card'
 
 const EMPTY_ASSISTANT_STATE: CloudSidebarAssistantState = {
   items: [],
-  binding: null
+  binding: null,
+  organizationId: null
 }
 
 const DEFAULT_VISIBLE_ASSISTANT_COUNT = 5
@@ -75,7 +77,6 @@ const ALL_ASSISTANT_CATEGORY = 'all'
 const ASSISTANT_ORDER_STORAGE_KEY = 'xpert.cloud-sidebar.assistant-order'
 const SYSTEM_ASSISTANT_SCOPE_CODE = AssistantCode.CHAT_COMMON
 const CLAWXPERT_SETUP_URL = '/chat/clawxpert'
-const AGENT_WORKBENCH_FIXED_SLOT = 'agent.workbench.fixed'
 const ASSISTANT_CONVERSATION_PAGE_SIZE = 10
 
 type AssistantMenuItem = {
@@ -270,7 +271,7 @@ export class CloudSidebarAssistantsComponent {
   })
   readonly state = toSignal(
     toObservable(this.request).pipe(
-      switchMap(({ enabled, scopeLevel }) => {
+      switchMap(({ enabled, scopeLevel, organizationId }) => {
         if (!enabled) {
           return of(EMPTY_ASSISTANT_STATE)
         }
@@ -306,10 +307,12 @@ export class CloudSidebarAssistantsComponent {
                 ({ binding, items }) =>
                   ({
                     binding,
+                    organizationId,
                     items: normalizeAssistantXperts(items)
                   }) satisfies CloudSidebarAssistantState
               ),
-              catchError(() => of(EMPTY_ASSISTANT_STATE))
+              catchError(() => of(EMPTY_ASSISTANT_STATE)),
+              startWith(EMPTY_ASSISTANT_STATE)
             )
           }),
           startWith(EMPTY_ASSISTANT_STATE)
@@ -322,7 +325,13 @@ export class CloudSidebarAssistantsComponent {
   readonly binding = computed(() => this.state().binding)
   readonly boundXpert = computed(() => {
     const assistantId = this.binding()?.assistantId?.trim()
-    if (!assistantId) {
+    if (
+      !assistantId ||
+      this.binding()?.enabled === false ||
+      !this.request().enabled ||
+      this.request().scopeLevel !== RequestScopeLevel.ORGANIZATION ||
+      this.state().organizationId !== this.organizationId()
+    ) {
       return null
     }
 
@@ -774,7 +783,7 @@ export class CloudSidebarAssistantsComponent {
     })
 
     this.#viewExtensionApi
-      .getSlotViews('agent', assistantId, AGENT_WORKBENCH_FIXED_SLOT)
+      .getSlotViews('agent', assistantId, AGENT_WORKBENCH_SLOT)
       .pipe(
         map((manifests) =>
           manifests
@@ -937,9 +946,7 @@ function readViewKey(router: Router) {
 }
 
 function shouldShowAssistantMenuItem(manifest: XpertExtensionViewManifest) {
-  return (
-    manifest.visible !== false && manifest.workbench?.fixed !== false && manifest.workbench?.menu?.enabled !== false
-  )
+  return manifest.visible !== false && manifest.workbench?.menu?.enabled !== false
 }
 
 function toAssistantMenuItem(manifest: XpertExtensionViewManifest): AssistantMenuItem {

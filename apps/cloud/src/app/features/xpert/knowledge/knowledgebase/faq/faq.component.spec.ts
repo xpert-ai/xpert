@@ -1,9 +1,11 @@
 import { Dialog } from '@angular/cdk/dialog'
+import { OverlayContainer } from '@angular/cdk/overlay'
 import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { ActivatedRoute } from '@angular/router'
 import { TranslateService } from '@ngx-translate/core'
 import { IKnowledgeFAQEntry, KnowledgebaseStatusEnum } from '@xpert-ai/contracts'
+import { ZardMenuImports } from '@xpert-ai/headless-ui'
 import { of, throwError } from 'rxjs'
 import { KnowledgeFAQService, ToastrService } from '../../../../../@core'
 
@@ -23,7 +25,7 @@ describe('KnowledgeFAQComponent', () => {
   const queryParamGet = jest.fn((): string | null => null)
   const toastr = { error: jest.fn(), success: jest.fn(), warning: jest.fn() }
   const faqService = {
-    findAll: jest.fn(() => of({ items: [], total: 0 })),
+    findAll: jest.fn(() => of<{ items: IKnowledgeFAQEntry[]; total: number }>({ items: [], total: 0 })),
     findOne: jest.fn(),
     update: jest.fn(),
     delete: jest.fn(),
@@ -225,4 +227,74 @@ describe('KnowledgeFAQComponent', () => {
     expect(faqService.delete).toHaveBeenCalledWith('kb-1', entry.id, entry.version)
     expect(component.selectionModel.hasValue()).toBe(false)
   })
+
+  it.each([true, false])(
+    'toggles a row repeatedly without recreating the page, initially enabled=%s',
+    async (enabled) => {
+      let currentEntry = { ...entry, enabled }
+      faqService.findAll.mockImplementation(() => of({ items: [currentEntry], total: 1 }))
+      TestBed.overrideComponent(KnowledgeFAQComponent, {
+        set: {
+          imports: [...ZardMenuImports],
+          template: `
+          @for (entry of entries(); track entry.id) {
+            <button z-menu [zMenuTriggerFor]="rowMenu" [zMenuTriggerData]="{ entry: entry }"
+              data-testid="row-menu">Actions</button>
+          }
+          <ng-template #rowMenu let-entry="entry">
+            <div z-menu-content>
+              <button z-menu-item [zDisabled]="busy() || entry.enabled"
+                (click)="setEntryEnabled(entry, true)" data-testid="enable">Enable</button>
+              <button z-menu-item [zDisabled]="busy() || !entry.enabled"
+                (click)="setEntryEnabled(entry, false)" data-testid="disable">Disable</button>
+            </div>
+          </ng-template>
+        `
+        }
+      })
+      const fixture = TestBed.createComponent(KnowledgeFAQComponent)
+      const component = fixture.componentInstance
+      const overlay = TestBed.inject(OverlayContainer).getContainerElement()
+      fixture.detectChanges()
+      await fixture.whenStable()
+      fixture.detectChanges()
+      component.openDetails(currentEntry)
+
+      const trigger = fixture.nativeElement.querySelector('[data-testid="row-menu"]') as HTMLButtonElement
+      for (let step = 1; step <= 3; step++) {
+        const previousEntry = currentEntry
+        const nextEnabled = !previousEntry.enabled
+        const updatedEntry = { ...previousEntry, enabled: nextEnabled, version: previousEntry.version + 1 }
+        faqService.update.mockReturnValueOnce(of(updatedEntry))
+        currentEntry = updatedEntry
+
+        trigger.click()
+        fixture.detectChanges()
+        await fixture.whenStable()
+        fixture.detectChanges()
+        const action = overlay.querySelector(
+          `[data-testid="${nextEnabled ? 'enable' : 'disable'}"]`
+        ) as HTMLButtonElement
+        expect(action.hasAttribute('data-disabled')).toBe(false)
+        action.click()
+        fixture.detectChanges()
+        await fixture.whenStable()
+        fixture.detectChanges()
+
+        expect(faqService.update).toHaveBeenNthCalledWith(step, 'kb-1', entry.id, {
+          standardQuestion: entry.standardQuestion,
+          similarQuestions: entry.similarQuestions,
+          negativeQuestions: entry.negativeQuestions,
+          answerBlocks: entry.answerBlocks,
+          enabled: nextEnabled,
+          version: previousEntry.version
+        })
+        expect(component.entries()).toEqual([updatedEntry])
+        expect(component.selectedEntry()).toEqual(updatedEntry)
+        expect(component.busy()).toBe(false)
+        expect(fixture.nativeElement.querySelector('[data-testid="row-menu"]')).toBe(trigger)
+      }
+      expect(toastr.error).not.toHaveBeenCalled()
+    }
+  )
 })

@@ -1,5 +1,6 @@
 import { isAIMessage } from '@langchain/core/messages'
 import { RunnableLambda } from '@langchain/core/runnables'
+import { installThreadPauseGuards } from '../../../shared/agent/thread-pause'
 import { Annotation, CompiledStateGraph, isCommand, isParentCommand, MessagesAnnotation } from '@langchain/langgraph'
 import { createHandoffTool, createSwarm } from '@langchain/langgraph-swarm'
 import {
@@ -207,6 +208,8 @@ export class XpertAgentSwarmHandler implements ICommandHandler<XpertAgentSwarmCo
             defaultActiveAgent: agentKeyOrName,
             stateSchema: SwarmState
         })
+
+        installThreadPauseGuards(builder.nodes, options.shouldPause)
 
         return {
             agent,

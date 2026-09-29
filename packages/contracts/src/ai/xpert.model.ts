@@ -11,7 +11,7 @@ import { IXpertAgent } from './xpert-agent.model'
 import { IXpertToolset } from './xpert-toolset.model'
 import { IBasePerWorkspaceEntityModel } from './xpert-workspace.model'
 import { IIntegration } from '../integration.model'
-import { TChatFrom } from './chat.model'
+import { TChatCheckpointReference, TChatFrom } from './chat.model'
 import { IWorkflowNode, TVariableAssigner, VariableOperationEnum } from './xpert-workflow.model'
 import { IEnvironment } from './environment.model'
 import { TXpertCommandProfile } from './prompt-workflow.model'
@@ -353,6 +353,7 @@ export type TXpertDataXpertOptions = {
 }
 
 export type TXpertOptions = {
+  assistantCapabilities?: import('./assistant-configuration.model').AssistantCapabilityState
   /** Runtime-selectable Primary Agent models. The configured Primary model is added automatically. */
   modelSelection?: {
     /** Additional LLM models users may select. */
@@ -362,6 +363,10 @@ export type TXpertOptions = {
   workspaceScope?: {
     /** Require an explicit Project, or prefer one while preserving the legacy fallback. */
     mode: 'project-required' | 'project-preferred'
+    /** Opt in to creating a Project on the first send of an empty conversation, under the caller's permissions. */
+    onMissing?: 'create'
+    /** Explicit application context for discovery and governed Project creation. */
+    projectType?: import('./xpert-project-type.model').XpertProjectTypeRef
   }
   /** Legacy template key retained for existing plugin-authored DSL files. */
   templateKey?: string
@@ -428,6 +433,8 @@ export type TXpertAgentConfig = {
    * Sensitive tools and agents
    */
   interruptBefore?: string[]
+  /** Pause after these tools finish, before the next model turn. Resume never reruns the tool. */
+  interruptAfter?: string[]
   /**
    * End nodes
    */
@@ -737,6 +744,9 @@ export type TChatOptions = {
   thread_id?: string
   // checkpoint id to resume thread state
   checkpointId?: string
+  /** Server-resolved pause checkpoint; never an arbitrary client state patch. */
+  resumeCheckpoint?: TChatCheckpointReference
+  inputMessageId?: string
 
   /**
    * The language used by the current browser page

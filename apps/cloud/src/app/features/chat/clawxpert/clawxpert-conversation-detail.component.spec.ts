@@ -1,3 +1,22 @@
+import { createFileArtifactTab, type WorkbenchArtifactTab } from './workbench-artifact-tabs'
+jest.mock('./workbench-artifact-panel.component', () => {
+  const { Component, Input, Output, EventEmitter } = jest.requireActual('@angular/core')
+  @Component({ standalone: true, selector: 'xp-workbench-artifact-panel', template: '{{ tab().title }}' })
+  class WorkbenchArtifactPanelComponent {
+    private value: WorkbenchArtifactTab
+    @Input('tab') set tabValue(value: WorkbenchArtifactTab) {
+      this.value = value
+    }
+    tab = () => this.value
+    @Input() active = true
+    @Input() mode?: 'readonly' | 'editable'
+    @Output() referenceRequest = new EventEmitter()
+    @Output() back = new EventEmitter()
+    readonly document = { dirty: () => false, saving: () => false, guardDirtyBefore: (action: () => void) => action() }
+  }
+  return { WorkbenchArtifactPanelComponent }
+})
+
 jest.mock('../../../@shared/avatar/emoji-avatar/avatar.component', () => {
   const { Component, Input } = jest.requireActual('@angular/core')
   @Component({ selector: 'emoji-avatar', template: '' })
@@ -180,6 +199,7 @@ jest.mock('./clawxpert-conversation-files.component', () => {
     @Input() conversationId?: string | null
     @Input() xpertId?: string | null
     @Input() projectId?: string | null
+    @Input() active = true
     @Input() mode?: 'readonly' | 'editable'
     @Input() reloadKey?: number
     @Output() referenceRequest = new EventEmitter()
@@ -262,6 +282,7 @@ jest.mock('../../../@shared/view-extension', () => {
     template: '<div data-extension-host-outlet></div>'
   })
   class ExtensionHostOutletComponent {
+    @Input() active = true
     @Input() mode?: string
     @Input() hostType?: string
     @Input() hostId?: string | null
@@ -284,7 +305,7 @@ jest.mock('./clawxpert.facade', () => ({
 
 import { Component, Input, signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
-import { Router } from '@angular/router'
+import { provideRouter, Router } from '@angular/router'
 import { By } from '@angular/platform-browser'
 import { TranslateModule } from '@ngx-translate/core'
 import type { CreateChatKitOptions } from '@xpert-ai/chatkit-angular'
@@ -298,7 +319,7 @@ import {
   type XpertExtensionViewManifest,
   XpertWorkbenchInitialLayoutEnum
 } from '@xpert-ai/contracts'
-import { of } from 'rxjs'
+import { of, Subject } from 'rxjs'
 import {
   AiThreadService,
   ArtifactService,
@@ -408,7 +429,10 @@ type MockChatKitRuntimeInput = {
   workbench?: CreateChatKitOptions['workbench']
   requestContext?: () => Record<string, unknown> | null
   onThreadChange?: (event: { threadId: string | null }) => void
-  onProjectChange?: (event: { projectId: string | null }) => void
+  onProjectChange?: (event: {
+    projectId: string | null
+    selection?: import('@xpert-ai/contracts').ProjectSelection
+  }) => void
   onThreadLoadStart?: (event: { threadId: string | null }) => void
   onThreadLoadEnd?: (event: { threadId: string | null }) => void
   onEffect?: (event: MockChatKitEvent) => void
@@ -468,7 +492,7 @@ function buildFixedViewManifest(
       provider: 'test-provider'
     },
     workbench: {
-      fixed: true,
+      openMode: 'auto',
       menu: {
         enabled: true
       }
@@ -683,6 +707,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     await TestBed.configureTestingModule({
       imports: [TranslateModule.forRoot(), ClawXpertConversationDetailComponent],
       providers: [
+        provideRouter([]),
         {
           provide: ClawXpertFacade,
           useValue: facade
@@ -732,6 +757,12 @@ describe('ClawXpertConversationDetailComponent', () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
+    expect(getRuntimeInput()).toEqual(
+      expect.objectContaining({
+        messagePresentation: { collapseProcess: true }
+      })
+    )
+
     expect(viewExtensionApi.getSlotViews).toHaveBeenLastCalledWith('agent', 'assistant-1', 'agent.workbench.fixed', {
       runtimeScope: { projectId: null, conversationId: 'conversation-1' }
     })
@@ -739,6 +770,9 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(conversationService.getById).toHaveBeenCalledWith('conversation-1', { relations: ['messages'] })
     expect(facade.setActiveConversation).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'conversation-1' }))
     expect(getRuntimeInput().workbench).toEqual({
+      enabled: true,
+      viewRail: { enabled: true },
+      onClientCommand: expect.any(Function),
       sideChat: {
         enabled: true
       }
@@ -751,21 +785,21 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(fixture.componentInstance.workspaceTabs().some((tab) => tab.kind === 'files')).toBe(false)
     expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).toBeNull()
     const layoutModeButton = fixture.nativeElement.querySelector(
-      '[data-chatkit-layout-mode-toggle]'
+      '[data-toggle-workbench-maximized]'
     ) as HTMLButtonElement
-    expect(layoutModeButton.dataset.chatkitLayoutMode).toBe('pinned')
+    expect(layoutModeButton.getAttribute('aria-pressed')).toBe('false')
     layoutModeButton.click()
     await settle(fixture)
 
     expect(fixture.componentInstance.overlayDialog()).toBe(true)
     expect(fixture.componentInstance.showDetailPanel()).toBe(true)
-    expect(layoutModeButton.dataset.chatkitLayoutMode).toBe('overlay')
+    expect(layoutModeButton.getAttribute('aria-pressed')).toBe('true')
     layoutModeButton.click()
     await settle(fixture)
 
     expect(fixture.componentInstance.overlayDialog()).toBe(false)
     expect(fixture.componentInstance.chatkitPinnedToRight()).toBe(true)
-    expect(layoutModeButton.dataset.chatkitLayoutMode).toBe('pinned')
+    expect(layoutModeButton.getAttribute('aria-pressed')).toBe('false')
     expect(fixture.componentInstance.showDetailPanel()).toBe(true)
     expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).toBeNull()
   })
@@ -778,7 +812,7 @@ describe('ClawXpertConversationDetailComponent', () => {
 
     expect(fixture.componentInstance.showDetailPanel()).toBe(false)
     expect(fixture.componentInstance.workspaceMaximized()).toBe(false)
-    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('lg:grid-cols-[0rem_minmax(0,1fr)]')
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('grid-cols-[0rem_minmax(0,1fr)]')
     expect(localStorage.getItem(getClawXpertWorkbenchLayoutStorageKey('user-1', 'assistant-1'))).toBeNull()
   })
 
@@ -916,14 +950,16 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(getRuntimeInput().projectId?.()).toBe('project-1')
     getRuntimeInput().onProjectChange?.({ projectId: 'project-2' })
 
-    expect(facade.onChatProjectChange).toHaveBeenCalledWith('project-2')
+    expect(facade.onChatProjectChange).toHaveBeenCalledWith('project-2', undefined, undefined)
+    getRuntimeInput().onProjectChange?.({ projectId: null, selection: { mode: 'none' } })
+    expect(facade.onChatProjectChange).toHaveBeenLastCalledWith(null, undefined, { mode: 'none' })
   })
 
-  it('hides Project selection after a conversation starts', async () => {
+  it('keeps Project display enabled but disables creation after a conversation starts', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
-    expect(getRuntimeInput().composer?.().projects?.enabled).toBe(false)
+    expect(getRuntimeInput().composer?.().projects).toMatchObject({ enabled: true, createEnabled: false })
   })
 
   it('keeps Project selection available before the first message, including after a Project is selected', async () => {
@@ -964,11 +1000,17 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(input.active()).toBe(false)
   })
 
-  it('hides the entire Project selector rail for an existing conversation', async () => {
+  it('keeps a bound Project available to ChatKit without changing its mount scope', async () => {
+    Object.assign(facade, { chatkitMountProjectId: signal(null) })
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
+    const chatkitElement = fixture.nativeElement.querySelector('xpert-chatkit')
+    facade.projectId.set('auto-created-project')
+    await settle(fixture)
 
-    expect(getRuntimeInput().composer?.().projects?.enabled).toBe(false)
+    expect(getRuntimeInput().composer?.().projects).toMatchObject({ enabled: true, createEnabled: false })
+    expect(getRuntimeInput().projectId?.()).toBeNull()
+    expect(fixture.nativeElement.querySelector('xpert-chatkit')).toBe(chatkitElement)
     expect(projectApi.availableForXpert).not.toHaveBeenCalled()
   })
 
@@ -1012,7 +1054,131 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(getRuntimeInput().composer?.().projects?.enabled).toBe(true)
   })
 
-  it('opens task summary workspace files with the existing file preview', async () => {
+  it('preserves the complete files workbench while switching to a generated file tab and back', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    const component = fixture.componentInstance
+    const filesTab = component.addWorkspaceTab('files')
+    await settle(fixture)
+    const workbench = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent)).componentInstance
+    component.openArtifactTab(
+      createFileArtifactTab({ name: 'report.pdf', url: 'https://files/report.pdf' }, 'assistant-1', {})
+    )
+    await settle(fixture)
+    expect(component.activeTabId()).toBe(component.artifactTabs()[0].id)
+    expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent)).componentInstance).toBe(
+      workbench
+    )
+    component.openFilesTab()
+    await settle(fixture)
+    expect(component.activeTabId()).toBe(filesTab.id)
+    expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent)).componentInstance).toBe(
+      workbench
+    )
+    expect(component.artifactTabs()).toHaveLength(1)
+  })
+
+  it('defers removal to the file document when closing a dirty tab', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    const component = fixture.componentInstance
+    component.openArtifactTab(
+      createFileArtifactTab({ name: 'report.md', url: 'https://files/report.md' }, 'assistant-1', {})
+    )
+    await settle(fixture)
+    const panel = component.artifactPanels()[0]
+    const pending: Array<() => void | Promise<void>> = []
+    jest.spyOn(panel.document, 'guardDirtyBefore').mockImplementation(async (action) => {
+      pending.push(action)
+      return false
+    })
+    component.closeWorkspaceTab(new Event('click'), component.activeTabId())
+    expect(component.artifactTabs()).toHaveLength(1)
+    expect(pending).toHaveLength(1)
+    await pending[0]()
+    expect(component.artifactTabs()).toHaveLength(0)
+  })
+
+  it('auto-opens generated files without plugin bindings and preserves independent tabs', async () => {
+    viewExtensionApi.getSlotViews.mockReturnValue(of([]))
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    const complete = (path: string, name: string, url: string) =>
+      getRuntimeInput().onLog?.({
+        name: 'component',
+        data: {
+          tool: 'export_files',
+          status: 'success',
+          output: JSON.stringify({
+            files: [{ filePath: path, fileName: name, fileUrl: url, mimeType: 'application/pdf' }]
+          })
+        }
+      })
+    complete('/workspace/a.pdf', 'First.pdf', 'https://files/a.pdf?sig=1')
+    await settle(fixture)
+    const first = fixture.componentInstance.artifactTabs()[0]
+    complete('/workspace/b.pdf', 'Second.pdf', 'https://files/b.pdf')
+    await settle(fixture)
+    const second = fixture.componentInstance.artifactTabs()[1]
+    expect(fixture.componentInstance.activeTabId()).toBe(second.id)
+    expect(fixture.nativeElement.querySelectorAll('[data-panel-button="artifact"]')).toHaveLength(2)
+    complete('/workspace/a.pdf', 'First.pdf', 'https://files/a.pdf?sig=2')
+    await settle(fixture)
+    expect(fixture.componentInstance.artifactTabs()).toHaveLength(2)
+    expect(fixture.componentInstance.activeTabId()).toBe(first.id)
+    expect(fixture.componentInstance.artifactTabs()[0]).toMatchObject({
+      revision: 1,
+      resource: { type: 'file', file: { url: 'https://files/a.pdf?sig=2' } }
+    })
+    expect(fixture.componentInstance.artifactTabs()[1]).toEqual(second)
+    fixture.componentInstance.selectTab(second.id)
+    await settle(fixture)
+    expect(fixture.componentInstance.activeTabId()).toBe(second.id)
+    expect(fixture.nativeElement.querySelectorAll('xp-workbench-artifact-panel')).toHaveLength(2)
+    fixture.componentInstance.closeWorkspaceTab(new Event('click'), first.id)
+    expect(fixture.componentInstance.artifactTabs()).toEqual([second])
+  })
+
+  it('opens newly completed response files automatically, excluding existing outputs', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    getRuntimeInput().onResponseStart?.()
+    conversationService.getById.mockReturnValue(
+      of({
+        id: 'conversation-1',
+        threadId: 'thread-1',
+        messages: [
+          {
+            role: 'ai',
+            taskSummary: {
+              version: 1,
+              outputs: [
+                {
+                  id: 'generated-file',
+                  title: 'Generated report',
+                  status: 'success',
+                  kind: 'file',
+                  resource: { type: 'workspace_file', workspacePath: '/workspace/report.pdf' }
+                }
+              ]
+            }
+          }
+        ]
+      })
+    )
+    getRuntimeInput().onResponseEnd?.()
+    await settle(fixture)
+    await settle(fixture)
+    expect(fixture.componentInstance.artifactTabs()).toEqual([expect.objectContaining({ title: 'Generated report' })])
+    fixture.componentInstance.closeWorkspaceTab(new Event('click'), fixture.componentInstance.activeTabId())
+    getRuntimeInput().onResponseStart?.()
+    getRuntimeInput().onResponseEnd?.()
+    await settle(fixture)
+    await settle(fixture)
+    expect(fixture.componentInstance.artifactTabs()).toEqual([])
+  })
+
+  it('opens task summary workspace files in independent artifact tabs', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
@@ -1037,15 +1203,65 @@ describe('ClawXpertConversationDetailComponent', () => {
       'file-1',
       true
     )
-    expect(filePreviewModule.openWorkbenchFilePreviewDialog).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
+    expect(fixture.componentInstance.artifactTabs()[0].resource).toMatchObject({
+      type: 'file',
+      file: {
         id: 'file-1',
         name: 'Report',
         size: 2 * 1024 * 1024,
         url: 'https://files.example.com/report.pdf'
-      })
-    )
+      }
+    })
+  })
+
+  it('reuses a tool file tab when the response summary gives the same file an asset ID', async () => {
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    getRuntimeInput().onLog?.({
+      name: 'component',
+      data: {
+        tool: 'export_files',
+        status: 'success',
+        output: JSON.stringify({
+          files: [{ filePath: '/workspace/report.pdf', fileName: 'Report.pdf', fileUrl: 'https://files/report.pdf' }]
+        })
+      }
+    })
+    await settle(fixture)
+    const fileTabId = fixture.componentInstance.artifactTabs()[0].id
+    getRuntimeInput().onEffect?.({
+      name: 'task_summary.open_resource',
+      data: {
+        conversationId: 'conversation-1',
+        resource: { type: 'workspace_file', workspacePath: '/workspace/report.pdf', fileAssetId: 'file-1' }
+      }
+    })
+    await settle(fixture)
+    expect(fixture.componentInstance.artifactTabs()).toEqual([
+      expect.objectContaining({ id: fileTabId, resource: expect.objectContaining({ type: 'file' }) })
+    ])
+    expect(fixture.componentInstance.activeTabId()).toBe(fileTabId)
+  })
+
+  it('does not open a late file response after the user switches conversations', async () => {
+    const fileResponse = new Subject<{ fileUrl: string }>()
+    conversationService.getFile.mockReturnValueOnce(fileResponse)
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    getRuntimeInput().onEffect?.({
+      name: 'task_summary.open_resource',
+      data: {
+        conversationId: 'conversation-1',
+        resource: { type: 'workspace_file', workspacePath: '/workspace/report.pdf' }
+      }
+    })
+    expect(conversationService.getFile).toHaveBeenCalled()
+    facade.threadId.set('thread-2')
+    await settle(fixture)
+    fileResponse.next({ fileUrl: 'https://files.example.com/report.pdf' })
+    fileResponse.complete()
+    await settle(fixture)
+    expect(fixture.componentInstance.artifactTabs()).toEqual([])
   })
 
   it('downloads task summary workspace files with authentication when no public preview URL is available', async () => {
@@ -1086,16 +1302,19 @@ describe('ClawXpertConversationDetailComponent', () => {
 
       expect(conversationService.downloadFile).toHaveBeenCalledWith('conversation-1', '/workspace/report.pdf')
       expect(createObjectURL).toHaveBeenCalledWith(expect.any(Blob))
-      expect(filePreviewModule.openWorkbenchFilePreviewDialog).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
+      expect(fixture.componentInstance.artifactTabs()[0].resource).toMatchObject({
+        type: 'file',
+        file: {
           id: 'file-1',
           name: 'Private report',
           url: 'blob:private-report',
           previewUrl: 'blob:private-report'
-        })
-      )
+        }
+      })
+      expect(revokeObjectURL).not.toHaveBeenCalled()
+      fixture.componentInstance.closeWorkspaceTab(new Event('click'), fixture.componentInstance.activeTabId())
       expect(revokeObjectURL).toHaveBeenCalledWith('blob:private-report')
+      fixture.destroy()
     } finally {
       if (originalCreateObjectURL) {
         Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: originalCreateObjectURL })
@@ -1125,14 +1344,14 @@ describe('ClawXpertConversationDetailComponent', () => {
     await settle(fixture)
 
     expect(artifactService.createSignedPreviewLink).toHaveBeenCalledWith('artifact-1')
-    expect(filePreviewModule.openWorkbenchFilePreviewDialog).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
+    expect(fixture.componentInstance.artifactTabs()[0].resource).toMatchObject({
+      type: 'file',
+      file: {
         id: 'artifact-1',
         size: 3 * 1024 * 1024,
         url: 'https://artifacts.example.com/report.pdf'
-      })
-    )
+      }
+    })
   })
 
   it('opens validated task summary URLs in the existing Browser tab', async () => {
@@ -1298,7 +1517,7 @@ describe('ClawXpertConversationDetailComponent', () => {
         buildFixedViewManifest('metrics', {
           order: 40,
           workbench: {
-            fixed: true,
+            openMode: 'auto',
             menu: {
               enabled: true,
               label: {
@@ -1313,9 +1532,9 @@ describe('ClawXpertConversationDetailComponent', () => {
         buildFixedViewManifest('hidden', {
           visible: false
         }),
-        buildFixedViewManifest('not-fixed', {
+        buildFixedViewManifest('disabled-view', {
+          visible: false,
           workbench: {
-            fixed: false,
             menu: {
               enabled: true
             }
@@ -1323,7 +1542,7 @@ describe('ClawXpertConversationDetailComponent', () => {
         }),
         buildFixedViewManifest('disabled-menu', {
           workbench: {
-            fixed: true,
+            openMode: 'auto',
             menu: {
               enabled: false
             }
@@ -1336,7 +1555,7 @@ describe('ClawXpertConversationDetailComponent', () => {
             zh_Hans: 'BOM 审核台'
           },
           workbench: {
-            fixed: true,
+            openMode: 'auto',
             menu: {
               enabled: true,
               order: 10
@@ -1370,6 +1589,10 @@ describe('ClawXpertConversationDetailComponent', () => {
       expect.objectContaining({
         kind: 'fixed-view',
         viewKey: 'metrics'
+      }),
+      expect.objectContaining({
+        kind: 'fixed-view',
+        viewKey: 'disabled-menu'
       })
     ])
     expect(fixture.componentInstance.activeFixedViewTab()?.viewKey).toBe('bom')
@@ -1527,6 +1750,64 @@ describe('ClawXpertConversationDetailComponent', () => {
     await settle(fixture)
     expect(fixture.componentInstance.activeTabId()).toBe(filesTab.id)
     expect(fixture.componentInstance.activeFixedViewTab()).toBeNull()
+  })
+
+  it('keeps on-demand views available and opens them only for the current live project or an explicit URL', async () => {
+    facade.projectId.set('project-1')
+    const timeline = buildFixedViewManifest('platform.project-tasks__timeline', {
+      workbench: { openMode: 'on-demand', menu: { enabled: false } }
+    })
+    viewExtensionApi.getSlotViews.mockReturnValue(of([buildFixedViewManifest('studio'), timeline]))
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    const component = fixture.componentInstance
+    expect(component.fixedViewMenuItems().map((view) => view.viewKey)).toEqual(['studio'])
+    expect(component.availableWorkbenchViews()).toHaveLength(2)
+    expect(component.fixedViewTabs().map((tab) => tab.viewKey)).toEqual(['studio'])
+    getRuntimeInput().onLog?.({
+      name: 'lg.chat.event',
+      data: {
+        type: 'workbench.view.open',
+        projectId: 'foreign',
+        viewKey: timeline.key
+      }
+    })
+    await settle(fixture)
+    expect(component.fixedViewTabs()).toHaveLength(1)
+    component.resolvedConversationId.set('conversation-1')
+    expect(component.viewRuntimeScope().conversationId).toBeNull()
+    getRuntimeInput().onLog?.({
+      name: 'lg.chat.event',
+      data: {
+        type: 'workbench.view.open',
+        projectId: 'project-1',
+        conversationId: 'foreign',
+        viewKey: timeline.key
+      }
+    })
+    await settle(fixture)
+    expect(component.fixedViewTabs()).toHaveLength(1)
+    component.resolvedConversationId.set(null)
+    getRuntimeInput().onLog?.({
+      name: 'lg.chat.event',
+      data: {
+        type: 'workbench.view.open',
+        projectId: 'project-1',
+        conversationId: 'conversation-1',
+        viewKey: timeline.key
+      }
+    })
+    await settle(fixture)
+    expect(component.fixedViewTabs()).toHaveLength(1)
+    component.resolvedConversationId.set('conversation-1')
+    await settle(fixture)
+    expect(component.activeFixedViewTab()?.viewKey).toBe(timeline.key)
+    component.closeWorkspaceTab(new Event('click'), component.activeFixedViewTab()!.id)
+    await settle(fixture)
+    expect(component.fixedViewTabs().map((tab) => tab.viewKey)).toEqual(['studio'])
+    workbenchViewUrlState.viewKey.set(timeline.key)
+    await settle(fixture)
+    expect(component.activeFixedViewTab()?.viewKey).toBe(timeline.key)
   })
 
   it('opens fixed views as reusable workspace tabs rendered through the extension host outlet', async () => {
@@ -2021,7 +2302,18 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(conversationService.markRead).toHaveBeenCalledWith('history-conversation-1')
   })
 
-  it('opens assistant conversation client commands inside the embedded chatkit', async () => {
+  it('forwards embedded view commands to the authorized execution conversation and reopens the same attempt', async () => {
+    viewExtensionApi.getSlotViews.mockReturnValue(
+      of([
+        buildFixedViewManifest('platform.project-tasks__timeline', {
+          clientCommands: [{ key: WORKBENCH_NAVIGATION_OPEN_COMMAND, label: { en_US: 'Open execution' } }]
+        })
+      ])
+    )
+    Object.assign(facade, {
+      chatkitProjectSelection: signal({ mode: 'auto-new' }),
+      currentXpert: signal({ options: { workspaceScope: { mode: 'project-required', onMissing: 'create' } } })
+    })
     const setThreadId = jest.fn().mockResolvedValue(undefined)
     runtimeModule.injectHostedAssistantChatkitControl.mockReturnValueOnce(
       signal({
@@ -2047,24 +2339,20 @@ describe('ClawXpertConversationDetailComponent', () => {
     facade.onChatThreadChange.mockClear()
     facade.setActiveConversation.mockClear()
     conversationService.markRead.mockClear()
-    const registry = TestBed.inject(ViewClientCommandRegistry)
-    const result = await registry.execute(
-      WORKBENCH_NAVIGATION_OPEN_COMMAND,
-      {
+    const result = await getRuntimeInput().workbench?.onClientCommand?.({
+      commandKey: WORKBENCH_NAVIGATION_OPEN_COMMAND,
+      hostType: 'agent',
+      hostId: 'assistant-1',
+      viewKey: 'platform.project-tasks__timeline',
+      payload: {
         target: WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
         conversationId: 'job-conversation-1',
         threadId: 'job-thread-1',
         executionId: 'job-execution-1',
         xpertId: 'spoofed-role-assistant',
         projectId: 'case-project-1'
-      },
-      {
-        hostType: 'agent',
-        hostId: 'assistant-1',
-        viewKey: 'drawing-material',
-        manifest: buildFixedViewManifest('drawing-material')
       }
-    )
+    })
     await settle(fixture)
 
     expect(result).toEqual({
@@ -2082,6 +2370,10 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(conversationService.getById).not.toHaveBeenCalledWith('job-conversation-1', { relations: ['messages'] })
     expect(getRuntimeInput().assistantId?.()).toBe('role-assistant-current')
     expect(getRuntimeInput().projectId?.()).toBe('case-project-1')
+    expect(getRuntimeInput().composer?.().projects).toMatchObject({
+      selection: undefined,
+      autoNewEnabled: false
+    })
     expect(getRuntimeInput().initialThread?.()).toBe('job-thread-1')
     expect(getRuntimeInput().delegatedConversation?.()).toEqual({
       conversationId: 'job-conversation-1',
@@ -2089,12 +2381,42 @@ describe('ClawXpertConversationDetailComponent', () => {
     })
     expect(fixture.nativeElement.querySelector('xpert-chatkit')).not.toBe(primaryChatkitElement)
     expect(getRuntimeInput().requestContext?.()).toEqual(
-      expect.objectContaining({ env: expect.objectContaining({ xpertId: 'role-assistant-current' }) })
+      expect.objectContaining({
+        env: expect.objectContaining({
+          xpertId: 'role-assistant-current',
+          threadId: 'job-thread-1',
+          executionId: 'job-execution-1',
+          executionFocusRequestId: '1'
+        })
+      })
     )
     expect(setThreadId).not.toHaveBeenCalledWith('job-thread-1')
     expect(facade.onChatThreadChange).not.toHaveBeenCalled()
     expect(facade.setActiveConversation).not.toHaveBeenCalled()
     expect(conversationService.markRead).toHaveBeenCalledWith('job-conversation-1')
+
+    await getRuntimeInput().workbench?.onClientCommand?.({
+      commandKey: WORKBENCH_NAVIGATION_OPEN_COMMAND,
+      hostType: 'agent',
+      hostId: 'role-assistant-current',
+      viewKey: 'platform.project-tasks__timeline',
+      payload: {
+        target: WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
+        conversationId: 'job-conversation-1',
+        threadId: 'job-thread-1',
+        executionId: 'job-execution-1'
+      }
+    })
+    await settle(fixture)
+    expect(getRuntimeInput().requestContext?.()).toEqual(
+      expect.objectContaining({
+        env: expect.objectContaining({
+          threadId: 'job-thread-1',
+          executionId: 'job-execution-1',
+          executionFocusRequestId: '2'
+        })
+      })
+    )
 
     const runtimeInput = getRuntimeInput()
     runtimeInput.onThreadChange?.({ threadId: 'role-thread-2' })
@@ -2359,9 +2681,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(fixture.componentInstance.workspaceLayoutClasses()).toContain(
       'lg:grid-cols-[minmax(0,1fr)_minmax(24rem,var(--clawxpert-chatkit-width))]'
     )
-    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain(
-      'grid-rows-[minmax(0,1fr)_minmax(24rem,32rem)]'
-    )
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('grid-rows-1')
     expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('lg:grid-rows-1')
     expect(fixture.componentInstance.chatShellClasses()).toContain('lg:max-w-[var(--clawxpert-chatkit-width)]')
     expect(fixture.componentInstance.detailPanelShellClasses()).toContain('opacity-100')
@@ -2385,6 +2705,25 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(addTabButton?.className).toContain('!h-9')
     expect(addTabButton?.className).toContain('!w-9')
     expect(addTabButton?.className).toContain('rounded-xl')
+
+    const host: HTMLElement = fixture.nativeElement
+    const chatkit = host.querySelector('xpert-chatkit')
+    const workspace = host.querySelector('[data-workbench-layout]')
+    const opener = host.querySelector<HTMLButtonElement>('[data-open-chat-sidebar]')!
+    expect(host.querySelector('[data-chat-sidebar-header]')).toBeNull()
+    host.querySelector<HTMLButtonElement>('[data-chat-sidebar-backdrop]')!.click()
+    await settle(fixture)
+    expect(workspace?.getAttribute('data-chat-sidebar-collapsed')).toBe('true')
+    expect(opener.getAttribute('aria-expanded')).toBe('false')
+    expect(host.querySelector('[data-chat-sidebar-backdrop]')).toBeNull()
+    expect(document.activeElement).toBe(opener)
+    expect(host.querySelector('xpert-chatkit')).toBe(chatkit)
+    opener.click()
+    await settle(fixture)
+    expect(workspace?.getAttribute('data-chat-sidebar-collapsed')).toBe('false')
+    expect(host.querySelector('[data-chat-sidebar-backdrop]')).not.toBeNull()
+    expect(host.querySelector('xpert-chatkit')).toBe(chatkit)
+    expect(component.activeTabId()).toBe(tabButton?.getAttribute('data-tab-id'))
   })
 
   it.each([false, true])(
@@ -2421,9 +2760,10 @@ describe('ClawXpertConversationDetailComponent', () => {
       await settle(fixture)
 
       expect(toggle.previousElementSibling?.hasAttribute('data-toggle-chatkit-maximized')).toBe(true)
-      expect(toggle.nextElementSibling?.hasAttribute('data-chatkit-layout-mode-toggle')).toBe(true)
+      expect(host.querySelectorAll('[data-toggle-workbench-maximized]')).toHaveLength(1)
+      expect(host.querySelector('[data-chatkit-layout-mode-toggle]')).toBeNull()
       expect(toggle.getAttribute('aria-pressed')).toBe('false')
-      expect(toggle.querySelector('i')?.className).toContain('ri-fullscreen-line')
+      expect(toggle.querySelector('i')?.className).toContain('ri-expand-diagonal-line')
       expect(view).not.toBeNull()
       toggle.focus()
       toggle.click()
@@ -2434,7 +2774,7 @@ describe('ClawXpertConversationDetailComponent', () => {
       expect(getRuntimeInput().displayMode?.()).toBe('pet')
       expect(toggle.getAttribute('aria-pressed')).toBe('true')
       expect(toggle.getAttribute('aria-label')).toBe('XP.Chat.WorkbenchPresentation.RestoreLayout')
-      expect(toggle.querySelector('i')?.className).toContain('ri-fullscreen-exit-line')
+      expect(toggle.querySelector('i')?.className).toContain('ri-collapse-diagonal-line')
       expect(localStorage.getItem(getClawXpertWorkbenchLayoutStorageKey('user-1', 'assistant-1'))).toBe('maximized')
       // Changing layout must wait for the embedded runtime to enter overlay mode.
       expect(minimize).not.toHaveBeenCalled()
@@ -2451,9 +2791,13 @@ describe('ClawXpertConversationDetailComponent', () => {
       } else {
         expect(minimize).toHaveBeenCalledTimes(1)
         expect(component.isChatMinimizedToPet()).toBe(true)
+        expect(host.querySelector('[data-restore-chatkit-overlay]')).not.toBeNull()
+        expect(toggle.getAttribute('aria-label')).toBe('XP.Chat.WorkbenchPresentation.RestoreLayout')
         toggle.click()
         await settle(fixture)
         expect(chatkit.dataset.chatOpen).toBe('true')
+        expect(component.workspaceMaximized()).toBe(false)
+        expect(host.querySelector('[data-restore-chatkit-overlay]')).toBeNull()
       }
       chatkit.dataset.displayMode = 'chat'
       await settle(fixture)
@@ -2462,7 +2806,7 @@ describe('ClawXpertConversationDetailComponent', () => {
       expect(component.overlayDialog()).toBe(false)
       expect(component.showChatkitResizeHandle()).toBe(true)
       expect(toggle.getAttribute('aria-pressed')).toBe('false')
-      expect(toggle.querySelector('i')?.className).toContain('ri-fullscreen-line')
+      expect(toggle.querySelector('i')?.className).toContain('ri-expand-diagonal-line')
       expect(document.activeElement).toBe(toggle)
       expect(host.querySelector('[data-toggle-workbench-maximized]')).toBe(toggle)
       expect(host.querySelector('[z-tab-nav-bar]')).toBe(nav)
@@ -2493,7 +2837,7 @@ describe('ClawXpertConversationDetailComponent', () => {
 
     expect(fixture.componentInstance.showDetailPanel()).toBe(false)
     expect(fixture.componentInstance.workspaceMaximized()).toBe(false)
-    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('lg:grid-cols-[0rem_minmax(0,1fr)]')
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('grid-cols-[0rem_minmax(0,1fr)]')
     expect(localStorage.getItem(getClawXpertWorkbenchLayoutStorageKey('user-1', 'assistant-1'))).toBe('minimized')
 
     const showWorkbenchButton = fixture.nativeElement.querySelector(
@@ -2615,8 +2959,9 @@ describe('ClawXpertConversationDetailComponent', () => {
       )
 
       const view = host.querySelector('[data-extension-host-outlet]')
-      host.querySelector<HTMLButtonElement>('[data-chatkit-layout-mode-toggle]')!.click()
+      host.querySelector<HTMLButtonElement>('[data-restore-chatkit-overlay]')!.click()
       await settle(fixture)
+      expect(host.querySelector('[data-restore-chatkit-overlay]')).toBeNull()
       expect(open).toHaveBeenCalledTimes(1)
       expect(chatkit.dataset.chatOpen).toBe('true')
       expect(component.isChatMinimizedToPet()).toBe(false)
@@ -2627,7 +2972,7 @@ describe('ClawXpertConversationDetailComponent', () => {
       close.click()
       await settle(fixture)
       expect(component.isChatMinimizedToPet()).toBe(true)
-      component.restoreWorkbenchLayout()
+      host.querySelector<HTMLButtonElement>('[data-toggle-workbench-maximized]')!.click()
       await settle(fixture)
       expect(component.overlayDialog()).toBe(false)
       expect(component.workspaceMaximized()).toBe(false)
@@ -2650,7 +2995,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(view).not.toBeNull()
     expect(host.querySelector('[data-workbench-layout]')?.getAttribute('data-workbench-layout')).toBe('maximized')
 
-    host.querySelector<HTMLButtonElement>('[data-chatkit-layout-mode-toggle]')?.click()
+    host.querySelector<HTMLButtonElement>('[data-toggle-workbench-maximized]')?.click()
     await settle(fixture)
 
     expect(presentation.immersive()).toBe(false)
@@ -2664,7 +3009,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(host.querySelector('xpert-chatkit')).toBe(chatkit)
     expect(localStorage.getItem(getClawXpertWorkbenchLayoutStorageKey('user-1', 'assistant-1'))).toBe('normal')
 
-    fixture.componentInstance.restoreOverlayChatkit()
+    fixture.componentInstance.toggleWorkbenchMaximized()
     await settle(fixture)
     expect(presentation.immersive()).toBe(true)
     expect(host.querySelector('[data-extension-host-outlet]')).toBe(view)
@@ -2708,6 +3053,9 @@ describe('ClawXpertConversationDetailComponent', () => {
     const launcherCloseButton = document.createElement('button')
     launcherCloseButton.className = 'ck-launcher-close'
     launcherCloseButton.setAttribute('aria-label', 'Close chat')
+    launcherCloseButton.addEventListener('click', () => {
+      chatkit.dataset.chatOpen = 'false'
+    })
     wrapper.appendChild(launcherCloseButton)
     const petButton = document.createElement('button')
     const activatePet = jest.fn(() => {
@@ -2727,19 +3075,19 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(activatePet).toHaveBeenCalledTimes(1)
     expect(chatkit.dataset.chatOpen).toBe('true')
     expect(fixture.componentInstance.showDetailPanel()).toBe(true)
-    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('lg:grid-cols-[minmax(0,1fr)_0rem]')
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('grid-cols-[minmax(0,1fr)_0rem]')
     expect(fixture.nativeElement.querySelector('[data-chatkit-resize-handle]')).toBeNull()
 
     const dragBar = shadowRoot.querySelector<HTMLElement>('[data-chatkit-overlay-drag-bar]')
     const resizeHandle = shadowRoot.querySelector<HTMLElement>('[data-chatkit-overlay-resize-handle]')
     const controlsStyle = shadowRoot.querySelector<HTMLStyleElement>('[data-chatkit-overlay-controls-style]')
     const layoutModeButton = fixture.nativeElement.querySelector(
-      '[data-chatkit-layout-mode-toggle]'
+      '[data-toggle-workbench-maximized]'
     ) as HTMLButtonElement
     expect(dragBar).not.toBeNull()
-    expect(layoutModeButton.dataset.chatkitLayoutMode).toBe('overlay')
-    expect(layoutModeButton.title).toBe('XP.Chat.ClawXpert.PinOverlayDialog')
-    expect(layoutModeButton.querySelector('i')?.className).toContain('ri-layout-right-line')
+    expect(layoutModeButton.getAttribute('aria-pressed')).toBe('true')
+    expect(layoutModeButton.title).toBe('XP.Chat.WorkbenchPresentation.RestoreLayout')
+    expect(layoutModeButton.querySelector('i')?.className).toContain('ri-collapse-diagonal-line')
     expect(resizeHandle).not.toBeNull()
     expect(resizeHandle?.getAttribute('role')).toBe('separator')
     expect(controlsStyle?.textContent).toContain('top: 1px')
@@ -2773,10 +3121,15 @@ describe('ClawXpertConversationDetailComponent', () => {
     await settle(fixture)
 
     expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(true)
-    expect(layoutModeButton.dataset.chatkitLayoutMode).toBe('pet')
-    expect(layoutModeButton.querySelector('i')?.className).toContain('ri-restart-line')
-    layoutModeButton.click()
+    expect(layoutModeButton.title).toBe('XP.Chat.WorkbenchPresentation.RestoreLayout')
+    expect(layoutModeButton.querySelector('i')?.className).toContain('ri-collapse-diagonal-line')
+    const restoreOverlayButton = fixture.nativeElement.querySelector(
+      '[data-restore-chatkit-overlay]'
+    ) as HTMLButtonElement
+    expect(restoreOverlayButton.title).toBe('XP.Chat.ClawXpert.RestoreChatkit')
+    restoreOverlayButton.click()
     await settle(fixture)
+    expect(fixture.nativeElement.querySelector('[data-restore-chatkit-overlay]')).toBeNull()
 
     expect(activatePet).toHaveBeenCalledTimes(2)
     expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(false)
@@ -2792,9 +3145,9 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(fixture.componentInstance.showDetailPanel()).toBe(true)
     expect(shadowRoot.querySelector('[data-chatkit-overlay-drag-bar]')).toBeNull()
     expect(shadowRoot.querySelector('[data-chatkit-overlay-resize-handle]')).toBeNull()
-    expect(layoutModeButton.dataset.chatkitLayoutMode).toBe('pinned')
-    expect(layoutModeButton.title).toBe('XP.Chat.ClawXpert.SwitchToOverlayDialog')
-    expect(layoutModeButton.querySelector('i')?.className).toContain('ri-picture-in-picture-2-line')
+    expect(layoutModeButton.getAttribute('aria-pressed')).toBe('false')
+    expect(layoutModeButton.title).toBe('XP.Chat.WorkbenchPresentation.MaximizeWorkbench')
+    expect(layoutModeButton.querySelector('i')?.className).toContain('ri-expand-diagonal-line')
     expect(wrapper.style.left).toBe('')
     expect(wrapper.style.top).toBe('')
     expect(wrapper.style.right).toBe('')
@@ -2807,7 +3160,11 @@ describe('ClawXpertConversationDetailComponent', () => {
     )
     expect(localStorage.getItem(getClawXpertWorkbenchLayoutStorageKey('user-1', 'assistant-1'))).toBe('normal')
 
+    chatkit.dataset.displayMode = 'chat'
+    await settle(fixture)
     layoutModeButton.click()
+    await settle(fixture)
+    chatkit.dataset.displayMode = 'pet'
     await settle(fixture)
 
     expect(fixture.componentInstance.overlayDialog()).toBe(true)
@@ -2815,10 +3172,11 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(runtimeInput.displayMode?.()).toBe('pet')
     expect(runtimeInput.header?.()).toBeUndefined()
     expect(shadowRoot.querySelector('[data-chatkit-overlay-drag-bar]')).not.toBeNull()
-    expect(layoutModeButton.dataset.chatkitLayoutMode).toBe('overlay')
+    expect(layoutModeButton.getAttribute('aria-pressed')).toBe('true')
     expect(launcherCloseButton.style.getPropertyValue('display')).toBe('none')
     expect(launcherCloseButton.getAttribute('aria-hidden')).toBe('true')
-    expect(localStorage.getItem(getClawXpertWorkbenchLayoutStorageKey('user-1', 'assistant-1'))).toBe('overlay')
+    expect(fixture.componentInstance.workspaceMaximized()).toBe(true)
+    expect(localStorage.getItem(getClawXpertWorkbenchLayoutStorageKey('user-1', 'assistant-1'))).toBe('maximized')
   })
 
   it('opens the configured extension view as the initial Workbench tab', async () => {
@@ -2978,7 +3336,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(showDetailPanelButton).not.toBeNull()
     expect(fixture.componentInstance.isChatMinimizedToPet()).toBe(false)
     expect(fixture.componentInstance.showDetailPanel()).toBe(false)
-    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('lg:grid-cols-[0rem_minmax(0,1fr)]')
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('grid-cols-[0rem_minmax(0,1fr)]')
     expect(fixture.componentInstance.chatShellClasses()).toContain('lg:w-full')
     expect(fixture.componentInstance.chatSurfaceClasses()).toBe('')
 
@@ -2990,17 +3348,17 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(fixture.componentInstance.workbenchMaximized()).toBe(true)
     expect(fixture.componentInstance.chatkitHiddenFromWorkspace()).toBe(true)
     const petLayoutModeButton = fixture.nativeElement.querySelector(
-      '[data-chatkit-layout-mode-toggle]'
+      '[data-restore-chatkit-overlay]'
     ) as HTMLButtonElement | null
     expect(petLayoutModeButton).not.toBeNull()
-    expect(petLayoutModeButton?.dataset.chatkitLayoutMode).toBe('pet')
-    expect(petLayoutModeButton?.querySelector('i')?.className).toContain('ri-restart-line')
+    expect(petLayoutModeButton?.title).toBe('XP.Chat.ClawXpert.RestoreChatkit')
+    expect(petLayoutModeButton?.querySelector('i')?.className).toContain('ri-picture-in-picture-2-line')
     const maximizeChatkitButton = fixture.nativeElement.querySelector(
       '[data-toggle-chatkit-maximized]'
     ) as HTMLElement | null
     expect(maximizeChatkitButton).toBeNull()
-    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('lg:grid-cols-[minmax(0,1fr)_0rem]')
-    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('grid-rows-[minmax(0,1fr)_0rem]')
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('grid-cols-[minmax(0,1fr)_0rem]')
+    expect(fixture.componentInstance.workspaceLayoutClasses()).toContain('grid-rows-1')
     expect(fixture.componentInstance.chatShellClasses()).toContain('lg:w-0')
     expect(fixture.componentInstance.chatShellClasses()).toContain('lg:max-w-0')
     expect(fixture.componentInstance.chatSurfaceClasses()).toBe('')
@@ -3014,7 +3372,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(fixture.componentInstance.showDetailPanel()).toBe(true)
     expect(fixture.componentInstance.workbenchMaximized()).toBe(false)
     expect(fixture.componentInstance.chatkitHiddenFromWorkspace()).toBe(false)
-    expect(fixture.nativeElement.querySelector('[data-toggle-detail-panel]')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-toggle-workbench-maximized]')).not.toBeNull()
     expect(fixture.componentInstance.workspaceLayoutClasses()).toContain(
       'lg:grid-cols-[minmax(0,1fr)_minmax(24rem,var(--clawxpert-chatkit-width))]'
     )
@@ -3102,6 +3460,24 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(terminal).not.toBeNull()
     expect((terminal.componentInstance as ChatSharedTerminalComponent).conversationId).toBe('conversation-1')
     expect((terminal.componentInstance as ChatSharedTerminalComponent).projectId).toBe('project-1')
+  })
+
+  it('navigates from a stale route thread to the conversation working thread', async () => {
+    conversationService.getById.mockReturnValue(
+      of({
+        id: 'conversation-1',
+        threadId: 'branch-b',
+        projectId: 'project-1',
+        status: 'idle',
+        messages: []
+      } as IChatConversation)
+    )
+
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(facade.onChatThreadChange).toHaveBeenCalledWith('branch-b')
+    expect(facade.setActiveConversation).not.toHaveBeenCalledWith(expect.objectContaining({ id: 'conversation-1' }))
   })
 
   it('keeps the panel available when metadata has conversation id but conversation detail lookup fails', async () => {
@@ -3464,7 +3840,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(setThreadId).not.toHaveBeenCalledWith('thread-new')
   })
 
-  it('passes the file list reload key to the files panel and refreshes it after relevant log events', async () => {
+  it('refreshes a manually opened files panel after relevant log events', async () => {
     jest.useFakeTimers()
     facade.initialLayout.set(XpertWorkbenchInitialLayoutEnum.ChatkitMaximized)
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
@@ -3473,6 +3849,10 @@ describe('ClawXpertConversationDetailComponent', () => {
     const runtimeInput = getRuntimeInput()
     expect(fixture.componentInstance.showDetailPanel()).toBe(false)
     expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).toBeNull()
+
+    fixture.componentInstance.openFilesTab()
+    fixture.detectChanges()
+    const activeTabId = fixture.componentInstance.activeTabId()
 
     runtimeInput.onLog?.({
       name: 'tool_log',
@@ -3488,6 +3868,7 @@ describe('ClawXpertConversationDetailComponent', () => {
 
     const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
     expect(fixture.componentInstance.showDetailPanel()).toBe(true)
+    expect(fixture.componentInstance.activeTabId()).toBe(activeTabId)
     expect(filesPanel).not.toBeNull()
     expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).reloadKey).toBe(0)
 
@@ -3568,7 +3949,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect((preview.componentInstance as ClawXpertConversationPreviewComponent).url).toBe('localhost:3000')
   })
 
-  it('debounces multiple relevant log events into a single file list refresh', async () => {
+  it('debounces file changes without opening the files view or switching tabs', async () => {
     jest.useFakeTimers()
     facade.initialLayout.set(XpertWorkbenchInitialLayoutEnum.ChatkitMaximized)
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
@@ -3577,6 +3958,8 @@ describe('ClawXpertConversationDetailComponent', () => {
     const runtimeInput = getRuntimeInput()
     expect(fixture.componentInstance.showDetailPanel()).toBe(false)
     expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).toBeNull()
+    const activeTabId = fixture.componentInstance.activeTabId()
+    const tabs = fixture.componentInstance.workspaceTabs()
 
     runtimeInput.onLog?.({
       name: 'tool_log',
@@ -3589,9 +3972,8 @@ describe('ClawXpertConversationDetailComponent', () => {
     jest.advanceTimersByTime(200)
     fixture.detectChanges()
 
-    const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
-    expect(fixture.componentInstance.showDetailPanel()).toBe(true)
-    expect(filesPanel).not.toBeNull()
+    expect(fixture.componentInstance.showDetailPanel()).toBe(false)
+    expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).toBeNull()
 
     runtimeInput.onLog?.({
       name: 'tool_log',
@@ -3605,10 +3987,21 @@ describe('ClawXpertConversationDetailComponent', () => {
 
     jest.advanceTimersByTime(299)
     fixture.detectChanges()
-    expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).reloadKey).toBe(0)
+    expect(fixture.componentInstance.fileListReloadKey()).toBe(0)
 
     jest.advanceTimersByTime(1)
     fixture.detectChanges()
+    expect(fixture.componentInstance.fileListReloadKey()).toBe(1)
+    expect(fixture.componentInstance.showDetailPanel()).toBe(false)
+    expect(fixture.componentInstance.activeTabId()).toBe(activeTabId)
+    expect(fixture.componentInstance.workspaceTabs()).toEqual(tabs)
+    expect(fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))).toBeNull()
+
+    fixture.componentInstance.openFilesTab()
+    fixture.detectChanges()
+    const filesPanel = fixture.debugElement.query(By.directive(ClawXpertConversationFilesComponent))
+    expect(fixture.componentInstance.showDetailPanel()).toBe(true)
+    expect(filesPanel).not.toBeNull()
     expect((filesPanel.componentInstance as ClawXpertConversationFilesComponent).reloadKey).toBe(1)
   })
 

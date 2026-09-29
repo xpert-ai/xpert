@@ -83,6 +83,7 @@ import { McpConsumerCapabilitiesController, McpConsumerCapabilitiesService } fro
         ...CommandHandlers
     ],
     exports: [
+        McpAppsService,
         XpertToolsetService,
         ToolRuntimeService,
         ToolsetRegistry,

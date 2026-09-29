@@ -91,96 +91,15 @@
   (change)="onUploadFiles($event, 'folder')"
 />
 
-<xp-file-viewer
+<xp-file-document
   class="lg:block min-h-[320px]"
-  [surface]="layout() === 'library' ? 'plain' : 'card'"
-  [file]="activeFile()"
   [class.hidden]="mobilePane() !== 'file'"
-  [filePath]="activeFilePath()"
-  [content]="draftContent()"
-  [loading]="fileLoading()"
-  [saving]="saving()"
-  [readable]="fileReadable()"
-  [editable]="isActiveFileEditable()"
-  [markdown]="isMarkdownFile()"
-  [docx]="isDocxFile()"
-  [pptx]="isPptxFile()"
-  [documentBuffer]="documentBuffer()"
-  [spreadsheet]="isSpreadsheetFile()"
-  [dirty]="dirty()"
-  [downloadable]="canDownloadActiveFile()"
-  [referenceable]="referenceable()"
-  [previewUrl]="activePreviewUrl()"
+  [document]="document"
+  [active]="active()"
+  [surface]="layout() === 'library' ? 'plain' : 'card'"
   [sideMenuToggleVisible]="true"
   [sideMenuVisible]="fileTreeVisible()"
-  [mode]="panelMode()"
-  [readOnlyHint]="
-    'XP.Files.ReadOnlyFileHint'
-      | translate
-        : {
-            Default:
-              'This file is shown in read-only mode. Only markdown, code, and selected text formats can be edited.'
-          }
-  "
-  [unsupportedPreviewTitle]="
-    'XP.Files.BinaryPreviewUnsupported'
-      | translate
-        : {
-            Default: 'This file cannot be previewed here.'
-          }
-  "
-  [unsupportedPreviewHint]="
-    'XP.Files.BinaryPreviewHint'
-      | translate
-        : {
-            Default:
-              'This file is not a text-based format. Download it to inspect the original contents in another app.'
-          }
-  "
-  (modeChange)="switchPanelMode($event)"
-  (contentChange)="draftContent.set($event)"
-  (documentDirtyChange)="docxDirty.set($event)"
-  (documentSave)="saveActiveFile($event)"
-  (documentError)="handleDocumentError($event)"
-  (spreadsheetDirtyChange)="spreadsheetDirty.set($event)"
-  (pptxDirtyChange)="pptxDirty.set($event)"
-  (pptxError)="handleDocumentError($event)"
-  (discard)="discardActiveFileChanges()"
-  (save)="saveActiveFile()"
-  (refresh)="refreshActiveFile()"
-  (download)="downloadActiveFile()"
-  (referenceFile)="referenceActiveFile()"
-  (referenceElement)="referenceFileElement($event)"
-  (referenceSelection)="referenceSelectedRange($event)"
+  [backVisible]="true"
   (sideMenuToggle)="toggleFileTree()"
   (back)="mobilePane.set('tree')"
 />
-
-<ng-template #unsavedChangesDialog>
-  <div class="w-[min(28rem,calc(100vw-2rem))] rounded-2xl bg-components-card-bg p-6 shadow-2xl">
-    <div class="text-lg font-semibold text-text-primary">
-      {{ 'XP.Files.UnsavedChangesTitle' | translate: { Default: 'Unsaved changes' } }}
-    </div>
-    <div class="mt-2 text-sm leading-6 text-text-tertiary">
-      {{
-        'XP.Files.UnsavedChangesInfo'
-          | translate
-            : {
-                Default:
-                  'You have unsaved edits in the current file. Save them before switching, or discard the pending changes.'
-              }
-      }}
-    </div>
-    <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-      <button z-button zType="secondary" type="button" (click)="resolveDirtyDialog('cancel')">
-        {{ 'COMPONENTS.COMMON.CANCEL' | translate: { Default: 'Cancel' } }}
-      </button>
-      <button z-button zType="secondary" type="button" (click)="resolveDirtyDialog('discard')">
-        {{ 'XP.Files.Discard' | translate: { Default: 'Discard' } }}
-      </button>
-      <button z-button zType="default" type="button" (click)="resolveDirtyDialog('save')">
-        {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
-      </button>
-    </div>
-  </div>
-</ng-template>

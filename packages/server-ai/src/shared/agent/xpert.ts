@@ -1,6 +1,7 @@
+import { avatarForChat } from '../avatar'
 import { isAIMessage, ToolMessage } from '@langchain/core/messages'
 import { Runnable, RunnableLambda } from '@langchain/core/runnables'
-import { DynamicStructuredTool, tool } from '@langchain/core/tools'
+import { DynamicStructuredTool } from '@langchain/core/tools'
 import { LangGraphRunnableConfig } from '@langchain/langgraph'
 import {
     agentLabel,
@@ -8,7 +9,6 @@ import {
     IXpert,
     IXpertAgent,
     IXpertAgentExecution,
-    STATE_VARIABLE_HUMAN,
     TAgentRunnableConfigurable,
     TXpertParameter,
     TXpertTeamNode,
@@ -16,14 +16,13 @@ import {
 } from '@xpert-ai/contracts'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
-import z from 'zod'
 import { TAgentSubgraphResult } from '../../xpert-agent'
 import { XpertAgentSubgraphCommand } from '../../xpert-agent/commands/subgraph.command'
 import { wrapAgentExecution } from './execution'
-import { createParameters } from './parameter'
 import { AgentStateAnnotation, TAgentSubgraphParams } from './state'
 import { IXpertSubAgent } from './types'
 import { GetXpertWorkflowQuery } from '../../xpert/queries'
+import { externalAssistantState } from './external-assistant-state'
 
 /**
  * @experiment class for External Expert SubAgent
@@ -55,8 +54,12 @@ export class XpertCollaborator implements IXpertSubAgent {
      */
     static async build(params: {
         xpert: Partial<IXpert>
+        tool: DynamicStructuredTool
         config: TAgentSubgraphParams & {
-            options: {
+            options: Pick<
+                XpertAgentSubgraphCommand['options'],
+                'conversationId' | 'projectId' | 'workspaceRoot' | 'workspacePath'
+            > & {
                 leaderKey: string
                 isDraft: boolean
                 subscriber: Subscriber<MessageEvent>
@@ -70,7 +73,7 @@ export class XpertCollaborator implements IXpertSubAgent {
         commandBus: CommandBus
         queryBus: QueryBus
     }): Promise<XpertCollaborator> {
-        const { xpert, config, commandBus, queryBus } = params
+        const { xpert, config, commandBus, queryBus, tool: agentTool } = params
         const { options, thread_id, rootController, signal, variables, partners } = config
         const { subscriber, leaderKey } = options
 
@@ -91,6 +94,7 @@ export class XpertCollaborator implements IXpertSubAgent {
         >(
             new XpertAgentSubgraphCommand(agent.key, xpert, {
                 mute: config.mute,
+                unmutes: config.unmutes,
                 store: config.store,
                 thread_id,
                 rootController,
@@ -103,28 +107,12 @@ export class XpertCollaborator implements IXpertSubAgent {
                 variables,
                 channel: channelName(agent.key),
                 partners,
-                environment: config.environment
+                environment: config.environment,
+                conversationId: options.conversationId,
+                projectId: options.projectId,
+                workspaceRoot: options.workspaceRoot,
+                workspacePath: options.workspacePath
             })
-        )
-
-        // Prepare parameters
-        const parameters = xpert.agentConfig?.parameters ?? (xpert.agent.options?.hidden ? [] : xpert.agent.parameters)
-
-        const uniqueName = xpert.slug
-
-        // Create Tool
-        const agentTool = tool(
-            () => {
-                // The actual execution will be handled by State Graph
-            },
-            {
-                name: uniqueName,
-                description: xpert.description,
-                schema: z.object({
-                    ...(createParameters(parameters) ?? {}),
-                    input: z.string().describe('Ask me some question or give me task to complete')
-                })
-            }
         )
 
         // Define State Graph
@@ -139,6 +127,9 @@ export class XpertCollaborator implements IXpertSubAgent {
 
                 const _execution = {
                     ...execution,
+                    ...(typeof config.configurable?.agentInvocationId === 'string'
+                        ? { id: config.configurable.agentInvocationId }
+                        : {}),
                     threadId: configurable.thread_id,
                     checkpointNs: configurable.checkpoint_ns,
                     xpert: { id: xpert.id } as IXpert,
@@ -149,6 +140,11 @@ export class XpertCollaborator implements IXpertSubAgent {
                     predecessor: configurable.agentKey,
                     // Correlation enables domain reconciliation of the child run; it does not grant access.
                     metadata: {
+                        ...execution.metadata,
+                        invocationKind: 'external_assistant' as const,
+                        sourceToolCallId: call?.id,
+                        assistantName: xpert.title || xpert.name,
+                        assistantAvatar: avatarForChat(xpert.avatar),
                         ...(configurable.xpertId ? { requesterXpertId: configurable.xpertId } : {}),
                         ...(executionCorrelation(call?.args) ? { correlation: executionCorrelation(call?.args) } : {})
                     }
@@ -157,18 +153,13 @@ export class XpertCollaborator implements IXpertSubAgent {
                 return await wrapAgentExecution(
                     async () => {
                         let result = ''
-                        const subState = {
-                            ...state,
-                            ...call.args,
-                            [STATE_VARIABLE_HUMAN]: {
-                                ...call.args
-                            }
-                        }
+                        const subState = externalAssistantState(state, call.args)
                         const output = await graph.invoke(subState, {
                             ...config,
                             signal,
                             configurable: {
                                 ...config.configurable,
+                                xpertId: xpert.id,
                                 agentKey: agent.key,
                                 executionId: _execution.id
                             },
@@ -234,7 +225,7 @@ export class XpertCollaborator implements IXpertSubAgent {
         )
 
         return new XpertCollaborator({
-            name: uniqueName,
+            name: agentTool.name,
             tool: agentTool,
             nextNodes,
             failNode,

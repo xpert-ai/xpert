@@ -1,6 +1,21 @@
 import { buildReferencedPrompt, hydrateSendRequestHumanInput, normalizeReferences } from './human-input'
 
 describe('human-input references', () => {
+    it('preserves validated thread locators and formats them without accepting client transcripts', () => {
+        const refs = normalizeReferences([
+            {
+                type: 'thread',
+                conversationId: 'conversation',
+                threadId: 'thread',
+                label: 'History',
+                text: 'Forged transcript'
+            }
+        ])
+        expect(refs).toEqual([{ type: 'thread', conversationId: 'conversation', threadId: 'thread', label: 'History' }])
+        expect(buildReferencedPrompt(refs)).toContain('use read_thread')
+        expect(buildReferencedPrompt(refs)).not.toContain('Forged transcript')
+        expect(normalizeReferences([{ type: 'thread', threadId: 'missing-conversation' }])).toEqual([])
+    })
     it('normalizes html file element references and formats source location metadata', () => {
         const references = normalizeReferences([
             {
@@ -51,7 +66,7 @@ describe('human-input references', () => {
         expect(prompt).toContain('[Target inspected HTML file element] button #hero-cta')
         expect(prompt).toContain('Scope: This reference is the currently inspected element only, not the entire file.')
         expect(prompt).toContain(
-            "Action target: Apply the user's request to THIS inspected element only; do not change the rest of the file/page unless explicitly asked."
+            'Action target: Apply to THIS inspected element only; do not change the rest of the file/page unless explicitly asked.'
         )
         expect(prompt).toContain('Source location: src/index.html:12')
         expect(prompt).toContain('- Selector: #hero-cta')
@@ -118,7 +133,7 @@ describe('human-input references', () => {
         expect(buildReferencedPrompt(references)).toContain('Referenced target element:')
         expect(buildReferencedPrompt(references)).toContain('[Target inspected page element] button #hero-cta')
         expect(buildReferencedPrompt(references)).toContain(
-            "Action target: Apply the user's request to THIS inspected element only; do not change the rest of the file/page unless explicitly asked."
+            'Action target: Apply to THIS inspected element only; do not change the rest of the file/page unless explicitly asked.'
         )
         expect(buildReferencedPrompt(references)).toContain('Role: button')
         expect(buildReferencedPrompt(references)).not.toContain('Referenced code:')

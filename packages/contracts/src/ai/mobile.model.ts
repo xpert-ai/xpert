@@ -71,6 +71,7 @@ export interface XpertMobileBootstrap {
 
 export interface XpertMobileXpertSummary {
   id: string
+  createdAt?: Date | string | null
   slug: string
   name: string
   type: XpertTypeEnum | string
@@ -83,6 +84,7 @@ export interface XpertMobileXpertSummary {
   workspaceId?: string | null
   organizationId?: string | null
   publishAt?: Date | string | null
+  businessArea?: { id: string; name: string } | null
   starters?: string[] | null
 }
 

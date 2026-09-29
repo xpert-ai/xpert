@@ -50,6 +50,10 @@ import {
 } from './plugin-template-descriptor'
 import { resolvePluginApplicationConfigAssets } from '../plugin-resource/plugin-application-assets'
 import { isTemplateCatalogProvider, paginateTemplateCatalog } from './template-catalog'
+import { upgradeBuiltinTemplateCatalog } from './template-catalog-upgrade'
+import { AssistantCapabilityService } from './capabilities/assistant-capability.service'
+import { BLANK_ASSISTANT_TEMPLATE_ID } from './capabilities/blank-assistant-template'
+import { parseCapabilityTemplateId } from './capabilities/template-capability-reference'
 
 const builtinTemplatePath = 'packages/server-ai/src/xpert-template'
 const fallbackLanguage = 'en-US'
@@ -258,6 +262,9 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
     @Inject(CACHE_MANAGER)
     private readonly cacheManager: Cache
 
+    @Inject(AssistantCapabilityService)
+    private readonly capabilities: AssistantCapabilityService
+
     private templateDirectoryReady?: Promise<string>
     private unsafeTemplateDirectoryWarningIssued = false
 
@@ -399,7 +406,20 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
         return config
     }
 
-    async getTemplateDetail(id: string, language: LanguagesEnum, query?: TXpertTemplateQuery) {
+    async getTemplateDetail(id: string, language: LanguagesEnum, query?: TXpertTemplateQuery): Promise<TXpertTemplate> {
+        const variant = parseCapabilityTemplateId(id)
+        const template = await this.getTemplateSourceDetail(variant?.templateId ?? id, language, query)
+        return this.capabilities.compose(
+            this.toXpertTemplate(template),
+            language,
+            variant?.capabilities ?? [],
+            (sourceId) =>
+                this.getTemplateSourceDetail(sourceId, language, query).then((source) => this.toXpertTemplate(source))
+        )
+    }
+
+    private async getTemplateSourceDetail(id: string, language: LanguagesEnum, query?: TXpertTemplateQuery) {
+        if (id === BLANK_ASSISTANT_TEMPLATE_ID) return this.capabilities.blankTemplate()
         const pluginTemplate = await this.getPluginTemplateById(id, language, query)
         if (pluginTemplate) {
             return pluginTemplate
@@ -1254,6 +1274,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
         }
 
         await this.assertExternalTemplateLayout(externalRoot)
+        await upgradeBuiltinTemplateCatalog(builtinRoot, externalRoot)
         this.#logger.log(`Xpert templates ready at '${externalRoot}'`)
 
         return externalRoot

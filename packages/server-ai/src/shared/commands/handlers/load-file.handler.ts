@@ -1,22 +1,24 @@
-import { DocxLoader } from '@langchain/community/document_loaders/fs/docx'
 import { EPubLoader } from '@langchain/community/document_loaders/fs/epub'
 import { PDFLoader } from '@langchain/community/document_loaders/fs/pdf'
 import { PPTXLoader } from '@langchain/community/document_loaders/fs/pptx'
 import { BadRequestException, Inject, Logger } from '@nestjs/common'
 import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { Document } from 'langchain/document'
-import { TextLoader } from 'langchain/document_loaders/fs/text'
 import path from 'node:path'
 import { RequestContext } from '@xpert-ai/server-core'
 import {
-    ResolveAuthorizedFileAssetQuery,
     resolveFileAssetWorkspaceRelativePath,
-    resolveFileAssetWorkspaceVolumeScope,
-    SearchFileChunksQuery
-} from '../../../file-understanding'
-import type { FileAsset } from '../../../file-understanding'
-import { VOLUME_CLIENT, VolumeClient } from '../../volume'
+    resolveFileAssetWorkspaceVolumeScope
+} from '../../../file-understanding/domain/workspace-file'
+import type { FileAsset } from '../../../file-understanding/entities/file-asset.entity'
+import { ResolveAuthorizedFileAssetQuery } from '../../../file-understanding/queries/resolve-authorized-file-asset.query'
+import { SearchFileChunksQuery } from '../../../file-understanding/queries/search-file-chunks.query'
+import { VOLUME_CLIENT, VolumeClient } from '../../volume/volume'
 import { LoadFileCommand } from '../load-file.command'
+import { OfficeFileParser } from '../../../file-understanding/parsers/office.parser'
+import { getFileExtension, isZipFile } from '../../../file-understanding/parsers/file-parser'
+import { readTextFile, supportsTextFile } from '../../../file-understanding/parsers/text-file'
+import { UnsupportedFileContentError } from '../../../file-understanding/parsers/unsupported-file-content.error'
 
 /**
  * @deprecated Prefer FileUnderstanding tools/queries for parsed assets. This
@@ -35,14 +37,22 @@ export class LoadFileHandler implements ICommandHandler<LoadFileCommand> {
 
     public async execute(command: LoadFileCommand) {
         const { file } = command
-        const resolved = await this.resolveFileAsset(file as any)
+        const resolved = await this.resolveFileAsset(file)
         const understoodDocs = await this.tryLoadFileUnderstandingDocs(resolved.fileAsset)
         if (understoodDocs?.length) {
             return understoodDocs
         }
 
         const filePath = this.resolveLocalFilePath(file.filePath, resolved.fileAsset)
-        const type = filePath.split('.').pop()
+        const originalName = resolved.fileAsset?.originalName ?? file.originalName
+        const source = {
+            filePath,
+            // An extensionless display name must not mask the storage file's format.
+            originalName: getFileExtension(originalName) ? originalName : path.basename(filePath),
+            mimeType: resolved.fileAsset?.mimeType ?? file.mimeType
+        }
+        if (isZipFile(source)) throw new UnsupportedFileContentError()
+        const type = getFileExtension(source.originalName ?? filePath)
         let data: Document[]
         switch (type.toLowerCase()) {
             case 'md':
@@ -58,7 +68,7 @@ export class LoadFileHandler implements ICommandHandler<LoadFileCommand> {
                 break
             case 'doc':
             case 'docx':
-                data = await this.processDoc(filePath)
+                data = await this.processDoc(filePath, source.originalName)
                 break
             case 'pptx':
                 data = await this.processPPT(filePath)
@@ -72,6 +82,7 @@ export class LoadFileHandler implements ICommandHandler<LoadFileCommand> {
                 data = await this.processOpenDocument(filePath)
                 break
             default:
+                if (!supportsTextFile(source)) throw new UnsupportedFileContentError()
                 data = await this.processText(filePath)
                 break
         }
@@ -93,14 +104,17 @@ export class LoadFileHandler implements ICommandHandler<LoadFileCommand> {
         return await loader.load()
     }
 
-    async processDoc(filePath: string): Promise<Document<Record<string, any>>[]> {
-        const loader = new DocxLoader(filePath)
-        return await loader.load()
+    async processDoc(filePath: string, originalName?: string): Promise<Document[]> {
+        // Legacy attachment fallback must use the same format detection as File Understanding.
+        const parsed = await new OfficeFileParser().parse({ filePath, ...(originalName ? { originalName } : {}) })
+        return parsed.artifacts
+            .filter((artifact) => artifact.kind === 'text')
+            .map((artifact) => new Document({ pageContent: artifact.content ?? '', metadata: artifact.metadata ?? {} }))
     }
 
     async processText(url: string): Promise<Document<Record<string, any>>[]> {
-        const loader = new TextLoader(url)
-        return await loader.load()
+        const pageContent = await readTextFile(url)
+        return [new Document({ pageContent, metadata: { source: url } })]
     }
 
     async processPPT(url: string): Promise<Document<Record<string, any>>[]> {

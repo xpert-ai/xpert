@@ -1,4 +1,5 @@
 import {
+    AssistantCapabilityDeclaration,
     LanguagesEnum,
     PluginTargetAppMeta,
     PluginTemplateApplicationSummary,
@@ -42,6 +43,7 @@ export type TXpertTemplateDescriptor = {
     pluginVersion?: string
     contentHash?: string
     xpertName?: string
+    capabilities?: AssistantCapabilityDeclaration[]
     dependencies?: XpertTemplatePluginDependencies
     application?: PluginTemplateApplicationSummary
 }

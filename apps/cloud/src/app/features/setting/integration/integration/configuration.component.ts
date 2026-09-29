@@ -1,10 +1,11 @@
 import { TextFieldModule } from '@angular/cdk/text-field'
-import { Component, computed, effect, inject, signal, viewChild } from '@angular/core'
+import { Dialog, DialogRef } from '@angular/cdk/dialog'
+import { Component, computed, effect, inject, OnDestroy, signal, viewChild, ViewContainerRef } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router } from '@angular/router'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { IsDirty } from '@xpert-ai/headless-ui'
-import type { IIntegration, TIntegrationProvider } from '@xpert-ai/contracts'
+import type { IIntegration, TIntegrationProvider, TIntegrationQrCompletion } from '@xpert-ai/contracts'
 import { XpInputComponent, XpSpinComponent } from '@xpert-ai/headless-ui'
 import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { DisplayBehaviour } from '@xpert-ai/headless-ui'
@@ -28,9 +29,11 @@ import {
   normalizeIntegrationTestResult,
   pickIntegrationTestFormPatch,
   ToastrService,
+  Store,
   type IntegrationTestProbe,
   type IntegrationTestResult
 } from '../../../../@core'
+import { IntegrationQrDialogComponent, IntegrationQrDialogData } from './integration-qr-dialog.component'
 
 export function resolveProviderHelpLinks(provider?: TIntegrationProvider) {
   if (provider?.helpLinks?.length) {
@@ -65,7 +68,7 @@ export function resolveProviderHelpLinks(provider?: TIntegrationProvider) {
     IconComponent
   ]
 })
-export class IntegrationConfigurationComponent implements IsDirty {
+export class IntegrationConfigurationComponent implements IsDirty, OnDestroy {
   readonly DisplayBehaviour = DisplayBehaviour
   readonly pro = environment.pro
 
@@ -73,6 +76,19 @@ export class IntegrationConfigurationComponent implements IsDirty {
   readonly #toastr = inject(ToastrService)
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
+  private readonly dialog = inject(Dialog)
+  private readonly viewContainerRef = inject(ViewContainerRef)
+  private readonly store = inject(Store)
+  readonly qrOrganizationId = toSignal(this.store.selectOrganizationId())
+  private qrDialog: DialogRef<TIntegrationQrCompletion> | null = null
+  readonly setupMode = signal<'qr' | 'manual'>('qr')
+  readonly canScan = computed(
+    () =>
+      !this.paramId() &&
+      this.integrationProvider()?.setup?.qrAuthorization === true &&
+      (!this.integrationProvider()?.pro || this.pro)
+  )
+  readonly scanMode = computed(() => this.canScan() && this.setupMode() === 'qr')
 
   readonly providerQuery = injectQueryParams('provider')
   readonly slackAuthQuery = injectQueryParams('slackAuth')
@@ -94,7 +110,7 @@ export class IntegrationConfigurationComponent implements IsDirty {
 
   readonly formGroup = new FormGroup({
     id: new FormControl(null),
-    name: new FormControl(null, [Validators.required]),
+    name: new FormControl(null, [Validators.required, Validators.maxLength(100)]),
     avatar: new FormControl(null),
     description: new FormControl(null),
     slug: new FormControl(null),
@@ -142,6 +158,10 @@ export class IntegrationConfigurationComponent implements IsDirty {
   })
 
   constructor() {
+    effect(() => {
+      this.provider()
+      this.setupMode.set('qr')
+    })
     effect(() => {
       if (this.providerQuery() && !this.paramId()) {
         this.formGroup.get('provider').setValue(this.providerQuery())
@@ -222,6 +242,42 @@ export class IntegrationConfigurationComponent implements IsDirty {
 
   isDirty(): boolean {
     return this.formGroup.dirty
+  }
+
+  createByQr() {
+    const provider = this.integrationProvider()
+    const organizationId = this.store.organizationId
+    const userId = this.store.userId
+    const name = this.name?.trim()
+    if (this.qrDialog || !this.canScan() || !name || this.formGroup.controls.name.invalid || !organizationId || !userId)
+      return
+    this.qrDialog = this.dialog.open<TIntegrationQrCompletion, IntegrationQrDialogData>(IntegrationQrDialogComponent, {
+      viewContainerRef: this.viewContainerRef,
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      ariaLabelledBy: 'integration-qr-title',
+      data: {
+        provider,
+        organizationId,
+        userId,
+        input: structuredClone({
+          name,
+          avatar: this.formGroup.value.avatar,
+          description: this.formGroup.value.description
+        })
+      }
+    })
+    this.qrDialog.closed.subscribe((result) => {
+      this.qrDialog = null
+      if (!result || this.store.organizationId !== organizationId || this.store.userId !== userId) return
+      this.formGroup.markAsPristine()
+      this.#toastr.success(result.outcome === 'reused' ? 'XP.Integration.Qr.Reused' : 'XP.Integration.Qr.Created')
+      void this.#router.navigate(['/settings/integration', result.id])
+    })
+  }
+
+  ngOnDestroy() {
+    this.qrDialog?.close()
   }
 
   test() {

@@ -29,6 +29,16 @@ export class McpAppBundleService {
     }
 
     async read(publication: McpPublication, descriptor: McpAppCapabilityDescriptor) {
+        return this.readForScope(publication, descriptor, this.resourceUri(publication, descriptor))
+    }
+
+    async readForScope(
+        scope: Pick<McpPublication, 'tenantId' | 'organizationId'>,
+        descriptor: Pick<McpAppCapabilityDescriptor, 'entry' | 'title' | 'description' | 'csp' | 'permissions'> & {
+            source: Pick<McpAppCapabilityDescriptor['source'], 'pluginName'>
+        },
+        resourceUri: string
+    ) {
         if (!descriptor.entry.endsWith('.html')) {
             throw new BadRequestException('MCP App entry must be an HTML file')
         }
@@ -36,7 +46,7 @@ export class McpAppBundleService {
         if (!pluginName) {
             throw new BadRequestException('MCP App capability is missing its plugin source')
         }
-        const plugin = this.resolvePlugin(publication, pluginName)
+        const plugin = this.resolvePlugin(scope, pluginName)
         const root = resolveLoadedPluginBundleRoot(plugin)
         if (!root) {
             throw new BadRequestException(`Loaded plugin '${pluginName}' has no bundle root`)
@@ -51,7 +61,7 @@ export class McpAppBundleService {
             throw new BadRequestException(`MCP App HTML must not exceed ${MAX_APP_HTML_BYTES} bytes`)
         }
         return {
-            uri: this.resourceUri(publication, descriptor),
+            uri: resourceUri,
             mimeType: MCP_APP_RESOURCE_MIME_TYPE,
             text: await readFile(realEntry, 'utf8'),
             _meta: {
@@ -65,7 +75,7 @@ export class McpAppBundleService {
         }
     }
 
-    private resolvePlugin(publication: McpPublication, pluginName: string) {
+    private resolvePlugin(publication: Pick<McpPublication, 'tenantId' | 'organizationId'>, pluginName: string) {
         const normalizedName = normalizePluginName(pluginName)
         const candidates = this.loadedPlugins.filter(
             (plugin) =>

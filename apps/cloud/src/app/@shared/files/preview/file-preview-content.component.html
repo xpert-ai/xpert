@@ -131,7 +131,13 @@
         </div>
       }
       @case ('pdf') {
-        <iframe [src]="url() | safe: 'resourceUrl'" class="h-full w-full border-none bg-components-panel-bg"></iframe>
+        <xp-file-pdf-preview
+          class="flex-1"
+          [url]="url()"
+          [fileName]="fileName()"
+          [downloadable]="downloadable()"
+          (download)="download.emit()"
+        />
       }
       @case ('audio') {
         <div class="flex flex-1 items-center justify-center bg-components-panel-bg p-6">

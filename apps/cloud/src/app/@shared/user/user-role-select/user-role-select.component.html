@@ -39,12 +39,20 @@
   }
 </div>
 
-<div class="w-full flex justify-end">
-  <div class="flex items-center gap-1">
-    <button z-button zType="secondary" (click)="onCancel()">
+<div class="mt-4 flex w-full justify-end">
+  <div class="flex items-center gap-3">
+    <button type="button" z-button zType="secondary" zSize="default" class="h-[40px] px-4" (click)="onCancel()">
       {{ 'COMPONENTS.COMMON.CANCEL' | translate: { Default: 'Cancel' } }}
     </button>
-    <button z-button zType="default" cdkFocusInitial (click)="onApply()">
+    <button
+      type="button"
+      z-button
+      zType="default"
+      zSize="default"
+      class="h-[40px] px-4"
+      cdkFocusInitial
+      (click)="onApply()"
+    >
       {{ 'COMPONENTS.COMMON.APPLY' | translate: { Default: 'Apply' } }}
     </button>
   </div>

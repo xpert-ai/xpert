@@ -1,3 +1,5 @@
+import { XpertProjectPlanningController } from './project-planning.controller'
+import { XpertProjectTypeService } from './services/project-type.service'
 import {
     AIPermissionsEnum,
     IKnowledgebase,
@@ -6,13 +8,6 @@ import {
     IXpertProjectAsset,
     IXpertProjectAutomation,
     IXpertProjectCreateInput,
-    IXpertProjectMilestone,
-    IXpertProjectPlan,
-    IXpertProjectTask,
-    IXpertProjectTaskConversation,
-    IXpertProjectTaskExecution,
-    IXpertProjectSprint,
-    IXpertProjectSwimlane,
     IXpertToolset,
     OrderTypeEnum,
     TXpertProjectMemberRole,
@@ -20,7 +15,6 @@ import {
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import {
-    CrudController,
     Public,
     PaginationParams,
     ParseJsonPipe,
@@ -56,7 +50,7 @@ import { FindOptionsWhere } from 'typeorm'
 import { t } from 'i18next'
 import { ChatConversationPublicDTO } from '../chat-conversation/dto'
 import { FindChatConversationQuery } from '../chat-conversation/queries'
-import { ProjectUpdateInputDTO, XpertProjectDto, XpertProjectTaskDto, createProjectUpdateValidationPipe } from './dto'
+import { ProjectUpdateInputDTO, XpertProjectDto, createProjectUpdateValidationPipe } from './dto'
 import { XpertProject } from './entities/project.entity'
 import { XpertProjectTask } from './entities/project-task.entity'
 import {
@@ -91,10 +85,11 @@ const PROJECT_SKILL_ARCHIVE_MAX_BYTES = 25 * 1024 * 1024
 @UseGuards(XpertProjectAuthGuard, XpertProjectFeatureGuard, XpertProjectPermissionGuard)
 @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_VIEW)
 @Controller()
-export class XpertProjectController extends CrudController<XpertProject> {
+export class XpertProjectController extends XpertProjectPlanningController {
     readonly #logger = new Logger(XpertProjectController.name)
     constructor(
         private readonly service: XpertProjectService,
+        private readonly projectTypes: XpertProjectTypeService,
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
         private readonly planService: XpertProjectPlanService,
@@ -109,7 +104,7 @@ export class XpertProjectController extends CrudController<XpertProject> {
         @Inject(VOLUME_CLIENT)
         private readonly volumeClient: VolumeClient
     ) {
-        super(service)
+        super(service, planService, activityService, automationService)
     }
 
     @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_CREATE)
@@ -201,12 +196,33 @@ export class XpertProjectController extends CrudController<XpertProject> {
     }
 
     @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_VIEW)
+    @Get('types')
+    listTypes(@Query('xpertId') xpertId?: string) {
+        return this.projectTypes.list(xpertId)
+    }
+
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_VIEW)
+    @Get('type-entry')
+    projectTypeEntry(
+        @Query('applicationKey') applicationKey: string,
+        @Query('projectTypeKey') projectTypeKey: string,
+        @Query('projectId') projectId?: string,
+        @Query('xpertId') xpertId?: string
+    ) {
+        return this.projectTypes.entry({ applicationKey, projectTypeKey }, { projectId, xpertId })
+    }
+
+    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_VIEW)
     @Get('available')
     async findAvailable(
         @Query('xpertId') xpertId: string,
         @Query('status') status?: 'active' | 'archived' | 'all',
         @Query('skip') skip?: string,
-        @Query('take') take?: string
+        @Query('take') take?: string,
+        @Query('applicationKey') applicationKey?: string,
+        @Query('projectTypeKey') projectTypeKey?: string,
+        @Query('search') search?: string,
+        @Query('unclassified') unclassified?: string
     ) {
         if (!xpertId?.trim()) {
             throw new BadRequestException(
@@ -215,6 +231,7 @@ export class XpertProjectController extends CrudController<XpertProject> {
         }
         return this.service.findAvailableForXpert({
             xpertId: xpertId.trim(),
+            filter: { applicationKey, projectTypeKey, search, unclassified: unclassified === 'true' },
             status,
             skip: Math.max(Number(skip) || 0, 0),
             take: Math.min(Math.max(Number(take) || 25, 1), 100)
@@ -312,9 +329,18 @@ export class XpertProjectController extends CrudController<XpertProject> {
     @Get('my')
     @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_VIEW)
     async findAllMyProjects(
-        @Query('data', ParseJsonPipe) params: PaginationParams<XpertProject>
+        @Query('data', ParseJsonPipe) params: PaginationParams<XpertProject>,
+        @Query('applicationKey') applicationKey?: string,
+        @Query('projectTypeKey') projectTypeKey?: string,
+        @Query('search') search?: string,
+        @Query('unclassified') unclassified?: string
     ): Promise<IPagination<XpertProject>> {
-        return this.service.findAllMy(params)
+        return this.service.findAllMy(params, {
+            applicationKey,
+            projectTypeKey,
+            search,
+            unclassified: unclassified === 'true'
+        })
     }
 
     @Get(':id')
@@ -614,302 +640,6 @@ export class XpertProjectController extends CrudController<XpertProject> {
     @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_MANAGE)
     revokeInvitation(@Param('id') id: string, @Param('invitationId') invitationId: string) {
         return this.invitationService.revoke(id, invitationId)
-    }
-
-    @UseGuards(XpertProjectGuard)
-    @Get(':id/tasks')
-    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_VIEW)
-    async getTasks(@Param('id') id: string, @Query('data', ParseJsonPipe) params: PaginationParams<XpertProjectTask>) {
-        const { items } = await this.service.getTasks(id, params)
-        return items.map((_) => new XpertProjectTaskDto(_))
-    }
-
-    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_EDIT)
-    @UseGuards(XpertProjectGuard)
-    @Post(':id/tasks')
-    async createTask(@Param('id') id: string, @Body() task: Partial<IXpertProjectTask>) {
-        const created = await this.service.createTasks(id, task)
-        await this.activityService.record(id, {
-            type: 'task.created',
-            summary: `Task ${created.title || created.name} created`,
-            entityType: 'task',
-            entityId: created.id
-        })
-        return new XpertProjectTaskDto(created)
-    }
-
-    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_VIEW)
-    @UseGuards(XpertProjectGuard)
-    @Get(':id/tasks/:taskId')
-    async getTask(@Param('id') id: string, @Param('taskId') taskId: string) {
-        const task = await this.service.getTasks(id, {
-            take: 1,
-            skip: 0,
-            order: {},
-            where: { id: taskId },
-            relations: ['steps', 'conversations', 'executions'],
-            withDeleted: false
-        })
-        if (!task.items[0]) throw new NotFoundException('Project task not found')
-        return new XpertProjectTaskDto(task.items[0])
-    }
-
-    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_VIEW)
-    @UseGuards(XpertProjectGuard)
-    @Get(':id/tasks/:taskId/relations')
-    async getTaskRelations(@Param('id') id: string, @Param('taskId') taskId: string) {
-        return this.service.getTaskRelations(id, taskId)
-    }
-
-    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_EDIT)
-    @UseGuards(XpertProjectGuard)
-    @Put(':id/tasks/order')
-    async reorderTasks(@Param('id') id: string, @Body() input: Array<{ id: string; order: number; column?: string }>) {
-        const tasks = await this.service.reorderTasks(id, input ?? [])
-        await this.activityService.record(id, {
-            type: 'task.reordered',
-            summary: `${tasks.length} tasks reordered`,
-            entityType: 'task',
-            payload: { count: tasks.length }
-        })
-        return tasks.map((task) => new XpertProjectTaskDto(task))
-    }
-
-    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_EDIT)
-    @UseGuards(XpertProjectGuard)
-    @Put(':id/tasks/batch')
-    async batchUpdateTasks(
-        @Param('id') id: string,
-        @Body()
-        input: {
-            ids: string[]
-            status?: IXpertProjectTask['status']
-            assigneeId?: string
-            assigneeXpertId?: string
-            priority?: IXpertProjectTask['priority']
-        }
-    ) {
-        const tasks = await this.service.batchUpdateTasks(id, input)
-        await this.activityService.record(id, {
-            type: 'task.batch_updated',
-            summary: `${tasks.length} tasks updated`,
-            entityType: 'task',
-            payload: { count: tasks.length, ...(input.status ? { status: input.status } : {}) }
-        })
-        return tasks
-    }
-
-    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_EDIT)
-    @UseGuards(XpertProjectGuard)
-    @Put(':id/tasks/:taskId')
-    async updateTask(
-        @Param('id') id: string,
-        @Param('taskId') taskId: string,
-        @Body() task: Partial<IXpertProjectTask>
-    ) {
-        const updated = await this.service.updateTask(id, taskId, task)
-        await this.activityService.record(id, {
-            type: 'task.updated',
-            summary: `Task ${updated.title || updated.name} updated`,
-            entityType: 'task',
-            entityId: taskId,
-            payload: task.status ? { status: task.status } : undefined
-        })
-        if (task.status) await this.automationService.triggerEvent(id, 'task.status_changed', taskId)
-        return new XpertProjectTaskDto(updated)
-    }
-
-    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_EDIT)
-    @UseGuards(XpertProjectGuard)
-    @Post(':id/tasks/:taskId/conversations')
-    linkTaskConversation(
-        @Param('id') id: string,
-        @Param('taskId') taskId: string,
-        @Body()
-        input: Pick<IXpertProjectTaskConversation, 'conversationId' | 'relationType'> &
-            Partial<IXpertProjectTaskConversation>
-    ) {
-        return this.service.linkTaskConversation(id, taskId, input)
-    }
-
-    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_EDIT)
-    @UseGuards(XpertProjectGuard)
-    @Post(':id/tasks/:taskId/executions')
-    createTaskExecution(
-        @Param('id') id: string,
-        @Param('taskId') taskId: string,
-        @Body() input: Partial<IXpertProjectTaskExecution>
-    ) {
-        return this.service.createTaskExecution(id, taskId, input)
-    }
-
-    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_EDIT)
-    @UseGuards(XpertProjectGuard)
-    @Put(':id/tasks/:taskId/executions/:executionId')
-    updateTaskExecution(
-        @Param('id') id: string,
-        @Param('taskId') taskId: string,
-        @Param('executionId') executionId: string,
-        @Body() input: Partial<IXpertProjectTaskExecution>
-    ) {
-        return this.service.updateTaskExecution(id, taskId, executionId, input)
-    }
-
-    // Plans and milestones
-    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_VIEW)
-    @UseGuards(XpertProjectGuard)
-    @Get(':id/plans')
-    listPlans(@Param('id') id: string) {
-        return this.planService.list(id)
-    }
-
-    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_EDIT)
-    @UseGuards(XpertProjectGuard)
-    @Post(':id/plans')
-    createPlan(@Param('id') id: string, @Body() input: Partial<IXpertProjectPlan>) {
-        return this.planService.createPlan(id, input).then((plan) => {
-            void this.activityService.record(id, {
-                type: 'plan.created',
-                summary: `Plan ${plan.name} created`,
-                entityType: 'plan',
-                entityId: plan.id
-            })
-            return plan
-        })
-    }
-
-    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_EDIT)
-    @UseGuards(XpertProjectGuard)
-    @Put(':id/plans/:planId')
-    async updatePlan(
-        @Param('id') id: string,
-        @Param('planId') planId: string,
-        @Body() input: Partial<IXpertProjectPlan>
-    ) {
-        const plan = await this.planService.updatePlan(id, planId, input)
-        await this.activityService.record(id, {
-            type: 'plan.updated',
-            summary: `Plan ${plan.name} updated`,
-            entityType: 'plan',
-            entityId: plan.id
-        })
-        return plan
-    }
-
-    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_EDIT)
-    @UseGuards(XpertProjectGuard)
-    @Delete(':id/plans/:planId')
-    removePlan(@Param('id') id: string, @Param('planId') planId: string) {
-        return this.planService.removePlan(id, planId)
-    }
-
-    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_EDIT)
-    @UseGuards(XpertProjectGuard)
-    @Post(':id/plans/:planId/milestones')
-    createMilestone(
-        @Param('id') id: string,
-        @Param('planId') planId: string,
-        @Body() input: Partial<IXpertProjectMilestone>
-    ) {
-        return this.planService.createMilestone(id, planId, input).then((milestone) => {
-            void this.activityService.record(id, {
-                type: 'milestone.created',
-                summary: `Milestone ${milestone.name} created`,
-                entityType: 'milestone',
-                entityId: milestone.id
-            })
-            return milestone
-        })
-    }
-
-    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_EDIT)
-    @UseGuards(XpertProjectGuard)
-    @Put(':id/plans/:planId/milestones/:milestoneId')
-    updateMilestone(
-        @Param('id') id: string,
-        @Param('planId') planId: string,
-        @Param('milestoneId') milestoneId: string,
-        @Body() input: Partial<IXpertProjectMilestone>
-    ) {
-        return this.planService.updateMilestone(id, planId, milestoneId, input).then((milestone) => {
-            void this.activityService.record(id, {
-                type: 'milestone.updated',
-                summary: `Milestone ${milestone.name} updated`,
-                entityType: 'milestone',
-                entityId: milestone.id
-            })
-            return milestone
-        })
-    }
-
-    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_EDIT)
-    @UseGuards(XpertProjectGuard)
-    @Delete(':id/plans/:planId/milestones/:milestoneId')
-    removeMilestone(
-        @Param('id') id: string,
-        @Param('planId') planId: string,
-        @Param('milestoneId') milestoneId: string
-    ) {
-        return this.planService.removeMilestone(id, planId, milestoneId)
-    }
-
-    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_VIEW)
-    @UseGuards(XpertProjectGuard)
-    @Get(':id/plans/:planId/sprints')
-    listSprints(@Param('id') id: string, @Param('planId') planId: string) {
-        return this.planService.listSprints(id, planId)
-    }
-
-    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_MANAGE)
-    @UseGuards(XpertProjectGuard)
-    @Post(':id/plans/:planId/sprints')
-    createSprint(
-        @Param('id') id: string,
-        @Param('planId') planId: string,
-        @Body() input: Partial<IXpertProjectSprint>
-    ) {
-        return this.planService.createSprint(id, planId, input)
-    }
-
-    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_MANAGE)
-    @UseGuards(XpertProjectGuard)
-    @Put(':id/sprints/:sprintId')
-    updateSprint(
-        @Param('id') id: string,
-        @Param('sprintId') sprintId: string,
-        @Body() input: Partial<IXpertProjectSprint>
-    ) {
-        return this.planService.updateSprint(id, sprintId, input)
-    }
-
-    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_VIEW)
-    @UseGuards(XpertProjectGuard)
-    @Get(':id/sprints/:sprintId/swimlanes')
-    listSwimlanes(@Param('id') id: string, @Param('sprintId') sprintId: string) {
-        return this.planService.listSwimlanes(id, sprintId)
-    }
-
-    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_MANAGE)
-    @UseGuards(XpertProjectGuard)
-    @Post(':id/sprints/:sprintId/swimlanes')
-    createSwimlane(
-        @Param('id') id: string,
-        @Param('sprintId') sprintId: string,
-        @Body() input: Partial<IXpertProjectSwimlane>
-    ) {
-        return this.planService.createSwimlane(id, sprintId, input)
-    }
-
-    @ProjectPermission(AIPermissionsEnum.XPERT_PROJECT_MANAGE)
-    @UseGuards(XpertProjectGuard)
-    @Put(':id/sprints/:sprintId/swimlanes/:swimlaneId')
-    updateSwimlane(
-        @Param('id') id: string,
-        @Param('sprintId') sprintId: string,
-        @Param('swimlaneId') swimlaneId: string,
-        @Body() input: Partial<IXpertProjectSwimlane>
-    ) {
-        return this.planService.updateSwimlane(id, sprintId, swimlaneId, input)
     }
 
     // Activities

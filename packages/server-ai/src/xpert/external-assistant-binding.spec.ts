@@ -44,6 +44,7 @@ function candidate(overrides: Partial<IXpert> = {}): IXpert {
         organizationId: 'org-1',
         active: true,
         publishAt: new Date('2026-09-01T00:00:00.000Z'),
+        workspaceId: 'executor-workspace',
         version: '10',
         agent: { key: 'Agent_BomEngineer' },
         graph: { nodes: [], connections: [] },
@@ -62,6 +63,7 @@ describe('external Assistant binding', () => {
         const binding = describeExternalAssistantBinding(requester(), candidate())
         expect(binding).toMatchObject({
             xpertId: 'bom-assistant-1',
+            workspaceId: 'executor-workspace',
             title: 'BOM 工程助手（组织实例）',
             primaryAgentKey: 'Agent_BomEngineer',
             publishedVersion: '10',
@@ -76,6 +78,7 @@ describe('external Assistant binding', () => {
             })
         ).toBe(true)
         expect(safeExternalAssistantBinding(binding)).not.toHaveProperty('xpertId')
+        expect(safeExternalAssistantBinding(binding)).not.toHaveProperty('workspaceId')
     })
 
     it.each([

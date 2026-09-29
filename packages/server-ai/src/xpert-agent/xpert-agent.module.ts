@@ -4,6 +4,7 @@ import { DiscoveryModule, RouterModule } from '@nestjs/core'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { AgentMiddlewareRegistry, WorkflowNodeRegistry, WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
+import { ChatConversationModule } from '../chat-conversation/conversation.module'
 import { CopilotCheckpointModule } from '../copilot-checkpoint'
 import { ChatMessage } from '../chat-message/chat-message.entity'
 import { EnvironmentModule } from '../environment'
@@ -17,6 +18,7 @@ import { QueryHandlers } from './queries/handlers'
 import { XpertAgentNodeValidator } from './agent-validator'
 import { XpertAgentGraphValidator } from './graph-validator'
 import { XpertTitleMiddlewareService } from './title/xpert-title.middleware'
+import { AgentInvocationGraphService } from '../agent-invocation/agent-invocation-graph.service'
 import { Validators } from './workflow'
 import { WorkflowCommandHandlers } from './workflow/handlers'
 import { ConnectorMiddleware } from '../xpert-middleware/connector.middleware'
@@ -26,6 +28,10 @@ import { XpertAgentService } from './xpert-agent.service'
 import { Strategies, Validators as PluginValidators } from './plugins'
 import { SkillPackageModule } from '../skill-package'
 import { PromptWorkflowModule } from '../prompt-workflow'
+import { AgentInvocationModule } from '../agent-invocation/agent-invocation.module'
+import { NativeAgentCompiler } from '../agent-invocation/native-agent.compiler'
+import { MiddlewareMcpAppsService } from '../mcp-app-runtime/middleware-mcp-apps.service'
+import { McpAppBundleService } from '../mcp-publication/mcp-app-bundle.service'
 
 @Module({
     imports: [
@@ -36,8 +42,10 @@ import { PromptWorkflowModule } from '../prompt-workflow'
         ActorTokenModule,
         CqrsModule,
         DiscoveryModule,
+        AgentInvocationModule,
 
         CopilotCheckpointModule,
+        forwardRef(() => ChatConversationModule),
         XpertAgentExecutionModule,
         AgentMiddlewareRuntimeModule,
         forwardRef(() => XpertModule),
@@ -51,9 +59,13 @@ import { PromptWorkflowModule } from '../prompt-workflow'
         XpertAgentService,
         ConversationTitleService,
         XpertTitleMiddlewareService,
+        AgentInvocationGraphService,
+        NativeAgentCompiler,
         WorkflowTriggerRegistry,
         WorkflowNodeRegistry,
         AgentMiddlewareRegistry,
+        MiddlewareMcpAppsService,
+        McpAppBundleService,
         ConnectorMiddleware,
         XpertAgentNodeValidator,
         XpertAgentGraphValidator,
@@ -64,6 +76,6 @@ import { PromptWorkflowModule } from '../prompt-workflow'
         ...PluginValidators,
         ...Strategies
     ],
-    exports: [XpertAgentService, AgentMiddlewareRegistry]
+    exports: [XpertAgentService, AgentMiddlewareRegistry, MiddlewareMcpAppsService]
 })
 export class XpertAgentModule {}

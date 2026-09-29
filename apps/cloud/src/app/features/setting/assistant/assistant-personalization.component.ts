@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, effect, inject, OnDestroy, signal, untracked } from '@angular/core'
+import { ASSISTANT_SETTINGS_CONTEXT } from '../../../@shared/xpert/assistant-settings/assistant-settings-context'
+import { ChangeDetectionStrategy, Component, effect, inject, input, OnDestroy, signal, untracked } from '@angular/core'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ZardButtonComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
@@ -41,9 +42,11 @@ type PersonalizationDocuments = { soul: string; profile: string }
       </div>
     } @else {
       <form [formGroup]="form" (ngSubmit)="save()">
-        <p class="mb-6 text-sm leading-6 text-muted-foreground">
-          {{ 'XP.AssistantSettings.PersonalizationIntro' | translate }}
-        </p>
+        @if (showIntro()) {
+          <p class="mb-6 text-sm leading-6 text-muted-foreground">
+            {{ 'XP.AssistantSettings.PersonalizationIntro' | translate }}
+          </p>
+        }
         <section>
           <div class="flex items-center justify-between gap-3">
             <label for="assistant-soul" class="text-base font-semibold">{{
@@ -102,30 +105,34 @@ type PersonalizationDocuments = { soul: string; profile: string }
             {{ 'XP.AssistantSettings.PersonalizationSaved' | translate }}
           </p>
         }
-        <footer
-          class="sticky -bottom-6 -mx-6 mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-border bg-background px-6 py-4"
-        >
-          <p class="text-xs text-muted-foreground">
-            {{
-              (dirty ? 'XP.AssistantSettings.UnsavedChanges' : 'XP.AssistantSettings.PersonalizationSaveHint')
-                | translate
-            }}
-          </p>
-          <div class="flex gap-2">
-            <button z-button zType="outline" type="button" [zDisabled]="saving() || !dirty" (click)="reset()">
-              {{ 'XP.Common.Reset' | translate }}
-            </button>
-            <button z-button type="submit" [zDisabled]="saving() || facade.savingUserPreference() || !dirty">
-              {{ (saving() ? 'XP.AssistantSettings.Saving' : 'XP.KEY_WORDS.Save') | translate }}
-            </button>
-          </div>
-        </footer>
+        @if (showFooter()) {
+          <footer
+            class="sticky -bottom-6 -mx-6 mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-border bg-background px-6 py-4"
+          >
+            <p class="text-xs text-muted-foreground">
+              {{
+                (dirty ? 'XP.AssistantSettings.UnsavedChanges' : 'XP.AssistantSettings.PersonalizationSaveHint')
+                  | translate
+              }}
+            </p>
+            <div class="flex gap-2">
+              <button z-button zType="outline" type="button" [zDisabled]="saving() || !dirty" (click)="reset()">
+                {{ 'XP.Common.Reset' | translate }}
+              </button>
+              <button z-button type="submit" [zDisabled]="saving() || facade.savingUserPreference() || !dirty">
+                {{ (saving() ? 'XP.AssistantSettings.Saving' : 'XP.KEY_WORDS.Save') | translate }}
+              </button>
+            </div>
+          </footer>
+        }
       </form>
     }
   `
 })
 export class AssistantPersonalizationComponent implements OnDestroy {
-  readonly facade = inject(ClawXpertFacade)
+  readonly showFooter = input(true)
+  readonly showIntro = input(true)
+  readonly facade = inject(ASSISTANT_SETTINGS_CONTEXT, { optional: true }) ?? inject(ClawXpertFacade)
   private readonly api = inject(AssistantBindingService)
   private readonly translate = inject(TranslateService)
   private readonly toastr = inject(ToastrService)
@@ -171,7 +178,10 @@ export class AssistantPersonalizationComponent implements OnDestroy {
     this.loadError.set(null)
     try {
       const preference = await firstValueFrom(
-        this.api.getPreference(AssistantCode.CLAWXPERT, AssistantBindingScope.USER)
+        this.api.getPreference(
+          this.facade.resolvedPreference()?.code ?? AssistantCode.CLAWXPERT,
+          AssistantBindingScope.USER
+        )
       )
       if (requestId !== this.requestId) return
       this.baseline = { soul: preference?.soul ?? '', profile: preference?.profile ?? '' }

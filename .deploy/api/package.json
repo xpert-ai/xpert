@@ -37,12 +37,12 @@
     "@langchain/openai": "0.6.9",
     "@metad/contracts": "workspace:@xpert-ai/contracts@*",
     "@swc/helpers": "0.5.3",
-    "@xpert-ai/chatkit-types": "0.5.1",
+    "@xpert-ai/chatkit-types": "catalog:",
     "langchain": "0.3.31",
     "lodash-es": "^4.17.21",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "reflect-metadata": "^0.1.13",
+    "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.0",
     "tslib": "^2.3.0",
     "zod": "3.25.67"
@@ -85,14 +85,5 @@
     "packages/*",
     "packages/plugins/*"
   ],
-  "pnpm": {
-    "overrides": {
-      "@langchain/core": "0.3.72",
-      "langchain": "0.3.31",
-      "@modelcontextprotocol/sdk": "1.12.1",
-      "zod": "3.25.67",
-      "web-streams-polyfill": "^4.2.0"
-    }
-  },
   "packageManager": "pnpm@10.24.0"
 }

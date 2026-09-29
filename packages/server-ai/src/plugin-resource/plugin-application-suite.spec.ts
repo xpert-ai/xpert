@@ -28,6 +28,90 @@ function assistant(id: string, templateKey: string, primary: string): IXpert {
     } as IXpert
 }
 describe('governed application suite graph', () => {
+    const standaloneSuite: PluginMarketplaceAppAssistantSuite = {
+        ...suite,
+        version: '2',
+        standaloneAssistants: [{ key: 'master_data', templateKey: 'master-data', primaryAgentKey: 'Agent_MasterData' }]
+    }
+    it('validates standalone identities across both groups and bounds the total size', () => {
+        expect(() => validateApplicationSuite(standaloneSuite, 'coordinator')).not.toThrow()
+        expect(() => validateApplicationSuite({ ...suite, standaloneAssistants: suite.roles }, 'coordinator')).toThrow()
+        expect(() =>
+            validateApplicationSuite(
+                {
+                    ...suite,
+                    standaloneAssistants: [
+                        {
+                            key: 'master_data',
+                            templateKey: 'coordinator',
+                            primaryAgentKey: 'Agent_MasterData'
+                        }
+                    ]
+                },
+                'coordinator'
+            )
+        ).toThrow()
+        const invalid = { ...standaloneSuite }
+        Reflect.set(invalid, 'standaloneAssistants', {})
+        expect(() => validateApplicationSuite(invalid, 'coordinator')).toThrow('invalid_application_assistant_suite')
+        const oversized = {
+            ...suite,
+            standaloneAssistants: Array.from({ length: 20 }, (_, i) => ({
+                key: `standalone_${i}`,
+                templateKey: `standalone-${i}`,
+                primaryAgentKey: `Agent_Standalone${i}`
+            }))
+        }
+        expect(() => validateApplicationSuite(oversized, 'coordinator')).toThrow('invalid_application_assistant_suite')
+    })
+    it('keeps published standalone Assistants outside the coordinator graph and remains idempotent', () => {
+        const coordinator = assistant('coordinator', 'coordinator', 'Agent_Coordinator')
+        const roles = new Map([
+            ['quality', assistant('quality', 'quality', 'Agent_Quality')],
+            ['master_data', assistant('master', 'master-data', 'Agent_MasterData')]
+        ])
+        const draft = connectApplicationSuite(coordinator, standaloneSuite, roles)
+        expect(draft.nodes.filter((node) => node.type === 'xpert').map((node) => node.key)).toEqual(['quality'])
+        expect(draft.connections).toHaveLength(1)
+        expect(connectApplicationSuite({ ...coordinator, draft }, standaloneSuite, roles)).toEqual(draft)
+        expect(() => verifyApplicationSuite({ ...coordinator, graph: draft }, standaloneSuite, roles)).not.toThrow()
+        roles.get('master_data').publishAt = null
+        expect(() => verifyApplicationSuite({ ...coordinator, graph: draft }, standaloneSuite, roles)).toThrow(
+            'application_role_unpublished'
+        )
+        roles.delete('master_data')
+        expect(() => connectApplicationSuite(coordinator, standaloneSuite, roles)).toThrow('application_role_missing')
+    })
+    it.each(['node', 'connection', 'alias'] as const)(
+        'rejects an existing standalone %s without changing human edits',
+        (kind) => {
+            const coordinator = assistant('coordinator', 'coordinator', 'Agent_Coordinator')
+            const master = assistant('master', 'master-data', 'Agent_MasterData')
+            const roles = new Map([
+                ['quality', assistant('quality', 'quality', 'Agent_Quality')],
+                ['master_data', master]
+            ])
+            const draft = connectApplicationSuite(coordinator, standaloneSuite, roles)
+            if (kind === 'connection') {
+                draft.connections.push({ key: 'custom', type: 'xpert', from: 'Agent_Other', to: master.id })
+            } else {
+                draft.nodes.push({
+                    type: 'xpert',
+                    key: kind === 'alias' ? 'alias-master' : master.id,
+                    entity: kind === 'alias' ? { ...master, id: 'alias-instance' } : master,
+                    position: { x: 0, y: 0 }
+                })
+                if (kind === 'alias') {
+                    master.draft.team.options = master.options
+                    delete master.options
+                }
+            }
+            const before = JSON.stringify(draft)
+            expect(() => connectApplicationSuite({ ...coordinator, draft }, standaloneSuite, roles)).toThrow()
+            expect(() => verifyApplicationSuite({ ...coordinator, graph: draft }, standaloneSuite, roles)).toThrow()
+            expect(JSON.stringify(draft)).toBe(before)
+        }
+    )
     it('rejects ambiguous portable identities before installation', () => {
         expect(() =>
             validateApplicationSuite({ ...suite, roles: [...suite.roles, ...suite.roles] }, 'coordinator')

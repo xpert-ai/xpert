@@ -1,5 +1,6 @@
 import { DOCUMENT } from '@angular/common'
 import { injectDataSourceCreateCommand } from './data-source-create.runtime'
+import { injectWorkspaceConnectorConnect } from './workspace-connector-connect.runtime'
 import { HttpClient } from '@angular/common/http'
 import { computed, effect, inject, isSignal, signal, Signal, untracked } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
@@ -32,6 +33,11 @@ export type AssistantRuntimeStatus = 'idle' | 'loading' | 'ready' | 'missing' | 
 type AssistantLocale = 'en' | 'zh-Hans' | 'zh-Hant'
 type AssistantTheme = NonNullable<ChatKitOptions['theme']>
 type ReactiveChatKitOption<T> = T | Signal<T>
+
+// Bid intake supports source files up to 50 MiB. Keep the ChatKit client-side
+// guard aligned with the server parser so a valid tender is not rejected before
+// it can reach the autonomous workflow.
+export const CHATKIT_ATTACHMENT_MAX_BYTES = 50 * 1024 * 1024
 
 type AssistantRuntimeInput = {
   assistantCode: Signal<AssistantCode | null>
@@ -80,6 +86,8 @@ type AssistantHostedRuntimeInput = {
   composer?: Signal<CreateChatKitOptions['composer'] | null>
   pet?: CreateChatKitOptions['pet']
   taskSummary?: CreateChatKitOptions['taskSummary']
+  /** Host-specific presentation policy; execution state and persisted history remain unchanged. */
+  messagePresentation?: CreateChatKitOptions['messagePresentation']
   workbench?: CreateChatKitOptions['workbench']
   startScreen?: Signal<CreateChatKitOptions['startScreen'] | null>
   title?: Signal<string | null>
@@ -234,6 +242,7 @@ export function injectAssistantBindingRuntimeState(input: AssistantBindingRuntim
 
 export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntimeInput) {
   injectDataSourceCreateCommand()
+  const connectWorkspaceConnector = injectWorkspaceConnectorConnect(input.assistantId)
   const document = inject(DOCUMENT)
   const translate = inject(TranslateService)
   const toastr = inject(ToastrService)
@@ -350,6 +359,7 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       layout: input.layout,
       pet: input.pet,
       taskSummary: input.taskSummary,
+      messagePresentation: input.messagePresentation,
       workbench: input.workbench,
       ...(mcpApps ? { mcpApps } : {}),
       toolOutputAttachments: {
@@ -388,10 +398,12 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       startScreen,
       composer: {
         ...composer,
+        resources: { enabled: true, onConnect: connectWorkspaceConnector, ...composer?.resources },
+        connectors: { enabled: true, ...composer?.connectors },
         attachments: {
           enabled: true,
           maxCount: 5,
-          maxSize: 10 * 1024 * 1024,
+          maxSize: CHATKIT_ATTACHMENT_MAX_BYTES,
           ...composer?.attachments
         },
         tools: composer?.tools ?? []

@@ -1,0 +1,44 @@
+name: Validate Web dependency isolation
+
+on:
+  pull_request:
+    paths:
+      - '.deploy/webapp/**'
+      - '.deploy/api/pnpm-lock.*.yaml'
+      - 'apps/cloud/**'
+      - 'packages/contracts/**'
+      - 'packages/ui/**'
+      - 'packages/plugin-sdk/src/connector.ts'
+      - 'packages/plugin-sdk/src/lib/connector/strategy.interface.ts'
+      - 'libs/formly/**'
+      - '**/package.json'
+      - 'pnpm-workspace.yaml'
+      - '.npmrc'
+      - '.eslintrc.json'
+      - '.nxignore'
+      - 'nx.json'
+      - 'tsconfig.base.json'
+      - 'tailwind*'
+      - '.github/workflows/webapp-dependencies.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: corepack enable
+      - run: node --test .deploy/webapp/dependencies.test.cjs
+      - name: Check frontend-only dependency lock
+        run: node .deploy/webapp/dependencies.cjs check
+      - name: Build production Web image without server native dependencies
+        run: docker build --target production -f .deploy/webapp/Dockerfile -t xpert-webapp:health-check .
+      - name: Verify Cloud, ChatKit and bundle assets
+        run: node .deploy/webapp/check-image.cjs

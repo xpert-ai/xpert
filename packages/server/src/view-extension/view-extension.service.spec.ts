@@ -4,6 +4,7 @@ import {
 	AGENT_PROFILE_TABS_SLOT,
 	ApiKeyBindingType,
 	type IApiPrincipal,
+	type XpertResolvedViewHostContext,
 	SecretTokenBindingType
 } from '@xpert-ai/contracts'
 import { ViewExtensionService } from './view-extension.service'
@@ -56,7 +57,7 @@ describe('ViewExtensionService file actions', () => {
 	function createService() {
 		const provider = {
 			supports: jest.fn(async () => true),
-			getViewManifests: jest.fn(async () => [manifest]),
+			getViewManifests: jest.fn(async (_context: XpertResolvedViewHostContext, _slot: string) => [manifest]),
 			getViewData: jest.fn(),
 			resolveViewFile: jest.fn(async () => ({
 				reference: {
@@ -109,6 +110,68 @@ describe('ViewExtensionService file actions', () => {
 		return { service, provider, hostDefinition, permissionService, cacheService }
 	}
 
+	it('previews permission-filtered feature associations without activating views or exposing executable schemas', async () => {
+		const { service, provider, hostDefinition, permissionService } = createService()
+		hostDefinition.slots.push({ key: 'secondary', order: 2 })
+		const bound = { ...manifest, activation: { requiredFeatures: ['audit'] } }
+		provider.getViewManifests.mockImplementation(async (_context, slot) =>
+			[
+				bound,
+				{ ...bound, key: 'hidden', workbench: { menu: { enabled: false } } },
+				{ ...bound, key: 'denied', permissions: ['manage'] },
+				{ ...bound, key: 'unrelated', activation: { requiredFeatures: ['other'] } }
+			].map((item) => ({ ...item, slot }))
+		)
+		permissionService.filterVisibleManifests.mockImplementation((items) =>
+			items.filter((item) => !item.permissions?.length)
+		)
+		const views = await service.listFeatureViewSummaries('agent', 'assistant-1', ['audit'])
+		expect(views).toEqual([
+			{ key: 'provider__review', title: 'Review', requiredFeatures: ['audit'] },
+			{ key: 'provider__hidden', title: 'Review', requiredFeatures: ['audit'] }
+		])
+		expect(permissionService.assertHostReadable).toHaveBeenCalled()
+		expect(provider.getViewData).not.toHaveBeenCalled()
+		expect(provider.getViewManifests).toHaveBeenCalledWith(expect.objectContaining({ capabilities: {} }), 'main')
+	})
+
+	it.each(['agent.workbench.fixed', 'agent.workbench.main'])(
+		'supports existing %s clients and direct endpoints',
+		async (slot) => {
+			const { service, provider, hostDefinition, permissionService } = createService()
+			Object.assign(hostDefinition.slots[0], { key: slot })
+			provider.getViewManifests.mockImplementation(async (_context, slot) =>
+				slot === 'agent.workbench'
+					? [
+							{
+								...manifest,
+								slot,
+								activation: { requiredFeatures: ['audit'] },
+								workbench: { fixed: true, openMode: 'on-demand', menu: { enabled: false } },
+								dataSource: { mode: 'platform', cache: { enabled: false } }
+							}
+						]
+					: []
+			)
+			hostDefinition.resolve.mockResolvedValue({
+				workspaceId: 'workspace-1',
+				hostSnapshot: { id: 'assistant-1' },
+				context: { capabilities: { features: ['audit'] } }
+			})
+			const [view] = await service.listSlotViews('agent', 'assistant-1', slot)
+			expect(view).toMatchObject({
+				key: 'provider__review',
+				slot,
+				workbench: { fixed: true, openMode: 'on-demand' }
+			})
+			expect(view.workbench?.fixed).toBe(true)
+			expect(await service.listFeatureViewSummaries('agent', 'assistant-1', ['audit'])).toHaveLength(1)
+			await service.getViewData('agent', 'assistant-1', 'provider__review', {})
+			expect(permissionService.ensureManifestVisible).toHaveBeenCalledWith(view)
+			expect(provider.getViewData).toHaveBeenCalledWith(expect.any(Object), 'review', {})
+		}
+	)
+
 	it('propagates draft resolution options through host discovery and permission checks', async () => {
 		const { service, hostDefinition, permissionService } = createService()
 
@@ -123,44 +186,47 @@ describe('ViewExtensionService file actions', () => {
 		)
 	})
 
-	it('rechecks Profile Feature activation for data and actions after discovery', async () => {
-		const { service, provider, hostDefinition } = createService()
-		Object.assign(hostDefinition.slots[0], {
-			key: AGENT_PROFILE_TABS_SLOT,
-			manifestPolicy: { requireFeatureActivation: true }
-		})
-		provider.getViewManifests.mockResolvedValue([
-			{
-				...manifest,
-				slot: AGENT_PROFILE_TABS_SLOT,
-				activation: { requiredFeatures: ['case-profile'] },
-				dataSource: { mode: 'platform', cache: { enabled: false } }
-			}
-		])
-		let features = ['case-profile']
-		hostDefinition.resolve.mockImplementation(async () => ({
-			workspaceId: 'workspace-1',
-			hostSnapshot: { id: 'assistant-1' },
-			context: { capabilities: { features } }
-		}))
-		provider.getViewData.mockResolvedValue({ items: [] })
-		expect(await service.listSlotViews('agent', 'assistant-1', AGENT_PROFILE_TABS_SLOT)).toHaveLength(1)
-		await expect(service.getViewData('agent', 'assistant-1', 'provider__review', {})).resolves.toEqual({
-			items: []
-		})
-		await expect(
-			service.executeAction('agent', 'assistant-1', 'provider__review', 'undeclared', {})
-		).rejects.toThrow("Action 'undeclared' was not found")
-		features = []
-		expect(await service.listSlotViews('agent', 'assistant-1', AGENT_PROFILE_TABS_SLOT)).toHaveLength(0)
-		await expect(service.getViewData('agent', 'assistant-1', 'provider__review', {})).rejects.toThrow(
-			'was not found'
-		)
-		await expect(
-			service.executeAction('agent', 'assistant-1', 'provider__review', 'json_action', {})
-		).rejects.toThrow('was not found')
-		expect(provider.getViewData).toHaveBeenCalledTimes(1)
-	})
+	it.each([AGENT_PROFILE_TABS_SLOT, 'agent.workbench.fixed', 'agent.workbench.main'])(
+		'rechecks Feature activation for %s data and actions after discovery',
+		async (slot) => {
+			const { service, provider, hostDefinition } = createService()
+			Object.assign(hostDefinition.slots[0], {
+				key: slot,
+				manifestPolicy: { requireFeatureActivation: true }
+			})
+			provider.getViewManifests.mockResolvedValue([
+				{
+					...manifest,
+					slot,
+					activation: { requiredFeatures: ['case-profile'] },
+					dataSource: { mode: 'platform', cache: { enabled: false } }
+				}
+			])
+			let features = ['case-profile']
+			hostDefinition.resolve.mockImplementation(async () => ({
+				workspaceId: 'workspace-1',
+				hostSnapshot: { id: 'assistant-1' },
+				context: { capabilities: { features } }
+			}))
+			provider.getViewData.mockResolvedValue({ items: [] })
+			expect(await service.listSlotViews('agent', 'assistant-1', slot)).toHaveLength(1)
+			await expect(service.getViewData('agent', 'assistant-1', 'provider__review', {})).resolves.toEqual({
+				items: []
+			})
+			await expect(
+				service.executeAction('agent', 'assistant-1', 'provider__review', 'undeclared', {})
+			).rejects.toThrow("Action 'undeclared' was not found")
+			features = []
+			expect(await service.listSlotViews('agent', 'assistant-1', slot)).toHaveLength(0)
+			await expect(service.getViewData('agent', 'assistant-1', 'provider__review', {})).rejects.toThrow(
+				'was not found'
+			)
+			await expect(
+				service.executeAction('agent', 'assistant-1', 'provider__review', 'json_action', {})
+			).rejects.toThrow('was not found')
+			expect(provider.getViewData).toHaveBeenCalledTimes(1)
+		}
+	)
 
 	it('returns only Project experts that provide every feature required by a view', async () => {
 		const { service, provider, hostDefinition } = createService()

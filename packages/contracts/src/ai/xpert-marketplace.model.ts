@@ -86,6 +86,7 @@ export interface IXpertAccessRequest extends IBasePerTenantAndOrganizationEntity
 
 export type TXpertMarketplaceQuery = {
   search?: string | null
+  businessAreaIds?: string[]
   businessCategories?: TXpertMarketplaceBusinessCategory[]
   capabilityTags?: string[]
   collaborationModes?: TXpertMarketplaceCollaborationMode[]
@@ -119,6 +120,7 @@ export type IXpertMarketplaceItem = {
 
 export type IXpertMarketplaceListResponse = {
   items: IXpertMarketplaceItem[]
+  businessAreas?: { id: string; name: string }[]
   recommendedTemplates: TXpertTemplate[]
   total: number
   reviewableCount: number

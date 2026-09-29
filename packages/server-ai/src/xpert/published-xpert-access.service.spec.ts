@@ -370,6 +370,53 @@ describe('PublishedXpertAccessService', () => {
         expect(repository.createQueryBuilder).not.toHaveBeenCalled()
     })
 
+    it('discovers resources for the exact delegated audience using the actor organization and membership filters', async () => {
+        ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue({
+            requestedOrganizationId: 'org-requested',
+            requestedUserId: 'user-1',
+            principalType: 'client_secret',
+            clientSecretBindingType: SecretTokenBindingType.USER_XPERT,
+            apiKey: { type: ApiKeyBindingType.ASSISTANT, entityId: 'parent' }
+        })
+        const qb = createQueryBuilderMock({ rows: [{ id: 'resource' }] })
+        const repository = {
+            findOne: jest.fn().mockResolvedValue({ id: 'parent', publishAt: new Date() }),
+            find: jest.fn().mockResolvedValue([{ id: 'resource' }]),
+            createQueryBuilder: jest.fn().mockReturnValue(qb)
+        }
+        const service = new PublishedXpertAccessService(asXpertRepository(repository))
+        await expect(
+            service.findAccessiblePublishedResources('parent', { where: { type: XpertTypeEnum.Agent } })
+        ).resolves.toEqual([{ id: 'resource' }])
+        expect(qb.andWhere).not.toHaveBeenCalledWith('xpert.id = :userXpertId', expect.anything())
+        expect(qb.where).toHaveBeenCalledWith('xpert.tenantId = :tenantId', { tenantId: 'tenant-1' })
+        expect(qb.andWhere).toHaveBeenCalledWith('xpert.publishAt IS NOT NULL')
+        expect(qb.leftJoin).toHaveBeenCalledWith('xpert.userGroups', 'userGroup', expect.any(String), {
+            tenantId: 'tenant-1',
+            organizationId: 'org-requested'
+        })
+        expect(qb.leftJoin).toHaveBeenCalledWith('workspace.members', 'workspaceMember', expect.any(String), {
+            userId: 'user-1'
+        })
+        await expect(service.findAccessiblePublishedResources('other-parent')).rejects.toThrow(ForbiddenException)
+        expect(qb.getRawMany).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not expose a resource catalog to public assistant sessions', async () => {
+        ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue({
+            principalType: 'client_secret',
+            clientSecretBindingType: SecretTokenBindingType.PUBLIC_XPERT,
+            apiKey: { type: ApiKeyBindingType.ASSISTANT, entityId: 'parent' }
+        })
+        const repository = {
+            findOne: jest.fn().mockResolvedValue({ id: 'parent', app: { enabled: true, public: true } }),
+            createQueryBuilder: jest.fn()
+        }
+        const service = new PublishedXpertAccessService(asXpertRepository(repository))
+        await expect(service.findAccessiblePublishedResources('parent')).rejects.toThrow(ForbiddenException)
+        expect(repository.createQueryBuilder).not.toHaveBeenCalled()
+    })
+
     it('allows workspace members to access a published xpert without a user-group grant', async () => {
         const repository = {
             findOne: jest.fn().mockResolvedValue({

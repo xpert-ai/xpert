@@ -1,3 +1,4 @@
+import { DesktopShellModule } from './desktop-shell/desktop-shell.module'
 import { UserModule } from '@xpert-ai/server-core'
 import { Module, forwardRef } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
@@ -63,6 +64,8 @@ import { WorkspaceFileAccessModule } from './workspace-file-access'
 import { AgentEvolutionModule } from './agent-evolution'
 import { McpPublicationModule } from './mcp-publication'
 
+import { AgentPluginModule } from './agent-plugin/agent-plugin.module'
+
 @Module({
     imports: [
         forwardRef(() => CqrsModule),
@@ -96,6 +99,7 @@ import { McpPublicationModule } from './mcp-publication'
         ModelAccessModule,
         ModelGatewayModule,
         MobileModule,
+        DesktopShellModule,
         XpertModule,
         EnterpriseChatkitModule,
         XpertAgentModule,
@@ -113,6 +117,7 @@ import { McpPublicationModule } from './mcp-publication'
         SkillRepositoryIndexModule,
         SkillPackageModule,
         PluginResourceModule,
+        AgentPluginModule,
         PromptWorkflowModule,
         InitializationModule,
         KnowledgebaseModule,

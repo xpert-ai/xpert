@@ -115,13 +115,36 @@ function readSuiteProfile(file) {
   if (!Array.isArray(profile.orchestrator.externalRoleKeys) || !profile.orchestrator.externalRoleKeys.length) {
     throw new LocalPluginCliError('orchestrator.externalRoleKeys must contain at least one role key.')
   }
-  const externalRoleKeys = new Set()
-  for (const key of profile.orchestrator.externalRoleKeys) {
-    if (!roleKeys.has(key)) throw new LocalPluginCliError(`Orchestrator references unknown role key: ${key}`)
-    if (externalRoleKeys.has(key)) throw new LocalPluginCliError(`Duplicate external role key: ${key}`)
-    externalRoleKeys.add(key)
+  for (const definition of [...profile.roles, profile.orchestrator]) {
+    if (definition.externalRoleKeys !== undefined && !Array.isArray(definition.externalRoleKeys))
+      throw new LocalPluginCliError(`${definition.key}.externalRoleKeys must be an array.`)
+    const externalRoleKeys = new Set()
+    for (const key of definition.externalRoleKeys ?? []) {
+      if (!roleKeys.has(key)) throw new LocalPluginCliError(`${definition.key} references unknown role key: ${key}`)
+      if (externalRoleKeys.has(key)) throw new LocalPluginCliError(`Duplicate external role key: ${key}`)
+      externalRoleKeys.add(key)
+    }
   }
+  roleDependencyOrder(profile)
   return { profile, profilePath }
+}
+
+/** Children publish before their callers, so embedded external descriptors always use the completed graph. */
+function roleDependencyOrder(profile) {
+  const ordered = [],
+    visiting = new Set(),
+    visited = new Set()
+  const visit = (definition) => {
+    if (visiting.has(definition.key)) throw new LocalPluginCliError(`External role dependency cycle: ${definition.key}`)
+    if (visited.has(definition.key)) return
+    visiting.add(definition.key)
+    for (const key of definition.externalRoleKeys ?? []) visit(profile.roles.find((role) => role.key === key))
+    visiting.delete(definition.key)
+    visited.add(definition.key)
+    ordered.push(definition)
+  }
+  profile.roles.forEach(visit)
+  return ordered
 }
 
 /** Validates the stable template and Agent identity needed for safe installation or resume. */
@@ -164,14 +187,17 @@ function installedTitle(definition, runId) {
 
 /** Fetches an exact name match in the target workspace for collision detection and explicit resume. */
 async function findByName(apiRoot, headers, workspaceId, name) {
-  const data = encodeURIComponent(JSON.stringify({ where: { name }, take: 10 }))
+  const data = encodeURIComponent(JSON.stringify({ where: { name, latest: true }, take: 10 }))
   const response = await getJson(
     `${apiRoot}/xpert/by-workspace/${encodeURIComponent(workspaceId)}?data=${data}`,
     headers
   )
   assertResponseOk('Assistant lookup', response)
   const items = Array.isArray(response.body?.items) ? response.body.items : []
-  return items.find((item) => item?.name === name) ?? null
+  const matches = items.filter((item) => item?.name === name && item.latest !== false)
+  if (matches.length > 1)
+    throw new LocalPluginCliError(`Multiple current Assistants match ${name}; refusing an ambiguous update.`)
+  return matches[0] ?? null
 }
 
 /** Loads the complete draft and published graph used for provenance and connection validation. */
@@ -325,16 +351,16 @@ async function installOrchestratorDraft({ apiRoot, headers, profile, refresh, re
 }
 
 /** Adds the exact role instances as direct required external Xperts and rejects ambiguous pre-existing bindings. */
-function connectExternalRoles(orchestrator, profile, rolesByKey) {
+function connectExternalRoles(orchestrator, profile, rolesByKey, definition = profile.orchestrator) {
   const draft = orchestrator?.draft
   if (!draft?.team || !Array.isArray(draft.nodes) || !Array.isArray(draft.connections)) {
     throw new LocalPluginCliError('Orchestrator draft graph is unavailable.')
   }
-  const from = profile.orchestrator.primaryAgentKey
+  const from = definition.primaryAgentKey
   const nodes = [...draft.nodes]
   const connections = draft.connections.map((connection) => ({ ...connection }))
 
-  profile.orchestrator.externalRoleKeys.forEach((roleKey, index) => {
+  definition.externalRoleKeys.forEach((roleKey, index) => {
     const role = rolesByKey.get(roleKey)
     if (!role?.id) throw new LocalPluginCliError(`Installed role ${roleKey} has no Xpert id.`)
     const roleDefinition = profile.roles.find((item) => item.key === roleKey)
@@ -372,13 +398,13 @@ function connectExternalRoles(orchestrator, profile, rolesByKey) {
 }
 
 /** Verifies the published graph contains one direct required connection for every configured role. */
-function verifyPublishedSuite(orchestrator, profile, rolesByKey) {
+function verifyPublishedSuite(orchestrator, profile, rolesByKey, definition = profile.orchestrator) {
   const graph = orchestrator?.graph
   if (!graph || !Array.isArray(graph.nodes) || !Array.isArray(graph.connections)) {
     throw new LocalPluginCliError('Published Orchestrator graph is unavailable.')
   }
-  const from = profile.orchestrator.primaryAgentKey
-  for (const roleKey of profile.orchestrator.externalRoleKeys) {
+  const from = definition.primaryAgentKey
+  for (const roleKey of definition.externalRoleKeys) {
     const role = rolesByKey.get(roleKey)
     const nodes = graph.nodes.filter((node) => node.type === 'xpert' && node.key === role.id)
     if (nodes.length !== 1) {
@@ -497,6 +523,27 @@ async function main() {
     })
   )
   const rolesByKey = new Map(roleEntries)
+  // A role may itself delegate to another role. Keep these edges on that role,
+  // rather than flattening every external Assistant into the main graph.
+  for (const definition of roleDependencyOrder(profile)) {
+    if (!definition.externalRoleKeys?.length) continue
+    const role = rolesByKey.get(definition.key)
+    if (!role.draft) {
+      const response = await getJson(`${apiRoot}/xpert/${encodeURIComponent(role.id)}`, headers)
+      assertResponseOk(`Role ${definition.key} authoring draft lookup`, response)
+      if (response.body?.id !== role.id) throw new LocalPluginCliError('Role authoring identity mismatch.')
+      assertAssistantIdentity(response.body, profile, definition)
+      role.draft = response.body.draft
+    }
+    const draft = connectExternalRoles(role, profile, rolesByKey, definition)
+    const response = await postJson(`${apiRoot}/xpert/${encodeURIComponent(role.id)}/draft`, headers, draft)
+    assertResponseOk(`Save ${definition.key} external Xpert graph`, response)
+    await publishAssistant(apiRoot, headers, role.id, null, `Connected nested roles for ${profile.key}`)
+    const publishedRole = await getTeam(apiRoot, headers, role.id)
+    assertAssistantIdentity(publishedRole, profile, definition)
+    verifyPublishedSuite(publishedRole, profile, rolesByKey, definition)
+    rolesByKey.set(definition.key, publishedRole)
+  }
   for (const [roleKey, role] of roleEntries) {
     console.log(`[assistant:suite:init] Role ready: ${roleKey} (${role.name})`)
   }
@@ -510,6 +557,16 @@ async function main() {
     runId,
     workspaceId
   })
+  // The published /team projection can omit the select:false authoring draft.
+  // Fetch it from the authoring endpoint; never synthesize it from the published graph.
+  if (!orchestratorDraft.draft) {
+    const authoringResponse = await getJson(`${apiRoot}/xpert/${encodeURIComponent(orchestratorDraft.id)}`, headers)
+    assertResponseOk('Orchestrator authoring draft lookup', authoringResponse)
+    if (authoringResponse.body?.id !== orchestratorDraft.id)
+      throw new LocalPluginCliError('Orchestrator authoring identity mismatch.')
+    assertAssistantIdentity(authoringResponse.body, profile, profile.orchestrator)
+    orchestratorDraft.draft = authoringResponse.body.draft
+  }
   const draft = connectExternalRoles(orchestratorDraft, profile, rolesByKey)
   const saveResponse = await postJson(
     `${apiRoot}/xpert/${encodeURIComponent(orchestratorDraft.id)}/draft`,
@@ -553,7 +610,8 @@ async function main() {
         title: role.title,
         version: role.version ?? null,
         templateKey: definition.templateKey,
-        primaryAgentKey: readPrimaryAgentKey(role)
+        primaryAgentKey: readPrimaryAgentKey(role),
+        externalRoleKeys: definition.externalRoleKeys ?? []
       }
     }),
     readyForTesting: true

@@ -84,6 +84,17 @@ describe('knowledge keyword analyzers', () => {
         return { registry, service, kb, query, basic }
     }
 
+    it('retains index/query modes when planning protected identifiers', async () => {
+        const { service, kb, basic } = setup()
+        const analyze = jest.spyOn(basic, 'analyze')
+        await service.vector(kb, 'XPERT_LOCAL_SANDBOX_ENABLED')
+        const plan = await service.queryPlan(kb, 'XPERT_LOCAL_SANDBOX_ENABLED 如何 开启')
+        expect(analyze.mock.calls).toContainEqual(['XPERT_LOCAL_SANDBOX_ENABLED', 'index'])
+        expect(analyze.mock.calls).toContainEqual(['XPERT_LOCAL_SANDBOX_ENABLED 如何 开启', 'query'])
+        expect(analyze.mock.calls).toContainEqual(['XPERT_LOCAL_SANDBOX_ENABLED', 'query'])
+        expect(plan.relaxed).toContain("'xpert' <-> 'local' <-> 'sandbox' <-> 'enabled'")
+    })
+
     it('defaults new knowledgebases to the pinned built-in Basic (Unicode) implementation', () => {
         const { service, kb } = setup()
         expect(kb.keywordAnalyzer).toEqual(expect.objectContaining({ provider: 'basic', source: { kind: 'builtin' } }))

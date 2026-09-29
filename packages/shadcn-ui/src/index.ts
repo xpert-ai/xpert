@@ -32,3 +32,6 @@ export * from './components/ui/resizable'
 export * from './components/ui/sonner'
 export * from './components/ui/toggle'
 export * from './components/ui/toggle-group'
+export * from './components/ui/context-menu'
+
+export * from './components/ui/hover-card'

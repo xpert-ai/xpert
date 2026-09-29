@@ -1,4 +1,6 @@
 export * from './types'
+export * from './ai/project-task-graph.model'
+export * from './ai/project-task-schedule'
 export * from './utils'
 export type { I18nObject, I18nText } from './i18n.model'
 export { resolveI18nText } from './i18n.model'
@@ -76,3 +78,24 @@ export * from './plain-object.model'
 export * from './plugin'
 export * from './view-extension'
 export * from './runtime-control'
+export type {
+  RuntimeResourceKind,
+  RuntimeResourceStatus,
+  RuntimeResourceReference,
+  RuntimeResourcesSelection,
+  AgentPluginDiagnostic,
+  RuntimeResourceCatalogItem,
+  RuntimeResourceView,
+  RuntimeResourceCatalog,
+  AgentPluginXpertExtension,
+  AgentPluginConnectorAuth,
+  AgentPluginConnectorBinding,
+  RuntimeResourceDefinition,
+  RuntimeResourceBindingInput,
+  WorkspaceAgentPlugin,
+  WorkspaceAgentPluginOptions,
+  WorkspaceAgentPluginAddInput,
+  WorkspaceAgentPluginAddResult
+} from './agent-plugin'
+
+export * from './desktop-shell.model'

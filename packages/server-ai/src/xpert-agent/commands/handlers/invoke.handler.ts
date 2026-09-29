@@ -38,7 +38,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { format } from 'date-fns/format'
 import { pick } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
-import { catchError, concat, filter, from, map, Observable, of, switchMap, tap } from 'rxjs'
+import { catchError, concat, defer, filter, from, map, Observable, of, switchMap, tap } from 'rxjs'
 import { Repository } from 'typeorm'
 import { CopilotCheckpointSaver, GetCopilotCheckpointsByParentQuery } from '../../../copilot-checkpoint'
 import { ChatMessage } from '../../../chat-message/chat-message.entity'
@@ -59,6 +59,15 @@ import { validateXpertParameterValues } from '../../../shared/agent/parameter'
 import { SandboxAcquireBackendCommand } from '../../../sandbox/commands'
 import { applicationTracing } from '../../../tracing'
 import { resolveEffectiveCopilotModel } from '../../effective-copilot-model'
+import { ThreadRunControlService, threadGraphRevision } from '../../../chat-conversation/thread-run-control.service'
+import { isThreadPause } from '../../../shared/agent/thread-pause'
+import { MessageCheckpointService } from '../../../chat-conversation/message-checkpoint.service'
+import {
+    bindExecutionContextObservable,
+    getExecutionContext,
+    withExecutionContext,
+    type ExecutionContext
+} from '../../../shared/agent/execution-context'
 
 @CommandHandler(XpertAgentInvokeCommand)
 export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvokeCommand> {
@@ -75,7 +84,9 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         @Optional()
         private readonly outboundActorTokenProvider: OutboundActorTokenProvider | undefined,
         @InjectRepository(ChatMessage)
-        private readonly chatMessageRepository: Repository<ChatMessage>
+        private readonly chatMessageRepository: Repository<ChatMessage>,
+        @Optional() private readonly threadRunControl?: ThreadRunControlService,
+        @Optional() private readonly messageCheckpoints?: MessageCheckpointService
     ) {}
 
     private async downgradePendingSteerFollowUpsToQueue(conversationId?: string, executionId?: string) {
@@ -194,19 +205,48 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         if (execution?.id) {
             this.executionCancelService.register(execution.id, abortController)
         }
+        const executionContext: ExecutionContext = { sandbox: sandboxContext }
         const planMode = options.planMode === true || isPlanModeEnabledFromState(state)
-        const { graph, agent, xpertGraph } = await this.commandBus.execute(
-            new CompileGraphCommand(agentKeyOrName, xpert, {
-                ...options,
-                planMode,
-                execution,
-                rootController: abortController,
-                signal: abortController.signal,
-                workspacePath,
-                workspaceRoot: workArea.workspaceRoot,
-                mute
-            })
+        const { graph, agent, xpertGraph } = await withExecutionContext(executionContext, () =>
+            this.commandBus.execute(
+                new CompileGraphCommand(agentKeyOrName, xpert, {
+                    ...options,
+                    shouldPause:
+                        this.threadRunControl && options.thread_id && execution?.id
+                            ? () => this.threadRunControl.shouldPause(options.thread_id, execution.id)
+                            : undefined,
+                    planMode,
+                    execution,
+                    rootController: abortController,
+                    signal: abortController.signal,
+                    workspacePath,
+                    workspaceRoot: workArea.workspaceRoot,
+                    mute,
+                    unmutes
+                })
+            )
         )
+
+        const graphRevision = threadGraphRevision(xpertGraph)
+        await this.threadRunControl?.recordGraph(threadId, execution.id, graphRevision)
+        if (options.inputMessageId) {
+            const previous = await this.checkpointSaver.getCopilotCheckpoint({
+                configurable: { thread_id: threadId, checkpoint_ns: '' }
+            })
+            await this.chatMessageRepository.update(options.inputMessageId, {
+                inputCheckpoint: {
+                    version: 1,
+                    graphRevision,
+                    checkpoint: previous.checkpoint
+                        ? {
+                              threadId,
+                              checkpointNs: previous.checkpoint.checkpoint_ns,
+                              checkpointId: previous.checkpoint.checkpoint_id
+                          }
+                        : null
+                }
+            })
+        }
 
         let task: IKnowledgebaseTask = null
         if (xpert.knowledgebase) {
@@ -251,6 +291,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         const config = {
             thread_id,
             checkpoint_ns: '',
+            ...(options.resumeCheckpoint ? { xpertResumeCheckpoint: options.resumeCheckpoint } : {}),
             // Use checkpoint id to resume thread state when retrying
             ...(options.checkpointId ? { checkpoint_id: options.checkpointId } : {})
         }
@@ -312,7 +353,9 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         })
         let graphInput = null
         const interruptCommand = toInterruptCommand(options.resume)
-        if (options.resume) {
+        if (options.resumeCheckpoint) {
+            graphInput = null
+        } else if (options.resume) {
             const commandAgentKey = interruptCommand?.agentKey ?? agent.key
             const commandPayload = interruptCommand
                 ? {
@@ -371,9 +414,10 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 
         const recursionLimit = getXpertAgentRecursionLimit(team.agentConfig)
         const rootExecutionId = options.rootExecutionId ?? execution.id
-        const contentStream = from(
+        const contentStream = defer(() =>
             graph.streamEvents(graphInput, {
                 version: 'v2',
+                context: getExecutionContext(),
                 configurable: {
                     ...config,
                     tenantId: tenantId,
@@ -443,14 +487,39 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                     // record last state when finish
                     const state = await recordLastState()
 
+                    // A manual pause is a run-control request, not a tool
+                    // approval interrupt. The current node is allowed to
+                    // finish, then the next persisted boundary is resumed
+                    // from the checkpoint we just recorded.
+                    const pauseRequested = Boolean(await this.threadRunControl?.shouldPause(threadId, execution.id))
+                    if (pauseRequested) {
+                        if (execution.checkpointId) {
+                            await this.threadRunControl?.stageCheckpoint(threadId, execution.id, {
+                                threadId,
+                                checkpointNs: execution.checkpointNs ?? '',
+                                checkpointId: execution.checkpointId
+                            })
+                        }
+                        throw new NodeInterrupt({ type: 'thread_pause' })
+                    }
+
                     // Interrupted event
                     if (state.tasks?.length) {
+                        // Resumed dynamic tools can have interrupts with an empty `next` list.
+                        // Explicit unfinished interrupts take precedence; completed parallel tasks remain excluded.
+                        const pendingTasks = state.tasks.filter(
+                            (task) =>
+                                task.result === undefined &&
+                                (task.interrupts?.some((item) => !isThreadPause(item.value)) ||
+                                    (!task.interrupts?.length && state.next.includes(task.name)))
+                        )
+                        if (!pendingTasks.length) throw new NodeInterrupt({ type: 'thread_pause' })
                         // Has bugs
                         console.error(`Interrupting for tool calls:`, state.tasks)
                         const operation = await this.queryBus.execute(
                             new CompleteToolCallsQuery(
                                 xpert.id,
-                                state.tasks,
+                                pendingTasks,
                                 state.values,
                                 options.isDraft,
                                 options.projectId
@@ -464,6 +533,20 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                             }
                         } as MessageEvent)
                         throw new NodeInterrupt(`Confirm tool calls`)
+                    }
+                    // Pin graph state only after all tasks finish; the outer stream seals the final message later.
+                    if (state.next?.length === 0 && state.config?.configurable?.checkpoint_id) {
+                        await this.messageCheckpoints
+                            ?.capture(
+                                execution.id,
+                                {
+                                    threadId,
+                                    checkpointNs: state.config.configurable.checkpoint_ns ?? '',
+                                    checkpointId: state.config.configurable.checkpoint_id
+                                },
+                                graphRevision
+                            )
+                            .catch(() => this.#logger.warn('Unable to seal the assistant branch checkpoint'))
                     }
                     await this.commandBus.execute(
                         new XpertAgentExecutionUpsertCommand({
@@ -527,7 +610,8 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
             })
         )
 
-        return applicationTracing.traceObservable(stream, 'agent.invoke', {
+        const scopedStream = bindExecutionContextObservable(executionContext, () => stream)
+        return applicationTracing.traceObservable(scopedStream, 'agent.invoke', {
             'execution.id': execution.id,
             'root.execution.id': rootExecutionId,
             'agent.key': agent.key,

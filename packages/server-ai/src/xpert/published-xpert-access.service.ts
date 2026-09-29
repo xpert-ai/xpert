@@ -372,14 +372,14 @@ export class PublishedXpertAccessService {
         }
     }
 
-    private buildAccessibleQuery(options?: PublishedXpertQueryOptions) {
+    private buildAccessibleQuery(options?: PublishedXpertQueryOptions, resourceParentId?: string) {
         const publicXpertId = this.currentPublicXpertId()
         if (publicXpertId) {
             return this.buildPublicXpertBoundQuery(publicXpertId, options)
         }
 
         const enterpriseScope = this.currentEnterpriseXpertScope()
-        if (enterpriseScope) {
+        if (enterpriseScope && !resourceParentId) {
             return this.buildEnterpriseXpertBoundQuery(enterpriseScope, options)
         }
 
@@ -391,7 +391,7 @@ export class PublishedXpertAccessService {
         const tenantId = this.currentTenantId()
         const organizationId = this.currentOrganizationId()
         const userId = this.currentAccessUserId()
-        const userXpertId = this.currentUserXpertId()
+        const userXpertId = resourceParentId ? null : this.currentUserXpertId()
         const qb = this.repository
             .createQueryBuilder('xpert')
             .leftJoin('xpert.workspace', 'workspace')
@@ -605,6 +605,29 @@ export class PublishedXpertAccessService {
         })
 
         return !!candidate && isSameXpertFamily(candidate, xpert)
+    }
+
+    /** Internal delegation only: validate the token audience through its parent, then check the actor's resource access. */
+    async findAccessiblePublishedResources(parentId: string, options?: PublishedXpertQueryOptions) {
+        await this.getAccessiblePublishedXpert(parentId)
+        if (this.currentPublicXpertId()) throw new ForbiddenException(t('server-ai:Error.AssistantAccessForbidden'))
+        const query = this.buildAccessibleQuery(options, parentId).select('xpert.id', 'id').distinct(true)
+        Object.keys(options?.order ?? {}).forEach((name) => {
+            query.addSelect(`xpert.${name}`, `order_${name}`)
+        })
+        const rows = await query.getRawMany<{ id: string }>()
+        return this.loadByIds(
+            rows.map((row) => row.id),
+            this.normalizeRelations(options?.relations)
+        )
+    }
+
+    async getAccessiblePublishedResource(id: string, parentId: string) {
+        await this.getAccessiblePublishedXpert(parentId)
+        if (this.currentPublicXpertId()) throw new ForbiddenException(t('server-ai:Error.AssistantAccessForbidden'))
+        const count = await this.buildAccessibleQuery({ where: { id } }, parentId).getCount()
+        if (!count) throw new ForbiddenException(t('server-ai:Error.AssistantAccessForbidden'))
+        return this.getPublishedXpertInTenant(id, { relations: ['agent'] })
     }
 
     async getAccessiblePublishedXpert(id: string, options?: Omit<FindOneOptions<Xpert>, 'where'>) {

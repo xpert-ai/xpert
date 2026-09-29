@@ -47,4 +47,22 @@ export interface IntegrationStrategy<T = unknown> {
   validateConfig?(config: T, integration?: IIntegration<T>): Promise<void | IntegrationTestResult>
   getIdentityBootstrap?(integration: IIntegration<T>): Promise<IntegrationIdentityBootstrap>
   exchangeIdentity?(integration: IIntegration<T>, grant: IntegrationIdentityGrant): Promise<IntegrationExternalIdentity>
+  beginQrAuthorization?(): Promise<IntegrationQrAuthorization>
+  pollQrAuthorization?(deviceCode: string): Promise<IntegrationQrAuthorizationResult>
+  /** Stable provider account identity used to reuse integrations within the same tenant and organization. */
+  getQrAuthorizationIdentity?(options: unknown): string | null
 }
+
+/** Server-only setup contract. Never forward deviceCode or options to the browser. */
+export interface IntegrationQrAuthorization {
+  deviceCode: string
+  authorizationUrl: string
+  expiresInSeconds: number
+  intervalSeconds: number
+}
+
+export type IntegrationQrAuthorizationResult =
+  /** Additive provider backoff, persisted by the host for the rest of the session. */
+  | { status: 'waiting'; intervalIncrementSeconds?: number }
+  | { status: 'expired' | 'denied' | 'failed' }
+  | { status: 'authorized'; options: Record<string, unknown> }

@@ -33,7 +33,7 @@ describe('initializeApplicationDataSource', () => {
 		expect(isSchemaSyncExternallyManaged('internal')).toBe(false)
 	})
 
-	it('skips startup synchronization in external mode and restores runtime plugin synchronization', async () => {
+	it('keeps runtime synchronization disabled when schema ownership is external', async () => {
 		let createdOptions: DataSourceOptions | undefined
 		const dataSource = new TestDataSource()
 
@@ -48,8 +48,8 @@ describe('initializeApplicationDataSource', () => {
 
 		expect(result).toBe(dataSource)
 		expect(createdOptions?.synchronize).toBe(false)
-		expect(dataSource.events).toEqual(['initialize', 'setOptions'])
-		expect(dataSource.optionUpdates).toEqual([{ synchronize: true }])
+		expect(dataSource.events).toEqual(['initialize'])
+		expect(dataSource.optionUpdates).toEqual([])
 	})
 
 	it('keeps the configured TypeORM behavior outside external mode', async () => {

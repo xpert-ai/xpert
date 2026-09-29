@@ -5,6 +5,7 @@ import { IXpertAgent } from './xpert-agent.model'
 import { TSensitiveOperation } from './chat.model'
 import { WorkflowNodeTypeEnum } from './xpert-workflow.model'
 import type { IModelUsageDetails } from './model-usage.model'
+import type { TAvatar } from '../types'
 
 export type TXpertExecution = {
   category?: TXpertTeamNodeType
@@ -116,6 +117,12 @@ export enum XpertAgentExecutionStatusEnum {
 }
 
 export type TAgentExecutionMetadata = {
+  /** Recorded by the invocation boundary; never inferred from agent names. */
+  invocationKind?: 'external_assistant' | 'sub_agent'
+  /** Tool call in the parent execution that started this run. Omit for workflow-driven runs. */
+  sourceToolCallId?: string
+  assistantName?: string
+  assistantAvatar?: TAvatar
   /**
    * AI model provider
    */
@@ -152,5 +159,32 @@ export type TAgentExecutionMetadata = {
   handoffParentMessageId?: string
   runtimePrincipalType?: string
   runtimePrincipalXpertId?: string
+  /** Root execution this run continued after a durable thread pause. */
+  resumedFromExecutionId?: string
   [key: string]: unknown
+}
+
+/** Public execution summary shared by live events and conversation history. */
+export type TChatAgentRunSummary = {
+  /** Identifies the main reply and its total duration without inferring identity from agent names. */
+  isRoot?: boolean
+  id: string
+  parentId?: string
+  type?: string
+  category?: TXpertTeamNodeType
+  agentKey?: string
+  xpertId?: string
+  xpertName?: string
+  avatar?: TAvatar
+  title?: string
+  invocationKind?: TAgentExecutionMetadata['invocationKind']
+  /** Matches the Tool component id within parentId; never match by tool name or provider. */
+  sourceToolCallId?: TAgentExecutionMetadata['sourceToolCallId']
+  model?: string
+  status?: string
+  elapsedTime?: number
+  inputs?: unknown
+  error?: string
+  createdAt?: string
+  updatedAt?: string
 }

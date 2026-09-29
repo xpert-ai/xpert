@@ -1931,7 +1931,7 @@ function loadDocumentColumns(): DocumentTableColumn[] {
       defaultsByKey.delete('tagAssignments')
     }
 
-    return [...restored, ...defaultsByKey.values().map((column) => ({ ...column }))]
+    return [...restored, ...Array.from(defaultsByKey.values(), (column) => ({ ...column }))]
   } catch {
     return createDefaultDocumentColumns()
   }

@@ -21,8 +21,12 @@ export class McpAppAudit extends TenantOrganizationBaseEntity {
     @Column({ type: 'uuid', nullable: true })
     workspaceId?: string | null
 
-    @Column({ type: 'uuid' })
-    toolsetId: string
+    @Column({ type: 'uuid', nullable: true })
+    toolsetId?: string | null
+
+    /** Native middleware Apps have a provider binding instead of a Toolset. */
+    @Column({ type: 'json', nullable: true })
+    source?: JSONValue | null
 
     @Column({ type: 'uuid' })
     appInstanceId: string

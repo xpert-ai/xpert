@@ -1,3 +1,6 @@
+import { XpertProjectWorkspaceFilesService } from './services/project-workspace-files.service'
+import { XpertProjectInvitationService } from './services/project-invitation.service'
+import { XpertProjectTypeService } from './services/project-type.service'
 import { AIPermissionsEnum } from '@xpert-ai/contracts'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { VolumeClient } from '../shared/volume'
@@ -24,6 +27,12 @@ describe('XpertProjectController collaboration endpoints', () => {
         )
     })
 
+    it('preserves route and permission metadata on extracted planning endpoints', () => {
+        const method = XpertProjectController.prototype.createTask
+        expect(Reflect.getMetadata('path', method)).toBe(':id/tasks')
+        expect(Reflect.getMetadata(XPERT_PROJECT_PERMISSION, method)).toBe(AIPermissionsEnum.XPERT_PROJECT_EDIT)
+    })
+
     it('normalizes the available Project query for the selected Xpert', async () => {
         const service = { findAvailableForXpert: jest.fn().mockResolvedValue({ items: [], total: 0 }) }
         const controller = createController(service)
@@ -35,6 +44,7 @@ describe('XpertProjectController collaboration endpoints', () => {
 
         expect(service.findAvailableForXpert).toHaveBeenCalledWith({
             xpertId: 'xpert-1',
+            filter: { applicationKey: undefined, projectTypeKey: undefined, search: undefined, unclassified: false },
             status: 'active',
             skip: 0,
             take: 100
@@ -91,6 +101,7 @@ function createController(
 ) {
     return new XpertProjectController(
         service as XpertProjectService,
+        {} as XpertProjectTypeService,
         {} as CommandBus,
         {} as QueryBus,
         {} as XpertProjectPlanService,
@@ -100,6 +111,8 @@ function createController(
         accessService as XpertProjectAccessService,
         contentService as XpertProjectContentService,
         membershipService as XpertProjectMembershipService,
+        {} as XpertProjectInvitationService,
+        {} as XpertProjectWorkspaceFilesService,
         {} as VolumeClient
     )
 }

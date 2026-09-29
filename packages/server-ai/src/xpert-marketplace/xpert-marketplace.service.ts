@@ -56,6 +56,11 @@ export class XpertMarketplaceService {
         language = LanguagesEnum.English
     ): Promise<IXpertMarketplaceListResponse> {
         const xperts = await this.findDiscoverableXperts(query.search)
+        const businessAreas = new Map<string, { id: string; name: string }>()
+        for (const xpert of xperts) {
+            const area = xpert.businessArea
+            if (area?.id && area.name?.trim()) businessAreas.set(area.id, { id: area.id, name: area.name.trim() })
+        }
         const requests = await this.findCurrentUserRequests(xperts.map((xpert) => xpert.id))
         const requestsByXpertId = new Map(requests.map((request) => [request.xpertId, request]))
 
@@ -81,6 +86,9 @@ export class XpertMarketplaceService {
 
         return {
             items: allItems.slice(skip, skip + take),
+            businessAreas: [...businessAreas.values()].sort(
+                (a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id)
+            ),
             recommendedTemplates,
             total,
             reviewableCount
@@ -262,7 +270,8 @@ export class XpertMarketplaceService {
             )
         }
 
-        return qb.orderBy('xpert.publishAt', 'DESC').take(MAX_TAKE).getMany()
+        // Filter before pagination so older assistants and their business areas remain discoverable.
+        return qb.orderBy('xpert.publishAt', 'DESC').getMany()
     }
 
     private buildDiscoverableXpertQuery() {
@@ -271,6 +280,7 @@ export class XpertMarketplaceService {
         return this.xpertRepository
             .createQueryBuilder('xpert')
             .leftJoinAndSelect('xpert.workspace', 'workspace')
+            .leftJoinAndSelect('xpert.businessArea', 'businessArea')
             .leftJoinAndSelect('workspace.members', 'workspaceMember')
             .leftJoinAndSelect('xpert.createdBy', 'createdBy')
             .leftJoinAndSelect('xpert.userGroups', 'userGroups')
@@ -486,6 +496,12 @@ export class XpertMarketplaceService {
     }
 
     private matchesFilters(item: IXpertMarketplaceItem, query: TXpertMarketplaceQuery) {
+        if (
+            query.businessAreaIds?.length &&
+            (!item.xpert.businessArea?.id || !query.businessAreaIds.includes(item.xpert.businessArea.id))
+        ) {
+            return false
+        }
         if (query.status && item.accessStatus !== query.status) {
             return false
         }
@@ -556,6 +572,11 @@ export class XpertMarketplaceService {
             tenantId: xpert.tenantId,
             organizationId: xpert.organizationId,
             workspaceId: xpert.workspaceId,
+            businessAreaId: xpert.businessAreaId ?? null,
+            businessArea:
+                xpert.businessArea?.id && xpert.businessArea.name?.trim()
+                    ? { id: xpert.businessArea.id, name: xpert.businessArea.name.trim() }
+                    : null,
             createdById: xpert.createdById,
             createdBy: this.toPublicUser(xpert.createdBy),
             slug: xpert.slug,

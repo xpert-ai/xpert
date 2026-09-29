@@ -7,10 +7,11 @@ import {
     TFile,
     TFileDirectory
 } from '@xpert-ai/contracts'
-import { PaginationParams, RequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
+import { PaginationParams, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import type { StorageFile } from '@xpert-ai/server-core'
 import { InjectQueue } from '@nestjs/bull'
-import { BadRequestException, ForbiddenException, Inject, Injectable, Logger } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Queue } from 'bull'
@@ -38,6 +39,8 @@ import { XpertProjectAccessService } from '../xpert-project/services/project-acc
 import { ChatConversation } from './conversation.entity'
 import { ChatConversationReadState } from './conversation-read-state.entity'
 import { ChatConversationPublicDTO } from './dto'
+import { ChatConversationThreadService } from './conversation-thread.service'
+import { mergeConversationOptionsSql } from './conversation-options-sql'
 
 export type ChatConversationAccessOperation = 'read' | 'contribute' | 'manage'
 
@@ -56,7 +59,8 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
         @InjectQueue('conversation-summary') private summaryQueue: Queue,
         @Inject(VOLUME_CLIENT)
         private readonly volumeClient: VolumeClient,
-        private readonly projectAccessService: XpertProjectAccessService
+        private readonly projectAccessService: XpertProjectAccessService,
+        private readonly conversationThreadService: ChatConversationThreadService
     ) {
         super(repository)
     }
@@ -79,6 +83,29 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
         partialEntity: QueryDeepPartialEntity<ChatConversation>,
         ...options: any[]
     ): Promise<UpdateResult | ChatConversation> {
+        if (Object.prototype.hasOwnProperty.call(partialEntity, 'options')) {
+            const patch = partialEntity.options
+            if (patch === null) {
+                partialEntity = {
+                    ...partialEntity,
+                    options: () =>
+                        `CASE WHEN "options"::jsonb ? 'runtimeResources' THEN jsonb_build_object('runtimeResources', "options"->'runtimeResources') ELSE NULL END`
+                }
+            } else if (patch === undefined) {
+                const { options: ignoredOptions, ...rest } = partialEntity
+                partialEntity = rest
+            } else {
+                if (typeof patch !== 'object' || Array.isArray(patch))
+                    throw new BadRequestException(t('server-ai:Error.AgentResourceDedicatedEndpoint'))
+                // Only the revisioned resource endpoint can write this reserved field. Internal
+                // execution completion may carry an older options snapshot; never replay it.
+                const { runtimeResources, ...rest } = patch
+                partialEntity = {
+                    ...partialEntity,
+                    options: () => mergeConversationOptionsSql(JSON.stringify(rest))
+                }
+            }
+        }
         if (Object.prototype.hasOwnProperty.call(partialEntity, 'projectId')) {
             const conversationId = typeof id === 'string' ? id : typeof id === 'object' ? id.id : undefined
             if (typeof conversationId === 'string') {
@@ -206,6 +233,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
                         c."threadId",
                         c."xpertId",
                         c.title,
+                        c.status,
                         c."createdAt",
                         c."updatedAt"
                     FROM chat_conversation c
@@ -289,6 +317,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
                         "xpertId",
                         id AS "latestConversationId",
                         "threadId" AS "latestConversationThreadId",
+                        status AS "latestConversationStatus",
                         NULLIF(BTRIM(title), '') AS "latestConversationTitle",
                         COALESCE("updatedAt", "createdAt") AS "latestConversationAt"
                     FROM scoped_conversations
@@ -308,7 +337,8 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
                     latest_conversations."latestConversationAt" AS "latestConversationAt",
                     latest_conversations."latestConversationId" AS "latestConversationId",
                     latest_conversations."latestConversationThreadId" AS "latestConversationThreadId",
-                    latest_conversations."latestConversationTitle" AS "latestConversationTitle"
+                    latest_conversations."latestConversationTitle" AS "latestConversationTitle",
+                    latest_conversations."latestConversationStatus" AS "latestConversationStatus"
                 FROM latest_conversations
                 LEFT JOIN counts
                     ON counts."xpertId" = latest_conversations."xpertId"
@@ -327,6 +357,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
             latestConversationId?: string | null
             latestConversationThreadId?: string | null
             latestConversationTitle?: string | null
+            latestConversationStatus?: IChatConversationUnreadXpertSummary['latestConversationStatus']
         }>
 
         return rows.map((row) => ({
@@ -339,7 +370,8 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
             latestConversationAt: row.latestConversationAt ?? null,
             latestConversationId: row.latestConversationId ?? null,
             latestConversationThreadId: row.latestConversationThreadId ?? null,
-            latestConversationTitle: row.latestConversationTitle ?? null
+            latestConversationTitle: row.latestConversationTitle ?? null,
+            latestConversationStatus: row.latestConversationStatus ?? null
         }))
     }
 
@@ -349,15 +381,8 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
             throw new BadRequestException('User is required to update conversation read state')
         }
 
-        const conversation = await this.findOneByOptions({
-            where: {
-                id: conversationId,
-                createdById: userId
-            } as any
-        })
-        if (!conversation?.id) {
-            throw new BadRequestException('Conversation is required to update read state')
-        }
+        // Read state belongs to the viewer, including readers of assistant-owned or shared Project conversations.
+        const conversation = await this.assertAccess(conversationId)
 
         const lastReadMessage = await this.resolveLastReadMessage(conversation.id, lastReadMessageId)
         const lastReadAt = this.normalizeReadAt(
@@ -368,11 +393,22 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
     }
 
     async findOneByThreadId(threadId: string) {
-        return this.findOneByOptions({
-            where: {
-                threadId
+        try {
+            return await this.findOneByOptions({
+                where: {
+                    threadId
+                }
+            })
+        } catch (error) {
+            if (!(error instanceof NotFoundException)) {
+                throw error
             }
-        })
+        }
+        const thread = await this.conversationThreadService.findByThreadId(threadId)
+        if (!thread?.conversationId) {
+            throw new NotFoundException(`The requested record was not found`)
+        }
+        return this.findOne(thread.conversationId)
     }
 
     async findOneDetail(id: string, options: Pick<PaginationParams<ChatConversation>, 'select' | 'relations'>) {

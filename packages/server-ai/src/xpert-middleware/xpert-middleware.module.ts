@@ -11,10 +11,12 @@ import { RalphLoopMiddleware } from './ralph-loop.middleware'
 import { StructuredOutputMiddleware } from './structured-output.middleware'
 import { SummarizationMiddleware } from './summarization.middleware'
 import { TodoListMiddleware } from './todo-list.middleware'
+import { ThreadReferenceMiddleware } from './thread-reference.middleware'
 
 @Module({
     imports: [ChatConversationModule],
     providers: [
+        ThreadReferenceMiddleware,
         BrowserAutomationMiddleware,
         ClientEffectMiddleware,
         ClientToolMiddleware,
@@ -28,6 +30,7 @@ import { TodoListMiddleware } from './todo-list.middleware'
         TodoListMiddleware
     ],
     exports: [
+        ThreadReferenceMiddleware,
         BrowserAutomationMiddleware,
         ClientEffectMiddleware,
         ClientToolMiddleware,

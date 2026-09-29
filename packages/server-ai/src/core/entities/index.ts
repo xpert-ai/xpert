@@ -1,3 +1,8 @@
+import {
+    DesktopShellDevice,
+    DesktopShellGrant,
+    DesktopShellOperation
+} from '../../desktop-shell/desktop-shell.entities'
 import { KnowledgebaseTag } from '../../knowledgebase/tags/knowledgebase-tag.entity'
 import { KnowledgeDocumentTag } from '../../knowledgebase/tags/document-tag.entity'
 import { KnowledgeIdentity } from '../../knowledgebase/identity/knowledge-identity.entity'
@@ -94,6 +99,8 @@ import {
     SkillRepository,
     SkillRepositoryIndex,
     SkillPackage,
+    AgentPluginPackage,
+    AgentResourceBinding,
     PluginResourceInstallation,
     PluginApplicationInstallation,
     McpRuntimeInstanceEntity,
@@ -118,6 +125,9 @@ import {
 } from './internal'
 
 export const ALL_AI_ENTITIES = [
+    DesktopShellDevice,
+    DesktopShellGrant,
+    DesktopShellOperation,
     ModelUsageDeliveryReceipt,
     KnowledgeGraphEntityContribution,
     KnowledgeGraphRelationContribution,
@@ -210,6 +220,8 @@ export const ALL_AI_ENTITIES = [
     SkillRepository,
     SkillRepositoryIndex,
     SkillPackage,
+    AgentPluginPackage,
+    AgentResourceBinding,
     PluginResourceInstallation,
     PluginApplicationInstallation,
     McpRuntimeInstanceEntity,

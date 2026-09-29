@@ -1,3 +1,4 @@
+import { isFileActivityContent, parseFileActivityContent, upsertFileActivityContent } from '@xpert-ai/chatkit-types'
 import type {
   TMessageContent,
   TMessageContentComplex,
@@ -196,6 +197,7 @@ function getContentChunkSeparator(
 }
 
 function stringifySingle(content: TMessageContentComplex): string {
+  if (isFileActivityContent(content)) return ''
   if (content.type === 'text') {
     return content.text
   }
@@ -310,7 +312,7 @@ export function createMessageAppendContextTracker(
         ...options,
         previous
       })
-      previous = resolved.appendContext
+      if (!isFileActivityContent(options.incoming)) previous = resolved.appendContext
       return resolved
     },
     reset() {
@@ -337,6 +339,11 @@ export function appendMessageContent(
   incoming: string | TMessageContentComplex,
   context?: TAppendMessageContentOptions
 ) {
+  const receipt = parseFileActivityContent(incoming)
+  if (receipt) {
+    aiMessage.content = upsertFileActivityContent(ensureArrayContent(aiMessage.content), receipt)
+    return
+  }
   aiMessage.status = 'answering'
   const { previous = null, ...contextWithoutPrevious } = context ?? {}
   const appendContext = {
@@ -344,8 +351,7 @@ export function appendMessageContent(
     ...contextWithoutPrevious
   } as TMessageAppendContext
   const joinHint =
-    appendContext.joinHint ??
-    (shouldJoinWithoutSeparator(previous, appendContext) ? ('none' as const) : undefined)
+    appendContext.joinHint ?? (shouldJoinWithoutSeparator(previous, appendContext) ? ('none' as const) : undefined)
   const messageContext = joinHint ? { ...appendContext, joinHint } : appendContext
   const content = normalizeIncomingContent(incoming, appendContext)
 
@@ -533,6 +539,7 @@ export function stringifyMessageContent(content: TMessageContent | TMessageConte
     let result = ''
     let previousContext: TMessageAppendContext = null
     content.forEach((item) => {
+      if (isFileActivityContent(item)) return
       const itemContext = inferMessageAppendContext(item)
       const joinHint = shouldJoinWithoutSeparator(previousContext, itemContext) ? 'none' : undefined
       result = appendMessagePlainText(result, stringifySingle(item), {

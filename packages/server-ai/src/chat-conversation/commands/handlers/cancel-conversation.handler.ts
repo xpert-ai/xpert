@@ -1,3 +1,4 @@
+import { DesktopShellOperationService } from '../../../desktop-shell/desktop-shell-operation.service'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { CancelConversationCommand } from '../cancel-conversation.command'
 import { ChatConversationService } from '../../conversation.service'
@@ -6,7 +7,10 @@ import { IChatMessage, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts
 import { XpertAgentExecutionService } from '../../../xpert-agent-execution/agent-execution.service'
 import { Logger, Optional } from '@nestjs/common'
 import { StopHandoffMessageCommand } from '../../../handoff/commands'
+import { ThreadRunControlService } from '../../thread-run-control.service'
 import { ChatConversationThreadService } from '../../conversation-thread.service'
+import { ChatMessage } from '../../../chat-message/chat-message.entity'
+import { In } from 'typeorm'
 
 /**
  * Handler to cancel
@@ -27,7 +31,9 @@ export class CancelConversationHandler implements ICommandHandler<CancelConversa
         private readonly executionService: XpertAgentExecutionService,
         private readonly executionCancelService: ExecutionCancelService,
         private readonly commandBus: CommandBus,
-        @Optional() private readonly conversationThreadService?: ChatConversationThreadService
+        @Optional() private readonly conversationThreadService?: ChatConversationThreadService,
+        @Optional() private readonly threadRunControl?: ThreadRunControlService,
+        @Optional() private readonly desktopShellOperations?: DesktopShellOperationService
     ) {}
 
     public async execute(command: CancelConversationCommand) {
@@ -92,6 +98,7 @@ export class CancelConversationHandler implements ICommandHandler<CancelConversa
         }
 
         if (executionIds.length) {
+            await this.desktopShellOperations?.cancelRuns(executionIds)
             await this.executionCancelService.cancelExecutions(executionIds, 'Canceled by user')
             try {
                 await this.commandBus.execute(
@@ -109,19 +116,38 @@ export class CancelConversationHandler implements ICommandHandler<CancelConversa
             }
         }
 
-        if (conversation) {
+        const canceledCurrentRun =
+            runtimeThread && this.threadRunControl
+                ? await this.threadRunControl.cancel(runtimeThread.threadId, executionIds)
+                : true
+        if (conversation && canceledCurrentRun) {
             if (!runtimeThread || runtimeThread.threadId === conversation.threadId) {
                 conversation.status = 'interrupted'
                 conversation.error = 'Canceled by user'
-                await this.service.repository.save(conversation)
+                // Persist only status columns. Saving the hydrated conversation cascades
+                // stale message trees while streaming finalization is still in flight,
+                // which can discard closure-table ancestors and prevent the next turn.
+                await this.service.repository.update(conversation.id, {
+                    status: 'interrupted',
+                    error: 'Canceled by user'
+                })
             }
-            if (runtimeThread) {
+            if (runtimeThread && !this.threadRunControl) {
                 await this.conversationThreadService?.updateRuntimeState(
                     runtimeThread.threadId,
                     'interrupted',
                     'Canceled by user'
                 )
             }
+        }
+
+        if (conversation && messagesToUpdate.length) {
+            await this.service.repository.manager
+                .getRepository(ChatMessage)
+                .update(
+                    { conversationId: conversation.id, id: In(messagesToUpdate.map((message) => message.id)) },
+                    { status: 'aborted', error: 'Canceled by user' }
+                )
         }
 
         // Stream finalization can race cancellation and attempt to persist a

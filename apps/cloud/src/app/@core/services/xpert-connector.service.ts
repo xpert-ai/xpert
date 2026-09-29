@@ -12,7 +12,7 @@ import type {
   ConnectorScopeType,
   ConnectorSelectOption,
   ConnectorStrategyDefinition
-} from '@xpert-ai/plugin-sdk'
+} from '@xpert-ai/plugin-sdk/connector'
 import { API_CONNECTOR } from '../constants/app.constants'
 
 @Injectable({ providedIn: 'root' })
@@ -34,7 +34,9 @@ export class XpertConnectorService {
   }
 
   connect(workspaceId: string, provider: string, input: ConnectorConnectRequest) {
-    return this.#http.post<ConnectorConnectResponse>(`${API_CONNECTOR}/${workspaceId}/${provider}/connect`, input)
+    return this.#http.post<ConnectorConnectResponse>(`${API_CONNECTOR}/${workspaceId}/${provider}/connect`, input, {
+      withCredentials: true
+    })
   }
 
   pollAuthorization(workspaceId: string, connectorId: string) {
@@ -72,7 +74,9 @@ export class XpertConnectorService {
   }
 
   connectBinding(bindingId: string, input: ConnectorConnectRequest & { xpertId?: string }) {
-    return this.#http.post<ConnectorConnectResponse>(`${API_CONNECTOR}/bindings/${bindingId}/connect`, input)
+    return this.#http.post<ConnectorConnectResponse>(`${API_CONNECTOR}/bindings/${bindingId}/connect`, input, {
+      withCredentials: true
+    })
   }
 
   bindingAuthorizationStatus(bindingId: string, xpertId?: string) {

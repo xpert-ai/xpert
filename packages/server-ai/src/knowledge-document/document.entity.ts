@@ -57,6 +57,7 @@ const bigintNumberTransformer = {
 @Index('IDX_knowledge_document_kb_disabled', ['tenantId', 'organizationId', 'knowledgebaseId', 'disabled'])
 @Index('IDX_knowledge_document_kb_name', ['knowledgebaseId', 'name'])
 @Index('IDX_knowledge_document_name_trgm', { synchronize: false })
+@Index('IDX_knowledge_document_keyword_title_vector', { synchronize: false })
 @Index('IDX_knowledge_document_kb_folder', ['knowledgebaseId', 'folder'])
 @Index('IDX_knowledge_document_kb_type_mime', ['knowledgebaseId', 'type', 'mimeType'])
 @Index('IDX_knowledge_document_kb_category_source', ['knowledgebaseId', 'category', 'sourceType'])
@@ -204,6 +205,9 @@ export class KnowledgeDocument<T extends KnowledgeDocumentMetadata = KnowledgeDo
     @Optional()
     @Column({ nullable: true })
     name: string
+
+    @Column({ type: 'tsvector', nullable: true, select: false })
+    keywordTitleVector?: string | null
 
     @ApiPropertyOptional({ type: () => String })
     @IsString()

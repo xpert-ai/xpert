@@ -6,6 +6,15 @@ packages:
   - 'docs'
   - 'legacies/*'
 
+# Cloud, Desktop, API source and Docker stages share one ChatKit release.
+catalog:
+  '@xpert-ai/chatkit-angular': 0.8.0
+  '@xpert-ai/chatkit-types': 0.8.0
+  '@xpert-ai/chatkit-ui': 0.8.0
+  '@xpert-ai/chatkit-web-component': 0.8.0
+  '@xpert-ai/chatkit-web-shared': 0.8.0
+
+# Keep overrides here so replacing the root manifest in Docker preserves them.
 overrides:
   '@xpert-ai/plugin-sdk': workspace:*
   '@langchain/core': 0.3.72
@@ -17,28 +26,32 @@ overrides:
   '@xpert-ai/plugin-echarts-mcp-app>@modelcontextprotocol/sdk': 1.29.0
   zod: 3.25.67
   web-streams-polyfill: ^4.2.0
+  ws: 8.18.0
+  zod-to-json-schema: 3.25.2
 
-allowBuilds:
-  '@apollo/protobufjs': true
-  '@compodoc/compodoc': true
-  '@nestjs/core': true
-  '@parcel/watcher': true
-  '@scarf/scarf': true
-  '@swc/core': true
-  aws-sdk: true
-  core-js: true
-  cypress: true
-  es5-ext: true
-  esbuild: true
-  ffmpeg-ffprobe-static: true
-  isolated-vm: true
-  less: true
-  lmdb: true
-  msgpackr-extract: true
-  ngx-float-ui: true
-  ngx-popperjs: true
-  node-pty: true
-  nx: true
-  protobufjs: true
-  sharp: true
-  unrs-resolver: true
+# pnpm 10.24 uses onlyBuiltDependencies; allowBuilds requires 10.26 or newer.
+onlyBuiltDependencies:
+  - '@apollo/protobufjs'
+  - '@compodoc/compodoc'
+  - '@nestjs/core'
+  - '@parcel/watcher'
+  - '@scarf/scarf'
+  - '@swc/core'
+  - aws-sdk
+  - core-js
+  - cypress
+  - es5-ext
+  - electron
+  - esbuild
+  - ffmpeg-ffprobe-static
+  - isolated-vm
+  - less
+  - lmdb
+  - msgpackr-extract
+  - ngx-float-ui
+  - ngx-popperjs
+  - node-pty
+  - nx
+  - protobufjs
+  - sharp
+  - unrs-resolver

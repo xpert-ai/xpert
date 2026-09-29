@@ -14,3 +14,4 @@ export * from './change'
 
 export * from './persistence'
 export * from './strategy'
+export * from './baseline'

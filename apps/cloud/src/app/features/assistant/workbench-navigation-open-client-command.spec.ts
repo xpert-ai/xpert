@@ -3,6 +3,7 @@ import { ViewClientCommandRegistry } from '../../@shared/view-extension/view-cli
 import {
   registerWorkbenchNavigationOpenCommand,
   WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
+  WORKBENCH_ASSISTANT_EXECUTION_TARGET,
   WORKBENCH_ASSISTANT_PROJECT_TARGET,
   WORKBENCH_EXTENSION_VIEW_TARGET,
   WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET
@@ -18,6 +19,49 @@ const context = {
 } as any
 
 describe('registerWorkbenchNavigationOpenCommand', () => {
+  it('opens the exact evolution request and rejects invalid identifiers', async () => {
+    const registry = new ViewClientCommandRegistry()
+    const navigate = jest.fn(async () => true)
+    registerWorkbenchNavigationOpenCommand(registry, { navigate })
+    expect(
+      await registry.execute(
+        WORKBENCH_NAVIGATION_OPEN_COMMAND,
+        { target: 'agent-evolution.change', changeId: 'EVO-auto' },
+        context
+      )
+    ).toEqual({ success: true })
+    expect(navigate).toHaveBeenCalledWith(['/agent-evolution', 'evaluation'], { queryParams: { changeId: 'EVO-auto' } })
+    expect(
+      await registry.execute(
+        WORKBENCH_NAVIGATION_OPEN_COMMAND,
+        { target: 'agent-evolution.change', changeId: '../settings' },
+        context
+      )
+    ).toMatchObject({ success: false })
+    expect(navigate).toHaveBeenCalledTimes(1)
+  })
+
+  it('opens rule details through host navigation and rejects path injection', async () => {
+    const registry = new ViewClientCommandRegistry()
+    const navigate = jest.fn(async () => true)
+    registerWorkbenchNavigationOpenCommand(registry, { navigate })
+    expect(
+      await registry.execute(
+        WORKBENCH_NAVIGATION_OPEN_COMMAND,
+        { target: 'agent-evolution.target', targetId: 'bom.feature_binding' },
+        context
+      )
+    ).toEqual({ success: true })
+    expect(navigate).toHaveBeenCalledWith(['/agent-evolution', 'targets', 'bom.feature_binding'])
+    expect(
+      await registry.execute(
+        WORKBENCH_NAVIGATION_OPEN_COMMAND,
+        { target: 'agent-evolution.target', targetId: '../settings' },
+        context
+      )
+    ).toMatchObject({ success: false })
+    expect(navigate).toHaveBeenCalledTimes(1)
+  })
   it('navigates to the knowledgebase documents page', async () => {
     const registry = new ViewClientCommandRegistry()
     const navigate = jest.fn(async () => true)
@@ -163,40 +207,59 @@ describe('registerWorkbenchNavigationOpenCommand', () => {
     )
   })
 
-  it('opens a persisted assistant conversation', async () => {
-    const registry = new ViewClientCommandRegistry()
-    const navigate = jest.fn(async () => true)
-    const openAssistantConversation = jest.fn(async () => true)
-    registerWorkbenchNavigationOpenCommand(registry, { navigate, openAssistantConversation })
+  it.each([WORKBENCH_ASSISTANT_CONVERSATION_TARGET, WORKBENCH_ASSISTANT_EXECUTION_TARGET])(
+    'opens a persisted assistant %s target',
+    async (target) => {
+      const registry = new ViewClientCommandRegistry()
+      const navigate = jest.fn(async () => true)
+      const openAssistantConversation = jest.fn(async () => true)
+      registerWorkbenchNavigationOpenCommand(registry, { navigate, openAssistantConversation })
 
-    const result = await registry.execute(
-      WORKBENCH_NAVIGATION_OPEN_COMMAND,
-      {
-        target: WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
+      const result = await registry.execute(
+        WORKBENCH_NAVIGATION_OPEN_COMMAND,
+        {
+          target,
+          conversationId: 'conversation-1',
+          threadId: 'thread-1',
+          executionId: 'execution-1',
+          xpertId: 'role-assistant-1'
+        },
+        context
+      )
+
+      expect(navigate).not.toHaveBeenCalled()
+      expect(openAssistantConversation).toHaveBeenCalledWith({
         conversationId: 'conversation-1',
         threadId: 'thread-1',
         executionId: 'execution-1',
         xpertId: 'role-assistant-1'
+      })
+      expect(result).toEqual({
+        success: true,
+        status: 'opened',
+        target,
+        conversationId: 'conversation-1',
+        threadId: 'thread-1',
+        executionId: 'execution-1',
+        xpertId: 'role-assistant-1'
+      })
+    }
+  )
+
+  it('rejects an execution target without an execution id', async () => {
+    const registry = new ViewClientCommandRegistry()
+    const openAssistantConversation = jest.fn()
+    registerWorkbenchNavigationOpenCommand(registry, { openAssistantConversation })
+    const result = await registry.execute(
+      WORKBENCH_NAVIGATION_OPEN_COMMAND,
+      {
+        target: WORKBENCH_ASSISTANT_EXECUTION_TARGET,
+        conversationId: 'conversation-1'
       },
       context
     )
-
-    expect(navigate).not.toHaveBeenCalled()
-    expect(openAssistantConversation).toHaveBeenCalledWith({
-      conversationId: 'conversation-1',
-      threadId: 'thread-1',
-      executionId: 'execution-1',
-      xpertId: 'role-assistant-1'
-    })
-    expect(result).toEqual({
-      success: true,
-      status: 'opened',
-      target: WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
-      conversationId: 'conversation-1',
-      threadId: 'thread-1',
-      executionId: 'execution-1',
-      xpertId: 'role-assistant-1'
-    })
+    expect(result).toMatchObject({ success: false, code: 'bad_request' })
+    expect(openAssistantConversation).not.toHaveBeenCalled()
   })
 
   it('returns the canonical Assistant conversation scope resolved by the host', async () => {
@@ -261,6 +324,28 @@ describe('registerWorkbenchNavigationOpenCommand', () => {
       target: WORKBENCH_ASSISTANT_PROJECT_TARGET,
       projectId: 'project-1'
     })
+  })
+
+  it('forwards the requested business View with the Project and reports cancellation', async () => {
+    const registry = new ViewClientCommandRegistry()
+    const openAssistantProject = jest.fn(async () => false)
+    registerWorkbenchNavigationOpenCommand(registry, { openAssistantProject })
+    const result = await registry.execute(
+      WORKBENCH_NAVIGATION_OPEN_COMMAND,
+      {
+        target: WORKBENCH_ASSISTANT_PROJECT_TARGET,
+        projectId: 'project-b',
+        viewKey: 'studio',
+        selectionId: 'case-b',
+        parameters: { tab: 'features', invalid: { nested: true } }
+      },
+      context
+    )
+    expect(openAssistantProject).toHaveBeenCalledWith({
+      projectId: 'project-b',
+      view: { viewKey: 'studio', selectionId: 'case-b', parameters: { tab: 'features' } }
+    })
+    expect(result).toMatchObject({ success: false, code: 'navigation_cancelled' })
   })
 
   it('rejects assistant project navigation without a project id', async () => {

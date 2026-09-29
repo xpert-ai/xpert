@@ -1,0 +1,57 @@
+---
+title: 'Install and migrate'
+description: 'Enable the existing provider through an explicit plugin installation'
+---
+
+## Migration from the built-in provider
+
+The base API no longer registers Local Shell Sandbox and no longer requires
+`node-pty`. Existing Assistants retain the provider key `local-shell-sandbox`.
+An administrator must install this plugin before those Assistants use that provider;
+there is no silent fallback to another execution environment.
+
+1. Build and test the plugin from the Xpert source checkout:
+   `corepack pnpm nx build local-shell-sandbox` and
+   `corepack pnpm nx test local-shell-sandbox`.
+2. Install `dist/packages/plugins/local-shell-sandbox` using the platform's normal
+   **system plugin** installation flow, in the Default tenant's tenant scope.
+   For local code installation, point `workspacePath` to the built package directory.
+   This package is supplied from source; it is not claimed to be published on npm.
+3. The platform stages dependencies with `--ignore-scripts`. On Linux, compile
+   `node-pty` explicitly in the **installed runtime package directory** shown by
+   the installer (not the source or build directory):
+
+   ```bash
+   npm_config_build_from_source=true npm run rebuild:terminal
+   npm run check:terminal
+   ```
+
+   Run these as the API's operating-system user, with Node matching the API.
+   Install Python 3, make and a C++ compiler in that environment if needed.
+   This does not enable lifecycle scripts for other plugins. Repeat after changing
+   the native dependency, Node ABI, OS/architecture or reinstalling the plugin.
+
+4. Keep the existing explicit opt-in `XPERT_LOCAL_SANDBOX_ENABLED=true` on the API
+   process. Installing the plugin alone does not grant execution access.
+5. Restart the API if the plugin installer reports `restartRequired`, then verify
+   `local-shell-sandbox` is available before selecting it in an Assistant.
+
+The normal plugin deployment CLI can register a built package:
+
+```bash
+corepack pnpm plugin:deploy:local \
+  --plugin-dir ./dist/packages/plugins/local-shell-sandbox \
+  --scope tenant --skip-build --skip-test
+```
+
+The skip flags apply to the already-built directory after the build and tests
+above. Complete the terminal preflight in step 3 before use.
+Use the configured authorized Default-tenant credentials and context. Follow the
+CLI's reported installation/restart result; a successful build alone does not mean
+the provider is running.
+
+## Disable
+
+Stop active terminal sessions and managed services, move dependent Assistants to an
+appropriate provider, then disable/uninstall the plugin through platform plugin
+management. Remove the environment opt-in when no longer needed.

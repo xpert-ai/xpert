@@ -10,6 +10,7 @@ import { PluginTemplateInstallCommand } from './commands/install-template.comman
 import type { PluginResourceInstallResult } from './plugin-resource-installer.service'
 import { PluginApplicationInstallation } from './plugin-application-installation.entity'
 import {
+    applicationSuiteAssistants,
     assertApplicationAssistantIdentity,
     connectApplicationSuite,
     validateApplicationSuite,
@@ -30,7 +31,10 @@ export class PluginApplicationSuiteService {
         const suite = application.config.assistantSuite
         if (!suite) return
         validateApplicationSuite(suite, application.assistantTemplateKey)
-        for (const key of [application.assistantTemplateKey, ...suite.roles.map((r) => r.templateKey)]) {
+        for (const key of [
+            application.assistantTemplateKey,
+            ...applicationSuiteAssistants(suite).map((r) => r.templateKey)
+        ]) {
             const template = await this.templates.getTemplateDetail(`${application.pluginName}:${key}`, this.language())
             if (template.pluginName !== application.pluginName)
                 throw new Error('application_suite_template_provenance_mismatch')
@@ -132,7 +136,7 @@ export class PluginApplicationSuiteService {
             return assistant
         }
         try {
-            for (const role of suite.roles) {
+            for (const role of applicationSuiteAssistants(suite)) {
                 roles.set(
                     role.key,
                     await install(
@@ -185,7 +189,7 @@ export class PluginApplicationSuiteService {
         if (installation.resourceRefs?.['suite:version'] !== suite.version || !installation.xpertId) return false
         try {
             const roles = new Map<string, IXpert>()
-            for (const role of suite.roles) {
+            for (const role of applicationSuiteAssistants(suite)) {
                 const id = installation.resourceRefs[`role:${role.key}`]
                 if (!id) return false
                 const assistant = await this.xperts.getTeam(id, {
@@ -196,7 +200,8 @@ export class PluginApplicationSuiteService {
                 })
                 if (
                     assistant.tenantId !== installation.tenantId ||
-                    assistant.organizationId !== installation.organizationId
+                    assistant.organizationId !== installation.organizationId ||
+                    assistant.workspaceId !== installation.workspaceId
                 )
                     return false
                 assertApplicationAssistantIdentity(

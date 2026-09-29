@@ -15,6 +15,7 @@ import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { ChatConversationBindXpertCommand } from '../chat-conversation/commands/bind-xpert.command'
 import { ChatConversationBindProjectCommand } from '../chat-conversation/commands/bind-project.command'
 import { PublishedXpertAccessService, XpertPrincipalService } from '../xpert'
+import { assertAssistantAudience } from './assistant-audience'
 
 /**
  * Invariants: authorize the assistant before binding a conversation, preserve
@@ -41,9 +42,7 @@ export async function resolveAssistantForRequest(
             ? (RequestContext.currentUser() as IUser | null)
             : null
 
-    if (apiKey?.type === ApiKeyBindingType.ASSISTANT && apiKey.entityId && apiKey.entityId !== assistantId) {
-        throw new ForbiddenException('API key is not allowed to access this assistant.')
-    }
+    assertAssistantAudience(assistantId)
 
     const xpert = await publishedXpertAccessService.getAccessiblePublishedXpert(assistantId, {
         relations: ['user', 'createdBy', 'workspace']

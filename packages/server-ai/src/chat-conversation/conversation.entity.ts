@@ -7,6 +7,7 @@ import {
     IXpertTask,
     TChatConversationOptions,
     TChatConversationSourceAudit,
+    TConversationBranchSource,
     TChatConversationStatus,
     TChatFrom,
     TSensitiveOperation
@@ -22,6 +23,9 @@ import type { ChatConversationThread } from './conversation-thread.entity'
 @Index(['tenantId', 'organizationId', 'id'])
 @Index('IDX_chat_conversation_profile_activity', ['tenantId', 'organizationId', 'xpertId', 'createdAt'])
 export class ChatConversation extends TenantOrganizationBaseEntity implements IChatConversation {
+    @Column({ type: 'jsonb', nullable: true })
+    branchSource?: TConversationBranchSource | null
+
     @ApiProperty({ type: () => String })
     @IsString()
     @Column({ nullable: true, default: () => 'gen_random_uuid()' })

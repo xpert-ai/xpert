@@ -1,0 +1,6 @@
+python-pptx==1.0.2
+lxml==6.0.2
+Pillow==11.3.0
+pypdfium2==5.13.0
+XlsxWriter==3.2.9
+typing_extensions==4.15.0

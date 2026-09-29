@@ -134,8 +134,12 @@ export class ConnectorController {
     }
 
     @Get('runtime-options')
-    runtimeOptions(@Query('xpertId') xpertId: string, @Query('projectId') projectId?: string) {
-        return this.service.runtimeOptions(xpertId, projectId)
+    runtimeOptions(
+        @Query('xpertId') xpertId: string,
+        @Query('projectId') projectId?: string,
+        @Query('includeWorkspace') includeWorkspace?: string
+    ) {
+        return this.service.runtimeOptions(xpertId, projectId, includeWorkspace === 'true')
     }
 
     @Get('bindings')
@@ -150,6 +154,8 @@ export class ConnectorController {
 
     @Post('bindings')
     createBinding(@Body() body: ConnectorBindingCreateRequest) {
+        if (body.authorizationMode !== 'shared')
+            throw new BadRequestException(t('server-ai:Error.ConnectorWorkspaceConnectionRequired'))
         return this.service.createBinding(body)
     }
 
@@ -196,7 +202,7 @@ export class ConnectorController {
 
     @Post('bindings/:connectorId/consent')
     consentBinding(@Param('connectorId') connectorId: string, @Body() body?: { xpertId?: string }) {
-        return this.service.consentPersonalBinding(connectorId, body?.xpertId)
+        throw new BadRequestException(t('server-ai:Error.ConnectorWorkspaceConnectionRequired'))
     }
 
     @Get('personal-accounts')

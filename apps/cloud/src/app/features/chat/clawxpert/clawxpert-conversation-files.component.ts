@@ -1,3 +1,4 @@
+import { workspaceDocumentScope } from '../../../@shared/files/document/file-document-store'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core'
 import { ChatConversationService, XpertAPIService } from '../../../@core'
@@ -8,6 +9,7 @@ import {
   FileWorkbenchFileDownloader,
   FileWorkbenchFileLoader,
   FileWorkbenchFileSaver,
+  FileWorkbenchBinaryFileSaver,
   FileWorkbenchFileUploader,
   FileWorkbenchFilesLoader
 } from '../../../@shared/files'
@@ -23,10 +25,14 @@ export type ClawXpertConversationFilesMode = 'readonly' | 'editable'
   template: `
     <xp-file-workbench
       [rootId]="workspaceRootId()"
+      [documentScope]="documentScope()"
+      [active]="active()"
+      [showTreeRefresh]="true"
       [rootLabel]="'XP.Chat.ClawXpert.WorkspaceFiles' | translate: { Default: 'Workspace files' }"
       [filesLoader]="loadWorkspaceFiles"
       [fileLoader]="loadWorkspaceFile"
       [fileSaver]="mode() === 'editable' ? saveWorkspaceFile : null"
+      [binaryFileSaver]="mode() === 'editable' ? saveWorkspaceBinaryFile : null"
       [fileDeleter]="mode() === 'editable' ? deleteWorkspaceFile : null"
       [fileUploader]="mode() === 'editable' ? uploadWorkspaceFile : null"
       [fileDownloader]="downloadWorkspaceFile"
@@ -48,9 +54,11 @@ export class ClawXpertConversationFilesComponent {
   readonly conversationId = input<string | null | undefined>(null)
   readonly xpertId = input<string | null | undefined>(null)
   readonly projectId = input<string | null | undefined>(null)
+  readonly active = input(true)
   readonly mode = input<ClawXpertConversationFilesMode>('editable')
   readonly reloadKey = input<number>(0)
   readonly referenceRequest = output<FileWorkbenchReferenceRequest>()
+  readonly documentScope = computed(() => workspaceDocumentScope(this.xpertId(), this.projectId()))
   readonly workspaceRootId = computed(() =>
     this.normalizedProjectId() ? this.normalizedConversationId() : this.normalizedXpertId()
   )
@@ -112,6 +120,12 @@ export class ClawXpertConversationFilesComponent {
     }
 
     return this.#xpertService.uploadWorkspaceFileToFolder(this.requireXpertId(), file, path)
+  }
+
+  readonly saveWorkspaceBinaryFile: FileWorkbenchBinaryFileSaver = (path, file) => {
+    return this.normalizedProjectId()
+      ? this.#conversationService.saveBinaryFile(this.requireConversationId(), path, file)
+      : this.#xpertService.saveWorkspaceBinaryFile(this.requireXpertId(), path, file)
   }
 
   readonly deleteWorkspaceFile: FileWorkbenchFileDeleter = (path: string) => {

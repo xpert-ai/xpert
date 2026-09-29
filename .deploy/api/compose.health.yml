@@ -1,0 +1,67 @@
+# Disposable acceptance environment: no host ports, existing volumes or .env.
+services:
+  db:
+    image: pgvector/pgvector:pg15
+    environment:
+      POSTGRES_DB: api_health
+      POSTGRES_USER: api_health
+      POSTGRES_PASSWORD: ${CHECK_DB_PASS:?}
+    volumes:
+      - ../../docker/.scripts/initdb.d:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U api_health -d api_health']
+      interval: 2s
+      timeout: 5s
+      retries: 30
+  redis:
+    image: redis/redis-stack:latest
+    environment:
+      REDIS_ARGS: --requirepass ${CHECK_REDIS_PASS:?}
+      REDISCLI_AUTH: ${CHECK_REDIS_PASS:?}
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 2s
+      timeout: 5s
+      retries: 30
+  api:
+    image: ${CHECK_API_IMAGE:?}
+    environment:
+      NODE_ENV: production
+      NODE_OPTIONS: --max-old-space-size=4096
+      IS_DOCKER: 'true'
+      HOST: 0.0.0.0
+      PORT: '3000'
+      API_BASE_URL: http://api:3000
+      CLIENT_BASE_URL: http://localhost:4200
+      DB_TYPE: postgres
+      DB_HOST: db
+      DB_PORT: '5432'
+      DB_NAME: api_health
+      DB_USER: api_health
+      DB_PASS: ${CHECK_DB_PASS:?}
+      REDIS_ENABLED: 'true'
+      REDIS_HOST: redis
+      REDIS_PORT: '6379'
+      REDIS_USER: default
+      REDIS_PASSWORD: ${CHECK_REDIS_PASS:?}
+      JWT_SECRET: ${CHECK_JWT_SECRET:?}
+      JWT_REFRESH_SECRET: ${CHECK_JWT_REFRESH_SECRET:?}
+      SESSION_SECRET: ${CHECK_SESSION_SECRET:?}
+      SECRETS_ENCRYPTION_KEY: ${CHECK_ENCRYPTION_KEY:?}
+      XPERT_MCP_APP_TOKEN_SECRET: ${CHECK_MCP_TOKEN_SECRET:?}
+      XPERT_MCP_REQUEST_STATE_SECRET: ${CHECK_MCP_STATE_SECRET:?}
+      DEMO: 'false'
+      DEPLOYMENT_TARGET: local
+      VECTOR_STORE: pgvector
+      FILE_PROVIDER: LOCAL
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD', 'node', 'healthcheck.cjs']
+      interval: 5s
+      timeout: 15s
+      start_period: 30s
+      retries: 30

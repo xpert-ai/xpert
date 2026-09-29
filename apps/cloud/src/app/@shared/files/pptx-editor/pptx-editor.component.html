@@ -128,15 +128,17 @@
             <button type="button" title="Redo" aria-label="Redo" [disabled]="!canRedo()" (click)="redo()">
               <i class="ri-arrow-go-forward-line"></i>
             </button>
-            <button
-              type="button"
-              class="xp-pptx-editor__autosave"
-              [class.is-on]="autoSave()"
-              title="Auto save"
-              (click)="toggleAutoSave()"
-            >
-              <span class="xp-pptx-editor__switch" aria-hidden="true"></span><span>自动保存</span>
-            </button>
+            @if (!manualSaveOnly()) {
+              <button
+                type="button"
+                class="xp-pptx-editor__autosave"
+                [class.is-on]="autoSave()"
+                title="Auto save"
+                (click)="toggleAutoSave()"
+              >
+                <span class="xp-pptx-editor__switch" aria-hidden="true"></span><span>自动保存</span>
+              </button>
+            }
           </div>
           <div class="xp-pptx-editor__toolbar-tabs" aria-label="Presentation tools">
             @for (tab of toolbarTabs; track tab) {

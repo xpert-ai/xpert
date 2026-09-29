@@ -90,7 +90,19 @@ export class DecoratedAgentMiddlewareStrategy implements IAgentMiddlewareStrateg
     return {
       ...(extensions ?? {}),
       name: this.provider,
-      tools
+      tools,
+      ...(this.descriptor.options.apps?.length
+        ? {
+            apps: {
+              definitions: this.descriptor.options.apps,
+              tools: Object.fromEntries(
+                this.descriptor.tools
+                  .filter((item) => item.middlewareProvider === this.provider && item.options.app)
+                  .map((item) => [item.options.name, item.options.app!])
+              )
+            }
+          }
+        : {})
     }
   }
 }

@@ -9,12 +9,15 @@ import { IKnowledgebase } from './knowledgebase.model'
 import { IXpertToolset } from './xpert-toolset.model'
 import { IXpertWorkspace } from './xpert-workspace.model'
 import { IXpert, TXpertTeamDraft } from './xpert.model'
+import type { XpertProjectClassification, XpertProjectTypeRef } from './xpert-project-type.model'
 
 export type TXpertProjectSettings = {
   /** @deprecated Project instructions are stored in /project/<projectId>/project.md. */
   instruction?: string
   mode?: '' | 'plan'
   managementMode?: TXpertProjectManagementMode
+  /** Server-owned first-send provenance; the provisional name may be reconciled once by the business app. */
+  conversationBootstrap?: { conversationId: string; initialName: string; nameResolved?: boolean }
   /** @deprecated Project Xperts are peers and no default Project Assistant is selected. */
   projectAssistantId?: string
 }
@@ -135,7 +138,7 @@ export enum XpertProjectAutomationRunStatusEnum {
   CANCELLED = 'cancelled'
 }
 
-export type TXpertProject = {
+export type TXpertProject = XpertProjectClassification & {
   name: string
   avatar?: TAvatar
   description?: string
@@ -210,6 +213,7 @@ export interface IXpertProjectInvitation extends IBasePerTenantAndOrganizationEn
 }
 
 export type IXpertProjectCreateInput = Partial<IXpertProject> & {
+  projectType?: XpertProjectTypeRef
   xpertIds?: string[]
   toolsetIds?: string[]
   knowledgebaseIds?: string[]
@@ -222,6 +226,17 @@ export interface IBasePerXpertProjectEntityModel extends IBasePerTenantAndOrgani
 }
 
 export interface IXpertProjectTask extends IBasePerXpertProjectEntityModel {
+  providerKey?: string | null
+  sourceKey?: string | null
+  sourceRevision?: string | null
+  revision?: number
+  kind?: 'task' | 'summary' | 'milestone'
+  parentTaskId?: string | null
+  predecessorIds?: string[]
+  plannedStartAt?: Date | null
+  plannedEndAt?: Date | null
+  estimatedDurationMs?: number | null
+  diagnostic?: string | null
   threadId?: string
   name: string
   title?: string
@@ -255,6 +270,11 @@ export interface IXpertProjectTaskConversation extends IBasePerXpertProjectEntit
 }
 
 export interface IXpertProjectTaskExecution extends IBasePerXpertProjectEntityModel {
+  /** Observed runtime status, independent from the business task acceptance status. */
+  runtimeStartedAt?: string | null
+  runtimeCompletedAt?: string | null
+  runtimeStatus?: 'running' | 'success' | 'error' | 'pending' | 'timeout' | 'interrupted' | 'unknown'
+  sourceKey?: string | null
   taskId: string
   conversationId?: string
   threadId?: string

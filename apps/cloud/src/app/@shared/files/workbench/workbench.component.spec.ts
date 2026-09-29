@@ -133,6 +133,7 @@ jest.mock('../viewer/viewer.component', () => {
     @Input() previewUrl?: string | null
     @Input() sideMenuToggleVisible?: boolean
     @Input() sideMenuVisible?: boolean
+    @Input() backVisible?: boolean
     @Input() mode?: 'view' | 'edit'
     @Input() readOnlyHint?: string
     @Input() unsupportedPreviewTitle?: string
@@ -154,6 +155,10 @@ jest.mock('../viewer/viewer.component', () => {
     @Output() readonly referenceElement = new EventEmitter()
     @Output() readonly referenceSelection = new EventEmitter<FileEditorSelection>()
     @Output() readonly sideMenuToggle = new EventEmitter<void>()
+
+    finishEditing() {
+      return Promise.resolve()
+    }
 
     exportSpreadsheetFile() {
       return Promise.resolve(
@@ -332,6 +337,57 @@ async function setup(options?: {
 }
 
 describe('FileWorkbenchComponent', () => {
+  it('unmounts the inactive viewer without removing the file tree or document draft', async () => {
+    const { fixture, component } = await setup()
+    component.panelMode.set('edit')
+    component.document.changeContent('# Unsaved draft')
+    fixture.detectChanges()
+    const viewer = fixture.debugElement.query(By.css('xp-file-viewer')).componentInstance
+    const finish = jest.spyOn(viewer, 'finishEditing')
+    fixture.componentRef.setInput('active', false)
+    fixture.detectChanges()
+    expect(finish).toHaveBeenCalled()
+    expect(fixture.debugElement.query(By.css('xp-file-viewer'))).toBeNull()
+    expect(fixture.debugElement.query(By.css('xp-file-tree'))).not.toBeNull()
+    expect(component.draftContent()).toBe('# Unsaved draft')
+    fixture.componentRef.setInput('active', true)
+    fixture.detectChanges()
+    expect(fixture.debugElement.query(By.css('xp-file-viewer')).componentInstance.content).toBe('# Unsaved draft')
+  })
+
+  it('keeps the tree and shared document together and previews tree selections in place', async () => {
+    const { fixture, component, fileLoader } = await setup()
+    const tree = fixture.debugElement.query(By.directive(MockFileTreeComponent)).componentInstance as {
+      fileSelect: EventEmitter<FileTreeNode>
+    }
+    const document = fixture.nativeElement.querySelector('xp-file-document')
+    expect(document).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('xp-file-tree')).not.toBeNull()
+
+    tree.fileSelect.emit({ filePath: 'guide.md', fullPath: 'docs/guide.md', hasChildren: false })
+    await fixture.whenStable()
+    await Promise.resolve()
+    await Promise.resolve()
+    fixture.detectChanges()
+
+    expect(fileLoader).toHaveBeenCalledWith('docs/guide.md')
+    expect(component.activeFilePath()).toBe('docs/guide.md')
+    expect(component.draftContent()).toBe('# Guide\n')
+    expect(component.fileTreeVisible()).toBe(true)
+    expect(fixture.nativeElement.querySelector('xp-file-document')).toBe(document)
+    const viewer = fixture.debugElement.query(By.directive(MockFileViewerComponent)).componentInstance as {
+      filePath: string
+    }
+    expect(viewer.filePath).toBe('docs/guide.md')
+  })
+
+  it('keeps an empty document pane alongside an empty file tree', async () => {
+    const { fixture, component } = await setup({ rootFiles: [] })
+    expect(fixture.nativeElement.querySelector('xp-file-tree')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('xp-file-document')).not.toBeNull()
+    expect(component.activeFilePath()).toBeNull()
+  })
+
   const originalCreateObjectURL = URL.createObjectURL
   const originalRevokeObjectURL = URL.revokeObjectURL
 

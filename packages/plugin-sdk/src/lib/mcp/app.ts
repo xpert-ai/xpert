@@ -19,6 +19,22 @@ export interface McpAppDefinition {
   permissions?: McpAppPermissions
 }
 
+/** App exposure is independent of publishing a tool on an external MCP server. */
+export interface MiddlewareMcpApps {
+  definitions: readonly McpAppDefinition[]
+  tools: Readonly<
+    Record<
+      string,
+      {
+        resourceKey?: string
+        visibility: readonly ('model' | 'app')[]
+        /** Trusted plugin policy; omitted writes use the host approval flow. */
+        approval?: 'required' | 'none'
+      }
+    >
+  >
+}
+
 export function defineMcpApp(definition: McpAppDefinition): Readonly<McpAppDefinition> {
   return Object.freeze(definition)
 }

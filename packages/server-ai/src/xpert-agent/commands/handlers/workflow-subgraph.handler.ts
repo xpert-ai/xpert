@@ -1,5 +1,6 @@
 import { BaseMessage } from '@langchain/core/messages'
 import { RunnableLambda, RunnableLike } from '@langchain/core/runnables'
+import { installThreadPauseGuards } from '../../../shared/agent/thread-pause'
 import {
     Annotation,
     CompiledStateGraph,
@@ -348,6 +349,7 @@ export class XpertWorkflowSubgraphHandler implements ICommandHandler<XpertWorkfl
             `${xpertTeam?.id ?? xpert.id ?? 'workflow'}: \n${Array.from(subgraphBuilder.allEdges).join('\n')}\n\n${Object.keys(subgraphBuilder.nodes)}`
         )
 
+        installThreadPauseGuards(subgraphBuilder.nodes, options.shouldPause)
         const compiledGraph = subgraphBuilder.compile({
             checkpointer: disableCheckpointer ? false : this.copilotCheckpointSaver,
             name: xpertTeam?.id ?? xpert.id ?? 'workflow',

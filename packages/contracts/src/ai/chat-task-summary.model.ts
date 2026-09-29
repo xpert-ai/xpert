@@ -1,4 +1,5 @@
 import type {
+  ChatFileChange,
   ChatTaskSummaryOutput,
   ChatTaskSummaryPlan,
   ChatTaskSummarySource,
@@ -29,9 +30,10 @@ export type TChatTaskSummaryPending = {
   createdAt?: string
 }
 
-export type TChatTaskSummarySection = 'outputs' | 'sources' | 'agents' | 'pending'
+export type TChatTaskSummarySection = 'outputs' | 'fileChanges' | 'sources' | 'agents' | 'pending'
 
 export type TChatTaskSummarySectionItem =
+  | ChatFileChange
   | ChatTaskSummaryOutput
   | ChatTaskSummarySource
   | TChatTaskSummaryAgent
@@ -51,6 +53,7 @@ export type TChatTaskSummarySnapshot = {
     plan?: ChatTaskSummaryPlan
     todos?: ChatTaskSummaryTodos
   }
+  fileChanges: TChatTaskSummaryList<ChatFileChange>
   outputs: TChatTaskSummaryList<ChatTaskSummaryOutput>
   sources: TChatTaskSummaryList<ChatTaskSummarySource>
   agents: TChatTaskSummaryList<TChatTaskSummaryAgent>

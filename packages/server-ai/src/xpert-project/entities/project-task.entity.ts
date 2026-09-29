@@ -6,14 +6,27 @@ import {
 } from '@xpert-ai/contracts'
 import { ApiPropertyOptional } from '@nestjs/swagger'
 import { IsOptional } from 'class-validator'
-import { Column, Entity, OneToMany } from 'typeorm'
+import { Column, Entity, Index, OneToMany, VersionColumn } from 'typeorm'
 import { XpertProjectTaskStep } from './project-task-step.entity'
 import { XpertProjectTaskConversation } from './project-task-conversation.entity'
 import { XpertProjectTaskExecution } from './project-task-execution.entity'
 import { XpertProjectBaseEntity } from './project.base'
 
 @Entity('xpert_project_task')
+@Index(['projectId', 'providerKey', 'sourceKey'], { unique: true })
 export class XpertProjectTask extends XpertProjectBaseEntity implements IXpertProjectTask {
+    @Column({ type: 'varchar', nullable: true }) providerKey?: string | null
+    @Column({ type: 'varchar', nullable: true }) sourceKey?: string | null
+    @Column({ type: 'varchar', nullable: true }) sourceRevision?: string | null
+    @VersionColumn({ default: 1 }) revision: number
+    @Column({ type: 'varchar', default: 'task' }) kind: 'task' | 'summary' | 'milestone'
+    @Column({ type: 'uuid', nullable: true }) parentTaskId?: string | null
+    @Column({ type: 'json', default: '[]' }) predecessorIds: string[]
+    @Column({ type: 'timestamptz', nullable: true }) plannedStartAt?: Date | null
+    @Column({ type: 'timestamptz', nullable: true }) plannedEndAt?: Date | null
+    @Column({ type: 'double precision', nullable: true }) estimatedDurationMs?: number | null
+    @Column({ type: 'text', nullable: true }) diagnostic?: string | null
+
     @Column({ nullable: true })
     threadId?: string
 

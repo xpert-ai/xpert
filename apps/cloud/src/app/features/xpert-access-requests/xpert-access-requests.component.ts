@@ -8,6 +8,9 @@ import { XpertAccessRequestReviewListComponent } from './review-requests-list.co
 @Component({
   standalone: true,
   selector: 'xp-xpert-access-requests',
+  host: {
+    class: 'block h-full min-h-0 min-w-0 w-full flex-1'
+  },
   imports: [
     CommonModule,
     TranslateModule,

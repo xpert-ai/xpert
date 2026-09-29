@@ -588,11 +588,25 @@
           {{ 'XP.KEY_WORDS.Selected' | translate: { Default: 'Selected' } }}
         </div>
         <div class="mx-1 h-4 w-px bg-border"></div>
-        <button z-button zType="ghost" zSize="sm" type="button" [disabled]="busy()" (click)="setSelectedEnabled(true)">
+        <button
+          z-button
+          zType="ghost"
+          zSize="sm"
+          type="button"
+          [zDisabled]="busy() || !canSetSelectedEnabled(true)"
+          (click)="setSelectedEnabled(true)"
+        >
           <z-icon zType="circle-check" />
           {{ 'XP.ACTIONS.Enable' | translate: { Default: 'Enable' } }}
         </button>
-        <button z-button zType="ghost" zSize="sm" type="button" [disabled]="busy()" (click)="setSelectedEnabled(false)">
+        <button
+          z-button
+          zType="ghost"
+          zSize="sm"
+          type="button"
+          [zDisabled]="busy() || !canSetSelectedEnabled(false)"
+          (click)="setSelectedEnabled(false)"
+        >
           <z-icon zType="circle-x" />
           {{ 'XP.ACTIONS.Disable' | translate: { Default: 'Disable' } }}
         </button>

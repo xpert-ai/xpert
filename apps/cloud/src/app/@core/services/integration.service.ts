@@ -1,6 +1,14 @@
 import { inject, Injectable } from '@angular/core'
 import { API_PREFIX, OrganizationBaseCrudService } from '@cloud/app/@core/state'
-import { IIntegration, IntegrationFeatureEnum, TIntegrationProvider } from '@xpert-ai/contracts'
+import {
+  IIntegration,
+  IntegrationFeatureEnum,
+  TIntegrationProvider,
+  TIntegrationQrSession,
+  TIntegrationQrResult,
+  TIntegrationQrCreateInput,
+  TIntegrationQrCompletion
+} from '@xpert-ai/contracts'
 import { TSelectOption } from '@xpert-ai/headless-ui'
 import { Observable } from 'rxjs'
 
@@ -123,6 +131,28 @@ export class IntegrationService extends OrganizationBaseCrudService<IIntegration
 
   getProviders() {
     return this.httpClient.get<TIntegrationProvider[]>(this.apiBaseUrl + '/providers')
+  }
+
+  beginQrAuthorization(provider: string, input: TIntegrationQrCreateInput) {
+    return this.httpClient.post<TIntegrationQrSession>(
+      `${this.apiBaseUrl}/qr/providers/${encodeURIComponent(provider)}`,
+      input
+    )
+  }
+
+  pollQrAuthorization(id: string) {
+    return this.httpClient.get<TIntegrationQrResult>(`${this.apiBaseUrl}/qr/sessions/${encodeURIComponent(id)}`)
+  }
+
+  completeQrAuthorization(id: string) {
+    return this.httpClient.post<TIntegrationQrCompletion>(
+      `${this.apiBaseUrl}/qr/sessions/${encodeURIComponent(id)}/complete`,
+      {}
+    )
+  }
+
+  cancelQrAuthorization(id: string) {
+    return this.httpClient.delete<void>(`${this.apiBaseUrl}/qr/sessions/${encodeURIComponent(id)}`)
   }
 }
 

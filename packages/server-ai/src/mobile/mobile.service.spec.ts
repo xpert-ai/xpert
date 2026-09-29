@@ -1,12 +1,24 @@
 jest.mock('@xpert-ai/plugin-sdk', () => ({
     RequestContext: {
         currentUserId: jest.fn(),
-        getOrganizationId: jest.fn()
+        getOrganizationId: jest.fn(),
+        hasAnyPermission: jest.fn()
     }
 }))
 
 jest.mock('../xpert/xpert.entity', () => ({
     Xpert: class Xpert {}
+}))
+
+jest.mock('@xpert-ai/server-core', () => ({
+    UserService: class UserService {},
+    OrganizationService: class OrganizationService {}
+}))
+jest.mock('../assistant-binding/assistant-binding.service', () => ({
+    AssistantBindingService: class AssistantBindingService {}
+}))
+jest.mock('../xpert/published-xpert-access.service', () => ({
+    PublishedXpertAccessService: class PublishedXpertAccessService {}
 }))
 
 import { AssistantBindingScope, AssistantBindingSourceScope, AssistantCode, XpertTypeEnum } from '@xpert-ai/contracts'
@@ -21,6 +33,7 @@ import {
 } from './mobile.service'
 
 describe('MobileService', () => {
+    const organizationService = { findAll: jest.fn() }
     const userService = {
         findCurrentUser: jest.fn()
     }
@@ -34,6 +47,7 @@ describe('MobileService', () => {
 
     beforeEach(() => {
         jest.clearAllMocks()
+        jest.mocked(RequestContext.hasAnyPermission).mockReturnValue(false)
         ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-1')
         ;(RequestContext.getOrganizationId as jest.Mock).mockReturnValue('org-2')
         userService.findCurrentUser.mockResolvedValue({
@@ -85,11 +99,15 @@ describe('MobileService', () => {
         publishedXpertAccessService.findAccessiblePublishedXperts.mockResolvedValue([
             {
                 id: 'xpert-1',
+                createdAt: new Date('2026-09-24T00:00:00Z'),
                 slug: 'sales',
                 name: 'sales',
                 type: XpertTypeEnum.Agent,
                 title: 'Sales',
                 description: 'Helps sales teams.',
+                marketplace: { businessCategories: ['business-operations'] },
+                businessAreaId: 'sales-area',
+                businessArea: { id: 'sales-area', name: 'Sales', children: [{ id: 'private-child' }] },
                 avatar: null,
                 latest: true,
                 workspaceId: 'workspace-1',
@@ -107,7 +125,8 @@ describe('MobileService', () => {
         return new MobileService(
             userService as unknown as ConstructorParameters<typeof MobileService>[0],
             assistantBindingService as unknown as ConstructorParameters<typeof MobileService>[1],
-            publishedXpertAccessService as unknown as ConstructorParameters<typeof MobileService>[2]
+            publishedXpertAccessService as unknown as ConstructorParameters<typeof MobileService>[2],
+            organizationService as unknown as ConstructorParameters<typeof MobileService>[3]
         )
     }
 
@@ -128,6 +147,26 @@ describe('MobileService', () => {
         expect(result.deployment.capabilities.chatkit).toBe(true)
     })
 
+    it('lists active tenant organizations for authorized administrators without inventing memberships', async () => {
+        jest.mocked(RequestContext.hasAnyPermission).mockReturnValue(true)
+        organizationService.findAll.mockResolvedValue({
+            items: [{ id: 'new-org', name: 'New organization', tenantId: 'tenant-1', isActive: true }]
+        })
+        const result = await createService().getBootstrap()
+        expect(result.organizations.map((organization) => organization.id)).toEqual(['new-org'])
+        expect(result.activeOrganizationId).toBe('new-org')
+        expect(organizationService.findAll).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: { tenantId: 'tenant-1', isActive: true }
+            })
+        )
+    })
+
+    it('does not expose tenant organizations to ordinary members', async () => {
+        await createService().getBootstrap()
+        expect(organizationService.findAll).not.toHaveBeenCalled()
+    })
+
     it('requires an authenticated user for bootstrap', async () => {
         ;(RequestContext.currentUserId as jest.Mock).mockReturnValue(null)
 
@@ -146,6 +185,7 @@ describe('MobileService', () => {
                 type: XpertTypeEnum.Agent,
                 latest: true
             },
+            relations: ['businessArea'],
             search: 'Sales',
             take: 100,
             skip: 3,
@@ -165,10 +205,26 @@ describe('MobileService', () => {
             expect.objectContaining({
                 id: 'xpert-1',
                 slug: 'sales',
-                title: 'Sales'
+                title: 'Sales',
+                businessArea: { id: 'sales-area', name: 'Sales' },
+                createdAt: new Date('2026-09-24T00:00:00Z')
             })
         ])
         expect(JSON.stringify(result)).not.toContain('not-returned')
+        expect(JSON.stringify(result)).not.toContain('private-child')
+        expect(result.items[0]).not.toHaveProperty('businessCategories')
+    })
+
+    it('does not infer a business area from marketplace categories or a stale relation', async () => {
+        publishedXpertAccessService.findAccessiblePublishedXperts.mockResolvedValue([
+            { id: 'missing', name: 'Sales expert', marketplace: { businessCategories: ['sales'] } },
+            { id: 'deleted', name: 'Deleted area', businessAreaId: 'deleted-area', businessArea: null },
+            { id: 'unnamed', name: 'Unnamed area', businessArea: { id: 'legacy-area', name: ' ' } }
+        ])
+        publishedXpertAccessService.countAccessiblePublishedXperts.mockResolvedValue(3)
+
+        const result = await createService().listXperts({})
+        expect(result.items.map((item) => item.businessArea)).toEqual([null, null, null])
     })
 
     it('maps only mobile-safe user, organization, and xpert fields', () => {

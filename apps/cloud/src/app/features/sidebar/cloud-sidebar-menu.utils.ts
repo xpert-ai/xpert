@@ -3,7 +3,7 @@ import { CloudMenuItem } from './cloud-sidebar-menu.types'
 export type CloudSidebarMenuGroupKey = 'work' | 'modules' | 'management'
 
 export interface CloudSidebarMenuEntry {
-  kind: 'menu' | 'assistant' | 'assistants'
+  kind: 'menu' | 'assistants'
   item: CloudMenuItem | null
 }
 
@@ -70,7 +70,7 @@ export function addWorkspaceConnectorMenuItem(groups: CloudSidebarMenuGroup[], w
   const normalizedWorkspaceId = workspaceId?.trim()
 
   const connector: CloudMenuItem = {
-    title: '连接器',
+    title: 'Connectors',
     icon: 'ri-share-line',
     link: buildWorkspaceModuleMenuLink('connectors', normalizedWorkspaceId),
     pathMatch: 'prefix',
@@ -98,7 +98,7 @@ export function addWorkspaceSkillMenuItem(groups: CloudSidebarMenuGroup[], works
   const normalizedWorkspaceId = workspaceId?.trim()
 
   const skill: CloudMenuItem = {
-    title: '技能',
+    title: 'Skills',
     icon: 'ri-pencil-ruler-line',
     link: buildWorkspaceModuleMenuLink('skills', normalizedWorkspaceId),
     pathMatch: 'prefix',
@@ -126,7 +126,7 @@ export function addWorkspaceSkillMenuItem(groups: CloudSidebarMenuGroup[], works
  */
 export function addWorkspaceExpertSkillsConnectorsMenuItem(groups: CloudSidebarMenuGroup[]) {
   const expertTools: CloudMenuItem = {
-    title: '专家·技能·连接器',
+    title: 'Experts, Skills and Connectors',
     icon: 'ri-team-line',
     link: '/explore',
     pathMatch: 'prefix',
@@ -156,45 +156,18 @@ export function addWorkspaceExpertSkillsConnectorsMenuItem(groups: CloudSidebarM
   })
 }
 
-/** Adds the ClawXpert assistant entry directly below the new-task action. */
-export function addWorkspaceAssistantMenuItem(groups: CloudSidebarMenuGroup[]) {
-  const assistant: CloudMenuItem = {
-    title: 'Assistant',
-    icon: 'ri-robot-2-line',
-    link: '/chat/clawxpert/assistant',
-    pathMatch: 'full',
-    data: {
-      translationKey: 'Assistant',
-      activePathPrefixes: ['/chat/clawxpert/assistant', '/chat/clawxpert/settings']
-    }
-  }
-
-  const workGroups = ensureWorkMenuGroup(groups)
-
-  return workGroups.map((group) => {
-    if (
-      group.key !== 'work' ||
-      group.items.some((item) => item.data?.translationKey === assistant.data?.translationKey)
-    ) {
-      return group
-    }
-
-    return sortWorkMenuGroup(group, assistant)
-  })
-}
-
 export function addWorkspaceMoreMenuItem(groups: CloudSidebarMenuGroup[], workspaceId?: string | null) {
   const normalizedWorkspaceId = workspaceId?.trim()
   const more: CloudMenuItem = {
-    title: '更多',
+    title: 'More',
     icon: 'ri-apps-2-line',
     data: {
       translationKey: 'More'
     },
     children: [
-      createWorkspaceChild('资源库', 'Library', 'ri-book-open-line', 'files', normalizedWorkspaceId),
+      createWorkspaceChild('Resource library', 'Library', 'ri-book-open-line', 'files', normalizedWorkspaceId),
       {
-        title: '我的知识库',
+        title: 'My knowledgebases',
         icon: 'ri-book-2-line',
         link: '/xpert/knowledges',
         pathMatch: 'prefix',
@@ -202,7 +175,11 @@ export function addWorkspaceMoreMenuItem(groups: CloudSidebarMenuGroup[], worksp
           translationKey: 'My knowledgebases'
         }
       },
-      createWorkspaceChild('工作区设置', 'Workspace settings', 'ri-equalizer-line', 'settings', normalizedWorkspaceId)
+      {
+        title: 'Assistant settings',
+        icon: 'ri-equalizer-line',
+        data: { translationKey: 'Assistant settings', action: 'openAssistantSettings' }
+      }
     ]
   }
 
@@ -415,7 +392,7 @@ export function normalizeMenuPath(path: string) {
 
 function createMenuEntry(item: CloudMenuItem): CloudSidebarMenuEntry {
   return {
-    kind: item.data?.translationKey === 'Assistant' ? 'assistant' : 'menu',
+    kind: 'menu',
     item
   }
 }

@@ -1,4 +1,6 @@
-import { SharedModule, StorageFileModule } from '@xpert-ai/server-core'
+import { ArtifactsModule } from '../artifacts/artifacts.module'
+import { FileChangeStatsService } from './file-change-stats.service'
+import { RedisModule, SharedModule, StorageFileModule } from '@xpert-ai/server-core'
 import { BullModule } from '@nestjs/bull'
 import { Module, forwardRef } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
@@ -21,6 +23,7 @@ import { ChatTaskSummaryService } from './task-summary.service'
 import { XpertAgent } from '../xpert-agent/xpert-agent.entity'
 import { ChatConversationThread } from './conversation-thread.entity'
 import { ChatConversationThreadService } from './conversation-thread.service'
+import { ThreadRunControlService } from './thread-run-control.service'
 import { ChatMessage } from '../chat-message/chat-message.entity'
 import { CopilotCheckpoint } from '../copilot-checkpoint/copilot-checkpoint.entity'
 import { CopilotCheckpointWrites } from '../copilot-checkpoint/writes/writes.entity'
@@ -29,6 +32,11 @@ import { WorkbenchAssistantConversationNavigationService } from './workbench-ass
 import { AssistantUserPreference } from '../xpert/assistant-user-preference.entity'
 import { ChatConversationSidebarController } from './conversation-sidebar.controller'
 import { ChatConversationSidebarService } from './conversation-sidebar.service'
+import { MessageCheckpointService } from './message-checkpoint.service'
+import { ConversationAgentRunsService } from '../ai/conversation-agent-runs.service'
+import { ThreadReferenceService } from './thread-reference.service'
+import { ThreadCursorStore } from './thread-cursor.store'
+import { ConversationInitializerRegistry } from './conversation-initializer.registry'
 
 @Module({
     imports: [
@@ -44,7 +52,9 @@ import { ChatConversationSidebarService } from './conversation-sidebar.service'
             CopilotCheckpointWrites,
             XpertAgent
         ]),
+        forwardRef(() => ArtifactsModule),
         SharedModule,
+        RedisModule,
         CqrsModule,
 
         BullModule.registerQueue({
@@ -60,17 +70,28 @@ import { ChatConversationSidebarService } from './conversation-sidebar.service'
     ],
     controllers: [ChatConversationSidebarController, ChatConversationController],
     providers: [
+        ConversationInitializerRegistry,
+        ThreadCursorStore,
+        ThreadReferenceService,
+        ConversationAgentRunsService,
+        MessageCheckpointService,
         ChatConversationService,
         ChatConversationSidebarService,
         ChatConversationThreadService,
+        ThreadRunControlService,
         ChatConversationGoalService,
         ChatTaskSummaryService,
+        FileChangeStatsService,
         WorkbenchAssistantConversationNavigationService,
         ConversationSummaryProcessor,
         ...CommandHandlers,
         ...QueryHandlers
     ],
     exports: [
+        ConversationInitializerRegistry,
+        ThreadReferenceService,
+        MessageCheckpointService,
+        ThreadRunControlService,
         ChatConversationService,
         ChatConversationThreadService,
         ChatConversationGoalService,

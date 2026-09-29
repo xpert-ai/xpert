@@ -227,6 +227,8 @@ export class KnowledgebaseComponent {
   openApiKey() {
     this.#dialog
       .open(XpertDevelopApiKeyComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
         data: {
           id: this.knowledgebase().id,
           type: ApiKeyBindingType.KNOWLEDGEBASE

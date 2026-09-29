@@ -1,4 +1,5 @@
 import { createRuntimeCapability } from '../../core/runtime-capability'
+import type { XpertProjectTypeRef } from '@xpert-ai/contracts'
 
 /** Lifecycle states that plugin-managed Projects may synchronize to the platform. */
 export type ProjectProvisioningStatus = 'active' | 'archived'
@@ -12,6 +13,8 @@ export type ProjectExternalAssistantExpectation = {
 
 /** Stable identity and desired state for an idempotently provisioned Chat Project. */
 export type ProjectEnsureInput = {
+  /** Registered application type. Omission preserves legacy unclassified callers. */
+  projectType?: XpertProjectTypeRef
   /** Caller-generated id reused across retries to prevent duplicate Projects. */
   projectId: string
   /** @deprecated Projects no longer belong to a Workspace. Accepted only for legacy callers. */

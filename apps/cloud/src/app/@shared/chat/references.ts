@@ -9,6 +9,7 @@ import type {
   TChatReference
 } from '@xpert-ai/contracts'
 import type { TChatRequestHuman } from '@cloud/app/@core'
+import { normalizeThreadReference } from '@xpert-ai/chatkit-types'
 
 export type XpertCodeReference = ChatKitCodeReference
 
@@ -215,19 +216,22 @@ function isFileElementReference(value: unknown): value is XpertFileElementRefere
   )
 }
 
+/** Normalize navigation/composer input; thread references carry locators, never client-supplied history. */
 export function normalizeReferences(value: unknown): XpertChatReference[] {
   if (!Array.isArray(value)) {
     return []
   }
 
-  return value.filter((reference): reference is XpertChatReference => {
-    return (
-      isCodeReference(reference) ||
+  return value.flatMap((reference): XpertChatReference[] => {
+    const thread = normalizeThreadReference(reference)
+    if (thread) return [thread]
+    return isCodeReference(reference) ||
       isQuoteReference(reference) ||
       isImageReference(reference) ||
       isElementReference(reference) ||
       isFileElementReference(reference)
-    )
+      ? [reference]
+      : []
   })
 }
 
@@ -250,6 +254,10 @@ export function readNavigationInput(value: unknown): XpertChatNavigationInput | 
 }
 
 export function getReferenceKey(reference: XpertChatReference): string {
+  if (reference.type === 'thread') {
+    return `thread:${reference.conversationId}:${reference.threadId}`
+  }
+
   if (reference.type === 'image' && isNonEmptyString(reference.fileId)) {
     return `image:${reference.fileId.trim()}`
   }
@@ -326,6 +334,10 @@ export function getReferenceLabel(reference: XpertChatReference): string {
     return reference.label.trim()
   }
 
+  if (reference.type === 'thread') {
+    return reference.threadId
+  }
+
   if (reference.type === 'code') {
     return `${reference.path}:${getCodeReferenceRange(reference)}`
   }
@@ -351,6 +363,10 @@ export function getReferenceLabel(reference: XpertChatReference): string {
 }
 
 export function getReferenceSource(reference: XpertChatReference): string | null {
+  if (reference.type === 'thread') {
+    return reference.threadId
+  }
+
   if (reference.type === 'code') {
     return reference.language?.trim() || null
   }

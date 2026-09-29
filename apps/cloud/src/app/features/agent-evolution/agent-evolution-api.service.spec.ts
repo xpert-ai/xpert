@@ -44,6 +44,13 @@ describe('AgentEvolutionApiService', () => {
     expect(response).toEqual([])
   })
 
+  it('reads rule snapshots without invoking synchronization', () => {
+    service.getRuleBaseline('bom.feature_binding').subscribe()
+    const request = httpMock.expectOne('/api/agent-evolution/baselines/bom.feature_binding')
+    expect(request.request.method).toBe('GET')
+    request.flush({})
+  })
+
   it('executes the complete conformance simulation', () => {
     const result: EvolutionSimulationResult = {
       example: {

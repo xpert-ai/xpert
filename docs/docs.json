@@ -29,6 +29,7 @@
                 "group": "Guides",
                 "pages": [
                   "en/guides/plugin",
+                  "en/guides/project-application-types",
                   "en/guides/managed-connection",
                   "en/guides/managed-queue",
                   "en/guides/sandbox-jobs-architecture",
@@ -78,6 +79,7 @@
                 "group": "指南",
                 "pages": [
                   "zh-hans/guides/plugin",
+                  "zh-hans/guides/project-application-types",
                   "zh-hans/guides/managed-connection",
                   "zh-hans/guides/managed-queue",
                   "zh-hans/guides/sandbox-jobs-architecture",

@@ -1,3 +1,4 @@
+jest.mock('./file-activity-storage.service', () => ({ FileActivityStorage: class {} }))
 import { WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
 import { SandboxFileMiddleware } from './sandbox-file.middleware'
 
@@ -53,7 +54,7 @@ describe('SandboxFileMiddleware', () => {
     })
 
     it('requires the sandbox xpert feature before creating middleware', async () => {
-        const middleware = new SandboxFileMiddleware()
+        const middleware = new SandboxFileMiddleware({ persist: jest.fn() })
 
         expect(() =>
             middleware.createMiddleware(
@@ -76,7 +77,7 @@ describe('SandboxFileMiddleware', () => {
     })
 
     it('creates middleware tools when the sandbox xpert feature is enabled', async () => {
-        const middleware = new SandboxFileMiddleware()
+        const middleware = new SandboxFileMiddleware({ persist: jest.fn() })
 
         const agentMiddleware = await Promise.resolve(
             middleware.createMiddleware(
@@ -105,12 +106,25 @@ describe('SandboxFileMiddleware', () => {
             'sandbox_append_file',
             'sandbox_edit_file',
             'sandbox_multi_edit_file',
-            'sandbox_list_dir'
+            'sandbox_list_dir',
+            'present_files'
         ])
+        const fields = {
+            sandbox_write_file: ['content', 'file_path'],
+            sandbox_append_file: ['content', 'file_path'],
+            sandbox_edit_file: ['file_path', 'new_string', 'old_string', 'replace_all'],
+            sandbox_multi_edit_file: ['edits', 'file_path'],
+            present_files: ['paths']
+        }
+        for (const [name, expected] of Object.entries(fields)) {
+            const schema = agentMiddleware.tools.find((tool) => tool.name === name)?.schema
+            if (!schema || !('shape' in schema)) throw new Error('Expected object schema')
+            expect(Object.keys(schema.shape).sort()).toEqual(expected)
+        }
     })
 
     it('returns the caller workspace path instead of the provider absolute path after writing', async () => {
-        const middleware = new SandboxFileMiddleware()
+        const middleware = new SandboxFileMiddleware({ persist: jest.fn() })
         const agentMiddleware = await Promise.resolve(
             middleware.createMiddleware(
                 {},

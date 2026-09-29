@@ -3,6 +3,7 @@ import type { DataSource } from 'typeorm'
 import type { EvolutionChangeService } from './change.service'
 import { HUMAN_PROPOSAL_STRATEGY, type EvolutionChange } from '@xpert-ai/contracts'
 
+jest.mock('./change.service', () => ({ EvolutionChangeService: class {} }))
 jest.mock('@xpert-ai/plugin-sdk', () => ({
     EvolutionChangeRuntimeCapability: 'changes',
     EvolutionTargetProviderRegistry: class {},

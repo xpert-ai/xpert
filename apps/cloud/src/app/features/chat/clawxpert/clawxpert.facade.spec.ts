@@ -220,6 +220,7 @@ import { XpertWorkbenchInitialLayoutEnum } from '@xpert-ai/contracts'
 import type { IAssistantBinding, IChatConversation, ICopilotModel, IXpert, TXpertTeamDraft } from '@xpert-ai/contracts'
 import { of, Subject, throwError } from 'rxjs'
 import {
+  AssistantBindingScope,
   AssistantBindingService,
   ChatConversationService,
   EnvironmentService,
@@ -232,6 +233,7 @@ import type { WorkflowTriggerProviderOption } from '../../xpert/draft/workflow-t
 import { ClawXpertBootstrapService } from './clawxpert-bootstrap.service'
 import { ClawXpertFacade, ClawXpertTriggerEditorItem } from './clawxpert.facade'
 import { ClawXpertConversationStartIntentService } from './clawxpert-conversation-start-intent.service'
+import { ClawXpertConfigurationCache } from './clawxpert-configuration-cache.service'
 
 const WorkflowNodeTypeEnum = {
   TRIGGER: 'trigger'
@@ -409,6 +411,8 @@ describe('ClawXpertFacade', () => {
     upsertPreference: jest.Mock
   }
   let store: {
+    userId: string | null
+    user$: Subject<{ id: string } | null>
     organizationId: string | null
     selectOrganizationId: jest.Mock
   }
@@ -461,6 +465,8 @@ describe('ClawXpertFacade', () => {
       upsertPreference: jest.fn(() => of(null))
     }
     store = {
+      userId: null,
+      user$: new Subject<{ id: string } | null>(),
       organizationId: 'org-1',
       selectOrganizationId: jest.fn(() => of('org-1'))
     }
@@ -554,6 +560,81 @@ describe('ClawXpertFacade', () => {
   afterEach(() => {
     TestBed.resetTestingModule()
     jest.clearAllMocks()
+  })
+
+  it('starts ready from the current user cache and clears it from view when the user changes', () => {
+    const cache = TestBed.inject(ClawXpertConfigurationCache)
+    const scope = { userId: 'cached-user', organizationId: 'org-1' }
+    store.userId = scope.userId
+    cache.save(scope, { ...createBinding('xpert-1'), scope: AssistantBindingScope.USER }, [createXpert('xpert-1')])
+    assistantBindingService.get.mockReturnValue(new Subject<IAssistantBinding | null>())
+    assistantBindingService.getAvailableXperts.mockReturnValue(new Subject<IXpert[]>())
+    try {
+      const facade = TestBed.inject(ClawXpertFacade)
+      expect(facade.loading()).toBe(false)
+      expect(facade.viewState()).toBe('ready')
+      expect(facade.currentXpert()?.id).toBe('xpert-1')
+
+      TestBed.tick()
+      store.user$.next({ id: 'another-user' })
+      TestBed.tick()
+      expect(facade.currentXpert()).toBeNull()
+      expect(facade.loading()).toBe(true)
+    } finally {
+      cache.remove(scope)
+    }
+  })
+
+  it.each([true, false])(
+    'keeps initial setup hidden until binding availability resolves (bound: %s)',
+    async (bound) => {
+      const bindingResponse = new Subject<IAssistantBinding | null>()
+      const xpertsResponse = new Subject<IXpert[]>()
+      assistantBindingService.get.mockReturnValue(bindingResponse)
+      assistantBindingService.getAvailableXperts.mockReturnValue(xpertsResponse)
+
+      const facade = TestBed.inject(ClawXpertFacade)
+
+      // The first render can run before the organization effect starts the requests.
+      expect(facade.loading()).toBe(true)
+      expect(assistantBindingService.get).not.toHaveBeenCalled()
+
+      TestBed.tick()
+      bindingResponse.next(bound ? createBinding('xpert-1') : null)
+      await flushPromises()
+
+      expect(facade.loading()).toBe(true)
+      expect(facade.hasLoadedXperts()).toBe(false)
+
+      xpertsResponse.next([createXpert('xpert-1')])
+      await flushPromises()
+
+      expect(facade.loading()).toBe(false)
+      expect(facade.viewState()).toBe(bound ? 'ready' : 'wizard')
+    }
+  )
+
+  it('leaves the initial loading state when the binding request fails', async () => {
+    assistantBindingService.get.mockReturnValue(throwError(() => new Error('Binding unavailable')))
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    TestBed.tick()
+    await flushPromises()
+
+    expect(facade.loading()).toBe(false)
+    expect(facade.viewState()).toBe('error')
+  })
+
+  it('leaves the initial loading state when no organization is selected', () => {
+    store.organizationId = null
+    store.selectOrganizationId.mockReturnValue(of(null))
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    TestBed.tick()
+
+    expect(facade.loading()).toBe(false)
+    expect(facade.viewState()).toBe('organization-required')
+    expect(assistantBindingService.get).not.toHaveBeenCalled()
   })
 
   it('merges a newly published xpert and resolves the binding immediately', async () => {

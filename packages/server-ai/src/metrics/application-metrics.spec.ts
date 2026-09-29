@@ -1,6 +1,23 @@
 import { ApplicationMetricsRegistry, applicationMetrics } from './application-metrics'
 
 describe('ApplicationMetricsRegistry', () => {
+    it('records branch outcomes and sizes without conversation identifiers or payloads', () => {
+        const registry = new ApplicationMetricsRegistry()
+        registry.recordConversationBranch({
+            outcome: 'success',
+            reason: 'created',
+            durationMs: 100,
+            messages: 2,
+            checkpoints: 3
+        })
+        registry.recordConversationBranch({ outcome: 'failure', reason: 'graph_changed', durationMs: 20 })
+        const output = registry.render()
+        expect(output).toContain('xpert_conversation_branches_total{outcome="success",reason="created"} 1')
+        expect(output).toContain('xpert_conversation_branches_total{outcome="failure",reason="graph_changed"} 1')
+        expect(output).toContain('xpert_conversation_branch_items_sum{kind="messages"} 2')
+        expect(output).toContain('xpert_conversation_branch_items_sum{kind="checkpoints"} 3')
+    })
+
     it('renders Prometheus counters, gauges, and histograms for chat metrics', () => {
         const registry = new ApplicationMetricsRegistry()
 

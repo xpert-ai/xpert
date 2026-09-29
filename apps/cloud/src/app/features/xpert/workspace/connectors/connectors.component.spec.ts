@@ -1,4 +1,5 @@
 import { Clipboard } from '@angular/cdk/clipboard'
+import { DialogRef } from '@angular/cdk/dialog'
 import { Component, signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import type {
@@ -12,6 +13,10 @@ import { of, throwError } from 'rxjs'
 import { ToastrService, XpertConnectorService, XpertWorkspaceService } from 'apps/cloud/src/app/@core'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
 import { ClawXpertConnectorsComponent, XpertConnectorsComponent } from './connectors.component'
+import { WORKSPACE_CONNECTOR_DIALOG } from './workspace-connector-dialog'
+import { navigateConnectorAuthorization } from './connector-authorization-navigation'
+
+jest.mock('./connector-authorization-navigation', () => ({ navigateConnectorAuthorization: jest.fn() }))
 
 jest.mock('apps/cloud/src/app/@core', () => {
   const { inject } = require('@angular/core')
@@ -180,9 +185,12 @@ async function setup(options?: {
   bindings?: ConnectorBinding[]
   connectResponse?: ConnectorConnectResponse
   pollResponse?: ConnectorOAuthStatusResponse
+  targetBindingId?: string
+  authorizationNavigation?: 'current-tab'
 }) {
   const workspace = signal({ id: 'workspace-1' })
   const connectorSearchQuery = signal('')
+  const closeDialog = jest.fn()
   const connectorService = {
     scopedDefinitions: jest.fn(() => of(options?.definitions ?? [connectorDefinition])),
     listBindings: jest.fn(() => of(options?.bindings ?? [])),
@@ -232,6 +240,19 @@ async function setup(options?: {
   await TestBed.configureTestingModule({
     imports: [TranslateModule.forRoot(), XpertConnectorsComponent],
     providers: [
+      ...(options?.targetBindingId
+        ? [
+            {
+              provide: WORKSPACE_CONNECTOR_DIALOG,
+              useValue: {
+                workspaceId: 'workspace-1',
+                bindingId: options.targetBindingId,
+                authorizationNavigation: options.authorizationNavigation
+              }
+            },
+            { provide: DialogRef, useValue: { close: closeDialog } }
+          ]
+        : []),
       {
         provide: XpertWorkspaceHomeComponent,
         useValue: { workspace, connectorSearchQuery }
@@ -259,10 +280,67 @@ async function setup(options?: {
   fixture.detectChanges()
   await fixture.whenStable()
 
-  return { fixture, component: fixture.componentInstance, connectorService, toastr, clipboard, connectorSearchQuery }
+  return {
+    fixture,
+    component: fixture.componentInstance,
+    connectorService,
+    toastr,
+    clipboard,
+    connectorSearchQuery,
+    closeDialog
+  }
 }
 
 describe('XpertConnectorsComponent', () => {
+  it('automatically enters Desktop OAuth in the current browser tab without a second click or popup', async () => {
+    const openSpy = jest.spyOn(window, 'open').mockReturnValue(null)
+    const { fixture, connectorService } = await setup({
+      targetBindingId: workspaceBinding.id,
+      authorizationNavigation: 'current-tab',
+      bindings: [workspaceBinding],
+      connectResponse: {
+        status: 'pending',
+        connector: { ...workspaceBinding, status: 'pending' },
+        authorizationUrl: 'https://accounts.example.com/oauth/start'
+      }
+    })
+    await fixture.whenStable()
+    expect(connectorService.connectBinding).toHaveBeenCalledTimes(1)
+    expect(navigateConnectorAuthorization).toHaveBeenCalledWith('https://accounts.example.com/oauth/start')
+    expect(openSpy).not.toHaveBeenCalled()
+    fixture.destroy()
+  })
+
+  it('connects only the requested workspace binding in a host dialog', async () => {
+    jest.spyOn(window, 'open').mockReturnValue(null)
+    const { fixture, connectorService, closeDialog } = await setup({
+      targetBindingId: 'workspace-binding',
+      bindings: [workspaceBinding, githubBinding],
+      definitions: [connectorDefinition, githubDefinition]
+    })
+    await fixture.whenStable()
+    expect(connectorService.connectBinding).toHaveBeenCalledWith('workspace-binding', { authMethodId: 'oauth2' })
+    expect(connectorService.connectBinding).toHaveBeenCalledTimes(1)
+    expect(closeDialog).toHaveBeenCalledWith({ status: 'connected' })
+    expect(fixture.nativeElement.querySelector('[data-connector-grid]')).toBeNull()
+    fixture.destroy()
+  })
+
+  it('opens the existing credential form when a binding needs configuration', async () => {
+    const { fixture, component, connectorService } = await setup({
+      targetBindingId: githubBinding.id,
+      bindings: [workspaceBinding, githubBinding],
+      definitions: [connectorDefinition, githubDefinition]
+    })
+    await fixture.whenStable()
+    fixture.detectChanges()
+    expect(component.selectedDefinition()?.provider).toBe('github')
+    expect(connectorService.connectBinding).not.toHaveBeenCalled()
+    expect(fixture.nativeElement.querySelector('[data-connector-dialog]')).not.toBeNull()
+    expect(fixture.nativeElement.querySelector('[data-connector-grid]')).toBeNull()
+    fixture.destroy()
+  })
+
   afterEach(() => {
     TestBed.resetTestingModule()
     jest.useRealTimers()
@@ -286,7 +364,7 @@ describe('XpertConnectorsComponent', () => {
     component.openConnectorDialog(connectorDefinition)
     fixture.detectChanges()
 
-    const host = fixture.nativeElement as HTMLElement
+    const host = document.body
     const connectButton = host.querySelector<HTMLButtonElement>('[data-connector-action="connect"]')
     const text = host.textContent
     expect(connectButton).not.toBeNull()
@@ -327,7 +405,7 @@ describe('XpertConnectorsComponent', () => {
 
     component.openConnectorDialog(legacyDefinition)
     fixture.detectChanges()
-    expect((fixture.nativeElement as HTMLElement).textContent).not.toContain('XP.Xpert.ConnectorAuthorizationMode')
+    expect(document.body.textContent).not.toContain('XP.Xpert.ConnectorAuthorizationMode')
     fixture.destroy()
   })
 
@@ -337,7 +415,7 @@ describe('XpertConnectorsComponent', () => {
     component.openConnectorDialog(connectorDefinition)
     fixture.detectChanges()
 
-    const text = (fixture.nativeElement as HTMLElement).textContent
+    const text = document.body.textContent
     expect(text).not.toContain('XP.Xpert.ConnectorAuthorizationMode')
     expect(text).not.toContain('XP.Xpert.ConnectorPersonalAuthorization')
     expect(text).not.toContain('XP.Xpert.ConnectorSharedAuthorization')
@@ -352,7 +430,7 @@ describe('XpertConnectorsComponent', () => {
     component.openConnectorDialog(connectorDefinition)
     fixture.detectChanges()
 
-    const host = fixture.nativeElement as HTMLElement
+    const host = document.body
     const connectButton = host.querySelector<HTMLButtonElement>('[data-connector-action="connect"]')
     expect(host.textContent).not.toContain('XP.Xpert.ConnectorAuthorizationMode')
     expect(host.textContent).not.toContain('XP.Xpert.ConnectorSharedAuthorization')
@@ -444,7 +522,7 @@ describe('XpertConnectorsComponent', () => {
     })
     fixture.detectChanges()
 
-    const host = fixture.nativeElement as HTMLElement
+    const host = document.body
     const refreshSpy = jest.spyOn(component, 'refresh').mockImplementation()
     host.querySelector<HTMLButtonElement>('[data-connector-action="refresh"]')?.click()
     expect(refreshSpy).toHaveBeenCalledTimes(1)
@@ -468,7 +546,7 @@ describe('XpertConnectorsComponent', () => {
     const { fixture } = await setup({ definitions: [connectorDefinition, githubDefinition] })
     fixture.detectChanges()
 
-    const grid = (fixture.nativeElement as HTMLElement).querySelector<HTMLElement>('[data-connector-grid]')
+    const grid = document.body.querySelector<HTMLElement>('[data-connector-grid]')
     expect(grid?.classList).toContain('grid-cols-[repeat(auto-fill,minmax(min(100%,20rem),1fr))]')
     fixture.destroy()
   })
@@ -477,7 +555,7 @@ describe('XpertConnectorsComponent', () => {
     const { connectorService, fixture } = await setup({ bindings: [sharedBinding] })
     fixture.detectChanges()
 
-    const host = fixture.nativeElement as HTMLElement
+    const host = document.body
     const disconnectButton = host.querySelector<HTMLButtonElement>(
       '[data-connector-provider="example"] [data-connector-action="disconnect"]'
     )
@@ -507,9 +585,9 @@ describe('XpertConnectorsComponent', () => {
     component.openConnectorDialog(embeddedDefinition)
     fixture.detectChanges()
 
-    expect(fixture.nativeElement.querySelector('[data-connector-action="delete"]')).toBeNull()
-    expect(fixture.nativeElement.querySelector('[data-connector-action="cancel-authorization"]')).not.toBeNull()
-    expect(fixture.nativeElement.querySelector('[data-connector-action="copy-authorization-url"]')).not.toBeNull()
+    expect(document.body.querySelector('[data-connector-action="delete"]')).toBeNull()
+    expect(document.body.querySelector('[data-connector-action="cancel-authorization"]')).not.toBeNull()
+    expect(document.body.querySelector('[data-connector-action="copy-authorization-url"]')).not.toBeNull()
     fixture.destroy()
   })
 
@@ -580,7 +658,7 @@ describe('XpertConnectorsComponent', () => {
     })
     fixture.detectChanges()
 
-    const host = fixture.nativeElement as HTMLElement
+    const host = document.body
     host
       .querySelector<HTMLButtonElement>('[data-connector-provider="wecom"] [data-connector-action="open-details"]')
       ?.click()
@@ -606,7 +684,7 @@ describe('XpertConnectorsComponent', () => {
 
     expect(connectorService.connectBinding).not.toHaveBeenCalled()
     expect(connectorService.disconnect).not.toHaveBeenCalled()
-    const host = fixture.nativeElement as HTMLElement
+    const host = document.body
     expect(host.textContent).not.toContain('XP.Xpert.ConnectorAuthorizationMode')
     expect(host.textContent).not.toContain('XP.Xpert.ConnectorSharedAuthorization')
     expect(host.textContent).toContain('XP.Xpert.ConnectorsReadonly')
@@ -621,7 +699,7 @@ describe('XpertConnectorsComponent', () => {
     component.openConnectorDialog(connectorDefinition)
     fixture.detectChanges()
 
-    const host = fixture.nativeElement as HTMLElement
+    const host = document.body
     const disconnectButton = host.querySelector<HTMLButtonElement>('[data-connector-action="disconnect"]')
     expect(disconnectButton).not.toBeNull()
     expect(host.querySelector('[data-connector-action="connect"]')).toBeNull()
@@ -641,7 +719,7 @@ describe('XpertConnectorsComponent', () => {
     component.openConnectorDialog(connectorDefinition)
     fixture.detectChanges()
 
-    const host = fixture.nativeElement as HTMLElement
+    const host = document.body
     expect(host.querySelector('[data-connector-action="connect"]')).not.toBeNull()
     expect(host.querySelector('[data-connector-action="delete"]')).toBeNull()
     fixture.destroy()
@@ -652,7 +730,7 @@ describe('XpertConnectorsComponent', () => {
     const { component, connectorService, fixture } = await setup({ definitions: [connectorDefinition] })
     fixture.detectChanges()
 
-    const host = fixture.nativeElement as HTMLElement
+    const host = document.body
     host
       .querySelector<HTMLButtonElement>('[data-connector-provider="example"] [data-connector-action="quick-connect"]')
       ?.click()
@@ -668,7 +746,7 @@ describe('XpertConnectorsComponent', () => {
     const { component, connectorService, fixture } = await setup({ definitions: [githubDefinition] })
     fixture.detectChanges()
 
-    const host = fixture.nativeElement as HTMLElement
+    const host = document.body
     host
       .querySelector<HTMLButtonElement>('[data-connector-provider="github"] [data-connector-action="quick-connect"]')
       ?.click()
@@ -697,7 +775,7 @@ describe('XpertConnectorsComponent', () => {
     fixture.detectChanges()
     const form = component.formFor(null, githubDefinition)
 
-    expect(fixture.nativeElement.querySelector('[data-credential-field="token"]')).not.toBeNull()
+    expect(document.body.querySelector('[data-credential-field="token"]')).not.toBeNull()
 
     await component.connect(null, githubDefinition)
     expect(form.controls.token.touched).toBe(true)
@@ -734,7 +812,7 @@ describe('ClawXpertConnectorsComponent', () => {
     const fixture = TestBed.createComponent(ClawXpertConnectorsComponent)
     fixture.detectChanges()
 
-    expect(fixture.nativeElement.querySelector('xpert-connectors')).not.toBeNull()
+    expect(document.body.querySelector('xpert-connectors')).not.toBeNull()
     fixture.destroy()
   })
 })

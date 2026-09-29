@@ -1,3 +1,10 @@
+jest.mock('../chat-conversation/thread-run-control.service', () => ({
+    ThreadRunControlService: class {},
+    threadGraphRevision: () => 'graph-v1',
+    threadControlConflict: (_key: string, message: string) =>
+        new (jest.requireActual('@nestjs/common').ConflictException)(message)
+}))
+
 jest.mock('@xpert-ai/server-core', () => ({
     AllowClientSecretBindings: () => () => undefined,
     ApiKeyOrClientSecretAuthGuard: class {},
@@ -25,7 +32,12 @@ jest.mock('../xpert-agent-execution', () => ({
 }))
 
 jest.mock('../chat-conversation', () => ({
-    AssertChatConversationAccessQuery: class AssertChatConversationAccessQuery {},
+    AssertChatConversationAccessQuery: class AssertChatConversationAccessQuery {
+        constructor(
+            public input: unknown,
+            public operation: string
+        ) {}
+    },
     CancelConversationCommand: class CancelConversationCommand {},
     GetChatConversationQuery: class GetChatConversationQuery {}
 }))
@@ -48,6 +60,31 @@ describe('ThreadsController', () => {
         ;(getPublicXpertSessionConversationScope as jest.Mock).mockReturnValue(null)
     })
 
+    it('forwards display snapshot and token only after contribution access checks', async () => {
+        const queryBus = { execute: jest.fn().mockResolvedValue({ threadId: 'thread' }) }
+        const controls = {
+            requestPause: jest.fn().mockResolvedValue({ state: 'pausing' }),
+            releaseDisplayPause: jest.fn()
+        }
+        const controller = new ThreadsController(
+            {} as never,
+            queryBus as never,
+            {} as never,
+            {} as never,
+            undefined,
+            controls as never
+        )
+        await controller.pauseRun('thread', 'run', { displaySnapshot: 'snapshot' })
+        expect(queryBus.execute.mock.calls[0][0].operation).toBe('contribute')
+        expect(controls.requestPause).toHaveBeenCalledWith('thread', 'run', 'snapshot')
+        await controller.releaseDisplayPause('thread', 'token')
+        expect(queryBus.execute.mock.calls[2][0].operation).toBe('contribute')
+        expect(controls.releaseDisplayPause).toHaveBeenCalledWith('thread', 'token')
+        queryBus.execute.mockRejectedValue(new ForbiddenException())
+        await expect(controller.releaseDisplayPause('other-thread', 'token')).rejects.toBeInstanceOf(ForbiddenException)
+        expect(controls.releaseDisplayPause).toHaveBeenCalledTimes(1)
+    })
+
     it('returns direct follow-up streams without waiting on Redis SSE replay', async () => {
         const stream = EMPTY
         const commandBus = {
@@ -64,7 +101,8 @@ describe('ThreadsController', () => {
         const response = Object.assign(new EventEmitter(), {
             destroyed: false,
             writableEnded: false,
-            write: jest.fn()
+            write: jest.fn(),
+            setHeader: jest.fn()
         })
         const controller = new ThreadsController(
             {} as never,
@@ -81,10 +119,55 @@ describe('ThreadsController', () => {
                 }
             } as never)
 
+            expect(response.setHeader).toHaveBeenCalledWith(
+                'Content-Location',
+                '/api/ai/threads/thread-1/runs/execution-1'
+            )
             expect(result).toBe(stream)
             expect(commandBus.execute.mock.calls[0][0]).toBeInstanceOf(RunCreateStreamCommand)
             expect(redisSseStreamService.createSseStream).not.toHaveBeenCalled()
             expect(redisSseStreamService.releaseConnection).not.toHaveBeenCalled()
+        } finally {
+            response.emit('close')
+        }
+    })
+
+    it('starts the accepted run even when SSE headers were already flushed', async () => {
+        const subscribe = jest.fn()
+        const commandBus = {
+            execute: jest.fn().mockResolvedValue({
+                execution: { id: 'run-1' },
+                stream: { subscribe },
+                streamTransport: 'redis'
+            })
+        }
+        const redisSseStreamService = {
+            createSseStream: jest.fn().mockResolvedValue({ connectionId: 'connection-1', stream: EMPTY }),
+            releaseConnection: jest.fn().mockResolvedValue(true)
+        }
+        const response = Object.assign(new EventEmitter(), {
+            headersSent: true,
+            destroyed: false,
+            writableEnded: false,
+            write: jest.fn(),
+            setHeader: jest.fn(() => {
+                throw new Error('ERR_HTTP_HEADERS_SENT')
+            })
+        })
+        const controller = new ThreadsController(
+            {} as never,
+            {} as never,
+            commandBus as never,
+            redisSseStreamService as never
+        )
+        try {
+            await controller.runStream({ headers: {} } as never, response as never, 'thread-1', {
+                assistant_id: 'xpert-1',
+                input: { action: 'send' }
+            } as never)
+            expect(response.setHeader).not.toHaveBeenCalled()
+            expect(subscribe).toHaveBeenCalledTimes(1)
+            expect(redisSseStreamService.createSseStream).toHaveBeenCalledTimes(1)
         } finally {
             response.emit('close')
         }
@@ -109,7 +192,8 @@ describe('ThreadsController', () => {
         const response = Object.assign(new EventEmitter(), {
             destroyed: false,
             writableEnded: false,
-            write: jest.fn()
+            write: jest.fn(),
+            setHeader: jest.fn()
         })
         const controller = new ThreadsController(
             {} as never,
@@ -155,7 +239,8 @@ describe('ThreadsController', () => {
         const response = Object.assign(new EventEmitter(), {
             destroyed: false,
             writableEnded: false,
-            write: jest.fn()
+            write: jest.fn(),
+            setHeader: jest.fn()
         })
         const controller = new ThreadsController({} as never, {} as never, commandBus as never, {} as never)
 

@@ -10,7 +10,15 @@ import { Command } from '@nestjs/cqrs'
 export class LoadFileCommand extends Command<Document[]> {
     static readonly type = '[Shared] Load File'
 
-    constructor(public readonly file: _TFile) {
+    constructor(
+        public readonly file: _TFile & {
+            fileId?: string
+            fileAssetId?: string
+            storageFileId?: string
+            id?: string
+            originalName?: string
+        }
+    ) {
         super()
     }
 }
