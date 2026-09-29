@@ -1,4 +1,5 @@
 import type { PluginLibrary } from './plugin-library-types'
+import type { CertificateCheck, ConnectionUrlField } from './connection/certificate-types'
 import type { BotActivity, SidebarState, SidebarUpdate } from './assistant-list-types'
 import type {
   ShellSettings,
@@ -23,6 +24,7 @@ export interface ConnectionConfig {
   apiUrl: string
   webUrl: string
   frameUrl: string
+  allowUntrustedCertificates?: boolean
   theme: 'light' | 'dark' | 'system'
   appearance?: AppearanceConfig
 }
@@ -81,6 +83,7 @@ export interface WorkbenchSession {
   organizationId: string
 }
 export interface HostMethods {
+  checkConnectionCertificates: { input: Pick<ConnectionConfig, ConnectionUrlField>; output: CertificateCheck[] }
   pluginLibrary: { input: { workspaceId?: string }; output: PluginLibrary }
   addWorkspacePlugin: {
     input: { workspaceId: string; packageId: string; experts: { [reference: string]: string } }

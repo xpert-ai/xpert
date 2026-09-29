@@ -34,6 +34,30 @@ The host validates values and upgrades older configs with defaults. ChatKit only
 applies variables consumed by its hosted version; fixed component styles are not
 overridden by the desktop client.
 
+For a trusted self-signed/private deployment, open **连接与外观 → 连接** and enable
+**允许不受信任的服务证书**. This is off by default, saved locally, and applies only
+to the configured API, web and ChatKit HTTPS hostnames, across their paths and ports.
+Other hosts still use normal certificate verification. The API and embedded
+ChatKit share an isolated Chromium connection session; Desktop Shell applies the
+same setting to its configured API WebSocket connection. Saving a changed service
+or certificate policy recreates the connection and window, and requires signing
+in again, so cached certificate exceptions cannot survive turning this off.
+The browser-only development preview cannot override browser TLS trust and keeps
+this switch disabled. Certificate trust, validity and hostname errors are shown
+separately from DNS, timeout and connection-refused errors.
+
+The Connection tab checks draft service URLs after typing stops, using a separate
+strict Chromium session. HTTPS addresses sharing an origin are checked once, with
+no credentials and no redirects. Untrusted certificates show a warning even when
+the exception is enabled; network failures report unknown trust rather than an
+untrusted certificate. These diagnostics never block saving settings or sign-in.
+
+After building the renderer, run `node scripts/test-certificates.mjs` from
+`apps/desktop` to verify strict/allowed TLS, embedded ChatKit, Desktop Shell and
+native settings reload against a temporary local self-signed HTTPS server.
+This requires OpenSSL and Electron; it uses isolated profiles and fixture
+credentials, without changing system certificate trust or the daily app account.
+
 ## Run
 
 Bosi branding lives in `resources/`: `icon-macos.png` supplies the login mark;

@@ -15,7 +15,12 @@ contextBridge.exposeInMainWorld('xpertDesktop', {
       if (--avatarPointerSubscribers === 0) ipcRenderer.send('xpert:avatar-pointer-tracking', false)
     }
   },
-  invoke: (method, argument) => ipcRenderer.invoke('xpert:request', method, argument),
+  invoke: async (method, argument) => {
+    const result = await ipcRenderer.invoke('xpert:request', method, argument)
+    // Recreate the renderer only after its save request has completed.
+    if (result.ok && result.reloadConnection) ipcRenderer.send('xpert:reload-connection')
+    return result
+  },
   openPlatform: (payload) => ipcRenderer.invoke('xpert:open-platform', payload),
   openWorkspace: () => ipcRenderer.invoke('xpert:open-workspace'),
   setSidebarCollapsed: (collapsed) => ipcRenderer.send('xpert:sidebar-collapsed', collapsed),

@@ -254,6 +254,7 @@ class DesktopShellController {
       directory: path.join(this.directory, 'operations'),
       settings,
       url: apiRootUrl(this.service.config.apiUrl),
+      allowUntrustedCertificates: this.service.config.allowUntrustedCertificates === true,
       token: registration.token
     })
     this.refreshTimer = setInterval(

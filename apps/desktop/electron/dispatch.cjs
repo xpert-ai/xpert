@@ -15,6 +15,7 @@ const methods = new Set([
   'shellOperations',
   'shellCancel',
   'configure',
+  'checkConnectionCertificates',
   'login',
   'loginLocal',
   'selectOrganization',

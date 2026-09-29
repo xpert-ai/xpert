@@ -3,6 +3,8 @@ const path = require('node:path')
 const { pathToFileURL } = require('node:url')
 const { DesktopService, webUrl } = require('./service.cjs')
 const { connectionDefaults, packagedConnection } = require('./connection/defaults.cjs')
+const { connectionPolicyKey, createConnectionSession } = require('./connection/tls.cjs')
+const { probeCertificate } = require('./connection/certificates.cjs')
 const { createStorage } = require('./storage.cjs')
 const { dispatch } = require('./dispatch.cjs')
 const { menuTemplate } = require('./menu.cjs')
@@ -22,6 +24,8 @@ const rendererUrl = devUrl || pathToFileURL(path.join(__dirname, '../dist/index.
 const appIcon = path.join(__dirname, '../resources', process.platform === 'darwin' ? 'icon-macos.png' : 'logo.png')
 let window
 let service
+let connectionSession
+let connectionReloadPending = false
 
 function trusted(event) {
   return (
@@ -60,10 +64,21 @@ function updateApplicationMenu() {
   Menu.setApplicationMenu(Menu.buildFromTemplate(menuTemplate(locale)))
 }
 
-function createWindow() {
+function resetConnectionSession() {
+  connectionSession = createConnectionSession(session, service.config)
+  connectionSession.setPermissionRequestHandler((contents, permission, callback, details) =>
+    callback(allowClipboardWrite(contents, permission, details.requestingUrl))
+  )
+  connectionSession.setPermissionCheckHandler((contents, permission, origin) =>
+    allowClipboardWrite(contents, permission, origin)
+  )
+}
+
+function createWindow(bounds = {}) {
   window = new BrowserWindow({
     width: 1440,
     height: 1024,
+    ...bounds,
     minWidth: 860,
     minHeight: 640,
     title: branding.name,
@@ -75,11 +90,13 @@ function createWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
-      webSecurity: true
+      webSecurity: true,
+      session: connectionSession
     }
   })
+  const createdWindow = window
   window.on('closed', () => {
-    window = undefined
+    if (window === createdWindow) window = undefined
   })
   installAvatarPointer(window, { ipcMain, screen, isTrusted: trusted })
   window.webContents.setWindowOpenHandler(({ url }) => {
@@ -123,15 +140,12 @@ else {
     service = new DesktopService({
       storage: createStorage(app.getPath('userData'), encryption),
       localLogin,
+      certificateProbe: (origin) => probeCertificate(session, origin),
+      fetcher: (url, options) => connectionSession.fetch(url, { ...options, credentials: 'omit' }),
       defaultConfig: app.isPackaged ? packagedConnection() : connectionDefaults()
     })
     service.shell = new DesktopShellController(service, path.join(app.getPath('userData'), 'desktop-shell'))
-    session.defaultSession.setPermissionRequestHandler((contents, permission, callback, details) =>
-      callback(allowClipboardWrite(contents, permission, details.requestingUrl))
-    )
-    session.defaultSession.setPermissionCheckHandler((contents, permission, origin) =>
-      allowClipboardWrite(contents, permission, origin)
-    )
+    resetConnectionSession()
     updateApplicationMenu()
     ipcMain.handle('xpert:request', async (event, method, argument) => {
       if (!trusted(event))
@@ -141,6 +155,7 @@ else {
           message: translate(service.config.locale, 'Request origin is not allowed.'),
           status: 403
         }
+      const previousPolicy = connectionPolicyKey(service.config)
       const result = await dispatch(service, method, argument)
       // Only a host-verified, live connection attempt may bring Desktop back from browser authorization.
       if (method === 'checkPluginConnection' && result.ok && result.value.status === 'connected') {
@@ -149,8 +164,26 @@ else {
         app.focus({ steal: true })
         window?.focus()
       }
-      if (method === 'configure' && result.ok) updateApplicationMenu()
+      if (method === 'configure' && result.ok) {
+        updateApplicationMenu()
+        if (previousPolicy !== connectionPolicyKey(service.config)) {
+          const previousSession = connectionSession
+          resetConnectionSession()
+          await previousSession.closeAllConnections()
+          connectionReloadPending = true
+          return { ...result, reloadConnection: true }
+        }
+      }
       return result
+    })
+    ipcMain.on('xpert:reload-connection', (event) => {
+      if (!trusted(event) || !connectionReloadPending) return
+      connectionReloadPending = false
+      const previousWindow = window
+      const maximized = previousWindow.isMaximized()
+      createWindow(previousWindow.getBounds())
+      if (maximized) window.maximize()
+      previousWindow.destroy()
     })
     ipcMain.handle('xpert:open-workspace', (event) => {
       if (trusted(event)) openExternal(service.config.webUrl)
