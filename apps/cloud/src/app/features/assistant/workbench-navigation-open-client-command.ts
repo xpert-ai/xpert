@@ -1,4 +1,6 @@
 import {
+  WORKBENCH_AGENT_EVOLUTION_TARGET,
+  WORKBENCH_AGENT_EVOLUTION_CHANGE_TARGET,
   WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
   WORKBENCH_ASSISTANT_EXECUTION_TARGET,
   WORKBENCH_ASSISTANT_PROJECT_TARGET,
@@ -13,6 +15,8 @@ import {
 import { ViewClientCommandRegistry } from '../../@shared/view-extension/view-client-command-registry.service'
 
 export {
+  WORKBENCH_AGENT_EVOLUTION_TARGET,
+  WORKBENCH_AGENT_EVOLUTION_CHANGE_TARGET,
   WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
   WORKBENCH_ASSISTANT_EXECUTION_TARGET,
   WORKBENCH_ASSISTANT_PROJECT_TARGET,
@@ -56,7 +60,20 @@ export function registerWorkbenchNavigationOpenCommand(
       return { success: false, code: 'bad_request', message: 'Execution id is required.' }
     }
 
-    if (target === 'agent-evolution.target') {
+    if (target === WORKBENCH_AGENT_EVOLUTION_CHANGE_TARGET) {
+      const changeId = getString(payload, 'changeId')
+      if (!changeId || !/^[a-zA-Z0-9_.:-]{1,200}$/.test(changeId) || !options.navigate) {
+        return {
+          success: false,
+          code: 'bad_request',
+          message: 'A valid evolution change and host navigation are required.'
+        }
+      }
+      await options.navigate(['/agent-evolution', 'evaluation'], { queryParams: { changeId } })
+      return { success: true }
+    }
+
+    if (target === WORKBENCH_AGENT_EVOLUTION_TARGET) {
       const targetId = getString(payload, 'targetId')
       if (!targetId || !/^[a-zA-Z0-9_.:-]{1,200}$/.test(targetId) || !options.navigate) {
         return {

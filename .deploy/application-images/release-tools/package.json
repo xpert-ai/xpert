@@ -1,0 +1,8 @@
+{
+  "name": "xpert-application-image-release-tools",
+  "private": true,
+  "dependencies": {
+    "@changesets/parse": "0.4.3",
+    "semver": "7.8.5"
+  }
+}

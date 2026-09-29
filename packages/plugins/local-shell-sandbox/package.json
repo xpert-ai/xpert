@@ -1,0 +1,41 @@
+{
+  "name": "@xpert-ai/plugin-local-shell-sandbox",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0",
+  "description": "Optional API-host shell sandbox with interactive PTY terminal support.",
+  "main": "./index.cjs.js",
+  "module": "./index.esm.js",
+  "types": "./index.d.ts",
+  "files": [
+    "*.js",
+    "*.d.ts",
+    "src/**/*.d.ts",
+    "tools/check-terminal.cjs",
+    "README.md",
+    "docs"
+  ],
+  "xpert": {
+    "plugin": {
+      "level": "system",
+      "artifactNamespace": "local_shell_sandbox"
+    }
+  },
+  "scripts": {
+    "check:terminal": "node tools/check-terminal.cjs",
+    "rebuild:terminal": "npm rebuild node-pty --foreground-scripts",
+    "build": "corepack pnpm -C ../../.. nx build local-shell-sandbox",
+    "test": "corepack pnpm -C ../../.. exec jest --config packages/plugins/local-shell-sandbox/jest.config.cjs --runInBand"
+  },
+  "dependencies": {
+    "node-pty": "1.1.0"
+  },
+  "peerDependencies": {
+    "@nestjs/common": ">=11",
+    "@nestjs/core": ">=11",
+    "@xpert-ai/contracts": "workspace:*",
+    "@xpert-ai/plugin-sdk": "workspace:*",
+    "i18next": "^23.14.0",
+    "zod": "^3.25.0"
+  }
+}

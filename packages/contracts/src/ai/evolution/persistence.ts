@@ -16,6 +16,8 @@ export interface EvidenceEvolutionProposal extends Pick<
   ImprovementProposal,
   'problemStatement' | 'rootCause' | 'changeHypothesis' | 'riskLevel' | 'evidenceEventIds' | 'baseVersionId'
 > {
+  executionContext?: import('./change').EvolutionExecutionContext
+  executionConversation?: import('./change').EvolutionExecutionConversation
   sourceKind: import('./strategy').EvolutionInputKind
   strategy: import('./strategy').EvolutionStrategySnapshot
   stages: import('./strategy').EvolutionStageRecord[]

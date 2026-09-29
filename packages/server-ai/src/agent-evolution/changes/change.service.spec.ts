@@ -1,3 +1,4 @@
+jest.mock('./execution-conversation.service', () => ({ EvolutionExecutionConversationService: class {} }))
 import {
     evidenceDrivenStrategy,
     HUMAN_PROPOSAL_STRATEGY,
@@ -41,6 +42,10 @@ jest.mock('../entities/evolution.entities', () => ({
     EvaluationRunEntity: class {},
     ReleasePackageEntity: class {}
 }))
+import type {
+    EvolutionExecutionConversationService,
+    EvolutionConversationSession
+} from './execution-conversation.service'
 import { EvolutionChangeService, digest } from './change.service'
 import { EvolutionChangeStore } from './change.store'
 import {
@@ -265,10 +270,17 @@ async function harness(seed: EvolutionChange | null = initial) {
     const store = {
         saveJob: jest.fn(),
         updateJobStatus: jest.fn(),
+        findJob: jest.fn(async () => null),
         findLearningEvents: jest.fn<Promise<Array<{ value: LearningEvent }>>, [unknown, string[]]>()
     }
     const quality = new AgentEvolutionQualityGovernanceService()
     const evaluations = new EvolutionEvaluationExecutor(store as never, quality, records)
+    const conversations = {
+        validate: jest.fn(),
+        start: jest.fn<Promise<EvolutionConversationSession | undefined>, [EvolutionChange]>(async () => undefined),
+        drafted: jest.fn(),
+        finish: jest.fn()
+    }
     const service = new EvolutionChangeService(
         db,
         providers,
@@ -278,7 +290,8 @@ async function harness(seed: EvolutionChange | null = initial) {
         evaluations,
         { package: jest.fn() } as never,
         quality,
-        { enqueue: jest.fn() } as never
+        { enqueue: jest.fn() } as never,
+        conversations as unknown as EvolutionExecutionConversationService
     )
     const review = (decision: 'approved' | 'rejected' = 'approved') =>
         service.decide({
@@ -290,6 +303,7 @@ async function harness(seed: EvolutionChange | null = initial) {
         })
     return {
         db,
+        conversations,
         service,
         records,
         review,
@@ -620,3 +634,140 @@ it.each([true, false])(
             ).rejects.toThrow()
     }
 )
+
+it('persists draft and evaluation progress before provider work completes', async () => {
+    const h = await harness(null)
+    const first = await h.service.prepare({
+        ...identity,
+        strategyId: definition.id,
+        sourceKind: 'business_evidence',
+        targetId: initial.targetId,
+        requestId: 'progress-request',
+        scope: initial.scope,
+        baseline: initial.baseline,
+        evidence: initial.evidence
+    })
+    const target = { ...identity, changeId: first.changeId }
+    h.provider.prepare.mockImplementationOnce(async () => {
+        const saved = await h.service.get(target)
+        expect(saved.stages.find((stage) => stage.key === 'candidate')?.status).toBe('running')
+        return structuredClone(initial.candidate!)
+    })
+    const evaluate = h.provider.evaluate.getMockImplementation()!
+    h.provider.evaluate.mockImplementationOnce(async (op) => {
+        const saved = await h.service.get(target)
+        expect(saved.stages.find((stage) => stage.key === 'evaluation')?.status).toBe('running')
+        return evaluate(op)
+    })
+    await h.service.process(target)
+    expect((await h.service.get(target)).status).toBe('pending_approval')
+})
+
+it('round-trips the execution context and exposes its conversation before provider work completes', async () => {
+    const h = await harness(null)
+    const executionContext = {
+        xpertId: '11111111-1111-4111-8111-111111111111',
+        projectId: '22222222-2222-4222-8222-222222222222',
+        title: 'Automotive motor finish',
+        input: 'Add a finish field for this product family',
+        language: 'en'
+    }
+    const created = await h.service.prepare({
+        ...identity,
+        strategyId: definition.id,
+        sourceKind: 'business_evidence',
+        targetId: initial.targetId,
+        requestId: 'REQ-chat-auto',
+        scope: initial.scope,
+        baseline: initial.baseline,
+        evidence: initial.evidence,
+        executionContext
+    })
+    const target = { ...identity, changeId: created.changeId }
+    const reference = { conversationId: 'conversation-auto', threadId: 'thread-auto', executionId: 'execution-auto' }
+    h.conversations.start.mockResolvedValue({
+        reference,
+        context: executionContext,
+        changeId: created.changeId,
+        phase: 'candidate',
+        message: { id: 'message-auto', role: 'ai', content: '' }
+    })
+    h.provider.prepare.mockImplementationOnce(async () => {
+        expect((await h.service.get(target)).executionConversation).toEqual(reference)
+        return structuredClone(initial.candidate!)
+    })
+    await h.service.process(target)
+    const result = await h.service.get(target)
+    expect(result.candidate).toEqual(initial.candidate)
+    expect(result.executionContext).toEqual(executionContext)
+    expect(result.executionConversation).toEqual(reference)
+    expect(result.status).toBe('pending_approval')
+    expect(h.conversations.drafted).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ candidate: initial.candidate, status: 'testing' })
+    )
+    expect(h.conversations.finish).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ status: 'pending_approval' })
+    )
+    await h.service.process(target)
+    expect(h.conversations.start).toHaveBeenCalledTimes(1)
+    await expect(
+        h.service.prepare({
+            ...identity,
+            strategyId: definition.id,
+            sourceKind: 'business_evidence',
+            targetId: initial.targetId,
+            requestId: 'REQ-chat-auto',
+            scope: initial.scope,
+            baseline: initial.baseline,
+            evidence: initial.evidence,
+            executionContext: { ...executionContext, projectId: '33333333-3333-4333-8333-333333333333' }
+        })
+    ).rejects.toThrow()
+})
+
+it('does not change model checks or approval gates when conversation persistence is unavailable', async () => {
+    const h = await harness(null)
+    const created = await h.service.prepare({
+        ...identity,
+        strategyId: definition.id,
+        sourceKind: 'business_evidence',
+        targetId: initial.targetId,
+        requestId: 'REQ-chat-unavailable',
+        scope: initial.scope,
+        baseline: initial.baseline,
+        evidence: initial.evidence
+    })
+    h.conversations.start.mockRejectedValueOnce(new Error('conversation storage unavailable'))
+    const target = { ...identity, changeId: created.changeId }
+    await h.service.process(target)
+    expect((await h.service.get(target)).status).toBe('pending_approval')
+    await expect(h.service.publish(target)).rejects.toThrow()
+    expect(h.provider.publish).not.toHaveBeenCalled()
+})
+
+it.each(['pending_approval', 'test_failed', 'approved', 'published'] as const)(
+    'completes an interrupted job on replay without rerunning a %s change',
+    async (status) => {
+        const h = await harness()
+        jest.spyOn(h.service, 'get').mockResolvedValue({ ...initial, status })
+        h.store.findJob.mockResolvedValue({ jobId: initial.jobId, status: 'running' })
+
+        await h.service.process(identity)
+
+        expect(h.store.updateJobStatus).toHaveBeenCalledWith(identity, initial.jobId, 'completed', {
+            completedAt: expect.any(String)
+        })
+        expect(h.conversations.start).not.toHaveBeenCalled()
+        expect(h.provider.prepare).not.toHaveBeenCalled()
+    }
+)
+
+it.each(['completed', 'cancelled', 'failed'] as const)('preserves an already %s job on replay', async (status) => {
+    const h = await harness()
+    h.store.findJob.mockResolvedValue({ jobId: initial.jobId, status })
+    await h.service.process(identity)
+    expect(h.store.updateJobStatus).not.toHaveBeenCalled()
+    expect(h.conversations.start).not.toHaveBeenCalled()
+})

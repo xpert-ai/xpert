@@ -167,7 +167,8 @@ test('insecure remote URLs, credentials and query parameters are rejected', () =
   ]) {
     assert.throws(() => parseConfig({ ...DEFAULT_CONFIG, apiUrl }))
   }
-  assert.equal(parseConfig(DEFAULT_CONFIG).apiUrl, 'http://localhost:3000')
+  assert.equal(parseConfig(DEFAULT_CONFIG).apiUrl, 'https://api.xpertai.cn/api')
+  assert.equal(parseConfig({ ...DEFAULT_CONFIG, apiUrl: 'http://localhost:3000' }).apiUrl, 'http://localhost:3000')
 })
 
 test('a response arriving after logout cannot recreate a session', async () => {

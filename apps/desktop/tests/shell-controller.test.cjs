@@ -30,6 +30,8 @@ function fixture(t) {
     }
   }
   const controller = new DesktopShellController(service, dir)
+  // The macOS Shell executor is mocked; do not persist a Windows host path.
+  controller.settings.cwd = '/tmp/bosi-shell-fixture'
   const child = new EventEmitter()
   child.connected = true
   child.send = (message, done) => {

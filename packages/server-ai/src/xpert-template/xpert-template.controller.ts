@@ -4,7 +4,8 @@ import {
     LanguagesMap,
     TAvatar,
     TCopilotModel,
-    TemplateSkillSyncMode
+    TemplateSkillSyncMode,
+    XpertTemplateCapability
 } from '@xpert-ai/contracts'
 import { PaginationParams, ParseJsonPipe, TransformInterceptor } from '@xpert-ai/server-core'
 import { BadRequestException, Body, Controller, Get, Logger, Param, Post, Query, UseInterceptors } from '@nestjs/common'
@@ -15,6 +16,8 @@ import { I18nLang } from 'nestjs-i18n'
 import { TemplateSkillSyncService } from './template-skill-sync.service'
 import { XpertTemplateService } from './xpert-template.service'
 import { XpertTemplate } from './xpert-template.entity'
+import { AssistantCapabilityService } from './capabilities/assistant-capability.service'
+import { parseTemplateCapabilities } from './capabilities/template-capability-reference'
 import {
     PluginTemplateInstallCommand,
     PluginTemplateInstallBasic
@@ -30,7 +33,8 @@ export class XpertTemplateController {
     constructor(
         private readonly service: XpertTemplateService,
         private readonly templateSkillSyncService: TemplateSkillSyncService,
-        private readonly commandBus: CommandBus
+        private readonly commandBus: CommandBus,
+        private readonly capabilities: AssistantCapabilityService
     ) {}
 
     @Get()
@@ -105,6 +109,20 @@ export class XpertTemplateController {
         })
     }
 
+    @Get(':id/setup')
+    async templateSetup(
+        @I18nLang() language: LanguagesEnum,
+        @Param('id') id: string,
+        @Query('capabilities') capabilities?: string
+    ) {
+        const locale = LanguagesMap[language] ?? language
+        return this.capabilities.setup(
+            await this.service.getTemplateDetail(id, locale),
+            locale,
+            parseTemplateCapabilities(capabilities ? capabilities.split(',') : undefined)
+        )
+    }
+
     @Post(':id/install')
     async installTemplate(@I18nLang() language: LanguagesEnum, @Param('id') id: string, @Body() body: unknown) {
         const input = parseTemplateInstallInput(body)
@@ -115,7 +133,8 @@ export class XpertTemplateController {
                 LanguagesMap[language] ?? language,
                 input.basic,
                 input.publish,
-                input.locale
+                input.locale,
+                input.capabilities
             )
         )
     }
@@ -141,6 +160,7 @@ function parseTemplateInstallInput(value: unknown): {
     basic?: PluginTemplateInstallBasic
     publish: boolean
     locale?: string
+    capabilities: XpertTemplateCapability[]
 } {
     if (!isObjectValue(value)) {
         throw new BadRequestException('Request body is required')
@@ -157,11 +177,15 @@ function parseTemplateInstallInput(value: unknown): {
         workspaceId,
         publish,
         locale: readStringField(value, 'locale') || undefined,
+        capabilities: parseTemplateCapabilities(Reflect.get(value, 'capabilities')),
         ...(basic ? { basic } : {})
     }
 }
 
 function parseTemplateInstallBasic(value: object): PluginTemplateInstallBasic | undefined {
+    const prompt = Reflect.get(value, 'prompt')
+    if (prompt !== undefined && (typeof prompt !== 'string' || prompt.length > 32000))
+        throw new BadRequestException(t('server-ai:Error.AssistantConfigurationInvalid'))
     const name = readStringField(value, 'name')
     const title = readStringField(value, 'title')
     const description = readStringField(value, 'description')
@@ -178,6 +202,7 @@ function parseTemplateInstallBasic(value: object): PluginTemplateInstallBasic | 
     const workspaceDataScope =
         workspaceDataScopeValue === 'shared' || workspaceDataScopeValue === 'user' ? workspaceDataScopeValue : undefined
     const basic: PluginTemplateInstallBasic = {
+        ...(typeof prompt === 'string' ? { prompt } : {}),
         ...(name ? { name } : {}),
         ...(title ? { title } : {}),
         ...(description ? { description } : {}),

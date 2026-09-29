@@ -34,6 +34,7 @@ process.on('message', (message) => {
       })
       socket = io(`${message.url}${NAMESPACE}`, {
         transports: ['websocket'],
+        rejectUnauthorized: message.allowUntrustedCertificates !== true,
         auth: { token: message.token, version: VERSION },
         reconnectionDelay: 1000,
         reconnectionDelayMax: 15000,

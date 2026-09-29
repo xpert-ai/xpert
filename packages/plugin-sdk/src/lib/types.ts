@@ -1,4 +1,5 @@
 import {
+  AssistantCapabilityDeclaration,
   IconDefinition,
   I18nObject,
   JsonSchemaObjectType,
@@ -131,6 +132,7 @@ export interface XpertTemplateContribution {
   pluginVersion?: string
   contentHash?: string
   xpertName?: string
+  capabilities?: AssistantCapabilityDeclaration[]
   dependencies?: XpertTemplatePluginDependencies
   [key: string]: unknown
 }

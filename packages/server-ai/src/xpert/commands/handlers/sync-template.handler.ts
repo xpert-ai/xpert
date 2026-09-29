@@ -11,6 +11,7 @@ import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { yaml } from '@xpert-ai/server-common'
 import { normalizePluginName } from '@xpert-ai/server-core'
 import { XpertTemplateService } from '../../../xpert-template/xpert-template.service'
+import { parseCapabilityTemplateId } from '../../../xpert-template/capabilities/template-capability-reference'
 import { XpertDraftDslDTO } from '../../dto'
 import { createXpertTemplateSource, resolveXpertTemplateSource } from '../../template-source'
 import { XpertService } from '../../xpert.service'
@@ -155,7 +156,7 @@ function hasRuntimeDependencies(dependencies: unknown): boolean {
 }
 
 function resolveTemplateLookupId(source: { templateId: string; templateKey?: string; pluginName?: string }) {
-    if (source.templateId.includes(':')) {
+    if (parseCapabilityTemplateId(source.templateId) || source.templateId.includes(':')) {
         return source.templateId
     }
 

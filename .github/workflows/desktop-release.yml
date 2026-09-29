@@ -1,0 +1,147 @@
+name: Build Bosi Desktop apps
+
+on:
+  pull_request:
+    paths:
+      - '.changeset/**'
+      - '.deploy/desktop/**'
+      - '.github/workflows/desktop-release.yml'
+      - 'apps/desktop/**'
+      - 'packages/desktop-protocol/**'
+      - 'packages/contracts/**'
+      - 'packages/shadcn-ui/**'
+      - 'pnpm-workspace.yaml'
+  push:
+    branches: [develop, main]
+    paths:
+      - '.changeset/**'
+      - 'apps/desktop/package.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-release-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    if: github.repository == 'xpert-ai/xpert'
+    runs-on: ubuntu-24.04
+    outputs:
+      build: ${{ steps.plan.outputs.build }}
+      stable: ${{ steps.plan.outputs.stable }}
+      plan: ${{ steps.plan.outputs.plan }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+      version: ${{ steps.plan.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install release-plan tools only
+        run: npm ci --prefix .deploy/desktop/release-tools --ignore-scripts --no-audit --no-fund
+      - name: Verify Changesets gate and isolated dependencies
+        run: node --test .deploy/desktop/*.test.*
+      - name: Select Desktop release
+        id: plan
+        env:
+          DESKTOP_RELEASE_BEFORE: ${{ github.event.pull_request.base.sha || github.event.before }}
+          DESKTOP_RELEASE_AFTER: ${{ github.event.pull_request.head.sha || github.sha }}
+          DESKTOP_RELEASE_EVENT: ${{ github.event_name }}
+          DESKTOP_RELEASE_REF: ${{ github.ref }}
+        run: node .deploy/desktop/release-plan.mjs
+
+  build:
+    name: Package ${{ matrix.id }}
+    needs: prepare
+    if: needs.prepare.outputs.build == 'true'
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      DESKTOP_RELEASE_PLAN: ${{ needs.prepare.outputs.plan }}
+      DESKTOP_TARGET: ${{ matrix.id }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.24.0
+          run_install: false
+      - name: Install Linux runtime libraries
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libgtk-3-0 libnss3 libasound2t64 libxss1 libgbm1 libx11-xcb1 libdrm2 libxtst6 libatk-bridge2.0-0 libnotify4 libsecret-1-0 xdg-utils
+      - name: Prepare isolated Desktop workspace
+        run: node .deploy/desktop/dependencies.cjs prepare .local/desktop-ci
+      - name: Install Desktop dependencies
+        working-directory: .local/desktop-ci
+        run: |
+          corepack pnpm install --frozen-lockfile --ignore-scripts
+          node .deploy/desktop/dependencies.cjs check-installed
+          node node_modules/electron/install.js
+      - name: Typecheck, test and build renderer from source
+        working-directory: .local/desktop-ci
+        run: node .deploy/desktop/build.mjs
+      - name: Package unsigned pull-request artifacts
+        if: github.event_name == 'pull_request'
+        working-directory: .local/desktop-ci
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: node .deploy/desktop/package.mjs
+      - name: Package branch artifacts with optional signing
+        if: github.event_name == 'push'
+        working-directory: .local/desktop-ci
+        env:
+          CSC_LINK: ${{ matrix.platform == 'mac' && secrets.DESKTOP_MAC_CSC_LINK || matrix.platform == 'win' && secrets.DESKTOP_WIN_CSC_LINK || '' }}
+          CSC_KEY_PASSWORD: ${{ matrix.platform == 'mac' && secrets.DESKTOP_MAC_CSC_KEY_PASSWORD || matrix.platform == 'win' && secrets.DESKTOP_WIN_CSC_KEY_PASSWORD || '' }}
+          APPLE_ID: ${{ matrix.platform == 'mac' && secrets.DESKTOP_APPLE_ID || '' }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ matrix.platform == 'mac' && secrets.DESKTOP_APPLE_APP_SPECIFIC_PASSWORD || '' }}
+          APPLE_TEAM_ID: ${{ matrix.platform == 'mac' && secrets.DESKTOP_APPLE_TEAM_ID || '' }}
+        run: node .deploy/desktop/package.mjs
+      - name: Upload verified installers and checksums
+        uses: actions/upload-artifact@v4
+        with:
+          name: Bosi-${{ needs.prepare.outputs.version }}-${{ matrix.id }}
+          path: .local/desktop-ci/installers/
+          if-no-files-found: error
+          retention-days: 30
+
+  draft-release:
+    name: Create reviewed-release draft
+    needs: [prepare, build]
+    if: github.event_name == 'push' && needs.prepare.outputs.stable == 'true' && needs.build.result == 'success'
+    runs-on: ubuntu-24.04
+    environment: production
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm ci --prefix .deploy/desktop/release-tools --ignore-scripts --no-audit --no-fund
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: Bosi-${{ needs.prepare.outputs.version }}-*
+          path: installers
+          merge-multiple: true
+      - name: Verify all six platforms and create a draft
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DESKTOP_RELEASE_PLAN: ${{ needs.prepare.outputs.plan }}
+        run: node .deploy/desktop/draft-release.mjs

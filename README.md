@@ -6,17 +6,16 @@ English | [简体中文](./README_zh.md)
   </a>
 </p>
 
-<h1 align="center">Everything is a Plugin</h1>
+<h1 align="center">Xpert Platform &amp; Xpert Bosi</h1>
 
 <p align="center">
-  Xpert is an open-source Agent platform where models, integrations, tools, middleware, Skills,<br>
-  Assistants, Workbench views, MCP Apps, and complete Agentic Apps share one governed plugin system.
+  Xpert is the open-source platform for building and governing AI teams.<br>
+  Xpert Bosi is its desktop app — your AI team leader.
 </p>
 
 <p align="center">
-  <a href="https://app.xpertai.cn/plugins/marketplace"><strong>Explore the Plugin Marketplace</strong></a> ·
-  <a href="https://github.com/xpert-ai/xpert-plugins"><strong>Browse Plugin Source</strong></a> ·
-  <a href="https://github.com/xpert-ai/xpert-skills/tree/main/skills/development-technical/xpert-plugin-development"><strong>Develop with Agent Skills</strong></a> ·
+  <a href="apps/desktop/README.md"><strong>Get Started with Bosi</strong></a> ·
+  <a href="https://app.xpertai.cn/plugins/marketplace"><strong>Explore the Marketplace</strong></a> ·
   <a href="https://docs.xpertai.cn/en/ai/getting-started/community"><strong>Self-host Xpert</strong></a> ·
   <a href="https://docs.xpertai.cn/en/">Documentation</a>
 </p>
@@ -33,30 +32,30 @@ English | [简体中文](./README_zh.md)
   </a>
 </p>
 
-![Plugin-delivered Assistant templates in the Xpert AI Agent Marketplace](docs/images/readme/agent-marketplace-en.png)
+## Xpert Bosi — your AI team leader
 
-The Xpert core provides the runtime, contracts, security boundaries, and lifecycle controls. Plugins provide the capabilities and applications that users install: from a model provider or tool to a complete Assistant, multi-Agent workflow, or business-facing Agentic App.
+**You set the goal. Bosi leads the team.**
 
-| Discover                                                                                                                | Learn                                                                                                         | Build                                                                                                                                                                                                                                   |
-| ----------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Find and install capabilities and applications in the [Plugin Marketplace](https://app.xpertai.cn/plugins/marketplace). | Study official and community implementations in [`xpert-plugins`](https://github.com/xpert-ai/xpert-plugins). | Give a coding agent the [`xpert-plugin-development`](https://github.com/xpert-ai/xpert-skills/tree/main/skills/development-technical/xpert-plugin-development) skill to create, test, deploy, version, and prepare plugins for release. |
+**Bosi** brings Xpert's digital experts, plugins, and applications together on your desktop. Sign in with your Xpert account and work within your organization's permissions.
 
-## See Xpert in action
+- **Assemble your team:** discover experts, request access, or create Assistants from templates and apps.
+- **Work in one place:** combine conversations, files, and app Workbench views; add workspace plugins and select them for each conversation.
+- **Put plans into action:** use configured Assistants to operate a cloud computer or run local Shell commands on macOS, with per-command approval by default.
 
-![Motion Assistant in Agent Studio with tools and middleware connected to one agent](docs/images/readme/agent-studio-motion-en.png)
+Bosi connects to hosted or self-hosted Xpert. The platform runs the Agents and manages shared resources; Bosi provides the desktop experience and authorized local execution. See the [Desktop guide](apps/desktop/README.md) for setup and builds.
 
-This is a live Agent Studio configuration for **Motion Assistant**. One agent is connected to Skills, web tools, sandbox capabilities, retry and loop-guard middleware, and operational controls. The same visual model can combine multiple agents with deterministic Workflow nodes when a process needs stricter control.
+## Xpert Platform — everything is a plugin
 
-## Why Xpert
+Build and publish the AI teams used in Bosi, Xpert Web, or your own product. Xpert provides the runtime, permissions, approvals, and audit trails; plugins deliver capabilities from model providers and tools to complete Agentic Apps.
 
-- **Everything is a governed plugin** — install and evolve models, integrations, middleware, Skills, MCP tools and Apps, Assistant templates, Remote Components, Workbench views, and complete Agentic Apps through one lifecycle.
-- **Agent and Workflow hybrid architecture** — use agents for flexible reasoning and workflows for stable, inspectable control paths.
-- **Governed enterprise execution** — expose data and business actions through typed tools, semantic objects, policies, approvals, and audit trails instead of handing models raw access.
-- **Human-reviewable workbenches** — let tool calls open focused UI views where users can inspect, correct, approve, or submit results.
+- **One plugin lifecycle:** install, configure, and evolve models, integrations, Skills, middleware, MCP Apps, and business applications.
+- **Agent + Workflow:** combine flexible reasoning with deterministic, inspectable business processes.
+- **Governed execution:** expose data and actions through typed tools, semantic objects, policies, and approvals.
+- **Reviewable work:** inspect, correct, approve, and submit results in dedicated Workbench views.
 
 ## Official Apps
 
-Explore Xpert's first-party Agentic Apps in the [official App catalog](https://xpertai.cn/apps/):
+Discover applications for your AI team in the [official App catalog](https://xpertai.cn/apps/):
 
 - [Presentation Studio](https://xpertai.cn/showcase/presentation-studio/)
 - [Sites](https://xpertai.cn/showcase/sites/)
@@ -69,7 +68,9 @@ Explore Xpert's first-party Agentic Apps in the [official App catalog](https://x
 
 ## Quick Start
 
-The Docker path requires at least **2 CPU cores**, **4 GiB RAM**, Docker, and Docker Compose.
+**Use Bosi:** follow the [Desktop guide](apps/desktop/README.md), sign in, choose an organization, and open **Discover & add** to find experts, apps, plugins, and templates. Self-hosted users can change the server in Connection settings.
+
+**Host Xpert:** requires **2 CPU cores**, **4 GiB RAM**, Docker, and Docker Compose.
 
 ```bash
 git clone https://github.com/xpert-ai/xpert.git
@@ -78,29 +79,36 @@ cp env.example .env
 docker compose up -d
 ```
 
-Open [http://localhost/](http://localhost/) and complete the initialization flow.
+Open [http://localhost/](http://localhost/) and complete initialization before connecting Bosi.
 
-For deployment options, environment configuration, and upgrades, follow the [self-hosting documentation](https://docs.xpertai.cn/en/ai/getting-started/community). For source development, use a supported Node.js LTS release and the repository-pinned pnpm version through Corepack.
+See [deployment and upgrades](https://docs.xpertai.cn/en/ai/getting-started/community). Source development requires a supported Node.js LTS and the repository-pinned pnpm via Corepack.
 
 ## Platform Map
 
-| Area                                 | What it enables                                                                                                                               |
-| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Agent Studio**                     | Visual authoring for digital experts, multi-agent collaboration, Workflow nodes, toolsets, knowledge, Skills, and Agent Middleware.           |
-| **File and Knowledge Understanding** | Parsed file assets, chunks, page images, citation anchors, retrieval, GraphRAG-style evidence, and workspace files.                           |
-| **Agentic BI and Data Xpert**        | Semantic models, indicators, natural-language analysis, and governed object-semantic tools for enterprise data queries and actions.           |
-| **Agentic Apps and Workbench**       | Plugin-delivered business applications with Assistant tools, review views, Remote Components, configuration, and lifecycle hooks.             |
-| **MCP, Skills, and Plugins**         | Reusable integrations, model providers, tools, middleware, managed runtimes, and installable capability packages.                             |
-| **ChatKit and Embedding**            | Streaming assistants for React, Vue, Angular, SAP UI5, Web Components, and vanilla JavaScript, with files, threads, tools, widgets, and i18n. |
-| **Operations**                       | Conversation and task state, tool-call events, usage reporting, logs, metrics, retention controls, and runtime monitoring.                    |
+| Area                           | What it enables                                                                                     |
+| ------------------------------ | --------------------------------------------------------------------------------------------------- |
+| **Agent Studio**               | Author digital experts, multi-agent workflows, tools, knowledge, and middleware.                    |
+| **Files and Knowledge**        | Parse files, retrieve evidence with RAG and GraphRAG, and cite sources.                             |
+| **Agentic BI and Data Xpert**  | Query and act on enterprise data through semantic models and governed tools.                        |
+| **Agentic Apps and Workbench** | Deliver business applications with Assistant tools and interactive review views.                    |
+| **MCP, Skills, and Plugins**   | Extend models, integrations, tools, middleware, and managed runtimes.                               |
+| **ChatKit and Embedding**      | Embed streaming chat, files, tools, and widgets in React, Vue, Angular, SAP UI5, or Web Components. |
+| **Operations**                 | Track tasks, tool calls, usage, logs, metrics, and retention.                                       |
 
 ## Architecture
 
-Xpert follows an **Agent-Workflow Hybrid Architecture**. Agents decide how to solve open-ended tasks; workflows make critical paths repeatable and reviewable. Tools, knowledge, data resources, and plugin surfaces remain behind explicit contracts and governance boundaries.
+Xpert is a **plugin-first, modular NestJS platform**. A shared **Agent + Workflow runtime** powers AI teams, while **Agentic Apps** combine domain tools, Assistant templates, business services, and interactive Workbench views into complete applications.
 
-![Agent-Workflow Hybrid Architecture](https://github.com/user-attachments/assets/b3b432f9-54ab-4ec1-9fc4-7e46fbfb88ba)
+[![Xpert architecture: AI Agent execution loops, multi-agent coordination, workflows, plugin capabilities, and Agentic Apps](docs/images/readme/Xpert_System_Architecture.svg)](docs/images/readme/Xpert_System_Architecture.svg)
 
-[Read the architecture article](https://xpertai.cn/en/blog/agent-workflow-hybrid-architecture).
+- **AI Agents & workflows:** Agent definitions compile into LangGraph state graphs. The model–tool loop combines context, tool routing, middleware hooks, and tool results; workflows add branches, parallel paths, iteration, and subflows. Tool-based sub-agent delegation, published experts, and Swarm handoffs support different collaboration patterns. Checkpoints preserve state for interruption and human input; AgentInvocation governs native and external runtime calls.
+- **Plugin system:** native npm plugins register NestJS modules, providers, configuration, and lifecycle hooks. Extension points cover models, tools/MCP, middleware, Skills/templates, workflows, integrations, connectors, data/RAG, execution, storage, views, and collaboration.
+- **Conversation resources:** standard Agent Plugin packages supply Skills/MCP resources via Git/ZIP import. Workspace grants, versioned bindings, and per-run resource snapshots control their use; they do not load server code.
+- **Agentic Apps:** Marketplace contributions connect tools, templates, business services, and review views. Apps declaring `appConfig` use host-managed preflight, dedicated workspaces, knowledgebases, published Assistants or role suites, and installation health tracking.
+- **Shared runtime & UI contracts:** LangGraph / LangChain, CQRS, Bull handoff, checkpoints, and interrupt/resume underpin execution. Workbench uses View Manifests, View Providers, and an iframe bridge; MCP Apps use tool-linked UI resources.
+- **Governed infrastructure:** scoped identities, approvals, audit, and usage span API, workers, and plugins. PostgreSQL + pgvector, Redis, and storage providers persist state. Data Xpert is a separate API/MCP-connected service; Pro execution providers are marked explicitly.
+
+Open the diagram for full resolution. [AI Agent architecture and source map](docs/ai-agent-architecture.md) · [Agent–Workflow architecture article](https://xpertai.cn/en/blog/agent-workflow-hybrid-architecture)
 
 ## Ecosystem
 
@@ -114,9 +122,7 @@ Xpert follows an **Agent-Workflow Hybrid Architecture**. Agents decide how to so
 
 ## Local Development with Agent Skills
 
-Use the development skills from [`xpert-ai/xpert-skills`](https://github.com/xpert-ai/xpert-skills) to let a supported coding agent set up the platform and build Agentic Apps against a verified local Xpert instance.
-
-Install the two primary skills and their plugin lifecycle companion for Codex. Remove `--global` if you only want to install them for the current project.
+Install these [`xpert-skills`](https://github.com/xpert-ai/xpert-skills) for Codex to set up Xpert and build apps. Remove `--global` for a project-only installation; replace `codex` for another supported agent.
 
 ```bash
 npx skills add xpert-ai/xpert-skills \
@@ -135,23 +141,19 @@ npx skills add xpert-ai/xpert-skills \
   --global
 ```
 
-Replace `codex` with another target supported by the Skills CLI when necessary. Start a new agent session after installation if the skills are not discovered immediately.
-
-Then ask the coding agent to run the workflow in order:
+Start a new agent session, then ask:
 
 1. **Set up and verify Xpert**
 
-   > Use `$xpert-platform-local-environment` to clone or reuse an Xpert checkout at `<path>`, set it up in source-hybrid mode, start it, and return a plugin-test-ready environment receipt.
+   > Use `$xpert-platform-local-environment` to set up Xpert at `<path>` in source-hybrid mode and verify it is ready for plugin testing.
 
 2. **Build the Agentic App**
 
-   > Use `$xpert-agentic-app-developer` to design, implement, securely deploy, and verify `<app description>` as an independent Xpert Agentic App plugin against the verified local platform.
+   > Use `$xpert-agentic-app-developer` to build, deploy, and verify `<app description>` as an independent plugin on that instance.
 
-The environment skill defaults to Docker-managed infrastructure with the API and Cloud UI running from source. It verifies checkout and process provenance, service health, and whether required human initialization is complete. The Agentic App skill covers plugin architecture, Agent middleware, Workbench and extension views, Assistant templates, marketplace `appConfig`, deployment, and acceptance. Follow its handoff to `xpert-plugin-development` for plugin packaging and deployment details.
+The environment skill runs Docker infrastructure with the API and Web UI from source. The app skill covers tools, views, templates, and acceptance; `xpert-plugin-development` handles packaging and deployment.
 
 ## ROADMAP
-
-The current roadmap prioritizes:
 
 - Project workspaces for planning, files, teams, and task execution.
 - Stronger governance, approval, audit, and role-based access controls.

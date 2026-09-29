@@ -182,6 +182,7 @@ test('application preflight denial and initializing state prevent writes; ready 
 test('template install requires a writable workspace, excludes app templates and publishes the created assistant', async () => {
   let isApp = false
   const { service, calls } = fixture((path) => {
+    if (path.endsWith('/setup')) return new Response('not found', { status: 404 })
     if (path === '/api/copilot/availables/primary')
       return { id: 'primary', copilotModel: { model: 'default', modelType: 'llm' } }
     if (path.endsWith('/my'))
@@ -227,6 +228,7 @@ test('organization switch while resolving template setup cancels installation be
 
 test('ambiguous template POST failures are never automatically retried', async () => {
   const { service, calls } = fixture((path) => {
+    if (path.endsWith('/setup')) return new Response('not found', { status: 404 })
     if (path === '/api/copilot/availables/primary')
       return { id: 'primary', copilotModel: { model: 'default', modelType: 'llm' } }
     if (path.endsWith('/my')) return { items: [{ id: 'workspace', capabilities: { canWrite: true } }] }
@@ -244,6 +246,7 @@ test('template preflight requires an authorized primary default and never expose
   const { service, calls } = fixture((path) => {
     if (path.endsWith('/my'))
       return { items: [{ id: 'workspace', name: 'Workspace', capabilities: { canWrite: true } }] }
+    if (path.endsWith('/setup')) return new Response('not found', { status: 404 })
     if (path === '/api/copilot/availables/primary') return primary
     // A secondary model alone is insufficient for managed import.
     if (path === '/api/copilot/models') return [{ id: 'secondary' }]
@@ -276,6 +279,7 @@ test('template install rechecks the primary default after setup and fails closed
   let primary = { id: 'primary', copilotModel: { model: 'default', modelType: 'llm' } }
   const { service, calls } = fixture((path) => {
     if (path.endsWith('/my')) return { items: [{ id: 'workspace', capabilities: { canWrite: true } }] }
+    if (path.endsWith('/setup')) return new Response('not found', { status: 404 })
     if (path === '/api/copilot/availables/primary') return primary
     return { type: 'agent' }
   })
@@ -287,4 +291,103 @@ test('template install rechecks the primary default after setup and fails closed
   primary = new Response('denied', { status: 403 })
   await assert.rejects(service.templateSetup(), { status: 403 })
   assert.ok(calls.every((call) => call.method === 'GET'))
+})
+
+test('capability template setup selects a compatible model without relying on the organization default', async () => {
+  let allowed = true
+  const model = { copilotId: 'vision-provider', model: 'vision-model', modelType: 'llm' }
+  const { service, calls } = fixture((path, _options, url) => {
+    if (path.endsWith('/my'))
+      return { items: [{ id: 'workspace', name: 'Workspace', capabilities: { canWrite: true } }] }
+    if (path.endsWith('/setup')) {
+      assert.equal(url.searchParams.get('capabilities'), 'document-analysis')
+      return {
+        canInstall: allowed,
+        reason: allowed ? '' : 'Model access revoked',
+        requiredModelFeatures: ['vision', 'tool-call'],
+        models: allowed
+          ? [{ id: 'vision', label: 'Vision model', copilotModel: model, credentials: 'never-expose' }]
+          : [],
+        optionalCapabilities: [
+          { key: 'document-analysis', label: 'Document analysis', description: 'Optional analysis capability' }
+        ]
+      }
+    }
+    if (path.endsWith('/install')) return { xpert: { id: 'installed' } }
+    return { type: 'agent' }
+  })
+  const input = {
+    id: 'sample-template',
+    capabilities: ['document-analysis'],
+    workspaceId: 'workspace',
+    title: 'Sample Assistant'
+  }
+  const setup = await service.templateSetup(input)
+  assert.deepEqual(setup.preflight.models, [{ id: 'vision', label: 'Vision model' }])
+  assert.doesNotMatch(JSON.stringify(setup), /never-expose|copilotModel|vision-provider/)
+  await assert.rejects(service.installTemplate(input), /compatible model/)
+  await assert.rejects(service.installTemplate({ ...input, modelId: 'forged' }), /compatible model/)
+  assert.equal(calls.filter((call) => call.method === 'POST').length, 0)
+  await service.installTemplate({ ...input, modelId: 'vision', basic: { copilotModel: { copilotId: 'forged' } } })
+  assert.deepEqual(calls.at(-1).body, {
+    workspaceId: 'workspace',
+    publish: true,
+    basic: { title: 'Sample Assistant', copilotModel: model },
+    capabilities: ['document-analysis']
+  })
+  assert.ok(calls.every((call) => !call.path.includes('/availables/primary')))
+  allowed = false
+  await assert.rejects(service.installTemplate({ ...input, modelId: 'vision' }), /Model access revoked/)
+  assert.equal(calls.filter((call) => call.method === 'POST').length, 1)
+})
+
+test('older servers do not silently ignore explicit template capabilities', async () => {
+  const { service, calls } = fixture((path) => {
+    if (path.endsWith('/my')) return { items: [{ id: 'workspace', capabilities: { canWrite: true } }] }
+    if (path.endsWith('/setup')) return new Response('not found', { status: 404 })
+    return { type: 'agent' }
+  })
+  await assert.rejects(
+    service.installTemplate({
+      id: 'template',
+      workspaceId: 'workspace',
+      title: 'Test',
+      capabilities: ['document-analysis']
+    }),
+    { status: 404 }
+  )
+  assert.equal(calls.filter((call) => call.method === 'POST').length, 0)
+})
+
+test('blank assistant creation requires an authorized model even with no optional capabilities', async () => {
+  const model = { copilotId: 'provider', model: 'text-model', modelType: 'llm' }
+  const { service, calls } = fixture((path) => {
+    if (path.endsWith('/my'))
+      return { items: [{ id: 'writable', name: 'Workspace', capabilities: { canWrite: true } }] }
+    if (path.endsWith('/setup'))
+      return {
+        canInstall: true,
+        requiresModel: true,
+        requiredModelFeatures: [],
+        optionalCapabilities: [],
+        models: [{ id: 'model', label: 'Text model', copilotModel: model }]
+      }
+    if (path.endsWith('/install')) return { xpert: { id: 'created' } }
+    if (path === '/api/xpert-template/xpert-blank-assistant') return { type: 'agent' }
+    throw new Error(`Unexpected request: ${path}`)
+  })
+  const input = { id: 'xpert-blank-assistant', title: 'My expert', workspaceId: 'writable', capabilities: [] }
+  const setup = await service.templateSetup(input)
+  assert.equal(setup.preflight.requiresModel, true)
+  assert.equal(setup.hasPrimaryLanguageModel, false)
+  await assert.rejects(service.installTemplate(input), /compatible model/)
+  await assert.rejects(service.installTemplate({ ...input, workspaceId: 'read-only', modelId: 'model' }), /edit access/)
+  assert.equal(calls.filter((call) => call.method === 'POST').length, 0)
+  assert.deepEqual(await service.installTemplate({ ...input, modelId: 'model' }), { botId: 'created' })
+  assert.deepEqual(calls.at(-1).body, {
+    workspaceId: 'writable',
+    publish: true,
+    basic: { title: 'My expert', copilotModel: model }
+  })
+  assert.equal(calls.at(-1).headers['organization-id'], 'org-1')
 })

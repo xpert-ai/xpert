@@ -2,10 +2,11 @@
 const { MessageError, normalizeLocale, isSupportedLocale, localizedText } = require('./i18n/index.mjs')
 const { parseAppearance } = require('./appearance.cjs')
 const { parseBusinessArea } = require('./business-area.cjs')
+const { apiRootUrl, chatkitUrl } = require('./connection/urls.mjs')
+const { connectionPolicyKey, connectionErrorKey } = require('./connection/tls.cjs')
 const DEFAULT_CONFIG = {
-  apiUrl: 'http://localhost:3000',
-  webUrl: 'http://localhost:4200',
-  frameUrl: 'http://localhost:4200/chatkit/index.html',
+  ...require('./connection/defaults.json'),
+  allowUntrustedCertificates: false,
   theme: 'system',
   locale: 'en'
 }
@@ -44,7 +45,9 @@ function parseConfig(value) {
   if (!value || typeof value !== 'object') throw new ClientError('Invalid connection settings.')
   const apiUrl = webUrl(value.apiUrl)
   const web = webUrl(value.webUrl)
-  const frame = webUrl(value.frameUrl || `${web}/chatkit/index.html`)
+  const frame = webUrl(value.frameUrl || chatkitUrl(web))
+  if (value.allowUntrustedCertificates !== undefined && typeof value.allowUntrustedCertificates !== 'boolean')
+    throw new ClientError('Invalid certificate settings.')
   if (!['light', 'dark', 'system'].includes(value.theme)) throw new ClientError('Invalid theme settings.')
   if (value.locale !== undefined && !isSupportedLocale(value.locale)) throw new ClientError('Invalid language setting.')
   let appearance
@@ -53,7 +56,15 @@ function parseConfig(value) {
   } catch (error) {
     throw new ClientError(error instanceof MessageError ? error.key : 'Invalid theme settings.', 400, error.params)
   }
-  return { apiUrl, webUrl: web, frameUrl: frame, theme: value.theme, appearance, locale: normalizeLocale(value.locale) }
+  return {
+    apiUrl,
+    webUrl: web,
+    frameUrl: frame,
+    allowUntrustedCertificates: value.allowUntrustedCertificates === true,
+    theme: value.theme,
+    appearance,
+    locale: normalizeLocale(value.locale)
+  }
 }
 
 function parseUser(value) {
@@ -114,12 +125,15 @@ function parseBots(value, locale) {
 }
 
 class DesktopService {
-  constructor({ storage, fetcher = fetch, localLogin } = {}) {
+  constructor({ storage, fetcher = fetch, localLogin, certificateProbe, defaultConfig = DEFAULT_CONFIG } = {}) {
     this.storage = storage || { read: () => null, write: () => {} }
     this.fetcher = fetcher
     this.localLogin = localLogin
+    this.certificateProbe = certificateProbe
     const saved = this.storage.read()
-    const savedConfig = saved?.config || DEFAULT_CONFIG
+    const defaults = parseConfig({ ...DEFAULT_CONFIG, ...defaultConfig })
+    const savedConfig = saved?.config || defaults
+    let validSavedConfig = Boolean(saved?.config)
     let appearance
     try {
       appearance = parseAppearance(savedConfig.appearance)
@@ -129,11 +143,12 @@ class DesktopService {
     try {
       this.config = parseConfig({ ...savedConfig, appearance, locale: normalizeLocale(savedConfig.locale) })
     } catch {
-      this.config = parseConfig(DEFAULT_CONFIG)
+      this.config = defaults
+      validSavedConfig = false
     }
     this.sidebars =
       saved?.sidebars && typeof saved.sidebars === 'object' && !Array.isArray(saved.sidebars) ? saved.sidebars : {}
-    this.credentials = saved?.credentials || null
+    this.credentials = validSavedConfig ? saved?.credentials || null : null
     this.profile = null
     this.bots = []
     this.sourceBots = []
@@ -167,11 +182,38 @@ class DesktopService {
 
   configure(value) {
     const next = parseConfig(value)
-    const connectionChanged = ['apiUrl', 'webUrl', 'frameUrl'].some((key) => next[key] !== this.config[key])
+    const connectionChanged = connectionPolicyKey(next) !== connectionPolicyKey(this.config)
     if (connectionChanged) this.logout()
     this.config = next
     this.persist()
     return this.snapshot()
+  }
+
+  async checkConnectionCertificates(input) {
+    if (!input || typeof input !== 'object') throw new ClientError('Invalid connection settings.')
+    if (!this.certificateProbe) throw new ClientError('Unsupported operation.')
+    const groups = new Map()
+    const invalid = []
+    for (const field of ['apiUrl', 'webUrl', 'frameUrl']) {
+      try {
+        const url = new URL(webUrl(input[field]))
+        const group = groups.get(url.origin) || { origin: url.origin, fields: [], protocol: url.protocol }
+        group.fields.push(field)
+        groups.set(url.origin, group)
+      } catch {
+        invalid.push({ origin: null, fields: [field], status: 'invalid' })
+      }
+    }
+    return [
+      ...(await Promise.all(
+        [...groups.values()].map(async ({ origin, fields, protocol }) => ({
+          origin,
+          fields,
+          ...(protocol === 'https:' ? await this.certificateProbe(origin) : { status: 'http' })
+        }))
+      )),
+      ...invalid
+    ]
   }
 
   async login(input) {
@@ -333,20 +375,21 @@ class DesktopService {
     if (auth && scope) headers['x-scope-level'] = scope
     let response
     try {
-      response = await this.fetcher(`${this.config.apiUrl}${path}`, {
+      response = await this.fetcher(`${apiRootUrl(this.config.apiUrl)}${path}`, {
         method,
         headers,
         ...(body ? { body: JSON.stringify(body) } : {}),
         signal: AbortSignal.timeout(timeout),
         redirect: 'error'
       })
-    } catch {
-      throw new ClientError(
-        method === 'POST' && timeout > 20000
-          ? 'The installation result is not available yet. Refresh the catalog or check the workspace before retrying.'
-          : 'Cannot connect to Xpert. Check the service URL and network.',
-        503
-      )
+    } catch (error) {
+      if (method === 'POST' && timeout > 20000)
+        throw new ClientError(
+          'The installation result is not available yet. Refresh the catalog or check the workspace before retrying.',
+          503
+        )
+      const connectionError = connectionErrorKey(error)
+      throw new ClientError(connectionError || 'Cannot connect to Xpert. Check the service URL and network.', 503)
     }
     if (generation !== this.generation) throw new ClientError('The session changed. Please retry.', 409)
     if (response.status === 401 && auth && retry) {
@@ -380,6 +423,10 @@ class DesktopService {
   }
 }
 
+Object.assign(
+  DesktopService.prototype,
+  require('./assistant-configuration.cjs').createAssistantConfigurationMethods(ClientError)
+)
 Object.assign(DesktopService.prototype, require('./assistant-list.cjs').createAssistantListMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./assistant-profile.cjs').createAssistantProfileMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./catalog.cjs').createCatalogMethods(ClientError))

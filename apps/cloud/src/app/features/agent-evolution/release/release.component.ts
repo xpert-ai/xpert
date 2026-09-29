@@ -301,7 +301,10 @@ export class AgentEvolutionReleaseComponent {
       !this.facade.dashboard().experiences.some((item) => item.sourceReleasePackageId === release.releasePackageId)
     ) {
       const policy = this.gatePolicy()!
-      const production = this.deployments().findLast((deployment) => deployment.channel === 'production')
+      const production = this.deployments()
+        .slice()
+        .reverse()
+        .find((deployment) => deployment.channel === 'production')
       return this.releaseAction(
         'CreateStableExperience',
         deploymentGatePassed(

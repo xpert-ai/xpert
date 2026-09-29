@@ -5,9 +5,9 @@ import { readLocalCredentials } from './local-credentials.mjs'
 const service = new DesktopService()
 const config = {
   ...DEFAULT_CONFIG,
-  apiUrl: process.env.XPERT_API_URL || DEFAULT_CONFIG.apiUrl,
-  webUrl: process.env.XPERT_WEB_URL || DEFAULT_CONFIG.webUrl,
-  frameUrl: process.env.XPERT_CHATKIT_FRAME_URL || DEFAULT_CONFIG.frameUrl
+  apiUrl: process.env.XPERT_API_URL || 'http://localhost:3000',
+  webUrl: process.env.XPERT_WEB_URL || 'http://localhost:4200',
+  frameUrl: process.env.XPERT_CHATKIT_FRAME_URL || 'http://localhost:4200/chatkit/index.html'
 }
 service.configure(config)
 try {

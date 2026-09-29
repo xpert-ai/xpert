@@ -1,3 +1,4 @@
+import { AssistantSettingsDialog } from './assistant-settings/AssistantSettingsDialog'
 import { useState } from 'react'
 import {
   Button,
@@ -16,7 +17,7 @@ import { t } from './i18n'
 import type { Bot } from './types'
 import type { SidebarState } from './assistant-list-types'
 
-export function AssistantDialog({
+function PersonalAssistantDialog({
   bot,
   mode,
   onClose,
@@ -132,4 +133,8 @@ export function AssistantDialog({
       </DialogContent>
     </Dialog>
   )
+}
+
+export function AssistantDialog(props: Parameters<typeof PersonalAssistantDialog>[0]) {
+  return props.mode === 'edit' ? <AssistantSettingsDialog {...props} /> : <PersonalAssistantDialog {...props} />
 }

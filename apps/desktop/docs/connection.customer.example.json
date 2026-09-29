@@ -1,0 +1,5 @@
+{
+  "apiUrl": "https://api.customer.example/api/",
+  "webUrl": "https://app.customer.example/",
+  "frameUrl": "https://app.customer.example/chatkit"
+}

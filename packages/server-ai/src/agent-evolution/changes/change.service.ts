@@ -33,6 +33,10 @@ import { EvolutionEvaluationExecutor } from './evaluation-executor.service'
 import { EvolutionPublicationExecutor } from './publication-executor.service'
 import { changeError } from './change.errors'
 import { validateChangeInput } from './change.validation'
+import {
+    EvolutionExecutionConversationService,
+    type EvolutionConversationSession
+} from './execution-conversation.service'
 
 export const CHANGE_QUEUE = {
     pluginName: '@xpert-ai/platform',
@@ -53,7 +57,8 @@ export class EvolutionChangeService implements EvolutionChangeRuntimeApi {
         private readonly evaluations: EvolutionEvaluationExecutor,
         private readonly publication: EvolutionPublicationExecutor,
         private readonly quality: AgentEvolutionQualityGovernanceService,
-        @Optional() @Inject(MANAGED_QUEUE_SERVICE_TOKEN) private readonly queue?: ManagedQueueService
+        @Optional() @Inject(MANAGED_QUEUE_SERVICE_TOKEN) private readonly queue?: ManagedQueueService,
+        @Optional() private readonly conversations?: EvolutionExecutionConversationService
     ) {}
 
     async prepare(input: SubmitEvolutionChange, options: { defer?: boolean } = {}) {
@@ -67,6 +72,7 @@ export class EvolutionChangeService implements EvolutionChangeRuntimeApi {
         )
         if (!target.descriptor.supportedScopes.includes(input.scope.type)) changeError('invalid_scope_or_baseline')
         validateChangeInput(input, strategy.definition)
+        if (input.executionContext) await this.conversations?.validate(input.executionContext)
         if (input.sourceKind === 'manual') this.human(input)
         const learningEventIds = [...new Set(input.learningEventIds ?? [])]
         if (strategy.definition.learning.mode === 'feedback') {
@@ -97,6 +103,13 @@ export class EvolutionChangeService implements EvolutionChangeRuntimeApi {
         const changeId = `EVO-${randomUUID()}`
         const change: EvolutionChange = {
             contractVersion: 3,
+            executionContext: input.executionContext
+                ? {
+                      ...input.executionContext,
+                      language:
+                          input.executionContext.language ?? RequestContext.currentUser()?.preferredLanguage ?? 'en'
+                  }
+                : undefined,
             strategy,
             sourceKind: input.sourceKind,
             learningEventIds,
@@ -178,8 +191,36 @@ export class EvolutionChangeService implements EvolutionChangeRuntimeApi {
 
     async process(input: EvolutionChangeIdentity & { changeId: string }) {
         const initial = await this.get(input)
+        if (!['preparing', 'testing', 'failed'].includes(initial.status)) {
+            // A worker may stop after the assessment commits but before the job is completed.
+            const job = await this.store.findJob(input, initial.jobId)
+            if (job && ['pending', 'queued', 'running'].includes(job.status)) {
+                await this.store.updateJobStatus(input, initial.jobId, 'completed', {
+                    completedAt: new Date().toISOString()
+                })
+            }
+            return
+        }
+        let conversation: EvolutionConversationSession | undefined
         await this.store.updateJobStatus(input, initial.jobId, 'running', { startedAt: new Date().toISOString() })
         try {
+            conversation = await this.recordConversation(async () => {
+                const session = await this.conversations?.start(initial)
+                if (session)
+                    await this.db.transaction(async (manager) => {
+                        const change = await this.records.read(manager, input, input.changeId, true)
+                        change.executionConversation = session.reference
+                        await this.save(manager, input, change)
+                    })
+                return session
+            })
+            // Commit progress before slow provider calls so readers can observe the running stage.
+            await this.db.transaction(async (manager) => {
+                const change = await this.records.read(manager, input, input.changeId, true)
+                if (!['preparing', 'testing', 'failed'].includes(change.status)) return
+                if (!change.candidate) setStage(change, 'candidate', 'running')
+                await this.save(manager, input, change)
+            })
             await this.db.transaction(async (manager) => {
                 const change = await this.records.read(manager, input, input.changeId, true)
                 if (!['preparing', 'testing', 'failed'].includes(change.status)) return
@@ -200,8 +241,20 @@ export class EvolutionChangeService implements EvolutionChangeRuntimeApi {
                     setStage(change, 'candidate', 'passed')
                 }
                 change.status = 'testing'
+                const awaitingDataset = change.strategy.definition.evaluations.some(
+                    (step) => step.kind === 'golden_replay' && !change.datasetSnapshotIds[step.key]
+                )
+                if (!awaitingDataset && !change.evaluation && change.strategy.definition.evaluations.length)
+                    setStage(change, 'evaluation', 'running')
                 await this.save(manager, input, change)
             })
+            if (conversation)
+                await this.recordConversation(async () =>
+                    this.conversations.drafted(
+                        conversation,
+                        await this.records.read(this.db.manager, input, input.changeId)
+                    )
+                )
             await this.db.transaction(async (manager) => {
                 const change = await this.records.read(manager, input, input.changeId, true)
                 if (!['preparing', 'testing', 'failed'].includes(change.status)) return
@@ -234,6 +287,13 @@ export class EvolutionChangeService implements EvolutionChangeRuntimeApi {
             await this.store.updateJobStatus(input, initial.jobId, 'completed', {
                 completedAt: new Date().toISOString()
             })
+            if (conversation)
+                await this.recordConversation(async () =>
+                    this.conversations.finish(
+                        conversation,
+                        await this.records.read(this.db.manager, input, input.changeId)
+                    )
+                )
         } catch (error) {
             await this.db.transaction(async (manager) => {
                 const change = await this.records.read(manager, input, input.changeId, true)
@@ -248,7 +308,28 @@ export class EvolutionChangeService implements EvolutionChangeRuntimeApi {
                 errorCode: 'change_preparation_failed',
                 completedAt: new Date().toISOString()
             })
+            if (conversation) {
+                try {
+                    await this.conversations.finish(
+                        conversation,
+                        initial,
+                        error instanceof Error ? error.message : 'change_preparation_failed'
+                    )
+                } catch (transcriptError) {
+                    this.logger.warn(`Evolution execution transcript could not be finalized: ${transcriptError}`)
+                }
+            }
             throw error
+        }
+    }
+
+    /** Transcript availability must never change evaluation, approval or publication outcomes. */
+    private async recordConversation<T>(write: () => Promise<T>): Promise<T | undefined> {
+        try {
+            return await write()
+        } catch (error) {
+            this.logger.warn(`Evolution execution transcript unavailable: ${error}`)
+            return undefined
         }
     }
 
@@ -267,15 +348,13 @@ export class EvolutionChangeService implements EvolutionChangeRuntimeApi {
                 change.evaluation.strategyHash !== change.strategy.hash
             )
                 changeError('review_snapshot_mismatch')
-            const prior = await manager
-                .getRepository(ApprovalDecisionEntity)
-                .find({
-                    where: {
-                        tenantId: input.tenantId,
-                        organizationId: input.organizationId,
-                        candidateId: change.changeId
-                    }
-                })
+            const prior = await manager.getRepository(ApprovalDecisionEntity).find({
+                where: {
+                    tenantId: input.tenantId,
+                    organizationId: input.organizationId,
+                    candidateId: change.changeId
+                }
+            })
             const approvals = prior
                 .map((row) => row.value)
                 .filter(

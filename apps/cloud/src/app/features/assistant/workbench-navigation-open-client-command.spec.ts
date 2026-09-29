@@ -19,6 +19,28 @@ const context = {
 } as any
 
 describe('registerWorkbenchNavigationOpenCommand', () => {
+  it('opens the exact evolution request and rejects invalid identifiers', async () => {
+    const registry = new ViewClientCommandRegistry()
+    const navigate = jest.fn(async () => true)
+    registerWorkbenchNavigationOpenCommand(registry, { navigate })
+    expect(
+      await registry.execute(
+        WORKBENCH_NAVIGATION_OPEN_COMMAND,
+        { target: 'agent-evolution.change', changeId: 'EVO-auto' },
+        context
+      )
+    ).toEqual({ success: true })
+    expect(navigate).toHaveBeenCalledWith(['/agent-evolution', 'evaluation'], { queryParams: { changeId: 'EVO-auto' } })
+    expect(
+      await registry.execute(
+        WORKBENCH_NAVIGATION_OPEN_COMMAND,
+        { target: 'agent-evolution.change', changeId: '../settings' },
+        context
+      )
+    ).toMatchObject({ success: false })
+    expect(navigate).toHaveBeenCalledTimes(1)
+  })
+
   it('opens rule details through host navigation and rejects path injection', async () => {
     const registry = new ViewClientCommandRegistry()
     const navigate = jest.fn(async () => true)
@@ -185,49 +207,57 @@ describe('registerWorkbenchNavigationOpenCommand', () => {
     )
   })
 
-  it.each([WORKBENCH_ASSISTANT_CONVERSATION_TARGET, WORKBENCH_ASSISTANT_EXECUTION_TARGET])('opens a persisted assistant %s target', async (target) => {
-    const registry = new ViewClientCommandRegistry()
-    const navigate = jest.fn(async () => true)
-    const openAssistantConversation = jest.fn(async () => true)
-    registerWorkbenchNavigationOpenCommand(registry, { navigate, openAssistantConversation })
+  it.each([WORKBENCH_ASSISTANT_CONVERSATION_TARGET, WORKBENCH_ASSISTANT_EXECUTION_TARGET])(
+    'opens a persisted assistant %s target',
+    async (target) => {
+      const registry = new ViewClientCommandRegistry()
+      const navigate = jest.fn(async () => true)
+      const openAssistantConversation = jest.fn(async () => true)
+      registerWorkbenchNavigationOpenCommand(registry, { navigate, openAssistantConversation })
 
-    const result = await registry.execute(
-      WORKBENCH_NAVIGATION_OPEN_COMMAND,
-      {
+      const result = await registry.execute(
+        WORKBENCH_NAVIGATION_OPEN_COMMAND,
+        {
+          target,
+          conversationId: 'conversation-1',
+          threadId: 'thread-1',
+          executionId: 'execution-1',
+          xpertId: 'role-assistant-1'
+        },
+        context
+      )
+
+      expect(navigate).not.toHaveBeenCalled()
+      expect(openAssistantConversation).toHaveBeenCalledWith({
+        conversationId: 'conversation-1',
+        threadId: 'thread-1',
+        executionId: 'execution-1',
+        xpertId: 'role-assistant-1'
+      })
+      expect(result).toEqual({
+        success: true,
+        status: 'opened',
         target,
         conversationId: 'conversation-1',
         threadId: 'thread-1',
         executionId: 'execution-1',
         xpertId: 'role-assistant-1'
-      },
-      context
-    )
-
-    expect(navigate).not.toHaveBeenCalled()
-    expect(openAssistantConversation).toHaveBeenCalledWith({
-      conversationId: 'conversation-1',
-      threadId: 'thread-1',
-      executionId: 'execution-1',
-      xpertId: 'role-assistant-1'
-    })
-    expect(result).toEqual({
-      success: true,
-      status: 'opened',
-      target,
-      conversationId: 'conversation-1',
-      threadId: 'thread-1',
-      executionId: 'execution-1',
-      xpertId: 'role-assistant-1'
-    })
-  })
+      })
+    }
+  )
 
   it('rejects an execution target without an execution id', async () => {
     const registry = new ViewClientCommandRegistry()
     const openAssistantConversation = jest.fn()
     registerWorkbenchNavigationOpenCommand(registry, { openAssistantConversation })
-    const result = await registry.execute(WORKBENCH_NAVIGATION_OPEN_COMMAND, {
-      target: WORKBENCH_ASSISTANT_EXECUTION_TARGET, conversationId: 'conversation-1'
-    }, context)
+    const result = await registry.execute(
+      WORKBENCH_NAVIGATION_OPEN_COMMAND,
+      {
+        target: WORKBENCH_ASSISTANT_EXECUTION_TARGET,
+        conversationId: 'conversation-1'
+      },
+      context
+    )
     expect(result).toMatchObject({ success: false, code: 'bad_request' })
     expect(openAssistantConversation).not.toHaveBeenCalled()
   })

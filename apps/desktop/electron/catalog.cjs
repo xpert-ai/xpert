@@ -131,6 +131,35 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
     embedding_model_required: 'Configure an available embedding model in Xpert.',
     vision_model_required: 'Configure an available vision model in Xpert.'
   }
+  const templateCapabilities = (input) => {
+    const value = input?.capabilities ?? []
+    if (!Array.isArray(value) || value.some((key) => typeof key !== 'string' || !key.trim()))
+      throw new ClientError('Invalid template capabilities.', 400)
+    return [...new Set(value)]
+  }
+  const templateCheck = async (service, id, capabilities) => {
+    let check
+    try {
+      check = await service.request(
+        `/api/xpert-template/${encodeURIComponent(id)}/setup?${new URLSearchParams({
+          capabilities: capabilities.join(',')
+        })}`
+      )
+    } catch (error) {
+      // Older/OSS servers retain their default-model installation flow. Never
+      // silently discard an explicitly selected capability on those servers.
+      if (error.status === 404 && !capabilities.length) return null
+      throw error
+    }
+    if (
+      typeof check?.canInstall !== 'boolean' ||
+      !Array.isArray(check.requiredModelFeatures) ||
+      !Array.isArray(check.optionalCapabilities) ||
+      !Array.isArray(check.models)
+    )
+      throw new ClientError('Invalid installation check response.', 502)
+    return check
+  }
   return {
     async listCatalog(kind) {
       scope(this)
@@ -240,29 +269,77 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
           name: text(item.name)
         }))
     },
-    async templateSetup() {
+    async templateSetup(input) {
       const workspaces = await this.templateWorkspaces()
-      return { workspaces, hasPrimaryLanguageModel: await hasPrimaryLanguageModel(this) }
+      const check = input?.id
+        ? await templateCheck(this, required(input.id, 'Template ID'), templateCapabilities(input))
+        : null
+      return {
+        workspaces,
+        hasPrimaryLanguageModel:
+          check?.requiresModel || check?.requiredModelFeatures.length ? false : await hasPrimaryLanguageModel(this),
+        ...(check
+          ? {
+              preflight: {
+                canInstall: check.canInstall,
+                reason: text(check.reason),
+                requiresModel: check.requiresModel === true || check.requiredModelFeatures.length > 0,
+                optionalCapabilities: check.optionalCapabilities.map((option) => ({
+                  key: required(option.key, 'Capability'),
+                  label: text(option.label),
+                  description: text(option.description)
+                })),
+                models: modelOptions(check.models, this.config.locale)
+              }
+            }
+          : {})
+      }
     },
     async installTemplate(input) {
       scope(this)
       const id = required(input?.id, 'Template ID')
       const workspaceId = required(input?.workspaceId, 'Workspace ID')
       const title = required(input?.title, 'Assistant name', 100)
+      if (input.prompt !== undefined && (typeof input.prompt !== 'string' || input.prompt.length > 32000))
+        throw new ClientError('Invalid assistant settings.')
       const workspaces = await this.templateWorkspaces()
       if (!workspaces.some((item) => item.id === workspaceId))
         throw new ClientError('You do not have edit access to this workspace.', 403)
       const detail = await this.request(`/api/xpert-template/${encodeURIComponent(id)}`)
       if (detail?.application || !['agent', 'copilot'].includes(detail?.type))
         throw new ClientError('Install this resource from the Apps tab.')
-      if (!(await hasPrimaryLanguageModel(this)))
+      const capabilities = templateCapabilities(input)
+      const check = await templateCheck(this, id, capabilities)
+      if (check && !check.canInstall)
+        throw new ClientError(text(check.reason) || 'The template is not ready to install.', 400)
+      const requiresModel = check?.requiresModel === true || check?.requiredModelFeatures.length > 0
+      const model = requiresModel ? check.models.find((option) => option.id === input?.modelId)?.copilotModel : null
+      if (requiresModel && !model) throw new ClientError('Select a compatible model for this assistant.', 400)
+      if (!model && !(await hasPrimaryLanguageModel(this)))
         throw new ClientError(
           'No authorized primary language model is configured for this organization. Ask an administrator to set a default primary model in Xpert and grant access, then refresh settings.',
           403
         )
       const result = await this.request(`/api/xpert-template/${encodeURIComponent(id)}/install`, {
         method: 'POST',
-        body: { workspaceId, publish: true, basic: { title } },
+        body: {
+          workspaceId,
+          publish: true,
+          basic: {
+            title,
+            ...(input.prompt !== undefined ? { prompt: input.prompt } : {}),
+            ...(model
+              ? {
+                  copilotModel: {
+                    copilotId: required(model.copilotId, 'Model provider'),
+                    model: required(model.model, 'Model'),
+                    modelType: 'llm'
+                  }
+                }
+              : {})
+          },
+          ...(capabilities.length ? { capabilities } : {})
+        },
         timeout: 180000,
         retry: false
       })

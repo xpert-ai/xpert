@@ -44,6 +44,7 @@ jest.mock('../plugin-resource-installer.service', () => ({
     PluginResourceInstallerService: class PluginResourceInstallerService {}
 }))
 
+import { blankAssistantTemplate } from '../../xpert-template/capabilities/blank-assistant-template'
 import { AiModelTypeEnum, LanguagesEnum, XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
 import { EnvironmentService } from '../../environment'
 import { XpertImportCommand } from '../../xpert/commands/import.command'
@@ -51,6 +52,7 @@ import { XpertPublishCommand } from '../../xpert/commands/publish.command'
 import { XpertTemplateWorkspaceInitializer } from '../../xpert/template-workspace-initializer.service'
 import { PluginTemplateInstallCommand } from './install-template.command'
 import { PluginTemplateInstallHandler } from './install-template.handler'
+import { AssistantCapabilityService } from '../../xpert-template/capabilities/assistant-capability.service'
 
 const TEMPLATE_DSL = `
 team:
@@ -103,6 +105,60 @@ connections:
 `
 
 describe('PluginTemplateInstallHandler', () => {
+    it('creates distinct blank experts and preserves the user name on their primary agents', async () => {
+        const { handler, templateService, commandBus } = createHandler({ templateDsl: createSandboxTemplateDsl() })
+        const { id, export_data } = blankAssistantTemplate([])
+        templateService.getTemplateDetail.mockResolvedValue({ id, export_data, pluginName: '' })
+        const command = new PluginTemplateInstallCommand(
+            'xpert-blank-assistant',
+            'workspace-1',
+            LanguagesEnum.English,
+            { title: 'My expert', prompt: 'Answer concisely.' },
+            true
+        )
+        await handler.execute(command)
+        await handler.execute(command)
+        const imports = commandBus.execute.mock.calls
+            .map(([value]) => value)
+            .filter((value): value is XpertImportCommand => value instanceof XpertImportCommand)
+        expect(imports).toHaveLength(2)
+        expect(imports[0].draft.team.name).not.toBe(imports[1].draft.team.name)
+        expect(imports[0].draft.team.title).toBe('My expert')
+        expect(imports[0].draft.nodes[0].entity).toMatchObject({
+            title: 'My expert',
+            name: imports[0].draft.team.name,
+            prompt: 'Answer concisely.'
+        })
+        expect(imports[0].draft.team).not.toHaveProperty('prompt')
+    })
+
+    it('validates capability setup before creating or publishing an Assistant', async () => {
+        const { handler, capabilities, commandBus, workspaceAccess } = createHandler()
+        capabilities.prepareInstallation.mockRejectedValueOnce(new Error('model access revoked'))
+        await expect(
+            handler.execute(
+                new PluginTemplateInstallCommand(
+                    'example-assistant',
+                    'workspace-1',
+                    LanguagesEnum.English,
+                    undefined,
+                    true,
+                    undefined,
+                    ['example-capability']
+                )
+            )
+        ).rejects.toThrow('model access revoked')
+        expect(workspaceAccess.assertCanAuthor).toHaveBeenCalledWith('workspace-1')
+        expect(capabilities.prepareInstallation).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.anything(),
+            LanguagesEnum.English,
+            ['example-capability'],
+            undefined,
+            expect.anything()
+        )
+        expect(commandBus.execute).not.toHaveBeenCalled()
+    })
     it('publishes a template xpert after installation when requested', async () => {
         const { handler, commandBus } = createHandler({ templateDsl: createSandboxTemplateDsl() })
 
@@ -538,6 +594,7 @@ function createHandler(options?: {
     const toolsetRepo = {
         find: jest.fn(() => Promise.resolve(options?.toolsets ?? []))
     }
+    const capabilities = { prepareInstallation: jest.fn(), compose: jest.fn(async (template: object) => template) }
     const handler = new PluginTemplateInstallHandler(
         installer as any,
         workspaceAccess as any,
@@ -546,11 +603,13 @@ function createHandler(options?: {
         environmentService as unknown as EnvironmentService,
         commandBus as any,
         xpertService as any,
-        toolsetRepo as any
+        toolsetRepo as any,
+        capabilities as unknown as AssistantCapabilityService
     )
 
     return {
         handler,
+        capabilities,
         installer,
         workspaceAccess,
         templateService,

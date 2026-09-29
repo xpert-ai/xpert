@@ -1,3 +1,5 @@
+import { AssistantConfigurationController } from './configuration/assistant-configuration.controller'
+import { AssistantConfigurationService } from './configuration/assistant-configuration.service'
 import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
@@ -104,6 +106,7 @@ import { XpertTriggerConnectionService } from './trigger-connection.service'
         forwardRef(() => XpertProjectModule)
     ],
     controllers: [
+        AssistantConfigurationController,
         XpertTriggerConnectionController,
         XpertProfileController,
         XpertTagUsageController,
@@ -111,6 +114,7 @@ import { XpertTriggerConnectionService } from './trigger-connection.service'
         XpertAccessController
     ],
     providers: [
+        AssistantConfigurationService,
         XpertService,
         XpertTriggerConnectionService,
         XpertTriggerBootstrapRecoveryService,

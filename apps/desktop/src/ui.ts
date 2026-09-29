@@ -11,6 +11,7 @@ export {
   DropdownMenuSeparator
 } from '../../../packages/shadcn-ui/src/components/ui/dropdown-menu'
 export { Label } from '../../../packages/shadcn-ui/src/components/ui/label'
+export { Switch } from '../../../packages/shadcn-ui/src/components/ui/switch'
 export { ToggleGroup, ToggleGroupItem } from '../../../packages/shadcn-ui/src/components/ui/toggle-group'
 export {
   Dialog,

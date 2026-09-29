@@ -1512,6 +1512,7 @@ describe('XpertTemplateService', () => {
             loadedPlugins as any
         )
 
+        Object.defineProperty(service, 'capabilities', { value: { compose: async (template: object) => template } })
         ;(service as any).configService = {
             assetOptions: {
                 serverRoot,

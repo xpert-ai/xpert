@@ -14,6 +14,7 @@ packages/angular/.storybook/index.css
 
 # dependencies
 /node_modules
+/.local/
 
 # IDEs and editors
 /.idea

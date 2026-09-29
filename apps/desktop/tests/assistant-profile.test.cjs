@@ -154,7 +154,7 @@ test('workbench navigation resolves an authorized view alias without trusting pl
     }
   })
   const url = new URL(result.url)
-  assert.equal(url.origin, 'http://localhost:4200')
+  assert.equal(url.origin, 'https://app.xpertai.cn')
   assert.equal(url.pathname, '/chat/x/source')
   assert.equal(url.searchParams.get('view'), 'provider__studio')
   assert.equal(url.searchParams.get('viewSelection'), 'case')
