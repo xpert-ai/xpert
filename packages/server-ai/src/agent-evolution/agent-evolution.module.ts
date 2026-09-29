@@ -8,6 +8,7 @@ import { EvolutionLifecycleService } from './changes/lifecycle.service'
 import { EvolutionChangeService } from './changes/change.service'
 import { EvolutionChangeStore } from './changes/change.store'
 import { EvolutionChangeProcessor } from './changes/change.processor'
+import { EvolutionExecutionConversationService } from './changes/execution-conversation.service'
 import { EVOLUTION_RUNTIME_SERVICE_TOKEN, EvolutionTargetProviderRegistry } from '@xpert-ai/plugin-sdk'
 import { Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
@@ -45,6 +46,7 @@ import { AGENT_EVOLUTION_CONFORMANCE_PROVIDERS } from './providers'
         EvolutionChangeStore,
         EvolutionLifecycleService,
         EvolutionChangeProcessor,
+        EvolutionExecutionConversationService,
         AgentEvolutionStore,
         AgentEvolutionService,
         AgentEvolutionRuntimeService,
