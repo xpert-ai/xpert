@@ -39,9 +39,10 @@ export class XpertToolController extends CrudController<XpertTool> {
 	}
 
 	@Get(':id/faker')
+	// [local-patch 2026-09-25] 显式返回类型规避 TS2742（hoisted 下 type-fest 版本共存）
 	async paramsFaker(
 		@Param('id', UUIDValidationPipe) id: string,
-	) {
+	): Promise<unknown> {
 		return this.service.getParamsFaker(id)
 	}
 }

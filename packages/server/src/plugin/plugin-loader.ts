@@ -3,6 +3,7 @@ import { getErrorMessage } from '@xpert-ai/server-common'
 import type { XpertPlugin } from '@xpert-ai/plugin-sdk'
 import { existsSync, readFileSync } from 'fs'
 import { createRequire } from 'node:module'
+import { pathToFileURL } from 'node:url'
 import { join, resolve } from 'path'
 import {
 	assertInstalledPluginSdkCompatibility,
@@ -118,7 +119,9 @@ async function loadModule(modName: string, opts: PluginLoadOptions = {}): Promis
 
 	// Try ESM import
 	try {
-		return await import(target)
+		// Windows: dynamic import() needs a file:// URL — a bare `D:\...` path is
+		// rejected with ERR_UNSUPPORTED_ESM_URL_SCHEME ("Cannot find module").
+		return await import(pathToFileURL(target).href)
 	} catch (e1) {
 		console.warn(`ESM import failed for ${target}:`, e1)
 		errorMessage += `ESM import failed for ${target}: ${getErrorMessage(e1)}\n`

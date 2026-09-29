@@ -30,7 +30,11 @@ await build({
 
 execFileSync(resolveLocalBin(workspaceRoot, 'tailwindcss'), ['-i', cssSourcePath, '-o', cssTargetPath, '--minify'], {
     cwd: workspaceRoot,
-    stdio: 'inherit'
+    stdio: 'inherit',
+    // [local-patch 2026-09-25] Windows-only workaround.
+    // node_modules/.bin/tailwindcss.cmd 在现代 Node 上直接 execFileSync 会抛 EINVAL
+    // (CVE-2024-27980 之后禁止无 shell 执行 .cmd/.bat)。原始脚本在 Linux/macOS 正常。
+    shell: process.platform === 'win32'
 })
 
 stripTrailingWhitespace(scriptTargetPath)

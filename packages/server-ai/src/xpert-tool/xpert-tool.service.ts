@@ -72,7 +72,9 @@ export class XpertToolService extends TenantOrganizationAwareCrudService<XpertTo
         )
     }
 
-    async getParamsFaker(id: string) {
+    // [local-patch 2026-09-25] 显式返回类型：hoisted 布局下 type-fest 有 0.20.2/4.41.0 两个版本共存，
+    // 声明生成(declaration:true)时 TS2742 无法可移植地命名 type-fest/base，故显式标注。
+    async getParamsFaker(id: string): Promise<unknown> {
         const tool = await this.getTool(id, { relations: ['toolset'] })
         if (tool.toolset.category === XpertToolsetCategoryEnum.BUILTIN) {
             const jsonSchema = ToolSchemaParser.parseZodToJsonSchema(

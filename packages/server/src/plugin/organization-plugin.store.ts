@@ -195,6 +195,9 @@ async function installStagedWorkspaceRuntimeDependencies(
 			],
 			{
 				cwd: targetPackageDir,
+				// Windows 上 npm 是 npm.cmd，Node 18+ 出于安全限制 execFile 不再解析 .cmd，
+				// 必须 shell:true 才能启动（依赖声明均不含空格，shell 拼接安全）
+				shell: true,
 				env: {
 					...process.env,
 					npm_config_package_lock: 'false',

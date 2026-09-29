@@ -117,7 +117,7 @@ function createCommandPlan({ customCommand, customCwd, packageJson, scriptName, 
       args: ['pnpm', 'run', scriptName],
       cwd: workspacePath,
       display: `corepack pnpm run ${scriptName}`,
-      shell: false
+      shell: true
     }
   }
 

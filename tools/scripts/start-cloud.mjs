@@ -15,6 +15,13 @@ const env = {
 const webPort = resolveWebPort()
 const args = ['nx', 'serve', 'cloud']
 
+// Dev-server 的 live-reload 会因 watch 误触发而反复整页刷新（演示时很干扰），
+// 默认关掉；如需开发热更新，设 WEB_LIVE_RELOAD=1 重新启动即可。
+if (process.env.WEB_LIVE_RELOAD !== '1') {
+  args.push('--live-reload', 'false')
+  console.log('[start:cloud] live-reload disabled (set WEB_LIVE_RELOAD=1 to enable)')
+}
+
 if (webPort) {
   args.push('--port', webPort)
   env.WEB_PORT = webPort

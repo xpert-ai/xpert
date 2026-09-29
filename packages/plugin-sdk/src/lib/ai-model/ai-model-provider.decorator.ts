@@ -18,21 +18,27 @@ export function AIModelProviderStrategy(provider: string) {
   const callerLine = stack[decoratorIndex + 1]
 
   // Extract the file path
+  // [local-patch 2026-09-25] Windows 兼容：原正则只认 POSIX 路径。
+  // 在 Windows 上栈帧形如 `at file:///D:/a/b.js:1:2` 或 `at f (D:\\a\\b.js:1:2)`，
+  // 原实现会取不到路径并回落到 process.cwd()，导致 join(dir, `${name}.yaml`) 指向错误位置、
+  // provider schema 读成空对象（表现为 /api/copilot/providers 返回 [{}]）。
   const match =
     callerLine?.match(/\((file:\/\/\/[^\s)]+)\)/) || // case 1: file:///path...
+    callerLine?.match(/\(([A-Za-z]:[\\/][^\s)]+)\)/) || // case 1b: (D:\dir\file.js:1:2)
     callerLine?.match(/\((\/[^\s)]+)\)/) || // case 2: (/Users/xxx)
     callerLine?.match(/at (file:\/\/\/[^\s]+)/) || // case 3: at file:///...
+    callerLine?.match(/at ([A-Za-z]:[\\/][^\s]+)/) || // case 3b: at D:\dir\file.js:1:2
     callerLine?.match(/at (\/[^\s]+)/) // case 4: at /Users/xxx
 
-  let file = match?.[1]
+  // [local-patch 2026-09-25] 最坏情况下退化为直接取栈行，避免回落 process.cwd()
+  let file = match?.[1] ?? callerLine?.trim().replace(/^at\s+/, '')
 
-  // remove the file:/// prefix
-  if (file?.startsWith('file:///')) {
-    file = file.replace('file://', '')
-  }
-
-  // Strip :line:col suffix (e.g. "/path/file.js:37:5" -> "/path/file.js")
   if (file) {
+    // remove the file:// or file:/// prefix
+    file = file.replace(/^file:\/\//, '')
+    // [local-patch 2026-09-25] Windows: "/D:/a/b.js" -> "D:/a/b.js"（否则 path.join 会拼出非法路径）
+    file = file.replace(/^\/+([A-Za-z]:)/, '$1')
+    // Strip :line:col suffix (e.g. "D:/a/b.js:37:5" -> "D:/a/b.js")
     file = file.replace(/:\d+:\d+$/, '')
   }
 
