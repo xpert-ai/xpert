@@ -1095,6 +1095,8 @@ export interface PluginResourceInstallXpertInput {
 
 export interface XpertTemplateInstallInput {
   workspaceId: string
+  /** Optional Assistant capability IDs selected for this installation. */
+  capabilities?: string[]
   basic?: {
     name?: string
     title?: string

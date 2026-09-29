@@ -353,6 +353,7 @@ export type TXpertDataXpertOptions = {
 }
 
 export type TXpertOptions = {
+  assistantCapabilities?: import('./assistant-configuration.model').AssistantCapabilityState
   /** Runtime-selectable Primary Agent models. The configured Primary model is added automatically. */
   modelSelection?: {
     /** Additional LLM models users may select. */

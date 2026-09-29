@@ -1,7 +1,14 @@
 import { ICommand } from '@nestjs/cqrs'
-import { LanguagesEnum, TAvatar, TCopilotModel, XpertWorkspaceDataScope } from '@xpert-ai/contracts'
+import {
+    LanguagesEnum,
+    TAvatar,
+    TCopilotModel,
+    XpertWorkspaceDataScope,
+    XpertTemplateCapability
+} from '@xpert-ai/contracts'
 
 export type PluginTemplateInstallBasic = {
+    prompt?: string
     name?: string
     title?: string
     description?: string
@@ -19,6 +26,7 @@ export class PluginTemplateInstallCommand implements ICommand {
         public readonly language: LanguagesEnum,
         public readonly basic?: PluginTemplateInstallBasic,
         public readonly publish = false,
-        public readonly locale?: string
+        public readonly locale?: string,
+        public readonly capabilities: XpertTemplateCapability[] = []
     ) {}
 }

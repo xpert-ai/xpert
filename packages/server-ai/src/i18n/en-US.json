@@ -1,10 +1,23 @@
 {
+    "AssistantConfigurationReleaseNotes": "Updated assistant model, capabilities and instructions",
     "Project": { "ConversationProjectName": "{{assistant}} project" },
     "ConversationBranch": { "Title": "{{title}} ({{number}})", "Untitled": "Chat" },
     "File": {
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "AssistantCapabilityConflict": "This capability configuration was changed in Studio. Review it there or reload before editing; no workflow changes were removed.",
+        "AssistantConfigurationForbidden": "Workspace edit access in the selected organization is required.",
+        "AssistantConfigurationStale": "This assistant changed while you were editing. Reload its saved settings before trying again.",
+        "AssistantConfigurationPublishFailed": "The settings were saved as a draft but could not be published. Check the draft in Xpert before retrying.",
+        "AssistantConfigurationInvalid": "Invalid assistant settings. Instructions must not exceed 32,000 characters.",
+
+        "TemplateCapabilityNotSupported": "This template does not support the selected capability.",
+        "TemplateCapabilityModelRequired": "Choose an authorized model that supports all selected Assistant capabilities.",
+        "TemplateCapabilityOrganizationRequired": "Select an organization before configuring Assistant capabilities.",
+        "TemplateCapabilityUnavailable": "Assistant capability {{capability}} is not available on this server.",
+        "TemplateCapabilityDraftInvalid": "The Assistant template is invalid. Ask an administrator to check it.",
+        "AssistantSandboxUnavailable": "No sandbox environment is available. Ask an administrator to configure one.",
         "ToolAfterMismatch": "Post-tool continuation does not match the completed tool call",
         "ToolAfterInvalidAttachment": "Invalid inline App attachment",
         "ToolAfterAttachmentLimit": "App attachments exceed the size limit",

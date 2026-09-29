@@ -63,11 +63,46 @@ async function exists(filePath: string): Promise<boolean> {
 }
 
 export async function upgradeBuiltinTemplateCatalog(builtinRoot: string, externalRoot: string): Promise<void> {
-    const marker = join(externalRoot, '.catalog-upgrade-bosi-desktop-v1')
+    await upgradeTemplateCatalog(builtinRoot, externalRoot, 'bosi-desktop-v1', ['xpert-bosi-desktop'])
+    const extensionPath = join(builtinRoot, 'catalog-extensions.json')
+    if (!(await exists(extensionPath))) return
+    const extensions: unknown = JSON.parse(await fs.readFile(extensionPath, 'utf8'))
+    if (!Array.isArray(extensions) || !extensions.every(isCatalogExtension)) {
+        throw new Error(t('server-ai:Error.InvalidTemplateCatalogUpgrade', { filePath: extensionPath }))
+    }
+    for (const extension of extensions) {
+        await upgradeTemplateCatalog(builtinRoot, externalRoot, extension.migration, extension.ids, extension.source)
+    }
+}
+
+type CatalogExtension = { migration: string; ids: string[]; source: string }
+function isCatalogExtension(value: unknown): value is CatalogExtension {
+    return (
+        isObject(value) &&
+        'migration' in value &&
+        typeof value.migration === 'string' &&
+        /^[a-z0-9-]+$/.test(value.migration) &&
+        'source' in value &&
+        typeof value.source === 'string' &&
+        /^[a-z0-9-]+\.json$/.test(value.source) &&
+        'ids' in value &&
+        Array.isArray(value.ids) &&
+        value.ids.every((id) => typeof id === 'string' && !!id)
+    )
+}
+
+export async function upgradeTemplateCatalog(
+    builtinRoot: string,
+    externalRoot: string,
+    migration: string,
+    ids: string[],
+    source = 'templates.json'
+): Promise<void> {
+    const marker = join(externalRoot, `.catalog-upgrade-${migration}`)
     if (await exists(marker)) return
 
-    const introducedIds = new Set(['xpert-bosi-desktop'])
-    const builtin = await readCatalog(join(builtinRoot, 'templates.json'))
+    const introducedIds = new Set(ids)
+    const builtin = await readCatalog(join(builtinRoot, source))
     const additions = Object.entries(builtin.templates)
         .map(([locale, group]) => ({
             locale,
@@ -106,5 +141,5 @@ export async function upgradeBuiltinTemplateCatalog(builtinRoot: string, externa
         }
     }
     // A crash before this write is safe: the next run deduplicates by ID.
-    await fs.writeFile(marker, 'bosi-desktop-v1\n')
+    await fs.writeFile(marker, `${migration}\n`)
 }

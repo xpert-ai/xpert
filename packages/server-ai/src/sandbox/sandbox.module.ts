@@ -1,4 +1,5 @@
 import { FileActivityStorage } from './middlewares/file-activity-storage.service'
+import { SandboxToolsCapabilityProvider } from '../xpert-template/capabilities/builtin-capabilities'
 import { TenantModule } from '@xpert-ai/server-core'
 import { Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
@@ -62,6 +63,7 @@ const LOCAL_BROWSER_RUNTIME_PROVIDERS = isDevelopmentSandboxRuntimeEnvironment()
     providers: [
         FileActivityStorage,
         SandboxService,
+        SandboxToolsCapabilityProvider,
         SandboxManagedServiceService,
         SandboxPreviewSessionService,
         SandboxPreviewAuthGuard,
