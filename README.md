@@ -99,15 +99,16 @@ See [deployment and upgrades](https://docs.xpertai.cn/en/ai/getting-started/comm
 
 Xpert is a **plugin-first, modular NestJS platform**. A shared **Agent + Workflow runtime** powers AI teams, while **Agentic Apps** combine domain tools, Assistant templates, business services, and interactive Workbench views into complete applications.
 
-[![Xpert architecture: platform runtime, plugin lifecycle and extension points, Agentic Apps, and infrastructure](docs/images/readme/xpert-architecture-technical-en.png)](docs/images/readme/xpert-architecture-technical-en.png)
+[![Xpert architecture: AI Agent execution loops, multi-agent coordination, workflows, plugin capabilities, and Agentic Apps](docs/images/readme/Xpert_System_Architecture.svg)](docs/images/readme/Xpert_System_Architecture.svg)
 
+- **AI Agents & workflows:** Agent definitions compile into LangGraph state graphs. The model–tool loop combines context, tool routing, middleware hooks, and tool results; workflows add branches, parallel paths, iteration, and subflows. Tool-based sub-agent delegation, published experts, and Swarm handoffs support different collaboration patterns. Checkpoints preserve state for interruption and human input; AgentInvocation governs native and external runtime calls.
 - **Plugin system:** native npm plugins register NestJS modules, providers, configuration, and lifecycle hooks. Extension points cover models, tools/MCP, middleware, Skills/templates, workflows, integrations, connectors, data/RAG, execution, storage, views, and collaboration.
 - **Conversation resources:** standard Agent Plugin packages supply Skills/MCP resources via Git/ZIP import. Workspace grants, versioned bindings, and per-run resource snapshots control their use; they do not load server code.
 - **Agentic Apps:** Marketplace contributions connect tools, templates, business services, and review views. Apps declaring `appConfig` use host-managed preflight, dedicated workspaces, knowledgebases, published Assistants or role suites, and installation health tracking.
 - **Shared runtime & UI contracts:** LangGraph / LangChain, CQRS, Bull handoff, checkpoints, and interrupt/resume underpin execution. Workbench uses View Manifests, View Providers, and an iframe bridge; MCP Apps use tool-linked UI resources.
 - **Governed infrastructure:** scoped identities, approvals, audit, and usage span API, workers, and plugins. PostgreSQL + pgvector, Redis, and storage providers persist state. Data Xpert is a separate API/MCP-connected service; Pro execution providers are marked explicitly.
 
-Open the diagram for full resolution. [Architecture analysis and extension-point catalog](docs/architecture/README.md) · [Agent–Workflow architecture article](https://xpertai.cn/en/blog/agent-workflow-hybrid-architecture)
+Open the diagram for full resolution. [AI Agent architecture and source map](docs/ai-agent-architecture.md) · [Agent–Workflow architecture article](https://xpertai.cn/en/blog/agent-workflow-hybrid-architecture)
 
 ## Ecosystem
 

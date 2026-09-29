@@ -1,0 +1,541 @@
+<?xml version='1.0' encoding='utf-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1672" height="941" viewBox="0 0 1672 941" role="img" aria-labelledby="svg-title svg-description">
+  <title id="svg-title">Xpert System Architecture</title>
+  <desc id="svg-description">Editable vector reconstruction of the supplied Xpert system architecture diagram, preserving its three-panel layout, labels, connections, and colors.</desc>
+  <defs>
+    <linearGradient id="orangeHeader" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#e98700" />
+      <stop offset="1" stop-color="#ee9a03" />
+    </linearGradient>
+    <linearGradient id="orangeBody" x1="0" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#fffaf0" />
+      <stop offset="1" stop-color="#fff6e9" />
+    </linearGradient>
+    <linearGradient id="orangeCard" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fffefa" />
+      <stop offset="1" stop-color="#fff3df" />
+    </linearGradient>
+    <linearGradient id="orangeBand" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff3d9" />
+      <stop offset="1" stop-color="#ffedc7" />
+    </linearGradient>
+    <linearGradient id="tealHeader" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#00999f" />
+      <stop offset="1" stop-color="#00a2ad" />
+    </linearGradient>
+    <linearGradient id="tealBody" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f2fdfc" />
+      <stop offset="1" stop-color="#eafafa" />
+    </linearGradient>
+    <linearGradient id="tealCard" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff" />
+      <stop offset="1" stop-color="#def7f6" />
+    </linearGradient>
+    <linearGradient id="blueHeader" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#0872fc" />
+      <stop offset="1" stop-color="#1d89ff" />
+    </linearGradient>
+    <linearGradient id="blueBody" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f8fdff" />
+      <stop offset="1" stop-color="#e6f5fc" />
+    </linearGradient>
+    <linearGradient id="blueCard" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fbfeff" />
+      <stop offset="1" stop-color="#e1f5ff" />
+    </linearGradient>
+    <linearGradient id="blueFlow" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#b9ddff" />
+      <stop offset="0.75" stop-color="#287bef" />
+      <stop offset="1" stop-color="#0754de" />
+    </linearGradient>
+    <linearGradient id="blueFlowLeft" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#0754de" />
+      <stop offset="0.25" stop-color="#287bef" />
+      <stop offset="1" stop-color="#b9ddff" />
+    </linearGradient>
+    <marker id="tealArrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0 0 8 4 0 8Z" fill="#007494" />
+    </marker>
+    <symbol id="icon-devices" viewBox="0 0 24 24">
+      <path d="M13 17H2V3h15v5M2 14h9M0.8 17h10" />
+      <rect x="10" y="8" width="12" height="15" rx="1.3" />
+      <path d="M10 19h12M15.6 21.2h.8" />
+    </symbol>
+    <symbol id="icon-globe" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="10" />
+      <ellipse cx="12" cy="12" rx="4" ry="10" />
+      <path d="M3 7.5h18M2 12h20M3 16.5h18" />
+    </symbol>
+    <symbol id="icon-monitor" viewBox="0 0 24 24">
+      <rect x="2" y="2" width="20" height="15" rx=".8" />
+      <path d="M12 17v5M7 22h10" />
+    </symbol>
+    <symbol id="icon-phone" viewBox="0 0 24 24">
+      <rect x="5.8" y="1.5" width="12.4" height="21" rx=".8" />
+      <path d="M10 3.5h4M10.5 20h3" />
+    </symbol>
+    <symbol id="icon-code" viewBox="0 0 24 24">
+      <path d="m6.5 4-6 8 6 8M17.5 4l6 8-6 8M15 2l-6 20" />
+    </symbol>
+    <symbol id="icon-gear" viewBox="0 0 24 24">
+      <path d="m9.3 2-.6 2.5-2 .9-2.2-1.1-2.3 4 2 1.7-.1 2.3L2 14l2.3 4 2.5-.7 1.9 1.1.6 2.6h4.6l.7-2.6 1.8-1.1 2.5.7 2.3-4-2-1.7v-2.3l2-1.7-2.3-4-2.3 1.1-1.9-.9-.6-2.5Z" />
+      <circle cx="11.6" cy="11.5" r="3.6" />
+    </symbol>
+    <symbol id="icon-shield" viewBox="0 0 24 24">
+      <path d="M12 1.6c3.3 2.2 6 3.4 9 4.1v7c0 4.2-5 8.3-9 10.1-4-1.8-9-5.9-9-10.1v-7c3-.7 5.7-1.9 9-4.1Z" />
+      <path d="m8.2 11.2 2.8 2.7 5.6-6" />
+    </symbol>
+    <symbol id="icon-file" viewBox="0 0 24 24">
+      <path d="M4 1.5h10l6 6V22H4ZM14 1.5v6h6M8 11h8M8 14.5h8M8 18h5" />
+    </symbol>
+    <symbol id="icon-puzzle" viewBox="0 0 24 24">
+      <path d="M1 7H7V4.5a3 3 0 1 1 6 0V7H19v6h2a3 3 0 1 1 0 6h-2v5h-6v-2a3 3 0 1 0-6 0v2H1v-6h2a3 3 0 1 0 0-6H1Z" fill="currentColor" stroke="none" />
+    </symbol>
+    <symbol id="icon-cube" viewBox="0 0 24 24">
+      <path d="m12 1.5 9.5 5.3v10.5L12 22.5l-9.5-5.2V6.8ZM2.5 6.8 12 12l9.5-5.2M12 12v10.5M7.2 4.2l9.5 5.2" />
+    </symbol>
+    <symbol id="icon-brain" viewBox="0 0 24 24">
+      <path d="M12 3c-3-3-6-1-6 2-3 0-4 3-3 5-3 2-2 5 0 6-1 3 1 5 4 5 2 3 5 1 5-1V3Zm0 0c3-3 6-1 6 2 3 0 4 3 3 5 3 2 2 5 0 6 1 3-1 5-4 5-2 3-5 1-5-1M7 5v4L5 11M7 13v4M17 5v4l2 2M17 13v4M3 10l3 1M21 10l-3 1M3 16l3-1M21 16l-3-1" />
+    </symbol>
+    <symbol id="icon-wrench" viewBox="0 0 24 24">
+      <path d="M22 2c-4.5-1.5-8.5.7-9.5 4.5-.4 1.4-.3 2.8.2 4L2.3 20.8c-1.1 1.2.8 3 2 2l10.3-10.4c1.2.4 2.6.5 4 .1 3.8-1 5.7-5.2 4.2-9.5l-4.5 4.5-3.2-3.2Z" />
+    </symbol>
+    <symbol id="icon-hierarchy" viewBox="0 0 24 24">
+      <circle cx="12" cy="3.5" r="2.5" />
+      <circle cx="4" cy="20" r="2.5" />
+      <circle cx="20" cy="20" r="2.5" />
+      <circle cx="12" cy="14.3" r="2.5" />
+      <path d="M12 6v5.8M12 8.5H8a4 4 0 0 0-4 4v5M12 8.5h4a4 4 0 0 1 4 4v5" />
+    </symbol>
+    <symbol id="icon-database" viewBox="0 0 24 24">
+      <ellipse cx="12" cy="4" rx="8" ry="3" />
+      <path d="M4 4v16c0 4 16 4 16 0V4M4 9.3c0 4 16 4 16 0M4 14.6c0 4 16 4 16 0" />
+    </symbol>
+    <symbol id="icon-terminal" viewBox="0 0 24 24">
+      <path d="m3 4 6.6 8L3 20M13 20h9" />
+    </symbol>
+    <symbol id="icon-users" viewBox="0 0 24 24">
+      <circle cx="12" cy="6" r="3.5" />
+      <path d="M5.5 21v-3.7c0-6.8 13-6.8 13 0V21ZM5 3a3.8 3.8 0 0 0-.5 7.3M19 3a3.8 3.8 0 0 1 .5 7.3M3.5 13C1.5 13 1 15.8 1 18v3M20.5 13c2 0 2.5 2.8 2.5 5v3" />
+    </symbol>
+    <symbol id="icon-layers" viewBox="0 0 24 24">
+      <path d="m12 2 10 5-10 5L2 7ZM2 12l10 5 10-5M2 17l10 5 10-5" />
+    </symbol>
+    <symbol id="icon-user" viewBox="0 0 24 24">
+      <circle cx="12" cy="5.5" r="4" />
+      <path d="M4.5 23v-5.1c0-8 15-8 15 0V23Z" />
+    </symbol>
+    <symbol id="icon-robot" viewBox="0 0 24 24">
+      <rect x="3" y="6" width="18" height="15" rx="4" />
+      <path d="M12 6V2M11 2h2M8 17h8M1 11v5M23 11v5" />
+      <circle cx="8" cy="12" r="1" fill="currentColor" />
+      <circle cx="16" cy="12" r="1" fill="currentColor" />
+    </symbol>
+    <symbol id="icon-play" viewBox="0 0 24 24">
+      <path d="M5 2 21 12 5 22Z" />
+    </symbol>
+    <symbol id="icon-link" viewBox="0 0 24 24">
+      <path d="m9 15 6-6M10 17l-3 3a4.6 4.6 0 0 1-6.5-6.5l6-6a4.6 4.6 0 0 1 6.5 0M14 7l3-3a4.6 4.6 0 0 1 6.5 6.5l-6 6a4.6 4.6 0 0 1-6.5 0" transform="translate(1 0) scale(.9)" />
+    </symbol>
+    <symbol id="icon-apps" viewBox="0 0 24 24">
+      <path d="M1 1h9v9H1ZM14 1h9v9h-9ZM1 14h9v9H1ZM14 14h9v9h-9Z" fill="currentColor" stroke="none" />
+    </symbol>
+    <symbol id="icon-cloud" viewBox="0 0 24 24">
+      <path d="M7 21H5a4.8 4.8 0 1 1 0-9.6A7.2 7.2 0 0 1 19 9a6 6 0 0 1 0 12Z" />
+    </symbol>
+    <symbol id="icon-folder" viewBox="0 0 24 24">
+      <path d="M2 4h8l3 3h9v15H2ZM2 10h20" />
+    </symbol>
+    <symbol id="icon-chart" viewBox="0 0 24 24">
+      <path d="M3 15h4v8H3ZM10 9h4v14h-4ZM17 2h4v21h-4Z" />
+    </symbol>
+    <style type="text/css">@font-face{font-family:'Xpert Diagram';font-style:normal;font-weight:normal;src:url(data:font/woff;base64,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) format('woff');}
+@font-face{font-family:'Xpert Diagram';font-style:normal;font-weight:700;src:url(data:font/woff;base64,d09GRk9UVE8AACCoAAsAAAAAK9AAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAABDRkYgAAAC7AAAEyIAABYmsmK9e0dQT1MAABYQAAAJDgAAD8gwLRD4R1NVQgAAHyAAAADFAAABMBt4FelPUy8yAAABaAAAAE4AAABgaYWMomNtYXAAAAJ4AAAAXgAAAHwlzCLCaGVhZAAAAQgAAAA2AAAANh36TXpoaGVhAAABQAAAACAAAAAkBlgB72htdHgAAB/oAAAAwAAAASSJvAiSbWF4cAAAAWAAAAAGAAAABgBJUABuYW1lAAABuAAAAMAAAAFwHLY0unBvc3QAAALYAAAAEwAAACD/uAAyAAEAAAABAACn9sFWXw889QADA+gAAAAA1UIIBgAAAADm4QKM/3X/JwNKAuEAAQADAAIAAAAAAAB4nGNgZGBgOvfvGcMJZq//pf9Lmb0YgCIowBMAte0HSgAAUAAASQAAeJxjYGZyYdrDwMLAwtTFFMHAwOANoRnjGIwY7YF8Bg42BhhgZkACod7hfgwKDApKCUzn/j1jOMHixmgMFGYEyTGJMJ0DUgoMzADzZwsUAAB4nJWOy64BQRRFF83FHxj2QMQ7iBiIkWtsQJCYEYKkaWmv+AtDH+Z7xFbqCncmlVNZ59Teuw4QY4RDKJIAPNWTQ6TUPTlMnLNlhyYXyxFyXC1HSXKz/GPmGfp0GZIlr1PgF58NJwKWzFmww6VKmQo10UQv7j+PS5sZW6Nfq0vbyUHlmbSVaK2kjjQrZeyldukx1vRBHVGg43Okpdtjan9ofHj+HO/64svRsHvWv/AMtFlgdvfN7hVKyijfAX5gNY14nGNgYGBiYGBgBmIRIMkIplkYMoC0GIMAUISNQYFBjUGfwYohiiGeoYphu+IkpYT//4HyIHEtoLgjUDwRJv7/4f87/2/+P///5P+j/4/877635e5zsKlYAAB/Oh2/AAB4nGNgZgCD/1sZjBiwAAAswgHqAHicnVh5WNXWtj85SfY5TTRcibEtx5wgzkgZHFCsAwKiqEyiKIoTIpMMKqLgVItTFeqA83hUbEEERKVirQpWEOdaxWIHva1e663Wem3VFe4+/e5b0b7Xvu/9976Pj5Mv2Xtl77XW/g1hTJzZxDBMu4jUjISc7JhpmdkR0+bMyZr/TlBWeqLxxFO3m3SN0d1bmfQOZt2D1dtyVKMZLXdbcvj21lCXuvYuYa7trTPbmKwMI8rt3WO3VNS+ijEnNTllbmbW3Bmzc6alT0tKTfX369Wnp5+3r2+3saPHde/Rwys4a1beq1HuPX39ersn5Ln/8cQ9ZEZ2anKmexe8mDcjPWtWxozMuX+O/v/Nf71Hd2OT7q936W7s8v/eNkVhUkyxprWm58wIZjZTwDSa25onmRebn7E8q7Ed2TA2hh3PbmE/Y+vYBvYu+4B9xNm5Tpwv15+byKVwGdwm7hB3gbvCfcX9wHvwXfi+fCAfwg/no/lYPpFP5mfxC/l9fBl/jP+Sv81/xz/gn/C/8k5iIhx5g/yNvEVU0pl0J/3IIBJEwkg4iSepJJNkk1yyiLxPCpWAIakRcVrsyCxP6uLWc0dgSZS9x8kH0b/avrlV2XhKq7tc8jNIbtA660nsZfv5CUMOB9pWU1k5ejQ37SOtctqeUH832ivSq2vXyEfQE3wu/PQvuwhF+nGFar2piQ6hA+9TM9jAdh/MMBAG9QaWvq2tpoJyrSq6o0fS6GHDkuqfv6g6d10TQWAPwWzlw+iizN3J1sFHbif8aoPuD+5D55dTPqfmco12Os5P3r7AUe129mj51abDaYM32UEg4JkfcId2sFH3vn1ph/BdE8vTtAOzqxZ8Ne9S3lt3s4vnx7tFTU0b3C/hyDcr7SKrN+jzlRX1+QdzjlnvTB50wttGB3jQLnQJXfyMdoQBX189dOGEVvHpzk92/t1KXUj+9BV5S+ZZk7JTcqfYfMc8hHeg1+cPH1dX5mXs1bbNK1q4KdEqrs0sXFY02woue0nexuX76tyg2vJkxDnKDR6fMyndnpuen7UiyioGqc6hvyfoMSDTbyECqvG3GnrAVSKycBVilZiV6UlTbNGZZ8H88tC5i9X7Zkdu0cBKVtYt/2hBmbUxLaIiyEaVQR1oGA2+2R0U4McKIgxvB4QcAI9tX+2HrmUw6e391H/T2Eb6zGqkp39LAk/bkOH0t4W9Fvsserns1AhdtNI3yWR6aD51XUBdl/zy3rWhOmPcE7/ISCqJsFFzMGVofzrwpgdYGkr3XizTQi3+WcnDZ2Zv2vm+fWXR6g0f7LBi1KLxG3P2z7ZOr/x83pe2psb9xyu1siPbz95zExWI08fyVCP0DXqFSnCFp50JTHHG8LQYXCxiTQG4wBiQsG9cXC+CAItA6Agu8vOL7eBD8qxmx6lqraJ6V+15t2PLDi8usS8sW7gzyWGV9TOH9lbfcANr6A3K2+lRAoKzqwJ+RH5+rjxtdFhacrhGexA9nYMORNYvlWSPi03PHI3dQySFEtpIAlMnjZ4wp/yKHe5SIip0qV7IUyVF0LcSWOXcyoPUkkAJEQt6CbhKB5zDha53MInCIEH3gWaFNqer1IUeoAvgQIgAzRaRNnkLtYOEvqqolwao4hqctBwnpYALcxF/EwYJEA7bFFwQkFv/BA9oH3yPshrdN0ogusxByhPL7bLMIUMyUsI1CZ7qpQr130veFaaO6npppgD+M4Xmp4P3Ws6sK6oqtJcDT/AV/qoI3TwEcaIAXuOEIAEayLsqmKK+9B01OWP0XDyHMkQMwe4IfkcQ13gL8Fh/Q4Hh8ISnHgTP5iIPWMTTLgSG0d/oaCfLQydMJawGjq7mwZNII1S91CL6LAYe2j4EDixiH4E2A9E5ixhf4NC/AJmBaNzaFf2+AqEgO7OpDKHO++BCRNezQCAACJ5+swiRvVXs8FhYpdTfhJH0Cx56ElqkD8AsneRpL0Jz6AkeToQImMokalLqj4709kwZExGdeu7xk8rz9Zqot9P7KGChLykHMyw4/jJPGV3CO3kWsSVBwXU+7ePQewInBqtJAvgCJ5941WN6epoKG6ENi321kVyp/+jUUe3s9YPPoY0bZPYCV+plp9sItKIuCp6Wf9YEUS/qG+frr9FWRAwUWFx4eBDWG89tb2hHPyVi/GLM020QxIJRqqj0E0QO28o4gpJDX+oQ42nGy5c44iJIqQ7RU5CwLEzUdR+siItehC1RjalkYTAMUD5r/I3m8mAntBd8A96QkKnSTnQyr79FSQomQ18O7ZjD0Eb0oWnA6f92iD6xqh5t9IdEvJ3uvro7T9sS8HWW8tCaSKOmZ4ala2KYyogPckHW10zCJumqYLN2FbETW4nb/Pg7+pu0gIj1QEQcgl0yVRBjBEgy9oNTEo17QrogFi5cWDhvhio6RgoiLQkTINjB3ACC2RDHq0aJU3GBzEWjtcWCaYI4FDgLTdAHKBcqozpqos1nWryHZjSwMwQ3HocLcYEF+K8lQQwRiMjTDkSE3thtvSHOh4gMsqXJYjKJvMlmMnm8bQo0mYLeNk03mTIY0xwTI5iZVWZTmEGqHI7bbDpnuofSgmXaMN0YP2YQE8gMQ6Idw6Qx7zH5zArmA2YzU8x8xBxlPmNOmzuavcx9zP3MoeZx5snmqeYM81zzcnOh+WvzPVZg27KebCgSchybzM5ll7J32O/Zn9jHXDAXykVyk7lZ3Bwul3ufK+C2cTu4U9w33HdcC+/JT+Qr+EeIrE0S/tXkgtDNod9/6VoDlqnPHz+Vy/UU8FNqvtxZu/Ena2eyanz+zLyUfuD61rXTB2tvuD0Kv96n14hQr3E7pxwZY1+Sz8tVA6JTw/u6UZfbfYC7dnJ//Sm7nH4sggdE0ct6ojLz+NL9B9zKHftLSvfMTUlbNGdGul1e30S/UJJTZy1Os01MPl5fs9XRcEaTaF5LhIOBNtdZONjSWumXyoMYSkVL34rcoO9njvE8M6X+x3O+Z2pifv7hEC+FImJhARmIfWic04sK7YMHrQ+NewhxWSrurgC6MohwEDxevU5WDl+QGZ9rjbXcdRy78NJNGi/8ZUCiMTzX0TIV376xJUfpQWjE7x/wj4kUJ2Db6JsyBQNU2+JhGOwYLkieapYwWu2oSkNVqZcap7L6ss6qhAADlYhg/iAnqfC5kiYgVEoPcocJrngecK0F8qmugpw+QZW8VclHlXoKEoZt6W80qctgIwC00684DPwdpkp+Qo23UJ8s6P0hzUuVxqnQ3JLjjvfVcar+r1Jl5C3+RPOumy/dwCXrcewVe+OEIZUDbAOGpEROeK2OJDcqlXjWjrRHnr6V8rXt85rtFXXa9f48TYUC5fwwfvHc3JXZNkMG9Qavi4+e/HIBUWTUsqm5E7VRN3hcWpQAy7sL0prcKBVWeqjSAFUKFZjzuJccxKbO+MRbmCHAGwTiDb5uSySY5y10VaV+qgHeMzG1P8K+wUL8FJXxFSQf2uY0o8fTNsppZ3ycRQpRoRs4O+JjpAOH62lE3zEgyPHQD7GL/J4A3JdEPjW65NisRhtwN4GFYAgIAoaaY5Kzw1O0R8lKY1Vk165Jo6JGJjc8e1FZf1mTEPstkUIXTObrqAgTYwDD6OONoHRLhNB47KOGEk1elKLK5RMEqb/KwCXwcxek6aoeohik9QeLOUOAWKRw1bUcjCBmuX28IP/cTZXb64UWOT1Qlfqo0kDhEuLdRJWt91Vh7EiVNumbHHhrpKCXDhB8wlTA8iJwRb/qSCx2ghqEXQFhyWqqw7U2WoAOuG8PXGIV+CNIypXU3A+hmsjXrhdXnjq9O+tdO23CITctNz4+cvr4vuRQ+x+M9jLqRq+xaXPDU+xXUrIcY2yyb/iMzLAsTfISpOEqM1llO6iSv/AK+psMYDeSMfY1v8m9cS9NX6Qnl0TbKBlMLXQQDbiFTzhN7tZ4uPh8qUZLgbTMt8hNr+it8Uh4t84po0eNSq371/PKCxcx01jRxaMF6NlBkGjJCofu/5S5hmDbW5DGCANV+URfQU4MFuQUMBNpjPogVu2BM2LV/gJ4EClGZfQIvbQTzrUXgAUa8CQPUaXJQnyYkdE8hysCN3TGvKQnCPJ301To7KvKXkaKcQQmdemfI75LEKZhMWGrkdlwofB/gB+PImF7qgYt5LwGdwkW/DU+PocuGOGXnqp89y/DYNvUAFX2Nt5mTPjzdf894e7/iipX6gJ0VAwCxNIugopGZg5UKC2eJDtzRmCeW/7G5Zs3rl27a4f92MmaiqZqq2NL0YYit42r1i9bb+9yfta+8Y3WTctWfbjc9v6y5fkrtqZtXKhtmbs1b89s6++oakIXOu6imDEZYHcVGhV4G7jeZF9dwOlpnXg6F1FvKJlCTTx9m3L3SE7snbhPfuVhLvLUUFzOyQKHo/nk9yB/D/kO14kqrANy/k4AFATckf8T+Bpd4AzdogTGRfn1Oh15q+l04/37cReCtTX+SvGu2UkzFszOnrPgo6qjuw4c0GR9KbjQrQotGAwFRMrdo5duh8A9iahDZQFFQsPm9UWOLWvXrV+3rqpVq892F61d61hXtH79+uOtWv97UVv9hFInv/aZwabDpmbTQ8bOBDPJzDHmjLk1Ut5o8xzzfPNC8wnz12xrdig7gl3CfsD+gNT2C/uCc+f8uRhuPBfPTeESuZlIcQu5pdwH3DpuN7ePK0HveZSrQfd5j3vIPeN0nuF5XuDb8O14G9+LH8rH8OP4KfwMPo9fxn/Ar+WL+YNIh3V8A3+Vv8E38z+iG33Gv+T/QzhlxtLZ8xNt4elH/7Fcg9oDBKKHPMcMtxvUkQbR4bc7Q/tT1dtLy+1VZbvK9ly10hrwV25v/rjyjK32YFLgRjSHFlb304mSf2tRRXKp9UD6pO1jbUHj5ozP0BZk5qckufU8Gwet59qvLDmYl+WWmjlvUnhmcd1qOxVIUdD2tCMzrZmH6xact0Hrpi+AK1tesmSfllMVcWjwDmvY1qzdJW7lxbtOnNmzYNxGOzqXDHKEduPBjdBEA4xRLyf9nsBDO/Sa+jnlFq3mqSc6hy6CnNtJlbfBZjpQiVANUebndH/nD1HWx3mGH7F08aIJtvdXFnyYr1HOsrpiQ8EO25mPN3/s0HYX7zxeAaJV1MsQTds4M4jf9PghIdNrH9r1pAzBQvt/74Xe0PfuTxBiF88WORynbCeL50+f/d6SrJVap1w+YNGkCG+3HrWRf68/7Kg/gfLyR9itoJhcHPnerDmzrJmzZi5OtHWI/Af4Qe/LT59dPTth6FYN/kaW1y4rmVdl/W7SgJruNhpCOdod3W82koEn9Pn204/vNGhiD5X+aqFt6kJ+EgcJqJxbQTnI5O7q7fPWUL5w2NqUzQlWaL+HzNu8aueaS4Uw4P3ysEpr48Gy+rtu8Legbw1rdtpQ1dcVhElvy7mDqaPCMjJGaGL05PiY1HkHjn3q2Nuw1f7ppl0bdmy3ii2iIWoFEup8c7j+Jk8tZJTzzVDjSiLgYshbgVzX1etO1bhC04MIXAdmag4QEOz7GmBfPlSQr0Sqsu9YFY12hiq+gzKY5qFTaQser/lBvlCLOh0Okh8qq5u3bShYvdkOHpaVhXzhewUFK2xyVUx6Vv9U7ZFFLqVmIuo5ICv0MoGLega+1jkO/c1pC21wJvJU1qdZRLB5CwgCjxAZWyxYxaGkg/MaNenXeDoM/eQLAozzhaHMUby/4J0vDA70yQNJ/xHF0cdoJzsYzsJZRAblzRofvaQM2q+x49Ypu2HC3gR7dMm5jK9t0PbiLfDSREPbiBDW0s8wsZ2iup6nzaRvaea91fYdZHtRQeF+bUsh/8KyeuGagmW26cs3VGnwyc2nwRaxufJkQ+2+9CF2w7hYoPkVe51BsowBI3d9XuWOmn+fj5kpIxEHK7PxmPCvJIImj4H+QWCibFTSrOFpdrnp5yzlQlVkty6GTkg59ysw5Z+jUNBj9NJugl10Is2JGOZd4+czKFagE2znqY0EUZ8h4GN8DYCOdDv2W7Ghab+C3s20Ny/+6Wv/wgNozInzDklek78k2zaPcgfJi8Kyig/Bxdqyz5AGYYajYMXuqsTUBQiG2+2B1sUQJimCePmT0ksHtYFoJ11GoX0xVEADEWviVf0eJlGmJgcaXQnmg4vIDFJF7BHfp6IjVBUN9QGDRRRMLujqIQMkpvYZi9bsodKZSs+IRC6mJBfH2ChrfCAJoME3KYueE76dik4JtmHMsWm4MGxMTMFL+OUluj1OLEFzFb94kiB+2QS2XZphhZrEEQK8i84KZqLm2Qd5LHLJE4XmoZPMIygCUFBDJorqr1D5TRivip2To0dGJV16+uxww2UsZTK+5TGWLgC7UOiIRtTpk4tNVdoyQRlJ6G+/Z/BXiIT17uLQu4EkMtPRyTp0L1wIhKM0++pp4F7yOu+HjO8Jh2NRnIsNMzFqCQxSsL1P8PQtAhMQ90TXYiQjLCuSHWukBr2falR4K2ZyK9L4KfT+fUVD4ukhIhODCW/jnIWuGG0nKn7DGLUT/wtChX+5AAB4nG2WS2ycVxXHz7w93zw8D3vsju3ansTxY/xKxo/xTMYCCXWBuuiCJRtAhUqtuojYICGWLFiwYIVYVCyqroA1KgQlKVRGChELGkrcUpQ0D7d+JI4dz3g8c/ndcz/TxELW8f3m++4953/+53/PvRIQEU8WZV3C33jl1W9J8Xs/uvKWFH9w5fU3pfjWd374thQlzBwxRuzcwJuvX3lbeuyTWliCOvZgP9aZa/JLeUfeDQQDycDPg4PBV4K/Dt4JvRb6Xegg7IXPh1fCG5FCZDby3chvot+Mfjt6J7YUu9sz1fNOfDH+/fi2V/Pe8H7qbXgPElOJnyQ2ErcTB4lu8o3kz5LvJm8kD1K51HDqV6m/p+fTr6Z/kX7UW+h9DQxhCfEnElEknpzjaYKsRvkVM4/5H5VeGeBLVJJSkgyWxwaxIjYsfTJiNmXUPJUxch03X0rJ3JZzPE9IVmYkIWUZklXJSZXnGv7rkpbL+G7gc93sgSLEfxtnDBQVZq1JCktjvViWFTkw5YnVJ0vSz7sC7wawIZ5HZEpeJsKoXMDDgozLeZBNkkuFN7NgKPNX0qc55s4zLjAuYlW+NFj5Nfx8HSuBLwOWHokxesRMmBNJmkeSMfclT1aDjEVs2ByQ+Q152Twk+1tk/zGR+8n+KpGzMmE6csF0ZRJmprBp05SyeSILpi0Vfi9jq+ZIqoxrZl9q5p7UzbY0zOfkmoYFD1aSeMmDaZBxmOgjjKNmi2hPiHRPeW6AsMCcELhz4A5JHD48fCWJn2FFFo7JRPp4HuTdML9HmDeKlzHzDE8P8XSimKfxVKHuq+Bs4C2N1/N4e6RPeZhxGLZZeeDX+z+sblPvMKsTrI6wMkQEy6OHJc0xlQwSu+myYKZV2BjvxllRYjzH7EnmTWHTYCmbQ5ll7hzR5k0L3jqyiFXwsYytkkeV9zUQ1OGwASJ2I6qImPdVrTFGz/yD6IewcEj1noDgkOwDIOgjeo7IOSInyPwxUVtEbBOxpREXsQrzV+B7jfwbMJUltxTeh2EmBc9l8gvwNuo4ZcUoeMbAMw4DJfMJrERgxVNW6lqtDk8eTznijrDazmiQTVR92bo4XkI+Lx5ZeXjt42tJPXSpSJTqe+zBBPOSVCDFmMZ6sQxxLdIc3OeJ1887q5ABVdIn8hK/i4xDjMNml5gD6NhQE8tKP7GHid1P7EGnCbidZe4cCOaxRazCHlgzX5DTv0F0C2VEydpj1yRRcwY+C1RxkNEx8z4RnsLONdi5RR6/xXua3GPw3YTvJh5P8NjE20eK1QOXzT9OTMuQIceIrSuWhK2MzYbxdNYEz1Z/86rgCLs5pKtyKKLNtxKKaDNvEjbv48HuiahyMUJlT3fVOJUumX+h6Cba6tKpWsr4OjxM4uk9vLyHh5t0hgPdYSnGNNaLZfidxVuOVXn6Yh/59/O+wE4fwOzue4nfRcYhRrcbYnBjERyAoAWC+yDYcT0U/dnOMQMbszzPweE8tohV4LnK+zo5NbCw5jhkvWn2Meppu6rHN6eSzhmVdJ5TyTFYzRmldHyldJxSVJ1BcO65vW93LmydI9IE36aZU2HuGtZgXoHoYzB1qKzY/uN6Txi+zf86SIl+506dIPzaDhJHa2G0FqSSQbQWpJpBWeZdlbFOpDJ1uIneNqnFTYmjQs9cpx6GHI+oh6EehnoY3fdZVuRYnTd/JMc29TBgC5BjAETPqIchx2fUw4AuQo6DMNcP9gFyzMLpAAgz1OIGHerP1OOvdKer1KJLLbrUokve1+gTf6ErXSf/ayjnD+yMayjnquWYGTHMdlHXewPk36XSx3joyEXeXeLdEuMKVuNdXbXX9LX3jDUR9o3dYzFGD0ui2DQzM4xZ1XmAHD8iP9vlt8jHnhn7rCygry559JHDp+SwSQ6fkcPHaKpDHm1QtMnDnkyb5PE5Odwl8jF9JsLMGBZnx3jsC8fy/hmW94keIvpdGD4+w/C+MqzsUp2v2C2AqACzvaB6CKpHoNoB1YPn+v5pz78Pqh1Qbdnuy5NHLjb/QWYXsRHij+ntxNapiactVt1jxQPy+Iw6RswHvmI+QDG75PInPGyC/Q64f4+nTTxtgnH7BYxWAQ7jh2Dc4HzawPvfwPmhYrxo/imXsArKWILRZb6v8HsVNaxx+tRAUqd7r4Mi7zoWqo8xxvHt4T2t53ZCT0fbhcdUc35UZk2jiDlYrVDDGkqoqyrarOAcwZMHFsuVIabhTDTM2mfWiVxmZzdQzDoRYngaY+cEVLM1+lLdnvDMXKfnZKhehL+g9tUYYxwG8jxNMtsimNUYTb2/OKV0Nd4ayBqaUUSjRHUn21PCqdidV9Z/wPc/4vsvcTsLywyz7Nmy4J8rVX47/Mfof5fVj0HY1c5ExyebKKtjjPaWM0GWk+CfwqZZOcOcMs9zvHdn+AlIj0B6QvfIKNo6YwPW7W3BqtYDl8Xdz3/L0hQZhPjvetEMX2f9XlTh/RK2gq1arIw2S3vKcI9W5vf49URvYXQScJcViWW8pYyv8zuoX+3+KvJke3DaV0Xaz4q7I18mQT6FuRNgQO+PFovrF+BhjcWzzGj7xirdrsq8GrnU0e5lrMHzOrulR9m3zJ9FZHFYVFFfRye+OlqayTpfY2Ry/bmve899bdEXQniLkH0Ms/hH6Hzzej9r+76a1NLebXdZcYS/Ux1W/48W3TmwZnskudnT+zbswCljXPe34WZ9osqc8tXp6o6SQHt6n1jAFrGL+L6k+6fDDm3DVpcd2na7xddEDebr7LfLepb2qjZSvi7Svi5G0aq9l7o9sOTr3+W4499Bd2Cfk1Zvie6GeEHV9NXN1iriyCmK54t8c5U88it5rOqq4sOeozU935NgSoKpR3dZmP9hYqJkZlzW/Xes95Osv0c+BTWzGOPs4QnqNYlNo5IyCF+83+75XOy6nUy2dqf142XL5c7oNNnSLKbJeYaqWB5ePDmOlJMV5aVFBjk8nuAxo/3H3kBirgMQy3WAAbw+xesuXvfxsEv+u5qru6NEuKNG7TrGOP4m0NDp7DI9dZ6Yi9glzWSXuNsax/bZOHE6Wrc4p5jewvWs6yrSNatf6fkvfd/W0QAAeJxNjk2LwkAQRF8y8YNFFg+ikFMQDxIQZA96VdRF0JPk5EnRRUSNEFTwn/hvtWyyIENXTU+/LgYP+GLFg2D8O08IN/fsSLjL/g6Ex/UlpU0ghucTX+ao44bLSURztEikyWImtbnT3HtrfvelwTY9n5S0362JTOP0esr4MdazROP+eXuHAhWdiDE36z3KqiJ92yrn3Pttau5r9i3aEdNhoL7zwbTMnaqq/0+M6jISFTOUdi01/tio5R4o39GjZETjBeCcHnkAAAB4nD2QOwoCMRRFb2ZAgjPC+GFQsFDUzsofRGGmFLRxM7b2bsEtuBG3YGWjuALr8SSIxeXc925e8oieklB00NSUys1DQ+qFaSr31LN64ffkGSrQOHCkwnzgKdTrMHNTC78N/asc3oV89D/n5wbkCX6Dz+KaGjBBKf0Odwh18TPYh33YZgeLH6IlbzkU0fd00Z236YezH80Dy7BP7ze3wifsYGGKrLko07k6kvnc+v2jiWxc/ymt3v4v4p3cF/ywOag=) format('woff');}
+@font-face{font-family:'Xpert Heading';font-style:normal;font-weight:normal;src:url(data:font/woff;base64,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) format('woff');}
+@font-face{font-family:'Xpert Heading';font-style:normal;font-weight:700;src:url(data:font/woff;base64,d09GRk9UVE8AACE0AAsAAAAAK3gAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAABDRkYgAAAC4AAAEyQAABXO6PBW9UdQT1MAABYEAAAJjgAAD+wmWweeR1NVQgAAH5QAAADFAAABMBt4FelPUy8yAAABaAAAAE0AAABgaYyM7WNtYXAAAAJsAAAAXgAAAHwlzCLCaGVhZAAAAQgAAAA2AAAANh7yTXtoaGVhAAABQAAAACAAAAAkB1sDJGhtdHgAACBcAAAA1QAAASSouwtZbWF4cAAAAWAAAAAGAAAABgBJUABuYW1lAAABuAAAALQAAAFKGCcxFnBvc3QAAALMAAAAEwAAACD/igBFAAEAAAABAAAV96GaXw889QADA+gAAAAA1UIIBQAAAADm4QKM/4r/JQQtAuUAAQADAAIAAAAAAAB4nGNgZGBguvnvI8MJluj/Xf/7WHQZgCIowBMAvCEHhAAAUAAASQAAeJxjYGaawrSHgZWBhamLKYKBgcEbQjPGMbgyWgP5DBwMcMDMgARCvcP9GBQYFJQSmG7++8hwgkWP0RgozAiSY+JjOgekFBiYAROSC2YAAAB4nIWOzQpBURRGl39eQEY6I5GfkAwMMTYglBkR6l50L8rU0CN5Eo/j6zgUE51Orb3P2t/ZQIoZMSLxDODpvjhCVtWLo6S5Oo5R5+Y4Tp674wQ5Ho6Ttl9kzJApJco6FXrsOXAhYMuaDUcMTaU1aIkWejE/M4Y+K0Lr71QVXOes69k0X7RT0kCOr4yTbMOIubohXTkeS5fZ+bLeTvVjddw27T/eRH8Gdqu93apBTXP1Jye/LVp4nGNgYGBiYGBgBmIRIMkIplkYMoC0GIMAUISNQYFBjUGfwYohiiGeoYphu+IkpYT//4HyIHEtoLgjUDwRJv7/4f87/2/+P///5P+j/4/877635e5zsKlYAAB/Oh2/AAB4nGNgZgCD/+0MrgxYAAAqLwHPAHicnVh5XBTHtp6e6arBbmyFsUmcsabHDRUEMYqCG4qyiAsq4q4ssoiyqKCIkohoNAruC0bUEeMWF8ALiooLRsUdMAmKiZprNIveGI3b6Xk15veq9b1739/vBwzV1adPnTp1+vvON5yO1+s4jms5MiUtfl5mVFx6pk9wRmqCNtddtepUhVNtrjq1rV5tZ1Bb8bSbq6HBlacCzfiv844c1MZlXYuaNi0eubdxOeamc+E40dTGNm7LvqNxc+dmZM9NSZ6RlZ6RlThnXlxqXFJKSq/uPfw/6e7r59c5esz4Lt7eXQdnzM55b2X7xK97T1t8ju1/7tiGJGamJKfbPNlgfmJqxuy0xPSs/1j//57/sEmbtkubtsv/c62LYXnQYd0E3WpdNWfhenHTuEXcGa5R30Jv0pv1PfWj9RP0afpC/Wu9Q/+3QW9oZvjIEGJIN2w2VBtqDA0Gh+EdP4Rfzq/lv+TP8pf4Jv5n/jn/CnVC3sgPBaBBKByNQGNQNJqE4lAqykaL0GK0DK1GW9EOtAcdRFfQDfQb+hO9RRTzWMRu2AN3wAE4BEfiiXgqjsOJeD5eiBfjz/EqvB5vwbvxQVyOK3E1rsGXHDk2QVR3wXy5sKhg3Qbz+aVnPjtqfZbcs5ZyFtqtK+XpUDroSVvwgebP6t8eVKgVxy5MmDvBMn3W9q+zlc/sy79aedZl9e/yg02lFVct14/G9t2giOpJmQZ6Uo6G0NAXVAd9IPAv0EEwDOv8lvZXCimSm86EtvUcHzIwaELDq1dnG+6whwqHEme+sce0OB+facceWQcKgSWjT8dYJ9c0zXlkedS0t7pGOV1Vcum+Wc03itDBoL5S18rgvcrzAR1uoYM9A2k7ii6Ohc4Zyl/Z6PmC8oxR5pFRSX4dxxy/u9xKPTH12/S2F4y0wCgw/AxdwDj6MrXsVSguQbZdqbtqzN9Ul959WjN90DqrCHUy/AVu9C8IVJuDm/Ord2nqMfZfwaIcUIP3F325d+vWVSu/tL42rk5LL5xv8Z0W46dEBPnecYaDTQ1/YBSHxcSFRqYdumGF59TmdDVS1xvh4PL96b1XKqyiQd0Jv8rw8ZKeP9A2FtrLty0dTkN/bw894aNf74G8VaFmHLIwY3aUZUjctTfnNp/afkj5uvhgcYXl4r7ZQ4oVsc/0qUOmpO+pOFZiv1Rkrd5UvmH96uKNrUXVqpbLlHcSKqoEUV8MU521KGpG4vi8/NVrF1rbGb/YVbRqu6WsYsPmPco/ireX7L4Bcx2mj8WCHkSEm+peTyJi3yWjx/laqEvYE+gB/t/+C4SfT8d9YlfE61XHGi5/PXOYlT4EG/xtBNeIOuoSPGnOyOlWkXq9SwMvMZOk292vDRdMJxYSU5MvMQXcNYrqbXa+J6ib2gw7mzkzERudYAl1MaouaiYSG2OJ+33wghLoQFtAB9Pr+x5wD/90obi8Sqkq33+l1vxd4sWAaqtJ/e7k/mNXzWfnnosvs5bHTijub6F3MXhRNxl641tlGdFjkzNCFNobUzcewrDp9fdHZw0fkTgrWKFhWLI7QuxiPGFRgpdBzCLqOmglys6+7zLRz1jt62ChwHl1r9wfOlIb7Rjq20D/iXudiPvt0O41G/danxlXfrpsVZ4lKX9LtQKn2L5gqwyRGMwPn0Jn8Az4kXZV6O2xgirzkAE244/lMwYNTJrRV5HUGzJ85LyBwAuDrN5Azhvg5Uij8420lbOJfqw2IZo1VpAMkAVfyLfvwlJ6G7H46W21B1RBHaIhmB6l3yP4Pk4QIaUb+9gtwyI1BtF+mLJFRdgjwxDYpV33pL17QG9tBEPoLhpO9yDoh3+Dfr/SfmyHNoPYOETgmljCL/qTJg84isFwa2/tGeVi/cFngM2AUp+NabDWTgzdQ3kLZbe9nC9kNRMsRkAX+lF/2jOqH0UKO2voaefqWC2MCyJ1Q0k2gSbj1RNV1w7uzptXbN2asyY3xUwfvK+VupzqpIPWvanTtk2zhE6cHZmggN0o2sEEbupQu1hgh+vgBuvt4tj0tPFjMvfXWW9Rr8HGoB1Tjk+3Jh67kN1ggS7/bII2ilpmFOcRtScgUX0hQworpHvUDeY4X7DsihlrlmxdZIWuWDTAwniirtBeZCw60mRxAlF7qy4yzAMHosGYmuky2gqWIRqKYS79my50GhAEY1BgPdjoegShWMoKFsQZJIiw8qaemn+eVYYb2LCYBa3UF3YR/mRxOPEAQewtSO6XhgtiCHHfDzYRXBm4unInoL0IengNeq6azRZMI+JOHwa85dQmyqzaW0ILo5RFoBfb/RxWjuA5URBHEe6I5sJNvWcXPcDGSsVGi/D5GVP3hFmo3IW2pL2DSwaVjVfEAl+BWYxUyxHtjCnnVGgzVdHGMNpZjqShRHsvxQJAUMcCHS2ka7lWe/7+9DXHSgHy2DLsfdUWs8EGEdOJ8BiGQyyiPbBI62E6WDg4C09luodaYA+WdrKTWsZizQA3juWgmY9d9YNmbCu2AAE70qKFKIETr/UTxF6E+7BSvp2dbLvX7r+wRfqym0kFw1j5emRpm0Xd7aLzj1D1Dywy9LCJSZnQDH6DZgxDtJI41YvZZ2hVJUYyd+ClevoTLdIYUd3AnucYCeuMOp2IdBadrl1r3UCdLri1brpOl8bp5uo4Qc+t0OuGalzNM7sK3WNOYmxNOG8umBvOjeaiuFhuOpfOLeUKubXcl9wR7jh3jqvjfuR+4V7qJ+sTGIfn6Jfr9+oP60v1R/Un9Jf0Pxl8DL0M8YYZhtmGdYaNht2M0X8yPOXD+Ah+LG/nn/EveAcyIgG1RB+htqgr6okGokg0DcWimegztIGBTVu81Ykl9tuYBS6+dvVX4Ny/gdaj4WNgqGo6rO5Wm8lLjDFL0+fFWakLdECPr+w/1mj+bchVmy1wcNekL5P3z7RuytuUt3nx6pVrl69f6mIqp81GTh/nY6YeT/2hXUPVjiv3raZRJ6MQ+GNWaL4VJ/feW32n9TrjFiOzfRctQxsahJKnxC1ItUSPv3j5cPGBfTsU0+GHEC5PvLp80x7zgd07S8t2zU9KXjA7Pssq0SLHRDsHvt8Z4CO1Ug73uRRb/6TO59Lx8CegK513i+qSEbgMpi5GypXNC0XSsCV2VtciB7nASO9rqJJpBERQkUawH5GNIoB9QoSWiQLw5K77k+sjBWkm+fclzJxC2M1P2bIJjmkyjX+XiuowxDtSkTROgOIpRN2eKMQI7QTpE8Jy6f4Z4arAy1OQBhIpTOB+YC5yOhIpKYc0smGWRu3fMUT4brKApcmEOwZeHdijghaAxg49BanbIvIVg8ZezPwxY60y4xAiNfoIjeDVl/mJFH4Er3AiwQgf4SarR19mltqHMIN69tBJf+InSLNJRS5RzTYizSJ32OxmZjM/kMwmx3OJw+elfPrywefPzG8TXw5rsNYPDzzc3tI+cGbYcCUiNKkD5cyUO9rheqg17Nr9ma8sd77ZVnpJedjnzj1Ed8BaOahPUzBanDlr2SwLde37gjVnvj88BwmkHzrRbpF50fNiFKmxYKgAFR0FaWdWNIHzHVjY6QQW+xNVDmV7WfQ+qIP+pD2RGCS29YA1jjREvTHt4TxJe6kntTGsepeGJDjtI3gJUgTpIkhJjDO6E6kbHd3AqbepqzyfXWSNJRAJxHSirWCaEEZMW2l/SJO7sBVTNW5wr00ipim1GjN8YzSdHnfk1Nx6C8jPoAX0/n5eY/I5pSZp6JGhlrApc6NTFCgygkDPyA2nQzp1nhwaMmRK3as/q+tvKWwdQFNJ53+7PcDc5qpdYoipcIpgSqWC2lz+9lRYe1a9U4WGP19UN9yySn0Eri2RaH2sYOhKpBDBvZIBRwa0NrVRO7A2KcBo+qOTwC5YZKljyCAijSYMqLi6IALT1fI0VoQ03e6I19CLu8Umk9TyIMFxPVroNkCA/nauls1Nhgey2p7aGPOFGC9cAZnmIwhIIVKE8N6PIy1BgM8Z4DFAuwwKVVgIAz/8mUov9xMYspnq6sr+cfnUgdmxVupkt5qMN8sq/nOtuhtfD7tKdaFTmNyynp0TfSDcYvIbMT07aqpSZ5T8iDSXlA5nx9yOSAvIJZaYEzBpkvBuFXNViiOPVGewjHv8i5VIwJ15d5LPKKYJZ5PDj0RYwianR6YopiYQMt7nrvPkMJbx+hd/nar/VmGu9jNXAWpnlqm+RlNT7cyJX4dbqIc3lWhgUElQ2SRlQlldynVL/ZkDtYcVWsraHVOAYxUzpVuoTv7uZFi7qUL9C+0oFKk7e62yxhEY215gB5L1Bt78zj0IIgFE6ixI4wV4GUfAY5rg/f4CBhDWrrBCy3jpaGnnvNgZdp5OOH/tJc1mQHDJEdObVcIcAgNYFuu6EtPxMUJSrAADgkhXAtlwMkEIFXawiWg2IUhQzUyjWTo08/qugqlqjADV2m1tTjP58Awcucz9E47IDi+cmZ44MMecv3HZ5o1r1mzfZq04VXXk+0oX+5YN6zeYN65Yt3Sd1bN2dsmEyy6blq5YvcyyZOmy/M+LZm5cpGzJKsrZOcflnReWOp9j6NZcg78W5+SEiD+i6qE5gqMg0nT8fugFYm9ceqXLhQjaDDF+FSEOh9HmiLL2HUtqcsHTxmBhlt39W+YlD5o/ZhweB8hkVwd6QHPWEjR3LsP0U5U1MC0ZeTZXC7E62VkoqwFPnQHYlMFQ0izT1oEftNg9psXM0PrBBy3W9y1to1DEX61kUiwuJHJEPJNilQ1XFClrt1q+CcKLZm3D0FIARbyyYd2atdu2sM81a11dr63bvO7LdRuKitasKXJt/l+5rRxt5BqTLlSj2Chdse4Kk8LruTf6TvqZ+jx9kf6GnhoMBqNBMrgbOhsmGVYYChllVhhOGW4ZbjPafGJ4ZnhpAAPlzXw73pv343vzQYxKx/OT+Xh+Np/FL+QX80sZrX7F7+dL+Qr+FF/DX+C/5W/zd/n7/CNGtu8Qj1yQK3JHHsiCbKg98pQ79k4JH6FEhCR1fI+o5R1u/C+ivrp/uP6acq3uH29emgEnvYxosDYM63uoraWQtpKhxd1O9BPq1acTdaVSv+fg+wFfmUTdtV3O3L20eJ8ZaoygH3iBelLPoBHULd8KFnxhw+4dDZbz+3KSc/Jzc/OVBUsKCkLzopZ8bMsZP9bL7HUj4s/L5/ecO2MV1ZXQSa6mnRD4YrpOA94+mBYxsAUffBrYdC64yXQMfgpHkRhE1NWqXga8skcD7WihpFcoNSRvSd05X9m5YHv+uYXQd/zHpXlFefPMMxOyI5Iy1m/NseZu+XzL5wdcKMFUXPvzSAiw3L5YfKhCqTj01Zka860ZJ4bsstKQsyihaMnGEvPXh+yn6w5nTipkutQxWW0jU6bToA9eEb9k7rw5LjHJUXPGWKjk/4aVa/c7T6HVuarc9MPKrpwtC7cmukBbDN45VHpCh1hoEm1Pu9FsOofJOH+Y+Oxm6f0Lyg5v9AsWpwtwTIaB+Mb+OZFKmnHVgoKcPHPo2vk7ZljBfx/O2pq/7ZB5Bcxasdm3wuX+ocrax+ZL2TUzyqxHZk4tHmFxWpio+oSHMTDUeHz7itydyo7cTXNTzDPyM3JyrZ8uXLA81sLCH6DOl5df+6witdKlMap7pfY9RjxtRTvRPLoYTKx/j2Hdhutr6LtJoZ4+RLyWEHtgjGXyuMyEJCU6KqN/VzPt84gyhXapdGftaWuwMWLqtKETU0sq86y0Ay6M25ZenuYy43jtwjsW8HtyG9wUMSkLRO/+QhQxLQhkmrcTMU0YZmRKA0oY3fbuTwYJsNzJVNpu8DKKjnQPmKYdeQ+tU69itFX1vmtHzuMUqce1eYjXSsGCQVRvguS8yTSOwwN8tPa+Iw50Sn1UCVGbNvLXRh0xdGVtPnTAD1W3e043JDIEfPg7U/HeWr/sBqN7CWJPgkV14yhBg4tjGlz4akqdwYVIi1iHbgYlPZmYylmfXWE0jbpfWXl/2+ZVX+y0Qjtj4dIvCj63DBsbF5yqmPzeGMXGwcRd63QqwZt6gZfpsboWfpLpT0aT+l7RetO9tBL2diPwExYbC4KJyF3zJ/2IqMYwJnEGUASrMbVTJmmRGgWI7jPCDiZwtVgDwU2kqxh53Dwd3KnLlPCQkbF1z/46/u01RXSWM3GgHvWYSOivRrFb1lto9zu0eCsmDWOey0cIol39ggmb/oImRJzPcWpeXlr+ssI1+VbKG7/Yd2RlieXnsrJH7DXOp17OfKNIu8BtRPtiJkFGMUWhhe7FVJIbU7luYhJN/+V1AmGyDlKhBXcdWhquw2+TyM5YovnPZvm0QwmLeAxrDVg/KMYzmWJXfUEUPyUsUDmACRxPmXo+NK4Oy0iIzHOJMr4tPnVxBehdgBjF8exsPAYzm2bwK9NOkP0qjbCDuMeW1k4GiyO1voW1wLCAtcGAmObpNk0QRxBJHqHtl8Ugsmz9zZTvpvdfuowrvznzpqX+5FfnSxWxCyPykMniABZTD/aXSDTh1Y0t68TeRGS96EIxXJD4CcJ/A3vwinp4nF2W7W9bVx3Hf7729Y2vbxzHdlLHjWMnaZ5TJ22aJrHjqEwIIcQrxCvEG4QmEJv2ouobJP4CXgxeIoQmNE3iQYyVhxa6rkKgoo21KmNigra0a9etcdO1yfJkx459+Jxz3YdV0c25Pvf8Hr7f3/f8zpGAiLgyKysS+uKXvvp1yXz7+ydflMx3Tj7/gmRe/NaplyQjIdaIUqLXBl54/uRL0qHfzBMSy4wdPD8wK5fkJ/KKvBawAl7gh1bKes76mfV+8ETwlWAl2ArlQ4XQaduy8/Y37N+EvxL+ZviKM+5c68h3/DRyLPK9yIZbdL/rvuy+525GT0Rfjlaiu17cy3g/9n7rXfYedh7qfK7zy51nO7djX4udir3Z5XUVu06RQ0iC/InYJhNXhnkbAVWOX466y/+wROWAuGpfPMlKXAYkKYOSZszwu18SklUXJaduS15tyqC6JkPqggyrz/DTKZN4mMJ+AetFfBXxUyLWsrojZdWQFfWQLIKqYuLk+JJiPITlmMRkVLpkXLrxkJACX8alB6+9Mo3HKTnIe5a/Adbn+JInm0EyHGL1MCtGWTFpVvYYi8M8BZ4Z5mcZF3nK4sgJYn2BZwjsMfIIMheDi5hE1ZZ46rrE1VVJqrqk1Q3J8LufrLPqdRlQN0F+AeSX/cjqF0T2ZES1ZJTKj8HCuNqQCbUtU9jMMDenHsg8vxfwt8j7EqwV8V+C7TK+V8Abhe/bRN4kaouonxGxTsRNol0j2sdEugLHW1jU4cM2dUqTd0AioHdZ4ak96cQ6ztjNfJKvKeKnseiH8yyVyKlP8LaOt//gbUcm4H+OtQvYlXnvxOsw3q5KDMskX7Kg8HO4T62vY/kulqtUIoB1FGsLdl049NSn0qVqxLtP9rtY1eHIxqKGz4CxGEUBY3AxrmOT5xS5TKuqHOYpgHqG77O8z4F0nnERLovqFlw9APltuLKpoa3OkGcYvZ4h178S+SGo1+HuLtE3iN5AJQn0kaDGWuMuFdJVqRGtRrQa0apEqhFpU47DyhKYymSeIIKD7wz/HbhNE6Fq+OyHkSwYc7CTV/dgYw9s7xgeR9hXPpcWuSo87ePHxT+1warFyl1WdfCnZ5PY6tkc73nGQbjSK4axC7LiQ35t46UFhrB6Hx/sEtZ66hI1blCdOlzvg/od6SZeQtcbJD34PWBq/g/pY11GvS0HmeuHuyw6HdDVBF2e90F0NETew1iP4GsC9gpGrx/Cxj1wfEAGF4gcpv4umXuoLE41ekGcZj8bntXP8VoByWsgeZO8f4THMFgdPCq43sHrFl5reK3h8e980d3lAOrJwleeZwg8BebLoI9p5vQaVtXJ02afWdShrSQ4GeHbBJ2iwNwcK5fIrQwDKZSx7cdmjEgfHv5L1npPaDWH2jVca9dwrd293sbrXXTWolNZdKo9slR0qhY9wlav4u1VPJ2nAp/irU4F1qnAQyqwgecGFdiSBNVLwliKuR7U2ksGB5hPg7SP9RnsDjLfj9cseQ8wl+N3HrtBusyQ+sjHRnSt00n24jQ+DvMUqOwso9bqIvMl9FiGpxBYdc8L0hEDsBBjn4dhzAVFlLw8lKs7Qkw1yVWR645RcgJLrRbdHXrIr5f1B5hPk0sf6zOsO8i8VugAueRgR3eNQeyG1P/Io04tUTm/e4l4CHY0M03DRpJqaNT9fM0a61umewypf7erF4LXMBV06dIWXdqiO1tUMijzVK2I5xLv03B/Hu1dgf/zEkH5rvoluHaJtAauPXDVwFUn6io1aILpV2Cqg6kK/y34b5JJBUx7YFoFU5Ws6Gn6NGMuZ3pEGlwxdkIc3cbh/wwd6k/U4M90pz9QgxY1aFGDJjVogf139IuzdMw/wsE5sn2dnfJ7FHMabm2iOzyuPjNMz22Cvwr+JlXegoMd0y8K8HSE78fAqU/IJ5rboZY28cPk7TBG0IXLqE+lGBqIo+huIiSwSqq/gXUbjFfBto221sCWAtsuePSp9C+w/BMsH4DlElgaYGkQfQ8sDbBcAcsNcNwkehUt2ViE+eIwRvDislujfPk84w2yqJBFq634BlnUYFzBuD697sG4VnuNjLbabNcfs/2E6Y/I7g7ZfUJ2t8hOdwvVZtrvQ8ep2hKxOJfoYC5WHvpLs2szYM6itTzPEJ3E3zer7e5VMScrp496A8vL4HkDPPRRFOLxO84pllS/xtMlPL1Lnnfw1kuOcTz2YumRYwyvb5HjOc6rt/D+F/I8S477cgR+jqr3iHZOjuF3nu/H+b3AuMRYBFMJzlbIUp8oUbK4QaeKou+g6aUxc1LehZkNImr9hdt9k51hNLdtemaRU7FEJcq8R/Gk7ypB8tCK3Dfn9iJ8FekkJVYsw1SZvbjiR9KnELw4PBG+FMzK+6ysm7NuRVcSb1b7PhFv3ydiZg+PMDtmTnmH2jSNZmcZF9i/i7rfmHNuk5U2bw7PiMlMmVOkyMoSq1ZMRwgyY5NNGHU7jBFdf/yjOJnk9xQrp3l0hjPMzeo7iY7DtyKdtgSCZXRV5j3pnxEgdngixB8D+bipf5O+mSKH3Wd0vgtTiqxTJusSKizzvoJtr2FI30UfsaTvcuOsmoCXSXNH2TO3Bu1thnz8W0Odujepeb19r2uQZ5U8980NTe9j7tm8Fc29omJumUFzB5vi8Suhb8N7+jYMUr37s0YbNjNhlOEwRjSrrB3lfQw9jYN4AsX4KFef2jMteLPMvtF9ZY61urfMs34B9I+QF2FPo19+zEAPcWwiODxPZ1Zm1Nk5ba2Bl5oU0VYJnEZjrOoA0elnVqy1V6yZFZ2wUCXCLhF24dc19+gpoyfNm1Z4BYst6usztcKcY7Src/GZvW8U8MhnwOhSn3u6416Eret4vwhbVV9VpnohWOoxkZ70vbq5kWtNHGE8yrc5xnm8HTfKtmCqB5ZSsNQHS3FY6jU66cKvPm+7yC3k68RoVxnWZvBwzGjWJmOt/vU2C+tYhzld/coGybVpdnAET2aHwYqvXa2MrafOmz2jW+11nvcFxkV0v8S3orkDJMwdQO/0jqcq2HxcwWVTxX1Txe72nrnkx2eMwMUIvUWraoIsp9hdn98z93xO2HH+WZ/iL2juWDdBFMHLTf0fLzW8VPFSh/E0nraf6eNboLDaOkxzT7HwliZzj9yDRn8N8voYj4224nfwuIrHB1ivgn8NiwQIgvo+SP8Ow4LDGMFC3+x9FBtmT+gqz4L7qDmtKwZB1Lc0O2vT31mmgmHTMw5jobk291Nx/w/fHIosAAB4nE2OTYvCQBBEXzLxg0UWD6KQUxAPEhBkD3pV1EXQk+TkSdFFRI0QVPCf+G+1bLIgQ1dNT78uBg/4YsWDYPw7Twg39+xIuMv+DoTH9SWlTSCG5xNf5qjjhstJRHO0SKTJYia1udPce2t+96XBNj2flLTfrYlM4/R6yvgx1rNE4/55e4cCFZ2IMTfrPcqqIn3bKufc+21q7mv2LdoR02GgvvPBtMydqqr/T4zqMhIVM5R2LTX+2KjlHijf0aNkROMF4JweeQAAAHicLY9NSgNBEIVf18SFgoMb2zBOJESERGc1G2EmMPkRDGGGhEBWLnMClzmAG4+gh9CzeApx7T75OmTx8V69qu6udl5yYD96dG+6sply6pFrlBzUy/Cv9BNYQQaNfWphG82jM91TPzFXWaY2fk6+jMaahJx+n9kafaBe4rv0Y3yNb0ffOkc9XJPfWLb7454UX6I9tIN6dojxA5jyVqBFXgYfbTUkr+AWCkj5S9inczxX4GN2OEEv4NT969L53fthFwh/tQ9mvo78am13ylsvet4D2KMsnQAAAA==) format('woff');}
+
+.body { font-family:'Xpert Diagram','Nimbus Sans Narrow','Arial Narrow',sans-serif; fill:#0a0b8f; color:#0a0b8f; font-size:14px; }
+.txt { font-size:14px; }
+.small { font-size:12px; }
+.tiny { font-size:11px; }
+.label { font-size:18px; font-weight:700; }
+.panelTitle { font-family:'Xpert Heading','Nimbus Sans',Arial,sans-serif; font-size:28px; font-weight:700; }
+.icon { fill:none; stroke:#090b8b; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+text { text-rendering:geometricPrecision; }
+</style>
+  </defs>
+  <rect id="background" x="0" y="0" width="1672" height="941" fill="#fff" />
+  <g id="architecture-header" class="body">
+    <text x="40" y="44" font-family="'Xpert Heading','Nimbus Sans',Arial,sans-serif" font-size="48" font-weight="700" fill="#06116b" textLength="618" lengthAdjust="spacingAndGlyphs">Xpert System Architecture</text>
+    <text x="42" y="74" font-family="'Xpert Heading','Nimbus Sans',Arial,sans-serif" font-size="25" fill="#080a7c">AI Agent Execution · Plugin Capabilities · Agentic Applications</text>
+    <g id="client-surfaces">
+      <rect x="40.5" y="82.5" width="1592" height="81" rx="4" fill="url(#blueBody)" stroke="#008dff" stroke-width="1.3" />
+      <use href="#icon-devices" x="55" y="99" width="42" height="42" class="icon icon" xlink:href="#icon-devices" />
+      <text x="113" y="126" font-size="25" font-weight="700">Client Surfaces</text>
+      <rect x="285.5" y="90.5" width="316" height="52" rx="4" fill="url(#blueCard)" stroke="#67caff" stroke-width="0.9" />
+      <use href="#icon-globe" x="310" y="96" width="36" height="36" class="icon icon" xlink:href="#icon-globe" />
+      <text x="376" y="113" font-size="20" font-weight="700">Web Console</text>
+      <text x="376" y="132" font-size="15.5">Angular · Agent Studio · Workbench</text>
+      <rect x="615.5" y="90.5" width="325" height="52" rx="4" fill="url(#blueCard)" stroke="#67caff" stroke-width="0.9" />
+      <use href="#icon-monitor" x="641" y="96" width="37" height="37" class="icon icon" xlink:href="#icon-monitor" />
+      <text x="705" y="113" font-size="20" font-weight="700">Desktop</text>
+      <text x="705" y="132" font-size="15.5">Electron + React · Local execution</text>
+      <rect x="954.5" y="90.5" width="329" height="52" rx="4" fill="url(#blueCard)" stroke="#67caff" stroke-width="0.9" />
+      <use href="#icon-phone" x="985" y="96" width="37" height="37" class="icon icon" xlink:href="#icon-phone" />
+      <text x="1051" y="113" font-size="20" font-weight="700">Mobile</text>
+      <text x="1051" y="132" font-size="15.5">SwiftUI · WKWebView</text>
+      <rect x="1297.5" y="90.5" width="325" height="52" rx="4" fill="url(#blueCard)" stroke="#67caff" stroke-width="0.9" />
+      <use href="#icon-code" x="1321" y="96" width="43" height="37" class="icon icon" xlink:href="#icon-code" />
+      <text x="1396" y="113" font-size="20" font-weight="700">Embedded Clients</text>
+      <text x="1396" y="132" font-size="15.5">ChatKit · TypeScript SDK · MCP</text>
+      <path d="M323 143V152.5H755.5 M1034 152.5H1568V143" fill="none" stroke="#1a19b3" stroke-width="1.1" />
+      <text x="765" y="158" font-size="16">HTTPS / REST · SSE events · WebSocket</text>
+    </g>
+    <g id="shared-platform">
+      <rect x="40.5" y="178.5" width="1592" height="61" rx="4" fill="url(#blueBody)" stroke="#008dff" stroke-width="1.3" />
+      <path d="M312 188.5V229.5 M784.5 188.5V229.5 M1200.5 188.5V229.5" fill="none" stroke="#048cff" stroke-width="1.1" />
+      <use href="#icon-gear" x="54" y="187" width="45" height="44" class="icon icon" xlink:href="#icon-gear" />
+      <text x="114" y="208" font-size="24" font-weight="700">Shared Platform</text>
+      <text x="114" y="226" font-size="15.5">NestJS · TypeORM · CQRS</text>
+      <use href="#icon-shield" x="357" y="188" width="44" height="43" class="icon icon" xlink:href="#icon-shield" />
+      <text x="423" y="206" font-size="18" font-weight="700">Authentication · RBAC</text>
+      <text x="423" y="224" font-size="16">Tenant / Organization / Workspace / Project / Execution</text>
+      <use href="#icon-file" x="825" y="189" width="38" height="39" class="icon icon" xlink:href="#icon-file" />
+      <text x="888" y="206" font-size="18" font-weight="700">Assistant bindings</text>
+      <text x="888" y="224" font-size="15.5">Published Xpert versions · Schedules / triggers</text>
+      <use href="#icon-shield" x="1245" y="186" width="44" height="45" class="icon icon" xlink:href="#icon-shield" />
+      <text x="1311" y="200" font-size="20" font-weight="700">Trusted Control Plane</text>
+      <text x="1311" y="217" font-size="14">Provides identity, configuration and governance for plugins,</text>
+      <text x="1311" y="232" font-size="14">agents and agentic apps</text>
+    </g>
+  </g>
+  <g id="architecture-footer" class="body">
+    <g id="connected-systems">
+      <rect x="40.5" y="842.5" width="1592.5" height="38" rx="4" fill="url(#blueBody)" stroke="#008dff" stroke-width="1.3" />
+      <path d="M449.5 850V875 M747.5 850V875 M1141.5 850V875 M1178.5 843V879.5" fill="none" stroke="#0c90ff" stroke-width="1" />
+      <use href="#icon-cloud" x="50" y="847" width="40" height="31" class="icon icon" xlink:href="#icon-cloud" />
+      <text x="105" y="867" font-size="19" font-weight="700" textLength="145" lengthAdjust="spacingAndGlyphs">Connected Systems</text>
+      <text x="259" y="867" font-size="15">· configured as needed</text>
+      <use href="#icon-gear" x="486" y="847" width="31" height="30" class="icon icon" xlink:href="#icon-gear" />
+      <text x="535" y="867" font-size="14.5" font-weight="700">Model APIs</text>
+      <text x="603" y="867" font-size="13.5">· SaaS / MCP servers</text>
+      <use href="#icon-database" x="801" y="847" width="31" height="31" class="icon icon" xlink:href="#icon-database" />
+      <text x="856" y="867" font-size="14" font-weight="700" textLength="126" lengthAdjust="spacingAndGlyphs">Data &amp; Ontology service</text>
+      <text x="994" y="867" font-size="13.5">· separate API / MCP</text>
+      <use href="#icon-cube" x="1201" y="846" width="35" height="33" class="icon icon" xlink:href="#icon-cube" />
+      <text x="1255" y="867" font-size="14.5" font-weight="700">nsjail</text>
+      <text x="1290" y="867" font-size="14">· External Agent runtimes · Pro: Docker / Computer</text>
+    </g>
+    <g id="persistence-and-operations">
+      <rect x="40.5" y="887.5" width="1592.5" height="37" rx="4" fill="url(#blueBody)" stroke="#008dff" stroke-width="1.3" />
+      <path d="M310.5 894V919 M608.5 894V919 M934.5 894V919 M1234.5 894V919" fill="none" stroke="#0c90ff" stroke-width="1" />
+      <use href="#icon-shield" x="55" y="890" width="31" height="33" class="icon icon" xlink:href="#icon-shield" />
+      <text x="105" y="911" font-size="20" font-weight="700" textLength="178" lengthAdjust="spacingAndGlyphs">Persistence &amp; Operations</text>
+      <use href="#icon-database" x="336" y="890" width="31" height="32" class="icon icon" xlink:href="#icon-database" />
+      <text x="392" y="903" font-size="14.5" font-weight="700">PostgreSQL + pgvector</text>
+      <text x="392" y="918" font-size="14">Entities · Checkpoints · Vectors</text>
+      <use href="#icon-layers" x="641" y="890" width="33" height="33" class="icon icon" xlink:href="#icon-layers" />
+      <text x="696" y="903" font-size="14.5" font-weight="700">Redis + Bull</text>
+      <text x="696" y="918" font-size="14">Queues · Cache · Pub/Sub</text>
+      <use href="#icon-folder" x="959" y="889" width="36" height="33" class="icon icon" xlink:href="#icon-folder" />
+      <text x="1021" y="903" font-size="14.5" font-weight="700">Storage &amp; Volumes</text>
+      <text x="1021" y="918" font-size="14">Workspace files · Artifacts</text>
+      <use href="#icon-chart" x="1279" y="889" width="33" height="33" class="icon icon" xlink:href="#icon-chart" />
+      <text x="1364" y="903" font-size="14.5" font-weight="700">Governance &amp; Telemetry</text>
+      <text x="1364" y="917" font-size="13">Approvals · Audit · Usage · Metrics · OTel</text>
+    </g>
+    <text x="1633" y="936" font-size="11" text-anchor="end">Logical architecture · Native delegation, Swarm transfer and queued handoff are distinct mechanisms</text>
+  </g>
+  <g id="plugin-system-panel" class="body">
+    <rect x="40.5" y="252.5" width="459" height="566.3" rx="5" fill="url(#orangeBody)" stroke="#ff8a00" stroke-width="1.4" />
+    <path d="M45.5 252.5H494.5Q499.5 252.5 499.5 257.5V293H40.5V257.5Q40.5 252.5 45.5 252.5Z" fill="url(#orangeHeader)" />
+    <use href="#icon-puzzle" x="59.5" y="255.5" width="39" height="36" class="icon icon" style="stroke:#fff;fill:#fff;stroke-width:1.4;color:#fff" xlink:href="#icon-puzzle" />
+    <text class="panelTitle" x="115" y="283.5" fill="#fff" textLength="208" lengthAdjust="spacingAndGlyphs">PLUGIN SYSTEM</text>
+    <g id="native-plugins">
+      <rect x="51.5" y="301.7" width="436" height="101" rx="5" fill="url(#orangeCard)" stroke="#ff990d" stroke-width="0.85" />
+      <use href="#icon-cube" x="63" y="310" width="36" height="39" class="icon icon" style="stroke:#ff7200;stroke-width:2.3" xlink:href="#icon-cube" />
+      <text x="120" y="323.2" font-size="18" font-weight="700" fill="#ff1705" textLength="105.28" lengthAdjust="spacingAndGlyphs">Native Plugins</text>
+      <text class="txt" x="121" y="342" textLength="225.45" lengthAdjust="spacingAndGlyphs">npm · XpertPlugin · DynamicModule</text>
+      <rect x="115.5" y="350.8" width="360.3" height="24.1" rx="2.8" fill="url(#orangeBand)" stroke="#ff990d" stroke-width="0.85" />
+      <text class="txt" x="297" y="368.7" text-anchor="middle" textLength="249" lengthAdjust="spacingAndGlyphs">
+        <tspan font-weight="700">Config</tspan>
+        <tspan> → register → start / stop / health</tspan>
+      </text>
+      <text class="txt" x="121" y="394.2" textLength="237.01" lengthAdjust="spacingAndGlyphs">DiscoveryService / Reflector → Registry</text>
+    </g>
+    <g id="conversation-agent-plugins">
+      <rect x="51.5" y="409.7" width="436" height="112.6" rx="5" fill="url(#orangeCard)" stroke="#ff990d" stroke-width="0.85" />
+      <use href="#icon-file" x="63" y="419" width="34" height="36" class="icon icon" style="stroke:#ff7200;stroke-width:2" xlink:href="#icon-file" />
+      <text x="120" y="431.5" font-size="18" font-weight="700" fill="#ff1705" textLength="202.83" lengthAdjust="spacingAndGlyphs">Conversation Agent Plugins</text>
+      <text class="txt" x="121" y="450.2" textLength="222.25" lengthAdjust="spacingAndGlyphs">Git / ZIP · plugin.json · Skills / MCP</text>
+      <rect x="115.5" y="458.5" width="362.5" height="39.4" rx="3" fill="url(#orangeBand)" stroke="#ff990d" stroke-width="0.85" />
+      <text class="txt" x="298.5" y="474.7" text-anchor="middle" textLength="239.28" lengthAdjust="spacingAndGlyphs">Workspace grants · bindingId + version</text>
+      <text class="txt" x="299" y="491.8" text-anchor="middle" textLength="256.89" lengthAdjust="spacingAndGlyphs">runtimeResources · revision · run snapshot</text>
+      <text class="txt" x="121" y="514.8" textLength="239.41" lengthAdjust="spacingAndGlyphs">Resource packages do not load server code</text>
+    </g>
+    <g id="plugin-capabilities">
+      <rect x="51.5" y="531.9" width="219.1" height="52.1" rx="5" fill="url(#orangeCard)" stroke="#ffb34b" stroke-width="0.8" />
+      <use href="#icon-brain" x="61.5" y="541.8" width="34" height="33" class="icon icon" xlink:href="#icon-brain" />
+      <text x="109" y="554.6" font-size="16" font-weight="700" textLength="100.03" lengthAdjust="spacingAndGlyphs">Models &amp; Tools</text>
+      <text class="small" x="109" y="572.8" textLength="155.63" lengthAdjust="spacingAndGlyphs">LLM · Embeddings · Toolset · MCP</text>
+      <rect x="276.1" y="531.9" width="211.4" height="52.1" rx="5" fill="url(#orangeCard)" stroke="#ffb34b" stroke-width="0.8" />
+      <use href="#icon-wrench" x="286" y="540.9" width="34" height="34" class="icon icon" xlink:href="#icon-wrench" />
+      <text x="331" y="554.6" font-size="16" font-weight="700" textLength="120.31" lengthAdjust="spacingAndGlyphs">Middleware &amp; Skills</text>
+      <text class="small" x="331" y="572.8" textLength="150.50" lengthAdjust="spacingAndGlyphs">Hooks · Retry · Fallback · SKILL.md</text>
+      <rect x="51.5" y="589.2" width="219.1" height="52.2" rx="5" fill="url(#orangeCard)" stroke="#ffb34b" stroke-width="0.8" />
+      <use href="#icon-hierarchy" x="60.7" y="594.8" width="36" height="37" class="icon icon" xlink:href="#icon-hierarchy" />
+      <text x="109" y="611.4" font-size="16" font-weight="700" textLength="155.36" lengthAdjust="spacingAndGlyphs">Workflows &amp; Integrations</text>
+      <text class="small" x="109" y="629.8" textLength="155.60" lengthAdjust="spacingAndGlyphs">Nodes · Triggers · Webhook · OAuth</text>
+      <rect x="276.1" y="589.2" width="211.4" height="52.2" rx="5" fill="url(#orangeCard)" stroke="#ffb34b" stroke-width="0.8" />
+      <use href="#icon-database" x="286.5" y="596" width="31" height="35" class="icon icon" xlink:href="#icon-database" />
+      <text x="332" y="611.4" font-size="16" font-weight="700" textLength="117.24" lengthAdjust="spacingAndGlyphs">Data &amp; Knowledge</text>
+      <text class="small" x="332" y="629.8" textLength="149.16" lengthAdjust="spacingAndGlyphs">DataSource · RAG · Vector Store</text>
+      <rect x="51.5" y="647.6" width="219.1" height="52.8" rx="5" fill="url(#orangeCard)" stroke="#ffb34b" stroke-width="0.8" />
+      <use href="#icon-terminal" x="61.5" y="655.5" width="35" height="31" class="icon icon" xlink:href="#icon-terminal" />
+      <text x="109" y="669.4" font-size="16" font-weight="700">Execution &amp; Files</text>
+      <text class="small" x="109" y="688" textLength="155.60" lengthAdjust="spacingAndGlyphs">Runtime strategies · Sandbox · Storage</text>
+      <rect x="276.1" y="647.6" width="211.4" height="52.8" rx="5" fill="url(#orangeCard)" stroke="#ffb34b" stroke-width="0.8" />
+      <use href="#icon-users" x="283.5" y="655.5" width="36" height="35" class="icon icon" xlink:href="#icon-users" />
+      <text x="333" y="669.4" font-size="16" font-weight="700" textLength="141.25" lengthAdjust="spacingAndGlyphs">Views &amp; Collaboration</text>
+      <text class="small" x="332" y="688" textLength="145.46" lengthAdjust="spacingAndGlyphs">View Provider · MCP Apps · Yjs</text>
+    </g>
+    <g id="plugin-sdk">
+      <rect x="51.5" y="708.3" width="436" height="70.1" rx="5" fill="url(#orangeBand)" stroke="#ff8a00" stroke-width="1" />
+      <g fill="#ff7000" transform="translate(68 721)">
+        <path d="M17 0 34 9.3 17 18.5 0 9.3Z" />
+        <path d="M0 15.5 17 24.7 34 15.5V21.2L17 30.4 0 21.2Z" />
+        <path d="M0 27.3 17 36.5 34 27.3V32.8L17 42 0 32.8Z" transform="translate(0 -4.5)" />
+      </g>
+      <text x="121.5" y="731.2" font-size="18" font-weight="700" fill="#ff1705" textLength="284.5" lengthAdjust="spacingAndGlyphs">Plugin SDK · RuntimeCapabilityRegistry</text>
+      <text class="txt" x="122.5" y="750" textLength="245.25" lengthAdjust="spacingAndGlyphs">Scoped APIs: Files · Knowledge · Projects</text>
+      <text class="txt" x="122.5" y="767.7" textLength="191.13" lengthAdjust="spacingAndGlyphs">Connector / ActorToken factories</text>
+    </g>
+    <text class="txt" x="267" y="804.3" text-anchor="middle" textLength="203.01" lengthAdjust="spacingAndGlyphs">Installation scope ≠ business access</text>
+  </g>
+  <g id="ai-agents-and-workflows" class="body">
+    <defs>
+      <marker id="agents-arrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto-start-reverse" markerUnits="userSpaceOnUse">
+        <path d="M0,0 L9,4.5 L0,9 Z" fill="#08738e" />
+      </marker>
+      <linearGradient id="agents-flow-arrow" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0" stop-color="#63c4cf" />
+        <stop offset="1" stop-color="#006181" />
+      </linearGradient>
+    </defs>
+    <rect x="561" y="252" width="558" height="583" rx="6" fill="url(#tealBody)" stroke="#02a9b1" stroke-width="1.25" />
+    <path d="M567 252 H1113 Q1119 252 1119 258 V293 H561 V258 Q561 252 567 252Z" fill="url(#tealHeader)" />
+    <g id="agents-header-symbol" fill="none" stroke="#fff" stroke-width="4.3" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="611" cy="263" r="5.7" />
+      <circle cx="599" cy="283" r="5.5" />
+      <circle cx="624" cy="283" r="5.5" />
+      <path d="M611 269V273M611 272L602 279M611 272L621 279" />
+    </g>
+    <text x="660" y="285" class="panelTitle" fill="#fff" textLength="349" lengthAdjust="spacingAndGlyphs">AI AGENTS &amp; WORKFLOWS</text>
+    <g id="agent-definition">
+      <rect x="574" y="300" width="533" height="59" rx="5" fill="url(#tealCard)" stroke="#22afb8" stroke-width="1.15" />
+      <use href="#icon-file" x="597" y="309" width="34" height="37" class="icon" xlink:href="#icon-file" />
+      <text x="680" y="321" font-size="18" font-weight="700" textLength="368" lengthAdjust="spacingAndGlyphs">Agent Definition → Graph Compiler → StateGraph</text>
+      <text x="729" y="339" font-size="13" textLength="261" lengthAdjust="spacingAndGlyphs">Prompt · Model · Tools · Skills · Middleware</text>
+      <text x="729" y="354" font-size="13" textLength="260" lengthAdjust="spacingAndGlyphs">Native subgraphs / workflow graphs / Swarm</text>
+    </g>
+    <g id="agent-execution-loop">
+      <rect x="574" y="365" width="533" height="171" rx="5" fill="url(#tealCard)" stroke="#36b6bf" stroke-width="1.15" />
+      <text x="591" y="386" font-size="18" font-weight="700" textLength="146" lengthAdjust="spacingAndGlyphs">Agent execution loop</text>
+      <g id="execution-context">
+        <rect x="587" y="394" width="113" height="56" rx="6" fill="url(#tealCard)" stroke="#58c6cf" stroke-width="1.2" />
+        <use href="#icon-file" x="596" y="405" width="25" height="28" class="icon" xlink:href="#icon-file" />
+        <text x="660" y="413" text-anchor="middle" font-size="13.7" font-weight="700" textLength="38" lengthAdjust="spacingAndGlyphs">Context</text>
+        <text x="660" y="429" text-anchor="middle" font-size="10.8" textLength="64" lengthAdjust="spacingAndGlyphs">Messages · State</text>
+        <text x="660" y="442" text-anchor="middle" font-size="10.8" textLength="70.00" lengthAdjust="spacingAndGlyphs">Memory · Retrieval</text>
+      </g>
+      <path d="M703 416H708V412L716 420L708 428V424H703Z" fill="url(#agents-flow-arrow)" />
+      <g id="execution-model-call">
+        <rect x="718" y="394" width="116" height="56" rx="6" fill="url(#tealCard)" stroke="#58c6cf" stroke-width="1.2" />
+        <use href="#icon-brain" x="726" y="404" width="29" height="32" class="icon" xlink:href="#icon-brain" />
+        <text x="793" y="413" text-anchor="middle" font-size="13.7" font-weight="700" textLength="52" lengthAdjust="spacingAndGlyphs">Model call</text>
+        <text x="793" y="429" text-anchor="middle" font-size="10.8" textLength="72.00" lengthAdjust="spacingAndGlyphs">Generate response</text>
+        <text x="793" y="442" text-anchor="middle" font-size="10.8" textLength="39" lengthAdjust="spacingAndGlyphs">with tools</text>
+      </g>
+      <path d="M837 416H841V412L849 420L841 428V424H837Z" fill="url(#agents-flow-arrow)" />
+      <g id="execution-tool-routing">
+        <rect x="851" y="394" width="116" height="56" rx="6" fill="url(#tealCard)" stroke="#58c6cf" stroke-width="1.2" />
+        <use href="#icon-hierarchy" x="857" y="401" width="29" height="34" class="icon" xlink:href="#icon-hierarchy" />
+        <text x="925.5" y="413" text-anchor="middle" font-size="13.7" font-weight="700" textLength="59" lengthAdjust="spacingAndGlyphs">Tool routing</text>
+        <text x="924" y="429" text-anchor="middle" font-size="10.8" textLength="48" lengthAdjust="spacingAndGlyphs">Select tools</text>
+        <text x="924" y="442" text-anchor="middle" font-size="10.8" textLength="76" lengthAdjust="spacingAndGlyphs">Conditional routing</text>
+      </g>
+      <path d="M970 416H975V412L983 420L975 428V424H970Z" fill="url(#agents-flow-arrow)" />
+      <g id="execution-tool-execution">
+        <rect x="985" y="394" width="114" height="56" rx="6" fill="url(#tealCard)" stroke="#58c6cf" stroke-width="1.2" />
+        <use href="#icon-gear" x="992" y="403" width="28" height="31" class="icon" xlink:href="#icon-gear" />
+        <text x="1060" y="413" text-anchor="middle" font-size="12.8" font-weight="700" textLength="68.00" lengthAdjust="spacingAndGlyphs">Tool execution</text>
+        <text x="1057" y="429" text-anchor="middle" font-size="10.8" textLength="56" lengthAdjust="spacingAndGlyphs">Execute tools</text>
+        <text x="1056" y="442" text-anchor="middle" font-size="10.8" textLength="46" lengthAdjust="spacingAndGlyphs">Get results</text>
+      </g>
+      <path d="M872 451V480Q872 490 862 490H637Q627 490 627 480V453" fill="none" stroke="#07748f" stroke-width="2.6" marker-end="url(#agents-arrow)" />
+      <text x="740" y="484" text-anchor="middle" font-size="11.7" font-weight="600" textLength="123" lengthAdjust="spacingAndGlyphs">ToolMessage / state update</text>
+      <path d="M903 451V471" fill="none" stroke="#08738e" stroke-width="2.6" marker-end="url(#agents-arrow)" />
+      <text x="920" y="465" font-size="12.5" font-weight="600" textLength="46" lengthAdjust="spacingAndGlyphs">complete</text>
+      <path d="M1043 451V471" fill="none" stroke="#08738e" stroke-width="2.6" marker-end="url(#agents-arrow)" />
+      <g id="execution-answer">
+        <rect x="885" y="474" width="205" height="38" rx="7" fill="url(#tealCard)" stroke="#4cb8c8" stroke-width="1.2" />
+        <use href="#icon-file" x="895" y="481" width="21" height="26" class="icon" xlink:href="#icon-file" />
+        <text x="929" y="497" font-size="13.6" font-weight="700" textLength="147" lengthAdjust="spacingAndGlyphs">Answer / next workflow node</text>
+      </g>
+      <text x="591" y="513" font-size="13" textLength="269" lengthAdjust="spacingAndGlyphs">beforeAgent · beforeModel · afterModel · afterAgent</text>
+      <text x="591" y="530" font-size="13" textLength="261" lengthAdjust="spacingAndGlyphs">wrapModelCall · wrapToolCall · schema validation</text>
+    </g>
+    <g id="multi-agent-coordination">
+      <rect x="574" y="542" width="533" height="124" rx="5" fill="url(#tealCard)" stroke="#36b6bf" stroke-width="1.15" />
+      <text x="593" y="562" font-size="18" font-weight="700" textLength="168" lengthAdjust="spacingAndGlyphs">Multi-agent coordination</text>
+      <g id="parent-agent">
+        <rect x="676" y="565" width="124" height="37" rx="6" fill="url(#tealCard)" stroke="#5fc4d1" stroke-width="1.2" />
+        <use href="#icon-user" x="687" y="571" width="23" height="27" class="icon" xlink:href="#icon-user" />
+        <text x="721" y="587" font-size="13.7" font-weight="700" textLength="64" lengthAdjust="spacingAndGlyphs">Parent Agent</text>
+      </g>
+      <path d="M672 581H642V606" fill="none" stroke="#08738e" stroke-width="2" marker-start="url(#agents-arrow)" marker-end="url(#agents-arrow)" />
+      <text x="609" y="588" font-size="11.7" textLength="25" lengthAdjust="spacingAndGlyphs">result</text>
+      <path d="M805 581H835V606" fill="none" stroke="#08738e" stroke-width="2" marker-start="url(#agents-arrow)" marker-end="url(#agents-arrow)" />
+      <text x="843" y="588" font-size="11.7" textLength="25" lengthAdjust="spacingAndGlyphs">result</text>
+      <g id="native-sub-agent">
+        <rect x="585" y="609" width="137" height="34" rx="6" fill="url(#tealCard)" stroke="#5fc4d1" stroke-width="1.2" />
+        <use href="#icon-robot" x="593" y="615" width="24" height="24" class="icon" xlink:href="#icon-robot" />
+        <text x="629" y="631" font-size="13.4" font-weight="700" textLength="80" lengthAdjust="spacingAndGlyphs">Native sub-agent</text>
+      </g>
+      <g id="published-xpert">
+        <rect x="751" y="609" width="136" height="34" rx="6" fill="url(#tealCard)" stroke="#5fc4d1" stroke-width="1.2" />
+        <use href="#icon-cube" x="760" y="615" width="23" height="25" class="icon" xlink:href="#icon-cube" />
+        <text x="797" y="631" font-size="13.4" font-weight="700" textLength="75" lengthAdjust="spacingAndGlyphs">Published Xpert</text>
+      </g>
+      <text x="593" y="658" font-size="13" textLength="275" lengthAdjust="spacingAndGlyphs">Tool-based delegation · Parent / child execution records</text>
+      <path d="M897 555V654" fill="none" stroke="#86ccd5" stroke-width="1.1" stroke-dasharray="1.4 1.4" />
+      <g id="swarm-agent-a">
+        <rect x="909" y="575" width="82" height="52" rx="6" fill="url(#tealCard)" stroke="#5fc4d1" stroke-width="1.2" />
+        <use href="#icon-users" x="936" y="583" width="27" height="23" class="icon" xlink:href="#icon-users" />
+        <text x="950" y="617" text-anchor="middle" font-size="14.7" font-weight="700" textLength="44" lengthAdjust="spacingAndGlyphs">Agent A</text>
+      </g>
+      <g id="swarm-agent-b">
+        <rect x="1017" y="575" width="82" height="52" rx="6" fill="url(#tealCard)" stroke="#5fc4d1" stroke-width="1.2" />
+        <use href="#icon-users" x="1044" y="583" width="27" height="23" class="icon" xlink:href="#icon-users" />
+        <text x="1058" y="617" text-anchor="middle" font-size="14.7" font-weight="700" textLength="43" lengthAdjust="spacingAndGlyphs">Agent B</text>
+      </g>
+      <path d="M995 594H1013" fill="none" stroke="#16a5b4" stroke-width="2.1" marker-end="url(#agents-arrow)" />
+      <path d="M1013 609H995" fill="none" stroke="#08738e" stroke-width="2.1" marker-end="url(#agents-arrow)" />
+      <text x="1005" y="644" text-anchor="middle" font-size="14.2" textLength="79" lengthAdjust="spacingAndGlyphs">Swarm handoff</text>
+    </g>
+    <g id="agent-invocation">
+      <rect x="574" y="672" width="533" height="39" rx="4" fill="url(#tealCard)" stroke="#31b0ba" stroke-width="1.15" />
+      <use href="#icon-play" x="590" y="678" width="26" height="27" class="icon" xlink:href="#icon-play" />
+      <text x="639" y="690" font-size="17" font-weight="700" textLength="289" lengthAdjust="spacingAndGlyphs">AgentInvocation → Native / External Runtime</text>
+      <text x="639" y="707" font-size="13" textLength="325" lengthAdjust="spacingAndGlyphs">Authorize · Pin revision · Idempotency · Wait / Background</text>
+    </g>
+    <g id="workflow-orchestration">
+      <rect x="574" y="716" width="273" height="53" rx="4" fill="url(#tealCard)" stroke="#31b0ba" stroke-width="1.15" />
+      <use href="#icon-hierarchy" x="583" y="722" width="33" height="35" class="icon" xlink:href="#icon-hierarchy" />
+      <text x="635" y="734" font-size="16.2" font-weight="700" textLength="150" lengthAdjust="spacingAndGlyphs">Workflow orchestration</text>
+      <text x="635" y="749" font-size="12" textLength="203" lengthAdjust="spacingAndGlyphs">Branch · Parallel paths · Iteration · Subflow</text>
+      <text x="635" y="763" font-size="12" textLength="181" lengthAdjust="spacingAndGlyphs">Tools · HTTP · Code · Retrieval nodes</text>
+    </g>
+    <g id="context-and-memory">
+      <rect x="853" y="716" width="254" height="53" rx="4" fill="url(#tealCard)" stroke="#31b0ba" stroke-width="1.15" />
+      <use href="#icon-database" x="867" y="722" width="31" height="36" class="icon" xlink:href="#icon-database" />
+      <text x="913" y="734" font-size="16.2" font-weight="700" textLength="109" lengthAdjust="spacingAndGlyphs">Context &amp; memory</text>
+      <text x="913" y="749" font-size="11.8" textLength="173" lengthAdjust="spacingAndGlyphs">Messages · State channels · Summary</text>
+      <text x="913" y="763" font-size="11.5" textLength="188.00" lengthAdjust="spacingAndGlyphs">RAG · Long-term memory · Workspace files</text>
+    </g>
+    <g id="checkpoints-and-human-in-the-loop">
+      <rect x="574" y="774" width="533" height="57" rx="4" fill="url(#tealCard)" stroke="#31b0ba" stroke-width="1.15" />
+      <use href="#icon-database" x="590" y="781" width="32" height="35" class="icon" xlink:href="#icon-database" />
+      <text x="656" y="790" font-size="16" font-weight="700" textLength="192" lengthAdjust="spacingAndGlyphs">Checkpoints &amp; Human-in-the-loop</text>
+      <text x="657" y="803" font-size="12" textLength="261" lengthAdjust="spacingAndGlyphs">thread_id / checkpoint_ns · State + pending writes</text>
+      <text x="657" y="815" font-size="12" textLength="194" lengthAdjust="spacingAndGlyphs">Interrupt → approval / input → resume</text>
+      <text x="657" y="827" font-size="12" textLength="269" lengthAdjust="spacingAndGlyphs">Cooperative cancellation · Bull handoff / Worker · SSE</text>
+    </g>
+  </g>
+  <g id="agentic-apps-panel" class="body">
+    <rect x="1180" y="252" width="453" height="567" rx="5" fill="url(#blueBody)" stroke="#087fff" stroke-width="1.5" />
+    <path d="M1185 252H1628Q1633 252 1633 257V293H1180V257Q1180 252 1185 252Z" fill="url(#blueHeader)" />
+    <g id="apps-header-icon" fill="#fff">
+      <rect x="1207" y="260" width="12" height="12" />
+      <rect x="1223" y="260" width="12" height="12" />
+      <rect x="1207" y="276" width="12" height="11" />
+      <rect x="1223" y="276" width="12" height="11" />
+      <path d="M1226 263V269L1231 266Z" fill="#69bfff" />
+    </g>
+    <text class="panelTitle" x="1265" y="284" fill="#fff">AGENTIC APPS</text>
+    <g id="app-declaration">
+      <rect x="1189" y="303" width="207" height="129" rx="5" fill="url(#blueCard)" stroke="#70cefb" stroke-width="1" />
+      <use href="#icon-file" x="1195" y="316" width="40" height="44" class="icon" xlink:href="#icon-file" />
+      <text class="label" x="1248" y="332" textLength="110" lengthAdjust="spacingAndGlyphs">App Declaration</text>
+      <text class="txt" x="1248" y="355" textLength="142" lengthAdjust="spacingAndGlyphs">Marketplace contribution ·</text>
+      <text class="txt" x="1248" y="374" textLength="63" lengthAdjust="spacingAndGlyphs">appConfig*</text>
+      <text class="txt" x="1248" y="393" textLength="132" lengthAdjust="spacingAndGlyphs">scope · templateKey ·</text>
+      <text class="txt" x="1248" y="412" textLength="117" lengthAdjust="spacingAndGlyphs">model requirements</text>
+    </g>
+    <g id="resource-provisioning">
+      <rect x="1404" y="303" width="218" height="129" rx="5" fill="url(#blueCard)" stroke="#70cefb" stroke-width="1" />
+      <use href="#icon-database" x="1411" y="316" width="40" height="43" class="icon" xlink:href="#icon-database" />
+      <text class="label" x="1464" y="332" textLength="145" lengthAdjust="spacingAndGlyphs">Resource Provisioning</text>
+      <text class="txt" x="1464" y="356" textLength="136" lengthAdjust="spacingAndGlyphs">Preflight · Workspace ·</text>
+      <text class="txt" x="1464" y="375" textLength="90" lengthAdjust="spacingAndGlyphs">Knowledgebase</text>
+      <text class="txt" x="1464" y="394" textLength="140" lengthAdjust="spacingAndGlyphs">Dependencies · Publish</text>
+      <text class="txt" x="1464" y="412" textLength="118" lengthAdjust="spacingAndGlyphs">Assistant / role suite</text>
+    </g>
+    <g id="runtime-binding">
+      <rect x="1189" y="440" width="207" height="111" rx="5" fill="url(#blueCard)" stroke="#70cefb" stroke-width="1" />
+      <use href="#icon-link" x="1196" y="451" width="40" height="40" class="icon" xlink:href="#icon-link" />
+      <text class="label" x="1248" y="464" textLength="113" lengthAdjust="spacingAndGlyphs">Runtime Binding</text>
+      <text class="txt" x="1248" y="485" textLength="142.00" lengthAdjust="spacingAndGlyphs">Published Xpert · Versioned</text>
+      <text class="txt" x="1248" y="503" textLength="55" lengthAdjust="spacingAndGlyphs">resources</text>
+      <text class="txt" x="1248" y="522" textLength="110" lengthAdjust="spacingAndGlyphs">Permission checks ·</text>
+      <text class="txt" x="1248" y="540" textLength="110" lengthAdjust="spacingAndGlyphs">Execution snapshot</text>
+    </g>
+    <g id="business-backend">
+      <rect x="1404" y="440" width="218" height="111" rx="5" fill="url(#blueCard)" stroke="#70cefb" stroke-width="1" />
+      <use href="#icon-gear" x="1412" y="451" width="42" height="42" class="icon" xlink:href="#icon-gear" />
+      <text class="label" x="1466" y="464" textLength="118" lengthAdjust="spacingAndGlyphs">Business Backend</text>
+      <text class="txt" x="1466" y="488" textLength="150.00" lengthAdjust="spacingAndGlyphs">Agent Tool / View Action / Job</text>
+      <text class="txt" x="1466" y="507" textLength="134" lengthAdjust="spacingAndGlyphs">Shared Domain Service ·</text>
+      <text class="txt" x="1466" y="525" textLength="88" lengthAdjust="spacingAndGlyphs">CQRS · Entities</text>
+    </g>
+    <g id="workbench">
+      <rect x="1189" y="560" width="207" height="146" rx="5" fill="url(#blueCard)" stroke="#70cefb" stroke-width="1" />
+      <use href="#icon-monitor" x="1197" y="571" width="40" height="41" class="icon" xlink:href="#icon-monitor" />
+      <text class="label" x="1251" y="587" textLength="74" lengthAdjust="spacingAndGlyphs">Workbench</text>
+      <text class="txt" x="1251" y="606" textLength="138" lengthAdjust="spacingAndGlyphs">Manifest → Host Bridge →</text>
+      <text class="txt" x="1251" y="624" textLength="44" lengthAdjust="spacingAndGlyphs">Provider</text>
+      <text class="txt" x="1251" y="642" textLength="128" lengthAdjust="spacingAndGlyphs">iframe / postMessage ·</text>
+      <text class="txt" x="1251" y="660" textLength="83" lengthAdjust="spacingAndGlyphs">Action allowlist</text>
+      <text class="txt" x="1251" y="678" textLength="132" lengthAdjust="spacingAndGlyphs">No platform API token in</text>
+      <text class="txt" x="1251" y="696" textLength="68" lengthAdjust="spacingAndGlyphs">remote view</text>
+    </g>
+    <g id="mcp-apps">
+      <rect x="1404" y="560" width="218" height="146" rx="5" fill="url(#blueCard)" stroke="#70cefb" stroke-width="1" />
+      <use href="#icon-code" x="1411" y="572" width="43" height="40" class="icon" xlink:href="#icon-code" />
+      <text class="label" x="1465" y="587" textLength="69" lengthAdjust="spacingAndGlyphs">MCP Apps</text>
+      <text class="txt" x="1465" y="608" textLength="149" lengthAdjust="spacingAndGlyphs">Tool → ui:// HTML resource</text>
+      <text class="txt" x="1465" y="626" textLength="150" lengthAdjust="spacingAndGlyphs">CSP · Visibility · Execution</text>
+      <text class="txt" x="1465" y="644" textLength="43" lengthAdjust="spacingAndGlyphs">context</text>
+      <text class="txt" x="1465" y="663" textLength="136" lengthAdjust="spacingAndGlyphs">Distinct from Workbench</text>
+      <text class="txt" x="1465" y="682" textLength="46" lengthAdjust="spacingAndGlyphs">protocol</text>
+    </g>
+    <g id="app-request-lifecycle">
+      <rect x="1189" y="717" width="434" height="59" rx="4" fill="url(#blueCard)" stroke="#70cefb" stroke-width="1" />
+      <use href="#icon-user" x="1196" y="728" width="37" height="42" class="icon" xlink:href="#icon-user" />
+      <text x="1251" y="753" font-size="16" font-weight="700" textLength="357" lengthAdjust="spacingAndGlyphs">Request → Agent run → Artifact / View → Human action</text>
+    </g>
+    <text class="txt" x="1275" y="802" textLength="254" lengthAdjust="spacingAndGlyphs">* appConfig enables host-managed provisioning</text>
+  </g>
+  <g id="panel-connections" class="body">
+    <text x="505" y="436" font-size="17" font-weight="700">Models /</text>
+    <text x="505" y="454" font-size="17" font-weight="700">tools /</text>
+    <text x="505" y="472" font-size="17" font-weight="700">skills</text>
+    <path d="M502 483.5H543V472L560 489.5 543 507V495.5H502Z" fill="url(#blueFlow)" />
+    <text x="1124" y="416" font-size="17" font-weight="700">Invoke /</text>
+    <text x="1125" y="434" font-size="17" font-weight="700">resume</text>
+    <path d="M1177 447.5H1134V436L1118 453.5 1134 471V459.5H1177Z" fill="url(#blueFlowLeft)" />
+    <text x="1125" y="526" font-size="17" font-weight="700">Events /</text>
+    <text x="1125" y="544" font-size="17" font-weight="700">artifacts</text>
+    <path d="M1120 559H1161V548L1178 565.5 1161 583V572H1120Z" fill="url(#blueFlow)" />
+  </g>
+</svg>

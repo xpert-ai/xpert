@@ -99,7 +99,7 @@ docker compose up -d
 
 Xpert 是**以插件为核心的 NestJS 模块化平台**。统一的 **Agent + Workflow 运行时**承载 AI 团队，**Agentic Apps** 将领域工具、Assistant 模板、业务服务与交互式 Workbench 组合成完整应用。
 
-[![Xpert 技术架构：平台运行时、插件生命周期与扩展点、Agentic Apps 和基础设施](docs/images/readme/xpert-architecture-technical-zh.png)](docs/images/readme/xpert-architecture-technical-zh.png)
+[![Xpert 技术架构：平台运行时、插件生命周期与扩展点、Agentic Apps 和基础设施](docs/images/readme/Xpert_System_Architecture.svg)](docs/images/readme/Xpert_System_Architecture.svg)
 
 - **插件体系：** 原生 npm 插件注册 NestJS 模块、Provider、配置与生命周期钩子，覆盖模型、工具/MCP、中间件、Skills/模板、工作流、集成、连接器、数据/RAG、执行、存储、视图与协作。
 - **会话资源：** 标准 Agent Plugin 通过 Git/ZIP 导入 Skills/MCP 等资源，使用工作空间授权、版本化绑定与单次执行快照控制访问，不加载服务器代码。
