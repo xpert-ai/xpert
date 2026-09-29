@@ -121,26 +121,9 @@ export function profileDate(value: Date | string | null | undefined, locale: str
     : t('Not available')
 }
 export const indicatorLabels = ['Skills', 'Tools', 'Sub-agents', 'Conversations · 30d']
-export function ProfileDetails({ profile, tab }: { profile: AssistantProfile; tab: string }) {
+export function ProfileDetails({ profile }: { profile: AssistantProfile }) {
   const locale = useLocale()
-  return tab === 'capabilities' ? (
-    <div className="space-y-4 text-sm">
-      <h3 className="font-semibold">{t('Assistant capabilities')}</h3>
-      <dl className="divide-y">
-        {[profile.indicators.skillCount, profile.indicators.toolCount, profile.indicators.subAgentCount].map(
-          (value, index) => (
-            <div key={index} className="flex justify-between py-3">
-              <dt className="text-muted-foreground">{t(indicatorLabels[index])}</dt>
-              <dd className="font-medium">{value ?? t('Not available')}</dd>
-            </div>
-          )
-        )}
-      </dl>
-      <p className="text-xs leading-5 text-muted-foreground">
-        {t('Capabilities come from the published assistant. Custom views are enabled by its configuration.')}
-      </p>
-    </div>
-  ) : (
+  return (
     <div className="space-y-4 text-sm">
       <h3 className="font-semibold">{t('About this assistant')}</h3>
       <p className="whitespace-pre-wrap break-words text-xs leading-5 text-muted-foreground">
@@ -159,6 +142,22 @@ export function ProfileDetails({ profile, tab }: { profile: AssistantProfile; ta
           </div>
         ))}
       </dl>
+      <div className="border-t pt-4">
+        <h3 className="font-semibold">{t('Assistant capabilities')}</h3>
+        <dl className="mt-1 divide-y text-xs">
+          {[profile.indicators.skillCount, profile.indicators.toolCount, profile.indicators.subAgentCount].map(
+            (value, index) => (
+              <div key={indicatorLabels[index]} className="flex justify-between py-3">
+                <dt className="text-muted-foreground">{t(indicatorLabels[index])}</dt>
+                <dd className="font-medium">{value ?? t('Not available')}</dd>
+              </div>
+            )
+          )}
+        </dl>
+        <p className="mt-2 text-xs leading-5 text-muted-foreground">
+          {t('Capabilities come from the published assistant. Custom views are enabled by its configuration.')}
+        </p>
+      </div>
     </div>
   )
 }

@@ -1,8 +1,14 @@
-import { IWFNTrigger, IXpert, TXpertGraph, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
+import { IWFNTrigger, IXpert, STATE_VARIABLE_HUMAN, TXpertGraph, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
-import { HandoffMessage, IWorkflowTriggerStrategy, WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
+import {
+    AGENT_CHAT_DISPATCH_MESSAGE_TYPE,
+    AgentChatDispatchPayload,
+    HandoffMessage,
+    IWorkflowTriggerStrategy,
+    WorkflowTriggerRegistry
+} from '@xpert-ai/plugin-sdk'
 import { HandoffQueueService } from '../../../handoff/message-queue.service'
 import { captureRequestContext, runWithCapturedRequestContext } from '../../../shared/request-context'
 import type { RequestContextSnapshot } from '../../../shared/request-context'
@@ -146,13 +152,40 @@ export class XpertPublishTriggersHandler implements ICommandHandler<XpertPublish
     }
 
     private async handleTriggerPayload(xpert: IXpert, trigger: IWFNTrigger, payload: any) {
+        const additionalInstructions =
+            typeof trigger.config?.additionalInstructions === 'string' ? trigger.config.additionalInstructions : ''
         if (!payload) {
             this.#logger.warn(`Trigger "${trigger.from}" returned empty payload for xpert "${xpert.id}"`)
             return
         }
 
         if (payload.handoffMessage) {
-            await this.handoffQueue.enqueue(payload.handoffMessage as HandoffMessage)
+            const message = payload.handoffMessage as HandoffMessage<AgentChatDispatchPayload>
+            if (
+                additionalInstructions &&
+                message.type === AGENT_CHAT_DISPATCH_MESSAGE_TYPE &&
+                message.payload?.request?.action === 'send'
+            ) {
+                const request = message.payload.request
+                const input = {
+                    ...request.message.input,
+                    input: [request.message.input?.input, additionalInstructions].filter(Boolean).join('\n\n')
+                }
+                await this.handoffQueue.enqueue({
+                    ...message,
+                    payload: {
+                        ...message.payload,
+                        request: {
+                            ...request,
+                            message: {
+                                ...request.message,
+                                input
+                            },
+                            ...(request.state ? { state: { ...request.state, [STATE_VARIABLE_HUMAN]: input } } : {})
+                        }
+                    }
+                })
+            } else await this.handoffQueue.enqueue(message)
             return
         }
 
@@ -161,8 +194,19 @@ export class XpertPublishTriggersHandler implements ICommandHandler<XpertPublish
             return
         }
 
+        const state = additionalInstructions
+            ? {
+                  ...payload.state,
+                  [STATE_VARIABLE_HUMAN]: {
+                      ...payload.state[STATE_VARIABLE_HUMAN],
+                      input: [payload.state[STATE_VARIABLE_HUMAN]?.input, additionalInstructions]
+                          .filter(Boolean)
+                          .join('\n\n')
+                  }
+              }
+            : payload.state
         await this.commandBus.execute(
-            new XpertEnqueueTriggerDispatchCommand(xpert.id, null, payload.state, {
+            new XpertEnqueueTriggerDispatchCommand(xpert.id, null, state, {
                 isDraft: false,
                 from: trigger.from,
                 executionId: payload.executionId
@@ -194,7 +238,7 @@ export class XpertPublishTriggersHandler implements ICommandHandler<XpertPublish
         await Promise.resolve(
             provider.stop({
                 xpertId,
-                config: trigger.config
+                config: this.providerConfig(trigger)
             })
         )
     }
@@ -209,7 +253,7 @@ export class XpertPublishTriggersHandler implements ICommandHandler<XpertPublish
             provider.publish(
                 {
                     xpertId: xpert.id,
-                    config: trigger.config
+                    config: this.providerConfig(trigger)
                 },
                 (payload) => {
                     return runWithCapturedRequestContext(requestContext, () =>
@@ -223,6 +267,12 @@ export class XpertPublishTriggersHandler implements ICommandHandler<XpertPublish
                 }
             )
         )
+    }
+
+    private providerConfig(trigger: IWFNTrigger) {
+        // Common run instructions stay in the graph; provider schemas may reject undeclared fields.
+        const { additionalInstructions, ...config } = trigger.config ?? {}
+        return config
     }
 
     private buildTriggerSnapshotMap(graph?: TXpertGraph, providers?: Set<string> | null): Map<string, TriggerSnapshot> {

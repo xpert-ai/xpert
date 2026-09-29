@@ -1,10 +1,4 @@
 jest.mock('@xpert-ai/server-core', () => ({
-    RequestContext: {
-        currentTenantId: jest.fn(),
-        currentUserId: jest.fn(),
-        getOrganizationId: jest.fn(),
-        getUser: jest.fn()
-    },
     TenantOrganizationBaseEntity: class TenantOrganizationBaseEntity {},
     TenantOrganizationAwareCrudService: class TenantOrganizationAwareCrudService<T> {
         constructor(public readonly repository?: unknown) {}
@@ -61,7 +55,7 @@ jest.mock('./conversation-thread.service', () => ({
 }))
 
 import { TFile } from '@xpert-ai/contracts'
-import { RequestContext } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Queue } from 'bull'
@@ -112,9 +106,9 @@ describe('ChatConversationService workspace files', () => {
     }
 
     beforeEach(() => {
-        ;(RequestContext.currentTenantId as jest.Mock).mockReturnValue('tenant-1')
-        ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-1')
-        ;(RequestContext.getOrganizationId as jest.Mock).mockReturnValue('org-1')
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
 
         repository = {
             findOne: jest.fn(),
@@ -353,7 +347,7 @@ describe('ChatConversationService workspace files', () => {
     })
 
     it('marks a conversation read at the provided message cursor', async () => {
-        jest.spyOn(service, 'findOneByOptions').mockResolvedValue({
+        jest.spyOn(service, 'findOneInOrganizationOrTenant').mockResolvedValue({
             ...conversation,
             organizationId: 'org-1',
             createdAt: new Date('2026-06-21T00:00:00.000Z'),
@@ -379,8 +373,79 @@ describe('ChatConversationService workspace files', () => {
         )
     })
 
+    it('records the assistant owner as the reader of a runtime-principal conversation', async () => {
+        const readAt = new Date('2026-06-21T00:10:00.000Z')
+        jest.spyOn(service, 'findOneInOrganizationOrTenant').mockResolvedValue({
+            ...conversation,
+            organizationId: 'org-1',
+            createdById: 'assistant-user',
+            createdAt: readAt,
+            xpert: { id: 'xpert-1', createdById: 'user-1', userId: 'assistant-user' }
+        } as ChatConversation)
+
+        await service.markRead('conversation-1')
+
+        expect(readStateRepository.query).toHaveBeenCalledWith(expect.stringContaining('ON CONFLICT'), [
+            'tenant-1',
+            'org-1',
+            'conversation-1',
+            'user-1',
+            readAt,
+            null
+        ])
+    })
+
+    it('records a project reader without requiring them to have created the conversation', async () => {
+        const readAt = new Date('2026-06-21T00:10:00.000Z')
+        jest.spyOn(service, 'findOneInOrganizationOrTenant').mockResolvedValue({
+            ...conversation,
+            organizationId: 'org-1',
+            createdById: 'user-2',
+            createdAt: readAt,
+            projectId: 'project-1'
+        } as ChatConversation)
+
+        await service.markRead('conversation-1')
+
+        expect(projectAccessService.assertCanRead).toHaveBeenCalledWith('project-1')
+        expect(readStateRepository.query).toHaveBeenCalledWith(expect.stringContaining('ON CONFLICT'), [
+            'tenant-1',
+            'org-1',
+            'conversation-1',
+            'user-1',
+            readAt,
+            null
+        ])
+    })
+
+    it('rejects marking another assistant owner’s runtime conversation read', async () => {
+        jest.spyOn(service, 'findOneInOrganizationOrTenant').mockResolvedValue({
+            ...conversation,
+            createdById: 'assistant-user',
+            xpert: { id: 'xpert-1', createdById: 'user-2', userId: 'assistant-user' }
+        } as ChatConversation)
+
+        await expect(service.markRead('conversation-1')).rejects.toBeInstanceOf(ForbiddenException)
+
+        expect(messageService.findAll).not.toHaveBeenCalled()
+        expect(readStateRepository.query).not.toHaveBeenCalled()
+    })
+
+    it('rejects read state updates after project access is revoked, even for the creator', async () => {
+        jest.spyOn(service, 'findOneInOrganizationOrTenant').mockResolvedValue({
+            ...conversation,
+            projectId: 'project-1'
+        } as ChatConversation)
+        projectAccessService.assertCanRead.mockRejectedValue(new ForbiddenException())
+
+        await expect(service.markRead('conversation-1')).rejects.toBeInstanceOf(ForbiddenException)
+
+        expect(messageService.findAll).not.toHaveBeenCalled()
+        expect(readStateRepository.query).not.toHaveBeenCalled()
+    })
+
     it('marks a conversation read at the latest message when no cursor is provided', async () => {
-        jest.spyOn(service, 'findOneByOptions').mockResolvedValue({
+        jest.spyOn(service, 'findOneInOrganizationOrTenant').mockResolvedValue({
             ...conversation,
             organizationId: 'org-1',
             createdAt: new Date('2026-06-21T00:00:00.000Z')
@@ -412,7 +477,7 @@ describe('ChatConversationService workspace files', () => {
     })
 
     it('updates tenant scoped read states without requiring a partial unique index', async () => {
-        jest.spyOn(service, 'findOneByOptions').mockResolvedValue({
+        jest.spyOn(service, 'findOneInOrganizationOrTenant').mockResolvedValue({
             ...conversation,
             organizationId: null,
             createdAt: new Date('2026-06-21T00:00:00.000Z')

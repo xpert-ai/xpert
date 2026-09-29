@@ -7,7 +7,8 @@ import {
     TFile,
     TFileDirectory
 } from '@xpert-ai/contracts'
-import { PaginationParams, RequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
+import { PaginationParams, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import type { StorageFile } from '@xpert-ai/server-core'
 import { InjectQueue } from '@nestjs/bull'
 import { BadRequestException, ForbiddenException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
@@ -380,15 +381,8 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
             throw new BadRequestException('User is required to update conversation read state')
         }
 
-        const conversation = await this.findOneByOptions({
-            where: {
-                id: conversationId,
-                createdById: userId
-            } as any
-        })
-        if (!conversation?.id) {
-            throw new BadRequestException('Conversation is required to update read state')
-        }
+        // Read state belongs to the viewer, including readers of assistant-owned or shared Project conversations.
+        const conversation = await this.assertAccess(conversationId)
 
         const lastReadMessage = await this.resolveLastReadMessage(conversation.id, lastReadMessageId)
         const lastReadAt = this.normalizeReadAt(

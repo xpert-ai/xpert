@@ -3,14 +3,15 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
-import { IWFNTrigger, TWorkflowTriggerConnectionStatus } from '@xpert-ai/contracts'
-import { WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
-import { IntegrationQrService, RequestContext } from '@xpert-ai/server-core'
+import { IWFNTrigger, TWorkflowTriggerConnectionStatus, type TIntegrationQrErrorCode } from '@xpert-ai/contracts'
+import { RequestContext, WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
+import { IntegrationQrService } from '@xpert-ai/server-core'
 import { randomUUID } from 'crypto'
 import { t } from 'i18next'
 import { DataSource, Repository } from 'typeorm'
 import { XpertPublishTriggersCommand } from './commands/publish-triggers.command'
 import { Xpert } from './xpert.entity'
+import { XpertWorkspaceAccessService } from '../xpert-workspace/workspace-access.service'
 import {
     connectionTrigger,
     hasConnectionDraftConflict,
@@ -27,7 +28,8 @@ export class XpertTriggerConnectionService {
         private readonly database: DataSource,
         private readonly registry: WorkflowTriggerRegistry,
         private readonly qr: IntegrationQrService,
-        private readonly commands: CommandBus
+        private readonly commands: CommandBus,
+        private readonly access: XpertWorkspaceAccessService
     ) {}
 
     async statuses(id: string): Promise<TWorkflowTriggerConnectionStatus[]> {
@@ -41,7 +43,7 @@ export class XpertTriggerConnectionService {
     }
 
     async begin(id: string, provider: string) {
-        const xpert = await this.read(id)
+        const xpert = await this.read(id, true)
         this.ready(xpert, provider)
         const setup = this.provider(provider).meta.quickConnect
         return this.qr.begin(
@@ -66,7 +68,7 @@ export class XpertTriggerConnectionService {
 
     async complete(id: string, provider: string, session: string) {
         await this.qr.assertContext(session, id, provider)
-        this.ready(await this.read(id), provider)
+        this.ready(await this.read(id, true), provider)
         const integration = await this.qr.complete(session)
         if (integration.provider !== this.provider(provider).meta.quickConnect.integrationProvider)
             throw this.unavailable()
@@ -74,6 +76,7 @@ export class XpertTriggerConnectionService {
     }
 
     async disconnect(id: string, provider: string) {
+        await this.read(id, true)
         return this.change(id, provider, null)
     }
 
@@ -91,6 +94,7 @@ export class XpertTriggerConnectionService {
                 })
                 if (!locked) throw new NotFoundException()
                 const xpert = await repository.findOne({ where: this.where(id), relations: ['agent'] })
+                await this.access.assertCanAuthor(xpert.workspaceId)
                 this.ready(xpert, provider)
                 const strategy = this.provider(provider)
                 const setup = strategy.meta.quickConnect
@@ -180,18 +184,20 @@ export class XpertTriggerConnectionService {
     private ready(xpert: Xpert, provider: string) {
         this.provider(provider)
         if (!xpert.publishAt || !xpert.graph || !xpert.agent?.key)
-            throw new BadRequestException(
-                t('server-ai:Error.TriggerConnectionPublishFirst', {
+            throw new BadRequestException({
+                code: 'TRIGGER_PUBLISH_REQUIRED' satisfies TIntegrationQrErrorCode,
+                message: t('server-ai:Error.TriggerConnectionPublishFirst', {
                     defaultValue: 'Publish a runnable assistant before connecting a robot.'
                 })
-            )
+            })
         if (hasConnectionDraftConflict(xpert.graph, xpert.draft, provider))
-            throw new ConflictException(
-                t('server-ai:Error.TriggerConnectionDraftConflict', {
+            throw new ConflictException({
+                code: 'TRIGGER_DRAFT_CONFLICT' satisfies TIntegrationQrErrorCode,
+                message: t('server-ai:Error.TriggerConnectionDraftConflict', {
                     defaultValue:
                         'This trigger has unpublished changes. Publish or reset its configuration before connecting.'
                 })
-            )
+            })
     }
 
     private provider(name: string) {
@@ -200,9 +206,11 @@ export class XpertTriggerConnectionService {
         return provider
     }
 
-    private async read(id: string) {
+    private async read(id: string, write = false) {
         const xpert = await this.repository.findOne({ where: this.where(id), relations: ['agent'] })
         if (!xpert) throw new NotFoundException()
+        if (write) await this.access.assertCanAuthor(xpert.workspaceId)
+        else await this.access.assertCanRead(xpert.workspaceId)
         return xpert
     }
 

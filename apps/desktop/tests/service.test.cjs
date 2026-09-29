@@ -318,3 +318,35 @@ test('tenant profile refresh omits organization scope and preserves a still-acce
   await service.chatSession('bot-1')
   assert.equal(calls.at(-1).options.headers['organization-id'], 'org-2')
 })
+
+for (const [code, status, expected] of [
+  ['INTEGRATION_QR_BUSY', 409, 'QR authorization is already starting. Please retry in a moment.'],
+  [
+    'TRIGGER_DRAFT_CONFLICT',
+    409,
+    'This channel has unpublished changes. Publish or reset its trigger settings in Xpert before connecting.'
+  ],
+  ['TRIGGER_PUBLISH_REQUIRED', 400, 'Publish this assistant in Xpert before connecting a channel.'],
+  ['UNRECOGNIZED', 409, 'Xpert request failed ({{status}}). Please retry later.']
+]) {
+  test(`QR setup maps ${code} to a safe actionable message`, async () => {
+    const { service } = fixture((url) => {
+      if (url.endsWith('/trigger-settings'))
+        return response({
+          revision: 'revision',
+          canEdit: true,
+          items: [],
+          providers: [{ name: 'lark', quickConnect: { method: 'qr' } }]
+        })
+      if (url.endsWith('/trigger-connections/lark/qr'))
+        return response({ code, message: 'private server details' }, status)
+    })
+    await service.login(input)
+    await service.listBots()
+    const result = await dispatch(service, 'beginAssistantTriggerQr', { botId: bot.id, provider: 'lark' })
+    assert.equal(result.ok, false)
+    assert.equal(result.status, status)
+    assert.equal(result.key, expected)
+    assert.doesNotMatch(JSON.stringify(result), /private server details/)
+  })
+}

@@ -108,6 +108,30 @@ export interface HostMethods {
   }
   cancelPluginConnection: { input: { attemptId: string }; output: { status: 'cancelled' } }
   botProfile: { input: string; output: AssistantProfile }
+  assistantTriggers: { input: { botId: string }; output: import('@xpert-ai/contracts').AssistantTriggerSettings }
+  saveAssistantTrigger: {
+    input: { botId: string; change: import('@xpert-ai/contracts').AssistantTriggerMutation }
+    output: { saved: boolean }
+  }
+  validateAssistantTrigger: { input: HostMethods['saveAssistantTrigger']['input']; output: { valid: boolean } }
+  beginAssistantTriggerQr: {
+    input: { botId: string; provider: string }
+    output: import('@xpert-ai/contracts').TIntegrationQrSession
+  }
+  pollAssistantTriggerQr: {
+    input: { botId: string; provider: string; session: string }
+    output: import('@xpert-ai/contracts').TIntegrationQrResult
+  }
+  completeAssistantTriggerQr: {
+    input: HostMethods['pollAssistantTriggerQr']['input']
+    output: import('@xpert-ai/contracts').TWorkflowTriggerConnectionStatus
+  }
+  cancelAssistantTriggerQr: { input: HostMethods['pollAssistantTriggerQr']['input']; output: void }
+  assistantTriggerOptions: {
+    input: { botId: string; provider: string; field: string }
+    output: { value: string; label: string; disabled: boolean }[]
+  }
+  assistantTriggerManageUrl: { input: { botId: string }; output: { url: string } }
   botConversations: { input: { botId: string; page: number }; output: { items: ProfileConversation[]; total: number } }
   botProfileViews: { input: string; output: XpertExtensionViewManifest[] }
   openProfileView: { input: { botId: string; viewKey: string }; output: ProfileViewSession }

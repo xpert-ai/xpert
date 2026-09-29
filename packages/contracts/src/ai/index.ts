@@ -101,3 +101,4 @@ export * from './clawxpert-conversation-scope.model'
 export * from './knowledge-keyword-analyzer.model'
 
 export * from './assistant-configuration.model'
+export * from './assistant-trigger.model'
