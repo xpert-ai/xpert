@@ -770,6 +770,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(conversationService.getById).toHaveBeenCalledWith('conversation-1', { relations: ['messages'] })
     expect(facade.setActiveConversation).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'conversation-1' }))
     expect(getRuntimeInput().workbench).toEqual({
+      onClientCommand: expect.any(Function),
       sideChat: {
         enabled: true
       }
@@ -2237,7 +2238,10 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(conversationService.markRead).toHaveBeenCalledWith('history-conversation-1')
   })
 
-  it('opens assistant conversation client commands inside the embedded chatkit', async () => {
+  it('forwards embedded view commands to the authorized execution conversation and reopens the same attempt', async () => {
+    viewExtensionApi.getSlotViews.mockReturnValue(of([buildFixedViewManifest('platform.project-tasks__timeline', {
+      clientCommands: [{ key: WORKBENCH_NAVIGATION_OPEN_COMMAND, label: { en_US: 'Open execution' } }]
+    })]))
     Object.assign(facade, {
       chatkitProjectSelection: signal({ mode: 'auto-new' }),
       currentXpert: signal({ options: { workspaceScope: { mode: 'project-required', onMissing: 'create' } } })
@@ -2267,24 +2271,20 @@ describe('ClawXpertConversationDetailComponent', () => {
     facade.onChatThreadChange.mockClear()
     facade.setActiveConversation.mockClear()
     conversationService.markRead.mockClear()
-    const registry = TestBed.inject(ViewClientCommandRegistry)
-    const result = await registry.execute(
-      WORKBENCH_NAVIGATION_OPEN_COMMAND,
-      {
+    const result = await getRuntimeInput().workbench?.onClientCommand?.({
+      commandKey: WORKBENCH_NAVIGATION_OPEN_COMMAND,
+      hostType: 'agent',
+      hostId: 'assistant-1',
+      viewKey: 'platform.project-tasks__timeline',
+      payload: {
         target: WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
         conversationId: 'job-conversation-1',
         threadId: 'job-thread-1',
         executionId: 'job-execution-1',
         xpertId: 'spoofed-role-assistant',
         projectId: 'case-project-1'
-      },
-      {
-        hostType: 'agent',
-        hostId: 'assistant-1',
-        viewKey: 'drawing-material',
-        manifest: buildFixedViewManifest('drawing-material')
       }
-    )
+    })
     await settle(fixture)
 
     expect(result).toEqual({
@@ -2313,12 +2313,30 @@ describe('ClawXpertConversationDetailComponent', () => {
     })
     expect(fixture.nativeElement.querySelector('xpert-chatkit')).not.toBe(primaryChatkitElement)
     expect(getRuntimeInput().requestContext?.()).toEqual(
-      expect.objectContaining({ env: expect.objectContaining({ xpertId: 'role-assistant-current' }) })
+      expect.objectContaining({ env: expect.objectContaining({
+        xpertId: 'role-assistant-current', threadId: 'job-thread-1', executionId: 'job-execution-1',
+        executionFocusRequestId: '1'
+      }) })
     )
     expect(setThreadId).not.toHaveBeenCalledWith('job-thread-1')
     expect(facade.onChatThreadChange).not.toHaveBeenCalled()
     expect(facade.setActiveConversation).not.toHaveBeenCalled()
     expect(conversationService.markRead).toHaveBeenCalledWith('job-conversation-1')
+
+    await getRuntimeInput().workbench?.onClientCommand?.({
+      commandKey: WORKBENCH_NAVIGATION_OPEN_COMMAND,
+      hostType: 'agent', hostId: 'role-assistant-current', viewKey: 'platform.project-tasks__timeline',
+      payload: {
+        target: WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
+        conversationId: 'job-conversation-1', threadId: 'job-thread-1', executionId: 'job-execution-1'
+      }
+    })
+    await settle(fixture)
+    expect(getRuntimeInput().requestContext?.()).toEqual(
+      expect.objectContaining({ env: expect.objectContaining({
+        threadId: 'job-thread-1', executionId: 'job-execution-1', executionFocusRequestId: '2'
+      }) })
+    )
 
     const runtimeInput = getRuntimeInput()
     runtimeInput.onThreadChange?.({ threadId: 'role-thread-2' })

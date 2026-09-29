@@ -1,5 +1,6 @@
 import {
   WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
+  WORKBENCH_ASSISTANT_EXECUTION_TARGET,
   WORKBENCH_ASSISTANT_PROJECT_TARGET,
   WORKBENCH_EXTENSION_VIEW_TARGET,
   WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET,
@@ -13,6 +14,7 @@ import { ViewClientCommandRegistry } from '../../@shared/view-extension/view-cli
 
 export {
   WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
+  WORKBENCH_ASSISTANT_EXECUTION_TARGET,
   WORKBENCH_ASSISTANT_PROJECT_TARGET,
   WORKBENCH_EXTENSION_VIEW_TARGET,
   WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET,
@@ -48,6 +50,12 @@ export function registerWorkbenchNavigationOpenCommand(
       }
     }
 
+    const conversationTarget =
+      target === WORKBENCH_ASSISTANT_CONVERSATION_TARGET || target === WORKBENCH_ASSISTANT_EXECUTION_TARGET
+    if (target === WORKBENCH_ASSISTANT_EXECUTION_TARGET && !getString(payload, 'executionId')) {
+      return { success: false, code: 'bad_request', message: 'Execution id is required.' }
+    }
+
     if (target === 'agent-evolution.target') {
       const targetId = getString(payload, 'targetId')
       if (!targetId || !/^[a-zA-Z0-9_.:-]{1,200}$/.test(targetId) || !options.navigate) {
@@ -63,7 +71,7 @@ export function registerWorkbenchNavigationOpenCommand(
 
     if (
       target !== WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET &&
-      target !== WORKBENCH_ASSISTANT_CONVERSATION_TARGET &&
+      !conversationTarget &&
       target !== WORKBENCH_ASSISTANT_PROJECT_TARGET &&
       target !== WORKBENCH_EXTENSION_VIEW_TARGET
     ) {
@@ -74,26 +82,24 @@ export function registerWorkbenchNavigationOpenCommand(
       }
     }
 
-    const resourceId =
-      target === WORKBENCH_ASSISTANT_CONVERSATION_TARGET
-        ? getString(payload, 'conversationId')
-        : target === WORKBENCH_ASSISTANT_PROJECT_TARGET
-          ? getString(payload, 'projectId')
-          : target === WORKBENCH_EXTENSION_VIEW_TARGET
-            ? getString(payload, 'viewKey')
-            : getString(payload, 'knowledgebaseId')
+    const resourceId = conversationTarget
+      ? getString(payload, 'conversationId')
+      : target === WORKBENCH_ASSISTANT_PROJECT_TARGET
+        ? getString(payload, 'projectId')
+        : target === WORKBENCH_EXTENSION_VIEW_TARGET
+          ? getString(payload, 'viewKey')
+          : getString(payload, 'knowledgebaseId')
     if (!resourceId) {
       return {
         success: false,
         code: 'bad_request',
-        message:
-          target === WORKBENCH_ASSISTANT_CONVERSATION_TARGET
-            ? 'Conversation id is required.'
-            : target === WORKBENCH_ASSISTANT_PROJECT_TARGET
-              ? 'Project id is required.'
-              : target === WORKBENCH_EXTENSION_VIEW_TARGET
-                ? 'Workbench view key is required.'
-                : 'Knowledgebase id is required.'
+        message: conversationTarget
+          ? 'Conversation id is required.'
+          : target === WORKBENCH_ASSISTANT_PROJECT_TARGET
+            ? 'Project id is required.'
+            : target === WORKBENCH_EXTENSION_VIEW_TARGET
+              ? 'Workbench view key is required.'
+              : 'Knowledgebase id is required.'
       }
     }
 
@@ -124,7 +130,7 @@ export function registerWorkbenchNavigationOpenCommand(
       }
     }
 
-    if (target === WORKBENCH_ASSISTANT_CONVERSATION_TARGET) {
+    if (conversationTarget) {
       if (!options.openAssistantConversation) {
         return {
           success: false,

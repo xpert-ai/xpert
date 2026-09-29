@@ -62,6 +62,7 @@ import {
   registerAssistantContextSetCommand
 } from '../../assistant/assistant-chat-client-command'
 import { injectHostedAssistantChatkitControl } from '../../assistant/assistant-chatkit.runtime'
+import { createChatkitWorkbenchClientCommandHandler } from '../../assistant/chatkit-workbench-client-command'
 import { createKnowledgebaseCitationOpenHostEvent } from '../../assistant/knowledgebase-citation-effect'
 import { registerWorkbenchFileOpenCommand } from '../../assistant/workbench-file-open-client-command'
 import {
@@ -292,11 +293,14 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     JSON.stringify([this.facade.assistantId()?.trim() || null, this.projectId(), this.facade.threadId()])
   )
   readonly #assistantWorkbenchContexts = signal<Record<string, AssistantWorkbenchRequestContext>>({})
+  private executionFocusSequence = 0
+  readonly #executionFocus = signal<{ threadId: string; executionId: string; requestId: string } | null>(null)
   readonly assistantRequestContext = computed(() =>
     buildAssistantRequestContext({
       workspaceId: getOptionalSignalValue(this.facade, 'currentWorkspaceId'),
       xpertId: this.#workbenchConversationScope()?.xpertId ?? this.facade.xpertId(),
-      contexts: this.#assistantWorkbenchContexts()
+      contexts: this.#assistantWorkbenchContexts(),
+      executionFocus: this.#executionFocus()?.threadId === this.activeChatkitThreadId() ? this.#executionFocus() : null
     })
   )
   readonly chatkitAssistantId = computed(() => this.#workbenchConversationScope()?.xpertId ?? this.facade.assistantId())
@@ -369,6 +373,17 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       collapseProcess: true
     },
     workbench: {
+      onClientCommand: createChatkitWorkbenchClientCommandHandler({
+        getScope: () => ({
+          assistantId: this.chatkitAssistantId(),
+          runtimeScope: {
+            projectId: this.chatkitProjectId(),
+            conversationId: this.#workbenchConversationScope()?.conversationId ?? this.resolvedConversationId()
+          }
+        }),
+        views: this.#viewExtensionApi,
+        commands: this.#clientCommands
+      }),
       sideChat: {
         enabled: true
       }
@@ -377,6 +392,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     titleDefault: this.facade.definition.defaultTitle,
     onThreadChange: ({ threadId }) => {
       const normalizedThreadId = normalizeConversationThreadId(threadId)
+      if (this.#executionFocus()?.threadId !== normalizedThreadId) this.#executionFocus.set(null)
       if (this.#workbenchConversationScope()) {
         if (normalizedThreadId) {
           this.#workbenchConversationScope.update((scope) =>
@@ -1447,6 +1463,12 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       await control.setThreadId(resolution.threadId)
       this.facade.onChatThreadChange(resolution.threadId)
     }
+    // Reuse ChatKit's exact execution focus after the authorized thread is active.
+    this.#executionFocus.set(request.executionId ? {
+      threadId: resolution.threadId,
+      executionId: request.executionId,
+      requestId: String(++this.executionFocusSequence)
+    } : null)
     this.markConversationRead(resolution.conversationId)
     return resolution
   }

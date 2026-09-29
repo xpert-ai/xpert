@@ -3,6 +3,7 @@ import { ViewClientCommandRegistry } from '../../@shared/view-extension/view-cli
 import {
   registerWorkbenchNavigationOpenCommand,
   WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
+  WORKBENCH_ASSISTANT_EXECUTION_TARGET,
   WORKBENCH_ASSISTANT_PROJECT_TARGET,
   WORKBENCH_EXTENSION_VIEW_TARGET,
   WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET
@@ -184,7 +185,7 @@ describe('registerWorkbenchNavigationOpenCommand', () => {
     )
   })
 
-  it('opens a persisted assistant conversation', async () => {
+  it.each([WORKBENCH_ASSISTANT_CONVERSATION_TARGET, WORKBENCH_ASSISTANT_EXECUTION_TARGET])('opens a persisted assistant %s target', async (target) => {
     const registry = new ViewClientCommandRegistry()
     const navigate = jest.fn(async () => true)
     const openAssistantConversation = jest.fn(async () => true)
@@ -193,7 +194,7 @@ describe('registerWorkbenchNavigationOpenCommand', () => {
     const result = await registry.execute(
       WORKBENCH_NAVIGATION_OPEN_COMMAND,
       {
-        target: WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
+        target,
         conversationId: 'conversation-1',
         threadId: 'thread-1',
         executionId: 'execution-1',
@@ -212,12 +213,23 @@ describe('registerWorkbenchNavigationOpenCommand', () => {
     expect(result).toEqual({
       success: true,
       status: 'opened',
-      target: WORKBENCH_ASSISTANT_CONVERSATION_TARGET,
+      target,
       conversationId: 'conversation-1',
       threadId: 'thread-1',
       executionId: 'execution-1',
       xpertId: 'role-assistant-1'
     })
+  })
+
+  it('rejects an execution target without an execution id', async () => {
+    const registry = new ViewClientCommandRegistry()
+    const openAssistantConversation = jest.fn()
+    registerWorkbenchNavigationOpenCommand(registry, { openAssistantConversation })
+    const result = await registry.execute(WORKBENCH_NAVIGATION_OPEN_COMMAND, {
+      target: WORKBENCH_ASSISTANT_EXECUTION_TARGET, conversationId: 'conversation-1'
+    }, context)
+    expect(result).toMatchObject({ success: false, code: 'bad_request' })
+    expect(openAssistantConversation).not.toHaveBeenCalled()
   })
 
   it('returns the canonical Assistant conversation scope resolved by the host', async () => {

@@ -402,6 +402,8 @@ export const WORKBENCH_FILE_OPEN_COMMAND = 'workbench.file.open'
 export const WORKBENCH_NAVIGATION_OPEN_COMMAND = 'workbench.navigation.open'
 export const WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET = 'knowledgebase.documents'
 export const WORKBENCH_ASSISTANT_CONVERSATION_TARGET = 'assistant.conversation'
+/** Inspect an exact execution; embedded clients may open it without changing the active conversation. */
+export const WORKBENCH_ASSISTANT_EXECUTION_TARGET = 'assistant.execution'
 /** Opens the current Assistant inside a Project-scoped workbench route. */
 export const WORKBENCH_ASSISTANT_PROJECT_TARGET = 'assistant.project'
 export const WORKBENCH_EXTENSION_VIEW_TARGET = 'workbench.view'
@@ -450,6 +452,7 @@ export type WorkbenchNavigationOpenTarget =
   | 'agent-evolution.target'
   | typeof WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET
   | typeof WORKBENCH_ASSISTANT_CONVERSATION_TARGET
+  | typeof WORKBENCH_ASSISTANT_EXECUTION_TARGET
   | typeof WORKBENCH_ASSISTANT_PROJECT_TARGET
   | typeof WORKBENCH_EXTENSION_VIEW_TARGET
 
