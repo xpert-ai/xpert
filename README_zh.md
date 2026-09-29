@@ -6,17 +6,16 @@
   </a>
 </p>
 
-<h1 align="center">一切皆插件</h1>
+<h1 align="center">Xpert 平台与 Xpert Bosi</h1>
 
 <p align="center">
-  Xpert 是一个开源智能体平台：模型、集成、工具、中间件、Skills、Assistants、<br>
-  Workbench 视图、MCP Apps 和完整的 Agentic Apps，共享一套可治理的插件系统。
+  Xpert 是构建与治理 AI 团队的开源智能体平台。<br>
+  Xpert Bosi 是它的桌面应用，也是你的 AI 小队长。
 </p>
 
 <p align="center">
-  <a href="https://app.xpertai.cn/plugins/marketplace"><strong>探索插件市场</strong></a> ·
-  <a href="https://github.com/xpert-ai/xpert-plugins"><strong>查看插件源码</strong></a> ·
-  <a href="https://github.com/xpert-ai/xpert-skills/tree/main/skills/development-technical/xpert-plugin-development"><strong>使用 Agent Skills 开发插件</strong></a> ·
+  <a href="apps/desktop/README.md"><strong>开始使用 Bosi</strong></a> ·
+  <a href="https://app.xpertai.cn/plugins/marketplace"><strong>探索市场</strong></a> ·
   <a href="https://docs.xpertai.cn/zh-Hans/ai/getting-started/community"><strong>自托管 Xpert</strong></a> ·
   <a href="https://docs.xpertai.cn/zh-Hans/">文档</a>
 </p>
@@ -33,30 +32,30 @@
   </a>
 </p>
 
-![Xpert AI 智能体市场中由插件交付的 Assistant 模板](docs/images/readme/agent-marketplace-zh.png)
+## Xpert Bosi：你的 AI 小队长
 
-Xpert 内核提供运行时、契约、安全边界和生命周期控制，插件则提供用户能够安装的能力与应用：小到一个模型供应商或工具，大到完整的 Assistant、多智能体工作流或面向业务的 Agentic App。
+**你定目标，Bosi 带队。**
 
-| 发现                                                                             | 学习                                                                                       | 开发                                                                                                                                                                                                             |
-| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 在[插件市场](https://app.xpertai.cn/plugins/marketplace)中发现并安装能力与应用。 | 在 [`xpert-plugins`](https://github.com/xpert-ai/xpert-plugins) 中查看官方与社区插件实现。 | 将 [`xpert-plugin-development`](https://github.com/xpert-ai/xpert-skills/tree/main/skills/development-technical/xpert-plugin-development) 技能交给编码智能体，让其创建、测试、部署、管理版本并完成插件发布准备。 |
+**Bosi** 将 Xpert 的数字专家、插件与应用带到桌面。使用 Xpert 账号登录，按组织权限调用团队能力。
 
-## 产品实景
+- **组建 AI 小队**：发现数字专家、申请使用权限，或从模板与应用创建助手。
+- **在一处完成工作**：集中呈现对话、文件与应用工作台；为工作空间添加插件，在会话中选择使用。
+- **让计划变成行动**：通过已配置的专家操作云电脑，或在 macOS 运行本机 Shell 命令，默认逐条审批。
 
-![Agent Studio 中的 Motion Assistant，展示连接到 Agent 的工具和中间件](docs/images/readme/agent-studio-motion-zh.png)
+Bosi 可连接官方服务或自托管 Xpert。平台负责运行智能体、管理共享资源，Bosi 提供桌面交互与经授权的本机执行。配置与构建见[桌面应用指南](apps/desktop/README.md)。
 
-上图是 **Motion Assistant** 在 Agent Studio 中的真实配置。一个 Agent 同时连接了 Skills、网络工具、沙箱能力、模型重试与循环防护中间件，以及运行控制。对于需要更严格流程控制的业务，同一套可视化模型也可以组合多个 Agent 和确定性 Workflow 节点。
+## Xpert 平台：一切皆插件
 
-## 为什么选择 Xpert
+构建并发布 AI 团队，供 Bosi、Xpert Web 或自有产品使用。Xpert 提供运行时、权限、审批与审计；插件交付从模型、工具到完整 Agentic App 的能力。
 
-- **一切皆可治理的插件**：通过统一生命周期安装和演进模型、集成、中间件、Skills、MCP 工具与 Apps、Assistant 模板、Remote Components、Workbench 视图和完整的 Agentic Apps。
-- **Agent 与 Workflow 混合架构**：用 Agent 处理灵活推理，用 Workflow 提供稳定、可检查的控制路径。
-- **可治理的企业执行**：通过类型化工具、语义对象、策略、审批和审计轨迹开放数据与业务动作，而不是把裸权限交给模型。
-- **可人工复核的工作台**：工具调用可以打开聚焦的 UI 视图，让用户检查、修正、审批或提交结果。
+- **统一插件生命周期**：安装、配置和演进模型、集成、Skills、中间件、MCP Apps 与业务应用。
+- **Agent + Workflow**：将灵活推理与确定、可检查的业务流程组合。
+- **可治理的执行**：通过类型化工具、语义对象、策略与审批开放数据和业务动作。
+- **可复核的工作台**：在专属视图中检查、修正、审批和提交结果。
 
 ## 官方应用
 
-在[官方 App 目录](https://xpertai.cn/zh-CN/apps/)中探索 Xpert 的官方 Agentic Apps：
+在[官方 App 目录](https://xpertai.cn/zh-CN/apps/)中为 AI 团队发现应用：
 
 - [Presentation Studio](https://xpertai.cn/showcase/presentation-studio/)
 - [Sites](https://xpertai.cn/showcase/sites/)
@@ -69,7 +68,9 @@ Xpert 内核提供运行时、契约、安全边界和生命周期控制，插�
 
 ## 快速开始
 
-Docker 部署至少需要 **2 核 CPU**、**4 GiB 内存**，并安装 Docker 与 Docker Compose。
+**使用 Bosi**：按[桌面应用指南](apps/desktop/README.md)启动，登录并选择组织，通过「发现与添加」使用专家、应用、插件与模板。自托管用户可在连接设置中更换服务地址。
+
+**部署 Xpert**：至少需要 **2 核 CPU**、**4 GiB 内存**、Docker 与 Docker Compose。
 
 ```bash
 git clone https://github.com/xpert-ai/xpert.git
@@ -78,29 +79,35 @@ cp env.example .env
 docker compose up -d
 ```
 
-打开 [http://localhost/](http://localhost/)，完成初始化流程。
+打开 [http://localhost/](http://localhost/)，完成初始化后即可连接 Bosi。
 
-部署方式、环境配置和升级说明请参阅[自托管文档](https://docs.xpertai.cn/zh-Hans/ai/getting-started/community)。如果从源码开发，请使用受支持的 Node.js LTS 版本，并通过 Corepack 使用仓库锁定的 pnpm 版本。
+部署与升级见[自托管文档](https://docs.xpertai.cn/zh-Hans/ai/getting-started/community)。源码开发需使用受支持的 Node.js LTS 和 Corepack 管理的仓库锁定 pnpm。
 
 ## 平台能力图谱
 
-| 领域                          | 能够实现什么                                                                                                           |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| **Agent Studio**              | 可视化编写数字专家、多智能体协作、Workflow 节点、工具集、知识、Skills 和 Agent Middleware。                            |
-| **文件与知识理解**            | 解析 FileAsset、chunks、page images、citation anchors、检索、GraphRAG 风格证据和 workspace files。                     |
-| **Agentic BI 与 Data Xpert**  | 提供语义模型、业务指标、自然语言分析，以及面向企业数据查询和动作的可治理对象语义工具。                                 |
-| **Agentic Apps 与 Workbench** | 用插件交付业务应用，包含 Assistant 工具、复核视图、Remote Component、配置和生命周期。                                  |
-| **MCP、Skills 与插件**        | 提供可复用集成、模型供应商、工具、中间件、受管运行时和可安装能力包。                                                   |
-| **ChatKit 与嵌入式体验**      | 面向 React、Vue、Angular、SAP UI5、Web Component 和原生 JavaScript 的流式助手，支持文件、线程、工具、widgets 和 i18n。 |
-| **运行与观测**                | 管理会话和任务状态、工具调用事件、使用统计、日志、指标、保留策略和运行监测。                                           |
+| 领域                          | 能够实现什么                                                                             |
+| ----------------------------- | ---------------------------------------------------------------------------------------- |
+| **Agent Studio**              | 编写数字专家、多智能体工作流、工具、知识与中间件。                                       |
+| **文件与知识理解**            | 解析文件，通过 RAG、GraphRAG 检索证据并引用来源。                                        |
+| **Agentic BI 与 Data Xpert**  | 通过语义模型与受治理工具查询企业数据、执行业务动作。                                     |
+| **Agentic Apps 与 Workbench** | 交付包含 Assistant 工具与交互复核视图的业务应用。                                        |
+| **MCP、Skills 与插件**        | 扩展模型、集成、工具、中间件与受管运行时。                                               |
+| **ChatKit 与嵌入式体验**      | 在 React、Vue、Angular、SAP UI5 或 Web Components 中嵌入流式对话、文件、工具与 widgets。 |
+| **运行与观测**                | 跟踪任务、工具调用、用量、日志、指标与保留策略。                                         |
 
 ## 架构
 
-Xpert 采用**智能体与工作流混合架构**。Agent 决定如何处理开放式任务，Workflow 让关键路径具备可重复和可复核能力。工具、知识、数据资源与插件界面始终位于明确契约和治理边界之后。
+Xpert 是**以插件为核心的 NestJS 模块化平台**。统一的 **Agent + Workflow 运行时**承载 AI 团队，**Agentic Apps** 将领域工具、Assistant 模板、业务服务与交互式 Workbench 组合成完整应用。
 
-![智能体与工作流混合架构](https://github.com/user-attachments/assets/b3b432f9-54ab-4ec1-9fc4-7e46fbfb88ba)
+[![Xpert 技术架构：平台运行时、插件生命周期与扩展点、Agentic Apps 和基础设施](docs/images/readme/xpert-architecture-technical-zh.png)](docs/images/readme/xpert-architecture-technical-zh.png)
 
-[阅读架构文章](https://xpertai.cn/blog/agent-workflow-hybrid-architecture)。
+- **插件体系：** 原生 npm 插件注册 NestJS 模块、Provider、配置与生命周期钩子，覆盖模型、工具/MCP、中间件、Skills/模板、工作流、集成、连接器、数据/RAG、执行、存储、视图与协作。
+- **会话资源：** 标准 Agent Plugin 通过 Git/ZIP 导入 Skills/MCP 等资源，使用工作空间授权、版本化绑定与单次执行快照控制访问，不加载服务器代码。
+- **Agentic Apps：** 市场声明关联工具、模板、业务服务与审阅界面。声明 `appConfig` 的应用由宿主完成预检、专用工作空间与知识库准备、Assistant/多角色套件发布，以及安装健康状态跟踪。
+- **统一运行与交互契约：** LangGraph / LangChain、CQRS、Bull Handoff、检查点与中断恢复支撑执行；Workbench 通过 View Manifest、View Provider 与 iframe 桥接交互，MCP Apps 使用工具关联的 UI 资源。
+- **治理与基础设施：** 作用域身份、审批、审计和用量贯穿 API、Worker 与插件。PostgreSQL + pgvector、Redis 和存储 Provider 持久化状态；Data Xpert 是通过 API/MCP 接入的独立服务，Pro 执行能力单独标记。
+
+点击图片可查看原尺寸。[架构分析与完整扩展点目录](docs/architecture/README.md) · [智能体与工作流架构文章](https://xpertai.cn/blog/agent-workflow-hybrid-architecture)
 
 ## 生态
 
@@ -114,9 +121,7 @@ Xpert 采用**智能体与工作流混合架构**。Agent 决定如何处理开�
 
 ## 使用 Agent Skills 进行本地开发
 
-使用 [`xpert-ai/xpert-skills`](https://github.com/xpert-ai/xpert-skills) 中的开发技能，让受支持的编码智能体搭建 Xpert 平台，并基于已验证的本地实例开发 Agentic Apps。
-
-为 Codex 安装两个主要技能及配套的插件生命周期技能。如果只想安装到当前项目，请移除 `--global`。
+为 Codex 安装这些 [`xpert-skills`](https://github.com/xpert-ai/xpert-skills)，以搭建平台和开发应用。移除 `--global` 可仅安装到当前项目；`codex` 可替换为其他受支持的智能体。
 
 ```bash
 npx skills add xpert-ai/xpert-skills \
@@ -135,23 +140,19 @@ npx skills add xpert-ai/xpert-skills \
   --global
 ```
 
-需要时可将 `codex` 替换为 Skills CLI 支持的其他目标。如果安装后没有立即发现技能，请新建一个智能体会话。
-
-然后让编码智能体按顺序执行：
+新建智能体会话，依次执行：
 
 1. **搭建并验证 Xpert**
 
-   > 使用 `$xpert-platform-local-environment`，在 `<path>` 克隆或复用 Xpert 代码，以 source-hybrid 模式完成配置和启动，并返回可用于插件测试的环境回执。
+   > 使用 `$xpert-platform-local-environment`，在 `<path>` 以 source-hybrid 模式搭建 Xpert，验证环境可用于插件测试。
 
 2. **开发 Agentic App**
 
-   > 使用 `$xpert-agentic-app-developer`，基于已验证的本地平台，将 `<应用描述>` 设计、实现、安全部署并验收为独立的 Xpert Agentic App 插件。
+   > 使用 `$xpert-agentic-app-developer`，在该实例上将 `<应用描述>` 开发、部署并验收为独立插件。
 
-环境技能默认使用 Docker 管理基础设施，并从源码运行 API 和 Cloud UI；它会验证代码与进程来源、服务健康状态，以及必要的人工初始化是否完成。Agentic App 技能覆盖插件架构、Agent 中间件、Workbench 与扩展视图、Assistant 模板、应用市场 `appConfig`、部署和验收；插件打包和部署细节则按其指引交给 `xpert-plugin-development`。
+环境技能使用 Docker 基础设施和源码 API、Web UI；应用技能覆盖工具、视图、模板与验收，`xpert-plugin-development` 负责打包部署。
 
 ## ROADMAP
-
-当前路线图重点包括：
 
 - 面向规划、文件、团队和任务执行的项目工作空间。
 - 更完整的治理、审批、审计和基于角色的访问控制。
