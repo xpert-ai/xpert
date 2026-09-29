@@ -10,13 +10,9 @@ export function middlewareFeatureItems(
   meta: TAgentMiddlewareMeta | undefined,
   views: readonly Pick<XpertExtensionViewManifest, 'key' | 'title' | 'visible' | 'activation' | 'workbench'>[]
 ): MiddlewareFeatureItem[] {
-  // Compatibility views may still resolve by key while being hidden from navigation.
+  // Feature associations include Agent-only views; menu visibility is independent.
   const visibleViews = [
-    ...new Map(
-      views
-        .filter((view) => view.visible !== false && view.workbench?.menu?.enabled !== false)
-        .map((view) => [view.key, view])
-    ).values()
+    ...new Map(views.filter((view) => view.visible !== false).map((view) => [view.key, view])).values()
   ]
   return [...new Set((meta?.features ?? []).map((key) => key.trim()).filter(Boolean))].map((key) => ({
     key,

@@ -43,16 +43,17 @@ describe('middlewareFeatureItems', () => {
     expect(middlewareFeatureItems({ name: 'guard', label: {} }, [])).toEqual([])
   })
 
-  it('excludes navigation-hidden compatibility entries without merging distinct visible views by title', () => {
+  it('includes Agent-only views without merging distinct views by title', () => {
     const title = { en_US: 'Contract / Order BOM Studio' }
     const activation = { requiredFeatures: ['documents'] }
     const items = middlewareFeatureItems(meta, [
       { key: 'contract', title, activation },
-      { key: 'legacy-order', title, activation, workbench: { fixed: false, menu: { enabled: false } } },
-      { key: 'contract', title, activation, workbench: { fixed: true, menu: { enabled: true } } },
+      { key: 'legacy-order', title, activation, visible: false },
+      { key: 'agent-only', title, activation, workbench: { openMode: 'on-demand', menu: { enabled: false } } },
+      { key: 'contract', title, activation, workbench: { openMode: 'auto', menu: { enabled: true } } },
       { key: 'another-visible-studio', title, activation, workbench: { menu: { enabled: true } } }
     ])
 
-    expect(items[0].views.map((view) => view.key)).toEqual(['contract', 'another-visible-studio'])
+    expect(items[0].views.map((view) => view.key)).toEqual(['contract', 'agent-only', 'another-visible-studio'])
   })
 })

@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router'
+import { XpertProjectTaskManagementComponent } from './project-task-management.component'
 import { XpertProjectAssetsComponent } from './project-assets.component'
 import { XpertProjectConfigComponent } from './project-config.component'
 import { XpertProjectListComponent } from './project-list.component'
@@ -22,6 +23,7 @@ export const routes: Routes = [
     children: [
       { path: '', component: XpertProjectOverviewComponent, pathMatch: 'full', data: { title: 'Project overview' } },
       { path: 'plan', component: XpertProjectPlanComponent, data: { title: 'Project plan' } },
+      { path: 'timeline', component: XpertProjectTaskManagementComponent, data: { title: 'Project tasks & timeline' } },
       { path: 'tasks', component: XpertProjectTasksComponent, data: { title: 'Project conversations' } },
       { path: 'assets', component: XpertProjectAssetsComponent, data: { title: 'Project assets' } },
       { path: 'config', component: XpertProjectConfigComponent, data: { title: 'Project configuration' } }

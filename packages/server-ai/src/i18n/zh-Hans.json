@@ -1,4 +1,19 @@
 {
+    "EvolutionExecution": {
+        "PreparingReview": "正在准备审核材料…",
+        "ChecksNotApplicable": "当前策略不要求自动检查，仍需人工审核。",
+        "Generating": "正在生成修改草稿…",
+        "Checking": "正在执行自动检查…",
+        "Drafted": "修改草稿已生成，尚未发布生效。",
+        "Failed": "本次执行失败。",
+        "ChecksPassed": "自动检查通过。",
+        "ChecksFailed": "自动检查未通过。",
+        "Passed": "通过",
+        "NotPassed": "未通过",
+        "AwaitingReview": "下一步需要管理员审核并发布。发布后仍需明确采用才会生效。检查通过不代表已具备工程使用条件。",
+        "ReviewFailures": "请查看未通过项，处理后再发起新的准备与检查。本次尚未发布。",
+        "AwaitingChecks": "正在等待检查所需的输入，自动检查尚未完成。"
+    },
     "AssistantConfigurationReleaseNotes": "更新数字专家模型、能力与提示词",
     "Project": { "ConversationProjectName": "{{assistant}} 项目" },
     "ConversationBranch": { "Title": "{{title}} ({{number}})", "Untitled": "聊天" },
@@ -6,6 +21,14 @@
         "ReferenceOnlyPrompt": "未包含文件正文，不支持直接按文本读取。请使用支持该格式的可用工具；对于 ZIP，先列出或解压条目，再处理所需的子文件。此引用不会改变文件访问权限。"
     },
     "Error": {
+        "ProjectTaskAccessDenied": "无权访问此项目任务。",
+        "ProjectTaskNotFound": "找不到项目任务。",
+        "ProjectTaskRevisionConflict": "任务已变化，请重新加载后编辑。",
+        "ProjectTaskProviderCommandRequired": "此任务由业务插件管理，请通过对应 Assistant 或业务工具修改。",
+        "ProjectTaskExecutionUnavailable": "对应执行对话不可用，或不属于当前项目。",
+        "ProjectTaskRemovedFromPlan": "此任务已从当前业务计划中移除。",
+        "ProjectTaskContextRequired": "请先选择项目再查看任务。",
+        "ProjectTaskActionUnsupported": "不支持此任务操作。",
         "AssistantCapabilityConflict": "能力相关配置已在 Studio 中修改，请在 Studio 检查后再编辑；未移除任何工作流配置。",
         "AssistantConfigurationForbidden": "需要当前组织中该工作空间的编辑权限。",
         "AssistantConfigurationStale": "此专家在编辑期间已更新，请重新加载已保存的设置后再试。",

@@ -178,8 +178,18 @@ export interface XpertViewActivation {
 }
 
 export interface XpertWorkbenchViewOptions {
+  /**
+   * @deprecated Use the manifest's `visible` field for visibility and `openMode`
+   * for initial tab behavior. Retained for compatibility; false hides the view.
+   */
   fixed?: boolean
+  /**
+   * Initial tab behavior; defaults to auto. On-demand views open through a
+   * menu, navigation or live Agent request. This does not grant view access.
+   */
+  openMode?: 'auto' | 'on-demand'
   menu?: {
+    /** Controls the manual entry only; does not disable the view or navigation. */
     enabled?: boolean
     label?: string | I18nObject
     order?: number
@@ -400,8 +410,12 @@ export const ASSISTANT_CHAT_SEND_MESSAGE_COMMAND = 'assistant.chat.send_message'
 export const ASSISTANT_CONTEXT_SET_COMMAND = 'assistant.context.set'
 export const WORKBENCH_FILE_OPEN_COMMAND = 'workbench.file.open'
 export const WORKBENCH_NAVIGATION_OPEN_COMMAND = 'workbench.navigation.open'
+export const WORKBENCH_AGENT_EVOLUTION_TARGET = 'agent-evolution.target'
+export const WORKBENCH_AGENT_EVOLUTION_CHANGE_TARGET = 'agent-evolution.change'
 export const WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET = 'knowledgebase.documents'
 export const WORKBENCH_ASSISTANT_CONVERSATION_TARGET = 'assistant.conversation'
+/** Inspect an exact execution; embedded clients may open it without changing the active conversation. */
+export const WORKBENCH_ASSISTANT_EXECUTION_TARGET = 'assistant.execution'
 /** Opens the current Assistant inside a Project-scoped workbench route. */
 export const WORKBENCH_ASSISTANT_PROJECT_TARGET = 'assistant.project'
 export const WORKBENCH_EXTENSION_VIEW_TARGET = 'workbench.view'
@@ -447,15 +461,19 @@ export interface WorkbenchOpenFile {
 }
 
 export type WorkbenchNavigationOpenTarget =
-  | 'agent-evolution.target'
+  | typeof WORKBENCH_AGENT_EVOLUTION_TARGET
+  | typeof WORKBENCH_AGENT_EVOLUTION_CHANGE_TARGET
   | typeof WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET
   | typeof WORKBENCH_ASSISTANT_CONVERSATION_TARGET
+  | typeof WORKBENCH_ASSISTANT_EXECUTION_TARGET
   | typeof WORKBENCH_ASSISTANT_PROJECT_TARGET
   | typeof WORKBENCH_EXTENSION_VIEW_TARGET
 
 export interface WorkbenchNavigationOpenPayload {
   target: WorkbenchNavigationOpenTarget
   targetId?: string
+  /** Exact evolution request to select on the existing evaluation page. */
+  changeId?: string
   knowledgebaseId?: string
   documentId?: string
   parentId?: string

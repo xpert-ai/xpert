@@ -2,6 +2,7 @@ import { Component, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
+  AGENT_WORKBENCH_SLOT,
   type TXpertWorkbenchOptions,
   type XpertExtensionViewManifest,
   XpertWorkbenchInitialLayoutEnum
@@ -15,8 +16,6 @@ import {
 import { firstValueFrom } from 'rxjs'
 import { resolveI18nText, ViewExtensionApiService } from '../../../../@core'
 import { EReloadReason, XpertStudioApiService } from '../domain'
-
-const AGENT_WORKBENCH_FIXED_SLOT = 'agent.workbench.fixed'
 
 type WorkbenchViewOption = {
   key: string
@@ -282,7 +281,7 @@ export class XpertWorkbenchInitialLayoutSettingsComponent {
     this.loadingViews.set(true)
     try {
       const manifests = await firstValueFrom(
-        this.#viewExtensionApi.getSlotViews('agent', xpertId, AGENT_WORKBENCH_FIXED_SLOT, { isDraft: true })
+        this.#viewExtensionApi.getSlotViews('agent', xpertId, AGENT_WORKBENCH_SLOT, { isDraft: true })
       )
       if (requestId !== this.#viewLoadRequestId) {
         return
@@ -290,7 +289,7 @@ export class XpertWorkbenchInitialLayoutSettingsComponent {
 
       this.viewOptions.set(
         manifests
-          .filter(shouldShowFixedView)
+          .filter(isWorkbenchViewAvailable)
           .map((manifest) => toWorkbenchViewOption(manifest, this.#translate.currentLang))
       )
     } catch {
@@ -313,10 +312,8 @@ function normalizeSelectValue(value: ZardSelectValue | ZardSelectValue[] | null)
   return typeof selected === 'string' && selected.trim() ? selected.trim() : null
 }
 
-function shouldShowFixedView(manifest: XpertExtensionViewManifest) {
-  return (
-    manifest.visible !== false && manifest.workbench?.fixed !== false && manifest.workbench?.menu?.enabled !== false
-  )
+function isWorkbenchViewAvailable(manifest: XpertExtensionViewManifest) {
+  return manifest.visible !== false
 }
 
 function toWorkbenchViewOption(manifest: XpertExtensionViewManifest, language: string): WorkbenchViewOption {

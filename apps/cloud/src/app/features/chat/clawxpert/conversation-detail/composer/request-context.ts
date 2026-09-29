@@ -6,6 +6,7 @@ export function buildAssistantRequestContext(input: {
   workspaceId: string | null
   xpertId: string | null
   contexts: Record<string, AssistantWorkbenchRequestContext>
+  executionFocus?: { threadId: string; executionId: string; requestId: string } | null
 }) {
   const env: Record<string, string> = {}
   if (input.workspaceId) {
@@ -21,6 +22,12 @@ export function buildAssistantRequestContext(input: {
     if (isRecord(context.context)) {
       requestContext[key] = context.context
     }
+  }
+
+  if (input.executionFocus) {
+    env['threadId'] = input.executionFocus.threadId
+    env['executionId'] = input.executionFocus.executionId
+    env['executionFocusRequestId'] = input.executionFocus.requestId
   }
 
   if (Object.keys(env).length) {

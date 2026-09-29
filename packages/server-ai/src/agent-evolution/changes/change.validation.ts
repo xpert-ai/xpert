@@ -6,8 +6,14 @@ import type {
     SubmitEvolutionChange
 } from '@xpert-ai/contracts'
 import { changeError } from './change.errors'
+import { evolutionSubmissionSchema } from './submission.schema'
 
 export function validateChangeInput(input: SubmitEvolutionChange, strategy: EvolutionStrategy) {
+    if (
+        input.executionContext &&
+        !evolutionSubmissionSchema.shape.executionContext.safeParse(input.executionContext).success
+    )
+        changeError('invalid_execution_context')
     if (
         !input ||
         !input.tenantId ||

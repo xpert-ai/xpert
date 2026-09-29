@@ -214,14 +214,16 @@
             @if (fixedViewMenuVisible()) {
               <div class="my-1 border-t border-divider-regular"></div>
               <div class="px-2 py-1 text-xs font-medium text-text-tertiary">
-                {{ 'XP.Chat.ClawXpert.FixedViews' | translate: { Default: 'Fixed Views' } }}
+                {{ 'XP.Chat.ClawXpert.WorkbenchViews' | translate: { Default: 'Workbench Views' } }}
               </div>
               @if (loadingFixedViews()) {
                 <button type="button" z-menu-item disabled data-fixed-views-loading>
                   <span class="flex items-center gap-2 text-text-tertiary">
                     <i class="ri-loader-4-line text-base"></i>
                     <span>
-                      {{ 'XP.Chat.ClawXpert.LoadingFixedViews' | translate: { Default: 'Loading fixed views...' } }}
+                      {{
+                        'XP.Chat.ClawXpert.LoadingWorkbenchViews' | translate: { Default: 'Loading Workbench views...' }
+                      }}
                     </span>
                   </span>
                 </button>
@@ -231,7 +233,8 @@
                     <i class="ri-error-warning-line text-base"></i>
                     <span>
                       {{
-                        'XP.Chat.ClawXpert.FixedViewsLoadFailed' | translate: { Default: 'Failed to load fixed views' }
+                        'XP.Chat.ClawXpert.WorkbenchViewsLoadFailed'
+                          | translate: { Default: 'Failed to load Workbench views' }
                       }}
                     </span>
                   </span>
@@ -410,7 +413,8 @@
                   </div>
                   <div class="mt-2 text-lg text-text-secondary">
                     {{
-                      fixedView.description || ('XP.Chat.ClawXpert.FixedViews' | translate: { Default: 'Fixed Views' })
+                      fixedView.description ||
+                        ('XP.Chat.ClawXpert.WorkbenchViews' | translate: { Default: 'Workbench Views' })
                     }}
                   </div>
                 </button>
@@ -489,7 +493,7 @@
               <div
                 class="flex h-full min-h-[24rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary"
               >
-                {{ 'XP.Chat.ClawXpert.NoFixedViews' | translate: { Default: 'No fixed views' } }}
+                {{ 'XP.Chat.ClawXpert.NoWorkbenchViews' | translate: { Default: 'No Workbench views' } }}
               </div>
             }
           } @else if (activeTab()?.kind === 'artifact' || activeTab()?.kind === 'file-review') {

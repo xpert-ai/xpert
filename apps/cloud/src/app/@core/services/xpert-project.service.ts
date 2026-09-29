@@ -1,4 +1,5 @@
 import { inject, Injectable } from '@angular/core'
+import type { ProjectTaskExecutionTarget } from '@xpert-ai/contracts'
 import {
   IChatConversation,
   IKnowledgebase,
@@ -20,6 +21,11 @@ type GitHubInstallationsResponse = Endpoints['GET /user/installations']['respons
 
 @Injectable({ providedIn: 'root' })
 export class XpertProjectService extends OrganizationBaseCrudService<IXpertProject> {
+  taskExecutionTarget(projectId: string, executionId: string) {
+    return this.httpClient.get<ProjectTaskExecutionTarget>(
+      `${this.apiBaseUrl}/${projectId}/task-executions/${executionId}/target`
+    )
+  }
   readonly #logger = inject(NGXLogger)
 
   readonly #refresh = new BehaviorSubject<void>(null)

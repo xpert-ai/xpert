@@ -1,3 +1,4 @@
+import { AGENT_WORKBENCH_SLOT, parseWorkbenchViewOpenEvent, type WorkbenchViewOpenEvent } from '@xpert-ai/contracts'
 import { FileChangeReviewComponent } from './file-change-review.component'
 import { createFileChangeReviewTab, upsertFileChangeReviewTab } from './file-change-review.types'
 import {
@@ -62,6 +63,7 @@ import {
   registerAssistantContextSetCommand
 } from '../../assistant/assistant-chat-client-command'
 import { injectHostedAssistantChatkitControl } from '../../assistant/assistant-chatkit.runtime'
+import { createChatkitWorkbenchClientCommandHandler } from '../../assistant/chatkit-workbench-client-command'
 import { createKnowledgebaseCitationOpenHostEvent } from '../../assistant/knowledgebase-citation-effect'
 import { registerWorkbenchFileOpenCommand } from '../../assistant/workbench-file-open-client-command'
 import {
@@ -175,10 +177,9 @@ import {
   readHttpUrl
 } from './conversation-detail/workspace/browser'
 import {
-  AGENT_WORKBENCH_FIXED_SLOT,
   DEFAULT_FIXED_VIEW_ICON,
   type ClawXpertFixedViewMenuItem,
-  shouldShowFixedViewInMenu,
+  initiallyOpenViews,
   findFixedViewTab,
   findResolvedViewByKey,
   resolveI18nText,
@@ -292,11 +293,14 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     JSON.stringify([this.facade.assistantId()?.trim() || null, this.projectId(), this.facade.threadId()])
   )
   readonly #assistantWorkbenchContexts = signal<Record<string, AssistantWorkbenchRequestContext>>({})
+  private executionFocusSequence = 0
+  readonly #executionFocus = signal<{ threadId: string; executionId: string; requestId: string } | null>(null)
   readonly assistantRequestContext = computed(() =>
     buildAssistantRequestContext({
       workspaceId: getOptionalSignalValue(this.facade, 'currentWorkspaceId'),
       xpertId: this.#workbenchConversationScope()?.xpertId ?? this.facade.xpertId(),
-      contexts: this.#assistantWorkbenchContexts()
+      contexts: this.#assistantWorkbenchContexts(),
+      executionFocus: this.#executionFocus()?.threadId === this.activeChatkitThreadId() ? this.#executionFocus() : null
     })
   )
   readonly chatkitAssistantId = computed(() => this.#workbenchConversationScope()?.xpertId ?? this.facade.assistantId())
@@ -330,7 +334,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly activeChatkitThreadId = computed(
     () => this.#workbenchConversationScope()?.threadId ?? this.facade.threadId()
   )
-  readonly agentWorkbenchFixedSlot = AGENT_WORKBENCH_FIXED_SLOT
+  readonly agentWorkbenchFixedSlot = AGENT_WORKBENCH_SLOT
   readonly defaultFixedViewIcon = DEFAULT_FIXED_VIEW_ICON
   readonly startScreen = injectFrequentQuestionsStartScreen({
     xpert: computed(() => this.facade.currentXpert?.() ?? null),
@@ -369,6 +373,20 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       collapseProcess: true
     },
     workbench: {
+      // Temporary: enable the embedded Workbench for local ChatKit testing.
+      enabled: true,
+      viewRail: { enabled: true },
+      onClientCommand: createChatkitWorkbenchClientCommandHandler({
+        getScope: () => ({
+          assistantId: this.chatkitAssistantId(),
+          runtimeScope: {
+            projectId: this.chatkitProjectId(),
+            conversationId: this.#workbenchConversationScope()?.conversationId ?? this.resolvedConversationId()
+          }
+        }),
+        views: this.#viewExtensionApi,
+        commands: this.#clientCommands
+      }),
       sideChat: {
         enabled: true
       }
@@ -377,6 +395,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     titleDefault: this.facade.definition.defaultTitle,
     onThreadChange: ({ threadId }) => {
       const normalizedThreadId = normalizeConversationThreadId(threadId)
+      if (this.#executionFocus()?.threadId !== normalizedThreadId) this.#executionFocus.set(null)
       if (this.#workbenchConversationScope()) {
         if (normalizedThreadId) {
           this.#workbenchConversationScope.update((scope) =>
@@ -426,6 +445,13 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       }
     },
     onLog: (event) => {
+      if (event.name === 'lg.chat.event') {
+        const request = parseWorkbenchViewOpenEvent(event.data)
+        if (request) {
+          this.pendingViewOpen.set(request)
+          return
+        }
+      }
       if (event.name === 'lg.conversation.start' && !this.#workbenchConversationScope()) {
         const threadId = this.activeChatkitThreadId()
         if (threadId) void this.facade.syncConversationProject?.(threadId)
@@ -514,7 +540,10 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly fixedViewHostId = computed(() => (this.facade.viewState() === 'ready' ? this.facade.xpertId() : null))
   readonly loadingFixedViews = signal(false)
   readonly fixedViewError = signal<string | null>(null)
-  readonly fixedViewMenuItems = signal<ClawXpertFixedViewMenuItem[]>([])
+  readonly availableWorkbenchViews = signal<ClawXpertFixedViewMenuItem[]>([])
+  readonly fixedViewMenuItems = computed(() =>
+    this.availableWorkbenchViews().filter((view) => view.menuEnabled !== false)
+  )
   readonly fixedViewMenuVisible = computed(
     () => this.loadingFixedViews() || Boolean(this.fixedViewError()) || this.fixedViewMenuItems().length > 0
   )
@@ -649,7 +678,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     this.#unregisterNavigationOpenCommand = registerWorkbenchNavigationOpenCommand(this.#clientCommands, {
       navigate: (commands, options) => this.#router.navigate(commands, options),
       openAssistantConversation: (request) => this.openWorkbenchAssistantConversation(request),
-      openAssistantProject: (request) => openWorkbenchProject(request, this.fixedViewMenuItems(), this.facade),
+      openAssistantProject: (request) => openWorkbenchProject(request, this.availableWorkbenchViews(), this.facade),
       openWorkbenchView: (request) => this.openWorkbenchView(request)
     })
 
@@ -832,6 +861,11 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
           return
         }
 
+        const available = findResolvedViewByKey(this.availableWorkbenchViews(), requestedViewKey)
+        if (available) {
+          untracked(() => this.openFixedViewTab(available))
+          return
+        }
         const fallbackTab = findFixedViewTab(fixedTabs, this.facade.defaultViewKey()) ?? fixedTabs[0]
         if (fallbackTab) {
           this.activateWorkspaceTab(fallbackTab.id, 'none')
@@ -1447,6 +1481,16 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       await control.setThreadId(resolution.threadId)
       this.facade.onChatThreadChange(resolution.threadId)
     }
+    // Reuse ChatKit's exact execution focus after the authorized thread is active.
+    this.#executionFocus.set(
+      request.executionId
+        ? {
+            threadId: resolution.threadId,
+            executionId: request.executionId,
+            requestId: String(++this.executionFocusSequence)
+          }
+        : null
+    )
     this.markConversationRead(resolution.conversationId)
     return resolution
   }
@@ -1551,8 +1595,29 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     }
   }
 
+  private readonly pendingViewOpen = signal<WorkbenchViewOpenEvent | null>(null)
+  private readonly openRequestedView = effect(() => {
+    const request = this.pendingViewOpen()
+    if (!request || this.loadingFixedViews()) return
+    const scope = this.viewRuntimeScope()
+    // Project views intentionally omit conversationId from their stable data
+    // scope. Validate navigation against the active conversation instead.
+    const conversationId = this.resolvedConversationId()
+    if (request.projectId === scope.projectId && request.conversationId && !conversationId) return
+    if (
+      request.projectId !== scope.projectId ||
+      (request.conversationId && request.conversationId !== conversationId)
+    ) {
+      this.pendingViewOpen.set(null)
+      return
+    }
+    const available = findResolvedViewByKey(this.availableWorkbenchViews(), request.viewKey)
+    if (available) untracked(() => this.openWorkbenchView(request))
+    this.pendingViewOpen.set(null)
+  })
+
   openWorkbenchView(request: WorkbenchExtensionViewOpenRequest) {
-    const menuItem = findResolvedViewByKey(this.fixedViewMenuItems(), request.viewKey)
+    const menuItem = findResolvedViewByKey(this.availableWorkbenchViews(), request.viewKey)
     if (!menuItem) throw new Error(`Workbench view '${request.viewKey}' is not available.`)
     const resolvedViewKey = menuItem.viewKey
     const query: XpertViewQuery = {
@@ -1817,26 +1882,26 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
     try {
       const manifests = await firstValueFrom(
-        this.#viewExtensionApi.getSlotViews('agent', hostId, AGENT_WORKBENCH_FIXED_SLOT, { runtimeScope })
+        this.#viewExtensionApi.getSlotViews('agent', hostId, AGENT_WORKBENCH_SLOT, { runtimeScope })
       )
       if (isCancelled() || version !== this.#fixedViewsLoadVersion || this.#fixedViewsHostId !== hostId) {
         return
       }
 
       const items = manifests
-        .filter((manifest) => shouldShowFixedViewInMenu(manifest))
+        .filter((manifest) => manifest.visible !== false)
         .map((manifest) => this.toFixedViewMenuItem(manifest))
         .sort((a, b) => a.order - b.order)
 
-      this.fixedViewMenuItems.set(items)
+      this.availableWorkbenchViews.set(items)
       this.syncFixedViewTabs(items)
     } catch (error) {
       if (isCancelled() || version !== this.#fixedViewsLoadVersion || this.#fixedViewsHostId !== hostId) {
         return
       }
 
-      this.fixedViewError.set(getErrorMessage(error) || 'Failed to load fixed views')
-      this.fixedViewMenuItems.set([])
+      this.fixedViewError.set(getErrorMessage(error) || 'Failed to load Workbench views')
+      this.availableWorkbenchViews.set([])
     } finally {
       if (!isCancelled() && version === this.#fixedViewsLoadVersion && this.#fixedViewsHostId === hostId) {
         this.loadingFixedViews.set(false)
@@ -1849,7 +1914,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     this.#fixedViewsLoadVersion += 1
     this.loadingFixedViews.set(false)
     this.fixedViewError.set(null)
-    this.fixedViewMenuItems.set([])
+    this.availableWorkbenchViews.set([])
     if (removeTabs) {
       this.removeFixedViewTabs()
     }
@@ -1885,7 +1950,11 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     const fixedTabsByViewKey = new Map(
       tabs.filter((tab): tab is ClawXpertFixedViewTab => tab.kind === 'fixed-view').map((tab) => [tab.viewKey, tab])
     )
-    const nextFixedTabs = items.map((item) => {
+    const nextFixedTabs = initiallyOpenViews(
+      items,
+      [...fixedTabsByViewKey.keys()],
+      this.#workbenchViewUrlState.viewKey()
+    ).map((item) => {
       const tab = fixedTabsByViewKey.get(item.viewKey)
       if (!tab) {
         return this.createFixedViewTab(item)
@@ -1946,7 +2015,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     if (target.faqId || target.wikiPageId || !target.documentId) {
       return false
     }
-    const menuItem = findResolvedViewByKey(this.fixedViewMenuItems(), KNOWLEDGEBASE_WORKBENCH_VIEW_KEY)
+    const menuItem = findResolvedViewByKey(this.availableWorkbenchViews(), KNOWLEDGEBASE_WORKBENCH_VIEW_KEY)
     if (!menuItem) {
       return false
     }
@@ -2036,6 +2105,8 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     const menu = manifest.workbench?.menu
     return {
       viewKey: manifest.key,
+      menuEnabled: menu?.enabled,
+      ...(manifest.workbench?.openMode ? { openMode: manifest.workbench.openMode } : {}),
       title: resolveI18nText(menu?.label ?? manifest.title, manifest.key, this.#translate.currentLang),
       description: resolveI18nText(manifest.description, '', this.#translate.currentLang) || null,
       icon: menu?.icon ?? manifest.icon ?? null,

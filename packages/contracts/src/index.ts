@@ -1,4 +1,6 @@
 export * from './types'
+export * from './ai/project-task-graph.model'
+export * from './ai/project-task-schedule'
 export * from './utils'
 export type { I18nObject, I18nText } from './i18n.model'
 export { resolveI18nText } from './i18n.model'

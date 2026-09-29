@@ -23,7 +23,8 @@ View Extension 是 xpert-pro 面向插件和平台模块的扩展视图协议。
 ```ts
 readonly slots: XpertViewSlot[] = [
   { key: 'detail.sidebar', mode: 'sidebar', order: 0 },
-  { key: 'agent.workbench.main', mode: 'sections', order: 10 }
+  { key: 'agent.workbench.main', mode: 'sections', order: 10 },
+  { key: 'agent.workbench.fixed', mode: 'sections', order: 20 }
 ]
 ```
 
@@ -34,7 +35,25 @@ slot key 必须描述宿主能力，而不是某个消费端页面或具体业�
 - `detail.main_tabs`
 - `detail.sections`
 - `detail.sidebar`
+- `agent.workbench.fixed`
 - `agent.workbench.main`
+
+## Workbench 打开策略
+
+Assistant Workbench 保留 `agent.workbench.fixed` 和 `agent.workbench.main` 两个现有 slot，Cloud 与 ChatKit 继续使用 fixed，iOS 继续使用 main。是否可用由宿主、Feature 激活和权限共同决定，打开策略独立配置：
+
+```typescript
+workbench: {
+  openMode: 'on-demand', // 'auto'（默认）：初始打开；'on-demand'：按需打开
+  menu: { enabled: true, order: 50 }
+}
+```
+
+`on-demand` 视图可由菜单、显式导航或当前会话的 `workbench.view.open` 事件打开。打开后的数据、动作、参数、刷新和执行记录能力与 `auto` 视图一致。`menu.enabled: false` 仅隐藏手动入口，Agent 与导航仍可打开已授权的视图。
+
+`workbench.fixed: false` 保留原有禁用语义，不表示按需打开。`openMode` 是独立的打开策略，省略时保持自动打开。
+
+服务端保留原有 slot API，并优先使用 Provider 对当前 slot 的声明。已安装的过渡版插件如果只声明 `agent.workbench`，入口适配会把该声明映射到客户端请求的现有 slot，再执行 Feature 和权限校验；插件新源码应使用现有 slot，无需全端同步改名。
 
 ## Provider Manifest
 

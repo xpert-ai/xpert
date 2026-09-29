@@ -21,6 +21,11 @@
             "glob": "**/app.{js,css}",
             "input": "packages/server-ai/src/knowledgebase/plugins/knowledge-workbench/remote-components",
             "output": "remote-components"
+          },
+          {
+            "glob": "**/app.{js,css}",
+            "input": "packages/server-ai/src/xpert-project/remote-components",
+            "output": "remote-components"
           }
         ],
         "webpackConfig": "apps/api/config/webpack.config.js"

@@ -95,6 +95,20 @@ describe('AgentViewHostDefinition', () => {
             createProfileIdentity()
         )
 
+        expect(definition.slots.filter((slot) => slot.key.startsWith('agent.workbench'))).toEqual([
+            {
+                key: 'agent.workbench.main',
+                mode: 'sections',
+                order: 10,
+                manifestPolicy: { requireFeatureActivation: true }
+            },
+            {
+                key: 'agent.workbench.fixed',
+                mode: 'sections',
+                order: 20,
+                manifestPolicy: { requireFeatureActivation: true }
+            }
+        ])
         const resolved = await definition.resolve('agent-host-1')
 
         expect(xpertService.findOneByIdWithinTenant).toHaveBeenCalledWith('agent-host-1', {

@@ -1672,6 +1672,7 @@
       }
     },
     "XProject": {
+      "TaskTimeline": "任务与时间线",
       "NoRecentFiles": "沒有最近的文件",
       "NoToolset": "尚無工具集",
       "NoExperts": "尚無專家",
@@ -4947,10 +4948,10 @@
         "ResizeOverlayDialog": "調整 ChatKit 浮窗寬度",
         "PinOverlayDialog": "將 ChatKit 固定到右側",
         "SwitchToOverlayDialog": "將 ChatKit 切換為浮窗",
-        "FixedViews": "固定視圖",
-        "NoFixedViews": "暫無固定視圖",
-        "LoadingFixedViews": "正在載入固定視圖…",
-        "FixedViewsLoadFailed": "載入固定視圖失敗",
+        "WorkbenchViews": "工作台視圖",
+        "NoWorkbenchViews": "暫無工作台視圖",
+        "LoadingWorkbenchViews": "正在載入工作台視圖…",
+        "WorkbenchViewsLoadFailed": "載入工作台視圖失敗",
         "EnterUrl": "輸入 URL",
         "LocalServices": "本地",
         "Zoom": "縮放",

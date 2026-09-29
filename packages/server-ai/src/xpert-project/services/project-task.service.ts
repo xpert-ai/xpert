@@ -19,6 +19,7 @@ import { XpertProjectTaskConversation } from '../entities/project-task-conversat
 import { XpertProjectTaskExecution } from '../entities/project-task-execution.entity'
 import { ChatConversation } from '../../chat-conversation/conversation.entity'
 import { XpertProject } from '../entities/project.entity'
+import { assertOrdinaryTask, assertOrdinaryTaskInput } from './project-task-ownership'
 
 @Injectable()
 export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<XpertProjectTask> {
@@ -53,6 +54,11 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
     async saveAll(...entities: IXpertProjectTask[]) {
         const items = []
         for await (const entity of entities) {
+            assertOrdinaryTaskInput(entity)
+            if (entity.id) {
+                const existing = await this.repository.findOneBy({ id: entity.id })
+                if (existing) assertOrdinaryTask(existing)
+            }
             const task = await this.repository.save({
                 ...entity,
                 tenantId: RequestContext.currentTenantId(),
@@ -96,6 +102,8 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
             if (!task) {
                 throw new Error(`Task not exists with id or name '${entity.id || entity.name}'`)
             }
+            assertOrdinaryTask(task)
+            assertOrdinaryTaskInput(entity)
             for (const step of entity.steps ?? []) {
                 const taskStep =
                     task.steps.find((item) => item.stepIndex === step.stepIndex) || task.steps[step.stepIndex - 1]
@@ -120,6 +128,7 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
     }
 
     async createTask(projectId: string, input: Partial<IXpertProjectTask>) {
+        assertOrdinaryTaskInput(input)
         await this.validateTaskMode(projectId, input.status)
         const project = await this.projectRepository.findOne({ where: { id: projectId }, relations: ['xperts'] })
         if (!project) throw new NotFoundException('Xpert project not found')
@@ -143,6 +152,8 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
         if (!project) throw new NotFoundException('Xpert project not found')
         const task = await this.findOne({ where: { id: taskId, projectId } })
         if (!task) throw new NotFoundException('Project task not found')
+        assertOrdinaryTask(task)
+        assertOrdinaryTaskInput(input)
         const nextInput = { ...input } as Partial<IXpertProjectTask>
         if (Object.prototype.hasOwnProperty.call(input, 'assigneeXpertId')) {
             nextInput.assigneeXpertId = await this.resolveAssigneeXpertId(project, input.assigneeXpertId)
@@ -240,6 +251,7 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
     async createExecution(projectId: string, taskId: string, input: Partial<IXpertProjectTaskExecution>) {
         const task = await this.repository.findOne({ where: { id: taskId, projectId } })
         if (!task) throw new NotFoundException('Project task not found')
+        assertOrdinaryTask(task)
         if (input.conversationId) {
             const conversation = await this.conversationRepository.findOne({ where: { id: input.conversationId } })
             if (!conversation || conversation.projectId !== projectId)
@@ -278,6 +290,8 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
     ) {
         const execution = await this.executionRepository.findOne({ where: { id: executionId, projectId, taskId } })
         if (!execution) throw new NotFoundException('Project task execution not found')
+        const task = await this.repository.findOneByOrFail({ id: taskId, projectId })
+        assertOrdinaryTask(task)
         Object.assign(execution, input, { projectId, taskId })
         if (input.status && ['succeeded', 'failed', 'cancelled'].includes(input.status))
             execution.completedAt ??= new Date()
@@ -292,6 +306,8 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
             order: { createdAt: OrderTypeEnum.ASC }
         })
         if (!execution) return null
+        const task = await this.repository.findOneByOrFail({ id: execution.taskId, projectId })
+        if (task.providerKey) return null
         execution.agentExecutionId = input.agentExecutionId
         execution.status = 'running'
         execution.startedAt ??= new Date()
@@ -308,6 +324,7 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
             for (const item of items) {
                 const task = taskById.get(item.id)
                 if (!task) continue
+                assertOrdinaryTask(task)
                 task.order = item.order
                 if (item.column !== undefined) task.column = item.column
             }
@@ -340,6 +357,7 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
                 await this.resolveAssigneeXpertId(project, input.assigneeXpertId)
             }
             for (const task of tasks) {
+                assertOrdinaryTask(task)
                 Object.assign(task, {
                     ...(input.status !== undefined ? { status: input.status } : {}),
                     ...(input.assigneeId !== undefined ? { assigneeId: input.assigneeId } : {}),

@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import { ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { XpertWorkbenchInitialLayoutEnum } from '@xpert-ai/contracts'
+import { AGENT_WORKBENCH_SLOT, XpertWorkbenchInitialLayoutEnum } from '@xpert-ai/contracts'
 import { ZardButtonComponent, ZardSelectImports, type ZardSelectValue } from '@xpert-ai/headless-ui'
 import { ViewExtensionApiService, resolveI18nText } from '@cloud/app/@core'
 import { firstValueFrom } from 'rxjs'
@@ -137,14 +137,11 @@ export class SettingsWorkbenchComponent {
     this.failed.set(false)
     try {
       const manifests = await firstValueFrom(
-        this.api.getSlotViews('agent', this.editor.source.id, 'agent.workbench.fixed', { isDraft: true })
+        this.api.getSlotViews('agent', this.editor.source.id, AGENT_WORKBENCH_SLOT, { isDraft: true })
       )
       this.views.set(
         manifests
-          .filter(
-            (view) =>
-              view.visible !== false && view.workbench?.fixed !== false && view.workbench?.menu?.enabled !== false
-          )
+          .filter((view) => view.visible !== false)
           .map((view) => ({
             key: view.key,
             label: resolveI18nText(view.workbench?.menu?.label ?? view.title, this.translate.currentLang) ?? view.key

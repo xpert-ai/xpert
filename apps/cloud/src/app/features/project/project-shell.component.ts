@@ -385,6 +385,7 @@ export class XpertProjectShellComponent implements OnDestroy, OnInit {
   readonly tabs = [
     { label: 'XP.XProject.Overview', path: '' },
     { label: 'XP.XProject.Plan', path: 'plan' },
+    { label: 'XP.XProject.TaskTimeline', path: 'timeline' },
     { label: 'XP.XProject.Conversations', path: 'tasks' },
     { label: 'XP.XProject.Assets', path: 'assets' },
     { label: 'XP.XProject.Config', path: 'config' }

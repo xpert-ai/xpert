@@ -1098,10 +1098,10 @@
         "ResizeOverlayDialog": "调整 ChatKit 浮窗宽度",
         "PinOverlayDialog": "将 ChatKit 固定到右侧",
         "SwitchToOverlayDialog": "将 ChatKit 切换为浮窗",
-        "FixedViews": "固定视图",
-        "NoFixedViews": "暂无固定视图",
-        "LoadingFixedViews": "正在加载固定视图…",
-        "FixedViewsLoadFailed": "加载固定视图失败",
+        "WorkbenchViews": "工作台视图",
+        "NoWorkbenchViews": "暂无工作台视图",
+        "LoadingWorkbenchViews": "正在加载工作台视图…",
+        "WorkbenchViewsLoadFailed": "加载工作台视图失败",
         "EnterUrl": "输入 URL",
         "LocalServices": "本地",
         "Zoom": "缩放",
@@ -3604,6 +3604,7 @@
       "Joined": "加入时间"
     },
     "XProject": {
+      "TaskTimeline": "任务与时间线",
       "NoExperts": "未找到专家",
       "WorkspaceTitle": "项目",
       "WorkspaceSubtitle": "在统一的企业工作台中规划、执行和复盘 AI 协作任务。",

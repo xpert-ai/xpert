@@ -154,7 +154,7 @@ function buildFixedViewManifest(key: string, title: string, order: number): Xper
     slot: 'agent.workbench.fixed',
     order,
     source: { provider: 'test-provider' },
-    workbench: { fixed: true, menu: { enabled: true } },
+    workbench: { openMode: 'auto', menu: { enabled: true } },
     view: { type: 'raw_json' },
     dataSource: { mode: 'platform' }
   }
