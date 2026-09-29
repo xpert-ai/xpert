@@ -169,6 +169,16 @@ describe('XpertPublishHandler', () => {
         jest.clearAllMocks()
     })
 
+    it('publishes through the prototype instance used by Nest forwardRef resolution', async () => {
+        ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-1')
+        const { handler, xpert } = createHandler()
+        // Mirrors Injector.instantiateClass when the provider uses forwardRef.
+        const resolved: XpertPublishHandler = Object.assign(Object.create(XpertPublishHandler.prototype), handler)
+        jest.spyOn(resolved, 'publish').mockResolvedValue(xpert)
+
+        await expect(resolved.execute(new XpertPublishCommand('xpert-1', false, null, 'created'))).resolves.toBe(xpert)
+    })
+
     it('rejects stale tag selections before creating a version backup or publishing agents', async () => {
         ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-1')
         const { handler, xpertService, xpertAgentService, xpert } = createHandler({ version: '1' })
