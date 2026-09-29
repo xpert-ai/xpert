@@ -226,6 +226,17 @@ export interface IBasePerXpertProjectEntityModel extends IBasePerTenantAndOrgani
 }
 
 export interface IXpertProjectTask extends IBasePerXpertProjectEntityModel {
+  providerKey?: string | null
+  sourceKey?: string | null
+  sourceRevision?: string | null
+  revision?: number
+  kind?: 'task' | 'summary' | 'milestone'
+  parentTaskId?: string | null
+  predecessorIds?: string[]
+  plannedStartAt?: Date | null
+  plannedEndAt?: Date | null
+  estimatedDurationMs?: number | null
+  diagnostic?: string | null
   threadId?: string
   name: string
   title?: string
@@ -259,6 +270,11 @@ export interface IXpertProjectTaskConversation extends IBasePerXpertProjectEntit
 }
 
 export interface IXpertProjectTaskExecution extends IBasePerXpertProjectEntityModel {
+  /** Observed runtime status, independent from the business task acceptance status. */
+  runtimeStartedAt?: string | null
+  runtimeCompletedAt?: string | null
+  runtimeStatus?: 'running' | 'success' | 'error' | 'pending' | 'timeout' | 'interrupted' | 'unknown'
+  sourceKey?: string | null
   taskId: string
   conversationId?: string
   threadId?: string

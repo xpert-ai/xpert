@@ -2320,10 +2320,10 @@
         "ResizeOverlayDialog": "Resize ChatKit dialog",
         "PinOverlayDialog": "Pin ChatKit to the right",
         "SwitchToOverlayDialog": "Switch ChatKit to overlay",
-        "FixedViews": "Fixed Views",
-        "NoFixedViews": "No fixed views",
-        "LoadingFixedViews": "Loading fixed views...",
-        "FixedViewsLoadFailed": "Failed to load fixed views",
+        "WorkbenchViews": "Workbench Views",
+        "NoWorkbenchViews": "No Workbench views",
+        "LoadingWorkbenchViews": "Loading Workbench views...",
+        "WorkbenchViewsLoadFailed": "Failed to load Workbench views",
         "EnterUrl": "Enter URL",
         "LocalServices": "Local",
         "Zoom": "Zoom",
@@ -2651,6 +2651,7 @@
       "AgentWorkflow": "Agent Workflow"
     },
     "XProject": {
+      "TaskTimeline": "Tasks & timeline",
       "NoExperts": "No experts found",
       "WorkspaceTitle": "Projects",
       "WorkspaceSubtitle": "Plan, execute and review AI-assisted work in one controlled space.",

@@ -1,11 +1,13 @@
 import { IXpertProjectTaskExecution, TXpertProjectTaskExecutionStatus } from '@xpert-ai/contracts'
-import { Column, Entity, JoinColumn, ManyToOne } from 'typeorm'
+import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm'
 import { ChatConversation } from '../../chat-conversation/conversation.entity'
 import { XpertProjectTask } from './project-task.entity'
 import { XpertProjectBaseEntity } from './project.base'
 
 @Entity('xpert_project_task_execution')
+@Index(['taskId', 'sourceKey'], { unique: true })
 export class XpertProjectTaskExecution extends XpertProjectBaseEntity implements IXpertProjectTaskExecution {
+    @Column({ type: 'varchar', nullable: true }) sourceKey?: string | null
     @Column()
     taskId: string
 

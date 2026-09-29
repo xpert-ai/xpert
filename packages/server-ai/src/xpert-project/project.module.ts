@@ -1,5 +1,5 @@
 import { DiscoveryModule } from '@nestjs/core'
-import { ProjectTypeProviderRegistry } from '@xpert-ai/plugin-sdk'
+import { ProjectTypeProviderRegistry, ProjectTaskProviderRegistry } from '@xpert-ai/plugin-sdk'
 import { PluginApplicationInstallation } from '../plugin-resource/plugin-application-installation.entity'
 import { XpertProjectTypeService } from './services/project-type.service'
 import { ConversationProjectService } from './services/conversation-project.service'
@@ -72,6 +72,10 @@ import { XpertProjectAdminController } from './project-admin.controller'
 import { SkillRepositoryModule, SkillRepositoryIndexModule } from '../skill-repository'
 import { XpertAgentModule } from '../xpert-agent'
 
+import { ProjectTaskGraphController } from './project-task-graph.controller'
+import { ProjectTaskGraphService } from './services/project-task-graph.service'
+import { ProjectTasksViewProvider } from './views/project-tasks.provider'
+
 @Module({
     imports: [
         DiscoveryModule,
@@ -119,10 +123,18 @@ import { XpertAgentModule } from '../xpert-agent'
         forwardRef(() => XpertAgentModule),
         forwardRef(() => XpertModule)
     ],
-    controllers: [XpertProjectController, XpertProjectInvitationController, XpertProjectAdminController],
+    controllers: [
+        XpertProjectController,
+        XpertProjectInvitationController,
+        XpertProjectAdminController,
+        ProjectTaskGraphController
+    ],
     providers: [
         ConversationProjectService,
         ProjectTypeProviderRegistry,
+        ProjectTaskProviderRegistry,
+        ProjectTaskGraphService,
+        ProjectTasksViewProvider,
         XpertProjectTypeService,
         ProjectProvisioningRuntimeService,
         XpertProjectPurgeService,

@@ -1,12 +1,10 @@
-import type { IconDefinition, I18nObject, XpertExtensionViewManifest, XpertViewQuery } from '@xpert-ai/contracts'
+import type { IconDefinition, I18nObject, XpertViewQuery } from '@xpert-ai/contracts'
 import type { ClawXpertFixedViewTab } from '../../clawxpert-fixed-view-stack.component'
-
-export const AGENT_WORKBENCH_FIXED_SLOT = 'agent.workbench.fixed'
 
 export const DEFAULT_FIXED_VIEW_ICON = {
   type: 'font',
   value: 'ri-layout-grid-line',
-  alt: 'Fixed view'
+  alt: 'Workbench view'
 } satisfies IconDefinition
 
 export type ClawXpertFixedViewMenuItem = {
@@ -15,16 +13,8 @@ export type ClawXpertFixedViewMenuItem = {
   description: string | null
   icon: IconDefinition | null
   order: number
-}
-
-export function shouldShowFixedViewInMenu(manifest: XpertExtensionViewManifest) {
-  if (manifest.visible === false) {
-    return false
-  }
-  if (manifest.workbench?.fixed === false) {
-    return false
-  }
-  return manifest.workbench?.menu?.enabled !== false
+  openMode?: 'auto' | 'on-demand'
+  menuEnabled?: boolean
 }
 
 export function findFixedViewTab(tabs: ClawXpertFixedViewTab[], viewKey: string | null | undefined) {
@@ -84,4 +74,16 @@ export function resolveI18nText(
 
 export function equalViewQuery(left: XpertViewQuery | null, right: XpertViewQuery | null) {
   return JSON.stringify(left) === JSON.stringify(right)
+}
+
+/** Preserve opened tabs and explicit URL navigation without mounting every available View. */
+export function initiallyOpenViews<T extends { viewKey: string; openMode?: 'auto' | 'on-demand' }>(
+  items: T[],
+  openedKeys: string[],
+  requestedKey?: string | null
+): T[] {
+  const requested = findResolvedViewByKey(items, requestedKey)
+  return items.filter(
+    (item) => item.openMode !== 'on-demand' || openedKeys.includes(item.viewKey) || item === requested
+  )
 }

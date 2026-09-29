@@ -14,7 +14,7 @@ import {
 } from '@xpert-ai/contracts'
 import { omit, pick } from '@xpert-ai/server-common'
 import { BusinessArea, RequestContext } from '@xpert-ai/server-core'
-import { BadRequestException, HttpException, Logger, NotFoundException } from '@nestjs/common'
+import { BadRequestException, HttpException, Inject, forwardRef, Logger, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { EventEmitter2 } from '@nestjs/event-emitter'
@@ -34,10 +34,12 @@ import { normalizeAssistantAllowedModels } from '../../assistant-model-selection
 
 @CommandHandler(XpertPublishCommand)
 export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand> {
-    readonly #logger = new Logger(XpertPublishHandler.name)
+    // Nest copies forwardRef instances; ECMAScript private fields cannot be copied.
+    private readonly logger = new Logger(XpertPublishHandler.name)
 
     constructor(
         private readonly xpertService: XpertService,
+        @Inject(forwardRef(() => XpertAgentService))
         private readonly xpertAgentService: XpertAgentService,
         private readonly i18nService: I18nService,
         private readonly commandBus: CommandBus,
@@ -92,7 +94,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
             throw new BadRequestException('Published xperts must be assigned to at least one user group.')
         }
 
-        this.#logger.verbose(`Draft of xpert '${xpert.name}':\n${JSON.stringify(xpert.draft, null, 2)}`)
+        this.logger.verbose(`Draft of xpert '${xpert.name}':\n${JSON.stringify(xpert.draft, null, 2)}`)
 
         const { items: allVersionXperts } = await this.xpertService.findAll({
             where: {
@@ -224,7 +226,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
         draft: TXpertTeamDraft,
         marketplace?: XpertPublishCommand['marketplace']
     ) {
-        this.#logger.debug(`Publish Xpert '${xpert.name}' to new version '${version}'`)
+        this.logger.debug(`Publish Xpert '${xpert.name}' to new version '${version}'`)
         const previousGraph = xpert.graph
 
         const xpertOptions = draft.team?.options ?? xpert.options ?? {}
@@ -293,7 +295,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
                             knowledgebaseIds,
                             collaboratorNames
                         }
-                        this.#logger.verbose(
+                        this.logger.verbose(
                             `Update xpert team agent (name/key='${oldAgent.name || oldAgent.key}', id='${oldAgent.id}') with value:\n${JSON.stringify(entity, null, 2)}`
                         )
                         const _entity = await this.xpertAgentService.update(oldAgent.id, entity)

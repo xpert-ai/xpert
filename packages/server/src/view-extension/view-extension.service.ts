@@ -16,6 +16,7 @@ import {
 	SecretTokenBindingType
 } from '@xpert-ai/contracts'
 import { RequestContext } from '../core/context'
+import { readProviderViewManifests } from './workbench-manifest'
 import { ViewHostDefinitionRegistry } from './host-definition.registry'
 import { ViewExtensionFileActionFile, ViewHostResolutionOptions } from './host-definition.interface'
 import { ViewExtensionPermissionService } from './view-extension.permission.service'
@@ -53,7 +54,7 @@ export class ViewExtensionService {
 						continue
 					}
 
-					const providerManifests = await provider.getViewManifests(context, slot)
+					const providerManifests = await readProviderViewManifests(provider, context, slot)
 					manifests.push(
 						...providerManifests
 							.map((manifest) => normalizeManifest(manifest, providerKey, context, slot))
@@ -86,11 +87,8 @@ export class ViewExtensionService {
 			try {
 				if (!(await provider.supports(context))) continue
 				for (const slot of context.slots) {
-					for (const manifest of await provider.getViewManifests(context, slot.key)) {
-						if (
-							manifest.workbench?.menu?.enabled === false ||
-							!manifest.activation?.requiredFeatures?.some((feature) => features.includes(feature))
-						)
+					for (const manifest of await readProviderViewManifests(provider, context, slot.key)) {
+						if (!manifest.activation?.requiredFeatures?.some((feature) => features.includes(feature)))
 							continue
 						manifests.push(normalizeManifest(manifest, providerKey, context, slot.key))
 					}
@@ -357,7 +355,7 @@ export class ViewExtensionService {
 		}
 
 		for (const slot of context.slots) {
-			const manifests = await Promise.resolve(provider.getViewManifests(context, slot.key))
+			const manifests = await readProviderViewManifests(provider, context, slot.key)
 			for (const manifest of manifests) {
 				if (manifest.key !== manifestKey) {
 					continue

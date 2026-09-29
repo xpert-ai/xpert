@@ -4,11 +4,7 @@ import path from 'node:path'
 /* eslint-disable */
 const workspaceRoot = path.resolve(__dirname, '../..')
 const nodeModulesRoot = path.join(workspaceRoot, 'node_modules')
-const transformSeedPackages = [
-	'@xpert-ai/plugin-sdk',
-	'@xpert-ai/chatkit-types',
-	'lodash-es'
-]
+const transformSeedPackages = ['@xpert-ai/plugin-sdk', '@xpert-ai/chatkit-types', 'lodash-es']
 
 const readPackageJson = (packageName: string): Record<string, any> | null => {
 	const packagePath = path.join(nodeModulesRoot, ...packageName.split('/'), 'package.json')
@@ -74,5 +70,8 @@ export default {
 	},
 	moduleFileExtensions: ['ts', 'js', 'html'],
 	coverageDirectory: '../../coverage/packages/server',
+	moduleNameMapper: {
+		'^@xpert-ai/contracts$': '<rootDir>/../contracts/src/index.ts'
+	},
 	transformIgnorePatterns: [transformPattern]
 }

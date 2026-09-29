@@ -178,8 +178,18 @@ export interface XpertViewActivation {
 }
 
 export interface XpertWorkbenchViewOptions {
+  /**
+   * @deprecated Use the manifest's `visible` field for visibility and `openMode`
+   * for initial tab behavior. Retained for compatibility; false hides the view.
+   */
   fixed?: boolean
+  /**
+   * Initial tab behavior; defaults to auto. On-demand views open through a
+   * menu, navigation or live Agent request. This does not grant view access.
+   */
+  openMode?: 'auto' | 'on-demand'
   menu?: {
+    /** Controls the manual entry only; does not disable the view or navigation. */
     enabled?: boolean
     label?: string | I18nObject
     order?: number

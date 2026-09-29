@@ -6,7 +6,7 @@ import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-i
 import { NavigationEnd, Router } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
-import type { IconDefinition, XpertExtensionViewManifest } from '@xpert-ai/contracts'
+import { AGENT_WORKBENCH_SLOT, type IconDefinition, type XpertExtensionViewManifest } from '@xpert-ai/contracts'
 import { Observable, combineLatest, debounceTime, forkJoin, merge, of } from 'rxjs'
 import { catchError, distinctUntilChanged, exhaustMap, filter, map, startWith, switchMap } from 'rxjs/operators'
 import {
@@ -77,7 +77,6 @@ const ALL_ASSISTANT_CATEGORY = 'all'
 const ASSISTANT_ORDER_STORAGE_KEY = 'xpert.cloud-sidebar.assistant-order'
 const SYSTEM_ASSISTANT_SCOPE_CODE = AssistantCode.CHAT_COMMON
 const CLAWXPERT_SETUP_URL = '/chat/clawxpert'
-const AGENT_WORKBENCH_FIXED_SLOT = 'agent.workbench.fixed'
 const ASSISTANT_CONVERSATION_PAGE_SIZE = 10
 
 type AssistantMenuItem = {
@@ -784,7 +783,7 @@ export class CloudSidebarAssistantsComponent {
     })
 
     this.#viewExtensionApi
-      .getSlotViews('agent', assistantId, AGENT_WORKBENCH_FIXED_SLOT)
+      .getSlotViews('agent', assistantId, AGENT_WORKBENCH_SLOT)
       .pipe(
         map((manifests) =>
           manifests
@@ -947,9 +946,7 @@ function readViewKey(router: Router) {
 }
 
 function shouldShowAssistantMenuItem(manifest: XpertExtensionViewManifest) {
-  return (
-    manifest.visible !== false && manifest.workbench?.fixed !== false && manifest.workbench?.menu?.enabled !== false
-  )
+  return manifest.visible !== false && manifest.workbench?.menu?.enabled !== false
 }
 
 function toAssistantMenuItem(manifest: XpertExtensionViewManifest): AssistantMenuItem {

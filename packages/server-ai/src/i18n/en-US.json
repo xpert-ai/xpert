@@ -5,6 +5,14 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "ProjectTaskAccessDenied": "Project task access denied.",
+        "ProjectTaskNotFound": "Project task not found.",
+        "ProjectTaskRevisionConflict": "The task changed. Reload the latest task before editing.",
+        "ProjectTaskProviderCommandRequired": "This task is managed by its business provider. Use the owning Assistant or business tools to change it.",
+        "ProjectTaskExecutionUnavailable": "The exact execution conversation is unavailable or does not belong to this project.",
+        "ProjectTaskRemovedFromPlan": "Removed from the current business plan.",
+        "ProjectTaskContextRequired": "Select a project to view its tasks.",
+        "ProjectTaskActionUnsupported": "This task action is not supported.",
         "ToolAfterMismatch": "Post-tool continuation does not match the completed tool call",
         "ToolAfterInvalidAttachment": "Invalid inline App attachment",
         "ToolAfterAttachmentLimit": "App attachments exceed the size limit",
