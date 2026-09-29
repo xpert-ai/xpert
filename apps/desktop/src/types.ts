@@ -214,6 +214,7 @@ export interface HostMethods {
 declare global {
   interface Window {
     xpertDesktop?: {
+      updates?: import('./update-types').UpdateBridge
       onAvatarPointer?: (listener: (point: { x: number; y: number } | null) => void) => () => void
       invoke: <K extends keyof HostMethods>(
         method: K,

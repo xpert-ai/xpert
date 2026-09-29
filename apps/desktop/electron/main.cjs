@@ -12,6 +12,8 @@ const { DesktopShellController } = require('./shell/controller.cjs')
 const { translate } = require('./i18n/index.mjs')
 const { platformCommandUrl } = require('./workbench-platform.mjs')
 const { installAvatarPointer } = require('./avatar-pointer.cjs')
+const { DesktopUpdater, registerUpdateIpc } = require('./updates/controller.cjs')
+const { findRelease } = require('./updates/release.cjs')
 
 const branding = require('./branding.json')
 
@@ -147,6 +149,28 @@ else {
     service.shell = new DesktopShellController(service, path.join(app.getPath('userData'), 'desktop-shell'))
     resetConnectionSession()
     updateApplicationMenu()
+    const updatesEnabled =
+      app.isPackaged &&
+      require('../package.json').desktopUpdates === true &&
+      (process.platform !== 'linux' || Boolean(process.env.APPIMAGE))
+    const updates = new DesktopUpdater({
+      updater: updatesEnabled ? require('electron-updater').autoUpdater : null,
+      enabled: updatesEnabled,
+      currentVersion: app.getVersion(),
+      resolveFeed: () => findRelease({ platform: process.platform, arch: process.arch }),
+      beforeInstall: async () => {
+        // Drain local tools before the updater takes ownership of quitting/restarting.
+        await service.shell.disable()
+        shellShutdownComplete = true
+      }
+    })
+    registerUpdateIpc(ipcMain, updates, trusted)
+    updates.on('state', (state) => {
+      if (state.status === 'error' && state.operation === 'install') shellShutdownComplete = false
+      if (window && !window.isDestroyed()) window.webContents.send('xpert:update-state', state)
+    })
+    updates.start()
+    app.once('will-quit', () => updates.dispose())
     ipcMain.handle('xpert:request', async (event, method, argument) => {
       if (!trusted(event))
         return {

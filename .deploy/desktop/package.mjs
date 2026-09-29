@@ -9,6 +9,7 @@ import { createHash } from 'node:crypto'
 import { pathToFileURL } from 'node:url'
 import { platforms } from './release-plan.mjs'
 const require = createRequire(import.meta.url)
+const { feedFor } = require('../../apps/desktop/electron/updates/config.cjs')
 export function removeEmptySigningCredentials(env = process.env) {
   // GitHub injects absent secrets as empty strings; electron-builder treats an
   // empty CSC_LINK as a certificate path pointing to the project directory.
@@ -29,7 +30,7 @@ export function packaging(plan, target, env = process.env) {
     extraMetadata: { version: plan.version },
     // AppImage expands ${arch} to x86_64; receipts use the matrix's x64 name.
     artifactName: `Bosi-${plan.version}-${target.platform}-${target.arch}.\${ext}`,
-    publish: null
+    publish: feedFor(`desktop-v${plan.version}`, target.arch)
   }
   let signing = 'unsigned'
   if (target.platform === 'mac') {
@@ -51,6 +52,9 @@ export function packaging(plan, target, env = process.env) {
     config.forceCodeSigning = Boolean(env.CSC_LINK)
     signing = env.CSC_LINK ? 'signed' : 'unsigned'
   } else config.linux = { target: ['AppImage', 'tar.gz'], executableName: 'bosi' }
+  // Candidates and ad-hoc macOS builds must never offer an un-installable update.
+  config.extraMetadata.desktopUpdates =
+    Boolean(plan.stable) && (target.platform !== 'mac' || ['signed', 'signed-notarized'].includes(signing))
   return { config, signing }
 }
 export function appPaths(target, directory) {

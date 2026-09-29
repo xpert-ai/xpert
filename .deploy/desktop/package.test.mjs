@@ -7,7 +7,10 @@ test('every platform produces two uniquely named installers with implicit publis
   for (const target of platforms) {
     const { config } = packaging(plan, target, {})
     assert.equal(config.extraMetadata.version, plan.version)
-    assert.equal(config.publish, null)
+    assert.equal(config.publish.provider, 'generic')
+    assert.equal(config.publish.channel, `desktop-${target.arch}`)
+    assert.ok(config.publish.url.endsWith(`/desktop-v${plan.version}/`))
+    assert.equal(config.extraMetadata.desktopUpdates, false)
     assert.equal(config[target.platform].target.length, 2)
     assert.equal(config.artifactName, `Bosi-${plan.version}-${target.platform}-${target.arch}.\${ext}`)
     assert.ok(appPaths(target, '/release').archive.endsWith('app.asar'))
@@ -63,4 +66,11 @@ test('Windows certificates require signing while missing credentials are marked 
 test('invalid release versions and unexpected targets are rejected', () => {
   assert.throws(() => packaging({ ...plan, version: 'latest' }, platforms[0], {}))
   assert.throws(() => packaging(plan, { id: 'mac-arm64', platform: 'win', arch: 'arm64' }, {}))
+})
+test('stable updates are enabled only for installable packages, excluding ad-hoc macOS', () => {
+  for (const target of platforms) {
+    const stable = { ...plan, stable: true }
+    assert.equal(packaging(stable, target, {}).config.extraMetadata.desktopUpdates, target.platform !== 'mac')
+    assert.equal(packaging(stable, target, { CSC_LINK: 'certificate' }).config.extraMetadata.desktopUpdates, true)
+  }
 })

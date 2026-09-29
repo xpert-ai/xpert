@@ -6,6 +6,13 @@
 
 See [brand naming and compatibility](docs/branding.md).
 
+Stable installed builds support in-app updates. When an update is available, the
+account footer shows a download icon that expands to **更新 / Update** on hover or
+keyboard focus. Click to download and view progress; when ready, choose **安装并重启 /
+Install and restart** or **稍后 / Later**. The restart action exits Bosi, installs the
+update and reopens it. Updates use the running OS/architecture and verify the download.
+See [update feeds, signing requirements and acceptance](../../.deploy/desktop/README.md#in-app-updates).
+
 Electron + React 19 + the repository's shadcn/ui primitives. The client owns a
 Sidebar and a Right Content Panel. The right panel embeds the official
 `@xpert-ai/chatkit-web-component`; it does not implement a second chat UI.

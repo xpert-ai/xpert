@@ -77,6 +77,8 @@
   "license": "AGPL-3.0",
   "dependencies": {
     "@xpert-ai/desktop-protocol": "workspace:*",
+    "electron-updater": "6.8.9",
+    "semver": "7.7.3",
     "socket.io-client": "^4.7.5"
   }
 }
