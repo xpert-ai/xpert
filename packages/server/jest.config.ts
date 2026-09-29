@@ -74,5 +74,8 @@ export default {
 	},
 	moduleFileExtensions: ['ts', 'js', 'html'],
 	coverageDirectory: '../../coverage/packages/server',
-	transformIgnorePatterns: [transformPattern]
+	transformIgnorePatterns: [transformPattern],
+	// Why this exists: jest defaults to cores-1 workers, so concurrent agent runs spike host memory past 10GB; cost is slower full suites.
+	maxWorkers: 4,
+	workerIdleMemoryLimit: '512MB'
 }
