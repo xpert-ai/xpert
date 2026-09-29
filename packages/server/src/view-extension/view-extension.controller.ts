@@ -16,7 +16,7 @@ import { FileInterceptor } from '@nestjs/platform-express'
 import { IsObject, IsOptional, IsString } from 'class-validator'
 import type { Response } from 'express'
 import { SecretTokenBindingType, type XpertViewScalar } from '@xpert-ai/contracts'
-import { parseQueryBoolean } from '@xpert-ai/server-common'
+import { decodeMultipartFileName, parseQueryBoolean } from '@xpert-ai/server-common'
 import { TransformInterceptor } from '../core/interceptors'
 import { AllowClientSecretBindings, Public } from '../shared/decorators'
 import { ApiKeyOrClientSecretAuthGuard } from '../shared/guards'
@@ -140,13 +140,16 @@ export class ViewExtensionController {
 		if (!file?.buffer?.length) {
 			throw new BadRequestException('file is required')
 		}
+		// busboy decodes multipart headers as latin1, so normalize originalname here instead of
+		// letting every plugin repair mojibake filenames on its own.
+		const normalizedFile = { ...file, originalname: decodeMultipartFileName(file.originalname) }
 		return this.service.executeFileAction(
 			hostType,
 			hostId,
 			viewKey,
 			actionKey,
 			parseMultipartActionBody(body),
-			file
+			normalizedFile
 		)
 	}
 }
