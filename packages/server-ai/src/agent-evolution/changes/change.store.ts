@@ -71,7 +71,8 @@ export class EvolutionChangeStore {
             changeDigest(prior.scope) !== changeDigest(change.scope) ||
             prior.strategy.hash !== change.strategy.hash ||
             changeDigest(prior.candidateInput) !== changeDigest(change.candidateInput) ||
-            changeDigest(prior.datasetSnapshotIds) !== changeDigest(change.datasetSnapshotIds)
+            changeDigest(prior.datasetSnapshotIds) !== changeDigest(change.datasetSnapshotIds) ||
+            changeDigest(prior.executionContext ?? {}) !== changeDigest(change.executionContext ?? {})
         )
             changeError('immutable_request_changed')
         return this.read(this.db.manager, input, prior.candidateId)
@@ -167,6 +168,8 @@ export class EvolutionChangeStore {
                         : 'preparing'
         return {
             contractVersion: 3,
+            executionContext: proposal.executionContext,
+            executionConversation: proposal.executionConversation,
             sourceKind: proposal.sourceKind,
             strategy: proposal.strategy,
             stages: proposal.stages,
@@ -257,7 +260,8 @@ export class EvolutionChangeStore {
                 proposalRevision: 1,
                 artifact,
                 definition,
-                ...provider,
+                providerKey: provider.providerKey,
+                providerVersion: provider.providerVersion,
                 dependencyVersionIds: [],
                 targetScope: change.scope,
                 buildInputsHash: change.evidenceHash,
@@ -340,7 +344,8 @@ export class EvolutionChangeStore {
                     )
                     .map((item) => item.approvalId),
                 artifactHash: change.candidate.artifact.hash,
-                ...provider,
+                providerKey: provider.providerKey,
+                providerVersion: provider.providerVersion,
                 createdAt: prior?.value.createdAt ?? change.approval.decidedAt,
                 updatedAt: value.updatedAt,
                 createdBy: change.approval.actorId
@@ -406,6 +411,8 @@ export class EvolutionChangeStore {
 
     private proposal(change: EvolutionChange): EvidenceEvolutionProposal {
         return {
+            executionContext: change.executionContext,
+            executionConversation: change.executionConversation,
             sourceKind: change.sourceKind,
             strategy: change.strategy,
             stages: change.stages,

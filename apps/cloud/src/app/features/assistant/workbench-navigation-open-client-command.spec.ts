@@ -18,6 +18,28 @@ const context = {
 } as any
 
 describe('registerWorkbenchNavigationOpenCommand', () => {
+  it('opens the exact evolution request and rejects invalid identifiers', async () => {
+    const registry = new ViewClientCommandRegistry()
+    const navigate = jest.fn(async () => true)
+    registerWorkbenchNavigationOpenCommand(registry, { navigate })
+    expect(
+      await registry.execute(
+        WORKBENCH_NAVIGATION_OPEN_COMMAND,
+        { target: 'agent-evolution.change', changeId: 'EVO-auto' },
+        context
+      )
+    ).toEqual({ success: true })
+    expect(navigate).toHaveBeenCalledWith(['/agent-evolution', 'evaluation'], { queryParams: { changeId: 'EVO-auto' } })
+    expect(
+      await registry.execute(
+        WORKBENCH_NAVIGATION_OPEN_COMMAND,
+        { target: 'agent-evolution.change', changeId: '../settings' },
+        context
+      )
+    ).toMatchObject({ success: false })
+    expect(navigate).toHaveBeenCalledTimes(1)
+  })
+
   it('opens rule details through host navigation and rejects path injection', async () => {
     const registry = new ViewClientCommandRegistry()
     const navigate = jest.fn(async () => true)

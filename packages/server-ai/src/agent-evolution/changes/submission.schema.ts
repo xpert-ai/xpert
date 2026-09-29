@@ -3,6 +3,16 @@ import { z } from 'zod/v3'
 const text = z.string().min(1).max(2000)
 export const evolutionSubmissionSchema = z
     .object({
+        executionContext: z
+            .object({
+                xpertId: z.string().uuid(),
+                projectId: z.string().uuid().optional(),
+                title: z.string().trim().min(1).max(200),
+                input: z.string().min(1).max(100000),
+                language: z.string().min(1).max(35).optional()
+            })
+            .strict()
+            .optional(),
         strategyId: text,
         sourceKind: z.enum(['learning_events', 'business_evidence', 'manual']),
         targetId: text,

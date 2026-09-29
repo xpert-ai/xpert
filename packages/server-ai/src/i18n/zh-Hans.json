@@ -1,4 +1,19 @@
 {
+    "EvolutionExecution": {
+        "PreparingReview": "正在准备审核材料…",
+        "ChecksNotApplicable": "当前策略不要求自动检查，仍需人工审核。",
+        "Generating": "正在生成修改草稿…",
+        "Checking": "正在执行自动检查…",
+        "Drafted": "修改草稿已生成，尚未发布生效。",
+        "Failed": "本次执行失败。",
+        "ChecksPassed": "自动检查通过。",
+        "ChecksFailed": "自动检查未通过。",
+        "Passed": "通过",
+        "NotPassed": "未通过",
+        "AwaitingReview": "下一步需要管理员审核并发布。发布后仍需明确采用才会生效。检查通过不代表已具备工程使用条件。",
+        "ReviewFailures": "请查看未通过项，处理后再发起新的准备与检查。本次尚未发布。",
+        "AwaitingChecks": "正在等待检查所需的输入，自动检查尚未完成。"
+    },
     "AssistantConfigurationReleaseNotes": "更新数字专家模型、能力与提示词",
     "Project": { "ConversationProjectName": "{{assistant}} 项目" },
     "ConversationBranch": { "Title": "{{title}} ({{number}})", "Untitled": "聊天" },

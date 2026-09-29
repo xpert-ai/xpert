@@ -4,7 +4,6 @@ import { ChatMessageService } from '../../chat-message.service'
 import { ChatMessage } from '../../chat-message.entity'
 import { applicationTracing } from '../../../tracing'
 import { extractChatMessageTaskSummary } from '../../task-summary'
-import type { IChatMessage } from '@xpert-ai/contracts'
 
 @CommandHandler(ChatMessageUpsertCommand)
 export class ChatMessageUpsertHandler implements ICommandHandler<ChatMessageUpsertCommand> {
@@ -50,7 +49,7 @@ export class ChatMessageUpsertHandler implements ICommandHandler<ChatMessageUpse
         )
     }
 
-    private shouldExtractTaskSummary(entity: Partial<IChatMessage>) {
+    private shouldExtractTaskSummary(entity: ChatMessageUpsertCommand['entity']) {
         return (
             !entity.id ||
             entity.content !== undefined ||

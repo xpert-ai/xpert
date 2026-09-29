@@ -400,6 +400,8 @@ export const ASSISTANT_CHAT_SEND_MESSAGE_COMMAND = 'assistant.chat.send_message'
 export const ASSISTANT_CONTEXT_SET_COMMAND = 'assistant.context.set'
 export const WORKBENCH_FILE_OPEN_COMMAND = 'workbench.file.open'
 export const WORKBENCH_NAVIGATION_OPEN_COMMAND = 'workbench.navigation.open'
+export const WORKBENCH_AGENT_EVOLUTION_TARGET = 'agent-evolution.target'
+export const WORKBENCH_AGENT_EVOLUTION_CHANGE_TARGET = 'agent-evolution.change'
 export const WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET = 'knowledgebase.documents'
 export const WORKBENCH_ASSISTANT_CONVERSATION_TARGET = 'assistant.conversation'
 /** Opens the current Assistant inside a Project-scoped workbench route. */
@@ -447,7 +449,8 @@ export interface WorkbenchOpenFile {
 }
 
 export type WorkbenchNavigationOpenTarget =
-  | 'agent-evolution.target'
+  | typeof WORKBENCH_AGENT_EVOLUTION_TARGET
+  | typeof WORKBENCH_AGENT_EVOLUTION_CHANGE_TARGET
   | typeof WORKBENCH_KNOWLEDGEBASE_DOCUMENTS_TARGET
   | typeof WORKBENCH_ASSISTANT_CONVERSATION_TARGET
   | typeof WORKBENCH_ASSISTANT_PROJECT_TARGET
@@ -456,6 +459,8 @@ export type WorkbenchNavigationOpenTarget =
 export interface WorkbenchNavigationOpenPayload {
   target: WorkbenchNavigationOpenTarget
   targetId?: string
+  /** Exact evolution request to select on the existing evaluation page. */
+  changeId?: string
   knowledgebaseId?: string
   documentId?: string
   parentId?: string

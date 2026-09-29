@@ -76,16 +76,37 @@ export interface EvolutionWorkbenchLink {
   parameters: Record<string, string>
 }
 export interface EvolutionPresentationMetric {
+  kind?: 'adoption'
   key: string
   label: I18nText
   value: string | number | null
   total?: number
+}
+/** Provider-owned business explanations; never parsed from titles or candidate JSON by the UI. */
+export interface EvolutionChangeBusinessDetails {
+  title: I18nText
+  baselineLabel?: I18nText
+  validationHint?: I18nText
+  proposal?: I18nText
+  rationale?: I18nText
+  context: Array<{ key: string; label: I18nText; value?: string }>
+  evidence: Array<{
+    key: string
+    documentName?: string
+    page?: number
+    location?: string
+    quote?: string
+    document?: { knowledgebaseId: string; documentId: string }
+  }>
+  changes: Array<{ key: string; label: I18nText; before?: I18nText; after: I18nText }>
+  adoption?: { subjectLabel: I18nText; adopted: number; total: number }
 }
 export interface EvolutionChangePresentation {
   title: string
   resourceLabel: string
   contextLabel?: string
   description?: I18nText
+  business?: EvolutionChangeBusinessDetails
   metrics?: EvolutionPresentationMetric[]
   effect?: { status: 'pending' | 'partial' | 'active' | 'unknown'; label: I18nText; description?: I18nText }
   workbench?: EvolutionWorkbenchLink
@@ -129,6 +150,21 @@ export interface EvolutionChange {
   failureReasons?: string[]
   presentation?: EvolutionChangePresentation
   presentationUnavailable?: boolean
+  /** Optional execution transcript in the initiating assistant's ChatKit. */
+  executionContext?: EvolutionExecutionContext
+  executionConversation?: EvolutionExecutionConversation
+}
+export interface EvolutionExecutionContext {
+  xpertId: string
+  projectId?: string
+  title: string
+  input: string
+  language?: string
+}
+export interface EvolutionExecutionConversation {
+  conversationId: string
+  threadId: string
+  executionId: string
 }
 export interface EvolutionChangeOperation {
   context: EvolutionProviderContext
@@ -148,6 +184,7 @@ export interface EvolutionChangeIdentity {
   organizationId: string
 }
 export interface SubmitEvolutionChange extends EvolutionChangeIdentity {
+  executionContext?: EvolutionExecutionContext
   strategyId: string
   sourceKind: EvolutionInputKind
   learningEventIds?: string[]

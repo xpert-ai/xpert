@@ -1,4 +1,19 @@
 {
+    "EvolutionExecution": {
+        "PreparingReview": "Preparing for review…",
+        "ChecksNotApplicable": "This strategy does not require automatic checks. Human review is still required.",
+        "Generating": "Generating the change draft…",
+        "Checking": "Running automatic checks…",
+        "Drafted": "Draft generated. The change has not been published.",
+        "Failed": "Execution failed.",
+        "ChecksPassed": "Automatic checks passed.",
+        "ChecksFailed": "Automatic checks did not pass.",
+        "Passed": "Passed",
+        "NotPassed": "Not passed",
+        "AwaitingReview": "Administrator review and publication are still required. A published version only takes effect after explicit adoption. Passing these checks does not establish engineering readiness.",
+        "ReviewFailures": "Review the failed checks before preparing a new attempt. Nothing has been published.",
+        "AwaitingChecks": "Waiting for the required evaluation input. Checks have not completed."
+    },
     "AssistantConfigurationReleaseNotes": "Updated assistant model, capabilities and instructions",
     "Project": { "ConversationProjectName": "{{assistant}} project" },
     "ConversationBranch": { "Title": "{{title}} ({{number}})", "Untitled": "Chat" },

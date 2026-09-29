@@ -118,12 +118,23 @@ export class AgentEvolutionComponent {
   })
 
   constructor() {
-    effect(() => {
+    effect((onCleanup) => {
       this.#activeScope()
       untracked(() => {
         this.facade.resetScopeContext()
         void this.facade.load()
       })
+      let refreshing = false
+      const timer = globalThis.setInterval(async () => {
+        if (refreshing || this.facade.loading() || document.hidden) return
+        refreshing = true
+        try {
+          await this.facade.refreshChanges()
+        } finally {
+          refreshing = false
+        }
+      }, 4000)
+      onCleanup(() => globalThis.clearInterval(timer))
     })
   }
 
