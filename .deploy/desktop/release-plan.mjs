@@ -42,8 +42,10 @@ export function releasePlan({ before, after, event, ref, cwd = process.cwd() }) 
   const added = new Set(
     git('diff', '--find-renames', '--diff-filter=A', '--name-only', before, after, '--', '.changeset').split('\n')
   )
+  // The first Desktop merge has no previous manifest; it still needs a new Changeset for a candidate.
+  const existed = git('ls-tree', '--name-only', before, '--', manifestPath) === manifestPath
   const current = JSON.parse(read(after, manifestPath)),
-    previous = JSON.parse(read(before, manifestPath))
+    previous = existed ? JSON.parse(read(before, manifestPath)) : current
   if (
     current.name !== packageName ||
     current.private !== true ||
