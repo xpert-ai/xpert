@@ -10,7 +10,6 @@ import {
     TAvatar
 } from '@xpert-ai/contracts'
 import {
-    CrudController,
     GetDefaultTenantQuery,
     PaginationParams,
     ParseJsonPipe,
@@ -23,6 +22,9 @@ import { ConfigService } from '@xpert-ai/server-config'
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import {
     Body,
+    Put,
+    Delete,
+    HttpCode,
     Controller,
     Get,
     HttpException,
@@ -46,6 +48,7 @@ import { Cache } from 'cache-manager'
 import { Response } from 'express'
 import { ServerResponse } from 'http'
 import { Observable } from 'rxjs'
+import { FindOptionsWhere } from 'typeorm'
 import { TestOpenAPICommand } from '../xpert-tool/commands/'
 import { MCPToolsBySchemaCommand, ParserODataSchemaCommand, ParserOpenAPISchemaCommand } from './commands/'
 import { ToolProviderDTO, ToolsetPublicDTO } from './dto'
@@ -60,14 +63,22 @@ import {
 import { XpertToolset } from './xpert-toolset.entity'
 import { XpertToolsetService } from './xpert-toolset.service'
 import { ToolProviderNotFoundError } from './errors'
+import {
+    BuiltinToolsetDTO,
+    CreateToolsetDTO,
+    ToolsetWriteValidationPipe,
+    UpdateToolsetDTO
+} from './dto/toolset-write.dto'
 import { ToolsetGuard } from './guards/toolset.guard'
 import { WorkspaceAuthoringGuard } from '../xpert-workspace'
 
 @ApiTags('XpertToolset')
 @ApiBearerAuth()
+@ApiResponse({ status: HttpStatus.UNAUTHORIZED, description: 'Unauthorized' })
+@ApiResponse({ status: HttpStatus.FORBIDDEN, description: 'Forbidden' })
 @UseInterceptors(TransformInterceptor)
 @Controller()
-export class XpertToolsetController extends CrudController<XpertToolset> {
+export class XpertToolsetController {
     readonly #logger = new Logger(XpertToolsetController.name)
 
     @Inject(ConfigService)
@@ -83,8 +94,60 @@ export class XpertToolsetController extends CrudController<XpertToolset> {
         private readonly queryBus: QueryBus,
         @Inject(CACHE_MANAGER)
         private readonly cacheManager: Cache
+    ) {}
+
+    @ApiOperation({ summary: 'Get total record count' })
+    @ApiResponse({ status: HttpStatus.OK, description: 'Total record count retrieved successfully' })
+    @Get('count')
+    getCount(@Query() options?: FindOptionsWhere<XpertToolset>) {
+        return this.service.countBy(options)
+    }
+
+    @ApiOperation({ summary: 'Find all records using pagination' })
+    @ApiResponse({ status: HttpStatus.OK, description: 'Found records' })
+    @Get('pagination')
+    pagination(filter?: PaginationParams<XpertToolset>) {
+        return this.service.paginate(filter)
+    }
+
+    @ApiOperation({ summary: 'find my all' })
+    @ApiResponse({ status: HttpStatus.OK, description: 'Found my records' })
+    @Get('my')
+    findMyAll(@Query('data', ParseJsonPipe) params: PaginationParams<XpertToolset>) {
+        return this.service.findMyAll(params)
+    }
+
+    @Post()
+    @HttpCode(HttpStatus.CREATED)
+    create(@Body(new ToolsetWriteValidationPipe(CreateToolsetDTO)) input: CreateToolsetDTO) {
+        return this.service.create(input)
+    }
+
+    @Put(':id')
+    @HttpCode(HttpStatus.ACCEPTED)
+    update(
+        @Param('id', UUIDValidationPipe) id: string,
+        @Body(new ToolsetWriteValidationPipe(UpdateToolsetDTO)) input: UpdateToolsetDTO
     ) {
-        super(service)
+        return this.service.update(id, input)
+    }
+
+    @Delete(':id')
+    @HttpCode(HttpStatus.ACCEPTED)
+    delete(@Param('id', UUIDValidationPipe) id: string) {
+        return this.service.delete(id)
+    }
+
+    @Delete(':id/soft')
+    @HttpCode(HttpStatus.ACCEPTED)
+    softRemove(@Param('id', UUIDValidationPipe) id: string) {
+        return this.service.softRemove(id)
+    }
+
+    @Put(':id/recover')
+    @HttpCode(HttpStatus.ACCEPTED)
+    softRecover(@Param('id', UUIDValidationPipe) id: string) {
+        return this.service.softRecover(id)
     }
 
     private async resolvePublicTenantId(tenant?: string) {
@@ -244,10 +307,14 @@ export class XpertToolsetController extends CrudController<XpertToolset> {
     }
 
     @Post('builtin-provider/:name/instance')
-    async createBuiltinInstance(@Param('name') provider: string, @Body() body: Partial<IXpertToolset>) {
+    async createBuiltinInstance(
+        @Param('name') provider: string,
+        @Body(new ToolsetWriteValidationPipe(BuiltinToolsetDTO)) body: BuiltinToolsetDTO
+    ) {
         try {
             return await this.service.createBuiltinToolset(provider, body)
         } catch (err) {
+            if (err instanceof HttpException) throw err
             throw new InternalServerErrorException(err.message)
         }
     }
@@ -330,5 +397,17 @@ export class XpertToolsetController extends CrudController<XpertToolset> {
     async getCredentials(@Param('id') toolsetId: string) {
         const toolset = await this.service.findOne(toolsetId)
         return toolset.credentials
+    }
+
+    @ApiOperation({ summary: 'Find by id' })
+    @ApiResponse({ status: HttpStatus.OK, description: 'Found one record' })
+    @ApiResponse({ status: HttpStatus.NOT_FOUND, description: 'Record not found' })
+    @Get(':id')
+    findById(
+        @Param('id', UUIDValidationPipe) id: string,
+        @Query('$relations', ParseJsonPipe) relations?: PaginationParams<XpertToolset>['relations'],
+        @Query('$select', ParseJsonPipe) select?: PaginationParams<XpertToolset>['select']
+    ) {
+        return this.service.findOneByIdString(id, { select, relations })
     }
 }

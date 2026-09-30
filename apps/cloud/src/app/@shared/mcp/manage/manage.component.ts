@@ -1,3 +1,4 @@
+import { ToolsetUpdateInput, toToolsetWriteInput } from '@xpert-ai/contracts'
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
@@ -353,7 +354,8 @@ export class XpertMCPManageComponent {
 
   createToolset() {
     return this.toolsetService.create({
-      ...this.toolset(),
+      ...toToolsetWriteInput(this.toolset()),
+      name: this.toolset().name,
       workspaceId: this.workspaceId(),
       category: XpertToolsetCategoryEnum.MCP,
       type: this.mcpServer()?.type
@@ -361,9 +363,9 @@ export class XpertMCPManageComponent {
   }
 
   saveToolset() {
-    let value: Partial<IXpertToolset> = this.toolset()
+    let value: ToolsetUpdateInput = toToolsetWriteInput(this.toolset())
     if (this.toolsDirty()) {
-      value.tools = this.toolset().tools.filter((_) => !_.deletedAt)
+      value.tools = toToolsetWriteInput({ tools: this.toolset().tools.filter((_) => !_.deletedAt) }).tools
       const toolPositions = {}
       value.tools.forEach((_, index) => {
         toolPositions[_.name] = index

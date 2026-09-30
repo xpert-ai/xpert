@@ -102,3 +102,5 @@ export * from './knowledge-keyword-analyzer.model'
 
 export * from './assistant-configuration.model'
 export * from './assistant-trigger.model'
+
+export * from './xpert-toolset.input'

@@ -1,13 +1,24 @@
-import { PaginationParams, RequestContext } from '@xpert-ai/server-core'
+import { PaginationParams, RequestContext, Tag, isForeignKeyConstraintError } from '@xpert-ai/server-core'
+import { getErrorMessage } from '@xpert-ai/server-common'
 import { ConfigService } from '@xpert-ai/server-config'
-import { Injectable, Logger, Type, Inject, NotFoundException } from '@nestjs/common'
+import {
+    Injectable,
+    Logger,
+    Type,
+    Inject,
+    NotFoundException,
+    BadRequestException,
+    ForbiddenException
+} from '@nestjs/common'
 import { CommandBus, ICommand, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
-import { DeepPartial, FindOptionsWhere, IsNull, Not, Repository } from 'typeorm'
-import type { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
+import { FindOptionsWhere, In, IsNull, Not, Repository, FindOneOptions, SaveOptions } from 'typeorm'
 import { XpertToolset } from './xpert-toolset.entity'
 import {
     IBuiltinTool,
+    BuiltinToolsetInput,
+    ToolsetCreateInput,
+    ToolsetUpdateInput,
     ITag,
     IUser,
     IXpertToolset,
@@ -17,8 +28,7 @@ import {
     XpertToolsetCategoryEnum
 } from '@xpert-ai/contracts'
 import { ToolsetRegistry } from '@xpert-ai/plugin-sdk'
-import { assign } from 'lodash'
-import { XpertWorkspaceAccessService, XpertWorkspaceBaseService } from '../xpert-workspace'
+import { XpertWorkspaceAccessService } from '../xpert-workspace'
 import { DEFAULT_TOOL_TAG_MAP, defaultToolTags } from './utils/tags'
 import { ListBuiltinToolProvidersQuery, ListBuiltinToolsQuery } from './queries'
 import { ToolProviderNotFoundError } from './errors'
@@ -30,6 +40,10 @@ import { EnvStateQuery } from '../environment'
 import { BuiltinToolset } from '../shared'
 import { AgentMiddlewareRuntimeService } from '../shared/agent/middleware-runtime/index'
 import { assertValidTagAssociations } from '../shared/tag-associations'
+import { XpertTool } from '../xpert-tool/xpert-tool.entity'
+import { parseBuiltinToolset, parseToolsetCreate, parseToolsetUpdate } from './dto/toolset-write.dto'
+import { t } from 'i18next'
+import { ToolsetQueryService } from './toolset-query.service'
 
 const DEFAULT_MCP_AVATAR: TAvatar = {
     url:
@@ -51,7 +65,7 @@ const DEFAULT_MCP_AVATAR: TAvatar = {
 }
 
 @Injectable()
-export class XpertToolsetService extends XpertWorkspaceBaseService<XpertToolset> {
+export class XpertToolsetService extends ToolsetQueryService {
     readonly #logger = new Logger(XpertToolsetService.name)
 
     @Inject(ConfigService)
@@ -95,28 +109,143 @@ export class XpertToolsetService extends XpertWorkspaceBaseService<XpertToolset>
         return await this.commandBus.execute(new command(...args))
     }
 
-    // Isolate TypeORM's recursive update type; business callers use the shallow method to keep ts-node inference bounded.
-    async update(
-        id: string,
-        entity: QueryDeepPartialEntity<XpertToolset> & Partial<XpertToolset>
-    ): Promise<XpertToolset> {
-        return this.updateToolset(id, entity)
+    async create(input: ToolsetCreateInput): Promise<XpertToolset> {
+        const values = parseToolsetCreate(input)
+        const entity = new XpertToolset()
+        await this.applyWriteScope(entity, values.workspaceId)
+        entity.createdById = RequestContext.currentUserId()
+        return this.persistInput(entity, values)
     }
 
-    async updateToolset(id: string, entity: Partial<XpertToolset>): Promise<XpertToolset> {
-        const _entity = await super.findOne(id)
-        assign(_entity, entity)
-        return await this.save(_entity)
+    async update(id: string, input: ToolsetUpdateInput): Promise<XpertToolset> {
+        const values = parseToolsetUpdate(input)
+        const entity = await this.findOne(id)
+        // Moving an entity requires write access to both the source and destination.
+        await this.assertWritable(entity)
+        await this.applyWriteScope(entity, values.workspaceId === undefined ? entity.workspaceId : values.workspaceId)
+        return this.persistInput(entity, values)
     }
 
-    async create(entity: DeepPartial<XpertToolset>, ...options: unknown[]) {
-        await assertValidTagAssociations(this.repository, this.workspaceAccessService, entity, TagCategoryEnum.TOOLSET)
-        return super.create(entity, ...options)
+    async updateToolset(id: string, input: ToolsetUpdateInput): Promise<XpertToolset> {
+        return this.update(id, input)
     }
 
-    async save(entity: DeepPartial<XpertToolset>) {
-        await assertValidTagAssociations(this.repository, this.workspaceAccessService, entity, TagCategoryEnum.TOOLSET)
-        return super.save(entity)
+    async save(input: ToolsetCreateInput | (ToolsetUpdateInput & { id: string })): Promise<XpertToolset> {
+        return 'id' in input && input.id ? this.update(input.id, input) : this.create(parseToolsetCreate(input))
+    }
+
+    private async persistInput(entity: XpertToolset, values: ToolsetUpdateInput): Promise<XpertToolset> {
+        await assertValidTagAssociations(
+            this.repository,
+            this.workspaceAccessService,
+            { id: entity.id, workspaceId: entity.workspaceId, tags: values.tags },
+            TagCategoryEnum.TOOLSET
+        )
+        const { tools, tags, workspaceId, ...fields } = values
+        // Only parsed business fields are applied; omitted fields retain their stored values.
+        Object.assign(entity, Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== undefined)))
+        if (tools !== undefined) {
+            const ids = tools?.flatMap((tool) => (tool.id ? [tool.id] : [])) ?? []
+            if (ids.length) {
+                const ownedTools = entity.id
+                    ? await this.repository.manager.getRepository(XpertTool).find({
+                          where: { id: In(ids), toolsetId: entity.id },
+                          select: { id: true }
+                      })
+                    : []
+                if (new Set(ownedTools.map((tool) => tool.id)).size !== new Set(ids).size) {
+                    throw new BadRequestException(
+                        t('server-ai:Error.InvalidToolsetTools', {
+                            defaultValue: 'A selected tool does not belong to this toolset.'
+                        })
+                    )
+                }
+            }
+            entity.tools =
+                tools?.map((input) =>
+                    Object.assign(new XpertTool(), input, {
+                        tenantId: entity.tenantId,
+                        organizationId: entity.organizationId,
+                        updatedById: RequestContext.currentUserId(),
+                        ...(!input.id ? { createdById: RequestContext.currentUserId() } : {})
+                    })
+                ) ?? tools
+        }
+        if (tags !== undefined) {
+            entity.tags =
+                tags?.map((input) =>
+                    Object.assign(
+                        new Tag(),
+                        input,
+                        'id' in input && input.id
+                            ? {}
+                            : {
+                                  tenantId: entity.tenantId,
+                                  organizationId: entity.organizationId
+                              }
+                    )
+                ) ?? tags
+        }
+        entity.updatedById = RequestContext.currentUserId() ?? entity.updatedById
+        try {
+            return await this.repository.save(entity)
+        } catch (error) {
+            throw new BadRequestException(getErrorMessage(error))
+        }
+    }
+
+    private async applyWriteScope(entity: XpertToolset, workspaceId?: string | null) {
+        const normalized = workspaceId?.trim()
+        entity.workspaceId = normalized && normalized !== 'null' && normalized !== 'undefined' ? normalized : null
+        if (entity.workspaceId) {
+            const { workspace } = await this.workspaceAccessService.assertCan(entity.workspaceId, 'write')
+            entity.tenantId = workspace.tenantId
+            entity.organizationId = workspace.organizationId ?? null
+        } else {
+            const tenantId = RequestContext.currentTenantId()
+            if (!tenantId) throw new ForbiddenException()
+            entity.tenantId = tenantId
+            entity.organizationId = RequestContext.getOrganizationId() ?? null
+        }
+    }
+
+    private async assertWritable(entity: XpertToolset) {
+        if (entity.workspaceId) await this.workspaceAccessService.assertCan(entity.workspaceId, 'write')
+    }
+
+    async delete(id: string) {
+        const entity = await this.findOne(id)
+        await this.assertWritable(entity)
+        try {
+            return await this.repository.delete({ id: entity.id, tenantId: entity.tenantId })
+        } catch (error) {
+            if (isForeignKeyConstraintError(error)) {
+                throw new BadRequestException(
+                    t('server-ai:Error.ToolsetStillReferenced', {
+                        defaultValue: 'Cannot delete: record is still referenced by another table.'
+                    })
+                )
+            }
+            throw new NotFoundException()
+        }
+    }
+
+    async softDelete(id: string) {
+        const entity = await this.findOne(id)
+        await this.assertWritable(entity)
+        return this.repository.softDelete({ id: entity.id, tenantId: entity.tenantId })
+    }
+
+    async softRemove(id: string, options?: FindOneOptions<XpertToolset>, saveOptions?: SaveOptions) {
+        const entity = await this.findOne(id, { ...options, select: undefined })
+        await this.assertWritable(entity)
+        return this.repository.softRemove(entity, saveOptions)
+    }
+
+    async softRecover(id: string, options?: FindOneOptions<XpertToolset>, saveOptions?: SaveOptions) {
+        const entity = await this.findOne(id, { ...options, select: undefined, withDeleted: true })
+        await this.assertWritable(entity)
+        return this.repository.recover(entity, saveOptions)
     }
 
     async getAllByWorkspace(
@@ -183,7 +312,8 @@ export class XpertToolsetService extends XpertWorkspaceBaseService<XpertToolset>
         return toolset.category === XpertToolsetCategoryEnum.MCP ? DEFAULT_MCP_AVATAR : toolset.avatar
     }
 
-    async createBuiltinToolset(provider: string, entity: Partial<IXpertToolset>) {
+    async createBuiltinToolset(provider: string, input: BuiltinToolsetInput) {
+        const entity = parseBuiltinToolset(input)
         const tenantId = RequestContext.currentTenantId()
         const organizationId = RequestContext.getOrganizationId()
         const providers = await this.queryBus.execute<ListBuiltinToolProvidersQuery, TToolsetProviderSchema[]>(

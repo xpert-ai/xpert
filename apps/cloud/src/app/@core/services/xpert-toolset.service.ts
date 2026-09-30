@@ -1,3 +1,4 @@
+import { BuiltinToolsetInput, ToolsetCreateInput, ToolsetUpdateInput, toToolsetWriteInput } from '@xpert-ai/contracts'
 import { inject, Injectable, Signal } from '@angular/core'
 import { NGXLogger } from 'ngx-logger'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -39,6 +40,14 @@ export class XpertToolsetService extends XpertWorkspaceBaseCrudService<IXpertToo
 
   constructor() {
     super(API_XPERT_TOOLSET)
+  }
+
+  override create(input: ToolsetCreateInput) {
+    return this.httpClient.post<IXpertToolset>(this.apiBaseUrl, toToolsetWriteInput(input))
+  }
+
+  override update(id: string, input: ToolsetUpdateInput) {
+    return this.httpClient.put<IXpertToolset>(`${this.apiBaseUrl}/${id}`, toToolsetWriteInput(input))
   }
 
   /**
@@ -87,8 +96,11 @@ export class XpertToolsetService extends XpertWorkspaceBaseCrudService<IXpertToo
     )
   }
 
-  createBuiltinToolsetInstance(provider: string, entity: Partial<IXpertToolset>) {
-    return this.httpClient.post<IXpertToolset>(this.apiBaseUrl + `/builtin-provider/${provider}/instance`, entity)
+  createBuiltinToolsetInstance(provider: string, entity: BuiltinToolsetInput) {
+    return this.httpClient.post<IXpertToolset>(this.apiBaseUrl + `/builtin-provider/${provider}/instance`, {
+      ...toToolsetWriteInput(entity),
+      id: entity.id
+    })
   }
 
   getBuiltinToolInstances(workspaceId: string, provider: string) {
