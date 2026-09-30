@@ -199,7 +199,9 @@
           <div class="ml-2 flex items-center justify-start">
             @if (editingId() === copilot.id) {
               <input
-                class="flex-1 bg-background-body focus-visible:outline-none p-1 rounded-xs"
+                z-input
+                zSize="sm"
+                class="min-w-0 flex-1"
                 cdkFocusInitial
                 type="text"
                 [(ngModel)]="name"
