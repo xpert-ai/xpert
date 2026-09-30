@@ -773,5 +773,9 @@
   "Later": "稍后",
   "Close": "关闭",
   "Invalid channel provider.": "无效的渠道提供方。",
-  "Invalid QR session.": "无效的二维码会话。"
+  "Invalid QR session.": "无效的二维码会话。",
+  "New to Xpert?": "还没有 Xpert 账号？",
+  "Create account": "注册账号",
+  "Register in your browser, then return here to sign in.": "在浏览器中完成注册后，回到这里登录。",
+  "Could not open registration. Please try again.": "无法打开注册页面，请重试。"
 }

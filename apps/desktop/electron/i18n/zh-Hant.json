@@ -773,5 +773,9 @@
   "Later": "稍後",
   "Close": "關閉",
   "Invalid channel provider.": "無效的渠道提供者。",
-  "Invalid QR session.": "無效的 QR 碼工作階段。"
+  "Invalid QR session.": "無效的 QR 碼工作階段。",
+  "New to Xpert?": "還沒有 Xpert 帳號？",
+  "Create account": "註冊帳號",
+  "Register in your browser, then return here to sign in.": "在瀏覽器中完成註冊後，回到這裡登入。",
+  "Could not open registration. Please try again.": "無法開啟註冊頁面，請重試。"
 }

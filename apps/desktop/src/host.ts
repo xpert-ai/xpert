@@ -1,5 +1,6 @@
 import { t } from './i18n'
 import type { HostMethods, HostResult } from './types'
+import { platformCommandUrl } from '../electron/workbench-platform.mjs'
 
 export class HostError extends Error {
   constructor(
@@ -32,4 +33,13 @@ export async function invoke<K extends keyof HostMethods>(
 export function openWorkspace(webUrl: string) {
   if (window.xpertDesktop) void window.xpertDesktop.openWorkspace()
   else window.open(webUrl, '_blank', 'noopener,noreferrer')
+}
+
+export async function openRegistration(webUrl: string) {
+  const target = { target: 'auth.register' }
+  if (window.xpertDesktop) return window.xpertDesktop.openPlatform(target)
+  const url = platformCommandUrl(webUrl, target)
+  if (!url) return false
+  window.open(url, '_blank', 'noopener,noreferrer')
+  return true
 }

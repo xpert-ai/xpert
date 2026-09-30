@@ -6,7 +6,8 @@ export function platformCommandUrl(webUrl, payload) {
   const segment = (value) => encodeURIComponent(value)
   let path
   const query = new URLSearchParams()
-  if (payload.target === 'platform.data-source.create') path = 'settings/data-sources'
+  if (payload.target === 'auth.register') path = 'auth/register'
+  else if (payload.target === 'platform.data-source.create') path = 'settings/data-sources'
   else if (
     payload.target === 'workspace.plugins.manage' &&
     id(payload.organizationId) &&

@@ -183,6 +183,10 @@ corepack pnpm --filter @xpert-ai/desktop dev
 
 ### Sign in and discover assistants
 
+New users can choose **Create account** on the sign-in screen. Registration opens
+`auth/register` under the configured Web URL in the system browser; after completing
+the platform's registration and verification flow, return to Desktop to sign in.
+
 Use the existing Xpert email and password to sign in. The application then loads
 the user's organizations and accessible published Agents from the existing
 `/api/mobile/bootstrap` and `/api/mobile/xperts` APIs. Select a workspace and Bot.

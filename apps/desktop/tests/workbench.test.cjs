@@ -3,6 +3,20 @@ const assert = require('node:assert/strict')
 const { DesktopService } = require('../electron/service.cjs')
 const { platformCommandUrl } = require('../electron/workbench-platform.mjs')
 
+test('registration opens the configured web deployment without accepting arbitrary destinations', () => {
+  for (const base of ['https://app.example.com', 'https://customer.example/xpert/', 'http://localhost:4200']) {
+    assert.equal(platformCommandUrl(base, { target: 'auth.register' }), `${base.replace(/\/$/, '')}/auth/register`)
+    assert.equal(
+      platformCommandUrl(base, {
+        target: 'auth.register',
+        url: 'https://other.example',
+        redirect: 'https://other.example'
+      }),
+      `${base.replace(/\/$/, '')}/auth/register`
+    )
+  }
+})
+
 function fixture(
   resolved = { conversationId: 'conversation', xpertId: 'external', threadId: 'thread', projectId: 'project' }
 ) {

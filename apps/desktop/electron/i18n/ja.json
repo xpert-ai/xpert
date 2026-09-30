@@ -773,5 +773,9 @@
   "Later": "後で",
   "Close": "閉じる",
   "Invalid channel provider.": "無効なチャネルプロバイダーです。",
-  "Invalid QR session.": "無効な QR セッションです。"
+  "Invalid QR session.": "無効な QR セッションです。",
+  "New to Xpert?": "Xpert のアカウントをお持ちでない方",
+  "Create account": "アカウントを作成",
+  "Register in your browser, then return here to sign in.": "ブラウザーで登録を完了してから、ここに戻ってサインインしてください。",
+  "Could not open registration. Please try again.": "登録ページを開けませんでした。もう一度お試しください。"
 }

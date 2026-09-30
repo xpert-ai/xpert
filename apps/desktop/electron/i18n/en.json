@@ -773,5 +773,9 @@
   "Later": "Later",
   "Close": "Close",
   "Invalid channel provider.": "Invalid channel provider.",
-  "Invalid QR session.": "Invalid QR session."
+  "Invalid QR session.": "Invalid QR session.",
+  "New to Xpert?": "New to Xpert?",
+  "Create account": "Create account",
+  "Register in your browser, then return here to sign in.": "Register in your browser, then return here to sign in.",
+  "Could not open registration. Please try again.": "Could not open registration. Please try again."
 }

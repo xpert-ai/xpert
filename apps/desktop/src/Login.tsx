@@ -1,10 +1,10 @@
 import { t } from './i18n'
 import { useState } from 'react'
 import { Button, Input, Label } from '@xpert-ai/shadcn-ui'
-import { ArrowRight, LoaderCircle, Settings2, ShieldCheck } from 'lucide-react'
+import { ArrowRight, ExternalLink, LoaderCircle, Settings2, ShieldCheck } from 'lucide-react'
 import { BrandLogo } from './branding/BrandLogo'
 import branding from '../electron/branding.json'
-import { invoke } from './host'
+import { invoke, openRegistration } from './host'
 import type { AppState } from './types'
 
 export function Login({
@@ -32,11 +32,20 @@ export function Login({
       setPassword('')
     }
   }
+  async function register() {
+    setError('')
+    try {
+      if (!(await openRegistration(state.config.webUrl)))
+        throw new Error(t('Could not open registration. Please try again.'))
+    } catch {
+      setError(t('Could not open registration. Please try again.'))
+    }
+  }
   return (
     <div className="relative flex h-full flex-col bg-background">
       <div className="window-drag h-12 shrink-0" />
-      <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto px-8 py-10">
-        <div className="w-full max-w-sm">
+      <div className="flex min-h-0 flex-1 items-start justify-center overflow-auto px-8 py-10">
+        <div className="my-auto w-full max-w-sm">
           <div className="mb-10 flex items-center gap-3">
             <BrandLogo className="size-14" />
             <div>
@@ -93,6 +102,24 @@ export function Login({
               {t('Sign in')}
             </Button>
           </form>
+          <div className="mt-5 space-y-1 text-center">
+            <div className="flex items-center justify-center gap-1 text-sm">
+              <span className="text-muted-foreground">{t('New to Xpert?')}</span>
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-8 px-2 text-primary"
+                disabled={busy}
+                onClick={() => void register()}
+              >
+                {t('Create account')}
+                <ExternalLink className="size-3.5" aria-hidden="true" />
+              </Button>
+            </div>
+            <p className="text-xs leading-5 text-muted-foreground">
+              {t('Register in your browser, then return here to sign in.')}
+            </p>
+          </div>
           {state.localLoginAvailable && (
             <Button variant="outline" className="mt-3 h-11 w-full" disabled={busy} onClick={() => void login(true)}>
               <ShieldCheck />
