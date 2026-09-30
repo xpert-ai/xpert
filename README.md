@@ -14,7 +14,7 @@ English | [简体中文](./README_zh.md)
 </p>
 
 <p align="center">
-  <a href="apps/desktop/README.md"><strong>Get Started with Bosi</strong></a> ·
+  <a href="https://github.com/xpert-ai/xpert/releases"><strong>Download Bosi</strong></a> ·
   <a href="https://app.xpertai.cn/plugins/marketplace"><strong>Explore the Marketplace</strong></a> ·
   <a href="https://docs.xpertai.cn/en/ai/getting-started/community"><strong>Self-host Xpert</strong></a> ·
   <a href="https://docs.xpertai.cn/en/">Documentation</a>
@@ -44,6 +44,10 @@ English | [简体中文](./README_zh.md)
 
 Bosi connects to hosted or self-hosted Xpert. The platform runs the Agents and manages shared resources; Bosi provides the desktop experience and authorized local execution. See the [Desktop guide](apps/desktop/README.md) for setup and builds.
 
+### Download Bosi
+
+Available for macOS, Windows, and Linux. [Download from GitHub Releases](https://github.com/xpert-ai/xpert/releases) · [Website download page](https://xpertai.cn/download/).
+
 ## Xpert Platform — everything is a plugin
 
 Build and publish the AI teams used in Bosi, Xpert Web, or your own product. Xpert provides the runtime, permissions, approvals, and audit trails; plugins deliver capabilities from model providers and tools to complete Agentic Apps.
@@ -68,7 +72,7 @@ Discover applications for your AI team in the [official App catalog](https://xpe
 
 ## Quick Start
 
-**Use Bosi:** follow the [Desktop guide](apps/desktop/README.md), sign in, choose an organization, and open **Discover & add** to find experts, apps, plugins, and templates. Self-hosted users can change the server in Connection settings.
+**Use Bosi:** [download and install the desktop app](https://github.com/xpert-ai/xpert/releases), sign in, choose an organization, and open **Discover & add** to find experts, apps, plugins, and templates. Self-hosted users can configure their server before signing in; see the [Desktop guide](apps/desktop/README.md).
 
 **Host Xpert:** requires **2 CPU cores**, **4 GiB RAM**, Docker, and Docker Compose.
 
