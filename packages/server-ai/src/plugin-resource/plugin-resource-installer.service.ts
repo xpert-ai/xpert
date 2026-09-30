@@ -634,7 +634,7 @@ export class PluginResourceInstallerService {
         let persisted: XpertToolset
         if (toolset?.id) {
             await this.toolRepo.delete({ toolsetId: toolset.id })
-            await this.toolsetService.update(toolset.id, entity)
+            await this.toolsetService.updateToolset(toolset.id, entity)
             persisted = await this.toolsetRepo.findOneOrFail({ where: { id: toolset.id }, relations: ['tools'] })
         } else {
             persisted = await this.toolsetService.create(entity)

@@ -62,30 +62,36 @@ describe('XpertToolsetService', () => {
         return { service, repository, entity, tag, tagRepository, query }
     }
 
-    it.each(['create', 'save', 'update'] as const)(
+    it.each(['create', 'save', 'update', 'updateToolset'] as const)(
         'rejects a newly associated stopped tag through %s',
         async (method) => {
             const { service, repository, entity } = tagWriteFixture()
-            const result = method === 'update' ? service.update(entity.id, entity) : service[method](entity)
+            const result =
+                method === 'update' || method === 'updateToolset'
+                    ? service[method](entity.id, entity)
+                    : service[method](entity)
             await expect(result).rejects.toBeInstanceOf(BadRequestException)
             expect(repository.save).not.toHaveBeenCalled()
         }
     )
 
-    it('accepts enabled toolset tags and retains stopped historical associations', async () => {
-        const { service, repository, entity, tag, query, tagRepository } = tagWriteFixture()
-        tag.isActive = true
-        await expect(service.create(entity)).resolves.toMatchObject({ tags: entity.tags })
-        tag.isActive = false
-        query.getRawMany.mockResolvedValue([{ id: tag.id }])
-        repository.findOne.mockResolvedValue(entity)
-        tagRepository.find.mockClear()
-        await expect(service.update(entity.id, { name: 'Renamed' })).resolves.toMatchObject({
-            name: 'Renamed',
-            tags: entity.tags
-        })
-        expect(tagRepository.find).not.toHaveBeenCalled()
-    })
+    it.each(['update', 'updateToolset'] as const)(
+        'accepts enabled toolset tags and retains stopped historical associations through %s',
+        async (method) => {
+            const { service, repository, entity, tag, query, tagRepository } = tagWriteFixture()
+            tag.isActive = true
+            await expect(service.create(entity)).resolves.toMatchObject({ tags: entity.tags })
+            tag.isActive = false
+            query.getRawMany.mockResolvedValue([{ id: tag.id }])
+            repository.findOne.mockResolvedValue(entity)
+            tagRepository.find.mockClear()
+            await expect(service[method](entity.id, { name: 'Renamed' })).resolves.toMatchObject({
+                name: 'Renamed',
+                tags: entity.tags
+            })
+            expect(tagRepository.find).not.toHaveBeenCalled()
+        }
+    )
 
     it('hydrates persisted builtin tools with the latest provider schema', async () => {
         const latestSchema = {
