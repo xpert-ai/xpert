@@ -1,4 +1,9 @@
 {
+    "ResourceCard": {
+        "Status": { "scheduled": "Scheduled", "paused": "Paused", "archived": "Archived" },
+        "InvalidTimeZone": "Invalid time zone.",
+        "InvalidSchedule": "Complete the required fields for the selected schedule frequency."
+    },
     "EvolutionExecution": {
         "PreparingReview": "Preparing for review…",
         "ChecksNotApplicable": "This strategy does not require automatic checks. Human review is still required.",

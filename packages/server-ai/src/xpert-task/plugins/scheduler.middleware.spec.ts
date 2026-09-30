@@ -38,7 +38,9 @@ describe('SchedulerAgentMiddleware', () => {
         commandBus.execute.mockResolvedValue({
             id: 'task-1',
             name: 'Morning briefing',
-            prompt: 'Search for stock quotes'
+            prompt: 'Search for stock quotes',
+            scheduleDescription: 'Every day at 09:00',
+            timeZone: 'Asia/Shanghai'
         })
 
         const middleware = await Promise.resolve(strategy.createMiddleware({}, createContext()))
@@ -66,12 +68,18 @@ describe('SchedulerAgentMiddleware', () => {
         expect(command).toBeInstanceOf(CreateXpertTaskCommand)
         expect(command.task.xpertId).toBe('context-xpert')
         expect(command.task.agentKey).toBe('task-to-email')
+        expect(dispatchCustomEvent).toHaveBeenCalledTimes(1)
         expect(dispatchCustomEvent).toHaveBeenCalledWith(
-            ChatMessageEventTypeEnum.ON_TOOL_MESSAGE,
+            ChatMessageEventTypeEnum.ON_CHAT_EVENT,
             expect.objectContaining({
-                id: 'tool-call-1',
-                toolset: 'scheduler'
-            })
+                type: 'resource_card',
+                data: expect.objectContaining({
+                    description: 'Every day at 09:00 · Asia/Shanghai',
+                    resource: { namespace: 'platform', type: 'scheduled-task', id: 'task-1' },
+                    open: { target: 'workbench.view', viewKey: 'platform.scheduler__detail', selectionId: 'task-1' }
+                })
+            }),
+            expect.objectContaining({ metadata: { tool_call_id: 'tool-call-1' } })
         )
     })
 
@@ -87,6 +95,34 @@ describe('SchedulerAgentMiddleware', () => {
             })
         ).rejects.toThrow(ToolParameterValidationError)
         expect(commandBus.execute).not.toHaveBeenCalled()
+    })
+
+    it('binds scheduled execution to the host project context', async () => {
+        commandBus.execute.mockResolvedValue({ id: 'task-1', name: 'Briefing' })
+        const middleware = await strategy.createMiddleware({}, createContext({ projectId: 'host-project' }))
+        await middleware.tools[0].invoke({ name: 'Briefing', schedule: '0 9 * * *', prompt: 'Summarize' })
+        const command = commandBus.execute.mock.calls[0][0] as CreateXpertTaskCommand
+        expect(command.task.projectId).toBe('host-project')
+    })
+
+    it('does not emit a receipt when creation fails', async () => {
+        commandBus.execute.mockRejectedValueOnce(Error('create rejected'))
+        const middleware = await strategy.createMiddleware({}, createContext())
+        await expect(
+            middleware.tools[0].invoke({ name: 'Briefing', schedule: '0 9 * * *', prompt: 'Summarize' })
+        ).rejects.toThrow('create rejected')
+        expect(dispatchCustomEvent).not.toHaveBeenCalled()
+    })
+
+    it('keeps creation successful when card delivery fails', async () => {
+        commandBus.execute.mockResolvedValue({ id: 'created', name: 'Briefing', timeZone: 'UTC', status: 'scheduled' })
+        jest.mocked(dispatchCustomEvent).mockRejectedValueOnce(Error('stream disconnected'))
+        const middleware = await strategy.createMiddleware({}, createContext())
+        await expect(
+            middleware.tools[0].invoke({ name: 'Briefing', schedule: '0 9 * * *', prompt: 'Summarize' })
+        ).resolves.toBe('Scheduler creation completed!')
+        expect(commandBus.execute).toHaveBeenCalledTimes(1)
+        expect(dispatchCustomEvent).toHaveBeenCalledTimes(1)
     })
 
     it('uses input xpertId fallback when listing tasks without runtime context', async () => {
@@ -155,7 +191,7 @@ describe('SchedulerAgentMiddleware', () => {
     })
 })
 
-function createContext(overrides: Partial<{ xpertId?: string }> = {}) {
+function createContext(overrides: Partial<{ xpertId?: string; projectId?: string }> = {}) {
     return {
         tenantId: 'tenant-1',
         userId: 'user-1',

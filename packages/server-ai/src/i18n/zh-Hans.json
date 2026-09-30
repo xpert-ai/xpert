@@ -1,4 +1,9 @@
 {
+    "ResourceCard": {
+        "Status": { "scheduled": "已安排", "paused": "已暂停", "archived": "已归档" },
+        "InvalidTimeZone": "时区无效。",
+        "InvalidSchedule": "请填写所选调度频率要求的日期或星期。"
+    },
     "EvolutionExecution": {
         "PreparingReview": "正在准备审核材料…",
         "ChecksNotApplicable": "当前策略不要求自动检查，仍需人工审核。",
