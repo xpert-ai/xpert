@@ -24,7 +24,7 @@ import {
     SubscribeMessage,
     WebSocketGateway
 } from '@nestjs/websockets'
-import { WsJWTGuard } from '@xpert-ai/server-core'
+import { SandboxTerminalAuthGuard } from './sandbox-terminal-auth.guard'
 import { Socket } from 'socket.io'
 import { SandboxConversationContextService } from './sandbox-conversation-context.service'
 
@@ -51,7 +51,7 @@ export class SandboxTerminalGateway implements OnGatewayDisconnect {
 
     constructor(private readonly sandboxConversationContextService: SandboxConversationContextService) {}
 
-    @UseGuards(WsJWTGuard)
+    @UseGuards(SandboxTerminalAuthGuard)
     @SubscribeMessage(SandboxTerminalClientEvent.Open)
     async open(@MessageBody() data: SandboxTerminalOpenRequest, @ConnectedSocket() client: Socket): Promise<void> {
         const pendingOpen = this.registerPendingOpen(client.id, data.requestId)
@@ -154,7 +154,7 @@ export class SandboxTerminalGateway implements OnGatewayDisconnect {
         }
     }
 
-    @UseGuards(WsJWTGuard)
+    @UseGuards(SandboxTerminalAuthGuard)
     @SubscribeMessage(SandboxTerminalClientEvent.Input)
     async input(@MessageBody() data: SandboxTerminalInputRequest, @ConnectedSocket() client: Socket): Promise<void> {
         const entry = this.getSessionEntry(client.id, data.sessionId)
@@ -177,7 +177,7 @@ export class SandboxTerminalGateway implements OnGatewayDisconnect {
         }
     }
 
-    @UseGuards(WsJWTGuard)
+    @UseGuards(SandboxTerminalAuthGuard)
     @SubscribeMessage(SandboxTerminalClientEvent.Resize)
     async resize(@MessageBody() data: SandboxTerminalResizeRequest, @ConnectedSocket() client: Socket): Promise<void> {
         const entry = this.getSessionEntry(client.id, data.sessionId)
@@ -195,7 +195,7 @@ export class SandboxTerminalGateway implements OnGatewayDisconnect {
         }
     }
 
-    @UseGuards(WsJWTGuard)
+    @UseGuards(SandboxTerminalAuthGuard)
     @SubscribeMessage(SandboxTerminalClientEvent.Close)
     async close(@MessageBody() data: SandboxTerminalCloseRequest, @ConnectedSocket() client: Socket): Promise<void> {
         if (data.sessionId) {

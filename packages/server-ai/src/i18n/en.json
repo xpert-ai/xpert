@@ -915,6 +915,7 @@
         "KnowledgebaseTaskAccessDenied": "You do not have access to this knowledgebase task.",
         "WorkspaceFileAccessInvalidReference": "View file access requires a scoped Workspace Files reference.",
         "WorkspaceFileAccessUnavailable": "Workspace file access is not configured.",
+        "ConversationNotFound": "Conversation not found",
         "WorkspaceFileUploadRequired": "Workspace file is required.",
         "ProjectInteractiveSessionRequired": "An interactive user ChatKit session is required to access Projects.",
         "AuthenticatedUserRequired": "An authenticated user is required.",

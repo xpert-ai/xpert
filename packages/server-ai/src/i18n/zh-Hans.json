@@ -915,6 +915,7 @@
         "KnowledgebaseTaskAccessDenied": "你无权访问此知识库任务。",
         "WorkspaceFileAccessInvalidReference": "View 文件访问需要限定作用域的 Workspace Files 引用。",
         "WorkspaceFileAccessUnavailable": "Workspace 文件访问功能尚未配置。",
+        "ConversationNotFound": "会话不存在",
         "WorkspaceFileUploadRequired": "必须提供 Workspace 文件。",
         "ProjectInteractiveSessionRequired": "需要已登录用户的 ChatKit 会话才能访问项目。",
         "AuthenticatedUserRequired": "需要已登录的用户。",

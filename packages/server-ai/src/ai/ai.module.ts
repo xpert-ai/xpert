@@ -1,3 +1,5 @@
+import { WorkbenchFilesController } from './workbench-files.controller'
+import { WorkbenchFilesAuthGuard } from './workbench-files-auth.guard'
 import { McpAppsRuntimeController } from './mcp-apps-runtime.controller'
 import { XpertToolsetModule } from '../xpert-toolset/xpert-toolset.module'
 import { RedisModule, SecretTokenModule, StorageFileModule, TenantModule } from '@xpert-ai/server-core'
@@ -90,6 +92,7 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
         forwardRef(() => XpertToolsetModule)
     ],
     controllers: [
+        WorkbenchFilesController,
         McpAppsRuntimeController,
         SandboxRuntimeController,
         ConversationBranchController,
@@ -105,6 +108,7 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
         StoreController
     ],
     providers: [
+        WorkbenchFilesAuthGuard,
         AssistantThreadScopeGuard,
         ConversationBranchService,
         AiService,

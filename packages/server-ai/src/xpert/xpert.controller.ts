@@ -702,13 +702,15 @@ export class XpertController extends CrudController<Xpert> {
         return this.workspaceFilesService.list(id, path, deepth)
     }
 
-    @UseGuards(XpertGuard)
+    @Public()
+    @UseGuards(XpertWorkspaceAuthGuard, XpertGuard)
     @Get(':id/workspace/file')
     async readWorkspaceFile(@Param('id', UUIDValidationPipe) id: string, @Query('path') path: string) {
         return this.workspaceFilesService.read(id, path)
     }
 
-    @UseGuards(XpertGuard)
+    @Public()
+    @UseGuards(XpertWorkspaceAuthGuard, XpertGuard)
     @Get(':id/workspace/file/download')
     async downloadWorkspaceFile(
         @Param('id', UUIDValidationPipe) id: string,
@@ -787,7 +789,8 @@ export class XpertController extends CrudController<Xpert> {
         }
     }
 
-    @UseGuards(XpertGuard)
+    @Public()
+    @UseGuards(XpertWorkspaceAuthGuard, XpertGuard)
     @Put(':id/workspace/file')
     async saveWorkspaceFile(
         @Param('id', UUIDValidationPipe) id: string,
@@ -796,7 +799,8 @@ export class XpertController extends CrudController<Xpert> {
         return this.workspaceFilesService.save(id, body?.path, body?.content ?? '')
     }
 
-    @UseGuards(XpertGuard)
+    @Public()
+    @UseGuards(XpertWorkspaceAuthGuard, XpertGuard)
     @Post(':id/workspace/file/save-binary')
     @UseInterceptors(FileInterceptor('file', { limits: { fileSize: XPERT_WORKSPACE_FILE_UPLOAD_MAX_BYTES } }))
     async saveWorkspaceBinaryFile(
@@ -814,7 +818,8 @@ export class XpertController extends CrudController<Xpert> {
         return this.workspaceFilesService.saveBinary(id, path, file.buffer)
     }
 
-    @UseGuards(XpertGuard)
+    @Public()
+    @UseGuards(XpertWorkspaceAuthGuard, XpertGuard)
     @Post(':id/workspace/file/upload')
     @UseInterceptors(FileInterceptor('file', { limits: { fileSize: XPERT_WORKSPACE_FILE_UPLOAD_MAX_BYTES } }))
     async uploadWorkspaceFileToFolder(
@@ -832,13 +837,15 @@ export class XpertController extends CrudController<Xpert> {
         return this.workspaceFilesService.uploadToFolder(id, path, file)
     }
 
-    @UseGuards(XpertGuard)
+    @Public()
+    @UseGuards(XpertWorkspaceAuthGuard, XpertGuard)
     @Delete(':id/workspace/file')
     async deleteWorkspaceFile(@Param('id', UUIDValidationPipe) id: string, @Query('path') path: string) {
         return this.workspaceFilesService.delete(id, path)
     }
 
-    @UseGuards(XpertGuard)
+    @Public()
+    @UseGuards(XpertWorkspaceAuthGuard, XpertGuard)
     @Post(':id/workspace/files/upload')
     @UseInterceptors(FileInterceptor('file', { limits: { fileSize: XPERT_WORKSPACE_FILE_UPLOAD_MAX_BYTES } }))
     async uploadWorkspaceFile(

@@ -27,10 +27,12 @@ describe('XpertWorkspaceAuthGuard', () => {
     function userXpertPrincipal(entityId: string): IApiPrincipal {
         return {
             id: 'user-1',
+            tenantId: 'tenant-1',
             principalType: 'client_secret',
             clientSecretBindingType: SecretTokenBindingType.USER_XPERT,
             apiKey: {
                 type: ApiKeyBindingType.ASSISTANT,
+                tenantId: 'tenant-1',
                 entityId
             }
         } as IApiPrincipal
@@ -48,6 +50,12 @@ describe('XpertWorkspaceAuthGuard', () => {
         await expect(guard.canActivate(context(userXpertPrincipal('xpert-2')))).rejects.toBeInstanceOf(
             ForbiddenException
         )
+    })
+
+    it('also restricts API keys to their bound assistant', async () => {
+        const guard = new TestGuard(new Reflector())
+        const principal = { ...userXpertPrincipal('xpert-2'), principalType: 'api_key' } as IApiPrincipal
+        await expect(guard.canActivate(context(principal))).rejects.toBeInstanceOf(ForbiddenException)
     })
 
     it('rejects a delegated session without an assistant API binding', async () => {
