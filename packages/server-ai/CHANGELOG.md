@@ -1,5 +1,39 @@
 # @xpert-ai/server-ai
 
+## 3.10.0
+
+### Minor Changes
+
+- 99d09ec: Release a coordinated minor update across all Xpert workspace packages, including the API, Web and Bosi applications, shared SDK and contracts, backend and UI libraries, bundled plugins, sandbox runtimes and documentation.
+
+### Patch Changes
+
+- 1e44173: Upgrade ChatKit UI to 0.5.13 and align ChatKit types on 0.5.9 across the host packages. Include the released history loading, reasoning, composer file selector, and plugin-provided approval presentation improvements.
+- b62543f: Add editable prompt workflow scenarios, organization tags, expert associations, and expert-scoped capability selections. Refresh prompt management and command availability, preserve explicit field clearing, and send expanded editable prompts without expanding them again on the server.
+
+    Requires the ChatKit types and UI release that introduces prompt scenarios and editable prompt drafts; update the host's ChatKit dependencies to that published release before shipping.
+
+- bb24b02: Associate newly initialized template prompt workflows with the expert created from that template in both import and plugin installation flows. Preserve existing same-name workflows and their user-defined associations.
+
+    Track template provenance to associate repeated installations with each created expert without changing user-owned, archived or global prompts. Initialize template prompts after publishing succeeds so failed installations leave no stale associations.
+
+- Updated dependencies [8a78318]
+- Updated dependencies [1e44173]
+- Updated dependencies [c953822]
+- Updated dependencies [b7983c8]
+- Updated dependencies [08f66e7]
+- Updated dependencies [b62543f]
+- Updated dependencies [5f26e05]
+- Updated dependencies [99d09ec]
+    - @xpert-ai/contracts@3.19.0
+    - @xpert-ai/plugin-sdk@3.19.0
+    - @xpert-ai/server-core@3.10.0
+    - @xpert-ai/server-auth@3.10.0
+    - @xpert-ai/server-common@3.10.0
+    - @xpert-ai/server-config@3.10.0
+    - @xpert-ai/desktop-protocol@0.2.0
+    - @xpert-ai/shadcn-ui@0.2.0
+
 ## 3.9.38
 
 ### Patch Changes

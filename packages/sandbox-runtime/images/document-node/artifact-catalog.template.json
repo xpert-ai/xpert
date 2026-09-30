@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "runtimeSuiteVersion": "1.2.3",
+  "runtimeSuiteVersion": "1.3.0",
   "artifacts": [
     {
       "runtimeProfile": "document/node-20/v1",

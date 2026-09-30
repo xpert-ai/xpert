@@ -1,6 +1,6 @@
-# @xpert-ai/formly
+# @xpert-ai/desktop-protocol
 
-## 2.2.0
+## 0.2.0
 
 ### Minor Changes
 
@@ -8,12 +8,12 @@
 
 ### Patch Changes
 
+- Updated dependencies [8a78318]
+- Updated dependencies [1e44173]
+- Updated dependencies [c953822]
+- Updated dependencies [b7983c8]
+- Updated dependencies [08f66e7]
+- Updated dependencies [b62543f]
+- Updated dependencies [5f26e05]
 - Updated dependencies [99d09ec]
-  - @xpert-ai/headless-ui@0.1.0
-
-## 2.1.1
-
-### Patch Changes
-
-- Updated dependencies [d107704]
-  - @xpert-ai/headless-ui@0.0.2
+  - @xpert-ai/contracts@3.19.0

@@ -1,6 +1,6 @@
-# @xpert-ai/formly
+# @xpert-ai/nsjail-runner
 
-## 2.2.0
+## 0.2.0
 
 ### Minor Changes
 
@@ -8,12 +8,4 @@
 
 ### Patch Changes
 
-- Updated dependencies [99d09ec]
-  - @xpert-ai/headless-ui@0.1.0
-
-## 2.1.1
-
-### Patch Changes
-
-- Updated dependencies [d107704]
-  - @xpert-ai/headless-ui@0.0.2
+- 79cc75a: Publish application Docker images only for their own Changesets. Build scoped candidates, require consumed Changesets for stable releases, and check that shared package releases include their consuming applications.
