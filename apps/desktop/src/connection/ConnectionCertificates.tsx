@@ -50,7 +50,7 @@ export function ConnectionCertificates({ draft }: { draft: ConnectionConfig }) {
   const pending = !checks && !failed
   return (
     <div className="space-y-2" aria-live="polite" aria-busy={pending}>
-      <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+      <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
         <span className="flex items-center gap-2">
           {pending && <LoaderCircle aria-hidden="true" className="size-3.5 animate-spin" />}
           {pending ? t('Checking service certificates…') : t('Service certificates')}
@@ -59,7 +59,7 @@ export function ConnectionCertificates({ draft }: { draft: ConnectionConfig }) {
           type="button"
           size="icon"
           variant="ghost"
-          className="size-7"
+          className="size-10"
           disabled={pending}
           aria-label={t('Recheck certificates')}
           onClick={() => setRefresh((value) => value + 1)}
@@ -68,7 +68,7 @@ export function ConnectionCertificates({ draft }: { draft: ConnectionConfig }) {
         </Button>
       </div>
       {failed && (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-sm text-muted-foreground">
           {t('Certificate check failed. You can retry without changing your settings.')}
         </p>
       )}
@@ -81,7 +81,7 @@ export function ConnectionCertificates({ draft }: { draft: ConnectionConfig }) {
             className={
               warning
                 ? 'flex gap-3 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm'
-                : 'flex gap-2 text-xs text-muted-foreground'
+                : 'flex gap-2 text-sm text-muted-foreground'
             }
           >
             <Icon
@@ -100,14 +100,14 @@ export function ConnectionCertificates({ draft }: { draft: ConnectionConfig }) {
                         ? t('Enter a valid service URL to check its certificate.')
                         : t('Unable to determine certificate trust')}
               </p>
-              <p className="break-words text-xs text-muted-foreground">
+              <p className="break-words text-sm text-muted-foreground">
                 {check.origin && <span>{check.origin} · </span>}
                 {check.fields.map((field) => t(fieldLabels[field])).join(' / ')}
               </p>
               {check.status === 'untrusted' && (
                 <>
-                  <p className="text-xs leading-relaxed">{t(reasons[check.reason])}</p>
-                  <p className="text-xs leading-relaxed text-muted-foreground">
+                  <p className="text-sm leading-relaxed">{t(reasons[check.reason])}</p>
+                  <p className="text-sm leading-relaxed text-muted-foreground">
                     {draft.allowUntrustedCertificates
                       ? t('Your setting allows this connection after saving. The certificate remains untrusted.')
                       : t('Connections to this host are blocked unless you allow untrusted service certificates.')}
@@ -115,7 +115,7 @@ export function ConnectionCertificates({ draft }: { draft: ConnectionConfig }) {
                 </>
               )}
               {check.status === 'unreachable' && (
-                <p className="text-xs">
+                <p className="text-sm">
                   {t('The service could not be reached. This does not mean its certificate is untrusted.')}
                 </p>
               )}

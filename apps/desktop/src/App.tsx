@@ -13,6 +13,7 @@ import type { AppState, Bot, ConnectionConfig } from './types'
 import { applyDesktopTheme } from './theme'
 import { defaultAppearance } from './appearance-types'
 import { AssistantPreviewScope } from './profile/PreviewScope'
+import type { SettingsSection } from './settings/sections'
 
 export function App() {
   const [state, setState] = useState<AppState | null>(null)
@@ -34,6 +35,14 @@ export function App() {
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
   const [settings, setSettings] = useState(false)
+  const [settingsSection, setSettingsSection] = useState<SettingsSection>('general')
+  const settingsOpener = useRef<HTMLElement | null>(null)
+  const openSettings = (section: SettingsSection = 'general') => {
+    settingsOpener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    setSettingsSection(section)
+    setCatalog(false)
+    setSettings(true)
+  }
   const [catalog, setCatalog] = useState(false)
   const [dark, setDark] = useState(false)
   const [preview, setPreview] = useState<Pick<ConnectionConfig, 'theme' | 'appearance' | 'locale'> | null>(null)
@@ -126,7 +135,7 @@ export function App() {
                 variant="outline"
                 onClick={async () => {
                   setState(await invoke('logout'))
-                  setSettings(true)
+                  openSettings('connection')
                 }}
               >
                 {t('Sign in again or change connection')}
@@ -144,92 +153,101 @@ export function App() {
   const bot = bots.find((item) => item.id === selected)
   return (
     <div className="contents" onInvalidCapture={localizeValidation} onInputCapture={clearValidation}>
-      {state.profile ? (
-        <div className="flex h-full">
-          <AssistantPreviewScope key={binding}>
-            <Sidebar
-              key={binding}
-              state={state}
-              bots={bots}
-              selected={selected}
-              pending={pending}
-              error={error}
-              onSelect={selectBot}
-              notice={notice}
-              onBotSaved={async (id) => {
-                await loadBots()
-                selectBot(id)
-              }}
-              onRefresh={() => void loadBots()}
-              onRefreshOrganizations={async () => {
-                try {
-                  setState(await invoke('refreshProfile'))
-                } catch (error) {
-                  if (error instanceof HostError && error.status === 409) return
-                  setError(error instanceof Error ? error.message : t('Could not switch organization.'))
-                  if (error instanceof HostError && error.status === 401) setState(await invoke('logout'))
-                }
-              }}
-              onSettings={() => setSettings(true)}
-              onBrowse={() => setCatalog(true)}
-              onLogout={async () => setState(await invoke('logout'))}
-              onOrganization={async (id) => {
-                request.current++
-                setBots([])
-                setSelected(null)
-                setPending(true)
-                try {
-                  setState(await invoke('selectOrganization', id))
-                } catch (error) {
-                  setError(error instanceof Error ? error.message : t('Could not switch organization.'))
-                  setPending(false)
-                }
-              }}
-            />
-          </AssistantPreviewScope>
-          <main className="flex min-w-0 flex-1 flex-col">
-            {bot ? (
-              <ChatPanel
-                key={`${binding}:${bot.id}:${selectionVersion}`}
-                initialThread={initialThread}
-                onConversationRead={onConversationRead}
-                bot={bot}
-                config={{ ...state.config, appearance, locale }}
-                dark={dark}
+      <div className={settings ? 'hidden' : 'contents'} inert={settings}>
+        {state.profile ? (
+          <div className="flex h-full">
+            <AssistantPreviewScope key={binding}>
+              <Sidebar
+                key={binding}
+                state={state}
+                bots={bots}
+                selected={selected}
+                pending={pending}
+                error={error}
+                onSelect={selectBot}
+                notice={notice}
+                onBotSaved={async (id) => {
+                  await loadBots()
+                  selectBot(id)
+                }}
+                onRefresh={() => void loadBots()}
+                onRefreshOrganizations={async () => {
+                  try {
+                    setState(await invoke('refreshProfile'))
+                  } catch (error) {
+                    if (error instanceof HostError && error.status === 409) return
+                    setError(error instanceof Error ? error.message : t('Could not switch organization.'))
+                    if (error instanceof HostError && error.status === 401) setState(await invoke('logout'))
+                  }
+                }}
+                onSettings={() => openSettings()}
+                onBrowse={() => setCatalog(true)}
+                onLogout={async () => setState(await invoke('logout'))}
+                onOrganization={async (id) => {
+                  request.current++
+                  setBots([])
+                  setSelected(null)
+                  setPending(true)
+                  try {
+                    setState(await invoke('selectOrganization', id))
+                  } catch (error) {
+                    setError(error instanceof Error ? error.message : t('Could not switch organization.'))
+                    setPending(false)
+                  }
+                }}
               />
-            ) : (
-              <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-10 text-center">
-                <BotIcon className="mb-5 size-10 text-primary" />
-                <h1 className="text-xl font-semibold">
-                  {pending ? t('Getting your Bots ready') : t('Start with a Bot')}
-                </h1>
-                <p className="mt-3 max-w-md text-sm leading-6 text-muted-foreground">
-                  {pending
-                    ? t('Connecting to your Xpert workspace…')
-                    : t('Choose a Bot from the sidebar, or add experts, apps and assistants from the catalog.')}
-                </p>
-                {!pending && (
-                  <Button variant="outline" className="mt-6" onClick={() => setCatalog(true)}>
-                    {t('Discover & add')}
-                  </Button>
-                )}
-              </div>
-            )}
-          </main>
-        </div>
-      ) : (
-        <Login state={state} onLogin={setState} onSettings={() => setSettings(true)} />
-      )}
+            </AssistantPreviewScope>
+            <main className="flex min-w-0 flex-1 flex-col">
+              {bot ? (
+                <ChatPanel
+                  key={`${binding}:${bot.id}:${selectionVersion}`}
+                  initialThread={initialThread}
+                  onConversationRead={onConversationRead}
+                  bot={bot}
+                  config={{ ...state.config, appearance, locale }}
+                  dark={dark}
+                />
+              ) : (
+                <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-10 text-center">
+                  <BotIcon className="mb-5 size-10 text-primary" />
+                  <h1 className="text-xl font-semibold">
+                    {pending ? t('Getting your Bots ready') : t('Start with a Bot')}
+                  </h1>
+                  <p className="mt-3 max-w-md text-sm leading-6 text-muted-foreground">
+                    {pending
+                      ? t('Connecting to your Xpert workspace…')
+                      : t('Choose a Bot from the sidebar, or add experts, apps and assistants from the catalog.')}
+                  </p>
+                  {!pending && (
+                    <Button variant="outline" className="mt-6" onClick={() => setCatalog(true)}>
+                      {t('Discover & add')}
+                    </Button>
+                  )}
+                </div>
+              )}
+            </main>
+          </div>
+        ) : (
+          <Login state={state} onLogin={setState} onSettings={() => openSettings('connection')} />
+        )}
+      </div>
       {settings && (
         <ConnectionSettings
           config={state.config}
-          open
+          signedIn={!!state.profile}
+          userName={state.profile?.user.name}
+          initialSection={settingsSection}
           onPreview={setPreview}
           onClose={() => {
             setPreview(null)
             setSettings(false)
+            requestAnimationFrame(() => settingsOpener.current?.focus())
           }}
-          onSave={async (config) => setState(await invoke('configure', config))}
+          onSave={async (config) => {
+            const next = await invoke('configure', config)
+            setState(next)
+            return next.config
+          }}
         />
       )}
       {catalog && state.profile && (

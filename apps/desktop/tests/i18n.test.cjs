@@ -35,7 +35,7 @@ test('all supported languages cover every English message and preserve interpola
 
 test('desktop source messages and native menus have translations; JSX cannot introduce untranslated prose', () => {
   const root = path.join(__dirname, '..')
-  const sourceFiles = ['src', 'electron'].flatMap((folder) =>
+  const sourceFiles = ['src', 'src/settings', 'electron'].flatMap((folder) =>
     fs
       .readdirSync(path.join(root, folder))
       .filter((file) => /\.(tsx?|cjs)$/.test(file))

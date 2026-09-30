@@ -20,12 +20,12 @@ export function ChatKitAppearance({
   const update = (patch: Partial<AppearanceConfig['chatkit']>) =>
     onChange({ ...value, chatkit: { ...config, ...patch } })
   return (
-    <div className="space-y-5">
+    <div className="space-y-8">
       <ThemeSection
         title={t('Layout & typography')}
         description={t('Synced through ChatKit theme options. Supported components depend on your ChatKit version.')}
       >
-        <div className="grid grid-cols-2 gap-5">
+        <div className="grid gap-6 xl:grid-cols-2">
           <ThemeSelect
             label={t('ChatKit corners')}
             value={config.radius}
@@ -70,7 +70,7 @@ export function ChatKitAppearance({
         title={t('Accent color')}
         description={t('Leave blank to use the desktop primary color for the current appearance mode.')}
       >
-        <div className="grid gap-5 sm:grid-cols-2">
+        <div className="grid gap-6 xl:grid-cols-2">
           <ColorField
             label={t('ChatKit accent color')}
             value={config.accentPrimary}
@@ -101,7 +101,7 @@ export function ChatKitAppearance({
           {t('Custom grayscale')}
         </label>
         {config.grayscale && (
-          <div className="grid gap-5 sm:grid-cols-3">
+          <div className="grid gap-6 xl:grid-cols-3">
             <ThemeRange
               label={t('Hue')}
               value={config.grayscale.hue}
@@ -130,7 +130,7 @@ export function ChatKitAppearance({
         description={t('Configure light and dark modes separately. Leave blank for ChatKit defaults.')}
       >
         <ThemeIconToggle label={t('Edit ChatKit palette')} value={mode} options={paletteModes} onChange={onMode} />
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-6 xl:grid-cols-2">
           {(['background', 'foreground'] as const).map((key) => (
             <ColorField
               key={key}

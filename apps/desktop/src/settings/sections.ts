@@ -1,0 +1,61 @@
+import { Cable, MessageSquare, Monitor, Settings2, Terminal, type LucideIcon } from 'lucide-react'
+
+export type SettingsSection = 'general' | 'desktop' | 'chat' | 'connection' | 'shell'
+
+export interface SettingsItem {
+  id: SettingsSection
+  label: string
+  description: string
+  icon: LucideIcon
+  keywords: string[]
+}
+
+export const settingsGroups: { label: string; items: SettingsItem[] }[] = [
+  {
+    label: 'Basic settings',
+    items: [
+      {
+        id: 'general',
+        label: 'General',
+        icon: Settings2,
+        description: 'Set your language and everyday display preferences.',
+        keywords: ['Language', 'Appearance mode', 'Desktop font size', 'Assistant list density']
+      },
+      {
+        id: 'desktop',
+        label: 'Desktop appearance',
+        icon: Monitor,
+        description: 'Personalize desktop typography, spacing and colors.',
+        keywords: ['Desktop font', 'Desktop corner radius', 'Colors', 'Primary color']
+      },
+      {
+        id: 'chat',
+        label: 'Chat appearance',
+        icon: MessageSquare,
+        description: 'Customize how your conversations look.',
+        keywords: ['ChatKit', 'ChatKit font', 'Code font', 'ChatKit corners', 'ChatKit density', 'Colors']
+      }
+    ]
+  },
+  {
+    label: 'Connections & capabilities',
+    items: [
+      {
+        id: 'connection',
+        label: 'Service connection',
+        icon: Cable,
+        description: 'Manage the services your desktop connects to.',
+        keywords: ['API service URL', 'Xpert web URL', 'ChatKit URL', 'Allow untrusted service certificates']
+      },
+      {
+        id: 'shell',
+        label: 'Local terminal',
+        icon: Terminal,
+        description: 'Manage command execution on this computer.',
+        keywords: ['Desktop Shell', 'Execution permission', 'Shell', 'Default working directory', 'Computer name']
+      }
+    ]
+  }
+]
+
+export const settingsItems = settingsGroups.flatMap((group) => group.items)
