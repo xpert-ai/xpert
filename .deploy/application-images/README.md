@@ -59,6 +59,14 @@ calculated from the new manifest and those remaining notes, including on `main`;
 stable aliases stay disabled. A version bump consuming no application note still
 fails. The default policy remains `reject`.
 
+An aggregated downstream merge may include an upstream note and its consumption,
+so neither endpoint contains that note. With the candidate policy and remaining
+application notes, the planner can verify a non-merge source version commit in
+the incoming history. That commit must have the exact before/after application
+versions and pass the default strict gate against its own parent, including
+shared-package coverage. This historical evidence only authorizes candidates;
+it cannot promote stable aliases or justify an undeclared version increase.
+
 Wrappers may also select `applicationNames` from the service registry. Selection
 scopes both version validation and shared-package coverage before constructing the
 matrix; unrelated image release failures do not block that wrapper. The default
