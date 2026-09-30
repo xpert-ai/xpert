@@ -10,8 +10,6 @@ import {
     ModelGatewayApiKeyStatusEnum,
     ModelGatewayCallStatusEnum,
     ModelGatewayUsageSourceEnum,
-    MODEL_GATEWAY_CALL_RETENTION_DAYS_SETTING,
-    MODEL_GATEWAY_CALL_RETENTION_ENABLED_SETTING,
     UserType
 } from '@xpert-ai/contracts'
 import { environment } from '@xpert-ai/server-config'
@@ -20,6 +18,7 @@ import { ModelGatewayApiKey } from './model-gateway-api-key.entity'
 import { ModelGatewayCall } from './model-gateway-call.entity'
 import { ModelGatewayPublication } from './model-gateway-publication.entity'
 import { ModelGatewayService } from './model-gateway.service'
+import * as callRetention from './model-gateway-call-retention'
 
 function createService(options?: {
     publications?: ModelGatewayPublication[]
@@ -762,9 +761,9 @@ describe('ModelGatewayService', () => {
         expect(fixture.membershipService.recordGatewayUsage).not.toHaveBeenCalled()
     })
 
-    it('purges only terminal gateway call metadata for tenants that enabled retention', async () => {
+    it('delegates atomic usage retention and stops after a partial batch', async () => {
         const fixture = createService()
-        fixture.callRepository.manager.query.mockResolvedValueOnce([{ count: 2 }])
+        const purgeBatch = jest.spyOn(callRetention, 'purgeModelGatewayCallBatch').mockResolvedValue(2)
 
         await expect(fixture.service.purgeExpiredCalls()).resolves.toEqual({
             deleted: 2,
@@ -772,19 +771,8 @@ describe('ModelGatewayService', () => {
             batchLimitReached: false
         })
 
-        expect(fixture.callRepository.manager.query).toHaveBeenNthCalledWith(
-            1,
-            expect.stringContaining('DELETE FROM model_gateway_call'),
-            [
-                MODEL_GATEWAY_CALL_RETENTION_ENABLED_SETTING,
-                MODEL_GATEWAY_CALL_RETENTION_DAYS_SETTING,
-                60,
-                3650,
-                [ModelGatewayCallStatusEnum.Succeeded, ModelGatewayCallStatusEnum.Failed],
-                1000
-            ]
-        )
-        expect(fixture.callRepository.manager.query.mock.calls[0][0]).toContain('c.status = ANY($5::varchar[])')
-        expect(fixture.callRepository.manager.query.mock.calls[0][0]).toContain('LIMIT $6::int')
+        expect(purgeBatch).toHaveBeenCalledTimes(1)
+        expect(purgeBatch).toHaveBeenCalledWith(fixture.callRepository.manager, 1000)
+        expect(fixture.membershipService.recordGatewayUsage).not.toHaveBeenCalled()
     })
 })

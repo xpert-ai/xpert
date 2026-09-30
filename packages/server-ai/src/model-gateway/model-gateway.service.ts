@@ -2,7 +2,6 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import {
     AIPermissionsEnum,
     DEFAULT_MODEL_GATEWAY_BODY_RETENTION_DAYS,
-    DEFAULT_MODEL_GATEWAY_CALL_RETENTION_DAYS,
     DEFAULT_MODEL_GATEWAY_MAX_CONCURRENT_REQUESTS,
     DEFAULT_MODEL_GATEWAY_REQUESTS_PER_MINUTE,
     ILLMUsage,
@@ -10,7 +9,6 @@ import {
     IModelGatewayAdminSettings,
     IModelGatewayApiKey,
     IModelGatewayApiKeyCreated,
-    MAX_MODEL_GATEWAY_CALL_RETENTION_DAYS,
     MAX_MODEL_GATEWAY_MAX_CONCURRENT_REQUESTS,
     MAX_MODEL_GATEWAY_REQUESTS_PER_MINUTE,
     MIN_MODEL_GATEWAY_MAX_CONCURRENT_REQUESTS,
@@ -20,8 +18,6 @@ import {
     ModelGatewayApiKeyStatusEnum,
     ModelGatewayCallStatusEnum,
     ModelGatewayUsageSourceEnum,
-    MODEL_GATEWAY_CALL_RETENTION_DAYS_SETTING,
-    MODEL_GATEWAY_CALL_RETENTION_ENABLED_SETTING,
     MODEL_GATEWAY_MAX_CONCURRENT_REQUESTS_SETTING,
     MODEL_GATEWAY_REQUESTS_PER_MINUTE_SETTING,
     TModelGatewaySettingsUpdateInput,
@@ -59,6 +55,7 @@ import { settleChargeToCny } from '../membership/model-billing'
 import { AgentMiddlewareRuntimeService } from '../shared/agent/middleware-runtime/index'
 import { ModelGatewayApiKey } from './model-gateway-api-key.entity'
 import { ModelGatewayCall } from './model-gateway-call.entity'
+import { purgeModelGatewayCallBatch } from './model-gateway-call-retention'
 import { ModelGatewayPublication } from './model-gateway-publication.entity'
 import { ModelGatewaySettings } from './model-gateway-settings.entity'
 import { modelGatewayMessage } from './model-gateway.i18n'
@@ -762,15 +759,10 @@ export class ModelGatewayService {
         let batchLimitReached = false
 
         while (batches < CALL_RETENTION_MAX_BATCHES) {
-            const rows = await this.callRepository.manager.query(buildCallRetentionSql(), [
-                MODEL_GATEWAY_CALL_RETENTION_ENABLED_SETTING,
-                MODEL_GATEWAY_CALL_RETENTION_DAYS_SETTING,
-                DEFAULT_MODEL_GATEWAY_CALL_RETENTION_DAYS,
-                MAX_MODEL_GATEWAY_CALL_RETENTION_DAYS,
-                [ModelGatewayCallStatusEnum.Succeeded, ModelGatewayCallStatusEnum.Failed],
+            const batchDeleted = await purgeModelGatewayCallBatch(
+                this.callRepository.manager,
                 CALL_RETENTION_BATCH_SIZE
-            ])
-            const batchDeleted = readDeletedCount(rows)
+            )
             if (!batchDeleted) {
                 break
             }
@@ -1160,59 +1152,4 @@ export class ModelGatewayService {
             (error.code === '23505' || error.code === 'SQLITE_CONSTRAINT')
         )
     }
-}
-
-function buildCallRetentionSql() {
-    return `
-WITH candidates AS (
-    SELECT c.id
-    FROM model_gateway_call c
-    JOIN tenant_setting te
-        ON te."tenantId" IS NOT DISTINCT FROM c."tenantId"
-        AND te.name = $1
-        AND lower(COALESCE(te.value, '')) IN ('1', 'true', 'yes', 'on')
-    LEFT JOIN tenant_setting td
-        ON td."tenantId" IS NOT DISTINCT FROM c."tenantId"
-        AND td.name = $2
-    WHERE c.status = ANY($5::varchar[])
-        AND COALESCE(c."completedAt", c."createdAt") < now() - make_interval(
-            days => COALESCE(
-                CASE
-                    WHEN td.value ~ '^[1-9][0-9]{0,8}$' AND td.value::int <= $4::int THEN td.value::int
-                END,
-                $3::int
-            )
-        )
-    ORDER BY COALESCE(c."completedAt", c."createdAt") ASC
-    LIMIT $6::int
-    FOR UPDATE OF c SKIP LOCKED
-),
-deleted AS (
-    DELETE FROM model_gateway_call c
-    USING candidates
-    WHERE c.id = candidates.id
-    RETURNING 1
-)
-SELECT count(*)::int AS count
-FROM deleted
-`
-}
-
-function readDeletedCount(rows: unknown): number {
-    if (!Array.isArray(rows) || rows.length === 0) {
-        return 0
-    }
-    const first = rows[0]
-    if (!first || typeof first !== 'object' || !('count' in first)) {
-        return 0
-    }
-    const value = first.count
-    if (typeof value === 'number' && Number.isFinite(value)) {
-        return value
-    }
-    if (typeof value === 'string') {
-        const parsed = Number(value)
-        return Number.isFinite(parsed) ? parsed : 0
-    }
-    return 0
 }
