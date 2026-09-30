@@ -32,7 +32,9 @@ export class XpertGuard implements CanActivate {
 		}
 
 		let isAuthorized = false
-		const xpert = await this.xpertService.findOne(xpertId)
+		// The route param is named `id` but carries a slug on the workspace routes,
+		// so resolve either form instead of using it directly as a primary key.
+		const xpert = await this.xpertService.findOneByIdOrSlug(xpertId)
 		if (xpert.createdById === user.id) {
 			isAuthorized = true
 		} else {

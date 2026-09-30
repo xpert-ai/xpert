@@ -1,7 +1,13 @@
 /* eslint-disable */
 import { readFileSync } from 'fs'
+import { dirname } from 'path'
+import { fileURLToPath } from 'url'
 
-const currentDirectory = __dirname
+// This config is written as an ES module, so `__dirname` is not available here;
+// derive the directory from import.meta.url instead. Using `__dirname` made
+// jest fail to even parse the config ("__dirname is not defined in ES module
+// scope"), which disabled every plugin-sdk test.
+const currentDirectory = dirname(fileURLToPath(import.meta.url))
 
 // Reading the SWC compilation config and remove the "exclude"
 // for the test files to be compiled by SWC
