@@ -9,6 +9,7 @@ import { DiscordToolset } from './discord/discord'
 import { EmailToolset } from './email/email'
 import { SearchAPIToolset } from './searchapi/searchapi'
 import { SerperToolset } from './serper/serper'
+import { SerplyToolset } from './serply/serply'
 import { SlackToolset } from './slack/slack'
 import { TavilyToolset } from './tavily/tavily'
 import { PlanningToolset } from './planning/planning'
@@ -31,7 +32,8 @@ export const BUILTIN_TOOLSET_REPOSITORY: {
             DingTalkToolset,
             SlackToolset,
             DiscordToolset,
-            SerperToolset
+            SerperToolset,
+            SerplyToolset
         ]
     }
 ]
