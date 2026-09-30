@@ -1,4 +1,5 @@
 import { isFileActivityContent, parseFileActivityContent, upsertFileActivityContent } from '@xpert-ai/chatkit-types'
+import { isResourceCardContent, parseResourceCardContent, upsertResourceCardContent } from './resource-card'
 import type {
   TMessageContent,
   TMessageContentComplex,
@@ -197,7 +198,7 @@ function getContentChunkSeparator(
 }
 
 function stringifySingle(content: TMessageContentComplex): string {
-  if (isFileActivityContent(content)) return ''
+  if (isFileActivityContent(content) || isResourceCardContent(content)) return ''
   if (content.type === 'text') {
     return content.text
   }
@@ -312,7 +313,8 @@ export function createMessageAppendContextTracker(
         ...options,
         previous
       })
-      if (!isFileActivityContent(options.incoming)) previous = resolved.appendContext
+      if (!isFileActivityContent(options.incoming) && !isResourceCardContent(options.incoming))
+        previous = resolved.appendContext
       return resolved
     },
     reset() {
@@ -340,6 +342,11 @@ export function appendMessageContent(
   context?: TAppendMessageContentOptions
 ) {
   const receipt = parseFileActivityContent(incoming)
+  const resourceCard = parseResourceCardContent(incoming)
+  if (resourceCard) {
+    aiMessage.content = upsertResourceCardContent(ensureArrayContent(aiMessage.content), resourceCard)
+    return
+  }
   if (receipt) {
     aiMessage.content = upsertFileActivityContent(ensureArrayContent(aiMessage.content), receipt)
     return
@@ -539,7 +546,7 @@ export function stringifyMessageContent(content: TMessageContent | TMessageConte
     let result = ''
     let previousContext: TMessageAppendContext = null
     content.forEach((item) => {
-      if (isFileActivityContent(item)) return
+      if (isFileActivityContent(item) || isResourceCardContent(item)) return
       const itemContext = inferMessageAppendContext(item)
       const joinHint = shouldJoinWithoutSeparator(previousContext, itemContext) ? 'none' : undefined
       result = appendMessagePlainText(result, stringifySingle(item), {

@@ -1,4 +1,6 @@
 import { bindFileActivityEvent } from '../../../chat-message/file-activity-event'
+import { bindResourceCardEvent } from '../../../chat-message/resource-card-event'
+import { ProjectResourceCardService } from '../../../xpert-project/services/project-resource-card.service'
 import type { RuntimeResourceService } from '../../../agent-plugin/runtime-resource.service'
 import { resolveAssistantExecutionModel, supportsAssistantPrimaryModelSelection } from '../../assistant-execution-model'
 import { RunnableLambda } from '@langchain/core/runnables'
@@ -167,7 +169,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         @Optional()
         @Inject('XpertRuntimeResourceService')
         private readonly runtimeResourceService?: RuntimeResourceService,
-        @Optional() private readonly messageCheckpoints?: MessageCheckpointService
+        @Optional() private readonly messageCheckpoints?: MessageCheckpointService,
+        @Optional() private readonly projectResourceCards?: ProjectResourceCardService
     ) {}
 
     /**
@@ -1051,6 +1054,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             input = { ...input, runtimeResources: runtimeResources.selection }
             state = { ...state, [STATE_VARIABLE_HUMAN]: input }
         }
+        if (this.projectResourceCards) aiMessage = await this.projectResourceCards.attach(conversation, aiMessage)
         const visibleConversationTitleInput = isGoalRun ? goalRunVisibleInput : titleInput || input?.input
         const logger = this.logger
 
@@ -1229,6 +1233,11 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                 executionId
                             })
                             if (fileActivityEvent) event = { ...event, data: fileActivityEvent }
+                            const resourceCardEvent = bindResourceCardEvent(event.data, {
+                                messageId: aiMessage.id,
+                                executionId
+                            })
+                            if (resourceCardEvent) event = { ...event, data: resourceCardEvent }
 
                             if (event.data.type === ChatMessageTypeEnum.MESSAGE) {
                                 const { messageContext } = messageAppendContextTracker.resolve({
@@ -1244,6 +1253,16 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                     messageContext
                                 )
                                 result = appendMessagePlainText(result, event.data.data, messageContext)
+                                if (resourceCardEvent)
+                                    await this.commandBus
+                                        .execute(new ChatMessageUpsertCommand(aiMessage))
+                                        .catch((error) => {
+                                            // The business mutation has already committed. Keep the receipt in memory for the final save.
+                                            this.logger.error(
+                                                `Resource card persistence failed for reply ${aiMessage.id}`,
+                                                error
+                                            )
+                                        })
                             } else if (event.data.type === ChatMessageTypeEnum.EVENT) {
                                 switch (event.data.event) {
                                     case ChatMessageEventTypeEnum.ON_AGENT_END: {

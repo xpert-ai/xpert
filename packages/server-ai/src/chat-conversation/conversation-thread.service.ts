@@ -327,9 +327,10 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
         operation?: TSensitiveOperation | null
     ): Promise<void> {
         const thread = await this.requireByThreadId(threadId)
+        // The operation is already validated JSON; avoid recursively expanding its message graph in TypeORM.
         await this.repository.manager
             .getRepository<
-                Pick<ChatConversationThread, 'id' | 'status' | 'error' | 'operation'>
+                Pick<ChatConversationThread, 'id' | 'status' | 'error'> & { operation?: object | null }
             >(ChatConversationThread)
             .update(thread.id, {
                 status,

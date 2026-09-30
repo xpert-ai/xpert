@@ -9,6 +9,7 @@ export const CLAWXPERT_WORKBENCH_VIEW_QUERY_PARAM = 'view'
 export const CLAWXPERT_WORKBENCH_VIEW_SELECTION_QUERY_PARAM = 'viewSelection'
 /** JSON-encoded, typed extension-view parameters used for refresh recovery. */
 export const CLAWXPERT_WORKBENCH_VIEW_PARAMETERS_QUERY_PARAM = 'viewParameters'
+export const CLAWXPERT_WORKBENCH_VIEW_PROJECT_QUERY_PARAM = 'viewProject'
 export const CLAWXPERT_WORKBENCH_ROUTE_ACTIVE = new InjectionToken<() => boolean>('ClawXpert workbench route active')
 
 @Injectable({ providedIn: 'root' })
@@ -17,12 +18,14 @@ export class ClawXpertWorkbenchViewUrlState {
   readonly #routeActive = inject(CLAWXPERT_WORKBENCH_ROUTE_ACTIVE, { optional: true }) ?? (() => true)
   readonly #viewKey = signal(readWorkbenchViewKey(this.#router, this.#router.url))
   readonly #viewQuery = signal(readWorkbenchViewQuery(this.#router, this.#router.url))
+  readonly #projectId = signal(readWorkbenchViewProject(this.#router, this.#router.url))
   #pendingViewKey: string | null | undefined
   #navigationVersion = 0
 
   readonly viewKey = this.#viewKey.asReadonly()
   /** Selection and parameters associated with the active extension view. */
   readonly viewQuery = this.#viewQuery.asReadonly()
+  readonly projectId = this.#projectId.asReadonly()
 
   constructor() {
     this.#router.events
@@ -35,6 +38,7 @@ export class ClawXpertWorkbenchViewUrlState {
         this.#pendingViewKey = undefined
         this.#viewKey.set(readWorkbenchViewKey(this.#router, this.#router.url))
         this.#viewQuery.set(readWorkbenchViewQuery(this.#router, this.#router.url))
+        this.#projectId.set(readWorkbenchViewProject(this.#router, this.#router.url))
       })
   }
 
@@ -48,23 +52,34 @@ export class ClawXpertWorkbenchViewUrlState {
   }
 
   /** Atomically persists the active view and its selection/query state in the URL. */
-  setViewState(viewKey: string | null, query: XpertViewQuery | null, options: { replaceUrl?: boolean } = {}) {
+  setViewState(
+    viewKey: string | null,
+    query: XpertViewQuery | null,
+    options: { replaceUrl?: boolean; projectId?: string } = {}
+  ) {
     if (!this.#routeActive()) return Promise.resolve(false)
     const normalizedViewKey = normalizeWorkbenchViewKey(viewKey)
     const normalizedQuery = normalizedViewKey ? normalizeWorkbenchViewQuery(query) : null
     const currentTree = this.#router.parseUrl(this.#router.url)
     const currentViewKey = normalizeQueryParamValue(currentTree.queryParams[CLAWXPERT_WORKBENCH_VIEW_QUERY_PARAM])
     const currentQuery = readWorkbenchViewQueryFromTree(currentTree)
+    const projectId = normalizedViewKey ? options.projectId?.trim() || null : null
+    const currentProjectId = normalizeQueryParamValue(
+      currentTree.queryParams[CLAWXPERT_WORKBENCH_VIEW_PROJECT_QUERY_PARAM]
+    )
 
     if (
       this.#viewKey() === normalizedViewKey &&
       (currentViewKey === normalizedViewKey || this.#pendingViewKey === normalizedViewKey) &&
-      equalWorkbenchViewQuery(currentQuery, normalizedQuery)
+      equalWorkbenchViewQuery(currentQuery, normalizedQuery) &&
+      currentProjectId === projectId
     ) {
       return Promise.resolve(true)
     }
 
     const queryParams = { ...currentTree.queryParams }
+    if (projectId) queryParams[CLAWXPERT_WORKBENCH_VIEW_PROJECT_QUERY_PARAM] = projectId
+    else delete queryParams[CLAWXPERT_WORKBENCH_VIEW_PROJECT_QUERY_PARAM]
     if (normalizedViewKey) {
       queryParams[CLAWXPERT_WORKBENCH_VIEW_QUERY_PARAM] = normalizedViewKey
     } else {
@@ -85,6 +100,7 @@ export class ClawXpertWorkbenchViewUrlState {
     this.#pendingViewKey = normalizedViewKey
     this.#viewKey.set(normalizedViewKey)
     this.#viewQuery.set(normalizedQuery)
+    this.#projectId.set(projectId)
 
     return this.#router
       .navigateByUrl(new UrlTree(currentTree.root, queryParams, currentTree.fragment), {
@@ -98,8 +114,13 @@ export class ClawXpertWorkbenchViewUrlState {
         this.#pendingViewKey = undefined
         this.#viewKey.set(readWorkbenchViewKey(this.#router, this.#router.url))
         this.#viewQuery.set(readWorkbenchViewQuery(this.#router, this.#router.url))
+        this.#projectId.set(readWorkbenchViewProject(this.#router, this.#router.url))
       })
   }
+}
+
+function readWorkbenchViewProject(router: Router, url: string) {
+  return normalizeQueryParamValue(router.parseUrl(url).queryParams[CLAWXPERT_WORKBENCH_VIEW_PROJECT_QUERY_PARAM])
 }
 
 function readWorkbenchViewKey(router: Router, url: string) {

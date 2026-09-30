@@ -10,6 +10,7 @@ import { IXpertToolset } from './xpert-toolset.model'
 import { IXpertWorkspace } from './xpert-workspace.model'
 import { IXpert, TXpertTeamDraft } from './xpert.model'
 import type { XpertProjectClassification, XpertProjectTypeRef } from './xpert-project-type.model'
+import type { ConversationResourceCard } from './resource-card'
 
 export type TXpertProjectSettings = {
   /** @deprecated Project instructions are stored in /project/<projectId>/project.md. */
@@ -17,7 +18,13 @@ export type TXpertProjectSettings = {
   mode?: '' | 'plan'
   managementMode?: TXpertProjectManagementMode
   /** Server-owned first-send provenance; the provisional name may be reconciled once by the business app. */
-  conversationBootstrap?: { conversationId: string; initialName: string; nameResolved?: boolean }
+  conversationBootstrap?: {
+    conversationId: string
+    initialName: string
+    nameResolved?: boolean
+    resourceCards?: ConversationResourceCard[]
+    resourceCardMessageId?: string
+  }
   /** @deprecated Project Xperts are peers and no default Project Assistant is selected. */
   projectAssistantId?: string
 }

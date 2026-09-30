@@ -156,3 +156,7 @@ their behavior; user identity and Artifact scope checks still apply.
 
 These additions require matching host contracts/runtime support and an SDK build
 containing these interfaces. They are not part of the published SDK 3.18.3 baseline.
+
+## Conversation resource receipts
+
+See [RESOURCE-CARDS.md](./RESOURCE-CARDS.md) for the public protocol, tool/middleware emitter, transactional Project provider example, and coordinated release order.

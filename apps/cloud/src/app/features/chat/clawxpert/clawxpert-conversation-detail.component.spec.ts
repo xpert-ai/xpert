@@ -561,6 +561,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     clear: jest.Mock
   }
   let workbenchViewUrlState: {
+    projectId: ReturnType<typeof signal<string | null>>
     viewKey: ReturnType<typeof signal<string | null>>
     viewQuery: ReturnType<typeof signal<XpertViewQuery | null>>
     setViewKey: jest.Mock
@@ -577,21 +578,27 @@ describe('ClawXpertConversationDetailComponent', () => {
       set: jest.fn(),
       clear: jest.fn()
     }
+    const viewProjectId = signal<string | null>(null)
     const viewKey = signal<string | null>(null)
     const viewQuery = signal<XpertViewQuery | null>(null)
     workbenchViewUrlState = {
+      projectId: viewProjectId,
       viewKey,
       viewQuery,
       setViewKey: jest.fn((nextViewKey: string | null) => {
+        viewProjectId.set(null)
         viewKey.set(nextViewKey)
         if (!nextViewKey) viewQuery.set(null)
         return Promise.resolve(true)
       }),
-      setViewState: jest.fn((nextViewKey: string | null, nextViewQuery: XpertViewQuery | null) => {
-        viewKey.set(nextViewKey)
-        viewQuery.set(nextViewKey ? nextViewQuery : null)
-        return Promise.resolve(true)
-      })
+      setViewState: jest.fn(
+        (nextViewKey: string | null, nextViewQuery: XpertViewQuery | null, options?: { projectId?: string }) => {
+          viewProjectId.set(options?.projectId ?? null)
+          viewKey.set(nextViewKey)
+          viewQuery.set(nextViewKey ? nextViewQuery : null)
+          return Promise.resolve(true)
+        }
+      )
     }
     const activeConversation = signal<IChatConversation | null>(null)
     facade = {
@@ -2489,6 +2496,73 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(getRuntimeInput().assistantId?.()).toBe('assistant-1')
     expect(getRuntimeInput().projectId?.()).toBe('case-project-1')
     expect(getRuntimeInput().initialThread?.()).toBe('orchestrator-thread-2')
+  })
+
+  it('opens a Project View in the host while retaining the mounted ChatKit and conversation', async () => {
+    facade.projectId.set('project-1')
+    const manifest = buildFixedViewManifest('platform.project-tasks__timeline')
+    viewExtensionApi.getSlotViews.mockReturnValue(of([manifest]))
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    const component = fixture.componentInstance
+    const control = component.control()
+    const mountKey = component.chatkitMountEntries()[0].key
+    const conversation = facade.activeConversation()
+    const result = await TestBed.inject(ViewClientCommandRegistry).execute(
+      WORKBENCH_NAVIGATION_OPEN_COMMAND,
+      { target: WORKBENCH_ASSISTANT_PROJECT_TARGET, projectId: 'project-2', viewKey: manifest.key },
+      { hostType: 'agent', hostId: 'assistant-1', viewKey: manifest.key, manifest }
+    )
+    await settle(fixture)
+    expect(result).toMatchObject({ success: true })
+    expect(facade.onChatProjectChange).not.toHaveBeenCalled()
+    expect(facade.threadId()).toBe('thread-1')
+    expect(facade.projectId()).toBe('project-1')
+    expect(facade.activeConversation()).toBe(conversation)
+    expect(component.control()).toBe(control)
+    expect(component.chatkitMountEntries()[0].key).toBe(mountKey)
+    expect(component.activeFixedViewTab()).toMatchObject({
+      viewKey: manifest.key,
+      projectScope: { projectId: 'project-2' }
+    })
+    const scopedOutlet = fixture.debugElement
+      .queryAll(By.directive(ExtensionHostOutletComponent))
+      .find((outlet) => outlet.componentInstance.runtimeScope?.projectId === 'project-2')
+    expect(scopedOutlet?.componentInstance.runtimeScope).toEqual({ projectId: 'project-2' })
+    expect(workbenchViewUrlState.setViewState).toHaveBeenCalledWith(
+      manifest.key,
+      {},
+      {
+        replaceUrl: false,
+        projectId: 'project-2'
+      }
+    )
+  })
+
+  it('restores a project View after Back to a chat without a View, without rewriting its scope', async () => {
+    const manifest = buildFixedViewManifest('platform.project-tasks__timeline', {
+      workbench: { openMode: 'on-demand' }
+    })
+    viewExtensionApi.getSlotViews.mockReturnValue(of([manifest]))
+    workbenchViewUrlState.projectId.set('project-2')
+    workbenchViewUrlState.viewKey.set(manifest.key)
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    const component = fixture.componentInstance
+    expect(component.activeFixedViewTab()?.projectScope).toEqual({ projectId: 'project-2' })
+    expect(component.showDetailPanel()).toBe(true)
+    workbenchViewUrlState.setViewKey.mockClear()
+    workbenchViewUrlState.projectId.set(null)
+    workbenchViewUrlState.viewKey.set(null)
+    await settle(fixture)
+    expect(component.activeFixedViewTab()).toBeNull()
+    expect(workbenchViewUrlState.setViewKey).not.toHaveBeenCalled()
+    workbenchViewUrlState.projectId.set('project-2')
+    workbenchViewUrlState.viewKey.set(manifest.key)
+    await settle(fixture)
+    expect(component.activeFixedViewTab()?.projectScope).toEqual({ projectId: 'project-2' })
+    expect(component.showDetailPanel()).toBe(true)
+    expect(facade.onChatProjectChange).not.toHaveBeenCalled()
   })
 
   it('switches the embedded Workbench to the requested Assistant Project', async () => {

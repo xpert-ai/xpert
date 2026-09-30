@@ -1,6 +1,6 @@
 import { of, Subject } from 'rxjs'
 import type { ChatKitWorkbenchClientCommandRequest } from '@xpert-ai/chatkit-types'
-import type { XpertExtensionViewManifest } from '@xpert-ai/contracts'
+import { createResourceCardContent, type XpertExtensionViewManifest } from '@xpert-ai/contracts'
 import { createChatkitWorkbenchClientCommandHandler } from './chatkit-workbench-client-command'
 
 const manifest: XpertExtensionViewManifest = {
@@ -80,5 +80,62 @@ describe('embedded ChatKit Workbench host bridge', () => {
     expect(await result).toEqual({ success: false, code: 'stale_context' })
     expect(execute).not.toHaveBeenCalled()
     expect(pending.observed).toBe(false)
+  })
+})
+
+const receipt = createResourceCardContent({
+  resource: { namespace: 'platform', type: 'project', id: 'project' },
+  title: 'Bid project',
+  open: { target: 'assistant.project', projectId: 'project', viewKey: manifest.key }
+})
+const cardRequest = { ...request, resourceCard: { messageId: 'reply', id: receipt.id } }
+describe('persisted Resource Card navigation', () => {
+  function cards(allowed = true, projectId: string | null = 'project') {
+    const execute = jest.fn().mockResolvedValue({ success: true })
+    const getSlotViews = jest.fn(() => of([{ ...manifest, clientCommands: [] }]))
+    const handler = createChatkitWorkbenchClientCommandHandler({
+      getScope: () => ({ assistantId: 'assistant', runtimeScope: { conversationId: 'current', projectId } }),
+      views: { getSlotViews },
+      commands: { execute },
+      conversations: {
+        getMessages: jest.fn(() =>
+          of({ total: 1, items: allowed ? [{ id: 'reply', role: 'ai', content: [receipt] }] : [] })
+        )
+      }
+    })
+    return { execute, handler, getSlotViews }
+  }
+  it('ignores a forged payload and navigates to the persisted platform Project', async () => {
+    const { handler, execute } = cards()
+    expect(
+      await handler({
+        ...cardRequest,
+        payload: { target: 'assistant.project', projectId: 'forged' }
+      })
+    ).toEqual({ success: true })
+    expect(execute).toHaveBeenCalledWith(
+      request.commandKey,
+      receipt.data.open,
+      expect.objectContaining({ viewKey: manifest.key })
+    )
+  })
+  it.each([null, 'another-project'])(
+    'resolves the receipt Project independently of the mounted chat scope (%s)',
+    async (projectId) => {
+      const { handler, getSlotViews } = cards(true, projectId)
+      expect(await handler(cardRequest)).toEqual({ success: true })
+      expect(getSlotViews).toHaveBeenCalledWith('agent', 'assistant', 'agent.workbench.fixed', {
+        runtimeScope: { projectId: 'project' }
+      })
+    }
+  )
+
+  it('rejects missing or inaccessible historical receipts', async () => {
+    const { handler, execute } = cards(false)
+    expect(await handler(cardRequest)).toEqual({
+      success: false,
+      code: 'forbidden'
+    })
+    expect(execute).not.toHaveBeenCalled()
   })
 })
