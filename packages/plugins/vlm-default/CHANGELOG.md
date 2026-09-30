@@ -1,5 +1,17 @@
 # @xpert-ai/plugin-vlm-default
 
+## 11.1.0
+
+### Minor Changes
+
+- 99d09ec: Release a coordinated minor update across all Xpert workspace packages, including the API, Web and Bosi applications, shared SDK and contracts, backend and UI libraries, bundled plugins, sandbox runtimes and documentation.
+
+### Patch Changes
+
+- Updated dependencies [8a78318]
+- Updated dependencies [99d09ec]
+  - @xpert-ai/plugin-sdk@3.19.0
+
 ## 11.0.7
 
 ### Patch Changes
