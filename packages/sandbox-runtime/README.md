@@ -44,6 +44,8 @@ Application images and Runtime images intentionally use different workflows:
 
 Pull requests that touch `packages/sandbox-runtime/**` or Runtime Definitions build and smoke-test the affected image families but do not push images. Pushes to `develop` for the same paths build, smoke-test, and push only `develop-candidate` and `sha-<commit>` aliases. Platform git tags do not rebuild Runtime images; they create `xpert-<tag>` aliases for already-published Runtime Suite version tags.
 
+Platform tags use `MAJOR.MINOR.PATCH`, optionally prefixed with `v` and optionally followed by a SemVer prerelease suffix. Desktop and package tags (such as `desktop-v0.2.0`) cannot create Runtime aliases. Before any alias job starts, a shared gate checks every image family in every registry. Existing complete Runtime releases pass immediately; missing tags wait up to 90 minutes for the same commit's `Publish npm packages` workflow on `main`, then recheck all sources. A failed publisher, absent release run, missing tags after successful publication, or timeout blocks all alias jobs and reports the missing images and publisher status. Fix the upstream release before retrying the failed gate; do not rebuild images in the alias workflow.
+
 ## Ownership boundary
 
 - `@xpert-ai/sandbox-runtime`: OCI image, local development Runner/browser dependency, manifest, artifact catalog, release metadata and smoke production; never a production API dependency.
