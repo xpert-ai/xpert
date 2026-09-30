@@ -249,6 +249,28 @@ test('encrypted storage restores credentials and logout erases the saved credent
   assert.equal(storage.read().credentials, null)
 })
 
+test('denied keychain access preserves connection and language settings while requiring sign-in', (t) => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'xpert-desktop-test-'))
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }))
+  const config = { ...DEFAULT_CONFIG, apiUrl: 'https://private.example/api', locale: 'zh-Hans' }
+  const sidebars = { fixture: { collapsed: true } }
+  fs.writeFileSync(
+    path.join(directory, 'desktop-state.json'),
+    JSON.stringify({ config, sidebars, encrypted: 'fixture' })
+  )
+  const storage = createStorage(directory, {
+    isEncryptionAvailable: () => true,
+    decryptString: () => {
+      throw new Error('User denied Keychain access')
+    }
+  })
+  assert.deepEqual(storage.read(), { config, sidebars, credentials: null })
+  const service = new DesktopService({ storage })
+  assert.equal(service.config.locale, 'zh-Hans')
+  assert.equal(service.config.apiUrl, config.apiUrl)
+  assert.equal(service.credentials, null)
+})
+
 test('refreshing organization choices discovers new memberships without resetting the current chat scope', async () => {
   let refreshed = false
   const { service } = fixture((url) =>

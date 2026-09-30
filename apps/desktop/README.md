@@ -274,6 +274,10 @@ appearance → Desktop Shell**. See [setup, protocol and limits](docs/desktop-sh
 - **Storage:** Electron `safeStorage` encrypts account tokens with the OS secret
   store. If OS encryption is unavailable, credentials remain in memory only.
   Passwords are never persisted. Changing any connection address clears login.
+  Startup decrypts saved tokens to restore the session, which can prompt for macOS
+  Keychain access. Reinstalling the app can retain its user-data directory and
+  therefore its session. Sign out to clear the saved tokens. Denying Keychain
+  access requires signing in again while retaining connection and language settings.
 - **Isolation:** sandboxed renderer, context isolation, Node integration off,
   sender-validated IPC, no generic filesystem/shell/request bridge. Web links open
   in the system browser. ChatKit receives short-lived session secrets via its SDK

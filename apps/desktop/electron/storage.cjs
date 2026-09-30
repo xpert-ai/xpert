@@ -8,9 +8,15 @@ function createStorage(directory, encryption) {
       try {
         const state = JSON.parse(fs.readFileSync(file, 'utf8'))
         let credentials = null
-        if (state.encrypted && encryption.isEncryptionAvailable()) {
-          credentials = JSON.parse(encryption.decryptString(Buffer.from(state.encrypted, 'base64')))
-          if (typeof credentials?.token !== 'string' || typeof credentials.refreshToken !== 'string') credentials = null
+        try {
+          if (state.encrypted && encryption.isEncryptionAvailable()) {
+            credentials = JSON.parse(encryption.decryptString(Buffer.from(state.encrypted, 'base64')))
+            if (typeof credentials?.token !== 'string' || typeof credentials.refreshToken !== 'string')
+              credentials = null
+          }
+        } catch {
+          // A denied Keychain request requires sign-in, but must not discard connection or language settings.
+          credentials = null
         }
         return { config: state.config, credentials, sidebars: state.sidebars }
       } catch {
