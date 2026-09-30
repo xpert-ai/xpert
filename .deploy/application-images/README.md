@@ -52,6 +52,18 @@ fix needs another candidate. Pending old notes alone never cause repeated builds
   Version commits on `develop` remain candidates. PRs can validate either plan
   but cannot publish images or access registry credentials.
 
+Downstream wrappers may explicitly select `retainedChangesetPolicy: 'candidate'`
+when synchronizing upstream releases. The version increase must match the notes
+actually consumed. If application notes remain, the next candidate version is
+calculated from the new manifest and those remaining notes, including on `main`;
+stable aliases stay disabled. A version bump consuming no application note still
+fails. The default policy remains `reject`.
+
+Wrappers may also select `applicationNames` from the service registry. Selection
+scopes both version validation and shared-package coverage before constructing the
+matrix; unrelated image release failures do not block that wrapper. The default
+checks API, Web and NsJail.
+
 Each selected image retains the existing `linux/amd64` platform and publishes to
 GHCR, Docker Hub (`metadc`) and Aliyun ACR (`metad`). API/Web use the `candidate` or
 `production` Docker stage; NsJail uses its default final stage. The registry names,

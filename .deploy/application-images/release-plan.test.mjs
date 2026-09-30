@@ -8,7 +8,7 @@ import { services } from './services.mjs'
 import { releasePlan } from './release-plan.mjs'
 const [api, web, jail] = services
 const contracts = '@xpert-ai/contracts'
-function fixture(t, { legacy = false } = {}) {
+function fixture(t, { legacy = false, retainedChangesetPolicy } = {}) {
   const cwd = mkdtempSync(path.join(tmpdir(), 'application-images-'))
   t.after(() => rmSync(cwd, { recursive: true, force: true }))
   const git = (...args) =>
@@ -49,7 +49,7 @@ function fixture(t, { legacy = false } = {}) {
   write('.changeset/config.json', JSON.stringify({ privatePackages: { version: true } }))
   const initial = commit()
   const plan = (before, after, event = 'push', ref = 'refs/heads/develop') =>
-    releasePlan({ cwd, before, after, event, ref })
+    releasePlan({ cwd, before, after, event, ref, retainedChangesetPolicy })
   return { cwd, git, write, version, note, remove, commit, initial, plan }
 }
 const tags = (image) => image.tags.split('\n').map((tag) => tag.replace('type=raw,value=', ''))
@@ -159,6 +159,139 @@ test('wrong version bumps and unconsumed notes fail before any image publication
   f.remove('api')
   f.version(api, '2.0.0')
   assert.throws(() => f.plan(before, f.commit()), /requested bump/)
+})
+test('the default policy rejects partial consumption even when the consumed bump matches', (t) => {
+  const f = fixture(t)
+  f.note('upstream', [api.name], 'minor')
+  f.note('downstream', [api.name])
+  const before = f.commit()
+  f.remove('upstream')
+  f.version(api, '1.1.0')
+  assert.throws(() => f.plan(before, f.commit()), /consume all pending/)
+})
+test('retained notes produce candidates until a complete release consumes them', (t) => {
+  const f = fixture(t, { retainedChangesetPolicy: 'candidate' })
+  f.note('downstream', [api.name, web.name])
+  f.note('upstream', [api.name, web.name, contracts], 'minor')
+  const before = f.commit()
+  f.remove('upstream')
+  f.version(api, '1.1.0')
+  f.version(web, '1.1.0')
+  f.write('packages/contracts/package.json', JSON.stringify({ name: contracts, version: '1.1.0' }))
+  const synced = f.commit()
+
+  for (const [event, ref, channel] of [
+    ['push', 'refs/heads/develop', 'develop'],
+    ['push', 'refs/heads/main', 'main'],
+    ['pull_request', 'refs/pull/1/merge', 'pr']
+  ]) {
+    const plan = f.plan(before, synced, event, ref)
+    assert.equal(plan.publish, event === 'push')
+    assert.deepEqual(
+      plan.matrix.include.map((image) => image.image_name),
+      ['xpert-api', 'xpert-webapp']
+    )
+    for (const image of plan.matrix.include) {
+      assert.equal(image.version, `1.1.1-candidate.${channel}.${synced.slice(0, 12)}`)
+      assert.equal(image.versioned, true)
+      assert.equal(image.stable, false)
+      assert.equal(image.target, 'candidate')
+      assert.deepEqual(image.changesets, ['.changeset/upstream.md'])
+      assert.deepEqual(tags(image), [image.version, `sha-${synced}`, `${channel}-candidate`])
+    }
+  }
+
+  f.write('README.md', 'A source-only push after synchronization')
+  const next = f.commit()
+  assert.equal(f.plan(synced, next).build, false)
+  f.remove('downstream')
+  f.version(api, '1.1.1')
+  f.version(web, '1.1.1')
+  const released = f.commit()
+  const plan = f.plan(next, released, 'push', 'refs/heads/main')
+  assert.equal(plan.matrix.include.length, 2)
+  for (const image of plan.matrix.include) {
+    assert.equal(image.stable, true)
+    assert.equal(image.target, 'production')
+    assert.deepEqual(tags(image), ['1.1.1', `sha-${released}`, 'main', 'latest'])
+  }
+})
+test('retained bumps cannot justify an incorrect version increase', (t) => {
+  const f = fixture(t, { retainedChangesetPolicy: 'candidate' })
+  f.note('retained-major', [api.name], 'major')
+  f.note('consumed-patch', [api.name])
+  const before = f.commit()
+  f.remove('consumed-patch')
+  f.version(api, '2.0.0')
+  assert.throws(() => f.plan(before, f.commit()), /version must match its requested bump/)
+  f.version(api, '1.0.1')
+  const [image] = f.plan(before, f.commit()).matrix.include
+  assert.equal(image.baseVersion, '2.0.0')
+  assert.equal(image.stable, false)
+})
+test('candidate retention still requires consuming an application note before a version increase', (t) => {
+  const f = fixture(t, { retainedChangesetPolicy: 'candidate' })
+  f.note('retained', [api.name])
+  const before = f.commit()
+  f.version(api, '1.0.1')
+  assert.throws(() => f.plan(before, f.commit()), /consume all pending/)
+})
+test('fresh notes beside consumed notes also prevent stable promotion under candidate retention', (t) => {
+  const f = fixture(t, { retainedChangesetPolicy: 'candidate' })
+  f.note('upstream', [api.name], 'minor')
+  const before = f.commit()
+  f.remove('upstream')
+  f.version(api, '1.1.0')
+  // Distinct release text keeps Git from treating this new note as a rename.
+  f.write(
+    '.changeset/downstream-new.md',
+    `---\n'${api.name}': patch\n---\nFix downstream API configuration after synchronization.\n`
+  )
+  const after = f.commit()
+  const [image] = f.plan(before, after, 'push', 'refs/heads/main').matrix.include
+  assert.equal(image.baseVersion, '1.1.1')
+  assert.equal(image.stable, false)
+  assert.deepEqual(tags(image), [image.version, `sha-${after}`, 'main-candidate'])
+  assert.deepEqual(image.changesets, ['.changeset/upstream.md', '.changeset/downstream-new.md'])
+})
+test('application selection scopes validation while the default still checks NsJail', (t) => {
+  const f = fixture(t)
+  f.note('nsjail', [jail.name])
+  const before = f.commit()
+  f.remove('nsjail')
+  f.version(jail, '2.0.0')
+  const after = f.commit()
+  assert.throws(() => f.plan(before, after), /version must match its requested bump/)
+  const options = { cwd: f.cwd, before, after, event: 'push', ref: 'refs/heads/develop' }
+  assert.equal(releasePlan({ ...options, applicationNames: [api.name, web.name] }).build, false)
+  assert.throws(
+    () => releasePlan({ ...options, applicationNames: ['unknown'] }),
+    /Unsupported application image selection/
+  )
+})
+test('application selection scopes shared-package coverage and still enforces selected consumers', (t) => {
+  const f = fixture(t)
+  f.note('shared', [contracts])
+  const options = {
+    cwd: f.cwd,
+    before: f.initial,
+    event: 'push',
+    ref: 'refs/heads/develop',
+    applicationNames: [api.name]
+  }
+  assert.throws(
+    () => releasePlan({ ...options, after: f.commit() }),
+    /Missing application image release declarations:[\s\S]*@xpert-ai\/xpert-api/
+  )
+  f.note('api', [api.name])
+  const after = f.commit()
+  assert.throws(() => f.plan(f.initial, after), /@xpert-ai\/xpert-ui/)
+  const plan = releasePlan({ ...options, after })
+  assert.equal(plan.publish, true)
+  assert.deepEqual(
+    plan.matrix.include.map((image) => image.image_name),
+    ['xpert-api']
+  )
 })
 test('a version bump without a previously landed application note cannot publish', (t) => {
   const f = fixture(t)
