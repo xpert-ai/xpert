@@ -59,7 +59,7 @@ export function safeXmlId(value: string) {
 }
 
 function patchShapeTransform(xml: string, shape: PptxShape) {
-  return xml.replace(/<(a|p):xfrm\b[^>]*>[\s\S]*?<\1:xfrm>/i, (_full, prefix) => {
+  return xml.replace(/<(a|p):xfrm\b[^>]*>[\s\S]*?<\/\1:xfrm>/i, (_full, prefix) => {
     return `<${prefix}:xfrm${transformAttributes(shape)}><a:off x="${Math.round(shape.x)}" y="${Math.round(shape.y)}"/><a:ext cx="${Math.max(1, Math.round(shape.width))}" cy="${Math.max(1, Math.round(shape.height))}"/></${prefix}:xfrm>`
   })
 }
