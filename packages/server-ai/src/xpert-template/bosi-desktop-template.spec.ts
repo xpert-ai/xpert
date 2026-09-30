@@ -11,8 +11,19 @@ describe('Bosi Desktop Assistant template', () => {
         const nodes = getRuntimeEnabledMiddlewareNodes(graph, agent, {
             runtimeCapabilities: { mode: 'allowlist', skills: { ids: [] }, plugins: { nodeKeys: [] } }
         })
-        expect(nodes.map(({ key }) => key)).toEqual(['Middleware_DesktopShell', 'Middleware_Skills'])
-        expect(nodes[0].entity).toMatchObject({ provider: 'DesktopShell', tools: { desktop_shell: true } })
+        expect(nodes.map(({ key }) => key)).toEqual([
+            'Middleware_ContextCompression',
+            'Middleware_Todos',
+            'Middleware_DesktopShell',
+            'Middleware_Skills',
+            'Middleware_Files'
+        ])
+        expect(nodes.find(({ key }) => key === 'Middleware_DesktopShell')?.entity).toMatchObject({
+            provider: 'DesktopShell',
+            tools: { desktop_shell: true }
+        })
         expect(agent.prompt).toContain('desktop_shell only')
+        expect(agent.prompt).toContain('Never pass local paths to present_files')
+        expect(agent.prompt).toContain('Do not repeat the command or switch tools to bypass it')
     })
 })
