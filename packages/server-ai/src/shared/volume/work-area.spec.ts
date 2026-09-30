@@ -25,6 +25,23 @@ describe('XpertWorkAreaResolver', () => {
         jest.clearAllMocks()
     })
 
+    it('resolves the same workspace identity without creating directories for passive discovery', async () => {
+        const scope = {
+            tenantId: 'tenant-1',
+            userId: 'user-1',
+            xpertId: 'xpert-1',
+            projectId: 'project-1',
+            conversationId: 'conversation-1',
+            provider: 'local-shell-sandbox'
+        }
+        const passive = await resolver.resolve(scope, { createDirectories: false })
+        expect(await fsPromises.readdir(tempRoot)).toEqual([])
+        const active = await resolver.resolve(scope)
+        expect(passive.workspaceBinding).toEqual(active.workspaceBinding)
+        expect(passive.workingDirectory).toBe(active.workingDirectory)
+        expect((await fsPromises.readdir(tempRoot)).length).toBeGreaterThan(0)
+    })
+
     it('shares working files across branched conversations while creating a new session directory', async () => {
         const scope = {
             tenantId: 'tenant-1',

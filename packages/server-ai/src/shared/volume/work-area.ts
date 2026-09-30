@@ -85,11 +85,17 @@ export class XpertWorkAreaResolver {
         private readonly workspaceMappers: WorkspacePathMapperFactory
     ) {}
 
-    async resolve(input: XpertRuntimeWorkAreaInput): Promise<XpertRuntimeWorkArea> {
+    async resolve(
+        input: XpertRuntimeWorkAreaInput,
+        options: { createDirectories?: boolean } = {}
+    ): Promise<XpertRuntimeWorkArea> {
         const volumeScope = this.resolveVolumeScope(input)
-        const volume = await this.volumeClient.resolve(volumeScope).ensureRoot()
+        const volume = this.volumeClient.resolve(volumeScope)
         const relativePaths = this.resolveRelativePaths(input)
-        await this.ensureRelativePaths(volume, relativePaths.allPaths)
+        if (options.createDirectories !== false) {
+            await volume.ensureRoot()
+            await this.ensureRelativePaths(volume, relativePaths.allPaths)
+        }
 
         const workspaceBinding = this.workspaceMappers.mapVolumeToWorkspace(input.provider, volume, {
             serverPath: relativePaths.defaultPath

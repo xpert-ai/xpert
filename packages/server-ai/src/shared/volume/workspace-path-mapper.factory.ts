@@ -1,4 +1,6 @@
-import { Injectable } from '@nestjs/common'
+import { BadRequestException, Injectable } from '@nestjs/common'
+import { SandboxManagedServiceErrorCode } from '@xpert-ai/contracts'
+import { t } from 'i18next'
 import { SandboxWorkspaceMapperRegistry, type SandboxWorkspaceMapper } from '@xpert-ai/plugin-sdk'
 import {
     LOCAL_SHELL_SANDBOX_PROVIDER_TYPE,
@@ -14,7 +16,18 @@ export class WorkspacePathMapperFactory {
 
     /** Returns the mapper registered for a Runtime Provider, defaulting to the local interactive Sandbox mapper. */
     forProvider(provider?: string | null): SandboxWorkspaceMapper {
-        return this.registry.get(provider ?? LOCAL_SHELL_SANDBOX_PROVIDER_TYPE)
+        const type = provider ?? LOCAL_SHELL_SANDBOX_PROVIDER_TYPE
+        const mapper = this.registry.listRegistrations().find((item) => item.type === type)?.strategy
+        if (!mapper) {
+            throw new BadRequestException({
+                code: SandboxManagedServiceErrorCode.ProviderUnavailable,
+                message: t('server-ai:Error.SandboxWorkspaceMapperUnavailable', {
+                    defaultValue: 'Workspace mapping is unavailable for sandbox provider: {{provider}}',
+                    provider: type
+                })
+            })
+        }
+        return mapper
     }
 
     /** Maps a server-visible Volume path into the workspace exposed by a Runtime Provider. */

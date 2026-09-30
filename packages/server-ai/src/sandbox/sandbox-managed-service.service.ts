@@ -20,6 +20,7 @@ import { ChatConversationThread } from '../chat-conversation/conversation-thread
 import { SandboxConversationContextService } from './sandbox-conversation-context.service'
 import { SandboxManagedServiceEntity } from './sandbox-managed-service.entity'
 import { SandboxManagedServiceError } from './sandbox-managed-service.error'
+import { t } from 'i18next'
 
 type SandboxManagedServiceMetadata = {
     error?: string | null
@@ -194,22 +195,35 @@ export class SandboxManagedServiceService implements OnModuleInit {
     }
 
     async listByConversationId(conversationId: string): Promise<ISandboxManagedService[]> {
-        const resolved = await this.sandboxConversationContextService.resolveConversationSandbox({
-            conversationId
-        })
-        const adapter = resolveSandboxManagedServiceAdapter(resolved.sandbox)
-        if (!adapter) {
-            throw new SandboxManagedServiceError(
-                SandboxManagedServiceErrorCode.UnsupportedProvider,
-                `Sandbox provider "${resolved.provider}" does not support managed services.`,
-                400
-            )
-        }
-
+        const context = await this.sandboxConversationContextService.authorizeConversation({ conversationId })
         const entities = await this.repository.find({
             where: { conversationId } as FindOptionsWhere<SandboxManagedServiceEntity>,
             order: { createdAt: 'DESC' }
         })
+        if (!entities.length) return []
+
+        // Listing services must never create a sandbox, including after a server restart.
+        const resolved = await this.sandboxConversationContextService.findExistingSandbox(context)
+        if (!resolved) {
+            return entities.map((entity) => {
+                const service = this.toModel(entity)
+                return service.status === 'running' || service.status === 'starting' || service.status === 'stopping'
+                    ? { ...service, status: 'lost', previewUrl: null }
+                    : service
+            })
+        }
+        const adapter = resolveSandboxManagedServiceAdapter(resolved.sandbox)
+        if (!adapter) {
+            throw new SandboxManagedServiceError(
+                SandboxManagedServiceErrorCode.UnsupportedProvider,
+                t('server-ai:Error.SandboxManagedServicesUnsupported', {
+                    defaultValue: 'Sandbox provider "{{provider}}" does not support managed services.',
+                    provider: resolved.provider
+                }),
+                400
+            )
+        }
+
         const result = await adapter.listServices({
             services: entities.map((entity) => this.toModel(entity))
         })

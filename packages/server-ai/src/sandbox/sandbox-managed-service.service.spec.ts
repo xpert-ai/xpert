@@ -1,9 +1,14 @@
 jest.mock('@xpert-ai/plugin-sdk', () => ({
     ...jest.requireActual('@xpert-ai/plugin-sdk'),
-    resolveSandboxServiceProxyAdapter: jest.fn()
+    resolveSandboxServiceProxyAdapter: jest.fn(),
+    resolveSandboxManagedServiceAdapter: jest.fn()
 }))
 
-import { SandboxServiceProxyAdapter, resolveSandboxServiceProxyAdapter } from '@xpert-ai/plugin-sdk'
+import {
+    SandboxServiceProxyAdapter,
+    resolveSandboxServiceProxyAdapter,
+    resolveSandboxManagedServiceAdapter
+} from '@xpert-ai/plugin-sdk'
 import type { Request, Response } from 'express'
 import type { Repository } from 'typeorm'
 import { SandboxManagedServiceEntity } from './sandbox-managed-service.entity'
@@ -13,6 +18,8 @@ import { ChatConversationThread } from '../chat-conversation/conversation-thread
 describe('SandboxManagedServiceService', () => {
     let repository: {
         findOne: jest.Mock
+        find: jest.Mock
+        save: jest.Mock
     }
     let conversationRepository: {
         findOneBy: jest.Mock
@@ -22,12 +29,16 @@ describe('SandboxManagedServiceService', () => {
     }
     let sandboxConversationContextService: {
         resolveConversationSandbox: jest.Mock
+        authorizeConversation: jest.Mock
+        findExistingSandbox: jest.Mock
     }
     let service: SandboxManagedServiceService
 
     beforeEach(() => {
         repository = {
-            findOne: jest.fn()
+            findOne: jest.fn(),
+            find: jest.fn().mockResolvedValue([]),
+            save: jest.fn()
         }
         conversationRepository = {
             findOneBy: jest.fn().mockResolvedValue({ id: 'conversation-1' })
@@ -36,12 +47,15 @@ describe('SandboxManagedServiceService', () => {
             findOne: jest.fn().mockResolvedValue(null)
         }
         sandboxConversationContextService = {
+            authorizeConversation: jest.fn().mockResolvedValue({ conversationId: 'conversation-1' }),
+            findExistingSandbox: jest.fn().mockResolvedValue(null),
             resolveConversationSandbox: jest.fn().mockResolvedValue({
                 provider: 'test-sandbox',
                 sandbox: {}
             })
         }
         jest.mocked(resolveSandboxServiceProxyAdapter).mockReset()
+        jest.mocked(resolveSandboxManagedServiceAdapter).mockReset()
 
         service = new SandboxManagedServiceService(
             repository as unknown as Repository<SandboxManagedServiceEntity>,
@@ -49,6 +63,52 @@ describe('SandboxManagedServiceService', () => {
             conversationThreadRepository as never,
             sandboxConversationContextService as never
         )
+    })
+
+    it('returns an empty list after authorization without resolving any sandbox', async () => {
+        await expect(service.listByConversationId('conversation-1')).resolves.toEqual([])
+        expect(sandboxConversationContextService.authorizeConversation).toHaveBeenCalledWith({
+            conversationId: 'conversation-1'
+        })
+        expect(sandboxConversationContextService.resolveConversationSandbox).not.toHaveBeenCalled()
+        expect(sandboxConversationContextService.findExistingSandbox).not.toHaveBeenCalled()
+    })
+
+    it('does not expose persisted services when conversation access is denied', async () => {
+        sandboxConversationContextService.authorizeConversation.mockRejectedValue(new Error('Denied'))
+        await expect(service.listByConversationId('conversation-1')).rejects.toThrow('Denied')
+        expect(repository.find).not.toHaveBeenCalled()
+        expect(sandboxConversationContextService.findExistingSandbox).not.toHaveBeenCalled()
+    })
+
+    it('reports active persisted services as lost without creating a missing runtime', async () => {
+        repository.find.mockResolvedValue([
+            { id: 's1', conversationId: 'conversation-1', status: 'running', transportMode: 'http' }
+        ])
+        await expect(service.listByConversationId('conversation-1')).resolves.toMatchObject([
+            { id: 's1', status: 'lost', previewUrl: null }
+        ])
+        expect(sandboxConversationContextService.resolveConversationSandbox).not.toHaveBeenCalled()
+        expect(resolveSandboxManagedServiceAdapter).not.toHaveBeenCalled()
+    })
+
+    it('refreshes service states through an already acquired runtime', async () => {
+        repository.find.mockResolvedValue([{ id: 's1', conversationId: 'conversation-1', status: 'running' }])
+        sandboxConversationContextService.findExistingSandbox.mockResolvedValue({ sandbox: {}, provider: 'test' })
+        const listServices = jest.fn().mockResolvedValue({ services: [{ id: 's1', status: 'stopped' }] })
+        jest.mocked(resolveSandboxManagedServiceAdapter).mockReturnValue({
+            listServices,
+            startService: jest.fn(),
+            stopService: jest.fn(),
+            restartService: jest.fn(),
+            getServiceLogs: jest.fn()
+        })
+        await expect(service.listByConversationId('conversation-1')).resolves.toMatchObject([
+            { id: 's1', status: 'stopped' }
+        ])
+        expect(listServices).toHaveBeenCalledTimes(1)
+        expect(repository.save).toHaveBeenCalled()
+        expect(sandboxConversationContextService.resolveConversationSandbox).not.toHaveBeenCalled()
     })
 
     it('omits preview urls for non-running services', async () => {

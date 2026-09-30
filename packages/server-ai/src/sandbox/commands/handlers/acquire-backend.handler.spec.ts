@@ -4,9 +4,10 @@ import type { SandboxProviderRegistry } from '@xpert-ai/plugin-sdk'
 
 describe('SandboxAcquireBackendHandler', () => {
     let registry: {
-        get: jest.Mock
+        list: jest.Mock
     }
     let provider: {
+        type: string
         capabilities?: { projectContentReadOnly: boolean }
         create: jest.Mock
         isAvailable?: jest.Mock
@@ -15,17 +16,53 @@ describe('SandboxAcquireBackendHandler', () => {
 
     beforeEach(() => {
         provider = {
+            type: 'local-shell-sandbox',
             capabilities: { projectContentReadOnly: true },
             create: jest.fn()
         }
         registry = {
-            get: jest.fn(() => provider)
+            list: jest.fn(() => [provider])
         }
         handler = new SandboxAcquireBackendHandler(registry as unknown as SandboxProviderRegistry)
     })
 
     afterEach(() => {
         jest.clearAllMocks()
+    })
+
+    it('looks up existing runtimes without resolving or creating a provider', async () => {
+        const command = new SandboxAcquireBackendCommand({
+            tenantId: 'tenant-1',
+            provider: 'local-shell-sandbox',
+            workingDirectory: '/workspace/a',
+            workFor: { type: 'user', id: 'user-1' }
+        })
+        expect(handler.find(command.params)).toBeNull()
+        expect(registry.list).not.toHaveBeenCalled()
+        expect(provider.create).not.toHaveBeenCalled()
+        provider.create.mockResolvedValue({ execute: jest.fn() })
+        const created = await handler.execute(command)
+        registry.list.mockClear()
+        expect(handler.find(command.params)).toBe(created)
+        expect(handler.find({ ...command.params, workingDirectory: '/workspace/b' })).toBeNull()
+        expect(registry.list).not.toHaveBeenCalled()
+        expect(provider.create).toHaveBeenCalledTimes(1)
+    })
+
+    it('returns a non-retryable provider error when the configured provider is missing', async () => {
+        registry.list.mockReturnValue([])
+        await expect(
+            handler.execute(
+                new SandboxAcquireBackendCommand({
+                    provider: 'missing',
+                    workFor: { type: 'user', id: 'user-1' }
+                })
+            )
+        ).rejects.toMatchObject({
+            status: 400,
+            response: { code: 'provider_unavailable' }
+        })
+        expect(provider.create).not.toHaveBeenCalled()
     })
 
     it('reuses the same backend when scope and working directory are unchanged', async () => {
@@ -48,7 +85,7 @@ describe('SandboxAcquireBackendHandler', () => {
         const first = await handler.execute(command)
         const second = await handler.execute(command)
 
-        expect(registry.get).toHaveBeenCalledTimes(1)
+        expect(registry.list).toHaveBeenCalledTimes(1)
         expect(provider.create).toHaveBeenCalledTimes(1)
         expect(first).toEqual(
             expect.objectContaining({
@@ -244,6 +281,7 @@ describe('SandboxAcquireBackendHandler', () => {
     })
 
     it('derives Project Content protection from the typed Project volume scope', async () => {
+        provider.type = 'nsjail'
         provider.create.mockResolvedValue({ id: 'sandbox-project', execute: jest.fn() })
 
         await handler.execute(
@@ -303,7 +341,7 @@ describe('SandboxAcquireBackendHandler', () => {
                 })
             )
         ).rejects.toThrow('Sandbox provider is required')
-        expect(registry.get).not.toHaveBeenCalled()
+        expect(registry.list).not.toHaveBeenCalled()
     })
 
     it('rejects an explicitly selected provider when it is unavailable', async () => {
@@ -328,6 +366,7 @@ describe('SandboxAcquireBackendHandler', () => {
     it.each([undefined, { projectContentReadOnly: false }])(
         'fails closed when a Project runtime provider does not declare Project Content protection support',
         async (capabilities) => {
+            provider.type = 'unsupported-sandbox'
             provider.capabilities = capabilities
 
             await expect(

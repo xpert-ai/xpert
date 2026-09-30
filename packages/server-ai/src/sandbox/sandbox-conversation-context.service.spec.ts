@@ -1,4 +1,4 @@
-import { RequestContext } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import type { CommandBus } from '@nestjs/cqrs'
 import type { Repository } from 'typeorm'
 import type { ChatConversation } from '../chat-conversation/conversation.entity'
@@ -19,18 +19,13 @@ jest.mock('../shared/volume/work-area', () => ({
     XpertWorkAreaResolver: class XpertWorkAreaResolver {}
 }))
 
-jest.mock('@xpert-ai/server-core', () => ({
+jest.mock('@xpert-ai/plugin-sdk', () => ({
+    resolveSandboxBackend: jest.fn().mockReturnValue({ execute: jest.fn() }),
     RequestContext: {
         currentTenantId: jest.fn(),
         currentUserId: jest.fn(),
         currentUser: jest.fn()
     }
-}))
-
-jest.mock('@xpert-ai/plugin-sdk', () => ({
-    resolveSandboxBackend: jest.fn().mockReturnValue({
-        execute: jest.fn()
-    })
 }))
 
 describe('SandboxConversationContextService', () => {
@@ -82,6 +77,38 @@ describe('SandboxConversationContextService', () => {
 
     afterEach(() => {
         jest.clearAllMocks()
+    })
+
+    it('authorizes discovery without acquiring a sandbox or resolving filesystem paths', async () => {
+        conversationRepository.findOne.mockResolvedValue({
+            id: 'conversation-1',
+            createdById: 'user-1',
+            tenantId: 'tenant-1',
+            xpertId: 'xpert-1',
+            xpert: { features: { sandbox: { enabled: true, provider: 'missing-provider' } } }
+        })
+        const context = await service.authorizeConversation({ conversationId: 'conversation-1' })
+        expect(context.provider).toBe('missing-provider')
+        expect(commandBus.execute).not.toHaveBeenCalled()
+        expect(workAreaResolver.resolve).not.toHaveBeenCalled()
+        commandBus.execute.mockResolvedValue(null)
+        await expect(service.findExistingSandbox(context)).resolves.toBeNull()
+        expect(commandBus.execute.mock.calls[0][0].constructor.name).toBe('SandboxFindBackendCommand')
+    })
+
+    it.each([
+        { tenantId: 'other-tenant', createdById: 'user-1' },
+        { tenantId: 'tenant-1', createdById: 'other-user' }
+    ])('keeps discovery access checks for %o', async (owner) => {
+        conversationRepository.findOne.mockResolvedValue({
+            ...owner,
+            id: 'conversation-1',
+            xpertId: 'xpert-1',
+            xpert: { features: { sandbox: { enabled: true, provider: 'test' } } }
+        })
+        await expect(service.authorizeConversation({ conversationId: 'conversation-1' })).rejects.toThrow()
+        expect(commandBus.execute).not.toHaveBeenCalled()
+        expect(workAreaResolver.resolve).not.toHaveBeenCalled()
     })
 
     it('uses the authenticated actor for a personal conversation sandbox', async () => {
