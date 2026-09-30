@@ -1,14 +1,36 @@
 ---
 title: 'Install and migrate'
-description: 'Enable the existing provider through an explicit plugin installation'
+description: 'Load the optional provider at startup or install it in a packaged deployment'
 ---
 
 ## Migration from the built-in provider
 
-The base API no longer registers Local Shell Sandbox and no longer requires
+The base Sandbox module no longer contains Local Shell Sandbox or requires
 `node-pty`. Existing Assistants retain the provider key `local-shell-sandbox`.
-An administrator must install this plugin before those Assistants use that provider;
-there is no silent fallback to another execution environment.
+The provider remains an optional plugin; there is no silent fallback to another
+execution environment.
+
+## Automatic loading in a source checkout
+
+Set `XPERT_LOCAL_SANDBOX_ENABLED=true` in the API environment and start or restart
+the API. `preBootstrapPlugins` adds this plugin to system scope through the normal
+plugin loader. A source checkout containing `packages/plugins/local-shell-sandbox`
+can load its workspace source without a separate deployment command.
+
+An existing system installation keeps its saved source and configuration. Listing
+the same package in `PLUGINS` does not register it twice. With the switch unset or
+false, startup does not add the optional plugin automatically; the provider also
+continues to enforce this switch before allowing execution.
+
+This does not download the plugin or compile native dependencies. Use the normal
+workspace dependency installation and verify `node-pty` before opening terminals.
+Native terminal support loads lazily, so a missing binding only affects terminal
+creation. Plugin loading failures are recorded by the normal loader.
+
+## Installation in a packaged deployment
+
+Default API and Web images do not contain this package. Install it explicitly in
+those environments; setting the switch alone cannot supply the missing package.
 
 1. Build and test the plugin from the Xpert source checkout:
    `corepack pnpm nx build local-shell-sandbox` and

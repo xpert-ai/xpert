@@ -258,6 +258,17 @@ export async function preBootstrapPlugins(options: { failOnPluginRegistrationErr
       source: plugin.source as BootstrapPlugin['source']
     })
   }
+  const localShellPlugin = '@xpert-ai/plugin-local-shell-sandbox'
+  if (process.env.XPERT_LOCAL_SANDBOX_ENABLED?.trim().toLowerCase() === 'true') {
+    // Use the existing loader; an explicitly installed package keeps its source/configuration.
+    if (!mergedSystemPluginMap.has(localShellPlugin)) {
+      mergedSystemPluginMap.set(localShellPlugin, { name: localShellPlugin, source: 'code', level: 'system' })
+    }
+  }
+  if (mergedSystemPluginMap.has(localShellPlugin)) {
+    // PLUGINS must not register this system provider a second time in tenant-global scope.
+    mergedGlobalPluginMap.delete(localShellPlugin)
+  }
   const persistedOrganizationGroups = organizationPluginConfigs
     .filter((group) => {
       const scopeKey = group.scopeKey ?? group.organizationId
