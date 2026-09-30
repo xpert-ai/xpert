@@ -28,9 +28,9 @@ function fixture(t) {
 test('all six native targets and both installer formats are required and checksummed', (t) => {
   const directory = fixture(t),
     { assets, notes } = collectAssets(directory, plan)
-  assert.equal(assets.length, 14)
+  assert.equal(assets.length, 18)
   assert.ok(notes.includes('unsigned'))
-  assert.equal(readFileSync(path.join(directory, 'SHA256SUMS.txt'), 'utf8').trim().split('\n').length, 12)
+  assert.equal(readFileSync(path.join(directory, 'SHA256SUMS.txt'), 'utf8').trim().split('\n').length, 16)
   rmSync(path.join(directory, 'win-arm64.json'))
   assert.throws(() => collectAssets(directory, plan), /ENOENT/)
 })
@@ -53,7 +53,7 @@ test('new release is always a draft pinned to the verified commit', (t) => {
   const create = calls.find((args) => args[1] === 'create')
   assert.ok(create.includes('--draft'))
   assert.ok(create.includes(plan.sha))
-  assert.equal(calls.filter((args) => args[1] === 'upload').length, 14)
+  assert.equal(calls.filter((args) => args[1] === 'upload').length, 18)
   assert.ok(!calls.some((args) => args.includes('--clobber')))
 })
 test('published releases, tag collisions and registry read failures cannot be overwritten', (t) => {
@@ -97,4 +97,24 @@ test('identical draft assets resume without upload; changed ones fail before any
   draft.assets[0].digest = 'sha256:different'
   assert.throws(() => releaseDraft(directory, plan, 'xpert-ai/xpert', gh), /Refusing to overwrite/)
   assert.ok(calls.every((args) => args[0] === 'api'))
+})
+test('update feeds use SHA-512 of the matching installer and exclude unsigned macOS', (t) => {
+  const directory = fixture(t)
+  let result = collectAssets(directory, plan)
+  assert.ok(!result.assets.some((asset) => asset.file.endsWith('-mac.yml')))
+  for (const target of platforms.filter((target) => target.platform === 'mac')) {
+    const filename = path.join(directory, `${target.id}.json`)
+    const receipt = JSON.parse(readFileSync(filename, 'utf8'))
+    receipt.signing = 'signed-notarized'
+    writeFileSync(filename, JSON.stringify(receipt))
+  }
+  result = collectAssets(directory, plan)
+  assert.equal(result.assets.length, 20)
+  for (const asset of result.assets.filter((asset) => asset.file.endsWith('.yml'))) {
+    const metadata = JSON.parse(readFileSync(path.join(directory, asset.file), 'utf8'))
+    const installer = readFileSync(path.join(directory, metadata.path))
+    assert.equal(metadata.version, plan.version)
+    assert.equal(metadata.sha512, createHash('sha512').update(installer).digest('base64'))
+    assert.deepEqual(metadata.files, [{ url: metadata.path, sha512: metadata.sha512, size: installer.length }])
+  }
 })

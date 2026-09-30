@@ -4,15 +4,19 @@ import { WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
 import { IntegrationQrService } from '@xpert-ai/server-core'
 import { DataSource, EntityManager, Repository } from 'typeorm'
 import { Xpert } from './xpert.entity'
+import { XpertWorkspaceAccessService } from '../xpert-workspace/workspace-access.service'
 import { XpertTriggerConnectionService } from './trigger-connection.service'
 import { XpertPublishTriggersCommand } from './commands/publish-triggers.command'
 import { patchConnectionGraph, triggerConfig } from './trigger-connection.graph'
 
 jest.mock('@xpert-ai/server-core', () => ({
-    RequestContext: { currentUserId: () => 'user', currentTenantId: () => 'tenant', getOrganizationId: () => 'org' },
     IntegrationQrService: class {}
 }))
-jest.mock('@xpert-ai/plugin-sdk', () => ({ WorkflowTriggerRegistry: class {} }))
+jest.mock('@xpert-ai/plugin-sdk', () => ({
+    WorkflowTriggerRegistry: class {},
+    RequestContext: { currentUserId: () => 'user', currentTenantId: () => 'tenant', getOrganizationId: () => 'org' }
+}))
+jest.mock('../xpert-workspace/workspace-access.service', () => ({ XpertWorkspaceAccessService: class {} }))
 jest.mock('./xpert.entity', () => ({ Xpert: class {} }))
 jest.mock('i18next', () => ({ t: (_key: string, options: { defaultValue: string }) => options.defaultValue }))
 
@@ -97,15 +101,28 @@ describe('Xpert trigger quick connections', () => {
                 online = triggerConfig(command.xpert.graph, 'dingtalk')?.enabled === true
             })
         }
+        const access = { assertCanAuthor: jest.fn(), assertCanRead: jest.fn() }
         const service = new XpertTriggerConnectionService(
             repository as unknown as Repository<Xpert>,
             database as unknown as DataSource,
             registry as unknown as WorkflowTriggerRegistry,
             qr as unknown as IntegrationQrService,
-            commands as unknown as CommandBus
+            commands as unknown as CommandBus,
+            access as unknown as XpertWorkspaceAccessService
         )
-        return { service, repository, database, strategy, qr, commands, current: () => persisted }
+        return { service, access, repository, database, strategy, qr, commands, current: () => persisted }
     }
+
+    it('rejects channel mutations without workspace author access', async () => {
+        const f = setup()
+        f.access.assertCanAuthor.mockRejectedValue(new Error('author access required'))
+        await expect(f.service.begin('xpert', 'dingtalk')).rejects.toThrow('author access required')
+        await expect(f.service.complete('xpert', 'dingtalk', 'session')).rejects.toThrow('author access required')
+        await expect(f.service.disconnect('xpert', 'dingtalk')).rejects.toThrow('author access required')
+        expect(f.qr.begin).not.toHaveBeenCalled()
+        expect(f.qr.complete).not.toHaveBeenCalled()
+        expect(f.database.transaction).not.toHaveBeenCalled()
+    })
 
     it('activates only the selected trigger and preserves unpublished agent edits', async () => {
         const f = setup()
@@ -177,6 +194,10 @@ describe('Xpert trigger quick connections', () => {
             })
         }
         await expect(f.service.complete('xpert', 'dingtalk', 'session')).rejects.toThrow('unpublished changes')
+        await expect(f.service.begin('xpert', 'dingtalk')).rejects.toMatchObject({
+            status: 409,
+            response: { code: 'TRIGGER_DRAFT_CONFLICT' }
+        })
         expect(f.qr.complete).not.toHaveBeenCalled()
         expect(f.repository.update).not.toHaveBeenCalled()
     })
@@ -185,6 +206,10 @@ describe('Xpert trigger quick connections', () => {
         const f = setup()
         f.current().publishAt = null
         await expect(f.service.begin('xpert', 'dingtalk')).rejects.toThrow('Publish a runnable')
+        await expect(f.service.begin('xpert', 'dingtalk')).rejects.toMatchObject({
+            status: 400,
+            response: { code: 'TRIGGER_PUBLISH_REQUIRED' }
+        })
         f.qr.assertContext.mockRejectedValue(new Error('wrong context'))
         await expect(f.service.complete('xpert', 'dingtalk', 'session')).rejects.toThrow('wrong context')
         expect(f.qr.begin).not.toHaveBeenCalled()

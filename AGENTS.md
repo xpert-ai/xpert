@@ -20,6 +20,7 @@ This repo uses NestJS + TypeORM on the server and Angular 17 (standalone, signal
 
 ## Backend (NestJS)
 
+- New code must import `RequestContext` from `@xpert-ai/plugin-sdk`, never `@xpert-ai/server-core`. The pre-commit check reads staged changes and rejects new legacy imports without requiring an unrelated migration of existing code.
 - Patterns: entities in `packages/server-ai/src/**`, services extend `TenantOrganizationAwareCrudService` or base classes, controllers extend `CrudController` when possible.
 - Register modules in `packages/server-ai/src/index.ts` and wire into `app.module.ts` as needed.
 - Keep TypeORM entities aligned with contract interfaces in `packages/contracts`.

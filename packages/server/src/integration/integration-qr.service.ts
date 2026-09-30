@@ -12,6 +12,7 @@ import {
 import type {
 	TAvatar,
 	TIntegrationQrCompletion,
+	TIntegrationQrErrorCode,
 	TIntegrationQrResult,
 	TIntegrationQrSession
 } from '@xpert-ai/contracts'
@@ -288,9 +289,12 @@ export class IntegrationQrService {
 	private async lock<T>(key: string, operation: () => Promise<T>): Promise<T> {
 		const result = await this.locks.runWithLock(`${key}:lock`, 60000, operation)
 		if (result.acquired === false)
-			throw new ConflictException(
-				t('server-ai:Error.IntegrationQrBusy', { defaultValue: 'Authorization is busy. Please retry shortly.' })
-			)
+			throw new ConflictException({
+				code: 'INTEGRATION_QR_BUSY' satisfies TIntegrationQrErrorCode,
+				message: t('server-ai:Error.IntegrationQrBusy', {
+					defaultValue: 'Authorization is busy. Please retry shortly.'
+				})
+			})
 		return result.value
 	}
 

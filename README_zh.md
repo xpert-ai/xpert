@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <a href="apps/desktop/README.md"><strong>开始使用 Bosi</strong></a> ·
+  <a href="https://github.com/xpert-ai/xpert/releases"><strong>下载 Bosi</strong></a> ·
   <a href="https://app.xpertai.cn/plugins/marketplace"><strong>探索市场</strong></a> ·
   <a href="https://docs.xpertai.cn/zh-Hans/ai/getting-started/community"><strong>自托管 Xpert</strong></a> ·
   <a href="https://docs.xpertai.cn/zh-Hans/">文档</a>
@@ -44,6 +44,10 @@
 
 Bosi 可连接官方服务或自托管 Xpert。平台负责运行智能体、管理共享资源，Bosi 提供桌面交互与经授权的本机执行。配置与构建见[桌面应用指南](apps/desktop/README.md)。
 
+### 下载 Bosi
+
+支持 macOS、Windows 和 Linux。[GitHub Releases 下载](https://github.com/xpert-ai/xpert/releases) · [官网下载页](https://xpertai.cn/zh-CN/download/)。
+
 ## Xpert 平台：一切皆插件
 
 构建并发布 AI 团队，供 Bosi、Xpert Web 或自有产品使用。Xpert 提供运行时、权限、审批与审计；插件交付从模型、工具到完整 Agentic App 的能力。
@@ -68,7 +72,7 @@ Bosi 可连接官方服务或自托管 Xpert。平台负责运行智能体、管
 
 ## 快速开始
 
-**使用 Bosi**：按[桌面应用指南](apps/desktop/README.md)启动，登录并选择组织，通过「发现与添加」使用专家、应用、插件与模板。自托管用户可在连接设置中更换服务地址。
+**使用 Bosi**：[下载并安装桌面应用](https://github.com/xpert-ai/xpert/releases)，登录并选择组织，通过「发现与添加」使用专家、应用、插件与模板。自托管用户可在登录前配置服务地址，详见[桌面应用指南](apps/desktop/README.md)。
 
 **部署 Xpert**：至少需要 **2 核 CPU**、**4 GiB 内存**、Docker 与 Docker Compose。
 

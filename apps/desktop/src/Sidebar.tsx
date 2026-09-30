@@ -10,7 +10,7 @@ import { assistantGroups, assistantRows, type AssistantRow } from './assistant-l
 import { SidebarResizer } from './SidebarResizer'
 import type { ConversationNotice } from './assistant-list-types'
 import { invoke } from './host'
-import { UserMenu } from './UserMenu'
+import { SidebarAccount } from './SidebarAccount'
 import type { AppState, Bot } from './types'
 
 export function Sidebar({
@@ -262,15 +262,6 @@ export function Sidebar({
           >
             <Plus />
           </Button>
-          <div className="flex w-full shrink-0 justify-center border-t py-3">
-            <UserMenu
-              profile={profile}
-              webUrl={state.config.webUrl}
-              compact
-              onSettings={onSettings}
-              onLogout={onLogout}
-            />
-          </div>
         </div>
       )}
       <div id="bot-sidebar-content" className={collapsed ? 'hidden' : 'flex min-h-0 flex-1 flex-col'}>
@@ -421,12 +412,14 @@ export function Sidebar({
             </p>
           )}
         </AssistantScrollArea>
-        <div className="shrink-0 px-4 pb-3">
-          <div className="mt-2 border-t pt-2">
-            <UserMenu profile={profile} webUrl={state.config.webUrl} onSettings={onSettings} onLogout={onLogout} />
-          </div>
-        </div>
       </div>
+      <SidebarAccount
+        profile={profile}
+        webUrl={state.config.webUrl}
+        compact={collapsed}
+        onSettings={onSettings}
+        onLogout={onLogout}
+      />
       {dialog && (
         <AssistantDialog
           bot={dialog.bot}

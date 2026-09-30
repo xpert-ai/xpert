@@ -1,4 +1,4 @@
-jest.mock('@xpert-ai/server-core', () => ({ RequestContext: { currentUserId: () => 'engineer-auto' } }))
+jest.mock('@xpert-ai/plugin-sdk', () => ({ RequestContext: { currentUserId: () => 'engineer-auto' } }))
 jest.mock('../../chat-conversation/conversation.entity', () => ({ ChatConversation: class {} }))
 jest.mock('../../chat-conversation/conversation-thread.service', () => ({ ChatConversationThreadService: class {} }))
 jest.mock('../../xpert/published-xpert-access.service', () => ({ PublishedXpertAccessService: class {} }))

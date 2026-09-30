@@ -358,7 +358,17 @@ class DesktopService {
 
   async request(
     path,
-    { method = 'GET', body, auth = true, token, scope, retry = true, timeout = 20000, responseType = 'json' } = {}
+    {
+      method = 'GET',
+      body,
+      auth = true,
+      token,
+      scope,
+      retry = true,
+      timeout = 20000,
+      responseType = 'json',
+      errorMessages
+    } = {}
   ) {
     if (auth && !this.credentials) throw new ClientError('Please sign in first.', 401)
     const generation = this.generation
@@ -399,7 +409,7 @@ class DesktopService {
         if (error.status === 401) this.logout()
         throw error
       }
-      return this.request(path, { method, body, auth, scope, retry: false, timeout, responseType })
+      return this.request(path, { method, body, auth, scope, retry: false, timeout, responseType, errorMessages })
     }
     if (!response.ok) {
       if (response.status === 401)
@@ -408,6 +418,11 @@ class DesktopService {
           401
         )
       if (response.status === 403) throw new ClientError('This account does not have access.', 403)
+      if (errorMessages && [400, 409].includes(response.status)) {
+        const failure = await response.json().catch(() => null)
+        if (typeof failure?.code === 'string' && Object.hasOwn(errorMessages, failure.code))
+          throw new ClientError(errorMessages[failure.code], response.status)
+      }
       throw new ClientError('Xpert request failed ({{status}}). Please retry later.', response.status, {
         status: response.status
       })
@@ -429,6 +444,7 @@ Object.assign(
 )
 Object.assign(DesktopService.prototype, require('./assistant-list.cjs').createAssistantListMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./assistant-profile.cjs').createAssistantProfileMethods(ClientError))
+Object.assign(DesktopService.prototype, require('./assistant-triggers.cjs').createAssistantTriggerMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./catalog.cjs').createCatalogMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./plugin-connections.cjs').createPluginConnectionMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./plugin-library.cjs').createPluginLibraryMethods(ClientError))

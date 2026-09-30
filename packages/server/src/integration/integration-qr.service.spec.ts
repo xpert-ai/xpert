@@ -91,6 +91,15 @@ describe('IntegrationQrService', () => {
 		expect(storage.get(`integration:qr:session:${session.id}`)).not.toContain('secret')
 	})
 
+	it('reports a stable conflict code when another QR session is starting', async () => {
+		locks.runWithLock.mockResolvedValueOnce({ acquired: false, value: undefined })
+		await expect(service.begin('dingtalk_long', { name: 'Assistant' })).rejects.toMatchObject({
+			status: 409,
+			response: { code: 'INTEGRATION_QR_BUSY', message: 'Authorization is busy. Please retry shortly.' }
+		})
+		expect(strategy.beginQrAuthorization).not.toHaveBeenCalled()
+	})
+
 	it('binds quick authorization sessions to the assistant and trigger that started them', async () => {
 		const session = await service.begin(
 			'dingtalk_long',

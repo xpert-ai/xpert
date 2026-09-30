@@ -1,4 +1,4 @@
-import { AGENT_CHAT_DISPATCH_MESSAGE_TYPE } from '@xpert-ai/plugin-sdk'
+import { AGENT_CHAT_DISPATCH_MESSAGE_TYPE, RequestContext } from '@xpert-ai/plugin-sdk'
 import {
     LanguagesEnum,
     RolesEnum,
@@ -6,36 +6,121 @@ import {
     WorkflowNodeTypeEnum,
     XpertTypeEnum,
     type IWFNTrigger,
+    type IXpert,
     type NodeOf,
     type TXpertGraph
 } from '@xpert-ai/contracts'
-import { RequestContext, runWithRequestContext } from '@xpert-ai/server-core'
 import { XpertEnqueueTriggerDispatchCommand } from '../enqueue-trigger-dispatch.command'
 import { XpertPublishTriggersCommand } from '../publish-triggers.command'
 import { XpertPublishTriggersHandler } from './publish-triggers.handler'
+import { runWithCapturedRequestContext } from '../../../shared/request-context'
 
 describe('XpertPublishTriggersHandler', () => {
-    function runWithTriggerContext<T>(callback: () => Promise<T>): Promise<T> {
-        return new Promise<T>((resolve, reject) => {
-            runWithRequestContext(
-                {
-                    headers: {
-                        ['organization-id']: 'org-1'
-                    },
-                    user: {
-                        id: 'user-1',
-                        tenantId: 'tenant-1',
-                        preferredLanguage: LanguagesEnum.English,
-                        role: {
-                            name: RolesEnum.ADMIN
-                        }
-                    }
-                },
-                () => {
-                    callback().then(resolve).catch(reject)
-                }
-            )
+    it('adds automation instructions to run input without changing the assistant or incoming state', async () => {
+        const { handler, triggerRegistry, commandBus } = createHandler()
+        let callback: (payload: unknown) => Promise<void>
+        triggerRegistry.get.mockReturnValue({
+            publish: jest.fn((_params, next) => {
+                callback = next
+            }),
+            stop: jest.fn()
         })
+        const trigger = triggerNode('schedule', { enabled: true, cron: '0 8 * * *', task: 'Briefing' }, 0)
+        ;(trigger.entity as IWFNTrigger).config.additionalInstructions = 'Focus on blockers'
+        const graph: TXpertGraph = { nodes: [trigger], connections: [] }
+        await handler.execute(new XpertPublishTriggersCommand({ id: 'assistant', graph } as IXpert, { strict: true }))
+        const state = { [STATE_VARIABLE_HUMAN]: { input: 'Briefing', context: 'keep' }, other: 'unchanged' }
+        await callback({ state })
+        expect(commandBus.execute.mock.calls[0][0].state).toEqual({
+            [STATE_VARIABLE_HUMAN]: { input: 'Briefing\n\nFocus on blockers', context: 'keep' },
+            other: 'unchanged'
+        })
+        expect(state[STATE_VARIABLE_HUMAN].input).toBe('Briefing')
+        expect(graph.nodes[0].entity).not.toHaveProperty('prompt')
+        expect(triggerRegistry.get().publish).toHaveBeenCalledWith(
+            { xpertId: 'assistant', config: { enabled: true, cron: '0 8 * * *', task: 'Briefing' } },
+            expect.any(Function)
+        )
+    })
+
+    it('refreshes the runtime callback when only additional instructions change', async () => {
+        const { handler, triggerRegistry } = createHandler()
+        const strategy = { publish: jest.fn(), stop: jest.fn() }
+        triggerRegistry.get.mockReturnValue(strategy)
+        const previous = graphWith({ from: 'schedule', config: { enabled: true } })
+        const next = structuredClone(previous)
+        ;(next.nodes[0].entity as IWFNTrigger).config.additionalInstructions = 'New context'
+        await handler.execute(
+            new XpertPublishTriggersCommand({ id: 'assistant', graph: next } as IXpert, {
+                previousGraph: previous,
+                strict: true
+            })
+        )
+        expect(strategy.stop).toHaveBeenCalledTimes(1)
+        expect(strategy.publish).toHaveBeenCalledTimes(1)
+    })
+    it('preserves handoff identity, callbacks and attachments when adding automatic-run instructions', async () => {
+        const { handler, triggerRegistry, handoffQueue } = createHandler()
+        let callback: (payload: unknown) => Promise<void>
+        triggerRegistry.get.mockReturnValue({
+            publish: jest.fn((_params, next) => {
+                callback = next
+            }),
+            stop: jest.fn()
+        })
+        const trigger = triggerNode('event', { enabled: true }, 0)
+        ;(trigger.entity as IWFNTrigger).config.additionalInstructions = 'Summarize blockers'
+        await handler.execute(
+            new XpertPublishTriggersCommand(
+                { id: 'assistant', graph: { nodes: [trigger], connections: [] } } as IXpert,
+                { strict: true }
+            )
+        )
+        const message = {
+            id: 'event-1',
+            type: AGENT_CHAT_DISPATCH_MESSAGE_TYPE,
+            payload: {
+                request: {
+                    action: 'send',
+                    message: { input: { input: 'Issue assigned', files: ['attachment'] } },
+                    state: { context: 'keep' }
+                },
+                options: { xpertId: 'assistant' },
+                callback: { messageType: 'reply' }
+            }
+        }
+        await callback({ handoffMessage: message })
+        expect(handoffQueue.enqueue).toHaveBeenCalledWith(
+            expect.objectContaining({
+                id: 'event-1',
+                payload: expect.objectContaining({
+                    request: expect.objectContaining({
+                        message: { input: { input: 'Issue assigned\n\nSummarize blockers', files: ['attachment'] } },
+                        state: expect.objectContaining({ context: 'keep' })
+                    }),
+                    options: message.payload.options,
+                    callback: message.payload.callback
+                })
+            })
+        )
+        expect(message.payload.request.message.input.input).toBe('Issue assigned')
+    })
+
+    function runWithTriggerContext<T>(callback: () => Promise<T>): Promise<T> {
+        return runWithCapturedRequestContext(
+            {
+                headers: { ['organization-id']: 'org-1' },
+                user: {
+                    id: 'user-1',
+                    tenantId: 'tenant-1',
+                    preferredLanguage: LanguagesEnum.English,
+                    role: {
+                        name: RolesEnum.ADMIN
+                    }
+                }
+            },
+            callback
+        )
     }
 
     function createHandler() {

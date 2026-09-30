@@ -7,6 +7,7 @@ import { join } from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { pathToFileURL } from 'node:url'
 import { platforms } from './release-plan.mjs'
+import { createUpdateAssets } from './update-metadata.mjs'
 
 export function collectAssets(directory, plan) {
   assert.ok(plan.build && plan.stable, 'Only a stable Changesets release can create a draft')
@@ -37,6 +38,7 @@ export function collectAssets(directory, plan) {
     }
     receipts.push(receipt)
   }
+  assets.push(...createUpdateAssets(directory, plan, receipts))
   const checksums = assets.map(({ file, sha256 }) => `${sha256}  ${file}`).join('\n') + '\n'
   writeFileSync(join(directory, 'SHA256SUMS.txt'), checksums)
   writeFileSync(
@@ -61,7 +63,7 @@ export function collectAssets(directory, plan) {
     '| --- | --- |',
     ...receipts.map((receipt) => `| ${receipt.target} | ${receipt.signing} |`),
     '',
-    'Review the installers before publishing this draft. Unsigned/ad-hoc builds are test downloads and may require OS security confirmation. Automatic application updates are not configured.',
+    'Review the installers before publishing this draft. Publishing makes the attached architecture-specific update feeds available to installed stable Desktop apps. Unsigned/ad-hoc builds are test downloads and may require OS security confirmation; ad-hoc macOS builds have no update feed.',
     '',
     'Checksums and source/signing metadata are attached.'
   ].join('\n')

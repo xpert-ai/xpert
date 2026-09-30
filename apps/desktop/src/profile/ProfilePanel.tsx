@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState } from 'react'
-import { ChevronDown, Clock3, FileText, Grid2X2, MessageCircle, Pencil, Pin, PinOff, Puzzle, X } from 'lucide-react'
+import { ChevronDown, MessageCircle, Pencil, Pin, PinOff, Puzzle, X } from 'lucide-react'
 import type { XpertExtensionViewManifest } from '@xpert-ai/contracts'
 import type { AssistantRow } from '../assistant-list-model'
 import { assistantStatusLabel } from '../assistant-list-model'
@@ -12,6 +12,8 @@ import { Button, DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, Dropdow
 import { ProfileActivity, ProfileDetails, profileDate } from './NativeProfileTabs'
 import { ProfileError, ProfileLoading } from './ProfileState'
 import { RemoteProfileView } from './RemoteProfileView'
+import { TriggerSection } from './triggers/TriggerSection'
+import { useTriggerSettings } from './triggers/useTriggerSettings'
 
 export function ProfilePanel({
   row,
@@ -39,7 +41,11 @@ export function ProfilePanel({
   const [viewsLoading, setViewsLoading] = useState(true)
   const [retry, setRetry] = useState(0)
   const [active, setActive] = useState('activity')
-  const [mounted, setMounted] = useState<string[]>([])
+  const [mounted, setMounted] = useState<string[]>(['activity'])
+  const triggerSettings = useTriggerSettings(
+    row.bot.id,
+    mounted.includes('channels') || mounted.includes('automations')
+  )
   const busyViews = useRef(new Set<string>())
   const [busy, setBusy] = useState(false)
   const reportBusy = useRef(onBusy)
@@ -84,20 +90,20 @@ export function ProfilePanel({
   const selectTab = (key: string) => {
     if (busyViews.current.size) return
     setActive(key)
-    if (key.startsWith('view:')) setMounted((items) => (items.includes(key) ? items : [...items, key]))
+    setMounted((items) => (items.includes(key) ? items : [...items, key]))
   }
   const native = [
-    { key: 'activity', label: t('Activity'), Icon: Clock3 },
-    { key: 'capabilities', label: t('Capabilities'), Icon: Grid2X2 },
-    { key: 'about', label: t('About'), Icon: FileText }
+    { key: 'activity', label: t('Activity') },
+    { key: 'channels', label: t('Channels') },
+    { key: 'automations', label: t('Automations') },
+    { key: 'about', label: t('About') }
   ]
   const custom = views.map((view) => ({
     key: `view:${view.key}`,
     label: localizedText(view.title, locale) || view.key,
     Icon: Puzzle
   }))
-  const featured = custom.find((item) => item.key === active) || custom[0]
-  const visibleTabs = [...native, ...(featured ? [featured] : [])]
+  const visibleTabs = native
   const refresh = () => setRetry((value) => value + 1)
   return (
     <>
@@ -188,7 +194,7 @@ export function ProfilePanel({
             }
           }}
         >
-          {visibleTabs.map(({ key, label, Icon }) => (
+          {visibleTabs.map(({ key, label }) => (
             <button
               key={key}
               role="tab"
@@ -201,12 +207,11 @@ export function ProfilePanel({
               className={`flex min-w-0 items-center justify-center gap-1 border-b-2 px-2 py-3 text-xs outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring disabled:opacity-50 ${!custom.length || key.startsWith('view:') ? 'flex-1' : 'shrink-0'} ${active === key ? 'border-primary font-medium text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
               title={label}
             >
-              <Icon className="size-3.5 shrink-0" />
               <span className="truncate">{label}</span>
             </button>
           ))}
         </div>
-        {custom.length > 1 && (
+        {custom.length > 0 && (
           <DropdownMenu
             onOpenChange={(open) => {
               if (open && !pinned) onPin()
@@ -242,8 +247,17 @@ export function ProfilePanel({
           >
             {key === 'activity' ? (
               <ProfileActivity row={row} onSelect={onSelect} />
+            ) : key === 'channels' || key === 'automations' ? (
+              mounted.includes(key) && (
+                <TriggerSection
+                  botId={row.bot.id}
+                  category={key === 'channels' ? 'channel' : 'automation'}
+                  settings={triggerSettings}
+                  onBusy={setViewBusy}
+                />
+              )
             ) : profile ? (
-              <ProfileDetails profile={profile} tab={key} />
+              <ProfileDetails profile={profile} />
             ) : profileError ? (
               <ProfileError message={profileError} retry={refresh} />
             ) : (

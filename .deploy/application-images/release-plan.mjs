@@ -1,6 +1,6 @@
-// Invariants: only a newly added image Changeset requests a candidate. A stable
-// image requires main to consume its pending notes with the exact version bump.
-// Shared package releases must explicitly include their consuming applications.
+// Invariants: image releases require new notes or verified Changesets versioning.
+// Downstream sync may explicitly retain notes, but can then build candidates only.
+// Stable images require complete consumption on main with the exact version bump.
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { appendFileSync } from 'node:fs'
@@ -17,8 +17,22 @@ const bump = (version, notes) =>
     notes.reduce((type, note) => (priorities[note.type] > priorities[type] ? note.type : type), 'patch')
   )
 
-export function releasePlan({ before, after, event, ref, cwd = process.cwd() }) {
+export function releasePlan({
+  before,
+  after,
+  event,
+  ref,
+  cwd = process.cwd(),
+  retainedChangesetPolicy = 'reject',
+  applicationNames = services.map((service) => service.name)
+}) {
   assert.ok(['push', 'pull_request'].includes(event), 'Unsupported application image release event')
+  assert.ok(['reject', 'candidate'].includes(retainedChangesetPolicy), 'Unsupported retained Changeset policy')
+  const selectedServices = services.filter((service) => applicationNames.includes(service.name))
+  assert.ok(
+    selectedServices.length > 0 && applicationNames.every((name) => services.some((service) => service.name === name)),
+    'Unsupported application image selection'
+  )
   const skip = (reason) => ({ build: false, publish: false, reason, matrix: { include: [] } })
   if (event === 'push' && !['refs/heads/develop', 'refs/heads/main'].includes(ref)) return skip('Not a release branch')
   for (const sha of [before, after]) assert.match(sha ?? '', /^[a-f0-9]{40}$/, 'Exact commit SHAs required')
@@ -27,7 +41,10 @@ export function releasePlan({ before, after, event, ref, cwd = process.cwd() }) 
     execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim()
   if (event === 'pull_request') before = git('merge-base', before, after)
   else git('merge-base', '--is-ancestor', before, after)
-  const releasePaths = ['.changeset', ...new Set(services.flatMap(({ manifest, shared }) => [manifest, ...shared]))]
+  const releasePaths = [
+    '.changeset',
+    ...new Set(selectedServices.flatMap(({ manifest, shared }) => [manifest, ...shared]))
+  ]
   const tree = (sha) => new Set(git('ls-tree', '-r', '--name-only', sha, '--', ...releasePaths).split('\n'))
   const oldTree = tree(before),
     newTree = tree(after)
@@ -55,7 +72,7 @@ export function releasePlan({ before, after, event, ref, cwd = process.cwd() }) 
   )
   const fresh = newNotes.filter((note) => added.has(note.file))
   const include = []
-  for (const service of services) {
+  for (const service of selectedServices) {
     const current = read(after, service.manifest)
     const previous = oldTree.has(service.manifest) ? read(before, service.manifest) : current
     for (const manifest of [previous, current]) {
@@ -71,29 +88,32 @@ export function releasePlan({ before, after, event, ref, cwd = process.cwd() }) 
     const requested = fresh.filter((note) => note.name === service.name)
     const versioned = current.version !== previous.version
     let baseVersion, evidence
+    let retainedForCandidate = false
     if (versioned) {
       // An indirect dependency bump alone does not authorize an image release.
       if (!pending.length) {
         assert.equal(requested.length, 0, `Land ${service.name} Changesets before consuming them`)
         continue
       }
+      const consumed = pending.filter((note) => !newTree.has(note.file))
+      retainedForCandidate = retainedChangesetPolicy === 'candidate' && consumed.length > 0 && remaining.length > 0
       assert.ok(
-        pending.every((note) => !newTree.has(note.file)),
+        retainedForCandidate || consumed.length === pending.length,
         `${service.name} must consume all pending Changesets`
       )
       assert.equal(
         current.version,
-        bump(previous.version, pending),
+        bump(previous.version, consumed),
         `${service.name} version must match its requested bump`
       )
-      baseVersion = current.version
-      evidence = pending
+      baseVersion = retainedForCandidate ? bump(current.version, remaining) : current.version
+      evidence = retainedForCandidate ? [...consumed, ...requested] : consumed
     } else {
       if (!requested.length) continue
       baseVersion = bump(current.version, remaining)
       evidence = requested
     }
-    const stable = versioned && event === 'push' && ref === 'refs/heads/main'
+    const stable = versioned && !retainedForCandidate && event === 'push' && ref === 'refs/heads/main'
     const channel = event === 'pull_request' ? 'pr' : ref === 'refs/heads/main' ? 'main' : 'develop'
     const version = stable ? baseVersion : `${baseVersion}-candidate.${channel}.${after.slice(0, 12)}`
     include.push({
@@ -114,7 +134,7 @@ export function releasePlan({ before, after, event, ref, cwd = process.cwd() }) 
   }
 
   const missing = new Set()
-  for (const service of services) {
+  for (const service of selectedServices) {
     for (const manifest of service.shared) {
       const current = read(after, manifest)
       const newlyDeclared = fresh.some((note) => note.name === current.name)

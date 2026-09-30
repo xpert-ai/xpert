@@ -48,12 +48,56 @@ Desktop changeset too.
   pushes so the previous revision contains the pending release evidence.
 - After **all six** stable jobs pass, the production job creates a GitHub Release
   **draft** named `Bosi <version>` with tag `desktop-v<version>` pinned to the source
-  commit. It attaches all twelve installers, `SHA256SUMS.txt` and `release-manifest.json`.
-  Review and publish the draft manually. This does not configure an app auto-updater.
+  commit. It attaches all twelve installers, architecture-specific update feeds,
+  `SHA256SUMS.txt` and `release-manifest.json`. Review and publish the draft manually.
+  Publishing also makes its update feeds available to stable installed Desktop apps.
 
 There is no manual-dispatch bypass. A partial draft upload can be rerun: existing
 assets must have the same source commit and SHA-256 digests. Published releases,
 conflicting tags or assets are never overwritten.
+
+## In-app updates
+
+Stable packages check for updates 15 seconds after launch and every six hours.
+The host selects published, non-prerelease `desktop-v<version>` releases with a
+feed for the running OS/architecture; platform releases in this shared repository
+are ignored. No GitHub token or workspace credentials are used. Discovery uses
+strict HTTPS independently of connection settings and private-service certificate exceptions.
+
+The account footer shows a download icon, expanding to **Update** on hover/focus.
+Downloading starts on click and displays percentage progress. Completion prompts
+**Install and restart** or **Later**. Installation first stops Desktop Shell tools,
+then hands off to electron-updater with relaunch enabled. Regular app exit does not
+automatically install the update. Failed checks/downloads/installation can be retried.
+
+Each feed contains the version, installer filename, size and SHA-512 derived from
+the verified release artifacts. Filenames are unique across matrix jobs:
+
+| Platform | x64                     | arm64                           |
+| -------- | ----------------------- | ------------------------------- |
+| macOS    | `desktop-x64-mac.yml`   | `desktop-arm64-mac.yml`         |
+| Windows  | `desktop-x64.yml`       | `desktop-arm64.yml`             |
+| Linux    | `desktop-x64-linux.yml` | `desktop-arm64-linux-arm64.yml` |
+
+macOS feeds reference ZIP archives and are produced only for Developer ID signed
+builds. Windows feeds reference NSIS installers; Linux feeds reference AppImages.
+Full downloads are used, with checksum/signature verification provided by
+electron-updater. The embedded `app-update.yml` retains Windows publisher validation.
+
+Candidates, development/browser previews, ad-hoc macOS apps and Linux tarball
+executions do not enable updates. Manual/customer packages are opt-out by default;
+only the stable release packaging script sets `desktopUpdates: true`. Existing
+versions without the updater need one manual installation of an enabled stable
+build. End-to-end OS replacement/relaunch must be accepted with two signed releases
+on each supported target before distributing to users.
+
+Local UI and real download/checksum checks (the latter runs on macOS and never installs):
+
+```bash
+corepack pnpm --filter @xpert-ai/desktop exec vite --host 127.0.0.1 --port 4397 --strictPort
+BOSI_UI_BASE=http://127.0.0.1:4397 node apps/desktop/scripts/test-update-ui.mjs
+node apps/desktop/scripts/test-update-download.mjs
+```
 
 ## Dependency isolation and checks
 

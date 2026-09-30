@@ -4,6 +4,7 @@ import { Injectable, Logger, Type, Inject, NotFoundException } from '@nestjs/com
 import { CommandBus, ICommand, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { DeepPartial, FindOptionsWhere, IsNull, Not, Repository } from 'typeorm'
+import type { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import { XpertToolset } from './xpert-toolset.entity'
 import {
     IBuiltinTool,
@@ -94,7 +95,15 @@ export class XpertToolsetService extends XpertWorkspaceBaseService<XpertToolset>
         return await this.commandBus.execute(new command(...args))
     }
 
-    async update(id: string, entity: Partial<XpertToolset>) {
+    // Isolate TypeORM's recursive update type; business callers use the shallow method to keep ts-node inference bounded.
+    async update(
+        id: string,
+        entity: QueryDeepPartialEntity<XpertToolset> & Partial<XpertToolset>
+    ): Promise<XpertToolset> {
+        return this.updateToolset(id, entity)
+    }
+
+    async updateToolset(id: string, entity: Partial<XpertToolset>): Promise<XpertToolset> {
         const _entity = await super.findOne(id)
         assign(_entity, entity)
         return await this.save(_entity)
@@ -208,7 +217,7 @@ export class XpertToolsetService extends XpertWorkspaceBaseService<XpertToolset>
         // credentials = tool_configuration.encrypt_tool_credentials(credentials)
 
         if (entity.id) {
-            return await this.update(entity.id, entity)
+            return await this.updateToolset(entity.id, entity)
         }
 
         return await this.create({

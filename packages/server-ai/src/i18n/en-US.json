@@ -38,6 +38,9 @@
         "AssistantConfigurationForbidden": "Workspace edit access in the selected organization is required.",
         "AssistantConfigurationStale": "This assistant changed while you were editing. Reload its saved settings before trying again.",
         "AssistantConfigurationPublishFailed": "The settings were saved as a draft but could not be published. Check the draft in Xpert before retrying.",
+        "AssistantTriggerInvalid": "Invalid trigger configuration. Check required fields and account access.",
+        "AssistantTriggerStale": "This trigger has changed or has unpublished edits. Reload or resolve its draft in Xpert before saving.",
+        "AssistantTriggerDuplicate": "This provider has multiple triggers. Manage this workflow in Xpert.",
         "AssistantConfigurationInvalid": "Invalid assistant settings. Instructions must not exceed 32,000 characters.",
 
         "TemplateCapabilityNotSupported": "This template does not support the selected capability.",

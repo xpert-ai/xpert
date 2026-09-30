@@ -66,6 +66,8 @@
     "lockfile:check": "pnpm install --lockfile-only --frozen-lockfile --ignore-scripts && node .deploy/api/dependencies.cjs check && node .deploy/webapp/dependencies.cjs check && node .deploy/desktop/dependencies.cjs check",
     "api:image:check": "docker build --target production -f .deploy/api/Dockerfile -t xpert-api:health-check . && node .deploy/api/check-image.cjs",
     "check:typeorm-columns": "node tools/scripts/check-typeorm-column-types.cjs",
+    "check:request-context-imports": "node tools/scripts/check-request-context-imports.cjs",
+    "test:request-context-imports": "node --test tools/scripts/check-request-context-imports.test.cjs",
     "migrate:knowledge-filter-v2": "cross-env NODE_ENV=development NODE_OPTIONS=--max_old_space_size=8192 pnpm ts-node -r tsconfig-paths/register --project apps/api/tsconfig.app.json apps/api/src/main.ts --command knowledge-filter-v2",
     "release:publish": "node tools/release/publish-npm-packages.mjs",
     "b:stats": "pnpm nx build cloud --stats-json",

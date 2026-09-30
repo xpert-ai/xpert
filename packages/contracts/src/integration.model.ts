@@ -162,6 +162,9 @@ export interface TIntegrationQrSession {
 
 export type TIntegrationQrStatus = 'waiting' | 'authorized' | 'expired' | 'denied' | 'failed'
 
+/** Stable setup failures; clients translate these codes instead of parsing server messages. */
+export type TIntegrationQrErrorCode = 'INTEGRATION_QR_BUSY' | 'TRIGGER_DRAFT_CONFLICT' | 'TRIGGER_PUBLISH_REQUIRED'
+
 export interface TIntegrationQrResult {
   status: TIntegrationQrStatus
 }

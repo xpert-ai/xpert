@@ -1,6 +1,17 @@
 const { contextBridge, ipcRenderer } = require('electron')
 let avatarPointerSubscribers = 0
 contextBridge.exposeInMainWorld('xpertDesktop', {
+  updates: {
+    getState: () => ipcRenderer.invoke('xpert:update', 'state'),
+    check: () => ipcRenderer.invoke('xpert:update', 'check'),
+    download: () => ipcRenderer.invoke('xpert:update', 'download'),
+    install: () => ipcRenderer.invoke('xpert:update', 'install'),
+    onState: (callback) => {
+      const listener = (_event, state) => callback(state)
+      ipcRenderer.on('xpert:update-state', listener)
+      return () => ipcRenderer.removeListener('xpert:update-state', listener)
+    }
+  },
   onAvatarPointer: (callback) => {
     const listener = (_event, point) => {
       if (point === null || (Number.isFinite(point?.x) && Number.isFinite(point?.y))) callback(point)

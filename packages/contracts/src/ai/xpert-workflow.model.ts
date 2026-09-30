@@ -3,6 +3,7 @@ import { ICopilotModel } from './copilot-model.model'
 import { TKBRecallParams } from './knowledgebase.model'
 import { ApiAuthType, JsonSchemaObjectType, TErrorHandling, TXpertRefParameter } from './types'
 import { TKBRetrievalSettings, TStateVariable, TXpertParameter } from './xpert.model'
+import type { AssistantTriggerPresentation } from './assistant-trigger.model'
 
 export type TWorkflowNodeMeta = {
   name: string
@@ -13,6 +14,7 @@ export type TWorkflowNodeMeta = {
 }
 
 export type TWorkflowTriggerMeta = TWorkflowNodeMeta & {
+  assistant?: AssistantTriggerPresentation
   quickConnect?: {
     method: 'qr'
     integrationProvider: string

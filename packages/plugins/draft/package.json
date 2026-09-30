@@ -1,6 +1,6 @@
 {
   "name": "@xpert-ai/plugin-draft",
-  "version": "12.0.7",
+  "version": "12.1.0",
   "private": true,
   "xpert": {
     "plugin": {
@@ -18,11 +18,11 @@
   "main": "./index.cjs",
   "module": "./index.js",
   "peerDependencies": {
-    "@xpert-ai/contracts": "workspace:*",
+    "@xpert-ai/contracts": "workspace:^",
     "@nestjs/common": "*",
     "@nestjs/config": "*",
     "@nestjs/core": "*",
     "@xpert-ai/chatkit-types": "catalog:",
-    "@xpert-ai/plugin-sdk": "workspace:*"
+    "@xpert-ai/plugin-sdk": "workspace:^"
   }
 }

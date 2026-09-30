@@ -13,7 +13,7 @@ import {
     type IChatMessage,
     type IXpertAgentExecution
 } from '@xpert-ai/contracts'
-import { RequestContext } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { ChatConversation } from '../../chat-conversation/conversation.entity'
 import { ChatConversationUpsertCommand } from '../../chat-conversation/commands/upsert.command'
 import { ChatConversationThreadService } from '../../chat-conversation/conversation-thread.service'

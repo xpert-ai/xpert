@@ -9,6 +9,13 @@ const packaged = createRequire(manifestPath)
 assert.equal(packaged('./package.json').version, version)
 assert.equal(typeof packaged('@xpert-ai/desktop-protocol').parseCommand, 'function')
 assert.equal(typeof packaged('socket.io-client').io, 'function')
+assert.equal(typeof packaged('electron-updater').AppUpdater, 'function')
+assert.equal(typeof packaged('./electron/updates/controller.cjs').DesktopUpdater, 'function')
+if (packaged('./package.json').desktopUpdates) {
+  const updateConfig = fs.readFileSync(path.join(path.dirname(archive), 'app-update.yml'), 'utf8')
+  assert.match(updateConfig, /provider: generic/)
+  assert.ok(updateConfig.includes(`channel: desktop-${process.arch}`))
+}
 assert.equal(typeof packaged('./electron/service.cjs').DesktopService, 'function')
 const { packagedConnection } = packaged('./electron/connection/defaults.cjs')
 const { DesktopService } = packaged('./electron/service.cjs')

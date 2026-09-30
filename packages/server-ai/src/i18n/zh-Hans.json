@@ -38,6 +38,9 @@
         "AssistantConfigurationForbidden": "需要当前组织中该工作空间的编辑权限。",
         "AssistantConfigurationStale": "此专家在编辑期间已更新，请重新加载已保存的设置后再试。",
         "AssistantConfigurationPublishFailed": "设置已保存为草稿，但发布失败。请到 Xpert 检查草稿后再试。",
+        "AssistantTriggerInvalid": "触发器配置无效，请检查必填项及账号访问权限。",
+        "AssistantTriggerStale": "触发器已被修改或存在未发布配置，请刷新或在 Xpert 中处理草稿后重试。",
+        "AssistantTriggerDuplicate": "此 Provider 存在多个触发器，请在 Xpert 工作流中管理。",
         "AssistantConfigurationInvalid": "专家设置无效，提示词最多支持 32,000 个字符。",
 
         "TemplateCapabilityNotSupported": "此模板不支持所选能力。",
