@@ -6,6 +6,7 @@ export const resources: Record<Locale, Record<MessageKey, string>>
 export const languages: readonly { value: Locale; label: string }[]
 export function normalizeLocale(value: unknown): Locale
 export function isSupportedLocale(value: unknown): boolean
+export function resolveSystemLocale(preferredLanguages: unknown): Locale
 export function translate(locale: unknown, key: string, params?: MessageParams): string
 export function localizedText(value: unknown, locale: unknown): string
 export class MessageError extends Error {

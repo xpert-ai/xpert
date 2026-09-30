@@ -3,7 +3,14 @@ const assert = require('node:assert/strict')
 const fs = require('node:fs')
 const path = require('node:path')
 const ts = require('typescript')
-const { resources, languages, normalizeLocale, translate, localizedText } = require('../electron/i18n/index.mjs')
+const {
+  resources,
+  languages,
+  normalizeLocale,
+  resolveSystemLocale,
+  translate,
+  localizedText
+} = require('../electron/i18n/index.mjs')
 const { DesktopService, DEFAULT_CONFIG, parseConfig } = require('../electron/service.cjs')
 const { dispatch } = require('../electron/dispatch.cjs')
 const { menuTemplate } = require('../electron/menu.cjs')
@@ -130,6 +137,92 @@ test('language persists across restarts without invalidating authentication, org
     assert.equal(restored.config.locale, locale)
     assert.equal((await restored.state()).profile.user.name, 'Author name')
   }
+})
+
+test('new installs and missing legacy locales use supported system languages in preference order', () => {
+  for (const [preferred, expected] of [
+    [['zh-Hans-CN', 'en-US'], 'zh-Hans'],
+    [['zh-TW', 'en'], 'zh-Hant'],
+    [['ja-JP', 'en'], 'ja'],
+    [['en-GB', 'zh-CN'], 'en'],
+    [['fr-FR', 'ja-JP', 'en'], 'ja'],
+    [['fr-FR'], 'en'],
+    [[], 'en']
+  ]) {
+    assert.equal(resolveSystemLocale(preferred), expected)
+    assert.equal(new DesktopService({ systemLanguages: preferred }).config.locale, expected)
+  }
+  const { locale, ...legacy } = DEFAULT_CONFIG
+  for (const value of [undefined, 'unsupported']) {
+    const service = new DesktopService({
+      systemLanguages: ['zh-CN'],
+      storage: { read: () => ({ config: { ...legacy, locale: value } }), write() {} }
+    })
+    assert.equal(service.config.locale, 'zh-Hans')
+  }
+  const saved = new DesktopService({
+    systemLanguages: ['zh-CN'],
+    storage: { read: () => ({ config: { ...DEFAULT_CONFIG, locale: 'ja' } }), write() {} }
+  })
+  assert.equal(saved.config.locale, 'ja')
+})
+
+test('sign-in and restored sessions prefer the account language over the system and saved desktop language', async () => {
+  for (const [preferredLanguage, expected] of [
+    ['zh-CN', 'zh-Hans'],
+    ['en-US', 'en'],
+    ['zh-TW', 'zh-Hant'],
+    ['ja-JP', 'ja'],
+    [null, 'en'],
+    ['fr', 'en']
+  ]) {
+    let saved = { config: DEFAULT_CONFIG }
+    const storage = {
+      read: () => structuredClone(saved),
+      write: (value) => {
+        saved = structuredClone(value)
+      }
+    }
+    const user = { id: 'user', tenantId: 'tenant', preferredLanguage }
+    const fetcher = async (url) =>
+      new Response(
+        JSON.stringify(
+          url.endsWith('/auth/login')
+            ? { user, token: 'fixture', refreshToken: 'refresh-fixture' }
+            : { user, organizations: [{ id: 'org', name: 'Workspace' }] }
+        )
+      )
+    const service = new DesktopService({ systemLanguages: ['ja-JP'], storage, fetcher })
+    const signedIn = await service.login({ email: 'test@example.com', password: 'fixture' })
+    assert.equal(signedIn.config.locale, expected)
+    assert.equal(saved.config.locale, expected)
+    const restored = new DesktopService({ systemLanguages: ['zh-TW'], storage, fetcher })
+    assert.equal((await restored.state()).config.locale, expected)
+    assert.equal(restored.profile.user.id, 'user')
+    assert.doesNotMatch(JSON.stringify(restored.snapshot()), /refresh-fixture/)
+  }
+})
+
+test('restored account preferences update an old English default and refresh without resetting the workspace', async () => {
+  let preferredLanguage = 'zh-CN'
+  const service = new DesktopService({
+    systemLanguages: ['en-US'],
+    storage: {
+      read: () => ({ config: DEFAULT_CONFIG, credentials: { token: 'fixture', refreshToken: 'refresh-fixture' } }),
+      write() {}
+    },
+    fetcher: async () =>
+      new Response(
+        JSON.stringify({ user: { id: 'user', preferredLanguage }, organizations: [{ id: 'org', name: 'Workspace' }] })
+      )
+  })
+  assert.equal(service.config.locale, 'en')
+  assert.equal((await service.state()).config.locale, 'zh-Hans')
+  const generation = service.generation
+  preferredLanguage = 'ja'
+  assert.equal((await service.refreshProfile()).config.locale, 'ja')
+  assert.equal(service.profile.organizationId, 'org')
+  assert.equal(service.generation, generation)
 })
 
 test('host errors carry safe English message keys and interpolate translated validation labels', async () => {

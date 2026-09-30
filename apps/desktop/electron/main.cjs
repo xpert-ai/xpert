@@ -144,7 +144,8 @@ else {
       localLogin,
       certificateProbe: (origin) => probeCertificate(session, origin),
       fetcher: (url, options) => connectionSession.fetch(url, { ...options, credentials: 'omit' }),
-      defaultConfig: app.isPackaged ? packagedConnection() : connectionDefaults()
+      defaultConfig: app.isPackaged ? packagedConnection() : connectionDefaults(),
+      systemLanguages: [...app.getPreferredSystemLanguages(), app.getLocale()]
     })
     service.shell = new DesktopShellController(service, path.join(app.getPath('userData'), 'desktop-shell'))
     resetConnectionSession()
@@ -180,7 +181,9 @@ else {
           status: 403
         }
       const previousPolicy = connectionPolicyKey(service.config)
+      const previousLocale = service.config.locale
       const result = await dispatch(service, method, argument)
+      if (previousLocale !== service.config.locale) updateApplicationMenu()
       // Only a host-verified, live connection attempt may bring Desktop back from browser authorization.
       if (method === 'checkPluginConnection' && result.ok && result.value.status === 'connected') {
         if (window?.isMinimized()) window.restore()
@@ -189,7 +192,6 @@ else {
         window?.focus()
       }
       if (method === 'configure' && result.ok) {
-        updateApplicationMenu()
         if (previousPolicy !== connectionPolicyKey(service.config)) {
           const previousSession = connectionSession
           resetConnectionSession()

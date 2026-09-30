@@ -40,7 +40,8 @@ export function App() {
   const locale = useLocale()
   const savedLocale = useRef<ConnectionConfig['locale'] | undefined>(undefined)
   useEffect(() => {
-    setLocale(preview?.locale ?? state?.config.locale ?? 'en')
+    const selectedLocale = preview?.locale ?? state?.config.locale
+    if (selectedLocale) setLocale(selectedLocale)
   }, [preview?.locale, state?.config.locale])
   const theme = preview?.theme ?? state?.config.theme
   const appearance = preview?.appearance ?? state?.config.appearance

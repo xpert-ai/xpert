@@ -1,5 +1,11 @@
 // Credentials stay in the host. Only scoped ChatKit secrets cross into the renderer.
-const { MessageError, normalizeLocale, isSupportedLocale, localizedText } = require('./i18n/index.mjs')
+const {
+  MessageError,
+  normalizeLocale,
+  resolveSystemLocale,
+  isSupportedLocale,
+  localizedText
+} = require('./i18n/index.mjs')
 const { parseAppearance } = require('./appearance.cjs')
 const { parseBusinessArea } = require('./business-area.cjs')
 const { apiRootUrl, chatkitUrl } = require('./connection/urls.mjs')
@@ -73,6 +79,7 @@ function parseUser(value) {
     id: value.id,
     avatarUrl: typeof value.imageUrl === 'string' && /^https?:\/\//.test(value.imageUrl) ? value.imageUrl : null,
     tenantId: typeof value.tenantId === 'string' ? value.tenantId : null,
+    preferredLanguage: isSupportedLocale(value.preferredLanguage) ? normalizeLocale(value.preferredLanguage) : null,
     name:
       [value.fullName, value.name, value.firstName, value.email].find(
         (item) => typeof item === 'string' && item.trim()
@@ -125,13 +132,20 @@ function parseBots(value, locale) {
 }
 
 class DesktopService {
-  constructor({ storage, fetcher = fetch, localLogin, certificateProbe, defaultConfig = DEFAULT_CONFIG } = {}) {
+  constructor({
+    storage,
+    fetcher = fetch,
+    localLogin,
+    certificateProbe,
+    defaultConfig = DEFAULT_CONFIG,
+    systemLanguages = []
+  } = {}) {
     this.storage = storage || { read: () => null, write: () => {} }
     this.fetcher = fetcher
     this.localLogin = localLogin
     this.certificateProbe = certificateProbe
     const saved = this.storage.read()
-    const defaults = parseConfig({ ...DEFAULT_CONFIG, ...defaultConfig })
+    const defaults = parseConfig({ ...DEFAULT_CONFIG, ...defaultConfig, locale: resolveSystemLocale(systemLanguages) })
     const savedConfig = saved?.config || defaults
     let validSavedConfig = Boolean(saved?.config)
     let appearance
@@ -141,7 +155,11 @@ class DesktopService {
       appearance = parseAppearance()
     }
     try {
-      this.config = parseConfig({ ...savedConfig, appearance, locale: normalizeLocale(savedConfig.locale) })
+      this.config = parseConfig({
+        ...savedConfig,
+        appearance,
+        locale: isSupportedLocale(savedConfig.locale) ? normalizeLocale(savedConfig.locale) : defaults.locale
+      })
     } catch {
       this.config = defaults
       validSavedConfig = false
@@ -254,7 +272,16 @@ class DesktopService {
 
   async bootstrap() {
     this.profile = parseBootstrap(await this.request('/api/mobile/bootstrap'))
+    this.applyAccountLanguage()
     return this.profile
+  }
+
+  applyAccountLanguage() {
+    const locale = this.profile?.user.preferredLanguage
+    if (locale && locale !== this.config.locale) {
+      this.config = { ...this.config, locale }
+      this.persist()
+    }
   }
 
   async refreshProfile() {
@@ -275,6 +302,7 @@ class DesktopService {
         this.sourceBots = []
       }
       this.profile = profile
+      this.applyAccountLanguage()
       this.credentials = { ...this.credentials, organizationId: profile.organizationId }
       this.persist()
       return this.snapshot()

@@ -29,7 +29,13 @@ export interface ConnectionConfig {
   appearance?: AppearanceConfig
 }
 export interface Profile {
-  user: { id: string; name: string; tenantId: string | null; avatarUrl: string | null }
+  user: {
+    id: string
+    name: string
+    tenantId: string | null
+    avatarUrl: string | null
+    preferredLanguage?: Locale | null
+  }
   organizations: { id: string; name: string }[]
   organizationId: string | null
 }
