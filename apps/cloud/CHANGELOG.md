@@ -1,5 +1,32 @@
 # @xpert-ai/xpert-ui
 
+## 3.19.0
+
+### Minor Changes
+
+- e4485ba: Release Bosi Desktop, API and Webapp together for configurable digital experts.
+
+  Bosi can create blank assistants and edit their model, optional capabilities and instructions. Personal profile overrides remain local, while shared assistant settings require workspace edit access and take effect after publishing.
+
+  Add an extensible Assistant capability registry, model and runtime compatibility checks, and configuration APIs with stale-edit protection. Keep cloud computer support in the Pro capability provider, and preserve existing workflow settings when managed capabilities change.
+
+- 99d09ec: Release a coordinated minor update across all Xpert workspace packages, including the API, Web and Bosi applications, shared SDK and contracts, backend and UI libraries, bundled plugins, sandbox runtimes and documentation.
+
+### Patch Changes
+
+- 79cc75a: Publish application Docker images only for their own Changesets. Build scoped candidates, require consumed Changesets for stable releases, and check that shared package releases include their consuming applications.
+- ce73ebe: Upgrade the shared ChatKit packages to 0.8.0 across the API, Web and Bosi desktop applications.
+- 1e44173: Upgrade ChatKit UI to 0.5.13 and align ChatKit types on 0.5.9 across the host packages. Include the released history loading, reasoning, composer file selector, and plugin-provided approval presentation improvements.
+- 7108a25: Publish API and Web candidates together for the shared execution-navigation contract changes.
+- c953822: Support the assistant.execution Workbench navigation target and forward embedded ChatKit commands through the current view's authorized host handlers when local navigation is unavailable. Pass exact execution focus and a fresh request ID into the authorized conversation so repeated selections reopen the same record. Preserve the existing agent.workbench.fixed slot and conversation navigation compatibility.
+- b62543f: Add editable prompt workflow scenarios, organization tags, expert associations, and expert-scoped capability selections. Refresh prompt management and command availability, preserve explicit field clearing, and send expanded editable prompts without expanding them again on the server.
+
+  Requires the ChatKit types and UI release that introduces prompt scenarios and editable prompt drafts; update the host's ChatKit dependencies to that published release before shipping.
+
+- 5f26e05: Add an opt-in frequent-question start screen using the existing question API, and expose the generic `platform.data-source.create` client command so plugins can open the host's permission-checked data source creation dialog without receiving credentials.
+
+  The compact question list requires the ChatKit release supporting startScreen.promptsLayout.
+
 ## 3.18.6
 
 ### Patch Changes
