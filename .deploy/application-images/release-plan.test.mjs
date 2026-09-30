@@ -377,6 +377,275 @@ test('fresh notes beside consumed notes also prevent stable promotion under cand
   assert.deepEqual(tags(image), [image.version, `sha-${after}`, 'main-candidate'])
   assert.deepEqual(image.changesets, ['.changeset/upstream.md', '.changeset/downstream-new.md'])
 })
+test('a merge verifies upstream versioning notes absent from the main baseline and only builds candidates', (t) => {
+  const f = fixture(t, { retainedChangesetPolicy: 'candidate' })
+  f.note('old-web', [web.name, contracts])
+  const before = f.commit()
+  f.git('checkout', '-qb', 'upstream')
+  f.note('upstream-minor', [api.name, web.name, contracts], 'minor')
+  f.commit()
+  f.remove('old-web')
+  f.remove('upstream-minor')
+  f.version(api, '1.1.0')
+  f.version(web, '1.1.0')
+  f.write('packages/contracts/package.json', JSON.stringify({ name: contracts, version: '1.1.0' }))
+  const upstream = f.commit()
+
+  f.git('checkout', '-qb', 'downstream', before)
+  f.write(
+    '.changeset/downstream-apps.md',
+    `---\n'${api.name}': patch\n'${web.name}': patch\n---\nPublish downstream images after synchronizing upstream release tooling.\n`
+  )
+  f.commit()
+  f.git(
+    '-c',
+    'core.hooksPath=/dev/null',
+    '-c',
+    'user.name=Release tests',
+    '-c',
+    'user.email=test@example.invalid',
+    'merge',
+    '--no-ff',
+    '-qm',
+    'Sync upstream release',
+    upstream
+  )
+  const after = f.git('rev-parse', 'HEAD')
+
+  for (const [event, ref, channel] of [
+    ['push', 'refs/heads/develop', 'develop'],
+    ['push', 'refs/heads/main', 'main'],
+    ['pull_request', 'refs/pull/1/merge', 'pr']
+  ]) {
+    const plan = f.plan(before, after, event, ref)
+    assert.equal(plan.publish, event === 'push')
+    assert.deepEqual(
+      plan.matrix.include.map((image) => image.image_name),
+      ['xpert-api', 'xpert-webapp']
+    )
+    for (const image of plan.matrix.include) {
+      assert.equal(image.version, `1.1.1-candidate.${channel}.${after.slice(0, 12)}`)
+      assert.equal(image.versioned, true)
+      assert.equal(image.stable, false)
+      assert.equal(image.target, 'candidate')
+      assert.deepEqual(image.tags.split('\n'), [
+        `type=raw,value=${image.version}`,
+        `type=raw,value=sha-${after}`,
+        `type=raw,value=${channel}-candidate`
+      ])
+      assert.ok(image.changesets.includes('.changeset/upstream-minor.md'))
+      assert.ok(image.changesets.includes('.changeset/downstream-apps.md'))
+    }
+  }
+
+  f.write('README.md', 'Source-only follow-up after the merge')
+  const next = f.commit()
+  assert.equal(f.plan(after, next, 'push', 'refs/heads/main').build, false)
+  f.remove('downstream-apps')
+  f.version(api, '1.1.1')
+  f.version(web, '1.1.1')
+  const released = f.plan(next, f.commit(), 'push', 'refs/heads/main')
+  assert.equal(released.matrix.include.length, 2)
+  assert.ok(released.matrix.include.every((image) => image.stable && image.version === '1.1.1'))
+})
+
+test('a merge verifies every upstream release in a continuous version chain', (t) => {
+  const f = fixture(t, { retainedChangesetPolicy: 'candidate' })
+  f.note('upstream-patch', [api.name, web.name, contracts])
+  const before = f.commit()
+  f.git('checkout', '-qb', 'upstream')
+  f.remove('upstream-patch')
+  f.version(api, '1.0.1')
+  f.version(web, '1.0.1')
+  f.write('packages/contracts/package.json', JSON.stringify({ name: contracts, version: '1.0.1' }))
+  f.commit()
+  f.note('upstream-minor', [api.name, web.name, contracts], 'minor')
+  f.commit()
+  f.remove('upstream-minor')
+  f.version(api, '1.1.0')
+  f.version(web, '1.1.0')
+  f.write('packages/contracts/package.json', JSON.stringify({ name: contracts, version: '1.1.0' }))
+  const upstream = f.commit()
+
+  f.git('checkout', '-qb', 'downstream', before)
+  f.write(
+    '.changeset/downstream-apps.md',
+    `---\n'${api.name}': patch\n'${web.name}': patch\n---\nPublish downstream candidates after synchronizing multiple upstream releases.\n`
+  )
+  f.commit()
+  f.git(
+    '-c',
+    'core.hooksPath=/dev/null',
+    '-c',
+    'user.name=Release tests',
+    '-c',
+    'user.email=test@example.invalid',
+    'merge',
+    '--no-ff',
+    '-qm',
+    'Sync two upstream releases',
+    upstream
+  )
+  const after = f.git('rev-parse', 'HEAD')
+
+  for (const [event, ref, channel] of [
+    ['push', 'refs/heads/develop', 'develop'],
+    ['push', 'refs/heads/main', 'main'],
+    ['pull_request', 'refs/pull/1/merge', 'pr']
+  ]) {
+    const plan = f.plan(before, after, event, ref)
+    assert.equal(plan.publish, event === 'push')
+    assert.deepEqual(
+      plan.matrix.include.map((image) => image.image_name),
+      ['xpert-api', 'xpert-webapp']
+    )
+    for (const image of plan.matrix.include) {
+      assert.equal(image.version, `1.1.1-candidate.${channel}.${after.slice(0, 12)}`)
+      assert.equal(image.versioned, true)
+      assert.equal(image.stable, false)
+      assert.equal(image.target, 'candidate')
+      assert.deepEqual(image.changesets, [
+        '.changeset/upstream-patch.md',
+        '.changeset/upstream-minor.md',
+        '.changeset/downstream-apps.md'
+      ])
+      assert.deepEqual(image.tags.split('\n'), [
+        `type=raw,value=${image.version}`,
+        `type=raw,value=sha-${after}`,
+        `type=raw,value=${channel}-candidate`
+      ])
+    }
+  }
+})
+
+test('a valid final release cannot hide a missing intermediate application declaration', (t) => {
+  const f = fixture(t, { retainedChangesetPolicy: 'candidate' })
+  f.version(api, '1.0.1')
+  f.commit()
+  f.note('upstream-minor', [api.name], 'minor')
+  f.commit()
+  f.remove('upstream-minor')
+  f.version(api, '1.1.0')
+  f.commit()
+  f.note('downstream-apps', [api.name])
+  assert.throws(() => f.plan(f.initial, f.commit()), /Land .* Changesets before consuming them/)
+})
+
+test('a valid final release cannot hide an incorrect intermediate version bump', (t) => {
+  const f = fixture(t, { retainedChangesetPolicy: 'candidate' })
+  f.note('upstream-patch', [api.name])
+  f.commit()
+  f.remove('upstream-patch')
+  f.version(api, '1.0.2')
+  f.commit()
+  f.note('upstream-minor', [api.name], 'minor')
+  f.commit()
+  f.remove('upstream-minor')
+  f.version(api, '1.1.0')
+  f.commit()
+  f.note('downstream-apps', [api.name])
+  assert.throws(() => f.plan(f.initial, f.commit()), /version must match its requested bump/)
+})
+
+test('every intermediate release still enforces shared package coverage', (t) => {
+  const f = fixture(t, { retainedChangesetPolicy: 'candidate' })
+  f.note('shared-only', [contracts])
+  f.commit()
+  f.remove('shared-only')
+  f.version(api, '1.0.1')
+  f.write('packages/contracts/package.json', JSON.stringify({ name: contracts, version: '1.0.1' }))
+  f.commit()
+  f.note('upstream-minor', [api.name], 'minor')
+  f.commit()
+  f.remove('upstream-minor')
+  f.version(api, '1.1.0')
+  f.commit()
+  f.note('downstream-apps', [api.name])
+  assert.throws(() => f.plan(f.initial, f.commit()), /Missing application image release declarations/)
+})
+
+test('release evidence from a sibling branch cannot fill an intermediate version gap', (t) => {
+  const f = fixture(t, { retainedChangesetPolicy: 'candidate' })
+  f.git('checkout', '-qb', 'patch')
+  f.note('upstream-patch', [api.name])
+  f.commit()
+  f.remove('upstream-patch')
+  f.version(api, '1.0.1')
+  const patch = f.commit()
+  f.git('checkout', '-qb', 'minor', f.initial)
+  f.version(api, '1.0.1')
+  f.commit()
+  f.note('upstream-minor', [api.name], 'minor')
+  f.commit()
+  f.remove('upstream-minor')
+  f.version(api, '1.1.0')
+  f.commit()
+  f.git(
+    '-c',
+    'core.hooksPath=/dev/null',
+    '-c',
+    'user.name=Release tests',
+    '-c',
+    'user.email=test@example.invalid',
+    'merge',
+    '--no-ff',
+    '-s',
+    'ours',
+    '-qm',
+    'Retain sibling release history',
+    patch
+  )
+  f.note('downstream-apps', [api.name])
+  assert.throws(() => f.plan(f.initial, f.commit()), /Land .* Changesets before consuming them/)
+})
+
+test('fresh downstream notes cannot authorize a version bump without a verified upstream release', (t) => {
+  const f = fixture(t, { retainedChangesetPolicy: 'candidate' })
+  f.version(api, '1.1.0')
+  f.commit()
+  f.note('downstream-apps', [api.name])
+  assert.throws(() => f.plan(f.initial, f.commit()), /Land .* Changesets before consuming them/)
+})
+
+test('merged upstream notes must still authorize the exact version increase', (t) => {
+  const f = fixture(t, { retainedChangesetPolicy: 'candidate' })
+  f.note('upstream-patch', [api.name])
+  f.commit()
+  f.remove('upstream-patch')
+  f.version(api, '1.1.0')
+  f.commit()
+  f.note('downstream-apps', [api.name])
+  assert.throws(() => f.plan(f.initial, f.commit()), /version must match its requested bump/)
+})
+
+test('historical source versioning without remaining downstream notes cannot promote stable tags', (t) => {
+  const f = fixture(t, { retainedChangesetPolicy: 'candidate' })
+  f.note('upstream', [api.name], 'minor')
+  f.commit()
+  f.remove('upstream')
+  f.version(api, '1.1.0')
+  const plan = f.plan(f.initial, f.commit(), 'push', 'refs/heads/main')
+  assert.equal(plan.publish, false)
+  assert.deepEqual(plan.matrix.include, [])
+})
+
+test('historical version evidence still enforces shared package release coverage', (t) => {
+  const f = fixture(t, { retainedChangesetPolicy: 'candidate' })
+  f.note('upstream-app', [api.name], 'minor')
+  f.commit()
+  f.remove('upstream-app')
+  f.version(api, '1.1.0')
+  // Distinct text prevents Git from treating the shared declaration as a renamed application note.
+  f.write(
+    '.changeset/undeclared-shared.md',
+    `---\n'${contracts}': patch\n---\nRelease shared contracts requiring every consuming application to declare its own image release.\n`
+  )
+  f.commit()
+  f.remove('undeclared-shared')
+  f.note('downstream-apps', [api.name])
+  assert.throws(() => f.plan(f.initial, f.commit()), /Missing application image release declarations/)
+})
+
 test('application selection scopes validation while the default still checks NsJail', (t) => {
   const f = fixture(t)
   f.note('nsjail', [jail.name])
@@ -423,6 +692,16 @@ test('a version bump without a previously landed application note cannot publish
   assert.equal(f.plan(f.initial, bumped).build, false)
   f.note('api')
   assert.throws(() => f.plan(f.initial, f.commit()), /before consuming/)
+})
+test('the default policy does not accept versioning evidence hidden inside an aggregated sync', (t) => {
+  const f = fixture(t)
+  f.note('upstream', [api.name], 'minor')
+  f.commit()
+  f.remove('upstream')
+  f.version(api, '1.1.0')
+  f.commit()
+  f.note('downstream')
+  assert.throws(() => f.plan(f.initial, f.commit(), 'push', 'refs/heads/main'), /before consuming/)
 })
 test('new shared contracts notes require explicit API and Web image declarations', (t) => {
   const f = fixture(t)
