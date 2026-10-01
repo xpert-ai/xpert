@@ -160,3 +160,7 @@ containing these interfaces. They are not part of the published SDK 3.18.3 basel
 ## Conversation resource receipts
 
 See [RESOURCE-CARDS.md](./RESOURCE-CARDS.md) for the public protocol, tool/middleware emitter, transactional Project provider example, and coordinated release order.
+
+## Tool image references
+
+See [TOOL-IMAGES.md](./TOOL-IMAGES.md) for `ToolImagesRuntimeCapability`, reference-only tool results, temporary visual model inputs, execution scope, and recovery rules. Never persist the messages returned by `prepareModelInput`.
