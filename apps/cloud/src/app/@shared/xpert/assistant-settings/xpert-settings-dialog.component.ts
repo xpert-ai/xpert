@@ -140,18 +140,34 @@ export class XpertSettingsDialogComponent {
     if (section) this.select(section.key)
   }
   async saveCurrent() {
+    if (this.editor.publishing()) return
     if (this.editor.section() === 'personalization') await this.personalization()?.save()
     else if (this.editor.section() === 'subagents') await this.subagents()?.save()
     else if (this.editor.section() === 'skills') await this.skills()?.save()
     else if (this.editor.section() === 'middleware') await this.middleware()?.save()
     else if (this.editor.section() !== 'statistics') await this.editor.saveNow()
   }
+  async saveAndPublish() {
+    await this.editor.saveAndPublish(async () => {
+      for (const [section, component] of [
+        ['subagents', this.subagents()],
+        ['skills', this.skills()],
+        ['middleware', this.middleware()]
+      ] as const) {
+        if (component?.dirty() && !(await component.save())) {
+          this.select(section)
+          return false
+        }
+      }
+      return true
+    })
+  }
   continueEditing() {
     this.editor.confirmDiscard.set(false)
     this.select(this.editor.invalidSections()[0] ?? this.pendingSections()[0] ?? this.editor.section())
   }
   async close(discardInvalid = false) {
-    if (this.editor.closing() || this.personalization()?.saving()) return
+    if (this.editor.closing() || this.editor.publishing() || this.personalization()?.saving()) return
     if ((this.editor.invalidSections().length || this.pendingSections().length) && !discardInvalid) {
       this.editor.confirmDiscard.set(true)
       return

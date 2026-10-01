@@ -353,6 +353,10 @@ export type TXpertDataXpertOptions = {
 }
 
 export type TXpertOptions = {
+  /** Default ChatKit message display for this Assistant. Omit to inherit the host application's default. */
+  messagePresentation?: {
+    mode?: 'transcript' | 'bubbles'
+  }
   assistantCapabilities?: import('./assistant-configuration.model').AssistantCapabilityState
   /** Runtime-selectable Primary Agent models. The configured Primary model is added automatically. */
   modelSelection?: {

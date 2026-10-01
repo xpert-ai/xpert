@@ -56,6 +56,9 @@ export function createXpertSettingsForm(team: Partial<IXpert>) {
     title: new FormGroup({ enabled: toggle(features?.title?.enabled), instruction: text(features?.title?.instruction) })
   })
   const workbench = new FormGroup({
+    messagePresentation: new FormControl<'transcript' | 'bubbles' | null>(
+      team.options?.messagePresentation?.mode ?? null
+    ),
     initialLayout: new FormControl(
       team.options?.workbench?.initialLayout ?? XpertWorkbenchInitialLayoutEnum.ChatkitMaximized,
       { nonNullable: true }

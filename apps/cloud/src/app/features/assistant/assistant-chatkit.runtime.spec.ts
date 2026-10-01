@@ -9,6 +9,7 @@ import { ZardDialogService } from '@xpert-ai/headless-ui'
 import { of } from 'rxjs'
 import { AppService } from '../../app.service'
 import { ArtifactService } from '../../@core/services/artifact.service'
+import { XpertPublicationService } from '../../@core/services/xpert-publication.service'
 import {
   AssistantBindingScope,
   AssistantBindingSourceScope,
@@ -276,6 +277,18 @@ describe('assistant chatkit runtime helpers', () => {
         }
       })
     )
+
+    const publications = TestBed.inject(XpertPublicationService)
+    const createdBeforePublish = createChatKitMock.mock.calls.length
+    setOptions.mockClear()
+    publications.changes$.next({ organizationId: 'other-org', assistantId: 'assistant-1' })
+    publications.changes$.next({ organizationId: 'org-1', assistantId: 'another-assistant' })
+    flushAngularEffects()
+    expect(setOptions).not.toHaveBeenCalled()
+    publications.changes$.next({ organizationId: 'org-1', assistantId: 'assistant-1' })
+    flushAngularEffects()
+    expect(setOptions).toHaveBeenCalledTimes(1)
+    expect(createChatKitMock).toHaveBeenCalledTimes(createdBeforePublish)
 
     setOptions.mockClear()
     displayMode.set('chat')

@@ -54,6 +54,7 @@ import {
 import { injectFetchEventSource } from './fetch-event-source'
 import { appendOrganizationIdQueryParam, createOptionalQueryParams } from './query-params'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
+import { XpertPublicationService } from './xpert-publication.service'
 import type { IAiAssistantRuntimeCapabilities } from './ai-assistant.service'
 
 export type TXpertVariablesOptions = {
@@ -123,6 +124,7 @@ export type TSandboxProvider = {
 
 @Injectable({ providedIn: 'root' })
 export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
+  private readonly publications = inject(XpertPublicationService)
   readonly #logger = inject(NGXLogger)
   readonly baseUrl = injectApiBaseUrl()
   readonly fetchEventSource = injectFetchEventSource()
@@ -272,11 +274,17 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
       marketplace?: TXpertPublishMarketplaceInput
     }
   ) {
+    const organizationId = this.store.organizationId ?? null
     return this.httpClient
       .post<IXpert>(this.apiBaseUrl + `/${id}/publish`, body, {
         params: new HttpParams().append('newVersion', newVersion)
       })
-      .pipe(tap(() => this.refresh()))
+      .pipe(
+        tap(() => {
+          this.refresh()
+          this.publications.changes$.next({ assistantId: id, organizationId })
+        })
+      )
   }
 
   /**

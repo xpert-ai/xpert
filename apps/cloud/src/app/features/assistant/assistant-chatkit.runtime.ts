@@ -12,7 +12,7 @@ import {
   type CreateChatKitOptions
 } from '@xpert-ai/chatkit-angular'
 import type { ChatKitClientSecretResult, ChatKitMcpAppsOptions, ChatKitOptions } from '@xpert-ai/chatkit-types'
-import { catchError, firstValueFrom, map, of, startWith, switchMap } from 'rxjs'
+import { catchError, filter, firstValueFrom, map, of, scan, startWith, switchMap } from 'rxjs'
 import { environment } from '@cloud/environments/environment'
 import {
   AssistantBindingService,
@@ -27,6 +27,7 @@ import {
 import { AppService } from '../../app.service'
 import { ArtifactService } from '../../@core/services/artifact.service'
 import { normalizeAssistantFrameUrl } from './assistant-chatkit-frame-url'
+import { XpertPublicationService } from '../../@core/services/xpert-publication.service'
 
 export type AssistantRuntimeStatus = 'idle' | 'loading' | 'ready' | 'missing' | 'disabled' | 'error'
 
@@ -253,6 +254,13 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
 
   const authToken = toSignal(store.token$.pipe(startWith(store.token)), { initialValue: store.token })
   const organizationId = toSignal(store.selectOrganizationId(), { initialValue: store.organizationId ?? null })
+  const publicationRevision = toSignal(
+    inject(XpertPublicationService).changes$.pipe(
+      filter((change) => change.organizationId === organizationId() && change.assistantId === input.assistantId()),
+      scan((revision) => revision + 1, 0)
+    ),
+    { initialValue: 0 }
+  )
   const fixedApiUrl = buildAssistantApiUrl(environment.API_BASE_URL)
   const theme = computed<AssistantTheme>(() => {
     const colorScheme = appService.theme$().primary === 'dark' ? ('dark' as const) : ('light' as const)
@@ -303,6 +311,8 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
   })
 
   effect(() => {
+    // Resend options to refresh published metadata in place, keeping the conversation and composer mounted.
+    publicationRevision()
     const key = runtimeKey()
     const assistantId = input.assistantId()
     const frameUrl = input.frameUrl()

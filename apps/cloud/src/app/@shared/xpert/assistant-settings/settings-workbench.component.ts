@@ -5,14 +5,57 @@ import { AGENT_WORKBENCH_SLOT, XpertWorkbenchInitialLayoutEnum } from '@xpert-ai
 import { ZardButtonComponent, ZardSelectImports, type ZardSelectValue } from '@xpert-ai/headless-ui'
 import { ViewExtensionApiService, resolveI18nText } from '@cloud/app/@core'
 import { firstValueFrom } from 'rxjs'
+import { MessagePresentationPreviewComponent } from './message-presentation-preview.component'
 import { XpertSettingsEditor } from './xpert-settings.editor'
 
 @Component({
   selector: 'xp-settings-workbench',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, TranslateModule, ZardButtonComponent, ...ZardSelectImports],
+  imports: [
+    ReactiveFormsModule,
+    TranslateModule,
+    ZardButtonComponent,
+    MessagePresentationPreviewComponent,
+    ...ZardSelectImports
+  ],
   template: `
+    <fieldset class="mb-5 border-b border-divider-regular pb-5">
+      <legend class="text-lg font-semibold">{{ 'XP.XpertSettings.MessagePresentation.Title' | translate }}</legend>
+      <p class="mt-1 text-sm leading-5 text-text-tertiary">
+        {{ 'XP.XpertSettings.MessagePresentation.Description' | translate }}
+      </p>
+      <div class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+        @for (mode of messageModes; track mode.label) {
+          <label
+            class="cursor-pointer rounded-[var(--assistant-settings-item-radius)] border p-3 transition-colors focus-within:ring-2 focus-within:ring-primary"
+            [class]="
+              (mode.value === null ? 'sm:col-span-2 ' : '') +
+              (form.messagePresentation.value === mode.value
+                ? 'border-text-primary bg-background-default-subtle'
+                : 'border-divider-regular hover:bg-hover-bg')
+            "
+          >
+            @if (mode.value !== null) {
+              <xp-message-presentation-preview [mode]="mode.value" />
+            }
+            <span class="flex items-center gap-2 text-base font-semibold">
+              <input
+                type="radio"
+                name="assistant-message-presentation"
+                class="size-4 accent-primary"
+                [value]="mode.value"
+                [formControl]="form.messagePresentation"
+              />
+              {{ 'XP.XpertSettings.MessagePresentation.' + mode.label | translate }}
+            </span>
+            <span class="mt-1 block pl-6 text-sm leading-5 text-text-secondary">
+              {{ 'XP.XpertSettings.MessagePresentation.' + mode.label + 'Hint' | translate }}
+            </span>
+          </label>
+        }
+      </div>
+    </fieldset>
     <h3 class="text-lg font-semibold">{{ 'XP.Xpert.WorkbenchInitialLayout' | translate }}</h3>
     <p class="mt-1 text-sm leading-5 text-text-tertiary">{{ 'XP.XpertSettings.LayoutPriority' | translate }}</p>
     <fieldset class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -94,6 +137,11 @@ export class SettingsWorkbenchComponent {
   readonly loading = signal(false)
   readonly failed = signal(false)
   readonly views = signal<Array<{ key: string; label: string }>>([])
+  readonly messageModes = [
+    { value: null, label: 'Inherit' },
+    { value: 'transcript', label: 'Transcript' },
+    { value: 'bubbles', label: 'Bubbles' }
+  ] as const
   readonly layouts = [
     {
       value: XpertWorkbenchInitialLayoutEnum.TwoColumns,

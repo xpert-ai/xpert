@@ -1,3 +1,4 @@
+import type { Router } from '@angular/router'
 import type { IChatConversation, IChatConversationUnreadXpertSummary } from '@xpert-ai/contracts'
 
 export interface AssistantXpertLike {
@@ -242,4 +243,9 @@ function getLocalStorage() {
   } catch {
     return null
   }
+}
+
+export function readViewKey(router: Router) {
+  const viewKey = router.parseUrl(router.url).queryParamMap.get('view')?.trim()
+  return viewKey || null
 }

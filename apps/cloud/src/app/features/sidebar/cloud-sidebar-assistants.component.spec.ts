@@ -1,3 +1,4 @@
+import { XpertSettingsService } from '../../@core/services/xpert-settings.service'
 import { Component, signal, type WritableSignal } from '@angular/core'
 import { discardPeriodicTasks, fakeAsync, TestBed, tick } from '@angular/core/testing'
 import { provideRouter, Router } from '@angular/router'
@@ -75,6 +76,8 @@ jest.mock('@xpert-ai/headless-ui', () => {
     ZardTooltipImports: [ZTooltipDirective]
   }
 })
+
+jest.mock('../../@core/services/xpert-settings.service', () => ({ XpertSettingsService: class {} }))
 
 jest.mock('../../@core', () => {
   class AssistantBindingService {}
@@ -283,6 +286,7 @@ describe('CloudSidebarAssistantsComponent', () => {
     await TestBed.configureTestingModule({
       imports: [TranslateModule.forRoot(), CloudSidebarAssistantsComponent],
       providers: [
+        { provide: XpertSettingsService, useValue: { open: jest.fn() } },
         provideRouter([{ path: '**', component: DummyComponent }]),
         {
           provide: AssistantBindingService,
@@ -317,6 +321,21 @@ describe('CloudSidebarAssistantsComponent', () => {
     jest.useRealTimers()
     TestBed.resetTestingModule()
     jest.restoreAllMocks()
+  })
+
+  it('opens editable Assistant settings in the Dialog without navigating to Studio', () => {
+    const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
+    const settings = TestBed.inject(XpertSettingsService)
+    const navigate = jest.spyOn(TestBed.inject(Router), 'navigate')
+    const event = new Event('click')
+    const stop = jest.spyOn(event, 'stopPropagation')
+    fixture.componentInstance.openAssistantSettings(event, { id: 'editable' })
+    expect(settings.open).toHaveBeenCalledWith(expect.anything(), 'editable')
+    expect(navigate).not.toHaveBeenCalled()
+    expect(stop).toHaveBeenCalled()
+    store.hasPermission.mockReturnValue(false)
+    fixture.componentInstance.openAssistantSettings(event, { id: 'blocked' })
+    expect(settings.open).toHaveBeenCalledTimes(1)
   })
 
   it('hides the current ClawXpert assistant from the normal assistant list', async () => {
