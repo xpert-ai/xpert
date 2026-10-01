@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  afterNextRender,
+  computed,
+  inject,
+  signal
+} from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule } from '@angular/forms'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -50,8 +58,8 @@ export class SettingsAssistantCapabilitiesComponent {
     )
   })
 
-  ngOnInit() {
-    void this.load()
+  constructor() {
+    afterNextRender(() => void this.load())
   }
 
   async load() {

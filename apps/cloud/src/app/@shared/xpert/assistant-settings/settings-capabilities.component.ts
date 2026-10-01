@@ -1,5 +1,5 @@
 import { DecimalPipe } from '@angular/common'
-import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, effect, inject, input, signal, untracked } from '@angular/core'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import { AiModelTypeEnum, DEFAULT_XPERT_AGENT_RECURSION_LIMIT, type TXpertAttachmentType } from '@xpert-ai/contracts'
@@ -51,8 +51,10 @@ export class SettingsCapabilitiesComponent {
   readonly providers = signal<TSandboxProvider[]>([])
   readonly loading = signal(false)
   readonly failed = signal(false)
-  ngOnInit() {
-    if (this.page() === 'sandbox') void this.loadProviders()
+  constructor() {
+    effect(() => {
+      if (this.page() === 'sandbox') untracked(() => void this.loadProviders())
+    })
   }
   setRecursionLimitFromSlider(event: Event) {
     const target = event.target

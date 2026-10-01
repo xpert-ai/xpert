@@ -93,6 +93,26 @@ function fixture() {
 }
 
 describe('Assistant capability settings', () => {
+  it('loads after rendering without refetching or saving when local signals change', async () => {
+    const { component, api, source } = fixture()
+    expect(api.getAssistantCapabilities).not.toHaveBeenCalled()
+    TestBed.tick()
+    await Promise.resolve()
+    expect(api.getAssistantCapabilities).toHaveBeenCalledTimes(1)
+    expect(component.configuration()).not.toBeNull()
+    expect(component.loading()).toBe(false)
+
+    component.toggle('sandbox-tools', true)
+    component.provider.setValue('sandbox-b')
+    TestBed.tick()
+    await Promise.resolve()
+    expect(api.getAssistantCapabilities).toHaveBeenCalledTimes(1)
+    expect(api.previewAssistantCapabilities).not.toHaveBeenCalled()
+    expect(source.save).not.toHaveBeenCalled()
+    expect(component.selected()).toEqual(['sandbox-tools'])
+    expect(component.provider.value).toBe('sandbox-b')
+  })
+
   it('keeps toggles and provider choices local across refreshes until explicit save', async () => {
     const { component, editor, source, api, result } = fixture()
     source.unsaved.set(true)

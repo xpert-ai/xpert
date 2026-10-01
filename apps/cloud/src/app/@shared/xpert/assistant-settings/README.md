@@ -85,7 +85,7 @@ The four layout previews live in `assets/images/assistant-settings/`. All text u
 
 Spacing remains scoped to this dialog, including overrides for reused personalization and trigger components. Existing interfaces retain their own presentation. List item corners use `rounded-[var(--assistant-settings-item-radius)]`, so both radius values can be tuned in one place without following the app's root font size.
 
-Sandbox provider and default Workbench view use Zard Select, including the empty/default choices and unavailable saved values. The default view choice still stores `null`; clearing the sandbox provider requests the platform default when the capability is composed on explicit save. The provider selector is shown only for an enabled capability declaring the shared `sandboxProvider` setting. Runtime limits remain on the Capabilities page, and legacy `runtime` links resolve to it.
+Sandbox provider and default Workbench view use Zard Select, including the empty/default choices and unavailable saved values. The default view choice still stores `null`; clearing the sandbox provider requests the platform default when the capability is composed on explicit save. The frontend shows the provider selector only when the `sandbox-tools` capability is enabled. Runtime limits remain on the Capabilities page, and legacy `runtime` links resolve to it.
 
 Select radius overrides must apply to both the `z-select` host (focus ring) and its direct button (border), using `--assistant-settings-item-radius` for both. Overriding only the button leaves the focus ring at Zard's default `rounded-md` radius.
 
