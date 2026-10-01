@@ -20,6 +20,7 @@ export type XpertSettingsSection =
   | 'subagents'
   | 'skills'
   | 'middleware'
+  | 'capabilities'
 
 export const XPERT_DRAFT_SETTINGS_SECTIONS: ReadonlyArray<{
   key: XpertDraftSettingsSection
@@ -37,7 +38,8 @@ export const XPERT_DRAFT_SETTINGS_SECTIONS: ReadonlyArray<{
 ]
 
 export const XPERT_SETTINGS_SECTIONS = [
-  ...XPERT_DRAFT_SETTINGS_SECTIONS,
+  ...XPERT_DRAFT_SETTINGS_SECTIONS.filter(({ key }) => key !== 'runtime'),
+  { key: 'capabilities', group: 'Execution', icon: 'ri-flashlight-line' },
   { key: 'externalExperts', group: 'Execution', icon: 'ri-team-line' },
   { key: 'subagents', group: 'Execution', icon: 'ri-node-tree' },
   { key: 'skills', group: 'Execution', icon: 'ri-lightbulb-line' },
@@ -58,6 +60,7 @@ export interface XpertSettingsSource {
   update: (change: (draft: TXpertTeamDraft) => TXpertTeamDraft) => void
   save: () => Promise<void>
   reload?: () => Promise<void>
+  discard?: () => void
 }
 
 export interface XpertSettingsDialogData {

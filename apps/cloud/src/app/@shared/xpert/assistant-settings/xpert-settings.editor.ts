@@ -5,7 +5,7 @@ import { FormControl } from '@angular/forms'
 import type { TXpertTeamDraft } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@cloud/app/@core/types'
 import { isEqual } from 'lodash-es'
-import { Subject, debounceTime, type Observable } from 'rxjs'
+import type { Observable } from 'rxjs'
 import { createXpertSettingsForm } from './xpert-settings.form'
 import { applyXpertSettingsChanges } from './xpert-settings.patch'
 import {
@@ -19,24 +19,24 @@ export class XpertSettingsEditor {
   readonly data = inject<XpertSettingsDialogData>(DIALOG_DATA)
   readonly source = this.data.source
   readonly form = createXpertSettingsForm(this.source.draft().team)
-  readonly section = signal(this.data.section)
+  readonly section = signal<XpertSettingsSection>(this.data.section === 'runtime' ? 'capabilities' : this.data.section)
   readonly revision = signal(0)
   readonly closing = signal(false)
   readonly confirmDiscard = signal(false)
   readonly publishing = signal(false)
+  readonly composing = signal(false)
   readonly publishError = signal<string | null>(null)
   private readonly publishedDraft = signal<TXpertTeamDraft | null>(
     this.source.draft().team.publishAt && !this.source.draft().team.draft ? structuredClone(this.source.draft()) : null
   )
   readonly published = computed(() => !this.source.unsaved() && isEqual(this.publishedDraft(), this.source.draft()))
   private applied = this.form.getRawValue()
-  private readonly autosave = new Subject<void>()
   readonly invalidSections = computed<XpertSettingsSection[]>(() => {
     this.revision()
     const value = this.form.getRawValue()
     return XPERT_DRAFT_SETTINGS_SECTIONS.filter(
       ({ key }) => this.form.controls[key].invalid && !isEqual(this.applied[key], value[key])
-    ).map(({ key }) => key)
+    ).map(({ key }) => (key === 'runtime' ? 'capabilities' : key))
   })
 
   constructor() {
@@ -50,17 +50,14 @@ export class XpertSettingsEditor {
         const before = this.applied
         this.source.update((draft) => applyXpertSettingsChanges(draft, before, next, key))
         this.applied = { ...this.applied, [key]: next[key] }
-        this.autosave.next()
       })
     }
-    this.autosave.pipe(debounceTime(600), takeUntilDestroyed()).subscribe(() => {
-      if (!this.publishing()) void this.save()
-    })
   }
 
   select(section: XpertSettingsSection) {
-    this.section.set(section)
-    this.data.selectSection(section)
+    const next = section === 'runtime' ? 'capabilities' : section
+    this.section.set(next)
+    this.data.selectSection(next)
     this.confirmDiscard.set(false)
   }
 
@@ -85,8 +82,15 @@ export class XpertSettingsEditor {
     await this.save()
   }
 
+  syncCapabilityRuntime() {
+    const runtime = createXpertSettingsForm(this.source.draft().team).controls.runtime.getRawValue()
+    this.form.controls.runtime.reset(runtime, { emitEvent: false })
+    this.applied = { ...this.applied, runtime }
+    this.revision.update((value) => value + 1)
+  }
+
   async saveAndPublish(prepare?: () => Promise<boolean>): Promise<boolean> {
-    if (this.publishing() || this.closing() || !this.data.publish) return false
+    if (this.publishing() || this.composing() || this.closing() || !this.data.publish) return false
     this.form.markAllAsTouched()
     if (this.invalidSections().length) {
       this.select(this.invalidSections()[0])
@@ -96,8 +100,7 @@ export class XpertSettingsEditor {
     this.publishError.set(null)
     try {
       if (prepare && !(await prepare())) return false
-      // Always persist a draft, even after autosave or a previous publication cleared it.
-      // The source queue also waits for any in-flight autosave before publishing.
+      // Always persist a draft, including after a previous publication cleared it.
       do {
         await this.source.save()
       } while (this.source.unsaved())

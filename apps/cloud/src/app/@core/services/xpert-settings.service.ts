@@ -139,6 +139,7 @@ export class XpertSettingsService {
       })
     )
     const draft = signal(buildEditableXpertDraft(team))
+    let savedDraft = structuredClone(draft())
     const saving = signal(false),
       unsaved = signal(false),
       error = signal<string | null>(null)
@@ -154,13 +155,21 @@ export class XpertSettingsService {
       reload: async () => {
         const before = draft()
         const latest = await firstValueFrom(this.api.getTeam(id))
-        if (this.store.organizationId === organizationId && !unsaved() && !saving() && draft() === before)
+        if (this.store.organizationId === organizationId && !unsaved() && !saving() && draft() === before) {
           draft.set(buildEditableXpertDraft(latest))
+          savedDraft = structuredClone(draft())
+        }
+      },
+      discard: () => {
+        if (saving()) return
+        draft.set(structuredClone(savedDraft))
+        unsaved.set(false)
+        error.set(null)
       },
       update: (change) => {
         if (this.store.organizationId !== organizationId) return
         draft.update(change)
-        unsaved.set(true)
+        unsaved.set(!isEqual(draft(), savedDraft))
       },
       save: async () => {
         const snapshot = structuredClone(draft())
@@ -173,7 +182,8 @@ export class XpertSettingsService {
               throw new Error(this.translate.instant('XP.AssistantSettings.BindingChanged'))
             return firstValueFrom(this.api.saveDraft(id, value))
           })
-          if (isEqual(snapshot, draft())) unsaved.set(false)
+          savedDraft = snapshot
+          unsaved.set(!isEqual(snapshot, draft()))
         } catch (cause) {
           error.set(getErrorMessage(cause))
           throw cause

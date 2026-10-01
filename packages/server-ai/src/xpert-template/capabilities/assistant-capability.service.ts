@@ -1,5 +1,6 @@
 import {
     AiModelTypeEnum,
+    AssistantCapabilityConfiguration,
     LanguagesEnum,
     ModelFeature,
     TCopilotModel,
@@ -47,6 +48,30 @@ export class AssistantCapabilityService {
             }))
         template.export_data = stringify(draft)
         return template
+    }
+
+    async configurationOptions(
+        template: TXpertTemplate,
+        draft: TXpertTeamDraft,
+        language: LanguagesEnum,
+        sandboxProviders: { type: string }[]
+    ): Promise<AssistantCapabilityConfiguration['options']> {
+        const declarations = new Map(template.capabilities?.map((item) => [item.key, item]))
+        return Promise.all(
+            this.registry
+                .list()
+                .filter((provider) => declarations.has(provider.key))
+                .map(async (provider) => {
+                    const availability = await provider.check({ template, draft, language, sandboxProviders })
+                    return {
+                        key: provider.key,
+                        label: resolveI18nText(provider.label, RequestContext.getLanguageCode()) || provider.key,
+                        description: resolveI18nText(provider.description, RequestContext.getLanguageCode()) || '',
+                        required: declarations.get(provider.key).required === true,
+                        ...availability
+                    }
+                })
+        )
     }
 
     async setup(

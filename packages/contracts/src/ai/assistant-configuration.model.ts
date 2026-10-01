@@ -32,3 +32,28 @@ export interface AssistantConfigurationInput {
   modelId: string
   capabilities: string[]
 }
+
+/** Capability authoring in an existing Assistant draft; publication remains an explicit action. */
+export interface AssistantCapabilityConfiguration {
+  revision: string
+  selected: string[]
+  options: {
+    key: string
+    label: string
+    description: string
+    required: boolean
+    available: boolean
+    reason?: string
+  }[]
+  setup: XpertTemplateSetup
+  modelId: string
+  /** Null when runtime checks prevent model validation. */
+  modelAvailable: boolean | null
+}
+
+export interface AssistantCapabilityDraftInput {
+  revision: string
+  capabilities: string[]
+  /** Applied after removing managed contributions; empty selects the platform default. */
+  sandboxProvider?: string
+}

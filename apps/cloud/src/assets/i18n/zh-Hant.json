@@ -120,7 +120,8 @@
       "ExecutionLimits": "执行限制",
       "ConcurrencyTip": "最大并行调用数量，范围 1–100；留空则使用运行时默认值。",
       "Automatic": "自动",
-      "RecursionTip": "单次执行的最大递归步数，范围 100–10,000。",
+      "RecursionTip": "單次執行的最大遞迴步數，可設定為 {{min}}–{{max}} 之間的整數。",
+      "RecursionRangeError": "請輸入 {{min}}–{{max}} 之間的整數。",
       "Sandbox": "沙盒",
       "SandboxTip": "为代码执行和文件操作提供隔离环境。",
       "Loading": "正在加载…",
@@ -136,7 +137,7 @@
       "Saving": "正在保存…",
       "Unsaved": "尚未保存",
       "NeedsCorrection": "有修改待修正",
-      "PendingSave": "等待保存",
+      "PendingSave": "尚未儲存",
       "Saved": "已保存到草稿",
       "PublishTip": "儲存並發佈後對使用者生效",
       "SaveNow": "立即保存",
@@ -172,7 +173,8 @@
         "externalExperts": "外部專家",
         "subagents": "子智慧體",
         "skills": "技能",
-        "middleware": "中介軟體"
+        "middleware": "中介軟體",
+        "capabilities": "能力"
       },
       "Description": {
         "general": "管理 Assistant 的身份与基础信息。",
@@ -189,7 +191,8 @@
         "externalExperts": "重用已發佈的外部專家，為目前助手指派協作能力。",
         "subagents": "設定內部子智慧體的職責、模型與委派關係。",
         "skills": "選擇和設定智能體技能，預設掛載到主智能體。",
-        "middleware": "新增、設定和移除智能體中介軟體，預設選擇主智能體。"
+        "middleware": "新增、設定和移除智能體中介軟體，預設選擇主智能體。",
+        "capabilities": "設定助理能力、執行限制與沙盒提供商。"
       },
       "Keywords": {
         "general": "名称 标题 图标 描述 标签 数据范围",
@@ -206,7 +209,8 @@
         "externalExperts": "外部 專家 協作 委派 訊息 工作台 external experts",
         "subagents": "子智慧體 內部 成員 指令 模型 委派 上下文 subagents",
         "skills": "技能 技能套件 自動探索 儲存庫 主智能體",
-        "middleware": "中介軟體 外掛 工具 設定 主智能體"
+        "middleware": "中介軟體 外掛 工具 設定 主智能體",
+        "capabilities": "能力 命令行 沙箱 沙盒 提供商 运行 并发 递归 工具 桌面"
       },
       "Groups": {
         "Basic": "基本设置",
@@ -220,7 +224,7 @@
         "video": "视频",
         "others": "其他文件"
       },
-      "DiscardUnapplied": "尚有未应用的输入。你可以继续编辑，或放弃这些输入并关闭。",
+      "DiscardUnapplied": "尚有未儲存的修改。你可以繼續編輯，或放棄這些修改並關閉。",
       "StatisticsHint": "每日消息活动仅统计当前用户与此助手的对话。",
       "Delegation": {
         "AssignedExperts": "已分配的外部專家",
@@ -281,6 +285,19 @@
         "InvalidConfiguration": "請填寫必填設定後再儲存。",
         "InvalidAssignment": "請選擇可用的智能體和有效的中介軟體設定。",
         "DuplicateSkills": "此智能體已有技能中介軟體，請設定已有掛載。"
+      },
+      "Capabilities": {
+        "Hint": "修改暫存在本地，點擊「儲存並發布」後才會同步並生效。",
+        "Loading": "正在检查可用能力…",
+        "Applying": "正在检查依赖并保存能力草稿…",
+        "ManagedInStudio": "已在编排中启用，请在 Studio 中管理此能力。",
+        "Unavailable": "此能力当前不可用。",
+        "Empty": "当前没有注册可选能力。",
+        "ModelRequired": "当前模型不满足所选能力的要求，请选择兼容模型后重新应用。",
+        "ConfigureModel": "配置模型",
+        "FixInvalid": "请先修正设置中的无效输入，再修改能力。",
+        "DraftChanged": "检查能力期间草稿已发生变化，请基于最新草稿重试。",
+        "Apply": "应用到草稿"
       }
     },
     "AssistantProfile": {

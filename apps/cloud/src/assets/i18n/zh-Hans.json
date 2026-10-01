@@ -404,7 +404,8 @@
       "ExecutionLimits": "执行限制",
       "ConcurrencyTip": "最大并行调用数量，范围 1–100；留空则使用运行时默认值。",
       "Automatic": "自动",
-      "RecursionTip": "单次执行的最大递归步数，范围 100–10,000。",
+      "RecursionTip": "单次执行的最大递归步数，可设置为 {{min}}–{{max}} 之间的整数。",
+      "RecursionRangeError": "请输入 {{min}}–{{max}} 之间的整数。",
       "Sandbox": "沙盒",
       "SandboxTip": "为代码执行和文件操作提供隔离环境。",
       "Loading": "正在加载…",
@@ -420,7 +421,7 @@
       "Saving": "正在保存…",
       "Unsaved": "尚未保存",
       "NeedsCorrection": "有修改待修正",
-      "PendingSave": "等待保存",
+      "PendingSave": "尚未保存",
       "Saved": "已保存到草稿",
       "PublishTip": "保存并发布后对用户生效",
       "SaveNow": "立即保存",
@@ -456,7 +457,8 @@
         "externalExperts": "外部专家",
         "subagents": "子智能体",
         "skills": "技能",
-        "middleware": "中间件"
+        "middleware": "中间件",
+        "capabilities": "能力"
       },
       "Description": {
         "general": "管理 Assistant 的身份与基础信息。",
@@ -473,7 +475,8 @@
         "externalExperts": "复用已发布的外部专家，为当前助手分配协作能力。",
         "subagents": "配置内部子智能体的职责、模型和委派关系。",
         "skills": "选择和配置智能体技能，默认挂载到主智能体。",
-        "middleware": "添加、配置和移除智能体中间件，默认选择主智能体。"
+        "middleware": "添加、配置和移除智能体中间件，默认选择主智能体。",
+        "capabilities": "配置助理能力、运行限制与沙盒提供商。"
       },
       "Keywords": {
         "general": "名称 标题 图标 描述 标签 数据范围",
@@ -490,7 +493,8 @@
         "externalExperts": "外部 专家 协作 委派 外部消息 工作台 external experts",
         "subagents": "子智能体 内部 成员 指令 模型 委派 上下文 subagents",
         "skills": "技能 技能包 自动发现 仓库 主智能体",
-        "middleware": "中间件 插件 工具 配置 主智能体"
+        "middleware": "中间件 插件 工具 配置 主智能体",
+        "capabilities": "能力 命令行 沙箱 沙盒 提供商 运行 并发 递归 工具 桌面"
       },
       "Groups": {
         "Basic": "基本设置",
@@ -504,7 +508,7 @@
         "video": "视频",
         "others": "其他文件"
       },
-      "DiscardUnapplied": "尚有未应用的输入。你可以继续编辑，或放弃这些输入并关闭。",
+      "DiscardUnapplied": "尚有未保存的修改。你可以继续编辑，或放弃这些修改并关闭。",
       "StatisticsHint": "每日消息活动仅统计当前用户与此助手的对话。",
       "Delegation": {
         "AssignedExperts": "已分配的外部专家",
@@ -565,6 +569,19 @@
         "InvalidConfiguration": "请填写必填配置后再保存。",
         "InvalidAssignment": "请选择可用的智能体和有效的中间件配置。",
         "DuplicateSkills": "此智能体已有技能中间件，请配置已有挂载。"
+      },
+      "Capabilities": {
+        "Hint": "修改暂存在本地，点击“保存并发布”后才会同步并生效。",
+        "Loading": "正在检查可用能力…",
+        "Applying": "正在检查依赖并保存能力草稿…",
+        "ManagedInStudio": "已在编排中启用，请在 Studio 中管理此能力。",
+        "Unavailable": "此能力当前不可用。",
+        "Empty": "当前没有注册可选能力。",
+        "ModelRequired": "当前模型不满足所选能力的要求，请选择兼容模型后重新应用。",
+        "ConfigureModel": "配置模型",
+        "FixInvalid": "请先修正设置中的无效输入，再修改能力。",
+        "DraftChanged": "检查能力期间草稿已发生变化，请基于最新草稿重试。",
+        "Apply": "应用到草稿"
       }
     },
     "AssistantSettings": {

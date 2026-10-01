@@ -8,7 +8,12 @@
         {{ source.draft().team.title || source.draft().team.name }}
       </h1>
       <div class="mt-1 text-sm text-text-tertiary">
-        {{ (editor.published() ? 'XP.XpertSettings.PublishedIdentity' : 'XP.XpertSettings.DraftIdentity') | translate }}
+        {{
+          (editor.published() && !pendingSections().length
+            ? 'XP.XpertSettings.PublishedIdentity'
+            : 'XP.XpertSettings.DraftIdentity'
+          ) | translate
+        }}
       </div>
     </div>
   </header>
@@ -123,8 +128,8 @@
     #content
     class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3 sm:px-5"
     tabindex="0"
-    [attr.inert]="editor.publishing() ? '' : null"
-    [attr.aria-busy]="editor.publishing()"
+    [attr.inert]="editor.publishing() || editor.composing() ? '' : null"
+    [attr.aria-busy]="editor.publishing() || editor.composing()"
     [attr.aria-label]="'XP.XpertSettings.Menu.' + editor.section() | translate"
   >
     @if (editor.data.binding) {
@@ -136,6 +141,9 @@
       />
     }
     <xp-settings-subagents [hidden]="editor.section() !== 'subagents'" />
+    @if (visitedSections().has('capabilities')) {
+      <xp-settings-assistant-capabilities [hidden]="editor.section() !== 'capabilities'" />
+    }
     @if (visitedSections().has('skills')) {
       <xp-settings-middleware #skills mode="skills" [hidden]="editor.section() !== 'skills'" />
     }
@@ -174,9 +182,6 @@
       }
       @case ('memory') {
         <xp-settings-memory />
-      }
-      @case ('runtime') {
-        <xp-settings-capabilities page="runtime" />
       }
     }
     @if (invalid()) {
@@ -274,7 +279,10 @@
               }
             </span>
             <span class="text-text-tertiary sm:border-l sm:border-divider-regular sm:pl-3">{{
-              (editor.published() ? 'XP.XpertSettings.PublishedTip' : 'XP.XpertSettings.PublishTip') | translate
+              (editor.published() && !pendingSections().length
+                ? 'XP.XpertSettings.PublishedTip'
+                : 'XP.XpertSettings.PublishTip'
+              ) | translate
             }}</span>
           </div>
         </div>
@@ -283,7 +291,7 @@
           z-button
           zType="outline"
           class="shrink-0"
-          [zDisabled]="editor.publishing() || editor.closing()"
+          [zDisabled]="editor.publishing() || editor.composing() || editor.closing()"
           (click)="saveAndPublish()"
         >
           {{ (editor.publishing() ? 'XP.XpertSettings.Publishing' : 'XP.XpertSettings.SaveAndPublish') | translate }}

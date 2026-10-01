@@ -56,6 +56,7 @@ import { appendOrganizationIdQueryParam, createOptionalQueryParams } from './que
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
 import { XpertPublicationService } from './xpert-publication.service'
 import type { IAiAssistantRuntimeCapabilities } from './ai-assistant.service'
+import type { AssistantCapabilityConfiguration, AssistantCapabilityDraftInput } from '@xpert-ai/contracts'
 
 export type TXpertVariablesOptions = {
   environmentId: string
@@ -211,6 +212,19 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
     return this.httpClient.get<IAiAssistantRuntimeCapabilities>(this.apiBaseUrl + `/${id}/runtime-capabilities`, {
       params
     })
+  }
+
+  getAssistantCapabilities(id: string, selected?: string[]) {
+    return this.httpClient.get<AssistantCapabilityConfiguration>(
+      `${this.apiBaseUrl}/${id}/configuration/capabilities`,
+      {
+        params: selected === undefined ? {} : { capabilities: selected.join(',') }
+      }
+    )
+  }
+
+  previewAssistantCapabilities(id: string, input: AssistantCapabilityDraftInput) {
+    return this.httpClient.post<TXpertTeamDraft>(`${this.apiBaseUrl}/${id}/configuration/capabilities/preview`, input)
   }
 
   getWorkspaceFiles(id: string, path = '') {

@@ -198,7 +198,8 @@
       "ExecutionLimits": "Execution limits",
       "ConcurrencyTip": "Maximum parallel calls, from 1 to 100. Leave empty to use the runtime default.",
       "Automatic": "Automatic",
-      "RecursionTip": "Maximum recursive steps per execution, from 100 to 10,000.",
+      "RecursionTip": "Maximum recursive steps per execution. Enter an integer from {{min}} to {{max}}.",
+      "RecursionRangeError": "Enter an integer from {{min}} to {{max}}.",
       "Sandbox": "Sandbox",
       "SandboxTip": "Provide an isolated environment for code execution and file operations.",
       "Loading": "Loading…",
@@ -214,7 +215,7 @@
       "Saving": "Saving…",
       "Unsaved": "Not saved",
       "NeedsCorrection": "Changes need correction",
-      "PendingSave": "Waiting to save",
+      "PendingSave": "Unsaved changes",
       "Saved": "Saved to draft",
       "PublishTip": "Save and publish to apply changes",
       "SaveNow": "Save now",
@@ -250,7 +251,8 @@
         "externalExperts": "External experts",
         "subagents": "Sub-agents",
         "skills": "Skills",
-        "middleware": "Middleware"
+        "middleware": "Middleware",
+        "capabilities": "Capabilities"
       },
       "Description": {
         "general": "Edit the identity and basic information of this Assistant.",
@@ -267,7 +269,8 @@
         "externalExperts": "Assign published external experts for this assistant to delegate to.",
         "subagents": "Configure internal sub-agent responsibilities, models and delegation.",
         "skills": "Choose and configure skills for an agent. New skills are assigned to the primary agent by default.",
-        "middleware": "Add, configure and remove middleware for an agent. The primary agent is selected by default."
+        "middleware": "Add, configure and remove middleware for an agent. The primary agent is selected by default.",
+        "capabilities": "Configure capabilities, runtime limits and the sandbox provider."
       },
       "Keywords": {
         "general": "name title icon avatar tags scope",
@@ -284,7 +287,8 @@
         "externalExperts": "external experts delegation collaboration messages workbench",
         "subagents": "subagents internal agents members instructions models delegation context",
         "skills": "skills packages discovery repository primary agent",
-        "middleware": "middleware plugins tools configuration primary agent"
+        "middleware": "middleware plugins tools configuration primary agent",
+        "capabilities": "capabilities command line sandbox provider runtime concurrency recursion tools desktop"
       },
       "Groups": {
         "Basic": "Basic settings",
@@ -298,7 +302,7 @@
         "video": "Video",
         "others": "Other files"
       },
-      "DiscardUnapplied": "You have unapplied changes. Continue editing, or discard them and close.",
+      "DiscardUnapplied": "You have unsaved changes. Continue editing, or discard them and close.",
       "StatisticsHint": "Daily message activity covers your conversations with this assistant.",
       "Delegation": {
         "AssignedExperts": "Assigned external experts",
@@ -359,6 +363,19 @@
         "InvalidConfiguration": "Complete the required configuration fields before saving.",
         "InvalidAssignment": "Select an available agent and a valid middleware configuration.",
         "DuplicateSkills": "This agent already has a skills middleware. Configure the existing assignment instead."
+      },
+      "Capabilities": {
+        "Hint": "Changes stay on this device until you choose Save and publish.",
+        "Loading": "Checking available capabilities…",
+        "Applying": "Checking dependencies and saving the capability draft…",
+        "ManagedInStudio": "Already enabled in the workflow. Manage this capability in Studio.",
+        "Unavailable": "This capability is currently unavailable.",
+        "Empty": "No optional capabilities are registered.",
+        "ModelRequired": "The current model does not meet the selected capabilities’ requirements. Choose a compatible model, then retry applying.",
+        "ConfigureModel": "Configure model",
+        "FixInvalid": "Correct invalid settings before changing capabilities.",
+        "DraftChanged": "The draft changed while capabilities were being checked. Retry using the latest draft.",
+        "Apply": "Apply to draft"
       }
     },
     "TagDirectory": {
