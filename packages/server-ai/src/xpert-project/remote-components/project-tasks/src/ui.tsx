@@ -9,10 +9,7 @@ import {
     SearchCheck,
     TriangleAlert,
     ChevronDown,
-    ChevronRight,
-    Folder,
-    Flag,
-    FileCheck
+    ChevronRight
 } from 'lucide-react'
 import {
     Button,
@@ -30,6 +27,7 @@ import {
 import type { Node } from './bridge'
 import type { Texts } from './i18n'
 import type { TaskRow } from './model'
+import { TaskTypeIcon } from './task-type-icon'
 
 export const statusStyle: { [K in Node['status']]: string } = {
     todo: 'text-muted-foreground',
@@ -115,15 +113,16 @@ export function TaskName({
     collapsed,
     toggle,
     select,
-    t
+    t,
+    locale
 }: {
     row: TaskRow
     collapsed: Set<string>
     toggle: (id: string) => void
     select: (task: Node) => void
     t: Texts
+    locale: string
 }) {
-    const Icon = row.task.kind === 'summary' ? Folder : row.task.kind === 'milestone' ? Flag : FileCheck
     return (
         <div className="flex min-w-0 items-center gap-1" style={{ paddingLeft: Math.min(row.depth, 6) * 16 }}>
             {row.hasChildren ? (
@@ -139,7 +138,7 @@ export function TaskName({
             ) : (
                 <span className="w-6 shrink-0" />
             )}
-            <Icon aria-hidden className="size-4 shrink-0 text-muted-foreground" />
+            <TaskTypeIcon task={row.task} locale={locale} fallbackLabel={t[row.task.kind]} />
             <button
                 className={cn(
                     'min-w-0 truncate rounded px-1 py-1.5 text-left text-sm hover:underline focus-visible:outline-ring',

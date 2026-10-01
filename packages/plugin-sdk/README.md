@@ -161,6 +161,53 @@ containing these interfaces. They are not part of the published SDK 3.18.3 basel
 
 See [RESOURCE-CARDS.md](./RESOURCE-CARDS.md) for the public protocol, tool/middleware emitter, transactional Project provider example, and coordinated release order.
 
+## Project task business types
+
+Task providers can register business types without changing task hierarchy, status or ownership:
+
+```ts
+import { ProjectTaskProvider, type IProjectTaskProvider, type ProjectTaskTypeDefinition } from '@xpert-ai/plugin-sdk'
+
+@ProjectTaskProvider('example.tasks')
+export class ExampleTasks implements IProjectTaskProvider {
+  readonly key = 'example.tasks'
+  readonly taskTypes = [
+    {
+      key: 'example.tasks.illustration',
+      presentation: {
+        label: { en_US: 'Construction images', zh_Hans: '施工配图' },
+        icon: 'Images'
+      }
+    }
+  ] satisfies ProjectTaskTypeDefinition[]
+
+  async snapshot() {
+    return {
+      revision: '1',
+      tasks: [
+        {
+          key: 'chapter-images',
+          title: 'Prepare construction images',
+          kind: 'task' as const,
+          taskType: 'example.tasks.illustration',
+          status: 'todo' as const,
+          predecessorKeys: [],
+          executions: []
+        }
+      ]
+    }
+  }
+}
+```
+
+Each `taskType` must reference a unique registration prefixed by the owning provider key and a dot. Presentation accepts an `I18nObject` label and a `ProjectTaskIconName` token. Supported icons are `FileText`, `FileScan`, `FileSearch`, `ListChecks`, `ListTree`, `ShieldCheck`, `FilePenLine`, `Workflow`, `Images`, `FolderInput` and `FileOutput`; providers cannot register SVG, HTML, scripts or remote icon URLs.
+
+The host persists this key in the existing task `type` column and resolves presentation from the same provider on graph reads. Omit `taskType` to retain legacy persisted values, or pass `null` to clear it. Existing unknown types retain their identity and receive a structural fallback icon. New projections referencing unregistered types are rejected with a provider diagnostic. Registration changes are reflected on the next graph read without rewriting history.
+
+`kind` still means `task`, `summary` or `milestone`. A task with children keeps its business icon; the separate expand/collapse control represents hierarchy. List, tree, Gantt, board and detail views share the same icon renderer, while status indicators and Assistant avatars retain their own meanings. Titles and execution prompts never determine a task's business type.
+
+Deploy matching contracts, SDK and host support before a plugin starts emitting `taskType`. This is an additive public contract and requires no database migration or historical task rewrite.
+
 ## Tool image references
 
 See [TOOL-IMAGES.md](./TOOL-IMAGES.md) for `ToolImagesRuntimeCapability`, reference-only tool results, temporary visual model inputs, execution scope, and recovery rules. Never persist the messages returned by `prepareModelInput`.

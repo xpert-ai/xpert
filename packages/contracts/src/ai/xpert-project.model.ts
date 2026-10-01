@@ -248,6 +248,7 @@ export interface IXpertProjectTask extends IBasePerXpertProjectEntityModel {
   name: string
   title?: string
   description?: string
+  /** Business task type. Provider projections use their registered namespaced taskType key. */
   type?: string
   status: TXpertProjectTaskStatus | 'pending' | 'completed' | 'failed'
   priority?: TXpertProjectTaskPriority

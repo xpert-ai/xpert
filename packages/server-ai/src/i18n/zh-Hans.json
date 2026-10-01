@@ -31,6 +31,7 @@
         "ReferenceOnlyPrompt": "未包含文件正文，不支持直接按文本读取。请使用支持该格式的可用工具；对于 ZIP，先列出或解压条目，再处理所需的子文件。此引用不会改变文件访问权限。"
     },
     "Error": {
+        "ProjectTaskTypeInvalid": "项目任务类型必须使用所属提供方的唯一标识和已注册的展示图标。",
         "ProjectTaskAccessDenied": "无权访问此项目任务。",
         "ProjectTaskNotFound": "找不到项目任务。",
         "ProjectTaskRevisionConflict": "任务已变化，请重新加载后编辑。",

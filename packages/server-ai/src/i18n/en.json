@@ -31,6 +31,7 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "ProjectTaskTypeInvalid": "Project task types must use unique provider-owned keys and registered presentation tokens.",
         "ProjectTaskAccessDenied": "Project task access denied.",
         "ProjectTaskNotFound": "Project task not found.",
         "ProjectTaskRevisionConflict": "The task changed. Reload the latest task before editing.",

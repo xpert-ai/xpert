@@ -8,6 +8,7 @@ import { type Texts, dateTime } from './i18n'
 import { Status, TaskName } from './ui'
 import { ColumnHeader, type Column, type TaskColumns } from './columns'
 import { Assignee } from './assignee'
+import { TaskTypeIcon } from './task-type-icon'
 
 // Keep virtual offsets, dependency paths and rendered row heights in sync.
 export const TASK_ROW_HEIGHT = 40
@@ -129,7 +130,14 @@ export function TaskTable({
                             style={{ gridTemplateColumns: grid, height: TASK_ROW_HEIGHT }}
                         >
                             <div role="cell" className="min-w-0 px-3">
-                                <TaskName row={row} select={select} collapsed={collapsed} toggle={toggle} t={t} />
+                                <TaskName
+                                    row={row}
+                                    select={select}
+                                    collapsed={collapsed}
+                                    toggle={toggle}
+                                    t={t}
+                                    locale={locale}
+                                />
                             </div>
                             {fields.status && (
                                 <div role="cell" className="overflow-hidden px-3">
@@ -216,7 +224,10 @@ export function TaskBoard({
                                         </span>
                                     )}
                                 </div>
-                                <p className="text-sm font-medium leading-5">{task.title}</p>
+                                <p className="flex items-start gap-2 text-sm font-medium leading-5">
+                                    <TaskTypeIcon task={task} locale={locale} fallbackLabel={t[task.kind]} />
+                                    <span className="min-w-0 break-words">{task.title}</span>
+                                </p>
                                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                                     <Bot className="size-3.5" />
                                     <span className="truncate">{owner(task, t.unassigned, t.unnamedAssistant)}</span>

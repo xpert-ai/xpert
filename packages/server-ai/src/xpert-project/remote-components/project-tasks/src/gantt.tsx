@@ -286,6 +286,7 @@ export function Gantt(
                                                 toggle={toggle}
                                                 select={select}
                                                 t={t}
+                                                locale={locale}
                                             />
                                         </div>
                                         {fields.status && (

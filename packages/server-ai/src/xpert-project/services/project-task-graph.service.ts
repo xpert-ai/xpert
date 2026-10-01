@@ -34,6 +34,7 @@ import { XpertAgentExecution } from '../../xpert-agent-execution/agent-execution
 import { ChatMessage } from '../../chat-message/chat-message.entity'
 import { Xpert } from '../../xpert/xpert.entity'
 import { avatarForChat } from '../../shared/avatar'
+import { registeredProjectTaskTypes, invalidProjectTaskType } from './project-task-types'
 
 export function projectTaskIdentity(projectId: string, provider: string, key: string): string {
     const hex = createHash('sha256')
@@ -70,6 +71,7 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
         const diagnostics: ProjectTaskGraph['diagnostics'] = []
         for (const provider of this.providers.list(context.actor.organizationId ?? undefined)) {
             try {
+                const taskTypes = registeredProjectTaskTypes(provider)
                 const links = await this.tasks.manager.transaction(async (manager) => {
                     // Serialize snapshot acquisition too: an older snapshot cannot overwrite a newer one.
                     await manager.findOneOrFail(XpertProject, {
@@ -87,6 +89,7 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
                         title: item.title,
                         status: item.status,
                         kind: item.kind,
+                        taskType: item.taskType ?? null,
                         parentTaskId: item.parentKey ? identity(item.parentKey) : null,
                         predecessorIds: item.predecessorKeys.map(identity),
                         providerKey: provider.key,
@@ -103,6 +106,7 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
                     validateProjectTaskGraph(nodes)
                     for (const item of snapshot.tasks) {
                         if (!item.key.trim() || !item.title.trim()) throw Error('PROJECT_TASK_SOURCE_INVALID')
+                        if (item.taskType != null && !taskTypes.has(item.taskType)) throw invalidProjectTaskType()
                         if (new Set(item.executions.map((execution) => execution.key)).size !== item.executions.length)
                             throw Error('PROJECT_TASK_ATTEMPT_DUPLICATE')
                         for (const execution of item.executions) {
@@ -134,6 +138,7 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
                             title: item.title,
                             status: item.status,
                             kind: item.kind,
+                            ...(item.taskType !== undefined ? { type: item.taskType } : {}),
                             providerKey: provider.key,
                             sourceKey: item.key,
                             sourceRevision,
@@ -257,10 +262,19 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
                 : Promise.resolve([])
         ])
         const assistants = new Map(assignees.map((item) => [item.id, item]))
+        const typeRegistrations = new Map<string, ReturnType<typeof registeredProjectTaskTypes>>()
+        for (const provider of this.providers.list(context.actor.organizationId ?? undefined)) {
+            try {
+                typeRegistrations.set(provider.key, registeredProjectTaskTypes(provider))
+            } catch {
+                // Invalid/unavailable registrations cannot erase persisted business identity.
+            }
+        }
         const displayNodes = nodes.map((node) => {
             const assistant = assistants.get(node.assigneeXpertId)
             return {
                 ...node,
+                presentation: typeRegistrations.get(node.providerKey)?.get(node.taskType) ?? null,
                 assigneeName: assistant ? assistant.title || assistant.name : null,
                 assigneeAvatar: avatarForChat(assistant?.avatar) ?? null
             }
@@ -391,6 +405,7 @@ export function toProjectTaskNode(row: XpertProjectTask, executions: XpertProjec
         id: row.id,
         title: row.title ?? row.name,
         kind: row.kind ?? 'task',
+        taskType: row.type ?? null,
         status:
             row.status === 'completed'
                 ? 'done'

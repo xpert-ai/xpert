@@ -21,6 +21,7 @@ import { type Texts, dateTime, runtimeLabel, outcomeLabel } from './i18n'
 import { type Attempt, attemptTimes, owner } from './model'
 import { Status, Choice, Empty } from './ui'
 import { openTaskExecution } from './execution-navigation'
+import { TaskTypeIcon } from './task-type-icon'
 
 function toLocal(value: string | null) {
     if (!value) return ''
@@ -141,7 +142,10 @@ export function TaskDetail({
     return (
         <div className="flex h-full min-h-0 flex-col">
             <div className="space-y-2 px-4 pb-3 pt-1">
-                <h2 className="text-lg font-semibold leading-6">{task.title}</h2>
+                <h2 className="flex items-start gap-2 text-lg font-semibold leading-6">
+                    <TaskTypeIcon task={task} locale={locale} fallbackLabel={t[task.kind]} />
+                    <span className="min-w-0 break-words">{task.title}</span>
+                </h2>
                 <div className="flex items-center gap-3">
                     <Status value={task.status} t={t} />
                     <span className="text-xs text-muted-foreground">
