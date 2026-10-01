@@ -1,5 +1,7 @@
 import { BaseMessage, HumanMessage, isHumanMessage } from '@langchain/core/messages'
 import { ICopilotProviderModel, ModelFeature, ProviderModel } from '@xpert-ai/contracts'
+import type { ModelRequirements } from '@xpert-ai/plugin-sdk'
+import { t } from 'i18next'
 
 const visionSupport = new WeakMap<object, boolean>()
 const modelsPreparingOwnMessages = new WeakSet<object>()
@@ -25,7 +27,19 @@ export function setModelPreparesOwnMessages<T extends object>(model: T): T {
     return model
 }
 
-export function prepareMessagesForModel(messages: BaseMessage[], model: object): BaseMessage[] {
+export function prepareMessagesForModel(
+    messages: BaseMessage[],
+    model: object,
+    requirements?: ModelRequirements
+): BaseMessage[] {
+    if (requirements?.features?.includes(ModelFeature.VISION) && visionSupport.get(model) !== true) {
+        throw new Error(
+            t('server-ai:Error.AgentImageInputRequired', {
+                defaultValue:
+                    'This model call requires image input support. Select a vision-capable model and fallback.'
+            })
+        )
+    }
     if (modelsPreparingOwnMessages.has(model) || visionSupport.get(model)) {
         return messages
     }

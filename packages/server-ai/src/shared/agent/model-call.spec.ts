@@ -2,7 +2,7 @@ import { AIMessage, BaseMessage, HumanMessage, SystemMessage } from '@langchain/
 import { RunnableConfig, RunnableLambda } from '@langchain/core/runnables'
 import { tool } from '@langchain/core/tools'
 import { ChatOpenAI } from '@langchain/openai'
-import { XpertParameterTypeEnum } from '@xpert-ai/contracts'
+import { ModelFeature, XpertParameterTypeEnum } from '@xpert-ai/contracts'
 import { z } from 'zod'
 import i18next from 'i18next'
 import { setModelVisionSupport } from '../../copilot-model/model-capabilities'
@@ -229,6 +229,132 @@ describe('prepareModelCall', () => {
         expect(await prepared.model.invoke(prepared.messages)).toEqual({ title: 'outline' })
         expect(fallback.withStructuredOutput).toHaveBeenCalledTimes(1)
         expect(prepared.systemMessage.content).toContain('```json')
+    })
+
+    it('rejects explicitly required image input before invoking a text-only model or static default', async () => {
+        const primary = createModel(false)
+        const input = [new HumanMessage({ content: [{ type: 'image_url', image_url: 'https://example.com/a.png' }] })]
+        const prepared = await prepareModelCall(
+            {
+                model: primary.model,
+                tools: [first],
+                messages: input,
+                requirements: { features: [ModelFeature.VISION] }
+            },
+            {
+                registeredTools,
+                agent: {
+                    options: { errorHandling: { type: 'defaultValue', defaultValue: { content: 'looks safe' } } }
+                }
+            }
+        )
+
+        await expect(prepared.model.invoke(prepared.messages)).rejects.toThrow('requires image input support')
+        expect(primary.invoke).not.toHaveBeenCalled()
+        expect(prepared.messages[0].content).toEqual(input[0].content)
+    })
+
+    it('does not silently strip required images when a vision model falls back to a text-only model', async () => {
+        const primary = createModel(true)
+        const fallback = createModel(false)
+        primary.invoke.mockRejectedValue(new Error('vision provider unavailable'))
+        const input = [new HumanMessage({ content: [{ type: 'image_url', image_url: 'https://example.com/a.png' }] })]
+        const prepared = await prepareModelCall(
+            {
+                model: primary.model,
+                tools: [first],
+                messages: input,
+                requirements: { features: [ModelFeature.VISION] }
+            },
+            {
+                registeredTools,
+                agent: {
+                    options: {
+                        fallback: { enabled: true, copilotModel: { model: 'text-only' } },
+                        errorHandling: { type: 'defaultValue', defaultValue: { content: 'looks safe' } }
+                    }
+                },
+                resolveFallbackModel: async () => fallback.model
+            }
+        )
+
+        await expect(prepared.model.invoke(prepared.messages)).rejects.toThrow()
+        expect(primary.invoke).toHaveBeenCalledTimes(1)
+        expect(primary.invoke.mock.calls[0][0][0].content).toEqual(input[0].content)
+        expect(fallback.invoke).not.toHaveBeenCalled()
+    })
+
+    it('allows a vision-capable fallback to handle required images without modifying history', async () => {
+        const primary = createModel(false)
+        const fallback = createModel(true)
+        const input = [new HumanMessage({ content: [{ type: 'image_url', image_url: 'https://example.com/a.png' }] })]
+        const prepared = await prepareModelCall(
+            {
+                model: primary.model,
+                tools: [first],
+                messages: input,
+                requirements: { features: [ModelFeature.VISION] }
+            },
+            {
+                registeredTools,
+                agent: { options: { fallback: { enabled: true, copilotModel: { model: 'vision' } } } },
+                resolveFallbackModel: async () => fallback.model
+            }
+        )
+
+        await expect(prepared.model.invoke(prepared.messages)).resolves.toBeInstanceOf(AIMessage)
+        expect(primary.invoke).not.toHaveBeenCalled()
+        expect(fallback.invoke.mock.calls[0][0][0].content).toEqual(input[0].content)
+        expect(input[0].content).toHaveLength(1)
+    })
+
+    it('rejects required image input for an unregistered replacement model', async () => {
+        const invoke = jest.fn(async () => new AIMessage('unverified'))
+        const prepared = await prepareModelCall(
+            {
+                model: RunnableLambda.from(invoke),
+                tools: [],
+                messages,
+                requirements: { features: [ModelFeature.VISION] }
+            },
+            { registeredTools, agent: {} }
+        )
+        await expect(prepared.model.invoke(prepared.messages)).rejects.toThrow('requires image input support')
+        expect(invoke).not.toHaveBeenCalled()
+    })
+
+    it('snapshots requirements so caller mutation cannot weaken the prepared model call', async () => {
+        const primary = createModel(false)
+        const features: ModelFeature.VISION[] = [ModelFeature.VISION]
+        const prepared = await prepareModelCall(
+            { model: primary.model, tools: [], messages, requirements: { features } },
+            { registeredTools, agent: {} }
+        )
+        features.length = 0
+        await expect(prepared.model.invoke(prepared.messages)).rejects.toThrow('requires image input support')
+        expect(primary.invoke).not.toHaveBeenCalled()
+    })
+
+    it('rejects requirements this host cannot validate before fallback or default handling', async () => {
+        const primary = createModel(true)
+        const resolveFallbackModel = jest.fn(async () => createModel(true).model)
+        await expect(
+            prepareModelCall(
+                { model: primary.model, tools: [], messages, requirements: JSON.parse('{"features":["video"]}') },
+                {
+                    registeredTools,
+                    resolveFallbackModel,
+                    agent: {
+                        options: {
+                            fallback: { enabled: true, copilotModel: { model: 'vision' } },
+                            errorHandling: { type: 'defaultValue', defaultValue: { content: 'done' } }
+                        }
+                    }
+                }
+            )
+        ).rejects.toThrow('requirements are invalid')
+        expect(primary.invoke).not.toHaveBeenCalled()
+        expect(resolveFallbackModel).not.toHaveBeenCalled()
     })
 
     it('reuses one binding across retries', async () => {
