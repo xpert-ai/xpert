@@ -1,4 +1,6 @@
 import { t } from './i18n'
+import { useId } from 'react'
+import { Label, Switch } from '@xpert-ai/shadcn-ui'
 import type { AppearanceConfig, ColorMode } from './appearance-types'
 import { desktopColors } from './theme'
 import { ColorField, FontField, ThemeRange, ThemeSection, ThemeSelect, fontSizes } from './ThemeFields'
@@ -15,12 +17,31 @@ export function ChatKitAppearance({
   onMode: (mode: ColorMode) => void
   onChange: (value: AppearanceConfig) => void
 }) {
+  const bubbleId = useId()
   const config = value.chatkit
   const colors = desktopColors(value, mode)
   const update = (patch: Partial<AppearanceConfig['chatkit']>) =>
     onChange({ ...value, chatkit: { ...config, ...patch } })
   return (
     <div className="space-y-8">
+      <ThemeSection title={t('Message display')}>
+        <div className="flex items-center justify-between gap-6">
+          <div className="min-w-0 space-y-1">
+            <Label htmlFor={bubbleId} className="text-sm leading-5">
+              {t('Bubble mode')}
+            </Label>
+            <p id={`${bubbleId}-description`} className="text-[0.8125rem] leading-5 text-muted-foreground">
+              {t('Show AI text blocks as chat bubbles and hide tool-call steps. Turn off to use the original layout.')}
+            </p>
+          </div>
+          <Switch
+            id={bubbleId}
+            aria-describedby={`${bubbleId}-description`}
+            checked={config.messagePresentation === 'bubbles'}
+            onCheckedChange={(checked) => update({ messagePresentation: checked ? 'bubbles' : 'transcript' })}
+          />
+        </div>
+      </ThemeSection>
       <ThemeSection
         title={t('Layout & typography')}
         description={t('Synced through ChatKit theme options. Supported components depend on your ChatKit version.')}

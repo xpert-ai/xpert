@@ -10,7 +10,7 @@ import type { ChatKitOptions, XpertAIChatKit } from '@xpert-ai/chatkit-types'
 import { Button } from '@xpert-ai/shadcn-ui'
 import { LoaderCircle } from 'lucide-react'
 import { invoke } from './host'
-import { getChatKitTheme } from './theme'
+import { getChatKitMessagePresentation, getChatKitTheme } from './theme'
 import type { Bot, ConnectionConfig } from './types'
 
 // A thin React lifecycle adapter; ChatKit owns every conversation interaction.
@@ -85,6 +85,7 @@ export function ChatPanel({
       },
       locale: config.locale,
       theme: getChatKitTheme(document.documentElement.classList.contains('dark'), config.appearance),
+      messagePresentation: getChatKitMessagePresentation(config.appearance),
       layout: { maxWidth: 960 },
       initialThread: threadId,
       header,
@@ -152,8 +153,10 @@ export function ChatPanel({
   useEffect(() => {
     if (frameReady && instance.current && optionsRef.current) {
       const theme = getChatKitTheme(dark, config.appearance)
+      const messagePresentation = getChatKitMessagePresentation(config.appearance)
       if (
         JSON.stringify(optionsRef.current.theme) === JSON.stringify(theme) &&
+        JSON.stringify(optionsRef.current.messagePresentation) === JSON.stringify(messagePresentation) &&
         optionsRef.current.locale === config.locale &&
         optionsRef.current.header?.title?.text === bot.name
       )
@@ -161,6 +164,7 @@ export function ChatPanel({
       const options = {
         ...optionsRef.current,
         theme,
+        messagePresentation,
         locale: config.locale,
         header: { ...optionsRef.current.header, title: { text: bot.name } }
       }

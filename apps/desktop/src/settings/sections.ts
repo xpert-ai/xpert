@@ -1,6 +1,6 @@
-import { Cable, MessageSquare, Monitor, Settings2, Terminal, type LucideIcon } from 'lucide-react'
+import { Cable, Palette, Settings2, Terminal, type LucideIcon } from 'lucide-react'
 
-export type SettingsSection = 'general' | 'desktop' | 'chat' | 'connection' | 'shell'
+export type SettingsSection = 'general' | 'appearance' | 'connection' | 'shell'
 
 export interface SettingsItem {
   id: SettingsSection
@@ -22,18 +22,25 @@ export const settingsGroups: { label: string; items: SettingsItem[] }[] = [
         keywords: ['Language', 'Appearance mode', 'Desktop font size', 'Assistant list density']
       },
       {
-        id: 'desktop',
-        label: 'Desktop appearance',
-        icon: Monitor,
-        description: 'Personalize desktop typography, spacing and colors.',
-        keywords: ['Desktop font', 'Desktop corner radius', 'Colors', 'Primary color']
-      },
-      {
-        id: 'chat',
-        label: 'Chat appearance',
-        icon: MessageSquare,
-        description: 'Customize how your conversations look.',
-        keywords: ['ChatKit', 'ChatKit font', 'Code font', 'ChatKit corners', 'ChatKit density', 'Colors']
+        id: 'appearance',
+        label: 'Appearance',
+        icon: Palette,
+        description: 'Customize desktop and chat appearance in one place.',
+        keywords: [
+          'Desktop appearance',
+          'Chat appearance',
+          'Desktop font',
+          'Desktop corner radius',
+          'Primary color',
+          'Bubble mode',
+          'Message display',
+          'ChatKit',
+          'ChatKit font',
+          'Code font',
+          'ChatKit corners',
+          'ChatKit density',
+          'Colors'
+        ]
       }
     ]
   },

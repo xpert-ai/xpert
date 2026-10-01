@@ -25,8 +25,8 @@ export function ThemeSection({
   return (
     <section className="space-y-6 border-t pt-8 first:border-0 first:pt-0">
       <div>
-        <h3 className="text-lg font-semibold">{title}</h3>
-        {description && <p className="mt-1 text-sm leading-6 text-muted-foreground">{description}</p>}
+        <h3 className="text-base font-semibold">{title}</h3>
+        {description && <p className="mt-1 text-[0.8125rem] leading-5 text-muted-foreground">{description}</p>}
       </div>
       {children}
     </section>
@@ -49,7 +49,7 @@ export function ThemeSelect<T extends string | number>({
   const id = useId()
   return (
     <div className={hideLabel ? '' : 'space-y-2'}>
-      <Label htmlFor={id} className={hideLabel ? 'sr-only' : 'text-base leading-6'}>
+      <Label htmlFor={id} className={hideLabel ? 'sr-only' : 'text-sm leading-5'}>
         {label}
       </Label>
       <Select
@@ -93,7 +93,7 @@ export function ThemeRange({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between gap-3">
-        <Label htmlFor={id} className="text-base leading-6">
+        <Label htmlFor={id} className="text-sm leading-5">
           {label}
         </Label>
         <output htmlFor={id} className="text-sm tabular-nums text-muted-foreground">
@@ -136,7 +136,7 @@ export function ColorField({
   return (
     <div className="space-y-2">
       <div className="flex items-baseline justify-between gap-2">
-        <Label htmlFor={id} className="text-base leading-6">
+        <Label htmlFor={id} className="text-sm leading-5">
           {label}
         </Label>
         {token && <span className="truncate text-xs text-muted-foreground">{token}</span>}
@@ -203,7 +203,7 @@ export function FontField({
   const id = useId()
   return (
     <div className="space-y-2">
-      <Label htmlFor={id} className="text-base leading-6">
+      <Label htmlFor={id} className="text-sm leading-5">
         {label}
       </Label>
       <Input

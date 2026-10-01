@@ -77,13 +77,13 @@ export function ShellSettings({
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Terminal className="size-4" />
-          <h3 className="text-lg font-semibold">{t('This computer Shell')}</h3>
+          <h3 className="text-base font-semibold">{t('This computer Shell')}</h3>
         </div>
-        <span role="status" className="text-sm leading-6 text-muted-foreground">
+        <span role="status" className="text-[0.8125rem] leading-5 text-muted-foreground">
           {status}
         </span>
       </div>
-      <p className="text-sm leading-6 text-muted-foreground">
+      <p className="text-[0.8125rem] leading-5 text-muted-foreground">
         {t(
           'Allow an authorized conversation to run commands with your computer user permissions. Command output is sent to Xpert. The working directory does not restrict file access.'
         )}
@@ -102,14 +102,14 @@ export function ShellSettings({
           }}
         />
       </fieldset>
-      <p className="text-sm leading-6 text-muted-foreground">
+      <p className="text-[0.8125rem] leading-5 text-muted-foreground">
         {t(
           'Applies only to your account, this organization and this computer. Always allow permits future commands without asking.'
         )}
       </p>
       <div className="grid gap-6 xl:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="shell-name" className="text-base leading-6">
+          <Label htmlFor="shell-name" className="text-sm leading-5">
             {t('Computer name')}
           </Label>
           <Input
@@ -135,7 +135,7 @@ export function ShellSettings({
           />
         </fieldset>
         <div className="space-y-2 xl:col-span-2">
-          <Label htmlFor="shell-cwd" className="text-base leading-6">
+          <Label htmlFor="shell-cwd" className="text-sm leading-5">
             {t('Default working directory')}
           </Label>
           <Input
@@ -147,7 +147,7 @@ export function ShellSettings({
           />
         </div>
         <div className="space-y-2 xl:col-span-2">
-          <Label htmlFor="shell-path" className="text-base leading-6">
+          <Label htmlFor="shell-path" className="text-sm leading-5">
             {t('Command search path')}
           </Label>
           <Input
@@ -159,7 +159,7 @@ export function ShellSettings({
           />
         </div>
       </div>
-      <p className="text-sm leading-6 text-muted-foreground">
+      <p className="text-[0.8125rem] leading-5 text-muted-foreground">
         {t('Bosi connects when a local command is requested. Each command starts a fresh, non-interactive shell.')}
       </p>
       <Button

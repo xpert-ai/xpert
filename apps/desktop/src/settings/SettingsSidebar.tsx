@@ -48,7 +48,7 @@ export function SettingsSidebar({
           <ArrowLeft className="size-4" />
           {signedIn ? t('Back to workspace') : t('Back to sign in')}
         </Button>
-        <h1 className="mt-6 mb-4 px-1 text-2xl font-semibold">{t('Settings')}</h1>
+        <h1 className="mt-6 mb-4 px-1 text-xl font-semibold">{t('Settings')}</h1>
         <div className="relative">
           <Search className="pointer-events-none absolute top-3 left-3 size-4 text-muted-foreground" />
           <Input
@@ -83,7 +83,7 @@ export function SettingsSidebar({
             aria-label={t(group.label)}
             className="mt-6 border-t pt-5 first:mt-0 first:border-0 first:pt-0"
           >
-            <h2 className="mb-2 px-3 text-sm font-medium text-muted-foreground">{t(group.label)}</h2>
+            <h2 className="mb-2 px-3 text-xs font-medium text-muted-foreground">{t(group.label)}</h2>
             <div className="space-y-1">
               {group.items.map(({ id, label, icon: Icon }) => (
                 <Button
@@ -93,7 +93,7 @@ export function SettingsSidebar({
                   disabled={pending}
                   aria-current={section === id ? 'page' : undefined}
                   title={t(label)}
-                  className={`h-11 w-full justify-start gap-3 px-3 text-base ${section === id ? 'bg-accent font-medium text-accent-foreground' : 'font-normal text-foreground'}`}
+                  className={`h-11 w-full justify-start gap-3 px-3 text-sm ${section === id ? 'bg-accent font-medium text-accent-foreground' : 'font-normal text-foreground'}`}
                   onClick={() => onSection(id)}
                 >
                   <Icon className="size-[18px] shrink-0" />
@@ -110,7 +110,7 @@ export function SettingsSidebar({
         )}
       </nav>
       <div className="flex min-w-0 shrink-0 items-center gap-3 px-6 py-5">
-        <span className="text-2xl font-semibold tracking-tight text-primary">{branding.name}</span>
+        <span className="text-xl font-semibold tracking-tight text-primary">{branding.name}</span>
         <span className="min-w-0 truncate border-l pl-3 text-sm text-muted-foreground" title={userName}>
           {userName || (signedIn ? t('Xpert user') : t('Not signed in'))}
         </span>

@@ -816,5 +816,11 @@
   "Discard unsaved changes?": "放弃未保存的更改？",
   "Your changes will be lost when you leave settings.": "离开设置后，未保存的更改将丢失。",
   "Keep editing": "继续编辑",
-  "Discard and go back": "放弃更改并返回"
+  "Discard and go back": "放弃更改并返回",
+  "Message display": "消息展示",
+  "Bubble mode": "气泡模式",
+  "Show AI text blocks as chat bubbles and hide tool-call steps. Turn off to use the original layout.": "将 AI 文本块显示为聊天气泡，并隐藏工具调用过程。关闭后使用原来的展示方式。",
+  "Chat": "聊天",
+  "Customize desktop and chat appearance in one place.": "统一设置桌面与聊天的显示样式。",
+  "More appearance settings": "更多外观设置"
 }

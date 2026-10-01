@@ -816,5 +816,11 @@
   "Discard unsaved changes?": "未保存の変更を破棄しますか？",
   "Your changes will be lost when you leave settings.": "設定を閉じると、未保存の変更は失われます。",
   "Keep editing": "編集を続ける",
-  "Discard and go back": "破棄して戻る"
+  "Discard and go back": "破棄して戻る",
+  "Message display": "メッセージ表示",
+  "Bubble mode": "吹き出しモード",
+  "Show AI text blocks as chat bubbles and hide tool-call steps. Turn off to use the original layout.": "AI のテキストブロックを吹き出しで表示し、ツール呼び出しの過程を非表示にします。オフにすると元の表示に戻ります。",
+  "Chat": "チャット",
+  "Customize desktop and chat appearance in one place.": "デスクトップとチャットの外観をまとめて設定します。",
+  "More appearance settings": "その他の外観設定"
 }

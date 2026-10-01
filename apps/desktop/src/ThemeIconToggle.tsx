@@ -35,7 +35,7 @@ export function ThemeIconToggle<T extends string>({
   return (
     <div className="space-y-2">
       <div className="flex items-baseline gap-3">
-        <span id={labelId} className="text-base leading-6 font-medium">
+        <span id={labelId} className="text-sm leading-5 font-medium">
           {label}
         </span>
         <span className="text-sm text-muted-foreground">

@@ -128,37 +128,47 @@ export function ConnectionSettings({
               <h2
                 ref={heading}
                 tabIndex={-1}
-                className="text-[2rem] leading-tight font-semibold tracking-tight outline-none"
+                className="text-2xl leading-tight font-semibold tracking-tight outline-none"
               >
                 {t(current.label)}
               </h2>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">{t(current.description)}</p>
+              <p className="mt-2 text-[0.8125rem] leading-5 text-muted-foreground">{t(current.description)}</p>
             </header>
             <fieldset disabled={busy} className="min-w-0">
               {section === 'general' && (
-                <GeneralSettings draft={draft} onChange={updateDraft} onDesktop={() => selectSection('desktop')} />
-              )}
-              {section === 'desktop' && (
-                <AppearanceSettings
-                  value={draft.appearance}
-                  dark={
-                    draft.theme === 'dark' ||
-                    (draft.theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches)
-                  }
-                  onChange={(appearance) => updateDraft({ ...draft, appearance })}
+                <GeneralSettings
+                  draft={draft}
+                  onChange={updateDraft}
+                  onAppearance={() => selectSection('appearance')}
                 />
               )}
-              {section === 'chat' && (
-                <ChatKitAppearance
-                  value={draft.appearance}
-                  mode={paletteMode}
-                  onMode={setPaletteMode}
-                  onChange={(appearance) => updateDraft({ ...draft, appearance })}
-                />
+              {section === 'appearance' && (
+                <div className="space-y-10">
+                  <fieldset className="min-w-0">
+                    <legend className="mb-6 text-lg font-semibold">{t('Desktop')}</legend>
+                    <AppearanceSettings
+                      value={draft.appearance}
+                      dark={
+                        draft.theme === 'dark' ||
+                        (draft.theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches)
+                      }
+                      onChange={(appearance) => updateDraft({ ...draft, appearance })}
+                    />
+                  </fieldset>
+                  <fieldset className="min-w-0 border-t pt-8">
+                    <legend className="pr-3 text-lg font-semibold">{t('Chat')}</legend>
+                    <ChatKitAppearance
+                      value={draft.appearance}
+                      mode={paletteMode}
+                      onMode={setPaletteMode}
+                      onChange={(appearance) => updateDraft({ ...draft, appearance })}
+                    />
+                  </fieldset>
+                </div>
               )}
               {section === 'connection' && (
                 <div className="space-y-6">
-                  <p className="text-sm leading-6 text-muted-foreground">
+                  <p className="text-[0.8125rem] leading-5 text-muted-foreground">
                     {t(
                       'Changing service URLs requires signing in again. Appearance and language changes keep your session and chats.'
                     )}
@@ -187,21 +197,16 @@ export function ConnectionSettings({
           )}
           <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
             <div className="flex min-w-0 flex-wrap items-center gap-3">
-              {(section === 'desktop' || section === 'chat') && (
+              {section === 'appearance' && (
                 <Button
                   type="button"
                   variant="ghost"
                   disabled={busy}
                   className="h-10 px-2 text-muted-foreground"
                   onClick={() => {
-                    const defaults = defaultAppearance()
                     updateDraft({
                       ...draft,
-                      appearance: {
-                        ...draft.appearance,
-                        [section === 'desktop' ? 'desktop' : 'chatkit']:
-                          defaults[section === 'desktop' ? 'desktop' : 'chatkit']
-                      }
+                      appearance: defaultAppearance()
                     })
                   }}
                 >

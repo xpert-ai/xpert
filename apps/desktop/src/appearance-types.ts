@@ -14,6 +14,7 @@ export interface AppearanceConfig {
     dark: Partial<Record<ColorToken, string>>
   }
   chatkit: {
+    messagePresentation: 'transcript' | 'bubbles'
     radius: NonNullable<ChatKitTheme['radius']>
     density: Density
     baseSize: NonNullable<NonNullable<ChatKitTheme['typography']>['baseSize']>

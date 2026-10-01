@@ -10,8 +10,8 @@ function SettingsRow({ title, description, children }: { title: string; descript
   return (
     <div className="flex min-w-0 flex-col gap-4 border-t p-5 first:border-0 xl:flex-row xl:items-center xl:justify-between xl:gap-8">
       <div className="min-w-0">
-        <h3 className="text-base font-medium">{title}</h3>
-        <p className="mt-1 text-sm leading-6 text-muted-foreground">{description}</p>
+        <h3 className="text-sm font-medium">{title}</h3>
+        <p className="mt-1 text-[0.8125rem] leading-5 text-muted-foreground">{description}</p>
       </div>
       <div className="w-fit max-w-full shrink-0">{children}</div>
     </div>
@@ -55,17 +55,17 @@ function SettingsChoice<T extends string>({
 export function GeneralSettings({
   draft,
   onChange,
-  onDesktop
+  onAppearance
 }: {
   draft: ConnectionConfig
   onChange: (config: ConnectionConfig) => void
-  onDesktop: () => void
+  onAppearance: () => void
 }) {
   const appearance = draft.appearance ?? defaultAppearance()
   return (
     <div className="space-y-8">
       <section aria-labelledby="settings-language-heading">
-        <h2 id="settings-language-heading" className="mb-4 text-lg font-semibold">
+        <h2 id="settings-language-heading" className="mb-4 text-base font-semibold">
           {t('Language')}
         </h2>
         <div className="overflow-hidden rounded-xl border">
@@ -83,13 +83,13 @@ export function GeneralSettings({
               />
             </div>
           </SettingsRow>
-          <p className="mx-5 border-t py-4 text-sm leading-6 text-muted-foreground">
+          <p className="mx-5 border-t py-4 text-[0.8125rem] leading-5 text-muted-foreground">
             {t('On first launch, the language follows your system preferences.')}
           </p>
         </div>
       </section>
       <section aria-labelledby="settings-display-heading">
-        <h2 id="settings-display-heading" className="mb-4 text-lg font-semibold">
+        <h2 id="settings-display-heading" className="mb-4 text-base font-semibold">
           {t('Everyday display')}
         </h2>
         <div className="overflow-hidden rounded-xl border">
@@ -140,10 +140,10 @@ export function GeneralSettings({
               type="button"
               variant="ghost"
               className="h-10 w-full justify-start gap-3 px-3 text-sm"
-              onClick={onDesktop}
+              onClick={onAppearance}
             >
               <ChevronRight className="size-4" />
-              {t('More desktop appearance settings')}
+              {t('More appearance settings')}
             </Button>
           </div>
         </div>

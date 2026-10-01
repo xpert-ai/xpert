@@ -14,6 +14,15 @@ test('legacy configuration gains independent appearance defaults', () => {
   assert.deepEqual(second.appearance.desktop.light, {})
   assert.equal(second.appearance.chatkit.radius, 'soft')
   assert.equal(second.appearance.chatkit.baseSize, 15)
+  assert.equal(second.appearance.chatkit.messagePresentation, 'transcript')
+})
+
+test('saved chat themes without a presentation preference keep their styling and use the original layout', () => {
+  const appearance = parseAppearance({ chatkit: { radius: 'pill', baseSize: 18, accentPrimary: '#123456' } })
+  assert.equal(appearance.chatkit.messagePresentation, 'transcript')
+  assert.equal(appearance.chatkit.radius, 'pill')
+  assert.equal(appearance.chatkit.baseSize, 18)
+  assert.equal(appearance.chatkit.accentPrimary, '#123456')
 })
 
 test('theme edits survive host restart without clearing credentials, organization or bot access', async (t) => {
@@ -34,7 +43,12 @@ test('theme edits survive host restart without clearing credentials, organizatio
   service.bots = [{ id: 'bot' }]
   const appearance = parseAppearance({
     desktop: { light: { primary: '#2563EB' }, dark: { primary: '#fbbf24' }, baseSize: 17, radius: 0 },
-    chatkit: { radius: 'round', grayscale: { hue: 210, tint: 2, shade: -1 }, dark: { background: '#111111' } }
+    chatkit: {
+      messagePresentation: 'bubbles',
+      radius: 'round',
+      grayscale: { hue: 210, tint: 2, shade: -1 },
+      dark: { background: '#111111' }
+    }
   })
   const generation = service.generation
   assert.ok(service.configure({ ...DEFAULT_CONFIG, appearance }).profile)
@@ -57,6 +71,7 @@ test('invalid appearance saves are atomic and reject CSS, invalid colors and uns
     { desktop: { radius: 25 } },
     { chatkit: { baseSize: 19 } },
     { chatkit: { density: 'tiny' } },
+    { chatkit: { messagePresentation: 'unknown' } },
     { chatkit: { accentLevel: 4 } },
     { chatkit: { grayscale: { hue: 100, tint: 10 } } },
     { chatkit: { grayscale: { hue: 100, tint: 2, shade: -5 } } },
@@ -76,6 +91,7 @@ test('unknown CSS keys are discarded and resetting removes previous overrides', 
   const reset = service.configure({ ...DEFAULT_CONFIG, appearance: parseAppearance() }).config.appearance
   assert.deepEqual(reset.desktop.light, {})
   assert.equal(reset.chatkit.grayscale, null)
+  assert.equal(reset.chatkit.messagePresentation, 'transcript')
 })
 
 test('damaged saved appearance does not reset the configured Xpert service', () => {

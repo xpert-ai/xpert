@@ -816,5 +816,11 @@
   "Discard unsaved changes?": "Discard unsaved changes?",
   "Your changes will be lost when you leave settings.": "Your changes will be lost when you leave settings.",
   "Keep editing": "Keep editing",
-  "Discard and go back": "Discard and go back"
+  "Discard and go back": "Discard and go back",
+  "Message display": "Message display",
+  "Bubble mode": "Bubble mode",
+  "Show AI text blocks as chat bubbles and hide tool-call steps. Turn off to use the original layout.": "Show AI text blocks as chat bubbles and hide tool-call steps. Turn off to use the original layout.",
+  "Chat": "Chat",
+  "Customize desktop and chat appearance in one place.": "Customize desktop and chat appearance in one place.",
+  "More appearance settings": "More appearance settings"
 }
