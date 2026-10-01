@@ -4,7 +4,8 @@ import {
     IconDefinition,
     IXpert,
     IXpertAgent,
-    IXpertTool,
+    ToolsetCreateInput,
+    ToolsetToolInput,
     JSONValue,
     PLUGIN_COMPONENT_TYPE,
     PLUGIN_MCP_TOOL_APPROVAL_MODE,
@@ -166,10 +167,10 @@ export function buildPluginManagedMcpToolsetEntity(
     workspaceId: string,
     xpertId: string | null,
     parsed: ParsedPluginMcpServer
-): Partial<XpertToolset> {
+): ToolsetCreateInput {
     const policy = mergePluginMcpPolicies(parsed.policy, runtimeComponent.policyOverrides)
     const enabledTools = policy.enabledTools ?? []
-    const tools: IXpertTool[] = enabledTools.map((name) => ({
+    const tools: ToolsetToolInput[] = enabledTools.map((name) => ({
         name,
         disabled: false,
         enabled: true,

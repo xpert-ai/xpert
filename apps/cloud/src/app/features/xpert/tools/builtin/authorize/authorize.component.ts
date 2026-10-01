@@ -1,3 +1,4 @@
+import { BuiltinToolsetInput } from '@xpert-ai/contracts'
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -152,7 +153,7 @@ export class XpertToolBuiltinAuthorizeComponent {
 
   save() {
     this.loading.set(true)
-    const entity: Partial<IXpertToolset> = {
+    const entity: BuiltinToolsetInput = {
       workspaceId: this.workspaceId(),
       name: this.toolsetName(),
       description: this.toolsetDescription(),

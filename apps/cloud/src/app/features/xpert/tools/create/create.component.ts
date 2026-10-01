@@ -1,3 +1,4 @@
+import { toToolsetWriteInput } from '@xpert-ai/contracts'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
@@ -59,7 +60,8 @@ export class XpertStudioCreateToolComponent {
   createTool() {
     this.xpertToolsetService
       .create({
-        ...omitBy(this.toolset(), isNil),
+        ...toToolsetWriteInput(omitBy(this.toolset(), isNil)),
+        name: this.toolset().name,
         workspaceId: this.workspace()?.id
       })
       .subscribe({

@@ -1,3 +1,4 @@
+import { ToolsetUpdateInput, toToolsetWriteInput } from '@xpert-ai/contracts'
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -150,7 +151,7 @@ export class XpertStudioAPIToolComponent {
 
   saveToolset() {
     this.loading.set(true)
-    let value: Partial<IXpertToolset> = {}
+    let value: ToolsetUpdateInput = {}
     if (this.configure()) {
       value = {
         ...this.configure().formGroup.value,
@@ -158,7 +159,7 @@ export class XpertStudioAPIToolComponent {
       }
     }
     if (this.toolsDirty()) {
-      value.tools = this.toolset().tools.filter((_) => !_.deletedAt)
+      value.tools = toToolsetWriteInput({ tools: this.toolset().tools.filter((_) => !_.deletedAt) }).tools
     } else {
       value = omit(value, 'tools')
     }

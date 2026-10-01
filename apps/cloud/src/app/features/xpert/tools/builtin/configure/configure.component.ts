@@ -1,3 +1,4 @@
+import { toToolsetWriteInput } from '@xpert-ai/contracts'
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal } from '@angular/core'
@@ -21,7 +22,6 @@ import {
   IXpertToolset,
   TagCategoryEnum,
   ToastrService,
-  TXpertToolsetOptions,
   XpertToolsetService
 } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
@@ -206,19 +206,19 @@ export class XpertToolConfigureBuiltinComponent {
   save() {
     this.loading.set(true)
     const toolset = {
-      ...omit(this.toolset(), 'tags'),
+      ...toToolsetWriteInput(omit(this.toolset(), 'tags')),
       tools: this.tools(),
       options: {
         ...(this.toolset().options ?? {}),
         provider: this.provider(),
         toolPositions: this.getToolPositions()
-      } as TXpertToolsetOptions
+      }
     }
     this.#toolsetService.update(this.toolset().id, toolset).subscribe({
-      next: () => {
+      next: (saved) => {
         this.#toastr.success('XP.Messages.UpdatedSuccessfully', { Default: 'Updated successfully' })
         this.loading.set(false)
-        this.#dialogRef.close(toolset)
+        this.#dialogRef.close(saved)
       },
       error: (err) => {
         this.#toastr.error(getErrorMessage(err))
