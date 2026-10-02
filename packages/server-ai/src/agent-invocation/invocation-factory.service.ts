@@ -20,8 +20,9 @@ import { GetXpertWorkflowQuery, TXpertWorkflowQueryOutput } from '../xpert/queri
 import { resolveAgentExecutionScope } from '../shared/agent/middleware-runtime/execution-scope'
 import { AgentRuntimeBindingEntity } from './invocation.entity'
 import { AgentInvocationRuntime, invocationError } from './invocation-runtime'
-import { awaitAgentInvocation } from './invocation-wait'
+import { awaitInvocationTasks } from './invocation-task-wait'
 import { z } from 'zod/v3'
+import { isDeepStrictEqual } from 'node:util'
 
 @Injectable()
 @RuntimeCapabilityProvider(AgentRuntimeFactoryCapability)
@@ -78,29 +79,45 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
             if (!binding || !binding.workspaceIds.includes(scope.workspaceId)) throw invocationError('NotFound')
             return structuredClone(binding.target)
         }
-        const api = () =>
-            this.runtime.scoped({
-                scope: currentScope(),
-                capabilities: new DefaultRuntimeCapabilityRegistry(),
+        const api = () => {
+            const scope = currentScope()
+            const scoped = new DefaultRuntimeCapabilityRegistry()
+            return this.runtime.scoped({
+                scope,
+                capabilities: scoped,
                 authorize: async (target) => {
                     const allowed = await resolve(target.bindingId)
                     if (
                         allowed.revision !== target.revision ||
                         allowed.provider !== target.provider ||
                         allowed.reference !== target.reference ||
-                        JSON.stringify(allowed.configuration) !== JSON.stringify(target.configuration)
+                        !isDeepStrictEqual(allowed.configuration, target.configuration)
                     ) {
                         throw invocationError('CallConflict')
                     }
                 }
             })
+        }
         return {
             resolve,
             start: (request) => api().start(request),
             inspect: (id) => api().inspect(id),
             cancel: (id) => api().cancel(id),
             respond: (id, interaction, response) => api().respond(id, interaction, response),
-            awaitResult: (id) => awaitAgentInvocation(api(), id)
+            awaitResult: async (id, options) => {
+                const result = await awaitInvocationTasks(
+                    api(),
+                    {
+                        callId: id,
+                        taskIds: [id],
+                        mode: 'all',
+                        timeoutMs: options?.timeoutMs
+                    },
+                    options?.signal
+                )
+                return result.tasks[0]
+            },
+            waitForTasks: (request, options) => awaitInvocationTasks(api(), request, options?.signal)
         }
     }
 }

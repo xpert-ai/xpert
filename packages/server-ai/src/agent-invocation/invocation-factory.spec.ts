@@ -98,6 +98,18 @@ describe('Agent invocation factory and controller boundaries', () => {
         await expect(f.api.inspect(run.id)).rejects.toThrow()
         await expect(f.api.start(request)).rejects.toThrow()
     })
+    it('compares binding configuration independently of JSONB property order', async () => {
+        const f = fixture()
+        f.binding.target.configuration = Object.assign(
+            { profileVersion: '1' },
+            { executionEnvironment: { type: 'computer' } }
+        )
+        const target = await f.api.resolve(bindingId)
+        target.configuration = { executionEnvironment: { type: 'computer' }, profileVersion: '1' }
+        await expect(f.api.start({ target, callId: 'ordered', input: { prompt: 'x' } })).resolves.toMatchObject({
+            status: 'succeeded'
+        })
+    })
     it('fails when Assistant organization or workspace differs from caller scope', async () => {
         const f = fixture()
         const api = f.factory.createScopedApi({ ...f.identity, organizationId: 'other' })

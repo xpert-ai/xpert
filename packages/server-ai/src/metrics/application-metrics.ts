@@ -296,6 +296,15 @@ export class ApplicationMetricsRegistry {
         'Unsettled execution attempts and reserved tokens.'
     )
 
+    private readonly invocationWait = new GaugeMetric(
+        'xpert_agent_invocation_wait',
+        'Durable managed task continuation backlog.'
+    )
+    setInvocationWait(input: { pending: number; oldestErrorSeconds: number }) {
+        this.invocationWait.set({ kind: 'pending' }, input.pending)
+        this.invocationWait.set({ kind: 'oldest_error_seconds' }, input.oldestErrorSeconds)
+    }
+
     recordModelExecution(
         event:
             | 'BridgeUnsupported'
@@ -329,6 +338,7 @@ export class ApplicationMetricsRegistry {
     reset() {
         this.modelExecutionEvents.reset()
         this.modelExecutionPending.reset()
+        this.invocationWait.reset()
         this.conversationBranches.reset()
         this.conversationBranchDuration.reset()
         this.conversationBranchSize.reset()
@@ -568,6 +578,7 @@ export class ApplicationMetricsRegistry {
                 this.info.render(),
                 this.modelExecutionEvents.render(),
                 this.modelExecutionPending.render(),
+                this.invocationWait.render(),
                 this.conversationBranches.render(),
                 this.conversationBranchDuration.render(),
                 this.conversationBranchSize.render(),

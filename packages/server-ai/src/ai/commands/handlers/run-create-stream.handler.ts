@@ -1,3 +1,4 @@
+import { assertInvocationResume } from '../../../agent-invocation/invocation-resume'
 import { DesktopShellAuthService } from '../../../desktop-shell/desktop-shell-auth.service'
 import { getErrorMessage } from '@xpert-ai/plugin-sdk'
 import {
@@ -555,6 +556,9 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 
         let stream: Observable<MessageEvent>
         try {
+            if (command.invocationResume) {
+                await assertInvocationResume(this.queryBus, threadId, chatRequest.action, command.invocationResume)
+            }
             if (!execution) {
                 execution = await this.commandBus.execute(
                     new XpertAgentExecutionUpsertCommand(

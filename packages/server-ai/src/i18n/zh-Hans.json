@@ -122,6 +122,7 @@
         "AgentInvocationInteractionConflict": "\u6b64\u667a\u80fd\u4f53\u4ea4\u4e92\u5df2\u4e0d\u518d\u7b49\u5f85\u56de\u590d\u3002",
         "AgentInvocationMissingResult": "\u667a\u80fd\u4f53\u6267\u884c\u5668\u672a\u8fd4\u56de\u6709\u6548\u7ed3\u679c\u3002",
         "AgentInvocationConcurrentUpdate": "\u667a\u80fd\u4f53\u8c03\u7528\u5df2\u88ab\u5e76\u53d1\u66f4\u65b0\uff0c\u8bf7\u91cd\u65b0\u8bfb\u53d6\u72b6\u6001\u3002",
+        "AgentInvocationContinuationStale": "任务继续执行请求已失效，请刷新后重试",
         "AgentResourceOrganizationRequired": "请先选择组织。",
         "AgentResourceAdminRequired": "仅管理员可管理 Agent 插件。",
         "AgentResourceUnavailable": "此资源已失效或不可访问，请移除或重新选择。",

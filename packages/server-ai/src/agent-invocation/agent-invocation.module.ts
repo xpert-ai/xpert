@@ -1,3 +1,9 @@
+import { CancelTaskWaitsHandler, CheckTaskWaitClaimHandler } from './task-wait-control'
+import { User, UserOrganization } from '@xpert-ai/server-core'
+import { XpertAgentExecution } from '../xpert-agent-execution/agent-execution.entity'
+import { AgentInvocationWaitStore } from './invocation-wait.store'
+import { InvocationContinuationDispatcher } from './invocation-continuation-dispatcher.service'
+import { AgentInvocationMonitorService } from './invocation-monitor.service'
 import { AgentInvocationsController } from './invocations.controller'
 import { AssistantTaskRuntimeStrategy } from './assistant-task-adapter'
 import { Module } from '@nestjs/common'
@@ -7,7 +13,12 @@ import { CqrsModule } from '@nestjs/cqrs'
 import { AgentRuntimeRegistry } from '@xpert-ai/plugin-sdk'
 import { AgentInvocationRuntime } from './invocation-runtime'
 import { AgentInvocationStore } from './invocation-store'
-import { AgentInvocationEntity, AgentRuntimeBindingEntity, AgentInvocationEventEntity } from './invocation.entity'
+import {
+    AgentInvocationEntity,
+    AgentRuntimeBindingEntity,
+    AgentInvocationEventEntity,
+    AgentInvocationWaitEntity
+} from './invocation.entity'
 import { AgentInvocationFactoryService } from './invocation-factory.service'
 import { AgentRuntimeBindingsController } from './runtime-bindings.controller'
 import { NativeAgentRuntimeStrategy } from './native-agent.strategy'
@@ -18,10 +29,23 @@ import { NativeAgentInvocationReader } from './native-invocation-reader'
     imports: [
         DiscoveryModule,
         CqrsModule,
-        TypeOrmModule.forFeature([AgentInvocationEntity, AgentRuntimeBindingEntity, AgentInvocationEventEntity])
+        TypeOrmModule.forFeature([
+            AgentInvocationEntity,
+            AgentRuntimeBindingEntity,
+            AgentInvocationEventEntity,
+            AgentInvocationWaitEntity,
+            User,
+            UserOrganization,
+            XpertAgentExecution
+        ])
     ],
     controllers: [AgentRuntimeBindingsController, AgentInvocationsController],
     providers: [
+        AgentInvocationWaitStore,
+        AgentInvocationMonitorService,
+        InvocationContinuationDispatcher,
+        CancelTaskWaitsHandler,
+        CheckTaskWaitClaimHandler,
         AgentRuntimeRegistry,
         NativeAgentRuntimeStrategy,
         AssistantTaskRuntimeStrategy,

@@ -1,6 +1,7 @@
 import { createRuntimeCapability } from '../../core/runtime-capability'
 import type { AgentInvocation, AgentInvocationRequest, AgentJson, AgentTarget } from './types'
 import type { RuntimeIdentityScope } from '../../runtime/runtime-scope'
+import type { TaskWaitRequest, TaskWaitResult } from './task-wait'
 
 /** Invocation API bound to one authorized caller/execution. Each operation revalidates access. */
 export interface AgentInvocationApi {
@@ -14,11 +15,10 @@ export interface AgentInvocationApi {
   cancel(invocationId: string): Promise<AgentInvocation>
   /** Answer the current interaction using its exact ID and provider-defined response schema. */
   respond(invocationId: string, interactionId: string, response: AgentJson): Promise<AgentInvocation>
-  /**
-   * Optional checkpoint-aware wait; returns a terminal or unknown observation.
-   * Allow host suspension to propagate instead of treating it as a tool failure.
-   */
-  awaitResult?(invocationId: string): Promise<AgentInvocation>
+  /** Bounded observation; may return a running task. Only human interactions may suspend the graph. */
+  awaitResult?(invocationId: string, options?: { signal?: AbortSignal; timeoutMs?: number }): Promise<AgentInvocation>
+  /** Wait for dependencies within a bounded window. The Agent may wait again when the result is pending. */
+  waitForTasks?(request: TaskWaitRequest, options?: { signal?: AbortSignal }): Promise<TaskWaitResult<AgentInvocation>>
 }
 
 /** Caller-scoped API obtained through runtime.capabilities.require(...). */

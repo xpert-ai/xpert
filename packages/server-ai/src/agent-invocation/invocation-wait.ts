@@ -1,5 +1,5 @@
 import { interrupt } from '@langchain/langgraph'
-import { AgentInvocationApi, AgentJson, isAgentInvocationTerminal } from '@xpert-ai/plugin-sdk'
+import { AgentInvocationApi, AgentInvocation, AgentJson, isAgentInvocationTerminal } from '@xpert-ai/plugin-sdk'
 import { z } from 'zod/v3'
 
 const json: z.ZodType<AgentJson> = z.lazy(() =>
@@ -8,10 +8,15 @@ const json: z.ZodType<AgentJson> = z.lazy(() =>
 const decision = z.object({ interactionId: z.string(), response: json }).strict()
 
 /** Checkpoints the parent; never keeps a worker or an LLM polling loop alive. */
-export async function awaitAgentInvocation(api: AgentInvocationApi, id: string) {
+export async function awaitAgentInvocation(
+    api: AgentInvocationApi,
+    id: string,
+    register?: (invocation: AgentInvocation) => Promise<void>
+) {
     for (;;) {
         const current = await api.inspect(id)
         if (isAgentInvocationTerminal(current.status) || current.status === 'unknown') return current
+        await register?.(current)
         const resumed: unknown = interrupt({
             type: 'agent_invocation',
             invocationId: id,

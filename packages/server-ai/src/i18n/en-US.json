@@ -122,6 +122,7 @@
         "AgentInvocationInteractionConflict": "This Agent interaction is no longer waiting for a response.",
         "AgentInvocationMissingResult": "The Agent runtime did not return a valid result.",
         "AgentInvocationConcurrentUpdate": "The Agent invocation changed concurrently. Reload its current state.",
+        "AgentInvocationContinuationStale": "Agent invocation continuation is no longer current",
         "AgentResourceOrganizationRequired": "An organization context is required.",
         "AgentResourceAdminRequired": "An administrator is required to manage Agent Plugins.",
         "AgentResourceUnavailable": "This resource is no longer available.",
