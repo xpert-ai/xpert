@@ -3,6 +3,8 @@ import { QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import {
     AgentInvocationApi,
+    AgentExecutionRunnerCapability,
+    AgentExecutionRunnerFactoryCapability,
     AgentRuntimeFactory,
     AgentRuntimeFactoryCapability,
     AgentInvocationScope,
@@ -80,8 +82,10 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
             return structuredClone(binding.target)
         }
         const api = () => {
-            const scope = currentScope()
+            const scope = Object.freeze(currentScope())
             const scoped = new DefaultRuntimeCapabilityRegistry()
+            const factory = this.capabilities.get(AgentExecutionRunnerFactoryCapability)
+            if (factory) scoped.register(AgentExecutionRunnerCapability, factory.createScopedRunner(scope))
             return this.runtime.scoped({
                 scope,
                 capabilities: scoped,

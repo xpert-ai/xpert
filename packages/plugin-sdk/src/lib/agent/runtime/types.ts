@@ -1,3 +1,5 @@
+import type { ModelExecutionEnvironment } from '@xpert-ai/contracts'
+import type { AgentRunnerReceipt } from './execution-runner'
 import type { AgentOutputDelivery, AgentOutputExport, AgentResultArtifact, AgentResultItem } from './results'
 
 /** Serializable invocation data. Use finite numbers and plain objects; exclude credentials. */
@@ -35,6 +37,9 @@ export interface AgentTarget {
 
 /** Provider support flags; they do not grant caller permissions. */
 export interface AgentRuntimeCapabilities {
+  /** Explicit adapter compatibility; does not install tools or grant model/environment access. */
+  executionTools?: Array<{ id: string; versions: string[]; environments: ModelExecutionEnvironment['type'][] }>
+
   /**
    * Recovery by host checkpoint, existing provider session, or none.
    * Session recovery does not guarantee survival of a worker crash.
@@ -91,6 +96,8 @@ export interface AgentInvocationResult {
 
 /** Persisted provider receipt. Session/run IDs are distinct from the host invocation ID. */
 export interface AgentRuntimeHandle {
+  /** Optional host-managed process receipt; direct remote runtimes need only their session/run IDs. */
+  runner?: AgentRunnerReceipt
   sessionId: string
   runId: string
   metadata?: { [key: string]: AgentJson }
