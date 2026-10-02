@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common'
 import { link, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'fs/promises'
 import { tmpdir } from 'os'
 import path from 'path'
@@ -73,7 +74,8 @@ describe('XpertProjectContentService', () => {
 
         await expect(
             service.initialize({ id: 'project-1', tenantId: 'tenant-1', ownerId: 'user-1' } as never)
-        ).rejects.toThrow()
+        ).rejects.toThrow(BadRequestException)
+        await expect(readFile(source, 'utf8')).resolves.toBe('legacy')
     })
 
     it('rejects a symlinked skills root during initialization', async () => {
