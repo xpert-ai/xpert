@@ -4,6 +4,13 @@ export * from './prompt-workflow-capabilities.model'
 export { ChatMessageEventTypeEnum, ChatMessageStepCategory, ChatMessageTypeEnum } from './ai.model'
 
 export type * from '@xpert-ai/chatkit-types'
+export {
+  createResourceCardContent,
+  parseResourceCard,
+  parseResourceCardContent,
+  isResourceCardContent,
+  upsertResourceCardContent
+} from '@xpert-ai/chatkit-types'
 export type { IconDefinition, IconType } from '../types'
 export type { TChatRequest } from './xpert-chat.model'
 export type { ProjectSelection } from './project-selection.model'

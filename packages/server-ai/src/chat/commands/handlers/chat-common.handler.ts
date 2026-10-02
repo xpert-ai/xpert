@@ -1,4 +1,5 @@
 import { bindFileActivityEvent } from '../../../chat-message/file-activity-event'
+import { bindResourceCardEvent } from '../../../chat-message/resource-card-event'
 import { avatarForChat } from '../../../shared/avatar'
 import {
     AIMessage,
@@ -809,7 +810,9 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                 })
         }).pipe(
             map((event) => {
-                const receipt = bindFileActivityEvent(event.data, { messageId: aiMessage.id, executionId })
+                const receipt =
+                    bindResourceCardEvent(event.data, { messageId: aiMessage.id, executionId }) ??
+                    bindFileActivityEvent(event.data, { messageId: aiMessage.id, executionId })
                 return receipt ? { ...event, data: receipt } : event
             }),
             tap({

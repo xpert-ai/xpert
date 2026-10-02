@@ -30,6 +30,7 @@
       "@xpert-ai/shadcn-ui": ["packages/shadcn-ui/src/index.ts"],
       "@xpert-ai/plugin-draft": ["packages/plugins/draft/src/index.ts"],
       "@xpert-ai/plugin-sdk": ["packages/plugin-sdk/src/index.ts"],
+      "@xpert-ai/plugin-sdk/agent-results": ["packages/plugin-sdk/src/agent-results.ts"],
       "@xpert-ai/plugin-sdk/connector": ["packages/plugin-sdk/src/connector.ts"],
       "@xpert-ai/plugin-vlm-default": ["packages/plugins/vlm-default/src/index.ts"],
       "@xpert-ai/headless-ui": ["packages/ui/src/index.ts"],

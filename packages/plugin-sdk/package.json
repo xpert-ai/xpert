@@ -18,6 +18,11 @@
       "import": "./dist/index.js",
       "default": "./dist/index.cjs.js"
     },
+    "./agent-results": {
+      "types": "./dist/agent-results.d.ts",
+      "import": "./dist/agent-results.esm.js",
+      "default": "./dist/agent-results.cjs.js"
+    },
     "./data-workbench": {
       "types": "./dist/data-workbench.d.ts",
       "import": "./dist/data-workbench.esm.js",

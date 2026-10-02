@@ -49,6 +49,35 @@ function fixture() {
 }
 
 describe('AgentInvocationRuntime', () => {
+    it('rejects invalid delivery paths before reserving or starting a task', async () => {
+        const f = fixture()
+        await expect(
+            f.api.start({
+                ...f.request,
+                input: { prompt: 'task', delivery: { mode: 'archive', paths: ['../secret'] } }
+            })
+        ).rejects.toThrow()
+        expect(f.store.rows.size).toBe(0)
+        expect(f.start).not.toHaveBeenCalled()
+    })
+
+    it('persists typed findings and an export failure without changing task success', async () => {
+        const f = fixture()
+        const result = {
+            text: 'Tests passed; export failed',
+            items: [
+                { type: 'tests' as const, id: 'tests', title: 'Tests', summary: 'Passed', status: 'passed' as const }
+            ],
+            export: { mode: 'archive' as const, status: 'failed' as const, error: 'Collection failed' }
+        }
+        f.start.mockResolvedValue({ status: 'succeeded', result })
+        const run = await f.api.start({
+            ...f.request,
+            input: { prompt: 'task', delivery: { mode: 'archive', paths: ['report.txt'] } }
+        })
+        expect(run.status).toBe('succeeded')
+        expect((await f.api.inspect(run.id)).result).toEqual(result)
+    })
     it('reserves before dispatch and replays a completed result without restarting', async () => {
         const f = fixture()
         f.start.mockImplementation(async (request) => {

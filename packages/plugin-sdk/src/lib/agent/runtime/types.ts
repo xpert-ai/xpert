@@ -1,3 +1,5 @@
+import type { AgentOutputDelivery, AgentOutputExport, AgentResultArtifact, AgentResultItem } from './results'
+
 /** Serializable invocation data. Use finite numbers and plain objects; exclude credentials. */
 export type AgentJson = null | boolean | number | string | AgentJson[] | { [key: string]: AgentJson }
 
@@ -63,6 +65,8 @@ export type AgentInvocationStatus =
 /** Provider-neutral task payload; supported structured fields depend on the adapter. */
 export interface AgentInvocationInput {
   prompt: string
+  /** No export by default; files/archive require an explicit delivery request. */
+  delivery?: AgentOutputDelivery
   parameters?: { [key: string]: AgentJson }
   context?: { [key: string]: AgentJson }
   /** Host-managed file references, authorized and materialized by the adapter. */
@@ -75,14 +79,14 @@ export interface AgentInvocationInput {
 /** Output or in-progress receipt. Check invocation status before treating it as final. */
 export interface AgentInvocationResult {
   text: string
+  /** Explicit adapter-normalized findings; display kind is never inferred from prose or titles. */
+  items?: AgentResultItem[]
+  /** Separate delivery outcome; task success does not imply that files were exported. */
+  export?: AgentOutputExport
   /** Adapter-defined structured output. */
   data?: AgentJson
   /** Host-managed output references; normal artifact authorization applies. */
-  artifacts?: Array<{
-    id: string
-    name?: string
-    mimeType?: string
-  }>
+  artifacts?: AgentResultArtifact[]
 }
 
 /** Persisted provider receipt. Session/run IDs are distinct from the host invocation ID. */

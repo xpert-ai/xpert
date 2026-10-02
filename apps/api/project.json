@@ -5,6 +5,7 @@
   "projectType": "application",
   "targets": {
     "build": {
+      "dependsOn": ["^build", "build-agent-results"],
       "executor": "@nx/webpack:webpack",
       "outputs": ["{options.outputPath}"],
       "defaultConfiguration": "production",
@@ -17,6 +18,11 @@
         "tsConfig": "apps/api/tsconfig.app.json",
         "assets": [
           "apps/api/src/assets",
+          {
+            "glob": "**/app.{js,css}",
+            "input": "packages/server-ai/src/agent-invocation/remote-components",
+            "output": "remote-components"
+          },
           {
             "glob": "**/app.{js,css}",
             "input": "packages/server-ai/src/knowledgebase/plugins/knowledge-workbench/remote-components",
@@ -33,6 +39,27 @@
       "configurations": {
         "development": {},
         "production": {}
+      }
+    },
+    "build-agent-results": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": [
+        "{workspaceRoot}/packages/server-ai/src/agent-invocation/remote-components/agent-results/src/**/*",
+        "{workspaceRoot}/packages/server-ai/src/agent-invocation/remote-components/agent-results/build.mjs",
+        "{workspaceRoot}/packages/server-ai/src/agent-invocation/remote-components/agent-results/tailwind.css",
+        "{workspaceRoot}/packages/plugin-sdk/src/agent-results.ts",
+        "{workspaceRoot}/packages/plugin-sdk/src/lib/agent/runtime/results.ts",
+        "{workspaceRoot}/tsconfig.base.json",
+        "{workspaceRoot}/package.json",
+        "{workspaceRoot}/pnpm-lock.yaml"
+      ],
+      "outputs": [
+        "{workspaceRoot}/packages/server-ai/src/agent-invocation/remote-components/agent-results/app.js",
+        "{workspaceRoot}/packages/server-ai/src/agent-invocation/remote-components/agent-results/app.css"
+      ],
+      "options": {
+        "command": "node packages/server-ai/src/agent-invocation/remote-components/agent-results/build.mjs"
       }
     },
     "serve": {

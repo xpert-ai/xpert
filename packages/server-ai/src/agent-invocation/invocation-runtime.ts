@@ -3,6 +3,7 @@
 import { createHash } from 'crypto'
 import {
     AgentInvocation,
+    agentOutputDeliverySchema,
     AgentInvocationApi,
     AgentInvocationRequest,
     AgentInvocationScope,
@@ -210,6 +211,8 @@ export function invocationError(code: AgentInvocationErrorCode) {
 }
 
 function validateRequest(request: AgentInvocationRequest) {
+    if (request.input?.delivery !== undefined && !agentOutputDeliverySchema.safeParse(request.input.delivery).success)
+        throw invocationError('InvalidRequest')
     if (
         !request.callId?.trim() ||
         request.callId.length > 1024 ||

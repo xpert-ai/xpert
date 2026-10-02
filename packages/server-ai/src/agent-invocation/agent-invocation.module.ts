@@ -1,4 +1,6 @@
 import { CancelTaskWaitsHandler, CheckTaskWaitClaimHandler } from './task-wait-control'
+import { InvocationResultsProvider } from './invocation-results.provider'
+import { ArtifactsModule } from '../artifacts/artifacts.module'
 import { User, UserOrganization } from '@xpert-ai/server-core'
 import { XpertAgentExecution } from '../xpert-agent-execution/agent-execution.entity'
 import { AgentInvocationWaitStore } from './invocation-wait.store'
@@ -27,6 +29,7 @@ import { NativeAgentInvocationReader } from './native-invocation-reader'
 
 @Module({
     imports: [
+        ArtifactsModule,
         DiscoveryModule,
         CqrsModule,
         TypeOrmModule.forFeature([
@@ -41,6 +44,7 @@ import { NativeAgentInvocationReader } from './native-invocation-reader'
     ],
     controllers: [AgentRuntimeBindingsController, AgentInvocationsController],
     providers: [
+        InvocationResultsProvider,
         AgentInvocationWaitStore,
         AgentInvocationMonitorService,
         InvocationContinuationDispatcher,

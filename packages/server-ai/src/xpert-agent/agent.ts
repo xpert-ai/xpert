@@ -1,4 +1,6 @@
 import { AIMessageChunk, isBaseMessage, isToolMessage } from '@langchain/core/messages'
+import { createResourceCardContent, parseResourceCardContent } from '@xpert-ai/contracts'
+import { RESOURCE_CARD_EVENT } from '@xpert-ai/plugin-sdk'
 import { CompiledStateGraph, isCommand } from '@langchain/langgraph'
 import {
     agentLabel,
@@ -494,6 +496,14 @@ export function createMapStreamEvents(
             case 'on_custom_event': {
                 // logger.verbose(data, rest)
                 switch (rest.name) {
+                    case RESOURCE_CARD_EVENT: {
+                        const card = parseResourceCardContent(data)
+                        if (card)
+                            subscriber.next({
+                                data: { type: ChatMessageTypeEnum.MESSAGE, data: createResourceCardContent(card.data) }
+                            } as MessageEvent)
+                        break
+                    }
                     case ChatMessageEventTypeEnum.ON_TOOL_ERROR: {
                         subscriber.next({
                             data: {

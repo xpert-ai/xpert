@@ -25,3 +25,13 @@ and their operator instructions live in `xpert-plugins/xpertai/integrations/agen
 ## Generic long-task waiting
 
 See [Bounded task observation](../runtime-task/README.md) for the unified `task_status` tool, any/all queries, duration limits, human interactions and adding non-CLI domain jobs. `AgentInvocationApi.waitForTasks` backs the tool and complements the single-task `awaitResult` API. An elapsed observation window returns `pending` normally; it does not suspend the parent or imply task completion.
+
+## Typed results and delivery
+
+`AgentInvocationResult` retains text for existing consumers and adds optional typed items (`analysis`, `changes`, `tests`, `file`), committed artifact references and a separate export status. Adapters normalize their own final output; the host does not parse provider protocols. The SDK schemas define the portable result envelope and relative file selections.
+
+File delivery defaults to `none`. Findings, code edits and test runs do not automatically create artifacts. A caller may request `files` or `archive`, optionally restricting the exact paths. The authorized execution runner validates that policy before reading the selected files. Unsupported export or collection failure preserves the execution result and reports its separate export status.
+
+`InvocationResultsProvider` supplies an on-demand task-results View. Result tools emit ChatKit resource cards using the SDK event bridge; the host binds each event to its actual assistant reply before persistence and streaming. The View revalidates the task owner, Assistant, conversation/project scope and binding. Downloads must reference an artifact recorded on that task and resolve its pinned version through the platform file-access flow. Resource cards never grant access by themselves and never enter the model's text context.
+
+Deploy the matching ChatKit types/UI, contracts/SDK and host before updating a consuming runtime plugin. See [Resource card integration](../../../plugin-sdk/RESOURCE-CARDS.md).

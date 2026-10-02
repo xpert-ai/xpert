@@ -1,4 +1,5 @@
 import { bindFileActivityEvent } from '../../../chat-message/file-activity-event'
+import { bindResourceCardEvent } from '../../../chat-message/resource-card-event'
 import type { RuntimeResourceService } from '../../../agent-plugin/runtime-resource.service'
 import { resolveAssistantExecutionModel, supportsAssistantPrimaryModelSelection } from '../../assistant-execution-model'
 import { RunnableLambda } from '@langchain/core/runnables'
@@ -1224,10 +1225,12 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                 } as MessageEvent)
                             }
 
-                            const fileActivityEvent = bindFileActivityEvent(event.data, {
-                                messageId: aiMessage.id,
-                                executionId
-                            })
+                            const fileActivityEvent =
+                                bindResourceCardEvent(event.data, { messageId: aiMessage.id, executionId }) ??
+                                bindFileActivityEvent(event.data, {
+                                    messageId: aiMessage.id,
+                                    executionId
+                                })
                             if (fileActivityEvent) event = { ...event, data: fileActivityEvent }
 
                             if (event.data.type === ChatMessageTypeEnum.MESSAGE) {
