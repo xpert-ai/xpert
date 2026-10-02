@@ -1,0 +1,101 @@
+import { TestBed } from '@angular/core/testing'
+import { BehaviorSubject, of, Subject } from 'rxjs'
+import { ModelExecutionCallView } from '@xpert-ai/contracts'
+import { Store } from '../../../@core/state'
+import { CopilotUsageService } from '../../../@core/services/copilot-usage.service'
+import { ExecutionUsageComponent } from './execution-usage.component'
+
+describe('personal execution usage', () => {
+  const organization = new BehaviorSubject<string | null>('org-a')
+  let component: ExecutionUsageComponent
+  const usage = { getExecutionCalls: jest.fn(), getExecutionCallOptions: jest.fn() }
+  beforeEach(() => {
+    organization.next('org-a')
+    usage.getExecutionCalls.mockReset().mockReturnValue(of({ items: [], total: 0 }))
+    usage.getExecutionCallOptions.mockReset().mockReturnValue(of({ assistants: [] }))
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: Store, useValue: { selectOrganizationId: () => organization.asObservable() } },
+        { provide: CopilotUsageService, useValue: usage }
+      ]
+    })
+    component = TestBed.runInInjectionContext(() => new ExecutionUsageComponent())
+    TestBed.flushEffects()
+  })
+  afterEach(() => TestBed.resetTestingModule())
+
+  it('normalizes filters and keeps pagination on the last applied query', async () => {
+    component.filters.patchValue({
+      model: ' model-a ',
+      tool: '  ',
+      startedAfter: '2026-10-01',
+      startedBefore: '2026-10-02'
+    })
+    component.applyFilters()
+    await Promise.resolve()
+    expect(usage.getExecutionCalls).toHaveBeenLastCalledWith(
+      20,
+      0,
+      expect.objectContaining({
+        model: 'model-a',
+        tool: undefined,
+        startedAfter: new Date('2026-10-01T00:00:00').toISOString(),
+        startedBefore: new Date('2026-10-02T23:59:59.999').toISOString()
+      })
+    )
+    component.filters.controls.model.setValue('unapplied-model')
+    component.changePage(1)
+    expect(usage.getExecutionCalls).toHaveBeenLastCalledWith(20, 20, expect.objectContaining({ model: 'model-a' }))
+    component.applyFilters()
+    expect(usage.getExecutionCalls).toHaveBeenLastCalledWith(
+      20,
+      0,
+      expect.objectContaining({ model: 'unapplied-model' })
+    )
+  })
+
+  it.each([
+    { executionId: 'invalid-id' },
+    { tool: 'x'.repeat(81) },
+    { startedAfter: 'invalid-date' },
+    { startedAfter: '2026-10-02', startedBefore: '2026-10-01' }
+  ])('does not request invalid filters: %j', (value) => {
+    usage.getExecutionCalls.mockClear()
+    component.filters.patchValue(value)
+    expect(component.filters.invalid).toBe(true)
+    component.applyFilters()
+    expect(usage.getExecutionCalls).not.toHaveBeenCalled()
+  })
+
+  it('discards obsolete options even after switching A to B and back to A', async () => {
+    const oldOptions = new Subject<{ assistants: Array<{ id: string; name: string }> }>()
+    usage.getExecutionCallOptions.mockReturnValueOnce(oldOptions)
+    void component.loadOptions()
+    organization.next('org-b')
+    TestBed.flushEffects()
+    usage.getExecutionCallOptions.mockReturnValueOnce(of({ assistants: [{ id: 'new', name: 'Current' }] }))
+    organization.next('org-a')
+    TestBed.flushEffects()
+    await Promise.resolve()
+    oldOptions.next({ assistants: [{ id: 'old', name: 'Obsolete' }] })
+    await Promise.resolve()
+    expect(component.assistants()).toEqual([{ id: 'new', name: 'Current' }])
+  })
+
+  it('discards prior organization responses and clears data when leaving organization scope', async () => {
+    const pending = new Subject<{ items: ModelExecutionCallView[]; total: number }>()
+    usage.getExecutionCalls.mockReturnValueOnce(pending)
+    void component.load()
+    organization.next('org-b')
+    TestBed.flushEffects()
+    await Promise.resolve()
+    pending.next({ items: [], total: 999 })
+    await Promise.resolve()
+    expect(component.total()).toBe(0)
+    organization.next(null)
+    TestBed.flushEffects()
+    expect(component.loading()).toBe(false)
+    expect(component.assistants()).toEqual([])
+    expect(component.items()).toEqual([])
+  })
+})

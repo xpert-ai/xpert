@@ -202,7 +202,9 @@
                       ' / ' +
                       (isExternalApi(summary)
                         ? ('XP.Membership.ApiCall' | translate: { Default: 'API call' })
-                        : ('XP.Membership.Xpert' | translate: { Default: 'Xpert' }) + ' ' + xpertLabel(summary))
+                        : ('XP.Copilot.ExecutionEntry.' + (summary.usageChannel || 'xpert') | translate) +
+                          ' ' +
+                          xpertLabel(summary))
                     "
                   >
                     <div class="truncate text-text-primary">
@@ -212,7 +214,8 @@
                       @if (isExternalApi(summary)) {
                         {{ 'XP.Membership.ApiCall' | translate: { Default: 'API call' } }}
                       } @else {
-                        {{ 'XP.Membership.Xpert' | translate: { Default: 'Xpert' } }} {{ xpertLabel(summary) }}
+                        {{ 'XP.Copilot.ExecutionEntry.' + (summary.usageChannel || 'xpert') | translate }}
+                        {{ xpertLabel(summary) }}
                       }
                     </div>
                   </td>
@@ -327,4 +330,5 @@
       </z-card-content>
     </z-card>
   </div>
+  <xp-execution-usage />
 </div>

@@ -110,3 +110,48 @@ export interface ModelExecutionUsageEstimate {
   /** inputTokens + outputTokens; cache and reasoning counts must not be added again. */
   totalTokens: number
 }
+
+/** Filters for the current user's execution attempts in the selected organization. */
+export interface ModelExecutionCallQuery {
+  entry?: ModelExecutionEntry
+  status?: import('./model-gateway.model').ModelGatewayCallStatusEnum
+  assistantId?: string
+  conversationId?: string
+  /** CLI session ID or managed invocation ID, not a model call/attempt ID. */
+  executionId?: string
+  tool?: string
+  model?: string
+  environment?: ModelExecutionEnvironment['type']
+  usageSource?: import('./model-gateway.model').ModelGatewayUsageSourceEnum
+  /** pending means no authoritative pricing fact is available yet, not a zero charge. */
+  pricingStatus?: 'priced' | 'free' | 'unpriced' | 'pending'
+  /** Inclusive ISO 8601 timestamp bounds, including a timezone offset. */
+  startedAfter?: string
+  startedBefore?: string
+}
+
+/** Read-only attempt receipt. No request bodies, model credentials or provider secrets. */
+export interface ModelExecutionCallView {
+  id: string
+  callId: string
+  attemptId: string
+  context: ModelExecutionContext
+  modelId: string
+  model: string
+  status: import('./model-gateway.model').ModelGatewayCallStatusEnum
+  usageSource: import('./model-gateway.model').ModelGatewayUsageSourceEnum
+  inputTokens: number
+  outputTokens: number
+  totalTokens: number
+  /** Budget still held for an attempt whose actual usage is not yet confirmed. */
+  reservedTokens: number
+  /** Diagnostic estimate only; excluded from actual token totals and charges. */
+  estimatedUsage: ModelExecutionUsageEstimate | null
+  priceAmount: number | null
+  priceCurrency: string | null
+  pricingStatus: 'priced' | 'free' | 'unpriced' | 'pending'
+  startedAt: string
+  completedAt: string | null
+  /** Actual usage was delivered to the ledger; zero-usage reviews create no usage entry. */
+  delivered: boolean
+}

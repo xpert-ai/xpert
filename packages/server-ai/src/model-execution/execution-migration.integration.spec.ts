@@ -24,7 +24,7 @@ integration('model execution additive migration / PostgreSQL', () => {
 
     beforeEach(async () => {
         await runner.query(`
-            DROP TABLE IF EXISTS cli_session, model_gateway_call, model_execution_grant,
+            DROP TABLE IF EXISTS model_execution_reconciliation, cli_session, model_gateway_call, model_execution_grant,
                 membership_point_ledger, chat_conversation, xpert, "user", organization, tenant CASCADE;
             CREATE TABLE tenant (id uuid PRIMARY KEY);
             CREATE TABLE organization (id uuid PRIMARY KEY);
@@ -87,5 +87,36 @@ integration('model execution additive migration / PostgreSQL', () => {
                 WHERE source='execution_grant'`)
         expect(rows[0].reservedTokens).toBe(100)
         expect(rows[0].dispatchedAt).toEqual(rows[0].startedAt)
+    })
+
+    it('adds reconciliation storage repeatably without resetting existing usage or reservations', async () => {
+        await runner.query(migration)
+        const operations = readFileSync(join(__dirname, 'migrations/20261001-execution-operations.sql'), 'utf8')
+        await runner.query(operations)
+        const id = randomUUID()
+        await runner.query('INSERT INTO tenant VALUES ($1)', [id])
+        await runner.query('INSERT INTO organization VALUES ($1)', [id])
+        await runner.query('INSERT INTO "user" VALUES ($1)', [id])
+        const calls: Array<{ id: string }> = await runner.query('SELECT id FROM model_gateway_call')
+        await runner.query(
+            `INSERT INTO model_execution_reconciliation
+            (id, "tenantId", "organizationId", "callId", "reviewerId", evidence)
+            VALUES ($1, $1, $1, $2, $1, '{"receipt":"retained"}')`,
+            [id, calls[0].id]
+        )
+        await runner.query('UPDATE model_gateway_call SET "reservedTokens" = 123')
+        await runner.query(operations)
+        expect(await runner.query('SELECT evidence FROM model_execution_reconciliation')).toEqual([
+            { evidence: { receipt: 'retained' } }
+        ])
+        expect(await runner.query('SELECT "reservedTokens" FROM model_gateway_call')).toEqual([{ reservedTokens: 123 }])
+        await expect(
+            runner.query(
+                `INSERT INTO model_execution_reconciliation
+            (id, "tenantId", "organizationId", "callId", "reviewerId", evidence)
+            VALUES ($1, $2, $2, $3, $2, '{}')`,
+                [randomUUID(), id, calls[0].id]
+            )
+        ).rejects.toMatchObject({ code: '23505' })
     })
 })

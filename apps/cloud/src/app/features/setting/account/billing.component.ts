@@ -1,3 +1,4 @@
+import { ExecutionUsageComponent } from './execution-usage.component'
 import { CommonModule } from '@angular/common'
 import { Component, OnInit, inject, signal } from '@angular/core'
 import { MembershipService, getErrorMessage, injectToastr } from '../../../@core'
@@ -21,6 +22,7 @@ import {
   standalone: true,
   selector: 'xp-account-billing',
   imports: [
+    ExecutionUsageComponent,
     CommonModule,
     TranslateModule,
     ZardBadgeComponent,

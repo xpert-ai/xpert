@@ -31,6 +31,7 @@ import {
     LEGACY_USAGE_PREDICATE
 } from './model-usage-ledger.support'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { applyExecutionUsageFilters } from './execution-usage-filters'
 import type {
     IModelChargeLedger,
     IModelUsageDetails,
@@ -631,6 +632,7 @@ export class ModelUsageLedgerService {
                 modelUsageSource: MembershipLedgerSourceEnum.ModelUsage,
                 legacyUsageSources: LEGACY_USAGE_SOURCES
             })
+        applyExecutionUsageFilters(qb, query)
         const organizationId = currentOrganizationId ?? normalizeText(query.organizationId)
         if (organizationId) qb.andWhere('ledger.organizationId = :organizationId', { organizationId })
         const provider = normalizeText(query.provider)

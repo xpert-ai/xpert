@@ -1,4 +1,4 @@
-import type { ModelExecutionUsageContext } from './model-execution.model'
+import type { ModelExecutionUsageContext, ModelExecutionEnvironment } from './model-execution.model'
 import type { ModelGatewayUsageChannelEnum } from './model-gateway.model'
 import type { TTokenUsage } from '../agent/token'
 import type { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
@@ -206,6 +206,14 @@ export interface IModelChargeLedger extends IBasePerTenantAndOrganizationEntityM
 }
 
 export type ModelUsageLedgerQuery = {
+  /** These dimensions further narrow the existing tenant, organization and user scope. */
+  usageChannel?: ModelGatewayUsageChannelEnum
+  environmentType?: ModelExecutionEnvironment['type']
+  assistantId?: string
+  conversationId?: string
+  /** CLI session ID or managed invocation ID. */
+  executionId?: string
+  tool?: string
   start?: string
   end?: string
   provider?: string

@@ -1,3 +1,4 @@
+import { ModelExecutionReconciliation } from '../../model-execution/execution-reconciliation.entity'
 import { ModelExecutionGrant, CliSession } from '../../model-execution/execution.entity'
 import {
     DesktopShellDevice,
@@ -126,6 +127,7 @@ import {
 } from './internal'
 
 export const ALL_AI_ENTITIES = [
+    ModelExecutionReconciliation,
     DesktopShellDevice,
     DesktopShellGrant,
     DesktopShellOperation,

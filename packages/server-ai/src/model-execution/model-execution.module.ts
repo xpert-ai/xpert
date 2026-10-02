@@ -1,4 +1,7 @@
+import { ModelExecutionReconciliationService } from './execution-reconciliation.service'
+import { ModelExecutionReconciliation } from './execution-reconciliation.entity'
 import { ModelExecutionChatService } from './execution-chat.service'
+import { ModelExecutionQueryController } from './execution-query.controller'
 import { ModelExecutionAdminController } from './execution-admin.controller'
 import { AgentInvocationEntity, AgentRuntimeBindingEntity } from '../agent-invocation/invocation.entity'
 import { ModelExecutionSourceService } from './execution-source.service'
@@ -37,6 +40,7 @@ import { ModelExecutionNativeController } from './execution-native.controller'
             ModelExecutionGrant,
             CliSession,
             ModelGatewayCall,
+            ModelExecutionReconciliation,
             TenantSetting,
             User,
             UserOrganization,
@@ -48,11 +52,13 @@ import { ModelExecutionNativeController } from './execution-native.controller'
     ],
     controllers: [
         ModelExecutionNativeController,
+        ModelExecutionQueryController,
         ModelExecutionOpenAIController,
         ModelExecutionSessionController,
         ModelExecutionAdminController
     ],
     providers: [
+        ModelExecutionReconciliationService,
         ModelExecutionChatService,
         ModelExecutionNativeProviderService,
         ModelExecutionSourceService,

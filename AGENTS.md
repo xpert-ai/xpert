@@ -28,6 +28,16 @@ This repo uses NestJS + TypeORM on the server and Angular 17 (standalone, signal
 - Complex, independent logic can be implemented using CQRS.
 - Ensure clearer boundaries of responsibilities.
 
+### Request validation
+
+- For new schema-driven APIs, especially ModelExecution and inputs reused by HTTP, jobs or persistence, prefer Zod schemas with the shared `ZodValidationPipe` from `@xpert-ai/server-core`. Keep established DTO class + `ValidationPipe` modules consistent; do not migrate unrelated endpoints only for style.
+- Put schemas in focused `*.schema.ts` modules and derive parsed parameter types with `z.output<typeof schema>`. Define coercion, defaults, unknown-key handling and cross-field constraints in that schema. Do not maintain a second decorated DTO validation rule set for the same input.
+- Bind the pipe at the parameter boundary (`@Query(...)`, `@Body(...)`) so controllers receive validated, transformed values. A TypeScript interface or type annotation alone does not validate HTTP data.
+- Keep the shared pipe independent of business modules and providers. Supply an exception factory to preserve domain error codes, i18next messages and metrics; do not return or log raw request values in validation errors.
+- Validate once per trust boundary. Internal business methods accept concrete parsed types; validate external job payloads and persisted JSON when they enter the process, reusing the same schema. Avoid reparsing already validated parameters at every layer.
+- Schemas validate payload shape, not authorization. Resolve tenant, organization, actor and billing scope from trusted context, and keep access checks in the authorization/business layer.
+- Add HTTP route tests for pipe wiring, conversion/defaults, invalid and extra fields, and unchanged error responses. Direct calls to controller methods bypass NestJS pipes and cannot prove request validation works.
+
 ### Backend I18n
 
 - New server-side runtime messages and errors must use `i18next`, not `nestjs-i18n` service injection.

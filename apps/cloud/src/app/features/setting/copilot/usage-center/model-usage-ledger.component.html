@@ -29,11 +29,57 @@
       [(ngModel)]="pricingStatusFilter"
       (ngModelChange)="reload()"
     />
+    <xp-select
+      class="w-40"
+      [placeholder]="executionEntries()[0].label"
+      [attr.aria-label]="executionEntries()[0].label"
+      [selectOptions]="executionEntries()"
+      [(ngModel)]="entryFilter"
+      (ngModelChange)="reload()"
+    />
+    <xp-select
+      class="w-40"
+      [placeholder]="executionEnvironments()[0].label"
+      [attr.aria-label]="executionEnvironments()[0].label"
+      [selectOptions]="executionEnvironments()"
+      [(ngModel)]="environmentFilter"
+      (ngModelChange)="reload()"
+    />
+    <input
+      z-input
+      zSize="sm"
+      class="w-40"
+      [placeholder]="'XP.Copilot.ExecutionAssistant' | translate"
+      list="usage-assistant-suggestions"
+      [attr.aria-label]="'XP.Copilot.ExecutionAssistant' | translate"
+      [(ngModel)]="assistantFilter"
+      (keyup.enter)="reload()"
+    />
+    <input
+      z-input
+      zSize="sm"
+      class="w-40"
+      [placeholder]="'XP.Copilot.ExecutionTask' | translate"
+      [(ngModel)]="executionFilter"
+      (keyup.enter)="reload()"
+    />
+    <input
+      z-input
+      zSize="sm"
+      class="w-40"
+      [placeholder]="'XP.Copilot.ExecutionTool' | translate"
+      list="usage-tool-suggestions"
+      [attr.aria-label]="'XP.Copilot.ExecutionTool' | translate"
+      [(ngModel)]="toolFilter"
+      (keyup.enter)="reload()"
+    />
     <input
       z-input
       zSize="sm"
       class="w-40"
       [placeholder]="'XP.KEY_WORDS.Provider' | translate: { Default: 'Provider' }"
+      list="usage-provider-suggestions"
+      [attr.aria-label]="'XP.KEY_WORDS.Provider' | translate"
       [(ngModel)]="providerFilter"
       (keyup.enter)="reload()"
     />
@@ -42,6 +88,8 @@
       zSize="sm"
       class="w-48"
       [placeholder]="'XP.Copilot.Model' | translate: { Default: 'Model' }"
+      list="usage-model-suggestions"
+      [attr.aria-label]="'XP.Copilot.Model' | translate"
       [(ngModel)]="modelFilter"
       (keyup.enter)="reload()"
     />
@@ -76,12 +124,48 @@
       zSize="sm"
       class="w-28"
       [placeholder]="'XP.KEY_WORDS.Currency' | translate: { Default: 'Currency' }"
+      list="usage-currency-suggestions"
+      [attr.aria-label]="'XP.KEY_WORDS.Currency' | translate"
       [(ngModel)]="currencyFilter"
       (keyup.enter)="reload()"
     />
+    <datalist id="usage-assistant-suggestions">
+      @for (value of filterSuggestions().assistant; track value) {
+        <option [value]="value"></option>
+      }
+    </datalist>
+    <datalist id="usage-tool-suggestions">
+      @for (value of filterSuggestions().tool; track value) {
+        <option [value]="value"></option>
+      }
+    </datalist>
+    <datalist id="usage-provider-suggestions">
+      @for (value of filterSuggestions().provider; track value) {
+        <option [value]="value"></option>
+      }
+    </datalist>
+    <datalist id="usage-model-suggestions">
+      @for (value of filterSuggestions().model; track value) {
+        <option [value]="value"></option>
+      }
+    </datalist>
+    <datalist id="usage-currency-suggestions">
+      @for (value of filterSuggestions().currency; track value) {
+        <option [value]="value"></option>
+      }
+    </datalist>
     <button z-button zType="outline" zSize="sm" (click)="reload()">
       <z-icon zType="search" />
       {{ 'XP.ACTIONS.Apply' | translate: { Default: 'Apply' } }}
+    </button>
+    <button
+      z-button
+      zType="outline"
+      zSize="sm"
+      [disabled]="loading() || loadFailed() || !items().length"
+      (click)="exportCurrentPage()"
+    >
+      {{ 'XP.Copilot.ExportCurrentUsagePage' | translate }}
     </button>
   </div>
 

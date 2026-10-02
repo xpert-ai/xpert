@@ -1,7 +1,9 @@
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
-import { PaginationParams, toHttpParams } from '@cloud/app/@core/state'
+import { API_PREFIX, PaginationParams, toHttpParams } from '@cloud/app/@core/state'
 import {
+  ModelExecutionCallView,
+  ModelExecutionCallQuery,
   ICopilotOrganization,
   ICopilotUsageGroupKey,
   ICopilotUsageOverview,
@@ -29,6 +31,26 @@ type UsageQueryParams = ICopilotUsageQuery &
 @Injectable({ providedIn: 'root' })
 export class CopilotUsageService {
   readonly httpClient = inject(HttpClient)
+
+  getExecutionCallOptions() {
+    return this.httpClient.get<{ assistants: Array<{ id: string; name: string }> }>(
+      API_PREFIX + '/model-execution/call-options'
+    )
+  }
+
+  getExecutionCalls(take: number, skip: number, filter: ModelExecutionCallQuery = {}) {
+    let params = new HttpParams().set('take', take).set('skip', skip)
+    for (const [key, value] of Object.entries(filter)) {
+      const normalized = value?.trim()
+      if (normalized) params = params.set(key, normalized)
+    }
+    return this.httpClient.get<{ items: ModelExecutionCallView[]; total: number }>(
+      API_PREFIX + '/model-execution/calls',
+      {
+        params
+      }
+    )
+  }
 
   getUsageSummaries(params: PaginationParams<ICopilotUsageSummary> & ICopilotUsageQuery) {
     return this.httpClient.get<{ items: ICopilotUsageSummary[]; total?: number }>(API_COPILOT_USAGE + '/summary', {
@@ -180,6 +202,12 @@ export class CopilotUsageService {
       if (value !== undefined && value !== '') httpParams = httpParams.set(key, String(value))
     }
 
+    append('usageChannel', params?.usageChannel)
+    append('environmentType', params?.environmentType)
+    append('assistantId', params?.assistantId)
+    append('conversationId', params?.conversationId)
+    append('executionId', params?.executionId)
+    append('tool', params?.tool)
     append('start', params?.start)
     append('end', params?.end)
     append('provider', params?.provider)

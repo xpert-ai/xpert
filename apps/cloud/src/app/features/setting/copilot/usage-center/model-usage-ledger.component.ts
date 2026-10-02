@@ -1,3 +1,4 @@
+import { executionUsageCsv } from './execution-usage-csv'
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, model, signal, untracked } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
@@ -27,7 +28,7 @@ import {
   ZardToggleGroupItemComponent
 } from '@xpert-ai/headless-ui'
 import { forkJoin } from 'rxjs'
-import { startWith } from 'rxjs/operators'
+import { startWith, take } from 'rxjs/operators'
 import { XpSelectComponent } from 'apps/cloud/src/app/@shared/common'
 import { CopilotUsageService, DateRelativePipe, RequestScopeLevel, Store, ToastrService } from '../../../../@core'
 
@@ -69,6 +70,42 @@ export class ModelUsageLedgerComponent {
   readonly currencyFilter = model('')
   readonly modalityFilter = model<ModelUsageLedgerModality | ''>('')
   readonly unitFilter = model<ModelUsageMetric['unit'] | ''>('')
+  readonly entryFilter = model<ModelUsageLedgerQuery['usageChannel'] | ''>('')
+  readonly environmentFilter = model<ModelUsageLedgerQuery['environmentType'] | ''>('')
+  readonly assistantFilter = model('')
+  readonly executionFilter = model('')
+  readonly toolFilter = model('')
+  readonly executionEntries = computed(() => {
+    this.languageChange()
+    return ['', 'xpert', 'external_api', 'agent_runtime', 'cli'].map((value) => ({
+      value,
+      label: this.translate.instant(`XP.Copilot.ExecutionEntry.${value || 'all'}`)
+    }))
+  })
+  readonly executionEnvironments = computed(() => {
+    this.languageChange()
+    return ['', 'computer', 'sandbox', 'remote'].map((value) => ({
+      value,
+      label: this.translate.instant(`XP.Copilot.ExecutionEnvironment.${value || 'all'}`)
+    }))
+  })
+  readonly suggestionItems = signal<IModelUsageLedger[]>([])
+  readonly filterSuggestions = computed(() => {
+    const items = this.suggestionItems()
+    const unique = (values: Array<string | null | undefined>) =>
+      [...new Set(values.map((value) => value?.trim()).filter((value): value is string => !!value))].sort()
+    return {
+      assistant: unique(items.map((item) => item.xpertId)),
+      tool: unique(items.map((item) => item.executionContext?.tool.id)),
+      provider: unique(items.map((item) => item.provider)),
+      model: unique(
+        items
+          .filter((item) => !this.providerFilter() || item.provider === this.providerFilter().trim())
+          .map((item) => item.model)
+      ),
+      currency: unique(['CNY', 'USD', ...items.map((item) => item.charge?.currency)])
+    }
+  })
   readonly pricingStatusFilter = model<ModelUsagePricingStatus | ''>('')
 
   readonly items = signal<IModelUsageLedger[]>([])
@@ -136,6 +173,24 @@ export class ModelUsageLedgerComponent {
 
   constructor() {
     effect(
+      (onCleanup) => {
+        this.activeScope()
+        const [start, end] = calcTimeRange(this.timeRangeValue())
+        const organizationId = this.isTenantScope() ? clean(this.organizationFilter()) : this.currentOrganizationId()
+        this.suggestionItems.set([])
+        // Suggestions are scoped recent history, not an exhaustive catalog; arbitrary input remains valid.
+        const subscription = this.usageService
+          .getModelUsageLedger({ start, end, organizationId, take: 200, skip: 0 })
+          .pipe(take(1))
+          .subscribe({
+            next: ({ items }) => this.suggestionItems.set(items),
+            error: () => this.suggestionItems.set([])
+          })
+        onCleanup(() => subscription.unsubscribe())
+      },
+      { allowSignalWrites: true }
+    )
+    effect(
       () => {
         this.activeScope()
         this.selectedAccount.set(null)
@@ -154,6 +209,7 @@ export class ModelUsageLedgerComponent {
     const version = ++this.#loadVersion
     this.loading.set(true)
     this.loadFailed.set(false)
+    this.items.set([])
     const query = this.query()
     const params = {
       ...query,
@@ -287,12 +343,27 @@ export class ModelUsageLedgerComponent {
     this.reload()
   }
 
+  exportCurrentPage() {
+    if (this.loading() || this.loadFailed() || !this.items().length) return
+    const url = URL.createObjectURL(new Blob([executionUsageCsv(this.items())], { type: 'text/csv;charset=utf-8' }))
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = 'model-usage.csv'
+    anchor.click()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+  }
+
   private query(): ModelUsageLedgerQuery {
     const [start, end] = calcTimeRange(this.timeRangeValue())
     const selectedAccount = this.selectedAccount()
     return {
       start,
       end,
+      usageChannel: this.entryFilter() || undefined,
+      environmentType: this.environmentFilter() || undefined,
+      assistantId: clean(this.assistantFilter()),
+      executionId: clean(this.executionFilter()),
+      tool: clean(this.toolFilter()),
       unit: this.unitFilter() || undefined,
       provider: clean(this.providerFilter()),
       model: clean(this.modelFilter()),

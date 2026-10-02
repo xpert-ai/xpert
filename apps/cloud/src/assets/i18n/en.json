@@ -3469,6 +3469,64 @@
       }
     },
     "Copilot": {
+      "ExecutionInvalidFilters": "Check the task ID, text lengths and date range.",
+      "ExecutionAssistantName": "Assistant",
+      "ExecutionAll": "All",
+      "ExecutionApply": "Apply filters",
+      "ExecutionFrom": "From date",
+      "ExecutionTo": "To date",
+      "ExecutionEntryTitle": "Entry",
+      "ExecutionEnvironmentTitle": "Environment",
+      "ExecutionUsageSourceTitle": "Usage source",
+      "ExecutionPricingTitle": "Pricing status",
+      "ExecutionEstimatedTokens": "Estimated tokens",
+      "ExecutionAwaitingLedger": "Awaiting ledger",
+      "ExecutionUsageSource": {
+        "provider": "Actual usage",
+        "estimated": "Estimated usage",
+        "none": "No usage receipt"
+      },
+      "ExecutionPricing": {
+        "priced": "Priced",
+        "free": "Free",
+        "unpriced": "Unpriced",
+        "pending": "Pending review"
+      },
+      "ExecutionUsageTitle": "Coding tool model usage",
+      "ExecutionUsageHint": "Your calls in the current organization. Unknown provider usage remains reserved until reconciled; it is not counted as zero consumption.",
+      "ExecutionRefresh": "Refresh",
+      "ExecutionSelectOrganization": "Select an organization to view execution usage.",
+      "ExecutionLoadFailed": "Could not load usage. Please retry.",
+      "ExecutionTask": "Invocation / CLI Session ID",
+      "ExecutionModel": "Model",
+      "ExecutionStatusTitle": "Status",
+      "ExecutionActualTokens": "Actual tokens",
+      "ExecutionReservedTokens": "Reserved tokens",
+      "ExecutionNoCalls": "No coding tool calls yet.",
+      "ExecutionPrevious": "Previous",
+      "ExecutionNext": "Next",
+      "ExecutionStatus": {
+        "started": "Running",
+        "succeeded": "Settled",
+        "failed": "Failed",
+        "settlement_pending": "Pending settlement"
+      },
+      "ExecutionEntry": {
+        "all": "All entry points",
+        "xpert": "Assistant",
+        "external_api": "External API",
+        "agent_runtime": "Managed Agent",
+        "cli": "CLI"
+      },
+      "ExecutionEnvironment": {
+        "all": "All environments",
+        "computer": "Computer",
+        "sandbox": "Sandbox",
+        "remote": "Remote"
+      },
+      "ExecutionAssistant": "Assistant ID",
+      "ExecutionTool": "Coding tool",
+      "ExportCurrentUsagePage": "Export current usage page",
       "ModelsLoadFailed": "Unable to load models. Check the model provider configuration and try again.",
       "ModelsLoading": "Loading models…",
       "AICopilot": "Model Providers",
