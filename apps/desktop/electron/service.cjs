@@ -359,6 +359,7 @@ class DesktopService {
   }
 
   logout() {
+    // Execution grants follow the CLI/task lifecycle, independently of desktop login or connection changes.
     void this.shell?.disable().catch(() => undefined)
     this.generation++
     this.credentials = null
