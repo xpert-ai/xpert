@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing'
 import { By } from '@angular/platform-browser'
 import { TranslateModule } from '@ngx-translate/core'
 import { of } from 'rxjs'
-import { ChatConversationService, XpertAPIService } from '../../../@core'
+import { ChatConversationService, AiWorkspaceFilesService } from '../../../@core'
 import { ClawXpertConversationFilesComponent } from './clawxpert-conversation-files.component'
 
 type FileWorkbenchReferenceRequest = {
@@ -17,7 +17,7 @@ type FileWorkbenchReferenceRequest = {
 var MockFileWorkbenchComponent: any
 jest.mock('../../../@core', () => ({
   ChatConversationService: class ChatConversationService {},
-  XpertAPIService: class XpertAPIService {}
+  AiWorkspaceFilesService: class AiWorkspaceFilesService {}
 }))
 
 jest.mock('../../../@shared/files', () => {
@@ -81,7 +81,7 @@ describe('ClawXpertConversationFilesComponent', () => {
           useValue: conversationService
         },
         {
-          provide: XpertAPIService,
+          provide: AiWorkspaceFilesService,
           useValue: xpertService
         }
       ]

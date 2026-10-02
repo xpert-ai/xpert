@@ -1,5 +1,5 @@
 import { validateHeaderValue } from 'node:http'
-import { buildWorkspaceFileContentDisposition } from './workspace-file-access.controller'
+import { buildWorkspaceFileContentDisposition } from './workspace-file-content.controller'
 
 describe('buildWorkspaceFileContentDisposition', () => {
     it('keeps the response header ASCII-safe while preserving a Chinese filename', () => {

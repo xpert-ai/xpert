@@ -1,7 +1,7 @@
 import { workspaceDocumentScope } from '../../../@shared/files/document/file-document-store'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, untracked } from '@angular/core'
 import type { TFile } from '@xpert-ai/contracts'
-import { ChatConversationService, XpertAPIService } from '../../../@core'
+import { ChatConversationService, AiWorkspaceFilesService } from '../../../@core'
 import { FileDocumentComponent } from '../../../@shared/files/document/file-document.component'
 import { FileDocumentState } from '../../../@shared/files/document/file-document-state'
 import type {
@@ -25,7 +25,7 @@ import type { WorkbenchArtifactTab } from './workbench-artifact-tabs'
 })
 export class WorkbenchArtifactPanelComponent {
   readonly #conversationService = inject(ChatConversationService)
-  readonly #xpertService = inject(XpertAPIService)
+  readonly #xpertService = inject(AiWorkspaceFilesService)
   readonly tab = input.required<WorkbenchArtifactTab>()
   readonly active = input(true)
   readonly mode = input<'readonly' | 'editable'>('readonly')

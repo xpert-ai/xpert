@@ -18,7 +18,7 @@ export class ViewExtensionApiService {
   private readonly httpClient = inject(HttpClient)
   private readonly apiBaseUrl = injectApiBaseUrl()
   private readonly baseUrl = `${this.apiBaseUrl}${API_PREFIX}/view-hosts`
-  private readonly workspaceFilesBaseUrl = `${this.apiBaseUrl}${API_PREFIX}/workspace-files`
+  private readonly workspaceFilesBaseUrl = `${this.apiBaseUrl}${API_PREFIX}/ai/workspace-files`
 
   getSlotViews(
     hostType: string,

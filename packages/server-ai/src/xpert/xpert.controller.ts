@@ -72,8 +72,6 @@ import path from 'path'
 import iconv from 'iconv-lite'
 import * as XLSX from 'xlsx'
 import fsPromises from 'fs/promises'
-import archiver from 'archiver'
-import { finished } from 'stream/promises'
 import { getErrorMessage, keepAlive, parseQueryBoolean, takeUntilClose, yaml } from '@xpert-ai/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger'
@@ -147,7 +145,7 @@ import { t } from 'i18next'
 import { isUUID } from 'class-validator'
 import { XpertWorkspaceFilesService } from './xpert-workspace-files.service'
 import { PublishedXpertAccessService } from './published-xpert-access.service'
-import { XpertWorkspaceAuthGuard } from './guards/xpert-workspace-auth.guard'
+import { streamWorkspaceDownload } from './workspace-file-download'
 
 const XPERT_WORKSPACE_FILE_UPLOAD_MAX_BYTES = 10 * 1024 * 1024
 
@@ -691,8 +689,7 @@ export class XpertController extends CrudController<Xpert> {
         return await this.service.uploadMemoryFile(id, path, file)
     }
 
-    @Public()
-    @UseGuards(XpertWorkspaceAuthGuard, XpertGuard)
+    @UseGuards(XpertGuard)
     @Get(':id/workspace/files')
     async listWorkspaceFiles(
         @Param('id', UUIDValidationPipe) id: string,
@@ -702,15 +699,13 @@ export class XpertController extends CrudController<Xpert> {
         return this.workspaceFilesService.list(id, path, deepth)
     }
 
-    @Public()
-    @UseGuards(XpertWorkspaceAuthGuard, XpertGuard)
+    @UseGuards(XpertGuard)
     @Get(':id/workspace/file')
     async readWorkspaceFile(@Param('id', UUIDValidationPipe) id: string, @Query('path') path: string) {
         return this.workspaceFilesService.read(id, path)
     }
 
-    @Public()
-    @UseGuards(XpertWorkspaceAuthGuard, XpertGuard)
+    @UseGuards(XpertGuard)
     @Get(':id/workspace/file/download')
     async downloadWorkspaceFile(
         @Param('id', UUIDValidationPipe) id: string,
@@ -718,79 +713,10 @@ export class XpertController extends CrudController<Xpert> {
         @Res() res: Response
     ) {
         const file = await this.workspaceFilesService.download(id, path)
-        const encodedFilename = encodeURIComponent(file.fileName)
-        res.setHeader('Content-Type', file.mimeType)
-        res.setHeader(
-            'Content-Disposition',
-            `attachment; filename="${encodedFilename}"; filename*=UTF-8''${encodedFilename}`
-        )
-
-        if (file.type === 'directory') {
-            if (res.destroyed || res.writableEnded) {
-                await file.entries.return(undefined)
-                await file.directoryHandle.close().catch(() => undefined)
-                return
-            }
-            const archive = archiver('zip', { zlib: { level: 9 } })
-            let currentStream: ReturnType<typeof file.directoryHandle.createReadStream> | null = null
-            const abort = () => {
-                archive.abort()
-                currentStream?.destroy()
-                void file.entries.return(undefined)
-                void file.directoryHandle.close().catch(() => undefined)
-            }
-            res.once('close', abort)
-            res.once('error', abort)
-            try {
-                archive.on('error', (error) => res.destroy(error))
-                archive.pipe(res)
-                for await (const entry of file.entries) {
-                    if (entry.type === 'directory') {
-                        archive.append('', { name: entry.archivePath })
-                    } else {
-                        currentStream = entry.fileHandle.createReadStream()
-                        archive.append(currentStream, { name: entry.archivePath })
-                        await finished(currentStream)
-                        currentStream = null
-                    }
-                }
-                await archive.finalize()
-            } catch (error) {
-                if (!res.destroyed && !res.writableEnded) throw error
-            } finally {
-                res.off('close', abort)
-                res.off('error', abort)
-                currentStream?.destroy()
-                await file.entries.return(undefined)
-                await file.directoryHandle.close().catch(() => undefined)
-            }
-            return
-        }
-
-        if (res.destroyed || res.writableEnded) {
-            await file.fileHandle.close().catch(() => undefined)
-            return
-        }
-        const stream = file.fileHandle.createReadStream({ autoClose: false })
-        const abort = () => stream.destroy()
-        res.once('close', abort)
-        res.once('error', abort)
-        try {
-            stream.on('error', (error) => res.destroy(error))
-            stream.pipe(res)
-            await finished(stream)
-        } catch (error) {
-            if (!res.destroyed && !res.writableEnded) throw error
-        } finally {
-            res.off('close', abort)
-            res.off('error', abort)
-            stream.destroy()
-            await file.fileHandle.close().catch(() => undefined)
-        }
+        return streamWorkspaceDownload(file, res)
     }
 
-    @Public()
-    @UseGuards(XpertWorkspaceAuthGuard, XpertGuard)
+    @UseGuards(XpertGuard)
     @Put(':id/workspace/file')
     async saveWorkspaceFile(
         @Param('id', UUIDValidationPipe) id: string,
@@ -799,8 +725,7 @@ export class XpertController extends CrudController<Xpert> {
         return this.workspaceFilesService.save(id, body?.path, body?.content ?? '')
     }
 
-    @Public()
-    @UseGuards(XpertWorkspaceAuthGuard, XpertGuard)
+    @UseGuards(XpertGuard)
     @Post(':id/workspace/file/save-binary')
     @UseInterceptors(FileInterceptor('file', { limits: { fileSize: XPERT_WORKSPACE_FILE_UPLOAD_MAX_BYTES } }))
     async saveWorkspaceBinaryFile(
@@ -818,8 +743,7 @@ export class XpertController extends CrudController<Xpert> {
         return this.workspaceFilesService.saveBinary(id, path, file.buffer)
     }
 
-    @Public()
-    @UseGuards(XpertWorkspaceAuthGuard, XpertGuard)
+    @UseGuards(XpertGuard)
     @Post(':id/workspace/file/upload')
     @UseInterceptors(FileInterceptor('file', { limits: { fileSize: XPERT_WORKSPACE_FILE_UPLOAD_MAX_BYTES } }))
     async uploadWorkspaceFileToFolder(
@@ -837,15 +761,13 @@ export class XpertController extends CrudController<Xpert> {
         return this.workspaceFilesService.uploadToFolder(id, path, file)
     }
 
-    @Public()
-    @UseGuards(XpertWorkspaceAuthGuard, XpertGuard)
+    @UseGuards(XpertGuard)
     @Delete(':id/workspace/file')
     async deleteWorkspaceFile(@Param('id', UUIDValidationPipe) id: string, @Query('path') path: string) {
         return this.workspaceFilesService.delete(id, path)
     }
 
-    @Public()
-    @UseGuards(XpertWorkspaceAuthGuard, XpertGuard)
+    @UseGuards(XpertGuard)
     @Post(':id/workspace/files/upload')
     @UseInterceptors(FileInterceptor('file', { limits: { fileSize: XPERT_WORKSPACE_FILE_UPLOAD_MAX_BYTES } }))
     async uploadWorkspaceFile(

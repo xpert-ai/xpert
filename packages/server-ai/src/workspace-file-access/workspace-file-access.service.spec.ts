@@ -1,6 +1,6 @@
-import { RequestContext } from '@xpert-ai/server-core'
-import { environment } from '@xpert-ai/server-config'
 import { ForbiddenException } from '@nestjs/common'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { environment } from '@xpert-ai/server-config'
 import type { Request } from 'express'
 import { WorkspaceFileAccessService } from './workspace-file-access.service'
 
@@ -251,19 +251,25 @@ describe('WorkspaceFileAccessService', () => {
         })
     })
 
-    it('does not allow a session to be reused across users or organizations', async () => {
-        const { service, viewExtensions } = createService()
-        const session = await service.createSession(
-            { hostType: 'agent', hostId: 'assistant-1', viewKey: 'cut__workbench' },
-            { headers: {}, secure: true }
-        )
+    it.each(['tenant', 'organization', 'user'] as const)(
+        'does not allow a session to be reused across %s boundaries',
+        async (dimension) => {
+            const { service, viewExtensions } = createService()
+            const session = await service.createSession(
+                { hostType: 'agent', hostId: 'assistant-1', viewKey: 'cut__workbench' },
+                { headers: {}, secure: true }
+            )
 
-        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-2')
-        await expect(
-            service.createGrant(session.sessionId, { fileKey: 'asset-1', purpose: 'preview' })
-        ).rejects.toMatchObject({ status: 404 })
-        expect(viewExtensions.resolveViewFileResource).not.toHaveBeenCalled()
-    })
+            if (dimension === 'tenant') jest.mocked(RequestContext.currentTenantId).mockReturnValue('tenant-2')
+            if (dimension === 'organization') jest.mocked(RequestContext.getOrganizationId).mockReturnValue('org-2')
+            if (dimension === 'user') jest.mocked(RequestContext.currentUserId).mockReturnValue('user-2')
+            await expect(
+                service.createGrant(session.sessionId, { fileKey: 'asset-1', purpose: 'preview' })
+            ).rejects.toMatchObject({ status: 404 })
+            await expect(service.revokeSession(session.sessionId)).rejects.toMatchObject({ status: 404 })
+            expect(viewExtensions.resolveViewFileResource).not.toHaveBeenCalled()
+        }
+    )
 
     it('does not allow a session to be reused across Project data scopes', async () => {
         const { service, viewExtensions } = createService()

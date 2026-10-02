@@ -28,6 +28,10 @@ This repo uses NestJS + TypeORM on the server and Angular 17 (standalone, signal
 - Complex, independent logic can be implemented using CQRS.
 - Ensure clearer boundaries of responsibilities.
 
+### ChatKit API boundary
+
+- Put ChatKit business endpoints in `AIModule` under `/api/ai`, with shared authentication and explicit Assistant/conversation scope guards. Keep controllers thin and resource authorization in reusable business services; do not open management controllers to client secrets for ChatKit. Cookie-bound or short-lived authorized content URLs may remain separate.
+
 ### Request validation
 
 - For new schema-driven APIs, especially ModelExecution and inputs reused by HTTP, jobs or persistence, prefer Zod schemas with the shared `ZodValidationPipe` from `@xpert-ai/server-core`. Keep established DTO class + `ValidationPipe` modules consistent; do not migrate unrelated endpoints only for style.

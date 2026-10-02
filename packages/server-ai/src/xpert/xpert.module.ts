@@ -144,6 +144,7 @@ import { XpertTriggerConnectionService } from './trigger-connection.service'
         ...QueryHandlers
     ],
     exports: [
+        XpertWorkspaceFilesService,
         XpertService,
         XpertPrincipalService,
         PublishedXpertAccessService,

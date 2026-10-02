@@ -23,9 +23,9 @@ import type {
     XpertViewFileAccessSessionResult,
     XpertViewRuntimeScopeInput
 } from '@xpert-ai/contracts'
-import type { WorkspacePortableFileReference } from '@xpert-ai/plugin-sdk'
+import { RequestContext, type WorkspacePortableFileReference } from '@xpert-ai/plugin-sdk'
 import { environment } from '@xpert-ai/server-config'
-import { RequestContext, ViewExtensionService } from '@xpert-ai/server-core'
+import { ViewExtensionService } from '@xpert-ai/server-core'
 import { resolveWorkspaceVolumeScope } from '../file-understanding'
 import { VOLUME_CLIENT, VolumeClient, VolumeHandle } from '../shared'
 
@@ -325,6 +325,12 @@ export class WorkspaceFileAccessService {
 
     buildCookiePath(sessionId: string): string {
         return `/api/workspace-files/content/${sessionId}`
+    }
+
+    /** Resolve only the stored host after checking the session's tenant, organization and owner. */
+    async getAuthenticatedSessionHost(sessionId: string): Promise<{ hostType: string; hostId: string }> {
+        const session = await this.requireAuthenticatedSession(sessionId)
+        return { hostType: session.hostType, hostId: session.hostId }
     }
 
     private async requireAuthenticatedSession(sessionId: string): Promise<WorkspaceFileAccessSessionRecord> {

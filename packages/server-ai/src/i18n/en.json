@@ -930,6 +930,7 @@
         "WorkspaceFileAccessInvalidReference": "View file access requires a scoped Workspace Files reference.",
         "WorkspaceFileAccessUnavailable": "Workspace file access is not configured.",
         "ConversationNotFound": "Conversation not found",
+        "WorkspaceFileInvalidRequest": "Invalid workspace file request.",
         "WorkspaceFileUploadRequired": "Workspace file is required.",
         "ProjectInteractiveSessionRequired": "An interactive user ChatKit session is required to access Projects.",
         "AuthenticatedUserRequired": "An authenticated user is required.",

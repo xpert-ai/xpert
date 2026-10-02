@@ -1,3 +1,7 @@
+import { AssistantWorkspaceFilesController } from './assistant-workspace-files.controller'
+import { WorkspaceFileAccessRuntimeController } from './workspace-file-access-runtime.controller'
+import { AssistantFileAccessGuard } from './assistant-file-access.guard'
+import { WorkspaceFileAccessModule } from '../workspace-file-access/workspace-file-access.module'
 import { WorkbenchFilesController } from './workbench-files.controller'
 import { WorkbenchFilesAuthGuard } from './workbench-files-auth.guard'
 import { McpAppsRuntimeController } from './mcp-apps-runtime.controller'
@@ -61,6 +65,7 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
                 module: AIModule
             }
         ]),
+        WorkspaceFileAccessModule,
         TenantModule,
         TypeOrmModule.forFeature([ChatConversation, ChatConversationThread]),
         SandboxModule,
@@ -92,6 +97,8 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
         forwardRef(() => XpertToolsetModule)
     ],
     controllers: [
+        AssistantWorkspaceFilesController,
+        WorkspaceFileAccessRuntimeController,
         WorkbenchFilesController,
         McpAppsRuntimeController,
         SandboxRuntimeController,
@@ -108,6 +115,7 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
         StoreController
     ],
     providers: [
+        AssistantFileAccessGuard,
         WorkbenchFilesAuthGuard,
         AssistantThreadScopeGuard,
         ConversationBranchService,
