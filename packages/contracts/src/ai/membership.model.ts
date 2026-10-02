@@ -1,3 +1,4 @@
+import type { ModelExecutionUsageContext } from './model-execution.model'
 import { IBasePerTenantAndOrganizationEntityModel, IBasePerTenantEntityModel } from '../base-entity.model'
 import { IUser } from '../user.model'
 import { AiModelTypeEnum } from '../agent'
@@ -198,6 +199,8 @@ export interface IMembershipPointLedger extends IBasePerTenantEntityModel {
   reason?: string | null
   accessSource?: ModelAccessSourceEnum | null
   modelGrantId?: string | null
+  /** Execution attribution for this points entry; absent for non-execution or historical records. */
+  executionContext?: ModelExecutionUsageContext | null
   usageChannel?: ModelGatewayUsageChannelEnum | null
   gatewayRequestId?: string | null
   gatewayApiKeyId?: string | null

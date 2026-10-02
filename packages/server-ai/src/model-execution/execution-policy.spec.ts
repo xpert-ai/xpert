@@ -1,4 +1,5 @@
 import { parseExecutionPolicy } from './execution-policy'
+import { assertExecutionAdmission } from './execution-admission.service'
 
 export const testPolicy = {
     enabled: true,
@@ -16,7 +17,7 @@ export const testPolicy = {
     tools: [{ id: 'aider', executable: '/home/user/.local/bin/aider', version: '0.86.1' }]
 }
 
-describe('execution policy', () => {
+describe('execution policy and admission', () => {
     it('is disabled without explicit tenant configuration', () => {
         expect(parseExecutionPolicy(undefined)).toEqual({ enabled: false })
         expect(parseExecutionPolicy(JSON.stringify(testPolicy))).toEqual(testPolicy)
@@ -41,5 +42,21 @@ describe('execution policy', () => {
         expect(() =>
             parseExecutionPolicy({ ...testPolicy, limits: { ...testPolicy.limits, leaseSeconds: 900 } })
         ).toThrow()
+    })
+    it('includes all outstanding reservations in admission', () => {
+        const input = {
+            budget: 100,
+            used: 30,
+            reserved: 50,
+            reservation: 20,
+            concurrent: 1,
+            maxConcurrent: 2,
+            recent: 2,
+            rpm: 10
+        }
+        expect(() => assertExecutionAdmission(input)).not.toThrow()
+        expect(() => assertExecutionAdmission({ ...input, reservation: 21 })).toThrow()
+        expect(() => assertExecutionAdmission({ ...input, concurrent: 2 })).toThrow()
+        expect(() => assertExecutionAdmission({ ...input, recent: 10 })).toThrow()
     })
 })

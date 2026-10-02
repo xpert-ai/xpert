@@ -1,3 +1,4 @@
+import { ModelExecutionModule } from './model-execution/model-execution.module'
 import { DesktopShellModule } from './desktop-shell/desktop-shell.module'
 import { UserModule } from '@xpert-ai/server-core'
 import { Module, forwardRef } from '@nestjs/common'
@@ -98,6 +99,7 @@ import { AgentPluginModule } from './agent-plugin/agent-plugin.module'
         MembershipModule,
         ModelAccessModule,
         ModelGatewayModule,
+        ModelExecutionModule,
         MobileModule,
         DesktopShellModule,
         XpertModule,

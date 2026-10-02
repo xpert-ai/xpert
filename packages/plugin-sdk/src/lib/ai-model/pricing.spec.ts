@@ -47,7 +47,7 @@ describe('calculateModelPrice', () => {
     expect(inputPrice + outputPrice).toBe(61.486254)
   })
 
-  it('sums token usage across every generated message', () => {
+  it('sums token usage across independent batch requests', () => {
     expect(
       calcTokenUsage({
         generations: [
@@ -62,7 +62,9 @@ describe('calculateModelPrice', () => {
                   total_tokens: 1100
                 }
               })
-            }),
+            })
+          ],
+          [
             new ChatGenerationChunk({
               text: '',
               message: new AIMessageChunk({

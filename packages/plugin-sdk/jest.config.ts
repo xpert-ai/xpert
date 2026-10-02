@@ -24,6 +24,8 @@ export default {
   transform: {
     '^.+\\.[tj]s$': ['@swc/jest', swcJestConfig]
   },
+  // Contracts re-export runtime constants from this ESM package.
+  transformIgnorePatterns: ['/node_modules/(?!@xpert-ai/chatkit-types/|\\.pnpm/@xpert-ai\\+chatkit-types@)'],
   moduleFileExtensions: ['ts', 'js', 'html'],
   testEnvironment: 'node',
   coverageDirectory: '../../coverage/packages/plugin-sdk'

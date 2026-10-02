@@ -1,3 +1,4 @@
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import {
     AiModelTypeEnum,
     AIPermissionsEnum,
@@ -15,7 +16,7 @@ import {
     UserType
 } from '@xpert-ai/contracts'
 import { environment } from '@xpert-ai/server-config'
-import { decryptSecret, encryptSecret, RequestContext, User } from '@xpert-ai/server-core'
+import { decryptSecret, encryptSecret, User } from '@xpert-ai/server-core'
 import { ModelGatewayApiKey } from './model-gateway-api-key.entity'
 import { ModelGatewayCall } from './model-gateway-call.entity'
 import { ModelGatewayPublication } from './model-gateway-publication.entity'
@@ -528,6 +529,25 @@ describe('ModelGatewayService', () => {
                 apiKeyId: 'key-1'
             })
         )
+    })
+
+    it('does not count execution grants against external API rate or concurrency limits', async () => {
+        const fixture = createService()
+        fixture.transactionCallRepository.count
+            .mockReset()
+            .mockImplementation(async (query) => (query.where.source === 'external_api' ? 0 : 1000))
+        await expect(
+            fixture.service.startCall({
+                identity: {
+                    apiKey: { id: 'key-1', tenantId: 'tenant-1', organizationId: 'org-1' } as ModelGatewayApiKey,
+                    user: { id: 'user-1' } as never
+                },
+                publication: publication('organization-model'),
+                resolution: accessResolution('org-1'),
+                requestBody: { model: 'organization-model' }
+            })
+        ).resolves.toMatchObject({ source: 'external_api' })
+        expect(fixture.transactionCallRepository.count).toHaveBeenCalledTimes(2)
     })
 
     it('settles a started call once and records charged and excess points', async () => {

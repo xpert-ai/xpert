@@ -72,3 +72,41 @@ export type ModelExecutionPolicy =
 export type CliSessionStatus = 'starting' | 'running' | 'stopping' | 'exited' | 'unknown'
 
 export const MODEL_EXECUTION_POLICY_SETTING = 'modelExecutionPolicy'
+
+/** Attribution snapshot persisted with execution usage; contains no authorization credentials. */
+export interface ModelExecutionUsageContext {
+  /** CLI or managed runtime entry point, independent of the execution environment. */
+  entry: ModelExecutionEntry
+  /** Bound execution location and instance/revision, not the model provider's location. */
+  environment: ModelExecutionEnvironment
+  /** User who initiated the execution. */
+  actorUserId: string
+  /** User whose quota is charged; currently required to match actorUserId. */
+  billableUserId: string
+  /** Assistant version captured when the execution grant was issued. */
+  assistantVersion: string
+  /** Conversation to which this execution's usage is attributed. */
+  conversationId: string
+  /** Owning CLI session or managed invocation, distinct from an individual model call. */
+  source: ModelExecutionSource
+  /** Execution authorization ID; distinct from a model-access grant ID. */
+  grantId: string
+  /** Platform ID for the logical model call. */
+  callId: string
+  /** Upstream attempt ID, also used as the ledger requestId for idempotent delivery. */
+  attemptId: string
+  /** Optional upstream request reference for reconciliation; not the ledger idempotency key. */
+  providerRequestId?: string
+  /** Calling tool and version captured in the execution grant. */
+  tool: { id: string; version: string }
+}
+
+/** Informational estimates only; never substitute for provider usage when settling execution charges. */
+export interface ModelExecutionUsageEstimate {
+  /** Estimated input count, validated as a non-negative integer. */
+  inputTokens: number
+  /** Estimated output count, validated as a non-negative integer. */
+  outputTokens: number
+  /** inputTokens + outputTokens; cache and reasoning counts must not be added again. */
+  totalTokens: number
+}

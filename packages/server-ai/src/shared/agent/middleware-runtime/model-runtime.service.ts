@@ -8,6 +8,7 @@ import {
     IModelAccessResolution,
     IXpertAgentExecution,
     ModelUsagePricingContext,
+    ModelExecutionModel,
     mapTranslationLanguage,
     resolveModelParameterOptions
 } from '@xpert-ai/contracts'
@@ -43,6 +44,7 @@ import { normalizeOptionalString } from '../../runtime/runtime-input'
 
 export type AgentMiddlewareRuntimeModelOptions = AgentMiddlewareCreateModelClientOptions & {
     modelAccessOverride?: IModelAccessResolution
+    expectedExecutionModel?: ModelExecutionModel
     skipTokenRecord?: boolean
     purpose?: 'invoke' | 'observe'
 }
@@ -97,6 +99,16 @@ export class AgentMiddlewareModelRuntimeService {
             new CopilotGetOneQuery(tenantId, copilotModel.copilotId, ['modelProvider'])
         )
 
+        const expected = options.expectedExecutionModel
+        if (
+            expected &&
+            (copilot.id !== expected.copilotId ||
+                copilot.modelProvider.id !== expected.providerScopeId ||
+                copilot.modelProvider.providerName !== expected.provider ||
+                (copilot.modelProvider.organizationId ?? null) !== expected.providerOrganizationId)
+        ) {
+            throw new Error(t('server-ai:Error.ModelExecutionDenied'))
+        }
         const modelAccess =
             modelAccessOverride ??
             (purpose === 'observe'

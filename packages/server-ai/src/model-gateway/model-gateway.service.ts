@@ -1,4 +1,28 @@
-import { BaseChatModel } from '@langchain/core/language_models/chat_models'
+import { GatewayAdmissionPolicy } from './gateway-admission-policy'
+import { createGatewayChatModel } from './model-gateway-client'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
+import {
+    userName,
+    resolveKeyExpiration,
+    toPublicApiKey,
+    readBearerToken,
+    hashToken,
+    encryptBody,
+    decryptBody,
+    errorCode,
+    currentScope,
+    applyScopeFilter,
+    applyVisibleScopeFilter,
+    requireTenantScope,
+    requireTenant,
+    requireUserId,
+    pageSize,
+    pageOffset,
+    parseBoundedInteger,
+    isUniqueViolation,
+    buildCallRetentionSql,
+    readDeletedCount
+} from './model-gateway.support'
 import {
     AIPermissionsEnum,
     DEFAULT_MODEL_GATEWAY_BODY_RETENTION_DAYS,
@@ -28,7 +52,7 @@ import {
     UserType
 } from '@xpert-ai/contracts'
 import { environment } from '@xpert-ai/server-config'
-import { decryptSecret, encryptSecret, RequestContext, TenantSetting, User } from '@xpert-ai/server-core'
+import { decryptSecret, encryptSecret, TenantSetting, User } from '@xpert-ai/server-core'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import {
     BadRequestException,
@@ -42,17 +66,8 @@ import {
 } from '@nestjs/common'
 import { Interval } from '@nestjs/schedule'
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm'
-import { createHash, randomBytes, randomUUID } from 'node:crypto'
-import {
-    Brackets,
-    DataSource,
-    In,
-    LessThanOrEqual,
-    MoreThanOrEqual,
-    ObjectLiteral,
-    Repository,
-    SelectQueryBuilder
-} from 'typeorm'
+import { randomBytes, randomUUID } from 'node:crypto'
+import { Brackets, DataSource, In, LessThanOrEqual, MoreThanOrEqual, Repository } from 'typeorm'
 import { MembershipService } from '../membership/membership.service'
 import { ModelAccessService } from '../model-access/model-access.service'
 import { settleChargeToCny } from '../membership/model-billing'
@@ -65,7 +80,6 @@ import { modelGatewayMessage } from './model-gateway.i18n'
 
 const DEFAULT_KEY_LIFETIME = ModelGatewayApiKeyLifetimeEnum.Days90
 const KEY_PREFIX_LENGTH = 10
-const MAX_PAGE_SIZE = 200
 const RATE_LIMIT_WINDOW_MS = 60 * 1000
 const GATEWAY_MAINTENANCE_INTERVAL_MS = 5 * 60 * 1000
 const STALE_CALL_AFTER_MS = 30 * 60 * 1000
@@ -127,27 +141,25 @@ export class ModelGatewayService {
         @InjectDataSource()
         private readonly dataSource: DataSource
     ) {}
-
     async getSettings(): Promise<IModelGatewayAdminSettings> {
-        const tenantId = this.requireTenantScope()
+        const tenantId = requireTenantScope()
         const [settings, limits] = await Promise.all([
             this.getOrCreateSettings(tenantId),
-            this.getAdmissionLimits(tenantId)
+            new GatewayAdmissionPolicy(this.tenantSettingRepository).getAdmissionLimits(tenantId)
         ])
         return {
             ...settings,
             ...limits
         }
     }
-
     async updateSettings(input: TModelGatewaySettingsUpdateInput): Promise<IModelGatewayAdminSettings> {
-        const tenantId = this.requireTenantScope()
+        const tenantId = requireTenantScope()
         const settings = await this.getOrCreateSettings(tenantId)
         settings.storeBodies = input.storeBodies
         settings.bodyRetentionDays = input.bodyRetentionDays ?? settings.bodyRetentionDays
         const [saved] = await Promise.all([
             this.settingsRepository.save(settings),
-            this.saveAdmissionLimits(tenantId, input)
+            new GatewayAdmissionPolicy(this.tenantSettingRepository).saveAdmissionLimits(tenantId, input)
         ])
         return {
             ...saved,
@@ -155,10 +167,9 @@ export class ModelGatewayService {
             maxConcurrentRequests: input.maxConcurrentRequests
         }
     }
-
     async listMyKeys() {
-        const scope = this.currentScope()
-        const userId = this.requireUserId()
+        const scope = currentScope()
+        const userId = requireUserId()
         await this.expireDueApiKeys(scope.tenantId)
         const query = this.apiKeyRepository
             .createQueryBuilder('apiKey')
@@ -166,18 +177,17 @@ export class ModelGatewayService {
             .where('apiKey.tenantId = :tenantId', { tenantId: scope.tenantId })
             .andWhere('apiKey.userId = :userId', { userId })
             .orderBy('apiKey.createdAt', 'DESC')
-        this.applyScopeFilter(query, 'apiKey.organizationId', scope.organizationId)
+        applyScopeFilter(query, 'apiKey.organizationId', scope.organizationId)
         const keys = await query.getMany()
         return keys.map((key) =>
-            this.toPublicApiKey(
+            toPublicApiKey(
                 key,
                 key.encryptedSecret ? decryptSecret(key.encryptedSecret, environment.secretsEncryptionKey) : undefined
             )
         )
     }
-
     async createKey(nameValue: string, lifetime = DEFAULT_KEY_LIFETIME): Promise<IModelGatewayApiKeyCreated> {
-        const scope = this.currentScope()
+        const scope = currentScope()
         const user = await this.requireCurrentEligibleUser(scope)
         const name = nameValue.trim()
         if (!name) {
@@ -194,24 +204,23 @@ export class ModelGatewayService {
             userId: user.id,
             name,
             prefix: `sk-xpert-${prefix}`,
-            tokenHash: this.hashToken(secret),
+            tokenHash: hashToken(secret),
             encryptedSecret: encryptSecret(secret, environment.secretsEncryptionKey),
             status: ModelGatewayApiKeyStatusEnum.Active,
-            validUntil: this.resolveKeyExpiration(lifetime)
+            validUntil: resolveKeyExpiration(lifetime)
         })
         const saved = await this.apiKeyRepository.save(key)
-        return { ...this.toPublicApiKey(saved), secret }
+        return { ...toPublicApiKey(saved), secret }
     }
-
     async revokeMyKey(id: string, reason?: string | null) {
-        const scope = this.currentScope()
-        const userId = this.requireUserId()
+        const scope = currentScope()
+        const userId = requireUserId()
         const query = this.apiKeyRepository
             .createQueryBuilder('apiKey')
             .where('apiKey.tenantId = :tenantId', { tenantId: scope.tenantId })
             .andWhere('apiKey.userId = :userId', { userId })
             .andWhere('apiKey.id = :id', { id })
-        this.applyScopeFilter(query, 'apiKey.organizationId', scope.organizationId)
+        applyScopeFilter(query, 'apiKey.organizationId', scope.organizationId)
         const key = await query.getOne()
         if (!key) {
             throw new NotFoundException(modelGatewayMessage('ModelGatewayApiKeyNotFound', 'API key not found.'))
@@ -246,15 +255,15 @@ export class ModelGatewayService {
         take?: number
         skip?: number
     }) {
-        const scope = this.currentScope()
+        const scope = currentScope()
         await this.expireDueApiKeys(scope.tenantId)
         const qb = this.apiKeyRepository
             .createQueryBuilder('apiKey')
             .where('apiKey.tenantId = :tenantId', { tenantId: scope.tenantId })
             .orderBy('apiKey.createdAt', 'DESC')
-            .take(this.pageSize(query?.take))
-            .skip(this.pageOffset(query?.skip))
-        this.applyScopeFilter(qb, 'apiKey.organizationId', scope.organizationId)
+            .take(pageSize(query?.take))
+            .skip(pageOffset(query?.skip))
+        applyScopeFilter(qb, 'apiKey.organizationId', scope.organizationId)
         if (query?.userId) {
             qb.andWhere('apiKey.userId = :userId', { userId: query.userId })
         }
@@ -277,22 +286,22 @@ export class ModelGatewayService {
     }
 
     async revokeAdminKey(id: string, reason?: string | null) {
-        const scope = this.currentScope()
+        const scope = currentScope()
         const query = this.apiKeyRepository
             .createQueryBuilder('apiKey')
             .where('apiKey.tenantId = :tenantId', { tenantId: scope.tenantId })
             .andWhere('apiKey.id = :id', { id })
-        this.applyScopeFilter(query, 'apiKey.organizationId', scope.organizationId)
+        applyScopeFilter(query, 'apiKey.organizationId', scope.organizationId)
         const key = await query.getOne()
         if (!key) {
             throw new NotFoundException(modelGatewayMessage('ModelGatewayApiKeyNotFound', 'API key not found.'))
         }
-        return this.revokeKeyRecord(key, this.requireUserId(), reason)
+        return this.revokeKeyRecord(key, requireUserId(), reason)
     }
 
     async authenticate(authorization?: string): Promise<ModelGatewayIdentity> {
-        const token = this.readBearerToken(authorization)
-        const tokenHash = this.hashToken(token)
+        const token = readBearerToken(authorization)
+        const tokenHash = hashToken(token)
         const key = await this.apiKeyRepository
             .createQueryBuilder('apiKey')
             .addSelect('apiKey.tokenHash')
@@ -330,11 +339,7 @@ export class ModelGatewayService {
             .createQueryBuilder('publication')
             .where('publication.tenantId = :tenantId', { tenantId: identity.apiKey.tenantId })
             .orderBy('publication.externalModelId', 'ASC')
-        this.applyVisibleScopeFilter(
-            publicationQuery,
-            'publication.organizationId',
-            identity.apiKey.organizationId ?? null
-        )
+        applyVisibleScopeFilter(publicationQuery, 'publication.organizationId', identity.apiKey.organizationId ?? null)
         const publications = await publicationQuery.getMany()
         const accessible: Array<{
             publication: ModelGatewayPublication
@@ -362,11 +367,7 @@ export class ModelGatewayService {
             .createQueryBuilder('publication')
             .where('publication.tenantId = :tenantId', { tenantId: identity.apiKey.tenantId })
             .andWhere('publication.externalModelId = :externalModelId', { externalModelId })
-        this.applyVisibleScopeFilter(
-            publicationQuery,
-            'publication.organizationId',
-            identity.apiKey.organizationId ?? null
-        )
+        applyVisibleScopeFilter(publicationQuery, 'publication.organizationId', identity.apiKey.organizationId ?? null)
         const publication = await publicationQuery.getOne()
         if (!publication) {
             throw new NotFoundException(
@@ -406,29 +407,7 @@ export class ModelGatewayService {
         resolution: IModelAccessResolution,
         usageCallback: (usage: ILLMUsage) => void
     ) {
-        const client = await this.runtimeService.createModelClient<BaseChatModel>(
-            {
-                copilotId: publication.copilotId,
-                model: publication.copilotModelId,
-                modelType: publication.modelType
-            },
-            {
-                usageCallback,
-                modelAccessOverride: resolution,
-                skipTokenRecord: true
-            },
-            {
-                tenantId: publication.tenantId,
-                organizationId: publication.organizationId ?? null,
-                userId: resolution.billableUserId
-            }
-        )
-        if (!client || typeof client.invoke !== 'function' || typeof client.stream !== 'function') {
-            throw new BadRequestException(
-                modelGatewayMessage('ModelGatewaySourceNotChat', 'Published source is not a chat model.')
-            )
-        }
-        return client
+        return createGatewayChatModel(this.runtimeService, publication, resolution, usageCallback)
     }
 
     async startCall(input: {
@@ -439,7 +418,9 @@ export class ModelGatewayService {
     }) {
         const requestId = randomUUID()
         const settings = await this.getOrCreateSettings(input.identity.apiKey.tenantId)
-        const limits = await this.getAdmissionLimits(input.identity.apiKey.tenantId)
+        const limits = await new GatewayAdmissionPolicy(this.tenantSettingRepository).getAdmissionLimits(
+            input.identity.apiKey.tenantId
+        )
         const startedAt = new Date()
         return this.dataSource.transaction(async (manager) => {
             const lockedUser = await manager.findOne(User, {
@@ -459,6 +440,7 @@ export class ModelGatewayService {
             const repository = manager.getRepository(ModelGatewayCall)
             const callsInWindow = await repository.count({
                 where: {
+                    source: 'external_api',
                     tenantId: input.identity.apiKey.tenantId,
                     userId: input.identity.user.id,
                     startedAt: MoreThanOrEqual(new Date(startedAt.getTime() - RATE_LIMIT_WINDOW_MS))
@@ -476,6 +458,7 @@ export class ModelGatewayService {
 
             const activeCalls = await repository.count({
                 where: {
+                    source: 'external_api',
                     tenantId: input.identity.apiKey.tenantId,
                     userId: input.identity.user.id,
                     status: ModelGatewayCallStatusEnum.Started,
@@ -494,6 +477,7 @@ export class ModelGatewayService {
 
             return repository.save(
                 repository.create({
+                    source: 'external_api',
                     tenantId: input.identity.apiKey.tenantId,
                     organizationId: input.identity.apiKey.organizationId ?? null,
                     requestId,
@@ -512,7 +496,7 @@ export class ModelGatewayService {
                     excessPoints: 0,
                     usageSource: ModelGatewayUsageSourceEnum.None,
                     settlementContext: input.resolution,
-                    encryptedRequest: settings.storeBodies ? this.encryptBody(input.requestBody) : null,
+                    encryptedRequest: settings.storeBodies ? encryptBody(input.requestBody) : null,
                     bodyExpiresAt: settings.storeBodies
                         ? new Date(startedAt.getTime() + settings.bodyRetentionDays * 24 * 60 * 60 * 1000)
                         : null
@@ -599,11 +583,11 @@ export class ModelGatewayService {
         current.usageSource = input.usage.source
         current.settlementContext = null
         if (!retryingSettlement) {
-            current.errorCode = input.error ? this.errorCode(input.error) : null
+            current.errorCode = input.error ? errorCode(input.error) : null
             current.errorMessage = input.error ? getErrorMessage(input.error).slice(0, 4000) : null
         }
         if (current.bodyExpiresAt && input.responseBody !== undefined) {
-            current.encryptedResponse = this.encryptBody(input.responseBody)
+            current.encryptedResponse = encryptBody(input.responseBody)
         }
         return this.callRepository.save(current)
     }
@@ -637,10 +621,10 @@ export class ModelGatewayService {
             current.settlementCurrency = usage.settlementCurrency ?? null
             current.exchangeRate = usage.exchangeRate ?? null
             current.usageSource = usage.source
-            current.errorCode = outcome?.error ? this.errorCode(outcome.error) : null
+            current.errorCode = outcome?.error ? errorCode(outcome.error) : null
             current.errorMessage = outcome?.error ? getErrorMessage(outcome.error).slice(0, 4000) : null
             if (current.bodyExpiresAt && outcome?.responseBody !== undefined) {
-                current.encryptedResponse = this.encryptBody(outcome.responseBody)
+                current.encryptedResponse = encryptBody(outcome.responseBody)
             }
             return await this.callRepository.save(current)
         } catch (persistenceError) {
@@ -657,6 +641,7 @@ export class ModelGatewayService {
             .createQueryBuilder('call')
             .addSelect('call.settlementContext')
             .where('call.status = :status', { status: ModelGatewayCallStatusEnum.SettlementPending })
+            .andWhere("call.source = 'external_api'")
             .orderBy('call.createdAt', 'ASC')
             .take(100)
             .getMany()
@@ -702,8 +687,8 @@ export class ModelGatewayService {
     }
 
     async listMyCalls(take?: number, skip?: number) {
-        const scope = this.currentScope()
-        const userId = this.requireUserId()
+        const scope = currentScope()
+        const userId = requireUserId()
         return this.listCalls({ ...scope, userId, take, skip })
     }
 
@@ -714,7 +699,7 @@ export class ModelGatewayService {
         take?: number
         skip?: number
     }) {
-        const scope = this.currentScope()
+        const scope = currentScope()
         const page = await this.listCalls({
             ...scope,
             search: query?.search,
@@ -730,20 +715,21 @@ export class ModelGatewayService {
     }
 
     async getAdminCallBody(id: string) {
-        const scope = this.currentScope()
+        const scope = currentScope()
         const query = this.callRepository
             .createQueryBuilder('call')
             .addSelect(['call.encryptedRequest', 'call.encryptedResponse'])
             .where('call.tenantId = :tenantId', { tenantId: scope.tenantId })
             .andWhere('call.id = :id', { id })
-        this.applyScopeFilter(query, 'call.organizationId', scope.organizationId)
+            .andWhere("call.source = 'external_api'")
+        applyScopeFilter(query, 'call.organizationId', scope.organizationId)
         const call = await query.getOne()
         if (!call) {
             throw new NotFoundException(modelGatewayMessage('ModelGatewayCallNotFound', 'Gateway call was not found.'))
         }
         return {
-            request: this.decryptBody(call.encryptedRequest),
-            response: this.decryptBody(call.encryptedResponse),
+            request: decryptBody(call.encryptedRequest),
+            response: decryptBody(call.encryptedResponse),
             expiresAt: call.bodyExpiresAt ?? null
         }
     }
@@ -822,6 +808,7 @@ export class ModelGatewayService {
             })
             .where({
                 status: ModelGatewayCallStatusEnum.Started,
+                source: 'external_api',
                 startedAt: LessThanOrEqual(new Date(Date.now() - STALE_CALL_AFTER_MS))
             })
             .execute()
@@ -843,10 +830,11 @@ export class ModelGatewayService {
         const qb = this.callRepository
             .createQueryBuilder('call')
             .where('call.tenantId = :tenantId', { tenantId: input.tenantId })
+            .andWhere("call.source = 'external_api'")
             .orderBy('call.createdAt', 'DESC')
-            .take(this.pageSize(input.take))
-            .skip(this.pageOffset(input.skip))
-        this.applyScopeFilter(qb, 'call.organizationId', input.organizationId)
+            .take(pageSize(input.take))
+            .skip(pageOffset(input.skip))
+        applyScopeFilter(qb, 'call.organizationId', input.organizationId)
         if (input.userId) {
             qb.andWhere('call.userId = :userId', { userId: input.userId })
         }
@@ -881,21 +869,11 @@ export class ModelGatewayService {
                 id: In(userIds)
             }
         })
-        const names = new Map(users.map((user) => [user.id, this.userName(user)]))
+        const names = new Map(users.map((user) => [user.id, userName(user)]))
         return items.map((item) => ({
             ...item,
             userName: names.get(item.userId) ?? item.userId
         }))
-    }
-
-    private userName(user: User) {
-        return (
-            user.name?.trim() ||
-            [user.firstName, user.lastName].filter(Boolean).join(' ').trim() ||
-            user.email?.trim() ||
-            user.username?.trim() ||
-            user.id
-        )
     }
 
     private async getOrCreateSettings(tenantId: string) {
@@ -912,64 +890,11 @@ export class ModelGatewayService {
                 })
             )
         } catch (error) {
-            if (this.isUniqueViolation(error)) {
+            if (isUniqueViolation(error)) {
                 return this.settingsRepository.findOneOrFail({ where: { tenantId } })
             }
             throw error
         }
-    }
-
-    private async getAdmissionLimits(tenantId: string) {
-        const settings = await this.tenantSettingRepository.find({
-            where: {
-                tenantId,
-                name: In([MODEL_GATEWAY_REQUESTS_PER_MINUTE_SETTING, MODEL_GATEWAY_MAX_CONCURRENT_REQUESTS_SETTING])
-            }
-        })
-        const byName = new Map(settings.map((setting) => [setting.name, setting.value]))
-        return {
-            requestsPerMinute: this.parseBoundedInteger(
-                byName.get(MODEL_GATEWAY_REQUESTS_PER_MINUTE_SETTING),
-                DEFAULT_MODEL_GATEWAY_REQUESTS_PER_MINUTE,
-                MIN_MODEL_GATEWAY_REQUESTS_PER_MINUTE,
-                MAX_MODEL_GATEWAY_REQUESTS_PER_MINUTE
-            ),
-            maxConcurrentRequests: this.parseBoundedInteger(
-                byName.get(MODEL_GATEWAY_MAX_CONCURRENT_REQUESTS_SETTING),
-                DEFAULT_MODEL_GATEWAY_MAX_CONCURRENT_REQUESTS,
-                MIN_MODEL_GATEWAY_MAX_CONCURRENT_REQUESTS,
-                MAX_MODEL_GATEWAY_MAX_CONCURRENT_REQUESTS
-            )
-        }
-    }
-
-    private async saveAdmissionLimits(
-        tenantId: string,
-        input: Pick<TModelGatewaySettingsUpdateInput, 'requestsPerMinute' | 'maxConcurrentRequests'>
-    ) {
-        const values = [
-            {
-                name: MODEL_GATEWAY_REQUESTS_PER_MINUTE_SETTING,
-                value: String(input.requestsPerMinute)
-            },
-            {
-                name: MODEL_GATEWAY_MAX_CONCURRENT_REQUESTS_SETTING,
-                value: String(input.maxConcurrentRequests)
-            }
-        ]
-        const existing = await this.tenantSettingRepository.find({
-            where: {
-                tenantId,
-                name: In(values.map(({ name }) => name))
-            }
-        })
-        const settings = values.map(({ name, value }) => {
-            const setting =
-                existing.find((item) => item.name === name) ?? this.tenantSettingRepository.create({ tenantId, name })
-            setting.value = value
-            return setting
-        })
-        await this.tenantSettingRepository.save(settings)
     }
 
     private async requireCurrentEligibleUser(scope: { tenantId: string; organizationId: string | null }) {
@@ -978,7 +903,7 @@ export class ModelGatewayService {
                 modelGatewayMessage('ModelGatewayFeatureDisabled', 'External model API access is disabled.')
             )
         }
-        const userId = this.requireUserId()
+        const userId = requireUserId()
         const user = await this.userRepository.findOne({
             where: { tenantId: scope.tenantId, id: userId },
             relations: ['role', 'role.rolePermissions']
@@ -1010,212 +935,4 @@ export class ModelGatewayService {
         key.revokeReason = reason?.trim() || null
         return this.apiKeyRepository.save(key)
     }
-
-    private resolveKeyExpiration(lifetime: ModelGatewayApiKeyLifetimeEnum) {
-        if (lifetime === ModelGatewayApiKeyLifetimeEnum.Permanent) {
-            return null
-        }
-        const days = {
-            [ModelGatewayApiKeyLifetimeEnum.Days30]: 30,
-            [ModelGatewayApiKeyLifetimeEnum.Days90]: 90,
-            [ModelGatewayApiKeyLifetimeEnum.Days180]: 180
-        }[lifetime]
-        if (!days) {
-            throw new BadRequestException(
-                modelGatewayMessage('ModelGatewayKeyLifetimeUnsupported', 'Unsupported API key lifetime.')
-            )
-        }
-        return new Date(Date.now() + days * 24 * 60 * 60 * 1000)
-    }
-
-    private toPublicApiKey(key: ModelGatewayApiKey, secret?: string): IModelGatewayApiKey {
-        return {
-            id: key.id,
-            createdById: key.createdById,
-            updatedById: key.updatedById,
-            createdAt: key.createdAt,
-            updatedAt: key.updatedAt,
-            tenantId: key.tenantId,
-            organizationId: key.organizationId,
-            userId: key.userId,
-            name: key.name,
-            prefix: key.prefix,
-            ...(secret ? { secret } : {}),
-            status: key.status,
-            validUntil: key.validUntil,
-            lastUsedAt: key.lastUsedAt,
-            revokedAt: key.revokedAt,
-            revokedById: key.revokedById,
-            revokeReason: key.revokeReason
-        }
-    }
-
-    private readBearerToken(authorization?: string) {
-        const match = authorization?.match(/^Bearer\s+(\S+)$/i)
-        if (!match) {
-            throw new UnauthorizedException(
-                modelGatewayMessage('ModelGatewayBearerRequired', 'A Bearer API key is required.')
-            )
-        }
-        return match[1]
-    }
-
-    private hashToken(token: string) {
-        return createHash('sha256').update(token).digest('hex')
-    }
-
-    private encryptBody(body: unknown) {
-        return encryptSecret(JSON.stringify(body), environment.secretsEncryptionKey)
-    }
-
-    private decryptBody(ciphertext?: string | null) {
-        if (!ciphertext) {
-            return null
-        }
-        const body: unknown = JSON.parse(decryptSecret(ciphertext, environment.secretsEncryptionKey))
-        return body
-    }
-
-    private errorCode(error: unknown) {
-        if (typeof error === 'object' && error !== null && 'code' in error && typeof error.code === 'string') {
-            return error.code.slice(0, 100)
-        }
-        return 'gateway_error'
-    }
-
-    private currentScope() {
-        return {
-            tenantId: this.requireTenant(),
-            organizationId: RequestContext.getOrganizationId()
-        }
-    }
-
-    private applyScopeFilter<T extends ObjectLiteral>(
-        query: SelectQueryBuilder<T>,
-        field: string,
-        organizationId: string | null
-    ) {
-        return organizationId
-            ? query.andWhere(`${field} = :scopeOrganizationId`, { scopeOrganizationId: organizationId })
-            : query.andWhere(`${field} IS NULL`)
-    }
-
-    private applyVisibleScopeFilter<T extends ObjectLiteral>(
-        query: SelectQueryBuilder<T>,
-        field: string,
-        organizationId: string | null
-    ) {
-        return organizationId
-            ? query.andWhere(`(${field} IS NULL OR ${field} = :visibleOrganizationId)`, {
-                  visibleOrganizationId: organizationId
-              })
-            : query.andWhere(`${field} IS NULL`)
-    }
-
-    private requireTenantScope() {
-        const tenantId = this.requireTenant()
-        if (!RequestContext.isTenantScope()) {
-            throw new ForbiddenException(
-                modelGatewayMessage('ModelGatewayTenantScopeRequired', 'Tenant scope is required.')
-            )
-        }
-        return tenantId
-    }
-
-    private requireTenant() {
-        const tenantId = RequestContext.currentTenantId()
-        if (!tenantId) {
-            throw new ForbiddenException(
-                modelGatewayMessage('ModelGatewayTenantScopeRequired', 'Tenant scope is required.')
-            )
-        }
-        return tenantId
-    }
-
-    private requireUserId() {
-        const userId = RequestContext.currentUserId()
-        if (!userId) {
-            throw new ForbiddenException(
-                modelGatewayMessage('ModelGatewayAuthenticatedUserRequired', 'Authenticated user is required.')
-            )
-        }
-        return userId
-    }
-
-    private pageSize(value?: number) {
-        return Math.min(Math.max(Number(value ?? 50), 1), MAX_PAGE_SIZE)
-    }
-
-    private pageOffset(value?: number) {
-        return Math.max(Number(value ?? 0), 0)
-    }
-
-    private parseBoundedInteger(value: unknown, fallback: number, min: number, max: number) {
-        const parsed = Number(value)
-        return Number.isInteger(parsed) && parsed >= min && parsed <= max ? parsed : fallback
-    }
-
-    private isUniqueViolation(error: unknown) {
-        return (
-            typeof error === 'object' &&
-            error !== null &&
-            'code' in error &&
-            (error.code === '23505' || error.code === 'SQLITE_CONSTRAINT')
-        )
-    }
-}
-
-function buildCallRetentionSql() {
-    return `
-WITH candidates AS (
-    SELECT c.id
-    FROM model_gateway_call c
-    JOIN tenant_setting te
-        ON te."tenantId" IS NOT DISTINCT FROM c."tenantId"
-        AND te.name = $1
-        AND lower(COALESCE(te.value, '')) IN ('1', 'true', 'yes', 'on')
-    LEFT JOIN tenant_setting td
-        ON td."tenantId" IS NOT DISTINCT FROM c."tenantId"
-        AND td.name = $2
-    WHERE c.status = ANY($5::varchar[])
-        AND COALESCE(c."completedAt", c."createdAt") < now() - make_interval(
-            days => COALESCE(
-                CASE
-                    WHEN td.value ~ '^[1-9][0-9]{0,8}$' AND td.value::int <= $4::int THEN td.value::int
-                END,
-                $3::int
-            )
-        )
-    ORDER BY COALESCE(c."completedAt", c."createdAt") ASC
-    LIMIT $6::int
-    FOR UPDATE OF c SKIP LOCKED
-),
-deleted AS (
-    DELETE FROM model_gateway_call c
-    USING candidates
-    WHERE c.id = candidates.id
-    RETURNING 1
-)
-SELECT count(*)::int AS count
-FROM deleted
-`
-}
-
-function readDeletedCount(rows: unknown): number {
-    if (!Array.isArray(rows) || rows.length === 0) {
-        return 0
-    }
-    const first = rows[0]
-    if (!first || typeof first !== 'object' || !('count' in first)) {
-        return 0
-    }
-    const value = first.count
-    if (typeof value === 'number' && Number.isFinite(value)) {
-        return value
-    }
-    if (typeof value === 'string') {
-        const parsed = Number(value)
-        return Number.isFinite(parsed) ? parsed : 0
-    }
-    return 0
 }

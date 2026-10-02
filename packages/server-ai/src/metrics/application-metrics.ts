@@ -291,6 +291,10 @@ export class ApplicationMetricsRegistry {
         'xpert_model_execution_events_total',
         'Model execution admission and settlement outcomes.'
     )
+    private readonly modelExecutionPending = new GaugeMetric(
+        'xpert_model_execution_pending',
+        'Unsettled execution attempts and reserved tokens.'
+    )
 
     recordModelExecution(
         event:
@@ -312,12 +316,19 @@ export class ApplicationMetricsRegistry {
         this.modelExecutionEvents.inc({ event })
     }
 
+    setModelExecutionPending(input: { attempts: number; reservedTokens: number; oldestSeconds: number }) {
+        this.modelExecutionPending.set({ kind: 'attempts' }, input.attempts)
+        this.modelExecutionPending.set({ kind: 'reserved_tokens' }, input.reservedTokens)
+        this.modelExecutionPending.set({ kind: 'oldest_seconds' }, input.oldestSeconds)
+    }
+
     constructor() {
         this.reset()
     }
 
     reset() {
         this.modelExecutionEvents.reset()
+        this.modelExecutionPending.reset()
         this.conversationBranches.reset()
         this.conversationBranchDuration.reset()
         this.conversationBranchSize.reset()
@@ -556,6 +567,7 @@ export class ApplicationMetricsRegistry {
             [
                 this.info.render(),
                 this.modelExecutionEvents.render(),
+                this.modelExecutionPending.render(),
                 this.conversationBranches.render(),
                 this.conversationBranchDuration.render(),
                 this.conversationBranchSize.render(),

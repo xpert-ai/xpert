@@ -8,10 +8,13 @@ import {
 } from './execution-schema'
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import type {
+    LLMPriceAuthority,
+    LLMPriceBreakdownItem,
     CliSessionStatus,
     ModelExecutionContext,
     ModelExecutionLimits,
-    ModelExecutionModel
+    ModelExecutionModel,
+    ModelExecutionUsageContext
 } from '@xpert-ai/contracts'
 import { Column, Entity, Index } from 'typeorm'
 
@@ -47,4 +50,21 @@ export class CliSession extends TenantOrganizationBaseEntity {
     } | null
     @Column({ type: 'int', nullable: true }) exitCode: number | null
     @Column({ type: 'timestamptz', nullable: true }) endedAt: Date | null
+}
+
+/** Durable provider fact/outbox. Retries reuse attemptId; uncertain attempts keep their reservation. */
+export interface ExecutionUsageFact {
+    context: ModelExecutionUsageContext
+    promptTokens: number
+    completionTokens: number
+    totalTokens: number
+    cacheReadInputTokens?: number
+    cacheWriteInputTokens?: number
+    reasoningTokens?: number
+    model: ModelExecutionModel
+    priceAuthority?: LLMPriceAuthority
+    pricingBreakdown?: LLMPriceBreakdownItem[]
+    priceAmount?: number
+    currency?: string
+    pricingStatus: 'priced' | 'unpriced' | 'free'
 }

@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto'
+import { AiModelTypeEnum } from '@xpert-ai/contracts'
 import { executionContextSchema, executionJson } from './execution-schema'
+import { executionUsageFactSchema } from './execution-usage-schema'
 
 const userId = randomUUID()
 const context = {
@@ -15,14 +17,55 @@ const context = {
     environment: { type: 'computer', environmentId: randomUUID(), instanceId: 'container-generation' },
     tool: { id: 'opencode', version: '1.18.33' }
 }
+const fact = {
+    context: {
+        entry: 'cli',
+        environment: context.environment,
+        actorUserId: userId,
+        billableUserId: userId,
+        assistantVersion: 'v1',
+        conversationId: context.conversationId,
+        source: context.source,
+        grantId: randomUUID(),
+        callId: randomUUID(),
+        attemptId: randomUUID(),
+        tool: context.tool
+    },
+    model: {
+        id: 'alias',
+        copilotId: randomUUID(),
+        providerScopeId: randomUUID(),
+        providerOrganizationId: null,
+        provider: 'fixture',
+        model: 'coding',
+        modelType: AiModelTypeEnum.LLM,
+        capabilities: [],
+        protocols: ['openai_chat']
+    },
+    promptTokens: 10,
+    completionTokens: 2,
+    totalTokens: 12,
+    cacheReadInputTokens: 4,
+    pricingStatus: 'unpriced'
+}
+
 describe('persisted execution boundaries', () => {
-    it('round-trips context without changing meaning', () => {
+    it('round-trips context and nullable facts without changing meaning', () => {
         const transformer = executionJson(executionContextSchema)
         expect(transformer.from(JSON.parse(JSON.stringify(transformer.to(context as never))))).toEqual(context)
+        expect(executionUsageFactSchema.parse(fact)).toEqual(fact)
+        expect(executionJson(executionUsageFactSchema.nullable()).from(null)).toBeNull()
     })
     it('rejects incomplete or redirected billing identity at the persistence boundary', () => {
         expect(() => executionContextSchema.parse({ ...context, billableUserId: randomUUID() })).toThrow()
         expect(() => executionContextSchema.parse({ ...context, environment: { type: 'computer' } })).toThrow()
         expect(() => executionContextSchema.parse({ ...context, supplierKey: 'must-not-be-persisted' })).toThrow()
+    })
+    it('does not deliver contradictory token or source facts', () => {
+        expect(() => executionUsageFactSchema.parse({ ...fact, totalTokens: 100 })).toThrow()
+        expect(() => executionUsageFactSchema.parse({ ...fact, cacheReadInputTokens: 11 })).toThrow()
+        expect(() =>
+            executionUsageFactSchema.parse({ ...fact, context: { ...fact.context, entry: 'agent_runtime' } })
+        ).toThrow()
     })
 })

@@ -1,3 +1,4 @@
+import { normalizeTokenUsage, resolveTokenUsageCandidates } from './token-usage'
 import {
   AIModelEntity,
   AiModelTypeEnum,
@@ -15,7 +16,7 @@ import {
 import { Logger } from '@nestjs/common'
 import { BaseCallbackHandler } from '@langchain/core/callbacks/base'
 import { ChatGenerationChunk, LLMResult } from '@langchain/core/outputs'
-import { AIMessage, isAIMessageChunk } from '@langchain/core/messages'
+import { AIMessage, isAIMessage, isAIMessageChunk, isBaseMessage } from '@langchain/core/messages'
 import { AIModel } from './ai-model'
 import { calculateLLMUsagePrice, isModelUsagePricingConfig } from './pricing'
 import { CommonParameterRules, TChatModelOptions, TLLMUsage, TModelUsageType } from './types/'
@@ -127,6 +128,26 @@ export abstract class LargeLanguageModel extends AIModel {
 
   protected override _commonParameterRules(model: string): ParameterRule[] {
     return CommonParameterRules
+  }
+
+  /** Price already normalized provider facts without starting another inference or writing a ledger. */
+  priceActualTokenUsage(model: string, tokenUsage: TTokenUsage, context: LLMPriceContext = {}): ILLMUsage {
+    const usage = normalizeTokenUsage(tokenUsage)
+    if (!usage) throw new Error('Actual token usage is required')
+    const priced = this.calcResponseUsage(
+      model,
+      {},
+      usage.promptTokens,
+      usage.completionTokens,
+      performance.now(),
+      usage,
+      { ...context, inputTokensIncludeCache: true }
+    )
+    return {
+      ...priced,
+      ...usage,
+      ...(!this.getModelSchema(model, {})?.pricing ? { pricingStatus: 'unpriced' as const, totalPrice: undefined } : {})
+    }
   }
 
   protected calcResponseUsage(
@@ -319,14 +340,12 @@ export abstract class LargeLanguageModel extends AIModel {
     return [callback]
   }
 
-  createHandleLLMErrorCallbacks(fields, logger?: Logger) {
+  createHandleLLMErrorCallbacks(_fields: unknown, logger?: Logger) {
     return {
-      handleLLMError: (err) => {
-        ;(logger ?? this.#logger).error(
-          err,
-          err.cause?.stack ?? err.stack,
-          `Error attemptNumber: ${err.attemptNumber}, retriesLeft: ${err.retriesLeft}, ChatDeepSeek params are:\n${JSON.stringify(fields, null, 2)}`
-        )
+      handleLLMError: (error: unknown) => {
+        // Provider errors and constructor fields can contain credentials or request bodies.
+        const errorType = error instanceof Error && /^[A-Za-z]{1,60}$/.test(error.name) ? error.name : 'Error'
+        ;(logger ?? this.#logger).error({ event: 'model_provider_request_failed', errorType })
       }
     }
   }
@@ -555,25 +574,35 @@ function isAbortError(error: unknown) {
   return error.name === 'AbortError' || /\babort(?:ed)?\b/i.test(error.message)
 }
 
-export function calcTokenUsage(output: LLMResult) {
-  const tokenUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 } as TTokenUsage
-  let cacheReadInputTokens = 0
-  let cacheWriteInputTokens = 0
-  output.generations?.forEach((generation) => {
-    generation.forEach((item) => {
-      const message = (<ChatGenerationChunk>item).message as AIMessage
-      if (message.usage_metadata) {
-        tokenUsage.promptTokens += message.usage_metadata.input_tokens
-        tokenUsage.completionTokens += message.usage_metadata.output_tokens
-        tokenUsage.totalTokens += message.usage_metadata.total_tokens
-        cacheReadInputTokens += message.usage_metadata.input_token_details?.cache_read ?? 0
-        cacheWriteInputTokens += message.usage_metadata.input_token_details?.cache_creation ?? 0
-      }
-    })
-  })
-  if (cacheReadInputTokens > 0) tokenUsage.cacheReadInputTokens = cacheReadInputTokens
-  if (cacheWriteInputTokens > 0) tokenUsage.cacheWriteInputTokens = cacheWriteInputTokens
-  return tokenUsage
+export function calcTokenUsage(output: LLMResult): TTokenUsage {
+  const result: TTokenUsage = { promptTokens: 0, completionTokens: 0, totalTokens: 0 }
+  for (const choices of output.generations ?? []) {
+    // Each inner array contains choices from one request, not independent provider attempts.
+    const usage = choices
+      .map((choice) => {
+        if (!('message' in choice) || !isBaseMessage(choice.message) || !isAIMessage(choice.message)) return null
+        const metadata = choice.message.usage_metadata
+        return metadata
+          ? normalizeTokenUsage({
+              promptTokens: metadata.input_tokens,
+              completionTokens: metadata.output_tokens,
+              totalTokens: metadata.total_tokens,
+              cacheReadInputTokens: metadata.input_token_details?.cache_read,
+              cacheWriteInputTokens: metadata.input_token_details?.cache_creation,
+              reasoningTokens: metadata.output_token_details?.reasoning
+            })
+          : null
+      })
+      .find((candidate) => candidate !== null)
+    if (!usage) continue
+    result.promptTokens += usage.promptTokens
+    result.completionTokens += usage.completionTokens
+    result.totalTokens += usage.totalTokens
+    for (const key of ['cacheReadInputTokens', 'cacheWriteInputTokens', 'reasoningTokens'] as const) {
+      if (usage[key] !== undefined) result[key] = (result[key] ?? 0) + usage[key]
+    }
+  }
+  return result
 }
 
 export function resolveTokenUsage(output: LLMResult): TTokenUsage {
@@ -581,62 +610,13 @@ export function resolveTokenUsage(output: LLMResult): TTokenUsage {
 }
 
 function resolveTokenUsageWithAuthority(output: LLMResult): { usage: TTokenUsage; type?: TModelUsageType } {
-  const actualUsage =
-    normalizeTokenUsage(calcTokenUsage(output)) ??
-    normalizeTokenUsage(output.llmOutput?.['tokenUsage']) ??
-    normalizeTokenUsage({ totalTokens: output.llmOutput?.['totalTokens'] })
-  if (actualUsage) {
-    return { usage: actualUsage }
-  }
-
-  const estimatedUsage = normalizeTokenUsage(output.llmOutput?.['estimatedTokenUsage'])
-  if (estimatedUsage) {
-    return { usage: estimatedUsage, type: 'estimated' }
-  }
-
-  return {
-    usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 }
-  }
-}
-
-function normalizeTokenUsage(candidate?: Partial<TTokenUsage> | null): TTokenUsage | null {
-  if (!candidate) {
-    return null
-  }
-
-  if (
-    !isValidTokenCount(candidate.promptTokens) ||
-    !isValidTokenCount(candidate.completionTokens) ||
-    !isValidTokenCount(candidate.totalTokens)
-  ) {
-    return null
-  }
-
-  const promptTokens = candidate.promptTokens ?? 0
-  const completionTokens = candidate.completionTokens ?? 0
-  const totalTokens = candidate.totalTokens || promptTokens + completionTokens
-
-  if (promptTokens === 0 && completionTokens === 0 && totalTokens === 0) {
-    return null
-  }
-
-  const cacheReadInputTokens = candidate.cacheReadInputTokens ?? 0
-  const cacheWriteInputTokens = candidate.cacheWriteInputTokens ?? 0
-  if (!isValidTokenCount(cacheReadInputTokens) || !isValidTokenCount(cacheWriteInputTokens)) {
-    return null
-  }
-
-  return {
-    promptTokens,
-    completionTokens,
-    totalTokens,
-    ...(cacheReadInputTokens > 0 ? { cacheReadInputTokens } : {}),
-    ...(cacheWriteInputTokens > 0 ? { cacheWriteInputTokens } : {})
-  }
-}
-
-function isValidTokenCount(value?: number): boolean {
-  return value === undefined || (Number.isFinite(value) && value >= 0)
+  const resolved = resolveTokenUsageCandidates({
+    canonical: calcTokenUsage(output),
+    actual: output.llmOutput?.['tokenUsage'],
+    estimated: output.llmOutput?.['estimatedTokenUsage'],
+    legacyTotal: output.llmOutput?.['totalTokens']
+  })
+  return { usage: resolved.usage, ...(resolved.source === 'estimated' ? { type: 'estimated' as const } : {}) }
 }
 
 function normalizeCacheTokenAccounting(tokenUsage: TTokenUsage, context: LLMPriceContext): TTokenUsage {

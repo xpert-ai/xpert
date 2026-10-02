@@ -1,20 +1,8 @@
+import { executeGatewayChat } from './chat-execution'
 // Invariants: client scope headers do not select the gateway's tenant or organization.
 // Resolve access in the API key scope, then run the model in its publication scope.
 // Preserve both host and plugin contexts through streaming and usage settlement.
-import { AIMessageChunk, BaseMessage, isAIMessage } from '@langchain/core/messages'
-import { ILLMUsage, ModelGatewayUsageSourceEnum } from '@xpert-ai/contracts'
-import {
-    BadRequestException,
-    Body,
-    Controller,
-    Get,
-    HttpException,
-    HttpStatus,
-    NotFoundException,
-    Post,
-    Req,
-    Res
-} from '@nestjs/common'
+import { Body, Controller, Get, HttpException, HttpStatus, NotFoundException, Post, Req, Res } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 import { Request, Response } from 'express'
 import { getErrorMessage } from '@xpert-ai/server-common'
@@ -28,15 +16,7 @@ import {
     ModelGatewayUsage,
     MODEL_GATEWAY_UPSTREAM_TIMEOUT_MS
 } from './model-gateway.service'
-import {
-    assertRequestCapabilities,
-    bindOpenAIRequest,
-    messageText,
-    parseOpenAIChatRequest,
-    responseToolCalls,
-    responseUsage,
-    toLangChainMessages
-} from './openai-adapter'
+import { parseOpenAIChatRequest } from './openai-adapter'
 import { modelGatewayMessage } from './model-gateway.i18n'
 
 @ApiTags('OpenAI-compatible model gateway')
@@ -116,215 +96,26 @@ export class ModelGatewayOpenAIController {
         signal: AbortSignal
     }) {
         const { response, parsed, body, identity, callable, signal } = input
-        const { resolution } = callable
-        let call: Awaited<ReturnType<ModelGatewayService['startCall']>> | null = null
-        let providerUsage: ILLMUsage | null = null
-        try {
-            assertRequestCapabilities(parsed, callable.publication.capabilities)
-            const messages = toLangChainMessages(parsed.messages)
-            call = await this.service.startCall({
-                identity,
-                publication: callable.publication,
-                resolution,
-                requestBody: body
-            })
-            const model = await this.service.createChatModel(callable.publication, resolution, (usage) => {
-                providerUsage = usage
-            })
-            const runnable = bindOpenAIRequest(model, parsed)
-            if (parsed.stream) {
-                return this.streamChat({
-                    response,
-                    parsed,
-                    messages,
-                    runnable,
-                    call,
-                    resolution,
-                    signal,
-                    getProviderUsage: () => providerUsage
-                })
+        let call: Awaited<ReturnType<ModelGatewayService['startCall']>>
+        return executeGatewayChat({
+            response,
+            parsed,
+            signal,
+            lifecycle: {
+                capabilities: callable.publication.capabilities,
+                begin: async () =>
+                    (call = await this.service.startCall({
+                        identity,
+                        publication: callable.publication,
+                        resolution: callable.resolution,
+                        requestBody: body
+                    })),
+                createModel: (callback) =>
+                    this.service.createChatModel(callable.publication, callable.resolution, callback),
+                settle: ({ usage, responseBody, error }) =>
+                    this.settleCall({ call, resolution: callable.resolution, usage, responseBody, error })
             }
-            const raw = await runnable.invoke(messages, { signal })
-            if (!isAIMessage(raw)) {
-                throw new BadRequestException(
-                    modelGatewayMessage(
-                        'ModelGatewayUpstreamAssistantExpected',
-                        'The upstream model did not return an assistant message.'
-                    )
-                )
-            }
-            const text = messageText(raw)
-            const toolCalls = responseToolCalls(raw)
-            const usage = responseUsage(messages, text, providerUsage, raw)
-            const payload = {
-                id: `chatcmpl-${call.requestId}`,
-                object: 'chat.completion',
-                created: Math.floor(call.startedAt.getTime() / 1000),
-                model: parsed.model,
-                choices: [
-                    {
-                        index: 0,
-                        message: {
-                            role: 'assistant',
-                            content: text || null,
-                            ...(toolCalls.length ? { tool_calls: toolCalls } : {})
-                        },
-                        finish_reason: toolCalls.length ? 'tool_calls' : 'stop'
-                    }
-                ],
-                usage: this.openAIUsage(usage)
-            }
-            await this.settleCall({
-                call,
-                resolution,
-                usage,
-                responseBody: payload
-            })
-            return response.json(payload)
-        } catch (error) {
-            if (call) {
-                await this.finishFailedCall(call, resolution, providerUsage, error)
-            }
-            throw error
-        }
-    }
-
-    private async streamChat(input: {
-        response: Response
-        parsed: ReturnType<typeof parseOpenAIChatRequest>
-        messages: BaseMessage[]
-        runnable: ReturnType<typeof bindOpenAIRequest>
-        call: NonNullable<Awaited<ReturnType<ModelGatewayService['startCall']>>>
-        resolution: NonNullable<Awaited<ReturnType<ModelGatewayService['requireCallablePublication']>>['resolution']>
-        signal: AbortSignal
-        getProviderUsage: () => ILLMUsage | null
-    }) {
-        input.response.status(200)
-        input.response.setHeader('Content-Type', 'text/event-stream; charset=utf-8')
-        input.response.setHeader('Cache-Control', 'no-cache, no-transform')
-        input.response.setHeader('Connection', 'keep-alive')
-        input.response.flushHeaders()
-
-        const completionId = `chatcmpl-${input.call.requestId}`
-        const created = Math.floor(input.call.startedAt.getTime() / 1000)
-        this.writeSse(input.response, {
-            id: completionId,
-            object: 'chat.completion.chunk',
-            created,
-            model: input.parsed.model,
-            choices: [{ index: 0, delta: { role: 'assistant' }, finish_reason: null }]
         })
-        let text = ''
-        let lastChunk: AIMessageChunk | null = null
-        let hasToolCalls = false
-        try {
-            const stream = await input.runnable.stream(input.messages, { signal: input.signal })
-            for await (const raw of stream) {
-                if (!(raw instanceof AIMessageChunk)) {
-                    continue
-                }
-                lastChunk = raw
-                const content = messageText(raw)
-                text += content
-                const toolCallChunks = (raw.tool_call_chunks ?? []).map((toolCall, index) => ({
-                    index: toolCall.index ?? index,
-                    ...(toolCall.id ? { id: toolCall.id } : {}),
-                    type: 'function',
-                    function: {
-                        ...(toolCall.name ? { name: toolCall.name } : {}),
-                        arguments:
-                            typeof toolCall.args === 'string'
-                                ? toolCall.args
-                                : toolCall.args
-                                  ? JSON.stringify(toolCall.args)
-                                  : ''
-                    }
-                }))
-                hasToolCalls ||= toolCallChunks.length > 0
-                if (content || toolCallChunks.length) {
-                    this.writeSse(input.response, {
-                        id: completionId,
-                        object: 'chat.completion.chunk',
-                        created,
-                        model: input.parsed.model,
-                        choices: [
-                            {
-                                index: 0,
-                                delta: {
-                                    ...(content ? { content } : {}),
-                                    ...(toolCallChunks.length ? { tool_calls: toolCallChunks } : {})
-                                },
-                                finish_reason: null
-                            }
-                        ]
-                    })
-                }
-            }
-            const usage = responseUsage(input.messages, text, input.getProviderUsage(), lastChunk ?? undefined)
-            this.writeSse(input.response, {
-                id: completionId,
-                object: 'chat.completion.chunk',
-                created,
-                model: input.parsed.model,
-                choices: [
-                    {
-                        index: 0,
-                        delta: {},
-                        finish_reason: hasToolCalls ? 'tool_calls' : 'stop'
-                    }
-                ]
-            })
-            if (input.parsed.streamIncludeUsage) {
-                this.writeSse(input.response, {
-                    id: completionId,
-                    object: 'chat.completion.chunk',
-                    created,
-                    model: input.parsed.model,
-                    choices: [],
-                    usage: this.openAIUsage(usage)
-                })
-            }
-            await this.settleCall({
-                call: input.call,
-                resolution: input.resolution,
-                usage,
-                responseBody: { content: text, finish_reason: hasToolCalls ? 'tool_calls' : 'stop' }
-            })
-            if (!input.response.destroyed && !input.response.writableEnded) {
-                input.response.write('data: [DONE]\n\n')
-                input.response.end()
-            }
-        } catch (error) {
-            const usage = responseUsage(input.messages, text, input.getProviderUsage(), lastChunk ?? undefined)
-            await this.settleCall({
-                call: input.call,
-                resolution: input.resolution,
-                usage,
-                error
-            })
-            this.writeSse(input.response, this.openAIError(error).getResponse())
-            if (!input.response.destroyed && !input.response.writableEnded) {
-                input.response.write('data: [DONE]\n\n')
-                input.response.end()
-            }
-        }
-    }
-
-    private async finishFailedCall(
-        call: Awaited<ReturnType<ModelGatewayService['startCall']>>,
-        resolution: Awaited<ReturnType<ModelGatewayService['requireCallablePublication']>>['resolution'],
-        providerUsage: ILLMUsage | null,
-        error: unknown
-    ) {
-        const usage: ModelGatewayUsage = {
-            inputTokens: providerUsage?.promptTokens ?? 0,
-            outputTokens: providerUsage?.completionTokens ?? 0,
-            totalTokens: providerUsage?.totalTokens ?? 0,
-            source: providerUsage ? ModelGatewayUsageSourceEnum.Provider : ModelGatewayUsageSourceEnum.None,
-            priceAmount: providerUsage?.totalPrice,
-            priceCurrency: providerUsage?.currency
-        }
-        await this.settleCall({ call, resolution, usage, error })
     }
 
     private async settleCall(input: {
@@ -347,20 +138,6 @@ export class ModelGatewayOpenAIController {
                     responseBody: input.responseBody
                 })
             }
-        }
-    }
-
-    private openAIUsage(usage: ModelGatewayUsage) {
-        return {
-            prompt_tokens: usage.inputTokens,
-            completion_tokens: usage.outputTokens,
-            total_tokens: usage.totalTokens
-        }
-    }
-
-    private writeSse(response: Response, payload: unknown) {
-        if (!response.destroyed && !response.writableEnded) {
-            response.write(`data: ${JSON.stringify(payload)}\n\n`)
         }
     }
 

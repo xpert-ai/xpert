@@ -217,6 +217,7 @@ describe('execution grant lifecycle', () => {
 const databaseUrl = process.env.XPERT_EXECUTION_TEST_DATABASE_URL
 const integration = databaseUrl ? describe : describe.skip
 integration('execution lease renewal / PostgreSQL', () => {
+    const schemaName = `execution_lease_${randomUUID().replace(/-/g, '')}`
     let database: DataSource
     let repository: Repository<ModelExecutionGrant>
     let fixture: ReturnType<typeof grantFixture>
@@ -246,12 +247,16 @@ integration('execution lease renewal / PostgreSQL', () => {
     beforeAll(async () => {
         if (!new URL(databaseUrl).pathname.startsWith('/xpert_execution_test_'))
             throw new Error('Dedicated test database required')
+        database = await new DataSource({ type: 'postgres', url: databaseUrl }).initialize()
+        await database.query(`CREATE SCHEMA ${schemaName}`)
+        await database.destroy()
         database = await new DataSource({
             type: 'postgres',
             url: databaseUrl,
+            schema: schemaName,
             entities: [schema],
             synchronize: true,
-            extra: { application_name: 'xpert-a3-grant-tests' }
+            extra: { application_name: 'xpert-a3-grant-tests', options: `-c search_path=${schemaName},public` }
         }).initialize()
         repository = database.getRepository(ModelExecutionGrant)
     })
@@ -290,7 +295,10 @@ integration('execution lease renewal / PostgreSQL', () => {
     })
 
     afterAll(async () => {
-        if (database?.isInitialized) await database.destroy()
+        if (database?.isInitialized) {
+            await database.query(`DROP SCHEMA ${schemaName} CASCADE`)
+            await database.destroy()
+        }
     })
 
     async function waitFor(query: string) {

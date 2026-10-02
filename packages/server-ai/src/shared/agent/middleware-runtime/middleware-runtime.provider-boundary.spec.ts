@@ -25,7 +25,11 @@ describe('AgentMiddlewareRuntime provider boundary', () => {
     it('uses the runtime module instead of recreating the runtime service in feature modules', () => {
         for (const moduleType of modulesThatConsumeRuntime) {
             const providers = getModuleMetadata(moduleType, MODULE_METADATA.PROVIDERS)
-            const imports = getModuleMetadata(moduleType, MODULE_METADATA.IMPORTS)
+            const imports = getModuleMetadata(moduleType, MODULE_METADATA.IMPORTS).map((entry) =>
+                entry && typeof entry === 'object' && 'forwardRef' in entry && typeof entry.forwardRef === 'function'
+                    ? entry.forwardRef()
+                    : entry
+            )
 
             expect(providers).not.toContain(AgentMiddlewareRuntimeService)
             expect(imports).toContain(AgentMiddlewareRuntimeModule)

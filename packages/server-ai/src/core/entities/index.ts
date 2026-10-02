@@ -1,3 +1,4 @@
+import { ModelExecutionGrant, CliSession } from '../../model-execution/execution.entity'
 import {
     DesktopShellDevice,
     DesktopShellGrant,
@@ -242,5 +243,7 @@ export const ALL_AI_ENTITIES = [
     ModelGatewayPublication,
     ModelGatewayApiKey,
     ModelGatewaySettings,
-    ModelGatewayCall
+    ModelGatewayCall,
+    ModelExecutionGrant,
+    CliSession
 ]

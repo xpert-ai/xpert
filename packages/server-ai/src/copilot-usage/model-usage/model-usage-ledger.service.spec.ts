@@ -6,7 +6,7 @@ import {
     ModelAccessOwnershipScopeEnum,
     ModelAccessSourceEnum
 } from '@xpert-ai/contracts'
-import { RequestContext } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { MembershipPointLedger } from '../../membership/membership-point-ledger.entity'
 import { ModelUsageLedgerService } from './model-usage-ledger.service'
 
