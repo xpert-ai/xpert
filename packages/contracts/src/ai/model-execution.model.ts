@@ -71,6 +71,9 @@ export type ModelExecutionPolicy =
 
 export type CliSessionStatus = 'starting' | 'running' | 'stopping' | 'exited' | 'unknown'
 
+/** Guest executable/version probe result; unknown means the installation could not be confirmed. */
+export type ComputerCliInstallation = 'installed' | 'missing' | 'version_mismatch' | 'unknown'
+
 export const MODEL_EXECUTION_POLICY_SETTING = 'modelExecutionPolicy'
 
 /** Attribution snapshot persisted with execution usage; contains no authorization credentials. */
