@@ -126,7 +126,7 @@ export type CatalogModelAccessBatchInput = Pick<
 
 export type CatalogModelLabel = Pick<
     ModelTarget,
-    'provider' | 'providerLabel' | 'providerIconSmall' | 'providerBackground' | 'modelLabel'
+    'provider' | 'providerLabel' | 'providerIconSmall' | 'providerBackground' | 'modelLabel' | 'capabilities'
 >
 
 type ModelAccessResolutionContext = {
@@ -1348,6 +1348,7 @@ export class ModelAccessService {
         return targets.map((target) =>
             target
                 ? {
+                      capabilities: target.capabilities,
                       providerLabel: target.providerLabel,
                       provider: target.provider,
                       providerIconSmall: target.providerIconSmall,
