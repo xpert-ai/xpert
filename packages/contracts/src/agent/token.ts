@@ -7,6 +7,7 @@ export type TTokenUsage = {
   totalTokens: number
   cacheReadInputTokens?: number
   cacheWriteInputTokens?: number
+  reasoningTokens?: number
 }
 
 export interface IModelUsage {
@@ -17,6 +18,8 @@ export interface IModelUsage {
 }
 
 export interface ILLMUsage extends IModelUsage {
+  /** Omitted for authoritative provider usage. */
+  type?: 'estimated'
   promptTokens: number
   promptUnitPrice: number
   promptPriceUnit: number
@@ -27,6 +30,7 @@ export interface ILLMUsage extends IModelUsage {
   completionPrice: number
   cacheReadInputTokens?: number
   cacheWriteInputTokens?: number
+  reasoningTokens?: number
   pricingStatus?: ModelUsagePricingStatus
   priceAuthority?: LLMPriceAuthority
   pricingBreakdown?: LLMPriceBreakdownItem[]

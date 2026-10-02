@@ -90,6 +90,9 @@ export type ModelGatewayIdentity = {
 }
 
 export type ModelGatewayUsage = {
+    cacheReadInputTokens?: number
+    cacheWriteInputTokens?: number
+    reasoningTokens?: number
     inputTokens: number
     outputTokens: number
     totalTokens: number

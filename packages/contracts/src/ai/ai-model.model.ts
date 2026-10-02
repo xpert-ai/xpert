@@ -85,6 +85,9 @@ export interface ProviderHelpInfo {
 }
 
 export interface ProviderModel {
+  /** Explicit provider-native protocols; absence never implies protocol compatibility. */
+  native_protocols?: Array<'openai_responses' | 'anthropic_messages'>
+
   model: string
   label: I18nObject
   model_type: AiModelTypeEnum

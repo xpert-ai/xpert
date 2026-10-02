@@ -287,11 +287,37 @@ export class ApplicationMetricsRegistry {
     )
     private readonly mcpAppRpc = new CounterMetric('xpert_mcp_app_rpc_total', 'Total Xpert MCP app RPC calls.')
 
+    private readonly modelExecutionEvents = new CounterMetric(
+        'xpert_model_execution_events_total',
+        'Model execution admission and settlement outcomes.'
+    )
+
+    recordModelExecution(
+        event:
+            | 'BridgeUnsupported'
+            | 'ConversationRequired'
+            | 'InputLimit'
+            | 'OutputLimit'
+            | 'Unavailable'
+            | 'Invalid'
+            | 'Denied'
+            | 'Budget'
+            | 'Model'
+            | 'Unknown'
+            | 'admitted'
+            | 'provider_usage'
+            | 'usage_pending'
+            | 'delivery_retry'
+    ) {
+        this.modelExecutionEvents.inc({ event })
+    }
+
     constructor() {
         this.reset()
     }
 
     reset() {
+        this.modelExecutionEvents.reset()
         this.conversationBranches.reset()
         this.conversationBranchDuration.reset()
         this.conversationBranchSize.reset()
@@ -529,6 +555,7 @@ export class ApplicationMetricsRegistry {
         return (
             [
                 this.info.render(),
+                this.modelExecutionEvents.render(),
                 this.conversationBranches.render(),
                 this.conversationBranchDuration.render(),
                 this.conversationBranchSize.render(),

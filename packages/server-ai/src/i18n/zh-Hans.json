@@ -21,6 +21,16 @@
         "ReferenceOnlyPrompt": "未包含文件正文，不支持直接按文本读取。请使用支持该格式的可用工具；对于 ZIP，先列出或解压条目，再处理所需的子文件。此引用不会改变文件访问权限。"
     },
     "Error": {
+        "ModelExecutionInputLimit": "请求超出本次运行的输入大小限制。请缩短上下文，或使用获准的更大限额重新启动。",
+        "ModelExecutionOutputLimit": "请求的输出长度超出本次运行的限制。请减小 max_tokens。",
+        "ModelExecutionUnavailable": "当前上下文未启用模型执行或暂不可用。",
+        "ModelExecutionBridgeUnsupported": "此 Chat 协议转换仅支持文本和客户端工具，请关闭原生思考、多媒体、服务端工具及不支持的协议选项。",
+        "ModelExecutionInvalid": "模型执行配置无效。",
+        "ModelExecutionConversationRequired": "请先为当前 Assistant 创建会话，再打开编程工具。",
+        "ModelExecutionDenied": "执行授权已过期、发生变化或被撤销。",
+        "ModelExecutionBudget": "已达到执行预算、速率或并发上限。",
+        "ModelExecutionModel": "本次执行无法使用所请求的模型。",
+        "ModelExecutionUnknown": "先前执行的结果未知，不会自动重新启动。",
         "SandboxWorkspaceMapperUnavailable": "沙箱提供者缺少工作区路径映射：{{provider}}",
         "SandboxProviderNotRegistered": "沙箱提供者未注册：{{provider}}",
         "SandboxManagedServicesUnsupported": "沙箱提供者“{{provider}}”不支持托管服务。",
