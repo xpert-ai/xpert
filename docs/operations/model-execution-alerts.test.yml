@@ -1,0 +1,187 @@
+rule_files:
+  - model-execution-alerts.yml
+evaluation_interval: 1m
+tests:
+  - name: Gauges respect for durations and clear after recovery
+    interval: 1m
+    input_series:
+      - series: xpert_model_execution_pending{kind="oldest_seconds"}
+        values: 960x15 0x6
+      - series: xpert_model_execution_pending{kind="attempts"}
+        values: 21x15 0x6
+      - series: xpert_agent_invocation_wait{kind="oldest_error_seconds"}
+        values: 660x15 0x6
+    alert_rule_test:
+      - eval_time: 4m
+        alertname: XpertExecutionSettlementStalled
+        exp_alerts: []
+      - eval_time: 5m
+        alertname: XpertExecutionSettlementStalled
+        exp_alerts:
+          - exp_labels:
+              kind: oldest_seconds
+              severity: warning
+            exp_annotations: &a1
+              summary: An unsettled model execution call is over 15 minutes old
+              runbook: docs/operations/model-execution-runbook.md
+      - eval_time: 9m
+        alertname: XpertExecutionSettlementBacklog
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: XpertExecutionSettlementBacklog
+        exp_alerts:
+          - exp_labels:
+              kind: attempts
+              severity: critical
+            exp_annotations:
+              summary: Model execution reconciliation backlog exceeds 20 calls
+              runbook: docs/operations/model-execution-runbook.md
+      - eval_time: 4m
+        alertname: XpertInvocationContinuationStalled
+        exp_alerts: []
+      - eval_time: 5m
+        alertname: XpertInvocationContinuationStalled
+        exp_alerts:
+          - exp_labels:
+              kind: oldest_error_seconds
+              severity: warning
+            exp_annotations:
+              summary: Historical task continuation needs attention
+              runbook: docs/operations/model-execution-runbook.md
+      - eval_time: 17m
+        alertname: XpertExecutionSettlementStalled
+        exp_alerts: []
+      - eval_time: 17m
+        alertname: XpertExecutionSettlementBacklog
+        exp_alerts: []
+      - eval_time: 17m
+        alertname: XpertExecutionDeliveryFailures
+        exp_alerts: []
+      - eval_time: 17m
+        alertname: XpertInvocationContinuationStalled
+        exp_alerts: []
+  - name: Exact thresholds do not fire
+    interval: 1m
+    input_series:
+      - series: xpert_model_execution_pending{kind="oldest_seconds"}
+        values: 900x25
+      - series: xpert_model_execution_pending{kind="attempts"}
+        values: 20x25
+      - series: xpert_agent_invocation_wait{kind="oldest_error_seconds"}
+        values: 600x25
+      - series: xpert_model_execution_events_total{event="delivery_retry"}
+        values: '0x25'
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: XpertExecutionSettlementStalled
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: XpertExecutionSettlementBacklog
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: XpertExecutionDeliveryFailures
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: XpertInvocationContinuationStalled
+        exp_alerts: []
+  - name: Brief gauge spikes do not meet for durations
+    interval: 1m
+    input_series:
+      - series: xpert_model_execution_pending{kind="oldest_seconds"}
+        values: 960x3 0x17
+      - series: xpert_model_execution_pending{kind="attempts"}
+        values: 21x3 0x17
+      - series: xpert_agent_invocation_wait{kind="oldest_error_seconds"}
+        values: 660x3 0x17
+    alert_rule_test:
+      - eval_time: 3m
+        alertname: XpertExecutionSettlementStalled
+        exp_alerts: []
+      - eval_time: 3m
+        alertname: XpertExecutionSettlementBacklog
+        exp_alerts: []
+      - eval_time: 3m
+        alertname: XpertExecutionDeliveryFailures
+        exp_alerts: []
+      - eval_time: 3m
+        alertname: XpertInvocationContinuationStalled
+        exp_alerts: []
+      - eval_time: 15m
+        alertname: XpertExecutionSettlementStalled
+        exp_alerts: []
+      - eval_time: 15m
+        alertname: XpertExecutionSettlementBacklog
+        exp_alerts: []
+      - eval_time: 15m
+        alertname: XpertExecutionDeliveryFailures
+        exp_alerts: []
+      - eval_time: 15m
+        alertname: XpertInvocationContinuationStalled
+        exp_alerts: []
+  - name: Repeated delivery failures fire then clear when retries stop
+    interval: 1m
+    input_series:
+      - series: xpert_model_execution_events_total{event="delivery_retry"}
+        values: 0+2x15 30x20
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: XpertExecutionDeliveryFailures
+        exp_alerts: []
+      - eval_time: 12m
+        alertname: XpertExecutionDeliveryFailures
+        exp_alerts:
+          - exp_labels:
+              event: delivery_retry
+              severity: warning
+            exp_annotations:
+              summary: Model execution ledger delivery repeatedly failed
+              runbook: docs/operations/model-execution-runbook.md
+      - eval_time: 26m
+        alertname: XpertExecutionDeliveryFailures
+        exp_alerts: []
+  - name: Counter reset without new retries and unrelated events do not fire
+    interval: 1m
+    input_series:
+      - series: xpert_model_execution_events_total{event="delivery_retry"}
+        values: 100x5 0x20
+      - series: xpert_model_execution_events_total{event="usage_pending"}
+        values: 0+100x25
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: XpertExecutionDeliveryFailures
+        exp_alerts: []
+      - eval_time: 10m
+        alertname: XpertExecutionDeliveryFailures
+        exp_alerts: []
+      - eval_time: 20m
+        alertname: XpertExecutionDeliveryFailures
+        exp_alerts: []
+  - name: Replica backlog snapshots are not added together and alert labels are
+      retained
+    interval: 1m
+    input_series:
+      - series: xpert_model_execution_pending{kind="attempts",instance="replica-a"}
+        values: 15x20
+      - series: xpert_model_execution_pending{kind="attempts",instance="replica-b"}
+        values: 15x20
+      - series: xpert_model_execution_pending{kind="oldest_seconds",instance="replica-a"}
+        values: 960x20
+      - series: xpert_model_execution_pending{kind="oldest_seconds",instance="replica-b"}
+        values: 960x20
+    alert_rule_test:
+      - eval_time: 20m
+        alertname: XpertExecutionSettlementBacklog
+        exp_alerts: []
+      - eval_time: 6m
+        alertname: XpertExecutionSettlementStalled
+        exp_alerts:
+          - exp_labels:
+              kind: oldest_seconds
+              instance: replica-a
+              severity: warning
+            exp_annotations: *a1
+          - exp_labels:
+              kind: oldest_seconds
+              instance: replica-b
+              severity: warning
+            exp_annotations: *a1
