@@ -785,6 +785,9 @@ importers:
       docx-preview:
         specifier: ^0.3.7
         version: 0.3.7
+      echarts:
+        specifier: 5.5.0
+        version: 5.5.0
       electron:
         specifier: 44.4.5
         version: 44.4.5

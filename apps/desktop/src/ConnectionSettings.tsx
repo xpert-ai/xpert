@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { Button, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@xpert-ai/shadcn-ui'
 import { Check, CircleAlert, LoaderCircle, RotateCcw } from 'lucide-react'
 import { t } from './i18n'
@@ -11,6 +11,9 @@ import { ShellSettings } from './shell/ShellSettings'
 import { GeneralSettings } from './settings/GeneralSettings'
 import { SettingsSidebar } from './settings/SettingsSidebar'
 import { settingsItems, type SettingsSection } from './settings/sections'
+const UsageSettings = lazy(() =>
+  import('./usage/UsageSettings').then(({ UsageSettings }) => ({ default: UsageSettings }))
+)
 
 const withAppearance = (config: ConnectionConfig) => ({
   ...config,
@@ -21,6 +24,7 @@ export function ConnectionSettings({
   config,
   signedIn,
   userName,
+  usageContext,
   initialSection = 'general',
   onClose,
   onSave,
@@ -29,6 +33,7 @@ export function ConnectionSettings({
   config: ConnectionConfig
   signedIn: boolean
   userName?: string
+  usageContext?: { key: string; organizationName?: string }
   initialSection?: SettingsSection
   onClose: () => void
   onSave: (config: ConnectionConfig) => Promise<ConnectionConfig>
@@ -135,6 +140,21 @@ export function ConnectionSettings({
               <p className="mt-2 text-[0.8125rem] leading-5 text-muted-foreground">{t(current.description)}</p>
             </header>
             <fieldset disabled={busy} className="min-w-0">
+              {section === 'usage' && (
+                <Suspense
+                  fallback={
+                    <p role="status" className="py-8 text-sm text-muted-foreground">
+                      {t('Loading usage…')}
+                    </p>
+                  }
+                >
+                  <UsageSettings
+                    key={usageContext?.key ?? 'signed-out'}
+                    signedIn={signedIn}
+                    organizationName={usageContext?.organizationName}
+                  />
+                </Suspense>
+              )}
               {section === 'general' && (
                 <GeneralSettings
                   draft={draft}
@@ -189,63 +209,65 @@ export function ConnectionSettings({
             )}
           </div>
         </div>
-        <footer className="shrink-0 border-t bg-background px-6 py-4 lg:px-8">
-          {error && (
-            <p role="alert" className="mb-3 text-sm text-destructive">
-              {error}
-            </p>
-          )}
-          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
-            <div className="flex min-w-0 flex-wrap items-center gap-3">
-              {section === 'appearance' && (
+        {(section !== 'usage' || unsaved || error) && (
+          <footer className="shrink-0 border-t bg-background px-6 py-4 lg:px-8">
+            {error && (
+              <p role="alert" className="mb-3 text-sm text-destructive">
+                {error}
+              </p>
+            )}
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+              <div className="flex min-w-0 flex-wrap items-center gap-3">
+                {section === 'appearance' && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={busy}
+                    className="h-10 px-2 text-muted-foreground"
+                    onClick={() => {
+                      updateDraft({
+                        ...draft,
+                        appearance: defaultAppearance()
+                      })
+                    }}
+                  >
+                    <RotateCcw className="size-4" />
+                    {t('Reset appearance')}
+                  </Button>
+                )}
+                <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
+                  {unsaved ? (
+                    <CircleAlert className="size-4 shrink-0" />
+                  ) : savedNotice ? (
+                    <Check className="size-4 shrink-0" />
+                  ) : null}
+                  {shellDirty
+                    ? t('Apply terminal changes in this section.')
+                    : dirty
+                      ? t('Changes not saved')
+                      : savedNotice
+                        ? t('Settings saved')
+                        : t('No unsaved changes')}
+                </p>
+              </div>
+              <div className="ml-auto flex shrink-0 gap-3">
                 <Button
                   type="button"
-                  variant="ghost"
-                  disabled={busy}
-                  className="h-10 px-2 text-muted-foreground"
-                  onClick={() => {
-                    updateDraft({
-                      ...draft,
-                      appearance: defaultAppearance()
-                    })
-                  }}
+                  variant="outline"
+                  className="h-10 px-5 text-sm"
+                  disabled={busy || !unsaved}
+                  onClick={discard}
                 >
-                  <RotateCcw className="size-4" />
-                  {t('Reset appearance')}
+                  {t('Cancel changes')}
                 </Button>
-              )}
-              <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
-                {unsaved ? (
-                  <CircleAlert className="size-4 shrink-0" />
-                ) : savedNotice ? (
-                  <Check className="size-4 shrink-0" />
-                ) : null}
-                {shellDirty
-                  ? t('Apply terminal changes in this section.')
-                  : dirty
-                    ? t('Changes not saved')
-                    : savedNotice
-                      ? t('Settings saved')
-                      : t('No unsaved changes')}
-              </p>
+                <Button type="submit" className="h-10 px-5 text-sm" disabled={busy || !dirty}>
+                  {pending && <LoaderCircle className="size-4 animate-spin" />}
+                  {t('Save settings')}
+                </Button>
+              </div>
             </div>
-            <div className="ml-auto flex shrink-0 gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                className="h-10 px-5 text-sm"
-                disabled={busy || !unsaved}
-                onClick={discard}
-              >
-                {t('Cancel changes')}
-              </Button>
-              <Button type="submit" className="h-10 px-5 text-sm" disabled={busy || !dirty}>
-                {pending && <LoaderCircle className="size-4 animate-spin" />}
-                {t('Save settings')}
-              </Button>
-            </div>
-          </div>
-        </footer>
+          </footer>
+        )}
       </form>
       <Dialog open={confirmLeave} onOpenChange={setConfirmLeave}>
         <DialogContent className="sm:max-w-md" showCloseButton={false}>

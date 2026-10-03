@@ -478,6 +478,7 @@ Object.assign(DesktopService.prototype, require('./catalog.cjs').createCatalogMe
 Object.assign(DesktopService.prototype, require('./plugin-connections.cjs').createPluginConnectionMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./plugin-library.cjs').createPluginLibraryMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./artifacts.cjs').createArtifactMethods(ClientError))
+Object.assign(DesktopService.prototype, require('./usage.cjs').createUsageMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./shell/methods.cjs').createShellMethods(ClientError))
 
 module.exports = { DesktopService, ClientError, DEFAULT_CONFIG, parseConfig, webUrl }

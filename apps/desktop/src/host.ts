@@ -5,7 +5,8 @@ import { platformCommandUrl } from '../electron/workbench-platform.mjs'
 export class HostError extends Error {
   constructor(
     message: string,
-    public status: number
+    public status: number,
+    public key?: string
   ) {
     super(message)
   }
@@ -26,7 +27,7 @@ export async function invoke<K extends keyof HostMethods>(
     if (!response.ok) throw new HostError(t('Cannot connect to the desktop service. Please retry.'), response.status)
     result = await response.json()
   }
-  if (!result.ok) throw new HostError(t(result.key || result.message, result.params), result.status)
+  if (!result.ok) throw new HostError(t(result.key || result.message, result.params), result.status, result.key)
   return result.value
 }
 

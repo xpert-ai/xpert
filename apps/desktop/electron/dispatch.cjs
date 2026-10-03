@@ -1,6 +1,11 @@
 const { translate } = require('./i18n/index.mjs')
 const { ClientError } = require('./service.cjs')
 const methods = new Set([
+  'usageMembership',
+  'usagePeriods',
+  'usageOverview',
+  'usageSummaries',
+  'usageEntries',
   'state',
   'refreshProfile',
   'shellState',

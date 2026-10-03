@@ -89,6 +89,21 @@ export interface WorkbenchSession {
   organizationId: string
 }
 export interface HostMethods {
+  usageMembership: { input: undefined; output: import('./usage/types').UsageMembership | null }
+  usagePeriods: { input: undefined; output: import('./usage/types').UsagePeriod[] }
+  usageOverview: { input: import('./usage/types').UsageQuery; output: import('./usage/types').UsageOverview }
+  usageSummaries: {
+    input: import('./usage/types').UsageQuery & { take: number; skip: number }
+    output: { items: import('./usage/types').UsageSummary[]; total: number }
+  }
+  usageEntries: {
+    input: import('./usage/types').UsageQuery & {
+      group: import('./usage/types').UsageGroup
+      take: number
+      skip: number
+    }
+    output: { items: import('./usage/types').UsageEntry[]; nextSkip: number | null }
+  }
   checkConnectionCertificates: { input: Pick<ConnectionConfig, ConnectionUrlField>; output: CertificateCheck[] }
   pluginLibrary: { input: { workspaceId?: string }; output: PluginLibrary }
   addWorkspacePlugin: {

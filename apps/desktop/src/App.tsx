@@ -236,6 +236,15 @@ export function App() {
           config={state.config}
           signedIn={!!state.profile}
           userName={state.profile?.user.name}
+          usageContext={
+            state.profile
+              ? {
+                  key: `${state.config.apiUrl}:${state.profile.user.tenantId}:${state.profile.user.id}:${state.profile.organizationId}`,
+                  organizationName: state.profile.organizations.find((org) => org.id === state.profile?.organizationId)
+                    ?.name
+                }
+              : undefined
+          }
           initialSection={settingsSection}
           onPreview={setPreview}
           onClose={() => {

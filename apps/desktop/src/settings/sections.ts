@@ -1,6 +1,6 @@
-import { Cable, Palette, Settings2, Terminal, type LucideIcon } from 'lucide-react'
+import { Cable, ChartNoAxesCombined, Palette, Settings2, Terminal, type LucideIcon } from 'lucide-react'
 
-export type SettingsSection = 'general' | 'appearance' | 'connection' | 'shell'
+export type SettingsSection = 'general' | 'appearance' | 'usage' | 'connection' | 'shell'
 
 export interface SettingsItem {
   id: SettingsSection
@@ -41,6 +41,13 @@ export const settingsGroups: { label: string; items: SettingsItem[] }[] = [
           'ChatKit density',
           'Colors'
         ]
+      },
+      {
+        id: 'usage',
+        label: 'Usage & points',
+        icon: ChartNoAxesCombined,
+        description: 'View your current plan, point balances and usage history.',
+        keywords: ['Current plan', 'Personal points', 'Points consumed', 'Usage analytics', 'Deduction details']
       }
     ]
   },
