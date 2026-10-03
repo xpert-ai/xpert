@@ -1,0 +1,21 @@
+{
+  "name": "@xpert-ai/cli-model-profiles",
+  "version": "0.1.0",
+  "private": true,
+  "license": "AGPL-3.0",
+  "main": "./index.cjs.js",
+  "module": "./index.esm.js",
+  "types": "./index.d.ts",
+  "files": [
+    "*.js",
+    "*.d.ts",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "@xpert-ai/contracts": "workspace:^",
+    "@xpert-ai/plugin-sdk": "workspace:^"
+  },
+  "publishConfig": {
+    "directory": "dist"
+  }
+}

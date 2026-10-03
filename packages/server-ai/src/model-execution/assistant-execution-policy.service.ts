@@ -1,7 +1,7 @@
 import { PublishedXpertAccessService } from '../xpert/published-xpert-access.service'
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { ModelExecutionModel, UserType } from '@xpert-ai/contracts'
+import { ModelExecutionModel, UserType, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { User, UserOrganization } from '@xpert-ai/server-core'
 import { IsNull, Repository } from 'typeorm'
@@ -57,7 +57,12 @@ export class AssistantExecutionPolicyService {
         return user
     }
 
-    async resolve(actor: ExecutionActor, conversationId: string | null | undefined, requireDefault = true) {
+    async resolve(
+        actor: ExecutionActor,
+        conversationId: string | null | undefined,
+        requireDefault = true,
+        resolveDefault = true
+    ) {
         // TypeORM omits undefined predicates; never turn a missing id into an arbitrary conversation.
         if (typeof conversationId !== 'string' || !conversationId.trim()) throw executionError('ConversationRequired')
         const user = await this.user(actor)
@@ -104,7 +109,7 @@ export class AssistantExecutionPolicyService {
         }
         // Nullable thread IDs must not broaden this lookup to another conversation's model selection.
         const [latest, preference] = await Promise.all([
-            conversation.threadId?.trim()
+            resolveDefault && conversation.threadId?.trim()
                 ? this.executions.findOne({
                       where: {
                           tenantId: actor.tenantId,
@@ -117,12 +122,14 @@ export class AssistantExecutionPolicyService {
                       order: { createdAt: 'DESC' }
                   })
                 : Promise.resolve(null),
-            this.preferences.findOneBy({
-                tenantId: actor.tenantId,
-                organizationId: actor.organizationId,
-                userId: actor.userId,
-                assistantId: assistant.id
-            })
+            resolveDefault
+                ? this.preferences.findOneBy({
+                      tenantId: actor.tenantId,
+                      organizationId: actor.organizationId,
+                      userId: actor.userId,
+                      assistantId: assistant.id
+                  })
+                : Promise.resolve(null)
         ])
         const defaultModelId =
             latest?.metadata?.primaryModelId ??
@@ -145,6 +152,37 @@ export class AssistantExecutionPolicyService {
         )
             throw executionError('Denied')
         return assistant
+    }
+
+    /** Automatic CLI launches must never resolve a default from another run's latest selection. */
+    async resolveForExecution(actor: ExecutionActor, conversationId: string, executionId: string) {
+        if (!executionId) throw executionError('Denied')
+        const parent = await this.executions.findOneBy({
+            id: executionId,
+            tenantId: actor.tenantId,
+            organizationId: actor.organizationId,
+            createdById: actor.userId
+        })
+        const selection = await this.resolve(actor, conversationId, false, false)
+        if (
+            !parent ||
+            parent.status !== XpertAgentExecutionStatusEnum.RUNNING ||
+            parent.xpertId !== selection.assistant.id ||
+            !parent.threadId ||
+            parent.threadId !== selection.conversation.threadId
+        )
+            throw executionError('Denied')
+        const snapshot = parent.metadata?.primaryModelSnapshot
+        const selected = selection.models.find(
+            (model) =>
+                model.id === parent.metadata?.primaryModelId &&
+                !!snapshot &&
+                model.copilotId === snapshot.copilotId &&
+                model.model === snapshot.model &&
+                model.modelType === snapshot.modelType
+        )
+        if (!selected) throw executionError('Model')
+        return { ...selection, models: [selected], defaultModelId: selected.id, parent }
     }
 
     async authorize(actor: ExecutionActor, xpertId: string, model: ModelExecutionModel) {

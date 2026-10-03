@@ -67,6 +67,9 @@ export class ModelExecutionAdmissionService {
                 const totals = await this.aggregate(manager, grant, id)
                 if (totals.used + totals.reserved > budget) throw executionError('Budget')
             }
+            const parent = await this.parentTotals(manager, grant)
+            if (parent && parent.used + parent.reserved > Math.min(parent.budget, grant.limits.tokenBudget))
+                throw executionError('Budget')
             attempt.dispatchedAt = new Date()
             await manager.save(attempt)
             return attempt.dispatchedAt
@@ -95,6 +98,18 @@ export class ModelExecutionAdmissionService {
                     rpm: grant.limits.requestsPerMinute
                 })
             }
+            const parent = await this.parentTotals(manager, grant)
+            if (parent)
+                assertExecutionAdmission({
+                    used: parent.used,
+                    reserved: parent.reserved,
+                    budget: Math.min(parent.budget, grant.limits.tokenBudget),
+                    concurrent: parent.concurrent,
+                    recent: parent.recent,
+                    reservation,
+                    maxConcurrent: grant.limits.maxConcurrentRequests,
+                    rpm: grant.limits.requestsPerMinute
+                })
             applicationMetrics.recordModelExecution('admitted')
             const requestId = randomUUID()
             return manager.save(
@@ -160,5 +175,34 @@ export class ModelExecutionAdmissionService {
                 [grant.tenantId, grant.ownerId, grantId]
             )
         )[0]
+    }
+
+    /** All CLI children of a parent share the smallest issued budget, including completed siblings. */
+    private async parentTotals(manager: EntityManager, grant: ModelExecutionGrant) {
+        if (grant.context.source.type !== 'shell_execution') return null
+        const rows: unknown = await manager.query(
+            `
+            SELECT COALESCE(SUM(c."totalTokens"),0) AS used, COALESCE(SUM(c."reservedTokens"),0) AS reserved,
+                COUNT(*) FILTER (WHERE c.status='started') AS concurrent,
+                COUNT(*) FILTER (WHERE c."startedAt">=now()-interval '1 minute') AS recent,
+                MIN((g.limits->>'tokenBudget')::bigint) AS budget
+            FROM model_execution_grant g LEFT JOIN model_gateway_call c ON c."grantId"=g.id AND c.source='execution_grant'
+            WHERE g."tenantId"=$1 AND g."ownerId"=$2 AND g."organizationId"=$3
+                AND g.context->'source'->>'type'='shell_execution'
+                AND g.context->'source'->>'parentExecutionId'=$4`,
+            [grant.tenantId, grant.ownerId, grant.organizationId, grant.context.source.parentExecutionId]
+        )
+        return z
+            .array(
+                z.object({
+                    used: z.coerce.number().nonnegative(),
+                    reserved: z.coerce.number().nonnegative(),
+                    concurrent: z.coerce.number().nonnegative(),
+                    recent: z.coerce.number().nonnegative(),
+                    budget: z.coerce.number().positive()
+                })
+            )
+            .length(1)
+            .parse(rows)[0]
     }
 }

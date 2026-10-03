@@ -92,12 +92,13 @@ export class ModelUsageLedgerService {
             actorId: scope.execution?.actorUserId ?? scope.userId,
             executionContext: scope.execution ?? null,
             tokenDetails: report.tokenDetails ?? null,
-            usageChannel:
-                scope.execution?.entry === 'cli'
-                    ? ModelGatewayUsageChannelEnum.Cli
-                    : scope.execution?.entry === 'agent_runtime'
-                      ? ModelGatewayUsageChannelEnum.AgentRuntime
-                      : ModelGatewayUsageChannelEnum.Xpert,
+            usageChannel: scope.execution
+                ? {
+                      cli: ModelGatewayUsageChannelEnum.Cli,
+                      agent_runtime: ModelGatewayUsageChannelEnum.AgentRuntime,
+                      shell: ModelGatewayUsageChannelEnum.Shell
+                  }[scope.execution.entry]
+                : ModelGatewayUsageChannelEnum.Xpert,
             userId: scope.userId,
             source: MembershipLedgerSourceEnum.ModelUsage,
             pointsDelta: 0,

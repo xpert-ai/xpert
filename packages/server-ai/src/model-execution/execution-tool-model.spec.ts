@@ -151,3 +151,26 @@ it('also keeps Claude bridge qualification scoped to the requested version', () 
     expect(executionToolModels([model], { ...claude, version: '99.0.0' }, configured)).toEqual([])
     expect(executionToolModels([model], claude, configured)).toHaveLength(1)
 })
+
+it('qualifies a registered new CLI by declared protocol and capabilities, without a core name branch', () => {
+    const profiles = {
+        get: (id: string) =>
+            id === 'new-cli'
+                ? {
+                      id,
+                      command: 'new-cli',
+                      revision: '1',
+                      protocol: 'openai_chat' as const,
+                      requiredCapabilities: [ModelFeature.STREAM_TOOL_CALL],
+                      offlineArguments: [['--version']],
+                      versionOutputs: (version: string) => [version],
+                      configure: () => ({ args: [], environment: {}, files: [] })
+                  }
+                : undefined
+    }
+    const tool = { id: 'new-cli', version: '1.0.0' }
+    const configured = { ...policy, tools: [{ ...tool, executable: '/new-cli' }] }
+    expect(executionToolModels([model], tool, configured, profiles)).toHaveLength(1)
+    expect(executionToolModels([model], tool, configured)).toEqual([])
+    expect(executionToolModels([{ ...model, capabilities: [] }], tool, configured, profiles)).toEqual([])
+})

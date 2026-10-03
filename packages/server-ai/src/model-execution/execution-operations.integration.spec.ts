@@ -1,3 +1,4 @@
+import { modelExecutionSourceId } from '@xpert-ai/contracts'
 import { randomUUID } from 'node:crypto'
 import { Test } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
@@ -214,10 +215,7 @@ integration('execution queries and operator evidence / PostgreSQL', () => {
     })
     it('filters task identity and treats SQL-like tool input as literal text', async () => {
         const own = await seed()
-        const executionId =
-            own.context.source.type === 'cli_session'
-                ? own.context.source.cliSessionId
-                : own.context.source.invocationId
+        const executionId = modelExecutionSourceId(own.context.source)
         expect(
             (
                 await controller.list({

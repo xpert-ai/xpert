@@ -1,4 +1,6 @@
 export interface SandboxExecutionOptions {
+  /** Trusted host correlation/capabilities, never part of the model-visible command schema. */
+  executionScope?: SandboxExecutionScope
   timeoutMs?: number
   maxOutputBytes?: number
   /** Request cancellation; the backend must implement guest process termination. */
@@ -6,6 +8,7 @@ export interface SandboxExecutionOptions {
 }
 
 export interface ResolvedSandboxExecutionOptions {
+  executionScope?: SandboxExecutionScope
   timeoutMs: number
   maxOutputBytes: number
   signal?: AbortSignal
@@ -84,6 +87,15 @@ export function resolveSandboxExecutionOptions(
   return {
     timeoutMs,
     maxOutputBytes,
+    ...(options?.executionScope ? { executionScope: options.executionScope } : {}),
     ...(options?.signal ? { signal: options.signal } : {})
   }
+}
+
+export interface SandboxExecutionScope {
+  parentExecutionId: string
+  conversationId: string
+  toolCallId: string
+  /** Environment capabilities selected by the Assistant's middleware configuration. */
+  capabilities: readonly string[]
 }

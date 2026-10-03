@@ -3512,6 +3512,7 @@
         "settlement_pending": "Pending settlement"
       },
       "ExecutionEntry": {
+        "shell": "Shell CLI",
         "all": "All entry points",
         "xpert": "Assistant",
         "external_api": "External API",

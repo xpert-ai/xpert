@@ -101,11 +101,12 @@ async function setup() {
     }
     const environment = { assertCurrent: jest.fn() }
     const sources = { assertCurrent: jest.fn() }
+    const policies = { require: jest.fn().mockResolvedValue(policy) }
     const module = await Test.createTestingModule({
         providers: [
             ModelExecutionGrantService,
             { provide: getRepositoryToken(ModelExecutionGrant), useValue: repository },
-            { provide: ModelExecutionPolicyService, useValue: { require: jest.fn().mockResolvedValue(policy) } },
+            { provide: ModelExecutionPolicyService, useValue: policies },
             { provide: AssistantExecutionPolicyService, useValue: assistants },
             { provide: ModelExecutionSourceService, useValue: sources },
             {
@@ -117,11 +118,36 @@ async function setup() {
             }
         ]
     }).compile()
-    return { ...fixture, repository, assistants, environment, sources, service: module.get(ModelExecutionGrantService) }
+    return {
+        ...fixture,
+        repository,
+        assistants,
+        environment,
+        sources,
+        policies,
+        service: module.get(ModelExecutionGrantService)
+    }
 }
 
 describe('execution grant lifecycle', () => {
     afterEach(() => jest.restoreAllMocks())
+
+    it('aborts an in-flight request after revocation and stops checking when the request closes', async () => {
+        const f = await setup()
+        jest.useFakeTimers()
+        try {
+            const abort = new AbortController()
+            const revalidate = jest.spyOn(f.service, 'revalidate').mockRejectedValue(new Error('revoked'))
+            const close = f.service.watch(f.grant, abort)
+            await jest.advanceTimersByTimeAsync(5000)
+            expect(abort.signal.aborted).toBe(true)
+            close()
+            await jest.advanceTimersByTimeAsync(10000)
+            expect(revalidate).toHaveBeenCalledTimes(1)
+        } finally {
+            jest.useRealTimers()
+        }
+    })
 
     it('issues an owner-bound secret once and persists only its hash', async () => {
         const test = await setup()
@@ -377,5 +403,56 @@ integration('execution lease renewal / PostgreSQL', () => {
         await service.renew(fixture.grant.id, fixture.actor)
         const renewed = await repository.findOneByOrFail({ id: fixture.grant.id })
         expect(renewed.expiresAt.getTime()).toBeLessThanOrEqual(fixture.grant.createdAt.getTime() + 60_000)
+    })
+})
+
+describe('prepared Shell credentials', () => {
+    async function shellFixture() {
+        const f = await setup()
+        f.grant.status = 'pending'
+        f.grant.context.source = {
+            type: 'shell_execution',
+            executionId: randomUUID(),
+            shellExecutionId: randomUUID(),
+            parentExecutionId: randomUUID(),
+            generation: 1,
+            profileRevision: '1'
+        }
+        const selection = {
+            assistant: { id: f.grant.context.xpertId, version: 'v1' },
+            conversation: { threadId: 'thread' },
+            models: f.grant.models,
+            defaultModelId: f.grant.defaultModelId
+        }
+        Object.assign(f.assistants, { resolveForExecution: jest.fn().mockResolvedValue(selection) })
+        return f
+    }
+    it('rejects pending credentials at the gateway before GO activation', async () => {
+        const f = await shellFixture()
+        await expect(f.service.revalidate(f.grant)).rejects.toThrow()
+        expect(f.sources.assertCurrent).not.toHaveBeenCalled()
+    })
+    it('activates only after fresh source and environment checks', async () => {
+        const f = await shellFixture()
+        await f.service.activate(f.grant.id, f.actor)
+        expect(f.sources.assertCurrent).toHaveBeenCalled()
+        expect(f.repository.update).toHaveBeenCalledWith(
+            expect.objectContaining({ id: f.grant.id, status: 'pending' }),
+            { status: 'active' }
+        )
+    })
+    it('does not revive an expired pending credential', async () => {
+        const f = await shellFixture()
+        f.grant.expiresAt = new Date(0)
+        await expect(f.service.activate(f.grant.id, f.actor)).rejects.toThrow()
+        expect(f.repository.update).not.toHaveBeenCalled()
+    })
+    it('does not activate after a parent task was stopped or model execution was disabled', async () => {
+        const f = await shellFixture()
+        f.sources.assertCurrent.mockRejectedValueOnce(new Error('parent stopped'))
+        await expect(f.service.activate(f.grant.id, f.actor)).rejects.toThrow()
+        f.policies.require.mockRejectedValueOnce(new Error('disabled'))
+        await expect(f.service.activate(f.grant.id, f.actor)).rejects.toThrow()
+        expect(f.repository.update).not.toHaveBeenCalled()
     })
 })

@@ -6,5 +6,7 @@ export interface SandboxExecutionEnvironment {
   readonly shellState?: 'per-command' | 'persistent'
   readonly persistentDirectories?: readonly string[]
   readonly canInstallSystemPackages?: boolean
+  /** Explicit opt-in capabilities implemented by this execution backend. */
+  readonly capabilities?: readonly string[]
   readonly desktop?: boolean
 }

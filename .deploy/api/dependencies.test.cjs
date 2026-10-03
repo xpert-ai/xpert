@@ -5,6 +5,22 @@ const path = require('node:path')
 const os = require('node:os')
 const { packages, prepareManifestWorkspace, prepareRuntime, runtimeManifest } = require('./dependencies.cjs')
 
+test('API workspace dependencies are included in deployment and the Docker install layer', () => {
+  const root = path.resolve(__dirname, '../..')
+  const manifests = new Map(
+    packages.map((dir) => [JSON.parse(fs.readFileSync(path.join(root, dir, 'package.json'))).name, dir])
+  )
+  const dockerfile = fs.readFileSync(path.join(__dirname, 'Dockerfile'), 'utf8')
+  for (const dir of packages) {
+    const manifest = JSON.parse(fs.readFileSync(path.join(root, dir, 'package.json')))
+    for (const [name, version] of Object.entries({ ...manifest.dependencies, ...manifest.peerDependencies })) {
+      if (!version.startsWith('workspace:')) continue
+      assert.ok(manifests.has(name), `${manifest.name} requires missing runtime workspace ${name}`)
+    }
+    assert.ok(dockerfile.includes(` ${dir}/package.json ./`), `Docker install layer is missing ${dir}`)
+  }
+})
+
 test('runtime dependencies retain source protocols and compiler entry points', () => {
   const source = {
     name: 'example',
@@ -55,7 +71,7 @@ function fixture(t) {
     fs.writeFileSync(file, typeof data === 'string' ? data : JSON.stringify(data))
   }
   for (const dir of packages) {
-    const nested = ['packages/contracts', 'packages/plugin-sdk'].includes(dir)
+    const nested = ['packages/contracts', 'packages/plugin-sdk', 'packages/plugins/cli-model-profiles'].includes(dir)
     const source = { name: dir, version: '1.0.0', dependencies: { chatkit: 'catalog:' } }
     if (nested) source.publishConfig = { directory: 'dist' }
     if (dir === 'packages/desktop-protocol') source.files = ['index.js', 'index.d.ts']
@@ -103,6 +119,7 @@ test('runtime assembly preserves nested publish roots, legacy paths, and direct 
     'main.js',
     'packages/contracts/dist/index.js',
     'packages/plugin-sdk/dist/index.js',
+    'packages/plugins/cli-model-profiles/dist/index.js',
     'packages/server-ai/index.js',
     'dist/packages/server-ai/index.js',
     'packages/desktop-protocol/index.js'

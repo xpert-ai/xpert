@@ -1,0 +1,5 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": { "module": "commonjs", "strict": true },
+  "include": ["src/**/*.ts"]
+}

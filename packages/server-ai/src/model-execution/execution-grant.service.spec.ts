@@ -45,6 +45,7 @@ describe('execution credentials', () => {
                 conversationId: 'conversation',
                 xpertId: 'assistant',
                 assistantVersion: 'v1',
+                source: { type: 'cli_session', cliSessionId: 'session' },
                 tool: { id: 'aider', version: '1.0.0' }
             }
         }

@@ -56,6 +56,23 @@ describe('persisted execution boundaries', () => {
         expect(executionUsageFactSchema.parse(fact)).toEqual(fact)
         expect(executionJson(executionUsageFactSchema.nullable()).from(null)).toBeNull()
     })
+    it('preserves Shell child attribution through persistence and rejects a mismatched usage channel', () => {
+        const source = {
+            type: 'shell_execution',
+            executionId: randomUUID(),
+            shellExecutionId: randomUUID(),
+            parentExecutionId: randomUUID(),
+            generation: 1,
+            profileRevision: '1'
+        }
+        expect(executionContextSchema.parse({ ...context, source }).source).toEqual(source)
+        expect(
+            executionUsageFactSchema.parse({ ...fact, context: { ...fact.context, entry: 'shell', source } }).context
+                .source
+        ).toEqual(source)
+        expect(() => executionUsageFactSchema.parse({ ...fact, context: { ...fact.context, source } })).toThrow()
+    })
+
     it('rejects incomplete or redirected billing identity at the persistence boundary', () => {
         expect(() => executionContextSchema.parse({ ...context, billableUserId: randomUUID() })).toThrow()
         expect(() => executionContextSchema.parse({ ...context, environment: { type: 'computer' } })).toThrow()

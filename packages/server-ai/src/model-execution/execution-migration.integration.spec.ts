@@ -24,8 +24,9 @@ integration('model execution additive migration / PostgreSQL', () => {
 
     beforeEach(async () => {
         await runner.query(`
-            DROP TABLE IF EXISTS model_execution_reconciliation, cli_session, model_gateway_call, model_execution_grant,
+            DROP TABLE IF EXISTS shell_cli_execution, shell_process_execution, xpert_agent_execution, model_execution_reconciliation, cli_session, model_gateway_call, model_execution_grant,
                 membership_point_ledger, chat_conversation, xpert, "user", organization, tenant CASCADE;
+            CREATE TABLE xpert_agent_execution (id uuid PRIMARY KEY);
             CREATE TABLE tenant (id uuid PRIMARY KEY);
             CREATE TABLE organization (id uuid PRIMARY KEY);
             CREATE TABLE "user" (id uuid PRIMARY KEY);
@@ -60,6 +61,19 @@ integration('model execution additive migration / PostgreSQL', () => {
         await expect(
             runner.query(`INSERT INTO model_gateway_call (source) VALUES ('external_api')`)
         ).rejects.toMatchObject({ code: '23514' })
+    })
+
+    it('adds shell receipts and pending grants repeatably without losing existing calls', async () => {
+        await runner.query(migration)
+        const sql = readFileSync(join(__dirname, 'migrations/20261003-shell-launcher.sql'), 'utf8')
+        await runner.query(sql)
+        await runner.query(sql)
+        expect(await runner.query('SELECT source FROM model_gateway_call')).toEqual([{ source: 'external_api' }])
+        expect(await runner.query('SELECT * FROM shell_process_execution')).toEqual([])
+        const constraints: Array<{ definition: string }> = await runner.query(
+            `SELECT pg_get_constraintdef(oid) AS definition FROM pg_constraint WHERE conrelid='model_execution_grant'::regclass AND conname='model_execution_grant_status_check'`
+        )
+        expect(constraints[0].definition).toContain('pending')
     })
 
     it('marks legacy execution attempts as uncertain when introducing the dispatch fence', async () => {

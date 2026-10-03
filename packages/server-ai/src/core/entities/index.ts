@@ -1,6 +1,7 @@
 import { ModelExecutionReconciliation } from '../../model-execution/execution-reconciliation.entity'
 import { AgentInvocationWaitEntity } from '../../agent-invocation/invocation.entity'
 import { ModelExecutionGrant, CliSession } from '../../model-execution/execution.entity'
+import { ShellCliExecution, ShellProcessExecution } from '../../shell-execution/shell-execution.entity'
 import {
     DesktopShellDevice,
     DesktopShellGrant,
@@ -249,5 +250,7 @@ export const ALL_AI_ENTITIES = [
     ModelGatewaySettings,
     ModelGatewayCall,
     ModelExecutionGrant,
+    ShellCliExecution,
+    ShellProcessExecution,
     CliSession
 ]

@@ -1,6 +1,11 @@
+import {
+    ShellModelExecutionSourceCapability,
+    RuntimeCapabilityRegistry,
+    XPERT_RUNTIME_CAPABILITIES_TOKEN
+} from '@xpert-ai/plugin-sdk'
 // Invariants: a bearer credential never outlives its owning execution or approved binding.
 import { isDeepStrictEqual } from 'node:util'
-import { Injectable } from '@nestjs/common'
+import { Inject, Optional, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import type { ModelExecutionContext } from '@xpert-ai/contracts'
 import { Repository } from 'typeorm'
@@ -13,16 +18,22 @@ export class ModelExecutionSourceService {
     constructor(
         @InjectRepository(CliSession) private readonly sessions: Repository<CliSession>,
         @InjectRepository(AgentInvocationEntity) private readonly invocations: Repository<AgentInvocationEntity>,
-        @InjectRepository(AgentRuntimeBindingEntity) private readonly bindings: Repository<AgentRuntimeBindingEntity>
+        @InjectRepository(AgentRuntimeBindingEntity) private readonly bindings: Repository<AgentRuntimeBindingEntity>,
+        @Optional() @Inject(XPERT_RUNTIME_CAPABILITIES_TOKEN) private readonly capabilities?: RuntimeCapabilityRegistry
     ) {}
 
-    async assertCurrent(context: ModelExecutionContext) {
+    async assertCurrent(context: ModelExecutionContext, preparing = false) {
         const where = {
             tenantId: context.tenantId,
             organizationId: context.runtimeOrganizationId,
             ownerId: context.actorUserId
         }
         if (context.billableUserId !== context.actorUserId) throw executionError('Denied')
+        if (context.source.type === 'shell_execution') {
+            const guard = this.capabilities?.get(ShellModelExecutionSourceCapability)
+            if (!guard) throw executionError('Denied')
+            return guard.assertCurrent(context, preparing)
+        }
         if (context.source.type === 'cli_session') {
             const session = await this.sessions.findOneBy({
                 ...where,

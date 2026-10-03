@@ -53,6 +53,7 @@ export class ModelExecutionNativeController {
         request.once('aborted', disconnect)
         response.once('close', disconnect)
         let timer: ReturnType<typeof setTimeout>
+        let stopWatching: (() => void) | undefined
         try {
             const envelopeResult = z.object({ model: z.string().min(1) }).safeParse(body)
             if (!envelopeResult.success) throw executionError('Invalid')
@@ -65,6 +66,7 @@ export class ModelExecutionNativeController {
             const identity = await this.grants.authenticate(authorization),
                 { grant } = identity
             const policy = await this.policies.require(grant.tenantId)
+            stopWatching = this.grants.watch?.(grant, abort)
             const id = envelope.model === 'assistant-default' ? grant.defaultModelId : envelope.model
             const model = identity.models.find((item) => item.id === id)
             if (!model) throw executionError('Model')
@@ -234,6 +236,7 @@ export class ModelExecutionNativeController {
                 })
             else if (!response.destroyed && !response.writableEnded) response.destroy()
         } finally {
+            stopWatching?.()
             clearTimeout(timer)
             request.off('aborted', disconnect)
             response.off('close', disconnect)

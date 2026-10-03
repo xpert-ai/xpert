@@ -24,7 +24,7 @@ import { Column, Entity, Index } from 'typeorm'
 export class ModelExecutionGrant extends TenantOrganizationBaseEntity {
     @Column({ type: 'uuid' }) ownerId: string
     @Column({ type: 'varchar', select: false }) credentialHash: string
-    @Column({ type: 'varchar', default: 'active' }) status: 'active' | 'revoked'
+    @Column({ type: 'varchar', default: 'active' }) status: 'pending' | 'active' | 'revoked'
     @Column({ type: 'jsonb', transformer: executionJson(executionContextSchema) }) context: ModelExecutionContext
     @Column({ type: 'jsonb', transformer: executionJson(executionModelsSchema) }) models: ModelExecutionModel[]
     @Column({ type: 'varchar' }) defaultModelId: string

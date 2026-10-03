@@ -20,6 +20,7 @@
       >
         <option value="">{{ 'XP.Copilot.ExecutionAll' | translate }}</option>
         <option value="cli">{{ 'XP.Copilot.ExecutionEntry.cli' | translate }}</option>
+        <option value="shell">{{ 'XP.Copilot.ExecutionEntry.shell' | translate }}</option>
         <option value="agent_runtime">{{ 'XP.Copilot.ExecutionEntry.agent_runtime' | translate }}</option>
       </select>
     </label>
@@ -163,10 +164,7 @@
               <td class="px-3 py-3">
                 <div>
                   {{ item.context.tool.id }} ·
-                  {{
-                    'XP.Copilot.ExecutionEntry.' +
-                      (item.context.source.type === 'cli_session' ? 'cli' : 'agent_runtime') | translate
-                  }}
+                  {{ 'XP.Copilot.ExecutionEntry.' + entry(item.context.source) | translate }}
                 </div>
                 <div class="mt-1 text-xs text-text-tertiary" [title]="executionId(item)">
                   {{ executionId(item).slice(0, 8) }} · {{ item.startedAt | date: 'short' }}

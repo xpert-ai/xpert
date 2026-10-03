@@ -80,25 +80,23 @@ describe('SandboxShellMiddleware', () => {
         }
     })
 
-    const createTool = async (toolName: string, xpertFeatures = createXpertFeatures()) => {
+    const createTool = async (toolName: string, xpertFeatures = createXpertFeatures(), settings = {}) => {
         const middleware = new SandboxShellMiddleware({ persist: jest.fn() })
         const agentMiddleware = await Promise.resolve(
-            middleware.createMiddleware(
-                {},
-                {
-                    tenantId: 'tenant-1',
-                    userId: 'user-1',
-                    xpertFeatures,
-                    node: {
-                        id: 'middleware-1',
-                        key: 'middleware-1',
-                        type: WorkflowNodeTypeEnum.MIDDLEWARE,
-                        provider: 'sandbox-shell'
-                    },
-                    runtime: {} as never,
-                    tools: new Map()
-                }
-            )
+            middleware.createMiddleware(settings, {
+                conversationId: 'conversation-1',
+                tenantId: 'tenant-1',
+                userId: 'user-1',
+                xpertFeatures,
+                node: {
+                    id: 'middleware-1',
+                    key: 'middleware-1',
+                    type: WorkflowNodeTypeEnum.MIDDLEWARE,
+                    provider: 'sandbox-shell'
+                },
+                runtime: {} as never,
+                tools: new Map()
+            })
         )
         const tool = agentMiddleware.tools.find((candidate) => candidate.name === toolName)
         if (!tool) {
@@ -234,6 +232,46 @@ describe('SandboxShellMiddleware', () => {
             timeoutMs: DEFAULT_SANDBOX_SHELL_TIMEOUT_MS
         })
         expect(dispatchCustomEvent).toHaveBeenCalled()
+    })
+
+    it('automatically passes host capability scope with the root model snapshot, without extra configuration', async () => {
+        const shell = await createTool('sandbox_shell')
+        const backend = {
+            ...createBackend({ output: 'ok', exitCode: 0, truncated: false }),
+            executionEnvironment: { capabilities: ['platform_models'] }
+        }
+        await shell.invoke(
+            { command: 'codex exec test' },
+            {
+                configurable: {
+                    sandbox: { backend },
+                    rootExecutionId: 'root',
+                    executionId: 'node'
+                },
+                metadata: { tool_call_id: 'call' }
+            }
+        )
+        expect(backend.streamExecute).toHaveBeenCalledWith(
+            'codex exec test',
+            expect.any(Function),
+            expect.objectContaining({
+                executionScope: {
+                    parentExecutionId: 'root',
+                    conversationId: 'conversation-1',
+                    toolCallId: 'call',
+                    capabilities: ['platform_models']
+                }
+            })
+        )
+    })
+
+    it('keeps ordinary shell available when the backend does not advertise model access', async () => {
+        const shell = await createTool('sandbox_shell')
+        const backend = createBackend({ output: 'ok', exitCode: 0, truncated: false })
+        expect(await shell.invoke({ command: 'echo ok' }, { configurable: { sandbox: { backend } } })).toBe('ok')
+        expect(backend.streamExecute).toHaveBeenCalledWith('echo ok', expect.any(Function), {
+            timeoutMs: DEFAULT_SANDBOX_SHELL_TIMEOUT_MS
+        })
     })
 
     it('forwards cancellation to the same backend without adding model tool parameters', async () => {

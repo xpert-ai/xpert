@@ -18,7 +18,7 @@ ModelExecution 让 CLI 和受管 Agent 使用当前 Assistant 已获授权的模
 
 ## 一次执行的授权范围
 
-一个 `ModelExecutionGrant` 绑定一个 CLI session 或一个 Agent Invocation，同时固定 tenant、运行组织、用户、Assistant 及其发布版本、conversation、执行环境实例（或 remote binding revision）、工具和版本。它属于一次执行，不是整个用户、Assistant 或容器的通用模型 Key；同一容器中的不同执行分别授权和计量。
+一个 `ModelExecutionGrant` 绑定一个 CLI session、一个 Agent Invocation 或一个 Shell 内的 CLI 子执行，同时固定 tenant、运行组织、用户、Assistant 及其发布版本、conversation、执行环境实例（或 remote binding revision）、工具和版本。它属于一次执行，不是整个用户、Assistant 或容器的通用模型 Key；同一容器中的不同执行分别授权和计量。
 
 1. 平台从当前身份及其拥有的会话解析作用域。付款人与执行用户一致；客户端不能靠请求体或任意组织请求头选择另一位付款人。
 2. 取已发布 Assistant 的模型候选与用户模型权限的交集，再按工具及协议策略筛选。默认模型依次取当前 thread 最近父执行的模型选择、用户 Assistant 偏好、Assistant 默认候选；已移除的显式选择不会静默回退。
@@ -29,6 +29,18 @@ ModelExecution 让 CLI 和受管 Agent 使用当前 Assistant 已获授权的模
 授权持续时间由租期和不可延长的绝对时限共同限制。普通浏览器 / Desktop 退出登录、断开观看或释放桌面控制权，不自动全量撤销模型授权。任务完成、明确取消、过期、权限或绑定失效仍需按执行生命周期处理。
 
 `POST /api/model-execution/revoke-mine` 是独立的显式撤销入口：撤销**当前 tenant 下本人所有 active 执行授权**，不是只撤销当前组织、Assistant 或会话。它阻止后续授权校验通过，不证明已经发出的模型请求或 guest 文件操作立即停止；停止进程仍须取消并确认终态。详见 [授权服务](../packages/server-ai/src/model-execution/execution-grant.service.ts) 和 [执行来源校验](../packages/server-ai/src/model-execution/execution-source.service.ts)。
+
+## Shell CLI 授权与适配边界
+
+通用 `sandbox_shell` 只向明确声明 `platform_models` 能力的执行后端传递可信的父执行、会话和工具调用上下文。它不解析命令中的 CLI 名称，也不负责选择模型、编写客户端配置或注入凭证。Computer Launcher、容器隔离、桌面控制和 Agent 光标仍由 Pro 执行宿主实现；OS 仅提供可复用的授权与计量基础。
+
+宿主维护 `ShellProcessExecution` 和 `ShellCliExecution` 回执。`shell_execution` 授权来源固定父执行、Shell 执行、CLI 子执行、generation 和 profile revision；模型选择来自指定父执行，不能借用同一会话另一执行的模型。签发前、激活及后续请求都会校验执行所有者、运行状态、观测时效和环境绑定。
+
+启动采用 `pending → active` 两阶段授权：宿主准备短期凭证及私有配置后，在一次性启动前激活。`pending` 凭证不能访问模型；激活不会重置准备阶段租期，不能复活已过期或已撤销的授权。请求派发阶段再次检查持久化授权，流式调用定期复核并在授权失效时取消上游；已发生的消费仍按实际回执结算。
+
+[CLI profile SDK](../packages/plugin-sdk/src/lib/agent/runtime/cli-model-profile.ts) 声明客户端协议、能力要求、精确版本、离线参数及配置模板。[内置 profile 库](../packages/plugins/cli-model-profiles/README.md) 提供 Codex、Claude Code、OpenCode 和 Aider 的配置，模板只接收凭证占位符，由宿主物化真实秘密。扩展通过 `CliModelProfilesCapability` 注册，策略中填写任意名称并不能自动授权未知工具。模型 Provider 细节保持在模型插件中。
+
+用量入口统一标记为 `shell`，执行 ID 指向 CLI 子执行，支持个人用量筛选、管理员查询和 CSV 导出；同一 Shell 启动的多个 CLI 分别记录，实际消费仍归属于当前用户。
 
 ## 预算准入与计量
 
@@ -117,6 +129,7 @@ Computer 的启动、停止通过其受控 View Action；受管任务使用 Agen
 2. [ModelExecution 基础表和用量字段](../packages/server-ai/src/model-execution/migrations/20260930-model-execution.sql)。
 3. [执行消费审计](../packages/server-ai/src/model-execution/migrations/20261001-execution-operations.sql)。
 4. [历史等待记录](../packages/server-ai/src/agent-invocation/migrations/20261001-invocation-wait.sql)，随后 [等待分组兼容](../packages/server-ai/src/agent-invocation/migrations/20261002-task-wait-groups.sql)。新普通等待不写这些记录，但历史监控器仍依赖完整 schema。
+5. [Shell 执行回执及 pending 授权](../packages/server-ai/src/model-execution/migrations/20261003-shell-launcher.sql)。该迁移依赖既有 `xpert_agent_execution` 表；可重复执行，保留历史授权和消费。
 
 确认旧 worker 已退出，再以专门测试账号 / 空间、小 Token 预算和明确环境实例验收；普通 Chat、原生协议和 Chat 转换分别灰度。安装或策略保存成功不代表真实执行、计量和文件交付已经通过。
 

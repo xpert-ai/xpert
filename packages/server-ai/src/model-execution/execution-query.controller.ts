@@ -78,13 +78,15 @@ export class ModelExecutionQueryController {
         if (filter.status) query.andWhere('call.status = :status', { status: filter.status })
         if (filter.entry)
             query.andWhere("execution.context->'source'->>'type' = :entry", {
-                entry: filter.entry === 'cli' ? 'cli_session' : 'agent_invocation'
+                entry: ({ cli: 'cli_session', agent_runtime: 'agent_invocation', shell: 'shell_execution' } as const)[
+                    filter.entry
+                ]
             })
         const fields = {
             assistantId: "execution.context->>'xpertId'",
             conversationId: "execution.context->>'conversationId'",
             executionId:
-                "COALESCE(execution.context->'source'->>'cliSessionId', execution.context->'source'->>'invocationId')",
+                "COALESCE(execution.context->'source'->>'cliSessionId', execution.context->'source'->>'invocationId', execution.context->'source'->>'executionId')",
             tool: "execution.context->'tool'->>'id'"
         }
         for (const key of ['assistantId', 'conversationId', 'executionId', 'tool'] as const) {

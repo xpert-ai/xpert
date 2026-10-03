@@ -37,6 +37,7 @@ export class ModelExecutionOpenAIController {
         request.once('aborted', disconnected)
         response.once('close', disconnected)
         let timer: ReturnType<typeof setTimeout> | undefined
+        let stopWatching: (() => void) | undefined
         try {
             const parsed = parseOpenAIChatRequest(body)
             // Remote image token cost cannot be bounded by the request byte allowance.
@@ -49,6 +50,7 @@ export class ModelExecutionOpenAIController {
                 throw executionError('InputLimit')
             const identity = await this.grants.authenticate(request.headers.authorization)
             const { grant } = identity
+            stopWatching = this.grants.watch?.(grant, abort)
             const id = parsed.model === 'assistant-default' ? grant.defaultModelId : parsed.model
             const model = identity.models.find(
                 (candidate) => candidate.id === id && candidate.protocols.includes('openai_chat')
@@ -93,6 +95,7 @@ export class ModelExecutionOpenAIController {
                 response.destroy()
             }
         } finally {
+            stopWatching?.()
             if (timer) clearTimeout(timer)
             request.off('aborted', disconnected)
             response.off('close', disconnected)

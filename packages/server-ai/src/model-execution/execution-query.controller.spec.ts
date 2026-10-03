@@ -78,6 +78,15 @@ describe('execution call query HTTP validation', () => {
         expect(query.take).toHaveBeenCalledWith(10)
         expect(query.skip).toHaveBeenCalledWith(20)
     })
+    it('filters shell usage by explicit source and CLI child execution id', async () => {
+        const id = '9553d705-0601-4e96-84ec-5bd766ae5222'
+        const response = await fetch(`${origin}/model-execution/calls?entry=shell&executionId=${id}`)
+        expect(response.status).toBe(200)
+        await response.json()
+        expect(query.andWhere).toHaveBeenCalledWith(expect.any(String), { entry: 'shell_execution' })
+        expect(query.andWhere).toHaveBeenCalledWith(expect.stringContaining('executionId'), { executionId: id })
+    })
+
     it('applies pagination defaults before querying', async () => {
         const response = await fetch(`${origin}/model-execution/calls`)
         expect(response.status).toBe(200)

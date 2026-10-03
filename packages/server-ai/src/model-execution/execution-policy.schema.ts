@@ -30,7 +30,7 @@ export const executionPolicySchema = z.discriminatedUnion('enabled', [
                 .array(
                     z
                         .object({
-                            id: z.enum(['aider', 'opencode', 'codex', 'claude']),
+                            id: z.string().regex(/^[a-z][a-z0-9_-]{0,63}$/),
                             version: z.string().regex(/^\d+\.\d+\.\d+$/),
                             executable: z.string().regex(/^\/[A-Za-z0-9_./-]+$/)
                         })

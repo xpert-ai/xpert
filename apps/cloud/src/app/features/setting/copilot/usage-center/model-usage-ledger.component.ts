@@ -77,7 +77,7 @@ export class ModelUsageLedgerComponent {
   readonly toolFilter = model('')
   readonly executionEntries = computed(() => {
     this.languageChange()
-    return ['', 'xpert', 'external_api', 'agent_runtime', 'cli'].map((value) => ({
+    return ['', 'xpert', 'external_api', 'agent_runtime', 'cli', 'shell'].map((value) => ({
       value,
       label: this.translate.instant(`XP.Copilot.ExecutionEntry.${value || 'all'}`)
     }))

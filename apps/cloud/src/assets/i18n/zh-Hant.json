@@ -4060,6 +4060,7 @@
         "settlement_pending": "待結算"
       },
       "ExecutionEntry": {
+        "shell": "Shell 编程工具",
         "all": "所有入口",
         "xpert": "Assistant",
         "external_api": "外部 API",

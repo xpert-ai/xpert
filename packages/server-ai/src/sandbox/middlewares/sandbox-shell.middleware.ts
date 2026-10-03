@@ -95,11 +95,7 @@ export class SandboxShellMiddleware implements IAgentMiddlewareStrategy {
             en_US: 'Adds a shell tool that runs commands via the sandbox backend.',
             zh_Hans: '添加一个通过沙箱后端运行命令的命令行工具。'
         },
-        features: ['sandbox'],
-        configSchema: {
-            type: 'object',
-            properties: {}
-        }
+        features: ['sandbox']
     }
 
     createMiddleware(_options: unknown, context: IAgentMiddlewareContext): PromiseOrValue<AgentMiddleware> {
@@ -113,6 +109,8 @@ export class SandboxShellMiddleware implements IAgentMiddlewareStrategy {
                 if (!backend) {
                     throw new Error('Sandbox backend is not available for SandboxShell.')
                 }
+
+                const platformModels = backend.executionEnvironment?.capabilities?.includes('platform_models')
 
                 const timeoutSec = timeout_sec ?? DEFAULT_SANDBOX_SHELL_TIMEOUT_SEC
                 const toolCallId = getToolCallId(config)
@@ -140,6 +138,16 @@ export class SandboxShellMiddleware implements IAgentMiddlewareStrategy {
                     observedBackend,
                     {
                         timeoutMs: secondsToMilliseconds(timeoutSec),
+                        ...(platformModels
+                            ? {
+                                  executionScope: {
+                                      parentExecutionId: configurable?.rootExecutionId ?? configurable?.executionId,
+                                      conversationId: context.conversationId,
+                                      toolCallId,
+                                      capabilities: ['platform_models']
+                                  }
+                              }
+                            : {}),
                         ...(config.signal ? { signal: config.signal } : {})
                     }
                 )

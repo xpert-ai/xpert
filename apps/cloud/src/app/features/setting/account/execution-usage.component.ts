@@ -1,3 +1,4 @@
+import { modelExecutionSourceId, modelExecutionEntry } from '@xpert-ai/contracts'
 import { AbstractControl, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
 import { CommonModule } from '@angular/common'
 import { Component, DestroyRef, effect, inject, signal, untracked } from '@angular/core'
@@ -15,6 +16,7 @@ import { CopilotUsageService } from '../../../@core/services/copilot-usage.servi
   templateUrl: './execution-usage.component.html'
 })
 export class ExecutionUsageComponent {
+  readonly entry = modelExecutionEntry
   readonly #usage = inject(CopilotUsageService)
   readonly organizationId = injectOrganizationId()
   readonly items = signal<ModelExecutionCallView[]>([])
@@ -131,9 +133,7 @@ export class ExecutionUsageComponent {
     void this.load()
   }
   executionId(item: ModelExecutionCallView) {
-    return item.context.source.type === 'cli_session'
-      ? item.context.source.cliSessionId
-      : item.context.source.invocationId
+    return modelExecutionSourceId(item.context.source)
   }
 }
 

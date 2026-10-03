@@ -3,7 +3,7 @@ import { ModelGatewayCallStatusEnum, ModelGatewayUsageSourceEnum } from '@xpert-
 
 export const executionCallQuerySchema = z
     .object({
-        entry: z.enum(['cli', 'agent_runtime']).optional(),
+        entry: z.enum(['cli', 'agent_runtime', 'shell']).optional(),
         status: z.nativeEnum(ModelGatewayCallStatusEnum).optional(),
         assistantId: z.string().uuid().optional(),
         conversationId: z.string().uuid().optional(),

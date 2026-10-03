@@ -1,3 +1,4 @@
+import { modelExecutionEntry } from '@xpert-ai/contracts'
 import { isDeepStrictEqual } from 'node:util'
 import { applicationMetrics } from '../metrics/application-metrics'
 import { z } from 'zod/v3'
@@ -51,7 +52,7 @@ export class ModelExecutionMeteringService {
         const fact: ExecutionUsageFact | null = actual
             ? {
                   context: {
-                      entry: context.source.type === 'cli_session' ? 'cli' : 'agent_runtime',
+                      entry: modelExecutionEntry(context.source),
                       environment: context.environment,
                       actorUserId: context.actorUserId,
                       billableUserId: context.billableUserId,

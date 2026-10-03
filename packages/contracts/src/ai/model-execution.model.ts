@@ -2,7 +2,7 @@ import type { AiModelTypeEnum } from '../agent'
 import type { ModelFeature } from './ai-model.model'
 
 /** Entry point and execution location are independent dimensions. */
-export type ModelExecutionEntry = 'cli' | 'agent_runtime'
+export type ModelExecutionEntry = 'cli' | 'agent_runtime' | 'shell'
 export type ModelExecutionProtocol =
   | 'openai_chat'
   | 'openai_responses'
@@ -15,6 +15,37 @@ export type ModelExecutionEnvironment =
 export type ModelExecutionSource =
   | { type: 'cli_session'; cliSessionId: string }
   | { type: 'agent_invocation'; invocationId: string; bindingId: string; bindingRevision: string }
+  /** One CLI child, not the containing shell; IDs and revision are resolved by the trusted host. */
+  | {
+      type: 'shell_execution'
+      executionId: string
+      shellExecutionId: string
+      parentExecutionId: string
+      generation: number
+      profileRevision: string
+    }
+
+/** Exhaustive attribution shared by queries, ledger export and UI. */
+export function modelExecutionEntry(source: ModelExecutionSource): ModelExecutionEntry {
+  switch (source.type) {
+    case 'cli_session':
+      return 'cli'
+    case 'agent_invocation':
+      return 'agent_runtime'
+    case 'shell_execution':
+      return 'shell'
+  }
+}
+export function modelExecutionSourceId(source: ModelExecutionSource): string {
+  switch (source.type) {
+    case 'cli_session':
+      return source.cliSessionId
+    case 'agent_invocation':
+      return source.invocationId
+    case 'shell_execution':
+      return source.executionId
+  }
+}
 
 export interface ModelExecutionModel {
   id: string
@@ -66,7 +97,8 @@ export type ModelExecutionPolicy =
       /** Explicit, limited Chat Completions translations; never advertised as native support. */
       chatBridgeProtocols?: Array<'openai_responses' | 'anthropic_messages'>
       limits: ModelExecutionLimits
-      tools: Array<{ id: 'aider' | 'opencode' | 'codex' | 'claude'; version: string; executable: string }>
+      /** Only installed, registered profiles qualify; IDs alone never authorize execution. */
+      tools: Array<{ id: string; version: string; executable: string }>
     }
 
 export type CliSessionStatus = 'starting' | 'running' | 'stopping' | 'exited' | 'unknown'

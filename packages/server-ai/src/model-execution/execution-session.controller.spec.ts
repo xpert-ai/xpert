@@ -1,7 +1,8 @@
+import { In } from 'typeorm'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { ModelExecutionSessionController } from './execution-session.controller'
 
-describe('execution session logout revocation', () => {
+describe('explicit execution authorization revocation', () => {
     afterEach(() => jest.restoreAllMocks())
 
     function setup() {
@@ -12,11 +13,11 @@ describe('execution session logout revocation', () => {
         return { grants, controller: new ModelExecutionSessionController(grants as never) }
     }
 
-    it('revokes only the logged-in user’s active grants across their organizations', async () => {
+    it('revokes only the logged-in user’s pending and active grants across their organizations', async () => {
         const { grants, controller } = setup()
         await expect(controller.revokeMine()).resolves.toEqual({ revoked: true })
         expect(grants.update).toHaveBeenCalledWith(
-            { tenantId: 'tenant', ownerId: 'user', status: 'active' },
+            { tenantId: 'tenant', ownerId: 'user', status: In(['pending', 'active']) },
             { status: 'revoked' }
         )
     })

@@ -22,6 +22,7 @@ integration('execution admission / PostgreSQL', () => {
             ownerId: uuid,
             status: { type: 'varchar' },
             limits: { type: 'jsonb' },
+            context: { type: 'jsonb' },
             expiresAt: { type: 'timestamptz' },
             absoluteExpiresAt: { type: 'timestamptz' }
         }
@@ -95,6 +96,7 @@ integration('execution admission / PostgreSQL', () => {
             organizationId: randomUUID(),
             ownerId: randomUUID(),
             status: 'active',
+            context: { source: { type: 'cli_session', cliSessionId: randomUUID() } },
             expiresAt: new Date(Date.now() + 60_000),
             absoluteExpiresAt: new Date(Date.now() + 600_000),
             limits: {
@@ -115,6 +117,53 @@ integration('execution admission / PostgreSQL', () => {
             await database.query(`DROP SCHEMA ${schemaName} CASCADE`)
             await database.destroy()
         }
+    })
+
+    it('shares one parent budget across simultaneous CLI children and retains completed sibling consumption', async () => {
+        const parentExecutionId = randomUUID()
+        grant.context.source = {
+            type: 'shell_execution',
+            executionId: randomUUID(),
+            shellExecutionId: randomUUID(),
+            parentExecutionId,
+            generation: 1,
+            profileRevision: '1'
+        }
+        grant.limits.userTokenBudget = 1000
+        await database.getRepository(ModelExecutionGrant).save(grant)
+        const siblings = await Promise.all(
+            Array.from({ length: 4 }, async () => {
+                const sibling = Object.assign(new ModelExecutionGrant(), structuredClone(grant), { id: randomUUID() })
+                await database.getRepository(ModelExecutionGrant).save(sibling)
+                return sibling
+            })
+        )
+        const attempts = await Promise.allSettled(siblings.map((item) => service.begin(item, model, 20)))
+        expect(attempts.filter((item) => item.status === 'fulfilled')).toHaveLength(2)
+        await database.query(
+            'UPDATE model_gateway_call SET status=\'completed\', "totalTokens"=100, "reservedTokens"=0'
+        )
+        await expect(service.begin(grant, model, 20)).rejects.toThrow()
+        grant.context.source = { ...grant.context.source, parentExecutionId: randomUUID() }
+        await database.getRepository(ModelExecutionGrant).save(grant)
+        await expect(service.begin(grant, model, 20)).resolves.toBeDefined()
+    })
+
+    it('applies a tightened parent limit even when another child already used the old budget', async () => {
+        grant.context.source = {
+            type: 'shell_execution',
+            executionId: randomUUID(),
+            shellExecutionId: randomUUID(),
+            parentExecutionId: randomUUID(),
+            generation: 1,
+            profileRevision: '1'
+        }
+        await database.getRepository(ModelExecutionGrant).save(grant)
+        await service.begin(grant, model, 20)
+        const sibling = Object.assign(new ModelExecutionGrant(), structuredClone(grant), { id: randomUUID() })
+        await database.getRepository(ModelExecutionGrant).save(sibling)
+        sibling.limits.tokenBudget = 100
+        await expect(service.begin(sibling, model, 20)).rejects.toThrow()
     })
 
     it('serializes simultaneous requests before reserving a finite grant budget', async () => {

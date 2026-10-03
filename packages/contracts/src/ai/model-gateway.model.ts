@@ -35,7 +35,9 @@ export enum ModelGatewayUsageChannelEnum {
   /** Managed agent invocation usage, regardless of where the runtime executes. */
   AgentRuntime = 'agent_runtime',
   /** User-launched CLI session usage, separate from managed invocations. */
-  Cli = 'cli'
+  Cli = 'cli',
+  /** CLI child launched by an Assistant shell execution. */
+  Shell = 'shell'
 }
 
 export const MODEL_GATEWAY_REQUESTS_PER_MINUTE_SETTING = 'modelGatewayRequestsPerMinute'

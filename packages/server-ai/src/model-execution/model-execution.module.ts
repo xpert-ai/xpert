@@ -1,3 +1,5 @@
+import { ShellCliExecution, ShellProcessExecution } from '../shell-execution/shell-execution.entity'
+import { ShellExecutionSourceService } from '../shell-execution/shell-execution-source.service'
 import { ModelExecutionReconciliationService } from './execution-reconciliation.service'
 import { ModelExecutionReconciliation } from './execution-reconciliation.entity'
 import { ModelExecutionChatService } from './execution-chat.service'
@@ -35,6 +37,8 @@ import { ModelExecutionNativeController } from './execution-native.controller'
         ModelAccessModule,
         AgentMiddlewareRuntimeModule,
         TypeOrmModule.forFeature([
+            ShellCliExecution,
+            ShellProcessExecution,
             AgentInvocationEntity,
             AgentRuntimeBindingEntity,
             ModelExecutionGrant,
@@ -58,6 +62,7 @@ import { ModelExecutionNativeController } from './execution-native.controller'
         ModelExecutionAdminController
     ],
     providers: [
+        ShellExecutionSourceService,
         ModelExecutionReconciliationService,
         ModelExecutionChatService,
         ModelExecutionNativeProviderService,

@@ -1,3 +1,4 @@
+import { modelExecutionSourceId } from '@xpert-ai/contracts'
 import type { IModelUsageLedger } from '@xpert-ai/contracts'
 
 /** Export facts, not a sum of the same attempt's account and task rollups. */
@@ -33,7 +34,7 @@ export function executionUsageCsv(items: IModelUsageLedger[]): string {
         context?.environment.type,
         context?.assistantVersion,
         context?.conversationId,
-        context?.source.type === 'cli_session' ? context.source.cliSessionId : context?.source.invocationId,
+        context ? modelExecutionSourceId(context.source) : undefined,
         context?.tool.id,
         context?.tool.version,
         item.model,

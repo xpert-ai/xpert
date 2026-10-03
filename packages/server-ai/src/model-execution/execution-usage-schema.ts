@@ -59,7 +59,7 @@ export const executionUsageFactSchema = z
     .object({
         context: z
             .object({
-                entry: z.enum(['cli', 'agent_runtime']),
+                entry: z.enum(['cli', 'agent_runtime', 'shell']),
                 environment: executionEnvironmentSchema,
                 actorUserId: z.string().uuid(),
                 billableUserId: z.string().uuid(),
@@ -93,7 +93,10 @@ export const executionUsageFactSchema = z
             (fact.cacheReadInputTokens ?? 0) + (fact.cacheWriteInputTokens ?? 0) <= fact.promptTokens &&
             (fact.reasoningTokens ?? 0) <= fact.completionTokens &&
             fact.context.actorUserId === fact.context.billableUserId &&
-            fact.context.entry === (fact.context.source.type === 'cli_session' ? 'cli' : 'agent_runtime')
+            fact.context.entry ===
+                ({ cli_session: 'cli', agent_invocation: 'agent_runtime', shell_execution: 'shell' } as const)[
+                    fact.context.source.type
+                ]
     )
 
 /** Diagnostic estimate only: never accepted by the accounting fact schema. */

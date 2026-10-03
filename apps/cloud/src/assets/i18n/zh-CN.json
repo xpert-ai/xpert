@@ -2920,6 +2920,7 @@
         "settlement_pending": "待结算"
       },
       "ExecutionEntry": {
+        "shell": "Shell 编程工具",
         "all": "全部调用入口",
         "xpert": "Assistant",
         "external_api": "外部 API",
