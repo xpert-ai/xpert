@@ -5694,7 +5694,10 @@
         "pending": "待核对"
       },
       "ExecutionUsageTitle": "编程工具模型用量",
-      "ExecutionUsageHint": "当前组织中你的模型调用。供应商用量未知时保留预占，待对账后结算，不作为零消耗。",
+      "ExecutionUsageHint": "当前组织中你的编程工具模型用量。不限量也统计消耗；未扣余额的用量按当前平台点数比例折算，未完成结算或尚未定价时显示“—”。",
+      "ExecutionPoints": "消耗点数",
+      "ExecutionSearchOrEnter": "搜索或输入名称…",
+      "ExecutionUseValue": "使用“{{value}}”",
       "ExecutionRefresh": "刷新",
       "ExecutionSelectOrganization": "请选择组织以查看执行用量。",
       "ExecutionLoadFailed": "无法加载用量，请重试。",
@@ -5961,6 +5964,10 @@
       }
     },
     "Membership": {
+      "ConsumedPointsHint": "本周期模型消耗，含不限量和未扣余额的调用；仅统计已定价用量。",
+      "QuotaPointUsage": "套餐额度使用",
+      "RecentDebitSummary": "最近扣点记录",
+      "RecentDebitSummaryHint": "此处仅列出余额扣点流水；未扣余额的模型消耗也计入上方已用点数。",
       "AdminTitle": "会员管理",
       "Level": "等级",
       "LevelValidation": "等级必须为非负整数。",

@@ -1,6 +1,6 @@
+import { ModelExecutionReconciliationService } from './execution-reconciliation.service'
 import { ShellCliExecution, ShellProcessExecution } from '../shell-execution/shell-execution.entity'
 import { ShellExecutionSourceService } from '../shell-execution/shell-execution-source.service'
-import { ModelExecutionReconciliationService } from './execution-reconciliation.service'
 import { ModelExecutionReconciliation } from './execution-reconciliation.entity'
 import { ModelExecutionChatService } from './execution-chat.service'
 import { ModelExecutionQueryController } from './execution-query.controller'
@@ -29,6 +29,7 @@ import { ModelExecutionPolicyService } from './execution-policy'
 import { CliSession, ModelExecutionGrant } from './execution.entity'
 import { ModelExecutionNativeProviderService } from './execution-native-provider.service'
 import { ModelExecutionNativeController } from './execution-native.controller'
+import { MembershipPointLedger } from '../membership/membership-point-ledger.entity'
 
 @Module({
     imports: [
@@ -37,6 +38,7 @@ import { ModelExecutionNativeController } from './execution-native.controller'
         ModelAccessModule,
         AgentMiddlewareRuntimeModule,
         TypeOrmModule.forFeature([
+            MembershipPointLedger,
             ShellCliExecution,
             ShellProcessExecution,
             AgentInvocationEntity,

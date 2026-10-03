@@ -14,91 +14,113 @@
   <form class="grid grid-cols-2 gap-3 lg:grid-cols-4" [formGroup]="filters" (ngSubmit)="applyFilters()">
     <label class="space-y-1 text-xs text-text-secondary"
       >{{ 'XP.Copilot.ExecutionEntryTitle' | translate }}
-      <select
-        formControlName="entry"
-        class="h-9 w-full rounded-md border border-divider-regular bg-components-card-bg px-2 text-sm"
-      >
-        <option value="">{{ 'XP.Copilot.ExecutionAll' | translate }}</option>
-        <option value="cli">{{ 'XP.Copilot.ExecutionEntry.cli' | translate }}</option>
-        <option value="shell">{{ 'XP.Copilot.ExecutionEntry.shell' | translate }}</option>
-        <option value="agent_runtime">{{ 'XP.Copilot.ExecutionEntry.agent_runtime' | translate }}</option>
-      </select>
+      <z-select formControlName="entry" class="w-full">
+        <z-select-item [zValue]="all">{{ 'XP.Copilot.ExecutionAll' | translate }}</z-select-item>
+        <z-select-item zValue="cli">{{ 'XP.Copilot.ExecutionEntry.cli' | translate }}</z-select-item>
+        <z-select-item zValue="shell">{{ 'XP.Copilot.ExecutionEntry.shell' | translate }}</z-select-item>
+        <z-select-item zValue="agent_runtime">{{
+          'XP.Copilot.ExecutionEntry.agent_runtime' | translate
+        }}</z-select-item>
+      </z-select>
     </label>
     <label class="space-y-1 text-xs text-text-secondary"
       >{{ 'XP.Copilot.ExecutionStatusTitle' | translate }}
-      <select
-        formControlName="status"
-        class="h-9 w-full rounded-md border border-divider-regular bg-components-card-bg px-2 text-sm"
-      >
-        <option value="">{{ 'XP.Copilot.ExecutionAll' | translate }}</option>
-        <option value="started">{{ 'XP.Copilot.ExecutionStatus.started' | translate }}</option>
-        <option value="succeeded">{{ 'XP.Copilot.ExecutionStatus.succeeded' | translate }}</option>
-        <option value="failed">{{ 'XP.Copilot.ExecutionStatus.failed' | translate }}</option>
-        <option value="settlement_pending">{{ 'XP.Copilot.ExecutionStatus.settlement_pending' | translate }}</option>
-      </select>
+      <z-select formControlName="status" class="w-full">
+        <z-select-item [zValue]="all">{{ 'XP.Copilot.ExecutionAll' | translate }}</z-select-item>
+        <z-select-item zValue="started">{{ 'XP.Copilot.ExecutionStatus.started' | translate }}</z-select-item>
+        <z-select-item zValue="succeeded">{{ 'XP.Copilot.ExecutionStatus.succeeded' | translate }}</z-select-item>
+        <z-select-item zValue="failed">{{ 'XP.Copilot.ExecutionStatus.failed' | translate }}</z-select-item>
+        <z-select-item zValue="settlement_pending">{{
+          'XP.Copilot.ExecutionStatus.settlement_pending' | translate
+        }}</z-select-item>
+      </z-select>
     </label>
     <label class="space-y-1 text-xs text-text-secondary"
       >{{ 'XP.Copilot.ExecutionEnvironmentTitle' | translate }}
-      <select
-        formControlName="environment"
-        class="h-9 w-full rounded-md border border-divider-regular bg-components-card-bg px-2 text-sm"
-      >
-        <option value="">{{ 'XP.Copilot.ExecutionAll' | translate }}</option>
-        <option value="computer">{{ 'XP.Copilot.ExecutionEnvironment.computer' | translate }}</option>
-        <option value="sandbox">{{ 'XP.Copilot.ExecutionEnvironment.sandbox' | translate }}</option>
-        <option value="remote">{{ 'XP.Copilot.ExecutionEnvironment.remote' | translate }}</option>
-      </select>
+      <z-select formControlName="environment" class="w-full">
+        <z-select-item [zValue]="all">{{ 'XP.Copilot.ExecutionAll' | translate }}</z-select-item>
+        <z-select-item zValue="computer">{{ 'XP.Copilot.ExecutionEnvironment.computer' | translate }}</z-select-item>
+        <z-select-item zValue="sandbox">{{ 'XP.Copilot.ExecutionEnvironment.sandbox' | translate }}</z-select-item>
+        <z-select-item zValue="remote">{{ 'XP.Copilot.ExecutionEnvironment.remote' | translate }}</z-select-item>
+      </z-select>
     </label>
     <label class="space-y-1 text-xs text-text-secondary"
       >{{ 'XP.Copilot.ExecutionUsageSourceTitle' | translate }}
-      <select
-        formControlName="usageSource"
-        class="h-9 w-full rounded-md border border-divider-regular bg-components-card-bg px-2 text-sm"
-      >
-        <option value="">{{ 'XP.Copilot.ExecutionAll' | translate }}</option>
-        <option value="provider">{{ 'XP.Copilot.ExecutionUsageSource.provider' | translate }}</option>
-        <option value="estimated">{{ 'XP.Copilot.ExecutionUsageSource.estimated' | translate }}</option>
-        <option value="none">{{ 'XP.Copilot.ExecutionUsageSource.none' | translate }}</option>
-      </select>
+      <z-select formControlName="usageSource" class="w-full">
+        <z-select-item [zValue]="all">{{ 'XP.Copilot.ExecutionAll' | translate }}</z-select-item>
+        <z-select-item zValue="provider">{{ 'XP.Copilot.ExecutionUsageSource.provider' | translate }}</z-select-item>
+        <z-select-item zValue="estimated">{{ 'XP.Copilot.ExecutionUsageSource.estimated' | translate }}</z-select-item>
+        <z-select-item zValue="none">{{ 'XP.Copilot.ExecutionUsageSource.none' | translate }}</z-select-item>
+      </z-select>
     </label>
     <label class="space-y-1 text-xs text-text-secondary"
       >{{ 'XP.Copilot.ExecutionPricingTitle' | translate }}
-      <select
-        formControlName="pricingStatus"
-        class="h-9 w-full rounded-md border border-divider-regular bg-components-card-bg px-2 text-sm"
-      >
-        <option value="">{{ 'XP.Copilot.ExecutionAll' | translate }}</option>
-        <option value="priced">{{ 'XP.Copilot.ExecutionPricing.priced' | translate }}</option>
-        <option value="free">{{ 'XP.Copilot.ExecutionPricing.free' | translate }}</option>
-        <option value="unpriced">{{ 'XP.Copilot.ExecutionPricing.unpriced' | translate }}</option>
-        <option value="pending">{{ 'XP.Copilot.ExecutionPricing.pending' | translate }}</option>
-      </select>
+      <z-select formControlName="pricingStatus" class="w-full">
+        <z-select-item [zValue]="all">{{ 'XP.Copilot.ExecutionAll' | translate }}</z-select-item>
+        <z-select-item zValue="priced">{{ 'XP.Copilot.ExecutionPricing.priced' | translate }}</z-select-item>
+        <z-select-item zValue="free">{{ 'XP.Copilot.ExecutionPricing.free' | translate }}</z-select-item>
+        <z-select-item zValue="unpriced">{{ 'XP.Copilot.ExecutionPricing.unpriced' | translate }}</z-select-item>
+        <z-select-item zValue="pending">{{ 'XP.Copilot.ExecutionPricing.pending' | translate }}</z-select-item>
+      </z-select>
     </label>
     <label class="space-y-1 text-xs text-text-secondary"
       >{{ 'XP.Copilot.ExecutionModel' | translate }}
-      <input
+      <z-select
+        #modelSelect
         formControlName="model"
-        class="h-9 w-full rounded-md border border-divider-regular bg-components-card-bg px-2 text-sm"
-      />
+        class="w-full"
+        zSearchable
+        [zSearchPlaceholder]="'XP.Copilot.ExecutionSearchOrEnter' | translate"
+      >
+        <z-select-item [zValue]="all">{{ 'XP.Copilot.ExecutionAll' | translate }}</z-select-item>
+        @for (option of models(); track option) {
+          <z-select-item [zValue]="option">{{ option }}</z-select-item>
+        }
+        @if (customOption(filters.controls.model.value, models()); as selected) {
+          <z-select-item [zValue]="selected">{{ selected }}</z-select-item>
+        }
+        @if (customOption(modelSelect.searchTerm(), models()); as typed) {
+          @if (typed !== filters.controls.model.value) {
+            <z-select-item [zValue]="typed">{{
+              'XP.Copilot.ExecutionUseValue' | translate: { value: typed }
+            }}</z-select-item>
+          }
+        }
+      </z-select>
     </label>
     <label class="space-y-1 text-xs text-text-secondary"
       >{{ 'XP.Copilot.ExecutionTool' | translate }}
-      <input
+      <z-select
+        #toolSelect
         formControlName="tool"
-        class="h-9 w-full rounded-md border border-divider-regular bg-components-card-bg px-2 text-sm"
-      />
+        class="w-full"
+        zSearchable
+        [zSearchPlaceholder]="'XP.Copilot.ExecutionSearchOrEnter' | translate"
+      >
+        <z-select-item [zValue]="all">{{ 'XP.Copilot.ExecutionAll' | translate }}</z-select-item>
+        @for (option of tools(); track option) {
+          <z-select-item [zValue]="option">{{ option }}</z-select-item>
+        }
+        @if (customOption(filters.controls.tool.value, tools()); as selected) {
+          <z-select-item [zValue]="selected">{{ selected }}</z-select-item>
+        }
+        @if (customOption(toolSelect.searchTerm(), tools()); as typed) {
+          @if (typed !== filters.controls.tool.value) {
+            <z-select-item [zValue]="typed">{{
+              'XP.Copilot.ExecutionUseValue' | translate: { value: typed }
+            }}</z-select-item>
+          }
+        }
+      </z-select>
     </label>
     <label class="space-y-1 text-xs text-text-secondary"
       >{{ 'XP.Copilot.ExecutionAssistantName' | translate }}
-      <select
-        formControlName="assistantId"
-        class="h-9 w-full rounded-md border border-divider-regular bg-components-card-bg px-2 text-sm"
-      >
-        <option value="">{{ 'XP.Copilot.ExecutionAll' | translate }}</option>
+      <z-select formControlName="assistantId" class="w-full" zSearchable>
+        <z-select-item [zValue]="all">{{ 'XP.Copilot.ExecutionAll' | translate }}</z-select-item>
         @for (assistant of assistants(); track assistant.id) {
-          <option [value]="assistant.id">{{ assistant.name }}</option>
+          <z-select-item [zValue]="assistant.id">{{ assistant.name }}</z-select-item>
         }
-      </select>
+      </z-select>
     </label>
     <label class="space-y-1 text-xs text-text-secondary"
       >{{ 'XP.Copilot.ExecutionTask' | translate }}
@@ -128,8 +150,7 @@
       type="submit"
       z-button
       zType="outline"
-      zSize="sm"
-      class="self-end"
+      class="h-9 self-end"
       [disabled]="loading() || !organizationId() || filters.invalid"
     >
       {{ 'XP.Copilot.ExecutionApply' | translate }}
@@ -152,9 +173,7 @@
             <th class="px-3 py-3 font-medium">{{ 'XP.Copilot.ExecutionTask' | translate }}</th>
             <th class="px-3 py-3 font-medium">{{ 'XP.Copilot.ExecutionModel' | translate }}</th>
             <th class="px-3 py-3 font-medium">{{ 'XP.Copilot.ExecutionStatusTitle' | translate }}</th>
-            <th class="px-3 py-3 text-right font-medium">{{ 'XP.Copilot.ExecutionActualTokens' | translate }}</th>
-            <th class="px-3 py-3 text-right font-medium">{{ 'XP.Copilot.ExecutionEstimatedTokens' | translate }}</th>
-            <th class="px-3 py-3 text-right font-medium">{{ 'XP.Copilot.ExecutionReservedTokens' | translate }}</th>
+            <th class="px-3 py-3 text-right font-medium">{{ 'XP.Copilot.ExecutionPoints' | translate }}</th>
             <th class="px-3 py-3 text-right font-medium">{{ 'XP.Copilot.ExecutionPricingTitle' | translate }}</th>
           </tr>
         </thead>
@@ -178,19 +197,10 @@
               </td>
               <td class="px-3 py-3">{{ 'XP.Copilot.ExecutionStatus.' + item.status | translate }}</td>
               <td class="px-3 py-3 text-right tabular-nums">
-                {{ item.usageSource === 'provider' ? (item.totalTokens | number) : '—' }}
+                {{ item.points === null ? '—' : (item.points | number: '1.0-6') }}
               </td>
-              <td class="px-3 py-3 text-right tabular-nums">
-                {{ item.estimatedUsage ? (item.estimatedUsage.totalTokens | number) : '—' }}
-              </td>
-              <td class="px-3 py-3 text-right tabular-nums">{{ item.reservedTokens | number }}</td>
               <td class="px-3 py-3 text-right tabular-nums">
                 <div>{{ 'XP.Copilot.ExecutionPricing.' + item.pricingStatus | translate }}</div>
-                @if (item.pricingStatus === 'priced' || item.pricingStatus === 'free') {
-                  <div class="mt-1 text-xs text-text-tertiary">
-                    {{ item.priceAmount | number: '1.0-8' }} {{ item.priceCurrency }}
-                  </div>
-                }
                 @if (item.usageSource === 'provider' && !item.delivered) {
                   <div class="mt-1 text-xs text-text-tertiary">
                     {{ 'XP.Copilot.ExecutionAwaitingLedger' | translate }}
@@ -200,7 +210,7 @@
             </tr>
           } @empty {
             <tr>
-              <td colspan="7" class="px-3 py-8 text-center text-text-tertiary">
+              <td colspan="5" class="px-3 py-8 text-center text-text-tertiary">
                 {{ 'XP.Copilot.ExecutionNoCalls' | translate }}
               </td>
             </tr>

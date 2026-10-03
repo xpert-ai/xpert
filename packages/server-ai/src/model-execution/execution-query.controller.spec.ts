@@ -8,12 +8,17 @@ import { ModelGatewayCall } from '../model-gateway/model-gateway-call.entity'
 import { applicationMetrics } from '../metrics/application-metrics'
 import { ModelExecutionGrant } from './execution.entity'
 import { ModelExecutionQueryController } from './execution-query.controller'
+import { TenantSetting } from '@xpert-ai/server-core'
+import { MembershipPointLedger } from '../membership/membership-point-ledger.entity'
 
 // Use the real HTTP parameter pipeline; direct controller calls bypass validation pipes.
 describe('execution call query HTTP validation', () => {
     let app: INestApplication
     let origin: string
     const query = {
+        select: jest.fn().mockReturnThis(),
+        distinct: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
         addSelect: jest.fn().mockReturnThis(),
         innerJoin: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
@@ -22,7 +27,28 @@ describe('execution call query HTTP validation', () => {
         addOrderBy: jest.fn().mockReturnThis(),
         skip: jest.fn().mockReturnThis(),
         take: jest.fn().mockReturnThis(),
-        getManyAndCount: jest.fn(async () => [[], 0])
+        getManyAndCount: jest.fn<Promise<[ModelGatewayCall[], number]>, []>(),
+        getRawMany: jest.fn()
+    }
+    const grantQuery = {
+        select: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
+        distinctOn: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        addOrderBy: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        getRawMany: jest.fn()
+    }
+    const grants = { findBy: jest.fn(), createQueryBuilder: () => grantQuery }
+    const pointQuery = {
+        select: jest.fn().mockReturnThis(),
+        addSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        setParameter: jest.fn().mockReturnThis(),
+        groupBy: jest.fn().mockReturnThis(),
+        getRawMany: jest.fn()
     }
     beforeAll(async () => {
         await init({
@@ -33,7 +59,15 @@ describe('execution call query HTTP validation', () => {
             controllers: [ModelExecutionQueryController],
             providers: [
                 { provide: getRepositoryToken(ModelGatewayCall), useValue: { createQueryBuilder: () => query } },
-                { provide: getRepositoryToken(ModelExecutionGrant), useValue: {} }
+                { provide: getRepositoryToken(ModelExecutionGrant), useValue: grants },
+                {
+                    provide: getRepositoryToken(MembershipPointLedger),
+                    useValue: { createQueryBuilder: () => pointQuery }
+                },
+                {
+                    provide: getRepositoryToken(TenantSetting),
+                    useValue: { findOne: jest.fn().mockResolvedValue({ value: '0.1' }) }
+                }
             ]
         }).compile()
         app = module.createNestApplication({ logger: false })
@@ -42,6 +76,9 @@ describe('execution call query HTTP validation', () => {
     })
     beforeEach(() => {
         jest.clearAllMocks()
+        query.getManyAndCount.mockResolvedValue([[], 0])
+        query.getRawMany.mockReset()
+        pointQuery.getRawMany.mockResolvedValue([])
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant')
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org')
         jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user')
@@ -50,6 +87,112 @@ describe('execution call query HTTP validation', () => {
     })
     afterEach(() => jest.restoreAllMocks())
     afterAll(async () => app?.close())
+
+    it('returns personal model and tool choices from the same authenticated scope', async () => {
+        grantQuery.getRawMany.mockResolvedValue([{ id: 'assistant', name: 'Assistant' }])
+        query.getRawMany.mockResolvedValueOnce([{ value: 'model-a' }]).mockResolvedValueOnce([{ value: 'codex' }])
+        const response = await fetch(`${origin}/model-execution/call-options`)
+        expect(response.status).toBe(200)
+        expect(await response.json()).toEqual({
+            assistants: [{ id: 'assistant', name: 'Assistant' }],
+            models: ['model-a'],
+            tools: ['codex']
+        })
+        expect(grantQuery.where).toHaveBeenCalledWith({ tenantId: 'tenant', organizationId: 'org', ownerId: 'user' })
+        expect(query.where).toHaveBeenCalledTimes(2)
+        expect(query.where).toHaveBeenCalledWith(expect.any(String), {
+            tenantId: 'tenant',
+            organizationId: 'org',
+            userId: 'user'
+        })
+    })
+
+    it.each([
+        ['priced', true, null, 4.25],
+        ['priced', false, null, null],
+        ['unpriced', true, null, null],
+        ['free', true, null, 0],
+        ['pending', false, 'reconciled_no_usage', 0]
+    ])(
+        'returns points without exposing tokens or money (%s, delivered=%s)',
+        async (pricingStatus, delivered, errorCode, points) => {
+            const call = Object.assign(new ModelGatewayCall(), {
+                id: 'call',
+                grantId: 'grant',
+                callId: 'logical-call',
+                requestId: 'attempt',
+                model: 'model-a',
+                externalModelId: 'model-a',
+                status: 'succeeded',
+                usageSource: 'provider',
+                inputTokens: 5000,
+                outputTokens: 1751,
+                totalTokens: 6751,
+                reservedTokens: 20,
+                estimatedUsage: { totalTokens: 7000 },
+                priceAmount: 0.5,
+                priceCurrency: 'RMB',
+                startedAt: new Date('2026-10-03T00:00:00Z'),
+                errorCode,
+                usageFact: pricingStatus === 'pending' ? null : { pricingStatus },
+                usageDeliveredAt: delivered ? new Date() : null
+            })
+            query.getManyAndCount.mockResolvedValue([[call], 1])
+            grants.findBy.mockResolvedValue([{ id: 'grant', context: { assistantName: 'Assistant' } }])
+            pointQuery.getRawMany.mockResolvedValue(
+                pricingStatus === 'priced' ? [{ attemptId: 'attempt', points: '4.25' }] : []
+            )
+            const response = await fetch(`${origin}/model-execution/calls`)
+            expect(response.status).toBe(200)
+            const result = await response.json()
+            expect(result.items[0].points).toBe(points)
+            for (const key of [
+                'inputTokens',
+                'outputTokens',
+                'totalTokens',
+                'reservedTokens',
+                'estimatedUsage',
+                'priceAmount',
+                'priceCurrency'
+            ]) {
+                expect(result.items[0]).not.toHaveProperty(key)
+            }
+            expect(pointQuery.where).toHaveBeenCalledWith('ledger.tenantId = :tenantId', { tenantId: 'tenant' })
+            expect(pointQuery.andWhere).toHaveBeenCalledWith('ledger.userId = :userId', { userId: 'user' })
+            expect(pointQuery.andWhere).toHaveBeenCalledWith('ledger.runtimeOrganizationId = :organizationId', {
+                organizationId: 'org'
+            })
+            expect(pointQuery.andWhere).toHaveBeenCalledWith(expect.stringContaining('attemptId'), {
+                attemptIds: ['attempt']
+            })
+            expect(pointQuery.andWhere).toHaveBeenCalledWith(expect.stringContaining("ledger.source = 'model_usage'"))
+            expect(pointQuery.setParameter).toHaveBeenCalledWith('usageCnyPerPoint', 0.1)
+        }
+    )
+
+    it('does not turn missing or unconvertible consumption into zero', async () => {
+        query.getManyAndCount.mockResolvedValue([
+            [
+                Object.assign(new ModelGatewayCall(), {
+                    id: 'call',
+                    grantId: 'grant',
+                    requestId: 'attempt',
+                    model: 'model',
+                    startedAt: new Date(),
+                    usageDeliveredAt: new Date(),
+                    usageFact: { pricingStatus: 'priced' }
+                })
+            ],
+            1
+        ])
+        grants.findBy.mockResolvedValue([{ id: 'grant', context: {} }])
+        for (const rows of [[], [{ attemptId: 'attempt', points: null }]]) {
+            pointQuery.getRawMany.mockResolvedValue(rows)
+            const response = await fetch(`${origin}/model-execution/calls`)
+            expect(response.status).toBe(200)
+            expect((await response.json()).items[0].points).toBeNull()
+        }
+    })
 
     it('transforms filters and keeps tenant/org/user predicates', async () => {
         const input = new URLSearchParams({

@@ -224,7 +224,14 @@ export interface ModelExecutionCallQuery {
   startedBefore?: string
 }
 
-/** Read-only attempt receipt. No request bodies, model credentials or provider secrets. */
+/** Filter choices from the current user's executions in the selected organization. */
+export interface ModelExecutionCallOptions {
+  assistants: Array<{ id: string; name: string }>
+  models: string[]
+  tools: string[]
+}
+
+/** Personal attempt receipt. Raw token usage and provider prices remain in administrative ledgers. */
 export interface ModelExecutionCallView {
   id: string
   callId: string
@@ -234,15 +241,8 @@ export interface ModelExecutionCallView {
   model: string
   status: import('./model-gateway.model').ModelGatewayCallStatusEnum
   usageSource: import('./model-gateway.model').ModelGatewayUsageSourceEnum
-  inputTokens: number
-  outputTokens: number
-  totalTokens: number
-  /** Budget still held for an attempt whose actual usage is not yet confirmed. */
-  reservedTokens: number
-  /** Diagnostic estimate only; excluded from actual token totals and charges. */
-  estimatedUsage: ModelExecutionUsageEstimate | null
-  priceAmount: number | null
-  priceCurrency: string | null
+  /** Model consumption points, independent of balance deductions; null means settlement or pricing is unresolved. */
+  points: number | null
   pricingStatus: 'priced' | 'free' | 'unpriced' | 'pending'
   startedAt: string
   completedAt: string | null

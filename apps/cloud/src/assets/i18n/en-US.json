@@ -3635,7 +3635,10 @@
         "pending": "Pending review"
       },
       "ExecutionUsageTitle": "Coding tool model usage",
-      "ExecutionUsageHint": "Your calls in the current organization. Unknown provider usage remains reserved until reconciled; it is not counted as zero consumption.",
+      "ExecutionUsageHint": "Your coding-tool model usage in this organization. Consumption is counted even on unlimited plans. Unbilled usage is converted at the current platform point rate; unsettled or unpriced usage is shown as “—”.",
+      "ExecutionPoints": "Points consumed",
+      "ExecutionSearchOrEnter": "Search or enter a name…",
+      "ExecutionUseValue": "Use “{{value}}”",
       "ExecutionRefresh": "Refresh",
       "ExecutionSelectOrganization": "Select an organization to view execution usage.",
       "ExecutionLoadFailed": "Could not load usage. Please retry.",
@@ -3758,6 +3761,10 @@
       "Pricing": "Pricing"
     },
     "Membership": {
+      "ConsumedPointsHint": "Current-cycle model consumption, including unlimited and unbilled use. Only priced usage is included.",
+      "QuotaPointUsage": "Plan quota used",
+      "RecentDebitSummary": "Recent point deductions",
+      "RecentDebitSummaryHint": "Balance deductions only; unbilled model consumption is included in used points above.",
       "AdminTitle": "Membership management",
       "Level": "Level",
       "LevelValidation": "Level must be a non-negative integer.",

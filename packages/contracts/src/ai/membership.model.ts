@@ -244,6 +244,8 @@ export interface IMembershipPointLedger extends IBasePerTenantEntityModel {
 }
 
 export interface IMembershipMe {
+  /** Model consumption in the current cycle, including unbilled/unlimited use. Independent of quota deductions. */
+  consumedPoints?: number
   membership: IUserMembership
   plan: IMembershipPlan
   personalPointsOnly: boolean

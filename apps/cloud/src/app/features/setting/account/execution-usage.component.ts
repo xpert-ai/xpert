@@ -5,18 +5,21 @@ import { Component, DestroyRef, effect, inject, signal, untracked } from '@angul
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { ModelExecutionCallView, ModelExecutionCallQuery } from '@xpert-ai/contracts'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardSelectImports } from '@xpert-ai/headless-ui'
 import { injectOrganizationId } from '../../../@core/state'
 import { CopilotUsageService } from '../../../@core/services/copilot-usage.service'
+
+const ALL_EXECUTION_FILTERS = '__all__'
 
 @Component({
   standalone: true,
   selector: 'xp-execution-usage',
-  imports: [ReactiveFormsModule, CommonModule, TranslateModule, ZardButtonComponent],
+  imports: [ReactiveFormsModule, CommonModule, TranslateModule, ZardButtonComponent, ...ZardSelectImports],
   templateUrl: './execution-usage.component.html'
 })
 export class ExecutionUsageComponent {
   readonly entry = modelExecutionEntry
+  readonly all = ALL_EXECUTION_FILTERS
   readonly #usage = inject(CopilotUsageService)
   readonly organizationId = injectOrganizationId()
   readonly items = signal<ModelExecutionCallView[]>([])
@@ -26,16 +29,29 @@ export class ExecutionUsageComponent {
   readonly page = signal(0)
   readonly pageSize = 20
   readonly assistants = signal<Array<{ id: string; name: string }>>([])
+  readonly models = signal<string[]>([])
+  readonly tools = signal<string[]>([])
   readonly filters = new FormGroup(
     {
-      entry: new FormControl<ModelExecutionCallQuery['entry'] | ''>('', { nonNullable: true }),
-      status: new FormControl<ModelExecutionCallQuery['status'] | ''>('', { nonNullable: true }),
-      environment: new FormControl<ModelExecutionCallQuery['environment'] | ''>('', { nonNullable: true }),
-      usageSource: new FormControl<ModelExecutionCallQuery['usageSource'] | ''>('', { nonNullable: true }),
-      pricingStatus: new FormControl<ModelExecutionCallQuery['pricingStatus'] | ''>('', { nonNullable: true }),
-      assistantId: new FormControl('', { nonNullable: true }),
-      model: new FormControl('', { nonNullable: true, validators: Validators.maxLength(191) }),
-      tool: new FormControl('', { nonNullable: true, validators: Validators.maxLength(80) }),
+      entry: new FormControl<ModelExecutionCallQuery['entry'] | typeof ALL_EXECUTION_FILTERS>(this.all, {
+        nonNullable: true
+      }),
+      status: new FormControl<ModelExecutionCallQuery['status'] | typeof ALL_EXECUTION_FILTERS>(this.all, {
+        nonNullable: true
+      }),
+      environment: new FormControl<ModelExecutionCallQuery['environment'] | typeof ALL_EXECUTION_FILTERS>(this.all, {
+        nonNullable: true
+      }),
+      usageSource: new FormControl<ModelExecutionCallQuery['usageSource'] | typeof ALL_EXECUTION_FILTERS>(this.all, {
+        nonNullable: true
+      }),
+      pricingStatus: new FormControl<ModelExecutionCallQuery['pricingStatus'] | typeof ALL_EXECUTION_FILTERS>(
+        this.all,
+        { nonNullable: true }
+      ),
+      assistantId: new FormControl(this.all, { nonNullable: true }),
+      model: new FormControl(this.all, { nonNullable: true, validators: Validators.maxLength(191) }),
+      tool: new FormControl(this.all, { nonNullable: true, validators: Validators.maxLength(80) }),
       executionId: new FormControl('', {
         nonNullable: true,
         validators: (control) => {
@@ -60,14 +76,14 @@ export class ExecutionUsageComponent {
     }
     const value = this.filters.getRawValue()
     this.#filter = {
-      entry: value.entry || undefined,
-      status: value.status || undefined,
-      environment: value.environment || undefined,
-      usageSource: value.usageSource || undefined,
-      pricingStatus: value.pricingStatus || undefined,
-      assistantId: value.assistantId || undefined,
-      model: value.model.trim() || undefined,
-      tool: value.tool.trim() || undefined,
+      entry: value.entry === this.all ? undefined : value.entry,
+      status: value.status === this.all ? undefined : value.status,
+      environment: value.environment === this.all ? undefined : value.environment,
+      usageSource: value.usageSource === this.all ? undefined : value.usageSource,
+      pricingStatus: value.pricingStatus === this.all ? undefined : value.pricingStatus,
+      assistantId: value.assistantId === this.all ? undefined : value.assistantId || undefined,
+      model: value.model === this.all ? undefined : value.model.trim() || undefined,
+      tool: value.tool === this.all ? undefined : value.tool.trim() || undefined,
       executionId: value.executionId.trim() || undefined,
       startedAfter: value.startedAfter ? new Date(value.startedAfter + 'T00:00:00').toISOString() : undefined,
       startedBefore: value.startedBefore ? new Date(value.startedBefore + 'T23:59:59.999').toISOString() : undefined
@@ -89,6 +105,8 @@ export class ExecutionUsageComponent {
         this.filters.reset()
         this.#filter = {}
         this.assistants.set([])
+        this.models.set([])
+        this.tools.set([])
         void this.loadOptions()
         void this.load()
       })
@@ -99,7 +117,11 @@ export class ExecutionUsageComponent {
     if (!this.organizationId()) return
     try {
       const result = await firstValueFrom(this.#usage.getExecutionCallOptions())
-      if (scopeVersion === this.#scopeVersion) this.assistants.set(result.assistants)
+      if (scopeVersion === this.#scopeVersion) {
+        this.assistants.set(result.assistants)
+        this.models.set(result.models)
+        this.tools.set(result.tools)
+      }
     } catch {
       /* Filtering by other dimensions remains available. */
     }
@@ -134,6 +156,10 @@ export class ExecutionUsageComponent {
   }
   executionId(item: ModelExecutionCallView) {
     return modelExecutionSourceId(item.context.source)
+  }
+  customOption(value: string, options: string[]) {
+    const normalized = value.trim()
+    return normalized && normalized !== this.all && !options.includes(normalized) ? normalized : null
   }
 }
 

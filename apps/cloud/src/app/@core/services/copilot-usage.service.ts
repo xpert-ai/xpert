@@ -3,6 +3,7 @@ import { inject, Injectable } from '@angular/core'
 import { API_PREFIX, PaginationParams, toHttpParams } from '@cloud/app/@core/state'
 import {
   ModelExecutionCallView,
+  ModelExecutionCallOptions,
   ModelExecutionCallQuery,
   ICopilotOrganization,
   ICopilotUsageGroupKey,
@@ -33,9 +34,7 @@ export class CopilotUsageService {
   readonly httpClient = inject(HttpClient)
 
   getExecutionCallOptions() {
-    return this.httpClient.get<{ assistants: Array<{ id: string; name: string }> }>(
-      API_PREFIX + '/model-execution/call-options'
-    )
+    return this.httpClient.get<ModelExecutionCallOptions>(API_PREFIX + '/model-execution/call-options')
   }
 
   getExecutionCalls(take: number, skip: number, filter: ModelExecutionCallQuery = {}) {
