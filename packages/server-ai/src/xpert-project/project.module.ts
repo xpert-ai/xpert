@@ -3,6 +3,7 @@ import { ProjectTypeProviderRegistry, ProjectTaskProviderRegistry } from '@xpert
 import { PluginApplicationInstallation } from '../plugin-resource/plugin-application-installation.entity'
 import { XpertProjectTypeService } from './services/project-type.service'
 import { ConversationProjectService } from './services/conversation-project.service'
+import { ProjectResourceCardService } from './services/project-resource-card.service'
 import { ProjectProvisioningRuntimeService } from './services/project-provisioning-runtime.service'
 import { FileAsset } from '../file-understanding/entities/file-asset.entity'
 import { XpertProjectPurgeService } from './services/project-purge.service'
@@ -130,6 +131,7 @@ import { ProjectTasksViewProvider } from './views/project-tasks.provider'
         ProjectTaskGraphController
     ],
     providers: [
+        ProjectResourceCardService,
         ConversationProjectService,
         ProjectTypeProviderRegistry,
         ProjectTaskProviderRegistry,
@@ -159,6 +161,7 @@ import { ProjectTasksViewProvider } from './views/project-tasks.provider'
         ...CommandHandlers
     ],
     exports: [
+        ProjectResourceCardService,
         XpertProjectService,
         XpertProjectAccessModule,
         XpertProjectContentService,

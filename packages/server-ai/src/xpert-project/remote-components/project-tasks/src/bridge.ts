@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { PROJECT_TASK_ICON_NAMES } from '@xpert-ai/contracts'
 import { installShadcnThemeVars } from '../../../../../../shadcn-ui/src/theme'
 
 const envelope = z
@@ -84,6 +85,14 @@ export const nodeSchema = z.object({
     title: z.string(),
     status: z.enum(['todo', 'in_progress', 'review', 'paused', 'done', 'blocked', 'cancelled']),
     kind: z.enum(['task', 'summary', 'milestone']),
+    taskType: z.string().nullish(),
+    presentation: z
+        .object({
+            label: z.object({ en_US: z.string(), zh_Hans: z.string().optional() }),
+            icon: z.enum(PROJECT_TASK_ICON_NAMES)
+        })
+        .nullish()
+        .catch(null),
     parentTaskId: z.string().nullable(),
     predecessorIds: z.array(z.string()),
     providerKey: z.string().nullable(),

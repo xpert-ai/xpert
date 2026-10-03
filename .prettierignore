@@ -10,3 +10,7 @@
 # Runtime locks are byte-hashed; preserve the output of the metadata generators.
 /packages/sandbox-runtime/images/document-*/dependencies.lock.json
 /packages/sandbox-runtime/images/document-*/models.lock.json
+
+# Remote component bundles are byte-verified by build-remote-react.mjs --check.
+/packages/server-ai/src/*/remote-components/*/app.js
+/packages/server-ai/src/*/remote-components/*/app.css

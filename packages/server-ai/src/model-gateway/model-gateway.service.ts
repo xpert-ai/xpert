@@ -1,6 +1,5 @@
 import { GatewayAdmissionPolicy } from './gateway-admission-policy'
 import { createGatewayChatModel } from './model-gateway-client'
-import { RequestContext } from '@xpert-ai/plugin-sdk'
 import {
     userName,
     resolveKeyExpiration,
@@ -14,40 +13,23 @@ import {
     applyScopeFilter,
     applyVisibleScopeFilter,
     requireTenantScope,
-    requireTenant,
     requireUserId,
     pageSize,
     pageOffset,
-    parseBoundedInteger,
-    isUniqueViolation,
-    buildCallRetentionSql,
-    readDeletedCount
+    isUniqueViolation
 } from './model-gateway.support'
 import {
     AIPermissionsEnum,
     DEFAULT_MODEL_GATEWAY_BODY_RETENTION_DAYS,
-    DEFAULT_MODEL_GATEWAY_CALL_RETENTION_DAYS,
-    DEFAULT_MODEL_GATEWAY_MAX_CONCURRENT_REQUESTS,
-    DEFAULT_MODEL_GATEWAY_REQUESTS_PER_MINUTE,
     ILLMUsage,
     IModelAccessResolution,
     IModelGatewayAdminSettings,
-    IModelGatewayApiKey,
     IModelGatewayApiKeyCreated,
-    MAX_MODEL_GATEWAY_CALL_RETENTION_DAYS,
-    MAX_MODEL_GATEWAY_MAX_CONCURRENT_REQUESTS,
-    MAX_MODEL_GATEWAY_REQUESTS_PER_MINUTE,
-    MIN_MODEL_GATEWAY_MAX_CONCURRENT_REQUESTS,
-    MIN_MODEL_GATEWAY_REQUESTS_PER_MINUTE,
     ModelAccessUnavailableReasonEnum,
     ModelGatewayApiKeyLifetimeEnum,
     ModelGatewayApiKeyStatusEnum,
     ModelGatewayCallStatusEnum,
     ModelGatewayUsageSourceEnum,
-    MODEL_GATEWAY_CALL_RETENTION_DAYS_SETTING,
-    MODEL_GATEWAY_CALL_RETENTION_ENABLED_SETTING,
-    MODEL_GATEWAY_MAX_CONCURRENT_REQUESTS_SETTING,
-    MODEL_GATEWAY_REQUESTS_PER_MINUTE_SETTING,
     TModelGatewaySettingsUpdateInput,
     UserType
 } from '@xpert-ai/contracts'
@@ -74,6 +56,7 @@ import { settleChargeToCny } from '../membership/model-billing'
 import { AgentMiddlewareRuntimeService } from '../shared/agent/middleware-runtime/index'
 import { ModelGatewayApiKey } from './model-gateway-api-key.entity'
 import { ModelGatewayCall } from './model-gateway-call.entity'
+import { purgeModelGatewayCallBatch } from './model-gateway-call-retention'
 import { ModelGatewayPublication } from './model-gateway-publication.entity'
 import { ModelGatewaySettings } from './model-gateway-settings.entity'
 import { modelGatewayMessage } from './model-gateway.i18n'
@@ -751,15 +734,10 @@ export class ModelGatewayService {
         let batchLimitReached = false
 
         while (batches < CALL_RETENTION_MAX_BATCHES) {
-            const rows = await this.callRepository.manager.query(buildCallRetentionSql(), [
-                MODEL_GATEWAY_CALL_RETENTION_ENABLED_SETTING,
-                MODEL_GATEWAY_CALL_RETENTION_DAYS_SETTING,
-                DEFAULT_MODEL_GATEWAY_CALL_RETENTION_DAYS,
-                MAX_MODEL_GATEWAY_CALL_RETENTION_DAYS,
-                [ModelGatewayCallStatusEnum.Succeeded, ModelGatewayCallStatusEnum.Failed],
+            const batchDeleted = await purgeModelGatewayCallBatch(
+                this.callRepository.manager,
                 CALL_RETENTION_BATCH_SIZE
-            ])
-            const batchDeleted = readDeletedCount(rows)
+            )
             if (!batchDeleted) {
                 break
             }

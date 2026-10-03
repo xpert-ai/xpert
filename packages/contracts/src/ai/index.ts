@@ -4,13 +4,6 @@ export * from './prompt-workflow-capabilities.model'
 export { ChatMessageEventTypeEnum, ChatMessageStepCategory, ChatMessageTypeEnum } from './ai.model'
 
 export type * from '@xpert-ai/chatkit-types'
-export {
-  createResourceCardContent,
-  parseResourceCard,
-  parseResourceCardContent,
-  isResourceCardContent,
-  upsertResourceCardContent
-} from '@xpert-ai/chatkit-types'
 export type { IconDefinition, IconType } from '../types'
 export type { TChatRequest } from './xpert-chat.model'
 export type { ProjectSelection } from './project-selection.model'
@@ -22,6 +15,20 @@ export * from './assistant-user-preference.model'
 export * from './ai-model.model'
 export * from './ai.model'
 export * from './chat-event.model'
+export {
+  createResourceCardContent,
+  isResourceCardContent,
+  parseResourceCard,
+  parseResourceCardContent,
+  resourceCardId,
+  upsertResourceCardContent
+} from './resource-card'
+export type {
+  ConversationResourceCard,
+  ResourceCardOpenTarget,
+  ResourceCardScalar,
+  TMessageContentResourceCard
+} from './resource-card'
 export * from './thread-goal.model'
 export * from './chat.model'
 export * from './chat-message.model'

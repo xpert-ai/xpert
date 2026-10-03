@@ -1,13 +1,20 @@
-import { ChatMessageTypeEnum, createResourceCardContent, parseResourceCardContent } from '@xpert-ai/contracts'
+import {
+    ChatMessageEventTypeEnum,
+    ChatMessageTypeEnum,
+    createResourceCardContent,
+    parseResourceCardContent
+} from '@xpert-ai/contracts'
 
-/** Reject malformed cards; never accept message/execution identities from the emitting tool. */
+/** Resource presentation cannot choose its owning reply or execution. */
 export function bindResourceCardEvent(value: unknown, owner: { messageId: string; executionId?: string }) {
+    if (!value || typeof value !== 'object' || !('type' in value) || !('data' in value)) return null
     if (
-        !value ||
-        typeof value !== 'object' ||
-        !('type' in value) ||
-        value.type !== ChatMessageTypeEnum.MESSAGE ||
-        !('data' in value)
+        value.type !== ChatMessageTypeEnum.MESSAGE &&
+        !(
+            value.type === ChatMessageTypeEnum.EVENT &&
+            'event' in value &&
+            value.event === ChatMessageEventTypeEnum.ON_CHAT_EVENT
+        )
     )
         return null
     const content = parseResourceCardContent(value.data)

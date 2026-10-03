@@ -97,7 +97,7 @@ export class ConversationProjectService {
                 defaultValue: '{{assistant}} project',
                 assistant: xpert.title || xpert.name
             })
-            const { classification, name } = await this.types.forConversation(
+            const { classification, name, resourceCards } = await this.types.forConversation(
                 currentXpert.options?.workspaceScope?.projectType,
                 currentXpert,
                 {
@@ -116,7 +116,11 @@ export class ConversationProjectService {
                     status: 'active',
                     settings: {
                         managementMode: 'simple',
-                        conversationBootstrap: { conversationId: current.id, initialName: name }
+                        conversationBootstrap: {
+                            conversationId: current.id,
+                            initialName: name,
+                            ...(resourceCards?.length ? { resourceCards } : {})
+                        }
                     },
                     tenantId,
                     organizationId,

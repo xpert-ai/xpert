@@ -1,10 +1,3 @@
-import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
-import type { RunnableConfig } from '@langchain/core/runnables'
-import { createResourceCardContent, type ConversationResourceCard } from '@xpert-ai/contracts'
-
+/** Older runtime plugins can still send this event; new emissions use ON_CHAT_EVENT. */
 export const RESOURCE_CARD_EVENT = 'xpert.resource_card'
-
-/** Emit only after the resource is committed. The host binds the owning reply and execution. */
-export async function emitResourceCard(card: ConversationResourceCard, config: RunnableConfig) {
-  await dispatchCustomEvent(RESOURCE_CARD_EVENT, createResourceCardContent(card), config)
-}
+export { emitResourceCard } from '../resource-card'

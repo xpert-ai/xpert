@@ -5,14 +5,17 @@ import type { MembershipPointLedger } from '../../membership/membership-point-le
 /** This augments the existing tenant/organization restrictions; it never replaces them. */
 export function applyExecutionUsageFilters(
     qb: SelectQueryBuilder<MembershipPointLedger>,
-    query: ModelUsageLedgerQuery
+    query: ModelUsageLedgerQuery,
+    columnNaming: 'entity' | 'projection' = 'entity'
 ) {
-    // Quote camel-case columns explicitly: TypeORM does not rewrite names next to JSON operators.
-    const context = '"ledger"."executionContext"'
+    // The gateway CTE uses lowercase aliases; entity queries retain quoted camel-case columns.
+    const column = (name: 'executionContext' | 'usageChannel' | 'xpertId') =>
+        `"ledger"."${columnNaming === 'projection' ? name.toLowerCase() : name}"`
+    const context = column('executionContext')
     const fields = [
-        ['usageChannel', `COALESCE("ledger"."usageChannel", 'xpert')`],
+        ['usageChannel', `COALESCE(${column('usageChannel')}, 'xpert')`],
         ['environmentType', `${context}->'environment'->>'type'`],
-        ['assistantId', 'CAST("ledger"."xpertId" AS text)'],
+        ['assistantId', `CAST(${column('xpertId')} AS text)`],
         ['conversationId', `${context}->>'conversationId'`],
         ['executionId', `COALESCE(${context}->'source'->>'invocationId', ${context}->'source'->>'cliSessionId')`],
         ['tool', `${context}->'tool'->>'id'`]

@@ -90,6 +90,7 @@ import { t } from 'i18next'
 import { randomUUID } from 'crypto'
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
 import { exposeModelProfile, prepareModelCall } from '../../../shared/agent/model-call'
+import { withModelRequirements } from '../../../shared/agent/model-requirements'
 import {
     createExecutionModelUsageRecorder,
     type TExecutionUsageRecord,
@@ -1418,7 +1419,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 if (!middleware?.wrapModelCall) {
                     return next
                 }
-                return (request) => middleware.wrapModelCall(request, next)
+                return withModelRequirements((request, handler) => middleware.wrapModelCall(request, handler), next)
             }, defaultModelHandler)
             try {
                 const message: AIMessage | object = await wrappedModelHandler(baseRequest)

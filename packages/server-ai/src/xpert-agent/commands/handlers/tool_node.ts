@@ -115,7 +115,10 @@ export class ToolNode<T = any> extends Runnable<T, T> {
                         ? await this.wrapToolCall(toolRequest, defaultHandler)
                         : await defaultHandler(toolRequest)
                     if (isBaseMessage(output) && output.getType() === 'tool') {
-                        // Fix non-string content: should be fixed in langchain-mcp-adapters _convertCallToolResult line 367
+                        // TODO: Support portable multimodal tool content after provider-specific
+                        // role conversion and checkpoint policies are defined and verified.
+                        // Keep tool results textual; scoped tool images use references and
+                        // temporary model input through ToolImagesRuntimeCapability.
                         if (!!output.content && typeof output.content !== 'string') {
                             output.content = JSON.stringify(output.content)
                         }

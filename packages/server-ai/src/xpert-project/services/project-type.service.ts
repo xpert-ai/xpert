@@ -26,6 +26,7 @@ import { effectiveLoadedPlugins } from '../../plugin-resource/effective-loaded-p
 import { PublishedXpertAccessService } from '../../xpert/published-xpert-access.service'
 import { XpertProject } from '../entities/project.entity'
 import { XpertProjectAccessService } from './project-access.service'
+import { parseResourceCard } from '@xpert-ai/contracts'
 
 type RegisteredType = XpertProjectTypeSummary & { pluginName?: string; appName?: string; scopeKey?: string }
 
@@ -198,7 +199,19 @@ export class XpertProjectTypeService {
         ) {
             throw new ConflictException(t('server-ai:Error.ProjectManagedStateConflict'))
         }
-        return { classification, name: state.name }
+        const resourceCards = state.resourceCards?.map((value) => {
+            const card = parseResourceCard(value)
+            if (
+                !card ||
+                card.open.target !== 'assistant.project' ||
+                card.open.projectId !== input.projectId ||
+                card.resource.id !== input.projectId
+            ) {
+                throw new ConflictException(t('server-ai:Error.ProjectManagedStateConflict'))
+            }
+            return card
+        })
+        return { classification, name: state.name, ...(resourceCards?.length ? { resourceCards } : {}) }
     }
 
     /**

@@ -1,6 +1,7 @@
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
-import { createResourceCardContent, type ConversationResourceCard } from '@xpert-ai/contracts'
-import { emitResourceCard, RESOURCE_CARD_EVENT } from './resource-card'
+import { ChatMessageEventTypeEnum, createResourceCardContent, type ConversationResourceCard } from '@xpert-ai/contracts'
+import { emitResourceCard } from './resource-card'
+import { emitResourceCard as emitPublicResourceCard } from '../resource-card'
 
 jest.mock('@langchain/core/callbacks/dispatch', () => ({ dispatchCustomEvent: jest.fn() }))
 
@@ -13,6 +14,11 @@ describe('resource card event bridge', () => {
     }
     const config = { tags: ['current-tool'] }
     await emitResourceCard(card, config)
-    expect(dispatchCustomEvent).toHaveBeenCalledWith(RESOURCE_CARD_EVENT, createResourceCardContent(card), config)
+    expect(emitResourceCard).toBe(emitPublicResourceCard)
+    expect(dispatchCustomEvent).toHaveBeenCalledWith(
+      ChatMessageEventTypeEnum.ON_CHAT_EVENT,
+      createResourceCardContent(card),
+      config
+    )
   })
 })

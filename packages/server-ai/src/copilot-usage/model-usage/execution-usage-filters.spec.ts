@@ -1,5 +1,5 @@
 import { DataSource } from 'typeorm'
-import type { ModelUsageLedgerQuery } from '@xpert-ai/contracts'
+import { ModelGatewayUsageChannelEnum, type ModelUsageLedgerQuery } from '@xpert-ai/contracts'
 import type { MembershipPointLedger } from '../../membership/membership-point-ledger.entity'
 import { applyExecutionUsageFilters } from './execution-usage-filters'
 
@@ -41,5 +41,26 @@ describe('execution usage SQL filters', () => {
         expect(sql).not.toContain(tool)
         expect(sql).not.toContain('cliSessionId')
         expect(parameters).toEqual(['tenant-test', 'org-test', tool])
+    })
+
+    it('filters the gateway projection using its lowercase aliases without changing JSON keys', () => {
+        const qb = query()
+        applyExecutionUsageFilters(
+            qb,
+            {
+                usageChannel: ModelGatewayUsageChannelEnum.Cli,
+                assistantId: 'assistant',
+                conversationId: 'conversation',
+                executionId: 'session'
+            },
+            'projection'
+        )
+        const [sql, parameters] = qb.getQueryAndParameters()
+        expect(sql).toContain(`COALESCE("ledger"."usagechannel", 'xpert')`)
+        expect(sql).toContain('CAST("ledger"."xpertid" AS text)')
+        expect(sql).toContain(`"ledger"."executioncontext"->>'conversationId'`)
+        expect(sql).toContain(`"ledger"."executioncontext"->'source'->>'cliSessionId'`)
+        expect(sql).not.toContain('"executionContext"')
+        expect(parameters).toEqual(['tenant-test', 'org-test', 'cli', 'assistant', 'conversation', 'session'])
     })
 })

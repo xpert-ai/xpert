@@ -24,6 +24,10 @@ jest.mock('../../project/project-api.service', () => ({
 
 import { NavigationEnd, Router } from '@angular/router'
 import { TestBed } from '@angular/core/testing'
+import { signal } from '@angular/core'
+import type { XpertExtensionViewManifest, XpertViewQuery } from '@xpert-ai/contracts'
+import { createWorkbenchProjectNavigation } from '../clawxpert/workbench-project-navigation'
+import type { ClawXpertWorkspaceTab } from '../clawxpert/conversation-detail/workspace/tabs'
 import { Subject, of, throwError } from 'rxjs'
 import { TranslateService } from '@ngx-translate/core'
 import type { ChatKitControl } from '@xpert-ai/chatkit-angular'
@@ -277,6 +281,54 @@ describe('XpertWorkbenchFacade', () => {
     setRoute('/chat/x/sales/p/project-1/c/thread-2')
     expect(facade.chatkitMountProjectId()).toBe('project-1')
     expect(facade.identity()).not.toBe(identity)
+  })
+
+  it('keeps the first-send ChatKit mount and active conversation when opening its project receipt', async () => {
+    router.url = '/chat/x/sales/c/thread-1'
+    const facade = TestBed.inject(XpertWorkbenchFacade)
+    await settle()
+    const identity = facade.identity()
+    const conversation = { id: 'conversation-1', threadId: 'thread-1', projectId: 'project-1' } as IChatConversation
+    conversationService.getByThreadId.mockReturnValue(of(conversation))
+    await facade.syncConversationProject('thread-1')
+    setRoute('/chat/x/sales/p/project-1/c/thread-1')
+    facade.setActiveConversation(conversation)
+    const activeConversation = facade.activeConversation()
+    const selectProject = jest.spyOn(facade, 'onChatProjectChange')
+    const manifest: XpertExtensionViewManifest = {
+      key: 'platform.project-tasks__timeline',
+      title: 'Tasks',
+      hostType: 'agent',
+      slot: 'agent.workbench.fixed',
+      source: { provider: 'platform.project-tasks' },
+      view: { type: 'table' },
+      dataSource: { mode: 'platform' }
+    }
+    const tabs = signal<ClawXpertWorkspaceTab[]>([])
+    const navigation = TestBed.runInInjectionContext(() =>
+      createWorkbenchProjectNavigation({
+        hostId: facade.assistantId,
+        routeKey: () => `${facade.assistantId()}:${facade.threadId()}`,
+        language: () => 'en',
+        views: { getSlotViews: () => of([manifest]) },
+        tabs,
+        activate: () => setRoute(`/chat/x/sales/p/project-1/c/thread-1?view=${manifest.key}&viewProject=project-1`),
+        selectProject: (id) => facade.onChatProjectChange(id),
+        url: { viewKey: signal(null), viewQuery: signal<XpertViewQuery | null>(null), projectId: signal(null) },
+        onError: (error) => {
+          throw error
+        }
+      })
+    )
+    await navigation.open({ projectId: 'project-1', view: { viewKey: manifest.key } })
+    await settle()
+    expect(selectProject).not.toHaveBeenCalled()
+    expect(facade.activeConversation()).toBe(activeConversation)
+    expect(facade.threadId()).toBe('thread-1')
+    expect(facade.chatkitMountProjectId()).toBeNull()
+    expect(facade.identity()).toBe(identity)
+    expect(facade.suppressAutoResume()).toBe(false)
+    expect(tabs()[0]).toMatchObject({ projectScope: { projectId: 'project-1' } })
   })
 
   it('ignores late project lookups after the user switches conversations', async () => {

@@ -10,6 +10,12 @@ import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { MembershipPointLedger } from '../../membership/membership-point-ledger.entity'
 import { ModelUsageLedgerService } from './model-usage-ledger.service'
 
+jest.mock('./model-usage-read-query', () => ({
+    createModelUsageReadQuery: (repository: { createQueryBuilder: (alias: string) => unknown }) =>
+        repository.createQueryBuilder('ledger'),
+    readModelUsageEntries: (query: { getMany: () => Promise<MembershipPointLedger[]> }) => query.getMany()
+}))
+
 describe('ModelUsageLedgerService', () => {
     afterEach(() => {
         jest.restoreAllMocks()

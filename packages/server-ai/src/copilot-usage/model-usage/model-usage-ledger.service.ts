@@ -2,18 +2,8 @@ import {
     modelUsageRequestKeySql,
     modelUsageAccountKeySql,
     modelUsageBreakdownKeySql,
-    modelUsageBreakdownKeyPartSql,
     pricingStatusFromRank,
     toLedgerEntry,
-    toUsageDetails,
-    toUsageLedgerDto,
-    toUsageLedgerItem,
-    toLegacyUsageLedgerDto,
-    toChargeDto,
-    toMetric,
-    isStoredModelUsageEntry,
-    isStoredUsageLedgerEntry,
-    isLegacyUsageLedgerEntry,
     requireText,
     normalizeTake,
     normalizeText,
@@ -22,9 +12,6 @@ import {
     normalizeOptionalTokenCount,
     normalizePriceAmount,
     displayUserName,
-    StoredModelUsageEntry,
-    StoredUsageLedgerEntry,
-    LegacyUsageLedgerEntry,
     USAGE_HOUR_FORMAT,
     UNKNOWN_USAGE_ACCOUNT_KEY,
     LEGACY_USAGE_SOURCES,
@@ -33,7 +20,6 @@ import {
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { applyExecutionUsageFilters } from './execution-usage-filters'
 import type {
-    IModelChargeLedger,
     IModelUsageDetails,
     IModelUsageLedger,
     IPagination,
@@ -43,21 +29,15 @@ import type {
     ModelUsageLedgerQuery,
     ModelUsageLedgerTotals,
     ModelUsageLedgerModality,
-    ModelUsageLedgerOperation,
     ModelUsageMetric,
-    ModelUsageModality,
-    ModelUsageOperation,
-    ModelUsagePricingStatus,
     ModelUsagePricingSnapshot,
     ModelUsageReport,
     ModelUsageReportResult
 } from '@xpert-ai/contracts'
-import { AiModelTypeEnum, MembershipLedgerSourceEnum, ModelGatewayUsageChannelEnum } from '@xpert-ai/contracts'
-import { calculateModelUsageCharge } from '@xpert-ai/plugin-sdk'
+import { MembershipLedgerSourceEnum, ModelGatewayUsageChannelEnum } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { User } from '@xpert-ai/server-core'
-import { t } from 'i18next'
 import { randomUUID } from 'node:crypto'
 import { In, type Repository } from 'typeorm'
 import { MembershipPointLedger } from '../../membership/membership-point-ledger.entity'
@@ -69,7 +49,9 @@ import type {
     CopilotTokenUsageRecordingScope,
     CopilotTokenUsageReport
 } from '../copilot-usage.types'
-import { modelUsageMetricKey, normalizeModelUsageMetrics } from './model-usage.utils'
+import { toUsageDetails, toUsageLedgerItem } from './model-usage-ledger.adapters'
+import { createModelUsageReadQuery, readModelUsageEntries } from './model-usage-read-query'
+import { normalizeModelUsageMetrics } from './model-usage.utils'
 
 @Injectable()
 export class ModelUsageLedgerService {
@@ -300,12 +282,12 @@ export class ModelUsageLedgerService {
         ])
         const total = Number(countRow?.total) || 0
         if (!requestRows.length) return { items: [], total }
-        const entries = await this.baseQuery(query)
+        const entriesQuery = this.baseQuery(query)
             .andWhere(`${requestKeySql} IN (:...requestKeys)`, {
                 requestKeys: requestRows.map(({ requestKey }) => requestKey)
             })
             .orderBy('COALESCE(ledger.recordedAt, ledger.createdAt)', 'DESC')
-            .getMany()
+        const entries = await readModelUsageEntries(entriesQuery, this.repository)
         const items = entries.map(toUsageLedgerItem).filter((entry): entry is IModelUsageLedger => entry !== null)
         return { items: await this.attachUserNames(items), total }
     }
@@ -625,14 +607,13 @@ export class ModelUsageLedgerService {
     private baseQuery(query: ModelUsageLedgerQuery) {
         const tenantId = RequestContext.currentTenantId()
         const currentOrganizationId = RequestContext.getOrganizationId()
-        const qb = this.repository
-            .createQueryBuilder('ledger')
+        const qb = createModelUsageReadQuery(this.repository)
             .where('ledger.tenantId = :tenantId', { tenantId })
             .andWhere(`(ledger.source = :modelUsageSource OR (${LEGACY_USAGE_PREDICATE}))`, {
                 modelUsageSource: MembershipLedgerSourceEnum.ModelUsage,
                 legacyUsageSources: LEGACY_USAGE_SOURCES
             })
-        applyExecutionUsageFilters(qb, query)
+        applyExecutionUsageFilters(qb, query, 'projection')
         const organizationId = currentOrganizationId ?? normalizeText(query.organizationId)
         if (organizationId) qb.andWhere('ledger.organizationId = :organizationId', { organizationId })
         const provider = normalizeText(query.provider)

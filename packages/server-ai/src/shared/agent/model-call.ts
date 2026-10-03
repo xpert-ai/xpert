@@ -15,6 +15,7 @@ import { prepareMessagesForModel } from '../../copilot-model/model-capabilities'
 import { ToolSchemaParser } from '../tools/utils'
 import { createParameters } from './parameter'
 import { FakeStreamingChatModel } from './fake-streaming-chat-model'
+import { snapshotModelRequirements } from './model-requirements'
 
 type ToolBindableModel = LanguageModelLike & { bindTools: NonNullable<BaseChatModel['bindTools']> }
 type StructuredOutputModel = LanguageModelLike & { withStructuredOutput: BaseChatModel['withStructuredOutput'] }
@@ -51,10 +52,11 @@ export function exposeModelProfile<T extends LanguageModelLike>(model: T): T {
  * authorization remains the responsibility of the tool execution boundary.
  */
 export async function prepareModelCall(
-    request: Pick<ModelRequest, 'model' | 'messages' | 'systemMessage' | 'tools' | 'toolChoice'>,
+    request: Pick<ModelRequest, 'model' | 'messages' | 'systemMessage' | 'tools' | 'toolChoice' | 'requirements'>,
     { registeredTools, agent, resolveFallbackModel }: ModelCallOptions
 ) {
     const tools = [...request.tools]
+    const requirements = snapshotModelRequirements(request.requirements)
     const toolChoice: ModelRequest['toolChoice'] =
         typeof request.toolChoice === 'object'
             ? { type: request.toolChoice.type, function: { name: request.toolChoice.function.name } }
@@ -137,7 +139,7 @@ export async function prepareModelCall(
         }
         return RunnableLambda.from((input: BaseMessage[], config?: RunnableConfig) => {
             config?.signal?.throwIfAborted()
-            return bound.invoke(prepareMessagesForModel(input, model), config)
+            return bound.invoke(prepareMessagesForModel(input, model, requirements), config)
         })
     }
 
@@ -155,7 +157,8 @@ export async function prepareModelCall(
         }
         model = model.withFallbacks([bindModel(await resolveFallbackModel())])
     }
-    if (options?.errorHandling?.type === 'defaultValue') {
+    // A static response cannot satisfy an explicit model capability requirement.
+    if (options?.errorHandling?.type === 'defaultValue' && !requirements?.features?.length) {
         const content = options.errorHandling.defaultValue?.content
         if (!content) {
             throw new Error(

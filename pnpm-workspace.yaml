@@ -8,11 +8,11 @@ packages:
 
 # Cloud, Desktop, API source and Docker stages share one ChatKit release.
 catalog:
-  '@xpert-ai/chatkit-angular': 0.8.0
-  '@xpert-ai/chatkit-types': 0.8.0
-  '@xpert-ai/chatkit-ui': 0.8.0
-  '@xpert-ai/chatkit-web-component': 0.8.0
-  '@xpert-ai/chatkit-web-shared': 0.8.0
+  '@xpert-ai/chatkit-angular': 0.9.0
+  '@xpert-ai/chatkit-types': 0.9.0
+  '@xpert-ai/chatkit-ui': 0.9.0
+  '@xpert-ai/chatkit-web-component': 0.9.0
+  '@xpert-ai/chatkit-web-shared': 0.9.0
 
 # Keep overrides here so replacing the root manifest in Docker preserves them.
 overrides:

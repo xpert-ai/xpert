@@ -147,6 +147,31 @@ describe('first-send Project creation', () => {
         )
     })
 
+    it('saves a provider receipt with the Project and conversation binding in the creation transaction', async () => {
+        const resourceCards = [
+            {
+                resource: { namespace: 'platform', type: 'project', id: 'project' },
+                title: 'Bid',
+                open: { target: 'assistant.project', projectId: 'project', viewKey: 'platform.project-tasks__timeline' }
+            }
+        ]
+        classification.mockResolvedValue({
+            classification: { applicationKey: 'bid', projectTypeKey: 'bid' },
+            name: 'Tender',
+            resourceCards
+        })
+        await service.prepare(conversation, xpert)
+        expect(save).toHaveBeenCalledWith(
+            expect.objectContaining({
+                settings: expect.objectContaining({
+                    conversationBootstrap: { conversationId: conversation.id, initialName: 'Tender', resourceCards }
+                })
+            })
+        )
+        expect(transaction).toHaveBeenCalledTimes(1)
+        expect(query).toHaveBeenCalled()
+    })
+
     it('propagates a transaction writer failure before platform creation or conversation binding', async () => {
         transactionalSave.mockRejectedValueOnce(new Error('business write failed'))
         classification.mockImplementationOnce(async (_ref, _xpert, input: ConversationProjectCreation) => {

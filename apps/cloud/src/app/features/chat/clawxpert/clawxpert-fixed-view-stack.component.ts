@@ -9,6 +9,8 @@ export type ClawXpertFixedViewTab = {
   title: string
   icon: IconDefinition | null
   query: XpertViewQuery | null
+  /** A resource View owns its Project independently of the active chat. */
+  projectScope?: { projectId: string }
 }
 
 @Component({
@@ -29,7 +31,7 @@ export type ClawXpertFixedViewTab = {
         [viewKey]="tab.viewKey"
         [query]="tab.query"
         [fillAvailableHeight]="true"
-        [runtimeScope]="runtimeScope()"
+        [runtimeScope]="tab.projectScope ?? runtimeScope()"
         [runtimeUserId]="runtimeUserId()"
       />
     }

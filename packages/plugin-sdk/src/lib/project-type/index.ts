@@ -1,8 +1,10 @@
 import { applyDecorators, Injectable, SetMetadata } from '@nestjs/common'
 import { DiscoveryService, Reflector } from '@nestjs/core'
-import type { XpertProjectTypeRef } from '@xpert-ai/contracts'
+import type { XpertProjectTypeRef, ConversationResourceCard } from '@xpert-ai/contracts'
 import { BaseStrategyRegistry } from '../strategy'
 import { STRATEGY_META_KEY } from '../types'
+
+export type { XpertProjectTypeRef, ConversationResourceCard }
 
 export interface ProjectTypeContext extends XpertProjectTypeRef {
   tenantId: string
@@ -61,7 +63,7 @@ export interface IProjectTypeProvider {
   createForConversation?(
     context: ProjectTypeContext,
     input: ConversationProjectCreation
-  ): Promise<ProjectTypeBinding & { name: string; status: 'active' }>
+  ): Promise<ProjectTypeBinding & { name: string; status: 'active'; resourceCards?: ConversationResourceCard[] }>
 }
 
 export const PROJECT_TYPE_PROVIDER = 'PROJECT_TYPE_PROVIDER'

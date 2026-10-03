@@ -6,7 +6,7 @@ import {
   executeChatProjectCreate,
   type ChatProjectCreateRequest
 } from '../../project/project-chat-create'
-import { openWorkbenchProject } from './workbench-project-navigation'
+import { createWorkbenchProjectNavigation } from './workbench-project-navigation'
 import { FileDocumentStore } from '../../../@shared/files/document/file-document-store'
 import { registerAssistantComposerAppendReferencesCommand } from '../../assistant/assistant-composer-client-command'
 import { CommonModule } from '@angular/common'
@@ -377,6 +377,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       enabled: true,
       viewRail: { enabled: true },
       onClientCommand: createChatkitWorkbenchClientCommandHandler({
+        conversations: this.#conversationService,
         getScope: () => ({
           assistantId: this.chatkitAssistantId(),
           runtimeScope: {
@@ -560,6 +561,20 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       conversationId: projectId ? null : this.resolvedConversationId()
     }
   })
+  readonly #projectViews = createWorkbenchProjectNavigation({
+    hostId: () => this.fixedViewHostId(),
+    routeKey: () => this.#hostChatRouteKey(),
+    language: () => this.#translate.currentLang,
+    views: this.#viewExtensionApi,
+    tabs: this.workspaceTabs,
+    activate: (id, mode) => {
+      this.activateWorkspaceTab(id, mode)
+      this.openDetailPanel()
+    },
+    selectProject: (id) => this.facade.onChatProjectChange?.(id),
+    url: this.#workbenchViewUrlState,
+    onError: (error) => this.#toastr.error(getErrorMessage(error))
+  })
   readonly conversationFilesMode = computed<'editable' | 'readonly'>(() => {
     if (!this.runtimeProjectId()) {
       return 'editable'
@@ -678,7 +693,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     this.#unregisterNavigationOpenCommand = registerWorkbenchNavigationOpenCommand(this.#clientCommands, {
       navigate: (commands, options) => this.#router.navigate(commands, options),
       openAssistantConversation: (request) => this.openWorkbenchAssistantConversation(request),
-      openAssistantProject: (request) => openWorkbenchProject(request, this.availableWorkbenchViews(), this.facade),
+      openAssistantProject: (request) => this.#projectViews.open(request),
       openWorkbenchView: (request) => this.openWorkbenchView(request)
     })
 
@@ -837,9 +852,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       const requestedViewKey = this.#workbenchViewUrlState.viewKey()
       const hostId = this.fixedViewHostId()
       const loading = this.loadingFixedViews()
-      const fixedTabs = this.fixedViewTabs()
+      const fixedTabs = this.fixedViewTabs().filter((tab) => !tab.projectScope)
 
-      if (!hostId || loading) {
+      if (this.#workbenchViewUrlState.projectId() || !hostId || loading) {
         return
       }
 
@@ -882,6 +897,11 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
           this.activateWorkspaceTab(fallbackTab.id, 'none')
         } else {
           const activeFixedView = this.activeFixedViewTab()
+          if (activeFixedView?.projectScope) {
+            this.activeTabId.set(fixedTabs[0]?.id ?? '')
+            if (!fixedTabs.length) this.closeDetailPanel()
+            return
+          }
           if (activeFixedView) {
             void this.#workbenchViewUrlState.setViewKey(activeFixedView.viewKey, { replaceUrl: true })
           }
@@ -1328,7 +1348,10 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     this.activeTabId.set(tab.id)
     if (tab.kind === 'fixed-view') {
       if (urlMode !== 'none') {
-        void this.#workbenchViewUrlState.setViewState(tab.viewKey, tab.query, { replaceUrl: urlMode === 'replace' })
+        void this.#workbenchViewUrlState.setViewState(tab.viewKey, tab.query, {
+          replaceUrl: urlMode === 'replace',
+          projectId: tab.projectScope?.projectId
+        })
       }
     } else {
       this.#lastNonFixedTabId = tab.id
@@ -1504,7 +1527,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   }
 
   openFixedViewTab(fixedView: ClawXpertFixedViewMenuItem) {
-    const existing = this.fixedViewTabs().find((tab) => tab.viewKey === fixedView.viewKey)
+    const existing = this.fixedViewTabs().find((tab) => !tab.projectScope && tab.viewKey === fixedView.viewKey)
     if (existing) {
       this.activateWorkspaceTab(existing.id, 'push')
       return existing
@@ -1624,10 +1647,12 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       ...(request.selectionId ? { selectionId: request.selectionId } : {}),
       ...(request.parameters ? { parameters: request.parameters } : {})
     }
-    const existing = this.fixedViewTabs().find((tab) => tab.viewKey === resolvedViewKey)
+    const existing = this.fixedViewTabs().find((tab) => !tab.projectScope && tab.viewKey === resolvedViewKey)
     if (existing) {
       this.workspaceTabs.update((tabs) =>
-        tabs.map((tab) => (tab.kind === 'fixed-view' && tab.viewKey === resolvedViewKey ? { ...tab, query } : tab))
+        tabs.map((tab) =>
+          tab.kind === 'fixed-view' && !tab.projectScope && tab.viewKey === resolvedViewKey ? { ...tab, query } : tab
+        )
       )
     }
     const opened = this.openFixedViewTab(menuItem)
@@ -1948,12 +1973,14 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     const itemByViewKey = new Map(items.map((item) => [item.viewKey, item]))
     const tabs = this.workspaceTabs()
     const fixedTabsByViewKey = new Map(
-      tabs.filter((tab): tab is ClawXpertFixedViewTab => tab.kind === 'fixed-view').map((tab) => [tab.viewKey, tab])
+      tabs
+        .filter((tab): tab is ClawXpertFixedViewTab => tab.kind === 'fixed-view' && !tab.projectScope)
+        .map((tab) => [tab.viewKey, tab])
     )
     const nextFixedTabs = initiallyOpenViews(
       items,
       [...fixedTabsByViewKey.keys()],
-      this.#workbenchViewUrlState.viewKey()
+      this.#workbenchViewUrlState.projectId() ? null : this.#workbenchViewUrlState.viewKey()
     ).map((item) => {
       const tab = fixedTabsByViewKey.get(item.viewKey)
       if (!tab) {
@@ -1970,12 +1997,12 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         icon: item.icon
       }
     })
-    const nextNonFixedTabs = tabs.filter((tab) => tab.kind !== 'fixed-view')
+    const nextNonFixedTabs = tabs.filter((tab) => tab.kind !== 'fixed-view' || tab.projectScope)
     const nextTabs: ClawXpertWorkspaceTab[] = [...nextNonFixedTabs, ...nextFixedTabs]
     const changed =
       nextTabs.length !== tabs.length ||
       nextTabs.some((tab, index) => tab !== tabs[index]) ||
-      tabs.some((tab) => tab.kind === 'fixed-view' && !itemByViewKey.has(tab.viewKey))
+      tabs.some((tab) => tab.kind === 'fixed-view' && !tab.projectScope && !itemByViewKey.has(tab.viewKey))
 
     if (changed) {
       this.workspaceTabs.set(nextTabs)
@@ -1983,6 +2010,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
     const activeTabId = this.activeTabId()
     const requestedViewKey = this.#workbenchViewUrlState.viewKey()
+    if (this.#workbenchViewUrlState.projectId()) return
     const requestedTab = findFixedViewTab(nextFixedTabs, requestedViewKey)
 
     if (requestedTab) {
@@ -2088,9 +2116,11 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   }
 
   private createFixedViewTab(fixedView: ClawXpertFixedViewMenuItem): ClawXpertFixedViewTab {
-    const requestedQuery = findResolvedViewByKey([fixedView], this.#workbenchViewUrlState.viewKey())
-      ? this.#workbenchViewUrlState.viewQuery()
-      : null
+    const requestedQuery =
+      !this.#workbenchViewUrlState.projectId() &&
+      findResolvedViewByKey([fixedView], this.#workbenchViewUrlState.viewKey())
+        ? this.#workbenchViewUrlState.viewQuery()
+        : null
     return {
       id: `fixed-view-${fixedView.viewKey}`,
       kind: 'fixed-view',

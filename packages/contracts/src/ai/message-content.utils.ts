@@ -1,5 +1,5 @@
 import { isFileActivityContent, parseFileActivityContent, upsertFileActivityContent } from '@xpert-ai/chatkit-types'
-import { isResourceCardContent, parseResourceCardContent, upsertResourceCardContent } from '@xpert-ai/chatkit-types'
+import { isResourceCardContent, parseResourceCardContent, upsertResourceCardContent } from './resource-card'
 import type {
   TMessageContent,
   TMessageContentComplex,
