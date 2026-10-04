@@ -1,141 +1,143 @@
-# 执行环境中的模型访问
+# Model Access in Execution Environments
 
-ModelExecution 让 CLI 和受管 Agent 使用当前 Assistant 已获授权的模型，并把实际用量记到调用用户。它管理短期执行授权、模型协议入口、预算准入和结算，不负责调度任务或取得桌面控制权。功能默认关闭。
+ModelExecution lets CLIs and managed Agents use models authorized for the current Assistant and attributes actual usage to the calling user. It manages short-lived execution grants, model protocol endpoints, budget admission, and settlement. Task scheduling and desktop control remain outside its scope. The feature is disabled by default.
 
-本文描述当前源码中的设计，不作为客户端版本验收或已发布证明。Computer 安装及真实执行记录由 xpert-pro 的对应文档维护。
+This document describes the current source design. It does not certify client acceptance or a published release. Computer installation and live execution records are maintained in the corresponding xpert-pro documentation.
 
-## 模块边界
+## Module Boundaries
 
-| 层                 | 职责                                                               | 扩展入口                                                                                                                                                     |
-| ------------------ | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| contracts / SDK    | 执行上下文、授权模型、用量和运行器协议                             | [ModelExecution 类型](../packages/contracts/src/ai/model-execution.model.ts)、[运行器能力](../packages/plugin-sdk/src/lib/agent/runtime/execution-runner.ts) |
-| 公共 server-ai     | Assistant / 用户授权、短期凭证、预算、协议转换、实际用量与幂等结算 | [ModelExecution 模块](../packages/server-ai/src/model-execution/model-execution.module.ts)                                                                   |
-| 模型 Provider 插件 | 供应商连接、凭据、模型目录、原生客户端和价格能力                   | [NativeModelClient](../packages/plugin-sdk/src/lib/ai-model/native-model.ts)                                                                                 |
-| 执行环境宿主       | 验证环境所有者和实例，提供启动、观察、取消及文件收集能力           | [ModelExecutionEnvironmentCapability](../packages/plugin-sdk/src/lib/agent/runtime/model-execution.ts)                                                       |
-| Agent runtime 插件 | 具体工具启动约定、状态与结果规范化                                 | [Agent Invocation runtime](../packages/server-ai/src/agent-invocation/README.md)                                                                             |
+| Layer                      | Responsibility                                                                                                                   | Extension entry point                                                                                                                                                  |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| contracts / SDK            | Execution context, authorized models, usage, and runner protocols                                                                | [ModelExecution types](../packages/contracts/src/ai/model-execution.model.ts), [runner capabilities](../packages/plugin-sdk/src/lib/agent/runtime/execution-runner.ts) |
+| Shared server-ai           | Assistant and user authorization, short-lived credentials, budgets, protocol conversion, actual usage, and idempotent settlement | [ModelExecution module](../packages/server-ai/src/model-execution/model-execution.module.ts)                                                                           |
+| Model Provider plugins     | Provider connections, credentials, model catalogs, native clients, and pricing capabilities                                      | [NativeModelClient](../packages/plugin-sdk/src/lib/ai-model/native-model.ts)                                                                                           |
+| Execution environment host | Validate environment ownership and instance identity; provide launch, observation, cancellation, and file collection             | [ModelExecutionEnvironmentCapability](../packages/plugin-sdk/src/lib/agent/runtime/model-execution.ts)                                                                 |
+| Agent runtime plugins      | Tool-specific launch conventions and normalization of status and results                                                         | [Agent Invocation runtime](../packages/server-ai/src/agent-invocation/README.md)                                                                                       |
 
-公共授权层通过能力接口验证环境，不依赖 Computer / Docker 实现。Computer 适配器在 xpert-pro；SDK 声明 Computer、Sandbox 或 remote 类型，不代表对应执行器已经安装。平台按协议和模型目录中的能力路由，不根据供应商名称猜测兼容性。CLI 的精确版本兼容要求与供应商实现分开维护。
+The shared authorization layer validates environments through capability interfaces and does not depend on a Computer or Docker implementation. The Computer adapter lives in xpert-pro. An SDK declaration of a Computer, Sandbox, or remote type does not mean the corresponding executor is installed. The platform routes requests by protocol and capabilities declared in the model catalog, without inferring compatibility from provider names. Exact CLI version compatibility requirements are maintained separately from provider implementations.
 
-## 一次执行的授权范围
+## Authorization Scope of an Execution
 
-一个 `ModelExecutionGrant` 绑定一个 CLI session、一个 Agent Invocation 或一个 Shell 内的 CLI 子执行，同时固定 tenant、运行组织、用户、Assistant 及其发布版本、conversation、执行环境实例（或 remote binding revision）、工具和版本。它属于一次执行，不是整个用户、Assistant 或容器的通用模型 Key；同一容器中的不同执行分别授权和计量。
+A `ModelExecutionGrant` binds one CLI session, one Agent Invocation, or one CLI child execution within a Shell. It pins the tenant, runtime organization, user, Assistant and its published version, conversation, environment instance or remote binding revision, tool, and version. The grant applies to that execution; it is not a general-purpose model key for a user, Assistant, or container. Separate executions in the same container receive separate authorization and metering.
 
-1. 平台从当前身份及其拥有的会话解析作用域。付款人与执行用户一致；客户端不能靠请求体或任意组织请求头选择另一位付款人。
-2. 取已发布 Assistant 的模型候选与用户模型权限的交集，再按工具及协议策略筛选。默认模型依次取当前 thread 最近父执行的模型选择、用户 Assistant 偏好、Assistant 默认候选；已移除的显式选择不会静默回退。
-3. 保存 Copilot ID、Provider 配置 ID 及所属组织、模型类型、模型 ID、能力和协议快照。`assistant-default` 映射到签发时固定的默认模型，不向 guest 暴露供应商凭据。
-4. 签发随机短期执行凭证，数据库只保存哈希。它只用于模型入口，不是平台登录令牌，也没有自行签发授权或无限续租的权限。
-5. 每次请求及续租重新检查账号和组织成员关系、已发布版本、模型权限、执行状态、Binding / 环境实例和工具版本。旧快照只能收紧；放宽策略不增加已签发授权的模型、协议或额度。固定默认模型失效后拒绝继续使用。
+1. The platform resolves scope from the current identity and a conversation owned by that user. The payer and executing user must match. Clients cannot select another payer through a request body or an arbitrary organization header.
+2. The platform intersects the published Assistant's model candidates with the user's model permissions, then filters by tool and protocol policies. The default model is chosen from the latest parent execution's selection in the current thread, then the user's Assistant preference, then the Assistant's default candidate. An explicit selection that has been removed does not silently fall back.
+3. The grant stores a snapshot of the Copilot ID, Provider configuration ID and its organization, model type, model ID, capabilities, and protocols. `assistant-default` maps to the default model pinned at issuance. Provider credentials are not exposed to the guest environment.
+4. The platform issues a random, short-lived execution credential and stores only its hash. It authorizes access to model endpoints, not platform login, further grant issuance, or unlimited renewal.
+5. Each request and renewal rechecks the account and organization access, published version, model permissions, execution status, Binding or environment instance, and tool version. Existing snapshots can only become more restrictive. Relaxing a policy does not add models, protocols, or budget to an issued grant. An invalidated default model prevents further use.
 
-授权持续时间由租期和不可延长的绝对时限共同限制。普通浏览器 / Desktop 退出登录、断开观看或释放桌面控制权，不自动全量撤销模型授权。任务完成、明确取消、过期、权限或绑定失效仍需按执行生命周期处理。
+Organization access is checked through the shared CQRS entry point [ResolveUserOrganizationAccessCommand](../packages/server/src/user-organization/commands/resolve-user-organization-access.command.ts). ModelExecution delegates that decision and retains its own conversation ownership, published Assistant, and model permission checks. The command's comments describe its contract and intended use.
 
-`POST /api/model-execution/revoke-mine` 是独立的显式撤销入口：撤销**当前 tenant 下本人所有 active 执行授权**，不是只撤销当前组织、Assistant 或会话。它阻止后续授权校验通过，不证明已经发出的模型请求或 guest 文件操作立即停止；停止进程仍须取消并确认终态。详见 [授权服务](../packages/server-ai/src/model-execution/execution-grant.service.ts) 和 [执行来源校验](../packages/server-ai/src/model-execution/execution-source.service.ts)。
+A grant is bounded by both its renewable lease and a non-extendable absolute deadline. Signing out of a browser or Desktop, disconnecting a viewer, or releasing desktop control does not automatically revoke all model grants. Completion, explicit cancellation, expiry, and invalidated permissions or bindings are handled through the execution lifecycle.
 
-## Shell CLI 授权与适配边界
+`POST /api/model-execution/revoke-mine` provides a separate, explicit revocation endpoint. It revokes **all active execution grants owned by the current user in the current tenant**, across organizations, Assistants, and conversations. It prevents subsequent authorization checks from succeeding, but does not prove that an already dispatched model request or guest file operation has stopped immediately. Stopping a process still requires cancellation and confirmation of its terminal state. See the [grant service](../packages/server-ai/src/model-execution/execution-grant.service.ts) and [execution source validation](../packages/server-ai/src/model-execution/execution-source.service.ts).
 
-通用 `sandbox_shell` 只向明确声明 `platform_models` 能力的执行后端传递可信的父执行、会话和工具调用上下文。它不解析命令中的 CLI 名称，也不负责选择模型、编写客户端配置或注入凭证。Computer Launcher、容器隔离、桌面控制和 Agent 光标仍由 Pro 执行宿主实现；OS 仅提供可复用的授权与计量基础。
+## Shell CLI Authorization and Adapter Boundaries
 
-宿主维护 `ShellProcessExecution` 和 `ShellCliExecution` 回执。`shell_execution` 授权来源固定父执行、Shell 执行、CLI 子执行、generation 和 profile revision；模型选择来自指定父执行，不能借用同一会话另一执行的模型。签发前、激活及后续请求都会校验执行所有者、运行状态、观测时效和环境绑定。
+The generic `sandbox_shell` passes trusted parent execution, conversation, and tool-call context only to execution backends that explicitly declare the `platform_models` capability. It does not parse CLI names from commands, select models, write client configuration, or inject credentials. The Pro execution host implements the Computer Launcher, container isolation, desktop control, and Agent cursor. OSS provides the reusable authorization and metering foundation.
 
-启动采用 `pending → active` 两阶段授权：宿主准备短期凭证及私有配置后，在一次性启动前激活。`pending` 凭证不能访问模型；激活不会重置准备阶段租期，不能复活已过期或已撤销的授权。请求派发阶段再次检查持久化授权，流式调用定期复核并在授权失效时取消上游；已发生的消费仍按实际回执结算。
+The host maintains `ShellProcessExecution` and `ShellCliExecution` receipts. A `shell_execution` authorization source pins the parent execution, Shell execution, CLI child execution, generation, and profile revision. Model selection comes from the specified parent execution and cannot be borrowed from another execution in the same conversation. Ownership, running state, observation freshness, and environment binding are validated before issuance, at activation, and on subsequent requests.
 
-[CLI profile SDK](../packages/plugin-sdk/src/lib/agent/runtime/cli-model-profile.ts) 声明客户端协议、能力要求、精确版本、离线参数及配置模板。[内置 profile 库](../packages/plugins/cli-model-profiles/README.md) 提供 Codex、Claude Code、OpenCode 和 Aider 的配置，模板只接收凭证占位符，由宿主物化真实秘密。扩展通过 `CliModelProfilesCapability` 注册，策略中填写任意名称并不能自动授权未知工具。模型 Provider 细节保持在模型插件中。
+Launch uses two-phase authorization, `pending → active`: after preparing the short-lived credential and private configuration, the host activates the grant before the one-time launch. A `pending` credential cannot access models. Activation does not reset the preparation lease or revive an expired or revoked grant. Dispatch rechecks the persisted grant. Streaming calls periodically revalidate authorization and cancel the upstream call when authorization becomes invalid. Usage already incurred is still settled from actual receipts.
 
-用量入口统一标记为 `shell`，执行 ID 指向 CLI 子执行，支持个人用量筛选、管理员查询和 CSV 导出；同一 Shell 启动的多个 CLI 分别记录，实际消费仍归属于当前用户。
+The [CLI profile SDK](../packages/plugin-sdk/src/lib/agent/runtime/cli-model-profile.ts) declares client protocols, required capabilities, exact versions, offline arguments, and configuration templates. The [built-in profile library](../packages/plugins/cli-model-profiles/README.md) provides configurations for Codex, Claude Code, OpenCode, and Aider. Templates accept credential placeholders only; the host supplies the actual secrets. Extensions register through `CliModelProfilesCapability`. Adding an arbitrary name to a policy does not authorize an unknown tool. Model Provider details remain in model plugins.
 
-## 预算准入与计量
+Usage is consistently labeled with the `shell` entry, and the execution ID identifies the CLI child execution. Records support personal usage filters, administrator queries, and CSV export. Multiple CLIs launched from one Shell are recorded separately, with actual usage attributed to the current user.
 
-[策略 schema](../packages/server-ai/src/model-execution/execution-policy.schema.ts) 使用显式开关；未配置时为关闭。启用需要网关地址、允许的工具绝对路径和精确版本，以及以下整数限制：
+## Budget Admission and Metering
 
-| 字段                                          | 含义                                                                                                         |
-| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| `tokenBudget`                                 | 单个执行授权的累计 Token 预算                                                                                |
-| `userTokenBudget`                             | 同 tenant、同付款人的执行调用：最近 24 小时实际用量，加全部未释放预占；查询范围为 `source='execution_grant'` |
-| `maxInputTokens` / `maxOutputTokens`          | 输入、输出上限；另以 UTF-8 请求字节长度作保守输入检查                                                        |
-| `maxConcurrentRequests` / `requestsPerMinute` | 单授权和同 tenant 付款人的执行调用两层并发 / 速率限制                                                        |
-| `leaseSeconds` / `maxDurationSeconds`         | 可续租时长和执行总时限                                                                                       |
+The [policy schema](../packages/server-ai/src/model-execution/execution-policy.schema.ts) requires an explicit enablement flag and defaults to disabled when unconfigured. Enabling it requires a gateway address, allowed absolute tool paths and exact versions, and the following integer limits:
 
-这些是执行入口的 Token 限额，不等同于全平台个人用量上限，也不承诺严格金额预算。费用来自有效用量和定价结果；金额未知与免费必须区分。
+| Field                                         | Meaning                                                                                                                                                                           |
+| --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tokenBudget`                                 | Cumulative token budget for a single execution grant                                                                                                                              |
+| `userTokenBudget`                             | Actual usage over the last 24 hours plus all unreleased reservations for execution calls by the same payer in the same tenant; limited to records with `source='execution_grant'` |
+| `maxInputTokens` / `maxOutputTokens`          | Input and output limits; UTF-8 request byte length is also used for a conservative input check                                                                                    |
+| `maxConcurrentRequests` / `requestsPerMinute` | Concurrency and rate limits applied at both the grant level and the payer-within-tenant level for execution calls                                                                 |
+| `leaseSeconds` / `maxDurationSeconds`         | Renewable lease duration and total execution time limit                                                                                                                           |
 
-[准入服务](../packages/server-ai/src/model-execution/execution-admission.service.ts) 在数据库内先按 tenant / 付款人串行化，再锁定授权，预占 `maxInputTokens + 本次输出上限`。调用派发前持久化一次性派发标记，同一 attempt 不能二次派发。超出限制直接拒绝，不偷偷缩小请求；不明结果不自动重发。
+These token limits apply to execution endpoints. They are not platform-wide personal usage caps and do not guarantee a strict monetary budget. Charges come from valid usage and pricing results; an unknown charge must remain distinct from a free call.
 
-用量事实先落库，再经现有 `CopilotTokenRecordCommand` 交付到账本。同一 attempt 沿用同一 requestId 和交付回执，失败重试不会另建一笔消费。父 Assistant 与子 Invocation 可分别展示，但同一次模型调用只能扣费一次。实现见 [计量服务](../packages/server-ai/src/model-execution/execution-metering.service.ts)。
+The [admission service](../packages/server-ai/src/model-execution/execution-admission.service.ts) first serializes access by tenant and payer in the database, then locks the grant and reserves `maxInputTokens` plus the output limit for the current request. Before dispatch, it persists a one-time dispatch marker so the same attempt cannot be dispatched twice. Requests exceeding limits are rejected without silently reducing their size. Calls with unknown outcomes are not automatically resent.
 
-| 调用证据                             | 状态与预占                                             | 结算行为                                            |
-| ------------------------------------ | ------------------------------------------------------ | --------------------------------------------------- |
-| 未派发且无实际用量                   | `failed`，释放预占                                     | 无消费事实，不扣费                                  |
-| 已派发但缺失有效实际用量，或只有估算 | `settlement_pending`，保留预占                         | 估算仅供诊断，等待权威证据                          |
-| 已取得有效实际用量                   | 保存不可变用量事实，释放预占；交付完成前仍可为 pending | 按原 attempt 幂等交付；模型调用失败也可能已产生用量 |
-| 已确认零消费的人工核对               | `failed` / `reconciled_no_usage`，释放预占             | 不伪造一笔实际用量账单                              |
+Usage facts are persisted before delivery to the ledger through the existing `CopilotTokenRecordCommand`. The same attempt retains its requestId and delivery receipt, so retries do not create another charge. A parent Assistant and child Invocation may be displayed separately, but a single model call can only be charged once. See the [metering service](../packages/server-ai/src/model-execution/execution-metering.service.ts).
 
-Prompt 包含缓存读写子集，Completion 包含推理子集，不能重复相加。全零、负数、非有限值或不一致的总数不构成有效消费事实。[用量 schema](../packages/server-ai/src/model-execution/execution-usage-schema.ts) 将实际事实与估算分开；`priced`、`free`、`unpriced` 描述事实定价状态，查询还会返回尚未确定的 `pending`。
+| Call evidence                                                 | State and reservation                                                                    | Settlement behavior                                                                      |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Not dispatched and no actual usage                            | `failed`; release the reservation                                                        | No usage fact and no charge                                                              |
+| Dispatched without valid actual usage, or with estimates only | `settlement_pending`; retain the reservation                                             | Estimates are diagnostic only; await authoritative evidence                              |
+| Valid actual usage obtained                                   | Persist an immutable usage fact and release the reservation; delivery may remain pending | Deliver idempotently for the original attempt; a failed model call may still incur usage |
+| Manual reconciliation confirms zero usage                     | `failed` / `reconciled_no_usage`; release the reservation                                | Do not fabricate an actual usage ledger entry                                            |
 
-后台每 30 秒重试交付和未完成的消费核对。失联调用自 `startedAt` 超过 15 分钟后按派发标记处理：未派发可释放预占，已派发保留未知消费预占。管理员只能凭权威证据核对；操作步骤、指标和告警见 [运行手册](operations/model-execution-runbook.md)。
+Prompt usage includes cache read and write subsets; Completion usage includes reasoning. These subsets must not be added again. All-zero, negative, non-finite, or inconsistent totals do not constitute a valid usage fact. The [usage schema](../packages/server-ai/src/model-execution/execution-usage-schema.ts) separates actual facts from estimates. `priced`, `free`, and `unpriced` describe the pricing state of a fact; queries may also return an unresolved `pending` state.
 
-## 模型协议
+Background processing retries delivery and unresolved usage reconciliation every 30 seconds. Once an unresponsive call is more than 15 minutes past `startedAt`, its dispatch marker determines handling: an undispatched call may release its reservation, while a dispatched call retains the reservation for unknown usage. Administrators must reconcile against authoritative evidence. Procedures, metrics, and alerts are documented in the [operations runbook](operations/model-execution-runbook.md).
 
-| 策略 / 能力           | 入口与执行方式                                                                    | 边界                                                                        |
-| --------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| 普通 Chat             | `openai_chat`，共用平台 Chat 执行器                                               | 仍受授权模型及工具能力约束                                                  |
-| `nativeProtocols`     | `openai_responses`、`anthropic_messages`，使用 Provider 的 `getNativeModelClient` | 默认未开启；模型目录还须显式声明 `native_protocols`                         |
-| `chatBridgeProtocols` | 同样的 Responses / Messages 入口，转换为平台 Chat 请求                            | 默认未开启；快照分别记录 `openai_responses_chat`、`anthropic_messages_chat` |
+## Model Protocols
 
-授权签发时固定传输方式；同时具备两种方式时优先原生。原生失败不会重试到 Chat，也不会因此扩大授权。见 [工具模型筛选与版本清单](../packages/server-ai/src/model-execution/execution-tool-model.ts) 和 [原生 Provider 解析](../packages/server-ai/src/model-execution/execution-native-provider.service.ts)。
+| Policy or capability  | Endpoint and execution path                                                              | Boundary                                                                                                  |
+| --------------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Standard Chat         | `openai_chat`, using the shared platform Chat executor                                   | Subject to authorized models and tool capabilities                                                        |
+| `nativeProtocols`     | `openai_responses` and `anthropic_messages`, using the Provider's `getNativeModelClient` | Disabled by default; the model catalog must explicitly declare `native_protocols`                         |
+| `chatBridgeProtocols` | The same Responses and Messages endpoints, converted to platform Chat requests           | Disabled by default; snapshots record `openai_responses_chat` and `anthropic_messages_chat`, respectively |
 
-原生入口保留支持范围内的原生消息、工具结果和推理内容；SDK 的 Messages transport 可转发 `anthropic-*` 特性头。Responses 强制 `store: false`，拒绝后台请求及服务端会话引用。当前输入边界为内联文本与客户端工具，多媒体 / 文件引用和托管工具未开放。未实现 Responses 存储查询、compact、WebSocket 或 Messages count_tokens。接口存在不代表相应真实模型与 CLI 已验收，启用前须单独验证。
+The transport is pinned when the grant is issued. When both paths are available, the native path takes precedence. A native failure does not trigger a retry through Chat or expand authorization. See [tool/model filtering and version compatibility](../packages/server-ai/src/model-execution/execution-tool-model.ts) and [native Provider resolution](../packages/server-ai/src/model-execution/execution-native-provider.service.ts).
 
-Chat 转换支持文本、系统消息、客户端 function 工具及多轮结果、流式文本和工具调用。纯文本 custom tool 使用显式 `{input: string}` 包装；Responses 单层 namespace 映射成不冲突的 function 名，再还原工具名、namespace 和调用 ID。不能等价转换的原生思考、签名 / 加密推理、多媒体、托管工具、嵌套 namespace、grammar、strict JSON schema、effort 和服务端安全扩展等字段，在供应商调用前拒绝。具体字段以 [转换 schema](../packages/server-ai/src/model-execution/execution-chat-bridge-request.ts) 为准。
+Native endpoints preserve supported native messages, tool results, and reasoning content. The SDK's Messages transport can forward `anthropic-*` feature headers. Responses enforces `store: false` and rejects background requests and server-side conversation references. Inputs currently support inline text and client tools; multimedia, file references, and hosted tools are not enabled. Responses storage queries, compact, WebSocket, and Messages count_tokens are not implemented. Endpoint availability alone does not establish that a particular model and CLI have passed live validation; verify each before enabling it.
 
-Chat 转换的 CLI 版本由兼容清单精确限制；模型还须具备流式工具调用能力，Codex 另需并行工具调用能力。运行器必须使用与该版本验收一致的启动配置。增加版本需验证请求形状、多轮工具调用、取消及逐笔计量，不能仅修改显示版本或根据供应商名称放行。
+Chat conversion supports text, system messages, client function tools and multi-turn results, streaming text, and tool calls. Plain-text custom tools use an explicit `{input: string}` wrapper. A single level of Responses namespaces is mapped to collision-free function names, then tool names, namespaces, and call IDs are restored. Fields that cannot be converted equivalently—including native thinking, signed or encrypted reasoning, multimedia, hosted tools, nested namespaces, grammar, strict JSON schema, effort, and server-side safety extensions—are rejected before calling the provider. The [conversion schema](../packages/server-ai/src/model-execution/execution-chat-bridge-request.ts) defines the supported fields.
 
-转换层采用原始 / 转换后较大的请求字节数检查输入上限，取消传播到同一个上游调用；转换不产生第二笔消费。缓存提示不保证上游采用相同缓存规则，缓存 Token 仍取实际回执。仅有估算时返回失败并保留待核对记录；CLI 自带的费用估算不能替代平台账本。
+The compatibility list restricts Chat conversion to exact CLI versions. Models must also support streaming tool calls, and Codex additionally requires parallel tool calls. Runners must use the launch configuration validated for that version. Adding a version requires checking request shapes, multi-turn tool calls, cancellation, and per-call metering; changing a display version or allowing a provider name is insufficient.
 
-## API 与身份边界
+The conversion layer checks input limits against the larger of the original and converted request byte lengths. Cancellation propagates to the same upstream call, and conversion does not create a second charge. Cache hints do not guarantee equivalent upstream caching behavior; cache tokens still come from actual receipts. When only estimates are available, the call fails and retains a record pending reconciliation. A CLI's own cost estimates cannot replace the platform ledger.
 
-以下路径包含平台 `/api` 前缀。
+## API and Identity Boundaries
 
-| 接口                                                       | 调用身份                              | 用途                                       |
-| ---------------------------------------------------------- | ------------------------------------- | ------------------------------------------ |
-| `GET/PUT /api/model-execution/admin/policy`                | tenant 范围、`MODEL_GATEWAY_MANAGE`   | 查看 / 更新灰度策略                        |
-| `GET /api/model-execution/admin/pending`                   | tenant 范围、具有同一权限的平台管理员 | 分页查询待核对消费                         |
-| `POST /api/model-execution/admin/calls/:id/reconcile`      | 同上                                  | 持久化证据并核对原调用                     |
-| `POST /api/model-execution/admin/calls/:id/retry-delivery` | 同上                                  | 重试已有事实的账本交付                     |
-| `GET /api/model-execution/openai/v1/models`                | 执行凭证                              | 当前授权的可用模型别名                     |
-| `POST /api/model-execution/openai/v1/chat/completions`     | 执行凭证                              | 普通 Chat                                  |
-| `POST /api/model-execution/openai/v1/responses`            | 执行凭证                              | 原生 Responses 或显式 Chat 转换            |
-| `POST /api/model-execution/anthropic/v1/messages`          | 执行凭证                              | 原生 Messages 或显式 Chat 转换             |
-| `GET /api/model-execution/call-options`                    | 平台用户、组织范围                    | 本人的 Assistant 筛选项                    |
-| `GET /api/model-execution/calls`                           | 平台用户、组织范围                    | 本人的调用、估算及结算状态                 |
-| `POST /api/model-execution/revoke-mine`                    | 平台用户                              | 显式撤销本 tenant 下本人的 active 执行授权 |
+The following paths include the platform's `/api` prefix.
 
-`calls` 与 `call-options` 都限定当前 tenant、organization、user，不接受 ChatKit client secret 或其他 API principal。查询可按入口、状态、Assistant、conversation、执行 ID、工具、模型、环境、用量来源、定价状态和时间筛选；参数由 [查询 schema](../packages/server-ai/src/model-execution/execution-query.schema.ts) 及共享 `ZodValidationPipe` 在 HTTP 边界转换验证。普通用户不能通过筛选参数查询别人的消费。
+| Endpoint                                                   | Caller identity                                                 | Purpose                                                                    |
+| ---------------------------------------------------------- | --------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `GET/PUT /api/model-execution/admin/policy`                | Tenant scope with `MODEL_GATEWAY_MANAGE`                        | Read or update the rollout policy                                          |
+| `GET /api/model-execution/admin/pending`                   | Platform administrator in tenant scope with the same permission | Paginate usage awaiting reconciliation                                     |
+| `POST /api/model-execution/admin/calls/:id/reconcile`      | Same as above                                                   | Persist evidence and reconcile the original call                           |
+| `POST /api/model-execution/admin/calls/:id/retry-delivery` | Same as above                                                   | Retry ledger delivery of an existing fact                                  |
+| `GET /api/model-execution/openai/v1/models`                | Execution credential                                            | List model aliases available to the current grant                          |
+| `POST /api/model-execution/openai/v1/chat/completions`     | Execution credential                                            | Standard Chat                                                              |
+| `POST /api/model-execution/openai/v1/responses`            | Execution credential                                            | Native Responses or explicit Chat conversion                               |
+| `POST /api/model-execution/anthropic/v1/messages`          | Execution credential                                            | Native Messages or explicit Chat conversion                                |
+| `GET /api/model-execution/call-options`                    | Platform user in organization scope                             | List the user's Assistant filter options                                   |
+| `GET /api/model-execution/calls`                           | Platform user in organization scope                             | Query the user's calls, estimates, and settlement states                   |
+| `POST /api/model-execution/revoke-mine`                    | Platform user                                                   | Explicitly revoke the user's active execution grants in the current tenant |
 
-个人执行用量页展示实际用量、估算、预占及定价状态；管理员账本视图沿用既有管理权限，并可导出当前页。管理员核对路径的 `:id` 是 `items[].id`（数据库记录 UUID），不是 `callId` 或 `attemptId`。`applied` 仅表示证据已应用，不等于账本已投递；应检查 `delivered`，零消费核对则不需要实际用量投递。
+Both `calls` and `call-options` are restricted to the current tenant, organization, and user. They do not accept ChatKit client secrets or other API principals. Queries can filter by entry, status, Assistant, conversation, execution ID, tool, model, environment, usage source, pricing state, and time. The [query schema](../packages/server-ai/src/model-execution/execution-query.schema.ts) and shared `ZodValidationPipe` convert and validate parameters at the HTTP boundary. Ordinary users cannot query another user's charges by changing filters.
 
-Computer 的启动、停止通过其受控 View Action；受管任务使用 Agent Invocation 能力。ChatKit 面向用户的业务 API 集中在 `AIModule` 的 `/api/ai`，执行模型入口使用专门的执行凭证校验，不能复用登录身份或把管理接口开放给 client secret。
+The personal execution usage page displays actual usage, estimates, reservations, and pricing state. The administrator ledger view retains existing management permissions and supports exporting the current page. The `:id` in administrator reconciliation paths is `items[].id`, the database record UUID, rather than `callId` or `attemptId`. `applied` only means that evidence was applied; it does not mean ledger delivery succeeded. Check `delivered`. Reconciliation confirming zero usage requires no actual usage delivery.
 
-## 与长任务及结果的关系
+Computer starts and stops through its controlled View Actions; managed tasks use Agent Invocation capabilities. ChatKit user-facing business APIs are centralized under `/api/ai` in `AIModule`. Execution model endpoints validate dedicated execution credentials and must not reuse login identity or expose management endpoints to client secrets.
 
-模型授权服务不决定父 Agent 如何等待。普通长任务采用 [有界观察](../packages/server-ai/src/runtime-task/README.md)：启动后返回 task handle，Agent 通过统一的 `task_status({taskIds, timeoutMs, mode})` 观察同一任务。默认等待 30 秒、默认上限 60 秒，设 0 即时查询；到期返回普通 `pending`，不 interrupt，也不重复启动任务。后端窗口内检查状态，不在每次检查时调用模型。
+## Long Tasks and Results
 
-真正需要用户确认的交互才可挂起。取消观察不等于取消子任务，持久化子任务回执也不保证 API 重启后父回合自动恢复。结果可包含分析、变更、测试、文件等类型；默认不打包 ZIP，显式请求 `files` / `archive` 才收集交付，导出失败与执行失败分别记录。结果工具通过 ChatKit 资源卡片展示，卡片自身不授予访问权，详见 [结果与运行器约束](../packages/server-ai/src/agent-invocation/README.md) 及 [资源卡片协议](../packages/plugin-sdk/RESOURCE-CARDS.md)。
+The model authorization service does not decide how a parent Agent waits. Ordinary long tasks use [bounded observation](../packages/server-ai/src/runtime-task/README.md): launch returns a task handle, and the Agent observes that same task through `task_status({taskIds, timeoutMs, mode})`. The default wait is 30 seconds, the default upper limit is 60 seconds, and 0 requests an immediate status check. A timeout returns a normal `pending` result without an interrupt or a duplicate launch. The backend checks status within the observation window without invoking a model for each check.
 
-## 部署、回退与验证
+Only interactions that actually require user confirmation may suspend execution. Canceling observation does not cancel the child task, and a persisted child-task receipt does not guarantee that the parent turn resumes automatically after an API restart. Results may contain analysis, changes, tests, files, and other types. ZIP packaging is not the default; collection and delivery require an explicit `files` or `archive` request. Export failures and execution failures are recorded separately. Result tools display ChatKit resource cards, which do not themselves grant access. See [result and runner constraints](../packages/server-ai/src/agent-invocation/README.md) and the [resource card protocol](../packages/plugin-sdk/RESOURCE-CARDS.md).
 
-先在功能关闭状态下部署。contracts、SDK、host、ChatKit 和运行插件必须使用同一轮兼容构建；正式版本号以实际发布包及发布回执为准，不能把本地预发布编号当作 npm 已发布事实。旧 SDK 不包含本文的新能力，不能只升级运行插件。
+## Deployment Rollback and Validation
 
-现有基础模型网关表具备后，确认以下增量迁移已按依赖顺序应用，再启动完整新版 API / worker：
+Deploy with the feature disabled first. Contracts, SDK, host, ChatKit, and runtime plugins must use compatible builds from the same release cycle. Published packages and release receipts determine official version numbers; a local prerelease version is not evidence of an npm release. Older SDKs lack the capabilities described here, so upgrading only a runtime plugin is insufficient.
 
-1. [Agent Invocation 基础表](../packages/server-ai/src/agent-invocation/migrations/20260922-agent-invocation.sql)。
-2. [ModelExecution 基础表和用量字段](../packages/server-ai/src/model-execution/migrations/20260930-model-execution.sql)。
-3. [执行消费审计](../packages/server-ai/src/model-execution/migrations/20261001-execution-operations.sql)。
-4. [历史等待记录](../packages/server-ai/src/agent-invocation/migrations/20261001-invocation-wait.sql)，随后 [等待分组兼容](../packages/server-ai/src/agent-invocation/migrations/20261002-task-wait-groups.sql)。新普通等待不写这些记录，但历史监控器仍依赖完整 schema。
-5. [Shell 执行回执及 pending 授权](../packages/server-ai/src/model-execution/migrations/20261003-shell-launcher.sql)。该迁移依赖既有 `xpert_agent_execution` 表；可重复执行，保留历史授权和消费。
+Once the base model gateway tables exist, apply these incremental migrations in dependency order before starting the full updated API and workers:
 
-确认旧 worker 已退出，再以专门测试账号 / 空间、小 Token 预算和明确环境实例验收；普通 Chat、原生协议和 Chat 转换分别灰度。安装或策略保存成功不代表真实执行、计量和文件交付已经通过。
+1. [Agent Invocation base tables](../packages/server-ai/src/agent-invocation/migrations/20260922-agent-invocation.sql).
+2. [ModelExecution base tables and usage fields](../packages/server-ai/src/model-execution/migrations/20260930-model-execution.sql).
+3. [Execution usage audit](../packages/server-ai/src/model-execution/migrations/20261001-execution-operations.sql).
+4. [Legacy wait records](../packages/server-ai/src/agent-invocation/migrations/20261001-invocation-wait.sql), followed by [wait-group compatibility](../packages/server-ai/src/agent-invocation/migrations/20261002-task-wait-groups.sql). New ordinary waits do not write these records, but legacy monitors still depend on the complete schema.
+5. [Shell execution receipts and pending grants](../packages/server-ai/src/model-execution/migrations/20261003-shell-launcher.sql). This migration depends on the existing `xpert_agent_execution` table. It can be rerun and preserves historical grants and usage.
 
-回退先设置 `{ "enabled": false }` 并停止新任务派发。关闭准入不删除历史事实或未知消费预占；保留查询、显式取消及补偿能力，按 [运行手册](operations/model-execution-runbook.md) 处理消费与历史等待后再停止相关 worker。撤销授权不能证明进程退出，状态无法确认时保留 `unknown`，不重启原任务猜测恢复；增量迁移回退不 DROP 历史数据。
+Confirm that old workers have exited, then validate with dedicated test accounts and workspaces, small token budgets, and explicit environment instances. Roll out standard Chat, native protocols, and Chat conversion separately. Successful installation or policy persistence does not establish that live execution, metering, and file delivery have passed validation.
 
-从仓库根目录执行基础构建 / 类型检查：
+To roll back, first set `{ "enabled": false }` and stop dispatching new tasks. Disabling admission does not delete historical facts or reservations for unknown usage. Retain querying, explicit cancellation, and compensation capabilities. Follow the [operations runbook](operations/model-execution-runbook.md) to handle usage and legacy waits before stopping the relevant workers. Revoking a grant does not prove a process has exited. When its status cannot be confirmed, retain `unknown` rather than restarting the original task to guess at recovery. Rolling back incremental migrations must not DROP historical data.
+
+Run the basic builds and type checks from the repository root:
 
 ```sh
 NX_DAEMON=false corepack pnpm nx run-many -t build -p contracts plugin-sdk --skip-nx-cache
@@ -143,4 +145,4 @@ corepack pnpm exec tsc -p packages/server-ai/tsconfig.lib.json --noEmit --increm
 corepack pnpm exec ngc -p apps/cloud/tsconfig.app.json --noEmit
 ```
 
-按变更运行 ModelExecution、model-gateway、Invocation factory 和用量账本的定向测试；插件需验证构建产物与 host 的兼容性。PostgreSQL 集成测试只接受显式配置的 `XPERT_EXECUTION_TEST_DATABASE_URL`，且数据库名以 `xpert_execution_test_` 开头，不能指向应用库。真实环境验收另需覆盖多 Assistant / 多账号隔离、取消、运行中重启、未知状态、逐笔计量及最终安装包；单元测试不替代这些验收。
+Run targeted ModelExecution, model-gateway, Invocation factory, and usage ledger tests appropriate to the change. Plugins must verify compatibility between their build artifacts and the host. PostgreSQL integration tests require an explicitly configured `XPERT_EXECUTION_TEST_DATABASE_URL`, with a database name beginning with `xpert_execution_test_`; it must not point to the application database. Live acceptance must additionally cover isolation between Assistants and accounts, cancellation, restarts during execution, unknown states, per-call metering, and the final installation package. Unit tests do not replace these checks.

@@ -1,9 +1,10 @@
 import { PublishedXpertAccessService } from '../xpert/published-xpert-access.service'
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { ModelExecutionModel, UserType, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
+import { ModelExecutionModel, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
-import { User, UserOrganization } from '@xpert-ai/server-core'
+import { ResolveUserOrganizationAccessCommand } from '@xpert-ai/server-core'
+import { CommandBus } from '@nestjs/cqrs'
 import { IsNull, Repository } from 'typeorm'
 import { ChatConversation } from '../chat-conversation/conversation.entity'
 import { Copilot } from '../copilot/copilot.entity'
@@ -20,8 +21,7 @@ export type ExecutionActor = { tenantId: string; organizationId: string; userId:
 export class AssistantExecutionPolicyService {
     constructor(
         @InjectRepository(ChatConversation) private readonly conversations: Repository<ChatConversation>,
-        @InjectRepository(User) private readonly users: Repository<User>,
-        @InjectRepository(UserOrganization) private readonly memberships: Repository<UserOrganization>,
+        private readonly commandBus: CommandBus,
         @InjectRepository(Copilot) private readonly copilots: Repository<Copilot>,
         @InjectRepository(AssistantUserPreference) private readonly preferences: Repository<AssistantUserPreference>,
         @InjectRepository(XpertAgentExecution) private readonly executions: Repository<XpertAgentExecution>,
@@ -40,20 +40,8 @@ export class AssistantExecutionPolicyService {
     }
 
     async user(actor: ExecutionActor) {
-        if (!actor.tenantId || !actor.organizationId || !actor.userId) throw executionError('Denied')
-        const [user, membership] = await Promise.all([
-            this.users.findOneBy({ id: actor.userId, tenantId: actor.tenantId }),
-            this.memberships.findOne({
-                where: {
-                    tenantId: actor.tenantId,
-                    organizationId: actor.organizationId,
-                    userId: actor.userId,
-                    isActive: true,
-                    organization: { isActive: true }
-                }
-            })
-        ])
-        if (!user || user.type !== UserType.USER || !membership) throw executionError('Denied')
+        const user = await this.commandBus.execute(new ResolveUserOrganizationAccessCommand(actor))
+        if (!user) throw executionError('Denied')
         return user
     }
 

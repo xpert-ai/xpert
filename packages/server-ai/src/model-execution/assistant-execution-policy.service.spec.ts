@@ -1,7 +1,8 @@
 import { AiModelTypeEnum, UserType } from '@xpert-ai/contracts'
 import { Test } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
-import { User, UserOrganization } from '@xpert-ai/server-core'
+import { ResolveUserOrganizationAccessCommand } from '@xpert-ai/server-core'
+import { CommandBus } from '@nestjs/cqrs'
 import { ChatConversation } from '../chat-conversation/conversation.entity'
 import { Copilot } from '../copilot/copilot.entity'
 import { ModelAccessService } from '../model-access/model-access.service'
@@ -11,37 +12,35 @@ import { PublishedXpertAccessService } from '../xpert/published-xpert-access.ser
 import { getAssistantModelId } from '../xpert/assistant-model-selection.util'
 import { ModelExecutionNativeProviderService } from './execution-native-provider.service'
 import { AssistantExecutionPolicyService } from './assistant-execution-policy.service'
+import { executionError } from './execution-errors'
 
 describe('execution actor scope', () => {
-    it.each(['tenantId', 'organizationId', 'userId'] as const)(
-        'rejects missing actor %s before querying',
-        async (field) => {
-            const users = { findOneBy: jest.fn() }
-            const memberships = { findOne: jest.fn() }
-            const service = new AssistantExecutionPolicyService(
-                {} as never,
-                users as never,
-                memberships as never,
-                {} as never,
-                {} as never,
-                {} as never,
-                {} as never,
-                {} as never,
-                {} as never
-            )
-            await expect(
-                service.user({ tenantId: 'tenant', organizationId: 'org', userId: 'user', [field]: undefined })
-            ).rejects.toThrow()
-            expect(users.findOneBy).not.toHaveBeenCalled()
-            expect(memberships.findOne).not.toHaveBeenCalled()
-        }
-    )
+    it('uses shared organization access and preserves the execution denial error', async () => {
+        const actor = { tenantId: 'tenant', organizationId: 'org', userId: 'user' }
+        const user = { id: 'user', type: UserType.USER }
+        const commandBus = { execute: jest.fn().mockResolvedValue(user) }
+        const conversations = { findOne: jest.fn() }
+        const service = new AssistantExecutionPolicyService(
+            conversations as never,
+            commandBus as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never
+        )
+        await expect(service.user(actor)).resolves.toBe(user)
+        expect(commandBus.execute).toHaveBeenCalledWith(new ResolveUserOrganizationAccessCommand(actor))
+        commandBus.execute.mockResolvedValueOnce(null)
+        await expect(service.resolve(actor, 'conversation')).rejects.toThrow(executionError('Denied'))
+        expect(conversations.findOne).not.toHaveBeenCalled()
+    })
 
     it('accepts an accessible tenant Assistant without confusing its scope with the runtime organization', async () => {
         const assistant = { id: 'assistant', tenantId: 'tenant', organizationId: null }
         const published = { getAccessiblePublishedXpert: jest.fn().mockResolvedValue(assistant) }
         const service = new AssistantExecutionPolicyService(
-            {} as never,
             {} as never,
             {} as never,
             {} as never,
@@ -64,11 +63,10 @@ describe('execution actor scope', () => {
         'rejects a missing conversation (%s) before issuing any database query',
         async (id) => {
             const conversations = { findOne: jest.fn() }
-            const users = { findOneBy: jest.fn() }
+            const commandBus = { execute: jest.fn() }
             const service = new AssistantExecutionPolicyService(
                 conversations as never,
-                users as never,
-                {} as never,
+                commandBus as never,
                 {} as never,
                 {} as never,
                 {} as never,
@@ -80,7 +78,7 @@ describe('execution actor scope', () => {
                 service.resolve({ tenantId: 'tenant', organizationId: 'org', userId: 'user' }, id)
             ).rejects.toThrow()
             expect(conversations.findOne).not.toHaveBeenCalled()
-            expect(users.findOneBy).not.toHaveBeenCalled()
+            expect(commandBus.execute).not.toHaveBeenCalled()
         }
     )
     it('pins the credential organization independently of the runtime and Copilot organizations', async () => {
@@ -92,8 +90,7 @@ describe('execution actor scope', () => {
         }
         const service = new AssistantExecutionPolicyService(
             { findOne: jest.fn(async () => ({ xpert: assistant, threadId: 'thread' })) } as never,
-            { findOneBy: jest.fn(async () => ({ type: UserType.USER })) } as never,
-            { findOne: jest.fn(async () => ({ isActive: true })) } as never,
+            { execute: jest.fn(async () => ({ type: UserType.USER })) } as never,
             {
                 findOneBy: jest.fn(async () => ({
                     id: 'copilot',
@@ -118,40 +115,6 @@ describe('execution actor scope', () => {
         expect(result.models[0]).toEqual(
             expect.objectContaining({ providerScopeId: 'provider', providerOrganizationId: 'credential-org' })
         )
-    })
-    it('queries membership using identity only when the caller also has an Invocation scope', async () => {
-        const users = { findOneBy: jest.fn().mockResolvedValue({ type: UserType.USER }) }
-        const memberships = { findOne: jest.fn().mockResolvedValue({ isActive: true }) }
-        const service = new AssistantExecutionPolicyService(
-            users as never,
-            users as never,
-            memberships as never,
-            {} as never,
-            {} as never,
-            {} as never,
-            {} as never,
-            {} as never,
-            {} as never
-        )
-        const scope = {
-            tenantId: 'tenant',
-            organizationId: 'org',
-            userId: 'user',
-            workspaceId: 'workspace',
-            parentExecutionId: 'execution',
-            callerXpertId: 'assistant',
-            conversationId: 'conversation'
-        }
-        await service.user(scope)
-        expect(memberships.findOne).toHaveBeenCalledWith({
-            where: {
-                tenantId: 'tenant',
-                organizationId: 'org',
-                userId: 'user',
-                isActive: true,
-                organization: { isActive: true }
-            }
-        })
     })
 })
 
@@ -183,15 +146,9 @@ describe('execution model selection stays within its conversation', () => {
                     }
                 },
                 {
-                    provide: getRepositoryToken(User),
+                    provide: CommandBus,
                     useValue: {
-                        findOneBy: jest.fn().mockResolvedValue({ type: UserType.USER })
-                    }
-                },
-                {
-                    provide: getRepositoryToken(UserOrganization),
-                    useValue: {
-                        findOne: jest.fn().mockResolvedValue({ isActive: true })
+                        execute: jest.fn().mockResolvedValue({ type: UserType.USER })
                     }
                 },
                 {

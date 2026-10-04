@@ -12,7 +12,7 @@ import { XpertModule } from '../xpert/xpert.module'
 import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { TenantSetting, User, UserOrganization } from '@xpert-ai/server-core'
+import { TenantSetting } from '@xpert-ai/server-core'
 import { ChatConversation } from '../chat-conversation/conversation.entity'
 import { Copilot } from '../copilot/copilot.entity'
 import { ModelAccessModule } from '../model-access/model-access.module'
@@ -48,8 +48,6 @@ import { MembershipPointLedger } from '../membership/membership-point-ledger.ent
             ModelGatewayCall,
             ModelExecutionReconciliation,
             TenantSetting,
-            User,
-            UserOrganization,
             ChatConversation,
             Copilot,
             AssistantUserPreference,

@@ -25,8 +25,14 @@ This repo uses NestJS + TypeORM on the server and Angular 17 (standalone, signal
 - Register modules in `packages/server-ai/src/index.ts` and wire into `app.module.ts` as needed.
 - Keep TypeORM entities aligned with contract interfaces in `packages/contracts`.
 - TypeORM entity columns must not rely on decorator metadata for unsafe property types. If an `@Column` property uses a union, literal union, imported type alias, enum-like type reference, object/interface shape, array, `Record`, `unknown`, or `any`, the decorator must explicitly declare `type`. Use `type: 'varchar'` for string unions, `type: 'int'` for numeric unions, and `type: 'json'` or `type: 'jsonb'` for structured data.
-- Complex, independent logic can be implemented using CQRS.
 - Ensure clearer boundaries of responsibilities.
+
+### Shared CQRS operations
+
+- When a reusable capability has one cohesive entry point, prefer a typed CQRS Command and Handler over requiring consumers to inject its Service and import its owning Module. Register the Handler once in the owning platform module; consumers use the shared `CommandBus` and public Command contract.
+- Keep reusable policy decisions, including role-specific exceptions, inside the owning capability. Business callers supply trusted scope, handle the result using their domain errors, and retain their action and resource authorization checks.
+- Keep Command JSDoc brief: describe purpose, when to use the command, and essential responsibility boundaries. Let types express inputs and results; avoid detailed Returns sections, error inventories, and Handler implementation details such as database queries or branching rules. Document non-obvious implementation constraints in the Handler when needed.
+- Keep small, single-entry API usage guidance in the Command comments and general design principles in this guide. Add a separate feature document only when it provides material beyond those two sources.
 
 ### ChatKit API boundary
 

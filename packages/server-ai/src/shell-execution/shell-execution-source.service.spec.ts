@@ -121,7 +121,6 @@ describe('exact parent model selection', () => {
             {} as never,
             {} as never,
             {} as never,
-            {} as never,
             executions as never,
             {} as never,
             {} as never,
