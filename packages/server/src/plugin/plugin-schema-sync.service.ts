@@ -80,6 +80,10 @@ export class PluginSchemaSyncService {
 			requireNamespaceMatch: Boolean(input.artifactNamespace ?? plugin.meta.artifactNamespace)
 		})
 
+		// Providers without entities have no schema to apply. Synchronizing the host
+		// here would run unrelated DDL even when host migrations are managed externally.
+		if (!ormMetadata.entities.length) return
+
 		const entities = this.mergeTargets(this.dataSource.options.entities, ormMetadata.entities)
 		const subscribers = this.mergeTargets(this.dataSource.options.subscribers, ormMetadata.subscribers)
 		const migrationDataSource = new DataSource({
