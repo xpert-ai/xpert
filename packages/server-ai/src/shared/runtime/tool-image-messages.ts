@@ -1,9 +1,47 @@
 // Only complete current tool rounds can introduce visual input. Historical bytes
 // are removed from outbound clones, never from durable messages or checkpoints.
 import { isAIMessage, isToolMessage, ToolMessage, type BaseMessage } from '@langchain/core/messages'
+import type { ToolCall } from '@langchain/core/messages/tool'
 import { BadRequestException } from '@nestjs/common'
 import type { ToolOutputPresentation } from '@xpert-ai/chatkit-types'
 import { t } from 'i18next'
+
+/** Host-owned operation contracts may explicitly allow a validated text receipt. */
+export type ToolImageTextResultPolicy = (call: ToolCall, content: string) => boolean
+
+export function textOnlyToolMessages(
+    messages: readonly BaseMessage[],
+    toolNames: readonly string[],
+    policy?: ToolImageTextResultPolicy
+): Set<ToolMessage> {
+    const results = new Set<ToolMessage>()
+    if (!policy) return results
+    const names = new Set(toolNames)
+    let calls = new Map<string, ToolCall>()
+    for (const message of messages) {
+        if (!isToolMessage(message)) {
+            calls = new Map(
+                isAIMessage(message)
+                    ? (message.tool_calls ?? []).flatMap((call) => (call.id ? [[call.id, call] as const] : []))
+                    : []
+            )
+            continue
+        }
+        const call = calls.get(message.tool_call_id)
+        if (
+            call &&
+            names.has(call.name) &&
+            message.name === call.name &&
+            message.artifact == null &&
+            typeof message.content === 'string' &&
+            !hasLegacyImageContent(message) &&
+            policy(call, message.content)
+        ) {
+            results.add(message)
+        }
+    }
+    return results
+}
 
 export function readyImageMessages(messages: readonly BaseMessage[], toolNames: readonly string[]): ToolMessage[] {
     const names = new Set(toolNames)

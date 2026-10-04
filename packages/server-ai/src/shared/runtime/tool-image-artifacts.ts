@@ -15,7 +15,13 @@ import sharp from 'sharp'
 import { t } from 'i18next'
 import { ModelFeature } from '@xpert-ai/contracts'
 import { z } from 'zod/v3'
-import { hasLegacyImageContent, imageToolMessageForModel, readyImageMessages } from './tool-image-messages'
+import {
+    hasLegacyImageContent,
+    imageToolMessageForModel,
+    readyImageMessages,
+    textOnlyToolMessages,
+    type ToolImageTextResultPolicy
+} from './tool-image-messages'
 
 const MAX_IMAGE_BYTES = 6_000_000
 const MAX_IMAGE_PIXELS = 16_777_216
@@ -64,7 +70,8 @@ export class ToolImageArtifacts implements ToolImagesApi {
             pluginName: string
             resourceType: string
             presentationSource: ToolOutputImageAttachment['source']
-        }
+        },
+        private readonly textResultPolicy?: ToolImageTextResultPolicy
     ) {
         if (!scope.tenantId || !scope.organizationId || !scope.userId || !scope.conversationId) throw unavailableImage()
         this.scopeHash = hash(
@@ -167,13 +174,16 @@ export class ToolImageArtifacts implements ToolImagesApi {
 
     async prepareModelInput(messages: BaseMessage[], toolNames: readonly string[]): Promise<ToolImageModelInput> {
         const ready = readyImageMessages(messages, toolNames)
-        const batches = ready.map((message) => {
-            const presentation = parsePresentation(message.artifact)
-            if (!presentation || hasLegacyImageContent(message)) throw unavailableImage()
-            const summary = imageToolMessageForModel(message, presentation)
-            if (typeof summary.content !== 'string' || !summary.content.trim()) throw unavailableImage()
-            return { message, summary: summary.content, attachments: presentation.attachments }
-        })
+        const textResults = textOnlyToolMessages(messages, toolNames, this.textResultPolicy)
+        const batches = ready
+            .filter((message) => !textResults.has(message))
+            .map((message) => {
+                const presentation = parsePresentation(message.artifact)
+                if (!presentation || hasLegacyImageContent(message)) throw unavailableImage()
+                const summary = imageToolMessageForModel(message, presentation)
+                if (typeof summary.content !== 'string' || !summary.content.trim()) throw unavailableImage()
+                return { message, summary: summary.content, attachments: presentation.attachments }
+            })
         if (batches.reduce((count, batch) => count + batch.attachments.length, 0) > MAX_IMAGES_PER_STEP) {
             throw new BadRequestException(
                 t('server-ai:Error.ToolImageBatchLimit', {
@@ -184,6 +194,7 @@ export class ToolImageArtifacts implements ToolImagesApi {
         const names = new Set(toolNames)
         const projected = messages.map((message) => {
             if (!isToolMessage(message) || !names.has(message.name ?? '')) return message
+            if (textResults.has(message)) return message
             return imageToolMessageForModel(message, parsePresentation(message.artifact))
         })
         if (!batches.length)
