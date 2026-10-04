@@ -14,6 +14,7 @@ import {
 } from '@xpert-ai/contracts'
 import { updateAssistantPrompt } from '../../xpert-template/capabilities/capability-state'
 import { randomUUID } from 'node:crypto'
+import { t } from 'i18next'
 import { BLANK_ASSISTANT_TEMPLATE_ID } from '../../xpert-template/capabilities/blank-assistant-template'
 import { parseCapabilityTemplateId } from '../../xpert-template/capabilities/template-capability-reference'
 import { getErrorMessage, yaml } from '@xpert-ai/server-common'
@@ -23,12 +24,12 @@ import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { EnvironmentService } from '../../environment'
-import { XpertImportCommand } from '../../xpert/commands/import.command'
+import { XpertImportCommand, XpertImportCommandOptions } from '../../xpert/commands/import.command'
 import { XpertPublishCommand } from '../../xpert/commands/publish.command'
 import { XpertDraftDslDTO } from '../../xpert/dto'
 import { XpertService } from '../../xpert/xpert.service'
 import { XpertTemplateWorkspaceInitializer } from '../../xpert/template-workspace-initializer.service'
-import { createXpertTemplateSource } from '../../xpert/template-source'
+import { createXpertTemplateSource, resolveXpertTemplateSource } from '../../xpert/template-source'
 import { XpertTemplateService } from '../../xpert-template/xpert-template.service'
 import { AssistantCapabilityService } from '../../xpert-template/capabilities/assistant-capability.service'
 import { capabilityTemplateId } from '../../xpert-template/capabilities/template-capability-reference'
@@ -89,16 +90,47 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
             sandboxProviders
         )
         if (command.basic?.prompt !== undefined) updateAssistantPrompt(draft, command.basic.prompt)
-        const xpert = await this.commandBus.execute<XpertImportCommand, IXpert>(
-            new XpertImportCommand(draft, {
-                normalizeCopilotModels: !hasExplicitLlmCopilotModel(command.basic?.copilotModel),
-                language: command.language,
-                templateId,
-                sourceTemplateId: template.id,
-                templateSource: createXpertTemplateSource(template),
-                workspaceDataScope: command.basic?.workspaceDataScope
-            })
-        )
+        const importOptions: XpertImportCommandOptions = {
+            normalizeCopilotModels: !hasExplicitLlmCopilotModel(command.basic?.copilotModel),
+            language: command.language,
+            templateId,
+            sourceTemplateId: template.id,
+            templateSource: createXpertTemplateSource(template),
+            workspaceDataScope: command.basic?.workspaceDataScope
+        }
+        const resumeXpertId = command.bootstrap?.resumeXpertId
+        const resumedXpert = resumeXpertId ? await this.xpertService.findOneByIdWithinTenant(resumeXpertId) : null
+        let xpert =
+            resumedXpert ??
+            (await this.commandBus.execute<XpertImportCommand, IXpert>(new XpertImportCommand(draft, importOptions)))
+
+        if (
+            !xpert.id ||
+            xpert.workspaceId !== command.workspaceId ||
+            (resumeXpertId && resolveXpertTemplateSource(xpert)?.templateId !== template.id)
+        ) {
+            throw new BadRequestException(t('server-ai:Error.TemplateInstallResumeMismatch'))
+        }
+        await command.bootstrap?.onImported({ id: xpert.id })
+
+        // Publishing clears the draft. Recovery must not overwrite a published Assistant
+        // or a subsequent user draft when only workspace initialization remains unfinished.
+        if (resumedXpert?.publishAt) {
+            await this.templateWorkspaceInitializer.initializeByTemplateId(
+                command.templateId,
+                xpert.workspaceId,
+                command.language,
+                xpert.id
+            )
+            return { installations: [], pendingAuth: [], xpert }
+        }
+
+        // An interrupted import may leave an Assistant without its graph.
+        if (resumeXpertId && !xpert.draft?.nodes?.length) {
+            xpert = await this.commandBus.execute<XpertImportCommand, IXpert>(
+                new XpertImportCommand(draft, { ...importOptions, targetXpertId: xpert.id })
+            )
+        }
 
         try {
             const dependencies = template.dependencies
@@ -132,7 +164,7 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
                 xpert: installedXpert
             }
         } catch (error) {
-            await this.rollbackTemplateXpert(xpert)
+            if (!command.bootstrap) await this.rollbackTemplateXpert(xpert)
             throw error
         }
     }
