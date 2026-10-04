@@ -1,3 +1,4 @@
+import { ConversationArtifactsController } from './conversation-artifacts.controller'
 import { AssistantWorkspaceFilesController } from './assistant-workspace-files.controller'
 import { WorkspaceFileAccessRuntimeController } from './workspace-file-access-runtime.controller'
 import { AssistantFileAccessGuard } from './assistant-file-access.guard'
@@ -97,6 +98,7 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
         forwardRef(() => XpertToolsetModule)
     ],
     controllers: [
+        ConversationArtifactsController,
         AssistantWorkspaceFilesController,
         WorkspaceFileAccessRuntimeController,
         WorkbenchFilesController,

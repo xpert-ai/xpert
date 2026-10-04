@@ -31,6 +31,7 @@
         "ReferenceOnlyPrompt": "未包含文件正文，不支持直接按文本读取。请使用支持该格式的可用工具；对于 ZIP，先列出或解压条目，再处理所需的子文件。此引用不会改变文件访问权限。"
     },
     "Error": {
+        "ConversationArtifactUnavailable": "此已保存文件在当前对话中不可用。",
         "ModelExecutionInputLimit": "请求超出本次运行的输入大小限制。请缩短上下文，或使用获准的更大限额重新启动。",
         "ModelExecutionOutputLimit": "请求的输出长度超出本次运行的限制。请减小 max_tokens。",
         "ModelExecutionUnavailable": "当前上下文未启用模型执行或暂不可用。",

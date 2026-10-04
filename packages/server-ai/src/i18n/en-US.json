@@ -31,6 +31,7 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "ConversationArtifactUnavailable": "This saved file is not available in this conversation.",
         "ModelExecutionInputLimit": "The request exceeds this execution’s input size limit. Reduce the context or start with a larger authorized limit.",
         "ModelExecutionOutputLimit": "The requested output exceeds this execution’s output limit. Reduce max_tokens.",
         "ModelExecutionUnavailable": "Model execution is disabled or unavailable in this context.",
