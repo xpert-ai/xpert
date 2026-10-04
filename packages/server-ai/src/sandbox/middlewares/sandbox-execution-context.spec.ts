@@ -23,4 +23,16 @@ describe('sandbox execution context', () => {
         expect(result.content).toContain('{"os":"linux"}')
         expect(result.content).not.toContain('"canInstallSystemPackages":false')
     })
+
+    it('advertises scoped CLI authentication only for a backend with platform models', () => {
+        const original = new SystemMessage('Existing instructions')
+        const managed = withSandboxExecutionContext(original, { capabilities: ['platform_models'] })
+        expect(managed.content).toContain('XPERT_CODING_TOOLS_FILE')
+        expect(managed.content).toContain('execution-scoped model credentials')
+        expect(managed.content).not.toContain('use its supported user authorization flow')
+        const ordinary = withSandboxExecutionContext(original, {})
+        expect(ordinary.content).not.toContain('XPERT_CODING_TOOLS_FILE')
+        expect(ordinary.content).toContain('actually reports missing authentication')
+        expect(original.content).toBe('Existing instructions')
+    })
 })
