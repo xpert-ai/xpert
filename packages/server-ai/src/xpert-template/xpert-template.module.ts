@@ -15,6 +15,7 @@ import { XpertTemplate } from './xpert-template.entity'
 import { AssistantCapabilityProviderRegistry } from '@xpert-ai/plugin-sdk'
 import { AssistantCapabilityService } from './capabilities/assistant-capability.service'
 import { DesktopShellCapabilityProvider } from './capabilities/builtin-capabilities'
+import { CommandHandlers } from './commands/handlers'
 
 @Module({
     imports: [
@@ -31,6 +32,7 @@ import { DesktopShellCapabilityProvider } from './capabilities/builtin-capabilit
     controllers: [XpertTemplateController],
     providers: [
         XpertTemplateService,
+        ...CommandHandlers,
         TemplateSkillSyncService,
         AssistantCapabilityService,
         AssistantCapabilityProviderRegistry,

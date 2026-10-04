@@ -17,6 +17,7 @@ import { BadRequestException, ConflictException, forwardRef, Inject, Injectable,
 import { InjectRepository } from '@nestjs/typeorm'
 import { Cache } from 'cache-manager'
 import { UserService } from '@xpert-ai/server-core'
+import { CommandBus } from '@nestjs/cqrs'
 import { Repository } from 'typeorm'
 import { captureRequestContext, runWithCapturedRequestContext } from '../shared/request-context'
 import { SkillPackageService } from '../skill-package/skill-package.service'
@@ -24,7 +25,9 @@ import { SkillRepository } from '../skill-repository/skill-repository.entity'
 import { SkillRepositoryIndexService } from '../skill-repository/repository-index/skill-repository-index.service'
 import { SkillRepositoryService } from '../skill-repository/skill-repository.service'
 import { XpertWorkspace } from '../xpert-workspace/workspace.entity'
-import { TDefaultSkillRepositoryEntry, TWorkspaceDefaultSkillRef, XpertTemplateService } from './xpert-template.service'
+import { XpertTemplateService } from './xpert-template.service'
+import { TDefaultSkillRepositoryEntry, TWorkspaceDefaultSkillRef } from './template.types'
+import { ResolveTemplateSkillRefsCommand } from './commands'
 
 type TemplateSkillSyncInput = {
     mode?: TemplateSkillSyncMode
@@ -58,6 +61,9 @@ const EMPTY_ITEM_SUMMARY: ITemplateSkillSyncItemSummary = {
 
 @Injectable()
 export class TemplateSkillSyncService {
+    @Inject(CommandBus)
+    private readonly commands: CommandBus
+
     readonly #logger = new Logger(TemplateSkillSyncService.name)
 
     constructor(
@@ -380,7 +386,7 @@ export class TemplateSkillSyncService {
             return []
         }
 
-        const resolvedSkills = await this.xpertTemplateService.resolveSkillRefs(normalizedRefs)
+        const resolvedSkills = await this.commands.execute(new ResolveTemplateSkillRefsCommand(normalizedRefs))
         const resolvedByKey = new Map(
             resolvedSkills.map(({ ref, skill }) => [this.getSkillRefKey(ref), skill] as const)
         )

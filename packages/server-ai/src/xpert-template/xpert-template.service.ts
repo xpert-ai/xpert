@@ -1,259 +1,87 @@
+import { CACHE_MANAGER } from '@nestjs/cache-manager'
+import { Inject, Injectable, Logger, OnApplicationBootstrap, Optional } from '@nestjs/common'
+import { CommandBus } from '@nestjs/cqrs'
+import { InjectRepository } from '@nestjs/typeorm'
 import {
-    IconDefinition,
     ISkillMarketConfig,
     ISkillMarketFeaturedRef,
     ISkillMarketFeaturedSkill,
-    ISkillMarketFilterGroup,
-    ISkillMarketFilterGroups,
-    ISkillRepositoryIndex,
-    ISkillRepository,
-    IXpert,
     IXpertMCPTemplate,
     LanguagesEnum,
-    PluginMarketplaceContribution,
-    PluginTemplateApplicationSummary,
-    resolveI18nText,
-    WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER,
     TKnowledgePipelineTemplate,
     TXpertExportedTemplate,
     TXpertTemplate,
-    TXpertTemplateCatalogQuery,
-    XpertTemplatePluginDependencies,
-    XpertTypeEnum
+    TXpertTemplateCatalogQuery
 } from '@xpert-ai/contracts'
-import { getErrorMessage, omit, yaml } from '@xpert-ai/server-common'
-import { ConfigService } from '@xpert-ai/server-config'
-import { LOADED_PLUGINS, LoadedPluginRecord, PaginationParams, TenantAwareCrudService } from '@xpert-ai/server-core'
 import {
     GLOBAL_ORGANIZATION_SCOPE,
     RequestContext,
-    SYSTEM_GLOBAL_SCOPE,
     resolveTenantGlobalScopeKey,
+    SYSTEM_GLOBAL_SCOPE,
     XpertTemplateContribution
 } from '@xpert-ai/plugin-sdk'
-import { CACHE_MANAGER } from '@nestjs/cache-manager'
-import { Inject, Injectable, Logger, OnModuleInit, Optional } from '@nestjs/common'
-import { InjectRepository } from '@nestjs/typeorm'
+import { getErrorMessage, omit, yaml } from '@xpert-ai/server-common'
+import { ConfigService } from '@xpert-ai/server-config'
+import { LOADED_PLUGINS, LoadedPluginRecord, PaginationParams, TenantAwareCrudService } from '@xpert-ai/server-core'
 import { Cache } from 'cache-manager'
 import { createHash } from 'crypto'
 import * as fs from 'fs'
 import { isNil } from 'lodash'
 import * as path from 'path'
 import { In, Repository } from 'typeorm'
-import { SkillRepositoryService } from '../skill-repository/skill-repository.service'
-import { SkillRepositoryIndexService } from '../skill-repository/repository-index/skill-repository-index.service'
-import { XpertTemplate } from './xpert-template.entity'
+import { AssistantCapabilityService } from './capabilities/assistant-capability.service'
+import { BLANK_ASSISTANT_TEMPLATE_ID } from './capabilities/blank-assistant-template'
+import { BOSI_BASE_TEMPLATE_ID, BOSI_TEMPLATE_ID, bosiTemplate } from './capabilities/bosi-template'
+import { parseCapabilityTemplateId } from './capabilities/template-capability-reference'
+import { EnsureTemplateDirectoryCommand, ResolveTemplateSkillRefsCommand } from './commands'
 import {
     describePluginTemplate,
     normalizePluginPackageName,
     TXpertTemplateDescriptor
 } from './plugin-template-descriptor'
-import { resolvePluginApplicationConfigAssets } from '../plugin-resource/plugin-application-assets'
 import { isTemplateCatalogProvider, paginateTemplateCatalog } from './template-catalog'
-import { upgradeBuiltinTemplateCatalog } from './template-catalog-upgrade'
-import { AssistantCapabilityService } from './capabilities/assistant-capability.service'
-import { BLANK_ASSISTANT_TEMPLATE_ID } from './capabilities/blank-assistant-template'
-import { parseCapabilityTemplateId } from './capabilities/template-capability-reference'
-
-const builtinTemplatePath = 'packages/server-ai/src/xpert-template'
-const fallbackLanguage = 'en-US'
-const templateDirectoryName = 'xpert-template'
-const exportedXpertTemplateCategory = 'Xpert'
-const templateDirectories = ['templates', 'pipelines', 'skill-packages'] as const
-const templateFiles = [
-    'templates.json',
-    'mcp-templates.json',
-    'knowledge-pipelines.json',
-    'skills-market.yaml',
-    'skill-repositories.yaml',
-    'workspace-defaults.yaml'
-] as const
-const builtinTemplateFiles = [...templateFiles, 'templates-market.yaml'] as const
-
-type TXpertTemplateGroup = {
-    categories?: string[]
-    recommendedApps: TXpertTemplateDescriptor[]
-}
-
-type TXpertTemplatesCatalog = {
-    templates: Record<string, TXpertTemplateGroup>
-    details: Record<string, TXpertTemplateDescriptor>
-}
-
-type TTemplateMarketRef = {
-    id: string
-}
-
-type TTemplateMarketConfig = {
-    recommendedApps: TTemplateMarketRef[]
-}
-
-type TLocalizedTemplates<T> = Record<string, { categories?: string[]; templates: T[] }>
-
-type TSkillMarketLocaleConfig = {
-    featured: ISkillMarketFeaturedRef[]
-    filters: ISkillMarketFilterGroups
-}
-
-type TLocalizedSkillMarketCatalog = Record<string, TSkillMarketLocaleConfig>
-
-export type TDefaultSkillRepositoryEntry = Pick<ISkillRepository, 'name' | 'provider'> &
-    Partial<Pick<ISkillRepository, 'options' | 'credentials'>>
-
-export type TDefaultSkillRepositoriesConfig = {
-    repositories: TDefaultSkillRepositoryEntry[]
-}
-
-export type TWorkspaceDefaultSkillRef = {
-    provider: string
-    repositoryName: string
-    skillId: string
-}
-
-export type TWorkspaceDefaultsConfig = {
-    userDefault: {
-        skills: TWorkspaceDefaultSkillRef[]
-    }
-}
-
-export type TResolvedSkillRef = {
-    ref: TWorkspaceDefaultSkillRef
-    skill: ISkillRepositoryIndex
-}
-
-export type TTemplateSkillBundle = {
-    ref: TWorkspaceDefaultSkillRef
-    directoryName: string
-    directoryPath: string
-    sharedSkillId: string
-}
-
-type TExportXpertTemplateInput = {
-    xpert: Pick<IXpert, 'id' | 'name' | 'title' | 'description' | 'avatar' | 'type'>
-    dslYaml: string
-    isDraft: boolean
-    includeMemory: boolean
-}
-
-type TXpertTemplateQuery = {
-    targetApp?: string
-    templateType?: string
-    locale?: string
-}
-
-const DEFAULT_SKILL_MARKET_FILTERS: ISkillMarketFilterGroups = {
-    roles: {
-        label: 'Roles',
-        options: []
-    },
-    appTypes: {
-        label: 'Application types',
-        options: []
-    },
-    hot: {
-        label: 'Trending',
-        options: []
-    }
-}
-
-const TEMPLATE_SKILL_BUNDLE_MANIFEST_FILE = 'bundle.yaml'
-const TEMPLATE_SKILL_BUNDLE_SEPARATOR = '__'
-const TEMPLATE_SKILL_BUNDLE_SHARED_PREFIX = 'template-bundle'
-const TEMPLATE_SKILL_BUNDLE_SKILL_FILE = 'SKILL.md'
-const TEMPLATE_SKILL_BUNDLE_LOCAL_PROVIDER = 'local'
-const TEMPLATE_SKILL_BUNDLE_LOCAL_REPOSITORY = 'root/skills'
-
-const isObjectValue = (value: unknown): value is object =>
-    typeof value === 'object' && value !== null && !Array.isArray(value)
-
-const isOptionalString = (value: unknown): value is string | undefined =>
-    typeof value === 'undefined' || typeof value === 'string'
-
-const isOptionalNumber = (value: unknown): value is number | undefined =>
-    typeof value === 'undefined' || (typeof value === 'number' && Number.isFinite(value))
-
-const isStringRecord = (value: unknown): value is NonNullable<IconDefinition['style']> =>
-    isObjectValue(value) && Object.values(value).every((item) => typeof item === 'string')
-
-const SKILL_MARKET_ICON_TYPES: IconDefinition['type'][] = ['image', 'svg', 'font', 'emoji', 'lottie']
-
-const isIconType = (value: unknown): value is IconDefinition['type'] =>
-    typeof value === 'string' && SKILL_MARKET_ICON_TYPES.some((type) => type === value)
-
-const isIconDefinition = (value: unknown): value is IconDefinition => {
-    if (!isObjectValue(value)) {
-        return false
-    }
-
-    const type = Reflect.get(value, 'type')
-    const iconValue = Reflect.get(value, 'value')
-
-    return (
-        isIconType(type) &&
-        typeof iconValue === 'string' &&
-        !!iconValue.trim() &&
-        isOptionalString(Reflect.get(value, 'color')) &&
-        isOptionalNumber(Reflect.get(value, 'size')) &&
-        isOptionalString(Reflect.get(value, 'alt')) &&
-        (typeof Reflect.get(value, 'style') === 'undefined' || isStringRecord(Reflect.get(value, 'style')))
-    )
-}
-
-const isOptionalIconDefinition = (value: unknown): value is IconDefinition | undefined =>
-    typeof value === 'undefined' || isIconDefinition(value)
-
-const normalizeIconDefinition = (value: IconDefinition): IconDefinition => ({
-    type: value.type,
-    value: value.value.trim(),
-    ...(value.color?.trim() ? { color: value.color.trim() } : {}),
-    ...(typeof value.size === 'number' ? { size: value.size } : {}),
-    ...(value.alt?.trim() ? { alt: value.alt.trim() } : {}),
-    ...(value.style ? { style: { ...value.style } } : {})
-})
-
-const isSkillMarketFeaturedRef = (value: unknown): value is ISkillMarketFeaturedRef =>
-    isObjectValue(value) &&
-    typeof Reflect.get(value, 'provider') === 'string' &&
-    typeof Reflect.get(value, 'repositoryName') === 'string' &&
-    typeof Reflect.get(value, 'skillId') === 'string' &&
-    isOptionalString(Reflect.get(value, 'badge')) &&
-    isOptionalString(Reflect.get(value, 'title')) &&
-    isOptionalString(Reflect.get(value, 'description')) &&
-    isOptionalIconDefinition(Reflect.get(value, 'avatar'))
-
-const isSkillMarketFilterOption = (value: unknown): value is ISkillMarketFilterGroup['options'][number] =>
-    isObjectValue(value) &&
-    typeof Reflect.get(value, 'value') === 'string' &&
-    typeof Reflect.get(value, 'label') === 'string' &&
-    isOptionalString(Reflect.get(value, 'description'))
-
-const isSkillMarketFilterGroup = (value: unknown): value is ISkillMarketFilterGroup =>
-    isObjectValue(value) &&
-    typeof Reflect.get(value, 'label') === 'string' &&
-    Array.isArray(Reflect.get(value, 'options')) &&
-    (Reflect.get(value, 'options') as unknown[]).every(isSkillMarketFilterOption)
-
-const isWorkspaceDefaultSkillRef = (value: unknown): value is TWorkspaceDefaultSkillRef =>
-    isObjectValue(value) &&
-    typeof Reflect.get(value, 'provider') === 'string' &&
-    typeof Reflect.get(value, 'repositoryName') === 'string' &&
-    typeof Reflect.get(value, 'skillId') === 'string'
-
-const isTemplateMarketRef = (value: unknown): value is TTemplateMarketRef =>
-    isObjectValue(value) && typeof Reflect.get(value, 'id') === 'string'
-
-const isOptionalRepositoryPayload = (value: unknown): value is ISkillRepository['options'] | null | undefined =>
-    typeof value === 'undefined' || value === null || isObjectValue(value)
-
-const isDefaultSkillRepositoryEntry = (value: unknown): value is TDefaultSkillRepositoryEntry =>
-    isObjectValue(value) &&
-    typeof Reflect.get(value, 'name') === 'string' &&
-    typeof Reflect.get(value, 'provider') === 'string' &&
-    isOptionalRepositoryPayload(Reflect.get(value, 'options')) &&
-    isOptionalRepositoryPayload(Reflect.get(value, 'credentials'))
+import { DEFAULT_SKILL_MARKET_FILTERS, exportedXpertTemplateCategory, fallbackLanguage } from './template.constants'
+import {
+    TDefaultSkillRepositoriesConfig,
+    TExportXpertTemplateInput,
+    TLocalizedSkillMarketCatalog,
+    TLocalizedTemplates,
+    TTemplateMarketConfig,
+    TTemplateSkillBundle,
+    TWorkspaceDefaultsConfig,
+    TWorkspaceDefaultSkillRef,
+    TXpertTemplateQuery,
+    TXpertTemplatesCatalog
+} from './template.types'
+import {
+    createExportedXpertTemplateDescriptor,
+    findPluginTemplateById,
+    findTemplateDescriptorById,
+    getExportedXpertTemplateFilePath,
+    getExportedXpertTemplateId,
+    getTemplateIdFromFilePath,
+    getTemplateOrder,
+    matchesTemplateQuery,
+    mergeTemplateCategories,
+    mergeTemplateCategory,
+    mergeTemplateDescriptorDependencies,
+    resolveRecommendedTemplates,
+    resolveTemplateApplication,
+    toXpertTemplate
+} from './utils/template-catalog'
+import {
+    normalizeSkillMarketCatalog,
+    normalizeSkillRepositories,
+    normalizeTemplatesMarketConfig,
+    normalizeWorkspaceDefaults
+} from './utils/template-config'
+import { appendDirectoryFingerprint, isFileNotFoundError } from './utils/template-files'
+import { getBuiltinTemplateRoot, getTemplateRoots } from './utils/template-paths'
+import { getSkillRefKey, getTemplateSkillBundles } from './utils/template-skills'
+import { XpertTemplate } from './xpert-template.entity'
 
 @Injectable()
-export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> implements OnModuleInit {
+export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> implements OnApplicationBootstrap {
     readonly #logger = new Logger(XpertTemplateService.name)
 
     @Inject(ConfigService)
@@ -265,14 +93,12 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
     @Inject(AssistantCapabilityService)
     private readonly capabilities: AssistantCapabilityService
 
-    private templateDirectoryReady?: Promise<string>
-    private unsafeTemplateDirectoryWarningIssued = false
+    @Inject(CommandBus)
+    private readonly commands: CommandBus
 
     constructor(
         @InjectRepository(XpertTemplate)
         readonly xtRepository: Repository<XpertTemplate>,
-        private readonly skillRepositoryService: SkillRepositoryService,
-        private readonly skillRepositoryIndexService: SkillRepositoryIndexService,
         @Optional()
         @Inject(LOADED_PLUGINS)
         private readonly loadedPlugins: LoadedPluginRecord[] = []
@@ -280,9 +106,9 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
         super(xtRepository)
     }
 
-    async onModuleInit() {
+    async onApplicationBootstrap() {
         try {
-            await this.ensureTemplateDirectoryReady()
+            await this.commands.execute(new EnsureTemplateDirectoryCommand())
         } catch (error) {
             this.#logger.error(
                 `Skip xpert template bootstrap during module init: ${getErrorMessage(error)}`,
@@ -297,8 +123,8 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
     }
 
     async saveExportedXpertTemplate(input: TExportXpertTemplateInput): Promise<TXpertExportedTemplate> {
-        const templateId = this.getExportedXpertTemplateId(input.xpert.id)
-        const filePath = this.getExportedXpertTemplateFilePath(templateId)
+        const templateId = getExportedXpertTemplateId(input.xpert.id)
+        const filePath = getExportedXpertTemplateFilePath(templateId)
         const absoluteFilePath = await this.resolveExternalRelativePath(filePath)
 
         await fs.promises.mkdir(path.dirname(absoluteFilePath), { recursive: true })
@@ -326,13 +152,13 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
             try {
                 await fs.promises.unlink(absoluteFilePath)
             } catch (error) {
-                if (!this.isFileNotFoundError(error)) {
+                if (!isFileNotFoundError(error)) {
                     throw error
                 }
             }
         }
 
-        const templateId = template.id?.trim() || this.getTemplateIdFromFilePath(template.filePath)
+        const templateId = template.id?.trim() || getTemplateIdFromFilePath(template.filePath)
         if (templateId) {
             await this.removeExportedXpertTemplateCatalog(templateId)
         }
@@ -347,15 +173,12 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
             ? templatesData.templates[language]
             : templatesData.templates[fallbackLanguage]
         const recommendedApps = [...(group?.recommendedApps ?? []), ...pluginTemplates]
-            .filter((template) => this.matchesTemplateQuery(template, query))
-            .sort(
-                (left, right) =>
-                    this.getTemplateOrder(left) - this.getTemplateOrder(right) || left.id.localeCompare(right.id)
-            )
+            .filter((template) => matchesTemplateQuery(template, query))
+            .sort((left, right) => getTemplateOrder(left) - getTemplateOrder(right) || left.id.localeCompare(right.id))
 
         return {
             ...(group ?? { categories: [], recommendedApps: [] }),
-            categories: this.mergeTemplateCategories(
+            categories: mergeTemplateCategories(
                 group?.categories,
                 pluginTemplates.map((template) => template.category)
             ),
@@ -366,7 +189,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
     async getCatalog(language: LanguagesEnum, query: TXpertTemplateCatalogQuery = {}) {
         const catalog = await this.getAll(language)
         return paginateTemplateCatalog(
-            catalog.recommendedApps.map((item) => this.toXpertTemplate(item)),
+            catalog.recommendedApps.map((item) => toXpertTemplate(item)),
             query
         )
     }
@@ -382,14 +205,14 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
             this.getPluginTemplates(language, query)
         ])
 
-        return this.resolveRecommendedTemplates(
+        return resolveRecommendedTemplates(
             marketConfig.recommendedApps,
             templatesData,
             builtinTemplatesData,
             pluginTemplates,
             language,
             query
-        ).map((template) => this.toXpertTemplate(template))
+        ).map((template) => toXpertTemplate(template))
     }
 
     async readTemplatesMarketConfig(): Promise<TTemplateMarketConfig> {
@@ -398,9 +221,9 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
             return config
         }
 
-        const filePath = path.join(this.getBuiltinTemplateRoot(), 'templates-market.yaml')
+        const filePath = path.join(getBuiltinTemplateRoot(this.configService), 'templates-market.yaml')
         const raw = await this.readYamlFromFile(filePath, 'templates market config')
-        config = this.normalizeTemplatesMarketConfig(raw)
+        config = normalizeTemplatesMarketConfig(raw)
         await this.cacheManager.set('xpert:templates-market', config, 10 * 1000)
 
         return config
@@ -409,16 +232,20 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
     async getTemplateDetail(id: string, language: LanguagesEnum, query?: TXpertTemplateQuery): Promise<TXpertTemplate> {
         const variant = parseCapabilityTemplateId(id)
         const template = await this.getTemplateSourceDetail(variant?.templateId ?? id, language, query)
-        return this.capabilities.compose(
-            this.toXpertTemplate(template),
-            language,
-            variant?.capabilities ?? [],
-            (sourceId) =>
-                this.getTemplateSourceDetail(sourceId, language, query).then((source) => this.toXpertTemplate(source))
+        return this.capabilities.compose(toXpertTemplate(template), language, variant?.capabilities ?? [], (sourceId) =>
+            this.getTemplateSourceDetail(sourceId, language, query).then((source) => toXpertTemplate(source))
         )
     }
 
-    private async getTemplateSourceDetail(id: string, language: LanguagesEnum, query?: TXpertTemplateQuery) {
+    private async getTemplateSourceDetail(
+        id: string,
+        language: LanguagesEnum,
+        query?: TXpertTemplateQuery
+    ): Promise<TXpertTemplateDescriptor> {
+        if (id === BOSI_TEMPLATE_ID) {
+            const base = await this.getTemplateSourceDetail(BOSI_BASE_TEMPLATE_ID, language, query)
+            return bosiTemplate(toXpertTemplate(base))
+        }
         if (id === BLANK_ASSISTANT_TEMPLATE_ID) return this.capabilities.blankTemplate()
         const pluginTemplate = await this.getPluginTemplateById(id, language, query)
         if (pluginTemplate) {
@@ -427,8 +254,8 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 
         const templatesData = await this.readTemplatesFile()
         let details = templatesData.details[id]
-        details = this.mergeTemplateDescriptorDependencies(
-            details ?? this.findTemplateDescriptorById(templatesData, id, language),
+        details = mergeTemplateDescriptorDependencies(
+            details ?? findTemplateDescriptorById(templatesData, id, language),
             await this.findBuiltinTemplateDescriptorById(id, language)
         )
 
@@ -448,63 +275,16 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
             return null
         }
 
-        return templatesData.details[id] ?? this.findTemplateDescriptorById(templatesData, id, language)
+        return templatesData.details[id] ?? findTemplateDescriptorById(templatesData, id, language)
     }
 
     private async readBuiltinTemplatesFile(): Promise<TXpertTemplatesCatalog | null> {
         try {
-            const templatesFilePath = path.join(this.getBuiltinTemplateRoot(), 'templates.json')
+            const templatesFilePath = path.join(getBuiltinTemplateRoot(this.configService), 'templates.json')
             return await this.readJsonFromFile<TXpertTemplatesCatalog>(templatesFilePath)
         } catch {
             return null
         }
-    }
-
-    private mergeTemplateDescriptorDependencies(
-        descriptor: TXpertTemplateDescriptor | null | undefined,
-        fallbackDescriptor: TXpertTemplateDescriptor | null | undefined
-    ): TXpertTemplateDescriptor | null {
-        if (!descriptor) {
-            return fallbackDescriptor ?? null
-        }
-
-        if (this.hasTemplatePluginDependencies(descriptor.dependencies) || !fallbackDescriptor?.dependencies) {
-            return descriptor
-        }
-
-        return {
-            ...descriptor,
-            dependencies: fallbackDescriptor.dependencies
-        }
-    }
-
-    private hasTemplatePluginDependencies(dependencies?: XpertTemplatePluginDependencies) {
-        return !!dependencies?.plugins?.some((pluginName) => !!pluginName.trim())
-    }
-
-    private findTemplateDescriptorById(
-        templatesData: TXpertTemplatesCatalog,
-        id: string,
-        language: LanguagesEnum
-    ): TXpertTemplateDescriptor | null {
-        const checkedLanguages = new Set<string>()
-        const languages = [language, fallbackLanguage, ...Object.keys(templatesData.templates ?? {}).sort()]
-
-        for (const currentLanguage of languages) {
-            if (checkedLanguages.has(currentLanguage)) {
-                continue
-            }
-
-            checkedLanguages.add(currentLanguage)
-            const details = templatesData.templates[currentLanguage]?.recommendedApps?.find(
-                (template) => template.id === id
-            )
-            if (details) {
-                return details
-            }
-        }
-
-        return null
     }
 
     async readTemplates<T>(fileName: string, cacheKey: string): Promise<TLocalizedTemplates<T>> {
@@ -712,11 +492,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
             hash.update(await this.readTextFromFile(filePath, `template asset '${fileName}'`))
         }
 
-        await this.appendDirectoryFingerprint(
-            hash,
-            await this.getExternalTemplatePath('skill-packages'),
-            'skill-packages'
-        )
+        await appendDirectoryFingerprint(hash, await this.getExternalTemplatePath('skill-packages'), 'skill-packages')
 
         return hash.digest('hex')
     }
@@ -729,7 +505,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 
         const filePath = await this.getExternalTemplatePath('skills-market.yaml')
         const raw = await this.readYamlFromFile(filePath, 'skills market config')
-        config = this.normalizeSkillMarketCatalog(raw)
+        config = normalizeSkillMarketCatalog(raw)
         await this.cacheManager.set('xpert:skills-market', config, 10 * 1000)
 
         return config
@@ -743,7 +519,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 
         const filePath = await this.getExternalTemplatePath('skill-repositories.yaml')
         const raw = await this.readYamlFromFile(filePath, 'skill repositories config')
-        config = this.normalizeSkillRepositories(raw)
+        config = normalizeSkillRepositories(raw)
         await this.cacheManager.set('xpert:skill-repositories', config, 10 * 1000)
 
         return config
@@ -757,7 +533,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 
         const filePath = await this.getExternalTemplatePath('workspace-defaults.yaml')
         const raw = await this.readYamlFromFile(filePath, 'workspace defaults config')
-        config = this.normalizeWorkspaceDefaults(raw)
+        config = normalizeWorkspaceDefaults(raw)
         await this.cacheManager.set('xpert:workspace-defaults', config, 10 * 1000)
 
         return config
@@ -783,7 +559,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
         const missingRefs: TWorkspaceDefaultSkillRef[] = []
 
         for (const ref of skillRefs) {
-            const key = this.getSkillRefKey(ref)
+            const key = getSkillRefKey(ref)
             const featuredRef = featuredRefsByKey.get(key)
             if (featuredRef) {
                 matchedRefs.push(featuredRef)
@@ -796,32 +572,12 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
         if (missingRefs.length) {
             this.#logger.warn(
                 `Skipping workspace default skills missing from skills-market.yaml: ${missingRefs
-                    .map((ref) => this.getSkillRefKey(ref))
+                    .map((ref) => getSkillRefKey(ref))
                     .join(', ')}`
             )
         }
 
         return matchedRefs
-    }
-
-    async resolveSkillRefs(skillRefs: TWorkspaceDefaultSkillRef[]): Promise<TResolvedSkillRef[]> {
-        if (!skillRefs.length) {
-            return []
-        }
-
-        const resolved: TResolvedSkillRef[] = []
-        const resolvedByKey = await this.resolveSkillRefsByKey(skillRefs)
-        for (const ref of skillRefs) {
-            const skill = resolvedByKey.get(this.getSkillRefKey(ref))
-            if (skill) {
-                resolved.push({
-                    ref,
-                    skill
-                })
-            }
-        }
-
-        return resolved
     }
 
     private async getPluginTemplates(
@@ -851,7 +607,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
         query?: TXpertTemplateQuery
     ): Promise<TXpertTemplateDescriptor | null> {
         const templates = await this.getPluginTemplates(language, query)
-        const template = this.findPluginTemplateById(templates, id)
+        const template = findPluginTemplateById(templates, id)
         if (!template) return null
         const plugin = this.getEffectivePluginRecords().find(
             (record) => normalizePluginPackageName(record.packageName ?? record.name) === template.pluginName
@@ -866,61 +622,6 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
         )
         if (contribution.key !== key) throw new Error('Resolved template key does not match its catalog entry')
         return this.toPluginTemplateDescriptor(plugin, contribution, language)
-    }
-
-    private findPluginTemplateById(templates: TXpertTemplateDescriptor[], id: string) {
-        const normalizedId = this.normalizePluginTemplateId(id)
-        const exactMatch = templates.find(
-            (template) =>
-                template.id === id ||
-                template.key === id ||
-                this.normalizePluginTemplateId(template.id) === normalizedId ||
-                this.normalizePluginTemplateId(template.key) === normalizedId
-        )
-        if (exactMatch) {
-            return exactMatch
-        }
-
-        // Assistant instances created by older plugin versions only persisted the
-        // template key (for example `bom-lifecycle-orchestrator`). Resolve that
-        // legacy source only when the key is unique across installed plugins so a
-        // bare id can never silently select the wrong plugin template.
-        if (!normalizedId.includes(':')) {
-            const keyMatches = templates.filter((template) => {
-                const templateId = this.normalizePluginTemplateId(template.id)
-                const templateKey = this.normalizePluginTemplateId(template.key)
-                return templateId.endsWith(`:${normalizedId}`) || templateKey.endsWith(`:${normalizedId}`)
-            })
-            return keyMatches.length === 1 ? keyMatches[0] : null
-        }
-
-        return null
-    }
-
-    private resolveRecommendedTemplates(
-        refs: TTemplateMarketRef[],
-        templatesData: TXpertTemplatesCatalog,
-        builtinTemplatesData: TXpertTemplatesCatalog | null,
-        pluginTemplates: TXpertTemplateDescriptor[],
-        language: LanguagesEnum,
-        query?: TXpertTemplateQuery
-    ) {
-        const recommendedApps: TXpertTemplateDescriptor[] = []
-
-        for (const ref of refs) {
-            const externalTemplate = this.findTemplateDescriptorById(templatesData, ref.id, language)
-            const builtinTemplate = builtinTemplatesData
-                ? this.findTemplateDescriptorById(builtinTemplatesData, ref.id, language)
-                : null
-            const template =
-                this.findPluginTemplateById(pluginTemplates, ref.id) ??
-                this.mergeTemplateDescriptorDependencies(externalTemplate, builtinTemplate)
-            if (template && this.matchesTemplateQuery(template, query)) {
-                recommendedApps.push(template)
-            }
-        }
-
-        return recommendedApps
     }
 
     /** Selects the newest plugin record visible in the current request scope. */
@@ -975,7 +676,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
                 this.toPluginTemplateDescriptor(plugin, contribution, language, isTemplateCatalogProvider(source))
             )
             .filter((template): template is TXpertTemplateDescriptor => !!template)
-            .filter((template) => this.matchesTemplateQuery(template, query))
+            .filter((template) => matchesTemplateQuery(template, query))
     }
 
     private toPluginTemplateDescriptor(
@@ -989,123 +690,8 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
             contribution,
             language,
             summaryOnly,
-            this.resolveTemplateApplication(plugin, contribution.key?.trim() || contribution.id?.trim())
+            resolveTemplateApplication(plugin, contribution.key?.trim() || contribution.id?.trim())
         )
-    }
-
-    /**
-     * Attaches an App only through an explicit template key declared by the
-     * same loaded plugin. Names, descriptions, and marketplace ordering never
-     * participate in the association, and ambiguous declarations fail closed.
-     */
-    private resolveTemplateApplication(
-        plugin: LoadedPluginRecord,
-        templateKey: string
-    ): PluginTemplateApplicationSummary | null {
-        const pluginName = normalizePluginPackageName(
-            this.normalizeTemplateString(plugin.packageName ?? plugin.name ?? plugin.instance?.meta?.name) ?? ''
-        )
-        const targetAppMeta = plugin.instance?.meta?.targetAppMeta ?? {}
-        const metadataEntries = Object.values(targetAppMeta) as Array<{
-            marketplace?: { contents?: PluginMarketplaceContribution[] }
-        }>
-        const contributions = metadataEntries.flatMap((metadata) =>
-            Array.isArray(metadata?.marketplace?.contents) ? metadata.marketplace.contents : []
-        )
-        const matches = contributions.filter(
-            (item) =>
-                item.type === 'app' &&
-                item.appConfig?.assistantTemplateKey?.trim() === templateKey &&
-                !!item.name?.trim()
-        )
-        const uniqueMatches = Array.from(new Map(matches.map((item) => [item.name, item])).values())
-        if (uniqueMatches.length > 1) {
-            throw new Error(`Plugin '${pluginName}' declares multiple Apps for Assistant template '${templateKey}'`)
-        }
-        const app = uniqueMatches[0]
-        if (!app?.appConfig) {
-            return null
-        }
-        const appConfig = resolvePluginApplicationConfigAssets(plugin, app.appConfig)
-        return {
-            id: `${pluginName}:${app.name}`,
-            pluginName,
-            appName: app.name,
-            displayName: app.displayName ?? app.name,
-            description: app.description,
-            icon: app.icon ?? plugin.instance?.meta?.icon,
-            color: app.color,
-            scope: appConfig.scope,
-            assistantTemplateKey: appConfig.assistantTemplateKey,
-            config: appConfig
-        }
-    }
-
-    private normalizePluginTemplateId(id?: string) {
-        const value = this.normalizeTemplateString(id)
-        const separatorIndex = value?.indexOf(':') ?? -1
-        if (!value || separatorIndex < 0) {
-            return value
-        }
-
-        const pluginName = value.slice(0, separatorIndex)
-        const templateKey = value.slice(separatorIndex + 1)
-        return `${normalizePluginPackageName(pluginName)}:${templateKey}`
-    }
-
-    private matchesTemplateQuery(template: TXpertTemplateDescriptor, query?: TXpertTemplateQuery) {
-        const targetApp = this.normalizeTemplateString(query?.targetApp)
-        if (targetApp) {
-            const targetApps = template.targetApps ?? []
-            if (!targetApps.includes(targetApp)) {
-                return false
-            }
-        }
-
-        const templateType = this.normalizeTemplateString(query?.templateType)
-        if (targetApp && templateType) {
-            const types = template.targetAppMeta?.[targetApp]?.types
-            if (Array.isArray(types) && types.length && !types.includes(templateType)) {
-                return false
-            }
-        }
-
-        return true
-    }
-
-    private getTemplateOrder(template: TXpertTemplateDescriptor) {
-        return typeof template.order === 'number' && Number.isFinite(template.order)
-            ? template.order
-            : Number.MAX_SAFE_INTEGER
-    }
-
-    private toXpertTemplate(template: TXpertTemplateDescriptor): TXpertTemplate {
-        const name = template.name?.trim() || template.title?.trim() || template.id
-        return {
-            ...template,
-            name,
-            title: template.title?.trim() || name,
-            description: template.description ?? '',
-            category: template.category ?? '',
-            copyright: template.copyright ?? '',
-            privacyPolicy: template.privacyPolicy ?? undefined,
-            export_data: template.export_data ?? '',
-            avatar: template.avatar ?? {},
-            type: template.type ?? XpertTypeEnum.Agent
-        }
-    }
-
-    private mergeTemplateCategories(categories: string[] = [], extraCategories: Array<string | undefined>) {
-        return Array.from(
-            new Set([
-                ...(categories ?? []),
-                ...extraCategories.filter((category): category is string => !!category?.trim())
-            ])
-        )
-    }
-
-    private normalizeTemplateString(value: unknown) {
-        return typeof value === 'string' && value.trim() ? value.trim() : null
     }
 
     private async withTemplateExportData(id: string, descriptor: TXpertTemplateDescriptor) {
@@ -1122,7 +708,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 
     private async upsertExportedXpertTemplateCatalog(templateId: string, xpert: TExportXpertTemplateInput['xpert']) {
         const templatesData = await this.readTemplatesFile()
-        const descriptor = this.createExportedXpertTemplateDescriptor(templateId, xpert)
+        const descriptor = createExportedXpertTemplateDescriptor(templateId, xpert)
         const languages = Object.keys(templatesData.templates ?? {})
 
         if (!languages.length) {
@@ -1139,7 +725,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
             const group = templatesData.templates[language] ?? { recommendedApps: [] }
             templatesData.templates[language] = {
                 ...group,
-                categories: this.mergeTemplateCategory(group.categories, exportedXpertTemplateCategory),
+                categories: mergeTemplateCategory(group.categories, exportedXpertTemplateCategory),
                 recommendedApps: [descriptor, ...(group.recommendedApps ?? []).filter((item) => item.id !== templateId)]
             }
         }
@@ -1171,52 +757,13 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
         await this.writeTemplatesFile(templatesData)
     }
 
-    private createExportedXpertTemplateDescriptor(
-        templateId: string,
-        xpert: TExportXpertTemplateInput['xpert']
-    ): TXpertTemplateDescriptor {
-        return {
-            id: templateId,
-            name: xpert.name,
-            type: xpert.type,
-            title: xpert.title || xpert.name,
-            description: xpert.description,
-            avatar: xpert.avatar,
-            category: exportedXpertTemplateCategory,
-            copyright: null,
-            privacyPolicy: null
-        }
-    }
-
-    private mergeTemplateCategory(categories: string[] | undefined, category: string) {
-        const nextCategories = categories ?? []
-        return nextCategories.includes(category) ? nextCategories : [...nextCategories, category]
-    }
-
-    private getExportedXpertTemplateId(xpertId: string) {
-        return `xpert-${xpertId}`
-    }
-
-    private getExportedXpertTemplateFilePath(templateId: string) {
-        return path.posix.join('templates', `${templateId}.yaml`)
-    }
-
-    private getTemplateIdFromFilePath(filePath?: string | null) {
-        if (!filePath?.trim()) {
-            return null
-        }
-
-        const extension = path.extname(filePath)
-        return path.basename(filePath, extension) || null
-    }
-
     private async resolveExternalRelativePath(relativePath: string) {
         const normalizedPath = path.normalize(relativePath)
         if (path.isAbsolute(normalizedPath) || normalizedPath === '..' || normalizedPath.startsWith(`..${path.sep}`)) {
             throw new Error(`Invalid xpert template path '${relativePath}'`)
         }
 
-        return path.join(await this.ensureTemplateDirectoryReady(), normalizedPath)
+        return path.join(await this.commands.execute(new EnsureTemplateDirectoryCommand()), normalizedPath)
     }
 
     private async writeTemplatesFile(value: TXpertTemplatesCatalog) {
@@ -1225,340 +772,14 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
             await fs.promises.writeFile(templatesFilePath, JSON.stringify(value, null, 4), 'utf8')
         } catch (error) {
             throw new Error(
-                `Failed to write xpert template file '${templatesFilePath}' (xpert template dir: '${this.getExternalTemplateRoot()}'): ${getErrorMessage(error)}`
+                `Failed to write xpert template file '${templatesFilePath}' (xpert template dir: '${getTemplateRoots(this.configService).externalRoot}'): ${getErrorMessage(error)}`
             )
         }
-    }
-
-    private isFileNotFoundError(value: unknown) {
-        return isObjectValue(value) && Reflect.get(value, 'code') === 'ENOENT'
-    }
-
-    private ensureTemplateDirectoryReady() {
-        if (!this.templateDirectoryReady) {
-            this.templateDirectoryReady = this.initializeTemplateDirectory().catch((error) => {
-                this.templateDirectoryReady = undefined
-                throw error
-            })
-        }
-
-        return this.templateDirectoryReady
-    }
-
-    private async initializeTemplateDirectory() {
-        const builtinRoot = this.getBuiltinTemplateRoot()
-        const externalRoot = this.getExternalTemplateRoot()
-
-        await this.assertBuiltinTemplateSource(builtinRoot, externalRoot)
-        await this.assertBuiltinTemplateLayout(builtinRoot, externalRoot)
-        await fs.promises.mkdir(externalRoot, { recursive: true })
-
-        for (const directoryName of templateDirectories) {
-            await fs.promises.mkdir(path.join(externalRoot, directoryName), { recursive: true })
-        }
-
-        for (const fileName of templateFiles) {
-            await this.copyFileIfMissing(
-                path.join(builtinRoot, fileName),
-                path.join(externalRoot, fileName),
-                externalRoot
-            )
-        }
-
-        for (const directoryName of templateDirectories) {
-            await this.copyDirectoryContentsIfMissing(
-                path.join(builtinRoot, directoryName),
-                path.join(externalRoot, directoryName),
-                externalRoot
-            )
-        }
-
-        await this.assertExternalTemplateLayout(externalRoot)
-        await upgradeBuiltinTemplateCatalog(builtinRoot, externalRoot)
-        this.#logger.log(`Xpert templates ready at '${externalRoot}'`)
-
-        return externalRoot
-    }
-
-    private getBuiltinTemplateRoot() {
-        return path.join(this.configService.assetOptions.serverRoot, builtinTemplatePath)
-    }
-
-    private getExternalTemplateRoot() {
-        const configuredPath = this.configService.environment.env?.XPERT_TEMPLATE_DIR?.trim()
-        const defaultRoot = this.getDefaultExternalTemplateRoot()
-        if (!configuredPath) {
-            return defaultRoot
-        }
-
-        const resolvedPath = this.resolveTemplateRootPath(configuredPath)
-        if (this.isBuiltinTemplatePath(resolvedPath)) {
-            this.warnUnsafeTemplateRoot(configuredPath, defaultRoot)
-            return defaultRoot
-        }
-
-        return resolvedPath
-    }
-
-    private getDefaultExternalTemplateRoot() {
-        return path.join(this.configService.assetOptions.dataPath, templateDirectoryName)
-    }
-
-    private resolveTemplateRootPath(templateRoot: string) {
-        return path.resolve(
-            path.isAbsolute(templateRoot)
-                ? templateRoot
-                : path.join(this.configService.assetOptions.serverRoot, templateRoot)
-        )
-    }
-
-    private isBuiltinTemplatePath(templateRoot: string) {
-        const builtinRoot = path.resolve(this.getBuiltinTemplateRoot())
-        const relativePath = path.relative(builtinRoot, templateRoot)
-        return !relativePath || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath))
-    }
-
-    private warnUnsafeTemplateRoot(configuredPath: string, fallbackRoot: string) {
-        if (this.unsafeTemplateDirectoryWarningIssued) {
-            return
-        }
-
-        this.unsafeTemplateDirectoryWarningIssued = true
-        this.#logger.warn(
-            `Ignoring XPERT_TEMPLATE_DIR '${configuredPath}' because it points inside the built-in xpert template source. Using '${fallbackRoot}' instead.`
-        )
     }
 
     private async getExternalTemplatePath(...segments: string[]) {
-        const templateRoot = await this.ensureTemplateDirectoryReady()
+        const templateRoot = await this.commands.execute(new EnsureTemplateDirectoryCommand())
         return path.join(templateRoot, ...segments)
-    }
-
-    private async assertBuiltinTemplateSource(builtinRoot: string, externalRoot: string) {
-        try {
-            const stats = await fs.promises.stat(builtinRoot)
-            if (!stats.isDirectory()) {
-                throw new Error('Expected a directory')
-            }
-            await fs.promises.access(builtinRoot, fs.constants.R_OK)
-        } catch (error) {
-            throw new Error(
-                `Built-in xpert template source '${builtinRoot}' is unavailable while initializing '${externalRoot}': ${getErrorMessage(error)}`
-            )
-        }
-    }
-
-    private async assertBuiltinTemplateLayout(builtinRoot: string, externalRoot: string) {
-        for (const fileName of builtinTemplateFiles) {
-            await this.assertPathAvailable(
-                path.join(builtinRoot, fileName),
-                'file',
-                externalRoot,
-                'Built-in xpert template file is unavailable'
-            )
-        }
-
-        for (const directoryName of templateDirectories) {
-            await this.assertPathAvailable(
-                path.join(builtinRoot, directoryName),
-                'directory',
-                externalRoot,
-                'Built-in xpert template directory is unavailable'
-            )
-        }
-    }
-
-    private async assertExternalTemplateLayout(externalRoot: string) {
-        for (const fileName of templateFiles) {
-            await this.assertPathAvailable(
-                path.join(externalRoot, fileName),
-                'file',
-                externalRoot,
-                'Required xpert template file is unavailable'
-            )
-        }
-
-        for (const directoryName of templateDirectories) {
-            await this.assertPathAvailable(
-                path.join(externalRoot, directoryName),
-                'directory',
-                externalRoot,
-                'Required xpert template directory is unavailable'
-            )
-        }
-    }
-
-    private async assertPathAvailable(
-        targetPath: string,
-        kind: 'file' | 'directory',
-        templateRoot: string,
-        message: string
-    ) {
-        try {
-            const stats = await fs.promises.stat(targetPath)
-            if (kind === 'file' && !stats.isFile()) {
-                throw new Error('Expected a file')
-            }
-            if (kind === 'directory' && !stats.isDirectory()) {
-                throw new Error('Expected a directory')
-            }
-            await fs.promises.access(targetPath, fs.constants.R_OK)
-        } catch (error) {
-            throw new Error(
-                `${message} at '${targetPath}' (xpert template dir: '${templateRoot}'): ${getErrorMessage(error)}`
-            )
-        }
-    }
-
-    private async copyFileIfMissing(sourcePath: string, targetPath: string, templateRoot: string) {
-        if (await this.pathExists(targetPath)) {
-            return
-        }
-        try {
-            await fs.promises.copyFile(sourcePath, targetPath)
-        } catch (error) {
-            throw new Error(
-                `Failed to seed xpert template asset from '${sourcePath}' to '${targetPath}' (xpert template dir: '${templateRoot}'): ${getErrorMessage(error)}`
-            )
-        }
-    }
-
-    private async copyDirectoryContentsIfMissing(
-        sourceDirectory: string,
-        targetDirectory: string,
-        templateRoot: string
-    ) {
-        let entries: fs.Dirent[]
-        try {
-            entries = await fs.promises.readdir(sourceDirectory, { withFileTypes: true })
-        } catch (error) {
-            throw new Error(
-                `Failed to read built-in xpert template directory '${sourceDirectory}' while seeding '${targetDirectory}' (xpert template dir: '${templateRoot}'): ${getErrorMessage(error)}`
-            )
-        }
-
-        for (const entry of entries) {
-            const sourcePath = path.join(sourceDirectory, entry.name)
-            const targetPath = path.join(targetDirectory, entry.name)
-
-            if (entry.isDirectory()) {
-                await fs.promises.mkdir(targetPath, { recursive: true })
-                await this.copyDirectoryContentsIfMissing(sourcePath, targetPath, templateRoot)
-                continue
-            }
-
-            await this.copyFileIfMissing(sourcePath, targetPath, templateRoot)
-        }
-    }
-
-    private async pathExists(targetPath: string) {
-        try {
-            await fs.promises.access(targetPath, fs.constants.F_OK)
-            return true
-        } catch {
-            return false
-        }
-    }
-
-    private normalizeSkillMarketCatalog(value: unknown): TLocalizedSkillMarketCatalog {
-        if (!isObjectValue(value)) {
-            return {
-                [fallbackLanguage]: {
-                    featured: [],
-                    filters: DEFAULT_SKILL_MARKET_FILTERS
-                }
-            }
-        }
-
-        const locales: TLocalizedSkillMarketCatalog = {}
-
-        for (const [locale, config] of Object.entries(value)) {
-            if (!locale.trim() || !isObjectValue(config)) {
-                continue
-            }
-
-            const featuredValue = Reflect.get(config, 'featured')
-            const featured = Array.isArray(featuredValue)
-                ? featuredValue.filter(isSkillMarketFeaturedRef).map((item) => ({
-                      provider: item.provider.trim(),
-                      repositoryName: item.repositoryName.trim(),
-                      skillId: item.skillId.trim(),
-                      ...(item.badge ? { badge: item.badge.trim() } : {}),
-                      ...(item.title ? { title: item.title.trim() } : {}),
-                      ...(item.description ? { description: item.description.trim() } : {}),
-                      ...(item.avatar ? { avatar: normalizeIconDefinition(item.avatar) } : {})
-                  }))
-                : []
-
-            const filters = this.normalizeSkillMarketFilters(Reflect.get(config, 'filters'))
-            locales[locale] = { featured, filters }
-        }
-
-        if (locales[fallbackLanguage]) {
-            return locales
-        }
-
-        return {
-            ...locales,
-            [fallbackLanguage]: {
-                featured: [],
-                filters: DEFAULT_SKILL_MARKET_FILTERS
-            }
-        }
-    }
-
-    private normalizeTemplatesMarketConfig(value: unknown): TTemplateMarketConfig {
-        if (!isObjectValue(value)) {
-            return { recommendedApps: [] }
-        }
-
-        const recommendedApps = Reflect.get(value, 'recommendedApps')
-        if (!Array.isArray(recommendedApps)) {
-            return { recommendedApps: [] }
-        }
-
-        return {
-            recommendedApps: recommendedApps
-                .filter(isTemplateMarketRef)
-                .map((item) => ({ id: item.id.trim() }))
-                .filter((item) => !!item.id)
-        }
-    }
-
-    private normalizeSkillMarketFilters(value: unknown): ISkillMarketFilterGroups {
-        if (!isObjectValue(value)) {
-            return DEFAULT_SKILL_MARKET_FILTERS
-        }
-
-        return {
-            roles: this.normalizeSkillMarketFilterGroup(
-                Reflect.get(value, 'roles'),
-                DEFAULT_SKILL_MARKET_FILTERS.roles
-            ),
-            appTypes: this.normalizeSkillMarketFilterGroup(
-                Reflect.get(value, 'appTypes'),
-                DEFAULT_SKILL_MARKET_FILTERS.appTypes
-            ),
-            hot: this.normalizeSkillMarketFilterGroup(Reflect.get(value, 'hot'), DEFAULT_SKILL_MARKET_FILTERS.hot)
-        }
-    }
-
-    private normalizeSkillMarketFilterGroup(
-        value: unknown,
-        fallback: ISkillMarketFilterGroup
-    ): ISkillMarketFilterGroup {
-        if (!isSkillMarketFilterGroup(value)) {
-            return fallback
-        }
-
-        return {
-            label: value.label.trim(),
-            options: value.options.map((option) => ({
-                value: option.value.trim(),
-                label: option.label.trim(),
-                ...(option.description ? { description: option.description.trim() } : {})
-            }))
-        }
     }
 
     private async resolveFeaturedSkills(featuredRefs: ISkillMarketFeaturedRef[]): Promise<ISkillMarketFeaturedSkill[]> {
@@ -1566,16 +787,19 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
             return []
         }
 
-        const resolvedByKey = await this.resolveSkillRefsByKey(
-            featuredRefs.map((ref) => ({
-                provider: ref.provider,
-                repositoryName: ref.repositoryName,
-                skillId: ref.skillId
-            }))
+        const resolved = await this.commands.execute(
+            new ResolveTemplateSkillRefsCommand(
+                featuredRefs.map((ref) => ({
+                    provider: ref.provider,
+                    repositoryName: ref.repositoryName,
+                    skillId: ref.skillId
+                }))
+            )
         )
+        const resolvedByKey = new Map(resolved.map(({ ref, skill }) => [getSkillRefKey(ref), skill]))
         const featured: ISkillMarketFeaturedSkill[] = []
         for (const ref of featuredRefs) {
-            const skill = resolvedByKey.get(this.getSkillRefKey(ref))
+            const skill = resolvedByKey.get(getSkillRefKey(ref))
             if (!skill) {
                 continue
             }
@@ -1589,48 +813,11 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
         return featured
     }
 
-    private async appendDirectoryFingerprint(
-        hash: ReturnType<typeof createHash>,
-        directoryPath: string,
-        relativeDirectory: string
-    ) {
-        const entries = await fs.promises.readdir(directoryPath, { withFileTypes: true }).catch(() => [])
-        for (const entry of [...entries].sort((left, right) => left.name.localeCompare(right.name))) {
-            const absolutePath = path.join(directoryPath, entry.name)
-            const relativePath = path.posix.join(relativeDirectory.replace(/\\/g, '/'), entry.name)
-            if (entry.isDirectory()) {
-                hash.update(`dir:${relativePath}`)
-                await this.appendDirectoryFingerprint(hash, absolutePath, relativePath)
-                continue
-            }
-            if (!entry.isFile()) {
-                continue
-            }
-
-            hash.update(`file:${relativePath}`)
-            hash.update(await fs.promises.readFile(absolutePath))
-        }
-    }
-
     async getTemplateSkillBundles(): Promise<TTemplateSkillBundle[]> {
-        let bundles = await this.cacheManager.get<TTemplateSkillBundle[]>('xpert:template-skill-bundles')
-        if (bundles) {
-            return bundles
-        }
-
-        const directoryPath = await this.getExternalTemplatePath('skill-packages')
-        const entries = await fs.promises.readdir(directoryPath, { withFileTypes: true }).catch(() => [])
-        const bundleCandidates = entries.filter((entry) => entry.isDirectory())
-        bundles = (
-            await Promise.all(
-                bundleCandidates.map((entry) =>
-                    this.readTemplateSkillBundle(path.join(directoryPath, entry.name), entry.name)
-                )
-            )
-        ).filter((bundle): bundle is TTemplateSkillBundle => !!bundle)
-
-        await this.cacheManager.set('xpert:template-skill-bundles', bundles, 10 * 1000)
-        return bundles
+        return getTemplateSkillBundles(
+            await this.commands.execute(new EnsureTemplateDirectoryCommand()),
+            this.cacheManager
+        )
     }
 
     private async getSkillsMarketFeaturedRefsByKey() {
@@ -1644,7 +831,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
                     repositoryName: ref.repositoryName.trim(),
                     skillId: ref.skillId.trim()
                 }
-                const key = this.getSkillRefKey(normalizedRef)
+                const key = getSkillRefKey(normalizedRef)
                 if (!refs.has(key)) {
                     refs.set(key, normalizedRef)
                 }
@@ -1652,273 +839,6 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
         }
 
         return refs
-    }
-
-    private async getTemplateSkillBundlesByRefKey() {
-        const bundles = await this.getTemplateSkillBundles()
-        const bundlesByKey = new Map<string, TTemplateSkillBundle>()
-
-        for (const bundle of bundles) {
-            const key = this.getSkillRefKey(bundle.ref)
-            if (!bundlesByKey.has(key)) {
-                bundlesByKey.set(key, bundle)
-            }
-        }
-
-        return bundlesByKey
-    }
-
-    private resolveFeaturedSkillIds(skillId: string, repository: ISkillRepository) {
-        const skillIds = new Set([skillId])
-        const options = repository.options
-
-        if (isObjectValue(options)) {
-            const repositoryPath = Reflect.get(options, 'path')
-            if (typeof repositoryPath === 'string' && repositoryPath.trim()) {
-                const normalizedPath = repositoryPath.trim().replace(/^\/+|\/+$/g, '')
-                if (normalizedPath && skillId.startsWith(`${normalizedPath}/`)) {
-                    skillIds.add(skillId.slice(normalizedPath.length + 1))
-                }
-            }
-        }
-
-        return Array.from(skillIds)
-    }
-
-    private normalizeWorkspaceDefaults(value: unknown): TWorkspaceDefaultsConfig {
-        const normalizedSkills =
-            isObjectValue(value) && isObjectValue(Reflect.get(value, 'userDefault'))
-                ? Reflect.get(Reflect.get(value, 'userDefault'), 'skills')
-                : undefined
-
-        const skills = Array.isArray(normalizedSkills)
-            ? normalizedSkills
-                  .filter(isWorkspaceDefaultSkillRef)
-                  .map((item) => ({
-                      provider: item.provider.trim(),
-                      repositoryName: item.repositoryName.trim(),
-                      skillId: item.skillId.trim()
-                  }))
-                  .filter((item) => item.provider && item.repositoryName && item.skillId)
-            : []
-
-        return {
-            userDefault: {
-                skills
-            }
-        }
-    }
-
-    private normalizeSkillRepositories(value: unknown): TDefaultSkillRepositoriesConfig {
-        const normalizedRepositories = isObjectValue(value) ? Reflect.get(value, 'repositories') : undefined
-        const repositories = Array.isArray(normalizedRepositories)
-            ? normalizedRepositories
-                  .filter(isDefaultSkillRepositoryEntry)
-                  .map((item) => ({
-                      name: item.name.trim(),
-                      provider: item.provider.trim(),
-                      ...(typeof item.options !== 'undefined' ? { options: item.options } : {}),
-                      ...(typeof item.credentials !== 'undefined' ? { credentials: item.credentials } : {})
-                  }))
-                  .filter((item) => item.name && item.provider)
-            : []
-
-        return { repositories }
-    }
-
-    private async getRepositoriesByKey() {
-        const { items: repositories } = await this.skillRepositoryService.findAllInOrganizationOrTenant()
-        const repositoriesByKey = new Map<string, ISkillRepository>()
-
-        for (const repository of repositories) {
-            const key = `${repository.provider}:${repository.name}`
-            const existing = repositoriesByKey.get(key)
-            if (!existing) {
-                repositoriesByKey.set(key, repository)
-                continue
-            }
-
-            if (!existing.organizationId && repository.organizationId) {
-                repositoriesByKey.set(key, repository)
-            }
-        }
-
-        return repositoriesByKey
-    }
-
-    private async resolveSkillRefsByKey(skillRefs: TWorkspaceDefaultSkillRef[]) {
-        const repositoriesByKey = await this.getRepositoriesByKey()
-        const bundlesByKey = await this.getTemplateSkillBundlesByRefKey()
-        const workspacePublicRepository = Array.from(repositoriesByKey.values()).find(
-            (candidate) => candidate.provider === WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER
-        )
-        const remoteSkillIdsByRepository = new Map<string, Set<string>>()
-        const bundleSharedSkillIds = new Set<string>()
-
-        for (const ref of skillRefs) {
-            const key = this.getSkillRefKey(ref)
-            const bundle = bundlesByKey.get(key)
-            if (bundle) {
-                bundleSharedSkillIds.add(bundle.sharedSkillId)
-                continue
-            }
-
-            const repository = repositoriesByKey.get(`${ref.provider}:${ref.repositoryName}`)
-            if (!repository?.id) {
-                continue
-            }
-
-            const skillIds = this.resolveFeaturedSkillIds(ref.skillId, repository)
-            const knownSkillIds = remoteSkillIdsByRepository.get(repository.id) ?? new Set<string>()
-            for (const skillId of skillIds) {
-                knownSkillIds.add(skillId)
-            }
-            remoteSkillIdsByRepository.set(repository.id, knownSkillIds)
-        }
-
-        const resolvedByKey = new Map<string, ISkillRepositoryIndex>()
-        const bundleIndexBySharedSkillId = new Map<string, ISkillRepositoryIndex>()
-        if (workspacePublicRepository?.id && bundleSharedSkillIds.size) {
-            const { items } = await this.skillRepositoryIndexService.findAllInOrganizationOrTenant({
-                where: {
-                    repositoryId: workspacePublicRepository.id,
-                    skillId: In(Array.from(bundleSharedSkillIds))
-                },
-                relations: ['repository'],
-                order: {
-                    updatedAt: 'DESC'
-                },
-                take: bundleSharedSkillIds.size
-            })
-            for (const item of items) {
-                if (!bundleIndexBySharedSkillId.has(item.skillId)) {
-                    bundleIndexBySharedSkillId.set(item.skillId, item)
-                }
-            }
-        }
-
-        const remoteIndexByRepositoryKey = new Map<string, ISkillRepositoryIndex>()
-        for (const [repositoryId, skillIds] of remoteSkillIdsByRepository.entries()) {
-            const requestedSkillIds = Array.from(skillIds)
-            if (!requestedSkillIds.length) {
-                continue
-            }
-
-            const { items } = await this.skillRepositoryIndexService.findAllInOrganizationOrTenant({
-                where: {
-                    repositoryId,
-                    skillId: In(requestedSkillIds)
-                },
-                relations: ['repository'],
-                order: {
-                    updatedAt: 'DESC'
-                },
-                take: requestedSkillIds.length
-            })
-            for (const item of items) {
-                const indexKey = `${repositoryId}:${item.skillId}`
-                if (!remoteIndexByRepositoryKey.has(indexKey)) {
-                    remoteIndexByRepositoryKey.set(indexKey, item)
-                }
-            }
-        }
-
-        for (const ref of skillRefs) {
-            const key = this.getSkillRefKey(ref)
-            const bundle = bundlesByKey.get(key)
-            if (bundle) {
-                const bundleSkill = bundleIndexBySharedSkillId.get(bundle.sharedSkillId)
-                if (bundleSkill) {
-                    resolvedByKey.set(key, bundleSkill)
-                }
-                continue
-            }
-
-            const repository = repositoriesByKey.get(`${ref.provider}:${ref.repositoryName}`)
-            if (!repository?.id) {
-                continue
-            }
-
-            for (const skillId of this.resolveFeaturedSkillIds(ref.skillId, repository)) {
-                const skill = remoteIndexByRepositoryKey.get(`${repository.id}:${skillId}`)
-                if (skill) {
-                    resolvedByKey.set(key, skill)
-                    break
-                }
-            }
-        }
-
-        return resolvedByKey
-    }
-
-    private getSkillRefKey(ref: Pick<ISkillMarketFeaturedRef, 'provider' | 'repositoryName' | 'skillId'>) {
-        return `${ref.provider}:${ref.repositoryName}:${ref.skillId}`
-    }
-
-    private async readTemplateSkillBundle(
-        directoryPath: string,
-        directoryName: string
-    ): Promise<TTemplateSkillBundle | null> {
-        const manifestPath = path.join(directoryPath, TEMPLATE_SKILL_BUNDLE_MANIFEST_FILE)
-        if (!(await this.pathExists(manifestPath))) {
-            const skillFilePath = path.join(directoryPath, TEMPLATE_SKILL_BUNDLE_SKILL_FILE)
-            if (!(await this.pathExists(skillFilePath))) {
-                return null
-            }
-
-            const ref = {
-                provider: TEMPLATE_SKILL_BUNDLE_LOCAL_PROVIDER,
-                repositoryName: TEMPLATE_SKILL_BUNDLE_LOCAL_REPOSITORY,
-                skillId: directoryName.trim()
-            } satisfies TWorkspaceDefaultSkillRef
-
-            return {
-                directoryName,
-                directoryPath,
-                ref,
-                sharedSkillId: this.buildTemplateSkillBundleSharedSkillId(ref)
-            }
-        }
-
-        const raw = await this.readYamlFromFile(manifestPath, `template skill bundle manifest '${directoryName}'`)
-        if (!isWorkspaceDefaultSkillRef(raw)) {
-            this.#logger.warn(`Skipping invalid template skill bundle manifest '${manifestPath}'`)
-            return null
-        }
-
-        const provider = raw.provider.trim()
-        const repositoryName = raw.repositoryName.trim()
-        const skillId = raw.skillId.trim()
-        if (!provider || !repositoryName || !skillId) {
-            this.#logger.warn(`Skipping empty template skill bundle manifest '${manifestPath}'`)
-            return null
-        }
-
-        const ref = {
-            provider,
-            repositoryName,
-            skillId
-        } satisfies TWorkspaceDefaultSkillRef
-
-        return {
-            directoryName,
-            directoryPath,
-            ref,
-            sharedSkillId: this.buildTemplateSkillBundleSharedSkillId(ref)
-        }
-    }
-
-    private buildTemplateSkillBundleSharedSkillId(ref: TWorkspaceDefaultSkillRef) {
-        return [
-            TEMPLATE_SKILL_BUNDLE_SHARED_PREFIX,
-            ref.provider,
-            this.encodeTemplateSkillBundleSegment(ref.repositoryName),
-            this.encodeTemplateSkillBundleSegment(ref.skillId)
-        ].join(TEMPLATE_SKILL_BUNDLE_SEPARATOR)
-    }
-
-    private encodeTemplateSkillBundleSegment(value: string) {
-        return encodeURIComponent(value.trim())
     }
 
     private async readJsonFromFile<T>(filePath: string) {
@@ -1931,7 +851,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
                 error instanceof Error ? error.stack : undefined
             )
             throw new Error(
-                `Failed to read xpert template file '${filePath}' (xpert template dir: '${this.getExternalTemplateRoot()}'): ${getErrorMessage(error)}`
+                `Failed to read xpert template file '${filePath}' (xpert template dir: '${getTemplateRoots(this.configService).externalRoot}'): ${getErrorMessage(error)}`
             )
         }
     }
@@ -1942,7 +862,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
             return yaml.parse(data)
         } catch (error) {
             throw new Error(
-                `Failed to read ${description} at '${filePath}' (xpert template dir: '${this.getExternalTemplateRoot()}'): ${getErrorMessage(error)}`
+                `Failed to read ${description} at '${filePath}' (xpert template dir: '${getTemplateRoots(this.configService).externalRoot}'): ${getErrorMessage(error)}`
             )
         }
     }
@@ -1952,7 +872,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
             return await fs.promises.readFile(filePath, 'utf8')
         } catch (error) {
             throw new Error(
-                `Failed to read ${description} at '${filePath}' (xpert template dir: '${this.getExternalTemplateRoot()}'): ${getErrorMessage(error)}`
+                `Failed to read ${description} at '${filePath}' (xpert template dir: '${getTemplateRoots(this.configService).externalRoot}'): ${getErrorMessage(error)}`
             )
         }
     }
