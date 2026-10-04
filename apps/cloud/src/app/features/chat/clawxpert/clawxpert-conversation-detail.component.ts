@@ -322,15 +322,6 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         }
       : null
   })
-  readonly chatkitMountKey = computed(() => {
-    const delegatedConversation = this.chatkitDelegatedConversation()
-    return JSON.stringify([
-      this.chatkitAssistantId(),
-      this.chatkitProjectId(),
-      delegatedConversation?.conversationId ?? null,
-      delegatedConversation?.requesterXpertId ?? null
-    ])
-  })
   readonly activeChatkitThreadId = computed(
     () => this.#workbenchConversationScope()?.threadId ?? this.facade.threadId()
   )
@@ -505,7 +496,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       this.markChatkitThreadRead(this.activeChatkitThreadId() ?? this.resolvedConversation()?.threadId)
     }
   })
-  readonly chatkitMountEntries = computed(() => [{ key: this.chatkitMountKey(), control: this.control()! }])
+  readonly chatkitMountEntries = computed(() => [
+    { key: { assistantId: this.chatkitAssistantId(), control: this.control() }, control: this.control()! }
+  ])
   readonly workspaceTabs = signal<ClawXpertWorkspaceTab[]>([])
   readonly artifactTabs = computed(() =>
     this.workspaceTabs().filter((tab): tab is WorkbenchArtifactTab => tab.kind === 'artifact')

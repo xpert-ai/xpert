@@ -1,7 +1,29 @@
+import { z } from 'zod/v3'
 import type { DocumentRow, ViewData } from './types'
+import { viewContextEventSchema } from '../../../../../../view-extension/remote-context'
+import { installShadcnThemeVars } from '@xpert-ai/shadcn-ui'
+import { setLocale } from './i18n'
 
 export const CHANNEL = 'xpertai.remote_component'
 export const PROTOCOL_VERSION = 1
+const hostMessageSchema = z.object({
+    channel: z.literal(CHANNEL),
+    protocolVersion: z.literal(PROTOCOL_VERSION),
+    type: z.string(),
+    instanceId: z.string().nullish(),
+    scopeRevision: z.number().int().nonnegative().optional(),
+    requestId: z.string().optional(),
+    locale: z.string().optional(),
+    theme: z.unknown(),
+    data: z.unknown(),
+    result: z.unknown(),
+    event: z.unknown(),
+    message: z.string().optional(),
+    initialQuery: z
+        .object({ parameters: z.record(z.unknown()).optional() })
+        .passthrough()
+        .optional()
+})
 const CONTEXT_KEY = 'knowledgebase_workbench'
 
 type BridgeRequest = {
@@ -12,6 +34,7 @@ type BridgeRequest = {
 
 const pendingRequests = new Map<string, BridgeRequest>()
 let instanceId: string | null = null
+let scopeRevision: number | undefined
 
 export function setInstanceId(value: string | null) {
     instanceId = value
@@ -23,6 +46,7 @@ export function sendToHost(type: string, body: Record<string, unknown> = {}) {
             channel: CHANNEL,
             protocolVersion: PROTOCOL_VERSION,
             instanceId,
+            scopeRevision,
             type,
             ...body
         },
@@ -91,8 +115,10 @@ export function executeFileAction(
     input?: Record<string, unknown>,
     parameters?: Record<string, unknown>
 ) {
-    return file.arrayBuffer().then((buffer) =>
-        requestHost<{ success?: boolean; message?: unknown; data?: unknown }>(
+    const revision = scopeRevision
+    return file.arrayBuffer().then((buffer) => {
+        if (revision !== scopeRevision) throw new Error('View context changed')
+        return requestHost<{ success?: boolean; message?: unknown; data?: unknown }>(
             'executeFileAction',
             {
                 actionKey,
@@ -107,7 +133,7 @@ export function executeFileAction(
             },
             'fileActionResult'
         )
-    )
+    })
 }
 
 export function invokeClientCommand(commandKey: string, payload: Record<string, unknown>) {
@@ -148,4 +174,46 @@ export async function syncAssistantContext(knowledgebaseId: string, rows: Docume
 
 function kebab(value: string) {
     return value.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`)
+}
+
+/** The View chooses to reset its data and selection when its host scope changes. */
+export function connectHost(
+    init: (query?: { parameters?: Record<string, unknown> }) => void,
+    hostEvent: (event: unknown) => void,
+    contextChanged: () => void
+) {
+    const receive = (event: MessageEvent<unknown>) => {
+        if (event.source !== window.parent) return
+        const parsed = hostMessageSchema.safeParse(event.data)
+        if (!parsed.success) return
+        const message = parsed.data
+        if (message.type === 'init' && typeof message.instanceId === 'string') {
+            setInstanceId(message.instanceId)
+            scopeRevision = message.scopeRevision
+            setLocale(message.locale)
+            applyTheme(message.theme)
+            installShadcnThemeVars({ density: 'compact' })
+            init(message.initialQuery)
+            return
+        }
+        if (!instanceId || message.instanceId !== instanceId) return
+        if (message.type === 'hostEvent') {
+            const context = viewContextEventSchema.safeParse(message.event)
+            if (context.success) {
+                if (context.data.data.revision > (scopeRevision ?? -1)) {
+                    scopeRevision = context.data.data.revision
+                    contextChanged()
+                }
+            } else hostEvent(message.event)
+        } else resolveHostResponse(message)
+    }
+    window.addEventListener('message', receive)
+    sendToHost('ready')
+    return () => {
+        window.removeEventListener('message', receive)
+    }
+}
+export function clearPendingRequests() {
+    for (const call of pendingRequests.values()) call.reject(new Error('View context changed'))
+    pendingRequests.clear()
 }

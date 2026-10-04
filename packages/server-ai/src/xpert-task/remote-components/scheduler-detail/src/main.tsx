@@ -37,7 +37,7 @@ export function App() {
                 setLoading(false)
                 setError(null)
                 setNotice(null)
-            }),
+            }, resetContext),
         []
     )
     const load = useCallback(
@@ -366,4 +366,9 @@ export function App() {
         </main>
     )
 }
-createRoot(document.getElementById('root')!).render(<App />)
+const root = createRoot(document.getElementById('root')!)
+let contextRevision = 0
+function resetContext() {
+    root.render(<App key={++contextRevision} />)
+}
+root.render(<App />)

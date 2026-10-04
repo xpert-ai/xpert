@@ -288,26 +288,12 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
     const identity = input.identity()
     const assistantId = input.assistantId()
     const frameUrl = input.frameUrl()
-    const projectId = input.projectId?.() ?? null
-    const delegatedConversation = input.delegatedConversation?.() ?? null
-
     if (!identity || !assistantId || !frameUrl) {
       return null
     }
 
-    // Project identity participates in the binding key so switching projects
-    // cannot reuse a ChatKit instance, client secret, or conversation history.
-    return [
-      identity,
-      assistantId,
-      projectId ?? '',
-      delegatedConversation?.conversationId ?? '',
-      delegatedConversation?.requesterXpertId ?? '',
-      frameUrl,
-      fixedApiUrl,
-      authToken() ?? '',
-      organizationId() ?? ''
-    ].join(':')
+    // Runtime context is updated through options; identity changes still replace the entire client.
+    return [identity, assistantId, frameUrl, fixedApiUrl, authToken() ?? '', organizationId() ?? ''].join(':')
   })
 
   effect(() => {

@@ -143,3 +143,42 @@ test('explains why a legacy artifact cannot be downloaded instead of selecting a
     assert.match(f.w.document.body.textContent, /Historical result/)
     assert.equal(f.sent.filter((message) => message.type === 'requestFileAccess').length, 0)
 })
+
+test('a context event clears old results and ignores late replies while keeping the document', async (t) => {
+    const f = fixture(t)
+    f.init('old-task')
+    const old = f.sent.at(-1)
+    const root = f.w.document.getElementById('root')
+    f.send({
+        type: 'hostEvent',
+        event: {
+            type: 'view.context.changed',
+            data: {
+                revision: 1,
+                runtimeScope: { projectId: null, conversationId: 'next-conversation' }
+            }
+        }
+    })
+    const fresh = f.sent.at(-1)
+    assert.equal(fresh.type, 'requestData')
+    assert.equal(fresh.scopeRevision, 1)
+    assert.equal(JSON.stringify(fresh.query), '{}')
+    f.reply(fresh, { item: null })
+    f.reply(old, f.item({ text: 'OLD PRIVATE RESULT' }))
+    await tick()
+    assert.equal(f.w.document.getElementById('root'), root)
+    assert.doesNotMatch(f.w.document.body.textContent, /OLD PRIVATE RESULT/)
+    assert.match(f.w.document.body.textContent, /请从对话/)
+    const count = f.sent.length
+    f.send({
+        type: 'hostEvent',
+        event: {
+            type: 'view.context.changed',
+            data: {
+                revision: 0,
+                runtimeScope: { projectId: null, conversationId: 'old-conversation' }
+            }
+        }
+    })
+    assert.equal(f.sent.length, count)
+})

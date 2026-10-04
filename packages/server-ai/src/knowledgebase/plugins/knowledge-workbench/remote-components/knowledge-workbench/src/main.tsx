@@ -1,15 +1,9 @@
+import { FolderDialog } from './folder-dialog'
 import * as React from 'react'
 import { WORKBENCH_FILE_OPEN_COMMAND, type WorkbenchOpenFile } from '@xpert-ai/contracts'
 import {
     Badge,
     Button,
-    Dialog,
-    DialogClose,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
     Input,
     ScrollArea,
     Select,
@@ -21,29 +15,25 @@ import {
     TabsList,
     TabsTrigger,
     TooltipProvider,
-    cn,
-    installShadcnThemeVars
+    cn
 } from '@xpert-ai/shadcn-ui'
 import { ArrowDownUp, ChevronLeft, ChevronRight, FilePlus2, FolderPlus, RefreshCw, Search } from 'lucide-react'
 import {
-    CHANNEL,
-    PROTOCOL_VERSION,
-    applyTheme,
     executeAction,
     executeFileAction,
     invokeClientCommand,
     notify,
     requestData,
-    resolveHostResponse,
     sendToHost,
-    setInstanceId,
+    clearPendingRequests,
     syncAssistantContext
 } from './bridge'
 import { DocumentListRow, sortDocumentRows } from './document-components'
 import { KnowledgeGraphPanel } from './graph-components'
-import { setLocale, t } from './i18n'
+import { t } from './i18n'
 import { IconButton, KnowledgebaseOverview } from './layout-components'
 import { WorkbenchPreviewPanel } from './preview-components'
+import { useWorkbenchHost } from './use-workbench-host'
 import type {
     DocumentPreview,
     DocumentRow,
@@ -52,14 +42,7 @@ import type {
     GraphSummary,
     KnowledgebaseRow
 } from './types'
-import {
-    compact,
-    extractCitationTarget,
-    extractInitialCitationTarget,
-    normalizeFileSize,
-    readError,
-    type KnowledgeWorkbenchCitationTarget
-} from './utils'
+import { compact, normalizeFileSize, readError, type KnowledgeWorkbenchCitationTarget } from './utils'
 
 declare const ReactDOM: any
 
@@ -257,63 +240,17 @@ function App() {
         [ready, activeKnowledgebaseId]
     )
 
-    React.useEffect(() => {
-        const onMessage = (event: MessageEvent) => {
-            const message = event.data
-            if (!message || message.channel !== CHANNEL || message.protocolVersion !== PROTOCOL_VERSION) {
-                return
-            }
-
-            if (message.type === 'init') {
-                setInstanceId(message.instanceId)
-                setLocale(message.locale)
-                applyTheme(message.theme)
-                installShadcnThemeVars({ density: 'compact' })
-                const citationTarget = extractInitialCitationTarget(message.initialQuery)
-                const initialKb = citationTarget?.knowledgebaseId ?? message.initialQuery?.parameters?.knowledgebaseId
-                if (typeof initialKb === 'string') {
-                    setActiveKnowledgebaseId(initialKb)
-                }
-                if (citationTarget) {
-                    setViewMode('documents')
-                    setHighlightedChunkId(citationTarget.chunkId ?? null)
-                    setParentId(null)
-                    setPage(1)
-                }
-                setInitialCitationTarget(citationTarget)
-                setReady(true)
-                return
-            }
-
-            if (message.type === 'hostEvent') {
-                const target = extractCitationTarget(message.event)
-                if (target.documentId) {
-                    setViewMode('documents')
-                    if (target.knowledgebaseId) {
-                        setActiveKnowledgebaseId(target.knowledgebaseId)
-                    }
-                    setHighlightedChunkId(target.chunkId ?? null)
-                    setParentId(null)
-                    setPage(1)
-                    void loadData({
-                        documentId: target.documentId,
-                        chunkId: target.chunkId,
-                        nextParentId: null,
-                        nextKbId: target.knowledgebaseId
-                    })
-                    notify(t('sourceHighlighted'))
-                }
-                return
-            }
-            if (resolveHostResponse(message)) {
-                return
-            }
-        }
-
-        window.addEventListener('message', onMessage)
-        sendToHost('ready')
-        return () => window.removeEventListener('message', onMessage)
-    }, [loadData])
+    useWorkbenchHost({
+        setActiveKnowledgebaseId,
+        setViewMode,
+        setHighlightedChunkId,
+        setParentId,
+        setPage,
+        setInitialCitationTarget,
+        setReady,
+        loadData,
+        resetContext
+    })
 
     React.useEffect(() => {
         if (!ready) {
@@ -380,7 +317,7 @@ function App() {
     }, [viewMode, graphSupported, focusedGraphNodeId, loadGraphNodeDetail])
 
     React.useEffect(() => {
-        syncAssistantContext(activeKnowledgebaseId, selectedRows)
+        void syncAssistantContext(activeKnowledgebaseId, selectedRows)
     }, [activeKnowledgebaseId, selectedIds])
 
     React.useEffect(() => {
@@ -1015,46 +952,14 @@ function App() {
                     />
                 </section>
 
-                <Dialog
+                <FolderDialog
                     open={createFolderDialogOpen}
-                    onOpenChange={(open) => {
-                        setCreateFolderDialogOpen(open)
-                        if (!open) {
-                            setFolderNameInput('')
-                        }
-                    }}
-                >
-                    <DialogContent className="sm:max-w-sm">
-                        <DialogHeader>
-                            <DialogTitle>{t('newFolder')}</DialogTitle>
-                            <DialogDescription>{t('newFolderDescription')}</DialogDescription>
-                        </DialogHeader>
-                        <form
-                            className="grid gap-4"
-                            onSubmit={(event) => {
-                                event.preventDefault()
-                                void createFolder()
-                            }}
-                        >
-                            <Input
-                                autoFocus
-                                value={folderNameInput}
-                                placeholder={t('folderNamePlaceholder')}
-                                onChange={(event) => setFolderNameInput(event.target.value)}
-                            />
-                            <DialogFooter>
-                                <DialogClose asChild>
-                                    <Button type="button" variant="outline">
-                                        {t('cancel')}
-                                    </Button>
-                                </DialogClose>
-                                <Button type="submit" disabled={!folderNameInput.trim() || loading}>
-                                    {t('create')}
-                                </Button>
-                            </DialogFooter>
-                        </form>
-                    </DialogContent>
-                </Dialog>
+                    onOpenChange={setCreateFolderDialogOpen}
+                    name={folderNameInput}
+                    onNameChange={setFolderNameInput}
+                    loading={loading}
+                    onCreate={createFolder}
+                />
             </main>
         </TooltipProvider>
     )
@@ -1068,4 +973,10 @@ function isNarrowWorkbenchViewport() {
     return typeof window !== 'undefined' && window.matchMedia?.('(max-width: 760px)').matches
 }
 
-ReactDOM.createRoot(document.getElementById('root')).render(<App />)
+const root = ReactDOM.createRoot(document.getElementById('root'))
+let contextRevision = 0
+function resetContext() {
+    clearPendingRequests()
+    root.render(<App key={++contextRevision} />)
+}
+root.render(<App />)

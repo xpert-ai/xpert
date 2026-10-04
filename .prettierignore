@@ -14,3 +14,5 @@
 # Remote component bundles are byte-verified by build-remote-react.mjs --check.
 /packages/server-ai/src/*/remote-components/*/app.js
 /packages/server-ai/src/*/remote-components/*/app.css
+/packages/server-ai/src/knowledgebase/plugins/*/remote-components/*/app.js
+/packages/server-ai/src/knowledgebase/plugins/*/remote-components/*/app.css

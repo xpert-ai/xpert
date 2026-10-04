@@ -1,11 +1,14 @@
+import { viewContextEventSchema } from '../../../../view-extension/remote-context'
 import { z } from 'zod'
 import { PROJECT_TASK_ICON_NAMES } from '@xpert-ai/contracts'
-import { installShadcnThemeVars } from '../../../../../../shadcn-ui/src/theme'
+import { installShadcnThemeVars } from '@xpert-ai/shadcn-ui'
 
 const envelope = z
     .object({
         channel: z.literal('xpertai.remote_component'),
         type: z.string(),
+        scopeRevision: z.number().int().nonnegative().optional(),
+        event: z.unknown().optional(),
         instanceId: z.string().nullish(),
         requestId: z.string().optional(),
         data: z.unknown().optional(),
@@ -22,20 +25,22 @@ const envelope = z
     })
     .passthrough()
 let instanceId: string | null = null
+let scopeRevision: number | undefined
 const pending = new Map<string, { resolve: (value: unknown) => void; reject: (reason: Error) => void; timer: number }>()
 export function send(type: string, body: object = {}) {
     window.parent.postMessage(
-        { channel: 'xpertai.remote_component', protocolVersion: 1, instanceId, type, ...body },
+        { channel: 'xpertai.remote_component', protocolVersion: 1, instanceId, scopeRevision, type, ...body },
         '*'
     )
 }
-export function connect(onReady: (locale: string) => void) {
+export function connect(onReady: (locale: string) => void, contextChanged: () => void) {
     const listener = (event: MessageEvent<unknown>) => {
         if (event.source !== window.parent) return
         const parsed = envelope.safeParse(event.data)
         if (!parsed.success) return
         const message = parsed.data
         if (message.type === 'init' && message.instanceId) {
+            scopeRevision = message.scopeRevision
             for (const [key, value] of Object.entries(message.theme?.tokens ?? {})) {
                 document.documentElement.style.setProperty(
                     `--xui-${key.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`,
@@ -48,6 +53,14 @@ export function connect(onReady: (locale: string) => void) {
             document.documentElement.lang = message.locale ?? 'en-US'
             instanceId = message.instanceId
             onReady(message.locale ?? 'en-US')
+            return
+        }
+        if (message.instanceId === instanceId && message.type === 'hostEvent') {
+            const context = viewContextEventSchema.safeParse(message.event)
+            if (context.success && context.data.data.revision > (scopeRevision ?? -1)) {
+                scopeRevision = context.data.data.revision
+                contextChanged()
+            }
             return
         }
         if (!instanceId || message.instanceId !== instanceId || !message.requestId) return

@@ -66,7 +66,7 @@ function App() {
             connect((locale) => {
                 setLocale(locale)
                 setReady(true)
-            }),
+            }, resetContext),
         []
     )
     useEffect(() => {
@@ -390,4 +390,9 @@ function App() {
         </TooltipProvider>
     )
 }
-createRoot(document.getElementById('root')!).render(<App />)
+const root = createRoot(document.getElementById('root')!)
+let contextRevision = 0
+function resetContext() {
+    root.render(<App key={++contextRevision} />)
+}
+root.render(<App />)

@@ -622,6 +622,17 @@ export interface XpertRemoteViewHostEventMessage {
   visualization?: XpertViewHostEventVisualization
 }
 
+/** Sent to every mounted View after an authorized runtime context change, including hidden Views. */
+export interface XpertRemoteViewContextChangedEvent extends XpertRemoteViewHostEventMessage {
+  type: 'view.context.changed'
+  data: {
+    /** Monotonic within this View instance; stale asynchronous results must be ignored. */
+    revision: number
+    /** Complete target scope. Null means no binding, never a scope still being resolved. */
+    runtimeScope: Required<XpertViewRuntimeScopeInput>
+  }
+}
+
 /**
  * Host-internal event message. `hostType` and `hostId` are routing fields and
  * must be stripped before forwarding to remote components.

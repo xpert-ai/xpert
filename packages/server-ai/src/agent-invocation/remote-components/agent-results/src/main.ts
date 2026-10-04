@@ -1,3 +1,4 @@
+import { viewContextEventSchema } from '../../../../view-extension/remote-context'
 import { z } from 'zod/v3'
 import { agentResultItemSchema } from '@xpert-ai/plugin-sdk/agent-results'
 
@@ -28,6 +29,7 @@ const envelope = z
         channel: z.literal('xpertai.remote_component'),
         protocolVersion: z.literal(1),
         type: z.string(),
+        scopeRevision: z.number().int().nonnegative().optional(),
         instanceId: z.string().optional(),
         requestId: z.string().optional(),
         locale: z.string().optional(),
@@ -40,13 +42,14 @@ const envelope = z
     })
     .passthrough()
 const root = document.getElementById('root')!
+let scopeRevision: number | undefined
 let instanceId: string | undefined,
     zh = false,
     epoch = 0
 const pending = new Map<string, { resolve: (data: unknown) => void; reject: (error: Error) => void; timer: number }>()
 function send(type: string, body: object = {}) {
     window.parent.postMessage(
-        { channel: 'xpertai.remote_component', protocolVersion: 1, instanceId, type, ...body },
+        { channel: 'xpertai.remote_component', protocolVersion: 1, instanceId, scopeRevision, type, ...body },
         '*'
     )
 }
@@ -189,9 +192,24 @@ window.addEventListener('message', (event: MessageEvent<unknown>) => {
     if (!parsed.success) return
     const data = parsed.data
     if (data.type === 'init' && data.instanceId) {
+        scopeRevision = data.scopeRevision
         instanceId = data.instanceId
         zh = data.locale?.startsWith('zh') ?? false
         void load(data.initialQuery ?? {})
+        return
+    }
+    if (data.instanceId === instanceId && data.type === 'hostEvent') {
+        const context = viewContextEventSchema.safeParse(data.event)
+        if (context.success && context.data.data.revision > (scopeRevision ?? -1)) {
+            scopeRevision = context.data.data.revision
+            epoch++
+            for (const call of pending.values()) {
+                clearTimeout(call.timer)
+                call.reject(Error('View context changed'))
+            }
+            pending.clear()
+            void load({})
+        }
         return
     }
     if (data.instanceId !== instanceId || !data.requestId) return
