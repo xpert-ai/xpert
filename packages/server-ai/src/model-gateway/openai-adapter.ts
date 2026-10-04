@@ -76,6 +76,7 @@ const SUPPORTED_KEYS = new Set([
     'stop',
     'presence_penalty',
     'frequency_penalty',
+    'prompt_cache_key',
     'seed',
     'n'
 ])
@@ -91,6 +92,8 @@ export function parseOpenAIChatRequest(value: unknown): OpenAIChatRequest {
         )
     }
     const model = requiredString(readProperty(value, 'model'), 'model')
+    // CLI cache hints are advisory; never forward client-selected cache identities across executions.
+    optionalString(readProperty(value, 'prompt_cache_key'), 'prompt_cache_key')
     const rawMessages = readProperty(value, 'messages')
     if (!Array.isArray(rawMessages) || !rawMessages.length) {
         throw badRequest('ModelGatewayOpenAIMessagesRequired', 'messages must be a non-empty array.')

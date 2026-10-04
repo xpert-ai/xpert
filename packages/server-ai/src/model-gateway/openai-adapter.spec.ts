@@ -36,6 +36,21 @@ describe('OpenAI model gateway adapter', () => {
         ).toThrow(BadRequestException)
     })
 
+    it('accepts Kimi cache hints without forwarding a client-controlled cache identity', () => {
+        const request = {
+            model: 'assistant-default',
+            messages: [{ role: 'user', content: 'Hello' }],
+            stream: true,
+            max_tokens: 16384
+        }
+        expect(parseOpenAIChatRequest({ ...request, prompt_cache_key: 'cli-session' })).toEqual(
+            parseOpenAIChatRequest(request)
+        )
+        expect(() => parseOpenAIChatRequest({ ...request, prompt_cache_key: { session: 'invalid' } })).toThrow(
+            BadRequestException
+        )
+    })
+
     it('requires declared tool, parallel, streaming and image capabilities', () => {
         const parsed = parseOpenAIChatRequest({
             model: 'tenant-chat',
