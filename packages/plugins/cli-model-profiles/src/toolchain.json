@@ -1,0 +1,51 @@
+[
+  {
+    "id": "codex",
+    "version": "0.159.2",
+    "executable": "/usr/local/bin/codex",
+    "installer": "npm",
+    "package": "@openai/codex"
+  },
+  {
+    "id": "opencode",
+    "version": "1.18.33",
+    "executable": "/usr/local/bin/opencode",
+    "installer": "npm",
+    "package": "opencode-ai"
+  },
+  {
+    "id": "aider",
+    "version": "0.86.1",
+    "executable": "/usr/local/bin/aider",
+    "installer": "pip",
+    "package": "aider-chat"
+  },
+  {
+    "id": "claude",
+    "version": "2.1.63",
+    "executable": "/usr/local/bin/claude",
+    "installer": "npm",
+    "package": "@anthropic-ai/claude-code"
+  },
+  {
+    "id": "qwen",
+    "version": "0.24.7",
+    "executable": "/usr/local/bin/qwen",
+    "installer": "npm",
+    "package": "@qwen-code/qwen-code"
+  },
+  {
+    "id": "kimi",
+    "version": "2.1.1",
+    "executable": "/usr/local/bin/kimi",
+    "installer": "npm",
+    "package": "@moonshot-ai/kimi-code"
+  },
+  {
+    "id": "codebuddy",
+    "version": "2.161.1",
+    "executable": "/usr/local/bin/codebuddy",
+    "installer": "npm",
+    "package": "@tencent-ai/codebuddy-code"
+  }
+]

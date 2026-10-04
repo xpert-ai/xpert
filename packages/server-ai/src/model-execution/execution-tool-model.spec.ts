@@ -36,6 +36,18 @@ testPolicy.tools.push({ id: 'codex', executable: '/home/user/codex', version: '0
 testPolicy.tools.push({ ...opencode, executable: '/opencode' }, { ...claude, executable: '/claude' })
 const policy = parseExecutionPolicy(testPolicy) as Extract<ModelExecutionPolicy, { enabled: true }>
 describe('tool capability admission', () => {
+    it.each(['qwen', 'kimi', 'codebuddy'])(
+        'admits %s only with streaming tools and an explicitly authorized version',
+        (id) => {
+            const tool = { id, version: '1.0.0' }
+            const configured = { ...policy, tools: [{ ...tool, executable: `/tools/${id}` }] }
+            expect(executionToolModels([model], tool, configured)).toHaveLength(1)
+            expect(executionToolModels([{ ...model, capabilities: [] }], tool, configured)).toEqual([])
+            expect(executionToolModels([model], { ...tool, version: '2.0.0' }, configured)).toEqual([])
+            expect(executionToolModels([model], tool, { ...configured, tools: [] })).toEqual([])
+        }
+    )
+
     it('requires explicit native protocol enablement in addition to the provider catalog', () => {
         expect(executionToolModels([model], codex, policy)).toEqual([])
         expect(executionToolModels([model], codex, { ...policy, nativeProtocols: ['openai_responses'] })).toHaveLength(

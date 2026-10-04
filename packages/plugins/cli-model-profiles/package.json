@@ -8,7 +8,8 @@
   "types": "./index.d.ts",
   "files": [
     "*.js",
-    "*.d.ts",
+    "**/*.d.ts",
+    "skills",
     "README.md"
   ],
   "peerDependencies": {

@@ -15,6 +15,7 @@
         "format": ["cjs", "esm"],
         "external": ["@xpert-ai/contracts", "@xpert-ai/plugin-sdk"],
         "assets": [
+          { "glob": "**/*", "input": "packages/plugins/cli-model-profiles/skills", "output": "skills" },
           {
             "glob": "*.md",
             "input": "packages/plugins/cli-model-profiles",

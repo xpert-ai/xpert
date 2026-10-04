@@ -1,0 +1,4 @@
+interface:
+  display_name: Cloud coding
+  short_description: Use coding CLIs in the current cloud Computer, then build and preview the result.
+  default_prompt: Use cloud-coding to implement and verify this task with a managed coding CLI.

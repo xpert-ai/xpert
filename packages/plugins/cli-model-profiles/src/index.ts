@@ -1,6 +1,10 @@
 import type { ModelExecutionLimits, ModelExecutionModel } from '@xpert-ai/contracts'
 import { CLI_MODEL_TOKEN_REFERENCE, type CliModelProfile, type CliModelProfiles } from '@xpert-ai/plugin-sdk'
 import { ModelFeature } from '@xpert-ai/contracts'
+import toolchain from './toolchain.json'
+
+/** Shared with the Computer image build; installation and policy versions must agree. */
+export const builtinCliTools = toolchain.map(({ id, version, executable }) => ({ id, version, executable }))
 
 /** Already-authorized model metadata; configuration generation has no persistence dependency. */
 type ComputerCliModelBinding = {
@@ -122,6 +126,129 @@ function configureBuiltinCli(
         { name: 'empty.env', content: '' }
       ]
     }
+  if (grant.toolId === 'qwen')
+    return {
+      // Managed shell has no TTY. Permit requested file edits; shell/network approvals stay intact.
+      args: [
+        '--auth-type',
+        'openai',
+        '--model',
+        'assistant-default',
+        '--approval-mode',
+        grant.managed ? 'auto-edit' : 'default'
+      ],
+      environment: {
+        ...environment,
+        QWEN_HOME: `${directory}/config`,
+        QWEN_CODE_SYSTEM_SETTINGS_PATH: `${directory}/qwen-settings.json`,
+        OPENAI_API_KEY: token,
+        OPENAI_BASE_URL: base,
+        OPENAI_MODEL: 'assistant-default'
+      },
+      files: [
+        {
+          name: 'qwen-settings.json',
+          content: JSON.stringify({
+            general: { enableAutoUpdate: false },
+            telemetry: { enabled: false },
+            security: { auth: { selectedType: 'openai' } },
+            model: { name: 'assistant-default' },
+            modelProviders: {
+              openai: [
+                {
+                  id: 'assistant-default',
+                  name: 'Xpert',
+                  baseUrl: base,
+                  envKey: 'OPENAI_API_KEY',
+                  generationConfig: {
+                    contextWindowSize: grant.limits.maxInputTokens + grant.limits.maxOutputTokens,
+                    samplingParams: { max_tokens: grant.limits.maxOutputTokens },
+                    maxRetries: 0
+                  }
+                }
+              ]
+            }
+          })
+        }
+      ]
+    }
+  if (grant.toolId === 'kimi')
+    return {
+      args: ['--model', 'assistant-default'],
+      environment: {
+        ...environment,
+        KIMI_CODE_HOME: directory,
+        KIMI_DISABLE_TELEMETRY: '1',
+        KIMI_CODE_NO_AUTO_UPDATE: '1'
+      },
+      files: [
+        {
+          name: 'config.toml',
+          content:
+            [
+              'default_model = "assistant-default"',
+              'default_permission_mode = "manual"',
+              'telemetry = false',
+              '[thinking]',
+              'enabled = false',
+              '[providers.xpert]',
+              'type = "openai"',
+              'base_url = ' + JSON.stringify(base),
+              'api_key_env = "XPERT_MODEL_TOKEN"',
+              '[models.assistant-default]',
+              'provider = "xpert"',
+              'model = "assistant-default"',
+              'max_context_size = ' + (grant.limits.maxInputTokens + grant.limits.maxOutputTokens),
+              'max_input_size = ' + grant.limits.maxInputTokens,
+              'max_output_size = ' + grant.limits.maxOutputTokens,
+              'capabilities = ["tool_use"]',
+              '[secondary_model]',
+              'default_model = "assistant-default"',
+              'force = true'
+            ].join('\n') + '\n'
+        }
+      ]
+    }
+  if (grant.toolId === 'codebuddy')
+    return {
+      args: ['--model', 'assistant-default', '--permission-mode', 'default', '--subagent-permission-mode', 'default'],
+      environment: {
+        ...environment,
+        CODEBUDDY_CONFIG_DIR: directory,
+        CODEBUDDY_API_KEY: token,
+        CODEBUDDY_BASE_URL: base,
+        CODEBUDDY_MODEL: 'assistant-default',
+        CODEBUDDY_BIG_SLOW_MODEL: 'assistant-default',
+        CODEBUDDY_SMALL_FAST_MODEL: 'assistant-default',
+        CODEBUDDY_CODE_SUBAGENT_MODEL: 'assistant-default',
+        CODEBUDDY_DISABLE_BUILTIN_MODELS: '1',
+        CODEBUDDY_CODE_ENABLE_TELEMETRY: '0',
+        DISABLE_AUTOUPDATER: '1'
+      },
+      files: [
+        {
+          name: 'models.json',
+          content: JSON.stringify({
+            models: [
+              {
+                id: 'assistant-default',
+                name: 'Xpert',
+                vendor: 'OpenAI',
+                apiKey: '${XPERT_MODEL_TOKEN}',
+                url: `${base}/chat/completions`,
+                maxInputTokens: grant.limits.maxInputTokens,
+                maxOutputTokens: grant.limits.maxOutputTokens,
+                supportsToolCall: true,
+                supportsImages: false,
+                supportsReasoning: false,
+                relatedModels: { lite: 'assistant-default', reasoning: 'assistant-default' }
+              }
+            ],
+            availableModels: ['assistant-default']
+          })
+        }
+      ]
+    }
   if (grant.toolId !== 'opencode') throw new Error('Invalid CLI profile configuration')
   const models = Object.fromEntries(
     ['assistant-default', ...grant.models.map((model) => model.id)].map((id) => [
@@ -199,7 +326,25 @@ const definitions = [
     requiredCapabilities: [ModelFeature.STREAM_TOOL_CALL],
     versionOutputs: (v: string) => [v, `opencode ${v}`]
   },
-  { id: 'aider', protocol: 'openai_chat', requiredCapabilities: [], versionOutputs: (v: string) => [v, `aider ${v}`] }
+  { id: 'aider', protocol: 'openai_chat', requiredCapabilities: [], versionOutputs: (v: string) => [v, `aider ${v}`] },
+  {
+    id: 'qwen',
+    protocol: 'openai_chat',
+    requiredCapabilities: [ModelFeature.STREAM_TOOL_CALL],
+    versionOutputs: (v: string) => [v]
+  },
+  {
+    id: 'kimi',
+    protocol: 'openai_chat',
+    requiredCapabilities: [ModelFeature.STREAM_TOOL_CALL],
+    versionOutputs: (v: string) => [v, `kimi version ${v}`]
+  },
+  {
+    id: 'codebuddy',
+    protocol: 'openai_chat',
+    requiredCapabilities: [ModelFeature.STREAM_TOOL_CALL],
+    versionOutputs: (v: string) => [v, `${v} (CodeBuddy Code)`]
+  }
 ] satisfies Array<Pick<CliModelProfile, 'id' | 'protocol' | 'requiredCapabilities' | 'chatBridge' | 'versionOutputs'>>
 
 /** Bundled profiles keep existing installations compatible; hosts may supply a registry capability instead. */
@@ -210,7 +355,7 @@ export const builtinCliModelProfiles: CliModelProfiles = {
     return {
       ...definition,
       command: definition.id,
-      revision: '1',
+      revision: definition.id === 'qwen' ? '2' : '1',
       offlineArguments: [['--version']],
       configure: (input) =>
         configureBuiltinCli(
