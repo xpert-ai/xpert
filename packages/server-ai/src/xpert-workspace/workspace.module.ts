@@ -8,6 +8,7 @@ import { XpertWorkspace } from './workspace.entity'
 import { XpertWorkspaceAccessService } from './workspace-access.service'
 import { XpertWorkspaceService } from './workspace.service'
 import { QueryHandlers } from './queries/handlers'
+import { CommandHandlers } from './commands/handlers'
 
 @Module({
     imports: [
@@ -18,7 +19,7 @@ import { QueryHandlers } from './queries/handlers'
         CqrsModule
     ],
     controllers: [XpertWorkspaceController],
-    providers: [XpertWorkspaceService, XpertWorkspaceAccessService, ...QueryHandlers],
+    providers: [XpertWorkspaceService, XpertWorkspaceAccessService, ...QueryHandlers, ...CommandHandlers],
     exports: [XpertWorkspaceService, XpertWorkspaceAccessService]
 })
 export class XpertWorkspaceModule {}

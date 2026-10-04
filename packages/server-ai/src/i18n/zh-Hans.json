@@ -31,6 +31,8 @@
         "ReferenceOnlyPrompt": "未包含文件正文，不支持直接按文本读取。请使用支持该格式的可用工具；对于 ZIP，先列出或解压条目，再处理所需的子文件。此引用不会改变文件访问权限。"
     },
     "Error": {
+        "PersonalWorkspaceScopeRequired": "准备个人工作空间需要已登录的用户和已选择的组织。",
+        "PersonalWorkspaceOrganizationAccessDenied": "你无法在此组织中准备个人工作空间。",
         "TemplateInstallResumeMismatch": "待恢复的助理与当前工作空间或模板不匹配。",
         "AssistantAppearanceInvalid": "助理名称或头像设置无效。",
         "ConversationArtifactUnavailable": "此已保存文件在当前对话中不可用。",
