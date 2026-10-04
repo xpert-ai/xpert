@@ -87,19 +87,19 @@ export interface ModelExecutionLimits {
   maxDurationSeconds: number
 }
 
-export type ModelExecutionPolicy =
-  | { enabled: false }
-  | {
-      enabled: true
-      gatewayBaseUrl: string
-      /** Separately gated until each native protocol has passed real-model acceptance. */
-      nativeProtocols?: Array<'openai_responses' | 'anthropic_messages'>
-      /** Explicit, limited Chat Completions translations; never advertised as native support. */
-      chatBridgeProtocols?: Array<'openai_responses' | 'anthropic_messages'>
-      limits: ModelExecutionLimits
-      /** Only installed, registered profiles qualify; IDs alone never authorize execution. */
-      tools: Array<{ id: string; version: string; executable: string }>
-    }
+/** Resolved execution policy; default enablement does not bypass model, tool or budget checks. */
+export type ModelExecutionPolicy = {
+  /** @deprecated Compatibility field, always true; no longer a tenant opt-in switch. */
+  enabled: true
+  gatewayBaseUrl: string
+  /** Separately gated until each native protocol has passed real-model acceptance. */
+  nativeProtocols?: Array<'openai_responses' | 'anthropic_messages'>
+  /** Explicit, limited Chat Completions translations; never advertised as native support. */
+  chatBridgeProtocols?: Array<'openai_responses' | 'anthropic_messages'>
+  limits: ModelExecutionLimits
+  /** Only installed, registered profiles qualify; IDs alone never authorize execution. */
+  tools: Array<{ id: string; version: string; executable: string }>
+}
 
 export type CliSessionStatus = 'starting' | 'running' | 'stopping' | 'exited' | 'unknown'
 
@@ -111,7 +111,7 @@ export const MODEL_EXECUTION_POLICY_SETTING = 'modelExecutionPolicy'
 /** Authorized Computer tool inventory; installation, model support and managed execution are independent. */
 export interface ComputerCliToolsView {
   /** A conversation is required to resolve the Assistant's available models. */
-  state: 'ready' | 'disabled' | 'conversation_required'
+  state: 'ready' | 'conversation_required'
   tools: Array<{
     /** Policy-approved executable identifier and pinned version. */
     id: string

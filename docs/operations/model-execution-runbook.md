@@ -76,4 +76,4 @@ Token 必须是非负安全整数，`totalTokens = inputTokens + outputTokens`�
 1. [执行消费审计](../../packages/server-ai/src/model-execution/migrations/20261001-execution-operations.sql)。
 2. [历史等待记录](../../packages/server-ai/src/agent-invocation/migrations/20261001-invocation-wait.sql)，随后应用 [等待分组兼容](../../packages/server-ai/src/agent-invocation/migrations/20261002-task-wait-groups.sql)。即使新任务不挂起，已部署的历史监控器仍需要完整字段。
 
-部署前按既有流程备份并确认旧 worker 已退出。回退先关闭新执行授权准入、停止新任务派发，保留可用的账本投递和证据应用 worker，处理完遗留消费与历史等待后再停监控器。不得删除用量、证据和等待表。撤销模型授权不证明 guest 进程或文件操作已停止；需要取消并确认终态。浏览器退出不应重启已有任务。
+部署前按既有流程备份并确认旧 worker 已退出。回退先停止新任务派发并撤销相关执行授权；旧 `enabled` 字段不再控制准入。保留可用的账本投递和证据应用 worker，处理完遗留消费与历史等待后再停监控器。不得删除用量、证据和等待表。撤销模型授权不证明 guest 进程或文件操作已停止；需要取消并确认终态。浏览器退出不应重启已有任务。

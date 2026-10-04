@@ -10,10 +10,13 @@ export { executionPolicySchema } from './execution-policy.schema'
 export { executionLimitsSchema } from './execution-schema'
 
 export function parseExecutionPolicy(value: unknown): ModelExecutionPolicy {
-    if (value === undefined || value === null || value === '') return { enabled: false }
     try {
         return executionPolicySchema.parse(
-            typeof value === 'string' ? JSON.parse(value) : value
+            value === undefined || value === null || value === ''
+                ? {}
+                : typeof value === 'string'
+                  ? JSON.parse(value)
+                  : value
         ) as ModelExecutionPolicy
     } catch {
         throw executionError('Invalid')
@@ -42,8 +45,6 @@ export class ModelExecutionPolicyService {
         return policy
     }
     async require(tenantId: string) {
-        const policy = await this.get(tenantId)
-        if (!policy.enabled) throw executionError('Unavailable')
-        return policy
+        return this.get(tenantId)
     }
 }

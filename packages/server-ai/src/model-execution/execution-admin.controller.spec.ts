@@ -9,7 +9,7 @@ import { applicationMetrics } from '../metrics/application-metrics'
 import { ModelExecutionAdminController } from './execution-admin.controller'
 import { ModelExecutionReconciliationService } from './execution-reconciliation.service'
 import { ExecutionReconciliationInput } from './execution-reconciliation.schema'
-import { ModelExecutionPolicyService } from './execution-policy'
+import { parseExecutionPolicy, ModelExecutionPolicyService } from './execution-policy'
 
 describe('execution administration HTTP boundaries', () => {
     const reconciliation = { pending: jest.fn(), reconcile: jest.fn(), retryDelivery: jest.fn() }
@@ -59,7 +59,7 @@ describe('execution administration HTTP boundaries', () => {
         reconciliation.pending.mockResolvedValue({ items: [], total: 0 })
         reconciliation.reconcile.mockResolvedValue({ status: 'applied' })
         reconciliation.retryDelivery.mockResolvedValue({ delivered: true })
-        policy.set.mockResolvedValue({ enabled: false })
+        policy.set.mockImplementation(async (_tenant, value) => value)
     })
     afterEach(() => jest.restoreAllMocks())
     afterAll(async () => app?.close())
@@ -130,13 +130,16 @@ describe('execution administration HTTP boundaries', () => {
         await response.json()
         expect(reconciliation.reconcile).not.toHaveBeenCalled()
     })
-    it('accepts an explicit policy object', async () => {
-        const response = await request('policy', 'PUT', { enabled: false })
-        expect(response.status).toBe(200)
-        await response.json()
-        expect(policy.set).toHaveBeenCalledWith('tenant', { enabled: false })
-    })
-    it.each([{}, { enabled: false, tenantId: 'other' }, { enabled: true, limits: {} }])(
+    it.each([{}, { enabled: false }, { enabled: true }])(
+        'normalizes default and legacy policy input: %j',
+        async (input) => {
+            const response = await request('policy', 'PUT', input)
+            expect(response.status).toBe(200)
+            await response.json()
+            expect(policy.set).toHaveBeenCalledWith('tenant', parseExecutionPolicy(input))
+        }
+    )
+    it.each([{ enabled: 'false' }, { enabled: false, tenantId: 'other' }, { enabled: true, limits: {} }])(
         'rejects invalid policy updates: %j',
         async (body) => {
             await expectInvalid(await request('policy', 'PUT', body))

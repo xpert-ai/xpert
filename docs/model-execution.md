@@ -1,6 +1,6 @@
 # Model Access in Execution Environments
 
-ModelExecution lets CLIs and managed Agents use models authorized for the current Assistant and attributes actual usage to the calling user. It manages short-lived execution grants, model protocol endpoints, budget admission, and settlement. Task scheduling and desktop control remain outside its scope. The feature is disabled by default.
+ModelExecution lets CLIs and managed Agents use models authorized for the current Assistant and attributes actual usage to the calling user. It manages short-lived execution grants, model protocol endpoints, budget admission, and settlement. Task scheduling and desktop control remain outside its scope. Coding tools are available by default, without a tenant enablement switch.
 
 This document describes the current source design. It does not certify client acceptance or a published release. Computer installation and live execution records are maintained in the corresponding xpert-pro documentation.
 
@@ -46,7 +46,9 @@ Usage is consistently labeled with the `shell` entry, and the execution ID ident
 
 ## Budget Admission and Metering
 
-The [policy schema](../packages/server-ai/src/model-execution/execution-policy.schema.ts) requires an explicit enablement flag and defaults to disabled when unconfigured. Enabling it requires a gateway address, allowed absolute tool paths and exact versions, and the following integer limits:
+The [policy schema](../packages/server-ai/src/model-execution/execution-policy.schema.ts) provides defaults for every tenant. A legacy `enabled: false` is read as available and no longer acts as a switch. Tools and exact versions share [toolchain.json](../packages/plugins/cli-model-profiles/src/toolchain.json) with the image. The gateway address is derived from `API_BASE_URL`; loopback addresses are translated to `host.docker.internal` inside the Computer container. Administrators only need overrides for custom images, remote Docker networks, or special limits. Ordinary tenants need no configuration. Existing tool, protocol, and limit overrides are preserved.
+
+The following integer limits protect executions:
 
 | Field                                         | Meaning                                                                                                                                                                           |
 | --------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -75,11 +77,11 @@ Background processing retries delivery and unresolved usage reconciliation every
 
 ## Model Protocols
 
-| Policy or capability  | Endpoint and execution path                                                              | Boundary                                                                                                  |
-| --------------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
-| Standard Chat         | `openai_chat`, using the shared platform Chat executor                                   | Subject to authorized models and tool capabilities                                                        |
-| `nativeProtocols`     | `openai_responses` and `anthropic_messages`, using the Provider's `getNativeModelClient` | Disabled by default; the model catalog must explicitly declare `native_protocols`                         |
-| `chatBridgeProtocols` | The same Responses and Messages endpoints, converted to platform Chat requests           | Disabled by default; snapshots record `openai_responses_chat` and `anthropic_messages_chat`, respectively |
+| Policy or capability  | Endpoint and execution path                                                              | Boundary                                                                                                                                    |
+| --------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| Standard Chat         | `openai_chat`, using the shared platform Chat executor                                   | Subject to authorized models and tool capabilities                                                                                          |
+| `nativeProtocols`     | `openai_responses` and `anthropic_messages`, using the Provider's `getNativeModelClient` | Disabled by default; the model catalog must explicitly declare `native_protocols`                                                           |
+| `chatBridgeProtocols` | The same Responses and Messages endpoints, converted to platform Chat requests           | Version-restricted conversion is available by default; snapshots record `openai_responses_chat` and `anthropic_messages_chat`, respectively |
 
 The transport is pinned when the grant is issued. When both paths are available, the native path takes precedence. A native failure does not trigger a retry through Chat or expand authorization. See [tool/model filtering and version compatibility](../packages/server-ai/src/model-execution/execution-tool-model.ts) and [native Provider resolution](../packages/server-ai/src/model-execution/execution-native-provider.service.ts).
 
@@ -97,7 +99,7 @@ The following paths include the platform's `/api` prefix.
 
 | Endpoint                                                   | Caller identity                                                 | Purpose                                                                    |
 | ---------------------------------------------------------- | --------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| `GET/PUT /api/model-execution/admin/policy`                | Tenant scope with `MODEL_GATEWAY_MANAGE`                        | Read or update the rollout policy                                          |
+| `GET/PUT /api/model-execution/admin/policy`                | Tenant scope with `MODEL_GATEWAY_MANAGE`                        | Read or override the default execution policy                              |
 | `GET /api/model-execution/admin/pending`                   | Platform administrator in tenant scope with the same permission | Paginate usage awaiting reconciliation                                     |
 | `POST /api/model-execution/admin/calls/:id/reconcile`      | Same as above                                                   | Persist evidence and reconcile the original call                           |
 | `POST /api/model-execution/admin/calls/:id/retry-delivery` | Same as above                                                   | Retry ledger delivery of an existing fact                                  |
@@ -123,7 +125,7 @@ Only interactions that actually require user confirmation may suspend execution.
 
 ## Deployment Rollback and Validation
 
-Deploy with the feature disabled first. Contracts, SDK, host, ChatKit, and runtime plugins must use compatible builds from the same release cycle. Published packages and release receipts determine official version numbers; a local prerelease version is not evidence of an npm release. Older SDKs lack the capabilities described here, so upgrading only a runtime plugin is insufficient.
+Before deployment, confirm that compatible builds and incremental migrations are ready. Contracts, SDK, host, ChatKit, and runtime plugins must use compatible builds from the same release cycle. Published packages and release receipts determine official version numbers; a local prerelease version is not evidence of an npm release. Older SDKs lack the capabilities described here, so upgrading only a runtime plugin is insufficient.
 
 Once the base model gateway tables exist, apply these incremental migrations in dependency order before starting the full updated API and workers:
 
@@ -135,7 +137,7 @@ Once the base model gateway tables exist, apply these incremental migrations in 
 
 Confirm that old workers have exited, then validate with dedicated test accounts and workspaces, small token budgets, and explicit environment instances. Roll out standard Chat, native protocols, and Chat conversion separately. Successful installation or policy persistence does not establish that live execution, metering, and file delivery have passed validation.
 
-To roll back, first set `{ "enabled": false }` and stop dispatching new tasks. Disabling admission does not delete historical facts or reservations for unknown usage. Retain querying, explicit cancellation, and compensation capabilities. Follow the [operations runbook](operations/model-execution-runbook.md) to handle usage and legacy waits before stopping the relevant workers. Revoking a grant does not prove a process has exited. When its status cannot be confirmed, retain `unknown` rather than restarting the original task to guess at recovery. Rolling back incremental migrations must not DROP historical data.
+To roll back, first stop dispatching new tasks and revoke the relevant execution grants; the legacy `enabled` field no longer controls admission. Preserve historical facts and reservations for unknown usage. Retain querying, explicit cancellation, and compensation capabilities. Follow the [operations runbook](operations/model-execution-runbook.md) to handle usage and legacy waits before stopping the relevant workers. Revoking a grant does not prove a process has exited. When its status cannot be confirmed, retain `unknown` rather than restarting the original task to guess at recovery. Rolling back incremental migrations must not DROP historical data.
 
 Run the basic builds and type checks from the repository root:
 

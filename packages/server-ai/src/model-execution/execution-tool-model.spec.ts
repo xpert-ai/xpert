@@ -7,6 +7,7 @@ const codex = { id: 'codex', version: '0.159.2' }
 const claude = { id: 'claude', version: '2.1.63' }
 const testPolicy = {
     enabled: true,
+    chatBridgeProtocols: [],
     gatewayBaseUrl: 'https://gateway.test/api/model-execution/openai/v1',
     limits: {
         tokenBudget: 1000,
