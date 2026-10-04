@@ -142,6 +142,8 @@
         "AgentResourceAdminRequired": "仅管理员可管理 Agent 插件。",
         "AgentResourceUnavailable": "此资源已失效或不可访问，请移除或重新选择。",
         "AgentResourceConflict": "所选中间件配置与现有能力冲突。",
+        "AgentResourcePluginConfigConflict": "所选插件对 {{provider}}.{{field}} 的配置不一致。请在助理中明确配置该字段，或调整插件选择。",
+        "AgentResourceMergedConfigInvalid": "{{provider}} 的最终配置无效，请检查助理和所选插件的配置。",
         "AgentResourceToolConflict": "所选资源包含同名工具，请移除冲突资源。",
         "AgentResourceRevisionConflict": "会话资源已被其他窗口修改，请刷新后重试。",
         "AgentResourceDedicatedEndpoint": "请通过带 revision 的会话资源接口更新资源。",

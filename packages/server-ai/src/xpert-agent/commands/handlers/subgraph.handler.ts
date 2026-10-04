@@ -256,7 +256,14 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         }
 
         const dynamicResources = isStart && !leaderKey ? options.runtimeResources : undefined
-        if (dynamicResources) graph = applyRuntimeResourceGraph(graph, agent, dynamicResources)
+        if (dynamicResources)
+            graph = applyRuntimeResourceGraph(
+                graph,
+                agent,
+                dynamicResources,
+                (provider) =>
+                    this.agentMiddlewareRegistry.get(provider, RequestContext.getOrganizationId() ?? undefined).meta
+            )
 
         // Hidden this agent node: the graph created is a pure workflow starting from start node
         const hiddenAgent = agent.options?.hidden

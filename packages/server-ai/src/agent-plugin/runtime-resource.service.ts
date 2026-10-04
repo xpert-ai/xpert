@@ -316,7 +316,6 @@ export class RuntimeResourceService {
         const assistant = await this.assistant(assistantId, projectId)
         const result = emptyRuntimeResources()
         result.selection = validated
-        const providers = new Map<string, IWFNMiddleware['options']>()
         const packages = new Map<string, AgentResourceBinding['definition']>()
         const registry = this.modules.get(AgentMiddlewareRegistry, { strict: false })
         const access = this.modules.get(
@@ -326,16 +325,7 @@ export class RuntimeResourceService {
         const addMiddleware = (key: string, provider: string, options: IWFNMiddleware['options']) => {
             this.plugins.validateMiddleware(registry, provider, options ?? {}, scope.organizationId)
             provider = normalizeMiddlewareProvider(provider)
-            if (providers.has(provider)) {
-                if (!isEqual(providers.get(provider), options ?? {}))
-                    throw new BadRequestException(
-                        t('server-ai:Error.AgentResourceConflict', {
-                            defaultValue: 'Selected middleware configurations conflict.'
-                        })
-                    )
-                return
-            }
-            providers.set(provider, options ?? {})
+            // Keep explicit plugin values until graph assembly can apply Assistant precedence.
             result.middlewares.push({
                 key,
                 entity: { id: key, key, type: WorkflowNodeTypeEnum.MIDDLEWARE, provider, options: options ?? {} }
@@ -442,7 +432,12 @@ export class RuntimeResourceService {
         }
         result.skillIds = [...new Set(result.skillIds)]
         result.toolsetIds = [...new Set(result.toolsetIds)]
-        if (assistant.graph && assistant.agent) applyRuntimeResourceGraph(assistant.graph, assistant.agent, result)
+        applyRuntimeResourceGraph(
+            assistant.graph ?? { nodes: [], connections: [] },
+            assistant.agent ?? { key: assistant.id },
+            result,
+            (provider) => registry.get(provider, scope.organizationId).meta
+        )
         return result
     }
 

@@ -142,6 +142,8 @@
         "AgentResourceAdminRequired": "An administrator is required to manage Agent Plugins.",
         "AgentResourceUnavailable": "This resource is no longer available.",
         "AgentResourceConflict": "Selected middleware configurations conflict.",
+        "AgentResourcePluginConfigConflict": "Selected plugins disagree on {{provider}}.{{field}}. Configure it explicitly on the Assistant or change the plugin selection.",
+        "AgentResourceMergedConfigInvalid": "The effective configuration for {{provider}} is invalid. Check the Assistant and selected plugin settings.",
         "AgentResourceToolConflict": "Selected resources expose conflicting tool names. Remove the conflicting resource.",
         "AgentResourceRevisionConflict": "Resources changed in another session. Reload and try again.",
         "AgentResourceDedicatedEndpoint": "Update conversation resources through the revisioned runtime-resources endpoint.",
