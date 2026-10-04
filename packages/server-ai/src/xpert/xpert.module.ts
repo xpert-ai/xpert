@@ -1,4 +1,6 @@
 import { AssistantConfigurationController } from './configuration/assistant-configuration.controller'
+import { AssistantAppearanceController } from './assistant-appearance/assistant-appearance.controller'
+import { AssistantAppearanceService } from './assistant-appearance/assistant-appearance.service'
 import { AssistantConfigurationService } from './configuration/assistant-configuration.service'
 import { AssistantTriggerController } from './configuration/assistant-trigger.controller'
 import { AssistantTriggerService } from './configuration/assistant-trigger.service'
@@ -110,6 +112,7 @@ import { XpertTriggerConnectionService } from './trigger-connection.service'
     controllers: [
         AssistantTriggerController,
         AssistantConfigurationController,
+        AssistantAppearanceController,
         XpertTriggerConnectionController,
         XpertProfileController,
         XpertTagUsageController,
@@ -117,6 +120,7 @@ import { XpertTriggerConnectionService } from './trigger-connection.service'
         XpertAccessController
     ],
     providers: [
+        AssistantAppearanceService,
         AssistantTriggerService,
         AssistantConfigurationService,
         XpertService,

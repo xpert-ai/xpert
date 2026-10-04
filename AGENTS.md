@@ -27,6 +27,11 @@ This repo uses NestJS + TypeORM on the server and Angular 17 (standalone, signal
 - TypeORM entity columns must not rely on decorator metadata for unsafe property types. If an `@Column` property uses a union, literal union, imported type alias, enum-like type reference, object/interface shape, array, `Record`, `unknown`, or `any`, the decorator must explicitly declare `type`. Use `type: 'varchar'` for string unions, `type: 'int'` for numeric unions, and `type: 'json'` or `type: 'jsonb'` for structured data.
 - Ensure clearer boundaries of responsibilities.
 
+### Subfeature organization
+
+- A cohesive subfeature with its own Controller and Service belongs in a dedicated subdirectory under its owning feature, such as `xpert/assistant-appearance/`. Keep its schemas, DTOs, helpers and tests together instead of adding them to the parent directory.
+- Directory boundaries do not require a NestJS Module. Register small subfeatures in the owning Module; introduce a submodule when it provides a meaningful dependency, provider or export boundary.
+
 ### Shared CQRS operations
 
 - When a reusable capability has one cohesive entry point, prefer a typed CQRS Command and Handler over requiring consumers to inject its Service and import its owning Module. Register the Handler once in the owning platform module; consumers use the shared `CommandBus` and public Command contract.
