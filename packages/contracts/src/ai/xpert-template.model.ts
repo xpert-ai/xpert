@@ -146,11 +146,30 @@ export interface AssistantCapabilityDeclaration {
   required?: boolean
 }
 
+/** Public model metadata for capability setup; never includes provider credentials or model configuration. */
+export interface XpertTemplateModelOption {
+  /** Opaque selection key; clients must submit it unchanged rather than reconstructing it. */
+  id: string
+  label: string
+  /** Model reference for installation; setup responses only project copilotId, model and modelType. */
+  copilotModel: TCopilotModel
+  /** Display grouping by provider, not a credential scope. Optional for older setup endpoints. */
+  provider?: { id: string; label: string }
+  /** Display name that distinguishes multiple configured connections for the same provider. */
+  connectionName?: string
+  /** Declared model features for badges/recommendations; installation still validates compatibility. */
+  features?: ModelFeature[]
+  /** Context capacity in tokens, not usage; omitted when the provider does not declare it. */
+  contextWindow?: number
+}
+
 export interface XpertTemplateSetup {
+  /** ID of a compatible organization default in `models`; absent if none qualifies. */
+  defaultModelId?: string
   requiresModel?: boolean
   optionalCapabilities: { key: XpertTemplateCapability; label: string; description: string }[]
   requiredModelFeatures: ModelFeature[]
-  models: { id: string; label: string; copilotModel: TCopilotModel }[]
+  models: XpertTemplateModelOption[]
   canInstall: boolean
   reason?: string
 }

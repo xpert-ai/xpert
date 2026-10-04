@@ -25,6 +25,7 @@ import {
 import { parseCapabilityTemplateDraft } from './template-draft'
 import { recordCapabilityState } from './capability-state'
 import { blankAssistantTemplate } from './blank-assistant-template'
+import { templateModelOption } from './template-model-option'
 
 @Injectable()
 export class AssistantCapabilityService {
@@ -119,11 +120,7 @@ export class AssistantCapabilityService {
                                 model.features?.includes(ModelFeature.MULTI_TOOL_CALL))
                     )
                 )
-                .map((model) => ({
-                    id: `${copilot.id}/${encodeURIComponent(model.model)}`,
-                    label: resolveI18nText(model.label, RequestContext.getLanguageCode()) || model.model,
-                    copilotModel: { copilotId: copilot.id, model: model.model, modelType: AiModelTypeEnum.LLM }
-                }))
+                .map((model) => templateModelOption(copilot, model, RequestContext.getLanguageCode()))
         )
         return result.models.length
             ? result
