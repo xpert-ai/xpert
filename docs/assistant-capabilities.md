@@ -73,7 +73,8 @@ OSS provides local command line and server sandbox capabilities. Local commands 
 
 The **Edit profile** dialog separates personal display overrides from shared authoring:
 
-- **Profile** changes the local name and description only, including for readers.
+- **Profile** changes the local description only, including for readers; the displayed name is read-only there.
+- **Customize your assistant** edits the public name and avatar with workspace authoring permission. It updates only public profile metadata, without publishing or overwriting the workflow or its draft. See [Bosi onboarding and public appearance](bosi-desktop-onboarding.md).
 - **Model & capabilities** and **Instructions** require authoring access to the assistant's workspace in the current organization. The workspace itself is not moved.
 - **Save & publish** revalidates the allowed model and capability providers, saves a draft and publishes a new version. The dialog also works immediately after publishing, when the persisted graph is the editing baseline and no draft exists.
 - User instructions are independent of generated capability instructions; both creation and editing support optional instructions. Clearing the user field keeps necessary capability instructions.
