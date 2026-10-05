@@ -117,7 +117,7 @@
         type="button"
         class="inline-flex size-10 shrink-0 items-center justify-center rounded-xl p-0 text-lg leading-none text-text-secondary hover:bg-hover-bg focus-visible:outline-2 focus-visible:outline-primary"
         [attr.aria-label]="'XP.ACTIONS.Close' | translate"
-        [disabled]="editor.closing() || editor.publishing() || personalization()?.saving()"
+        [disabled]="editor.closing() || editor.publishing() || editor.savingDraft() || personalization()?.saving()"
         (click)="close()"
       >
         <i class="ri-close-line" aria-hidden="true"></i>
@@ -128,8 +128,8 @@
     #content
     class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3 sm:px-5"
     tabindex="0"
-    [attr.inert]="editor.publishing() || editor.composing() ? '' : null"
-    [attr.aria-busy]="editor.publishing() || editor.composing()"
+    [attr.inert]="editor.publishing() || editor.savingDraft() || editor.composing() ? '' : null"
+    [attr.aria-busy]="editor.publishing() || editor.savingDraft() || editor.composing()"
     [attr.aria-label]="'XP.XpertSettings.Menu.' + editor.section() | translate"
   >
     @if (editor.data.binding) {
@@ -206,9 +206,9 @@
         </div>
       </div>
     }
-    @if (source.error()) {
+    @if (source.error() || editor.saveError()) {
       <p class="mb-3 break-words text-base text-text-destructive" role="alert">
-        {{ 'XP.XpertSettings.SaveFailed' | translate }}: {{ source.error() }}
+        {{ 'XP.XpertSettings.SaveFailed' | translate }}: {{ source.error() || editor.saveError() }}
       </p>
     }
     @if (editor.publishError()) {
@@ -259,10 +259,10 @@
               @if (editor.publishing()) {
                 <i class="ri-loader-4-line animate-spin text-lg" aria-hidden="true"></i
                 >{{ 'XP.XpertSettings.Publishing' | translate }}
-              } @else if (source.saving()) {
+              } @else if (source.saving() || editor.savingDraft()) {
                 <i class="ri-loader-4-line animate-spin text-lg" aria-hidden="true"></i
                 >{{ 'XP.XpertSettings.Saving' | translate }}
-              } @else if (source.error()) {
+              } @else if (source.error() || editor.saveError()) {
                 <i class="ri-error-warning-line text-lg text-text-destructive" aria-hidden="true"></i
                 >{{ 'XP.XpertSettings.Unsaved' | translate }}
               } @else if (pendingSections().length) {
@@ -282,9 +282,11 @@
               }
             </span>
             <span class="text-text-tertiary sm:border-l sm:border-divider-regular sm:pl-3">{{
-              (editor.published() && !pendingSections().length
-                ? 'XP.XpertSettings.PublishedTip'
-                : 'XP.XpertSettings.PublishTip'
+              (editor.draftOnly
+                ? 'XP.XpertSettings.DraftSaveHint'
+                : editor.published() && !pendingSections().length
+                  ? 'XP.XpertSettings.PublishedTip'
+                  : 'XP.XpertSettings.PublishTip'
               ) | translate
             }}</span>
           </div>
@@ -294,10 +296,19 @@
           z-button
           zType="outline"
           class="shrink-0"
-          [zDisabled]="editor.publishing() || editor.composing() || editor.closing()"
-          (click)="saveAndPublish()"
+          [zDisabled]="editor.publishing() || editor.savingDraft() || editor.composing() || editor.closing()"
+          (click)="saveChanges()"
         >
-          {{ (editor.publishing() ? 'XP.XpertSettings.Publishing' : 'XP.XpertSettings.SaveAndPublish') | translate }}
+          {{
+            (editor.draftOnly
+              ? editor.savingDraft()
+                ? 'XP.XpertSettings.Saving'
+                : 'XP.AssistantSettings.SaveDraft'
+              : editor.publishing()
+                ? 'XP.XpertSettings.Publishing'
+                : 'XP.XpertSettings.SaveAndPublish'
+            ) | translate
+          }}
         </button>
       </div>
     }

@@ -5,9 +5,8 @@ import { Component, computed, HostListener, inject, model, signal, ViewContainer
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
-import { DEFAULT_XPERT_AGENT_RECURSION_LIMIT } from '@xpert-ai/contracts'
 import { XpSpinComponent } from '@xpert-ai/headless-ui'
-import { attrModel, linkedModel, nonBlank } from '@xpert-ai/headless-ui'
+import { nonBlank } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   ChatConversationService,
@@ -38,10 +37,10 @@ import { XpertExecutionService } from '../services/execution.service'
 import { XpertStudioComponent } from '../studio.component'
 import { XpertPublishVersionComponent } from './publish/publish.component'
 import { ChecklistComponent } from '@cloud/app/@shared/common'
-import { ZardSliderComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
-import type { ZardSliderValue } from '@xpert-ai/headless-ui'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { OverlayAnimations } from '@xpert-ai/headless-ui'
-import { XpertWorkbenchInitialLayoutSettingsComponent } from './workbench-initial-layout-settings.component'
+import { XpertSettingsService } from '@cloud/app/@core/services/xpert-settings.service'
+import { createStudioSettingsSource } from './studio-settings-source'
 
 @Component({
   selector: 'xpert-studio-header',
@@ -51,11 +50,9 @@ import { XpertWorkbenchInitialLayoutSettingsComponent } from './workbench-initia
     FormsModule,
     CdkMenuModule,
     ...ZardTooltipImports,
-    ZardSliderComponent,
     TranslateModule,
     XpSpinComponent,
-    ChecklistComponent,
-    XpertWorkbenchInitialLayoutSettingsComponent
+    ChecklistComponent
   ],
   templateUrl: './header.component.html',
   styleUrl: './header.component.scss',
@@ -76,7 +73,7 @@ export class XpertStudioHeaderComponent {
 
   // Inputs
   readonly sidePanel = model<'preview' | 'variables' | 'environments' | 'commands'>(null)
-  readonly showFeatures = model(false)
+  private readonly settings = inject(XpertSettingsService)
 
   readonly team = computed(() => this.xpertStudioComponent.team())
   readonly xpert = this.xpertStudioComponent.xpert
@@ -105,16 +102,6 @@ export class XpertStudioHeaderComponent {
   })
   readonly checklist = computed(() => this.draft()?.checklist)
   readonly environment = this.apiService.environment
-
-  readonly agentConfig = linkedModel({
-    initialValue: null,
-    compute: () => this.xpert()?.agentConfig,
-    update: (config) => {
-      this.apiService.updateXpertAgentConfig(config)
-    }
-  })
-  readonly maxConcurrency = attrModel(this.agentConfig, 'maxConcurrency')
-  readonly recursionLimit = attrModel(this.agentConfig, 'recursionLimit', DEFAULT_XPERT_AGENT_RECURSION_LIMIT)
 
   // Executions
   readonly xpertId$ = toObservable(this.team).pipe(
@@ -186,16 +173,21 @@ export class XpertStudioHeaderComponent {
     this.sidePanel.update((state) => (state === 'commands' ? null : 'commands'))
   }
 
-  toggleFeatures() {
-    this.showFeatures.update((state) => !state)
-  }
-
-  setMaxConcurrency(value: ZardSliderValue) {
-    this.maxConcurrency.set(this.sliderValue(value))
-  }
-
-  setRecursionLimit(value: ZardSliderValue) {
-    this.recursionLimit.set(this.sliderValue(value))
+  async openSettings() {
+    if (!this.apiService.storage || this.apiService.settingsEditing()) return
+    this.apiService.settingsEditing.set(true)
+    try {
+      await this.settings.open(
+        this.#viewContainerRef,
+        this.xpert().id,
+        undefined,
+        createStudioSettingsSource(this.apiService),
+        undefined,
+        'draft'
+      )
+    } finally {
+      this.apiService.settingsEditing.set(false)
+    }
   }
 
   openConversation(item: IChatConversation) {
@@ -236,14 +228,10 @@ export class XpertStudioHeaderComponent {
 
   @HostListener('window:keydown', ['$event'])
   handleCtrlS(event: KeyboardEvent) {
-    if ((event.metaKey || event.ctrlKey) && event.key === 's') {
+    if (!this.apiService.settingsEditing() && (event.metaKey || event.ctrlKey) && event.key === 's') {
       event.preventDefault() // Prevent the default save dialog
       this.saveDraft()
     }
-  }
-
-  private sliderValue(value: ZardSliderValue) {
-    return typeof value === 'number' ? value : value[0]
   }
 
   onMenuOpened(trigger: CdkMenuTrigger) {

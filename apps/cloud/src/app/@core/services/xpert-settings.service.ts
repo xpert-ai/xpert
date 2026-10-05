@@ -10,6 +10,7 @@ import { buildEditableXpertDraft } from '../../features/xpert/draft/editable-dra
 import { DraftSaveQueue } from '../../@shared/xpert/assistant-settings/draft-save-queue'
 import type {
   XpertSettingsSection,
+  XpertSettingsSaveMode,
   XpertSettingsSource
 } from '../../@shared/xpert/assistant-settings/xpert-settings.types'
 import { XpertAPIService } from './xpert.service'
@@ -50,7 +51,8 @@ export class XpertSettingsService {
     id: string,
     section?: XpertSettingsSection,
     activeSource?: XpertSettingsSource,
-    resolvedBinding?: IAssistantBinding | null
+    resolvedBinding?: IAssistantBinding | null,
+    saveMode: XpertSettingsSaveMode = 'publish'
   ) {
     if (!id || this.opening || this.dialogRef) return
     this.opening = true
@@ -79,25 +81,29 @@ export class XpertSettingsService {
         ariaLabel: this.translate.instant('XP.XpertSettings.Title'),
         data: {
           source,
+          saveMode,
           binding,
           organizationId,
           section: requestedSection === 'personalization' && !binding ? 'general' : requestedSection,
           selectSection: (value: XpertSettingsSection) => this.sections.set(id, value),
-          publish: async () => {
-            if (organizationId !== this.store.organizationId)
-              throw new Error(this.translate.instant('XP.AssistantSettings.BindingChanged'))
-            const latest = await firstValueFrom(this.api.getTeam(id))
-            if (organizationId !== this.store.organizationId)
-              throw new Error(this.translate.instant('XP.AssistantSettings.BindingChanged'))
-            await firstValueFrom(
-              this.api.publish(id, false, {
-                environmentId: latest.environmentId ?? null,
-                releaseNotes: this.translate.instant('XP.XpertSettings.PublishReleaseNotes')
-              })
-            )
-            // Publication replaces agent timestamps and clears the server draft. Rebase before the next edit.
-            await source.reload?.()
-          }
+          publish:
+            saveMode === 'draft'
+              ? undefined
+              : async () => {
+                  if (organizationId !== this.store.organizationId)
+                    throw new Error(this.translate.instant('XP.AssistantSettings.BindingChanged'))
+                  const latest = await firstValueFrom(this.api.getTeam(id))
+                  if (organizationId !== this.store.organizationId)
+                    throw new Error(this.translate.instant('XP.AssistantSettings.BindingChanged'))
+                  await firstValueFrom(
+                    this.api.publish(id, false, {
+                      environmentId: latest.environmentId ?? null,
+                      releaseNotes: this.translate.instant('XP.XpertSettings.PublishReleaseNotes')
+                    })
+                  )
+                  // Publication replaces agent timestamps and clears the server draft. Rebase before the next edit.
+                  await source.reload?.()
+                }
         }
       })
       const closed = firstValueFrom(this.dialogRef.closed)

@@ -1,7 +1,7 @@
 <section class="space-y-5" [attr.aria-busy]="loading() || applying()">
   @if (page() === 'capabilities') {
     <p class="text-base leading-6 text-text-secondary">
-      {{ 'XP.XpertSettings.Capabilities.Hint' | translate }}
+      {{ (editor.draftOnly ? 'XP.XpertSettings.DraftSaveHint' : 'XP.XpertSettings.Capabilities.Hint') | translate }}
     </p>
   }
   @if (loading()) {

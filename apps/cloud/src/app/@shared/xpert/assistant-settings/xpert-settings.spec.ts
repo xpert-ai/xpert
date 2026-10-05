@@ -12,7 +12,7 @@ import { createXpertSettingsForm, modelValidator } from './xpert-settings.form'
 import { applyXpertSettingsChanges } from './xpert-settings.patch'
 import { XpertSettingsEditor } from './xpert-settings.editor'
 import { DraftSaveQueue } from './draft-save-queue'
-import type { XpertSettingsSource } from './xpert-settings.types'
+import type { XpertSettingsSaveMode, XpertSettingsSource } from './xpert-settings.types'
 
 const primary = { copilotId: 'provider', model: 'primary', modelType: AiModelTypeEnum.LLM } satisfies TCopilotModel
 const alternative = { ...primary, model: 'alternative' }
@@ -164,8 +164,10 @@ describe('settings validation', () => {
 })
 
 describe('settings editor', () => {
-  function setup() {
-    const draft = signal(draftFixture()),
+  function setup(saveMode?: XpertSettingsSaveMode, alreadyPublished = false) {
+    const initial = draftFixture()
+    if (alreadyPublished) initial.team.publishAt = new Date()
+    const draft = signal(initial),
       unsaved = signal(false),
       error = signal<string | null>(null)
     const save = jest.fn(async () => {
@@ -186,11 +188,77 @@ describe('settings editor', () => {
       save
     }
     TestBed.configureTestingModule({
-      providers: [{ provide: DIALOG_DATA, useValue: { source, section: 'general', selectSection: jest.fn(), publish } }]
+      providers: [
+        { provide: DIALOG_DATA, useValue: { source, saveMode, section: 'general', selectSection: jest.fn(), publish } }
+      ]
     })
     return { editor: TestBed.runInInjectionContext(() => new XpertSettingsEditor()), source, save, publish, unsaved }
   }
   afterEach(() => TestBed.resetTestingModule())
+  it('does not label a Studio save as published even when its content matches the published version', async () => {
+    const { editor, publish } = setup('draft', true)
+    expect(await editor.saveDraft()).toBe(true)
+    expect(editor.published()).toBe(false)
+    expect(publish).not.toHaveBeenCalled()
+  })
+  it('saves Studio edits and prepared capability changes as a draft, never publishing', async () => {
+    const { editor, source, save, publish } = setup('draft')
+    editor.form.controls.general.controls.title.setValue('Studio draft')
+    const prepare = jest.fn(async () => {
+      source.update((draft) => ({
+        ...draft,
+        team: { ...draft.team, features: { realtimeVoice: { enabled: true, voice: 'voice-b' } } }
+      }))
+      return true
+    })
+    expect(await editor.saveDraft(prepare)).toBe(true)
+    expect(prepare).toHaveBeenCalledTimes(1)
+    expect(save).toHaveBeenCalledTimes(1)
+    expect(source.draft().team.title).toBe('Studio draft')
+    expect(source.draft().team.features.realtimeVoice.voice).toBe('voice-b')
+    expect(source.unsaved()).toBe(false)
+    expect(editor.published()).toBe(false)
+    expect(publish).not.toHaveBeenCalled()
+    // The mode also prevents accidental invocation through another handler.
+    expect(await editor.saveAndPublish()).toBe(false)
+    expect(publish).not.toHaveBeenCalled()
+  })
+  it('blocks invalid or failed draft saves and supports retry without publishing', async () => {
+    const { editor, source, save, publish } = setup('draft')
+    editor.form.controls.runtime.controls.recursionLimit.setValue(0)
+    expect(await editor.saveDraft()).toBe(false)
+    expect(save).not.toHaveBeenCalled()
+    editor.form.controls.runtime.controls.recursionLimit.setValue(400)
+    expect(await editor.saveDraft(async () => false)).toBe(false)
+    expect(save).not.toHaveBeenCalled()
+    save.mockRejectedValueOnce(new Error('Draft offline'))
+    expect(await editor.saveDraft()).toBe(false)
+    expect(editor.saveError()).toBe('Draft offline')
+    expect(editor.publishError()).toBeNull()
+    expect(source.unsaved()).toBe(true)
+    expect(editor.savingDraft()).toBe(false)
+    expect(await editor.saveDraft()).toBe(true)
+    expect(editor.saveError()).toBeNull()
+    expect(publish).not.toHaveBeenCalled()
+  })
+  it('prevents duplicate saves and publication while a draft transaction is running', async () => {
+    const { editor, save, publish } = setup('draft')
+    let finish: () => void
+    save.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve
+        })
+    )
+    const pending = editor.saveDraft()
+    expect(editor.savingDraft()).toBe(true)
+    expect(await editor.saveDraft()).toBe(false)
+    expect(await editor.saveAndPublish()).toBe(false)
+    finish()
+    expect(await pending).toBe(true)
+    expect(save).toHaveBeenCalledTimes(1)
+    expect(publish).not.toHaveBeenCalled()
+  })
   it('does not save untouched defaults and retains edits across category changes', fakeAsync(() => {
     const { editor, source, save } = setup()
     tick(700)

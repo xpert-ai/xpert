@@ -65,9 +65,12 @@ export interface XpertSettingsSource {
 
 export interface XpertSettingsDialogData {
   source: XpertSettingsSource
+  saveMode?: XpertSettingsSaveMode
   binding?: IAssistantBinding | null
   organizationId?: string | null
   section: XpertSettingsSection
   selectSection: (section: XpertSettingsSection) => void
   publish?: () => Promise<void>
 }
+
+export type XpertSettingsSaveMode = 'draft' | 'publish'

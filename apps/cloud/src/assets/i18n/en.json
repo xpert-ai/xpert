@@ -233,6 +233,7 @@
       "PublishTip": "Save and publish to apply changes",
       "SaveNow": "Save now",
       "SaveAndPublish": "Save and publish",
+      "DraftSaveHint": "Save changes to the draft, then publish separately in Studio to apply them.",
       "Publishing": "Saving and publishing…",
       "Published": "Saved and published",
       "PublishedTip": "Applies to conversations immediately",

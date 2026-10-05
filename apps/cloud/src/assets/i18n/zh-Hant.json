@@ -154,6 +154,7 @@
       "PublishTip": "儲存並發佈後對使用者生效",
       "SaveNow": "立即保存",
       "SaveAndPublish": "儲存並發佈",
+      "DraftSaveHint": "僅儲存至草稿，請在 Studio 中單獨發佈後生效。",
       "Publishing": "正在儲存並發佈…",
       "Published": "已儲存並發佈",
       "PublishedTip": "已對對話生效",

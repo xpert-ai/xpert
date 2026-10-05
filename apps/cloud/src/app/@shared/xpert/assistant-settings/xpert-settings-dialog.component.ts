@@ -144,7 +144,11 @@ export class XpertSettingsDialogComponent {
     if (section) this.select(section.key)
   }
   async saveCurrent() {
-    if (this.editor.publishing() || this.editor.composing()) return
+    if (this.editor.publishing() || this.editor.savingDraft() || this.editor.composing()) return
+    if (this.editor.draftOnly && !['personalization', 'statistics'].includes(this.editor.section())) {
+      await this.saveChanges()
+      return
+    }
     if (this.editor.section() === 'personalization') await this.personalization()?.save()
     else if (this.editor.section() === 'capabilities' || this.editor.section() === 'speech')
       await this.capabilities()?.save()
@@ -153,8 +157,8 @@ export class XpertSettingsDialogComponent {
     else if (this.editor.section() === 'middleware') await this.middleware()?.save()
     else if (this.editor.section() !== 'statistics') await this.editor.saveNow()
   }
-  async saveAndPublish() {
-    await this.editor.saveAndPublish(async () => {
+  async saveChanges() {
+    const prepare = async () => {
       for (const [section, component] of [
         ['subagents', this.subagents()],
         ['skills', this.skills()],
@@ -165,12 +169,15 @@ export class XpertSettingsDialogComponent {
           return false
         }
       }
-      if (this.capabilities() && !(await this.capabilities().preparePublish())) {
+      const capabilities = this.capabilities()
+      if (capabilities && !(await (this.editor.draftOnly ? capabilities.save() : capabilities.preparePublish()))) {
         this.select(this.capabilities().pendingSection())
         return false
       }
       return true
-    })
+    }
+    if (this.editor.draftOnly) await this.editor.saveDraft(prepare)
+    else await this.editor.saveAndPublish(prepare)
   }
   continueEditing() {
     this.editor.confirmDiscard.set(false)
@@ -181,6 +188,7 @@ export class XpertSettingsDialogComponent {
       this.editor.closing() ||
       this.source.saving() ||
       this.editor.publishing() ||
+      this.editor.savingDraft() ||
       this.editor.composing() ||
       this.personalization()?.saving()
     )

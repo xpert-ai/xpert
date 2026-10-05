@@ -438,6 +438,7 @@
       "PublishTip": "保存并发布后对用户生效",
       "SaveNow": "立即保存",
       "SaveAndPublish": "保存并发布",
+      "DraftSaveHint": "仅保存到草稿，请在 Studio 中单独发布后生效。",
       "Publishing": "正在保存并发布…",
       "Published": "已保存并发布",
       "PublishedTip": "已对对话生效",
