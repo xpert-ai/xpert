@@ -513,3 +513,5 @@ Object.assign(
   DesktopService.prototype,
   require('./assistant-appearance.cjs').createAssistantAppearanceMethods(ClientError)
 )
+
+Object.assign(DesktopService.prototype, require('./voice.cjs').createVoiceMethods(ClientError))

@@ -56,6 +56,9 @@
     "mac": {
       "icon": "resources/Xpert.icns",
       "category": "public.app-category.productivity",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "Bosi uses your microphone during voice calls you start."
+      },
       "target": [
         "dmg"
       ]

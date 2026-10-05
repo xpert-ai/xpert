@@ -87,6 +87,7 @@ test('bubble preferences reach initial and live ChatKit options without remounti
         }
       },
       './shell/useShellIntegration': { useShellIntegration: () => shell },
+      './voice/VoiceProvider': { useVoiceOptions: () => undefined },
       './i18n': { t: (key) => key },
       '@xpert-ai/chatkit-web-component': {},
       '@xpert-ai/shadcn-ui': { Button: 'button' },

@@ -1,3 +1,4 @@
+import { useVoiceOptions } from './voice/VoiceProvider'
 import { useWorkspaceConnection } from './WorkspaceConnection'
 import { apiRootUrl } from '../electron/connection/urls.mjs'
 import { useDeliveredFile } from './files/DeliveredFile'
@@ -20,6 +21,7 @@ export function ChatPanel({
   config,
   dark,
   initialThread,
+  initialVoice,
   onConversationRead,
   onAppearanceSaved
 }: {
@@ -27,6 +29,7 @@ export function ChatPanel({
   config: ConnectionConfig
   dark: boolean
   initialThread: string | null
+  initialVoice?: { assistantId: string; conversationId: string } | null
   onConversationRead: (botId: string, threadId: string | null) => void
   onAppearanceSaved: () => Promise<void>
 }) {
@@ -48,8 +51,17 @@ export function ChatPanel({
   const computers = { cloud: { viewKey: 'ProComputer__pro-computer' }, local: shell.computer }
   const computerState = JSON.stringify(computers)
   const previousComputerState = useRef(computerState)
-  const [shellAssistantId, setShellAssistantId] = useState(bot.assistantId || bot.id)
+  const [shellAssistantId, setShellAssistantId] = useState(initialVoice?.assistantId || bot.assistantId || bot.id)
   const [threadId, setThreadId] = useState<string | null>(initialThread)
+  const voiceOptions = useVoiceOptions(
+    { botId: bot.id, assistantId: shellAssistantId, threadId, name: bot.name },
+    (id) => {
+      setThreadId(id)
+      void instance.current?.setThreadId(id)
+    }
+  )
+  const voiceRef = useRef(voiceOptions)
+  voiceRef.current = voiceOptions
   const connection = useWorkspaceConnection(config.webUrl, shellAssistantId)
   const connectRef = useRef(connection.connect)
   connectRef.current = connection.connect
@@ -59,8 +71,8 @@ export function ChatPanel({
     const element = node as XpertAIChatKit
     let disposed = false
     let activeThread = threadId
-    let activeAssistant = bot.assistantId || bot.id
-    setShellAssistantId(bot.assistantId || bot.id)
+    let activeAssistant = initialVoice?.assistantId || bot.assistantId || bot.id
+    setShellAssistantId(activeAssistant)
     setFrameReady(false)
     setError('')
     const header = {
@@ -86,11 +98,23 @@ export function ChatPanel({
       frameUrl: config.frameUrl,
       displayMode: 'chat',
       pet: false,
+      realtimeVoice: voiceRef.current,
       api: {
         apiUrl: `${apiRootUrl(config.apiUrl)}/api/ai`,
-        xpertId: bot.assistantId || bot.id,
+        xpertId: activeAssistant,
         getClientSecret: async () => {
           try {
+            if (initialVoice && initialThread) {
+              const session = await invoke('workbenchSession', {
+                botId: bot.id,
+                target: 'assistant.conversation',
+                conversationId: initialVoice.conversationId,
+                threadId: initialThread
+              })
+              if (session.assistantId !== initialVoice.assistantId)
+                throw new Error(t('Could not create a chat session.'))
+              return { secret: session.secret, organizationId: session.organizationId }
+            }
             return await invoke('chatSession', bot.id)
           } catch (error) {
             if (!disposed) setError(error instanceof Error ? error.message : t('Could not create a chat session.'))
@@ -213,6 +237,13 @@ export function ChatPanel({
       instance.current.setOptions(options)
     }
   }, [dark, frameReady, config.appearance, config.locale, bot.name, computerState])
+
+  useEffect(() => {
+    if (!frameReady || !instance.current || !optionsRef.current) return
+    const options = { ...optionsRef.current, realtimeVoice: voiceOptions }
+    optionsRef.current = options
+    instance.current.setOptions(options)
+  }, [frameReady, voiceOptions])
 
   return (
     <section

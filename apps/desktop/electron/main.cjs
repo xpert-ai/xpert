@@ -1,3 +1,4 @@
+const { allowVoicePermission } = require('./voice-permission.cjs')
 const { app, BrowserWindow, ipcMain, safeStorage, shell, session, Menu, screen } = require('electron')
 const path = require('node:path')
 const { pathToFileURL } = require('node:url')
@@ -70,10 +71,30 @@ function updateApplicationMenu() {
 function resetConnectionSession() {
   connectionSession = createConnectionSession(session, service.config)
   connectionSession.setPermissionRequestHandler((contents, permission, callback, details) =>
-    callback(allowClipboardWrite(contents, permission, details.requestingUrl))
+    callback(
+      allowClipboardWrite(contents, permission, details.requestingUrl) ||
+        allowVoicePermission({
+          contents,
+          mainContents: window?.webContents,
+          permission,
+          source: details.requestingUrl,
+          rendererUrl,
+          details
+        })
+    )
   )
-  connectionSession.setPermissionCheckHandler((contents, permission, origin) =>
-    allowClipboardWrite(contents, permission, origin)
+  connectionSession.setPermissionCheckHandler(
+    (contents, permission, origin, details) =>
+      allowClipboardWrite(contents, permission, origin) ||
+      allowVoicePermission({
+        contents,
+        mainContents: window?.webContents,
+        permission,
+        source: origin,
+        rendererUrl,
+        details,
+        check: true
+      })
   )
 }
 

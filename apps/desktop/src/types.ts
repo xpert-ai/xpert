@@ -237,6 +237,22 @@ export interface HostMethods {
   loginLocal: { input: undefined; output: AppState }
   selectOrganization: { input: string; output: AppState }
   listBots: { input: undefined; output: Bot[] }
+  voiceCapability: { input: { botId: string; assistantId?: string }; output: { enabled: boolean } }
+  voiceStart: {
+    input: { botId: string; assistantId: string; threadId: string | null; originMode: 'web' | 'desktop' }
+    output: {
+      sessionId: string
+      conversationId: string
+      threadId: string
+      assistantId: string
+      url: string
+      ticket: string
+    }
+  }
+  voiceEnd: {
+    input: { threadId: string; sessionId: string }
+    output: { ended: boolean; call?: import('@xpert-ai/chatkit-types').CompletedVoiceCall }
+  }
   chatSession: { input: string; output: { secret: string; organizationId: string } }
   toolOutputPreview: {
     input: Pick<ToolOutputImageAttachment, 'artifactId' | 'artifactVersionId' | 'sha256' | 'mimeType'>
