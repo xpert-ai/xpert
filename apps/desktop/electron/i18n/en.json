@@ -967,5 +967,10 @@
   "Parallel tools": "Parallel tools",
   "Reasoning": "Reasoning",
   "Video": "Video",
-  "Streaming tools": "Streaming tools"
+  "Streaming tools": "Streaming tools",
+  "Could not load the pet catalog. Update ChatKit and retry.": "Could not load the pet catalog. Update ChatKit and retry.",
+  "Could not load the pet image.": "Could not load the pet image.",
+  "Choose a PNG, WebP or GIF smaller than 8 MB.": "Choose a PNG, WebP or GIF smaller than 8 MB.",
+  "Choose a PNG image smaller than 5 MB.": "Choose a PNG image smaller than 5 MB.",
+  "Avatar upload did not return an image URL.": "Avatar upload did not return an image URL."
 }

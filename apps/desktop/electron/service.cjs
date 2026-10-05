@@ -125,7 +125,8 @@ function parseBots(value, locale) {
           typeof avatar?.emoji?.id === 'string'
             ? { id: avatar.emoji.id, unified: typeof avatar.emoji.unified === 'string' ? avatar.emoji.unified : null }
             : null,
-        avatarUrl: typeof avatar?.url === 'string' && /^https?:\/\//.test(avatar.url) ? avatar.url : null
+        avatarUrl: typeof avatar?.url === 'string' && /^https?:\/\//.test(avatar.url) ? avatar.url : null,
+        avatar: avatar || null
       }
     })
   }
@@ -413,12 +414,14 @@ class DesktopService {
     const organizationId = this.profile?.organizationId || this.credentials?.organizationId
     if (auth && organizationId && scope !== 'tenant') headers['organization-id'] = organizationId
     if (auth && scope) headers['x-scope-level'] = scope
+    const multipart = typeof FormData !== 'undefined' && body instanceof FormData
+    if (multipart) delete headers['Content-Type']
     let response
     try {
       response = await this.fetcher(`${apiRootUrl(this.config.apiUrl)}${path}`, {
         method,
         headers,
-        ...(body ? { body: JSON.stringify(body) } : {}),
+        ...(body ? { body: multipart ? body : JSON.stringify(body) } : {}),
         signal: AbortSignal.timeout(timeout),
         redirect: 'error'
       })
@@ -504,3 +507,7 @@ module.exports = { DesktopService, ClientError, DEFAULT_CONFIG, parseConfig, web
 
 Object.assign(DesktopService.prototype, require('./workbench.cjs').createWorkbenchMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./bosi.cjs').createBosiMethods(ClientError))
+Object.assign(
+  DesktopService.prototype,
+  require('./assistant-appearance.cjs').createAssistantAppearanceMethods(ClientError)
+)

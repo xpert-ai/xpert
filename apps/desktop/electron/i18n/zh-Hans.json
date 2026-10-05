@@ -967,5 +967,10 @@
   "Parallel tools": "并行工具",
   "Reasoning": "推理",
   "Video": "视频",
-  "Streaming tools": "流式工具"
+  "Streaming tools": "流式工具",
+  "Could not load the pet catalog. Update ChatKit and retry.": "无法加载宠物目录，请更新 ChatKit 后重试。",
+  "Could not load the pet image.": "无法加载宠物形象。",
+  "Choose a PNG, WebP or GIF smaller than 8 MB.": "请选择小于 8 MB 的 PNG、WebP 或 GIF。",
+  "Choose a PNG image smaller than 5 MB.": "请选择小于 5 MB 的 PNG 图片。",
+  "Avatar upload did not return an image URL.": "头像上传未返回可用图片地址。"
 }

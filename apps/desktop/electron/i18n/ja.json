@@ -967,5 +967,10 @@
   "Parallel tools": "並列ツール",
   "Reasoning": "推論",
   "Video": "動画",
-  "Streaming tools": "ストリーミングツール"
+  "Streaming tools": "ストリーミングツール",
+  "Could not load the pet catalog. Update ChatKit and retry.": "ペット一覧を読み込めません。ChatKitを更新して再試行してください。",
+  "Could not load the pet image.": "ペットの画像を読み込めませんでした。",
+  "Choose a PNG, WebP or GIF smaller than 8 MB.": "8 MB未満のPNG、WebP、GIFを選択してください。",
+  "Choose a PNG image smaller than 5 MB.": "5 MB 未満の PNG 画像を選択してください。",
+  "Avatar upload did not return an image URL.": "アップロード結果に画像 URL がありません。"
 }

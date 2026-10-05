@@ -45,6 +45,7 @@ export interface AppState {
   localLoginAvailable: boolean
 }
 export interface Bot {
+  avatar?: import('@xpert-ai/contracts').TAvatar | null
   assistantId?: string
   businessArea?: { id: string; name: string } | null
   id: string
@@ -113,6 +114,21 @@ export interface HostMethods {
   bosiWelcome: { input: undefined; output: import('@xpert-ai/contracts').BosiSetup }
   bosiWorkspace: { input: undefined; output: { id: string; name: string } }
   bosiConnections: { input: { workspaceId: string }; output: { id: string; name: string; connected: boolean }[] }
+  assistantAppearance: {
+    input: { botId: string }
+    output: { canEdit: boolean; revision: string; name: string; avatar: import('@xpert-ai/contracts').TAvatar }
+  }
+  saveAssistantAppearance: {
+    input: { botId: string; revision: string; name: string; avatar: import('@xpert-ai/contracts').TAvatar }
+    output: { id: string }
+  }
+  uploadAssistantAvatar: { input: { botId: string; data: string }; output: { url: string } }
+  assistantPetCatalog: {
+    input: { botId: string }
+    output: { id: string; label: string; spriteVersionNumber?: 1 | 2 }[]
+  }
+  uploadAssistantPet: { input: { botId: string; data: string }; output: { url: string } }
+  assistantPetAsset: { input: { botId: string; petId: string }; output: { src: string } }
   usageMembership: { input: undefined; output: import('./usage/types').UsageMembership | null }
   usagePeriods: { input: undefined; output: import('./usage/types').UsagePeriod[] }
   usageOverview: { input: import('./usage/types').UsageQuery; output: import('./usage/types').UsageOverview }
@@ -201,7 +217,7 @@ export interface HostMethods {
     input: { botId: string; revision: string; prompt: string; modelId: string; capabilities: string[] }
     output: { botId: string }
   }
-  editBot: { input: { botId: string; name: string; description: string }; output: { botId: string } }
+  editBot: { input: { botId: string; name?: string; description: string }; output: { botId: string } }
   duplicateBot: { input: { botId: string; name: string }; output: { botId: string } }
   shellConfigure: { input: ShellSettings; output: DesktopShellState }
   shellPrepare: { input: ShellPreparationRequest; output: ShellPreparation }

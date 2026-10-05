@@ -33,6 +33,14 @@ function createAssistantListMethods(ClientError) {
     return { id: value.id, title: text(value.title), threadId: text(value.threadId) }
   }
   return {
+    clearBotProfile(botId) {
+      bot(this, botId)
+      const value = this.sidebarState()
+      const entry = value.items.find((item) => item.botId === botId)
+      if (entry?.profile) delete entry.profile.name
+      this.sidebars[scope(this)] = value
+      this.persist()
+    },
     decorateBots(items) {
       const sidebar = this.sidebarState()
       const entries = [...items.map((item) => ({ ...item, assistantId: item.id }))]
@@ -159,13 +167,17 @@ function createAssistantListMethods(ClientError) {
     },
     editBot(input) {
       const item = bot(this, input?.botId)
-      const name = required(input.name)
+      const name = input.name === undefined ? undefined : required(input.name)
       if (typeof input.description !== 'string' || input.description.length > 4000)
         throw new ClientError('Keep the description within 4,000 characters.')
       const key = scope(this)
       const value = this.sidebarState()
       const preference = value.items.find((entry) => entry.botId === item.id) || { botId: item.id }
-      preference.profile = { name, description: input.description.trim() }
+      preference.profile = {
+        ...preference.profile,
+        ...(name === undefined ? {} : { name }),
+        description: input.description.trim()
+      }
       value.items = [...value.items.filter((entry) => entry.botId !== item.id), preference]
       this.sidebars[key] = value
       this.persist()
