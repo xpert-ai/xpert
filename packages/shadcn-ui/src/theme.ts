@@ -51,7 +51,7 @@ export function installShadcnThemeVars(options: InstallShadcnThemeVarsOptions = 
       --chart-3: var(--xui-color-chart-3, #f59e0b);
       --chart-4: var(--xui-color-chart-4, #dc2626);
       --chart-5: var(--xui-color-chart-5, #7c3aed);
-      --radius: var(--xui-radius-md, 0.5rem);
+      --radius: var(--xui-radius-lg, 0.5rem);
       --font-sans: var(--xui-font-family, Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
     }
 

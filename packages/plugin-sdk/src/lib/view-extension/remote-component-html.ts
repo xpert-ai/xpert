@@ -18,6 +18,7 @@ export interface RenderRemoteVueIframeHtmlOptions extends RenderRemoteModuleIfra
 
 const XPERT_REMOTE_UI_CSS = `
 :root {
+  font-size: var(--xui-density-root-font-size, 16px);
   color-scheme: light;
   --xui-font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --xui-color-background: #fff;
@@ -340,6 +341,7 @@ const XPERT_REMOTE_UI_BOOTSTRAP = `
   var VERSION = 1
   var TOKEN_MAP = {
     fontFamily: '--xui-font-family',
+    densityRootFontSize: '--xui-density-root-font-size',
     colorBackground: '--xui-color-background',
     colorForeground: '--xui-color-foreground',
     colorCard: '--xui-color-card',
