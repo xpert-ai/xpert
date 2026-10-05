@@ -244,6 +244,7 @@ export function App() {
                   bot={bot}
                   config={{ ...state.config, appearance, locale }}
                   dark={dark}
+                  onAppearanceSaved={loadBots}
                 />
               ) : (
                 <div className="flex min-h-0 flex-1 flex-col items-center justify-center px-10 text-center">

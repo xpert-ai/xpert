@@ -12,6 +12,7 @@ import { LoaderCircle } from 'lucide-react'
 import { invoke } from './host'
 import { getChatKitMessagePresentation, getChatKitTheme } from './theme'
 import type { Bot, ConnectionConfig } from './types'
+import { AssistantAppearanceDialog } from './avatar/AssistantAppearanceDialog'
 
 // A thin React lifecycle adapter; ChatKit owns every conversation interaction.
 export function ChatPanel({
@@ -19,13 +20,15 @@ export function ChatPanel({
   config,
   dark,
   initialThread,
-  onConversationRead
+  onConversationRead,
+  onAppearanceSaved
 }: {
   bot: Bot
   config: ConnectionConfig
   dark: boolean
   initialThread: string | null
   onConversationRead: (botId: string, threadId: string | null) => void
+  onAppearanceSaved: () => Promise<void>
 }) {
   const container = useRef<HTMLDivElement>(null)
   const instance = useRef<XpertAIChatKit | null>(null)
@@ -34,10 +37,17 @@ export function ChatPanel({
   const [frameReady, setFrameReady] = useState(false)
   const [error, setError] = useState('')
   const [retry, setRetry] = useState(0)
+  const [customizeId, setCustomizeId] = useState<string | null>(null)
   const delivery = useDeliveredFile()
   const deliveryRef = useRef(delivery.open)
   deliveryRef.current = delivery.open
-  const shell = useShellIntegration()
+  const shell = useShellIntegration(`${config.apiUrl}:${bot.id}`)
+  const openLocalComputer = useRef(shell.openComputer)
+  openLocalComputer.current = shell.openComputer
+  // View APIs and navigation use the public key, including the provider namespace.
+  const computers = { cloud: { viewKey: 'ProComputer__pro-computer' }, local: shell.computer }
+  const computerState = JSON.stringify(computers)
+  const previousComputerState = useRef(computerState)
   const [shellAssistantId, setShellAssistantId] = useState(bot.assistantId || bot.id)
   const [threadId, setThreadId] = useState<string | null>(initialThread)
   const connection = useWorkspaceConnection(config.webUrl, shellAssistantId)
@@ -53,7 +63,12 @@ export function ChatPanel({
     setShellAssistantId(bot.assistantId || bot.id)
     setFrameReady(false)
     setError('')
-    const header = { enabled: true, windowDrag: !!window.xpertDesktop, title: { text: bot.name } }
+    const header = {
+      enabled: true,
+      windowDrag: !!window.xpertDesktop,
+      title: { text: bot.name },
+      character: { enabled: true, customizable: true, computers }
+    }
     const workbench = {
       enabled: true,
       viewRail: { enabled: true },
@@ -123,7 +138,27 @@ export function ChatPanel({
       }
     })
     element.addEventListener('chatkit.effect', (event) => {
-      if (!disposed) deliveryRef.current(event.detail)
+      if (disposed) return
+      const { name, data } = event.detail
+      if (
+        name === 'assistant.customize' &&
+        data &&
+        typeof data === 'object' &&
+        'assistantId' in data &&
+        data.assistantId === activeAssistant
+      )
+        setCustomizeId(activeAssistant)
+      else if (
+        name === 'assistant.computer.open' &&
+        data &&
+        typeof data === 'object' &&
+        'assistantId' in data &&
+        data.assistantId === activeAssistant &&
+        'kind' in data &&
+        data.kind === 'local'
+      )
+        openLocalComputer.current()
+      else deliveryRef.current(event.detail)
     })
     const read = () => {
       if (!disposed && activeAssistant === (bot.assistantId || bot.id)) onConversationRead(bot.id, activeThread)
@@ -158,20 +193,26 @@ export function ChatPanel({
         JSON.stringify(optionsRef.current.theme) === JSON.stringify(theme) &&
         JSON.stringify(optionsRef.current.messagePresentation) === JSON.stringify(messagePresentation) &&
         optionsRef.current.locale === config.locale &&
-        optionsRef.current.header?.title?.text === bot.name
+        optionsRef.current.header?.title?.text === bot.name &&
+        previousComputerState.current === computerState
       )
         return
+      previousComputerState.current = computerState
       const options = {
         ...optionsRef.current,
         theme,
         messagePresentation,
         locale: config.locale,
-        header: { ...optionsRef.current.header, title: { text: bot.name } }
+        header: {
+          ...optionsRef.current.header,
+          title: { text: bot.name },
+          character: { enabled: true, customizable: true, computers }
+        }
       }
       optionsRef.current = options
       instance.current.setOptions(options)
     }
-  }, [dark, frameReady, config.appearance, config.locale, bot.name])
+  }, [dark, frameReady, config.appearance, config.locale, bot.name, computerState])
 
   return (
     <section
@@ -181,6 +222,16 @@ export function ChatPanel({
       {connection.status}
       {delivery.dialog}
       {shell.dialog}
+      {customizeId && (
+        <AssistantAppearanceDialog
+          botId={customizeId}
+          onClose={() => setCustomizeId(null)}
+          onSaved={async () => {
+            await onAppearanceSaved()
+            if (optionsRef.current) instance.current?.setOptions(optionsRef.current)
+          }}
+        />
+      )}
       {error && (
         <div
           role="alert"
