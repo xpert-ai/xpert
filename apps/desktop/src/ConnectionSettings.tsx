@@ -9,6 +9,7 @@ import { ChatKitAppearance } from './ChatKitAppearance'
 import { ConnectionFields } from './ConnectionFields'
 import { ShellSettings } from './shell/ShellSettings'
 import { GeneralSettings } from './settings/GeneralSettings'
+import { ThemeModeChoice } from './settings/ThemeModeChoice'
 import { SettingsSidebar } from './settings/SettingsSidebar'
 import { settingsItems, type SettingsSection } from './settings/sections'
 const UsageSettings = lazy(() =>
@@ -164,6 +165,11 @@ export function ConnectionSettings({
               )}
               {section === 'appearance' && (
                 <div className="space-y-10">
+                  <ThemeModeChoice
+                    value={draft.theme}
+                    appearance={draft.appearance}
+                    onChange={(theme) => updateDraft({ ...draft, theme })}
+                  />
                   <fieldset className="min-w-0">
                     <legend className="mb-6 text-lg font-semibold">{t('Desktop')}</legend>
                     <AppearanceSettings

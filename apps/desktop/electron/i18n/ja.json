@@ -7,6 +7,8 @@
   "The service returned an invalid image preview.": "サービスから無効な画像プレビューが返されました。",
   "Connection & appearance": "接続と外観",
   "Appearance": "外観",
+  "Visual style": "ビジュアルスタイル",
+  "Mode": "モード",
   "Connection": "接続",
   "Customize your desktop and chat. Preview changes live, then save to apply.": "デスクトップとチャットをカスタマイズします。変更をプレビューし、保存して適用します。",
   "Connection and appearance settings": "接続と外観の設定",

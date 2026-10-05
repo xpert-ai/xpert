@@ -19,7 +19,7 @@ export const settingsGroups: { label: string; items: SettingsItem[] }[] = [
         label: 'General',
         icon: Settings2,
         description: 'Set your language and everyday display preferences.',
-        keywords: ['Language', 'Appearance mode', 'Desktop font size', 'Assistant list density']
+        keywords: ['Language', 'Desktop font size', 'Assistant list density']
       },
       {
         id: 'appearance',
@@ -27,6 +27,11 @@ export const settingsGroups: { label: string; items: SettingsItem[] }[] = [
         icon: Palette,
         description: 'Customize desktop and chat appearance in one place.',
         keywords: [
+          'Visual style',
+          'Appearance mode',
+          'Follow system',
+          'Light',
+          'Dark',
           'Desktop appearance',
           'Chat appearance',
           'Desktop font',

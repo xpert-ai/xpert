@@ -93,18 +93,6 @@ export function GeneralSettings({
           {t('Everyday display')}
         </h2>
         <div className="overflow-hidden rounded-xl border">
-          <SettingsRow title={t('Appearance mode')} description={t('Follow your system between light and dark mode.')}>
-            <SettingsChoice
-              label={t('Appearance mode')}
-              value={draft.theme}
-              options={[
-                { value: 'light', label: t('Light') },
-                { value: 'dark', label: t('Dark') },
-                { value: 'system', label: t('Follow system') }
-              ]}
-              onChange={(theme) => onChange({ ...draft, theme })}
-            />
-          </SettingsRow>
           <SettingsRow title={t('Desktop font size')} description={t('Adjust the size of desktop text.')}>
             <div className="w-48">
               <ThemeSelect
