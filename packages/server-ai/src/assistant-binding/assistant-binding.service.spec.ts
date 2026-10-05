@@ -69,8 +69,25 @@ jest.mock('../xpert/xpert.entity', () => ({
 import { AssistantBindingScope, AssistantBindingSourceScope, AssistantCode, RolesEnum } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { AssistantBindingService } from './assistant-binding.service'
+import { AssistantBinding } from './assistant-binding.entity'
+import { instanceToPlain } from 'class-transformer'
 
 describe('AssistantBindingService', () => {
+    it('omits the internal bootstrap checkpoint when serializing a binding response', () => {
+        const binding = new AssistantBinding()
+        binding.assistantId = 'assistant'
+        binding.desktopBootstrap = {
+            version: 1,
+            phase: 'welcome_pending',
+            capabilities: [],
+            modelId: 'provider/model',
+            draftId: 'draft',
+            threadId: 'thread',
+            welcomeMessageId: 'welcome-message'
+        }
+        expect(instanceToPlain(binding)).toEqual({ assistantId: 'assistant' })
+        expect(binding.desktopBootstrap.draftId).toBe('draft')
+    })
     let repository: {
         find: jest.Mock
         findOne: jest.Mock
