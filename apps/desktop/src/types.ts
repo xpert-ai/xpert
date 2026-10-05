@@ -237,6 +237,7 @@ declare global {
     xpertDesktop?: {
       updates?: import('./update-types').UpdateBridge
       onAvatarPointer?: (listener: (point: { x: number; y: number } | null) => void) => () => void
+      onWindowActivated?: (listener: () => void) => () => void
       invoke: <K extends keyof HostMethods>(
         method: K,
         argument?: HostMethods[K]['input']

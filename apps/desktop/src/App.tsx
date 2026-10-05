@@ -14,6 +14,7 @@ import { applyDesktopTheme } from './theme'
 import { defaultAppearance } from './appearance-types'
 import { AssistantPreviewScope } from './profile/PreviewScope'
 import type { SettingsSection } from './settings/sections'
+import { subscribeAppActivation } from './app-activation'
 
 export function App() {
   const [state, setState] = useState<AppState | null>(null)
@@ -55,7 +56,8 @@ export function App() {
   const theme = preview?.theme ?? state?.config.theme
   const appearance = preview?.appearance ?? state?.config.appearance
   const request = useRef(0)
-  const binding = `${state?.profile?.user.id || ''}:${state?.profile?.organizationId || ''}`
+  const loadingBots = useRef<number | null>(null)
+  const binding = `${state?.config.apiUrl || ''}:${state?.profile?.user.tenantId || ''}:${state?.profile?.user.id || ''}:${state?.profile?.organizationId || ''}`
 
   const initialize = useCallback(async () => {
     setFatal('')
@@ -81,23 +83,31 @@ export function App() {
     return () => media.removeEventListener('change', update)
   }, [theme, appearance])
 
-  const loadBots = useCallback(async () => {
+  const loadBots = useCallback(async ({ background = false }: { background?: boolean } = {}) => {
+    if (background && loadingBots.current === request.current) return
     const current = ++request.current
-    setPending(true)
-    setError('')
+    loadingBots.current = current
+    if (!background) {
+      setPending(true)
+      setError('')
+    }
     try {
       const items = await invoke('listBots')
       if (current !== request.current) return
       setBots(items)
+      setError('')
       setSelected((id) => (items.some((item) => item.id === id) ? id : items[0]?.id || null))
     } catch (error) {
       if (current !== request.current) return
-      setError(error instanceof Error ? error.message : t('Could not load Bots.'))
+      if (!background) setError(error instanceof Error ? error.message : t('Could not load Bots.'))
       if (error instanceof HostError && error.status === 401) {
         setState(await invoke('logout'))
       }
     } finally {
-      if (current === request.current) setPending(false)
+      if (loadingBots.current === current) loadingBots.current = null
+      if (current === request.current) {
+        setPending(false)
+      }
     }
   }, [])
   useEffect(() => {
@@ -112,7 +122,7 @@ export function App() {
     return () => {
       request.current++
     }
-    // Binding deliberately scopes Bot selection to a user and organization.
+    // Binding scopes Bot selection to its server, tenant, user and organization.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [binding, loadBots])
   useEffect(() => {
@@ -122,6 +132,16 @@ export function App() {
     // Refresh localized metadata without clearing the selected Bot or its conversation.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state?.config.locale])
+  useEffect(() => {
+    if (!state?.profile?.organizationId) return
+    let refreshedAt = 0
+    const refresh = () => {
+      if (document.visibilityState !== 'visible' || Date.now() - refreshedAt < 1000) return
+      refreshedAt = Date.now()
+      void loadBots({ background: true })
+    }
+    return subscribeAppActivation(refresh)
+  }, [binding, state?.profile?.organizationId, loadBots])
 
   if (!state)
     return (

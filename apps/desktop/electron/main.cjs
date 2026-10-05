@@ -12,6 +12,7 @@ const { DesktopShellController } = require('./shell/controller.cjs')
 const { translate } = require('./i18n/index.mjs')
 const { platformCommandUrl } = require('./workbench-platform.mjs')
 const { installAvatarPointer } = require('./avatar-pointer.cjs')
+const { installWindowActivation } = require('./window-activation.cjs')
 const { DesktopUpdater, registerUpdateIpc } = require('./updates/controller.cjs')
 const { findRelease } = require('./updates/release.cjs')
 
@@ -101,6 +102,7 @@ function createWindow(bounds = {}) {
     if (window === createdWindow) window = undefined
   })
   installAvatarPointer(window, { ipcMain, screen, isTrusted: trusted })
+  installWindowActivation(window)
   window.webContents.setWindowOpenHandler(({ url }) => {
     openExternal(url)
     return { action: 'deny' }
