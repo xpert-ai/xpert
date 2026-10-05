@@ -20,6 +20,7 @@ import { invoke } from '../host'
 import { TemplateRequirements } from '../catalog/TemplateRequirements'
 import type { Bot } from '../types'
 import type { AssistantSettings } from './types'
+import { AssistantAppearanceDialog } from '../avatar/AssistantAppearanceDialog'
 
 export function AssistantSettingsDialog({
   bot,
@@ -30,7 +31,6 @@ export function AssistantSettingsDialog({
   onClose: () => void
   onSaved: (id: string) => Promise<void>
 }) {
-  const [name, setName] = useState(bot.name)
   const [description, setDescription] = useState(bot.description)
   const [settings, setSettings] = useState<AssistantSettings | null>(null)
   const [capabilities, setCapabilities] = useState<string[] | undefined>()
@@ -41,6 +41,7 @@ export function AssistantSettingsDialog({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [reload, setReload] = useState(0)
+  const [customizing, setCustomizing] = useState(false)
   const initialRevision = useRef<string | null>(null)
   useEffect(() => {
     let active = true
@@ -74,8 +75,18 @@ export function AssistantSettingsDialog({
     }
   }, [bot.id, capabilities, reload])
   const disabled = saving || loading
-  const canSave =
-    !!name.trim() && !disabled && (!dirty || (settings?.canEdit && settings.preflight.canInstall && !!model && !error))
+  const canSave = !disabled && (!dirty || (settings?.canEdit && settings.preflight.canInstall && !!model && !error))
+  if (customizing)
+    return (
+      <AssistantAppearanceDialog
+        botId={bot.id}
+        onClose={() => setCustomizing(false)}
+        onSaved={async () => {
+          await onSaved(bot.id)
+          onClose()
+        }}
+      />
+    )
   return (
     <Dialog
       open
@@ -116,7 +127,7 @@ export function AssistantSettingsDialog({
                 })
                 setDirty(false)
               }
-              await invoke('editBot', { botId: bot.id, name, description })
+              await invoke('editBot', { botId: bot.id, description })
               await onSaved(bot.id)
               onClose()
             } catch (error) {
@@ -138,19 +149,15 @@ export function AssistantSettingsDialog({
             </TabsList>
             <div className="min-h-0 overflow-y-auto px-6 pb-5">
               <TabsContent value="profile" className="space-y-4">
+                <Button type="button" variant="outline" disabled={saving} onClick={() => setCustomizing(true)}>
+                  {t('Customize your assistant')}
+                </Button>
                 <p className="text-sm text-muted-foreground">
                   {t('Changes only affect this assistant in your desktop list.')}
                 </p>
                 <div className="space-y-2">
                   <Label htmlFor="edit-assistant-name">{t('Name')}</Label>
-                  <Input
-                    id="edit-assistant-name"
-                    value={name}
-                    onChange={(event) => setName(event.target.value)}
-                    maxLength={200}
-                    required
-                    disabled={saving}
-                  />
+                  <Input id="edit-assistant-name" value={bot.name} maxLength={200} required disabled />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit-assistant-description">{t('Description')}</Label>
