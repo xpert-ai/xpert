@@ -89,6 +89,7 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
             command.basic?.copilotModel,
             sandboxProviders
         )
+        await this.capabilities.configureRealtimeVoice(draft, command.basic?.realtimeVoice)
         if (command.basic?.prompt !== undefined) updateAssistantPrompt(draft, command.basic.prompt)
         const importOptions: XpertImportCommandOptions = {
             normalizeCopilotModels: !hasExplicitLlmCopilotModel(command.basic?.copilotModel),

@@ -119,3 +119,4 @@ export * from './assistant-configuration.model'
 export * from './assistant-trigger.model'
 
 export * from './model-execution.model'
+export * from './realtime-voice.model'

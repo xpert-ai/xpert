@@ -28,6 +28,89 @@ describe('ChatConversationThreadService', () => {
         )
     }
 
+    it('includes call receipts in display history without adding them to model ancestry', async () => {
+        const call = { id: 'call-1', createdAt: new Date('2026-10-05T01:01:17Z') }
+        const query = {
+            select: jest.fn().mockReturnThis(),
+            where: jest.fn().mockReturnThis(),
+            andWhere: jest.fn().mockReturnThis(),
+            orderBy: jest.fn().mockReturnThis(),
+            addOrderBy: jest.fn().mockReturnThis(),
+            getMany: jest.fn().mockResolvedValue([call])
+        }
+        const service = createService({
+            messageRepository: {
+                createQueryBuilder: jest.fn().mockReturnValue(query),
+                find: jest.fn().mockResolvedValue([call])
+            }
+        })
+        jest.spyOn(service, 'requireByThreadId').mockResolvedValue({
+            threadId: 'thread-1',
+            conversationId: 'conversation-1',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            headMessageId: null
+        } as ChatConversationThread)
+        expect(await service.findVisibleMessages('thread-1')).toEqual({ items: [], total: 0 })
+        expect(query.getMany).not.toHaveBeenCalled()
+        expect(await service.findVisibleMessages('thread-1', { includeCallEvents: true })).toEqual({
+            items: [call],
+            total: 1
+        })
+        expect(query.where).toHaveBeenCalledWith(
+            expect.stringContaining('createdInThreadId'),
+            expect.objectContaining({ conversationId: 'conversation-1', threadId: 'thread-1' })
+        )
+        expect(query.andWhere).toHaveBeenCalledWith(
+            expect.stringContaining('tenantId'),
+            expect.objectContaining({ tenantId: 'tenant-1', organizationId: 'org-1' })
+        )
+    })
+
+    it.each([
+        { messageEnvelope: { version: 1, source: { type: 'voice', sessionId: 'session' }, presentation: 'runtime' } },
+        {
+            messageEnvelope: {
+                version: 1,
+                source: { type: 'agent', xpertId: 'sender', agentKey: 'worker' },
+                presentation: 'runtime'
+            }
+        }
+    ])('hides runtime inputs before pagination but retains them for retry: %j', async (envelopeFields) => {
+        const internal = Object.assign(new ChatMessage(), {
+            id: 'internal',
+            role: 'human',
+            content: 'Internal delegation envelope',
+            ...envelopeFields
+        })
+        const answer = Object.assign(new ChatMessage(), { id: 'answer', role: 'ai', parentId: internal.id })
+        const find = jest.fn().mockResolvedValue([answer])
+        const service = createService({
+            messageRepository: {
+                findOne: jest.fn().mockResolvedValue(answer),
+                find,
+                manager: {
+                    getTreeRepository: () => ({ findAncestors: async () => [internal, answer] })
+                } as unknown as Repository<ChatMessage>['manager']
+            }
+        })
+        jest.spyOn(service, 'requireByThreadId').mockResolvedValue(
+            Object.assign(new ChatConversationThread(), {
+                threadId: 'thread',
+                conversationId: 'conversation',
+                headMessageId: answer.id
+            })
+        )
+        expect(await service.findVisibleMessages('thread', { take: 1 })).toEqual({ items: [answer], total: 1 })
+        expect(find.mock.calls[0][0].where.id).toEqual(expect.objectContaining({ _value: ['answer'] }))
+        find.mockResolvedValue([internal, answer])
+        await service.hydrateConversationMessages(
+            Object.assign(new ChatConversation(), { id: 'conversation' }),
+            'thread'
+        )
+        expect(find.mock.calls[2][0].where.id).toEqual(expect.objectContaining({ _value: ['internal', 'answer'] }))
+    })
+
     it('creates a primary thread at the latest legacy message and attaches its conversation', async () => {
         const conversation = {
             id: 'conversation-1',

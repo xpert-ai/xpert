@@ -1,3 +1,4 @@
+import { RealtimeVoiceSession, RealtimeVoiceTask, RealtimeVoiceTurn } from '../../realtime-voice/voice.entity'
 import { ModelExecutionReconciliation } from '../../model-execution/execution-reconciliation.entity'
 import { AgentInvocationWaitEntity } from '../../agent-invocation/invocation.entity'
 import { ModelExecutionGrant, CliSession } from '../../model-execution/execution.entity'
@@ -129,6 +130,9 @@ import {
 } from './internal'
 
 export const ALL_AI_ENTITIES = [
+    RealtimeVoiceSession,
+    RealtimeVoiceTask,
+    RealtimeVoiceTurn,
     ModelExecutionReconciliation,
     AgentInvocationWaitEntity,
     DesktopShellDevice,

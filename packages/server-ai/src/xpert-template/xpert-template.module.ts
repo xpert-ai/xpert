@@ -14,6 +14,7 @@ import { XpertTemplateController } from './xpert-template.controller'
 import { XpertTemplate } from './xpert-template.entity'
 import { AssistantCapabilityProviderRegistry } from '@xpert-ai/plugin-sdk'
 import { AssistantCapabilityService } from './capabilities/assistant-capability.service'
+import { RealtimeModelCatalog, RealtimeVoiceCapabilityProvider } from './capabilities/realtime-voice.capability'
 import { DesktopShellCapabilityProvider } from './capabilities/builtin-capabilities'
 import { CommandHandlers } from './commands/handlers'
 
@@ -36,7 +37,9 @@ import { CommandHandlers } from './commands/handlers'
         TemplateSkillSyncService,
         AssistantCapabilityService,
         AssistantCapabilityProviderRegistry,
-        DesktopShellCapabilityProvider
+        DesktopShellCapabilityProvider,
+        RealtimeModelCatalog,
+        RealtimeVoiceCapabilityProvider
     ],
     exports: [
         XpertTemplateService,

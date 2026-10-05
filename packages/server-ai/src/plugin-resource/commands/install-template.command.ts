@@ -9,6 +9,7 @@ import {
 } from '@xpert-ai/contracts'
 
 export type PluginTemplateInstallBasic = {
+    realtimeVoice?: import('@xpert-ai/contracts').RealtimeVoiceSelection
     prompt?: string
     name?: string
     title?: string

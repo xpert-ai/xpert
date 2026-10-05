@@ -14,10 +14,12 @@ export interface AssistantCapabilityState {
     after?: Pick<IXpertAgent['options'], 'middlewares' | 'parallelToolCalls'>
   }
   sandbox?: { before?: TXpertFeatures['sandbox']; after?: TXpertFeatures['sandbox'] }
+  realtimeVoice?: { before?: TXpertFeatures['realtimeVoice']; after?: TXpertFeatures['realtimeVoice'] }
   instructions: string
 }
 
 export interface AssistantConfiguration {
+  realtimeVoice?: import('./realtime-voice.model').RealtimeVoiceSelection
   revision: string
   workspace: { id: string; name: string }
   prompt: string
@@ -27,6 +29,7 @@ export interface AssistantConfiguration {
 }
 
 export interface AssistantConfigurationInput {
+  realtimeVoice?: import('./realtime-voice.model').RealtimeVoiceSelection
   revision: string
   prompt: string
   modelId: string
@@ -35,6 +38,7 @@ export interface AssistantConfigurationInput {
 
 /** Capability authoring in an existing Assistant draft; publication remains an explicit action. */
 export interface AssistantCapabilityConfiguration {
+  realtimeVoice?: import('./realtime-voice.model').RealtimeVoiceSelection
   revision: string
   selected: string[]
   options: {
@@ -52,6 +56,7 @@ export interface AssistantCapabilityConfiguration {
 }
 
 export interface AssistantCapabilityDraftInput {
+  realtimeVoice?: import('./realtime-voice.model').RealtimeVoiceSelection
   revision: string
   capabilities: string[]
   /** Applied after removing managed contributions; empty selects the platform default. */

@@ -1,3 +1,4 @@
+import { visibleFollowUpReferences } from '../../../shared/agent/persisted-follow-up'
 import { bindFileActivityEvent } from '../../../chat-message/file-activity-event'
 import { bindResourceCardEvent } from '../../../chat-message/resource-card-event'
 import { ProjectResourceCardService } from '../../../xpert-project/services/project-resource-card.service'
@@ -62,6 +63,8 @@ import { ThreadRunControlService, threadControlConflict } from '../../../chat-co
 import { ChatConversationThreadService } from '../../../chat-conversation/conversation-thread.service'
 import { MessageCheckpointService } from '../../../chat-conversation/message-checkpoint.service'
 import { publicChatMessage } from '../../../chat-message/message-branching'
+import { isRuntimeChatMessage } from '@xpert-ai/contracts'
+import { parseChatMessageEnvelope, readChatMessageEnvelope } from '../../../chat-message/message-envelope.schema'
 import { GetChatConversationQuery } from '../../../chat-conversation/queries/conversation-get.query'
 import { appendMessageSteps, sanitizeMessageContentForPersistence } from '../../../chat-message'
 import { ChatMessageUpsertCommand } from '../../../chat-message/commands/upsert.command'
@@ -228,6 +231,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         const hydratedFollowUpRequest =
             request.action === 'follow_up' ? (hydratedRequest as Extract<TChatRequest, { action: 'follow_up' }>) : null
         const { options } = c
+        const messageEnvelope = parseChatMessageEnvelope(options ?? {})
+        let runtimeInput = messageEnvelope?.presentation === 'runtime'
         const { xpertId, taskId, from, fromEndUserId } = options ?? {}
         const conversationSourceAudit = buildChatConversationSourceAudit(options)
         const metricStart = Date.now()
@@ -413,6 +418,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     followUpStatus: 'pending',
                     targetExecutionId,
                     visibleAt: null,
+                    ...(messageEnvelope ? { messageEnvelope } : {}),
                     thirdPartyMessage: {
                         followUpInput,
                         ...(request.mode === 'queue' && followUpInput.model ? { model: followUpInput.model } : {}),
@@ -821,13 +827,15 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     consumedMessages[consumedMessages.length - 1] ??
                     conversation.messages.find((message) => message.id === persistedPendingFollowUpGroup.matched.id)
 
-                queueFollowUpConsumedEvent = createFollowUpConsumedEvent({
-                    mode: 'queue',
-                    messageIds: persistedPendingFollowUpGroup.messageIds,
-                    clientMessageIds: persistedPendingFollowUpGroup.clientMessageIds,
-                    executionId: persistedPendingFollowUpGroup.targetExecutionId,
-                    visibleAt: visibleAt.toISOString()
-                })
+                const visibleFollowUps = visibleFollowUpReferences(consumedMessages)
+                queueFollowUpConsumedEvent = visibleFollowUps.messageIds.length
+                    ? createFollowUpConsumedEvent({
+                          mode: 'queue',
+                          ...visibleFollowUps,
+                          executionId: persistedPendingFollowUpGroup.targetExecutionId,
+                          visibleAt: visibleAt.toISOString()
+                      })
+                    : null
             }
 
             // Resolve once at the root execution boundary. The audited snapshot is
@@ -935,6 +943,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                               }
                             : null
                     const _humanMessage: Partial<IChatMessage> = {
+                        ...(messageEnvelope ? { messageEnvelope } : {}),
                         parent: conversation.messages[conversation.messages.length - 1],
                         role: 'human',
                         content: visibleInput,
@@ -973,6 +982,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 }
             }
 
+            if (userMessage) runtimeInput = isRuntimeChatMessage(userMessage)
             if (request.action === 'send' && userMessage) {
                 inputMessageId = userMessage.id
                 submittedUserMessage = userMessage
@@ -1055,7 +1065,11 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             state = { ...state, [STATE_VARIABLE_HUMAN]: input }
         }
         if (this.projectResourceCards) aiMessage = await this.projectResourceCards.attach(conversation, aiMessage)
-        const visibleConversationTitleInput = isGoalRun ? goalRunVisibleInput : titleInput || input?.input
+        const visibleConversationTitleInput = runtimeInput
+            ? undefined
+            : isGoalRun
+              ? goalRunVisibleInput
+              : titleInput || input?.input
         const logger = this.logger
 
         // Regeneration reuses the message ID, so its previous successful boundary is no longer valid.
@@ -1094,10 +1108,13 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                         status: conversation.status,
                         createdAt: conversation.createdAt,
                         updatedAt: conversation.updatedAt,
-                        ...(submittedUserMessage && request.action === 'send'
+                        ...(submittedUserMessage &&
+                        !isRuntimeChatMessage(submittedUserMessage) &&
+                        request.action === 'send'
                             ? {
                                   userMessage: {
                                       id: submittedUserMessage.id,
+                                      messageEnvelope: readChatMessageEnvelope(submittedUserMessage),
                                       clientMessageId: request.message.clientMessageId,
                                       createdAt: submittedUserMessage.createdAt,
                                       updatedAt: submittedUserMessage.updatedAt

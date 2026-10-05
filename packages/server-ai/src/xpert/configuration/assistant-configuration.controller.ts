@@ -8,6 +8,7 @@ import { BadRequestException, Body, Controller, Get, Param, Post, Query } from '
 import { I18nLang } from 'nestjs-i18n'
 import { t } from 'i18next'
 import { parseTemplateCapabilities } from '../../xpert-template/capabilities/template-capability-reference'
+import { parseRealtimeVoiceSelection } from '../../xpert-template/capabilities/realtime-voice.schema'
 import { AssistantConfigurationService } from './assistant-configuration.service'
 
 @Controller()
@@ -66,6 +67,7 @@ export function parseCapabilityDraftInput(value: unknown): AssistantCapabilityDr
     if (sandboxProvider !== undefined && (typeof sandboxProvider !== 'string' || sandboxProvider.length > 200))
         throw new BadRequestException(t('server-ai:Error.AssistantConfigurationInvalid'))
     return {
+        realtimeVoice: parseRealtimeVoiceSelection('realtimeVoice' in value ? value.realtimeVoice : undefined),
         revision: value.revision,
         capabilities: parseTemplateCapabilities(value.capabilities),
         ...(typeof sandboxProvider === 'string' ? { sandboxProvider } : {})
@@ -91,6 +93,7 @@ export function parseAssistantConfiguration(value: unknown): AssistantConfigurat
     )
         throw new BadRequestException(t('server-ai:Error.AssistantConfigurationInvalid'))
     return {
+        realtimeVoice: parseRealtimeVoiceSelection('realtimeVoice' in value ? value.realtimeVoice : undefined),
         revision: value.revision,
         prompt: value.prompt,
         modelId: value.modelId,

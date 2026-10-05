@@ -1,3 +1,4 @@
+import { readChatMessageEnvelope } from '../../chat-message/message-envelope.schema'
 import {
     IChatConversation,
     IChatMessage,
@@ -95,6 +96,9 @@ export class ConversationDTO {
 @Exclude()
 export class ChatMessageDTO {
     @Expose()
+    messageEnvelope?: IChatMessage['messageEnvelope']
+
+    @Expose()
     branching?: IChatMessage['branching']
 
     @Expose()
@@ -169,6 +173,7 @@ export class ChatMessageDTO {
 
     constructor(partial: Partial<IChatMessage>) {
         Object.assign(this, partial)
+        this.messageEnvelope = readChatMessageEnvelope(partial)
         this.branching = messageBranching(partial)
         if (partial.historicalAgentRuns) {
             this.agentRuns = partial.historicalAgentRuns

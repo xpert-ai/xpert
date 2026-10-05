@@ -1,5 +1,6 @@
 import {
     AiModelTypeEnum,
+    RealtimeVoiceSelection,
     AssistantCapabilityConfiguration,
     LanguagesEnum,
     ModelFeature,
@@ -12,7 +13,8 @@ import {
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { AssistantCapabilityProviderRegistry, IAssistantCapabilityProvider } from '@xpert-ai/plugin-sdk'
-import { RequestContext } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { RealtimeModelCatalog } from './realtime-voice.capability'
 import { t } from 'i18next'
 import { stringify } from 'yaml'
 import { CopilotWithProviderDto } from '../../copilot/dto'
@@ -31,11 +33,16 @@ import { templateModelOption } from './template-model-option'
 export class AssistantCapabilityService {
     constructor(
         private readonly registry: AssistantCapabilityProviderRegistry,
-        private readonly queries: QueryBus
+        private readonly queries: QueryBus,
+        private readonly realtimeCatalog: RealtimeModelCatalog
     ) {}
 
     blankTemplate(): TXpertTemplate {
         return blankAssistantTemplate(this.registry.list().filter((provider) => provider.availableForBlankAssistant))
+    }
+
+    realtimeModels() {
+        return this.realtimeCatalog.list()
     }
 
     configurationTemplate(draft: TXpertTeamDraft): TXpertTemplate {
@@ -106,6 +113,8 @@ export class AssistantCapabilityService {
                         t('server-ai:Error.TemplateCapabilityUnavailable', { capability: provider.key })
                 }
         }
+        if (active.some((provider) => provider.key === 'realtime-voice'))
+            result.realtimeModels = await this.realtimeCatalog.list()
         if (!result.requiresModel) return result
         const copilots = await this.queries.execute<FindCopilotModelsQuery, CopilotWithProviderDto[]>(
             new FindCopilotModelsQuery(AiModelTypeEnum.LLM)
@@ -149,6 +158,19 @@ export class AssistantCapabilityService {
         draft.team.copilotModel = choice.copilotModel
         const primary = draft.nodes.find((node) => node.type === 'agent' && node.key === draft.team.agent?.key)
         if (primary?.type === 'agent') primary.entity.copilotModel = null
+    }
+
+    async configureRealtimeVoice(draft: TXpertTeamDraft, selection?: RealtimeVoiceSelection) {
+        if (!draft.team.features?.realtimeVoice?.enabled) {
+            if (selection) throw new BadRequestException(t('server-ai:Error.RealtimeConfigurationInvalid'))
+            return
+        }
+        const model = (await this.realtimeCatalog.list()).find((entry) => entry.id === selection?.modelId)
+        if (!model || !model.voices.some((voice) => voice.id === selection?.voice))
+            throw new BadRequestException(t('server-ai:Error.RealtimeConfigurationInvalid'))
+        draft.team.features.realtimeVoice = { enabled: true, copilotModel: model.copilotModel, voice: selection.voice }
+        const state = draft.team.options?.assistantCapabilities
+        if (state?.realtimeVoice) state.realtimeVoice.after = structuredClone(draft.team.features.realtimeVoice)
     }
 
     async compose(

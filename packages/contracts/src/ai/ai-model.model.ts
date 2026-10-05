@@ -85,6 +85,7 @@ export interface ProviderHelpInfo {
 }
 
 export interface ProviderModel {
+  realtime?: import('./realtime-voice.model').RealtimeModelMetadata
   /** Explicit provider-native protocols; absence never implies protocol compatibility. */
   native_protocols?: Array<'openai_responses' | 'anthropic_messages'>
 

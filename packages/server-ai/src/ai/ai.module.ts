@@ -1,4 +1,12 @@
 import { ConversationArtifactsController } from './conversation-artifacts.controller'
+import { VoiceController, VoiceCapabilityController } from './voice.controller'
+import { VoiceSessionService } from '../realtime-voice/voice-session.service'
+import { VoiceTaskService } from '../realtime-voice/voice-task.service'
+import { VoiceTaskProcessor } from '../realtime-voice/voice-task.processor'
+import { VoiceGateway } from '../realtime-voice/voice.gateway'
+import { RealtimeVoiceSession, RealtimeVoiceTask, RealtimeVoiceTurn } from '../realtime-voice/voice.entity'
+import { ChatMessage } from '../chat-message/chat-message.entity'
+import { XpertAgentExecution } from '../xpert-agent-execution/agent-execution.entity'
 import { AssistantWorkspaceFilesController } from './assistant-workspace-files.controller'
 import { WorkspaceFileAccessRuntimeController } from './workspace-file-access-runtime.controller'
 import { AssistantFileAccessGuard } from './assistant-file-access.guard'
@@ -68,7 +76,15 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
         ]),
         WorkspaceFileAccessModule,
         TenantModule,
-        TypeOrmModule.forFeature([ChatConversation, ChatConversationThread]),
+        TypeOrmModule.forFeature([
+            ChatConversation,
+            ChatConversationThread,
+            ChatMessage,
+            XpertAgentExecution,
+            RealtimeVoiceSession,
+            RealtimeVoiceTask,
+            RealtimeVoiceTurn
+        ]),
         SandboxModule,
         SuperAdminOrganizationScopeModule,
         CopilotCheckpointModule,
@@ -99,6 +115,8 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
     ],
     controllers: [
         ConversationArtifactsController,
+        VoiceController,
+        VoiceCapabilityController,
         AssistantWorkspaceFilesController,
         WorkspaceFileAccessRuntimeController,
         WorkbenchFilesController,
@@ -117,6 +135,10 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
         StoreController
     ],
     providers: [
+        VoiceSessionService,
+        VoiceTaskService,
+        VoiceTaskProcessor,
+        VoiceGateway,
         AssistantFileAccessGuard,
         WorkbenchFilesAuthGuard,
         AssistantThreadScopeGuard,

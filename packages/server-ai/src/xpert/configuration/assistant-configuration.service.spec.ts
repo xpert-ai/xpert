@@ -1,5 +1,10 @@
+import {
+    RealtimeModelCatalog,
+    RealtimeVoiceCapabilityProvider
+} from '../../xpert-template/capabilities/realtime-voice.capability'
 jest.mock('i18next', () => ({ t: (key: string) => key }))
-jest.mock('@xpert-ai/server-core', () => ({
+jest.mock('@xpert-ai/plugin-sdk', () => ({
+    ...jest.requireActual('@xpert-ai/plugin-sdk'),
     RequestContext: {
         currentTenantId: () => 'tenant',
         getOrganizationId: () => 'org',
@@ -29,7 +34,9 @@ import {
 } from '../../xpert-template/capabilities/builtin-capabilities'
 import { SandboxService } from '../../sandbox/sandbox.service'
 
-function fixture(providers: IAssistantCapabilityProvider[] = []) {
+function fixture(
+    providers: IAssistantCapabilityProvider[] | ((catalog: RealtimeModelCatalog) => IAssistantCapabilityProvider[]) = []
+) {
     const draft = parseCapabilityTemplateDraft(blankAssistantTemplate([]).export_data)
     draft.team.workspaceId = 'workspace'
     draft.team.copilotModel = {
@@ -64,9 +71,12 @@ function fixture(providers: IAssistantCapabilityProvider[] = []) {
             { id: 'provider', providerWithModels: { models: [{ model: 'llm', features: [ModelFeature.TOOL_CALL] }] } }
         ])
     }
+    const catalog = new RealtimeModelCatalog(queries as unknown as QueryBus)
+    const registered = typeof providers === 'function' ? providers(catalog) : providers
     const capabilities = new AssistantCapabilityService(
-        { list: () => providers } as unknown as AssistantCapabilityProviderRegistry,
-        queries as unknown as QueryBus
+        { list: () => registered } as unknown as AssistantCapabilityProviderRegistry,
+        queries as unknown as QueryBus,
+        catalog
     )
     const service = new AssistantConfigurationService(
         xperts as unknown as XpertService,
@@ -74,7 +84,7 @@ function fixture(providers: IAssistantCapabilityProvider[] = []) {
         {} as XpertTemplateService,
         capabilities
     )
-    return { entity, xperts, access, queries, service }
+    return { entity, xperts, access, queries, service, catalog }
 }
 const language = LanguagesEnum.English
 const settings = { prompt: 'Answer concisely.', modelId: 'provider/llm', capabilities: [] }
@@ -153,6 +163,64 @@ describe('Assistant configuration authoring', () => {
 })
 
 describe('Dialog capability draft composition', () => {
+    it('offers realtime models before enabling calls and preserves voice when composing other capabilities', async () => {
+        const { service, entity, xperts, catalog } = fixture((catalog) => [
+            new RealtimeVoiceCapabilityProvider(catalog),
+            new DesktopShellCapabilityProvider()
+        ])
+        jest.spyOn(catalog, 'list').mockResolvedValue([
+            {
+                id: 'provider/omni',
+                label: 'Omni',
+                notification: 'text',
+                copilotModel: { copilotId: 'provider', model: 'omni', modelType: AiModelTypeEnum.REALTIME },
+                defaultVoice: 'voice-a',
+                voices: [
+                    { id: 'voice-a', label: 'A' },
+                    { id: 'voice-b', label: 'B' }
+                ]
+            }
+        ])
+        let setup = await service.getCapabilities('expert', language)
+        expect(setup.selected).toEqual([])
+        expect(setup.setup.realtimeModels[0].id).toBe('provider/omni')
+        expect(setup.realtimeVoice).toBeUndefined()
+        const realtimeVoice = { modelId: 'provider/omni', voice: 'voice-b' }
+        entity.draft = await service.previewCapabilities('expert', language, {
+            revision: setup.revision,
+            capabilities: ['realtime-voice'],
+            realtimeVoice
+        })
+        setup = await service.getCapabilities('expert', language)
+        expect(setup.realtimeVoice).toEqual(realtimeVoice)
+        expect(entity.draft.team.features.realtimeVoice).toMatchObject({
+            enabled: true,
+            voice: 'voice-b',
+            copilotModel: { model: 'omni', modelType: AiModelTypeEnum.REALTIME }
+        })
+        entity.draft = await service.previewCapabilities('expert', language, {
+            revision: setup.revision,
+            capabilities: ['realtime-voice', 'desktop-shell']
+        })
+        setup = await service.getCapabilities('expert', language)
+        expect(setup.realtimeVoice).toEqual(realtimeVoice)
+        await expect(
+            service.previewCapabilities('expert', language, {
+                revision: setup.revision,
+                capabilities: ['realtime-voice'],
+                realtimeVoice: { modelId: 'provider/omni', voice: 'unknown' }
+            })
+        ).rejects.toThrow()
+        const disabled = await service.previewCapabilities('expert', language, {
+            revision: setup.revision,
+            capabilities: ['desktop-shell']
+        })
+        expect(disabled.team.features?.realtimeVoice?.enabled).not.toBe(true)
+        expect(primaryAgent(disabled).entity.copilotModel ?? disabled.team.copilotModel).toMatchObject({ model: 'llm' })
+        expect(xperts.saveDraft).not.toHaveBeenCalled()
+        expect(xperts.publish).not.toHaveBeenCalled()
+    })
+
     it('composes provider changes with the capability overlay, then disables cleanly without persistence', async () => {
         const providers = [{ type: 'sandbox-a' }, { type: 'sandbox-b' }]
         const sandbox = { listProviders: async () => providers, getDefaultProviderType: async () => 'sandbox-a' }

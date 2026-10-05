@@ -1,3 +1,4 @@
+import { visibleFollowUpReferences } from '../../../shared/agent/persisted-follow-up'
 import { bindFileActivityEvent } from '../../../chat-message/file-activity-event'
 import { bindResourceCardEvent } from '../../../chat-message/resource-card-event'
 import { avatarForChat } from '../../../shared/avatar'
@@ -418,13 +419,15 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                         consumedMessages[consumedMessages.length - 1] ??
                         conversation.messages.find((message) => message.id === persistedPendingFollowUpGroup.matched.id)
 
-                    queueFollowUpConsumedEvent = createFollowUpConsumedEvent({
-                        mode: 'queue',
-                        messageIds: persistedPendingFollowUpGroup.messageIds,
-                        clientMessageIds: persistedPendingFollowUpGroup.clientMessageIds,
-                        executionId: persistedPendingFollowUpGroup.targetExecutionId,
-                        visibleAt: visibleAt.toISOString()
-                    })
+                    const visibleFollowUps = visibleFollowUpReferences(consumedMessages)
+                    queueFollowUpConsumedEvent = visibleFollowUps.messageIds.length
+                        ? createFollowUpConsumedEvent({
+                              mode: 'queue',
+                              ...visibleFollowUps,
+                              executionId: persistedPendingFollowUpGroup.targetExecutionId,
+                              visibleAt: visibleAt.toISOString()
+                          })
+                        : null
                 } else {
                     const persistedInput = rawSendInput ?? input
                     const references = normalizeReferences(persistedInput?.references)

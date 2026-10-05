@@ -1,4 +1,5 @@
 export enum AiModelTypeEnum {
+  REALTIME = 'realtime',
   LLM = 'llm',
   TEXT_EMBEDDING = 'text-embedding',
   RERANK = 'rerank',

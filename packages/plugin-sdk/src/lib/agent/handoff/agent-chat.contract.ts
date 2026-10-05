@@ -1,4 +1,10 @@
-import { TChatOptions, TChatRequest, TChatRuntimePrincipal, TChatSourceAuditOptions } from '@xpert-ai/contracts'
+import {
+  TChatMessageEnvelope,
+  TChatOptions,
+  TChatRequest,
+  TChatRuntimePrincipal,
+  TChatSourceAuditOptions
+} from '@xpert-ai/contracts'
 import { defineAgentMessageType } from './message-type'
 
 export const AGENT_CHAT_DISPATCH_MESSAGE_TYPE = defineAgentMessageType('chat_dispatch', 1)
@@ -24,11 +30,16 @@ export interface AgentChatDispatchPayload extends Record<string, unknown> {
   request: TChatRequest
   options: TChatOptions &
     TChatSourceAuditOptions & {
+      /** Host-resolved runtime branch, independent of the conversation root. */
+      threadId?: string
+      isDerivedThread?: boolean
       xpertId?: string
       isDraft?: boolean
       from?: string
       fromEndUserId?: string
       runtimePrincipal?: AgentChatRuntimePrincipal
+      /** Host-resolved provenance and presentation; never grants routing or execution privileges. */
+      messageEnvelope?: TChatMessageEnvelope
       execution?: { id: string }
       streamPersistence?: {
         transport: 'redis-stream'

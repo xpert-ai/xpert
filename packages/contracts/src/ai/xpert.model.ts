@@ -49,6 +49,7 @@ export type TXpertTitleFeature = {
 }
 
 export type TXpertFeatures = {
+  realtimeVoice?: import('./realtime-voice.model').RealtimeVoiceFeature
   /** Generate start-screen questions from recurring intents in conversation history. */
   frequentQuestions?: {
     enabled: boolean

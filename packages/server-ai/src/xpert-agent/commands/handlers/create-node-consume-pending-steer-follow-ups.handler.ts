@@ -94,13 +94,14 @@ export class CreateNodeConsumePendingSteerFollowUpsHandler implements ICommandHa
                     visibleAt: visibleAt.toISOString()
                 })
 
-                subscriber?.next({
-                    data: {
-                        type: ChatMessageTypeEnum.EVENT,
-                        event: ChatMessageEventTypeEnum.ON_CHAT_EVENT,
-                        data: consumedEvent
-                    }
-                } as MessageEvent)
+                if (nextFollowUp.presentation !== 'runtime')
+                    subscriber?.next({
+                        data: {
+                            type: ChatMessageTypeEnum.EVENT,
+                            event: ChatMessageEventTypeEnum.ON_CHAT_EVENT,
+                            data: consumedEvent
+                        }
+                    } as MessageEvent)
 
                 const channelUpdate = {
                     messages: [humanMessage]

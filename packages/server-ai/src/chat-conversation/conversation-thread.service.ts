@@ -1,4 +1,9 @@
-import { ChatThreadPurpose, TChatConversationStatus, TSensitiveOperation } from '@xpert-ai/contracts'
+import {
+    ChatThreadPurpose,
+    isRuntimeChatMessage,
+    TChatConversationStatus,
+    TSensitiveOperation
+} from '@xpert-ai/contracts'
 import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -25,6 +30,10 @@ export type FindVisibleThreadMessagesOptions = {
     take?: number
     skip?: number
     relations?: string[]
+    /** Display-only call events never enter model ancestry or fork checkpoints. */
+    includeCallEvents?: boolean
+    /** Runtime hydration/retries retain internal inputs; public history never requests this. */
+    includeRuntimeMessages?: boolean
 }
 
 @Injectable()
@@ -358,15 +367,33 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
         options: FindVisibleThreadMessagesOptions = {}
     ): Promise<{ items: ChatMessage[]; total: number }> {
         const thread = await this.requireByThreadId(threadId)
-        if (!thread.headMessageId) return { items: [], total: 0 }
-
-        const head = await this.messageRepository.findOne({
-            where: { id: thread.headMessageId, conversationId: thread.conversationId }
-        })
-        if (!head) return { items: [], total: 0 }
-
-        const ancestors = await this.messageRepository.manager.getTreeRepository(ChatMessage).findAncestors(head)
-        const messageIds = messageAncestorPath(ancestors, head.id).map((message) => message.id)
+        const head = thread.headMessageId
+            ? await this.messageRepository.findOne({
+                  where: { id: thread.headMessageId, conversationId: thread.conversationId }
+              })
+            : null
+        const ancestors = head
+            ? await this.messageRepository.manager.getTreeRepository(ChatMessage).findAncestors(head)
+            : []
+        const path = head ? messageAncestorPath(ancestors, head.id) : []
+        if (options.includeCallEvents) {
+            const calls = await this.messageRepository
+                .createQueryBuilder('message')
+                .select(['message.id', 'message.createdAt'])
+                .where('message."conversationId" = :conversationId AND message."createdInThreadId" = :threadId', thread)
+                .andWhere('message."tenantId" = :tenantId AND message."organizationId" = :organizationId', thread)
+                .andWhere("message.content::jsonb -> 0 ->> 'type' = :type", { type: 'call_ended' })
+                .orderBy('message.createdAt', 'ASC')
+                .addOrderBy('message.id', 'ASC')
+                .getMany()
+            for (const call of calls) {
+                const index = path.findIndex((message) => message.createdAt > call.createdAt)
+                path.splice(index < 0 ? path.length : index, 0, call)
+            }
+        }
+        const messageIds = path
+            .filter((message) => options.includeRuntimeMessages || !isRuntimeChatMessage(message))
+            .map((message) => message.id)
         if (messageIds.length === 0) return { items: [], total: 0 }
 
         const where: FindOptionsWhere<ChatMessage> = {
@@ -399,6 +426,7 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
     async hydrateConversationMessages(conversation: ChatConversation, threadId: string): Promise<ChatConversation> {
         const thread = await this.requireByThreadId(threadId)
         const page = await this.findVisibleMessages(threadId, {
+            includeRuntimeMessages: true,
             relations: ['attachments', 'fileAssets'],
             order: { createdAt: 'ASC' }
         })

@@ -143,6 +143,7 @@ describe('ChatCommonHandler Project FileAsset persistence', () => {
                 resolve: jest.fn(() => ({
                     ensureRoot: jest.fn().mockResolvedValue({
                         serverRoot: '/workspace/project/project-1',
+                        exposesDirectFileUrls: () => false,
                         publicBaseUrl: undefined
                     })
                 }))

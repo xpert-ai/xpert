@@ -32,6 +32,12 @@
         "ReferenceOnlyPrompt": "未包含文件正文，不支持直接按文本读取。请使用支持该格式的可用工具；对于 ZIP，先列出或解压条目，再处理所需的子文件。此引用不会改变文件访问权限。"
     },
     "Error": {
+        "ChatMessageEnvelopeInvalid": "消息来源或展示设置无效。",
+        "RealtimeModelRequired": "请先配置并授权可用的实时语音模型。",
+        "RealtimeConfigurationInvalid": "请选择有效的实时语音模型和音色。",
+        "RealtimeUnavailable": "实时语音暂不可用，请稍后重试。",
+        "RealtimeCallAlreadyActive": "当前已有语音通话，请先挂断。",
+        "RealtimeForbidden": "无法访问此语音会话。",
         "BosiOrganizationAccessDenied": "你无权访问当前组织。",
         "BosiWelcomeReconcileFailed": "暂时无法更新 Bosi 欢迎会话的状态。",
         "BosiBindingChanged": "助理绑定已发生变化，请刷新后继续。",

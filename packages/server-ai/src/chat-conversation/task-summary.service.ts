@@ -207,7 +207,15 @@ export class ChatTaskSummaryService {
         while (hasMore) {
             const result = await this.messageService.findAllInOrganizationOrTenant({
                 where: { conversationId, taskSummary: IsNull() },
-                select: ['id', 'content', 'references', 'thirdPartyMessage', 'createdAt', 'updatedAt'],
+                select: [
+                    'id',
+                    'conversationId',
+                    'content',
+                    'references',
+                    'thirdPartyMessage',
+                    'createdAt',
+                    'updatedAt'
+                ],
                 relations: ['attachments', 'fileAssets'],
                 order: { createdAt: 'ASC' },
                 take: BACKFILL_BATCH_SIZE

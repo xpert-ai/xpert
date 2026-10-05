@@ -147,6 +147,7 @@ export class ConversationBranchService {
                             attachments: message.attachments,
                             fileAssets: message.fileAssets,
                             thirdPartyMessage: message.thirdPartyMessage,
+                            messageEnvelope: message.messageEnvelope,
                             inputCheckpoint: rebindInputCheckpoint(message.inputCheckpoint, threadId),
                             outputCheckpoint: rebindOutputCheckpoint(message.outputCheckpoint, threadId),
                             historicalAgentRuns:

@@ -166,6 +166,7 @@ export interface XpertTemplateModelOption {
 export interface XpertTemplateSetup {
   /** ID of a compatible organization default in `models`; absent if none qualifies. */
   defaultModelId?: string
+  realtimeModels?: import('./realtime-voice.model').RealtimeModelOption[]
   requiresModel?: boolean
   optionalCapabilities: { key: XpertTemplateCapability; label: string; description: string }[]
   requiredModelFeatures: ModelFeature[]

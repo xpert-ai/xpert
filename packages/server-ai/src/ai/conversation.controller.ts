@@ -1,4 +1,6 @@
 import { stripClientSkillContent, stripClientSkillSummary } from '../chat-message/client-skill-usage'
+import { visibleChatMessage } from '../chat-message/message-envelope'
+import { isRuntimeChatMessage } from '@xpert-ai/contracts'
 import {
     BadRequestException,
     Body,
@@ -426,7 +428,7 @@ export class ConversationsController {
     ) {
         const conversation = await this.ensureConversationAccess(conversationId)
         const result = await this.messageService.findAllInOrganizationOrTenant({
-            where: { conversationId },
+            where: { conversationId, messageEnvelope: visibleChatMessage() },
             relations: ['attachments', 'fileAssets'],
             order: { createdAt: 'ASC' },
             take: limit,
@@ -451,7 +453,8 @@ export class ConversationsController {
         const { threadId: requestedThreadIdValue, ...rawMessageWhere } = body.where ?? {}
         const where = {
             ...transformWhere(rawMessageWhere),
-            conversationId
+            conversationId,
+            messageEnvelope: visibleChatMessage()
         }
         const requestedThreadId =
             this.normalizeString(requestedThreadIdValue) ||
@@ -468,6 +471,7 @@ export class ConversationsController {
         }
         const result = requestedThreadId
             ? await conversationThreadService.findVisibleMessages(requestedThreadId, {
+                  includeCallEvents: true,
                   where,
                   relations: ['attachments', 'fileAssets'],
                   order: body.order ?? { createdAt: 'ASC' },
@@ -505,6 +509,15 @@ export class ConversationsController {
                 })
             )
         }
+        const existing = body.id
+            ? (
+                  await this.messageService.findAllInOrganizationOrTenant({
+                      where: { id: body.id, conversationId },
+                      take: 1
+                  })
+              ).items[0]
+            : undefined
+        if (existing && isRuntimeChatMessage(existing)) throw this.conversationAccessDenied()
         const message = await this.commandBus.execute(
             new ChatMessageUpsertCommand({
                 ...this.pickMessageMutation(body),
@@ -522,7 +535,7 @@ export class ConversationsController {
     ) {
         const conversation = await this.ensurePublicConversationAccess(conversationId)
         const message = await this.messageService.findOneInOrganizationOrTenant(messageId, {
-            where: { conversationId },
+            where: { conversationId, messageEnvelope: visibleChatMessage() },
             relations: ['attachments', 'fileAssets']
         })
         return new ChatMessageDTO(await this.messageService.filterAuthorizedFileRelations(message, conversation.id))
@@ -535,7 +548,9 @@ export class ConversationsController {
         @Body() body: MessageMutationRequest
     ) {
         await this.ensureConversationAccess(conversationId, 'contribute')
-        await this.messageService.findOneInOrganizationOrTenant(messageId, { where: { conversationId } })
+        await this.messageService.findOneInOrganizationOrTenant(messageId, {
+            where: { conversationId, messageEnvelope: visibleChatMessage() }
+        })
         const message = await this.commandBus.execute(
             new ChatMessageUpsertCommand({
                 ...this.pickMessageMutation(body),
@@ -553,7 +568,9 @@ export class ConversationsController {
         @Param('message_id', UUIDValidationPipe) messageId: string
     ) {
         await this.ensureConversationAccess(conversationId, 'contribute')
-        await this.messageService.findOneInOrganizationOrTenant(messageId, { where: { conversationId } })
+        await this.messageService.findOneInOrganizationOrTenant(messageId, {
+            where: { conversationId, messageEnvelope: visibleChatMessage() }
+        })
         await this.messageService.delete(messageId)
     }
 
@@ -722,6 +739,8 @@ export class ConversationsController {
     }
     private async ensureMessage(conversationId: string, messageId: string, operation: 'read' | 'contribute' = 'read') {
         await this.ensureConversationAccess(conversationId, operation)
-        return this.messageService.findOneInOrganizationOrTenant(messageId, { where: { conversationId } })
+        return this.messageService.findOneInOrganizationOrTenant(messageId, {
+            where: { conversationId, messageEnvelope: visibleChatMessage() }
+        })
     }
 }

@@ -350,6 +350,20 @@ describe('ConversationBranchService', () => {
         expect(test.savedMessages[0].attachments).toHaveLength(2)
     })
 
+    it('preserves host provenance and runtime presentation when copying message history', async () => {
+        const test = fixture()
+        test.h1.messageEnvelope = {
+            version: 1,
+            source: { type: 'voice', sessionId: 'session' },
+            presentation: 'runtime',
+            target: { xpertId: 'assistant', conversationId: test.source.id, threadId: test.source.threadId },
+            correlation: { taskId: 'task', executionId: 'execution' }
+        }
+        await test.service.branch(test.source.id, test.input)
+        expect(test.savedMessages[0].messageEnvelope).toEqual(test.h1.messageEnvelope)
+        expect(test.savedMessages[0].conversationId).not.toBe(test.source.id)
+    })
+
     it('checks for a concurrent successful request again under the thread lock', async () => {
         const test = fixture()
         const concurrent = Object.assign(new ChatConversation(), {

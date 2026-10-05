@@ -10,6 +10,7 @@ describe('ChatTaskSummaryService', () => {
     it('backfills legacy messages without events and returns three-item previews with totals', async () => {
         const legacyMessage = {
             id: 'legacy-1',
+            conversationId: 'conversation-1',
             content: '<proposed_plan># Legacy plan\nRestore this summary.</proposed_plan>',
             createdAt: new Date('2026-07-13T00:00:00.000Z'),
             updatedAt: new Date('2026-07-13T00:00:00.000Z')
@@ -43,19 +44,32 @@ describe('ChatTaskSummaryService', () => {
         ]
         let backfillReadCount = 0
         const messageService = {
-            findAllInOrganizationOrTenant: jest.fn((options: { where?: { taskSummary?: unknown } }) => {
-                if (options.where && 'taskSummary' in options.where) {
-                    backfillReadCount += 1
-                    return Promise.resolve({
-                        items: backfillReadCount === 1 ? [legacyMessage] : [],
-                        total: backfillReadCount === 1 ? 1 : 0
-                    })
+            findAllInOrganizationOrTenant: jest.fn(
+                (options: { where?: { taskSummary?: unknown }; select?: string[] }) => {
+                    if (options.where && 'taskSummary' in options.where) {
+                        backfillReadCount += 1
+                        return Promise.resolve({
+                            items:
+                                backfillReadCount === 1
+                                    ? [
+                                          {
+                                              ...legacyMessage,
+                                              conversationId: options.select?.includes('conversationId')
+                                                  ? legacyMessage.conversationId
+                                                  : undefined
+                                          }
+                                      ]
+                                    : [],
+                            total: backfillReadCount === 1 ? 1 : 0
+                        })
+                    }
+                    return Promise.resolve({ items: messages, total: messages.length })
                 }
-                return Promise.resolve({ items: messages, total: messages.length })
-            }),
-            filterAuthorizedFileRelations: jest.fn((message) =>
-                Promise.resolve({ ...message, attachments: [], fileAssets: [] })
             ),
+            filterAuthorizedFileRelations: jest.fn((message, conversationId) => {
+                if (message.conversationId !== conversationId) throw new Error('Conversation scope missing')
+                return Promise.resolve({ ...message, attachments: [], fileAssets: [] })
+            }),
             save: jest.fn((message) => Promise.resolve(message))
         }
         const goalService = {
@@ -133,7 +147,15 @@ describe('ChatTaskSummaryService', () => {
         expect(messageService.findAllInOrganizationOrTenant).toHaveBeenNthCalledWith(
             1,
             expect.objectContaining({
-                select: ['id', 'content', 'references', 'thirdPartyMessage', 'createdAt', 'updatedAt'],
+                select: [
+                    'id',
+                    'conversationId',
+                    'content',
+                    'references',
+                    'thirdPartyMessage',
+                    'createdAt',
+                    'updatedAt'
+                ],
                 take: 100
             })
         )

@@ -366,6 +366,71 @@ describe('XpertChatHandler', () => {
         expect(assistantModelSelectionService.resolveSelection).not.toHaveBeenCalled()
     })
 
+    it('retains voice delegation for runtime retry without advertising a submitted human message', async () => {
+        mockSuccessfulSendCommands()
+        const messageEnvelope = {
+            version: 1 as const,
+            source: { type: 'voice' as const, sessionId: 'session' },
+            presentation: 'runtime' as const,
+            correlation: { taskId: 'task' }
+        }
+        const stream = await handler.execute(
+            new XpertChatCommand(
+                {
+                    action: 'send',
+                    message: { clientMessageId: 'task', input: { input: 'Internal request and context' } }
+                },
+                { xpertId: 'xpert-1', messageEnvelope }
+            )
+        )
+        const events = await lastValueFrom(stream.pipe(toArray()))
+        const persisted = commandBus.execute.mock.calls
+            .map(([command]) => command)
+            .find(
+                (command): command is ChatMessageUpsertCommand =>
+                    command instanceof ChatMessageUpsertCommand && command.entity.role === 'human'
+            )
+        expect(persisted?.entity.messageEnvelope).toEqual(messageEnvelope)
+        const started = events.find((event) => event.data.event === ChatMessageEventTypeEnum.ON_CONVERSATION_START)
+        expect(started?.data.data).not.toHaveProperty('userMessage')
+        const messageStart = events.find((event) => event.data.event === ChatMessageEventTypeEnum.ON_MESSAGE_START)
+        expect(messageStart?.data.data).not.toHaveProperty('parent')
+        expect(events.some((event) => event.data.event === ChatMessageEventTypeEnum.ON_MESSAGE_START)).toBe(true)
+    })
+
+    it.each(['runtime', 'message', 'event'] as const)(
+        'persists Agent provenance and applies %s presentation to live acknowledgments',
+        async (presentation) => {
+            mockSuccessfulSendCommands()
+            const messageEnvelope = {
+                version: 1 as const,
+                source: { type: 'agent' as const, xpertId: 'sender', agentKey: 'worker' },
+                presentation,
+                correlation: { invocationId: 'invocation' }
+            }
+            const stream = await handler.execute(
+                new XpertChatCommand(
+                    {
+                        action: 'send',
+                        message: { clientMessageId: 'agent-message', input: { input: 'Agent request' } }
+                    },
+                    { xpertId: 'xpert-1', messageEnvelope }
+                )
+            )
+            const events = await lastValueFrom(stream.pipe(toArray()))
+            const persisted = commandBus.execute.mock.calls
+                .map(([command]) => command)
+                .find(
+                    (command): command is ChatMessageUpsertCommand =>
+                        command instanceof ChatMessageUpsertCommand && command.entity.role === 'human'
+                )
+            expect(persisted?.entity.messageEnvelope).toEqual(messageEnvelope)
+            const started = events.find((event) => event.data.event === ChatMessageEventTypeEnum.ON_CONVERSATION_START)
+            if (presentation === 'runtime') expect(started?.data.data).not.toHaveProperty('userMessage')
+            else expect(started?.data.data).toHaveProperty('userMessage.messageEnvelope', messageEnvelope)
+        }
+    )
+
     it('creates a new conversation, human message, ai placeholder and execution for send', async () => {
         const commands: any[] = []
         commandBus.execute.mockImplementation(async (command) => {
@@ -3276,7 +3341,10 @@ describe('XpertChatHandler', () => {
         expect(agentCommand.options.planMode).toBe(true)
     })
 
-    it('replays from the first human input checkpoint when human message has no executionId', async () => {
+    it.each([
+        undefined,
+        { messageEnvelope: { version: 1, source: { type: 'voice', sessionId: 'session' }, presentation: 'runtime' } }
+    ])('replays original input and keeps persisted presentation on retry: %j', async (envelopeFields) => {
         const commands: any[] = []
         commandBus.execute.mockImplementation(async (command) => {
             commands.push(command)
@@ -3292,7 +3360,8 @@ describe('XpertChatHandler', () => {
                         {
                             id: 'human-1',
                             role: 'human',
-                            content: 'Original prompt'
+                            content: 'Original prompt',
+                            ...envelopeFields
                         },
                         {
                             id: 'ai-1',
@@ -3386,7 +3455,12 @@ describe('XpertChatHandler', () => {
             )
         )
 
-        await lastValueFrom(stream.pipe(toArray()))
+        const events = await lastValueFrom(stream.pipe(toArray()))
+        if (envelopeFields) {
+            const started = events.find((event) => event.data.event === ChatMessageEventTypeEnum.ON_CONVERSATION_START)
+            expect(started?.data.data).not.toHaveProperty('userMessage')
+            expect(started?.data.data.title ?? '').not.toContain('Original prompt')
+        }
 
         expect(
             commands.some((command) => command instanceof ChatMessageUpsertCommand && command.entity.role === 'human')

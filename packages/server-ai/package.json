@@ -98,6 +98,7 @@
         "typeorm": "^0.3.24",
         "uuid": "^10.0.0",
         "word-extractor": "1.0.4",
+        "ws": "^8.18.0",
         "xlsx": "^0.18.5",
         "xmldom": "^0.6.0",
         "yjs": "13.6.31",
@@ -108,6 +109,7 @@
         "@types/cron": "1.7.3",
         "@types/multer": "^1.4.7",
         "@types/turndown": "5.0.5",
+        "@types/ws": "^8.18.1",
         "babel-jest": "29.7.0",
         "esbuild": "^0.28.1"
     }

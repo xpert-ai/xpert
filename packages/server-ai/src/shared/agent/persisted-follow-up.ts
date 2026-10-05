@@ -1,4 +1,4 @@
-import { ChatKitReference, stringifyMessageContent, TChatRequestHuman } from '@xpert-ai/contracts'
+import { ChatKitReference, isRuntimeChatMessage, stringifyMessageContent, TChatRequestHuman } from '@xpert-ai/contracts'
 
 type TFollowUpMessageLike = {
     id?: string | null
@@ -10,6 +10,7 @@ type TFollowUpMessageLike = {
     followUpStatus?: 'pending' | 'consumed' | 'canceled' | null
     targetExecutionId?: string | null
     thirdPartyMessage?: unknown
+    messageEnvelope?: unknown
 }
 
 export type TCollectedPendingFollowUps<T extends TFollowUpMessageLike> = {
@@ -19,6 +20,17 @@ export type TCollectedPendingFollowUps<T extends TFollowUpMessageLike> = {
     targetExecutionId: string | null
     messageIds: string[]
     clientMessageIds: string[]
+}
+
+/** Public acknowledgments reference only visible inputs; runtime consumption still uses every item. */
+export function visibleFollowUpReferences(messages: TFollowUpMessageLike[]) {
+    const visible = messages.filter((message) => !isRuntimeChatMessage(message))
+    return {
+        messageIds: visible.map((message) => normalizeString(message.id)).filter((id): id is string => !!id),
+        clientMessageIds: visible
+            .map((message) => readFollowUpClientMessageId(message) ?? normalizeString(message.id))
+            .filter((id): id is string => !!id)
+    }
 }
 
 function normalizeString(value: unknown): string | null {

@@ -127,6 +127,7 @@ export class ThreadReferenceService {
                       status: true,
                       content: true,
                       followUpStatus: true,
+                      messageEnvelope: true,
                       ...(input.includeOutputs ? { events: true } : {})
                   }
               })

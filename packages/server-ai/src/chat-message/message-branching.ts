@@ -1,5 +1,6 @@
 import type { IChatMessage, TChatMessageBranching } from '@xpert-ai/contracts'
 import { createHash } from 'node:crypto'
+import { readChatMessageEnvelope } from './message-envelope.schema'
 
 /** Exclude row identities and timestamps so a copied reply can retain its content integrity check. */
 export function branchMessageHash(message: Partial<IChatMessage>): string {
@@ -40,10 +41,18 @@ export function messageBranching(message: Partial<IChatMessage>): TChatMessageBr
 
 /** Strip internal checkpoints on raw SSE paths as well as on DTO-based history reads. */
 export function publicChatMessage<T extends Partial<IChatMessage>>(message: T) {
-    const { outputCheckpoint: _checkpoint, historicalAgentRuns, ...visible } = message
+    const {
+        outputCheckpoint: _checkpoint,
+        historicalAgentRuns,
+        parent: _parent,
+        children: _children,
+        messageEnvelope: _unvalidatedEnvelope,
+        ...visible
+    } = message
     const agentRuns = historicalAgentRuns ?? _checkpoint?.agentRuns
     return {
         ...visible,
+        messageEnvelope: readChatMessageEnvelope(message),
         branching: messageBranching(message),
         ...(agentRuns ? { agentRuns } : {}),
         ...(historicalAgentRuns ? { historical: true } : {})

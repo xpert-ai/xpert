@@ -9,6 +9,7 @@ import {
     TChatOutputCheckpoint,
     TChatAgentRunSummary,
     TChatMessageStep,
+    TChatMessageEnvelope,
     TChatReference,
     TChatTaskSummaryContribution,
     TMessageContent,
@@ -123,6 +124,11 @@ export class ChatMessage extends TenantOrganizationBaseEntity implements IChatMe
     @IsOptional()
     @Column({ type: 'json', nullable: true })
     thirdPartyMessage?: any
+
+    @ApiPropertyOptional({ type: () => Object, readOnly: true })
+    @IsOptional()
+    @Column({ type: 'jsonb', nullable: true })
+    messageEnvelope?: TChatMessageEnvelope | null
 
     @ApiPropertyOptional({ type: () => Object })
     @IsJSON()

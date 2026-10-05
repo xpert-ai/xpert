@@ -206,239 +206,260 @@ describe('XpertAgentSubgraphHandler invocation execution id', () => {
 })
 
 describe('subgraph steer follow-up pre-turn node handlers', () => {
-    it('stage handler returns a runnable lambda that loads pending steer follow-ups into the staging channel', async () => {
-        const chatMessageRepository = {
-            find: jest.fn().mockResolvedValue([
-                {
-                    id: 'db-message-1',
-                    content: 'steer input',
-                    thirdPartyMessage: {
-                        followUpInput: {
-                            input: 'steer input'
+    it.each(['message', 'runtime'] as const)(
+        'stages follow-ups with presentation %s without dropping execution input',
+        async (presentation) => {
+            const chatMessageRepository = {
+                find: jest.fn().mockResolvedValue([
+                    {
+                        id: 'db-message-1',
+                        content: 'steer input',
+                        messageEnvelope: { version: 1, source: { type: 'voice', sessionId: 'session' }, presentation },
+                        thirdPartyMessage: {
+                            followUpInput: {
+                                input: 'steer input'
+                            },
+                            followUpClientMessageId: 'client-message-1'
                         },
-                        followUpClientMessageId: 'client-message-1'
-                    },
-                    attachments: []
-                }
-            ])
-        }
-
-        const handler = new CreateNodeStagePendingSteerFollowUpsHandler(chatMessageRepository as any)
-        const node = await handler.execute(
-            new CreateNodeStagePendingSteerFollowUpsCommand({
-                conversationId: 'conversation-1'
-            })
-        )
-
-        expect(node).toBeInstanceOf(RunnableLambda)
-
-        const result = await node.invoke(
-            {} as any,
-            {
-                configurable: {
-                    executionId: 'child-execution-1',
-                    rootExecutionId: 'execution-1'
-                }
-            } as any
-        )
-
-        expect(chatMessageRepository.find).toHaveBeenCalledWith(
-            expect.objectContaining({
-                where: expect.objectContaining({
-                    conversationId: 'conversation-1',
-                    targetExecutionId: 'execution-1',
-                    followUpMode: 'steer',
-                    followUpStatus: 'pending'
-                })
-            })
-        )
-        expect(result).toEqual({
-            [STATE_VARIABLE_PENDING_FOLLOW_UPS]: [
-                {
-                    messageId: 'db-message-1',
-                    clientMessageId: 'client-message-1',
-                    human: {
-                        input: 'steer input'
+                        attachments: []
                     }
-                }
-            ]
-        })
-    })
+                ])
+            }
 
-    it('consume handler returns a runnable lambda that consumes staged steer follow-ups', async () => {
-        const subscriber = {
-            next: jest.fn()
-        }
-        const chatMessageRepository = {
-            save: jest.fn().mockResolvedValue(undefined)
-        }
-        const commandBus = {
-            execute: jest.fn()
-        }
-        const queryBus = {
-            execute: jest.fn().mockResolvedValue([])
-        }
+            const handler = new CreateNodeStagePendingSteerFollowUpsHandler(chatMessageRepository as any)
+            const node = await handler.execute(
+                new CreateNodeStagePendingSteerFollowUpsCommand({
+                    conversationId: 'conversation-1'
+                })
+            )
 
-        const handler = new CreateNodeConsumePendingSteerFollowUpsHandler(
-            commandBus as any,
-            queryBus as any,
-            chatMessageRepository as any
-        )
-        const node = await handler.execute(
-            new CreateNodeConsumePendingSteerFollowUpsCommand({
-                agentKey: 'agent-2',
-                agentChannel: channelName('agent-2'),
-                subscriber: subscriber as any
-            })
-        )
+            expect(node).toBeInstanceOf(RunnableLambda)
 
-        expect(node).toBeInstanceOf(RunnableLambda)
+            const result = await node.invoke(
+                {} as any,
+                {
+                    configurable: {
+                        executionId: 'child-execution-1',
+                        rootExecutionId: 'execution-1'
+                    }
+                } as any
+            )
 
-        const result = await node.invoke(
-            {
-                [STATE_VARIABLE_SYS]: {
-                    language: 'en-US'
-                },
+            expect(chatMessageRepository.find).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    where: expect.objectContaining({
+                        conversationId: 'conversation-1',
+                        targetExecutionId: 'execution-1',
+                        followUpMode: 'steer',
+                        followUpStatus: 'pending'
+                    })
+                })
+            )
+            expect(result).toEqual({
                 [STATE_VARIABLE_PENDING_FOLLOW_UPS]: [
                     {
                         messageId: 'db-message-1',
+                        presentation,
                         clientMessageId: 'client-message-1',
                         human: {
-                            input: 'steer input 1',
-                            files: [
-                                {
-                                    id: 'file-1'
-                                }
-                            ] as any,
-                            references: [
-                                {
-                                    type: 'quote',
-                                    text: 'ref-1'
-                                }
-                            ],
-                            custom: 'early'
-                        }
-                    },
-                    {
-                        messageId: 'db-message-2',
-                        clientMessageId: 'client-message-2',
-                        human: {
-                            input: 'steer input 2',
-                            files: [
-                                {
-                                    id: 'file-2'
-                                }
-                            ] as any,
-                            references: [
-                                {
-                                    type: 'quote',
-                                    text: 'ref-2'
-                                }
-                            ],
-                            custom: 'late'
+                            input: 'steer input'
                         }
                     }
                 ]
-            } as any,
-            {
-                configurable: {
-                    executionId: 'child-execution-1',
-                    rootExecutionId: 'execution-1',
-                    rootAgentKey: 'agent-1'
-                }
-            } as any
-        )
+            })
+        }
+    )
 
-        const expectedMessageContent = ['steer input 1', '', 'Referenced content:', '[Quoted text]', '> ref-1'].join(
-            '\n'
-        )
-        const getMessageContent = (message: unknown) => {
-            if (!message || typeof message !== 'object') {
+    it.each(['message', 'runtime'] as const)(
+        'consumes %s follow-ups while limiting public acknowledgments',
+        async (presentation) => {
+            const subscriber = {
+                next: jest.fn()
+            }
+            const chatMessageRepository = {
+                save: jest.fn().mockResolvedValue(undefined)
+            }
+            const commandBus = {
+                execute: jest.fn()
+            }
+            const queryBus = {
+                execute: jest.fn().mockResolvedValue([])
+            }
+
+            const handler = new CreateNodeConsumePendingSteerFollowUpsHandler(
+                commandBus as any,
+                queryBus as any,
+                chatMessageRepository as any
+            )
+            const node = await handler.execute(
+                new CreateNodeConsumePendingSteerFollowUpsCommand({
+                    agentKey: 'agent-2',
+                    agentChannel: channelName('agent-2'),
+                    subscriber: subscriber as any
+                })
+            )
+
+            expect(node).toBeInstanceOf(RunnableLambda)
+
+            const result = await node.invoke(
+                {
+                    [STATE_VARIABLE_SYS]: {
+                        language: 'en-US'
+                    },
+                    [STATE_VARIABLE_PENDING_FOLLOW_UPS]: [
+                        {
+                            messageId: 'db-message-1',
+                            presentation,
+                            clientMessageId: 'client-message-1',
+                            human: {
+                                input: 'steer input 1',
+                                files: [
+                                    {
+                                        id: 'file-1'
+                                    }
+                                ] as any,
+                                references: [
+                                    {
+                                        type: 'quote',
+                                        text: 'ref-1'
+                                    }
+                                ],
+                                custom: 'early'
+                            }
+                        },
+                        {
+                            messageId: 'db-message-2',
+                            clientMessageId: 'client-message-2',
+                            human: {
+                                input: 'steer input 2',
+                                files: [
+                                    {
+                                        id: 'file-2'
+                                    }
+                                ] as any,
+                                references: [
+                                    {
+                                        type: 'quote',
+                                        text: 'ref-2'
+                                    }
+                                ],
+                                custom: 'late'
+                            }
+                        }
+                    ]
+                } as any,
+                {
+                    configurable: {
+                        executionId: 'child-execution-1',
+                        rootExecutionId: 'execution-1',
+                        rootAgentKey: 'agent-1'
+                    }
+                } as any
+            )
+
+            const expectedMessageContent = [
+                'steer input 1',
+                '',
+                'Referenced content:',
+                '[Quoted text]',
+                '> ref-1'
+            ].join('\n')
+            const getMessageContent = (message: unknown) => {
+                if (!message || typeof message !== 'object') {
+                    return undefined
+                }
+                if ('content' in message && typeof message.content === 'string') {
+                    return message.content
+                }
+                if ('content' in message && Array.isArray(message.content)) {
+                    return message.content
+                        .map((part) =>
+                            part && typeof part === 'object' && 'text' in part && typeof part.text === 'string'
+                                ? part.text
+                                : ''
+                        )
+                        .filter(Boolean)
+                        .join('\n')
+                }
+                if ('kwargs' in message && message.kwargs && typeof message.kwargs === 'object') {
+                    if ('content' in message.kwargs && typeof message.kwargs.content === 'string') {
+                        return message.kwargs.content
+                    }
+                }
                 return undefined
             }
-            if ('content' in message && typeof message.content === 'string') {
-                return message.content
-            }
-            if ('content' in message && Array.isArray(message.content)) {
-                return message.content
-                    .map((part) =>
-                        part && typeof part === 'object' && 'text' in part && typeof part.text === 'string'
-                            ? part.text
-                            : ''
-                    )
-                    .filter(Boolean)
-                    .join('\n')
-            }
-            if ('kwargs' in message && message.kwargs && typeof message.kwargs === 'object') {
-                if ('content' in message.kwargs && typeof message.kwargs.content === 'string') {
-                    return message.kwargs.content
+            const getChannelMessages = (channelState: unknown) => {
+                if (!channelState || typeof channelState !== 'object') {
+                    throw new Error('Expected channel state object')
                 }
+                if (!('messages' in channelState) || !Array.isArray(channelState.messages)) {
+                    throw new Error('Expected channel state messages')
+                }
+                return channelState.messages
             }
-            return undefined
-        }
-        const getChannelMessages = (channelState: unknown) => {
-            if (!channelState || typeof channelState !== 'object') {
-                throw new Error('Expected channel state object')
-            }
-            if (!('messages' in channelState) || !Array.isArray(channelState.messages)) {
-                throw new Error('Expected channel state messages')
-            }
-            return channelState.messages
-        }
 
-        expect(result).toEqual(
-            expect.objectContaining({
-                input: 'steer input 1',
-                [STATE_VARIABLE_HUMAN]: {
-                    input: 'steer input 1',
-                    files: [
-                        expect.objectContaining({
-                            id: 'file-1'
-                        })
-                    ],
-                    references: [
-                        expect.objectContaining({
-                            type: 'quote',
-                            text: 'ref-1'
-                        })
-                    ],
-                    custom: 'early'
-                },
-                [STATE_VARIABLE_PENDING_FOLLOW_UPS]: [
-                    expect.objectContaining({
-                        messageId: 'db-message-2',
-                        clientMessageId: 'client-message-2'
-                    })
-                ]
-            })
-        )
-        expect(getMessageContent(result.messages[0])).toBe(expectedMessageContent)
-        expect(getMessageContent(getChannelMessages(result[channelName('agent-1')])[0])).toBe(expectedMessageContent)
-        expect(getMessageContent(getChannelMessages(result[channelName('agent-2')])[0])).toBe(expectedMessageContent)
-        expect(chatMessageRepository.save).toHaveBeenCalledWith(
-            expect.arrayContaining([
+            expect(result).toEqual(
                 expect.objectContaining({
-                    id: 'db-message-1',
-                    followUpStatus: 'consumed'
+                    input: 'steer input 1',
+                    [STATE_VARIABLE_HUMAN]: {
+                        input: 'steer input 1',
+                        files: [
+                            expect.objectContaining({
+                                id: 'file-1'
+                            })
+                        ],
+                        references: [
+                            expect.objectContaining({
+                                type: 'quote',
+                                text: 'ref-1'
+                            })
+                        ],
+                        custom: 'early'
+                    },
+                    [STATE_VARIABLE_PENDING_FOLLOW_UPS]: [
+                        expect.objectContaining({
+                            messageId: 'db-message-2',
+                            clientMessageId: 'client-message-2'
+                        })
+                    ]
                 })
-            ])
-        )
-        expect(subscriber.next).toHaveBeenCalledWith(
-            expect.objectContaining({
-                data: expect.objectContaining({
-                    type: ChatMessageTypeEnum.EVENT,
-                    event: ChatMessageEventTypeEnum.ON_CHAT_EVENT,
+            )
+            expect(getMessageContent(result.messages[0])).toBe(expectedMessageContent)
+            expect(getMessageContent(getChannelMessages(result[channelName('agent-1')])[0])).toBe(
+                expectedMessageContent
+            )
+            expect(getMessageContent(getChannelMessages(result[channelName('agent-2')])[0])).toBe(
+                expectedMessageContent
+            )
+            expect(chatMessageRepository.save).toHaveBeenCalledWith(
+                expect.arrayContaining([
+                    expect.objectContaining({
+                        id: 'db-message-1',
+                        followUpStatus: 'consumed'
+                    })
+                ])
+            )
+            if (presentation === 'runtime') {
+                expect(subscriber.next).not.toHaveBeenCalled()
+                return
+            }
+            expect(subscriber.next).toHaveBeenCalledWith(
+                expect.objectContaining({
                     data: expect.objectContaining({
-                        type: 'follow_up_consumed',
-                        mode: 'steer',
-                        executionId: 'execution-1',
-                        clientMessageIds: ['client-message-1'],
-                        messageIds: ['db-message-1']
+                        type: ChatMessageTypeEnum.EVENT,
+                        event: ChatMessageEventTypeEnum.ON_CHAT_EVENT,
+                        data: expect.objectContaining({
+                            type: 'follow_up_consumed',
+                            mode: 'steer',
+                            executionId: 'execution-1',
+                            clientMessageIds: ['client-message-1'],
+                            messageIds: ['db-message-1']
+                        })
                     })
                 })
-            })
-        )
-    })
+            )
+        }
+    )
 })
 
 describe('XpertAgentSubgraphHandler model image preparation', () => {

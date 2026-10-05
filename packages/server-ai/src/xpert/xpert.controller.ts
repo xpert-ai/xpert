@@ -1495,7 +1495,7 @@ export class XpertController extends CrudController<Xpert> {
             traceId: options.messageId ?? queueTaskId,
             payload: {
                 request,
-                options,
+                options: { ...options, messageEnvelope: undefined },
                 callback: {
                     transport: 'redis-pubsub'
                 },

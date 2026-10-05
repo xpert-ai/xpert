@@ -603,3 +603,67 @@ function createController() {
         xpertService
     }
 }
+
+describe('ConversationsController host message provenance', () => {
+    const messageEnvelope = {
+        version: 1,
+        source: { type: 'agent', xpertId: 'sender', agentKey: 'worker' },
+        presentation: 'message'
+    }
+    beforeEach(() => {
+        jest.clearAllMocks()
+        jest.mocked(RequestContext.currentUserId).mockReturnValue('user-1')
+        jest.mocked(getPublicXpertSessionConversationScope).mockReturnValue(null)
+    })
+    it('does not accept caller supplied provenance on a new message', async () => {
+        const { controller, conversationService, commandBus } = createController()
+        conversationService.findOneInOrganizationOrTenant.mockResolvedValue({ id: 'conversation' })
+        commandBus.execute.mockResolvedValue({ id: 'new', role: 'human' })
+        const body = {
+            role: 'human' as const,
+            content: 'Hello',
+            messageEnvelope,
+            thirdPartyMessage: { model: 'model' }
+        }
+        await controller.createMessage('conversation', body)
+        expect(commandBus.execute).toHaveBeenCalledWith(
+            expect.objectContaining({ input: expect.objectContaining({ thirdPartyMessage: { model: 'model' } }) })
+        )
+        expect(commandBus.execute.mock.calls[0][0].input).not.toHaveProperty('messageEnvelope')
+    })
+    it.each(['patch', 'upsert'] as const)('retains the original host provenance on %s', async (operation) => {
+        const { controller, conversationService, messageService, commandBus } = createController()
+        const existing = { id: 'message', role: 'human', messageEnvelope }
+        conversationService.findOneInOrganizationOrTenant.mockResolvedValue({ id: 'conversation' })
+        messageService.findOneInOrganizationOrTenant.mockResolvedValue(existing)
+        messageService.findAllInOrganizationOrTenant.mockResolvedValue({ items: [existing], total: 1 })
+        commandBus.execute.mockResolvedValue(existing)
+        const body = { id: 'message', thirdPartyMessage: null, messageEnvelope: null }
+        const result =
+            operation === 'patch'
+                ? await controller.updateMessage('conversation', 'message', body)
+                : await controller.createMessage('conversation', body)
+        expect(commandBus.execute.mock.calls[0][0].input).not.toHaveProperty('messageEnvelope')
+        expect(commandBus.execute).toHaveBeenCalledWith(
+            expect.objectContaining({ input: expect.objectContaining({ thirdPartyMessage: null }) })
+        )
+        expect(result.messageEnvelope).toEqual(messageEnvelope)
+    })
+    it('does not allow a public create-upsert to overwrite a hidden runtime input', async () => {
+        const { controller, conversationService, messageService, commandBus } = createController()
+        conversationService.findOneInOrganizationOrTenant.mockResolvedValue({ id: 'conversation' })
+        messageService.findAllInOrganizationOrTenant.mockResolvedValue({
+            items: [
+                {
+                    id: 'message',
+                    messageEnvelope: { ...messageEnvelope, presentation: 'runtime' }
+                }
+            ],
+            total: 1
+        })
+        await expect(controller.createMessage('conversation', { id: 'message', content: 'Overwrite' })).rejects.toThrow(
+            ForbiddenException
+        )
+        expect(commandBus.execute).not.toHaveBeenCalled()
+    })
+})

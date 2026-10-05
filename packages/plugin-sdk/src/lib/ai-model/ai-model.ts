@@ -1,4 +1,5 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
+import type { RealtimeModelConnection } from './realtime'
 import {
   AIModelEntity,
   AiModelTypeEnum,
@@ -39,6 +40,10 @@ export abstract class AIModel implements IAIModel {
   }
 
   abstract validateCredentials(model: string, credentials: Record<string, any>): Promise<void>
+
+  getRealtimeModel(_copilotModel: ICopilotModel): RealtimeModelConnection {
+    throw new Error('Unsupported realtime model')
+  }
 
   getChatModel(copilotModel: ICopilotModel, options?: TChatModelOptions): BaseChatModel {
     throw new Error(`Unsupport chat model!`)

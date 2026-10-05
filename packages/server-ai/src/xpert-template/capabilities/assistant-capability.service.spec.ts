@@ -1,4 +1,6 @@
-jest.mock('@xpert-ai/server-core', () => ({
+import { RealtimeModelCatalog } from './realtime-voice.capability'
+jest.mock('@xpert-ai/plugin-sdk', () => ({
+    ...jest.requireActual('@xpert-ai/plugin-sdk'),
     RequestContext: {
         currentTenantId: jest.fn(() => 'tenant'),
         getOrganizationId: jest.fn(() => 'organization'),
@@ -9,7 +11,7 @@ jest.mock('@xpert-ai/server-core', () => ({
 import { AiModelTypeEnum, LanguagesEnum, ModelFeature, TXpertTemplate } from '@xpert-ai/contracts'
 import { AssistantCapabilityProviderRegistry, IAssistantCapabilityProvider } from '@xpert-ai/plugin-sdk'
 import { QueryBus } from '@nestjs/cqrs'
-import { RequestContext } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { AssistantCapabilityService } from './assistant-capability.service'
 import {
     capabilityTemplateId,
@@ -35,7 +37,8 @@ describe('Assistant capabilities (OSS)', () => {
     const query = { execute: jest.fn() }
     const service = new AssistantCapabilityService(
         registry as unknown as AssistantCapabilityProviderRegistry,
-        query as unknown as QueryBus
+        query as unknown as QueryBus,
+        new RealtimeModelCatalog(query as unknown as QueryBus)
     )
     const createProvider = (key: string, features: ModelFeature[] = []): IAssistantCapabilityProvider => ({
         key,
@@ -295,5 +298,81 @@ describe('Assistant capabilities (OSS)', () => {
                     Buffer.from(JSON.stringify({ templateId: id, capabilities: ['b'] })).toString('base64url')
             )
         ).toThrow()
+    })
+})
+
+describe('realtime voice capability configuration', () => {
+    const queries = { execute: jest.fn() }
+    const catalog = new RealtimeModelCatalog(queries as unknown as QueryBus)
+    const service = new AssistantCapabilityService(
+        { list: () => [] } as unknown as AssistantCapabilityProviderRegistry,
+        queries as unknown as QueryBus,
+        catalog
+    )
+    const draft = () =>
+        parseCapabilityTemplateDraft(
+            JSON.stringify({
+                team: {
+                    agent: { key: 'primary' },
+                    features: { realtimeVoice: { enabled: true } }
+                },
+                nodes: [{ key: 'primary', type: 'agent', entity: {} }],
+                connections: []
+            })
+        )
+    beforeEach(() =>
+        queries.execute.mockResolvedValue([
+            {
+                id: 'authorized',
+                credentials: 'secret',
+                providerWithModels: {
+                    provider: 'test',
+                    label: 'Test',
+                    models: [
+                        {
+                            model: 'voice',
+                            model_type: AiModelTypeEnum.REALTIME,
+                            realtime: {
+                                voices: [{ id: 'speaker', label: 'Speaker' }],
+                                defaultVoice: 'speaker',
+                                notification: 'next-turn'
+                            }
+                        }
+                    ]
+                }
+            }
+        ])
+    )
+    it('resolves model and voice from the authorized catalog without exposing credentials', async () => {
+        const value = draft()
+        await service.configureRealtimeVoice(value, { modelId: 'authorized/voice', voice: 'speaker' })
+        expect(value.team.features.realtimeVoice).toEqual({
+            enabled: true,
+            voice: 'speaker',
+            copilotModel: {
+                copilotId: 'authorized',
+                model: 'voice',
+                modelType: AiModelTypeEnum.REALTIME
+            }
+        })
+        expect(JSON.stringify(await catalog.list())).not.toContain('secret')
+    })
+    it('rejects a forged voice, absent selection, or revoked model access', async () => {
+        await expect(
+            service.configureRealtimeVoice(draft(), { modelId: 'authorized/voice', voice: 'forged' })
+        ).rejects.toThrow()
+        await expect(service.configureRealtimeVoice(draft())).rejects.toThrow()
+        queries.execute.mockResolvedValueOnce([])
+        await expect(
+            service.configureRealtimeVoice(draft(), { modelId: 'authorized/voice', voice: 'speaker' })
+        ).rejects.toThrow()
+    })
+    it('rejects stale settings after the capability has been disabled', async () => {
+        const value = draft()
+        value.team.features.realtimeVoice.enabled = false
+        await expect(
+            service.configureRealtimeVoice(value, { modelId: 'authorized/voice', voice: 'speaker' })
+        ).rejects.toThrow()
+        await expect(service.configureRealtimeVoice(value)).resolves.toBeUndefined()
     })
 })

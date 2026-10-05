@@ -1,3 +1,4 @@
+import { AgentChatDispatchHandoffProcessor } from './plugins/agent-chat/agent-chat-dispatch.processor'
 import { BullModule } from '@nestjs/bull'
 import { Global, Module } from '@nestjs/common'
 import { DiscoveryModule } from '@nestjs/core'
@@ -73,7 +74,7 @@ import { AgentChatRealtimeService } from './agent-chat-realtime.service'
         ...Processors,
         ...CommandHandlers
     ],
-    exports: [HandoffQueueService, AgentChatRealtimeService]
+    exports: [HandoffQueueService, AgentChatRealtimeService, AgentChatDispatchHandoffProcessor]
 })
 export class HandoffQueueModule {
     constructor() {
