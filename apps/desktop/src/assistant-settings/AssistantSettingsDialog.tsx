@@ -14,20 +14,23 @@ import {
   TabsTrigger,
   TabsContent
 } from '@xpert-ai/shadcn-ui'
-import { LoaderCircle } from 'lucide-react'
+import { ExternalLink, LoaderCircle } from 'lucide-react'
 import { t } from '../i18n'
 import { invoke } from '../host'
 import { TemplateRequirements } from '../catalog/TemplateRequirements'
 import type { Bot } from '../types'
 import type { AssistantSettings } from './types'
 import { AssistantAppearanceDialog } from '../avatar/AssistantAppearanceDialog'
+import { platformCommandUrl } from '../../electron/workbench-platform.mjs'
 
 export function AssistantSettingsDialog({
   bot,
+  webUrl,
   onClose,
   onSaved
 }: {
   bot: Bot
+  webUrl: string
   onClose: () => void
   onSaved: (id: string) => Promise<void>
 }) {
@@ -35,6 +38,7 @@ export function AssistantSettingsDialog({
   const [settings, setSettings] = useState<AssistantSettings | null>(null)
   const [capabilities, setCapabilities] = useState<string[] | undefined>()
   const [model, setModel] = useState('')
+  const [realtimeVoice, setRealtimeVoice] = useState<import('../catalog-types').VoiceSelection>()
   const [prompt, setPrompt] = useState('')
   const [dirty, setDirty] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -55,6 +59,7 @@ export function AssistantSettingsDialog({
             initialRevision.current = result.revision
             setPrompt(result.prompt)
             setModel(result.modelId)
+            setRealtimeVoice(result.realtimeVoice)
           } else {
             setModel((value) => (result.preflight.models.some((item) => item.id === value) ? value : ''))
           }
@@ -75,7 +80,13 @@ export function AssistantSettingsDialog({
     }
   }, [bot.id, capabilities, reload])
   const disabled = saving || loading
-  const canSave = !disabled && (!dirty || (settings?.canEdit && settings.preflight.canInstall && !!model && !error))
+  const studioUrl = platformCommandUrl(webUrl, { target: 'assistant.studio', assistantId: bot.assistantId || bot.id })
+  const voiceConfigured =
+    !(capabilities ?? (settings?.canEdit ? settings.capabilities : [])).includes('realtime-voice') ||
+    !!(realtimeVoice?.modelId && realtimeVoice.voice)
+  const canSave =
+    !disabled &&
+    (!dirty || (settings?.canEdit && settings.preflight.canInstall && !!model && voiceConfigured && !error))
   if (customizing)
     return (
       <AssistantAppearanceDialog
@@ -123,6 +134,9 @@ export function AssistantSettingsDialog({
                   revision: settings.revision,
                   prompt,
                   modelId: model,
+                  realtimeVoice: (capabilities ?? settings.capabilities).includes('realtime-voice')
+                    ? realtimeVoice
+                    : undefined,
                   capabilities: capabilities ?? settings.capabilities
                 })
                 setDirty(false)
@@ -189,6 +203,11 @@ export function AssistantSettingsDialog({
                         setDirty(true)
                         setCapabilities(value)
                       }}
+                      realtimeVoice={realtimeVoice}
+                      onRealtimeVoice={(value) => {
+                        setDirty(true)
+                        setRealtimeVoice(value)
+                      }}
                       model={model}
                       onModel={(value) => {
                         setDirty(true)
@@ -196,11 +215,19 @@ export function AssistantSettingsDialog({
                       }}
                       disabled={disabled}
                     />
-                    <p className="text-xs text-muted-foreground">
-                      {t(
-                        'Capabilities built into the original workflow are kept. Advanced workflow settings remain in Xpert.'
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground">
+                        {t('Capabilities built into the original workflow are kept.')}
+                      </p>
+                      {studioUrl && (
+                        <Button asChild variant="link" className="h-auto p-0 text-sm">
+                          <a href={studioUrl} target="_blank" rel="noopener noreferrer">
+                            {t('Edit workflow in Xpert Studio')}
+                            <ExternalLink className="size-3.5" aria-hidden="true" />
+                          </a>
+                        </Button>
                       )}
-                    </p>
+                    </div>
                   </TabsContent>
                   <TabsContent value="prompt" className="space-y-3">
                     <Label htmlFor="edit-assistant-prompt">{t('Instructions')}</Label>

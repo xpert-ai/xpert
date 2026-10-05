@@ -423,6 +423,7 @@ export function Sidebar({
       {dialog && (
         <AssistantDialog
           bot={dialog.bot}
+          webUrl={state.config.webUrl}
           mode={dialog.mode}
           onClose={() => setDialog(null)}
           onSidebar={list.setSidebar}

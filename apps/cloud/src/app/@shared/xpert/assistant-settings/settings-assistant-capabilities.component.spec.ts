@@ -71,6 +71,7 @@ function fixture() {
     confirmDiscard: signal(false),
     composing: signal(false),
     publishing: signal(false),
+    select: jest.fn(),
     invalidSections: signal([]),
     syncCapabilityRuntime: jest.fn(() =>
       form.controls.runtime.reset(createXpertSettingsForm(draft().team).controls.runtime.getRawValue())
@@ -93,6 +94,93 @@ function fixture() {
 }
 
 describe('Assistant capability settings', () => {
+  it('round-trips realtime model and voice, keeping edits local until explicit save', async () => {
+    const { component, configuration, api, source, result } = fixture()
+    configuration.options.push({
+      key: 'realtime-voice',
+      label: 'Calls',
+      description: '',
+      required: false,
+      available: true
+    })
+    configuration.selected = ['realtime-voice']
+    configuration.realtimeVoice = { modelId: 'provider/omni', voice: 'voice-a' }
+    configuration.setup.realtimeModels = [
+      {
+        id: 'provider/omni',
+        label: 'Omni',
+        copilotModel: {},
+        notification: 'text',
+        defaultVoice: 'voice-a',
+        voices: [
+          { id: 'voice-a', label: 'A' },
+          { id: 'voice-b', label: 'B' }
+        ]
+      }
+    ]
+    await component.load()
+    expect(component.voice()).toEqual(configuration.realtimeVoice)
+    expect(component.dirty()).toBe(false)
+    component.voice.set({ modelId: 'provider/omni', voice: 'voice-b' })
+    expect(component.pendingSection()).toBe('speech')
+    expect(component.dirty()).toBe(true)
+    expect(source.save).not.toHaveBeenCalled()
+    result.team.features = { realtimeVoice: { enabled: true, voice: 'voice-b' } }
+    expect(await component.save()).toBe(true)
+    expect(api.previewAssistantCapabilities).toHaveBeenCalledWith(
+      'assistant',
+      expect.objectContaining({
+        realtimeVoice: { modelId: 'provider/omni', voice: 'voice-b' },
+        capabilities: ['realtime-voice']
+      })
+    )
+    expect(component.dirty()).toBe(false)
+    component.voice.set({ modelId: 'provider/omni', voice: 'unknown' })
+    expect(await component.save()).toBe(false)
+    expect(api.previewAssistantCapabilities).toHaveBeenCalledTimes(1)
+    component.reset()
+    expect(component.voice()?.voice).toBe('voice-b')
+    expect(component.dirty()).toBe(false)
+  })
+
+  it('keeps the configured voice when changing a different capability and omits it when disabling calls', async () => {
+    const { component, configuration, api } = fixture()
+    configuration.selected = ['realtime-voice']
+    configuration.options.push({
+      key: 'realtime-voice',
+      label: 'Calls',
+      description: '',
+      required: false,
+      available: true
+    })
+    configuration.realtimeVoice = { modelId: 'provider/omni', voice: 'voice-a' }
+    configuration.setup.realtimeModels = [
+      {
+        id: 'provider/omni',
+        label: 'Omni',
+        copilotModel: {},
+        notification: 'text',
+        defaultVoice: 'voice-a',
+        voices: [{ id: 'voice-a', label: 'A' }]
+      }
+    ]
+    await component.load()
+    component.toggle('desktop-shell', true)
+    expect(await component.save()).toBe(true)
+    expect(api.previewAssistantCapabilities).toHaveBeenLastCalledWith(
+      'assistant',
+      expect.objectContaining({
+        realtimeVoice: configuration.realtimeVoice
+      })
+    )
+    component.toggle('realtime-voice', false)
+    expect(await component.save()).toBe(true)
+    expect(api.previewAssistantCapabilities).toHaveBeenLastCalledWith('assistant', {
+      revision: configuration.revision,
+      capabilities: ['desktop-shell']
+    })
+  })
+
   it('loads after rendering without refetching or saving when local signals change', async () => {
     const { component, api, source } = fixture()
     expect(api.getAssistantCapabilities).not.toHaveBeenCalled()

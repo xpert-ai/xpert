@@ -289,6 +289,12 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
                   label: text(option.label),
                   description: text(option.description)
                 })),
+                realtimeModels: check.realtimeModels?.map(({ id, label, voices, defaultVoice }) => ({
+                  id,
+                  label,
+                  voices,
+                  defaultVoice
+                })),
                 models: modelOptions(check.models, this.config.locale)
               }
             }
@@ -327,6 +333,7 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
           publish: true,
           basic: {
             title,
+            realtimeVoice: input.realtimeVoice,
             ...(input.prompt !== undefined ? { prompt: input.prompt } : {}),
             ...(model
               ? {

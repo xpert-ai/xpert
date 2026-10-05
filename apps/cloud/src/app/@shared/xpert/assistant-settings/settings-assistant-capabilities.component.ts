@@ -5,12 +5,13 @@ import {
   afterNextRender,
   computed,
   inject,
+  input,
   signal
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule } from '@angular/forms'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import type { AssistantCapabilityConfiguration } from '@xpert-ai/contracts'
+import type { AssistantCapabilityConfiguration, RealtimeVoiceSelection } from '@xpert-ai/contracts'
 import { ZardButtonComponent, ZardSwitchComponent } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
 import { cloneDeep, isEqual } from 'lodash-es'
@@ -18,15 +19,24 @@ import { XpertAPIService } from '@cloud/app/@core/services/xpert.service'
 import { getErrorMessage } from '@cloud/app/@core/types'
 import { SettingsCapabilitiesComponent } from './settings-capabilities.component'
 import { XpertSettingsEditor } from './xpert-settings.editor'
+import { SettingsRealtimeVoiceComponent } from './settings-realtime-voice.component'
 
 @Component({
   selector: 'xp-settings-assistant-capabilities',
   standalone: true,
-  imports: [FormsModule, TranslateModule, ZardButtonComponent, ZardSwitchComponent, SettingsCapabilitiesComponent],
+  imports: [
+    FormsModule,
+    TranslateModule,
+    ZardButtonComponent,
+    ZardSwitchComponent,
+    SettingsCapabilitiesComponent,
+    SettingsRealtimeVoiceComponent
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './settings-assistant-capabilities.component.html'
 })
 export class SettingsAssistantCapabilitiesComponent {
+  readonly page = input<'capabilities' | 'speech'>('capabilities')
   readonly editor = inject(XpertSettingsEditor)
   private readonly api = inject(XpertAPIService)
   private readonly translate = inject(TranslateService)
@@ -37,6 +47,21 @@ export class SettingsAssistantCapabilitiesComponent {
   readonly configuration = signal<AssistantCapabilityConfiguration | null>(null)
   readonly selected = signal<string[]>([])
   readonly sandboxCapabilityKey = 'sandbox-tools'
+  readonly voiceCapabilityKey = 'realtime-voice'
+  readonly voice = signal<RealtimeVoiceSelection | undefined>(undefined)
+  private readonly appliedVoice = signal<RealtimeVoiceSelection | undefined>(undefined)
+  readonly voiceOption = computed(() =>
+    this.configuration()?.options.find((option) => option.key === this.voiceCapabilityKey)
+  )
+  readonly voiceEnabled = computed(
+    () => this.voiceOption()?.required || this.selected().includes(this.voiceCapabilityKey)
+  )
+  readonly voiceDirty = computed(
+    () =>
+      this.selected().includes(this.voiceCapabilityKey) !== this.applied().includes(this.voiceCapabilityKey) ||
+      (this.voiceEnabled() && !isEqual(this.voice(), this.appliedVoice()))
+  )
+  readonly pendingSection = computed(() => (this.voiceDirty() ? ('speech' as const) : ('capabilities' as const)))
   private readonly applied = signal<string[]>([])
   private changed = false
   readonly provider = new FormControl(this.editor.source.draft().team.features?.sandbox?.provider ?? '', {
@@ -54,7 +79,8 @@ export class SettingsAssistantCapabilitiesComponent {
   readonly dirty = computed(() => {
     return (
       !isEqual([...this.selected()].sort(), [...this.applied()].sort()) ||
-      (this.sandboxEnabled() && this.providerValue() !== this.appliedProvider())
+      (this.sandboxEnabled() && this.providerValue() !== this.appliedProvider()) ||
+      this.voiceDirty()
     )
   })
 
@@ -73,8 +99,10 @@ export class SettingsAssistantCapabilitiesComponent {
       this.configuration.set(result)
       if (!this.dirty()) {
         this.selected.set(result.selected)
+        this.voice.set(result.realtimeVoice)
         this.appliedProvider.set(this.provider.value)
       }
+      this.appliedVoice.set(result.realtimeVoice)
       this.applied.set(result.selected)
     } catch (error) {
       this.error.set(getErrorMessage(error))
@@ -95,6 +123,7 @@ export class SettingsAssistantCapabilitiesComponent {
   reset() {
     this.selected.set([...this.applied()])
     this.provider.setValue(this.appliedProvider())
+    this.voice.set(this.appliedVoice())
     this.error.set(null)
   }
 
@@ -118,13 +147,24 @@ export class SettingsAssistantCapabilitiesComponent {
       if (!(await this.editor.save())) return false
       const snapshot = cloneDeep(this.editor.source.draft())
       const selection = [...this.selected()]
+      const voice = this.voice()
       const configuration = await firstValueFrom(this.api.getAssistantCapabilities(this.editor.source.id, selection))
       if (this.destroyRef.destroyed) return false
       this.configuration.set(configuration)
+      if (
+        this.voiceEnabled() &&
+        !configuration.setup.realtimeModels?.some(
+          (model) => model.id === voice?.modelId && model.voices.some((entry) => entry.id === voice.voice)
+        )
+      ) {
+        this.editor.select('speech')
+        throw new Error(this.translate.instant('XP.XpertSettings.RealtimeVoice.InvalidSelection'))
+      }
       const result = await firstValueFrom(
         this.api.previewAssistantCapabilities(this.editor.source.id, {
           revision: configuration.revision,
           capabilities: selection,
+          ...(this.voiceEnabled() ? { realtimeVoice: voice } : {}),
           ...(this.sandboxEnabled() ? { sandboxProvider: this.provider.value } : {})
         })
       )
@@ -140,6 +180,7 @@ export class SettingsAssistantCapabilitiesComponent {
       this.editor.syncCapabilityRuntime()
       this.provider.setValue(result.team.features?.sandbox?.provider ?? '')
       this.applied.set(selection)
+      this.appliedVoice.set(voice)
       this.changed = true
       this.appliedProvider.set(this.provider.value)
       return await this.editor.save()

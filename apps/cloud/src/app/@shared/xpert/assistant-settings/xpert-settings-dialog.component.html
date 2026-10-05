@@ -141,8 +141,11 @@
       />
     }
     <xp-settings-subagents [hidden]="editor.section() !== 'subagents'" />
-    @if (visitedSections().has('capabilities')) {
-      <xp-settings-assistant-capabilities [hidden]="editor.section() !== 'capabilities'" />
+    @if (visitedSections().has('capabilities') || visitedSections().has('speech')) {
+      <xp-settings-assistant-capabilities
+        [page]="editor.section() === 'speech' ? 'speech' : 'capabilities'"
+        [hidden]="editor.section() !== 'capabilities' && editor.section() !== 'speech'"
+      />
     }
     @if (visitedSections().has('skills')) {
       <xp-settings-middleware #skills mode="skills" [hidden]="editor.section() !== 'skills'" />

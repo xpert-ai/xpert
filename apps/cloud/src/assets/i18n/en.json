@@ -120,6 +120,18 @@
       "Retry": "Retry"
     },
     "XpertSettings": {
+      "RealtimeVoice": {
+        "Title": "Realtime voice calls",
+        "Description": "Use a separate realtime model for live conversations and task handoff.",
+        "Model": "Realtime voice model",
+        "Voice": "Voice",
+        "SelectModel": "Select a realtime model",
+        "SelectVoice": "Select a voice",
+        "SavedModelUnavailable": "Saved model is unavailable",
+        "InvalidSelection": "Choose an available realtime model and one of its voices.",
+        "Unavailable": "No realtime voice models are available. Configure a provider first.",
+        "Configure": "Configure calls"
+      },
       "EditInStudio": "Edit in Studio",
       "QAExperience": "Q&A experience",
       "LayoutPriority": "A saved personal layout takes priority over this setting.",
@@ -243,7 +255,7 @@
         "conversation": "Conversation",
         "workbench": "Appearance",
         "files": "File uploads",
-        "speech": "Speech",
+        "speech": "Voice & calls",
         "memory": "Memory & context",
         "runtime": "Runtime & sandbox",
         "personalization": "Personalization",
@@ -261,7 +273,7 @@
         "conversation": "Configure welcome messages, suggested questions and conversation titles.",
         "workbench": "Choose the message display, initial chat layout and default Workbench view.",
         "files": "Control which attachments users can add to conversations.",
-        "speech": "Configure voice playback and speech recognition.",
+        "speech": "Configure realtime calls, speech playback and speech recognition.",
         "memory": "Manage context, long-term memory and memory-based replies.",
         "runtime": "Configure execution limits and the sandbox environment.",
         "personalization": "Set behavior guidelines and your profile for your current assistant binding.",
@@ -279,7 +291,7 @@
         "conversation": "opener frequent questions suggestions title",
         "workbench": "appearance bubbles transcript messages layout two columns overlay maximized view",
         "files": "attachment document image audio video",
-        "speech": "text to speech speech to text TTS STT",
+        "speech": "realtime voice call model voice TTS STT",
         "memory": "summary profile QA memory reply threshold",
         "runtime": "concurrency recursion sandbox provider",
         "personalization": "personalization behavior profile soul user preferences",
@@ -3937,6 +3949,7 @@
       },
       "ModelType": "Model type",
       "ModelTypeValue": {
+        "realtime": "Realtime voice",
         "llm": "LLM",
         "text-embedding": "Text embedding",
         "rerank": "Rerank",

@@ -41,6 +41,18 @@
   },
   "XP": {
     "XpertSettings": {
+      "RealtimeVoice": {
+        "Title": "即時語音通話",
+        "Description": "使用獨立的即時語音模型進行通話並交辦任務。",
+        "Model": "即時語音模型",
+        "Voice": "音色",
+        "SelectModel": "選擇即時語音模型",
+        "SelectVoice": "選擇音色",
+        "SavedModelUnavailable": "已儲存的模型無法使用",
+        "InvalidSelection": "請選擇可用的即時語音模型及其支援的音色。",
+        "Unavailable": "暫無可用的即時語音模型，請先設定模型供應商。",
+        "Configure": "設定通話"
+      },
       "EditInStudio": "在 Studio 中編輯",
       "QAExperience": "问答经验",
       "LayoutPriority": "用户已保存的个人布局优先于此设置。",
@@ -164,7 +176,7 @@
         "conversation": "对话体验",
         "workbench": "外觀",
         "files": "文件上传",
-        "speech": "语音",
+        "speech": "語音與通話",
         "memory": "记忆与上下文",
         "runtime": "运行与沙盒",
         "personalization": "个性化",
@@ -182,7 +194,7 @@
         "conversation": "设置欢迎语、推荐问题和会话标题。",
         "workbench": "設定訊息展示模式、首次聊天版面和預設工作台視圖。",
         "files": "管理对话中允许上传的文件类型与数量。",
-        "speech": "设置语音播放和语音识别。",
+        "speech": "設定即時通話、語音播放與語音辨識。",
         "memory": "管理对话上下文、长期记忆，以及基于记忆的回复。",
         "runtime": "设置执行限制与沙盒运行环境。",
         "personalization": "设置助理的行为准则与用户档案，仅保存到当前用户的绑定偏好。",
@@ -200,7 +212,7 @@
         "conversation": "开场白 自动常见问题 问题建议 总结标题",
         "workbench": "外觀 氣泡 原始 訊息 展示 雙欄 浮窗 ChatKit 最大化 版面 視圖",
         "files": "附件 文档 图片 音频 视频 数量",
-        "speech": "文字转语音 语音转文本 朗读",
+        "speech": "实时语音 通话 语音模型 音色 文字转语音 语音转文本 朗读",
         "memory": "会话总结 长期记忆 用户画像 问答 记忆回复 阈值",
         "runtime": "并发 递归 次数 限制 沙盒 供应商",
         "personalization": "个性化 行为准则 用户档案 SOUL.md USER.md 偏好",
@@ -4626,6 +4638,7 @@
       },
       "ModelType": "模型類型",
       "ModelTypeValue": {
+        "realtime": "即時語音",
         "llm": "大型語言模型",
         "text-embedding": "文字嵌入",
         "rerank": "重新排序",

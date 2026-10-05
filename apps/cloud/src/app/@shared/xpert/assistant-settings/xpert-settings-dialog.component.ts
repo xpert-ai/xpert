@@ -87,7 +87,7 @@ export class XpertSettingsDialogComponent {
   readonly pendingSections = computed<XpertSettingsSection[]>(() => [
     ...(this.personalization()?.dirty ? ['personalization' as const] : []),
     ...(this.subagents()?.dirty() ? ['subagents' as const] : []),
-    ...(this.capabilities()?.dirty() ? ['capabilities' as const] : []),
+    ...(this.capabilities()?.dirty() ? [this.capabilities().pendingSection()] : []),
     ...(this.skills()?.dirty() ? ['skills' as const] : []),
     ...(this.middleware()?.dirty() ? ['middleware' as const] : [])
   ])
@@ -146,7 +146,8 @@ export class XpertSettingsDialogComponent {
   async saveCurrent() {
     if (this.editor.publishing() || this.editor.composing()) return
     if (this.editor.section() === 'personalization') await this.personalization()?.save()
-    else if (this.editor.section() === 'capabilities') await this.capabilities()?.save()
+    else if (this.editor.section() === 'capabilities' || this.editor.section() === 'speech')
+      await this.capabilities()?.save()
     else if (this.editor.section() === 'subagents') await this.subagents()?.save()
     else if (this.editor.section() === 'skills') await this.skills()?.save()
     else if (this.editor.section() === 'middleware') await this.middleware()?.save()
@@ -165,7 +166,7 @@ export class XpertSettingsDialogComponent {
         }
       }
       if (this.capabilities() && !(await this.capabilities().preparePublish())) {
-        this.select('capabilities')
+        this.select(this.capabilities().pendingSection())
         return false
       }
       return true

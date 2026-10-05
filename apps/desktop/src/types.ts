@@ -214,7 +214,14 @@ export interface HostMethods {
     output: import('./assistant-settings/types').AssistantSettings
   }
   saveAssistantConfiguration: {
-    input: { botId: string; revision: string; prompt: string; modelId: string; capabilities: string[] }
+    input: {
+      botId: string
+      revision: string
+      prompt: string
+      modelId: string
+      capabilities: string[]
+      realtimeVoice?: import('./catalog-types').VoiceSelection
+    }
     output: { botId: string }
   }
   editBot: { input: { botId: string; name?: string; description: string }; output: { botId: string } }
@@ -282,6 +289,7 @@ export interface HostMethods {
       title: string
       prompt?: string
       capabilities?: string[]
+      realtimeVoice?: import('./catalog-types').VoiceSelection
       modelId?: string
     }
     output: { botId: string }

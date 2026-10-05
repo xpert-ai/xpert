@@ -3,6 +3,16 @@ const assert = require('node:assert/strict')
 const { DesktopService } = require('../electron/service.cjs')
 const { platformCommandUrl } = require('../electron/workbench-platform.mjs')
 
+test('Studio links open the selected assistant within the configured deployment', () => {
+  assert.equal(
+    platformCommandUrl('https://customer.example/platform/', { target: 'assistant.studio', assistantId: 'expert-1' }),
+    'https://customer.example/platform/xpert/x/expert-1/agents'
+  )
+  for (const assistantId of [undefined, '', '..', '../other', 'id?redirect=elsewhere', 'https://other.example']) {
+    assert.equal(platformCommandUrl('https://customer.example', { target: 'assistant.studio', assistantId }), null)
+  }
+})
+
 test('registration opens the configured web deployment without accepting arbitrary destinations', () => {
   for (const base of ['https://app.example.com', 'https://customer.example/xpert/', 'http://localhost:4200']) {
     assert.equal(platformCommandUrl(base, { target: 'auth.register' }), `${base.replace(/\/$/, '')}/auth/register`)

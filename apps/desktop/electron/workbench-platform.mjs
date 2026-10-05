@@ -7,6 +7,8 @@ export function platformCommandUrl(webUrl, payload) {
   let path
   const query = new URLSearchParams()
   if (payload.target === 'auth.register') path = 'auth/register'
+  else if (payload.target === 'assistant.studio' && id(payload.assistantId))
+    path = `xpert/x/${segment(payload.assistantId)}/agents`
   else if (payload.target === 'workspace.connectors.manage' && id(payload.workspaceId) && id(payload.organizationId)) {
     path = `xpert/w/${segment(payload.workspaceId)}/connectors`
     query.set('organizationId', payload.organizationId)
