@@ -7,6 +7,7 @@ import {
     UserOrganization,
     UserOrganizationService
 } from '@xpert-ai/server-core'
+import { RequestContext as SdkRequestContext } from '@xpert-ai/plugin-sdk'
 import { Repository } from 'typeorm'
 import { XpertWorkspaceAccessService } from './workspace-access.service'
 import { XpertWorkspace } from './workspace.entity'
@@ -19,6 +20,7 @@ describe('XpertWorkspaceService', () => {
         setCurrentUserDefaultWorkspaceId: jest.Mock
     }
     let workspaceRepository: {
+        createQueryBuilder: jest.Mock
         create: jest.Mock
         save: jest.Mock
         delete: jest.Mock
@@ -45,6 +47,7 @@ describe('XpertWorkspaceService', () => {
             setCurrentUserDefaultWorkspaceId: jest.fn()
         }
         workspaceRepository = {
+            createQueryBuilder: jest.fn(),
             create: jest.fn((workspace) => workspace),
             save: jest.fn(async (workspace: XpertWorkspace) => workspace),
             delete: jest.fn(),
@@ -79,11 +82,44 @@ describe('XpertWorkspaceService', () => {
         } as IUser)
         jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+        jest.spyOn(SdkRequestContext, 'currentUser').mockImplementation(() => RequestContext.currentUser())
+        jest.spyOn(SdkRequestContext, 'currentUserId').mockImplementation(() => RequestContext.currentUserId())
+        jest.spyOn(SdkRequestContext, 'getOrganizationId').mockImplementation(() => RequestContext.getOrganizationId())
+        jest.spyOn(SdkRequestContext, 'currentTenantId').mockImplementation(() => RequestContext.currentTenantId())
     })
 
     afterEach(() => {
         jest.restoreAllMocks()
     })
+
+    it.each(['tenant-1', 'tenant-2'])(
+        'scopes user-default lookup to the active tenant %s, organization and user',
+        async (tenantId) => {
+            jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue(tenantId)
+            const query = {
+                where: jest.fn().mockReturnThis(),
+                andWhere: jest.fn().mockReturnThis(),
+                getOne: jest.fn().mockResolvedValue(null)
+            }
+            workspaceRepository.createQueryBuilder.mockReturnValue(query)
+
+            await expect(service.findUserDefaultWorkspace('org-1', 'user-1')).resolves.toBeNull()
+
+            expect(query.where).toHaveBeenCalledWith('workspace.organizationId = :organizationId', {
+                organizationId: 'org-1'
+            })
+            expect(query.andWhere).toHaveBeenCalledWith('workspace.tenantId = :tenantId', { tenantId })
+            expect(query.andWhere).toHaveBeenCalledWith(
+                `COALESCE((workspace.settings)::jsonb -> 'system' ->> 'kind', '') = :kind`,
+                { kind: 'user-default' }
+            )
+            expect(query.andWhere).toHaveBeenCalledWith(
+                `COALESCE((workspace.settings)::jsonb -> 'system' ->> 'userId', '') = :userId`,
+                { userId: 'user-1' }
+            )
+            expect(query.getOne).toHaveBeenCalledTimes(1)
+        }
+    )
 
     it('passes authoring purpose to accessible workspace listing', async () => {
         const workspace = Object.assign(new XpertWorkspace(), {

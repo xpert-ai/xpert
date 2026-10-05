@@ -1,13 +1,13 @@
 import { IUser, TXpertWorkspaceAccessPurpose, TXpertWorkspaceVisibility } from '@xpert-ai/contracts'
 import {
     PaginationParams,
-    RequestContext,
     TenantOrganizationAwareCrudService,
     User,
     UserOrganization,
     UserOrganizationService
 } from '@xpert-ai/server-core'
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { InjectRepository } from '@nestjs/typeorm'
 import { t } from 'i18next'
 import { FindOneOptions, In, Repository } from 'typeorm'
@@ -298,6 +298,7 @@ export class XpertWorkspaceService extends TenantOrganizationAwareCrudService<Xp
         return this.workspaceRepository
             .createQueryBuilder('workspace')
             .where('workspace.organizationId = :organizationId', { organizationId })
+            .andWhere('workspace.tenantId = :tenantId', { tenantId: RequestContext.currentTenantId() })
             .andWhere(`COALESCE((workspace.settings)::jsonb -> 'system' ->> 'kind', '') = :kind`, {
                 kind: 'user-default'
             })
