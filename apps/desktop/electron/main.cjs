@@ -187,7 +187,11 @@ else {
       const result = await dispatch(service, method, argument)
       if (previousLocale !== service.config.locale) updateApplicationMenu()
       // Only a host-verified, live connection attempt may bring Desktop back from browser authorization.
-      if (method === 'checkPluginConnection' && result.ok && result.value.status === 'connected') {
+      if (
+        ['checkPluginConnection', 'bosiCheckConnection'].includes(method) &&
+        result.ok &&
+        result.value.status === 'connected'
+      ) {
         if (window?.isMinimized()) window.restore()
         window?.show()
         app.focus({ steal: true })

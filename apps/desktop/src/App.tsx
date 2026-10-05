@@ -14,6 +14,7 @@ import { applyDesktopTheme } from './theme'
 import { defaultAppearance } from './appearance-types'
 import { AssistantPreviewScope } from './profile/PreviewScope'
 import type { SettingsSection } from './settings/sections'
+import { BosiOnboarding } from './bosi/BosiOnboarding'
 import { subscribeAppActivation } from './app-activation'
 
 export function App() {
@@ -24,6 +25,7 @@ export function App() {
   const [initialThread, setInitialThread] = useState<string | null>(null)
   const [notice, setNotice] = useState<ConversationNotice>()
   const [selectionVersion, setSelectionVersion] = useState(0)
+  const [bosiReady, setBosiReady] = useState(false)
   const selectBot = (id: string, threadId: string | null = null) => {
     setSelected(id)
     setInitialThread(threadId)
@@ -58,6 +60,9 @@ export function App() {
   const request = useRef(0)
   const loadingBots = useRef<number | null>(null)
   const binding = `${state?.config.apiUrl || ''}:${state?.profile?.user.tenantId || ''}:${state?.profile?.user.id || ''}:${state?.profile?.organizationId || ''}`
+
+  const bindingRef = useRef(binding)
+  bindingRef.current = binding
 
   const initialize = useCallback(async () => {
     setFatal('')
@@ -113,6 +118,7 @@ export function App() {
   useEffect(() => {
     request.current++
     setBots([])
+    setBosiReady(false)
     setSelected(null)
     setInitialThread(null)
     setNotice(undefined)
@@ -133,7 +139,7 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state?.config.locale])
   useEffect(() => {
-    if (!state?.profile?.organizationId) return
+    if (!bosiReady || !state?.profile?.organizationId) return
     let refreshedAt = 0
     const refresh = () => {
       if (document.visibilityState !== 'visible' || Date.now() - refreshedAt < 1000) return
@@ -141,7 +147,7 @@ export function App() {
       void loadBots({ background: true })
     }
     return subscribeAppActivation(refresh)
-  }, [binding, state?.profile?.organizationId, loadBots])
+  }, [binding, bosiReady, state?.profile?.organizationId, loadBots])
 
   if (!state)
     return (
@@ -218,7 +224,19 @@ export function App() {
               />
             </AssistantPreviewScope>
             <main className="flex min-w-0 flex-1 flex-col">
-              {bot ? (
+              {!bosiReady && state.profile.organizationId ? (
+                <BosiOnboarding
+                  key={binding}
+                  organizationId={state.profile.organizationId}
+                  onReady={async (id, threadId) => {
+                    if (bindingRef.current !== binding) return
+                    await loadBots()
+                    if (bindingRef.current !== binding) return
+                    selectBot(id, threadId)
+                    setBosiReady(true)
+                  }}
+                />
+              ) : bot ? (
                 <ChatPanel
                   key={`${binding}:${bot.id}:${selectionVersion}`}
                   initialThread={initialThread}

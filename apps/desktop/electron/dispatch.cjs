@@ -1,6 +1,15 @@
 const { translate } = require('./i18n/index.mjs')
 const { ClientError } = require('./service.cjs')
 const methods = new Set([
+  'bosiSetup',
+  'bosiWorkspace',
+  'createBosi',
+  'bosiWelcome',
+  'bosiConnections',
+  'bosiOnboarding',
+  'bosiChoose',
+  'bosiConnect',
+  'bosiCheckConnection',
   'usageMembership',
   'usagePeriods',
   'usageOverview',

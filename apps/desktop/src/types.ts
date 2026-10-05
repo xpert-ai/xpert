@@ -89,6 +89,30 @@ export interface WorkbenchSession {
   organizationId: string
 }
 export interface HostMethods {
+  bosiOnboarding: { input: undefined; output: import('@xpert-ai/contracts').BosiOnboardingCatalog }
+  bosiChoose: {
+    input: import('@xpert-ai/contracts').BosiOnboardingChoice
+    output: import('@xpert-ai/contracts').BosiOnboardingCatalog
+  }
+  bosiConnect: {
+    input: { provider: string }
+    output: {
+      attemptId: string
+      target: { target: 'bosi.connector.connect'; workspaceId: string; bindingId: string; organizationId: string }
+    }
+  }
+  bosiCheckConnection: { input: { attemptId: string }; output: { status: 'connected' | 'pending' } }
+  bosiSetup: {
+    input: { capabilities?: import('@xpert-ai/contracts').BosiCapability[] }
+    output: import('@xpert-ai/contracts').BosiSetup
+  }
+  createBosi: {
+    input: { capabilities: import('@xpert-ai/contracts').BosiCapability[]; modelId: string }
+    output: import('@xpert-ai/contracts').BosiSetup
+  }
+  bosiWelcome: { input: undefined; output: import('@xpert-ai/contracts').BosiSetup }
+  bosiWorkspace: { input: undefined; output: { id: string; name: string } }
+  bosiConnections: { input: { workspaceId: string }; output: { id: string; name: string; connected: boolean }[] }
   usageMembership: { input: undefined; output: import('./usage/types').UsageMembership | null }
   usagePeriods: { input: undefined; output: import('./usage/types').UsagePeriod[] }
   usageOverview: { input: import('./usage/types').UsageQuery; output: import('./usage/types').UsageOverview }

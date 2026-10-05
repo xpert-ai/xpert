@@ -396,7 +396,8 @@ class DesktopService {
       retry = true,
       timeout = 20000,
       responseType = 'json',
-      errorMessages
+      errorMessages,
+      includeServerMessage = false
     } = {}
   ) {
     if (auth && !this.credentials) throw new ClientError('Please sign in first.', 401)
@@ -438,7 +439,17 @@ class DesktopService {
         if (error.status === 401) this.logout()
         throw error
       }
-      return this.request(path, { method, body, auth, scope, retry: false, timeout, responseType, errorMessages })
+      return this.request(path, {
+        method,
+        body,
+        auth,
+        scope,
+        retry: false,
+        timeout,
+        responseType,
+        errorMessages,
+        includeServerMessage
+      })
     }
     if (!response.ok) {
       if (response.status === 401)
@@ -446,6 +457,14 @@ class DesktopService {
           auth ? 'Your session expired. Please sign in again.' : 'Incorrect email or password.',
           401
         )
+      if (includeServerMessage && [400, 403, 404, 409, 422].includes(response.status)) {
+        const failure = await response
+          .clone()
+          .json()
+          .catch(() => null)
+        if (typeof failure?.message === 'string' && failure.message.length <= 1000)
+          throw new ClientError(failure.message, response.status)
+      }
       if (response.status === 403) throw new ClientError('This account does not have access.', 403)
       if (errorMessages && [400, 409].includes(response.status)) {
         const failure = await response.json().catch(() => null)
@@ -484,3 +503,4 @@ Object.assign(DesktopService.prototype, require('./shell/methods.cjs').createShe
 module.exports = { DesktopService, ClientError, DEFAULT_CONFIG, parseConfig, webUrl }
 
 Object.assign(DesktopService.prototype, require('./workbench.cjs').createWorkbenchMethods(ClientError))
+Object.assign(DesktopService.prototype, require('./bosi.cjs').createBosiMethods(ClientError))

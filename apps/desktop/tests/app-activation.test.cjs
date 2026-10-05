@@ -150,6 +150,10 @@ test('sidebar ignores DOM focus and keeps rows and conversation mounted during n
           )
         }
       },
+      './bosi/BosiOnboarding': {
+        BosiOnboarding: ({ onReady }) =>
+          React.createElement('button', { id: 'ready', onClick: () => onReady('bosi', null) }, 'Ready')
+      },
       './ChatPanel': { ChatPanel: () => React.createElement('iframe', { title: 'Chat', id: 'chat' }) },
       './profile/PreviewScope': { AssistantPreviewScope: ({ children }) => children },
       './ConnectionSettings': { ConnectionSettings: () => null },
@@ -168,6 +172,7 @@ test('sidebar ignores DOM focus and keeps rows and conversation mounted during n
     global.IS_REACT_ACT_ENVIRONMENT = previous.act
   })
   await React.act(() => root.render(React.createElement(App)))
+  await React.act(() => document.getElementById('ready').click())
   const count = (method) => calls.filter((value) => value === method).length
   const baseline = { bots: count('listBots'), activity: count('botActivity') }
   const row = document.getElementById('bot-row')
