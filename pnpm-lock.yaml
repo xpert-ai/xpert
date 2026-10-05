@@ -794,6 +794,9 @@ importers:
       electron-builder:
         specifier: ^26.0.12
         version: 26.15.3(electron-builder-squirrel-windows@26.15.3)
+      jsdom:
+        specifier: 26.1.0
+        version: 26.1.0
       lucide-react:
         specifier: ^1.21.0
         version: 1.21.0(react@19.3.0)

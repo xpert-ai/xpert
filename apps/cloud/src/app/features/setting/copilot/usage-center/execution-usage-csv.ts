@@ -57,7 +57,7 @@ export function executionUsageCsv(items: IModelUsageLedger[]): string {
         row
           .map((value) => {
             const safe = /^[\s]*[=+\-@]/.test(value) ? `'${value}` : value
-            return `"${safe.replaceAll('"', '""')}"`
+            return `"${safe.replace(/"/g, '""')}"`
           })
           .join(',')
       )
