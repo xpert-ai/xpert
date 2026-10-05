@@ -44,6 +44,7 @@ function parseAppearance(value) {
   const input = object(value, 'Appearance')
   const desktop = { ...defaults.appearance.desktop, ...object(input.desktop ?? {}, 'Desktop') }
   const chatkit = { ...defaults.appearance.chatkit, ...object(input.chatkit ?? {}, 'ChatKit') }
+  if (input.chatkit?.messagePresentation === undefined) chatkit.messagePresentation = 'transcript'
   let grayscale = null
   if (chatkit.grayscale !== null) {
     const gray = object(chatkit.grayscale, 'Grayscale')

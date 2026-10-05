@@ -7,14 +7,15 @@ const fs = require('node:fs')
 const os = require('node:os')
 const path = require('node:path')
 
-test('legacy configuration gains independent appearance defaults', () => {
+test('new configurations use independent bubble presentation defaults', () => {
   const first = parseConfig(DEFAULT_CONFIG)
   const second = parseConfig(DEFAULT_CONFIG)
   first.appearance.desktop.light.primary = '#123456'
   assert.deepEqual(second.appearance.desktop.light, {})
   assert.equal(second.appearance.chatkit.radius, 'soft')
   assert.equal(second.appearance.chatkit.baseSize, 15)
-  assert.equal(second.appearance.chatkit.messagePresentation, 'transcript')
+  assert.equal(second.appearance.chatkit.messagePresentation, 'bubbles')
+  assert.equal(new DesktopService().snapshot().config.appearance.chatkit.messagePresentation, 'bubbles')
 })
 
 test('saved chat themes without a presentation preference keep their styling and use the original layout', () => {
@@ -24,6 +25,48 @@ test('saved chat themes without a presentation preference keep their styling and
   assert.equal(appearance.chatkit.baseSize, 18)
   assert.equal(appearance.chatkit.accentPrimary, '#123456')
 })
+
+for (const fixture of [
+  { name: 'no saved appearance', appearance: undefined, expected: 'transcript' },
+  { name: 'an empty saved appearance', appearance: {}, expected: 'transcript' },
+  {
+    name: 'legacy theme customizations',
+    appearance: { chatkit: { radius: 'pill', baseSize: 18, accentPrimary: '#123456' } },
+    expected: 'transcript'
+  },
+  {
+    name: 'an explicit transcript preference',
+    appearance: { chatkit: { messagePresentation: 'transcript' } },
+    expected: 'transcript'
+  },
+  {
+    name: 'an explicit bubble preference',
+    appearance: { chatkit: { messagePresentation: 'bubbles' } },
+    expected: 'bubbles'
+  }
+]) {
+  test(`host loading preserves ${fixture.name} through save and restart`, () => {
+    let saved = { config: { ...DEFAULT_CONFIG, appearance: fixture.appearance } }
+    const storage = {
+      read: () => structuredClone(saved),
+      write: (value) => {
+        saved = structuredClone(value)
+      }
+    }
+    const service = new DesktopService({ storage })
+    const config = service.snapshot().config
+    assert.equal(config.appearance.chatkit.messagePresentation, fixture.expected)
+    if (fixture.appearance?.chatkit?.radius) {
+      assert.equal(config.appearance.chatkit.radius, fixture.appearance.chatkit.radius)
+      assert.equal(config.appearance.chatkit.baseSize, fixture.appearance.chatkit.baseSize)
+      assert.equal(config.appearance.chatkit.accentPrimary, fixture.appearance.chatkit.accentPrimary)
+    }
+    service.configure({ ...config, theme: 'dark' })
+    const restored = new DesktopService({ storage }).snapshot().config
+    assert.equal(restored.theme, 'dark')
+    assert.deepEqual(restored.appearance, config.appearance)
+  })
+}
 
 test('theme edits survive host restart without clearing credentials, organization or bot access', async (t) => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'xpert-appearance-'))
@@ -91,7 +134,7 @@ test('unknown CSS keys are discarded and resetting removes previous overrides', 
   const reset = service.configure({ ...DEFAULT_CONFIG, appearance: parseAppearance() }).config.appearance
   assert.deepEqual(reset.desktop.light, {})
   assert.equal(reset.chatkit.grayscale, null)
-  assert.equal(reset.chatkit.messagePresentation, 'transcript')
+  assert.equal(reset.chatkit.messagePresentation, 'bubbles')
 })
 
 test('damaged saved appearance does not reset the configured Xpert service', () => {

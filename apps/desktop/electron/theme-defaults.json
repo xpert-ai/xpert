@@ -9,7 +9,7 @@
       "dark": {}
     },
     "chatkit": {
-      "messagePresentation": "transcript",
+      "messagePresentation": "bubbles",
       "radius": "soft",
       "density": "normal",
       "baseSize": 15,

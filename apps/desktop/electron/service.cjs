@@ -152,6 +152,8 @@ class DesktopService {
     let appearance
     try {
       appearance = parseAppearance(savedConfig.appearance)
+      if (saved?.config && !saved.config.appearance?.chatkit?.messagePresentation)
+        appearance.chatkit.messagePresentation = 'transcript'
     } catch {
       appearance = parseAppearance()
     }
