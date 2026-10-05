@@ -1694,6 +1694,9 @@ importers:
       word-extractor:
         specifier: 1.0.4
         version: 1.0.4
+      ws:
+        specifier: 8.18.0
+        version: 8.18.0
       xlsx:
         specifier: ^0.18.5
         version: 0.18.5
@@ -1719,6 +1722,9 @@ importers:
       '@types/turndown':
         specifier: 5.0.5
         version: 5.0.5
+      '@types/ws':
+        specifier: ^8.18.1
+        version: 8.18.1
       babel-jest:
         specifier: 29.7.0
         version: 29.7.0(@babel/core@7.29.7)
