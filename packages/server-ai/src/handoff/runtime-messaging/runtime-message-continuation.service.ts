@@ -232,7 +232,12 @@ export class RuntimeMessageContinuationService {
                           organizationId: invocation.scope.organizationId,
                           user,
                           execution: { id: claim.consumer.executionId },
-                          messageEnvelope
+                          messageEnvelope,
+                          streamPersistence: {
+                              transport: 'redis-stream',
+                              threadId: target.threadId,
+                              runId: claim.consumer.executionId
+                          }
                       })
                   )
                 : await this.commands.execute(
@@ -241,7 +246,12 @@ export class RuntimeMessageContinuationService {
                           agentKey: target.agentKey,
                           threadId: target.threadId,
                           execution: { id: claim.consumer.executionId },
-                          messageEnvelope
+                          messageEnvelope,
+                          streamPersistence: {
+                              transport: 'redis-stream',
+                              threadId: target.threadId,
+                              runId: claim.consumer.executionId
+                          }
                       })
                   )
         await lastValueFrom(stream, { defaultValue: undefined })

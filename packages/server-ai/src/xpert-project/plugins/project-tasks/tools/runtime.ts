@@ -1,3 +1,6 @@
+import { emitResourceCard } from '@xpert-ai/plugin-sdk'
+import { Logger } from '@nestjs/common'
+import type { ProjectTaskDispatchService } from '../../../runtime/project-task-dispatch.service'
 import { RunnableConfig } from '@langchain/core/runnables'
 import { tool } from '@langchain/core/tools'
 import { CommandBus } from '@nestjs/cqrs'
@@ -57,7 +60,15 @@ export function createProjectRuntimeTools(
         tool(
             async (input, config) => {
                 await assertPermission('edit')
-                return commandBus.execute(new DispatchProjectTaskCommand(context.projectId, input, caller(config)))
+                const receipt: Awaited<ReturnType<ProjectTaskDispatchService['dispatch']>> = await commandBus.execute(
+                    new DispatchProjectTaskCommand(context.projectId, input, caller(config))
+                )
+                if (receipt.card)
+                    await emitResourceCard(receipt.card, config).catch(() => {
+                        Logger.warn('Committed task delegation card could not be emitted', 'ProjectTasks')
+                    })
+                const { card: _card, ...result } = receipt
+                return result
             },
             {
                 name: ProjectToolEnum.DispatchTask,

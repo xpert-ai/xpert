@@ -1,3 +1,5 @@
+import { projectTaskCard } from './project-task-card'
+import type { ConversationResourceCard } from '@xpert-ai/contracts'
 import { AgentInvocationAuthorizationError } from '../../agent-invocation/invocation-errors'
 // Invariants: commit the attempt and pinned intent before invoking an adapter.
 // Project-row serialization is conservative until adapters can prove checkout isolation.
@@ -46,7 +48,7 @@ export class ProjectTaskDispatchService {
         projectId: string,
         input: ProjectTaskDispatchInput,
         caller: ProjectTaskCaller
-    ): Promise<ProjectTaskDispatchReceipt> {
+    ): Promise<ProjectTaskDispatchReceipt & { card: ConversationResourceCard }> {
         const parsed = projectTaskDispatchInputSchema.safeParse(input)
         if (!parsed.success) throw projectTaskRuntimeError('Invalid')
         input = parsed.data
@@ -217,7 +219,9 @@ export class ProjectTaskDispatchService {
     }
 
     /** Replaying a saved intent also recovers a crash before Invocation reservation. Never invent a new call ID. */
-    private async submit(execution: XpertProjectTaskExecution): Promise<ProjectTaskDispatchReceipt> {
+    private async submit(
+        execution: XpertProjectTaskExecution
+    ): Promise<ProjectTaskDispatchReceipt & { card: ConversationResourceCard }> {
         const intent = this.intent(execution)
         const reserved = await this.executions.manager.getRepository(AgentInvocationEntity).findOneBy({
             id: execution.invocationId,
@@ -309,7 +313,16 @@ export class ProjectTaskDispatchService {
             projectTaskId: execution.taskId,
             taskExecutionId: execution.id,
             invocationId: invocation.id,
-            status: invocation.status
+            status: invocation.status,
+            card: projectTaskCard({
+                type: 'execution',
+                id: execution.id,
+                title: execution.specificationSnapshot.specification.title,
+                status: invocation.status,
+                attempt: execution.attempt,
+                purpose: execution.purpose?.type,
+                provider: invocation.request.target.provider
+            })
         }
     }
 

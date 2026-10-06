@@ -158,6 +158,10 @@ describe('explicit Project task delegation', () => {
     it('commits a pinned implementation attempt before launching and returns all three identities', async () => {
         const f = await fixture()
         const receipt = await f.service.dispatch(f.scope.projectId, f.input, f.caller)
+        expect(receipt.card).toMatchObject({
+            resource: { namespace: 'platform.project-tasks', type: 'execution', id: receipt.taskExecutionId },
+            open: { target: 'workbench.view', viewKey: 'platform.project-tasks__timeline' }
+        })
         expect(receipt).toMatchObject({
             projectTaskId: f.task.id,
             taskExecutionId: f.rows[0].id,

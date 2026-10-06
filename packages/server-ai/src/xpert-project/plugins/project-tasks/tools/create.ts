@@ -1,3 +1,6 @@
+import { emitResourceCard } from '@xpert-ai/plugin-sdk'
+import { Logger } from '@nestjs/common'
+import { projectTaskCard } from '../../../runtime/project-task-card'
 import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { tool } from '@langchain/core/tools'
 import {
@@ -39,6 +42,10 @@ export const createCreateTasksTool = ({
                     steps: taskInput.steps?.map((step, i) => ({ ...step, stepIndex: i + 1, status: 'pending' }))
                 } as IXpertProjectTask)
                 tasks.push(task)
+                await emitResourceCard(
+                    projectTaskCard({ type: 'task', id: task.id, title: task.title || task.name, status: task.status }),
+                    config
+                ).catch(() => Logger.warn('Committed task card could not be emitted', 'ProjectTasks'))
                 if (conversationId) {
                     await service.linkConversation(projectId, task.id, {
                         conversationId,

@@ -1,3 +1,4 @@
+jest.mock('./thread-activity/thread-activity.service', () => ({ ThreadActivityService: class {} }))
 jest.mock('../chat-conversation/thread-run-control.service', () => ({
     ThreadRunControlService: class {},
     threadGraphRevision: () => 'graph-v1',
@@ -48,7 +49,7 @@ jest.mock('./public-xpert-principal', () => ({
 }))
 
 import { EventEmitter } from 'events'
-import { ForbiddenException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException } from '@nestjs/common'
 import { EMPTY } from 'rxjs'
 import { RunCreateStreamCommand } from './commands'
 import { getPublicXpertSessionConversationScope } from './public-xpert-principal'
@@ -58,6 +59,45 @@ describe('ThreadsController', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         ;(getPublicXpertSessionConversationScope as jest.Mock).mockReturnValue(null)
+    })
+
+    it('rejects a malformed replay cursor before opening a Redis reader', async () => {
+        const queryBus = { execute: jest.fn(async () => ({ threadId: 'thread' })) }
+        const redis = { createSseStream: jest.fn() }
+        const controller = new ThreadsController({} as never, queryBus as never, {} as never, redis as never)
+        await expect(
+            controller.joinRunStream({} as never, {} as never, 'thread', 'run', 'invalid-cursor')
+        ).rejects.toBeInstanceOf(BadRequestException)
+        expect(queryBus.execute).toHaveBeenCalledTimes(2)
+        expect(redis.createSseStream).not.toHaveBeenCalled()
+    })
+
+    it('authorizes discovery before opening and before each snapshot read', async () => {
+        const conversation = { id: 'conversation' }
+        const queries = { execute: jest.fn().mockResolvedValue(conversation) }
+        const activity = {
+            snapshot: jest.fn().mockResolvedValue({ version: 1, threadId: 'thread', runs: [], cards: [] })
+        }
+        const controller = new ThreadsController(
+            {} as never,
+            queries as never,
+            {} as never,
+            {} as never,
+            undefined,
+            undefined,
+            activity as never
+        )
+        const response = Object.assign(new EventEmitter(), { destroyed: false, writableEnded: false, write: jest.fn() })
+        const { firstValueFrom } = await import('rxjs')
+        const stream = await controller.streamThreadActivity(response as never, 'thread')
+        await firstValueFrom(stream)
+        response.emit('close')
+        expect(queries.execute).toHaveBeenCalledTimes(2)
+        expect(activity.snapshot).toHaveBeenCalledWith(conversation, 'thread')
+        queries.execute.mockRejectedValue(new ForbiddenException())
+        await expect(controller.streamThreadActivity(response as never, 'thread')).rejects.toBeInstanceOf(
+            ForbiddenException
+        )
     })
 
     it('forwards display snapshot and token only after contribution access checks', async () => {

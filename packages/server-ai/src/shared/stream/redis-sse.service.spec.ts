@@ -352,6 +352,94 @@ describe('RedisSseStreamService', () => {
         expect(appendCompleteEvent).toHaveBeenCalledWith('thread-1', 'run-1')
     })
 
+    it('serializes writes before completion and runs a shared producer once', async () => {
+        const service = new RedisSseStreamService(createRedisMock() as never)
+        const writes: unknown[] = []
+        let release: () => void
+        const blocked = new Promise<void>((done) => {
+            release = done
+        })
+        jest.spyOn(service, 'appendEvent').mockImplementation(async (_thread, _run, data) => {
+            if (writes.length === 1) await blocked
+            writes.push(data)
+            return `${writes.length}-0`
+        })
+        let calls = 0
+        const { Observable } = jest.requireActual<typeof import('rxjs')>('rxjs')
+        const source = new Observable<MessageEvent>((subscriber) => {
+            calls++
+            subscriber.next({ data: { type: 'message', data: 'a' } } as MessageEvent)
+            subscriber.next({ data: { type: 'message', data: 'b' } } as MessageEvent)
+            subscriber.complete()
+        })
+        const shared = service.wrapChatStream(source, {
+            target: { transport: 'redis-stream', threadId: 'thread', runId: 'run' }
+        })
+        const a = lastValueFrom(shared.pipe(toArray())),
+            b = lastValueFrom(shared.pipe(toArray()))
+        await Promise.resolve()
+        await Promise.resolve()
+        expect(writes).toEqual([{ type: 'stream_start' }])
+        release()
+        await Promise.all([a, b])
+        expect(calls).toBe(1)
+        expect(writes).toEqual([
+            { type: 'stream_start' },
+            { type: 'message', data: 'a' },
+            { type: 'message', data: 'b' },
+            { type: 'complete' }
+        ])
+    })
+
+    it('signals reconciliation when one event cannot be serialized without losing completion', async () => {
+        const service = new RedisSseStreamService(createRedisMock() as never)
+        const append = jest.spyOn(service, 'appendEvent').mockResolvedValue('1-0')
+        const { of } = jest.requireActual<typeof import('rxjs')>('rxjs')
+        const payload: { type: string; data?: unknown } = { type: 'message' }
+        payload.data = payload
+        const stream = service.wrapChatStream(of({ data: payload } as MessageEvent), {
+            target: { transport: 'redis-stream', threadId: 'thread', runId: 'run' }
+        })
+        await lastValueFrom(stream)
+        expect(append.mock.calls.map((call) => call[2])).toEqual([
+            { type: 'stream_start' },
+            { type: 'stream_resync' },
+            { type: 'complete' }
+        ])
+    })
+
+    it('requests snapshot recovery for a trimmed replay instead of emitting partial deltas', async () => {
+        const redis = createRedisMock()
+        redis.sendCommand.mockImplementation(async (args: string[]) =>
+            args[0] === 'XRANGE' ? [['20-0', ['data', JSON.stringify({ type: 'message', data: 'tail' })]]] : 1
+        )
+        const service = new RedisSseStreamService(redis as never)
+        const { stream } = await service.createSseStream({
+            threadId: 'thread',
+            runId: 'run',
+            mode: 'join',
+            requireReplayStart: true,
+            lastEventId: '10-0'
+        })
+        const events = await lastValueFrom(stream.pipe(toArray()))
+        expect(events.map((event) => event.data)).toEqual([{ type: 'stream_resync' }, { type: 'complete' }])
+    })
+
+    it('finishes an expired terminal run with an explicit resync instead of waiting forever', async () => {
+        const redis = createRedisMock()
+        redis.sendCommand.mockImplementation(async (args: string[]) => (args[0] === 'XRANGE' ? [] : 1))
+        const service = new RedisSseStreamService(redis as never)
+        const { stream } = await service.createSseStream({
+            threadId: 'thread',
+            runId: 'run',
+            mode: 'join',
+            requireReplayStart: true,
+            isRunFinished: async () => true
+        })
+        const events = await lastValueFrom(stream.pipe(toArray()))
+        expect(events[0].data).toEqual({ type: 'stream_resync' })
+    })
+
     it('leaves chat streams untouched when persistence is not enabled', async () => {
         const service = new RedisSseStreamService(createRedisMock() as any)
         const appendEvent = jest.spyOn(service, 'appendEvent')

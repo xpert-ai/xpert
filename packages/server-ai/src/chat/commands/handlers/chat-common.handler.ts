@@ -1,7 +1,8 @@
+import { RedisSseStreamService } from '../../../shared/stream'
 import { isToolMessage } from '@langchain/core/messages'
 import { RunnableLambda } from '@langchain/core/runnables'
 import { Command, CompiledStateGraph, NodeInterrupt } from '@langchain/langgraph'
-import { ForbiddenException, Inject, Logger } from '@nestjs/common'
+import { ForbiddenException, Inject, Logger, Optional } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import {
     appendMessageContent,
@@ -97,7 +98,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
         @Inject(VOLUME_CLIENT)
         private readonly volumeClient: VolumeClient,
         private readonly middlewareRegistry: AgentMiddlewareRegistry,
-        private readonly middlewareRuntime: AgentMiddlewareRuntimeService
+        private readonly middlewareRuntime: AgentMiddlewareRuntimeService,
+        @Optional() private readonly redisSseStreamService?: RedisSseStreamService
     ) {}
 
     public async execute(command: ChatCommonCommand): Promise<Observable<any>> {
@@ -439,7 +441,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
         // let _execution = null
         let operation: TSensitiveOperation = null
         const messageAppendContextTracker = createMessageAppendContextTracker()
-        return new Observable<MessageEvent>((subscriber) => {
+        const stream = new Observable<MessageEvent>((subscriber) => {
             // Send conversation start event
             subscriber.next({
                 data: {
@@ -825,6 +827,13 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                     }
                 }
             })
+        )
+        return (
+            this.redisSseStreamService?.wrapChatStream(stream, {
+                target: command.options.streamPersistence,
+                threadId: conversation.threadId,
+                runId: executionId
+            }) ?? stream
         )
     }
 

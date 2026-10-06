@@ -36,6 +36,7 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "InvalidStreamCursor": "Invalid output stream cursor.",
         "AgentInvocationModelSourceRequired": "A Computer Runtime binding for the Project general agent must configure modelSource with a real Assistant for model authorization.",
         "ProjectTaskRuntimeInvalid": "Task delegation requires a valid task specification, explicit completion requirements and a valid request.",
         "ProjectTaskRuntimeScope": "The task delegation caller or project scope is not authorized.",
@@ -1184,5 +1185,27 @@
         "WORKER_RESTARTED": "The Shell worker restarted. The command result is unknown.",
         "CANCEL_FAILED": "The process could not be confirmed stopped.",
         "EXPIRED_COMMAND": "The command expired before it could start."
+    },
+    "ProjectTaskCard": {
+        "Implementation": "Implementation",
+        "Review": "Independent review",
+        "Attempt": "Attempt {{count}}",
+        "Status": {
+            "todo": "To do",
+            "in_progress": "In progress",
+            "blocked": "Blocked",
+            "review": "Awaiting acceptance",
+            "done": "Task completed",
+            "completed": "Task completed",
+            "queued": "Queued",
+            "running": "Running",
+            "succeeded": "Execution succeeded",
+            "failed": "Execution failed",
+            "cancelled": "Cancelled",
+            "cancelling": "Cancelling",
+            "unknown": "Status unknown",
+            "restricted": "Execution access restricted",
+            "waiting_input": "Awaiting input"
+        }
     }
 }

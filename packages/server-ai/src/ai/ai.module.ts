@@ -1,3 +1,4 @@
+import { ThreadActivityService } from './thread-activity/thread-activity.service'
 import { ConversationArtifactsController } from './conversation-artifacts.controller'
 import { VoiceController, VoiceCapabilityController } from './voice.controller'
 import { VoiceSessionService } from '../realtime-voice/voice-session.service'
@@ -135,6 +136,7 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
         StoreController
     ],
     providers: [
+        ThreadActivityService,
         VoiceSessionService,
         VoiceTaskService,
         VoiceTaskProcessor,

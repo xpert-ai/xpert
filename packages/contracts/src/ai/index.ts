@@ -122,3 +122,5 @@ export * from './model-execution.model'
 export * from './agent-runtime.model'
 export * from './project-task-runtime.model'
 export * from './realtime-voice.model'
+
+export type { ThreadActivitySnapshot } from './thread-activity.model'

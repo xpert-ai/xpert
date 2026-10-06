@@ -1,3 +1,5 @@
+import { ThreadActivityService } from './thread-activity/thread-activity.service'
+import { threadActivityStream } from './thread-activity/thread-activity-stream'
 import { t } from 'i18next'
 import { CheckpointTuple } from '@langchain/langgraph'
 import { Metadata, Run, ThreadState } from '@langchain/langgraph-sdk'
@@ -104,7 +106,8 @@ export class ThreadsController {
         private readonly commandBus: CommandBus,
         private readonly redisSseStreamService: RedisSseStreamService,
         @Optional() private readonly conversationThreadService?: ChatConversationThreadService,
-        @Optional() private readonly threadRunControl?: ThreadRunControlService
+        @Optional() private readonly threadRunControl?: ThreadRunControlService,
+        @Optional() private readonly activity?: ThreadActivityService
     ) {}
 
     // Threads: A thread contains the accumulated outputs of a group of runs.
@@ -123,6 +126,20 @@ export class ThreadsController {
     @Get(':thread_id')
     async getThread(@Param('thread_id') thread_id: string) {
         return await this.queryBus.execute(new FindThreadQuery(thread_id))
+    }
+
+    @Header('content-type', 'text/event-stream')
+    @Header('Connection', 'keep-alive')
+    @Get(':thread_id/stream')
+    @Sse()
+    async streamThreadActivity(@Res() res: Response, @Param('thread_id') threadId: string) {
+        await this.ensureThreadAccess(threadId)
+        if (!this.activity) throw new UnimplementedException()
+        startSseHeartbeat(res)
+        return threadActivityStream(async () => {
+            const conversation = await this.ensureThreadAccess(threadId)
+            return this.activity.snapshot(conversation, threadId)
+        })
     }
 
     @Patch(':thread_id')
@@ -362,6 +379,9 @@ export class ThreadsController {
         @Headers('last-event-id') lastEventId?: string
     ) {
         await this.ensureThreadRunAccess(thread_id, run_id)
+        if (lastEventId && !/^\d+-\d+$/.test(lastEventId)) {
+            throw new BadRequestException(t('server-ai:Error.InvalidStreamCursor'))
+        }
         const owner = buildSseConnectionOwner(req, {
             mode: 'join',
             lastEventId
@@ -371,6 +391,11 @@ export class ThreadsController {
             runId: run_id,
             lastEventId,
             mode: 'join',
+            requireReplayStart: true,
+            isRunFinished: async () => {
+                const run = await this.ensureThreadRunAccess(thread_id, run_id)
+                return !['pending', 'running'].includes(run.status)
+            },
             owner
         })
 

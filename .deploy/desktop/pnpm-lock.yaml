@@ -10,8 +10,8 @@ catalogs:
       specifier: 0.11.1
       version: 0.11.1
     '@xpert-ai/chatkit-web-component':
-      specifier: 0.10.0
-      version: 0.10.0
+      specifier: 0.11.1
+      version: 0.11.1
 
 overrides:
   '@xpert-ai/plugin-sdk': workspace:*
@@ -97,7 +97,7 @@ importers:
         version: 0.11.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
       '@xpert-ai/chatkit-web-component':
         specifier: 'catalog:'
-        version: 0.10.0(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
+        version: 0.11.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
       '@xpert-ai/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts/dist
@@ -1940,23 +1940,17 @@ packages:
     engines: {node: '>=10.0.0'}
     deprecated: this version has critical issues, please update to the latest version
 
-  '@xpert-ai/chatkit-types@0.10.0':
-    resolution: {integrity: sha512-8pPlXICDfouSwiV22b7SqhFlVEtIOvmR2uLknqD7+lU9DXb4JtVs5oBkrmxcR1kmYIQFIPqZtUxoZU+EVFd+mA==}
-    peerDependencies:
-      '@a2ui/lit': ^0.8.1
-      '@langchain/core': 0.3.72
-
   '@xpert-ai/chatkit-types@0.11.1':
     resolution: {integrity: sha512-LRwSE8OlhVwTuAL4f+X1s1YvPx4P3MNCTKFCXHixWVl/w8tzyElNyZsiKqSN/2vbQnvubLBLFZGsFc/LkPnDjg==}
     peerDependencies:
       '@a2ui/lit': ^0.8.1
       '@langchain/core': 0.3.72
 
-  '@xpert-ai/chatkit-web-component@0.10.0':
-    resolution: {integrity: sha512-wODtHHGTxMSsWDLNdTyGVp3Vt4QMm8KN4bTNXXJHBN0jOQGs5bGW+Cwi6Hfsm0sIrojZf9A2+O1NRnfNfpYiHA==}
+  '@xpert-ai/chatkit-web-component@0.11.1':
+    resolution: {integrity: sha512-sjuiNW+VULx1alMBAEasRK62aUJAZ9+TtTs+jeYzLmwhgaZduq2hsnqJOx9MngVtEZ8ND6nfDpKXqxPuCZ9MXA==}
 
-  '@xpert-ai/chatkit-web-shared@0.10.0':
-    resolution: {integrity: sha512-bTo/7tOoj1Ne9Zd2CndK98eBTvpyW0PU9yotPredbWEKnJJsdNA9rZU9BWOYlQBAlKKiae9PIoQW75fKmsSmMA==}
+  '@xpert-ai/chatkit-web-shared@0.11.1':
+    resolution: {integrity: sha512-f+sbr2SPbIRvd0Vyy4vEdMTVRf8ovrH3TdLdaN7SgGFU/kOAIiCoXmHhuF4PQex0yeOTXPEcGQedJo8BKS3hBg==}
 
   abbrev@4.0.0:
     resolution: {integrity: sha512-a1wflyaL0tHtJSmLSOVybYhy22vRih4eduhhrkcjgrWGnRfrZtovJ2FRjxuTtkkj47O/baf0R86QU5OuYpz8fA==}
@@ -5595,28 +5589,23 @@ snapshots:
 
   '@xmldom/xmldom@0.8.13': {}
 
-  '@xpert-ai/chatkit-types@0.10.0(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))':
-    dependencies:
-      '@a2ui/lit': 0.8.3(signal-polyfill@0.2.2)
-      '@langchain/core': 0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67))
-
   '@xpert-ai/chatkit-types@0.11.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))':
     dependencies:
       '@a2ui/lit': 0.8.3(signal-polyfill@0.2.2)
       '@langchain/core': 0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67))
 
-  '@xpert-ai/chatkit-web-component@0.10.0(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))':
+  '@xpert-ai/chatkit-web-component@0.11.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))':
     dependencies:
-      '@xpert-ai/chatkit-types': 0.10.0(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
-      '@xpert-ai/chatkit-web-shared': 0.10.0(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
+      '@xpert-ai/chatkit-types': 0.11.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
+      '@xpert-ai/chatkit-web-shared': 0.11.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
     transitivePeerDependencies:
       - '@a2ui/lit'
       - '@langchain/core'
 
-  '@xpert-ai/chatkit-web-shared@0.10.0(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))':
+  '@xpert-ai/chatkit-web-shared@0.11.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))':
     dependencies:
       '@microsoft/fetch-event-source': 2.0.1
-      '@xpert-ai/chatkit-types': 0.10.0(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
+      '@xpert-ai/chatkit-types': 0.11.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
     transitivePeerDependencies:
       - '@a2ui/lit'
       - '@langchain/core'
