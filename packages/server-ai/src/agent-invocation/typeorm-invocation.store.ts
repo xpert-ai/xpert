@@ -103,6 +103,7 @@ export class TypeOrmAgentInvocationStore extends AgentInvocationStore {
             status: invocation.status,
             handle: invocation.handle,
             interaction: invocation.interaction,
+            progress: invocation.progress,
             result: invocation.result,
             error: invocation.error
         }

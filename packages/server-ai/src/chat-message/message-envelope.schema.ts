@@ -12,6 +12,7 @@ export const chatMessageEnvelopeSchema = z
             z.object({ type: z.literal('voice'), sessionId: id }).strict(),
             z.object({ type: z.literal('assistant'), xpertId: id }).strict(),
             z.object({ type: z.literal('agent'), xpertId: id, agentKey: id }).strict(),
+            z.object({ type: z.literal('runtime'), provider: id, bindingId: id, invocationId: id }).strict(),
             z.object({ type: z.literal('automation'), taskId: id }).strict()
         ]),
         presentation: z.enum(['message', 'event', 'runtime']),
@@ -22,14 +23,29 @@ export const chatMessageEnvelopeSchema = z
         correlation: z
             .object({
                 messageId: id.optional(),
+                replyToMessageId: id.optional(),
                 executionId: id.optional(),
                 invocationId: id.optional(),
-                taskId: id.optional()
+                taskId: id.optional(),
+                projectTaskId: id.optional(),
+                taskExecutionId: id.optional()
             })
             .strict()
             .optional()
     })
     .strict()
+    .superRefine((envelope, ctx) => {
+        if (
+            envelope.source.type === 'runtime' &&
+            envelope.correlation?.invocationId &&
+            envelope.source.invocationId !== envelope.correlation.invocationId
+        )
+            ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                path: ['correlation', 'invocationId'],
+                message: 'Invocation source mismatch'
+            })
+    })
 
 /** Validate host provenance and presentation at the command/queue boundary. */
 export function parseChatMessageEnvelope(options: { messageEnvelope?: unknown }): TChatMessageEnvelope | undefined {

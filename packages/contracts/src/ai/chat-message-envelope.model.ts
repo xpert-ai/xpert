@@ -4,6 +4,7 @@ export type TChatMessageSource =
   | { type: 'voice'; sessionId: string }
   | { type: 'assistant'; xpertId: string }
   | { type: 'agent'; xpertId: string; agentKey: string }
+  | { type: 'runtime'; provider: string; bindingId: string; invocationId: string }
   | { type: 'automation'; taskId: string }
 
 /** Presentation does not change model roles or remove input from execution/retry history. */
@@ -16,7 +17,16 @@ export interface TChatMessageEnvelope {
   presentation: TChatMessagePresentation
   /** Audited destination, not routing instructions. The authorized request owns routing. */
   target?: { xpertId: string; agentKey?: string; conversationId?: string; threadId?: string }
-  correlation?: { messageId?: string; executionId?: string; invocationId?: string; taskId?: string }
+  correlation?: {
+    messageId?: string
+    replyToMessageId?: string
+    executionId?: string
+    invocationId?: string
+    /** Existing platform task identity; never substitute a Project Task ID. */
+    taskId?: string
+    projectTaskId?: string
+    taskExecutionId?: string
+  }
 }
 
 /** Persistence boundary: unknown versions stay hidden until this host understands their policy. */

@@ -49,6 +49,70 @@ function fixture() {
 }
 
 describe('AgentInvocationRuntime', () => {
+    const dispatch = {
+        version: 1 as const,
+        requestId: '00000000-0000-4000-8000-000000000001',
+        sourceMessageId: 'source-message',
+        replyTo: {
+            xpertId: '00000000-0000-4000-8000-000000000002',
+            agentKey: 'main',
+            conversationId: '00000000-0000-4000-8000-000000000003',
+            threadId: 'thread'
+        }
+    }
+
+    it('pins reply metadata in the existing invocation identity without sending it to the adapter', async () => {
+        const f = fixture()
+        const request = { ...f.request, dispatch }
+        const first = await f.api.start(request)
+        expect(first.request.dispatch).toEqual(dispatch)
+        expect(await f.api.start(request)).toEqual(first)
+        expect(f.start).toHaveBeenCalledTimes(1)
+        expect(f.start.mock.calls[0][0]).not.toHaveProperty('dispatch')
+        await expect(
+            f.api.start({ ...request, dispatch: { ...dispatch, sourceMessageId: 'changed' } })
+        ).rejects.toThrow()
+        expect(f.start).toHaveBeenCalledTimes(1)
+    })
+
+    it('rejects malformed reply metadata before reservation or launch', async () => {
+        const f = fixture()
+        await expect(f.api.start({ ...f.request, dispatch: { ...dispatch, requestId: 'invalid' } })).rejects.toThrow()
+        expect(f.store.rows.size).toBe(0)
+        expect(f.start).not.toHaveBeenCalled()
+    })
+
+    it('persists reported progress without converting it to a successful result or business completion', async () => {
+        const f = fixture()
+        const progress = {
+            source: 'executor' as const,
+            observedAt: '2026-10-06T01:00:00Z',
+            phase: 'Testing',
+            steps: { completed: 3, total: 5 }
+        }
+        f.start.mockResolvedValue({ status: 'running', progress, handle: { sessionId: 'session', runId: 'run' } })
+        const started = await f.api.start(f.request)
+        expect(started.progress).toEqual(progress)
+        expect(started.status).toBe('running')
+        expect(started.result).toBeUndefined()
+        expect((await f.api.inspect(started.id)).progress).toEqual(progress)
+    })
+
+    it('does not accept an impossible progress count from an adapter', async () => {
+        const f = fixture()
+        f.start.mockResolvedValue({
+            status: 'running',
+            progress: {
+                source: 'executor',
+                observedAt: '2026-10-06T01:00:00Z',
+                steps: { completed: 6, total: 5 }
+            }
+        })
+        await expect(f.api.start(f.request)).rejects.toThrow()
+        expect([...f.store.rows.values()][0].invocation.progress).toBeUndefined()
+        expect([...f.store.rows.values()][0].invocation.status).toBe('unknown')
+    })
+
     it('rejects invalid delivery paths before reserving or starting a task', async () => {
         const f = fixture()
         await expect(

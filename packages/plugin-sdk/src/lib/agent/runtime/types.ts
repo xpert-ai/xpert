@@ -1,4 +1,6 @@
-import type { ModelExecutionEnvironment } from '@xpert-ai/contracts'
+import type { AgentInvocationStatus, AgentRuntimeProgress, ModelExecutionEnvironment } from '@xpert-ai/contracts'
+export type { AgentInvocationStatus, AgentRuntimeProgress } from '@xpert-ai/contracts'
+import type { AgentInvocationDispatchContext } from './dispatch'
 import type { AgentRunnerReceipt } from './execution-runner'
 import type { AgentOutputDelivery, AgentOutputExport, AgentResultArtifact, AgentResultItem } from './results'
 
@@ -50,22 +52,11 @@ export interface AgentRuntimeCapabilities {
   cancellation: boolean
   /** Work can continue after start() returns. */
   background: boolean
+  /** Omitted means unsupported. This declaration alone does not enable a host message API. */
+  runningMessages?: boolean
+  /** A new invocation may reuse a prior session only through an explicitly supported adapter path. */
+  sessionContinuation?: boolean
 }
-
-/**
- * Only succeeded, failed and cancelled are terminal.
- * waiting requires continuation; cancelling awaits confirmation.
- * unknown means the outcome is uncertain: reconcile before launching new work.
- */
-export type AgentInvocationStatus =
-  | 'queued'
-  | 'running'
-  | 'waiting'
-  | 'cancelling'
-  | 'succeeded'
-  | 'failed'
-  | 'cancelled'
-  | 'unknown'
 
 /** Provider-neutral task payload; supported structured fields depend on the adapter. */
 export interface AgentInvocationInput {
@@ -121,6 +112,8 @@ export interface AgentRuntimeObservation {
   handle?: AgentRuntimeHandle
   result?: AgentInvocationResult
   interaction?: AgentInteraction
+  /** Reported work/activity only; it never confirms business acceptance. */
+  progress?: AgentRuntimeProgress
   /** Safe diagnostic message without credentials or raw provider payloads. */
   error?: string
 }
@@ -134,6 +127,8 @@ export interface AgentInvocationRequest {
    */
   callId: string
   input: AgentInvocationInput
+  /** Optional host-owned asynchronous reply and project association; not supplied by the execution Agent. */
+  dispatch?: AgentInvocationDispatchContext
 }
 
 /** Host-owned invocation snapshot; not an update DTO. */

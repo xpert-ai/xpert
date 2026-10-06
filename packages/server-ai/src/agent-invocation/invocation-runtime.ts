@@ -1,9 +1,11 @@
 // Invariants: reserve before dispatch; ambiguous launch is never automatically retried.
 // Provider provenance and target revision stay pinned through checkpoint recovery.
 import { createHash } from 'crypto'
+import { agentRuntimeProgressSchema } from '@xpert-ai/contracts'
 import {
     AgentInvocation,
     agentOutputDeliverySchema,
+    agentInvocationDispatchContextSchema,
     AgentInvocationApi,
     AgentInvocationRequest,
     AgentInvocationScope,
@@ -55,8 +57,8 @@ export class AgentInvocationRuntime {
     }
 
     private async start(request: AgentInvocationRequest, access: AgentInvocationAccess): Promise<AgentInvocation> {
-        validateRequest(request)
         request = structuredClone(request)
+        validateRequest(request)
         await authorizeAgentInvocation(() => access.authorize(request.target))
         access.signal?.throwIfAborted()
         const id = invocationId(access.scope, request.callId)
@@ -188,6 +190,11 @@ export class AgentInvocationRuntime {
     }
 
     private async save(record: StoredAgentInvocation, observation: AgentRuntimeObservation, requireClaim = true) {
+        if (observation.progress !== undefined) {
+            const progress = agentRuntimeProgressSchema.safeParse(observation.progress)
+            if (!progress.success) throw invocationError('InvalidRequest')
+            observation = { ...observation, progress: progress.data }
+        }
         if (observation.status === 'succeeded' && !observation.result) throw invocationError('MissingResult')
         const next: StoredAgentInvocation = {
             ...record,
@@ -211,6 +218,11 @@ export function invocationError(code: AgentInvocationErrorCode) {
 }
 
 function validateRequest(request: AgentInvocationRequest) {
+    if (request.dispatch !== undefined) {
+        const dispatch = agentInvocationDispatchContextSchema.safeParse(request.dispatch)
+        if (!dispatch.success) throw invocationError('InvalidRequest')
+        request.dispatch = dispatch.data
+    }
     if (request.input?.delivery !== undefined && !agentOutputDeliverySchema.safeParse(request.input.delivery).success)
         throw invocationError('InvalidRequest')
     if (

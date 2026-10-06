@@ -23,5 +23,8 @@
     "@types/json-schema": "^7.0.15",
     "@xpert-ai/chatkit-types": "catalog:",
     "zod-to-json-schema": "^3.25.2"
+  },
+  "peerDependencies": {
+    "zod": "^3.25.0 || ^4.0.0"
   }
 }

@@ -32,6 +32,7 @@
         "ReferenceOnlyPrompt": "未包含文件正文，不支持直接按文本读取。请使用支持该格式的可用工具；对于 ZIP，先列出或解压条目，再处理所需的子文件。此引用不会改变文件访问权限。"
     },
     "Error": {
+        "ProjectTaskSpecificationInvalid": "任务规格无效或与已保存的摘要不一致。",
         "ChatMessageEnvelopeInvalid": "消息来源或展示设置无效。",
         "RealtimeModelRequired": "请先配置并授权可用的实时语音模型。",
         "RealtimeConfigurationInvalid": "请选择有效的实时语音模型和音色。",

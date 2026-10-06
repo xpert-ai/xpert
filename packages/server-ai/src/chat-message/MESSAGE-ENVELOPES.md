@@ -8,12 +8,16 @@ and the existing Agent invocation/task runtime.
 ## Contract
 
 - `version`: currently `1`.
-- `source`: explicit `user`, `voice`, `assistant`, `agent` or `automation` source.
+- `source`: explicit `user`, `voice`, `assistant`, `agent`, `runtime` or `automation` source.
   An Agent key is scoped to its `xpertId`; a voice source identifies its session.
+  External Runtime provenance uses `provider`, `bindingId` and `invocationId`,
+  never an invented Assistant ID. If correlation also names an invocation, it must match.
 - `target`: optional host-resolved Assistant/Agent and conversation/thread snapshot.
   The actual authorized command determines the destination.
 - `correlation`: optional originating message, execution, invocation and task IDs.
   Reuse existing invocation identities instead of introducing another task ledger.
+  `projectTaskId` and `taskExecutionId` are distinct from the existing platform
+  `taskId`; `replyToMessageId` identifies the request being answered.
 - `presentation`: `message` for ordinary transcript content, `event` for visible
   activity, or `runtime` for input excluded from public history. Source alone
   never implies that a message should be hidden.
@@ -59,3 +63,10 @@ send/queue/steer rules. Reply correlation and idempotent delivery must be handle
 by that transport. The envelope alone does not implement cross-Agent messaging,
 and an Agent-sourced message must not acquire user or system authority merely
 because the underlying model adapter serializes it as an input message.
+
+The Runtime event and result-consumption schemas are exported by plugin-sdk's
+`agent/handoff/agent-runtime-message.contract.ts`. They specify stable identities,
+not a working outbox/inbox or permission grant. Progress goes to task activity by
+default; a result points to a persisted invocation observation. Roll out consumers
+before producers: older hosts reject the new source and correlation fields at
+their strict command boundary. No additional column is needed for this JSONB extension.

@@ -32,6 +32,7 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "ProjectTaskSpecificationInvalid": "The task specification is invalid or no longer matches its saved digest.",
         "ChatMessageEnvelopeInvalid": "Invalid message provenance or presentation.",
         "RealtimeModelRequired": "Configure and authorize a realtime voice model first.",
         "RealtimeConfigurationInvalid": "Select a valid realtime model and voice.",

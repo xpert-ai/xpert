@@ -119,4 +119,6 @@ export * from './assistant-configuration.model'
 export * from './assistant-trigger.model'
 
 export * from './model-execution.model'
+export * from './agent-runtime.model'
+export * from './project-task-runtime.model'
 export * from './realtime-voice.model'

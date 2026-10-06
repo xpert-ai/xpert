@@ -30,6 +30,7 @@ describe('host message envelopes', () => {
         { type: 'user', userId: 'owner' },
         { type: 'voice', sessionId: 'session' },
         { type: 'assistant', xpertId: 'sender' },
+        { type: 'runtime', provider: 'opencode', bindingId: 'binding', invocationId: 'invocation' },
         { type: 'automation', taskId: 'scheduled-task' }
     ])('supports an explicit source without making it private: %j', (source) => {
         const messageEnvelope = { ...agent, source }
@@ -41,6 +42,18 @@ describe('host message envelopes', () => {
         { ...agent, version: 2 },
         { ...agent, presentation: 'secret' },
         { ...agent, source: { type: 'agent', xpertId: 'sender' } },
+        { ...agent, source: { type: 'runtime', provider: 'opencode', bindingId: 'binding' } },
+        { ...agent, source: { type: 'runtime', provider: 'opencode', bindingId: 'binding', invocationId: 'other' } },
+        {
+            ...agent,
+            source: {
+                type: 'runtime',
+                provider: 'opencode',
+                bindingId: 'binding',
+                invocationId: 'invocation',
+                xpertId: 'invented'
+            }
+        },
         { ...agent, target: { ...agent.target, tenantId: 'forged' } },
         { ...agent, runtimePrincipal: { type: 'assistant' } }
     ])('rejects invalid or authority-bearing envelopes at the command boundary', (messageEnvelope) => {
@@ -65,6 +78,22 @@ describe('host message envelopes', () => {
             expect(readChatMessageEnvelope({ messageEnvelope })).toBeUndefined()
         }
         expect(parseChatMessageEnvelope({})).toBeUndefined()
+    })
+
+    it('preserves distinct project task, attempt and reply correlations on external runtime messages', () => {
+        const messageEnvelope: TChatMessageEnvelope = {
+            ...agent,
+            source: { type: 'runtime', provider: 'opencode', bindingId: 'binding', invocationId: 'invocation' },
+            correlation: {
+                ...agent.correlation,
+                taskId: 'platform-task',
+                projectTaskId: 'project-task',
+                taskExecutionId: 'attempt',
+                replyToMessageId: 'dispatch-message'
+            }
+        }
+        expect(publicChatMessage({ messageEnvelope }).messageEnvelope).toEqual(messageEnvelope)
+        expect(instanceToPlain(new ChatMessageDTO({ messageEnvelope })).messageEnvelope).toEqual(messageEnvelope)
     })
 
     it('does not interpret third-party payloads as host provenance or presentation', () => {
