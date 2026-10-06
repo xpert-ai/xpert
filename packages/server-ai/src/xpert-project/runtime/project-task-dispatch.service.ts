@@ -5,6 +5,7 @@ import { AgentInvocationAuthorizationError } from '../../agent-invocation/invoca
 import { Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { randomUUID } from 'node:crypto'
+import { z } from 'zod/v3'
 import { In, Repository } from 'typeorm'
 import {
     ProjectTaskDispatchInput,
@@ -20,6 +21,7 @@ import { XpertProject } from '../entities/project.entity'
 import { XpertProjectTask } from '../entities/project-task.entity'
 import { XpertProjectTaskExecution } from '../entities/project-task-execution.entity'
 import { assertOrdinaryTask } from '../services/project-task-ownership'
+import { implementationEvidence, reviewPrompt } from './project-task-evidence'
 import {
     ProjectTaskCaller,
     ProjectTaskDispatchIntent,
@@ -51,7 +53,14 @@ export class ProjectTaskDispatchService {
         const scope = await this.context.resolve(projectId, caller)
         // Authorization precedes both reservation and idempotent replay.
         const target = await this.factory.resolveBackgroundTarget(scope, input.bindingId)
-        const purpose = { type: 'implementation' as const }
+        const purpose = input.purpose ?? { type: 'implementation' as const }
+        // Evidence-only confinement is currently enforced by the Computer runner.
+        if (
+            purpose.type === 'review' &&
+            (target.provider !== 'opencode' ||
+                !z.object({ type: z.literal('computer') }).safeParse(target.configuration.executionEnvironment).success)
+        )
+            throw projectTaskRuntimeError('Evidence')
         const execution = await this.executions.manager.transaction(async (manager) => {
             const where = { projectId, tenantId: scope.tenantId, organizationId: scope.organizationId }
             const project = await manager.getRepository(XpertProject).findOne({
@@ -94,7 +103,29 @@ export class ProjectTaskDispatchService {
             })
             if (!specification.success) throw projectTaskRuntimeError('Invalid')
             const specificationSnapshot = createProjectTaskSpecificationSnapshot(specification.data)
-            const prompt = implementationPrompt(specificationSnapshot.specification, input.instructions)
+            let prompt = implementationPrompt(specificationSnapshot.specification, input.instructions)
+            if (purpose.type === 'review') {
+                const subject = await implementationEvidence(
+                    manager,
+                    task,
+                    scope,
+                    purpose.implementationExecutionId,
+                    purpose.specificationDigest,
+                    purpose.evidence
+                )
+                if (
+                    subject.invocation.id !== purpose.implementationInvocationId ||
+                    subject.invocation.status !== 'succeeded'
+                )
+                    throw projectTaskRuntimeError('Evidence')
+                await this.factory.createCapturedApi(subject.invocation.scope).inspect(subject.invocation.id)
+                prompt = reviewPrompt(
+                    purpose,
+                    task,
+                    JSON.stringify(subject.invocation.result ?? null),
+                    subject.invocation.handle?.runner?.workingDirectory
+                )
+            }
             const predecessors = [...new Set(task.predecessorIds ?? [])]
             if (predecessors.length) {
                 const dependencies = await manager
@@ -221,6 +252,16 @@ export class ProjectTaskDispatchService {
                     intent.request.dispatch.projectTask.specification.digest
             )
                 throw projectTaskRuntimeError('Conflict')
+            const purpose = intent.request.dispatch.projectTask.purpose
+            if (purpose.type === 'review')
+                await implementationEvidence(
+                    this.executions.manager,
+                    current,
+                    intent.scope,
+                    purpose.implementationExecutionId,
+                    purpose.specificationDigest,
+                    purpose.evidence
+                )
         }
         const api = this.factory.createCapturedApi(intent.scope)
         let invocation: AgentInvocation

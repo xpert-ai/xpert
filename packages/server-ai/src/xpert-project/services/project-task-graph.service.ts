@@ -36,6 +36,7 @@ import { ChatMessage } from '../../chat-message/chat-message.entity'
 import { Xpert } from '../../xpert/xpert.entity'
 import { avatarForChat } from '../../shared/avatar'
 import { registeredProjectTaskTypes, invalidProjectTaskType } from './project-task-types'
+import { AgentInvocationEntity } from '../../agent-invocation/invocation.entity'
 
 export function projectTaskIdentity(projectId: string, provider: string, key: string): string {
     const hex = createHash('sha256')
@@ -361,7 +362,22 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
             id: taskExecutionId,
             ...this.where(context)
         })
-        if (!attempt?.conversationId || !attempt.agentExecutionId)
+        let executionId = attempt?.agentExecutionId
+        if (attempt?.invocationId) {
+            const record = await this.tasks.manager.findOneBy(AgentInvocationEntity, {
+                id: attempt.invocationId,
+                tenantId: context.actor.tenantId,
+                organizationId: context.actor.organizationId ?? IsNull(),
+                ownerId: context.actor.userId
+            })
+            if (
+                record?.invocation.request.dispatch?.projectTask?.taskExecutionId === attempt.id &&
+                record.invocation.scope.projectId === context.projectId &&
+                record.invocation.scope.conversationId === attempt.conversationId
+            )
+                executionId = record.invocation.scope.parentExecutionId
+        }
+        if (!attempt?.conversationId || !executionId)
             throw new NotFoundException(t('server-ai:Error.ProjectTaskExecutionUnavailable'))
         const conversation = await this.tasks.manager.findOneBy(ChatConversation, {
             id: attempt.conversationId,
@@ -377,7 +393,7 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
         if (thread && thread.conversationId !== conversation.id)
             throw new NotFoundException(t('server-ai:Error.ProjectTaskExecutionUnavailable'))
         let execution = await this.tasks.manager.findOneBy(XpertAgentExecution, {
-            id: attempt.agentExecutionId,
+            id: executionId,
             ...scope
         })
         const seen = new Set<string>()
@@ -405,7 +421,7 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
             taskExecutionId: attempt.id,
             conversationId: conversation.id,
             threadId: thread?.threadId ?? conversation.threadId,
-            agentExecutionId: attempt.agentExecutionId,
+            agentExecutionId: executionId,
             xpertId: conversation.xpertId
         }
     }

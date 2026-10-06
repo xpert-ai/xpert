@@ -87,4 +87,21 @@ describe('generic project task views', () => {
         expect(domain.end).toBeGreaterThan(Date.parse('2030-01-01T00:00:00Z'))
         expect(timelineDomain([], 'hour', 0).ticks).toBeGreaterThanOrEqual(6)
     })
+    it('uses Invocation status and actual timestamps for delegated attempts', () => {
+        const attempt = {
+            id: 'attempt',
+            taskId: 'child',
+            attempt: 1,
+            invocationId: 'invocation',
+            invocationStatus: 'succeeded' as const,
+            status: 'running',
+            startedAt: '2026-10-06T01:00:00Z',
+            runtimeStartedAt: null,
+            runtimeCompletedAt: '2026-10-06T01:10:00Z'
+        }
+        expect(attemptTimes(attempt)).toEqual({ start: null, end: attempt.runtimeCompletedAt })
+        expect(isRunning(attempt)).toBe(false)
+        expect(isRunning({ ...attempt, invocationStatus: 'running' })).toBe(true)
+        expect(isRunning({ ...attempt, invocationStatus: 'waiting' })).toBe(false)
+    })
 })

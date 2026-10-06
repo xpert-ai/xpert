@@ -1,5 +1,6 @@
 import {
     IXpertProjectTask,
+    ProjectTaskDecision,
     IXpertProjectTaskStep,
     TXpertProjectTaskPriority,
     TXpertProjectTaskStatus
@@ -15,6 +16,7 @@ import { XpertProjectBaseEntity } from './project.base'
 @Entity('xpert_project_task')
 @Index(['projectId', 'providerKey', 'sourceKey'], { unique: true })
 export class XpertProjectTask extends XpertProjectBaseEntity implements IXpertProjectTask {
+    @Column({ type: 'jsonb', default: '[]' }) decisions: ProjectTaskDecision[]
     @Column({ type: 'varchar', nullable: true }) providerKey?: string | null
     @Column({ type: 'varchar', nullable: true }) sourceKey?: string | null
     @Column({ type: 'varchar', nullable: true }) sourceRevision?: string | null

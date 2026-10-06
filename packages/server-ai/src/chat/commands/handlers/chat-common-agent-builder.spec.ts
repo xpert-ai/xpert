@@ -141,7 +141,8 @@ it('loads project tools through the registered middleware and executes them in t
             })
         )
         const middleware = middlewareCreate.mock.results[0].value
-        expect(middleware.tools).toHaveLength(6)
+        expect(middleware.tools).toHaveLength(7)
+        expect(middleware.tools.map((tool) => tool.name)).toContain(ProjectToolEnum.DecideTask)
         expect(model.boundTools).toEqual(middleware.tools)
         expect(middleware.tools.every((tool) => tool.metadata.middlewareIcon === PROJECT_TASKS_ICON)).toBe(true)
         expect(permission).toHaveBeenCalledWith(projectId, 'view')

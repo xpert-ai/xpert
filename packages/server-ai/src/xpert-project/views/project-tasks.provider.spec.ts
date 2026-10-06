@@ -2,6 +2,8 @@ import { Test } from '@nestjs/testing'
 import type { XpertResolvedViewHostContext } from '@xpert-ai/contracts'
 import { ProjectTasksViewProvider } from './project-tasks.provider'
 import { ProjectTaskGraphService } from '../services/project-task-graph.service'
+import { ProjectTaskRuntimeReadService } from '../runtime/project-task-runtime-read.service'
+import { ProjectTaskDecisionService } from '../runtime/project-task-decision.service'
 
 const project: XpertResolvedViewHostContext = {
     slots: [],
@@ -34,7 +36,12 @@ async function fixture() {
         })
     }
     const module = await Test.createTestingModule({
-        providers: [ProjectTasksViewProvider, { provide: ProjectTaskGraphService, useValue: tasks }]
+        providers: [
+            ProjectTasksViewProvider,
+            { provide: ProjectTaskGraphService, useValue: tasks },
+            { provide: ProjectTaskRuntimeReadService, useValue: {} },
+            { provide: ProjectTaskDecisionService, useValue: {} }
+        ]
     }).compile()
     return { provider: module.get(ProjectTasksViewProvider), tasks }
 }

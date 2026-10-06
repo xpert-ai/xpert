@@ -44,6 +44,8 @@
         "ProjectTaskRuntimeDependencies": "Task dependencies must be completed before delegation.",
         "ProjectTaskRuntimeNotFound": "The requested Project task was not found.",
         "ProjectTaskRuntimeState": "This task cannot be delegated in its current state or graph kind.",
+        "ProjectTaskRuntimeEvidence": "Evidence or review is unavailable, stale, or this runtime does not support evidence-only review",
+        "ProjectTaskRuntimeDecisionRequired": "Delegated tasks require an explicit decision with implementation evidence and checks",
         "ProjectTaskRuntimeOwned": "Runtime attempt identity and state are managed by the host Invocation runtime.",
         "RuntimeMessageInvalid": "Invalid runtime message reference.",
         "RuntimeMessageAccess": "The runtime reply target is no longer accessible.",

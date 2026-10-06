@@ -1,6 +1,15 @@
 import { ICommand } from '@nestjs/cqrs'
-import { ProjectTaskDispatchInput } from '@xpert-ai/contracts'
+import { ProjectTaskDispatchInput, ProjectTaskDecisionInput } from '@xpert-ai/contracts'
 import { ProjectTaskCaller } from './project-task-dispatch.schema'
+
+/** Record a version-bound business acceptance/rework decision after inspecting the implementation evidence. */
+export class DecideProjectTaskCommand implements ICommand {
+    constructor(
+        readonly projectId: string,
+        readonly input: ProjectTaskDecisionInput,
+        readonly caller?: ProjectTaskCaller
+    ) {}
+}
 
 /** Explicitly delegate one Project task. Caller identity is host-owned; the handler authorizes and reserves the attempt. */
 export class DispatchProjectTaskCommand implements ICommand {

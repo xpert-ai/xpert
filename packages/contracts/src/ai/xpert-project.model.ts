@@ -1,5 +1,9 @@
 import type { AgentInvocationStatus } from './agent-runtime.model'
-import type { ProjectTaskExecutionPurpose, ProjectTaskSpecificationSnapshot } from './project-task-runtime.model'
+import type {
+  ProjectTaskDecision,
+  ProjectTaskExecutionPurpose,
+  ProjectTaskSpecificationSnapshot
+} from './project-task-runtime.model'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IPagination } from '../core.model'
 import { IIntegration } from '../integration.model'
@@ -235,6 +239,7 @@ export interface IBasePerXpertProjectEntityModel extends IBasePerTenantAndOrgani
 }
 
 export interface IXpertProjectTask extends IBasePerXpertProjectEntityModel {
+  decisions?: ProjectTaskDecision[]
   providerKey?: string | null
   sourceKey?: string | null
   sourceRevision?: string | null

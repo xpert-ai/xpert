@@ -1,5 +1,6 @@
 import { reliableReturnIntegrationCases } from '../../handoff/runtime-messaging/testing/reliable-return.cases'
 import { runtimeMessageTestSchemas } from '../../handoff/runtime-messaging/testing/runtime-message.schemas'
+import { projectTaskDecisionCases } from './testing/project-task-decision.cases'
 import { XpertProjectTaskService } from '../services/project-task.service'
 jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
 import { randomUUID } from 'node:crypto'
@@ -65,6 +66,7 @@ const schemas = [
             revision: { type: 'int', version: true },
             providerKey: nullableText,
             requirements: json,
+            decisions: json,
             predecessorIds: json,
             assigneeXpertId: { ...uuid, nullable: true }
         },
@@ -199,6 +201,9 @@ integration('explicit task delegation / PostgreSQL', () => {
         await database.query(reliable)
         await database.query(reliable)
         await database.query(migration) // Re-applying the additive migration preserves existing data and indexes.
+        const decisions = readFileSync(join(__dirname, '../migrations/20261006-project-task-decisions.sql'), 'utf8')
+        await database.query(decisions)
+        await database.query(decisions)
     })
     afterAll(async () => {
         if (database?.isInitialized) {
@@ -378,6 +383,29 @@ integration('explicit task delegation / PostgreSQL', () => {
             org.mockRestore()
         }
     })
+    it('serializes ordinary completion against a concurrent Runtime dispatch', async () => {
+        const native = Object.create(XpertProjectTaskService.prototype) as XpertProjectTaskService
+        Object.assign(native, {
+            repository: database.getRepository(XpertProjectTask),
+            projectRepository: { findOne: jest.fn(async () => ({ id: scope.projectId })) }
+        })
+        const tenant = jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue(scope.tenantId)
+        const org = jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(scope.organizationId)
+        try {
+            const results = await Promise.allSettled([
+                native.updateTask(scope.projectId, input.taskId, { status: 'done' }),
+                service.dispatch(scope.projectId, input, caller)
+            ])
+            expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1)
+            const task = await database.getRepository(XpertProjectTask).findOneBy({ id: input.taskId })
+            const count = await database.getRepository(XpertProjectTaskExecution).countBy({ taskId: input.taskId })
+            expect(count).toBe(task.status === 'done' ? 0 : 1)
+        } finally {
+            tenant.mockRestore()
+            org.mockRestore()
+        }
+    })
+
     it('does not launch a saved pending intent after the task is cancelled', async () => {
         const scoped = factory.createCapturedApi.bind(factory)
         const failure = jest.spyOn(factory, 'createCapturedApi').mockImplementation((captured) => ({
@@ -458,4 +486,5 @@ integration('explicit task delegation / PostgreSQL', () => {
     })
 
     reliableReturnIntegrationCases(() => ({ database, store, service, factory, scope, caller, input, start, strategy }))
+    projectTaskDecisionCases(() => ({ database, store, service, factory, scope, caller, input, context }))
 })

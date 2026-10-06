@@ -7,12 +7,14 @@ export enum ProjectToolEnum {
     ListTasks = 'project_list_tasks',
     CreateTasks = 'project_create_tasks',
     UpdateTasks = 'project_update_tasks',
+    DecideTask = 'project_decide_task',
     DispatchTask = 'project_dispatch_task',
     GetTask = 'project_get_task',
     ListRuntimes = 'project_list_task_runtimes'
 }
 
 export const PROJECT_TASK_TOOL_TITLES: Record<ProjectToolEnum, I18nObject> = {
+    [ProjectToolEnum.DecideTask]: { en_US: 'Decide project task', zh_Hans: '确认任务结果' },
     [ProjectToolEnum.ListTasks]: { en_US: 'List project tasks', zh_Hans: '列出项目任务' },
     [ProjectToolEnum.CreateTasks]: { en_US: 'Create project tasks', zh_Hans: '创建项目任务' },
     [ProjectToolEnum.UpdateTasks]: { en_US: 'Update project tasks', zh_Hans: '更新项目任务' },

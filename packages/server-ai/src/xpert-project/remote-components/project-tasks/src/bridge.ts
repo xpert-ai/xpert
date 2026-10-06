@@ -139,6 +139,10 @@ export const graphSchema = z.object({
             taskId: z.string(),
             attempt: z.number(),
             status: z.string(),
+            invocationId: z.string().nullish(),
+            invocationStatus: z
+                .enum(['queued', 'running', 'waiting', 'cancelling', 'succeeded', 'failed', 'cancelled', 'unknown'])
+                .nullish(),
             runtimeStatus: z.string().optional(),
             runtimeStartedAt: z.string().nullish(),
             runtimeCompletedAt: z.string().nullish(),

@@ -115,11 +115,12 @@ export function plannedEnd(task: Node) {
 }
 export function attemptTimes(attempt: Attempt) {
     return {
-        start: attempt.agentExecutionId ? attempt.runtimeStartedAt : attempt.startedAt,
-        end: attempt.agentExecutionId ? attempt.runtimeCompletedAt : attempt.completedAt
+        start: attempt.invocationId || attempt.agentExecutionId ? attempt.runtimeStartedAt : attempt.startedAt,
+        end: attempt.invocationId || attempt.agentExecutionId ? attempt.runtimeCompletedAt : attempt.completedAt
     }
 }
 export function isRunning(attempt: Attempt) {
+    if (attempt.invocationId) return attempt.invocationStatus === 'running'
     return attempt.agentExecutionId ? attempt.runtimeStatus === 'running' : attempt.status === 'running'
 }
 export function timelineDomain(dates: Array<string | null | undefined>, scale: Scale, now: number) {

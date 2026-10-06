@@ -1,5 +1,7 @@
 import { agentInvocationStatusSchema, agentRuntimeProgressSchema } from './agent-runtime.model'
 import {
+  projectTaskDecisionInputSchema,
+  projectTaskReviewReportSchema,
   projectTaskDispatchReceiptSchema,
   projectTaskEvidenceReferenceSchema,
   projectTaskExecutionContextSchema,
@@ -22,6 +24,51 @@ const context = {
 }
 
 describe('project task runtime contracts', () => {
+  it('requires evidence and performed checks, and rejects model-supplied decision identity', () => {
+    const decision = {
+      requestId: id(1),
+      taskId: id(2),
+      expectedRevision: 1,
+      implementationExecutionId: id(3),
+      specificationDigest: context.specification.digest,
+      evidence: [{ type: 'invocation_result', invocationId: id(4), revision: 2 }],
+      outcome: 'accept',
+      rationale: 'Checked the current implementation',
+      checks: ['Inspected tests']
+    }
+    expect(projectTaskDecisionInputSchema.parse(decision)).toEqual(decision)
+    for (const extra of [
+      { actorId: id(9) },
+      { actorType: 'user' },
+      { taskRevision: 99 },
+      { evidence: [] },
+      { checks: [] }
+    ])
+      expect(projectTaskDecisionInputSchema.safeParse({ ...decision, ...extra }).success).toBe(false)
+  })
+
+  it('accepts only structured review verdicts with pinned evidence and explicit limitations', () => {
+    const report = {
+      version: 1,
+      verdict: 'pass',
+      specificationDigest: context.specification.digest,
+      implementationInvocationId: id(4),
+      evidence: [{ type: 'invocation_result', invocationId: id(4), revision: 2 }],
+      findings: ['The supplied tests cover the stated requirements'],
+      limitations: ['Tests were not independently executed']
+    }
+    expect(projectTaskReviewReportSchema.parse(report)).toEqual(report)
+    expect(projectTaskReviewReportSchema.safeParse('All tests passed').success).toBe(false)
+    for (const extra of [
+      { verdict: 'done' },
+      { findings: [] },
+      { evidence: [] },
+      { limitations: undefined },
+      { acceptTask: true }
+    ])
+      expect(projectTaskReviewReportSchema.safeParse({ ...report, ...extra }).success).toBe(false)
+  })
+
   it('keeps business task, attempt and invocation identities separate without imposing a coding domain', () => {
     expect(projectTaskExecutionContextSchema.parse(context)).toEqual(context)
     const receipt = {

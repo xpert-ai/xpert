@@ -118,7 +118,48 @@ export const projectTaskDispatchInputSchema = z
     taskId: z.string().uuid(),
     expectedRevision: z.number().int().positive(),
     bindingId: z.string().uuid(),
+    purpose: projectTaskExecutionPurposeSchema.optional(),
     instructions: z.string().trim().max(16000).default('')
   })
   .strict()
 export type ProjectTaskDispatchInput = z.output<typeof projectTaskDispatchInputSchema>
+
+/** Exact JSON response from an evidence-only reviewer; prose never implies a passing verdict. */
+export const projectTaskReviewReportSchema = z
+  .object({
+    version: z.literal(1),
+    verdict: z.enum(['pass', 'changes_required', 'indeterminate']),
+    specificationDigest: projectTaskSpecificationDigestSchema,
+    implementationInvocationId: z.string().uuid(),
+    evidence: z.array(projectTaskEvidenceReferenceSchema).min(1).max(64),
+    findings: z.array(z.string().trim().min(1).max(4000)).min(1).max(64),
+    limitations: z.array(z.string().trim().min(1).max(4000)).max(64)
+  })
+  .strict()
+export type ProjectTaskReviewReport = z.output<typeof projectTaskReviewReportSchema>
+
+export const projectTaskDecisionInputSchema = z
+  .object({
+    requestId: z.string().uuid(),
+    taskId: z.string().uuid(),
+    expectedRevision: z.number().int().positive(),
+    implementationExecutionId: z.string().uuid(),
+    specificationDigest: projectTaskSpecificationDigestSchema,
+    evidence: z.array(projectTaskEvidenceReferenceSchema).min(1).max(64),
+    reviewExecutionId: z.string().uuid().optional(),
+    outcome: z.enum(['accept', 'rework']),
+    rationale: z.string().trim().min(1).max(8000),
+    checks: z.array(z.string().trim().min(1).max(4000)).min(1).max(64)
+  })
+  .strict()
+export type ProjectTaskDecisionInput = z.output<typeof projectTaskDecisionInputSchema>
+export const projectTaskDecisionSchema = projectTaskDecisionInputSchema
+  .extend({
+    actorId: z.string().uuid(),
+    actorType: z.enum(['user', 'xpert', 'project_agent']),
+    executionId: z.string().uuid().optional(),
+    decidedAt: z.string().datetime(),
+    taskRevision: z.number().int().positive()
+  })
+  .strict()
+export type ProjectTaskDecision = z.output<typeof projectTaskDecisionSchema>

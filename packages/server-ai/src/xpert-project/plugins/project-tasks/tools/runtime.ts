@@ -1,11 +1,16 @@
 import { RunnableConfig } from '@langchain/core/runnables'
 import { tool } from '@langchain/core/tools'
 import { CommandBus } from '@nestjs/cqrs'
-import { getToolCallFromConfig, projectTaskDispatchInputSchema } from '@xpert-ai/contracts'
+import {
+    getToolCallFromConfig,
+    projectTaskDispatchInputSchema,
+    projectTaskDecisionInputSchema
+} from '@xpert-ai/contracts'
 import type { IAgentMiddlewareContext } from '@xpert-ai/plugin-sdk'
 import { z } from 'zod/v3'
 import {
     DispatchProjectTaskCommand,
+    DecideProjectTaskCommand,
     GetProjectRuntimeTaskCommand,
     ListProjectRuntimeBindingsCommand
 } from '../../../runtime/project-task-dispatch.command'
@@ -37,6 +42,18 @@ export function createProjectRuntimeTools(
         return parsed.data
     }
     return [
+        tool(
+            async (input, config) => {
+                await assertPermission('edit')
+                return commandBus.execute(new DecideProjectTaskCommand(context.projectId, input, caller(config)))
+            },
+            {
+                name: ProjectToolEnum.DecideTask,
+                schema: projectTaskDecisionInputSchema,
+                description:
+                    'After project_get_task and checking actual evidence, explicitly accept or request rework for the latest implementation. Supply exact specificationDigest, implementationExecutionId and invocation_result revision from the detail, rationale and checks performed. Optional reviewExecutionId must be a matching independent review; acceptance requires pass. CLI success alone is insufficient. Use a stable requestId to recover the same decision.'
+            }
+        ),
         tool(
             async (input, config) => {
                 await assertPermission('edit')

@@ -81,6 +81,7 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
                     if (entity.id) {
                         const current = await repository.findOneBy({ id: entity.id, projectId, ...this.taskScope() })
                         if (current) assertOrdinaryTask(current)
+                        await this.assertBusinessStatus(manager, entity.id, entity.status)
                     }
                     const task = await repository.save({
                         ...entity,
@@ -132,6 +133,7 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
                 if (!task) throw new NotFoundException('Project task not found')
                 assertOrdinaryTask(task)
                 assertOrdinaryTaskInput(entity)
+                await this.assertBusinessStatus(manager, task.id, entity.status)
                 for (const step of entity.steps ?? []) {
                     const taskStep =
                         task.steps.find((item) => item.stepIndex === step.stepIndex) || task.steps[step.stepIndex - 1]
@@ -147,6 +149,7 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
                     task.steps.every((step) => step.status === 'done')
                 )
                     task.status = 'done'
+                await this.assertBusinessStatus(manager, task.id, task.status)
                 await repository.save(task)
             }
             return tasks
@@ -186,9 +189,20 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
             const task = await repository.findOneBy({ id: taskId, projectId, ...this.taskScope() })
             if (!task) throw new NotFoundException('Project task not found')
             assertOrdinaryTask(task)
+            await this.assertBusinessStatus(manager, task.id, input.status)
             Object.assign(task, nextInput, { projectId })
             return repository.save(task)
         })
+    }
+
+    private async assertBusinessStatus(manager: EntityManager, taskId: string, status?: IXpertProjectTask['status']) {
+        if (!status || !['done', 'completed'].includes(status)) return
+        if (
+            await manager
+                .getRepository(XpertProjectTaskExecution)
+                .existsBy({ taskId, ...this.taskScope(), invocationId: Not(IsNull()) })
+        )
+            throw projectTaskRuntimeError('DecisionRequired')
     }
 
     private async resolveAssigneeXpertId(project: XpertProject, requestedId?: string): Promise<string | undefined> {
@@ -434,6 +448,7 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
                 await this.resolveAssigneeXpertId(project, input.assigneeXpertId)
             }
             for (const task of tasks) {
+                await this.assertBusinessStatus(manager, task.id, input.status)
                 assertOrdinaryTask(task)
                 Object.assign(task, {
                     ...(input.status !== undefined ? { status: input.status } : {}),

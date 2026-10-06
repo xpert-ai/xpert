@@ -73,7 +73,7 @@ const dispatchInput = () => ({
 const createInput = () => ({ tasks: [{ name: 'Task', requirements: ['Evidence'], steps: [] }] })
 
 describe('built-in Project Tasks Plugin', () => {
-    it('is discovered as a selectable built-in middleware with six localized tools', () => {
+    it('is discovered as a selectable built-in middleware with seven localized tools', () => {
         const { registry, strategy, context } = fixture()
         expect(registry.get(PROJECT_TASKS_MIDDLEWARE)).toBe(strategy)
         expect(registry.listRegistrations()[0].source.kind).toBe('builtin')
@@ -93,6 +93,17 @@ describe('built-in Project Tasks Plugin', () => {
             {},
             createInput(),
             { tasks: [{ id: randomUUID(), steps: [] }] },
+            {
+                requestId: randomUUID(),
+                taskId: randomUUID(),
+                expectedRevision: 1,
+                implementationExecutionId: randomUUID(),
+                specificationDigest: `sha256:${'a'.repeat(64)}`,
+                evidence: [{ type: 'invocation_result', invocationId: randomUUID(), revision: 1 }],
+                outcome: 'accept',
+                rationale: 'Inspected the current implementation',
+                checks: ['Verified test evidence']
+            },
             dispatchInput(),
             { taskId: randomUUID() },
             {}

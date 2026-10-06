@@ -22,6 +22,7 @@ import { type Attempt, attemptTimes, owner } from './model'
 import { Status, Choice, Empty } from './ui'
 import { openTaskExecution } from './execution-navigation'
 import { TaskTypeIcon } from './task-type-icon'
+import { RuntimeDetail } from './runtime-detail'
 
 function toLocal(value: string | null) {
     if (!value) return ''
@@ -131,8 +132,8 @@ export function TaskDetail({
             variant={primary ? 'default' : 'outline'}
             size="sm"
             className="w-full"
-            disabled={!attempt.agentExecutionId || !!busy}
-            title={!attempt.agentExecutionId ? t.unavailable : undefined}
+            disabled={!(attempt.agentExecutionId || attempt.invocationId) || !!busy}
+            title={!(attempt.agentExecutionId || attempt.invocationId) ? t.unavailable : undefined}
             onClick={() => open(attempt)}
         >
             <ExternalLink />
@@ -212,43 +213,53 @@ export function TaskDetail({
                     {task.diagnostic && (
                         <p className="rounded-md bg-destructive/5 p-3 text-sm text-destructive">{task.diagnostic}</p>
                     )}
+                    {(tab === 'history' || tab === 'outputs') && attempts.some((item) => item.invocationId) && (
+                        <RuntimeDetail
+                            taskId={task.id}
+                            locale={locale}
+                            canEdit={canEdit}
+                            openAttempt={(id) => void act(id, () => openTaskExecution(id, t.openFailed))}
+                        />
+                    )}
                     {tab === 'history' && (
                         <div className="space-y-3 border-t pt-3">
                             {!attempts.length && <Empty title={t.noExecutions} />}
-                            {attempts.map((attempt, index) => {
-                                const times = attemptTimes(attempt)
-                                return (
-                                    <section
-                                        key={attempt.id}
-                                        className="space-y-2 rounded-lg border p-3"
-                                        aria-label={`${t.attempt} ${attempt.attempt} ${t.execution}`}
-                                    >
-                                        <div className="flex flex-wrap items-center justify-between gap-2">
-                                            <h3 className="text-sm font-semibold">
-                                                {t.attempt} {attempt.attempt} {t.execution}
-                                            </h3>
-                                            <span className="text-xs text-muted-foreground">
-                                                {runtimeLabel(attempt.runtimeStatus, t)}
-                                            </span>
-                                        </div>
-                                        <p className="text-xs tabular-nums text-muted-foreground">
-                                            {dateTime(times.start, locale)} → {dateTime(times.end, locale)}
-                                        </p>
-                                        {attempt.outputSummary && (
-                                            <p className="text-sm leading-6">
-                                                <span className="text-muted-foreground">{t.outcome}: </span>
-                                                {outcomeLabel(attempt.outputSummary, t)}
+                            {attempts
+                                .filter((item) => !item.invocationId)
+                                .map((attempt, index) => {
+                                    const times = attemptTimes(attempt)
+                                    return (
+                                        <section
+                                            key={attempt.id}
+                                            className="space-y-2 rounded-lg border p-3"
+                                            aria-label={`${t.attempt} ${attempt.attempt} ${t.execution}`}
+                                        >
+                                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                                <h3 className="text-sm font-semibold">
+                                                    {t.attempt} {attempt.attempt} {t.execution}
+                                                </h3>
+                                                <span className="text-xs text-muted-foreground">
+                                                    {runtimeLabel(attempt.runtimeStatus, t)}
+                                                </span>
+                                            </div>
+                                            <p className="text-xs tabular-nums text-muted-foreground">
+                                                {dateTime(times.start, locale)} → {dateTime(times.end, locale)}
                                             </p>
-                                        )}
-                                        {attempt.error && (
-                                            <p className="break-words text-sm leading-6 text-destructive">
-                                                {attempt.error}
-                                            </p>
-                                        )}
-                                        {openButton(attempt, index === 0)}
-                                    </section>
-                                )
-                            })}
+                                            {attempt.outputSummary && (
+                                                <p className="text-sm leading-6">
+                                                    <span className="text-muted-foreground">{t.outcome}: </span>
+                                                    {outcomeLabel(attempt.outputSummary, t)}
+                                                </p>
+                                            )}
+                                            {attempt.error && (
+                                                <p className="break-words text-sm leading-6 text-destructive">
+                                                    {attempt.error}
+                                                </p>
+                                            )}
+                                            {openButton(attempt, index === 0)}
+                                        </section>
+                                    )
+                                })}
                             {!!attempts.length && (
                                 <p className="flex items-start gap-2 text-xs leading-5 text-muted-foreground">
                                     <Info className="mt-0.5 size-4 shrink-0" />

@@ -22,6 +22,7 @@ export function assertOrdinaryTaskInput(input: object): void {
         'estimatedDurationMs',
         'diagnostic',
         'executions',
+        'decisions',
         'conversations'
     ]) {
         if (Object.prototype.hasOwnProperty.call(input, key)) {

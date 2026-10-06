@@ -44,6 +44,8 @@
         "ProjectTaskRuntimeDependencies": "任务的前置依赖必须完成后才能委托。",
         "ProjectTaskRuntimeNotFound": "未找到请求的项目任务。",
         "ProjectTaskRuntimeState": "此任务的当前状态或图节点类型不允许委托。",
+        "ProjectTaskRuntimeEvidence": "证据或验收结论不可用、已过期，或此执行器不支持仅证据验收",
+        "ProjectTaskRuntimeDecisionRequired": "受托任务必须通过确认结果操作完成，并提供具体实现版本和检查依据",
         "ProjectTaskRuntimeOwned": "Runtime 尝试的身份和状态由宿主 Invocation 运行时管理。",
         "RuntimeMessageInvalid": "运行时消息引用无效。",
         "RuntimeMessageAccess": "当前身份无法访问运行时回复目标。",

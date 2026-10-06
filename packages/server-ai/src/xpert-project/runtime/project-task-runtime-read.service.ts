@@ -1,4 +1,3 @@
-import { AgentRuntimeDelivery, AgentRuntimeInbox } from '../../handoff/runtime-messaging/runtime-message.entity'
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { projectTaskSpecificationSchema } from '@xpert-ai/contracts'
@@ -12,6 +11,10 @@ import { projectTaskInvocationView } from './project-task-invocation-view'
 import { ProjectTaskRuntimeContextService } from './project-task-runtime-context.service'
 import { projectTaskRuntimeError } from './project-task-runtime.errors'
 import { createProjectTaskSpecificationSnapshot } from './project-task-specification'
+import { reviewReport } from './project-task-evidence'
+import { AgentRuntimeDelivery, AgentRuntimeInbox } from '../../handoff/runtime-messaging/runtime-message.entity'
+import { CommandBus } from '@nestjs/cqrs'
+import { RequestRuntimeResultCheckCommand } from '../../handoff/runtime-messaging/runtime-result-check.handler'
 
 @Injectable()
 export class ProjectTaskRuntimeReadService {
@@ -19,7 +22,8 @@ export class ProjectTaskRuntimeReadService {
         @InjectRepository(XpertProjectTask) private readonly tasks: Repository<XpertProjectTask>,
         private readonly access: XpertProjectAccessService,
         private readonly context: ProjectTaskRuntimeContextService,
-        private readonly factory: AgentInvocationFactoryService
+        private readonly factory: AgentInvocationFactoryService,
+        private readonly commandBus: CommandBus
     ) {}
 
     async get(projectId: string, taskId: string) {
@@ -89,8 +93,17 @@ export class ProjectTaskRuntimeReadService {
                 invocationStatus: invocation.status,
                 invocationRevision: invocation.revision,
                 runtimeProvider: invocation.request.target.provider,
+                reviewReport: reviewReport(execution.purpose, invocation.result?.text),
                 delivery,
                 consumption,
+                evidence: [
+                    { type: 'invocation_result' as const, invocationId: invocation.id, revision: invocation.revision },
+                    ...(invocation.result?.artifacts ?? []).flatMap((artifact) =>
+                        artifact.versionId
+                            ? [{ type: 'artifact' as const, artifactId: artifact.id, versionId: artifact.versionId }]
+                            : []
+                    )
+                ],
                 progress: invocation.progress,
                 result: invocation.result
                     ? {
@@ -115,5 +128,32 @@ export class ProjectTaskRuntimeReadService {
                 : null,
             executions
         }
+    }
+
+    async control(projectId: string, taskId: string, executionId: string, action: 'cancel' | 'request-check') {
+        await this.access.assertCanEdit(projectId)
+        const detail = await this.get(projectId, taskId)
+        const attempt = detail.executions.find((item) => item.id === executionId)
+        if (!attempt?.invocationId) throw projectTaskRuntimeError('NotFound')
+        const actor = this.context.actor()
+        const record = await this.tasks.manager.getRepository(AgentInvocationEntity).findOneBy({
+            id: attempt.invocationId,
+            tenantId: actor.tenantId,
+            organizationId: actor.organizationId,
+            ownerId: actor.userId
+        })
+        if (!record) throw projectTaskRuntimeError('Scope')
+        if (action === 'request-check') {
+            await this.commandBus.execute(
+                new RequestRuntimeResultCheckCommand(record.id, {
+                    tenantId: actor.tenantId,
+                    organizationId: actor.organizationId,
+                    ownerId: actor.userId
+                })
+            )
+            return { invocationId: record.id }
+        }
+        const invocation = await this.factory.createCapturedApi(record.invocation.scope).cancel(record.id)
+        return { invocationId: invocation.id, status: invocation.status }
     }
 }
