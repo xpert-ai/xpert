@@ -1,3 +1,4 @@
+import { projectTaskRuntimeError } from '../runtime/project-task-runtime.errors'
 import { BadRequestException } from '@nestjs/common'
 import type { IXpertProjectTask } from '@xpert-ai/contracts'
 import { t } from 'i18next'
@@ -26,5 +27,28 @@ export function assertOrdinaryTaskInput(input: object): void {
         if (Object.prototype.hasOwnProperty.call(input, key)) {
             throw new BadRequestException(t('server-ai:Error.ProjectTaskProviderCommandRequired'))
         }
+    }
+}
+
+/** Native execution endpoints cannot create or alter host-owned Runtime associations. */
+export function assertNativeExecutionInput(input: object): void {
+    for (const key of [
+        'id',
+        'taskId',
+        'projectId',
+        'tenantId',
+        'organizationId',
+        'createdById',
+        'updatedById',
+        'attempt',
+        'invocationId',
+        'invocationStatus',
+        'dispatchRequestId',
+        'dispatchState',
+        'dispatchIntent',
+        'purpose',
+        'specificationSnapshot'
+    ]) {
+        if (Object.prototype.hasOwnProperty.call(input, key)) throw projectTaskRuntimeError('Owned')
     }
 }

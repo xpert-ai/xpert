@@ -110,3 +110,15 @@ export const projectTaskDispatchReceiptSchema = projectTaskExecutionReferenceSch
   })
   .strict()
 export type ProjectTaskDispatchReceipt = z.output<typeof projectTaskDispatchReceiptSchema>
+
+/** Explicit delegation. Routing and actor identity come from the host. */
+export const projectTaskDispatchInputSchema = z
+  .object({
+    requestId: z.string().uuid(),
+    taskId: z.string().uuid(),
+    expectedRevision: z.number().int().positive(),
+    bindingId: z.string().uuid(),
+    instructions: z.string().trim().max(16000).default('')
+  })
+  .strict()
+export type ProjectTaskDispatchInput = z.output<typeof projectTaskDispatchInputSchema>

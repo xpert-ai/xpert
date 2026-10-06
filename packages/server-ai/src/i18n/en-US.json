@@ -32,6 +32,15 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "AgentInvocationModelSourceRequired": "A Computer Runtime binding for the Project general agent must configure modelSource with a real Assistant for model authorization.",
+        "ProjectTaskRuntimeInvalid": "Task delegation requires a valid task specification, explicit completion requirements and a valid request.",
+        "ProjectTaskRuntimeScope": "The task delegation caller or project scope is not authorized.",
+        "ProjectTaskRuntimeConflict": "The task revision or delegation request has changed. Reuse the original request only for the same delegation.",
+        "ProjectTaskRuntimeBusy": "The Project already has an active or unverified execution. Inspect or cancel it before another delegation.",
+        "ProjectTaskRuntimeDependencies": "Task dependencies must be completed before delegation.",
+        "ProjectTaskRuntimeNotFound": "The requested Project task was not found.",
+        "ProjectTaskRuntimeState": "This task cannot be delegated in its current state or graph kind.",
+        "ProjectTaskRuntimeOwned": "Runtime attempt identity and state are managed by the host Invocation runtime.",
         "ProjectTaskSpecificationInvalid": "The task specification is invalid or no longer matches its saved digest.",
         "ChatMessageEnvelopeInvalid": "Invalid message provenance or presentation.",
         "RealtimeModelRequired": "Configure and authorize a realtime voice model first.",

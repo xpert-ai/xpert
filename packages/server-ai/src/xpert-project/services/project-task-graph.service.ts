@@ -1,3 +1,4 @@
+import { observeProjectTaskInvocations } from '../runtime/project-task-invocation-view'
 // Provider snapshots are replayable read models. Projection never starts Agents,
 // and runtime success does not override a provider's business acceptance status.
 import { createHash } from 'node:crypto'
@@ -200,10 +201,19 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
         diagnostics: ProjectTaskGraph['diagnostics'] = []
     ): Promise<ProjectTaskGraph> {
         const rows = await this.tasks.find({ where: this.where(context), order: { createdAt: 'ASC' } })
-        const executions = await this.tasks.manager.find(XpertProjectTaskExecution, {
+        const storedExecutions = await this.tasks.manager.find(XpertProjectTaskExecution, {
             where: this.where(context),
             order: { startedAt: 'ASC', attempt: 'ASC' }
         })
+        const executions = await observeProjectTaskInvocations(
+            this.tasks.manager,
+            {
+                projectId: context.projectId,
+                tenantId: context.actor.tenantId,
+                organizationId: context.actor.organizationId
+            },
+            storedExecutions
+        )
         const ids = executions.flatMap((item) => (item.agentExecutionId ? [item.agentExecutionId] : []))
         const runtime = ids.length
             ? await this.tasks.manager.find(XpertAgentExecution, {
@@ -215,6 +225,7 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
               })
             : []
         const observed = executions.map((item) => {
+            if (item.invocationId) return item
             const run = runtime.find((run) => run.id === item.agentExecutionId)
             return {
                 ...item,
@@ -234,16 +245,18 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
                     .filter((item) => item.taskId === row.id)
                     .map((item) => ({
                         ...item,
-                        startedAt: item.agentExecutionId
-                            ? item.runtimeStartedAt
-                                ? new Date(item.runtimeStartedAt)
-                                : null
-                            : item.startedAt,
-                        completedAt: item.agentExecutionId
-                            ? item.runtimeCompletedAt
-                                ? new Date(item.runtimeCompletedAt)
-                                : null
-                            : item.completedAt
+                        startedAt:
+                            item.invocationId || item.agentExecutionId
+                                ? item.runtimeStartedAt
+                                    ? new Date(item.runtimeStartedAt)
+                                    : null
+                                : item.startedAt,
+                        completedAt:
+                            item.invocationId || item.agentExecutionId
+                                ? item.runtimeCompletedAt
+                                    ? new Date(item.runtimeCompletedAt)
+                                    : null
+                                : item.completedAt
                     }))
             )
         )

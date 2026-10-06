@@ -1,5 +1,5 @@
 export * from './project.module'
 export * from './project.service'
-export * from './tools'
+export * from './plugins/project-tasks/constants'
 export * from './commands'
 export * from './services/project-content.service'

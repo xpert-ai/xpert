@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common'
+import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { ChatController } from './chat.controller'
 import { ChatEventsGateway } from './chat.gateway'
@@ -21,6 +21,8 @@ import {
     registerVideoGenerationPluginServicePermissionHandler
 } from './video-generation-permission'
 import { VideoGenerationService } from './video-generation.service'
+import { XpertAgentModule } from '../xpert-agent/xpert-agent.module'
+import { AgentMiddlewareRuntimeModule } from '../shared/agent/middleware-runtime'
 
 @Module({
     imports: [
@@ -30,6 +32,8 @@ import { VideoGenerationService } from './video-generation.service'
         KnowledgebaseModule,
         XpertToolsetModule,
         XpertProjectModule,
+        forwardRef(() => XpertAgentModule),
+        AgentMiddlewareRuntimeModule,
         XpertModule
     ],
     controllers: [ChatController],

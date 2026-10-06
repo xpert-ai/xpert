@@ -49,7 +49,8 @@ export class AssistantExecutionPolicyService {
         actor: ExecutionActor,
         conversationId: string | null | undefined,
         requireDefault = true,
-        resolveDefault = true
+        resolveDefault = true,
+        runtimeAssistant?: { id: string; workspaceId: string }
     ) {
         // TypeORM omits undefined predicates; never turn a missing id into an arbitrary conversation.
         if (typeof conversationId !== 'string' || !conversationId.trim()) throw executionError('ConversationRequired')
@@ -63,8 +64,12 @@ export class AssistantExecutionPolicyService {
             },
             relations: ['xpert']
         })
-        if (!conversation?.xpert?.id) throw executionError('Denied')
-        const assistant = await this.assistant(actor, conversation.xpert.id)
+        if (!conversation || (!runtimeAssistant && !conversation.xpert?.id)) throw executionError('Denied')
+        if (runtimeAssistant && !conversation.projectId) throw executionError('Denied')
+        const assistant = await this.assistant(actor, runtimeAssistant?.id ?? conversation.xpert.id)
+        if (runtimeAssistant && assistant.workspaceId !== runtimeAssistant.workspaceId) throw executionError('Denied')
+        // Binding-directed execution uses the selected Assistant's configured default, not an unrelated conversation preference.
+        if (runtimeAssistant) resolveDefault = false
         const candidates = assistantModelCandidates(assistant)
         const input = {
             ...actor,

@@ -32,6 +32,15 @@
         "ReferenceOnlyPrompt": "未包含文件正文，不支持直接按文本读取。请使用支持该格式的可用工具；对于 ZIP，先列出或解压条目，再处理所需的子文件。此引用不会改变文件访问权限。"
     },
     "Error": {
+        "AgentInvocationModelSourceRequired": "项目主 Agent 的 Computer Runtime binding 必须明确配置 modelSource（真实 Assistant），用于模型授权。",
+        "ProjectTaskRuntimeInvalid": "任务委托需要有效的任务规格、明确的完成要求和合法请求。",
+        "ProjectTaskRuntimeScope": "任务委托调用方或项目上下文未获授权。",
+        "ProjectTaskRuntimeConflict": "任务版本或委托请求已改变。仅同一次委托可以复用原请求。",
+        "ProjectTaskRuntimeBusy": "项目已有活动执行或待核实执行。请先查询或取消，再安排新的委托。",
+        "ProjectTaskRuntimeDependencies": "任务的前置依赖必须完成后才能委托。",
+        "ProjectTaskRuntimeNotFound": "未找到请求的项目任务。",
+        "ProjectTaskRuntimeState": "此任务的当前状态或图节点类型不允许委托。",
+        "ProjectTaskRuntimeOwned": "Runtime 尝试的身份和状态由宿主 Invocation 运行时管理。",
         "ProjectTaskSpecificationInvalid": "任务规格无效或与已保存的摘要不一致。",
         "ChatMessageEnvelopeInvalid": "消息来源或展示设置无效。",
         "RealtimeModelRequired": "请先配置并授权可用的实时语音模型。",

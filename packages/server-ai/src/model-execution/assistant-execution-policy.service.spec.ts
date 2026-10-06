@@ -200,8 +200,28 @@ describe('execution model selection stays within its conversation', () => {
                 }
             ]
         }).compile()
-        return { service: module.get(AssistantExecutionPolicyService), executions }
+        return { service: module.get(AssistantExecutionPolicyService), executions, module }
     }
+
+    it('resolves the binding-selected Assistant for a project-only conversation and rejects another workspace', async () => {
+        const f = await setup('thread', true)
+        f.module
+            .get(getRepositoryToken(ChatConversation))
+            .findOne.mockResolvedValue({ projectId: 'project', threadId: 'thread' })
+        f.module.get(PublishedXpertAccessService).getAccessiblePublishedXpert = jest
+            .fn()
+            .mockResolvedValue({ ...assistant, workspaceId: 'workspace' })
+        const result = await f.service.resolve(actor, 'conversation', true, true, {
+            id: assistant.id,
+            workspaceId: 'workspace'
+        })
+        expect(result.assistant.id).toBe(assistant.id)
+        expect(result.defaultModelId).toBe(getAssistantModelId(primary))
+        expect(f.executions.findOne).not.toHaveBeenCalled()
+        await expect(
+            f.service.resolve(actor, 'conversation', true, true, { id: assistant.id, workspaceId: 'other' })
+        ).rejects.toThrow()
+    })
 
     it.each([undefined, null, '', '   '])('does not query other executions for missing thread %s', async (threadId) => {
         const test = await setup(threadId)

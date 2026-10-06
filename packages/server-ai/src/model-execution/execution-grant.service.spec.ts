@@ -78,7 +78,10 @@ describe('execution credentials', () => {
                         })
                     }
                 },
-                { provide: ModelExecutionSourceService, useValue: { assertCurrent: jest.fn() } },
+                {
+                    provide: ModelExecutionSourceService,
+                    useValue: { assertCurrent: jest.fn(), invocationModelSource: jest.fn() }
+                },
                 { provide: AssistantExecutionPolicyService, useValue: assistants },
                 {
                     provide: XPERT_RUNTIME_CAPABILITIES_TOKEN,

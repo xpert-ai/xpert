@@ -36,6 +36,13 @@ export class AgentInvocationRuntime {
         private readonly registry: AgentRuntimeRegistry
     ) {}
 
+    assertBackgroundTarget(target: AgentTarget, organizationId: string): void {
+        const strategy = this.registry.get(target.provider, organizationId)
+        if (!strategy) throw invocationError('ProviderUnavailable')
+        if (!strategy.capabilities.background || strategy.capabilities.recovery === 'checkpoint')
+            throw invocationError('Unsupported')
+    }
+
     scoped(access: AgentInvocationAccess): AgentInvocationApi {
         const scope = structuredClone(access.scope)
         if (
@@ -61,7 +68,7 @@ export class AgentInvocationRuntime {
         validateRequest(request)
         await authorizeAgentInvocation(() => access.authorize(request.target))
         access.signal?.throwIfAborted()
-        const id = invocationId(access.scope, request.callId)
+        const id = agentInvocationId(access.scope, request.callId)
         let record = await this.store.read(id, access.scope)
         let strategy: IAgentRuntimeStrategy
         if (record) {
@@ -69,7 +76,10 @@ export class AgentInvocationRuntime {
             if (canonical(record.invocation.request) !== canonical(request)) throw invocationError('CallConflict')
             strategy = this.pinned(record)
             if (isAgentInvocationTerminal(record.invocation.status)) return record.invocation
-            if (record.invocation.status !== 'waiting' || strategy.capabilities.recovery !== 'checkpoint') {
+            if (
+                record.invocation.status !== 'queued' &&
+                (record.invocation.status !== 'waiting' || strategy.capabilities.recovery !== 'checkpoint')
+            ) {
                 return record.invocation
             }
         } else {
@@ -90,7 +100,14 @@ export class AgentInvocationRuntime {
             }
             if (!(await this.store.insert(record))) return this.start(request, access)
         }
-        record = await this.save(record, { status: 'running', interaction: undefined, error: undefined })
+        // Only the CAS winner can launch. A queued reservation is safe to resume after a crash.
+        const claimed = await this.save(record, { status: 'running', interaction: undefined, error: undefined }, false)
+        if (!claimed) {
+            const latest = await this.store.read(id, access.scope)
+            if (!latest) throw invocationError('NotFound')
+            return latest.invocation
+        }
+        record = claimed
         try {
             const observation = await strategy.start(
                 {
@@ -237,9 +254,14 @@ function validateRequest(request: AgentInvocationRequest) {
         throw invocationError('InvalidRequest')
 }
 
-function invocationId(scope: AgentInvocationScope, callId: string) {
+export function agentInvocationId(scope: AgentInvocationScope, callId: string) {
     const hash = createHash('sha256').update(canonical({ scope, callId })).digest('hex')
     return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-5${hash.slice(13, 16)}-a${hash.slice(17, 20)}-${hash.slice(20, 32)}`
+}
+
+/** Compare serialized request data, independent of JSONB key order or driver object prototypes. */
+export function sameInvocationData(a: unknown, b: unknown): boolean {
+    return canonical(a) === canonical(b)
 }
 
 function canonical(value: unknown): string {

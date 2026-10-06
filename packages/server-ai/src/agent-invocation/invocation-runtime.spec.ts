@@ -9,7 +9,7 @@ import {
     BUILTIN_GLOBAL_SCOPE,
     AgentRuntimeObservation
 } from '@xpert-ai/plugin-sdk'
-import { AgentInvocationRuntime } from './invocation-runtime'
+import { agentInvocationId, AgentInvocationRuntime } from './invocation-runtime'
 import { MemoryInvocationStore } from './invocation-test-store'
 
 function fixture() {
@@ -49,6 +49,18 @@ function fixture() {
 }
 
 describe('AgentInvocationRuntime', () => {
+    it('recovers a queued reservation once and never relaunches a running record without a receipt', async () => {
+        const f = fixture()
+        const admitted = await f.api.start(f.request)
+        const record = f.store.rows.get(admitted.id)
+        record.invocation.status = 'queued'
+        f.start.mockClear().mockResolvedValue({ status: 'running' })
+        const receipts = await Promise.all([f.api.start(f.request), f.api.start(f.request)])
+        expect(f.start).toHaveBeenCalledTimes(1)
+        expect(receipts.every((receipt) => receipt.id === admitted.id)).toBe(true)
+        await f.api.start(f.request)
+        expect(f.start).toHaveBeenCalledTimes(1)
+    })
     const dispatch = {
         version: 1 as const,
         requestId: '00000000-0000-4000-8000-000000000001',

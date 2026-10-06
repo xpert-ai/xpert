@@ -20,6 +20,8 @@ export interface AgentInvocationScope {
   parentExecutionId: string
   /** Calling Agent key or host-assigned background-task entry. */
   callerAgentKey: string
+  /** Omitted preserves existing Assistant callers. Project general agents have no fabricated Assistant ID. */
+  callerType?: 'xpert' | 'project_agent'
   callerXpertId?: string
 }
 

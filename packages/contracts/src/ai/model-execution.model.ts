@@ -1,3 +1,4 @@
+import { z } from 'zod/v3'
 import type { AiModelTypeEnum } from '../agent'
 import type { ModelFeature } from './ai-model.model'
 
@@ -249,3 +250,9 @@ export interface ModelExecutionCallView {
   /** Actual usage was delivered to the ledger; zero-usage reviews create no usage entry. */
   delivered: boolean
 }
+
+/** Explicit model policy source in a Runtime binding; independent of the calling Agent identity. */
+export const agentRuntimeModelSourceSchema = z
+  .object({ type: z.literal('assistant'), xpertId: z.string().uuid() })
+  .strict()
+export type AgentRuntimeModelSource = z.output<typeof agentRuntimeModelSourceSchema>

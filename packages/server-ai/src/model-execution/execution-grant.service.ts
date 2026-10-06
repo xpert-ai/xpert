@@ -49,6 +49,10 @@ export class ModelExecutionGrantService {
         const user = await this.assistants.user(actor)
         return runWithCapturedRequestContext(captureRequestContext({ ...actor, user }), async () => {
             if (input.source.type === 'shell_execution' && !input.prepare) throw executionError('Denied')
+            const runtimeAssistant =
+                input.source.type === 'agent_invocation'
+                    ? await this.sources.invocationModelSource(actor, input.conversationId, input.source)
+                    : undefined
             const selection =
                 input.source.type === 'shell_execution'
                     ? await this.assistants.resolveForExecution(
@@ -56,7 +60,9 @@ export class ModelExecutionGrantService {
                           input.conversationId,
                           input.source.parentExecutionId
                       )
-                    : await this.assistants.resolve(actor, input.conversationId)
+                    : runtimeAssistant
+                      ? await this.assistants.resolve(actor, input.conversationId, true, false, runtimeAssistant)
+                      : await this.assistants.resolve(actor, input.conversationId)
             const models = executionToolModels(
                 selection.models,
                 input.tool,
@@ -183,6 +189,14 @@ export class ModelExecutionGrantService {
         const user = await this.assistants.user(actor)
         const snapshot = captureRequestContext({ ...actor, user })
         const models = await runWithCapturedRequestContext(snapshot, async () => {
+            const runtimeAssistant =
+                grant.context.source.type === 'agent_invocation'
+                    ? await this.sources.invocationModelSource(
+                          actor,
+                          grant.context.conversationId,
+                          grant.context.source
+                      )
+                    : undefined
             const selection =
                 grant.context.source.type === 'shell_execution'
                     ? await this.assistants.resolveForExecution(
@@ -190,7 +204,15 @@ export class ModelExecutionGrantService {
                           grant.context.conversationId,
                           grant.context.source.parentExecutionId
                       )
-                    : await this.assistants.resolve(actor, grant.context.conversationId, false)
+                    : runtimeAssistant
+                      ? await this.assistants.resolve(
+                            actor,
+                            grant.context.conversationId,
+                            false,
+                            false,
+                            runtimeAssistant
+                        )
+                      : await this.assistants.resolve(actor, grant.context.conversationId, false)
             if (
                 selection.assistant.id !== grant.context.xpertId ||
                 (selection.assistant.version ?? String(selection.assistant.updatedAt)) !==

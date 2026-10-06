@@ -1,12 +1,33 @@
-import { IXpertProjectTaskExecution, TXpertProjectTaskExecutionStatus } from '@xpert-ai/contracts'
+import type { ProjectTaskDispatchIntent } from '../runtime/project-task-dispatch.schema'
+import {
+    IXpertProjectTaskExecution,
+    TXpertProjectTaskExecutionStatus,
+    AgentInvocationStatus,
+    ProjectTaskExecutionPurpose,
+    ProjectTaskSpecificationSnapshot
+} from '@xpert-ai/contracts'
 import { Column, Entity, Index, JoinColumn, ManyToOne } from 'typeorm'
 import { ChatConversation } from '../../chat-conversation/conversation.entity'
 import { XpertProjectTask } from './project-task.entity'
 import { XpertProjectBaseEntity } from './project.base'
 
+@Index('IDX_project_task_execution_invocation', ['invocationId'], { unique: true })
+@Index('IDX_project_task_execution_dispatch', ['projectId', 'createdById', 'dispatchRequestId'], { unique: true })
 @Entity('xpert_project_task_execution')
 @Index(['taskId', 'sourceKey'], { unique: true })
 export class XpertProjectTaskExecution extends XpertProjectBaseEntity implements IXpertProjectTaskExecution {
+    @Column({ type: 'uuid', nullable: true }) invocationId?: string | null
+    /** Read projection from the associated Invocation, never a second runtime ledger. */
+    invocationStatus?: AgentInvocationStatus | null
+    runtimeStartedAt?: string | null
+    runtimeCompletedAt?: string | null
+    @Column({ type: 'uuid', nullable: true }) dispatchRequestId?: string | null
+    @Column({ type: 'varchar', nullable: true }) dispatchState?: 'pending' | 'submitted' | null
+    @Column({ type: 'jsonb', nullable: true }) specificationSnapshot?: ProjectTaskSpecificationSnapshot | null
+    @Column({ type: 'jsonb', nullable: true }) purpose?: ProjectTaskExecutionPurpose | null
+    /** Server-only recovery intent; never serialize credentials, routing or configuration to task views. */
+    @Column({ type: 'jsonb', nullable: true, select: false }) dispatchIntent?: ProjectTaskDispatchIntent | null
+
     @Column({ type: 'varchar', nullable: true }) sourceKey?: string | null
     @Column()
     taskId: string

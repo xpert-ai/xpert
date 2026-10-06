@@ -1,3 +1,5 @@
+import type { AgentInvocationStatus } from './agent-runtime.model'
+import type { ProjectTaskExecutionPurpose, ProjectTaskSpecificationSnapshot } from './project-task-runtime.model'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IPagination } from '../core.model'
 import { IIntegration } from '../integration.model'
@@ -248,6 +250,8 @@ export interface IXpertProjectTask extends IBasePerXpertProjectEntityModel {
   name: string
   title?: string
   description?: string
+  /** Explicit completion requirements, independent of reported step progress. */
+  requirements?: string[]
   /** Business task type. Provider projections use their registered namespaced taskType key. */
   type?: string
   status: TXpertProjectTaskStatus | 'pending' | 'completed' | 'failed'
@@ -278,6 +282,14 @@ export interface IXpertProjectTaskConversation extends IBasePerXpertProjectEntit
 }
 
 export interface IXpertProjectTaskExecution extends IBasePerXpertProjectEntityModel {
+  /** Runtime-owned attempt. Distinct from a native Agent execution ID. */
+  invocationId?: string | null
+  invocationStatus?: AgentInvocationStatus | null
+  dispatchRequestId?: string | null
+  dispatchState?: 'pending' | 'submitted' | null
+  specificationSnapshot?: ProjectTaskSpecificationSnapshot | null
+  purpose?: ProjectTaskExecutionPurpose | null
+
   /** Observed runtime status, independent from the business task acceptance status. */
   runtimeStartedAt?: string | null
   runtimeCompletedAt?: string | null

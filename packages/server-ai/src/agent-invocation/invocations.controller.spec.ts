@@ -89,7 +89,7 @@ function fixture(provider = 'xpert', reference = callerId) {
     const capabilities = new DefaultRuntimeCapabilityRegistry().register(ProjectAccessRuntimeCapability, projects)
     const native = new NativeAgentInvocationReader(queries as unknown as QueryBus, capabilities)
     const external = { inspect: jest.fn().mockResolvedValue(invocation), cancel: jest.fn(), respond: jest.fn() }
-    const factory = { createScopedApi: jest.fn().mockReturnValue(external) }
+    const factory = { createCapturedApi: jest.fn().mockReturnValue(external) }
     const controller = new AgentInvocationsController(
         records as unknown as Repository<AgentInvocationEntity>,
         factory as unknown as AgentInvocationFactoryService,
@@ -108,7 +108,7 @@ describe('Agent invocation HTTP inspection', () => {
             const result = await f.controller.inspect(id)
             expect(result).toEqual(f.invocation)
             expect(result).not.toBe(f.invocation)
-            expect(f.factory.createScopedApi).not.toHaveBeenCalled()
+            expect(f.factory.createCapturedApi).not.toHaveBeenCalled()
             expect(f.queries.execute).toHaveBeenCalledWith(new GetXpertWorkflowQuery(reference))
             expect(f.queries.execute).toHaveBeenCalledWith(new AssertXpertAgentExecutionAccessQuery(parentId))
         }
@@ -130,7 +130,7 @@ describe('Agent invocation HTTP inspection', () => {
         expect(
             f.queries.execute.mock.calls.some(([query]) => query instanceof AssertXpertAgentExecutionAccessQuery)
         ).toBe(false)
-        expect(f.factory.createScopedApi).not.toHaveBeenCalled()
+        expect(f.factory.createCapturedApi).not.toHaveBeenCalled()
     })
     it.each(['owner', 'tenant', 'organization'])(
         'rejects a different authenticated %s before reading native details',
@@ -161,7 +161,7 @@ describe('Agent invocation HTTP inspection', () => {
             return f.caller
         })
         await expect(f.controller.inspect(id)).rejects.toMatchObject({ status: 403 })
-        expect(f.factory.createScopedApi).not.toHaveBeenCalled()
+        expect(f.factory.createCapturedApi).not.toHaveBeenCalled()
     })
     it('rechecks project access before returning a cached result', async () => {
         const f = fixture()
@@ -177,7 +177,7 @@ describe('Agent invocation HTTP inspection', () => {
             code: 'Unsupported',
             status: 422
         })
-        expect(f.factory.createScopedApi).not.toHaveBeenCalled()
+        expect(f.factory.createCapturedApi).not.toHaveBeenCalled()
         expect(f.queries.execute).not.toHaveBeenCalled()
     })
     it('preserves external provider inspection and controls', async () => {

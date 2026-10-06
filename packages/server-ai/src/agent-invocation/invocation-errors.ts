@@ -23,6 +23,7 @@ export async function authorizeAgentInvocation(check: () => Promise<void>) {
 }
 
 export type AgentInvocationErrorCode =
+    | 'ModelSourceRequired'
     | 'InvalidScope'
     | 'InvalidRequest'
     | 'CallConflict'
@@ -35,6 +36,7 @@ export type AgentInvocationErrorCode =
     | 'MissingResult'
     | 'ConcurrentUpdate'
 const status: Record<AgentInvocationErrorCode, number> = {
+    ModelSourceRequired: 400,
     InvalidScope: 403,
     InvalidRequest: 400,
     CallConflict: 409,

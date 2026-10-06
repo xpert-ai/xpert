@@ -63,6 +63,6 @@ import { NativeAgentInvocationReader } from './native-invocation-reader'
                 new AgentInvocationRuntime(store, registry)
         }
     ],
-    exports: [AgentInvocationRuntime, AgentRuntimeRegistry]
+    exports: [AgentInvocationRuntime, AgentRuntimeRegistry, AgentInvocationFactoryService]
 })
 export class AgentInvocationModule {}

@@ -100,7 +100,7 @@ async function setup() {
         })
     }
     const environment = { assertCurrent: jest.fn() }
-    const sources = { assertCurrent: jest.fn() }
+    const sources = { assertCurrent: jest.fn(), invocationModelSource: jest.fn() }
     const policies = { require: jest.fn().mockResolvedValue(policy) }
     const module = await Test.createTestingModule({
         providers: [
@@ -131,6 +131,42 @@ async function setup() {
 
 describe('execution grant lifecycle', () => {
     afterEach(() => jest.restoreAllMocks())
+
+    it('issues and revalidates an Invocation grant using its explicit model source without changing the caller', async () => {
+        const f = await setup()
+        const source = {
+            type: 'agent_invocation' as const,
+            invocationId: randomUUID(),
+            bindingId: randomUUID(),
+            bindingRevision: '1'
+        }
+        const selected = { id: f.grant.context.xpertId, workspaceId: randomUUID() }
+        f.sources.invocationModelSource.mockResolvedValue(selected)
+        const issued = await f.service.issue(f.actor, {
+            conversationId: f.grant.context.conversationId,
+            source,
+            environment: f.grant.context.environment,
+            tool: f.grant.context.tool
+        })
+        expect(f.assistants.resolve).toHaveBeenCalledWith(
+            f.actor,
+            f.grant.context.conversationId,
+            true,
+            false,
+            selected
+        )
+        expect(issued.grant.context.xpertId).toBe(selected.id)
+        expect(issued.grant.context.source).toEqual(source)
+        f.grant.context.source = source
+        await f.service.revalidate(f.grant)
+        expect(f.assistants.resolve).toHaveBeenLastCalledWith(
+            f.actor,
+            f.grant.context.conversationId,
+            false,
+            false,
+            selected
+        )
+    })
 
     it('aborts an in-flight request after revocation and stops checking when the request closes', async () => {
         const f = await setup()
@@ -308,7 +344,10 @@ integration('execution lease renewal / PostgreSQL', () => {
                         })
                     }
                 },
-                { provide: ModelExecutionSourceService, useValue: { assertCurrent: async () => undefined } },
+                {
+                    provide: ModelExecutionSourceService,
+                    useValue: { assertCurrent: async () => undefined, invocationModelSource: async () => undefined }
+                },
                 {
                     provide: XPERT_RUNTIME_CAPABILITIES_TOKEN,
                     useValue: new DefaultRuntimeCapabilityRegistry().register(ModelExecutionEnvironmentCapability, {

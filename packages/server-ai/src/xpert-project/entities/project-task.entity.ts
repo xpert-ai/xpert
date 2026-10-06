@@ -39,6 +39,9 @@ export class XpertProjectTask extends XpertProjectBaseEntity implements IXpertPr
     @Column({ type: 'text', nullable: true })
     description?: string
 
+    @Column({ type: 'jsonb', default: '[]' })
+    requirements?: string[]
+
     /** Business classification; kind separately describes graph structure. */
     @Column({ type: 'varchar', nullable: true })
     type: string
