@@ -1,4 +1,4 @@
-import { XpertChatHandler } from './chat.handler'
+import { AdmittedXpertChatHandler } from './admitted-chat.handler'
 import { CreateMemoryStoreHandler } from './create-memory-store.handler'
 import { XpertCreateHandler } from './create.handler'
 import { XpertDelIntegrationHandler } from './del-integration.handler'
@@ -22,7 +22,7 @@ export const CommandHandlers = [
     XpertEnqueueTriggerDispatchHandler,
     XpertPublishHandler,
     XpertPublishTriggersHandler,
-    XpertChatHandler,
+    AdmittedXpertChatHandler,
     XpertExecuteHandler,
     XpertImportHandler,
     XpertExportHandler,

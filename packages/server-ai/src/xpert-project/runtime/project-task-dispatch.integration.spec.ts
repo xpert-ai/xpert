@@ -1,3 +1,5 @@
+import { reliableReturnIntegrationCases } from '../../handoff/runtime-messaging/testing/reliable-return.cases'
+import { runtimeMessageTestSchemas } from '../../handoff/runtime-messaging/testing/runtime-message.schemas'
 import { XpertProjectTaskService } from '../services/project-task.service'
 jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
 import { randomUUID } from 'node:crypto'
@@ -42,6 +44,7 @@ const json = { type: 'jsonb' as const, nullable: true }
 const base = { id: { ...uuid, primary: true }, tenantId: uuid, organizationId: uuid }
 const projectBase = { ...base, projectId: uuid, createdById: uuid }
 const schemas = [
+    ...runtimeMessageTestSchemas,
     new EntitySchema<XpertProject>({
         name: 'XpertProject',
         target: XpertProject,
@@ -89,6 +92,10 @@ const schemas = [
             invocationId: { ...uuid, nullable: true },
             dispatchRequestId: { ...uuid, nullable: true },
             dispatchState: nullableText,
+            projectedTaskRevision: { type: 'int', nullable: true },
+            projectedInvocationRevision: { type: 'int', default: -1 },
+            dispatchNextAttemptAt: { type: 'timestamptz', nullable: true },
+            dispatchError: nullableText,
             createdAt: { type: 'timestamptz', createDate: true },
             specificationSnapshot: json,
             purpose: json,
@@ -101,6 +108,10 @@ const schemas = [
         tableName: 'agent_invocation',
         columns: {
             ...base,
+            nextObservationAt: { type: 'timestamptz', nullable: true },
+            observationLeaseToken: { ...uuid, nullable: true },
+            observationLeaseUntil: { type: 'timestamptz', nullable: true },
+            observationError: nullableText,
             ownerId: text,
             revision: { type: 'int' },
             invocation: json,
@@ -181,6 +192,12 @@ integration('explicit task delegation / PostgreSQL', () => {
             CREATE TABLE xpert_agent_execution (id uuid PRIMARY KEY, "threadId" varchar, "agentKey" varchar, "xpertId" uuid, type varchar, status varchar, error varchar,
             "tenantId" uuid, "organizationId" uuid, "createdById" uuid, "updatedById" uuid, "createdAt" timestamptz DEFAULT now(), "updatedAt" timestamptz DEFAULT now());`)
         await database.query(migration)
+        const reliable = readFileSync(
+            join(__dirname, '../../handoff/runtime-messaging/migrations/20261006-runtime-reliable-replies.sql'),
+            'utf8'
+        )
+        await database.query(reliable)
+        await database.query(reliable)
         await database.query(migration) // Re-applying the additive migration preserves existing data and indexes.
     })
     afterAll(async () => {
@@ -439,4 +456,6 @@ integration('explicit task delegation / PostgreSQL', () => {
             .find({ where: { taskId: input.taskId }, order: { attempt: 'ASC' } })
         expect(attempts.map((attempt) => attempt.attempt)).toEqual([1, 2])
     })
+
+    reliableReturnIntegrationCases(() => ({ database, store, service, factory, scope, caller, input, start, strategy }))
 })

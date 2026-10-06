@@ -1,3 +1,15 @@
+import { AgentRuntimeDelivery, AgentRuntimeInbox } from '../handoff/runtime-messaging/runtime-message.entity'
+import { RuntimeMessageAccessService } from '../handoff/runtime-messaging/runtime-message-access.service'
+import {
+    RuntimeMessageInboxService,
+    ClaimAgentRuntimeResultsHandler
+} from '../handoff/runtime-messaging/runtime-message-inbox.service'
+import { RuntimeMessageTransportService } from '../handoff/runtime-messaging/runtime-message-transport.service'
+import { RuntimeMessageContinuationService } from '../handoff/runtime-messaging/runtime-message-continuation.service'
+import { RuntimeMessageProcessor } from '../handoff/runtime-messaging/runtime-message.processor'
+import { RuntimeObservationMonitorService } from '../handoff/runtime-messaging/runtime-observation-monitor.service'
+import { RuntimeDeliveryController } from '../handoff/runtime-messaging/runtime-delivery.controller'
+import { RequestRuntimeResultCheckHandler } from '../handoff/runtime-messaging/runtime-result-check.handler'
 import { CancelTaskWaitsHandler, CheckTaskWaitClaimHandler } from './task-wait-control'
 import { InvocationResultsProvider } from './invocation-results.provider'
 import { ArtifactsModule } from '../artifacts/artifacts.module'
@@ -33,6 +45,8 @@ import { NativeAgentInvocationReader } from './native-invocation-reader'
         DiscoveryModule,
         CqrsModule,
         TypeOrmModule.forFeature([
+            AgentRuntimeDelivery,
+            AgentRuntimeInbox,
             AgentInvocationEntity,
             AgentRuntimeBindingEntity,
             AgentInvocationEventEntity,
@@ -42,8 +56,16 @@ import { NativeAgentInvocationReader } from './native-invocation-reader'
             XpertAgentExecution
         ])
     ],
-    controllers: [AgentRuntimeBindingsController, AgentInvocationsController],
+    controllers: [RuntimeDeliveryController, AgentRuntimeBindingsController, AgentInvocationsController],
     providers: [
+        RequestRuntimeResultCheckHandler,
+        RuntimeMessageAccessService,
+        RuntimeMessageInboxService,
+        ClaimAgentRuntimeResultsHandler,
+        RuntimeMessageTransportService,
+        RuntimeMessageContinuationService,
+        RuntimeMessageProcessor,
+        RuntimeObservationMonitorService,
         InvocationResultsProvider,
         AgentInvocationWaitStore,
         AgentInvocationMonitorService,
@@ -63,6 +85,6 @@ import { NativeAgentInvocationReader } from './native-invocation-reader'
                 new AgentInvocationRuntime(store, registry)
         }
     ],
-    exports: [AgentInvocationRuntime, AgentRuntimeRegistry, AgentInvocationFactoryService]
+    exports: [RuntimeMessageAccessService, AgentInvocationRuntime, AgentRuntimeRegistry, AgentInvocationFactoryService]
 })
 export class AgentInvocationModule {}

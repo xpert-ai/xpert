@@ -1,5 +1,6 @@
 // Invariants: reserve before dispatch; ambiguous launch is never automatically retried.
 // Provider provenance and target revision stay pinned through checkpoint recovery.
+// A bounded persisted startup fence keeps inspection from invalidating intermediate launch receipts.
 import { createHash } from 'crypto'
 import { agentRuntimeProgressSchema } from '@xpert-ai/contracts'
 import {
@@ -19,7 +20,12 @@ import {
     RuntimeCapabilityRegistry
 } from '@xpert-ai/plugin-sdk'
 import { AgentInvocationStore, StoredAgentInvocation } from './invocation-store'
-import { AgentInvocationError, AgentInvocationErrorCode, authorizeAgentInvocation } from './invocation-errors'
+import {
+    AgentInvocationError,
+    AgentInvocationErrorCode,
+    AgentInvocationNotStartedError,
+    authorizeAgentInvocation
+} from './invocation-errors'
 
 export interface AgentInvocationAccess {
     scope: AgentInvocationScope
@@ -101,7 +107,12 @@ export class AgentInvocationRuntime {
             if (!(await this.store.insert(record))) return this.start(request, access)
         }
         // Only the CAS winner can launch. A queued reservation is safe to resume after a crash.
-        const claimed = await this.save(record, { status: 'running', interaction: undefined, error: undefined }, false)
+        const claimed = await this.save(
+            record,
+            { status: 'running', interaction: undefined, error: undefined },
+            false,
+            'begin'
+        )
         if (!claimed) {
             const latest = await this.store.read(id, access.scope)
             if (!latest) throw invocationError('NotFound')
@@ -124,14 +135,24 @@ export class AgentInvocationRuntime {
                 latest &&
                 latest.invocation.revision > record.invocation.revision &&
                 (isAgentInvocationTerminal(latest.invocation.status) || latest.invocation.status !== observation.status)
-                ? latest.invocation
-                : (await this.updateLatest(id, access, observation)).invocation
+                ? (await this.updateLatest(id, access, { status: latest.invocation.status }, true)).invocation
+                : (await this.updateLatest(id, access, observation, true)).invocation
         } catch (error) {
+            const latest = await this.store.read(id, access.scope)
+            if (error instanceof AgentInvocationNotStartedError && !latest?.invocation.handle) {
+                return (await this.updateLatest(id, access, { status: 'failed', error: error.message }, true))
+                    .invocation
+            }
             const suspended = access.isSuspension?.(error) ?? false
-            await this.updateLatest(id, access, {
-                status: suspended ? 'waiting' : 'unknown',
-                ...(suspended ? {} : { error: invocationError('DispatchUnknown').message })
-            })
+            await this.updateLatest(
+                id,
+                access,
+                {
+                    status: suspended ? 'waiting' : 'unknown',
+                    ...(suspended ? {} : { error: invocationError('DispatchUnknown').message })
+                },
+                true
+            )
             throw error
         }
     }
@@ -148,8 +169,32 @@ export class AgentInvocationRuntime {
         await authorizeAgentInvocation(() => access.authorize(record.invocation.request.target))
         const strategy = this.pinned(record)
         if (isAgentInvocationTerminal(record.invocation.status)) return record.invocation
+        if (
+            operation === 'inspect' &&
+            record.invocation.status === 'running' &&
+            Date.parse(record.invocation.startPendingUntil ?? '') > Date.now()
+        )
+            return record.invocation
         const { handle } = record.invocation
-        if (!handle) return record.invocation
+        if (!handle) {
+            if (
+                operation === 'inspect' &&
+                record.invocation.status === 'running' &&
+                Date.parse(record.invocation.startPendingUntil ?? '') <= Date.now()
+            )
+                return (
+                    await this.updateLatest(
+                        id,
+                        access,
+                        {
+                            status: 'unknown',
+                            error: invocationError('DispatchUnknown').message
+                        },
+                        true
+                    )
+                ).invocation
+            return record.invocation
+        }
         const context = this.context(record, access)
         let observation: AgentRuntimeObservation
         if (operation === 'cancel') {
@@ -190,7 +235,12 @@ export class AgentInvocationRuntime {
         if (canonical(record.invocation.scope) !== canonical(scope)) throw invocationError('NotFound')
     }
 
-    private async updateLatest(id: string, access: AgentInvocationAccess, observation: AgentRuntimeObservation) {
+    private async updateLatest(
+        id: string,
+        access: AgentInvocationAccess,
+        observation: AgentRuntimeObservation,
+        finishStart = false
+    ) {
         for (let attempt = 0; attempt < 8; attempt++) {
             const latest = await this.store.read(id, access.scope)
             if (!latest) throw invocationError('NotFound')
@@ -200,13 +250,18 @@ export class AgentInvocationRuntime {
                 latest.invocation.status === 'cancelling' && observation.status === 'running'
                     ? { ...observation, status: 'cancelling' as const }
                     : observation
-            const saved = await this.save(latest, next, false)
+            const saved = await this.save(latest, next, false, finishStart ? 'finish' : undefined)
             if (saved) return saved
         }
         throw invocationError('ConcurrentUpdate')
     }
 
-    private async save(record: StoredAgentInvocation, observation: AgentRuntimeObservation, requireClaim = true) {
+    private async save(
+        record: StoredAgentInvocation,
+        observation: AgentRuntimeObservation,
+        requireClaim = true,
+        startup?: 'begin' | 'finish'
+    ) {
         if (observation.progress !== undefined) {
             const progress = agentRuntimeProgressSchema.safeParse(observation.progress)
             if (!progress.success) throw invocationError('InvalidRequest')
@@ -218,6 +273,12 @@ export class AgentInvocationRuntime {
             invocation: {
                 ...record.invocation,
                 ...structuredClone(observation),
+                startPendingUntil:
+                    startup === 'begin'
+                        ? new Date(Date.now() + 120_000).toISOString()
+                        : startup === 'finish' || isAgentInvocationTerminal(observation.status)
+                          ? undefined
+                          : record.invocation.startPendingUntil,
                 revision: record.invocation.revision + 1,
                 updatedAt: new Date().toISOString()
             }

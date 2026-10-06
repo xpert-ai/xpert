@@ -1,3 +1,4 @@
+import { ChatConversationModule } from '../chat-conversation/conversation.module'
 import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { ChatController } from './chat.controller'
@@ -26,6 +27,7 @@ import { AgentMiddlewareRuntimeModule } from '../shared/agent/middleware-runtime
 
 @Module({
     imports: [
+        ChatConversationModule,
         CqrsModule,
         CopilotModule,
         CopilotCheckpointModule,

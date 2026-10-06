@@ -194,7 +194,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
         let conversation: IChatConversation = null
         let userMessage: IChatMessage = null
         let aiMessage: IChatMessage = null
-        let executionId: string
+        let executionId: string = command.options.execution?.id
         let executionInputs: unknown = input
         let queueFollowUpConsumedEvent: ReturnType<typeof createFollowUpConsumedEvent> | null = null
         // Continue thread when confirm or reject operation
@@ -394,6 +394,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                     userMessage = await this.commandBus.execute(
                         new ChatMessageUpsertCommand({
                             role: 'human',
+                            messageEnvelope: command.options.messageEnvelope,
+                            createdInThreadId: conversation.threadId,
                             content: persistedInput?.input,
                             conversationId: conversation.id,
                             ...(references.length

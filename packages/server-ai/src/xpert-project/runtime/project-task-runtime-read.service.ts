@@ -1,3 +1,4 @@
+import { AgentRuntimeDelivery, AgentRuntimeInbox } from '../../handoff/runtime-messaging/runtime-message.entity'
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { projectTaskSpecificationSchema } from '@xpert-ai/contracts'
@@ -69,11 +70,27 @@ export class ProjectTaskRuntimeReadService {
             )
                 throw projectTaskRuntimeError('Invalid')
             const invocation = await this.factory.createCapturedApi(record.invocation.scope).inspect(record.id)
+            const where = {
+                invocationId: invocation.id,
+                tenantId: actor.tenantId,
+                organizationId: actor.organizationId,
+                ownerId: actor.userId
+            }
+            const [delivery, consumption] = await Promise.all([
+                this.tasks.manager
+                    .getRepository(AgentRuntimeDelivery)
+                    .find({ where, select: ['state', 'lastError', 'updatedAt'] }),
+                this.tasks.manager
+                    .getRepository(AgentRuntimeInbox)
+                    .find({ where, select: ['state', 'lastError', 'updatedAt'] })
+            ])
             executions.push({
                 ...projectTaskInvocationView(execution, invocation),
                 invocationStatus: invocation.status,
                 invocationRevision: invocation.revision,
                 runtimeProvider: invocation.request.target.provider,
+                delivery,
+                consumption,
                 progress: invocation.progress,
                 result: invocation.result
                     ? {

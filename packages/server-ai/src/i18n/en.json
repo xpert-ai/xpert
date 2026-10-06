@@ -1,4 +1,8 @@
 {
+    "RuntimeReply": {
+        "Completed": "A delegated runtime has finished. Inspect its authorized result and decide the next step. Invocation: {{invocationId}}.",
+        "ProjectTask": " Project task: {{taskId}}. Attempt: {{attemptId}}."
+    },
     "BosiStartConversation": "Hello, Bosi!",
     "ToolImage": {
         "HistoricalReference": "Historical image output is not current visual input. Call the image tool again before inspecting it.",
@@ -41,6 +45,12 @@
         "ProjectTaskRuntimeNotFound": "The requested Project task was not found.",
         "ProjectTaskRuntimeState": "This task cannot be delegated in its current state or graph kind.",
         "ProjectTaskRuntimeOwned": "Runtime attempt identity and state are managed by the host Invocation runtime.",
+        "RuntimeMessageInvalid": "Invalid runtime message reference.",
+        "RuntimeMessageAccess": "The runtime reply target is no longer accessible.",
+        "RuntimeMessageConsumed": "This result is already claimed by another consumer.",
+        "RuntimeMessageBusy": "The receiving thread is busy.",
+        "RuntimeMessageBlocked": "Automatic continuation is blocked.",
+        "RuntimeMessageUnknown": "The previous consumer outcome is unknown. Inspect its execution before continuing.",
         "ProjectTaskSpecificationInvalid": "The task specification is invalid or no longer matches its saved digest.",
         "ChatMessageEnvelopeInvalid": "Invalid message provenance or presentation.",
         "RealtimeModelRequired": "Configure and authorize a realtime voice model first.",

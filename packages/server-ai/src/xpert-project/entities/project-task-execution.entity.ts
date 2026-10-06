@@ -16,6 +16,11 @@ import { XpertProjectBaseEntity } from './project.base'
 @Entity('xpert_project_task_execution')
 @Index(['taskId', 'sourceKey'], { unique: true })
 export class XpertProjectTaskExecution extends XpertProjectBaseEntity implements IXpertProjectTaskExecution {
+    @Column({ type: 'int', nullable: true }) projectedTaskRevision?: number | null
+    @Column({ type: 'int', default: -1 }) projectedInvocationRevision?: number
+    @Column({ type: 'timestamptz', nullable: true }) dispatchNextAttemptAt?: Date | null
+    @Column({ type: 'varchar', nullable: true }) dispatchError?: string | null
+
     @Column({ type: 'uuid', nullable: true }) invocationId?: string | null
     /** Read projection from the associated Invocation, never a second runtime ledger. */
     invocationStatus?: AgentInvocationStatus | null

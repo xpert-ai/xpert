@@ -1,3 +1,5 @@
+import { ProjectTaskDispatchRecoveryService } from './runtime/project-task-dispatch-recovery.service'
+import { ProjectRuntimeObservationHandler } from './runtime/project-runtime-observation.handler'
 import { AgentInvocationModule } from '../agent-invocation/agent-invocation.module'
 import { XpertAgentExecution } from '../xpert-agent-execution/agent-execution.entity'
 import { ProjectTaskRuntimeContextService } from './runtime/project-task-runtime-context.service'
@@ -140,6 +142,8 @@ import { ProjectTasksMiddleware } from './plugins/project-tasks/project-tasks.mi
         ProjectTaskGraphController
     ],
     providers: [
+        ProjectTaskDispatchRecoveryService,
+        ProjectRuntimeObservationHandler,
         ProjectTasksMiddleware,
         ProjectTaskRuntimeContextService,
         ProjectTaskDispatchService,

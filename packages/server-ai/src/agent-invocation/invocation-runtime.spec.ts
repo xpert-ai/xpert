@@ -9,7 +9,8 @@ import {
     BUILTIN_GLOBAL_SCOPE,
     AgentRuntimeObservation
 } from '@xpert-ai/plugin-sdk'
-import { agentInvocationId, AgentInvocationRuntime } from './invocation-runtime'
+import { AgentInvocationRuntime } from './invocation-runtime'
+import { AgentInvocationNotStartedError } from './invocation-errors'
 import { MemoryInvocationStore } from './invocation-test-store'
 
 function fixture() {
@@ -49,18 +50,63 @@ function fixture() {
 }
 
 describe('AgentInvocationRuntime', () => {
-    it('recovers a queued reservation once and never relaunches a running record without a receipt', async () => {
+    it('fences intermediate launch receipts across runtime instances and inspects immediately after start returns', async () => {
         const f = fixture()
-        const admitted = await f.api.start(f.request)
-        const record = f.store.rows.get(admitted.id)
-        record.invocation.status = 'queued'
-        f.start.mockClear().mockResolvedValue({ status: 'running' })
-        const receipts = await Promise.all([f.api.start(f.request), f.api.start(f.request)])
-        expect(f.start).toHaveBeenCalledTimes(1)
-        expect(receipts.every((receipt) => receipt.id === admitted.id)).toBe(true)
-        await f.api.start(f.request)
+        f.start.mockImplementation(async (_request, context) => {
+            await context.checkpoint({ status: 'running', handle: { sessionId: 'pending', runId: 'run' } })
+            const other = new AgentInvocationRuntime(f.store, f.registry).scoped(f.access)
+            const observed = await other.inspect(context.invocationId)
+            expect(observed.status).toBe('running')
+            expect(observed.startPendingUntil).toBeDefined()
+            expect(f.strategy.inspect).not.toHaveBeenCalled()
+            return { status: 'running', handle: { sessionId: 'ready', runId: 'run' } }
+        })
+        const started = await f.api.start(f.request)
+        expect(started.startPendingUntil).toBeUndefined()
+        await f.api.inspect(started.id)
+        expect(f.strategy.inspect).toHaveBeenCalledTimes(1)
+    })
+
+    it('expires an abandoned startup fence without relaunching work', async () => {
+        const f = fixture()
+        f.start.mockImplementation(async (_request, context) => {
+            await context.checkpoint({ status: 'running', handle: { sessionId: 'pending', runId: 'run' } })
+            f.store.rows.get(context.invocationId).invocation.startPendingUntil = new Date(0).toISOString()
+            jest.mocked(f.strategy.inspect).mockResolvedValue({ status: 'unknown' })
+            const other = new AgentInvocationRuntime(f.store, f.registry).scoped(f.access)
+            expect((await other.inspect(context.invocationId)).status).toBe('unknown')
+            expect((await other.start(f.request)).status).toBe('unknown')
+            return { status: 'running' }
+        })
+        expect((await f.api.start(f.request)).status).toBe('unknown')
+        expect(f.strategy.inspect).toHaveBeenCalledTimes(1)
         expect(f.start).toHaveBeenCalledTimes(1)
     })
+
+    it('marks an expired startup without a receipt unknown and never replays it', async () => {
+        const f = fixture()
+        f.start.mockImplementation(async (_request, context) => {
+            f.store.rows.get(context.invocationId).invocation.startPendingUntil = new Date(0).toISOString()
+            expect((await f.api.inspect(context.invocationId)).status).toBe('unknown')
+            expect((await f.api.start(f.request)).status).toBe('unknown')
+            return { status: 'running' }
+        })
+        expect((await f.api.start(f.request)).status).toBe('unknown')
+        expect(f.strategy.inspect).not.toHaveBeenCalled()
+        expect(f.start).toHaveBeenCalledTimes(1)
+    })
+
+    it('allows cancellation during the startup fence and preserves it when start returns', async () => {
+        const f = fixture()
+        f.start.mockImplementation(async (_request, context) => {
+            await context.checkpoint({ status: 'running', handle: { sessionId: 'pending', runId: 'run' } })
+            expect((await f.api.cancel(context.invocationId)).status).toBe('cancelling')
+            return { status: 'running' }
+        })
+        expect((await f.api.start(f.request)).status).toBe('cancelling')
+        expect(f.strategy.cancel).toHaveBeenCalledTimes(1)
+    })
+
     const dispatch = {
         version: 1 as const,
         requestId: '00000000-0000-4000-8000-000000000001',
@@ -73,6 +119,18 @@ describe('AgentInvocationRuntime', () => {
         }
     }
 
+    it('recovers a queued reservation once and never relaunches a running record without a receipt', async () => {
+        const f = fixture()
+        const admitted = await f.api.start(f.request)
+        const record = f.store.rows.get(admitted.id)
+        record.invocation.status = 'queued'
+        f.start.mockClear().mockResolvedValue({ status: 'running' })
+        const receipts = await Promise.all([f.api.start(f.request), f.api.start(f.request)])
+        expect(f.start).toHaveBeenCalledTimes(1)
+        expect(receipts.every((receipt) => receipt.id === admitted.id)).toBe(true)
+        await f.api.start(f.request)
+        expect(f.start).toHaveBeenCalledTimes(1)
+    })
     it('pins reply metadata in the existing invocation identity without sending it to the adapter', async () => {
         const f = fixture()
         const request = { ...f.request, dispatch }
@@ -108,6 +166,26 @@ describe('AgentInvocationRuntime', () => {
         expect(started.status).toBe('running')
         expect(started.result).toBeUndefined()
         expect((await f.api.inspect(started.id)).progress).toEqual(progress)
+    })
+
+    it('records a verified preflight failure as terminal, without replaying the same request', async () => {
+        const f = fixture()
+        f.start.mockRejectedValue(new AgentInvocationNotStartedError('Coding tool missing'))
+        const result = await f.api.start(f.request)
+        expect(result.status).toBe('failed')
+        expect(result.error).toBe('Coding tool missing')
+        expect(await f.api.start(f.request)).toEqual(result)
+        expect(f.start).toHaveBeenCalledTimes(1)
+    })
+
+    it('never treats a saved launch receipt as a preflight failure', async () => {
+        const f = fixture()
+        f.start.mockImplementation(async (_request, context) => {
+            await context.checkpoint({ status: 'running', handle: { sessionId: 'session', runId: 'run' } })
+            throw new AgentInvocationNotStartedError('Too late to assert preflight')
+        })
+        await expect(f.api.start(f.request)).rejects.toThrow()
+        expect([...f.store.rows.values()][0].invocation.status).toBe('unknown')
     })
 
     it('does not accept an impossible progress count from an adapter', async () => {

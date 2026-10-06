@@ -100,6 +100,9 @@ describe('ThreadRunControlService', () => {
         thread.status = 'busy'
         await service.start('thread', 'next')
         await service.requestPause('thread', 'next', snapshot)
+        await expect(service.start('thread', 'new')).rejects.toBeInstanceOf(ConflictException)
+        await service.cancel('thread', ['next'])
+        expect(thread.runtimeContinuationBlockedAt).toBeInstanceOf(Date)
         await service.start('thread', 'new')
         expect(thread.metadata.chatkitDisplayPause).toBeUndefined()
     })

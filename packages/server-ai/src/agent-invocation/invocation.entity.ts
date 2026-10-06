@@ -13,6 +13,10 @@ import type {
 @Entity('agent_invocation')
 @Index(['tenantId', 'organizationId', 'ownerId'])
 export class AgentInvocationEntity extends TenantOrganizationBaseEntity {
+    @Column({ type: 'timestamptz', default: () => 'now()', nullable: true }) nextObservationAt: Date | null
+    @Column({ type: 'uuid', nullable: true }) observationLeaseToken: string | null
+    @Column({ type: 'timestamptz', nullable: true }) observationLeaseUntil: Date | null
+    @Column({ type: 'varchar', nullable: true }) observationError: string | null
     @Column({ type: 'varchar' }) ownerId: string
     @Column({ type: 'int', default: 0 }) revision: number
     @Column({ type: 'jsonb' }) invocation: AgentInvocation

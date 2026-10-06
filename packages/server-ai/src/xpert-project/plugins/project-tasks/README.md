@@ -27,6 +27,12 @@ Creation and update tools use strict input schemas with explicit bounds. All too
 
 Delegation preserves requestId, Invocation identity, authorization policies, serialized project dispatch, and explicit `modelSource` requirements. Apply `20261006-project-task-runtime.sql` before deployment. Pro provides the Computer executor; OS includes the general Runtime delegation protocol and model authorization policies.
 
-This batch supports explicit delegation and result inspection. Retrying the same requestId can recover a reservation that has not started; running executions and executions with an uncertain outcome are never relaunched. Completion requirements are separate from reported step progress. Runtime success does not automatically complete a business task, and finishing every step does not automatically accept a task with an existing Runtime attempt.
+Explicit delegation supports retries with the same requestId and result inspection. Retrying can recover a reservation that has not started; running executions and executions with an uncertain outcome are never relaunched. Completion requirements are separate from reported step progress. Runtime success does not automatically complete a business task, and finishing every step does not automatically accept a task with an existing Runtime attempt.
 
-Automatic background dispatch recovery, reliable result messages, asynchronous conversation continuation, result acceptance, and message cards are introduced in later batches.
+## Reliable replies and task progress
+
+After applying the task association migration, apply `handoff/runtime-messaging/migrations/20261006-runtime-reliable-replies.sql` before enabling the background workers. The host recovers pending dispatch intents, observes existing invocations independently of the parent turn, and delivers result references through durable outbox and inbox records. A bounded wait and an asynchronous follow-up compete for the same result claim. Busy conversations queue the result; user stops, pauses, and approval or input waits block automatic continuation.
+
+Automatic task updates require the latest implementation attempt, unchanged requirements, and the expected task revision. Actual execution maps to `in_progress`, success to `review`, and failure to `blocked`. Cancelling a run does not cancel the business task. User decisions and provider-owned tasks are preserved.
+
+See [Reliable Runtime replies](../../../handoff/runtime-messaging/README.md) for authorization, recovery, delivery inspection, and redrive behavior. Result acceptance, live frontend stream continuation, and message cards are introduced in later batches.

@@ -63,6 +63,10 @@ export class ChatConversationThread extends TenantOrganizationBaseEntity {
     @Column({ type: 'jsonb', nullable: true })
     runControl?: TChatThreadRunControl | null
 
+    /** A user stop permanently suppresses automatic replies from earlier invocations. */
+    @Column({ type: 'timestamptz', nullable: true })
+    runtimeContinuationBlockedAt?: Date | null
+
     // Runtime context may contain host-supplied secrets; never expose it in thread responses.
     @Exclude({ toPlainOnly: true })
     @Column({ type: 'text', nullable: true, select: false })

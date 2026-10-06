@@ -174,6 +174,8 @@ export class ProjectTaskDispatchService {
                     invocationId: agentInvocationId(scope, intent.request.callId),
                     dispatchRequestId: input.requestId,
                     dispatchState: 'pending',
+                    dispatchNextAttemptAt: new Date(),
+                    projectedTaskRevision: task.revision,
                     specificationSnapshot,
                     purpose,
                     dispatchIntent: intent
@@ -257,7 +259,10 @@ export class ProjectTaskDispatchService {
             invocation = record.invocation
         }
         // Avoid older concurrent receipts overwriting newer runtime facts: Invocation is the source of truth.
-        await this.executions.update({ id: execution.id, dispatchState: 'pending' }, { dispatchState: 'submitted' })
+        await this.executions.update(
+            { id: execution.id, dispatchState: 'pending' },
+            { dispatchState: 'submitted', dispatchNextAttemptAt: null, dispatchError: null }
+        )
         return {
             projectId: execution.projectId,
             projectTaskId: execution.taskId,

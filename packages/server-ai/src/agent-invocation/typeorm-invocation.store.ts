@@ -7,6 +7,7 @@ import { EntityManager, Repository } from 'typeorm'
 import { randomUUID } from 'crypto'
 import { AgentInvocationStore, StoredAgentInvocation } from './invocation-store'
 import { AgentInvocationEntity, AgentInvocationEventEntity } from './invocation.entity'
+import { appendRuntimeDelivery } from '../handoff/runtime-messaging/runtime-message-outbox'
 
 @Injectable()
 export class TypeOrmAgentInvocationStore extends AgentInvocationStore {
@@ -68,7 +69,8 @@ export class TypeOrmAgentInvocationStore extends AgentInvocationStore {
                 .set({
                     invocation: () => ':invocation::jsonb',
                     providerSource: () => ':providerSource::jsonb',
-                    revision: invocation.revision
+                    revision: invocation.revision,
+                    nextObservationAt: new Date()
                 })
                 .where({
                     id: invocation.id,
@@ -122,6 +124,7 @@ export class TypeOrmAgentInvocationStore extends AgentInvocationStore {
             })
             .setParameters({ observation: JSON.stringify(observation) })
             .execute()
+        await appendRuntimeDelivery(manager, invocation)
         // Completion and its durable wake-up are committed together. Polling repairs missed notifications.
         if (['succeeded', 'failed', 'cancelled', 'waiting'].includes(invocation.status)) {
             await manager.query(

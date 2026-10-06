@@ -1,4 +1,8 @@
 {
+    "RuntimeReply": {
+        "Completed": "受托运行时已结束，请读取获准的执行结果并决定下一步。Invocation：{{invocationId}}。",
+        "ProjectTask": " 项目任务：{{taskId}}。执行尝试：{{attemptId}}。"
+    },
     "BosiStartConversation": "你好，Bosi！",
     "ToolImage": {
         "HistoricalReference": "历史图片输出不是当前视觉输入，请重新调用图片工具后检查。",
@@ -41,6 +45,12 @@
         "ProjectTaskRuntimeNotFound": "未找到请求的项目任务。",
         "ProjectTaskRuntimeState": "此任务的当前状态或图节点类型不允许委托。",
         "ProjectTaskRuntimeOwned": "Runtime 尝试的身份和状态由宿主 Invocation 运行时管理。",
+        "RuntimeMessageInvalid": "运行时消息引用无效。",
+        "RuntimeMessageAccess": "当前身份无法访问运行时回复目标。",
+        "RuntimeMessageConsumed": "此结果已由另一个处理方领取。",
+        "RuntimeMessageBusy": "接收线程正在运行。",
+        "RuntimeMessageBlocked": "自动继续已被阻止。",
+        "RuntimeMessageUnknown": "上一次处理的结果尚未确定，请先检查关联执行。",
         "ProjectTaskSpecificationInvalid": "任务规格无效或与已保存的摘要不一致。",
         "ChatMessageEnvelopeInvalid": "消息来源或展示设置无效。",
         "RealtimeModelRequired": "请先配置并授权可用的实时语音模型。",

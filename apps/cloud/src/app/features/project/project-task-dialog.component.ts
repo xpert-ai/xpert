@@ -267,9 +267,15 @@ export class XpertProjectTaskDialogComponent {
   readonly project = this.data.project
   readonly advanced = this.data.advanced
 
-  readonly statuses: TXpertProjectTaskStatus[] = this.advanced
-    ? ['todo', 'in_progress', 'review', 'paused', 'done', 'blocked', 'cancelled']
-    : ['todo', 'in_progress', 'paused', 'done', 'blocked', 'cancelled']
+  readonly statuses: TXpertProjectTaskStatus[] = [
+    'todo',
+    'in_progress',
+    'review',
+    'paused',
+    'done',
+    'blocked',
+    'cancelled'
+  ]
   readonly priorities: TXpertProjectTaskPriority[] = ['urgent', 'high', 'medium', 'low']
   readonly form = new FormGroup<TaskForm>({
     title: new FormControl('', { nonNullable: true }),
@@ -296,7 +302,7 @@ export class XpertProjectTaskDialogComponent {
     this.form.reset({
       title: this.task.title || this.task.name || '',
       description: this.task.description || '',
-      status: normalizeStatus(this.task.status, this.advanced),
+      status: normalizeStatus(this.task.status),
       priority: this.task.priority || 'medium',
       dueDate: this.task.dueDate ? new Date(this.task.dueDate).toISOString().slice(0, 10) : '',
       planId: this.task.planId || this.plans[0]?.id || '',
@@ -354,10 +360,9 @@ export type XpertProjectTaskDialogResult =
   | Partial<IXpertProjectTask>
   | { openConversation: XpertProjectConversationTarget & { threadId: string } }
 
-function normalizeStatus(status: IXpertProjectTask['status'], advanced: boolean): TXpertProjectTaskStatus {
+function normalizeStatus(status: IXpertProjectTask['status']): TXpertProjectTaskStatus {
   if (status === 'pending') return 'todo'
   if (status === 'completed') return 'done'
   if (status === 'failed') return 'blocked'
-  if (!advanced && status === 'review') return 'in_progress'
   return status as TXpertProjectTaskStatus
 }

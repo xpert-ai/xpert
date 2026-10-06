@@ -79,7 +79,9 @@ export class CancelConversationHandler implements ICommandHandler<CancelConversa
 
         const executionIds = executionId
             ? [executionId]
-            : (Array.from(new Set(targetMessages.map((message) => message.executionId).filter(Boolean))) as string[])
+            : runtimeThread?.runControl?.executionId
+              ? [runtimeThread.runControl.executionId]
+              : (Array.from(new Set(targetMessages.map((message) => message.executionId).filter(Boolean))) as string[])
 
         if (!executionIds.length) {
             return { canceledExecutionIds: [] }

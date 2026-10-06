@@ -62,6 +62,11 @@ export class ThreadRunControlService {
 
     async start(threadId: string, executionId: string, context?: Record<string, unknown>): Promise<void> {
         await this.locked(threadId, async (thread, manager) => {
+            if (thread.runControl && thread.runControl.executionId !== executionId)
+                throw threadControlConflict(
+                    'ThreadHasActiveOperation',
+                    'Thread already has a running or paused operation.'
+                )
             clearThreadDisplayPause(thread)
             thread.runControl = { executionId, state: 'running' }
             thread.encryptedRunContext = encryptSecret(JSON.stringify(context ?? {}), environment.secretsEncryptionKey)
@@ -236,6 +241,7 @@ export class ThreadRunControlService {
             clearThreadDisplayPause(thread)
             thread.runControl = null
             thread.encryptedRunContext = null
+            thread.runtimeContinuationBlockedAt = new Date()
             thread.status = 'interrupted'
             thread.error = 'Canceled by user'
             thread.operation = null

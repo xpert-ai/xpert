@@ -1,5 +1,7 @@
 import { HttpException } from '@nestjs/common'
 import { t } from 'i18next'
+/** Only host preflight may assert this: no executor has received task input or a launch receipt. */
+export class AgentInvocationNotStartedError extends Error {}
 /** Authorization failures must stop the run, not become an ordinary retryable tool result. */
 export class AgentInvocationAuthorizationError extends Error {
     constructor(readonly cause: unknown) {

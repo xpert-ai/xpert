@@ -135,6 +135,8 @@ export interface AgentInvocationRequest {
 
 /** Host-owned invocation snapshot; not an update DTO. */
 export interface AgentInvocation extends AgentRuntimeObservation {
+  /** Host startup fence; intermediate receipts are not inspected until start returns or this deadline expires. */
+  startPendingUntil?: string
   /** Host invocation ID used by inspect, cancel and respond. */
   id: string
   /** Host-managed concurrency revision, distinct from the target version. */

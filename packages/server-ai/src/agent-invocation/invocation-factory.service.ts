@@ -1,9 +1,11 @@
+import { ClaimAgentRuntimeResultsCommand } from '../handoff/runtime-messaging/runtime-message.commands'
 import { agentRuntimeModelSourceSchema } from '@xpert-ai/contracts'
 import { XpertProject } from '../xpert-project/entities/project.entity'
 import { Inject, Injectable, Optional } from '@nestjs/common'
-import { QueryBus } from '@nestjs/cqrs'
+import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import {
+    AgentInvocation,
     AgentInvocationApi,
     agentInvocationDispatchContextSchema,
     AgentExecutionRunnerCapability,
@@ -38,7 +40,8 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
         @Inject(XPERT_RUNTIME_CAPABILITIES_TOKEN) private readonly capabilities: RuntimeCapabilityRegistry,
         @Optional()
         @InjectRepository(AgentInvocationEntity)
-        private readonly records?: Repository<AgentInvocationEntity>
+        private readonly records?: Repository<AgentInvocationEntity>,
+        @Optional() private readonly commands?: CommandBus
     ) {}
 
     /** Host-only replay uses the persisted identity, never the next graph turn's ambient scope. */
@@ -203,6 +206,15 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
             cancel: async (id) => (await existingApi(id)).cancel(id),
             respond: async (id, interaction, response) => (await existingApi(id)).respond(id, interaction, response)
         }
+        const claimResults = async (callId: string, tasks: AgentInvocation[]) => {
+            const ids = tasks
+                .filter((task) => task.request.dispatch && ['succeeded', 'failed', 'cancelled'].includes(task.status))
+                .map((task) => task.id)
+            if (ids.length) {
+                if (!this.commands) throw invocationError('Unsupported')
+                await this.commands.execute(new ClaimAgentRuntimeResultsCommand(currentScope(), callId, ids))
+            }
+        }
         return {
             resolve,
             ...controls,
@@ -217,10 +229,12 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
                     },
                     options?.signal
                 )
+                await claimResults(id, result.tasks)
                 return result.tasks[0]
             },
             waitForTasks: async (request, options) => {
                 const result = await awaitInvocationTasks(controls, request, options?.signal)
+                await claimResults(request.callId, result.tasks)
                 return result
             }
         }

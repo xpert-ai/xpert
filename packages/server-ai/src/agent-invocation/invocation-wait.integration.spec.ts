@@ -56,7 +56,8 @@ integration('durable task wait isolation / PostgreSQL', () => {
             ...scopedColumns,
             revision: { type: 'int' },
             invocation: { type: 'jsonb' },
-            providerSource: { type: 'jsonb' }
+            providerSource: { type: 'jsonb' },
+            nextObservationAt: { type: 'timestamptz', nullable: true }
         }
     })
     const eventSchema = new EntitySchema<AgentInvocationEventEntity>({
@@ -119,6 +120,7 @@ integration('durable task wait isolation / PostgreSQL', () => {
             'thread'
         ])
         await apply(migrations[0])
+        await database.query('ALTER TABLE agent_invocation ADD COLUMN IF NOT EXISTS "nextObservationAt" timestamptz')
         await apply(migrations[1])
         await database.query(
             'INSERT INTO agent_invocation (id, "tenantId", "organizationId", "ownerId", invocation, "providerSource") VALUES ($1,$2,$3,$4,$5,$6)',
