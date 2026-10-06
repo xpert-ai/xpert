@@ -243,6 +243,33 @@ describe('SandboxConversationContextService', () => {
         })
         expect(resolved.workingDirectory).toBe('/workspace/root')
     })
+
+    it.each(['local-shell-sandbox', 'nsjail', 'docker-sandbox'])(
+        'uses the explicit environment for acquisition and discovery while keeping project storage: %s',
+        async (provider) => {
+            conversationRepository.findOne.mockResolvedValue({
+                id: 'conversation-1',
+                tenantId: 'tenant-1',
+                createdById: 'user-1',
+                projectId: 'project-1',
+                xpertId: 'xpert-1',
+                options: { sandboxEnvironmentId: 'environment-1' },
+                xpert: { features: { sandbox: { enabled: true, provider } } }
+            })
+            await service.resolveConversationSandbox({ conversationId: 'conversation-1' })
+            await service.findExistingSandbox(await service.authorizeConversation({ conversationId: 'conversation-1' }))
+            const [acquire, find] = commandBus.execute.mock.calls.map(([command]) => command)
+            expect(acquire.constructor.name).toBe('SandboxAcquireBackendCommand')
+            expect(find.constructor.name).toBe('SandboxFindBackendCommand')
+            expect(acquire.params).toEqual(find.params)
+            expect(acquire.params).toMatchObject({
+                provider,
+                workFor: { type: 'environment', id: 'environment-1' },
+                volumeScope: { catalog: 'projects', projectId: 'project-1' }
+            })
+            expect(workAreaResolver.resolve.mock.calls[1][1]).toEqual({ createDirectories: false })
+        }
+    )
 })
 
 function createWorkArea(input: {
@@ -255,18 +282,18 @@ function createWorkArea(input: {
     environmentId?: string | null
 }) {
     const workspacePath = '/workspace/root'
-    const volumeScope = input.environmentId
+    const volumeScope = input.projectId
         ? {
               tenantId: input.tenantId,
-              catalog: 'environment',
-              environmentId: input.environmentId,
+              catalog: 'projects',
+              projectId: input.projectId,
               userId: input.userId
           }
-        : input.projectId
+        : input.environmentId
           ? {
                 tenantId: input.tenantId,
-                catalog: 'projects',
-                projectId: input.projectId,
+                catalog: 'environment',
+                environmentId: input.environmentId,
                 userId: input.userId
             }
           : {

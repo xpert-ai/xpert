@@ -25,6 +25,7 @@ import { FileStorage } from '@xpert-ai/server-core'
 import { IFileStorageProvider } from '@xpert-ai/plugin-sdk'
 import { DevVolumeClient, VolumeHandle, VolumeSubtreeClient } from '../shared/volume'
 import { XpertWorkAreaResolver } from '../shared/volume/work-area'
+import { XpertWorkAreaExtensionRegistry } from '../shared/volume/work-area-extension.registry'
 import { FileWorkspaceProjectionService } from './file-workspace-projection.service'
 
 type MockFileAssetRepository = {
@@ -168,17 +169,22 @@ describe('FileWorkspaceProjectionService', () => {
             findOne: jest.fn().mockResolvedValue(null)
         }
         const volumeClient = new DevVolumeClient()
-        const workAreaResolver = new XpertWorkAreaResolver(volumeClient, {
-            mapVolumeToWorkspace: (
-                _provider: string | null | undefined,
-                volume: VolumeHandle,
-                options?: { serverPath?: string }
-            ) => ({
-                volumeRoot: volume.serverRoot,
-                workspaceRoot: volume.serverRoot,
-                workspacePath: options?.serverPath === undefined ? volume.serverRoot : volume.path(options.serverPath)
-            })
-        } as never)
+        const workAreaResolver = new XpertWorkAreaResolver(
+            volumeClient,
+            {
+                mapVolumeToWorkspace: (
+                    _provider: string | null | undefined,
+                    volume: VolumeHandle,
+                    options?: { serverPath?: string }
+                ) => ({
+                    volumeRoot: volume.serverRoot,
+                    workspaceRoot: volume.serverRoot,
+                    workspacePath:
+                        options?.serverPath === undefined ? volume.serverRoot : volume.path(options.serverPath)
+                })
+            } as never,
+            new XpertWorkAreaExtensionRegistry()
+        )
         const service = createProjectionService(
             fileAssetRepository,
             fileArtifactRepository,

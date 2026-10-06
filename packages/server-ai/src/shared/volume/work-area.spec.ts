@@ -3,20 +3,24 @@ import os from 'node:os'
 import path from 'node:path'
 import { VolumeClient, VolumeHandle, VolumeRootResolution, VolumeScope } from './volume'
 import { KnowledgeWorkAreaResolver, XpertWorkAreaResolver } from './work-area'
+import { XpertWorkAreaExtensionRegistry } from './work-area-extension.registry'
 
 describe('XpertWorkAreaResolver', () => {
     let tempRoot: string
     let resolver: XpertWorkAreaResolver
     let volumeClient: { resolve: jest.Mock }
+    let extensions: XpertWorkAreaExtensionRegistry
 
     beforeEach(async () => {
         tempRoot = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'xpert-work-area-'))
         volumeClient = {
             resolve: jest.fn((scope) => new VolumeHandle(scope, tempRoot, tempRoot, 'http://localhost/volume'))
         }
+        extensions = new XpertWorkAreaExtensionRegistry()
         resolver = new XpertWorkAreaResolver(
             new TestVolumeClient(volumeClient.resolve),
-            createWorkspaceMappers() as never
+            createWorkspaceMappers() as never,
+            extensions
         )
     })
 
@@ -40,6 +44,63 @@ describe('XpertWorkAreaResolver', () => {
         expect(passive.workspaceBinding).toEqual(active.workspaceBinding)
         expect(passive.workingDirectory).toBe(active.workingDirectory)
         expect((await fsPromises.readdir(tempRoot)).length).toBeGreaterThan(0)
+    })
+
+    it('applies provider extensions to both active and passive resolution', async () => {
+        const input = { tenantId: 'tenant-1', userId: 'user-1', projectId: 'project-1', provider: 'nsjail' }
+        const seenOptions: { createDirectories?: boolean }[] = []
+        extensions.register('nsjail', {
+            async resolve(received, area, options) {
+                expect(received).toEqual(input)
+                expect(area.volumeScope.catalog).toBe('projects')
+                seenOptions.push(options)
+                return {
+                    ...area,
+                    workingDirectory: '/workspace/projects/project-1'
+                }
+            }
+        })
+        const passive = await resolver.resolve(input, { createDirectories: false })
+        expect(await fsPromises.readdir(tempRoot)).toEqual([])
+        const active = await resolver.resolve(input)
+        expect(active.workingDirectory).toBe('/workspace/projects/project-1')
+        expect(passive.workingDirectory).toBe(active.workingDirectory)
+        expect(active.volumeScope).toEqual(passive.volumeScope)
+        expect(seenOptions).toEqual([{ createDirectories: false }, {}])
+        expect(await fsPromises.readdir(tempRoot)).toContain('shared')
+    })
+
+    it('keeps default mapping for other providers and when an extension declines', async () => {
+        const extension = { resolve: jest.fn().mockResolvedValue(null) }
+        extensions.register('nsjail', extension)
+        const input = { tenantId: 'tenant-1', userId: 'user-1', xpertId: 'xpert-1' }
+        expect((await resolver.resolve(input)).workingDirectory).toBe(tempRoot)
+        expect(extension.resolve).not.toHaveBeenCalled()
+        expect((await resolver.resolve({ ...input, provider: 'nsjail' })).workingDirectory).toBe('/workspace')
+        expect(extension.resolve).toHaveBeenCalledTimes(1)
+    })
+
+    it('propagates extension authorization errors before creating files', async () => {
+        const denied = new Error('Access denied')
+        extensions.register('local-shell-sandbox', { resolve: jest.fn().mockRejectedValue(denied) })
+        await expect(resolver.resolve({ tenantId: 'tenant-1', userId: 'user-1', projectId: 'project-1' })).rejects.toBe(
+            denied
+        )
+        expect(await fsPromises.readdir(tempRoot)).toEqual([])
+    })
+
+    it('rejects duplicate registrations and makes disposal safe across module reloads', async () => {
+        const extension = { resolve: jest.fn().mockResolvedValue(null) }
+        const dispose = extensions.register('local-shell-sandbox', extension)
+        expect(() => extensions.register('local-shell-sandbox', extension)).toThrow()
+        dispose()
+        const input = { tenantId: 'tenant-1', userId: 'user-1', xpertId: 'xpert-1' }
+        await resolver.resolve(input)
+        expect(extension.resolve).not.toHaveBeenCalled()
+        extensions.register('local-shell-sandbox', extension)
+        dispose()
+        await resolver.resolve(input)
+        expect(extension.resolve).toHaveBeenCalledTimes(1)
     })
 
     it('shares working files across branched conversations while creating a new session directory', async () => {

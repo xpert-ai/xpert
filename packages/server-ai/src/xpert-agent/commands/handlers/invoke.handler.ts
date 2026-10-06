@@ -57,6 +57,7 @@ import { ExecutionCancelService, isPlanModeEnabledFromState, XpertWorkAreaResolv
 import { KnowledgebaseTaskService, KnowledgeTaskServiceQuery } from '../../../knowledgebase'
 import { validateXpertParameterValues } from '../../../shared/agent/parameter'
 import { SandboxAcquireBackendCommand } from '../../../sandbox/commands'
+import { resolveSandboxWorkFor } from '../../../sandbox/sandbox-work-for'
 import { applicationTracing } from '../../../tracing'
 import { resolveEffectiveCopilotModel } from '../../effective-copilot-model'
 import { ThreadRunControlService, threadGraphRevision } from '../../../chat-conversation/thread-run-control.service'
@@ -140,10 +141,11 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         const workspaceXpertId = resolveWorkspaceXpertId(latestXpert, xpert)
         const sandboxFeature = latestXpert.features?.sandbox
         const sandboxEnvironmentId = options?.sandboxEnvironmentId
-        const sandboxWorkFor = {
-            type: sandboxEnvironmentId ? 'environment' : options.projectId ? 'project' : 'user',
-            id: sandboxEnvironmentId ?? options.projectId ?? userId
-        } as const
+        const sandboxWorkFor = resolveSandboxWorkFor({
+            environmentId: sandboxEnvironmentId,
+            projectId: options.projectId,
+            userId
+        })
         const hasSandboxWorkForId = Boolean(sandboxWorkFor.id)
         const hasExplicitSandboxEnvironment = sandboxWorkFor.type === 'environment' && hasSandboxWorkForId
         const workArea = await this.workAreaResolver.resolve({

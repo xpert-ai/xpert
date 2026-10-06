@@ -6,7 +6,9 @@ import {
     LOCAL_SHELL_SANDBOX_PROVIDER_TYPE,
     LocalShellWorkspacePathMapper,
     VolumeModule,
-    WorkspacePathMapperFactory
+    WorkspacePathMapperFactory,
+    XpertWorkAreaExtensionRegistry,
+    XpertWorkAreaResolver
 } from '.'
 
 @Global()
@@ -24,6 +26,8 @@ describe('VolumeModule', () => {
     it('boots in Nest and discovers the built-in local workspace mapper', async () => {
         const moduleRef = await Test.createTestingModule({ imports: [TestStrategyBusModule, VolumeModule] }).compile()
         await moduleRef.init()
+        expect(moduleRef.get(XpertWorkAreaResolver)).toBeInstanceOf(XpertWorkAreaResolver)
+        expect(moduleRef.get(XpertWorkAreaExtensionRegistry)).toBeInstanceOf(XpertWorkAreaExtensionRegistry)
 
         expect(moduleRef.get(WorkspacePathMapperFactory).forProvider(LOCAL_SHELL_SANDBOX_PROVIDER_TYPE)).toBeInstanceOf(
             LocalShellWorkspacePathMapper

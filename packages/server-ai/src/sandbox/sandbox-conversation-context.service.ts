@@ -11,6 +11,7 @@ import type { VolumeScope, WorkspaceBinding } from '../shared'
 import { XpertWorkAreaResolver } from '../shared/volume/work-area'
 import { XpertProjectAccessService } from '../xpert-project/services/project-access.service'
 import { SandboxAcquireBackendCommand, SandboxFindBackendCommand } from './commands'
+import { resolveSandboxWorkFor } from './sandbox-work-for'
 import { t } from 'i18next'
 
 export type ResolvedConversationSandboxContext = {
@@ -195,11 +196,11 @@ export class SandboxConversationContextService {
             workingDirectory: workArea.workingDirectory,
             workspaceBinding: workArea.workspaceBinding,
             volumeScope: workArea.volumeScope,
-            workFor: effectiveProjectId
-                ? { type: 'project', id: effectiveProjectId }
-                : effectiveSandboxEnvironmentId
-                  ? { type: 'environment', id: effectiveSandboxEnvironmentId }
-                  : { type: 'user', id: userId }
+            workFor: resolveSandboxWorkFor({
+                environmentId: effectiveSandboxEnvironmentId,
+                projectId: effectiveProjectId,
+                userId
+            })
         })
         const sandbox = create
             ? await this.commandBus.execute(acquire)

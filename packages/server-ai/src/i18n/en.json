@@ -378,6 +378,7 @@
         "XpertWorkspaceDataScopeInvalid": "workspaceDataScope must be shared or user.",
         "XpertWorkspaceUserRequired": "userId is required for a user-isolated Xpert workspace.",
         "XpertWorkAreaXpertRequired": "Xpert work area requires xpertId when projectId and environmentId are not provided.",
+        "XpertWorkAreaExtensionAlreadyRegistered": "A work-area extension is already registered for sandbox provider: {{provider}}.",
         "UserXpertVolumePrivate": "User-isolated Xpert files are private to the current user.",
         "UserXpertVolumeCrossTenant": "User-isolated Xpert files cannot be read from another tenant.",
         "UserXpertVolumeAuthenticationRequired": "User-isolated Xpert files require authenticated access.",

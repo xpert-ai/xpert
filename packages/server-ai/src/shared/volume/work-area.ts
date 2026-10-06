@@ -11,12 +11,14 @@ import {
     WorkspaceBinding
 } from './volume'
 import { WorkspacePathMapperFactory } from './workspace-path-mapper.factory'
+import { XpertWorkAreaExtensionRegistry } from './work-area-extension.registry'
 
 const XPERT_FILE_MEMORY_WORKSPACE_PATH = '.xpert/memory'
 const KNOWLEDGE_FILES_PATH = 'files'
 const KNOWLEDGE_LEGACY_TMP_PATH = 'tmp'
 const KNOWLEDGE_STATE_PATH = '.knowledge'
 
+/** Execution context for storage selection and path mapping; callers retain resource authorization. */
 export type XpertRuntimeWorkAreaInput = {
     tenantId: string
     userId: string
@@ -24,10 +26,12 @@ export type XpertRuntimeWorkAreaInput = {
     xpertId?: string | null
     projectId?: string | null
     conversationId?: string | null
+    /** Selected runtime for path mapping; projectId still takes precedence for storage identity. */
     environmentId?: string | null
     workspaceDataScope?: XpertWorkspaceDataScope | null
 }
 
+/** One logical path expressed relative to its volume, on the server and inside the runtime. */
 export type XpertRuntimeWorkAreaPath = {
     relativePath: string
     serverPath: string
@@ -35,9 +39,19 @@ export type XpertRuntimeWorkAreaPath = {
     publicUrl?: string
 }
 
+export type XpertWorkAreaResolveOptions = {
+    /** False permits authorization and path lookup only; neither core nor extensions may create files. */
+    createDirectories?: boolean
+}
+
+/**
+ * Storage identity and runtime-visible paths for an execution. Sandbox target selection
+ * and lifecycle belong to the Sandbox layer and are not part of this result.
+ */
 export type XpertRuntimeWorkArea = {
     volumeScope: VolumeScope
     volume: VolumeHandle
+    /** Maps this volume into the runtime; it need not be the runtime's primary mount. */
     workspaceBinding: WorkspaceBinding
     workingDirectory: string
     volumePath: string
@@ -77,32 +91,30 @@ export type KnowledgeRuntimeWorkArea = {
     statePath: XpertRuntimeWorkAreaPath
 }
 
+/** Resolves canonical storage first, then delegates runtime path mapping to a registered extension. */
 @Injectable()
 export class XpertWorkAreaResolver {
     constructor(
         @Inject(VOLUME_CLIENT)
         private readonly volumeClient: VolumeClient,
-        private readonly workspaceMappers: WorkspacePathMapperFactory
+        private readonly workspaceMappers: WorkspacePathMapperFactory,
+        private readonly extensions: XpertWorkAreaExtensionRegistry
     ) {}
 
+    /** Creates directories only for active use, after extension authorization succeeds. Never starts a sandbox. */
     async resolve(
         input: XpertRuntimeWorkAreaInput,
-        options: { createDirectories?: boolean } = {}
+        options: XpertWorkAreaResolveOptions = {}
     ): Promise<XpertRuntimeWorkArea> {
         const volumeScope = this.resolveVolumeScope(input)
         const volume = this.volumeClient.resolve(volumeScope)
         const relativePaths = this.resolveRelativePaths(input)
-        if (options.createDirectories !== false) {
-            await volume.ensureRoot()
-            await this.ensureRelativePaths(volume, relativePaths.allPaths)
-        }
-
         const workspaceBinding = this.workspaceMappers.mapVolumeToWorkspace(input.provider, volume, {
             serverPath: relativePaths.defaultPath
         })
         const defaultPath = toRuntimePath(volume, workspaceBinding, relativePaths.defaultPath)
 
-        return {
+        const area: XpertRuntimeWorkArea = {
             volumeScope,
             volume,
             workspaceBinding,
@@ -124,6 +136,12 @@ export class XpertWorkAreaResolver {
                 ? toRuntimePath(volume, workspaceBinding, relativePaths.memoryPath)
                 : undefined
         }
+        const resolved = await this.extensions.resolve(input, area, options)
+        if (options.createDirectories !== false) {
+            await volume.ensureRoot()
+            await this.ensureRelativePaths(volume, relativePaths.allPaths)
+        }
+        return resolved
     }
 
     async resolveXpertMemory(input: {
@@ -155,6 +173,7 @@ export class XpertWorkAreaResolver {
         }
     }
 
+    /** Project files remain in the project volume even when execution targets a separate environment. */
     private resolveVolumeScope(input: XpertRuntimeWorkAreaInput): VolumeScope {
         if (input.projectId) {
             return {

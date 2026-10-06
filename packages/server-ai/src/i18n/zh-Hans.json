@@ -378,6 +378,7 @@
         "XpertWorkspaceDataScopeInvalid": "workspaceDataScope 只能是 shared 或 user。",
         "XpertWorkspaceUserRequired": "按用户隔离数字专家工作区时必须提供 userId。",
         "XpertWorkAreaXpertRequired": "未提供 projectId 和 environmentId 时，数字专家工作区必须提供 xpertId。",
+        "XpertWorkAreaExtensionAlreadyRegistered": "沙箱提供程序 {{provider}} 已注册工作区扩展。",
         "UserXpertVolumePrivate": "按用户隔离的数字专家文件仅限当前用户访问。",
         "UserXpertVolumeCrossTenant": "不能跨租户读取按用户隔离的数字专家文件。",
         "UserXpertVolumeAuthenticationRequired": "访问按用户隔离的数字专家文件需要登录。",
