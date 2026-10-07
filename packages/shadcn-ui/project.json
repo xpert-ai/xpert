@@ -27,6 +27,12 @@
         "command": "pnpm --dir packages/shadcn-ui typecheck"
       }
     },
+    "test-overlays": {
+      "executor": "@nx/jest:jest",
+      "options": {
+        "jestConfig": "packages/shadcn-ui/jest.config.ts"
+      }
+    },
     "lint": {
       "executor": "@nx/eslint:lint",
       "outputs": ["{options.outputFile}"],
