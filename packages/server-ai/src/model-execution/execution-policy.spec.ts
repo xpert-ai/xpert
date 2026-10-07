@@ -21,6 +21,7 @@ export const testPolicy = {
         maxDurationSeconds: 600
     },
     chatBridgeProtocols: [],
+    cliPermissions: { defaultMode: 'allow', overrides: {} },
     tools: [{ id: 'aider', executable: '/home/user/.local/bin/aider', version: '0.86.1' }]
 }
 
@@ -44,8 +45,21 @@ describe('execution policy and admission', () => {
         const first = parseExecutionPolicy(undefined)
         first.tools[0].version = '0.0.0'
         first.limits.tokenBudget = 1
+        first.cliPermissions.overrides.qwen = 'restricted'
         expect(parseExecutionPolicy(undefined).tools).toEqual(builtinCliTools)
         expect(parseExecutionPolicy(undefined).limits).toEqual(defaultExecutionLimits)
+        expect(parseExecutionPolicy(undefined).cliPermissions).toEqual({ defaultMode: 'allow', overrides: {} })
+    })
+    it('accepts tool-specific approval overrides and rejects malformed policy', () => {
+        const cliPermissions = { defaultMode: 'allow', overrides: { qwen: 'restricted' } }
+        expect(parseExecutionPolicy({ cliPermissions }).cliPermissions).toEqual(cliPermissions)
+        for (const input of [
+            { defaultMode: 'ask' },
+            { overrides: { qwen: true } },
+            { overrides: { '../qwen': 'allow' } },
+            { defaultMode: 'allow', extra: true }
+        ])
+            expect(() => parseExecutionPolicy({ cliPermissions: input })).toThrow()
     })
     it('rejects malformed persistence instead of silently allowing defaults', () => {
         for (const value of ['{', 'null', [], 123, { enabled: 'false' }, { tools: [] }, { unknown: true }])

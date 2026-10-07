@@ -1,4 +1,4 @@
-import type { ModelExecutionLimits, ModelExecutionModel } from '@xpert-ai/contracts'
+import type { CliPermissionMode, ModelExecutionLimits, ModelExecutionModel } from '@xpert-ai/contracts'
 import { CLI_MODEL_TOKEN_REFERENCE, type CliModelProfile, type CliModelProfiles } from '@xpert-ai/plugin-sdk'
 import { ModelFeature } from '@xpert-ai/contracts'
 import toolchain from './toolchain.json'
@@ -10,6 +10,7 @@ export const builtinCliTools = toolchain.map(({ id, version, executable }) => ({
 type ComputerCliModelBinding = {
   toolId: string
   managed: boolean
+  permissionMode?: CliPermissionMode
   models: Array<Pick<ModelExecutionModel, 'id' | 'protocols'>>
   limits: Pick<ModelExecutionLimits, 'maxInputTokens' | 'maxOutputTokens'>
 }
@@ -40,6 +41,14 @@ function configureBuiltinCli(
   if (grant.toolId === 'codex')
     return {
       args: [
+        ...(grant.permissionMode
+          ? [
+              '--ask-for-approval',
+              'never',
+              '--sandbox',
+              grant.permissionMode === 'allow' ? 'danger-full-access' : 'workspace-write'
+            ]
+          : []),
         ...(bridge
           ? ['-c', 'model_reasoning_summary="none"', '-c', 'features.multi_agent=false', '-c', 'features.goals=false']
           : []),
@@ -128,14 +137,22 @@ function configureBuiltinCli(
     }
   if (grant.toolId === 'qwen')
     return {
-      // Managed shell has no TTY. Permit requested file edits; shell/network approvals stay intact.
+      // Background policy is explicit; interactive and managed shell calls retain their existing behavior.
       args: [
         '--auth-type',
         'openai',
         '--model',
         'assistant-default',
         '--approval-mode',
-        grant.managed ? 'auto-edit' : 'default'
+        grant.permissionMode === 'allow' ? 'yolo' : grant.managed ? 'auto-edit' : 'default',
+        ...(grant.permissionMode === 'restricted'
+          ? [
+              '--allowed-tools',
+              'run_shell_command(node)',
+              '--append-system-prompt',
+              'The host set your working directory to the project root. Only node shell commands are approved; use file tools for reads and edits. Create directories with Node fs.mkdirSync. Run node directly without cd or shell chaining. Do not delegate to subagents.'
+            ]
+          : [])
       ],
       environment: {
         ...environment,
@@ -271,17 +288,20 @@ function configureBuiltinCli(
         $schema: 'https://opencode.ai/config.json',
         ...(grant.managed
           ? {
-              permission: {
-                '*': 'deny',
-                read: 'allow',
-                edit: 'allow',
-                bash: 'allow',
-                glob: 'allow',
-                grep: 'allow',
-                list: 'allow',
-                question: 'deny',
-                external_directory: 'deny'
-              }
+              permission:
+                grant.permissionMode === 'allow'
+                  ? { '*': 'allow', question: 'deny' }
+                  : {
+                      '*': 'deny',
+                      read: 'allow',
+                      edit: 'allow',
+                      bash: 'allow',
+                      glob: 'allow',
+                      grep: 'allow',
+                      list: 'allow',
+                      question: 'deny',
+                      external_directory: 'deny'
+                    }
             }
           : {}),
         enabled_providers: ['xpert'],
@@ -305,6 +325,8 @@ function configureBuiltinCli(
 const definitions = [
   {
     id: 'codex',
+    permissionModes: ['allow', 'restricted'],
+    background: { versions: ['0.159.2'], transport: 'jsonl', args: ['exec', '--json', '--skip-git-repo-check', '-'] },
     protocol: 'openai_responses',
     requiredCapabilities: [],
     chatBridge: {
@@ -322,6 +344,8 @@ const definitions = [
   },
   {
     id: 'opencode',
+    permissionModes: ['allow', 'restricted'],
+    background: { versions: ['1.18.33'], transport: 'opencode' },
     protocol: 'openai_chat',
     requiredCapabilities: [ModelFeature.STREAM_TOOL_CALL],
     versionOutputs: (v: string) => [v, `opencode ${v}`]
@@ -329,6 +353,22 @@ const definitions = [
   { id: 'aider', protocol: 'openai_chat', requiredCapabilities: [], versionOutputs: (v: string) => [v, `aider ${v}`] },
   {
     id: 'qwen',
+    permissionModes: ['allow', 'restricted'],
+    background: {
+      versions: ['0.24.7'],
+      transport: 'jsonl',
+      args: [
+        '--input-format',
+        'text',
+        '--output-format',
+        'stream-json',
+        '--safe-mode',
+        '--exclude-tools',
+        'agent',
+        '--max-session-turns',
+        '30'
+      ]
+    },
     protocol: 'openai_chat',
     requiredCapabilities: [ModelFeature.STREAM_TOOL_CALL],
     versionOutputs: (v: string) => [v]
@@ -345,7 +385,12 @@ const definitions = [
     requiredCapabilities: [ModelFeature.STREAM_TOOL_CALL],
     versionOutputs: (v: string) => [v, `${v} (CodeBuddy Code)`]
   }
-] satisfies Array<Pick<CliModelProfile, 'id' | 'protocol' | 'requiredCapabilities' | 'chatBridge' | 'versionOutputs'>>
+] satisfies Array<
+  Pick<
+    CliModelProfile,
+    'id' | 'protocol' | 'requiredCapabilities' | 'permissionModes' | 'chatBridge' | 'background' | 'versionOutputs'
+  >
+>
 
 /** Bundled profiles keep existing installations compatible; hosts may supply a registry capability instead. */
 export const builtinCliModelProfiles: CliModelProfiles = {
@@ -355,13 +400,14 @@ export const builtinCliModelProfiles: CliModelProfiles = {
     return {
       ...definition,
       command: definition.id,
-      revision: definition.id === 'qwen' ? '2' : '1',
+      revision: 'permissionModes' in definition ? '3' : '1',
       offlineArguments: [['--version']],
       configure: (input) =>
         configureBuiltinCli(
           {
             toolId: id,
             managed: input.managed,
+            permissionMode: input.permissionMode,
             models: input.models,
             limits: input.limits
           },

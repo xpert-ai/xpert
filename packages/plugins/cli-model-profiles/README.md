@@ -23,5 +23,26 @@ tool paths, versions and limits. Changing a pin requires rebuilding the host ima
 `skills/cloud-coding` is a standard skill shipped with this package. Hosts can install it in their skill directory to
 guide coding work through `sandbox_shell`, then test and preview the result. It uses the runtime catalog and managed
 PATH commands; it neither grants model access nor embeds credentials.
-Managed Qwen uses edit-only `auto-edit` for headless file changes while retaining command approvals. Interactive Qwen
-keeps its default approval mode. Real CLI tests must verify both successful file edits and rejected unapproved commands.
+Managed shell Qwen uses edit-only `auto-edit` for headless file changes while retaining command approvals. Interactive
+Qwen keeps its default approval mode. Background invocations use the explicit permission mode described below.
+
+Optional `background` profiles describe version-qualified managed transports:
+OpenCode uses its native loopback service; Codex and Qwen Code use single-prompt
+JSONL output. The Runtime adapter still declares compatible `executionTools` and
+owns protocol result parsing. The host intersects those declarations with policy
+and never selects a CLI from its provider's display name.
+
+Qwen, Codex and OpenCode profiles declare `permissionModes: ['allow', 'restricted']`.
+For background invocations the host passes `permissionMode` from the tenant's
+`modelExecutionPolicy.cliPermissions` (default `allow`, optional tool-ID overrides).
+Qwen maps `allow` to YOLO; `restricted` retains auto-edit plus Node shell approval.
+Codex maps it to noninteractive full-access/workspace-write sandbox arguments.
+OpenCode maps it to all enabled tools/the existing file-and-shell allowlist; the
+interactive question tool remains disabled. Qwen safe mode and subagent exclusion
+apply in both modes. Evidence-only review retains the host's stronger deny-all
+override. These are CLI approval controls within an authorized Computer, not new
+platform grants or mounted filesystem access.
+
+`permissionMode` is optional for compatibility: interactive/managed shell launches
+that omit it keep their prior behavior. Custom profiles must explicitly advertise
+and implement each supported mode; the host rejects unsupported selections.

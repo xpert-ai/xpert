@@ -130,22 +130,27 @@ describe('execution administration HTTP boundaries', () => {
         await response.json()
         expect(reconciliation.reconcile).not.toHaveBeenCalled()
     })
-    it.each([{}, { enabled: false }, { enabled: true }])(
-        'normalizes default and legacy policy input: %j',
-        async (input) => {
-            const response = await request('policy', 'PUT', input)
-            expect(response.status).toBe(200)
-            await response.json()
-            expect(policy.set).toHaveBeenCalledWith('tenant', parseExecutionPolicy(input))
-        }
-    )
-    it.each([{ enabled: 'false' }, { enabled: false, tenantId: 'other' }, { enabled: true, limits: {} }])(
-        'rejects invalid policy updates: %j',
-        async (body) => {
-            await expectInvalid(await request('policy', 'PUT', body))
-            expect(policy.set).not.toHaveBeenCalled()
-        }
-    )
+    it.each([
+        {},
+        { enabled: false },
+        { enabled: true },
+        { cliPermissions: { defaultMode: 'allow', overrides: { qwen: 'restricted' } } }
+    ])('normalizes default and legacy policy input: %j', async (input) => {
+        const response = await request('policy', 'PUT', input)
+        expect(response.status).toBe(200)
+        await response.json()
+        expect(policy.set).toHaveBeenCalledWith('tenant', parseExecutionPolicy(input))
+    })
+    it.each([
+        { enabled: 'false' },
+        { enabled: false, tenantId: 'other' },
+        { enabled: true, limits: {} },
+        { cliPermissions: { defaultMode: 'ask' } },
+        { cliPermissions: { overrides: { qwen: 'yolo' } } }
+    ])('rejects invalid policy updates: %j', async (body) => {
+        await expectInvalid(await request('policy', 'PUT', body))
+        expect(policy.set).not.toHaveBeenCalled()
+    })
     it('rejects organization scope before reading or changing tenant-wide records', async () => {
         jest.spyOn(RequestContext, 'isTenantScope').mockReturnValue(false)
         for (const [path, method, body] of [

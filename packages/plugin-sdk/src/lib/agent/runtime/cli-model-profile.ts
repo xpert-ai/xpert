@@ -2,7 +2,8 @@ import type {
   ModelExecutionModel,
   ModelExecutionLimits,
   ModelExecutionProtocol,
-  ModelFeature
+  ModelFeature,
+  CliPermissionMode
 } from '@xpert-ai/contracts'
 import { createRuntimeCapability } from '../../core/runtime-capability'
 
@@ -19,6 +20,8 @@ export interface CliModelConfigurationInput {
   models: Array<Pick<ModelExecutionModel, 'id' | 'protocols'>>
   limits: Pick<ModelExecutionLimits, 'maxInputTokens' | 'maxOutputTokens'>
   managed: boolean
+  /** Host-resolved background approval policy; omitted preserves interactive/shell behavior. */
+  permissionMode?: CliPermissionMode
 }
 /** Installed trusted code; neither an executable path nor a model permission comes from this adapter. */
 export interface CliModelProfile {
@@ -27,7 +30,13 @@ export interface CliModelProfile {
   command: string
   protocol: Extract<ModelExecutionProtocol, 'openai_chat' | 'openai_responses' | 'anthropic_messages'>
   requiredCapabilities: ModelFeature[]
+  /** Modes this profile explicitly implements; unsupported modes must not be silently ignored. */
+  permissionModes?: readonly CliPermissionMode[]
   chatBridge?: { versions: readonly string[]; requiredCapabilities: ModelFeature[] }
+  /** Optional host-managed background transport. Arguments are trusted profile code, never model input. */
+  background?: {
+    versions: readonly string[]
+  } & ({ transport: 'opencode' } | { transport: 'jsonl'; args: readonly string[] })
   /** Exact complete argv sequences that never need a model grant. */
   offlineArguments: readonly (readonly string[])[]
   /** Exact accepted stdout values for a policy-pinned version probe. */

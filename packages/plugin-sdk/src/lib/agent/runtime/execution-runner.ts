@@ -1,4 +1,4 @@
-import type { ModelExecutionEnvironment } from '@xpert-ai/contracts'
+import type { CliPermissionMode, ModelExecutionEnvironment } from '@xpert-ai/contracts'
 import { createRuntimeCapability } from '../../core/runtime-capability'
 import type { AgentInvocationScope, AgentInvocationResult, AgentJson } from './types'
 import type { AgentArtifactSelection } from './results'
@@ -7,9 +7,7 @@ import type { AgentArtifactSelection } from './results'
 export type AgentRunnerEnvironment = Extract<ModelExecutionEnvironment, { type: 'computer' | 'sandbox' }>
 
 /** A durable process receipt, not a second Agent task or a credential. Host methods must revalidate ownership. */
-export interface AgentRunnerReceipt {
-  /** Receipt format version, independent of the tool and Assistant versions. */
-  version: 1
+interface AgentRunnerReceiptBase {
   /** Owning platform invocation; never a caller-selected process launch key. */
   invocationId: string
   /** Bound environment instance; replacing the instance invalidates this receipt. */
@@ -18,11 +16,16 @@ export interface AgentRunnerReceipt {
   processId: string
   /** Model execution grant ID only; never store its bearer secret in the receipt. */
   grantId: string
-  /** Authorized working directory selected by the host. */
+  /** Actual business cwd selected by the host; retained verbatim for historical receipts. */
   workingDirectory: string
   /** Tool selected from the approved binding and host policy, independent of the model provider. */
   tool: { id: string; version: string }
+  /** Effective policy pinned when this process started; absent on historical receipts. */
+  permissionMode?: CliPermissionMode
 }
+
+/** V1 retains its original cwd; V2 separates per-invocation records from the business cwd. */
+export type AgentRunnerReceipt = AgentRunnerReceiptBase & ({ version: 1 } | { version: 2; executionDirectory: string })
 
 /** Per-scope host capability. Methods recheck the persisted invocation and receipt before side effects. */
 export interface AgentExecutionRunner {
@@ -33,7 +36,7 @@ export interface AgentExecutionRunner {
   /** Relative HTTP request over the approved local service transport; no caller-supplied URL or headers. */
   request(
     receipt: AgentRunnerReceipt,
-    request: { method: 'GET' | 'POST'; path: string; body?: AgentJson }
+    request: { method: 'GET' | 'POST'; path: string; body?: AgentJson; query?: { limit: number } }
   ): Promise<unknown>
   /** Export only selected files after revalidating the persisted delivery request. No selection means no export. */
   collectArtifacts(

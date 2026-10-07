@@ -33,6 +33,15 @@ export const executionPolicySchema = z
             })
             .default(defaultExecutionGatewayUrl),
         limits: executionLimitsSchema.default(() => ({ ...defaultExecutionLimits })),
+        cliPermissions: z
+            .object({
+                defaultMode: z.enum(['allow', 'restricted']).default('allow'),
+                overrides: z
+                    .record(z.string().regex(/^[a-z][a-z0-9_-]{0,63}$/), z.enum(['allow', 'restricted']))
+                    .default(() => ({}))
+            })
+            .strict()
+            .default(() => ({ defaultMode: 'allow' as const, overrides: {} })),
         tools: z
             .array(
                 z

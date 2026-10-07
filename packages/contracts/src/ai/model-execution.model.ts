@@ -88,6 +88,9 @@ export interface ModelExecutionLimits {
   maxDurationSeconds: number
 }
 
+/** CLI tool approvals inside the already authorized Computer environment. */
+export type CliPermissionMode = 'allow' | 'restricted'
+
 /** Resolved execution policy; default enablement does not bypass model, tool or budget checks. */
 export type ModelExecutionPolicy = {
   /** @deprecated Compatibility field, always true; no longer a tenant opt-in switch. */
@@ -98,6 +101,8 @@ export type ModelExecutionPolicy = {
   /** Explicit, limited Chat Completions translations; never advertised as native support. */
   chatBridgeProtocols?: Array<'openai_responses' | 'anthropic_messages'>
   limits: ModelExecutionLimits
+  /** Applies to background Coding invocations; evidence-only reviews remain restricted. */
+  cliPermissions?: { defaultMode: CliPermissionMode; overrides: Record<string, CliPermissionMode> }
   /** Only installed, registered profiles qualify; IDs alone never authorize execution. */
   tools: Array<{ id: string; version: string; executable: string }>
 }
