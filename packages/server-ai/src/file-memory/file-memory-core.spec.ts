@@ -34,14 +34,17 @@ describe('FileMemory core', () => {
         })
     })
 
-    it('uses the project volume and agent memory path when running inside a project', () => {
+    it('isolates Assistant memory in the project metadata directory', () => {
         expect(getXpertFileMemoryVolumeScope('tenant-1', 'xpert-1', 'user-1', 'user', 'project-1')).toEqual({
             tenantId: 'tenant-1',
             catalog: 'projects',
             projectId: 'project-1',
             userId: 'user-1'
         })
-        expect(getXpertFileMemoryWorkspacePath('xpert-1', 'project-1')).toBe('agents/xpert-1/.xpert/memory')
+        expect(getXpertFileMemoryWorkspacePath('xpert-1', 'project-1')).toBe('.xpert/memory/xperts/xpert-1')
+        expect(getXpertFileMemoryWorkspacePath('xpert-2', 'project-1')).not.toBe(
+            getXpertFileMemoryWorkspacePath('xpert-1', 'project-1')
+        )
     })
 
     it('uses the shared xpert memory root without an xpert-id subdirectory', () => {

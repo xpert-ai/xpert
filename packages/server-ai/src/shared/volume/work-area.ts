@@ -35,18 +35,29 @@ export type XpertRuntimeWorkAreaPath = {
     publicUrl?: string
 }
 
+/**
+ * Resolved storage and runtime paths for one Agent execution context.
+ * Server paths address backend storage; workspace paths address the same files inside
+ * the selected sandbox and may differ (for example, a container mount at `/workspace`).
+ */
 export type XpertRuntimeWorkArea = {
     volumeScope: VolumeScope
     volume: VolumeHandle
     workspaceBinding: WorkspaceBinding
+    /** Sandbox-visible cwd passed to tools; do not use it directly for backend filesystem I/O. */
     workingDirectory: string
+    /** Absolute root of the volume in the backend server's filesystem. */
     volumePath: string
+    /** Sandbox-visible root used to map volume-relative file paths. */
     workspaceRoot: string
+    /** URL for the default directory, only when the volume exposes direct file URLs. */
     workspaceUrl?: string
+    /** Default directory expressed in volume-relative, server and sandbox coordinates. */
     defaultPath: XpertRuntimeWorkAreaPath
     sharedPath?: XpertRuntimeWorkAreaPath
-    agentPath?: XpertRuntimeWorkAreaPath
+    /** Optional conversation directory; it does not change cwd or isolate project business files. */
     sessionPath?: XpertRuntimeWorkAreaPath
+    /** Memory directory, namespaced by Assistant when multiple Assistants share a project volume. */
     memoryPath?: XpertRuntimeWorkAreaPath
 }
 
@@ -77,6 +88,12 @@ export type KnowledgeRuntimeWorkArea = {
     statePath: XpertRuntimeWorkAreaPath
 }
 
+/**
+ * Keeps Agent runs, terminal access and file projection on the same volume and sandbox path mapping.
+ * Project storage takes precedence over environment storage, then the Assistant's configured scope.
+ * resolve() creates directories by default; use createDirectories: false for passive discovery.
+ * Callers must authorize access to the supplied scope before resolving it.
+ */
 @Injectable()
 export class XpertWorkAreaResolver {
     constructor(
@@ -113,9 +130,6 @@ export class XpertWorkAreaResolver {
             defaultPath,
             sharedPath: relativePaths.sharedPath
                 ? toRuntimePath(volume, workspaceBinding, relativePaths.sharedPath)
-                : undefined,
-            agentPath: relativePaths.agentPath
-                ? toRuntimePath(volume, workspaceBinding, relativePaths.agentPath)
                 : undefined,
             sessionPath: relativePaths.sessionPath
                 ? toRuntimePath(volume, workspaceBinding, relativePaths.sessionPath)
@@ -190,22 +204,27 @@ export class XpertWorkAreaResolver {
         })
     }
 
+    /**
+     * Defines POSIX paths within the selected volume without filesystem I/O; an empty path means root.
+     * Project business files share that root across Assistants and conversations, while memory is
+     * Assistant-scoped and session files use `sessions/<conversationId>` without changing cwd.
+     * Environment-only work uses the root; Assistant-only work keeps memory at `.xpert/memory`.
+     * allPaths lists directories to ensure after the volume root has been created.
+     */
     private resolveRelativePaths(input: XpertRuntimeWorkAreaInput) {
         if (input.projectId) {
             const sharedPath = 'shared'
-            const agentPath = input.xpertId ? path.posix.join('agents', input.xpertId) : undefined
-            const defaultPath = agentPath ?? ''
+            const defaultPath = ''
             const sessionPath = input.conversationId ? path.posix.join('sessions', input.conversationId) : undefined
-            const memoryPath = agentPath ? path.posix.join(agentPath, XPERT_FILE_MEMORY_WORKSPACE_PATH) : undefined
+            const memoryPath = input.xpertId
+                ? path.posix.join(XPERT_FILE_MEMORY_WORKSPACE_PATH, 'xperts', input.xpertId)
+                : undefined
             return {
                 defaultPath,
                 sharedPath,
-                agentPath,
                 sessionPath,
                 memoryPath,
-                allPaths: [defaultPath, sharedPath, agentPath, sessionPath, memoryPath, '.xpert'].filter(
-                    isNonEmptyString
-                )
+                allPaths: [defaultPath, sharedPath, sessionPath, memoryPath, '.xpert'].filter(isNonEmptyString)
             }
         }
 
