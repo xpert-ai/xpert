@@ -210,7 +210,14 @@ export type TMCPSchema = {
 
 export const MCP_APP_RESOURCE_MIME_TYPE = 'text/html;profile=mcp-app'
 
+/** Optional host refresh action. Arguments are fixed by the resource provider. */
+export type TMcpAppRefresh = {
+  toolName: string
+  arguments?: Record<string, import('../core.model').JSONValue>
+}
+
 export type TMcpAppUiMeta = {
+  refresh?: TMcpAppRefresh
   resourceUri: string
   title?: string | I18nObject
   description?: string | I18nObject

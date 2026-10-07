@@ -1,3 +1,4 @@
+import { resolveI18nText } from '@xpert-ai/contracts'
 import { McpResourceUriTemplate } from './mcp-resource-uri-template'
 import type {
     McpPrincipal,
@@ -212,10 +213,17 @@ export function registerApp(
         capability.publicName,
         uri,
         {
-            title: descriptor.title,
+            title: resolveI18nText(descriptor.title) ?? undefined,
             description: descriptor.description,
             mimeType: 'text/html;profile=mcp-app',
-            _meta: { ui: { csp: descriptor.csp ?? {}, permissions: descriptor.permissions ?? {} } },
+            _meta: {
+                ui: {
+                    title: descriptor.title,
+                    refresh: descriptor.refresh,
+                    csp: descriptor.csp ?? {},
+                    permissions: descriptor.permissions ?? {}
+                }
+            },
             cacheHint: { ttlMs: 60_000, cacheScope: 'private' }
         },
         async () =>

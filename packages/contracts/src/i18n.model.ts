@@ -1,6 +1,7 @@
 export interface I18nObject {
   en_US: string
   zh_Hans?: string
+  zh_Hant?: string
 }
 
 export type I18nText = string | I18nObject

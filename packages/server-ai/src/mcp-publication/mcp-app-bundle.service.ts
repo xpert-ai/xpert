@@ -34,7 +34,10 @@ export class McpAppBundleService {
 
     async readForScope(
         scope: Pick<McpPublication, 'tenantId' | 'organizationId'>,
-        descriptor: Pick<McpAppCapabilityDescriptor, 'entry' | 'title' | 'description' | 'csp' | 'permissions'> & {
+        descriptor: Pick<
+            McpAppCapabilityDescriptor,
+            'entry' | 'title' | 'description' | 'csp' | 'permissions' | 'refresh'
+        > & {
             source: Pick<McpAppCapabilityDescriptor['source'], 'pluginName'>
         },
         resourceUri: string
@@ -67,6 +70,7 @@ export class McpAppBundleService {
             _meta: {
                 ui: {
                     ...(descriptor.title ? { title: descriptor.title } : {}),
+                    ...(descriptor.refresh ? { refresh: descriptor.refresh } : {}),
                     ...(descriptor.description ? { description: descriptor.description } : {}),
                     ...(descriptor.csp ? { csp: descriptor.csp } : {}),
                     ...(descriptor.permissions ? { permissions: descriptor.permissions } : {})

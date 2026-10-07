@@ -1,4 +1,6 @@
 import type { McpCapabilityApprovalMode } from './mcp-publication.model'
+import type { I18nObject } from '../types'
+import type { TMcpAppRefresh } from './xpert-tool-mcp.model'
 import type { JSONValue } from '../core.model'
 
 export const MCP_CAPABILITY_DESCRIPTOR_VERSION = 1 as const
@@ -110,7 +112,9 @@ export interface McpPromptCapabilityDescriptor extends McpCapabilityDescriptorBa
   supportsCompletion?: boolean
 }
 
-export interface McpAppCapabilityDescriptor extends McpCapabilityDescriptorBase {
+export interface McpAppCapabilityDescriptor extends Omit<McpCapabilityDescriptorBase, 'title'> {
+  title?: string | I18nObject
+  refresh?: TMcpAppRefresh
   capabilityType: 'app'
   entry: string
   csp?: {
