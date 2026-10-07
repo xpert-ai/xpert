@@ -11,15 +11,35 @@ import {
 } from '@xpert-ai/contracts'
 import type { IAgentMiddlewareContext } from '@xpert-ai/plugin-sdk'
 import { z } from 'zod/v3'
+import { v5 as uuidv5 } from 'uuid'
 import {
     DispatchProjectTaskCommand,
     DecideProjectTaskCommand,
     GetProjectRuntimeTaskCommand,
     ListProjectRuntimeBindingsCommand
 } from '../../../runtime/project-task-dispatch.command'
-import { projectTaskCallerSchema } from '../../../runtime/project-task-dispatch.schema'
+import { ProjectTaskCaller, projectTaskCallerSchema } from '../../../runtime/project-task-dispatch.schema'
 import { projectTaskRuntimeError } from '../../../runtime/project-task-runtime.errors'
 import { ProjectToolEnum } from '../constants'
+
+// Checkpoint replay can use a new Agent run. Keep identity tied to the persisted tool call,
+// not the current executionId or mutable arguments; changed arguments must still conflict.
+function requestId(projectId: string, operation: ProjectToolEnum, caller: ProjectTaskCaller) {
+    return uuidv5(
+        JSON.stringify([
+            'xpert.project-tasks.tool.v1',
+            projectId,
+            caller.conversationId,
+            caller.threadId,
+            caller.type,
+            caller.xpertId ?? null,
+            caller.agentKey,
+            operation,
+            caller.sourceMessageId
+        ]),
+        uuidv5.URL
+    )
+}
 
 export function createProjectRuntimeTools(
     context: Pick<
@@ -48,20 +68,32 @@ export function createProjectRuntimeTools(
         tool(
             async (input, config) => {
                 await assertPermission('edit')
-                return commandBus.execute(new DecideProjectTaskCommand(context.projectId, input, caller(config)))
+                const actor = caller(config)
+                return commandBus.execute(
+                    new DecideProjectTaskCommand(
+                        context.projectId,
+                        { ...input, requestId: requestId(context.projectId, ProjectToolEnum.DecideTask, actor) },
+                        actor
+                    )
+                )
             },
             {
                 name: ProjectToolEnum.DecideTask,
-                schema: projectTaskDecisionInputSchema,
+                schema: projectTaskDecisionInputSchema.omit({ requestId: true }),
                 description:
-                    'After project_get_task and checking actual evidence, explicitly accept or request rework for the latest implementation. Supply exact specificationDigest, implementationExecutionId and invocation_result revision from the detail, rationale and checks performed. Optional reviewExecutionId must be a matching independent review; acceptance requires pass. CLI success alone is insufficient. Use a stable requestId to recover the same decision.'
+                    'After project_get_task and checking actual evidence, explicitly accept or request rework for the latest implementation. Supply exact specificationDigest, implementationExecutionId and invocation_result revision from the detail, rationale and checks performed. Optional reviewExecutionId must be a matching independent review; acceptance requires pass. CLI success alone is insufficient. The platform manages operation identity and retry deduplication. If a previous call has an uncertain outcome, inspect project_get_task for the recorded decision before making a new call.'
             }
         ),
         tool(
             async (input, config) => {
                 await assertPermission('edit')
+                const actor = caller(config)
                 const receipt: Awaited<ReturnType<ProjectTaskDispatchService['dispatch']>> = await commandBus.execute(
-                    new DispatchProjectTaskCommand(context.projectId, input, caller(config))
+                    new DispatchProjectTaskCommand(
+                        context.projectId,
+                        { ...input, requestId: requestId(context.projectId, ProjectToolEnum.DispatchTask, actor) },
+                        actor
+                    )
                 )
                 if (receipt.card)
                     await emitResourceCard(receipt.card, config).catch(() => {
@@ -72,9 +104,9 @@ export function createProjectRuntimeTools(
             },
             {
                 name: ProjectToolEnum.DispatchTask,
-                schema: projectTaskDispatchInputSchema,
+                schema: projectTaskDispatchInputSchema.omit({ requestId: true }),
                 description:
-                    'Explicitly delegate an existing task to an authorized background Runtime. Use a stable requestId (UUID) and the revision from project_get_task; repeat the same requestId and input to recover its receipt. New business retries require a new requestId. Requirements must be defined. Returns task, attempt and invocation IDs; success of the Runtime does not accept the task.'
+                    'Explicitly delegate an existing task to an authorized background Runtime, using the revision from project_get_task. Requirements must be defined. For file delivery use exact paths relative to the project working directory; wildcards/globs are not supported. If paths will be decided during execution, set delivery={mode:"files"} without paths and require the executor to declare every deliverable as a file result item. The platform manages operation identity and retry deduplication. If a previous call has an uncertain outcome, inspect project_get_task instead of submitting another delegation. Make a new call only for an intentional new attempt. Returns task, attempt and invocation IDs; success of the Runtime does not accept the task.'
             }
         ),
         tool(

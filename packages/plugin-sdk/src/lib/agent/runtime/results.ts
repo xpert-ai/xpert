@@ -1,30 +1,10 @@
 import { z } from 'zod/v3'
+import { agentResultPathSchema, type AgentOutputDelivery } from '@xpert-ai/contracts'
 
 /** Opt in to the host's authorized, on-demand result View from middleware metadata. */
 export const AGENT_TASK_RESULTS_FEATURE = 'agent_task_results'
 
-/** Relative file selections only. A declaration does not grant filesystem access. */
-export const agentResultPathSchema = z
-  .string()
-  .min(1)
-  .max(1024)
-  .refine(
-    (path) =>
-      !path.startsWith('/') &&
-      !/^[a-zA-Z]:/.test(path) &&
-      !path.includes('\\') &&
-      !/[\x00-\x1f]/.test(path) &&
-      path.split('/').every((part) => part !== '' && part !== '.' && part !== '..'),
-    'Expected a relative file path'
-  )
-
-/** Omission means no export. Optional paths restrict the adapter's explicitly declared deliverables. */
-export const agentOutputDeliverySchema = z.discriminatedUnion('mode', [
-  z.object({ mode: z.literal('none') }).strict(),
-  z.object({ mode: z.literal('files'), paths: z.array(agentResultPathSchema).min(1).max(32).optional() }).strict(),
-  z.object({ mode: z.literal('archive'), paths: z.array(agentResultPathSchema).min(1).max(32).optional() }).strict()
-])
-export type AgentOutputDelivery = z.output<typeof agentOutputDeliverySchema>
+export { agentResultPathSchema, agentOutputDeliverySchema, type AgentOutputDelivery } from '@xpert-ai/contracts'
 
 const common = {
   id: z.string().regex(/^[a-zA-Z0-9_-]{1,80}$/),

@@ -59,7 +59,8 @@ export class ProjectTaskDispatchService {
         // Evidence-only confinement is currently enforced by the Computer runner.
         if (
             purpose.type === 'review' &&
-            (target.provider !== 'opencode' ||
+            ((input.delivery && input.delivery.mode !== 'none') ||
+                target.provider !== 'opencode' ||
                 !z.object({ type: z.literal('computer') }).safeParse(target.configuration.executionEnvironment).success)
         )
             throw projectTaskRuntimeError('Evidence')
@@ -162,7 +163,7 @@ export class ProjectTaskDispatchService {
                 request: {
                     callId: `project-task:${input.requestId}`,
                     target,
-                    input: { prompt },
+                    input: { prompt, ...(input.delivery ? { delivery: input.delivery } : {}) },
                     dispatch: {
                         version: 1,
                         requestId: input.requestId,
@@ -345,6 +346,10 @@ export class ProjectTaskDispatchService {
             intent.input.taskId !== execution.taskId ||
             intent.request.dispatch.requestId !== execution.dispatchRequestId ||
             intent.request.target.bindingId !== intent.input.bindingId ||
+            !sameInvocationData(
+                intent.input.delivery ?? { mode: 'none' },
+                intent.request.input.delivery ?? { mode: 'none' }
+            ) ||
             execution.invocationId !== agentInvocationId(intent.scope, intent.request.callId)
         )
             throw projectTaskRuntimeError('Invalid')

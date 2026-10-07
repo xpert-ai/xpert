@@ -1,5 +1,5 @@
 import { z } from 'zod/v3'
-import { projectTaskDispatchInputSchema } from '@xpert-ai/contracts'
+import { agentOutputDeliverySchema, projectTaskDispatchInputSchema } from '@xpert-ai/contracts'
 import { agentInvocationDispatchContextSchema, AgentJson } from '@xpert-ai/plugin-sdk'
 
 const json: z.ZodType<AgentJson> = z.lazy(() =>
@@ -57,9 +57,12 @@ export const projectTaskDispatchIntentSchema = z
                         configuration: target.configuration
                     })),
                 input: z
-                    .object({ prompt: z.string().min(1) })
+                    .object({ prompt: z.string().min(1), delivery: agentOutputDeliverySchema.optional() })
                     .strict()
-                    .transform((input) => ({ prompt: input.prompt })),
+                    .transform((input) => ({
+                        prompt: input.prompt,
+                        ...(input.delivery ? { delivery: input.delivery } : {})
+                    })),
                 dispatch: agentInvocationDispatchContextSchema
             })
             .strict()

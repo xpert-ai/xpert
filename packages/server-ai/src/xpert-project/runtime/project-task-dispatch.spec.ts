@@ -155,6 +155,24 @@ async function fixture() {
 }
 
 describe('explicit Project task delegation', () => {
+    it('pins output selection for either CLI and rejects changed delivery on replay or recovery', async () => {
+        for (const provider of ['opencode', 'codex-computer']) {
+            const f = await fixture()
+            f.target.provider = provider
+            f.input.delivery = { mode: 'files', paths: ['report.txt'] }
+            await f.service.dispatch(f.scope.projectId, f.input, f.caller)
+            expect(f.start.mock.calls[0][0].input.delivery).toEqual(f.input.delivery)
+            await expect(
+                f.service.dispatch(
+                    f.scope.projectId,
+                    { ...f.input, delivery: { mode: 'files', paths: ['other.txt'] } },
+                    f.caller
+                )
+            ).rejects.toThrow()
+            f.rows[0].dispatchIntent.request.input.delivery = { mode: 'files', paths: ['other.txt'] }
+            expect(() => f.service.intent(f.rows[0])).toThrow()
+        }
+    })
     it('commits a pinned implementation attempt before launching and returns all three identities', async () => {
         const f = await fixture()
         const receipt = await f.service.dispatch(f.scope.projectId, f.input, f.caller)

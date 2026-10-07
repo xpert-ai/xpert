@@ -1,3 +1,4 @@
+import { agentOutputDeliverySchema } from './agent-output-delivery.model'
 import { z } from 'zod/v3'
 import { agentInvocationStatusSchema } from './agent-runtime.model'
 
@@ -119,6 +120,7 @@ export const projectTaskDispatchInputSchema = z
     expectedRevision: z.number().int().positive(),
     bindingId: z.string().uuid(),
     purpose: projectTaskExecutionPurposeSchema.optional(),
+    delivery: agentOutputDeliverySchema.optional(),
     instructions: z.string().trim().max(16000).default('')
   })
   .strict()

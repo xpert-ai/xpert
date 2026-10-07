@@ -100,3 +100,5 @@ export type {
 } from './agent-plugin'
 
 export * from './desktop-shell.model'
+
+export * from './ai/agent-output-delivery.model'
