@@ -2,7 +2,8 @@ import { PaginationParams, RequestContext, TenantOrganizationAwareCrudService } 
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { assign } from 'lodash'
-import { FindManyOptions, IsNull, Repository } from 'typeorm'
+import { FindManyOptions, In, IsNull, Repository } from 'typeorm'
+import { XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { XpertAgentExecution } from './agent-execution.entity'
 import type { TExecutionUsageRecord } from './types'
 
@@ -54,6 +55,14 @@ export class XpertAgentExecutionService extends TenantOrganizationAwareCrudServi
             }
         })
         return items
+    }
+
+    /** Only called with execution IDs already resolved through tenant-scoped access checks. */
+    async interruptRunning(ids: string[], threadId: string, error: string) {
+        return this.repository.update(
+            { id: In(ids), threadId, status: XpertAgentExecutionStatusEnum.RUNNING },
+            { status: XpertAgentExecutionStatusEnum.INTERRUPTED, error }
+        )
     }
 
     async findAllByXpertAgent(

@@ -71,6 +71,7 @@
         "SandboxWorkspaceMapperUnavailable": "Workspace mapping is unavailable for sandbox provider: {{provider}}",
         "SandboxProviderNotRegistered": "Sandbox provider is not registered: {{provider}}",
         "SandboxManagedServicesUnsupported": "Sandbox provider \"{{provider}}\" does not support managed services.",
+        "ExternalAssistantCancelledByUser": "This external assistant execution was cancelled by the user. Do not retry without a new user request.",
         "ProjectTaskTypeInvalid": "Project task types must use unique provider-owned keys and registered presentation tokens.",
         "ProjectTaskProgressInvalid": "Task progress must be a number between 0 and 100, or null when unknown.",
         "ProjectTaskAccessDenied": "Project task access denied.",

@@ -68,6 +68,7 @@ import { formatInUTC0 } from '../shared/utils'
 import { ChatConversationThreadService } from '../chat-conversation'
 import { assertPublicXpertSessionConversationAccess } from './public-xpert-principal'
 import { ThreadRunControlService } from '../chat-conversation/thread-run-control.service'
+import { CancelExternalAssistantCommand } from '../chat-conversation/commands/cancel-external-assistant.command'
 
 const SSE_HEARTBEAT_INTERVAL_MS = 30000
 const SSE_HEARTBEAT_COMMENT = ': keep-alive\n\n'
@@ -390,7 +391,10 @@ export class ThreadsController {
 
     @Post(':thread_id/runs/:run_id/cancel')
     async cancelThreadRun(@Param('thread_id') thread_id: string, @Param('run_id') run_id: string) {
-        await this.ensureThreadRunAccess(thread_id, run_id, 'contribute')
+        const execution = await this.ensureThreadRunAccess(thread_id, run_id, 'contribute')
+        if (execution.metadata?.invocationKind === 'external_assistant') {
+            return this.commandBus.execute(new CancelExternalAssistantCommand(execution))
+        }
         // Cancel the run
         try {
             return await this.commandBus.execute(

@@ -64,11 +64,32 @@ import { RunCreateStreamCommand } from './commands'
 import { getPublicXpertSessionConversationScope } from './public-xpert-principal'
 import { ThreadsController } from './thread.controller'
 import { writeSseResponse } from '../shared/stream/write-sse-response'
+import { CancelExternalAssistantCommand } from '../chat-conversation/commands/cancel-external-assistant.command'
 
 describe('ThreadsController', () => {
     beforeEach(() => {
         jest.clearAllMocks()
         ;(getPublicXpertSessionConversationScope as jest.Mock).mockReturnValue(null)
+    })
+
+    it('authorizes contribution before routing expert cancellation without stopping the conversation', async () => {
+        const execution = {
+            id: 'expert',
+            threadId: 'thread',
+            metadata: { invocationKind: 'external_assistant' as const }
+        }
+        const queryBus = { execute: jest.fn().mockResolvedValue(execution) }
+        const commandBus = { execute: jest.fn().mockResolvedValue({ canceledExecutionIds: ['expert'] }) }
+        const controller = new ThreadsController({} as never, queryBus as never, commandBus as never, {} as never)
+        await controller.cancelThreadRun('thread', 'expert')
+        expect(queryBus.execute.mock.calls[0][0].operation).toBe('contribute')
+        expect(commandBus.execute).toHaveBeenCalledWith(new CancelExternalAssistantCommand(execution))
+        queryBus.execute.mockRejectedValueOnce(new ForbiddenException())
+        await expect(controller.cancelThreadRun('thread', 'expert')).rejects.toBeInstanceOf(ForbiddenException)
+        expect(commandBus.execute).toHaveBeenCalledTimes(1)
+        queryBus.execute.mockResolvedValue(execution)
+        await expect(controller.cancelThreadRun('foreign-thread', 'expert')).rejects.toBeInstanceOf(ForbiddenException)
+        expect(commandBus.execute).toHaveBeenCalledTimes(1)
     })
 
     it('accepts a bodyless pause only after contribution access checks', async () => {

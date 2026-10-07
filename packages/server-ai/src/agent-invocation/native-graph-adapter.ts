@@ -7,6 +7,7 @@ import { DefaultRuntimeCapabilityRegistry, AgentInvocationScope, AgentTarget } f
 import { JsonPlusSerializer } from '../copilot-checkpoint/serde/jsonplus'
 import { AgentInvocationRuntime, invocationError } from './invocation-runtime'
 import { NativeAgentExecution } from './native-agent.strategy'
+import { ExecutionCancelledError } from '../shared/execution/execution-cancelled.error'
 
 export interface NativeAgentCallScope {
     target: AgentTarget
@@ -42,10 +43,16 @@ export function wrapNativeAgentInvocation<Input, Output>(
         if (!callId) throw invocationError('InvalidRequest')
         const capabilities = new DefaultRuntimeCapabilityRegistry().register(NativeAgentExecution, {
             execute: async (invocationId) => {
-                const output = await graph.invoke(state, {
-                    ...config,
-                    configurable: { ...config.configurable, agentInvocationId: invocationId }
-                })
+                let output: Output
+                try {
+                    output = await graph.invoke(state, {
+                        ...config,
+                        configurable: { ...config.configurable, agentInvocationId: invocationId }
+                    })
+                } catch (error) {
+                    if (error instanceof ExecutionCancelledError) return { status: 'cancelled', error: error.message }
+                    throw error
+                }
                 const [type, bytes] = await serde.dumpsTyped(output)
                 return {
                     status: 'succeeded',
@@ -56,7 +63,7 @@ export function wrapNativeAgentInvocation<Input, Output>(
         const api = runtime.scoped({
             scope: { ...context.scope, parentExecutionId },
             capabilities,
-            signal: context.signal,
+            signal: config.signal ?? context.signal,
             authorize: () => context.authorize(),
             isSuspension: isGraphInterrupt
         })
@@ -72,7 +79,8 @@ export function wrapNativeAgentInvocation<Input, Output>(
             }
         })
         if (result.status !== 'succeeded') {
-            if (result.status === 'failed' || result.status === 'cancelled' || result.status === 'unknown') {
+            if (result.status === 'cancelled') throw new ExecutionCancelledError(result.id, result.error)
+            if (result.status === 'failed' || result.status === 'unknown') {
                 throw invocationError('DispatchUnknown')
             }
             interrupt({ type: 'agent_invocation', invocationId: result.id, status: result.status })

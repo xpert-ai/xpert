@@ -71,6 +71,7 @@
         "SandboxWorkspaceMapperUnavailable": "沙箱提供者缺少工作区路径映射：{{provider}}",
         "SandboxProviderNotRegistered": "沙箱提供者未注册：{{provider}}",
         "SandboxManagedServicesUnsupported": "沙箱提供者“{{provider}}”不支持托管服务。",
+        "ExternalAssistantCancelledByUser": "该外部专家执行已被用户取消。请向用户说明取消结果，未经用户重新要求不要自动重试。",
         "ProjectTaskTypeInvalid": "项目任务类型必须使用所属提供方的唯一标识和已注册的展示图标。",
         "ProjectTaskProgressInvalid": "任务进度必须是 0 到 100 之间的数字；未知进度请使用 null。",
         "ProjectTaskAccessDenied": "无权访问此项目任务。",

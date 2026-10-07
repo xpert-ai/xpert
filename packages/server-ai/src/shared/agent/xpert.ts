@@ -1,3 +1,6 @@
+import { randomUUID } from 'crypto'
+import { ExecutionCancelService } from '../execution/execution-cancel.service'
+import { executionAbortScope } from '../execution/execution-abort-scope'
 import { avatarForChat } from '../avatar'
 import { isAIMessage, ToolMessage } from '@langchain/core/messages'
 import { Runnable, RunnableLambda } from '@langchain/core/runnables'
@@ -72,48 +75,39 @@ export class XpertCollaborator implements IXpertSubAgent {
         }
         commandBus: CommandBus
         queryBus: QueryBus
+        cancellations: ExecutionCancelService
     }): Promise<XpertCollaborator> {
-        const { xpert, config, commandBus, queryBus, tool: agentTool } = params
-        const { options, thread_id, rootController, signal, variables, partners } = config
+        const { xpert, config, commandBus, queryBus, cancellations, tool: agentTool } = params
+        const { options, thread_id, signal, variables, partners } = config
         const { subscriber, leaderKey } = options
 
         const { agent } = await queryBus.execute<GetXpertWorkflowQuery, { agent: IXpertAgent }>(
             new GetXpertWorkflowQuery(xpert.id)
         )
 
-        const execution: IXpertAgentExecution = {}
-
         if (!agent.key) {
             throw new Error(`Key of Agent ${agentLabel(agent)} is empty!`)
         }
 
-        // Build subgraph
-        const { graph, nextNodes, failNode } = await commandBus.execute<
-            XpertAgentSubgraphCommand,
-            TAgentSubgraphResult
-        >(
-            new XpertAgentSubgraphCommand(agent.key, xpert, {
-                mute: config.mute,
-                unmutes: config.unmutes,
-                store: config.store,
-                thread_id,
-                rootController,
-                signal,
-                isStart: true,
-                leaderKey,
-                isDraft: config.options.isDraft,
-                subscriber,
-                execution,
-                variables,
-                channel: channelName(agent.key),
-                partners,
-                environment: config.environment,
-                conversationId: options.conversationId,
-                projectId: options.projectId,
-                workspaceRoot: options.workspaceRoot,
-                workspacePath: options.workspacePath
-            })
-        )
+        // Compile per invocation so concurrent calls never share model/tool abort controllers.
+        const subgraphOptions = {
+            mute: config.mute,
+            unmutes: config.unmutes,
+            store: config.store,
+            thread_id,
+            isStart: true,
+            leaderKey,
+            isDraft: config.options.isDraft,
+            subscriber,
+            variables,
+            channel: channelName(agent.key),
+            partners,
+            environment: config.environment,
+            conversationId: options.conversationId,
+            projectId: options.projectId,
+            workspaceRoot: options.workspaceRoot,
+            workspacePath: options.workspacePath
+        }
 
         // Define State Graph
         const stateGraph = RunnableLambda.from(
@@ -125,11 +119,11 @@ export class XpertCollaborator implements IXpertSubAgent {
                 const configurable: TAgentRunnableConfigurable = config.configurable as TAgentRunnableConfigurable
                 const { executionId } = configurable
 
-                const _execution = {
-                    ...execution,
-                    ...(typeof config.configurable?.agentInvocationId === 'string'
-                        ? { id: config.configurable.agentInvocationId }
-                        : {}),
+                const _execution: IXpertAgentExecution = {
+                    id:
+                        typeof config.configurable?.agentInvocationId === 'string'
+                            ? config.configurable.agentInvocationId
+                            : randomUUID(),
                     threadId: configurable.thread_id,
                     checkpointNs: configurable.checkpoint_ns,
                     xpert: { id: xpert.id } as IXpert,
@@ -140,7 +134,6 @@ export class XpertCollaborator implements IXpertSubAgent {
                     predecessor: configurable.agentKey,
                     // Correlation enables domain reconciliation of the child run; it does not grant access.
                     metadata: {
-                        ...execution.metadata,
                         invocationKind: 'external_assistant' as const,
                         sourceToolCallId: call?.id,
                         assistantName: xpert.title || xpert.name,
@@ -150,85 +143,106 @@ export class XpertCollaborator implements IXpertSubAgent {
                     }
                 }
 
-                return await wrapAgentExecution(
-                    async () => {
-                        let result = ''
-                        const subState = externalAssistantState(state, call.args)
-                        const output = await graph.invoke(subState, {
-                            ...config,
-                            signal,
-                            configurable: {
-                                ...config.configurable,
-                                xpertId: xpert.id,
-                                agentKey: agent.key,
-                                executionId: _execution.id
-                            },
-                            metadata: {
-                                agentKey: agent.key,
-                                executionId: _execution.id,
-                                parentExecutionId: executionId
-                            }
+                const scope = executionAbortScope(_execution.id, cancellations, [signal, config.signal])
+                try {
+                    scope.controller.signal.throwIfAborted()
+                    const { graph } = await commandBus.execute<XpertAgentSubgraphCommand, TAgentSubgraphResult>(
+                        new XpertAgentSubgraphCommand(agent.key, xpert, {
+                            ...subgraphOptions,
+                            execution: _execution,
+                            rootController: scope.controller,
+                            signal: scope.controller.signal
                         })
-
-                        const lastMessage = output.messages[output.messages.length - 1]
-                        if (lastMessage && isAIMessage(lastMessage)) {
-                            result = lastMessage.content as string
-                        }
-
-                        const nState: Record<string, any> = {
-                            messages: [
-                                new ToolMessage({
-                                    content: lastMessage.content,
-                                    name: call.name,
-                                    tool_call_id: call.id ?? ''
+                    )
+                    return await wrapAgentExecution(
+                        async () => {
+                            let result = ''
+                            const subState = externalAssistantState(state, call.args)
+                            scope.controller.signal.throwIfAborted()
+                            const output = await graph
+                                .invoke(subState, {
+                                    ...config,
+                                    signal: scope.controller.signal,
+                                    configurable: {
+                                        ...config.configurable,
+                                        xpertId: xpert.id,
+                                        agentKey: agent.key,
+                                        executionId: _execution.id
+                                    },
+                                    metadata: {
+                                        agentKey: agent.key,
+                                        executionId: _execution.id,
+                                        parentExecutionId: executionId
+                                    }
                                 })
-                            ],
-                            [channelName(leaderKey)]: {
+                                .catch((error: unknown) => {
+                                    scope.controller.signal.throwIfAborted()
+                                    throw error
+                                })
+                            scope.controller.signal.throwIfAborted()
+
+                            const lastMessage = output.messages[output.messages.length - 1]
+                            if (lastMessage && isAIMessage(lastMessage)) {
+                                result = lastMessage.content as string
+                            }
+
+                            const nState: Record<string, any> = {
                                 messages: [
                                     new ToolMessage({
                                         content: lastMessage.content,
                                         name: call.name,
                                         tool_call_id: call.id ?? ''
                                     })
-                                ]
-                            },
-                            [channelName(agent.key)]: {
-                                ...(output[channelName(agent.key)] as Record<string, any>),
-                                messages: [lastMessage]
-                            }
-                        }
-
-                        // Memory write
-                        agent.options?.memories?.forEach((item) => {
-                            if (item.inputType === 'constant') {
-                                nState[item.variableSelector] = item.value
-                            } else if (item.inputType === 'variable') {
-                                if (item.value === 'content') {
-                                    nState[item.variableSelector] = lastMessage.content
+                                ],
+                                [channelName(leaderKey)]: {
+                                    messages: [
+                                        new ToolMessage({
+                                            content: lastMessage.content,
+                                            name: call.name,
+                                            tool_call_id: call.id ?? ''
+                                        })
+                                    ]
+                                },
+                                [channelName(agent.key)]: {
+                                    ...(output[channelName(agent.key)] as Record<string, any>),
+                                    messages: [lastMessage]
                                 }
                             }
-                        })
 
-                        return {
-                            state: nState,
-                            output: result
+                            // Memory write
+                            agent.options?.memories?.forEach((item) => {
+                                if (item.inputType === 'constant') {
+                                    nState[item.variableSelector] = item.value
+                                } else if (item.inputType === 'variable') {
+                                    if (item.value === 'content') {
+                                        nState[item.variableSelector] = lastMessage.content
+                                    }
+                                }
+                            })
+
+                            return {
+                                state: nState,
+                                output: result
+                            }
+                        },
+                        {
+                            commandBus,
+                            queryBus,
+                            subscriber,
+                            execution: _execution
                         }
-                    },
-                    {
-                        commandBus,
-                        queryBus,
-                        subscriber,
-                        execution: _execution
-                    }
-                )()
+                    )()
+                } finally {
+                    scope.dispose()
+                }
             }
         )
 
         return new XpertCollaborator({
             name: agentTool.name,
             tool: agentTool,
-            nextNodes,
-            failNode,
+            nextNodes: [],
+            failNode: undefined,
             graph: stateGraph.withConfig({ tags: [xpert.id] }) // Add xpert.id as tag for streaming event control
         })
     }

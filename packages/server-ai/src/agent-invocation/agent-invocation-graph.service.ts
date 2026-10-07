@@ -18,6 +18,7 @@ import { wrapNativeAgentInvocation } from './native-graph-adapter'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import type { IXpert, IXpertAgent } from '@xpert-ai/contracts'
 import { createHash } from 'crypto'
+import { ExecutionCancelService } from '../shared/execution/execution-cancel.service'
 
 export interface AgentInvocationGraphScope {
     xpertId: string
@@ -40,7 +41,8 @@ export class AgentInvocationGraphService {
         private readonly queryBus: QueryBus,
         @Inject('XpertRuntimeResourceService') private readonly resources: RuntimeResourceService,
         private readonly invocations: AgentInvocationRuntime,
-        private readonly nativeCompiler: NativeAgentCompiler
+        private readonly nativeCompiler: NativeAgentCompiler,
+        private readonly executionCancellations: ExecutionCancelService
     ) {}
 
     async compileExperts(experts: readonly IXpert[], context: AgentInvocationBuildContext) {
@@ -80,7 +82,8 @@ export class AgentInvocationGraphService {
                     environment: options.environment
                 },
                 commandBus: this.commandBus,
-                queryBus: this.queryBus
+                queryBus: this.queryBus,
+                cancellations: this.executionCancellations
             })
             result.push({
                 ...child,
