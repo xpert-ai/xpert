@@ -1,6 +1,7 @@
 ---
-'@xpert-ai/contracts': minor
-'@xpert-ai/server-ai': minor
+'@xpert-ai/contracts': patch
+'@xpert-ai/server-ai': patch
+'@xpert-ai/plugin-sdk': patch
 ---
 
 Add explicit, revision-bound Project Task acceptance and rework decisions. Bind decisions to the current implementation, specification, and result or Artifact versions; keep retries idempotent and reject completion through generic task updates. Once independent review is requested, acceptance requires the latest valid passing review for that implementation.

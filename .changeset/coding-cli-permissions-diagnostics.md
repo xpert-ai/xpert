@@ -1,7 +1,7 @@
 ---
-'@xpert-ai/contracts': minor
-'@xpert-ai/plugin-sdk': minor
-'@xpert-ai/cli-model-profiles': minor
+'@xpert-ai/contracts': patch
+'@xpert-ai/plugin-sdk': patch
+'@xpert-ai/cli-model-profiles': patch
 '@xpert-ai/server-ai': patch
 ---
 
