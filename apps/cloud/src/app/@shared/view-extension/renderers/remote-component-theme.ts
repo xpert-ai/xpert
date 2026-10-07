@@ -34,6 +34,8 @@ export function createRemoteTheme(document: Document, mode: RemoteComponentTheme
   return {
     mode,
     tokens: {
+      // A root scale, separate from the semantic xs/sm/md/lg text sizes.
+      fontSize: readThemeValue(rootStyle, '--workbench-extension-font-size', rootStyle?.fontSize || '14px'),
       fontFamily:
         readThemeValue(rootStyle, '--font-sans') ||
         bodyStyle?.fontFamily ||
