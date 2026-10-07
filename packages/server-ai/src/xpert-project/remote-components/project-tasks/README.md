@@ -37,9 +37,19 @@ titles or source keys. Missing dates are shown as unscheduled. Separate attempts
 retain separate runtime intervals and business outcomes. The Outputs tab shows
 the available execution summaries; it does not invent artifact file links.
 
+Board cards reuse the table/Gantt Assistant avatar, name and chronological execution
+dots. Each dot opens its exact authorized execution; the card title opens task details.
+These are separate buttons so opening an execution does not also select the card.
+
 The view polls every five seconds while visible. Cursor comparison avoids replacing
 unchanged data. Large tables and Gantt rows are virtualized. A shared draft survives
 the responsive switch between the desktop inspector and the narrow-screen Sheet.
+
+Tasks may supply a nullable `progress` percentage (0–100). List, tree, Gantt, board
+and detail views display a circular indicator with the task status. Unknown progress
+retains the status icon; the view never estimates completion from elapsed time or
+changes status when a percentage reaches 100. Providers own the measurement and
+can clear it with null; omitting it preserves a previously stored value.
 
 ## Development
 

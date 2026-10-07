@@ -233,6 +233,8 @@ export interface IBasePerXpertProjectEntityModel extends IBasePerTenantAndOrgani
 }
 
 export interface IXpertProjectTask extends IBasePerXpertProjectEntityModel {
+  /** Measured completion percentage (0–100); null/omitted means unknown. */
+  progress?: number | null
   providerKey?: string | null
   sourceKey?: string | null
   sourceRevision?: string | null

@@ -18,13 +18,15 @@ export function Assignee({
     attempts,
     t,
     locale,
-    onError
+    onError,
+    className
 }: {
     task: Node
     attempts: Attempt[]
     t: Texts
     locale: string
     onError: (message: string) => void
+    className?: string
 }) {
     const [busy, setBusy] = useState<string | null>(null)
     const [failedUrl, setFailedUrl] = useState<string | null>(null)
@@ -42,7 +44,12 @@ export function Assignee({
         }
     }
     return (
-        <div className="flex min-w-0 items-center gap-1.5 overflow-hidden px-3 text-xs text-muted-foreground">
+        <div
+            className={cn(
+                'flex min-w-0 items-center gap-1.5 overflow-hidden px-3 text-xs text-muted-foreground',
+                className
+            )}
+        >
             {task.assigneeXpertId && (
                 <span
                     aria-hidden

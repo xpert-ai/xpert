@@ -21,6 +21,8 @@ export interface ProjectTaskProjection {
   key: string
   title: string
   status: TXpertProjectTaskStatus
+  /** Completion percentage (0–100), independent of status. Omit to preserve; null clears it. */
+  progress?: number | null
   kind: 'task' | 'summary' | 'milestone'
   /** Registered business type; omitted values preserve legacy persisted types. Null explicitly clears it. */
   taskType?: string | null

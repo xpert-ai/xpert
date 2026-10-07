@@ -147,7 +147,7 @@ export function TaskDetail({
                     <span className="min-w-0 break-words">{task.title}</span>
                 </h2>
                 <div className="flex items-center gap-3">
-                    <Status value={task.status} t={t} />
+                    <Status value={task.status} progress={task.progress} t={t} />
                     <span className="text-xs text-muted-foreground">
                         {t[task.kind]} · {t.revision} {task.revision}
                     </span>

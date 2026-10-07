@@ -28,6 +28,7 @@ import type { Node } from './bridge'
 import type { Texts } from './i18n'
 import type { TaskRow } from './model'
 import { TaskTypeIcon } from './task-type-icon'
+import { TaskProgress } from './task-progress'
 
 export const statusStyle: { [K in Node['status']]: string } = {
     todo: 'text-muted-foreground',
@@ -47,13 +48,17 @@ const statusIcon = {
     done: CircleCheck,
     cancelled: CircleX
 }
-export function Status({ value, t }: { value: Node['status']; t: Texts }) {
+export function Status({ value, progress, t }: { value: Node['status']; progress?: number | null; t: Texts }) {
     const Icon = statusIcon[value]
     return (
         <span
             className={cn('inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-medium', statusStyle[value])}
         >
-            <Icon aria-hidden className="size-3.5 shrink-0" />
+            {progress == null ? (
+                <Icon aria-hidden className="size-3.5 shrink-0" />
+            ) : (
+                <TaskProgress value={progress} label={t.completionProgress} />
+            )}
             {t[value]}
         </span>
     )

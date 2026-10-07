@@ -7,6 +7,8 @@ export interface ProjectTaskNode {
   id: string
   title: string
   status: TXpertProjectTaskStatus
+  /** Measured completion percentage (0–100); null/omitted means unknown. Independent of status. */
+  progress?: number | null
   kind: 'task' | 'summary' | 'milestone'
   /** Business classification, independent of hierarchy, status and assignee. */
   taskType?: string | null

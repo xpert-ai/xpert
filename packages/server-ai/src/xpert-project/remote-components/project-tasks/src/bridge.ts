@@ -97,6 +97,7 @@ export const nodeSchema = z.object({
     id: z.string(),
     title: z.string(),
     status: z.enum(['todo', 'in_progress', 'review', 'paused', 'done', 'blocked', 'cancelled']),
+    progress: z.number().finite().min(0).max(100).nullish(),
     kind: z.enum(['task', 'summary', 'milestone']),
     taskType: z.string().nullish(),
     presentation: z

@@ -71,6 +71,7 @@
         "SandboxProviderNotRegistered": "沙箱提供者未注册：{{provider}}",
         "SandboxManagedServicesUnsupported": "沙箱提供者“{{provider}}”不支持托管服务。",
         "ProjectTaskTypeInvalid": "项目任务类型必须使用所属提供方的唯一标识和已注册的展示图标。",
+        "ProjectTaskProgressInvalid": "任务进度必须是 0 到 100 之间的数字；未知进度请使用 null。",
         "ProjectTaskAccessDenied": "无权访问此项目任务。",
         "ProjectTaskNotFound": "找不到项目任务。",
         "ProjectTaskRevisionConflict": "任务已变化，请重新加载后编辑。",

@@ -39,6 +39,7 @@ const graph = {
         task('import', '导入服务文档', {
             parentTaskId: 'collect',
             status: 'done',
+            progress: 100,
             plannedStartAt: at(0),
             estimatedDurationMs: 2400000,
             actualStartAt: at(0),
@@ -68,6 +69,7 @@ const graph = {
         task('articles', '完善常见问题解答', {
             parentTaskId: 'content',
             status: 'in_progress',
+            progress: 47,
             predecessorIds: ['taxonomy'],
             plannedStartAt: at(100),
             estimatedDurationMs: 3600000,
@@ -75,6 +77,7 @@ const graph = {
         }),
         task('review', '独立审核知识内容', {
             parentTaskId: 'content',
+            progress: 0,
             predecessorIds: ['articles'],
             plannedStartAt: at(160),
             estimatedDurationMs: 1800000,
