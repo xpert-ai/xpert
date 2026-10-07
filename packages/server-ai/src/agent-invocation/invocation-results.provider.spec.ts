@@ -10,7 +10,7 @@ import {
 } from '../../../server/src/view-extension/view-extension.utils'
 import { InvocationResultsProvider } from './invocation-results.provider'
 import { AgentInvocationEntity } from './invocation.entity'
-import { AgentInvocationFactoryService } from './invocation-factory.service'
+import { ExecutionReaderService } from './execution-view/execution-reader.service'
 import { ArtifactsService } from '../artifacts/artifacts.service'
 
 async function setup() {
@@ -28,8 +28,13 @@ async function setup() {
         text: 'Done',
         artifacts: [{ id: 'file', versionId: 'version', name: 'report.txt' }]
     }
-    const invocation = { id, scope, result }
-    const records = { findOneBy: jest.fn().mockResolvedValue({ invocation }) }
+    scope.workspaceId = 'workspace'
+    const invocation = { id, scope, result, request: { target: { bindingId: 'binding' } } }
+    const binding = jest.fn().mockResolvedValue({ workspaceIds: ['workspace'] })
+    const records = {
+        findOneBy: jest.fn().mockResolvedValue({ invocation }),
+        manager: { getRepository: () => ({ findOneBy: binding }) }
+    }
     const inspect = jest.fn().mockResolvedValue(invocation)
     const artifacts = {
         getArtifact: jest.fn().mockResolvedValue({ id: 'file', currentVersionId: 'newer-version' }),
@@ -44,7 +49,7 @@ async function setup() {
         providers: [
             InvocationResultsProvider,
             { provide: getRepositoryToken(AgentInvocationEntity), useValue: records },
-            { provide: AgentInvocationFactoryService, useValue: { createScopedApi: () => ({ inspect }) } },
+            ExecutionReaderService,
             { provide: ArtifactsService, useValue: artifacts }
         ]
     }).compile()
@@ -56,7 +61,17 @@ async function setup() {
         hostId: 'assistant',
         slots: []
     }
-    return { id, scope, result, records, inspect, artifacts, context, provider: module.get(InvocationResultsProvider) }
+    return {
+        id,
+        scope,
+        result,
+        records,
+        inspect,
+        binding,
+        artifacts,
+        context,
+        provider: module.get(InvocationResultsProvider)
+    }
 }
 describe('task result resource view', () => {
     it('activates through the feature policy and accepts the card navigation query', async () => {
@@ -86,7 +101,8 @@ describe('task result resource view', () => {
             fileKey: 'file',
             purpose: 'download'
         })
-        expect(f.inspect).toHaveBeenCalledTimes(2)
+        expect(f.inspect).not.toHaveBeenCalled()
+        expect(f.binding).toHaveBeenCalledTimes(2)
         expect(f.artifacts.resolveForManagementAccess).toHaveBeenCalledWith({
             artifactId: 'file',
             artifactVersionId: 'version'
@@ -110,8 +126,8 @@ describe('task result resource view', () => {
     })
     it('honors a revoked binding instead of trusting a persisted card', async () => {
         const f = await setup()
-        f.inspect.mockRejectedValue(new Error('revoked'))
-        await expect(f.provider.getViewData(f.context, 'results', { selectionId: f.id })).rejects.toThrow('revoked')
+        f.binding.mockResolvedValue(null)
+        await expect(f.provider.getViewData(f.context, 'results', { selectionId: f.id })).rejects.toThrow()
     })
     it('does not silently download a newer version for a legacy unpinned reference', async () => {
         const f = await setup()

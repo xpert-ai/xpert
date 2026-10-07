@@ -38,6 +38,11 @@ import { AgentRuntimeBindingsController } from './runtime-bindings.controller'
 import { NativeAgentRuntimeStrategy } from './native-agent.strategy'
 import { TypeOrmAgentInvocationStore } from './typeorm-invocation.store'
 import { NativeAgentInvocationReader } from './native-invocation-reader'
+import { InvocationActivityItem, InvocationActivityState } from './activity/activity.entity'
+import { InvocationActivityService } from './activity/activity.service'
+import { ExecutionReaderService } from './execution-view/execution-reader.service'
+import { CodingExecutionProvider } from './execution-view/coding-execution.provider'
+import { InvocationCardProvider } from './execution-view/invocation-card.provider'
 
 @Module({
     imports: [
@@ -45,6 +50,8 @@ import { NativeAgentInvocationReader } from './native-invocation-reader'
         DiscoveryModule,
         CqrsModule,
         TypeOrmModule.forFeature([
+            InvocationActivityItem,
+            InvocationActivityState,
             AgentRuntimeDelivery,
             AgentRuntimeInbox,
             AgentInvocationEntity,
@@ -58,6 +65,10 @@ import { NativeAgentInvocationReader } from './native-invocation-reader'
     ],
     controllers: [RuntimeDeliveryController, AgentRuntimeBindingsController, AgentInvocationsController],
     providers: [
+        InvocationActivityService,
+        ExecutionReaderService,
+        CodingExecutionProvider,
+        InvocationCardProvider,
         RequestRuntimeResultCheckHandler,
         RuntimeMessageAccessService,
         RuntimeMessageInboxService,
@@ -80,9 +91,12 @@ import { NativeAgentInvocationReader } from './native-invocation-reader'
         { provide: AgentInvocationStore, useClass: TypeOrmAgentInvocationStore },
         {
             provide: AgentInvocationRuntime,
-            inject: [AgentInvocationStore, AgentRuntimeRegistry],
-            useFactory: (store: AgentInvocationStore, registry: AgentRuntimeRegistry) =>
-                new AgentInvocationRuntime(store, registry)
+            inject: [AgentInvocationStore, AgentRuntimeRegistry, InvocationActivityService],
+            useFactory: (
+                store: AgentInvocationStore,
+                registry: AgentRuntimeRegistry,
+                activity: InvocationActivityService
+            ) => new AgentInvocationRuntime(store, registry, (invocation) => activity.recorder(invocation))
         }
     ],
     exports: [RuntimeMessageAccessService, AgentInvocationRuntime, AgentRuntimeRegistry, AgentInvocationFactoryService]

@@ -1,0 +1,20 @@
+{
+    "extends": "../../../../../../tsconfig.base.json",
+    "compilerOptions": {
+        "strict": true,
+        "jsx": "react-jsx",
+        "module": "esnext",
+        "moduleResolution": "bundler",
+        "rootDir": "../../../../../..",
+        "baseUrl": "../../../../../..",
+        "paths": {
+            "@xpert-ai/shadcn-ui": ["packages/shadcn-ui/src/index.ts"],
+            "@/*": ["packages/shadcn-ui/src/*"],
+            "lucide-react": ["packages/shadcn-ui/node_modules/lucide-react"]
+        },
+        "types": ["node", "react", "react-dom"],
+        "strictNullChecks": true,
+        "lib": ["es2022", "dom", "dom.iterable"]
+    },
+    "include": ["src/**/*.ts", "src/**/*.tsx"]
+}

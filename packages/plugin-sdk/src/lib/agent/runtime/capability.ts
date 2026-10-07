@@ -2,9 +2,12 @@ import { createRuntimeCapability } from '../../core/runtime-capability'
 import type { AgentInvocation, AgentInvocationRequest, AgentJson, AgentTarget } from './types'
 import type { RuntimeIdentityScope } from '../../runtime/runtime-scope'
 import type { TaskWaitRequest, TaskWaitResult } from './task-wait'
+import type { ConversationResourceCard } from '@xpert-ai/contracts'
 
 /** Invocation API bound to one authorized caller/execution. Each operation revalidates access. */
 export interface AgentInvocationApi {
+  /** Create a host-owned presentation receipt after a successful dispatch, without inspecting the runtime. */
+  getResourceCard?(invocationId: string): Promise<ConversationResourceCard | null>
   /** Resolve a binding to a pinned target. Optional on hosts with pre-resolved native targets. */
   resolve?(bindingId: string): Promise<AgentTarget>
   /** Start or recover an idempotent request. The returned snapshot may still be running. */

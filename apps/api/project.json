@@ -5,7 +5,7 @@
   "projectType": "application",
   "targets": {
     "build": {
-      "dependsOn": ["^build", "build-agent-results"],
+      "dependsOn": ["^build", "build-agent-results", "build-coding-execution"],
       "executor": "@nx/webpack:webpack",
       "outputs": ["{options.outputPath}"],
       "defaultConfiguration": "production",
@@ -94,6 +94,21 @@
       "outputs": ["{workspaceRoot}/coverage/{projectRoot}"],
       "options": {
         "jestConfig": "apps/api/jest.config.ts"
+      }
+    },
+    "build-coding-execution": {
+      "executor": "nx:run-commands",
+      "cache": true,
+      "inputs": [
+        "{workspaceRoot}/packages/server-ai/src/agent-invocation/remote-components/coding-execution/**/*",
+        "{workspaceRoot}/packages/contracts/src/ai/execution-activity.model.ts"
+      ],
+      "outputs": [
+        "{workspaceRoot}/packages/server-ai/src/agent-invocation/remote-components/coding-execution/app.js",
+        "{workspaceRoot}/packages/server-ai/src/agent-invocation/remote-components/coding-execution/app.css"
+      ],
+      "options": {
+        "command": "node packages/server-ai/src/agent-invocation/remote-components/coding-execution/build.mjs"
       }
     }
   },

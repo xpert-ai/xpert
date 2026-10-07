@@ -1,4 +1,9 @@
-import type { AgentInvocationStatus, AgentRuntimeProgress, ModelExecutionEnvironment } from '@xpert-ai/contracts'
+import type {
+  AgentInvocationStatus,
+  AgentRuntimeProgress,
+  ModelExecutionEnvironment,
+  ExecutionActivityCapabilities
+} from '@xpert-ai/contracts'
 export type { AgentInvocationStatus, AgentRuntimeProgress } from '@xpert-ai/contracts'
 import type { AgentInvocationDispatchContext } from './dispatch'
 import type { AgentRunnerReceipt } from './execution-runner'
@@ -41,6 +46,7 @@ export interface AgentTarget {
 
 /** Provider support flags; they do not grant caller permissions. */
 export interface AgentRuntimeCapabilities {
+  activity?: ExecutionActivityCapabilities
   /** Explicit adapter compatibility; does not install tools or grant model/environment access. */
   executionTools?: Array<{ id: string; versions: string[]; environments: ModelExecutionEnvironment['type'][] }>
 
@@ -135,6 +141,8 @@ export interface AgentInvocationRequest {
 
 /** Host-owned invocation snapshot; not an update DTO. */
 export interface AgentInvocation extends AgentRuntimeObservation {
+  /** Pinned presentation contract remains readable after the runtime plugin is removed. */
+  activity?: ExecutionActivityCapabilities
   /** Host startup fence; intermediate receipts are not inspected until start returns or this deadline expires. */
   startPendingUntil?: string
   /** Host invocation ID used by inspect, cancel and respond. */

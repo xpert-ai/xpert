@@ -19,6 +19,7 @@ import {
     isAgentInvocationTerminal,
     RuntimeCapabilityRegistry
 } from '@xpert-ai/plugin-sdk'
+import type { AgentActivityRecorder } from '@xpert-ai/plugin-sdk'
 import { AgentInvocationStore, StoredAgentInvocation } from './invocation-store'
 import {
     AgentInvocationError,
@@ -39,7 +40,8 @@ export interface AgentInvocationAccess {
 export class AgentInvocationRuntime {
     constructor(
         private readonly store: AgentInvocationStore,
-        private readonly registry: AgentRuntimeRegistry
+        private readonly registry: AgentRuntimeRegistry,
+        private readonly activity?: (invocation: AgentInvocation) => AgentActivityRecorder
     ) {}
 
     assertBackgroundTarget(target: AgentTarget, organizationId: string): void {
@@ -98,6 +100,9 @@ export class AgentInvocationRuntime {
                     revision: 0,
                     scope: access.scope,
                     request,
+                    ...(strategy.capabilities.activity
+                        ? { activity: structuredClone(strategy.capabilities.activity) }
+                        : {}),
                     status: 'queued',
                     createdAt: now,
                     updatedAt: now
@@ -219,6 +224,7 @@ export class AgentInvocationRuntime {
             scope: access.scope,
             signal: access.signal,
             capabilities: access.capabilities,
+            ...(record.invocation.activity && this.activity ? { activity: this.activity(record.invocation) } : {}),
             checkpoint: async (observation) => {
                 await this.updateLatest(record.invocation.id, access, observation)
             }

@@ -1,9 +1,6 @@
 // Cards are presentation only. Every read/download rechecks owner, Assistant and current binding access.
-import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { z } from 'zod/v3'
 import {
     AGENT_TASK_RESULTS_FEATURE,
     IXpertViewExtensionProvider,
@@ -18,33 +15,45 @@ import {
     type XpertViewQuery,
     type XpertRemoteComponentViewSchema
 } from '@xpert-ai/contracts'
-import { AgentInvocationEntity } from './invocation.entity'
-import { AgentInvocationFactoryService } from './invocation-factory.service'
+import { ExecutionReaderService } from './execution-view/execution-reader.service'
 import { invocationError } from './invocation-runtime'
 import { ArtifactsService } from '../artifacts/artifacts.service'
 
 @ViewExtensionProvider('platform.agent-results')
 export class InvocationResultsProvider implements IXpertViewExtensionProvider {
     constructor(
-        @InjectRepository(AgentInvocationEntity) private readonly records: Repository<AgentInvocationEntity>,
-        private readonly factory: AgentInvocationFactoryService,
+        private readonly reader: ExecutionReaderService,
         private readonly artifacts: ArtifactsService
     ) {}
 
     supports(context: XpertResolvedViewHostContext) {
-        return context.hostType === 'agent'
+        return context.hostType === 'agent' || context.hostType === 'project'
     }
     getViewManifests(context: XpertResolvedViewHostContext, slot: string): XpertExtensionViewManifest[] {
-        if (!this.supports(context) || slot !== AGENT_WORKBENCH_SLOT) return []
+        if (
+            !this.supports(context) ||
+            slot !== (context.hostType === 'agent' ? AGENT_WORKBENCH_SLOT : 'task.management')
+        )
+            return []
         return [
             {
                 key: 'results',
-                hostType: 'agent',
+                hostType: context.hostType,
                 slot,
                 title: { en_US: 'Task results', zh_Hans: '任务结果' },
                 icon: { type: 'emoji', value: '📋' },
                 source: { provider: 'platform.agent-results' },
-                activation: { requiredFeatures: [AGENT_TASK_RESULTS_FEATURE] },
+                ...(context.hostType === 'agent'
+                    ? {
+                          activation: {
+                              requiredFeatures: [
+                                  context.capabilities?.features?.includes(AGENT_TASK_RESULTS_FEATURE)
+                                      ? AGENT_TASK_RESULTS_FEATURE
+                                      : 'project.tasks'
+                              ]
+                          }
+                      }
+                    : {}),
                 workbench: { openMode: 'on-demand', menu: { enabled: false } },
                 refreshable: true,
                 view: {
@@ -119,39 +128,6 @@ export class InvocationResultsProvider implements IXpertViewExtensionProvider {
         if (key !== 'results') throw invocationError('NotFound')
     }
     private async read(context: XpertResolvedViewHostContext, id?: string) {
-        if (
-            !this.supports(context) ||
-            !context.tenantId ||
-            !context.organizationId ||
-            !context.userId ||
-            !context.hostId ||
-            !z.string().uuid().safeParse(id).success
-        )
-            throw invocationError('NotFound')
-        const row = await this.records.findOneBy({
-            id,
-            tenantId: context.tenantId,
-            organizationId: context.organizationId,
-            ownerId: context.userId
-        })
-        const scope = row?.invocation.scope
-        if (
-            !scope ||
-            scope.tenantId !== context.tenantId ||
-            scope.organizationId !== context.organizationId ||
-            scope.userId !== context.userId ||
-            scope.callerXpertId !== context.hostId ||
-            scope.projectId !== (context.runtimeScope?.projectId ?? undefined) ||
-            (context.runtimeScope?.conversationId && scope.conversationId !== context.runtimeScope.conversationId)
-        )
-            throw invocationError('NotFound')
-        return this.factory
-            .createScopedApi({
-                ...scope,
-                xpertId: scope.callerXpertId,
-                agentKey: scope.callerAgentKey,
-                executionId: scope.parentExecutionId
-            })
-            .inspect(id)
+        return this.reader.read(context, id)
     }
 }

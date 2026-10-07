@@ -1,0 +1,49 @@
+/* Palette tokens are local to this viewer; host tokens remain untouched. */
+.execution-view {
+    --viewer-background: var(--xui-color-background);
+    --viewer-foreground: var(--xui-color-foreground);
+    --viewer-muted: var(--xui-color-muted-foreground);
+    --viewer-border: var(--xui-color-border);
+    --viewer-hover: var(--xui-color-muted);
+    --viewer-accent: var(--xui-color-warning);
+    --viewer-success: var(--xui-color-success);
+    --viewer-error: var(--xui-color-destructive);
+    --viewer-link: var(--xui-color-info);
+    --viewer-match: color-mix(in srgb, var(--viewer-accent) 26%, var(--viewer-background));
+}
+.execution-view[data-palette='paper'] {
+    color-scheme: light;
+    --viewer-background: #faf9f6;
+    --viewer-foreground: #25262b;
+    --viewer-muted: #676b74;
+    --viewer-border: #dcddd9;
+    --viewer-hover: #efeee9;
+    --viewer-accent: #97620a;
+    --viewer-success: #087d3e;
+    --viewer-error: #bf3535;
+    --viewer-link: #2165a6;
+}
+.execution-view[data-palette='coal'] {
+    color-scheme: dark;
+    --viewer-background: #191a1c;
+    --viewer-foreground: #e5e5e3;
+    --viewer-muted: #a3a5aa;
+    --viewer-border: #36383d;
+    --viewer-hover: #292b30;
+    --viewer-accent: #e9b35b;
+    --viewer-success: #7ac899;
+    --viewer-error: #f48b8b;
+    --viewer-link: #88b9e8;
+}
+.execution-view[data-palette='navy'] {
+    color-scheme: dark;
+    --viewer-background: #17212e;
+    --viewer-foreground: #dee7ed;
+    --viewer-muted: #a4b4c4;
+    --viewer-border: #34485c;
+    --viewer-hover: #243447;
+    --viewer-accent: #e7bf78;
+    --viewer-success: #8bceac;
+    --viewer-error: #f39899;
+    --viewer-link: #95c4ed;
+}

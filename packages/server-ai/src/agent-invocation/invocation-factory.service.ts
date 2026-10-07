@@ -29,6 +29,7 @@ import { AgentRuntimeBindingEntity, AgentInvocationEntity } from './invocation.e
 import { AgentInvocationRuntime, invocationError, sameInvocationData } from './invocation-runtime'
 import { awaitInvocationTasks } from './invocation-task-wait'
 import { z } from 'zod/v3'
+import { InvocationCardProvider } from './execution-view/invocation-card.provider'
 
 @Injectable()
 @RuntimeCapabilityProvider(AgentRuntimeFactoryCapability)
@@ -41,7 +42,8 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
         @Optional()
         @InjectRepository(AgentInvocationEntity)
         private readonly records?: Repository<AgentInvocationEntity>,
-        @Optional() private readonly commands?: CommandBus
+        @Optional() private readonly commands?: CommandBus,
+        @Optional() private readonly cards?: InvocationCardProvider
     ) {}
 
     /** Host-only replay uses the persisted identity, never the next graph turn's ambient scope. */
@@ -217,6 +219,19 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
         }
         return {
             resolve,
+            getResourceCard: async (id) => {
+                if (!this.records || !this.cards) return null
+                const scope = currentScope()
+                const row = await this.records.findOneBy({
+                    id,
+                    tenantId: scope.tenantId,
+                    organizationId: scope.organizationId,
+                    ownerId: scope.userId
+                })
+                if (!row || !sameInvocationData(row.invocation.scope, scope)) throw invocationError('NotFound')
+                await resolve(row.invocation.request.target.bindingId)
+                return row.invocation.activity ? this.cards.createCard(row.invocation) : null
+            },
             ...controls,
             awaitResult: async (id, options) => {
                 const result = await awaitInvocationTasks(

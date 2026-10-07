@@ -1,7 +1,11 @@
 // Runtime success never implies task acceptance. Read only persisted facts;
 // invocation details require the original message, task, conversation and owner bindings.
 import { t } from 'i18next'
-import { type ConversationResourceCard, type ProjectTaskReviewReport } from '@xpert-ai/contracts'
+import {
+    codingExecutionViewKey,
+    type ConversationResourceCard,
+    type ProjectTaskReviewReport
+} from '@xpert-ai/contracts'
 import { ForbiddenException, Injectable } from '@nestjs/common'
 import { DataSource, In, IsNull } from 'typeorm'
 import {
@@ -29,6 +33,7 @@ type ProjectTaskCardInput = {
           purpose?: 'implementation' | 'review'
           provider?: string
           reviewVerdict?: ProjectTaskReviewReport['verdict']
+          codingInvocationId?: string
       }
 )
 
@@ -64,8 +69,15 @@ export class ProjectTaskCardProvider implements IResourceCardProvider {
             title: input.title,
             description: [...parts, status].filter(Boolean).join(' · '),
             icon: { type: 'emoji', value: input.type === 'execution' && input.purpose === 'review' ? '🔎' : '📋' },
-            // This release navigates only to the existing timeline. No execution detail UI.
-            open: { target: 'workbench.view', viewKey: 'platform.project-tasks__timeline' }
+            // Keep task-level cards on the timeline; execution cards open their own viewer.
+            open:
+                input.type === 'execution' && input.codingInvocationId
+                    ? {
+                          target: 'workbench.view',
+                          viewKey: codingExecutionViewKey,
+                          selectionId: input.codingInvocationId
+                      }
+                    : { target: 'workbench.view', viewKey: 'platform.project-tasks__timeline' }
         }
     }
 
@@ -161,6 +173,7 @@ export class ProjectTaskCardProvider implements IResourceCardProvider {
                     attempt: attempt.attempt,
                     purpose: attempt.purpose?.type,
                     provider: invocation.request.target.provider,
+                    codingInvocationId: invocation.activity?.presentation === 'coding' ? invocation.id : undefined,
                     status: invocation.status,
                     reviewVerdict:
                         invocation.status === 'succeeded'

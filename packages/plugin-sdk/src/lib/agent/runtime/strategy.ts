@@ -3,6 +3,7 @@ import { DiscoveryService, Reflector } from '@nestjs/core'
 import type { RuntimeCapabilityRegistry } from '../../core/runtime-capability'
 import { BaseStrategyRegistry, type StrategySource } from '../../strategy'
 import { STRATEGY_META_KEY } from '../../types'
+import type { AgentActivityRecorder } from './activity'
 import type {
   AgentInvocationInput,
   AgentInvocationScope,
@@ -21,6 +22,8 @@ export interface AgentRuntimeContext {
   /** Cooperative cancellation; abort alone does not confirm remote termination. */
   signal?: AbortSignal
   capabilities: RuntimeCapabilityRegistry
+  /** Available only for declared public activity; scoped by the host to this invocation. */
+  activity?: AgentActivityRecorder
   /** Persist a receipt before waiting on long-running work. Await persistence and propagate failures. */
   checkpoint(observation: AgentRuntimeObservation): Promise<void>
 }

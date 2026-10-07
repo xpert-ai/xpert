@@ -323,7 +323,8 @@ export class ProjectTaskDispatchService {
                 status: invocation.status,
                 attempt: execution.attempt,
                 purpose: execution.purpose?.type,
-                provider: invocation.request.target.provider
+                provider: invocation.request.target.provider,
+                codingInvocationId: invocation.activity?.presentation === 'coding' ? invocation.id : undefined
             })
         }
     }

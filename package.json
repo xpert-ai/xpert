@@ -259,7 +259,8 @@
     "typedoc": "^0.25.4",
     "typescript": "5.9.3",
     "verdaccio": "^5.0.4",
-    "webpack-bundle-analyzer": "^4.10.1"
+    "webpack-bundle-analyzer": "^4.10.1",
+    "@webtui/css": "0.1.10"
   },
   "workspaces": [
     "apps/*",

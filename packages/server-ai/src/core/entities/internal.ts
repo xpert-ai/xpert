@@ -86,3 +86,5 @@ export * from '../../agent-plugin/agent-plugin.entity'
 export * from '../../agent-invocation/invocation.entity'
 
 export * from '../../desktop-shell/desktop-shell.entities'
+
+export * from '../../agent-invocation/activity/activity.entity'

@@ -77,7 +77,9 @@
     "ts-jest": "29.1.1",
     "ts-node": "10.9.1",
     "tailwindcss": "^4.1.18",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "@webtui/css": "0.1.10",
+    "remixicon": "^4.5.0"
   },
   "workspaces": [
     "apps/*",

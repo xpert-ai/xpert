@@ -30,7 +30,9 @@ export class RuntimeObservationMonitorService {
                 .getRepository(AgentInvocationEntity)
                 .createQueryBuilder('invocation')
                 .where({ nextObservationAt: LessThanOrEqual(new Date()) })
-                .andWhere("invocation.invocation->'request'->'dispatch' IS NOT NULL")
+                .andWhere(
+                    "(invocation.invocation->'request'->'dispatch' IS NOT NULL OR invocation.invocation->'activity' IS NOT NULL)"
+                )
                 .orderBy('invocation.nextObservationAt', 'ASC')
                 .take(20)
                 .getMany()
@@ -54,6 +56,11 @@ export class RuntimeObservationMonitorService {
             .execute()
         if (!claim.affected) return
         const owned = { id: row.id, observationLeaseToken: token }
+        const renewal = setInterval(() => {
+            void repo
+                .update(owned, { observationLeaseUntil: new Date(Date.now() + 60_000) })
+                .catch(() => this.logger.warn('Runtime observation lease renewal deferred'))
+        }, 20_000)
         try {
             await this.access.withActor(row.invocation.scope, async () => {
                 const invocation = await this.factory.createCapturedApi(row.invocation.scope).inspect(row.id)
@@ -75,6 +82,7 @@ export class RuntimeObservationMonitorService {
                 observationError: 'observation_unavailable'
             })
         } finally {
+            clearInterval(renewal)
             await repo.update(owned, { observationLeaseToken: null, observationLeaseUntil: null })
         }
     }
