@@ -122,8 +122,8 @@ export async function prepareModelCall(
                           ? 'any'
                           : toolChoice
             }
-            if (options?.parallelToolCalls === false && model instanceof BaseChatOpenAI) {
-                bindOptions.parallel_tool_calls = false
+            if (typeof options?.parallelToolCalls === 'boolean' && model instanceof BaseChatOpenAI) {
+                bindOptions.parallel_tool_calls = options.parallelToolCalls
             }
             bound = model.bindTools(tools, bindOptions)
         } else if (schema) {
