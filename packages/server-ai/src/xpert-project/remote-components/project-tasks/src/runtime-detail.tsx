@@ -10,6 +10,7 @@ import {
     projectTaskDecisionSchema
 } from '@xpert-ai/contracts'
 import { request } from './bridge'
+import { outputResultSchema, RuntimeOutputs } from './runtime-outputs'
 
 const receipt = z.object({ state: z.string(), lastError: z.string().nullish() })
 const detailSchema = z.object({
@@ -32,16 +33,7 @@ const detailSchema = z.object({
             observedAt: z.string().optional(),
             evidence: z.array(projectTaskEvidenceReferenceSchema).optional(),
             reviewReport: projectTaskReviewReportSchema.nullish(),
-            result: z
-                .object({
-                    text: z.string(),
-                    artifacts: z
-                        .array(
-                            z.object({ id: z.string(), name: z.string().optional(), versionId: z.string().optional() })
-                        )
-                        .optional()
-                })
-                .nullish(),
+            result: outputResultSchema.nullish(),
             error: z.string().nullish(),
             observation: z.string().optional(),
             delivery: z.array(receipt).optional(),
@@ -52,7 +44,8 @@ const detailSchema = z.object({
 type Detail = z.output<typeof detailSchema>
 const zh = {
     requestCheck: '重试回传并请求检查',
-    open: '打开负责人对话',
+    open: '查看执行过程',
+    conversation: '打开负责人对话',
     evidence: '结果与验收',
     requirements: '完成要求',
     implementation: '实现',
@@ -102,7 +95,8 @@ const zh = {
 }
 const en: typeof zh = {
     requestCheck: 'Retry delivery for review',
-    open: 'Open responsible conversation',
+    open: 'View execution',
+    conversation: 'Open responsible conversation',
     evidence: 'Results & acceptance',
     requirements: 'Requirements',
     implementation: 'Implementation',
@@ -154,13 +148,17 @@ const en: typeof zh = {
 export function RuntimeDetail({
     taskId,
     locale,
+    section = 'history',
     canEdit,
-    openAttempt
+    openAttempt,
+    openConversation
 }: {
     taskId: string
     locale: string
+    section?: 'history' | 'outputs'
     canEdit: boolean
     openAttempt: (id: string) => void
+    openConversation: (id: string) => void
 }) {
     const t = locale.startsWith('zh') ? zh : en
     const receiptLabels: { [state: string]: string } = {
@@ -245,6 +243,10 @@ export function RuntimeDetail({
                 .filter(Boolean)
         })
     }
+    if (section === 'outputs')
+        return (
+            <RuntimeOutputs executions={detail?.executions} error={error} locale={locale} openAttempt={openAttempt} />
+        )
     return (
         <section className="space-y-4 border-t pt-4" aria-label={t.evidence}>
             <h3 className="text-sm font-semibold">{t.evidence}</h3>
@@ -318,6 +320,9 @@ export function RuntimeDetail({
                         )}
                         <Button size="sm" variant="ghost" onClick={() => openAttempt(attempt.id)}>
                             {t.open}
+                        </Button>
+                        <Button size="sm" variant="ghost" onClick={() => openConversation(attempt.id)}>
+                            {t.conversation}
                         </Button>
                         {canEdit &&
                             [...(attempt.delivery ?? []), ...(attempt.consumption ?? [])].some((item) =>

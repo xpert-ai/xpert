@@ -72,9 +72,45 @@ describe('shared project task View', () => {
         })
         expect(tasks.resolveExecution.mock.calls[0][0].projectId).toBe('p')
         expect(result.data).toMatchObject({ target: 'assistant.execution', executionId: 'execution' })
+        const conversation = await provider.executeViewAction(agent, 'timeline', 'execution-target', {
+            input: { taskExecutionId, destination: 'conversation' }
+        })
+        expect(conversation.data).toMatchObject({
+            target: 'assistant.conversation',
+            conversationId: 'c',
+            threadId: 'thread'
+        })
         tasks.resolveExecution.mockRejectedValue(Error('access_denied'))
         await expect(
             provider.executeViewAction(agent, 'timeline', 'execution-target', { input: { taskExecutionId } })
         ).rejects.toThrow('access_denied')
+    })
+    it('opens a view in the existing Agent Workbench without navigating its chat, with a generic fallback', async () => {
+        const { provider, tasks } = await fixture()
+        const taskExecutionId = '99999999-9999-4999-8999-999999999999'
+        for (const coding of [true, false]) {
+            tasks.resolveExecution.mockResolvedValue({
+                projectId: 'p',
+                invocationId: 'invocation',
+                ...(coding ? { codingInvocationId: 'invocation' } : {})
+            })
+            const result = await provider.executeViewAction(agent, 'timeline', 'execution-target', {
+                input: { taskExecutionId }
+            })
+            expect(result.data).toMatchObject({
+                target: 'workbench.view',
+                projectId: 'p',
+                selectionId: 'invocation',
+                viewKey: coding ? 'platform.coding-execution__execution' : 'platform.agent-results__results'
+            })
+            const projectResult = await provider.executeViewAction(project, 'timeline', 'execution-target', {
+                input: { taskExecutionId }
+            })
+            expect(projectResult.data).toMatchObject({
+                target: 'assistant.project',
+                projectId: 'p',
+                selectionId: 'invocation'
+            })
+        }
     })
 })

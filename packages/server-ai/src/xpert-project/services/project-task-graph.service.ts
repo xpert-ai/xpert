@@ -363,6 +363,8 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
             ...this.where(context)
         })
         let executionId = attempt?.agentExecutionId
+        let invocationId: string | undefined
+        let codingInvocationId: string | undefined
         if (attempt?.invocationId) {
             const record = await this.tasks.manager.findOneBy(AgentInvocationEntity, {
                 id: attempt.invocationId,
@@ -374,8 +376,11 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
                 record?.invocation.request.dispatch?.projectTask?.taskExecutionId === attempt.id &&
                 record.invocation.scope.projectId === context.projectId &&
                 record.invocation.scope.conversationId === attempt.conversationId
-            )
+            ) {
                 executionId = record.invocation.scope.parentExecutionId
+                invocationId = record.invocation.id
+                if (record.invocation.activity?.presentation === 'coding') codingInvocationId = record.invocation.id
+            }
         }
         if (!attempt?.conversationId || !executionId)
             throw new NotFoundException(t('server-ai:Error.ProjectTaskExecutionUnavailable'))
@@ -383,7 +388,7 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
             id: attempt.conversationId,
             ...this.where(context)
         })
-        if (!conversation?.threadId || !conversation.xpertId)
+        if (!conversation?.threadId || (!conversation.xpertId && !invocationId))
             throw new NotFoundException(t('server-ai:Error.ProjectTaskExecutionUnavailable'))
         const scope = { tenantId: context.actor.tenantId, organizationId: context.actor.organizationId ?? IsNull() }
         // Registered conversation branches are navigable; internal expert graph threads are not.
@@ -419,6 +424,8 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
             projectId: context.projectId,
             taskId: attempt.taskId,
             taskExecutionId: attempt.id,
+            invocationId,
+            codingInvocationId,
             conversationId: conversation.id,
             threadId: thread?.threadId ?? conversation.threadId,
             agentExecutionId: executionId,

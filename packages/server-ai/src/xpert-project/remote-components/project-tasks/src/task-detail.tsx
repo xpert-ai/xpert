@@ -1,6 +1,6 @@
 import { useEffect, useState, type MutableRefObject } from 'react'
 import { z } from 'zod'
-import { Bot, ExternalLink, Info, GitBranch, ChevronRight, FileText } from 'lucide-react'
+import { Bot, ExternalLink, Info, GitBranch, ChevronRight } from 'lucide-react'
 import {
     Button,
     Input,
@@ -29,7 +29,7 @@ function toLocal(value: string | null) {
     const date = new Date(value)
     return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
 }
-/** Transient draft owned by the view so changing between inspector and Sheet never loses input. */
+/** The view owns the draft while the detail Dialog is open. */
 export interface DetailDraft {
     taskId: string
     tab: string
@@ -215,10 +215,14 @@ export function TaskDetail({
                     )}
                     {(tab === 'history' || tab === 'outputs') && attempts.some((item) => item.invocationId) && (
                         <RuntimeDetail
+                            section={tab}
                             taskId={task.id}
                             locale={locale}
                             canEdit={canEdit}
                             openAttempt={(id) => void act(id, () => openTaskExecution(id, t.openFailed))}
+                            openConversation={(id) =>
+                                void act(id, () => openTaskExecution(id, t.openFailed, 'conversation'))
+                            }
                         />
                     )}
                     {tab === 'history' && (
@@ -268,24 +272,10 @@ export function TaskDetail({
                             )}
                         </div>
                     )}
-                    {tab === 'outputs' && (
+                    {tab === 'outputs' && !attempts.some((item) => item.invocationId) && (
                         <div className="space-y-4 border-t pt-4">
                             <p className="text-xs leading-5 text-muted-foreground">{t.outputsHint}</p>
-                            {!attempts.some((item) => item.outputSummary) && <Empty title={t.noOutputs} />}
-                            {attempts
-                                .filter((item) => item.outputSummary)
-                                .map((attempt) => (
-                                    <section key={attempt.id} className="space-y-3 rounded-lg border p-4">
-                                        <h3 className="flex items-center gap-2 text-sm font-semibold">
-                                            <FileText className="size-4" />
-                                            {t.attempt} {attempt.attempt} {t.execution}
-                                        </h3>
-                                        <p className="whitespace-pre-wrap break-words text-sm leading-6">
-                                            {outcomeLabel(attempt.outputSummary, t)}
-                                        </p>
-                                        {openButton(attempt, false)}
-                                    </section>
-                                ))}
+                            <Empty title={t.noOutputs} />
                         </div>
                     )}
                     {tab === 'overview' && (

@@ -9,10 +9,10 @@ import {
     TabsTrigger,
     TabsContent,
     TooltipProvider,
-    Sheet,
-    SheetContent,
-    SheetTitle,
-    SheetDescription,
+    Dialog,
+    DialogContent,
+    DialogTitle,
+    DialogDescription,
     AlertDialog,
     AlertDialogContent,
     AlertDialogTitle,
@@ -53,10 +53,9 @@ function App() {
         [selected, setSelected] = useState<string | null>(null)
     const [dirty, setDirty] = useState(false),
         [nextSelection, setNextSelection] = useState<{ id: string | null } | null>(null)
-    const [now, setNow] = useState(Date.now()),
-        [width, setWidth] = useState(1400)
-    const root = useRef<HTMLDivElement>(null),
-        loading = useRef(false),
+    const [now, setNow] = useState(Date.now())
+    const detailTrigger = useRef<HTMLElement | null>(null)
+    const loading = useRef(false),
         generation = useRef(0)
     const detailDraft = useRef<DetailDraft | null>(null)
     const columns = useTaskColumns()
@@ -69,13 +68,6 @@ function App() {
             }, resetContext),
         []
     )
-    useEffect(() => {
-        const observer = new ResizeObserver(() => {
-            if (root.current) setWidth(root.current.clientWidth)
-        })
-        if (root.current) observer.observe(root.current)
-        return () => observer.disconnect()
-    }, [])
     const load = useCallback(async () => {
         if (loading.current) return
         loading.current = true
@@ -135,6 +127,8 @@ function App() {
     }, [graph])
     const choose = (id: string | null) => {
         if (id === selected) return
+        if (!selected && id)
+            detailTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
         if (dirty) setNextSelection({ id })
         else {
             detailDraft.current = null
@@ -185,7 +179,6 @@ function App() {
     return (
         <TooltipProvider>
             <main
-                ref={root}
                 aria-label={`${graph?.projectTitle || t.project} · ${t.title}`}
                 className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-background font-sans text-foreground"
             >
@@ -328,38 +321,35 @@ function App() {
                                 t={t}
                             />
                         </TabsContent>
-                        {detail && width >= 1200 && (
-                            <aside aria-label={t.details} className="flex w-[360px] shrink-0 flex-col border-l">
-                                <div className="flex items-center justify-between px-4 py-1.5">
-                                    <p className="text-xs font-medium text-muted-foreground">{t.details}</p>
-                                    <IconButton label={t.close} onClick={() => choose(null)}>
-                                        <X />
-                                    </IconButton>
-                                </div>
-                                {detail}
-                            </aside>
-                        )}
                     </div>
                 </Tabs>
-                {width < 1200 && (
-                    <Sheet
-                        open={!!task}
-                        onOpenChange={(open) => {
-                            if (!open) choose(null)
+                <Dialog
+                    open={!!task}
+                    onOpenChange={(open) => {
+                        if (!open) choose(null)
+                    }}
+                >
+                    <DialogContent
+                        className="flex h-[min(760px,calc(100dvh-2rem))] min-h-0 flex-col gap-0 overflow-hidden p-0 sm:max-w-4xl"
+                        showCloseButton={false}
+                        aria-describedby="task-dialog-description"
+                        onCloseAutoFocus={(event) => {
+                            event.preventDefault()
+                            if (detailTrigger.current?.isConnected) detailTrigger.current.focus()
                         }}
                     >
-                        <SheetContent
-                            className="w-[min(420px,100%)] gap-0 sm:max-w-[420px]"
-                            aria-describedby="task-sheet-description"
-                        >
-                            <SheetTitle className="px-4 py-3 text-xs text-muted-foreground">{t.details}</SheetTitle>
-                            <SheetDescription id="task-sheet-description" className="sr-only">
-                                {t.subtitle}
-                            </SheetDescription>
-                            {detail}
-                        </SheetContent>
-                    </Sheet>
-                )}
+                        <div className="flex shrink-0 items-center justify-between px-4 py-3">
+                            <DialogTitle className="text-sm font-medium text-muted-foreground">{t.details}</DialogTitle>
+                            <IconButton label={t.close} onClick={() => choose(null)}>
+                                <X />
+                            </IconButton>
+                        </div>
+                        <DialogDescription id="task-dialog-description" className="sr-only">
+                            {t.subtitle}
+                        </DialogDescription>
+                        {detail}
+                    </DialogContent>
+                </Dialog>
                 <AlertDialog
                     open={!!nextSelection}
                     onOpenChange={(open) => {

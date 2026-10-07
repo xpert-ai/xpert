@@ -260,6 +260,7 @@ export function dateTime(value: string | null | undefined, locale: string, short
 export function runtimeLabel(status: string | undefined, t: Texts) {
     switch (status) {
         case 'success':
+        case 'succeeded':
             return t.success
         case 'error':
         case 'failed':

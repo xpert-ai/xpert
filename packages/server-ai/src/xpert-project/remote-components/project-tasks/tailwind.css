@@ -1,11 +1,9 @@
 @import '@xpert-ai/shadcn-ui/styles.css';
 @source "./src/**/*.{ts,tsx}";
-/* Keep the same root size in the Workbench and on project pages. */
-:root {
-    --xui-density-root-font-size: 14px;
-}
-html {
-    font-size: var(--xui-density-root-font-size);
+/* Follow host typography; override the shared compact fallback only when no token is supplied. */
+:root,
+:root[data-xui-density='compact'] {
+    font-size: var(--xui-density-root-font-size, 14px);
 }
 html,
 body,

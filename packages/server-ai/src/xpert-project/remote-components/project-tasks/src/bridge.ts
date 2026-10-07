@@ -48,7 +48,6 @@ export function connect(onReady: (locale: string) => void, contextChanged: () =>
                 )
             }
             installShadcnThemeVars({ density: 'compact' })
-            document.documentElement.style.setProperty('--xui-density-root-font-size', '14px')
             document.documentElement.classList.toggle('dark', message.theme?.mode === 'dark')
             document.documentElement.lang = message.locale ?? 'en-US'
             instanceId = message.instanceId

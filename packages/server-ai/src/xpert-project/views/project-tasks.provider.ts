@@ -4,7 +4,7 @@ import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { z } from 'zod'
 import { t } from 'i18next'
-import { AGENT_WORKBENCH_SLOT, WORKBENCH_ASSISTANT_EXECUTION_TARGET } from '@xpert-ai/contracts'
+import { AGENT_WORKBENCH_SLOT, WORKBENCH_ASSISTANT_EXECUTION_TARGET, codingExecutionViewKey } from '@xpert-ai/contracts'
 import type {
     XpertResolvedViewHostContext,
     XpertExtensionViewManifest,
@@ -149,8 +149,39 @@ export class ProjectTasksViewProvider implements IXpertViewExtensionProvider {
             }
         }
         if (actionKey === 'execution-target') {
-            const input = z.object({ taskExecutionId: z.string().uuid() }).strict().parse(request.input)
+            const input = z
+                .object({
+                    taskExecutionId: z.string().uuid(),
+                    destination: z.enum(['execution', 'conversation']).optional()
+                })
+                .strict()
+                .parse(request.input)
             const target = await this.tasks.resolveExecution(this.context(context), input.taskExecutionId!)
+            if (input.destination === 'conversation')
+                return {
+                    success: true,
+                    data: {
+                        target: 'assistant.conversation',
+                        projectId: target.projectId,
+                        conversationId: target.conversationId,
+                        threadId: target.threadId,
+                        xpertId: target.xpertId
+                    }
+                }
+            if (target.invocationId || target.codingInvocationId)
+                return {
+                    success: true,
+                    data: {
+                        // The Agent Workbench already has the authorized project scope. A project
+                        // navigation would mint a new Desktop chat session and clear its thread.
+                        target: context.hostType === 'agent' ? 'workbench.view' : 'assistant.project',
+                        viewKey: target.codingInvocationId ? codingExecutionViewKey : 'platform.agent-results__results',
+                        selectionId: target.invocationId ?? target.codingInvocationId,
+                        projectId: target.projectId,
+                        conversationId: target.conversationId,
+                        xpertId: target.xpertId
+                    }
+                }
             return {
                 success: true,
                 data: {

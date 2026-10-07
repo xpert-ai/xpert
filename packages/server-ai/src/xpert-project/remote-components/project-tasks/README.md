@@ -14,8 +14,9 @@ Assistant's Workbench. It has no application-specific imports or Bid rules.
 - Host chrome supplies project context. The view starts with its four tabs;
   refresh and last-sync tooltip share that row instead of adding a header.
 
-The iframe uses the shared `--xui-density-root-font-size` override: 14px in both the
-Assistant Workbench and project pages. Text sizes use Tailwind's default rem scale. Task
+The iframe derives its HTML root size from the host’s `densityRootFontSize` theme
+token (`--xui-density-root-font-size`), falling back to 14px when absent. It does
+not override the host token or choose a font size based on host type. Text sizes use Tailwind's default rem scale. Task
 rows are 40px, with shared geometry constants for virtual scrolling and Gantt
 dependency paths. Toolbars and detail panels use compact spacing.
 
@@ -34,12 +35,12 @@ generic view. Editing a schedule does not start an Agent or retry a task.
 All tasks, Task tree, Gantt and Status board share search and filters. The UI reads
 explicit task kinds and ownership fields; it never derives business stages from
 titles or source keys. Missing dates are shown as unscheduled. Separate attempts
-retain separate runtime intervals and business outcomes. The Outputs tab shows
-the available execution summaries; it does not invent artifact file links.
+retain separate runtime intervals and business outcomes. The Outputs tab lists
+committed artifacts and delivery diagnostics, with downloads in the execution viewer.
 
 The view polls every five seconds while visible. Cursor comparison avoids replacing
-unchanged data. Large tables and Gantt rows are virtualized. A shared draft survives
-the responsive switch between the desktop inspector and the narrow-screen Sheet.
+unchanged data. Large tables and Gantt rows are virtualized. The shared Dialog
+preserves the plan draft across viewport changes.
 
 ## Development
 
@@ -59,3 +60,12 @@ the preview after rebuilding assets. Fixture changes are reset on restart.
 
 See `design-qa.md` for visual and interaction verification. Build outputs `app.js`
 and `app.css` are generated; edit their source files instead.
+
+Task details open in one centered, responsive Dialog for every view and viewport
+size. The overview, execution history, outputs and existing actions are preserved.
+The content scrolls inside the Dialog; close, Escape and backdrop actions use the
+existing unsaved-plan confirmation. Closing restores focus to the opening control.
+
+### Delivered files tab
+
+The Outputs tab reads committed `result.artifacts` and `result.export` from the existing authorized `task-detail` response. It lists files by execution, exposes safe export diagnostics, and distinguishes no requested delivery from no delivered files. Working-directory paths and result declarations are not presented as downloadable artifacts. The execution viewer remains the existing download entry. Execution status, reliable-message receipts and acceptance controls belong to History and are not duplicated in Outputs.
