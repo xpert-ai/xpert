@@ -110,7 +110,10 @@ describe('ChatConversationController goal routes', () => {
         })
 
         expect(organizationScopeService.run).toHaveBeenCalledWith('organization-1', expect.any(Function))
-        expect(resolveWorkbenchNavigation).toHaveBeenCalledWith('conversation-1', 'requester-xpert-1')
+        expect(resolveWorkbenchNavigation).toHaveBeenCalledWith('conversation-1', 'requester-xpert-1', {
+            threadId: undefined,
+            messageId: undefined
+        })
     })
 
     afterEach(() => {

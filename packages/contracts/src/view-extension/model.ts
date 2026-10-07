@@ -495,6 +495,10 @@ export interface WorkbenchNavigationOpenPayload {
   viewKey?: string
   selectionId?: string
   parameters?: Record<string, XpertViewScalar | XpertViewScalar[]>
+  /** Exact visible message in the requested branch. */
+  messageId?: string
+  /** Keep the originating Workbench view open during navigation. */
+  preserveView?: boolean
 }
 
 export interface WorkbenchAssistantConversationOpenRequest {
@@ -505,6 +509,10 @@ export interface WorkbenchAssistantConversationOpenRequest {
   xpertId?: string
   /** Untrusted hint; the host must resolve the canonical Project from `conversationId`. */
   projectId?: string
+  /** Exact visible message in the requested branch. */
+  messageId?: string
+  /** Keep the originating Workbench view open during navigation. */
+  preserveView?: boolean
 }
 
 /** Server-authorized runtime scope used to rebuild ChatKit for one persisted Assistant conversation. */
@@ -514,6 +522,7 @@ export interface WorkbenchAssistantConversationResolution {
   xpertId: string
   projectId: string | null
   isExternalAssistant: boolean
+  messageId?: string
 }
 
 export interface WorkbenchAssistantProjectOpenRequest {

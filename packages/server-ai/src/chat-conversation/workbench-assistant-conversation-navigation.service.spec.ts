@@ -1,3 +1,4 @@
+import { ChatConversationThreadService } from './conversation-thread.service'
 import type { IXpert } from '@xpert-ai/contracts'
 import { ForbiddenException } from '@nestjs/common'
 import { ChatConversationService } from './conversation.service'
@@ -17,6 +18,9 @@ describe('WorkbenchAssistantConversationNavigationService', () => {
     let projectAccessService: XpertProjectAccessService
     let xpertBindingService: XpertProjectXpertBindingService
     let service: WorkbenchAssistantConversationNavigationService
+    let threads: ChatConversationThreadService
+    let visible: jest.Mock
+    let requireThread: jest.Mock
     let assertAccess: jest.Mock
     let assertCanReadXpert: jest.Mock
     let resolveCurrentById: jest.Mock
@@ -45,13 +49,62 @@ describe('WorkbenchAssistantConversationNavigationService', () => {
             resolveCurrentById,
             isSameXpert: (left: IXpert, right: IXpert) => left.slug === right.slug
         })
+        visible = jest.fn().mockResolvedValue({ items: [{ id: 'visible', role: 'human' }] })
+        requireThread = jest.fn().mockResolvedValue({ conversationId: 'conversation-1', threadId: 'side' })
+        threads = Object.assign(Object.create(ChatConversationThreadService.prototype), {
+            findVisibleMessages: visible,
+            requireByThreadId: requireThread
+        })
         service = new WorkbenchAssistantConversationNavigationService(
             conversationService,
             projectAccessService,
-            xpertBindingService
+            xpertBindingService,
+            threads
         )
     })
 
+    it.each(['human', 'ai'])('preserves an authorized non-default branch and visible %s anchor', async (role) => {
+        visible.mockResolvedValue({ items: [{ id: 'visible', role }] })
+        await expect(
+            service.resolve('conversation-1', requester.id, { threadId: 'side', messageId: 'visible' })
+        ).resolves.toMatchObject({ threadId: 'side', messageId: 'visible' })
+        expect(requireThread).toHaveBeenCalledWith('side')
+        expect(visible).toHaveBeenCalledWith('side', { where: { id: 'visible' } })
+    })
+
+    it('uses the default branch when only a message anchor is provided', async () => {
+        await expect(service.resolve('conversation-1', requester.id, { messageId: 'visible' })).resolves.toMatchObject({
+            threadId: 'thread-1',
+            messageId: 'visible'
+        })
+        expect(requireThread).toHaveBeenCalledWith('thread-1')
+        expect(visible).toHaveBeenCalledWith('thread-1', { where: { id: 'visible' } })
+    })
+
+    it.each([
+        { role: 'tool' },
+        { role: 'system' },
+        { role: 'human', messageEnvelope: { version: 1, presentation: 'runtime' } },
+        { role: 'ai', messageEnvelope: { version: 2, presentation: 'message' } }
+    ])('does not expose internal messages as navigation anchors: %j', async (message) => {
+        visible.mockResolvedValue({ items: [{ id: 'visible', ...message }] })
+        await expect(
+            service.resolve('conversation-1', requester.id, { threadId: 'side', messageId: 'visible' })
+        ).rejects.toBeInstanceOf(ForbiddenException)
+    })
+
+    it('rejects a message outside the visible path even when the branch contains other messages', async () => {
+        await expect(
+            service.resolve('conversation-1', requester.id, { threadId: 'side', messageId: 'foreign' })
+        ).rejects.toBeInstanceOf(ForbiddenException)
+    })
+    it('rejects a thread belonging to another conversation', async () => {
+        requireThread.mockResolvedValue({ conversationId: 'another' })
+        await expect(service.resolve('conversation-1', requester.id, { threadId: 'side' })).rejects.toBeInstanceOf(
+            ForbiddenException
+        )
+        expect(visible).not.toHaveBeenCalled()
+    })
     it('resolves canonical target Assistant, Project and thread from the authorized conversation', async () => {
         await expect(service.resolve('conversation-1', 'orchestrator-old')).resolves.toEqual({
             conversationId: 'conversation-1',
@@ -62,6 +115,8 @@ describe('WorkbenchAssistantConversationNavigationService', () => {
         })
 
         expect(assertAccess).toHaveBeenCalledWith('conversation-1')
+        expect(requireThread).not.toHaveBeenCalled()
+        expect(visible).not.toHaveBeenCalled()
         expect(assertCanReadXpert).toHaveBeenCalledWith('project-1', 'orchestrator-old')
         expect(assertCanReadXpert).toHaveBeenCalledWith('project-1', 'role-assistant-old')
         expect(resolveCurrentById).toHaveBeenCalledWith('role-assistant-old', {
@@ -139,8 +194,12 @@ describe('WorkbenchAssistantConversationNavigationService', () => {
 
     it('checks conversation access before resolving any Assistant graph', async () => {
         assertAccess.mockRejectedValue(new ForbiddenException())
-        await expect(service.resolve('conversation-1', requester.id)).rejects.toBeInstanceOf(ForbiddenException)
+        await expect(
+            service.resolve('conversation-1', requester.id, { threadId: 'side', messageId: 'visible' })
+        ).rejects.toBeInstanceOf(ForbiddenException)
         expect(resolveCurrentById).not.toHaveBeenCalled()
+        expect(requireThread).not.toHaveBeenCalled()
+        expect(visible).not.toHaveBeenCalled()
     })
 
     it('keeps a conversation in the requester Assistant family non-external', async () => {

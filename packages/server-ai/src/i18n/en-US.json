@@ -1148,5 +1148,8 @@
             "restricted": "Execution access restricted",
             "waiting_input": "Awaiting input"
         }
+    },
+    "ConversationMap": {
+        "InvalidQuery": "Invalid map query"
     }
 }

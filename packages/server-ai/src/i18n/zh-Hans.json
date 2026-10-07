@@ -1148,5 +1148,8 @@
             "restricted": "执行记录访问受限",
             "waiting_input": "等待输入"
         }
+    },
+    "ConversationMap": {
+        "InvalidQuery": "查询条件无效"
     }
 }
