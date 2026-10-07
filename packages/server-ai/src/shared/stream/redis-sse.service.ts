@@ -156,6 +156,18 @@ export class RedisSseStreamService {
     async createSseStream(options: CreateSseStreamOptions) {
         const { threadId, runId } = options
         const streamKey = this.getStreamKey(threadId, runId)
+        // A POST starts a new stream segment even when tool_after reuses the run id.
+        // Snapshot the tail before the producer starts; '$' would lose events during setup.
+        const cursorKey = `ai:sse:segment:thread:${threadId}:run:${runId}`
+        let startId: string
+        if (options.mode === 'create') {
+            startId = await this.readTailId(streamKey)
+            const ttl = this.getStreamTtlSeconds()
+            await this.redis.set(cursorKey, startId, ttl > 0 ? { EX: ttl } : undefined)
+        } else {
+            const segmentStart = (await this.redis.get(cursorKey)) ?? '0-0'
+            startId = this.joinCursor(options.lastEventId, segmentStart)
+        }
         const connectionSetKey = this.getConnectionSetKey(threadId, runId)
         const connectionTtl = this.getConnectionTtlMs()
         const connectionId = randomUUID()
@@ -166,7 +178,7 @@ export class RedisSseStreamService {
         const stream = new Observable<SseMessageEvent>((subscriber) => {
             let active = true
             let readClient: RedisClientType | null = null
-            let lastId = this.normalizeStartId(options.lastEventId, options.mode)
+            let lastId = startId
             const readBlockMs = this.getReadBlockMs()
             const readCount = this.getReadCount()
 
@@ -337,12 +349,20 @@ export class RedisSseStreamService {
         return typeof data === 'object' && data !== null && (data as { type?: string }).type === SSE_COMPLETE_EVENT
     }
 
-    private normalizeStartId(lastEventId: string | undefined, mode: 'create' | 'join') {
-        const normalized = lastEventId?.trim()
-        if (normalized) {
-            return normalized
-        }
-        return '0-0'
+    private async readTailId(streamKey: string): Promise<string> {
+        const entries = (await this.redis.sendCommand(['XREVRANGE', streamKey, '+', '-', 'COUNT', '1'])) as Array<
+            [string, string[]]
+        > | null
+        return entries?.[0]?.[0] ?? '0-0'
+    }
+
+    private joinCursor(lastEventId: string | undefined, segmentStart: string): string {
+        const requested = lastEventId?.trim()
+        if (!requested) return segmentStart
+        if (!/^\d+-\d+$/.test(requested)) return requested
+        const [requestedMs, requestedSeq] = requested.split('-').map(BigInt)
+        const [startMs, startSeq] = segmentStart.split('-').map(BigInt)
+        return requestedMs < startMs || (requestedMs === startMs && requestedSeq < startSeq) ? segmentStart : requested
     }
 
     private normalizeId(value: string | null | undefined) {

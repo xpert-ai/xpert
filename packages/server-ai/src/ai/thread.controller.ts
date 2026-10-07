@@ -57,6 +57,7 @@ import { RunCreateStreamCommand, ThreadCreateCommand, ThreadDeleteCommand } from
 import { FindThreadQuery, SearchThreadsQuery } from './queries'
 import type { components } from './schemas/agent-protocol-schema'
 import { RedisSseStreamService, SseConnectionOwnerCandidate } from '../shared/stream'
+import { writeSseResponse } from '../shared/stream/write-sse-response'
 import {
     AssertChatConversationAccessQuery,
     CancelConversationCommand,
@@ -247,7 +248,6 @@ export class ThreadsController {
     @Header('content-type', 'text/event-stream')
     @Header('Connection', 'keep-alive')
     @Post(':thread_id/runs/stream')
-    @Sse()
     async runStream(
         @Req() req: Request,
         @Res() res: Response,
@@ -259,23 +259,15 @@ export class ThreadsController {
             const { stream, execution, streamTransport } = await this.commandBus.execute(
                 new RunCreateStreamCommand(thread_id, body)
             )
-            // The SDK uses this header to acknowledge an accepted run before
-            // consuming its potentially long-lived SSE response.
-            // SSE may flush headers while async run setup is pending. An optional
-            // acknowledgement header must not prevent subscribing the accepted run.
+            // @Res owns this response: admission completes before any SSE headers are flushed.
             if (!res.headersSent && !res.destroyed && !res.writableEnded) {
                 res.setHeader('Content-Location', `/api/ai/threads/${thread_id}/runs/${execution.id}`)
             }
             if (streamTransport === 'direct') {
                 startSseHeartbeat(res)
-                return stream
+                writeSseResponse(req, res, stream)
+                return
             }
-
-            stream.subscribe({
-                error: (err) => {
-                    console.error('Error in run stream:', err)
-                }
-            })
             const owner = buildSseConnectionOwner(req, {
                 mode: 'create',
                 lastEventId
@@ -292,8 +284,14 @@ export class ThreadsController {
                 this.redisSseStreamService.releaseConnection(thread_id, execution.id, connectionId).catch(() => null)
             })
 
+            // Capture the cursor before starting the producer, including fast initial events.
+            stream.subscribe({
+                error: (err) => {
+                    console.error('Error in run stream:', err)
+                }
+            })
             startSseHeartbeat(res)
-            return sseStream
+            writeSseResponse(req, res, sseStream)
         } catch (error) {
             console.error('Error starting run stream:')
             console.error(error)

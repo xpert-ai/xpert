@@ -17,6 +17,8 @@ jest.mock('./ai.service', () => ({
     AiService: class {}
 }))
 
+jest.mock('../shared/stream/write-sse-response', () => ({ writeSseResponse: jest.fn() }))
+
 jest.mock('../copilot-checkpoint', () => ({
     CopilotCheckpointGetTupleQuery: class CopilotCheckpointGetTupleQuery {}
 }))
@@ -48,11 +50,19 @@ jest.mock('./public-xpert-principal', () => ({
 }))
 
 import { EventEmitter } from 'events'
-import { ForbiddenException } from '@nestjs/common'
-import { EMPTY } from 'rxjs'
+import { CallHandler, ConflictException, ExecutionContext, ForbiddenException, INestApplication } from '@nestjs/common'
+import { Test } from '@nestjs/testing'
+import { CommandBus, QueryBus } from '@nestjs/cqrs'
+import { ApiKeyOrClientSecretAuthGuard, TransformInterceptor } from '@xpert-ai/server-core'
+import { AddressInfo } from 'net'
+import { json } from 'express'
+import { EMPTY, Subject } from 'rxjs'
+import { AiService } from './ai.service'
+import { RedisSseStreamService, SseMessageEvent } from '../shared/stream/redis-sse.service'
 import { RunCreateStreamCommand } from './commands'
 import { getPublicXpertSessionConversationScope } from './public-xpert-principal'
 import { ThreadsController } from './thread.controller'
+import { writeSseResponse } from '../shared/stream/write-sse-response'
 
 describe('ThreadsController', () => {
     beforeEach(() => {
@@ -123,7 +133,8 @@ describe('ThreadsController', () => {
                 'Content-Location',
                 '/api/ai/threads/thread-1/runs/execution-1'
             )
-            expect(result).toBe(stream)
+            expect(result).toBeUndefined()
+            expect(writeSseResponse).toHaveBeenCalledWith(expect.anything(), response, stream)
             expect(commandBus.execute.mock.calls[0][0]).toBeInstanceOf(RunCreateStreamCommand)
             expect(redisSseStreamService.createSseStream).not.toHaveBeenCalled()
             expect(redisSseStreamService.releaseConnection).not.toHaveBeenCalled()
@@ -132,7 +143,7 @@ describe('ThreadsController', () => {
         }
     })
 
-    it('starts the accepted run even when SSE headers were already flushed', async () => {
+    it('registers the resumed reader before starting the producer', async () => {
         const subscribe = jest.fn()
         const commandBus = {
             execute: jest.fn().mockResolvedValue({
@@ -146,13 +157,11 @@ describe('ThreadsController', () => {
             releaseConnection: jest.fn().mockResolvedValue(true)
         }
         const response = Object.assign(new EventEmitter(), {
-            headersSent: true,
+            headersSent: false,
             destroyed: false,
             writableEnded: false,
             write: jest.fn(),
-            setHeader: jest.fn(() => {
-                throw new Error('ERR_HTTP_HEADERS_SENT')
-            })
+            setHeader: jest.fn()
         })
         const controller = new ThreadsController(
             {} as never,
@@ -165,9 +174,12 @@ describe('ThreadsController', () => {
                 assistant_id: 'xpert-1',
                 input: { action: 'send' }
             } as never)
-            expect(response.setHeader).not.toHaveBeenCalled()
+            expect(response.setHeader).toHaveBeenCalledWith('Content-Location', '/api/ai/threads/thread-1/runs/run-1')
             expect(subscribe).toHaveBeenCalledTimes(1)
             expect(redisSseStreamService.createSseStream).toHaveBeenCalledTimes(1)
+            expect(redisSseStreamService.createSseStream.mock.invocationCallOrder[0]).toBeLessThan(
+                subscribe.mock.invocationCallOrder[0]
+            )
         } finally {
             response.emit('close')
         }
@@ -354,5 +366,88 @@ describe('ThreadsController', () => {
         const controller = new ThreadsController({} as never, queryBus as never, {} as never, {} as never)
 
         await expect(controller.getThreadRun('thread-1', 'run-other')).rejects.toBeInstanceOf(ForbiddenException)
+    })
+})
+
+describe('run stream HTTP admission with Nest interceptors', () => {
+    let app: INestApplication
+    let endpoint: string
+    const commandBus = { execute: jest.fn() }
+    const queryBus = { execute: jest.fn().mockResolvedValue({ threadId: 'thread-1' }) }
+    const redis = { createSseStream: jest.fn(), releaseConnection: jest.fn().mockResolvedValue(true) }
+
+    beforeAll(async () => {
+        ;(writeSseResponse as jest.Mock).mockImplementation(
+            jest.requireActual('../shared/stream/write-sse-response').writeSseResponse
+        )
+        const module = await Test.createTestingModule({
+            controllers: [ThreadsController],
+            providers: [
+                { provide: AiService, useValue: {} },
+                { provide: QueryBus, useValue: queryBus },
+                { provide: CommandBus, useValue: commandBus },
+                { provide: RedisSseStreamService, useValue: redis }
+            ]
+        })
+            .overrideGuard(ApiKeyOrClientSecretAuthGuard)
+            .useValue({ canActivate: () => true })
+            .overrideInterceptor(TransformInterceptor)
+            .useValue({ intercept: (_context: ExecutionContext, next: CallHandler) => next.handle() })
+            .compile()
+        app = module.createNestApplication({ logger: false })
+        app.use(json({ limit: '4mb' }))
+        await app.listen(0, '127.0.0.1')
+        const address: AddressInfo = app.getHttpServer().address()
+        endpoint = `http://127.0.0.1:${address.port}/threads/thread-1/runs/stream`
+    })
+
+    afterAll(async () => {
+        await app?.close()
+        ;(writeSseResponse as jest.Mock).mockReset()
+    })
+
+    it.each(['direct', 'redis'])('acknowledges an accepted %s run before it completes', async (transport) => {
+        const events = new Subject<SseMessageEvent>()
+        commandBus.execute.mockImplementation(async () => {
+            await new Promise((resolve) => setTimeout(resolve, 20))
+            return {
+                execution: { id: 'run-1' },
+                stream: transport === 'direct' ? events : EMPTY,
+                streamTransport: transport
+            }
+        })
+        redis.createSseStream.mockResolvedValue({ connectionId: 'connection-1', stream: events })
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ assistant_id: 'assistant', input: { action: 'resume' } })
+        })
+        expect(response.status).toBe(201)
+        expect(response.headers.get('Content-Location')).toBe('/api/ai/threads/thread-1/runs/run-1')
+        expect(response.headers.get('content-type')).toBe('text/event-stream')
+        // HTTP headers arrive while the Agent is still waiting, not at stream completion.
+        events.next({ id: '2-0', type: 'message', data: { input: 'resumed output' } })
+        events.next({ id: '3-0', type: 'complete', data: { type: 'complete' } })
+        events.complete()
+        const body = await response.text()
+        expect(body).toContain('resumed output')
+        expect(body).toContain('event: complete')
+    })
+
+    it('returns an actual admission error without an acknowledgement header', async () => {
+        const logger = jest.spyOn(console, 'error').mockImplementation(() => undefined)
+        commandBus.execute.mockRejectedValue(new ConflictException('Resume already running'))
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ assistant_id: 'assistant', input: { action: 'resume' } })
+            })
+            expect(response.status).toBe(409)
+            expect(response.headers.get('Content-Location')).toBeNull()
+            expect(await response.json()).toMatchObject({ message: 'Resume already running' })
+        } finally {
+            logger.mockRestore()
+        }
     })
 })
