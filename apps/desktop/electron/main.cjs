@@ -1,5 +1,5 @@
 const { allowVoicePermission } = require('./voice-permission.cjs')
-const { app, BrowserWindow, ipcMain, safeStorage, shell, session, Menu, screen } = require('electron')
+const { app, BrowserWindow, ipcMain, safeStorage, shell, session, Menu, screen, dialog } = require('electron')
 const path = require('node:path')
 const { pathToFileURL } = require('node:url')
 const { DesktopService, webUrl } = require('./service.cjs')
@@ -16,6 +16,7 @@ const { installAvatarPointer } = require('./avatar-pointer.cjs')
 const { installWindowActivation } = require('./window-activation.cjs')
 const { DesktopUpdater, registerUpdateIpc } = require('./updates/controller.cjs')
 const { findRelease } = require('./updates/release.cjs')
+const { isWorkspaceFileDownload, downloadWorkspaceFile } = require('./workspace-file-download.cjs')
 
 const branding = require('./branding.json')
 
@@ -125,7 +126,21 @@ function createWindow(bounds = {}) {
   installAvatarPointer(window, { ipcMain, screen, isTrusted: trusted })
   installWindowActivation(window)
   window.webContents.setWindowOpenHandler(({ url }) => {
-    openExternal(url)
+    if (isWorkspaceFileDownload(url, service.config.apiUrl)) {
+      void downloadWorkspaceFile(url, service, async (fileName) => {
+        const result = await dialog.showSaveDialog(createdWindow, {
+          title: translate(service.config.locale, 'Download'),
+          defaultPath: fileName
+        })
+        return result.canceled ? null : result.filePath
+      }).catch(() => {
+        if (!createdWindow.isDestroyed())
+          void dialog.showMessageBox(createdWindow, {
+            type: 'error',
+            message: translate(service.config.locale, 'Could not load the delivered file.')
+          })
+      })
+    } else openExternal(url)
     return { action: 'deny' }
   })
   window.webContents.on('will-navigate', (event, url) => {

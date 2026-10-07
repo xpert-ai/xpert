@@ -482,7 +482,14 @@ class DesktopService {
     }
     let value
     try {
-      value = responseType === 'text' ? await response.text() : response.status === 204 ? null : await response.json()
+      value =
+        responseType === 'response'
+          ? response
+          : responseType === 'text'
+            ? await response.text()
+            : response.status === 204
+              ? null
+              : await response.json()
     } catch {
       throw new ClientError('Invalid service response. Check the API URL.', 502)
     }

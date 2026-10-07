@@ -223,6 +223,62 @@ describe('workspace file HTTP authentication', () => {
             expect(await response.text()).toContain(route === 'files' ? 'result.txt' : 'complete')
         }
     })
+    it('downloads a native file grant with owner JWT while retaining resource, organization and purpose checks', async () => {
+        const created = await createSession('cs-x-user')
+        const session: { sessionId: string } = await created.json()
+        const grantResponse = await fetch(
+            `${origin}/api/ai/workspace-files/view-sessions/${session.sessionId}/grants`,
+            {
+                method: 'POST',
+                headers: headers('cs-x-user'),
+                body: JSON.stringify({ fileKey: 'file-1', purpose: 'download' })
+            }
+        )
+        const grant: { url: string } = await grantResponse.json()
+        const [grantId, fileName] = new URL(grant.url).pathname.split('/').slice(-2)
+        const url = `${origin}/api/workspace-files/view-sessions/${session.sessionId}/grants/${grantId}/content/${fileName}`
+        const downloaded = await fetch(url, { headers: headers('fixture-jwt') })
+        expect(downloaded.status).toBe(200)
+        expect(await downloaded.text()).toBe('complete')
+        expect(downloaded.headers.get('content-disposition')).toContain('attachment;')
+        for (const token of [undefined, 'cs-x-user']) {
+            const denied = await fetch(url, { headers: headers(token) })
+            expect(denied.status).toBe(401)
+            await denied.text()
+        }
+        const wrongOrg = await fetch(url, { headers: { ...headers('fixture-jwt'), 'organization-id': 'other' } })
+        expect(wrongOrg.status).toBe(404)
+        await wrongOrg.text()
+        identities.set('fixture-jwt', { ...user, id: 'other-user' })
+        const wrongOwner = await fetch(url, { headers: headers('fixture-jwt') })
+        expect(wrongOwner.status).toBe(404)
+        await wrongOwner.text()
+        identities.set('fixture-jwt', user)
+        views.resolveViewFileResource.mockRejectedValueOnce(new ForbiddenException())
+        const revokedResource = await fetch(url, { headers: headers('fixture-jwt') })
+        expect(revokedResource.status).toBe(403)
+        await revokedResource.text()
+        const previewResponse = await fetch(
+            `${origin}/api/ai/workspace-files/view-sessions/${session.sessionId}/grants`,
+            {
+                method: 'POST',
+                headers: headers('cs-x-user'),
+                body: JSON.stringify({ fileKey: 'file-1', purpose: 'preview' })
+            }
+        )
+        const preview: { url: string } = await previewResponse.json()
+        const previewId = new URL(preview.url).pathname.split('/').at(-2)!
+        const wrongPurpose = await fetch(url.replace(grantId, previewId), { headers: headers('fixture-jwt') })
+        expect(wrongPurpose.status).toBe(404)
+        await wrongPurpose.text()
+        await fetch(`${origin}/api/ai/workspace-files/view-sessions/${session.sessionId}`, {
+            method: 'DELETE',
+            headers: headers('cs-x-user')
+        })
+        const revokedSession = await fetch(url, { headers: headers('fixture-jwt') })
+        expect(revokedSession.status).toBe(404)
+        await revokedSession.text()
+    })
     it.each(routes)('rejects anonymous, invalid, wrong-Assistant and published-app access to %s', async (route) => {
         for (const [token, id, status] of [
             [undefined, assistantId, 401],
