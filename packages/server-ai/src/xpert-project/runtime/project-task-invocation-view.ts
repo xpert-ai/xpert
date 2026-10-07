@@ -28,6 +28,8 @@ export function projectTaskInvocationView<T extends IXpertProjectTaskExecution>(
         ...attempt,
         status,
         invocationStatus: invocation.status,
+        runtimeProvider: invocation.request.target.provider,
+        runtimeToolId: invocation.handle?.runner?.tool.id,
         runtimeStartedAt: invocation.progress?.startedAt ?? null,
         runtimeCompletedAt: ['succeeded', 'failed', 'cancelled'].includes(invocation.status)
             ? invocation.updatedAt

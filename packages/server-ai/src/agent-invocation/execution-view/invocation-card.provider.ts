@@ -1,3 +1,4 @@
+import { codingToolBrand } from '../../shared/coding-tools/branding'
 import { Injectable } from '@nestjs/common'
 import { DataSource, In } from 'typeorm'
 import { t } from 'i18next'
@@ -17,11 +18,15 @@ import { AgentInvocationEntity } from '../invocation.entity'
 export class InvocationCardProvider implements IResourceCardProvider {
     constructor(private readonly database: DataSource) {}
     createCard(invocation: AgentInvocation): ConversationResourceCard {
+        const brand = codingToolBrand({
+            toolId: invocation.handle?.runner?.tool.id,
+            provider: invocation.request.target.provider
+        })
         return {
             resource: { namespace: 'platform.agent-invocation', type: 'execution', id: invocation.id },
-            title: invocation.handle?.runner?.tool.id ?? invocation.request.target.provider,
+            title: brand?.name ?? invocation.handle?.runner?.tool.id ?? invocation.request.target.provider,
             description: t(`server-ai:ProjectTaskCard.Status.${invocation.status}`),
-            icon: { type: 'emoji', value: '⌘' },
+            icon: brand ? { type: 'svg', value: brand.svg, alt: brand.name } : { type: 'emoji', value: '⌘' },
             open: {
                 target: 'workbench.view',
                 viewKey:

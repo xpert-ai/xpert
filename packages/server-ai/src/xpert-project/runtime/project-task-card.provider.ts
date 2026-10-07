@@ -1,3 +1,4 @@
+import { codingToolBrand } from '../../shared/coding-tools/branding'
 // Runtime success never implies task acceptance. Read only persisted facts;
 // invocation details require the original message, task, conversation and owner bindings.
 import { t } from 'i18next'
@@ -31,6 +32,7 @@ type ProjectTaskCardInput = {
           type: 'execution'
           attempt: number
           purpose?: 'implementation' | 'review'
+          toolId?: string
           provider?: string
           reviewVerdict?: ProjectTaskReviewReport['verdict']
           codingInvocationId?: string
@@ -49,12 +51,13 @@ export class ProjectTaskCardProvider implements IResourceCardProvider {
     ) {}
 
     createCard(input: ProjectTaskCardInput): ConversationResourceCard {
-        const providers: Record<string, string> = { 'codex-computer': 'Codex', codex: 'Codex', opencode: 'OpenCode' }
+        const brand =
+            input.type === 'execution' ? codingToolBrand({ toolId: input.toolId, provider: input.provider }) : undefined
         const parts =
             input.type === 'execution'
                 ? [
                       t(`server-ai:ProjectTaskCard.${input.purpose === 'review' ? 'Review' : 'Implementation'}`),
-                      input.provider ? (providers[input.provider] ?? input.provider) : undefined,
+                      brand?.name ?? input.provider,
                       input.attempt > 1 ? t('server-ai:ProjectTaskCard.Attempt', { count: input.attempt }) : undefined
                   ]
                 : []
@@ -68,7 +71,9 @@ export class ProjectTaskCardProvider implements IResourceCardProvider {
             resource: { namespace: 'platform.project-tasks', type: input.type, id: input.id },
             title: input.title,
             description: [...parts, status].filter(Boolean).join(' · '),
-            icon: { type: 'emoji', value: input.type === 'execution' && input.purpose === 'review' ? '🔎' : '📋' },
+            icon: brand
+                ? { type: 'svg', value: brand.svg, alt: brand.name }
+                : { type: 'emoji', value: input.type === 'execution' && input.purpose === 'review' ? '🔎' : '📋' },
             // Keep task-level cards on the timeline; execution cards open their own viewer.
             open:
                 input.type === 'execution' && input.codingInvocationId
@@ -173,6 +178,7 @@ export class ProjectTaskCardProvider implements IResourceCardProvider {
                     attempt: attempt.attempt,
                     purpose: attempt.purpose?.type,
                     provider: invocation.request.target.provider,
+                    toolId: invocation.handle?.runner?.tool.id,
                     codingInvocationId: invocation.activity?.presentation === 'coding' ? invocation.id : undefined,
                     status: invocation.status,
                     reviewVerdict:

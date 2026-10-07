@@ -105,6 +105,7 @@ export const nodeSchema = z.object({
         })
         .nullish()
         .catch(null),
+    executor: z.object({ provider: z.string(), toolId: z.string().optional() }).nullish(),
     parentTaskId: z.string().nullable(),
     predecessorIds: z.array(z.string()),
     providerKey: z.string().nullable(),
@@ -142,6 +143,8 @@ export const graphSchema = z.object({
             invocationStatus: z
                 .enum(['queued', 'running', 'waiting', 'cancelling', 'succeeded', 'failed', 'cancelled', 'unknown'])
                 .nullish(),
+            runtimeProvider: z.string().optional(),
+            runtimeToolId: z.string().optional(),
             runtimeStatus: z.string().optional(),
             runtimeStartedAt: z.string().nullish(),
             runtimeCompletedAt: z.string().nullish(),

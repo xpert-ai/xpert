@@ -51,6 +51,7 @@ function invocation(status: AgentInvocation['status']): AgentInvocation {
 }
 describe('Project task invocation read projection', () => {
     it('does not manufacture a process start from an admitted running invocation', () => {
+        expect(projectTaskInvocationView(attempt, invocation('running')).runtimeProvider).toBe('test')
         expect(projectTaskInvocationView(attempt, invocation('running'))).toMatchObject({
             status: 'queued',
             invocationStatus: 'running',
@@ -81,6 +82,7 @@ describe('Project task invocation read projection', () => {
         const unrelated = invocation('succeeded')
         unrelated.request.dispatch.projectTask.taskExecutionId = 'other'
         expect(projectTaskInvocationView(attempt, unrelated).invocationStatus).toBe('unknown')
+        expect(projectTaskInvocationView(attempt, unrelated).runtimeProvider).toBeUndefined()
         expect(projectTaskInvocationView(attempt).invocationStatus).toBe('unknown')
         expect(projectTaskInvocationView({ ...attempt, dispatchState: 'pending' }).invocationStatus).toBe('queued')
     })

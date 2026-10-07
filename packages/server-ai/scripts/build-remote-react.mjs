@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join, resolve } from 'node:path'
+import { dirname, join, resolve, sep } from 'node:path'
 import { build } from 'esbuild'
 import { createRequire } from 'node:module'
 
@@ -13,7 +13,7 @@ export async function buildRemoteReactComponent(root, outputDir = root) {
     const cssTargetPath = join(outputDir, 'app.css')
     const shadcnPackageRoot = join(workspaceRoot, 'packages', 'shadcn-ui')
 
-    await build({
+    const result = await build({
         entryPoints: [sourcePath],
         outfile: scriptTargetPath,
         bundle: true,
@@ -23,11 +23,22 @@ export async function buildRemoteReactComponent(root, outputDir = root) {
         jsx: 'automatic',
         minify: true,
         legalComments: 'none',
+        metafile: true,
+        banner: existsSync(join(root, 'THIRD_PARTY_LICENSES.txt'))
+            ? {
+                  js:
+                      '/*!\n' +
+                      readFileSync(join(root, 'THIRD_PARTY_LICENSES.txt'), 'utf8').replaceAll('*/', '* /') +
+                      '\n*/'
+              }
+            : undefined,
         define: {
             'process.env.NODE_ENV': '"production"'
         },
         plugins: [xpertRemoteComponentPlugin()]
     })
+
+    prependBrandIconLicense(result.metafile, scriptTargetPath, workspaceRoot)
 
     execFileSync(
         resolveLocalBin(workspaceRoot, 'tailwindcss'),
@@ -222,6 +233,19 @@ export const unstable_batchedUpdates = ReactDOM.unstable_batchedUpdates;
             throw new Error(`Remote component bundle must not access Window.${match}`)
         }
     }
+}
+
+/** Include the canonical asset license only when a view actually bundles brand icons. */
+export function prependBrandIconLicense(metafile, scriptPath, workspaceRoot) {
+    const assetRoot = join(workspaceRoot, 'packages', 'shadcn-ui', 'src', 'brand-icons')
+    const includesBrandIcons = Object.values(metafile.outputs).some((output) =>
+        Object.entries(output.inputs).some(
+            ([input, contribution]) => contribution.bytesInOutput > 0 && resolve(input).startsWith(assetRoot + sep)
+        )
+    )
+    if (!includesBrandIcons) return
+    const license = readFileSync(join(assetRoot, 'THIRD_PARTY_LICENSES.txt'), 'utf8').replaceAll('*/', '* /')
+    writeFileSync(scriptPath, '/*!\n' + license + '\n*/\n' + readFileSync(scriptPath, 'utf8'))
 }
 
 export async function verifyRemoteReactComponent(root) {

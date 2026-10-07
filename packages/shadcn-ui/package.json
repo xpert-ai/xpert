@@ -19,11 +19,17 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
+    "./brand-icons": {
+      "types": "./src/brand-icons/index.d.ts",
+      "import": "./src/brand-icons/index.js",
+      "default": "./src/brand-icons/index.js"
+    },
     "./styles.css": "./src/styles.css"
   },
   "files": [
     "dist",
     "src/styles.css",
+    "src/brand-icons",
     "components.json",
     "!**/*.tsbuildinfo"
   ],

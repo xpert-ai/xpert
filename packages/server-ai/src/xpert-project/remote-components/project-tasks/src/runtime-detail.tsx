@@ -1,3 +1,5 @@
+import { CodingToolIcon } from '../../../../shared/coding-tools/coding-tool-icon'
+import { codingToolBrand } from '../../../../shared/coding-tools/branding'
 import { useEffect, useState } from 'react'
 import { z } from 'zod/v3'
 import { Button, Textarea, Label } from '@xpert-ai/shadcn-ui'
@@ -28,6 +30,7 @@ const detailSchema = z.object({
             invocationStatus: agentInvocationStatusSchema.nullish(),
             invocationRevision: z.number().optional(),
             runtimeProvider: z.string().optional(),
+            runtimeToolId: z.string().optional(),
             purpose: projectTaskExecutionPurposeSchema.nullish(),
             progress: agentRuntimeProgressSchema.nullish(),
             observedAt: z.string().optional(),
@@ -270,9 +273,15 @@ export function RuntimeDetail({
                 .filter((item) => item.invocationId)
                 .map((attempt) => (
                     <section key={attempt.id} className="space-y-2 border-t pt-3">
-                        <h4 className="text-sm font-medium">
+                        <h4 className="flex flex-wrap items-center gap-1.5 text-sm font-medium">
+                            <CodingToolIcon
+                                toolId={attempt.runtimeToolId}
+                                provider={attempt.runtimeProvider}
+                                decorative
+                            />
                             #{attempt.attempt} · {attempt.purpose?.type === 'review' ? t.review : t.implementation} ·{' '}
-                            {attempt.runtimeProvider}
+                            {codingToolBrand({ toolId: attempt.runtimeToolId, provider: attempt.runtimeProvider })
+                                ?.name ?? attempt.runtimeProvider}
                         </h4>
                         <p className="text-xs">
                             {attempt.invocationStatus === 'unknown'

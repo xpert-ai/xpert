@@ -1,3 +1,5 @@
+import { CodingToolIcon } from '../../../../shared/coding-tools/coding-tool-icon'
+import { codingToolBrand } from '../../../../shared/coding-tools/branding'
 import { useState } from 'react'
 import { Bot } from 'lucide-react'
 import { Tooltip, TooltipTrigger, TooltipContent, cn } from '@xpert-ai/shadcn-ui'
@@ -117,6 +119,19 @@ export function Assignee({
                                         />
                                     </TooltipTrigger>
                                     <TooltipContent>
+                                        {attempt.runtimeProvider && (
+                                            <p className="flex items-center gap-1.5">
+                                                <CodingToolIcon
+                                                    toolId={attempt.runtimeToolId}
+                                                    provider={attempt.runtimeProvider}
+                                                    decorative
+                                                />
+                                                {codingToolBrand({
+                                                    toolId: attempt.runtimeToolId,
+                                                    provider: attempt.runtimeProvider
+                                                })?.name ?? attempt.runtimeProvider}
+                                            </p>
+                                        )}
                                         <p>{label}</p>
                                         <p>
                                             {dateTime(start, locale)} → {dateTime(end, locale)}

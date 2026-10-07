@@ -1,3 +1,5 @@
+import { CodingToolIcon } from '../../../../shared/coding-tools/coding-tool-icon'
+import { codingToolBrand } from '../../../../shared/coding-tools/branding'
 import {
     FileText,
     FileScan,
@@ -39,10 +41,18 @@ export function TaskTypeIcon({
     locale,
     fallbackLabel
 }: {
-    task: Pick<ProjectTaskNode, 'kind' | 'taskType' | 'presentation'>
+    task: Pick<ProjectTaskNode, 'kind' | 'taskType' | 'presentation' | 'executor'>
     locale: string
     fallbackLabel: string
 }) {
+    if (
+        task.kind === 'task' &&
+        !(task.taskType && task.presentation) &&
+        task.executor &&
+        codingToolBrand(task.executor)
+    ) {
+        return <CodingToolIcon {...task.executor} />
+    }
     const Icon = icons[taskIconName(task)]
     const label = taskTypeLabel(task, locale, fallbackLabel)
     return (

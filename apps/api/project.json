@@ -101,7 +101,10 @@
       "cache": true,
       "inputs": [
         "{workspaceRoot}/packages/server-ai/src/agent-invocation/remote-components/coding-execution/**/*",
-        "{workspaceRoot}/packages/contracts/src/ai/execution-activity.model.ts"
+        "{workspaceRoot}/packages/contracts/src/ai/execution-activity.model.ts",
+        "{workspaceRoot}/packages/server-ai/src/shared/coding-tools/**/*",
+        "{workspaceRoot}/packages/shadcn-ui/src/**/*",
+        "{workspaceRoot}/packages/server-ai/scripts/build-remote-react.mjs"
       ],
       "outputs": [
         "{workspaceRoot}/packages/server-ai/src/agent-invocation/remote-components/coding-execution/app.js",

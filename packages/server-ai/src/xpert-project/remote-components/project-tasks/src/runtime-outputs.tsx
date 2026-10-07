@@ -1,3 +1,5 @@
+import { CodingToolIcon } from '../../../../shared/coding-tools/coding-tool-icon'
+import { codingToolBrand } from '../../../../shared/coding-tools/branding'
 import { z } from 'zod/v3'
 import { FileText } from 'lucide-react'
 import { Button } from '@xpert-ai/shadcn-ui'
@@ -21,6 +23,7 @@ type OutputAttempt = {
     id: string
     attempt: number
     invocationId?: string | null
+    runtimeToolId?: string
     runtimeProvider?: string
     observation?: string
     result?: z.output<typeof outputResultSchema> | null
@@ -59,8 +62,15 @@ export function RuntimeOutputs({
                     const failed = delivery?.status === 'failed' || delivery?.status === 'unavailable'
                     return (
                         <section key={attempt.id} className="space-y-2 border-b pb-4 last:border-b-0">
-                            <h3 className="text-sm font-medium">
-                                #{attempt.attempt} · {attempt.runtimeProvider}
+                            <h3 className="flex items-center gap-1.5 text-sm font-medium">
+                                <CodingToolIcon
+                                    toolId={attempt.runtimeToolId}
+                                    provider={attempt.runtimeProvider}
+                                    decorative
+                                />
+                                #{attempt.attempt} ·{' '}
+                                {codingToolBrand({ toolId: attempt.runtimeToolId, provider: attempt.runtimeProvider })
+                                    ?.name ?? attempt.runtimeProvider}
                             </h3>
                             {attempt.observation === 'restricted' ? (
                                 <p className="text-sm text-muted-foreground">

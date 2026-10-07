@@ -1,3 +1,4 @@
+import { codingToolBrand } from '../../../../shared/coding-tools/branding'
 import { ActivityRow } from './activity-row'
 import { ExecutionHeader, type Palette } from './header'
 import { button, copyText, el, hasSelection, icon, text } from './dom'
@@ -314,8 +315,10 @@ export class ExecutionView {
         const execution = this.current?.execution
         this.header.update({
             title: execution
-                ? `${execution.tool?.id ?? execution.provider} · ${this.label('Execution', '执行过程')}`
+                ? `${codingToolBrand({ toolId: execution.tool?.id, provider: execution.provider })?.name ?? execution.tool?.id ?? execution.provider} · ${this.label('Execution', '执行过程')}`
                 : this.label('Coding execution', 'Coding 执行过程'),
+            toolId: execution?.tool?.id,
+            provider: execution?.provider,
             status: execution?.status,
             following: this.follow,
             palette: this.palette,

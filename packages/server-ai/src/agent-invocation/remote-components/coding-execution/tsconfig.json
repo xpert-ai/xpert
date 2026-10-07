@@ -8,6 +8,7 @@
         "rootDir": "../../../../../..",
         "baseUrl": "../../../../../..",
         "paths": {
+            "@xpert-ai/shadcn-ui/brand-icons": ["packages/shadcn-ui/src/brand-icons/index.ts"],
             "@xpert-ai/shadcn-ui": ["packages/shadcn-ui/src/index.ts"],
             "@/*": ["packages/shadcn-ui/src/*"],
             "lucide-react": ["packages/shadcn-ui/node_modules/lucide-react"]

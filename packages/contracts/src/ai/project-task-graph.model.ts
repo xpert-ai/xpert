@@ -12,6 +12,8 @@ export interface ProjectTaskNode {
   taskType?: string | null
   /** Resolved by the owning provider's registration; unknown types have no presentation. */
   presentation?: ProjectTaskTypePresentation | null
+  /** Latest implementation executor; reviews do not replace it. */
+  executor?: { provider: string; toolId?: string } | null
   parentTaskId: string | null
   predecessorIds: string[]
   providerKey: string | null

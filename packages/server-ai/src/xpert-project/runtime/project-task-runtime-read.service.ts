@@ -93,6 +93,7 @@ export class ProjectTaskRuntimeReadService {
                 invocationStatus: invocation.status,
                 invocationRevision: invocation.revision,
                 runtimeProvider: invocation.request.target.provider,
+                runtimeToolId: invocation.handle?.runner?.tool.id,
                 reviewReport: reviewReport(execution.purpose, invocation.result?.text),
                 delivery,
                 consumption,

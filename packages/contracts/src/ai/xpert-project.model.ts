@@ -298,6 +298,9 @@ export interface IXpertProjectTaskExecution extends IBasePerXpertProjectEntityMo
   /** Observed runtime status, independent from the business task acceptance status. */
   runtimeStartedAt?: string | null
   runtimeCompletedAt?: string | null
+  /** Authorized Invocation presentation, not persisted task state. */
+  runtimeProvider?: string
+  runtimeToolId?: string
   runtimeStatus?: 'running' | 'success' | 'error' | 'pending' | 'timeout' | 'interrupted' | 'unknown'
   sourceKey?: string | null
   taskId: string

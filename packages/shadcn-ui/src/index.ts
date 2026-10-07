@@ -1,6 +1,7 @@
 export * from './theme'
 export * from './lib/utils'
 export * from './icons/tabler-icons'
+export * from './brand-icons/brand-icon'
 export * from './components/ui/badge'
 export * from './components/ui/button'
 export * from './components/ui/card'

@@ -73,8 +73,8 @@ export default defineRemoteViewPreview({
                     item: {
                         execution: {
                             id: 'preview-execution',
-                            provider: 'Codex',
-                            tool: { id: 'Codex', version: 'preview' },
+                            provider: 'codex-computer',
+                            tool: { id: 'codex', version: 'preview' },
                             status: 'succeeded',
                             createdAt: at,
                             updatedAt: at,

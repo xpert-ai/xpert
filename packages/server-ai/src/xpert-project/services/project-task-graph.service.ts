@@ -1,3 +1,4 @@
+import { latestImplementationExecutor } from '../runtime/project-task-executor'
 import { observeProjectTaskInvocations } from '../runtime/project-task-invocation-view'
 // Provider snapshots are replayable read models. Projection never starts Agents,
 // and runtime success does not override a provider's business acceptance status.
@@ -289,6 +290,7 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
             return {
                 ...node,
                 presentation: typeRegistrations.get(node.providerKey)?.get(node.taskType) ?? null,
+                executor: latestImplementationExecutor(observed.filter((attempt) => attempt.taskId === node.id)),
                 assigneeName: assistant ? assistant.title || assistant.name : null,
                 assigneeAvatar: avatarForChat(assistant?.avatar) ?? null
             }

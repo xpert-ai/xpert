@@ -16,6 +16,7 @@
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
     "paths": {
+      "@xpert-ai/shadcn-ui/brand-icons": ["packages/shadcn-ui/src/brand-icons/index.ts"],
       "@xpert-ai/cli-model-profiles": ["packages/plugins/cli-model-profiles/src/index.ts"],
       "@cloud/*": ["apps/cloud/src/*"],
       "@/shared/*": ["packages/ui/src/lib/*"],

@@ -12,7 +12,13 @@
         "tsConfig": "packages/shadcn-ui/tsconfig.lib.json",
         "packageJson": "packages/shadcn-ui/package.json",
         "main": "packages/shadcn-ui/src/index.ts",
-        "assets": ["packages/shadcn-ui/*.md", "packages/shadcn-ui/components.json", "packages/shadcn-ui/src/styles.css"]
+        "assets": [
+          "packages/shadcn-ui/*.md",
+          "packages/shadcn-ui/components.json",
+          "packages/shadcn-ui/src/styles.css",
+          "packages/shadcn-ui/src/brand-icons/*.md",
+          "packages/shadcn-ui/src/brand-icons/*.txt"
+        ]
       }
     },
     "test": {

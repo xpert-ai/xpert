@@ -1,3 +1,4 @@
+import { CodingToolIcon } from '../../../../shared/coding-tools/coding-tool-icon'
 import { createRoot, type Root } from 'react-dom/client'
 import { flushSync } from 'react-dom'
 import { Badge, Button, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@xpert-ai/shadcn-ui'
@@ -5,10 +6,27 @@ import { CheckCircle2, CircleAlert, Copy, LoaderCircle, Pause, Play, Search } fr
 import { stateLabel, type Label } from './model'
 
 export type Palette = 'host' | 'paper' | 'coal' | 'navy'
-type HeaderState = { title: string; status?: string; following: boolean; palette: Palette; label: Label }
+type HeaderState = {
+    title: string
+    toolId?: string
+    provider?: string
+    status?: string
+    following: boolean
+    palette: Palette
+    label: Label
+}
 type HeaderActions = { search(): void; follow(): void; copy(): void; theme(value: Palette): void }
 
-function Header({ title, status, following, palette, label, actions }: HeaderState & { actions: HeaderActions }) {
+function Header({
+    title,
+    toolId,
+    provider,
+    status,
+    following,
+    palette,
+    label,
+    actions
+}: HeaderState & { actions: HeaderActions }) {
     const running = status === 'running'
     const StatusIcon =
         status === 'succeeded' ? CheckCircle2 : status === 'failed' ? CircleAlert : running ? LoaderCircle : Pause
@@ -21,7 +39,10 @@ function Header({ title, status, following, palette, label, actions }: HeaderSta
     ]
     return (
         <header className="viewer-header flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b bg-background px-5 py-3 font-sans text-foreground">
-            <h1 className="min-w-0 text-base font-semibold break-words max-[720px]:w-full">{title}</h1>
+            <h1 className="flex min-w-0 items-center gap-2 text-base font-semibold break-words max-[720px]:w-full">
+                <CodingToolIcon toolId={toolId} provider={provider} className="size-5" decorative />
+                {title}
+            </h1>
             <div className="header-actions flex flex-wrap items-center gap-1.5 max-[720px]:w-full">
                 <Badge
                     variant="outline"

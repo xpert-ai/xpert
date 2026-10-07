@@ -260,6 +260,7 @@ describe('project task ResourceCardProvider presentation', () => {
             status: 'running'
         })
         expect(card.description).toContain('Codex')
+        expect(card.icon).toMatchObject({ type: 'svg', alt: 'Codex' })
         expect(card.description).not.toContain('Attempt')
         expect(card.resource).toEqual({ namespace: 'platform.project-tasks', type: 'execution', id: 'implementation' })
         expect(card.open.viewKey).toBe('platform.project-tasks__timeline')
