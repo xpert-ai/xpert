@@ -14,6 +14,7 @@ export type ClawXpertFixedViewMenuItem = {
   icon: IconDefinition | null
   order: number
   openMode?: 'auto' | 'on-demand'
+  contextScope?: 'project' | 'conversation'
   menuEnabled?: boolean
 }
 

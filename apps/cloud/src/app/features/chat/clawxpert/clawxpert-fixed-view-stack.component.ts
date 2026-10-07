@@ -9,6 +9,7 @@ export type ClawXpertFixedViewTab = {
   title: string
   icon: IconDefinition | null
   query: XpertViewQuery | null
+  contextScope?: 'project' | 'conversation'
   /** A resource View owns its Project independently of the active chat. */
   projectScope?: { projectId: string }
 }
@@ -31,7 +32,9 @@ export type ClawXpertFixedViewTab = {
         [viewKey]="tab.viewKey"
         [query]="tab.query"
         [fillAvailableHeight]="true"
-        [runtimeScope]="tab.projectScope ?? runtimeScope()"
+        [runtimeScope]="
+          tab.projectScope ?? (tab.contextScope === 'conversation' ? conversationScope() : runtimeScope())
+        "
         [runtimeUserId]="runtimeUserId()"
       />
     }
@@ -44,6 +47,8 @@ export class ClawXpertFixedViewStackComponent {
   readonly hostId = input.required<string>()
   readonly slot = input.required<string>()
   readonly runtimeScope = input<XpertViewRuntimeScopeInput | null>(null)
+  readonly conversationId = input<string | null>(null)
+  readonly conversationScope = computed(() => ({ ...this.runtimeScope(), conversationId: this.conversationId() }))
   readonly runtimeUserId = input<string | null>(null)
 
   readonly #mountedTabIds = signal<ReadonlySet<string>>(new Set())

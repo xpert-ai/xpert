@@ -51,7 +51,8 @@ jest.mock('../../../@core', () => ({
   },
   AiThreadService: class AiThreadService {},
   ArtifactService: class ArtifactService {},
-  ChatConversationService: class ChatConversationService {},
+  ChatConversationService: jest.requireActual('../../../@core/services/chat-conversation.service')
+    .ChatConversationService,
   ViewExtensionApiService: class ViewExtensionApiService {},
   getErrorMessage: (error: any) => error?.message ?? '',
   injectToastr: () => ({
@@ -2386,7 +2387,12 @@ describe('ClawXpertConversationDetailComponent', () => {
       projectId: 'case-project-1',
       isExternalAssistant: true
     })
-    expect(conversationService.resolveWorkbenchNavigation).toHaveBeenCalledWith('job-conversation-1', 'assistant-1')
+    expect(conversationService.resolveWorkbenchNavigation).toHaveBeenCalledWith(
+      'job-conversation-1',
+      'assistant-1',
+      undefined,
+      { threadId: 'job-thread-1', messageId: undefined }
+    )
     expect(conversationService.getById).not.toHaveBeenCalledWith('job-conversation-1', { relations: ['messages'] })
     expect(getRuntimeInput().assistantId?.()).toBe('role-assistant-current')
     expect(getRuntimeInput().projectId?.()).toBe('case-project-1')
@@ -2410,7 +2416,7 @@ describe('ClawXpertConversationDetailComponent', () => {
         })
       })
     )
-    expect(setThreadId).not.toHaveBeenCalledWith('job-thread-1')
+    expect(setThreadId).toHaveBeenCalledWith('job-thread-1')
     expect(facade.onChatThreadChange).not.toHaveBeenCalled()
     expect(facade.setActiveConversation).not.toHaveBeenCalled()
     expect(conversationService.markRead).toHaveBeenCalledWith('job-conversation-1')

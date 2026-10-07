@@ -188,6 +188,8 @@ export interface XpertWorkbenchViewOptions {
    * menu, navigation or live Agent request. This does not grant view access.
    */
   openMode?: 'auto' | 'on-demand'
+  /** Opt into conversation changes while retaining the mounted Remote View. */
+  contextScope?: 'project' | 'conversation'
   menu?: {
     /** Controls the manual entry only; does not disable the view or navigation. */
     enabled?: boolean

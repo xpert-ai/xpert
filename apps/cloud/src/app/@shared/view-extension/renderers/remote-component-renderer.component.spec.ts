@@ -467,6 +467,30 @@ describe('RemoteComponentRendererComponent', () => {
     )
   })
 
+  it('updates locale in the retained iframe without loading its resources again', async () => {
+    const fixture = TestBed.createComponent(RemoteComponentRendererComponent)
+    fixture.componentRef.setInput('hostType', 'agent')
+    fixture.componentRef.setInput('hostId', 'assistant-1')
+    fixture.componentRef.setInput('manifest', manifest)
+    await flushRemoteEntry(fixture)
+    const frame = fixture.nativeElement.querySelector('iframe') as HTMLIFrameElement
+    const frameWindow = frame.contentWindow as Window
+    const postMessage = jest.spyOn(frameWindow, 'postMessage').mockImplementation(() => undefined)
+    const component = fixture.componentInstance as unknown as {
+      handleMessage(event: Pick<MessageEvent, 'data' | 'source'>): void
+    }
+    component.handleMessage({
+      source: frameWindow,
+      data: { channel: 'xpertai.remote_component', protocolVersion: 1, type: 'ready' }
+    })
+    postMessage.mockClear()
+    const loads = api.getRemoteComponentEntry.mock.calls.length
+    TestBed.inject(TranslateService).use('zh-Hans')
+    await flushRemoteEntry(fixture)
+    expect(postMessage).toHaveBeenCalledWith(expect.objectContaining({ type: 'init', locale: 'zh-Hans' }), '*')
+    expect(api.getRemoteComponentEntry).toHaveBeenCalledTimes(loads)
+  })
+
   it('executes declared client commands through the host registry', async () => {
     const handler = jest.fn(async () => ({ success: true, status: 'sent' }))
     registry.register('assistant.chat.send_message', handler)

@@ -156,12 +156,16 @@ export function registerWorkbenchNavigationOpenCommand(
         }
       }
 
+      const messageId = getString(payload, 'messageId')
+      const preserveView = getBoolean(payload, 'preserveView') === true
       const threadId = getString(payload, 'threadId')
       const executionId = getString(payload, 'executionId')
       const xpertId = getString(payload, 'xpertId')
       const projectId = getString(payload, 'projectId')
       const opened = await options.openAssistantConversation({
         conversationId: resourceId,
+        ...(messageId ? { messageId } : {}),
+        ...(preserveView ? { preserveView } : {}),
         ...(threadId ? { threadId } : {}),
         ...(executionId ? { executionId } : {}),
         ...(xpertId ? { xpertId } : {}),

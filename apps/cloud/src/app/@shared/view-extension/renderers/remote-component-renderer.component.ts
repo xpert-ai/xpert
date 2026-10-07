@@ -13,9 +13,9 @@ import {
   untracked,
   viewChild
 } from '@angular/core'
-import { firstValueFrom, Subject, takeUntil, type Observable } from 'rxjs'
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { TranslateModule } from '@ngx-translate/core'
+import { firstValueFrom, map, Subject, takeUntil, type Observable } from 'rxjs'
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   XPERT_REMOTE_COMPONENT_INVOKE_CLIENT_COMMAND_MESSAGE_TYPE,
   XpertExtensionViewManifest,
@@ -141,6 +141,10 @@ export class RemoteComponentRendererComponent {
   readonly #destroyRef = inject(DestroyRef)
   readonly #document = inject(DOCUMENT)
   readonly #themeService = inject(XpThemeService)
+  readonly #translate = inject(TranslateService)
+  readonly remoteLocale = toSignal(this.#translate.onLangChange.pipe(map((event) => event.lang)), {
+    initialValue: this.#translate.currentLang || this.#document.documentElement.lang
+  })
   readonly #hostEvents = inject(ViewHostEventBus)
   readonly frame = viewChild('frame', { read: ElementRef<HTMLIFrameElement> })
 
@@ -234,6 +238,7 @@ export class RemoteComponentRendererComponent {
     effect(() => {
       const entryUrl = this.entryUrl()
       this.remoteThemeMode()
+      this.remoteLocale()
       this.query()
       if (!entryUrl || !this.frame()?.nativeElement.contentWindow) {
         return
@@ -822,7 +827,7 @@ export class RemoteComponentRendererComponent {
         conversationId: this.runtimeScope()?.conversationId ?? null
       },
       scopeRevision: this.#entryRequestId,
-      locale: this.#document.documentElement.lang,
+      locale: this.remoteLocale(),
       theme: this.getRemoteTheme(),
       debug: this.getRemoteDebugState(),
       active: this.active()

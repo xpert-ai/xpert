@@ -1,3 +1,7 @@
+import {
+  installConversationMapLinks,
+  focusConversationMapMessage
+} from './conversation-detail/conversation-map-navigation'
 import { AGENT_WORKBENCH_SLOT, parseWorkbenchViewOpenEvent, type WorkbenchViewOpenEvent } from '@xpert-ai/contracts'
 import { FileChangeReviewComponent } from './file-change-review.component'
 import { createFileChangeReviewTab, upsertFileChangeReviewTab } from './file-change-review.types'
@@ -251,6 +255,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   #unregisterAssistantContextCommand: (() => void) | null = null
   #unregisterBrowserOpenCommand: (() => void) | null = null
   #unregisterFileOpenCommand: (() => void) | null = null
+  #unregisterConversationMapLinks: (() => void) | null = null
   #unregisterNavigationOpenCommand: (() => void) | null = null
   #workspaceFileRefreshTimer: ReturnType<typeof setTimeout> | null = null
   #fixedViewsLoadVersion = 0
@@ -546,6 +551,9 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   )
   readonly fileListReloadKey = signal(0)
   readonly resolvedConversationId = signal<string | null>(null)
+  readonly workbenchNavigationConversationId = computed(
+    () => this.#workbenchConversationScope()?.conversationId ?? this.resolvedConversationId()
+  )
   readonly resolvedConversation = signal<IChatConversation | null>(null)
   readonly viewRuntimeScope = computed<XpertViewRuntimeScopeInput>(() => {
     const projectId = this.runtimeProjectId()
@@ -685,6 +693,12 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         if (file.evidence) openWorkbenchFilePreviewDialog(this.#dialog, file)
         else this.openFileArtifact(file)
       }
+    })
+    this.#unregisterConversationMapLinks = installConversationMapLinks({
+      ready: () => this.facade.viewState() === 'ready' && Boolean(this.control()),
+      assistantId: () => this.facade.assistantId() ?? null,
+      open: (request) => this.openWorkbenchAssistantConversation(request),
+      onError: (error) => this.#toastr.error(getErrorMessage(error))
     })
     this.#unregisterNavigationOpenCommand = registerWorkbenchNavigationOpenCommand(this.#clientCommands, {
       navigate: (commands, options) => this.#router.navigate(commands, options),
@@ -1107,6 +1121,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     this.#unregisterBrowserOpenCommand = null
     this.#unregisterFileOpenCommand?.()
     this.#unregisterFileOpenCommand = null
+    this.#unregisterConversationMapLinks?.()
     this.#unregisterNavigationOpenCommand?.()
     this.#unregisterNavigationOpenCommand = null
     this.clearScheduledWorkspaceFileListRefresh()
@@ -1455,7 +1470,10 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     }
 
     const resolution = await firstValueFrom(
-      this.#conversationService.resolveWorkbenchNavigation(request.conversationId, requesterXpertId)
+      this.#conversationService.resolveWorkbenchNavigation(request.conversationId, requesterXpertId, undefined, {
+        threadId: request.threadId,
+        messageId: request.messageId
+      })
     )
     assertWorkbenchConversationHint('conversation', request.conversationId, resolution.conversationId)
     assertWorkbenchConversationHint('thread', request.threadId, resolution.threadId)
@@ -1496,10 +1514,8 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         })
       }
     }
-    if (!requiresScopedRuntime) {
-      await control.setThreadId(resolution.threadId)
-      this.facade.onChatThreadChange(resolution.threadId)
-    }
+    await control.setThreadId(resolution.threadId)
+    if (!requiresScopedRuntime) this.facade.onChatThreadChange(resolution.threadId)
     // Reuse ChatKit's exact execution focus after the authorized thread is active.
     this.#executionFocus.set(
       request.executionId
@@ -1510,6 +1526,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
           }
         : null
     )
+    await focusConversationMapMessage(this.control(), { ...resolution, messageId: request.messageId })
     this.markConversationRead(resolution.conversationId)
     return resolution
   }
@@ -2123,7 +2140,8 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       viewKey: fixedView.viewKey,
       title: fixedView.title,
       icon: fixedView.icon,
-      query: requestedQuery
+      query: requestedQuery,
+      ...(fixedView.contextScope ? { contextScope: fixedView.contextScope } : {})
     }
   }
 
@@ -2132,6 +2150,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     return {
       viewKey: manifest.key,
       menuEnabled: menu?.enabled,
+      ...(manifest.workbench?.contextScope ? { contextScope: manifest.workbench.contextScope } : {}),
       ...(manifest.workbench?.openMode ? { openMode: manifest.workbench.openMode } : {}),
       title: resolveI18nText(menu?.label ?? manifest.title, manifest.key, this.#translate.currentLang),
       description: resolveI18nText(manifest.description, '', this.#translate.currentLang) || null,
