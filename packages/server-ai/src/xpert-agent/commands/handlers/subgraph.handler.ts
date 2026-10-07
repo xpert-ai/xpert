@@ -145,7 +145,11 @@ import { createThreadContextUsageEventHook } from '../../hooks/context-usage.hoo
 import { parseXmlString } from './types'
 import { collectStartDrivenAgentEntrySources, rerouteAgentEntryTarget } from './subgraph-entry-routing'
 import { XpertTitleMiddlewareService } from '../../title/xpert-title.middleware'
-import { buildAgentDecisionPathMap, getPendingToolCallsAfterTrailingToolMessages } from './agent-navigation'
+import {
+    buildAgentDecisionPathMap,
+    getPendingToolCallsAfterTrailingToolMessages,
+    routeAgentToolCall
+} from './agent-navigation'
 import { FILE_UNDERSTANDING_MIDDLEWARE_NAME } from '../../../file-understanding/middlewares'
 import { createThreadReferenceMiddleware } from '../../../xpert-middleware/thread-reference.runtime'
 import { createToolsetRuntimeCleanup } from './toolset-runtime-cleanup'
@@ -1734,17 +1738,24 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         // Conditional navigator for entry Agent
         if (!hiddenAgent) {
             const toolNames = withTools.map((tool) => tool.name)
+            const unknownToolNode = `${agentKey}__unknown_tool`
+            subgraphBuilder.addNode(unknownToolNode, new ToolNode([], { caller: agent.key, toolName: 'Tool' }))
+            subgraphBuilder.addEdge(unknownToolNode, agentLoopEntryNode)
             const baseDecisionPathMap = afterAgentEntryNode
                 ? [...pathMap, afterAgentEntryNode]
                 : nextNodeKey.length
                   ? pathMap
                   : [...pathMap, END]
-            const decisionPathMap = buildAgentDecisionPathMap(baseDecisionPathMap, modelLoopEntryNode, toolNames)
+            const decisionPathMap = buildAgentDecisionPathMap(baseDecisionPathMap, modelLoopEntryNode, [
+                ...toolNames,
+                unknownToolNode
+            ])
 
             subgraphBuilder.addConditionalEdges(
                 agentDecisionNode,
                 createAgentNavigator(
                     agentChannel,
+                    { toolNames: new Set(toolNames), unknownToolNode },
                     summarize,
                     afterAgentEntryNode ? undefined : nextNodeKey,
                     isStart ? fail?.[0]?.key : undefined,
@@ -1952,6 +1963,7 @@ function ensureSummarize(summarize?: TSummarize) {
  */
 function createAgentNavigator(
     agentChannel: string,
+    toolRouting: { toolNames: ReadonlySet<string>; unknownToolNode: string },
     summarize: TSummarize,
     nextNodes?: string[] | ((state, config) => string),
     fail?: string,
@@ -1976,7 +1988,7 @@ function createAgentNavigator(
                 if (!toolCall.name) {
                     throw new InternalServerErrorException(`tool_call's name is empty in '${agentChannel}'.`)
                 }
-                return new Send(toolCall.name, { ...state, toolCall })
+                return routeAgentToolCall(toolCall, state, toolRouting.toolNames, toolRouting.unknownToolNode)
             })
         }
 
