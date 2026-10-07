@@ -53,6 +53,7 @@ const XPERT_REMOTE_UI_CSS = `
   --xui-radius-sm: 6px;
   --xui-radius-md: 8px;
   --xui-radius-lg: 10px;
+  --xui-font-size: 14px;
   --xui-font-size-xs: 0.75rem;
   --xui-font-size-sm: 0.8125rem;
   --xui-font-size-md: 0.875rem;
@@ -374,6 +375,7 @@ const XPERT_REMOTE_UI_BOOTSTRAP = `
     radiusSm: '--xui-radius-sm',
     radiusMd: '--xui-radius-md',
     radiusLg: '--xui-radius-lg',
+    fontSize: '--xui-font-size',
     fontSizeXs: '--xui-font-size-xs',
     fontSizeSm: '--xui-font-size-sm',
     fontSizeMd: '--xui-font-size-md',

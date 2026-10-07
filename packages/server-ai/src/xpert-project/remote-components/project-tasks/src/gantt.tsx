@@ -291,7 +291,7 @@ export function Gantt(
                                         </div>
                                         {fields.status && (
                                             <div className="overflow-hidden px-3">
-                                                <Status value={task.status} t={t} />
+                                                <Status value={task.status} progress={task.progress} t={t} />
                                             </div>
                                         )}
                                         {fields.assignee && (

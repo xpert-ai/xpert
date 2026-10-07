@@ -124,7 +124,7 @@ describe('XpertWorkAreaResolver', () => {
         expect(await fsPromises.readFile(file, 'utf8')).toBe('branch writes')
     })
 
-    it('uses the project root as cwd and retains assistant memory and session namespaces', async () => {
+    it('uses the project root as cwd and keeps Assistant memory in internal metadata', async () => {
         const workArea = await resolver.resolve({
             tenantId: 'tenant-1',
             userId: 'user-1',
@@ -144,15 +144,14 @@ describe('XpertWorkAreaResolver', () => {
         expect(workArea.workingDirectory).toBe(tempRoot)
         expect(workArea.defaultPath.relativePath).toBe('')
         expect(workArea.sharedPath?.workspacePath).toBe(path.join(tempRoot, 'shared'))
-        expect(workArea.agentPath?.workspacePath).toBe(path.join(tempRoot, 'agents/xpert-1'))
         expect(workArea.sessionPath?.workspacePath).toBe(path.join(tempRoot, 'sessions/conversation-1'))
-        expect(workArea.memoryPath?.workspacePath).toBe(path.join(tempRoot, 'agents/xpert-1/.xpert/memory'))
+        expect(workArea.memoryPath?.workspacePath).toBe(path.join(tempRoot, '.xpert/memory/xperts/xpert-1'))
         expect(workArea.workspaceUrl).toBeUndefined()
         expect(workArea.defaultPath.publicUrl).toBeUndefined()
         await expect(fsPromises.stat(tempRoot)).resolves.toBeTruthy()
         await expect(fsPromises.stat(path.join(tempRoot, 'shared'))).resolves.toBeTruthy()
-        await expect(fsPromises.stat(path.join(tempRoot, 'agents/xpert-1'))).resolves.toBeTruthy()
-        await expect(fsPromises.stat(path.join(tempRoot, 'agents/xpert-1/.xpert/memory'))).resolves.toBeTruthy()
+        await expect(fsPromises.stat(path.join(tempRoot, 'agents'))).rejects.toMatchObject({ code: 'ENOENT' })
+        await expect(fsPromises.stat(path.join(tempRoot, '.xpert/memory/xperts/xpert-1'))).resolves.toBeTruthy()
         await expect(fsPromises.stat(path.join(tempRoot, 'sessions/conversation-1'))).resolves.toBeTruthy()
     })
 
@@ -250,7 +249,6 @@ describe('XpertWorkAreaResolver', () => {
         expect(workArea.workspaceRoot).toBe('/workspace')
         expect(workArea.workingDirectory).toBe('/workspace')
         expect(workArea.sharedPath?.workspacePath).toBe('/workspace/shared')
-        expect(workArea.agentPath?.workspacePath).toBe('/workspace/agents/xpert-1')
         expect(workArea.sessionPath?.workspacePath).toBe('/workspace/sessions/conversation-1')
     })
 

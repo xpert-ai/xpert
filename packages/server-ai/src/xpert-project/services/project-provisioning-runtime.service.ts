@@ -6,17 +6,23 @@ import { ProjectProvisioningRuntimeCapability, type ProjectProvisioningApi } fro
 import { RuntimeCapabilityProvider } from '../../shared/runtime/runtime-capability-provider.decorator'
 import { EnsureXpertProjectCommand } from '../commands/ensure-project.command'
 import { XpertProjectPurgeService } from './project-purge.service'
+import { ConversationProjectService } from './conversation-project.service'
 
 @Injectable()
 @RuntimeCapabilityProvider(ProjectProvisioningRuntimeCapability)
 export class ProjectProvisioningRuntimeService implements ProjectProvisioningApi {
     constructor(
         private readonly commandBus: CommandBus,
-        private readonly projects: XpertProjectPurgeService
+        private readonly projects: XpertProjectPurgeService,
+        private readonly conversations: ConversationProjectService
     ) {}
 
     ensure(input: Parameters<ProjectProvisioningApi['ensure']>[0]) {
         return this.commandBus.execute(new EnsureXpertProjectCommand(input))
+    }
+
+    confirmConversation(input: Parameters<NonNullable<ProjectProvisioningApi['confirmConversation']>>[0]) {
+        return this.conversations.confirm(input)
     }
 
     purge(input: Parameters<NonNullable<ProjectProvisioningApi['purge']>>[0]) {

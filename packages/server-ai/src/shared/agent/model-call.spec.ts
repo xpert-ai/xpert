@@ -388,14 +388,17 @@ describe('prepareModelCall', () => {
         expect(observedSelections).toEqual([[first.name], [second.name]])
     })
 
-    it('retains the configured OpenAI parallel tool call option', async () => {
+    it.each([true, false, undefined])('retains the OpenAI parallel tool call option %s', async (parallelToolCalls) => {
         const model = new ChatOpenAI({ apiKey: 'test', model: 'gpt-4o' })
         const bind = jest.spyOn(model, 'bindTools')
         await prepareModelCall(
             { model, tools: [first], messages, toolChoice: 'required' },
-            { registeredTools, agent: { options: { parallelToolCalls: false } } }
+            { registeredTools, agent: { options: { parallelToolCalls } } }
         )
-        expect(bind).toHaveBeenCalledWith([first], { tool_choice: 'any', parallel_tool_calls: false })
+        expect(bind).toHaveBeenCalledWith([first], {
+            tool_choice: 'any',
+            ...(parallelToolCalls === undefined ? {} : { parallel_tool_calls: parallelToolCalls })
+        })
     })
 
     it('preserves named OpenAI tool choices that collide with mode names', async () => {

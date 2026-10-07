@@ -1,4 +1,5 @@
 import { AgentInvocationAuthorizationError, AgentInvocationError } from '../../../agent-invocation/invocation-errors'
+import { ExecutionCancelledError } from '../../../shared/execution/execution-cancelled.error'
 import { CallbackManagerForChainRun } from '@langchain/core/callbacks/manager'
 import { ToolMessage, AIMessage, isBaseMessage, isToolMessage } from '@langchain/core/messages'
 import { mergeConfigs, patchConfig, Runnable, RunnableConfig, RunnableToolLike } from '@langchain/core/runnables'
@@ -193,7 +194,10 @@ export class ToolNode<T = any> extends Runnable<T, T> {
 
                     const toolMessage = new ToolMessage({
                         status: 'error',
-                        content: `Error: ${e.message}\n Please fix your mistakes.`,
+                        content:
+                            e instanceof ExecutionCancelledError
+                                ? `${e.code}: ${e.message}`
+                                : `Error: ${e.message}\n Please fix your mistakes.`,
                         name: call.name,
                         tool_call_id: call.id ?? ''
                     })

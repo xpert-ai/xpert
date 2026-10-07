@@ -296,6 +296,7 @@ function App() {
                                     select={select}
                                     t={t}
                                     locale={locale}
+                                    onError={setError}
                                 />
                             ) : (
                                 <TaskTable

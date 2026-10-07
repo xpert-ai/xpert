@@ -368,8 +368,8 @@ export type TXpertOptions = {
   workspaceScope?: {
     /** Require an explicit Project, or prefer one while preserving the legacy fallback. */
     mode: 'project-required' | 'project-preferred'
-    /** Opt in to creating a Project on the first send of an empty conversation, under the caller's permissions. */
-    onMissing?: 'create'
+    /** Create on first send, or defer creation until a human confirms the pending setup App. */
+    onMissing?: 'create' | 'confirm'
     /** Explicit application context for discovery and governed Project creation. */
     projectType?: import('./xpert-project-type.model').XpertProjectTypeRef
   }

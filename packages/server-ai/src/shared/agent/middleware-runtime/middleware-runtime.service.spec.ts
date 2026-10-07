@@ -1,3 +1,6 @@
+jest.mock('../../../xpert-project/services/conversation-project.service', () => ({
+    ConversationProjectService: class {}
+}))
 import { PublishedXpertAccessService } from '../../../xpert/published-xpert-access.service'
 import { DiscoveryService, Reflector } from '@nestjs/core'
 import { AgentRuntimeRegistry, BUILTIN_GLOBAL_SCOPE } from '@xpert-ai/plugin-sdk'
@@ -319,7 +322,11 @@ describe('AgentMiddlewareRuntimeService', () => {
             .register(AssistantTaskRuntimeCapability, assistantTaskRuntime)
             .register(
                 ProjectProvisioningRuntimeCapability,
-                new ProjectProvisioningRuntimeService(commandBus as never, { purge: jest.fn() } as never)
+                new ProjectProvisioningRuntimeService(
+                    commandBus as never,
+                    { purge: jest.fn() } as never,
+                    { confirm: jest.fn() } as never
+                )
             )
         platformCapabilities
             .register(ConnectorRuntimeFactoryCapability, connectors as never)

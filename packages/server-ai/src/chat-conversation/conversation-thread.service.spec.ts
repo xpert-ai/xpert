@@ -1,5 +1,5 @@
 import { ConflictException } from '@nestjs/common'
-import { DataSource, Repository } from 'typeorm'
+import { DataSource, EntityManager, Repository } from 'typeorm'
 import { ChatMessage } from '../chat-message/chat-message.entity'
 import { CopilotCheckpoint } from '../copilot-checkpoint/copilot-checkpoint.entity'
 import { CopilotCheckpointWrites } from '../copilot-checkpoint/writes/writes.entity'
@@ -109,6 +109,22 @@ describe('ChatConversationThreadService', () => {
             'thread'
         )
         expect(find.mock.calls[2][0].where.id).toEqual(expect.objectContaining({ _value: ['internal', 'answer'] }))
+    })
+
+    it.each(['pausing', 'paused'])('blocks automatic or user run admission while %s', async (status) => {
+        const thread = { id: 'row', threadId: 'thread', status } as ChatConversationThread
+        const save = jest.fn()
+        const manager = { getRepository: () => ({ findOne: async () => thread }), save }
+        const service = createService({
+            dataSource: {
+                transaction: async (work: (entityManager: EntityManager) => Promise<unknown>) =>
+                    work(manager as unknown as EntityManager)
+            } as DataSource
+        })
+        jest.spyOn(service, 'requireByThreadId').mockResolvedValue(thread)
+        await expect(service.claimForRun('thread')).rejects.toBeInstanceOf(ConflictException)
+        expect(save).not.toHaveBeenCalled()
+        expect(thread.status).toBe(status)
     })
 
     it('creates a primary thread at the latest legacy message and attaches its conversation', async () => {

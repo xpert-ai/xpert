@@ -7,7 +7,7 @@ jest.mock('../../xpert-middleware/thread-reference.runtime', () => ({
     }))
 }))
 
-import { AIMessage, BaseMessage, HumanMessage, isToolMessage } from '@langchain/core/messages'
+import { AIMessage, BaseMessage, HumanMessage, ToolMessage, isToolMessage } from '@langchain/core/messages'
 import { RunnableConfig, RunnableLambda } from '@langchain/core/runnables'
 import { Command, END, interrupt, MemorySaver, START, StateGraph } from '@langchain/langgraph'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
@@ -22,7 +22,8 @@ import {
     STATE_VARIABLE_HUMAN,
     STATE_VARIABLE_SYS,
     TXpertGraph,
-    XpertParameterTypeEnum
+    XpertParameterTypeEnum,
+    type TAgentExecutionOutcome
 } from '@xpert-ai/contracts'
 import { Subscriber } from 'rxjs'
 import { emptyRuntimeResources, RuntimeResourceService } from '../../agent-plugin/runtime-resource.service'
@@ -44,10 +45,20 @@ import { NativeAgentRuntimeStrategy } from '../../agent-invocation/native-agent.
 import { MemoryInvocationStore } from '../../agent-invocation/invocation-test-store'
 import { AgentRuntimeRegistry, BUILTIN_GLOBAL_SCOPE, RequestContext } from '@xpert-ai/plugin-sdk'
 import { DiscoveryService, Reflector } from '@nestjs/core'
+import { ExecutionCancelService } from '../../shared/execution/execution-cancel.service'
+import type { RedisClientType } from 'redis'
 import { THREAD_REFERENCE_MIDDLEWARE_NAME } from '../../xpert-middleware/thread-reference.middleware'
 
 function fixture(
-    settings: { dynamic?: boolean; interruptBefore?: boolean; interruptInside?: boolean; endNode?: boolean } = {}
+    settings: {
+        outcome?: TAgentExecutionOutcome
+        dynamic?: boolean
+        interruptBefore?: boolean
+        interruptInside?: boolean
+        endNode?: boolean
+        parallel?: boolean
+        onChild?: (config: RunnableConfig) => Promise<void>
+    } = {}
 ) {
     const expert = {
         id: 'expert-1',
@@ -77,7 +88,7 @@ function fixture(
         name: 'Leader',
         prompt: 'Ask the reviewer to review the case.',
         team,
-        options: { fileUnderstanding: { enabled: false } },
+        options: { fileUnderstanding: { enabled: false }, parallelToolCalls: settings.parallel },
         collaborators: settings.dynamic ? [] : [expert],
         toolsetIds: [],
         knowledgebaseIds: []
@@ -96,10 +107,28 @@ function fixture(
     }
     const executions = new Map<string, Partial<IXpertAgentExecution>>()
     const childInvocations: Array<{ state: typeof AgentStateAnnotation.State; config: RunnableConfig }> = []
-    const childStep = RunnableLambda.from((state: typeof AgentStateAnnotation.State, config) => {
+    const childStep = RunnableLambda.from(async (state: typeof AgentStateAnnotation.State, config) => {
         if (settings.interruptInside) interrupt('Approve the review')
         childInvocations.push({ state, config })
-        return { messages: [new AIMessage('Reviewed case-1')] }
+        await settings.onChild?.(config)
+        return {
+            messages: [
+                ...(settings.outcome
+                    ? [
+                          new ToolMessage({
+                              content: JSON.stringify(settings.outcome),
+                              tool_call_id: 'claim-call',
+                              artifact: {
+                                  type: 'agent_execution_outcome',
+                                  executionId: config.configurable.executionId,
+                                  outcome: settings.outcome
+                              }
+                          })
+                      ]
+                    : []),
+                new AIMessage('Reviewed case-1')
+            ]
+        }
     })
     const childGraph = settings.interruptInside
         ? new StateGraph(AgentStateAnnotation)
@@ -137,7 +166,10 @@ function fixture(
                           id: 'call-1',
                           name: expert.slug,
                           args: { input: 'Review case-1', caseId: 'case-1' }
-                      }
+                      },
+                      ...(settings.parallel
+                          ? [{ id: 'call-2', name: expert.slug, args: { input: 'Review case-2', caseId: 'case-2' } }]
+                          : [])
                   ]
               })
     })
@@ -160,12 +192,16 @@ function fixture(
     registry.register('xpert', new NativeAgentRuntimeStrategy(), { kind: 'builtin', scopeKey: BUILTIN_GLOBAL_SCOPE })
     const store = new MemoryInvocationStore()
     const invocations = new AgentInvocationRuntime(store, registry)
+    const cancellations = new ExecutionCancelService({
+        publish: jest.fn().mockResolvedValue(1)
+    } as unknown as RedisClientType)
     const runtime = new AgentInvocationGraphService(
         commandBus as unknown as CommandBus,
         queryBus as unknown as QueryBus,
         resourceService as unknown as RuntimeResourceService,
         invocations,
-        new NativeAgentCompiler(commandBus as unknown as CommandBus, queryBus as unknown as QueryBus)
+        new NativeAgentCompiler(commandBus as unknown as CommandBus, queryBus as unknown as QueryBus),
+        cancellations
     )
     const middlewareRuntime = {
         createScopedApi: jest.fn().mockReturnValue({}),
@@ -262,7 +298,9 @@ function fixture(
         definition,
         controller,
         agent,
-        queryBus
+        queryBus,
+        cancellations,
+        store
     }
 }
 
@@ -272,6 +310,39 @@ describe('Collaborators middleware in the Agent graph', () => {
         jest.spyOn(Logger.prototype, 'verbose').mockImplementation(() => undefined)
     })
     afterEach(() => jest.restoreAllMocks())
+
+    it('preserves domain outcomes in the parent reply, persisted metadata and live end event', async () => {
+        const outcome: TAgentExecutionOutcome = {
+            status: 'already_completed',
+            subjectId: 'task-1',
+            accepted: true,
+            versionId: 'version-1'
+        }
+        const f = fixture({ outcome })
+        const { graph } = await f.handler.execute(f.command)
+        const output = await graph.invoke(f.input, f.config)
+        const reply = output.messages.find((message) => isToolMessage(message) && message.name === 'review_case')
+        expect(JSON.parse(String(reply.content))).toEqual({
+            businessOutcome: outcome,
+            assistantMessage: 'Reviewed case-1'
+        })
+        expect([...f.executions.values()][0]).toMatchObject({
+            status: 'success',
+            metadata: { businessOutcome: outcome }
+        })
+        expect(f.events).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    data: expect.objectContaining({
+                        event: ChatMessageEventTypeEnum.ON_AGENT_END,
+                        data: expect.objectContaining({
+                            metadata: expect.objectContaining({ businessOutcome: outcome })
+                        })
+                    })
+                })
+            ])
+        )
+    })
 
     it.each([false, true])('executes %s dynamic experts and returns a tool result to the parent', async (dynamic) => {
         const f = fixture({ dynamic })
@@ -319,11 +390,11 @@ describe('Collaborators middleware in the Agent graph', () => {
             leaderKey: 'leader',
             isStart: true,
             isDraft: false,
-            signal: f.controller.signal,
-            rootController: f.controller,
             thread_id: 'thread-1',
             partners: ['active-partner']
         })
+        expect(f.childCommands[0].options.rootController).not.toBe(f.controller)
+        expect(f.childCommands[0].options.signal).toBe(f.childInvocations[0].config.signal)
         expect(f.childCommands[0].options.runtimeResources).toBeUndefined()
         expect(f.childInvocations[0].config.recursionLimit).toBeGreaterThan(0)
         expect(f.childInvocations[0].config.configurable.xpertId).toBe(f.expert.id)
@@ -331,6 +402,63 @@ describe('Collaborators middleware in the Agent graph', () => {
         expect(JSON.stringify(f.definition)).toBe(original)
         if (dynamic)
             expect(f.resourceService.resolve).toHaveBeenCalledWith('parent', f.resources.selection, 'project-1')
+    })
+
+    it('returns a cancelled expert as a tool error while its parallel sibling and parent finish normally', async () => {
+        let started!: () => void
+        const ready = new Promise<void>((resolve) => {
+            started = resolve
+        })
+        const release = new Map<string, () => void>()
+        const signals = new Map<string, AbortSignal>()
+        const f = fixture({
+            parallel: true,
+            onChild: (config) =>
+                new Promise<void>((resolve, reject) => {
+                    const id = config.configurable.executionId as string
+                    signals.set(id, config.signal)
+                    release.set(id, resolve)
+                    config.signal.addEventListener('abort', () => reject(new Error('Provider aborted')), { once: true })
+                    if (signals.size === 2) started()
+                })
+        })
+        const { graph } = await f.handler.execute(f.command)
+        const running = graph.invoke(f.input, f.config)
+        await ready
+        const [cancelledId, siblingId] = [...signals.keys()]
+        await f.cancellations.cancelExecutions([cancelledId], '已被用户取消，请勿自动重试')
+        expect(signals.get(cancelledId).aborted).toBe(true)
+        expect(signals.get(siblingId).aborted).toBe(false)
+        expect(f.controller.signal.aborted).toBe(false)
+        release.get(siblingId)()
+        const output = await running
+        expect(output.messages).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    status: 'error',
+                    content: 'EXECUTION_CANCELLED_BY_USER: 已被用户取消，请勿自动重试'
+                })
+            ])
+        )
+        expect(f.executions.get(cancelledId)).toMatchObject({
+            status: 'interrupted',
+            error: '已被用户取消，请勿自动重试'
+        })
+        expect(f.executions.get(siblingId)).toMatchObject({ status: 'success' })
+        expect(f.store.rows.get(cancelledId).invocation.status).toBe('cancelled')
+        expect(f.modelInvoke).toHaveBeenCalledTimes(2)
+        expect(f.childInvocations).toHaveLength(2)
+        expect(f.childCommands[0].options.rootController).not.toBe(f.childCommands[1].options.rootController)
+        expect(f.events).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    data: expect.objectContaining({
+                        event: ChatMessageEventTypeEnum.ON_AGENT_END,
+                        data: expect.objectContaining({ id: cancelledId, status: 'interrupted' })
+                    })
+                })
+            ])
+        )
     })
 
     it('preserves endNodes routing without invoking the parent model again', async () => {

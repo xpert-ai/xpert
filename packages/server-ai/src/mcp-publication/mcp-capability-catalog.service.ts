@@ -282,6 +282,7 @@ function nativeMcpDeclarations(definitions: Readonly<McpCapabilityDefinitions>):
             capabilityType: 'app' as const,
             capabilityKey: app.key,
             title: app.title,
+            refresh: app.refresh,
             description: app.description,
             ...(providerInstructions ? { providerInstructions } : {}),
             entry: app.entry,

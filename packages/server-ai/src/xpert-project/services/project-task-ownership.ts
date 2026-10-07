@@ -2,6 +2,7 @@ import { projectTaskRuntimeError } from '../runtime/project-task-runtime.errors'
 import { BadRequestException } from '@nestjs/common'
 import type { IXpertProjectTask } from '@xpert-ai/contracts'
 import { t } from 'i18next'
+import { assertProjectTaskProgress } from './project-task-progress'
 
 /** Generic task mutation cannot overwrite facts owned by a business provider. */
 export function assertOrdinaryTask(task: Pick<IXpertProjectTask, 'providerKey'>): void {
@@ -10,6 +11,7 @@ export function assertOrdinaryTask(task: Pick<IXpertProjectTask, 'providerKey'>)
 
 /** Task identity, relations and projection fields use their dedicated commands. */
 export function assertOrdinaryTaskInput(input: object): void {
+    if ('progress' in input) assertProjectTaskProgress(input.progress)
     for (const key of [
         'providerKey',
         'sourceKey',

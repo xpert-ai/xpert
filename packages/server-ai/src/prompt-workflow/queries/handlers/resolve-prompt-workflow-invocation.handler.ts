@@ -355,7 +355,7 @@ function createPromptWorkflowCommandSource(
         type: 'slash_command',
         name: source.name,
         source: 'runtime',
-        executionType: 'submit_prompt',
+        executionType: source.actionType ?? 'submit_prompt',
         kind: 'prompt_workflow',
         workflow: createPromptWorkflowMetadata(source)
     }

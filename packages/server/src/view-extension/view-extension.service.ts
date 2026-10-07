@@ -1,5 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { ViewExtensionProviderRegistry } from '@xpert-ai/plugin-sdk'
+import { decodeMultipartFileName } from '@xpert-ai/server-common'
 import {
 	resolveI18nText,
 	type RuntimeResourceView,
@@ -270,12 +271,24 @@ export class ViewExtensionService {
 		}
 
 		const hostDefinition = this.hostDefinitionRegistry.get(hostType)
+		// Multer decodes multipart filename bytes as Latin-1. Normalize before either
+		// the host or provider derives storage names, titles or document metadata.
+		const uploadedFile = {
+			...file,
+			originalname: file.originalname === undefined ? undefined : decodeMultipartFileName(file.originalname)
+		}
 		const preparedRequest = hostDefinition?.prepareFileAction
-			? await Promise.resolve(hostDefinition.prepareFileAction(context, request, file))
+			? await Promise.resolve(hostDefinition.prepareFileAction(context, request, uploadedFile))
 			: request
 
 		const result = await Promise.resolve(
-			resolved.provider.executeViewFileAction(context, resolved.manifestKey, actionKey, preparedRequest, file)
+			resolved.provider.executeViewFileAction(
+				context,
+				resolved.manifestKey,
+				actionKey,
+				preparedRequest,
+				uploadedFile
+			)
 		)
 
 		if (result.refresh) {

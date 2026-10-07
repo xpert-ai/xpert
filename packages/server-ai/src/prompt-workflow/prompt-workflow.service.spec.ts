@@ -52,6 +52,27 @@ import { Xpert } from '../xpert/xpert.entity'
 import { PromptWorkflow } from './prompt-workflow.entity'
 
 describe('PromptWorkflowService', () => {
+    it.each(['insert_text', 'insert_invocation'] as const)(
+        'retains %s through validation, publication snapshots and runtime resolution',
+        async (actionType) => {
+            const service = new PromptWorkflowService(
+                {} as Repository<PromptWorkflow>,
+                {} as XpertWorkspaceAccessService,
+                {} as Repository<Xpert>
+            )
+            const profile = {
+                version: 1 as const,
+                commands: [
+                    { source: 'xpert' as const, name: 'bid-technical-outline', template: '{{args}}', actionType }
+                ]
+            }
+            const snapshot = await service.snapshotCommandProfile(null, profile)
+            expect(snapshot.commands[0].actionType).toBe(actionType)
+            const runtime = await service.resolveRuntimeCommandProfile({ id: 'bid', commandProfile: snapshot })
+            expect(runtime.xpertCommands[0].actionType).toBe(actionType)
+        }
+    )
+
     it('persists, clears and snapshots ordered scenarios while keeping published scenarios stable', async () => {
         const scenarios = [{ id: 'annual', label: 'Annual review', args: 'Review annual results' }]
         const workflow = {

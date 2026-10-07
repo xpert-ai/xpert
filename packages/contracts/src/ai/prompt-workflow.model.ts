@@ -37,6 +37,7 @@ export type PromptWorkflowVisibility = 'private' | 'team' | 'tenant'
 export type PromptWorkflowSourceType = 'xpert' | 'workspace_prompt_workflow' | 'skill'
 
 export type PromptWorkflowCommandPriority = 'normal' | 'preferred'
+export type PromptWorkflowActionType = 'insert_text' | 'insert_invocation' | 'submit_prompt'
 
 export type TPromptWorkflow = {
   name: string
@@ -47,6 +48,8 @@ export type TPromptWorkflow = {
   aliases?: string[]
   argsHint?: string
   template: string
+  /** insert_invocation inserts /name; insert_text expands the template; submit_prompt sends it. */
+  actionType?: PromptWorkflowActionType
   scenarios?: PromptWorkflowScenario[]
   tags?: string[]
   visibility?: PromptWorkflowVisibility
@@ -89,6 +92,7 @@ export type TXpertCommandProfileEntry = {
   aliases?: string[]
   argsHint?: string
   template?: string
+  actionType?: PromptWorkflowActionType
   runtimeCapabilities?: unknown
   availability?: SkillSlashCommandAvailability
 }

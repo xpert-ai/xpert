@@ -349,7 +349,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
             workspaceUrl,
             workspaceRoot: workArea.workspaceRoot,
             sharedWorkspacePath: workArea.sharedPath?.workspacePath,
-            agentWorkspacePath: workArea.agentPath?.workspacePath,
+            agentWorkspacePath: workspacePath,
             sessionWorkspacePath: workArea.sessionPath?.workspacePath,
             memoryWorkspacePath: workArea.memoryPath?.workspacePath
         })

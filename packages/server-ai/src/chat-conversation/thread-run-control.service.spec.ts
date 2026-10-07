@@ -1,5 +1,8 @@
+jest.mock('i18next', () => ({ t: (_key: string, options: { defaultValue: string }) => options.defaultValue }))
 import { ThreadDTO } from '../ai/dto/thread.dto'
 import { ChatConversation } from './conversation.entity'
+import { RUN_LEASE_KEY } from './thread-run-lease'
+import { ExecutionCancelService } from '../shared/execution/execution-cancel.service'
 import { readThreadDisplayPause } from './thread-display-pause'
 import { ConflictException } from '@nestjs/common'
 import { instanceToPlain } from 'class-transformer'
@@ -23,13 +26,16 @@ describe('ThreadRunControlService', () => {
             getRepository: jest.fn((entity: unknown) => ({
                 findOne: jest.fn(async () => (entity === ChatConversationThread ? thread : checkpoint))
             })),
+            update: jest.fn(),
             save: jest.fn(async () => thread)
         } as unknown as EntityManager
+        const cancellations = { cancelExecutions: jest.fn() }
         const service = new ThreadRunControlService(
             { findOne: jest.fn(async () => thread) } as unknown as Repository<ChatConversationThread>,
-            { transaction: async (work: (m: EntityManager) => Promise<unknown>) => work(manager) } as DataSource
+            { transaction: async (work: (m: EntityManager) => Promise<unknown>) => work(manager) } as DataSource,
+            cancellations as unknown as ExecutionCancelService
         )
-        return { thread, service, manager }
+        return { thread, service, manager, cancellations }
     }
 
     const snapshot = JSON.stringify({ version: 1, messages: [{ type: 'ai', content: 'Visible prefix' }] })
@@ -47,71 +53,116 @@ describe('ThreadRunControlService', () => {
         expect(thread.metadata.forkGraphRevision).toBeUndefined()
     })
 
-    it('exposes the snapshot only in thread detail and keeps it out of public metadata', async () => {
-        const { thread, service } = setup()
-        await service.requestPause('thread', 'run', snapshot)
+    it('never exposes legacy snapshots in detail or lists', async () => {
+        const { thread } = setup()
+        thread.metadata = { chatkitDisplayPause: { executionId: 'run', pauseId: 'old', createdAt: 'date', snapshot } }
         const conversation = { id: 'conversation' } as ChatConversation
-        const detail = instanceToPlain(new ThreadDTO(conversation, undefined, thread))
-        const listItem = instanceToPlain(new ThreadDTO(conversation, undefined, thread, false))
-        expect(detail.displayPause.snapshot).toBe(snapshot)
-        expect(detail.metadata.chatkitDisplayPause).toBeUndefined()
-        expect(listItem.displayPause.pauseId).toBe(detail.displayPause.pauseId)
-        expect(listItem.displayPause.snapshot).toBeUndefined()
+        for (const includeSnapshot of [true, false]) {
+            const dto = instanceToPlain(new ThreadDTO(conversation, undefined, thread, includeSnapshot))
+            expect(dto.displayPause).toBeUndefined()
+            expect(dto.metadata.chatkitDisplayPause).toBeUndefined()
+            expect(JSON.stringify(dto)).not.toContain('Visible prefix')
+        }
     })
 
-    it('saves the first display snapshot atomically and retains it after natural completion', async () => {
+    it('persists only a small idempotent control command and discards legacy UI state', async () => {
         const { thread, service } = setup()
-        const result = await service.requestPause('thread', 'run', snapshot)
-        expect(result.displayPause.snapshot).toBe(snapshot)
-        const duplicate = await service.requestPause('thread', 'run', JSON.stringify({ version: 1, messages: [] }))
-        expect(duplicate.displayPause.snapshot).toBe(snapshot)
+        thread.metadata = { chatkitDisplayPause: { snapshot: 'x'.repeat(3 * 1024 * 1024) }, keep: 'metadata' }
+        const request = await service.requestPause('thread', 'run')
+        const duplicate = await service.requestPause('thread', 'run')
+        expect(duplicate).toEqual(request)
+        expect(request.pauseId).toBeTruthy()
+        expect(JSON.stringify(request).length).toBeLessThan(512)
+        expect(thread.metadata).toEqual({ keep: 'metadata' })
         await service.finish('thread', 'run', 'idle')
         expect(thread.runControl).toBeNull()
-        expect(readThreadDisplayPause(thread).snapshot).toBe(snapshot)
-        await expect(service.releaseDisplayPause('thread', 'stale-token')).rejects.toBeInstanceOf(ConflictException)
-        await service.releaseDisplayPause('thread', result.pauseId)
         expect(readThreadDisplayPause(thread)).toBeNull()
     })
 
-    it('hides the snapshot during resume and restores it if resume fails', async () => {
+    it('resumes legacy paused checkpoints independently of malformed UI snapshots', async () => {
         const { thread, service } = setup()
-        const pause = await service.requestPause('thread', 'run', snapshot)
+        const pause = await service.requestPause('thread', 'run')
         await service.stageCheckpoint('thread', 'run', { threadId: 'thread', checkpointNs: '', checkpointId: 'saved' })
         await service.finish('thread', 'run', 'interrupted')
-        await expect(service.releaseDisplayPause('thread', pause.pauseId)).rejects.toBeInstanceOf(ConflictException)
+        thread.metadata = { chatkitDisplayPause: { snapshot: '{broken' } }
         await service.claimResume('thread', 'run', pause.pauseId, 'revision')
-        expect(readThreadDisplayPause(thread)).toBeNull()
         await service.bindResumedExecution('thread', pause.pauseId, 'resumed')
         await service.releaseResume('thread', 'run', pause.pauseId)
-        expect(readThreadDisplayPause(thread).snapshot).toBe(snapshot)
+        expect(thread.status).toBe('paused')
         await service.claimResume('thread', 'run', pause.pauseId, 'revision')
         await service.bindResumedExecution('thread', pause.pauseId, 'resumed')
         await service.finish('thread', 'resumed', 'idle')
-        expect(readThreadDisplayPause(thread)).toBeNull()
-    })
-
-    it('clears display state on cancellation or a new run, but not a stale cancellation', async () => {
-        const { thread, service } = setup()
-        await service.requestPause('thread', 'run', snapshot)
-        await service.cancel('thread', ['old-run'])
-        expect(readThreadDisplayPause(thread)).not.toBeNull()
-        await service.cancel('thread', ['run'])
-        expect(readThreadDisplayPause(thread)).toBeNull()
-        thread.status = 'busy'
-        await service.start('thread', 'next')
-        await service.requestPause('thread', 'next', snapshot)
-        await expect(service.start('thread', 'new')).rejects.toBeInstanceOf(ConflictException)
-        await service.cancel('thread', ['next'])
-        expect(thread.runtimeContinuationBlockedAt).toBeInstanceOf(Date)
-        await service.start('thread', 'new')
         expect(thread.metadata.chatkitDisplayPause).toBeUndefined()
     })
 
-    it('rejects invalid snapshots without changing the workflow state', async () => {
+    it('keeps cancellation barriers while admitting a fresh run after cancellation', async () => {
         const { thread, service } = setup()
-        await expect(service.requestPause('thread', 'run', '{broken')).rejects.toThrow()
-        expect(thread.status).toBe('busy')
+        await service.requestPause('thread', 'run')
+        expect(await service.cancel('thread', ['old-run'])).toBe(false)
+        expect(thread.runControl.executionId).toBe('run')
+        expect(await service.cancel('thread', ['run'])).toBe(true)
+        expect(thread.runControl).toBeNull()
+        expect(thread.runtimeContinuationBlockedAt).toBeInstanceOf(Date)
+        thread.status = 'busy'
+        await service.start('thread', 'next')
+        await service.requestPause('thread', 'next')
+        await expect(service.start('thread', 'new')).rejects.toBeInstanceOf(ConflictException)
+        await service.cancel('thread', ['next'])
+        await service.start('thread', 'new')
+        expect(thread.runControl.executionId).toBe('new')
         expect(thread.runControl.state).toBe('running')
+    })
+
+    it('recovers an expired process without falsely confirming a staged pause or replaying work', async () => {
+        const { thread, service, cancellations } = setup()
+        await service.start('thread', 'run')
+        await service.requestPause('thread', 'run')
+        await service.stageCheckpoint('thread', 'run', { threadId: 'thread', checkpointNs: '', checkpointId: 'saved' })
+        thread.metadata = {
+            ...thread.metadata,
+            [RUN_LEASE_KEY]: {
+                owner: 'dead-process',
+                executionId: 'run',
+                expiresAt: new Date(0).toISOString()
+            }
+        }
+        expect(await service.recoverExpiredRun('thread')).toBe(true)
+        expect(thread.status).toBe('error')
+        expect(thread.runControl).toBeNull()
+        expect(thread.encryptedRunContext).toBeNull()
+        expect(cancellations.cancelExecutions).toHaveBeenCalledWith(['run'], 'Run owner lost')
+        expect(await service.finish('thread', 'run', 'idle')).toBe('error')
+        await expect(service.shouldPause('thread', 'run')).rejects.toThrow('Execution ownership ended')
+        expect(await service.recoverExpiredRun('thread')).toBe(false)
+    })
+
+    it.each(['busy', 'pausing', 'paused'] as const)(
+        'does not interrupt a healthy or finalized %s run',
+        async (status) => {
+            const { thread, service, cancellations } = setup()
+            await service.start('thread', 'run')
+            thread.status = status
+            expect(await service.recoverExpiredRun('thread')).toBe(false)
+            expect(cancellations.cancelExecutions).not.toHaveBeenCalled()
+        }
+    )
+
+    it('leaves old unleased runs and child execution identities alone, but fences an expired owner', async () => {
+        const { thread, service } = setup()
+        expect(await service.recoverExpiredRun('thread')).toBe(false)
+        await expect(service.start('thread', 'replacement')).rejects.toBeInstanceOf(ConflictException)
+        await service.finish('thread', 'run', 'idle')
+        await service.start('thread', 'replacement')
+        expect(await service.shouldPause('thread', 'child-execution')).toBe(false)
+        thread.metadata = {
+            ...thread.metadata,
+            [RUN_LEASE_KEY]: {
+                owner: 'expired',
+                executionId: 'replacement',
+                expiresAt: new Date(0).toISOString()
+            }
+        }
+        await expect(service.shouldPause('thread', 'replacement')).rejects.toThrow('Execution ownership ended')
     })
 
     it('acknowledges pause only after checkpoint and finalization, then exclusively claims the saved checkpoint', async () => {

@@ -288,9 +288,10 @@ export class RuntimeCommandService {
             source.runtimeCapabilities,
             createPromptWorkflowAllowList(options)
         )
+        const actionType = source.actionType ?? this.getPromptWorkflowActionType(options)
         const action = compactObject<RuntimeSlashCommandAction>({
-            type: this.getPromptWorkflowActionType(options),
-            template: source.template,
+            type: actionType,
+            template: actionType === 'insert_invocation' ? `/${source.name} ` : source.template,
             runtimeCapabilities
         })
 

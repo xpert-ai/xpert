@@ -1,11 +1,6 @@
-import { DISPLAY_PAUSE_KEY, readThreadDisplayPause } from '../../chat-conversation/thread-display-pause'
-import {
-    IUser,
-    TChatConversationStatus,
-    TChatThreadDisplayPause,
-    TChatThreadRunControl,
-    TSensitiveOperation
-} from '@xpert-ai/contracts'
+import { RUN_LEASE_KEY } from '../../chat-conversation/thread-run-lease'
+import { DISPLAY_PAUSE_KEY } from '../../chat-conversation/thread-display-pause'
+import { IUser, TChatConversationStatus, TChatThreadRunControl, TSensitiveOperation } from '@xpert-ai/contracts'
 import { pick } from '@xpert-ai/server-common'
 import { UserPublicDTO } from '@xpert-ai/server-core'
 import { Exclude, Expose, Transform } from 'class-transformer'
@@ -57,26 +52,14 @@ export class ThreadDTO {
     @Expose()
     operation?: TSensitiveOperation | null
 
-    @Expose()
-    displayPause?: TChatThreadDisplayPause | null
-
     constructor(
         conversation: ChatConversation,
         values?: Record<string, unknown>,
         thread?: ChatConversationThread,
-        includeDisplaySnapshot = true
+        _includeDisplaySnapshot = true
     ) {
         Object.assign(this, conversation)
         if (thread) {
-            const displayPause = readThreadDisplayPause(thread)
-            this.displayPause =
-                displayPause && !includeDisplaySnapshot
-                    ? {
-                          executionId: displayPause.executionId,
-                          pauseId: displayPause.pauseId,
-                          createdAt: displayPause.createdAt
-                      }
-                    : displayPause
             this.operation = thread.operation ?? null
             this.runControl = thread.runControl ?? null
             this.threadId = thread.threadId
@@ -87,7 +70,7 @@ export class ThreadDTO {
             this.updatedBy = thread.updatedBy
         }
 
-        const { [DISPLAY_PAUSE_KEY]: _snapshot, ...publicMetadata } = thread?.metadata ?? {}
+        const { [DISPLAY_PAUSE_KEY]: _snapshot, [RUN_LEASE_KEY]: _lease, ...publicMetadata } = thread?.metadata ?? {}
         this.metadata = {
             ...pick(conversation, 'id', 'title', 'fromEndUserId'),
             conversation_id: conversation.id,

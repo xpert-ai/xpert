@@ -151,7 +151,7 @@ describe('XpertWorkbenchFacade', () => {
     expect(facade.viewState()).toBe('ready')
     expect(facade.xpertId()).toBe('xpert-1')
     expect(facade.assistantId()).toBe('xpert-1')
-    expect(facade.identity()).toBe('chat-xpert-workbench:xpert-1:personal')
+    expect(facade.identity()).toBe('chat-xpert-workbench:xpert-1')
     expect(facade.projectId()).toBeNull()
     expect(facade.projectAccess()).toBeNull()
     expect(projectApi.access).not.toHaveBeenCalled()
@@ -250,7 +250,7 @@ describe('XpertWorkbenchFacade', () => {
     await facade.onChatProjectChange(null, undefined, { mode })
     expect(router.navigate).toHaveBeenLastCalledWith(['/chat/x', 'sales', 'c'], {
       queryParamsHandling: 'merge',
-      queryParams: { projectMode: mode, viewSelection: null, viewParameters: null }
+      queryParams: { projectMode: mode, viewProject: null, viewSelection: null, viewParameters: null }
     })
     setRoute(`/chat/x/sales/c?view=studio&projectMode=${mode}`)
     await settle()
@@ -280,7 +280,7 @@ describe('XpertWorkbenchFacade', () => {
     expect(facade.suppressAutoResume()).toBe(false)
     setRoute('/chat/x/sales/p/project-1/c/thread-2')
     expect(facade.chatkitMountProjectId()).toBe('project-1')
-    expect(facade.identity()).not.toBe(identity)
+    expect(facade.identity()).toBe(identity)
   })
 
   it('keeps the first-send ChatKit mount and active conversation when opening its project receipt', async () => {
@@ -370,7 +370,7 @@ describe('XpertWorkbenchFacade', () => {
 
   it('syncs ChatKit Project changes into the workbench route and starts a blank scoped chat', async () => {
     const viewState = '?view=sales-orders&viewSelection=order-1&viewParameters=%7B%22tab%22%3A%22open%22%7D'
-    router.url = `/chat/x/sales/c${viewState}`
+    setRoute(`/chat/x/sales/p/old-project/c/thread-1${viewState}&viewProject=old-project`)
     const facade = TestBed.inject(XpertWorkbenchFacade)
 
     await settle()
@@ -382,14 +382,16 @@ describe('XpertWorkbenchFacade', () => {
     expect(facade.activeConversation()).toBeNull()
     expect(facade.projectAccess()).toBeNull()
     expect(router.navigate).toHaveBeenCalledWith(['/chat/x', 'sales', 'p', 'project-1', 'c'], {
-      queryParamsHandling: 'preserve'
+      queryParamsHandling: 'merge',
+      queryParams: { projectMode: null, viewProject: null, viewSelection: null, viewParameters: null }
     })
 
     setRoute(`/chat/x/sales/p/project-1/c${viewState}`)
     facade.onChatProjectChange(null)
 
     expect(router.navigate).toHaveBeenLastCalledWith(['/chat/x', 'sales', 'c'], {
-      queryParamsHandling: 'preserve'
+      queryParamsHandling: 'merge',
+      queryParams: { projectMode: null, viewProject: null, viewSelection: null, viewParameters: null }
     })
   })
 
@@ -403,6 +405,8 @@ describe('XpertWorkbenchFacade', () => {
       queryParamsHandling: 'merge',
       queryParams: {
         view: 'provider__studio',
+        projectMode: null,
+        viewProject: null,
         viewSelection: 'case-b',
         viewParameters: JSON.stringify({ tab: 'features' })
       }
@@ -413,7 +417,13 @@ describe('XpertWorkbenchFacade', () => {
     await facade.onChatProjectChange('project-b', { viewKey: 'provider__studio' })
     expect(router.navigate).toHaveBeenLastCalledWith(['/chat/x', 'sales', 'p', 'project-b', 'c'], {
       queryParamsHandling: 'merge',
-      queryParams: { view: 'provider__studio', viewSelection: null, viewParameters: null }
+      queryParams: {
+        view: 'provider__studio',
+        projectMode: null,
+        viewProject: null,
+        viewSelection: null,
+        viewParameters: null
+      }
     })
   })
 
@@ -444,7 +454,7 @@ describe('XpertWorkbenchFacade', () => {
     expect(facade.projectId()).toBe('project-1')
     expect(projectApi.access).toHaveBeenCalledWith('project-1')
     expect(facade.projectAccess()).toEqual(editorAccess())
-    expect(facade.identity()).toBe('chat-xpert-workbench:xpert-1:project-1')
+    expect(facade.identity()).toBe('chat-xpert-workbench:xpert-1')
     expect(conversationService.findAllByXpert).not.toHaveBeenCalled()
     expect(router.navigate).not.toHaveBeenCalled()
     expect(facade.chatkitProjectSelection()).toEqual({ mode: 'existing', projectId: 'project-1' })

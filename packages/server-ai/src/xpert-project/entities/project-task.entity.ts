@@ -6,7 +6,7 @@ import {
     TXpertProjectTaskStatus
 } from '@xpert-ai/contracts'
 import { ApiPropertyOptional } from '@nestjs/swagger'
-import { IsOptional } from 'class-validator'
+import { IsNumber, IsOptional, Max, Min } from 'class-validator'
 import { Column, Entity, Index, OneToMany, VersionColumn } from 'typeorm'
 import { XpertProjectTaskStep } from './project-task-step.entity'
 import { XpertProjectTaskConversation } from './project-task-conversation.entity'
@@ -17,6 +17,14 @@ import { XpertProjectBaseEntity } from './project.base'
 @Index(['projectId', 'providerKey', 'sourceKey'], { unique: true })
 export class XpertProjectTask extends XpertProjectBaseEntity implements IXpertProjectTask {
     @Column({ type: 'jsonb', default: '[]' }) decisions: ProjectTaskDecision[]
+    @ApiPropertyOptional({ type: Number, minimum: 0, maximum: 100, nullable: true })
+    @IsOptional()
+    @IsNumber()
+    @Min(0)
+    @Max(100)
+    @Column({ type: 'double precision', nullable: true })
+    progress?: number | null
+
     @Column({ type: 'varchar', nullable: true }) providerKey?: string | null
     @Column({ type: 'varchar', nullable: true }) sourceKey?: string | null
     @Column({ type: 'varchar', nullable: true }) sourceRevision?: string | null

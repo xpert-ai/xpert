@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react'
-import { Bot, GitBranch, MessageSquare, CalendarClock } from 'lucide-react'
+import { GitBranch, MessageSquare, CalendarClock } from 'lucide-react'
 import { cn } from '@xpert-ai/shadcn-ui'
 import type { Graph, Node } from './bridge'
 import type { Fields } from './toolbar'
@@ -141,7 +141,7 @@ export function TaskTable({
                             </div>
                             {fields.status && (
                                 <div role="cell" className="overflow-hidden px-3">
-                                    <Status value={row.task.status} t={t} />
+                                    <Status value={row.task.status} progress={row.task.progress} t={t} />
                                 </div>
                             )}
                             {fields.assignee && (
@@ -182,7 +182,8 @@ export function TaskBoard({
     selected,
     select,
     t,
-    locale
+    locale,
+    onError
 }: {
     graph: Graph
     tasks: Node[]
@@ -190,6 +191,7 @@ export function TaskBoard({
     select: (task: Node) => void
     t: Texts
     locale: string
+    onError: (message: string) => void
 }) {
     const visibleStatuses = statuses.filter(
         (status) =>
@@ -208,30 +210,42 @@ export function TaskBoard({
                             </span>
                         </header>
                         {items.map((task) => (
-                            <button
+                            <article
                                 key={task.id}
-                                onClick={() => select(task)}
+                                aria-label={task.title}
                                 className={cn(
-                                    'space-y-2 rounded-lg border bg-background p-3 text-left shadow-xs transition-colors hover:border-primary/50 focus-visible:outline-ring',
+                                    'space-y-2 rounded-lg border bg-background p-3 text-left shadow-xs transition-colors hover:border-primary/50',
                                     selected === task.id && 'border-primary ring-1 ring-primary/20'
                                 )}
                             >
-                                <div className="text-xs text-muted-foreground">
-                                    {t[task.kind]}
-                                    {task.parentTaskId && (
-                                        <span className="ml-2">
-                                            / {graph.tasks.find((item) => item.id === task.parentTaskId)?.title}
-                                        </span>
-                                    )}
-                                </div>
-                                <p className="flex items-start gap-2 text-sm font-medium leading-5">
-                                    <TaskTypeIcon task={task} locale={locale} fallbackLabel={t[task.kind]} />
-                                    <span className="min-w-0 break-words">{task.title}</span>
-                                </p>
-                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                    <Bot className="size-3.5" />
-                                    <span className="truncate">{owner(task, t.unassigned, t.unnamedAssistant)}</span>
-                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => select(task)}
+                                    aria-label={task.title}
+                                    className="block w-full space-y-2 rounded text-left hover:underline focus-visible:outline-ring"
+                                >
+                                    <span className="block text-xs text-muted-foreground">
+                                        {t[task.kind]}
+                                        {task.parentTaskId && (
+                                            <span className="ml-2">
+                                                / {graph.tasks.find((item) => item.id === task.parentTaskId)?.title}
+                                            </span>
+                                        )}
+                                    </span>
+                                    <span className="flex items-start gap-2 text-sm font-medium leading-5">
+                                        <TaskTypeIcon task={task} locale={locale} fallbackLabel={t[task.kind]} />
+                                        <span className="min-w-0 break-words">{task.title}</span>
+                                    </span>
+                                </button>
+                                <Assignee
+                                    task={task}
+                                    attempts={graph.executions.filter((item) => item.taskId === task.id)}
+                                    t={t}
+                                    locale={locale}
+                                    onError={onError}
+                                    className="px-0"
+                                />
+                                {task.progress != null && <Status value={task.status} progress={task.progress} t={t} />}
                                 <div className="flex items-center gap-3 border-t pt-2 text-xs text-muted-foreground">
                                     <span className="flex items-center gap-1">
                                         <GitBranch className="size-3.5" />
@@ -246,7 +260,7 @@ export function TaskBoard({
                                         {task.plannedStartAt ? dateTime(task.plannedStartAt, locale, true) : t.unknown}
                                     </span>
                                 </div>
-                            </button>
+                            </article>
                         ))}
                         {!items.length && (
                             <p className="rounded-lg border border-dashed p-6 text-center text-xs text-muted-foreground">

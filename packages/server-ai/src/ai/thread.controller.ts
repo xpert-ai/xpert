@@ -59,6 +59,7 @@ import { RunCreateStreamCommand, ThreadCreateCommand, ThreadDeleteCommand } from
 import { FindThreadQuery, SearchThreadsQuery } from './queries'
 import type { components } from './schemas/agent-protocol-schema'
 import { RedisSseStreamService, SseConnectionOwnerCandidate } from '../shared/stream'
+import { writeSseResponse } from '../shared/stream/write-sse-response'
 import {
     AssertChatConversationAccessQuery,
     CancelConversationCommand,
@@ -69,6 +70,8 @@ import { formatInUTC0 } from '../shared/utils'
 import { ChatConversationThreadService } from '../chat-conversation'
 import { assertPublicXpertSessionConversationAccess } from './public-xpert-principal'
 import { ThreadRunControlService } from '../chat-conversation/thread-run-control.service'
+import { CancelExternalAssistantCommand } from '../chat-conversation/commands/cancel-external-assistant.command'
+import { toAgentRunSummary } from './agent-run-summary'
 
 const SSE_HEARTBEAT_INTERVAL_MS = 30000
 const SSE_HEARTBEAT_COMMENT = ': keep-alive\n\n'
@@ -264,7 +267,6 @@ export class ThreadsController {
     @Header('content-type', 'text/event-stream')
     @Header('Connection', 'keep-alive')
     @Post(':thread_id/runs/stream')
-    @Sse()
     async runStream(
         @Req() req: Request,
         @Res() res: Response,
@@ -276,23 +278,15 @@ export class ThreadsController {
             const { stream, execution, streamTransport } = await this.commandBus.execute(
                 new RunCreateStreamCommand(thread_id, body)
             )
-            // The SDK uses this header to acknowledge an accepted run before
-            // consuming its potentially long-lived SSE response.
-            // SSE may flush headers while async run setup is pending. An optional
-            // acknowledgement header must not prevent subscribing the accepted run.
+            // @Res owns this response: admission completes before any SSE headers are flushed.
             if (!res.headersSent && !res.destroyed && !res.writableEnded) {
                 res.setHeader('Content-Location', `/api/ai/threads/${thread_id}/runs/${execution.id}`)
             }
             if (streamTransport === 'direct') {
                 startSseHeartbeat(res)
-                return stream
+                writeSseResponse(req, res, stream)
+                return
             }
-
-            stream.subscribe({
-                error: (err) => {
-                    console.error('Error in run stream:', err)
-                }
-            })
             const owner = buildSseConnectionOwner(req, {
                 mode: 'create',
                 lastEventId
@@ -309,8 +303,14 @@ export class ThreadsController {
                 this.redisSseStreamService.releaseConnection(thread_id, execution.id, connectionId).catch(() => null)
             })
 
+            // Capture the cursor before starting the producer, including fast initial events.
+            stream.subscribe({
+                error: (err) => {
+                    console.error('Error in run stream:', err)
+                }
+            })
             startSseHeartbeat(res)
-            return sseStream
+            writeSseResponse(req, res, sseStream)
         } catch (error) {
             console.error('Error starting run stream:')
             console.error(error)
@@ -417,7 +417,10 @@ export class ThreadsController {
 
     @Post(':thread_id/runs/:run_id/cancel')
     async cancelThreadRun(@Param('thread_id') thread_id: string, @Param('run_id') run_id: string) {
-        await this.ensureThreadRunAccess(thread_id, run_id, 'contribute')
+        const execution = await this.ensureThreadRunAccess(thread_id, run_id, 'contribute')
+        if (execution.metadata?.invocationKind === 'external_assistant') {
+            return this.commandBus.execute(new CancelExternalAssistantCommand(execution))
+        }
         // Cancel the run
         try {
             return await this.commandBus.execute(
@@ -433,18 +436,12 @@ export class ThreadsController {
     }
 
     @Post(':thread_id/runs/:run_id/pause')
-    async pauseRun(
-        @Param('thread_id') threadId: string,
-        @Param('run_id') runId: string,
-        @Body() body?: { displaySnapshot?: string }
-    ) {
+    @HttpCode(HttpStatus.ACCEPTED)
+    async pauseRun(@Param('thread_id') threadId: string, @Param('run_id') runId: string) {
         await this.ensureThreadRunAccess(threadId, runId, 'contribute')
         if (!this.threadRunControl) throw new UnimplementedException()
-        if (body?.displaySnapshot !== undefined && typeof body.displaySnapshot !== 'string')
-            throw new BadRequestException(
-                t('server-ai:Error.InvalidDisplaySnapshot', { defaultValue: 'Invalid paused display snapshot.' })
-            )
-        return this.threadRunControl.requestPause(threadId, runId, body?.displaySnapshot)
+        // Ignore legacy request bodies: a display snapshot cannot prevent cancellation or pause.
+        return this.threadRunControl.requestPause(threadId, runId)
     }
 
     @Delete(':thread_id/display-pause/:pause_id')
@@ -534,7 +531,7 @@ function transformRun(execution: IXpertAgentExecution) {
         created_at: execution.createdAt.toISOString(),
         updated_at: execution.updatedAt.toISOString(),
         status: execution.status,
-        metadata: execution.metadata as Metadata
+        metadata: { ...execution.metadata, agentRun: toAgentRunSummary(execution) } as Metadata
     } as Run
 }
 

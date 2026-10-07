@@ -38,6 +38,7 @@ import { Xpert } from '../../xpert/xpert.entity'
 import { avatarForChat } from '../../shared/avatar'
 import { registeredProjectTaskTypes, invalidProjectTaskType } from './project-task-types'
 import { AgentInvocationEntity } from '../../agent-invocation/invocation.entity'
+import { assertProjectTaskProgress } from './project-task-progress'
 
 export function projectTaskIdentity(projectId: string, provider: string, key: string): string {
     const hex = createHash('sha256')
@@ -91,6 +92,7 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
                         id: identity(item.key),
                         title: item.title,
                         status: item.status,
+                        progress: item.progress ?? null,
                         kind: item.kind,
                         taskType: item.taskType ?? null,
                         parentTaskId: item.parentKey ? identity(item.parentKey) : null,
@@ -108,6 +110,7 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
                     }))
                     validateProjectTaskGraph(nodes)
                     for (const item of snapshot.tasks) {
+                        assertProjectTaskProgress(item.progress)
                         if (!item.key.trim() || !item.title.trim()) throw Error('PROJECT_TASK_SOURCE_INVALID')
                         if (item.taskType != null && !taskTypes.has(item.taskType)) throw invalidProjectTaskType()
                         if (new Set(item.executions.map((execution) => execution.key)).size !== item.executions.length)
@@ -140,6 +143,7 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
                             name: item.title,
                             title: item.title,
                             status: item.status,
+                            ...(item.progress !== undefined ? { progress: item.progress } : {}),
                             kind: item.kind,
                             ...(item.taskType !== undefined ? { type: item.taskType } : {}),
                             providerKey: provider.key,
@@ -444,6 +448,7 @@ export function toProjectTaskNode(row: XpertProjectTask, executions: XpertProjec
         title: row.title ?? row.name,
         kind: row.kind ?? 'task',
         taskType: row.type ?? null,
+        progress: row.progress ?? null,
         status:
             row.status === 'completed'
                 ? 'done'

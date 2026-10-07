@@ -108,6 +108,34 @@ function createXpert(middlewares: MiddlewareFixture[]): QueryXpert {
 }
 
 describe('ResolvePromptWorkflowInvocationHandler', () => {
+    it('expands a manually submitted invocation with its args and keeps the invocation metadata', async () => {
+        const service = createPromptWorkflowService(
+            createCommandProfile({
+                hasProfile: true,
+                xpertCommands: [
+                    {
+                        sourceType: 'xpert',
+                        name: 'bid-technical-outline',
+                        actionType: 'insert_invocation',
+                        template: 'Autonomous instructions\nUser request: {{args}}'
+                    }
+                ]
+            })
+        )
+        const handler = createHandler(service, createMissingAgentMiddlewareRegistry())
+        const result = await handler.execute(
+            new ResolvePromptWorkflowInvocationQuery(createXpert([]), {
+                input: '/bid-technical-outline 编制技术标目录，完成后停止'
+            })
+        )
+        expect(result?.input.input).toBe('Autonomous instructions\nUser request: 编制技术标目录，完成后停止')
+        expect(result?.commandSource).toMatchObject({
+            name: 'bid-technical-outline',
+            kind: 'prompt_workflow',
+            executionType: 'insert_invocation'
+        })
+    })
+
     it('leaves composer-expanded and edited prompt text untouched even when it starts with a slash', async () => {
         const service = createPromptWorkflowService()
         const registry = createAgentMiddlewareRegistry([])
