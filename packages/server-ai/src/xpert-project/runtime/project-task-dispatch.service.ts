@@ -1,4 +1,3 @@
-import { projectTaskCard } from './project-task-card'
 import type { ConversationResourceCard } from '@xpert-ai/contracts'
 import { AgentInvocationAuthorizationError } from '../../agent-invocation/invocation-errors'
 // Invariants: commit the attempt and pinned intent before invoking an adapter.
@@ -29,6 +28,7 @@ import {
     ProjectTaskDispatchIntent,
     projectTaskDispatchIntentSchema
 } from './project-task-dispatch.schema'
+import { ProjectTaskCardProvider } from './project-task-card.provider'
 import { ProjectTaskRuntimeContextService } from './project-task-runtime-context.service'
 import { projectTaskRuntimeError } from './project-task-runtime.errors'
 import {
@@ -41,7 +41,8 @@ export class ProjectTaskDispatchService {
     constructor(
         @InjectRepository(XpertProjectTaskExecution) private readonly executions: Repository<XpertProjectTaskExecution>,
         private readonly context: ProjectTaskRuntimeContextService,
-        private readonly factory: AgentInvocationFactoryService
+        private readonly factory: AgentInvocationFactoryService,
+        private readonly cards: ProjectTaskCardProvider
     ) {}
 
     async dispatch(
@@ -315,7 +316,7 @@ export class ProjectTaskDispatchService {
             taskExecutionId: execution.id,
             invocationId: invocation.id,
             status: invocation.status,
-            card: projectTaskCard({
+            card: this.cards.createCard({
                 type: 'execution',
                 id: execution.id,
                 title: execution.specificationSnapshot.specification.title,

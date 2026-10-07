@@ -1,5 +1,6 @@
 jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
 import { Test } from '@nestjs/testing'
+import { DataSource } from 'typeorm'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { randomUUID } from 'node:crypto'
 import { ProjectTaskDispatchInput } from '@xpert-ai/contracts'
@@ -13,6 +14,8 @@ import { agentInvocationId } from '../../agent-invocation/invocation-runtime'
 import { ProjectTaskRuntimeContextService } from './project-task-runtime-context.service'
 import { ProjectTaskDispatchService } from './project-task-dispatch.service'
 import { ProjectTaskCaller } from './project-task-dispatch.schema'
+import { ProjectTaskCardProvider } from './project-task-card.provider'
+import { XpertProjectAccessService } from '../services/project-access.service'
 
 async function fixture() {
     const scope: AgentInvocationScope = {
@@ -130,6 +133,9 @@ async function fixture() {
     const module = await Test.createTestingModule({
         providers: [
             ProjectTaskDispatchService,
+            ProjectTaskCardProvider,
+            { provide: DataSource, useValue: {} },
+            { provide: XpertProjectAccessService, useValue: {} },
             { provide: getRepositoryToken(XpertProjectTaskExecution), useValue: { ...executionRepo, manager } },
             { provide: ProjectTaskRuntimeContextService, useValue: context },
             { provide: AgentInvocationFactoryService, useValue: factory }

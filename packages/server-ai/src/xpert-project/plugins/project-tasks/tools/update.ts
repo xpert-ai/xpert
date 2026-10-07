@@ -1,9 +1,8 @@
-import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { tool } from '@langchain/core/tools'
-import { ChatMessageEventTypeEnum, TAgentRunnableConfigurable } from '@xpert-ai/contracts'
+import { TAgentRunnableConfigurable } from '@xpert-ai/contracts'
 import { z } from 'zod/v3'
 import { XpertProjectTaskService } from '../../../services'
-import { PROJECT_TASKS_MIDDLEWARE, ProjectToolEnum } from '../constants'
+import { ProjectToolEnum } from '../constants'
 
 export const createUpdateTasksTool = ({
     projectId,
@@ -41,16 +40,6 @@ export const createUpdateTasksTool = ({
                     }
                 }
             }
-
-            // Tool message event
-            await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
-                category: 'Computer',
-                toolset: PROJECT_TASKS_MIDDLEWARE,
-                tool: 'project_update_tasks',
-                message: _.tasks.map((_) => _.name).join('\n\n'),
-                title: await service.translate('xpert.Project.UpdatingTasks'),
-                data: tasks
-            })
 
             return `Tasks updated!`
         },

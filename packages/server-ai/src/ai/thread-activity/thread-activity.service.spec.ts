@@ -1,124 +1,131 @@
-jest.mock('@xpert-ai/plugin-sdk', () => ({ RequestContext: { currentUserId: () => 'viewer' } }))
 jest.mock('../../xpert-agent-execution/agent-execution.entity', () => ({ XpertAgentExecution: class {} }))
 jest.mock('../../chat-message/chat-message.entity', () => ({ ChatMessage: class {} }))
-jest.mock('../../xpert-project/entities/project-task.entity', () => ({ XpertProjectTask: class {} }))
-jest.mock('../../xpert-project/entities/project-task-execution.entity', () => ({ XpertProjectTaskExecution: class {} }))
-jest.mock('../../agent-invocation/invocation.entity', () => ({ AgentInvocationEntity: class {} }))
-jest.mock('../../xpert-project/services/project-access.service', () => ({ XpertProjectAccessService: class {} }))
-jest.mock('i18next', () => ({ t: (key: string) => key }))
-import { DataSource } from 'typeorm'
+import { CommandBus } from '@nestjs/cqrs'
+import { DataSource, In, IsNull } from 'typeorm'
 import { createResourceCardContent, IChatConversation } from '@xpert-ai/contracts'
 import { ThreadActivityService } from './thread-activity.service'
 import { XpertAgentExecution } from '../../xpert-agent-execution/agent-execution.entity'
 import { ChatMessage } from '../../chat-message/chat-message.entity'
-import { XpertProjectTaskExecution } from '../../xpert-project/entities/project-task-execution.entity'
-import { AgentInvocationEntity } from '../../agent-invocation/invocation.entity'
-import { XpertProjectAccessService } from '../../xpert-project/services/project-access.service'
-import { projectTaskCard } from '../../xpert-project/runtime/project-task-card'
+import { RefreshConversationResourceCardsCommand } from '../../chat-message/commands/refresh-resource-cards.command'
 
 function fixture() {
     const date = new Date('2026-10-06T00:00:00Z')
     const runs = {
         find: jest.fn().mockResolvedValue([{ id: 'run', status: 'success', createdAt: date, updatedAt: date }])
     }
-    const card = createResourceCardContent(
-        projectTaskCard({ type: 'execution', id: 'attempt', title: 'Original title', status: 'running', attempt: 1 })
-    )
+    const card = createResourceCardContent({
+        resource: { namespace: 'example.resources', type: 'result', id: 'result' },
+        title: 'Original title',
+        open: { target: 'workbench.view', viewKey: 'example.resources__results' }
+    })
     const query = {
         select: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
-        getMany: jest.fn().mockResolvedValue([{ id: 'message', executionId: 'run', content: [card] }])
+        getMany: jest.fn().mockResolvedValue([
+            {
+                id: 'message',
+                executionId: 'run',
+                content: [
+                    { type: 'text', text: 'Result' },
+                    { ...card, messageId: 'forged-message', executionId: 'forged-run' }
+                ]
+            }
+        ])
     }
     const messages = {
         find: jest.fn().mockResolvedValue([{ executionId: 'run', updatedAt: date }]),
         createQueryBuilder: () => query
     }
-    const attempts = {
-        findOneBy: jest.fn().mockResolvedValue({
-            id: 'attempt',
-            taskId: 'task',
-            invocationId: 'invocation',
-            attempt: 1,
-            purpose: { type: 'implementation' }
-        })
-    }
-    const invocations = {
-        findOneBy: jest.fn().mockResolvedValue({
-            invocation: {
-                scope: { parentExecutionId: 'run' },
-                status: 'succeeded',
-                request: {
-                    target: { provider: 'opencode' },
-                    dispatch: {
-                        projectTask: { projectId: 'project', projectTaskId: 'task', taskExecutionId: 'attempt' }
-                    }
-                }
-            }
-        })
-    }
     const dataSource = {
         getRepository: (entity: unknown) => {
             if (entity === XpertAgentExecution) return runs
             if (entity === ChatMessage) return messages
-            if (entity === XpertProjectTaskExecution) return attempts
-            if (entity === AgentInvocationEntity) return invocations
-            throw new Error('Unexpected entity')
+            throw new Error('Thread activity must only read runs and messages')
         }
     } as unknown as DataSource
-    const projects = { assertCanRead: jest.fn() }
-    const service = new ThreadActivityService(dataSource, projects as unknown as XpertProjectAccessService)
+    const projected = {
+        ...card,
+        data: { ...card.data, description: 'Updated' },
+        messageId: 'message',
+        executionId: 'run'
+    }
+    const commands = { execute: jest.fn().mockResolvedValue([projected]) }
+    const service = new ThreadActivityService(dataSource, commands as unknown as CommandBus)
     const conversation = {
         id: 'conversation',
         tenantId: 'tenant',
-        organizationId: 'org',
-        projectId: 'project'
+        organizationId: 'org'
     } as IChatConversation
-    return { service, conversation, runs, messages, attempts, invocations, projects, query }
+    return { service, conversation, runs, messages, query, commands, card, projected }
 }
 
-describe('authorized thread activity projection', () => {
-    it('binds a card to its persisted message and scopes all execution reads', async () => {
+describe('thread activity discovery', () => {
+    it('keeps completed runs and message revisions while delegating generic bound cards', async () => {
         const f = fixture()
         const snapshot = await f.service.snapshot(f.conversation, 'thread')
-        expect(f.projects.assertCanRead).toHaveBeenCalledWith('project')
+        const scope = { tenantId: 'tenant', organizationId: 'org' }
         expect(f.runs.find).toHaveBeenCalledWith(
             expect.objectContaining({
-                where: expect.objectContaining({ tenantId: 'tenant', organizationId: 'org', threadId: 'thread' })
+                where: { ...scope, threadId: 'thread', parentId: IsNull() }
             })
         )
-        expect(f.attempts.findOneBy).toHaveBeenCalledWith(
-            expect.objectContaining({ projectId: 'project', conversationId: 'conversation', threadId: 'thread' })
+        expect(f.query.where).toHaveBeenCalledWith({
+            ...scope,
+            conversationId: 'conversation',
+            role: 'ai',
+            executionId: In(['run'])
+        })
+        expect(f.commands.execute).toHaveBeenCalledWith(
+            new RefreshConversationResourceCardsCommand(f.conversation, 'thread', [
+                { ...f.card, messageId: 'message', executionId: 'run' }
+            ])
         )
-        expect(f.invocations.findOneBy).toHaveBeenCalledWith({
-            id: 'invocation',
-            tenantId: 'tenant',
-            organizationId: 'org',
-            ownerId: 'viewer'
+        expect(snapshot).toEqual({
+            version: 1,
+            threadId: 'thread',
+            runs: [
+                {
+                    id: 'run',
+                    status: 'success',
+                    createdAt: '2026-10-06T00:00:00.000Z',
+                    updatedAt: '2026-10-06T00:00:00.000Z',
+                    messageRevision: '2026-10-06T00:00:00.000Z'
+                }
+            ],
+            cards: [f.projected]
         })
-        expect(snapshot.cards[0]).toMatchObject({
-            messageId: 'message',
-            executionId: 'run',
-            data: { title: 'Original title' }
+    })
+
+    it('does not resolve cards when there are no executions', async () => {
+        const f = fixture()
+        f.runs.find.mockResolvedValue([])
+        expect(await f.service.snapshot(f.conversation, 'thread')).toEqual({
+            version: 1,
+            threadId: 'thread',
+            runs: [],
+            cards: []
         })
-        expect(snapshot.cards[0].data.description).toContain('succeeded')
-        expect(snapshot.cards[0].data.description).not.toContain('done')
-        expect(snapshot.runs[0].messageRevision).toBe('2026-10-06T00:00:00.000Z')
-    })
-    it('does not expose another Computer owner’s execution or foreign project attempts', async () => {
-        const f = fixture()
-        f.invocations.findOneBy.mockResolvedValue(null)
-        const snapshot = await f.service.snapshot(f.conversation, 'thread')
-        expect(snapshot.cards[0].data.description).toContain('restricted')
-        expect(snapshot.cards[0].data.description).not.toContain('opencode')
-        f.attempts.findOneBy.mockResolvedValue(null)
-        expect((await f.service.snapshot(f.conversation, 'thread')).cards).toEqual([])
-    })
-    it('stops projecting cards when project permission is revoked', async () => {
-        const f = fixture()
-        f.projects.assertCanRead.mockRejectedValue(new Error('Forbidden'))
-        await expect(f.service.snapshot(f.conversation, 'thread')).rejects.toThrow('Forbidden')
-        expect(f.attempts.findOneBy).not.toHaveBeenCalled()
         expect(f.query.getMany).not.toHaveBeenCalled()
+        expect(f.commands.execute).not.toHaveBeenCalled()
+    })
+
+    it('ignores malformed cards and text without guessing resource types', async () => {
+        const f = fixture()
+        f.query.getMany.mockResolvedValue([
+            { id: 'text', executionId: 'run', content: 'Created task' },
+            { id: 'invalid', executionId: 'run', content: [{ type: 'resource_card', data: {} }] }
+        ])
+        f.commands.execute.mockResolvedValue([])
+        expect((await f.service.snapshot(f.conversation, 'thread')).cards).toEqual([])
+        expect(f.commands.execute).toHaveBeenCalledWith(
+            new RefreshConversationResourceCardsCommand(f.conversation, 'thread', [])
+        )
+    })
+
+    it('propagates host dispatch failures instead of silently publishing an incomplete snapshot', async () => {
+        const f = fixture()
+        f.commands.execute.mockRejectedValue(new Error('Forbidden'))
+        await expect(f.service.snapshot(f.conversation, 'thread')).rejects.toThrow('Forbidden')
     })
 })

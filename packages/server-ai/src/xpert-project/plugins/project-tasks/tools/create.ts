@@ -1,18 +1,8 @@
-import { emitResourceCard } from '@xpert-ai/plugin-sdk'
-import { Logger } from '@nestjs/common'
-import { projectTaskCard } from '../../../runtime/project-task-card'
-import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { tool } from '@langchain/core/tools'
-import {
-    ChatMessageEventTypeEnum,
-    ChatMessageStepCategory,
-    getToolCallFromConfig,
-    IXpertProjectTask,
-    TAgentRunnableConfigurable
-} from '@xpert-ai/contracts'
+import { getToolCallFromConfig, IXpertProjectTask, TAgentRunnableConfigurable } from '@xpert-ai/contracts'
 import { z } from 'zod/v3'
 import { XpertProjectTaskService } from '../../../services'
-import { PROJECT_TASKS_MIDDLEWARE, ProjectToolEnum } from '../constants'
+import { ProjectToolEnum } from '../constants'
 
 export const createCreateTasksTool = ({
     projectId,
@@ -42,10 +32,6 @@ export const createCreateTasksTool = ({
                     steps: taskInput.steps?.map((step, i) => ({ ...step, stepIndex: i + 1, status: 'pending' }))
                 } as IXpertProjectTask)
                 tasks.push(task)
-                await emitResourceCard(
-                    projectTaskCard({ type: 'task', id: task.id, title: task.title || task.name, status: task.status }),
-                    config
-                ).catch(() => Logger.warn('Committed task card could not be emitted', 'ProjectTasks'))
                 if (conversationId) {
                     await service.linkConversation(projectId, task.id, {
                         conversationId,
@@ -56,17 +42,7 @@ export const createCreateTasksTool = ({
                 }
             }
 
-            // Tool message event
-            await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
-                id: toolCall?.id,
-                category: 'Computer',
-                type: ChatMessageStepCategory.Tasks,
-                toolset: PROJECT_TASKS_MIDDLEWARE,
-                tool: 'project_create_tasks',
-                message: _.tasks.map((_) => _.name).join('\n\n'),
-                title: await service.translate('xpert.Project.CreatingTasks'),
-                data: tasks
-            })
+            // The normal tool step records creation; only an actual delegation emits a resource card.
             return {
                 tasks: tasks.map((task) => ({
                     id: task.id,

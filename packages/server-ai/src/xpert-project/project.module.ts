@@ -1,5 +1,6 @@
 import { ProjectTaskDispatchRecoveryService } from './runtime/project-task-dispatch-recovery.service'
 import { ProjectRuntimeObservationHandler } from './runtime/project-runtime-observation.handler'
+import { ProjectTaskCardProvider } from './runtime/project-task-card.provider'
 import { AgentInvocationModule } from '../agent-invocation/agent-invocation.module'
 import { XpertAgentExecution } from '../xpert-agent-execution/agent-execution.entity'
 import { ProjectTaskRuntimeContextService } from './runtime/project-task-runtime-context.service'
@@ -146,6 +147,7 @@ import { ProjectTaskDecisionService } from './runtime/project-task-decision.serv
         ProjectTaskDecisionService,
         ProjectTaskDispatchRecoveryService,
         ProjectRuntimeObservationHandler,
+        ProjectTaskCardProvider,
         ProjectTasksMiddleware,
         ProjectTaskRuntimeContextService,
         ProjectTaskDispatchService,

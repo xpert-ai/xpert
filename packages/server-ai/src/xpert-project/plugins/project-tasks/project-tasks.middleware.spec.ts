@@ -3,6 +3,7 @@ jest.mock('@langchain/core/callbacks/dispatch', () => ({ dispatchCustomEvent: je
 import { CommandBus } from '@nestjs/cqrs'
 import { DiscoveryService, Reflector } from '@nestjs/core'
 import { randomUUID } from 'node:crypto'
+import { dispatchCustomEvent } from '@langchain/core/callbacks/dispatch'
 import { isUserAddableAgentMiddleware, IWFNMiddleware, TXpertGraph, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
 import { AgentMiddlewareRegistry, IAgentMiddlewareContext } from '@xpert-ai/plugin-sdk'
 import { getAgentMiddlewares } from '../../../shared/agent/middleware'
@@ -23,6 +24,7 @@ function fixture() {
         findAll: jest.fn(async () => ({ items: [] })),
         observeExecutions: jest.fn(async () => []),
         createTask: jest.fn(),
+        linkConversation: jest.fn(),
         updateTaskSteps: jest.fn(),
         listTaskRelations: jest.fn(),
         updateExecution: jest.fn(),
@@ -66,13 +68,35 @@ function fixture() {
 
 const dispatchInput = () => ({
     taskId: randomUUID(),
-    requestId: randomUUID(),
     bindingId: randomUUID(),
     expectedRevision: 1
 })
 const createInput = () => ({ tasks: [{ name: 'Task', requirements: ['Evidence'], steps: [] }] })
 
 describe('built-in Project Tasks Plugin', () => {
+    it('records task creation without a duplicate resource card or legacy Computer component', async () => {
+        const { strategy, context, tasks } = fixture()
+        const id = randomUUID()
+        tasks.createTask.mockResolvedValue({
+            id,
+            name: 'Task',
+            projectId: context.projectId,
+            revision: 1,
+            status: 'todo'
+        })
+        jest.mocked(dispatchCustomEvent).mockClear()
+        const tool = strategy
+            .createMiddleware({}, context)
+            .tools.find((item) => item.name === ProjectToolEnum.CreateTasks)
+        const result = await tool.invoke(createInput(), { configurable: { tool_call_id: 'create-task' } })
+        expect(result).toMatchObject({ tasks: [{ id, status: 'todo' }] })
+        expect(tasks.linkConversation).toHaveBeenCalledWith(
+            context.projectId,
+            id,
+            expect.objectContaining({ relationType: 'origin' })
+        )
+        expect(dispatchCustomEvent).not.toHaveBeenCalled()
+    })
     it('is discovered as a selectable built-in middleware with seven localized tools', () => {
         const { registry, strategy, context } = fixture()
         expect(registry.get(PROJECT_TASKS_MIDDLEWARE)).toBe(strategy)
@@ -94,7 +118,6 @@ describe('built-in Project Tasks Plugin', () => {
             createInput(),
             { tasks: [{ id: randomUUID(), steps: [] }] },
             {
-                requestId: randomUUID(),
                 taskId: randomUUID(),
                 expectedRevision: 1,
                 implementationExecutionId: randomUUID(),

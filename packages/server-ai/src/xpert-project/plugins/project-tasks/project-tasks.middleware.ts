@@ -65,6 +65,8 @@ export class ProjectTasksMiddleware implements IAgentMiddlewareStrategy<z.output
             const name = this.getToolNames().find((name) => name === tool.name)
             tool.metadata = { ...tool.metadata, toolName: PROJECT_TASK_TOOL_TITLES[name] }
             tool.verboseParsingErrors = true
+            tool.description +=
+                ' In user-facing replies, summarize the task name, executor, outcome and next step concisely. Keep IDs, revisions, request IDs, bindings and evidence references in tool calls; only show them when the user explicitly asks for diagnostics. Execution cards already show delegation status.'
         }
         return { name: PROJECT_TASKS_MIDDLEWARE, tools }
     }

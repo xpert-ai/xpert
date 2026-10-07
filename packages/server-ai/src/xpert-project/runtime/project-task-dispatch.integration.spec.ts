@@ -33,6 +33,8 @@ import { TypeOrmAgentInvocationStore } from '../../agent-invocation/typeorm-invo
 import { AgentInvocationRuntime } from '../../agent-invocation/invocation-runtime'
 import { AgentInvocationFactoryService } from '../../agent-invocation/invocation-factory.service'
 import { ProjectTaskDispatchService } from './project-task-dispatch.service'
+import { ProjectTaskCardProvider } from './project-task-card.provider'
+import { XpertProjectAccessService } from '../services/project-access.service'
 import { ProjectTaskRuntimeContextService } from './project-task-runtime-context.service'
 import { ProjectTaskCaller } from './project-task-dispatch.schema'
 
@@ -139,6 +141,7 @@ integration('explicit task delegation / PostgreSQL', () => {
     let database: DataSource
     let store: TypeOrmAgentInvocationStore
     let service: ProjectTaskDispatchService
+    let cards: ProjectTaskCardProvider
     let factory: AgentInvocationFactoryService
     let scope: AgentInvocationScope
     let caller: ProjectTaskCaller
@@ -312,7 +315,16 @@ integration('explicit task delegation / PostgreSQL', () => {
             capabilities,
             database.getRepository(AgentInvocationEntity)
         )
-        service = new ProjectTaskDispatchService(database.getRepository(XpertProjectTaskExecution), context, factory)
+        cards = new ProjectTaskCardProvider(
+            database,
+            Object.create(XpertProjectAccessService.prototype) as XpertProjectAccessService
+        )
+        service = new ProjectTaskDispatchService(
+            database.getRepository(XpertProjectTaskExecution),
+            context,
+            factory,
+            cards
+        )
     })
 
     it('dispatches for the built-in Project general agent without fabricating an Assistant ID', async () => {
@@ -455,7 +467,12 @@ integration('explicit task delegation / PostgreSQL', () => {
         expect(saved.dispatchState).toBe('pending')
         scope.parentExecutionId = randomUUID()
         caller.executionId = scope.parentExecutionId
-        service = new ProjectTaskDispatchService(database.getRepository(XpertProjectTaskExecution), context, factory)
+        service = new ProjectTaskDispatchService(
+            database.getRepository(XpertProjectTaskExecution),
+            context,
+            factory,
+            cards
+        )
         const receipt = await service.dispatch(scope.projectId, input, caller)
         expect(receipt.invocationId).toBe(saved.invocationId)
         expect(receipt.taskExecutionId).toBe(saved.id)
