@@ -1,5 +1,6 @@
 import type {
     IconDefinition,
+    PromptWorkflowActionType,
     SkillMetadata,
     SkillPromptWorkflow,
     SkillSlashCommand,
@@ -120,6 +121,7 @@ export type RuntimePromptWorkflowCommandInput = {
     argsHint?: string
     template: string
     tags: string[]
+    actionType?: PromptWorkflowActionType
     scenarios?: PromptWorkflowScenario[]
     runtimeCapabilities?: TRuntimeCapabilitiesSelection
 }
@@ -188,6 +190,12 @@ export function parseRuntimePromptWorkflowCommandSource(
         aliases: readStringList(source.aliases),
         argsHint: readTrimmedString(source.argsHint),
         template,
+        actionType:
+            source.actionType === 'insert_text' ||
+            source.actionType === 'insert_invocation' ||
+            source.actionType === 'submit_prompt'
+                ? source.actionType
+                : undefined,
         scenarios: isPromptWorkflowScenarios(source.scenarios) ? source.scenarios : undefined,
         tags: readStringList(source.tags),
         runtimeCapabilities: normalizeRuntimeCapabilitiesSelection(source.runtimeCapabilities)

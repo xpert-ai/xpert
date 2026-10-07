@@ -525,6 +525,7 @@ export class PromptWorkflowService extends XpertWorkspaceBaseService<PromptWorkf
             name,
             template,
             label: normalizeOptionalString(entry.label),
+            actionType: entry.actionType,
             description: normalizeOptionalString(entry.description),
             icon: normalizeIcon(entry.icon),
             category: normalizeOptionalString(entry.category),
@@ -546,6 +547,7 @@ export class PromptWorkflowService extends XpertWorkspaceBaseService<PromptWorkf
             workspaceId: workflow.workspaceId,
             name: normalizeCommandName(entry.name) ?? workflow.name,
             template: normalizeOptionalString(entry.template) ?? workflow.template,
+            actionType: entry.actionType ?? workflow.actionType,
             label: normalizeOptionalString(entry.label) ?? workflow.label,
             description: normalizeOptionalString(entry.description) ?? workflow.description,
             icon: normalizeIcon(entry.icon) ?? workflow.icon,
@@ -572,6 +574,7 @@ export class PromptWorkflowService extends XpertWorkspaceBaseService<PromptWorkf
             aliases: workflow.aliases,
             argsHint: workflow.argsHint,
             template: workflow.template,
+            actionType: workflow.actionType,
             scenarios: workflow.scenarios,
             tags: workflow.tags,
             visibility: workflow.visibility,
@@ -689,6 +692,12 @@ function normalizeCommandProfileEntry(value: unknown): TXpertCommandProfileEntry
         aliases: normalizeStringArray(record.aliases),
         argsHint: normalizeOptionalString(record.argsHint),
         template: normalizeOptionalString(record.template),
+        actionType:
+            record.actionType === 'insert_text' ||
+            record.actionType === 'insert_invocation' ||
+            record.actionType === 'submit_prompt'
+                ? record.actionType
+                : undefined,
         runtimeCapabilities: record.runtimeCapabilities,
         availability: asRecord(record.availability) as TXpertCommandProfileEntry['availability']
     }
