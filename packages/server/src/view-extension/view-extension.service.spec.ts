@@ -2,6 +2,8 @@ import { ForbiddenException } from '@nestjs/common'
 import { RequestContext } from '../core/context'
 import {
 	AGENT_PROFILE_TABS_SLOT,
+	AGENT_WORKBENCH_SLOT,
+	LEGACY_AGENT_WORKBENCH_SLOTS,
 	ApiKeyBindingType,
 	type IApiPrincipal,
 	type XpertViewActionRequest,
@@ -144,11 +146,11 @@ describe('ViewExtensionService file actions', () => {
 		expect(provider.getViewManifests).toHaveBeenCalledWith(expect.objectContaining({ capabilities: {} }), 'main')
 	})
 
-	it.each(['agent.workbench.fixed', 'agent.workbench.main'])(
-		'supports existing %s clients and direct endpoints',
+	it.each([AGENT_WORKBENCH_SLOT, ...LEGACY_AGENT_WORKBENCH_SLOTS])(
+		'normalizes %s discovery to the unified slot and keeps direct endpoints working',
 		async (slot) => {
 			const { service, provider, hostDefinition, permissionService } = createService()
-			Object.assign(hostDefinition.slots[0], { key: slot })
+			Object.assign(hostDefinition.slots[0], { key: AGENT_WORKBENCH_SLOT })
 			provider.getViewManifests.mockImplementation(async (_context, slot) =>
 				slot === 'agent.workbench'
 					? [
@@ -170,7 +172,7 @@ describe('ViewExtensionService file actions', () => {
 			const [view] = await service.listSlotViews('agent', 'assistant-1', slot)
 			expect(view).toMatchObject({
 				key: 'provider__review',
-				slot,
+				slot: AGENT_WORKBENCH_SLOT,
 				workbench: { fixed: true, openMode: 'on-demand' }
 			})
 			expect(view.workbench?.fixed).toBe(true)
@@ -195,22 +197,26 @@ describe('ViewExtensionService file actions', () => {
 		)
 	})
 
-	it.each([AGENT_PROFILE_TABS_SLOT, 'agent.workbench.fixed', 'agent.workbench.main'])(
+	it.each([AGENT_PROFILE_TABS_SLOT, AGENT_WORKBENCH_SLOT, ...LEGACY_AGENT_WORKBENCH_SLOTS])(
 		'rechecks Feature activation for %s data and actions after discovery',
 		async (slot) => {
 			const { service, provider, hostDefinition } = createService()
 			Object.assign(hostDefinition.slots[0], {
-				key: slot,
+				key: slot === AGENT_PROFILE_TABS_SLOT ? slot : AGENT_WORKBENCH_SLOT,
 				manifestPolicy: { requireFeatureActivation: true }
 			})
-			provider.getViewManifests.mockResolvedValue([
-				{
-					...manifest,
-					slot,
-					activation: { requiredFeatures: ['case-profile'] },
-					dataSource: { mode: 'platform', cache: { enabled: false } }
-				}
-			])
+			provider.getViewManifests.mockImplementation(async (_context, requested) =>
+				requested === slot
+					? [
+							{
+								...manifest,
+								slot,
+								activation: { requiredFeatures: ['case-profile'] },
+								dataSource: { mode: 'platform', cache: { enabled: false } }
+							}
+						]
+					: []
+			)
 			let features = ['case-profile']
 			hostDefinition.resolve.mockImplementation(async () => ({
 				workspaceId: 'workspace-1',

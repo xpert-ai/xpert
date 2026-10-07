@@ -14,8 +14,8 @@ import { ConflictException } from '@nestjs/common'
 import { t } from 'i18next'
 import { EntityManager, IsNull } from 'typeorm'
 import { z } from 'zod'
-import { CopilotCheckpoint } from '../copilot-checkpoint/copilot-checkpoint.entity'
-import { ChatMessage } from '../chat-message/chat-message.entity'
+import { CopilotCheckpoint } from '../../copilot-checkpoint/copilot-checkpoint.entity'
+import { ChatMessage } from '../../chat-message/chat-message.entity'
 
 const checkpointSchema = z
     .object({

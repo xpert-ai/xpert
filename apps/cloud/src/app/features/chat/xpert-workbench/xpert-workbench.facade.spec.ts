@@ -299,7 +299,7 @@ describe('XpertWorkbenchFacade', () => {
       key: 'platform.project-tasks__timeline',
       title: 'Tasks',
       hostType: 'agent',
-      slot: 'agent.workbench.fixed',
+      slot: 'agent.workbench',
       source: { provider: 'platform.project-tasks' },
       view: { type: 'table' },
       dataSource: { mode: 'platform' }

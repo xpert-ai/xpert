@@ -7,7 +7,7 @@ const manifest: XpertExtensionViewManifest = {
   key: 'platform.project-tasks__timeline',
   title: { en_US: 'Tasks' },
   hostType: 'agent',
-  slot: 'agent.workbench.fixed',
+  slot: 'agent.workbench',
   source: { provider: 'platform.project-tasks' },
   view: {
     type: 'remote_component',
@@ -45,7 +45,7 @@ describe('embedded ChatKit Workbench host bridge', () => {
   it('uses current server declarations and dispatches the exact execution to existing host commands', async () => {
     const { run, getSlotViews, execute } = setup()
     expect(await run(request)).toEqual({ success: true, status: 'opened' })
-    expect(getSlotViews).toHaveBeenCalledWith('agent', 'assistant', 'agent.workbench.fixed', {
+    expect(getSlotViews).toHaveBeenCalledWith('agent', 'assistant', 'agent.workbench', {
       runtimeScope: { projectId: 'project', conversationId: 'current' }
     })
     expect(execute).toHaveBeenCalledWith(request.commandKey, request.payload, {
@@ -124,7 +124,7 @@ describe('persisted Resource Card navigation', () => {
     async (projectId) => {
       const { handler, getSlotViews } = cards(true, projectId)
       expect(await handler(cardRequest)).toEqual({ success: true })
-      expect(getSlotViews).toHaveBeenCalledWith('agent', 'assistant', 'agent.workbench.fixed', {
+      expect(getSlotViews).toHaveBeenCalledWith('agent', 'assistant', 'agent.workbench', {
         runtimeScope: { projectId: 'project' }
       })
     }

@@ -197,7 +197,7 @@ function createAssistantProfileMethods(ClientError) {
           payload?.target === 'workbench.view' &&
           identifier(payload.viewKey)
         ) {
-          const available = await views(this, session.botId, 'agent.workbench.fixed')
+          const available = await views(this, session.botId, 'agent.workbench')
           const exact = available.find((view) => view.key === payload.viewKey)
           const aliases = available.filter((view) => view.key.endsWith(`__${payload.viewKey}`))
           const target = exact || (aliases.length === 1 ? aliases[0] : null)

@@ -5,7 +5,7 @@ import { RequestContext } from '@xpert-ai/plugin-sdk'
 import type { XpertResolvedViewHostContext } from '@xpert-ai/contracts'
 import { ChatConversationService } from '../conversation.service'
 import { ChatConversationThreadService } from '../conversation-thread.service'
-import { ConversationBranchService } from '../conversation-branch.service'
+import { ConversationBranchCommand } from '../conversation-branch/branch.command'
 import { WorkbenchAssistantConversationNavigationService } from '../workbench-assistant-conversation-navigation.service'
 import { XpertProjectService } from '../../xpert-project/project.service'
 import { XpertProjectAccessService } from '../../xpert-project/services/project-access.service'
@@ -59,8 +59,8 @@ function fixture() {
         }),
         copyThread: jest.fn().mockResolvedValue({ threadId: 'copied' })
     })
-    const branches = Object.assign(Object.create(ConversationBranchService.prototype), {
-        branch: jest.fn().mockResolvedValue({ id: 'new', threadId: 'new' })
+    const commands = Object.assign(Object.create(CommandBus.prototype), {
+        execute: jest.fn().mockResolvedValue({ id: 'new', threadId: 'new' })
     })
     const projects = Object.assign(Object.create(XpertProjectService.prototype), {
         findAvailableForXpert: jest.fn().mockResolvedValue({ items: [{ id: projectId, name: 'Project' }], total: 1 }),
@@ -79,15 +79,14 @@ function fixture() {
     const service = new ConversationMapService(
         conversations,
         threads,
-        branches,
         projects,
         access,
         published,
         navigation,
-        Object.create(CommandBus.prototype),
+        commands,
         Object.create(DataSource.prototype)
     )
-    return { service, conversations, repository, threads, branches, access, projects, navigation }
+    return { service, conversations, repository, threads, commands, access, projects, navigation }
 }
 beforeEach(() => {
     jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user')
@@ -241,7 +240,7 @@ describe('ConversationMapService', () => {
         expect(f.conversations.assertAccess).toHaveBeenCalledWith(conversationId, 'manage')
         expect(f.conversations.update).not.toHaveBeenCalled()
     })
-    it('passes the stable retry key and exact source to existing side-chat and branch services', async () => {
+    it('passes the stable retry key and exact source to side-chat and the branch command', async () => {
         const f = fixture()
         await f.service.act(context, { type: 'side-chat', conversationId, threadId: 'main', requestId: 'retry' })
         expect(f.threads.copyThread).toHaveBeenCalledWith('main', { requestId: 'retry' })
@@ -252,11 +251,13 @@ describe('ConversationMapService', () => {
             messageId: 'answer',
             requestId: 'retry'
         })
-        expect(f.branches.branch).toHaveBeenCalledWith(conversationId, {
-            sourceThreadId: 'main',
-            afterMessageId: 'answer',
-            requestId: 'retry'
-        })
+        expect(f.commands.execute).toHaveBeenCalledWith(
+            new ConversationBranchCommand(conversationId, {
+                sourceThreadId: 'main',
+                afterMessageId: 'answer',
+                requestId: 'retry'
+            })
+        )
     })
     it('paginates matches inside a conversation without dropping or repeating a hit', async () => {
         const f = fixture()

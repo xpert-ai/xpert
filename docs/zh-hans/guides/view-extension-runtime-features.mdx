@@ -16,44 +16,41 @@ View Extension 是 xpert-pro 面向插件和平台模块的扩展视图协议。
 - provider 可以为 `remote_component` 提供 iframe HTML entry。
 - view manifest 可以通过 `hostEvents` 声明监听宿主侧事件，并由 remote page 自定义刷新逻辑。
 
-## Host 与 Slot
+## Hosts and Slots
 
-宿主对象通过 `ViewHostDefinition` 暴露可扩展 slot。例如 agent host 提供：
+Host objects declare extension areas through `ViewHostDefinition`. The Assistant host exposes one canonical Workbench slot:
 
 ```ts
 readonly slots: XpertViewSlot[] = [
   { key: 'detail.sidebar', mode: 'sidebar', order: 0 },
-  { key: 'agent.workbench.main', mode: 'sections', order: 10 },
-  { key: 'agent.workbench.fixed', mode: 'sections', order: 20 }
+  {
+    key: 'agent.workbench',
+    mode: 'sections',
+    order: 10,
+    manifestPolicy: { requireFeatureActivation: true }
+  },
+  { key: 'agent.profile.tabs', mode: 'tabs', order: 30, manifestPolicy: { requireFeatureActivation: true } }
 ]
 ```
 
-slot key 必须描述宿主能力，而不是某个消费端页面或具体业务插件。具体业务名称应留在插件 provider、tool 或 view key 中。
+Slot keys describe host extension areas. Business-specific names belong in provider, tool, or view keys. Other host slots include `detail.main_tabs` and `detail.sections`. New Assistant Workbench providers should use `AGENT_WORKBENCH_SLOT` from `@xpert-ai/contracts`, whose value is `agent.workbench`.
 
-常见 slot 命名：
+## Workbench Opening Policy
 
-- `detail.main_tabs`
-- `detail.sections`
-- `detail.sidebar`
-- `agent.workbench.fixed`
-- `agent.workbench.main`
-
-## Workbench 打开策略
-
-Assistant Workbench 保留 `agent.workbench.fixed` 和 `agent.workbench.main` 两个现有 slot，Cloud 与 ChatKit 继续使用 fixed，iOS 继续使用 main。是否可用由宿主、Feature 激活和权限共同决定，打开策略独立配置：
+Cloud, Desktop, and iOS request `agent.workbench`. Host access, Feature activation, and resource permissions determine availability. Opening behavior is configured separately:
 
 ```typescript
 workbench: {
-  openMode: 'on-demand', // 'auto'（默认）：初始打开；'on-demand'：按需打开
+  openMode: 'on-demand', // 'auto' (default) opens initially; 'on-demand' opens when requested
   menu: { enabled: true, order: 50 }
 }
 ```
 
-`on-demand` 视图可由菜单、显式导航或当前会话的 `workbench.view.open` 事件打开。打开后的数据、动作、参数、刷新和执行记录能力与 `auto` 视图一致。`menu.enabled: false` 仅隐藏手动入口，Agent 与导航仍可打开已授权的视图。
+On-demand views can open through a menu, explicit navigation, or the current conversation's `workbench.view.open` event. Once open, they support the same data, actions, parameters, refresh, and execution navigation as automatically opened views. `menu.enabled: false` hides the manual entry without disabling authorized navigation or Agent requests.
 
-`workbench.fixed: false` 保留原有禁用语义，不表示按需打开。`openMode` 是独立的打开策略，省略时保持自动打开。
+Legacy `workbench.fixed: false` retains its hidden-view behavior; it does not mean on-demand opening. Use `visible` for visibility and `openMode` for opening policy in new manifests.
 
-服务端保留原有 slot API，并优先使用 Provider 对当前 slot 的声明。已安装的过渡版插件如果只声明 `agent.workbench`，入口适配会把该声明映射到客户端请求的现有 slot，再执行 Feature 和权限校验；插件新源码应使用现有 slot，无需全端同步改名。
+The host accepts old requests to `agent.workbench.fixed` and `agent.workbench.main` as aliases and returns manifests under `agent.workbench`. A provider's nonempty canonical catalog takes precedence. If it is empty, the host reads both legacy slots and deduplicates by view key, preferring the complete fixed declaration when keys collide. Feature and permission checks still apply after normalization.
 
 ## Provider Manifest
 

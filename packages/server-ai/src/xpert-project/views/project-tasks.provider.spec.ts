@@ -48,12 +48,12 @@ async function fixture() {
 describe('shared project task View', () => {
     it('advertises an on-demand Agent view behind its feature and current project', async () => {
         const { provider } = await fixture()
-        expect(provider.getViewManifests(agent, 'agent.workbench.fixed')[0]).toMatchObject({
+        expect(provider.getViewManifests(agent, 'agent.workbench')[0]).toMatchObject({
             icon: { type: 'svg', value: expect.stringContaining('<svg') },
             workbench: { openMode: 'on-demand' },
             activation: { requiredFeatures: ['project.tasks'] }
         })
-        expect(provider.getViewManifests({ ...agent, runtimeScope: undefined }, 'agent.workbench.fixed')).toEqual([])
+        expect(provider.getViewManifests({ ...agent, runtimeScope: undefined }, 'agent.workbench')).toEqual([])
         expect(provider.getViewManifests(project, 'task.management')[0].workbench).toBeUndefined()
     })
     it('uses the runtime project rather than the Assistant id or UI-supplied identifiers', async () => {

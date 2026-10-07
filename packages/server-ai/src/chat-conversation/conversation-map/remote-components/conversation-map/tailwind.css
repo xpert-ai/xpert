@@ -1,0 +1,32 @@
+@import 'tailwindcss';
+@import '../../../../../../shadcn-ui/src/styles.css';
+@import '@xyflow/react/dist/style.css';
+@source './src';
+@source '../../../../../../shadcn-ui/src';
+@custom-variant dark (&:where(.dark, .dark *));
+:root {
+    font-family: Inter, system-ui, sans-serif;
+    color-scheme: light;
+}
+:root.dark {
+    color-scheme: dark;
+}
+html,
+body,
+#root {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}
+.react-flow {
+    --xy-background-color: var(--background);
+    --xy-edge-stroke: var(--muted-foreground);
+    --xy-controls-button-background-color: var(--background);
+    --xy-controls-button-color: var(--foreground);
+    --xy-minimap-background-color: var(--background);
+}
+.react-flow__node:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
+}

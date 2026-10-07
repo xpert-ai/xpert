@@ -5,8 +5,6 @@ export const KNOWLEDGE_WORKBENCH_VIEW_KEY = 'knowledgebase_workbench'
 export const KNOWLEDGE_WORKBENCH_REMOTE_ENTRY_KEY = 'knowledge-workbench'
 export const KNOWLEDGE_WORKBENCH_CONTEXT_KEY = 'knowledgebase_workbench'
 export const XPERT_VISUALIZATION_META_KEY = 'xpertai/visualization'
-export const AGENT_WORKBENCH_MAIN_SLOT = 'agent.workbench.main'
-export const AGENT_WORKBENCH_FIXED_SLOT = 'agent.workbench.fixed'
 
 export const KNOWLEDGE_WORKBENCH_SEARCH_TOOL = 'knowledgebase_workbench_search'
 export const KNOWLEDGE_WORKBENCH_LIST_DOCUMENTS_TOOL = 'knowledgebase_workbench_list_documents'

@@ -3,7 +3,7 @@
 import type { TConversationBranchNaming } from '@xpert-ai/contracts'
 import { t } from 'i18next'
 import { EntityManager } from 'typeorm'
-import { ChatConversation } from './conversation.entity'
+import { ChatConversation } from '../conversation.entity'
 
 /** Allocate the next family number atomically with target creation, without parsing display suffixes. */
 export async function allocateBranchTitle(

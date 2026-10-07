@@ -58,7 +58,7 @@ describe('conversation map links', () => {
       key: 'map',
       title: 'Map',
       hostType: 'agent',
-      slot: 'agent.workbench.fixed',
+      slot: 'agent.workbench',
       source: { provider: 'platform.conversation-map' },
       view: { type: 'remote_component' as const, component: { isolation: 'iframe' as const, entry: 'map' } },
       dataSource: { mode: 'platform' as const }

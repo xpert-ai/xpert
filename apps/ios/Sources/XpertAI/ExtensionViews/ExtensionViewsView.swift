@@ -98,7 +98,7 @@ public struct ExtensionViewsView: View {
             let loaded = try await session.apiClient.slotViews(
                 hostType: "agent",
                 hostId: xpert.id,
-                slot: "agent.workbench.main"
+                slot: "agent.workbench"
             )
             manifests = loaded.sorted { ($0.order ?? 0) < ($1.order ?? 0) }
             if selectedViewKey.flatMap({ key in manifests.first { $0.key == key } }) == nil {
@@ -306,7 +306,7 @@ public struct ExtensionViewDetail: View {
             let views = try await session.apiClient.slotViews(
                 hostType: "agent",
                 hostId: xpertId,
-                slot: "agent.workbench.main"
+                slot: "agent.workbench"
             )
             manifest = views.first(where: { $0.key == viewKey })
             if manifest?.view.type != "remote_component" {

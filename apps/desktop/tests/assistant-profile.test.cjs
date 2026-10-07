@@ -23,8 +23,8 @@ function fixture() {
         return new Response('<!doctype html><script>window.parent.postMessage({type:"ready"},"*")</script>')
       if (url.includes('/slots/agent.profile.tabs/'))
         return Response.json(enabled ? [manifest, { ...manifest, key: 'hidden', visible: false }] : [])
-      if (url.includes('/slots/agent.workbench.fixed/'))
-        return Response.json([{ ...manifest, key: 'provider__studio', slot: 'agent.workbench.fixed' }])
+      if (url.includes('/slots/agent.workbench/'))
+        return Response.json([{ ...manifest, key: 'provider__studio', slot: 'agent.workbench' }])
       if (url.includes('/api/xpert/source/profile'))
         return Response.json({
           id: 'source',

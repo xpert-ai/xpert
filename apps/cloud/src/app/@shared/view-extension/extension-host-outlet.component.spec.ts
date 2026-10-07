@@ -56,7 +56,7 @@ function buildManifest(visibleActions: XpertViewActionDefinition[]): XpertExtens
     key: 'docx-editor',
     title: { en_US: 'DOCX Editor' },
     hostType: 'agent',
-    slot: 'agent.workbench.fixed',
+    slot: 'agent.workbench',
     source: { provider: 'docx-editor' },
     view: {
       type: 'remote_component',
@@ -103,7 +103,7 @@ describe('ExtensionHostOutletComponent runtime scope discovery', () => {
     fixture.componentRef.setInput('mode', 'single-view')
     fixture.componentRef.setInput('hostType', 'agent')
     fixture.componentRef.setInput('hostId', 'assistant-1')
-    fixture.componentRef.setInput('slot', 'agent.workbench.fixed')
+    fixture.componentRef.setInput('slot', 'agent.workbench')
     fixture.componentRef.setInput('viewKey', 'docx-editor')
     fixture.componentRef.setInput('runtimeScope', { projectId: 'project-member', conversationId: null })
     await settle(fixture)
@@ -117,7 +117,7 @@ describe('ExtensionHostOutletComponent runtime scope discovery', () => {
     fixture.detectChanges()
 
     expect(api.getSlotViews).toHaveBeenCalledTimes(2)
-    expect(api.getSlotViews).toHaveBeenLastCalledWith('agent', 'assistant-1', 'agent.workbench.fixed', {
+    expect(api.getSlotViews).toHaveBeenLastCalledWith('agent', 'assistant-1', 'agent.workbench', {
       runtimeScope: { projectId: 'project-member', conversationId: null }
     })
     expect(root.querySelector('[role="alert"]')).toBeNull()
@@ -144,13 +144,13 @@ describe('ExtensionHostOutletComponent runtime scope discovery', () => {
     fixture.componentRef.setInput('mode', 'single-view')
     fixture.componentRef.setInput('hostType', 'agent')
     fixture.componentRef.setInput('hostId', 'assistant-1')
-    fixture.componentRef.setInput('slot', 'agent.workbench.fixed')
+    fixture.componentRef.setInput('slot', 'agent.workbench')
     fixture.componentRef.setInput('viewKey', 'docx-editor')
     fixture.componentRef.setInput('runtimeScope', { projectId: 'project-editor', conversationId: null })
     fixture.componentRef.setInput('runtimeUserId', 'user-1')
     await settle(fixture)
 
-    expect(api.getSlotViews).toHaveBeenLastCalledWith('agent', 'assistant-1', 'agent.workbench.fixed', {
+    expect(api.getSlotViews).toHaveBeenLastCalledWith('agent', 'assistant-1', 'agent.workbench', {
       runtimeScope: { projectId: 'project-editor', conversationId: null }
     })
     const renderer = fixture.debugElement.query(By.directive(ViewRendererComponent))
@@ -163,7 +163,7 @@ describe('ExtensionHostOutletComponent runtime scope discovery', () => {
     await Promise.resolve()
     fixture.detectChanges()
 
-    expect(api.getSlotViews).toHaveBeenLastCalledWith('agent', 'assistant-1', 'agent.workbench.fixed', {
+    expect(api.getSlotViews).toHaveBeenLastCalledWith('agent', 'assistant-1', 'agent.workbench', {
       runtimeScope: { projectId: 'project-member', conversationId: null }
     })
     const pendingRenderer = fixture.debugElement.query(By.directive(ViewRendererComponent)).componentInstance

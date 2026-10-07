@@ -53,7 +53,7 @@ async function fixture() {
 describe('Scheduler Workbench detail', () => {
     it('is on demand, feature gated, and accepts task selection', async () => {
         const { provider } = await fixture()
-        expect(provider.getViewManifests(context, 'agent.workbench.fixed')[0]).toMatchObject({
+        expect(provider.getViewManifests(context, 'agent.workbench')[0]).toMatchObject({
             activation: { requiredFeatures: ['scheduler'] },
             workbench: { openMode: 'on-demand' },
             dataSource: { querySchema: { supportsSelection: true } }

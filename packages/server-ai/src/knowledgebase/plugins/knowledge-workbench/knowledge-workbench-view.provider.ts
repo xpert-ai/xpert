@@ -2,6 +2,7 @@ import { readFile } from 'fs/promises'
 import { createRequire } from 'module'
 import { dirname, join } from 'path'
 import {
+    AGENT_WORKBENCH_SLOT,
     ASSISTANT_CONTEXT_SET_COMMAND,
     ASSISTANT_CITATION_OPEN_EVENT,
     I18nObject,
@@ -27,8 +28,6 @@ import {
     XpertViewFileActionFile
 } from '@xpert-ai/plugin-sdk'
 import {
-    AGENT_WORKBENCH_FIXED_SLOT,
-    AGENT_WORKBENCH_MAIN_SLOT,
     KNOWLEDGE_WORKBENCH_FEATURE,
     KNOWLEDGE_WORKBENCH_ICON,
     KNOWLEDGE_WORKBENCH_PLUGIN_NAME,
@@ -117,11 +116,9 @@ export class KnowledgeWorkbenchViewProvider implements IXpertViewExtensionProvid
     }
 
     getViewManifests(_context: XpertResolvedViewHostContext, slot: string): XpertExtensionViewManifest[] {
-        if (slot !== AGENT_WORKBENCH_FIXED_SLOT && slot !== AGENT_WORKBENCH_MAIN_SLOT) {
+        if (slot !== AGENT_WORKBENCH_SLOT) {
             return []
         }
-
-        const isFixedWorkbenchView = slot === AGENT_WORKBENCH_FIXED_SLOT
 
         return [
             {
@@ -139,19 +136,15 @@ export class KnowledgeWorkbenchViewProvider implements IXpertViewExtensionProvid
                 activation: {
                     requiredFeatures: [KNOWLEDGE_WORKBENCH_FEATURE]
                 },
-                ...(isFixedWorkbenchView
-                    ? {
-                          workbench: {
-                              fixed: true,
-                              menu: {
-                                  enabled: true,
-                                  label: text('Knowledgebase', '知识库'),
-                                  order: 30,
-                                  icon: KNOWLEDGE_WORKBENCH_VIEW_ICON
-                              }
-                          }
-                      }
-                    : {}),
+                workbench: {
+                    openMode: 'auto',
+                    menu: {
+                        enabled: true,
+                        label: text('Knowledgebase', '知识库'),
+                        order: 30,
+                        icon: KNOWLEDGE_WORKBENCH_VIEW_ICON
+                    }
+                },
                 source: {
                     provider: KNOWLEDGE_WORKBENCH_PROVIDER_KEY,
                     plugin: KNOWLEDGE_WORKBENCH_PLUGIN_NAME

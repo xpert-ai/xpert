@@ -10,7 +10,8 @@ import { attrModel, linkedModel, myRxResource, XpI18nPipe } from '@xpert-ai/head
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { isEqual, uniq } from 'lodash-es'
-import { forkJoin, map, of } from 'rxjs'
+import { AGENT_WORKBENCH_SLOT } from '@xpert-ai/contracts'
+import { of } from 'rxjs'
 import {
   injectXpertAgentAPI,
   isMiddlewareToolEnabled,
@@ -69,10 +70,7 @@ export class XpertWorkflowMiddlewareComponent extends XpertWorkflowBaseComponent
     request: () => ({ xpertId: this.xpertId(), provider: this.provider(), connections: this.connections() }),
     loader: ({ request }) =>
       request.xpertId
-        ? forkJoin([
-            this.#viewApi.getSlotViews('agent', request.xpertId, 'agent.workbench.fixed', { isDraft: true }),
-            this.#viewApi.getSlotViews('agent', request.xpertId, 'agent.workbench.main', { isDraft: true })
-          ]).pipe(map(([fixed, main]) => [...main, ...fixed]))
+        ? this.#viewApi.getSlotViews('agent', request.xpertId, AGENT_WORKBENCH_SLOT, { isDraft: true })
         : of([])
   })
   readonly middlewareFeatures = computed(() => middlewareFeatureItems(this.providerMeta(), this.#views.value() ?? []))

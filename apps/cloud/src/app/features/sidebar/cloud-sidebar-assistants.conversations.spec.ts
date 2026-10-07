@@ -3,6 +3,7 @@ import { discardPeriodicTasks, fakeAsync, TestBed, tick } from '@angular/core/te
 import { provideRouter, Router } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, Observable, of, Subject } from 'rxjs'
+import { XpertSettingsService } from '../../@core/services/xpert-settings.service'
 import {
   AiFeatureEnum,
   AssistantBindingService,
@@ -70,6 +71,8 @@ jest.mock('@xpert-ai/headless-ui', () => {
     ZardTooltipImports: [ZTooltipDirective]
   }
 })
+
+jest.mock('../../@core/services/xpert-settings.service', () => ({ XpertSettingsService: class {} }))
 
 jest.mock('../../@core', () => {
   class AssistantBindingService {}
@@ -242,7 +245,7 @@ describe('CloudSidebarAssistantsComponent', () => {
             title: { en_US: 'Open sales orders', zh_Hans: '未清销售订单' },
             icon: { type: 'emoji', value: '📦' },
             hostType: 'agent',
-            slot: 'agent.workbench.fixed',
+            slot: 'agent.workbench',
             source: { type: 'builtin' },
             view: {},
             dataSource: {},
@@ -278,6 +281,7 @@ describe('CloudSidebarAssistantsComponent', () => {
     await TestBed.configureTestingModule({
       imports: [TranslateModule.forRoot(), CloudSidebarAssistantsComponent],
       providers: [
+        { provide: XpertSettingsService, useValue: { open: jest.fn() } },
         provideRouter([{ path: '**', component: DummyComponent }]),
         {
           provide: AssistantBindingService,
@@ -375,7 +379,7 @@ describe('CloudSidebarAssistantsComponent', () => {
     await fixture.whenStable()
     fixture.detectChanges()
 
-    expect(viewExtensionApi.getSlotViews).toHaveBeenCalledWith('agent', 'other-xpert', 'agent.workbench.fixed')
+    expect(viewExtensionApi.getSlotViews).toHaveBeenCalledWith('agent', 'other-xpert', 'agent.workbench')
     expect(toggle.getAttribute('aria-expanded')).toBe('true')
     expect(fixture.nativeElement.querySelectorAll('.cloud-sidebar-assistants__children-label')).toHaveLength(1)
     expect(fixture.nativeElement.querySelector('.cloud-sidebar-assistants__children-label').textContent).toContain(
@@ -546,10 +550,9 @@ describe('CloudSidebarAssistantsComponent', () => {
     )
   })
 
-  it('routes normal assistant settings to the xpert studio page', async () => {
+  it('opens normal assistant settings through the settings service', async () => {
     const fixture = TestBed.createComponent(CloudSidebarAssistantsComponent)
-    const router = TestBed.inject(Router)
-    const navigateSpy = jest.spyOn(router, 'navigate').mockResolvedValue(true)
+    const settings = TestBed.inject(XpertSettingsService)
 
     fixture.detectChanges()
     await fixture.whenStable()
@@ -560,7 +563,7 @@ describe('CloudSidebarAssistantsComponent', () => {
     )[0]
     normalAssistantSettingsButton.click()
 
-    expect(navigateSpy).toHaveBeenCalledWith(['/xpert/x', 'other-xpert', 'agents'])
+    expect(settings.open).toHaveBeenCalledWith(expect.anything(), 'other-xpert')
   })
 
   it('routes the create shortcut to the selected workspace digital experts page', async () => {

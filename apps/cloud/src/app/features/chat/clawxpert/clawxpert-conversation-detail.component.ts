@@ -329,7 +329,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly activeChatkitThreadId = computed(
     () => this.#workbenchConversationScope()?.threadId ?? this.facade.threadId()
   )
-  readonly agentWorkbenchFixedSlot = AGENT_WORKBENCH_SLOT
+  readonly agentWorkbenchSlot = AGENT_WORKBENCH_SLOT
   readonly defaultFixedViewIcon = DEFAULT_FIXED_VIEW_ICON
   readonly startScreen = injectFrequentQuestionsStartScreen({
     xpert: computed(() => this.facade.currentXpert?.() ?? null),

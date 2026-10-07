@@ -250,7 +250,7 @@ describe('CloudSidebarAssistantsComponent', () => {
             title: { en_US: 'Open sales orders', zh_Hans: '未清销售订单' },
             icon: { type: 'emoji', value: '📦' },
             hostType: 'agent',
-            slot: 'agent.workbench.fixed',
+            slot: 'agent.workbench',
             source: { type: 'builtin' },
             view: {},
             dataSource: {},

@@ -22,6 +22,14 @@ The view extension surface has three layers. A feature is complete only when all
 
 Do not add a broad `execute(any)` method to `IXpertViewExtensionProvider`. Add a named optional method only when a capability has a known lifecycle, payload type, and security boundary.
 
+## Assistant Workbench Slot
+
+Use `AGENT_WORKBENCH_SLOT` from `@xpert-ai/contracts`, whose value is `agent.workbench`, for Assistant Workbench views. The host exposes one Workbench slot. Opening behavior belongs to `workbench.openMode` (`auto` or `on-demand`), and the manual menu entry is controlled by `workbench.menu.enabled`.
+
+For compatibility, the host accepts requests to `agent.workbench.fixed` and `agent.workbench.main` and normalizes them to `agent.workbench`. Responses use the canonical slot. If a provider returns no manifests for the canonical slot, the host reads both legacy slots and merges their views by key. A duplicate key uses the complete `fixed` declaration; distinct keys from either legacy slot remain available. A provider's nonempty canonical catalog takes precedence over its legacy declarations.
+
+Compatibility mapping preserves view keys, permissions, Feature activation, visibility, and opening preferences. It does not grant access. Legacy `workbench.fixed: false` still hides the view; new providers should use `visible` for visibility and `openMode` for opening behavior. Other host types and slots are unaffected.
+
 ## Message Envelope
 
 All iframe messages must use this envelope:

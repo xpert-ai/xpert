@@ -487,7 +487,7 @@ function buildFixedViewManifest(
     },
     icon: TEST_LAYOUT_ICON,
     hostType: 'agent',
-    slot: 'agent.workbench.fixed',
+    slot: 'agent.workbench',
     order: 50,
     source: {
       provider: 'test-provider'
@@ -771,7 +771,7 @@ describe('ClawXpertConversationDetailComponent', () => {
       })
     )
 
-    expect(viewExtensionApi.getSlotViews).toHaveBeenLastCalledWith('agent', 'assistant-1', 'agent.workbench.fixed', {
+    expect(viewExtensionApi.getSlotViews).toHaveBeenLastCalledWith('agent', 'assistant-1', 'agent.workbench', {
       runtimeScope: { projectId: null, conversationId: 'conversation-1' }
     })
     expect(aiThreadService.getThread).toHaveBeenCalledWith('thread-1')
@@ -831,7 +831,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
-    expect(viewExtensionApi.getSlotViews).toHaveBeenCalledWith('agent', 'assistant-1', 'agent.workbench.fixed', {
+    expect(viewExtensionApi.getSlotViews).toHaveBeenCalledWith('agent', 'assistant-1', 'agent.workbench', {
       runtimeScope: {
         projectId: 'project-1',
         conversationId: null
@@ -1670,7 +1670,7 @@ describe('ClawXpertConversationDetailComponent', () => {
 
     expect(fixture.componentInstance.fixedViewTabs()).toContainEqual(docxTab)
     expect(viewExtensionApi.getSlotViews.mock.calls.length).toBeGreaterThan(fixedViewLoadCount)
-    expect(viewExtensionApi.getSlotViews).toHaveBeenLastCalledWith('agent', 'assistant-1', 'agent.workbench.fixed', {
+    expect(viewExtensionApi.getSlotViews).toHaveBeenLastCalledWith('agent', 'assistant-1', 'agent.workbench', {
       runtimeScope: { projectId: 'project-2', conversationId: null }
     })
     const updatedDocxView = fixture.debugElement.query(By.directive(ExtensionHostOutletComponent)).componentInstance
@@ -1871,7 +1871,7 @@ describe('ClawXpertConversationDetailComponent', () => {
         mode: 'single-view',
         hostType: 'agent',
         hostId: 'assistant-1',
-        slot: 'agent.workbench.fixed',
+        slot: 'agent.workbench',
         viewKey: 'bom_document_intake_provider__bom_document_intake__review',
         fillAvailableHeight: true
       })

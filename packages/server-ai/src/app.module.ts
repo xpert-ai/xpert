@@ -7,6 +7,8 @@ import { AIModule } from './ai'
 import { AssistantBindingModule } from './assistant-binding'
 import { ChatModule } from './chat'
 import { ChatConversationModule } from './chat-conversation'
+import { ConversationBranchModule } from './chat-conversation/conversation-branch/conversation-branch.module'
+import { ConversationMapModule } from './chat-conversation/conversation-map/conversation-map.module'
 import { ChatMessageModule } from './chat-message'
 import { ChatMessageFeedbackModule } from './chat-message-feedback'
 import { ConnectorModule } from './connector/connector.module'
@@ -75,6 +77,8 @@ import { AgentPluginModule } from './agent-plugin/agent-plugin.module'
         AssistantBindingModule,
         ChatModule,
         ChatConversationModule,
+        ConversationBranchModule,
+        ConversationMapModule,
         ChatMessageModule,
         ChatMessageFeedbackModule,
         ConnectorModule,

@@ -1,0 +1,24 @@
+{
+    "extends": "../../../../../../../tsconfig.base.json",
+    "compilerOptions": {
+        "strict": true,
+        "strictPropertyInitialization": false,
+        "jsx": "react-jsx",
+        "esModuleInterop": true,
+        "module": "esnext",
+        "moduleResolution": "bundler",
+        "rootDir": "../../../../../../..",
+        "baseUrl": "../../../../../../..",
+        "paths": {
+            "@xpert-ai/contracts": ["packages/contracts/src/index.ts"],
+            "lucide-react": ["packages/shadcn-ui/node_modules/lucide-react"],
+            "@xpert-ai/shadcn-ui": ["packages/shadcn-ui/src/index.ts"],
+            "@/*": ["packages/shadcn-ui/src/*"]
+        },
+        "types": ["node", "react", "react-dom"],
+        "strictNullChecks": true,
+        "lib": ["es2022", "dom", "dom.iterable"]
+    },
+    "exclude": ["src/**/*.spec.ts"],
+    "include": ["src/**/*.ts", "src/**/*.tsx"]
+}

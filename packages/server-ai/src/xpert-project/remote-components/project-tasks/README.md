@@ -8,7 +8,7 @@ Assistant's Workbench. It has no application-specific imports or Bid rules.
 
 - Provider: `platform.project-tasks`; view: `timeline`.
 - Project host slot: `task.management`.
-- Assistant host slot: `agent.workbench.fixed`, feature: `project.tasks`, open mode:
+- Assistant host slot: `agent.workbench`, feature: `project.tasks`, open mode:
   `on-demand`. A project must be present in the host runtime scope.
 - Full view key: `platform.project-tasks__timeline`.
 - Host chrome supplies project context. The view starts with its four tabs;

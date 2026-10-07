@@ -17,7 +17,7 @@ import {
 	SecretTokenBindingType
 } from '@xpert-ai/contracts'
 import { RequestContext } from '../core/context'
-import { readProviderViewManifests } from './workbench-manifest'
+import { normalizeWorkbenchSlot, readProviderViewManifests } from './workbench-manifest'
 import { ViewHostDefinitionRegistry } from './host-definition.registry'
 import { ViewExtensionFileActionFile, ViewHostResolutionOptions } from './host-definition.interface'
 import { ViewExtensionPermissionService } from './view-extension.permission.service'
@@ -43,6 +43,7 @@ export class ViewExtensionService {
 	) {}
 
 	async listSlotViews(hostType: string, hostId: string, slot: string, options?: ViewHostResolutionOptions) {
+		slot = normalizeWorkbenchSlot(hostType, slot)
 		const context = await this.resolveHostContext(hostType, hostId, options)
 		this.ensureSlotExists(context, slot)
 

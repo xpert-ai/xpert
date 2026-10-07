@@ -116,7 +116,7 @@ describe('XpertWorkbenchInitialLayoutSettingsComponent', () => {
     const fixture = TestBed.createComponent(XpertWorkbenchInitialLayoutSettingsComponent)
     await settle(fixture)
 
-    expect(viewExtensionApi.getSlotViews).toHaveBeenCalledWith('agent', 'xpert-1', 'agent.workbench.fixed', {
+    expect(viewExtensionApi.getSlotViews).toHaveBeenCalledWith('agent', 'xpert-1', 'agent.workbench', {
       isDraft: true
     })
     expect(fixture.componentInstance.viewOptions()).toEqual([
@@ -151,7 +151,7 @@ function buildFixedViewManifest(key: string, title: string, order: number): Xper
     key,
     title: { en_US: title, zh_Hans: title },
     hostType: 'agent',
-    slot: 'agent.workbench.fixed',
+    slot: 'agent.workbench',
     order,
     source: { provider: 'test-provider' },
     workbench: { openMode: 'auto', menu: { enabled: true } },

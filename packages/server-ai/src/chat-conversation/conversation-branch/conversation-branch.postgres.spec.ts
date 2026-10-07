@@ -4,8 +4,8 @@ import { randomUUID } from 'node:crypto'
 import { Client } from 'pg'
 import { Repository } from 'typeorm'
 import { COPILOT_CHECKPOINT_RETENTION_ENABLED_SETTING } from '@xpert-ai/contracts'
-import { CopilotCheckpoint } from '../copilot-checkpoint/copilot-checkpoint.entity'
-import { CopilotCheckpointRetentionService } from '../copilot-checkpoint/retention.service'
+import { CopilotCheckpoint } from '../../copilot-checkpoint/copilot-checkpoint.entity'
+import { CopilotCheckpointRetentionService } from '../../copilot-checkpoint/retention.service'
 
 // Explicit opt-in, isolated schema; never uses the platform's configured database.
 const connectionString = process.env.CHATKIT_BRANCH_TEST_DATABASE_URL
@@ -35,7 +35,7 @@ postgres('conversation branch PostgreSQL migration and retention', () => {
     it('applies the nullable migration twice without fabricating old message anchors', async () => {
         const id = randomUUID()
         await client.query('INSERT INTO chat_message (id) VALUES ($1)', [id])
-        const migration = await readFile(join(__dirname, 'migrations/20260922-conversation-branch.sql'), 'utf8')
+        const migration = await readFile(join(__dirname, '../migrations/20260922-conversation-branch.sql'), 'utf8')
         await client.query(migration)
         await client.query(migration)
         expect(

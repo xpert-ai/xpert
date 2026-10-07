@@ -1,4 +1,5 @@
 import {
+    AGENT_WORKBENCH_SLOT,
     ASSISTANT_CITATION_OPEN_EVENT,
     WORKBENCH_FILE_OPEN_COMMAND,
     WORKBENCH_NAVIGATION_OPEN_COMMAND,
@@ -8,8 +9,6 @@ import { mkdir, mkdtemp, rm, writeFile } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import {
-    AGENT_WORKBENCH_FIXED_SLOT,
-    AGENT_WORKBENCH_MAIN_SLOT,
     KNOWLEDGE_WORKBENCH_FEATURE,
     KNOWLEDGE_WORKBENCH_REMOTE_ENTRY_KEY,
     KNOWLEDGE_WORKBENCH_TOOL_NAMES,
@@ -38,7 +37,7 @@ describe('KnowledgeWorkbenchViewProvider', () => {
         userId: 'user-1',
         hostType: 'agent',
         hostId: 'agent-1',
-        slots: [{ key: AGENT_WORKBENCH_MAIN_SLOT, mode: 'sections' }],
+        slots: [{ key: AGENT_WORKBENCH_SLOT, mode: 'sections' }],
         hostState: {
             agent: {
                 connections: [{ type: 'knowledgebase', id: 'kb-1' }]
@@ -46,20 +45,20 @@ describe('KnowledgeWorkbenchViewProvider', () => {
         }
     }
 
-    it('declares a fixed workbench remote component manifest', () => {
+    it('declares a unified workbench remote component manifest', () => {
         const provider = createProvider()
-        const [manifest] = provider.getViewManifests(context, AGENT_WORKBENCH_FIXED_SLOT)
+        const [manifest] = provider.getViewManifests(context, AGENT_WORKBENCH_SLOT)
 
         expect(manifest).toEqual(
             expect.objectContaining({
                 key: KNOWLEDGE_WORKBENCH_VIEW_KEY,
                 hostType: 'agent',
-                slot: AGENT_WORKBENCH_FIXED_SLOT,
+                slot: AGENT_WORKBENCH_SLOT,
                 activation: {
                     requiredFeatures: [KNOWLEDGE_WORKBENCH_FEATURE]
                 },
                 workbench: expect.objectContaining({
-                    fixed: true,
+                    openMode: 'auto',
                     menu: expect.objectContaining({
                         enabled: true
                     })
@@ -87,7 +86,7 @@ describe('KnowledgeWorkbenchViewProvider', () => {
 
     it('subscribes to knowledge workbench tool completion and citation open events', () => {
         const provider = createProvider()
-        const [manifest] = provider.getViewManifests(context, AGENT_WORKBENCH_MAIN_SLOT)
+        const [manifest] = provider.getViewManifests(context, AGENT_WORKBENCH_SLOT)
 
         expect(manifest.hostEvents?.subscriptions).toEqual(
             expect.arrayContaining([

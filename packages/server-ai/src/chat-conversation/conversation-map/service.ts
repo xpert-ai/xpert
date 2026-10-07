@@ -6,7 +6,7 @@ import { t } from 'i18next'
 import type { XpertResolvedViewHostContext } from '@xpert-ai/contracts'
 import { ChatConversationService } from '../conversation.service'
 import { ChatConversationThreadService } from '../conversation-thread.service'
-import { ConversationBranchService } from '../conversation-branch.service'
+import { ConversationBranchCommand } from '../conversation-branch/branch.command'
 import { ChatConversationUpsertCommand } from '../commands/upsert.command'
 import { ChatConversation } from '../conversation.entity'
 import { XpertProjectService } from '../../xpert-project/project.service'
@@ -21,7 +21,6 @@ export class ConversationMapService {
     constructor(
         private readonly conversations: ChatConversationService,
         private readonly threads: ChatConversationThreadService,
-        private readonly branches: ConversationBranchService,
         private readonly projects: XpertProjectService,
         private readonly access: XpertProjectAccessService,
         private readonly published: PublishedXpertAccessService,
@@ -351,11 +350,13 @@ export class ConversationMapService {
                 return this.target(context, conversation.id, thread.threadId)
             }
             case 'branch': {
-                const result = await this.branches.branch(conversation.id, {
-                    sourceThreadId: input.threadId,
-                    afterMessageId: input.messageId,
-                    requestId: input.requestId
-                })
+                const result = await this.commands.execute(
+                    new ConversationBranchCommand(conversation.id, {
+                        sourceThreadId: input.threadId,
+                        afterMessageId: input.messageId,
+                        requestId: input.requestId
+                    })
+                )
                 return this.target(context, result.id, result.threadId)
             }
             case 'locate':

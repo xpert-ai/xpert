@@ -1,6 +1,8 @@
 import {
     AIPermissionsEnum,
+    CONVERSATION_MAP_FEATURE,
     AGENT_PROFILE_TABS_SLOT,
+    AGENT_WORKBENCH_SLOT,
     getAgentMiddlewareNodes,
     IWFNMiddleware,
     IXpert,
@@ -43,9 +45,6 @@ import { ChatConversation } from '../../chat-conversation/conversation.entity'
 import { XpertProjectAccessService } from '../../xpert-project/services/project-access.service'
 import { XpertProjectXpertBindingService } from '../../xpert-project/services/project-xpert-binding.service'
 
-export const AGENT_WORKBENCH_MAIN_SLOT = 'agent.workbench.main'
-export const AGENT_WORKBENCH_FIXED_SLOT = 'agent.workbench.fixed'
-
 @Injectable()
 @ViewHostDefinition('agent')
 export class AgentViewHostDefinition implements ViewHostDefinitionContract {
@@ -54,15 +53,9 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
         { key: AGENT_PROFILE_TABS_SLOT, mode: 'tabs', order: 30, manifestPolicy: { requireFeatureActivation: true } },
         { key: 'detail.sidebar', mode: 'sidebar', order: 0 },
         {
-            key: AGENT_WORKBENCH_MAIN_SLOT,
+            key: AGENT_WORKBENCH_SLOT,
             mode: 'sections',
             order: 10,
-            manifestPolicy: { requireFeatureActivation: true }
-        },
-        {
-            key: AGENT_WORKBENCH_FIXED_SLOT,
-            mode: 'sections',
-            order: 20,
             manifestPolicy: { requireFeatureActivation: true }
         }
     ]
@@ -284,7 +277,7 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
         capabilities: XpertViewHostCapabilities
         hostState: XpertViewHostState
     }> {
-        const features = new Set<string>(this.getEnabledXpertFeatures(xpert.features))
+        const features = new Set<string>([CONVERSATION_MAP_FEATURE, ...this.getEnabledXpertFeatures(xpert.features)])
         const middlewareProviders = new Set<string>()
         const middlewareNodeKeys = new Set<string>()
         const graph = xpert.graph

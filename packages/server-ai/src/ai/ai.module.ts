@@ -58,7 +58,6 @@ import { RuntimeResourceController } from '../agent-plugin/runtime-resource.cont
 import { ConnectorModule } from '../connector/connector.module'
 import { ConnectorRuntimeController } from './connector-runtime.controller'
 import { ConversationBranchController } from './conversation-branch.controller'
-import { ConversationBranchService } from '../chat-conversation/conversation-branch.service'
 import { CopilotCheckpointModule } from '../copilot-checkpoint/copilot-checkpoint.module'
 import { SandboxModule } from '../sandbox/sandbox.module'
 import { SandboxRuntimeController } from './sandbox-runtime.controller'
@@ -144,7 +143,6 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
         AssistantFileAccessGuard,
         WorkbenchFilesAuthGuard,
         AssistantThreadScopeGuard,
-        ConversationBranchService,
         AiService,
         RuntimeCommandService,
         RuntimeCapabilitiesService,

@@ -9,7 +9,7 @@ const manifest: XpertExtensionViewManifest = {
   key: 'provider__timeline',
   title: 'Tasks',
   hostType: 'agent',
-  slot: 'agent.workbench.fixed',
+  slot: 'agent.workbench',
   source: { provider: 'provider' },
   view: { type: 'table' },
   dataSource: { mode: 'platform' }
@@ -47,7 +47,7 @@ describe('project View navigation without switching chat', () => {
     expect(await h.open(request)).toBe(true)
     expect(h.selectProject).not.toHaveBeenCalled()
     expect(h.routeKey()).toBe('assistant:project-a:thread-a')
-    expect(h.views.getSlotViews).toHaveBeenCalledWith('agent', 'assistant', 'agent.workbench.fixed', {
+    expect(h.views.getSlotViews).toHaveBeenCalledWith('agent', 'assistant', 'agent.workbench', {
       runtimeScope: { projectId: 'project-b' }
     })
     expect(h.tabs()[0]).toMatchObject({
