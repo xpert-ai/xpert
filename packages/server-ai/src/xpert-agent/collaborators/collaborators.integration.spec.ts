@@ -7,7 +7,7 @@ jest.mock('../../xpert-middleware/thread-reference.runtime', () => ({
     }))
 }))
 
-import { AIMessage, BaseMessage, HumanMessage, isToolMessage } from '@langchain/core/messages'
+import { AIMessage, BaseMessage, HumanMessage, ToolMessage, isToolMessage } from '@langchain/core/messages'
 import { RunnableConfig, RunnableLambda } from '@langchain/core/runnables'
 import { Command, END, interrupt, MemorySaver, START, StateGraph } from '@langchain/langgraph'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
@@ -22,7 +22,8 @@ import {
     STATE_VARIABLE_HUMAN,
     STATE_VARIABLE_SYS,
     TXpertGraph,
-    XpertParameterTypeEnum
+    XpertParameterTypeEnum,
+    type TAgentExecutionOutcome
 } from '@xpert-ai/contracts'
 import { Subscriber } from 'rxjs'
 import { emptyRuntimeResources, RuntimeResourceService } from '../../agent-plugin/runtime-resource.service'
@@ -50,6 +51,7 @@ import { THREAD_REFERENCE_MIDDLEWARE_NAME } from '../../xpert-middleware/thread-
 
 function fixture(
     settings: {
+        outcome?: TAgentExecutionOutcome
         dynamic?: boolean
         interruptBefore?: boolean
         interruptInside?: boolean
@@ -109,7 +111,24 @@ function fixture(
         if (settings.interruptInside) interrupt('Approve the review')
         childInvocations.push({ state, config })
         await settings.onChild?.(config)
-        return { messages: [new AIMessage('Reviewed case-1')] }
+        return {
+            messages: [
+                ...(settings.outcome
+                    ? [
+                          new ToolMessage({
+                              content: JSON.stringify(settings.outcome),
+                              tool_call_id: 'claim-call',
+                              artifact: {
+                                  type: 'agent_execution_outcome',
+                                  executionId: config.configurable.executionId,
+                                  outcome: settings.outcome
+                              }
+                          })
+                      ]
+                    : []),
+                new AIMessage('Reviewed case-1')
+            ]
+        }
     })
     const childGraph = settings.interruptInside
         ? new StateGraph(AgentStateAnnotation)
@@ -291,6 +310,39 @@ describe('Collaborators middleware in the Agent graph', () => {
         jest.spyOn(Logger.prototype, 'verbose').mockImplementation(() => undefined)
     })
     afterEach(() => jest.restoreAllMocks())
+
+    it('preserves domain outcomes in the parent reply, persisted metadata and live end event', async () => {
+        const outcome: TAgentExecutionOutcome = {
+            status: 'already_completed',
+            subjectId: 'task-1',
+            accepted: true,
+            versionId: 'version-1'
+        }
+        const f = fixture({ outcome })
+        const { graph } = await f.handler.execute(f.command)
+        const output = await graph.invoke(f.input, f.config)
+        const reply = output.messages.find((message) => isToolMessage(message) && message.name === 'review_case')
+        expect(JSON.parse(String(reply.content))).toEqual({
+            businessOutcome: outcome,
+            assistantMessage: 'Reviewed case-1'
+        })
+        expect([...f.executions.values()][0]).toMatchObject({
+            status: 'success',
+            metadata: { businessOutcome: outcome }
+        })
+        expect(f.events).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    data: expect.objectContaining({
+                        event: ChatMessageEventTypeEnum.ON_AGENT_END,
+                        data: expect.objectContaining({
+                            metadata: expect.objectContaining({ businessOutcome: outcome })
+                        })
+                    })
+                })
+            ])
+        )
+    })
 
     it.each([false, true])('executes %s dynamic experts and returns a tool result to the parent', async (dynamic) => {
         const f = fixture({ dynamic })

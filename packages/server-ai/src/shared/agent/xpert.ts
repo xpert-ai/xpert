@@ -25,6 +25,7 @@ import { wrapAgentExecution } from './execution'
 import { AgentStateAnnotation, TAgentSubgraphParams } from './state'
 import { IXpertSubAgent } from './types'
 import { GetXpertWorkflowQuery } from '../../xpert/queries'
+import { executionOutcome } from './execution-outcome'
 import { externalAssistantState } from './external-assistant-state'
 
 /**
@@ -186,10 +187,16 @@ export class XpertCollaborator implements IXpertSubAgent {
                                 result = lastMessage.content as string
                             }
 
+                            const businessOutcome = executionOutcome(output.messages, _execution.id)
+                            if (businessOutcome) {
+                                _execution.metadata = { ..._execution.metadata, businessOutcome }
+                                result = JSON.stringify({ businessOutcome, assistantMessage: lastMessage.content })
+                            }
+                            const returnedContent = businessOutcome ? result : lastMessage.content
                             const nState: Record<string, any> = {
                                 messages: [
                                     new ToolMessage({
-                                        content: lastMessage.content,
+                                        content: returnedContent,
                                         name: call.name,
                                         tool_call_id: call.id ?? ''
                                     })
@@ -197,7 +204,7 @@ export class XpertCollaborator implements IXpertSubAgent {
                                 [channelName(leaderKey)]: {
                                     messages: [
                                         new ToolMessage({
-                                            content: lastMessage.content,
+                                            content: returnedContent,
                                             name: call.name,
                                             tool_call_id: call.id ?? ''
                                         })

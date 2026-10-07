@@ -117,6 +117,7 @@ export enum XpertAgentExecutionStatusEnum {
 }
 
 export type TAgentExecutionMetadata = {
+  businessOutcome?: import('@xpert-ai/chatkit-types').TAgentExecutionOutcome
   /** Recorded by the invocation boundary; never inferred from agent names. */
   invocationKind?: 'external_assistant' | 'sub_agent'
   /** Tool call in the parent execution that started this run. Omit for workflow-driven runs. */
@@ -166,6 +167,7 @@ export type TAgentExecutionMetadata = {
 
 /** Public execution summary shared by live events and conversation history. */
 export type TChatAgentRunSummary = {
+  businessOutcome?: import('@xpert-ai/chatkit-types').TAgentExecutionOutcome
   /** Identifies the main reply and its total duration without inferring identity from agent names. */
   isRoot?: boolean
   id: string

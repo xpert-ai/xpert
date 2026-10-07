@@ -67,6 +67,35 @@ import { writeSseResponse } from '../shared/stream/write-sse-response'
 import { CancelExternalAssistantCommand } from '../chat-conversation/commands/cancel-external-assistant.command'
 
 describe('ThreadsController', () => {
+    it('returns the persisted expert status, error and elapsed time through the SDK run metadata', async () => {
+        const execution = {
+            id: 'expert',
+            threadId: 'thread',
+            status: 'interrupted',
+            error: 'Cancelled by user',
+            elapsedTime: 2700000,
+            createdAt: new Date('2026-10-02T08:00:00Z'),
+            updatedAt: new Date('2026-10-02T08:45:00Z'),
+            metadata: { invocationKind: 'external_assistant', sourceToolCallId: 'call' }
+        }
+        const queryBus = { execute: jest.fn().mockResolvedValue(execution) }
+        const controller = new ThreadsController({} as never, queryBus as never, {} as never, {} as never)
+        expect(await controller.getThreadRun('thread', 'expert')).toMatchObject({
+            run_id: 'expert',
+            thread_id: 'thread',
+            status: 'interrupted',
+            metadata: {
+                sourceToolCallId: 'call',
+                agentRun: {
+                    id: 'expert',
+                    status: 'interrupted',
+                    elapsedTime: 2700000,
+                    error: 'Cancelled by user',
+                    invocationKind: 'external_assistant'
+                }
+            }
+        })
+    })
     beforeEach(() => {
         jest.clearAllMocks()
         ;(getPublicXpertSessionConversationScope as jest.Mock).mockReturnValue(null)

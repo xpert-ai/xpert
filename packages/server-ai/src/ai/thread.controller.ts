@@ -69,6 +69,7 @@ import { ChatConversationThreadService } from '../chat-conversation'
 import { assertPublicXpertSessionConversationAccess } from './public-xpert-principal'
 import { ThreadRunControlService } from '../chat-conversation/thread-run-control.service'
 import { CancelExternalAssistantCommand } from '../chat-conversation/commands/cancel-external-assistant.command'
+import { toAgentRunSummary } from './agent-run-summary'
 
 const SSE_HEARTBEAT_INTERVAL_MS = 30000
 const SSE_HEARTBEAT_COMMENT = ': keep-alive\n\n'
@@ -505,7 +506,7 @@ function transformRun(execution: IXpertAgentExecution) {
         created_at: execution.createdAt.toISOString(),
         updated_at: execution.updatedAt.toISOString(),
         status: execution.status,
-        metadata: execution.metadata as Metadata
+        metadata: { ...execution.metadata, agentRun: toAgentRunSummary(execution) } as Metadata
     } as Run
 }
 
