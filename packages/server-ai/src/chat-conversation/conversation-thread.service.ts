@@ -142,9 +142,6 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
                 lock: { mode: 'pessimistic_write' }
             })
             if (!lockedSource) throw new NotFoundException(`Thread "${sourceThreadId}" not found`)
-            if (!editedMessage && lockedSource.status !== 'idle') {
-                throw new ConflictException('Only an idle thread can be copied')
-            }
 
             if (input.requestId) {
                 // Raw() receives the unescaped alias path; Postgres folds it to lower case.
@@ -156,14 +153,25 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
                     .andWhere(`thread.metadata ->> 'forkRequestId' = :requestId`, { requestId: input.requestId })
                     .getOne()
                 if (existing) {
-                    if (existing.forkedFromMessageId !== input.beforeMessageId)
-                        throw new ConflictException('Branch request does not match its source message')
+                    if (
+                        (existing.metadata.purpose === ChatThreadPurpose.MessageEdit
+                            ? existing.forkedFromMessageId
+                            : undefined) !== input.beforeMessageId
+                    )
+                        throw threadControlConflict(
+                            'BranchRequestInvalid',
+                            'Branch request does not match its source message.'
+                        )
                     existing.conversation = editedMessage
                         ? ((await this.promoteWorkingThread(manager, source.conversationId, existing.threadId)) ??
                           source.conversation)
                         : source.conversation
                     return existing
                 }
+            }
+
+            if (!editedMessage && lockedSource.status !== 'idle') {
+                throw new ConflictException('Only an idle thread can be copied')
             }
 
             const anchor = editedMessage?.inputCheckpoint
@@ -195,6 +203,7 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
                     purpose: ChatThreadPurpose.SideChat,
                     primary: false,
                     ...(input.metadata ?? {}),
+                    ...(input.requestId ? { forkRequestId: input.requestId } : {}),
                     ...(editedMessage
                         ? {
                               purpose: ChatThreadPurpose.MessageEdit,

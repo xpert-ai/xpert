@@ -142,6 +142,8 @@ export type TChatThreadPurpose = (typeof ChatThreadPurpose)[keyof typeof ChatThr
 
 /** Machine-readable keys stored in `ChatConversationThread.metadata`. */
 export type TChatThreadMetadata = {
+  /** User-editable branch label, independent of the conversation title. */
+  title?: string
   primary?: boolean
   purpose?: TChatThreadPurpose
   /** Graph revision the edited input was captured on; cleared after the first successful run. */

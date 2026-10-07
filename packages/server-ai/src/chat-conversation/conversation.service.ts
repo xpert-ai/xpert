@@ -177,6 +177,45 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
         throw this.conversationAccessDenied()
     }
 
+    /** Apply the same actor/project read policy before pagination and counts. */
+    async findReadableFamilyConversations(
+        xpertIds: string[],
+        projectId: string | null,
+        skip: number,
+        take: number
+    ): Promise<[ChatConversation[], number]> {
+        const actorId = RequestContext.currentUserId()
+        const tenantId = RequestContext.currentTenantId()
+        const organizationId = RequestContext.getOrganizationId()
+        if (!actorId || !tenantId || !xpertIds.length) return [[], 0]
+        if (projectId) await this.projectAccessService.assertCanRead(projectId)
+        const query = this.repository
+            .createQueryBuilder('conversation')
+            .where('conversation.tenantId = :tenantId', { tenantId })
+            .andWhere(
+                organizationId
+                    ? 'conversation.organizationId = :organizationId'
+                    : 'conversation.organizationId IS NULL',
+                { organizationId }
+            )
+            .andWhere('conversation.xpertId IN (:...xpertIds)', { xpertIds })
+        if (projectId) query.andWhere('conversation.projectId = :projectId', { projectId })
+        else
+            query
+                .leftJoin('conversation.xpert', 'xpert')
+                .andWhere('conversation.projectId IS NULL')
+                .andWhere(
+                    '(conversation.createdById = :actorId OR (xpert.createdById = :actorId AND xpert.userId = conversation.createdById))',
+                    { actorId }
+                )
+        return query
+            .orderBy('conversation.updatedAt', 'DESC')
+            .addOrderBy('conversation.id', 'DESC')
+            .skip(skip)
+            .take(take)
+            .getManyAndCount()
+    }
+
     private conversationAccessDenied() {
         return new ForbiddenException(
             t('server-ai:Error.ConversationAccessDenied', {

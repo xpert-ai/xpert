@@ -1150,6 +1150,13 @@
         }
     },
     "ConversationMap": {
+        "Unassigned": "未归入项目",
+        "Current": "当前讨论",
+        "History": "历史版本",
+        "SideChat": "旁聊",
+        "Branch": "分支",
+        "Untitled": "未命名对话",
+        "InvalidAction": "主题操作无效",
         "InvalidQuery": "查询条件无效"
     }
 }

@@ -1150,6 +1150,13 @@
         }
     },
     "ConversationMap": {
+        "Unassigned": "Unassigned",
+        "Current": "Current discussion",
+        "History": "Previous version",
+        "SideChat": "Side discussion",
+        "Branch": "Branch",
+        "Untitled": "Untitled conversation",
+        "InvalidAction": "Invalid topic action",
         "InvalidQuery": "Invalid map query"
     }
 }

@@ -218,6 +218,37 @@ describe('ChatConversationThreadService', () => {
         )
     })
 
+    it('returns the existing side chat on a retry even when the source has started another run', async () => {
+        const source = Object.assign(new ChatConversationThread(), {
+            id: 'source',
+            threadId: 'root',
+            conversationId: 'conversation',
+            status: 'busy',
+            conversation: { id: 'conversation' }
+        })
+        const existing = Object.assign(new ChatConversationThread(), {
+            threadId: 'side',
+            forkedFromMessageId: 'head',
+            metadata: { purpose: 'side-chat', forkRequestId: 'retry' }
+        })
+        const lookup = {
+            where: jest.fn().mockReturnThis(),
+            andWhere: jest.fn().mockReturnThis(),
+            getOne: jest.fn().mockResolvedValue(existing)
+        }
+        const repository = {
+            findOne: jest.fn().mockResolvedValue(source),
+            createQueryBuilder: jest.fn().mockReturnValue(lookup)
+        }
+        const manager = { getRepository: jest.fn().mockReturnValue(repository) }
+        const service = createService({
+            dataSource: { transaction: jest.fn(async (work) => work(manager)) } as unknown as Partial<DataSource>
+        })
+        jest.spyOn(service, 'requireByThreadId').mockResolvedValue(source)
+        expect(await service.copyThread('root', { requestId: 'retry' })).toBe(existing)
+        expect(source.status).toBe('busy')
+    })
+
     it('forks at the source head and copies checkpoint, writes, and goal state', async () => {
         const source = {
             id: 'source-row',
