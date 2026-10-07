@@ -38,6 +38,7 @@
         "RealtimeUnavailable": "实时语音暂不可用，请稍后重试。",
         "RealtimeCallAlreadyActive": "当前已有语音通话，请先挂断。",
         "RealtimeForbidden": "无法访问此语音会话。",
+        "RunOwnerLost": "执行连接已中断，进度未能完成保存。已完成的操作不会撤销。",
         "BosiOrganizationAccessDenied": "你无权访问当前组织。",
         "BosiWelcomeReconcileFailed": "暂时无法更新 Bosi 欢迎会话的状态。",
         "BosiBindingChanged": "助理绑定已发生变化，请刷新后继续。",

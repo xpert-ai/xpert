@@ -52,6 +52,48 @@ describe('thread pause at a persisted node boundary', () => {
         expect((await graph.getState(config)).values.value).toBe(2)
     })
 
+    it('waits for an in-flight tool and stops before admitting its successor', async () => {
+        const State = Annotation.Root({ value: Annotation<number> })
+        let pause = false
+        let started!: () => void
+        let finishTool!: () => void
+        const entered = new Promise<void>((resolve) => {
+            started = resolve
+        })
+        const completion = new Promise<void>((resolve) => {
+            finishTool = resolve
+        })
+        const first = jest.fn(async () => {
+            started()
+            await completion
+            return { value: 1 }
+        })
+        const second = jest.fn(() => ({ value: 2 }))
+        const builder = new StateGraph(State)
+            .addNode('tool', first)
+            .addNode('next', second)
+            .addEdge(START, 'tool')
+            .addEdge('tool', 'next')
+            .addEdge('next', END)
+        installThreadPauseGuards(builder.nodes, async () => pause)
+        const graph = builder.compile({ checkpointer: new PinnedMemorySaver() })
+        const config = { configurable: { thread_id: 'long-tool' } }
+        let settled = false
+        const running = graph.invoke({ value: 0 }, config).then(() => {
+            settled = true
+        })
+        await entered
+        pause = true
+        await Promise.resolve()
+        expect(settled).toBe(false)
+        expect(second).not.toHaveBeenCalled()
+        finishTool()
+        await running
+        expect((await graph.getState(config)).next).toEqual(['next'])
+        expect(first).toHaveBeenCalledTimes(1)
+        expect(second).not.toHaveBeenCalled()
+    })
+
     it('preserves pending writes from a completed parallel node across a pause', async () => {
         const State = Annotation.Root({
             values: Annotation<string[]>({ reducer: (a, b) => a.concat(b), default: () => [] })

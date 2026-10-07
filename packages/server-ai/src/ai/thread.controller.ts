@@ -406,18 +406,12 @@ export class ThreadsController {
     }
 
     @Post(':thread_id/runs/:run_id/pause')
-    async pauseRun(
-        @Param('thread_id') threadId: string,
-        @Param('run_id') runId: string,
-        @Body() body?: { displaySnapshot?: string }
-    ) {
+    @HttpCode(HttpStatus.ACCEPTED)
+    async pauseRun(@Param('thread_id') threadId: string, @Param('run_id') runId: string) {
         await this.ensureThreadRunAccess(threadId, runId, 'contribute')
         if (!this.threadRunControl) throw new UnimplementedException()
-        if (body?.displaySnapshot !== undefined && typeof body.displaySnapshot !== 'string')
-            throw new BadRequestException(
-                t('server-ai:Error.InvalidDisplaySnapshot', { defaultValue: 'Invalid paused display snapshot.' })
-            )
-        return this.threadRunControl.requestPause(threadId, runId, body?.displaySnapshot)
+        // Ignore legacy request bodies: a display snapshot cannot prevent cancellation or pause.
+        return this.threadRunControl.requestPause(threadId, runId)
     }
 
     @Delete(':thread_id/display-pause/:pause_id')

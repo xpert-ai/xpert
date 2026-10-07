@@ -56,6 +56,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiKeyOrClientSecretAuthGuard, TransformInterceptor } from '@xpert-ai/server-core'
 import { AddressInfo } from 'net'
 import { json } from 'express'
+import { ThreadRunControlService } from '../chat-conversation/thread-run-control.service'
 import { EMPTY, Subject } from 'rxjs'
 import { AiService } from './ai.service'
 import { RedisSseStreamService, SseMessageEvent } from '../shared/stream/redis-sse.service'
@@ -70,7 +71,7 @@ describe('ThreadsController', () => {
         ;(getPublicXpertSessionConversationScope as jest.Mock).mockReturnValue(null)
     })
 
-    it('forwards display snapshot and token only after contribution access checks', async () => {
+    it('accepts a bodyless pause only after contribution access checks', async () => {
         const queryBus = { execute: jest.fn().mockResolvedValue({ threadId: 'thread' }) }
         const controls = {
             requestPause: jest.fn().mockResolvedValue({ state: 'pausing' }),
@@ -84,9 +85,9 @@ describe('ThreadsController', () => {
             undefined,
             controls as never
         )
-        await controller.pauseRun('thread', 'run', { displaySnapshot: 'snapshot' })
+        await controller.pauseRun('thread', 'run')
         expect(queryBus.execute.mock.calls[0][0].operation).toBe('contribute')
-        expect(controls.requestPause).toHaveBeenCalledWith('thread', 'run', 'snapshot')
+        expect(controls.requestPause).toHaveBeenCalledWith('thread', 'run')
         await controller.releaseDisplayPause('thread', 'token')
         expect(queryBus.execute.mock.calls[2][0].operation).toBe('contribute')
         expect(controls.releaseDisplayPause).toHaveBeenCalledWith('thread', 'token')
@@ -374,6 +375,9 @@ describe('run stream HTTP admission with Nest interceptors', () => {
     let endpoint: string
     const commandBus = { execute: jest.fn() }
     const queryBus = { execute: jest.fn().mockResolvedValue({ threadId: 'thread-1' }) }
+    const controls = {
+        requestPause: jest.fn().mockResolvedValue({ executionId: 'run-1', state: 'pausing', pauseId: 'token' })
+    }
     const redis = { createSseStream: jest.fn(), releaseConnection: jest.fn().mockResolvedValue(true) }
 
     beforeAll(async () => {
@@ -385,6 +389,7 @@ describe('run stream HTTP admission with Nest interceptors', () => {
             providers: [
                 { provide: AiService, useValue: {} },
                 { provide: QueryBus, useValue: queryBus },
+                { provide: ThreadRunControlService, useValue: controls },
                 { provide: CommandBus, useValue: commandBus },
                 { provide: RedisSseStreamService, useValue: redis }
             ]
@@ -404,6 +409,32 @@ describe('run stream HTTP admission with Nest interceptors', () => {
     afterAll(async () => {
         await app?.close()
         ;(writeSseResponse as jest.Mock).mockReset()
+    })
+
+    it.each([undefined, { displaySnapshot: 42 }, { displaySnapshot: 'x'.repeat(2_800_000) }])(
+        'accepts a pause independent of legacy presentation bodies',
+        async (body) => {
+            controls.requestPause.mockClear()
+            const response = await fetch(endpoint.replace('/stream', '/run-1/pause'), {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                ...(body ? { body: JSON.stringify(body) } : {})
+            })
+            expect(response.status).toBe(202)
+            const result = await response.text()
+            expect(result.length).toBeLessThan(256)
+            expect(JSON.parse(result)).toEqual({ executionId: 'run-1', state: 'pausing', pauseId: 'token' })
+            expect(controls.requestPause).toHaveBeenCalledTimes(1)
+            expect(controls.requestPause).toHaveBeenCalledWith('thread-1', 'run-1')
+        }
+    )
+
+    it('rejects unauthorized pause before changing run state', async () => {
+        controls.requestPause.mockClear()
+        queryBus.execute.mockRejectedValueOnce(new ForbiddenException())
+        const response = await fetch(endpoint.replace('/stream', '/run-1/pause'), { method: 'POST' })
+        expect(response.status).toBe(403)
+        expect(controls.requestPause).not.toHaveBeenCalled()
     })
 
     it.each(['direct', 'redis'])('acknowledges an accepted %s run before it completes', async (transport) => {

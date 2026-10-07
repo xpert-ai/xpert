@@ -117,7 +117,7 @@ export type TChatMessageBranching = {
   reason?: TChatMessageBranchUnavailableReason
 }
 
-// Versioned client presentation state; never an execution checkpoint or model input.
+/** @deprecated Legacy presentation metadata. Run control no longer stores or returns display snapshots. */
 export type TChatThreadDisplayPause = {
   executionId: string
   pauseId: string

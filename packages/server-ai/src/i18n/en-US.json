@@ -38,6 +38,7 @@
         "RealtimeUnavailable": "Realtime voice is unavailable. Please retry.",
         "RealtimeCallAlreadyActive": "A voice call is already active. End it before starting another.",
         "RealtimeForbidden": "This voice session is not accessible.",
+        "RunOwnerLost": "Execution was interrupted before its progress could be finalized. Completed actions were not undone.",
         "BosiOrganizationAccessDenied": "You do not have access to the current organization.",
         "BosiWelcomeReconcileFailed": "Could not reconcile the Bosi welcome conversation status.",
         "BosiBindingChanged": "The assistant binding changed. Refresh before continuing.",
