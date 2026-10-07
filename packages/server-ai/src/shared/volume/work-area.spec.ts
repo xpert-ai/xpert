@@ -124,7 +124,7 @@ describe('XpertWorkAreaResolver', () => {
         expect(await fsPromises.readFile(file, 'utf8')).toBe('branch writes')
     })
 
-    it('mounts the project root but uses the xpert agent directory as the default cwd', async () => {
+    it('uses the project root as cwd and retains assistant memory and session namespaces', async () => {
         const workArea = await resolver.resolve({
             tenantId: 'tenant-1',
             userId: 'user-1',
@@ -141,8 +141,8 @@ describe('XpertWorkAreaResolver', () => {
             userId: 'user-1'
         })
         expect(workArea.workspaceRoot).toBe(tempRoot)
-        expect(workArea.workingDirectory).toBe(path.join(tempRoot, 'agents/xpert-1'))
-        expect(workArea.defaultPath.relativePath).toBe('agents/xpert-1')
+        expect(workArea.workingDirectory).toBe(tempRoot)
+        expect(workArea.defaultPath.relativePath).toBe('')
         expect(workArea.sharedPath?.workspacePath).toBe(path.join(tempRoot, 'shared'))
         expect(workArea.agentPath?.workspacePath).toBe(path.join(tempRoot, 'agents/xpert-1'))
         expect(workArea.sessionPath?.workspacePath).toBe(path.join(tempRoot, 'sessions/conversation-1'))
@@ -184,6 +184,19 @@ describe('XpertWorkAreaResolver', () => {
         await expect(fsPromises.stat(path.join(tempRoot, '.xpert/memory'))).resolves.toBeTruthy()
     })
 
+    it('shares project files between Assistants without sharing their memory namespaces', async () => {
+        const input = { tenantId: 'tenant-1', userId: 'user-1', projectId: 'project-1' }
+        const first = await resolver.resolve({ ...input, xpertId: 'first' })
+        const second = await resolver.resolve({ ...input, xpertId: 'second' })
+        expect(first.workingDirectory).toBe(tempRoot)
+        expect(second.workingDirectory).toBe(first.workingDirectory)
+        expect(second.memoryPath.serverPath).not.toBe(first.memoryPath.serverPath)
+        await fsPromises.writeFile(path.join(first.workingDirectory, 'shared-code.js'), 'export const answer = 42')
+        expect(await fsPromises.readFile(path.join(second.workingDirectory, 'shared-code.js'), 'utf8')).toBe(
+            'export const answer = 42'
+        )
+    })
+
     it('uses an exact user-owned xpert root for non-project work when configured as user', async () => {
         const workArea = await resolver.resolve({
             tenantId: 'tenant-1',
@@ -221,7 +234,7 @@ describe('XpertWorkAreaResolver', () => {
             projectId: 'project-1',
             userId: 'user-1'
         })
-        expect(workArea.workingDirectory).toBe(path.join(tempRoot, 'agents/xpert-1'))
+        expect(workArea.workingDirectory).toBe(tempRoot)
     })
 
     it('delegates container workspace mapping to the selected mapper strategy', async () => {
@@ -235,7 +248,7 @@ describe('XpertWorkAreaResolver', () => {
         })
 
         expect(workArea.workspaceRoot).toBe('/workspace')
-        expect(workArea.workingDirectory).toBe('/workspace/agents/xpert-1')
+        expect(workArea.workingDirectory).toBe('/workspace')
         expect(workArea.sharedPath?.workspacePath).toBe('/workspace/shared')
         expect(workArea.agentPath?.workspacePath).toBe('/workspace/agents/xpert-1')
         expect(workArea.sessionPath?.workspacePath).toBe('/workspace/sessions/conversation-1')
@@ -252,7 +265,7 @@ describe('XpertWorkAreaResolver', () => {
         })
 
         expect(workArea.workspaceRoot).toBe('/workspace')
-        expect(workArea.workingDirectory).toBe('/workspace/agents/xpert-1')
+        expect(workArea.workingDirectory).toBe('/workspace')
         expect(workArea.workspaceBinding.volumeRoot).toBe(tempRoot)
         expect(workArea.workspaceBinding.bindSource).toBe(tempRoot)
         expect(workArea.sessionPath?.workspacePath).toBe('/workspace/sessions/conversation-1')

@@ -213,7 +213,8 @@ export class XpertWorkAreaResolver {
         if (input.projectId) {
             const sharedPath = 'shared'
             const agentPath = input.xpertId ? path.posix.join('agents', input.xpertId) : undefined
-            const defaultPath = agentPath ?? ''
+            // Project files are shared; assistant memory keeps its existing private namespace.
+            const defaultPath = ''
             const sessionPath = input.conversationId ? path.posix.join('sessions', input.conversationId) : undefined
             const memoryPath = agentPath ? path.posix.join(agentPath, XPERT_FILE_MEMORY_WORKSPACE_PATH) : undefined
             return {
