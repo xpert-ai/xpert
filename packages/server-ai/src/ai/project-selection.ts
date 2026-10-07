@@ -41,7 +41,8 @@ export function resolveSendProjectSelection(
     }
     if (selection?.mode === 'none') return { selection }
     if (selection?.mode === 'auto-new') {
-        if (xpert.options?.workspaceScope?.onMissing !== 'create') {
+        const onMissing = xpert.options?.workspaceScope?.onMissing
+        if (onMissing !== 'create' && onMissing !== 'confirm') {
             throw new BadRequestException(
                 t('server-ai:Error.ProjectAutoCreateUnavailable', {
                     defaultValue: 'This Assistant does not support automatic Project creation'

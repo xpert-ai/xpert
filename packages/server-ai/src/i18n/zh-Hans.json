@@ -731,6 +731,7 @@
         "ProjectArchived": "该项目已归档。",
         "ProjectConversationUnavailable": "项目会话当前不可用。",
         "ProjectAutoCreateUnavailable": "此助手不支持自动创建项目。",
+        "ProjectConfirmationRequired": "请先在配置 App 中确认待创建项目的设置。",
         "ProjectConversationXpertRequired": "项目会话必须指定数字专家 ID。",
         "ProjectAdminInterventionInvalid": "项目管理员介入必须填写原因。",
         "ProjectAdminInterventionPermissionRequired": "介入此项目需要组织用户管理权限。",

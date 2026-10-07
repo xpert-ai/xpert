@@ -676,7 +676,14 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     })
                 )
             }
-            if (xpert.options?.workspaceScope?.mode === 'project-required' && !conversation.projectId) {
+            if (
+                xpert.options?.workspaceScope?.mode === 'project-required' &&
+                !conversation.projectId &&
+                !(
+                    xpert.options?.workspaceScope?.onMissing === 'confirm' &&
+                    conversation.options?.projectCreation?.status === 'awaiting_confirmation'
+                )
+            ) {
                 throw new BadRequestException(
                     t('server-ai:Error.XpertProjectRequired', {
                         defaultValue: 'This Assistant requires a Project workspace'

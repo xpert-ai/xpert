@@ -1,3 +1,4 @@
+jest.mock('../../xpert-project/services/conversation-project.service', () => ({ ConversationProjectService: class {} }))
 import 'reflect-metadata'
 import { Reflector } from '@nestjs/core'
 
@@ -8,6 +9,7 @@ jest.mock('@xpert-ai/plugin-sdk', () => ({
     ...jest.requireActual('../../../../plugin-sdk/src/lib/runtime/capabilities/knowledgebase'),
     ...jest.requireActual('../../../../plugin-sdk/src/lib/runtime/capabilities/knowledgebase-documents'),
     ...jest.requireActual('../../../../plugin-sdk/src/lib/agent/middleware/capabilities/assistant-task'),
+    ...jest.requireActual('../../../../plugin-sdk/src/lib/agent/runtime/strategy'),
     ...jest.requireActual('../../../../plugin-sdk/src/lib/channel/cancel-conversation.command'),
     RequestContext: {
         currentTenantId: () => 'tenant-1',
@@ -42,7 +44,11 @@ function fixture() {
     const commands = { execute: jest.fn() }
     const queries = { execute: jest.fn() }
     const projects = { purge: jest.fn() }
-    const project = new ProjectProvisioningRuntimeService(commands as never, projects as never)
+    const project = new ProjectProvisioningRuntimeService(
+        commands as never,
+        projects as never,
+        { confirm: jest.fn() } as never
+    )
     const knowledge = new KnowledgebaseRuntimeService(commands as never, queries as never)
     const documents = new KnowledgebaseDocumentsRuntimeService(commands as never)
     const provisioning = new KnowledgebaseProvisioningRuntimeService(commands as never)
@@ -113,6 +119,6 @@ describe('platform domain capabilities outside Agent execution', () => {
             canceledExecutionIds: ['execution-1']
         })
         expect(f.commands.execute).toHaveBeenCalledWith(new CancelConversationCommand({ executionId: 'execution-1' }))
-        await expect(api.startTask({ xpertId: '', prompt: 'Task' })).rejects.toThrow('xpertId is required')
+        await expect(api.startTask({ xpertId: '', prompt: 'Task' })).rejects.toMatchObject({ code: 'InvalidRequest' })
     })
 })

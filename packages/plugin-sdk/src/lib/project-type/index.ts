@@ -37,6 +37,8 @@ export interface ConversationProjectCreation {
   conversationId: string
   workspaceId: string
   name: string
+  /** Present only for a human-confirmed setup; the application validates its own configuration. */
+  confirmation?: { id: string; configuration: object }
   /**
    * Persist only application records through this writer. The host creates the
    * platform Project and binds the conversation in the same transaction. Do not

@@ -288,7 +288,6 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly #projectControlsEnabled = computed(
     () => !this.#workbenchConversationScope() && Boolean(this.facade.assistantId()?.trim())
   )
-  readonly #projectSelectionEnabled = computed(() => this.#projectControlsEnabled() && !this.facade.threadId()?.trim())
   readonly #hostChatRouteKey = computed(() =>
     JSON.stringify([this.facade.assistantId()?.trim() || null, this.projectId(), this.facade.threadId()])
   )
@@ -341,11 +340,15 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     composer: computed(() => ({
       projects: {
         enabled: this.#projectControlsEnabled(),
-        createEnabled: this.#projectSelectionEnabled(),
+        createEnabled: this.#projectControlsEnabled(),
         selection: this.#workbenchConversationScope() ? undefined : this.facade.chatkitProjectSelection?.(),
         autoNewEnabled:
           !this.#workbenchConversationScope() &&
-          this.facade.currentXpert?.()?.options?.workspaceScope?.onMissing === 'create',
+          Boolean(this.facade.currentXpert?.()?.options?.workspaceScope?.onMissing),
+        autoNewMode:
+          this.facade.currentXpert?.()?.options?.workspaceScope?.onMissing === 'confirm'
+            ? ('after-confirmation' as const)
+            : ('on-send' as const),
         allowNone: this.facade.currentXpert?.()?.options?.workspaceScope?.mode !== 'project-required'
       },
       connectors: { enabled: true }
@@ -1877,7 +1880,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
   private async createChatProject(request: ChatProjectCreateRequest) {
     const assistantId = this.facade.assistantId()?.trim()
-    if (!assistantId || this.facade.threadId()?.trim() || this.#projectCreatePending) {
+    if (!assistantId || !this.#projectControlsEnabled() || this.#projectCreatePending) {
       return
     }
 

@@ -962,11 +962,11 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(facade.onChatProjectChange).toHaveBeenLastCalledWith(null, undefined, { mode: 'none' })
   })
 
-  it('keeps Project display enabled but disables creation after a conversation starts', async () => {
+  it('keeps Project selection and creation enabled after a conversation starts', async () => {
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
 
-    expect(getRuntimeInput().composer?.().projects).toMatchObject({ enabled: true, createEnabled: false })
+    expect(getRuntimeInput().composer?.().projects).toMatchObject({ enabled: true, createEnabled: true })
   })
 
   it('keeps Project selection available before the first message, including after a Project is selected', async () => {
@@ -1007,6 +1007,19 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(input.active()).toBe(false)
   })
 
+  it('updates project-bound data without replacing the same Assistant ChatKit element', async () => {
+    facade.projectId.set('project-a')
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+    const chatkitElement = fixture.nativeElement.querySelector('xpert-chatkit')
+    expect(chatkitElement).not.toBeNull()
+    facade.projectId.set('project-b')
+    await settle(fixture)
+    expect(getRuntimeInput().projectId?.()).toBe('project-b')
+    expect(fixture.componentInstance.viewRuntimeScope().projectId).toBe('project-b')
+    expect(fixture.nativeElement.querySelector('xpert-chatkit')).toBe(chatkitElement)
+  })
+
   it('keeps a bound Project available to ChatKit without changing its mount scope', async () => {
     Object.assign(facade, { chatkitMountProjectId: signal(null) })
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
@@ -1015,7 +1028,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     facade.projectId.set('auto-created-project')
     await settle(fixture)
 
-    expect(getRuntimeInput().composer?.().projects).toMatchObject({ enabled: true, createEnabled: false })
+    expect(getRuntimeInput().composer?.().projects).toMatchObject({ enabled: true, createEnabled: true })
     expect(getRuntimeInput().projectId?.()).toBeNull()
     expect(fixture.nativeElement.querySelector('xpert-chatkit')).toBe(chatkitElement)
     expect(projectApi.availableForXpert).not.toHaveBeenCalled()
@@ -1031,8 +1044,8 @@ describe('ClawXpertConversationDetailComponent', () => {
     expect(getRuntimeInput().composer?.().projects?.enabled).toBe(true)
   })
 
-  it('creates a Project with the current digital expert and switches the workbench to it', async () => {
-    facade.threadId.set(null)
+  it.each([null, 'existing-thread'])('creates a Project and opens a new chat from thread %s', async (threadId) => {
+    facade.threadId.set(threadId)
 
     const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
     await settle(fixture)
@@ -2428,6 +2441,9 @@ describe('ClawXpertConversationDetailComponent', () => {
     const runtimeInput = getRuntimeInput()
     runtimeInput.onThreadChange?.({ threadId: 'role-thread-2' })
     runtimeInput.onProjectChange?.({ projectId: 'other-project' })
+    runtimeInput.onEffect?.({ name: 'project.create', data: { name: 'Other project' } })
+    await settle(fixture)
+    expect(projectApi.create).not.toHaveBeenCalled()
     expect(facade.onChatThreadChange).not.toHaveBeenCalled()
     expect(facade.onChatProjectChange).not.toHaveBeenCalled()
   })
