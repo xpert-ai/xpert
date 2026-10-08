@@ -291,9 +291,7 @@ export class SandboxFileMiddleware implements IAgentMiddlewareStrategy {
                 name: 'sandbox_write_file',
                 description: `Create a new file with the provided content. Fails if the file already exists.
 
-IMPORTANT: For large files that may exceed output limits, use sandbox_append_file instead:
-1. First call sandbox_write_file with the initial content
-2. Then call sandbox_append_file multiple times to add remaining content
+Write complete, continuous content in one call when possible; only if it is expected to exceed the output token limit, end at a natural paragraph or section boundary and use sandbox_append_file to continue.
 
 CRITICAL FORMAT REQUIREMENTS:
 1. Parameters must be a SINGLE object with two fields: file_path and content
@@ -339,12 +337,7 @@ INCORRECT format (DO NOT USE):
                 name: 'sandbox_append_file',
                 description: `Append content to an existing file, or create it if it doesn't exist.
 
-USE THIS TOOL FOR LARGE FILES:
-When writing large files that may exceed output token limits:
-1. First call sandbox_write_file with the initial portion of content
-2. Then call sandbox_append_file one or more times to add the remaining content
-
-This allows you to write files of any size by splitting them into manageable chunks.
+Write complete, continuous content in one call when possible; only if it is expected to exceed the output token limit, end at a natural paragraph or section boundary and use sandbox_append_file to continue.
 
 CRITICAL FORMAT REQUIREMENTS:
 1. Parameters must be a SINGLE object with two fields: file_path and content
