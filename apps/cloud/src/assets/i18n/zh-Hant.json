@@ -40,6 +40,21 @@
     "USERS": "用戶"
   },
   "XP": {
+    "AgentPlugins": {
+      "DefaultImportTitle": "官方 Agent 外掛",
+      "ImportDefaults": "一鍵匯入預設外掛",
+      "SetupImportDefaults": "匯入預設 Agent 外掛（建議）",
+      "DefaultImportDescription": "從官方儲存庫匯入資源套件到目前組織，已有內容自動略過，單個失敗後繼續匯入其餘外掛。",
+      "DefaultImportSource": "來源：xpert-ai/xpert-plugins · agent-plugins",
+      "DefaultImportNext": "匯入後可在外掛設定中選擇可用工作空間，設定連線與授權；匯入本身不會開放工作空間存取權限。",
+      "DefaultImportSummary": "已匯入 {{imported}} 個 · 已存在 {{existing}} 個 · 失敗 {{failed}} 個",
+      "DefaultImportDiagnostics": "{{title}} 有 {{count}} 項元件診斷，請在啟用前檢查。",
+      "DefaultImportPhase_pending": "預設 Agent 外掛等待匯入。",
+      "DefaultImportPhase_importing": "正在匯入預設 Agent 外掛…",
+      "DefaultImportPhase_completed": "預設 Agent 外掛匯入完成。",
+      "DefaultImportPhase_failed": "預設 Agent 外掛匯入失敗，可稍後在 Agent 外掛頁面重試。",
+      "SetupInstallAndFinish": "安裝並匯入外掛，完成設定"
+    },
     "XpertSettings": {
       "RealtimeVoice": {
         "Title": "即時語音通話",
