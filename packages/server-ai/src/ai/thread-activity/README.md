@@ -35,8 +35,10 @@ the latest authorized status onto that existing message/card identity without
 rewriting its historical title or inspecting the CLI for each viewer.
 
 Task status and execution status remain separate: a successful execution is not
-task acceptance. A card opens the existing Tasks and Timeline Workbench view.
-This release does not add a task detail dialog or Coding CLI execution viewer.
+task acceptance. Coding execution cards open their independent execution viewer;
+task-level cards and receipts without a Coding execution target open the Project
+tasks view. Task details use that view's Dialog. See the [Project tasks product
+guide](../../../../../docs/project-tasks.md) for navigation and user-facing behavior.
 
 `ThreadActivityService` reads runs and messages, binds stored resource cards to
 their message/execution, and calls `RefreshConversationResourceCardsCommand`.
@@ -68,9 +70,10 @@ project access; execution projections match tenant, organization, conversation,
 thread, invocation owner, parent execution, and the pinned task reference.
 An inaccessible invocation exposes an unavailable card without provider details.
 
-The workspace uses ChatKit packages `0.11.1`. ChatKit UI resolves Xpert SDK
-`0.7.0`, including `threads.watchActivity()`. Web builds must serve the matching
-ChatKit application assets together with the updated wrappers.
+ChatKit must support `threads.watchActivity()` and the corresponding run-stream
+reconciliation protocol. Package versions are pinned in the workspace catalog
+and lockfile. Web builds must serve the matching ChatKit application assets
+together with the updated wrappers.
 
 Snapshots currently scan all root executions and stored resource cards for the
 thread. There is no pagination or activity outbox in this release. The existing
