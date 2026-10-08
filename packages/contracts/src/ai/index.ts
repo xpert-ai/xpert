@@ -26,6 +26,7 @@ export {
 } from './resource-card'
 export type {
   ConversationResourceCard,
+  ResourceCardImage,
   ResourceCardOpenTarget,
   ResourceCardScalar,
   TMessageContentResourceCard

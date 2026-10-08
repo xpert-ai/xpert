@@ -19,5 +19,17 @@ export function bindResourceCardEvent(value: unknown, owner: { messageId: string
         return null
     const content = parseResourceCardContent(value.data)
     if (!content) return null
-    return { type: ChatMessageTypeEnum.MESSAGE, data: { ...createResourceCardContent(content.data), ...owner } }
+    // The stream mapper sets the outer execution from runtime metadata, never the plugin card payload.
+    const executionId =
+        'executionId' in value && typeof value.executionId === 'string' && value.executionId.trim()
+            ? value.executionId
+            : owner.executionId
+    return {
+        type: ChatMessageTypeEnum.MESSAGE,
+        data: {
+            ...createResourceCardContent(content.data),
+            messageId: owner.messageId,
+            ...(executionId ? { executionId } : {})
+        }
+    }
 }

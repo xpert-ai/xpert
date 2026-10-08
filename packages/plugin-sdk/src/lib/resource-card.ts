@@ -5,6 +5,11 @@ import { ChatMessageEventTypeEnum, createResourceCardContent, type ConversationR
 export { createResourceCardContent, parseResourceCard, resourceCardId } from '@xpert-ai/contracts'
 export type {
   ConversationResourceCard,
+  ResourceCardContent,
+  ResourceCardField,
+  ResourceCardFile,
+  ResourceCardFileReference,
+  ResourceCardImage,
   ResourceCardOpenTarget,
   ResourceCardScalar,
   TMessageContentResourceCard

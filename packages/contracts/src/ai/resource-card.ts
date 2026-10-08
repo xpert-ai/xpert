@@ -9,6 +9,11 @@ export {
 } from '@xpert-ai/chatkit-types'
 export type {
   ConversationResourceCard,
+  ResourceCardContent,
+  ResourceCardField,
+  ResourceCardFile,
+  ResourceCardFileReference,
+  ResourceCardImage,
   ResourceCardOpenTarget,
   ResourceCardScalar,
   TMessageContentResourceCard

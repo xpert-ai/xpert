@@ -500,7 +500,11 @@ export function createMapStreamEvents(
                         const card = parseResourceCardContent(data)
                         if (card)
                             subscriber.next({
-                                data: { type: ChatMessageTypeEnum.MESSAGE, data: createResourceCardContent(card.data) }
+                                data: {
+                                    type: ChatMessageTypeEnum.MESSAGE,
+                                    executionId: executionMeta.executionId,
+                                    data: createResourceCardContent(card.data)
+                                }
                             } as MessageEvent)
                         break
                     }
@@ -568,6 +572,17 @@ export function createMapStreamEvents(
                         break
                     }
                     case ChatMessageEventTypeEnum.ON_CHAT_EVENT: {
+                        const card = parseResourceCardContent(data)
+                        if (card) {
+                            subscriber.next({
+                                data: {
+                                    type: ChatMessageTypeEnum.MESSAGE,
+                                    executionId: executionMeta.executionId,
+                                    data: createResourceCardContent(card.data)
+                                }
+                            } as MessageEvent)
+                            break
+                        }
                         // logger.debug(`on_chat_event`, data)
                         const middlewareEvent = normalizeMiddlewareChatEvent(data)
                         if (middlewareEvent) {
