@@ -117,14 +117,21 @@
         {{ 'XP.Plugin.RuntimeApplyingTitle' | translate: { Default: 'Plugin changes are being applied' } }}
       </div>
       <div class="mt-0.5 text-sm text-text-secondary">
-        {{
-          'XP.Plugin.RuntimeApplyingDescription'
-            | translate
-              : {
-                  Default: 'API replicas are restarting in background batches. You can continue using this page.',
-                  pluginNames: runtimeRestart.backgroundPluginNames().join(', ')
-                }
-        }}
+        @if (runtimeRestart.backgroundPluginNames().length) {
+          {{
+            'XP.Plugin.RuntimeApplyingDescription'
+              | translate
+                : {
+                    Default:
+                      'API replicas are restarting in background batches for {{pluginNames
+          }}. You can continue using this page.', pluginNames: runtimeRestart.backgroundPluginNames().join(', ') } }}
+        } @else {
+          {{
+            'XP.Plugin.RuntimeApplyingGenericDescription'
+              | translate
+                : { Default: 'API replicas are restarting in background batches. You can continue using this page.' }
+          }}
+        }
       </div>
     </div>
   </div>

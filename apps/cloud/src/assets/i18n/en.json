@@ -1530,6 +1530,9 @@
       "CurrentScopeActiveRuntimes": "active runtimes in the current tenant and organization"
     },
     "Plugin": {
+      "RuntimeApplyingTitle": "Plugin changes are being applied",
+      "RuntimeApplyingDescription": "API replicas are restarting in background batches for {{pluginNames}}. You can continue using this page.",
+      "RuntimeApplyingGenericDescription": "API replicas are restarting in background batches. You can continue using this page.",
       "LoadingMarketplaceHelp": "Fetching the plugin list. Additional metadata updates in the background.",
       "UpdatingMarketplace": "Updating the plugin list...",
       "ArtifactNamespace": "Artifact namespace",

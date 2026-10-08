@@ -567,6 +567,9 @@
       "CurrentScopeActiveRuntimes": "当前租户和组织内的活跃 runtime"
     },
     "Plugin": {
+      "RuntimeApplyingTitle": "正在应用插件变更",
+      "RuntimeApplyingDescription": "API 服务副本正在后台分批重启，以应用 {{pluginNames}} 的变更。你可以继续使用此页面。",
+      "RuntimeApplyingGenericDescription": "API 服务副本正在后台分批重启。你可以继续使用此页面。",
       "ArtifactNamespace": "制品命名空间",
       "MarketplaceContentType_app": "应用",
       "MarketplaceContentType_view": "视图",

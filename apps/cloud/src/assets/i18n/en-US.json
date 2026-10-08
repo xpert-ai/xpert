@@ -2006,6 +2006,7 @@
       "CurrentScopeActiveRuntimes": "active runtimes in the current tenant and organization"
     },
     "Plugin": {
+      "RuntimeApplyingGenericDescription": "API replicas are restarting in background batches. You can continue using this page.",
       "ArtifactNamespace": "Artifact namespace",
       "MarketplaceContentType_app": "App",
       "MarketplaceContentType_view": "View",
