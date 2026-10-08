@@ -13,7 +13,7 @@ export const shellBindingSchema = z
         modelId: z.string().min(1),
         environment: executionEnvironmentSchema,
         workingDirectory: z.string().min(1),
-        tokenBudget: z.number().int().positive()
+        tokenBudget: z.number().int().positive().optional()
     })
     .strict()
 export const shellRunnerSchema = z

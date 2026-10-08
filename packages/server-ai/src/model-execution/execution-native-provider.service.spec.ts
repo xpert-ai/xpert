@@ -75,3 +75,22 @@ describe('native model provider binding', () => {
         await expect(test.service.client('tenant', test.model, 'openai_responses')).rejects.toThrow()
     })
 })
+
+it('reads a context hint independently of native protocol support', async () => {
+    const getModelSchema = jest.fn((model: string) =>
+        model === 'coding' ? { parameter_rules: [{ name: 'max_tokens', max: 65536 }] } : null
+    )
+    const provider = {
+        getProviderModels: jest.fn(() => [{ model: 'coding', model_properties: { context_size: 1000000 } }]),
+        getModelManager: () => ({ getModelSchema })
+    }
+    const service = new ModelExecutionNativeProviderService({ execute: jest.fn(async () => provider) } as never)
+    await expect(service.metadata('fixture', 'coding')).resolves.toEqual({
+        protocols: [],
+        contextWindow: 1000000,
+        outputTokenLimit: 65536
+    })
+    await expect(service.metadata('fixture', 'unknown')).resolves.toEqual({ protocols: [] })
+    // Empty credentials can trigger custom-model defaults instead of catalog metadata.
+    expect(getModelSchema.mock.calls).toEqual([['coding'], ['unknown']])
+})

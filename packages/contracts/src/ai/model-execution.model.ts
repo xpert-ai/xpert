@@ -57,6 +57,10 @@ export interface ModelExecutionModel {
   model: string
   modelType: AiModelTypeEnum.LLM
   capabilities: ModelFeature[]
+  /** Provider catalog context window; a CLI hint, not an execution policy limit. */
+  contextWindow?: number
+  /** Provider catalog maximum output; a CLI hint, never an additional execution cap. */
+  outputTokenLimit?: number
   protocols: ModelExecutionProtocol[]
 }
 
@@ -78,12 +82,13 @@ export interface ModelExecutionContext {
 
 /** Money limits require proven provider-specific bounds; v1 admits token budgets only. */
 export interface ModelExecutionLimits {
-  tokenBudget: number
-  userTokenBudget: number
-  maxInputTokens: number
-  maxOutputTokens: number
+  /** Optional execution budgets; omitted uses the platform’s normal billing/quota. */
+  tokenBudget?: number
+  userTokenBudget?: number
   maxConcurrentRequests: number
   requestsPerMinute: number
+  /** Maximum silence while waiting for provider data; active streams reset this timer. */
+  requestIdleSeconds?: number
   leaseSeconds: number
   maxDurationSeconds: number
 }
@@ -138,7 +143,7 @@ export interface ComputerCliToolsView {
     /** Server-resolved path inside the mounted Computer workspace. */
     workingDirectory: string
     /** Maximum token budget for a newly issued session. */
-    tokenBudget: number
+    tokenBudget?: number
   }
 }
 
@@ -161,8 +166,8 @@ export interface CliSessionView {
   model: string
   /** Server-resolved session workspace path inside Computer. */
   workingDirectory: string
-  /** Issued session budget; zero if the session did not obtain a grant. */
-  tokenBudget: number
+  /** Explicit session budget; omitted when none is configured. */
+  tokenBudget?: number
   /** Recorded actual tokens across this grant's attempts, excluding estimates. */
   usedTokens: number
   /** Tokens still reserved for attempts whose usage is not confirmed. */

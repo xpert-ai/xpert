@@ -13,6 +13,7 @@ import { createHash, randomBytes } from 'node:crypto'
 import { Raw, Repository } from 'typeorm'
 import { captureRequestContext, runWithCapturedRequestContext } from '../shared/request-context'
 import { AssistantExecutionPolicyService, ExecutionActor } from './assistant-execution-policy.service'
+import { executionBudget, tightenExecutionLimits } from './execution-policy.defaults'
 import { executionError } from './execution-errors'
 import { ModelExecutionSourceService } from './execution-source.service'
 import { ModelExecutionPolicyService } from './execution-policy'
@@ -108,7 +109,7 @@ export class ModelExecutionGrantService {
                     defaultModelId: selection.defaultModelId,
                     limits: {
                         ...policy.limits,
-                        tokenBudget: Math.min(policy.limits.tokenBudget, input.tokenBudget ?? Infinity)
+                        tokenBudget: executionBudget(policy.limits.tokenBudget, input.tokenBudget)
                     },
                     expiresAt: new Date(Math.min(deadline, Date.now() + policy.limits.leaseSeconds * 1000)),
                     absoluteExpiresAt: new Date(deadline)
@@ -180,9 +181,7 @@ export class ModelExecutionGrantService {
         )
             throw executionError('Denied')
         // Tightening policy takes effect on existing credentials; increasing it does not expand a snapshot.
-        for (const key of Object.keys(policy.limits) as Array<keyof typeof policy.limits>) {
-            grant.limits[key] = Math.min(grant.limits[key], policy.limits[key])
-        }
+        tightenExecutionLimits(grant.limits, policy.limits)
         this.assertActive(grant, activating)
         await this.sources.assertCurrent(grant.context)
         const actor = { tenantId: grant.tenantId, organizationId: grant.organizationId, userId: grant.ownerId }
@@ -213,12 +212,7 @@ export class ModelExecutionGrantService {
                             runtimeAssistant
                         )
                       : await this.assistants.resolve(actor, grant.context.conversationId, false)
-            if (
-                selection.assistant.id !== grant.context.xpertId ||
-                (selection.assistant.version ?? String(selection.assistant.updatedAt)) !==
-                    grant.context.assistantVersion
-            )
-                throw executionError('Denied')
+            if (selection.assistant.id !== grant.context.xpertId) throw executionError('Denied')
             await this.capabilities.require(ModelExecutionEnvironmentCapability).assertCurrent(grant.context)
             const profiles = this.capabilities.get(CliModelProfilesCapability)
             const available = executionToolModels(selection.models, grant.context.tool, policy, profiles)

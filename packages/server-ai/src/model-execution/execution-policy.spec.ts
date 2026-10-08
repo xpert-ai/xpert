@@ -13,8 +13,6 @@ export const testPolicy = {
     limits: {
         tokenBudget: 10000,
         userTokenBudget: 20000,
-        maxInputTokens: 1000,
-        maxOutputTokens: 500,
         maxConcurrentRequests: 2,
         requestsPerMinute: 10,
         leaseSeconds: 60,
@@ -40,6 +38,14 @@ describe('execution policy and admission', () => {
     it('retains explicit limits, tools and protocol restrictions while ignoring the old switch', () => {
         expect(parseExecutionPolicy(JSON.stringify(testPolicy))).toEqual(testPolicy)
         expect(parseExecutionPolicy({ ...testPolicy, enabled: false })).toEqual(testPolicy)
+    })
+    it('discards a legacy input cap without constraining the policy budget', () => {
+        const legacy = {
+            ...testPolicy,
+            limits: { ...testPolicy.limits, maxInputTokens: 128000, maxOutputTokens: 16384 }
+        }
+        expect(parseExecutionPolicy(legacy)).toEqual(testPolicy)
+        expect(parseExecutionPolicy(legacy).limits).not.toHaveProperty('maxInputTokens')
     })
     it('does not share mutable defaults between tenants', () => {
         const first = parseExecutionPolicy(undefined)
@@ -91,7 +97,7 @@ describe('execution policy and admission', () => {
         expect(() => parseExecutionPolicy({ tools: [tool, { ...tool, version: '1.0.0' }] })).toThrow()
         expect(() => parseExecutionPolicy({ tools: [{ ...tool, executable: '/usr/bin/../bin/aider' }] })).toThrow()
     })
-    it.each(['tokenBudget', 'userTokenBudget', 'maxInputTokens', 'maxOutputTokens', 'leaseSeconds'])(
+    it.each(['maxConcurrentRequests', 'requestsPerMinute', 'leaseSeconds', 'maxDurationSeconds'])(
         'rejects a missing %s limit',
         (key) => {
             const limits = Object.fromEntries(Object.entries(testPolicy.limits).filter(([name]) => name !== key))

@@ -1,9 +1,11 @@
 import { AiModelTypeEnum, type ModelExecutionContext } from '@xpert-ai/contracts'
-import { DefaultRuntimeCapabilityRegistry } from '@xpert-ai/plugin-sdk'
+import { CliModelProfilesCapability, DefaultRuntimeCapabilityRegistry } from '@xpert-ai/plugin-sdk'
+import { builtinCliModelProfiles } from '@xpert-ai/cli-model-profiles'
 import { ShellExecutionSourceService } from './shell-execution-source.service'
 import { AssistantExecutionPolicyService } from '../model-execution/assistant-execution-policy.service'
 
 describe('Shell CLI ownership and lifecycle', () => {
+    const profile = builtinCliModelProfiles.get('codex')!
     const context: ModelExecutionContext = {
         tenantId: 'tenant',
         runtimeOrganizationId: 'org',
@@ -20,7 +22,7 @@ describe('Shell CLI ownership and lifecycle', () => {
             shellExecutionId: 'shell',
             parentExecutionId: 'parent',
             generation: 1,
-            profileRevision: '1'
+            profileRevision: profile.revision
         }
     }
     function setup() {
@@ -38,18 +40,19 @@ describe('Shell CLI ownership and lifecycle', () => {
                 environment: context.environment
             }
         }
-        const child = { generation: 1, tool: context.tool, profileRevision: '1', status: 'running' }
+        const child = { generation: 1, tool: context.tool, profileRevision: profile.revision, status: 'running' }
         const parent = { id: 'parent', status: 'running' }
         const shells = { findOneBy: jest.fn(async () => shell) },
             children = { findOneBy: jest.fn(async () => child) },
             parents = { findOneBy: jest.fn(async () => parent) }
+        const capabilities = new DefaultRuntimeCapabilityRegistry()
         const service = new ShellExecutionSourceService(
             shells as never,
             children as never,
             parents as never,
-            new DefaultRuntimeCapabilityRegistry()
+            capabilities
         )
-        return { service, shell, child, parent, shells, children, parents }
+        return { service, shell, child, parent, shells, children, parents, capabilities }
     }
     it('scopes all three execution records to the original user and organization', async () => {
         const f = setup()
@@ -77,6 +80,13 @@ describe('Shell CLI ownership and lifecycle', () => {
         const f = setup()
         f.child.status = 'preparing'
         await expect(f.service.assertCurrent(context, true)).resolves.toBeUndefined()
+        await expect(f.service.assertCurrent(context)).rejects.toThrow()
+    })
+    it('rejects a grant whose installed profile revision has changed', async () => {
+        const f = setup()
+        f.capabilities.register(CliModelProfilesCapability, {
+            get: () => ({ ...profile, revision: 'changed' })
+        })
         await expect(f.service.assertCurrent(context)).rejects.toThrow()
     })
     it.each(['generation', 'revision', 'parent', 'receipt', 'heartbeat', 'deadline', 'environment', 'payer'])(

@@ -126,6 +126,16 @@ describe('execution credentials', () => {
         await expect(test.service.authenticate(`Bearer ${credential}`)).rejects.toThrow()
         expect(test.assistants.resolve).not.toHaveBeenCalled()
     })
+    it('keeps the issued model and version snapshot after the Assistant is republished', async () => {
+        const test = await setup()
+        test.assistants.resolve.mockResolvedValue({ assistant: { id: 'assistant', version: 'v2' }, models: [model] })
+        const identity = await test.service.authenticate(`Bearer ${credential}`)
+        expect(identity.grant.context.assistantVersion).toBe('v1')
+        expect(identity.models[0].id).toBe('model')
+        await expect(test.service.renew('grant', actor)).resolves.toBeUndefined()
+        test.assistants.resolve.mockRejectedValue(new Error('Assistant access revoked'))
+        await expect(test.service.authenticate(`Bearer ${credential}`)).rejects.toThrow('Assistant access revoked')
+    })
     it('does not authorize a same-name model from a replacement provider configuration', async () => {
         const test = await setup()
         test.assistants.resolve.mockResolvedValue({

@@ -4,8 +4,9 @@ import { CLI_MODEL_TOKEN_REFERENCE, type CliModelConfigurationInput } from '@xpe
 const input: CliModelConfigurationInput = {
     directory: '/tmp/execution-first',
     gatewayBaseUrl: 'https://xpert.test/api/model-execution/openai/v1/',
-    models: [{ id: 'allowed', protocols: ['openai_chat'] }],
-    limits: { maxInputTokens: 10000, maxOutputTokens: 500 },
+    defaultModelId: 'allowed',
+    models: [{ id: 'allowed', protocols: ['openai_chat'], contextWindow: 1000000, outputTokenLimit: 500 }],
+    limits: { maxOutputTokens: 500 },
     managed: false
 }
 
@@ -71,7 +72,7 @@ describe('bundled execution CLI profiles', () => {
                         id: 'assistant-default',
                         envKey: 'OPENAI_API_KEY',
                         generationConfig: {
-                            contextWindowSize: 10500,
+                            contextWindowSize: 1000000,
                             samplingParams: { max_tokens: 500 },
                             maxRetries: 0
                         }
@@ -79,7 +80,7 @@ describe('bundled execution CLI profiles', () => {
                 ]
             }
         })
-        expect(builtinCliModelProfiles.get('qwen')?.revision).toBe('3')
+        expect(builtinCliModelProfiles.get('qwen')?.revision).toBe('5')
     })
 
     it('pins Kimi main and secondary models to the grant and reads its key from the environment', () => {
@@ -90,7 +91,8 @@ describe('bundled execution CLI profiles', () => {
         expect(text).toContain('type = "openai"')
         expect(text).toContain('base_url = "https://xpert.test/api/model-execution/openai/v1"')
         expect(text).toContain('api_key_env = "XPERT_MODEL_TOKEN"')
-        expect(text).toContain('max_input_size = 10000')
+        expect(text).toContain('max_context_size = 1000000')
+        expect(text).not.toContain('max_input_size')
         expect(text).toContain('max_output_size = 500')
         expect(text).toContain('default_permission_mode = "manual"')
         expect(text).toContain('[secondary_model]\ndefault_model = "assistant-default"\nforce = true')
@@ -120,7 +122,7 @@ describe('bundled execution CLI profiles', () => {
                     id: 'assistant-default',
                     apiKey: '${XPERT_MODEL_TOKEN}',
                     url: 'https://xpert.test/api/model-execution/openai/v1/chat/completions',
-                    maxInputTokens: 10000,
+                    maxInputTokens: 1000000,
                     maxOutputTokens: 500,
                     relatedModels: { lite: 'assistant-default', reasoning: 'assistant-default' }
                 }
@@ -129,6 +131,69 @@ describe('bundled execution CLI profiles', () => {
         })
     })
 })
+
+it('uses the selected catalog context for the default alias and each alternative independently', () => {
+    const overrides: Partial<CliModelConfigurationInput> = {
+        defaultModelId: 'large',
+        models: [
+            { id: 'small', protocols: ['openai_chat'], contextWindow: 32000 },
+            { id: 'large', protocols: ['openai_chat'], contextWindow: 1000000 }
+        ]
+    }
+    const models = JSON.parse(configure('opencode', overrides).environment.OPENCODE_CONFIG_CONTENT).provider.xpert
+        .models
+    expect(models['assistant-default'].limit.context).toBe(1000000)
+    expect(models.small.limit.context).toBe(32000)
+    expect(models.large.limit.context).toBe(1000000)
+    expect(configure('codex', overrides).args).toContain('model_context_window=1000000')
+})
+
+it.each(['codex', 'qwen', 'codebuddy', 'opencode'])(
+    'does not invent a smaller context when the %s catalog window is unknown',
+    (id) => {
+        const config = configure(id, { models: [{ id: 'allowed', protocols: ['openai_chat'] }] })
+        const text = JSON.stringify(config)
+        for (const field of [
+            'model_context_window',
+            'contextWindowSize',
+            'max_context_size',
+            'max_input_size',
+            'maxInputTokens'
+        ])
+            expect(text).not.toContain(field)
+        if (id === 'opencode')
+            expect(
+                JSON.parse(config.environment.OPENCODE_CONFIG_CONTENT).provider.xpert.models['assistant-default']
+            ).not.toHaveProperty('limit')
+    }
+)
+
+it('requires a real catalog window for Kimi instead of inventing one for its required field', () => {
+    expect(() => configure('kimi', { models: [{ id: 'allowed', protocols: ['openai_chat'] }] })).toThrow(
+        'Kimi requires a context window'
+    )
+})
+
+it.each(['qwen', 'codebuddy'])('does not cap %s background execution at 30 turns', (id) => {
+    const background = builtinCliModelProfiles.get(id).background
+    if (background.transport !== 'jsonl') throw Error('Expected JSONL')
+    expect(background.args).not.toContain('--max-turns')
+    expect(background.args).not.toContain('--max-session-turns')
+})
+
+it.each(['qwen', 'codebuddy', 'claude', 'kimi', 'opencode'])(
+    'uses catalog output metadata instead of legacy policy caps for %s',
+    (id) => {
+        const config = configure(id, { limits: { maxOutputTokens: 1 } })
+        const text = JSON.stringify(config)
+        expect(text).not.toMatch(/maxOutputTokens.{0,4}1[,}]/)
+        if (id === 'opencode')
+            expect(
+                JSON.parse(config.environment.OPENCODE_CONFIG_CONTENT).provider.xpert.models['assistant-default'].limit
+                    .output
+            ).toBe(500)
+    }
+)
 
 describe('background CLI extensions', () => {
     it.each([
@@ -140,7 +205,7 @@ describe('background CLI extensions', () => {
             transport: 'jsonl',
             versions: [version]
         })
-        expect(builtinCliModelProfiles.get(id)?.revision).toBe('4')
+        expect(builtinCliModelProfiles.get(id)?.revision).toBe('5')
         expect(builtinCliTools.find((tool) => tool.id === id)?.version).toBe(version)
     })
 
@@ -206,7 +271,7 @@ describe('background CLI extensions', () => {
         expect(configure('kimi').args).not.toContain('--agent-file')
     })
 
-    it.each(['codex', 'opencode', 'qwen'])('preserves the %s revision for unchanged configuration', (id) => {
-        expect(builtinCliModelProfiles.get(id)?.revision).toBe('3')
+    it.each(['codex', 'opencode', 'qwen'])('tracks the %s revision for catalog-based configuration', (id) => {
+        expect(builtinCliModelProfiles.get(id)?.revision).toBe('5')
     })
 })

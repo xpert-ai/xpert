@@ -106,14 +106,18 @@ describe('execution actor scope', () => {
                 getCatalogModelLabels: jest.fn(async () => [{ provider: 'fixture', capabilities: [] }])
             } as never,
             { getAccessiblePublishedXpert: jest.fn(async () => assistant) } as never,
-            { protocols: jest.fn(async () => []) } as never
+            { metadata: jest.fn(async () => ({ protocols: [], contextWindow: 1000000 })) } as never
         )
         const result = await service.resolve(
             { tenantId: 'tenant', organizationId: 'runtime-org', userId: 'payer' },
             'conversation'
         )
         expect(result.models[0]).toEqual(
-            expect.objectContaining({ providerScopeId: 'provider', providerOrganizationId: 'credential-org' })
+            expect.objectContaining({
+                providerScopeId: 'provider',
+                providerOrganizationId: 'credential-org',
+                contextWindow: 1000000
+            })
         )
     })
 })
@@ -195,7 +199,7 @@ describe('execution model selection stays within its conversation', () => {
                 {
                     provide: ModelExecutionNativeProviderService,
                     useValue: {
-                        protocols: jest.fn().mockResolvedValue([])
+                        metadata: jest.fn().mockResolvedValue({ protocols: [], contextWindow: 1000000 })
                     }
                 }
             ]

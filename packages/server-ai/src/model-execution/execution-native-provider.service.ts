@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
-import { AiModelTypeEnum, ICopilot, ModelExecutionModel } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, ICopilot, ModelExecutionModel, isOutputTokenParameter } from '@xpert-ai/contracts'
 import { IAIModelProviderStrategy, NativeModelProtocol } from '@xpert-ai/plugin-sdk'
 import { AIModelGetProviderQuery } from '../ai-model/queries/get-provider.query'
 import { CopilotGetOneQuery } from '../copilot/queries/get-one.query'
@@ -9,14 +9,21 @@ import { executionError } from './execution-errors'
 @Injectable()
 export class ModelExecutionNativeProviderService {
     constructor(private readonly queries: QueryBus) {}
-    async protocols(providerName: string, model: string): Promise<NativeModelProtocol[]> {
+    async metadata(providerName: string, model: string) {
         const provider = await this.queries.execute<AIModelGetProviderQuery, IAIModelProviderStrategy>(
             new AIModelGetProviderQuery(providerName)
         )
-        return provider?.getNativeModelClient
-            ? (provider.getProviderModels(AiModelTypeEnum.LLM).find((entry) => entry.model === model)
-                  ?.native_protocols ?? [])
-            : []
+        const entry = provider?.getProviderModels(AiModelTypeEnum.LLM).find((entry) => entry.model === model)
+        const contextWindow = entry?.model_properties?.context_size
+        const outputTokenLimit = provider
+            ?.getModelManager?.(AiModelTypeEnum.LLM)
+            ?.getModelSchema(model)
+            ?.parameter_rules?.find(isOutputTokenParameter)?.max
+        return {
+            protocols: provider?.getNativeModelClient ? (entry?.native_protocols ?? []) : [],
+            ...(Number.isSafeInteger(contextWindow) && contextWindow > 0 ? { contextWindow } : {}),
+            ...(Number.isSafeInteger(outputTokenLimit) && outputTokenLimit > 0 ? { outputTokenLimit } : {})
+        }
     }
     async client(tenantId: string, model: ModelExecutionModel, protocol: NativeModelProtocol) {
         const copilot = await this.queries.execute<CopilotGetOneQuery, ICopilot>(

@@ -37,6 +37,7 @@ export async function executeGatewayChat(input: {
     signal: AbortSignal
     lifecycle: GatewayChatLifecycle
     writer?: GatewayChatWriter
+    onActivity?: () => void
 }) {
     const { response, parsed, signal, lifecycle, writer } = input
     assertRequestCapabilities(parsed, lifecycle.capabilities)
@@ -64,6 +65,7 @@ export async function executeGatewayChat(input: {
         })
         const runnable = bindOpenAIRequest(model, parsed)
         await lifecycle.beforeDispatch?.()
+        input.onActivity?.()
         const base = {
             id: `chatcmpl-${call.requestId}`,
             created: Math.floor(call.startedAt.getTime() / 1000),
@@ -121,6 +123,7 @@ export async function executeGatewayChat(input: {
         let hasTools = false
         let reason = 'stop'
         for await (const raw of await runnable.stream(messages, { signal })) {
+            input.onActivity?.()
             if (!isBaseMessageChunk(raw) || !isAIMessageChunk(raw)) continue
             if (raw.usage_metadata) lastUsageChunk = raw
             const content = messageText(raw)

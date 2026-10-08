@@ -309,8 +309,7 @@ export class ApplicationMetricsRegistry {
         event:
             | 'BridgeUnsupported'
             | 'ConversationRequired'
-            | 'InputLimit'
-            | 'OutputLimit'
+            | 'RateLimit'
             | 'Unavailable'
             | 'Invalid'
             | 'Denied'

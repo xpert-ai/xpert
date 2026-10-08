@@ -1,3 +1,4 @@
+import { recoverAbandonedExecutionCalls } from './execution-recovery'
 import { modelExecutionEntry } from '@xpert-ai/contracts'
 import { isDeepStrictEqual } from 'node:util'
 import { applicationMetrics } from '../metrics/application-metrics'
@@ -225,11 +226,7 @@ export class ModelExecutionMeteringService {
     @Interval(30_000)
     async retry() {
         // A lost worker does not release an uncertain provider attempt's reservation.
-        await this.calls.manager.query(`UPDATE model_gateway_call SET
-            status = CASE WHEN "dispatchedAt" IS NULL THEN 'failed' ELSE 'settlement_pending' END,
-            "reservedTokens" = CASE WHEN "dispatchedAt" IS NULL THEN 0 ELSE "reservedTokens" END,
-            "errorCode" = 'worker_lost', "completedAt" = now() WHERE source = 'execution_grant'
-            AND status = 'started' AND "startedAt" < now() - interval '15 minutes'`)
+        await recoverAbandonedExecutionCalls(this.calls.manager)
         const totals = z
             .array(
                 z.object({

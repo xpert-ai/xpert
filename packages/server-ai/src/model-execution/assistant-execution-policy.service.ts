@@ -88,6 +88,7 @@ export class AssistantExecutionPolicyService {
             const candidate = candidates[i]
             const copilot = await this.copilots.findOneBy({ tenantId: actor.tenantId, id: candidate.model.copilotId })
             if (!copilot?.enabled || !copilot.modelProvider?.id) continue
+            const metadata = await this.native.metadata(labels[i].provider, candidate.model.model)
             models.push({
                 id: candidate.id,
                 copilotId: copilot.id,
@@ -97,7 +98,8 @@ export class AssistantExecutionPolicyService {
                 model: candidate.model.model,
                 modelType: candidate.model.modelType,
                 capabilities: labels[i].capabilities,
-                protocols: ['openai_chat', ...(await this.native.protocols(labels[i].provider, candidate.model.model))]
+                ...metadata,
+                protocols: ['openai_chat', ...metadata.protocols]
             })
         }
         // Nullable thread IDs must not broaden this lookup to another conversation's model selection.

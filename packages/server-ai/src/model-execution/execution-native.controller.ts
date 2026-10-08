@@ -1,3 +1,4 @@
+import { executionRequestLifetime } from './execution-request-lifetime'
 import { z } from 'zod/v3'
 import { ModelExecutionChatService } from './execution-chat.service'
 import { parseChatBridgeRequest } from './execution-chat-bridge-request'
@@ -6,7 +7,7 @@ import { chatBridgeProtocol } from './execution-tool-model'
 import { Body, Controller, HttpException, Post, Req, Res } from '@nestjs/common'
 import { Public } from '@xpert-ai/server-core'
 import { ILLMUsage, ModelGatewayUsageSourceEnum } from '@xpert-ai/contracts'
-import type { NativeModelProtocol } from '@xpert-ai/plugin-sdk'
+import { countTokensSafe, type NativeModelProtocol } from '@xpert-ai/plugin-sdk'
 import type { Request, Response } from 'express'
 import { once } from 'node:events'
 import { ModelExecutionGrantService } from './execution-grant.service'
@@ -52,7 +53,7 @@ export class ModelExecutionNativeController {
         }
         request.once('aborted', disconnect)
         response.once('close', disconnect)
-        let timer: ReturnType<typeof setTimeout>
+        let lifetime: ReturnType<typeof executionRequestLifetime> | undefined
         let stopWatching: (() => void) | undefined
         try {
             const envelopeResult = z.object({ model: z.string().min(1) }).safeParse(body)
@@ -73,20 +74,11 @@ export class ModelExecutionNativeController {
             if (!model.protocols.includes(protocol) && model.protocols.includes(chatBridgeProtocol[protocol])) {
                 if (!policy.chatBridgeProtocols?.includes(protocol)) throw executionError('Unavailable')
                 const { parsed, customTools, toolNames } = parseChatBridgeRequest(body, protocol)
-                timer = setTimeout(
-                    () => abort.abort(),
-                    Math.max(1, Math.min(600000, grant.absoluteExpiresAt.getTime() - Date.now()))
-                )
-                timer.unref()
                 return await this.chatExecution.execute({
                     identity,
                     model,
                     parsed,
                     protocol: chatBridgeProtocol[protocol],
-                    bodyBytes: Math.max(
-                        Buffer.byteLength(JSON.stringify(body), 'utf8'),
-                        Buffer.byteLength(JSON.stringify(parsed), 'utf8')
-                    ),
                     response,
                     abort,
                     writer: new ChatBridgeWriter(
@@ -104,27 +96,20 @@ export class ModelExecutionNativeController {
             const parsed = parseNativeRequest(body, protocol)
             if (!model) throw executionError('Model')
             const outputKey = protocol === 'openai_responses' ? 'max_output_tokens' : 'max_tokens'
-            const output = parsed[outputKey] ?? grant.limits.maxOutputTokens
-            if (
-                typeof output !== 'number' ||
-                !Number.isSafeInteger(output) ||
-                output <= 0 ||
-                output > grant.limits.maxOutputTokens
-            )
-                throw executionError('OutputLimit')
-            if (Buffer.byteLength(JSON.stringify(body), 'utf8') > grant.limits.maxInputTokens)
-                throw executionError('InputLimit')
+            const output = parsed[outputKey]
+            if (output !== undefined && (typeof output !== 'number' || !Number.isSafeInteger(output) || output <= 0))
+                throw executionError('Invalid')
             parsed.model = model.model
-            parsed[outputKey] = output
-            timer = setTimeout(
-                () => abort.abort(),
-                Math.max(1, Math.min(600000, grant.absoluteExpiresAt.getTime() - Date.now()))
-            )
-            timer.unref()
+            lifetime = executionRequestLifetime(grant, abort)
             await runWithCapturedRequestContext(identity.snapshot, async () => {
                 const resolution = await this.assistants.authorize(identity.actor, grant.context.xpertId, model)
                 const client = await this.providers.client(grant.tenantId, model, protocol)
-                const call = await this.admission.begin(grant, model, output)
+                const call = await this.admission.begin(
+                    grant,
+                    model,
+                    typeof output === 'number' ? output : (model.outputTokenLimit ?? 0),
+                    countTokensSafe(JSON.stringify(parsed), { model: model.model })
+                )
                 const streamUsage = new NativeStreamUsage(protocol)
                 let receipt: ReturnType<typeof readNativeUsage> = null,
                     error: unknown
@@ -133,9 +118,6 @@ export class ModelExecutionNativeController {
                         (item) => item.id === model.id && item.protocols.includes(protocol)
                     )
                     if (!fresh) throw executionError('Model')
-                    if (output > grant.limits.maxOutputTokens) throw executionError('OutputLimit')
-                    if (Buffer.byteLength(JSON.stringify(body), 'utf8') > grant.limits.maxInputTokens)
-                        throw executionError('InputLimit')
                     await this.assistants.authorize(identity.actor, grant.context.xpertId, fresh)
                     abort.signal.throwIfAborted()
                     await this.admission.dispatch(call, grant)
@@ -143,7 +125,9 @@ export class ModelExecutionNativeController {
                     for (const [key, value] of Object.entries(request.headers))
                         if (key.startsWith('anthropic-') && typeof value === 'string' && value.length <= 4096)
                             headers[key] = value
+                    lifetime.activity()
                     const upstream = await client.generate(parsed, headers, abort.signal)
+                    lifetime.activity()
                     if (!upstream.ok || !upstream.body) {
                         await upstream.body?.cancel()
                         throw executionError('Unavailable')
@@ -154,7 +138,7 @@ export class ModelExecutionNativeController {
                             throw executionError('Unavailable')
                         response.status(200).setHeader('content-type', 'text/event-stream; charset=utf-8')
                         response.setHeader('cache-control', 'no-cache, no-transform')
-                        for await (const frame of nativeFrames(upstream.body)) {
+                        for await (const frame of nativeFrames(upstream.body, lifetime.activity)) {
                             if (frame.value !== undefined) streamUsage.accept(frame.value)
                             if (streamUsage.failed) throw executionError('Unavailable')
                             if (!response.write(frame.raw)) await once(response, 'drain', { signal: abort.signal })
@@ -169,6 +153,7 @@ export class ModelExecutionNativeController {
                             for (;;) {
                                 const { value, done } = await reader.read()
                                 if (done) break
+                                lifetime.activity()
                                 size += value.byteLength
                                 if (size > 16 * 1024 * 1024) throw executionError('Invalid')
                                 chunks.push(value)
@@ -237,7 +222,7 @@ export class ModelExecutionNativeController {
             else if (!response.destroyed && !response.writableEnded) response.destroy()
         } finally {
             stopWatching?.()
-            clearTimeout(timer)
+            lifetime?.dispose()
             request.off('aborted', disconnect)
             response.off('close', disconnect)
             abort.abort()

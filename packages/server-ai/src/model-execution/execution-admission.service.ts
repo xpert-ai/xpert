@@ -9,6 +9,7 @@ import { randomUUID } from 'node:crypto'
 import { z } from 'zod/v3'
 import { ModelGatewayCall } from '../model-gateway/model-gateway-call.entity'
 import { ModelExecutionGrant } from './execution.entity'
+import { executionBudget, tightenExecutionLimits } from './execution-policy.defaults'
 import { executionError } from './execution-errors'
 
 const totalsSchema = z
@@ -22,7 +23,7 @@ const totalsSchema = z
     )
     .length(1)
 export function assertExecutionAdmission(input: {
-    budget: number
+    budget?: number
     used: number
     reserved: number
     reservation: number
@@ -31,12 +32,10 @@ export function assertExecutionAdmission(input: {
     recent: number
     rpm: number
 }) {
-    if (
-        input.used + input.reserved + input.reservation > input.budget ||
-        input.concurrent >= input.maxConcurrent ||
-        input.recent >= input.rpm
-    ) {
+    if (input.budget !== undefined && input.used + input.reserved + input.reservation > input.budget)
         throw executionError('Budget')
+    if (input.concurrent >= input.maxConcurrent || input.recent >= input.rpm) {
+        throw executionError('RateLimit')
     }
 }
 
@@ -65,10 +64,11 @@ export class ModelExecutionAdmissionService {
                 [null, grant.limits.userTokenBudget]
             ] as const) {
                 const totals = await this.aggregate(manager, grant, id)
-                if (totals.used + totals.reserved > budget) throw executionError('Budget')
+                if (budget !== undefined && totals.used + totals.reserved > budget) throw executionError('Budget')
             }
             const parent = await this.parentTotals(manager, grant)
-            if (parent && parent.used + parent.reserved > Math.min(parent.budget, grant.limits.tokenBudget))
+            const parentBudget = executionBudget(parent?.budget ?? undefined, grant.limits.tokenBudget)
+            if (parent && parentBudget !== undefined && parent.used + parent.reserved > parentBudget)
                 throw executionError('Budget')
             attempt.dispatchedAt = new Date()
             await manager.save(attempt)
@@ -76,12 +76,18 @@ export class ModelExecutionAdmissionService {
         })
     }
 
-    async begin(grant: ModelExecutionGrant, model: ModelExecutionModel, outputLimit: number) {
+    async begin(
+        grant: ModelExecutionGrant,
+        model: ModelExecutionModel,
+        outputLimit: number,
+        estimatedInputTokens: number
+    ) {
         return this.database.transaction(async (manager) => {
             await this.lockGrant(manager, grant)
-            if (!Number.isSafeInteger(outputLimit) || outputLimit <= 0 || outputLimit > grant.limits.maxOutputTokens)
-                throw executionError('OutputLimit')
-            const reservation = grant.limits.maxInputTokens + outputLimit
+            if (!Number.isSafeInteger(outputLimit) || outputLimit < 0) throw executionError('Invalid')
+            // Admission estimates outstanding usage; settlement still uses provider token facts.
+            if (!Number.isSafeInteger(estimatedInputTokens) || estimatedInputTokens < 0) throw executionError('Invalid')
+            const reservation = estimatedInputTokens + outputLimit
             for (const [id, budget] of [
                 [grant.id, grant.limits.tokenBudget],
                 [null, grant.limits.userTokenBudget]
@@ -103,7 +109,7 @@ export class ModelExecutionAdmissionService {
                 assertExecutionAdmission({
                     used: parent.used,
                     reserved: parent.reserved,
-                    budget: Math.min(parent.budget, grant.limits.tokenBudget),
+                    budget: executionBudget(parent.budget ?? undefined, grant.limits.tokenBudget),
                     concurrent: parent.concurrent,
                     recent: parent.recent,
                     reservation,
@@ -157,9 +163,7 @@ export class ModelExecutionAdmissionService {
         })
         if (!current || current.expiresAt.getTime() <= Date.now() || current.absoluteExpiresAt.getTime() <= Date.now())
             throw executionError('Denied')
-        for (const key of Object.keys(grant.limits) as Array<keyof ModelExecutionGrant['limits']>) {
-            grant.limits[key] = Math.min(grant.limits[key], current.limits[key])
-        }
+        tightenExecutionLimits(grant.limits, current.limits)
     }
 
     private async aggregate(manager: EntityManager, grant: ModelExecutionGrant, grantId: string | null) {
@@ -199,7 +203,7 @@ export class ModelExecutionAdmissionService {
                     reserved: z.coerce.number().nonnegative(),
                     concurrent: z.coerce.number().nonnegative(),
                     recent: z.coerce.number().nonnegative(),
-                    budget: z.coerce.number().positive()
+                    budget: z.coerce.number().positive().nullable()
                 })
             )
             .length(1)

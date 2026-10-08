@@ -51,6 +51,8 @@ export const executionModelSchema = z
         model: name,
         modelType: z.literal(AiModelTypeEnum.LLM),
         capabilities: z.array(z.nativeEnum(ModelFeature)),
+        contextWindow: z.number().int().positive().optional(),
+        outputTokenLimit: z.number().int().positive().optional(),
         protocols: z
             .array(
                 z.enum([
@@ -67,22 +69,24 @@ export const executionModelSchema = z
 const positive = z.number().int().positive().max(1_000_000_000)
 export const executionLimitsSchema = z
     .object({
-        tokenBudget: positive,
-        userTokenBudget: positive,
-        maxInputTokens: positive,
-        maxOutputTokens: positive,
+        tokenBudget: positive.optional(),
+        userTokenBudget: positive.optional(),
+        // Read old policies/grants without retaining their removed per-request caps.
+        maxInputTokens: positive.optional(),
+        maxOutputTokens: positive.optional(),
         maxConcurrentRequests: positive.max(100),
         requestsPerMinute: positive.max(10000),
+        requestIdleSeconds: positive.max(86400).optional(),
         leaseSeconds: positive.max(3600),
         maxDurationSeconds: positive.max(86400)
     })
     .strict()
     .refine(
         (v) =>
-            v.maxInputTokens + v.maxOutputTokens <= v.tokenBudget &&
-            v.tokenBudget <= v.userTokenBudget &&
+            (v.tokenBudget === undefined || v.userTokenBudget === undefined || v.tokenBudget <= v.userTokenBudget) &&
             v.leaseSeconds <= v.maxDurationSeconds
     )
+    .transform(({ maxInputTokens: _legacyInputLimit, maxOutputTokens: _legacyOutputLimit, ...limits }) => limits)
 export const cliReceiptSchema = z.object({ environmentId: id, instanceId: name, receiptId: name }).strict().nullable()
 
 /** Parse persisted JSON once at the TypeORM boundary, then use concrete contracts throughout services. */

@@ -21,7 +21,7 @@ function fixture(streaming = true) {
         id: 'grant',
         tenantId: 'tenant',
         defaultModelId: model.id,
-        limits: { maxInputTokens: 10000, maxOutputTokens: 100 },
+        limits: { maxOutputTokens: 100 },
         absoluteExpiresAt: new Date(Date.now() + 60000),
         context: { xpertId: 'assistant' }
     }
@@ -107,7 +107,8 @@ function fixture(streaming = true) {
         metering,
         generate,
         response,
-        nativeResponse
+        nativeResponse,
+        request
     }
 }
 describe('native gateway execution lifecycle', () => {
@@ -118,7 +119,7 @@ describe('native gateway execution lifecycle', () => {
             await f.invoke()
             expect(f.generate).toHaveBeenCalledTimes(1)
             expect(f.generate).toHaveBeenCalledWith(
-                expect.objectContaining({ model: 'actual-model', max_output_tokens: 100, store: false }),
+                expect.objectContaining({ model: 'actual-model', store: false }),
                 {},
                 expect.any(AbortSignal)
             )
@@ -197,15 +198,63 @@ describe('native gateway execution lifecycle', () => {
         )
         expect(JSON.stringify(f.response.json.mock.calls)).not.toContain('private provider diagnostic')
     })
-    it('rechecks a tightened input allowance before dispatch', async () => {
+    it('dispatches a large request even if a legacy grant carries a small input cap', async () => {
+        const f = fixture(false)
+        Object.assign(f.identity.grant.limits, { maxInputTokens: 1 })
+        const input = '中文代码与命令输出'.repeat(20000)
+        expect(Buffer.byteLength(input)).toBeGreaterThan(128000)
+        await f.invoke({ model: 'assistant-default', input, stream: false })
+        expect(f.generate).toHaveBeenCalledTimes(1)
+        expect(f.generate).toHaveBeenCalledWith(expect.objectContaining({ input }), {}, expect.any(AbortSignal))
+        expect(f.admission.begin).toHaveBeenCalledWith(f.identity.grant, f.model, 0, expect.any(Number))
+        expect(f.admission.dispatch).toHaveBeenCalledTimes(1)
+    })
+    it('forwards a large native Anthropic request without applying the legacy input cap', async () => {
+        const f = fixture(false)
+        Object.assign(f.identity.grant.limits, { maxInputTokens: 1 })
+        const content = '中文代码与命令输出'.repeat(20000)
+        f.generate.mockImplementation(
+            async () =>
+                new globalThis.Response(
+                    JSON.stringify({
+                        type: 'message',
+                        id: 'receipt',
+                        role: 'assistant',
+                        content: [{ type: 'text', text: 'ok' }],
+                        usage: { input_tokens: 40000, output_tokens: 2 }
+                    })
+                )
+        )
+        await f.controller.messages(f.request as Request, f.response as unknown as Response, {
+            model: 'assistant-default',
+            messages: [{ role: 'user', content }],
+            max_tokens: 100
+        })
+        expect(f.generate).toHaveBeenCalledWith(
+            expect.objectContaining({ messages: [{ role: 'user', content }] }),
+            {},
+            expect.any(AbortSignal)
+        )
+        expect(f.admission.dispatch).toHaveBeenCalledTimes(1)
+        expect(f.metering.finish).toHaveBeenCalledWith(
+            expect.objectContaining({
+                usage: expect.objectContaining({
+                    inputTokens: 40000,
+                    totalTokens: 40002,
+                    source: ModelGatewayUsageSourceEnum.Provider
+                })
+            })
+        )
+    })
+    it('ignores legacy output caps even when they change before dispatch', async () => {
         const f = fixture()
         f.grants.revalidate.mockImplementation(async () => {
-            f.identity.grant.limits.maxInputTokens = 1
+            f.identity.grant.limits.maxOutputTokens = 1
             return f.identity
         })
         await f.invoke()
-        expect(f.generate).not.toHaveBeenCalled()
-        expect(f.admission.dispatch).not.toHaveBeenCalled()
+        expect(f.generate).toHaveBeenCalledTimes(1)
+        expect(f.admission.dispatch).toHaveBeenCalledTimes(1)
     })
 })
 

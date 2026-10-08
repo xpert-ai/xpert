@@ -1,4 +1,4 @@
-import type { CliPermissionMode, ModelExecutionLimits, ModelExecutionModel } from '@xpert-ai/contracts'
+import type { CliPermissionMode, ModelExecutionModel } from '@xpert-ai/contracts'
 import { CLI_MODEL_TOKEN_REFERENCE, type CliModelProfile, type CliModelProfiles } from '@xpert-ai/plugin-sdk'
 import { ModelFeature } from '@xpert-ai/contracts'
 import toolchain from './toolchain.json'
@@ -11,8 +11,8 @@ type ComputerCliModelBinding = {
   toolId: string
   managed: boolean
   permissionMode?: CliPermissionMode
-  models: Array<Pick<ModelExecutionModel, 'id' | 'protocols'>>
-  limits: Pick<ModelExecutionLimits, 'maxInputTokens' | 'maxOutputTokens'>
+  defaultModelId?: string
+  models: Array<Pick<ModelExecutionModel, 'id' | 'protocols' | 'contextWindow' | 'outputTokenLimit'>>
 }
 
 export type ComputerCliConfiguration = {
@@ -28,6 +28,9 @@ function configureBuiltinCli(
   baseUrl: string,
   directory: string
 ): ComputerCliConfiguration {
+  const selected = grant.models.find((model) => model.id === grant.defaultModelId)
+  const contextWindow = selected?.contextWindow
+  const outputTokenLimit = selected?.outputTokenLimit
   const base = baseUrl.replace(/\/$/, '')
   const bridge = grant.models.some((model) =>
     model.protocols?.some((protocol) => protocol === 'openai_responses_chat' || protocol === 'anthropic_messages_chat')
@@ -52,6 +55,7 @@ function configureBuiltinCli(
         ...(bridge
           ? ['-c', 'model_reasoning_summary="none"', '-c', 'features.multi_agent=false', '-c', 'features.goals=false']
           : []),
+        ...(contextWindow ? ['-c', `model_context_window=${contextWindow}`] : []),
         '--model',
         'assistant-default',
         '-c',
@@ -104,10 +108,10 @@ function configureBuiltinCli(
           ? {
               MAX_THINKING_TOKENS: '0',
               CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING: '1',
-              ENABLE_TOOL_SEARCH: 'false',
-              CLAUDE_CODE_MAX_OUTPUT_TOKENS: String(grant.limits.maxOutputTokens)
+              ENABLE_TOOL_SEARCH: 'false'
             }
           : {}),
+        ...(outputTokenLimit ? { CLAUDE_CODE_MAX_OUTPUT_TOKENS: String(outputTokenLimit) } : {}),
         CLAUDE_CONFIG_DIR: `${directory}/config`,
         ANTHROPIC_BASE_URL: base.slice(0, -'/openai/v1'.length) + '/anthropic',
         ANTHROPIC_AUTH_TOKEN: token,
@@ -188,8 +192,8 @@ function configureBuiltinCli(
                   baseUrl: base,
                   envKey: 'OPENAI_API_KEY',
                   generationConfig: {
-                    contextWindowSize: grant.limits.maxInputTokens + grant.limits.maxOutputTokens,
-                    samplingParams: { max_tokens: grant.limits.maxOutputTokens },
+                    ...(contextWindow ? { contextWindowSize: contextWindow } : {}),
+                    ...(outputTokenLimit ? { samplingParams: { max_tokens: outputTokenLimit } } : {}),
                     maxRetries: 0
                   }
                 }
@@ -199,7 +203,9 @@ function configureBuiltinCli(
         }
       ]
     }
-  if (grant.toolId === 'kimi')
+  if (grant.toolId === 'kimi') {
+    // Kimi requires an explicit window for custom model aliases; never invent a policy cap.
+    if (!contextWindow) throw new Error('Kimi requires a context window in the selected model catalog.')
     return {
       args: [
         '--model',
@@ -231,9 +237,8 @@ function configureBuiltinCli(
               '[models.assistant-default]',
               'provider = "xpert"',
               'model = "assistant-default"',
-              'max_context_size = ' + (grant.limits.maxInputTokens + grant.limits.maxOutputTokens),
-              'max_input_size = ' + grant.limits.maxInputTokens,
-              'max_output_size = ' + grant.limits.maxOutputTokens,
+              'max_context_size = ' + contextWindow,
+              ...(outputTokenLimit ? ['max_output_size = ' + outputTokenLimit] : []),
               'capabilities = ["tool_use"]',
               '[secondary_model]',
               'default_model = "assistant-default"',
@@ -251,6 +256,7 @@ function configureBuiltinCli(
           : [])
       ]
     }
+  }
   if (grant.toolId === 'codebuddy')
     return {
       args: [
@@ -300,8 +306,8 @@ function configureBuiltinCli(
                 vendor: 'OpenAI',
                 apiKey: '${XPERT_MODEL_TOKEN}',
                 url: `${base}/chat/completions`,
-                maxInputTokens: grant.limits.maxInputTokens,
-                maxOutputTokens: grant.limits.maxOutputTokens,
+                ...(contextWindow ? { maxInputTokens: contextWindow } : {}),
+                ...(outputTokenLimit ? { maxOutputTokens: outputTokenLimit } : {}),
                 supportsToolCall: true,
                 supportsImages: false,
                 supportsReasoning: false,
@@ -316,16 +322,18 @@ function configureBuiltinCli(
     }
   if (grant.toolId !== 'opencode') throw new Error('Invalid CLI profile configuration')
   const models = Object.fromEntries(
-    ['assistant-default', ...grant.models.map((model) => model.id)].map((id) => [
-      id,
-      {
-        name: id,
-        limit: {
-          context: grant.limits.maxInputTokens + grant.limits.maxOutputTokens,
-          output: grant.limits.maxOutputTokens
+    ['assistant-default', ...grant.models.map((model) => model.id)].map((id) => {
+      const model = id === 'assistant-default' ? selected : grant.models.find((model) => model.id === id)
+      const context = model?.contextWindow
+      const output = model?.outputTokenLimit
+      return [
+        id,
+        {
+          name: id,
+          ...(context || output ? { limit: { ...(context ? { context } : {}), ...(output ? { output } : {}) } } : {})
         }
-      }
-    ])
+      ]
+    })
   )
   return {
     args: ['--model', 'xpert/assistant-default'],
@@ -373,7 +381,7 @@ function configureBuiltinCli(
 const definitions = [
   {
     id: 'codex',
-    revision: '3',
+    revision: '5',
     permissionModes: ['allow', 'restricted'],
     background: { versions: ['0.159.2'], transport: 'jsonl', args: ['exec', '--json', '--skip-git-repo-check', '-'] },
     protocol: 'openai_responses',
@@ -386,7 +394,7 @@ const definitions = [
   },
   {
     id: 'claude',
-    revision: '4',
+    revision: '5',
     permissionModes: ['allow', 'restricted'],
     background: {
       versions: ['2.1.63'],
@@ -414,7 +422,7 @@ const definitions = [
   },
   {
     id: 'opencode',
-    revision: '3',
+    revision: '5',
     permissionModes: ['allow', 'restricted'],
     background: { versions: ['1.18.33'], transport: 'opencode' },
     protocol: 'openai_chat',
@@ -430,22 +438,12 @@ const definitions = [
   },
   {
     id: 'qwen',
-    revision: '3',
+    revision: '5',
     permissionModes: ['allow', 'restricted'],
     background: {
       versions: ['0.24.7'],
       transport: 'jsonl',
-      args: [
-        '--input-format',
-        'text',
-        '--output-format',
-        'stream-json',
-        '--safe-mode',
-        '--exclude-tools',
-        'agent',
-        '--max-session-turns',
-        '30'
-      ]
+      args: ['--input-format', 'text', '--output-format', 'stream-json', '--safe-mode', '--exclude-tools', 'agent']
     },
     protocol: 'openai_chat',
     requiredCapabilities: [ModelFeature.STREAM_TOOL_CALL],
@@ -453,7 +451,7 @@ const definitions = [
   },
   {
     id: 'kimi',
-    revision: '4',
+    revision: '5',
     // 2.1.1 forces auto approval in prompt mode; never advertise a restricted mode it ignores.
     permissionModes: ['allow'],
     background: {
@@ -468,7 +466,7 @@ const definitions = [
   },
   {
     id: 'codebuddy',
-    revision: '4',
+    revision: '5',
     permissionModes: ['allow', 'restricted'],
     background: {
       versions: ['2.161.1'],
@@ -522,7 +520,7 @@ export const builtinCliModelProfiles: CliModelProfiles = {
             managed: input.managed,
             permissionMode: input.permissionMode,
             models: input.models,
-            limits: input.limits
+            defaultModelId: input.defaultModelId
           },
           CLI_MODEL_TOKEN_REFERENCE,
           input.gatewayBaseUrl,

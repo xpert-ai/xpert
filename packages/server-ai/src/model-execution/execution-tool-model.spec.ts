@@ -12,8 +12,6 @@ const testPolicy = {
     limits: {
         tokenBudget: 1000,
         userTokenBudget: 2000,
-        maxInputTokens: 100,
-        maxOutputTokens: 50,
         maxConcurrentRequests: 1,
         requestsPerMinute: 10,
         leaseSeconds: 60,

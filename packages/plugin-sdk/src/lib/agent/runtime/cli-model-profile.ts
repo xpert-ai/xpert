@@ -17,8 +17,10 @@ export interface CliModelConfiguration {
 export interface CliModelConfigurationInput {
   directory: string
   gatewayBaseUrl: string
-  models: Array<Pick<ModelExecutionModel, 'id' | 'protocols'>>
-  limits: Pick<ModelExecutionLimits, 'maxInputTokens' | 'maxOutputTokens'>
+  defaultModelId?: string
+  models: Array<Pick<ModelExecutionModel, 'id' | 'protocols' | 'contextWindow' | 'outputTokenLimit'>>
+  /** @deprecated Legacy input only. Use the selected model's catalog metadata. */
+  limits?: Partial<ModelExecutionLimits> & { maxOutputTokens?: number }
   managed: boolean
   /** Host-resolved background approval policy; omitted preserves interactive/shell behavior. */
   permissionMode?: CliPermissionMode

@@ -64,3 +64,16 @@ Interactive launches that omit `permissionMode` retain their original configurat
 These declarations require a matching host transport and Runtime adapter. Installing
 the profile package alone does not provide Computer execution. Profile revisions are
 declared per tool so changes to one adapter do not invalidate unrelated Shell grants.
+
+### Model context hints
+
+The host provides `defaultModelId` and optional per-model `contextWindow` from the provider
+catalog. Built-in adapters use that window for CLI context management, independently of
+execution budgets. Unknown windows are omitted where the CLI supports defaults. Kimi requires a catalog window
+for custom aliases, so a missing window produces a configuration error instead of an invented cap.
+`limits.maxInputTokens` has been removed. Custom profiles should read the selected model's
+`contextWindow` instead. Output configuration uses the per-model catalog `outputTokenLimit`;
+legacy `limits.maxOutputTokens` is accepted only for source compatibility and ignored by built-in profiles.
+Unknown output maxima are omitted so CLI/provider defaults apply. Qwen and CodeBuddy background
+profiles no longer add a fixed 30-turn cap.
+Regenerate CLI configuration by starting a new execution after upgrading the host and profiles.

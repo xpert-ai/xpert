@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { AiModelTypeEnum } from '@xpert-ai/contracts'
-import { executionContextSchema, executionJson } from './execution-schema'
+import { executionContextSchema, executionJson, executionLimitsSchema } from './execution-schema'
+import { defaultExecutionLimits } from './execution-policy.defaults'
 import { executionUsageFactSchema } from './execution-usage-schema'
 
 const userId = randomUUID()
@@ -50,6 +51,11 @@ const fact = {
 }
 
 describe('persisted execution boundaries', () => {
+    it('loads legacy grant limits without retaining their input cap', () => {
+        const transformer = executionJson(executionLimitsSchema)
+        expect(transformer.from({ ...defaultExecutionLimits, maxInputTokens: 128000 })).toEqual(defaultExecutionLimits)
+        expect(transformer.to(defaultExecutionLimits)).not.toHaveProperty('maxInputTokens')
+    })
     it('round-trips context and nullable facts without changing meaning', () => {
         const transformer = executionJson(executionContextSchema)
         expect(transformer.from(JSON.parse(JSON.stringify(transformer.to(context as never))))).toEqual(context)

@@ -225,7 +225,7 @@ export class NativeStreamUsage {
 }
 
 /** Bound both frame and total response memory while keeping native SSE events intact. */
-export async function* nativeFrames(stream: ReadableStream<Uint8Array>) {
+export async function* nativeFrames(stream: ReadableStream<Uint8Array>, onActivity?: () => void) {
     const reader = stream.getReader(),
         decoder = new TextDecoder('utf-8', { fatal: true })
     let pending = '',
@@ -234,6 +234,7 @@ export async function* nativeFrames(stream: ReadableStream<Uint8Array>) {
         for (;;) {
             const { value, done } = await reader.read()
             if (done) break
+            onActivity?.()
             bytes += value.byteLength
             if (bytes > 16 * 1024 * 1024) throw executionError('Invalid')
             pending += decoder.decode(value, { stream: true })
