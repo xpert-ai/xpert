@@ -1,0 +1,27 @@
+identity:
+    name: serply_search
+    author: Serply
+    label:
+        en_US: Serply Search
+        zh_Hans: Serply 搜索
+        pt_BR: Serply Search
+description:
+    human:
+        en_US: A tool for performing a Google search through Serply and returning the title, link and snippet of each result. Input should be a search query.
+        zh_Hans: 一个通过 Serply 执行 Google 搜索并返回每条结果的标题、链接和摘要的工具。输入应该是一个搜索查询。
+        pt_BR: A tool for performing a Google search through Serply and returning the title, link and snippet of each result. Input should be a search query.
+    llm: A tool for performing a Google search and returning the title, link and snippet of each result. Input should be a search query.
+parameters:
+    - name: query
+      type: string
+      required: true
+      label:
+          en_US: Query string
+          zh_Hans: 查询语句
+          pt_BR: Query string
+      human_description:
+          en_US: used for searching
+          zh_Hans: 用于搜索网页内容
+          pt_BR: used for searching
+      llm_description: key words for searching
+      form: llm
