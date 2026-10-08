@@ -21,6 +21,7 @@ import { t } from 'i18next'
 import { XpertWorkspaceFilesService } from '../xpert/xpert-workspace-files.service'
 import { streamWorkspaceDownload } from '../xpert/workspace-file-download'
 import { AssistantFileAccess, AssistantFileAccessGuard } from './assistant-file-access.guard'
+import { WORKSPACE_FILE_UPLOAD_MAX_BYTES } from '../shared/workspace-file-limits'
 import {
     workspaceFileQuerySchema,
     workspaceFilesQuerySchema,
@@ -32,7 +33,7 @@ import {
     WorkspaceFileUpload
 } from './assistant-workspace-files.schema'
 
-const uploadOptions = { limits: { fileSize: 10 * 1024 * 1024 } }
+const uploadOptions = { limits: { fileSize: WORKSPACE_FILE_UPLOAD_MAX_BYTES } }
 
 @ApiTags('AssistantWorkspaceFiles')
 @ApiBearerAuth()

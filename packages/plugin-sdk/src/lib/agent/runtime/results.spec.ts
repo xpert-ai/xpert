@@ -16,9 +16,12 @@ describe('portable task results', () => {
     })
     expect(agentOutputDeliverySchema.safeParse({ mode: 'none', paths: ['file.txt'] }).success).toBe(false)
     expect(agentOutputDeliverySchema.safeParse({ mode: 'archive', paths: [] }).success).toBe(false)
-    expect(agentOutputDeliverySchema.safeParse({ mode: 'files', paths: Array(33).fill('file.txt') }).success).toBe(
-      false
-    )
+    expect(
+      agentOutputDeliverySchema.safeParse({
+        mode: 'files',
+        paths: Array.from({ length: 129 }, (_, index) => `file-${index}.txt`)
+      }).success
+    ).toBe(false)
   })
 
   it('uses explicit result kinds and keeps execution findings separate from delivery', () => {

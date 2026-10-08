@@ -30,6 +30,11 @@ describe('Project task output delivery', () => {
       }
     }
   )
+  it.each(['files', 'archive'])('accepts 128 exact paths and rejects 129 in %s mode', (mode) => {
+    const paths = Array.from({ length: 128 }, (_, index) => `交付/结果-${index}.txt`)
+    expect(agentOutputDeliverySchema.parse({ mode, paths })).toEqual({ mode, paths })
+    expect(agentOutputDeliverySchema.safeParse({ mode, paths: [...paths, '交付/extra.txt'] }).success).toBe(false)
+  })
   it('allows the executor to declare exact dynamic filenames when paths are omitted', () => {
     expect(agentOutputDeliverySchema.parse({ mode: 'files' })).toEqual({ mode: 'files' })
     expect(agentOutputDeliverySchema.parse({ mode: 'files', paths: ['qa/run-20261007/totals.json'] })).toEqual({

@@ -1,5 +1,7 @@
 import { z } from 'zod/v3'
 
+export const AGENT_OUTPUT_MAX_PATHS = 128
+
 /** Relative file selections only. A declaration does not grant filesystem access. */
 export const agentResultPathSchema = z
   .string()
@@ -24,7 +26,7 @@ const deliveryPathsSchema = z
     )
   )
   .min(1)
-  .max(32)
+  .max(AGENT_OUTPUT_MAX_PATHS)
   .optional()
   .describe(
     'Exact file paths relative to the task working directory. No wildcards/globs or directories. If filenames are determined during execution, omit paths and require the executor to declare each deliverable as a file result item.'
