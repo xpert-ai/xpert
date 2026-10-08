@@ -1,3 +1,7 @@
+import { SetupPluginsCatalog } from './setup/setup-plugins.catalog'
+import { SetupPluginsController } from './setup/setup-plugins.controller'
+import { SetupPluginsService } from './setup/setup-plugins.service'
+import { SetupPluginsStore } from './setup/setup-plugins.store'
 import { ConfigModule, ConfigService, getConfig } from '@xpert-ai/server-config'
 import { DynamicModule, Global, Inject, Module, OnModuleDestroy, OnModuleInit } from '@nestjs/common'
 import { DiscoveryModule, ModuleRef } from '@nestjs/core'
@@ -53,7 +57,7 @@ import { PluginSchemaSyncService } from './plugin-schema-sync.service'
 		TypeOrmModule.forFeature([PluginInstance, PluginMarketplaceSource, PluginMarketplaceRegistryItem]),
 		CqrsModule
 	],
-	controllers: [PluginController, PluginMarketplaceController],
+	controllers: [PluginController, PluginMarketplaceController, SetupPluginsController],
 	exports: [
 		StrategyBus,
 		XpertToolProviderRegistry,
@@ -64,6 +68,9 @@ import { PluginSchemaSyncService } from './plugin-schema-sync.service'
 		LOADED_PLUGINS
 	],
 	providers: [
+		SetupPluginsService,
+		SetupPluginsStore,
+		SetupPluginsCatalog,
 		{ provide: LOADED_PLUGINS, useValue: loaded },
 		PluginConfigResolverProvider,
 		{

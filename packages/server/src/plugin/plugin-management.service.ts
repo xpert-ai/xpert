@@ -4,6 +4,7 @@
  * - Register HTTP routes and strategies only after the module is loaded into Nest.
  * - Preserve tenant/organization scope and existing plugin lifecycle semantics during install and refresh.
  */
+import { registerInstalledPluginStrategies } from './plugin-strategy-registration'
 import { BadRequestException, ForbiddenException, Inject, Injectable, Logger, Optional } from '@nestjs/common'
 import { LazyModuleLoader, ModuleRef } from '@nestjs/core'
 import { ApplicationConfig } from '@nestjs/core'
@@ -19,16 +20,13 @@ import {
 	getErrorMessage,
 	GLOBAL_ORGANIZATION_SCOPE,
 	RequestContext,
-	PLUGIN_JOB_PROCESSOR_METADATA,
 	SYSTEM_GLOBAL_SCOPE,
 	resolveTenantGlobalScopeKey,
-	STRATEGY_META_KEY,
 	StrategyBus
 } from '@xpert-ai/plugin-sdk'
 import { inspectConfig } from './config'
 import {
 	clearPluginLoadFailure,
-	collectProvidersWithMetadata,
 	hasLifecycleMethod,
 	PLUGIN_SYSTEM_LEVEL_INSTALL_FORBIDDEN_CODE,
 	registerPluginsAsync,
@@ -80,6 +78,7 @@ import {
 import { RuntimeControlService } from '../runtime-control/runtime-control.service'
 import { PluginRuntimeStateService, resolvePluginRuntimeRevision } from './plugin-runtime-state.service'
 import { PluginSchemaSyncService } from './plugin-schema-sync.service'
+import { assertPluginArtifactNamespaceAvailable, findLoadedPluginByLevels } from './plugin-install-policy'
 
 @Injectable()
 export class PluginManagementService {
@@ -217,7 +216,7 @@ export class PluginManagementService {
 
 	async installPlugin(
 		body: PluginInstallInput,
-		options: { allowPackageDir?: boolean } = {}
+		options: { allowPackageDir?: boolean; deferActivation?: boolean; requiredLevel?: PluginLevel } = {}
 	): Promise<PluginInstallResult> {
 		if (!body?.pluginName) {
 			throw new BadRequestException(t('server:Error.PluginPackageNameRequired'))
@@ -286,6 +285,13 @@ export class PluginManagementService {
 				})
 			}
 			level = resolvePluginLevel(compatibilityInfo?.level)
+			if (options.requiredLevel && options.requiredLevel !== level) {
+				throw new BadRequestException(
+					t('server:Error.SetupPluginLevel', {
+						defaultValue: 'The plugin level changed. Refresh the setup catalog and try again.'
+					})
+				)
+			}
 			if (level !== PLUGIN_LEVEL.SYSTEM && organizationId === GLOBAL_ORGANIZATION_SCOPE && !tenantId) {
 				throw new BadRequestException('tenantId is required for tenant-scoped plugin installation')
 			}
@@ -432,7 +438,7 @@ export class PluginManagementService {
 						`Plugin "${packageName}" artifactNamespace must contain only lowercase letters, numbers, and underscores`
 					)
 				}
-				this.assertPluginArtifactNamespaceAvailable({
+				assertPluginArtifactNamespaceAvailable(this.loadedPlugins, {
 					artifactNamespace,
 					pluginName: normalizePluginName(packageName),
 					packageName
@@ -479,12 +485,14 @@ export class PluginManagementService {
 				)
 				const stagedVersion = stagedCompatibility.version ?? body.version
 				const stagedRuntimeRevision = source === 'code' ? `runtime:${runtimePluginName}` : undefined
-				const convergence = await this.runtimeControl.recordPluginRuntimeChange({
-					pluginName: normalizePluginName(packageName),
-					version: stagedVersion,
-					runtimeRevision: stagedRuntimeRevision,
-					scopeKey: scope.scopeKey
-				})
+				const convergence = options.deferActivation
+					? { scheduled: false, generation: 0 }
+					: await this.runtimeControl.recordPluginRuntimeChange({
+							pluginName: normalizePluginName(packageName),
+							version: stagedVersion,
+							runtimeRevision: stagedRuntimeRevision,
+							scopeKey: scope.scopeKey
+						})
 				this.logger.log(
 					`Staged ${level}-level plugin ${packageName}@${stagedVersion ?? 'latest'} in ${scope.scopeKey}; ${
 						convergence.scheduled
@@ -661,7 +669,7 @@ export class PluginManagementService {
 				)
 			}
 			if (explicitArtifactNamespace) {
-				this.assertPluginArtifactNamespaceAvailable({
+				assertPluginArtifactNamespaceAvailable(this.loadedPlugins, {
 					artifactNamespace: explicitArtifactNamespace,
 					pluginName,
 					packageName
@@ -704,66 +712,15 @@ export class PluginManagementService {
 						`Registered ${routeRegistration.controllerCount} plugin controller routes across ${routeRegistration.moduleCount} modules for ${packageNameWithVersion}`
 					)
 				}
-				const strategyProviders = collectProvidersWithMetadata(
+				await registerInstalledPluginStrategies(
 					loadedModuleRef,
 					scope.scopeKey,
-					body.pluginName,
+					body,
 					this.logger,
-					beforeModuleIds
+					beforeModuleIds,
+					this.strategyBus,
+					targetOrganizationId
 				)
-
-				for await (const instance of strategyProviders) {
-					const target = instance.metatype ?? instance.constructor
-					const sourceId = `${scope.scopeKey}:${body.pluginName}@${body.version ?? 'latest'}:${target.name}`
-					let strategyMeta: string = null
-					if (instance.metatype) {
-						strategyMeta = Reflect.getMetadata(STRATEGY_META_KEY, instance.metatype)
-					}
-					if (!strategyMeta) {
-						strategyMeta = Reflect.getMetadata(STRATEGY_META_KEY, instance.constructor)
-					}
-					let managedQueueProcessorMeta: unknown = null
-					if (instance.metatype) {
-						managedQueueProcessorMeta = Reflect.getMetadata(
-							PLUGIN_JOB_PROCESSOR_METADATA,
-							instance.metatype
-						)
-					}
-					if (!managedQueueProcessorMeta) {
-						managedQueueProcessorMeta = Reflect.getMetadata(
-							PLUGIN_JOB_PROCESSOR_METADATA,
-							instance.constructor
-						)
-					}
-					if (strategyMeta) {
-						this.logger.debug(
-							`Registering strategy ${strategyMeta} for plugin ${body.pluginName} in organization ${targetOrganizationId}`
-						)
-						this.strategyBus.upsert(strategyMeta, {
-							instance,
-							sourceId,
-							sourceKind: 'plugin'
-						})
-					}
-					if (Array.isArray(managedQueueProcessorMeta) && managedQueueProcessorMeta.length) {
-						this.logger.debug(
-							`Registering managed queue processor for plugin ${body.pluginName} in organization ${targetOrganizationId}`
-						)
-						this.strategyBus.upsert(PLUGIN_JOB_PROCESSOR_METADATA, {
-							instance,
-							sourceId,
-							sourceKind: 'plugin'
-						})
-					}
-					if (
-						!strategyMeta &&
-						!(Array.isArray(managedQueueProcessorMeta) && managedQueueProcessorMeta.length)
-					) {
-						this.logger.debug(
-							`No strategy or managed queue processor metadata found for provider '${instance.constructor.name}' in plugin ${body.pluginName}, skipping registration into strategy bus`
-						)
-					}
-				}
 
 				if (loadedModuleRef && hasLifecycleMethod(loadedModuleRef, 'onPluginBootstrap')) {
 					await loadedModuleRef['onPluginBootstrap']()
@@ -807,12 +764,14 @@ export class PluginManagementService {
 				...(runtimeRevision ? { runtimeRevision } : {}),
 				state: 'loaded' as const
 			}
-			const convergence = await this.runtimeControl.recordPluginRuntimeChange({
-				pluginName,
-				version: plugin.meta?.version,
-				runtimeRevision,
-				scopeKey: scope.scopeKey
-			})
+			const convergence = options.deferActivation
+				? { scheduled: false, generation: 0 }
+				: await this.runtimeControl.recordPluginRuntimeChange({
+						pluginName,
+						version: plugin.meta?.version,
+						runtimeRevision,
+						scopeKey: scope.scopeKey
+					})
 
 			return {
 				success: true,
@@ -987,67 +946,15 @@ export class PluginManagementService {
 	}
 
 	private findLoadedSystemPlugin(pluginNamesOrPackages: string[], scopeKey?: string) {
-		return this.findLoadedPluginByLevels(pluginNamesOrPackages, [PLUGIN_LEVEL.SYSTEM], scopeKey)
+		return findLoadedPluginByLevels(this.loadedPlugins, pluginNamesOrPackages, [PLUGIN_LEVEL.SYSTEM], scopeKey)
 	}
 
 	private findLoadedRestartRequiredPlugin(pluginNamesOrPackages: string[], scopeKey?: string) {
-		return this.findLoadedPluginByLevels(
+		return findLoadedPluginByLevels(
+			this.loadedPlugins,
 			pluginNamesOrPackages,
 			[PLUGIN_LEVEL.SYSTEM, PLUGIN_LEVEL.TENANT],
 			scopeKey
-		)
-	}
-
-	private findLoadedPluginByLevels(pluginNamesOrPackages: string[], levels: PluginLevel[], scopeKey?: string) {
-		const normalizedTargets = new Set(pluginNamesOrPackages.map((name) => normalizePluginName(name)))
-		return this.loadedPlugins.find((plugin) => {
-			if (scopeKey && (plugin.scopeKey ?? plugin.organizationId) !== scopeKey) {
-				return false
-			}
-			const level = resolvePluginLevel(plugin.level ?? plugin.instance?.meta?.level)
-			if (!levels.includes(level)) {
-				return false
-			}
-			const candidates = [plugin.name, plugin.packageName, plugin.instance?.meta?.name]
-				.filter(Boolean)
-				.map((candidate) => normalizePluginName(candidate as string))
-			return candidates.some((candidate) => normalizedTargets.has(candidate))
-		})
-	}
-
-	/**
-	 * Fail fast when a newly installed plugin explicitly claims a namespace already owned by another loaded plugin.
-	 * Reinstalling/upgrading the same plugin is allowed so a stable namespace does not block normal refresh flows.
-	 */
-	private assertPluginArtifactNamespaceAvailable(input: {
-		artifactNamespace: string
-		pluginName: string
-		packageName: string
-	}) {
-		const targetNames = new Set(
-			[input.pluginName, input.packageName]
-				.map((value) => normalizeOptionalPluginName(value))
-				.filter((value): value is string => Boolean(value))
-		)
-		const conflict = this.loadedPlugins.find((plugin) => {
-			const loadedNamespace = resolveLoadedPluginExplicitArtifactNamespace(plugin)
-			if (loadedNamespace !== input.artifactNamespace) {
-				return false
-			}
-
-			const loadedNames = [plugin.name, plugin.packageName, plugin.instance?.meta?.name]
-				.map((value) => normalizeOptionalPluginName(value))
-				.filter((value): value is string => Boolean(value))
-			return !loadedNames.some((value) => targetNames.has(value))
-		})
-
-		if (!conflict) {
-			return
-		}
-
-		const conflictScope = conflict.scopeKey ?? conflict.organizationId
-		throw new BadRequestException(
-			`Plugin "${input.pluginName}" declares artifactNamespace="${input.artifactNamespace}", but it is already used by installed plugin "${getLoadedPluginDisplayName(conflict)}" in scope "${conflictScope}".`
 		)
 	}
 
@@ -1084,43 +991,4 @@ export class PluginManagementService {
 
 function isPluginArtifactNamespace(value: string) {
 	return /^[a-z0-9_]+$/.test(value)
-}
-
-function normalizeOptionalString(value: unknown) {
-	if (typeof value !== 'string') {
-		return null
-	}
-	const normalized = value.trim()
-	return normalized || null
-}
-
-function normalizeOptionalPluginName(value: unknown) {
-	const normalized = normalizeOptionalString(value)
-	return normalized ? normalizePluginName(normalized) : null
-}
-
-/**
- * Read only explicit namespace declarations from loaded plugins.
- * Derived namespaces remain compatibility-only in v1 and are not used as hard install blockers.
- */
-function resolveLoadedPluginExplicitArtifactNamespace(plugin: LoadedPluginRecord) {
-	const metaNamespace = normalizeOptionalString(plugin.instance?.meta?.artifactNamespace)
-	if (metaNamespace) {
-		return metaNamespace
-	}
-
-	const packageRoot = resolveLoadedPluginBundleRoot(plugin)
-	if (!packageRoot) {
-		return null
-	}
-
-	return normalizeOptionalString(readPluginBundleManifest(packageRoot)?.manifest.artifactNamespace)
-}
-
-function getLoadedPluginDisplayName(plugin: LoadedPluginRecord) {
-	return (
-		normalizeOptionalString(plugin.instance?.meta?.name) ??
-		normalizeOptionalString(plugin.packageName) ??
-		plugin.name
-	)
 }

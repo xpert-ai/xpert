@@ -8,7 +8,12 @@
 		"PluginProcessLevelConflict": "Plugin {{name}} is already registered at level {{existingLevel}}. Uninstall that registration and restart the API before installing it at level {{requestedLevel}}",
 		"PluginInstallFailed": "Failed to install plugin {{pluginName}}: {{errorMessage}}",
 		"PluginNamesRequired": "Plugin names are required",
-		"PluginSystemUninstallForbidden": "Plugin {{name}} is a system plugin and cannot be uninstalled"
+		"PluginSystemUninstallForbidden": "Plugin {{name}} is a system plugin and cannot be uninstalled",
+		"SetupPluginLevel": "The plugin level changed. Refresh the setup catalog and try again.",
+		"SetupPluginSelection": "The selected plugin is unavailable. Refresh the catalog and try again.",
+		"SetupPluginAdmin": "System setup requires a SuperAdmin session in the default tenant.",
+		"SetupPluginOrganization": "Resume setup in the organization where installation started.",
+		"SetupPluginCatalogQuery": "Invalid plugin catalog query."
 	},
 	"ViewExtension": {
 		"Errors": {

@@ -153,6 +153,9 @@ export class TenantDetailsComponent {
     } catch (error) {
       console.error(error)
       this.toastrService.error(getErrorMessage(error))
+      this.loading.set(false)
+      await this.router.navigate(['/auth/login'], { queryParams: { returnUrl: '/onboarding/plugins' } })
+      return
     }
 
     this.loading.set(false)
@@ -160,20 +163,21 @@ export class TenantDetailsComponent {
   }
 
   async afterOnboard(organization: IOrganization) {
-    await firstValueFrom(
+    const login = await firstValueFrom(
       this.authStrategy.login({
         email: this.userFormGroup.get('email').value,
         password: this.userFormGroup.get('password').value
       })
     )
 
+    if (!login.isSuccess()) throw new Error(login.getErrors().join(', '))
     this.#store.setOrganizationScope(organization)
     this.#copilotServer.refresh()
   }
 
   navigateHome() {
     this.navigating.set(true)
-    this.router.navigate(['/chat/'])
+    this.router.navigate(['/onboarding/plugins'])
   }
 
   async startAiModelSetup() {
@@ -202,6 +206,10 @@ export class TenantDetailsComponent {
   }
 
   onStepChange(event: ZardStepperSelectionEvent) {
+    if (event.selectedIndex === 2) {
+      this.navigateHome()
+      return
+    }
     if (event.selectedIndex !== 1 || this.primaryCopilot()?.enabled || this.aiModelSetupRequested() || this.loading()) {
       return
     }

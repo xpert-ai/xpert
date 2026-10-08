@@ -8,7 +8,12 @@
 		"PluginProcessLevelConflict": "插件 {{name}} 已按 {{existingLevel}} level 注册；请先卸载旧注册并重启 API，再改为 {{requestedLevel}} level 安装",
 		"PluginInstallFailed": "安装插件 {{pluginName}} 失败：{{errorMessage}}",
 		"PluginNamesRequired": "插件名称不能为空",
-		"PluginSystemUninstallForbidden": "插件 {{name}} 为系统插件，不能卸载"
+		"PluginSystemUninstallForbidden": "插件 {{name}} 为系统插件，不能卸载",
+		"SetupPluginLevel": "插件级别已变化，请刷新 Setup 目录后重试。",
+		"SetupPluginSelection": "所选插件不可用，请刷新目录后重试。",
+		"SetupPluginAdmin": "系统设置需要默认租户的超级管理员登录。",
+		"SetupPluginOrganization": "请切回开始安装时的组织继续 Setup。",
+		"SetupPluginCatalogQuery": "插件目录查询参数无效。"
 	},
 	"ViewExtension": {
 		"Errors": {

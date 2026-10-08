@@ -1,0 +1,93 @@
+<section class="mx-auto my-6 flex w-[1200px] max-w-full flex-col gap-6 p-4">
+  <p class="text-sm text-text-secondary">{{ 'XP.Onboarding.PluginFinalStep' | translate }}</p>
+  <h1 class="text-2xl font-semibold">{{ 'XP.Onboarding.InstallPlugins' | translate }}</h1>
+  <p class="text-text-secondary">{{ 'XP.Onboarding.InstallPluginsDescription' | translate }}</p>
+
+  @if (error()) {
+    <p role="alert">{{ error() }}</p>
+    <button z-button type="button" [zDisabled]="busy()" (click)="load()">
+      {{ 'XP.Onboarding.PluginRetry' | translate }}
+    </button>
+  }
+  @if (progress()?.phase === 'idle') {
+    <div class="flex flex-col gap-2 rounded-lg border border-divider-regular p-4">
+      <z-checkbox [ngModel]="importDefaults()" (checkChange)="importDefaults.set($event)" [zDisabled]="busy()">
+        {{ 'XP.AgentPlugins.SetupImportDefaults' | translate }}
+      </z-checkbox>
+      <p class="text-sm text-text-secondary">{{ 'XP.AgentPlugins.DefaultImportDescription' | translate }}</p>
+      <a
+        class="self-start text-sm text-primary-500 underline"
+        [href]="defaultSource"
+        target="_blank"
+        rel="noopener noreferrer"
+      >
+        {{ 'XP.AgentPlugins.DefaultImportSource' | translate }}
+      </a>
+    </div>
+    <xp-setup-plugin-catalog [disabled]="busy()" (selectionChange)="selected.set($event)" />
+    <p class="text-sm text-text-secondary">{{ 'XP.Onboarding.PluginRestartNotice' | translate }}</p>
+    <div class="sticky bottom-0 flex flex-wrap gap-3 border-t border-divider-regular bg-components-panel-bg py-4">
+      <button z-button type="button" [zDisabled]="busy() || (!selected().size && !importDefaults())" (click)="start()">
+        {{
+          (importDefaults() ? 'XP.AgentPlugins.SetupInstallAndFinish' : 'XP.Onboarding.InstallSelectedAndFinish')
+            | translate: { count: selected().size }
+        }}
+      </button>
+      <button z-button zType="secondary" type="button" [zDisabled]="busy()" (click)="start(true)">
+        {{ 'XP.Onboarding.Skip' | translate }}
+      </button>
+    </div>
+  } @else if (progress(); as state) {
+    <div aria-live="polite" class="flex flex-col gap-3">
+      <p>{{ 'XP.Onboarding.PluginPhase_' + state.phase | translate }} · {{ processed() }} / {{ state.items.length }}</p>
+      <z-progress-bar
+        [progress]="progressPercent()"
+        role="progressbar"
+        [attr.aria-label]="'XP.Onboarding.PluginPhase_' + state.phase | translate"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        [attr.aria-valuenow]="progressPercent()"
+      />
+      @if (state.defaultAgentPlugins; as defaults) {
+        <p>{{ 'XP.AgentPlugins.DefaultImportPhase_' + defaults.status | translate }}</p>
+        @if (defaults.error) {
+          <p role="alert" class="break-words text-text-destructive">{{ defaults.error }}</p>
+        }
+        <xp-default-agent-plugins-result [result]="defaults.result ?? null" />
+      }
+      <ul class="max-h-[48vh] divide-y divide-divider-regular overflow-auto">
+        @for (item of state.items; track item.packageName) {
+          <li class="py-3">
+            <div class="flex justify-between gap-4">
+              <span>{{ item.title | i18n }}</span
+              ><span>{{ 'XP.Onboarding.PluginStatus_' + item.status | translate }}</span>
+            </div>
+            @if (item.error) {
+              <p class="mt-1 break-words text-sm text-text-secondary">{{ item.error }}</p>
+            }
+          </li>
+        }
+      </ul>
+      @if (failed()) {
+        <p>{{ 'XP.Onboarding.PluginsFailedSkipped' | translate: { count: failed() } }}</p>
+      }
+      @if (disconnected()) {
+        <p>{{ 'XP.Onboarding.PluginReconnecting' | translate }}</p>
+      }
+      @if (waitingTooLong()) {
+        <p>{{ 'XP.Onboarding.PluginRestartHelp' | translate }}</p>
+      }
+      @if (waitingTooLong() || state.phase === 'attention') {
+        @if (state.error) {
+          <p role="alert">{{ state.error }}</p>
+        }
+        <button z-button type="button" [zDisabled]="busy()" (click)="load()">
+          {{ 'XP.Onboarding.PluginRetry' | translate }}
+        </button>
+        <button z-button zType="secondary" type="button" (click)="enterOrganization()">
+          {{ 'XP.Onboarding.EnterOrganization' | translate }}
+        </button>
+      }
+    </div>
+  }
+</section>
