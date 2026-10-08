@@ -14,8 +14,10 @@
       </div>
       <button
         type="button"
-        class="btn btn-secondary btn-medium shrink-0 gap-1.5"
-        [disabled]="busy()"
+        z-button
+        zType="secondary"
+        class="shrink-0 gap-1.5"
+        [zDisabled]="busy()"
         (click)="openImport(importTemplate)"
       >
         <i class="ri-add-line text-lg" aria-hidden="true"></i>{{ 'XP.AgentPlugins.Import' | translate }}
@@ -30,6 +32,35 @@
         {{ 'XP.Desktop.PluginWorkspaceHint' | translate: { workspace: desktopWorkspaceName() } }}
       </p>
     }
+    <div class="my-5 flex flex-col gap-3 rounded-lg border border-divider-regular p-4">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="min-w-0 flex-1">
+          <p class="font-medium">{{ 'XP.AgentPlugins.DefaultImportTitle' | translate }}</p>
+          <p class="mt-1 text-sm text-text-secondary">{{ 'XP.AgentPlugins.DefaultImportDescription' | translate }}</p>
+          <a
+            class="mt-1 inline-block text-sm text-primary-500 underline"
+            [href]="defaultSource"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {{ 'XP.AgentPlugins.DefaultImportSource' | translate }}
+          </a>
+        </div>
+        <button
+          z-button
+          type="button"
+          [zDisabled]="busy() || desktopScopeMismatch()"
+          [zLoading]="importingDefaults()"
+          (click)="importDefaults()"
+        >
+          {{
+            (importingDefaults() ? 'XP.AgentPlugins.DefaultImportPhase_importing' : 'XP.AgentPlugins.ImportDefaults')
+              | translate
+          }}
+        </button>
+      </div>
+      <xp-default-agent-plugins-result [result]="defaultImportResult()" />
+    </div>
     <div class="mb-6 flex flex-wrap items-center justify-end gap-3">
       <z-search-input
         class="min-w-0 flex-1 sm:max-w-sm"

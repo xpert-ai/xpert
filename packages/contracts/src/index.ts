@@ -104,3 +104,5 @@ export * from './desktop-shell.model'
 export * from './ai/agent-output-delivery.model'
 
 export * from './ai/execution-activity.model'
+
+export * from './default-agent-plugins'

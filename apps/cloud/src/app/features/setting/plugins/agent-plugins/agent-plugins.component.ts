@@ -1,3 +1,5 @@
+import { DefaultAgentPluginsResultComponent } from '@cloud/app/@shared/agent-plugins/default-agent-plugins-result.component'
+import { DEFAULT_AGENT_PLUGINS_SOURCE, type DefaultAgentPluginsImportResult } from '@xpert-ai/contracts'
 import { A11yModule } from '@angular/cdk/a11y'
 import { BreakpointObserver } from '@angular/cdk/layout'
 import { toSignal } from '@angular/core/rxjs-interop'
@@ -14,7 +16,12 @@ import { API_PREFIX } from '@cloud/app/@core/state/constants'
 import { injectActiveScope } from '@cloud/app/@core/state'
 import { getErrorMessage, injectToastr } from '@cloud/app/@core'
 import type { RuntimeResourceBindingInput } from '@xpert-ai/contracts'
-import { ZardSearchInputComponent, ZardSelectImports, type ZardSelectValue } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardSearchInputComponent,
+  ZardSelectImports,
+  type ZardSelectValue
+} from '@xpert-ai/headless-ui'
 import {
   BindingSummary,
   groupPluginPackages,
@@ -44,6 +51,8 @@ interface ResourceOptions {
     CdkMenuModule,
     ReactiveFormsModule,
     TranslateModule,
+    ZardButtonComponent,
+    DefaultAgentPluginsResultComponent,
     ZardSearchInputComponent,
     ZardSelectImports,
     AgentPluginAvatarComponent
@@ -78,6 +87,9 @@ export class AgentPluginsComponent {
   readonly loading = signal(true)
   readonly error = signal<string | null>(null)
   readonly notice = signal(false)
+  readonly defaultImportResult = signal<DefaultAgentPluginsImportResult | null>(null)
+  readonly importingDefaults = signal(false)
+  readonly defaultSource = DEFAULT_AGENT_PLUGINS_SOURCE.browseUrl
   readonly packages = signal<PackageSummary[]>([])
   readonly bindings = signal<BindingSummary[]>([])
   readonly options = signal<ResourceOptions>({ workspaces: [], experts: [] })
@@ -158,6 +170,8 @@ export class AgentPluginsComponent {
         this.closeDetails()
         this.busy.set(false)
         this.notice.set(false)
+        this.defaultImportResult.set(null)
+        this.importingDefaults.set(false)
         this.search.set('')
         this.status.set('all')
         this.page.set(0)
@@ -240,6 +254,23 @@ export class AgentPluginsComponent {
   closeImport() {
     if (!this.busy()) this.importDialog?.close()
   }
+  async importDefaults() {
+    if (this.busy() || this.desktopScopeMismatch()) return
+    const generation = this.generation
+    this.defaultImportResult.set(null)
+    this.importingDefaults.set(true)
+    try {
+      await this.run(async () => {
+        const result = await firstValueFrom(
+          this.http.post<DefaultAgentPluginsImportResult>(`${this.endpoint}/defaults`, {})
+        )
+        if (generation === this.generation) this.defaultImportResult.set(result)
+      })
+    } finally {
+      if (generation === this.generation) this.importingDefaults.set(false)
+    }
+  }
+
   importGit() {
     if (this.git.invalid) {
       this.git.markAllAsTouched()

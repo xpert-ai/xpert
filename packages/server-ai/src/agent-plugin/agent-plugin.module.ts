@@ -1,3 +1,5 @@
+import { CqrsModule } from '@nestjs/cqrs'
+import { ImportDefaultAgentPluginsHandler } from './defaults/import-default-agent-plugins.handler'
 import { Global, Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { AgentPluginPackage, AgentResourceBinding } from './agent-plugin.entity'
@@ -9,10 +11,11 @@ import { AgentPluginConnectorService } from './agent-plugin-connector.service'
 
 @Global()
 @Module({
-    imports: [TypeOrmModule.forFeature([AgentPluginPackage, AgentResourceBinding]), ConnectorModule],
+    imports: [CqrsModule, TypeOrmModule.forFeature([AgentPluginPackage, AgentResourceBinding]), ConnectorModule],
     controllers: [AgentPluginController],
     providers: [
         AgentPluginService,
+        ImportDefaultAgentPluginsHandler,
         RuntimeResourceService,
         AgentPluginConnectorService,
         { provide: 'XpertAgentPluginService', useExisting: AgentPluginService },
