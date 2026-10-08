@@ -113,6 +113,129 @@ test('old, edited and renamed notes never repeatedly request candidate images', 
   f.note('renamed', [api.name], 'minor')
   assert.equal(f.plan(edited, f.commit()).build, false)
 })
+test('an API source fix reuses its pending note and publishes a new SHA candidate', (t) => {
+  const f = fixture(t)
+  f.note('api', [api.name], 'minor')
+  const before = f.commit()
+  f.write(
+    'packages/server-ai/package.json',
+    JSON.stringify({ name: '@xpert-ai/server-ai', version: '1.0.0', dependencies: { dagre: '1.0.0' } })
+  )
+  const after = f.commit()
+  const plan = f.plan(before, after)
+  assert.equal(plan.publish, true)
+  assert.deepEqual(
+    plan.matrix.include.map((image) => image.image_name),
+    ['xpert-api']
+  )
+  assert.equal(plan.matrix.include[0].version, `1.1.0-candidate.develop.${after.slice(0, 12)}`)
+  assert.deepEqual(plan.matrix.include[0].changesets, ['.changeset/api.md'])
+  assert.equal(plan.validationMatrix.include[0].publish, true)
+})
+test('pending notes authorize only the application affected by a source fix', (t) => {
+  const f = fixture(t)
+  f.note(
+    'all',
+    services.map((service) => service.name)
+  )
+  let before = f.commit()
+  for (const [file, expected] of [
+    ['apps/cloud/src/example.ts', 'xpert-webapp'],
+    ['.deploy/nsjail-runner/runner.py', 'xpert-nsjail-runner'],
+    ['.deploy/api/pnpm-lock.production.yaml', 'xpert-api'],
+    ['tools/release/catalog-dependencies.mjs', 'xpert-api'],
+    ['packages/server-ai/src/example.ts', 'xpert-api']
+  ]) {
+    f.write(file, 'fix')
+    const after = f.commit()
+    assert.deepEqual(
+      f.plan(before, after).matrix.include.map((image) => image.image_name),
+      [expected]
+    )
+    before = after
+  }
+})
+test('shared source and common lock fixes rebuild their pending consumers', (t) => {
+  const f = fixture(t)
+  f.note(
+    'all',
+    services.map((service) => service.name)
+  )
+  let before = f.commit()
+  for (const file of ['packages/contracts/src/example.ts', 'pnpm-lock.yaml', '.deploy/api/entrypoint.prod.sh']) {
+    f.write(file, 'fix')
+    const after = f.commit()
+    assert.deepEqual(
+      f.plan(before, after).matrix.include.map((image) => image.image_name),
+      ['xpert-api', 'xpert-webapp']
+    )
+    before = after
+  }
+})
+test('source changes without a release note are validated on PRs and pushes but never published', (t) => {
+  const f = fixture(t)
+  f.write('apps/api/src/example.ts', 'fix')
+  const after = f.commit()
+  for (const event of ['push', 'pull_request']) {
+    const plan = f.plan(f.initial, after, event)
+    assert.equal(plan.publish, false)
+    assert.equal(plan.validate, true)
+    assert.deepEqual(plan.matrix.include, [])
+    assert.deepEqual(
+      plan.validationMatrix.include.map((image) => image.image_name),
+      ['xpert-api']
+    )
+    assert.equal(plan.validationMatrix.include[0].publish, false)
+    assert.equal(plan.validationMatrix.include[0].target, 'production')
+  }
+})
+test('a pending-note repair on main remains a candidate, including in its PR', (t) => {
+  const f = fixture(t)
+  f.note('api')
+  const before = f.commit()
+  f.write('.deploy/api/Dockerfile', 'fix')
+  const after = f.commit()
+  for (const event of ['push', 'pull_request']) {
+    const plan = f.plan(before, after, event, 'refs/heads/main')
+    assert.equal(plan.matrix.include[0].stable, false)
+    assert.ok(!tags(plan.matrix.include[0]).includes('latest'))
+    assert.equal(plan.validationMatrix.include[0].publish, event === 'push')
+  }
+})
+test('docs, desktop and changeset-only edits do not rebuild pending application images', (t) => {
+  const f = fixture(t)
+  f.note('api')
+  const before = f.commit()
+  f.write('docs/fix.md', 'explanation')
+  f.write('.deploy/api/README.md', 'explanation')
+  f.write('apps/desktop/src/example.ts', 'fix')
+  const plan = f.plan(before, f.commit())
+  assert.equal(plan.validate, false)
+  assert.equal(plan.publish, false)
+})
+test('deleted source and renamed files still validate affected applications', (t) => {
+  const f = fixture(t)
+  f.note('api')
+  f.write('apps/api/src/example.ts', 'original')
+  const before = f.commit()
+  f.git('mv', 'apps/api/src/example.ts', 'packages/server-ai/example.ts')
+  const moved = f.commit()
+  assert.equal(f.plan(before, moved).publish, true)
+  f.git('rm', 'packages/server-ai/example.ts')
+  assert.equal(f.plan(moved, f.commit()).publish, true)
+})
+test('pipeline changes validate all applications, but publish only declared candidates', (t) => {
+  const f = fixture(t)
+  f.note('api')
+  const before = f.commit()
+  f.write('.github/workflows/docker-publish.yml', 'fix')
+  const plan = f.plan(before, f.commit())
+  assert.equal(plan.validationMatrix.include.length, 3)
+  assert.deepEqual(
+    plan.matrix.include.map((image) => image.image_name),
+    ['xpert-api']
+  )
+})
 test('highest pending bump determines a newly requested candidate version', (t) => {
   const f = fixture(t)
   f.note('minor', [web.name], 'minor')

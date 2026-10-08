@@ -1,3 +1,5 @@
+# Invariants: validate the exact source SHA and publish the health-checked image.
+# PRs build without registry credentials; retries reuse the verified artifact.
 name: Publish Application Docker images
 
 on:
@@ -10,6 +12,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: application-images-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
+
 jobs:
   prepare:
     name: Check application image Changesets
@@ -18,6 +24,11 @@ jobs:
     outputs:
       publish: ${{ steps.plan.outputs.publish }}
       matrix: ${{ steps.plan.outputs.matrix }}
+      sha: ${{ steps.plan.outputs.sha }}
+      validate: ${{ steps.plan.outputs.validate }}
+      validation_matrix: ${{ steps.plan.outputs.validation_matrix }}
+      validate_api: ${{ steps.plan.outputs.validate_api }}
+      validate_web: ${{ steps.plan.outputs.validate_web }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -39,9 +50,84 @@ jobs:
           IMAGE_RELEASE_REF: ${{ github.ref }}
         run: node .deploy/application-images/release-plan.mjs
 
+  validate-api:
+    needs: prepare
+    if: needs.prepare.outputs.validate_api == 'true'
+    uses: ./.github/workflows/api-runtime-dependencies.yml
+    with:
+      sha: ${{ needs.prepare.outputs.sha }}
+
+  validate-web:
+    needs: prepare
+    if: needs.prepare.outputs.validate_web == 'true'
+    uses: ./.github/workflows/webapp-dependencies.yml
+    with:
+      sha: ${{ needs.prepare.outputs.sha }}
+
+  build:
+    name: Build and verify ${{ matrix.image_name }}
+    needs: [prepare, validate-api, validate-web]
+    if: >-
+      ${{ always() && !cancelled() && needs.prepare.result == 'success' &&
+          needs.prepare.outputs.validate == 'true' &&
+          (needs.validate-api.result == 'success' || needs.validate-api.result == 'skipped') &&
+          (needs.validate-web.result == 'success' || needs.validate-web.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.validation_matrix) }}
+    env:
+      LOCAL_IMAGE: ${{ matrix.image_name }}:check-${{ needs.prepare.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: docker/setup-buildx-action@v3
+      - name: Build image without publishing
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          target: ${{ matrix.target }}
+          build-args: |
+            NODE_OPTIONS=${{ matrix.node_options }}
+          platforms: linux/amd64
+          load: true
+          push: false
+          provenance: false
+          tags: ${{ env.LOCAL_IMAGE }}
+          labels: |
+            org.opencontainers.image.revision=${{ needs.prepare.outputs.sha }}
+            org.opencontainers.image.version=${{ matrix.version }}
+      - name: Check image startup and health
+        if: matrix.health_check != ''
+        env:
+          HEALTH_CHECK: ${{ matrix.health_check }}
+        run: node "$HEALTH_CHECK" "$LOCAL_IMAGE"
+      - name: Save verified image for publication
+        if: matrix.publish
+        run: |
+          docker image inspect "$LOCAL_IMAGE" --format '{{.Id}}' > "$RUNNER_TEMP/image.id"
+          docker save "$LOCAL_IMAGE" -o "$RUNNER_TEMP/image.tar"
+      - uses: actions/upload-artifact@v4
+        if: matrix.publish
+        with:
+          name: verified-${{ matrix.image_name }}-${{ needs.prepare.outputs.sha }}
+          path: |
+            ${{ runner.temp }}/image.tar
+            ${{ runner.temp }}/image.id
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+          overwrite: true
+
   publish:
     name: Publish ${{ matrix.image_name }}
-    needs: prepare
+    needs: [prepare, build]
     if: github.event_name == 'push' && needs.prepare.outputs.publish == 'true'
     runs-on: ubuntu-latest
     environment: production
@@ -51,11 +137,21 @@ jobs:
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+    env:
+      LOCAL_IMAGE: ${{ matrix.image_name }}:check-${{ needs.prepare.outputs.sha }}
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ needs.prepare.outputs.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/download-artifact@v4
+        with:
+          name: verified-${{ matrix.image_name }}-${{ needs.prepare.outputs.sha }}
+          path: ${{ runner.temp }}/verified-image
+      - name: Load verified image
+        run: docker load -i "$RUNNER_TEMP/verified-image/image.tar"
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -94,16 +190,10 @@ jobs:
           labels: |
             org.opencontainers.image.version=${{ matrix.version }}
 
-      - name: Build and push image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ${{ matrix.dockerfile }}
-          target: ${{ matrix.target }}
-          build-args: |
-            NODE_OPTIONS=${{ matrix.node_options }}
-          platforms: linux/amd64
-          outputs: type=image,push=true,oci-artifact=false
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-to: type=inline
+      - name: Push the verified image without rebuilding
+        env:
+          IMAGE_TAGS: ${{ steps.meta.outputs.tags }}
+          IMAGE_VERSION: ${{ matrix.version }}
+          IMAGE_SHA: ${{ needs.prepare.outputs.sha }}
+          VERIFIED_IMAGE_ID_FILE: ${{ runner.temp }}/verified-image/image.id
+        run: node .deploy/application-images/publish-verified-image.mjs

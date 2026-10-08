@@ -1,10 +1,16 @@
 # Application Docker image releases
 
-`.github/workflows/docker-publish.yml` runs a lightweight Changesets check on pull
-requests and pushes to `develop` / `main`. Only a push with an approved release
-plan starts Docker builds and registry logins. Arbitrary Git/npm tags do not run
-this workflow. Existing API, Web and NsJail source validation workflows remain
-independent of publication.
+`.github/workflows/docker-publish.yml` validates affected images on pull requests
+and pushes to `develop` / `main`. Changesets authorize publication, while relevant
+source changes trigger validation even without a release note. Arbitrary Git/npm
+tags do not run this workflow.
+
+The workflow checks dependencies, builds each selected image once, checks API/Web
+startup and health, and saves the verified image. Only an authorized push can load
+that artifact and publish it, after every selected build succeeds. API and Web
+dependency workflows are reusable prerequisites, rather than parallel independent
+image builds. Existing NsJail source/sandbox validation remains separate; its image
+is built here without claiming to exercise privileged sandbox execution.
 
 ## Select images explicitly
 
@@ -31,16 +37,22 @@ Fix the API startup configuration.
 
 This requests only the API image. A single note can name multiple applications.
 Use `patch`, `minor` or `major` as appropriate. Desktop-only changesets, unrelated
-npm package notes, documentation, source-only commits, and edits/renames of existing
-notes do not request Docker publication. Add a new note when a subsequent source
-fix needs another candidate. Pending old notes alone never cause repeated builds.
+npm package notes, unrelated documentation, and edits/renames of existing notes
+alone do not request Docker publication.
+
+Once an application has a pending Changeset, a subsequent change to its source,
+shared build inputs, Dockerfile or dependency lock requests a new candidate for
+the fixing commit. It reuses the pending note and does not require another note
+just to retry a failed build. Only affected applications are rebuilt; the highest
+pending bump still determines their candidate base version. Source-only changes
+without an application note are built and checked, but never published.
 
 ## Candidate and stable versions
 
-- A new application note on `develop` produces
+- A new application note, or a relevant fix with a pending note, on `develop` produces
   `<next-version>-candidate.develop.<sha12>`, `sha-<full-commit>` and
   `develop-candidate`. The highest pending bump determines the next version.
-- New notes merged to `main` produce `candidate.main` versions and the
+- New notes and pending-note repairs on `main` produce `candidate.main` versions and the
   `main-candidate` alias. They do not change `main` or `latest`.
 - Land the notes on `main` first. Then merge the Changesets version PR, or use
   `corepack pnpm changeset:version` on a branch from that `main`. This separate
@@ -69,6 +81,25 @@ GHCR, Docker Hub (`metadc`) and Aliyun ACR (`metad`). API/Web use the `candidate
 `production` Docker stage; NsJail uses its default final stage. The registry names,
 credentials and runtime image behavior are unchanged.
 
+## Failure recovery and image identity
+
+Dependency, build or health-check failures prevent all publication jobs. Fix the
+source and push the repair; pending application notes authorize the next candidate
+with the repair's SHA. Re-running an old GitHub Actions run still builds the old
+commit and cannot pick up a newer repair.
+
+Registry-only failures can retry the publication job using its saved image, without
+rebuilding. The publisher verifies the artifact's image ID, source revision and
+version labels before writing any tags. Existing version and SHA tags must resolve
+to that same image; a different image is rejected. Matching tags are skipped during
+partial retries. Channel aliases move only after immutable tags succeed on every
+mirror. The production environment approval remains on the publication job.
+
+Verified image artifacts are retained for seven days. After artifact expiry a full
+run is required; immutable-tag checks still reject a different rebuilt image for an
+already published version. Formal release versioning and note consumption are
+unchanged; publication retries do not create or consume Changesets.
+
 ## Shared package coverage
 
 Application source imports are not fully represented by package dependencies.
@@ -88,8 +119,9 @@ application candidate note at this stage is insufficient. Errors list the exact
 missing applications. Existing pending shared notes on an unrelated push are
 ignored, so a Desktop update does not request application images or fail coverage.
 
-Dockerfile, dependency-lock and configuration changes need an explicit application
-note when they should ship. Path changes alone intentionally do not request release.
+Dockerfile, dependency-lock and configuration changes need an application note when
+they should ship. An existing pending application note is sufficient for a relevant
+repair; path changes without one trigger validation only.
 
 ## Local verification
 
@@ -113,4 +145,5 @@ node .deploy/application-images/release-plan.mjs
 
 The planner reads exact Git revisions, including deleted Changesets, and prints
 the selected images, versions and tags. Unit tests use temporary Git histories to
-exercise candidates, stable releases, unrelated commits and coverage failures.
+exercise candidates, repair commits, stable releases, unrelated commits, coverage
+failures, workflow ordering, artifact identity and partial publication retries.
