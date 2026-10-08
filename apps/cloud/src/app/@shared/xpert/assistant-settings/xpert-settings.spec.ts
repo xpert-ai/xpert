@@ -12,7 +12,7 @@ import { createXpertSettingsForm, modelValidator } from './xpert-settings.form'
 import { applyXpertSettingsChanges } from './xpert-settings.patch'
 import { XpertSettingsEditor } from './xpert-settings.editor'
 import { DraftSaveQueue } from './draft-save-queue'
-import type { XpertSettingsSource } from './xpert-settings.types'
+import type { XpertSettingsSaveMode, XpertSettingsSource } from './xpert-settings.types'
 
 const primary = { copilotId: 'provider', model: 'primary', modelType: AiModelTypeEnum.LLM } satisfies TCopilotModel
 const alternative = { ...primary, model: 'alternative' }
@@ -119,6 +119,20 @@ describe('unified Assistant settings draft merge', () => {
 })
 
 describe('settings validation', () => {
+  it('keeps existing small recursion limits and validates inclusive integer bounds', () => {
+    const control = createXpertSettingsForm({ agentConfig: { recursionLimit: 30 } }).controls.runtime.controls
+      .recursionLimit
+    expect(control.value).toBe(30)
+    expect(control.valid).toBe(true)
+    for (const value of [10, 1000, 10000]) {
+      control.setValue(value)
+      expect(control.valid).toBe(true)
+    }
+    for (const value of [0, 1, 10001, 10.5, null]) {
+      control.setValue(value)
+      expect(control.invalid).toBe(true)
+    }
+  })
   it('rejects duplicate and incomplete selectable models', () => {
     const form = createXpertSettingsForm(draftFixture().team).controls.models
     form.controls.allowed.push(new FormControl(primary, modelValidator))
@@ -150,13 +164,16 @@ describe('settings validation', () => {
 })
 
 describe('settings editor', () => {
-  function setup() {
-    const draft = signal(draftFixture()),
+  function setup(saveMode?: XpertSettingsSaveMode, alreadyPublished = false) {
+    const initial = draftFixture()
+    if (alreadyPublished) initial.team.publishAt = new Date()
+    const draft = signal(initial),
       unsaved = signal(false),
       error = signal<string | null>(null)
     const save = jest.fn(async () => {
       unsaved.set(false)
     })
+    const publish = jest.fn(async () => {})
     const source: XpertSettingsSource = {
       id: 'assistant-test',
       draft,
@@ -171,11 +188,77 @@ describe('settings editor', () => {
       save
     }
     TestBed.configureTestingModule({
-      providers: [{ provide: DIALOG_DATA, useValue: { source, section: 'general', selectSection: jest.fn() } }]
+      providers: [
+        { provide: DIALOG_DATA, useValue: { source, saveMode, section: 'general', selectSection: jest.fn(), publish } }
+      ]
     })
-    return { editor: TestBed.runInInjectionContext(() => new XpertSettingsEditor()), source, save }
+    return { editor: TestBed.runInInjectionContext(() => new XpertSettingsEditor()), source, save, publish, unsaved }
   }
   afterEach(() => TestBed.resetTestingModule())
+  it('does not label a Studio save as published even when its content matches the published version', async () => {
+    const { editor, publish } = setup('draft', true)
+    expect(await editor.saveDraft()).toBe(true)
+    expect(editor.published()).toBe(false)
+    expect(publish).not.toHaveBeenCalled()
+  })
+  it('saves Studio edits and prepared capability changes as a draft, never publishing', async () => {
+    const { editor, source, save, publish } = setup('draft')
+    editor.form.controls.general.controls.title.setValue('Studio draft')
+    const prepare = jest.fn(async () => {
+      source.update((draft) => ({
+        ...draft,
+        team: { ...draft.team, features: { realtimeVoice: { enabled: true, voice: 'voice-b' } } }
+      }))
+      return true
+    })
+    expect(await editor.saveDraft(prepare)).toBe(true)
+    expect(prepare).toHaveBeenCalledTimes(1)
+    expect(save).toHaveBeenCalledTimes(1)
+    expect(source.draft().team.title).toBe('Studio draft')
+    expect(source.draft().team.features.realtimeVoice.voice).toBe('voice-b')
+    expect(source.unsaved()).toBe(false)
+    expect(editor.published()).toBe(false)
+    expect(publish).not.toHaveBeenCalled()
+    // The mode also prevents accidental invocation through another handler.
+    expect(await editor.saveAndPublish()).toBe(false)
+    expect(publish).not.toHaveBeenCalled()
+  })
+  it('blocks invalid or failed draft saves and supports retry without publishing', async () => {
+    const { editor, source, save, publish } = setup('draft')
+    editor.form.controls.runtime.controls.recursionLimit.setValue(0)
+    expect(await editor.saveDraft()).toBe(false)
+    expect(save).not.toHaveBeenCalled()
+    editor.form.controls.runtime.controls.recursionLimit.setValue(400)
+    expect(await editor.saveDraft(async () => false)).toBe(false)
+    expect(save).not.toHaveBeenCalled()
+    save.mockRejectedValueOnce(new Error('Draft offline'))
+    expect(await editor.saveDraft()).toBe(false)
+    expect(editor.saveError()).toBe('Draft offline')
+    expect(editor.publishError()).toBeNull()
+    expect(source.unsaved()).toBe(true)
+    expect(editor.savingDraft()).toBe(false)
+    expect(await editor.saveDraft()).toBe(true)
+    expect(editor.saveError()).toBeNull()
+    expect(publish).not.toHaveBeenCalled()
+  })
+  it('prevents duplicate saves and publication while a draft transaction is running', async () => {
+    const { editor, save, publish } = setup('draft')
+    let finish: () => void
+    save.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve
+        })
+    )
+    const pending = editor.saveDraft()
+    expect(editor.savingDraft()).toBe(true)
+    expect(await editor.saveDraft()).toBe(false)
+    expect(await editor.saveAndPublish()).toBe(false)
+    finish()
+    expect(await pending).toBe(true)
+    expect(save).toHaveBeenCalledTimes(1)
+    expect(publish).not.toHaveBeenCalled()
+  })
   it('does not save untouched defaults and retains edits across category changes', fakeAsync(() => {
     const { editor, source, save } = setup()
     tick(700)
@@ -186,16 +269,16 @@ describe('settings editor', () => {
     expect(editor.form.controls.general.controls.title.value).toBe('Changed')
     expect(source.draft().team.title).toBe('Changed')
     tick(700)
-    expect(save).toHaveBeenCalledTimes(1)
+    expect(save).not.toHaveBeenCalled()
   }))
   it('holds invalid changes locally while saving valid edits in another category', fakeAsync(() => {
     const { editor, source } = setup()
-    editor.form.controls.runtime.controls.recursionLimit.setValue(1)
+    editor.form.controls.runtime.controls.recursionLimit.setValue(0)
     editor.form.controls.general.controls.title.setValue('Valid')
     tick(700)
     expect(source.draft().team.agentConfig.recursionLimit).toBe(300)
     expect(source.draft().team.title).toBe('Valid')
-    expect(editor.invalidSections()).toEqual(['runtime'])
+    expect(editor.invalidSections()).toEqual(['capabilities'])
     editor.form.controls.runtime.controls.recursionLimit.setValue(400)
     expect(editor.invalidSections()).toEqual([])
     tick(700)
@@ -209,6 +292,61 @@ describe('settings editor', () => {
     expect(source.unsaved()).toBe(true)
     expect(await editor.save()).toBe(true)
     expect(source.draft().team.title).toBe('Retry me')
+  })
+  it('waits for the current draft save, prevents double publication and marks later edits as drafts', async () => {
+    const { editor, unsaved, save, publish } = setup()
+    let completeSave: () => void
+    save.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          completeSave = () => {
+            unsaved.set(false)
+            resolve()
+          }
+        })
+    )
+    editor.form.controls.workbench.controls.messagePresentation.setValue('bubbles')
+    const publishing = editor.saveAndPublish()
+    expect(editor.publishing()).toBe(true)
+    expect(publish).not.toHaveBeenCalled()
+    expect(await editor.saveAndPublish()).toBe(false)
+    completeSave()
+    expect(await publishing).toBe(true)
+    expect(publish).toHaveBeenCalledTimes(1)
+    expect(editor.published()).toBe(true)
+    editor.form.controls.workbench.controls.messagePresentation.setValue('transcript')
+    expect(editor.published()).toBe(false)
+  })
+  it('creates a publishable draft even when there are no local changes', async () => {
+    const { editor, save, publish } = setup()
+    expect(await editor.saveAndPublish()).toBe(true)
+    expect(save).toHaveBeenCalledTimes(1)
+    expect(publish).toHaveBeenCalledTimes(1)
+  })
+  it('blocks publication for invalid fields, failed preparation or failed saves', async () => {
+    const { editor, save, publish } = setup()
+    editor.form.controls.runtime.controls.recursionLimit.setValue(0)
+    expect(await editor.saveAndPublish()).toBe(false)
+    expect(save).not.toHaveBeenCalled()
+    editor.form.controls.runtime.controls.recursionLimit.setValue(400)
+    expect(await editor.saveAndPublish(async () => false)).toBe(false)
+    save.mockRejectedValueOnce(new Error('Save offline'))
+    expect(await editor.saveAndPublish()).toBe(false)
+    expect(publish).not.toHaveBeenCalled()
+    expect(editor.published()).toBe(false)
+    expect(editor.publishing()).toBe(false)
+  })
+  it('keeps the chosen mode after a publish failure and supports retry', async () => {
+    const { editor, source, publish } = setup()
+    editor.form.controls.workbench.controls.messagePresentation.setValue('bubbles')
+    publish.mockRejectedValueOnce(new Error('Publish offline'))
+    expect(await editor.saveAndPublish()).toBe(false)
+    expect(editor.publishError()).toContain('Publish offline')
+    expect(source.draft().team.options.messagePresentation.mode).toBe('bubbles')
+    expect(editor.published()).toBe(false)
+    expect(await editor.saveAndPublish()).toBe(true)
+    expect(editor.publishError()).toBeNull()
+    expect(editor.published()).toBe(true)
   })
 })
 

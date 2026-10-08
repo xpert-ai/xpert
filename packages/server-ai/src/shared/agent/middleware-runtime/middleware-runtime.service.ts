@@ -21,6 +21,7 @@ import {
     FileRuntimeCapability,
     KnowledgeDocumentVisualAssetsRuntimeCapability,
     RequestContext,
+    ToolImagesRuntimeCapability,
     type RuntimeCapabilityRegistry,
     WorkspaceFilesRuntimeCapability,
     XPERT_RUNTIME_CAPABILITIES_TOKEN
@@ -32,6 +33,7 @@ import { WorkspaceFilesRuntimeCapabilityService } from '../../runtime/workspace-
 import { FileRuntimeService } from '../../../file-understanding/runtime/file-runtime.service'
 import { AgentMiddlewareModelRuntimeService, type AgentMiddlewareRuntimeModelOptions } from './model-runtime.service'
 import { normalizeOptionalString } from '../../runtime/runtime-input'
+import { createToolImagesApi } from '../../runtime/tool-images-runtime'
 
 export type { AgentMiddlewareRuntimeModelOptions } from './model-runtime.service'
 
@@ -126,6 +128,22 @@ export class AgentMiddlewareRuntimeService {
             capabilities.register(AgentInvocationRuntimeCapability, runtimeFactory.createScopedApi(scope))
         if (workspaceFilesApi) {
             capabilities.register(WorkspaceFilesRuntimeCapability, workspaceFilesApi)
+            capabilities.register(
+                ToolImagesRuntimeCapability,
+                createToolImagesApi({
+                    resolveScope: () => {
+                        const execution = resolveAgentExecutionScope(scope)
+                        return {
+                            ...execution,
+                            tenantId: execution.tenantId ?? RequestContext.currentTenantId(),
+                            organizationId: execution.organizationId ?? RequestContext.getOrganizationId(),
+                            userId: execution.userId ?? RequestContext.currentUserId()
+                        }
+                    },
+                    createArtifacts: (execution) => this.artifacts.createScopedApi(execution),
+                    createFiles: (execution) => this.workspaceFiles.createScopedApi({ ...scope, ...execution })
+                })
+            )
             capabilities.register(
                 KnowledgeDocumentVisualAssetsRuntimeCapability,
                 this.platformCapabilities

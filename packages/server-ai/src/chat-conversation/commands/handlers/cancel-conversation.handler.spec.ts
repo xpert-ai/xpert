@@ -109,6 +109,29 @@ describe('CancelConversationHandler', () => {
         expect(context.service.repository.save).not.toHaveBeenCalled()
     })
 
+    it('cancels the reserved thread writer before its first AI message exists', async () => {
+        const context = createHandler({
+            id: 'conversation-1',
+            threadId: 'thread',
+            messages: [{ id: 'old-ai', role: 'ai', executionId: 'old-run', status: 'done' }]
+        })
+        const cancel = jest.fn(async () => true)
+        Object.assign(context.handler, {
+            conversationThreadService: {
+                ensurePrimary: async () => ({
+                    threadId: 'thread',
+                    runControl: { executionId: 'reserved-run', state: 'running' }
+                }),
+                hydrateConversationMessages: async () => undefined
+            },
+            threadRunControl: { cancel }
+        })
+        await expect(
+            context.handler.execute(new CancelConversationCommand({ conversationId: 'conversation-1' }))
+        ).resolves.toEqual({ canceledExecutionIds: ['reserved-run'] })
+        expect(cancel).toHaveBeenCalledWith('thread', ['reserved-run'])
+    })
+
     it('does nothing without an explicit execution or a persisted AI message', async () => {
         const context = createHandler({ id: 'conversation-1', messages: [] })
 

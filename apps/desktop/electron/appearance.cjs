@@ -44,6 +44,7 @@ function parseAppearance(value) {
   const input = object(value, 'Appearance')
   const desktop = { ...defaults.appearance.desktop, ...object(input.desktop ?? {}, 'Desktop') }
   const chatkit = { ...defaults.appearance.chatkit, ...object(input.chatkit ?? {}, 'ChatKit') }
+  if (input.chatkit?.messagePresentation === undefined) chatkit.messagePresentation = 'transcript'
   let grayscale = null
   if (chatkit.grayscale !== null) {
     const gray = object(chatkit.grayscale, 'Grayscale')
@@ -63,6 +64,7 @@ function parseAppearance(value) {
       dark: colors(desktop.dark, Object.keys(defaults.colors.dark))
     },
     chatkit: {
+      messagePresentation: choice(chatkit.messagePresentation, ['transcript', 'bubbles'], 'Message display'),
       radius: choice(chatkit.radius, ['sharp', 'soft', 'round', 'pill'], 'ChatKit corners'),
       density: choice(chatkit.density, ['compact', 'normal', 'spacious'], 'ChatKit density'),
       baseSize: integer(chatkit.baseSize, 14, 18, 'ChatKit font size'),

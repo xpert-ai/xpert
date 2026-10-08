@@ -1,8 +1,12 @@
 // Invariants: reserve before dispatch; ambiguous launch is never automatically retried.
 // Provider provenance and target revision stay pinned through checkpoint recovery.
+// A bounded persisted startup fence keeps inspection from invalidating intermediate launch receipts.
 import { createHash } from 'crypto'
+import { agentRuntimeProgressSchema } from '@xpert-ai/contracts'
 import {
     AgentInvocation,
+    agentOutputDeliverySchema,
+    agentInvocationDispatchContextSchema,
     AgentInvocationApi,
     AgentInvocationRequest,
     AgentInvocationScope,
@@ -15,8 +19,14 @@ import {
     isAgentInvocationTerminal,
     RuntimeCapabilityRegistry
 } from '@xpert-ai/plugin-sdk'
+import type { AgentActivityRecorder } from '@xpert-ai/plugin-sdk'
 import { AgentInvocationStore, StoredAgentInvocation } from './invocation-store'
-import { AgentInvocationError, AgentInvocationErrorCode, authorizeAgentInvocation } from './invocation-errors'
+import {
+    AgentInvocationError,
+    AgentInvocationErrorCode,
+    AgentInvocationNotStartedError,
+    authorizeAgentInvocation
+} from './invocation-errors'
 
 export interface AgentInvocationAccess {
     scope: AgentInvocationScope
@@ -30,8 +40,16 @@ export interface AgentInvocationAccess {
 export class AgentInvocationRuntime {
     constructor(
         private readonly store: AgentInvocationStore,
-        private readonly registry: AgentRuntimeRegistry
+        private readonly registry: AgentRuntimeRegistry,
+        private readonly activity?: (invocation: AgentInvocation) => AgentActivityRecorder
     ) {}
+
+    assertBackgroundTarget(target: AgentTarget, organizationId: string): void {
+        const strategy = this.registry.get(target.provider, organizationId)
+        if (!strategy) throw invocationError('ProviderUnavailable')
+        if (!strategy.capabilities.background || strategy.capabilities.recovery === 'checkpoint')
+            throw invocationError('Unsupported')
+    }
 
     scoped(access: AgentInvocationAccess): AgentInvocationApi {
         const scope = structuredClone(access.scope)
@@ -54,11 +72,11 @@ export class AgentInvocationRuntime {
     }
 
     private async start(request: AgentInvocationRequest, access: AgentInvocationAccess): Promise<AgentInvocation> {
-        validateRequest(request)
         request = structuredClone(request)
+        validateRequest(request)
         await authorizeAgentInvocation(() => access.authorize(request.target))
         access.signal?.throwIfAborted()
-        const id = invocationId(access.scope, request.callId)
+        const id = agentInvocationId(access.scope, request.callId)
         let record = await this.store.read(id, access.scope)
         let strategy: IAgentRuntimeStrategy
         if (record) {
@@ -66,7 +84,10 @@ export class AgentInvocationRuntime {
             if (canonical(record.invocation.request) !== canonical(request)) throw invocationError('CallConflict')
             strategy = this.pinned(record)
             if (isAgentInvocationTerminal(record.invocation.status)) return record.invocation
-            if (record.invocation.status !== 'waiting' || strategy.capabilities.recovery !== 'checkpoint') {
+            if (
+                record.invocation.status !== 'queued' &&
+                (record.invocation.status !== 'waiting' || strategy.capabilities.recovery !== 'checkpoint')
+            ) {
                 return record.invocation
             }
         } else {
@@ -79,6 +100,9 @@ export class AgentInvocationRuntime {
                     revision: 0,
                     scope: access.scope,
                     request,
+                    ...(strategy.capabilities.activity
+                        ? { activity: structuredClone(strategy.capabilities.activity) }
+                        : {}),
                     status: 'queued',
                     createdAt: now,
                     updatedAt: now
@@ -87,7 +111,19 @@ export class AgentInvocationRuntime {
             }
             if (!(await this.store.insert(record))) return this.start(request, access)
         }
-        record = await this.save(record, { status: 'running', interaction: undefined, error: undefined })
+        // Only the CAS winner can launch. A queued reservation is safe to resume after a crash.
+        const claimed = await this.save(
+            record,
+            { status: 'running', interaction: undefined, error: undefined },
+            false,
+            'begin'
+        )
+        if (!claimed) {
+            const latest = await this.store.read(id, access.scope)
+            if (!latest) throw invocationError('NotFound')
+            return latest.invocation
+        }
+        record = claimed
         try {
             const observation = await strategy.start(
                 {
@@ -104,14 +140,24 @@ export class AgentInvocationRuntime {
                 latest &&
                 latest.invocation.revision > record.invocation.revision &&
                 (isAgentInvocationTerminal(latest.invocation.status) || latest.invocation.status !== observation.status)
-                ? latest.invocation
-                : (await this.updateLatest(id, access, observation)).invocation
+                ? (await this.updateLatest(id, access, { status: latest.invocation.status }, true)).invocation
+                : (await this.updateLatest(id, access, observation, true)).invocation
         } catch (error) {
+            const latest = await this.store.read(id, access.scope)
+            if (error instanceof AgentInvocationNotStartedError && !latest?.invocation.handle) {
+                return (await this.updateLatest(id, access, { status: 'failed', error: error.message }, true))
+                    .invocation
+            }
             const suspended = access.isSuspension?.(error) ?? false
-            await this.updateLatest(id, access, {
-                status: suspended ? 'waiting' : 'unknown',
-                ...(suspended ? {} : { error: invocationError('DispatchUnknown').message })
-            })
+            await this.updateLatest(
+                id,
+                access,
+                {
+                    status: suspended ? 'waiting' : 'unknown',
+                    ...(suspended ? {} : { error: invocationError('DispatchUnknown').message })
+                },
+                true
+            )
             throw error
         }
     }
@@ -128,8 +174,32 @@ export class AgentInvocationRuntime {
         await authorizeAgentInvocation(() => access.authorize(record.invocation.request.target))
         const strategy = this.pinned(record)
         if (isAgentInvocationTerminal(record.invocation.status)) return record.invocation
+        if (
+            operation === 'inspect' &&
+            record.invocation.status === 'running' &&
+            Date.parse(record.invocation.startPendingUntil ?? '') > Date.now()
+        )
+            return record.invocation
         const { handle } = record.invocation
-        if (!handle) return record.invocation
+        if (!handle) {
+            if (
+                operation === 'inspect' &&
+                record.invocation.status === 'running' &&
+                Date.parse(record.invocation.startPendingUntil ?? '') <= Date.now()
+            )
+                return (
+                    await this.updateLatest(
+                        id,
+                        access,
+                        {
+                            status: 'unknown',
+                            error: invocationError('DispatchUnknown').message
+                        },
+                        true
+                    )
+                ).invocation
+            return record.invocation
+        }
         const context = this.context(record, access)
         let observation: AgentRuntimeObservation
         if (operation === 'cancel') {
@@ -154,6 +224,7 @@ export class AgentInvocationRuntime {
             scope: access.scope,
             signal: access.signal,
             capabilities: access.capabilities,
+            ...(record.invocation.activity && this.activity ? { activity: this.activity(record.invocation) } : {}),
             checkpoint: async (observation) => {
                 await this.updateLatest(record.invocation.id, access, observation)
             }
@@ -170,7 +241,12 @@ export class AgentInvocationRuntime {
         if (canonical(record.invocation.scope) !== canonical(scope)) throw invocationError('NotFound')
     }
 
-    private async updateLatest(id: string, access: AgentInvocationAccess, observation: AgentRuntimeObservation) {
+    private async updateLatest(
+        id: string,
+        access: AgentInvocationAccess,
+        observation: AgentRuntimeObservation,
+        finishStart = false
+    ) {
         for (let attempt = 0; attempt < 8; attempt++) {
             const latest = await this.store.read(id, access.scope)
             if (!latest) throw invocationError('NotFound')
@@ -180,19 +256,35 @@ export class AgentInvocationRuntime {
                 latest.invocation.status === 'cancelling' && observation.status === 'running'
                     ? { ...observation, status: 'cancelling' as const }
                     : observation
-            const saved = await this.save(latest, next, false)
+            const saved = await this.save(latest, next, false, finishStart ? 'finish' : undefined)
             if (saved) return saved
         }
         throw invocationError('ConcurrentUpdate')
     }
 
-    private async save(record: StoredAgentInvocation, observation: AgentRuntimeObservation, requireClaim = true) {
+    private async save(
+        record: StoredAgentInvocation,
+        observation: AgentRuntimeObservation,
+        requireClaim = true,
+        startup?: 'begin' | 'finish'
+    ) {
+        if (observation.progress !== undefined) {
+            const progress = agentRuntimeProgressSchema.safeParse(observation.progress)
+            if (!progress.success) throw invocationError('InvalidRequest')
+            observation = { ...observation, progress: progress.data }
+        }
         if (observation.status === 'succeeded' && !observation.result) throw invocationError('MissingResult')
         const next: StoredAgentInvocation = {
             ...record,
             invocation: {
                 ...record.invocation,
                 ...structuredClone(observation),
+                startPendingUntil:
+                    startup === 'begin'
+                        ? new Date(Date.now() + 120_000).toISOString()
+                        : startup === 'finish' || isAgentInvocationTerminal(observation.status)
+                          ? undefined
+                          : record.invocation.startPendingUntil,
                 revision: record.invocation.revision + 1,
                 updatedAt: new Date().toISOString()
             }
@@ -210,6 +302,13 @@ export function invocationError(code: AgentInvocationErrorCode) {
 }
 
 function validateRequest(request: AgentInvocationRequest) {
+    if (request.dispatch !== undefined) {
+        const dispatch = agentInvocationDispatchContextSchema.safeParse(request.dispatch)
+        if (!dispatch.success) throw invocationError('InvalidRequest')
+        request.dispatch = dispatch.data
+    }
+    if (request.input?.delivery !== undefined && !agentOutputDeliverySchema.safeParse(request.input.delivery).success)
+        throw invocationError('InvalidRequest')
     if (
         !request.callId?.trim() ||
         request.callId.length > 1024 ||
@@ -222,9 +321,14 @@ function validateRequest(request: AgentInvocationRequest) {
         throw invocationError('InvalidRequest')
 }
 
-function invocationId(scope: AgentInvocationScope, callId: string) {
+export function agentInvocationId(scope: AgentInvocationScope, callId: string) {
     const hash = createHash('sha256').update(canonical({ scope, callId })).digest('hex')
     return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-5${hash.slice(13, 16)}-a${hash.slice(17, 20)}-${hash.slice(20, 32)}`
+}
+
+/** Compare serialized request data, independent of JSONB key order or driver object prototypes. */
+export function sameInvocationData(a: unknown, b: unknown): boolean {
+    return canonical(a) === canonical(b)
 }
 
 function canonical(value: unknown): string {

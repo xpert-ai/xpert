@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import type { Texts } from './i18n'
 
-export const columnDefaults = { name: 240, status: 112, assignee: 228, attempts: 90, dates: 240 }
+export const columnDefaults = { name: 240, status: 152, assignee: 228, attempts: 90, dates: 240 }
 export type Column = keyof typeof columnDefaults
 const minimums: Record<Column, number> = { name: 120, status: 80, assignee: 120, attempts: 64, dates: 120 }
 

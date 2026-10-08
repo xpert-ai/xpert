@@ -1,4 +1,3 @@
-import { BadRequestException } from '@nestjs/common'
 import { IXpertAgent, TXpertGraph, WorkflowNodeTypeEnum, IWFNMiddleware } from '@xpert-ai/contracts'
 import { applyRuntimeResourceGraph } from './runtime-resource-graph'
 import type { ResolvedRuntimeResources } from './runtime-resource.service'
@@ -40,7 +39,8 @@ describe('conversation-only resource graph', () => {
         original.connections.push({ key: 'edge', type: 'workflow', from: 'main', to: 'audit' })
         const selected = resources()
         selected.middlewares.push({ key: 'dynamic', entity: { ...entity, options: { mode: 'loose' } } })
-        expect(() => applyRuntimeResourceGraph(original, agent, selected)).toThrow(BadRequestException)
+        const overlay = applyRuntimeResourceGraph(original, agent, selected)
+        expect(overlay.nodes[0].entity).toMatchObject({ options: { mode: 'strict' }, required: true })
         expect(original.nodes[0].entity).toEqual(entity)
     })
     it('does not add duplicate middleware when configuration agrees', () => {
@@ -61,5 +61,34 @@ describe('conversation-only resource graph', () => {
         expect(overlay.nodes).toHaveLength(1)
         expect(overlay.nodes[0].entity).toMatchObject({ required: true })
         expect(original.nodes[0].entity).not.toHaveProperty('required')
+    })
+    it('merges duplicate plugin providers after resolving aliases and defaults', () => {
+        const selected = resources()
+        selected.skillIds = []
+        selected.middlewares = ['SandboxCompressionMiddleware', 'ContextCompressionMiddleware'].map(
+            (provider, index) => ({
+                key: `resource_${index}`,
+                entity: {
+                    id: `resource_${index}`,
+                    key: `resource_${index}`,
+                    type: WorkflowNodeTypeEnum.MIDDLEWARE,
+                    provider,
+                    options: index ? { limit: 100 } : {}
+                }
+            })
+        )
+        const overlay = applyRuntimeResourceGraph(graph(), agent, selected, (provider) => ({
+            name: provider,
+            label: { en_US: provider },
+            configSchema: { type: 'object', properties: { limit: { type: 'number', default: 100 } } }
+        }))
+        expect(overlay.nodes).toHaveLength(1)
+        expect(overlay.connections).toHaveLength(1)
+        expect(overlay.nodes[0].entity).toMatchObject({
+            provider: 'ContextCompressionMiddleware',
+            options: { limit: 100 },
+            required: true
+        })
+        expect(selected.middlewares[0].entity.options).toEqual({})
     })
 })

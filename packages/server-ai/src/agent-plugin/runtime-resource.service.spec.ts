@@ -1,7 +1,13 @@
 import { ModuleRef } from '@nestjs/core'
 import { AgentMiddlewareRegistry, RequestContext } from '@xpert-ai/plugin-sdk'
-import { ForbiddenException } from '@nestjs/common'
-import { ApiKeyBindingType, SecretTokenBindingType } from '@xpert-ai/contracts'
+import { BadRequestException, ForbiddenException } from '@nestjs/common'
+import {
+    ApiKeyBindingType,
+    SecretTokenBindingType,
+    IXpert,
+    IWFNMiddleware,
+    WorkflowNodeTypeEnum
+} from '@xpert-ai/contracts'
 import { AgentPluginService } from './agent-plugin.service'
 import { RuntimeResourceService } from './runtime-resource.service'
 import { ChatConversationService } from '../chat-conversation/conversation.service'
@@ -9,6 +15,7 @@ import { PublishedXpertAccessService } from '../xpert/published-xpert-access.ser
 import { XpertProjectAccessService } from '../xpert-project/services/project-access.service'
 import type { TAgentMiddlewareMeta } from '@xpert-ai/contracts'
 import { ViewExtensionService } from '@xpert-ai/server-core'
+import { applyRuntimeResourceGraph } from './runtime-resource-graph'
 
 jest.mock('./agent-plugin.service', () => ({
     AgentPluginService: class {},
@@ -33,7 +40,10 @@ describe('runtime resource authorization and persistence', () => {
         workspaceIds: ['workspace'],
         definition: { kind: 'middleware', provider: 'audit', options: {} }
     }
-    const assistant = { id: 'assistant', workspaceId: 'workspace' }
+    const assistant: Pick<IXpert, 'id' | 'workspaceId' | 'graph' | 'agent'> = {
+        id: 'assistant',
+        workspaceId: 'workspace'
+    }
     let service: RuntimeResourceService
     let find: jest.Mock
     let conversation: {
@@ -50,7 +60,11 @@ describe('runtime resource authorization and persistence', () => {
     let middlewareStrategies: Array<{ meta: TAgentMiddlewareMeta }>
     let providerVersion: string
     let viewSummaries: jest.Mock
+    let middlewareMeta: TAgentMiddlewareMeta | undefined
     beforeEach(() => {
+        delete assistant.graph
+        delete assistant.agent
+        middlewareMeta = undefined
         find = jest.fn().mockResolvedValue(binding)
         save = jest.fn()
         projectAccess = jest.fn()
@@ -81,7 +95,7 @@ describe('runtime resource authorization and persistence', () => {
             [
                 AgentMiddlewareRegistry,
                 {
-                    get: jest.fn(() => ({})),
+                    get: jest.fn(() => ({ meta: middlewareMeta })),
                     list: jest.fn(() => middlewareStrategies),
                     getSource: () => ({ kind: 'plugin', pluginName: 'test', pluginVersion: providerVersion })
                 }
@@ -96,6 +110,74 @@ describe('runtime resource authorization and persistence', () => {
         )
     })
     afterEach(() => jest.restoreAllMocks())
+
+    it('validates all selected configs against the published Assistant before rejecting plugin differences', async () => {
+        const secondRef = { ...ref, bindingId: 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff' }
+        const entity: IWFNMiddleware = {
+            id: 'audit',
+            key: 'audit',
+            type: WorkflowNodeTypeEnum.MIDDLEWARE,
+            provider: 'audit',
+            options: { mode: 'strict' }
+        }
+        assistant.graph = {
+            nodes: [{ key: 'audit', type: 'workflow', position: { x: 0, y: 0 }, entity }],
+            connections: [{ key: 'edge', type: 'workflow', from: 'main', to: 'audit' }]
+        }
+        assistant.agent = { key: 'main' }
+        find.mockImplementation(async ({ id }: { id: string }) => ({
+            ...binding,
+            id,
+            definition: {
+                kind: 'middleware',
+                provider: 'audit',
+                options: { mode: id === ref.bindingId ? 'first' : 'second' }
+            }
+        }))
+        const resolved = await service.resolve('assistant', { ...selection, resources: [ref, secondRef] })
+        const overlay = applyRuntimeResourceGraph(assistant.graph, assistant.agent, resolved)
+        expect(overlay.nodes).toHaveLength(1)
+        expect(overlay.nodes[0].entity).toMatchObject({ options: { mode: 'strict' }, required: true })
+        expect(assistant.graph.nodes[0].entity).not.toHaveProperty('required')
+
+        delete assistant.graph
+        delete assistant.agent
+        await expect(
+            service.resolve('assistant', { ...selection, resources: [ref, secondRef] })
+        ).rejects.toBeInstanceOf(BadRequestException)
+    })
+
+    it.each([100, 50])('preserves the Bosi image default when Documents requests %s', async (compressionPercent) => {
+        middlewareMeta = {
+            name: 'ViewImageMiddleware',
+            label: { en_US: 'View Image' },
+            configSchema: { type: 'object', properties: { compressionPercent: { type: 'number', default: 100 } } }
+        }
+        const entity: IWFNMiddleware = {
+            id: 'image',
+            key: 'image',
+            type: WorkflowNodeTypeEnum.MIDDLEWARE,
+            provider: 'ViewImageMiddleware',
+            options: {}
+        }
+        assistant.graph = {
+            nodes: [{ key: 'image', type: 'workflow', position: { x: 0, y: 0 }, entity }],
+            connections: [{ key: 'edge', type: 'workflow', from: 'main', to: 'image' }]
+        }
+        assistant.agent = { key: 'main' }
+        find.mockResolvedValue({
+            ...binding,
+            definition: {
+                kind: 'middleware',
+                provider: 'ViewImageMiddleware',
+                options: { compressionPercent }
+            }
+        })
+        const resolved = await service.resolve('assistant', selection)
+        const overlay = applyRuntimeResourceGraph(assistant.graph, assistant.agent, resolved, () => middlewareMeta)
+        expect(overlay.nodes[0].entity).toMatchObject({ options: { compressionPercent: 100 } })
+        expect(assistant.graph.nodes[0].entity).toMatchObject({ options: {} })
+    })
 
     it.each(['api_key', 'client_secret'] as const)(
         'rejects another Assistant for %s resource requests',

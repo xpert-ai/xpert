@@ -3,14 +3,22 @@ import { request } from './bridge'
 
 const targetSchema = z.object({
     success: z.literal(true),
-    data: z.object({
-        target: z.enum(['assistant.execution', 'assistant.conversation']),
-        projectId: z.string(),
-        conversationId: z.string(),
-        threadId: z.string(),
-        executionId: z.string(),
-        xpertId: z.string()
-    })
+    data: z.union([
+        z.object({
+            target: z.enum(['assistant.execution', 'assistant.conversation']),
+            projectId: z.string(),
+            conversationId: z.string(),
+            threadId: z.string(),
+            executionId: z.string().optional(),
+            xpertId: z.string().nullish()
+        }),
+        z.object({
+            target: z.enum(['workbench.view', 'assistant.project']),
+            viewKey: z.string(),
+            selectionId: z.string(),
+            projectId: z.string()
+        })
+    ])
 })
 
 const commandResultSchema = z.object({
@@ -20,11 +28,15 @@ const commandResultSchema = z.object({
 })
 
 /** Resolve the authorized exact attempt and require the host to acknowledge navigation. */
-export async function openTaskExecution(taskExecutionId: string, failureMessage: string) {
+export async function openTaskExecution(
+    taskExecutionId: string,
+    failureMessage: string,
+    destination: 'execution' | 'conversation' = 'execution'
+) {
     const result = targetSchema.parse(
         await request('executeAction', {
             actionKey: 'execution-target',
-            input: { taskExecutionId }
+            input: { taskExecutionId, destination }
         })
     )
     const opened = commandResultSchema.safeParse(

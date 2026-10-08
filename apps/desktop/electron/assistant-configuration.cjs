@@ -48,11 +48,18 @@ function createAssistantConfigurationMethods(ClientError) {
         prompt: result.prompt,
         capabilities: capabilities(result.capabilities),
         modelId: result.modelId,
+        realtimeVoice: result.realtimeVoice,
         preflight: {
           canInstall: result.setup.canInstall === true,
           reason: result.setup.reason || '',
           requiresModel: true,
           optionalCapabilities: result.setup.optionalCapabilities,
+          realtimeModels: result.setup.realtimeModels?.map(({ id, label, voices, defaultVoice }) => ({
+            id,
+            label,
+            voices,
+            defaultVoice
+          })),
           models: result.setup.models.map(({ id, label }) => ({ id, label }))
         }
       }
@@ -79,6 +86,7 @@ function createAssistantConfigurationMethods(ClientError) {
             revision: input.revision,
             prompt: input.prompt,
             modelId: input.modelId,
+            realtimeVoice: input.realtimeVoice,
             capabilities: capabilities(input.capabilities)
           }
         })

@@ -33,6 +33,7 @@ import { SkillPackageService } from '../skill-package'
 import { XpertImportCommand, XpertService } from '../xpert'
 import { EnvironmentService } from '../environment'
 import { TemplateSkillSyncService } from '../xpert-template/template-skill-sync.service'
+import { ResolveTemplateSkillRefsCommand } from '../xpert-template/commands'
 import { XpertTemplateService } from '../xpert-template/xpert-template.service'
 import { XpertWorkspaceService } from '../xpert-workspace/workspace.service'
 import { MembershipService } from '../membership'
@@ -229,7 +230,7 @@ export class ServerAIBootstrapService {
                 return
             }
 
-            const resolvedSkills = await this.xpertTemplateService.resolveSkillRefs(skillRefs)
+            const resolvedSkills = await this.commandBus.execute(new ResolveTemplateSkillRefsCommand(skillRefs))
             const resolvedKeys = new Set(
                 resolvedSkills.map(({ ref }) => `${ref.provider}:${ref.repositoryName}:${ref.skillId}`)
             )

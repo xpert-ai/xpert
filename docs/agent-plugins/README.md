@@ -1,14 +1,14 @@
-# 会话 Agent Plugins
+# Conversation Agent Plugins
 
-标准 Agent Plugin 是资源包，使用根目录 `plugin.json`、`skills/<name>/SKILL.md` 和 `mcp.json`。它不要求 `package.json`，不执行 npm 脚本、Hooks 或服务器模块。原生 Xpert 插件继续使用原安装机制和安装范围。
+A standard Agent Plugin is a resource package containing a root-level `plugin.json`, `skills/<name>/SKILL.md`, and `mcp.json`. It does not require `package.json` and does not execute npm scripts, hooks, or server modules. Native Xpert plugins retain their existing installation mechanism and scope rules.
 
-## 管理员操作
+## Administrator workflow
 
-1. 进入组织范围的「插件 → Agent Plugins」。管理员必须拥有目标工作空间的管理权限。
-2. 输入 HTTPS Git 地址、明确 ref 和可选子目录，或上传 ZIP。ZIP 可直接包含包内容，也可包含一个顶层目录。系统保留来源、Git commit、内容摘要和组件诊断。有效 Skill 不会因同包另一个 Skill 或 MCP 配置无效而被丢弃。
-3. 查看组件清单。声明了 `xpertai.connectors` 的 MCP 自动使用 Connector 授权；旧个人 OAuth 包需要发布新的 Connector 配置版本，不再提供个人授权入口。将 `xpertai` 的逻辑专家引用映射到当前组织可用的已发布专家。中间件 provider 必须已通过原生插件安装，配置遵守 provider schema。
-4. 选择可使用的工作空间并上架。也可以直接上架已有中间件配置或已发布数字专家，无需构造插件包。
-5. 升级时先导入新包，在上架表单选择「替换版本」。已有会话继续使用旧绑定，新目录仅展示新版本。停用旧绑定会阻止后续调用；用户需要移除或重新选择。
+1. Open **Plugins → Agent Plugins** in the organization scope. The administrator must have management permission for the target workspace.
+2. Enter an HTTPS Git URL, an explicit ref, and an optional subdirectory, or upload a ZIP. The ZIP can contain the package contents directly or wrap them in a single top-level directory. The system retains the source, Git commit, content digest, and component diagnostics. A valid Skill is not discarded because another Skill or MCP configuration in the same package is invalid.
+3. Review the component list. MCP servers declaring `xpertai.connectors` automatically use Connector authorization. Legacy personal OAuth packages must publish a new version with Connector configuration; personal authorization is no longer offered. Map logical expert references in `xpertai` to published experts available in the current organization. Middleware providers must already be installed through native plugins, and their configuration must conform to the provider schema.
+4. Select the workspaces that may use the resources and publish the bindings. Existing middleware configurations or published digital experts can also be made available directly, without creating a plugin package.
+5. To upgrade, import the new package first, then select **Replace version** in the publication form. Existing conversations continue using the old binding, while the refreshed catalog shows only the new version. Disabling the old binding blocks subsequent calls; users must remove it or select a replacement.
 
 Packages are organization-scoped. Runtime checks cover the organization, workspace, project, Assistant, resource and expert permissions. Users can select published package bindings and automatically discovered resources described below, and use connections configured by workspace administrators. Assistant access governs runtime use; users do not own Connector accounts.
 
@@ -28,7 +28,7 @@ ChatKit sends the connection command directly to Desktop without another confirm
 
 A Desktop attempt is bound to the current session generation, organization and binding, expires after ten minutes, and is superseded by a newer attempt. Desktop polls every 2.5 seconds with no overlapping requests; repeated commands for the same binding reuse the pending attempt. Only a fresh server response reporting a granted, active shared connection can finish the attempt and foreground the native app. Cancellation or a context change prevents a late completion; cancellation stops waiting without revoking provider access. No authorization codes or credentials are passed through a return URL. The message draft is preserved.
 
-## 会话行为
+## Conversation behavior
 
 ### Automatic resource discovery
 
@@ -38,25 +38,29 @@ A Desktop attempt is bound to the current session generation, organization and b
 - Automatic entries do not create database bindings or change Assistant graphs. Their scoped UUID and configuration digest use the existing SDK selection contract. Every execution rebuilds and authorizes the reference; expert republication or middleware configuration/provider-version changes invalidate stale references. Older published expert snapshots remain usable while they still exist and are authorized.
 - Existing menu caching and pagination are unchanged. Reload the page after deploying the backend change to replace a previously cached catalog.
 
-宿主通过 `composer.resources.enabled: true` 启用输入框下方「插件」入口；ChatKit 默认关闭。插件整体选择，详情展示组件和诊断。支持搜索、分类、分页、浏览全部、添加、移除和授权失败后保留草稿。
+The host enables the **Plugins** entry below the composer with `composer.resources.enabled: true`; it is disabled by default in ChatKit. Plugins are selected as a whole, with components and diagnostics shown in their details. The UI supports search, categories, pagination, browsing all resources, adding and removing selections, and preserving drafts after authorization failures.
 
-`runtimeResources` 独立于 `runtimeCapabilities`：
+`runtimeResources` is independent of `runtimeCapabilities`:
 
 ```json
 { "revision": 0, "resources": [{ "bindingId": "<binding UUID>", "version": "<64-character configuration digest>" }] }
 ```
 
-首次消息可携带完整选择；已有会话通过专用接口提交完整集合，revision 冲突返回 409。普通会话 options 更新不能修改资源字段。进行中的执行和中断恢复使用执行快照；新选择从下一次执行生效，撤销权限仍会阻止旧快照的后续工具或协作者调用。
+The first message may carry the complete selection. Existing conversations submit the full set through a dedicated endpoint; revision conflicts return 409. Ordinary conversation options updates cannot change resource fields. Active executions and interrupted executions being resumed use an execution snapshot. New selections take effect on the next execution, while revoked permissions still block subsequent tool or collaborator calls from older snapshots.
 
-能力仅装配到入口 Agent，不修改 Assistant 草稿或发布图。Skills 在未配置 Skills 节点时自动获得加载能力；无沙箱时仅可读取授权包中的文件。远程 MCP 使用现有 OAuth、审批和 MCP Apps 消费链路，不要求服务器提供 Xpert 私有字段。MCP 配置被工作空间操作改写后，原版本绑定失效。中间件相同 provider 配置去重，冲突拒绝；既有必需中间件不可关闭。外部专家固定引用发布 ID 和发布时间；原 ID 被重新发布后，旧绑定失效，需重新上架选择。
+Capabilities are attached only to the entry Agent and do not modify Assistant drafts or published graphs. Skill-loading support is added automatically when no Skills node is configured; without a sandbox, only files from authorized packages can be read. Remote MCP uses the existing OAuth, approval, and MCP Apps integration flows, without requiring Xpert-specific fields from the server. Changing MCP configuration through workspace operations invalidates the previous version binding. Middleware for the same provider is attached only once, and existing required middleware cannot be disabled. External expert references are pinned to a published ID and publication timestamp. Republishing the same ID invalidates the old binding, which must be published and selected again.
 
-当前支持 Streamable HTTP MCP。stdio、旧 SSE 显示诊断并跳过；不支持 marketplace 订阅、旧客户端清单兼容、任意 Agent URL 或包内代码加载。
+When the Assistant already has middleware for the same provider, its complete configuration takes precedence, with defaults supplied by the existing `configSchema`. Plugins reuse that capability without supplementing or overriding its configuration. Explicit `false`, `0`, `null`, and empty arrays are preserved; objects and arrays are not merged across sources. For example, if an existing image-viewing middleware has configuration `{}`, `compressionPercent` retains the schema default of `100` instead of being changed to a plugin's `50`.
 
-## 接口与 SDK
+When the Assistant has not configured the provider, the plugin configuration is used with schema defaults applied. If multiple plugins introduce the same provider, each complete configuration is normalized and validated separately. Equivalent configurations are deduplicated; differences produce an error identifying the provider and field. Plugin loading order never determines which values win, and errors never echo configuration values. These rules are implemented only on the server and do not require plugins to declare additional field policies. Resource validation and execution assembly use the same rules and always produce runtime copies, leaving the original Assistant and plugin configurations unchanged.
 
-Xpert 请求在 ChatKit 中统一通过 `@xpert-ai/xpert-sdk`：
+Streamable HTTP MCP is currently supported. stdio and legacy SSE entries are skipped with diagnostics. Marketplace subscriptions, legacy client manifest compatibility, arbitrary Agent URLs, and loading code from packages are not supported.
 
-| SDK                                    | API（相对 `/api/ai`）                              |
+## APIs and SDK
+
+All Xpert requests from ChatKit use `@xpert-ai/xpert-sdk`:
+
+| SDK                                    | API (relative to `/api/ai`)                        |
 | -------------------------------------- | -------------------------------------------------- |
 | `assistants.getResources`              | `GET /assistants/:id/resources`                    |
 | `assistants.validateResources`         | `POST /assistants/:id/resources/validate`          |
@@ -68,30 +72,30 @@ Xpert 请求在 ChatKit 中统一通过 `@xpert-ai/xpert-sdk`：
 
 Connector runtime reads accept Assistant-scoped ChatKit credentials under `/api/ai`. The readiness response contains only `bindingId`, `status`, and `granted`. Configuration, OAuth authorization, reconnection and disconnection remain on the administrator `/api/connector` API. Deploy these backend routes before updating the SDK and ChatKit; legacy management routes retain their existing authentication.
 
-查询支持 `projectId`、`search`、`kind`、`offset`、`limit`。管理员 API 位于 `/api/agent-plugins`：`GET /`、`GET /options`、`POST /git`、`POST /zip`、`POST /bindings`、`PUT /bindings/:id`。替换上架使用可选 `replacesBindingId`，停用使用 `{ "enabled": false }`。
+Queries support `projectId`, `search`, `kind`, `offset`, and `limit`. Administrator APIs are under `/api/agent-plugins`: `GET /`, `GET /options`, `POST /git`, `POST /zip`, `POST /bindings`, and `PUT /bindings/:id`. Use the optional `replacesBindingId` when publishing a replacement, or `{ "enabled": false }` to disable a binding.
 
-## 存储与部署
+## Storage and deployment
 
-执行 `packages/server-ai/src/agent-plugin/migrations/20260921-agent-plugins.sql`，并将 `XPERT_AGENT_PLUGIN_PATH` 指向所有 API/执行节点共享、持久化的目录。默认 `storage/agent-plugins` 适合单节点本地开发。数据库与包目录必须一起备份；不要在导入后编辑包目录。
+Apply `packages/server-ai/src/agent-plugin/migrations/20260921-agent-plugins.sql` and point `XPERT_AGENT_PLUGIN_PATH` to a persistent directory shared by all API and execution nodes. The default `storage/agent-plugins` is suitable for local development on a single node. Back up the database and package directory together; do not edit package directories after import.
 
-发布顺序：后端及数据库迁移 → 带资源接口的 SDK → ChatKit types/UI/Web Component → Xpert 宿主。保留未启用入口的旧客户端兼容性。发布 SDK 后将 ChatKit 的 SDK 依赖更新到该已发布版本并刷新 lockfile；发布 ChatKit 后更新 Xpert 对应依赖和 lockfile。当前宿主使用已发布的 ChatKit Types/UI/Web Component 0.6.0、Angular 0.4.4、Web Shared 0.4.5，依赖锁文件同时固定 SDK 0.3.0，无需本地源码链接。发布到生产环境仍需执行数据库迁移并配置共享包存储。
+Release order: backend and database migrations → SDK with resource APIs → ChatKit types/UI/Web Component → Xpert hosts. Preserve compatibility with older clients that have not enabled the entry point. After publishing the SDK, update ChatKit to that published version and refresh the lockfile. After publishing ChatKit, update the corresponding Xpert dependencies and lockfile. The current host uses published ChatKit Types/UI/Web Component 0.6.0, Angular 0.4.4, and Web Shared 0.4.5, with SDK 0.3.0 also pinned in the lockfile; local source linking is not required. Production deployment still requires database migrations and shared package storage configuration.
 
-## 示例与验证
+## Examples and validation
 
-- Exa、Notion、Linear、Supabase、Sentry、Canva 中国版的标准包、批量安装和授权流程见 [xpert-plugins 快速接入](https://github.com/xpert-ai/xpert-plugins/tree/main/agent-plugins)。直接复用现有链路，无需 Codex 清单兼容或桌面运行时。
-- 本轮自动检查、实际调用与发布前待验证项见 [验收记录](./VALIDATION.md)。
-- 单元测试：`corepack pnpm exec jest --config packages/server-ai/jest.config.ts --runInBand packages/server-ai/src/agent-plugin`。
-- 本地实际调用验收使用专用 Assistant 和本地 Streamable HTTP 测试服务器，不修改现有业务 Assistant。
+- See the [xpert-plugins quick start](https://github.com/xpert-ai/xpert-plugins/tree/main/agent-plugins) for standard packages, batch installation, and authorization flows for Exa, Notion, Linear, Supabase, Sentry, and Canva China. These reuse existing integration flows and do not require Codex manifest compatibility or a desktop runtime.
+- See the [validation record](./VALIDATION.md) for automated checks, live calls, and outstanding pre-release validation items for this iteration.
+- Unit tests: `corepack pnpm exec jest --config packages/server-ai/jest.config.ts --runInBand packages/server-ai/src/agent-plugin`.
+- Local live-call validation uses a dedicated Assistant and a local Streamable HTTP test server, without modifying existing business Assistants.
 
-规范依据：[Agent Plugins 1.0.0](https://github.com/agentplugins/agent-plugins-spec/blob/main/spec/1.0.0.md)。`xpertai` 是宿主扩展，非标准内建资源类型。
+Specification: [Agent Plugins 1.0.0](https://github.com/agentplugins/agent-plugins-spec/blob/main/spec/1.0.0.md). `xpertai` is a host extension, not a built-in resource type in the standard.
 
-## Agent Plugin 与 Connector 授权
+## Agent Plugin and Connector authorization
 
 The host uses `extensions.xpertai` as its current short namespace. Importing older
 packages with `extensions["cn.xpertai"]` remains supported. When both keys exist,
 `xpertai` takes precedence and must pass validation; their contents are not merged.
 
-标准包通过 `extensions["xpertai"].connectors` 按 MCP server key 声明依赖：
+Standard packages declare dependencies by MCP server key through `extensions["xpertai"].connectors`:
 
 ```json
 {
@@ -103,19 +107,19 @@ packages with `extensions["cn.xpertai"]` remains supported. When both keys exist
 }
 ```
 
-- `mcp_oauth` 自动生成组织隔离的 Connector provider，创建空间统一连接，复用浏览器绑定的 OAuth 回调、加密凭据存储、刷新和断开。provider 身份包含 endpoint、scopes、clientRegistration；可选 `clientRegistration: "preregistered"` 使用现有 Connector 配置表单。默认动态客户端注册，无须按服务编写原生插件。
-- `existing` 只映射管理员已创建的 shared workspace Connector。包使用逻辑 provider 和 OAuth resource/scopes，不分发机器 ID 或凭据。Canva 的 clientId/clientSecret 继续配置在既有 System Integration。
-- MCP OAuth 元数据发现使用独立固定版本 `@modelcontextprotocol/sdk-oauth`，原 MCP transport SDK 保持原版本。支持路径形式的 protected-resource metadata、PKCE 和 resource/audience 校验；复用已有受约束 OAuth fetch。
-- 每次请求重新检查当前用户、组织、空间/项目、已上架绑定、持久化 toolset 配置、Connector 可用状态和资源范围。credential-only Connector 不作为独立中间件展示。MCP App 的执行上下文仅保存在服务端快照；恢复连接后仍重新校验授权。
-- SDK `assistants.authorizeResource` 返回工作空间 Connector 状态与配置权限。有权限时，ChatKit 的“连接账号”通过 `composer.resources.onConnect({ assistantId, bindingId })` 直接打开宿主的目标 Connector 连接流程；无权限时显示联系管理员的提示。宿主重新校验当前 Assistant、工作空间和绑定的配置权限，复用空间连接表单及 OAuth。返回 `{ status: "connected" | "cancelled" }`，不传递凭据；ChatKit 重新检查就绪状态后继续原来的能力选择，取消或失败不清空草稿。iframe 通过 Web Component 的 `onConnectWorkspaceConnector` 命令调用宿主。
-- 同一 server 不能同时声明旧 `oauthServers` 与 `connectorServers`。旧发布版本和凭据不自动搬迁；通过新版本替换启用 Connector，管理员清理旧个人连接并创建新的空间共享连接后，重新上架插件以更新连接引用；匹配 endpoint/scopes 的后续版本复用该空间连接。历史个人凭据不复制，不提供个人到共享的自动迁移。原生插件安装范围规则保持不变。
+- `mcp_oauth` automatically generates an organization-isolated Connector provider and creates a shared workspace connection. It reuses browser-bound OAuth callbacks, encrypted credential storage, refresh, and disconnection. Provider identity includes endpoint, scopes, and clientRegistration. The optional `clientRegistration: "preregistered"` uses the existing Connector configuration form. Dynamic client registration is the default, so no service-specific native plugin is required.
+- `existing` maps only to shared workspace Connectors already created by administrators. Packages use logical providers and OAuth resource/scopes, without distributing machine-specific IDs or credentials. Canva clientId/clientSecret remain configured in the existing System Integration.
+- MCP OAuth metadata discovery uses a separately pinned `@modelcontextprotocol/sdk-oauth`; the existing MCP transport SDK version is unchanged. Path-based protected-resource metadata, PKCE, and resource/audience validation are supported, using the existing constrained OAuth fetch implementation.
+- Every request rechecks the current user, organization, workspace/project, published binding, persisted toolset configuration, Connector readiness, and resource scope. Credential-only Connectors are not shown as standalone middleware. MCP App execution context is stored only in server-side snapshots; authorization is checked again after reconnection.
+- SDK `assistants.authorizeResource` returns workspace Connector status and configuration permissions. When authorized, ChatKit's **Connect account** action opens the host's target Connector connection flow directly through `composer.resources.onConnect({ assistantId, bindingId })`; otherwise, it prompts the user to contact an administrator. The host revalidates configuration permissions for the current Assistant, workspace, and binding, and reuses the workspace connection form and OAuth flow. It returns `{ status: "connected" | "cancelled" }` without passing credentials. ChatKit rechecks readiness before continuing the original capability selection; cancellation or failure preserves the draft. The iframe calls the host through the Web Component's `onConnectWorkspaceConnector` command.
+- A server cannot declare both legacy `oauthServers` and `connectorServers`. Existing published versions and credentials are not migrated automatically. Enable Connectors by replacing the package with a new version. After administrators remove old personal connections and create new shared workspace connections, republish the plugin binding to update its connection references. Subsequent versions with matching endpoint/scopes reuse that workspace connection. Historical personal credentials are not copied, and there is no automatic migration from personal to shared connections. Native plugin installation scope rules remain unchanged.
 
-当前验证使用 npm 发布包；生产启用前仍须按后端 → SDK → ChatKit 的顺序部署。
+Current validation uses published npm packages. Production rollout still requires deployment in the order backend → SDK → ChatKit.
 
-## 工作空间连接模型
+## Workspace connection model
 
-- 工作空间持有连接配置和凭据；只有空间管理员能创建、连接、重连或断开。
-- 运行时通过已发布 Assistant 校验用户权限，使用该 Assistant 所在空间的连接；每次工具调用重新验证权限与连接状态。
-- ChatKit 的“连接插件”同时展示标准插件和可执行 Connector 能力，凭据依赖型 Connector 不单独展示。旧 `+ → 连接器` 仅作为未启用统一选择器的兼容入口。
-- 新客户端目录可使用 `includeWorkspace=true` 在项目上下文中读取空间连接；历史项目连接保留兼容；图中 provider 在没有历史项目配置时使用 Assistant 工作空间的连接。项目权限仍先行校验，同一会话不能同时选择同一 provider 的多个连接。
-- 管理入口始终指向空间设置，不再新增“我的连接”页面。旧个人绑定不再支持重连或自动转换。开发环境清理旧绑定及其授权会话、使用许可后，新建 shared 绑定并重新上架引用它的插件；旧个人 OAuth 包必须上架 Connector 依赖版本。
+- Workspaces own connection configuration and credentials. Only workspace administrators can create, connect, reconnect, or disconnect them.
+- At runtime, user permissions are checked through the published Assistant, and connections from that Assistant's workspace are used. Permissions and connection status are revalidated for every tool call.
+- ChatKit's **Connect plugins** shows both standard plugins and executable Connector capabilities. Credential-dependency Connectors are not listed separately. The legacy **+ → Connectors** entry remains only for compatibility when the unified selector is not enabled.
+- New client catalogs can use `includeWorkspace=true` to read workspace connections in a project context. Legacy project connections remain compatible. Graph providers use the Assistant workspace's connection when no legacy project configuration exists. Project permissions are still checked first, and a conversation cannot select multiple connections for the same provider at once.
+- Management links always lead to workspace settings; no new **My connections** page is introduced. Legacy personal bindings no longer support reconnection or automatic conversion. In development environments, remove old bindings and their authorization sessions and usage grants, then create shared bindings and republish plugins that reference them. Legacy personal OAuth packages must publish a version declaring Connector dependencies.

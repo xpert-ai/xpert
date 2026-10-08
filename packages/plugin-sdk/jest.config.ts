@@ -1,6 +1,8 @@
+/** @jest-config-loader ts-node */
 /* eslint-disable */
 import { readFileSync } from 'fs'
 
+// Node's native TypeScript loader treats this config as ESM; ts-node preserves __dirname.
 const currentDirectory = __dirname
 
 // Reading the SWC compilation config and remove the "exclude"
@@ -13,6 +15,9 @@ if (swcJestConfig.swcrc === undefined) {
   swcJestConfig.swcrc = false
 }
 
+// Transformed linked dependencies cannot resolve helpers from this workspace.
+swcJestConfig.jsc.externalHelpers = false
+
 // Uncomment if using global setup/teardown files being transformed via swc
 // https://nx.dev/packages/jest/documents/overview#global-setup/teardown-with-nx-libraries
 // jest needs EsModule Interop to find the default exported setup/teardown functions
@@ -24,6 +29,8 @@ export default {
   transform: {
     '^.+\\.[tj]s$': ['@swc/jest', swcJestConfig]
   },
+  // Contracts re-export runtime constants from this ESM package.
+  transformIgnorePatterns: ['/node_modules/(?!@xpert-ai/chatkit-types/|\\.pnpm/@xpert-ai\\+chatkit-types@)'],
   moduleFileExtensions: ['ts', 'js', 'html'],
   testEnvironment: 'node',
   coverageDirectory: '../../coverage/packages/plugin-sdk'

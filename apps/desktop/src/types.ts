@@ -29,7 +29,13 @@ export interface ConnectionConfig {
   appearance?: AppearanceConfig
 }
 export interface Profile {
-  user: { id: string; name: string; tenantId: string | null; avatarUrl: string | null }
+  user: {
+    id: string
+    name: string
+    tenantId: string | null
+    avatarUrl: string | null
+    preferredLanguage?: Locale | null
+  }
   organizations: { id: string; name: string }[]
   organizationId: string | null
 }
@@ -39,6 +45,7 @@ export interface AppState {
   localLoginAvailable: boolean
 }
 export interface Bot {
+  avatar?: import('@xpert-ai/contracts').TAvatar | null
   assistantId?: string
   businessArea?: { id: string; name: string } | null
   id: string
@@ -83,6 +90,60 @@ export interface WorkbenchSession {
   organizationId: string
 }
 export interface HostMethods {
+  bosiOnboarding: { input: undefined; output: import('@xpert-ai/contracts').BosiOnboardingCatalog }
+  bosiChoose: {
+    input: import('@xpert-ai/contracts').BosiOnboardingChoice
+    output: import('@xpert-ai/contracts').BosiOnboardingCatalog
+  }
+  bosiConnect: {
+    input: { provider: string }
+    output: {
+      attemptId: string
+      target: { target: 'bosi.connector.connect'; workspaceId: string; bindingId: string; organizationId: string }
+    }
+  }
+  bosiCheckConnection: { input: { attemptId: string }; output: { status: 'connected' | 'pending' } }
+  bosiSetup: {
+    input: { capabilities?: import('@xpert-ai/contracts').BosiCapability[] }
+    output: import('@xpert-ai/contracts').BosiSetup
+  }
+  createBosi: {
+    input: { capabilities: import('@xpert-ai/contracts').BosiCapability[]; modelId: string }
+    output: import('@xpert-ai/contracts').BosiSetup
+  }
+  bosiWelcome: { input: undefined; output: import('@xpert-ai/contracts').BosiSetup }
+  bosiWorkspace: { input: undefined; output: { id: string; name: string } }
+  bosiConnections: { input: { workspaceId: string }; output: { id: string; name: string; connected: boolean }[] }
+  assistantAppearance: {
+    input: { botId: string }
+    output: { canEdit: boolean; revision: string; name: string; avatar: import('@xpert-ai/contracts').TAvatar }
+  }
+  saveAssistantAppearance: {
+    input: { botId: string; revision: string; name: string; avatar: import('@xpert-ai/contracts').TAvatar }
+    output: { id: string }
+  }
+  uploadAssistantAvatar: { input: { botId: string; data: string }; output: { url: string } }
+  assistantPetCatalog: {
+    input: { botId: string }
+    output: { id: string; label: string; spriteVersionNumber?: 1 | 2 }[]
+  }
+  uploadAssistantPet: { input: { botId: string; data: string }; output: { url: string } }
+  assistantPetAsset: { input: { botId: string; petId: string }; output: { src: string } }
+  usageMembership: { input: undefined; output: import('./usage/types').UsageMembership | null }
+  usagePeriods: { input: undefined; output: import('./usage/types').UsagePeriod[] }
+  usageOverview: { input: import('./usage/types').UsageQuery; output: import('./usage/types').UsageOverview }
+  usageSummaries: {
+    input: import('./usage/types').UsageQuery & { take: number; skip: number }
+    output: { items: import('./usage/types').UsageSummary[]; total: number }
+  }
+  usageEntries: {
+    input: import('./usage/types').UsageQuery & {
+      group: import('./usage/types').UsageGroup
+      take: number
+      skip: number
+    }
+    output: { items: import('./usage/types').UsageEntry[]; nextSkip: number | null }
+  }
   checkConnectionCertificates: { input: Pick<ConnectionConfig, ConnectionUrlField>; output: CertificateCheck[] }
   pluginLibrary: { input: { workspaceId?: string }; output: PluginLibrary }
   addWorkspacePlugin: {
@@ -153,10 +214,17 @@ export interface HostMethods {
     output: import('./assistant-settings/types').AssistantSettings
   }
   saveAssistantConfiguration: {
-    input: { botId: string; revision: string; prompt: string; modelId: string; capabilities: string[] }
+    input: {
+      botId: string
+      revision: string
+      prompt: string
+      modelId: string
+      capabilities: string[]
+      realtimeVoice?: import('./catalog-types').VoiceSelection
+    }
     output: { botId: string }
   }
-  editBot: { input: { botId: string; name: string; description: string }; output: { botId: string } }
+  editBot: { input: { botId: string; name?: string; description: string }; output: { botId: string } }
   duplicateBot: { input: { botId: string; name: string }; output: { botId: string } }
   shellConfigure: { input: ShellSettings; output: DesktopShellState }
   shellPrepare: { input: ShellPreparationRequest; output: ShellPreparation }
@@ -176,6 +244,22 @@ export interface HostMethods {
   loginLocal: { input: undefined; output: AppState }
   selectOrganization: { input: string; output: AppState }
   listBots: { input: undefined; output: Bot[] }
+  voiceCapability: { input: { botId: string; assistantId?: string }; output: { enabled: boolean } }
+  voiceStart: {
+    input: { botId: string; assistantId: string; threadId: string | null; originMode: 'web' | 'desktop' }
+    output: {
+      sessionId: string
+      conversationId: string
+      threadId: string
+      assistantId: string
+      url: string
+      ticket: string
+    }
+  }
+  voiceEnd: {
+    input: { threadId: string; sessionId: string }
+    output: { ended: boolean; call?: import('@xpert-ai/chatkit-types').CompletedVoiceCall }
+  }
   chatSession: { input: string; output: { secret: string; organizationId: string } }
   toolOutputPreview: {
     input: Pick<ToolOutputImageAttachment, 'artifactId' | 'artifactVersionId' | 'sha256' | 'mimeType'>
@@ -205,6 +289,7 @@ export interface HostMethods {
       title: string
       prompt?: string
       capabilities?: string[]
+      realtimeVoice?: import('./catalog-types').VoiceSelection
       modelId?: string
     }
     output: { botId: string }
@@ -216,6 +301,7 @@ declare global {
     xpertDesktop?: {
       updates?: import('./update-types').UpdateBridge
       onAvatarPointer?: (listener: (point: { x: number; y: number } | null) => void) => () => void
+      onWindowActivated?: (listener: () => void) => () => void
       invoke: <K extends keyof HostMethods>(
         method: K,
         argument?: HostMethods[K]['input']

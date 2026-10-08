@@ -1,22 +1,22 @@
-import { BadRequestException } from '@nestjs/common'
-import { t } from 'i18next'
-import { isEqual } from 'lodash'
 import {
     getAgentMiddlewareNodes,
     IWFNMiddleware,
     IXpertAgent,
+    TAgentMiddlewareMeta,
     TXpertGraph,
     WorkflowNodeTypeEnum,
     normalizeMiddlewareProvider
 } from '@xpert-ai/contracts'
 import { SKILLS_MIDDLEWARE_NAME } from '../skill-package/types'
 import type { ResolvedRuntimeResources } from './runtime-resource.service'
+import { mergeRuntimeMiddlewareOptions } from './runtime-middleware-config'
 
 /** Produces an execution-only overlay. Never mutates a published or draft graph. */
 export function applyRuntimeResourceGraph(
     graph: TXpertGraph,
-    agent: IXpertAgent,
-    resources: ResolvedRuntimeResources
+    agent: Pick<IXpertAgent, 'key'>,
+    resources: ResolvedRuntimeResources,
+    middlewareMeta: (provider: string) => TAgentMiddlewareMeta | undefined = () => undefined
 ): TXpertGraph {
     const overlay: TXpertGraph = {
         ...graph,
@@ -54,24 +54,31 @@ export function applyRuntimeResourceGraph(
                 }
             })
     }
+    const groups = new Map<string, typeof additions>()
     for (const item of additions) {
+        const provider = normalizeMiddlewareProvider(item.entity.provider)
+        const group = groups.get(provider) ?? []
+        group.push(item)
+        groups.set(provider, group)
+    }
+    for (const [provider, items] of groups) {
+        const item = items[0]
         const match = existing.find(
             (node) =>
                 node.type === 'workflow' &&
                 node.entity.type === WorkflowNodeTypeEnum.MIDDLEWARE &&
-                normalizeMiddlewareProvider((node.entity as IWFNMiddleware).provider) ===
-                    normalizeMiddlewareProvider(item.entity.provider)
+                normalizeMiddlewareProvider((node.entity as IWFNMiddleware).provider) === provider
+        )
+        const options = mergeRuntimeMiddlewareOptions(
+            provider,
+            match ? ((match.entity as IWFNMiddleware).options ?? {}) : undefined,
+            items.map((item) => item.entity.options ?? {}),
+            middlewareMeta(provider)
         )
         if (match) {
-            if (!isEqual((match.entity as IWFNMiddleware).options ?? {}, item.entity.options ?? {}))
-                throw new BadRequestException(
-                    t('server-ai:Error.AgentResourceConflict', {
-                        defaultValue: 'Selected middleware configurations conflict.'
-                    })
-                )
             overlay.nodes = overlay.nodes.map((node) =>
-                node.type === 'workflow' && node === match
-                    ? { ...node, entity: { ...match.entity, required: true } as IWFNMiddleware }
+                node.type === 'workflow' && node.key === match.key
+                    ? { ...node, entity: { ...match.entity, required: true, options } as IWFNMiddleware }
                     : node
             )
             continue
@@ -80,7 +87,7 @@ export function applyRuntimeResourceGraph(
             key: item.key,
             type: 'workflow',
             position: { x: 0, y: 0 },
-            entity: { ...item.entity, required: true } as IWFNMiddleware
+            entity: { ...item.entity, provider, required: true, options } as IWFNMiddleware
         })
         overlay.connections.push({ key: `resource_edge_${item.key}`, type: 'workflow', from: agent.key, to: item.key })
     }

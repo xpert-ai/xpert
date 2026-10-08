@@ -7,6 +7,8 @@ import { WorkspaceConnectionPageComponent } from './workspace-connection-page.co
 
 const mockConnect = jest.fn()
 jest.mock('./workspace-connector-connect.runtime', () => ({ injectWorkspaceConnectorConnect: () => mockConnect }))
+const mockBosiConnect = jest.fn()
+jest.mock('./bosi-connector-connect.runtime', () => ({ injectBosiConnectorConnect: () => mockBosiConnect }))
 jest.mock('../../@core', () => ({ Store: class {}, getErrorMessage: (error: Error) => error.message }))
 
 describe('Desktop workspace connection handoff', () => {
@@ -16,6 +18,7 @@ describe('Desktop workspace connection handoff', () => {
   const organization = new BehaviorSubject('organization')
   beforeEach(() => {
     mockConnect.mockReset()
+    mockBosiConnect.mockReset()
     organization.next('organization')
     query.next(convertToParamMap({ assistantId: 'assistant', bindingId: 'binding', organizationId: 'organization' }))
     TestBed.configureTestingModule({
@@ -27,6 +30,31 @@ describe('Desktop workspace connection handoff', () => {
     })
   })
   afterEach(() => TestBed.resetTestingModule())
+  it('connects before Assistant creation using only the scoped Bosi workspace', async () => {
+    query.next(convertToParamMap({ workspaceId: 'workspace', bindingId: 'binding', organizationId: 'organization' }))
+    mockBosiConnect.mockResolvedValue({ status: 'connected' })
+    const fixture = TestBed.createComponent(WorkspaceConnectionPageComponent)
+    fixture.detectChanges()
+    await fixture.componentInstance.connect()
+    expect(mockBosiConnect).toHaveBeenCalledWith({ workspaceId: 'workspace', bindingId: 'binding' })
+    expect(mockConnect).not.toHaveBeenCalled()
+    expect(fixture.componentInstance.connected()).toBe(true)
+  })
+  it('rejects ambiguous handoffs containing both Assistant and workspace identities', async () => {
+    query.next(
+      convertToParamMap({
+        assistantId: 'assistant',
+        workspaceId: 'workspace',
+        bindingId: 'binding',
+        organizationId: 'organization'
+      })
+    )
+    const fixture = TestBed.createComponent(WorkspaceConnectionPageComponent)
+    fixture.detectChanges()
+    await fixture.componentInstance.connect()
+    expect(mockConnect).not.toHaveBeenCalled()
+    expect(mockBosiConnect).not.toHaveBeenCalled()
+  })
   it('delegates configuration to the existing shared connection flow only after an explicit action', async () => {
     mockConnect.mockResolvedValue({ status: 'connected' })
     const fixture = TestBed.createComponent(WorkspaceConnectionPageComponent)

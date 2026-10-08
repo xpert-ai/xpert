@@ -11,7 +11,7 @@ jest.mock('../../../@shared/files/document/file-document.component', () => {
 })
 jest.mock('../../../@core', () => ({
   ChatConversationService: class ChatConversationService {},
-  XpertAPIService: class XpertAPIService {},
+  AiWorkspaceFilesService: class AiWorkspaceFilesService {},
   getErrorMessage: (error: Error) => error.message,
   injectToastr: () => ({ success: jest.fn(), danger: jest.fn() })
 }))
@@ -21,7 +21,7 @@ import { By } from '@angular/platform-browser'
 import { TranslateModule } from '@ngx-translate/core'
 import { of } from 'rxjs'
 import type { TFile } from '@xpert-ai/contracts'
-import { ChatConversationService, XpertAPIService } from '../../../@core'
+import { ChatConversationService, AiWorkspaceFilesService } from '../../../@core'
 import { WorkbenchArtifactPanelComponent } from './workbench-artifact-panel.component'
 import { attachWorkspaceFile, createFileArtifactTab } from './workbench-artifact-tabs'
 
@@ -69,7 +69,7 @@ describe('artifact file document', () => {
       imports: [WorkbenchArtifactPanelComponent, TranslateModule.forRoot()],
       providers: [
         { provide: ChatConversationService, useValue: conversationService },
-        { provide: XpertAPIService, useValue: xpertService },
+        { provide: AiWorkspaceFilesService, useValue: xpertService },
         { provide: Dialog, useValue: { open: jest.fn(() => ({ close: jest.fn() })) } }
       ]
     })

@@ -1,10 +1,12 @@
-import type { IArtifactWorkspaceFileReference } from '@xpert-ai/contracts'
-import { Inject, Injectable } from '@nestjs/common'
+import type { IArtifactWorkspaceFileReference, IXpert } from '@xpert-ai/contracts'
+import { ForbiddenException, Inject, Injectable } from '@nestjs/common'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { createHash } from 'node:crypto'
 import { WorkspaceFilesRuntimeCapabilityService } from '../shared/runtime/workspace-files-runtime-capability.service'
 import { resolveXpertDataVolumeScope, VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../shared/volume'
 import { XpertService } from './xpert.service'
+import { XpertWorkspaceService } from '../xpert-workspace/workspace.service'
+import { t } from 'i18next'
 
 @Injectable()
 export class XpertWorkspaceFilesService {
@@ -14,7 +16,9 @@ export class XpertWorkspaceFilesService {
         @Inject(WorkspaceFilesRuntimeCapabilityService)
         private readonly workspaceFiles: Pick<WorkspaceFilesRuntimeCapabilityService, 'createScopedApi'>,
         @Inject(VOLUME_CLIENT)
-        private readonly volumeClient: Pick<VolumeClient, 'resolve'>
+        private readonly volumeClient: Pick<VolumeClient, 'resolve'>,
+        @Inject(XpertWorkspaceService)
+        private readonly workspaces: Pick<XpertWorkspaceService, 'canAccess'>
     ) {}
 
     async list(xpertId: string, path?: string, deepth?: number) {
@@ -76,12 +80,28 @@ export class XpertWorkspaceFilesService {
     }
 
     private async createClient(xpertId: string) {
-        const volume = await this.volumeClient.resolve(await this.resolveScope(xpertId)).ensureRoot()
+        const xpert = await this.xpertService.findOne(xpertId)
+        const userId = RequestContext.currentUserId()
+        const tenantId = RequestContext.currentTenantId()
+        if (
+            !userId ||
+            !tenantId ||
+            xpert.tenantId !== tenantId ||
+            (xpert.createdById !== userId && !(await this.workspaces.canAccess(xpert.workspaceId, userId)))
+        ) {
+            throw new ForbiddenException(
+                t('server-ai:Error.WorkspaceFileAccessDenied', { defaultValue: 'Workspace file access was denied.' })
+            )
+        }
+        const volume = await this.volumeClient.resolve(this.scopeFor(xpert)).ensureRoot()
         return new VolumeSubtreeClient(volume, { allowRootWorkspace: true })
     }
 
     private async resolveScope(xpertId: string) {
-        const xpert = await this.xpertService.findOne(xpertId)
+        return this.scopeFor(await this.xpertService.findOne(xpertId))
+    }
+
+    private scopeFor(xpert: IXpert) {
         return resolveXpertDataVolumeScope({
             tenantId: xpert.tenantId,
             userId: RequestContext.currentUserId(),

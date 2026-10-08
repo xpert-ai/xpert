@@ -1,3 +1,5 @@
+import type { I18nObject, TMcpAppRefresh } from '@xpert-ai/contracts'
+
 export interface McpAppCsp {
   connectDomains?: string[]
   resourceDomains?: string[]
@@ -13,8 +15,10 @@ export interface McpAppPermissions {
 export interface McpAppDefinition {
   key: string
   entry: string
-  title?: string
+  title?: string | I18nObject
   description?: string
+  /** Read-only tool called by the host Refresh action; never replays the entry tool. */
+  refresh?: TMcpAppRefresh
   csp?: McpAppCsp
   permissions?: McpAppPermissions
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { z } from 'zod'
 import { Table2, GitBranch, ChartNoAxesGantt, Columns3, RefreshCw, X, LoaderCircle } from 'lucide-react'
@@ -9,10 +9,10 @@ import {
     TabsTrigger,
     TabsContent,
     TooltipProvider,
-    Sheet,
-    SheetContent,
-    SheetTitle,
-    SheetDescription,
+    Dialog,
+    DialogContent,
+    DialogTitle,
+    DialogDescription,
     AlertDialog,
     AlertDialogContent,
     AlertDialogTitle,
@@ -27,6 +27,7 @@ import { connect, request, graphSchema, type Graph, type Node } from './bridge'
 import { texts, dateTime } from './i18n'
 import { buildRows, filteredTasks, initialFilters, type View, type Grouping, type Sort } from './model'
 import { Toolbar, type Fields } from './toolbar'
+import type { TimelineControlsProps } from './timeline-controls'
 import { TaskTable, TaskBoard } from './task-views'
 import { Gantt } from './gantt'
 import { TaskFooter } from './task-footer'
@@ -53,10 +54,9 @@ function App() {
         [selected, setSelected] = useState<string | null>(null)
     const [dirty, setDirty] = useState(false),
         [nextSelection, setNextSelection] = useState<{ id: string | null } | null>(null)
-    const [now, setNow] = useState(Date.now()),
-        [width, setWidth] = useState(1400)
-    const root = useRef<HTMLDivElement>(null),
-        loading = useRef(false),
+    const [now, setNow] = useState(Date.now())
+    const detailTrigger = useRef<HTMLElement | null>(null)
+    const loading = useRef(false),
         generation = useRef(0)
     const detailDraft = useRef<DetailDraft | null>(null)
     const columns = useTaskColumns()
@@ -66,16 +66,9 @@ function App() {
             connect((locale) => {
                 setLocale(locale)
                 setReady(true)
-            }),
+            }, resetContext),
         []
     )
-    useEffect(() => {
-        const observer = new ResizeObserver(() => {
-            if (root.current) setWidth(root.current.clientWidth)
-        })
-        if (root.current) observer.observe(root.current)
-        return () => observer.disconnect()
-    }, [])
     const load = useCallback(async () => {
         if (loading.current) return
         loading.current = true
@@ -135,6 +128,8 @@ function App() {
     }, [graph])
     const choose = (id: string | null) => {
         if (id === selected) return
+        if (!selected && id)
+            detailTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
         if (dirty) setNextSelection({ id })
         else {
             detailDraft.current = null
@@ -163,7 +158,7 @@ function App() {
         />
     )
     const icons = { all: Table2, tree: GitBranch, gantt: ChartNoAxesGantt, board: Columns3 }
-    const toolbar = (controls?: ReactNode) => (
+    const toolbar = (timeline?: TimelineControlsProps) => (
         <Toolbar
             t={t}
             tasks={graph?.tasks ?? []}
@@ -178,14 +173,12 @@ function App() {
             setFields={setFields}
             collapseAll={() => setCollapsed(new Set(graph?.tasks.map((task) => task.id)))}
             expandAll={() => setCollapsed(new Set())}
-        >
-            {controls}
-        </Toolbar>
+            timeline={timeline}
+        />
     )
     return (
         <TooltipProvider>
             <main
-                ref={root}
                 aria-label={`${graph?.projectTitle || t.project} · ${t.title}`}
                 className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-background font-sans text-foreground"
             >
@@ -195,21 +188,27 @@ function App() {
                         if (value === 'all' || value === 'tree' || value === 'gantt' || value === 'board')
                             setView(value)
                     }}
-                    className="min-h-0 flex-1 gap-0"
+                    className="min-h-0 min-w-0 flex-1 gap-0"
                 >
-                    <div className="flex shrink-0 items-center gap-2 border-b px-3">
-                        <div className="min-w-0 flex-1 overflow-x-auto">
-                            <TabsList variant="line" aria-label={t.viewLabel} className="h-10 gap-3">
+                    <div className="@container flex shrink-0 items-center gap-2 border-b px-3">
+                        <div className="min-w-0 flex-1 overflow-hidden">
+                            <TabsList
+                                variant="line"
+                                aria-label={t.viewLabel}
+                                className="grid w-full grid-cols-4 gap-0 group-data-[orientation=horizontal]/tabs:h-10"
+                            >
                                 {(['all', 'tree', 'gantt', 'board'] as const).map((value) => {
                                     const Icon = icons[value]
                                     return (
                                         <TabsTrigger
                                             key={value}
                                             value={value}
-                                            className="px-2 data-[state=active]:text-primary data-[state=active]:after:bg-primary"
+                                            aria-label={t[value]}
+                                            title={t[value]}
+                                            className="min-w-0 px-2 group-data-[orientation=horizontal]/tabs:after:bottom-0 data-[state=active]:text-primary data-[state=active]:after:bg-primary"
                                         >
                                             <Icon />
-                                            {t[value]}
+                                            <span className="hidden truncate @[34rem]:inline">{t[value]}</span>
                                         </TabsTrigger>
                                     )
                                 })}
@@ -303,6 +302,7 @@ function App() {
                                     select={select}
                                     t={t}
                                     locale={locale}
+                                    onError={setError}
                                 />
                             ) : (
                                 <TaskTable
@@ -328,38 +328,35 @@ function App() {
                                 t={t}
                             />
                         </TabsContent>
-                        {detail && width >= 1200 && (
-                            <aside aria-label={t.details} className="flex w-[360px] shrink-0 flex-col border-l">
-                                <div className="flex items-center justify-between px-4 py-1.5">
-                                    <p className="text-xs font-medium text-muted-foreground">{t.details}</p>
-                                    <IconButton label={t.close} onClick={() => choose(null)}>
-                                        <X />
-                                    </IconButton>
-                                </div>
-                                {detail}
-                            </aside>
-                        )}
                     </div>
                 </Tabs>
-                {width < 1200 && (
-                    <Sheet
-                        open={!!task}
-                        onOpenChange={(open) => {
-                            if (!open) choose(null)
+                <Dialog
+                    open={!!task}
+                    onOpenChange={(open) => {
+                        if (!open) choose(null)
+                    }}
+                >
+                    <DialogContent
+                        className="flex h-[min(760px,calc(100dvh-2rem))] min-h-0 flex-col gap-0 overflow-hidden p-0 sm:max-w-4xl"
+                        showCloseButton={false}
+                        aria-describedby="task-dialog-description"
+                        onCloseAutoFocus={(event) => {
+                            event.preventDefault()
+                            if (detailTrigger.current?.isConnected) detailTrigger.current.focus()
                         }}
                     >
-                        <SheetContent
-                            className="w-[min(420px,100%)] gap-0 sm:max-w-[420px]"
-                            aria-describedby="task-sheet-description"
-                        >
-                            <SheetTitle className="px-4 py-3 text-xs text-muted-foreground">{t.details}</SheetTitle>
-                            <SheetDescription id="task-sheet-description" className="sr-only">
-                                {t.subtitle}
-                            </SheetDescription>
-                            {detail}
-                        </SheetContent>
-                    </Sheet>
-                )}
+                        <div className="flex shrink-0 items-center justify-between px-4 py-3">
+                            <DialogTitle className="text-sm font-medium text-muted-foreground">{t.details}</DialogTitle>
+                            <IconButton label={t.close} onClick={() => choose(null)}>
+                                <X />
+                            </IconButton>
+                        </div>
+                        <DialogDescription id="task-dialog-description" className="sr-only">
+                            {t.subtitle}
+                        </DialogDescription>
+                        {detail}
+                    </DialogContent>
+                </Dialog>
                 <AlertDialog
                     open={!!nextSelection}
                     onOpenChange={(open) => {
@@ -390,4 +387,9 @@ function App() {
         </TooltipProvider>
     )
 }
-createRoot(document.getElementById('root')!).render(<App />)
+const root = createRoot(document.getElementById('root')!)
+let contextRevision = 0
+function resetContext() {
+    root.render(<App key={++contextRevision} />)
+}
+root.render(<App />)

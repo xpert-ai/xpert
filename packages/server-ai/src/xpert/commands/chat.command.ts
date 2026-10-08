@@ -1,4 +1,10 @@
-import { IXpertAgentExecution, TChatOptions, TChatRequest, TChatSourceAuditOptions } from '@xpert-ai/contracts'
+import {
+    IXpertAgentExecution,
+    TChatMessageEnvelope,
+    TChatOptions,
+    TChatRequest,
+    TChatSourceAuditOptions
+} from '@xpert-ai/contracts'
 import { Command } from '@nestjs/cqrs'
 import { Observable } from 'rxjs'
 
@@ -28,6 +34,8 @@ export class XpertChatCommand extends Command<Observable<MessageEvent>> {
                 // Use xpert's draft
                 isDraft?: boolean
                 fromEndUserId?: string
+                /** Trusted provenance and presentation; independent of routing, model role and permissions. */
+                messageEnvelope?: TChatMessageEnvelope
                 execution?: { id: string; metadata?: IXpertAgentExecution['metadata'] }
                 streamPersistence?: XpertChatStreamPersistenceOptions
                 /**

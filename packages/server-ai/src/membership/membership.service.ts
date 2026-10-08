@@ -17,7 +17,6 @@ import {
     IModelAccessResolution,
     IPagination,
     DEFAULT_MEMBERSHIP_CNY_PER_POINT,
-    MEMBERSHIP_CNY_PER_POINT_SETTING,
     MembershipLedgerSourceEnum,
     MembershipAdminUserStatusEnum,
     MembershipBulkActionEnum,
@@ -60,6 +59,12 @@ import { MembershipPlan } from './membership-plan.entity'
 import { MembershipPeriod } from './membership-period.entity'
 import { MembershipPointLedger } from './membership-point-ledger.entity'
 import { pointsFromCny } from './model-billing'
+import {
+    createMembershipUsageQuery,
+    readPeriodConsumedPoints,
+    resolveMembershipPointRate,
+    USAGE_POINTS_SQL
+} from './membership-usage-points'
 import { UserMembership } from './user-membership.entity'
 import { Xpert } from '../xpert/xpert.entity'
 import { Copilot } from '../copilot/copilot.entity'
@@ -2397,37 +2402,49 @@ export class MembershipService {
             return null
         }
         const personalPointsBalance = await this.getPersonalPointsBalance(tenantId, access.membership.userId)
-        return this.toMembershipMe(
-            access.persistedMembership ?? access.membership,
-            personalPointsBalance,
-            !!access.personalPointsOnly
-        )
+        const membership = access.persistedMembership ?? access.membership
+        return {
+            ...this.toMembershipMe(membership, personalPointsBalance, !!access.personalPointsOnly),
+            consumedPoints: await readPeriodConsumedPoints(this.ledgerRepository, this.tenantSettingRepository, {
+                tenantId,
+                userId: membership.userId,
+                currentPeriodStart: membership.currentPeriodStart,
+                currentPeriodEnd: membership.currentPeriodEnd
+            })
+        }
     }
 
     async getOverview(query?: IMembershipUsageQuery): Promise<IMembershipUsageOverview> {
         const { tenantId, organizationId } = this.requireCurrentScope()
         const userId = this.requireUser()
         const access = await this.findMembershipPresentationAccess(tenantId, organizationId, userId)
-        const base = access
-            ? this.toMembershipMe(
-                  access.persistedMembership ?? access.membership,
-                  await this.getPersonalPointsBalance(tenantId, access.membership.userId),
-                  !!access.personalPointsOnly
-              )
+        const membership = access?.persistedMembership ?? access?.membership
+        const base = membership
+            ? {
+                  ...this.toMembershipMe(
+                      membership,
+                      await this.getPersonalPointsBalance(tenantId, userId),
+                      !!access.personalPointsOnly
+                  ),
+                  consumedPoints: await readPeriodConsumedPoints(this.ledgerRepository, this.tenantSettingRepository, {
+                      tenantId,
+                      userId: membership.userId,
+                      currentPeriodStart: membership.currentPeriodStart,
+                      currentPeriodEnd: membership.currentPeriodEnd
+                  })
+              }
             : {}
         const { start, end } = this.resolveDateRange(query)
 
         const dailyRows = await this.applyLedgerFilters(
-            this.ledgerRepository
-                .createQueryBuilder('ledger')
+            createMembershipUsageQuery(
+                this.ledgerRepository,
+                { tenantId, userId },
+                await this.resolveTenantCnyPerPoint(tenantId)
+            )
                 .select("DATE_TRUNC('day', ledger.createdAt)", 'day')
-                .addSelect('COALESCE(SUM(ABS(ledger.pointsDelta)), 0)', 'pointsUsed')
+                .addSelect(`COALESCE(SUM(${USAGE_POINTS_SQL}), 0)`, 'pointsUsed')
                 .addSelect('COALESCE(SUM(ledger.tokenUsed), 0)', 'tokenUsed')
-                .where('ledger.tenantId = :tenantId', { tenantId })
-                .andWhere('ledger.userId = :userId', { userId })
-                .andWhere('ledger.source IN (:...usageSources)', {
-                    usageSources: [MembershipLedgerSourceEnum.Usage, MembershipLedgerSourceEnum.PersonalUsage]
-                })
                 .andWhere('ledger.createdAt >= :start', { start })
                 .andWhere('ledger.createdAt <= :end', { end })
                 .groupBy("DATE_TRUNC('day', ledger.createdAt)")
@@ -4901,21 +4918,19 @@ export class MembershipService {
         end: Date
     ) {
         const qb = this.applyLedgerFilters(
-            this.ledgerRepository
-                .createQueryBuilder('ledger')
+            createMembershipUsageQuery(
+                this.ledgerRepository,
+                { tenantId, userId },
+                await this.resolveTenantCnyPerPoint(tenantId)
+            )
                 .select(`ledger.${dimension}`, 'key')
-                .addSelect('COALESCE(SUM(ABS(ledger.pointsDelta)), 0)', 'pointsUsed')
+                .addSelect(`COALESCE(SUM(${USAGE_POINTS_SQL}), 0)`, 'pointsUsed')
                 .addSelect('COALESCE(SUM(ledger.tokenUsed), 0)', 'tokenUsed')
-                .where('ledger.tenantId = :tenantId', { tenantId })
-                .andWhere('ledger.userId = :userId', { userId })
-                .andWhere('ledger.source IN (:...usageSources)', {
-                    usageSources: [MembershipLedgerSourceEnum.Usage, MembershipLedgerSourceEnum.PersonalUsage]
-                })
                 .andWhere('ledger.createdAt >= :start', { start })
                 .andWhere('ledger.createdAt <= :end', { end })
                 .andWhere(`ledger.${dimension} IS NOT NULL`)
                 .groupBy(`ledger.${dimension}`)
-                .orderBy('COALESCE(SUM(ABS(ledger.pointsDelta)), 0)', 'DESC')
+                .orderBy(`COALESCE(SUM(${USAGE_POINTS_SQL}), 0)`, 'DESC')
                 .take(5),
             query
         )
@@ -5155,14 +5170,7 @@ export class MembershipService {
     }
 
     private async resolveTenantCnyPerPoint(tenantId: string) {
-        const setting = await this.tenantSettingRepository?.findOne({
-            where: {
-                tenantId,
-                name: MEMBERSHIP_CNY_PER_POINT_SETTING
-            }
-        })
-        const numberValue = Number(setting?.value)
-        return Number.isFinite(numberValue) && numberValue > 0 ? numberValue : DEFAULT_MEMBERSHIP_CNY_PER_POINT
+        return resolveMembershipPointRate(this.tenantSettingRepository, tenantId)
     }
 
     private normalizeAllowedModels(value: unknown): IMembershipAllowedModel[] {

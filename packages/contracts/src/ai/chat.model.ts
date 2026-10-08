@@ -15,6 +15,8 @@ import { IUser } from '../user.model'
 import type { RuntimeCapabilitiesSelection } from '@xpert-ai/chatkit-types'
 
 export type TChatConversationOptions = {
+  /** First Project binding is deferred until a human submits the application's setup App. */
+  projectCreation?: { status: 'awaiting_confirmation' } | { status: 'confirmed'; confirmationId: string }
   /** Preserve an explicit no-Project choice across reloads and subsequent sends. */
   projectSelection?: import('./project-selection.model').ProjectSelection
   /** Persisted resources augment the entry Agent without changing the Assistant graph. */
@@ -115,7 +117,7 @@ export type TChatMessageBranching = {
   reason?: TChatMessageBranchUnavailableReason
 }
 
-// Versioned client presentation state; never an execution checkpoint or model input.
+/** @deprecated Legacy presentation metadata. Run control no longer stores or returns display snapshots. */
 export type TChatThreadDisplayPause = {
   executionId: string
   pauseId: string
@@ -140,6 +142,8 @@ export type TChatThreadPurpose = (typeof ChatThreadPurpose)[keyof typeof ChatThr
 
 /** Machine-readable keys stored in `ChatConversationThread.metadata`. */
 export type TChatThreadMetadata = {
+  /** User-editable branch label, independent of the conversation title. */
+  title?: string
   primary?: boolean
   purpose?: TChatThreadPurpose
   /** Graph revision the edited input was captured on; cleared after the first successful run. */

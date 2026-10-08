@@ -1,10 +1,10 @@
 import { IXpertTool } from '@xpert-ai/contracts'
 import {
-	CrudController,
-	PaginationParams,
-	ParseJsonPipe,
-	TransformInterceptor,
-	UUIDValidationPipe
+    CrudController,
+    PaginationParams,
+    ParseJsonPipe,
+    TransformInterceptor,
+    UUIDValidationPipe
 } from '@xpert-ai/server-core'
 import { Body, Controller, Get, Logger, Param, Post, Query, UseInterceptors } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
@@ -17,31 +17,29 @@ import { XpertToolService } from './xpert-tool.service'
 @UseInterceptors(TransformInterceptor)
 @Controller()
 export class XpertToolController extends CrudController<XpertTool> {
-	readonly #logger = new Logger(XpertToolController.name)
-	constructor(
-		private readonly service: XpertToolService,
-		private readonly commandBus: CommandBus
-	) {
-		super(service)
-	}
+    readonly #logger = new Logger(XpertToolController.name)
+    constructor(
+        private readonly service: XpertToolService,
+        private readonly commandBus: CommandBus
+    ) {
+        super(service)
+    }
 
-	@Post('test')
-	async test(@Body() body: Partial<IXpertTool>) {
-		return await this.service.testTool(body)
-	}
+    @Post('test')
+    async test(@Body() body: Partial<IXpertTool>) {
+        return await this.service.testTool(body)
+    }
 
-	@Get(':id')
-	async findById(
-		@Param('id', UUIDValidationPipe) id: string,
-		@Query('$relations', ParseJsonPipe) relations?: PaginationParams<XpertTool>['relations']
-	): Promise<XpertTool> {
-		return this.service.getTool(id, { relations })
-	}
+    @Get(':id')
+    async findById(
+        @Param('id', UUIDValidationPipe) id: string,
+        @Query('$relations', ParseJsonPipe) relations?: PaginationParams<XpertTool>['relations']
+    ): Promise<XpertTool> {
+        return this.service.getTool(id, { relations })
+    }
 
-	@Get(':id/faker')
-	async paramsFaker(
-		@Param('id', UUIDValidationPipe) id: string,
-	) {
-		return this.service.getParamsFaker(id)
-	}
+    @Get(':id/faker')
+    async paramsFaker(@Param('id', UUIDValidationPipe) id: string): Promise<unknown> {
+        return this.service.getParamsFaker(id)
+    }
 }

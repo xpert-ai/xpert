@@ -1,3 +1,4 @@
+import { resolveTokenUsageCandidates } from '@xpert-ai/plugin-sdk'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import {
     AIMessage,
@@ -8,7 +9,7 @@ import {
     ToolMessage
 } from '@langchain/core/messages'
 import { Runnable } from '@langchain/core/runnables'
-import { ModelFeature, ModelGatewayUsageSourceEnum } from '@xpert-ai/contracts'
+import { ModelFeature, ModelGatewayUsageSourceEnum, type ILLMUsage, type TTokenUsage } from '@xpert-ai/contracts'
 import { BadRequestException } from '@nestjs/common'
 import type { ModelGatewayUsage } from './model-gateway.service'
 import { modelGatewayMessage } from './model-gateway.i18n'
@@ -75,6 +76,7 @@ const SUPPORTED_KEYS = new Set([
     'stop',
     'presence_penalty',
     'frequency_penalty',
+    'prompt_cache_key',
     'seed',
     'n'
 ])
@@ -90,6 +92,8 @@ export function parseOpenAIChatRequest(value: unknown): OpenAIChatRequest {
         )
     }
     const model = requiredString(readProperty(value, 'model'), 'model')
+    // CLI cache hints are advisory; never forward client-selected cache identities across executions.
+    optionalString(readProperty(value, 'prompt_cache_key'), 'prompt_cache_key')
     const rawMessages = readProperty(value, 'messages')
     if (!Array.isArray(rawMessages) || !rawMessages.length) {
         throw badRequest('ModelGatewayOpenAIMessagesRequired', 'messages must be a non-empty array.')
@@ -137,7 +141,10 @@ export function parseOpenAIChatRequest(value: unknown): OpenAIChatRequest {
 
 export function assertRequestCapabilities(request: OpenAIChatRequest, capabilities: ModelFeature[]) {
     const supported = new Set(capabilities)
-    if (request.tools?.length && !supported.has(ModelFeature.TOOL_CALL)) {
+    const supportsTools = [ModelFeature.TOOL_CALL, ModelFeature.MULTI_TOOL_CALL, ModelFeature.STREAM_TOOL_CALL].some(
+        (feature) => supported.has(feature)
+    )
+    if (request.tools?.length && !supportsTools) {
         throw badRequest(
             'ModelGatewayOpenAIToolCallsUnsupported',
             'This model publication does not support tool calls.'
@@ -234,39 +241,60 @@ export function responseToolCalls(message: AIMessage | AIMessageChunk): OpenAIRe
 export function responseUsage(
     messages: BaseMessage[],
     outputText: string,
-    providerUsage?: Partial<{
-        promptTokens: number
-        completionTokens: number
-        totalTokens: number
-        totalPrice: number
-        currency: string
-    }> | null,
+    providerUsage?: Partial<
+        TTokenUsage & Pick<ILLMUsage, 'totalPrice' | 'currency' | 'pricingStatus'> & { type: 'estimated' | 'actual' }
+    > | null,
     response?: AIMessage | AIMessageChunk
 ): ModelGatewayUsage {
     const metadata = response?.usage_metadata
-    const inputTokens =
-        nonNegativeInteger(providerUsage?.promptTokens) ??
-        nonNegativeInteger(metadata?.input_tokens) ??
-        estimateMessages(messages)
-    const outputTokens =
-        nonNegativeInteger(providerUsage?.completionTokens) ??
-        nonNegativeInteger(metadata?.output_tokens) ??
-        estimateTextTokens(outputText)
-    const providerTotal = nonNegativeInteger(providerUsage?.totalTokens) ?? nonNegativeInteger(metadata?.total_tokens)
-    const hasProviderUsage =
-        nonNegativeInteger(providerUsage?.promptTokens) !== undefined ||
-        nonNegativeInteger(providerUsage?.completionTokens) !== undefined ||
-        nonNegativeInteger(providerUsage?.totalTokens) !== undefined ||
-        nonNegativeInteger(metadata?.input_tokens) !== undefined ||
-        nonNegativeInteger(metadata?.output_tokens) !== undefined ||
-        nonNegativeInteger(metadata?.total_tokens) !== undefined
+    const resolved = resolveTokenUsageCandidates({
+        canonical: metadata
+            ? {
+                  promptTokens: metadata.input_tokens,
+                  completionTokens: metadata.output_tokens,
+                  totalTokens: metadata.total_tokens,
+                  cacheReadInputTokens: metadata.input_token_details?.cache_read,
+                  cacheWriteInputTokens: metadata.input_token_details?.cache_creation,
+                  reasoningTokens: metadata.output_token_details?.reasoning
+              }
+            : undefined,
+        actual: providerUsage?.type === 'estimated' ? undefined : providerUsage,
+        estimated:
+            providerUsage?.type === 'estimated'
+                ? providerUsage
+                : {
+                      promptTokens: estimateMessages(messages),
+                      completionTokens: estimateTextTokens(outputText)
+                  }
+    })
+    const priced =
+        resolved.source === 'provider' &&
+        providerUsage?.type !== 'estimated' &&
+        providerUsage?.pricingStatus !== 'unpriced' &&
+        providerUsage?.promptTokens === resolved.usage.promptTokens &&
+        providerUsage?.completionTokens === resolved.usage.completionTokens &&
+        providerUsage?.totalTokens === resolved.usage.totalTokens &&
+        (['cacheReadInputTokens', 'cacheWriteInputTokens', 'reasoningTokens'] as const).every(
+            (key) => (providerUsage?.[key] ?? 0) === (resolved.usage[key] ?? 0)
+        ) &&
+        typeof providerUsage?.totalPrice === 'number' &&
+        Number.isFinite(providerUsage.totalPrice) &&
+        providerUsage.totalPrice >= 0
     return {
-        inputTokens,
-        outputTokens,
-        totalTokens: providerTotal ?? inputTokens + outputTokens,
-        source: hasProviderUsage ? ModelGatewayUsageSourceEnum.Provider : ModelGatewayUsageSourceEnum.Estimated,
-        priceAmount: providerUsage?.totalPrice,
-        priceCurrency: providerUsage?.currency
+        cacheReadInputTokens: resolved.usage.cacheReadInputTokens,
+        cacheWriteInputTokens: resolved.usage.cacheWriteInputTokens,
+        reasoningTokens: resolved.usage.reasoningTokens,
+        inputTokens: resolved.usage.promptTokens,
+        outputTokens: resolved.usage.completionTokens,
+        totalTokens: resolved.usage.totalTokens,
+        source:
+            resolved.source === 'provider'
+                ? ModelGatewayUsageSourceEnum.Provider
+                : resolved.source === 'unavailable'
+                  ? ModelGatewayUsageSourceEnum.None
+                  : ModelGatewayUsageSourceEnum.Estimated,
+        priceAmount: priced ? providerUsage.totalPrice : undefined,
+        priceCurrency: priced ? providerUsage.currency : undefined
     }
 }
 

@@ -16,6 +16,7 @@ import { I18nLang } from 'nestjs-i18n'
 import { TemplateSkillSyncService } from './template-skill-sync.service'
 import { XpertTemplateService } from './xpert-template.service'
 import { XpertTemplate } from './xpert-template.entity'
+import { parseRealtimeVoiceSelection } from './capabilities/realtime-voice.schema'
 import { AssistantCapabilityService } from './capabilities/assistant-capability.service'
 import { parseTemplateCapabilities } from './capabilities/template-capability-reference'
 import {
@@ -183,6 +184,7 @@ function parseTemplateInstallInput(value: unknown): {
 }
 
 function parseTemplateInstallBasic(value: object): PluginTemplateInstallBasic | undefined {
+    const realtimeVoice = parseRealtimeVoiceSelection(Reflect.get(value, 'realtimeVoice'))
     const prompt = Reflect.get(value, 'prompt')
     if (prompt !== undefined && (typeof prompt !== 'string' || prompt.length > 32000))
         throw new BadRequestException(t('server-ai:Error.AssistantConfigurationInvalid'))
@@ -202,6 +204,7 @@ function parseTemplateInstallBasic(value: object): PluginTemplateInstallBasic | 
     const workspaceDataScope =
         workspaceDataScopeValue === 'shared' || workspaceDataScopeValue === 'user' ? workspaceDataScopeValue : undefined
     const basic: PluginTemplateInstallBasic = {
+        ...(realtimeVoice ? { realtimeVoice } : {}),
         ...(typeof prompt === 'string' ? { prompt } : {}),
         ...(name ? { name } : {}),
         ...(title ? { title } : {}),

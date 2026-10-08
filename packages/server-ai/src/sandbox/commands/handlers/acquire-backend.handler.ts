@@ -1,4 +1,5 @@
-import { TSandboxConfigurable } from '@xpert-ai/contracts'
+import { SandboxManagedServiceErrorCode, TSandboxConfigurable } from '@xpert-ai/contracts'
+import { BadRequestException } from '@nestjs/common'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { SandboxProviderCreateOptions, SandboxProviderRegistry } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
@@ -21,6 +22,17 @@ export class SandboxAcquireBackendHandler implements ICommandHandler<
 
     constructor(private readonly registry: SandboxProviderRegistry) {}
 
+    find(params: SandboxAcquireBackendCommand['params']): TSandboxConfigurable | null {
+        const { workFor, provider, workingDirectory, workspaceBinding, volumeScope } = params
+        const protectProjectContent = workFor.type === 'project' || volumeScope?.catalog === 'projects'
+        return (
+            this.instances
+                .get(this.getSessionKey(workFor.type, workFor.id))
+                ?.get(this.getInstanceKey(provider, workingDirectory, workspaceBinding, protectProjectContent))
+                ?.configurable ?? null
+        )
+    }
+
     async execute(command: SandboxAcquireBackendCommand): Promise<TSandboxConfigurable> {
         const { workFor, provider, workingDirectory, workspaceBinding, environmentId, tenantId, volumeScope } =
             command.params
@@ -40,24 +52,37 @@ export class SandboxAcquireBackendHandler implements ICommandHandler<
             return existing.configurable
         }
 
-        const providerInstance = this.registry.get(provider)
+        const providerInstance = this.registry.list().find((item) => item.type === provider)
+        if (!providerInstance) {
+            throw new BadRequestException({
+                code: SandboxManagedServiceErrorCode.ProviderUnavailable,
+                message: t('server-ai:Error.SandboxProviderNotRegistered', {
+                    defaultValue: 'Sandbox provider is not registered: {{provider}}',
+                    provider
+                })
+            })
+        }
         if (providerInstance.isAvailable && !(await providerInstance.isAvailable())) {
             const fallbackMessage = 'Sandbox provider is unavailable: ' + provider
-            throw new Error(
-                t('server-ai:Error.SandboxProviderUnavailable', {
-                    defaultValue: fallbackMessage,
-                    provider
-                }) || fallbackMessage
-            )
+            throw new BadRequestException({
+                code: SandboxManagedServiceErrorCode.ProviderUnavailable,
+                message:
+                    t('server-ai:Error.SandboxProviderUnavailable', {
+                        defaultValue: fallbackMessage,
+                        provider
+                    }) || fallbackMessage
+            })
         }
         if (protectProjectContent && providerInstance.capabilities?.projectContentReadOnly !== true) {
             const fallbackMessage = 'Sandbox provider ' + provider + ' does not support read-only Project Content'
-            throw new Error(
-                t('server-ai:Error.SandboxProviderProjectContentReadOnlyUnsupported', {
-                    defaultValue: fallbackMessage,
-                    provider
-                }) || fallbackMessage
-            )
+            throw new BadRequestException({
+                code: SandboxManagedServiceErrorCode.UnsupportedProvider,
+                message:
+                    t('server-ai:Error.SandboxProviderProjectContentReadOnlyUnsupported', {
+                        defaultValue: fallbackMessage,
+                        provider
+                    }) || fallbackMessage
+            })
         }
         const backend = await providerInstance.create({
             environmentId,

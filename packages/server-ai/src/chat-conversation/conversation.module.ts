@@ -1,3 +1,4 @@
+import { ChatExecutionAdmissionService } from './chat-execution-admission.service'
 import { ArtifactsModule } from '../artifacts/artifacts.module'
 import { FileChangeStatsService } from './file-change-stats.service'
 import { RedisModule, SharedModule, StorageFileModule } from '@xpert-ai/server-core'
@@ -70,6 +71,7 @@ import { ConversationInitializerRegistry } from './conversation-initializer.regi
     ],
     controllers: [ChatConversationSidebarController, ChatConversationController],
     providers: [
+        ChatExecutionAdmissionService,
         ConversationInitializerRegistry,
         ThreadCursorStore,
         ThreadReferenceService,
@@ -88,6 +90,7 @@ import { ConversationInitializerRegistry } from './conversation-initializer.regi
         ...QueryHandlers
     ],
     exports: [
+        ChatExecutionAdmissionService,
         ConversationInitializerRegistry,
         ThreadReferenceService,
         MessageCheckpointService,

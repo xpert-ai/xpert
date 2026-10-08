@@ -1,11 +1,12 @@
 // Only expand execution roots from messages already authorized by the conversation API.
 // Keep tenant/organization and root-thread scope on every level, including branch history.
 import type { IChatMessage, TChatAgentRunSummary } from '@xpert-ai/contracts'
-import { avatarForChat } from '../shared/avatar'
+import { toAgentRunSummary } from './agent-run-summary'
 import { Injectable } from '@nestjs/common'
 import { In } from 'typeorm'
 import { XpertAgentExecutionService } from '../xpert-agent-execution/agent-execution.service'
-import type { XpertAgentExecution } from '../xpert-agent-execution/agent-execution.entity'
+
+export { toAgentRunSummary } from './agent-run-summary'
 
 type HistoryMessage = Pick<IChatMessage, 'id'> &
     Partial<Pick<IChatMessage, 'role' | 'executionId' | 'createdInThreadId'>>
@@ -88,31 +89,5 @@ export class ConversationAgentRunsService {
             if ((message.role === 'ai' || message.role === 'assistant') && runs?.length) result.set(message.id, runs)
         }
         return result
-    }
-}
-
-export function toAgentRunSummary(
-    execution: Partial<XpertAgentExecution> & Pick<XpertAgentExecution, 'id'>
-): TChatAgentRunSummary {
-    const metadata = execution.metadata
-    return {
-        id: execution.id,
-        parentId: execution.parentId,
-        type: execution.type,
-        category: execution.category,
-        agentKey: execution.agentKey,
-        xpertId: execution.xpertId,
-        xpertName: metadata?.assistantName,
-        avatar: avatarForChat(metadata?.assistantAvatar ?? execution.xpert?.avatar),
-        title: execution.title,
-        invocationKind: metadata?.invocationKind,
-        sourceToolCallId: metadata?.sourceToolCallId,
-        model: metadata?.model,
-        status: execution.status,
-        elapsedTime: execution.elapsedTime,
-        inputs: execution.inputs,
-        error: execution.error,
-        createdAt: execution.createdAt?.toISOString(),
-        updatedAt: execution.updatedAt?.toISOString()
     }
 }

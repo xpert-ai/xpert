@@ -31,7 +31,13 @@ export enum ModelGatewayUsageSourceEnum {
 
 export enum ModelGatewayUsageChannelEnum {
   Xpert = 'xpert',
-  ExternalApi = 'external_api'
+  ExternalApi = 'external_api',
+  /** Managed agent invocation usage, regardless of where the runtime executes. */
+  AgentRuntime = 'agent_runtime',
+  /** User-launched CLI session usage, separate from managed invocations. */
+  Cli = 'cli',
+  /** CLI child launched by an Assistant shell execution. */
+  Shell = 'shell'
 }
 
 export const MODEL_GATEWAY_REQUESTS_PER_MINUTE_SETTING = 'modelGatewayRequestsPerMinute'
@@ -96,8 +102,14 @@ export interface IModelGatewayCall extends IBasePerTenantAndOrganizationEntityMo
   requestId: string
   userId: string
   userName?: string | null
-  apiKeyId: string
-  publicationId: string
+  /** Authorization path, not the usage channel; persisted rows default to external_api for legacy calls. */
+  source?: 'external_api' | 'execution_grant'
+  /** Required for execution_grant calls; null for external_api calls. */
+  grantId?: string | null
+  /** External API key ID; null when authorized by an execution grant. */
+  apiKeyId: string | null
+  /** Model publication record ID; null for execution grants that bind models directly. */
+  publicationId: string | null
   externalModelId: string
   provider: string
   model: string

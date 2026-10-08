@@ -8,6 +8,14 @@ import { AssistantBindingUserPreference } from './assistant-binding-user-prefere
 import { AssistantBindingController } from './assistant-binding.controller'
 import { AssistantBinding } from './assistant-binding.entity'
 import { AssistantBindingService } from './assistant-binding.service'
+import { BosiBootstrapController } from './bosi/bosi-bootstrap.controller'
+import { BosiBootstrapService } from './bosi/bosi-bootstrap.service'
+import { CqrsModule } from '@nestjs/cqrs'
+import { XpertTemplateModule } from '../xpert-template/xpert-template.module'
+import { XpertWorkspaceModule } from '../xpert-workspace/workspace.module'
+import { ConnectorModule } from '../connector/connector.module'
+import { BosiOnboardingService } from './bosi/bosi-onboarding.service'
+import { BosiConversationInitializer } from './bosi/bosi-conversation.initializer'
 
 @Module({
     imports: [
@@ -15,10 +23,14 @@ import { AssistantBindingService } from './assistant-binding.service'
         TypeOrmModule.forFeature([AssistantBinding, AssistantBindingUserPreference, Xpert]),
         forwardRef(() => TenantModule),
         forwardRef(() => XpertModule),
-        SharedModule
+        SharedModule,
+        CqrsModule,
+        ConnectorModule,
+        forwardRef(() => XpertTemplateModule),
+        forwardRef(() => XpertWorkspaceModule)
     ],
-    controllers: [AssistantBindingController],
-    providers: [AssistantBindingService],
+    controllers: [BosiBootstrapController, AssistantBindingController],
+    providers: [AssistantBindingService, BosiBootstrapService, BosiOnboardingService, BosiConversationInitializer],
     exports: [AssistantBindingService]
 })
 export class AssistantBindingModule {}

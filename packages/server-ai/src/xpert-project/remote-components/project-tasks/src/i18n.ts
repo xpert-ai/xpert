@@ -45,6 +45,14 @@ const zh = {
     now: '当前',
     locate: '定位当前',
     fit: '适应全部',
+    actions: '任务操作',
+    more: '更多操作',
+    timelineControls: '时间轴',
+    timeScale: '时间粒度',
+    timeZoom: '时间轴缩放',
+    zoomIn: '放大时间轴',
+    zoomOut: '缩小时间轴',
+    panHint: '拖动内容以平移，点击任务查看详情',
     unknown: '未排期',
     loading: '正在加载项目任务…',
     empty: '项目中还没有任务',
@@ -106,6 +114,7 @@ const zh = {
     latest: '最近一次',
     planNote: '保存只更新计划时间，不会自动启动或重试 Agent。',
     progress: '完成',
+    completionProgress: '任务完成进度',
     unsaved: '有未保存的计划',
     keepEditing: '继续编辑',
     discard: '放弃修改',
@@ -170,6 +179,14 @@ const en: Texts = {
     now: 'Now',
     locate: 'Go to now',
     fit: 'Fit all',
+    actions: 'Task actions',
+    more: 'More actions',
+    timelineControls: 'Timeline',
+    timeScale: 'Time granularity',
+    timeZoom: 'Timeline zoom',
+    zoomIn: 'Zoom in timeline',
+    zoomOut: 'Zoom out timeline',
+    panHint: 'Drag to pan; click a task to view details',
     unknown: 'Unscheduled',
     loading: 'Loading project tasks…',
     empty: 'No tasks in this project yet',
@@ -231,6 +248,7 @@ const en: Texts = {
     latest: 'Latest',
     planNote: 'Saving changes the plan only. It does not start or retry an Agent.',
     progress: 'Completed',
+    completionProgress: 'Task completion progress',
     unsaved: 'Unsaved plan changes',
     keepEditing: 'Keep editing',
     discard: 'Discard changes',
@@ -260,6 +278,7 @@ export function dateTime(value: string | null | undefined, locale: string, short
 export function runtimeLabel(status: string | undefined, t: Texts) {
     switch (status) {
         case 'success':
+        case 'succeeded':
             return t.success
         case 'error':
         case 'failed':

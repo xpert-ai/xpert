@@ -1,5 +1,5 @@
 import { RuntimeCommandService } from './runtime-command.service'
-import type { RuntimeSlashCommand } from './runtime-command.guards'
+import { parseRuntimePromptWorkflowCommandSource, type RuntimeSlashCommand } from './runtime-command.guards'
 
 function runtimeCommand(name: string, source: RuntimeSlashCommand['source']): RuntimeSlashCommand {
     return {
@@ -14,6 +14,52 @@ function runtimeCommand(name: string, source: RuntimeSlashCommand['source']): Ru
 }
 
 describe('RuntimeCommandService', () => {
+    it('honors an explicit draft insertion action for an xpert prompt workflow', () => {
+        const service = new RuntimeCommandService()
+        const commands = service.normalizePromptWorkflowRuntimeSlashCommands(
+            [
+                {
+                    sourceType: 'xpert',
+                    name: 'bid-technical-outline',
+                    template: 'Prepare {{args}}',
+                    actionType: 'insert_text'
+                }
+            ],
+            { sourceType: 'xpert', workspaceId: 'workspace-1' }
+        )
+        expect(commands[0].action).toEqual({ type: 'insert_text', template: 'Prepare {{args}}' })
+    })
+
+    it.each(['xpert', 'workspace_prompt_workflow'] as const)(
+        'inserts only the invocation for %s workflows',
+        (sourceType) => {
+            const service = new RuntimeCommandService()
+            const commands = service.normalizePromptWorkflowRuntimeSlashCommands(
+                [
+                    {
+                        sourceType,
+                        name: 'bid-technical-outline',
+                        aliases: ['bid-outline-alias'],
+                        template: 'Private workflow instructions {{args}}',
+                        actionType: 'insert_invocation'
+                    }
+                ],
+                { sourceType, workspaceId: 'workspace-1' }
+            )
+            expect(commands[0].action).toEqual({ type: 'insert_invocation', template: '/bid-technical-outline ' })
+            expect(commands[0].kind).toBe('prompt_workflow')
+            expect(commands[0].aliases).toEqual(['bid-outline-alias'])
+        }
+    )
+
+    it('ignores invalid action types and preserves the source default', () => {
+        const malformed = JSON.parse(
+            '{"sourceType":"xpert","name":"report","template":"{{args}}","actionType":"invalid"}'
+        )
+        const source = parseRuntimePromptWorkflowCommandSource(malformed)
+        expect(source?.actionType).toBeUndefined()
+    })
+
     it('keeps additive defaults and connector selections on prompt command actions', () => {
         const service = new RuntimeCommandService()
         const [command] = service.normalizePromptWorkflowRuntimeSlashCommands(

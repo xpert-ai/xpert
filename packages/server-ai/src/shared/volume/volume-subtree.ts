@@ -25,10 +25,41 @@ const EDITABLE_SUBTREE_EXTENSIONS = new Set([
     'html',
     'css',
     'xml',
-    'env'
+    'env',
+    'log',
+    'jsonc',
+    'scss',
+    'less',
+    'toml',
+    'ini',
+    'conf',
+    'bash',
+    'zsh',
+    'sql',
+    'rs',
+    'go',
+    'java',
+    'c',
+    'h',
+    'cpp',
+    'hpp',
+    'cs',
+    'rb',
+    'php',
+    'vue',
+    'svelte',
+    'graphql',
+    'gitignore',
+    'dockerignore',
+    'lock',
+    'properties',
+    'csv',
+    'tsv',
+    'markdown',
+    'htm'
 ])
 
-const BINARY_EDITABLE_SUBTREE_EXTENSIONS = new Set(['docx', 'xlsx', 'pptx'])
+const BINARY_EDITABLE_SUBTREE_EXTENSIONS = new Set(['docx', 'xlsx', 'pptx', 'xls', 'csv', 'tsv'])
 
 type TVolumeSubtreeOptions = {
     allowRootWorkspace?: boolean
@@ -430,7 +461,10 @@ function normalizeSubtreePath(filePath?: string | null) {
 }
 
 function isEditableSubtreeFile(filePath: string) {
-    return EDITABLE_SUBTREE_EXTENSIONS.has(getSubtreeFileExtension(filePath))
+    return (
+        ['dockerfile', 'makefile'].includes(basename(filePath).toLowerCase()) ||
+        EDITABLE_SUBTREE_EXTENSIONS.has(getSubtreeFileExtension(filePath))
+    )
 }
 
 function isBinaryBuffer(buffer: Buffer) {

@@ -6,7 +6,13 @@ export function platformCommandUrl(webUrl, payload) {
   const segment = (value) => encodeURIComponent(value)
   let path
   const query = new URLSearchParams()
-  if (payload.target === 'platform.data-source.create') path = 'settings/data-sources'
+  if (payload.target === 'auth.register') path = 'auth/register'
+  else if (payload.target === 'assistant.studio' && id(payload.assistantId))
+    path = `xpert/x/${segment(payload.assistantId)}/agents`
+  else if (payload.target === 'workspace.connectors.manage' && id(payload.workspaceId) && id(payload.organizationId)) {
+    path = `xpert/w/${segment(payload.workspaceId)}/connectors`
+    query.set('organizationId', payload.organizationId)
+  } else if (payload.target === 'platform.data-source.create') path = 'settings/data-sources'
   else if (
     payload.target === 'workspace.plugins.manage' &&
     id(payload.organizationId) &&
@@ -16,6 +22,15 @@ export function platformCommandUrl(webUrl, payload) {
     path = 'plugins'
     query.set('category', 'agent-plugins')
     for (const key of ['organizationId', 'packageId', 'workspaceId']) if (payload[key]) query.set(key, payload[key])
+  } else if (
+    payload.target === 'bosi.connector.connect' &&
+    id(payload.workspaceId) &&
+    id(payload.bindingId) &&
+    id(payload.organizationId)
+  ) {
+    path = 'workspace-connection'
+    for (const key of ['workspaceId', 'bindingId', 'organizationId']) query.set(key, payload[key])
+    query.set('autostart', '1')
   } else if (
     payload.target === 'workspace.connector.connect' &&
     id(payload.assistantId) &&

@@ -42,7 +42,7 @@ describe('ViewExtensionApiService', () => {
   it('accepts the HttpOnly cookie returned when creating a view file session', () => {
     service.createViewFileAccessSession('assistant', 'assistant-1', 'cut-workbench').subscribe()
 
-    const request = httpMock.expectOne('http://localhost:3000/api/workspace-files/view-sessions')
+    const request = httpMock.expectOne('http://localhost:3000/api/ai/workspace-files/view-sessions')
     expect(request.request.method).toBe('POST')
     expect(request.request.withCredentials).toBe(true)
     expect(request.request.body).toEqual({
@@ -61,7 +61,7 @@ describe('ViewExtensionApiService', () => {
       })
       .subscribe()
 
-    const request = httpMock.expectOne('http://localhost:3000/api/workspace-files/view-sessions')
+    const request = httpMock.expectOne('http://localhost:3000/api/ai/workspace-files/view-sessions')
     expect(request.request.method).toBe('POST')
     expect(request.request.withCredentials).toBe(true)
     expect(request.request.headers.get('X-Xpert-View-Project-Id')).toBe('project-1')
@@ -81,7 +81,7 @@ describe('ViewExtensionApiService', () => {
   it('sends the view file session cookie when revoking a session', () => {
     service.revokeViewFileAccessSession('session/1').subscribe()
 
-    const request = httpMock.expectOne('http://localhost:3000/api/workspace-files/view-sessions/session%2F1')
+    const request = httpMock.expectOne('http://localhost:3000/api/ai/workspace-files/view-sessions/session%2F1')
     expect(request.request.method).toBe('DELETE')
     expect(request.request.withCredentials).toBe(true)
     request.flush({ success: true })

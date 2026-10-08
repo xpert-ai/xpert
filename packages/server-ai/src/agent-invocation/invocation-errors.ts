@@ -1,5 +1,7 @@
 import { HttpException } from '@nestjs/common'
 import { t } from 'i18next'
+/** Only host preflight may assert this: no executor has received task input or a launch receipt. */
+export class AgentInvocationNotStartedError extends Error {}
 /** Authorization failures must stop the run, not become an ordinary retryable tool result. */
 export class AgentInvocationAuthorizationError extends Error {
     constructor(readonly cause: unknown) {
@@ -23,6 +25,7 @@ export async function authorizeAgentInvocation(check: () => Promise<void>) {
 }
 
 export type AgentInvocationErrorCode =
+    | 'ModelSourceRequired'
     | 'InvalidScope'
     | 'InvalidRequest'
     | 'CallConflict'
@@ -35,6 +38,7 @@ export type AgentInvocationErrorCode =
     | 'MissingResult'
     | 'ConcurrentUpdate'
 const status: Record<AgentInvocationErrorCode, number> = {
+    ModelSourceRequired: 400,
     InvalidScope: 403,
     InvalidRequest: 400,
     CallConflict: 409,

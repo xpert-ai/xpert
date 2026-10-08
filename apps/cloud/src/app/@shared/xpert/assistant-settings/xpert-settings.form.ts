@@ -9,6 +9,8 @@ import {
   XpertWorkbenchInitialLayoutEnum
 } from '@xpert-ai/contracts'
 
+export const RECURSION_LIMIT_RANGE = { min: 10, max: 10000, step: 10 } as const
+
 const text = (value?: string) => new FormControl(value ?? '', { nonNullable: true })
 const toggle = (value?: boolean) => new FormControl(value ?? false, { nonNullable: true })
 const number = (value: number | null, min: number, max: number) =>
@@ -56,6 +58,9 @@ export function createXpertSettingsForm(team: Partial<IXpert>) {
     title: new FormGroup({ enabled: toggle(features?.title?.enabled), instruction: text(features?.title?.instruction) })
   })
   const workbench = new FormGroup({
+    messagePresentation: new FormControl<'transcript' | 'bubbles' | null>(
+      team.options?.messagePresentation?.mode ?? null
+    ),
     initialLayout: new FormControl(
       team.options?.workbench?.initialLayout ?? XpertWorkbenchInitialLayoutEnum.ChatkitMaximized,
       { nonNullable: true }
@@ -114,15 +119,14 @@ export function createXpertSettingsForm(team: Partial<IXpert>) {
   })
   const runtime = new FormGroup({
     maxConcurrency: number(team.agentConfig?.maxConcurrency ?? null, 1, 100),
-    recursionLimit: number(team.agentConfig?.recursionLimit ?? DEFAULT_XPERT_AGENT_RECURSION_LIMIT, 100, 10000),
-    sandboxEnabled: toggle(features?.sandbox?.enabled),
-    sandboxProvider: text(features?.sandbox?.provider)
+    recursionLimit: number(
+      team.agentConfig?.recursionLimit ?? DEFAULT_XPERT_AGENT_RECURSION_LIMIT,
+      RECURSION_LIMIT_RANGE.min,
+      RECURSION_LIMIT_RANGE.max
+    )
   })
   runtime.controls.maxConcurrency.addValidators(integerValidator)
   runtime.controls.recursionLimit.addValidators([Validators.required, integerValidator])
-  runtime.addValidators(() =>
-    runtime.controls.sandboxEnabled.value && !runtime.controls.sandboxProvider.value ? { sandboxProvider: true } : null
-  )
   memory.controls.reply.controls.scoreThreshold.addValidators(Validators.required)
   memory.controls.longTerm.controls.afterSeconds.addValidators([Validators.required, integerValidator])
 

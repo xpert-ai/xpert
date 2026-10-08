@@ -56,9 +56,11 @@
             <div class="text-xs font-medium text-text-tertiary">
               {{ 'XP.Membership.UsedPoints' | translate: { Default: 'Used points' } }}
             </div>
-            <div class="mt-2 text-2xl font-semibold text-text-primary">{{ me()?.pointsUsed | number: '1.0-2' }}</div>
+            <div class="mt-2 text-2xl font-semibold text-text-primary">
+              {{ me()?.consumedPoints ?? me()?.pointsUsed | number: '1.0-0' }}
+            </div>
             <div class="mt-1 text-xs text-text-tertiary">
-              {{ usedPercent() | number }}% {{ 'XP.Membership.PointUsage' | translate: { Default: 'Point usage' } }}
+              {{ 'XP.Membership.ConsumedPointsHint' | translate }}
             </div>
           </div>
 
@@ -78,20 +80,15 @@
           </div>
         </div>
 
-        <div class="mt-5">
-          <div class="mb-2 flex items-center justify-between gap-3 text-xs text-text-tertiary">
-            <span>{{ 'XP.Membership.PointUsage' | translate: { Default: 'Point usage' } }}</span>
-            <span>
-              @if (isUnlimited()) {
-                {{ me()?.pointsUsed | number: '1.0-2' }} /
-                {{ 'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
-              } @else {
-                {{ me()?.pointsUsed | number: '1.0-2' }} / {{ me()?.pointsGranted | number: '1.0-2' }}
-              }
-            </span>
+        @if (!isUnlimited()) {
+          <div class="mt-5">
+            <div class="mb-2 flex items-center justify-between gap-3 text-xs text-text-tertiary">
+              <span>{{ 'XP.Membership.QuotaPointUsage' | translate }}</span>
+              <span>{{ me()?.pointsUsed | number: '1.0-2' }} / {{ me()?.pointsGranted | number: '1.0-2' }}</span>
+            </div>
+            <z-progress-bar [progress]="usedPercent()" zShape="default" />
           </div>
-          <z-progress-bar [progress]="usedPercent()" zShape="default" />
-        </div>
+        }
       </z-card-content>
     </z-card>
 
@@ -135,11 +132,11 @@
         <div class="flex w-full flex-col gap-2 md:flex-row md:items-center md:justify-between">
           <div>
             <z-card-title>{{
-              'XP.Membership.RecentUsageSummary' | translate: { Default: 'Recent usage summary' }
+              'XP.Membership.RecentDebitSummary' | translate: { Default: 'Recent usage summary' }
             }}</z-card-title>
             <z-card-subtitle class="mt-1">
               {{
-                'XP.Membership.RecentUsageSummaryHint'
+                'XP.Membership.RecentDebitSummaryHint'
                   | translate: { Default: 'Grouped by session, model, and hourly usage window.' }
               }}
             </z-card-subtitle>
@@ -202,7 +199,9 @@
                       ' / ' +
                       (isExternalApi(summary)
                         ? ('XP.Membership.ApiCall' | translate: { Default: 'API call' })
-                        : ('XP.Membership.Xpert' | translate: { Default: 'Xpert' }) + ' ' + xpertLabel(summary))
+                        : ('XP.Copilot.ExecutionEntry.' + (summary.usageChannel || 'xpert') | translate) +
+                          ' ' +
+                          xpertLabel(summary))
                     "
                   >
                     <div class="truncate text-text-primary">
@@ -212,7 +211,8 @@
                       @if (isExternalApi(summary)) {
                         {{ 'XP.Membership.ApiCall' | translate: { Default: 'API call' } }}
                       } @else {
-                        {{ 'XP.Membership.Xpert' | translate: { Default: 'Xpert' } }} {{ xpertLabel(summary) }}
+                        {{ 'XP.Copilot.ExecutionEntry.' + (summary.usageChannel || 'xpert') | translate }}
+                        {{ xpertLabel(summary) }}
                       }
                     </div>
                   </td>
@@ -327,4 +327,5 @@
       </z-card-content>
     </z-card>
   </div>
+  <xp-execution-usage />
 </div>

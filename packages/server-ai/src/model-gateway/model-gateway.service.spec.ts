@@ -1,3 +1,4 @@
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import {
     AiModelTypeEnum,
     AIPermissionsEnum,
@@ -10,16 +11,15 @@ import {
     ModelGatewayApiKeyStatusEnum,
     ModelGatewayCallStatusEnum,
     ModelGatewayUsageSourceEnum,
-    MODEL_GATEWAY_CALL_RETENTION_DAYS_SETTING,
-    MODEL_GATEWAY_CALL_RETENTION_ENABLED_SETTING,
     UserType
 } from '@xpert-ai/contracts'
 import { environment } from '@xpert-ai/server-config'
-import { decryptSecret, encryptSecret, RequestContext, User } from '@xpert-ai/server-core'
+import { decryptSecret, encryptSecret, User } from '@xpert-ai/server-core'
 import { ModelGatewayApiKey } from './model-gateway-api-key.entity'
 import { ModelGatewayCall } from './model-gateway-call.entity'
 import { ModelGatewayPublication } from './model-gateway-publication.entity'
 import { ModelGatewayService } from './model-gateway.service'
+import * as callRetention from './model-gateway-call-retention'
 
 function createService(options?: {
     publications?: ModelGatewayPublication[]
@@ -530,6 +530,25 @@ describe('ModelGatewayService', () => {
         )
     })
 
+    it('does not count execution grants against external API rate or concurrency limits', async () => {
+        const fixture = createService()
+        fixture.transactionCallRepository.count
+            .mockReset()
+            .mockImplementation(async (query) => (query.where.source === 'external_api' ? 0 : 1000))
+        await expect(
+            fixture.service.startCall({
+                identity: {
+                    apiKey: { id: 'key-1', tenantId: 'tenant-1', organizationId: 'org-1' } as ModelGatewayApiKey,
+                    user: { id: 'user-1' } as never
+                },
+                publication: publication('organization-model'),
+                resolution: accessResolution('org-1'),
+                requestBody: { model: 'organization-model' }
+            })
+        ).resolves.toMatchObject({ source: 'external_api' })
+        expect(fixture.transactionCallRepository.count).toHaveBeenCalledTimes(2)
+    })
+
     it('settles a started call once and records charged and excess points', async () => {
         const call = {
             id: 'call-1',
@@ -762,9 +781,9 @@ describe('ModelGatewayService', () => {
         expect(fixture.membershipService.recordGatewayUsage).not.toHaveBeenCalled()
     })
 
-    it('purges only terminal gateway call metadata for tenants that enabled retention', async () => {
+    it('delegates atomic usage retention and stops after a partial batch', async () => {
         const fixture = createService()
-        fixture.callRepository.manager.query.mockResolvedValueOnce([{ count: 2 }])
+        const purgeBatch = jest.spyOn(callRetention, 'purgeModelGatewayCallBatch').mockResolvedValue(2)
 
         await expect(fixture.service.purgeExpiredCalls()).resolves.toEqual({
             deleted: 2,
@@ -772,19 +791,8 @@ describe('ModelGatewayService', () => {
             batchLimitReached: false
         })
 
-        expect(fixture.callRepository.manager.query).toHaveBeenNthCalledWith(
-            1,
-            expect.stringContaining('DELETE FROM model_gateway_call'),
-            [
-                MODEL_GATEWAY_CALL_RETENTION_ENABLED_SETTING,
-                MODEL_GATEWAY_CALL_RETENTION_DAYS_SETTING,
-                60,
-                3650,
-                [ModelGatewayCallStatusEnum.Succeeded, ModelGatewayCallStatusEnum.Failed],
-                1000
-            ]
-        )
-        expect(fixture.callRepository.manager.query.mock.calls[0][0]).toContain('c.status = ANY($5::varchar[])')
-        expect(fixture.callRepository.manager.query.mock.calls[0][0]).toContain('LIMIT $6::int')
+        expect(purgeBatch).toHaveBeenCalledTimes(1)
+        expect(purgeBatch).toHaveBeenCalledWith(fixture.callRepository.manager, 1000)
+        expect(fixture.membershipService.recordGatewayUsage).not.toHaveBeenCalled()
     })
 })

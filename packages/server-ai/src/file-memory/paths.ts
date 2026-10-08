@@ -31,9 +31,15 @@ export function getFileMemoryWorkspacePath() {
     return FILE_MEMORY_WORKSPACE_PATH
 }
 
+/**
+ * Returns the memory directory relative to the selected volume, not an absolute sandbox path.
+ * Project volumes are shared, so memory lives under `.xpert/memory/xperts/<xpertId>`.
+ * Otherwise the Assistant-scoped volume uses `.xpert/memory` directly.
+ * Use the same project scope when selecting the volume with getXpertFileMemoryVolumeScope.
+ */
 export function getXpertFileMemoryWorkspacePath(xpertId?: string, projectId?: string | null) {
     return projectId && xpertId
-        ? path.posix.join('agents', xpertId, FILE_MEMORY_WORKSPACE_PATH)
+        ? path.posix.join(FILE_MEMORY_WORKSPACE_PATH, 'xperts', xpertId)
         : FILE_MEMORY_WORKSPACE_PATH
 }
 

@@ -1,8 +1,18 @@
+import { ProjectTaskDispatchRecoveryService } from './runtime/project-task-dispatch-recovery.service'
+import { ProjectRuntimeObservationHandler } from './runtime/project-runtime-observation.handler'
+import { ProjectTaskCardProvider } from './runtime/project-task-card.provider'
+import { AgentInvocationModule } from '../agent-invocation/agent-invocation.module'
+import { XpertAgentExecution } from '../xpert-agent-execution/agent-execution.entity'
+import { ProjectTaskRuntimeContextService } from './runtime/project-task-runtime-context.service'
+import { ProjectTaskDispatchService } from './runtime/project-task-dispatch.service'
+import { ProjectTaskRuntimeReadService } from './runtime/project-task-runtime-read.service'
+import { ProjectTaskRuntimeHandlers } from './runtime/project-task-runtime.handlers'
 import { DiscoveryModule } from '@nestjs/core'
 import { ProjectTypeProviderRegistry, ProjectTaskProviderRegistry } from '@xpert-ai/plugin-sdk'
 import { PluginApplicationInstallation } from '../plugin-resource/plugin-application-installation.entity'
 import { XpertProjectTypeService } from './services/project-type.service'
 import { ConversationProjectService } from './services/conversation-project.service'
+import { ProjectResourceCardService } from './services/project-resource-card.service'
 import { ProjectProvisioningRuntimeService } from './services/project-provisioning-runtime.service'
 import { FileAsset } from '../file-understanding/entities/file-asset.entity'
 import { XpertProjectPurgeService } from './services/project-purge.service'
@@ -75,10 +85,13 @@ import { XpertAgentModule } from '../xpert-agent'
 import { ProjectTaskGraphController } from './project-task-graph.controller'
 import { ProjectTaskGraphService } from './services/project-task-graph.service'
 import { ProjectTasksViewProvider } from './views/project-tasks.provider'
+import { ProjectTasksMiddleware } from './plugins/project-tasks/project-tasks.middleware'
+import { ProjectTaskDecisionService } from './runtime/project-task-decision.service'
 
 @Module({
     imports: [
         DiscoveryModule,
+        AgentInvocationModule,
         RouterModule.register([{ path: '/xpert-project', module: XpertProjectModule }]),
         TypeOrmModule.forFeature([
             PluginApplicationInstallation,
@@ -95,6 +108,7 @@ import { ProjectTasksViewProvider } from './views/project-tasks.provider'
             XpertProjectAutomationRun,
             XpertProjectTaskConversation,
             XpertProjectTaskExecution,
+            XpertAgentExecution,
             XpertProjectSprint,
             XpertProjectSwimlane,
             ChatConversation,
@@ -130,6 +144,16 @@ import { ProjectTasksViewProvider } from './views/project-tasks.provider'
         ProjectTaskGraphController
     ],
     providers: [
+        ProjectTaskDecisionService,
+        ProjectTaskDispatchRecoveryService,
+        ProjectRuntimeObservationHandler,
+        ProjectTaskCardProvider,
+        ProjectTasksMiddleware,
+        ProjectTaskRuntimeContextService,
+        ProjectTaskDispatchService,
+        ProjectTaskRuntimeReadService,
+        ...ProjectTaskRuntimeHandlers,
+        ProjectResourceCardService,
         ConversationProjectService,
         ProjectTypeProviderRegistry,
         ProjectTaskProviderRegistry,
@@ -159,6 +183,7 @@ import { ProjectTasksViewProvider } from './views/project-tasks.provider'
         ...CommandHandlers
     ],
     exports: [
+        ProjectResourceCardService,
         XpertProjectService,
         XpertProjectAccessModule,
         XpertProjectContentService,

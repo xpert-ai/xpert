@@ -1,0 +1,35 @@
+groups:
+  - name: xpert-model-execution
+    rules:
+      - alert: XpertExecutionSettlementStalled
+        expr: xpert_model_execution_pending{kind="oldest_seconds"} > 900
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: An unsettled model execution call is over 15 minutes old
+          runbook: docs/operations/model-execution-runbook.md
+      - alert: XpertExecutionSettlementBacklog
+        expr: xpert_model_execution_pending{kind="attempts"} > 20
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: Model execution reconciliation backlog exceeds 20 calls
+          runbook: docs/operations/model-execution-runbook.md
+      - alert: XpertExecutionDeliveryFailures
+        expr: increase(xpert_model_execution_events_total{event="delivery_retry"}[10m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Model execution ledger delivery repeatedly failed
+          runbook: docs/operations/model-execution-runbook.md
+      - alert: XpertInvocationContinuationStalled
+        expr: xpert_agent_invocation_wait{kind="oldest_error_seconds"} > 600
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: Historical task continuation needs attention
+          runbook: docs/operations/model-execution-runbook.md

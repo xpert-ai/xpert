@@ -4,6 +4,7 @@ import type {
   ProjectTaskGraph,
   ProjectTaskGraphChange,
   ProjectTaskExecutionTarget,
+  ProjectTaskTypeDefinition,
   TXpertProjectTaskStatus
 } from '@xpert-ai/contracts'
 import { BaseStrategyRegistry } from '../strategy'
@@ -20,7 +21,11 @@ export interface ProjectTaskProjection {
   key: string
   title: string
   status: TXpertProjectTaskStatus
+  /** Completion percentage (0–100), independent of status. Omit to preserve; null clears it. */
+  progress?: number | null
   kind: 'task' | 'summary' | 'milestone'
+  /** Registered business type; omitted values preserve legacy persisted types. Null explicitly clears it. */
+  taskType?: string | null
   parentKey?: string
   predecessorKeys: string[]
   diagnostic?: string
@@ -49,11 +54,15 @@ export interface ProjectTaskSnapshot {
 
 export interface IProjectTaskProvider {
   readonly key: string
+  /** Presentation declarations belong to this provider and never contain executable icon code. */
+  readonly taskTypes?: readonly ProjectTaskTypeDefinition[]
   /** Return null when the project is not owned by this provider. Always scope domain reads. */
   snapshot(context: ProjectTaskContext): Promise<ProjectTaskSnapshot | null>
   /** Called after projection commits; retries must be idempotent. Never start work here. */
   linked?(context: ProjectTaskContext, links: Array<{ sourceKey: string; taskId: string }>): Promise<void>
 }
+
+export type { ProjectTaskIconName, ProjectTaskTypeDefinition, ProjectTaskTypePresentation } from '@xpert-ai/contracts'
 
 export const PROJECT_TASK_PROVIDER = 'PROJECT_TASK_PROVIDER'
 export const ProjectTaskProvider = (key: string) =>

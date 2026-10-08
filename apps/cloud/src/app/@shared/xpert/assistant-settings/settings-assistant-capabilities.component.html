@@ -1,0 +1,110 @@
+<section class="space-y-5" [attr.aria-busy]="loading() || applying()">
+  @if (page() === 'capabilities') {
+    <p class="text-base leading-6 text-text-secondary">
+      {{ (editor.draftOnly ? 'XP.XpertSettings.DraftSaveHint' : 'XP.XpertSettings.Capabilities.Hint') | translate }}
+    </p>
+  }
+  @if (loading()) {
+    <p role="status" class="flex items-center gap-2 text-text-secondary">
+      <i class="ri-loader-4-line animate-spin" aria-hidden="true"></i
+      >{{ 'XP.XpertSettings.Capabilities.Loading' | translate }}
+    </p>
+  }
+  @if (configuration(); as state) {
+    @if (page() === 'speech') {
+      @if (voiceOption(); as option) {
+        <xp-settings-realtime-voice
+          [option]="option"
+          [enabled]="!!voiceEnabled()"
+          [selection]="voice()"
+          [models]="state.setup.realtimeModels ?? []"
+          [disabled]="loading() || applying()"
+          (enabledChange)="toggle(voiceCapabilityKey, $event)"
+          (selectionChange)="voice.set($event)"
+        />
+      }
+    } @else {
+      <div class="divide-y divide-divider-regular">
+        @for (option of state.options; track option.key) {
+          <div class="py-4 first:pt-0">
+            <div class="flex items-start justify-between gap-5">
+              <div class="min-w-0 space-y-2">
+                <h3 class="text-base font-semibold" [id]="'capability-' + option.key">{{ option.label }}</h3>
+                <p class="text-sm leading-5 text-text-secondary">{{ option.description }}</p>
+                @if (option.required) {
+                  <p class="text-sm text-text-tertiary">
+                    {{ 'XP.XpertSettings.Capabilities.ManagedInStudio' | translate }}
+                  </p>
+                }
+                @if (!option.available) {
+                  <p class="text-sm text-text-warning">
+                    {{ option.reason || ('XP.XpertSettings.Capabilities.Unavailable' | translate) }}
+                  </p>
+                }
+              </div>
+              @if (option.key === voiceCapabilityKey) {
+                <button type="button" z-button zType="outline" (click)="editor.select('speech')">
+                  {{ 'XP.XpertSettings.RealtimeVoice.Configure' | translate }}
+                </button>
+              } @else {
+                <z-switch
+                  class="mt-1 shrink-0"
+                  [ngModel]="option.required || selected().includes(option.key)"
+                  [disabled]="
+                    loading() ||
+                    applying() ||
+                    option.required ||
+                    (!option.available && !selected().includes(option.key) && option.key !== sandboxCapabilityKey)
+                  "
+                  (ngModelChange)="toggle(option.key, $event)"
+                  ><span class="sr-only">{{ option.label }}</span></z-switch
+                >
+              }
+            </div>
+            @if (option.key === sandboxCapabilityKey && (option.required || selected().includes(option.key))) {
+              <xp-settings-capabilities class="mt-4 block" page="sandbox" [sandboxProvider]="provider" />
+            }
+          </div>
+        } @empty {
+          <p class="py-6 text-center text-text-tertiary">{{ 'XP.XpertSettings.Capabilities.Empty' | translate }}</p>
+        }
+      </div>
+    }
+    @if (state.modelAvailable === false) {
+      <div class="flex flex-wrap items-center justify-between gap-3 border-t border-divider-regular pt-4">
+        <p class="min-w-0 flex-1 text-sm text-text-warning">
+          {{ 'XP.XpertSettings.Capabilities.ModelRequired' | translate }}
+        </p>
+        <button type="button" z-button zType="outline" (click)="editor.select('models')">
+          {{ 'XP.XpertSettings.Capabilities.ConfigureModel' | translate }}
+        </button>
+      </div>
+    }
+  }
+  @if (applying()) {
+    <p role="status" class="flex items-center gap-2 text-text-secondary">
+      <i class="ri-loader-4-line animate-spin" aria-hidden="true"></i
+      >{{ 'XP.XpertSettings.Capabilities.Applying' | translate }}
+    </p>
+  }
+  @if (error()) {
+    <div class="flex items-center justify-between gap-3">
+      <p role="alert" class="min-w-0 break-words text-sm text-text-destructive">{{ error() }}</p>
+      @if (!configuration()) {
+        <button type="button" z-button zType="outline" [zDisabled]="loading() || applying()" (click)="load()">
+          {{ 'XP.ACTIONS.Retry' | translate }}
+        </button>
+      }
+    </div>
+  }
+  @if (dirty()) {
+    <div class="flex justify-end">
+      <button type="button" z-button zType="outline" [zDisabled]="loading() || applying()" (click)="reset()">
+        {{ 'XP.Common.Reset' | translate }}
+      </button>
+    </div>
+  }
+  @if (page() === 'capabilities') {
+    <xp-settings-capabilities class="block" page="limits" />
+  }
+</section>

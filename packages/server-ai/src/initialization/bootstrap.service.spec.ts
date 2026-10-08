@@ -1,3 +1,4 @@
+import { ResolveTemplateSkillRefsCommand } from '../xpert-template/commands'
 jest.mock('../environment', () => ({
     EnvironmentService: class EnvironmentService {}
 }))
@@ -231,6 +232,11 @@ describe('ServerAIBootstrapService', () => {
             validateName: jest.fn().mockResolvedValue(true),
             publish: jest.fn()
         }
+        const resolveSkillRefs = jest.fn().mockResolvedValue([])
+        commandBus.execute.mockImplementation((command: unknown) => {
+            if (command instanceof ResolveTemplateSkillRefsCommand) return resolveSkillRefs(command.refs)
+            return undefined
+        })
         const xpertTemplateService = {
             getTemplateDetail: jest.fn().mockResolvedValue({
                 id: 'xpert-my-claw-xpert',
@@ -243,8 +249,7 @@ describe('ServerAIBootstrapService', () => {
             readSkillRepositories: jest.fn().mockResolvedValue(defaultRepositories),
             getTemplateSkillBundles: jest.fn().mockResolvedValue([]),
             getBootstrapDefaultSkillRefs: jest.fn().mockResolvedValue([]),
-            getUserDefaultSkillRefs: jest.fn().mockResolvedValue([]),
-            resolveSkillRefs: jest.fn().mockResolvedValue([])
+            getUserDefaultSkillRefs: jest.fn().mockResolvedValue([])
         }
         const templateSkillSyncService = {
             syncCurrentTenantSkillAssets: jest.fn().mockResolvedValue({
@@ -336,7 +341,8 @@ describe('ServerAIBootstrapService', () => {
             userService,
             workspaceService,
             xpertService,
-            xpertTemplateService
+            xpertTemplateService,
+            resolveSkillRefs
         }
     }
 
@@ -1045,7 +1051,7 @@ connections: []`
     })
 
     it('installs resolved default workspace skills and retries when some refs are not ready yet', async () => {
-        const { service, skillPackageService, userService, xpertTemplateService } = createService()
+        const { service, skillPackageService, userService, xpertTemplateService, resolveSkillRefs } = createService()
         userService.findOne.mockResolvedValue({
             id: 'member-1',
             preferredLanguage: 'en_US',
@@ -1077,7 +1083,7 @@ connections: []`
                 skillId: 'mcporter'
             }
         ])
-        xpertTemplateService.resolveSkillRefs.mockResolvedValue([
+        resolveSkillRefs.mockResolvedValue([
             {
                 ref: {
                     provider: 'github',
@@ -1105,7 +1111,7 @@ connections: []`
     })
 
     it('installs all resolved default workspace skills when references are ready', async () => {
-        const { service, skillPackageService, userService, xpertTemplateService } = createService()
+        const { service, skillPackageService, userService, xpertTemplateService, resolveSkillRefs } = createService()
         userService.findOne.mockResolvedValue({
             id: 'member-1',
             preferredLanguage: 'en_US',
@@ -1120,7 +1126,7 @@ connections: []`
                 skillId: 'skills/claude-api'
             }
         ])
-        xpertTemplateService.resolveSkillRefs.mockResolvedValue([
+        resolveSkillRefs.mockResolvedValue([
             {
                 ref: {
                     provider: 'github',
@@ -1146,7 +1152,7 @@ connections: []`
     })
 
     it('includes install failure reasons in the aggregated bootstrap error', async () => {
-        const { service, skillPackageService, userService, xpertTemplateService } = createService()
+        const { service, skillPackageService, userService, xpertTemplateService, resolveSkillRefs } = createService()
         userService.findOne.mockResolvedValue({
             id: 'member-1',
             preferredLanguage: 'en_US',
@@ -1161,7 +1167,7 @@ connections: []`
                 skillId: 'skills/claude-api'
             }
         ])
-        xpertTemplateService.resolveSkillRefs.mockResolvedValue([
+        resolveSkillRefs.mockResolvedValue([
             {
                 ref: {
                     provider: 'github',

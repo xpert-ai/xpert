@@ -1,3 +1,4 @@
+import { parseMcpAppRefresh } from '../mcp-app-runtime/mcp-app-refresh'
 import { createHash } from 'node:crypto'
 import type {
     JSONValue,
@@ -43,7 +44,13 @@ export function assertValidMcpCapabilityDescriptor(descriptor: McpCapabilityDesc
     if (descriptor.descriptorVersion !== MCP_CAPABILITY_DESCRIPTOR_VERSION) invalid('descriptor version is invalid')
     if (!MCP_CAPABILITY_TYPES.includes(descriptor.capabilityType)) invalid('capability type is invalid')
     assertIdentifier(descriptor.capabilityKey, 'capability key')
-    assertOptionalText(descriptor.title, 'title', MAX_CAPABILITY_TITLE_LENGTH)
+    if (typeof descriptor.title === 'object' && descriptor.capabilityType === 'app') {
+        if (!descriptor.title?.en_US) invalid('localized app title requires en_US')
+        for (const title of Object.values(descriptor.title))
+            assertOptionalText(title, 'title', MAX_CAPABILITY_TITLE_LENGTH)
+    } else {
+        assertOptionalText(descriptor.title, 'title', MAX_CAPABILITY_TITLE_LENGTH)
+    }
     assertOptionalText(descriptor.description, 'description', MAX_CAPABILITY_DESCRIPTION_LENGTH)
     assertOptionalText(descriptor.providerInstructions, 'provider instructions', MAX_PROVIDER_INSTRUCTIONS_LENGTH)
     assertStringArray(descriptor.requiredContext, MCP_REQUIRED_CONTEXTS, 'required context')
@@ -93,6 +100,7 @@ export function assertValidMcpCapabilityDescriptor(descriptor: McpCapabilityDesc
         case 'app':
             if (!descriptor.visibility.includes('app')) invalid('app visibility must include app')
             assertAppEntry(descriptor)
+            if (descriptor.refresh && !parseMcpAppRefresh(descriptor.refresh)) invalid('app refresh is invalid')
             assertCspDomains(descriptor.csp?.connectDomains, 'connect')
             assertCspDomains(descriptor.csp?.resourceDomains, 'resource')
             break
@@ -110,7 +118,7 @@ function assertIdentifier(value: string, label: string) {
     }
 }
 
-function assertOptionalText(value: string | undefined, label: string, maxLength: number) {
+function assertOptionalText(value: unknown, label: string, maxLength: number) {
     if (value !== undefined && (typeof value !== 'string' || value.length > maxLength || containsNullOrDelete(value))) {
         invalid(`${label} is invalid`)
     }
@@ -474,7 +482,8 @@ function semanticDescriptor(descriptor: McpCapabilityDescriptor): JSONValue {
     if (descriptor.source.serverName) source.serverName = descriptor.source.serverName
     if (descriptor.source.remoteName) source.remoteName = descriptor.source.remoteName
     if (Object.keys(source).length) value.source = source
-    if (descriptor.title !== undefined) value.title = descriptor.title
+    if (descriptor.title !== undefined)
+        value.title = typeof descriptor.title === 'string' ? descriptor.title : { ...descriptor.title }
     if (descriptor.description !== undefined) value.description = descriptor.description
     if (descriptor.providerInstructions !== undefined) value.providerInstructions = descriptor.providerInstructions
 
@@ -508,6 +517,7 @@ function semanticDescriptor(descriptor: McpCapabilityDescriptor): JSONValue {
             break
         case 'app':
             value.entry = descriptor.entry
+            if (descriptor.refresh) value.refresh = { ...descriptor.refresh }
             if (descriptor.csp) value.csp = appCsp(descriptor)
             if (descriptor.permissions) value.permissions = appPermissions(descriptor)
             break

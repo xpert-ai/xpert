@@ -80,6 +80,31 @@ describe('ClawXpertWorkbenchViewUrlState', () => {
     })
   })
 
+  it('persists a View Project without replacing the conversation route and restores it on history navigation', async () => {
+    router.url = '/chat/x/bid/p/chat-project/c/thread-1?mode=focus#details'
+    const state = TestBed.inject(ClawXpertWorkbenchViewUrlState)
+    await state.setViewState(
+      'platform.project-tasks__timeline',
+      { selectionId: 'task-2' },
+      { projectId: 'view-project' }
+    )
+    expect(router.url).toContain('/chat/x/bid/p/chat-project/c/thread-1?')
+    expect(state.projectId()).toBe('view-project')
+    expect(router.parseUrl(router.url).queryParams['viewProject']).toBe('view-project')
+    const openedUrl = router.url
+    router.url = '/chat/x/bid/p/chat-project/c/thread-1'
+    navigationEvents.next(new NavigationEnd(2, router.url, router.url))
+    expect(state.projectId()).toBeNull()
+    router.url = openedUrl
+    navigationEvents.next(new NavigationEnd(3, router.url, router.url))
+    expect(state.projectId()).toBe('view-project')
+    expect(state.viewQuery()).toEqual({ selectionId: 'task-2' })
+    await state.setViewKey('bid.studio')
+    expect(state.projectId()).toBeNull()
+    expect(router.parseUrl(router.url).queryParams['viewProject']).toBeUndefined()
+    expect(router.url).toContain('/chat/x/bid/p/chat-project/c/thread-1?')
+  })
+
   it('updates the view query parameter while preserving the route, other parameters, and fragment', async () => {
     const state = TestBed.inject(ClawXpertWorkbenchViewUrlState)
 

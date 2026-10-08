@@ -4,8 +4,10 @@ import { Embeddings } from '@langchain/core/embeddings'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { AIGCModelClient, AsyncAIGCModelClient, IRerank } from './types'
 import { AIModel } from './ai-model'
+import type { NativeModelClientFactory } from './native-model'
 
 export interface IAIModelProviderStrategy {
+  getNativeModelClient?: NativeModelClientFactory
   /**
    * Provider metadata
    */

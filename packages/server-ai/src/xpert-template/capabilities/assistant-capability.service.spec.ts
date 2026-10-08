@@ -1,15 +1,17 @@
-jest.mock('@xpert-ai/server-core', () => ({
+import { RealtimeModelCatalog } from './realtime-voice.capability'
+jest.mock('@xpert-ai/plugin-sdk', () => ({
+    ...jest.requireActual('@xpert-ai/plugin-sdk'),
     RequestContext: {
         currentTenantId: jest.fn(() => 'tenant'),
         getOrganizationId: jest.fn(() => 'organization'),
-        getLanguageCode: () => 'en-US'
+        getLanguageCode: jest.fn(() => 'en-US')
     }
 }))
 
 import { AiModelTypeEnum, LanguagesEnum, ModelFeature, TXpertTemplate } from '@xpert-ai/contracts'
 import { AssistantCapabilityProviderRegistry, IAssistantCapabilityProvider } from '@xpert-ai/plugin-sdk'
 import { QueryBus } from '@nestjs/cqrs'
-import { RequestContext } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { AssistantCapabilityService } from './assistant-capability.service'
 import {
     capabilityTemplateId,
@@ -35,7 +37,8 @@ describe('Assistant capabilities (OSS)', () => {
     const query = { execute: jest.fn() }
     const service = new AssistantCapabilityService(
         registry as unknown as AssistantCapabilityProviderRegistry,
-        query as unknown as QueryBus
+        query as unknown as QueryBus,
+        new RealtimeModelCatalog(query as unknown as QueryBus)
     )
     const createProvider = (key: string, features: ModelFeature[] = []): IAssistantCapabilityProvider => ({
         key,
@@ -52,17 +55,23 @@ describe('Assistant capabilities (OSS)', () => {
         providers.splice(0)
         jest.clearAllMocks()
         jest.mocked(RequestContext.getOrganizationId).mockReturnValue('organization')
+        jest.mocked(RequestContext.getLanguageCode).mockReturnValue(LanguagesEnum.English)
         query.execute.mockResolvedValue([
             {
                 id: 'authorized',
+                name: 'Organization connection',
                 credentials: 'do-not-expose',
                 providerWithModels: {
+                    provider: 'sample-provider',
+                    label: { en_US: 'Sample provider' },
                     models: [
                         { model: 'text', features: [ModelFeature.TOOL_CALL] },
                         {
                             model: model.model,
                             features: [ModelFeature.VISION, ModelFeature.MULTI_TOOL_CALL],
-                            label: 'Capable'
+                            label: 'Capable',
+                            model_properties: { context_size: '128000', privateValue: 'do-not-expose' },
+                            modelConfig: { apiKey: 'do-not-expose' }
                         }
                     ]
                 }
@@ -120,8 +129,94 @@ describe('Assistant capabilities (OSS)', () => {
         )
         const result = await service.setup(template, language, ['documents', 'automation'])
         expect(new Set(result.requiredModelFeatures)).toEqual(new Set([ModelFeature.VISION, ModelFeature.TOOL_CALL]))
-        expect(result.models).toEqual([{ id: 'authorized/capable', label: 'Capable', copilotModel: model }])
+        expect(result.models).toEqual([
+            {
+                id: 'authorized/capable',
+                label: 'Capable',
+                copilotModel: model,
+                provider: { id: 'sample-provider', label: 'Sample provider' },
+                connectionName: 'Organization connection',
+                features: [ModelFeature.VISION, ModelFeature.MULTI_TOOL_CALL],
+                contextWindow: 128000
+            }
+        ])
         expect(JSON.stringify(result)).not.toContain('do-not-expose')
+    })
+    it('keeps text models without computer requirements and omits unavailable display metadata', async () => {
+        const result = await service.setup({ ...template, requiresModelSelection: true }, language)
+        expect(result.models.map((item) => item.copilotModel.model)).toEqual(['text', 'capable'])
+        expect(result.models[0].features).toEqual([ModelFeature.TOOL_CALL])
+        expect(result.models[0].contextWindow).toBeUndefined()
+    })
+    it('localizes provider labels and keeps same-name models in distinct connections selectable', async () => {
+        jest.mocked(RequestContext.getLanguageCode).mockReturnValue(LanguagesEnum.SimplifiedChinese)
+        query.execute.mockResolvedValue([
+            ...['first-connection', 'second-connection'].map((id) => ({
+                id,
+                name: id,
+                providerWithModels: {
+                    provider: 'shared-provider',
+                    label: { en_US: 'Shared provider', zh_Hans: '共同供应商' },
+                    models: [{ model: 'family/model name', label: { en_US: 'Model', zh_Hans: '模型' } }]
+                }
+            })),
+            {
+                id: 'other-connection',
+                providerWithModels: { provider: 'other-provider', models: [{ model: 'family/model name' }] }
+            }
+        ])
+        const { models } = await service.setup({ ...template, requiresModelSelection: true }, language)
+        expect(models.map((item) => item.id)).toEqual([
+            'first-connection/family%2Fmodel%20name',
+            'second-connection/family%2Fmodel%20name',
+            'other-connection/family%2Fmodel%20name'
+        ])
+        expect(models[0]).toMatchObject({
+            label: '模型',
+            provider: { id: 'shared-provider', label: '共同供应商' },
+            connectionName: 'first-connection',
+            features: [],
+            copilotModel: { copilotId: 'first-connection', model: 'family/model name', modelType: AiModelTypeEnum.LLM }
+        })
+        expect(models[1].provider).toEqual(models[0].provider)
+        expect(models[2]).toMatchObject({
+            label: 'family/model name',
+            provider: { id: 'other-provider', label: 'other-provider' }
+        })
+    })
+    it.each([
+        [128000, 128000],
+        [' 32768 ', 32768],
+        [4096.9, 4096],
+        [undefined, undefined],
+        ['', undefined],
+        [' ', undefined],
+        ['128K', undefined],
+        [0, undefined],
+        [-1, undefined],
+        [NaN, undefined],
+        [Infinity, undefined],
+        [true, undefined]
+    ])('normalizes context capacity %p without exposing model configuration', async (value, expected) => {
+        query.execute.mockResolvedValue([
+            {
+                id: 'connection',
+                name: 'Connection',
+                providerWithModels: {
+                    models: [
+                        {
+                            model: 'plain',
+                            model_properties: { context_size: value, private: 'hidden' },
+                            modelConfig: { apiKey: 'hidden' }
+                        }
+                    ]
+                }
+            }
+        ])
+        const { models } = await service.setup({ ...template, requiresModelSelection: true }, language)
+        expect(models[0].contextWindow).toBe(expected)
+        expect(models[0].provider).toEqual({ id: 'connection', label: 'Connection' })
+        expect(JSON.stringify(models)).not.toContain('hidden')
     })
     it('fails closed for required/selected uninstalled providers, but omits unavailable optional offerings', async () => {
         expect(
@@ -203,5 +298,81 @@ describe('Assistant capabilities (OSS)', () => {
                     Buffer.from(JSON.stringify({ templateId: id, capabilities: ['b'] })).toString('base64url')
             )
         ).toThrow()
+    })
+})
+
+describe('realtime voice capability configuration', () => {
+    const queries = { execute: jest.fn() }
+    const catalog = new RealtimeModelCatalog(queries as unknown as QueryBus)
+    const service = new AssistantCapabilityService(
+        { list: () => [] } as unknown as AssistantCapabilityProviderRegistry,
+        queries as unknown as QueryBus,
+        catalog
+    )
+    const draft = () =>
+        parseCapabilityTemplateDraft(
+            JSON.stringify({
+                team: {
+                    agent: { key: 'primary' },
+                    features: { realtimeVoice: { enabled: true } }
+                },
+                nodes: [{ key: 'primary', type: 'agent', entity: {} }],
+                connections: []
+            })
+        )
+    beforeEach(() =>
+        queries.execute.mockResolvedValue([
+            {
+                id: 'authorized',
+                credentials: 'secret',
+                providerWithModels: {
+                    provider: 'test',
+                    label: 'Test',
+                    models: [
+                        {
+                            model: 'voice',
+                            model_type: AiModelTypeEnum.REALTIME,
+                            realtime: {
+                                voices: [{ id: 'speaker', label: 'Speaker' }],
+                                defaultVoice: 'speaker',
+                                notification: 'next-turn'
+                            }
+                        }
+                    ]
+                }
+            }
+        ])
+    )
+    it('resolves model and voice from the authorized catalog without exposing credentials', async () => {
+        const value = draft()
+        await service.configureRealtimeVoice(value, { modelId: 'authorized/voice', voice: 'speaker' })
+        expect(value.team.features.realtimeVoice).toEqual({
+            enabled: true,
+            voice: 'speaker',
+            copilotModel: {
+                copilotId: 'authorized',
+                model: 'voice',
+                modelType: AiModelTypeEnum.REALTIME
+            }
+        })
+        expect(JSON.stringify(await catalog.list())).not.toContain('secret')
+    })
+    it('rejects a forged voice, absent selection, or revoked model access', async () => {
+        await expect(
+            service.configureRealtimeVoice(draft(), { modelId: 'authorized/voice', voice: 'forged' })
+        ).rejects.toThrow()
+        await expect(service.configureRealtimeVoice(draft())).rejects.toThrow()
+        queries.execute.mockResolvedValueOnce([])
+        await expect(
+            service.configureRealtimeVoice(draft(), { modelId: 'authorized/voice', voice: 'speaker' })
+        ).rejects.toThrow()
+    })
+    it('rejects stale settings after the capability has been disabled', async () => {
+        const value = draft()
+        value.team.features.realtimeVoice.enabled = false
+        await expect(
+            service.configureRealtimeVoice(value, { modelId: 'authorized/voice', voice: 'speaker' })
+        ).rejects.toThrow()
+        await expect(service.configureRealtimeVoice(value)).resolves.toBeUndefined()
     })
 })

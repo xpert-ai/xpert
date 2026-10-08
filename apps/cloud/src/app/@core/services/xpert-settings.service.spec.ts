@@ -1,5 +1,6 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { TestBed } from '@angular/core/testing'
+import { signal } from '@angular/core'
 import { TranslateService } from '@ngx-translate/core'
 import { BehaviorSubject, Subject, of } from 'rxjs'
 import { AssistantBindingScope, AssistantCode, type TXpertTeamDraft } from '@xpert-ai/contracts'
@@ -18,10 +19,121 @@ import { AssistantBindingService } from './assistant-binding.service'
 import { XpertAPIService } from './xpert.service'
 import { ToastrService } from './toastr.service'
 import { XpertSettingsService } from './xpert-settings.service'
-import type { XpertSettingsDialogData } from '../../@shared/xpert/assistant-settings/xpert-settings.types'
+import type {
+  XpertSettingsDialogData,
+  XpertSettingsSource
+} from '../../@shared/xpert/assistant-settings/xpert-settings.types'
 
 describe('shared settings server-backed source', () => {
   afterEach(() => TestBed.resetTestingModule())
+  it('opens Studio settings on the live draft without providing a publication callback', async () => {
+    let data: XpertSettingsDialogData
+    let shown: () => void
+    const displayed = new Promise<void>((resolve) => {
+      shown = resolve
+    })
+    const closed = new Subject<void>()
+    const api = { getTeam: jest.fn(), publish: jest.fn() }
+    const source: XpertSettingsSource = {
+      id: 'fixture',
+      draft: signal({ team: { id: 'fixture' }, nodes: [], connections: [] }),
+      workspaceDataScope: 'shared',
+      unsaved: signal(false),
+      saving: signal(false),
+      error: signal(null),
+      update: jest.fn(),
+      save: jest.fn(async () => {})
+    }
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: Store, useValue: { organizationId: 'org', selectOrganizationId: () => of('org') } },
+        { provide: AssistantBindingService, useValue: { get: () => of(null), changes$: new Subject() } },
+        { provide: XpertAPIService, useValue: api },
+        { provide: TranslateService, useValue: { instant: (key: string) => key } },
+        { provide: ToastrService, useValue: { error: jest.fn() } },
+        {
+          provide: Dialog,
+          useValue: {
+            open: (_component, config) => {
+              data = config.data
+              shown()
+              return { closed }
+            }
+          }
+        }
+      ]
+    })
+    const opened = TestBed.inject(XpertSettingsService).open(
+      undefined,
+      'fixture',
+      undefined,
+      source,
+      undefined,
+      'draft'
+    )
+    await displayed
+    expect(data.source).toBe(source)
+    expect(data.saveMode).toBe('draft')
+    expect(data.publish).toBeUndefined()
+    expect(api.getTeam).not.toHaveBeenCalled()
+    await data.source.save()
+    expect(source.save).toHaveBeenCalledTimes(1)
+    expect(api.publish).not.toHaveBeenCalled()
+    closed.next()
+    await opened
+  })
+  it('publishes the same Assistant, preserves its environment and rebases the cleared draft', async () => {
+    let data: XpertSettingsDialogData
+    let shown: () => void
+    const displayed = new Promise<void>((resolve) => {
+      shown = resolve
+    })
+    const closed = new Subject<void>()
+    const store = { organizationId: 'org', selectOrganizationId: () => of('org') }
+    const api = {
+      getTeam: jest
+        .fn()
+        .mockReturnValueOnce(of({ id: 'fixture', title: 'Draft', environmentId: 'environment' }))
+        .mockReturnValueOnce(of({ id: 'fixture', environmentId: 'environment' }))
+        .mockReturnValue(of({ id: 'fixture', title: 'Published', draft: null, graph: { nodes: [], connections: [] } })),
+      publish: jest.fn(() => of({ id: 'fixture', draft: null })),
+      saveDraft: jest.fn((id, draft) => of(draft))
+    }
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: Store, useValue: store },
+        { provide: AssistantBindingService, useValue: { get: () => of(null), changes$: new Subject() } },
+        { provide: XpertAPIService, useValue: api },
+        { provide: TranslateService, useValue: { instant: (key) => key } },
+        { provide: ToastrService, useValue: { error: jest.fn() } },
+        {
+          provide: Dialog,
+          useValue: {
+            open: (component, config) => {
+              data = config.data
+              shown()
+              return { closed }
+            }
+          }
+        }
+      ]
+    })
+    const opened = TestBed.inject(XpertSettingsService).open(undefined, 'fixture')
+    await displayed
+    expect(data.saveMode).toBe('publish')
+    await data.source.save()
+    await data.publish()
+    expect(api.publish).toHaveBeenCalledWith('fixture', false, {
+      environmentId: 'environment',
+      releaseNotes: 'XP.XpertSettings.PublishReleaseNotes'
+    })
+    expect(data.source.draft().team.title).toBe('Published')
+    store.organizationId = 'changed'
+    await expect(data.publish()).rejects.toThrow('XP.AssistantSettings.BindingChanged')
+    expect(api.publish).toHaveBeenCalledTimes(1)
+    closed.next()
+    await opened
+  })
   it('loads from an organization stream once, serializes writes, and keeps newer edits unsaved', async () => {
     let data: XpertSettingsDialogData
     let showDialog: () => void
@@ -70,6 +182,11 @@ describe('shared settings server-backed source', () => {
     await data.source.save()
     expect(api.saveDraft.mock.calls.map(([, draft]) => draft.team.title)).toEqual(['First', 'Second'])
     expect(data.source.unsaved()).toBe(false)
+    data.source.update((draft) => ({ ...draft, team: { ...draft.team, title: 'Discard me' } }))
+    data.source.discard()
+    expect(data.source.draft().team.title).toBe('Second')
+    expect(data.source.unsaved()).toBe(false)
+    expect(api.saveDraft).toHaveBeenCalledTimes(2)
     closed.next(data.source.draft())
     closed.complete()
     expect((await opened).team.title).toBe('Second')

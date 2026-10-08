@@ -7,6 +7,7 @@ export type AssistantSettings =
       workspace: { id: string; name: string }
       prompt: string
       modelId: string
+      realtimeVoice?: import('../catalog-types').VoiceSelection
       capabilities: string[]
       preflight: TemplatePreflight
     }

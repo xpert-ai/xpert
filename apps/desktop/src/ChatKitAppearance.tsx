@@ -1,4 +1,6 @@
 import { t } from './i18n'
+import { useId } from 'react'
+import { Label, Switch } from '@xpert-ai/shadcn-ui'
 import type { AppearanceConfig, ColorMode } from './appearance-types'
 import { desktopColors } from './theme'
 import { ColorField, FontField, ThemeRange, ThemeSection, ThemeSelect, fontSizes } from './ThemeFields'
@@ -15,17 +17,36 @@ export function ChatKitAppearance({
   onMode: (mode: ColorMode) => void
   onChange: (value: AppearanceConfig) => void
 }) {
+  const bubbleId = useId()
   const config = value.chatkit
   const colors = desktopColors(value, mode)
   const update = (patch: Partial<AppearanceConfig['chatkit']>) =>
     onChange({ ...value, chatkit: { ...config, ...patch } })
   return (
-    <div className="space-y-5">
+    <div className="space-y-8">
+      <ThemeSection title={t('Message display')}>
+        <div className="flex items-center justify-between gap-6">
+          <div className="min-w-0 space-y-1">
+            <Label htmlFor={bubbleId} className="text-sm leading-5">
+              {t('Bubble mode')}
+            </Label>
+            <p id={`${bubbleId}-description`} className="text-[0.8125rem] leading-5 text-muted-foreground">
+              {t('Show AI text blocks as chat bubbles and hide tool-call steps. Turn off to use the original layout.')}
+            </p>
+          </div>
+          <Switch
+            id={bubbleId}
+            aria-describedby={`${bubbleId}-description`}
+            checked={config.messagePresentation === 'bubbles'}
+            onCheckedChange={(checked) => update({ messagePresentation: checked ? 'bubbles' : 'transcript' })}
+          />
+        </div>
+      </ThemeSection>
       <ThemeSection
         title={t('Layout & typography')}
         description={t('Synced through ChatKit theme options. Supported components depend on your ChatKit version.')}
       >
-        <div className="grid grid-cols-2 gap-5">
+        <div className="grid gap-6 xl:grid-cols-2">
           <ThemeSelect
             label={t('ChatKit corners')}
             value={config.radius}
@@ -70,7 +91,7 @@ export function ChatKitAppearance({
         title={t('Accent color')}
         description={t('Leave blank to use the desktop primary color for the current appearance mode.')}
       >
-        <div className="grid gap-5 sm:grid-cols-2">
+        <div className="grid gap-6 xl:grid-cols-2">
           <ColorField
             label={t('ChatKit accent color')}
             value={config.accentPrimary}
@@ -101,7 +122,7 @@ export function ChatKitAppearance({
           {t('Custom grayscale')}
         </label>
         {config.grayscale && (
-          <div className="grid gap-5 sm:grid-cols-3">
+          <div className="grid gap-6 xl:grid-cols-3">
             <ThemeRange
               label={t('Hue')}
               value={config.grayscale.hue}
@@ -130,7 +151,7 @@ export function ChatKitAppearance({
         description={t('Configure light and dark modes separately. Leave blank for ChatKit defaults.')}
       >
         <ThemeIconToggle label={t('Edit ChatKit palette')} value={mode} options={paletteModes} onChange={onMode} />
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-6 xl:grid-cols-2">
           {(['background', 'foreground'] as const).map((key) => (
             <ColorField
               key={key}

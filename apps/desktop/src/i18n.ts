@@ -1,9 +1,9 @@
 import { useSyncExternalStore } from 'react'
-import { normalizeLocale, translate, type MessageParams } from '../electron/i18n/index.mjs'
+import { normalizeLocale, resolveSystemLocale, translate, type MessageParams } from '../electron/i18n/index.mjs'
 export { languages, normalizeLocale } from '../electron/i18n/index.mjs'
 export type { Locale, MessageKey, MessageParams } from '../electron/i18n/index.mjs'
 
-let locale = normalizeLocale('en')
+let locale = resolveSystemLocale(typeof navigator === 'undefined' ? [] : navigator.languages)
 const listeners = new Set<() => void>()
 const subscribe = (listener: () => void) => {
   listeners.add(listener)

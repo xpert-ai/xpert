@@ -7,7 +7,14 @@
       <h1 class="truncate text-lg font-semibold" [title]="source.draft().team.title || source.draft().team.name">
         {{ source.draft().team.title || source.draft().team.name }}
       </h1>
-      <div class="mt-1 text-sm text-text-tertiary">{{ 'XP.XpertSettings.DraftIdentity' | translate }}</div>
+      <div class="mt-1 text-sm text-text-tertiary">
+        {{
+          (editor.published() && !pendingSections().length
+            ? 'XP.XpertSettings.PublishedIdentity'
+            : 'XP.XpertSettings.DraftIdentity'
+          ) | translate
+        }}
+      </div>
     </div>
   </header>
   <div class="relative">
@@ -110,7 +117,7 @@
         type="button"
         class="inline-flex size-10 shrink-0 items-center justify-center rounded-xl p-0 text-lg leading-none text-text-secondary hover:bg-hover-bg focus-visible:outline-2 focus-visible:outline-primary"
         [attr.aria-label]="'XP.ACTIONS.Close' | translate"
-        [disabled]="editor.closing() || personalization()?.saving()"
+        [disabled]="editor.closing() || editor.publishing() || editor.savingDraft() || personalization()?.saving()"
         (click)="close()"
       >
         <i class="ri-close-line" aria-hidden="true"></i>
@@ -121,6 +128,8 @@
     #content
     class="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3 sm:px-5"
     tabindex="0"
+    [attr.inert]="editor.publishing() || editor.savingDraft() || editor.composing() ? '' : null"
+    [attr.aria-busy]="editor.publishing() || editor.savingDraft() || editor.composing()"
     [attr.aria-label]="'XP.XpertSettings.Menu.' + editor.section() | translate"
   >
     @if (editor.data.binding) {
@@ -132,6 +141,12 @@
       />
     }
     <xp-settings-subagents [hidden]="editor.section() !== 'subagents'" />
+    @if (visitedSections().has('capabilities') || visitedSections().has('speech')) {
+      <xp-settings-assistant-capabilities
+        [page]="editor.section() === 'speech' ? 'speech' : 'capabilities'"
+        [hidden]="editor.section() !== 'capabilities' && editor.section() !== 'speech'"
+      />
+    }
     @if (visitedSections().has('skills')) {
       <xp-settings-middleware #skills mode="skills" [hidden]="editor.section() !== 'skills'" />
     }
@@ -171,9 +186,6 @@
       @case ('memory') {
         <xp-settings-memory />
       }
-      @case ('runtime') {
-        <xp-settings-capabilities page="runtime" />
-      }
     }
     @if (invalid()) {
       <div role="alert" class="mt-4 rounded-lg bg-status-error-bg px-3 py-2 text-base text-text-destructive">
@@ -194,9 +206,14 @@
         </div>
       </div>
     }
-    @if (source.error()) {
+    @if (source.error() || editor.saveError()) {
       <p class="mb-3 break-words text-base text-text-destructive" role="alert">
-        {{ 'XP.XpertSettings.SaveFailed' | translate }}: {{ source.error() }}
+        {{ 'XP.XpertSettings.SaveFailed' | translate }}: {{ source.error() || editor.saveError() }}
+      </p>
+    }
+    @if (editor.publishError()) {
+      <p class="mb-3 break-words text-base text-text-destructive" role="alert">
+        {{ 'XP.XpertSettings.PublishFailed' | translate }}: {{ editor.publishError() }}
       </p>
     }
     @if (editor.section() === 'personalization') {
@@ -239,10 +256,13 @@
         <div class="min-w-0 text-sm text-text-secondary" role="status" aria-live="polite">
           <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
             <span class="flex items-center gap-2">
-              @if (source.saving()) {
+              @if (editor.publishing()) {
+                <i class="ri-loader-4-line animate-spin text-lg" aria-hidden="true"></i
+                >{{ 'XP.XpertSettings.Publishing' | translate }}
+              } @else if (source.saving() || editor.savingDraft()) {
                 <i class="ri-loader-4-line animate-spin text-lg" aria-hidden="true"></i
                 >{{ 'XP.XpertSettings.Saving' | translate }}
-              } @else if (source.error()) {
+              } @else if (source.error() || editor.saveError()) {
                 <i class="ri-error-warning-line text-lg text-text-destructive" aria-hidden="true"></i
                 >{{ 'XP.XpertSettings.Unsaved' | translate }}
               } @else if (pendingSections().length) {
@@ -253,13 +273,21 @@
                 >{{ 'XP.XpertSettings.NeedsCorrection' | translate }}
               } @else if (source.unsaved()) {
                 <i class="ri-time-line text-lg" aria-hidden="true"></i>{{ 'XP.XpertSettings.PendingSave' | translate }}
+              } @else if (editor.published()) {
+                <i class="ri-checkbox-circle-fill text-lg text-text-success" aria-hidden="true"></i
+                >{{ 'XP.XpertSettings.Published' | translate }}
               } @else {
                 <i class="ri-checkbox-circle-fill text-lg text-text-success" aria-hidden="true"></i
                 >{{ 'XP.XpertSettings.Saved' | translate }}
               }
             </span>
             <span class="text-text-tertiary sm:border-l sm:border-divider-regular sm:pl-3">{{
-              'XP.XpertSettings.PublishTip' | translate
+              (editor.draftOnly
+                ? 'XP.XpertSettings.DraftSaveHint'
+                : editor.published() && !pendingSections().length
+                  ? 'XP.XpertSettings.PublishedTip'
+                  : 'XP.XpertSettings.PublishTip'
+              ) | translate
             }}</span>
           </div>
         </div>
@@ -268,10 +296,19 @@
           z-button
           zType="outline"
           class="shrink-0"
-          [zDisabled]="source.saving() || editor.closing()"
-          (click)="saveCurrent()"
+          [zDisabled]="editor.publishing() || editor.savingDraft() || editor.composing() || editor.closing()"
+          (click)="saveChanges()"
         >
-          {{ (source.error() ? 'XP.ACTIONS.Retry' : 'XP.XpertSettings.SaveNow') | translate }}
+          {{
+            (editor.draftOnly
+              ? editor.savingDraft()
+                ? 'XP.XpertSettings.Saving'
+                : 'XP.AssistantSettings.SaveDraft'
+              : editor.publishing()
+                ? 'XP.XpertSettings.Publishing'
+                : 'XP.XpertSettings.SaveAndPublish'
+            ) | translate
+          }}
         </button>
       </div>
     }

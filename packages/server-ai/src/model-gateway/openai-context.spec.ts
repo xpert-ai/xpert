@@ -456,6 +456,19 @@ describe('OpenAI gateway authenticated model context', () => {
 
     it('streams HTTP SSE with usage and settles exactly once in the publication context', async () => {
         const fixture = await createFixture()
+        // Plugins can carry their own LangChain copy; use the message contract across that boundary.
+        fixture.model.stream.mockImplementationOnce(async function* () {
+            const original = new AIMessageChunk({
+                content: 'Hello',
+                usage_metadata: { input_tokens: 20, output_tokens: 5, total_tokens: 25 }
+            })
+            const message = Object.assign({}, original, {
+                _getType: () => 'ai' as const,
+                concat: original.concat.bind(original)
+            })
+            expect(message).not.toBeInstanceOf(AIMessageChunk)
+            yield message
+        })
         const http = await startHttpFixture(fixture)
         try {
             const response = await http.chat({ stream: true, stream_options: { include_usage: true } })
@@ -464,6 +477,7 @@ describe('OpenAI gateway authenticated model context', () => {
             const body = await response.text()
             expect(body).toContain('"content":"Hello"')
             expect(body).toContain('"usage":')
+            expect(body).toContain('"total_tokens":25')
             expect(body).toMatch(/data: \[DONE\]\n\n$/)
             expect(fixture.service.finishCall).toHaveBeenCalledTimes(1)
             expect(fixture.scopes).toContainEqual({ stage: 'settle', ...fixture.expected() })

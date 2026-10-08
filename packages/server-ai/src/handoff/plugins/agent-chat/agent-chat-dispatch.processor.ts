@@ -420,6 +420,7 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
 
         const headers: Record<string, string> = {
             ['tenant-id']: message.tenantId,
+            ['x-scope-level']: organizationId ? RequestScopeLevel.ORGANIZATION : RequestScopeLevel.TENANT,
             ...(organizationId ? { ['organization-id']: organizationId } : {}),
             ...(language ? { language } : {})
         }

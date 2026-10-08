@@ -1,5 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { ViewExtensionProviderRegistry } from '@xpert-ai/plugin-sdk'
+import { decodeMultipartFileName } from '@xpert-ai/server-common'
 import {
 	resolveI18nText,
 	type RuntimeResourceView,
@@ -16,7 +17,7 @@ import {
 	SecretTokenBindingType
 } from '@xpert-ai/contracts'
 import { RequestContext } from '../core/context'
-import { readProviderViewManifests } from './workbench-manifest'
+import { normalizeWorkbenchSlot, readProviderViewManifests } from './workbench-manifest'
 import { ViewHostDefinitionRegistry } from './host-definition.registry'
 import { ViewExtensionFileActionFile, ViewHostResolutionOptions } from './host-definition.interface'
 import { ViewExtensionPermissionService } from './view-extension.permission.service'
@@ -42,6 +43,7 @@ export class ViewExtensionService {
 	) {}
 
 	async listSlotViews(hostType: string, hostId: string, slot: string, options?: ViewHostResolutionOptions) {
+		slot = normalizeWorkbenchSlot(hostType, slot)
 		const context = await this.resolveHostContext(hostType, hostId, options)
 		this.ensureSlotExists(context, slot)
 
@@ -270,12 +272,24 @@ export class ViewExtensionService {
 		}
 
 		const hostDefinition = this.hostDefinitionRegistry.get(hostType)
+		// Multer decodes multipart filename bytes as Latin-1. Normalize before either
+		// the host or provider derives storage names, titles or document metadata.
+		const uploadedFile = {
+			...file,
+			originalname: file.originalname === undefined ? undefined : decodeMultipartFileName(file.originalname)
+		}
 		const preparedRequest = hostDefinition?.prepareFileAction
-			? await Promise.resolve(hostDefinition.prepareFileAction(context, request, file))
+			? await Promise.resolve(hostDefinition.prepareFileAction(context, request, uploadedFile))
 			: request
 
 		const result = await Promise.resolve(
-			resolved.provider.executeViewFileAction(context, resolved.manifestKey, actionKey, preparedRequest, file)
+			resolved.provider.executeViewFileAction(
+				context,
+				resolved.manifestKey,
+				actionKey,
+				preparedRequest,
+				uploadedFile
+			)
 		)
 
 		if (result.refresh) {

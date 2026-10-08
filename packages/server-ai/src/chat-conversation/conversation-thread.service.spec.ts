@@ -1,5 +1,5 @@
 import { ConflictException } from '@nestjs/common'
-import { DataSource, Repository } from 'typeorm'
+import { DataSource, EntityManager, Repository } from 'typeorm'
 import { ChatMessage } from '../chat-message/chat-message.entity'
 import { CopilotCheckpoint } from '../copilot-checkpoint/copilot-checkpoint.entity'
 import { CopilotCheckpointWrites } from '../copilot-checkpoint/writes/writes.entity'
@@ -27,6 +27,105 @@ describe('ChatConversationThreadService', () => {
             dataSource as DataSource
         )
     }
+
+    it('includes call receipts in display history without adding them to model ancestry', async () => {
+        const call = { id: 'call-1', createdAt: new Date('2026-10-05T01:01:17Z') }
+        const query = {
+            select: jest.fn().mockReturnThis(),
+            where: jest.fn().mockReturnThis(),
+            andWhere: jest.fn().mockReturnThis(),
+            orderBy: jest.fn().mockReturnThis(),
+            addOrderBy: jest.fn().mockReturnThis(),
+            getMany: jest.fn().mockResolvedValue([call])
+        }
+        const service = createService({
+            messageRepository: {
+                createQueryBuilder: jest.fn().mockReturnValue(query),
+                find: jest.fn().mockResolvedValue([call])
+            }
+        })
+        jest.spyOn(service, 'requireByThreadId').mockResolvedValue({
+            threadId: 'thread-1',
+            conversationId: 'conversation-1',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            headMessageId: null
+        } as ChatConversationThread)
+        expect(await service.findVisibleMessages('thread-1')).toEqual({ items: [], total: 0 })
+        expect(query.getMany).not.toHaveBeenCalled()
+        expect(await service.findVisibleMessages('thread-1', { includeCallEvents: true })).toEqual({
+            items: [call],
+            total: 1
+        })
+        expect(query.where).toHaveBeenCalledWith(
+            expect.stringContaining('createdInThreadId'),
+            expect.objectContaining({ conversationId: 'conversation-1', threadId: 'thread-1' })
+        )
+        expect(query.andWhere).toHaveBeenCalledWith(
+            expect.stringContaining('tenantId'),
+            expect.objectContaining({ tenantId: 'tenant-1', organizationId: 'org-1' })
+        )
+    })
+
+    it.each([
+        { messageEnvelope: { version: 1, source: { type: 'voice', sessionId: 'session' }, presentation: 'runtime' } },
+        {
+            messageEnvelope: {
+                version: 1,
+                source: { type: 'agent', xpertId: 'sender', agentKey: 'worker' },
+                presentation: 'runtime'
+            }
+        }
+    ])('hides runtime inputs before pagination but retains them for retry: %j', async (envelopeFields) => {
+        const internal = Object.assign(new ChatMessage(), {
+            id: 'internal',
+            role: 'human',
+            content: 'Internal delegation envelope',
+            ...envelopeFields
+        })
+        const answer = Object.assign(new ChatMessage(), { id: 'answer', role: 'ai', parentId: internal.id })
+        const find = jest.fn().mockResolvedValue([answer])
+        const service = createService({
+            messageRepository: {
+                findOne: jest.fn().mockResolvedValue(answer),
+                find,
+                manager: {
+                    getTreeRepository: () => ({ findAncestors: async () => [internal, answer] })
+                } as unknown as Repository<ChatMessage>['manager']
+            }
+        })
+        jest.spyOn(service, 'requireByThreadId').mockResolvedValue(
+            Object.assign(new ChatConversationThread(), {
+                threadId: 'thread',
+                conversationId: 'conversation',
+                headMessageId: answer.id
+            })
+        )
+        expect(await service.findVisibleMessages('thread', { take: 1 })).toEqual({ items: [answer], total: 1 })
+        expect(find.mock.calls[0][0].where.id).toEqual(expect.objectContaining({ _value: ['answer'] }))
+        find.mockResolvedValue([internal, answer])
+        await service.hydrateConversationMessages(
+            Object.assign(new ChatConversation(), { id: 'conversation' }),
+            'thread'
+        )
+        expect(find.mock.calls[2][0].where.id).toEqual(expect.objectContaining({ _value: ['internal', 'answer'] }))
+    })
+
+    it.each(['pausing', 'paused'])('blocks automatic or user run admission while %s', async (status) => {
+        const thread = { id: 'row', threadId: 'thread', status } as ChatConversationThread
+        const save = jest.fn()
+        const manager = { getRepository: () => ({ findOne: async () => thread }), save }
+        const service = createService({
+            dataSource: {
+                transaction: async (work: (entityManager: EntityManager) => Promise<unknown>) =>
+                    work(manager as unknown as EntityManager)
+            } as DataSource
+        })
+        jest.spyOn(service, 'requireByThreadId').mockResolvedValue(thread)
+        await expect(service.claimForRun('thread')).rejects.toBeInstanceOf(ConflictException)
+        expect(save).not.toHaveBeenCalled()
+        expect(thread.status).toBe(status)
+    })
 
     it('creates a primary thread at the latest legacy message and attaches its conversation', async () => {
         const conversation = {
@@ -117,6 +216,37 @@ describe('ChatConversationThreadService', () => {
         expect(threadRepository.findOne).toHaveBeenCalledWith(
             expect.objectContaining({ lock: { mode: 'pessimistic_write' } })
         )
+    })
+
+    it('returns the existing side chat on a retry even when the source has started another run', async () => {
+        const source = Object.assign(new ChatConversationThread(), {
+            id: 'source',
+            threadId: 'root',
+            conversationId: 'conversation',
+            status: 'busy',
+            conversation: { id: 'conversation' }
+        })
+        const existing = Object.assign(new ChatConversationThread(), {
+            threadId: 'side',
+            forkedFromMessageId: 'head',
+            metadata: { purpose: 'side-chat', forkRequestId: 'retry' }
+        })
+        const lookup = {
+            where: jest.fn().mockReturnThis(),
+            andWhere: jest.fn().mockReturnThis(),
+            getOne: jest.fn().mockResolvedValue(existing)
+        }
+        const repository = {
+            findOne: jest.fn().mockResolvedValue(source),
+            createQueryBuilder: jest.fn().mockReturnValue(lookup)
+        }
+        const manager = { getRepository: jest.fn().mockReturnValue(repository) }
+        const service = createService({
+            dataSource: { transaction: jest.fn(async (work) => work(manager)) } as unknown as Partial<DataSource>
+        })
+        jest.spyOn(service, 'requireByThreadId').mockResolvedValue(source)
+        expect(await service.copyThread('root', { requestId: 'retry' })).toBe(existing)
+        expect(source.status).toBe('busy')
     })
 
     it('forks at the source head and copies checkpoint, writes, and goal state', async () => {

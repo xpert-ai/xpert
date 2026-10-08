@@ -1,0 +1,260 @@
+import { AiModelTypeEnum, UserType } from '@xpert-ai/contracts'
+import { Test } from '@nestjs/testing'
+import { getRepositoryToken } from '@nestjs/typeorm'
+import { ResolveUserOrganizationAccessCommand } from '@xpert-ai/server-core'
+import { CommandBus } from '@nestjs/cqrs'
+import { ChatConversation } from '../chat-conversation/conversation.entity'
+import { Copilot } from '../copilot/copilot.entity'
+import { ModelAccessService } from '../model-access/model-access.service'
+import { XpertAgentExecution } from '../xpert-agent-execution/agent-execution.entity'
+import { AssistantUserPreference } from '../xpert/assistant-user-preference.entity'
+import { PublishedXpertAccessService } from '../xpert/published-xpert-access.service'
+import { getAssistantModelId } from '../xpert/assistant-model-selection.util'
+import { ModelExecutionNativeProviderService } from './execution-native-provider.service'
+import { AssistantExecutionPolicyService } from './assistant-execution-policy.service'
+import { executionError } from './execution-errors'
+
+describe('execution actor scope', () => {
+    it('uses shared organization access and preserves the execution denial error', async () => {
+        const actor = { tenantId: 'tenant', organizationId: 'org', userId: 'user' }
+        const user = { id: 'user', type: UserType.USER }
+        const commandBus = { execute: jest.fn().mockResolvedValue(user) }
+        const conversations = { findOne: jest.fn() }
+        const service = new AssistantExecutionPolicyService(
+            conversations as never,
+            commandBus as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never
+        )
+        await expect(service.user(actor)).resolves.toBe(user)
+        expect(commandBus.execute).toHaveBeenCalledWith(new ResolveUserOrganizationAccessCommand(actor))
+        commandBus.execute.mockResolvedValueOnce(null)
+        await expect(service.resolve(actor, 'conversation')).rejects.toThrow(executionError('Denied'))
+        expect(conversations.findOne).not.toHaveBeenCalled()
+    })
+
+    it('accepts an accessible tenant Assistant without confusing its scope with the runtime organization', async () => {
+        const assistant = { id: 'assistant', tenantId: 'tenant', organizationId: null }
+        const published = { getAccessiblePublishedXpert: jest.fn().mockResolvedValue(assistant) }
+        const service = new AssistantExecutionPolicyService(
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            published as never,
+            {} as never
+        )
+        const actor = { tenantId: 'tenant', organizationId: 'runtime-org', userId: 'user' }
+        await expect(service.assistant(actor, 'assistant')).resolves.toBe(assistant)
+        published.getAccessiblePublishedXpert.mockRejectedValueOnce(new Error('not accessible'))
+        await expect(service.assistant(actor, 'assistant')).rejects.toThrow('not accessible')
+        published.getAccessiblePublishedXpert.mockResolvedValueOnce({ ...assistant, organizationId: 'other-org' })
+        await expect(service.assistant(actor, 'assistant')).rejects.toThrow()
+        published.getAccessiblePublishedXpert.mockResolvedValueOnce({ ...assistant, tenantId: 'other-tenant' })
+        await expect(service.assistant(actor, 'assistant')).rejects.toThrow()
+    })
+    it.each([undefined, null, '', '   '])(
+        'rejects a missing conversation (%s) before issuing any database query',
+        async (id) => {
+            const conversations = { findOne: jest.fn() }
+            const commandBus = { execute: jest.fn() }
+            const service = new AssistantExecutionPolicyService(
+                conversations as never,
+                commandBus as never,
+                {} as never,
+                {} as never,
+                {} as never,
+                {} as never,
+                {} as never,
+                {} as never
+            )
+            await expect(
+                service.resolve({ tenantId: 'tenant', organizationId: 'org', userId: 'user' }, id)
+            ).rejects.toThrow()
+            expect(conversations.findOne).not.toHaveBeenCalled()
+            expect(commandBus.execute).not.toHaveBeenCalled()
+        }
+    )
+    it('pins the credential organization independently of the runtime and Copilot organizations', async () => {
+        const assistant = {
+            id: 'assistant',
+            tenantId: 'tenant',
+            organizationId: 'runtime-org',
+            copilotModel: { copilotId: 'copilot', model: 'coding', modelType: AiModelTypeEnum.LLM }
+        }
+        const service = new AssistantExecutionPolicyService(
+            { findOne: jest.fn(async () => ({ xpert: assistant, threadId: 'thread' })) } as never,
+            { execute: jest.fn(async () => ({ type: UserType.USER })) } as never,
+            {
+                findOneBy: jest.fn(async () => ({
+                    id: 'copilot',
+                    enabled: true,
+                    organizationId: 'copilot-org',
+                    modelProvider: { id: 'provider', organizationId: 'credential-org' }
+                }))
+            } as never,
+            { findOneBy: jest.fn(async () => null) } as never,
+            { findOne: jest.fn(async () => null) } as never,
+            {
+                canUseCatalogModels: jest.fn(async () => [true]),
+                getCatalogModelLabels: jest.fn(async () => [{ provider: 'fixture', capabilities: [] }])
+            } as never,
+            { getAccessiblePublishedXpert: jest.fn(async () => assistant) } as never,
+            { metadata: jest.fn(async () => ({ protocols: [], contextWindow: 1000000 })) } as never
+        )
+        const result = await service.resolve(
+            { tenantId: 'tenant', organizationId: 'runtime-org', userId: 'payer' },
+            'conversation'
+        )
+        expect(result.models[0]).toEqual(
+            expect.objectContaining({
+                providerScopeId: 'provider',
+                providerOrganizationId: 'credential-org',
+                contextWindow: 1000000
+            })
+        )
+    })
+})
+
+describe('execution model selection stays within its conversation', () => {
+    const actor = { tenantId: 'tenant', organizationId: 'org', userId: 'user' }
+    const primary = { copilotId: 'copilot', model: 'primary', modelType: AiModelTypeEnum.LLM as const }
+    const alternative = { ...primary, model: 'alternative' }
+    const assistant = {
+        id: 'assistant',
+        tenantId: actor.tenantId,
+        organizationId: actor.organizationId,
+        copilotModel: primary,
+        options: { modelSelection: { allowedModels: [alternative] } }
+    }
+
+    async function setup(threadId: string | null | undefined, hasPreference = false) {
+        const executions = {
+            findOne: jest.fn().mockResolvedValue({
+                metadata: { primaryModelId: getAssistantModelId(alternative) }
+            })
+        }
+        const module = await Test.createTestingModule({
+            providers: [
+                AssistantExecutionPolicyService,
+                {
+                    provide: getRepositoryToken(ChatConversation),
+                    useValue: {
+                        findOne: jest.fn().mockResolvedValue({ xpert: assistant, threadId })
+                    }
+                },
+                {
+                    provide: CommandBus,
+                    useValue: {
+                        execute: jest.fn().mockResolvedValue({ type: UserType.USER })
+                    }
+                },
+                {
+                    provide: getRepositoryToken(Copilot),
+                    useValue: {
+                        findOneBy: jest.fn().mockResolvedValue({
+                            id: 'copilot',
+                            enabled: true,
+                            modelProvider: { id: 'provider', organizationId: actor.organizationId }
+                        })
+                    }
+                },
+                {
+                    provide: getRepositoryToken(AssistantUserPreference),
+                    useValue: {
+                        findOneBy: jest.fn().mockResolvedValue(
+                            hasPreference
+                                ? {
+                                      preferences: {
+                                          modelSelection: { selectedModelId: getAssistantModelId(alternative) }
+                                      }
+                                  }
+                                : null
+                        )
+                    }
+                },
+                { provide: getRepositoryToken(XpertAgentExecution), useValue: executions },
+                {
+                    provide: ModelAccessService,
+                    useValue: {
+                        canUseCatalogModels: jest.fn().mockResolvedValue([true, true]),
+                        getCatalogModelLabels: jest.fn().mockResolvedValue([
+                            { provider: 'fixture', capabilities: [] },
+                            { provider: 'fixture', capabilities: [] }
+                        ])
+                    }
+                },
+                {
+                    provide: PublishedXpertAccessService,
+                    useValue: {
+                        getAccessiblePublishedXpert: jest.fn().mockResolvedValue(assistant)
+                    }
+                },
+                {
+                    provide: ModelExecutionNativeProviderService,
+                    useValue: {
+                        metadata: jest.fn().mockResolvedValue({ protocols: [], contextWindow: 1000000 })
+                    }
+                }
+            ]
+        }).compile()
+        return { service: module.get(AssistantExecutionPolicyService), executions, module }
+    }
+
+    it('resolves the binding-selected Assistant for a project-only conversation and rejects another workspace', async () => {
+        const f = await setup('thread', true)
+        f.module
+            .get(getRepositoryToken(ChatConversation))
+            .findOne.mockResolvedValue({ projectId: 'project', threadId: 'thread' })
+        f.module.get(PublishedXpertAccessService).getAccessiblePublishedXpert = jest
+            .fn()
+            .mockResolvedValue({ ...assistant, workspaceId: 'workspace' })
+        const result = await f.service.resolve(actor, 'conversation', true, true, {
+            id: assistant.id,
+            workspaceId: 'workspace'
+        })
+        expect(result.assistant.id).toBe(assistant.id)
+        expect(result.defaultModelId).toBe(getAssistantModelId(primary))
+        expect(f.executions.findOne).not.toHaveBeenCalled()
+        await expect(
+            f.service.resolve(actor, 'conversation', true, true, { id: assistant.id, workspaceId: 'other' })
+        ).rejects.toThrow()
+    })
+
+    it.each([undefined, null, '', '   '])('does not query other executions for missing thread %s', async (threadId) => {
+        const test = await setup(threadId)
+        const result = await test.service.resolve(actor, 'conversation')
+        expect(test.executions.findOne).not.toHaveBeenCalled()
+        expect(result.defaultModelId).toBe(getAssistantModelId(primary))
+    })
+
+    it('uses the user preference when the conversation has no execution thread', async () => {
+        const test = await setup(null, true)
+        const result = await test.service.resolve(actor, 'conversation')
+        expect(test.executions.findOne).not.toHaveBeenCalled()
+        expect(result.defaultModelId).toBe(getAssistantModelId(alternative))
+    })
+
+    it('uses the selected model from the current thread when it exists', async () => {
+        const test = await setup('current-thread')
+        const result = await test.service.resolve(actor, 'conversation')
+        expect(test.executions.findOne).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: expect.objectContaining({
+                    tenantId: actor.tenantId,
+                    organizationId: actor.organizationId,
+                    createdById: actor.userId,
+                    threadId: 'current-thread',
+                    xpertId: assistant.id
+                })
+            })
+        )
+        expect(result.defaultModelId).toBe(getAssistantModelId(alternative))
+    })
+})

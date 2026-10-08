@@ -7,14 +7,15 @@ import {
     TAgentMiddlewareMeta
 } from '@xpert-ai/contracts'
 import { omit } from '@xpert-ai/server-common'
-import { Injectable } from '@nestjs/common'
+import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import {
     AgentMiddleware,
     AgentMiddlewareStrategy,
     IAgentMiddlewareContext,
     IAgentMiddlewareStrategy,
-    PromiseOrValue
+    PromiseOrValue,
+    emitResourceCard
 } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
 import { z } from 'zod/v3'
@@ -48,7 +49,9 @@ type ScheduleMiddlewareConfig = Record<string, never>
 @Injectable()
 @AgentMiddlewareStrategy(SCHEDULER_MIDDLEWARE_PROVIDER)
 export class SchedulerAgentMiddleware implements IAgentMiddlewareStrategy<ScheduleMiddlewareConfig> {
+    private readonly logger = new Logger(SchedulerAgentMiddleware.name)
     readonly meta: TAgentMiddlewareMeta = {
+        features: ['scheduler'],
         name: SCHEDULER_MIDDLEWARE_PROVIDER,
         label: {
             en_US: 'Scheduler',
@@ -60,7 +63,7 @@ export class SchedulerAgentMiddleware implements IAgentMiddlewareStrategy<Schedu
         },
         icon: {
             type: 'svg',
-            value: ScheduleTaskIcon,
+            value: ScheduleTaskIcon
         },
         configSchema: {
             type: 'object',
@@ -76,11 +79,7 @@ export class SchedulerAgentMiddleware implements IAgentMiddlewareStrategy<Schedu
     ): PromiseOrValue<AgentMiddleware> {
         return {
             name: SCHEDULER_MIDDLEWARE_PROVIDER,
-            tools: [
-                this.createSchedulerTool(context),
-                this.listSchedulerTool(context),
-                this.deleteSchedulerTool()
-            ]
+            tools: [this.createSchedulerTool(context), this.listSchedulerTool(context), this.deleteSchedulerTool()]
         }
     }
 
@@ -98,25 +97,30 @@ export class SchedulerAgentMiddleware implements IAgentMiddlewareStrategy<Schedu
                 const task = await this.commandBus.execute(
                     new CreateXpertTaskCommand({
                         ...parameters,
-                        xpertId: context.xpertId ?? parameters.xpertId
+                        xpertId: context.xpertId ?? parameters.xpertId,
+                        projectId: context.projectId
                     })
                 )
 
-                await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
-                    id: getToolCallIdFromConfig(config),
-                    category: 'Computer',
-                    type: ChatMessageStepCategory.WebSearch,
-                    toolset: SCHEDULER_MIDDLEWARE_PROVIDER,
-                    title: t('server-ai:Tools.Task.ScheduledTask'),
-                    data: [
-                        {
-                            title: task.name,
-                            content: task.prompt,
-                            url: `/chat/tasks/${task.id}`
-                        }
-                    ]
-                }).catch((err) => {
-                    console.error(err)
+                await emitResourceCard(
+                    {
+                        resource: { namespace: 'platform', type: 'scheduled-task', id: task.id },
+                        title: task.name,
+                        description: [
+                            task.scheduleDescription,
+                            task.timeZone || 'UTC',
+                            task.status ? t(`server-ai:ResourceCard.Status.${task.status}`) : null
+                        ]
+                            .filter(Boolean)
+                            .join(' · '),
+                        icon: { type: 'svg', value: ScheduleTaskIcon },
+                        open: { target: 'workbench.view', viewKey: 'platform.scheduler__detail', selectionId: task.id }
+                    },
+                    config
+                ).catch((error: Error) => {
+                    this.logger.warn(
+                        `Scheduled task ${task.id} was created but its resource card could not be emitted: ${error.message}`
+                    )
                 })
 
                 return 'Scheduler creation completed!'

@@ -22,6 +22,7 @@ import { SettingsConversationComponent } from './settings-conversation.component
 import { SettingsWorkbenchComponent } from './settings-workbench.component'
 import { SettingsMemoryComponent } from './settings-memory.component'
 import { SettingsCapabilitiesComponent } from './settings-capabilities.component'
+import { SettingsAssistantCapabilitiesComponent } from './settings-assistant-capabilities.component'
 import { AssistantPersonalizationComponent } from '../../../features/setting/assistant/assistant-personalization.component'
 import { AssistantTriggersComponent } from '../../../features/setting/assistant/assistant-triggers.component'
 import { XpertSettingsContextService } from '../../../@core/services/xpert-settings-context.service'
@@ -47,6 +48,7 @@ import { SettingsMiddlewareComponent } from './settings-middleware.component'
     SettingsWorkbenchComponent,
     SettingsMemoryComponent,
     SettingsCapabilitiesComponent,
+    SettingsAssistantCapabilitiesComponent,
     AssistantPersonalizationComponent,
     AssistantTriggersComponent,
     SettingsStatisticsComponent,
@@ -78,12 +80,14 @@ export class XpertSettingsDialogComponent {
   readonly query = signal('')
   readonly personalization = viewChild(AssistantPersonalizationComponent)
   readonly subagents = viewChild(SettingsSubagentsComponent)
+  readonly capabilities = viewChild(SettingsAssistantCapabilitiesComponent)
   readonly skills = viewChild<SettingsMiddlewareComponent>('skills')
   readonly middleware = viewChild<SettingsMiddlewareComponent>('middleware')
   readonly visitedSections = signal(new Set<XpertSettingsSection>([this.editor.section()]))
   readonly pendingSections = computed<XpertSettingsSection[]>(() => [
     ...(this.personalization()?.dirty ? ['personalization' as const] : []),
     ...(this.subagents()?.dirty() ? ['subagents' as const] : []),
+    ...(this.capabilities()?.dirty() ? [this.capabilities().pendingSection()] : []),
     ...(this.skills()?.dirty() ? ['skills' as const] : []),
     ...(this.middleware()?.dirty() ? ['middleware' as const] : [])
   ])
@@ -131,7 +135,7 @@ export class XpertSettingsDialogComponent {
     return this.filteredSections().filter((section) => section.group === group)
   }
   select(section: XpertSettingsSection) {
-    this.visitedSections.update((visited) => new Set([...visited, section]))
+    this.visitedSections.update((visited) => new Set([...visited, section === 'runtime' ? 'capabilities' : section]))
     this.editor.select(section)
     this.content()?.nativeElement.scrollTo({ top: 0 })
   }
@@ -140,29 +144,64 @@ export class XpertSettingsDialogComponent {
     if (section) this.select(section.key)
   }
   async saveCurrent() {
+    if (this.editor.publishing() || this.editor.savingDraft() || this.editor.composing()) return
+    if (this.editor.draftOnly && !['personalization', 'statistics'].includes(this.editor.section())) {
+      await this.saveChanges()
+      return
+    }
     if (this.editor.section() === 'personalization') await this.personalization()?.save()
+    else if (this.editor.section() === 'capabilities' || this.editor.section() === 'speech')
+      await this.capabilities()?.save()
     else if (this.editor.section() === 'subagents') await this.subagents()?.save()
     else if (this.editor.section() === 'skills') await this.skills()?.save()
     else if (this.editor.section() === 'middleware') await this.middleware()?.save()
     else if (this.editor.section() !== 'statistics') await this.editor.saveNow()
+  }
+  async saveChanges() {
+    const prepare = async () => {
+      for (const [section, component] of [
+        ['subagents', this.subagents()],
+        ['skills', this.skills()],
+        ['middleware', this.middleware()]
+      ] as const) {
+        if (component?.dirty() && !(await component.save())) {
+          this.select(section)
+          return false
+        }
+      }
+      const capabilities = this.capabilities()
+      if (capabilities && !(await (this.editor.draftOnly ? capabilities.save() : capabilities.preparePublish()))) {
+        this.select(this.capabilities().pendingSection())
+        return false
+      }
+      return true
+    }
+    if (this.editor.draftOnly) await this.editor.saveDraft(prepare)
+    else await this.editor.saveAndPublish(prepare)
   }
   continueEditing() {
     this.editor.confirmDiscard.set(false)
     this.select(this.editor.invalidSections()[0] ?? this.pendingSections()[0] ?? this.editor.section())
   }
   async close(discardInvalid = false) {
-    if (this.editor.closing() || this.personalization()?.saving()) return
-    if ((this.editor.invalidSections().length || this.pendingSections().length) && !discardInvalid) {
+    if (
+      this.editor.closing() ||
+      this.source.saving() ||
+      this.editor.publishing() ||
+      this.editor.savingDraft() ||
+      this.editor.composing() ||
+      this.personalization()?.saving()
+    )
+      return
+    if (
+      (this.source.unsaved() || this.editor.invalidSections().length || this.pendingSections().length) &&
+      !discardInvalid
+    ) {
       this.editor.confirmDiscard.set(true)
       return
     }
     this.editor.closing.set(true)
-    do {
-      if (!(await this.editor.save())) {
-        this.editor.closing.set(false)
-        return
-      }
-    } while (this.source.unsaved())
+    if (discardInvalid) this.source.discard?.()
     this.ref.close(this.source.draft())
   }
 }

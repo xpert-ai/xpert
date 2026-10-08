@@ -30,6 +30,7 @@ Call `open(viewContainerRef, xpertId, section, source)` with an `XpertSettingsSo
 The adapter exposes the current draft signal, immutable runtime data scope, `saving`, `unsaved`, and `error` signals, plus:
 
 - `update(change)` applies the immutable callback to the latest draft and marks it unsaved.
+- `discard()` restores the last explicitly saved snapshot without any request. Active draft adapters should preserve edits that predate opening the dialog.
 - `save()` persists the latest snapshot, rejects on failure, and updates the status signals. Serialize writes with the editor's other saves. Do not clear unsaved state if the current draft differs from the saved snapshot.
 
 The adapter contract is independent of Studio. Optional `reload()` refreshes an unmodified draft; it must preserve local edits and use the same organization context.
@@ -49,14 +50,14 @@ For manual `Dialog.open`, import `XpertSettingsDialogComponent` and provide `Xpe
 | Memory & context   | Features                          | summary, profile/Q&A memory, memory replies; link to existing memory management                            |
 | External experts   | Agent canvas external Xpert nodes | Search and assign a published workspace expert to an agent; inspect or remove assignment                   |
 | Sub-agents         | Agent canvas internal Agent nodes | Add/edit title, description, prompt, model, parent, independent context and always-available setting       |
-| Runtime & sandbox  | Agent Settings + Features         | concurrency, recursion limit, sandbox provider                                                             |
+| Capabilities       | Agent Settings + Features         | optional capabilities, concurrency, recursion limit and sandbox provider                                   |
 | Personalization    | Old Assistant settings dialog     | SOUL.md behavior and USER.md profile for the current user's matching binding                               |
 | Assistant settings | Old Assistant settings dialog     | trigger providers, configuration, connection state and integration creation                                |
 | Usage statistics   | Old Workspace settings overview   | companion days when bound, conversation/task counts and 12 calendar weeks of current-user message activity |
 
 Only valid, edited fields are merged into the current draft. Unknown configuration, node overrides, graph geometry, connections, and untouched defaults are preserved. A legacy primary node model matching the inherited team model is cleared only when the primary model changes, following existing Basic Info behavior.
 
-Valid draft field changes auto-save after 600 ms. Invalid edits stay in the form across category changes and are identified in navigation. Personalization uses explicit Save/Reset and the binding preference API, never the Assistant draft API; its unsaved form stays mounted across category changes. Sub-agent forms also use explicit Save/Reset and stay mounted across category changes. Closing protects invalid draft inputs, unapplied sub-agent edits and unsaved personal documents. Failed saves keep the dialog open with a retry action. Ctrl/Cmd+S saves the current editable category.
+Valid draft field changes remain local until an explicit Save or Save and publish action. Opening a page, toggling a capability, selecting a sandbox provider, switching categories and closing never persist a draft. Invalid edits stay in the form across category changes and are identified in navigation. Personalization uses explicit Save/Reset and the binding preference API, never the Assistant draft API; its unsaved form stays mounted across category changes. Sub-agent forms also use explicit Save/Reset and stay mounted across category changes. Closing protects all unsaved draft inputs, unapplied capability/sub-agent edits and unsaved personal documents. Discard restores the last explicitly saved draft without a server request. Failed saves keep the dialog open with a retry action. Ctrl/Cmd+S saves the current editable category.
 
 The optional `ASSISTANT_SETTINGS_CONTEXT` adapter lets the existing personalization/trigger components use the same active dialog draft without depending on the ClawXpert page facade. Trigger configuration preserves unrelated graph/form changes. QR connections retain their existing immediate activation semantics; other trigger changes require publication. Statistics are read-only, with loading/error/retry states.
 
@@ -84,7 +85,7 @@ The four layout previews live in `assets/images/assistant-settings/`. All text u
 
 Spacing remains scoped to this dialog, including overrides for reused personalization and trigger components. Existing interfaces retain their own presentation. List item corners use `rounded-[var(--assistant-settings-item-radius)]`, so both radius values can be tuned in one place without following the app's root font size.
 
-Sandbox provider and default Workbench view use Zard Select, including the empty/default choices and unavailable saved values. The default view choice still stores `null`; clearing the sandbox provider still stores an empty string and retains the enabled-sandbox validation.
+Sandbox provider and default Workbench view use Zard Select, including the empty/default choices and unavailable saved values. The default view choice still stores `null`; clearing the sandbox provider requests the platform default when the capability is composed on explicit save. The frontend shows the provider selector only when the `sandbox-tools` capability is enabled. Runtime limits remain on the Capabilities page, and legacy `runtime` links resolve to it.
 
 Select radius overrides must apply to both the `z-select` host (focus ring) and its direct button (border), using `--assistant-settings-item-radius` for both. Overriding only the button leaves the focus ring at Zard's default `rounded-md` radius.
 
@@ -109,3 +110,14 @@ Both menus default to the primary agent and allow selecting another visible agen
 New assignments create middleware workflow nodes and agent-to-workflow connections, preserving execution order in the agent node and primary team metadata. Only one skills middleware is permitted per agent. Removing a shared middleware detaches the selected agent without deleting another agent's configuration; editing a shared node shows which other agents are affected. Existing provider options and tool configuration survive editing.
 
 The panels load on first use, remain mounted across menu changes, and require explicit saving. Pending forms participate in the dialog's close guard and Ctrl/Cmd+S handling. API failures retain the draft for retry. These menus never publish automatically.
+
+## Assistant capabilities
+
+The **Capabilities** page uses the same registered capability providers as Desktop creation and editing. Labels, descriptions, runtime availability and model requirements come from the server. Capabilities already present in a Studio-authored workflow are shown as required and read-only; optional capabilities can be enabled or removed.
+
+- `GET /xpert/:id/configuration/capabilities` inspects the authorized Assistant draft. The optional `capabilities` query preflights a candidate selection without composing or saving it.
+- `POST /xpert/:id/configuration/capabilities/preview` accepts a revision, capability keys and an optional sandbox provider, validates current model/runtime requirements and composes a draft without persisting or publishing. It checks the revision again after asynchronous provider work.
+- Only an explicit save persists other edited fields and requests a capability preview. Provider changes stay separate from the managed overlay until the server removes the previous contribution and composes the new selection/provider together. The dialog rejects responses after local edits or destruction, applies the result through the shared draft queue and rebases runtime form values. No intermediate sandbox provider is written into an old capability ownership record.
+- Failed selections remain pending across settings pages and block Save and publish. Correct the model/runtime settings and retry, or reset the pending selection. Successful capability edits are revalidated before explicit publication.
+- Managed contributions and removals use `AssistantCapabilityState`; unrelated graph nodes, connections, prompts and model options are preserved. A Studio edit to a managed contribution raises a conflict instead of being overwritten. An explicit empty state prevents legacy template migration from restoring capabilities that were disabled.
+- Desktop's existing configuration save endpoint retains its save-and-publish behavior. The dialog uses its own existing publication and ChatKit refresh flow.

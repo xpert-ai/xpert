@@ -12,7 +12,7 @@
   --xui-color-accent: color-mix(in srgb, var(--primary) 14%, var(--background));
   --xui-color-accent-foreground: #92400e;
   --xui-color-ring: #c76f08;
-  --xui-radius-md: 0.75rem;
+  --xui-radius-lg: 0.75rem;
 }
 :root.dark {
   --xui-color-accent-foreground: #ffc46b;

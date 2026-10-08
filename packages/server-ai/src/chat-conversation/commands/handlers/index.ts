@@ -9,8 +9,11 @@ import { ScheduleSummaryJobHandler } from './schedule-summary.handler'
 import { ConvFileUpsertHandler } from './upsert-file.handler'
 import { ChatConversationUpsertHandler } from './upsert.handler'
 import { CancelConversationHandler } from './cancel-conversation.handler'
+import { ReadConversationArtifactHandler } from './read-conversation-artifact.handler'
+import { CancelExternalAssistantHandler } from './cancel-external-assistant.handler'
 
 export const CommandHandlers = [
+    CancelExternalAssistantHandler,
     ChatConversationUpsertHandler,
     ChatConversationBindXpertHandler,
     ChatConversationBindProjectHandler,
@@ -21,5 +24,6 @@ export const CommandHandlers = [
     ConvFileUpsertHandler,
     ConvFileDeleteHandler,
     ListConvFilesHandler,
-    CancelConversationHandler
+    CancelConversationHandler,
+    ReadConversationArtifactHandler
 ]

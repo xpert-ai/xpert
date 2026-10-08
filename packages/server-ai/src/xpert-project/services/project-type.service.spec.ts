@@ -111,6 +111,34 @@ describe('application Project types', () => {
         provider.createForConversation = jest.fn(async () => ({ ...desired, viewKey: 'cases', xpertId: 'other' }))
         await expect(service.forConversation(ref, xpert, input)).rejects.toThrow()
     })
+    it('accepts a platform Project receipt and rejects a business id used as its target', async () => {
+        const { service, provider } = fixture()
+        const input = {
+            projectId: 'platform-project',
+            conversationId: 'conversation',
+            workspaceId: 'workspace',
+            name: 'Bid',
+            transaction: { save: async <T extends object>(entity: T): Promise<T> => entity }
+        }
+        const card = {
+            resource: { namespace: 'platform', type: 'project', id: input.projectId },
+            title: 'Bid',
+            open: {
+                target: 'assistant.project' as const,
+                projectId: input.projectId,
+                viewKey: 'platform.project-tasks__timeline'
+            }
+        }
+        provider.createForConversation = jest.fn(async () => ({ ...desired, viewKey: 'cases', resourceCards: [card] }))
+        await expect(service.forConversation(ref, xpert, input)).resolves.toMatchObject({ resourceCards: [card] })
+        provider.createForConversation = jest.fn(async () => ({
+            ...desired,
+            viewKey: 'cases',
+            resourceCards: [{ ...card, open: { ...card.open, projectId: 'business-id' } }]
+        }))
+        await expect(service.forConversation(ref, xpert, input)).rejects.toThrow()
+    })
+
     it('propagates provider failures to roll back first-send creation', async () => {
         const { service, provider } = fixture()
         provider.createForConversation = jest.fn(async () => {

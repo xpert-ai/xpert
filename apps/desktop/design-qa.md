@@ -1,5 +1,7 @@
 # Assistant profile QA — 2026-09-27
 
+Additional feature QA: [Usage & points — 2026-10-03](docs/usage-design-qa.md), final result: passed.
+
 final result: passed
 
 ## Visual truth and evidence

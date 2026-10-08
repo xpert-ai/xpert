@@ -2,6 +2,8 @@ import { createHash } from 'node:crypto'
 import {
     AssistantConfiguration,
     AssistantConfigurationInput,
+    AssistantCapabilityConfiguration,
+    AssistantCapabilityDraftInput,
     LanguagesEnum,
     TXpertTeamDraft
 } from '@xpert-ai/contracts'
@@ -14,7 +16,7 @@ import {
     UnprocessableEntityException,
     forwardRef
 } from '@nestjs/common'
-import { RequestContext } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
 import { XpertService } from '../xpert.service'
 import { XpertWorkspaceAccessService } from '../../xpert-workspace'
@@ -23,6 +25,7 @@ import { AssistantCapabilityService } from '../../xpert-template/capabilities/as
 import { parseCapabilityTemplateDraft } from '../../xpert-template/capabilities/template-draft'
 import {
     primaryAgent,
+    recordCapabilityState,
     removeCapabilityState,
     updateAssistantPrompt
 } from '../../xpert-template/capabilities/capability-state'
@@ -71,12 +74,13 @@ export class AssistantConfigurationService {
             }
         }
         const selected = draft.team.options?.assistantCapabilities?.selected ?? []
+        const realtimeVoice = draft.team.features?.realtimeVoice
         const base = removeCapabilityState(draft)
-        return { xpert, workspace, revision, base, selected }
+        return { xpert, workspace, revision, base, selected, realtimeVoice }
     }
 
     async get(id: string, language: LanguagesEnum, selection?: string[]): Promise<AssistantConfiguration> {
-        const { xpert, workspace, revision, base, selected } = await this.load(id, language)
+        const { xpert, workspace, revision, base, selected, realtimeVoice } = await this.load(id, language)
         const capabilities = selection ?? selected
         const template = this.capabilities.configurationTemplate(base)
         const composed = await this.capabilities.compose(template, language, capabilities, (key) =>
@@ -92,6 +96,13 @@ export class AssistantConfigurationService {
         const model = primary.copilotModel ?? base.team.copilotModel ?? xpert.copilotModel
         return {
             revision,
+            realtimeVoice:
+                realtimeVoice?.copilotModel && realtimeVoice.voice
+                    ? {
+                          modelId: `${realtimeVoice.copilotModel.copilotId}/${encodeURIComponent(realtimeVoice.copilotModel.model)}`,
+                          voice: realtimeVoice.voice
+                      }
+                    : undefined,
             workspace: { id: workspace.id, name: workspace.name },
             prompt: primary.prompt ?? '',
             capabilities,
@@ -115,6 +126,7 @@ export class AssistantConfigurationService {
         const previousModel = primaryAgent(base).entity.copilotModel ?? base.team.copilotModel ?? xpert.copilotModel
         if (previousModel?.copilotId === model?.copilotId && previousModel?.model === model?.model)
             draft.team.copilotModel.options = previousModel?.options
+        await this.capabilities.configureRealtimeVoice(draft, input.realtimeVoice)
         updateAssistantPrompt(draft, input.prompt)
         // Model/runtime checks may await external providers; check for intervening edits before writing.
         const current = await this.load(id, language)
@@ -134,5 +146,101 @@ export class AssistantConfigurationService {
             throw new UnprocessableEntityException(t('server-ai:Error.AssistantConfigurationPublishFailed'))
         }
         return { id }
+    }
+
+    async getCapabilities(
+        id: string,
+        language: LanguagesEnum,
+        selection?: string[]
+    ): Promise<AssistantCapabilityConfiguration> {
+        const { xpert, revision, base, selected, realtimeVoice } = await this.load(id, language)
+        const template = this.capabilities.configurationTemplate(base)
+        // Editing capabilities must not require replacing a model when no capability needs one.
+        template.requiresModelSelection = false
+        const providers = await this.xperts.getSandboxProviders()
+        const setup = await this.capabilities.setup(template, language, selection ?? selected, providers)
+        // The settings dialog must offer models before the user enables realtime calls.
+        setup.realtimeModels ??= await this.capabilities.realtimeModels()
+        const model = primaryAgent(base).entity.copilotModel ?? base.team.copilotModel ?? xpert.copilotModel
+        const modelId = model?.copilotId && model.model ? `${model.copilotId}/${encodeURIComponent(model.model)}` : ''
+        return {
+            revision,
+            realtimeVoice:
+                realtimeVoice?.copilotModel && realtimeVoice.voice
+                    ? {
+                          modelId: `${realtimeVoice.copilotModel.copilotId}/${encodeURIComponent(realtimeVoice.copilotModel.model)}`,
+                          voice: realtimeVoice.voice
+                      }
+                    : undefined,
+            selected: selection ?? selected,
+            options: await this.capabilities.configurationOptions(template, base, language, providers),
+            setup,
+            modelId,
+            // A failed runtime check returns before model discovery; do not misreport it as an incompatible model.
+            modelAvailable: setup.canInstall
+                ? !setup.requiresModel || setup.models.some((item) => item.id === modelId)
+                : null
+        }
+    }
+
+    /** Compose only: the dialog owns draft persistence and the explicit save-and-publish transaction. */
+    async previewCapabilities(
+        id: string,
+        language: LanguagesEnum,
+        input: AssistantCapabilityDraftInput
+    ): Promise<TXpertTeamDraft> {
+        const { revision, base, xpert, realtimeVoice } = await this.load(id, language)
+        if (revision !== input.revision) throw new ConflictException(t('server-ai:Error.AssistantConfigurationStale'))
+        // Apply a user's provider choice only after removing capability-owned sandbox settings.
+        // Mutating the recorded overlay first would make removeCapabilityState report a conflict.
+        if (input.sandboxProvider !== undefined) {
+            base.team.features = {
+                ...base.team.features,
+                sandbox: { ...base.team.features?.sandbox, provider: input.sandboxProvider || undefined }
+            }
+        }
+        const template = this.capabilities.configurationTemplate(base)
+        template.requiresModelSelection = false
+        const providers = await this.xperts.getSandboxProviders()
+        const setup = await this.capabilities.setup(template, language, input.capabilities, providers)
+        if (!setup.canInstall) throw new BadRequestException(setup.reason)
+        const model = primaryAgent(base).entity.copilotModel ?? base.team.copilotModel ?? xpert.copilotModel
+        if (
+            setup.requiresModel &&
+            !setup.models.some(
+                (item) => item.copilotModel.copilotId === model?.copilotId && item.copilotModel.model === model?.model
+            )
+        )
+            throw new BadRequestException(t('server-ai:Error.TemplateCapabilityModelRequired'))
+        const composed = await this.capabilities.compose(template, language, input.capabilities, (key) =>
+            this.templates.getTemplateDetail(key, language)
+        )
+        const draft = parseCapabilityTemplateDraft(composed.export_data)
+        // Keep an explicit empty selection so old template variants cannot re-enable removed capabilities on reload.
+        if (!draft.team.options?.assistantCapabilities) recordCapabilityState(base, draft, input.capabilities)
+        const previousVoice =
+            realtimeVoice?.copilotModel && realtimeVoice.voice
+                ? {
+                      modelId: `${realtimeVoice.copilotModel.copilotId}/${encodeURIComponent(realtimeVoice.copilotModel.model)}`,
+                      voice: realtimeVoice.voice
+                  }
+                : undefined
+        await this.capabilities.configureRealtimeVoice(
+            draft,
+            draft.team.features?.realtimeVoice?.enabled ? (input.realtimeVoice ?? previousVoice) : undefined
+        )
+        const check = await this.capabilities.setup(composed, language, input.capabilities, providers, draft)
+        if (!check.canInstall) throw new BadRequestException(check.reason)
+        if (
+            check.requiresModel &&
+            !check.models.some(
+                (item) => item.copilotModel.copilotId === model?.copilotId && item.copilotModel.model === model?.model
+            )
+        )
+            throw new BadRequestException(t('server-ai:Error.TemplateCapabilityModelRequired'))
+        const current = await this.load(id, language)
+        if (current.revision !== input.revision)
+            throw new ConflictException(t('server-ai:Error.AssistantConfigurationStale'))
+        return draft
     }
 }

@@ -13,6 +13,7 @@ import { Subscriber } from 'rxjs'
 import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/commands'
 import { XpertAgentExecutionDTO } from '../../xpert-agent-execution/dto'
 import { XpertAgentExecutionOneQuery } from '../../xpert-agent-execution/queries'
+import { ExecutionCancelledError } from '../execution/execution-cancelled.error'
 
 function createAgentMessageEvent(event: ChatMessageEventTypeEnum, data: any) {
     return {
@@ -49,7 +50,6 @@ export function wrapAgentExecution<T>(
         let subexecution = await commandBus.execute(
             new XpertAgentExecutionUpsertCommand({
                 ...execution
-                // status: XpertAgentExecutionStatusEnum.RUNNING
             })
         )
         execution.id = subexecution.id
@@ -67,9 +67,10 @@ export function wrapAgentExecution<T>(
 
             return results?.state
         } catch (err) {
-            status = isGraphInterrupt(err)
-                ? XpertAgentExecutionStatusEnum.INTERRUPTED
-                : XpertAgentExecutionStatusEnum.ERROR
+            status =
+                isGraphInterrupt(err) || err instanceof ExecutionCancelledError
+                    ? XpertAgentExecutionStatusEnum.INTERRUPTED
+                    : XpertAgentExecutionStatusEnum.ERROR
             error = isGraphInterrupt(err) ? null : getErrorMessage(err)
             if (catchError) {
                 catchError(err).catch(() => {
@@ -84,11 +85,9 @@ export function wrapAgentExecution<T>(
             // Record End time
             subexecution = await commandBus.execute(
                 new XpertAgentExecutionUpsertCommand({
-                    ...subexecution,
+                    // Persist runtime changes, not the initial row's timestamps or usage counters.
                     ...execution,
                     elapsedTime: timeEnd - timeStart,
-                    // status,
-                    // error,
                     outputs: {
                         output
                     }

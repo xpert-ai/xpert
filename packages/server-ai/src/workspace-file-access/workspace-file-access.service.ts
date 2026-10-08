@@ -23,9 +23,9 @@ import type {
     XpertViewFileAccessSessionResult,
     XpertViewRuntimeScopeInput
 } from '@xpert-ai/contracts'
-import type { WorkspacePortableFileReference } from '@xpert-ai/plugin-sdk'
+import { RequestContext, type WorkspacePortableFileReference } from '@xpert-ai/plugin-sdk'
 import { environment } from '@xpert-ai/server-config'
-import { RequestContext, ViewExtensionService } from '@xpert-ai/server-core'
+import { ViewExtensionService } from '@xpert-ai/server-core'
 import { resolveWorkspaceVolumeScope } from '../file-understanding'
 import { VOLUME_CLIENT, VolumeClient, VolumeHandle } from '../shared'
 
@@ -280,6 +280,42 @@ export class WorkspaceFileAccessService {
         }
     }
 
+    /** Native hosts authenticate explicitly when their embedded browser cannot retain file cookies. */
+    async authorizeAuthenticatedDownload(sessionId: string, grantId: string, fileName: string) {
+        const session = await this.requireAuthenticatedSession(sessionId)
+        const grant = await this.cacheManager.get<WorkspaceFileAccessGrantRecord>(this.grantKey(sessionId, grantId))
+        if (
+            !grant ||
+            grant.sessionId !== sessionId ||
+            grant.publicFileName !== fileName ||
+            grant.purpose !== 'download' ||
+            !bindingsMatch(session, grant) ||
+            hasExpired(grant.expiresAt)
+        )
+            throw new NotFoundException(errorMessage('WorkspaceFileAccessNotFound', 'Workspace file was not found.'))
+        // Recheck current View/resource access; a previously issued grant is not a new authorization.
+        const resolved = await this.viewExtensionService.resolveViewFileResource(
+            session.hostType,
+            session.hostId,
+            session.viewKey,
+            { fileKey: grant.fileKey, targetId: grant.targetId, purpose: 'download' },
+            { runtimeScope: session.runtimeScope }
+        )
+        this.assertContextMatchesSession(session, {
+            tenantId: resolved.context.tenantId,
+            organizationId: resolved.context.organizationId ?? null,
+            userId: resolved.context.userId,
+            hostType: resolved.context.hostType,
+            hostId: resolved.context.hostId,
+            viewKey: resolved.manifest.key,
+            dataScopeKey:
+                resolved.context.runtimeScope?.dataScopeKey ??
+                `${resolved.context.hostType}:${resolved.context.hostId}`,
+            runtimeScope: session.runtimeScope
+        })
+        return { session, grant }
+    }
+
     assertRequestOrigin(
         session: WorkspaceFileAccessSessionRecord,
         request: Pick<Request, 'headers'>,
@@ -325,6 +361,12 @@ export class WorkspaceFileAccessService {
 
     buildCookiePath(sessionId: string): string {
         return `/api/workspace-files/content/${sessionId}`
+    }
+
+    /** Resolve only the stored host after checking the session's tenant, organization and owner. */
+    async getAuthenticatedSessionHost(sessionId: string): Promise<{ hostType: string; hostId: string }> {
+        const session = await this.requireAuthenticatedSession(sessionId)
+        return { hostType: session.hostType, hostId: session.hostId }
     }
 
     private async requireAuthenticatedSession(sessionId: string): Promise<WorkspaceFileAccessSessionRecord> {

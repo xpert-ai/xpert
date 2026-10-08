@@ -1,12 +1,12 @@
-// Invariants: only a newly added image Changeset requests a candidate. A stable
-// image requires main to consume its pending notes with the exact version bump.
-// Shared package releases must explicitly include their consuming applications.
+// Invariants: pending application notes authorize candidates for relevant fixes.
+// Downstream sync may explicitly retain notes, but can then build candidates only.
+// Stable images require complete consumption on main with the exact version bump.
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
 import { appendFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { pathToFileURL } from 'node:url'
-import { services } from './services.mjs'
+import { affectsImage, services } from './services.mjs'
 const require = createRequire(new URL('./release-tools/package.json', import.meta.url))
 const parse = require('@changesets/parse').default
 const semver = require('semver')
@@ -17,9 +17,30 @@ const bump = (version, notes) =>
     notes.reduce((type, note) => (priorities[note.type] > priorities[type] ? note.type : type), 'patch')
   )
 
-export function releasePlan({ before, after, event, ref, cwd = process.cwd() }) {
+export function releasePlan({
+  before,
+  after,
+  event,
+  ref,
+  cwd = process.cwd(),
+  retainedChangesetPolicy = 'reject',
+  applicationNames = services.map((service) => service.name)
+}) {
   assert.ok(['push', 'pull_request'].includes(event), 'Unsupported application image release event')
-  const skip = (reason) => ({ build: false, publish: false, reason, matrix: { include: [] } })
+  assert.ok(['reject', 'candidate'].includes(retainedChangesetPolicy), 'Unsupported retained Changeset policy')
+  const selectedServices = services.filter((service) => applicationNames.includes(service.name))
+  assert.ok(
+    selectedServices.length > 0 && applicationNames.every((name) => services.some((service) => service.name === name)),
+    'Unsupported application image selection'
+  )
+  const skip = (reason) => ({
+    build: false,
+    publish: false,
+    validate: false,
+    reason,
+    matrix: { include: [] },
+    validationMatrix: { include: [] }
+  })
   if (event === 'push' && !['refs/heads/develop', 'refs/heads/main'].includes(ref)) return skip('Not a release branch')
   for (const sha of [before, after]) assert.match(sha ?? '', /^[a-f0-9]{40}$/, 'Exact commit SHAs required')
   if (/^0+$/.test(before) || /^0+$/.test(after)) return skip('No release baseline')
@@ -27,7 +48,11 @@ export function releasePlan({ before, after, event, ref, cwd = process.cwd() }) 
     execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim()
   if (event === 'pull_request') before = git('merge-base', before, after)
   else git('merge-base', '--is-ancestor', before, after)
-  const releasePaths = ['.changeset', ...new Set(services.flatMap(({ manifest, shared }) => [manifest, ...shared]))]
+  const changedFiles = git('diff', '--no-renames', '--name-only', '-z', before, after).split('\0').filter(Boolean)
+  const releasePaths = [
+    '.changeset',
+    ...new Set(selectedServices.flatMap(({ manifest, shared }) => [manifest, ...shared]))
+  ]
   const tree = (sha) => new Set(git('ls-tree', '-r', '--name-only', sha, '--', ...releasePaths).split('\n'))
   const oldTree = tree(before),
     newTree = tree(after)
@@ -55,7 +80,7 @@ export function releasePlan({ before, after, event, ref, cwd = process.cwd() }) 
   )
   const fresh = newNotes.filter((note) => added.has(note.file))
   const include = []
-  for (const service of services) {
+  for (const service of selectedServices) {
     const current = read(after, service.manifest)
     const previous = oldTree.has(service.manifest) ? read(before, service.manifest) : current
     for (const manifest of [previous, current]) {
@@ -71,29 +96,32 @@ export function releasePlan({ before, after, event, ref, cwd = process.cwd() }) 
     const requested = fresh.filter((note) => note.name === service.name)
     const versioned = current.version !== previous.version
     let baseVersion, evidence
+    let retainedForCandidate = false
     if (versioned) {
       // An indirect dependency bump alone does not authorize an image release.
       if (!pending.length) {
         assert.equal(requested.length, 0, `Land ${service.name} Changesets before consuming them`)
         continue
       }
+      const consumed = pending.filter((note) => !newTree.has(note.file))
+      retainedForCandidate = retainedChangesetPolicy === 'candidate' && consumed.length > 0 && remaining.length > 0
       assert.ok(
-        pending.every((note) => !newTree.has(note.file)),
+        retainedForCandidate || consumed.length === pending.length,
         `${service.name} must consume all pending Changesets`
       )
       assert.equal(
         current.version,
-        bump(previous.version, pending),
+        bump(previous.version, consumed),
         `${service.name} version must match its requested bump`
       )
-      baseVersion = current.version
-      evidence = pending
+      baseVersion = retainedForCandidate ? bump(current.version, remaining) : current.version
+      evidence = retainedForCandidate ? [...consumed, ...requested] : consumed
     } else {
-      if (!requested.length) continue
+      if (!requested.length && !(remaining.length && affectsImage(service, changedFiles))) continue
       baseVersion = bump(current.version, remaining)
-      evidence = requested
+      evidence = requested.length ? requested : remaining
     }
-    const stable = versioned && event === 'push' && ref === 'refs/heads/main'
+    const stable = versioned && !retainedForCandidate && event === 'push' && ref === 'refs/heads/main'
     const channel = event === 'pull_request' ? 'pr' : ref === 'refs/heads/main' ? 'main' : 'develop'
     const version = stable ? baseVersion : `${baseVersion}-candidate.${channel}.${after.slice(0, 12)}`
     include.push({
@@ -101,6 +129,7 @@ export function releasePlan({ before, after, event, ref, cwd = process.cwd() }) 
       image_name: service.image_name,
       dockerfile: service.dockerfile,
       node_options: service.node_options,
+      health_check: service.health_check,
       target: service.image_name === 'xpert-nsjail-runner' ? '' : stable ? 'production' : 'candidate',
       version,
       baseVersion,
@@ -114,7 +143,7 @@ export function releasePlan({ before, after, event, ref, cwd = process.cwd() }) 
   }
 
   const missing = new Set()
-  for (const service of services) {
+  for (const service of selectedServices) {
     for (const manifest of service.shared) {
       const current = read(after, manifest)
       const newlyDeclared = fresh.some((note) => note.name === current.name)
@@ -124,14 +153,43 @@ export function releasePlan({ before, after, event, ref, cwd = process.cwd() }) 
         oldNotes.some((note) => note.name === current.name && !newTree.has(note.file))
       if (!newlyDeclared && !consumed) continue
       const image = include.find((entry) => entry.name === service.name)
-      if (!image || (consumed && !image.versioned))
+      if (
+        !image ||
+        (newlyDeclared && !fresh.some((note) => note.name === service.name)) ||
+        (consumed && !image.versioned)
+      )
         missing.add(
           `${service.name}: ${consumed ? 'consume an application Changeset and bump its version' : 'add an application Changeset'} for ${current.name}`
         )
     }
   }
   assert.equal(missing.size, 0, `Missing application image release declarations:\n${[...missing].join('\n')}`)
-  return { build: include.length > 0, publish: event === 'push' && include.length > 0, sha: after, matrix: { include } }
+  const validation = selectedServices.flatMap((service) => {
+    const release = include.find((image) => image.name === service.name)
+    if (!release && !affectsImage(service, changedFiles)) return []
+    return [
+      {
+        ...(release ?? {
+          name: service.name,
+          image_name: service.image_name,
+          dockerfile: service.dockerfile,
+          node_options: service.node_options,
+          health_check: service.health_check,
+          target: service.image_name === 'xpert-nsjail-runner' ? '' : 'production',
+          version: read(after, service.manifest).version
+        }),
+        publish: event === 'push' && Boolean(release)
+      }
+    ]
+  })
+  return {
+    build: include.length > 0,
+    publish: event === 'push' && include.length > 0,
+    validate: validation.length > 0,
+    sha: after,
+    matrix: { include },
+    validationMatrix: { include: validation }
+  }
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
@@ -145,6 +203,9 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
   if (process.env.GITHUB_OUTPUT)
     appendFileSync(
       process.env.GITHUB_OUTPUT,
-      `build=${plan.build}\npublish=${plan.publish}\nmatrix=${JSON.stringify(plan.matrix)}\n`
+      `build=${plan.build}\npublish=${plan.publish}\nmatrix=${JSON.stringify(plan.matrix)}\n` +
+        `validate=${plan.validate}\nsha=${plan.sha ?? ''}\nvalidation_matrix=${JSON.stringify(plan.validationMatrix)}\n` +
+        `validate_api=${plan.validationMatrix.include.some((image) => image.image_name === 'xpert-api')}\n` +
+        `validate_web=${plan.validationMatrix.include.some((image) => image.image_name === 'xpert-webapp')}\n`
     )
 }

@@ -4,7 +4,7 @@ import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 import { z } from 'zod'
 import { t } from 'i18next'
-import { AGENT_WORKBENCH_SLOT, WORKBENCH_ASSISTANT_EXECUTION_TARGET } from '@xpert-ai/contracts'
+import { AGENT_WORKBENCH_SLOT, WORKBENCH_ASSISTANT_EXECUTION_TARGET, codingExecutionViewKey } from '@xpert-ai/contracts'
 import type {
     XpertResolvedViewHostContext,
     XpertExtensionViewManifest,
@@ -16,6 +16,9 @@ import {
     type IXpertViewExtensionProvider
 } from '@xpert-ai/plugin-sdk'
 import { ProjectTaskGraphService } from '../services/project-task-graph.service'
+import { ProjectTaskRuntimeReadService } from '../runtime/project-task-runtime-read.service'
+import { ProjectTaskDecisionService } from '../runtime/project-task-decision.service'
+import { projectTaskDecisionInputSchema } from '@xpert-ai/contracts'
 
 const text = (en_US: string, zh_Hans: string) => ({ en_US, zh_Hans })
 const requireHere = createRequire(__filename)
@@ -34,7 +37,11 @@ const change = z
 /** Built-in project management View provider; other task Views share the same runtime API. */
 @ViewExtensionProvider('platform.project-tasks')
 export class ProjectTasksViewProvider implements IXpertViewExtensionProvider {
-    constructor(private readonly tasks: ProjectTaskGraphService) {}
+    constructor(
+        private readonly tasks: ProjectTaskGraphService,
+        private readonly runtime: ProjectTaskRuntimeReadService,
+        private readonly decisions: ProjectTaskDecisionService
+    ) {}
     supports(context: XpertResolvedViewHostContext) {
         return context.hostType === 'project' || context.hostType === 'agent'
     }
@@ -45,7 +52,7 @@ export class ProjectTasksViewProvider implements IXpertViewExtensionProvider {
         return [
             {
                 key: 'timeline',
-                title: text('Tasks & timeline', '任务与时间线'),
+                title: text('Project tasks', '项目任务'),
                 hostType: context.hostType,
                 // Workbench can run in an isolated ChatKit iframe without the host icon font.
                 icon: {
@@ -72,6 +79,12 @@ export class ProjectTasksViewProvider implements IXpertViewExtensionProvider {
                 dataSource: { mode: 'platform', cache: { enabled: false } },
                 clientCommands: [{ key: 'workbench.navigation.open', label: text('Open execution', '打开执行') }],
                 actions: [
+                    ...['task-detail', 'decide-task', 'cancel-attempt', 'request-check'].map((key) => ({
+                        key,
+                        label: text('Task result', '任务结果'),
+                        actionType: 'invoke' as const,
+                        placement: 'toolbar' as const
+                    })),
                     {
                         key: 'execution-target',
                         label: text('Open execution', '打开执行'),
@@ -105,9 +118,70 @@ export class ProjectTasksViewProvider implements IXpertViewExtensionProvider {
         actionKey: string,
         request: XpertViewActionRequest
     ) {
+        if (actionKey === 'task-detail') {
+            const input = z.object({ taskId: z.string().uuid() }).strict().parse(request.input)
+            return { success: true, data: await this.runtime.get(this.context(context).projectId, input.taskId) }
+        }
+        if (actionKey === 'decide-task') {
+            return {
+                success: true,
+                data: await this.decisions.decide(
+                    this.context(context).projectId,
+                    projectTaskDecisionInputSchema.parse(request.input)
+                ),
+                refresh: true
+            }
+        }
+        if (actionKey === 'cancel-attempt' || actionKey === 'request-check') {
+            const input = z
+                .object({ taskId: z.string().uuid(), executionId: z.string().uuid() })
+                .strict()
+                .parse(request.input)
+            return {
+                success: true,
+                data: await this.runtime.control(
+                    this.context(context).projectId,
+                    input.taskId,
+                    input.executionId,
+                    actionKey === 'cancel-attempt' ? 'cancel' : 'request-check'
+                ),
+                refresh: true
+            }
+        }
         if (actionKey === 'execution-target') {
-            const input = z.object({ taskExecutionId: z.string().uuid() }).strict().parse(request.input)
+            const input = z
+                .object({
+                    taskExecutionId: z.string().uuid(),
+                    destination: z.enum(['execution', 'conversation']).optional()
+                })
+                .strict()
+                .parse(request.input)
             const target = await this.tasks.resolveExecution(this.context(context), input.taskExecutionId!)
+            if (input.destination === 'conversation')
+                return {
+                    success: true,
+                    data: {
+                        target: 'assistant.conversation',
+                        projectId: target.projectId,
+                        conversationId: target.conversationId,
+                        threadId: target.threadId,
+                        xpertId: target.xpertId
+                    }
+                }
+            if (target.invocationId || target.codingInvocationId)
+                return {
+                    success: true,
+                    data: {
+                        // The Agent Workbench already has the authorized project scope. A project
+                        // navigation would mint a new Desktop chat session and clear its thread.
+                        target: context.hostType === 'agent' ? 'workbench.view' : 'assistant.project',
+                        viewKey: target.codingInvocationId ? codingExecutionViewKey : 'platform.agent-results__results',
+                        selectionId: target.invocationId ?? target.codingInvocationId,
+                        projectId: target.projectId,
+                        conversationId: target.conversationId,
+                        xpertId: target.xpertId
+                    }
+                }
             return {
                 success: true,
                 data: {

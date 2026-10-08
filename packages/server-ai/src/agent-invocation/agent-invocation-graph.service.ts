@@ -1,6 +1,7 @@
 // Invariants: keep native checkpoint configuration and stable tool/node names.
 // Authorization runs outside the child graph, including on checkpoint resume.
 import { Runnable } from '@langchain/core/runnables'
+import type { DynamicStructuredTool } from '@langchain/core/tools'
 import { BadRequestException, Inject, Injectable } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import type { RuntimeResourcesSelection } from '@xpert-ai/contracts'
@@ -15,9 +16,11 @@ import type { XpertAgentSubgraphCommand } from '../xpert-agent/commands/subgraph
 import { AgentInvocationRuntime } from './invocation-runtime'
 import { NativeAgentCompiler } from './native-agent.compiler'
 import { wrapNativeAgentInvocation } from './native-graph-adapter'
-import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { RequestContext, type WrapToolCallHook } from '@xpert-ai/plugin-sdk'
 import type { IXpert, IXpertAgent } from '@xpert-ai/contracts'
 import { createHash } from 'crypto'
+import { ExecutionCancelService } from '../shared/execution/execution-cancel.service'
+import { parallelDelegationTool, PARALLEL_DELEGATION_TOOL } from './parallel-delegation'
 
 export interface AgentInvocationGraphScope {
     xpertId: string
@@ -31,6 +34,8 @@ export interface AgentInvocationBuildContext extends AgentInvocationGraphScope {
     agentKey: string
     options: XpertAgentSubgraphCommand['options']
     occupiedNames: Iterable<string>
+    parallelToolCalls?: boolean
+    wrapToolCall?: WrapToolCallHook
 }
 
 @Injectable()
@@ -40,7 +45,8 @@ export class AgentInvocationGraphService {
         private readonly queryBus: QueryBus,
         @Inject('XpertRuntimeResourceService') private readonly resources: RuntimeResourceService,
         private readonly invocations: AgentInvocationRuntime,
-        private readonly nativeCompiler: NativeAgentCompiler
+        private readonly nativeCompiler: NativeAgentCompiler,
+        private readonly executionCancellations: ExecutionCancelService
     ) {}
 
     async compileExperts(experts: readonly IXpert[], context: AgentInvocationBuildContext) {
@@ -80,7 +86,8 @@ export class AgentInvocationGraphService {
                     environment: options.environment
                 },
                 commandBus: this.commandBus,
-                queryBus: this.queryBus
+                queryBus: this.queryBus,
+                cancellations: this.executionCancellations
             })
             result.push({
                 ...child,
@@ -90,7 +97,22 @@ export class AgentInvocationGraphService {
                 ...(delegation.target.agentConfig?.mute ?? []).map((tags) => [delegation.target.id, ...tags])
             )
         }
-        return result.map((child) => nativeInvocationTool(child.tool, child.stateGraph))
+        const tools: DynamicStructuredTool[] = result.map((child) => nativeInvocationTool(child.tool, child.stateGraph))
+        // These tools have explicit caller graph control semantics. Keep using their
+        // original nodes so a collection cannot bypass approval or an end node.
+        const controls = context.caller.agentConfig
+        const singleOnly = new Set([
+            ...(controls?.interruptBefore ?? []),
+            ...(controls?.interruptAfter ?? []),
+            ...(controls?.endNodes ?? [])
+        ])
+        const parallelTargets = result.filter((child) => !singleOnly.has(child.tool.name))
+        if (context.parallelToolCalls && parallelTargets.length) {
+            if (names.has(PARALLEL_DELEGATION_TOOL))
+                throw new BadRequestException(t('server-ai:Error.AgentResourceToolConflict'))
+            tools.push(parallelDelegationTool(parallelTargets, context.wrapToolCall))
+        }
+        return tools
     }
 
     async compileLocal(

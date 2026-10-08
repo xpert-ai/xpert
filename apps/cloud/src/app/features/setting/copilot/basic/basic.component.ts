@@ -15,6 +15,7 @@ import {
   type ZardAccordionItemLike,
   ZardBadgeComponent,
   ZardButtonComponent,
+  ZardInputDirective,
   ZardSwitchComponent,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
@@ -44,6 +45,7 @@ import { CopilotFormComponent } from '../copilot-form/copilot-form.component'
     ...ZardTooltipImports,
     ZardBadgeComponent,
     ZardButtonComponent,
+    ZardInputDirective,
     XpDensityDirective,
     XpSpinComponent,
     XpI18nPipe,

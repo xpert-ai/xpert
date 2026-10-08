@@ -1,6 +1,7 @@
 export function remoteTheme() {
   const root = document.documentElement
   const style = getComputedStyle(root)
+  const radius = style.getPropertyValue('--radius').trim() || '0.625rem'
   const tokens: Record<string, string> = {}
   for (const name of [
     'background',
@@ -41,9 +42,10 @@ export function remoteTheme() {
     tokens: {
       ...tokens,
       fontFamily: getComputedStyle(document.body).fontFamily,
-      radiusSm: '0.375rem',
-      radiusMd: '0.5rem',
-      radiusLg: style.getPropertyValue('--radius').trim() || '0.625rem',
+      densityRootFontSize: style.fontSize || '16px',
+      radiusSm: `max(0px, calc(${radius} - 4px))`,
+      radiusMd: `max(0px, calc(${radius} - 2px))`,
+      radiusLg: radius,
       fontSizeXs: '0.6875rem',
       fontSizeSm: '0.75rem',
       fontSizeMd: '0.8125rem',

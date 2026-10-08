@@ -1,3 +1,4 @@
+jest.mock('./thread-activity/thread-activity.service', () => ({ ThreadActivityService: class {} }))
 jest.mock('../chat-conversation/thread-run-control.service', () => ({
     ThreadRunControlService: class {},
     threadGraphRevision: () => 'graph-v1',
@@ -16,6 +17,8 @@ jest.mock('@xpert-ai/server-core', () => ({
 jest.mock('./ai.service', () => ({
     AiService: class {}
 }))
+
+jest.mock('../shared/stream/write-sse-response', () => ({ writeSseResponse: jest.fn() }))
 
 jest.mock('../copilot-checkpoint', () => ({
     CopilotCheckpointGetTupleQuery: class CopilotCheckpointGetTupleQuery {}
@@ -48,19 +51,124 @@ jest.mock('./public-xpert-principal', () => ({
 }))
 
 import { EventEmitter } from 'events'
-import { ForbiddenException } from '@nestjs/common'
-import { EMPTY } from 'rxjs'
+import {
+    BadRequestException,
+    CallHandler,
+    ConflictException,
+    ExecutionContext,
+    ForbiddenException,
+    INestApplication
+} from '@nestjs/common'
+import { Test } from '@nestjs/testing'
+import { CommandBus, QueryBus } from '@nestjs/cqrs'
+import { ApiKeyOrClientSecretAuthGuard, TransformInterceptor } from '@xpert-ai/server-core'
+import { AddressInfo } from 'net'
+import { json } from 'express'
+import { ThreadRunControlService } from '../chat-conversation/thread-run-control.service'
+import { EMPTY, Subject } from 'rxjs'
+import { AiService } from './ai.service'
+import { RedisSseStreamService, SseMessageEvent } from '../shared/stream/redis-sse.service'
 import { RunCreateStreamCommand } from './commands'
 import { getPublicXpertSessionConversationScope } from './public-xpert-principal'
 import { ThreadsController } from './thread.controller'
+import { writeSseResponse } from '../shared/stream/write-sse-response'
+import { CancelExternalAssistantCommand } from '../chat-conversation/commands/cancel-external-assistant.command'
 
 describe('ThreadsController', () => {
+    it('returns the persisted expert status, error and elapsed time through the SDK run metadata', async () => {
+        const execution = {
+            id: 'expert',
+            threadId: 'thread',
+            status: 'interrupted',
+            error: 'Cancelled by user',
+            elapsedTime: 2700000,
+            createdAt: new Date('2026-10-02T08:00:00Z'),
+            updatedAt: new Date('2026-10-02T08:45:00Z'),
+            metadata: { invocationKind: 'external_assistant', sourceToolCallId: 'call' }
+        }
+        const queryBus = { execute: jest.fn().mockResolvedValue(execution) }
+        const controller = new ThreadsController({} as never, queryBus as never, {} as never, {} as never)
+        expect(await controller.getThreadRun('thread', 'expert')).toMatchObject({
+            run_id: 'expert',
+            thread_id: 'thread',
+            status: 'interrupted',
+            metadata: {
+                sourceToolCallId: 'call',
+                agentRun: {
+                    id: 'expert',
+                    status: 'interrupted',
+                    elapsedTime: 2700000,
+                    error: 'Cancelled by user',
+                    invocationKind: 'external_assistant'
+                }
+            }
+        })
+    })
     beforeEach(() => {
         jest.clearAllMocks()
         ;(getPublicXpertSessionConversationScope as jest.Mock).mockReturnValue(null)
     })
 
-    it('forwards display snapshot and token only after contribution access checks', async () => {
+    it('rejects a malformed replay cursor before opening a Redis reader', async () => {
+        const queryBus = { execute: jest.fn(async () => ({ threadId: 'thread' })) }
+        const redis = { createSseStream: jest.fn() }
+        const controller = new ThreadsController({} as never, queryBus as never, {} as never, redis as never)
+        await expect(
+            controller.joinRunStream({} as never, {} as never, 'thread', 'run', 'invalid-cursor')
+        ).rejects.toBeInstanceOf(BadRequestException)
+        expect(queryBus.execute).toHaveBeenCalledTimes(2)
+        expect(redis.createSseStream).not.toHaveBeenCalled()
+    })
+
+    it('authorizes discovery before opening and before each snapshot read', async () => {
+        const conversation = { id: 'conversation' }
+        const queries = { execute: jest.fn().mockResolvedValue(conversation) }
+        const activity = {
+            snapshot: jest.fn().mockResolvedValue({ version: 1, threadId: 'thread', runs: [], cards: [] })
+        }
+        const controller = new ThreadsController(
+            {} as never,
+            queries as never,
+            {} as never,
+            {} as never,
+            undefined,
+            undefined,
+            activity as never
+        )
+        const response = Object.assign(new EventEmitter(), { destroyed: false, writableEnded: false, write: jest.fn() })
+        const { firstValueFrom } = await import('rxjs')
+        const stream = await controller.streamThreadActivity(response as never, 'thread')
+        await firstValueFrom(stream)
+        response.emit('close')
+        expect(queries.execute).toHaveBeenCalledTimes(2)
+        expect(activity.snapshot).toHaveBeenCalledWith(conversation, 'thread')
+        queries.execute.mockRejectedValue(new ForbiddenException())
+        await expect(controller.streamThreadActivity(response as never, 'thread')).rejects.toBeInstanceOf(
+            ForbiddenException
+        )
+    })
+
+    it('authorizes contribution before routing expert cancellation without stopping the conversation', async () => {
+        const execution = {
+            id: 'expert',
+            threadId: 'thread',
+            metadata: { invocationKind: 'external_assistant' as const }
+        }
+        const queryBus = { execute: jest.fn().mockResolvedValue(execution) }
+        const commandBus = { execute: jest.fn().mockResolvedValue({ canceledExecutionIds: ['expert'] }) }
+        const controller = new ThreadsController({} as never, queryBus as never, commandBus as never, {} as never)
+        await controller.cancelThreadRun('thread', 'expert')
+        expect(queryBus.execute.mock.calls[0][0].operation).toBe('contribute')
+        expect(commandBus.execute).toHaveBeenCalledWith(new CancelExternalAssistantCommand(execution))
+        queryBus.execute.mockRejectedValueOnce(new ForbiddenException())
+        await expect(controller.cancelThreadRun('thread', 'expert')).rejects.toBeInstanceOf(ForbiddenException)
+        expect(commandBus.execute).toHaveBeenCalledTimes(1)
+        queryBus.execute.mockResolvedValue(execution)
+        await expect(controller.cancelThreadRun('foreign-thread', 'expert')).rejects.toBeInstanceOf(ForbiddenException)
+        expect(commandBus.execute).toHaveBeenCalledTimes(1)
+    })
+
+    it('accepts a bodyless pause only after contribution access checks', async () => {
         const queryBus = { execute: jest.fn().mockResolvedValue({ threadId: 'thread' }) }
         const controls = {
             requestPause: jest.fn().mockResolvedValue({ state: 'pausing' }),
@@ -74,9 +182,9 @@ describe('ThreadsController', () => {
             undefined,
             controls as never
         )
-        await controller.pauseRun('thread', 'run', { displaySnapshot: 'snapshot' })
+        await controller.pauseRun('thread', 'run')
         expect(queryBus.execute.mock.calls[0][0].operation).toBe('contribute')
-        expect(controls.requestPause).toHaveBeenCalledWith('thread', 'run', 'snapshot')
+        expect(controls.requestPause).toHaveBeenCalledWith('thread', 'run')
         await controller.releaseDisplayPause('thread', 'token')
         expect(queryBus.execute.mock.calls[2][0].operation).toBe('contribute')
         expect(controls.releaseDisplayPause).toHaveBeenCalledWith('thread', 'token')
@@ -123,7 +231,8 @@ describe('ThreadsController', () => {
                 'Content-Location',
                 '/api/ai/threads/thread-1/runs/execution-1'
             )
-            expect(result).toBe(stream)
+            expect(result).toBeUndefined()
+            expect(writeSseResponse).toHaveBeenCalledWith(expect.anything(), response, stream)
             expect(commandBus.execute.mock.calls[0][0]).toBeInstanceOf(RunCreateStreamCommand)
             expect(redisSseStreamService.createSseStream).not.toHaveBeenCalled()
             expect(redisSseStreamService.releaseConnection).not.toHaveBeenCalled()
@@ -132,7 +241,7 @@ describe('ThreadsController', () => {
         }
     })
 
-    it('starts the accepted run even when SSE headers were already flushed', async () => {
+    it('registers the resumed reader before starting the producer', async () => {
         const subscribe = jest.fn()
         const commandBus = {
             execute: jest.fn().mockResolvedValue({
@@ -146,13 +255,11 @@ describe('ThreadsController', () => {
             releaseConnection: jest.fn().mockResolvedValue(true)
         }
         const response = Object.assign(new EventEmitter(), {
-            headersSent: true,
+            headersSent: false,
             destroyed: false,
             writableEnded: false,
             write: jest.fn(),
-            setHeader: jest.fn(() => {
-                throw new Error('ERR_HTTP_HEADERS_SENT')
-            })
+            setHeader: jest.fn()
         })
         const controller = new ThreadsController(
             {} as never,
@@ -165,9 +272,12 @@ describe('ThreadsController', () => {
                 assistant_id: 'xpert-1',
                 input: { action: 'send' }
             } as never)
-            expect(response.setHeader).not.toHaveBeenCalled()
+            expect(response.setHeader).toHaveBeenCalledWith('Content-Location', '/api/ai/threads/thread-1/runs/run-1')
             expect(subscribe).toHaveBeenCalledTimes(1)
             expect(redisSseStreamService.createSseStream).toHaveBeenCalledTimes(1)
+            expect(redisSseStreamService.createSseStream.mock.invocationCallOrder[0]).toBeLessThan(
+                subscribe.mock.invocationCallOrder[0]
+            )
         } finally {
             response.emit('close')
         }
@@ -354,5 +464,118 @@ describe('ThreadsController', () => {
         const controller = new ThreadsController({} as never, queryBus as never, {} as never, {} as never)
 
         await expect(controller.getThreadRun('thread-1', 'run-other')).rejects.toBeInstanceOf(ForbiddenException)
+    })
+})
+
+describe('run stream HTTP admission with Nest interceptors', () => {
+    let app: INestApplication
+    let endpoint: string
+    const commandBus = { execute: jest.fn() }
+    const queryBus = { execute: jest.fn().mockResolvedValue({ threadId: 'thread-1' }) }
+    const controls = {
+        requestPause: jest.fn().mockResolvedValue({ executionId: 'run-1', state: 'pausing', pauseId: 'token' })
+    }
+    const redis = { createSseStream: jest.fn(), releaseConnection: jest.fn().mockResolvedValue(true) }
+
+    beforeAll(async () => {
+        ;(writeSseResponse as jest.Mock).mockImplementation(
+            jest.requireActual('../shared/stream/write-sse-response').writeSseResponse
+        )
+        const module = await Test.createTestingModule({
+            controllers: [ThreadsController],
+            providers: [
+                { provide: AiService, useValue: {} },
+                { provide: QueryBus, useValue: queryBus },
+                { provide: ThreadRunControlService, useValue: controls },
+                { provide: CommandBus, useValue: commandBus },
+                { provide: RedisSseStreamService, useValue: redis }
+            ]
+        })
+            .overrideGuard(ApiKeyOrClientSecretAuthGuard)
+            .useValue({ canActivate: () => true })
+            .overrideInterceptor(TransformInterceptor)
+            .useValue({ intercept: (_context: ExecutionContext, next: CallHandler) => next.handle() })
+            .compile()
+        app = module.createNestApplication({ logger: false })
+        app.use(json({ limit: '4mb' }))
+        await app.listen(0, '127.0.0.1')
+        const address: AddressInfo = app.getHttpServer().address()
+        endpoint = `http://127.0.0.1:${address.port}/threads/thread-1/runs/stream`
+    })
+
+    afterAll(async () => {
+        await app?.close()
+        ;(writeSseResponse as jest.Mock).mockReset()
+    })
+
+    it.each([undefined, { displaySnapshot: 42 }, { displaySnapshot: 'x'.repeat(2_800_000) }])(
+        'accepts a pause independent of legacy presentation bodies',
+        async (body) => {
+            controls.requestPause.mockClear()
+            const response = await fetch(endpoint.replace('/stream', '/run-1/pause'), {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                ...(body ? { body: JSON.stringify(body) } : {})
+            })
+            expect(response.status).toBe(202)
+            const result = await response.text()
+            expect(result.length).toBeLessThan(256)
+            expect(JSON.parse(result)).toEqual({ executionId: 'run-1', state: 'pausing', pauseId: 'token' })
+            expect(controls.requestPause).toHaveBeenCalledTimes(1)
+            expect(controls.requestPause).toHaveBeenCalledWith('thread-1', 'run-1')
+        }
+    )
+
+    it('rejects unauthorized pause before changing run state', async () => {
+        controls.requestPause.mockClear()
+        queryBus.execute.mockRejectedValueOnce(new ForbiddenException())
+        const response = await fetch(endpoint.replace('/stream', '/run-1/pause'), { method: 'POST' })
+        expect(response.status).toBe(403)
+        expect(controls.requestPause).not.toHaveBeenCalled()
+    })
+
+    it.each(['direct', 'redis'])('acknowledges an accepted %s run before it completes', async (transport) => {
+        const events = new Subject<SseMessageEvent>()
+        commandBus.execute.mockImplementation(async () => {
+            await new Promise((resolve) => setTimeout(resolve, 20))
+            return {
+                execution: { id: 'run-1' },
+                stream: transport === 'direct' ? events : EMPTY,
+                streamTransport: transport
+            }
+        })
+        redis.createSseStream.mockResolvedValue({ connectionId: 'connection-1', stream: events })
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'content-type': 'application/json' },
+            body: JSON.stringify({ assistant_id: 'assistant', input: { action: 'resume' } })
+        })
+        expect(response.status).toBe(201)
+        expect(response.headers.get('Content-Location')).toBe('/api/ai/threads/thread-1/runs/run-1')
+        expect(response.headers.get('content-type')).toBe('text/event-stream')
+        // HTTP headers arrive while the Agent is still waiting, not at stream completion.
+        events.next({ id: '2-0', type: 'message', data: { input: 'resumed output' } })
+        events.next({ id: '3-0', type: 'complete', data: { type: 'complete' } })
+        events.complete()
+        const body = await response.text()
+        expect(body).toContain('resumed output')
+        expect(body).toContain('event: complete')
+    })
+
+    it('returns an actual admission error without an acknowledgement header', async () => {
+        const logger = jest.spyOn(console, 'error').mockImplementation(() => undefined)
+        commandBus.execute.mockRejectedValue(new ConflictException('Resume already running'))
+        try {
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ assistant_id: 'assistant', input: { action: 'resume' } })
+            })
+            expect(response.status).toBe(409)
+            expect(response.headers.get('Content-Location')).toBeNull()
+            expect(await response.json()).toMatchObject({ message: 'Resume already running' })
+        } finally {
+            logger.mockRestore()
+        }
     })
 })

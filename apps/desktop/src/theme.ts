@@ -1,4 +1,4 @@
-import type { ChatKitTheme } from '@xpert-ai/chatkit-types'
+import type { ChatKitOptions, ChatKitTheme } from '@xpert-ai/chatkit-types'
 import type { CSSProperties } from 'react'
 import defaults from '../electron/theme-defaults.json'
 import { defaultAppearance, type AppearanceConfig, type ColorMode, type ColorToken } from './appearance-types'
@@ -42,7 +42,7 @@ export function desktopThemeStyle(appearance: AppearanceConfig, mode: ColorMode)
     values[`--xui-color-avatar-${index}`] = color
   })
   values['--xui-color-avatar-foreground'] = defaults.avatarForeground
-  values['--xui-radius-md'] = `${appearance.desktop.radius}px`
+  values['--xui-radius-lg'] = `${appearance.desktop.radius}px`
   values['--xui-font-family'] = appearance.desktop.fontFamily || defaults.appearance.desktop.fontFamily
   const density = appearance.desktop.density
   values['--desktop-row-padding'] = `${density === 'compact' ? 6 : density === 'spacious' ? 14 : 10}px`
@@ -61,6 +61,12 @@ export function applyDesktopTheme(appearance: AppearanceConfig, dark: boolean) {
 }
 
 // Share values directly; iframe initialization must not depend on stylesheet timing.
+export function getChatKitMessagePresentation(
+  appearance = defaultAppearance()
+): NonNullable<ChatKitOptions['messagePresentation']> & { mode: AppearanceConfig['chatkit']['messagePresentation'] } {
+  return { mode: appearance.chatkit.messagePresentation ?? 'transcript' }
+}
+
 export function getChatKitTheme(dark: boolean, appearance = defaultAppearance()): ChatKitTheme {
   const { chatkit } = appearance
   const mode = dark ? 'dark' : 'light'

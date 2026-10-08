@@ -1,3 +1,4 @@
+import { ModelFeature } from '@xpert-ai/contracts'
 import { AIMessage, HumanMessage, ToolMessage } from '@langchain/core/messages'
 import type {
     ArtifactRecord,
@@ -9,13 +10,15 @@ import type {
 } from '@xpert-ai/plugin-sdk'
 import { END, MemorySaver, MessagesAnnotation, START, StateGraph } from '@langchain/langgraph'
 import sharp from 'sharp'
+import i18next from 'i18next'
 import { ToolImageArtifacts } from './tool-image-artifacts'
+import type { ToolImageTextResultPolicy } from './tool-image-messages'
 
 const scope = { tenantId: 'tenant', organizationId: 'org', userId: 'user', conversationId: 'conversation' }
 const source = { pluginName: 'test.images', resourceType: 'image', presentationSource: 'sandbox' as const }
 const toolName = 'test_screenshot'
 
-function fixture() {
+function fixture(textResultPolicy?: ToolImageTextResultPolicy) {
     let artifact: ArtifactRecord
     let version: ArtifactVersionRecord
     let buffer: Buffer
@@ -44,7 +47,14 @@ function fixture() {
     }
     const artifacts = {
         createArtifact: jest.fn(async (input: CreateArtifactInput) => {
-            artifact = { id: 'artifact', kind: 'image', status: 'active', ...input.scope, ...input.source }
+            artifact = {
+                id: 'artifact',
+                kind: 'image',
+                status: 'active',
+                ...input.scope,
+                ...input.source,
+                metadata: input.metadata
+            }
             return artifact
         }),
         ensureArtifactVersion: jest.fn(async (input: EnsureArtifactVersionInput) => {
@@ -54,7 +64,7 @@ function fixture() {
         getArtifact: jest.fn(async () => artifact),
         listArtifactVersions: jest.fn(async () => [version])
     }
-    const images = new ToolImageArtifacts(artifacts, files, scope, source)
+    const images = new ToolImageArtifacts(artifacts, files, scope, source, textResultPolicy)
     const save = async () => {
         const png = await sharp({ create: { width: 8, height: 6, channels: 3, background: '#336699' } })
             .png()
@@ -84,6 +94,9 @@ function fixture() {
 }
 
 describe('Tool image artifacts', () => {
+    beforeAll(async () => {
+        await i18next.init({ lng: 'en', resources: {} })
+    })
     it('hydrates images from multiple action tools while allowing non-image results in the same family', async () => {
         const f = fixture()
         const { presentation } = await f.save()
@@ -103,12 +116,124 @@ describe('Tool image artifacts', () => {
             }),
             new ToolMessage({ name: 'desktop_apps', tool_call_id: 'apps', content: 'Released' })
         ]
-        const result = await f.images.messagesForModel(messages, ['desktop_action', 'desktop_apps'])
+        const result = await f.images.messagesForModel(messages, ['desktop_action'])
         expect(result).toHaveLength(4)
         expect(JSON.stringify(result[3].content)).toContain('data:image/png;base64,')
         expect(JSON.stringify(messages)).not.toContain('base64')
         expect(await f.images.messagesForModel(messages, ['unrelated_tool'])).toBe(messages)
     })
+
+    describe('host-approved text receipts', () => {
+        const textPolicy: ToolImageTextResultPolicy = (call, content) =>
+            call.name === toolName && call.args.action === 'list' && content === '{"items":[]}'
+        const call = { name: toolName, id: 'list', args: { action: 'list' } }
+        const receipt = () => new ToolMessage({ name: toolName, tool_call_id: call.id, content: '{"items":[]}' })
+        const round = () => [new AIMessage({ content: '', tool_calls: [call] }), receipt()]
+
+        it('continues without image storage or vision for a validated non-visual operation', async () => {
+            const f = fixture(textPolicy)
+            const messages = round()
+            const original = JSON.stringify(messages)
+            const result = await f.images.prepareModelInput(messages, [toolName])
+            expect(result.messages).toBe(messages)
+            expect(result.requirements).toBeUndefined()
+            expect(JSON.stringify(messages)).toBe(original)
+            expect(f.files.readRuntimeBuffer).not.toHaveBeenCalled()
+            expect(f.artifacts.getArtifact).not.toHaveBeenCalled()
+        })
+
+        it('still requires an image unless the host explicitly enables a text policy', async () => {
+            await expect(fixture().images.prepareModelInput(round(), [toolName])).rejects.toThrow()
+        })
+
+        it('hydrates a visual operation alongside a text receipt from the same tool', async () => {
+            const f = fixture(textPolicy)
+            const { presentation } = await f.save()
+            const text = receipt()
+            const messages = [
+                new AIMessage({
+                    content: '',
+                    tool_calls: [call, { name: toolName, id: 'image', args: { action: 'capture' } }]
+                }),
+                text,
+                new ToolMessage({ name: toolName, tool_call_id: 'image', content: 'Captured', artifact: presentation })
+            ]
+            const original = JSON.stringify(messages)
+            const result = await f.images.prepareModelInput(messages, [toolName])
+            expect(result.messages).toHaveLength(4)
+            expect(result.messages[1]).toBe(text)
+            expect(result.requirements).toEqual({ features: [ModelFeature.VISION] })
+            expect(JSON.stringify(result.messages.at(-1)?.content)).toContain('data:image/png;base64,')
+            expect(f.files.readRuntimeBuffer).toHaveBeenCalledTimes(1)
+            expect(JSON.stringify(messages)).toBe(original)
+        })
+
+        it.each(['visual action', 'invalid receipt', 'unmatched call ID', 'wrong tool name', 'incomplete round'])(
+            'rejects %s even when a text policy is enabled',
+            async (variant) => {
+                const f = fixture(textPolicy)
+                const request = variant === 'visual action' ? { ...call, args: { action: 'capture' } } : call
+                const calls =
+                    variant === 'incomplete round'
+                        ? [request, { name: 'another_tool', id: 'missing', args: {} }]
+                        : [request]
+                const messages = [
+                    new AIMessage({ content: '', tool_calls: calls }),
+                    new ToolMessage({
+                        name: variant === 'wrong tool name' ? 'another_tool' : toolName,
+                        tool_call_id: variant === 'unmatched call ID' ? 'other' : call.id,
+                        content: variant === 'invalid receipt' ? '{"items":"invalid"}' : '{"items":[]}'
+                    })
+                ]
+                await expect(f.images.prepareModelInput(messages, [toolName])).rejects.toThrow()
+                expect(f.files.readRuntimeBuffer).not.toHaveBeenCalled()
+            }
+        )
+
+        it.each(['artifact', 'inline image', 'structured image'])(
+            'does not let a text policy bypass validation of %s content',
+            async (variant) => {
+                const f = fixture(() => true)
+                const messages = [
+                    new AIMessage({ content: '', tool_calls: [call] }),
+                    new ToolMessage({
+                        name: toolName,
+                        tool_call_id: call.id,
+                        content:
+                            variant === 'structured image'
+                                ? [{ type: 'image_url', image_url: { url: 'data:image/png;base64,SECRET' } }]
+                                : variant === 'inline image'
+                                  ? 'data:image/png;base64,SECRET'
+                                  : '{"items":[]}',
+                        artifact: variant === 'artifact' ? { invalid: true } : undefined
+                    })
+                ]
+                await expect(f.images.prepareModelInput(messages, [toolName])).rejects.toThrow()
+                expect(f.files.readRuntimeBuffer).not.toHaveBeenCalled()
+            }
+        )
+
+        it('preserves historical text receipts without replaying old image bytes', async () => {
+            const f = fixture(textPolicy)
+            const { messages: screenshot } = await f.save()
+            const messages = [...screenshot, ...round(), new AIMessage('Done'), new HumanMessage('Continue')]
+            const original = JSON.stringify(messages)
+            const result = await f.images.prepareModelInput(messages, [toolName])
+            expect(result.messages[3].content).toBe('{"items":[]}')
+            expect(result.requirements).toBeUndefined()
+            expect(JSON.stringify(result.messages)).not.toContain('base64')
+            expect(f.files.readRuntimeBuffer).not.toHaveBeenCalled()
+            expect(JSON.stringify(messages)).toBe(original)
+        })
+
+        it('does not authorize a receipt using a call from before an intervening user message', async () => {
+            const f = fixture(textPolicy)
+            const messages = [round()[0], new HumanMessage('Continue'), receipt(), new AIMessage('Done')]
+            const result = await f.images.prepareModelInput(messages, [toolName])
+            expect(result.messages[2].content).not.toBe('{"items":[]}')
+        })
+    })
+
     it('stores one binary path for repeated content and returns reference-only presentation', async () => {
         const f = fixture()
         const first = await f.save()
@@ -199,14 +324,15 @@ describe('Tool image artifacts', () => {
         const f = fixture()
         const { messages } = await f.save()
         const history = [...messages, new AIMessage('done'), new HumanMessage('Continue')]
-        expect(await f.images.messagesForModel(history, toolName)).toBe(history)
+        expect(await f.images.messagesForModel(history, toolName)).toEqual(history)
         expect(await f.images.messagesForModel(messages.slice(0, 1), toolName)).toHaveLength(1)
         expect(await f.images.messagesForModel(messages, 'another_tool')).toBe(messages)
         const failed = [
             messages[0],
             new ToolMessage({ content: 'Failure', status: 'error', name: toolName, tool_call_id: 'call' })
         ]
-        expect(await f.images.messagesForModel(failed, toolName)).toBe(failed)
+        expect((await f.images.prepareModelInput(failed, [toolName])).requirements).toBeUndefined()
+        expect((await f.images.messagesForModel(failed, toolName))[1].content).toBe('Failure')
         expect(f.files.readRuntimeBuffer).not.toHaveBeenCalled()
     })
 
@@ -252,5 +378,140 @@ describe('Tool image artifacts', () => {
             .toBuffer()
         await expect(f.images.save({ buffer: jpeg, mimeType: 'image/png', title: 'Bad' })).rejects.toThrow()
         expect(f.files.writeRuntimeBuffer).not.toHaveBeenCalled()
+    })
+
+    it('projects two parallel image replies with exact call IDs and summaries and requires vision', async () => {
+        const f = fixture(),
+            { presentation } = await f.save()
+        const messages = [
+            new AIMessage({
+                content: '',
+                tool_calls: [
+                    { name: toolName, id: 'call-a', args: {} },
+                    { name: toolName, id: 'call-b', args: {} }
+                ]
+            }),
+            ...['b', 'a'].map(
+                (id) =>
+                    new ToolMessage({
+                        name: toolName,
+                        tool_call_id: `call-${id}`,
+                        content: `candidate-${id}`,
+                        artifact: presentation
+                    })
+            )
+        ]
+        const input = await f.images.prepareModelInput(messages, [toolName])
+        expect(input.requirements).toEqual({ features: [ModelFeature.VISION] })
+        const content = JSON.stringify(input.messages.at(-1)?.content)
+        expect(content).toContain('call-a')
+        expect(content).toContain('candidate-a')
+        expect(content).toContain('call-b')
+        expect(content).toContain('candidate-b')
+        expect(content.match(/data:image\/png;base64,/g)).toHaveLength(2)
+        expect(JSON.stringify(messages)).not.toContain('base64')
+    })
+
+    it.each([
+        'missing artifact',
+        'legacy structured bytes',
+        'legacy serialized bytes',
+        'wrong reply name',
+        'duplicate call ID',
+        'extra reply',
+        'missing parallel reply'
+    ])('rejects a current image round with %s before reading pixels', async (variant) => {
+        const f = fixture(),
+            { presentation } = await f.save()
+        const calls = [{ name: toolName, id: 'call', args: {} }]
+        const legacy = [
+            { type: 'text', text: 'candidate' },
+            { type: 'image_url', image_url: { url: 'data:image/png;base64,SECRET' } }
+        ]
+        const replies = [
+            new ToolMessage({
+                name: variant === 'wrong reply name' ? 'other' : toolName,
+                tool_call_id: 'call',
+                content:
+                    variant === 'legacy structured bytes'
+                        ? legacy
+                        : variant === 'legacy serialized bytes'
+                          ? JSON.stringify(legacy)
+                          : 'candidate',
+                artifact: variant === 'missing artifact' ? undefined : presentation
+            })
+        ]
+        if (variant === 'duplicate call ID') calls.push(calls[0])
+        if (variant === 'extra reply')
+            replies.push(
+                new ToolMessage({ name: toolName, tool_call_id: 'other', content: 'extra', artifact: presentation })
+            )
+        if (variant === 'missing parallel reply') calls.push({ name: 'another_tool', id: 'missing', args: {} })
+        await expect(
+            f.images.prepareModelInput([new AIMessage({ content: '', tool_calls: calls }), ...replies], [toolName])
+        ).rejects.toThrow()
+        expect(f.files.readRuntimeBuffer).not.toHaveBeenCalled()
+    })
+
+    it.each(['structured', 'serialized'] as const)(
+        'cleans historical %s legacy image bytes only in outbound clones',
+        async (variant) => {
+            const f = fixture()
+            const legacy = [
+                { type: 'text', text: 'previous candidate' },
+                { type: 'image_url', image_url: { url: 'data:image/png;base64,SECRET' } }
+            ]
+            const tool = new ToolMessage({
+                id: 'message-id',
+                name: toolName,
+                tool_call_id: 'old-call',
+                content: variant === 'structured' ? legacy : JSON.stringify(legacy),
+                artifact: { data: 'BASE64_ARTIFACT' }
+            })
+            const messages = [
+                new AIMessage({ content: '', tool_calls: [{ name: toolName, id: 'old-call', args: {} }] }),
+                tool,
+                new AIMessage('done'),
+                new HumanMessage('continue')
+            ]
+            const original = JSON.stringify(messages)
+            const result = await f.images.prepareModelInput(messages, [toolName])
+            expect(result.requirements).toBeUndefined()
+            expect(JSON.stringify(result.messages)).not.toMatch(/SECRET|data:image|BASE64_ARTIFACT/)
+            expect(result.messages[1]).toMatchObject({ id: 'message-id', tool_call_id: 'old-call', name: toolName })
+            expect(JSON.stringify(messages)).toBe(original)
+            expect(f.files.readRuntimeBuffer).not.toHaveBeenCalled()
+        }
+    )
+
+    it('does not hydrate error replies even when they contain an artifact', async () => {
+        const f = fixture(),
+            { messages, presentation } = await f.save()
+        const failed = [
+            messages[0],
+            new ToolMessage({
+                name: toolName,
+                tool_call_id: 'call',
+                status: 'error',
+                content: 'The asset was removed. Select another candidate.',
+                artifact: presentation
+            })
+        ]
+        const input = await f.images.prepareModelInput(failed, [toolName])
+        expect(input.messages[1].content).toContain('Select another candidate')
+        expect(input.requirements).toBeUndefined()
+        expect(f.files.readRuntimeBuffer).not.toHaveBeenCalled()
+    })
+
+    it('rejects forged dimensions and uses real checksum verification even when the size matches', async () => {
+        const f = fixture(),
+            { messages, presentation } = await f.save()
+        presentation.attachments[0].width += 1
+        await expect(f.images.prepareModelInput(messages, [toolName])).rejects.toThrow()
+        expect(f.files.readRuntimeBuffer).not.toHaveBeenCalled()
+        presentation.attachments[0].width -= 1
+        const original = (await f.files.readRuntimeBuffer()).buffer
+        f.setBuffer(Buffer.alloc(original.length))
+        await expect(f.images.prepareModelInput(messages, [toolName])).rejects.toThrow()
     })
 })

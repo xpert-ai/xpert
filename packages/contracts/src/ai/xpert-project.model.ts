@@ -1,3 +1,9 @@
+import type { AgentInvocationStatus } from './agent-runtime.model'
+import type {
+  ProjectTaskDecision,
+  ProjectTaskExecutionPurpose,
+  ProjectTaskSpecificationSnapshot
+} from './project-task-runtime.model'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IPagination } from '../core.model'
 import { IIntegration } from '../integration.model'
@@ -10,6 +16,7 @@ import { IXpertToolset } from './xpert-toolset.model'
 import { IXpertWorkspace } from './xpert-workspace.model'
 import { IXpert, TXpertTeamDraft } from './xpert.model'
 import type { XpertProjectClassification, XpertProjectTypeRef } from './xpert-project-type.model'
+import type { ConversationResourceCard } from './resource-card'
 
 export type TXpertProjectSettings = {
   /** @deprecated Project instructions are stored in /project/<projectId>/project.md. */
@@ -17,7 +24,13 @@ export type TXpertProjectSettings = {
   mode?: '' | 'plan'
   managementMode?: TXpertProjectManagementMode
   /** Server-owned first-send provenance; the provisional name may be reconciled once by the business app. */
-  conversationBootstrap?: { conversationId: string; initialName: string; nameResolved?: boolean }
+  conversationBootstrap?: {
+    conversationId: string
+    initialName: string
+    nameResolved?: boolean
+    resourceCards?: ConversationResourceCard[]
+    resourceCardMessageId?: string
+  }
   /** @deprecated Project Xperts are peers and no default Project Assistant is selected. */
   projectAssistantId?: string
 }
@@ -226,6 +239,9 @@ export interface IBasePerXpertProjectEntityModel extends IBasePerTenantAndOrgani
 }
 
 export interface IXpertProjectTask extends IBasePerXpertProjectEntityModel {
+  decisions?: ProjectTaskDecision[]
+  /** Measured completion percentage (0–100); null/omitted means unknown. */
+  progress?: number | null
   providerKey?: string | null
   sourceKey?: string | null
   sourceRevision?: string | null
@@ -241,6 +257,9 @@ export interface IXpertProjectTask extends IBasePerXpertProjectEntityModel {
   name: string
   title?: string
   description?: string
+  /** Explicit completion requirements, independent of reported step progress. */
+  requirements?: string[]
+  /** Business task type. Provider projections use their registered namespaced taskType key. */
   type?: string
   status: TXpertProjectTaskStatus | 'pending' | 'completed' | 'failed'
   priority?: TXpertProjectTaskPriority
@@ -270,9 +289,20 @@ export interface IXpertProjectTaskConversation extends IBasePerXpertProjectEntit
 }
 
 export interface IXpertProjectTaskExecution extends IBasePerXpertProjectEntityModel {
+  /** Runtime-owned attempt. Distinct from a native Agent execution ID. */
+  invocationId?: string | null
+  invocationStatus?: AgentInvocationStatus | null
+  dispatchRequestId?: string | null
+  dispatchState?: 'pending' | 'submitted' | null
+  specificationSnapshot?: ProjectTaskSpecificationSnapshot | null
+  purpose?: ProjectTaskExecutionPurpose | null
+
   /** Observed runtime status, independent from the business task acceptance status. */
   runtimeStartedAt?: string | null
   runtimeCompletedAt?: string | null
+  /** Authorized Invocation presentation, not persisted task state. */
+  runtimeProvider?: string
+  runtimeToolId?: string
   runtimeStatus?: 'running' | 'success' | 'error' | 'pending' | 'timeout' | 'interrupted' | 'unknown'
   sourceKey?: string | null
   taskId: string

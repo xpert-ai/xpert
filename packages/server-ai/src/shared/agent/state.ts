@@ -60,6 +60,7 @@ export const STATE_VARIABLE_PENDING_FOLLOW_UPS = 'pending_follow_ups'
 
 export type TPendingFollowUpStateItem = {
     messageId: string
+    presentation?: import('@xpert-ai/contracts').TChatMessagePresentation
     clientMessageId?: string | null
     human: TChatRequestHuman
 }

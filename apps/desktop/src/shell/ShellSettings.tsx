@@ -7,12 +7,31 @@ import { t } from '../i18n'
 import type { DesktopShellState } from '../types'
 import { ThemeSelect } from '../ThemeFields'
 
-export function ShellSettings() {
+export function ShellSettings({
+  resetVersion = 0,
+  disabled = false,
+  onDirtyChange,
+  onBusyChange
+}: {
+  resetVersion?: number
+  disabled?: boolean
+  onDirtyChange?: (dirty: boolean) => void
+  onBusyChange?: (busy: boolean) => void
+}) {
   const [state, setState] = useState<DesktopShellState | null>(null)
   const [draft, setDraft] = useState<Settings | null>(null)
   const [operations, setOperations] = useState<ShellResult[]>([])
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
+  const busy = pending || disabled
+  const dirty = !!draft && !!state && JSON.stringify(draft) !== JSON.stringify(state.settings)
+  useEffect(() => onDirtyChange?.(dirty), [dirty, onDirtyChange])
+  useEffect(() => onBusyChange?.(pending), [pending, onBusyChange])
+  useEffect(() => {
+    if (resetVersion && state) setDraft(state.settings)
+    // The parent increments this only when cancelling the current edit session.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resetVersion])
   useEffect(() => {
     let active = true
     const refresh = async () => {
@@ -37,6 +56,7 @@ export function ShellSettings() {
     }
   }, [])
   const run = async (action: () => Promise<unknown>) => {
+    if (busy) return
     setPending(true)
     setError('')
     try {
@@ -53,22 +73,22 @@ export function ShellSettings() {
     return <p className="text-sm text-muted-foreground">{t('Desktop Shell requires the native macOS app.')}</p>
   const status = state.enabled ? (state.connected ? t('Connected') : t('Connecting…')) : t('Connects when needed')
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Terminal className="size-4" />
-          <h3 className="font-medium">{t('This computer Shell')}</h3>
+          <h3 className="text-base font-semibold">{t('This computer Shell')}</h3>
         </div>
-        <span role="status" className="text-xs text-muted-foreground">
+        <span role="status" className="text-[0.8125rem] leading-5 text-muted-foreground">
           {status}
         </span>
       </div>
-      <p className="text-sm leading-6 text-muted-foreground">
+      <p className="text-[0.8125rem] leading-5 text-muted-foreground">
         {t(
           'Allow an authorized conversation to run commands with your computer user permissions. Command output is sent to Xpert. The working directory does not restrict file access.'
         )}
       </p>
-      <fieldset disabled={pending}>
+      <fieldset disabled={busy}>
         <ThemeSelect
           label={t('Execution permission')}
           value={state.policy ?? 'ask'}
@@ -78,27 +98,30 @@ export function ShellSettings() {
             { value: 'deny', label: t('Never allow') }
           ]}
           onChange={(policy) => {
-            if (!pending) void run(() => invoke('shellPolicy', policy))
+            if (!busy) void run(() => invoke('shellPolicy', policy))
           }}
         />
       </fieldset>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-[0.8125rem] leading-5 text-muted-foreground">
         {t(
           'Applies only to your account, this organization and this computer. Always allow permits future commands without asking.'
         )}
       </p>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-6 xl:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor="shell-name">{t('Computer name')}</Label>
+          <Label htmlFor="shell-name" className="text-sm leading-5">
+            {t('Computer name')}
+          </Label>
           <Input
+            className="h-10 text-sm"
             id="shell-name"
             value={draft.name}
-            disabled={pending}
+            disabled={busy}
             maxLength={100}
             onChange={(event) => setDraft({ ...draft, name: event.target.value })}
           />
         </div>
-        <fieldset disabled={pending}>
+        <fieldset disabled={busy}>
           <ThemeSelect
             label={t('Shell')}
             value={draft.shell}
@@ -107,35 +130,42 @@ export function ShellSettings() {
               { value: '/bin/bash', label: 'bash' }
             ]}
             onChange={(shell) => {
-              if (!pending) setDraft({ ...draft, shell })
+              if (!busy) setDraft({ ...draft, shell })
             }}
           />
         </fieldset>
-        <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="shell-cwd">{t('Default working directory')}</Label>
+        <div className="space-y-2 xl:col-span-2">
+          <Label htmlFor="shell-cwd" className="text-sm leading-5">
+            {t('Default working directory')}
+          </Label>
           <Input
+            className="h-10 text-sm"
             id="shell-cwd"
             value={draft.cwd}
-            disabled={pending}
+            disabled={busy}
             onChange={(event) => setDraft({ ...draft, cwd: event.target.value })}
           />
         </div>
-        <div className="space-y-2 sm:col-span-2">
-          <Label htmlFor="shell-path">{t('Command search path')}</Label>
+        <div className="space-y-2 xl:col-span-2">
+          <Label htmlFor="shell-path" className="text-sm leading-5">
+            {t('Command search path')}
+          </Label>
           <Input
+            className="h-10 text-sm"
             id="shell-path"
             value={draft.path}
-            disabled={pending}
+            disabled={busy}
             onChange={(event) => setDraft({ ...draft, path: event.target.value })}
           />
         </div>
       </div>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-[0.8125rem] leading-5 text-muted-foreground">
         {t('Bosi connects when a local command is requested. Each command starts a fresh, non-interactive shell.')}
       </p>
       <Button
         type="button"
-        disabled={pending}
+        className="h-10"
+        disabled={busy}
         variant={state.enabled ? 'outline' : 'default'}
         onClick={() => void run(() => invoke('shellConfigure', draft))}
       >
@@ -160,7 +190,7 @@ export function ShellSettings() {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    disabled={pending}
+                    disabled={busy}
                     onClick={() => void run(() => invoke('shellCancel', operation.operationId))}
                   >
                     <Square className="size-3" />

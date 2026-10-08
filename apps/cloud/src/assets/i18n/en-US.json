@@ -119,6 +119,18 @@
       "Retry": "Retry"
     },
     "XpertSettings": {
+      "RealtimeVoice": {
+        "Title": "Realtime voice calls",
+        "Description": "Use a separate realtime model for live conversations and task handoff.",
+        "Model": "Realtime voice model",
+        "Voice": "Voice",
+        "SelectModel": "Select a realtime model",
+        "SelectVoice": "Select a voice",
+        "SavedModelUnavailable": "Saved model is unavailable",
+        "InvalidSelection": "Choose an available realtime model and one of its voices.",
+        "Unavailable": "No realtime voice models are available. Configure a provider first.",
+        "Configure": "Configure calls"
+      },
       "EditInStudio": "Edit in Studio",
       "QAExperience": "Q&A experience",
       "LayoutPriority": "A saved personal layout takes priority over this setting.",
@@ -198,7 +210,8 @@
       "ExecutionLimits": "Execution limits",
       "ConcurrencyTip": "Maximum parallel calls, from 1 to 100. Leave empty to use the runtime default.",
       "Automatic": "Automatic",
-      "RecursionTip": "Maximum recursive steps per execution, from 100 to 10,000.",
+      "RecursionTip": "Maximum recursive steps per execution. Enter an integer from {{min}} to {{max}}.",
+      "RecursionRangeError": "Enter an integer from {{min}} to {{max}}.",
       "Sandbox": "Sandbox",
       "SandboxTip": "Provide an isolated environment for code execution and file operations.",
       "Loading": "Loading…",
@@ -214,17 +227,35 @@
       "Saving": "Saving…",
       "Unsaved": "Not saved",
       "NeedsCorrection": "Changes need correction",
-      "PendingSave": "Waiting to save",
+      "PendingSave": "Unsaved changes",
       "Saved": "Saved to draft",
-      "PublishTip": "Applies to users after publishing",
+      "PublishTip": "Save and publish to apply changes",
       "SaveNow": "Save now",
+      "SaveAndPublish": "Save and publish",
+      "DraftSaveHint": "Save changes to the draft, then publish separately in Studio to apply them.",
+      "Publishing": "Saving and publishing…",
+      "Published": "Saved and published",
+      "PublishedTip": "Applies to conversations immediately",
+      "PublishFailed": "Could not publish; your draft is kept",
+      "PublishReleaseNotes": "Updated Assistant settings",
+      "PublishedIdentity": "Assistant · Published",
+      "MessagePresentation": {
+        "Title": "Message display",
+        "Description": "Saved for this Assistant and applied after publishing. Explicit application display settings take priority.",
+        "Inherit": "Follow app default",
+        "InheritHint": "Use the application’s message display preference.",
+        "Transcript": "Original mode",
+        "TranscriptHint": "Show structured replies and tool call groups.",
+        "Bubbles": "Bubble mode",
+        "BubblesHint": "Show text and results in chat bubbles; hide routine tool call groups."
+      },
       "Menu": {
         "general": "General",
         "models": "Models",
         "conversation": "Conversation",
-        "workbench": "Workbench & layout",
+        "workbench": "Appearance",
         "files": "File uploads",
-        "speech": "Speech",
+        "speech": "Voice & calls",
         "memory": "Memory & context",
         "runtime": "Runtime & sandbox",
         "personalization": "Personalization",
@@ -233,15 +264,16 @@
         "externalExperts": "External experts",
         "subagents": "Sub-agents",
         "skills": "Skills",
-        "middleware": "Middleware"
+        "middleware": "Middleware",
+        "capabilities": "Capabilities"
       },
       "Description": {
         "general": "Edit the identity and basic information of this Assistant.",
         "models": "Set the default model and models users can switch to.",
         "conversation": "Configure welcome messages, suggested questions and conversation titles.",
-        "workbench": "Choose the first chat layout and the default Workbench view.",
+        "workbench": "Choose the message display, initial chat layout and default Workbench view.",
         "files": "Control which attachments users can add to conversations.",
-        "speech": "Configure voice playback and speech recognition.",
+        "speech": "Configure realtime calls, speech playback and speech recognition.",
         "memory": "Manage context, long-term memory and memory-based replies.",
         "runtime": "Configure execution limits and the sandbox environment.",
         "personalization": "Set behavior guidelines and your profile for your current assistant binding.",
@@ -250,15 +282,16 @@
         "externalExperts": "Assign published external experts for this assistant to delegate to.",
         "subagents": "Configure internal sub-agent responsibilities, models and delegation.",
         "skills": "Choose and configure skills for an agent. New skills are assigned to the primary agent by default.",
-        "middleware": "Add, configure and remove middleware for an agent. The primary agent is selected by default."
+        "middleware": "Add, configure and remove middleware for an agent. The primary agent is selected by default.",
+        "capabilities": "Configure capabilities, runtime limits and the sandbox provider."
       },
       "Keywords": {
         "general": "name title icon avatar tags scope",
         "models": "LLM primary allowed model parameters",
         "conversation": "opener frequent questions suggestions title",
-        "workbench": "layout two columns overlay maximized view",
+        "workbench": "appearance bubbles transcript messages layout two columns overlay maximized view",
         "files": "attachment document image audio video",
-        "speech": "text to speech speech to text TTS STT",
+        "speech": "realtime voice call model voice TTS STT",
         "memory": "summary profile QA memory reply threshold",
         "runtime": "concurrency recursion sandbox provider",
         "personalization": "personalization behavior profile soul user preferences",
@@ -267,7 +300,8 @@
         "externalExperts": "external experts delegation collaboration messages workbench",
         "subagents": "subagents internal agents members instructions models delegation context",
         "skills": "skills packages discovery repository primary agent",
-        "middleware": "middleware plugins tools configuration primary agent"
+        "middleware": "middleware plugins tools configuration primary agent",
+        "capabilities": "capabilities command line sandbox provider runtime concurrency recursion tools desktop"
       },
       "Groups": {
         "Basic": "Basic settings",
@@ -281,7 +315,7 @@
         "video": "Video",
         "others": "Other files"
       },
-      "DiscardUnapplied": "You have unapplied changes. Continue editing, or discard them and close.",
+      "DiscardUnapplied": "You have unsaved changes. Continue editing, or discard them and close.",
       "StatisticsHint": "Daily message activity covers your conversations with this assistant.",
       "Delegation": {
         "AssignedExperts": "Assigned external experts",
@@ -342,6 +376,19 @@
         "InvalidConfiguration": "Complete the required configuration fields before saving.",
         "InvalidAssignment": "Select an available agent and a valid middleware configuration.",
         "DuplicateSkills": "This agent already has a skills middleware. Configure the existing assignment instead."
+      },
+      "Capabilities": {
+        "Hint": "Changes stay on this device until you choose Save and publish.",
+        "Loading": "Checking available capabilities…",
+        "Applying": "Checking dependencies and saving the capability draft…",
+        "ManagedInStudio": "Already enabled in the workflow. Manage this capability in Studio.",
+        "Unavailable": "This capability is currently unavailable.",
+        "Empty": "No optional capabilities are registered.",
+        "ModelRequired": "The current model does not meet the selected capabilities’ requirements. Choose a compatible model, then retry applying.",
+        "ConfigureModel": "Configure model",
+        "FixInvalid": "Correct invalid settings before changing capabilities.",
+        "DraftChanged": "The draft changed while capabilities were being checked. Retry using the latest draft.",
+        "Apply": "Apply to draft"
       }
     },
     "TagDirectory": {
@@ -2759,7 +2806,7 @@
       "AgentWorkflow": "Agent Workflow"
     },
     "XProject": {
-      "TaskTimeline": "Tasks & timeline",
+      "TaskTimeline": "Project tasks",
       "NoExperts": "No experts found",
       "WorkspaceTitle": "Projects",
       "WorkspaceSubtitle": "Plan, execute and review AI-assisted work in one controlled space.",
@@ -3577,6 +3624,68 @@
       "EmptyDescription": "Create a data source to connect your databases and services."
     },
     "Copilot": {
+      "ExecutionInvalidFilters": "Check the task ID, text lengths and date range.",
+      "ExecutionAssistantName": "Assistant",
+      "ExecutionAll": "All",
+      "ExecutionApply": "Apply filters",
+      "ExecutionFrom": "From date",
+      "ExecutionTo": "To date",
+      "ExecutionEntryTitle": "Entry",
+      "ExecutionEnvironmentTitle": "Environment",
+      "ExecutionUsageSourceTitle": "Usage source",
+      "ExecutionPricingTitle": "Pricing status",
+      "ExecutionEstimatedTokens": "Estimated tokens",
+      "ExecutionAwaitingLedger": "Awaiting ledger",
+      "ExecutionUsageSource": {
+        "provider": "Actual usage",
+        "estimated": "Estimated usage",
+        "none": "No usage receipt"
+      },
+      "ExecutionPricing": {
+        "priced": "Priced",
+        "free": "Free",
+        "unpriced": "Unpriced",
+        "pending": "Pending review"
+      },
+      "ExecutionUsageTitle": "Coding tool model usage",
+      "ExecutionUsageHint": "Your coding-tool model usage in this organization. Consumption is counted even on unlimited plans. Unbilled usage is converted at the current platform point rate; unsettled or unpriced usage is shown as “—”.",
+      "ExecutionPoints": "Points consumed",
+      "ExecutionSearchOrEnter": "Search or enter a name…",
+      "ExecutionUseValue": "Use “{{value}}”",
+      "ExecutionRefresh": "Refresh",
+      "ExecutionSelectOrganization": "Select an organization to view execution usage.",
+      "ExecutionLoadFailed": "Could not load usage. Please retry.",
+      "ExecutionTask": "Invocation / CLI Session ID",
+      "ExecutionModel": "Model",
+      "ExecutionStatusTitle": "Status",
+      "ExecutionActualTokens": "Actual tokens",
+      "ExecutionReservedTokens": "Reserved tokens",
+      "ExecutionNoCalls": "No coding tool calls yet.",
+      "ExecutionPrevious": "Previous",
+      "ExecutionNext": "Next",
+      "ExecutionStatus": {
+        "started": "Running",
+        "succeeded": "Settled",
+        "failed": "Failed",
+        "settlement_pending": "Pending settlement"
+      },
+      "ExecutionEntry": {
+        "shell": "Shell CLI",
+        "all": "All entry points",
+        "xpert": "Assistant",
+        "external_api": "External API",
+        "agent_runtime": "Managed Agent",
+        "cli": "CLI"
+      },
+      "ExecutionEnvironment": {
+        "all": "All environments",
+        "computer": "Computer",
+        "sandbox": "Sandbox",
+        "remote": "Remote"
+      },
+      "ExecutionAssistant": "Assistant ID",
+      "ExecutionTool": "Coding tool",
+      "ExportCurrentUsagePage": "Export current usage page",
       "ModelsLoadFailed": "Unable to load models. Check the model provider configuration and try again.",
       "ModelsLoading": "Loading models…",
       "AICopilot": "Model Providers",
@@ -3665,6 +3774,10 @@
       "Pricing": "Pricing"
     },
     "Membership": {
+      "ConsumedPointsHint": "Current-cycle model consumption, including unlimited and unbilled use. Only priced usage is included.",
+      "QuotaPointUsage": "Plan quota used",
+      "RecentDebitSummary": "Recent point deductions",
+      "RecentDebitSummaryHint": "Balance deductions only; unbilled model consumption is included in used points above.",
       "AdminTitle": "Membership management",
       "Level": "Level",
       "LevelValidation": "Level must be a non-negative integer.",
@@ -3979,6 +4092,7 @@
       },
       "ModelType": "Model type",
       "ModelTypeValue": {
+        "realtime": "Realtime voice",
         "llm": "LLM",
         "text-embedding": "Text embedding",
         "rerank": "Rerank",

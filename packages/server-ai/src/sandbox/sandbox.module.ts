@@ -1,3 +1,4 @@
+import { SandboxTerminalAuthGuard } from './sandbox-terminal-auth.guard'
 import { FileActivityStorage } from './middlewares/file-activity-storage.service'
 import { SandboxToolsCapabilityProvider } from '../xpert-template/capabilities/builtin-capabilities'
 import { TenantModule } from '@xpert-ai/server-core'
@@ -72,6 +73,7 @@ const LOCAL_BROWSER_RUNTIME_PROVIDERS = isDevelopmentSandboxRuntimeEnvironment()
         ...LOCAL_BROWSER_RUNTIME_PROVIDERS,
         SandboxConversationContextService,
         SandboxTerminalGateway,
+        SandboxTerminalAuthGuard,
         SandboxRuntimeDefinitionRegistry,
         SandboxRuntimeBindingSelector,
         SandboxRuntimeHealthService,

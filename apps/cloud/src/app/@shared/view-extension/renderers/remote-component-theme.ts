@@ -34,6 +34,8 @@ export function createRemoteTheme(document: Document, mode: RemoteComponentTheme
   return {
     mode,
     tokens: {
+      // A root scale, separate from the semantic xs/sm/md/lg text sizes.
+      fontSize: readThemeValue(rootStyle, '--workbench-extension-font-size', rootStyle?.fontSize || '14px'),
       fontFamily:
         readThemeValue(rootStyle, '--font-sans') ||
         bodyStyle?.fontFamily ||
@@ -73,8 +75,9 @@ export function createRemoteTheme(document: Document, mode: RemoteComponentTheme
       colorChart3: readThemeColor(document, rootStyle, '--chart-3', primary),
       colorChart4: readThemeColor(document, rootStyle, '--chart-4', destructive),
       colorChart5: readThemeColor(document, rootStyle, '--chart-5', accentForeground),
-      radiusSm: `calc(${radius} - 4px)`,
-      radiusMd: `calc(${radius} - 2px)`,
+      densityRootFontSize: rootStyle?.fontSize || '16px',
+      radiusSm: `max(0px, calc(${radius} - 4px))`,
+      radiusMd: `max(0px, calc(${radius} - 2px))`,
       radiusLg: radius,
       fontSizeXs: readThemeValue(rootStyle, '--workbench-extension-font-size-xs', '0.75rem'),
       fontSizeSm: readThemeValue(rootStyle, '--workbench-extension-font-size-sm', '0.8125rem'),

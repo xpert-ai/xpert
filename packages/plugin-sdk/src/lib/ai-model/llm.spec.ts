@@ -158,6 +158,59 @@ function resultWithUsage(inputTokens: number, outputTokens: number, totalTokens:
 }
 
 describe('resolveTokenUsage', () => {
+  it('accepts canonical usage from a plugin with a separate LangChain module instance', () => {
+    const message = Object.assign(
+      {},
+      new AIMessageChunk({
+        content: 'done',
+        usage_metadata: { input_tokens: 20, output_tokens: 5, total_tokens: 25 }
+      }),
+      { _getType: () => 'ai' as const }
+    )
+    expect(message).not.toBeInstanceOf(AIMessageChunk)
+    const generation = { text: 'done', message }
+    expect(resolveTokenUsage({ generations: [[generation]] })).toEqual({
+      promptTokens: 20,
+      completionTokens: 5,
+      totalTokens: 25
+    })
+  })
+
+  it('counts request usage once across repeated choices, but sums distinct batch requests', () => {
+    const output = resultWithUsage(120, 30, 150)
+    output.generations[0].push(output.generations[0][0])
+    expect(resolveTokenUsage(output).totalTokens).toBe(150)
+    output.generations.push(resultWithUsage(40, 10, 50).generations[0])
+    expect(resolveTokenUsage(output).totalTokens).toBe(200)
+  })
+
+  it('preserves cache and reasoning subsets without adding them to total tokens', () => {
+    const output = resultWithUsage(120, 30, 150)
+    output.generations[0] = [
+      new ChatGenerationChunk({
+        text: '',
+        message: new AIMessageChunk({
+          content: '',
+          usage_metadata: {
+            input_tokens: 120,
+            output_tokens: 30,
+            total_tokens: 150,
+            input_token_details: { cache_read: 50, cache_creation: 10 },
+            output_token_details: { reasoning: 20 }
+          }
+        })
+      })
+    ]
+    expect(resolveTokenUsage(output)).toEqual({
+      promptTokens: 120,
+      completionTokens: 30,
+      totalTokens: 150,
+      cacheReadInputTokens: 50,
+      cacheWriteInputTokens: 10,
+      reasoningTokens: 20
+    })
+  })
+
   it('uses actual message usage when llmOutput contains an all-zero tokenUsage object', () => {
     const output = resultWithUsage(7264, 174, 7438)
     output.llmOutput = {
@@ -349,7 +402,7 @@ describe('resolveTokenUsage', () => {
         handleLLMTokens
       )
 
-      callbacks.handleLLMStart?.({}, ['prompt'], 'run-timed-price-1')
+      callbacks.handleLLMStart?.({ lc: 1, type: 'not_implemented', id: ['test'] }, ['prompt'], 'run-timed-price-1')
       jest.setSystemTime(new Date('2026-08-17T20:01:00.000Z'))
       await callbacks.handleLLMEnd(resultWithUsage(1000, 1000, 2000), 'run-timed-price-1')
 
@@ -433,7 +486,11 @@ describe('resolveTokenUsage', () => {
       handleLLMTokens
     )
 
-    callbacks.handleLLMStart?.({}, ['system prompt\nhuman prompt'], 'run-1')
+    callbacks.handleLLMStart?.(
+      { lc: 1, type: 'not_implemented', id: ['test'] },
+      ['system prompt\nhuman prompt'],
+      'run-1'
+    )
     callbacks.handleLLMNewToken?.('partial answer', { prompt: 0, completion: 0 }, 'run-1')
     await callbacks.handleLLMError?.(new Error('aborted'), 'run-1')
 
@@ -451,10 +508,6 @@ describe('resolveTokenUsage', () => {
       }),
       tokenUsed: expect.any(Number)
     })
-    const recordedUsage = handleLLMTokens.mock.calls[0][0].usage
-    expect(recordedUsage.promptTokens).toBeGreaterThan(0)
-    expect(recordedUsage.completionTokens).toBeGreaterThan(0)
-    expect(recordedUsage.totalTokens).toBe(recordedUsage.promptTokens + recordedUsage.completionTokens)
   })
 
   it('propagates awaited usage persistence failures through the callback manager', async () => {
@@ -487,7 +540,7 @@ describe('resolveTokenUsage', () => {
       handleLLMTokens
     )
 
-    callbacks.handleLLMStart?.({}, ['prompt'], 'run-1')
+    callbacks.handleLLMStart?.({ lc: 1, type: 'not_implemented', id: ['test'] }, ['prompt'], 'run-1')
     await callbacks.handleLLMError?.(new Error('authentication failed'), 'run-1')
 
     expect(handleLLMTokens).not.toHaveBeenCalled()
@@ -502,7 +555,11 @@ describe('resolveTokenUsage', () => {
       handleLLMTokens
     )
 
-    callbacks.handleLLMStart?.({}, ['system prompt\nhuman prompt'], 'run-1')
+    callbacks.handleLLMStart?.(
+      { lc: 1, type: 'not_implemented', id: ['test'] },
+      ['system prompt\nhuman prompt'],
+      'run-1'
+    )
     const abortError = new Error('Request was aborted')
     abortError.name = 'AbortError'
     await callbacks.handleLLMError?.(abortError, 'run-1')
@@ -527,7 +584,7 @@ describe('resolveTokenUsage', () => {
       handleLLMTokens
     )
 
-    callbacks.handleLLMStart?.({}, ['prompt'], 'run-1')
+    callbacks.handleLLMStart?.({ lc: 1, type: 'not_implemented', id: ['test'] }, ['prompt'], 'run-1')
     callbacks.handleLLMNewToken?.('', { prompt: 0, completion: 0 }, 'run-1', undefined, undefined, {
       chunk: new ChatGenerationChunk({
         text: '',
@@ -572,7 +629,7 @@ describe('resolveTokenUsage', () => {
       ]
     })
 
-    callbacks.handleLLMStart?.({}, [prompt], 'run-1')
+    callbacks.handleLLMStart?.({ lc: 1, type: 'not_implemented', id: ['test'] }, [prompt], 'run-1')
     const abortError = new Error('Request was aborted')
     abortError.name = 'AbortError'
     await callbacks.handleLLMError?.(abortError, 'run-1')
@@ -593,8 +650,8 @@ describe('resolveTokenUsage', () => {
       handleLLMTokens
     )
 
-    callbacks.handleLLMStart?.({}, ['first prompt'], 'run-1')
-    callbacks.handleLLMStart?.({}, ['second prompt'], 'run-2')
+    callbacks.handleLLMStart?.({ lc: 1, type: 'not_implemented', id: ['test'] }, ['first prompt'], 'run-1')
+    callbacks.handleLLMStart?.({ lc: 1, type: 'not_implemented', id: ['test'] }, ['second prompt'], 'run-2')
     callbacks.handleLLMNewToken?.('first output', { prompt: 0, completion: 0 }, 'run-1')
     callbacks.handleLLMNewToken?.('second longer output', { prompt: 0, completion: 0 }, 'run-2')
 

@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from 'react'
-import { Bot, GitBranch, MessageSquare, CalendarClock } from 'lucide-react'
+import { GitBranch, MessageSquare, CalendarClock } from 'lucide-react'
 import { cn } from '@xpert-ai/shadcn-ui'
 import type { Graph, Node } from './bridge'
 import type { Fields } from './toolbar'
@@ -8,6 +8,8 @@ import { type Texts, dateTime } from './i18n'
 import { Status, TaskName } from './ui'
 import { ColumnHeader, type Column, type TaskColumns } from './columns'
 import { Assignee } from './assignee'
+import { TaskTypeIcon } from './task-type-icon'
+import { useDragScroll } from './drag-scroll'
 
 // Keep virtual offsets, dependency paths and rendered row heights in sync.
 export const TASK_ROW_HEIGHT = 40
@@ -77,6 +79,7 @@ export function TaskTable({
     onError
 }: ViewProps) {
     const virtual = useVirtualRows(rows.length)
+    useDragScroll(virtual.ref)
     const visibleColumns: Column[] = [
         'name',
         ...(['status', 'assignee', 'attempts', 'dates'] as const).filter((key) => fields[key])
@@ -87,13 +90,16 @@ export function TaskTable({
         <div
             ref={virtual.ref}
             onScroll={virtual.onScroll}
-            className="min-h-0 min-w-0 flex-1 overflow-auto"
+            className="min-h-0 min-w-0 flex-1 overflow-auto cursor-grab data-[panning=true]:cursor-grabbing data-[panning=true]:select-none"
+            data-task-scroll="table"
+            title={t.panHint}
             role="region"
             aria-label={t.title}
         >
             <div role="table" aria-rowcount={rows.length + 1} style={{ minWidth }}>
                 <div
                     role="row"
+                    data-scroll-pan-ignore=""
                     className="sticky top-0 z-20 grid items-center border-b bg-muted/50 text-xs font-medium text-muted-foreground backdrop-blur"
                     style={{ gridTemplateColumns: grid, height: TASK_HEADER_HEIGHT }}
                 >
@@ -129,11 +135,18 @@ export function TaskTable({
                             style={{ gridTemplateColumns: grid, height: TASK_ROW_HEIGHT }}
                         >
                             <div role="cell" className="min-w-0 px-3">
-                                <TaskName row={row} select={select} collapsed={collapsed} toggle={toggle} t={t} />
+                                <TaskName
+                                    row={row}
+                                    select={select}
+                                    collapsed={collapsed}
+                                    toggle={toggle}
+                                    t={t}
+                                    locale={locale}
+                                />
                             </div>
                             {fields.status && (
                                 <div role="cell" className="overflow-hidden px-3">
-                                    <Status value={row.task.status} t={t} />
+                                    <Status value={row.task.status} progress={row.task.progress} t={t} />
                                 </div>
                             )}
                             {fields.assignee && (
@@ -174,7 +187,8 @@ export function TaskBoard({
     selected,
     select,
     t,
-    locale
+    locale,
+    onError
 }: {
     graph: Graph
     tasks: Node[]
@@ -182,6 +196,7 @@ export function TaskBoard({
     select: (task: Node) => void
     t: Texts
     locale: string
+    onError: (message: string) => void
 }) {
     const visibleStatuses = statuses.filter(
         (status) =>
@@ -200,27 +215,42 @@ export function TaskBoard({
                             </span>
                         </header>
                         {items.map((task) => (
-                            <button
+                            <article
                                 key={task.id}
-                                onClick={() => select(task)}
+                                aria-label={task.title}
                                 className={cn(
-                                    'space-y-2 rounded-lg border bg-background p-3 text-left shadow-xs transition-colors hover:border-primary/50 focus-visible:outline-ring',
+                                    'space-y-2 rounded-lg border bg-background p-3 text-left shadow-xs transition-colors hover:border-primary/50',
                                     selected === task.id && 'border-primary ring-1 ring-primary/20'
                                 )}
                             >
-                                <div className="text-xs text-muted-foreground">
-                                    {t[task.kind]}
-                                    {task.parentTaskId && (
-                                        <span className="ml-2">
-                                            / {graph.tasks.find((item) => item.id === task.parentTaskId)?.title}
-                                        </span>
-                                    )}
-                                </div>
-                                <p className="text-sm font-medium leading-5">{task.title}</p>
-                                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                                    <Bot className="size-3.5" />
-                                    <span className="truncate">{owner(task, t.unassigned, t.unnamedAssistant)}</span>
-                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => select(task)}
+                                    aria-label={task.title}
+                                    className="block w-full space-y-2 rounded text-left hover:underline focus-visible:outline-ring"
+                                >
+                                    <span className="block text-xs text-muted-foreground">
+                                        {t[task.kind]}
+                                        {task.parentTaskId && (
+                                            <span className="ml-2">
+                                                / {graph.tasks.find((item) => item.id === task.parentTaskId)?.title}
+                                            </span>
+                                        )}
+                                    </span>
+                                    <span className="flex items-start gap-2 text-sm font-medium leading-5">
+                                        <TaskTypeIcon task={task} locale={locale} fallbackLabel={t[task.kind]} />
+                                        <span className="min-w-0 break-words">{task.title}</span>
+                                    </span>
+                                </button>
+                                <Assignee
+                                    task={task}
+                                    attempts={graph.executions.filter((item) => item.taskId === task.id)}
+                                    t={t}
+                                    locale={locale}
+                                    onError={onError}
+                                    className="px-0"
+                                />
+                                {task.progress != null && <Status value={task.status} progress={task.progress} t={t} />}
                                 <div className="flex items-center gap-3 border-t pt-2 text-xs text-muted-foreground">
                                     <span className="flex items-center gap-1">
                                         <GitBranch className="size-3.5" />
@@ -235,7 +265,7 @@ export function TaskBoard({
                                         {task.plannedStartAt ? dateTime(task.plannedStartAt, locale, true) : t.unknown}
                                     </span>
                                 </div>
-                            </button>
+                            </article>
                         ))}
                         {!items.length && (
                             <p className="rounded-lg border border-dashed p-6 text-center text-xs text-muted-foreground">

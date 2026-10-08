@@ -1,5 +1,6 @@
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IUser } from '../user.model'
+import type { BosiOnboardingPreferences } from './bosi.model'
 
 export enum AssistantCode {
   CHAT_COMMON = 'chat_common',
@@ -372,6 +373,8 @@ export function ensureAssistantBindingSkillWorkspacePreference(
 }
 
 export interface IAssistantBinding extends IBasePerTenantAndOrganizationEntityModel {
+  /** Defaults for the binding owner's private workspace, not organization-wide installation or access grants. */
+  desktopOnboarding?: BosiOnboardingPreferences | null
   code: AssistantCode
   scope: AssistantBindingScope
   assistantId?: string | null

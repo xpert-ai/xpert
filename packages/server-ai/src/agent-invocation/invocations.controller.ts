@@ -47,7 +47,11 @@ export class AgentInvocationsController {
             throw invocationError('NotFound')
         }
         const entity = await this.records.findOneBy({ id, ownerId, tenantId, organizationId })
-        if (!entity || !entity.invocation.scope.callerXpertId) throw invocationError('NotFound')
+        if (
+            !entity ||
+            (!entity.invocation.scope.callerXpertId && entity.invocation.scope.callerType !== 'project_agent')
+        )
+            throw invocationError('NotFound')
         const scope = entity.invocation.scope
         if (
             entity.invocation.id !== id ||
@@ -60,16 +64,6 @@ export class AgentInvocationsController {
     }
     private api(entity: AgentInvocationEntity) {
         const scope = entity.invocation.scope
-        return this.factory.createScopedApi({
-            tenantId: scope.tenantId,
-            organizationId: scope.organizationId,
-            userId: scope.userId,
-            workspaceId: scope.workspaceId,
-            projectId: scope.projectId,
-            conversationId: scope.conversationId,
-            executionId: scope.parentExecutionId,
-            agentKey: scope.callerAgentKey,
-            xpertId: scope.callerXpertId
-        })
+        return this.factory.createCapturedApi(scope)
     }
 }

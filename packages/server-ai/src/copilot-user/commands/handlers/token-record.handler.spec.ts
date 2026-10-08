@@ -10,6 +10,76 @@ import { CopilotTokenRecordCommand } from '../token-record.command'
 import { CopilotTokenRecordHandler } from './token-record.handler'
 
 describe('CopilotTokenRecordHandler', () => {
+    it.each(['original-org', null])(
+        'pins both the ledger and quota delivery to the executed provider (%s)',
+        async (providerOrganizationId) => {
+            const copilot = {
+                id: 'copilot-1',
+                organizationId: 'changed-org',
+                tokenBalance: 1000,
+                modelProvider: { id: 'changed-provider', providerName: 'changed' }
+            }
+            const queryBus = { execute: jest.fn().mockResolvedValue(copilot) }
+            const modelAccessService = { assertCanUseModel: jest.fn() }
+            const copilotUsageService = { recordTokenUsage: jest.fn().mockResolvedValue({ recorded: true }) }
+            const tokenUsageDeliveryService = {
+                deliver: jest.fn().mockResolvedValue({
+                    userTokenLimitExceeded: false,
+                    organizationTokenLimitExceeded: false
+                })
+            }
+            const handler = new CopilotTokenRecordHandler(
+                queryBus as never,
+                modelAccessService as never,
+                copilotUsageService as never,
+                tokenUsageDeliveryService as never,
+                { t: jest.fn().mockResolvedValue('limit exceeded') } as never
+            )
+            await handler.execute(
+                new CopilotTokenRecordCommand({
+                    tenantId: 'tenant-1',
+                    requestId: 'attempt-1',
+                    organizationId: 'runtime-org',
+                    userId: 'creator-user',
+                    copilotId: copilot.id,
+                    model: 'executed-model',
+                    modelType: AiModelTypeEnum.LLM,
+                    tokenUsed: 100,
+                    modelAccess: grantResolution(),
+                    executionModel: {
+                        id: 'alias',
+                        copilotId: copilot.id,
+                        providerScopeId: 'original-provider',
+                        providerOrganizationId,
+                        provider: 'original',
+                        model: 'executed-model',
+                        modelType: AiModelTypeEnum.LLM,
+                        capabilities: [],
+                        protocols: ['openai_chat']
+                    }
+                })
+            )
+            expect(copilotUsageService.recordTokenUsage).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    providerScopeId: 'original-provider',
+                    provider: 'original',
+                    copilotOrganizationId: providerOrganizationId
+                }),
+                expect.any(Object)
+            )
+            expect(tokenUsageDeliveryService.deliver).toHaveBeenCalledWith(
+                expect.any(Object),
+                expect.objectContaining({
+                    id: copilot.id,
+                    organizationId: providerOrganizationId,
+                    tokenBalance: 1000,
+                    modelProvider: { id: 'original-provider', providerName: 'original' }
+                }),
+                'creator-user'
+            )
+        }
+    )
+
     function grantResolution(overrides: Partial<IModelAccessResolution> = {}): IModelAccessResolution {
         return {
             allowed: true,

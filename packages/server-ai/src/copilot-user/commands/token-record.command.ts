@@ -1,5 +1,8 @@
 import {
     AiModelTypeEnum,
+    ModelExecutionUsageContext,
+    ModelExecutionModel,
+    TTokenUsage,
     ICopilot,
     IModelAccessResolution,
     LLMPriceAuthority,
@@ -13,6 +16,9 @@ export class CopilotTokenRecordCommand implements ICommand {
 
     constructor(
         public readonly input: {
+            execution?: ModelExecutionUsageContext
+            executionModel?: ModelExecutionModel
+            tokenDetails?: Pick<TTokenUsage, 'cacheReadInputTokens' | 'cacheWriteInputTokens' | 'reasoningTokens'>
             tenantId: string
             requestId: string
             organizationId?: string

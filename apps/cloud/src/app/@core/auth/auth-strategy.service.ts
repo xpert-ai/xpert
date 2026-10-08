@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http'
+import { HttpClient, HttpContext } from '@angular/common/http'
 import { Injectable, signal } from '@angular/core'
 import { ActivatedRoute } from '@angular/router'
 import { XpAuthResult, XpAuthStrategy, XpAuthStrategyClass } from '@cloud/app/auth'
@@ -6,9 +6,10 @@ import { AuthService } from '@cloud/app/@core/state'
 import { IAuthResponse, ITag, ITenant, IUser, IUserLoginInput } from '@xpert-ai/contracts'
 import { CookieService } from 'ngx-cookie-service'
 import { Observable, firstValueFrom, from, of } from 'rxjs'
-import { catchError, map, shareReplay, tap } from 'rxjs/operators'
+import { catchError, map, shareReplay, tap, timeout } from 'rxjs/operators'
 import { Store } from '../services/store.service'
 import { ARTIFACT_SHARE_SESSION_HTTP_OPTIONS, artifactShareSessionUrl } from '../../artifacts/artifact-share-session'
+import { SKIP_AUTH_REFRESH } from './http-context'
 
 @Injectable()
 export class AuthStrategy extends XpAuthStrategy {
@@ -281,8 +282,15 @@ export class AuthStrategy extends XpAuthStrategy {
   }
 
   private async _logout(): Promise<XpAuthResult> {
+    // Execution grants follow the CLI/task lifecycle, independently of browser login.
+    const context = new HttpContext().set(SKIP_AUTH_REFRESH, true)
     try {
-      await firstValueFrom(this.http.delete(artifactShareSessionUrl(), ARTIFACT_SHARE_SESSION_HTTP_OPTIONS))
+      // Use the current identity for cleanup; never refresh it or wait indefinitely during logout.
+      await firstValueFrom(
+        this.http
+          .delete(artifactShareSessionUrl(), { ...ARTIFACT_SHARE_SESSION_HTTP_OPTIONS, context })
+          .pipe(timeout(5000))
+      )
     } catch {
       // Logout must still clear local authentication if the API is offline.
     }

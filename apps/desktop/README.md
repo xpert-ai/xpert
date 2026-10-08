@@ -22,26 +22,31 @@ The desktop uses an amber primary color (`#f59e0b`) with a 12px radius token
 its native `soft` radius preset; coverage inside the hosted frame depends on ChatKit.
 Both light and dark appearance modes use this theme.
 
-Use **用户菜单 → 连接与外观 → 外观** to customize the theme. Desktop options include
+Use **用户菜单 → 设置 → 桌面外观** to customize the theme. Desktop options include
 27 semantic color tokens (independent light/dark palettes), base font size, local
 font families, 0–24px radius and assistant-list density. Appearance mode,
 density and palette selection use accessible icon toggle groups; remaining
-dropdowns use shadcn Select. The settings dialog scrolls along its outer right
-edge, with a sticky header and footer. ChatKit options include its
+dropdowns use shadcn Select. Settings occupies the full window. The sidebar groups **General**, **Desktop appearance** and
+**Chat appearance** under **Basic settings**, and **Service connection** and **Local terminal**
+under **Connections & capabilities**. Search filters these destinations by their labels and settings.
+The main content scrolls independently while the back button and save bar stay visible. ChatKit options include its
 native radius/density presets, 14–18px base font size, text/code font families,
 accent color/level, grayscale hue/tint/shade and light/dark surface colors.
 Blank ChatKit accent/font fields inherit the desktop values; other blank colors
 use their defaults. Fonts must already be installed; this UI does not load font URLs.
 
-Changes preview immediately. Cancel, Escape or closing the dialog restores the
-saved theme; **保存设置** persists appearance with the local connection config without
-logging out or remounting the conversation. **恢复默认外观** resets custom variables
-in the draft while retaining the selected light/dark/system mode and service URLs.
+Changes preview immediately. **取消更改** restores the saved values; **保存设置**
+persists them and keeps Settings open. **返回工作区** returns to the same assistant
+and conversation, with a discard prompt if edits are unsaved. The workspace remains
+mounted while Settings is visible. The login screen opens **Service connection**
+and uses **返回登录**. Terminal settings retain their separate **Apply Shell settings**
+action; navigation preserves terminal drafts, and Cancel also resets those drafts. **恢复默认外观** resets custom variables
+for the current desktop/chat section in the draft, retaining the selected light/dark/system mode and service URLs.
 The host validates values and upgrades older configs with defaults. ChatKit only
 applies variables consumed by its hosted version; fixed component styles are not
 overridden by the desktop client.
 
-For a trusted self-signed/private deployment, open **连接与外观 → 连接** and enable
+For a trusted self-signed/private deployment, open **设置 → 服务连接** and enable
 **允许不受信任的服务证书**. This is off by default, saved locally, and applies only
 to the configured API, web and ChatKit HTTPS hostnames, across their paths and ports.
 Other hosts still use normal certificate verification. The API and embedded
@@ -111,7 +116,7 @@ preview server clears it. The development bridge is not part of the packaged app
 
 ## Connect to Xpert
 
-Open **连接设置** on the login screen, or **用户菜单 → 连接与外观 → 连接**:
+Open **连接设置** on the login screen, or **用户菜单 → 设置 → 服务连接**:
 
 | Setting       | Default                          |
 | ------------- | -------------------------------- |
@@ -182,6 +187,10 @@ corepack pnpm --filter @xpert-ai/desktop dev
 ```
 
 ### Sign in and discover assistants
+
+New users can choose **Create account** on the sign-in screen. Registration opens
+`auth/register` under the configured Web URL in the system browser; after completing
+the platform's registration and verification flow, return to Desktop to sign in.
 
 Use the existing Xpert email and password to sign in. The application then loads
 the user's organizations and accessible published Agents from the existing
@@ -255,8 +264,7 @@ must ship the updated ChatKit frame assets, not just the desktop executable.
 The native macOS app can execute commands for an authorized server Assistant.
 Enable **Desktop Shell** middleware in the Assistant. Bosi connects when the
 Agent requests a local command and shows an approval card in the message. The
-default is **Ask for every command**; manage the scoped policy in **Connection &
-appearance → Desktop Shell**. See [setup, protocol and limits](docs/desktop-shell.md).
+default is **Ask for every command**; manage the scoped policy in **Settings → Local terminal**. See [setup, protocol and limits](docs/desktop-shell.md).
 
 ## Client boundary
 
@@ -274,6 +282,10 @@ appearance → Desktop Shell**. See [setup, protocol and limits](docs/desktop-sh
 - **Storage:** Electron `safeStorage` encrypts account tokens with the OS secret
   store. If OS encryption is unavailable, credentials remain in memory only.
   Passwords are never persisted. Changing any connection address clears login.
+  Startup decrypts saved tokens to restore the session, which can prompt for macOS
+  Keychain access. Reinstalling the app can retain its user-data directory and
+  therefore its session. Sign out to clear the saved tokens. Denying Keychain
+  access requires signing in again while retaining connection and language settings.
 - **Isolation:** sandboxed renderer, context isolation, Node integration off,
   sender-validated IPC, no generic filesystem/shell/request bridge. Web links open
   in the system browser. ChatKit receives short-lived session secrets via its SDK
@@ -323,9 +335,9 @@ remaining integration limits, and [design-qa.md](design-qa.md) for visual QA.
 
 ### Internationalization
 
-English (`en`) is the source language and the default for new and legacy configurations. The desktop includes Simplified Chinese (`zh-Hans`), Traditional Chinese (`zh-Hant`) and Japanese (`ja`); `jp`, `ja-JP`, `zh-CN` and `zh-TW` inputs normalize to the corresponding supported locale.
+New installations initialize from the first supported language in the operating system's preferred language list (the browser's language list in the development preview). English (`en`) remains the fallback and source language. Saved desktop language choices are retained before sign-in; legacy configurations without a valid language use the environment default. After sign-in, session restoration or profile refresh, the account's supported `preferredLanguage` takes precedence. Accounts without a supported language keep the desktop setting. The desktop includes Simplified Chinese (`zh-Hans`), Traditional Chinese (`zh-Hant`) and Japanese (`ja`); `jp`, `ja-JP`, `zh-CN` and `zh-TW` inputs normalize to the corresponding supported locale.
 
-Choose **User menu → Connection & appearance → Appearance → Language**. Changes preview immediately; Cancel restores the saved language and Save persists it locally. Changing only the language retains authentication, organization, selected assistant and the existing ChatKit element. Login, discovery, installation, tooltips, accessibility labels, form validation, host errors and native application menus use the shared resources in `electron/i18n/`. Native menu updates take effect on Save.
+Choose **User menu → Settings → General → Interface language**. Changes preview immediately; Cancel changes restores the saved language and Save persists it locally. This does not edit the platform account preference, which is reapplied on the next sign-in or profile refresh. Changing only the language retains authentication, organization, selected assistant and the existing ChatKit element. Login, discovery, installation, tooltips, accessibility labels, form validation, host errors and native application menus use the shared resources in `electron/i18n/`. Native menus update when the saved or account language changes.
 
 The renderer passes the selected locale to ChatKit and the host sends it in `Accept-Language`. Hosted ChatKit owns its translations: the currently tested local ChatKit UI bundle contains only `en-US` and `zh-CN`; Japanese falls back to English and Traditional Chinese resolves to Simplified Chinese in that version. Full ChatKit translations require a hosted ChatKit version with those resources. User-authored organization names, assistant names and plain descriptions are preserved. Structured marketplace translations, including JSON-serialized I18nObject descriptions, select the requested language with English fallback. Malformed JSON and ordinary JSON prose remain literal text.
 

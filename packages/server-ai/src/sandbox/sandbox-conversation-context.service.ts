@@ -1,17 +1,17 @@
 import { IChatConversation, IUser, SandboxTerminalErrorCode } from '@xpert-ai/contracts'
 import type { TSandboxConfigurable } from '@xpert-ai/contracts'
-import { resolveSandboxBackend } from '@xpert-ai/plugin-sdk'
+import { RequestContext, resolveSandboxBackend } from '@xpert-ai/plugin-sdk'
 import type { SandboxBackendProtocol } from '@xpert-ai/plugin-sdk'
 import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
-import { RequestContext } from '@xpert-ai/server-core'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { ChatConversation } from '../chat-conversation/conversation.entity'
 import type { VolumeScope, WorkspaceBinding } from '../shared'
 import { XpertWorkAreaResolver } from '../shared/volume/work-area'
 import { XpertProjectAccessService } from '../xpert-project/services/project-access.service'
-import { SandboxAcquireBackendCommand } from './commands'
+import { SandboxAcquireBackendCommand, SandboxFindBackendCommand } from './commands'
+import { resolveSandboxWorkFor } from './sandbox-work-for'
 import { t } from 'i18next'
 
 export type ResolvedConversationSandboxContext = {
@@ -30,6 +30,18 @@ export type ResolvedConversationSandboxContext = {
     workingDirectory: string
 }
 
+type ConversationSandboxParams = { actor?: IUser; conversationId: string; projectId?: string | null }
+export type AuthorizedConversationSandboxContext = Pick<
+    ResolvedConversationSandboxContext,
+    | 'conversation'
+    | 'conversationId'
+    | 'effectiveProjectId'
+    | 'effectiveSandboxEnvironmentId'
+    | 'provider'
+    | 'tenantId'
+    | 'userId'
+>
+
 @Injectable()
 export class SandboxConversationContextService {
     constructor(
@@ -40,11 +52,18 @@ export class SandboxConversationContextService {
         private readonly projectAccessService: XpertProjectAccessService
     ) {}
 
-    async resolveConversationSandbox(params: {
-        actor?: IUser
-        conversationId: string
-        projectId?: string | null
-    }): Promise<ResolvedConversationSandboxContext> {
+    async resolveConversationSandbox(params: ConversationSandboxParams): Promise<ResolvedConversationSandboxContext> {
+        return this.resolveSandbox(await this.authorizeConversation(params), true)
+    }
+
+    async findExistingSandbox(
+        context: AuthorizedConversationSandboxContext
+    ): Promise<ResolvedConversationSandboxContext | null> {
+        return this.resolveSandbox(context, false)
+    }
+
+    /** Preserve tenant, owner and Project checks without acquiring a runtime. */
+    async authorizeConversation(params: ConversationSandboxParams): Promise<AuthorizedConversationSandboxContext> {
         const conversationId = params.conversationId?.trim()
         if (!conversationId) {
             throw new ForbiddenException({
@@ -125,7 +144,39 @@ export class SandboxConversationContextService {
         if (!effectiveProjectId && !effectiveSandboxEnvironmentId && !conversation.xpertId) {
             throw new BadRequestException('Non-project conversations require xpertId for sandbox workspace access')
         }
-        const workArea = await this.workAreaResolver.resolve({
+        return {
+            conversation,
+            conversationId,
+            effectiveProjectId,
+            effectiveSandboxEnvironmentId,
+            provider,
+            tenantId,
+            userId
+        }
+    }
+
+    private resolveSandbox(
+        context: AuthorizedConversationSandboxContext,
+        create: true
+    ): Promise<ResolvedConversationSandboxContext>
+    private resolveSandbox(
+        context: AuthorizedConversationSandboxContext,
+        create: false
+    ): Promise<ResolvedConversationSandboxContext | null>
+    private async resolveSandbox(
+        context: AuthorizedConversationSandboxContext,
+        create: boolean
+    ): Promise<ResolvedConversationSandboxContext | null> {
+        const {
+            conversation,
+            conversationId,
+            effectiveProjectId,
+            effectiveSandboxEnvironmentId,
+            provider,
+            tenantId,
+            userId
+        } = context
+        const workAreaInput = {
             tenantId,
             userId,
             provider,
@@ -134,22 +185,27 @@ export class SandboxConversationContextService {
             conversationId,
             environmentId: effectiveSandboxEnvironmentId,
             workspaceDataScope: conversation.xpert?.workspaceDataScope
-        })
+        }
+        const workArea = create
+            ? await this.workAreaResolver.resolve(workAreaInput)
+            : await this.workAreaResolver.resolve(workAreaInput, { createDirectories: false })
 
-        const sandbox = await this.commandBus.execute(
-            new SandboxAcquireBackendCommand({
-                tenantId,
-                provider,
-                workingDirectory: workArea.workingDirectory,
-                workspaceBinding: workArea.workspaceBinding,
-                volumeScope: workArea.volumeScope,
-                workFor: effectiveProjectId
-                    ? { type: 'project', id: effectiveProjectId }
-                    : effectiveSandboxEnvironmentId
-                      ? { type: 'environment', id: effectiveSandboxEnvironmentId }
-                      : { type: 'user', id: userId }
+        const acquire = new SandboxAcquireBackendCommand({
+            tenantId,
+            provider,
+            workingDirectory: workArea.workingDirectory,
+            workspaceBinding: workArea.workspaceBinding,
+            volumeScope: workArea.volumeScope,
+            workFor: resolveSandboxWorkFor({
+                environmentId: effectiveSandboxEnvironmentId,
+                projectId: effectiveProjectId,
+                userId
             })
-        )
+        })
+        const sandbox = create
+            ? await this.commandBus.execute(acquire)
+            : await this.commandBus.execute(new SandboxFindBackendCommand(acquire.params))
+        if (!sandbox) return null
         const backend = resolveSandboxBackend(sandbox)
         if (!backend) {
             throw new ForbiddenException({

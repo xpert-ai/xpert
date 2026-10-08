@@ -5,7 +5,7 @@ export interface SidebarPreference {
   botId: string
   pinnedAt?: number | null
   unreadAt?: number | null
-  profile?: { name: string; description: string }
+  profile?: { name?: string; description: string }
   sectionId?: string | null
 }
 export interface SidebarState {

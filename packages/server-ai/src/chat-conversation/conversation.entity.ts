@@ -47,7 +47,10 @@ export class ChatConversation extends TenantOrganizationBaseEntity implements IC
     @IsJSON()
     @IsOptional()
     @Column({ type: 'json', nullable: true })
-    options?: TChatConversationOptions
+    options?: TChatConversationOptions & {
+        /** Server-only persisted marker; preserve explicit selections after Bosi defaults are first applied. */
+        bosiDefaultsApplied?: boolean
+    }
 
     @ApiPropertyOptional({ type: () => Object })
     @IsJSON()

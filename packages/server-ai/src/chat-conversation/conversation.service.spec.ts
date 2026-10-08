@@ -70,7 +70,7 @@ import { ChatConversationThreadService } from './conversation-thread.service'
 import { XpertProjectAccessService } from '../xpert-project/services/project-access.service'
 
 describe('ChatConversationService workspace files', () => {
-    let repository: { findOne: jest.Mock; query: jest.Mock }
+    let repository: { findOne: jest.Mock; query: jest.Mock; createQueryBuilder: jest.Mock }
     let readStateRepository: {
         create: jest.Mock
         findOne: jest.Mock
@@ -105,6 +105,64 @@ describe('ChatConversationService workspace files', () => {
         xpertId: string
     }
 
+    describe('readable family pagination', () => {
+        function builder() {
+            const query = {
+                where: jest.fn().mockReturnThis(),
+                andWhere: jest.fn().mockReturnThis(),
+                leftJoin: jest.fn().mockReturnThis(),
+                orderBy: jest.fn().mockReturnThis(),
+                addOrderBy: jest.fn().mockReturnThis(),
+                skip: jest.fn().mockReturnThis(),
+                take: jest.fn().mockReturnThis(),
+                getManyAndCount: jest.fn().mockResolvedValue([[], 0])
+            }
+            repository.createQueryBuilder.mockReturnValue(query)
+            return query
+        }
+        it('applies tenant, organization, family and project policy before pagination and count', async () => {
+            const query = builder()
+            await service.findReadableFamilyConversations(['published', 'previous'], 'project-1', 20, 10)
+            expect(projectAccessService.assertCanRead).toHaveBeenCalledWith('project-1')
+            expect(query.where).toHaveBeenCalledWith('conversation.tenantId = :tenantId', { tenantId: 'tenant-1' })
+            expect(query.andWhere).toHaveBeenCalledWith('conversation.organizationId = :organizationId', {
+                organizationId: 'org-1'
+            })
+            expect(query.andWhere).toHaveBeenCalledWith('conversation.xpertId IN (:...xpertIds)', {
+                xpertIds: ['published', 'previous']
+            })
+            expect(query.andWhere).toHaveBeenCalledWith('conversation.projectId = :projectId', {
+                projectId: 'project-1'
+            })
+            expect(query.leftJoin).not.toHaveBeenCalled()
+            expect(query.skip).toHaveBeenCalledWith(20)
+            expect(query.take).toHaveBeenCalledWith(10)
+            expect(query.getManyAndCount).toHaveBeenCalledTimes(1)
+        })
+        it('includes only owned or authorized technical-user conversations when unassigned', async () => {
+            const query = builder()
+            jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(undefined)
+            await service.findReadableFamilyConversations(['published'], null, 0, 3)
+            expect(projectAccessService.assertCanRead).not.toHaveBeenCalled()
+            expect(query.andWhere).toHaveBeenCalledWith('conversation.organizationId IS NULL', {
+                organizationId: undefined
+            })
+            expect(query.andWhere).toHaveBeenCalledWith('conversation.projectId IS NULL')
+            expect(query.andWhere).toHaveBeenCalledWith(
+                '(conversation.createdById = :actorId OR (xpert.createdById = :actorId AND xpert.userId = conversation.createdById))',
+                { actorId: 'user-1' }
+            )
+        })
+        it('does not enumerate or count a denied project', async () => {
+            const query = builder()
+            projectAccessService.assertCanRead.mockRejectedValue(new ForbiddenException())
+            await expect(service.findReadableFamilyConversations(['published'], 'denied', 0, 3)).rejects.toBeInstanceOf(
+                ForbiddenException
+            )
+            expect(query.getManyAndCount).not.toHaveBeenCalled()
+        })
+    })
+
     beforeEach(() => {
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
         jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
@@ -112,6 +170,7 @@ describe('ChatConversationService workspace files', () => {
 
         repository = {
             findOne: jest.fn(),
+            createQueryBuilder: jest.fn(),
             query: jest.fn()
         } as any
         readStateRepository = {

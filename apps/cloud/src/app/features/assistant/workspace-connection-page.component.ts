@@ -5,6 +5,7 @@ import { ActivatedRoute } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { Store, getErrorMessage } from '../../@core'
 import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { injectBosiConnectorConnect } from './bosi-connector-connect.runtime'
 import { injectWorkspaceConnectorConnect } from './workspace-connector-connect.runtime'
 
 @Component({
@@ -65,7 +66,7 @@ import { injectWorkspaceConnectorConnect } from './workspace-connector-connect.r
                       | translate: { Default: 'This connection link is incomplete. Open it again from Bosi.' }
                   }}
                 </p>
-              } @else if (!assistantId()) {
+              } @else if (!scopeId()) {
                 <p role="alert" class="text-sm leading-6 text-destructive">
                   {{
                     'XP.Desktop.ConnectionOrganizationMismatch'
@@ -86,7 +87,7 @@ import { injectWorkspaceConnectorConnect } from './workspace-connector-connect.r
                 <p role="status" class="text-sm font-medium text-primary">
                   {{ 'XP.Desktop.ConnectionOpening' | translate: { Default: 'Opening the service connection...' } }}
                 </p>
-              } @else if (assistantId() && validRequest()) {
+              } @else if (scopeId() && validRequest()) {
                 <button z-button zSize="lg" class="w-full" (click)="connect()">
                   {{ 'XP.Desktop.ConnectionContinue' | translate: { Default: 'Continue connecting' } }}
                   <z-icon zType="arrow-right" zSize="sm" aria-hidden="true" />
@@ -131,21 +132,34 @@ export class WorkspaceConnectionPageComponent {
       ? this.query().get('assistantId')
       : null
   )
+  readonly workspaceId = computed(() =>
+    this.organization() && this.organization() === this.query().get('organizationId')
+      ? this.query().get('workspaceId')
+      : null
+  )
+  readonly scopeId = computed(() => this.assistantId() || this.workspaceId())
   readonly bindingId = computed(() => this.query().get('bindingId'))
-  readonly validRequest = computed(() =>
-    ['organizationId', 'assistantId', 'bindingId'].every((key) =>
-      /^[a-zA-Z0-9_.:-]{1,200}$/.test(this.query().get(key) ?? '')
-    )
+  readonly validRequest = computed(
+    () =>
+      !!this.query().get('assistantId') !== !!this.query().get('workspaceId') &&
+      ['organizationId', this.query().get('assistantId') ? 'assistantId' : 'workspaceId', 'bindingId'].every((key) =>
+        /^[a-zA-Z0-9_.:-]{1,200}$/.test(this.query().get(key) ?? '')
+      )
   )
   readonly requestKey = computed(() =>
-    [this.organization(), this.query().get('organizationId'), this.query().get('assistantId'), this.bindingId()].join(
-      ':'
-    )
+    [
+      this.organization(),
+      this.query().get('organizationId'),
+      this.query().get('assistantId'),
+      this.query().get('workspaceId'),
+      this.bindingId()
+    ].join(':')
   )
   readonly openConnection = injectWorkspaceConnectorConnect(this.assistantId, {
     authorizationNavigation: 'current-tab',
     requestKey: this.requestKey
   })
+  readonly openBosiConnection = injectBosiConnectorConnect(this.workspaceId, this.requestKey)
   readonly busy = signal(false)
   readonly connected = signal(false)
   readonly error = signal('')
@@ -153,29 +167,31 @@ export class WorkspaceConnectionPageComponent {
   constructor() {
     effect(() => {
       this.requestKey()
-      const assistantId = this.assistantId()
+      const scopeId = this.scopeId()
       const bindingId = this.bindingId()
       const autostart = this.query().get('autostart') === '1'
       this.generation++
       this.connected.set(false)
       this.error.set('')
       this.busy.set(false)
-      if (autostart && this.validRequest() && assistantId && bindingId) untracked(() => void this.connect())
+      if (autostart && this.validRequest() && scopeId && bindingId) untracked(() => void this.connect())
     })
     inject(DestroyRef).onDestroy(() => {
       this.generation++
     })
   }
   async connect() {
-    const assistantId = this.assistantId()
+    const scopeId = this.scopeId()
     const bindingId = this.bindingId()
-    if (!this.validRequest() || !assistantId || !bindingId || this.busy()) return
+    if (!this.validRequest() || !scopeId || !bindingId || this.busy()) return
     const generation = this.generation
     this.busy.set(true)
     this.error.set('')
     try {
-      const result = await this.openConnection({ assistantId, bindingId })
-      if (generation === this.generation && this.assistantId() === assistantId && this.bindingId() === bindingId)
+      const result = this.workspaceId()
+        ? await this.openBosiConnection({ workspaceId: scopeId, bindingId })
+        : await this.openConnection({ assistantId: scopeId, bindingId })
+      if (generation === this.generation && this.scopeId() === scopeId && this.bindingId() === bindingId)
         this.connected.set(result.status === 'connected')
     } catch (error) {
       if (generation === this.generation) this.error.set(getErrorMessage(error))

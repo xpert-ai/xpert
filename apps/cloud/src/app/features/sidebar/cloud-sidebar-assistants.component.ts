@@ -1,7 +1,18 @@
 import { AssistantProfileDirective } from '@cloud/app/@shared/xpert/assistant-profile/assistant-profile.directive'
 import { CommonModule } from '@angular/common'
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
-import { ChangeDetectionStrategy, Component, NgZone, computed, effect, inject, input, signal } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  NgZone,
+  ViewContainerRef,
+  computed,
+  effect,
+  inject,
+  input,
+  signal
+} from '@angular/core'
+import { XpertSettingsService } from '../../@core/services/xpert-settings.service'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { NavigationEnd, Router } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
@@ -48,6 +59,7 @@ import {
   mergeConversations,
   orderAssistantXperts,
   readAssistantOrder,
+  readViewKey,
   viewKeysMatch,
   writeAssistantOrder
 } from './cloud-sidebar-assistants.utils'
@@ -157,6 +169,8 @@ export class CloudSidebarAssistantsComponent {
   readonly #store = inject(Store)
   readonly #viewExtensionApi = inject(ViewExtensionApiService, { optional: true })
   readonly #xpertAPI = inject(XpertAPIService)
+  readonly #settings = inject(XpertSettingsService)
+  readonly #viewContainerRef = inject(ViewContainerRef)
   readonly #clawXpertDefinition = getAssistantRegistryItem(AssistantCode.CLAWXPERT)
   readonly #unreadPoll$ = new Observable<void>((subscriber) =>
     this.#ngZone.runOutsideAngular(() => {
@@ -636,7 +650,7 @@ export class CloudSidebarAssistantsComponent {
       return
     }
 
-    void this.#router.navigate(['/xpert/x', xpertId, 'agents'])
+    void this.#settings.open(this.#viewContainerRef, xpertId)
   }
 
   openCreateDigitalExpert(event: Event) {
@@ -938,11 +952,6 @@ export class CloudSidebarAssistantsComponent {
   private hasXpertEditPermission() {
     return this.#store.hasPermission(AIPermissionsEnum.XPERT_EDIT as never)
   }
-}
-
-function readViewKey(router: Router) {
-  const viewKey = router.parseUrl(router.url).queryParamMap.get('view')?.trim()
-  return viewKey || null
 }
 
 function shouldShowAssistantMenuItem(manifest: XpertExtensionViewManifest) {

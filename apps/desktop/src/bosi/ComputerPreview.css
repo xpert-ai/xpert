@@ -1,0 +1,31 @@
+.bosi-preview-cursor {
+  transform-origin: top left;
+  transform: translate(72%, 26%);
+  animation: bosi-preview-pointer 12s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+@keyframes bosi-preview-pointer {
+  0%,
+  12%,
+  100% {
+    transform: translate(72%, 26%) rotate(-8deg);
+  }
+  28%,
+  38% {
+    transform: translate(43%, 53%) rotate(0deg);
+  }
+  52%,
+  62% {
+    transform: translate(58%, 65%) rotate(-5deg);
+  }
+  76%,
+  84% {
+    transform: translate(65%, 78%) rotate(0deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bosi-preview-cursor {
+    animation: none;
+  }
+}

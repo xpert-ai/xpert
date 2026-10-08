@@ -1,5 +1,24 @@
 # Project tasks implementation QA
 
+## Task detail Dialog and host typography — 2026-10-07
+
+- Replaced both the desktop inspector and narrow Sheet with the shared Dialog.
+  Existing detail tabs, execution data and plan editing stay in the same component.
+- Removed the bridge's hard-coded root font override. The HTML root now follows
+  the host's `densityRootFontSize` token, falling back to 14px when absent.
+- Browser preview verified centered layout, narrow 560px viewport, execution and
+  overview tabs, a 95-minute draft surviving resize, Escape/close confirmation,
+  keeping or discarding that draft, and focus returning to the originating task.
+- Computed root font was 14px without a host token and 18px with an 18px host
+  token. No browser error or warning was reported during these preview checks.
+- Production remote bundle build passed. The strict view TypeScript check still
+  reports errors in shared contracts, with no diagnostics in this remote view.
+- Synced the rebuilt assets into the running local API's build output. Its
+  authorized remote-component entry returned HTTP 200 with `Cache-Control:
+no-store`, and both JavaScript and CSS matched the rebuilt source assets.
+- This verification used fixture data; it did not start an Agent or change a real
+  project task. Working-directory behavior is unchanged.
+
 Date: 2026-09-29
 
 final result: passed

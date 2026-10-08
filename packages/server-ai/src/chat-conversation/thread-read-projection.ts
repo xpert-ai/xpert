@@ -1,5 +1,7 @@
 import { ChatMessage } from '../chat-message/chat-message.entity'
 import { ReadThreadInput } from './thread-reference.contract'
+import { isRuntimeChatMessage, TChatMessageEnvelope } from '@xpert-ai/contracts'
+import { readChatMessageEnvelope } from '../chat-message/message-envelope.schema'
 
 export const THREAD_PAGE_CHAR_LIMIT = 60000
 export const THREAD_PAGE_SCAN_LIMIT = 500
@@ -8,6 +10,7 @@ export const THREAD_PAGE_SCAN_LIMIT = 500
 export type ReadThreadMessage = {
     id: string
     role: string
+    messageEnvelope?: TChatMessageEnvelope
     createdAt: Date
     status?: string
     text: string
@@ -35,6 +38,7 @@ export function projectThreadTurns(messages: ChatMessage[], input: ReadThreadInp
     const turns: ReadThreadTurn[] = []
     let current: ReadThreadMessage[] = []
     for (const message of messages) {
+        if (isRuntimeChatMessage(message)) continue
         if (message.followUpStatus === 'pending' || message.followUpStatus === 'canceled') continue
         if (!['human', 'ai'].includes(message.role)) continue
         if (
@@ -63,6 +67,7 @@ export function projectThreadTurns(messages: ChatMessage[], input: ReadThreadInp
         const projected: ReadThreadMessage = {
             id: message.id,
             role: message.role,
+            messageEnvelope: readChatMessageEnvelope(message),
             createdAt: message.createdAt,
             status: message.status,
             ...clip(text)

@@ -1,5 +1,7 @@
 import type {
     AiModelTypeEnum,
+    TTokenUsage,
+    ModelExecutionUsageContext,
     IModelAccessResolution,
     LLMPriceAuthority,
     LLMPriceBreakdownItem,
@@ -23,6 +25,7 @@ export type CopilotModelUsageRecordingScope = {
 }
 
 export type CopilotTokenUsageRecordingScope = {
+    execution?: ModelExecutionUsageContext
     tenantId: string
     organizationId?: string | null
     copilotOrganizationId?: string | null
@@ -36,6 +39,7 @@ export type CopilotTokenUsageRecordingScope = {
 }
 
 export type CopilotTokenUsageReport = {
+    tokenDetails?: Pick<TTokenUsage, 'cacheReadInputTokens' | 'cacheWriteInputTokens' | 'reasoningTokens'>
     requestId: string
     model: string
     modelType: AiModelTypeEnum

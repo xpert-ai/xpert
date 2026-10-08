@@ -1,3 +1,4 @@
+import { CancelTaskWaitsCommand } from '../../../agent-invocation/task-wait-control'
 import { DesktopShellOperationService } from '../../../desktop-shell/desktop-shell-operation.service'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { CancelConversationCommand } from '../cancel-conversation.command'
@@ -78,7 +79,9 @@ export class CancelConversationHandler implements ICommandHandler<CancelConversa
 
         const executionIds = executionId
             ? [executionId]
-            : (Array.from(new Set(targetMessages.map((message) => message.executionId).filter(Boolean))) as string[])
+            : runtimeThread?.runControl?.executionId
+              ? [runtimeThread.runControl.executionId]
+              : (Array.from(new Set(targetMessages.map((message) => message.executionId).filter(Boolean))) as string[])
 
         if (!executionIds.length) {
             return { canceledExecutionIds: [] }
@@ -120,6 +123,12 @@ export class CancelConversationHandler implements ICommandHandler<CancelConversa
             runtimeThread && this.threadRunControl
                 ? await this.threadRunControl.cancel(runtimeThread.threadId, executionIds)
                 : true
+        await this.commandBus.execute(
+            new CancelTaskWaitsCommand(
+                executionIds,
+                canceledCurrentRun ? (runtimeThread?.threadId ?? threadId ?? conversation?.threadId) : undefined
+            )
+        )
         if (conversation && canceledCurrentRun) {
             if (!runtimeThread || runtimeThread.threadId === conversation.threadId) {
                 conversation.status = 'interrupted'

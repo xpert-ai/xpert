@@ -1,189 +1,296 @@
-import { ShellSettings } from './shell/ShellSettings'
-import { t, languages } from './i18n'
-import { useEffect, useRef, useState } from 'react'
-import {
-  Button,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger
-} from '@xpert-ai/shadcn-ui'
-import { LoaderCircle, RotateCcw, X } from 'lucide-react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { Button, Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@xpert-ai/shadcn-ui'
+import { Check, CircleAlert, LoaderCircle, RotateCcw } from 'lucide-react'
+import { t } from './i18n'
 import type { ConnectionConfig } from './types'
-import { ThemeSelect } from './ThemeFields'
-import { defaultAppearance } from './appearance-types'
+import { defaultAppearance, type ColorMode } from './appearance-types'
 import { AppearanceSettings } from './AppearanceSettings'
+import { ChatKitAppearance } from './ChatKitAppearance'
 import { ConnectionFields } from './ConnectionFields'
-import { ThemeIconToggle, appearanceModes } from './ThemeIconToggle'
+import { ShellSettings } from './shell/ShellSettings'
+import { GeneralSettings } from './settings/GeneralSettings'
+import { ThemeModeChoice } from './settings/ThemeModeChoice'
+import { SettingsSidebar } from './settings/SettingsSidebar'
+import { settingsItems, type SettingsSection } from './settings/sections'
+const UsageSettings = lazy(() =>
+  import('./usage/UsageSettings').then(({ UsageSettings }) => ({ default: UsageSettings }))
+)
+
+const withAppearance = (config: ConnectionConfig) => ({
+  ...config,
+  appearance: config.appearance ?? defaultAppearance()
+})
 
 export function ConnectionSettings({
   config,
-  open,
+  signedIn,
+  userName,
+  usageContext,
+  initialSection = 'general',
   onClose,
   onSave,
   onPreview
 }: {
   config: ConnectionConfig
-  open: boolean
+  signedIn: boolean
+  userName?: string
+  usageContext?: { key: string; organizationName?: string }
+  initialSection?: SettingsSection
   onClose: () => void
-  onSave: (config: ConnectionConfig) => Promise<void>
+  onSave: (config: ConnectionConfig) => Promise<ConnectionConfig>
   onPreview: (config: Pick<ConnectionConfig, 'theme' | 'appearance' | 'locale'>) => void
 }) {
-  const [draft, setDraft] = useState(() => ({ ...config, appearance: config.appearance ?? defaultAppearance() }))
-  const [tab, setTab] = useState('appearance')
+  const [saved, setSaved] = useState(() => withAppearance(config))
+  const [draft, setDraft] = useState(() => withAppearance(config))
+  const [section, setSection] = useState<SettingsSection>(initialSection)
+  const [query, setQuery] = useState('')
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
-  const scroller = useRef<HTMLFormElement>(null)
+  const [savedNotice, setSavedNotice] = useState(false)
+  const [confirmLeave, setConfirmLeave] = useState(false)
+  const [shellVisited, setShellVisited] = useState(initialSection === 'shell')
+  const [shellDirty, setShellDirty] = useState(false)
+  const [shellBusy, setShellBusy] = useState(false)
+  const [resetVersion, setResetVersion] = useState(0)
+  const [paletteMode, setPaletteMode] = useState<ColorMode>(() =>
+    config.theme === 'dark' || (config.theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches)
+      ? 'dark'
+      : 'light'
+  )
+  const scrollArea = useRef<HTMLDivElement>(null)
+  const heading = useRef<HTMLHeadingElement>(null)
+  const dirty = JSON.stringify(draft) !== JSON.stringify(saved)
+  const busy = pending || shellBusy
+  const unsaved = dirty || shellDirty
+  const current = settingsItems.find((item) => item.id === section)!
+
   useEffect(() => {
     onPreview({ theme: draft.theme, appearance: draft.appearance, locale: draft.locale })
   }, [draft.theme, draft.appearance, draft.locale, onPreview])
+  useEffect(() => {
+    scrollArea.current?.scrollTo({ top: 0 })
+    heading.current?.focus({ preventScroll: true })
+  }, [section])
+
+  const selectSection = (value: SettingsSection) => {
+    if (busy) return
+    if (value === 'shell') setShellVisited(true)
+    setSection(value)
+  }
+  const updateDraft = (next: ConnectionConfig) => {
+    setSavedNotice(false)
+    setDraft(withAppearance(next))
+  }
+  const discard = () => {
+    setDraft(structuredClone(saved))
+    setResetVersion((version) => version + 1)
+    setError('')
+    setSavedNotice(false)
+  }
+  const back = () => {
+    if (busy) return
+    if (unsaved) setConfirmLeave(true)
+    else onClose()
+  }
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(value) => {
-        if (!value && !pending) onClose()
-      }}
-    >
-      <DialogContent
-        className="block h-[min(760px,calc(100dvh-48px))] overflow-hidden rounded-xl p-0 sm:max-w-[760px]"
-        showCloseButton={false}
+    <div className="flex h-full min-h-0 bg-background">
+      <SettingsSidebar
+        section={section}
+        query={query}
+        pending={busy}
+        signedIn={signedIn}
+        userName={userName}
+        onQuery={setQuery}
+        onSection={selectSection}
+        onBack={back}
+      />
+      <form
+        aria-label={t('Settings')}
+        className="flex min-h-0 min-w-0 flex-1 flex-col"
+        onSubmit={async (event) => {
+          event.preventDefault()
+          if (busy || !dirty) return
+          setPending(true)
+          setError('')
+          try {
+            const next = withAppearance(await onSave(draft))
+            setSaved(next)
+            setDraft(next)
+            setSavedNotice(true)
+          } catch (error) {
+            setError(error instanceof Error ? error.message : t('Could not save settings.'))
+          } finally {
+            setPending(false)
+          }
+        }}
       >
-        <form
-          ref={scroller}
-          aria-label={t('Connection and appearance settings')}
-          className="h-full overflow-y-auto overscroll-contain scroll-pt-40 scroll-pb-24 [scrollbar-width:thin]"
-          onSubmit={async (event) => {
-            event.preventDefault()
-            if (pending) return
-            setPending(true)
-            setError('')
-            try {
-              await onSave(draft)
-              onClose()
-            } catch (error) {
-              setError(error instanceof Error ? error.message : t('Could not save settings.'))
-            } finally {
-              setPending(false)
-            }
-          }}
+        <div className="window-drag h-12 shrink-0" />
+        <div
+          ref={scrollArea}
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-gutter:stable] [scrollbar-width:thin]"
         >
-          <Tabs
-            value={tab}
-            onValueChange={(value) => {
-              setTab(value)
-              scroller.current?.scrollTo({ top: 0 })
-            }}
-            className="min-h-full gap-0"
-          >
-            <header className="sticky top-0 z-20 shrink-0 border-b bg-background px-6 pt-5 pb-3">
-              <DialogHeader className="pr-9 text-left">
-                <DialogTitle>{t('Connection & appearance')}</DialogTitle>
-                <DialogDescription>
-                  {t('Customize your desktop and chat. Preview changes live, then save to apply.')}
-                </DialogDescription>
-              </DialogHeader>
-              <Button
-                type="button"
-                size="icon"
-                variant="ghost"
-                aria-label={t('Close settings')}
-                className="absolute top-4 right-4 size-8 text-muted-foreground"
-                disabled={pending}
-                onClick={onClose}
+          <div className="mx-auto max-w-[1080px] px-7 pt-6 pb-10 lg:px-12 lg:pt-7 xl:px-16">
+            <header className="mb-8">
+              <h2
+                ref={heading}
+                tabIndex={-1}
+                className="text-2xl leading-tight font-semibold tracking-tight outline-none"
               >
-                <X className="size-4" />
-              </Button>
-              <TabsList aria-label={t('Settings sections')} variant="line" className="mt-4">
-                <TabsTrigger value="appearance" disabled={pending}>
-                  {t('Appearance')}
-                </TabsTrigger>
-                <TabsTrigger value="shell" disabled={pending}>
-                  {t('Desktop Shell')}
-                </TabsTrigger>
-                <TabsTrigger value="connection" disabled={pending}>
-                  {t('Connection')}
-                </TabsTrigger>
-              </TabsList>
+                {t(current.label)}
+              </h2>
+              <p className="mt-2 text-[0.8125rem] leading-5 text-muted-foreground">{t(current.description)}</p>
             </header>
-            <fieldset disabled={pending} className="min-w-0 flex-1 px-6 py-5">
-              <TabsContent value="appearance" className="space-y-5">
-                <div className="space-y-2">
-                  <ThemeSelect
-                    label={t('Language')}
-                    value={draft.locale}
-                    options={languages}
-                    onChange={(locale) => setDraft({ ...draft, locale })}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    {t('Choose your desktop language. ChatKit follows where supported.')}
-                  </p>
-                </div>
-                <ThemeIconToggle
-                  label={t('Appearance mode')}
-                  value={draft.theme}
-                  options={appearanceModes}
-                  onChange={(theme) => setDraft({ ...draft, theme })}
-                />
-                <AppearanceSettings
-                  value={draft.appearance}
-                  dark={
-                    draft.theme === 'dark' ||
-                    (draft.theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches)
+            <fieldset disabled={busy} className="min-w-0">
+              {section === 'usage' && (
+                <Suspense
+                  fallback={
+                    <p role="status" className="py-8 text-sm text-muted-foreground">
+                      {t('Loading usage…')}
+                    </p>
                   }
-                  onChange={(appearance) => setDraft({ ...draft, appearance })}
-                />
-              </TabsContent>
-              <TabsContent value="shell">
-                <ShellSettings />
-              </TabsContent>
-              <TabsContent value="connection">
-                <p className="mb-4 text-xs leading-5 text-muted-foreground">
-                  {t(
-                    'Changing service URLs requires signing in again. Appearance and language changes keep your session and chats.'
-                  )}
-                </p>
-                <ConnectionFields
-                  draft={draft}
-                  onChange={(next) => setDraft({ ...next, appearance: next.appearance ?? defaultAppearance() })}
-                />
-              </TabsContent>
-            </fieldset>
-            <footer className="sticky bottom-0 z-20 mt-auto shrink-0 space-y-3 border-t bg-background px-6 py-4">
-              {error && (
-                <p role="alert" className="text-sm text-destructive">
-                  {error}
-                </p>
+                >
+                  <UsageSettings
+                    key={usageContext?.key ?? 'signed-out'}
+                    signedIn={signedIn}
+                    organizationName={usageContext?.organizationName}
+                  />
+                </Suspense>
               )}
-              <div className="flex flex-wrap items-center justify-between gap-2">
+              {section === 'general' && (
+                <GeneralSettings
+                  draft={draft}
+                  onChange={updateDraft}
+                  onAppearance={() => selectSection('appearance')}
+                />
+              )}
+              {section === 'appearance' && (
+                <div className="space-y-10">
+                  <ThemeModeChoice
+                    value={draft.theme}
+                    appearance={draft.appearance}
+                    onChange={(theme) => updateDraft({ ...draft, theme })}
+                  />
+                  <fieldset className="min-w-0">
+                    <legend className="mb-6 text-lg font-semibold">{t('Desktop')}</legend>
+                    <AppearanceSettings
+                      value={draft.appearance}
+                      dark={
+                        draft.theme === 'dark' ||
+                        (draft.theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches)
+                      }
+                      onChange={(appearance) => updateDraft({ ...draft, appearance })}
+                    />
+                  </fieldset>
+                  <fieldset className="min-w-0 border-t pt-8">
+                    <legend className="pr-3 text-lg font-semibold">{t('Chat')}</legend>
+                    <ChatKitAppearance
+                      value={draft.appearance}
+                      mode={paletteMode}
+                      onMode={setPaletteMode}
+                      onChange={(appearance) => updateDraft({ ...draft, appearance })}
+                    />
+                  </fieldset>
+                </div>
+              )}
+              {section === 'connection' && (
+                <div className="space-y-6">
+                  <p className="text-[0.8125rem] leading-5 text-muted-foreground">
+                    {t(
+                      'Changing service URLs requires signing in again. Appearance and language changes keep your session and chats.'
+                    )}
+                  </p>
+                  <ConnectionFields draft={draft} onChange={updateDraft} />
+                </div>
+              )}
+            </fieldset>
+            {shellVisited && (
+              <div hidden={section !== 'shell'} inert={section !== 'shell'}>
+                <ShellSettings
+                  resetVersion={resetVersion}
+                  onDirtyChange={setShellDirty}
+                  onBusyChange={setShellBusy}
+                  disabled={pending}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+        {(section !== 'usage' || unsaved || error) && (
+          <footer className="shrink-0 border-t bg-background px-6 py-4 lg:px-8">
+            {error && (
+              <p role="alert" className="mb-3 text-sm text-destructive">
+                {error}
+              </p>
+            )}
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+              <div className="flex min-w-0 flex-wrap items-center gap-3">
+                {section === 'appearance' && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={busy}
+                    className="h-10 px-2 text-muted-foreground"
+                    onClick={() => {
+                      updateDraft({
+                        ...draft,
+                        appearance: defaultAppearance()
+                      })
+                    }}
+                  >
+                    <RotateCcw className="size-4" />
+                    {t('Reset appearance')}
+                  </Button>
+                )}
+                <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground">
+                  {unsaved ? (
+                    <CircleAlert className="size-4 shrink-0" />
+                  ) : savedNotice ? (
+                    <Check className="size-4 shrink-0" />
+                  ) : null}
+                  {shellDirty
+                    ? t('Apply terminal changes in this section.')
+                    : dirty
+                      ? t('Changes not saved')
+                      : savedNotice
+                        ? t('Settings saved')
+                        : t('No unsaved changes')}
+                </p>
+              </div>
+              <div className="ml-auto flex shrink-0 gap-3">
                 <Button
                   type="button"
-                  variant="ghost"
-                  disabled={pending}
-                  className={tab === 'appearance' ? '' : 'invisible'}
-                  onClick={() => setDraft({ ...draft, appearance: defaultAppearance() })}
+                  variant="outline"
+                  className="h-10 px-5 text-sm"
+                  disabled={busy || !unsaved}
+                  onClick={discard}
                 >
-                  <RotateCcw className="size-4" />
-                  {t('Reset appearance')}
+                  {t('Cancel changes')}
                 </Button>
-                <div className="flex gap-2">
-                  <Button type="button" variant="ghost" disabled={pending} onClick={onClose}>
-                    {t('Cancel')}
-                  </Button>
-                  <Button disabled={pending}>
-                    {pending && <LoaderCircle className="animate-spin" />}
-                    {t('Save settings')}
-                  </Button>
-                </div>
+                <Button type="submit" className="h-10 px-5 text-sm" disabled={busy || !dirty}>
+                  {pending && <LoaderCircle className="size-4 animate-spin" />}
+                  {t('Save settings')}
+                </Button>
               </div>
-            </footer>
-          </Tabs>
-        </form>
-      </DialogContent>
-    </Dialog>
+            </div>
+          </footer>
+        )}
+      </form>
+      <Dialog open={confirmLeave} onOpenChange={setConfirmLeave}>
+        <DialogContent className="sm:max-w-md" showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>{t('Discard unsaved changes?')}</DialogTitle>
+            <DialogDescription>{t('Your changes will be lost when you leave settings.')}</DialogDescription>
+          </DialogHeader>
+          <div className="mt-2 flex justify-end gap-3">
+            <Button type="button" variant="outline" className="h-10" onClick={() => setConfirmLeave(false)}>
+              {t('Keep editing')}
+            </Button>
+            <Button type="button" className="h-10" onClick={onClose}>
+              {t('Discard and go back')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
   )
 }

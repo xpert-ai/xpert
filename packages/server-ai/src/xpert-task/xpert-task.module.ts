@@ -5,6 +5,7 @@ import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { RouterModule } from '@nestjs/core'
 import { XpertTaskService } from './xpert-task.service'
+import { SchedulerDetailViewProvider } from './views/scheduler-detail.provider'
 import { XpertTaskController } from './xpert-task.controller'
 import { CommandHandlers } from './commands/handlers'
 import { XpertTask } from './xpert-task.entity'
@@ -48,7 +49,13 @@ import { ConnectorModule } from '../connector/connector.module'
         })
     ],
     controllers: [XpertTaskController],
-    providers: [XpertTaskService, TaskSchedulerProcessor, ...CommandHandlers, ...Strategies],
+    providers: [
+        SchedulerDetailViewProvider,
+        XpertTaskService,
+        TaskSchedulerProcessor,
+        ...CommandHandlers,
+        ...Strategies
+    ],
     exports: [XpertTaskService]
 })
 export class XpertTaskModule {}

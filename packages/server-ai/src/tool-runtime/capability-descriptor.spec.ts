@@ -1,5 +1,6 @@
 import type {
     McpPromptCapabilityDescriptor,
+    McpAppCapabilityDescriptor,
     McpResourceTemplateCapabilityDescriptor,
     McpToolCapabilityDescriptor
 } from '@xpert-ai/contracts'
@@ -171,4 +172,23 @@ describe('MCP capability descriptor compatibility', () => {
             reasons: ['prompt completion was removed']
         })
     })
+})
+
+it('validates and hashes localized App presentation and refresh declarations', () => {
+    const app: McpAppCapabilityDescriptor = {
+        descriptorVersion: 1,
+        capabilityType: 'app',
+        capabilityKey: 'settings',
+        entry: 'dist/app.html',
+        source: { toolsetId: 'tools', pluginName: '@xpert-ai/plugin-example' },
+        requiredContext: [],
+        visibility: ['app'],
+        title: { en_US: 'Settings', zh_Hans: '配置' },
+        refresh: { toolName: 'read_settings', arguments: { refresh: true } }
+    }
+    expect(() => assertValidMcpCapabilityDescriptor(app)).not.toThrow()
+    expect(hashMcpCapabilityDescriptor(app)).not.toBe(hashMcpCapabilityDescriptor({ ...app, refresh: undefined }))
+    expect(() => assertValidMcpCapabilityDescriptor({ ...app, refresh: { toolName: '' } })).toThrow(
+        'app refresh is invalid'
+    )
 })

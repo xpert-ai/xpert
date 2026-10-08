@@ -1,3 +1,6 @@
+import { isAgentInvocationTerminal, RequestContext } from '@xpert-ai/plugin-sdk'
+import { observeProjectTaskInvocations } from '../runtime/project-task-invocation-view'
+import { projectTaskRuntimeError } from '../runtime/project-task-runtime.errors'
 import {
     IXpertProjectTask,
     IXpertProjectTaskConversation,
@@ -6,20 +9,20 @@ import {
     OrderTypeEnum
 } from '@xpert-ai/contracts'
 import { DeepPartial } from '@xpert-ai/server-common'
-import { RequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
+import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { I18nService } from 'nestjs-i18n'
 import { t } from 'i18next'
-import { In, Repository } from 'typeorm'
+import { EntityManager, In, IsNull, Not, Repository } from 'typeorm'
 import { XpertProjectTaskStep } from '../entities/project-task-step.entity'
 import { XpertProjectTask } from '../entities/project-task.entity'
 import { XpertProjectTaskConversation } from '../entities/project-task-conversation.entity'
 import { XpertProjectTaskExecution } from '../entities/project-task-execution.entity'
 import { ChatConversation } from '../../chat-conversation/conversation.entity'
 import { XpertProject } from '../entities/project.entity'
-import { assertOrdinaryTask, assertOrdinaryTaskInput } from './project-task-ownership'
+import { assertOrdinaryTask, assertOrdinaryTaskInput, assertNativeExecutionInput } from './project-task-ownership'
 
 @Injectable()
 export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<XpertProjectTask> {
@@ -51,34 +54,55 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
         return await this.i18n.t(key, options)
     }
 
-    async saveAll(...entities: IXpertProjectTask[]) {
-        const items = []
-        for await (const entity of entities) {
-            assertOrdinaryTaskInput(entity)
-            if (entity.id) {
-                const existing = await this.repository.findOneBy({ id: entity.id })
-                if (existing) assertOrdinaryTask(existing)
-            }
-            const task = await this.repository.save({
-                ...entity,
-                tenantId: RequestContext.currentTenantId(),
-                organizationId: RequestContext.getOrganizationId(),
-                createdById: RequestContext.currentUserId()
-            })
-            if (entity.steps) {
-                task.steps = await this.stepRepository.save(
-                    entity.steps.map((_) => ({
-                        ..._,
-                        taskId: task.id,
-                        tenantId: RequestContext.currentTenantId(),
-                        organizationId: RequestContext.getOrganizationId(),
-                        createdById: RequestContext.currentUserId()
-                    }))
-                )
-            }
-            items.push(task)
-        }
+    private taskScope() {
+        return { tenantId: RequestContext.currentTenantId(), organizationId: RequestContext.getOrganizationId() }
+    }
 
+    private async lockProject(manager: EntityManager, projectId: string) {
+        const project = await manager.getRepository(XpertProject).findOne({
+            where: { id: projectId, ...this.taskScope() },
+            lock: { mode: 'pessimistic_write' }
+        })
+        if (!project) throw new NotFoundException('Xpert project not found')
+    }
+
+    async saveAll(...entities: IXpertProjectTask[]) {
+        const items: XpertProjectTask[] = []
+        for (const entity of entities) {
+            assertOrdinaryTaskInput(entity)
+            const existing = entity.id ? await this.repository.findOneBy({ id: entity.id, ...this.taskScope() }) : null
+            const projectId = existing?.projectId ?? entity.projectId
+            if (!projectId || (existing && entity.projectId && entity.projectId !== existing.projectId))
+                throw new NotFoundException('Project task not found')
+            items.push(
+                await this.repository.manager.transaction(async (manager) => {
+                    await this.lockProject(manager, projectId)
+                    const repository = manager.getRepository(XpertProjectTask)
+                    if (entity.id) {
+                        const current = await repository.findOneBy({ id: entity.id, projectId, ...this.taskScope() })
+                        if (current) assertOrdinaryTask(current)
+                        await this.assertBusinessStatus(manager, entity.id, entity.status)
+                    }
+                    const task = await repository.save({
+                        ...entity,
+                        projectId,
+                        ...this.taskScope(),
+                        createdById: RequestContext.currentUserId()
+                    })
+                    if (entity.steps) {
+                        task.steps = await manager.getRepository(XpertProjectTaskStep).save(
+                            entity.steps.map((step) => ({
+                                ...step,
+                                taskId: task.id,
+                                ...this.taskScope(),
+                                createdById: RequestContext.currentUserId()
+                            }))
+                        )
+                    }
+                    return task
+                })
+            )
+        }
         return items
     }
 
@@ -87,44 +111,49 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
         threadId: string | undefined,
         ...entities: DeepPartial<IXpertProjectTask>[]
     ) {
-        const { items: tasks } = await this.findAll({
-            where: { projectId },
-            relations: ['steps'],
-            order: { createdAt: OrderTypeEnum.ASC }
-        })
-        for await (const entity of entities) {
-            const task = tasks.find(
-                (_) =>
-                    (entity.id && _.id === entity.id) ||
-                    (Boolean(threadId) && _.threadId === threadId && !!entity.name && _.name === entity.name) ||
-                    (!!entity.name && _.name === entity.name)
-            )
-            if (!task) {
-                throw new Error(`Task not exists with id or name '${entity.id || entity.name}'`)
-            }
-            assertOrdinaryTask(task)
-            assertOrdinaryTaskInput(entity)
-            for (const step of entity.steps ?? []) {
-                const taskStep =
-                    task.steps.find((item) => item.stepIndex === step.stepIndex) || task.steps[step.stepIndex - 1]
-                if (!taskStep) {
-                    throw new Error(`Step with index '${step.stepIndex}' not exists in task '${entity.name}'`)
+        return this.repository.manager.transaction(async (manager) => {
+            // Completion and dispatch share the project lock, including implicit completion from steps.
+            await this.lockProject(manager, projectId)
+            const repository = manager.getRepository(XpertProjectTask)
+            const tasks = await repository.find({
+                where: { projectId, ...this.taskScope() },
+                relations: ['steps', 'executions'],
+                order: { createdAt: OrderTypeEnum.ASC }
+            })
+            for (const entity of entities) {
+                const task = tasks.find(
+                    (item) =>
+                        (entity.id && item.id === entity.id) ||
+                        (Boolean(threadId) &&
+                            item.threadId === threadId &&
+                            !!entity.name &&
+                            item.name === entity.name) ||
+                        (!!entity.name && item.name === entity.name)
+                )
+                if (!task) throw new NotFoundException('Project task not found')
+                assertOrdinaryTask(task)
+                assertOrdinaryTaskInput(entity)
+                await this.assertBusinessStatus(manager, task.id, entity.status)
+                for (const step of entity.steps ?? []) {
+                    const taskStep =
+                        task.steps.find((item) => item.stepIndex === step.stepIndex) || task.steps[step.stepIndex - 1]
+                    if (!taskStep) throw new BadRequestException('Project task step not found')
+                    taskStep.status = step.status
+                    if (step.notes) taskStep.notes = [taskStep.notes, step.notes].filter(Boolean).join('\n')
                 }
-                taskStep.status = step.status
-                if (step.notes) taskStep.notes = [taskStep.notes, step.notes].filter(Boolean).join('\n')
+                task.steps = await manager.getRepository(XpertProjectTaskStep).save(task.steps)
+                if (entity.status) task.status = entity.status
+                else if (
+                    !task.executions?.some((execution) => execution.invocationId) &&
+                    task.steps.length > 0 &&
+                    task.steps.every((step) => step.status === 'done')
+                )
+                    task.status = 'done'
+                await this.assertBusinessStatus(manager, task.id, task.status)
+                await repository.save(task)
             }
-            task.steps = await this.stepRepository.save(task.steps)
-            if (entity.status) {
-                task.status = entity.status
-            } else if (task.steps.length > 0 && task.steps.every((step) => step.status === 'done')) {
-                // A completed step list is the project expert's canonical completion signal.
-                // Persist the task state even when the model omits the redundant status field.
-                task.status = 'done'
-            }
-            await this.repository.save(task)
-        }
-
-        return tasks
+            return tasks
+        })
     }
 
     async createTask(projectId: string, input: Partial<IXpertProjectTask>) {
@@ -150,16 +179,30 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
         await this.validateTaskMode(projectId, input.status)
         const project = await this.projectRepository.findOne({ where: { id: projectId }, relations: ['xperts'] })
         if (!project) throw new NotFoundException('Xpert project not found')
-        const task = await this.findOne({ where: { id: taskId, projectId } })
-        if (!task) throw new NotFoundException('Project task not found')
-        assertOrdinaryTask(task)
-        assertOrdinaryTaskInput(input)
         const nextInput = { ...input } as Partial<IXpertProjectTask>
-        if (Object.prototype.hasOwnProperty.call(input, 'assigneeXpertId')) {
+        assertOrdinaryTaskInput(input)
+        if (Object.prototype.hasOwnProperty.call(input, 'assigneeXpertId'))
             nextInput.assigneeXpertId = await this.resolveAssigneeXpertId(project, input.assigneeXpertId)
-        }
-        Object.assign(task, nextInput, { projectId })
-        return this.save(task)
+        return this.repository.manager.transaction(async (manager) => {
+            await this.lockProject(manager, projectId)
+            const repository = manager.getRepository(XpertProjectTask)
+            const task = await repository.findOneBy({ id: taskId, projectId, ...this.taskScope() })
+            if (!task) throw new NotFoundException('Project task not found')
+            assertOrdinaryTask(task)
+            await this.assertBusinessStatus(manager, task.id, input.status)
+            Object.assign(task, nextInput, { projectId })
+            return repository.save(task)
+        })
+    }
+
+    private async assertBusinessStatus(manager: EntityManager, taskId: string, status?: IXpertProjectTask['status']) {
+        if (!status || !['done', 'completed'].includes(status)) return
+        if (
+            await manager
+                .getRepository(XpertProjectTaskExecution)
+                .existsBy({ taskId, ...this.taskScope(), invocationId: Not(IsNull()) })
+        )
+            throw projectTaskRuntimeError('DecisionRequired')
     }
 
     private async resolveAssigneeXpertId(project: XpertProject, requestedId?: string): Promise<string | undefined> {
@@ -182,10 +225,22 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
         if (!project) throw new NotFoundException('Xpert project not found')
         if (
             project.settings?.managementMode !== 'advanced' &&
-            !['todo', 'in_progress', 'paused', 'done', 'blocked', 'cancelled'].includes(status)
+            !['todo', 'in_progress', 'review', 'paused', 'done', 'blocked', 'cancelled'].includes(status)
         ) {
             throw new BadRequestException('Simple projects use the fixed task lanes')
         }
+    }
+
+    async observeExecutions(projectId: string, executions: IXpertProjectTaskExecution[]) {
+        return observeProjectTaskInvocations(
+            this.repository.manager,
+            {
+                projectId,
+                tenantId: RequestContext.currentTenantId(),
+                organizationId: RequestContext.getOrganizationId()
+            },
+            executions
+        )
     }
 
     async listTaskRelations(projectId: string, taskId: string) {
@@ -212,7 +267,7 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
                       }
                     : undefined
             })),
-            executions
+            executions: await this.observeExecutions(projectId, executions)
         }
     }
 
@@ -249,37 +304,64 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
     }
 
     async createExecution(projectId: string, taskId: string, input: Partial<IXpertProjectTaskExecution>) {
-        const task = await this.repository.findOne({ where: { id: taskId, projectId } })
-        if (!task) throw new NotFoundException('Project task not found')
-        assertOrdinaryTask(task)
-        if (input.conversationId) {
-            const conversation = await this.conversationRepository.findOne({ where: { id: input.conversationId } })
-            if (!conversation || conversation.projectId !== projectId)
-                throw new NotFoundException('Project conversation not found')
-        }
-        if (input.status === 'queued' && input.threadId && input.xpertId) {
-            const queued = await this.executionRepository.findOne({
-                where: { projectId, taskId, threadId: input.threadId, xpertId: input.xpertId, status: 'queued' },
-                order: { createdAt: OrderTypeEnum.ASC }
+        assertNativeExecutionInput(input)
+        return this.repository.manager.transaction(async (manager) => {
+            const scope = {
+                tenantId: RequestContext.currentTenantId(),
+                organizationId: RequestContext.getOrganizationId()
+            }
+            const project = await manager.getRepository(XpertProject).findOne({
+                where: { id: projectId, ...scope },
+                lock: { mode: 'pessimistic_write' }
             })
-            if (queued) return queued
-        }
-        const latest = await this.executionRepository.findOne({
-            where: { projectId, taskId },
-            order: { attempt: 'DESC' }
+            if (!project) throw new NotFoundException('Xpert project not found')
+            const task = await manager
+                .getRepository(XpertProjectTask)
+                .findOne({ where: { id: taskId, projectId, ...scope } })
+            if (!task) throw new NotFoundException('Project task not found')
+            assertOrdinaryTask(task)
+            const executions = manager.getRepository(XpertProjectTaskExecution)
+            if (!input.status || ['queued', 'running'].includes(input.status)) {
+                const external = await executions.find({ where: { projectId, ...scope, invocationId: Not(IsNull()) } })
+                const observed = await observeProjectTaskInvocations(manager, { projectId, ...scope }, external)
+                if (observed.some((attempt) => !isAgentInvocationTerminal(attempt.invocationStatus)))
+                    throw projectTaskRuntimeError('Busy')
+            }
+            if (input.conversationId) {
+                const conversation = await manager
+                    .getRepository(ChatConversation)
+                    .findOne({ where: { id: input.conversationId, ...scope } })
+                if (!conversation || conversation.projectId !== projectId)
+                    throw new NotFoundException('Project conversation not found')
+            }
+            if (input.status === 'queued' && input.threadId && input.xpertId) {
+                const queued = await executions.findOne({
+                    where: {
+                        projectId,
+                        taskId,
+                        threadId: input.threadId,
+                        xpertId: input.xpertId,
+                        status: 'queued',
+                        invocationId: IsNull()
+                    },
+                    order: { createdAt: OrderTypeEnum.ASC }
+                })
+                if (queued) return queued
+            }
+            const latest = await executions.findOne({ where: { projectId, taskId }, order: { attempt: 'DESC' } })
+            return executions.save(
+                executions.create({
+                    ...input,
+                    projectId,
+                    taskId,
+                    attempt: (latest?.attempt ?? 0) + 1,
+                    status: input.status ?? 'queued',
+                    tenantId: task.tenantId,
+                    organizationId: task.organizationId,
+                    createdById: RequestContext.currentUserId()
+                })
+            )
         })
-        return this.executionRepository.save(
-            this.executionRepository.create({
-                projectId,
-                taskId,
-                ...input,
-                attempt: input.attempt ?? (latest?.attempt ?? 0) + 1,
-                status: input.status ?? 'queued',
-                tenantId: task.tenantId,
-                organizationId: task.organizationId,
-                createdById: RequestContext.currentUserId()
-            })
-        )
     }
 
     async updateExecution(
@@ -288,8 +370,10 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
         executionId: string,
         input: Partial<IXpertProjectTaskExecution>
     ) {
+        assertNativeExecutionInput(input)
         const execution = await this.executionRepository.findOne({ where: { id: executionId, projectId, taskId } })
         if (!execution) throw new NotFoundException('Project task execution not found')
+        if (execution.invocationId) throw projectTaskRuntimeError('Owned')
         const task = await this.repository.findOneByOrFail({ id: taskId, projectId })
         assertOrdinaryTask(task)
         Object.assign(execution, input, { projectId, taskId })
@@ -302,7 +386,13 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
     async claimExecution(projectId: string, input: { threadId?: string; xpertId?: string; agentExecutionId: string }) {
         if (!input.threadId || !input.xpertId) return null
         const execution = await this.executionRepository.findOne({
-            where: { projectId, threadId: input.threadId, xpertId: input.xpertId, status: 'queued' },
+            where: {
+                projectId,
+                threadId: input.threadId,
+                xpertId: input.xpertId,
+                status: 'queued',
+                invocationId: IsNull()
+            },
             order: { createdAt: OrderTypeEnum.ASC }
         })
         if (!execution) return null
@@ -344,8 +434,9 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
     ) {
         await this.validateTaskMode(projectId, input.status)
         return this.repository.manager.transaction(async (manager) => {
+            await this.lockProject(manager, projectId)
             const repository = manager.getRepository(XpertProjectTask)
-            const tasks = await repository.find({ where: { projectId, id: In(input.ids) } })
+            const tasks = await repository.find({ where: { projectId, ...this.taskScope(), id: In(input.ids) } })
             if (tasks.length !== input.ids.length)
                 throw new NotFoundException('One or more project tasks were not found')
             if (input.assigneeXpertId !== undefined) {
@@ -357,6 +448,7 @@ export class XpertProjectTaskService extends TenantOrganizationAwareCrudService<
                 await this.resolveAssigneeXpertId(project, input.assigneeXpertId)
             }
             for (const task of tasks) {
+                await this.assertBusinessStatus(manager, task.id, input.status)
                 assertOrdinaryTask(task)
                 Object.assign(task, {
                     ...(input.status !== undefined ? { status: input.status } : {}),

@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import type { DesktopShellState } from '../types'
 import type { ChatKitOptions } from '@xpert-ai/chatkit-types'
 import { parsePreparation } from '@xpert-ai/desktop-protocol'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@xpert-ai/shadcn-ui'
@@ -6,8 +7,44 @@ import { invoke } from '../host'
 import { t } from '../i18n'
 import { ShellSettings } from './ShellSettings'
 
-export function useShellIntegration() {
+export function localComputerState(state: DesktopShellState | null) {
+  if (!state) return { status: 'loading' as const }
+  const name = state.settings?.name
+  if (!state.available) return { name, status: 'unavailable' as const }
+  if (state.errorCode) return { name, status: 'error' as const }
+  if (state.policy === 'deny') return { name, status: 'disabled' as const }
+  return { name, status: state.connected ? ('connected' as const) : ('ready' as const) }
+}
+
+export function useShellIntegration(scope?: string) {
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [failedScope, setFailedScope] = useState<string | null>(null)
+  const [snapshot, setSnapshot] = useState<{ scope?: string; state: DesktopShellState } | null>(null)
+  useEffect(() => {
+    let active = true
+    let timer: ReturnType<typeof setTimeout>
+    const refresh = async () => {
+      try {
+        const state = await invoke('shellState')
+        if (active) {
+          setSnapshot({ scope, state })
+          setFailedScope(null)
+        }
+      } catch {
+        if (active) {
+          setSnapshot(null)
+          setFailedScope(scope ?? '')
+        }
+      } finally {
+        if (active) timer = setTimeout(refresh, 3000)
+      }
+    }
+    void refresh()
+    return () => {
+      active = false
+      clearTimeout(timer)
+    }
+  }, [scope, settingsOpen])
   const handlers: Pick<ChatKitOptions, 'onClientTool' | 'approvals'> = {
     onClientTool: async ({ name, params, id, tool_call_id }) => {
       const callId = tool_call_id || id
@@ -42,6 +79,11 @@ export function useShellIntegration() {
   }
   return {
     handlers,
+    computer:
+      failedScope === (scope ?? '')
+        ? { status: 'error' as const }
+        : localComputerState(snapshot?.scope === scope ? (snapshot?.state ?? null) : null),
+    openComputer: () => setSettingsOpen(true),
     dialog: (
       <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
         <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-xl">

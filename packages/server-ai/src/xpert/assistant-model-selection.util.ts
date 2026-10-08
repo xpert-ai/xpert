@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto'
-import { AiModelTypeEnum, TCopilotModel } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, TCopilotModel, IXpert } from '@xpert-ai/contracts'
 
 export type ValidAssistantCopilotModel = TCopilotModel & {
     copilotId: string
@@ -94,4 +94,21 @@ function scrubSensitiveModelOptionValue(value: unknown): unknown {
         return scrubSensitiveModelOptions(value)
     }
     return value
+}
+
+/** Shared candidate set; continuation snapshots never grant new model access. */
+export function assistantModelCandidates(xpert: Partial<IXpert>) {
+    const models = [
+        xpert.agent?.copilotModel ?? xpert.copilotModel,
+        ...(xpert.options?.modelSelection?.allowedModels ?? [])
+    ]
+    const seen = new Set<string>()
+    return models.flatMap((value, index) => {
+        const model = sanitizeAssistantCopilotModel(value)
+        if (!model) return []
+        const id = getAssistantModelId(model)
+        if (seen.has(id)) return []
+        seen.add(id)
+        return [{ id, model, default: index === 0 }]
+    })
 }

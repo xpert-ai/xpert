@@ -13,9 +13,9 @@ import {
   untracked,
   viewChild
 } from '@angular/core'
-import { firstValueFrom, type Observable } from 'rxjs'
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { TranslateModule } from '@ngx-translate/core'
+import { firstValueFrom, map, Subject, takeUntil, type Observable } from 'rxjs'
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   XPERT_REMOTE_COMPONENT_INVOKE_CLIENT_COMMAND_MESSAGE_TYPE,
   XpertExtensionViewManifest,
@@ -93,6 +93,7 @@ type RemoteComponentMessage = {
         @if (isolatedOrigin()) {
           <iframe
             #frame
+            [attr.inert]="contextReady() ? null : ''"
             class="block w-full border-0"
             [class.h-full]="fillAvailableHeight()"
             [class.min-h-full]="!fillAvailableHeight()"
@@ -106,6 +107,7 @@ type RemoteComponentMessage = {
         } @else {
           <iframe
             #frame
+            [attr.inert]="contextReady() ? null : ''"
             class="block w-full border-0"
             [class.h-full]="fillAvailableHeight()"
             [class.min-h-full]="!fillAvailableHeight()"
@@ -139,9 +141,15 @@ export class RemoteComponentRendererComponent {
   readonly #destroyRef = inject(DestroyRef)
   readonly #document = inject(DOCUMENT)
   readonly #themeService = inject(XpThemeService)
+  readonly #translate = inject(TranslateService)
+  readonly remoteLocale = toSignal(this.#translate.onLangChange.pipe(map((event) => event.lang)), {
+    initialValue: this.#translate.currentLang || this.#document.documentElement.lang
+  })
   readonly #hostEvents = inject(ViewHostEventBus)
   readonly frame = viewChild('frame', { read: ElementRef<HTMLIFrameElement> })
 
+  readonly contextReady = signal(false)
+  readonly #contextCancelled = new Subject<void>()
   readonly entryUrl = signal<string | null>(null)
   readonly error = signal<string | null>(null)
   readonly requestedHeight = signal(520)
@@ -163,6 +171,7 @@ export class RemoteComponentRendererComponent {
   #entryRequestId = 0
   #loadedEntryIdentity: string | null = null
   #initializedInstanceId: string | null = null
+  #initializedRevision = -1
   #entryObjectUrl: string | null = null
   // Keep the fetched HTML so the renderer can reuse the exact same payload if a blob iframe stays blank.
   #documentIdentity: string | null = null
@@ -184,6 +193,8 @@ export class RemoteComponentRendererComponent {
     window.addEventListener('scroll', onViewportChange, true)
     this.#destroyRef.onDestroy(() => {
       ++this.#entryRequestId
+      this.#contextCancelled.next()
+      this.#contextCancelled.complete()
       hostEventSubscription.unsubscribe()
       window.removeEventListener('message', onMessage)
       window.removeEventListener('resize', onViewportChange)
@@ -200,15 +211,22 @@ export class RemoteComponentRendererComponent {
       const hostType = this.hostType()
       const hostId = this.hostId()
       const runtimeScope = this.runtimeScope()
-      if (!active || manifest.view.type !== 'remote_component') {
+      if ((!active && !this.entryUrl()) || manifest.view.type !== 'remote_component') {
         return
       }
 
-      const entryIdentity = JSON.stringify([hostType, hostId, manifest.key, runtimeScope])
+      const entryIdentity = JSON.stringify([hostType, hostId, manifest.key, this.runtimeUserId(), runtimeScope])
       if (entryIdentity === this.#loadedEntryIdentity) {
         return
       }
-      const documentIdentity = JSON.stringify([hostType, hostId, manifest.key, runtimeScope?.projectId ?? null])
+      const documentIdentity = JSON.stringify([
+        hostType,
+        hostId,
+        manifest.key,
+        this.runtimeUserId(),
+        manifest.source,
+        manifest.view
+      ])
       const preserveDocument = documentIdentity === this.#documentIdentity
       this.#documentIdentity = documentIdentity
       this.#loadedEntryIdentity = entryIdentity
@@ -220,6 +238,7 @@ export class RemoteComponentRendererComponent {
     effect(() => {
       const entryUrl = this.entryUrl()
       this.remoteThemeMode()
+      this.remoteLocale()
       this.query()
       if (!entryUrl || !this.frame()?.nativeElement.contentWindow) {
         return
@@ -256,6 +275,8 @@ export class RemoteComponentRendererComponent {
     runtimeScope: XpertViewRuntimeScopeInput | null,
     preserveDocument = false
   ) {
+    this.contextReady.set(false)
+    this.#contextCancelled.next()
     this.error.set(null)
     if (!preserveDocument) this.clearEntryUrl()
     if (!preserveDocument) {
@@ -273,9 +294,26 @@ export class RemoteComponentRendererComponent {
       if (requestId !== this.#entryRequestId) {
         return
       }
-      // Revalidate access for the new conversation before reusing its unchanged UI document.
+      this.contextReady.set(true)
+      // Context events do not depend on visibility or manifest subscriptions.
       if (preserveDocument && html === this.#entryHtml && this.entryUrl()) {
-        if (this.#initializedInstanceId === this.instanceId()) this.sendInitToFrame()
+        if (this.#initializedInstanceId === this.instanceId()) {
+          this.sendToFrame('hostEvent', {
+            event: {
+              id: createBrowserId(),
+              type: 'view.context.changed',
+              source: 'xpert',
+              receivedAt: new Date().toISOString(),
+              data: {
+                revision: requestId,
+                runtimeScope: {
+                  projectId: runtimeScope?.projectId ?? null,
+                  conversationId: runtimeScope?.conversationId ?? null
+                }
+              }
+            }
+          })
+        } else this.sendInitToFrame()
         return
       }
       if (preserveDocument) this.#instanceNonce.set(createBrowserId())
@@ -324,7 +362,7 @@ export class RemoteComponentRendererComponent {
 
     if (message.type === 'ready') {
       this.cancelSrcdocFallbackCheck()
-      if (this.#initializedInstanceId === this.instanceId()) {
+      if (this.#initializedInstanceId === this.instanceId() && this.#initializedRevision === this.#entryRequestId) {
         return
       }
       this.#initializedInstanceId = this.instanceId()
@@ -336,6 +374,18 @@ export class RemoteComponentRendererComponent {
       return
     }
 
+    if (
+      !this.contextReady() ||
+      (typeof message.scopeRevision === 'number' && message.scopeRevision !== this.#entryRequestId)
+    ) {
+      if (message.requestId)
+        this.sendToFrame('error', {
+          requestId: message.requestId,
+          code: 'context_changed',
+          message: 'View context changed'
+        })
+      return
+    }
     switch (message.type) {
       case 'resize':
         this.requestedHeight.set(Math.max(Number(message.height) || 0, 520))
@@ -380,20 +430,25 @@ export class RemoteComponentRendererComponent {
   }
 
   private untilDestroyed<T>(source: Observable<T>): Promise<T> {
-    return firstValueFrom(source.pipe(takeUntilDestroyed(this.#destroyRef)))
+    return firstValueFrom(source.pipe(takeUntil(this.#contextCancelled), takeUntilDestroyed(this.#destroyRef)))
   }
 
   private async handleRequest(message: RemoteComponentMessage, responseType: string, run: () => Promise<unknown>) {
     const instanceId = this.instanceId()
+    const revision = this.#entryRequestId
     const requestId = typeof message.requestId === 'string' ? message.requestId : undefined
     const action = responseType === 'actionResult' || responseType === 'fileActionResult'
     if (action) this.actionPending.emit(true)
     try {
       const result = await run()
-      if (this.#destroyRef.destroyed || instanceId !== this.instanceId()) return
-      this.sendToFrame(responseType, { requestId, [responseType === 'data' ? 'data' : 'result']: result })
+      if (this.#destroyRef.destroyed || instanceId !== this.instanceId() || revision !== this.#entryRequestId) return
+      this.sendToFrame(responseType, {
+        requestId,
+        scopeRevision: revision,
+        [responseType === 'data' ? 'data' : 'result']: result
+      })
     } catch (error) {
-      if (this.#destroyRef.destroyed || instanceId !== this.instanceId()) return
+      if (this.#destroyRef.destroyed || instanceId !== this.instanceId() || revision !== this.#entryRequestId) return
       this.sendToFrame('error', {
         requestId,
         message: getErrorMessage(error)
@@ -510,7 +565,9 @@ export class RemoteComponentRendererComponent {
       throw new Error(`File access purpose '${getString(message.purpose) || ''}' is not available`)
     }
 
+    const revision = this.#entryRequestId
     const session = await this.ensureFileAccessSession()
+    if (revision !== this.#entryRequestId) throw new Error('View context changed')
     return this.untilDestroyed(
       this.#api.createViewFileAccessGrant(session.sessionId, {
         fileKey,
@@ -759,12 +816,18 @@ export class RemoteComponentRendererComponent {
   }
 
   private sendInitToFrame() {
+    if (!this.contextReady()) return
+    this.#initializedRevision = this.#entryRequestId
     this.sendToFrame('init', {
       manifest: this.manifest(),
       payload: {},
       initialQuery: this.query(),
-      runtimeScope: this.runtimeScope(),
-      locale: this.#document.documentElement.lang,
+      runtimeScope: {
+        projectId: this.runtimeScope()?.projectId ?? null,
+        conversationId: this.runtimeScope()?.conversationId ?? null
+      },
+      scopeRevision: this.#entryRequestId,
+      locale: this.remoteLocale(),
       theme: this.getRemoteTheme(),
       debug: this.getRemoteDebugState(),
       active: this.active()

@@ -13,7 +13,8 @@ import {
     StorageFilePublicDTO,
     TransformInterceptor,
     transformWhere,
-    UUIDValidationPipe
+    UUIDValidationPipe,
+    ZodValidationPipe
 } from '@xpert-ai/server-core'
 import {
     Body,
@@ -49,6 +50,7 @@ import { ChatConversationPublicDTO, ChatConversationSimpleDTO } from './dto'
 import { CancelConversationCommand, ChatConversationBindXpertCommand } from './commands'
 import { ChatConversationGoalService } from './goal'
 import { assertSafeChatConversationRelations } from './conversation-relations'
+import { navigationThreadSchema, navigationMessageSchema } from './workbench-navigation.schema'
 import { WorkbenchAssistantConversationNavigationService } from './workbench-assistant-conversation-navigation.service'
 
 @ApiTags('ChatConversation')
@@ -144,10 +146,26 @@ export class ChatConversationController {
     async resolveWorkbenchNavigation(
         @Param('id', UUIDValidationPipe) id: string,
         @Query('requesterXpertId') requesterXpertId: string,
-        @Query('organizationId') organizationId?: string
+        @Query('organizationId') organizationId?: string,
+        @Query(
+            'threadId',
+            new ZodValidationPipe(
+                navigationThreadSchema,
+                () => new BadRequestException(t('server-ai:ConversationMap.InvalidQuery'))
+            )
+        )
+        threadId?: string,
+        @Query(
+            'messageId',
+            new ZodValidationPipe(
+                navigationMessageSchema,
+                () => new BadRequestException(t('server-ai:ConversationMap.InvalidQuery'))
+            )
+        )
+        messageId?: string
     ) {
         return this.organizationScopeService.run(organizationId, () =>
-            this.workbenchNavigationService.resolve(id, requesterXpertId)
+            this.workbenchNavigationService.resolve(id, requesterXpertId, { threadId, messageId })
         )
     }
 

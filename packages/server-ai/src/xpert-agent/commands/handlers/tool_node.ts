@@ -1,4 +1,5 @@
 import { AgentInvocationAuthorizationError, AgentInvocationError } from '../../../agent-invocation/invocation-errors'
+import { ExecutionCancelledError } from '../../../shared/execution/execution-cancelled.error'
 import { CallbackManagerForChainRun } from '@langchain/core/callbacks/manager'
 import { ToolMessage, AIMessage, isBaseMessage, isToolMessage } from '@langchain/core/messages'
 import { mergeConfigs, patchConfig, Runnable, RunnableConfig, RunnableToolLike } from '@langchain/core/runnables'
@@ -115,7 +116,10 @@ export class ToolNode<T = any> extends Runnable<T, T> {
                         ? await this.wrapToolCall(toolRequest, defaultHandler)
                         : await defaultHandler(toolRequest)
                     if (isBaseMessage(output) && output.getType() === 'tool') {
-                        // Fix non-string content: should be fixed in langchain-mcp-adapters _convertCallToolResult line 367
+                        // TODO: Support portable multimodal tool content after provider-specific
+                        // role conversion and checkpoint policies are defined and verified.
+                        // Keep tool results textual; scoped tool images use references and
+                        // temporary model input through ToolImagesRuntimeCapability.
                         if (!!output.content && typeof output.content !== 'string') {
                             output.content = JSON.stringify(output.content)
                         }
@@ -190,7 +194,10 @@ export class ToolNode<T = any> extends Runnable<T, T> {
 
                     const toolMessage = new ToolMessage({
                         status: 'error',
-                        content: `Error: ${e.message}\n Please fix your mistakes.`,
+                        content:
+                            e instanceof ExecutionCancelledError
+                                ? `${e.code}: ${e.message}`
+                                : `Error: ${e.message}\n Please fix your mistakes.`,
                         name: call.name,
                         tool_call_id: call.id ?? ''
                     })

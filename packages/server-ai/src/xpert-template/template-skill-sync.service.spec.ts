@@ -1,3 +1,4 @@
+import { ResolveTemplateSkillRefsCommand } from './commands'
 jest.mock('@xpert-ai/plugin-sdk', () => {
     const actual = jest.requireActual('@xpert-ai/plugin-sdk')
     return {
@@ -64,19 +65,19 @@ describe('TemplateSkillSyncService', () => {
                     repositoryName: 'anthropics/skills',
                     skillId: 'skills/missing'
                 }
-            ]),
-            resolveSkillRefs: jest.fn().mockImplementation(async (refs: Array<{ skillId: string }>) =>
-                refs
-                    .filter((ref) => ref.skillId === 'skills/claude-api')
-                    .map((ref) => ({
-                        ref,
-                        skill: {
-                            id: 'index-public-1',
-                            repositoryId: 'repo-public'
-                        }
-                    }))
-            )
+            ])
         }
+        const resolveSkillRefs = jest.fn().mockImplementation(async (refs: Array<{ skillId: string }>) =>
+            refs
+                .filter((ref) => ref.skillId === 'skills/claude-api')
+                .map((ref) => ({
+                    ref,
+                    skill: {
+                        id: 'index-public-1',
+                        repositoryId: 'repo-public'
+                    }
+                }))
+        )
         const skillRepositoryService = {
             findAll: jest.fn().mockResolvedValue({ items: [] }),
             register: jest.fn().mockResolvedValue({
@@ -140,6 +141,10 @@ describe('TemplateSkillSyncService', () => {
             workspaceRepository as any,
             cacheManager as any
         )
+
+        Object.defineProperty(service, 'commands', {
+            value: { execute: (command: ResolveTemplateSkillRefsCommand) => resolveSkillRefs(command.refs) }
+        })
 
         return {
             cacheManager,

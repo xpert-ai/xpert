@@ -1,6 +1,11 @@
 const { contextBridge, ipcRenderer } = require('electron')
 let avatarPointerSubscribers = 0
 contextBridge.exposeInMainWorld('xpertDesktop', {
+  onWindowActivated: (callback) => {
+    const listener = () => callback()
+    ipcRenderer.on('xpert:window-activated', listener)
+    return () => ipcRenderer.removeListener('xpert:window-activated', listener)
+  },
   updates: {
     getState: () => ipcRenderer.invoke('xpert:update', 'state'),
     check: () => ipcRenderer.invoke('xpert:update', 'check'),

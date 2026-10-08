@@ -11,12 +11,14 @@ import {
     WorkspaceBinding
 } from './volume'
 import { WorkspacePathMapperFactory } from './workspace-path-mapper.factory'
+import { XpertWorkAreaExtensionRegistry } from './work-area-extension.registry'
 
 const XPERT_FILE_MEMORY_WORKSPACE_PATH = '.xpert/memory'
 const KNOWLEDGE_FILES_PATH = 'files'
 const KNOWLEDGE_LEGACY_TMP_PATH = 'tmp'
 const KNOWLEDGE_STATE_PATH = '.knowledge'
 
+/** Execution context for storage selection and path mapping; callers retain resource authorization. */
 export type XpertRuntimeWorkAreaInput = {
     tenantId: string
     userId: string
@@ -24,10 +26,12 @@ export type XpertRuntimeWorkAreaInput = {
     xpertId?: string | null
     projectId?: string | null
     conversationId?: string | null
+    /** Selected runtime for path mapping; projectId still takes precedence for storage identity. */
     environmentId?: string | null
     workspaceDataScope?: XpertWorkspaceDataScope | null
 }
 
+/** One logical path expressed relative to its volume, on the server and inside the runtime. */
 export type XpertRuntimeWorkAreaPath = {
     relativePath: string
     serverPath: string
@@ -35,18 +39,34 @@ export type XpertRuntimeWorkAreaPath = {
     publicUrl?: string
 }
 
+export type XpertWorkAreaResolveOptions = {
+    /** False permits authorization and path lookup only; neither core nor extensions may create files. */
+    createDirectories?: boolean
+}
+
+/**
+ * Storage identity and runtime-visible paths for an execution; sandbox lifecycle is separate.
+ * Server and workspace paths address the same files on the backend and inside the runtime.
+ */
 export type XpertRuntimeWorkArea = {
     volumeScope: VolumeScope
     volume: VolumeHandle
+    /** Maps this volume into the runtime; it need not be the runtime's primary mount. */
     workspaceBinding: WorkspaceBinding
+    /** Sandbox-visible cwd passed to tools; do not use it directly for backend filesystem I/O. */
     workingDirectory: string
+    /** Absolute root of the volume in the backend server's filesystem. */
     volumePath: string
+    /** Sandbox-visible root used to map volume-relative file paths. */
     workspaceRoot: string
+    /** URL for the default directory, only when the volume exposes direct file URLs. */
     workspaceUrl?: string
+    /** Default directory expressed in volume-relative, server and sandbox coordinates. */
     defaultPath: XpertRuntimeWorkAreaPath
     sharedPath?: XpertRuntimeWorkAreaPath
-    agentPath?: XpertRuntimeWorkAreaPath
+    /** Optional conversation directory; it does not change cwd or isolate project business files. */
     sessionPath?: XpertRuntimeWorkAreaPath
+    /** Memory directory, namespaced by Assistant when multiple Assistants share a project volume. */
     memoryPath?: XpertRuntimeWorkAreaPath
 }
 
@@ -77,26 +97,35 @@ export type KnowledgeRuntimeWorkArea = {
     statePath: XpertRuntimeWorkAreaPath
 }
 
+/**
+ * Resolves canonical storage, then delegates runtime mapping to a registered extension.
+ * Project storage takes precedence over environment and Assistant scope.
+ * Directory creation follows extension authorization; passive discovery never creates files.
+ * Callers must authorize access to the supplied scope before resolving it.
+ */
 @Injectable()
 export class XpertWorkAreaResolver {
     constructor(
         @Inject(VOLUME_CLIENT)
         private readonly volumeClient: VolumeClient,
-        private readonly workspaceMappers: WorkspacePathMapperFactory
+        private readonly workspaceMappers: WorkspacePathMapperFactory,
+        private readonly extensions: XpertWorkAreaExtensionRegistry
     ) {}
 
-    async resolve(input: XpertRuntimeWorkAreaInput): Promise<XpertRuntimeWorkArea> {
+    /** Creates directories only for active use, after extension authorization succeeds. Never starts a sandbox. */
+    async resolve(
+        input: XpertRuntimeWorkAreaInput,
+        options: XpertWorkAreaResolveOptions = {}
+    ): Promise<XpertRuntimeWorkArea> {
         const volumeScope = this.resolveVolumeScope(input)
-        const volume = await this.volumeClient.resolve(volumeScope).ensureRoot()
+        const volume = this.volumeClient.resolve(volumeScope)
         const relativePaths = this.resolveRelativePaths(input)
-        await this.ensureRelativePaths(volume, relativePaths.allPaths)
-
         const workspaceBinding = this.workspaceMappers.mapVolumeToWorkspace(input.provider, volume, {
             serverPath: relativePaths.defaultPath
         })
         const defaultPath = toRuntimePath(volume, workspaceBinding, relativePaths.defaultPath)
 
-        return {
+        const area: XpertRuntimeWorkArea = {
             volumeScope,
             volume,
             workspaceBinding,
@@ -108,9 +137,6 @@ export class XpertWorkAreaResolver {
             sharedPath: relativePaths.sharedPath
                 ? toRuntimePath(volume, workspaceBinding, relativePaths.sharedPath)
                 : undefined,
-            agentPath: relativePaths.agentPath
-                ? toRuntimePath(volume, workspaceBinding, relativePaths.agentPath)
-                : undefined,
             sessionPath: relativePaths.sessionPath
                 ? toRuntimePath(volume, workspaceBinding, relativePaths.sessionPath)
                 : undefined,
@@ -118,6 +144,12 @@ export class XpertWorkAreaResolver {
                 ? toRuntimePath(volume, workspaceBinding, relativePaths.memoryPath)
                 : undefined
         }
+        const resolved = await this.extensions.resolve(input, area, options)
+        if (options.createDirectories !== false) {
+            await volume.ensureRoot()
+            await this.ensureRelativePaths(volume, relativePaths.allPaths)
+        }
+        return resolved
     }
 
     async resolveXpertMemory(input: {
@@ -149,6 +181,7 @@ export class XpertWorkAreaResolver {
         }
     }
 
+    /** Project files remain in the project volume even when execution targets a separate environment. */
     private resolveVolumeScope(input: XpertRuntimeWorkAreaInput): VolumeScope {
         if (input.projectId) {
             return {
@@ -184,22 +217,27 @@ export class XpertWorkAreaResolver {
         })
     }
 
+    /**
+     * Defines POSIX paths within the selected volume without filesystem I/O; an empty path means root.
+     * Project business files share that root across Assistants and conversations, while memory is
+     * Assistant-scoped and session files use `sessions/<conversationId>` without changing cwd.
+     * Environment-only work uses the root; Assistant-only work keeps memory at `.xpert/memory`.
+     * allPaths lists directories to ensure after the volume root has been created.
+     */
     private resolveRelativePaths(input: XpertRuntimeWorkAreaInput) {
         if (input.projectId) {
             const sharedPath = 'shared'
-            const agentPath = input.xpertId ? path.posix.join('agents', input.xpertId) : undefined
-            const defaultPath = agentPath ?? ''
+            const defaultPath = ''
             const sessionPath = input.conversationId ? path.posix.join('sessions', input.conversationId) : undefined
-            const memoryPath = agentPath ? path.posix.join(agentPath, XPERT_FILE_MEMORY_WORKSPACE_PATH) : undefined
+            const memoryPath = input.xpertId
+                ? path.posix.join(XPERT_FILE_MEMORY_WORKSPACE_PATH, 'xperts', input.xpertId)
+                : undefined
             return {
                 defaultPath,
                 sharedPath,
-                agentPath,
                 sessionPath,
                 memoryPath,
-                allPaths: [defaultPath, sharedPath, agentPath, sessionPath, memoryPath, '.xpert'].filter(
-                    isNonEmptyString
-                )
+                allPaths: [defaultPath, sharedPath, sessionPath, memoryPath, '.xpert'].filter(isNonEmptyString)
             }
         }
 

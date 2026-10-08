@@ -1,4 +1,5 @@
-import { IUser, TChatOptions, TChatRequest } from '@xpert-ai/contracts'
+import { IUser, TChatMessageEnvelope, TChatOptions, TChatRequest } from '@xpert-ai/contracts'
+import type { RedisStreamPersistenceTarget } from '../../shared/stream/redis-sse.service'
 import { ICommand } from '@nestjs/cqrs'
 
 /**
@@ -10,7 +11,10 @@ export class ChatCommonCommand implements ICommand {
     constructor(
         public readonly request: TChatRequest,
         public readonly options: TChatOptions & {
+            streamPersistence?: RedisStreamPersistenceTarget
             isDraft?: boolean
+            execution?: { id: string }
+            messageEnvelope?: TChatMessageEnvelope
             tenantId: string
             organizationId: string
             user: IUser

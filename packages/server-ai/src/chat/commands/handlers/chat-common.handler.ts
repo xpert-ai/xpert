@@ -1,91 +1,71 @@
-import { bindFileActivityEvent } from '../../../chat-message/file-activity-event'
-import { avatarForChat } from '../../../shared/avatar'
-import {
-    AIMessage,
-    isAIMessage,
-    isBaseMessage,
-    isToolMessage,
-    RemoveMessage,
-    ToolMessage
-} from '@langchain/core/messages'
-import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
-import { RunnableConfig, RunnableLambda } from '@langchain/core/runnables'
-import { DynamicStructuredTool, StructuredToolInterface } from '@langchain/core/tools'
-import {
-    Annotation,
-    BaseStore,
-    Command,
-    CompiledStateGraph,
-    END,
-    GraphInterrupt,
-    isCommand,
-    isParentCommand,
-    NodeInterrupt,
-    START,
-    StateGraph
-} from '@langchain/langgraph'
+import { RedisSseStreamService } from '../../../shared/stream'
+import { isToolMessage } from '@langchain/core/messages'
+import { RunnableLambda } from '@langchain/core/runnables'
+import { Command, CompiledStateGraph, NodeInterrupt } from '@langchain/langgraph'
+import { ForbiddenException, Inject, Logger, Optional } from '@nestjs/common'
+import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import {
     appendMessageContent,
     appendMessagePlainText,
-    channelName,
     ChatMessageEventTypeEnum,
     ChatMessageTypeEnum,
     CopilotChatMessage,
     createFollowUpConsumedEvent,
     createMessageAppendContextTracker,
-    GRAPH_NODE_TITLE_CONVERSATION,
     IChatConversation,
     IChatMessage,
-    IEnvironment,
     IStorageFile,
-    IXpert,
-    IXpertAgent,
     IXpertAgentExecution,
-    IXpertProject,
     STATE_VARIABLE_HUMAN,
     STATE_VARIABLE_SYS,
-    TAgentRunnableConfigurable,
+    stringifyMessageContent,
     TChatConversationStatus,
     TChatRequest,
     TChatRequestHuman,
     TInterruptCommand,
     TSensitiveOperation,
-    TStateVariable,
-    TXpertChatResumeRequest,
-    TXpertChatRetryRequest,
     TXpertAgentConfig,
-    XpertAgentExecutionStatusEnum,
-    stringifyMessageContent
+    XpertAgentExecutionStatusEnum
 } from '@xpert-ai/contracts'
 import { getErrorMessage, pick } from '@xpert-ai/server-common'
-import { RequestContext } from '@xpert-ai/server-core'
-import { ForbiddenException, Inject, Logger } from '@nestjs/common'
-import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
+import { AgentMiddlewareRegistry, RequestContext } from '@xpert-ai/plugin-sdk'
+import { AgentMiddlewareRuntimeService } from '../../../shared/agent/middleware-runtime'
 import { isUUID } from 'class-validator'
 import { format } from 'date-fns/format'
 import { t } from 'i18next'
 import { isNil } from 'lodash'
-import { EMPTY, Observable, Subscriber, map, tap } from 'rxjs'
+import { EMPTY, map, Observable, tap } from 'rxjs'
 import { ChatConversationUpsertCommand, GetChatConversationQuery } from '../../../chat-conversation'
 import {
     appendMessageSteps,
     ChatMessageUpsertCommand,
     sanitizeMessageContentForPersistence
 } from '../../../chat-message'
-import { CopilotGetChatQuery } from '../../../copilot'
+import { bindFileActivityEvent } from '../../../chat-message/file-activity-event'
+import { bindResourceCardEvent } from '../../../chat-message/resource-card-event'
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
-import { CopilotModelGetChatModelQuery } from '../../../copilot-model'
 import { GetOwnedStorageFileQuery } from '../../../file-understanding/queries/get-owned-storage-file.query'
-import { CompileGraphCommand, CompleteToolCallsQuery, createMapStreamEvents, messageEvent } from '../../../xpert-agent'
 import {
-    assignExecutionUsage,
+    collectPendingFollowUpsByClientMessageId,
+    CONFIG_KEY_CREDENTIALS,
+    ConversationTitleService,
+    createHumanMessage,
+    hydrateHumanInput,
+    hydrateSendRequestHumanInput,
+    normalizeReferences,
+    rejectGraph,
+    updateToolCalls,
+    VOLUME_CLIENT,
+    VolumeClient
+} from '../../../shared'
+import { visibleFollowUpReferences } from '../../../shared/agent/persisted-follow-up'
+import { CompleteToolCallsQuery, createMapStreamEvents } from '../../../xpert-agent'
+import {
     assertExecutionBelongsToThread,
     XpertAgentExecutionOneQuery,
     XpertAgentExecutionUpsertCommand
 } from '../../../xpert-agent-execution'
-import { CreateProjectToolsetCommand, XpertProjectService } from '../../../xpert-project/'
-import { ChatCommonCommand } from '../chat-common.command'
-import { _normalizeAgentName, createHandoffBackMessages, createHandoffTool } from './handoff'
+import { XpertProjectService } from '../../../xpert-project/'
 import {
     attachChatFileAssetsToConversation,
     getChatMessageFiles,
@@ -93,37 +73,15 @@ import {
     toChatFileAssetReferences,
     toLegacyChatStorageFileAttachments
 } from '../../../xpert/commands/handlers/chat-file-assets'
+import { ChatCommonCommand } from '../chat-common.command'
+import { ChatCommonAgentBuilder } from './chat-common-agent-builder'
 import {
-    Instruction,
-    isChatModelWithBindTools,
-    isChatModelWithParallelToolCallsParam,
-    OutputMode,
-    PlanInstruction,
-    ProjectTaskInstruction,
-    PROVIDERS_WITH_PARALLEL_TOOL_CALLS_PARAM
-} from './supervisor'
-import { prepareMessagesForModel } from '../../../copilot-model/model-capabilities'
-import { ProjectToolset } from '../../../xpert-project/tools'
-import {
-    CONFIG_KEY_CREDENTIALS,
-    AgentStateAnnotation,
-    createHumanMessage,
-    CreateMemoryStoreCommand,
-    collectPendingFollowUpsByClientMessageId,
-    hydrateHumanInput,
-    hydrateSendRequestHumanInput,
-    normalizeReferences,
-    rejectGraph,
-    stateToParameters,
-    stateVariable,
-    TAgentSubgraphParams,
-    ToolNode,
-    translate,
-    updateToolCalls,
-    VOLUME_CLIENT,
-    VolumeClient,
-    ConversationTitleService
-} from '../../../shared'
+    resolveConversationResumeTargetMessageId,
+    resolveConversationRetrySourceMessageId,
+    resolveRetryHumanInput,
+    shouldRejectResumeWithGraph,
+    toInterruptCommand
+} from './chat-common-input'
 
 const GeneralAgentRecursionLimit = 99
 
@@ -138,7 +96,10 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
         private readonly queryBus: QueryBus,
         private readonly conversationTitleService: ConversationTitleService,
         @Inject(VOLUME_CLIENT)
-        private readonly volumeClient: VolumeClient
+        private readonly volumeClient: VolumeClient,
+        private readonly middlewareRegistry: AgentMiddlewareRegistry,
+        private readonly middlewareRuntime: AgentMiddlewareRuntimeService,
+        @Optional() private readonly redisSseStreamService?: RedisSseStreamService
     ) {}
 
     public async execute(command: ChatCommonCommand): Promise<Observable<any>> {
@@ -235,7 +196,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
         let conversation: IChatConversation = null
         let userMessage: IChatMessage = null
         let aiMessage: IChatMessage = null
-        let executionId: string
+        let executionId: string = command.options.execution?.id
         let executionInputs: unknown = input
         let queueFollowUpConsumedEvent: ReturnType<typeof createFollowUpConsumedEvent> | null = null
         // Continue thread when confirm or reject operation
@@ -417,13 +378,15 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                         consumedMessages[consumedMessages.length - 1] ??
                         conversation.messages.find((message) => message.id === persistedPendingFollowUpGroup.matched.id)
 
-                    queueFollowUpConsumedEvent = createFollowUpConsumedEvent({
-                        mode: 'queue',
-                        messageIds: persistedPendingFollowUpGroup.messageIds,
-                        clientMessageIds: persistedPendingFollowUpGroup.clientMessageIds,
-                        executionId: persistedPendingFollowUpGroup.targetExecutionId,
-                        visibleAt: visibleAt.toISOString()
-                    })
+                    const visibleFollowUps = visibleFollowUpReferences(consumedMessages)
+                    queueFollowUpConsumedEvent = visibleFollowUps.messageIds.length
+                        ? createFollowUpConsumedEvent({
+                              mode: 'queue',
+                              ...visibleFollowUps,
+                              executionId: persistedPendingFollowUpGroup.targetExecutionId,
+                              visibleAt: visibleAt.toISOString()
+                          })
+                        : null
                 } else {
                     const persistedInput = rawSendInput ?? input
                     const references = normalizeReferences(persistedInput?.references)
@@ -433,6 +396,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                     userMessage = await this.commandBus.execute(
                         new ChatMessageUpsertCommand({
                             role: 'human',
+                            messageEnvelope: command.options.messageEnvelope,
+                            createdInThreadId: conversation.threadId,
                             content: persistedInput?.input,
                             conversationId: conversation.id,
                             ...(references.length
@@ -456,6 +421,8 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
             new XpertAgentExecutionUpsertCommand({
                 id: executionId,
                 inputs: executionInputs,
+                type: projectId ? 'project_agent' : 'chat',
+                agentKey: 'general_agent',
                 status: XpertAgentExecutionStatusEnum.RUNNING,
                 threadId: conversation.threadId
             })
@@ -474,7 +441,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
         // let _execution = null
         let operation: TSensitiveOperation = null
         const messageAppendContextTracker = createMessageAppendContextTracker()
-        return new Observable<MessageEvent>((subscriber) => {
+        const stream = new Observable<MessageEvent>((subscriber) => {
             // Send conversation start event
             subscriber.next({
                 data: {
@@ -809,7 +776,9 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                 })
         }).pipe(
             map((event) => {
-                const receipt = bindFileActivityEvent(event.data, { messageId: aiMessage.id, executionId })
+                const receipt =
+                    bindResourceCardEvent(event.data, { messageId: aiMessage.id, executionId }) ??
+                    bindFileActivityEvent(event.data, { messageId: aiMessage.id, executionId })
                 return receipt ? { ...event, data: receipt } : event
             }),
             tap({
@@ -859,540 +828,25 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                 }
             })
         )
+        return (
+            this.redisSseStreamService?.wrapChatStream(stream, {
+                target: command.options.streamPersistence,
+                threadId: conversation.threadId,
+                runId: executionId
+            }) ?? stream
+        )
     }
 
-    async createReactAgent(
-        command: ChatCommonCommand,
-        project: IXpertProject,
-        execution: IXpertAgentExecution,
-        abortController: AbortController,
-        subscriber: Subscriber<MessageEvent>,
-        conversationId: string,
-        mute: TXpertAgentConfig['mute']
-    ) {
-        const projectId = project?.id
-        const { tenantId, organizationId } = command.options
-
-        // Long-term memory store
-        const memoryStore: BaseStore = await this.commandBus.execute<CreateMemoryStoreCommand, BaseStore>(
-            new CreateMemoryStoreCommand(tenantId, organizationId, null, {
-                abortController,
-                tokenCallback: (token) => {
-                    // execution.embedTokens += token ?? 0
-                }
-            })
-        )
-
-        // Create tools
-        const stateVariables: TStateVariable[] = []
-        const toolsetVarirables: TStateVariable[] = []
-        const tools: StructuredToolInterface[] = []
-        /**
-         * Map of tool names to their titles
-         */
-        const toolsTitleMap = {}
-        /**
-         * The relationship between tool and toolset provider
-         */
-        const toolsetsMap: Record<string, { provider: string; toolsetId: string }> = {}
-        // Project task tools are available in every project conversation. The
-        // management mode controls the UI and task lanes, not whether the
-        // assistant can maintain the project's task ledger.
-        if (project?.id) {
-            const projectToolset = await this.commandBus.execute<CreateProjectToolsetCommand, ProjectToolset>(
-                new CreateProjectToolsetCommand(projectId, {
-                    conversationId,
-                    executionId: execution.id,
-                    agentKey: '',
-                    xpertId: command.options.xpertId ?? null
-                })
-            )
-            const items = await projectToolset.initTools()
-            const _variables = await projectToolset.getVariables()
-            toolsetVarirables.push(...(_variables ?? []))
-            // stateVariables.push(...toolsetVarirables)
-            items.forEach((tool) => {
-                toolsTitleMap[tool.name] = translate(projectToolset.getToolTitle(tool.name))
-                toolsetsMap[tool.name] = {
-                    provider: projectToolset.providerName,
-                    toolsetId: null
-                }
-                tools.push(...items)
-            })
-        }
-
-        this.#logger.debug(
-            `Project general agent use tools:\n${[...tools].map((_, i) => `${i + 1}. ` + _.name + ': ' + _.description).join('\n')}`
-        )
-
-        stateVariables.push(...toolsetVarirables)
-        // Find an available copilot
-        const configuredSupervisorModel = project?.copilotModel
-        let copilot = configuredSupervisorModel?.copilot
-        if (!configuredSupervisorModel) {
-            copilot = await this.queryBus.execute(new CopilotGetChatQuery(tenantId, organizationId))
-        }
-        const supervisorModel = configuredSupervisorModel ?? copilot?.copilotModel
-        execution.metadata = {
-            provider: copilot.modelProvider?.providerName,
-            model: supervisorModel?.model
-        }
-
-        const llm = await this.queryBus.execute(
-            new CopilotModelGetChatModelQuery(copilot, supervisorModel, {
-                abortController,
-                usageCallback: assignExecutionUsage(execution)
-            })
-        )
-
-        const supervisorName = 'general_agent'
-        // Custom Xperts
-        const xperts: { name: string; agent; tool: DynamicStructuredTool }[] = []
-        if (project?.xperts.length) {
-            for await (const xpert of project.xperts) {
-                const agent = await this.createXpertAgent({
-                    project,
-                    xpert,
-                    abortController,
-                    execution,
-                    subscriber,
-                    outputMode: 'last_message',
-                    addHandoffBackMessages: false,
-                    supervisorName,
-                    mute,
-                    store: memoryStore,
-                    isDraft: false
-                })
-                const tool = createHandoffTool({
-                    agentName: agent.name,
-                    title: xpert.title,
-                    description: xpert.description,
-                    onHandoff: async ({ taskId, config }) => {
-                        if (!project?.id || !taskId) return
-                        await this.projectService.assertToolPermission(project.id, 'edit')
-                        const configurable = (config as { configurable?: TAgentRunnableConfigurable } | undefined)
-                            ?.configurable
-                        const delegated = await this.projectService.createTaskExecution(project.id, taskId, {
-                            conversationId,
-                            threadId: configurable?.thread_id,
-                            agentExecutionId: configurable?.executionId,
-                            xpertId: xpert.id,
-                            agentKey: xpert.agent?.key || agent.name,
-                            status: 'queued',
-                            inputSummary: 'Delegated by a project expert'
-                        })
-                        if (conversationId) {
-                            await this.projectService.linkTaskConversation(project.id, taskId, {
-                                conversationId,
-                                relationType: 'execution',
-                                sourceExecutionId: delegated.id
-                            })
-                        }
-                        return delegated.id
-                    }
-                })
-                xperts.push({ name: agent.name, agent, tool })
-                toolsTitleMap[tool.name] =
-                    translate({ en_US: 'Task handoff to:', zh_Hans: '任务移交给：' }) + (xpert.title || xpert.name)
-                toolsetsMap[tool.name] = { provider: 'transfer_to', toolsetId: null }
-            }
-        }
-        const shouldReturnDirect = new Set(
-            tools.filter((tool) => 'returnDirect' in tool && tool.returnDirect).map((tool) => tool.name)
-        )
-        const routeToolResponses = (state: typeof AgentStateAnnotation.State) => {
-            // Check the last consecutive tool calls
-            for (let i = state.messages.length - 1; i >= 0; i -= 1) {
-                const message = state.messages[i]
-                if (!isToolMessage(message)) {
-                    break
-                }
-                // Check if this tool is configured to return directly
-                if (message.name !== undefined && shouldReturnDirect.has(message.name)) {
-                    return END
-                }
-                // Check if this tool is handoff tool
-                const xpert = xperts.find((_) => _.tool.name === message.name)
-                if (xpert) {
-                    return xpert.name
-                }
-            }
-            return supervisorName
-        }
-
-        const thread_id = execution.threadId
-
-        const allTools = [...(tools ?? []), ...xperts.map(({ tool }) => tool)]
-
-        const agentNames = new Set<string>()
-        for (const xpert of xperts) {
-            const agent = xpert.agent
-            if (!agent.name || agent.name === 'LangGraph') {
-                throw new Error(
-                    'Please specify a name when you create your agent, either via `createReactAgent({ ..., name: agentName })` ' +
-                        'or via `graph.compile({ name: agentName })`.'
-                )
-            }
-
-            if (agentNames.has(agent.name)) {
-                throw new Error(`Agent with name '${agent.name}' already exists. Agent names must be unique.`)
-            }
-
-            agentNames.add(agent.name)
-        }
-
-        let supervisorLLM = llm
-        if (allTools.length && isChatModelWithBindTools(llm)) {
-            if (
-                isChatModelWithParallelToolCallsParam(llm) &&
-                PROVIDERS_WITH_PARALLEL_TOOL_CALLS_PARAM.has(llm.getName())
-            ) {
-                supervisorLLM = llm.bindTools(allTools, { parallel_tool_calls: false })
-            } else {
-                supervisorLLM = llm.bindTools(allTools)
-            }
-        }
-
-        let supervisorPrompt = ''
-        if (xperts.length > 0) {
-            supervisorPrompt +=
-                '\nYou are a team leader who manages the following experts. Please assign them tasks to solve user problems:' +
-                project.xperts.reduce((prompt, xpert) => {
-                    prompt += `- xpert_${xpert.slug}: I am ${xpert.title || xpert.name}. ${xpert.description}\n\n`
-                    return prompt
-                }, '')
-        }
-
-        const stateAnnotation = createStateAnnotation(stateVariables)
-
-        const callModel = async (state: typeof AgentStateAnnotation.State, config?: RunnableConfig) => {
-            const parameters = stateToParameters(state)
-            let systemTemplate =
-                `Current time: ${new Date().toISOString()}\n` +
-                (project?.settings?.instruction || supervisorPrompt) +
-                '\n\n' +
-                Instruction
-
-            if (project?.id) systemTemplate += `\n\n${ProjectTaskInstruction}`
-
-            if (project?.settings?.mode === 'plan') {
-                systemTemplate += `\n\n` + PlanInstruction
-            }
-
-            // const files = await fileToolset?.listFiles('project', projectId)
-            // if (files) {
-            // 	systemTemplate += '\n\n' + `The list of files in the current workspace is:\n${files.map(({filePath}) => filePath).join('\n') || 'No files yet.'}\n`
-            // }
-            const systemMessage = await SystemMessagePromptTemplate.fromTemplate(systemTemplate, {
-                templateFormat: 'mustache'
-            }).format(parameters)
-
-            this.#logger.verbose(`System message of project general agent:`, systemMessage.content)
-            const messages = prepareMessagesForModel(state.messages, llm)
-            return { messages: [await supervisorLLM.invoke([systemMessage, ...messages], config)] }
-        }
-
-        let builder = new StateGraph(stateAnnotation)
-            .addNode(
-                supervisorName,
-                new RunnableLambda({ func: callModel }).withConfig({
-                    runName: supervisorName,
-                    tags: [thread_id, projectId]
-                })
-            )
-            .addEdge(START, supervisorName)
-            .addNode('tools', new ToolNode(allTools, { toolsets: toolsetsMap }), { metadata: { ...toolsTitleMap } })
-            .addConditionalEdges('tools', routeToolResponses)
-            .addConditionalEdges(supervisorName, (state, config) => {
-                const { title } = state
-                const messages = state.messages ?? []
-                const lastMessage = messages[messages.length - 1]
-                if (isBaseMessage(lastMessage) && isAIMessage(lastMessage)) {
-                    if (!lastMessage.tool_calls || lastMessage.tool_calls.length === 0) {
-                        if (!title) {
-                            return GRAPH_NODE_TITLE_CONVERSATION
-                        }
-                    } else {
-                        return 'tools'
-                    }
-                }
-                return END
-            })
-
-        const titleAgent = RunnableLambda.from(
-            async (state: typeof AgentStateAnnotation.State, config?: RunnableConfig) =>
-                await this.conversationTitleService.generateStatePatch({
-                    channel: null,
-                    config,
-                    copilot,
-                    state
-                })
-        )
-
-        builder.addNode(GRAPH_NODE_TITLE_CONVERSATION, titleAgent).addEdge(GRAPH_NODE_TITLE_CONVERSATION, END)
-
-        for (const xpert of xperts) {
-            const agent = xpert.agent
-            builder = builder.addNode(agent.name, agent, {
-                subgraphs: [agent]
-            })
-            builder = builder.addEdge(agent.name as any, supervisorName)
-        }
-
-        return builder.compile({
-            checkpointer: this.checkpointSaver
-        })
-    }
-
-    /**
-     * Create agent graph for xpert
-     */
-    async createXpertAgent(
-        params: TAgentSubgraphParams & {
-            project: IXpertProject
-            xpert: IXpert
-            abortController: AbortController
-            execution: IXpertAgentExecution
-            subscriber: Subscriber<MessageEvent>
-            outputMode: OutputMode
-            addHandoffBackMessages: boolean
-            supervisorName: string
-        }
-    ) {
-        const {
-            project,
-            xpert,
-            abortController,
-            execution,
-            subscriber,
-            outputMode,
-            addHandoffBackMessages,
-            supervisorName,
-            mute
-        } = params
-        const name = `xpert_` + xpert.slug
-        // Sub execution for xpert
-        const _execution: IXpertAgentExecution = {}
-        const { graph, agent } = await this.commandBus.execute<
-            CompileGraphCommand,
-            {
-                graph: CompiledStateGraph<
-                    unknown,
-                    unknown,
-                    string,
-                    typeof AgentStateAnnotation.spec,
-                    typeof AgentStateAnnotation.spec
-                >
-                agent: IXpertAgent
-            }
-        >(
-            new CompileGraphCommand(xpert.agent.key, xpert, {
-                mute: params.mute,
-                store: params.store,
-                execution: _execution,
-                rootExecutionId: execution.id,
-                rootController: abortController,
-                signal: abortController.signal,
-                subscriber,
-                projectId: project?.id,
-                isDraft: false,
-                environment: params.environment
-            })
-        )
-
-        const runnable = new RunnableLambda({
-            func: async (state: typeof AgentStateAnnotation.State, config) => {
-                const configurable: TAgentRunnableConfigurable = config.configurable
-                const { subscriber } = configurable
-                // Record start time
-                const timeStart = Date.now()
-                const __execution = await this.commandBus.execute(
-                    new XpertAgentExecutionUpsertCommand({
-                        ..._execution,
-                        threadId: config.configurable.thread_id,
-                        checkpointNs: config.configurable.checkpoint_ns,
-                        xpert: { id: xpert.id } as IXpert,
-                        // agentKey: xpert.agent.key,
-                        inputs: { input: state.input },
-                        parentId: execution.id,
-                        metadata: {
-                            ..._execution.metadata,
-                            invocationKind: 'external_assistant',
-                            assistantName: xpert.title || xpert.name,
-                            assistantAvatar: avatarForChat(xpert.avatar)
-                        },
-                        status: XpertAgentExecutionStatusEnum.RUNNING,
-                        predecessor: configurable.agentKey
-                    })
-                )
-
-                const projectTaskExecution = project?.id
-                    ? await this.projectService.claimTaskExecution(project.id, {
-                          threadId: config.configurable.thread_id,
-                          xpertId: xpert.id,
-                          agentExecutionId: __execution.id
-                      })
-                    : null
-
-                // Start agent execution event
-                subscriber.next(messageEvent(ChatMessageEventTypeEnum.ON_AGENT_START, __execution))
-
-                // Exec
-                let status = XpertAgentExecutionStatusEnum.SUCCESS
-                let error = null
-                let result = ''
-                const finalize = async () => {
-                    const _state = await graph.getState(config)
-
-                    const timeEnd = Date.now()
-                    // Record End time
-                    const ___execution = await this.commandBus.execute(
-                        new XpertAgentExecutionUpsertCommand({
-                            ..._execution,
-                            id: __execution.id,
-                            metadata: {
-                                ..._execution.metadata,
-                                invocationKind: 'external_assistant',
-                                assistantName: xpert.title || xpert.name,
-                                assistantAvatar: avatarForChat(xpert.avatar)
-                            },
-                            checkpointId: _state.config.configurable.checkpoint_id,
-                            elapsedTime: timeEnd - timeStart,
-                            status,
-                            error,
-                            outputs: {
-                                output: result
-                            }
-                        })
-                    )
-
-                    if (projectTaskExecution) {
-                        await this.projectService.updateTaskExecution(
-                            project.id,
-                            projectTaskExecution.taskId,
-                            projectTaskExecution.id,
-                            {
-                                status: status === XpertAgentExecutionStatusEnum.SUCCESS ? 'succeeded' : 'failed',
-                                outputSummary:
-                                    status === XpertAgentExecutionStatusEnum.SUCCESS
-                                        ? 'Assistant execution completed'
-                                        : undefined,
-                                error: status === XpertAgentExecutionStatusEnum.SUCCESS ? undefined : error,
-                                completedAt: new Date()
-                            }
-                        )
-                    }
-
-                    const fullExecution = await this.queryBus.execute(new XpertAgentExecutionOneQuery(___execution.id))
-
-                    // End agent execution event
-                    subscriber.next(messageEvent(ChatMessageEventTypeEnum.ON_AGENT_END, fullExecution))
-                }
-
-                const _messages = Array.from(state.messages)
-                const primaryChannelName = channelName(xpert.agent.key)
-                let toolMessage = null
-                let aiMessage: AIMessage = null
-                while (_messages.length > 0) {
-                    const message = _messages.pop()
-                    if (isBaseMessage(message)) {
-                        if (isAIMessage(message)) {
-                            aiMessage = message
-                            break
-                        } else if (isToolMessage(message) && message.name.includes(_normalizeAgentName(name))) {
-                            toolMessage = message
-                        }
-                    }
-                }
-                if (!aiMessage) {
-                    throw new Error(`CAN NOT found AiMessage for transfer back of xpert`)
-                }
-                if (!toolMessage) {
-                    throw new Error(`CAN NOT found ToolMessage for transfer back of xpert`)
-                }
-                let input = null
-                let tool_call_id = null
-                let tool_name = null
-                const toolCalls = Array.from(aiMessage.tool_calls)
-                while (toolCalls.length > 0) {
-                    const tool_call = toolCalls.pop()
-                    if (tool_call.name.includes(_normalizeAgentName(name))) {
-                        input = tool_call.args?.input
-                        tool_call_id = tool_call.id
-                        tool_name = tool_call.name
-                        break
-                    }
-                }
-
-                try {
-                    const output = await graph.invoke(
-                        {
-                            ...state,
-                            input: input,
-                            [STATE_VARIABLE_HUMAN]: {
-                                input,
-                                files: state.human?.files || []
-                            },
-                            messages: [],
-                            [primaryChannelName]: {
-                                messages: []
-                            }
-                        },
-                        {
-                            ...config,
-                            configurable: {
-                                ...config.configurable,
-                                agentKey: '', // In the general agent, messages do not distinguish between Agents but only between Xperts.
-                                xpertName: xpert.name
-                            },
-                            metadata: {
-                                agentKey: '', // In the general agent, messages do not distinguish between Agents but only between Xperts.
-                                xpertName: xpert.name
-                            }
-                        }
-                    )
-
-                    let { messages } = output
-
-                    const lastMessage = messages[messages.length - 1]
-                    if (lastMessage && isAIMessage(lastMessage)) {
-                        result = lastMessage.content as string
-                    }
-
-                    if (outputMode === 'last_message') {
-                        messages = [
-                            new ToolMessage({
-                                name: tool_name,
-                                content: result,
-                                tool_call_id
-                            })
-                        ]
-                    }
-
-                    if (addHandoffBackMessages) {
-                        messages.push(...createHandoffBackMessages(agent.name, supervisorName))
-                    }
-                    return { ...output, messages: [new RemoveMessage({ id: toolMessage.id }), ...messages] }
-                } catch (err) {
-                    if (err instanceof GraphInterrupt) {
-                        status = XpertAgentExecutionStatusEnum.INTERRUPTED
-                    } else if (!isParentCommand(err) && !isCommand(err)) {
-                        error = getErrorMessage(err)
-                        status = XpertAgentExecutionStatusEnum.ERROR
-                    }
-                    throw err
-                } finally {
-                    // End agent execution event
-                    await finalize()
-                }
-            }
-        }).withConfig({ tags: [xpert.id] })
-        runnable.name = name
-
-        if (xpert.agentConfig?.mute?.length) {
-            mute.push(...xpert.agentConfig.mute.map((_) => [xpert.id, ..._]))
-        }
-        return runnable
+    async createReactAgent(...args: Parameters<ChatCommonAgentBuilder['createReactAgent']>) {
+        return new ChatCommonAgentBuilder(
+            this.checkpointSaver,
+            this.projectService,
+            this.commandBus,
+            this.queryBus,
+            this.conversationTitleService,
+            this.middlewareRegistry,
+            this.middlewareRuntime
+        ).createReactAgent(...args)
     }
 
     async getProject(projectId: string) {
@@ -1464,111 +918,4 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
             })
         )
     }
-}
-
-function createStateAnnotation(stateVariables: TStateVariable[]) {
-    return Annotation.Root({
-        ...AgentStateAnnotation.spec, // Common agent states
-        // Global conversation variables
-        ...(stateVariables.reduce((acc, variable) => {
-            acc[variable.name] = Annotation({
-                ...(variable.reducer
-                    ? {
-                          reducer: variable.reducer,
-                          default: variable.default
-                      }
-                    : stateVariable(variable))
-            })
-            return acc
-        }, {}) ?? {})
-    })
-}
-
-function toInterruptCommand(request: TXpertChatResumeRequest): TInterruptCommand | null {
-    const command: TInterruptCommand = {}
-    if (request.decision.type === 'confirm') {
-        command.resume = request.decision.payload ?? {}
-    } else if (request.decision.payload !== undefined) {
-        command.resume = request.decision.payload
-    }
-    if (request.patch?.toolCalls?.length) {
-        command.toolCalls = request.patch.toolCalls
-    }
-    if (request.patch?.update !== undefined) {
-        command.update = request.patch.update
-    }
-    if (request.patch?.agentKey) {
-        command.agentKey = request.patch.agentKey
-    }
-
-    return Object.keys(command).length ? command : null
-}
-
-function shouldRejectResumeWithGraph(request: TChatRequest): boolean {
-    return request.action === 'resume' && request.decision.type === 'reject' && request.decision.payload === undefined
-}
-
-function resolveRetryHumanInput(sourceInputs: unknown, fallbackInput: TChatRequestHuman): TChatRequestHuman {
-    const retryInput = extractRetryHumanInput(sourceInputs)
-
-    if (typeof retryInput === 'string') {
-        return {
-            ...fallbackInput,
-            input: retryInput.trim().length ? retryInput : fallbackInput.input
-        }
-    }
-
-    if (!isChatRequestHumanRecord(retryInput)) {
-        return fallbackInput
-    }
-
-    const mergedInput: TChatRequestHuman = {
-        ...fallbackInput,
-        ...retryInput
-    }
-
-    if (typeof mergedInput.input !== 'string' || !mergedInput.input.trim().length) {
-        mergedInput.input = fallbackInput.input
-    }
-
-    if ((!Array.isArray(mergedInput.files) || !mergedInput.files.length) && Array.isArray(fallbackInput.files)) {
-        mergedInput.files = fallbackInput.files
-    }
-
-    return mergedInput
-}
-
-function extractRetryHumanInput(sourceInputs: unknown): unknown {
-    if (isChatRequestHumanRecord(sourceInputs) && isChatRequestHumanRecord(sourceInputs[STATE_VARIABLE_HUMAN])) {
-        return sourceInputs[STATE_VARIABLE_HUMAN]
-    }
-
-    return sourceInputs
-}
-
-function isChatRequestHumanRecord(value: unknown): value is TChatRequestHuman {
-    return !!value && typeof value === 'object' && !Array.isArray(value)
-}
-
-function resolveConversationRetrySourceMessageId(
-    request: TXpertChatRetryRequest,
-    messages?: IChatMessage[] | null
-): string | null {
-    return request.source.aiMessageId ?? findLastAiMessageId(messages) ?? null
-}
-
-function resolveConversationResumeTargetMessageId(
-    request: TXpertChatResumeRequest,
-    messages?: IChatMessage[] | null
-): string | null {
-    return request.target.aiMessageId ?? findLastAiMessageId(messages) ?? null
-}
-
-function findLastAiMessageId(messages?: IChatMessage[] | null): string | null {
-    if (!messages?.length) {
-        return null
-    }
-
-    const message = [...messages].reverse().find((item) => item?.role === 'ai')
-    return message?.id ?? null
 }

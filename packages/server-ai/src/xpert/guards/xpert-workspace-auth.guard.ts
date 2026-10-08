@@ -3,6 +3,7 @@ import { ApiKeyOrClientSecretAuthGuard } from '@xpert-ai/server-core'
 import { ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { t } from 'i18next'
+import { assertWorkbenchPrincipal } from '../../ai/workbench-principal'
 
 /**
  * Workspace file discovery accepts the delegated USER_XPERT session used by
@@ -24,11 +25,13 @@ export class XpertWorkspaceAuthGuard extends ApiKeyOrClientSecretAuthGuard {
             user?: IApiPrincipal
         }>()
         const principal = request.user
-        if (principal?.principalType !== 'client_secret') return true
+        if (!principal?.principalType) return true
+        assertWorkbenchPrincipal(principal)
 
         const boundXpertId = principal.apiKey?.entityId?.trim()
         if (
-            principal.clientSecretBindingType !== SecretTokenBindingType.USER_XPERT ||
+            (principal.principalType === 'client_secret' &&
+                principal.clientSecretBindingType !== SecretTokenBindingType.USER_XPERT) ||
             principal.apiKey?.type !== ApiKeyBindingType.ASSISTANT ||
             !boundXpertId ||
             boundXpertId !== request.params.id

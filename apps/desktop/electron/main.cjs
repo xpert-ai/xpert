@@ -1,4 +1,5 @@
-const { app, BrowserWindow, ipcMain, safeStorage, shell, session, Menu, screen } = require('electron')
+const { allowVoicePermission } = require('./voice-permission.cjs')
+const { app, BrowserWindow, ipcMain, safeStorage, shell, session, Menu, screen, dialog } = require('electron')
 const path = require('node:path')
 const { pathToFileURL } = require('node:url')
 const { DesktopService, webUrl } = require('./service.cjs')
@@ -12,8 +13,10 @@ const { DesktopShellController } = require('./shell/controller.cjs')
 const { translate } = require('./i18n/index.mjs')
 const { platformCommandUrl } = require('./workbench-platform.mjs')
 const { installAvatarPointer } = require('./avatar-pointer.cjs')
+const { installWindowActivation } = require('./window-activation.cjs')
 const { DesktopUpdater, registerUpdateIpc } = require('./updates/controller.cjs')
 const { findRelease } = require('./updates/release.cjs')
+const { isWorkspaceFileDownload, downloadWorkspaceFile } = require('./workspace-file-download.cjs')
 
 const branding = require('./branding.json')
 
@@ -69,10 +72,30 @@ function updateApplicationMenu() {
 function resetConnectionSession() {
   connectionSession = createConnectionSession(session, service.config)
   connectionSession.setPermissionRequestHandler((contents, permission, callback, details) =>
-    callback(allowClipboardWrite(contents, permission, details.requestingUrl))
+    callback(
+      allowClipboardWrite(contents, permission, details.requestingUrl) ||
+        allowVoicePermission({
+          contents,
+          mainContents: window?.webContents,
+          permission,
+          source: details.requestingUrl,
+          rendererUrl,
+          details
+        })
+    )
   )
-  connectionSession.setPermissionCheckHandler((contents, permission, origin) =>
-    allowClipboardWrite(contents, permission, origin)
+  connectionSession.setPermissionCheckHandler(
+    (contents, permission, origin, details) =>
+      allowClipboardWrite(contents, permission, origin) ||
+      allowVoicePermission({
+        contents,
+        mainContents: window?.webContents,
+        permission,
+        source: origin,
+        rendererUrl,
+        details,
+        check: true
+      })
   )
 }
 
@@ -101,8 +124,23 @@ function createWindow(bounds = {}) {
     if (window === createdWindow) window = undefined
   })
   installAvatarPointer(window, { ipcMain, screen, isTrusted: trusted })
+  installWindowActivation(window)
   window.webContents.setWindowOpenHandler(({ url }) => {
-    openExternal(url)
+    if (isWorkspaceFileDownload(url, service.config.apiUrl)) {
+      void downloadWorkspaceFile(url, service, async (fileName) => {
+        const result = await dialog.showSaveDialog(createdWindow, {
+          title: translate(service.config.locale, 'Download'),
+          defaultPath: fileName
+        })
+        return result.canceled ? null : result.filePath
+      }).catch(() => {
+        if (!createdWindow.isDestroyed())
+          void dialog.showMessageBox(createdWindow, {
+            type: 'error',
+            message: translate(service.config.locale, 'Could not load the delivered file.')
+          })
+      })
+    } else openExternal(url)
     return { action: 'deny' }
   })
   window.webContents.on('will-navigate', (event, url) => {
@@ -144,7 +182,8 @@ else {
       localLogin,
       certificateProbe: (origin) => probeCertificate(session, origin),
       fetcher: (url, options) => connectionSession.fetch(url, { ...options, credentials: 'omit' }),
-      defaultConfig: app.isPackaged ? packagedConnection() : connectionDefaults()
+      defaultConfig: app.isPackaged ? packagedConnection() : connectionDefaults(),
+      systemLanguages: [...app.getPreferredSystemLanguages(), app.getLocale()]
     })
     service.shell = new DesktopShellController(service, path.join(app.getPath('userData'), 'desktop-shell'))
     resetConnectionSession()
@@ -180,16 +219,21 @@ else {
           status: 403
         }
       const previousPolicy = connectionPolicyKey(service.config)
+      const previousLocale = service.config.locale
       const result = await dispatch(service, method, argument)
+      if (previousLocale !== service.config.locale) updateApplicationMenu()
       // Only a host-verified, live connection attempt may bring Desktop back from browser authorization.
-      if (method === 'checkPluginConnection' && result.ok && result.value.status === 'connected') {
+      if (
+        ['checkPluginConnection', 'bosiCheckConnection'].includes(method) &&
+        result.ok &&
+        result.value.status === 'connected'
+      ) {
         if (window?.isMinimized()) window.restore()
         window?.show()
         app.focus({ steal: true })
         window?.focus()
       }
       if (method === 'configure' && result.ok) {
-        updateApplicationMenu()
         if (previousPolicy !== connectionPolicyKey(service.config)) {
           const previousSession = connectionSession
           resetConnectionSession()

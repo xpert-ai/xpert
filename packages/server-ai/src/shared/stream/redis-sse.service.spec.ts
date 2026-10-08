@@ -3,6 +3,101 @@ import { lastValueFrom, of, throwError, toArray } from 'rxjs'
 import { RedisSseStreamService } from './redis-sse.service'
 
 describe('RedisSseStreamService', () => {
+    it.each([0, 3 * 60 * 60 * 1000])(
+        'starts a resumed stream after old completion markers following a %s ms pause',
+        async (pauseMs) => {
+            const redis = createRedisMock()
+            const oldId = `${Date.now() - pauseMs}-0`
+            const nextId = `${Number(oldId.split('-')[0]) + 1}-0`
+            const endId = `${Number(oldId.split('-')[0]) + 2}-0`
+            const entries: Array<[string, string[]]> = [[oldId, ['data', JSON.stringify({ type: 'complete' })]]]
+            redis.sendCommand.mockImplementation(async (args: string[]) => {
+                if (args[0] === 'XREVRANGE') return entries.slice(-1)
+                if (args[0] === 'XRANGE') {
+                    const cursor = Number(args[2].slice(1).split('-')[0])
+                    return entries.filter(([id]) => Number(id.split('-')[0]) > cursor)
+                }
+                return 1
+            })
+            // New events arrive after the cursor is captured, before the reader subscribes.
+            redis.set.mockImplementation(async (key: string) => {
+                if (key.includes(':connection:')) {
+                    entries.push([nextId, ['data', JSON.stringify({ type: 'message', data: 'resumed output' })]])
+                    entries.push([endId, ['data', JSON.stringify({ type: 'complete' })]])
+                }
+                return 'OK'
+            })
+            const service = new RedisSseStreamService(redis as never)
+            const resumed = await service.createSseStream({
+                threadId: 'thread',
+                runId: 'same-run',
+                mode: 'create',
+                lastEventId: '0-0'
+            })
+            const events = await lastValueFrom(resumed.stream.pipe(toArray()))
+            expect(events.map((e) => e.id)).toEqual([nextId, endId])
+            expect(events[0].data).toEqual({ type: 'message', data: 'resumed output' })
+            expect(redis.set).toHaveBeenCalledWith('ai:sse:segment:thread:thread:run:same-run', oldId, { EX: 86400 })
+            expect(redis.sendCommand).toHaveBeenCalledWith([
+                'XRANGE',
+                service.getStreamKey('thread', 'same-run'),
+                `(${oldId}`,
+                '+',
+                'COUNT',
+                '500'
+            ])
+        }
+    )
+
+    it('captures 0-0 for a new run without dropping its first event', async () => {
+        const redis = createRedisMock()
+        redis.sendCommand.mockImplementation(async (args: string[]) => {
+            if (args[0] === 'XREVRANGE') return []
+            if (args[0] === 'XRANGE') return [['1-0', ['data', JSON.stringify({ type: 'complete' })]]]
+            return 1
+        })
+        const service = new RedisSseStreamService(redis as never)
+        const created = await service.createSseStream({ threadId: 'thread', runId: 'new-run', mode: 'create' })
+        expect((await lastValueFrom(created.stream.pipe(toArray()))).map((e) => e.id)).toEqual(['1-0'])
+        expect(redis.sendCommand).toHaveBeenCalledWith([
+            'XRANGE',
+            service.getStreamKey('thread', 'new-run'),
+            '(0-0',
+            '+',
+            'COUNT',
+            '500'
+        ])
+    })
+
+    it.each([undefined, '1-0', '5-1', '6-0'])(
+        'reconnects within the latest segment for cursor %s',
+        async (requested) => {
+            const redis = createRedisMock()
+            redis.get.mockResolvedValue('5-1')
+            redis.sendCommand.mockImplementation(async (args: string[]) => {
+                if (args[0] === 'XRANGE') return [['7-0', ['data', JSON.stringify({ type: 'complete' })]]]
+                return 1
+            })
+            const service = new RedisSseStreamService(redis as never)
+            const joined = await service.createSseStream({
+                threadId: 'thread',
+                runId: 'run',
+                mode: 'join',
+                lastEventId: requested
+            })
+            await lastValueFrom(joined.stream.pipe(toArray()))
+            expect(redis.get).toHaveBeenCalledWith('ai:sse:segment:thread:thread:run:run')
+            expect(redis.sendCommand).toHaveBeenCalledWith([
+                'XRANGE',
+                service.getStreamKey('thread', 'run'),
+                `(${requested === '6-0' ? '6-0' : '5-1'}`,
+                '+',
+                'COUNT',
+                '500'
+            ])
+        }
+    )
+
     it('stores per-connection owner metadata when creating stream readers', async () => {
         const redis = createRedisMock()
         redis.set.mockResolvedValue('OK')
@@ -350,6 +445,94 @@ describe('RedisSseStreamService', () => {
             })
         )
         expect(appendCompleteEvent).toHaveBeenCalledWith('thread-1', 'run-1')
+    })
+
+    it('serializes writes before completion and runs a shared producer once', async () => {
+        const service = new RedisSseStreamService(createRedisMock() as never)
+        const writes: unknown[] = []
+        let release: () => void
+        const blocked = new Promise<void>((done) => {
+            release = done
+        })
+        jest.spyOn(service, 'appendEvent').mockImplementation(async (_thread, _run, data) => {
+            if (writes.length === 1) await blocked
+            writes.push(data)
+            return `${writes.length}-0`
+        })
+        let calls = 0
+        const { Observable } = jest.requireActual<typeof import('rxjs')>('rxjs')
+        const source = new Observable<MessageEvent>((subscriber) => {
+            calls++
+            subscriber.next({ data: { type: 'message', data: 'a' } } as MessageEvent)
+            subscriber.next({ data: { type: 'message', data: 'b' } } as MessageEvent)
+            subscriber.complete()
+        })
+        const shared = service.wrapChatStream(source, {
+            target: { transport: 'redis-stream', threadId: 'thread', runId: 'run' }
+        })
+        const a = lastValueFrom(shared.pipe(toArray())),
+            b = lastValueFrom(shared.pipe(toArray()))
+        await Promise.resolve()
+        await Promise.resolve()
+        expect(writes).toEqual([{ type: 'stream_start' }])
+        release()
+        await Promise.all([a, b])
+        expect(calls).toBe(1)
+        expect(writes).toEqual([
+            { type: 'stream_start' },
+            { type: 'message', data: 'a' },
+            { type: 'message', data: 'b' },
+            { type: 'complete' }
+        ])
+    })
+
+    it('signals reconciliation when one event cannot be serialized without losing completion', async () => {
+        const service = new RedisSseStreamService(createRedisMock() as never)
+        const append = jest.spyOn(service, 'appendEvent').mockResolvedValue('1-0')
+        const { of } = jest.requireActual<typeof import('rxjs')>('rxjs')
+        const payload: { type: string; data?: unknown } = { type: 'message' }
+        payload.data = payload
+        const stream = service.wrapChatStream(of({ data: payload } as MessageEvent), {
+            target: { transport: 'redis-stream', threadId: 'thread', runId: 'run' }
+        })
+        await lastValueFrom(stream)
+        expect(append.mock.calls.map((call) => call[2])).toEqual([
+            { type: 'stream_start' },
+            { type: 'stream_resync' },
+            { type: 'complete' }
+        ])
+    })
+
+    it('requests snapshot recovery for a trimmed replay instead of emitting partial deltas', async () => {
+        const redis = createRedisMock()
+        redis.sendCommand.mockImplementation(async (args: string[]) =>
+            args[0] === 'XRANGE' ? [['20-0', ['data', JSON.stringify({ type: 'message', data: 'tail' })]]] : 1
+        )
+        const service = new RedisSseStreamService(redis as never)
+        const { stream } = await service.createSseStream({
+            threadId: 'thread',
+            runId: 'run',
+            mode: 'join',
+            requireReplayStart: true,
+            lastEventId: '10-0'
+        })
+        const events = await lastValueFrom(stream.pipe(toArray()))
+        expect(events.map((event) => event.data)).toEqual([{ type: 'stream_resync' }, { type: 'complete' }])
+    })
+
+    it('finishes an expired terminal run with an explicit resync instead of waiting forever', async () => {
+        const redis = createRedisMock()
+        redis.sendCommand.mockImplementation(async (args: string[]) => (args[0] === 'XRANGE' ? [] : 1))
+        const service = new RedisSseStreamService(redis as never)
+        const { stream } = await service.createSseStream({
+            threadId: 'thread',
+            runId: 'run',
+            mode: 'join',
+            requireReplayStart: true,
+            isRunFinished: async () => true
+        })
+        const events = await lastValueFrom(stream.pipe(toArray()))
+        expect(events[0].data).toEqual({ type: 'stream_resync' })
     })
 
     it('leaves chat streams untouched when persistence is not enabled', async () => {

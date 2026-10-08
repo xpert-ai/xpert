@@ -1,5 +1,7 @@
 import {
     AiModelTypeEnum,
+    RealtimeVoiceSelection,
+    AssistantCapabilityConfiguration,
     LanguagesEnum,
     ModelFeature,
     TCopilotModel,
@@ -11,7 +13,8 @@ import {
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { AssistantCapabilityProviderRegistry, IAssistantCapabilityProvider } from '@xpert-ai/plugin-sdk'
-import { RequestContext } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { RealtimeModelCatalog } from './realtime-voice.capability'
 import { t } from 'i18next'
 import { stringify } from 'yaml'
 import { CopilotWithProviderDto } from '../../copilot/dto'
@@ -24,16 +27,22 @@ import {
 import { parseCapabilityTemplateDraft } from './template-draft'
 import { recordCapabilityState } from './capability-state'
 import { blankAssistantTemplate } from './blank-assistant-template'
+import { templateModelOption } from './template-model-option'
 
 @Injectable()
 export class AssistantCapabilityService {
     constructor(
         private readonly registry: AssistantCapabilityProviderRegistry,
-        private readonly queries: QueryBus
+        private readonly queries: QueryBus,
+        private readonly realtimeCatalog: RealtimeModelCatalog
     ) {}
 
     blankTemplate(): TXpertTemplate {
         return blankAssistantTemplate(this.registry.list().filter((provider) => provider.availableForBlankAssistant))
+    }
+
+    realtimeModels() {
+        return this.realtimeCatalog.list()
     }
 
     configurationTemplate(draft: TXpertTeamDraft): TXpertTemplate {
@@ -47,6 +56,30 @@ export class AssistantCapabilityService {
             }))
         template.export_data = stringify(draft)
         return template
+    }
+
+    async configurationOptions(
+        template: TXpertTemplate,
+        draft: TXpertTeamDraft,
+        language: LanguagesEnum,
+        sandboxProviders: { type: string }[]
+    ): Promise<AssistantCapabilityConfiguration['options']> {
+        const declarations = new Map(template.capabilities?.map((item) => [item.key, item]))
+        return Promise.all(
+            this.registry
+                .list()
+                .filter((provider) => declarations.has(provider.key))
+                .map(async (provider) => {
+                    const availability = await provider.check({ template, draft, language, sandboxProviders })
+                    return {
+                        key: provider.key,
+                        label: resolveI18nText(provider.label, RequestContext.getLanguageCode()) || provider.key,
+                        description: resolveI18nText(provider.description, RequestContext.getLanguageCode()) || '',
+                        required: declarations.get(provider.key).required === true,
+                        ...availability
+                    }
+                })
+        )
     }
 
     async setup(
@@ -80,6 +113,8 @@ export class AssistantCapabilityService {
                         t('server-ai:Error.TemplateCapabilityUnavailable', { capability: provider.key })
                 }
         }
+        if (active.some((provider) => provider.key === 'realtime-voice'))
+            result.realtimeModels = await this.realtimeCatalog.list()
         if (!result.requiresModel) return result
         const copilots = await this.queries.execute<FindCopilotModelsQuery, CopilotWithProviderDto[]>(
             new FindCopilotModelsQuery(AiModelTypeEnum.LLM)
@@ -94,11 +129,7 @@ export class AssistantCapabilityService {
                                 model.features?.includes(ModelFeature.MULTI_TOOL_CALL))
                     )
                 )
-                .map((model) => ({
-                    id: `${copilot.id}/${encodeURIComponent(model.model)}`,
-                    label: resolveI18nText(model.label, RequestContext.getLanguageCode()) || model.model,
-                    copilotModel: { copilotId: copilot.id, model: model.model, modelType: AiModelTypeEnum.LLM }
-                }))
+                .map((model) => templateModelOption(copilot, model, RequestContext.getLanguageCode()))
         )
         return result.models.length
             ? result
@@ -127,6 +158,19 @@ export class AssistantCapabilityService {
         draft.team.copilotModel = choice.copilotModel
         const primary = draft.nodes.find((node) => node.type === 'agent' && node.key === draft.team.agent?.key)
         if (primary?.type === 'agent') primary.entity.copilotModel = null
+    }
+
+    async configureRealtimeVoice(draft: TXpertTeamDraft, selection?: RealtimeVoiceSelection) {
+        if (!draft.team.features?.realtimeVoice?.enabled) {
+            if (selection) throw new BadRequestException(t('server-ai:Error.RealtimeConfigurationInvalid'))
+            return
+        }
+        const model = (await this.realtimeCatalog.list()).find((entry) => entry.id === selection?.modelId)
+        if (!model || !model.voices.some((voice) => voice.id === selection?.voice))
+            throw new BadRequestException(t('server-ai:Error.RealtimeConfigurationInvalid'))
+        draft.team.features.realtimeVoice = { enabled: true, copilotModel: model.copilotModel, voice: selection.voice }
+        const state = draft.team.options?.assistantCapabilities
+        if (state?.realtimeVoice) state.realtimeVoice.after = structuredClone(draft.team.features.realtimeVoice)
     }
 
     async compose(

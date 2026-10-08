@@ -1,5 +1,6 @@
 export * from './types'
 export * from './ai/project-task-graph.model'
+export * from './ai/project-task-type.model'
 export * from './ai/project-task-schedule'
 export * from './utils'
 export type { I18nObject, I18nText } from './i18n.model'
@@ -99,3 +100,7 @@ export type {
 } from './agent-plugin'
 
 export * from './desktop-shell.model'
+
+export * from './ai/agent-output-delivery.model'
+
+export * from './ai/execution-activity.model'

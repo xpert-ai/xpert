@@ -25,8 +25,33 @@ This repo uses NestJS + TypeORM on the server and Angular 17 (standalone, signal
 - Register modules in `packages/server-ai/src/index.ts` and wire into `app.module.ts` as needed.
 - Keep TypeORM entities aligned with contract interfaces in `packages/contracts`.
 - TypeORM entity columns must not rely on decorator metadata for unsafe property types. If an `@Column` property uses a union, literal union, imported type alias, enum-like type reference, object/interface shape, array, `Record`, `unknown`, or `any`, the decorator must explicitly declare `type`. Use `type: 'varchar'` for string unions, `type: 'int'` for numeric unions, and `type: 'json'` or `type: 'jsonb'` for structured data.
-- Complex, independent logic can be implemented using CQRS.
 - Ensure clearer boundaries of responsibilities.
+
+### Subfeature organization
+
+- A cohesive subfeature with its own Controller and Service belongs in a dedicated subdirectory under its owning feature, such as `xpert/assistant-appearance/`. Keep its schemas, DTOs, helpers and tests together instead of adding them to the parent directory.
+- Directory boundaries do not require a NestJS Module. Register small subfeatures in the owning Module; introduce a submodule when it provides a meaningful dependency, provider or export boundary.
+
+### Shared CQRS operations
+
+- When a reusable capability has one cohesive entry point, prefer a typed CQRS Command and Handler over requiring consumers to inject its Service and import its owning Module. Register the Handler once in the owning platform module; consumers use the shared `CommandBus` and public Command contract.
+- Keep reusable policy decisions, including role-specific exceptions, inside the owning capability. Business callers supply trusted scope, handle the result using their domain errors, and retain their action and resource authorization checks.
+- Keep Command JSDoc brief: describe purpose, when to use the command, and essential responsibility boundaries. Let types express inputs and results; avoid detailed Returns sections, error inventories, and Handler implementation details such as database queries or branching rules. Document non-obvious implementation constraints in the Handler when needed.
+- Keep small, single-entry API usage guidance in the Command comments and general design principles in this guide. Add a separate feature document only when it provides material beyond those two sources.
+
+### ChatKit API boundary
+
+- Put ChatKit business endpoints in `AIModule` under `/api/ai`, with shared authentication and explicit Assistant/conversation scope guards. Keep controllers thin and resource authorization in reusable business services; do not open management controllers to client secrets for ChatKit. Cookie-bound or short-lived authorized content URLs may remain separate.
+
+### Request validation
+
+- For new schema-driven APIs, especially ModelExecution and inputs reused by HTTP, jobs or persistence, prefer Zod schemas with the shared `ZodValidationPipe` from `@xpert-ai/server-core`. Keep established DTO class + `ValidationPipe` modules consistent; do not migrate unrelated endpoints only for style.
+- Put schemas in focused `*.schema.ts` modules and derive parsed parameter types with `z.output<typeof schema>`. Define coercion, defaults, unknown-key handling and cross-field constraints in that schema. Do not maintain a second decorated DTO validation rule set for the same input.
+- Bind the pipe at the parameter boundary (`@Query(...)`, `@Body(...)`) so controllers receive validated, transformed values. A TypeScript interface or type annotation alone does not validate HTTP data.
+- Keep the shared pipe independent of business modules and providers. Supply an exception factory to preserve domain error codes, i18next messages and metrics; do not return or log raw request values in validation errors.
+- Validate once per trust boundary. Internal business methods accept concrete parsed types; validate external job payloads and persisted JSON when they enter the process, reusing the same schema. Avoid reparsing already validated parameters at every layer.
+- Schemas validate payload shape, not authorization. Resolve tenant, organization, actor and billing scope from trusted context, and keep access checks in the authorization/business layer.
+- Add HTTP route tests for pipe wiring, conversion/defaults, invalid and extra fields, and unchanged error responses. Direct calls to controller methods bypass NestJS pipes and cannot prove request validation works.
 
 ### Backend I18n
 

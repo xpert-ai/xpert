@@ -21,6 +21,16 @@ describe('first-send Project intent', () => {
         ).toEqual({ selection: { mode } })
     })
 
+    it('retains new-project intent without binding stale context while confirmation is required', () => {
+        const confirmed = {
+            ...xpert,
+            options: { workspaceScope: { mode: 'project-required' as const, onMissing: 'confirm' as const } }
+        }
+        expect(resolveSendProjectSelection(request({ mode: 'auto-new' }), conversation, confirmed, 'stale')).toEqual({
+            selection: { mode: 'auto-new' }
+        })
+    })
+
     it('uses only the explicitly selected existing Project', () => {
         expect(
             resolveSendProjectSelection(

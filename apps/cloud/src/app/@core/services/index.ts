@@ -80,6 +80,9 @@ export * from './workbench-presentation.service'
 export * from './knowledge-tags.service'
 
 export * from './xpert-settings.service'
+export * from './xpert-publication.service'
 export * from './xpert-settings-context.service'
 
 export * from './file-change-review.service'
+
+export * from './ai-workspace-files.service'

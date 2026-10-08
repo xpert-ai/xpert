@@ -1,3 +1,6 @@
+import type { ModelExecutionUsageContext, ModelExecutionEnvironment } from './model-execution.model'
+import type { ModelGatewayUsageChannelEnum } from './model-gateway.model'
+import type { TTokenUsage } from '../agent/token'
 import type { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import type { AiModelTypeEnum } from '../agent'
 import type { LLMPriceAuthority, LLMPriceBreakdownItem, ModelPriceDailyTimeWindow } from './ai-model.model'
@@ -132,6 +135,14 @@ export type ModelUsageReportResult = {
 }
 
 export interface IModelUsageLedger extends IBasePerTenantAndOrganizationEntityModel {
+  /** Assistant attributed to this usage; absent when no assistant context is available. */
+  xpertId?: string | null
+  /** Product entry channel for usage attribution; historical entries may omit it. */
+  usageChannel?: ModelGatewayUsageChannelEnum | null
+  /** Execution snapshot shared with the points ledger; absent for non-execution or historical usage. */
+  executionContext?: ModelExecutionUsageContext | null
+  /** Cache counts are subsets of input, and reasoning of output; never add them to totalTokens again. */
+  tokenDetails?: Pick<TTokenUsage, 'cacheReadInputTokens' | 'cacheWriteInputTokens' | 'reasoningTokens'> | null
   requestId: string
   revision: number
   userId?: string | null
@@ -195,6 +206,14 @@ export interface IModelChargeLedger extends IBasePerTenantAndOrganizationEntityM
 }
 
 export type ModelUsageLedgerQuery = {
+  /** These dimensions further narrow the existing tenant, organization and user scope. */
+  usageChannel?: ModelGatewayUsageChannelEnum
+  environmentType?: ModelExecutionEnvironment['type']
+  assistantId?: string
+  conversationId?: string
+  /** CLI session ID or managed invocation ID. */
+  executionId?: string
+  tool?: string
   start?: string
   end?: string
   provider?: string

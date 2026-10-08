@@ -53,7 +53,16 @@ export interface WorkspaceOption {
   name: string
 }
 
+export type VoiceSelection = { modelId: string; voice: string }
+export interface VoiceModelOption {
+  id: string
+  label: string
+  voices: { id: string; label: string }[]
+  defaultVoice: string
+}
+
 export interface TemplatePreflight {
+  realtimeModels?: VoiceModelOption[]
   canInstall: boolean
   reason: string
   requiresModel: boolean

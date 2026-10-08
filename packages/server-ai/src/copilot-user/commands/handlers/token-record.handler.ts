@@ -1,5 +1,6 @@
 import { mapTranslationLanguage } from '@xpert-ai/contracts'
-import { InvalidConfigurationException, RequestContext } from '@xpert-ai/server-core'
+import { InvalidConfigurationException } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { I18nService } from 'nestjs-i18n'
 import { CopilotGetOneQuery } from '../../../copilot/queries'
@@ -56,20 +57,35 @@ export class CopilotTokenRecordHandler implements ICommandHandler<CopilotTokenRe
                     modelType
                 }))
             const billableUserId = modelAccess.billableUserId
+            // Replays must use the same provider scope for ledger and quota-delivery deduplication.
+            // A null provider organization is the pinned tenant scope, not a missing value.
+            const usageSource = input.executionModel
+                ? {
+                      id: input.executionModel.copilotId,
+                      organizationId: input.executionModel.providerOrganizationId,
+                      tokenBalance: copilot.tokenBalance,
+                      modelProvider: {
+                          id: input.executionModel.providerScopeId,
+                          providerName: input.executionModel.provider
+                      }
+                  }
+                : copilot
             await this.copilotUsageService.recordTokenUsage(
                 {
                     tenantId: input.tenantId,
                     organizationId,
-                    copilotOrganizationId: copilot.organizationId ?? null,
+                    copilotOrganizationId: usageSource.organizationId ?? null,
                     userId: billableUserId,
+                    execution: input.execution,
                     originId: threadId,
                     xpertId,
-                    copilotId: copilot.id,
-                    providerScopeId: copilot.modelProvider.id ?? copilot.id,
-                    provider: copilot.modelProvider.providerName,
+                    copilotId: usageSource.id,
+                    providerScopeId: usageSource.modelProvider.id ?? usageSource.id,
+                    provider: usageSource.modelProvider.providerName,
                     modelAccess
                 },
                 {
+                    tokenDetails: input.tokenDetails,
                     requestId: input.requestId,
                     model,
                     modelType,
@@ -83,7 +99,7 @@ export class CopilotTokenRecordHandler implements ICommandHandler<CopilotTokenRe
                     pricingBreakdown: input.pricingBreakdown
                 }
             )
-            const delivery = await this.tokenUsageDeliveryService.deliver(input, copilot, billableUserId)
+            const delivery = await this.tokenUsageDeliveryService.deliver(input, usageSource, billableUserId)
             if (delivery.userTokenLimitExceeded) {
                 throw new ExceedingLimitException(
                     await this.i18nService.t('copilot.Error.TokenExceedsLimit', {

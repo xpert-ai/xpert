@@ -44,6 +44,14 @@ export type ProjectEnsureResult = {
 
 /** Host API exposed to plugins that own one-to-one business Project mappings. */
 export interface ProjectProvisioningApi {
+  /** App-only confirmation of a pending conversation's first Project; never moves an existing binding. */
+  confirmConversation?(input: {
+    conversationId: string
+    xpertId: string
+    confirmationId: string
+    name: string
+    configuration: object
+  }): Promise<{ projectId: string }>
   /** Create or reconcile a Chat Project without changing its caller-supplied id. */
   ensure(input: ProjectEnsureInput): Promise<ProjectEnsureResult>
   /** Owner-only physical deletion of an archived plugin-bound Project and its workspace. */

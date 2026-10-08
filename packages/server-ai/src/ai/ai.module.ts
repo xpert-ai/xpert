@@ -1,3 +1,19 @@
+import { ThreadActivityService } from './thread-activity/thread-activity.service'
+import { ConversationArtifactsController } from './conversation-artifacts.controller'
+import { VoiceController, VoiceCapabilityController } from './voice.controller'
+import { VoiceSessionService } from '../realtime-voice/voice-session.service'
+import { VoiceTaskService } from '../realtime-voice/voice-task.service'
+import { VoiceTaskProcessor } from '../realtime-voice/voice-task.processor'
+import { VoiceGateway } from '../realtime-voice/voice.gateway'
+import { RealtimeVoiceSession, RealtimeVoiceTask, RealtimeVoiceTurn } from '../realtime-voice/voice.entity'
+import { ChatMessage } from '../chat-message/chat-message.entity'
+import { XpertAgentExecution } from '../xpert-agent-execution/agent-execution.entity'
+import { AssistantWorkspaceFilesController } from './assistant-workspace-files.controller'
+import { WorkspaceFileAccessRuntimeController } from './workspace-file-access-runtime.controller'
+import { AssistantFileAccessGuard } from './assistant-file-access.guard'
+import { WorkspaceFileAccessModule } from '../workspace-file-access/workspace-file-access.module'
+import { WorkbenchFilesController } from './workbench-files.controller'
+import { WorkbenchFilesAuthGuard } from './workbench-files-auth.guard'
 import { McpAppsRuntimeController } from './mcp-apps-runtime.controller'
 import { XpertToolsetModule } from '../xpert-toolset/xpert-toolset.module'
 import { RedisModule, SecretTokenModule, StorageFileModule, TenantModule } from '@xpert-ai/server-core'
@@ -42,7 +58,6 @@ import { RuntimeResourceController } from '../agent-plugin/runtime-resource.cont
 import { ConnectorModule } from '../connector/connector.module'
 import { ConnectorRuntimeController } from './connector-runtime.controller'
 import { ConversationBranchController } from './conversation-branch.controller'
-import { ConversationBranchService } from '../chat-conversation/conversation-branch.service'
 import { CopilotCheckpointModule } from '../copilot-checkpoint/copilot-checkpoint.module'
 import { SandboxModule } from '../sandbox/sandbox.module'
 import { SandboxRuntimeController } from './sandbox-runtime.controller'
@@ -59,8 +74,17 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
                 module: AIModule
             }
         ]),
+        WorkspaceFileAccessModule,
         TenantModule,
-        TypeOrmModule.forFeature([ChatConversation, ChatConversationThread]),
+        TypeOrmModule.forFeature([
+            ChatConversation,
+            ChatConversationThread,
+            ChatMessage,
+            XpertAgentExecution,
+            RealtimeVoiceSession,
+            RealtimeVoiceTask,
+            RealtimeVoiceTurn
+        ]),
         SandboxModule,
         SuperAdminOrganizationScopeModule,
         CopilotCheckpointModule,
@@ -90,6 +114,12 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
         forwardRef(() => XpertToolsetModule)
     ],
     controllers: [
+        ConversationArtifactsController,
+        VoiceController,
+        VoiceCapabilityController,
+        AssistantWorkspaceFilesController,
+        WorkspaceFileAccessRuntimeController,
+        WorkbenchFilesController,
         McpAppsRuntimeController,
         SandboxRuntimeController,
         ConversationBranchController,
@@ -105,8 +135,14 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
         StoreController
     ],
     providers: [
+        ThreadActivityService,
+        VoiceSessionService,
+        VoiceTaskService,
+        VoiceTaskProcessor,
+        VoiceGateway,
+        AssistantFileAccessGuard,
+        WorkbenchFilesAuthGuard,
         AssistantThreadScopeGuard,
-        ConversationBranchService,
         AiService,
         RuntimeCommandService,
         RuntimeCapabilitiesService,

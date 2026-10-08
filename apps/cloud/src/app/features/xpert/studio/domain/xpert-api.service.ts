@@ -24,14 +24,17 @@ import {
   combineLatest,
   combineLatestWith,
   debounceTime,
+  defer,
   distinctUntilChanged,
   EMPTY,
   filter,
+  firstValueFrom,
   map,
   Observable,
   shareReplay,
   Subject,
   switchMap,
+  take,
   tap
 } from 'rxjs'
 import {
@@ -88,6 +91,7 @@ import {
 } from './workflow'
 import { XpertService } from '../../xpert/xpert.service'
 import { buildEditableXpertDraft, deriveChatTriggerInputParametersFromDraft } from '../../draft/index'
+import { DraftSaveQueue } from '@cloud/app/@shared/xpert/assistant-settings/draft-save-queue'
 
 const SaveDraftDebounceTime = 1 // s
 
@@ -165,6 +169,12 @@ export class XpertStudioApiService {
    */
   readonly pristineDraft = signal<TXpertTeamDraft>(null)
   readonly unsaved = signal(false)
+  readonly settingsEditing = signal(false)
+  private readonly settingsEditing$ = toObservable(this.settingsEditing)
+  readonly draftSaving = signal(false)
+  readonly draftSaveError = signal<string | null>(null)
+  private readonly draftSaveQueue = new DraftSaveQueue<TXpertTeamDraft>()
+  private pendingDraftSaves = 0
   /**
    * Operate histories
    */
@@ -306,7 +316,11 @@ export class XpertStudioApiService {
       tap(() => this.unsaved.set(true)),
       debounceTime(SaveDraftDebounceTime * 1000),
       switchMap(() =>
-        this.saveDraft().pipe(
+        this.settingsEditing$.pipe(
+          // Resume pending canvas edits after settings closes; dialog edits are saved or discarded explicitly.
+          filter(() => !this.settingsEditing()),
+          take(1),
+          switchMap(() => (this.unsaved() ? this.saveDraft() : EMPTY)),
           catchError((err) => {
             this.#toastr.error(getErrorMessage(err))
             return EMPTY
@@ -359,13 +373,33 @@ export class XpertStudioApiService {
   }
 
   saveDraft() {
-    const draft = this.storage
-    return this.xpertAPI.saveDraft(draft.team.id, draft).pipe(
-      tap((draft) => {
-        this.unsaved.set(false)
-        this.pristineDraft.set(draft)
-      })
-    )
+    return defer(async () => {
+      const snapshot = structuredClone(this.storage)
+      this.pendingDraftSaves++
+      this.draftSaving.set(true)
+      this.draftSaveError.set(null)
+      try {
+        const saved = await this.draftSaveQueue.save(snapshot, (draft) =>
+          firstValueFrom(this.xpertAPI.saveDraft(draft.team.id, draft))
+        )
+        if (this.storage.team.id === snapshot.team.id) {
+          this.unsaved.set(!isEqual(this.storage, snapshot))
+          this.pristineDraft.set(saved)
+        }
+        return saved
+      } catch (error) {
+        this.draftSaveError.set(getErrorMessage(error))
+        throw error
+      } finally {
+        this.pendingDraftSaves--
+        this.draftSaving.set(this.pendingDraftSaves > 0)
+      }
+    })
+  }
+
+  refreshSettingsView() {
+    // Redraw settings edits without scheduling the canvas autosave.
+    this.#reload.next(EReloadReason.INIT)
   }
 
   saveEnvironment = effectAction((origin: Observable<Partial<IEnvironment>>) => {

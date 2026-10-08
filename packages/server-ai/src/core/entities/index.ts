@@ -1,3 +1,8 @@
+import { RealtimeVoiceSession, RealtimeVoiceTask, RealtimeVoiceTurn } from '../../realtime-voice/voice.entity'
+import { ModelExecutionReconciliation } from '../../model-execution/execution-reconciliation.entity'
+import { AgentInvocationWaitEntity } from '../../agent-invocation/invocation.entity'
+import { ModelExecutionGrant, CliSession } from '../../model-execution/execution.entity'
+import { ShellCliExecution, ShellProcessExecution } from '../../shell-execution/shell-execution.entity'
 import {
     DesktopShellDevice,
     DesktopShellGrant,
@@ -125,6 +130,11 @@ import {
 } from './internal'
 
 export const ALL_AI_ENTITIES = [
+    RealtimeVoiceSession,
+    RealtimeVoiceTask,
+    RealtimeVoiceTurn,
+    ModelExecutionReconciliation,
+    AgentInvocationWaitEntity,
     DesktopShellDevice,
     DesktopShellGrant,
     DesktopShellOperation,
@@ -242,5 +252,9 @@ export const ALL_AI_ENTITIES = [
     ModelGatewayPublication,
     ModelGatewayApiKey,
     ModelGatewaySettings,
-    ModelGatewayCall
+    ModelGatewayCall,
+    ModelExecutionGrant,
+    ShellCliExecution,
+    ShellProcessExecution,
+    CliSession
 ]

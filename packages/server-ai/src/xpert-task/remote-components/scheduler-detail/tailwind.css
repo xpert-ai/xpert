@@ -1,0 +1,16 @@
+@import '@xpert-ai/shadcn-ui/styles.css';
+@source "./src/**/*.{ts,tsx}";
+/* Keep the same root size in the Workbench and on project pages. */
+:root {
+    --xui-density-root-font-size: 14px;
+}
+html {
+    font-size: var(--xui-density-root-font-size);
+}
+html,
+body,
+#root {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+}

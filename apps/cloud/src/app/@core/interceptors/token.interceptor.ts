@@ -2,6 +2,7 @@ import { HttpEvent, HttpHandler, HttpInterceptor, HttpRequest } from '@angular/c
 import { Injectable } from '@angular/core'
 import { BehaviorSubject, catchError, filter, firstValueFrom, Observable, switchMap, take, throwError } from 'rxjs'
 import { AuthStrategy } from '../auth'
+import { SKIP_AUTH_REFRESH } from '../auth/http-context'
 import { Store } from '../services/store.service'
 
 const ANONYMOUS_AUTH_PATHS = new Set([
@@ -18,14 +19,17 @@ export class TokenInterceptor implements HttpInterceptor {
   private refreshTokenInProgress = false
   private refreshTokenSubject: BehaviorSubject<any> = new BehaviorSubject<any>(null)
 
-  constructor(private store: Store, private auth: AuthStrategy) {}
+  constructor(
+    private store: Store,
+    private auth: AuthStrategy
+  ) {}
 
   intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
     const anonymousAuthRequest = isAnonymousAuthRequest(request.url)
 
     return next.handle(this.addAuthenticationToken(request)).pipe(
       catchError((response) => {
-        if (anonymousAuthRequest) {
+        if (anonymousAuthRequest || request.context.get(SKIP_AUTH_REFRESH)) {
           return throwError(() => response)
         }
 
@@ -78,9 +82,7 @@ export class TokenInterceptor implements HttpInterceptor {
                 return throwError(() => response)
               }
 
-              return this.auth.logout().pipe(
-                switchMap(() => throwError(() => response))
-              )
+              return this.auth.logout().pipe(switchMap(() => throwError(() => response)))
             })
           )
         }

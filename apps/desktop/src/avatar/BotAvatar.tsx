@@ -16,15 +16,21 @@ export function BotAvatar({
 }) {
   const [failedUrl, setFailedUrl] = useState('')
   const emoji = avatarEmoji(bot.avatarEmoji)
-  const imageUrl = bot.avatarUrl && failedUrl !== bot.avatarUrl ? bot.avatarUrl : null
-  const fallback = !imageUrl && !emoji
+  const bosi =
+    bot.avatar?.appearance?.kind === 'character' && bot.avatar.appearance.id === 'bosi' ? bot.avatar.appearance : null
+  const imageUrl = !bosi && bot.avatarUrl && failedUrl !== bot.avatarUrl ? bot.avatarUrl : null
+  const fallback = !bosi && !imageUrl && !emoji
   return (
     <span
-      className={`flex shrink-0 items-center justify-center overflow-hidden ${fallback ? 'rounded-lg text-[var(--xui-color-avatar-foreground)]' : 'rounded-full bg-primary/10 text-accent-foreground'} ${size === 'profile' ? 'size-[72px]' : size === 'compact' ? 'size-10' : size === 'large' ? 'size-14' : 'size-12'}`}
-      style={fallback ? { backgroundColor: `var(--xui-color-avatar-${avatarColorIndex(bot)})` } : undefined}
+      className={`flex shrink-0 items-center justify-center rounded-lg ${fallback ? 'overflow-hidden text-[var(--xui-color-avatar-foreground)]' : 'text-accent-foreground'} ${size === 'profile' ? 'size-[72px]' : size === 'compact' ? 'size-10' : size === 'large' ? 'size-14' : 'size-12'}`}
+      style={{
+        background:
+          bot.avatar?.background || (fallback ? `var(--xui-color-avatar-${avatarColorIndex(bot)})` : undefined),
+        color: bosi?.color
+      }}
     >
       {imageUrl ? (
-        <img src={imageUrl} alt="" className="size-full object-cover" onError={() => setFailedUrl(imageUrl)} />
+        <img src={imageUrl} alt="" className="size-full object-contain" onError={() => setFailedUrl(imageUrl)} />
       ) : emoji ? (
         <span
           aria-hidden="true"

@@ -1,12 +1,21 @@
 import type { TXpertProjectTaskStatus, IXpertProjectTaskExecution } from './xpert-project.model'
 import type { TAvatar } from '../types'
+import type { ProjectTaskTypePresentation } from './project-task-type.model'
 
 /** Stable logical work identity. Attempts and conversations never substitute for a task. */
 export interface ProjectTaskNode {
   id: string
   title: string
   status: TXpertProjectTaskStatus
+  /** Measured completion percentage (0–100); null/omitted means unknown. Independent of status. */
+  progress?: number | null
   kind: 'task' | 'summary' | 'milestone'
+  /** Business classification, independent of hierarchy, status and assignee. */
+  taskType?: string | null
+  /** Resolved by the owning provider's registration; unknown types have no presentation. */
+  presentation?: ProjectTaskTypePresentation | null
+  /** Latest implementation executor; reviews do not replace it. */
+  executor?: { provider: string; toolId?: string } | null
   parentTaskId: string | null
   predecessorIds: string[]
   providerKey: string | null

@@ -210,6 +210,24 @@ describe('PPTX file utilities', () => {
     expect(slide).not.toContain('<a:t>Visible title</a:t>')
   })
 
+  it('persists position and size changes in the existing transform', async () => {
+    const source = await createPresentation()
+    const deck = await parsePptx(source)
+    const shape = deck.slides[0].shapes[0]
+    shape.x += 100000
+    shape.y += 200000
+    shape.width += 300000
+    shape.height += 400000
+    const saved = await savePptx(deck, source)
+    const restored = await parsePptx(saved)
+    expect(restored.slides[0].shapes[0]).toMatchObject({
+      x: shape.x,
+      y: shape.y,
+      width: shape.width,
+      height: shape.height
+    })
+  })
+
   it('writes edited line breaks as separate PowerPoint paragraphs', async () => {
     const source = await createPresentation()
     const deck = await parsePptx(source)

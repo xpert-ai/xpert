@@ -1,5 +1,6 @@
 export * from './workspace.module'
 export * from './queries/index'
+export * from './commands'
 export * from './guards/workspace.guard'
 export * from './guards/workspace-authoring.guard'
 export * from './workspace-access.service'

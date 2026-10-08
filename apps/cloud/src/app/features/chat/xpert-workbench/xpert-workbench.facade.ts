@@ -87,7 +87,7 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
     if (projectId) return { mode: 'existing', projectId }
     const mode = this.#routeProjectMode()
     if (mode) return { mode }
-    return { mode: this.currentXpert()?.options?.workspaceScope?.onMissing === 'create' ? 'auto-new' : 'none' }
+    return { mode: this.currentXpert()?.options?.workspaceScope?.onMissing ? 'auto-new' : 'none' }
   })
   readonly projectAccess = signal<TXpertProjectAccessSummary | null>(null)
   readonly projectName = signal<string | null>(null)
@@ -116,8 +116,7 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
   readonly defaultViewKey = computed(() => this.currentXpert()?.options?.workbench?.defaultViewKey?.trim() || null)
   readonly identity = computed(() => {
     const xpertId = this.xpertId()
-    const projectId = this.chatkitMountProjectId()
-    return xpertId ? `chat-xpert-workbench:${xpertId}:${projectId ?? 'personal'}` : null
+    return xpertId ? `chat-xpert-workbench:${xpertId}` : null
   })
   readonly viewState = computed<WorkbenchChatViewState>(() => {
     if (!this.organizationId()) {
@@ -283,25 +282,26 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
     try {
       const opened = await this.#router.navigate(
         commands,
-        selection && !view
+        !view
           ? {
               queryParamsHandling: 'merge',
               queryParams: {
-                projectMode: selection.mode === 'existing' ? null : selection.mode,
+                projectMode: selection?.mode === 'existing' ? null : (selection?.mode ?? null),
+                viewProject: null,
                 viewSelection: null,
                 viewParameters: null
               }
             }
-          : view
-            ? {
-                queryParamsHandling: 'merge',
-                queryParams: {
-                  view: view.viewKey,
-                  viewSelection: view.selectionId ?? null,
-                  viewParameters: view.parameters ? JSON.stringify(view.parameters) : null
-                }
+          : {
+              queryParamsHandling: 'merge',
+              queryParams: {
+                view: view.viewKey,
+                projectMode: null,
+                viewProject: null,
+                viewSelection: view.selectionId ?? null,
+                viewParameters: view.parameters ? JSON.stringify(view.parameters) : null
               }
-            : { queryParamsHandling: 'preserve' }
+            }
       )
       if (!opened) restore()
       return opened

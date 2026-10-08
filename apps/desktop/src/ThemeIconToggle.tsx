@@ -16,7 +16,7 @@ export const paletteModes = [
 
 export const densities = [
   { value: 'compact', label: 'Compact', icon: Rows4 },
-  { value: 'normal', label: 'Standard', icon: Rows3 },
+  { value: 'normal', label: 'Comfortable', icon: Rows3 },
   { value: 'spacious', label: 'Spacious', icon: Rows2 }
 ] as const
 
@@ -35,10 +35,10 @@ export function ThemeIconToggle<T extends string>({
   return (
     <div className="space-y-2">
       <div className="flex items-baseline gap-3">
-        <span id={labelId} className="text-sm leading-none font-medium">
+        <span id={labelId} className="text-sm leading-5 font-medium">
           {label}
         </span>
-        <span className="text-xs text-muted-foreground">
+        <span className="text-sm text-muted-foreground">
           {t(options.find((item) => item.value === value)?.label || '')}
         </span>
       </div>
@@ -47,7 +47,7 @@ export function ThemeIconToggle<T extends string>({
         value={value}
         aria-labelledby={labelId}
         spacing={1}
-        className="rounded-lg border bg-muted/40 p-1"
+        className="h-10 rounded-lg border bg-muted/40 p-1"
         onValueChange={(next) => {
           const option = options.find((item) => item.value === next)
           if (option) onChange(option.value)
@@ -59,7 +59,7 @@ export function ThemeIconToggle<T extends string>({
             value={itemValue}
             aria-label={t(itemLabel)}
             title={t(itemLabel)}
-            className="size-8 p-0 text-muted-foreground data-[state=on]:bg-background data-[state=on]:text-accent-foreground data-[state=on]:shadow-sm"
+            className="h-full w-8 p-0 text-muted-foreground data-[state=on]:bg-background data-[state=on]:text-accent-foreground data-[state=on]:shadow-sm"
           >
             <Icon className="size-4" aria-hidden="true" />
           </ToggleGroupItem>

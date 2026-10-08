@@ -40,7 +40,7 @@
               {{ 'XP.Membership.UsedPoints' | translate: { Default: 'Used points' } }}
             </div>
             <div class="mt-1 text-xl font-semibold text-text-primary">
-              {{ overview()?.pointsUsed | number: '1.0-2' }}
+              {{ overview()?.consumedPoints ?? overview()?.pointsUsed | number: '1.0-0' }}
             </div>
           </div>
           <div class="rounded-lg bg-components-panel-bg p-3">
@@ -53,19 +53,15 @@
           </div>
         </div>
 
-        <div class="mt-4">
-          <div class="mb-2 flex items-center justify-between gap-3 text-xs text-text-tertiary">
-            <span>{{ 'XP.Membership.PointUsage' | translate: { Default: 'Point usage' } }}</span>
-            <span>
-              @if (isUnlimited()) {
-                {{ 'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
-              } @else {
-                {{ usedPercent() | number }}%
-              }
-            </span>
+        @if (!isUnlimited()) {
+          <div class="mt-4">
+            <div class="mb-2 flex items-center justify-between gap-3 text-xs text-text-tertiary">
+              <span>{{ 'XP.Membership.QuotaPointUsage' | translate }}</span>
+              <span>{{ usedPercent() | number }}%</span>
+            </div>
+            <z-progress-bar [progress]="usedPercent()" zSize="sm" zShape="default" />
           </div>
-          <z-progress-bar [progress]="usedPercent()" zSize="sm" zShape="default" />
-        </div>
+        }
       </z-card-content>
     </z-card>
 

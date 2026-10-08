@@ -8,6 +8,7 @@ import { Command } from '@langchain/langgraph'
 import type { JsonSchemaObjectType } from '@xpert-ai/contracts'
 import { AgentBuiltInState, Runtime } from './runtime'
 import { PromiseOrValue } from '../../types'
+import type { ModelRequirements } from './model-requirements'
 
 export type ServerTool = Record<string, unknown>
 export type ClientTool = StructuredToolInterface | DynamicTool | RunnableToolLike
@@ -160,6 +161,13 @@ export interface ModelRequest<TState extends Record<string, unknown> = Record<st
    * The messages to send to the model.
    */
   messages: BaseMessage[]
+
+  /**
+   * Hard capability requirements for this call. The host unions middleware
+   * contributions and checks every selected model, including fallbacks.
+   * Required capabilities cannot be silently dropped or replaced by a static response.
+   */
+  requirements?: ModelRequirements
 
   systemMessage?: SystemMessage
 

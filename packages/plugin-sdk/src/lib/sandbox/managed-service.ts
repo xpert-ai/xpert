@@ -66,6 +66,7 @@ export type SandboxManagedServiceStartResult = SandboxManagedServiceStateChange
 
 export interface SandboxManagedServiceAdapter {
   getServiceLogs(options: SandboxManagedServiceLogsOptions): MaybePromise<TSandboxManagedServiceLogs>
+  /** Inspect existing services only; do not create or recover a runtime during discovery. */
   listServices(options: SandboxManagedServiceListOptions): MaybePromise<SandboxManagedServiceListResult>
   restartService(options: SandboxManagedServiceRestartOptions): MaybePromise<SandboxManagedServiceStartResult>
   startService(options: SandboxManagedServiceStartOptions): MaybePromise<SandboxManagedServiceStartResult>

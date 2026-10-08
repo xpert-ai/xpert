@@ -61,12 +61,19 @@ export function applyXpertSettingsChanges(
         team.features.frequentQuestions = { ...team.features.frequentQuestions, enabled: a.frequentQuestions }
       break
     }
-    case 'workbench':
+    case 'workbench': {
+      const { messagePresentation: beforeMode, ...beforeLayout } = before.workbench
+      const { messagePresentation: afterMode, ...afterLayout } = after.workbench
       team.options = {
         ...team.options,
-        workbench: { ...team.options?.workbench, ...delta(before.workbench, after.workbench) }
+        workbench: { ...team.options?.workbench, ...delta(beforeLayout, afterLayout) }
+      }
+      if (beforeMode !== afterMode) {
+        if (afterMode === null) delete team.options.messagePresentation
+        else team.options.messagePresentation = { ...team.options.messagePresentation, mode: afterMode }
       }
       break
+    }
     case 'files':
       team.features = {
         ...features(),
@@ -120,12 +127,7 @@ export function applyXpertSettingsChanges(
         if (b.maxConcurrency !== a.maxConcurrency) team.agentConfig.maxConcurrency = a.maxConcurrency ?? undefined
         if (b.recursionLimit !== a.recursionLimit) team.agentConfig.recursionLimit = a.recursionLimit
       }
-      if (b.sandboxEnabled !== a.sandboxEnabled || b.sandboxProvider !== a.sandboxProvider) {
-        team.features = {
-          ...features(),
-          sandbox: { ...team.features?.sandbox, enabled: a.sandboxEnabled, provider: a.sandboxProvider }
-        }
-      }
+      // Provider changes are composed together with capabilities on explicit save.
       break
     }
   }

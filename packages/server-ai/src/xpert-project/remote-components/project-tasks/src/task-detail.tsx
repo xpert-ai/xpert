@@ -1,6 +1,6 @@
 import { useEffect, useState, type MutableRefObject } from 'react'
 import { z } from 'zod'
-import { Bot, ExternalLink, Info, GitBranch, ChevronRight, FileText } from 'lucide-react'
+import { Bot, ExternalLink, Info, GitBranch, ChevronRight } from 'lucide-react'
 import {
     Button,
     Input,
@@ -21,13 +21,15 @@ import { type Texts, dateTime, runtimeLabel, outcomeLabel } from './i18n'
 import { type Attempt, attemptTimes, owner } from './model'
 import { Status, Choice, Empty } from './ui'
 import { openTaskExecution } from './execution-navigation'
+import { TaskTypeIcon } from './task-type-icon'
+import { RuntimeDetail } from './runtime-detail'
 
 function toLocal(value: string | null) {
     if (!value) return ''
     const date = new Date(value)
     return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
 }
-/** Transient draft owned by the view so changing between inspector and Sheet never loses input. */
+/** The view owns the draft while the detail Dialog is open. */
 export interface DetailDraft {
     taskId: string
     tab: string
@@ -130,8 +132,8 @@ export function TaskDetail({
             variant={primary ? 'default' : 'outline'}
             size="sm"
             className="w-full"
-            disabled={!attempt.agentExecutionId || !!busy}
-            title={!attempt.agentExecutionId ? t.unavailable : undefined}
+            disabled={!(attempt.agentExecutionId || attempt.invocationId) || !!busy}
+            title={!(attempt.agentExecutionId || attempt.invocationId) ? t.unavailable : undefined}
             onClick={() => open(attempt)}
         >
             <ExternalLink />
@@ -141,9 +143,12 @@ export function TaskDetail({
     return (
         <div className="flex h-full min-h-0 flex-col">
             <div className="space-y-2 px-4 pb-3 pt-1">
-                <h2 className="text-lg font-semibold leading-6">{task.title}</h2>
+                <h2 className="flex items-start gap-2 text-lg font-semibold leading-6">
+                    <TaskTypeIcon task={task} locale={locale} fallbackLabel={t[task.kind]} />
+                    <span className="min-w-0 break-words">{task.title}</span>
+                </h2>
                 <div className="flex items-center gap-3">
-                    <Status value={task.status} t={t} />
+                    <Status value={task.status} progress={task.progress} t={t} />
                     <span className="text-xs text-muted-foreground">
                         {t[task.kind]} · {t.revision} {task.revision}
                     </span>
@@ -208,43 +213,57 @@ export function TaskDetail({
                     {task.diagnostic && (
                         <p className="rounded-md bg-destructive/5 p-3 text-sm text-destructive">{task.diagnostic}</p>
                     )}
+                    {(tab === 'history' || tab === 'outputs') && attempts.some((item) => item.invocationId) && (
+                        <RuntimeDetail
+                            section={tab}
+                            taskId={task.id}
+                            locale={locale}
+                            canEdit={canEdit}
+                            openAttempt={(id) => void act(id, () => openTaskExecution(id, t.openFailed))}
+                            openConversation={(id) =>
+                                void act(id, () => openTaskExecution(id, t.openFailed, 'conversation'))
+                            }
+                        />
+                    )}
                     {tab === 'history' && (
                         <div className="space-y-3 border-t pt-3">
                             {!attempts.length && <Empty title={t.noExecutions} />}
-                            {attempts.map((attempt, index) => {
-                                const times = attemptTimes(attempt)
-                                return (
-                                    <section
-                                        key={attempt.id}
-                                        className="space-y-2 rounded-lg border p-3"
-                                        aria-label={`${t.attempt} ${attempt.attempt} ${t.execution}`}
-                                    >
-                                        <div className="flex flex-wrap items-center justify-between gap-2">
-                                            <h3 className="text-sm font-semibold">
-                                                {t.attempt} {attempt.attempt} {t.execution}
-                                            </h3>
-                                            <span className="text-xs text-muted-foreground">
-                                                {runtimeLabel(attempt.runtimeStatus, t)}
-                                            </span>
-                                        </div>
-                                        <p className="text-xs tabular-nums text-muted-foreground">
-                                            {dateTime(times.start, locale)} → {dateTime(times.end, locale)}
-                                        </p>
-                                        {attempt.outputSummary && (
-                                            <p className="text-sm leading-6">
-                                                <span className="text-muted-foreground">{t.outcome}: </span>
-                                                {outcomeLabel(attempt.outputSummary, t)}
+                            {attempts
+                                .filter((item) => !item.invocationId)
+                                .map((attempt, index) => {
+                                    const times = attemptTimes(attempt)
+                                    return (
+                                        <section
+                                            key={attempt.id}
+                                            className="space-y-2 rounded-lg border p-3"
+                                            aria-label={`${t.attempt} ${attempt.attempt} ${t.execution}`}
+                                        >
+                                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                                <h3 className="text-sm font-semibold">
+                                                    {t.attempt} {attempt.attempt} {t.execution}
+                                                </h3>
+                                                <span className="text-xs text-muted-foreground">
+                                                    {runtimeLabel(attempt.runtimeStatus, t)}
+                                                </span>
+                                            </div>
+                                            <p className="text-xs tabular-nums text-muted-foreground">
+                                                {dateTime(times.start, locale)} → {dateTime(times.end, locale)}
                                             </p>
-                                        )}
-                                        {attempt.error && (
-                                            <p className="break-words text-sm leading-6 text-destructive">
-                                                {attempt.error}
-                                            </p>
-                                        )}
-                                        {openButton(attempt, index === 0)}
-                                    </section>
-                                )
-                            })}
+                                            {attempt.outputSummary && (
+                                                <p className="text-sm leading-6">
+                                                    <span className="text-muted-foreground">{t.outcome}: </span>
+                                                    {outcomeLabel(attempt.outputSummary, t)}
+                                                </p>
+                                            )}
+                                            {attempt.error && (
+                                                <p className="break-words text-sm leading-6 text-destructive">
+                                                    {attempt.error}
+                                                </p>
+                                            )}
+                                            {openButton(attempt, index === 0)}
+                                        </section>
+                                    )
+                                })}
                             {!!attempts.length && (
                                 <p className="flex items-start gap-2 text-xs leading-5 text-muted-foreground">
                                     <Info className="mt-0.5 size-4 shrink-0" />
@@ -253,24 +272,10 @@ export function TaskDetail({
                             )}
                         </div>
                     )}
-                    {tab === 'outputs' && (
+                    {tab === 'outputs' && !attempts.some((item) => item.invocationId) && (
                         <div className="space-y-4 border-t pt-4">
                             <p className="text-xs leading-5 text-muted-foreground">{t.outputsHint}</p>
-                            {!attempts.some((item) => item.outputSummary) && <Empty title={t.noOutputs} />}
-                            {attempts
-                                .filter((item) => item.outputSummary)
-                                .map((attempt) => (
-                                    <section key={attempt.id} className="space-y-3 rounded-lg border p-4">
-                                        <h3 className="flex items-center gap-2 text-sm font-semibold">
-                                            <FileText className="size-4" />
-                                            {t.attempt} {attempt.attempt} {t.execution}
-                                        </h3>
-                                        <p className="whitespace-pre-wrap break-words text-sm leading-6">
-                                            {outcomeLabel(attempt.outputSummary, t)}
-                                        </p>
-                                        {openButton(attempt, false)}
-                                    </section>
-                                ))}
+                            <Empty title={t.noOutputs} />
                         </div>
                     )}
                     {tab === 'overview' && (

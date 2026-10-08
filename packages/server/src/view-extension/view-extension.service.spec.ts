@@ -2,12 +2,16 @@ import { ForbiddenException } from '@nestjs/common'
 import { RequestContext } from '../core/context'
 import {
 	AGENT_PROFILE_TABS_SLOT,
+	AGENT_WORKBENCH_SLOT,
+	LEGACY_AGENT_WORKBENCH_SLOTS,
 	ApiKeyBindingType,
 	type IApiPrincipal,
+	type XpertViewActionRequest,
 	type XpertResolvedViewHostContext,
 	SecretTokenBindingType
 } from '@xpert-ai/contracts'
 import { ViewExtensionService } from './view-extension.service'
+import type { ViewExtensionFileActionFile } from './host-definition.interface'
 
 describe('ViewExtensionService file actions', () => {
 	const manifest = {
@@ -79,6 +83,13 @@ describe('ViewExtensionService file actions', () => {
 			listEntries: jest.fn(() => [{ providerKey: 'provider', provider }])
 		}
 		const hostDefinition = {
+			prepareFileAction: jest.fn(
+				async (
+					_context: XpertResolvedViewHostContext,
+					request: XpertViewActionRequest,
+					_file: ViewExtensionFileActionFile
+				) => request
+			),
 			slots: [{ key: 'main', order: 1 }],
 			resolve: jest.fn(async () => ({
 				workspaceId: 'workspace-1',
@@ -135,11 +146,11 @@ describe('ViewExtensionService file actions', () => {
 		expect(provider.getViewManifests).toHaveBeenCalledWith(expect.objectContaining({ capabilities: {} }), 'main')
 	})
 
-	it.each(['agent.workbench.fixed', 'agent.workbench.main'])(
-		'supports existing %s clients and direct endpoints',
+	it.each([AGENT_WORKBENCH_SLOT, ...LEGACY_AGENT_WORKBENCH_SLOTS])(
+		'normalizes %s discovery to the unified slot and keeps direct endpoints working',
 		async (slot) => {
 			const { service, provider, hostDefinition, permissionService } = createService()
-			Object.assign(hostDefinition.slots[0], { key: slot })
+			Object.assign(hostDefinition.slots[0], { key: AGENT_WORKBENCH_SLOT })
 			provider.getViewManifests.mockImplementation(async (_context, slot) =>
 				slot === 'agent.workbench'
 					? [
@@ -161,7 +172,7 @@ describe('ViewExtensionService file actions', () => {
 			const [view] = await service.listSlotViews('agent', 'assistant-1', slot)
 			expect(view).toMatchObject({
 				key: 'provider__review',
-				slot,
+				slot: AGENT_WORKBENCH_SLOT,
 				workbench: { fixed: true, openMode: 'on-demand' }
 			})
 			expect(view.workbench?.fixed).toBe(true)
@@ -186,22 +197,26 @@ describe('ViewExtensionService file actions', () => {
 		)
 	})
 
-	it.each([AGENT_PROFILE_TABS_SLOT, 'agent.workbench.fixed', 'agent.workbench.main'])(
+	it.each([AGENT_PROFILE_TABS_SLOT, AGENT_WORKBENCH_SLOT, ...LEGACY_AGENT_WORKBENCH_SLOTS])(
 		'rechecks Feature activation for %s data and actions after discovery',
 		async (slot) => {
 			const { service, provider, hostDefinition } = createService()
 			Object.assign(hostDefinition.slots[0], {
-				key: slot,
+				key: slot === AGENT_PROFILE_TABS_SLOT ? slot : AGENT_WORKBENCH_SLOT,
 				manifestPolicy: { requireFeatureActivation: true }
 			})
-			provider.getViewManifests.mockResolvedValue([
-				{
-					...manifest,
-					slot,
-					activation: { requiredFeatures: ['case-profile'] },
-					dataSource: { mode: 'platform', cache: { enabled: false } }
-				}
-			])
+			provider.getViewManifests.mockImplementation(async (_context, requested) =>
+				requested === slot
+					? [
+							{
+								...manifest,
+								slot,
+								activation: { requiredFeatures: ['case-profile'] },
+								dataSource: { mode: 'platform', cache: { enabled: false } }
+							}
+						]
+					: []
+			)
 			let features = ['case-profile']
 			hostDefinition.resolve.mockImplementation(async () => ({
 				workspaceId: 'workspace-1',
@@ -342,6 +357,28 @@ describe('ViewExtensionService file actions', () => {
 			file
 		)
 		expect(cacheService.invalidateView).toHaveBeenCalledWith(expect.any(Object), 'provider__review')
+	})
+
+	it.each([
+		[Buffer.from('企业基本存款账户信息单.docx', 'utf8').toString('latin1'), '企业基本存款账户信息单.docx'],
+		['中文材料（最终版）.pdf', '中文材料（最终版）.pdf'],
+		['résumé.xlsx', 'résumé.xlsx'],
+		['materials.png', 'materials.png']
+	])('decodes upload names before host preparation and provider storage: %s', async (originalname, expected) => {
+		const { service, provider, hostDefinition } = createService()
+		const file = { buffer: Buffer.from('original-file-bytes'), originalname, mimetype: 'application/octet-stream' }
+		await service.executeFileAction('agent', 'assistant-1', 'provider__review', 'preview_material_excel', {}, file)
+		const normalized = { ...file, originalname: expected }
+		expect(hostDefinition.prepareFileAction).toHaveBeenCalledWith(expect.any(Object), {}, normalized)
+		expect(provider.executeViewFileAction).toHaveBeenCalledWith(
+			expect.any(Object),
+			'review',
+			'preview_material_excel',
+			{},
+			normalized
+		)
+		expect(hostDefinition.prepareFileAction.mock.calls[0][2].buffer).toBe(file.buffer)
+		expect(file.originalname).toBe(originalname)
 	})
 
 	it('returns a clear error when the action is not declared on the view', async () => {

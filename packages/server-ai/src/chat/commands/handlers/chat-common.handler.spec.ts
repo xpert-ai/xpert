@@ -38,10 +38,8 @@ jest.mock('../../../xpert-agent-execution', () => ({
     }
 }))
 jest.mock('../../../xpert-project/', () => ({
-    CreateProjectToolsetCommand: class CreateProjectToolsetCommand {},
     XpertProjectService: class XpertProjectService {}
 }))
-jest.mock('../../../xpert-project/tools', () => ({ ProjectToolset: class ProjectToolset {} }))
 jest.mock('../../../xpert-toolset', () => ({
     ToolsetGetToolsCommand: class ToolsetGetToolsCommand {}
 }))
@@ -143,10 +141,13 @@ describe('ChatCommonHandler Project FileAsset persistence', () => {
                 resolve: jest.fn(() => ({
                     ensureRoot: jest.fn().mockResolvedValue({
                         serverRoot: '/workspace/project/project-1',
+                        exposesDirectFileUrls: () => false,
                         publicBaseUrl: undefined
                     })
                 }))
-            } as never
+            } as never,
+            {} as never,
+            {} as never
         )
     })
 

@@ -10,6 +10,7 @@ import { buildEditableXpertDraft } from '../../features/xpert/draft/editable-dra
 import { DraftSaveQueue } from '../../@shared/xpert/assistant-settings/draft-save-queue'
 import type {
   XpertSettingsSection,
+  XpertSettingsSaveMode,
   XpertSettingsSource
 } from '../../@shared/xpert/assistant-settings/xpert-settings.types'
 import { XpertAPIService } from './xpert.service'
@@ -50,7 +51,8 @@ export class XpertSettingsService {
     id: string,
     section?: XpertSettingsSection,
     activeSource?: XpertSettingsSource,
-    resolvedBinding?: IAssistantBinding | null
+    resolvedBinding?: IAssistantBinding | null,
+    saveMode: XpertSettingsSaveMode = 'publish'
   ) {
     if (!id || this.opening || this.dialogRef) return
     this.opening = true
@@ -79,10 +81,29 @@ export class XpertSettingsService {
         ariaLabel: this.translate.instant('XP.XpertSettings.Title'),
         data: {
           source,
+          saveMode,
           binding,
           organizationId,
           section: requestedSection === 'personalization' && !binding ? 'general' : requestedSection,
-          selectSection: (value: XpertSettingsSection) => this.sections.set(id, value)
+          selectSection: (value: XpertSettingsSection) => this.sections.set(id, value),
+          publish:
+            saveMode === 'draft'
+              ? undefined
+              : async () => {
+                  if (organizationId !== this.store.organizationId)
+                    throw new Error(this.translate.instant('XP.AssistantSettings.BindingChanged'))
+                  const latest = await firstValueFrom(this.api.getTeam(id))
+                  if (organizationId !== this.store.organizationId)
+                    throw new Error(this.translate.instant('XP.AssistantSettings.BindingChanged'))
+                  await firstValueFrom(
+                    this.api.publish(id, false, {
+                      environmentId: latest.environmentId ?? null,
+                      releaseNotes: this.translate.instant('XP.XpertSettings.PublishReleaseNotes')
+                    })
+                  )
+                  // Publication replaces agent timestamps and clears the server draft. Rebase before the next edit.
+                  await source.reload?.()
+                }
         }
       })
       const closed = firstValueFrom(this.dialogRef.closed)
@@ -124,6 +145,7 @@ export class XpertSettingsService {
       })
     )
     const draft = signal(buildEditableXpertDraft(team))
+    let savedDraft = structuredClone(draft())
     const saving = signal(false),
       unsaved = signal(false),
       error = signal<string | null>(null)
@@ -139,13 +161,21 @@ export class XpertSettingsService {
       reload: async () => {
         const before = draft()
         const latest = await firstValueFrom(this.api.getTeam(id))
-        if (this.store.organizationId === organizationId && !unsaved() && !saving() && draft() === before)
+        if (this.store.organizationId === organizationId && !unsaved() && !saving() && draft() === before) {
           draft.set(buildEditableXpertDraft(latest))
+          savedDraft = structuredClone(draft())
+        }
+      },
+      discard: () => {
+        if (saving()) return
+        draft.set(structuredClone(savedDraft))
+        unsaved.set(false)
+        error.set(null)
       },
       update: (change) => {
         if (this.store.organizationId !== organizationId) return
         draft.update(change)
-        unsaved.set(true)
+        unsaved.set(!isEqual(draft(), savedDraft))
       },
       save: async () => {
         const snapshot = structuredClone(draft())
@@ -158,7 +188,8 @@ export class XpertSettingsService {
               throw new Error(this.translate.instant('XP.AssistantSettings.BindingChanged'))
             return firstValueFrom(this.api.saveDraft(id, value))
           })
-          if (isEqual(snapshot, draft())) unsaved.set(false)
+          savedDraft = snapshot
+          unsaved.set(!isEqual(snapshot, draft()))
         } catch (cause) {
           error.set(getErrorMessage(cause))
           throw cause

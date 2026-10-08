@@ -15,6 +15,7 @@ import { CatalogModelLabel, ModelAccessService } from '../model-access'
 import { applicationMetrics } from '../metrics'
 import {
     getAssistantModelId,
+    assistantModelCandidates,
     sanitizeAssistantCopilotModel,
     ValidAssistantCopilotModel
 } from './assistant-model-selection.util'
@@ -236,28 +237,7 @@ export class AssistantModelSelectionService {
     }
 
     private getCandidates(xpert: AssistantModelXpert): AssistantModelCandidate[] {
-        const primaryModel = sanitizeAssistantCopilotModel(xpert.agent?.copilotModel ?? xpert.copilotModel)
-        const configuredModels = xpert.options?.modelSelection?.allowedModels ?? []
-        const candidates: AssistantModelCandidate[] = []
-        const identities = new Set<string>()
-
-        const append = (model: ValidAssistantCopilotModel | null, isDefault: boolean) => {
-            if (!model) {
-                return
-            }
-            const id = this.getModelId(model)
-            if (identities.has(id)) {
-                return
-            }
-            identities.add(id)
-            candidates.push({ id, model, default: isDefault })
-        }
-
-        append(primaryModel, true)
-        for (const configuredModel of configuredModels) {
-            append(sanitizeAssistantCopilotModel(configuredModel), false)
-        }
-        return candidates
+        return assistantModelCandidates(xpert)
     }
 
     private async getAvailableIds(

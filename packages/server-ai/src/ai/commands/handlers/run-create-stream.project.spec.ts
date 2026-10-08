@@ -44,6 +44,7 @@ describe('run first-send Project preparation', () => {
     } as Awaited<ReturnType<typeof resolveAssistantForRequest>>
     let conversation: IChatConversation
     const prepare = jest.fn()
+    const awaitConfirmation = jest.fn()
     const selectNone = jest.fn()
     const assertRuntimeAccess = jest.fn()
     const execute = jest.fn()
@@ -76,6 +77,10 @@ describe('run first-send Project preparation', () => {
             expect(applyAssistantScope).not.toHaveBeenCalled()
             return { ...conversation, projectId: 'created-project' }
         })
+        awaitConfirmation.mockImplementation(async () => ({
+            ...conversation,
+            options: { projectCreation: { status: 'awaiting_confirmation' } }
+        }))
         selectNone.mockImplementation(async (current: IChatConversation) => {
             expect(applyAssistantScope).not.toHaveBeenCalled()
             return { ...current, options: { ...current.options, projectSelection: { mode: 'none' } } }
@@ -93,7 +98,7 @@ describe('run first-send Project preparation', () => {
                 { provide: PublishedXpertAccessService, useValue: {} },
                 { provide: XpertPrincipalService, useValue: {} },
                 { provide: XpertProjectService, useValue: { assertRuntimeAccess } },
-                { provide: ConversationProjectService, useValue: { prepare, selectNone } }
+                { provide: ConversationProjectService, useValue: { prepare, selectNone, awaitConfirmation } }
             ]
         }).compile()
         handler = module.get(RunCreateStreamHandler)
@@ -111,6 +116,32 @@ describe('run first-send Project preparation', () => {
             },
             options: { projectId: 'created-project' }
         })
+    })
+
+    it('runs configuration without a project until the user confirms the App', async () => {
+        jest.mocked(resolveAssistantForRequest).mockResolvedValue({
+            ...xpert,
+            options: { workspaceScope: { mode: 'project-required', onMissing: 'confirm' } }
+        })
+        const request = command()
+        Object.assign(request.runCreate.input, { projectSelection: { mode: 'auto-new' }, projectId: 'stale-project' })
+        Object.assign(request.runCreate, { context: { projectId: 'stale-project' } })
+        await handler.execute(request)
+        expect(awaitConfirmation).toHaveBeenCalledTimes(1)
+        expect(prepare).not.toHaveBeenCalled()
+        expect(assertRuntimeAccess).not.toHaveBeenCalled()
+        const dispatched = execute.mock.calls.map(([cmd]) => cmd).find((cmd) => cmd instanceof XpertChatCommand)
+        expect(dispatched.request).toMatchObject({
+            message: { input: { files: [{ fileId: 'file-1', originalName: 'tender.pdf' }] } }
+        })
+        expect(dispatched.options.projectId).toBeUndefined()
+        expect(dispatched.options.context).not.toHaveProperty('projectId')
+        // The next request takes its scope from the confirmed database binding.
+        conversation.projectId = 'confirmed-project'
+        jest.mocked(applyAssistantScope).mockClear()
+        await handler.execute(command())
+        expect(awaitConfirmation).toHaveBeenCalledTimes(1)
+        expect(assertRuntimeAccess).toHaveBeenCalledWith('confirmed-project', 'assistant')
     })
 
     it('reuses a persisted Project', async () => {

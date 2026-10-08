@@ -491,7 +491,13 @@ export class NsjailSandbox
     }
 
     async listServices(options: SandboxManagedServiceListOptions): Promise<SandboxManagedServiceListResult> {
-        const states = await this.withRuntimeRecovery(() => this.options.client.listServices(this.options.runtimeId))
+        // Passive discovery must not resurrect a runtime that has already stopped.
+        const states = await this.options.client
+            .listServices(this.options.runtimeId)
+            .catch((error: unknown): NsjailServiceState[] => {
+                if (isNsjailRuntimeNotFoundError(error)) return []
+                throw error
+            })
         const byId = new Map(states.map((state) => [state.serviceId, state]))
         return {
             services: options.services.map((service) => {

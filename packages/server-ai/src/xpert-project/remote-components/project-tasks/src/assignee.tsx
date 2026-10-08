@@ -1,3 +1,5 @@
+import { CodingToolIcon } from '../../../../shared/coding-tools/coding-tool-icon'
+import { codingToolBrand } from '../../../../shared/coding-tools/branding'
 import { useState } from 'react'
 import { Bot } from 'lucide-react'
 import { Tooltip, TooltipTrigger, TooltipContent, cn } from '@xpert-ai/shadcn-ui'
@@ -18,13 +20,15 @@ export function Assignee({
     attempts,
     t,
     locale,
-    onError
+    onError,
+    className
 }: {
     task: Node
     attempts: Attempt[]
     t: Texts
     locale: string
     onError: (message: string) => void
+    className?: string
 }) {
     const [busy, setBusy] = useState<string | null>(null)
     const [failedUrl, setFailedUrl] = useState<string | null>(null)
@@ -42,7 +46,12 @@ export function Assignee({
         }
     }
     return (
-        <div className="flex min-w-0 items-center gap-1.5 overflow-hidden px-3 text-xs text-muted-foreground">
+        <div
+            className={cn(
+                'flex min-w-0 items-center gap-1.5 overflow-hidden px-3 text-xs text-muted-foreground',
+                className
+            )}
+        >
             {task.assigneeXpertId && (
                 <span
                     aria-hidden
@@ -73,6 +82,8 @@ export function Assignee({
                         .sort((a, b) => a.attempt - b.attempt)
                         .map((attempt) => {
                             const state = attempt.runtimeStatus ?? attempt.status
+                            const canOpen = !!(attempt.invocationId || attempt.agentExecutionId)
+                            const succeeded = state === 'success' || state === 'succeeded'
                             const failed =
                                 attempt.status === 'failed' ||
                                 attempt.status === 'error' ||
@@ -80,7 +91,7 @@ export function Assignee({
                                 ['failed', 'error', 'timeout'].includes(state)
                             const color = failed
                                 ? 'bg-destructive'
-                                : state === 'success'
+                                : succeeded
                                   ? 'bg-[var(--success)]'
                                   : state === 'running'
                                     ? 'bg-primary'
@@ -89,7 +100,7 @@ export function Assignee({
                             const businessResult =
                                 attempt.outputSummary === 'rejected'
                                     ? t.rejected
-                                    : attempt.status === 'failed' && state === 'success'
+                                    : attempt.status === 'failed' && succeeded
                                       ? t.failed
                                       : null
                             const label = `${task.title} · ${t.attempt} ${attempt.attempt} ${t.execution} · ${runtimeLabel(state, t)}${businessResult ? ` · ${t.outcome}: ${businessResult}` : ''}`
@@ -97,12 +108,12 @@ export function Assignee({
                                 <Tooltip key={attempt.id}>
                                     <TooltipTrigger
                                         aria-label={label}
-                                        aria-disabled={!attempt.agentExecutionId || !!busy}
+                                        aria-disabled={!canOpen || !!busy}
                                         aria-busy={busy === attempt.id}
                                         className="flex size-6 shrink-0 items-center justify-center rounded hover:bg-muted focus-visible:outline-ring aria-disabled:opacity-50"
                                         onClick={(event) => {
                                             event.stopPropagation()
-                                            if (attempt.agentExecutionId && !busy) void open(attempt)
+                                            if (canOpen && !busy) void open(attempt)
                                         }}
                                     >
                                         <span
@@ -115,12 +126,25 @@ export function Assignee({
                                         />
                                     </TooltipTrigger>
                                     <TooltipContent>
+                                        {attempt.runtimeProvider && (
+                                            <p className="flex items-center gap-1.5">
+                                                <CodingToolIcon
+                                                    toolId={attempt.runtimeToolId}
+                                                    provider={attempt.runtimeProvider}
+                                                    decorative
+                                                />
+                                                {codingToolBrand({
+                                                    toolId: attempt.runtimeToolId,
+                                                    provider: attempt.runtimeProvider
+                                                })?.name ?? attempt.runtimeProvider}
+                                            </p>
+                                        )}
                                         <p>{label}</p>
                                         <p>
                                             {dateTime(start, locale)} → {dateTime(end, locale)}
                                         </p>
                                         {attempt.error && <p className="max-w-64 break-words">{attempt.error}</p>}
-                                        <p>{attempt.agentExecutionId ? t.open : t.unavailable}</p>
+                                        <p>{canOpen ? t.open : t.unavailable}</p>
                                     </TooltipContent>
                                 </Tooltip>
                             )

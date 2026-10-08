@@ -4,8 +4,8 @@ import { REDIS_CLIENT } from '@xpert-ai/server-core'
 import type { RedisClientType } from 'redis'
 import { randomUUID } from 'crypto'
 import { Observable } from 'rxjs'
-import { finalize, tap } from 'rxjs/operators'
-import { getChatEventName, isControlledRunStreamEvent, serializeRunStreamPayload } from './run-stream-payload'
+import { share } from 'rxjs/operators'
+import { serializeRunStreamPayload } from './run-stream-payload'
 
 const SSE_COMPLETE_EVENT = 'complete'
 const APPEND_EVENT_SCRIPT = `
@@ -34,6 +34,8 @@ interface CreateSseStreamOptions {
     lastEventId?: string
     mode: 'create' | 'join'
     owner?: SseConnectionOwnerCandidate
+    requireReplayStart?: boolean
+    isRunFinished?: () => Promise<boolean>
 }
 
 export interface RedisStreamPersistenceTarget {
@@ -124,38 +126,71 @@ export class RedisSseStreamService {
             return stream
         }
 
-        return stream.pipe(
-            tap({
-                next: (event) => {
-                    this.appendEvent(threadId, runId, event.data).catch((error) => {
-                        this.#logger.warn(`Failed to persist chat stream event: ${this.getErrorMessage(error)}`)
+        // One producer, ordered durable writes, completion only after the last write.
+        // Observers can leave without cancelling the admitted model execution.
+        return new Observable<MessageEvent>((subscriber) => {
+            let failed = false
+            let writes = this.appendEvent(threadId, runId, { type: 'stream_start' }).then((id) => {
+                failed ||= !id
+            })
+            const enqueue = (data: unknown, event?: MessageEvent) => {
+                let snapshot: unknown
+                try {
+                    snapshot = JSON.parse(JSON.stringify(serializeRunStreamPayload(data) ?? null))
+                } catch {
+                    failed = true
+                    this.#logger.warn('SSE event could not be serialized; readers will reconcile committed messages')
+                    writes = writes.then(() => {
+                        if (event) subscriber.next(event)
                     })
-                },
+                    return
+                }
+                writes = writes.then(async () => {
+                    const id = await this.appendEvent(threadId, runId, snapshot)
+                    failed ||= !id
+                    if (event) subscriber.next(event)
+                })
+            }
+            const finish = (error?: unknown) => {
+                writes = writes
+                    .then(async () => {
+                        if (failed) await this.appendEvent(threadId, runId, { type: 'stream_resync' })
+                        await this.appendCompleteEvent(threadId, runId)
+                        if (error) subscriber.error(error)
+                        else subscriber.complete()
+                    })
+                    .catch((error) => subscriber.error(error))
+            }
+            stream.subscribe({
+                next: (event) => enqueue(event.data, event),
                 error: (error) => {
-                    this.appendEvent(threadId, runId, {
+                    enqueue({
                         type: ChatMessageTypeEnum.EVENT,
                         event: ChatMessageEventTypeEnum.ON_ERROR,
-                        data: {
-                            error: this.getErrorMessage(error)
-                        }
-                    }).catch((appendError) => {
-                        this.#logger.warn(
-                            `Failed to persist chat stream error event: ${this.getErrorMessage(appendError)}`
-                        )
+                        data: { error: this.getErrorMessage(error) }
                     })
-                }
-            }),
-            finalize(() => {
-                this.appendCompleteEvent(threadId, runId).catch((error) => {
-                    this.#logger.warn(`Failed to persist chat stream complete event: ${this.getErrorMessage(error)}`)
-                })
+                    finish(error)
+                },
+                complete: () => finish()
             })
-        )
+        }).pipe(share({ resetOnComplete: false, resetOnError: false, resetOnRefCountZero: false }))
     }
 
     async createSseStream(options: CreateSseStreamOptions) {
         const { threadId, runId } = options
         const streamKey = this.getStreamKey(threadId, runId)
+        // A POST starts a new stream segment even when tool_after reuses the run id.
+        // Snapshot the tail before the producer starts; '$' would lose events during setup.
+        const cursorKey = `ai:sse:segment:thread:${threadId}:run:${runId}`
+        let startId: string
+        if (options.mode === 'create') {
+            startId = await this.readTailId(streamKey)
+            const ttl = this.getStreamTtlSeconds()
+            await this.redis.set(cursorKey, startId, ttl > 0 ? { EX: ttl } : undefined)
+        } else {
+            const segmentStart = (await this.redis.get(cursorKey)) ?? '0-0'
+            startId = this.joinCursor(options.lastEventId, segmentStart)
+        }
         const connectionSetKey = this.getConnectionSetKey(threadId, runId)
         const connectionTtl = this.getConnectionTtlMs()
         const connectionId = randomUUID()
@@ -166,7 +201,7 @@ export class RedisSseStreamService {
         const stream = new Observable<SseMessageEvent>((subscriber) => {
             let active = true
             let readClient: RedisClientType | null = null
-            let lastId = this.normalizeStartId(options.lastEventId, options.mode)
+            let lastId = startId
             const readBlockMs = this.getReadBlockMs()
             const readCount = this.getReadCount()
 
@@ -206,6 +241,38 @@ export class RedisSseStreamService {
                         return
                     }
                     const client = readClient ?? this.redis
+                    let checkedAt = 0
+                    let finished = false
+                    const checkAccess = async () => {
+                        if (options.isRunFinished && Date.now() - checkedAt >= 2000) {
+                            finished = await options.isRunFinished()
+                            checkedAt = Date.now()
+                        }
+                        return finished
+                    }
+                    await checkAccess()
+                    const resync = () => {
+                        subscriber.next({ data: { type: 'stream_resync' } })
+                        subscriber.next({ type: SSE_COMPLETE_EVENT, data: { type: SSE_COMPLETE_EVENT } })
+                        subscriber.complete()
+                        active = false
+                    }
+                    if (options.requireReplayStart) {
+                        const first = (await this.readRange(client, streamKey, '0-0', 1))[0]
+                        if (
+                            first &&
+                            (options.lastEventId
+                                ? compareStreamIds(first.id, options.lastEventId) > 0
+                                : !isStreamStart(first.data))
+                        ) {
+                            resync()
+                            return
+                        }
+                        if (!first && finished) {
+                            resync()
+                            return
+                        }
+                    }
                     if (lastId !== '$') {
                         const replayEntries = await this.readRange(client, streamKey, lastId, readCount)
                         for (const entry of replayEntries) {
@@ -217,8 +284,13 @@ export class RedisSseStreamService {
                     }
 
                     while (active) {
+                        await checkAccess()
                         const entries = await this.readNewEntries(client, streamKey, lastId, readCount, readBlockMs)
                         if (!entries.length) {
+                            if (await checkAccess()) {
+                                resync()
+                                return
+                            }
                             continue
                         }
                         for (const entry of entries) {
@@ -337,12 +409,20 @@ export class RedisSseStreamService {
         return typeof data === 'object' && data !== null && (data as { type?: string }).type === SSE_COMPLETE_EVENT
     }
 
-    private normalizeStartId(lastEventId: string | undefined, mode: 'create' | 'join') {
-        const normalized = lastEventId?.trim()
-        if (normalized) {
-            return normalized
-        }
-        return '0-0'
+    private async readTailId(streamKey: string): Promise<string> {
+        const entries = (await this.redis.sendCommand(['XREVRANGE', streamKey, '+', '-', 'COUNT', '1'])) as Array<
+            [string, string[]]
+        > | null
+        return entries?.[0]?.[0] ?? '0-0'
+    }
+
+    private joinCursor(lastEventId: string | undefined, segmentStart: string): string {
+        const requested = lastEventId?.trim()
+        if (!requested) return segmentStart
+        if (!/^\d+-\d+$/.test(requested)) return requested
+        const [requestedMs, requestedSeq] = requested.split('-').map(BigInt)
+        const [startMs, startSeq] = segmentStart.split('-').map(BigInt)
+        return requestedMs < startMs || (requestedMs === startMs && requestedSeq < startSeq) ? segmentStart : requested
     }
 
     private normalizeId(value: string | null | undefined) {
@@ -433,4 +513,13 @@ export class RedisSseStreamService {
     private getReadCount() {
         return Number(process.env.AI_SSE_READ_COUNT ?? 500)
     }
+}
+
+function isStreamStart(value: unknown) {
+    return !!value && typeof value === 'object' && 'type' in value && value.type === 'stream_start'
+}
+function compareStreamIds(a: string, b: string) {
+    const [aTime, aSeq] = a.split('-').map(BigInt),
+        [bTime, bSeq] = b.split('-').map(BigInt)
+    return aTime === bTime ? (aSeq > bSeq ? 1 : aSeq < bSeq ? -1 : 0) : aTime > bTime ? 1 : -1
 }

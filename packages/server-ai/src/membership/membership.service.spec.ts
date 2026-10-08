@@ -2,6 +2,7 @@ jest.mock('../xpert/xpert.entity', () => ({
     Xpert: class Xpert {}
 }))
 
+import * as usagePoints from './membership-usage-points'
 import { MembershipService, XpertBillingPayer } from './membership.service'
 import { ForbiddenException } from '@nestjs/common'
 import { MembershipPlan } from './membership-plan.entity'
@@ -31,6 +32,9 @@ import {
 import i18next from 'i18next'
 
 describe('MembershipService', () => {
+    beforeEach(() => {
+        jest.spyOn(usagePoints, 'readPeriodConsumedPoints').mockResolvedValue(0)
+    })
     afterEach(() => {
         jest.restoreAllMocks()
     })
@@ -71,6 +75,7 @@ describe('MembershipService', () => {
 
     function createQueryBuilder(rawRows: Array<Record<string, unknown>>) {
         return {
+            setParameter: jest.fn().mockReturnThis(),
             select: jest.fn().mockReturnThis(),
             addSelect: jest.fn().mockReturnThis(),
             leftJoin: jest.fn().mockReturnThis(),
@@ -1466,9 +1471,7 @@ describe('MembershipService', () => {
 
         expect(overview?.buckets).toEqual([{ date: '2026-07-23', pointsUsed: 1, tokenUsed: 1000 }])
         expect(overview).toMatchObject({ totalTokens: 1000, peakDailyTokens: 1000, activeDays: 1 })
-        expect(queryBuilder.andWhere).toHaveBeenCalledWith('ledger.source IN (:...usageSources)', {
-            usageSources: [MembershipLedgerSourceEnum.Usage, MembershipLedgerSourceEnum.PersonalUsage]
-        })
+        expect(queryBuilder.andWhere).toHaveBeenCalledWith(usagePoints.USAGE_POINTS_PREDICATE)
         expect(queryBuilder.andWhere).not.toHaveBeenCalledWith(
             '(ledger.membershipId = :membershipId OR (ledger.membershipId IS NULL AND ledger.source = :personalUsageSource))',
             expect.anything()
@@ -4117,6 +4120,31 @@ describe('MembershipService', () => {
             }
         })
         expect(access?.persistedMembership).toBeUndefined()
+    })
+
+    it('reports unlimited model consumption without changing quota deductions', async () => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('owner-user')
+        const service = createMembershipService()
+        const membership = createMembership({ pointsGranted: null, pointsUsed: 0 })
+        jest.spyOn(getMembershipServiceTestAccess(service), 'findMembershipPresentationAccess').mockResolvedValue({
+            membership
+        })
+        jest.spyOn(getMembershipServiceTestAccess(service), 'getPersonalPointsBalance').mockResolvedValue(20)
+        jest.spyOn(usagePoints, 'readPeriodConsumedPoints').mockResolvedValue(18.375)
+        await expect(service.getMe()).resolves.toMatchObject({
+            consumedPoints: 18.375,
+            pointsUsed: 0,
+            pointsRemaining: null,
+            personalPointsBalance: 20
+        })
+        expect(usagePoints.readPeriodConsumedPoints).toHaveBeenCalledWith(expect.anything(), undefined, {
+            tenantId: 'tenant-1',
+            userId: membership.userId,
+            currentPeriodStart: membership.currentPeriodStart,
+            currentPeriodEnd: membership.currentPeriodEnd
+        })
     })
 
     it('returns an expired membership with zero personal points and falls back when its plan was deleted', async () => {

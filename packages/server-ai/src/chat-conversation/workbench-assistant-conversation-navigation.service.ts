@@ -1,5 +1,7 @@
+import { ChatConversationThreadService } from './conversation-thread.service'
+import { isRuntimeChatMessage } from '@xpert-ai/contracts'
 import type { IXpert, WorkbenchAssistantConversationResolution } from '@xpert-ai/contracts'
-import { ForbiddenException, Injectable } from '@nestjs/common'
+import { ForbiddenException, Injectable, Optional } from '@nestjs/common'
 import { ChatConversationService } from './conversation.service'
 import { directExternalAssistantIds } from '../xpert/external-assistant-binding'
 import { XpertProjectAccessService } from '../xpert-project/services/project-access.service'
@@ -10,13 +12,35 @@ export class WorkbenchAssistantConversationNavigationService {
     constructor(
         private readonly conversationService: ChatConversationService,
         private readonly projectAccessService: XpertProjectAccessService,
-        private readonly xpertBindingService: XpertProjectXpertBindingService
+        private readonly xpertBindingService: XpertProjectXpertBindingService,
+        @Optional() private readonly threads?: ChatConversationThreadService
     ) {}
 
-    async resolve(conversationId: string, requesterXpertId: string): Promise<WorkbenchAssistantConversationResolution> {
+    async resolve(
+        conversationId: string,
+        requesterXpertId: string,
+        anchor: { threadId?: string; messageId?: string } = {}
+    ): Promise<WorkbenchAssistantConversationResolution> {
         const normalizedRequesterXpertId = normalizeRequiredId(requesterXpertId)
         const conversation = await this.conversationService.assertAccess(conversationId)
-        const threadId = normalizeRequiredId(conversation.threadId)
+        const threadId = normalizeRequiredId(anchor.threadId ?? conversation.threadId)
+        if (anchor.threadId || anchor.messageId) {
+            if (!this.threads) throw navigationDenied()
+            const thread = await this.threads.requireByThreadId(threadId)
+            if (thread.conversationId !== conversation.id) throw navigationDenied()
+            if (anchor.messageId) {
+                const visible = await this.threads.findVisibleMessages(threadId, { where: { id: anchor.messageId } })
+                if (
+                    !visible.items.some(
+                        (message) =>
+                            message.id === anchor.messageId &&
+                            !isRuntimeChatMessage(message) &&
+                            (message.role === 'human' || message.role === 'ai')
+                    )
+                )
+                    throw navigationDenied()
+            }
+        }
         const targetXpertId = normalizeRequiredId(conversation.xpertId)
         const projectId = normalizeOptionalId(conversation.projectId)
         const tenantId = normalizeRequiredId(conversation.tenantId)
@@ -48,7 +72,8 @@ export class WorkbenchAssistantConversationNavigationService {
             threadId,
             xpertId: targetXpert.id,
             projectId,
-            isExternalAssistant
+            isExternalAssistant,
+            ...(anchor.messageId ? { messageId: anchor.messageId } : {})
         }
     }
 

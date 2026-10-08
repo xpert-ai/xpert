@@ -82,6 +82,9 @@ export default {
     moduleFileExtensions: ['ts', 'js', 'html'],
     coverageDirectory: '../../coverage/packages/server-ai',
     moduleNameMapper: {
+        '^@xpert-ai/shadcn-ui/brand-icons$': '<rootDir>/../shadcn-ui/src/brand-icons/index.ts',
+        '^@xpert-ai/server-core$': '<rootDir>/../server/src/index.ts',
+        '^@xpert-ai/cli-model-profiles$': '<rootDir>/../plugins/cli-model-profiles/src/index.ts',
         '^@xpert-ai/contracts$': '<rootDir>/../contracts/src/index.ts',
         '^@xpert-ai/plugin-sdk$': '<rootDir>/../plugin-sdk/src/index.ts'
     },

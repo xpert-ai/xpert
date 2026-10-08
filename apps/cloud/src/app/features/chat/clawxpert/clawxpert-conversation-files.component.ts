@@ -1,7 +1,7 @@
 import { workspaceDocumentScope } from '../../../@shared/files/document/file-document-store'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core'
-import { ChatConversationService, XpertAPIService } from '../../../@core'
+import { ChatConversationService, AiWorkspaceFilesService } from '../../../@core'
 import {
   FileWorkbenchComponent,
   FileWorkbenchReferenceRequest,
@@ -49,7 +49,7 @@ export type ClawXpertConversationFilesMode = 'readonly' | 'editable'
 })
 export class ClawXpertConversationFilesComponent {
   readonly #conversationService = inject(ChatConversationService)
-  readonly #xpertService = inject(XpertAPIService)
+  readonly #xpertService = inject(AiWorkspaceFilesService)
 
   readonly conversationId = input<string | null | undefined>(null)
   readonly xpertId = input<string | null | undefined>(null)

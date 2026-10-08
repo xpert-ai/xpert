@@ -86,7 +86,6 @@ import { XpertStudioPanelComponent } from './panel/panel.component'
 import { XpertExecutionService } from './services/execution.service'
 import { XpertStudioToolbarComponent } from './toolbar/toolbar.component'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
-import { XpertStudioFeaturesComponent } from './features/features.component'
 import { XpertService } from '../xpert/xpert.service'
 import { XpertStudioStateInspectorComponent } from './components/state-inspector/state-inspector.component'
 import { XpertAssistantFacade } from '../assistant-shell/assistant.facade'
@@ -115,7 +114,6 @@ import { XpertStudioCopilotServerService } from './xpert-studio-copilot-server.s
     XpCommonModule,
 
     EmojiAvatarComponent,
-    XpertStudioFeaturesComponent,
     XpertStudioToolbarComponent,
     XpertStudioStateInspectorComponent,
     XpertStudioContextMenuComponent,
@@ -281,7 +279,6 @@ export class XpertStudioComponent {
   readonly executions = this.executionService.executions
   readonly toolMessages = this.executionService.toolMessages
   readonly sidePanel = model<'preview' | 'variables' | 'environments' | 'commands'>()
-  readonly showFeatures = model(false)
 
   readonly runningToolsets = computed<Array<{ key: string; agentKey: string; running: boolean }>>(
     () => {

@@ -94,12 +94,19 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
     })
   }
 
-  resolveWorkbenchNavigation(conversationId: string, requesterXpertId: string, organizationId?: string) {
+  resolveWorkbenchNavigation(
+    conversationId: string,
+    requesterXpertId: string,
+    organizationId?: string,
+    anchor?: { threadId?: string; messageId?: string } | null
+  ) {
     return this.httpClient.get<WorkbenchAssistantConversationResolution>(
       this.apiBaseUrl + `/${conversationId}/workbench-navigation`,
       {
         params: createOptionalQueryParams({
           requesterXpertId,
+          threadId: anchor?.threadId,
+          messageId: anchor?.messageId,
           organizationId
         })
       }

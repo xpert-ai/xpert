@@ -1,5 +1,6 @@
 import {
     collectPendingFollowUpsByClientMessageId,
+    visibleFollowUpReferences,
     mergeFollowUpHumanInputs,
     readPersistedFollowUpInput
 } from './persisted-follow-up'
@@ -116,4 +117,24 @@ describe('persisted follow-up helpers', () => {
             clientMessageIds: ['client-1']
         })
     })
+})
+
+it('acknowledges only visible follow-ups while retaining runtime input for execution', () => {
+    const items = [
+        {
+            id: 'hidden',
+            role: 'human',
+            followUpStatus: 'pending' as const,
+            content: 'Private input',
+            messageEnvelope: { version: 1, presentation: 'runtime' },
+            thirdPartyMessage: { followUpClientMessageId: 'call' }
+        },
+        {
+            id: 'visible',
+            messageEnvelope: { version: 1, presentation: 'message' },
+            thirdPartyMessage: { followUpClientMessageId: 'agent' }
+        }
+    ]
+    expect(visibleFollowUpReferences(items)).toEqual({ messageIds: ['visible'], clientMessageIds: ['agent'] })
+    expect(collectPendingFollowUpsByClientMessageId(items, 'call')?.mergedHumanInput.input).toBe('Private input')
 })

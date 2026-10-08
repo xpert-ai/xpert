@@ -188,6 +188,8 @@ export interface XpertWorkbenchViewOptions {
    * menu, navigation or live Agent request. This does not grant view access.
    */
   openMode?: 'auto' | 'on-demand'
+  /** Opt into conversation changes while retaining the mounted Remote View. */
+  contextScope?: 'project' | 'conversation'
   menu?: {
     /** Controls the manual entry only; does not disable the view or navigation. */
     enabled?: boolean
@@ -495,6 +497,10 @@ export interface WorkbenchNavigationOpenPayload {
   viewKey?: string
   selectionId?: string
   parameters?: Record<string, XpertViewScalar | XpertViewScalar[]>
+  /** Exact visible message in the requested branch. */
+  messageId?: string
+  /** Keep the originating Workbench view open during navigation. */
+  preserveView?: boolean
 }
 
 export interface WorkbenchAssistantConversationOpenRequest {
@@ -505,6 +511,10 @@ export interface WorkbenchAssistantConversationOpenRequest {
   xpertId?: string
   /** Untrusted hint; the host must resolve the canonical Project from `conversationId`. */
   projectId?: string
+  /** Exact visible message in the requested branch. */
+  messageId?: string
+  /** Keep the originating Workbench view open during navigation. */
+  preserveView?: boolean
 }
 
 /** Server-authorized runtime scope used to rebuild ChatKit for one persisted Assistant conversation. */
@@ -514,12 +524,13 @@ export interface WorkbenchAssistantConversationResolution {
   xpertId: string
   projectId: string | null
   isExternalAssistant: boolean
+  messageId?: string
 }
 
 export interface WorkbenchAssistantProjectOpenRequest {
   /** Trusted platform Chat Project id; this is distinct from plugin business ids. */
   projectId: string
-  /** Open a business selection atomically with the Project route. */
+  /** Inspect a View in this Project without changing the active conversation. */
   view?: WorkbenchExtensionViewOpenRequest
 }
 
@@ -620,6 +631,17 @@ export interface XpertRemoteViewHostEventMessage {
   data?: Record<string, unknown>
   /** Optional visualization metadata used by manifest filters and remote views. */
   visualization?: XpertViewHostEventVisualization
+}
+
+/** Sent to every mounted View after an authorized runtime context change, including hidden Views. */
+export interface XpertRemoteViewContextChangedEvent extends XpertRemoteViewHostEventMessage {
+  type: 'view.context.changed'
+  data: {
+    /** Monotonic within this View instance; stale asynchronous results must be ignored. */
+    revision: number
+    /** Complete target scope. Null means no binding, never a scope still being resolved. */
+    runtimeScope: Required<XpertViewRuntimeScopeInput>
+  }
 }
 
 /**

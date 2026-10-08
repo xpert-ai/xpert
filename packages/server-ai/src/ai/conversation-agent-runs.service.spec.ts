@@ -97,6 +97,12 @@ describe('conversation agent run history', () => {
         expect(result.get('a')).toEqual([expect.objectContaining({ isRoot: true, elapsedTime: 1200 })])
     })
 
+    it('exposes the server business result in history without converting runtime success to task acceptance', () => {
+        const outcome = { status: 'not_claimed' as const, subjectId: 'task', accepted: false }
+        const summary = toAgentRunSummary({ id: 'child', metadata: { businessOutcome: outcome } })
+        expect(summary.businessOutcome).toEqual(outcome)
+    })
+
     it('exposes only presentation metadata and leaves legacy executions unclassified', () => {
         const summary = toAgentRunSummary({
             id: 'legacy',

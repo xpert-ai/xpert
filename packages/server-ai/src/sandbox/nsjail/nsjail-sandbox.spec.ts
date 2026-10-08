@@ -18,6 +18,30 @@ function waitForPolling(): Promise<void> {
 }
 
 describe('NsjailSandbox', () => {
+    it('reports lost services without recreating a missing runtime during discovery', async () => {
+        const createRuntime = jest.fn()
+        const listServices = jest
+            .fn()
+            .mockRejectedValue(
+                new NsjailRunnerRequestError('NsJail Runner request failed', 404, 'NsJail runtime not found')
+            )
+        const sandbox = createSandbox({ createRuntime, listServices } as unknown as NsjailRunnerClient)
+        const service = {
+            id: 'service',
+            conversationId: 'conversation',
+            provider: 'nsjail',
+            name: 'web',
+            command: 'serve',
+            workingDirectory: '/workspace',
+            status: 'running' as const
+        }
+        await expect(sandbox.listServices({ services: [service] })).resolves.toMatchObject({
+            services: [{ id: 'service', status: 'lost' }]
+        })
+        expect(listServices).toHaveBeenCalledTimes(1)
+        expect(createRuntime).not.toHaveBeenCalled()
+    })
+
     it('reports terminal exit after the Runner returns the final event', async () => {
         const onExit = jest.fn()
         const pollTerminal = jest.fn().mockResolvedValue({

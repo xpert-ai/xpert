@@ -47,7 +47,7 @@
     "format:fix": "prettier --write --ignore-unknown",
     "prepare": "command -v git >/dev/null 2>&1 && git config core.hooksPath git-hooks || exit 0",
     "prebuild": "rimraf dist coverage",
-    "build:plugins": "pnpm nx build vlm-default && pnpm nx build draft",
+    "build:plugins": "pnpm nx build cli-model-profiles && pnpm nx build vlm-default && pnpm nx build draft",
     "build:embed": "pnpm exec terser apps/cloud/src/assets/embed.js --compress --mangle --output apps/cloud/src/assets/embed.min.js && printf '\\n' >> apps/cloud/src/assets/embed.min.js",
     "build": "pnpm nx build core && pnpm nx build ui",
     "b:p:contracts": "pnpm nx build contracts",
@@ -259,7 +259,8 @@
     "typedoc": "^0.25.4",
     "typescript": "5.9.3",
     "verdaccio": "^5.0.4",
-    "webpack-bundle-analyzer": "^4.10.1"
+    "webpack-bundle-analyzer": "^4.10.1",
+    "@webtui/css": "0.1.10"
   },
   "workspaces": [
     "apps/*",

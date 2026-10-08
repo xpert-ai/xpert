@@ -16,7 +16,7 @@ import {
   ZardProgressBarComponent,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
-import { forkJoin, map } from 'rxjs'
+import { forkJoin, map, take } from 'rxjs'
 import {
   buildMembershipUsageHeatmap,
   getMembershipUsageHeatmapRange,
@@ -70,12 +70,14 @@ export class XpAccountUsageComponent implements OnInit {
     this.loading.set(true)
     const activityRange = getMembershipUsageHeatmapRange(new Date())
     forkJoin({
-      overview: this.#membership.getOverview(),
-      periods: this.#membership.getMyPeriods(),
-      activity: this.#membership.getOverview({
-        start: activityRange.start.toISOString(),
-        end: activityRange.end.toISOString()
-      })
+      overview: this.#membership.getOverview().pipe(take(1)),
+      periods: this.#membership.getMyPeriods().pipe(take(1)),
+      activity: this.#membership
+        .getOverview({
+          start: activityRange.start.toISOString(),
+          end: activityRange.end.toISOString()
+        })
+        .pipe(take(1))
     }).subscribe({
       next: ({ overview, periods, activity }) => {
         this.overview.set(overview)

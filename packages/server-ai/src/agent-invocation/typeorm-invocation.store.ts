@@ -1,15 +1,20 @@
-import { Injectable } from '@nestjs/common'
+import { EventBus } from '@nestjs/cqrs'
+import { TaskObservationCommittedEvent } from '../runtime-task/task-observation.event'
+import { Injectable, Logger, Optional } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import type { AgentInvocationScope } from '@xpert-ai/plugin-sdk'
 import { EntityManager, Repository } from 'typeorm'
 import { randomUUID } from 'crypto'
 import { AgentInvocationStore, StoredAgentInvocation } from './invocation-store'
 import { AgentInvocationEntity, AgentInvocationEventEntity } from './invocation.entity'
+import { appendRuntimeDelivery } from '../handoff/runtime-messaging/runtime-message-outbox'
 
 @Injectable()
 export class TypeOrmAgentInvocationStore extends AgentInvocationStore {
+    private readonly logger = new Logger(TypeOrmAgentInvocationStore.name)
     constructor(
-        @InjectRepository(AgentInvocationEntity) private readonly repository: Repository<AgentInvocationEntity>
+        @InjectRepository(AgentInvocationEntity) private readonly repository: Repository<AgentInvocationEntity>,
+        @Optional() private readonly events?: EventBus
     ) {
         super()
     }
@@ -56,7 +61,7 @@ export class TypeOrmAgentInvocationStore extends AgentInvocationStore {
 
     async replace(record: StoredAgentInvocation, expectedRevision: number): Promise<boolean> {
         const { invocation } = record
-        return this.repository.manager.transaction(async (manager) => {
+        const committed = await this.repository.manager.transaction(async (manager) => {
             const result = await manager
                 .getRepository(AgentInvocationEntity)
                 .createQueryBuilder()
@@ -64,7 +69,8 @@ export class TypeOrmAgentInvocationStore extends AgentInvocationStore {
                 .set({
                     invocation: () => ':invocation::jsonb',
                     providerSource: () => ':providerSource::jsonb',
-                    revision: invocation.revision
+                    revision: invocation.revision,
+                    nextObservationAt: new Date()
                 })
                 .where({
                     id: invocation.id,
@@ -82,6 +88,15 @@ export class TypeOrmAgentInvocationStore extends AgentInvocationStore {
             await this.appendEvent(manager, record)
             return true
         })
+        if (committed && ['succeeded', 'failed', 'cancelled', 'waiting'].includes(invocation.status)) {
+            // The due-time update is already durable; a local notification must not undo a committed result.
+            try {
+                this.events?.publish(new TaskObservationCommittedEvent())
+            } catch {
+                this.logger.warn('Task observation notification deferred to polling')
+            }
+        }
+        return committed
     }
 
     private async appendEvent(manager: EntityManager, record: StoredAgentInvocation) {
@@ -90,6 +105,7 @@ export class TypeOrmAgentInvocationStore extends AgentInvocationStore {
             status: invocation.status,
             handle: invocation.handle,
             interaction: invocation.interaction,
+            progress: invocation.progress,
             result: invocation.result,
             error: invocation.error
         }
@@ -108,5 +124,15 @@ export class TypeOrmAgentInvocationStore extends AgentInvocationStore {
             })
             .setParameters({ observation: JSON.stringify(observation) })
             .execute()
+        await appendRuntimeDelivery(manager, invocation)
+        // Completion and its durable wake-up are committed together. Polling repairs missed notifications.
+        if (['succeeded', 'failed', 'cancelled', 'waiting'].includes(invocation.status)) {
+            await manager.query(
+                `UPDATE agent_invocation_wait SET "nextCheckAt" = now()
+                WHERE "tenantId" = $1 AND "organizationId" = $2 AND "ownerId" = $3 AND state = 'waiting'
+                AND (id = $4::uuid OR request->'taskIds' ? $4::text)`,
+                [invocation.scope.tenantId, invocation.scope.organizationId, invocation.scope.userId, invocation.id]
+            )
+        }
     }
 }

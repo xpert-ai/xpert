@@ -5,6 +5,7 @@ import { BaseStore } from '@langchain/langgraph'
 import { AgentMiddleware } from './types'
 import { PromiseOrValue } from '../../types'
 import { AgentMiddlewareRuntimeApi } from './runtime'
+import type { AgentInvocationScope } from '../runtime/types'
 
 export interface IAgentMiddlewareContext {
   tenantId: string
@@ -13,6 +14,9 @@ export interface IAgentMiddlewareContext {
   workspaceId?: string
   projectId?: string
   conversationId?: string
+  executionId?: string
+  /** Omitted for legacy Assistant hosts. Project general agents must explicitly use project_agent. */
+  callerType?: AgentInvocationScope['callerType']
   threadId?: string
   xpertId?: string
   workspaceDataScope?: XpertWorkspaceDataScope | null

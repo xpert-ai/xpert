@@ -1,5 +1,11 @@
 // Credentials stay in the host. Only scoped ChatKit secrets cross into the renderer.
-const { MessageError, normalizeLocale, isSupportedLocale, localizedText } = require('./i18n/index.mjs')
+const {
+  MessageError,
+  normalizeLocale,
+  resolveSystemLocale,
+  isSupportedLocale,
+  localizedText
+} = require('./i18n/index.mjs')
 const { parseAppearance } = require('./appearance.cjs')
 const { parseBusinessArea } = require('./business-area.cjs')
 const { apiRootUrl, chatkitUrl } = require('./connection/urls.mjs')
@@ -73,6 +79,7 @@ function parseUser(value) {
     id: value.id,
     avatarUrl: typeof value.imageUrl === 'string' && /^https?:\/\//.test(value.imageUrl) ? value.imageUrl : null,
     tenantId: typeof value.tenantId === 'string' ? value.tenantId : null,
+    preferredLanguage: isSupportedLocale(value.preferredLanguage) ? normalizeLocale(value.preferredLanguage) : null,
     name:
       [value.fullName, value.name, value.firstName, value.email].find(
         (item) => typeof item === 'string' && item.trim()
@@ -118,30 +125,44 @@ function parseBots(value, locale) {
           typeof avatar?.emoji?.id === 'string'
             ? { id: avatar.emoji.id, unified: typeof avatar.emoji.unified === 'string' ? avatar.emoji.unified : null }
             : null,
-        avatarUrl: typeof avatar?.url === 'string' && /^https?:\/\//.test(avatar.url) ? avatar.url : null
+        avatarUrl: typeof avatar?.url === 'string' && /^https?:\/\//.test(avatar.url) ? avatar.url : null,
+        avatar: avatar || null
       }
     })
   }
 }
 
 class DesktopService {
-  constructor({ storage, fetcher = fetch, localLogin, certificateProbe, defaultConfig = DEFAULT_CONFIG } = {}) {
+  constructor({
+    storage,
+    fetcher = fetch,
+    localLogin,
+    certificateProbe,
+    defaultConfig = DEFAULT_CONFIG,
+    systemLanguages = []
+  } = {}) {
     this.storage = storage || { read: () => null, write: () => {} }
     this.fetcher = fetcher
     this.localLogin = localLogin
     this.certificateProbe = certificateProbe
     const saved = this.storage.read()
-    const defaults = parseConfig({ ...DEFAULT_CONFIG, ...defaultConfig })
+    const defaults = parseConfig({ ...DEFAULT_CONFIG, ...defaultConfig, locale: resolveSystemLocale(systemLanguages) })
     const savedConfig = saved?.config || defaults
     let validSavedConfig = Boolean(saved?.config)
     let appearance
     try {
       appearance = parseAppearance(savedConfig.appearance)
+      if (saved?.config && !saved.config.appearance?.chatkit?.messagePresentation)
+        appearance.chatkit.messagePresentation = 'transcript'
     } catch {
       appearance = parseAppearance()
     }
     try {
-      this.config = parseConfig({ ...savedConfig, appearance, locale: normalizeLocale(savedConfig.locale) })
+      this.config = parseConfig({
+        ...savedConfig,
+        appearance,
+        locale: isSupportedLocale(savedConfig.locale) ? normalizeLocale(savedConfig.locale) : defaults.locale
+      })
     } catch {
       this.config = defaults
       validSavedConfig = false
@@ -254,7 +275,16 @@ class DesktopService {
 
   async bootstrap() {
     this.profile = parseBootstrap(await this.request('/api/mobile/bootstrap'))
+    this.applyAccountLanguage()
     return this.profile
+  }
+
+  applyAccountLanguage() {
+    const locale = this.profile?.user.preferredLanguage
+    if (locale && locale !== this.config.locale) {
+      this.config = { ...this.config, locale }
+      this.persist()
+    }
   }
 
   async refreshProfile() {
@@ -275,6 +305,7 @@ class DesktopService {
         this.sourceBots = []
       }
       this.profile = profile
+      this.applyAccountLanguage()
       this.credentials = { ...this.credentials, organizationId: profile.organizationId }
       this.persist()
       return this.snapshot()
@@ -331,6 +362,7 @@ class DesktopService {
   }
 
   logout() {
+    // Execution grants follow the CLI/task lifecycle, independently of desktop login or connection changes.
     void this.shell?.disable().catch(() => undefined)
     this.generation++
     this.credentials = null
@@ -367,7 +399,8 @@ class DesktopService {
       retry = true,
       timeout = 20000,
       responseType = 'json',
-      errorMessages
+      errorMessages,
+      includeServerMessage = false
     } = {}
   ) {
     if (auth && !this.credentials) throw new ClientError('Please sign in first.', 401)
@@ -383,12 +416,14 @@ class DesktopService {
     const organizationId = this.profile?.organizationId || this.credentials?.organizationId
     if (auth && organizationId && scope !== 'tenant') headers['organization-id'] = organizationId
     if (auth && scope) headers['x-scope-level'] = scope
+    const multipart = typeof FormData !== 'undefined' && body instanceof FormData
+    if (multipart) delete headers['Content-Type']
     let response
     try {
       response = await this.fetcher(`${apiRootUrl(this.config.apiUrl)}${path}`, {
         method,
         headers,
-        ...(body ? { body: JSON.stringify(body) } : {}),
+        ...(body ? { body: multipart ? body : JSON.stringify(body) } : {}),
         signal: AbortSignal.timeout(timeout),
         redirect: 'error'
       })
@@ -409,7 +444,17 @@ class DesktopService {
         if (error.status === 401) this.logout()
         throw error
       }
-      return this.request(path, { method, body, auth, scope, retry: false, timeout, responseType, errorMessages })
+      return this.request(path, {
+        method,
+        body,
+        auth,
+        scope,
+        retry: false,
+        timeout,
+        responseType,
+        errorMessages,
+        includeServerMessage
+      })
     }
     if (!response.ok) {
       if (response.status === 401)
@@ -417,6 +462,14 @@ class DesktopService {
           auth ? 'Your session expired. Please sign in again.' : 'Incorrect email or password.',
           401
         )
+      if (includeServerMessage && [400, 403, 404, 409, 422].includes(response.status)) {
+        const failure = await response
+          .clone()
+          .json()
+          .catch(() => null)
+        if (typeof failure?.message === 'string' && failure.message.length <= 1000)
+          throw new ClientError(failure.message, response.status)
+      }
       if (response.status === 403) throw new ClientError('This account does not have access.', 403)
       if (errorMessages && [400, 409].includes(response.status)) {
         const failure = await response.json().catch(() => null)
@@ -429,7 +482,14 @@ class DesktopService {
     }
     let value
     try {
-      value = responseType === 'text' ? await response.text() : response.status === 204 ? null : await response.json()
+      value =
+        responseType === 'response'
+          ? response
+          : responseType === 'text'
+            ? await response.text()
+            : response.status === 204
+              ? null
+              : await response.json()
     } catch {
       throw new ClientError('Invalid service response. Check the API URL.', 502)
     }
@@ -449,8 +509,16 @@ Object.assign(DesktopService.prototype, require('./catalog.cjs').createCatalogMe
 Object.assign(DesktopService.prototype, require('./plugin-connections.cjs').createPluginConnectionMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./plugin-library.cjs').createPluginLibraryMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./artifacts.cjs').createArtifactMethods(ClientError))
+Object.assign(DesktopService.prototype, require('./usage.cjs').createUsageMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./shell/methods.cjs').createShellMethods(ClientError))
 
 module.exports = { DesktopService, ClientError, DEFAULT_CONFIG, parseConfig, webUrl }
 
 Object.assign(DesktopService.prototype, require('./workbench.cjs').createWorkbenchMethods(ClientError))
+Object.assign(DesktopService.prototype, require('./bosi.cjs').createBosiMethods(ClientError))
+Object.assign(
+  DesktopService.prototype,
+  require('./assistant-appearance.cjs').createAssistantAppearanceMethods(ClientError)
+)
+
+Object.assign(DesktopService.prototype, require('./voice.cjs').createVoiceMethods(ClientError))

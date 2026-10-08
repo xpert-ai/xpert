@@ -9,7 +9,6 @@ import { Repository } from 'typeorm'
 import { t } from 'i18next'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import {
-    assertProjectContentRootIntegrity,
     findValidatedProjectSkillFiles,
     isProjectGovernedContentPath,
     ProjectContentIntegrityError,
@@ -22,6 +21,7 @@ import {
     VolumeClient,
     VolumeHandle
 } from '../../shared/volume'
+import { initializeProjectContent } from '../../shared/volume/initialize-project-content'
 import { SkillRepositoryIndexService } from '../../skill-repository/repository-index/skill-repository-index.service'
 import {
     cleanupExtractedSkillArchive,
@@ -47,24 +47,14 @@ export class XpertProjectContentService {
     }
 
     async initialize(project: XpertProject) {
-        const volume = await this.projectVolume(project).ensureRoot()
-        await Promise.all([
-            VolumeHandle.ensureDirectory(volume.serverRoot, 'skills'),
-            VolumeHandle.ensureDirectory(volume.serverRoot, 'shared')
-        ])
-        const file = await open(volume.path('project.md'), 'wx', 0o600).catch((error: unknown) => {
-            if (isNodeError(error) && error.code === 'EEXIST') return null
-            throw error
-        })
-        if (file) {
-            try {
-                await file.writeFile(project.settings?.instruction ?? '', { encoding: 'utf8' })
-            } finally {
-                await file.close()
+        try {
+            return await initializeProjectContent(this.projectVolume(project), project.settings?.instruction)
+        } catch (error) {
+            if (error instanceof ProjectContentIntegrityError) {
+                throw new BadRequestException(error.message)
             }
+            throw error
         }
-        await this.assertContentRootIntegrity(volume.serverRoot)
-        return volume
     }
 
     async readInstructions(projectId: string) {
@@ -285,17 +275,6 @@ export class XpertProjectContentService {
             catalog: 'projects',
             projectId: project.id
         })
-    }
-
-    private async assertContentRootIntegrity(volumeRoot: string) {
-        try {
-            await assertProjectContentRootIntegrity(volumeRoot)
-        } catch (error) {
-            if (error instanceof ProjectContentIntegrityError) {
-                throw new BadRequestException(error.message)
-            }
-            throw error
-        }
     }
 
     private async findSkillFiles(volumeRoot: string) {

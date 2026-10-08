@@ -9,10 +9,7 @@ import {
     SearchCheck,
     TriangleAlert,
     ChevronDown,
-    ChevronRight,
-    Folder,
-    Flag,
-    FileCheck
+    ChevronRight
 } from 'lucide-react'
 import {
     Button,
@@ -30,6 +27,8 @@ import {
 import type { Node } from './bridge'
 import type { Texts } from './i18n'
 import type { TaskRow } from './model'
+import { TaskTypeIcon } from './task-type-icon'
+import { TaskProgress } from './task-progress'
 
 export const statusStyle: { [K in Node['status']]: string } = {
     todo: 'text-muted-foreground',
@@ -49,13 +48,17 @@ const statusIcon = {
     done: CircleCheck,
     cancelled: CircleX
 }
-export function Status({ value, t }: { value: Node['status']; t: Texts }) {
+export function Status({ value, progress, t }: { value: Node['status']; progress?: number | null; t: Texts }) {
     const Icon = statusIcon[value]
     return (
         <span
             className={cn('inline-flex items-center gap-1.5 whitespace-nowrap text-xs font-medium', statusStyle[value])}
         >
-            <Icon aria-hidden className="size-3.5 shrink-0" />
+            {progress == null ? (
+                <Icon aria-hidden className="size-3.5 shrink-0" />
+            ) : (
+                <TaskProgress value={progress} label={t.completionProgress} />
+            )}
             {t[value]}
         </span>
     )
@@ -115,15 +118,16 @@ export function TaskName({
     collapsed,
     toggle,
     select,
-    t
+    t,
+    locale
 }: {
     row: TaskRow
     collapsed: Set<string>
     toggle: (id: string) => void
     select: (task: Node) => void
     t: Texts
+    locale: string
 }) {
-    const Icon = row.task.kind === 'summary' ? Folder : row.task.kind === 'milestone' ? Flag : FileCheck
     return (
         <div className="flex min-w-0 items-center gap-1" style={{ paddingLeft: Math.min(row.depth, 6) * 16 }}>
             {row.hasChildren ? (
@@ -139,7 +143,7 @@ export function TaskName({
             ) : (
                 <span className="w-6 shrink-0" />
             )}
-            <Icon aria-hidden className="size-4 shrink-0 text-muted-foreground" />
+            <TaskTypeIcon task={row.task} locale={locale} fallbackLabel={t[row.task.kind]} />
             <button
                 className={cn(
                     'min-w-0 truncate rounded px-1 py-1.5 text-left text-sm hover:underline focus-visible:outline-ring',

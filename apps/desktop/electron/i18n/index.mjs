@@ -15,13 +15,18 @@ export function normalizeLocale(value) {
   if (typeof value !== 'string') return 'en'
   const locale = value.replaceAll('_', '-').toLowerCase()
   if (/^zh-(hant|tw|hk|mo)(-|$)/.test(locale)) return 'zh-Hant'
-  if (locale === 'zh' || /^zh-(hans|cn|sg)(-|$)/.test(locale)) return 'zh-Hans'
+  if (/^zh(-|$)/.test(locale)) return 'zh-Hans'
   if (/^(ja|jp)(-|$)/.test(locale)) return 'ja'
   return 'en'
 }
 
 export function isSupportedLocale(value) {
   return typeof value === 'string' && /^(en|zh|ja|jp)([-_][a-z\d]+)*$/i.test(value)
+}
+
+export function resolveSystemLocale(preferredLanguages) {
+  const supported = Array.isArray(preferredLanguages) ? preferredLanguages.find(isSupportedLocale) : undefined
+  return normalizeLocale(supported)
 }
 
 // English source text is the fallback. Interpolation is one pass so user content stays literal.

@@ -19,6 +19,24 @@ const context = {
 } as any
 
 describe('registerWorkbenchNavigationOpenCommand', () => {
+  it('preserves an exact message anchor and the originating view while retaining old requests', async () => {
+    const registry = new ViewClientCommandRegistry()
+    const openAssistantConversation = jest.fn(async (request) => request)
+    registerWorkbenchNavigationOpenCommand(registry, { openAssistantConversation })
+    const request = { conversationId: 'conversation', threadId: 'side', messageId: 'message', preserveView: true }
+    await registry.execute(
+      WORKBENCH_NAVIGATION_OPEN_COMMAND,
+      { target: WORKBENCH_ASSISTANT_CONVERSATION_TARGET, ...request },
+      context
+    )
+    expect(openAssistantConversation).toHaveBeenCalledWith(request)
+    await registry.execute(
+      WORKBENCH_NAVIGATION_OPEN_COMMAND,
+      { target: WORKBENCH_ASSISTANT_CONVERSATION_TARGET, conversationId: 'legacy' },
+      context
+    )
+    expect(openAssistantConversation).toHaveBeenLastCalledWith({ conversationId: 'legacy' })
+  })
   it('opens the exact evolution request and rejects invalid identifiers', async () => {
     const registry = new ViewClientCommandRegistry()
     const navigate = jest.fn(async () => true)

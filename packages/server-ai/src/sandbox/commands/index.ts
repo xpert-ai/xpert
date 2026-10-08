@@ -1,6 +1,7 @@
 export * from './vm.command'
 export * from './load.command'
 export * from './acquire-backend.command'
+export * from './find-backend.command'
 export * from './sandbox.copy-file.command'
 export * from './sandbox.copy-tree.command'
 export * from './start-managed-service.command'

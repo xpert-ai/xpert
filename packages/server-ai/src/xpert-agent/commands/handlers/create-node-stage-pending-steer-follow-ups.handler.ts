@@ -4,14 +4,12 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { ChatMessage } from '../../../chat-message/chat-message.entity'
 import { AgentStateAnnotation, STATE_VARIABLE_PENDING_FOLLOW_UPS } from '../../../shared'
-import { TAgentRunnableConfigurable } from '@xpert-ai/contracts'
+import { chatMessagePresentation, TAgentRunnableConfigurable } from '@xpert-ai/contracts'
 import { CreateNodeStagePendingSteerFollowUpsCommand } from '../create-node-stage-pending-steer-follow-ups.command'
 import { readFollowUpClientMessageId, readPersistedFollowUpInput } from './create-node-pending-steer-follow-ups.shared'
 
 @CommandHandler(CreateNodeStagePendingSteerFollowUpsCommand)
-export class CreateNodeStagePendingSteerFollowUpsHandler
-    implements ICommandHandler<CreateNodeStagePendingSteerFollowUpsCommand>
-{
+export class CreateNodeStagePendingSteerFollowUpsHandler implements ICommandHandler<CreateNodeStagePendingSteerFollowUpsCommand> {
     constructor(
         @InjectRepository(ChatMessage)
         private readonly chatMessageRepository: Repository<ChatMessage>
@@ -52,6 +50,7 @@ export class CreateNodeStagePendingSteerFollowUpsHandler
                         .filter((message): message is ChatMessage & { id: string } => Boolean(message.id))
                         .map((message) => ({
                             messageId: message.id,
+                            presentation: chatMessagePresentation(message),
                             clientMessageId: readFollowUpClientMessageId(message),
                             human: readPersistedFollowUpInput(message)
                         }))

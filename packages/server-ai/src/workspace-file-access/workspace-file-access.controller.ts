@@ -1,63 +1,18 @@
-import {
-    Body,
-    Controller,
-    Delete,
-    Get,
-    Head,
-    Logger,
-    NotFoundException,
-    Param,
-    Post,
-    Req,
-    Res,
-    UseGuards
-} from '@nestjs/common'
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
-import { IsIn, IsObject, IsOptional, IsString } from 'class-validator'
-import type { Request, Response } from 'express'
+import { Body, Controller, Delete, Get, NotFoundException, Param, Post, Req, Res, StreamableFile } from '@nestjs/common'
 import { createReadStream } from 'node:fs'
 import { stat } from 'node:fs/promises'
 import { t } from 'i18next'
-import type { XpertViewFileAccessPurpose, XpertViewRuntimeScopeInput } from '@xpert-ai/contracts'
-import { Public } from '@xpert-ai/server-core'
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { UseValidationPipe } from '@xpert-ai/server-core'
-import { getMediaTypeWithCharset, resolveHttpByteRange } from '../shared'
-import { WorkspaceFileAccessGuard, WorkspaceFileAccessRequest } from './workspace-file-access.guard'
+import type { Request, Response } from 'express'
+import { CreateWorkspaceFileAccessSessionDto, CreateWorkspaceFileAccessGrantDto } from './workspace-file-access.dto'
 import { WorkspaceFileAccessService } from './workspace-file-access.service'
-
-class CreateWorkspaceFileAccessSessionDto {
-    @IsString()
-    hostType!: string
-
-    @IsString()
-    hostId!: string
-
-    @IsString()
-    viewKey!: string
-
-    @IsOptional()
-    @IsObject()
-    runtimeScope?: XpertViewRuntimeScopeInput
-}
-
-class CreateWorkspaceFileAccessGrantDto {
-    @IsString()
-    fileKey!: string
-
-    @IsOptional()
-    @IsString()
-    targetId?: string
-
-    @IsIn(['preview', 'download'])
-    purpose!: XpertViewFileAccessPurpose
-}
+import { buildWorkspaceFileContentDisposition } from './workspace-file-content.controller'
 
 @ApiTags('WorkspaceFiles')
 @ApiBearerAuth()
 @Controller()
 export class WorkspaceFileAccessController {
-    readonly #logger = new Logger(WorkspaceFileAccessController.name)
-
     constructor(private readonly service: WorkspaceFileAccessService) {}
 
     @Post('view-sessions')
@@ -78,104 +33,33 @@ export class WorkspaceFileAccessController {
         return this.service.createGrant(sessionId, body)
     }
 
+    @Get('view-sessions/:sessionId/grants/:grantId/content/:fileName')
+    async download(
+        @Param('sessionId') sessionId: string,
+        @Param('grantId') grantId: string,
+        @Param('fileName') fileName: string,
+        @Res({ passthrough: true }) response: Response
+    ) {
+        const authorization = await this.service.authorizeAuthenticatedDownload(sessionId, grantId, fileName)
+        const { filePath } = this.service.resolveAuthorizedFile(authorization)
+        const info = await stat(filePath).catch(() => null)
+        if (!info?.isFile())
+            throw new NotFoundException(
+                t('server-ai:Error.WorkspaceFileAccessNotFound', { defaultValue: 'Workspace file was not found.' })
+            )
+        response.setHeader('Cache-Control', 'private, no-store')
+        response.setHeader('X-Content-Type-Options', 'nosniff')
+        return new StreamableFile(createReadStream(filePath), {
+            type: authorization.grant.mimeType,
+            disposition: buildWorkspaceFileContentDisposition('download', authorization.grant.fileName),
+            length: info.size
+        })
+    }
+
     @Delete('view-sessions/:sessionId')
     async revokeSession(@Param('sessionId') sessionId: string, @Res({ passthrough: true }) response: Response) {
         await this.service.revokeSession(sessionId)
         response.clearCookie('xpert_workspace_file_access', { path: this.service.buildCookiePath(sessionId) })
         return { success: true }
     }
-
-    @Public()
-    @UseGuards(WorkspaceFileAccessGuard)
-    @Get('content/:sessionId/:grantId/:fileName')
-    streamContent(@Req() request: WorkspaceFileAccessRequest, @Res() response: Response) {
-        return this.sendContent(request, response, false)
-    }
-
-    @Public()
-    @UseGuards(WorkspaceFileAccessGuard)
-    @Head('content/:sessionId/:grantId/:fileName')
-    headContent(@Req() request: WorkspaceFileAccessRequest, @Res() response: Response) {
-        return this.sendContent(request, response, true)
-    }
-
-    private async sendContent(request: WorkspaceFileAccessRequest, response: Response, headOnly: boolean) {
-        const authorization = request.workspaceFileAccess
-        if (!authorization) {
-            throw new NotFoundException(
-                t('server-ai:Error.WorkspaceFileAccessNotFound', { defaultValue: 'Workspace file was not found.' })
-            )
-        }
-        const origin = this.service.assertRequestOrigin(authorization.session, request, authorization.grant.purpose)
-        const resolved = this.service.resolveAuthorizedFile(authorization)
-        const fileStat = await stat(resolved.filePath).catch(() => null)
-        if (!fileStat?.isFile()) {
-            throw new NotFoundException(
-                t('server-ai:Error.WorkspaceFileAccessNotFound', { defaultValue: 'Workspace file was not found.' })
-            )
-        }
-
-        const { grant } = authorization
-        const range = resolveHttpByteRange(request.headers.range, fileStat.size)
-        response.setHeader('Accept-Ranges', 'bytes')
-        response.setHeader('Cache-Control', 'private, no-store')
-        response.setHeader(
-            'Content-Type',
-            grant.mimeType || getMediaTypeWithCharset(resolved.filePath) || 'application/octet-stream'
-        )
-        response.setHeader('X-Content-Type-Options', 'nosniff')
-        response.setHeader('Referrer-Policy', 'no-referrer')
-        response.setHeader('Content-Disposition', buildWorkspaceFileContentDisposition(grant.purpose, grant.fileName))
-        if (origin) {
-            response.setHeader('Access-Control-Allow-Origin', origin)
-            response.setHeader('Access-Control-Allow-Credentials', 'true')
-            response.setHeader(
-                'Access-Control-Expose-Headers',
-                'Accept-Ranges, Content-Length, Content-Range, Content-Type'
-            )
-            response.setHeader('Vary', 'Origin')
-        }
-
-        if (range.kind === 'unsatisfiable') {
-            response.setHeader('Content-Range', `bytes */${fileStat.size}`)
-            response.status(416).end()
-            return
-        }
-
-        const start = range.kind === 'partial' ? range.start : undefined
-        const end = range.kind === 'partial' ? range.end : undefined
-        const contentLength = range.kind === 'partial' ? range.end - range.start + 1 : fileStat.size
-        response.setHeader('Content-Length', contentLength)
-        if (range.kind === 'partial') {
-            response.status(206)
-            response.setHeader('Content-Range', `bytes ${range.start}-${range.end}/${fileStat.size}`)
-        }
-        if (headOnly) {
-            response.end()
-            return
-        }
-
-        const stream = createReadStream(resolved.filePath, { start, end })
-        stream.on('error', (error) => {
-            this.#logger.warn(`Workspace file stream failed for grant ${grant.grantId}: ${error.message}`)
-            if (!response.headersSent) {
-                response.status(404).end()
-            } else {
-                response.destroy(error)
-            }
-        })
-        response.on('close', () => stream.destroy())
-        stream.pipe(response)
-    }
-}
-
-export function buildWorkspaceFileContentDisposition(purpose: XpertViewFileAccessPurpose, fileName: string) {
-    // Node.js rejects non-Latin-1 characters in response headers. Keep the
-    // quoted filename ASCII-only and preserve the real name in RFC 5987 form.
-    const fallbackName = fileName.replace(/[^\x20-\x7e]|["\\]/g, '_') || 'workspace-file'
-    const encodedName = encodeURIComponent(fileName).replace(
-        /[!'()*]/g,
-        (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`
-    )
-    return `${purpose === 'download' ? 'attachment' : 'inline'}; filename="${fallbackName}"; filename*=UTF-8''${encodedName}`
 }

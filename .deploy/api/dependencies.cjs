@@ -17,6 +17,7 @@ const packages = [
   'server',
   'server-ai',
   'shadcn-ui',
+  'plugins/cli-model-profiles',
   'plugins/draft',
   'plugins/vlm-default'
 ].map((name) => `packages/${name}`)

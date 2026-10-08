@@ -1,0 +1,28 @@
+{
+  "name": "cli-model-profiles",
+  "projectType": "library",
+  "sourceRoot": "packages/plugins/cli-model-profiles/src",
+  "targets": {
+    "build": {
+      "executor": "@nx/rollup:rollup",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "packages/plugins/cli-model-profiles/dist",
+        "main": "packages/plugins/cli-model-profiles/src/index.ts",
+        "tsConfig": "packages/plugins/cli-model-profiles/tsconfig.lib.json",
+        "project": "packages/plugins/cli-model-profiles/package.json",
+        "compiler": "swc",
+        "format": ["cjs", "esm"],
+        "external": ["@xpert-ai/contracts", "@xpert-ai/plugin-sdk"],
+        "assets": [
+          { "glob": "**/*", "input": "packages/plugins/cli-model-profiles/skills", "output": "skills" },
+          {
+            "glob": "*.md",
+            "input": "packages/plugins/cli-model-profiles",
+            "output": "."
+          }
+        ]
+      }
+    }
+  }
+}

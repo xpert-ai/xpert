@@ -1,4 +1,5 @@
 import { SandboxAcquireBackendHandler } from './acquire-backend.handler'
+import { SandboxFindBackendHandler } from './find-backend.handler'
 import { SandboxGetManagedServiceLogsHandler } from './get-managed-service-logs.handler'
 import { SandboxListManagedServicesHandler } from './list-managed-services.handler'
 import { SandboxRestartManagedServiceHandler } from './restart-managed-service.handler'
@@ -11,6 +12,7 @@ import { SandboxVMHandler } from './vm.handler'
 export const CommandHandlers = [
     SandboxVMHandler,
     SandboxAcquireBackendHandler,
+    SandboxFindBackendHandler,
     SandboxCopyFileHandler,
     SandboxCopyTreeHandler,
     SandboxStartManagedServiceHandler,

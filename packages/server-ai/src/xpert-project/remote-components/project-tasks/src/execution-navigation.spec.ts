@@ -26,7 +26,7 @@ describe('task execution navigation', () => {
             await openTaskExecution('attempt-2', 'Open failed')
             expect(send).toHaveBeenNthCalledWith(1, 'executeAction', {
                 actionKey: 'execution-target',
-                input: { taskExecutionId: 'attempt-2' }
+                input: { taskExecutionId: 'attempt-2', destination: 'execution' }
             })
             expect(send).toHaveBeenNthCalledWith(2, 'invokeClientCommand', {
                 commandKey: 'workbench.navigation.open',
@@ -38,6 +38,41 @@ describe('task execution navigation', () => {
             })
         }
     )
+
+    it('opens the selected coding invocation inside the current workbench', async () => {
+        const target = {
+            target: 'workbench.view',
+            viewKey: 'platform.coding-execution__execution',
+            selectionId: 'invocation-2',
+            projectId: 'project'
+        }
+        send.mockResolvedValueOnce({ success: true, data: target }).mockResolvedValueOnce({ success: true })
+        await openTaskExecution('attempt-2', 'Open failed')
+        expect(send).toHaveBeenLastCalledWith('invokeClientCommand', {
+            commandKey: 'workbench.navigation.open',
+            payload: target
+        })
+    })
+
+    it('resolves the owner conversation separately from the execution viewer', async () => {
+        const target = {
+            target: 'assistant.conversation',
+            projectId: 'project',
+            conversationId: 'conversation',
+            threadId: 'thread',
+            xpertId: null
+        }
+        send.mockResolvedValueOnce({ success: true, data: target }).mockResolvedValueOnce({ success: true })
+        await openTaskExecution('attempt-2', 'Open failed', 'conversation')
+        expect(send).toHaveBeenNthCalledWith(1, 'executeAction', {
+            actionKey: 'execution-target',
+            input: { taskExecutionId: 'attempt-2', destination: 'conversation' }
+        })
+        expect(send).toHaveBeenLastCalledWith('invokeClientCommand', {
+            commandKey: 'workbench.navigation.open',
+            payload: target
+        })
+    })
 
     it.each([
         [{ success: false, code: 'unsupported' }, 'Open failed (unsupported)'],

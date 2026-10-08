@@ -1,3 +1,5 @@
+import { latestImplementationExecutor } from '../runtime/project-task-executor'
+import { observeProjectTaskInvocations } from '../runtime/project-task-invocation-view'
 // Provider snapshots are replayable read models. Projection never starts Agents,
 // and runtime success does not override a provider's business acceptance status.
 import { createHash } from 'node:crypto'
@@ -31,9 +33,13 @@ import { ProjectAccessRuntimeService } from './project-access-runtime.service'
 import { ChatConversation } from '../../chat-conversation/conversation.entity'
 import { ChatConversationThread } from '../../chat-conversation/conversation-thread.entity'
 import { XpertAgentExecution } from '../../xpert-agent-execution/agent-execution.entity'
+import { projectTaskRuntimeTiming } from './project-task-runtime-timing'
 import { ChatMessage } from '../../chat-message/chat-message.entity'
 import { Xpert } from '../../xpert/xpert.entity'
 import { avatarForChat } from '../../shared/avatar'
+import { registeredProjectTaskTypes, invalidProjectTaskType } from './project-task-types'
+import { AgentInvocationEntity } from '../../agent-invocation/invocation.entity'
+import { assertProjectTaskProgress } from './project-task-progress'
 
 export function projectTaskIdentity(projectId: string, provider: string, key: string): string {
     const hex = createHash('sha256')
@@ -70,6 +76,7 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
         const diagnostics: ProjectTaskGraph['diagnostics'] = []
         for (const provider of this.providers.list(context.actor.organizationId ?? undefined)) {
             try {
+                const taskTypes = registeredProjectTaskTypes(provider)
                 const links = await this.tasks.manager.transaction(async (manager) => {
                     // Serialize snapshot acquisition too: an older snapshot cannot overwrite a newer one.
                     await manager.findOneOrFail(XpertProject, {
@@ -86,7 +93,9 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
                         id: identity(item.key),
                         title: item.title,
                         status: item.status,
+                        progress: item.progress ?? null,
                         kind: item.kind,
+                        taskType: item.taskType ?? null,
                         parentTaskId: item.parentKey ? identity(item.parentKey) : null,
                         predecessorIds: item.predecessorKeys.map(identity),
                         providerKey: provider.key,
@@ -102,7 +111,9 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
                     }))
                     validateProjectTaskGraph(nodes)
                     for (const item of snapshot.tasks) {
+                        assertProjectTaskProgress(item.progress)
                         if (!item.key.trim() || !item.title.trim()) throw Error('PROJECT_TASK_SOURCE_INVALID')
+                        if (item.taskType != null && !taskTypes.has(item.taskType)) throw invalidProjectTaskType()
                         if (new Set(item.executions.map((execution) => execution.key)).size !== item.executions.length)
                             throw Error('PROJECT_TASK_ATTEMPT_DUPLICATE')
                         for (const execution of item.executions) {
@@ -133,7 +144,9 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
                             name: item.title,
                             title: item.title,
                             status: item.status,
+                            ...(item.progress !== undefined ? { progress: item.progress } : {}),
                             kind: item.kind,
+                            ...(item.taskType !== undefined ? { type: item.taskType } : {}),
                             providerKey: provider.key,
                             sourceKey: item.key,
                             sourceRevision,
@@ -195,10 +208,19 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
         diagnostics: ProjectTaskGraph['diagnostics'] = []
     ): Promise<ProjectTaskGraph> {
         const rows = await this.tasks.find({ where: this.where(context), order: { createdAt: 'ASC' } })
-        const executions = await this.tasks.manager.find(XpertProjectTaskExecution, {
+        const storedExecutions = await this.tasks.manager.find(XpertProjectTaskExecution, {
             where: this.where(context),
             order: { startedAt: 'ASC', attempt: 'ASC' }
         })
+        const executions = await observeProjectTaskInvocations(
+            this.tasks.manager,
+            {
+                projectId: context.projectId,
+                tenantId: context.actor.tenantId,
+                organizationId: context.actor.organizationId
+            },
+            storedExecutions
+        )
         const ids = executions.flatMap((item) => (item.agentExecutionId ? [item.agentExecutionId] : []))
         const runtime = ids.length
             ? await this.tasks.manager.find(XpertAgentExecution, {
@@ -210,16 +232,12 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
               })
             : []
         const observed = executions.map((item) => {
+            if (item.invocationId) return item
             const run = runtime.find((run) => run.id === item.agentExecutionId)
             return {
                 ...item,
-                runtimeStatus: run?.status ?? ('unknown' as const),
                 // Runtime timestamps are separate from domain acceptance/lease timestamps.
-                runtimeStartedAt: run?.createdAt?.toISOString() ?? null,
-                runtimeCompletedAt:
-                    run && ['success', 'error', 'timeout'].includes(run.status)
-                        ? (run.updatedAt?.toISOString() ?? null)
-                        : null
+                ...projectTaskRuntimeTiming(run)
             }
         })
         const nodes = rows.map((row) =>
@@ -229,16 +247,18 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
                     .filter((item) => item.taskId === row.id)
                     .map((item) => ({
                         ...item,
-                        startedAt: item.agentExecutionId
-                            ? item.runtimeStartedAt
-                                ? new Date(item.runtimeStartedAt)
-                                : null
-                            : item.startedAt,
-                        completedAt: item.agentExecutionId
-                            ? item.runtimeCompletedAt
-                                ? new Date(item.runtimeCompletedAt)
-                                : null
-                            : item.completedAt
+                        startedAt:
+                            item.invocationId || item.agentExecutionId
+                                ? item.runtimeStartedAt
+                                    ? new Date(item.runtimeStartedAt)
+                                    : null
+                                : item.startedAt,
+                        completedAt:
+                            item.invocationId || item.agentExecutionId
+                                ? item.runtimeCompletedAt
+                                    ? new Date(item.runtimeCompletedAt)
+                                    : null
+                                : item.completedAt
                     }))
             )
         )
@@ -257,10 +277,20 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
                 : Promise.resolve([])
         ])
         const assistants = new Map(assignees.map((item) => [item.id, item]))
+        const typeRegistrations = new Map<string, ReturnType<typeof registeredProjectTaskTypes>>()
+        for (const provider of this.providers.list(context.actor.organizationId ?? undefined)) {
+            try {
+                typeRegistrations.set(provider.key, registeredProjectTaskTypes(provider))
+            } catch {
+                // Invalid/unavailable registrations cannot erase persisted business identity.
+            }
+        }
         const displayNodes = nodes.map((node) => {
             const assistant = assistants.get(node.assigneeXpertId)
             return {
                 ...node,
+                presentation: typeRegistrations.get(node.providerKey)?.get(node.taskType) ?? null,
+                executor: latestImplementationExecutor(observed.filter((attempt) => attempt.taskId === node.id)),
                 assigneeName: assistant ? assistant.title || assistant.name : null,
                 assigneeAvatar: avatarForChat(assistant?.avatar) ?? null
             }
@@ -334,13 +364,33 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
             id: taskExecutionId,
             ...this.where(context)
         })
-        if (!attempt?.conversationId || !attempt.agentExecutionId)
+        let executionId = attempt?.agentExecutionId
+        let invocationId: string | undefined
+        let codingInvocationId: string | undefined
+        if (attempt?.invocationId) {
+            const record = await this.tasks.manager.findOneBy(AgentInvocationEntity, {
+                id: attempt.invocationId,
+                tenantId: context.actor.tenantId,
+                organizationId: context.actor.organizationId ?? IsNull(),
+                ownerId: context.actor.userId
+            })
+            if (
+                record?.invocation.request.dispatch?.projectTask?.taskExecutionId === attempt.id &&
+                record.invocation.scope.projectId === context.projectId &&
+                record.invocation.scope.conversationId === attempt.conversationId
+            ) {
+                executionId = record.invocation.scope.parentExecutionId
+                invocationId = record.invocation.id
+                if (record.invocation.activity?.presentation === 'coding') codingInvocationId = record.invocation.id
+            }
+        }
+        if (!attempt?.conversationId || !executionId)
             throw new NotFoundException(t('server-ai:Error.ProjectTaskExecutionUnavailable'))
         const conversation = await this.tasks.manager.findOneBy(ChatConversation, {
             id: attempt.conversationId,
             ...this.where(context)
         })
-        if (!conversation?.threadId || !conversation.xpertId)
+        if (!conversation?.threadId || (!conversation.xpertId && !invocationId))
             throw new NotFoundException(t('server-ai:Error.ProjectTaskExecutionUnavailable'))
         const scope = { tenantId: context.actor.tenantId, organizationId: context.actor.organizationId ?? IsNull() }
         // Registered conversation branches are navigable; internal expert graph threads are not.
@@ -350,7 +400,7 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
         if (thread && thread.conversationId !== conversation.id)
             throw new NotFoundException(t('server-ai:Error.ProjectTaskExecutionUnavailable'))
         let execution = await this.tasks.manager.findOneBy(XpertAgentExecution, {
-            id: attempt.agentExecutionId,
+            id: executionId,
             ...scope
         })
         const seen = new Set<string>()
@@ -376,9 +426,11 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
             projectId: context.projectId,
             taskId: attempt.taskId,
             taskExecutionId: attempt.id,
+            invocationId,
+            codingInvocationId,
             conversationId: conversation.id,
             threadId: thread?.threadId ?? conversation.threadId,
-            agentExecutionId: attempt.agentExecutionId,
+            agentExecutionId: executionId,
             xpertId: conversation.xpertId
         }
     }
@@ -391,6 +443,8 @@ export function toProjectTaskNode(row: XpertProjectTask, executions: XpertProjec
         id: row.id,
         title: row.title ?? row.name,
         kind: row.kind ?? 'task',
+        taskType: row.type ?? null,
+        progress: row.progress ?? null,
         status:
             row.status === 'completed'
                 ? 'done'

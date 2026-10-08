@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing'
-import { QueryBus } from '@nestjs/cqrs'
+import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { RequestContext, runWithRequestContext, type ConversationProjectCreation } from '@xpert-ai/plugin-sdk'
 import { AIPermissionsEnum, IUser, IXpert } from '@xpert-ai/contracts'
@@ -24,6 +24,7 @@ describe('first-send Project creation', () => {
     } as IXpert
     const conversation = Object.assign(new ChatConversation(), {
         id: 'conversation',
+        createdById: 'human',
         tenantId: 'tenant',
         organizationId: 'org',
         xpertId: 'assistant'
@@ -33,6 +34,9 @@ describe('first-send Project creation', () => {
     const query = jest.fn()
     const save = jest.fn(async (project: XpertProject) => ({ ...project, id: 'project' }))
     const transaction = jest.fn()
+    const files = jest.fn().mockResolvedValue([])
+    const attach = jest.fn()
+    const saveConversation = jest.fn(async (value) => value)
     const initialize = jest.fn()
     const access = jest.fn()
     const feature = jest.fn()
@@ -43,6 +47,10 @@ describe('first-send Project creation', () => {
     beforeEach(async () => {
         jest.restoreAllMocks()
         jest.clearAllMocks()
+        xpert.options.workspaceScope.onMissing = 'create'
+        delete conversation.options
+        delete conversation.projectId
+        files.mockResolvedValue([])
         jest.spyOn(RequestContext, 'currentUser').mockReturnValue({
             id: 'human',
             tenantId: 'tenant',
@@ -63,8 +71,13 @@ describe('first-send Project creation', () => {
             save: transactionalSave,
             getRepository: jest.fn((entity) =>
                 entity === ChatConversation
-                    ? { findOneOrFail: locked, findOneByOrFail: bound, query }
-                    : { create: (input: Partial<XpertProject>) => input, save }
+                    ? { findOneOrFail: locked, findOneByOrFail: bound, query, save: saveConversation }
+                    : {
+                          create: (input: Partial<XpertProject>) => input,
+                          save,
+                          find: files,
+                          findOneByOrFail: async ({ id }) => ({ id })
+                      }
             )
         })
         transaction.mockImplementation((work: (manager: EntityManager) => Promise<unknown>) => work(manager))
@@ -73,9 +86,14 @@ describe('first-send Project creation', () => {
                 ConversationProjectService,
                 {
                     provide: getRepositoryToken(ChatConversation),
-                    useValue: { manager: { transaction }, query, findOneByOrFail: bound }
+                    useValue: {
+                        manager: { transaction, getRepository: manager.getRepository },
+                        query,
+                        findOneByOrFail: bound
+                    }
                 },
                 { provide: QueryBus, useValue: { execute: access } },
+                { provide: CommandBus, useValue: { execute: attach } },
                 { provide: XpertProjectFeatureGuard, useValue: { canActivate: feature } },
                 { provide: XpertProjectTypeService, useValue: { forConversation: classification } },
                 { provide: XpertProjectXpertBindingService, useValue: { resolveCurrent: async () => xpert } },
@@ -145,6 +163,31 @@ describe('first-send Project creation', () => {
                 projectTypeKey: 'bid'
             })
         )
+    })
+
+    it('saves a provider receipt with the Project and conversation binding in the creation transaction', async () => {
+        const resourceCards = [
+            {
+                resource: { namespace: 'platform', type: 'project', id: 'project' },
+                title: 'Bid',
+                open: { target: 'assistant.project', projectId: 'project', viewKey: 'platform.project-tasks__timeline' }
+            }
+        ]
+        classification.mockResolvedValue({
+            classification: { applicationKey: 'bid', projectTypeKey: 'bid' },
+            name: 'Tender',
+            resourceCards
+        })
+        await service.prepare(conversation, xpert)
+        expect(save).toHaveBeenCalledWith(
+            expect.objectContaining({
+                settings: expect.objectContaining({
+                    conversationBootstrap: { conversationId: conversation.id, initialName: 'Tender', resourceCards }
+                })
+            })
+        )
+        expect(transaction).toHaveBeenCalledTimes(1)
+        expect(query).toHaveBeenCalled()
     })
 
     it('propagates a transaction writer failure before platform creation or conversation binding', async () => {
@@ -231,5 +274,86 @@ describe('first-send Project creation', () => {
         locked.mockResolvedValue({ ...conversation, projectId: 'existing' })
         await service.prepare(conversation, xpert)
         expect(locked.mock.calls[0][0].where.organizationId).toEqual(IsNull())
+    })
+    it('records confirmation intent without creating a project', async () => {
+        bound.mockResolvedValue({ ...conversation, options: { projectCreation: { status: 'awaiting_confirmation' } } })
+        await expect(service.awaitConfirmation(conversation)).resolves.toMatchObject({
+            options: { projectCreation: { status: 'awaiting_confirmation' } }
+        })
+        expect(query).toHaveBeenCalledWith(expect.stringContaining('NOT EXISTS'), ['conversation'])
+        expect(save).not.toHaveBeenCalled()
+        expect(classification).not.toHaveBeenCalled()
+        expect(initialize).not.toHaveBeenCalled()
+    })
+
+    it('requires pending confirmation and retains the ordinary immutable binding guard', async () => {
+        xpert.options.workspaceScope.onMissing = 'confirm'
+        await expect(
+            service.prepare(conversation, xpert, { id: 'form', name: 'Confirmed', configuration: {} })
+        ).rejects.toThrow()
+        expect(classification).not.toHaveBeenCalled()
+        expect(save).not.toHaveBeenCalled()
+    })
+
+    it('creates with confirmed fields, binds once and reprojects existing attachments', async () => {
+        xpert.options.workspaceScope.onMissing = 'confirm'
+        conversation.options = { projectCreation: { status: 'awaiting_confirmation' } }
+        bound.mockResolvedValue(conversation)
+        files.mockResolvedValue([{ fileAssetId: 'attachment' }])
+        const input = {
+            conversationId: 'conversation',
+            xpertId: 'assistant',
+            confirmationId: 'form',
+            name: 'Confirmed',
+            configuration: { scope: 'commercial' }
+        }
+        await expect(service.confirm(input)).resolves.toEqual({ projectId: 'project' })
+        expect(classification).toHaveBeenCalledWith(
+            undefined,
+            xpert,
+            expect.objectContaining({
+                name: 'Confirmed',
+                confirmation: { id: 'form', configuration: input.configuration }
+            })
+        )
+        expect(saveConversation).toHaveBeenCalledWith(
+            expect.objectContaining({
+                projectId: 'project',
+                options: expect.objectContaining({ projectCreation: { status: 'confirmed', confirmationId: 'form' } })
+            })
+        )
+        expect(attach).toHaveBeenCalledWith(
+            expect.objectContaining({
+                input: expect.objectContaining({
+                    fileAssetId: 'attachment',
+                    projectId: 'project',
+                    conversationId: 'conversation'
+                })
+            })
+        )
+        await expect(service.confirm(input)).resolves.toEqual({ projectId: 'project' })
+        expect(save).toHaveBeenCalledTimes(1)
+        expect(initialize).toHaveBeenCalledTimes(2)
+        await expect(service.confirm({ ...input, confirmationId: 'different-form' })).rejects.toThrow()
+        expect(save).toHaveBeenCalledTimes(1)
+    })
+
+    it('rolls back a rejected business configuration before any binding', async () => {
+        xpert.options.workspaceScope.onMissing = 'confirm'
+        conversation.options = { projectCreation: { status: 'awaiting_confirmation' } }
+        bound.mockResolvedValue(conversation)
+        classification.mockRejectedValueOnce(Error('invalid configuration'))
+        await expect(
+            service.confirm({
+                conversationId: 'conversation',
+                xpertId: 'assistant',
+                confirmationId: 'form',
+                name: 'Confirmed',
+                configuration: {}
+            })
+        ).rejects.toThrow('invalid configuration')
+        expect(save).not.toHaveBeenCalled()
+        expect(saveConversation).not.toHaveBeenCalled()
+        expect(initialize).not.toHaveBeenCalled()
     })
 })

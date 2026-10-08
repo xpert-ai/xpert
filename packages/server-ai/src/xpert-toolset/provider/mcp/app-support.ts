@@ -1,3 +1,4 @@
+import { parseMcpAppRefresh } from '../../../mcp-app-runtime/mcp-app-refresh'
 import type { MiddlewareAppBackend } from '../../../mcp-app-runtime/middleware-app-source'
 import type { McpAppExecutionContext } from '../../../mcp-app-runtime/mcp-app-execution-context'
 import { DynamicStructuredTool } from '@langchain/core/tools'
@@ -620,6 +621,7 @@ export function extractMcpAppUiMeta(meta: unknown): TMcpAppUiMeta | undefined {
     return {
         resourceUri,
         title: normalizeI18nText(ui?.title),
+        refresh: parseMcpAppRefresh(ui?.refresh),
         description: normalizeI18nText(ui?.description),
         icon: normalizeIconDefinition(ui?.icon),
         // Legacy fallback only. MCP Apps resource security metadata belongs on the resource `_meta.ui`.
@@ -644,6 +646,7 @@ function extractMcpAppResourceUiMeta(value: unknown): Partial<Omit<TMcpAppUiMeta
 
     const resourceUi: Partial<Omit<TMcpAppUiMeta, 'resourceUri'>> = {
         title: normalizeI18nText(ui.title) ?? normalizeI18nText(meta.title) ?? normalizeI18nText(value.title),
+        refresh: parseMcpAppRefresh(ui.refresh),
         description:
             normalizeI18nText(ui.description) ??
             normalizeI18nText(meta.description) ??
@@ -669,6 +672,7 @@ function mergeMcpAppUiMeta(
     return {
         resourceUri,
         title: resourceUi?.title ?? toolUi?.title,
+        refresh: resourceUi?.refresh ?? toolUi?.refresh,
         description: resourceUi?.description ?? toolUi?.description,
         icon: resourceUi?.icon ?? toolUi?.icon,
         csp: resourceUi?.csp ?? toolUi?.csp,
@@ -1318,6 +1322,7 @@ export function normalizeMcpResourceContent(result: ReadResourceResult, expected
         text: content.text,
         blob: content.blob,
         title: resourceUi?.title,
+        ...(resourceUi?.refresh ? { refresh: resourceUi.refresh } : {}),
         description: resourceUi?.description,
         icon: resourceUi?.icon,
         csp: resourceUi?.csp,
@@ -1402,6 +1407,7 @@ export async function readMcpAppResource(instance: McpAppInstance) {
             : await readListedMcpResourceUiMeta(instance.client, connection, instance.toolMeta.serverName, resourceUri)
     const resourceUi = {
         title: resource.title ?? listedUi?.title,
+        refresh: resource.refresh ?? listedUi?.refresh,
         description: resource.description ?? listedUi?.description,
         icon: resource.icon ?? listedUi?.icon,
         csp: resource.csp ?? listedUi?.csp,
@@ -1418,6 +1424,7 @@ export async function readMcpAppResource(instance: McpAppInstance) {
     return {
         ...resource,
         title: ui.title,
+        ...(ui.refresh ? { refresh: ui.refresh } : {}),
         description: ui.description,
         icon: ui.icon,
         csp: ui.csp,

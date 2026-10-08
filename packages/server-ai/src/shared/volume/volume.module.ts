@@ -4,6 +4,7 @@ import { SandboxWorkspaceMapperRegistry } from '@xpert-ai/plugin-sdk'
 import { createRuntimeVolumeClient, LocalShellWorkspacePathMapper, VOLUME_CLIENT, VolumeClient } from './volume'
 import { KnowledgeWorkAreaResolver, XpertWorkAreaResolver } from './work-area'
 import { WorkspacePathMapperFactory } from './workspace-path-mapper.factory'
+import { XpertWorkAreaExtensionRegistry } from './work-area-extension.registry'
 
 @Global()
 @Module({
@@ -16,6 +17,7 @@ import { WorkspacePathMapperFactory } from './workspace-path-mapper.factory'
         SandboxWorkspaceMapperRegistry,
         LocalShellWorkspacePathMapper,
         WorkspacePathMapperFactory,
+        XpertWorkAreaExtensionRegistry,
         KnowledgeWorkAreaResolver,
         XpertWorkAreaResolver
     ],
@@ -23,6 +25,7 @@ import { WorkspacePathMapperFactory } from './workspace-path-mapper.factory'
         VOLUME_CLIENT,
         SandboxWorkspaceMapperRegistry,
         WorkspacePathMapperFactory,
+        XpertWorkAreaExtensionRegistry,
         KnowledgeWorkAreaResolver,
         XpertWorkAreaResolver
     ]

@@ -20,6 +20,7 @@ export type XpertSettingsSection =
   | 'subagents'
   | 'skills'
   | 'middleware'
+  | 'capabilities'
 
 export const XPERT_DRAFT_SETTINGS_SECTIONS: ReadonlyArray<{
   key: XpertDraftSettingsSection
@@ -29,7 +30,7 @@ export const XPERT_DRAFT_SETTINGS_SECTIONS: ReadonlyArray<{
   { key: 'general', group: 'Basic', icon: 'ri-settings-3-line' },
   { key: 'models', group: 'Basic', icon: 'ri-box-3-line' },
   { key: 'conversation', group: 'Experience', icon: 'ri-chat-1-line' },
-  { key: 'workbench', group: 'Experience', icon: 'ri-layout-2-line' },
+  { key: 'workbench', group: 'Experience', icon: 'ri-palette-line' },
   { key: 'files', group: 'Experience', icon: 'ri-attachment-2' },
   { key: 'speech', group: 'Experience', icon: 'ri-mic-line' },
   { key: 'memory', group: 'Execution', icon: 'ri-database-2-line' },
@@ -37,7 +38,8 @@ export const XPERT_DRAFT_SETTINGS_SECTIONS: ReadonlyArray<{
 ]
 
 export const XPERT_SETTINGS_SECTIONS = [
-  ...XPERT_DRAFT_SETTINGS_SECTIONS,
+  ...XPERT_DRAFT_SETTINGS_SECTIONS.filter(({ key }) => key !== 'runtime'),
+  { key: 'capabilities', group: 'Execution', icon: 'ri-flashlight-line' },
   { key: 'externalExperts', group: 'Execution', icon: 'ri-team-line' },
   { key: 'subagents', group: 'Execution', icon: 'ri-node-tree' },
   { key: 'skills', group: 'Execution', icon: 'ri-lightbulb-line' },
@@ -58,12 +60,17 @@ export interface XpertSettingsSource {
   update: (change: (draft: TXpertTeamDraft) => TXpertTeamDraft) => void
   save: () => Promise<void>
   reload?: () => Promise<void>
+  discard?: () => void
 }
 
 export interface XpertSettingsDialogData {
   source: XpertSettingsSource
+  saveMode?: XpertSettingsSaveMode
   binding?: IAssistantBinding | null
   organizationId?: string | null
   section: XpertSettingsSection
   selectSection: (section: XpertSettingsSection) => void
+  publish?: () => Promise<void>
 }
+
+export type XpertSettingsSaveMode = 'draft' | 'publish'

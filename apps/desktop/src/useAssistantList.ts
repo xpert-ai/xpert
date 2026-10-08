@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { invoke } from './host'
 import { t } from './i18n'
+import { subscribeAppActivation } from './app-activation'
 import type { BotActivity, ConversationNotice, SidebarState, SidebarUpdate } from './assistant-list-types'
 
 export const emptySidebar: SidebarState = { width: 320, collapsed: false, sections: [], items: [], copies: [] }
@@ -53,12 +54,10 @@ export function useAssistantList(binding: string, botIds: string, notice?: Conve
     }
     void poll()
     const timer = window.setInterval(() => void poll(), 15000)
-    window.addEventListener('focus', poll)
-    document.addEventListener('visibilitychange', poll)
+    const unsubscribe = subscribeAppActivation(() => void poll())
     return () => {
       window.clearInterval(timer)
-      window.removeEventListener('focus', poll)
-      document.removeEventListener('visibilitychange', poll)
+      unsubscribe()
     }
   }, [binding, botIds, refresh])
   useEffect(() => {

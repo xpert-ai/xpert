@@ -31,6 +31,7 @@ export function CatalogSetup({
   const [preflight, setPreflight] = useState<TemplatePreflight | null>(null)
   const [capabilities, setCapabilities] = useState<string[]>([])
   const [templateModel, setTemplateModel] = useState('')
+  const [realtimeVoice, setRealtimeVoice] = useState<import('./catalog-types').VoiceSelection>()
   const [workspaceId, setWorkspaceId] = useState('')
   const [title, setTitle] = useState(creation ? '' : item.name.slice(0, 100))
   const [prompt, setPrompt] = useState('')
@@ -96,6 +97,7 @@ export function CatalogSetup({
           ? workspaceId &&
             title.trim() &&
             preflight?.canInstall !== false &&
+            (!capabilities.includes('realtime-voice') || !!(realtimeVoice?.modelId && realtimeVoice.voice)) &&
             (preflight?.requiresModel ? !!templateModel : hasPrimaryLanguageModel === true)
           : setup?.canInitialize &&
             !initializing &&
@@ -133,6 +135,7 @@ export function CatalogSetup({
               title: title.trim(),
               ...(creation ? { prompt } : {}),
               capabilities,
+              realtimeVoice: capabilities.includes('realtime-voice') ? realtimeVoice : undefined,
               modelId: templateModel || undefined
             })
       setInstalled(result.botId)
@@ -249,6 +252,8 @@ export function CatalogSetup({
                     onCapabilities={setCapabilities}
                     model={templateModel}
                     onModel={setTemplateModel}
+                    realtimeVoice={realtimeVoice}
+                    onRealtimeVoice={setRealtimeVoice}
                     disabled={busy || loading || !!installed}
                   />
                   {loading && (

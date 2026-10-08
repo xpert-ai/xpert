@@ -1,4 +1,4 @@
-import { RequestContext } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import type { CommandBus } from '@nestjs/cqrs'
 import type { Repository } from 'typeorm'
 import type { ChatConversation } from '../chat-conversation/conversation.entity'
@@ -19,18 +19,13 @@ jest.mock('../shared/volume/work-area', () => ({
     XpertWorkAreaResolver: class XpertWorkAreaResolver {}
 }))
 
-jest.mock('@xpert-ai/server-core', () => ({
+jest.mock('@xpert-ai/plugin-sdk', () => ({
+    resolveSandboxBackend: jest.fn().mockReturnValue({ execute: jest.fn() }),
     RequestContext: {
         currentTenantId: jest.fn(),
         currentUserId: jest.fn(),
         currentUser: jest.fn()
     }
-}))
-
-jest.mock('@xpert-ai/plugin-sdk', () => ({
-    resolveSandboxBackend: jest.fn().mockReturnValue({
-        execute: jest.fn()
-    })
 }))
 
 describe('SandboxConversationContextService', () => {
@@ -82,6 +77,38 @@ describe('SandboxConversationContextService', () => {
 
     afterEach(() => {
         jest.clearAllMocks()
+    })
+
+    it('authorizes discovery without acquiring a sandbox or resolving filesystem paths', async () => {
+        conversationRepository.findOne.mockResolvedValue({
+            id: 'conversation-1',
+            createdById: 'user-1',
+            tenantId: 'tenant-1',
+            xpertId: 'xpert-1',
+            xpert: { features: { sandbox: { enabled: true, provider: 'missing-provider' } } }
+        })
+        const context = await service.authorizeConversation({ conversationId: 'conversation-1' })
+        expect(context.provider).toBe('missing-provider')
+        expect(commandBus.execute).not.toHaveBeenCalled()
+        expect(workAreaResolver.resolve).not.toHaveBeenCalled()
+        commandBus.execute.mockResolvedValue(null)
+        await expect(service.findExistingSandbox(context)).resolves.toBeNull()
+        expect(commandBus.execute.mock.calls[0][0].constructor.name).toBe('SandboxFindBackendCommand')
+    })
+
+    it.each([
+        { tenantId: 'other-tenant', createdById: 'user-1' },
+        { tenantId: 'tenant-1', createdById: 'other-user' }
+    ])('keeps discovery access checks for %o', async (owner) => {
+        conversationRepository.findOne.mockResolvedValue({
+            ...owner,
+            id: 'conversation-1',
+            xpertId: 'xpert-1',
+            xpert: { features: { sandbox: { enabled: true, provider: 'test' } } }
+        })
+        await expect(service.authorizeConversation({ conversationId: 'conversation-1' })).rejects.toThrow()
+        expect(commandBus.execute).not.toHaveBeenCalled()
+        expect(workAreaResolver.resolve).not.toHaveBeenCalled()
     })
 
     it('uses the authenticated actor for a personal conversation sandbox', async () => {
@@ -216,6 +243,33 @@ describe('SandboxConversationContextService', () => {
         })
         expect(resolved.workingDirectory).toBe('/workspace/root')
     })
+
+    it.each(['local-shell-sandbox', 'nsjail', 'docker-sandbox'])(
+        'uses the explicit environment for acquisition and discovery while keeping project storage: %s',
+        async (provider) => {
+            conversationRepository.findOne.mockResolvedValue({
+                id: 'conversation-1',
+                tenantId: 'tenant-1',
+                createdById: 'user-1',
+                projectId: 'project-1',
+                xpertId: 'xpert-1',
+                options: { sandboxEnvironmentId: 'environment-1' },
+                xpert: { features: { sandbox: { enabled: true, provider } } }
+            })
+            await service.resolveConversationSandbox({ conversationId: 'conversation-1' })
+            await service.findExistingSandbox(await service.authorizeConversation({ conversationId: 'conversation-1' }))
+            const [acquire, find] = commandBus.execute.mock.calls.map(([command]) => command)
+            expect(acquire.constructor.name).toBe('SandboxAcquireBackendCommand')
+            expect(find.constructor.name).toBe('SandboxFindBackendCommand')
+            expect(acquire.params).toEqual(find.params)
+            expect(acquire.params).toMatchObject({
+                provider,
+                workFor: { type: 'environment', id: 'environment-1' },
+                volumeScope: { catalog: 'projects', projectId: 'project-1' }
+            })
+            expect(workAreaResolver.resolve.mock.calls[1][1]).toEqual({ createDirectories: false })
+        }
+    )
 })
 
 function createWorkArea(input: {
@@ -228,18 +282,18 @@ function createWorkArea(input: {
     environmentId?: string | null
 }) {
     const workspacePath = '/workspace/root'
-    const volumeScope = input.environmentId
+    const volumeScope = input.projectId
         ? {
               tenantId: input.tenantId,
-              catalog: 'environment',
-              environmentId: input.environmentId,
+              catalog: 'projects',
+              projectId: input.projectId,
               userId: input.userId
           }
-        : input.projectId
+        : input.environmentId
           ? {
                 tenantId: input.tenantId,
-                catalog: 'projects',
-                projectId: input.projectId,
+                catalog: 'environment',
+                environmentId: input.environmentId,
                 userId: input.userId
             }
           : {

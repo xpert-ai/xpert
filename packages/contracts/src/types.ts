@@ -1,8 +1,13 @@
+import type { AssistantAppearance } from '@xpert-ai/chatkit-types'
 import ShortUniqueId from 'short-unique-id'
 import type * as z3 from 'zod/v3'
 import type * as z4 from 'zod/v4/core'
 import type { I18nObject } from './i18n.model'
 
+export type {
+  AssistantAppearance as TAssistantAppearance,
+  AssistantCharacterConfig as TAssistantCharacterConfig
+} from '@xpert-ai/chatkit-types'
 export type { I18nObject, I18nText } from './i18n.model'
 export { resolveI18nText } from './i18n.model'
 
@@ -19,6 +24,8 @@ export const uuid = (...args: Parameters<(typeof uuidGenerator)['randomUUID']>) 
 export type ID = string
 
 export type TAvatar = {
+  /** Optional animated Assistant presentation; legacy renderers continue to use url/emoji. */
+  appearance?: AssistantAppearance
   emoji?: {
     id: string
     set?: '' | 'apple' | 'google' | 'twitter' | 'facebook'

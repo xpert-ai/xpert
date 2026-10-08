@@ -1,6 +1,6 @@
 jest.mock('@xpert-ai/server-core', () => ({ RequestContext: {} }))
 jest.mock('../../sandbox/sandbox.service', () => ({ SandboxService: class {} }))
-import { LanguagesEnum } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, LanguagesEnum } from '@xpert-ai/contracts'
 import { blankAssistantTemplate } from './blank-assistant-template'
 import { parseCapabilityTemplateDraft } from './template-draft'
 import { DesktopShellCapabilityProvider } from './builtin-capabilities'
@@ -56,5 +56,24 @@ describe('capability-owned configuration', () => {
         expect(primaryAgent(removeCapabilityState(draft)).entity.prompt).toBe('')
         updateAssistantPrompt(draft, 'New')
         expect(primaryAgent(draft).entity.prompt).toBe(`New\n\n${generated}`)
+    })
+})
+
+describe('voice capability ownership', () => {
+    it('restores previous voice state on disable and refuses to erase a Studio edit', () => {
+        const before = parseCapabilityTemplateDraft(blankAssistantTemplate([]).export_data)
+        const after = structuredClone(before)
+        after.team.features = {
+            ...after.team.features,
+            realtimeVoice: {
+                enabled: true,
+                voice: 'speaker',
+                copilotModel: { copilotId: 'copilot', model: 'voice', modelType: AiModelTypeEnum.REALTIME }
+            }
+        }
+        recordCapabilityState(before, after, ['realtime-voice'])
+        expect(removeCapabilityState(after).team.features?.realtimeVoice).toBeUndefined()
+        after.team.features.realtimeVoice.voice = 'studio-changed'
+        expect(() => removeCapabilityState(after)).toThrow()
     })
 })

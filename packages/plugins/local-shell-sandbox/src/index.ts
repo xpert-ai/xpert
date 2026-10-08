@@ -11,7 +11,7 @@ export class LocalShellSandboxPlugin {}
 const plugin: XpertPlugin = {
   meta: {
     name: '@xpert-ai/plugin-local-shell-sandbox',
-    version: '0.1.0',
+    version: '0.2.0',
     level: 'system',
     artifactNamespace: PLUGIN_ARTIFACT_NAMESPACE,
     category: 'integration',

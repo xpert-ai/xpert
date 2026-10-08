@@ -71,7 +71,7 @@ export function UserMenu({
         </DropdownMenuItem>
         <DropdownMenuItem className="rounded-lg px-3 py-2.5" onSelect={onSettings}>
           <Settings2 />
-          {t('Connection & appearance')}
+          {t('Settings')}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive" className="rounded-lg px-3 py-2.5" onSelect={onLogout}>

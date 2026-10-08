@@ -1,0 +1,9 @@
+---
+'@xpert-ai/contracts': minor
+'@xpert-ai/plugin-sdk': minor
+'@xpert-ai/server-ai': minor
+---
+
+Add the realtime voice model capability, model protocol adapter contract, and Bosi voice sessions. Assistant creation and settings can select an independently authorized realtime model and voice. The host relays bounded PCM audio over an authenticated, single-use-ticket WebSocket and dispatches durable Assistant tasks independently of call lifetime. Create the voice tables and timing columns through the platform's existing TypeORM entity synchronization (the schema-sync job in externally managed deployments), and configure allowed renderer origins before enabling calls. No separate realtime voice SQL migration is required.
+
+Introduce host-owned message envelopes with explicit source, target, correlation, and presentation for voice and future Assistant/Agent messages. Persist them in a dedicated typed `ChatMessage.messageEnvelope` JSONB column. Retain runtime execution, retry and branch history while applying consistent public-history filtering and protecting provenance from client edits. Apply the message-envelope migration before deployment.

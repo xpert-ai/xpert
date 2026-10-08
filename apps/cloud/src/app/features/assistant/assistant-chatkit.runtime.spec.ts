@@ -6,9 +6,10 @@ import { environment } from '@cloud/environments/environment'
 import { TranslateService } from '@ngx-translate/core'
 import { createChatKit, type CreateChatKitOptions } from '@xpert-ai/chatkit-angular'
 import { ZardDialogService } from '@xpert-ai/headless-ui'
-import { of } from 'rxjs'
+import { BehaviorSubject, of } from 'rxjs'
 import { AppService } from '../../app.service'
 import { ArtifactService } from '../../@core/services/artifact.service'
+import { XpertPublicationService } from '../../@core/services/xpert-publication.service'
 import {
   AssistantBindingScope,
   AssistantBindingSourceScope,
@@ -174,7 +175,8 @@ describe('assistant chatkit runtime helpers', () => {
     })
     const onProjectChange = jest.fn()
     const assistantId = signal('assistant-1')
-    const projectId = signal('project-1')
+    const projectId = signal<string | null>('project-1')
+    const organizationId = new BehaviorSubject('org-1')
     const composer = signal({
       projects: { enabled: false },
       connectors: { enabled: true }
@@ -213,7 +215,7 @@ describe('assistant chatkit runtime helpers', () => {
             token$: of('token-1'),
             organizationId: 'org-1',
             hasPermission: jest.fn(() => false),
-            selectOrganizationId: () => of('org-1')
+            selectOrganizationId: () => organizationId
           }
         }
       ]
@@ -277,6 +279,18 @@ describe('assistant chatkit runtime helpers', () => {
       })
     )
 
+    const publications = TestBed.inject(XpertPublicationService)
+    const createdBeforePublish = createChatKitMock.mock.calls.length
+    setOptions.mockClear()
+    publications.changes$.next({ organizationId: 'other-org', assistantId: 'assistant-1' })
+    publications.changes$.next({ organizationId: 'org-1', assistantId: 'another-assistant' })
+    flushAngularEffects()
+    expect(setOptions).not.toHaveBeenCalled()
+    publications.changes$.next({ organizationId: 'org-1', assistantId: 'assistant-1' })
+    flushAngularEffects()
+    expect(setOptions).toHaveBeenCalledTimes(1)
+    expect(createChatKitMock).toHaveBeenCalledTimes(createdBeforePublish)
+
     setOptions.mockClear()
     displayMode.set('chat')
     header.set(undefined)
@@ -319,12 +333,11 @@ describe('assistant chatkit runtime helpers', () => {
     projectId.set('project-2')
     flushAngularEffects()
 
-    // A Project change must replace the hosted control instead of updating the
-    // existing instance, so draft, attachments and runtime capabilities cannot
-    // leak from the previous Project scope.
-    expect(createChatKitMock).toHaveBeenCalledTimes(1)
-    expect(setOptions).not.toHaveBeenCalled()
-    expect(createChatKitMock).toHaveBeenLastCalledWith(
+    // Retain Assistant-owned View documents; ChatKit resets chat state and
+    // revalidates View access before publishing the new runtime context.
+    expect(createChatKitMock).not.toHaveBeenCalled()
+    expect(setOptions).toHaveBeenCalledTimes(1)
+    expect(setOptions).toHaveBeenLastCalledWith(
       expect.objectContaining({
         displayMode: 'pet',
         layout,
@@ -354,6 +367,15 @@ describe('assistant chatkit runtime helpers', () => {
       })
     )
 
+    setOptions.mockClear()
+    projectId.set(null)
+    flushAngularEffects()
+    expect(createChatKitMock).not.toHaveBeenCalled()
+    expect(setOptions).toHaveBeenCalledTimes(1)
+    expect(setOptions.mock.calls[0][0].api).not.toHaveProperty('projectId')
+
+    projectId.set('project-2')
+    flushAngularEffects()
     createChatKitMock.mockClear()
     setOptions.mockClear()
     assistantId.set('role-assistant-1')
@@ -371,6 +393,13 @@ describe('assistant chatkit runtime helpers', () => {
         })
       })
     )
+
+    createChatKitMock.mockClear()
+    setOptions.mockClear()
+    organizationId.next('org-2')
+    flushAngularEffects()
+    expect(createChatKitMock).toHaveBeenCalledTimes(1)
+    expect(setOptions).not.toHaveBeenCalled()
   })
 
   it('does not rebuild ChatKit options when only the routed thread changes', () => {

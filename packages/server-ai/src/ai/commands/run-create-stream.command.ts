@@ -1,3 +1,4 @@
+import type { AgentInvocationResumeFence } from '../../agent-invocation/invocation-continuation'
 import { IXpertAgentExecution } from '@xpert-ai/contracts'
 import { Command } from '@nestjs/cqrs'
 import { Observable } from 'rxjs'
@@ -20,7 +21,9 @@ export class RunCreateStreamCommand extends Command<RunCreateStreamResult> {
     constructor(
         public readonly threadId: string,
         public readonly runCreate: RunCreateStreamInput,
-        public readonly resumePaused?: { executionId: string; pauseId: string }
+        public readonly resumePaused?: { executionId: string; pauseId: string },
+        /** Trusted internal continuation, never sourced from request JSON. */
+        public readonly invocationResume?: AgentInvocationResumeFence
     ) {
         super()
     }

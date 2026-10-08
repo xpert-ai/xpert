@@ -13,6 +13,7 @@ import { LongTermMemoryTypeEnum } from './xpert.model'
 import { IXpertAgentExecution, XpertAgentExecutionStatusEnum } from './xpert-agent-execution.model'
 import { JSONValue } from '../core.model'
 import { IStorageFile } from '../storage-file.model'
+import type { TChatMessageEnvelope } from './chat-message-envelope.model'
 
 export type TSummaryJob = Record<
   LongTermMemoryTypeEnum,
@@ -74,11 +75,15 @@ export type TChatFileElementReference = ChatKitReferenceBase &
 
 export type TChatReference = ChatKitReference | TChatElementReference | TChatFileElementReference
 
+export * from './chat-message-envelope.model'
+
 /**
  * Chat message entity type
  */
 export interface IChatMessage
   extends IBasePerTenantAndOrganizationEntityModel, Omit<Omit<CopilotBaseMessage, 'createdAt'>, 'id'> {
+  /** Persisted host-owned provenance; read-only through public message APIs. */
+  messageEnvelope?: TChatMessageEnvelope | null
   parent?: IChatMessage | null
   children?: IChatMessage[]
   parentId?: string | null

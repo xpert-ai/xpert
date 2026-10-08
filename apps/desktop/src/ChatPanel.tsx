@@ -1,3 +1,4 @@
+import { useVoiceOptions } from './voice/VoiceProvider'
 import { useWorkspaceConnection } from './WorkspaceConnection'
 import { apiRootUrl } from '../electron/connection/urls.mjs'
 import { useDeliveredFile } from './files/DeliveredFile'
@@ -10,8 +11,9 @@ import type { ChatKitOptions, XpertAIChatKit } from '@xpert-ai/chatkit-types'
 import { Button } from '@xpert-ai/shadcn-ui'
 import { LoaderCircle } from 'lucide-react'
 import { invoke } from './host'
-import { getChatKitTheme } from './theme'
+import { getChatKitMessagePresentation, getChatKitTheme } from './theme'
 import type { Bot, ConnectionConfig } from './types'
+import { AssistantAppearanceDialog } from './avatar/AssistantAppearanceDialog'
 
 // A thin React lifecycle adapter; ChatKit owns every conversation interaction.
 export function ChatPanel({
@@ -19,13 +21,17 @@ export function ChatPanel({
   config,
   dark,
   initialThread,
-  onConversationRead
+  initialVoice,
+  onConversationRead,
+  onAppearanceSaved
 }: {
   bot: Bot
   config: ConnectionConfig
   dark: boolean
   initialThread: string | null
+  initialVoice?: { assistantId: string; conversationId: string } | null
   onConversationRead: (botId: string, threadId: string | null) => void
+  onAppearanceSaved: () => Promise<void>
 }) {
   const container = useRef<HTMLDivElement>(null)
   const instance = useRef<XpertAIChatKit | null>(null)
@@ -34,12 +40,28 @@ export function ChatPanel({
   const [frameReady, setFrameReady] = useState(false)
   const [error, setError] = useState('')
   const [retry, setRetry] = useState(0)
+  const [customizeId, setCustomizeId] = useState<string | null>(null)
   const delivery = useDeliveredFile()
   const deliveryRef = useRef(delivery.open)
   deliveryRef.current = delivery.open
-  const shell = useShellIntegration()
-  const [shellAssistantId, setShellAssistantId] = useState(bot.assistantId || bot.id)
+  const shell = useShellIntegration(`${config.apiUrl}:${bot.id}`)
+  const openLocalComputer = useRef(shell.openComputer)
+  openLocalComputer.current = shell.openComputer
+  // View APIs and navigation use the public key, including the provider namespace.
+  const computers = { cloud: { viewKey: 'ProComputer__pro-computer' }, local: shell.computer }
+  const computerState = JSON.stringify(computers)
+  const previousComputerState = useRef(computerState)
+  const [shellAssistantId, setShellAssistantId] = useState(initialVoice?.assistantId || bot.assistantId || bot.id)
   const [threadId, setThreadId] = useState<string | null>(initialThread)
+  const voiceOptions = useVoiceOptions(
+    { botId: bot.id, assistantId: shellAssistantId, threadId, name: bot.name },
+    (id) => {
+      setThreadId(id)
+      void instance.current?.setThreadId(id)
+    }
+  )
+  const voiceRef = useRef(voiceOptions)
+  voiceRef.current = voiceOptions
   const connection = useWorkspaceConnection(config.webUrl, shellAssistantId)
   const connectRef = useRef(connection.connect)
   connectRef.current = connection.connect
@@ -49,11 +71,16 @@ export function ChatPanel({
     const element = node as XpertAIChatKit
     let disposed = false
     let activeThread = threadId
-    let activeAssistant = bot.assistantId || bot.id
-    setShellAssistantId(bot.assistantId || bot.id)
+    let activeAssistant = initialVoice?.assistantId || bot.assistantId || bot.id
+    setShellAssistantId(activeAssistant)
     setFrameReady(false)
     setError('')
-    const header = { enabled: true, windowDrag: !!window.xpertDesktop, title: { text: bot.name } }
+    const header = {
+      enabled: true,
+      windowDrag: !!window.xpertDesktop,
+      title: { text: bot.name },
+      character: { enabled: true, customizable: true, computers }
+    }
     const workbench = {
       enabled: true,
       viewRail: { enabled: true },
@@ -71,11 +98,23 @@ export function ChatPanel({
       frameUrl: config.frameUrl,
       displayMode: 'chat',
       pet: false,
+      realtimeVoice: voiceRef.current,
       api: {
         apiUrl: `${apiRootUrl(config.apiUrl)}/api/ai`,
-        xpertId: bot.assistantId || bot.id,
+        xpertId: activeAssistant,
         getClientSecret: async () => {
           try {
+            if (initialVoice && initialThread) {
+              const session = await invoke('workbenchSession', {
+                botId: bot.id,
+                target: 'assistant.conversation',
+                conversationId: initialVoice.conversationId,
+                threadId: initialThread
+              })
+              if (session.assistantId !== initialVoice.assistantId)
+                throw new Error(t('Could not create a chat session.'))
+              return { secret: session.secret, organizationId: session.organizationId }
+            }
             return await invoke('chatSession', bot.id)
           } catch (error) {
             if (!disposed) setError(error instanceof Error ? error.message : t('Could not create a chat session.'))
@@ -85,12 +124,14 @@ export function ChatPanel({
       },
       locale: config.locale,
       theme: getChatKitTheme(document.documentElement.classList.contains('dark'), config.appearance),
+      messagePresentation: getChatKitMessagePresentation(config.appearance),
       layout: { maxWidth: 960 },
       initialThread: threadId,
       header,
       history: { enabled: true },
       taskSummary: { enabled: true },
       composer: {
+        projects: { enabled: true },
         attachments: { enabled: true, maxCount: 5, maxSize: 50 * 1024 * 1024 },
         resources: { enabled: true, onConnect: (request) => connectRef.current(request) },
         connectors: { enabled: true }
@@ -122,7 +163,27 @@ export function ChatPanel({
       }
     })
     element.addEventListener('chatkit.effect', (event) => {
-      if (!disposed) deliveryRef.current(event.detail)
+      if (disposed) return
+      const { name, data } = event.detail
+      if (
+        name === 'assistant.customize' &&
+        data &&
+        typeof data === 'object' &&
+        'assistantId' in data &&
+        data.assistantId === activeAssistant
+      )
+        setCustomizeId(activeAssistant)
+      else if (
+        name === 'assistant.computer.open' &&
+        data &&
+        typeof data === 'object' &&
+        'assistantId' in data &&
+        data.assistantId === activeAssistant &&
+        'kind' in data &&
+        data.kind === 'local'
+      )
+        openLocalComputer.current()
+      else deliveryRef.current(event.detail)
     })
     const read = () => {
       if (!disposed && activeAssistant === (bot.assistantId || bot.id)) onConversationRead(bot.id, activeThread)
@@ -152,22 +213,38 @@ export function ChatPanel({
   useEffect(() => {
     if (frameReady && instance.current && optionsRef.current) {
       const theme = getChatKitTheme(dark, config.appearance)
+      const messagePresentation = getChatKitMessagePresentation(config.appearance)
       if (
         JSON.stringify(optionsRef.current.theme) === JSON.stringify(theme) &&
+        JSON.stringify(optionsRef.current.messagePresentation) === JSON.stringify(messagePresentation) &&
         optionsRef.current.locale === config.locale &&
-        optionsRef.current.header?.title?.text === bot.name
+        optionsRef.current.header?.title?.text === bot.name &&
+        previousComputerState.current === computerState
       )
         return
+      previousComputerState.current = computerState
       const options = {
         ...optionsRef.current,
         theme,
+        messagePresentation,
         locale: config.locale,
-        header: { ...optionsRef.current.header, title: { text: bot.name } }
+        header: {
+          ...optionsRef.current.header,
+          title: { text: bot.name },
+          character: { enabled: true, customizable: true, computers }
+        }
       }
       optionsRef.current = options
       instance.current.setOptions(options)
     }
-  }, [dark, frameReady, config.appearance, config.locale, bot.name])
+  }, [dark, frameReady, config.appearance, config.locale, bot.name, computerState])
+
+  useEffect(() => {
+    if (!frameReady || !instance.current || !optionsRef.current) return
+    const options = { ...optionsRef.current, realtimeVoice: voiceOptions }
+    optionsRef.current = options
+    instance.current.setOptions(options)
+  }, [frameReady, voiceOptions])
 
   return (
     <section
@@ -177,6 +254,16 @@ export function ChatPanel({
       {connection.status}
       {delivery.dialog}
       {shell.dialog}
+      {customizeId && (
+        <AssistantAppearanceDialog
+          botId={customizeId}
+          onClose={() => setCustomizeId(null)}
+          onSaved={async () => {
+            await onAppearanceSaved()
+            if (optionsRef.current) instance.current?.setOptions(optionsRef.current)
+          }}
+        />
+      )}
       {error && (
         <div
           role="alert"

@@ -1,5 +1,5 @@
 import { TenantModule, UserModule } from '@xpert-ai/server-core'
-import { Module } from '@nestjs/common'
+import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { RouterModule } from '@nestjs/core'
@@ -17,7 +17,7 @@ import { AgentMiddlewareRuntimeModule } from '../shared/agent/middleware-runtime
         TenantModule,
         CqrsModule,
         UserModule,
-        AgentMiddlewareRuntimeModule
+        forwardRef(() => AgentMiddlewareRuntimeModule)
     ],
     controllers: [CopilotModelController],
     providers: [CopilotModelService, ...QueryHandlers, ...CommandHandlers],

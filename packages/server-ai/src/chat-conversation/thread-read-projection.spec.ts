@@ -21,6 +21,16 @@ const event = (output: unknown): TChatMessageStep => ({
 describe('thread history projection', () => {
     it('groups newest turns first while preserving message order within each turn', () => {
         const rows = [
+            message({
+                id: 'internal',
+                role: 'human',
+                content: 'Internal voice request',
+                messageEnvelope: {
+                    version: 1,
+                    source: { type: 'voice', sessionId: 'session' },
+                    presentation: 'runtime'
+                }
+            }),
             message({ id: 'a2', role: 'ai', content: 'Answer 2' }),
             message({ id: 'h2', role: 'human', content: 'Question 2' }),
             message({ id: 'a1', role: 'ai', content: 'Answer 1' }),
@@ -48,7 +58,7 @@ describe('thread history projection', () => {
         ]
         const text = JSON.stringify(projectThreadTurns(rows, options))
         expect(text).toContain('Visible')
-        for (const excluded of ['Hidden', 'Do not reveal', 'Draft', 'Optional tool output'])
+        for (const excluded of ['Hidden', 'Do not reveal', 'Draft', 'Optional tool output', 'Internal voice request'])
             expect(text).not.toContain(excluded)
         expect(JSON.stringify(projectThreadTurns(rows, { ...options, includeOutputs: true }))).toContain(
             'Optional tool output'
@@ -97,4 +107,26 @@ describe('thread history projection', () => {
         expect(turn.messages[0].outputs).toHaveLength(20)
         expect(turn.messages[0].omittedOutputs).toBe(5)
     })
+})
+
+it('preserves Agent provenance in readable history while hiding only runtime presentation', () => {
+    const source = { type: 'agent' as const, xpertId: 'sender', agentKey: 'worker' }
+    const rows = [
+        message({
+            id: 'private',
+            role: 'human',
+            content: 'Runtime envelope',
+            messageEnvelope: { version: 1, source, presentation: 'runtime' }
+        }),
+        message({
+            id: 'visible',
+            role: 'human',
+            content: 'Agent update',
+            messageEnvelope: { version: 1, source, presentation: 'message' }
+        })
+    ]
+    const turns = projectThreadTurns(rows, options)
+    expect(turns).toHaveLength(1)
+    expect(turns[0].messages[0]).toMatchObject({ id: 'visible', messageEnvelope: { source } })
+    expect(JSON.stringify(turns)).not.toContain('Runtime envelope')
 })

@@ -39,7 +39,13 @@ export function desktopBridge() {
               process.env.XPERT_DESKTOP_LOCAL_LOGIN === '1'
                 ? (await import('./local-credentials.mjs')).readLocalCredentials
                 : undefined
-            sessions.set(id, { service: new DesktopService({ localLogin, defaultConfig }), touched: Date.now() })
+            const systemLanguages = (req.headers['accept-language'] || '')
+              .split(',')
+              .map((value) => value.split(';')[0].trim())
+            sessions.set(id, {
+              service: new DesktopService({ localLogin, defaultConfig, systemLanguages }),
+              touched: Date.now()
+            })
             res.setHeader('Set-Cookie', `xpert-desktop=${id}; HttpOnly; SameSite=Strict; Path=/__desktop`)
           }
           const current = sessions.get(id)

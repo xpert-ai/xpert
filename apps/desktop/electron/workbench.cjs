@@ -57,6 +57,8 @@ function createWorkbenchMethods(ClientError) {
       if (generation !== this.generation) throw new ClientError('The workspace changed. Please retry.', 409)
       if (typeof result?.client_secret !== 'string' || !result.client_secret)
         throw new ClientError('Could not create a ChatKit session.')
+      this.appearanceAssistantIds ??= new Map()
+      this.appearanceAssistantIds.set(assistantId, generation)
       return {
         assistantId,
         projectId: canonicalProject,

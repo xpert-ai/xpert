@@ -97,15 +97,9 @@ describe('AgentViewHostDefinition', () => {
 
         expect(definition.slots.filter((slot) => slot.key.startsWith('agent.workbench'))).toEqual([
             {
-                key: 'agent.workbench.main',
+                key: 'agent.workbench',
                 mode: 'sections',
                 order: 10,
-                manifestPolicy: { requireFeatureActivation: true }
-            },
-            {
-                key: 'agent.workbench.fixed',
-                mode: 'sections',
-                order: 20,
                 manifestPolicy: { requireFeatureActivation: true }
             }
         ])
@@ -122,7 +116,7 @@ describe('AgentViewHostDefinition', () => {
                 versionIds: ['agent-host-1']
             },
             capabilities: {
-                features: ['bom_document_intake', 'sandbox']
+                features: ['bom_document_intake', 'platform.conversation-map', 'sandbox']
             },
             hostState: {
                 agent: {
@@ -425,7 +419,7 @@ describe('AgentViewHostDefinition', () => {
         const draft = await definition.resolve('agent-host-1', { isDraft: true })
 
         expect(published?.context).toMatchObject({
-            capabilities: { features: [] },
+            capabilities: { features: ['platform.conversation-map'] },
             hostState: {
                 agent: {
                     key: 'Agent_Published',
@@ -434,7 +428,7 @@ describe('AgentViewHostDefinition', () => {
             }
         })
         expect(draft?.context).toMatchObject({
-            capabilities: { features: ['story-studio'] },
+            capabilities: { features: ['platform.conversation-map', 'story-studio'] },
             hostState: {
                 agent: {
                     key: 'Agent_StoryStudio',

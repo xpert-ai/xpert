@@ -23,10 +23,10 @@ export function ThemeSection({
   children: ReactNode
 }) {
   return (
-    <section className="space-y-4 border-t pt-5 first:border-0 first:pt-0">
+    <section className="space-y-6 border-t pt-8 first:border-0 first:pt-0">
       <div>
-        <h3 className="text-sm font-semibold">{title}</h3>
-        {description && <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>}
+        <h3 className="text-base font-semibold">{title}</h3>
+        {description && <p className="mt-1 text-[0.8125rem] leading-5 text-muted-foreground">{description}</p>}
       </div>
       {children}
     </section>
@@ -37,17 +37,21 @@ export function ThemeSelect<T extends string | number>({
   label,
   value,
   options,
-  onChange
+  onChange,
+  hideLabel = false
 }: {
   label: string
   value: T
   options: readonly { value: T; label: string }[]
   onChange: (value: T) => void
+  hideLabel?: boolean
 }) {
   const id = useId()
   return (
-    <div className="space-y-2">
-      <Label htmlFor={id}>{label}</Label>
+    <div className={hideLabel ? '' : 'space-y-2'}>
+      <Label htmlFor={id} className={hideLabel ? 'sr-only' : 'text-sm leading-5'}>
+        {label}
+      </Label>
       <Select
         value={String(value)}
         onValueChange={(next) => {
@@ -55,7 +59,7 @@ export function ThemeSelect<T extends string | number>({
           if (option) onChange(option.value)
         }}
       >
-        <SelectTrigger id={id} className="w-full bg-background">
+        <SelectTrigger id={id} className="w-full bg-background text-sm data-[size=default]:h-10">
           <SelectValue />
         </SelectTrigger>
         <SelectContent position="popper" align="start">
@@ -87,10 +91,12 @@ export function ThemeRange({
 }) {
   const id = useId()
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <div className="flex items-center justify-between gap-3">
-        <Label htmlFor={id}>{label}</Label>
-        <output htmlFor={id} className="text-xs tabular-nums text-muted-foreground">
+        <Label htmlFor={id} className="text-sm leading-5">
+          {label}
+        </Label>
+        <output htmlFor={id} className="text-sm tabular-nums text-muted-foreground">
           {value}
           {unit}
         </output>
@@ -102,7 +108,7 @@ export function ThemeRange({
         max={max}
         step={1}
         value={value}
-        className="h-5 w-full cursor-pointer accent-primary"
+        className="h-10 w-full cursor-pointer accent-primary"
         onChange={(event) => onChange(Number(event.target.value))}
       />
     </div>
@@ -130,15 +136,17 @@ export function ColorField({
   return (
     <div className="space-y-2">
       <div className="flex items-baseline justify-between gap-2">
-        <Label htmlFor={id}>{label}</Label>
-        {token && <span className="truncate text-[11px] text-muted-foreground">{token}</span>}
+        <Label htmlFor={id} className="text-sm leading-5">
+          {label}
+        </Label>
+        {token && <span className="truncate text-xs text-muted-foreground">{token}</span>}
       </div>
       <div className="flex items-center gap-2">
         <input
           type="color"
           aria-label={t('{{label}} color picker', { label })}
           value={swatch}
-          className="size-9 shrink-0 cursor-pointer rounded-md border bg-background p-1"
+          className="size-10 shrink-0 cursor-pointer rounded-md border bg-background p-1"
           onChange={(event) => {
             setText(event.target.value)
             onChange(event.target.value)
@@ -153,7 +161,7 @@ export function ColorField({
           spellCheck={false}
           aria-invalid={!valid}
           title={t('Enter a six-digit HEX color, e.g. #f59e0b. Leave blank to use the default.')}
-          className="min-w-0 font-mono text-xs"
+          className="h-10 min-w-0 font-mono text-sm"
           onChange={(event) => {
             const next = event.target.value
             setText(next)
@@ -164,7 +172,7 @@ export function ColorField({
           type="button"
           variant="ghost"
           size="icon"
-          className="size-8 shrink-0"
+          className="size-10 shrink-0"
           aria-label={t('Reset {{label}}', { label })}
           title={t('Reset {{label}}', { label })}
           disabled={!text}
@@ -176,7 +184,7 @@ export function ColorField({
           <RotateCcw className="size-3.5" />
         </Button>
       </div>
-      {!valid && <p className="text-xs text-destructive">{t('Enter a six-digit HEX color.')}</p>}
+      {!valid && <p className="text-sm text-destructive">{t('Enter a six-digit HEX color.')}</p>}
     </div>
   )
 }
@@ -195,9 +203,12 @@ export function FontField({
   const id = useId()
   return (
     <div className="space-y-2">
-      <Label htmlFor={id}>{label}</Label>
+      <Label htmlFor={id} className="text-sm leading-5">
+        {label}
+      </Label>
       <Input
         id={id}
+        className="h-10 text-sm"
         value={value}
         maxLength={200}
         placeholder={placeholder}

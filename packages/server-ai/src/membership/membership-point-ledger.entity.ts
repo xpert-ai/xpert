@@ -1,3 +1,4 @@
+import type { ModelExecutionUsageContext } from '@xpert-ai/contracts'
 import {
     AiModelTypeEnum,
     IMembershipPlan,
@@ -43,6 +44,11 @@ const numericNumberTransformer = {
 )
 @Index('IDX_membership_ledger_model_usage_scope_recorded', ['tenantId', 'organizationId', 'recordedAt'])
 export class MembershipPointLedger extends TenantBaseEntity implements IMembershipPointLedger {
+    @Column({ type: 'jsonb', nullable: true })
+    tokenDetails: { cacheReadInputTokens?: number; cacheWriteInputTokens?: number; reasoningTokens?: number } | null
+
+    @Column({ type: 'jsonb', nullable: true }) executionContext?: ModelExecutionUsageContext | null
+
     @ApiProperty({ type: () => User })
     @ManyToOne(() => User, {
         nullable: true,

@@ -38,6 +38,15 @@ describe('McpAppBundleService', () => {
         })
     })
 
+    it('preserves localized titles and the declared read-only refresh action', async () => {
+        const service = new McpAppBundleService([loadedPlugin(createPluginRoot('<main>app</main>'), 'organization-1')])
+        const title = { en_US: 'Settings', zh_Hans: '项目设置' }
+        const refresh = { toolName: 'read_settings', arguments: { refresh: true } }
+        await expect(service.read(publication(), descriptor({ title, refresh }))).resolves.toMatchObject({
+            _meta: { ui: { title, refresh } }
+        })
+    })
+
     it('rejects a symlink that escapes the loaded plugin root', async () => {
         const root = createPluginRoot('<main>safe</main>')
         const outside = mkdtempSync(join(tmpdir(), 'xpert-mcp-app-outside-'))

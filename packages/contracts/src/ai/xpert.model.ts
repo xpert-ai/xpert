@@ -49,6 +49,7 @@ export type TXpertTitleFeature = {
 }
 
 export type TXpertFeatures = {
+  realtimeVoice?: import('./realtime-voice.model').RealtimeVoiceFeature
   /** Generate start-screen questions from recurring intents in conversation history. */
   frequentQuestions?: {
     enabled: boolean
@@ -353,6 +354,10 @@ export type TXpertDataXpertOptions = {
 }
 
 export type TXpertOptions = {
+  /** Default ChatKit message display for this Assistant. Omit to inherit the host application's default. */
+  messagePresentation?: {
+    mode?: 'transcript' | 'bubbles'
+  }
   assistantCapabilities?: import('./assistant-configuration.model').AssistantCapabilityState
   /** Runtime-selectable Primary Agent models. The configured Primary model is added automatically. */
   modelSelection?: {
@@ -363,8 +368,8 @@ export type TXpertOptions = {
   workspaceScope?: {
     /** Require an explicit Project, or prefer one while preserving the legacy fallback. */
     mode: 'project-required' | 'project-preferred'
-    /** Opt in to creating a Project on the first send of an empty conversation, under the caller's permissions. */
-    onMissing?: 'create'
+    /** Create on first send, or defer creation until a human confirms the pending setup App. */
+    onMissing?: 'create' | 'confirm'
     /** Explicit application context for discovery and governed Project creation. */
     projectType?: import('./xpert-project-type.model').XpertProjectTypeRef
   }

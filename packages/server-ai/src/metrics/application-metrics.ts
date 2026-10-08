@@ -287,11 +287,57 @@ export class ApplicationMetricsRegistry {
     )
     private readonly mcpAppRpc = new CounterMetric('xpert_mcp_app_rpc_total', 'Total Xpert MCP app RPC calls.')
 
+    private readonly modelExecutionEvents = new CounterMetric(
+        'xpert_model_execution_events_total',
+        'Model execution admission and settlement outcomes.'
+    )
+    private readonly modelExecutionPending = new GaugeMetric(
+        'xpert_model_execution_pending',
+        'Unsettled execution attempts and reserved tokens.'
+    )
+
+    private readonly invocationWait = new GaugeMetric(
+        'xpert_agent_invocation_wait',
+        'Durable managed task continuation backlog.'
+    )
+    setInvocationWait(input: { pending: number; oldestErrorSeconds: number }) {
+        this.invocationWait.set({ kind: 'pending' }, input.pending)
+        this.invocationWait.set({ kind: 'oldest_error_seconds' }, input.oldestErrorSeconds)
+    }
+
+    recordModelExecution(
+        event:
+            | 'BridgeUnsupported'
+            | 'ConversationRequired'
+            | 'RateLimit'
+            | 'Unavailable'
+            | 'Invalid'
+            | 'Denied'
+            | 'Budget'
+            | 'Model'
+            | 'Unknown'
+            | 'admitted'
+            | 'provider_usage'
+            | 'usage_pending'
+            | 'delivery_retry'
+    ) {
+        this.modelExecutionEvents.inc({ event })
+    }
+
+    setModelExecutionPending(input: { attempts: number; reservedTokens: number; oldestSeconds: number }) {
+        this.modelExecutionPending.set({ kind: 'attempts' }, input.attempts)
+        this.modelExecutionPending.set({ kind: 'reserved_tokens' }, input.reservedTokens)
+        this.modelExecutionPending.set({ kind: 'oldest_seconds' }, input.oldestSeconds)
+    }
+
     constructor() {
         this.reset()
     }
 
     reset() {
+        this.modelExecutionEvents.reset()
+        this.modelExecutionPending.reset()
+        this.invocationWait.reset()
         this.conversationBranches.reset()
         this.conversationBranchDuration.reset()
         this.conversationBranchSize.reset()
@@ -529,6 +575,9 @@ export class ApplicationMetricsRegistry {
         return (
             [
                 this.info.render(),
+                this.modelExecutionEvents.render(),
+                this.modelExecutionPending.render(),
+                this.invocationWait.render(),
                 this.conversationBranches.render(),
                 this.conversationBranchDuration.render(),
                 this.conversationBranchSize.render(),

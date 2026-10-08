@@ -188,6 +188,27 @@ test('a response arriving after logout cannot recreate a session', async () => {
   assert.deepEqual(service.bots, [])
 })
 
+for (const action of ['logout', 'change server']) {
+  test(`${action} clears local authentication without revoking background execution grants`, async () => {
+    const { service, calls, saved } = fixture()
+    await service.login(input)
+    const requestCount = calls.length
+    if (action === 'logout') service.logout()
+    else service.configure({ ...DEFAULT_CONFIG, apiUrl: 'https://replacement.example.com' })
+    assert.equal(service.credentials, null)
+    assert.equal(service.snapshot().profile, null)
+    assert.equal(saved.at(-1).credentials, null)
+    await new Promise((resolve) => setImmediate(resolve))
+    assert.equal(calls.length, requestCount)
+  })
+}
+
+test('logout without saved credentials does not attempt execution revocation', () => {
+  const { service, calls } = fixture()
+  service.logout()
+  assert.equal(calls.length, 0)
+})
+
 test('Bot pagination continues beyond the first 100 items', async () => {
   const { service } = fixture((url) => {
     if (!url.includes('/mobile/xperts')) return null
@@ -247,6 +268,28 @@ test('encrypted storage restores credentials and logout erases the saved credent
   assert.doesNotMatch(fs.readFileSync(path.join(directory, 'desktop-state.json'), 'utf8'), /access-private/)
   storage.write({ config: DEFAULT_CONFIG, credentials: null })
   assert.equal(storage.read().credentials, null)
+})
+
+test('denied keychain access preserves connection and language settings while requiring sign-in', (t) => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'xpert-desktop-test-'))
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }))
+  const config = { ...DEFAULT_CONFIG, apiUrl: 'https://private.example/api', locale: 'zh-Hans' }
+  const sidebars = { fixture: { collapsed: true } }
+  fs.writeFileSync(
+    path.join(directory, 'desktop-state.json'),
+    JSON.stringify({ config, sidebars, encrypted: 'fixture' })
+  )
+  const storage = createStorage(directory, {
+    isEncryptionAvailable: () => true,
+    decryptString: () => {
+      throw new Error('User denied Keychain access')
+    }
+  })
+  assert.deepEqual(storage.read(), { config, sidebars, credentials: null })
+  const service = new DesktopService({ storage })
+  assert.equal(service.config.locale, 'zh-Hans')
+  assert.equal(service.config.apiUrl, config.apiUrl)
+  assert.equal(service.credentials, null)
 })
 
 test('refreshing organization choices discovers new memberships without resetting the current chat scope', async () => {

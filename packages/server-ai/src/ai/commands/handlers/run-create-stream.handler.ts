@@ -1,3 +1,4 @@
+import { assertInvocationResume } from '../../../agent-invocation/invocation-resume'
 import { DesktopShellAuthService } from '../../../desktop-shell/desktop-shell-auth.service'
 import { getErrorMessage } from '@xpert-ai/plugin-sdk'
 import {
@@ -472,6 +473,16 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
             !requestedProjectId &&
             !conversation.projectId &&
             chatRequest.projectSelection?.mode !== 'none' &&
+            xpert.options?.workspaceScope?.onMissing === 'confirm'
+        ) {
+            if (!this.conversationProjects) throw new BadRequestException('Project conversations are unavailable')
+            conversation = await this.conversationProjects.awaitConfirmation(conversation)
+        }
+        if (
+            chatRequest.action === 'send' &&
+            !requestedProjectId &&
+            !conversation.projectId &&
+            chatRequest.projectSelection?.mode !== 'none' &&
             xpert.options?.workspaceScope?.onMissing === 'create'
         ) {
             if (!this.conversationProjects) {
@@ -497,7 +508,14 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
             await this.projectService.assertRuntimeAccess(effectiveProjectId, xpert.id)
         }
         conversation = await bindConversationProjectIfUnbound(this.commandBus, conversation, requestedProjectId)
-        if (xpert.options?.workspaceScope?.mode === 'project-required' && !conversation.projectId) {
+        if (
+            xpert.options?.workspaceScope?.mode === 'project-required' &&
+            !conversation.projectId &&
+            !(
+                xpert.options?.workspaceScope?.onMissing === 'confirm' &&
+                conversation.options?.projectCreation?.status === 'awaiting_confirmation'
+            )
+        ) {
             throw new BadRequestException('This Assistant requires a Project workspace')
         }
         if (chatRequest.action === 'send' && conversation.projectId) {
@@ -555,6 +573,9 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 
         let stream: Observable<MessageEvent>
         try {
+            if (command.invocationResume) {
+                await assertInvocationResume(this.queryBus, threadId, chatRequest.action, command.invocationResume)
+            }
             if (!execution) {
                 execution = await this.commandBus.execute(
                     new XpertAgentExecutionUpsertCommand(
