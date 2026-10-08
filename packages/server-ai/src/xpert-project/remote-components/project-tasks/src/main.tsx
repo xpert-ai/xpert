@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import { z } from 'zod'
 import { Table2, GitBranch, ChartNoAxesGantt, Columns3, RefreshCw, X, LoaderCircle } from 'lucide-react'
@@ -27,6 +27,7 @@ import { connect, request, graphSchema, type Graph, type Node } from './bridge'
 import { texts, dateTime } from './i18n'
 import { buildRows, filteredTasks, initialFilters, type View, type Grouping, type Sort } from './model'
 import { Toolbar, type Fields } from './toolbar'
+import type { TimelineControlsProps } from './timeline-controls'
 import { TaskTable, TaskBoard } from './task-views'
 import { Gantt } from './gantt'
 import { TaskFooter } from './task-footer'
@@ -157,7 +158,7 @@ function App() {
         />
     )
     const icons = { all: Table2, tree: GitBranch, gantt: ChartNoAxesGantt, board: Columns3 }
-    const toolbar = (controls?: ReactNode) => (
+    const toolbar = (timeline?: TimelineControlsProps) => (
         <Toolbar
             t={t}
             tasks={graph?.tasks ?? []}
@@ -172,9 +173,8 @@ function App() {
             setFields={setFields}
             collapseAll={() => setCollapsed(new Set(graph?.tasks.map((task) => task.id)))}
             expandAll={() => setCollapsed(new Set())}
-        >
-            {controls}
-        </Toolbar>
+            timeline={timeline}
+        />
     )
     return (
         <TooltipProvider>
@@ -188,21 +188,27 @@ function App() {
                         if (value === 'all' || value === 'tree' || value === 'gantt' || value === 'board')
                             setView(value)
                     }}
-                    className="min-h-0 flex-1 gap-0"
+                    className="min-h-0 min-w-0 flex-1 gap-0"
                 >
-                    <div className="flex shrink-0 items-center gap-2 border-b px-3">
-                        <div className="min-w-0 flex-1 overflow-x-auto">
-                            <TabsList variant="line" aria-label={t.viewLabel} className="h-10 gap-3">
+                    <div className="@container flex shrink-0 items-center gap-2 border-b px-3">
+                        <div className="min-w-0 flex-1 overflow-hidden">
+                            <TabsList
+                                variant="line"
+                                aria-label={t.viewLabel}
+                                className="grid w-full grid-cols-4 gap-0 group-data-[orientation=horizontal]/tabs:h-10"
+                            >
                                 {(['all', 'tree', 'gantt', 'board'] as const).map((value) => {
                                     const Icon = icons[value]
                                     return (
                                         <TabsTrigger
                                             key={value}
                                             value={value}
-                                            className="px-2 data-[state=active]:text-primary data-[state=active]:after:bg-primary"
+                                            aria-label={t[value]}
+                                            title={t[value]}
+                                            className="min-w-0 px-2 group-data-[orientation=horizontal]/tabs:after:bottom-0 data-[state=active]:text-primary data-[state=active]:after:bg-primary"
                                         >
                                             <Icon />
-                                            {t[value]}
+                                            <span className="hidden truncate @[34rem]:inline">{t[value]}</span>
                                         </TabsTrigger>
                                     )
                                 })}

@@ -9,6 +9,7 @@ import { Status, TaskName } from './ui'
 import { ColumnHeader, type Column, type TaskColumns } from './columns'
 import { Assignee } from './assignee'
 import { TaskTypeIcon } from './task-type-icon'
+import { useDragScroll } from './drag-scroll'
 
 // Keep virtual offsets, dependency paths and rendered row heights in sync.
 export const TASK_ROW_HEIGHT = 40
@@ -78,6 +79,7 @@ export function TaskTable({
     onError
 }: ViewProps) {
     const virtual = useVirtualRows(rows.length)
+    useDragScroll(virtual.ref)
     const visibleColumns: Column[] = [
         'name',
         ...(['status', 'assignee', 'attempts', 'dates'] as const).filter((key) => fields[key])
@@ -88,13 +90,16 @@ export function TaskTable({
         <div
             ref={virtual.ref}
             onScroll={virtual.onScroll}
-            className="min-h-0 min-w-0 flex-1 overflow-auto"
+            className="min-h-0 min-w-0 flex-1 overflow-auto cursor-grab data-[panning=true]:cursor-grabbing data-[panning=true]:select-none"
+            data-task-scroll="table"
+            title={t.panHint}
             role="region"
             aria-label={t.title}
         >
             <div role="table" aria-rowcount={rows.length + 1} style={{ minWidth }}>
                 <div
                     role="row"
+                    data-scroll-pan-ignore=""
                     className="sticky top-0 z-20 grid items-center border-b bg-muted/50 text-xs font-medium text-muted-foreground backdrop-blur"
                     style={{ gridTemplateColumns: grid, height: TASK_HEADER_HEIGHT }}
                 >

@@ -52,7 +52,7 @@ export class ProjectTasksViewProvider implements IXpertViewExtensionProvider {
         return [
             {
                 key: 'timeline',
-                title: text('Tasks & timeline', '任务与时间线'),
+                title: text('Project tasks', '项目任务'),
                 hostType: context.hostType,
                 // Workbench can run in an isolated ChatKit iframe without the host icon font.
                 icon: {

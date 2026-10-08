@@ -1,11 +1,19 @@
-import { useId, useLayoutEffect, useMemo, useState, type ReactNode } from 'react'
-import { CalendarDays, LocateFixed, Maximize2 } from 'lucide-react'
-import { ToggleGroup, ToggleGroupItem, cn } from '@xpert-ai/shadcn-ui'
+import { useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { cn } from '@xpert-ai/shadcn-ui'
 import type { ProjectTaskForecast } from '@xpert-ai/contracts'
 import { type ViewProps, groupLabel, useVirtualRows, TASK_ROW_HEIGHT, TASK_HEADER_HEIGHT } from './task-views'
 import { type Scale, timelineDomain, plannedEnd, attemptTimes, isRunning } from './model'
 import { dateTime } from './i18n'
-import { Status, TaskName, IconButton } from './ui'
+import { Status, TaskName } from './ui'
+import { useDragScroll } from './drag-scroll'
+import type { TimelineControlsProps } from './timeline-controls'
+import {
+    MIN_TIMELINE_WIDTH,
+    MAX_TIMELINE_WIDTH,
+    zoomTimelineWidth,
+    timelineAnchor,
+    timelineScrollLeft
+} from './timeline-viewport'
 import { ColumnHeader } from './columns'
 import { Assignee } from './assignee'
 
@@ -14,7 +22,7 @@ export function Gantt(
         forecasts: ProjectTaskForecast[]
         now: number
         empty?: ReactNode
-        renderToolbar: (controls: ReactNode) => ReactNode
+        renderToolbar: (controls: TimelineControlsProps) => ReactNode
     }
 ) {
     const {
@@ -36,11 +44,13 @@ export function Gantt(
         empty
     } = props
     const [scale, setScale] = useState<Scale>('hour'),
-        [fit, setFit] = useState(true),
+        [pixelsPerTick, setPixelsPerTick] = useState<number | null>(null),
         [includeNow, setIncludeNow] = useState(false),
         [locatePending, setLocatePending] = useState(false)
     const virtual = useVirtualRows(rows.length),
         markerId = useId().replace(/:/g, '')
+    const pendingAnchor = useRef<{ time: number; screenX: number } | null>(null)
+    useDragScroll(virtual.ref)
     const domain = useMemo(
         () =>
             timelineDomain(
@@ -71,7 +81,30 @@ export function Gantt(
     const left = visibleColumns.reduce((sum, column) => sum + columns.widths[column], 0)
     // Wide columns must remain horizontally scrollable on narrow hosts.
     const pinColumns = left <= virtual.viewport.width - 180
-    const width = fit ? Math.max(360, virtual.viewport.width - left) : Math.max(360, domain.ticks * 100)
+    const width =
+        pixelsPerTick == null
+            ? Math.max(360, virtual.viewport.width - left)
+            : Math.max(MIN_TIMELINE_WIDTH, Math.min(MAX_TIMELINE_WIDTH, domain.ticks * pixelsPerTick))
+    const geometry = {
+        start: domain.start,
+        end: domain.end,
+        width,
+        columns: left,
+        viewport: virtual.viewport.width,
+        pinned: pinColumns
+    }
+    const rememberAnchor = () => {
+        pendingAnchor.current = timelineAnchor(geometry, virtual.ref.current?.scrollLeft ?? 0)
+    }
+    const zoom = (direction: 'in' | 'out') => {
+        rememberAnchor()
+        setPixelsPerTick(zoomTimelineWidth(width, direction) / domain.ticks)
+    }
+    useLayoutEffect(() => {
+        if (!pendingAnchor.current || !virtual.ref.current) return
+        virtual.ref.current.scrollLeft = timelineScrollLeft(geometry, pendingAnchor.current)
+        pendingAnchor.current = null
+    }, [width, domain.start, domain.end, left, virtual.viewport.width, pinColumns])
     const x = (date: string | number) =>
         (((typeof date === 'number' ? date : Date.parse(date)) - domain.start) / (domain.end - domain.start)) * width
     const rowGrid = visibleColumns.map((column) => `${columns.widths[column]}px`).join(' ')
@@ -84,71 +117,58 @@ export function Gantt(
     }
     useLayoutEffect(() => {
         if (!locatePending || !virtual.ref.current) return
-        virtual.ref.current.scrollLeft = Math.max(
-            0,
-            ((now - domain.start) / (domain.end - domain.start)) * width - (virtual.viewport.width - left) / 2
-        )
+        virtual.ref.current.scrollLeft = timelineScrollLeft(geometry, {
+            time: now,
+            screenX: pinColumns ? left + (virtual.viewport.width - left) / 2 : virtual.viewport.width / 2
+        })
         setLocatePending(false)
     }, [locatePending, domain.start, domain.end, width, left, now, virtual.viewport.width])
     return (
         <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-            {renderToolbar(
-                <div className="ml-auto flex shrink-0 items-center gap-1 border-l pl-2">
-                    <CalendarDays aria-hidden className="size-4 text-muted-foreground" />
-                    <span className="mr-2 whitespace-nowrap text-xs tabular-nums text-muted-foreground">
-                        {new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'long', day: 'numeric' }).format(
-                            new Date(domain.start)
-                        )}
-                    </span>
-                    <ToggleGroup
-                        type="single"
-                        variant="outline"
-                        size="sm"
-                        value={scale}
-                        aria-label={t.gantt}
-                        onValueChange={(value) => {
-                            if (value === 'hour' || value === 'day' || value === 'week') {
-                                setScale(value)
-                                setFit(false)
-                            }
-                        }}
-                    >
-                        {(['hour', 'day', 'week'] as const).map((value) => (
-                            <ToggleGroupItem key={value} value={value}>
-                                {t[value]}
-                            </ToggleGroupItem>
-                        ))}
-                    </ToggleGroup>
-                    <IconButton
-                        label={t.fit}
-                        onClick={() => {
-                            setFit(true)
-                            setIncludeNow(false)
-                            virtual.ref.current?.scrollTo({ left: 0 })
-                        }}
-                    >
-                        <Maximize2 />
-                    </IconButton>
-                    <IconButton label={t.locate} onClick={locate}>
-                        <LocateFixed />
-                    </IconButton>
-                </div>
-            )}
+            {renderToolbar({
+                scale,
+                setScale: (value) => {
+                    rememberAnchor()
+                    setScale(value)
+                    setPixelsPerTick(100)
+                },
+                date: new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'short', day: 'numeric' }).format(
+                    new Date(domain.start)
+                ),
+                zoom: Math.round(width / domain.ticks),
+                canZoomIn: width < MAX_TIMELINE_WIDTH,
+                canZoomOut: width > MIN_TIMELINE_WIDTH,
+                zoomIn: () => zoom('in'),
+                zoomOut: () => zoom('out'),
+                fit: () => {
+                    pendingAnchor.current = null
+                    setPixelsPerTick(null)
+                    setIncludeNow(false)
+                    virtual.ref.current?.scrollTo({ left: 0 })
+                },
+                locate
+            })}
             {empty}
             <div
                 ref={virtual.ref}
                 onScroll={virtual.onScroll}
-                className={cn('min-h-0 min-w-0 flex-1 overflow-auto', empty && 'hidden')}
+                className={cn(
+                    'min-h-0 min-w-0 flex-1 overflow-auto cursor-grab data-[panning=true]:cursor-grabbing data-[panning=true]:select-none',
+                    empty && 'hidden'
+                )}
+                data-task-scroll="gantt"
+                title={t.panHint}
                 aria-label={t.gantt}
             >
                 <div style={{ width: left + width, minWidth: '100%' }}>
                     <div
+                        data-scroll-pan-ignore=""
                         className="sticky top-0 z-30 flex border-b bg-background text-xs text-muted-foreground"
                         style={{ height: TASK_HEADER_HEIGHT }}
                     >
                         <div
                             className={cn(
-                                'z-30 grid shrink-0 items-center border-r bg-muted/30',
+                                'z-30 grid shrink-0 items-center border-r bg-background',
                                 pinColumns && 'sticky left-0'
                             )}
                             style={{ width: left, gridTemplateColumns: rowGrid }}

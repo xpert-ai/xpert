@@ -68,7 +68,7 @@ project, not a second implementation. It supports `TASKS_PREVIEW_THEME=dark`,
 `TASKS_PREVIEW_SCENARIO=empty|readonly`. Restart
 the preview after rebuilding assets. Fixture changes are reset on restart.
 
-See `design-qa.md` for visual and interaction verification. Build outputs `app.js`
+Build outputs `app.js`
 and `app.css` are generated; edit their source files instead.
 
 Task details open in one centered, responsive Dialog for every view and viewport
@@ -79,3 +79,19 @@ existing unsaved-plan confirmation. Closing restores focus to the opening contro
 ### Delivered files tab
 
 The Outputs tab reads committed `result.artifacts` and `result.export` from the existing authorized `task-detail` response. It lists files by execution, exposes safe export diagnostics, and distinguishes no requested delivery from no delivered files. Working-directory paths and result declarations are not presented as downloadable artifacts. The execution viewer remains the existing download entry. Execution status, reliable-message receipts and acceptance controls belong to History and are not duplicated in Outputs.
+
+### Navigation and timeline controls
+
+The host entry is named **Project tasks**. View tabs stay within one fixed-height
+row; narrow panels show labelled icons. The toolbar keeps search and filters
+visible and moves grouping, sorting, fields and secondary timeline actions into
+**More actions** as the available panel width decreases. It does not scroll horizontally.
+
+Drag list, tree or Gantt content with the primary mouse button to pan both axes.
+A short click still opens the task or execution; column resize handles retain their
+own drag behavior. Touch scrolling and keyboard controls remain native.
+
+Gantt offers separate hour/day/week granularity and zoom controls. Zoom changes
+the horizontal time scale while preserving the time at the viewport center when
+scroll bounds allow. **Fit all** resets the zoom and **Go to now** locates the current
+time. Zoom and pan only change presentation; they never reschedule or start tasks.

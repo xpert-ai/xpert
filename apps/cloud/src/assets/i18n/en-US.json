@@ -2806,7 +2806,7 @@
       "AgentWorkflow": "Agent Workflow"
     },
     "XProject": {
-      "TaskTimeline": "Tasks & timeline",
+      "TaskTimeline": "Project tasks",
       "NoExperts": "No experts found",
       "WorkspaceTitle": "Projects",
       "WorkspaceSubtitle": "Plan, execute and review AI-assisted work in one controlled space.",

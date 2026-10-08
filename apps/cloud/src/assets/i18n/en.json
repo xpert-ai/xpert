@@ -4528,7 +4528,7 @@
       }
     },
     "XProject": {
-      "TaskTimeline": "Tasks & timeline",
+      "TaskTimeline": "Project tasks",
       "Application": "Application",
       "ProjectType": "Project type",
       "AllApplications": "All applications",
