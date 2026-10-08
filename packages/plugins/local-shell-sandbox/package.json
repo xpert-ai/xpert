@@ -1,6 +1,6 @@
 {
   "name": "@xpert-ai/plugin-local-shell-sandbox",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "license": "AGPL-3.0",
   "description": "Optional API-host shell sandbox with interactive PTY terminal support.",
