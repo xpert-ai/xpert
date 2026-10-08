@@ -35,6 +35,7 @@ import { ProjectTaskDispatchService } from '../../../xpert-project/runtime/proje
 import { ProjectTaskCaller } from '../../../xpert-project/runtime/project-task-dispatch.schema'
 import { XpertProjectTaskExecution } from '../../../xpert-project/entities/project-task-execution.entity'
 import { XpertProjectTask } from '../../../xpert-project/entities/project-task.entity'
+import { queueRecoveryCases } from './queue-recovery.cases'
 
 type Fixture = {
     database: DataSource
@@ -128,6 +129,8 @@ export function reliableReturnIntegrationCases(fixture: () => Fixture) {
             continuation = new RuntimeMessageContinuationService(database, access, bus)
         })
         afterEach(() => jest.restoreAllMocks())
+
+        queueRecoveryCases(() => ({ database, service, scope, caller, input, start }))
 
         async function observe(id: string, status: AgentInvocation['status']) {
             const saved = await store.read(id, scope)
