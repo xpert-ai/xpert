@@ -1,5 +1,109 @@
 # @xpert-ai/plugin-sdk
 
+## 3.20.0
+
+### Minor Changes
+
+- a01cd48: Add the realtime voice model capability, model protocol adapter contract, and Bosi voice sessions. Assistant creation and settings can select an independently authorized realtime model and voice. The host relays bounded PCM audio over an authenticated, single-use-ticket WebSocket and dispatches durable Assistant tasks independently of call lifetime. Create the voice tables and timing columns through the platform's existing TypeORM entity synchronization (the schema-sync job in externally managed deployments), and configure allowed renderer origins before enabling calls. No separate realtime voice SQL migration is required.
+
+  Introduce host-owned message envelopes with explicit source, target, correlation, and presentation for voice and future Assistant/Agent messages. Persist them in a dedicated typed `ChatMessage.messageEnvelope` JSONB column. Retain runtime execution, retry and branch history while applying consistent public-history filtering and protecting provenance from client edits. Apply the message-envelope migration before deployment.
+
+- bf33018: Expose optional version-pinned CLI background transports and V2 execution receipts that separate business cwd from managed execution records. Preserve V1 receipts and support bounded runtime reads.
+- f5add6a: Remove the ModelExecution per-request input cap and the byte/token comparison from
+  Chat, native and bridged CLI requests. Read and discard legacy maxInputTokens in
+  persisted policies and grants. Reserve estimated request tokens plus output against
+  cumulative budgets; settle using provider usage facts as before.
+
+  Expose the selected model's catalog context window to CLI profiles instead of deriving
+  it from tenant input limits. Custom CLI profiles must migrate from limits.maxInputTokens
+  to optional model.contextWindow. Upgrade the host and profiles together and start a new
+  execution to regenerate CLI configuration.
+
+  Remove the extra output cap and fixed Qwen/CodeBuddy turn caps. Use optional catalog
+  output metadata for CLI configuration, make execution token budgets explicit opt-ins,
+  and distinguish rate/concurrency errors from budget exhaustion. Honor active response
+  streams using an inactivity timer, and do not recover live grants as lost workers solely
+  because their calls are old. Republished Assistant versions no longer invalidate an
+  otherwise authorized execution.
+
+- c941907: Define versioned Project Task execution specifications, implementation/review purposes, evidence references and distinct invocation receipts. Add host-validated Runtime message provenance, reply metadata, progress observations and shared event/consumption identities.
+
+  This is the contract stage only. Durable Project Task dispatch, outbox/inbox consumers and automatic result delivery are not enabled by these declarations. Deploy compatible contracts, SDK and host before producing the new Runtime envelopes.
+
+  Use the published `@xpert-ai/chatkit-types` 0.11.1 package and declare the contracts package's Zod peer dependency. Host UI package upgrades follow with the live conversation integration.
+
+- 00b626e: Separate Project Task creation from execution and add authorized Runtime discovery, explicit idempotent task dispatch, specification snapshots and task details. Persist attempts and pinned dispatch intents before launching through the existing Invocation runtime; serialize Project execution admission and preserve native handoff behavior.
+
+  Support the built-in Project general agent as an explicit caller/reply identity. Computer invocations from this caller require a binding with an explicit `modelSource` referring to an accessible Assistant in the Project workspace; that Assistant supplies model policy, not caller identity or task ownership.
+
+  Apply `20261006-project-task-runtime.sql` before deploying the host. This stage supports durable dispatch identity and explicit retry/inspection, but does not enable autonomous recovery scanning, reliable result messages, automatic continuation or acceptance workflows.
+
+  Replace the legacy ProjectToolset and its creation command with the built-in `project-tasks` Middleware Plugin. Project general agents load it from the registry; Assistants can configure it through ordinary Plugin nodes and tool preferences. Preserve the six tool names while validating host-owned project/caller scope, localizing tool display metadata, and retaining Invocation status ownership.
+
+- 00db21e: Add optional ResourceCardProvider registration and batched, read-only card resolution to the plugin SDK. Dispatch live conversation card updates through a single host handler with scoped provider lookup, resource identity validation and isolated deadlines. Migrate project task cards to this provider path while keeping unregistered types as saved snapshots. Keep initial project card construction and refreshed presentation together in ProjectTaskCardProvider.
+
+### Patch Changes
+
+- 1df94f0: Add version-qualified background CLI profiles for Claude Code 2.1.63, CodeBuddy
+  2.161.1 and Kimi Code 2.1.1. Support an optional literal argv prompt argument in
+  the SDK JSONL transport contract. Configure isolated settings and explicit
+  permission modes; Kimi advertises only allow because its prompt mode forces
+  automatic approval. Keep revisions unchanged for unrelated tools.
+
+  Execution still requires a matching host transport and Agent Runtime adapter.
+
+- bf33018: Make managed background Coding CLI permissions configurable through the existing
+  tenant model execution policy, defaulting to allow with per-tool restricted
+  overrides. Pin the selected mode in runner receipts and keep evidence-only review
+  restrictions. Advertise supported modes in CLI profiles; leave interactive and
+  managed shell sessions unchanged.
+- d4dba33: Add the Conversation Map data and action services with authorized Assistant-family pagination, visible message search, branch-aware summaries, and typed branch titles. Reuse existing conversation creation, rename, branch, and navigation services, and return the existing side chat on request retries even after its source starts another run.
+- 01fd502: Add the on-demand Conversation Map Workbench View with shared shadcn controls, React Flow layouts, searchable conversation and branch navigation, and host-backed display preferences. Include compact directory rows, content-sized cards, accessible action tooltips, and reproducible source builds.
+
+  Use `agent.workbench` as the canonical Assistant Workbench slot. Normalize legacy `agent.workbench.fixed` and `agent.workbench.main` requests and plugin declarations at the host boundary, preserving authorization and opening preferences without duplicate views.
+
+- deff039: Add persisted conversation Resource Cards, the public emitResourceCard helper and optional transactional Project creation receipts. Cards use typed Workbench navigation without changing file Artifacts. Scheduler creation now emits a receipt and offers an on-demand, authorized detail/edit/history View. ChatKit and Xpert SDK companion releases are required for the UI; publish public contracts/SDK before consuming plugins.
+
+  Opening an Assistant Project target with a View now opens a separately scoped host tab, retaining the current conversation, composer and ChatKit mount. The target Project is authorized independently, and its View scope survives refresh and browser history. Explicit Project selection without a View retains its existing workspace-switch behavior.
+
+- b66bdcc: Add optional invocation activity capture and an independent Coding Execution View. Persist scoped, resumable public CLI activity and private bounded output archives; unify direct runtime cards and project execution navigation without coupling collection to task acceptance.
+- b86bba1: Add execution-scoped model grants, protocol bridges, CLI launchers, budget enforcement, attributed usage settlement and audited reconciliation. Expose the native model SDK and scoped host runner capability, and accept CLI prompt-cache hints without forwarding provider credentials to execution environments.
+
+  Add typed Agent execution results, authorized file delivery and bounded task observation. Preserve background execution during logout, centralize conversation file access, retain explicit Assistant middleware configuration, and allow validated text-only receipts from image-capable tools. Include the API and Web releases required by these shared contracts and runtime changes.
+
+- c0dd14c: Add provider-registered business task types with localized labels and controlled Lucide icon tokens. Persist taskType in the existing type column, preserve legacy values, and resolve presentation independently of hierarchy, status and assignee. Project Tasks list, tree, Gantt, board and detail views share one icon renderer. No database migration is required.
+- 3142346: Support explicit file/archive delivery in project task delegation, pin selections in durable dispatch intents and reject changed selections on replay. Share the delivery schema through contracts while preserving SDK exports. Reject wildcard paths before delegation and retain evidence-only review confinement.
+- 3185f56: Add explicit, revision-bound Project Task acceptance and rework decisions. Bind decisions to the current implementation, specification, and result or Artifact versions; keep retries idempotent and reject completion through generic task updates. Once independent review is requested, acceptance requires the latest valid passing review for that implementation.
+
+  Expose runtime progress, delivery and consumption, review reports, decision history, and authorized human controls in Tasks & Timeline. OS provides the shared review protocol and validation; the current review dispatch gate requires the Computer OpenCode executor supplied by Pro. This batch does not include Computer execution, live conversation streams, or message cards.
+
+  Apply `20261006-project-task-decisions.sql` after the task association and reliable reply migrations. Validation covers local tests and isolated PostgreSQL; it does not represent live model or CLI acceptance.
+
+- 55ec356: Add typed ModelRequest.requirements and mergeModelRequirements for per-call capability requirements, initially supporting ModelFeature.VISION. The host validates and snapshots middleware contributions, unions requirements across the call chain, and checks each invoked model including fallbacks. Required capabilities cannot silently degrade or substitute a static response. Calls without requirements retain existing behavior. Generic multimodal ToolNode support remains deferred.
+- fffb0f4: Add the scoped `ToolImagesRuntimeCapability` for immutable tool image references and temporary verified model input. Bind storage and Artifact access to the current host conversation, enforce complete tool rounds and checksum validation, and keep image bytes out of tool messages and checkpoints. Legacy image-tool history is sanitized only in outbound request copies.
+- d81dbe2: Allow Workbench Views to opt into conversation context updates while staying mounted, and connect exact branch and message navigation to ChatKit.
+- a131790: Add optional message anchors and originating-view preservation to Workbench conversation navigation contracts. The navigation resolver accepts an exact thread and message, validates thread ownership and visible user/assistant message membership, and retains the default thread behavior for older requests. Validate optional anchors at the HTTP boundary before resolving access.
+- Updated dependencies [d18aa7f]
+- Updated dependencies [b86bba1]
+- Updated dependencies [a01cd48]
+- Updated dependencies [bf33018]
+- Updated dependencies [aa33949]
+- Updated dependencies [d4dba33]
+- Updated dependencies [01fd502]
+- Updated dependencies [deff039]
+- Updated dependencies [b66bdcc]
+- Updated dependencies [b86bba1]
+- Updated dependencies [f5add6a]
+- Updated dependencies [c941907]
+- Updated dependencies [c0dd14c]
+- Updated dependencies [00b626e]
+- Updated dependencies [3142346]
+- Updated dependencies [3185f56]
+- Updated dependencies [98a7367]
+- Updated dependencies [d81dbe2]
+- Updated dependencies [a131790]
+  - @xpert-ai/contracts@3.20.0
+
 ## 3.19.0
 
 ### Minor Changes

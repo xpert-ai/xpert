@@ -1,5 +1,30 @@
 # @xpert-ai/desktop
 
+## 0.2.1
+
+### Patch Changes
+
+- b86bba1: Add resumable personal Bosi onboarding with tenant, organization and user isolation, private workspace preparation, workspace service connections, capability-aware model selection and recoverable template installation. Reuse existing Assistant bindings and persist initialization and welcome progress.
+
+  Add authorized public Assistant name and avatar updates, a Desktop appearance studio with configurable characters, uploaded images and pets, and ChatKit appearance and computer controls. Preserve published configuration when saving profile fields and keep Assistant capability changes behind explicit settings saves.
+
+- 01fd502: Add the on-demand Conversation Map Workbench View with shared shadcn controls, React Flow layouts, searchable conversation and branch navigation, and host-backed display preferences. Include compact directory rows, content-sized cards, accessible action tooltips, and reproducible source builds.
+
+  Use `agent.workbench` as the canonical Assistant Workbench slot. Normalize legacy `agent.workbench.fixed` and `agent.workbench.main` requests and plugin declarations at the host boundary, preserving authorization and opening preferences without duplicate views.
+
+- b86bba1: Ship grouped Desktop settings, usage and integer-point views, account registration entry points, and language initialization from system and account preferences. Preserve preferences when Keychain access is denied and retain existing conversation appearance choices while defaulting new users to bubble mode.
+
+  Refresh the Assistant list on native window activation without refreshing it when focus moves between the sidebar and conversation. Upgrade the embedded ChatKit integration to the shared 0.10.0 release.
+
+- ada086b: Declare jsdom as a direct Desktop development dependency so isolated installer builds can run the renderer tests without relying on transitive server dependencies. Regenerate the Desktop dependency lock for reproducible CI installs.
+
+  Use ES2020-compatible quote escaping for execution usage CSV exports so the Web production build succeeds without raising its browser library target.
+
+  Exclude test-support directories from the server-ai production compilation so Jest mocks remain available to tests without entering API build output.
+
+- b86bba1: Preserve host-provided root font size and corner-radius variables in remote Views. Make shared React theme utilities prefer the corresponding host radius values and clamp fallback radii so compact themes remain valid.
+  - @xpert-ai/desktop-protocol@0.2.1
+
 ## 0.2.0
 
 ### Minor Changes
