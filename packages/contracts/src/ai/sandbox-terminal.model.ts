@@ -26,6 +26,7 @@ export enum SandboxTerminalClosedReason {
 
 export enum SandboxTerminalErrorCode {
   CloseFailed = 'close_failed',
+  ComputerDesktopRequired = 'computer_desktop_required',
   ConversationNotFound = 'conversation_not_found',
   ConversationRequired = 'conversation_required',
   InputFailed = 'input_failed',
