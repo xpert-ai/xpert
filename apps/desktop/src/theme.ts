@@ -42,7 +42,7 @@ export function desktopThemeStyle(appearance: AppearanceConfig, mode: ColorMode)
     values[`--xui-color-avatar-${index}`] = color
   })
   values['--xui-color-avatar-foreground'] = defaults.avatarForeground
-  values['--xui-radius-md'] = `${appearance.desktop.radius}px`
+  values['--xui-radius-lg'] = `${appearance.desktop.radius}px`
   values['--xui-font-family'] = appearance.desktop.fontFamily || defaults.appearance.desktop.fontFamily
   const density = appearance.desktop.density
   values['--desktop-row-padding'] = `${density === 'compact' ? 6 : density === 'spacious' ? 14 : 10}px`
