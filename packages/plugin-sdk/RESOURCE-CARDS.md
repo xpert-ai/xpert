@@ -65,6 +65,7 @@ Targets are an allowlisted JSON protocol:
 
 - `workbench.view`: required `viewKey`, optional `selectionId`, optional `parameters` containing scalars or scalar arrays.
 - `assistant.project`: additionally requires the **platform Project ID** in `projectId`, and a `viewKey`.
+- `workbench.file`: required `viewKey`, `fileKey` and `targetId`; opens a file preview with an original-file download action. Optional `previewFile` supplies a separate preview reference.
 
 Targets cannot contain URLs, scripts or arbitrary client commands. Icons use the existing sanitized SVG, emoji or font renderer. Navigation and resource queries still pass through the host's View availability and access checks. An unavailable Workbench, missing View or denied/deleted resource produces feedback instead of an automatic fallback.
 
@@ -190,6 +191,76 @@ streams automatically. Test Provider registration/refresh/removal with a
 non-project fixture separately; a Project Task run alone does not prove an
 external plugin's installation lifecycle.
 
+## Composable content and image groups
+
+Use the optional `content` array to compose ordered presentation blocks inside one resource card. Each block can have a `title`:
+
+| Kind            | Items                         | Presentation                                                        |
+| --------------- | ----------------------------- | ------------------------------------------------------------------- |
+| `image-gallery` | `images: ResourceCardImage[]` | One responsive row initially; More expands the remaining images.    |
+| `file-list`     | `files: ResourceCardFile[]`   | File titles, optional descriptions and authorized download actions. |
+| `fields`        | `fields: ResourceCardField[]` | Read-only label/value pairs.                                        |
+
+For example, add this `content` property to the card passed to `emitResourceCard`:
+
+```ts
+content: [
+  { kind: 'fields', fields: [{ label: '状态', value: '已完成' }] },
+  {
+    kind: 'image-gallery',
+    title: '施工配图',
+    images: [
+      {
+        id: 'site-layout',
+        title: '施工现场平面布置图',
+        alt: '施工分区、出入口和运输路线',
+        file: {
+          viewKey: 'bid.view-provider__bid.studio',
+          fileKey: 'bid-project-image',
+          targetId: `${projectId}:${assetVersionId}`
+        }
+      }
+    ]
+  }
+]
+```
+
+New producers emit `content`, not top-level `images`. The reader converts historical top-level `images` only when `content` is absent. Image and file IDs must be unique within their block. The parser accepts up to 32 blocks and 100 items per block; these are transport bounds, not business image quotas. Invalid or unknown blocks are skipped independently.
+
+Reference committed, immutable file versions. The View must declare the file key and implement its authorized resolver. Image previews require the `preview` purpose; download actions require `download`. Do not store signed URLs, private file paths, credentials or base64 pixels in a card.
+
+ChatKit resolves visible thumbnails through the SDK View file-access session/grant API, reads authorized bytes and releases the session. Collapsed images are loaded only after expansion. Clicking an image opens a file preview with its own URL lifetime and an original-file download action. Failed previews can be retried without rerunning the business tool.
+
+Committed cards appear as soon as their events arrive, including while the Assistant reply is streaming. Later events upsert the same card instead of adding duplicates. Cards render independently of text message bubbles and remain available in history.
+
+The stream mapper binds an external Assistant's actual execution from runtime metadata; the root reply owns persistence. External Assistant transcripts retain cards for that execution and its descendants without counting them as tools or process steps. Plugins cannot supply either owner identity in the card payload.
+
+For Bid, `bid_submit_role_task` emits one group only after the illustration task is accepted, including native writing and queued post-writing tasks. Repeated submissions upsert the same group in the current reply. Unaccepted candidates and omitted needs are excluded. An emission failure never changes the accepted submission result.
+
+This extension requires coordinated ChatKit types/UI and host contracts/SDK/server updates before deploying a consuming plugin. Source tests do not upgrade installed packages.
+
+## File preview and original download
+
+Use `workbench.file` for an exported document's Open action. It opens the file preview rather than the business View:
+
+```ts
+open: {
+  target: 'workbench.file',
+  viewKey: 'bid.view-provider__bid.studio',
+  fileKey: 'bid-export-docx',
+  targetId: exportVersionId,
+  previewFile: {
+    viewKey: 'bid.view-provider__bid.studio',
+    fileKey: 'bid-export-preview-pdf',
+    targetId: exportVersionId
+  }
+}
+```
+
+`previewFile` is optional and uses the same `{ viewKey, fileKey, targetId }` reference shape. It can point to a derived PDF for a DOCX original. The preview and original download are authorized independently; Download always resolves the original reference. An unavailable preview can be retried without disabling Download. A resource card itself never grants file access.
+
+Workbench navigation and file access are separate capabilities. If tabs are unavailable, a host can still provide authorized inline images and downloads. Leaving the runtime scope cancels pending file access and closes scoped file previews.
+
 ## Transactional first-conversation Project receipts
 
 Implement the public `IProjectTypeProvider.createForConversation` interface and return optional `resourceCards` along with the managed state:
@@ -243,10 +314,10 @@ The preview explicitly uses fixture data, not a live scheduler.
 
 1. Build/release ChatKit types and Xpert SDK message contracts.
 2. Build/release ChatKit UI and wrappers together. Verify the iframe assets contain `resource_card` handling.
-3. Build/release platform contracts and plugin-sdk, then update the platform's single ChatKit catalog and SDK dependency/lockfile to those actual published versions.
+3. Update the platform's single ChatKit catalog and relevant dependency lockfiles to those published versions, then build/release platform contracts and plugin-sdk against them.
 4. Build Bid against that public plugin-sdk (no local decorator/interface shim), run `verify:dist`, then deploy the matching host and plugin.
 
-This change prepares changesets; it does not publish packages or deploy production. Platform contracts re-export the shared ChatKit resource-card protocol; keep the deployed types and UI compatible. Local Bid workspace overrides resolve the sibling built contracts/plugin-sdk. Do not describe a source alias or preview as a deployed package upgrade.
+This change prepares changesets; it does not publish packages or deploy production. Platform contracts re-export the protocol from `@xpert-ai/chatkit-types`; plugin-sdk re-exports those contracts. Building local source does not publish packages or update the platform's pinned dependencies. Verify the installed release supports `content` blocks and `workbench.file` before deploying consumers. Local Bid workspace overrides may resolve sibling builds; do not describe a source alias or preview as a deployed package upgrade.
 
 Existing message JSON is additive and needs no migration, new Artifact table or historical backfill.
 

@@ -66,7 +66,12 @@ integration('durable pause control / PostgreSQL', () => {
                     name: 'XpertAgentExecution',
                     target: XpertAgentExecution,
                     tableName: 'xpert_agent_execution',
-                    columns: { ...scopeColumns, status: text, error: nullableText }
+                    columns: {
+                        ...scopeColumns,
+                        status: text,
+                        error: nullableText,
+                        completedAt: { type: 'timestamptz', nullable: true }
+                    }
                 }),
                 new EntitySchema<ChatMessage>({
                     name: 'ChatMessage',
@@ -158,11 +163,16 @@ integration('durable pause control / PostgreSQL', () => {
         )
         await second.maintainLeases()
         const recovered = await threads.findOneByOrFail({ threadId })
+        const stoppedExecution = await database.getRepository(XpertAgentExecution).findOneByOrFail({ id: executionId })
+        expect(stoppedExecution.completedAt).toBeInstanceOf(Date)
         expect(recovered.status).toBe('error')
         expect(recovered.runControl).toBeNull()
         expect(readRunLease(recovered.metadata)).toBeNull()
         expect(await first.finish(threadId, executionId, 'idle')).toBe('error')
         expect(await second.recoverExpiredRun(threadId)).toBe(false)
+        expect(
+            (await database.getRepository(XpertAgentExecution).findOneByOrFail({ id: executionId })).completedAt
+        ).toEqual(stoppedExecution.completedAt)
         const wait = await database.getRepository(AgentInvocationWaitEntity).findOneByOrFail({ threadId })
         expect(wait.state).toBe('stale')
         expect((await database.getRepository(ChatMessage).findOneByOrFail({ executionId })).status).toBe('aborted')

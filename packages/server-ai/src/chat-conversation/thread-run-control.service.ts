@@ -149,10 +149,15 @@ export class ThreadRunControlService implements OnModuleInit, OnModuleDestroy {
             const scope = { tenantId: thread.tenantId, organizationId: thread.organizationId }
             await manager.update(
                 XpertAgentExecution,
-                { ...scope, id: lease.executionId },
+                {
+                    ...scope,
+                    id: lease.executionId,
+                    status: In([XpertAgentExecutionStatusEnum.RUNNING, XpertAgentExecutionStatusEnum.PENDING])
+                },
                 {
                     status: XpertAgentExecutionStatusEnum.INTERRUPTED,
-                    error
+                    error,
+                    completedAt: new Date()
                 }
             )
             await manager.update(

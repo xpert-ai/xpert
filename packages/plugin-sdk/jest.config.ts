@@ -1,6 +1,8 @@
+/** @jest-config-loader ts-node */
 /* eslint-disable */
 import { readFileSync } from 'fs'
 
+// Node's native TypeScript loader treats this config as ESM; ts-node preserves __dirname.
 const currentDirectory = __dirname
 
 // Reading the SWC compilation config and remove the "exclude"
@@ -12,6 +14,9 @@ const { exclude: _, ...swcJestConfig } = JSON.parse(readFileSync(`${currentDirec
 if (swcJestConfig.swcrc === undefined) {
   swcJestConfig.swcrc = false
 }
+
+// Transformed linked dependencies cannot resolve helpers from this workspace.
+swcJestConfig.jsc.externalHelpers = false
 
 // Uncomment if using global setup/teardown files being transformed via swc
 // https://nx.dev/packages/jest/documents/overview#global-setup/teardown-with-nx-libraries

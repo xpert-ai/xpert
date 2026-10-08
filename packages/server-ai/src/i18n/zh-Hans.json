@@ -192,6 +192,7 @@
         "ConnectorProviderConflict": "同一会话中每个服务提供方只能选择一个连接。",
         "AgentInvocationInvalidScope": "调用智能体需要有效的用户身份和执行上下文。",
         "AgentInvocationInvalidRequest": "智能体调用请求无效。",
+        "AgentDelegationDuplicateTask": "存在重复委派，每个独立任务只需提交一次。",
         "AgentInvocationCallConflict": "该调用已存在，但输入或目标版本不同。",
         "AgentInvocationProviderUnavailable": "智能体执行器不可用。",
         "AgentInvocationProviderChanged": "原智能体执行器版本已不可用。",

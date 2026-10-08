@@ -6,9 +6,11 @@ import { ExecutionCancelService } from '../shared/execution/execution-cancel.ser
 import { readThreadDisplayPause } from './thread-display-pause'
 import { ConflictException } from '@nestjs/common'
 import { instanceToPlain } from 'class-transformer'
-import { DataSource, EntityManager, Repository } from 'typeorm'
+import { DataSource, EntityManager, In, Repository } from 'typeorm'
 import { ChatConversationThread } from './conversation-thread.entity'
 import { ThreadRunControlService } from './thread-run-control.service'
+import { XpertAgentExecution } from '../xpert-agent-execution/agent-execution.entity'
+import { XpertAgentExecutionStatusEnum as ExecutionStatus } from '@xpert-ai/contracts'
 
 describe('ThreadRunControlService', () => {
     function setup() {
@@ -114,7 +116,7 @@ describe('ThreadRunControlService', () => {
     })
 
     it('recovers an expired process without falsely confirming a staged pause or replaying work', async () => {
-        const { thread, service, cancellations } = setup()
+        const { thread, service, cancellations, manager } = setup()
         await service.start('thread', 'run')
         await service.requestPause('thread', 'run')
         await service.stageCheckpoint('thread', 'run', { threadId: 'thread', checkpointNs: '', checkpointId: 'saved' })
@@ -127,6 +129,11 @@ describe('ThreadRunControlService', () => {
             }
         }
         expect(await service.recoverExpiredRun('thread')).toBe(true)
+        expect(manager.update).toHaveBeenCalledWith(
+            XpertAgentExecution,
+            expect.objectContaining({ id: 'run', status: In([ExecutionStatus.RUNNING, ExecutionStatus.PENDING]) }),
+            expect.objectContaining({ status: ExecutionStatus.INTERRUPTED, completedAt: expect.any(Date) })
+        )
         expect(thread.status).toBe('error')
         expect(thread.runControl).toBeNull()
         expect(thread.encryptedRunContext).toBeNull()

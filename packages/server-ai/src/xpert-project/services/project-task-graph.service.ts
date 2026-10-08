@@ -33,6 +33,7 @@ import { ProjectAccessRuntimeService } from './project-access-runtime.service'
 import { ChatConversation } from '../../chat-conversation/conversation.entity'
 import { ChatConversationThread } from '../../chat-conversation/conversation-thread.entity'
 import { XpertAgentExecution } from '../../xpert-agent-execution/agent-execution.entity'
+import { projectTaskRuntimeTiming } from './project-task-runtime-timing'
 import { ChatMessage } from '../../chat-message/chat-message.entity'
 import { Xpert } from '../../xpert/xpert.entity'
 import { avatarForChat } from '../../shared/avatar'
@@ -235,13 +236,8 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
             const run = runtime.find((run) => run.id === item.agentExecutionId)
             return {
                 ...item,
-                runtimeStatus: run?.status ?? ('unknown' as const),
                 // Runtime timestamps are separate from domain acceptance/lease timestamps.
-                runtimeStartedAt: run?.createdAt?.toISOString() ?? null,
-                runtimeCompletedAt:
-                    run && ['success', 'error', 'timeout'].includes(run.status)
-                        ? (run.updatedAt?.toISOString() ?? null)
-                        : null
+                ...projectTaskRuntimeTiming(run)
             }
         })
         const nodes = rows.map((row) =>

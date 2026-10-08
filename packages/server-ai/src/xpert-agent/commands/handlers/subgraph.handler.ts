@@ -895,6 +895,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 this.invocationGraph.compileExperts(experts, {
                     ...delegationScope,
                     agentKey,
+                    parallelToolCalls: agent.options?.parallelToolCalls === true,
+                    // Resolved below after all middleware has been assembled; invoked only at runtime.
+                    wrapToolCall: (request, handler) =>
+                        wrapToolCall ? wrapToolCall(request, handler) : handler(request),
                     options,
                     occupiedNames: [
                         agentKey,

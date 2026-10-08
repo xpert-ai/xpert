@@ -192,6 +192,7 @@
         "ConnectorProviderConflict": "Select only one connection per provider in this conversation.",
         "AgentInvocationInvalidScope": "Agent invocation requires an authenticated execution scope.",
         "AgentInvocationInvalidRequest": "Invalid Agent invocation request.",
+        "AgentDelegationDuplicateTask": "Duplicate delegation. Include each independent task only once.",
         "AgentInvocationCallConflict": "This call already exists with different input or target revision.",
         "AgentInvocationProviderUnavailable": "The Agent runtime provider is unavailable.",
         "AgentInvocationProviderChanged": "The original Agent runtime provider version is no longer available.",
