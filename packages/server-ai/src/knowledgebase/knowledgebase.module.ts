@@ -1,3 +1,4 @@
+import { TenantLibraryAccessService } from './tenant-library/tenant-library-access.service'
 import { RagVStoreModule } from '../rag-vstore'
 import { KnowledgebaseTag } from './tags/knowledgebase-tag.entity'
 import { KnowledgeDocumentTag } from './tags/document-tag.entity'
@@ -5,6 +6,7 @@ import { KnowledgeTagService } from './tags/knowledge-tag.service'
 import { KnowledgeTagController, KnowledgeTagUsageController } from './tags/knowledge-tag.controller'
 import { KnowledgebaseRuntimeService } from './runtime/knowledgebase-runtime.service'
 import { KnowledgebaseDocumentsRuntimeService } from './runtime/knowledgebase-documents-runtime.service'
+import { KnowledgeUploadSessionsService } from './runtime/knowledge-upload-sessions.service'
 import { KnowledgebaseProvisioningRuntimeService } from './runtime/knowledgebase-provisioning-runtime.service'
 import { DatabaseModule, IntegrationModule, Tag, TenantModule, UserModule } from '@xpert-ai/server-core'
 import { BullModule } from '@nestjs/bull'
@@ -118,8 +120,10 @@ import { KeywordTitleSubscriber } from './analyzer/keyword-title.subscriber'
         KnowledgeParserSettingsService,
         KnowledgeTableContextService,
         KnowledgebaseService,
+        TenantLibraryAccessService,
         KnowledgebaseRuntimeService,
         KnowledgebaseDocumentsRuntimeService,
+        KnowledgeUploadSessionsService,
         KnowledgebaseProvisioningRuntimeService,
         KnowledgebaseRebuildEmbeddingConsumer,
         KnowledgebaseTaskService,

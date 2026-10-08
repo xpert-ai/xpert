@@ -69,6 +69,8 @@
         "RuntimeMessageBlocked": "Automatic continuation is blocked.",
         "RuntimeMessageUnknown": "The previous consumer outcome is unknown. Inspect its execution before continuing.",
         "ProjectTaskSpecificationInvalid": "The task specification is invalid or no longer matches its saved digest.",
+        "TenantLibraryAdminRequired": "Only a super administrator can manage tenant libraries",
+        "TenantLibraryScopeRequired": "Switch to tenant scope before managing tenant libraries",
         "ChatMessageEnvelopeInvalid": "Invalid message provenance or presentation.",
         "RealtimeModelRequired": "Configure and authorize a realtime voice model first.",
         "RealtimeConfigurationInvalid": "Select a valid realtime model and voice.",

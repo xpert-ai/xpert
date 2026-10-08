@@ -28,13 +28,14 @@ export class KnowledgebaseRuntimeService implements KnowledgebaseApi {
 
     async list(input: KnowledgebaseListInput = {}): Promise<KnowledgebaseListItem[]> {
         const workspaceId = normalizeOptionalString(input.workspaceId)
-        if (!workspaceId) {
+        if (!workspaceId && input.scope !== 'tenant') {
             return []
         }
 
         return this.queryBus.execute(
             new ListWorkspaceKnowledgebasesQuery({
                 workspaceId,
+                scope: input.scope,
                 published: input.published,
                 limit: input.limit
             })

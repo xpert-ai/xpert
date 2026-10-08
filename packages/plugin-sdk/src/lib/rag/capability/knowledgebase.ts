@@ -39,6 +39,8 @@ export type KnowledgebaseSearchResult = {
 }
 
 export type KnowledgebaseListInput = {
+  /** Tenant-owned public libraries, readable by tenant members. */
+  scope?: 'workspace' | 'tenant'
   workspaceId?: string | null
   published?: boolean
   limit?: number
@@ -150,6 +152,8 @@ export type KnowledgebaseProvisioningSpec = {
 }
 
 export type KnowledgebaseEnsureInput = {
+  /** Tenant provisioning requires SUPER_ADMIN already in tenant request scope; workspaceId supplies model discovery only. */
+  scope?: 'workspace' | 'tenant'
   workspaceId: string
   namespace: string
   /**

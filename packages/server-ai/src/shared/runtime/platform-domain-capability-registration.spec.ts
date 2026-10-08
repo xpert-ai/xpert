@@ -1,4 +1,8 @@
 jest.mock('../../xpert-project/services/conversation-project.service', () => ({ ConversationProjectService: class {} }))
+jest.mock('../../knowledgebase/knowledgebase.service', () => ({ KnowledgebaseService: class {} }))
+jest.mock('../../knowledgebase/tenant-library/tenant-library-access.service', () => ({
+    TenantLibraryAccessService: class {}
+}))
 import 'reflect-metadata'
 import { Reflector } from '@nestjs/core'
 
@@ -6,11 +10,12 @@ import { Reflector } from '@nestjs/core'
 jest.mock('@xpert-ai/plugin-sdk', () => ({
     ...jest.requireActual('../../../../plugin-sdk/src/lib/core/runtime-capability'),
     ...jest.requireActual('../../../../plugin-sdk/src/lib/runtime/capabilities/project-provisioning'),
-    ...jest.requireActual('../../../../plugin-sdk/src/lib/runtime/capabilities/knowledgebase'),
-    ...jest.requireActual('../../../../plugin-sdk/src/lib/runtime/capabilities/knowledgebase-documents'),
+    ...jest.requireActual('../../../../plugin-sdk/src/lib/rag/capability/knowledgebase'),
+    ...jest.requireActual('../../../../plugin-sdk/src/lib/rag/capability/knowledgebase-documents'),
     ...jest.requireActual('../../../../plugin-sdk/src/lib/agent/middleware/capabilities/assistant-task'),
     ...jest.requireActual('../../../../plugin-sdk/src/lib/agent/runtime/strategy'),
     ...jest.requireActual('../../../../plugin-sdk/src/lib/channel/cancel-conversation.command'),
+    SandboxWorkspaceMapperStrategy: () => () => undefined,
     RequestContext: {
         currentTenantId: () => 'tenant-1',
         getOrganizationId: () => 'org-1'
@@ -35,6 +40,7 @@ import { ProjectProvisioningRuntimeService } from '../../xpert-project/services/
 import { EnsureXpertProjectCommand } from '../../xpert-project/commands/ensure-project.command'
 import { KnowledgebaseRuntimeService } from '../../knowledgebase/runtime/knowledgebase-runtime.service'
 import { KnowledgebaseDocumentsRuntimeService } from '../../knowledgebase/runtime/knowledgebase-documents-runtime.service'
+import { KnowledgeUploadSessionsService } from '../../knowledgebase/runtime/knowledge-upload-sessions.service'
 import { KnowledgebaseProvisioningRuntimeService } from '../../knowledgebase/runtime/knowledgebase-provisioning-runtime.service'
 import { AssistantTaskRuntimeService } from '../../xpert-agent-execution/runtime/assistant-task-runtime.service'
 import { ListWorkspaceKnowledgebasesQuery, KnowledgeSearchQuery } from '../../knowledgebase/queries'
@@ -50,10 +56,14 @@ function fixture() {
         { confirm: jest.fn() } as never
     )
     const knowledge = new KnowledgebaseRuntimeService(commands as never, queries as never)
-    const documents = new KnowledgebaseDocumentsRuntimeService(commands as never)
+    const uploads = new KnowledgeUploadSessionsService(
+        { assertKnowledgebaseWriteAccess: jest.fn(), assertNotRebuilding: jest.fn() } as never,
+        { resolve: jest.fn(), resolveRoot: jest.fn() }
+    )
+    const documents = new KnowledgebaseDocumentsRuntimeService(commands as never, uploads)
     const provisioning = new KnowledgebaseProvisioningRuntimeService(commands as never)
     const tasks = new AssistantTaskRuntimeService(commands as never, queries as never, { get: jest.fn() } as never)
-    const providers = [project, knowledge, documents, provisioning, tasks]
+    const providers = [project, knowledge, documents, uploads, provisioning, tasks]
     const registry = new DefaultRuntimeCapabilityRegistry()
     const explorer = new RuntimeCapabilityProviderExplorer(
         { getProviders: () => providers.map((instance) => ({ instance })) } as never,
@@ -61,10 +71,32 @@ function fixture() {
         registry
     )
     explorer.onModuleInit()
-    return { registry, project, knowledge, documents, provisioning, tasks, commands, queries, projects }
+    return { registry, project, knowledge, documents, uploads, provisioning, tasks, commands, queries, projects }
 }
 
 describe('platform domain capabilities outside Agent execution', () => {
+    it('exposes upload sessions through Documents without registering a separate capability', async () => {
+        const f = fixture()
+        const api = f.registry.require(KnowledgebaseDocumentsRuntimeCapability)
+        expect(api.uploads).toBe(f.uploads)
+        expect(f.registry.get('platform.knowledgebase.upload-sessions')).toBeUndefined()
+        const input = { knowledgebaseId: 'library-1', name: 'images.zip', size: 128 }
+        const session = {
+            id: 'session-1',
+            name: input.name,
+            size: input.size,
+            chunkSize: 4194304,
+            received: [],
+            partHashes: {},
+            complete: false
+        }
+        const create = jest.spyOn(f.uploads, 'create').mockResolvedValueOnce(session)
+        await expect(api.uploads.create(input)).resolves.toEqual(session)
+        expect(create).toHaveBeenCalledWith(input)
+        create.mockRejectedValueOnce(new Error('knowledge write access denied'))
+        await expect(api.uploads.create(input)).rejects.toThrow('knowledge write access denied')
+    })
+
     it('discovers the actual domain services without constructing an Agent runtime or adapters', () => {
         const f = fixture()
         expect(f.registry.require(ProjectProvisioningRuntimeCapability)).toBe(f.project)

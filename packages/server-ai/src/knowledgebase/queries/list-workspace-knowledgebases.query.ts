@@ -6,7 +6,8 @@ export class ListWorkspaceKnowledgebasesQuery extends Query<KnowledgebaseListIte
 
     constructor(
         public readonly input: {
-            workspaceId: string
+            workspaceId?: string
+            scope?: 'workspace' | 'tenant'
             published?: boolean
             limit?: number
         }

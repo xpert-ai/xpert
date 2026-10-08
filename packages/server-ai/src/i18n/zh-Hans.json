@@ -69,6 +69,8 @@
         "RuntimeMessageBlocked": "自动继续已被阻止。",
         "RuntimeMessageUnknown": "上一次处理的结果尚未确定，请先检查关联执行。",
         "ProjectTaskSpecificationInvalid": "任务规格无效或与已保存的摘要不一致。",
+        "TenantLibraryAdminRequired": "仅超级管理员可管理租户共享知识库",
+        "TenantLibraryScopeRequired": "请先切换到租户范围，再管理租户共享知识库",
         "ChatMessageEnvelopeInvalid": "消息来源或展示设置无效。",
         "RealtimeModelRequired": "请先配置并授权可用的实时语音模型。",
         "RealtimeConfigurationInvalid": "请选择有效的实时语音模型和音色。",

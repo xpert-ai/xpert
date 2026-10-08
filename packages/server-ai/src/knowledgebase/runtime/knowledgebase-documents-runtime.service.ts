@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common'
+import { Inject, Injectable } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import {
     KnowledgebaseDocumentsRuntimeCapability,
     type KnowledgebaseDocumentsApi,
+    type KnowledgeUploadSessionsApi,
     KnowledgebaseProcessingOptionsInput,
     KnowledgebaseProcessingOptionsResult,
     KnowledgebaseCreateDocumentsInput,
@@ -47,11 +48,15 @@ import {
     UploadKnowledgebaseDocumentFileCommand
 } from '../commands'
 import { RuntimeCapabilityProvider } from '../../shared/runtime/runtime-capability-provider.decorator'
+import { KnowledgeUploadSessionsService } from './knowledge-upload-sessions.service'
 
 @Injectable()
 @RuntimeCapabilityProvider(KnowledgebaseDocumentsRuntimeCapability)
 export class KnowledgebaseDocumentsRuntimeService implements KnowledgebaseDocumentsApi {
-    constructor(private readonly commandBus: CommandBus) {}
+    constructor(
+        private readonly commandBus: CommandBus,
+        @Inject(KnowledgeUploadSessionsService) readonly uploads: KnowledgeUploadSessionsApi
+    ) {}
 
     async getProcessingOptions(
         input: KnowledgebaseProcessingOptionsInput
