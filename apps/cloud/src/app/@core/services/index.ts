@@ -86,3 +86,5 @@ export * from './xpert-settings-context.service'
 export * from './file-change-review.service'
 
 export * from './ai-workspace-files.service'
+
+export * from './setup-plugins.service'

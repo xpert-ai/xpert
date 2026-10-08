@@ -141,26 +141,8 @@
     </div>
   </z-step>
 
-  <z-step [editable]="!loading()">
-    <ng-template zStepLabel>{{ 'XP.Onboarding.Done' | translate: { Default: 'Done' } }}</ng-template>
-    <div class="flex flex-col justify-start items-center gap-4">
-      <div class="text-3xl text-primary-500 p-8">
-        {{ 'XP.Onboarding.AllSetup' | translate: { Default: "You're all set up!" } }}
-      </div>
-
-      <div class="w-full border-b border-solid border-divider-regular"></div>
-
-      <div class="p-8">
-        <button
-          type="button"
-          class="flex justify-center items-center btn btn-large btn-primary hover:shadow-md"
-          [disabled]="navigating()"
-          (click)="navigateHome()"
-        >
-          {{ 'XP.Onboarding.TakeMetoXpertAiPlatform' | translate: { Default: 'Take me to Xpert AI Platform' } }}
-        </button>
-      </div>
-    </div>
+  <z-step [editable]="false">
+    <ng-template zStepLabel>{{ 'XP.Onboarding.InstallPlugins' | translate }}</ng-template>
   </z-step>
 </z-stepper>
 
