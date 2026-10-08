@@ -157,6 +157,7 @@
         "ConnectorProviderConflict": "同一会话中每个服务提供方只能选择一个连接。",
         "AgentInvocationInvalidScope": "\u8c03\u7528\u667a\u80fd\u4f53\u9700\u8981\u6709\u6548\u7684\u7528\u6237\u8eab\u4efd\u548c\u6267\u884c\u4e0a\u4e0b\u6587\u3002",
         "AgentInvocationInvalidRequest": "\u667a\u80fd\u4f53\u8c03\u7528\u8bf7\u6c42\u65e0\u6548\u3002",
+        "AgentDelegationDuplicateTask": "存在重复委派，每个独立任务只需提交一次。",
         "AgentInvocationCallConflict": "\u8be5\u8c03\u7528\u5df2\u5b58\u5728\uff0c\u4f46\u8f93\u5165\u6216\u76ee\u6807\u7248\u672c\u4e0d\u540c\u3002",
         "AgentInvocationProviderUnavailable": "\u667a\u80fd\u4f53\u6267\u884c\u5668\u4e0d\u53ef\u7528\u3002",
         "AgentInvocationProviderChanged": "\u539f\u667a\u80fd\u4f53\u6267\u884c\u5668\u7248\u672c\u5df2\u4e0d\u53ef\u7528\u3002",

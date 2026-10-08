@@ -57,10 +57,13 @@ export function collaboratorToolDeclaration(expert: IXpert) {
         {
             name: expert.slug,
             description: expert.description || expert.title || expert.name,
-            schema: z.object({
-                ...(createParameters(expert.agentConfig?.parameters ?? expert.agent?.parameters) ?? {}),
-                input: z.string().describe('The task to delegate to this expert')
-            })
+            verboseParsingErrors: true,
+            schema: z
+                .object({
+                    ...(createParameters(expert.agentConfig?.parameters ?? expert.agent?.parameters) ?? {}),
+                    input: z.string().describe('The task to delegate to this expert')
+                })
+                .strict()
         }
     )
 }
