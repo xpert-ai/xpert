@@ -50,7 +50,6 @@ export function wrapAgentExecution<T>(
         let subexecution = await commandBus.execute(
             new XpertAgentExecutionUpsertCommand({
                 ...execution
-                // status: XpertAgentExecutionStatusEnum.RUNNING
             })
         )
         execution.id = subexecution.id
@@ -86,11 +85,9 @@ export function wrapAgentExecution<T>(
             // Record End time
             subexecution = await commandBus.execute(
                 new XpertAgentExecutionUpsertCommand({
-                    ...subexecution,
+                    // Persist runtime changes, not the initial row's timestamps or usage counters.
                     ...execution,
                     elapsedTime: timeEnd - timeStart,
-                    // status,
-                    // error,
                     outputs: {
                         output
                     }

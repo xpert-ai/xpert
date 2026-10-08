@@ -1,11 +1,12 @@
-import { PaginationParams, RequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
-import { Injectable } from '@nestjs/common'
+import { PaginationParams, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
+import { Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { assign } from 'lodash'
-import { FindManyOptions, In, IsNull, Repository } from 'typeorm'
+import { assign, omit } from 'lodash'
+import { DeepPartial, FindManyOptions, In, IsNull, Repository } from 'typeorm'
 import { XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { XpertAgentExecution } from './agent-execution.entity'
 import type { TExecutionUsageRecord } from './types'
+import { executionCompletedAt } from './execution-timing'
 
 @Injectable()
 export class XpertAgentExecutionService extends TenantOrganizationAwareCrudService<XpertAgentExecution> {
@@ -16,10 +17,27 @@ export class XpertAgentExecutionService extends TenantOrganizationAwareCrudServi
         super(repository)
     }
 
+    async create(entity: DeepPartial<XpertAgentExecution>, ...options: unknown[]) {
+        // Audit timestamps belong to the ORM, not caller snapshots.
+        const changes = omit(entity, ['createdAt', 'updatedAt'])
+        return super.create({ ...changes, completedAt: executionCompletedAt(undefined, entity.status) }, ...options)
+    }
+
     async update(id: string, entity: Partial<XpertAgentExecution>) {
-        const _entity = await super.findOne(id)
-        assign(_entity, entity)
-        return await this.repository.save(_entity)
+        const changes = omit(entity, ['createdAt', 'updatedAt'])
+        const scope = await super.findOne(id)
+        // Serialize lifecycle and metadata saves so an older read cannot erase a concurrent end.
+        return this.repository.manager.transaction(async (manager) => {
+            const current = await manager.findOne(XpertAgentExecution, {
+                where: { id, tenantId: scope.tenantId, organizationId: scope.organizationId ?? IsNull() },
+                lock: { mode: 'pessimistic_write' }
+            })
+            if (!current) throw new NotFoundException()
+            const completedAt = executionCompletedAt(current, changes.status)
+            // Keep the freshly loaded audit values unchanged so TypeORM generates updatedAt.
+            assign(current, changes, { completedAt })
+            return manager.save(current)
+        })
     }
 
     async recordUsage(id: string, usage: TExecutionUsageRecord) {
@@ -61,7 +79,7 @@ export class XpertAgentExecutionService extends TenantOrganizationAwareCrudServi
     async interruptRunning(ids: string[], threadId: string, error: string) {
         return this.repository.update(
             { id: In(ids), threadId, status: XpertAgentExecutionStatusEnum.RUNNING },
-            { status: XpertAgentExecutionStatusEnum.INTERRUPTED, error }
+            { status: XpertAgentExecutionStatusEnum.INTERRUPTED, error, completedAt: new Date() }
         )
     }
 

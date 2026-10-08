@@ -16,6 +16,8 @@ export type TXpertExecution = {
   status?: XpertAgentExecutionStatusEnum
   error?: string
   elapsedTime?: number
+  /** Wall-clock end of the current execution attempt; cleared when execution resumes. */
+  completedAt?: Date | null
 
   // State of graph
   threadId?: string
