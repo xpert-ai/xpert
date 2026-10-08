@@ -27,12 +27,16 @@ Managed shell Qwen uses edit-only `auto-edit` for headless file changes while re
 Qwen keeps its default approval mode. Background invocations use the explicit permission mode described below.
 
 Optional `background` profiles describe version-qualified managed transports:
-OpenCode uses its native loopback service; Codex and Qwen Code use single-prompt
-JSONL output. The Runtime adapter still declares compatible `executionTools` and
+OpenCode uses its native loopback service; Codex, Qwen Code, CodeBuddy, Kimi Code
+and Claude Code use single-prompt JSONL output. An optional `promptArgument`
+provides one literal argv value for tools without stdin prompt support; it is
+never interpolated into shell code. Other profiles keep stdin delivery.
+The Runtime adapter still declares compatible `executionTools` and
 owns protocol result parsing. The host intersects those declarations with policy
 and never selects a CLI from its provider's display name.
 
-Qwen, Codex and OpenCode profiles declare `permissionModes: ['allow', 'restricted']`.
+Qwen, Codex, OpenCode, Claude and CodeBuddy profiles declare
+`permissionModes: ['allow', 'restricted']`.
 For background invocations the host passes `permissionMode` from the tenant's
 `modelExecutionPolicy.cliPermissions` (default `allow`, optional tool-ID overrides).
 Qwen maps `allow` to YOLO; `restricted` retains auto-edit plus Node shell approval.
@@ -46,3 +50,17 @@ platform grants or mounted filesystem access.
 `permissionMode` is optional for compatibility: interactive/managed shell launches
 that omit it keep their prior behavior. Custom profiles must explicitly advertise
 and implement each supported mode; the host rejects unsupported selections.
+
+Background profiles additionally cover CodeBuddy **2.161.1**, Claude Code **2.1.63**
+and Kimi Code **2.1.1**. Claude/CodeBuddy select `bypassPermissions` for `allow`, or
+`dontAsk` with file tools and `Bash(node:*)` for `restricted`; ambient settings and
+MCP servers are disabled. All three profiles restrict their tools to
+Bash/Read/Write/Edit/Glob/Grep for this workflow.
+Kimi uses a private agent file, empty skills directory and no subagents; its
+prompt mode forces automatic approval, so it advertises **only `allow`**.
+The host must reject `restricted` before launch instead of silently weakening it.
+Interactive launches that omit `permissionMode` retain their original configuration.
+
+These declarations require a matching host transport and Runtime adapter. Installing
+the profile package alone does not provide Computer execution. Profile revisions are
+declared per tool so changes to one adapter do not invalidate unrelated Shell grants.

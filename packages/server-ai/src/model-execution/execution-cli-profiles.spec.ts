@@ -79,7 +79,7 @@ describe('bundled execution CLI profiles', () => {
                 ]
             }
         })
-        expect(builtinCliModelProfiles.get('qwen')?.revision).toBe('2')
+        expect(builtinCliModelProfiles.get('qwen')?.revision).toBe('3')
     })
 
     it('pins Kimi main and secondary models to the grant and reads its key from the environment', () => {
@@ -127,5 +127,86 @@ describe('bundled execution CLI profiles', () => {
             ],
             availableModels: ['assistant-default']
         })
+    })
+})
+
+describe('background CLI extensions', () => {
+    it.each([
+        { id: 'claude', version: '2.1.63' },
+        { id: 'codebuddy', version: '2.161.1' },
+        { id: 'kimi', version: '2.1.1' }
+    ])('qualifies $id only for the pinned JSONL version', ({ id, version }) => {
+        expect(builtinCliModelProfiles.get(id)?.background).toMatchObject({
+            transport: 'jsonl',
+            versions: [version]
+        })
+        expect(builtinCliModelProfiles.get(id)?.revision).toBe('4')
+        expect(builtinCliTools.find((tool) => tool.id === id)?.version).toBe(version)
+    })
+
+    it.each(['claude', 'codebuddy'])(
+        'isolates %s background settings and applies the requested permission mode',
+        (id) => {
+            const background = builtinCliModelProfiles.get(id)?.background
+            if (background?.transport !== 'jsonl') throw new Error('Expected JSONL profile')
+            expect(background.args).toEqual(
+                expect.arrayContaining([
+                    '--print',
+                    '--output-format',
+                    'stream-json',
+                    '--strict-mcp-config',
+                    '--mcp-config',
+                    '{"mcpServers":{}}',
+                    '--tools',
+                    'Bash,Read,Write,Edit,Glob,Grep'
+                ])
+            )
+            expect(background.promptArgument).toBeUndefined()
+            const allowed = configure(id, { managed: true, permissionMode: 'allow' })
+            const restricted = configure(id, { managed: true, permissionMode: 'restricted' })
+            expect(allowed.args).toEqual(expect.arrayContaining(['--permission-mode', 'bypassPermissions']))
+            expect(allowed.args).not.toContain('--allowedTools')
+            expect(restricted.args).toEqual(
+                expect.arrayContaining([
+                    '--permission-mode',
+                    'dontAsk',
+                    '--allowedTools',
+                    'Read,Write,Edit,Glob,Grep,Bash(node:*)',
+                    '--setting-sources',
+                    '',
+                    '--settings',
+                    `/tmp/execution-first/${id}-settings.json`
+                ])
+            )
+            expect(restricted.args).not.toContain('bypassPermissions')
+            expect(restricted.files).toContainEqual({ name: `${id}-settings.json`, content: '{}' })
+            expect(
+                JSON.stringify(configure(id, { managed: true, permissionMode: 'restricted', directory: '/tmp/other' }))
+            ).not.toContain('/tmp/execution-first')
+            expect(restricted.args.join(' ')).not.toContain(CLI_MODEL_TOKEN_REFERENCE)
+        }
+    )
+
+    it('declares Kimi argv prompt delivery and never advertises unsupported restricted execution', () => {
+        const profile = builtinCliModelProfiles.get('kimi')
+        expect(profile?.permissionModes).toEqual(['allow'])
+        expect(profile?.background).toMatchObject({ transport: 'jsonl', promptArgument: '--prompt' })
+        const config = configure('kimi', { managed: true, permissionMode: 'allow' })
+        expect(config.args).toEqual(
+            expect.arrayContaining([
+                '--agent-file',
+                '/tmp/execution-first/kimi-agent.md',
+                '--skills-dir',
+                '/tmp/execution-first/config'
+            ])
+        )
+        const agent = config.files.find((file) => file.name === 'kimi-agent.md')
+        expect(agent?.content).toContain('tools: [Bash, Read, Write, Edit, Glob, Grep]')
+        expect(agent?.content).toContain('subagents: []')
+        expect(configure('kimi').args).not.toContain('--agent-file')
+    })
+
+    it.each(['codex', 'opencode', 'qwen'])('preserves the %s revision for unchanged configuration', (id) => {
+        expect(builtinCliModelProfiles.get(id)?.revision).toBe('3')
     })
 })

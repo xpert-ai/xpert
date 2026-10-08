@@ -36,7 +36,15 @@ export interface CliModelProfile {
   /** Optional host-managed background transport. Arguments are trusted profile code, never model input. */
   background?: {
     versions: readonly string[]
-  } & ({ transport: 'opencode' } | { transport: 'jsonl'; args: readonly string[] })
+  } & (
+    | { transport: 'opencode' }
+    | {
+        transport: 'jsonl'
+        args: readonly string[]
+        /** For CLIs without stdin prompt support. Host appends one literal argv value, never shell text. */
+        promptArgument?: string
+      }
+  )
   /** Exact complete argv sequences that never need a model grant. */
   offlineArguments: readonly (readonly string[])[]
   /** Exact accepted stdout values for a policy-pinned version probe. */

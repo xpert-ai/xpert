@@ -80,7 +80,17 @@ function configureBuiltinCli(
     if (!base.endsWith('/openai/v1')) throw new Error('Invalid CLI profile configuration')
     return {
       args: [
-        ...(bridge ? ['--permission-mode', 'default'] : []),
+        ...(grant.permissionMode
+          ? [
+              '--permission-mode',
+              grant.permissionMode === 'allow' ? 'bypassPermissions' : 'dontAsk',
+              ...(grant.permissionMode === 'restricted'
+                ? ['--allowedTools', 'Read,Write,Edit,Glob,Grep,Bash(node:*)']
+                : [])
+            ]
+          : bridge
+            ? ['--permission-mode', 'default']
+            : []),
         '--model',
         'assistant-default',
         '--setting-sources',
@@ -191,7 +201,13 @@ function configureBuiltinCli(
     }
   if (grant.toolId === 'kimi')
     return {
-      args: ['--model', 'assistant-default'],
+      args: [
+        '--model',
+        'assistant-default',
+        ...(grant.permissionMode
+          ? ['--agent-file', `${directory}/kimi-agent.md`, '--skills-dir', `${directory}/config`]
+          : [])
+      ],
       environment: {
         ...environment,
         KIMI_CODE_HOME: directory,
@@ -223,12 +239,43 @@ function configureBuiltinCli(
               'default_model = "assistant-default"',
               'force = true'
             ].join('\n') + '\n'
-        }
+        },
+        ...(grant.permissionMode
+          ? [
+              {
+                name: 'kimi-agent.md',
+                content:
+                  '---\nname: xpert-coding\ndescription: Host-managed coding execution\ntools: [Bash, Read, Write, Edit, Glob, Grep]\nsubagents: []\n---\nComplete the supplied coding task in the current project directory. Execute checks and report actual results. Do not run background commands or delegate.\n'
+              }
+            ]
+          : [])
       ]
     }
   if (grant.toolId === 'codebuddy')
     return {
-      args: ['--model', 'assistant-default', '--permission-mode', 'default', '--subagent-permission-mode', 'default'],
+      args: [
+        '--model',
+        'assistant-default',
+        '--permission-mode',
+        grant.permissionMode === 'allow'
+          ? 'bypassPermissions'
+          : grant.permissionMode === 'restricted'
+            ? 'dontAsk'
+            : 'default',
+        '--subagent-permission-mode',
+        'default',
+        ...(grant.permissionMode
+          ? [
+              '--setting-sources',
+              '',
+              '--settings',
+              `${directory}/codebuddy-settings.json`,
+              ...(grant.permissionMode === 'restricted'
+                ? ['--allowedTools', 'Read,Write,Edit,Glob,Grep,Bash(node:*)']
+                : [])
+            ]
+          : [])
+      ],
       environment: {
         ...environment,
         CODEBUDDY_CONFIG_DIR: directory,
@@ -263,7 +310,8 @@ function configureBuiltinCli(
             ],
             availableModels: ['assistant-default']
           })
-        }
+        },
+        ...(grant.permissionMode ? [{ name: 'codebuddy-settings.json', content: '{}' }] : [])
       ]
     }
   if (grant.toolId !== 'opencode') throw new Error('Invalid CLI profile configuration')
@@ -325,6 +373,7 @@ function configureBuiltinCli(
 const definitions = [
   {
     id: 'codex',
+    revision: '3',
     permissionModes: ['allow', 'restricted'],
     background: { versions: ['0.159.2'], transport: 'jsonl', args: ['exec', '--json', '--skip-git-repo-check', '-'] },
     protocol: 'openai_responses',
@@ -337,6 +386,27 @@ const definitions = [
   },
   {
     id: 'claude',
+    revision: '4',
+    permissionModes: ['allow', 'restricted'],
+    background: {
+      versions: ['2.1.63'],
+      transport: 'jsonl',
+      args: [
+        '--print',
+        '--verbose',
+        '--input-format',
+        'text',
+        '--output-format',
+        'stream-json',
+        '--tools',
+        'Bash,Read,Write,Edit,Glob,Grep',
+        '--strict-mcp-config',
+        '--mcp-config',
+        '{"mcpServers":{}}',
+        '--no-session-persistence',
+        '--disable-slash-commands'
+      ]
+    },
     protocol: 'anthropic_messages',
     requiredCapabilities: [],
     chatBridge: { versions: ['2.1.63'], requiredCapabilities: [ModelFeature.STREAM_TOOL_CALL] },
@@ -344,15 +414,23 @@ const definitions = [
   },
   {
     id: 'opencode',
+    revision: '3',
     permissionModes: ['allow', 'restricted'],
     background: { versions: ['1.18.33'], transport: 'opencode' },
     protocol: 'openai_chat',
     requiredCapabilities: [ModelFeature.STREAM_TOOL_CALL],
     versionOutputs: (v: string) => [v, `opencode ${v}`]
   },
-  { id: 'aider', protocol: 'openai_chat', requiredCapabilities: [], versionOutputs: (v: string) => [v, `aider ${v}`] },
+  {
+    id: 'aider',
+    revision: '1',
+    protocol: 'openai_chat',
+    requiredCapabilities: [],
+    versionOutputs: (v: string) => [v, `aider ${v}`]
+  },
   {
     id: 'qwen',
+    revision: '3',
     permissionModes: ['allow', 'restricted'],
     background: {
       versions: ['0.24.7'],
@@ -375,12 +453,41 @@ const definitions = [
   },
   {
     id: 'kimi',
+    revision: '4',
+    // 2.1.1 forces auto approval in prompt mode; never advertise a restricted mode it ignores.
+    permissionModes: ['allow'],
+    background: {
+      versions: ['2.1.1'],
+      transport: 'jsonl',
+      args: ['--output-format', 'stream-json'],
+      promptArgument: '--prompt'
+    },
     protocol: 'openai_chat',
     requiredCapabilities: [ModelFeature.STREAM_TOOL_CALL],
     versionOutputs: (v: string) => [v, `kimi version ${v}`]
   },
   {
     id: 'codebuddy',
+    revision: '4',
+    permissionModes: ['allow', 'restricted'],
+    background: {
+      versions: ['2.161.1'],
+      transport: 'jsonl',
+      args: [
+        '--print',
+        '--verbose',
+        '--input-format',
+        'text',
+        '--output-format',
+        'stream-json',
+        '--tools',
+        'Bash,Read,Write,Edit,Glob,Grep',
+        '--strict-mcp-config',
+        '--mcp-config',
+        '{"mcpServers":{}}',
+        '--no-session-persistence'
+      ]
+    },
     protocol: 'openai_chat',
     requiredCapabilities: [ModelFeature.STREAM_TOOL_CALL],
     versionOutputs: (v: string) => [v, `${v} (CodeBuddy Code)`]
@@ -388,7 +495,14 @@ const definitions = [
 ] satisfies Array<
   Pick<
     CliModelProfile,
-    'id' | 'protocol' | 'requiredCapabilities' | 'permissionModes' | 'chatBridge' | 'background' | 'versionOutputs'
+    | 'id'
+    | 'revision'
+    | 'protocol'
+    | 'requiredCapabilities'
+    | 'permissionModes'
+    | 'chatBridge'
+    | 'background'
+    | 'versionOutputs'
   >
 >
 
@@ -400,7 +514,6 @@ export const builtinCliModelProfiles: CliModelProfiles = {
     return {
       ...definition,
       command: definition.id,
-      revision: 'permissionModes' in definition ? '3' : '1',
       offlineArguments: [['--version']],
       configure: (input) =>
         configureBuiltinCli(
