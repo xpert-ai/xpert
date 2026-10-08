@@ -7,11 +7,16 @@ import {
   PluginApplicationStatusSummary
 } from '@xpert-ai/contracts'
 import { API_PREFIX } from '@cloud/app/@core/state'
+import { tap } from 'rxjs'
+import { XpertWorkspaceService } from './xpert-workspace.service'
+import { XpertAPIService } from './xpert.service'
 
 /** Typed client for the host-governed plugin application control plane. */
 @Injectable({ providedIn: 'root' })
 export class PluginApplicationService {
   readonly #http = inject(HttpClient)
+  readonly #workspaces = inject(XpertWorkspaceService)
+  readonly #xperts = inject(XpertAPIService)
 
   getStatuses() {
     return this.#http.get<PluginApplicationStatusSummary[]>(`${API_PREFIX}/plugin-applications/status`)
@@ -27,6 +32,13 @@ export class PluginApplicationService {
   }
 
   initialize(input: PluginApplicationInitializeInput) {
-    return this.#http.post<PluginApplicationStatusSummary>(`${API_PREFIX}/plugin-applications/initialize`, input)
+    return this.#http.post<PluginApplicationStatusSummary>(`${API_PREFIX}/plugin-applications/initialize`, input).pipe(
+      tap((status) => {
+        if (status.status === 'ready') {
+          this.#workspaces.refresh()
+          this.#xperts.refresh()
+        }
+      })
+    )
   }
 }
