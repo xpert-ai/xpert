@@ -8,6 +8,7 @@
         "@xpert-ai/cli-model-profiles": "workspace:*",
         "@xpert-ai/desktop-protocol": "workspace:*",
         "@apidevtools/swagger-parser": "^10.1.0",
+        "@dagrejs/dagre": "^1.1.4",
         "@emoji-mart/data": "^1.2.1",
         "@langchain/community": "0.3.53",
         "@langchain/core": "0.3.72",
