@@ -43,6 +43,17 @@ This repo uses NestJS + TypeORM on the server and Angular 17 (standalone, signal
 
 - Put ChatKit business endpoints in `AIModule` under `/api/ai`, with shared authentication and explicit Assistant/conversation scope guards. Keep controllers thin and resource authorization in reusable business services; do not open management controllers to client secrets for ChatKit. Cookie-bound or short-lived authorized content URLs may remain separate.
 
+### Authoring workspace versus Assistant file workspace
+
+- `XpertWorkspace` (`xpert_workspace`, `xpert.workspaceId`) is the authoring resource container for Assistants, skills and connectors. Its `canRead/canRun/canWrite/canManage` capabilities are not Assistant file permissions.
+- An Assistant file workspace is runtime data in a Volume, mapped into a sandbox filesystem. For non-Project files, resolve it using `resolveXpertDataVolumeScope`: `shared` uses tenant + Assistant identity; `user` additionally binds the authenticated user. Never substitute the Assistant creator or accept file ownership/catalog/root overrides from a client.
+- Runtime file entry points must authorize the exact published Assistant through `ResolveAssistantFileAccessCommand` / `AssistantFilesService.forRuntime()`. Do not use `XpertService.findOne()`, `XpertWorkspaceService.canAccess()`, or workspace-level `canRun` as the file ACL. UserGroup access must work without authoring workspace membership.
+- Shared Assistant files are explicitly collaborative: authorized users may read, upload, modify and delete. User-isolated files permit the same operations only in the current user's volume. File access never grants authoring workspace membership or editing rights.
+- Studio uses `AssistantFilesService.forAuthoring()` and retains explicit authoring checks, including drafts. Choose the entry in trusted server code; never accept an authoring mode from HTTP data or fall back to authoring after runtime denial.
+- Preserve credential audiences and revalidate current user access for standalone file browsing, including delegated USER_XPERT sessions. Project file access retains Project membership and Assistant binding; a Project-delegated session alone must not unlock the Assistant's non-Project volume.
+- Keep filesystem containment and symlink protection in Volume APIs. Test real authorization services together with file operations for group-only access, revocation, cross-Assistant denial, user isolation and Studio draft access; mocks that always allow `findOne()` or `canAccess()` cannot cover this boundary.
+- Conversation file APIs must distinguish parsed attachments (`/ai/conversations/:id/files`, FileAssets) from runtime directories (`/ai/conversations/:id/workspace/*`, Volumes). Never register both controllers for the same method and URL; keep SDK Workbench routes aligned and test both controllers together.
+
 ### Request validation
 
 - For new schema-driven APIs, especially ModelExecution and inputs reused by HTTP, jobs or persistence, prefer Zod schemas with the shared `ZodValidationPipe` from `@xpert-ai/server-core`. Keep established DTO class + `ValidationPipe` modules consistent; do not migrate unrelated endpoints only for style.

@@ -1,3 +1,4 @@
+import { CommandBus } from '@nestjs/cqrs'
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { ForbiddenException, Global, INestApplication, Module } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
@@ -15,7 +16,7 @@ import { RequestContextMiddleware as LegacyContextMiddleware } from '../../../se
 import { AuthGuard } from '../../../server/src/shared/guards/auth.guard'
 import { VOLUME_CLIENT } from '../shared'
 import { XpertWorkspaceService } from '../xpert-workspace/workspace.service'
-import { XpertWorkspaceFilesService } from '../xpert/xpert-workspace-files.service'
+import { AssistantFilesService } from '../xpert/assistant-files/assistant-files.service'
 import { AssistantWorkspaceFilesController } from './assistant-workspace-files.controller'
 import { AssistantFileAccessGuard } from './assistant-file-access.guard'
 import { WorkspaceFileAccessRuntimeController } from './workspace-file-access-runtime.controller'
@@ -26,7 +27,7 @@ import { WorkspaceFileAccessService } from '../workspace-file-access/workspace-f
 
 jest.mock('../xpert/xpert.service', () => ({ XpertService: class {} }))
 jest.mock('../xpert-workspace/workspace.service', () => ({ XpertWorkspaceService: class {} }))
-jest.mock('../xpert/xpert-workspace-files.service', () => ({ XpertWorkspaceFilesService: class {} }))
+jest.mock('../xpert/assistant-files/assistant-files.service', () => ({ AssistantFilesService: class {} }))
 
 // Exercise real global/route guards, request contexts and HTTP pipes. Only
 // credential verification, persistence and the View's business resources are fixtures.
@@ -41,6 +42,7 @@ describe('workspace file HTTP authentication', () => {
     const values = new Map<string, unknown>()
     const workspace = { canAccess: jest.fn() }
     const files = {
+        capabilities: jest.fn(),
         list: jest.fn(),
         read: jest.fn(),
         download: jest.fn(),
@@ -104,6 +106,7 @@ describe('workspace file HTTP authentication', () => {
         }
         const providers = [
             AssistantFileAccessGuard,
+            { provide: CommandBus, useValue: { execute: jest.fn().mockResolvedValue({}) } },
             WorkspaceFileAccessService,
             {
                 provide: CACHE_MANAGER,
@@ -123,7 +126,7 @@ describe('workspace file HTTP authentication', () => {
                 provide: VOLUME_CLIENT,
                 useValue: { resolve: () => ({ path: () => path.join(directory, 'result.txt') }) }
             },
-            { provide: XpertWorkspaceFilesService, useValue: files },
+            { provide: AssistantFilesService, useValue: { forRuntime: () => files } },
             {
                 provide: XpertService,
                 useValue: { findOne: async () => ({ createdById: 'owner', workspaceId: 'workspace-1' }) }
@@ -186,6 +189,7 @@ describe('workspace file HTTP authentication', () => {
             })
         }
         workspace.canAccess.mockResolvedValue(true)
+        files.capabilities.mockResolvedValue({ canList: true, canRead: true, canWrite: true, canDelete: true })
         files.list.mockResolvedValue([{ filePath: 'result.txt' }])
         files.read.mockResolvedValue({ content: 'complete' })
         files.download.mockImplementation(async () => ({
@@ -215,6 +219,17 @@ describe('workspace file HTTP authentication', () => {
             headers: headers(token),
             body: JSON.stringify({ hostType: 'agent', hostId, viewKey: manifest.key })
         })
+
+    it('returns file capabilities only for an authenticated, correctly bound runtime caller', async () => {
+        const url = `${origin}/api/ai/assistants/${assistantId}/workspace/capabilities`
+        const response = await fetch(url, { headers: headers('cs-x-user') })
+        expect(response.status).toBe(200)
+        expect(await response.json()).toEqual({ canList: true, canRead: true, canWrite: true, canDelete: true })
+        expect((await fetch(url)).status).toBe(401)
+        expect(
+            (await fetch(url.replace(assistantId, otherAssistantId), { headers: headers('cs-x-user') })).status
+        ).toBe(403)
+    })
 
     it.each(routes)('supports JWT and delegated reads through %s without a 401 retry', async (route) => {
         for (const token of ['fixture-jwt', 'cs-x-user']) {
@@ -637,7 +652,7 @@ describe('workspace file HTTP authentication', () => {
         const valid = await fetch(`${url}?deepth=2`, { headers: headers('cs-x-user') })
         expect(valid.status).toBe(200)
         await valid.text()
-        expect(files.list).toHaveBeenCalledWith(assistantId, '', 2)
+        expect(files.list).toHaveBeenCalledWith('', 2)
         files.list.mockClear()
         for (const query of ['deepth=-1', 'deepth=oops', 'tenantId=another', 'path=a&path=b']) {
             const response = await fetch(`${url}?${query}`, { headers: headers('cs-x-user') })
@@ -655,11 +670,11 @@ describe('workspace file HTTP authentication', () => {
         })
         expect(saved.status).toBe(200)
         await saved.text()
-        expect(files.save).toHaveBeenCalledWith(assistantId, 'result.txt', 'new')
+        expect(files.save).toHaveBeenCalledWith('result.txt', 'new')
         const deleted = await fetch(`${url}?path=result.txt`, { method: 'DELETE', headers: headers('cs-x-user') })
         expect(deleted.status).toBe(200)
         await deleted.text()
-        expect(files.delete).toHaveBeenCalledWith(assistantId, 'result.txt')
+        expect(files.delete).toHaveBeenCalledWith('result.txt')
         files.save.mockClear()
         for (const body of [
             { path: '', content: 'bad' },
@@ -696,10 +711,9 @@ describe('workspace file HTTP authentication', () => {
         expect(response.status).toBe(201)
         await response.text()
         if (route === 'save-binary') {
-            expect(files.saveBinary).toHaveBeenCalledWith(assistantId, 'results/file.bin', Buffer.from([0, 1, 255]))
+            expect(files.saveBinary).toHaveBeenCalledWith('results/file.bin', Buffer.from([0, 1, 255]))
         } else {
             expect(files.uploadToFolder).toHaveBeenCalledWith(
-                assistantId,
                 'results/file.bin',
                 expect.objectContaining({ buffer: Buffer.from([0, 1, 255]) })
             )

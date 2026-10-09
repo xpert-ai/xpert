@@ -1,4 +1,3 @@
-jest.mock('../xpert-workspace/workspace.service', () => ({ XpertWorkspaceService: class {} }))
 jest.mock('@xpert-ai/plugin-sdk', () => ({
     ...jest.requireActual('@xpert-ai/plugin-sdk'),
     RequestContext: {
@@ -7,34 +6,43 @@ jest.mock('@xpert-ai/plugin-sdk', () => ({
     }
 }))
 
-jest.mock('../shared/runtime/workspace-files-runtime-capability.service', () => ({
+jest.mock('../../shared/runtime/workspace-files-runtime-capability.service', () => ({
     WorkspaceFilesRuntimeCapabilityService: class WorkspaceFilesRuntimeCapabilityService {}
 }))
 
-jest.mock('./xpert.service', () => ({
-    XpertService: class XpertService {}
-}))
-
-import type { IArtifactWorkspaceFileReference } from '@xpert-ai/contracts'
+import type { IArtifactWorkspaceFileReference, IXpert } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { createHash } from 'node:crypto'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { VolumeHandle, VolumeSubtreeClient } from '../shared/volume'
-import { XpertWorkspaceFilesService } from './xpert-workspace-files.service'
+import { VolumeHandle, VolumeSubtreeClient, resolveXpertDataVolumeScope } from '../../shared/volume'
+import { CommandBus } from '@nestjs/cqrs'
+import { AssistantFilesService } from './assistant-files.service'
+import { ResolveAssistantFileAccessCommand } from './resolve-assistant-file-access.command'
 
 function createService(
-    ...args: [
-        ConstructorParameters<typeof XpertWorkspaceFilesService>[0],
-        ConstructorParameters<typeof XpertWorkspaceFilesService>[1],
-        ConstructorParameters<typeof XpertWorkspaceFilesService>[2]
-    ]
+    xperts: { findOne(id: string): Promise<Pick<IXpert, 'id' | 'tenantId' | 'workspaceDataScope'>> },
+    workspaceFiles: ConstructorParameters<typeof AssistantFilesService>[1],
+    volumes: ConstructorParameters<typeof AssistantFilesService>[2]
 ) {
-    return new XpertWorkspaceFilesService(...args, { canAccess: jest.fn(async () => true) })
+    const commands = {
+        execute: async (command: ResolveAssistantFileAccessCommand) => {
+            const xpert = await xperts.findOne(command.assistantId)
+            return {
+                scope: resolveXpertDataVolumeScope({
+                    ...xpert,
+                    tenantId: xpert.tenantId,
+                    xpertId: xpert.id,
+                    userId: RequestContext.currentUserId()
+                })
+            }
+        }
+    }
+    return new AssistantFilesService(commands as unknown as CommandBus, workspaceFiles, volumes).forRuntime('xpert-1')
 }
 
-describe('XpertWorkspaceFilesService', () => {
+describe('AssistantFilesService storage', () => {
     afterEach(() => {
         jest.restoreAllMocks()
     })
@@ -74,7 +82,7 @@ describe('XpertWorkspaceFilesService', () => {
         } as Express.Multer.File
         const contentSha256 = createHash('sha256').update(file.buffer).digest('hex')
 
-        await expect(service.upload('xpert-1', file)).resolves.toEqual(reference)
+        await expect(service.upload(file)).resolves.toEqual(reference)
         expect(xpertService.findOne).toHaveBeenCalledWith('xpert-1')
         expect(createScopedApi).toHaveBeenCalledWith({
             tenantId: 'tenant-1',
@@ -122,8 +130,8 @@ describe('XpertWorkspaceFilesService', () => {
             buffer: Buffer.from('<html></html>')
         } as Express.Multer.File
 
-        await service.upload('xpert-1', file)
-        await service.upload('xpert-1', file)
+        await service.upload(file)
+        await service.upload(file)
 
         expect(writeRuntimeBuffer).toHaveBeenCalledTimes(2)
         expect(writeRuntimeBuffer.mock.calls[0][0].folder).toBe(writeRuntimeBuffer.mock.calls[1][0].folder)
@@ -155,7 +163,7 @@ describe('XpertWorkspaceFilesService', () => {
             { resolve }
         )
 
-        await expect(service.list('xpert-1', 'files', 2)).resolves.toEqual([])
+        await expect(service.list('files', 2)).resolves.toEqual([])
 
         expect(resolve).toHaveBeenCalledWith({
             tenantId: 'tenant-1',
@@ -197,7 +205,7 @@ describe('XpertWorkspaceFilesService', () => {
         )
 
         try {
-            await expect(service.list('xpert-1')).resolves.toEqual([])
+            await expect(service.list()).resolves.toEqual([])
         } finally {
             await rm(provisioningRoot, { recursive: true, force: true })
         }
@@ -219,9 +227,9 @@ describe('XpertWorkspaceFilesService', () => {
         const service = createService(xpertService, { createScopedApi: jest.fn() }, { resolve })
 
         jest.mocked(RequestContext.currentUserId).mockReturnValue('user-a')
-        await service.list('xpert-1')
+        await service.list()
         jest.mocked(RequestContext.currentUserId).mockReturnValue('user-b')
-        await service.list('xpert-1')
+        await service.list()
 
         expect(resolve.mock.calls.map(([scope]) => scope)).toEqual([
             { tenantId: 'tenant-1', catalog: 'user-xperts', userId: 'user-a', xpertId: 'xpert-1' },
@@ -247,7 +255,7 @@ describe('XpertWorkspaceFilesService', () => {
             { resolve: jest.fn() }
         )
 
-        await service.upload('xpert-1', {
+        await service.upload({
             originalname: 'a.txt',
             mimetype: 'text/plain',
             size: 1,
@@ -262,40 +270,4 @@ describe('XpertWorkspaceFilesService', () => {
             scopeId: 'xpert-1'
         })
     })
-    it.each(['list', 'read', 'download', 'save', 'saveBinary', 'uploadToFolder', 'delete'] as const)(
-        'authorizes %s in the domain service before opening a volume',
-        async (operation) => {
-            jest.mocked(RequestContext.currentUserId).mockReturnValue('reader')
-            const resolve = jest.fn()
-            const xpert = { id: 'assistant', tenantId: 'tenant-1', workspaceId: 'workspace', createdById: 'owner' }
-            const canAccess = jest.fn().mockResolvedValue(false)
-            const service = new XpertWorkspaceFilesService(
-                { findOne: jest.fn().mockResolvedValue(xpert) },
-                { createScopedApi: jest.fn() },
-                { resolve },
-                { canAccess }
-            )
-            const invoke = () => {
-                switch (operation) {
-                    case 'save':
-                        return service.save('assistant', 'file.txt', 'text')
-                    case 'saveBinary':
-                        return service.saveBinary('assistant', 'file.bin', Buffer.from('data'))
-                    case 'uploadToFolder':
-                        return service.uploadToFolder('assistant', 'folder', {
-                            originalname: 'file',
-                            buffer: Buffer.from('data')
-                        })
-                    default:
-                        return service[operation]('assistant', 'file.txt')
-                }
-            }
-            await expect(invoke()).rejects.toMatchObject({ status: 403 })
-            expect(canAccess).toHaveBeenCalledWith('workspace', 'reader')
-            canAccess.mockResolvedValue(true)
-            jest.mocked(RequestContext.currentTenantId).mockReturnValueOnce('tenant-other')
-            await expect(invoke()).rejects.toMatchObject({ status: 403 })
-            expect(resolve).not.toHaveBeenCalled()
-        }
-    )
 })

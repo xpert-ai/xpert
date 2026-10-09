@@ -2,6 +2,8 @@
 
 > 状态：已落地，2026-07 更新运行时权限桥接设计。
 
+> 2026-10 补充：本文 Workspace 指 `XpertWorkspace` 创作资源实体。Assistant 文件工作区使用独立的文件授权和 Volume 数据范围；UserGroup 用户无须获得创作工作区 `canRead` 即可协作读写已授权 Assistant 的共享文件。具体规则见 `docs/zh-hans/guides/permission.mdx` 的 5.6 节，不能把本文的工作区 `canRun` 桥接当成文件 ACL。
+
 ## 背景
 
 已发布智能体通过 `UserGroup` 向组织用户授权。审批通过后，用户会加入该智能体绑定的访问组，因此用户可以在智能体广场看到并打开智能体。

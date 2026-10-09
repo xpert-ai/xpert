@@ -5,9 +5,23 @@ This guide documents the current Volume / Workspace split in `xpert`.
 There are only two core rules:
 
 - `Volume` always means a filesystem path visible to the server process.
-- `Workspace` always means a filesystem path visible to a sandbox.
+- In this path model, `Workspace` means a filesystem path visible to a sandbox. It does not mean the `XpertWorkspace` authoring entity.
 
 They are related, but they are not the same thing.
+
+## File workspaces versus authoring workspaces
+
+`XpertWorkspace` (`xpert_workspace`, `xpert.workspaceId`) contains authoring resources such as Assistants, skills and connectors. Its owner/member relationship and `canRead/canRun/canWrite/canManage` capabilities are separate from Assistant file authority.
+
+A non-Project Assistant file workspace is selected by `resolveXpertDataVolumeScope()`: tenant + Assistant for `workspaceDataScope=shared`, or tenant + current user + Assistant for `user`. This identity does not use `xpert.workspaceId`. The `workspaceId` field of other Volume catalogs must not be substituted for an Assistant file scope.
+
+Runtime file routes use `AssistantFilesService.forRuntime()` and the exact published Assistant's current user ACL. Studio uses `forAuthoring()` and explicit authoring authorization, including drafts. Both use `ResolveAssistantFileAccessCommand` before Volume IO. A UserGroup grant therefore permits runtime files without authoring workspace membership. Neither generic `XpertService.findOne()` nor workspace-level `canRun` is the file ACL.
+
+The explicit file policy is collaborative CRUD for authorized users in shared volumes, and the same operations within each user's own isolated volume. Server context determines tenant, user and catalog; HTTP input cannot select another owner. Project volumes retain Project membership and Assistant binding checks. The capabilities endpoint is `GET /api/ai/assistants/:assistantId/workspace/capabilities`; operations still reauthorize each request.
+
+Standalone file browsing revalidates current user access behind delegated `USER_XPERT` credentials. A Project-only delegated audience cannot authorize a standalone Assistant volume. General Assistant calls retain Project delegation. Authenticated file requests recheck access; existing cookie-bound content grants retain their separate expiry and explicit revocation lifecycle. Historical shared Volume URLs are unchanged by this API authorization fix.
+
+No file relocation, data-isolation migration or Assistant file API URL change is required. Conversation runtime directories use `/api/ai/conversations/:id/workspace/*`; `/api/ai/conversations/:id/files` remains the parsed attachment FileAsset list. These must never share a route registration. SDK Workbench clients must adopt the `/workspace` path; existing singular-file routes remain compatible.
 
 ## Why the split exists
 

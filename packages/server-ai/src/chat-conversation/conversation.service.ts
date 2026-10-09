@@ -26,17 +26,15 @@ import {
     GetOwnedStorageFileQuery,
     ResolveAuthorizedFileAssetQuery
 } from '../file-understanding/queries'
-import {
-    isProjectGovernedContentPath,
-    resolveXpertDataVolumeScope,
-    VOLUME_CLIENT,
-    VolumeClient,
-    VolumeSubtreeClient
-} from '../shared/volume'
+import { isProjectGovernedContentPath, VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../shared/volume'
 import { normalizeFileName, normalizeRelativePath } from '../shared/file-upload-targets/utils'
 import { FindAgentExecutionsQuery, XpertAgentExecutionStateQuery } from '../xpert-agent-execution/queries'
 import { XpertProjectAccessService } from '../xpert-project/services/project-access.service'
 import { ChatConversation } from './conversation.entity'
+import {
+    ResolveAssistantFileAccessCommand,
+    AssistantFileOperation
+} from '../xpert/assistant-files/resolve-assistant-file-access.command'
 import { ChatConversationReadState } from './conversation-read-state.entity'
 import { ChatConversationPublicDTO } from './dto'
 import { ChatConversationThreadService } from './conversation-thread.service'
@@ -588,7 +586,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 
     async getWorkspaceFiles(id: string, path?: string, deepth?: number): Promise<TFileDirectory[]> {
         const conversation = await this.getAuthorizedWorkspaceConversation(id, 'read')
-        const { client, scopePath } = this.createWorkspaceVolumeClient(conversation)
+        const { client, scopePath } = await this.createWorkspaceVolumeClient(conversation, 'read')
         return client.list(scopePath, {
             path,
             deepth
@@ -625,7 +623,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
             }
             resolvedFilePath = workspaceRelativePath
         }
-        const { client, scopePath } = this.createWorkspaceVolumeClient(conversation)
+        const { client, scopePath } = await this.createWorkspaceVolumeClient(conversation, 'read')
         return metadataOnly
             ? client.readFile(scopePath, resolvedFilePath, { metadataOnly: true })
             : client.readFile(scopePath, resolvedFilePath)
@@ -633,7 +631,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
 
     async getWorkspaceFileDownload(id: string, filePath: string) {
         const conversation = await this.getAuthorizedWorkspaceConversation(id, 'read')
-        const { client, scopePath } = this.createWorkspaceVolumeClient(conversation)
+        const { client, scopePath } = await this.createWorkspaceVolumeClient(conversation, 'read')
         return client.getDownloadTarget(scopePath, filePath)
     }
 
@@ -641,7 +639,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
         const conversation = await this.getAuthorizedWorkspaceConversation(id, 'contribute')
         await this.assertCanMutateWorkspace(conversation)
         this.assertGenericWorkspaceMutationAllowed(conversation, normalizeWorkspaceFilePath(filePath))
-        const { client, scopePath } = this.createWorkspaceVolumeClient(conversation)
+        const { client, scopePath } = await this.createWorkspaceVolumeClient(conversation, 'write')
         return client.saveFile(scopePath, filePath, content)
     }
 
@@ -657,7 +655,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
             normalizeFileName(file.originalname)
         )
         this.assertGenericWorkspaceMutationAllowed(conversation, uploadPath)
-        const { client, scopePath } = this.createWorkspaceVolumeClient(conversation)
+        const { client, scopePath } = await this.createWorkspaceVolumeClient(conversation, 'write')
         return client.uploadFile(scopePath, folderPath, file)
     }
 
@@ -665,11 +663,11 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
         const conversation = await this.getAuthorizedWorkspaceConversation(id, 'contribute')
         await this.assertCanMutateWorkspace(conversation)
         this.assertGenericWorkspaceMutationAllowed(conversation, normalizeWorkspaceFilePath(filePath))
-        const { client, scopePath } = this.createWorkspaceVolumeClient(conversation)
+        const { client, scopePath } = await this.createWorkspaceVolumeClient(conversation, 'delete')
         await client.deleteFile(scopePath, filePath)
     }
 
-    private createWorkspaceVolumeClient(conversation: ChatConversation) {
+    private async createWorkspaceVolumeClient(conversation: ChatConversation, operation: AssistantFileOperation) {
         if (conversation.projectId) {
             return {
                 client: new VolumeSubtreeClient(this.createProjectVolumeHandle(conversation), {
@@ -693,8 +691,11 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
         }
 
         if (conversation.xpertId) {
+            const access = await this.commandBus.execute(
+                new ResolveAssistantFileAccessCommand(conversation.xpertId, operation, 'runtime')
+            )
             return {
-                client: new VolumeSubtreeClient(this.createXpertVolumeHandle(conversation), {
+                client: new VolumeSubtreeClient(this.volumeClient.resolve(access.scope), {
                     allowRootWorkspace: true
                 }),
                 scopePath: ''
@@ -955,17 +956,6 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
             projectId: conversation.projectId,
             userId: conversation.createdById
         })
-    }
-
-    private createXpertVolumeHandle(conversation: ChatConversation) {
-        return this.volumeClient.resolve(
-            resolveXpertDataVolumeScope({
-                tenantId: conversation.tenantId,
-                userId: conversation.createdById,
-                xpertId: conversation.xpertId,
-                workspaceDataScope: conversation.xpert?.workspaceDataScope
-            })
-        )
     }
 }
 

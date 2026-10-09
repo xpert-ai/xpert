@@ -1,3 +1,4 @@
+import { ResolveAssistantFileAccessCommand } from '../../xpert/assistant-files/resolve-assistant-file-access.command'
 import { WorkflowNodeTypeEnum, XpertTypeEnum, type XpertViewHostContext } from '@xpert-ai/contracts'
 import { RequestContext, type ViewHostResolution } from '@xpert-ai/server-core'
 import { ForbiddenException } from '@nestjs/common'
@@ -512,6 +513,19 @@ describe('AgentViewHostDefinition', () => {
             createProfileIdentity()
         )
 
+        const commands = {
+            execute: jest.fn().mockResolvedValue({
+                scope: {
+                    tenantId: 'tenant-1',
+                    catalog: 'xperts',
+                    xpertId: 'agent-host-1',
+                    isolateByUser: false,
+                    userId: 'user-1'
+                }
+            })
+        }
+        Object.assign(definition, { commandBus: commands })
+
         try {
             const expectedFileName = '\u552e\u540e\u6570\u636e\u5206\u6790\u5de5\u5177\u9700\u6c42v0.1.xlsx'
             const rawMultipartFileName = Buffer.from(expectedFileName, 'utf8').toString('latin1')
@@ -538,6 +552,9 @@ describe('AgentViewHostDefinition', () => {
                 } as any
             )
 
+            expect(commands.execute).toHaveBeenCalledWith(
+                new ResolveAssistantFileAccessCommand('agent-host-1', 'write', 'runtime')
+            )
             expect(volumeClient.resolve).toHaveBeenCalledWith({
                 tenantId: 'tenant-1',
                 catalog: 'xperts',

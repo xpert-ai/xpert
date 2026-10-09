@@ -62,7 +62,8 @@ import { Queue } from 'bull'
 import { Repository } from 'typeorm'
 import { ChatMessageService } from '../chat-message/chat-message.service'
 import { ResolveAuthorizedFileAssetQuery } from '../file-understanding/queries'
-import { VolumeClient } from '../shared/volume'
+import { VolumeClient, resolveXpertDataVolumeScope } from '../shared/volume'
+import { ResolveAssistantFileAccessCommand } from '../xpert/assistant-files/resolve-assistant-file-access.command'
 import { VolumeSubtreeClient } from '../shared/volume/volume-subtree'
 import { ChatConversation } from './conversation.entity'
 import { ChatConversationService } from './conversation.service'
@@ -86,6 +87,7 @@ describe('ChatConversationService workspace files', () => {
     }
     let volumeClient: jest.Mocked<Pick<VolumeClient, 'resolve' | 'resolveRoot'>>
     let queryBus: { execute: jest.Mock }
+    let commandBus: { execute: jest.Mock }
     let projectAccessService: {
         assertCanRead: jest.Mock
         assertCanUse: jest.Mock
@@ -221,11 +223,24 @@ describe('ChatConversationService workspace files', () => {
             findByThreadId: jest.fn().mockResolvedValue(null)
         }
 
+        commandBus = {
+            execute: jest.fn(async (command: ResolveAssistantFileAccessCommand) => {
+                const item = await service.findOne('conversation-1')
+                return {
+                    scope: resolveXpertDataVolumeScope({
+                        tenantId: item.tenantId,
+                        userId: RequestContext.currentUserId(),
+                        xpertId: command.assistantId,
+                        workspaceDataScope: item.xpert?.workspaceDataScope
+                    })
+                }
+            })
+        }
         service = new ChatConversationService(
             repository as unknown as Repository<ChatConversation>,
             readStateRepository as any,
             messageService as unknown as ChatMessageService,
-            {} as CommandBus,
+            commandBus as unknown as CommandBus,
             queryBus as unknown as QueryBus,
             {} as Queue,
             volumeClient,
@@ -792,6 +807,16 @@ describe('ChatConversationService workspace files', () => {
         } as ChatConversation)
 
         await expect(service.getWorkspaceFiles('conversation-1')).rejects.toBeInstanceOf(BadRequestException)
+    })
+
+    it('revalidates Assistant file authority even when the user still owns the conversation', async () => {
+        jest.spyOn(service, 'findOne').mockResolvedValue(conversation as ChatConversation)
+        commandBus.execute.mockRejectedValueOnce(new ForbiddenException('Assistant grant revoked'))
+        await expect(service.getWorkspaceFiles('conversation-1')).rejects.toThrow('Assistant grant revoked')
+        expect(commandBus.execute).toHaveBeenCalledWith(
+            new ResolveAssistantFileAccessCommand('xpert-1', 'read', 'runtime')
+        )
+        expect(volumeClient.resolve).not.toHaveBeenCalled()
     })
 
     it('finds the conversation by thread id inside the current scope', async () => {
