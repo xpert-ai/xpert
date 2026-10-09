@@ -1,12 +1,16 @@
 import type { IRuntimePluginRequirement } from '@xpert-ai/contracts'
-import { InstanceRegistryService, RuntimePluginState } from '../managed-connection'
+import { InstanceRegistryService, RuntimePluginState } from '../managed-connection/instance-registry.service'
 import { RuntimeLifecycleService } from './runtime-lifecycle.service'
 import { RuntimeProcessSignaler } from './runtime-process-signaler'
 import { RuntimeRestartCoordinatorService } from './runtime-restart-coordinator.service'
+import { PluginRuntimeGenerationStore } from './plugin-runtime-generation.store'
+import { RuntimeRestartTargetStore } from './runtime-restart-target.store'
+import type { RestartTargetState } from './runtime-restart.types'
 
 type Listener = (message: string) => void
 
 class FakeRedis {
+	readonly members = new Map<string, { instanceId: string; bootId: string }>()
 	readonly values = new Map<string, string>()
 	readonly hashes = new Map<string, Map<string, string>>()
 	readonly expiresAt = new Map<string, number>()
@@ -55,6 +59,35 @@ class FakeRedis {
 	}
 
 	async eval(script: string, options: { keys: string[]; arguments: string[] }) {
+		if (script.includes('xpert-write-generation-state')) {
+			const [value, generation, ttl, restartId] = options.arguments
+			if (restartId && (await this.get(options.keys[2])) !== restartId) return 0
+			const desired = await this.hGetAll(options.keys[1])
+			const current = desired.generation === generation
+			if (current && desired.status === 'failed') return 0
+			await this.set(options.keys[0], value, { EX: Number(ttl) })
+			if (current) await this.hSet(options.keys[1], 'status', JSON.parse(value).status)
+			return 1
+		}
+		if (script.includes('xpert-start-plugin-catch-up')) {
+			const [generation, restartId, ttl] = options.arguments
+			const desired = await this.hGetAll(options.keys[0])
+			if (desired.generation !== generation || desired.status !== 'completed') return 0
+			if ((await this.set(options.keys[1], restartId, { NX: true, PX: Number(ttl) })) !== 'OK') return 0
+			await this.hSet(options.keys[0], 'status', 'in_progress')
+			return 1
+		}
+		if (script.includes('xpert-update-restart-target')) {
+			const [restartId, replicaId, previous, next] = options.arguments
+			if (
+				(await this.get(options.keys[1])) !== restartId ||
+				this.hashes.get(options.keys[0])?.get(replicaId) !== previous
+			)
+				return 0
+			await this.hSet(options.keys[0], replicaId, next)
+			if (Number(options.arguments[4]) > 0) await this.hSet(options.keys[2], replicaId, options.arguments[4])
+			return 1
+		}
 		if (script.includes('xpert-publish-plugin-generation')) {
 			const generationKey = options.keys[0]
 			const generation = Number.parseInt(this.values.get(generationKey) ?? '0', 10) + 1
@@ -69,6 +102,11 @@ class FakeRedis {
 			this.values.set(statusKey, JSON.stringify({ generation, status: 'in_progress' }))
 			this.expiresAt.set(changeKey, Date.now() + ttlMs)
 			this.expiresAt.set(statusKey, Date.now() + ttlMs)
+			for (const item of change.requirements) {
+				await this.hSet(options.keys[1], JSON.stringify([item.scopeKey, item.pluginName]), JSON.stringify(item))
+			}
+			await this.hSet(options.keys[1], 'generation', `${generation}`)
+			await this.hSet(options.keys[1], 'status', 'in_progress')
 			await this.onGenerationPublished?.(generation)
 			return generation
 		}
@@ -145,6 +183,7 @@ type RuntimeNode = {
 	coordinator: RuntimeRestartCoordinatorService
 	signaler: RuntimeProcessSignaler
 	lifecycle: RuntimeLifecycleService
+	reportPluginState: (state: RuntimePluginState) => void
 }
 
 const requirement: IRuntimePluginRequirement = {
@@ -167,6 +206,244 @@ describe('RuntimeRestartCoordinatorService', () => {
 	afterEach(async () => {
 		await Promise.all(nodes.map((node) => node.coordinator.onModuleDestroy()))
 		jest.useRealTimers()
+	})
+
+	it('rejects a delayed acknowledgement after a failure or after the active operation changes', async () => {
+		const targets = new RuntimeRestartTargetStore(redis)
+		const pending: RestartTargetState = {
+			replicaId: 'api-1',
+			expectedBootId: 'boot-1',
+			status: 'pending',
+			updatedAt: new Date().toISOString()
+		}
+		await redis.set('xpert:system:runtime:restart:active', 'restart-1')
+		await targets.initialize('restart-1', pending)
+		const failed: RestartTargetState = { ...pending, status: 'failed', error: 'Replica disappeared' }
+		expect(await targets.update('restart-1', pending, failed)).toBe(true)
+		expect(await targets.update('restart-1', pending, { ...pending, status: 'completed' })).toBe(false)
+		expect(await targets.read('restart-1')).toEqual([failed])
+		await redis.set('xpert:system:runtime:restart:active', 'restart-2')
+		expect(await targets.update('restart-1', failed, { ...failed, status: 'completed' })).toBe(false)
+	})
+
+	it('includes a registered API even when its coordinator starts more than two seconds later', async () => {
+		const ready = await createNode(redis, 'api-1', 'boot-1', loadedPluginState())
+		const delayed = await createNode(redis, 'api-2', 'boot-1', oldPluginState(), false)
+		nodes.push(ready, delayed)
+		const change = await ready.coordinator.recordPluginChange({
+			pluginName: requirement.pluginName,
+			version: requirement.version,
+			scopeKey: requirement.scopeKey
+		})
+		await advance(5_000)
+		await expect(ready.coordinator.getPluginConvergenceStatus(change.generation)).resolves.toMatchObject({
+			status: 'in_progress',
+			targetReplicaCount: 2,
+			completedReplicaCount: 1
+		})
+		await delayed.coordinator.onModuleInit()
+		delayed.coordinator.onApplicationBootstrap()
+		await advance(2_000)
+		expect(delayed.signaler.signal).toHaveBeenCalledWith('SIGTERM')
+		await delayed.coordinator.onModuleDestroy()
+		nodes.push(await createNode(redis, 'api-2', 'boot-2', loadedPluginState()))
+		await advance(2_000)
+		await expect(ready.coordinator.getPluginConvergenceStatus(change.generation)).resolves.toMatchObject({
+			status: 'completed',
+			targetReplicaCount: 2,
+			completedReplicaCount: 2
+		})
+	})
+
+	it('catches up a late replica after completed generation history has expired, without retrying a failed boot forever', async () => {
+		const ready = await createNode(redis, 'api-1', 'boot-1', loadedPluginState())
+		nodes.push(ready)
+		const change = await ready.coordinator.recordPluginChange({
+			pluginName: requirement.pluginName,
+			version: requirement.version,
+			scopeKey: requirement.scopeKey
+		})
+		await advance(3_000)
+		await expect(ready.coordinator.getPluginConvergenceStatus(change.generation)).resolves.toMatchObject({
+			status: 'completed'
+		})
+		jest.setSystemTime(Date.now() + 25 * 60 * 60_000)
+		const late = await createNode(redis, 'api-late', 'boot-1', oldPluginState())
+		nodes.push(late)
+		await advance(3_000)
+		expect(late.signaler.signal).toHaveBeenCalledTimes(1)
+		await late.coordinator.onModuleDestroy()
+		const failedReplacement = await createNode(redis, 'api-late', 'boot-2', oldPluginState())
+		nodes.push(failedReplacement)
+		await advance(10_000)
+		expect(failedReplacement.signaler.signal).not.toHaveBeenCalled()
+		await expect(redis.get('xpert:system:runtime:restart:active')).resolves.toBeNull()
+		// An explicit retry is a new generation and may restart the failed replica again.
+		await ready.coordinator.recordPluginChange({
+			pluginName: requirement.pluginName,
+			version: requirement.version,
+			scopeKey: requirement.scopeKey
+		})
+		await advance(3_000)
+		expect(failedReplacement.signaler.signal).toHaveBeenCalledTimes(1)
+	})
+
+	it.each([false, true])(
+		'waits for application bootstrap and plugin state (reported before bootstrap: %s)',
+		async (reported) => {
+			const old = await createNode(redis, 'api-1', 'boot-1', oldPluginState())
+			nodes.push(old)
+			const change = await old.coordinator.recordPluginChange({
+				pluginName: requirement.pluginName,
+				version: requirement.version,
+				scopeKey: requirement.scopeKey
+			})
+			await advance(3_000)
+			await old.coordinator.onModuleDestroy()
+			const replacement = await createNode(redis, 'api-1', 'boot-2', reported ? loadedPluginState() : null, false)
+			nodes.push(replacement)
+			await replacement.coordinator.onModuleInit()
+			await advance(3_000)
+			await expect(replacement.coordinator.getPluginConvergenceStatus(change.generation)).resolves.toMatchObject({
+				status: 'in_progress',
+				completedReplicaCount: 0
+			})
+			replacement.coordinator.onApplicationBootstrap()
+			await advance(3_000)
+			expect(replacement.signaler.signal).not.toHaveBeenCalled()
+			if (!reported) {
+				await expect(
+					replacement.coordinator.getPluginConvergenceStatus(change.generation)
+				).resolves.toMatchObject({
+					status: 'in_progress',
+					completedReplicaCount: 0
+				})
+				replacement.reportPluginState(loadedPluginState())
+			}
+			await advance(3_000)
+			await expect(replacement.coordinator.getPluginConvergenceStatus(change.generation)).resolves.toMatchObject({
+				status: 'completed',
+				completedReplicaCount: 1
+			})
+		}
+	)
+
+	it('retains a snapshotted missing replica after retirement and requires an explicit retry after failure', async () => {
+		const ready = await createNode(redis, 'api-1', 'boot-1', loadedPluginState())
+		nodes.push(ready, await createNode(redis, 'api-missing', 'boot-1', oldPluginState(), false))
+		const change = await ready.coordinator.recordPluginChange({
+			pluginName: requirement.pluginName,
+			version: requirement.version,
+			scopeKey: requirement.scopeKey
+		})
+		redis.members.delete('api-missing')
+		await advance(47_000)
+		await expect(ready.coordinator.getPluginConvergenceStatus(change.generation)).resolves.toMatchObject({
+			status: 'failed',
+			targetReplicaCount: 2,
+			completedReplicaCount: 1,
+			failedReplicaCount: 1
+		})
+		const returned = await createNode(redis, 'api-missing', 'boot-1', oldPluginState())
+		nodes.push(returned)
+		await advance(3_000)
+		expect(returned.signaler.signal).not.toHaveBeenCalled()
+	})
+
+	it('keeps a responsive API online when another registered member never responds', async () => {
+		const responsive = await createNode(redis, 'api-1', 'boot-1', emptyPluginState())
+		nodes.push(responsive, await createNode(redis, 'api-missing', 'boot-1', emptyPluginState(), false))
+		const restart = await responsive.coordinator.requestRestart({ source: 'interactive' })
+		await advance(47_000)
+		expect(responsive.signaler.signal).not.toHaveBeenCalled()
+		await expect(responsive.coordinator.getStatus(restart.restartId)).resolves.toMatchObject({
+			status: 'failed',
+			targetReplicaCount: 2,
+			failedReplicaCount: 1
+		})
+	})
+
+	it('atomically rejects catch-up admission after a completed outcome becomes failed or superseded', async () => {
+		const store = new PluginRuntimeGenerationStore(redis)
+		const generation = await store.publish({ generation: 0, requirements: [requirement], source: 'plugin-change' })
+		await store.writeState({ generation, status: 'completed' })
+		const snapshot = await store.readDesired()
+		expect(snapshot?.status).toBe('completed')
+		await store.writeState({ generation, status: 'failed' })
+		// A late successful callback must not erase a recorded failure.
+		await store.writeState({ generation, status: 'completed' })
+		await expect(store.claimCatchUp(generation, 'stale-catch-up', 60_000)).resolves.toBe(false)
+		jest.setSystemTime(Date.now() + 25 * 60 * 60_000)
+		await expect(store.readDesired()).resolves.toMatchObject({ generation, status: 'failed' })
+		const next = await store.publish({ generation: 0, requirements: [requirement], source: 'plugin-change' })
+		await store.writeState({ generation: next, status: 'completed' })
+		await expect(store.claimCatchUp(generation, 'old-catch-up', 60_000)).resolves.toBe(false)
+		await expect(store.claimCatchUp(next, 'new-catch-up', 60_000)).resolves.toBe(true)
+		await expect(store.claimCatchUp(next, 'duplicate-catch-up', 60_000)).resolves.toBe(false)
+	})
+
+	it('keeps a failed generation blocked after history expiry until an explicit new generation', async () => {
+		const responsive = await createNode(redis, 'api-1', 'boot-1', oldPluginState())
+		nodes.push(responsive, await createNode(redis, 'api-offline', 'boot-1', oldPluginState(), false))
+		const change = await responsive.coordinator.recordPluginChange(requirement)
+		await advance(50_000)
+		await expect(responsive.coordinator.getPluginConvergenceStatus(change.generation)).resolves.toMatchObject({
+			status: 'failed'
+		})
+		expect(responsive.signaler.signal).not.toHaveBeenCalled()
+		jest.setSystemTime(Date.now() + 25 * 60 * 60_000)
+		await advance(3_000)
+		expect(responsive.signaler.signal).not.toHaveBeenCalled()
+		// Explicit retirement affects the next snapshot, never the failed operation's count.
+		redis.members.delete('api-offline')
+		await responsive.coordinator.recordPluginChange(requirement)
+		await advance(3_000)
+		expect(responsive.signaler.signal).toHaveBeenCalledTimes(1)
+	})
+
+	it('checks every registered member before late catch-up and does not retry a failed catch-up', async () => {
+		const ready = await createNode(redis, 'api-1', 'boot-1', loadedPluginState())
+		nodes.push(ready)
+		await ready.coordinator.recordPluginChange(requirement)
+		await advance(3_000)
+		nodes.push(await createNode(redis, 'api-offline', 'boot-1', oldPluginState(), false))
+		const late = await createNode(redis, 'api-late', 'boot-1', oldPluginState())
+		nodes.push(late)
+		await advance(55_000)
+		expect(late.signaler.signal).not.toHaveBeenCalled()
+		await expect(redis.get('xpert:system:runtime:restart:active')).resolves.toBeNull()
+		jest.setSystemTime(Date.now() + 25 * 60 * 60_000)
+		await advance(3_000)
+		expect(late.signaler.signal).not.toHaveBeenCalled()
+		await expect(redis.get('xpert:system:runtime:restart:active')).resolves.toBeNull()
+	})
+
+	it('replaces the desired loaded entry on uninstall and keeps correctly unloaded new replicas online', async () => {
+		const ready = await createNode(redis, 'api-1', 'boot-1', loadedPluginState())
+		const stale = await createNode(redis, 'api-2', 'boot-1', loadedPluginState())
+		nodes.push(ready, stale)
+		await ready.coordinator.recordPluginChange(requirement)
+		await advance(3_000)
+		ready.reportPluginState(emptyPluginState())
+		const removal = await ready.coordinator.recordPluginRequirements(
+			[{ scopeKey: requirement.scopeKey, pluginName: requirement.pluginName, state: 'absent' }],
+			'Uninstall plugin'
+		)
+		await advance(3_000)
+		expect(ready.signaler.signal).not.toHaveBeenCalled()
+		expect(stale.signaler.signal).toHaveBeenCalledTimes(1)
+		await stale.coordinator.onModuleDestroy()
+		nodes.push(await createNode(redis, 'api-2', 'boot-2', emptyPluginState()))
+		await advance(3_000)
+		await expect(ready.coordinator.getPluginConvergenceStatus(removal.generation)).resolves.toMatchObject({
+			status: 'completed'
+		})
+		jest.setSystemTime(Date.now() + 25 * 60 * 60_000)
+		const late = await createNode(redis, 'api-new', 'boot-1', emptyPluginState())
+		nodes.push(late)
+		await advance(5_000)
+		expect(late.signaler.signal).not.toHaveBeenCalled()
+		await expect(redis.get('xpert:system:runtime:restart:active')).resolves.toBeNull()
 	})
 
 	it('restarts manually staged replicas in bounded batches', async () => {
@@ -508,23 +785,32 @@ async function createNode(
 	redis: FakeRedis,
 	replicaId: string,
 	bootId: string,
-	initialState: RuntimePluginState | null
+	initialState: RuntimePluginState | null,
+	start = true
 ): Promise<RuntimeNode> {
+	redis.members.set(replicaId, { instanceId: replicaId, bootId })
 	const registry = {
 		instanceId: replicaId,
 		bootId,
+		getRegisteredInstances: async () => Array.from(redis.members.values()),
 		getPluginState: () => initialState
-	} as InstanceRegistryService
+	} satisfies Pick<InstanceRegistryService, 'instanceId' | 'bootId' | 'getPluginState' | 'getRegisteredInstances'>
 	const signaler: RuntimeProcessSignaler = { signal: jest.fn() }
 	const lifecycle = new RuntimeLifecycleService()
 	const coordinator = new RuntimeRestartCoordinatorService(redis, signaler, lifecycle, registry)
-	await coordinator.onModuleInit()
+	if (start) {
+		await coordinator.onModuleInit()
+		coordinator.onApplicationBootstrap()
+	}
 	return {
 		replicaId,
 		bootId,
 		coordinator,
 		signaler,
-		lifecycle
+		lifecycle,
+		reportPluginState: (state) => {
+			initialState = state
+		}
 	}
 }
 

@@ -1,328 +1,41 @@
-import { z } from 'zod'
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join } from 'node:path'
-import { Entity } from 'typeorm'
-import type { PluginInstanceService } from './plugin-instance.service'
-import type { PluginSchemaSyncService } from './plugin-schema-sync.service'
+import { setupPluginManagementTests } from './plugin-management.test-fixture'
 import type { RuntimeControlService } from '../runtime-control/runtime-control.service'
-
-jest.mock('@xpert-ai/contracts', () => ({
-	PLUGIN_CONFIGURATION_STATUS: {
-		VALID: 'valid',
-		INVALID: 'invalid'
-	},
-	PLUGIN_COMPONENT_TYPE: {
-		SKILL: 'skill',
-		MCP_SERVER: 'mcp_server',
-		APP: 'app',
-		HOOK: 'hook',
-		ASSET: 'asset'
-	},
-	PLUGIN_LEVEL: {
-		SYSTEM: 'system',
-		TENANT: 'tenant',
-		ORGANIZATION: 'organization'
-	}
-}))
-
-jest.mock('@xpert-ai/plugin-sdk', () => ({
-	derivePluginArtifactNamespace: jest.fn((packageName: string) =>
-		packageName
-			.replace(/^@[^/]+\//, '')
-			.replace(/^plugin-/, '')
-			.replace(/[^a-zA-Z0-9]+/g, '_')
-			.replace(/^_+|_+$/g, '')
-			.toLowerCase()
-	),
-	GLOBAL_ORGANIZATION_SCOPE: '__global__',
-	SYSTEM_GLOBAL_SCOPE: 'system:global',
-	TENANT_GLOBAL_SCOPE_PREFIX: 'tenant:',
-	TENANT_GLOBAL_SCOPE_SUFFIX: ':global',
-	getTenantGlobalScopeKey: (tenantId: string) => `tenant:${tenantId}:global`,
-	isTenantGlobalScopeKey: (value?: string | null) =>
-		typeof value === 'string' && value.startsWith('tenant:') && value.endsWith(':global'),
-	resolveTenantGlobalScopeKey: jest.fn((tenantId?: string | null) =>
-		tenantId && tenantId !== 'default-tenant' ? `tenant:${tenantId}:global` : '__global__'
-	),
-	RequestContext: {
-		getOrganizationId: jest.fn(),
-		currentTenantId: jest.fn(),
-		getScope: jest.fn()
-	},
-	STRATEGY_META_KEY: 'strategy-meta',
-	PLUGIN_JOB_PROCESSOR_METADATA: 'XPERT_PLUGIN_JOB_PROCESSOR_METADATA',
-	StrategyBus: class StrategyBus {},
-	getErrorMessage: jest.fn((error: unknown) => (error instanceof Error ? error.message : String(error)))
-}))
-
-jest.mock('i18next', () => ({
-	t: jest.fn((_: string, options?: Record<string, any>) => options?.errorMessage ?? options?.pluginName ?? '')
-}))
-
-jest.mock('./plugin.helper', () => ({
-	collectProvidersWithMetadata: jest.fn(() => []),
-	clearPluginLoadFailure: jest.fn(),
-	getEntitiesFromPlugins: jest.fn(() => []),
-	getSubscribersFromPlugins: jest.fn(() => []),
-	hasLifecycleMethod: jest.fn(() => false),
-	PLUGIN_SYSTEM_LEVEL_INSTALL_FORBIDDEN_CODE: 'plugin-system-level-install-forbidden',
-	registerPluginsAsync: jest.fn(async () => ({ modules: [], errors: [] })),
-	upsertPluginLoadFailure: jest.fn()
-}))
-
-jest.mock('./plugin-loader', () => ({
-	loadPlugin: jest.fn()
-}))
-
-jest.mock('./plugin-http-routes', () => ({
-	registerPluginControllerRoutes: jest.fn(() => ({
-		controllerCount: 0,
-		moduleCount: 0
-	})),
-	snapshotHttpRouteStack: jest.fn(() => null),
-	snapshotModuleIds: jest.fn(() => new Set())
-}))
-
-jest.mock('./plugin-sdk-versioning', () => ({
-	assertInstalledPluginSdkCompatibility: jest.fn(() => ({
-		hostVersion: '3.8.4',
-		peerRange: '^3.8.0',
-		warnings: [],
-		level: 'organization',
-		version: '1.0.0'
-	})),
-	assertPluginSdkCompatibility: jest.fn(() => ({
-		hostVersion: '3.8.4',
-		peerRange: '^3.8.0',
-		warnings: []
-	})),
-	assertPluginSdkInstallCandidate: jest.fn(async () => ({
-		hostVersion: '3.8.4',
-		peerRange: '^3.8.0',
-		warnings: []
-	}))
-}))
-
-jest.mock('./organization-plugin.store', () => ({
-	getOrganizationPluginPath: jest.fn((organizationId: string, pluginName: string) => {
-		const sanitizedName = pluginName.replace(/[\/@]/g, '__')
-		return `/tmp/plugins/${organizationId}/${sanitizedName}`
-	}),
-	getOrganizationPluginRoot: jest.fn(() => '/tmp/plugins'),
-	readWorkspacePluginRuntimeRevision: jest.fn(() => 'workspace:test-source'),
-	stagePackageDirectoryPlugin: jest.fn()
-}))
-
-jest.mock('./plugin-archive', () => ({
-	cleanupExtractedPluginArchive: jest.fn(),
-	extractPluginArchive: jest.fn(),
-	readPluginPackageJson: jest.fn(() => ({
-		name: '@xpert-ai/plugin-uploaded-demo',
-		version: '0.2.0',
-		peerDependencies: {
-			'@xpert-ai/plugin-sdk': '^3.8.0'
-		}
-	}))
-}))
-
-jest.mock('./plugin-instance.service', () => ({
-	PluginInstanceService: class PluginInstanceService {}
-}))
-
-jest.mock('./plugin-update.utils', () => ({
-	canManageGlobalPlugins: jest.fn(() => false),
-	canManageSystemPlugins: jest.fn(() => true),
-	canManageTenantPlugins: jest.fn(() => true)
-}))
-
-jest.mock('./plugin-instance.entity', () => ({
-	resolvePluginLevel: jest.fn((level?: string) =>
-		level === 'system' || level === 'tenant' ? level : 'organization'
-	),
-	isRestartRequiredPluginLevel: jest.fn((level?: string) => level === 'system' || level === 'tenant')
-}))
-
-const {
-	RequestContext,
-	derivePluginArtifactNamespace,
-	getErrorMessage,
-	resolveTenantGlobalScopeKey
-} = require('@xpert-ai/plugin-sdk')
-const { t } = require('i18next')
-const { canManageGlobalPlugins, canManageSystemPlugins, canManageTenantPlugins } = require('./plugin-update.utils')
-const { loadPlugin } = require('./plugin-loader')
-const { registerPluginControllerRoutes, snapshotHttpRouteStack, snapshotModuleIds } = require('./plugin-http-routes')
-const {
-	assertInstalledPluginSdkCompatibility,
-	assertPluginSdkCompatibility,
-	assertPluginSdkInstallCandidate
-} = require('./plugin-sdk-versioning')
-const {
-	collectProvidersWithMetadata,
-	getEntitiesFromPlugins,
-	getSubscribersFromPlugins,
-	PLUGIN_SYSTEM_LEVEL_INSTALL_FORBIDDEN_CODE,
-	registerPluginsAsync,
-	upsertPluginLoadFailure
-} = require('./plugin.helper')
-const {
-	getOrganizationPluginPath,
-	getOrganizationPluginRoot,
-	stagePackageDirectoryPlugin
-} = require('./organization-plugin.store')
-const { cleanupExtractedPluginArchive, extractPluginArchive, readPluginPackageJson } = require('./plugin-archive')
-const { isRestartRequiredPluginLevel, resolvePluginLevel } = require('./plugin-instance.entity')
-const { PluginManagementService } = require('./plugin-management.service')
-
-class ExistingEntity {}
-class ExistingSubscriber {}
+import type { PluginSchemaSyncService } from './plugin-schema-sync.service'
 
 describe('PluginManagementService', () => {
-	const pluginInstanceService = {
-		findOneByPluginName: jest.fn(),
-		findSystemLevelRegistration: jest.fn(),
-		findTenantLevelOwner: jest.fn(),
-		getDefaultTenantId: jest.fn(),
-		deactivate: jest.fn(),
-		uninstall: jest.fn(),
-		uninstallByPackageName: jest.fn(),
-		removePlugins: jest.fn(),
-		upsert: jest.fn()
-	} as unknown as PluginInstanceService
-
-	const strategyBus = {
-		upsert: jest.fn(),
-		remove: jest.fn()
-	}
-
-	const lazyLoader = {
-		load: jest.fn()
-	}
-
-	const moduleRef = {}
-	const dataSource = {
-		options: {
-			entities: [ExistingEntity],
-			subscribers: [ExistingSubscriber],
-			synchronize: false
-		},
-		isInitialized: true,
-		setOptions: jest.fn(function (options: Record<string, any>) {
-			this.options = { ...this.options, ...options }
-			return this
-		}),
-		synchronize: jest.fn(),
-		buildMetadatas: jest.fn()
-	}
-	const loadedPlugins: Array<any> = []
-	const applicationConfig = {
-		getGlobalPrefix: jest.fn(() => 'api')
-	}
-	const runtimeControl = {
-		recordPluginRuntimeChange: jest.fn()
-	}
-	const runtimeState = {
-		report: jest.fn()
-	}
-
-	let service: InstanceType<typeof PluginManagementService>
-
-	beforeEach(() => {
-		jest.resetAllMocks()
-		loadedPlugins.length = 0
-		;(derivePluginArtifactNamespace as jest.Mock).mockImplementation((packageName: string) =>
-			packageName
-				.replace(/^@[^/]+\//, '')
-				.replace(/^plugin-/, '')
-				.replace(/[^a-zA-Z0-9]+/g, '_')
-				.replace(/^_+|_+$/g, '')
-				.toLowerCase()
-		)
-		;(t as jest.Mock).mockImplementation(
-			(_: string, options?: Record<string, any>) => options?.errorMessage ?? options?.pluginName ?? ''
-		)
-		;(getErrorMessage as jest.Mock).mockImplementation((error: unknown) =>
-			error instanceof Error ? error.message : String(error)
-		)
-		;(resolvePluginLevel as jest.Mock).mockImplementation((level?: string) =>
-			level === 'system' || level === 'tenant' ? level : 'organization'
-		)
-		;(isRestartRequiredPluginLevel as jest.Mock).mockImplementation(
-			(level?: string) => level === 'system' || level === 'tenant'
-		)
-		resolveTenantGlobalScopeKey.mockImplementation((tenantId?: string | null) =>
-			tenantId && tenantId !== 'tenant-1' ? `tenant:${tenantId}:global` : '__global__'
-		)
-		;(canManageGlobalPlugins as jest.Mock).mockReturnValue(false)
-		;(canManageSystemPlugins as jest.Mock).mockReturnValue(true)
-		;(canManageTenantPlugins as jest.Mock).mockReturnValue(true)
-		;(pluginInstanceService as any).findTenantLevelOwner.mockResolvedValue(null)
-		;(pluginInstanceService as any).findSystemLevelRegistration.mockResolvedValue(null)
-		dataSource.options = {
-			entities: [ExistingEntity],
-			subscribers: [ExistingSubscriber],
-			synchronize: false
-		}
-		dataSource.isInitialized = true
-		dataSource.setOptions.mockImplementation(function (options: Record<string, any>) {
-			this.options = { ...this.options, ...options }
-			return this
-		})
-		;(snapshotHttpRouteStack as jest.Mock).mockReturnValue(null)
-		;(snapshotModuleIds as jest.Mock).mockReturnValue(new Set())
-		;(getOrganizationPluginPath as jest.Mock).mockImplementation((organizationId: string, pluginName: string) => {
-			const sanitizedName = pluginName.replace(/[\/@]/g, '__')
-			return `/tmp/plugins/${organizationId}/${sanitizedName}`
-		})
-		;(getOrganizationPluginRoot as jest.Mock).mockReturnValue('/tmp/plugins')
-		;(registerPluginControllerRoutes as jest.Mock).mockReturnValue({
-			controllerCount: 0,
-			moduleCount: 0
-		})
-		;(collectProvidersWithMetadata as jest.Mock).mockReturnValue([])
-		;(registerPluginsAsync as jest.Mock).mockResolvedValue({ modules: [], errors: [] })
-		runtimeControl.recordPluginRuntimeChange.mockResolvedValue({ scheduled: true, generation: 1 })
-		runtimeState.report.mockResolvedValue(undefined)
-		;(assertPluginSdkInstallCandidate as jest.Mock).mockResolvedValue({
-			hostVersion: '3.8.4',
-			peerRange: '^3.8.0',
-			warnings: []
-		})
-		;(assertInstalledPluginSdkCompatibility as jest.Mock).mockReturnValue({
-			hostVersion: '3.8.4',
-			peerRange: '^3.8.0',
-			warnings: [],
-			level: 'organization',
-			version: '1.0.0'
-		})
-		;(readPluginPackageJson as jest.Mock).mockReturnValue({
-			name: '@xpert-ai/plugin-uploaded-demo',
-			version: '0.2.0',
-			peerDependencies: {
-				'@xpert-ai/plugin-sdk': '^3.8.0'
-			}
-		})
-		service = new PluginManagementService(
-			loadedPlugins,
-			pluginInstanceService,
-			strategyBus as any,
-			lazyLoader as any,
-			moduleRef as any,
-			dataSource as any,
-			applicationConfig as any,
-			runtimeControl as unknown as RuntimeControlService,
-			runtimeState
-		)
-		RequestContext.getOrganizationId.mockReturnValue('org-1')
-		RequestContext.currentTenantId.mockReturnValue('tenant-1')
-		RequestContext.getScope.mockReturnValue({
-			tenantId: 'tenant-1',
-			organizationId: 'org-1'
-		})
-		;(pluginInstanceService as any).findOneByPluginName.mockResolvedValue(null)
-		;(pluginInstanceService as any).getDefaultTenantId.mockResolvedValue('tenant-1')
-	})
+	const fixture = setupPluginManagementTests()
+	const {
+		z,
+		mkdtempSync,
+		mkdirSync,
+		rmSync,
+		writeFileSync,
+		tmpdir,
+		join,
+		Entity,
+		ExistingEntity,
+		ExistingSubscriber,
+		loadPlugin,
+		registerPluginControllerRoutes,
+		snapshotModuleIds,
+		assertPluginSdkInstallCandidate,
+		collectProvidersWithMetadata,
+		getEntitiesFromPlugins,
+		getSubscribersFromPlugins,
+		registerPluginsAsync,
+		upsertPluginLoadFailure,
+		PluginManagementService,
+		PluginUninstallService,
+		pluginInstanceService,
+		strategyBus,
+		lazyLoader,
+		moduleRef,
+		dataSource,
+		loadedPlugins,
+		applicationConfig,
+		runtimeControl,
+		runtimeState
+	} = fixture
 
 	it('schedules cluster convergence after an organization plugin is installed', async () => {
 		;(loadPlugin as jest.Mock).mockResolvedValue({
@@ -334,7 +47,7 @@ describe('PluginManagementService', () => {
 		})
 
 		await expect(
-			service.installPlugin({
+			fixture.service.installPlugin({
 				pluginName: '@xpert-ai/plugin-openrouter',
 				version: '0.1.0'
 			})
@@ -369,13 +82,14 @@ describe('PluginManagementService', () => {
 		const guardedService = new PluginManagementService(
 			loadedPlugins,
 			pluginInstanceService,
-			strategyBus as any,
-			lazyLoader as any,
-			moduleRef as any,
-			dataSource as any,
-			applicationConfig as any,
+			strategyBus,
+			lazyLoader,
+			moduleRef,
+			dataSource,
+			applicationConfig,
 			runtimeControl as unknown as RuntimeControlService,
 			runtimeState,
+			new PluginUninstallService(loadedPlugins, pluginInstanceService, strategyBus, runtimeControl, runtimeState),
 			schemaSync as unknown as PluginSchemaSyncService
 		)
 		;(loadPlugin as jest.Mock).mockResolvedValue({
@@ -408,7 +122,7 @@ describe('PluginManagementService', () => {
 		})
 
 		await expect(
-			service.installPlugin({
+			fixture.service.installPlugin({
 				pluginName: '@xpert-ai/plugin-openrouter',
 				version: '0.1.0'
 			})
@@ -430,7 +144,7 @@ describe('PluginManagementService', () => {
 		})
 
 		await expect(
-			service.installPlugin({
+			fixture.service.installPlugin({
 				pluginName: '@xpert-ai/plugin-config-demo'
 			})
 		).resolves.toEqual(
@@ -440,7 +154,7 @@ describe('PluginManagementService', () => {
 			})
 		)
 
-		expect((pluginInstanceService as any).upsert).toHaveBeenCalledWith(
+		expect(pluginInstanceService.upsert).toHaveBeenCalledWith(
 			expect.objectContaining({
 				pluginName: '@xpert-ai/plugin-config-demo',
 				configurationStatus: 'invalid',
@@ -479,7 +193,7 @@ describe('PluginManagementService', () => {
 		})
 
 		await expect(
-			service.installPlugin({
+			fixture.service.installPlugin({
 				pluginName: '@xpert-ai/plugin-office-reports'
 			})
 		).rejects.toThrow('artifactNamespace="office_editor"')
@@ -527,7 +241,7 @@ describe('PluginManagementService', () => {
 			})
 
 			await expect(
-				service.installPlugin({
+				fixture.service.installPlugin({
 					pluginName: '@xpert-ai/plugin-bundle-candidate'
 				})
 			).rejects.toThrow('artifactNamespace="bundle_tools"')
@@ -560,7 +274,7 @@ describe('PluginManagementService', () => {
 		})
 
 		await expect(
-			service.installPlugin({
+			fixture.service.installPlugin({
 				pluginName: '@xpert-ai/plugin-office-editor'
 			})
 		).resolves.toEqual(
@@ -596,7 +310,7 @@ describe('PluginManagementService', () => {
 		lazyLoader.load.mockResolvedValue({})
 
 		await expect(
-			service.installPlugin({
+			fixture.service.installPlugin({
 				pluginName: '@xpert-ai/plugin-runtime-demo'
 			})
 		).resolves.toEqual(
@@ -634,378 +348,6 @@ describe('PluginManagementService', () => {
 		expect(dataSource.synchronize).not.toHaveBeenCalled()
 	})
 
-	it('reads bundle components from a code plugin workspace path when the staged base dir has no manifest', () => {
-		const workspacePath = mkdtempSync(join(tmpdir(), 'xpert-code-plugin-bundle-'))
-		try {
-			mkdirSync(join(workspacePath, '.xpertai-plugin'), { recursive: true })
-			mkdirSync(join(workspacePath, 'skills', 'browser-research'), { recursive: true })
-			writeFileSync(
-				join(workspacePath, '.xpertai-plugin', 'plugin.json'),
-				JSON.stringify(
-					{
-						name: '@xpert-ai/plugin-xpertai-browser-lab',
-						version: '0.1.0',
-						skills: './skills'
-					},
-					null,
-					2
-				)
-			)
-			writeFileSync(
-				join(workspacePath, 'skills', 'browser-research', 'SKILL.md'),
-				[
-					'---',
-					'name: browser-research',
-					'description: Browser research.',
-					'---',
-					'',
-					'Use browser evidence.'
-				].join('\n')
-			)
-
-			const components = service.readLoadedPluginBundleComponents({
-				organizationId: 'org-1',
-				name: '@xpert-ai/plugin-xpertai-browser-lab',
-				packageName: '@xpert-ai/plugin-xpertai-browser-lab',
-				baseDir: '/tmp/staged-plugin-without-manifest',
-				source: 'code',
-				sourceConfig: {
-					workspacePath
-				},
-				instance: {},
-				ctx: {}
-			})
-
-			expect(components).toEqual([
-				expect.objectContaining({
-					componentType: 'skill',
-					componentKey: 'browser-research',
-					sourcePath: './skills/browser-research/SKILL.md'
-				})
-			])
-		} finally {
-			rmSync(workspacePath, { recursive: true, force: true })
-		}
-	})
-
-	it('rotates the runtime revision when a same-version local workspace plugin is refreshed', async () => {
-		;(loadPlugin as jest.Mock).mockResolvedValue({
-			meta: {
-				name: '@xpert-ai/plugin-code-demo',
-				version: '1.0.0',
-				level: 'organization'
-			}
-		})
-
-		const previousRuntimeName = '@xpert-ai/plugin-code-demo@runtime__previous'
-		const result = await service.installPlugin({
-			pluginName: '@xpert-ai/plugin-code-demo',
-			source: 'code',
-			sourceConfig: {
-				workspacePath: '/tmp/workspaces/plugin-code-demo',
-				runtimeName: previousRuntimeName
-			}
-		})
-		expect(result).toEqual(
-			expect.objectContaining({
-				success: true,
-				name: '@xpert-ai/plugin-code-demo'
-			})
-		)
-
-		const runtimeName = (registerPluginsAsync as jest.Mock).mock.calls[0][0].plugins[0].runtimeName
-		expect(runtimeName).not.toBe(previousRuntimeName)
-		expect(result).toEqual(
-			expect.objectContaining({
-				runtimeRequirements: [
-					{
-						scopeKey: 'org-1',
-						pluginName: '@xpert-ai/plugin-code-demo',
-						version: '1.0.0',
-						runtimeRevision: `runtime:${runtimeName}`,
-						state: 'loaded'
-					}
-				]
-			})
-		)
-
-		expect(runtimeName).toMatch(/^@xpert-ai\/plugin-code-demo@runtime__/)
-		expect(registerPluginsAsync).toHaveBeenCalledWith(
-			expect.objectContaining({
-				plugins: [
-					expect.objectContaining({
-						name: '@xpert-ai/plugin-code-demo',
-						runtimeName,
-						source: 'code',
-						sourceConfig: {
-							workspacePath: '/tmp/workspaces/plugin-code-demo',
-							runtimeName
-						}
-					})
-				]
-			}),
-			expect.anything()
-		)
-		expect(getOrganizationPluginPath).toHaveBeenCalledWith(
-			'org-1',
-			runtimeName,
-			expect.objectContaining({
-				tenantId: 'tenant-1',
-				defaultTenantId: 'tenant-1',
-				scopeKey: 'org-1'
-			})
-		)
-		expect(loadPlugin).toHaveBeenCalledWith('@xpert-ai/plugin-code-demo', {
-			basedir: `/tmp/plugins/org-1/${runtimeName.replace(/[\/@]/g, '__')}`,
-			source: 'code',
-			workspacePath: '/tmp/workspaces/plugin-code-demo'
-		})
-		expect(assertPluginSdkInstallCandidate).toHaveBeenCalledWith({
-			pluginName: '@xpert-ai/plugin-code-demo',
-			version: undefined,
-			source: 'code',
-			sourceConfig: {
-				workspacePath: '/tmp/workspaces/plugin-code-demo',
-				runtimeName: previousRuntimeName
-			}
-		})
-		expect((pluginInstanceService as any).upsert).toHaveBeenCalledWith(
-			expect.objectContaining({
-				source: 'code',
-				sourceConfig: {
-					workspacePath: '/tmp/workspaces/plugin-code-demo',
-					runtimeName
-				}
-			})
-		)
-		expect(runtimeControl.recordPluginRuntimeChange).toHaveBeenCalledWith({
-			pluginName: '@xpert-ai/plugin-code-demo',
-			version: '1.0.0',
-			runtimeRevision: `runtime:${runtimeName}`,
-			scopeKey: 'org-1'
-		})
-	})
-
-	it('installs uploaded plugin archives as staged code plugins without a workspace path', async () => {
-		;(extractPluginArchive as jest.Mock).mockResolvedValue({
-			tempDir: '/tmp/xpert-plugin-upload-abc',
-			packageDir: '/tmp/xpert-plugin-upload-abc/package',
-			originalName: 'plugin-uploaded-demo.tgz',
-			packageJson: {
-				name: '@xpert-ai/plugin-uploaded-demo',
-				version: '0.2.0',
-				peerDependencies: {
-					'@xpert-ai/plugin-sdk': '^3.8.0'
-				}
-			}
-		})
-		;(loadPlugin as jest.Mock).mockResolvedValue({
-			meta: {
-				name: '@xpert-ai/plugin-uploaded-demo',
-				version: '0.2.0',
-				level: 'organization'
-			}
-		})
-
-		await expect(
-			service.installArchivePlugin({
-				buffer: Buffer.from('archive'),
-				originalname: 'plugin-uploaded-demo.tgz',
-				mimetype: 'application/gzip',
-				size: 7
-			})
-		).resolves.toEqual(
-			expect.objectContaining({
-				success: true,
-				name: '@xpert-ai/plugin-uploaded-demo'
-			})
-		)
-
-		const runtimeName = (registerPluginsAsync as jest.Mock).mock.calls[0][0].plugins[0].runtimeName
-
-		expect(runtimeName).toMatch(/^@xpert-ai\/plugin-uploaded-demo@runtime__/)
-		expect(readPluginPackageJson).toHaveBeenCalledWith('/tmp/xpert-plugin-upload-abc/package')
-		expect(assertPluginSdkCompatibility).toHaveBeenCalledWith(
-			expect.objectContaining({
-				name: '@xpert-ai/plugin-uploaded-demo'
-			}),
-			{
-				expectedPackageName: '@xpert-ai/plugin-uploaded-demo'
-			}
-		)
-		expect(registerPluginsAsync).toHaveBeenCalledWith(
-			expect.objectContaining({
-				plugins: [
-					expect.objectContaining({
-						name: '@xpert-ai/plugin-uploaded-demo',
-						runtimeName,
-						source: 'code',
-						sourceConfig: expect.objectContaining({
-							packageDir: '/tmp/xpert-plugin-upload-abc/package',
-							runtimeName,
-							uploadFileName: 'plugin-uploaded-demo.tgz'
-						})
-					})
-				]
-			}),
-			expect.anything()
-		)
-		expect(loadPlugin).toHaveBeenCalledWith('@xpert-ai/plugin-uploaded-demo', {
-			basedir: `/tmp/plugins/org-1/${runtimeName.replace(/[\/@]/g, '__')}`,
-			source: 'code',
-			workspacePath: undefined
-		})
-		const upsertInput = (pluginInstanceService as any).upsert.mock.calls.at(-1)[0]
-		expect(upsertInput).toEqual(
-			expect.objectContaining({
-				source: 'code',
-				sourceConfig: expect.objectContaining({
-					runtimeName,
-					uploadFileName: 'plugin-uploaded-demo.tgz'
-				})
-			})
-		)
-		expect(upsertInput.sourceConfig).not.toHaveProperty('packageDir')
-		expect(cleanupExtractedPluginArchive).toHaveBeenCalledWith('/tmp/xpert-plugin-upload-abc')
-	})
-
-	it('installs tenant-scope global plugins into the current tenant scope only', async () => {
-		RequestContext.getScope.mockReturnValue({
-			tenantId: 'tenant-other',
-			organizationId: null
-		})
-		RequestContext.currentTenantId.mockReturnValue('tenant-other')
-		;(loadPlugin as jest.Mock).mockResolvedValue({
-			meta: {
-				name: '@xpert-ai/plugin-tenant-global',
-				version: '1.0.0',
-				level: 'organization'
-			}
-		})
-
-		await expect(
-			service.installPlugin({
-				pluginName: '@xpert-ai/plugin-tenant-global'
-			})
-		).resolves.toEqual(
-			expect.objectContaining({
-				success: true,
-				name: '@xpert-ai/plugin-tenant-global',
-				organizationId: '__global__'
-			})
-		)
-
-		expect(registerPluginsAsync).toHaveBeenCalledWith(
-			expect.objectContaining({
-				tenantId: 'tenant-other',
-				organizationId: '__global__',
-				defaultTenantId: 'tenant-1',
-				scopeKey: 'tenant:tenant-other:global'
-			}),
-			expect.anything()
-		)
-		expect((pluginInstanceService as any).uninstallByPackageName).toHaveBeenCalledWith(
-			'tenant-other',
-			'__global__',
-			'@xpert-ai/plugin-tenant-global',
-			{
-				scopeKey: 'tenant:tenant-other:global',
-				cause: 'refresh'
-			}
-		)
-		expect((pluginInstanceService as any).upsert).toHaveBeenCalledWith(
-			expect.objectContaining({
-				tenantId: 'tenant-other',
-				organizationId: '__global__',
-				scopeKey: 'tenant:tenant-other:global',
-				pluginName: '@xpert-ai/plugin-tenant-global'
-			})
-		)
-	})
-
-	it('rejects direct JSON installs that try to pass an internal packageDir', async () => {
-		await expect(
-			service.installPlugin({
-				pluginName: '@xpert-ai/plugin-uploaded-demo',
-				source: 'code',
-				sourceConfig: {
-					packageDir: '/tmp/xpert-plugin-upload-abc/package'
-				}
-			})
-		).rejects.toThrow('sourceConfig.packageDir is internal')
-
-		expect(registerPluginsAsync).not.toHaveBeenCalled()
-	})
-
-	it('refreshes code plugins from their persisted workspace path', async () => {
-		loadedPlugins.push({
-			organizationId: 'org-1',
-			name: '@xpert-ai/plugin-code-demo',
-			packageName: '@xpert-ai/plugin-code-demo',
-			source: 'code',
-			ctx: {
-				config: {
-					apiKey: 'demo'
-				}
-			},
-			instance: {
-				meta: {
-					name: '@xpert-ai/plugin-code-demo',
-					version: '1.0.0',
-					level: 'organization'
-				}
-			}
-		})
-		;(pluginInstanceService as any).findOneByPluginName.mockResolvedValue({
-			pluginName: '@xpert-ai/plugin-code-demo',
-			packageName: '@xpert-ai/plugin-code-demo',
-			source: 'code',
-			sourceConfig: {
-				workspacePath: '/tmp/workspaces/plugin-code-demo'
-			},
-			config: {
-				apiKey: 'persisted'
-			}
-		})
-		const installSpy = jest.spyOn(service, 'installPlugin').mockResolvedValue({
-			success: true,
-			name: '@xpert-ai/plugin-code-demo',
-			packageName: '@xpert-ai/plugin-code-demo',
-			organizationId: 'org-1',
-			currentVersion: '1.0.1'
-		})
-
-		await expect(service.refreshCodePlugin('@xpert-ai/plugin-code-demo')).resolves.toEqual(
-			expect.objectContaining({
-				success: true,
-				name: '@xpert-ai/plugin-code-demo'
-			})
-		)
-
-		expect(installSpy).toHaveBeenCalledWith({
-			pluginName: '@xpert-ai/plugin-code-demo',
-			source: 'code',
-			sourceConfig: {
-				workspacePath: '/tmp/workspaces/plugin-code-demo'
-			},
-			config: {
-				apiKey: 'demo'
-			}
-		})
-	})
-
-	it('rejects refreshing code plugins without a stored workspace path', async () => {
-		;(pluginInstanceService as any).findOneByPluginName.mockResolvedValue({
-			pluginName: '@xpert-ai/plugin-code-demo',
-			packageName: '@xpert-ai/plugin-code-demo',
-			source: 'code'
-		})
-
-		await expect(service.refreshCodePlugin('@xpert-ai/plugin-code-demo')).rejects.toThrow(
-			'does not have a stored sourceConfig.workspacePath'
-		)
-	})
-
 	it('persists a placeholder plugin record when installation fails', async () => {
 		;(registerPluginsAsync as jest.Mock).mockResolvedValue({
 			modules: [],
@@ -1017,13 +359,13 @@ describe('PluginManagementService', () => {
 		})
 
 		await expect(
-			service.installPlugin({
+			fixture.service.installPlugin({
 				pluginName: '@xpert-ai/plugin-broken-demo',
 				source: 'npm'
 			})
 		).rejects.toBeInstanceOf(Error)
 
-		expect((pluginInstanceService as any).upsert).toHaveBeenCalledWith(
+		expect(pluginInstanceService.upsert).toHaveBeenCalledWith(
 			expect.objectContaining({
 				pluginName: '@xpert-ai/plugin-broken-demo',
 				packageName: '@xpert-ai/plugin-broken-demo',
@@ -1035,377 +377,6 @@ describe('PluginManagementService', () => {
 				pluginName: '@xpert-ai/plugin-broken-demo'
 			})
 		)
-	})
-
-	it('does not persist a placeholder plugin record when system-level installs are rejected', async () => {
-		;(canManageSystemPlugins as jest.Mock).mockReturnValue(false)
-		;(registerPluginsAsync as jest.Mock).mockResolvedValueOnce({
-			modules: [],
-			errors: [
-				{
-					code: PLUGIN_SYSTEM_LEVEL_INSTALL_FORBIDDEN_CODE,
-					pluginName: '@xpert-ai/plugin-system-demo',
-					packageName: '@xpert-ai/plugin-system-demo',
-					error: 'System-level plugin "@xpert-ai/plugin-system-demo" cannot be installed in this scope'
-				}
-			]
-		})
-
-		await expect(
-			service.installPlugin({
-				pluginName: '@xpert-ai/plugin-system-demo',
-				source: 'code',
-				sourceConfig: {
-					workspacePath: '/tmp/workspaces/plugin-system-demo'
-				}
-			})
-		).rejects.toBeInstanceOf(Error)
-
-		expect(registerPluginsAsync).toHaveBeenCalledWith(
-			expect.objectContaining({
-				allowSystemPlugins: false,
-				plugins: [
-					expect.objectContaining({
-						name: '@xpert-ai/plugin-system-demo',
-						source: 'code'
-					})
-				]
-			}),
-			expect.anything()
-		)
-		expect(loadPlugin).not.toHaveBeenCalled()
-		expect((pluginInstanceService as any).upsert).not.toHaveBeenCalled()
-		expect(upsertPluginLoadFailure).not.toHaveBeenCalled()
-		expect((pluginInstanceService as any).removePlugins).toHaveBeenCalledWith(
-			'org-1',
-			['@xpert-ai/plugin-system-demo'],
-			expect.objectContaining({
-				tenantId: 'tenant-1',
-				defaultTenantId: 'tenant-1'
-			})
-		)
-	})
-
-	it('keeps the post-load system-level guard as a defensive fallback', async () => {
-		;(canManageSystemPlugins as jest.Mock).mockReturnValue(false)
-		;(loadPlugin as jest.Mock).mockResolvedValue({
-			meta: {
-				name: '@xpert-ai/plugin-system-demo',
-				version: '1.0.0',
-				level: 'system'
-			}
-		})
-
-		await expect(
-			service.installPlugin({
-				pluginName: '@xpert-ai/plugin-system-demo',
-				source: 'code',
-				sourceConfig: {
-					workspacePath: '/tmp/workspaces/plugin-system-demo'
-				}
-			})
-		).rejects.toBeInstanceOf(Error)
-
-		expect((pluginInstanceService as any).upsert).not.toHaveBeenCalled()
-		expect(upsertPluginLoadFailure).not.toHaveBeenCalled()
-		expect((pluginInstanceService as any).removePlugins).toHaveBeenCalledWith(
-			'org-1',
-			['@xpert-ai/plugin-system-demo'],
-			expect.objectContaining({
-				tenantId: 'tenant-1',
-				defaultTenantId: 'tenant-1'
-			})
-		)
-	})
-
-	it('rejects package metadata system-level installs outside the system management scope', async () => {
-		;(canManageSystemPlugins as jest.Mock).mockReturnValue(false)
-		;(assertPluginSdkInstallCandidate as jest.Mock).mockResolvedValue({
-			hostVersion: '3.8.4',
-			peerRange: '^3.8.0',
-			warnings: [],
-			level: 'system'
-		})
-
-		await expect(
-			service.installPlugin({
-				pluginName: '@xpert-ai/plugin-system-demo'
-			})
-		).rejects.toBeInstanceOf(Error)
-
-		expect(registerPluginsAsync).not.toHaveBeenCalled()
-		expect(loadPlugin).not.toHaveBeenCalled()
-		expect((pluginInstanceService as any).upsert).not.toHaveBeenCalled()
-	})
-
-	it('stages system-level plugins without mutating the live Nest module graph', async () => {
-		RequestContext.getScope.mockReturnValue({
-			tenantId: 'tenant-1',
-			organizationId: '__global__'
-		})
-		;(canManageGlobalPlugins as jest.Mock).mockReturnValue(true)
-		;(canManageSystemPlugins as jest.Mock).mockReturnValue(true)
-		;(assertPluginSdkInstallCandidate as jest.Mock).mockResolvedValue({
-			hostVersion: '3.8.4',
-			peerRange: '^3.8.0',
-			warnings: [],
-			level: 'system',
-			version: '1.0.0',
-			artifactNamespace: 'system_demo'
-		})
-		;(assertInstalledPluginSdkCompatibility as jest.Mock).mockReturnValue({
-			hostVersion: '3.8.4',
-			peerRange: '^3.8.0',
-			warnings: [],
-			level: 'system',
-			version: '1.0.0',
-			artifactNamespace: 'system_demo'
-		})
-
-		await expect(
-			service.installPlugin({
-				pluginName: '@xpert-ai/plugin-system-demo'
-			})
-		).resolves.toEqual(
-			expect.objectContaining({
-				success: true,
-				name: '@xpert-ai/plugin-system-demo',
-				organizationId: '__global__',
-				runtimeConvergence: { generation: 1 }
-			})
-		)
-
-		expect((pluginInstanceService as any).uninstallByPackageName).not.toHaveBeenCalled()
-		expect(registerPluginsAsync).toHaveBeenCalledWith(
-			expect.objectContaining({
-				tenantId: null,
-				organizationId: '__global__',
-				scopeKey: 'system:global',
-				stageOnly: true,
-				plugins: [
-					expect.objectContaining({
-						name: '@xpert-ai/plugin-system-demo',
-						level: 'system'
-					})
-				]
-			}),
-			expect.anything()
-		)
-		expect(loadPlugin).not.toHaveBeenCalled()
-		expect(lazyLoader.load).not.toHaveBeenCalled()
-		expect(dataSource.setOptions).not.toHaveBeenCalled()
-		expect(registerPluginControllerRoutes).not.toHaveBeenCalled()
-		expect((pluginInstanceService as any).upsert).toHaveBeenCalledWith(
-			expect.objectContaining({
-				tenantId: null,
-				organizationId: '__global__',
-				scopeKey: 'system:global',
-				pluginName: '@xpert-ai/plugin-system-demo',
-				level: 'system'
-			}),
-			{ syncLoadedConfig: false }
-		)
-		expect(runtimeControl.recordPluginRuntimeChange).toHaveBeenCalledWith({
-			pluginName: '@xpert-ai/plugin-system-demo',
-			version: '1.0.0',
-			scopeKey: 'system:global'
-		})
-	})
-
-	it('stages tenant-level plugins in the owning tenant global scope', async () => {
-		RequestContext.getScope.mockReturnValue({
-			tenantId: 'tenant-bom',
-			organizationId: 'org-bom'
-		})
-		RequestContext.currentTenantId.mockReturnValue('tenant-bom')
-		;(assertPluginSdkInstallCandidate as jest.Mock).mockResolvedValue({
-			hostVersion: '3.8.4',
-			peerRange: '^3.8.0',
-			warnings: [],
-			level: 'tenant',
-			version: '1.0.0',
-			artifactNamespace: 'bom'
-		})
-		;(assertInstalledPluginSdkCompatibility as jest.Mock).mockReturnValue({
-			hostVersion: '3.8.4',
-			peerRange: '^3.8.0',
-			warnings: [],
-			level: 'tenant',
-			version: '1.0.0',
-			artifactNamespace: 'bom'
-		})
-
-		await expect(
-			service.installPlugin({
-				pluginName: '@xpert-ai/plugin-bom'
-			})
-		).resolves.toEqual(
-			expect.objectContaining({
-				success: true,
-				name: '@xpert-ai/plugin-bom',
-				organizationId: '__global__',
-				runtimeConvergence: { generation: 1 }
-			})
-		)
-
-		expect((pluginInstanceService as any).findTenantLevelOwner).toHaveBeenCalledWith('@xpert-ai/plugin-bom')
-		expect(registerPluginsAsync).toHaveBeenCalledWith(
-			expect.objectContaining({
-				tenantId: 'tenant-bom',
-				organizationId: '__global__',
-				scopeKey: 'tenant:tenant-bom:global',
-				allowSystemPlugins: false,
-				stageOnly: true,
-				plugins: [expect.objectContaining({ level: 'tenant' })]
-			}),
-			expect.anything()
-		)
-		expect((pluginInstanceService as any).upsert).toHaveBeenCalledWith(
-			expect.objectContaining({
-				tenantId: 'tenant-bom',
-				organizationId: '__global__',
-				scopeKey: 'tenant:tenant-bom:global',
-				level: 'tenant'
-			}),
-			{ syncLoadedConfig: false }
-		)
-		expect(runtimeControl.recordPluginRuntimeChange).toHaveBeenCalledWith({
-			pluginName: '@xpert-ai/plugin-bom',
-			version: '1.0.0',
-			scopeKey: 'tenant:tenant-bom:global'
-		})
-		expect(loadPlugin).not.toHaveBeenCalled()
-		expect(lazyLoader.load).not.toHaveBeenCalled()
-	})
-
-	it('rejects tenant-level installation when the plugin belongs to another tenant', async () => {
-		RequestContext.getScope.mockReturnValue({
-			tenantId: 'tenant-bom',
-			organizationId: '__global__'
-		})
-		RequestContext.currentTenantId.mockReturnValue('tenant-bom')
-		;(assertPluginSdkInstallCandidate as jest.Mock).mockResolvedValue({
-			hostVersion: '3.8.4',
-			peerRange: '^3.8.0',
-			warnings: [],
-			level: 'tenant'
-		})
-		;(pluginInstanceService as any).findTenantLevelOwner.mockResolvedValue({ tenantId: 'tenant-other' })
-
-		await expect(service.installPlugin({ pluginName: '@xpert-ai/plugin-bom' })).rejects.toBeInstanceOf(Error)
-
-		expect(registerPluginsAsync).not.toHaveBeenCalled()
-		expect((pluginInstanceService as any).upsert).not.toHaveBeenCalled()
-	})
-
-	it('requires the old system registration to be removed before changing a plugin to tenant level', async () => {
-		RequestContext.getScope.mockReturnValue({
-			tenantId: 'tenant-bom',
-			organizationId: '__global__'
-		})
-		RequestContext.currentTenantId.mockReturnValue('tenant-bom')
-		;(assertPluginSdkInstallCandidate as jest.Mock).mockResolvedValue({
-			hostVersion: '3.8.4',
-			peerRange: '^3.8.0',
-			warnings: [],
-			level: 'tenant'
-		})
-		;(pluginInstanceService as any).findSystemLevelRegistration.mockResolvedValue({
-			pluginName: '@xpert-ai/plugin-bom',
-			level: 'system'
-		})
-
-		await expect(service.installPlugin({ pluginName: '@xpert-ai/plugin-bom' })).rejects.toBeInstanceOf(Error)
-
-		expect(registerPluginsAsync).not.toHaveBeenCalled()
-		expect((pluginInstanceService as any).upsert).not.toHaveBeenCalled()
-	})
-
-	it('stages code updates for system plugins in a new immutable runtime directory', async () => {
-		RequestContext.getScope.mockReturnValue({
-			tenantId: 'tenant-1',
-			organizationId: '__global__'
-		})
-		;(canManageGlobalPlugins as jest.Mock).mockReturnValue(true)
-		;(canManageSystemPlugins as jest.Mock).mockReturnValue(true)
-		;(assertPluginSdkInstallCandidate as jest.Mock).mockResolvedValue({
-			hostVersion: '3.8.4',
-			peerRange: '^3.8.0',
-			warnings: [],
-			level: 'system',
-			version: '1.0.1',
-			artifactNamespace: 'system_demo'
-		})
-		;(assertInstalledPluginSdkCompatibility as jest.Mock).mockReturnValue({
-			hostVersion: '3.8.4',
-			peerRange: '^3.8.0',
-			warnings: [],
-			level: 'system',
-			version: '1.0.1',
-			artifactNamespace: 'system_demo'
-		})
-
-		await service.installPlugin({
-			pluginName: '@xpert-ai/plugin-system-demo',
-			source: 'code',
-			sourceConfig: {
-				workspacePath: '/tmp/workspaces/plugin-system-demo',
-				runtimeName: '@xpert-ai/plugin-system-demo@runtime__active'
-			}
-		})
-
-		const stagedPlugin = (registerPluginsAsync as jest.Mock).mock.calls[0][0].plugins[0]
-		expect(stagedPlugin.runtimeName).toMatch(/^@xpert-ai\/plugin-system-demo@runtime__/)
-		expect(stagedPlugin.runtimeName).not.toBe('@xpert-ai/plugin-system-demo@runtime__active')
-		expect(stagedPlugin.sourceConfig).toEqual({
-			workspacePath: '/tmp/workspaces/plugin-system-demo',
-			runtimeName: stagedPlugin.runtimeName
-		})
-		expect((pluginInstanceService as any).upsert).toHaveBeenCalledWith(
-			expect.objectContaining({
-				sourceConfig: {
-					workspacePath: '/tmp/workspaces/plugin-system-demo',
-					runtimeName: stagedPlugin.runtimeName
-				}
-			}),
-			{ syncLoadedConfig: false }
-		)
-		expect((pluginInstanceService as any).uninstallByPackageName).not.toHaveBeenCalled()
-		expect((pluginInstanceService as any).removePlugins).not.toHaveBeenCalled()
-	})
-
-	it('rejects system-level installs from non-default tenants before touching the singleton scope', async () => {
-		RequestContext.getScope.mockReturnValue({
-			tenantId: 'tenant-other',
-			organizationId: 'org-other'
-		})
-		RequestContext.currentTenantId.mockReturnValue('tenant-other')
-		;(canManageSystemPlugins as jest.Mock).mockReturnValue(true)
-		;(assertPluginSdkInstallCandidate as jest.Mock).mockResolvedValue({
-			hostVersion: '3.8.4',
-			peerRange: '^3.8.0',
-			warnings: [],
-			level: 'system'
-		})
-		;(loadPlugin as jest.Mock).mockResolvedValue({
-			meta: {
-				name: '@xpert-ai/plugin-system-demo',
-				version: '1.0.0',
-				level: 'system'
-			}
-		})
-
-		await expect(
-			service.installPlugin({
-				pluginName: '@xpert-ai/plugin-system-demo'
-			})
-		).rejects.toBeInstanceOf(Error)
-
-		expect((pluginInstanceService as any).uninstallByPackageName).not.toHaveBeenCalled()
-		expect(registerPluginsAsync).not.toHaveBeenCalled()
-		expect(loadPlugin).not.toHaveBeenCalled()
-		expect((pluginInstanceService as any).removePlugins).not.toHaveBeenCalled()
-		expect((pluginInstanceService as any).upsert).not.toHaveBeenCalled()
 	})
 
 	it('continues installing when sdk preflight returns compatibility warnings', async () => {
@@ -1432,7 +403,7 @@ describe('PluginManagementService', () => {
 		})
 
 		await expect(
-			service.installPlugin({
+			fixture.service.installPlugin({
 				pluginName: '@xpert-ai/plugin-future-demo',
 				version: '1.2.3',
 				source: 'npm'
@@ -1450,7 +421,7 @@ describe('PluginManagementService', () => {
 			source: 'npm',
 			sourceConfig: null
 		})
-		expect((pluginInstanceService as any).uninstallByPackageName).toHaveBeenCalledWith(
+		expect(pluginInstanceService.uninstallByPackageName).toHaveBeenCalledWith(
 			'tenant-1',
 			'org-1',
 			'@xpert-ai/plugin-future-demo',
@@ -1460,110 +431,12 @@ describe('PluginManagementService', () => {
 			}
 		)
 		expect(registerPluginsAsync).toHaveBeenCalled()
-		expect((pluginInstanceService as any).upsert).toHaveBeenCalledWith(
+		expect(pluginInstanceService.upsert).toHaveBeenCalledWith(
 			expect.objectContaining({
 				pluginName: '@xpert-ai/plugin-future-demo',
 				version: '1.2.3'
 			})
 		)
 		expect(upsertPluginLoadFailure).not.toHaveBeenCalled()
-	})
-
-	it('allows super admins to uninstall global plugins from an organization context', async () => {
-		;(canManageGlobalPlugins as jest.Mock).mockReturnValue(true)
-
-		await expect(
-			service.uninstallByNamesWithGuard(['@xpert-ai/plugin-global-demo'], '__global__')
-		).resolves.toEqual({})
-
-		expect((pluginInstanceService as any).uninstall).toHaveBeenCalledWith(
-			'tenant-1',
-			'__global__',
-			['@xpert-ai/plugin-global-demo'],
-			{ scopeKey: '__global__', cause: 'uninstall' }
-		)
-	})
-
-	it('rejects global plugin uninstalls for non-super-admin users', async () => {
-		;(canManageGlobalPlugins as jest.Mock).mockReturnValue(false)
-
-		await expect(service.uninstallByNamesWithGuard(['@xpert-ai/plugin-global-demo'], '__global__')).rejects.toThrow(
-			'Only super admins can uninstall global plugins'
-		)
-
-		expect((pluginInstanceService as any).uninstall).not.toHaveBeenCalled()
-	})
-
-	it('deactivates system plugins persistently and requires a process restart to unload them', async () => {
-		RequestContext.getScope.mockReturnValue({
-			tenantId: 'tenant-1',
-			organizationId: '__global__'
-		})
-		;(canManageGlobalPlugins as jest.Mock).mockReturnValue(true)
-		;(canManageSystemPlugins as jest.Mock).mockReturnValue(true)
-
-		await expect(
-			service.uninstallByNamesWithGuard(['@xpert-ai/plugin-system-demo'], '__global__', 'system:global')
-		).resolves.toEqual(
-			expect.objectContaining({
-				restartRequired: true,
-				runtimeRequirements: [
-					{
-						scopeKey: 'system:global',
-						pluginName: '@xpert-ai/plugin-system-demo',
-						state: 'absent'
-					}
-				]
-			})
-		)
-
-		expect((pluginInstanceService as any).deactivate).toHaveBeenCalledWith(
-			'tenant-1',
-			'__global__',
-			['@xpert-ai/plugin-system-demo'],
-			{ scopeKey: 'system:global' }
-		)
-		expect((pluginInstanceService as any).uninstall).not.toHaveBeenCalled()
-		expect((pluginInstanceService as any).removePlugins).not.toHaveBeenCalled()
-	})
-
-	it('deactivates tenant-level plugins in their owning tenant and requires a restart', async () => {
-		RequestContext.getScope.mockReturnValue({
-			tenantId: 'tenant-bom',
-			organizationId: '__global__'
-		})
-		RequestContext.currentTenantId.mockReturnValue('tenant-bom')
-		;(canManageGlobalPlugins as jest.Mock).mockReturnValue(true)
-		loadedPlugins.push({
-			tenantId: 'tenant-bom',
-			organizationId: '__global__',
-			scopeKey: 'tenant:tenant-bom:global',
-			name: '@xpert-ai/plugin-bom',
-			packageName: '@xpert-ai/plugin-bom',
-			level: 'tenant'
-		})
-
-		await expect(
-			service.uninstallByNamesWithGuard(['@xpert-ai/plugin-bom'], '__global__', 'tenant:tenant-bom:global')
-		).resolves.toEqual(
-			expect.objectContaining({
-				restartRequired: true,
-				runtimeRequirements: [
-					{
-						scopeKey: 'tenant:tenant-bom:global',
-						pluginName: '@xpert-ai/plugin-bom',
-						state: 'absent'
-					}
-				]
-			})
-		)
-
-		expect((pluginInstanceService as any).deactivate).toHaveBeenCalledWith(
-			'tenant-bom',
-			'__global__',
-			['@xpert-ai/plugin-bom'],
-			{ scopeKey: 'tenant:tenant-bom:global' }
-		)
-		expect((pluginInstanceService as any).uninstall).not.toHaveBeenCalled()
 	})
 })

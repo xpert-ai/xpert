@@ -4,10 +4,12 @@ import { TestBed } from '@angular/core/testing'
 import { RuntimeControlAPIService, Store } from '@cloud/app/@core/state'
 import { ZardAlertDialogService } from '@xpert-ai/headless-ui'
 import { TranslateService } from '@ngx-translate/core'
-import { of, Subject, throwError } from 'rxjs'
+import { RolesEnum } from '@xpert-ai/contracts'
+import { BehaviorSubject, of, Subject, throwError } from 'rxjs'
 import { PluginRuntimeRestartService } from './plugin-runtime-restart.service'
 
 describe('PluginRuntimeRestartService', () => {
+  const user = new BehaviorSubject<{ role: { name: RolesEnum } } | null>(null)
   const runtimeControlAPI = {
     restartCapability: jest.fn(() => of({ allowed: true, mode: 'rolling-self-signal', reason: 'allowed' })),
     pluginConvergenceStatus: jest.fn(),
@@ -16,7 +18,7 @@ describe('PluginRuntimeRestartService', () => {
     readiness: jest.fn()
   }
   const store = {
-    user$: of(null),
+    user$: user,
     activeScope: { organizationId: 'org-1' },
     selectActiveScope: jest.fn(() => of({ organizationId: 'org-1' }))
   }
@@ -26,6 +28,7 @@ describe('PluginRuntimeRestartService', () => {
   beforeEach(() => {
     localStorage.clear()
     jest.clearAllMocks()
+    user.next(null)
     runtimeControlAPI.restartCapability.mockReturnValue(
       of({ allowed: true, mode: 'rolling-self-signal', reason: 'allowed' })
     )
@@ -48,6 +51,22 @@ describe('PluginRuntimeRestartService', () => {
     jest.useRealTimers()
     TestBed.resetTestingModule()
     localStorage.clear()
+  })
+
+  it('shows manual restart only to superadmins and keeps background progress visible to other roles', () => {
+    const service = TestBed.inject(PluginRuntimeRestartService)
+    service.markRequired('@xpert-ai/plugin-test')
+    expect(service.showManualRestart()).toBe(false)
+    user.next({ role: { name: RolesEnum.ADMIN } })
+    expect(service.showManualRestart()).toBe(false)
+    user.next({ role: { name: RolesEnum.SUPER_ADMIN } })
+    expect(service.showManualRestart()).toBe(true)
+    user.next({ role: { name: RolesEnum.ADMIN } })
+    expect(service.showManualRestart()).toBe(false)
+    expect(service.requiresManualRestart()).toBe(true)
+    service.pending.update((pending) => ({ ...pending!, restartId: 'restart-1' }))
+    expect(service.isApplyingInBackground()).toBe(true)
+    expect(service.showManualRestart()).toBe(false)
   })
 
   it('keeps automatic convergence durable until the backend generation completes', async () => {

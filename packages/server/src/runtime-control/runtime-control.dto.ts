@@ -1,6 +1,19 @@
-import { IRuntimePluginRequirement, RUNTIME_RESTART_CONFIRMATION } from '@xpert-ai/contracts'
+import {
+	IRuntimeInstanceRetirementRequest,
+	IRuntimePluginRequirement,
+	RUNTIME_RESTART_CONFIRMATION
+} from '@xpert-ai/contracts'
 import { Type } from 'class-transformer'
-import { ArrayMaxSize, IsArray, IsIn, IsOptional, IsString, MaxLength, ValidateNested } from 'class-validator'
+import {
+	ArrayMaxSize,
+	IsArray,
+	IsIn,
+	IsNotEmpty,
+	IsOptional,
+	IsString,
+	MaxLength,
+	ValidateNested
+} from 'class-validator'
 
 class RuntimePluginRequirementDto implements IRuntimePluginRequirement {
 	@IsString()
@@ -40,4 +53,11 @@ export class RuntimeRestartRequestDto {
 	@ValidateNested({ each: true })
 	@Type(() => RuntimePluginRequirementDto)
 	runtimeRequirements?: RuntimePluginRequirementDto[]
+}
+
+export class RuntimeInstanceRetirementDto implements IRuntimeInstanceRetirementRequest {
+	@IsString()
+	@IsNotEmpty()
+	@MaxLength(100)
+	expectedBootId: string
 }
