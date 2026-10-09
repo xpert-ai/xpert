@@ -53,6 +53,7 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "ChatkitSessionInputInvalid": "Invalid ChatKit session input.",
         "GroupAccessDenied": "You do not have access to this group.",
         "GroupInputInvalid": "Invalid group message or request.",
         "GroupMessageConflict": "This group message can no longer be sent.",
