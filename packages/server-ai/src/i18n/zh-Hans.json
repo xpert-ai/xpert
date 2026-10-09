@@ -53,6 +53,7 @@
         "ReferenceOnlyPrompt": "未包含文件正文，不支持直接按文本读取。请使用支持该格式的可用工具；对于 ZIP，先列出或解压条目，再处理所需的子文件。此引用不会改变文件访问权限。"
     },
     "Error": {
+        "GroupPrimaryAssistantInUse": "该数字专家是群组的主数字专家，暂时无法删除。",
         "ChatkitSessionInputInvalid": "ChatKit 会话参数无效。",
         "GroupAccessDenied": "无权访问此群聊。",
         "GroupInputInvalid": "群消息或请求格式无效。",

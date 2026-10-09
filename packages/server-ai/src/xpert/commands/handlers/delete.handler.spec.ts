@@ -1,4 +1,5 @@
 import { CommandBus } from '@nestjs/cqrs'
+import { ForbiddenException } from '@nestjs/common'
 
 jest.mock('../../xpert.service', () => ({
     XpertService: class XpertService {}
@@ -30,11 +31,14 @@ describe('XpertDeleteHandler', () => {
         exportedTemplate: TTestExportedTemplate
         type: string
         slug: string
+        organizationId: string | null
     }>
 
     function createHandler(xpertOverrides: TTestXpertOverrides = {}) {
         const xpert = {
             id: 'xpert-1',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
             latest: false,
             publishAt: null,
             graph: {
@@ -44,11 +48,13 @@ describe('XpertDeleteHandler', () => {
             ...xpertOverrides
         }
 
+        const groups = { existsBy: jest.fn().mockResolvedValue(false) }
         const service = {
             findOne: jest.fn().mockResolvedValue(xpert),
             findAll: jest.fn().mockResolvedValue({ items: [] }),
             delete: jest.fn().mockResolvedValue({ affected: 1 }),
             repository: {
+                manager: { getRepository: () => groups },
                 remove: jest.fn().mockResolvedValue(undefined)
             }
         }
@@ -66,11 +72,66 @@ describe('XpertDeleteHandler', () => {
                 xpertTemplateService as unknown as XpertTemplateService
             ),
             service,
+            groups,
             commandBus,
             xpertTemplateService
         }
     }
 
+    it.each([false, true])('protects a group primary Assistant before cleanup (latest=%s)', async (latest) => {
+        const { handler, service, groups, commandBus, xpertTemplateService } = createHandler({ latest })
+        groups.existsBy.mockResolvedValue(true)
+        await expect(handler.execute(new XpertDeleteCommand('xpert-1'))).rejects.toBeInstanceOf(ForbiddenException)
+        expect(groups.existsBy).toHaveBeenCalledWith({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            purpose: 'group',
+            xpertId: expect.objectContaining({ _type: 'in', _value: ['xpert-1'] })
+        })
+        if (!latest) expect(service.findAll).not.toHaveBeenCalled()
+        expect(commandBus.execute).not.toHaveBeenCalled()
+        expect(xpertTemplateService.deleteExportedXpertTemplate).not.toHaveBeenCalled()
+        expect(service.delete).not.toHaveBeenCalled()
+        expect(service.repository.remove).not.toHaveBeenCalled()
+    })
+    it('checks every version that would be removed when deleting the latest definition', async () => {
+        const { handler, service, groups, commandBus, xpertTemplateService } = createHandler({
+            latest: true,
+            type: 'agent',
+            slug: 'support'
+        })
+        service.findAll.mockResolvedValue({ items: [{ id: 'published-version', exportedTemplate: undefined }] })
+        groups.existsBy.mockResolvedValue(true)
+        await expect(handler.execute(new XpertDeleteCommand('xpert-1'))).rejects.toBeInstanceOf(ForbiddenException)
+        expect(groups.existsBy).toHaveBeenCalledWith(
+            expect.objectContaining({
+                xpertId: expect.objectContaining({ _type: 'in', _value: ['xpert-1', 'published-version'] })
+            })
+        )
+        expect(commandBus.execute).not.toHaveBeenCalled()
+        expect(xpertTemplateService.deleteExportedXpertTemplate).not.toHaveBeenCalled()
+        expect(service.repository.remove).not.toHaveBeenCalled()
+        expect(service.delete).not.toHaveBeenCalled()
+    })
+    it('uses an explicit null organization predicate for tenant-level definitions', async () => {
+        const { handler, groups } = createHandler({ organizationId: null })
+        await handler.execute(new XpertDeleteCommand('xpert-1'))
+        expect(groups.existsBy).toHaveBeenCalledWith(
+            expect.objectContaining({
+                tenantId: 'tenant-1',
+                organizationId: expect.objectContaining({ _type: 'isNull' })
+            })
+        )
+    })
+    it('does not perform cleanup when checking group references fails', async () => {
+        const { handler, service, groups, commandBus, xpertTemplateService } = createHandler()
+        groups.existsBy.mockRejectedValue(new Error('database unavailable'))
+        await expect(handler.execute(new XpertDeleteCommand('xpert-1'))).rejects.toThrow('database unavailable')
+        expect(commandBus.execute).not.toHaveBeenCalled()
+        expect(xpertTemplateService.deleteExportedXpertTemplate).not.toHaveBeenCalled()
+        expect(service.repository.remove).not.toHaveBeenCalled()
+        expect(service.delete).not.toHaveBeenCalled()
+    })
     it('cleans published triggers before deleting the xpert', async () => {
         const graph = {
             nodes: [
