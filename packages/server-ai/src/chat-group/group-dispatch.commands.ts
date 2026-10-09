@@ -1,0 +1,21 @@
+import { Command } from '@nestjs/cqrs'
+import type { AgentChatDispatchPayload, HandoffMessage } from '@xpert-ai/plugin-sdk'
+
+/** Bind a durable group receipt to one runtime input before the common chat processor executes it. */
+export class PrepareGroupChatCommand extends Command<AgentChatDispatchPayload | null> {
+    constructor(public readonly message: HandoffMessage<AgentChatDispatchPayload>) {
+        super()
+    }
+}
+/** Reconcile a receipt with runtime state after dispatch, or during recovery when no outcome is known. */
+export class FinishGroupChatCommand extends Command<void> {
+    constructor(
+        public readonly recipientId: string,
+        /** True only when the common processor reports an execution failure. */
+        public readonly dispatchFailed = false,
+        /** True for a terminal processor callback; recovery scans leave this false. */
+        public readonly dispatchFinished = false
+    ) {
+        super()
+    }
+}
