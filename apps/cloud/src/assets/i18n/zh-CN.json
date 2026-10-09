@@ -461,8 +461,32 @@
         "ClearBusinessDomain": "清除业务域"
       },
       "Application": {
+        "Toolsets": {
+          "Title": "必需工具集",
+          "Description": "首次新增配置将准备应用工作空间。新配置直接保存在其中；选择已有配置时，会在启用应用时复制。",
+          "Refresh": "刷新配置",
+          "Select": "选择工具集配置",
+          "Personal": "我的配置",
+          "Empty": "暂无可用配置，请先新增配置。",
+          "Configure": "新增配置",
+          "Configured": "应用工作空间已配置，将复用现有工具集。",
+          "ProviderMissing": "请安装并启用 {{plugin}} 后配置此工具集。",
+          "ProvidersRequired": "部分工具提供方尚不可用，请安装对应插件后刷新。",
+          "ConfigurationsRequired": "请先完成下方必需工具集的配置，再启用应用。",
+          "Edit": "编辑配置",
+          "SetupChanged": "应用状态已变化，请刷新配置后重试。",
+          "DraftSaved": "配置会保留，关闭后可继续；点击应用后才创建知识库和助手。",
+          "Discard": "放弃配置",
+          "DiscardDescription": "将删除此应用尚未启用的工作空间及其中的工具集配置。其他工作空间中的来源配置不受影响。"
+        },
         "McpProviders": "MCP 服务提供方",
-        "McpProvidersDescription": "将外部 MCP 客户端连接到此应用插件提供的服务。"
+        "McpProvidersDescription": "将外部 MCP 客户端连接到此应用插件提供的服务。",
+        "Status": {
+          "Configuring": "待配置"
+        },
+        "Action": {
+          "ContinueConfiguration": "继续配置"
+        }
       }
     },
     "Referral": {

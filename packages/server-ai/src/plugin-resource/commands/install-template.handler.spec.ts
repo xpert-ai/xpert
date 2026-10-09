@@ -594,7 +594,11 @@ function createHandler(options?: {
     const toolsetRepo = {
         find: jest.fn(() => Promise.resolve(options?.toolsets ?? []))
     }
-    const capabilities = { prepareInstallation: jest.fn(), compose: jest.fn(async (template: object) => template) }
+    const capabilities = {
+        prepareInstallation: jest.fn(),
+        configureRealtimeVoice: jest.fn(),
+        compose: jest.fn(async (template: object) => template)
+    }
     const handler = new PluginTemplateInstallHandler(
         installer as any,
         workspaceAccess as any,

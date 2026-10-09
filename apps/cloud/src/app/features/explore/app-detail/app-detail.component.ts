@@ -4,12 +4,18 @@ import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot/copilot-model-select/select.component'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { AiModelTypeEnum, ICopilotModel, ModelFeature } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, ICopilotModel, ModelFeature, PluginApplicationToolsetSelection } from '@xpert-ai/contracts'
 import { firstValueFrom } from 'rxjs'
 import { getErrorMessage, injectToastr, PluginApplicationDetail, PluginApplicationService } from '@cloud/app/@core'
 import { injectPluginAPI, IPluginComponentDefinition } from '@cloud/app/@core/state'
 import { IconComponent } from '@cloud/app/@shared/avatar'
-import { XpI18nPipe, ZardAccordionImports, ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+import {
+  XpI18nPipe,
+  ZardAccordionImports,
+  ZardAlertDialogService,
+  ZardButtonComponent,
+  ZardIconComponent
+} from '@xpert-ai/headless-ui'
 import { PluginMarketplaceMcpProviderComponent } from '../../setting/plugins/marketplace/marketplace-mcp-provider.component'
 import {
   isRuntimeNativeMcp,
@@ -19,6 +25,8 @@ import {
   runtimeMcpProviderToolCount
 } from '../../setting/plugins/marketplace/runtime-mcp-provider.util'
 import { pluginApplicationDefaultCopilotModel, pluginApplicationModelId } from './app-detail-model.util'
+import { ApplicationToolsetsComponent } from './app-toolsets.component'
+import { applicationToolsetsSelected, reconcileApplicationToolsets } from './app-toolsets.util'
 
 /** Marketplace detail and governed initialization surface for a trusted plugin App. */
 @Component({
@@ -35,7 +43,8 @@ import { pluginApplicationDefaultCopilotModel, pluginApplicationModelId } from '
     ...ZardAccordionImports,
     ZardButtonComponent,
     ZardIconComponent,
-    PluginMarketplaceMcpProviderComponent
+    PluginMarketplaceMcpProviderComponent,
+    ApplicationToolsetsComponent
   ],
   templateUrl: './app-detail.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -48,6 +57,7 @@ export class ApplicationDetailComponent {
   readonly #pluginAPI = injectPluginAPI()
   readonly #toastr = injectToastr()
   readonly #translate = inject(TranslateService)
+  readonly #alertDialog = inject(ZardAlertDialogService)
 
   readonly loading = signal(true)
   readonly initializing = signal(false)
@@ -56,6 +66,11 @@ export class ApplicationDetailComponent {
   readonly setupOpen = signal(this.#route.snapshot.queryParamMap.get('setup') === '1')
   readonly embeddingModel = model<Partial<ICopilotModel> | null>(null)
   readonly visionModel = model<Partial<ICopilotModel> | null>(null)
+  readonly toolsetSelections = signal<PluginApplicationToolsetSelection[]>([])
+  readonly refreshingToolsets = signal(false)
+  readonly configuringToolsets = signal(false)
+  readonly discarding = signal(false)
+  readonly toolsetRequirements = computed(() => this.detail()?.preflight.toolsetRequirements ?? [])
   readonly modelType = AiModelTypeEnum
   readonly visionFeatures = [ModelFeature.VISION]
 
@@ -71,6 +86,11 @@ export class ApplicationDetailComponent {
       !!this.detail()?.preflight.canInitialize &&
       (!this.modelRequirements().embedding || !!this.embeddingModelId()) &&
       (!this.modelRequirements().vision || !!this.visionModelId()) &&
+      applicationToolsetsSelected(this.toolsetRequirements(), this.toolsetSelections()) &&
+      !this.refreshingToolsets() &&
+      !this.configuringToolsets() &&
+      !this.discarding() &&
+      this.status() !== 'initializing' &&
       !this.initializing()
   )
 
@@ -96,6 +116,9 @@ export class ApplicationDetailComponent {
     try {
       const detail = await firstValueFrom(this.#applications.getDetail(pluginName, appName))
       this.detail.set(detail)
+      this.toolsetSelections.update((previous) =>
+        reconcileApplicationToolsets(detail.preflight.toolsetRequirements ?? [], previous)
+      )
       await this.loadMcpProviders(pluginName)
       this.embeddingModel.set(
         pluginApplicationDefaultCopilotModel(
@@ -123,6 +146,23 @@ export class ApplicationDetailComponent {
   readonly reloadMcpProviders = () => {
     const pluginName = this.application()?.pluginName
     if (pluginName) void this.loadMcpProviders(pluginName)
+  }
+
+  async refreshToolsets() {
+    const app = this.application()
+    if (!app || this.refreshingToolsets()) return
+    this.refreshingToolsets.set(true)
+    try {
+      const detail = await firstValueFrom(this.#applications.getDetail(app.pluginName, app.appName))
+      this.detail.set(detail)
+      this.toolsetSelections.update((previous) =>
+        reconcileApplicationToolsets(detail.preflight.toolsetRequirements ?? [], previous)
+      )
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
+    } finally {
+      this.refreshingToolsets.set(false)
+    }
   }
 
   async loadMcpProviders(pluginName: string) {
@@ -175,6 +215,9 @@ export class ApplicationDetailComponent {
     if (this.detail()?.preflight.reason === 'scope_not_supported') {
       return this.#translate.instant('XP.Explore.Application.Action.NotSupported', { Default: 'Not supported yet' })
     }
+    if (this.status() === 'configuring') {
+      return this.#translate.instant('XP.Explore.Application.Action.ContinueConfiguration')
+    }
     if (this.status() === 'degraded') {
       return this.#translate.instant('XP.Explore.Application.Action.Repair', { Default: 'Repair application' })
     }
@@ -188,6 +231,7 @@ export class ApplicationDetailComponent {
 
   /** Closes setup and removes its deep-link flag before any follow-up navigation. */
   async closeSetup(): Promise<void> {
+    if (this.configuringToolsets() || this.discarding() || this.initializing()) return
     this.setupOpen.set(false)
     await this.#router.navigate([], {
       relativeTo: this.#route,
@@ -197,7 +241,41 @@ export class ApplicationDetailComponent {
     })
   }
 
-  /** Submits only the selected model option IDs; scope remains server-derived. */
+  async discardConfiguration() {
+    const app = this.application()
+    if (
+      !app ||
+      !this.detail()?.status.canDiscardConfiguration ||
+      this.discarding() ||
+      this.configuringToolsets() ||
+      this.initializing()
+    )
+      return
+    this.discarding.set(true)
+    try {
+      const confirmed = await firstValueFrom(
+        this.#alertDialog.confirm({
+          title: this.#translate.instant('XP.Explore.Application.Toolsets.Discard'),
+          description: this.#translate.instant('XP.Explore.Application.Toolsets.DiscardDescription'),
+          actionText: this.#translate.instant('XP.Explore.Application.Toolsets.Discard'),
+          cancelText: this.#translate.instant('XP.ACTIONS.Cancel'),
+          destructive: true
+        })
+      )
+      if (!confirmed) return
+      await firstValueFrom(
+        this.#applications.discardConfiguration({ pluginName: app.pluginName, appName: app.appName })
+      )
+      this.toolsetSelections.set([])
+      await this.refreshToolsets()
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
+    } finally {
+      this.discarding.set(false)
+    }
+  }
+
+  /** Submits authorized configuration IDs; credentials and target scope remain server-owned. */
   async initialize() {
     const app = this.application()
     if (!app || !this.canSubmit()) {
@@ -212,6 +290,7 @@ export class ApplicationDetailComponent {
           appName: app.appName,
           embeddingModelId: this.embeddingModelId() ?? undefined,
           visionModelId: this.visionModelId() ?? undefined,
+          toolsets: this.toolsetSelections(),
           operationId: globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`
         })
       )
@@ -222,6 +301,7 @@ export class ApplicationDetailComponent {
             Default: 'The application was initialized successfully.'
           })
         )
+        this.initializing.set(false)
         await this.closeSetup()
         this.openApplication(status)
       }
@@ -241,6 +321,10 @@ export class ApplicationDetailComponent {
 
   preflightMessage() {
     switch (this.detail()?.preflight.reason) {
+      case 'toolset_provider_required':
+        return this.#translate.instant('XP.Explore.Application.Toolsets.ProvidersRequired')
+      case 'toolset_configuration_required':
+        return this.#translate.instant('XP.Explore.Application.Toolsets.ConfigurationsRequired')
       case 'organization_scope_required':
         return this.#translate.instant('XP.Explore.Application.Preflight.OrganizationRequired', {
           Default: 'Switch to an organization before enabling this organization-scoped application.'
@@ -272,6 +356,8 @@ export class ApplicationDetailComponent {
 
   statusLabel() {
     switch (this.status()) {
+      case 'configuring':
+        return this.#translate.instant('XP.Explore.Application.Status.Configuring')
       case 'ready':
         return this.#translate.instant('XP.Explore.Application.Status.Ready', { Default: 'Enabled' })
       case 'initializing':
@@ -340,6 +426,11 @@ export class ApplicationDetailComponent {
     if (this.status() === 'degraded') {
       return this.#translate.instant('XP.Explore.Application.Action.RepairAndReinitialize', {
         Default: 'Repair and reinitialize'
+      })
+    }
+    if (this.status() === 'configuring') {
+      return this.#translate.instant('XP.Explore.Application.Action.ApplyToOrganization', {
+        Default: 'Apply to current organization'
       })
     }
     return this.primaryActionLabel()

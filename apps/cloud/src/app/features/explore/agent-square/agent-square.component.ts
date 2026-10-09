@@ -643,6 +643,8 @@ export class ExploreAgentSquareComponent {
       }
     }
     switch (item.status.status) {
+      case 'configuring':
+        return this.#translate.instant('XP.Explore.Application.Action.ContinueConfiguration')
       case 'ready':
         return this.#translate.instant('XP.Explore.Application.Action.Open', { Default: 'Open application' })
       case 'initializing':
@@ -701,6 +703,7 @@ export class ExploreAgentSquareComponent {
 
   applicationStatusLabelKey(status: ApplicationStatus) {
     const keys: Record<ApplicationStatus, string> = {
+      configuring: 'Configuring',
       ready: 'Ready',
       not_installed: 'NotInstalled',
       initializing: 'Initializing',

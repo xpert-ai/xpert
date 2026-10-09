@@ -7,6 +7,7 @@ import { routeAnimations } from '@xpert-ai/headless-ui'
 import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
+import { isToolEnabled } from '@xpert-ai/contracts'
 import { omit } from 'lodash-es'
 import { distinctUntilChanged, map, switchMap } from 'rxjs/operators'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -104,7 +105,7 @@ export class XpertToolConfigureBuiltinComponent {
   })
 
   readonly toolsets = derivedAsync(() => {
-    if (this.providerName() && !this.toolset()) {
+    if (this.providerName() && this.workspaceId() && !this.toolset()) {
       return this.#refresh$.pipe(
         switchMap(() => this.#toolsetService.getBuiltinToolInstances(this.workspaceId(), this.providerName())),
         map(({ items }) => items)
@@ -124,7 +125,9 @@ export class XpertToolConfigureBuiltinComponent {
   /**
    * At least one tool enabled
    */
-  readonly atLeastOne = computed(() => this.tools()?.some((t) => t.enabled))
+  readonly atLeastOne = computed(() =>
+    this.tools()?.some((tool) => isToolEnabled(tool, this.toolset()?.options?.disableToolDefault))
+  )
 
   // Subscriptions
   private toolsSub = toObservable(this.toolsetId)
@@ -183,7 +186,7 @@ export class XpertToolConfigureBuiltinComponent {
   getToolEnabled(name: string) {
     const tool = this.tools()?.find((_) => _.name === name)
     if (tool) {
-      return !tool.disabled
+      return isToolEnabled(tool, this.toolset()?.options?.disableToolDefault)
     }
     return false
   }

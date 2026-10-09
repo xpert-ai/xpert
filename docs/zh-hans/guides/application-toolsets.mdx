@@ -1,0 +1,47 @@
+# 应用工具集配置
+
+应用通过 Assistant 模板的 `dependencies.toolsets` 声明必需的内置工具集。平台自动生成启用向导，无需为每个应用新增配置接口或 `appConfig` 字段。
+
+```ts
+dependencies: {
+  toolsets: [
+    {
+      pluginName: '@acme/plugin-image-tools',
+      provider: 'image_generator',
+      instanceName: 'application_images',
+      templateNodeKey: 'image-toolset-node',
+      targetAgentKey: 'Illustrator'
+    }
+  ]
+}
+```
+
+`provider` 指向已注册的内置工具提供方；`instanceName` 是应用工作空间内的实例名称，来源配置可以使用其他名称。`templateNodeKey` 和 `targetAgentKey` 指定模板图中的绑定位置。
+
+平台汇总入口模板与 `assistantSuite` 内全部角色、独立 Assistant 的依赖。同一插件、提供方、实例名称只显示一次，并共用一个副本；不同实例名称分别配置。未指定实例名称的依赖不能与同一提供方的多个命名实例混用，以免模板安装时无法确定绑定对象。
+
+## 管理员操作
+
+多 Assistant 应用通过 `assistantSuite.roles` 声明全部协作角色，`coordinatorRoleKeys` 指定主助理直接委派的角色，每个角色的 `externalRoleKeys` 指定下级依赖。省略 `coordinatorRoleKeys` 保留主助理连接全部角色的旧行为；`standaloneAssistants` 只发布，不参与委派。平台拒绝未知引用、重复连接、循环和不可达角色，按依赖顺序发布，并在健康检查中校验嵌套连接。
+
+套件初始化失败时保留已经记录归属的资源供原地重试；修复不会替换已有主助理或通过名称接管其他 Assistant。现有图中的未声明套件连接需要先核对，平台不会静默删除人工编辑。
+
+1. 打开应用启用向导，选择所需模型。
+2. 为每个必需工具集选择配置；没有合适配置时点击“新增配置”。平台先准备专属工作空间，再打开原有授权及工具配置 Dialog。保存后的配置直接绑定到应用，状态为“待配置”。
+3. 应用到当前组织。平台复用已准备的工作空间及其中的配置；选择其他工作空间的来源配置时，按声明名称复制一份。随后创建知识库、安装并发布 Assistant。
+
+仅打开向导不会创建资源。关闭窗口保留已保存的配置，重新打开可以继续编辑；初始化失败同样保留先前保存的授权。管理员可以通过“放弃配置”删除尚未启用的工作空间及工具集；已启用、初始化中的应用或已增加其他资源的工作空间不能通过此操作删除。
+
+来源仅包括当前组织内管理员有编辑权限的工作空间中的配置，以及管理员自己创建的未归属工作空间的配置。安装提供方插件不等于创建了已授权实例；缺少插件、缺少配置都会在初始化前显示。
+
+副本独立维护，修改来源配置不会自动更新应用副本。启用后可以在应用工作空间维护副本。来源配置中引用的工作空间资源还需在目标空间有效；复制工具集不会复制环境变量或其他资源。
+
+## 接口与生命周期
+
+`PluginApplicationPreflight.toolsetRequirements` 返回稳定的需求标识、提供方状态、可选配置的名称及 ID、已有绑定，不返回凭据。初始化只接收 `toolsets: [{ key, toolsetId }]`，后端重新校验访问权限，并自行确定租户、组织、目标工作空间及实例名称。未知需求、重复选择、不可用来源、凭据及客户端提交的范围字段会被拒绝。
+
+通用 `POST /plugin-applications/prepare` 仅接收 `pluginName`、`appName`，在事务中创建或复用安装记录及工作空间。唯一范围键与安装记录行锁保证并发准备不会创建多个工作空间。`POST /plugin-applications/bind-toolset` 在配置保存后接收需求 `key`、`toolsetId` 并验证目标归属和提供方；凭据仍通过原有工具集 API 保存。`POST /plugin-applications/discard-configuration` 只清理同范围、尚未激活的配置。正式启用继续使用 `initialize`，将 `configuring` 状态推进为 `initializing` 和 `ready`。
+
+安装记录在创建副本前通过 `resourceRefs['toolset:<requirement-key>']` 保存目标 ID。重试复用已有副本；修复被删除的副本时沿用原 ID，保留已发布 Assistant 的图引用。失败回滚只删除本次创建的副本，保留来源配置。健康检查包含已有受管工具集；再次启用健康应用不会更新其模板或替换绑定。
+
+当前机制适用于 `dependencies.toolsets` 声明的内置提供方；MCP 服务继续使用已有的资源安装流程。
