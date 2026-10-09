@@ -6,6 +6,7 @@ const path = require('node:path')
 const { DesktopService, DEFAULT_CONFIG, parseConfig } = require('../electron/service.cjs')
 const { dispatch } = require('../electron/dispatch.cjs')
 const { createStorage } = require('../electron/storage.cjs')
+const { inlineAvatar } = require('./fixtures/avatar.cjs')
 
 const user = { id: 'user-1', tenantId: 'tenant-1', name: 'Test user' }
 const bootstrap = {
@@ -107,6 +108,18 @@ test('Bot creation dates survive pagination and missing or invalid dates remain 
     (await service.listBots()).map((item) => item.createdAt),
     ['2026-09-24T00:00:00Z', null, null]
   )
+})
+
+test('template-imported inline avatars survive the Assistant list API mapping', async () => {
+  const avatar = { url: inlineAvatar, background: 'transparent' }
+  const { service } = fixture((url) => {
+    if (url.includes('/mobile/xperts')) return response({ items: [{ ...bot, avatar }], total: 1 })
+  })
+  await service.login(input)
+  const [assistant] = await service.listBots()
+  assert.equal(assistant.avatarUrl, inlineAvatar)
+  assert.deepEqual(assistant.avatar, avatar)
+  assert.equal(assistant.avatarEmoji, null)
 })
 
 test('published business domains are normalized at the API boundary and older servers remain supported', async () => {

@@ -8,6 +8,7 @@ const {
 } = require('./i18n/index.mjs')
 const { parseAppearance } = require('./appearance.cjs')
 const { parseBusinessArea } = require('./business-area.cjs')
+const { parseAvatarUrl } = require('./avatar-url.cjs')
 const { apiRootUrl, chatkitUrl } = require('./connection/urls.mjs')
 const { connectionPolicyKey, connectionErrorKey } = require('./connection/tls.cjs')
 const DEFAULT_CONFIG = {
@@ -125,7 +126,7 @@ function parseBots(value, locale) {
           typeof avatar?.emoji?.id === 'string'
             ? { id: avatar.emoji.id, unified: typeof avatar.emoji.unified === 'string' ? avatar.emoji.unified : null }
             : null,
-        avatarUrl: typeof avatar?.url === 'string' && /^https?:\/\//.test(avatar.url) ? avatar.url : null,
+        avatarUrl: parseAvatarUrl(avatar?.url),
         avatar: avatar || null
       }
     })
