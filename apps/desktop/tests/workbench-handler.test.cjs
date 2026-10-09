@@ -11,7 +11,7 @@ const handlerCode = ts.transpileModule(readFileSync(join(__dirname, '../src/work
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }
 }).outputText
 
-function createHandler(service, onSession) {
+function createHandler(service, onSession, desktop) {
   class HostError extends Error {
     constructor(error) {
       super(error.message)
@@ -21,7 +21,9 @@ function createHandler(service, onSession) {
   const exports = {}
   runInNewContext(handlerCode, {
     exports,
+    window: { xpertDesktop: desktop },
     require(id) {
+      if (id === '@xpert-ai/desktop-protocol') return require('@xpert-ai/desktop-protocol')
       if (id === './host')
         return {
           HostError,
@@ -111,4 +113,37 @@ test('project authorization failures do not change the active Assistant or fall 
   assert.equal(changes.length, 1)
   assert.deepEqual(sessions[1], { assistant: { id: 'assistant-B' }, project: { id: 'forbidden' } })
   assert.equal((await handle(project)).session.assistantId, 'assistant-B')
+})
+
+test('generic capture forwarding keeps shell activation separate from plugin payload claims', async () => {
+  for (const userActivated of [true, false, undefined]) {
+    const received = []
+    const handle = createHandler({}, () => {}, {
+      audioCapture: async (request) => {
+        received.push(request)
+        return { success: true, data: { status: 'starting' } }
+      }
+    })
+    const payload = { delivery: { eventAction: 'event', chunkAction: 'chunk' }, userActivated: !userActivated }
+    const result = await handle({
+      commandKey: 'desktop.audio.capture.start',
+      payload,
+      userActivated,
+      hostType: 'agent',
+      hostId: 'assistant',
+      viewKey: 'audio-view'
+    })
+    assert.equal(result.success, true)
+    assert.equal(received.length, 1)
+    assert.equal(received[0].userActivated, userActivated === true)
+    assert.equal(received[0].payload, payload)
+    assert.equal(received[0].botId, 'local-copy')
+    assert.equal(received[0].viewKey, 'audio-view')
+  }
+})
+
+test('web-only hosts report the missing Desktop capability and unknown audio commands stay unsupported', async () => {
+  const handle = createHandler({}, () => {})
+  assert.equal((await handle({ commandKey: 'desktop.audio.capture.start', payload: {} })).code, 'desktop_required')
+  assert.equal((await handle({ commandKey: 'desktop.audio.capture.unknown', payload: {} })).code, 'unsupported')
 })

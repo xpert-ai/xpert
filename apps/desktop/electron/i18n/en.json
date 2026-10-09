@@ -1113,5 +1113,8 @@
   "The voice connection was interrupted. Please check your network and try again.": "The voice connection was interrupted. Please check your network and try again.",
   "Unexpected voice data was received. Please restart the call.": "Unexpected voice data was received. Please restart the call.",
   "The voice service returned an error. Please try again.": "The voice service returned an error. Please try again.",
-  "Could not start the voice call. Check the voice model configuration and try again.": "Could not start the voice call. Check the voice model configuration and try again."
+  "Could not start the voice call. Check the voice model configuration and try again.": "Could not start the voice call. Check the voice model configuration and try again.",
+  "Recording": "Recording",
+  "End recording": "End recording",
+  "End the audio recording or voice call first.": "End the audio recording or voice call first."
 }

@@ -299,6 +299,9 @@ export interface HostMethods {
 declare global {
   interface Window {
     xpertDesktop?: {
+      audioCapture?: (
+        request: import('@xpert-ai/desktop-protocol').AudioCaptureRequest
+      ) => Promise<import('@xpert-ai/desktop-protocol').AudioCaptureResult>
       updates?: import('./update-types').UpdateBridge
       onAvatarPointer?: (listener: (point: { x: number; y: number } | null) => void) => () => void
       onWindowActivated?: (listener: () => void) => () => void

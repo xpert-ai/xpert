@@ -1,3 +1,5 @@
 dist/
 release/
 .local/
+
+resources/audio-capture/audio-capture*

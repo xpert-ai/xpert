@@ -1,6 +1,7 @@
 const { contextBridge, ipcRenderer } = require('electron')
 let avatarPointerSubscribers = 0
 contextBridge.exposeInMainWorld('xpertDesktop', {
+  audioCapture: (request) => ipcRenderer.invoke('xpert:audio-capture', request),
   onWindowActivated: (callback) => {
     const listener = () => callback()
     ipcRenderer.on('xpert:window-activated', listener)

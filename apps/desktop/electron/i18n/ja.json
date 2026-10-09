@@ -1113,5 +1113,8 @@
   "The voice connection was interrupted. Please check your network and try again.": "音声接続が切断されました。ネットワークを確認して再試行してください。",
   "Unexpected voice data was received. Please restart the call.": "予期しない音声データを受信しました。通話をやり直してください。",
   "The voice service returned an error. Please try again.": "音声サービスでエラーが発生しました。再試行してください。",
-  "Could not start the voice call. Check the voice model configuration and try again.": "通話を開始できませんでした。音声モデルの設定を確認して再試行してください。"
+  "Could not start the voice call. Check the voice model configuration and try again.": "通話を開始できませんでした。音声モデルの設定を確認して再試行してください。",
+  "Recording": "録音中",
+  "End recording": "録音を終了",
+  "End the audio recording or voice call first.": "先に録音または音声通話を終了してください。"
 }
