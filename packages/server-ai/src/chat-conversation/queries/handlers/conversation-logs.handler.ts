@@ -33,7 +33,11 @@ export class ChatConversationLogsHandler implements IQueryHandler<
 
         const repository = this.repository
         const entityRelations = relations.filter((_) => _ !== 'messages')
-        const pageIdsQuery = repository.createQueryBuilder('conversation').select('conversation.id').where(where)
+        const pageIdsQuery = repository
+            .createQueryBuilder('conversation')
+            .select('conversation.id')
+            .where(where)
+            .andWhere("conversation.purpose IS DISTINCT FROM 'group'")
         applyConversationLogSearch(pageIdsQuery, search)
         applyConversationLogOrder(pageIdsQuery, order)
 
@@ -45,7 +49,10 @@ export class ChatConversationLogsHandler implements IQueryHandler<
             pageIdsQuery.limit(take)
         }
 
-        const countQuery = repository.createQueryBuilder('conversation').where(where)
+        const countQuery = repository
+            .createQueryBuilder('conversation')
+            .where(where)
+            .andWhere("conversation.purpose IS DISTINCT FROM 'group'")
         applyConversationLogSearch(countQuery, search)
 
         const [pageResult, total] = await Promise.all([pageIdsQuery.getRawAndEntities(), countQuery.getCount()])

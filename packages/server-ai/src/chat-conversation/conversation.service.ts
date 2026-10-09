@@ -1,3 +1,4 @@
+import { isGroupRuntime } from '../chat-group/group-runtime-context'
 import { BaseStore } from '@langchain/langgraph'
 import {
     IChatConversationReadState,
@@ -135,7 +136,11 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
                 ? await this.findOneInOrganizationOrTenant(conversationOrId, { relations: ['xpert'] })
                 : conversationOrId
 
-        if (!conversation) {
+        if (
+            !conversation ||
+            conversation.purpose === 'group' ||
+            (conversation.purpose === 'group_assistant_runtime' && !isGroupRuntime(conversation.id))
+        ) {
             throw this.conversationAccessDenied()
         }
 
@@ -155,6 +160,10 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
             }
             return conversation
         }
+
+        // Dispatch has already revalidated the persisted group delivery and human actor.
+        // This grant is confined to that private runtime; HTTP sessions cannot establish it.
+        if (conversation.purpose === 'group_assistant_runtime' && isGroupRuntime(conversation.id)) return conversation
 
         if (currentUserId && conversation.createdById === currentUserId) {
             return conversation
@@ -192,6 +201,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
         const query = this.repository
             .createQueryBuilder('conversation')
             .where('conversation.tenantId = :tenantId', { tenantId })
+            .andWhere("conversation.purpose = 'private'")
             .andWhere(
                 organizationId
                     ? 'conversation.organizationId = :organizationId'
@@ -281,6 +291,7 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
                         AND ${conversationOrganizationClause}
                         AND c."createdById" = $2
                         AND c."xpertId" IN (${xpertPlaceholders.join(', ')})
+                        AND c.purpose = 'private'
                 ),
                 latest_read_state AS (
                     SELECT DISTINCT ON (rs."conversationId")

@@ -45,6 +45,7 @@ export class ChatConversationSidebarService {
                 xpertId
             })
             .andWhere('conversation.threadId IS NOT NULL')
+            .andWhere("conversation.purpose = 'private'")
         if (archived && !archivedIds.length) return { items: [], total: 0 }
         if (archivedIds.length) {
             query.andWhere(`conversation.id ${archived ? 'IN' : 'NOT IN'} (:...archivedIds)`, { archivedIds })

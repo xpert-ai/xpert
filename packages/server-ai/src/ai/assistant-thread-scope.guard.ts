@@ -29,6 +29,24 @@ export class AssistantThreadScopeGuard implements CanActivate {
         }>()
         const principal = request.user
         if (!principal?.id) throw new UnauthorizedException()
+        if (
+            request.params?.threadId &&
+            request.params?.thread_id &&
+            request.params.threadId !== request.params.thread_id
+        )
+            throw new ForbiddenException()
+        const requestedThreadId = request.params?.threadId ?? request.params?.thread_id
+        let conversation: ChatConversation | null = null
+        if (requestedThreadId) {
+            const row = await this.threads.findOne({
+                where: { threadId: requestedThreadId },
+                relations: { conversation: true }
+            })
+            // Older root threads predate the conversation-thread table.
+            conversation = row?.conversation ?? (await this.conversations.findOneBy({ threadId: requestedThreadId }))
+            // Shared timelines and execution state are exposed through membership-authorized group APIs only.
+            if (conversation?.purpose && conversation.purpose !== 'private') throw new ForbiddenException()
+        }
         if (!('principalType' in principal)) return true
 
         const denied = () =>
@@ -40,9 +58,6 @@ export class AssistantThreadScopeGuard implements CanActivate {
         // AI routes use both camelCase and SDK-style snake_case parameters.
         const threadId = request.params?.threadId ?? request.params?.thread_id
         if (
-            (request.params?.threadId &&
-                request.params?.thread_id &&
-                request.params.threadId !== request.params.thread_id) ||
             principal.resourceScope?.kind !== 'assistant' ||
             !principal.resourceScope.xpertId ||
             !threadId ||
@@ -59,12 +74,6 @@ export class AssistantThreadScopeGuard implements CanActivate {
         )
             throw denied()
 
-        const thread = await this.threads.findOne({
-            where: { threadId },
-            relations: { conversation: true }
-        })
-        // Older root threads predate the conversation-thread table.
-        const conversation = thread?.conversation ?? (await this.conversations.findOneBy({ threadId }))
         if (
             !conversation ||
             conversation.tenantId !== principal.tenantId ||

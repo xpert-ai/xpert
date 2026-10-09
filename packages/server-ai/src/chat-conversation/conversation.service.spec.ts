@@ -1,3 +1,4 @@
+import { withGroupRuntime } from '../chat-group/group-runtime-context'
 jest.mock('@xpert-ai/server-core', () => ({
     TenantOrganizationBaseEntity: class TenantOrganizationBaseEntity {},
     TenantOrganizationAwareCrudService: class TenantOrganizationAwareCrudService<T> {
@@ -138,6 +139,7 @@ describe('ChatConversationService workspace files', () => {
             expect(query.skip).toHaveBeenCalledWith(20)
             expect(query.take).toHaveBeenCalledWith(10)
             expect(query.getManyAndCount).toHaveBeenCalledTimes(1)
+            expect(query.andWhere).toHaveBeenCalledWith("conversation.purpose = 'private'")
         })
         it('includes only owned or authorized technical-user conversations when unassigned', async () => {
             const query = builder()
@@ -248,6 +250,37 @@ describe('ChatConversationService workspace files', () => {
         ).rejects.toBeInstanceOf(ForbiddenException)
     })
 
+    it('does not expose a shared group through ordinary conversation access, even to its creator', async () => {
+        const group = Object.assign(new ChatConversation(), { ...conversation, purpose: 'group' as const })
+        await expect(service.assertAccess(group)).rejects.toBeInstanceOf(ForbiddenException)
+        await expect(
+            withGroupRuntime(group.id, () => service.assertAccess(group, 'contribute'))
+        ).rejects.toBeInstanceOf(ForbiddenException)
+    })
+
+    it('allows the verified group runtime only inside its exact dispatch scope even for its human creator', async () => {
+        const runtime = Object.assign(new ChatConversation(), {
+            ...conversation,
+            purpose: 'group_assistant_runtime' as const
+        })
+        await expect(service.assertAccess(runtime, 'contribute')).rejects.toBeInstanceOf(ForbiddenException)
+        await expect(
+            withGroupRuntime('unrelated', () => service.assertAccess(runtime, 'contribute'))
+        ).rejects.toBeInstanceOf(ForbiddenException)
+        await expect(withGroupRuntime(runtime.id, () => service.assertAccess(runtime, 'contribute'))).resolves.toBe(
+            runtime
+        )
+        runtime.createdById = 'another-human'
+        await expect(withGroupRuntime(runtime.id, () => service.assertAccess(runtime, 'contribute'))).resolves.toBe(
+            runtime
+        )
+        runtime.projectId = 'project-1'
+        projectAccessService.assertCanUse.mockRejectedValueOnce(new ForbiddenException())
+        await expect(
+            withGroupRuntime(runtime.id, () => service.assertAccess(runtime, 'contribute'))
+        ).rejects.toBeInstanceOf(ForbiddenException)
+    })
+
     it('uses Project membership for contribution access', async () => {
         await service.assertAccess(
             {
@@ -313,6 +346,7 @@ describe('ChatConversationService workspace files', () => {
         ])
         const sql = repository.query.mock.calls[0][0]
         expect(sql).toContain('WITH scoped_conversations AS')
+        expect(sql).toContain("c.purpose = 'private'")
         expect(sql).toContain('latest_read_state AS')
         expect(sql).toContain('conversation_cursors AS')
         expect(sql).toContain('c."createdById" = $2')
