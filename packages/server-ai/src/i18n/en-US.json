@@ -1,4 +1,7 @@
 {
+    "SpeechToText": {
+        "TemporaryFileCleanupFailed": "Failed to delete a temporary speech-to-text audio file."
+    },
     "RuntimeReply": {
         "Completed": "A delegated runtime has finished. Inspect its authorized result and decide the next step. Invocation: {{invocationId}}.",
         "ProjectTask": " Project task: {{taskId}}. Attempt: {{attemptId}}."

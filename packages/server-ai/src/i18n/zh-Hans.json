@@ -1,4 +1,7 @@
 {
+    "SpeechToText": {
+        "TemporaryFileCleanupFailed": "语音转文字临时音频文件删除失败。"
+    },
     "RuntimeReply": {
         "Completed": "受托运行时已结束，请读取获准的执行结果并决定下一步。Invocation：{{invocationId}}。",
         "ProjectTask": " 项目任务：{{taskId}}。执行尝试：{{attemptId}}。"
