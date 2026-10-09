@@ -316,6 +316,7 @@ describe('ViewExtensionService file actions', () => {
 			id: 'employee-1',
 			principalType: 'client_secret',
 			clientSecretBindingType: SecretTokenBindingType.ENTERPRISE_XPERT,
+			resourceScope: { kind: 'assistant', xpertId: 'assistant-1' },
 			apiKey: {
 				id: 'secret-1',
 				token: 'cs-x-test',

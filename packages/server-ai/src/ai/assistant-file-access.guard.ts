@@ -7,7 +7,7 @@ import {
     UnauthorizedException
 } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
-import { ApiKeyBindingType, IApiPrincipal, IUser, SecretTokenBindingType } from '@xpert-ai/contracts'
+import { IApiPrincipal, IUser, SecretTokenBindingType } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
 import { WorkspaceFileAccessService } from '../workspace-file-access/workspace-file-access.service'
@@ -54,13 +54,13 @@ export class AssistantFileAccessGuard implements CanActivate {
                 : [SecretTokenBindingType.USER_XPERT, SecretTokenBindingType.ENTERPRISE_XPERT]
         if (
             user.principalType !== 'client_secret' ||
-            !user.apiKey ||
-            user.apiKey.type !== ApiKeyBindingType.ASSISTANT ||
-            !user.apiKey.entityId ||
+            user.resourceScope?.kind !== 'assistant' ||
+            !user.resourceScope.xpertId ||
             !user.tenantId ||
-            user.apiKey.tenantId !== user.tenantId ||
+            (user.apiKey && user.apiKey.tenantId !== user.tenantId) ||
             !allowedBindings.includes(user.clientSecretBindingType) ||
-            (user.apiKey.organizationId ?? null) !== (RequestContext.getOrganizationId() ?? null)
+            ((user.apiKey ? user.apiKey.organizationId : user.requestedOrganizationId) ?? null) !==
+                (RequestContext.getOrganizationId() ?? null)
         )
             throw denied()
 
@@ -82,7 +82,7 @@ export class AssistantFileAccessGuard implements CanActivate {
                 throw denied()
             host = { hostType: body.hostType, hostId: body.hostId }
         }
-        if (host.hostType !== 'agent' || host.hostId !== user.apiKey.entityId) throw denied()
+        if (host.hostType !== 'agent' || host.hostId !== user.resourceScope.xpertId) throw denied()
         return true
     }
 }

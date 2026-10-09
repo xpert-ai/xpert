@@ -1,4 +1,4 @@
-import { ApiKeyBindingType, IApiPrincipal, IUser, SecretTokenBindingType } from '@xpert-ai/contracts'
+import { IApiPrincipal, IUser, SecretTokenBindingType } from '@xpert-ai/contracts'
 import { CanActivate, ExecutionContext, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
@@ -43,15 +43,16 @@ export class AssistantThreadScopeGuard implements CanActivate {
             (request.params?.threadId &&
                 request.params?.thread_id &&
                 request.params.threadId !== request.params.thread_id) ||
-            principal.apiKey?.type !== ApiKeyBindingType.ASSISTANT ||
-            !principal.apiKey.entityId ||
+            principal.resourceScope?.kind !== 'assistant' ||
+            !principal.resourceScope.xpertId ||
             !threadId ||
             !principal.tenantId ||
-            principal.apiKey.tenantId !== principal.tenantId
+            (principal.apiKey && principal.apiKey.tenantId !== principal.tenantId)
         )
             throw denied()
 
-        const organizationId = principal.apiKey.organizationId ?? null
+        const organizationId =
+            (principal.apiKey ? principal.apiKey.organizationId : principal.requestedOrganizationId) ?? null
         if (
             (request.query?.organizationId && request.query.organizationId !== organizationId) ||
             (principal.requestedOrganizationId && principal.requestedOrganizationId !== organizationId)
@@ -68,7 +69,7 @@ export class AssistantThreadScopeGuard implements CanActivate {
             !conversation ||
             conversation.tenantId !== principal.tenantId ||
             (conversation.organizationId ?? null) !== organizationId ||
-            conversation.xpertId !== principal.apiKey.entityId
+            conversation.xpertId !== principal.resourceScope.xpertId
         )
             throw denied()
 

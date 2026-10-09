@@ -53,7 +53,6 @@ describe('ALL_AI_ENTITIES', () => {
                 'agent_resource_binding',
                 'chat_group_participant',
                 'chat_message_recipient',
-                'chat_group_session',
                 'chat_group_interaction'
             ])
         )

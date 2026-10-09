@@ -1,5 +1,4 @@
 import {
-    ApiKeyBindingType,
     IApiKey,
     IApiPrincipal,
     IChatConversation,
@@ -32,7 +31,6 @@ export async function resolveAssistantForRequest(
     publishedXpertAccessService: Pick<PublishedXpertAccessService, 'getAccessiblePublishedXpert'>,
     xpertPrincipalService?: Pick<XpertPrincipalService, 'ensurePrincipalUser'>
 ) {
-    const apiKey = RequestContext.currentApiKey()
     const apiPrincipal = RequestContext.currentApiPrincipal() as IApiPrincipal | null
     // USER_XPERT is interactive delegation: preserve the authenticated
     // business user's permissions and audit identity for the assistant run.
@@ -48,7 +46,10 @@ export async function resolveAssistantForRequest(
         relations: ['user', 'createdBy', 'workspace']
     })
 
-    if (apiKey?.type === ApiKeyBindingType.WORKSPACE && apiKey.entityId && xpert.workspaceId !== apiKey.entityId) {
+    if (
+        apiPrincipal?.resourceScope?.kind === 'workspace' &&
+        xpert.workspaceId !== apiPrincipal.resourceScope.workspaceId
+    ) {
         throw new ForbiddenException('API key is not allowed to access this workspace assistant.')
     }
 
@@ -178,6 +179,11 @@ function applyAssistantPrincipalToCurrentRequest(
     request.user = {
         ...principalUser,
         apiKey,
+        resourceScope: currentUser?.resourceScope,
+        clientSecretBindingType: currentUser?.clientSecretBindingType,
+        clientSecretId: currentUser?.clientSecretId,
+        clientSecretExpiresAt: currentUser?.clientSecretExpiresAt,
+        enterpriseH5Scope: currentUser?.enterpriseH5Scope,
         ownerUserId: currentUser?.ownerUserId ?? apiKey.createdById ?? principalUser.id ?? null,
         apiKeyUserId: currentUser?.apiKeyUserId ?? apiKey.userId ?? principalUser.id ?? null,
         requestedUserId: currentUser?.requestedUserId ?? null,

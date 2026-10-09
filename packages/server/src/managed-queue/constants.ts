@@ -2,6 +2,7 @@ import type { ManagedQueueExecutionPool } from '@xpert-ai/plugin-sdk'
 import type {
 	ApiKeyBindingType,
 	ApiPrincipalType,
+	ApiPrincipalResourceScope,
 	SecretTokenBindingType,
 	TEnterpriseH5TokenScope
 } from '@xpert-ai/contracts'
@@ -55,7 +56,12 @@ export type ManagedQueueDelegationSnapshot = {
 	clientSecretBindingType?: SecretTokenBindingType | null
 	clientSecretId?: string | null
 	enterpriseH5Scope?: TEnterpriseH5TokenScope | null
-	apiKey: {
+	/** Canonical audience; restored independently of credential metadata. */
+	resourceScope?: ApiPrincipalResourceScope
+	/** ISO expiry retained for conversation credentials and stream authorization. */
+	clientSecretExpiresAt?: string
+	/** @deprecated Using type/entityId for resource checks; old queued jobs are normalized on restoration. */
+	apiKey?: {
 		type?: ApiKeyBindingType
 		entityId?: string | null
 		tenantId: string

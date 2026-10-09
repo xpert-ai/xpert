@@ -53,6 +53,9 @@
         "ReferenceOnlyPrompt": "未包含文件正文，不支持直接按文本读取。请使用支持该格式的可用工具；对于 ZIP，先列出或解压条目，再处理所需的子文件。此引用不会改变文件访问权限。"
     },
     "Error": {
+        "GroupAccessDenied": "无权访问此群聊。",
+        "GroupInputInvalid": "群消息或请求格式无效。",
+        "GroupMessageConflict": "此群消息当前无法发送。",
         "InvalidStreamCursor": "无效的输出流游标。",
         "AgentInvocationModelSourceRequired": "项目主 Agent 的 Computer Runtime binding 必须明确配置 modelSource（真实 Assistant），用于模型授权。",
         "ProjectTaskRuntimeInvalid": "任务委托需要有效的任务规格、明确的完成要求和合法请求。",

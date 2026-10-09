@@ -17,6 +17,7 @@ describe('Workbench files route authorization', () => {
         tenantId: 'tenant',
         principalType: 'client_secret',
         clientSecretBindingType: SecretTokenBindingType.USER_XPERT,
+        resourceScope: { kind: 'assistant', xpertId: 'assistant' },
         apiKey: { type: ApiKeyBindingType.ASSISTANT, entityId: 'assistant', tenantId: 'tenant', organizationId: 'org' }
     } as IApiPrincipal
     function context(user = principal): ExecutionContext {

@@ -185,6 +185,7 @@ describe('runtime resource authorization and persistence', () => {
             jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue({
                 principalType,
                 clientSecretBindingType: SecretTokenBindingType.API_KEY,
+                resourceScope: { kind: 'assistant', xpertId: 'other-assistant' },
                 apiKey: { token: 'test-only', type: ApiKeyBindingType.ASSISTANT, entityId: 'other-assistant' }
             })
             await expect(service.catalog('assistant', {})).rejects.toBeInstanceOf(ForbiddenException)

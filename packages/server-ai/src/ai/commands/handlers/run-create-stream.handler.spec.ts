@@ -879,6 +879,7 @@ describe('RunCreateStreamHandler execute', () => {
             id: 'employee-1',
             principalType: 'client_secret',
             clientSecretBindingType: SecretTokenBindingType.ENTERPRISE_XPERT,
+            resourceScope: { kind: 'assistant', xpertId: 'xpert-1' },
             apiKey: {
                 id: 'secret-1',
                 token: '',
@@ -1538,6 +1539,10 @@ describe('RunCreateStreamHandler execute', () => {
     })
 
     it('rejects workspace-bound api keys for assistants in a different workspace', async () => {
+        ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue({
+            principalType: 'api_key',
+            resourceScope: { kind: 'workspace', workspaceId: 'workspace-1' }
+        })
         ;(RequestContext.currentApiKey as jest.Mock).mockReturnValue({
             id: 'key-1',
             tenantId: 'tenant-1',

@@ -72,16 +72,6 @@ export interface IGroupMessageRecipient extends IBasePerTenantAndOrganizationEnt
   } | null
 }
 
-/** Short-lived group credential binding; authentication still rechecks membership and expiry. */
-export interface IGroupSession extends IBasePerTenantAndOrganizationEntityModel {
-  groupId: string
-  /** Real User Account ID to which the credential belongs. */
-  userId: string
-  /** Hash only; never persist or expose the original session secret through this model. */
-  tokenHash: string
-  expiresAt: Date
-}
-
 /** Persisted human interaction and claim state for an Assistant runtime interruption. */
 export interface IGroupInteraction extends IBasePerTenantAndOrganizationEntityModel {
   groupId: string

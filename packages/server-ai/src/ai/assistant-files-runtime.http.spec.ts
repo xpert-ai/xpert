@@ -176,6 +176,7 @@ describe('workspace file HTTP authentication', () => {
                 ...user,
                 principalType: 'client_secret',
                 clientSecretBindingType: binding,
+                resourceScope: { kind: 'assistant', xpertId: assistantId },
                 apiKey: {
                     token: '',
                     type: ApiKeyBindingType.ASSISTANT,
@@ -403,7 +404,7 @@ describe('workspace file HTTP authentication', () => {
         const session: { sessionId: string } = await created.json()
         const principal = identities.get('cs-x-user')!
         if (!('apiKey' in principal)) throw new Error('Missing test principal')
-        identities.set('cs-x-other', { ...principal, apiKey: { ...principal.apiKey, entityId: otherAssistantId } })
+        identities.set('cs-x-other', { ...principal, resourceScope: { kind: 'assistant', xpertId: otherAssistantId } })
         for (const method of ['POST', 'DELETE']) {
             const response = await fetch(
                 `${origin}/api/ai/workspace-files/view-sessions/${session.sessionId}${method === 'POST' ? '/grants' : ''}`,

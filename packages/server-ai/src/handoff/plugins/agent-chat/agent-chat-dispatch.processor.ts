@@ -511,6 +511,7 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
             tenantId: input.tenantId,
             type: input.user.type ?? UserType.COMMUNICATION,
             apiKey,
+            resourceScope: { kind: 'assistant', xpertId: input.xpertId },
             ownerUserId: input.xpert.createdById ?? null,
             apiKeyUserId: input.user.id,
             requestedUserId: null,

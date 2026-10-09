@@ -22,6 +22,7 @@ describe('AssistantThreadScopeGuard', () => {
             tenantId: 'tenant',
             principalType: 'client_secret',
             clientSecretBindingType: SecretTokenBindingType.USER_XPERT,
+            resourceScope: { kind: 'assistant', xpertId: 'assistant' },
             apiKey: { token: '', type: ApiKeyBindingType.ASSISTANT, entityId: 'assistant', tenantId: 'tenant' }
         } as IApiPrincipal
         threads.findOne.mockResolvedValue({

@@ -53,6 +53,9 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "GroupAccessDenied": "You do not have access to this group.",
+        "GroupInputInvalid": "Invalid group message or request.",
+        "GroupMessageConflict": "This group message can no longer be sent.",
         "InvalidStreamCursor": "Invalid output stream cursor.",
         "AgentInvocationModelSourceRequired": "A Computer Runtime binding for the Project general agent must configure modelSource with a real Assistant for model authorization.",
         "ProjectTaskRuntimeInvalid": "Task delegation requires a valid task specification, explicit completion requirements and a valid request.",

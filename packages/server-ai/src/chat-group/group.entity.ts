@@ -1,5 +1,5 @@
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
-import type { IGroupInteraction, IGroupMessageRecipient, IGroupParticipant, IGroupSession } from '@xpert-ai/contracts'
+import type { IGroupInteraction, IGroupMessageRecipient, IGroupParticipant } from '@xpert-ai/contracts'
 import { Column, Entity, Index } from 'typeorm'
 
 @Entity('chat_group_participant')
@@ -42,15 +42,6 @@ export class GroupMessageRecipient extends TenantOrganizationBaseEntity implemen
     @Column({ type: 'uuid', nullable: true }) leaseToken?: string | null
     @Column({ type: 'timestamptz', nullable: true }) leaseUntil?: Date | null
     @Column({ type: 'jsonb', nullable: true }) control?: IGroupMessageRecipient['control']
-}
-
-@Entity('chat_group_session')
-@Index(['tokenHash'], { unique: true })
-export class GroupSession extends TenantOrganizationBaseEntity implements IGroupSession {
-    @Column({ type: 'uuid' }) groupId: string
-    @Column({ type: 'uuid' }) userId: string
-    @Column({ type: 'varchar' }) tokenHash: string
-    @Column({ type: 'timestamptz' }) expiresAt: Date
 }
 
 @Entity('chat_group_interaction')
