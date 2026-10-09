@@ -32,6 +32,13 @@ This repo uses NestJS + TypeORM on the server and Angular 17 (standalone, signal
 - A cohesive subfeature with its own Controller and Service belongs in a dedicated subdirectory under its owning feature, such as `xpert/assistant-appearance/`. Keep its schemas, DTOs, helpers and tests together instead of adding them to the parent directory.
 - Directory boundaries do not require a NestJS Module. Register small subfeatures in the owning Module; introduce a submodule when it provides a meaningful dependency, provider or export boundary.
 
+### Dependency injection and service boundaries
+
+- Declare ordinary service dependencies through constructor injection and explicit module `imports`/`exports`. Do not use generic `ModuleRef.get(..., { strict: false })` helpers or string-based service lookup to hide static dependencies; missing providers should fail during module initialization.
+- For shared operations across domains, prefer an existing typed CQRS entry point or define a focused Command/Query and Handler in the owning domain. Follow the Shared CQRS operations guidance below; keep authorization policy with the capability that owns it.
+- Controllers and business callers must invoke concrete business methods. Do not expose public `service<T>()`, `resources()` or similar getters that return underlying service instances and turn a business service into a general-purpose service locator.
+- Resolve circular dependencies by reviewing module boundaries, extracting cohesive shared capabilities, or moving operations to their owning domain. Do not use `strict: false` to conceal a dependency cycle. Verify module wiring with dependency-injection tests when changing these boundaries.
+
 ### Shared CQRS operations
 
 - When a reusable capability has one cohesive entry point, prefer a typed CQRS Command and Handler over requiring consumers to inject its Service and import its owning Module. Register the Handler once in the owning platform module; consumers use the shared `CommandBus` and public Command contract.
