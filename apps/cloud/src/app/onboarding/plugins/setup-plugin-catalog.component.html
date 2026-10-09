@@ -1,0 +1,224 @@
+<div class="flex flex-col gap-5">
+  <div class="flex flex-wrap items-end gap-3">
+    <label class="flex min-w-56 flex-1 flex-col gap-1.5 text-sm text-text-secondary">
+      {{ 'XP.Onboarding.SearchPlugins' | translate }}
+      <z-search-input
+        [value]="query().search ?? ''"
+        [disabled]="disabled()"
+        [aria-label]="'XP.Onboarding.SearchPlugins' | translate"
+        [placeholder]="'XP.Onboarding.SearchPluginPlaceholder' | translate"
+        [clearLabel]="'XP.Onboarding.ClearPluginSearch' | translate"
+        (valueChange)="search($event)"
+      />
+    </label>
+    <label class="flex flex-col gap-1.5 text-sm text-text-secondary">
+      {{ 'XP.Onboarding.PluginBusiness' | translate }}
+      <z-select
+        [zValue]="query().businessCategory ?? allOption"
+        [zDisabled]="disabled()"
+        (zSelectionChange)="filterBusiness($event)"
+      >
+        <z-select-item [zValue]="allOption">{{ 'XP.Onboarding.AllPluginBusinesses' | translate }}</z-select-item>
+        @for (facet of response()?.facets?.businessCategories ?? []; track facet.value) {
+          <z-select-item [zValue]="facet.value">
+            {{ 'XP.Plugin.MarketplaceCategory_' + facet.value | translate: { Default: facet.value } }} ({{
+              facet.count
+            }})
+          </z-select-item>
+        }
+      </z-select>
+    </label>
+    <label class="flex flex-col gap-1.5 text-sm text-text-secondary">
+      {{ 'XP.Onboarding.PluginType' | translate }}
+      <z-select [zValue]="query().type ?? allOption" [zDisabled]="disabled()" (zSelectionChange)="filterType($event)">
+        <z-select-item [zValue]="allOption">{{ 'XP.Onboarding.AllPluginTypes' | translate }}</z-select-item>
+        @for (facet of response()?.facets?.types ?? []; track facet.value) {
+          <z-select-item [zValue]="facet.value">
+            {{ 'XP.Plugin.Category_' + facet.value | translate: { Default: facet.value } }} ({{ facet.count }})
+          </z-select-item>
+        }
+      </z-select>
+    </label>
+    <label class="flex flex-col gap-1.5 text-sm text-text-secondary">
+      {{ 'XP.Onboarding.PluginLevel' | translate }}
+      <z-select [zValue]="query().level ?? allOption" [zDisabled]="disabled()" (zSelectionChange)="filterLevel($event)">
+        <z-select-item [zValue]="allOption">{{ 'XP.Onboarding.AllPluginLevels' | translate }}</z-select-item>
+        @for (value of ['system', 'tenant', 'organization']; track value) {
+          <z-select-item [zValue]="value">{{ 'XP.Onboarding.PluginLevel_' + value | translate }}</z-select-item>
+        }
+      </z-select>
+    </label>
+  </div>
+
+  <div class="flex flex-wrap items-center justify-between gap-3 border-b border-divider-regular pb-3">
+    <div class="flex flex-wrap items-center gap-3 text-sm">
+      <p aria-live="polite" class="text-text-secondary">
+        {{
+          'XP.Onboarding.PluginSelectionSummary'
+            | translate: { total: response()?.total ?? 0, selected: selected().size }
+        }}
+      </p>
+      <button
+        z-button
+        zType="secondary"
+        type="button"
+        [zDisabled]="disabled() || loading() || !!error() || !response()?.selectableNames?.length || allSelected()"
+        (click)="selectAll()"
+      >
+        {{ 'XP.Onboarding.SelectAllPlugins' | translate }}
+      </button>
+      <button
+        z-button
+        zType="secondary"
+        type="button"
+        [zDisabled]="disabled() || !selected().size"
+        (click)="clearSelection()"
+      >
+        {{ 'XP.Onboarding.DeselectAllPlugins' | translate }}
+      </button>
+    </div>
+    <label class="flex items-center gap-2 whitespace-nowrap text-sm text-text-secondary">
+      {{ 'XP.Onboarding.PluginGroupBy' | translate }}
+      <z-select [zValue]="query().groupBy" [zDisabled]="disabled()" (zSelectionChange)="groupBy($event)">
+        @for (value of ['business', 'type', 'none']; track value) {
+          <z-select-item [zValue]="value">{{ 'XP.Onboarding.PluginGroup_' + value | translate }}</z-select-item>
+        }
+      </z-select>
+    </label>
+  </div>
+  <p class="text-xs text-text-tertiary">{{ 'XP.Onboarding.PluginSelectionHint' | translate }}</p>
+
+  @if (error() || response()?.errors?.length) {
+    <div role="alert" class="flex flex-col gap-2 rounded-lg border border-divider-regular p-4 text-sm">
+      <p>{{ 'XP.Onboarding.PluginCatalogError' | translate }}</p>
+      @if (error()) {
+        <p class="break-words text-text-secondary">{{ error() }}</p>
+      }
+      @for (failure of response()?.errors ?? []; track failure.sourceId) {
+        <p class="break-words text-text-secondary">{{ failure.sourceName }}: {{ failure.message }}</p>
+      }
+      <button
+        z-button
+        zType="secondary"
+        type="button"
+        class="self-start"
+        [zDisabled]="loading() || disabled()"
+        (click)="load()"
+      >
+        {{ 'XP.Onboarding.ReloadPluginCatalog' | translate }}
+      </button>
+    </div>
+  }
+  <div [attr.aria-busy]="loading()" class="flex min-h-48 flex-col gap-6">
+    @if (loading()) {
+      <p role="status" class="text-sm text-text-secondary">{{ 'XP.Onboarding.LoadingPlugins' | translate }}</p>
+    }
+    @for (group of groups(); track group.key) {
+      <div class="flex flex-col gap-3">
+        @if (group.key) {
+          <h2 class="text-base font-semibold text-text-primary">
+            {{ groupLabel(group.key) | translate: { Default: group.key } }}
+          </h2>
+        }
+        <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+          @for (plugin of group.items; track plugin.packageName) {
+            <article
+              class="flex min-w-0 flex-col gap-3 rounded-xl border p-4 transition-colors"
+              [class]="
+                selected().has(plugin.packageName)
+                  ? 'border-primary-500 bg-components-card-bg'
+                  : 'border-divider-regular bg-components-panel-bg'
+              "
+            >
+              <div class="flex min-w-0 items-start gap-3">
+                <xp-icon
+                  size="36"
+                  class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-background-default-subtle"
+                  [icon]="plugin.icon ?? { type: 'font', value: 'ri-puzzle-line' }"
+                />
+                <div class="min-w-0 flex-1">
+                  <h3 class="break-words font-semibold text-text-primary">{{ plugin.title | i18n }}</h3>
+                  <p class="mt-1 truncate text-xs text-text-tertiary" [title]="plugin.packageName">
+                    {{ plugin.packageName }}
+                  </p>
+                </div>
+                <z-checkbox
+                  class="mt-1 shrink-0"
+                  labelClass="sr-only"
+                  [ngModel]="selected().has(plugin.packageName)"
+                  [zDisabled]="disabled() || loading() || plugin.installed || !!plugin.unavailableReason"
+                  (checkChange)="toggle(plugin)"
+                >
+                  {{ plugin.title | i18n }}
+                </z-checkbox>
+              </div>
+              <p
+                class="line-clamp-3 min-h-14 text-sm leading-relaxed text-text-secondary"
+                [title]="(plugin.description | i18n) ?? ''"
+              >
+                {{
+                  plugin.description ? (plugin.description | i18n) : ('XP.Onboarding.PluginNoDescription' | translate)
+                }}
+              </p>
+              <div class="mt-auto flex flex-wrap gap-1.5 text-xs text-text-secondary">
+                <span
+                  class="rounded-md bg-background-default-subtle px-2 py-1"
+                  [title]="'XP.Onboarding.PluginLevelHelp_' + (plugin.level ?? 'unknown') | translate"
+                >
+                  {{ 'XP.Onboarding.PluginLevel_' + (plugin.level ?? 'unknown') | translate }}
+                </span>
+                @if (plugin.type) {
+                  <span class="rounded-md bg-background-default-subtle px-2 py-1">{{
+                    'XP.Plugin.Category_' + plugin.type | translate: { Default: plugin.type }
+                  }}</span>
+                }
+                @if (plugin.businessCategory) {
+                  <span class="rounded-md bg-background-default-subtle px-2 py-1">{{
+                    'XP.Plugin.MarketplaceCategory_' + plugin.businessCategory | translate
+                  }}</span>
+                }
+                @if (plugin.version) {
+                  <span class="px-1 py-1">v{{ plugin.version }}</span>
+                }
+              </div>
+              <div class="flex flex-wrap justify-between gap-1 text-xs text-text-tertiary">
+                <span>{{ author(plugin) }}</span
+                ><span>{{ plugin.sourceName }}</span>
+              </div>
+              @if (plugin.installed) {
+                <p class="text-xs text-text-success">
+                  <i class="ri-checkbox-circle-line" aria-hidden="true"></i>
+                  {{ 'XP.Onboarding.PluginStatus_existing' | translate }}
+                </p>
+              } @else if (plugin.unavailableReason) {
+                <p class="text-xs text-text-secondary">
+                  {{ 'XP.Onboarding.PluginUnavailable_' + plugin.unavailableReason | translate }}
+                </p>
+              }
+              @if (plugin.deprecated) {
+                <p class="text-xs text-text-warning">
+                  {{ 'XP.Onboarding.PluginDeprecated' | translate }} {{ plugin.deprecationMessage | i18n }}
+                </p>
+              }
+            </article>
+          }
+        </div>
+      </div>
+    } @empty {
+      @if (!loading() && !error() && !response()?.errors?.length) {
+        <p class="py-12 text-center text-text-secondary">{{ 'XP.Onboarding.NoPluginsFound' | translate }}</p>
+      }
+    }
+  </div>
+  <z-paginator
+    class="border-t border-divider-regular pt-4"
+    [attr.aria-label]="'XP.Onboarding.PluginPagination' | translate"
+    [length]="response()?.total ?? 0"
+    [pageIndex]="(response()?.page ?? 1) - 1"
+    [pageSize]="response()?.pageSize ?? 12"
+    [pageSizeOptions]="[12, 24, 48]"
+    [disabled]="disabled() || loading()"
+    [showFirstLastButtons]="true"
+    (page)="page($event)"
+  />
+</div>

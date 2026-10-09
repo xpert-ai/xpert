@@ -1,3 +1,7 @@
+import {
+    TenantLibraryAccessService,
+    assertTenantLibraryAdministrator
+} from './tenant-library/tenant-library-access.service'
 import { normalizeKnowledgebaseFAQConfig } from './faq/faq-config'
 import { KnowledgeKeywordAnalyzerService } from './analyzer/keyword-analyzer.service'
 import { VectorStoreSettingsService } from '../rag-vstore/vector-store-settings.service'
@@ -279,6 +283,9 @@ function getQueryFailedErrorCode(error: QueryFailedError) {
 
 @Injectable()
 export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebase> {
+    @Inject(TenantLibraryAccessService)
+    private readonly tenantLibraries: TenantLibraryAccessService
+
     @Inject(KnowledgeKeywordAnalyzerService)
     private readonly keywordAnalyzers: KnowledgeKeywordAnalyzerService
 
@@ -411,6 +418,13 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
     private readonly vectorStoreSettings: VectorStoreSettingsService
 
     async create(entity: Partial<IKnowledgebase>) {
+        if (
+            !entity.workspaceId &&
+            !RequestContext.getOrganizationId() &&
+            entity.permission === KnowledgebasePermission.Public
+        ) {
+            assertTenantLibraryAdministrator()
+        }
         const input = { ...entity }
         delete input.keywordAnalyzerLocked
         input.keywordAnalyzer =
@@ -480,6 +494,17 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
             input.applicationTags = this.normalizeApplicationTags(input.applicationTags)
         }
         return await super.create(input)
+    }
+
+    override async findOne(
+        id: string | number | FindOneOptions<Knowledgebase>,
+        options?: FindOneOptions<Knowledgebase>
+    ): Promise<Knowledgebase> {
+        if (typeof id === 'string' && this.tenantLibraries) {
+            const shared = await this.tenantLibraries.find(id, options)
+            if (shared) return shared
+        }
+        return super.findOne(id, options)
     }
 
     async findOneByIdString(id: string, options?: FindOneOptions<Knowledgebase>): Promise<Knowledgebase> {
@@ -2335,6 +2360,11 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
         // when callers request a narrow projection such as `{ id: true }`.
         // Mark these fields as explicitly selected so WorkspaceBaseService does
         // not remove its temporary access fields before this second boundary.
+        const shared = await this.tenantLibraries?.find(knowledgebaseId, options)
+        if (shared) {
+            assertTenantLibraryAdministrator()
+            return shared
+        }
         const accessSelect = addKnowledgebaseWriteAccessSelect(options)
         const knowledgebase = await this.findOne(knowledgebaseId, accessSelect.options)
         if (knowledgebase.workspaceId) {

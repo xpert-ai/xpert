@@ -1,6 +1,6 @@
 import { createRuntimeCapability } from '../../core/runtime-capability'
-import type { RuntimeIdentityScope } from '../runtime-scope'
-import type { WorkspaceFilesApi, WorkspacePortableFileReference } from './workspace-files'
+import type { RuntimeIdentityScope } from '../../runtime/runtime-scope'
+import type { WorkspaceFilesApi, WorkspacePortableFileReference } from '../../runtime/capabilities/workspace-files'
 
 export type KnowledgeDocumentVisualCandidateReason =
   | 'same_block'

@@ -313,7 +313,14 @@ describe('AgentMiddlewareRuntimeService', () => {
             )
             .register(
                 KnowledgebaseDocumentsRuntimeCapability,
-                new KnowledgebaseDocumentsRuntimeService(commandBus as never)
+                new KnowledgebaseDocumentsRuntimeService(commandBus as never, {
+                    create: jest.fn(),
+                    status: jest.fn(),
+                    append: jest.fn(),
+                    complete: jest.fn(),
+                    read: jest.fn(),
+                    remove: jest.fn()
+                })
             )
             .register(
                 KnowledgebaseProvisioningRuntimeCapability,

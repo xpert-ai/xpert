@@ -5,7 +5,8 @@ import {
   JSONValue
 } from '@xpert-ai/contracts'
 import { createRuntimeCapability } from '../../core/runtime-capability'
-import type { WorkspacePortableFileReference } from './workspace-files'
+import type { WorkspacePortableFileReference } from '../../runtime/capabilities/workspace-files'
+import type { KnowledgeUploadSessionsApi } from './knowledge-upload-sessions'
 
 export type KnowledgebaseDocumentFile = {
   buffer: Buffer
@@ -72,6 +73,9 @@ export type KnowledgebaseListDocumentsInput = {
   page?: number
   pageSize?: number
   search?: string
+  /** Literal substring search; paths include the logical folder and imported originalRelativePath. */
+  searchFields?: Array<'name' | 'path'>
+  mimeTypes?: string[]
   includeFolders?: boolean
   /** List direct children of this folder. Use null for the knowledgebase root. */
   parentId?: string | null
@@ -130,6 +134,8 @@ export type KnowledgebaseUploadedFile = {
 
 export type KnowledgebaseCreateDocumentsInput = {
   knowledgebaseId: string
+  /** Retry key, scoped to this Knowledge base. Repeated creation returns the original documents. */
+  idempotencyKey?: string
   documents: KnowledgebaseDocumentDraft[]
   parserConfig?: KnowledgebaseDocumentParserConfig
   metadata?: KnowledgebaseDocumentMetadata
@@ -286,6 +292,9 @@ export type KnowledgebaseProcessingOptionsResult = {
 }
 
 export interface KnowledgebaseDocumentsApi {
+  /** Stage resumable uploads without starting document processing. */
+  readonly uploads: KnowledgeUploadSessionsApi
+
   getProcessingOptions(input: KnowledgebaseProcessingOptionsInput): Promise<KnowledgebaseProcessingOptionsResult>
 
   readText(input: KnowledgebaseReadTextInput): Promise<KnowledgebaseReadTextResult>

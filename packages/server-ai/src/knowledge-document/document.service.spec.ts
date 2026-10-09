@@ -1,6 +1,7 @@
 import { Knowledgebase } from '../knowledgebase/knowledgebase.entity'
 import { environment } from '@xpert-ai/server-config'
 jest.mock('@xpert-ai/plugin-sdk', () => ({
+    RequestContext: jest.requireActual('../../../plugin-sdk/src/lib/core/context/request-context').RequestContext,
     DocumentSourceRegistry: class DocumentSourceRegistry {},
     SandboxWorkspaceMapperStrategy: () => () => undefined,
     TextSplitterRegistry: class TextSplitterRegistry {},
@@ -994,6 +995,38 @@ describe('KnowledgeDocumentService optimistic locks', () => {
 })
 
 describe('KnowledgeDocumentService incremental ingestion', () => {
+    it('replays a scoped import receipt after a crash without creating or processing a second document', async () => {
+        let stored: { id: string; metadata: Record<string, unknown> } | null = null
+        const query = jest.fn()
+        const builder = {
+            where: jest.fn().mockReturnThis(),
+            andWhere: jest.fn().mockReturnThis(),
+            getOne: jest.fn(async () => stored)
+        }
+        const manager = { query, getRepository: () => ({ createQueryBuilder: () => builder }) }
+        const access = jest.fn()
+        const service = createService([], {
+            repo: { manager: { transaction: async (callback) => callback(manager) } },
+            knowledgebaseService: { assertKnowledgebaseWriteAccess: access }
+        })
+        const create = jest.spyOn(service, 'createDocument').mockImplementation(async (document) => {
+            stored = { id: 'imported', metadata: document.metadata }
+            return stored as never
+        })
+        const draft = { knowledgebaseId: 'kb', name: 'a.png', metadata: { sourceHash: 'hash' } }
+        await service.createBulkIdempotently([draft], 'batch-item')
+        const replay = await service.createBulkIdempotently([draft], 'batch-item')
+        expect(create).toHaveBeenCalledTimes(1)
+        expect(replay.skippedIds).toEqual(['imported'])
+        expect(replay.processableIds).toEqual([])
+        expect(access).toHaveBeenCalledWith('kb')
+        expect(query).toHaveBeenCalledWith(expect.stringContaining('pg_advisory_xact_lock'), [
+            'knowledge-import:kb:batch-item'
+        ])
+        await expect(
+            service.createBulkIdempotently([{ ...draft, metadata: { sourceHash: 'different' } }], 'batch-item')
+        ).rejects.toThrow('content conflict')
+    })
     it('keeps new document, tree lookup and folder writes on the caller transaction', async () => {
         const outsideSave = jest.fn()
         const save = jest.fn(async (doc) => ({ ...doc, id: 'saved' }))

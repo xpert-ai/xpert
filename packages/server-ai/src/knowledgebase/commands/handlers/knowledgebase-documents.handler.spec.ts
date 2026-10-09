@@ -30,8 +30,36 @@ import {
 } from './knowledgebase-documents.handler'
 import { DocumentTypeEnum } from '@xpert-ai/contracts'
 import { VolumeSubtreeClient } from '../../../shared'
+import type { KnowledgebaseService } from '../../knowledgebase.service'
+import type { KnowledgeDocumentService } from '../../../knowledge-document/document.service'
+import { FindOperator } from 'typeorm'
+import { Knowledgebase } from '../../knowledgebase.entity'
 
 describe('ReprocessKnowledgebaseDocumentsHandler', () => {
+    it('rejects read-only library access before changing document metadata or starting processing', async () => {
+        const knowledgebaseService = {
+            assertKnowledgebaseWriteAccess: jest.fn().mockRejectedValue(new Error('tenant scope required')),
+            assertNotRebuilding: jest.fn()
+        }
+        const documentService = { findAll: jest.fn(), save: jest.fn(), startProcessing: jest.fn() }
+        const handler = new ReprocessKnowledgebaseDocumentsHandler(
+            knowledgebaseService as never,
+            documentService as never
+        )
+        await expect(
+            handler.execute(
+                new ReprocessKnowledgebaseDocumentsCommand({
+                    knowledgebaseId: 'shared-library',
+                    documentIds: ['document'],
+                    parserConfig: {}
+                })
+            )
+        ).rejects.toThrow('tenant scope required')
+        expect(documentService.findAll).not.toHaveBeenCalled()
+        expect(documentService.save).not.toHaveBeenCalled()
+        expect(documentService.startProcessing).not.toHaveBeenCalled()
+    })
+
     it('invalidates the processing hash even when the requested parser configuration is unchanged', async () => {
         const parserConfig = {
             imageUnderstandingType: 'plugin-image-policy',
@@ -41,7 +69,7 @@ describe('ReprocessKnowledgebaseDocumentsHandler', () => {
             { id: 'doc-1', knowledgebaseId: 'kb-1', parserConfig, processingHash: 'hash-1', metadata: {} },
             { id: 'doc-2', knowledgebaseId: 'kb-1', parserConfig, processingHash: 'hash-2', metadata: {} }
         ]
-        const knowledgebaseService = { assertNotRebuilding: jest.fn() }
+        const knowledgebaseService = { assertNotRebuilding: jest.fn(), assertKnowledgebaseWriteAccess: jest.fn() }
         const documentService = {
             findAll: jest.fn(async () => ({ items: documents, total: documents.length })),
             save: jest.fn(async (items) => items),
@@ -77,7 +105,7 @@ describe('ReprocessKnowledgebaseDocumentsHandler', () => {
             startProcessing: jest.fn()
         }
         const handler = new ReprocessKnowledgebaseDocumentsHandler(
-            { assertNotRebuilding: jest.fn() } as any,
+            { assertNotRebuilding: jest.fn(), assertKnowledgebaseWriteAccess: jest.fn() } as never,
             documentService as any
         )
 
@@ -95,6 +123,48 @@ describe('ReprocessKnowledgebaseDocumentsHandler', () => {
 })
 
 describe('ListKnowledgebaseDocumentsHandler', () => {
+    it('searches literal names and original paths inside the same knowledgebase and MIME boundary', async () => {
+        const knowledgebase = {
+            findOneByIdString: jest.fn(async () => Object.assign(new Knowledgebase(), { id: 'private-kb' }))
+        }
+        const documents = {
+            findAll: jest.fn(async (_options: Parameters<KnowledgeDocumentService['findAll']>[0]) => ({
+                items: [],
+                total: 0
+            }))
+        }
+        const handler = new ListKnowledgebaseDocumentsHandler(
+            knowledgebase as Pick<KnowledgebaseService, 'findOneByIdString'> as KnowledgebaseService,
+            documents as Pick<KnowledgeDocumentService, 'findAll'> as KnowledgeDocumentService
+        )
+        await handler.execute(
+            new ListKnowledgebaseDocumentsCommand({
+                knowledgebaseId: 'private-kb',
+                search: '屋面/50%_完成',
+                searchFields: ['name', 'path'],
+                mimeTypes: ['image/png'],
+                page: 2,
+                pageSize: 40
+            })
+        )
+        expect(knowledgebase.findOneByIdString).toHaveBeenCalledWith('private-kb', { select: { id: true } })
+        expect(documents.findAll).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: expect.objectContaining({ knowledgebaseId: 'private-kb', mimeType: expect.any(FindOperator) }),
+                skip: 40,
+                take: 40,
+                order: { id: 'ASC' }
+            })
+        )
+        const where = documents.findAll.mock.calls[0][0].where
+        if (!where || Array.isArray(where) || !(where.name instanceof FindOperator))
+            throw Error('missing literal search predicate')
+        expect(where.name.getSql('doc.name')).toBe(
+            "(doc.name ILIKE :catalogSearch OR COALESCE(jsonb_extract_path_text(CAST(doc.metadata AS jsonb), 'originalRelativePath'), '') ILIKE :catalogSearch OR COALESCE(doc.folder, '') ILIKE :catalogSearch)"
+        )
+        expect(where.name.objectLiteralParameters).toEqual({ catalogSearch: '%屋面/50\\%\\_完成%' })
+    })
+
     it('returns a bounded document catalog without exposing folders by default', async () => {
         const knowledgebaseService = { findOneByIdString: jest.fn(async () => ({ id: 'kb-1' })) }
         const documentService = {

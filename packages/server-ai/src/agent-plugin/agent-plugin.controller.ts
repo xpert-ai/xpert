@@ -1,3 +1,7 @@
+import { CommandBus } from '@nestjs/cqrs'
+import { ImportDefaultAgentPluginsCommand } from '@xpert-ai/plugin-sdk'
+import { ZodValidationPipe } from '@xpert-ai/server-core'
+import { importDefaultAgentPluginsInput } from './defaults/default-agent-plugins.schema'
 import { t } from 'i18next'
 import {
     BadRequestException,
@@ -54,7 +58,21 @@ export function parseResourceInput<T>(schema: z.ZodType<T>, input: unknown): T {
 
 @Controller('agent-plugins')
 export class AgentPluginController {
-    constructor(@Inject('XpertAgentPluginService') private readonly service: AgentPluginService) {}
+    constructor(
+        @Inject('XpertAgentPluginService') private readonly service: AgentPluginService,
+        private readonly commands: CommandBus
+    ) {}
+
+    @Post('defaults')
+    importDefaults(
+        @Body(
+            new ZodValidationPipe(importDefaultAgentPluginsInput, (error) => new BadRequestException(error.flatten()))
+        )
+        _input: z.output<typeof importDefaultAgentPluginsInput>
+    ) {
+        return this.commands.execute(new ImportDefaultAgentPluginsCommand())
+    }
+
     @Get('workspace-options') workspaceOptions() {
         return this.service.workspaceOptions()
     }

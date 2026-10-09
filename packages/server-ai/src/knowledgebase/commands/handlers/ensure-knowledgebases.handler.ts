@@ -7,7 +7,11 @@ import {
     type IKnowledgebase,
     type KBMetadataFieldDef
 } from '@xpert-ai/contracts'
-import { BadRequestException, ForbiddenException } from '@nestjs/common'
+import {
+    TenantLibraryAccessService,
+    assertTenantLibraryAdministrator
+} from '../../tenant-library/tenant-library-access.service'
+import { BadRequestException, ForbiddenException, Optional } from '@nestjs/common'
 import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { t } from 'i18next'
 import { RequestContext } from '@xpert-ai/server-core'
@@ -28,7 +32,8 @@ const MANAGED_MARKER_PREFIX = '[xpert-managed:'
 export class EnsureKnowledgebasesHandler implements ICommandHandler<EnsureKnowledgebasesCommand> {
     constructor(
         private readonly knowledgebaseService: KnowledgebaseService,
-        private readonly queryBus: QueryBus
+        private readonly queryBus: QueryBus,
+        @Optional() private readonly tenantLibraries?: TenantLibraryAccessService
     ) {}
 
     async execute(command: EnsureKnowledgebasesCommand): Promise<KnowledgebaseEnsureResult> {
@@ -37,6 +42,19 @@ export class EnsureKnowledgebasesHandler implements ICommandHandler<EnsureKnowle
         }
 
         const input = command.input
+        if (input.scope === 'tenant') {
+            if (!this.tenantLibraries) throw new ForbiddenException()
+            assertTenantLibraryAdministrator()
+            if (input.knowledgebases.some((spec) => spec.permission !== 'public'))
+                throw new BadRequestException('Tenant libraries must be public')
+            return this.tenantLibraries.withProvisioningLock(input.namespace, () => this.ensure(command))
+        }
+        return this.ensure(command)
+    }
+
+    private async ensure(command: EnsureKnowledgebasesCommand): Promise<KnowledgebaseEnsureResult> {
+        const input = command.input
+        const tenantScope = input.scope === 'tenant'
         const workspaceId = requiredText(input.workspaceId, 'workspaceId', 200)
         const namespace = requiredText(input.namespace, 'namespace', 80)
         if (!/^[a-z][a-z0-9_]{2,79}$/.test(namespace)) {
@@ -62,26 +80,31 @@ export class EnsureKnowledgebasesHandler implements ICommandHandler<EnsureKnowle
         if (!user?.id) {
             throw new ForbiddenException('An authenticated user is required')
         }
-        const accessible = await this.knowledgebaseService.getAllByWorkspace(
-            workspaceId,
-            {
-                take: 500,
-                skip: 0,
-                where: {},
-                withDeleted: false,
-                order: { updatedAt: 'DESC' },
-                ...(input.inheritEmbeddingModel ? { relations: ['copilotModel'] } : {})
-            },
-            false,
-            user
-        )
-        const workspaceKnowledgebases = accessible.items.filter((item) => item.workspaceId === workspaceId)
+        const accessible = tenantScope
+            ? { items: await this.tenantLibraries!.list() }
+            : await this.knowledgebaseService.getAllByWorkspace(
+                  workspaceId,
+                  {
+                      take: 500,
+                      skip: 0,
+                      where: {},
+                      withDeleted: false,
+                      order: { updatedAt: 'DESC' },
+                      ...(input.inheritEmbeddingModel ? { relations: ['copilotModel'] } : {})
+                  },
+                  false,
+                  user
+              )
+        const workspaceKnowledgebases = tenantScope
+            ? accessible.items
+            : accessible.items.filter((item) => item.workspaceId === workspaceId)
+        const markerScope = tenantScope ? 'tenant' : workspaceId
         const needsEmbeddingModel =
             input.inheritEmbeddingModel &&
             input.knowledgebases.some(
                 (spec) =>
                     !workspaceKnowledgebases.find((item) =>
-                        item.description?.includes(managedMarker(namespace, workspaceId, spec.key))
+                        item.description?.includes(managedMarker(namespace, markerScope, spec.key))
                     )?.copilotModelId
             )
         const embeddingModel = needsEmbeddingModel
@@ -90,9 +113,9 @@ export class EnsureKnowledgebasesHandler implements ICommandHandler<EnsureKnowle
         const items: KnowledgebaseEnsureItem[] = []
 
         for (const spec of input.knowledgebases) {
-            const marker = managedMarker(namespace, workspaceId, spec.key)
+            const marker = managedMarker(namespace, markerScope, spec.key)
             const existing = workspaceKnowledgebases.find((item) => item.description?.includes(marker))
-            const patch = provisioningPatch(spec, workspaceId, marker)
+            const patch = provisioningPatch(spec, tenantScope ? null : workspaceId, marker)
             if (!existing?.copilotModelId && embeddingModel) {
                 patch.copilotModel = cloneEmbeddingModel(embeddingModel)
             }
@@ -167,7 +190,7 @@ function cloneEmbeddingModel(model: IKnowledgebase['copilotModel']) {
 
 function provisioningPatch(
     spec: KnowledgebaseProvisioningSpec,
-    workspaceId: string,
+    workspaceId: string | null,
     marker: string
 ): Partial<IKnowledgebase> {
     return {

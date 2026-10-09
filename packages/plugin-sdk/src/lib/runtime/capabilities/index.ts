@@ -1,7 +1,3 @@
-export * from './knowledgebase'
-export * from './knowledge-graph'
-export * from './knowledgebase-documents'
-export * from './knowledge-document-visual-assets'
 export * from './actor-token'
 export * from './artifacts'
 export * from './workspace-files'

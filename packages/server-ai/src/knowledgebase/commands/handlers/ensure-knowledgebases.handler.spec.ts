@@ -3,6 +3,10 @@ import { RequestContext } from '@xpert-ai/server-core'
 import { CopilotModelCatalogMode, FindCopilotModelsQuery } from '../../../copilot/queries/copilot-model-find.query'
 import { EnsureKnowledgebasesCommand } from '../ensure-knowledgebases.command'
 import { EnsureKnowledgebasesHandler } from './ensure-knowledgebases.handler'
+import { RequestContext as PluginRequestContext } from '@xpert-ai/plugin-sdk'
+import { TenantLibraryAccessService } from '../../tenant-library/tenant-library-access.service'
+import { Knowledgebase } from '../../knowledgebase.entity'
+import { Repository } from 'typeorm'
 
 jest.mock('i18next', () => ({ t: (_key: string, options: { defaultValue: string }) => options.defaultValue }))
 
@@ -62,6 +66,36 @@ describe('EnsureKnowledgebasesHandler', () => {
     })
 
     afterEach(() => jest.restoreAllMocks())
+
+    it.each([false, true])(
+        'requires an existing tenant scope before provisioning (tenant scope: %s)',
+        async (tenantScope) => {
+            jest.spyOn(PluginRequestContext, 'currentUserId').mockReturnValue('user-1')
+            jest.spyOn(PluginRequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+            jest.spyOn(PluginRequestContext, 'hasRole').mockReturnValue(true)
+            jest.spyOn(PluginRequestContext, 'isTenantScope').mockReturnValue(tenantScope)
+            const tenantLibraries = new TenantLibraryAccessService(new Repository<Knowledgebase>(Knowledgebase, null))
+            jest.spyOn(tenantLibraries, 'list').mockResolvedValue([])
+            const lock = jest
+                .spyOn(tenantLibraries, 'withProvisioningLock')
+                .mockImplementation((_namespace, action) => action())
+            handler = new EnsureKnowledgebasesHandler(service as never, queryBus as never, tenantLibraries)
+            const input = command()
+            input.input.scope = 'tenant'
+            input.input.knowledgebases[0].permission = 'public'
+            if (tenantScope) {
+                await handler.execute(input)
+                expect(lock).toHaveBeenCalledTimes(1)
+                expect(service.create).toHaveBeenCalledWith(
+                    expect.objectContaining({ workspaceId: null, permission: 'public' })
+                )
+            } else {
+                await expect(handler.execute(input)).rejects.toThrow('Switch to tenant scope')
+                expect(lock).not.toHaveBeenCalled()
+                expect(service.create).not.toHaveBeenCalled()
+            }
+        }
+    )
 
     it('initializes an empty workspace from the authorized provider catalog with graph enabled', async () => {
         const result = await handler.execute(command())
