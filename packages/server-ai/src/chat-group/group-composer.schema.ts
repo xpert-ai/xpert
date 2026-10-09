@@ -61,3 +61,10 @@ export const composerProjectsQuery = z
     })
     .strict()
 export const composerValidateSchema = composerScopeQuery.extend({ runtimeResources: runtimeResourcesSchema })
+
+/** Resource authorization is scoped to the selected member; actor and audience are never accepted in the body. */
+export const composerAuthorizeSchema = composerScopeQuery.extend({
+    bindingId: z.string().uuid(),
+    version: z.string().max(64),
+    serverName: z.string().max(255)
+})

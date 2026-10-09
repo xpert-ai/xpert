@@ -1,3 +1,6 @@
+import { GROUP_CONTROLLERS } from './groups'
+import { GroupScopeGuard } from './groups/group-scope.guard'
+import { ChatGroupModule } from '../chat-group/chat-group.module'
 import { ThreadActivityService } from './thread-activity/thread-activity.service'
 import { ConversationArtifactsController } from './conversation-artifacts.controller'
 import { VoiceController, VoiceCapabilityController } from './voice.controller'
@@ -72,6 +75,7 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
                 module: AIModule
             }
         ]),
+        ChatGroupModule,
         WorkspaceFileAccessModule,
         TenantModule,
         TypeOrmModule.forFeature([
@@ -112,6 +116,7 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
         forwardRef(() => XpertToolsetModule)
     ],
     controllers: [
+        ...GROUP_CONTROLLERS,
         ConversationArtifactsController,
         VoiceController,
         VoiceCapabilityController,
@@ -133,6 +138,7 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
         StoreController
     ],
     providers: [
+        GroupScopeGuard,
         ThreadActivityService,
         VoiceSessionService,
         VoiceTaskService,

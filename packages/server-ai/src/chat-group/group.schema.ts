@@ -1,6 +1,6 @@
 import { groupComposerSchema } from './group-composer.schema'
 import { z } from 'zod'
-import type { ChatGroupCommunication } from '@xpert-ai/contracts'
+import type { ChatGroupCommunication, ChatGroupSendInput } from '@xpert-ai/contracts'
 
 const ids = z
     .array(z.string().uuid())
@@ -35,6 +35,8 @@ export const groupHumanSendSchema = z
         replyToMessageId: z.string().uuid().optional()
     })
     .strict()
+    // Keep the shared required fields explicit under this repository's non-strict null checking.
+    .transform((value) => value as ChatGroupSendInput)
 export const groupSendSchema = z.discriminatedUnion('intent', [
     z
         .object({
