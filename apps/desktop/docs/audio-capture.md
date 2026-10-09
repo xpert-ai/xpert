@@ -45,6 +45,14 @@ Desktop state exposes capture status, elapsed time, track levels and pending chu
 
 ## Verification and integration
 
+### macOS audio permissions and release signing
+
+Realtime voice and plugin capture share the Desktop microphone permission service. Permission requests run only during user-initiated startup, before recording callbacks or voice-session admission. A denied/restricted OS permission, a missing packaged `audio-input` entitlement, and an unverified permission check have separate error codes. System-audio consent remains a separate ScreenCaptureKit check; quiet system audio is normal and does not trigger a no-signal failure.
+
+The macOS build applies `resources/entitlements.mac.plist` to the main app and Electron helpers and explicitly signs the unpacked native recorder. The `afterSign` hook checks the actual signed artifacts and fails if an audio executable or its audio-input entitlement is missing. Unsigned development builds do not establish release readiness. Validate OS prompts, nonzero microphone input, mute/unmute, and system-audio capture again on a signed installation before release.
+
+Realtime voice warns after ten seconds of consecutive all-zero PCM and closes after thirty seconds. Any nonzero input resets this check, and intentional in-app mute suspends it. Missing worklet audio frames fail after ten seconds. These are input-signal diagnostics, not proof of an OS permission denial; audio samples are never included in diagnostic logs.
+
 - `corepack pnpm --filter @xpert-ai/desktop test` exercises the JS controller, renderer bridge and existing Desktop behavior without recording real audio.
 - `corepack pnpm --filter @xpert-ai/desktop test:audio-native` builds a universal macOS helper and tests conversion using synthetic CMSampleBuffers. It does not request microphone permission.
 - `corepack pnpm --filter @xpert-ai/desktop build` builds the helper, checks renderer types and bundles the app.

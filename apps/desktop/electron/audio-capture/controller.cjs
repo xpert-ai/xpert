@@ -14,10 +14,14 @@ const { CaptureDelivery } = require('./delivery.cjs')
 const { parseNativeEvent } = require('./native-events.cjs')
 const MAX_DURATION = AUDIO_CAPTURE_LIMITS.durationMs
 class AudioCaptureController {
-  constructor(service, { root, encryption, helper, onRecording = () => {}, spawnHelper = spawn, supported } = {}) {
+  constructor(
+    service,
+    { root, encryption, helper, permissions, onRecording = () => {}, spawnHelper = spawn, supported } = {}
+  ) {
     this.delivery = new CaptureDelivery(service)
     this.cache = new AudioCaptureCache(root, encryption)
     this.helper = helper
+    this.permissions = permissions
     this.onRecording = onRecording
     this.spawnHelper = spawnHelper
     this.supported =
@@ -109,6 +113,8 @@ class AudioCaptureController {
         'voice_active',
         'secure_storage_unavailable',
         'audio_permission_denied',
+        'audio_signing_missing',
+        'audio_permission_check_failed',
         'delivery_pending'
       ])
       return { success: false, code: safe.has(error.message) ? error.message : 'operation_failed' }
@@ -140,6 +146,9 @@ class AudioCaptureController {
       await this.cache.initialize()
       await this.delivery.authorize(record, input.commandKey)
       assertStart()
+      const permission = await this.permissions?.microphone({ prompt: true })
+      assertStart()
+      if (permission?.success === false) throw new Error(permission.code)
       await this.cache.save(record)
       saved = true
       await this.deliverCreated(record)

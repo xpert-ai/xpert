@@ -79,6 +79,16 @@ final class Track {
 }
 
 @available(macOS 15.0, *)
+func captureErrorCode(_ error: Error, fallback: String = "audio_source_missing") -> String {
+    let cause = error as NSError
+    if cause.domain == "microphone_permission_denied" { return "audio_permission_denied" }
+    if cause.domain == SCStreamErrorDomain && cause.code == SCStreamError.Code.userDeclined.rawValue {
+        return "system_audio_permission_denied"
+    }
+    return fallback
+}
+
+@available(macOS 15.0, *)
 final class Capture: NSObject, SCStreamOutput, SCStreamDelegate {
     let queue = DispatchQueue(label: "ai.xpert.desktop.audio")
     let microphone = Track("microphone"), system = Track("system")
@@ -115,7 +125,9 @@ final class Capture: NSObject, SCStreamOutput, SCStreamDelegate {
             if type == .microphone { try microphone.consume(sampleBuffer, epoch: epoch) }
         } catch { emit(["type": "error", "code": "audio_conversion_failed"]) }
     }
-    func stream(_ stream: SCStream, didStopWithError error: Error) { emit(["type": "error", "code": "device_lost"]) }
+    func stream(_ stream: SCStream, didStopWithError error: Error) {
+        emit(["type": "error", "code": captureErrorCode(error, fallback: "device_lost")])
+    }
 }
 
 @main
@@ -140,12 +152,22 @@ struct Main {
                 DispatchQueue.global().async { _ = readLine(); continuation.resume() }
             }
             await capture.stop()
-        } catch { emit(["type": "error", "code": "audio_permission_denied"]) }
+        } catch {
+            emit(["type": "error", "code": captureErrorCode(error)])
+        }
     }
 }
 
 // Synthetic CMSampleBuffers exercise the same conversion path as live capture.
 func testSampleConversion() throws {
+    if #available(macOS 15.0, *) {
+        let denied = NSError(domain: SCStreamErrorDomain, code: SCStreamError.Code.userDeclined.rawValue)
+        guard captureErrorCode(denied) == "system_audio_permission_denied",
+              captureErrorCode(NSError(domain: "microphone_permission_denied", code: 1)) == "audio_permission_denied",
+              captureErrorCode(NSError(domain: "conversion", code: 1)) == "audio_source_missing" else {
+            throw NSError(domain: "test_permission_errors", code: 1)
+        }
+    }
     for (name, rate, channels) in [("microphone", 48000.0, 2), ("system", 24000.0, 1)] {
         let track = Track(name)
         let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: rate, channels: AVAudioChannelCount(channels), interleaved: false)!

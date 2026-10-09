@@ -8,7 +8,14 @@ function parseNativeEvent(event) {
   if (event.type === 'error')
     return {
       type: 'error',
-      code: ['audio_permission_denied', 'audio_conversion_failed'].includes(event.code) ? event.code : 'device_lost'
+      code: [
+        'audio_permission_denied',
+        'system_audio_permission_denied',
+        'audio_source_missing',
+        'audio_conversion_failed'
+      ].includes(event.code)
+        ? event.code
+        : 'device_lost'
     }
   if (event.type === 'level') {
     if (!tracks.includes(event.track) || !Number.isFinite(event.level)) invalid()

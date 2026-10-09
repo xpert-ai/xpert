@@ -46,6 +46,7 @@
   "build": {
     "appId": "ai.xpert.desktop",
     "productName": "Bosi",
+    "afterSign": "scripts/verify-macos-audio-signing.cjs",
     "directories": {
       "output": "release"
     },
@@ -56,6 +57,12 @@
       "package.json"
     ],
     "mac": {
+      "hardenedRuntime": true,
+      "entitlements": "resources/entitlements.mac.plist",
+      "entitlementsInherit": "resources/entitlements.mac.plist",
+      "binaries": [
+        "Contents/Resources/app.asar.unpacked/resources/audio-capture/audio-capture"
+      ],
       "icon": "resources/Xpert.icns",
       "category": "public.app-category.productivity",
       "extendInfo": {

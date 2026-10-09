@@ -1116,5 +1116,9 @@
   "Could not start the voice call. Check the voice model configuration and try again.": "通話を開始できませんでした。音声モデルの設定を確認して再試行してください。",
   "Recording": "録音中",
   "End recording": "録音を終了",
-  "End the audio recording or voice call first.": "先に録音または音声通話を終了してください。"
+  "End the audio recording or voice call first.": "先に録音または音声通話を終了してください。",
+  "Allow Bosi to use the microphone in System Settings → Privacy & Security, then restart the app and try again.": "「システム設定 → プライバシーとセキュリティ → マイク」で Bosi を許可し、アプリを再起動してください。",
+  "This Bosi installation is missing its microphone signing permission. Install an updated, correctly signed version.": "この Bosi にはマイクの署名権限がありません。正しく署名された最新版をインストールしてください。",
+  "Could not verify microphone access. Restart Bosi or install the latest version and try again.": "マイクの権限を確認できません。Bosi を再起動するか、最新版をインストールしてください。",
+  "No microphone signal is reaching the call. Check the selected input and hardware mute; the call ends after 30 seconds without a signal.": "通話にマイク信号が届いていません。入力機器とハードウェアのミュートを確認してください。信号がない状態が30秒続くと通話を終了します。"
 }

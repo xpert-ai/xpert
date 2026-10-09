@@ -299,6 +299,13 @@ export interface HostMethods {
 declare global {
   interface Window {
     xpertDesktop?: {
+      requestMicrophonePermission?: () => Promise<
+        | { success: true }
+        | {
+            success: false
+            code: 'audio_signing_missing' | 'audio_permission_denied' | 'audio_permission_check_failed' | 'forbidden'
+          }
+      >
       audioCapture?: (
         request: import('@xpert-ai/desktop-protocol').AudioCaptureRequest
       ) => Promise<import('@xpert-ai/desktop-protocol').AudioCaptureResult>

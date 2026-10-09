@@ -6,6 +6,22 @@ const { AudioCaptureCache } = require('../../electron/audio-capture/cache.cjs')
 const { parseNativeEvent } = require('../../electron/audio-capture/native-events.cjs')
 const { setup, encryption, scope, delivery, record, chunk } = require('./test-fixture.cjs')
 
+test('microphone preflight failure does not create a meeting, launch devices, or cache a recording', async (t) => {
+  const f = await setup(t)
+  f.controller.permissions = { microphone: async () => ({ success: false, code: 'audio_signing_missing' }) }
+  assert.equal((await f.start()).code, 'audio_signing_missing')
+  assert.equal(f.children.length, 0)
+  assert.equal(f.requests.filter((r) => r.options.method === 'POST').length, 0)
+  assert.deepEqual(await f.controller.cache.list(scope), [])
+})
+
+test('system audio consent remains distinct from microphone consent', () => {
+  assert.equal(
+    parseNativeEvent({ type: 'error', code: 'system_audio_permission_denied' }).code,
+    'system_audio_permission_denied'
+  )
+})
+
 test('cache encrypts audio, restores it after restart and isolates user and View scopes', async (t) => {
   const f = await setup(t),
     r = record(),

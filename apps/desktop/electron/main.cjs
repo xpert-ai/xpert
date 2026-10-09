@@ -11,7 +11,8 @@ const {
   dialog,
   powerMonitor,
   Tray,
-  nativeImage
+  nativeImage,
+  systemPreferences
 } = require('electron')
 const path = require('node:path')
 const { pathToFileURL } = require('node:url')
@@ -32,6 +33,7 @@ const { findRelease } = require('./updates/release.cjs')
 const { isWorkspaceFileDownload, downloadWorkspaceFile } = require('./workspace-file-download.cjs')
 const { AudioCaptureController } = require('./audio-capture/controller.cjs')
 const { registerAudioCaptureIpc, dispatchWithAudioCapture } = require('./audio-capture/lifecycle.cjs')
+const { createAudioPermissions, registerAudioPermissionIpc } = require('./audio-permissions.cjs')
 
 const branding = require('./branding.json')
 
@@ -223,9 +225,11 @@ else {
       systemLanguages: [...app.getPreferredSystemLanguages(), app.getLocale()]
     })
     service.shell = new DesktopShellController(service, path.join(app.getPath('userData'), 'desktop-shell'))
+    const audioPermissions = createAudioPermissions({ systemPreferences, packaged: app.isPackaged })
     service.audioCapture = new AudioCaptureController(service, {
       root: path.join(app.getPath('userData'), 'audio-capture'),
       encryption,
+      permissions: audioPermissions,
       helper: path
         .join(__dirname, '../resources/audio-capture/audio-capture')
         .replace('app.asar/', 'app.asar.unpacked/'),
@@ -260,6 +264,7 @@ else {
     updates.start()
     app.once('will-quit', () => updates.dispose())
     registerAudioCaptureIpc(ipcMain, service.audioCapture, trusted)
+    registerAudioPermissionIpc(ipcMain, audioPermissions, trusted)
     ipcMain.handle('xpert:request', async (event, method, argument) => {
       if (!trusted(event))
         return {

@@ -14,7 +14,8 @@ function runtime(options = {}) {
   const sounds = [],
     contexts = [],
     hostCalls = [],
-    timeouts = new Map()
+    timeouts = new Map(),
+    intervals = new Map()
   const track = {
     stopped: 0,
     stop() {
@@ -99,7 +100,7 @@ function runtime(options = {}) {
     WebSocket,
     URL,
     DOMException,
-    window: {},
+    window: options.desktop ? { xpertDesktop: options.desktop } : {},
     document: { baseURI: 'http://localhost/' },
     navigator: {
       mediaDevices: {
@@ -109,8 +110,12 @@ function runtime(options = {}) {
         }
       }
     },
-    setInterval: () => 1,
-    clearInterval() {},
+    setInterval: (callback, delay) => {
+      const id = Symbol()
+      intervals.set(id, { callback, delay })
+      return id
+    },
+    clearInterval: (id) => intervals.delete(id),
     setTimeout: (callback, delay) => {
       const id = Symbol()
       timeouts.set(id, { callback, delay })
@@ -126,10 +131,114 @@ function runtime(options = {}) {
     (event) => events.push(event),
     (diagnostic) => diagnostics.push(diagnostic)
   )
-  return { call, states, events, diagnostics, sounds, contexts, track, stream, hostCalls, timeouts }
+  return { call, states, events, diagnostics, sounds, contexts, track, stream, hostCalls, timeouts, intervals }
 }
 
 const target = { botId: 'bot', assistantId: 'assistant', threadId: null, name: 'Test' }
+
+test('native permission failures stop before acquiring media or creating a voice session', async () => {
+  for (const [code, diagnostic] of [
+    ['audio_permission_denied', 'microphone_permission'],
+    ['audio_signing_missing', 'microphone_signing'],
+    ['audio_permission_check_failed', 'microphone_permission_check']
+  ]) {
+    let media = 0
+    const f = runtime({
+      desktop: { requestMicrophonePermission: async () => ({ success: false, code }) },
+      onMedia: () => media++
+    })
+    await f.call.start(target, () => {})
+    assert.equal(media, 0)
+    assert.deepEqual(f.hostCalls, [])
+    assert.deepEqual(f.diagnostics, [diagnostic])
+    assert.equal(f.states.at(-1), 'error')
+    f.call.dispose()
+  }
+})
+
+test('closing during the native permission prompt never acquires a late microphone', async () => {
+  let allow,
+    requested,
+    media = 0
+  const permission = new Promise((resolve) => {
+    allow = resolve
+  })
+  const entered = new Promise((resolve) => {
+    requested = resolve
+  })
+  const f = runtime({
+    desktop: {
+      requestMicrophonePermission: () => {
+        requested()
+        return permission
+      }
+    },
+    onMedia: () => media++
+  })
+  const start = f.call.start(target, () => {})
+  await entered
+  f.call.dispose()
+  allow({ success: true })
+  await start
+  assert.equal(media, 0)
+  assert.deepEqual(f.hostCalls, [])
+})
+
+function pcm(call, seconds, sample = 0) {
+  const audio = new Int16Array(320).fill(sample).buffer
+  for (let i = 0; i < seconds * 50; i++) call.workletMessage({ type: 'audio', audio })
+}
+
+test('digital silence warns at ten seconds and ends a stuck input at thirty seconds', async () => {
+  const f = runtime()
+  await f.call.start(target, () => {})
+  f.call.receive(JSON.stringify({ type: 'ready' }))
+  pcm(f.call, 10)
+  assert.deepEqual(f.diagnostics, ['microphone_no_signal'])
+  assert.equal(f.states.at(-1), 'listening')
+  f.call.receive(JSON.stringify({ type: 'response.started', responseId: 'response' }))
+  assert.equal(f.diagnostics.at(-1), 'microphone_no_signal')
+  pcm(f.call, 20)
+  assert.equal(f.states.at(-1), 'error')
+  assert.equal(f.track.stopped, 1)
+  assert.ok(f.hostCalls.includes('voiceEnd'))
+  f.call.dispose()
+})
+
+test('quiet nonzero input recovers, and intentional mute does not accumulate a silence fault', async () => {
+  const f = runtime()
+  await f.call.start(target, () => {})
+  f.call.receive(JSON.stringify({ type: 'ready' }))
+  pcm(f.call, 10)
+  pcm(f.call, 1, 1)
+  assert.equal(f.diagnostics.at(-1), undefined)
+  f.call.mute(true)
+  pcm(f.call, 60)
+  f.call.mute(false)
+  pcm(f.call, 9)
+  pcm(f.call, 40, 1)
+  assert.equal(f.states.at(-1), 'listening')
+  f.call.dispose()
+})
+
+test('a stalled input ends the call and clears its health timer, while mute is excluded', async () => {
+  const f = runtime()
+  await f.call.start(target, () => {})
+  f.call.receive(JSON.stringify({ type: 'ready' }))
+  const check = [...f.intervals.values()][0].callback
+  f.call.mute(true)
+  f.call.lastInputAt = Date.now() - 11000
+  check()
+  assert.equal(f.states.at(-1), 'listening')
+  f.call.mute(false)
+  f.call.lastInputAt = Date.now() - 11000
+  check()
+  assert.equal(f.diagnostics.at(-1), 'microphone_unavailable')
+  assert.equal(f.track.stopped, 1)
+  assert.equal(f.intervals.size, 0)
+  assert.ok(f.hostCalls.includes('voiceEnd'))
+  f.call.dispose()
+})
 
 test('dialing rings until provider readiness, then hangup releases capture immediately and audio after the cue', async () => {
   const { call, sounds, contexts, track, timeouts } = runtime()

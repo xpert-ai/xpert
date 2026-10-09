@@ -1116,5 +1116,9 @@
   "Could not start the voice call. Check the voice model configuration and try again.": "無法啟動通話，請檢查語音模型設定後重試。",
   "Recording": "正在錄音",
   "End recording": "結束錄音",
-  "End the audio recording or voice call first.": "請先結束錄音或語音通話。"
+  "End the audio recording or voice call first.": "請先結束錄音或語音通話。",
+  "Allow Bosi to use the microphone in System Settings → Privacy & Security, then restart the app and try again.": "請在「系統設定 → 隱私權與安全性 → 麥克風」中允許 Bosi 存取，然後重新啟動 App 再試。",
+  "This Bosi installation is missing its microphone signing permission. Install an updated, correctly signed version.": "目前 Bosi 安裝套件缺少麥克風簽署權限，請安裝已修正簽署的新版 App。",
+  "Could not verify microphone access. Restart Bosi or install the latest version and try again.": "無法檢查麥克風權限，請重新啟動 Bosi 或安裝最新版後再試。",
+  "No microphone signal is reaching the call. Check the selected input and hardware mute; the call ends after 30 seconds without a signal.": "通話未收到麥克風訊號，請檢查輸入裝置和硬體靜音；連續 30 秒無訊號將結束通話。"
 }
