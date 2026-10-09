@@ -12,6 +12,9 @@ import {
   viewChild
 } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
+import { Dialog } from '@angular/cdk/dialog'
+import type { ChatGroupSummary } from '@xpert-ai/contracts'
+import { ChatGroupService } from '../../../@core/services/chat-group.service'
 import { Router } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardMenuImports } from '@xpert-ai/headless-ui'
@@ -55,8 +58,8 @@ import {
           type="search"
           data-assistant-search
           class="h-8 min-w-0 flex-1 bg-transparent text-sm text-text-primary outline-none placeholder:text-text-tertiary"
-          [placeholder]="'XP.Chat.WorkbenchPresentation.SearchAssistants' | translate"
-          [attr.aria-label]="'XP.Chat.WorkbenchPresentation.SearchAssistants' | translate"
+          [placeholder]="'XP.Assistant.Search' | translate"
+          [attr.aria-label]="'XP.Assistant.Search' | translate"
           [value]="query()"
           (input)="query.set(search.value)"
           (keydown)="handleSearchKey($event)"
@@ -82,6 +85,55 @@ import {
         </div>
       }
       <div data-assistant-options class="min-h-0 overflow-y-auto overscroll-contain py-1" [attr.aria-busy]="loading()">
+        @for (group of filteredGroups(); track group.id) {
+          <div class="flex items-center gap-1 rounded-lg hover:bg-hover-bg">
+            <button
+              z-menu-item
+              type="button"
+              [attr.data-group-option]="group.id"
+              [attr.aria-current]="group.id === activeId() ? 'page' : null"
+              class="min-w-0 flex-1"
+              (click)="selectGroup(group.id)"
+            >
+              <span class="grid size-7 shrink-0 grid-cols-2 grid-rows-2" aria-hidden="true">
+                @for (member of group.members.slice(0, 4); track member.id) {
+                  <emoji-avatar
+                    [avatar]="member.avatar ?? undefined"
+                    [alt]="member.name"
+                    [fallbackLabel]="member.name"
+                    class="!size-4 overflow-hidden rounded-md ring-1 ring-components-card-bg"
+                  />
+                }
+              </span>
+              <span class="truncate" [class.font-semibold]="group.unread">{{ group.title }}</span>
+              @if (group.pinned) {
+                <i class="ri-pushpin-line text-text-tertiary" aria-hidden="true"></i>
+              }
+            </button>
+            <button
+              z-menu
+              type="button"
+              [zMenuTriggerFor]="groupOptions"
+              class="size-7 shrink-0"
+              [attr.aria-label]="'XP.Groups.Options' | translate"
+            >
+              <i class="ri-more-line"></i>
+            </button>
+            <ng-template #groupOptions
+              ><div z-menu-content class="w-40">
+                <button z-menu-item (click)="preferences(group, { pinned: !group.pinned })">
+                  {{ (group.pinned ? 'XP.Groups.Unpin' : 'XP.Groups.Pin') | translate }}
+                </button>
+                <button z-menu-item (click)="preferences(group, { archived: !group.archived })">
+                  {{ (group.archived ? 'XP.Groups.Restore' : 'XP.Groups.Archive') | translate }}
+                </button>
+              </div></ng-template
+            >
+          </div>
+        }
+        @if (groupsFailed()) {
+          <button z-menu-item type="button" (click)="loadGroups()">{{ 'XP.KEY_WORDS.Retry' | translate }}</button>
+        }
         @if (loading()) {
           <p role="status" class="px-3 py-5 text-sm text-text-tertiary">
             {{ 'XP.Common.Loading' | translate: { Default: 'Loading...' } }}
@@ -155,12 +207,24 @@ import {
               }
             </div>
           } @empty {
-            <p role="status" class="px-3 py-5 text-sm text-text-tertiary">
-              {{ 'XP.Chat.ClawXpert.NoMatches' | translate: { Default: 'No assistants match your current search.' } }}
-            </p>
+            @if (!filteredGroups().length) {
+              <p role="status" class="px-3 py-5 text-sm text-text-tertiary">
+                {{ 'XP.Chat.ClawXpert.NoMatches' | translate: { Default: 'No assistants match your current search.' } }}
+              </p>
+            }
           }
         }
       </div>
+      @if (canUseGroups()) {
+        <div class="shrink-0 border-t border-divider-subtle pt-1">
+          <button z-menu-item type="button" data-create-group (click)="createGroup()">
+            <i class="ri-group-line"></i>{{ 'XP.Groups.New' | translate }}
+          </button>
+          <button z-menu-item type="button" (click)="showArchived.set(!showArchived())">
+            {{ (showArchived() ? 'XP.Groups.Active' : 'XP.Groups.Archived') | translate }}
+          </button>
+        </div>
+      }
     </div>
   `
 })
@@ -171,6 +235,21 @@ export class WorkbenchAssistantMenuComponent {
   readonly loading = signal(false)
   readonly failed = signal(false)
   readonly assistants = signal<IXpert[]>([])
+  readonly groups = signal<ChatGroupSummary[]>([])
+  readonly groupsFailed = signal(false)
+  readonly showArchived = signal(false)
+  readonly canUseGroups = computed(() => this.#scope.activeScope().level === RequestScopeLevel.ORGANIZATION)
+  readonly filteredGroups = computed(() =>
+    this.businessAreaFilter()
+      ? []
+      : this.groups()
+          .filter(
+            (group) =>
+              group.archived === this.showArchived() &&
+              group.title.toLowerCase().includes(this.query().trim().toLowerCase())
+          )
+          .sort((a, b) => Number(b.pinned) - Number(a.pinned))
+  )
   readonly businessAreaFilter = signal<AssistantBusinessArea | null>(null)
   readonly filtered = computed(() => {
     const items = filterAssistantXperts(this.assistants(), this.query())
@@ -181,6 +260,8 @@ export class WorkbenchAssistantMenuComponent {
   readonly name = getAssistantName
   readonly label = getAssistantLabel
   readonly #api = inject(AssistantBindingService)
+  readonly #groups = inject(ChatGroupService)
+  readonly #dialog = inject(Dialog)
   readonly #scope = inject(ScopeService)
   readonly #store = inject(Store)
   readonly #router = inject(Router)
@@ -190,6 +271,7 @@ export class WorkbenchAssistantMenuComponent {
 
   constructor() {
     void this.load()
+    void this.loadGroups()
     afterNextRender(() => this.searchInput()?.nativeElement.focus())
   }
 
@@ -221,7 +303,9 @@ export class WorkbenchAssistantMenuComponent {
   handleSearchKey(event: KeyboardEvent) {
     if (event.key === 'ArrowDown') {
       event.preventDefault()
-      this.#element.nativeElement.querySelector<HTMLButtonElement>('[data-assistant-option]')?.focus()
+      this.#element.nativeElement
+        .querySelector<HTMLButtonElement>('[data-group-option], [data-assistant-option]')
+        ?.focus()
     }
     if (event.key !== 'Escape') event.stopPropagation()
   }
@@ -239,5 +323,52 @@ export class WorkbenchAssistantMenuComponent {
   select(assistant: IXpert) {
     this.selected.emit()
     if (assistant.id !== this.activeId()) void this.#router.navigate(['/chat/x', getAssistantRouteId(assistant), 'c'])
+  }
+
+  async loadGroups() {
+    if (!this.canUseGroups()) return
+    this.groupsFailed.set(false)
+    try {
+      const groups = await firstValueFrom(this.#groups.list().pipe(takeUntilDestroyed(this.#destroyRef)))
+      if (!this.#destroyRef.destroyed) this.groups.set(groups)
+    } catch {
+      if (!this.#destroyRef.destroyed) this.groupsFailed.set(true)
+    }
+  }
+
+  async selectGroup(id: string) {
+    if (id === this.activeId()) {
+      this.selected.emit()
+      return
+    }
+    try {
+      const commands = await firstValueFrom(this.#groups.conversationRoute(id))
+      this.selected.emit()
+      await this.#router.navigate(commands)
+    } catch {
+      this.groupsFailed.set(true)
+    }
+  }
+
+  async preferences(group: ChatGroupSummary, preferences: { pinned?: boolean; archived?: boolean }) {
+    try {
+      await firstValueFrom(this.#groups.preferences(group.id, preferences))
+      await this.loadGroups()
+    } catch {
+      this.groupsFailed.set(true)
+    }
+  }
+
+  async createGroup() {
+    const { GroupCreateDialogComponent } = await import('../groups/group-create-dialog.component')
+    const ref = this.#dialog.open<string>(GroupCreateDialogComponent, {
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog'
+    })
+    // The dialog outlives the menu that opened it.
+    ref.closed.subscribe((id) => {
+      if (id) void this.selectGroup(id)
+    })
+    this.selected.emit()
   }
 }

@@ -79,6 +79,7 @@ import { openWorkbenchFilePreviewDialog } from '../../assistant/workbench-file-p
 import { WorkbenchPresentationService } from '../../../@core/services/workbench-presentation.service'
 import { WorkbenchAssistantMenuComponent } from '../workbench-chat/workbench-assistant-menu.component'
 import { WorkbenchAccountComponent } from '../workbench-chat/workbench-account.component'
+import { WorkbenchLoadingIndicatorComponent } from '../workbench-chat/workbench-loading-indicator.component'
 import { WORKBENCH_CHAT_FACADE, WorkbenchChatFacade } from '../workbench-chat/workbench-chat.facade'
 import { injectFrequentQuestionsStartScreen } from '../workbench-chat/frequent-questions-start-screen'
 import { ClawXpertConversationFilesComponent } from './clawxpert-conversation-files.component'
@@ -204,6 +205,7 @@ const WORKSPACE_FILE_REFRESH_DEBOUNCE_MS = 300
     CommonModule,
     RouterLink,
     WorkbenchAccountComponent,
+    WorkbenchLoadingIndicatorComponent,
     WorkbenchAssistantMenuComponent,
     TranslateModule,
     ChatKit,
@@ -294,7 +296,12 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     () => !this.#workbenchConversationScope() && Boolean(this.facade.assistantId()?.trim())
   )
   readonly #hostChatRouteKey = computed(() =>
-    JSON.stringify([this.facade.assistantId()?.trim() || null, this.projectId(), this.facade.threadId()])
+    JSON.stringify([
+      this.facade.assistantId()?.trim() || null,
+      this.projectId(),
+      this.facade.threadId(),
+      this.facade.group?.()?.id ?? null
+    ])
   )
   readonly #assistantWorkbenchContexts = signal<Record<string, AssistantWorkbenchRequestContext>>({})
   private executionFocusSequence = 0
@@ -308,6 +315,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     })
   )
   readonly chatkitAssistantId = computed(() => this.#workbenchConversationScope()?.xpertId ?? this.facade.assistantId())
+  readonly chatkitGroup = computed(() => (this.#workbenchConversationScope() ? null : (this.facade.group?.() ?? null)))
   readonly chatkitProjectId = computed(() => {
     const scope = this.#workbenchConversationScope()
     return scope
@@ -333,11 +341,13 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly defaultFixedViewIcon = DEFAULT_FIXED_VIEW_ICON
   readonly startScreen = injectFrequentQuestionsStartScreen({
     xpert: computed(() => this.facade.currentXpert?.() ?? null),
-    active: computed(() => this.facade.viewState() === 'ready' && !this.chatkitInitialThread())
+    active: computed(() => this.facade.viewState() === 'ready' && !this.chatkitInitialThread() && !this.chatkitGroup())
   })
   readonly control = injectHostedAssistantChatkitControl({
     identity: computed(() => (this.facade.viewState() === 'ready' ? this.facade.identity() : null)),
     assistantId: this.chatkitAssistantId,
+    loading: this.facade.loading,
+    group: this.chatkitGroup,
     frameUrl: this.facade.chatkitFrameUrl,
     requestContext: this.assistantRequestContext,
     projectId: this.chatkitProjectId,
@@ -504,9 +514,10 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       this.markChatkitThreadRead(this.activeChatkitThreadId() ?? this.resolvedConversation()?.threadId)
     }
   })
-  readonly chatkitMountEntries = computed(() => [
-    { key: { assistantId: this.chatkitAssistantId(), control: this.control() }, control: this.control()! }
-  ])
+  readonly chatkitMountEntries = computed(() => {
+    const control = this.control()
+    return control ? [{ key: this.facade.chatkitFrameUrl(), control }] : []
+  })
   readonly workspaceTabs = signal<ClawXpertWorkspaceTab[]>([])
   readonly artifactTabs = computed(() =>
     this.workspaceTabs().filter((tab): tab is WorkbenchArtifactTab => tab.kind === 'artifact')
@@ -659,11 +670,11 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     })
     this.#unregisterComposerCommand = registerAssistantComposerAppendReferencesCommand(this.#clientCommands, {
       getControl: () => this.control(),
-      isReady: () => this.facade.viewState() === 'ready'
+      isReady: () => !this.facade.loading() && this.facade.viewState() === 'ready'
     })
     this.#unregisterAssistantCommand = registerAssistantChatSendMessageCommand(this.#clientCommands, {
       getControl: () => this.control(),
-      isReady: () => this.facade.viewState() === 'ready',
+      isReady: () => !this.facade.loading() && this.facade.viewState() === 'ready',
       unavailableMessage: 'Current Assistant ChatKit is not ready.'
     })
     this.#unregisterAssistantContextCommand = registerAssistantContextSetCommand(this.#clientCommands, {
@@ -771,7 +782,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       const threadId = this.facade.threadId()
       const viewState = this.facade.viewState()
 
-      if (!control || viewState !== 'ready') {
+      if (!control || this.facade.loading() || viewState !== 'ready') {
         this.#activeChatkitControl = null
         this.#lastSyncedRoutedThreadId = null
         this.#chatkitOriginThreadId = null
@@ -802,6 +813,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         .then(async () => {
           if (
             this.control() !== control ||
+            this.facade.loading() ||
             this.facade.threadId() !== threadId ||
             this.facade.viewState() !== 'ready'
           ) {
@@ -1008,7 +1020,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       const pendingStartId = this.facade.pendingConversationStartId()
       const control = this.control()
 
-      if (!pendingStartId || this.facade.viewState() !== 'ready' || !control) {
+      if (!pendingStartId || this.facade.loading() || this.facade.viewState() !== 'ready' || !control) {
         return
       }
 
@@ -1031,7 +1043,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
       const intent = this.#skillTrialIntent.peek()
       const control = this.control()
 
-      if (!intent || this.facade.viewState() !== 'ready' || !control) {
+      if (!intent || this.facade.loading() || this.facade.viewState() !== 'ready' || !control) {
         return
       }
 
@@ -1061,7 +1073,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
       this.facade.suppressAutoResume()
 
-      if (!control || threadId || viewState !== 'ready' || loadingUserPreference) {
+      if (!control || threadId || this.facade.loading() || viewState !== 'ready' || loadingUserPreference) {
         return
       }
 

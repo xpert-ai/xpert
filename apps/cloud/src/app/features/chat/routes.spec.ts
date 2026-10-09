@@ -59,8 +59,18 @@ jest.mock('@cloud/app/@core/state', () => ({
 }))
 
 import { Injector, runInInjectionContext } from '@angular/core'
-import { Route, Router, UrlSegment, UrlSegmentGroup } from '@angular/router'
-import { Observable, firstValueFrom, of } from 'rxjs'
+import {
+  ActivatedRouteSnapshot,
+  CanActivateFn,
+  convertToParamMap,
+  Route,
+  Router,
+  RouterStateSnapshot,
+  UrlSegment,
+  UrlSegmentGroup
+} from '@angular/router'
+import { Observable, firstValueFrom, isObservable, of, throwError } from 'rxjs'
+import { ChatGroupService } from '../../@core/services/chat-group.service'
 import { CurrentUserHydrationService } from '@cloud/app/@core/state'
 import { routes } from './routes'
 import { ChatXpertComponent } from './xpert/xpert.component'
@@ -91,6 +101,7 @@ describe('chat routes', () => {
   let currentUserHydrationService: {
     getFeatureHydration: jest.Mock
   }
+  const groups = { list: jest.fn(), conversationRoute: jest.fn() }
 
   beforeEach(() => {
     store = {
@@ -112,12 +123,15 @@ describe('chat routes', () => {
     currentUserHydrationService = {
       getFeatureHydration: jest.fn().mockResolvedValue({ id: 'user-1' })
     }
+    groups.list.mockReset().mockReturnValue(of([]))
+    groups.conversationRoute.mockReset().mockReturnValue(of(['/chat/x', 'primary', 'c', 'group-thread']))
 
     injector = Injector.create({
       providers: [
         { provide: Store, useValue: store },
         { provide: AssistantBindingService, useValue: assistantBindingService },
         { provide: Router, useValue: router },
+        { provide: ChatGroupService, useValue: groups },
         { provide: CurrentUserHydrationService, useValue: currentUserHydrationService }
       ]
     })
@@ -149,6 +163,44 @@ describe('chat routes', () => {
     const route = children.find((item) => item.path === 'c/:id')
 
     expect(route?.component).toBe(ChatXpertComponent)
+  })
+
+  it('keeps old group URLs as redirects without a page component', () => {
+    const route = children.find((item) => item.path === 'groups/:groupId')
+    expect(route?.component).toBeUndefined()
+    expect(route?.loadComponent).toBeUndefined()
+    expect(route?.canActivate).toHaveLength(2)
+  })
+
+  async function redirectGroup(path: string, groupId?: string) {
+    const route = children.find((item) => item.path === path)
+    const guard = route?.canActivate?.[1] as CanActivateFn
+    const snapshot = { paramMap: convertToParamMap(groupId ? { groupId } : {}) } as ActivatedRouteSnapshot
+    const result = runInInjectionContext(injector, () => guard(snapshot, {} as RouterStateSnapshot))
+    return isObservable(result) ? firstValueFrom(result) : result
+  }
+
+  it('redirects legacy group links to the shared conversation route', async () => {
+    await redirectGroup('groups/:groupId', 'group')
+    expect(groups.conversationRoute).toHaveBeenCalledWith('group')
+    expect(router.createUrlTree).toHaveBeenCalledWith(['/chat/x', 'primary', 'c', 'group-thread'])
+  })
+
+  it('redirects the old groups index to its first accessible unarchived conversation', async () => {
+    groups.list.mockReturnValue(
+      of([
+        { id: 'archived', archived: true },
+        { id: 'active', archived: false }
+      ])
+    )
+    await redirectGroup('groups')
+    expect(groups.conversationRoute).toHaveBeenCalledWith('active')
+  })
+
+  it('does not mount a group when the legacy link is inaccessible', async () => {
+    groups.conversationRoute.mockReturnValue(throwError(() => new Error('Membership required')))
+    await redirectGroup('groups/:groupId', 'group')
+    expect(router.createUrlTree).toHaveBeenCalledWith(['/chat/clawxpert'])
   })
 
   it('redirects assistant entry urls to ChatKit while preserving view context and fragments', () => {

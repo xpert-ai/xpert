@@ -42,6 +42,31 @@
     "Connectors": "Connectors"
   },
   "XP": {
+    "Groups": {
+      "Pin": "Pin",
+      "Unpin": "Unpin",
+      "Archive": "Archive",
+      "Restore": "Restore",
+      "Active": "Active groups",
+      "Archived": "Archived groups",
+      "Title": "Group chats",
+      "Name": "Group name",
+      "Assistant": "Default Assistant",
+      "SelectAssistant": "Choose an Assistant",
+      "Create": "Create group",
+      "Empty": "Create or select a group to chat together.",
+      "Menu": "Group menu",
+      "New": "New group",
+      "Options": "Group options",
+      "PeopleAndAssistants": "People & assistants",
+      "CreateHint": "Bring people and digital experts into one conversation.",
+      "NamePlaceholder": "e.g. Project collaboration",
+      "AssistantHint": "Replies when no member is mentioned. Invite more members after creating the group.",
+      "SearchAssistants": "Search digital experts",
+      "Loading": "Loading assistants…",
+      "NoMatches": "No matching assistants",
+      "Cancel": "Cancel"
+    },
     "AgentPlugins": {
       "DefaultImportTitle": "Official Agent plugins",
       "ImportDefaults": "Import default plugins",

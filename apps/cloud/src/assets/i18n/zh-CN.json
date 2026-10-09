@@ -35,6 +35,31 @@
     "USERS": "用户"
   },
   "XP": {
+    "Groups": {
+      "Pin": "置顶",
+      "Unpin": "取消置顶",
+      "Archive": "归档",
+      "Restore": "恢复",
+      "Active": "当前群聊",
+      "Archived": "已归档群聊",
+      "Title": "群组对话",
+      "Name": "群组名称",
+      "Assistant": "默认数字专家",
+      "SelectAssistant": "选择一个数字专家",
+      "Create": "创建群组",
+      "Empty": "创建或选择群组，开始共同交流。",
+      "Menu": "群组菜单",
+      "New": "新建群组",
+      "Options": "群组选项",
+      "PeopleAndAssistants": "同事与数字专家",
+      "CreateHint": "邀请同事与数字专家，在同一个群组中讨论。",
+      "NamePlaceholder": "例如：项目协作小组",
+      "AssistantHint": "未 @ 成员时由默认数字专家回复。创建后可继续邀请成员。",
+      "SearchAssistants": "搜索数字专家",
+      "Loading": "正在加载数字专家…",
+      "NoMatches": "没有匹配的数字专家",
+      "Cancel": "取消"
+    },
     "AgentPlugins": {
       "DefaultImportTitle": "官方 Agent 插件",
       "ImportDefaults": "一键导入默认插件",

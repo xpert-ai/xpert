@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core'
+import type { ChatConversationEntry } from '@xpert-ai/contracts'
 import {
   API_PREFIX,
   IChatConversation,
@@ -91,6 +92,13 @@ export class ChatConversationService extends OrganizationBaseCrudService<IChatCo
         threadId,
         organizationId
       })
+    })
+  }
+
+  /** Resolve authorized entry metadata before choosing the private/group ChatKit adapter. */
+  getEntryByThreadId(threadId: string, organizationId?: string) {
+    return this.httpClient.get<ChatConversationEntry>(this.apiBaseUrl + '/entry-by-thread', {
+      params: createOptionalQueryParams({ threadId, organizationId })
     })
   }
 
