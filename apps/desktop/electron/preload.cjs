@@ -8,6 +8,11 @@ contextBridge.exposeInMainWorld('xpertDesktop', {
     ipcRenderer.on('xpert:window-activated', listener)
     return () => ipcRenderer.removeListener('xpert:window-activated', listener)
   },
+  onAssistantActivityChanged: (callback) => {
+    const listener = () => callback()
+    ipcRenderer.on('xpert:assistant-activity-changed', listener)
+    return () => ipcRenderer.removeListener('xpert:assistant-activity-changed', listener)
+  },
   updates: {
     getState: () => ipcRenderer.invoke('xpert:update', 'state'),
     check: () => ipcRenderer.invoke('xpert:update', 'check'),

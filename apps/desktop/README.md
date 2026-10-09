@@ -224,7 +224,14 @@ Unread indicators and conversation activity do not reorder assistants or groups.
 Equal or missing creation dates keep their source order. Existing Cloud drag order
 and Desktop pins/groups remain local preferences; they do not sync across clients.
 Rows show the latest conversation title, falling back to the assistant description.
-Activity refreshes every 15 seconds while visible and when the window regains focus.
+The desktop host refreshes activity every 15 seconds, including while its window
+is hidden or closed and the app is still running. The sidebar shares this snapshot
+and also refreshes when the window regains focus. Browser previews retain polling
+only while visible. On macOS, the Dock badge shows the current organization's total
+unread messages, counting each platform Assistant once even when local copies exist.
+Read-state updates refresh the count; signing out or changing scope clears the old
+badge. Temporary network failures preserve the last successful count. macOS must
+allow the app to display notifications/badges for the Dock counter to be visible.
 
 Profile edits and duplicates affect **only this computer's list**. A duplicate
 connects to the same platform Assistant and conversation history; it does not clone

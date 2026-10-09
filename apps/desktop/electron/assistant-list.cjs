@@ -2,6 +2,10 @@ const randomUUID = () => globalThis.crypto.randomUUID()
 
 const DEFAULT_SIDEBAR = { width: 320, collapsed: false, sections: [], items: [], copies: [] }
 const text = (value) => (typeof value === 'string' && value.trim() ? value.trim() : null)
+const count = (value) => {
+  const number = Number(value)
+  return Number.isFinite(number) ? Math.max(0, Math.min(Number.MAX_SAFE_INTEGER, Math.floor(number))) : 0
+}
 
 function createAssistantListMethods(ClientError) {
   function scope(service) {
@@ -98,7 +102,11 @@ function createAssistantListMethods(ClientError) {
       this.persist()
       return this.sidebarState()
     },
-    async botActivity() {
+    botActivity(input) {
+      scope(this)
+      return this.assistantActivity.read(input?.refresh === true)
+    },
+    async fetchBotActivity() {
       scope(this)
       const ids = [...new Set(this.bots.map((item) => item.assistantId || item.id))]
       if (!ids.length) return []
@@ -111,8 +119,8 @@ function createAssistantListMethods(ClientError) {
         .filter((item) => item && ids.includes(item.xpertId))
         .map((item) => ({
           xpertId: item.xpertId,
-          unreadMessages: Math.max(0, Number(item.unreadMessages) || 0),
-          unreadConversations: Math.max(0, Number(item.unreadConversations) || 0),
+          unreadMessages: count(item.unreadMessages),
+          unreadConversations: count(item.unreadConversations),
           latestUnreadAt: text(item.latestUnreadAt),
           latestUnreadConversationId: text(item.latestUnreadConversationId),
           latestUnreadThreadId: text(item.latestUnreadThreadId),
@@ -137,6 +145,7 @@ function createAssistantListMethods(ClientError) {
         body: {}
       })
       this.updateSidebar({ action: 'unread', botId: input.botId, unread: false })
+      this.assistantActivity.invalidate()
       return { read: true }
     },
     async markAllBotRead(id) {
@@ -163,7 +172,9 @@ function createAssistantListMethods(ClientError) {
         skip += result.items.length
         if (!result.items.length || skip >= result.total) break
       }
-      return this.updateSidebar({ action: 'unread', botId: id, unread: false })
+      const sidebar = this.updateSidebar({ action: 'unread', botId: id, unread: false })
+      this.assistantActivity.invalidate()
+      return sidebar
     },
     editBot(input) {
       const item = bot(this, input?.botId)

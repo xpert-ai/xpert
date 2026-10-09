@@ -9,6 +9,7 @@ const {
 const { parseAppearance } = require('./appearance.cjs')
 const { parseBusinessArea } = require('./business-area.cjs')
 const { parseAvatarUrl } = require('./avatar-url.cjs')
+const { AssistantActivity } = require('./assistant-activity.cjs')
 const { apiRootUrl, chatkitUrl } = require('./connection/urls.mjs')
 const { connectionPolicyKey, connectionErrorKey } = require('./connection/tls.cjs')
 const DEFAULT_CONFIG = {
@@ -176,6 +177,7 @@ class DesktopService {
     this.sourceBots = []
     this.generation = 0
     this.refreshing = null
+    this.assistantActivity = new AssistantActivity(this)
   }
 
   snapshot() {
@@ -276,6 +278,7 @@ class DesktopService {
 
   async bootstrap() {
     this.profile = parseBootstrap(await this.request('/api/mobile/bootstrap'))
+    this.assistantActivity.sync()
     this.applyAccountLanguage()
     return this.profile
   }
@@ -308,6 +311,7 @@ class DesktopService {
       this.profile = profile
       this.applyAccountLanguage()
       this.credentials = { ...this.credentials, organizationId: profile.organizationId }
+      this.assistantActivity.sync()
       this.persist()
       return this.snapshot()
     })().finally(() => {
@@ -325,6 +329,7 @@ class DesktopService {
     this.sourceBots = []
     this.profile = { ...this.profile, organizationId: id }
     this.credentials = { ...this.credentials, organizationId: id }
+    this.assistantActivity.sync()
     this.persist()
     return this.snapshot()
   }
@@ -346,6 +351,7 @@ class DesktopService {
     if (generation !== this.generation) throw new ClientError('The workspace changed. Please retry.', 409)
     this.sourceBots = items
     this.bots = this.decorateBots(items)
+    this.assistantActivity.sync()
     return this.bots
   }
 
@@ -371,6 +377,7 @@ class DesktopService {
     this.bots = []
     this.sourceBots = []
     this.persist()
+    this.assistantActivity.sync()
     return this.snapshot()
   }
 

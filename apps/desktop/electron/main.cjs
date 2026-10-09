@@ -28,6 +28,7 @@ const { translate } = require('./i18n/index.mjs')
 const { platformCommandUrl } = require('./workbench-platform.mjs')
 const { installAvatarPointer } = require('./avatar-pointer.cjs')
 const { installWindowActivation } = require('./window-activation.cjs')
+const { installAssistantActivity } = require('./assistant-activity.cjs')
 const { DesktopUpdater, registerUpdateIpc } = require('./updates/controller.cjs')
 const { findRelease } = require('./updates/release.cjs')
 const { isWorkspaceFileDownload, downloadWorkspaceFile } = require('./workspace-file-download.cjs')
@@ -239,6 +240,7 @@ else {
       void service.audioCapture.stop('sleep')
     })
     resetConnectionSession()
+    installAssistantActivity({ app, activity: service.assistantActivity, getWindow: () => window })
     updateApplicationMenu()
     const updatesEnabled =
       app.isPackaged &&
