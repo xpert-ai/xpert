@@ -67,6 +67,54 @@ describe('WorkspaceFileAccessService', () => {
         return { service, cache, viewExtensions }
     }
 
+    describe('delegated runtime session scope', () => {
+        const runtimeScope = { conversationId: 'runtime-1', projectId: 'project-1' }
+        async function scopedSession() {
+            const { service, viewExtensions } = createService()
+            const resolvedContext = { ...context, runtimeScope }
+            viewExtensions.resolveViewFileAccessContext.mockResolvedValueOnce({ context: resolvedContext, manifest })
+            const session = await service.createSession(
+                { hostType: 'agent', hostId: 'assistant-1', viewKey: manifest.key, runtimeScope },
+                { headers: {}, secure: true }
+            )
+            return { service, session }
+        }
+        it('accepts only the owner-checked session for the selected Assistant and runtime', async () => {
+            const { service, session } = await scopedSession()
+            await expect(
+                service.assertAuthenticatedSessionScope(session.sessionId, 'assistant-1', runtimeScope)
+            ).resolves.toBeUndefined()
+        })
+        it.each([
+            ['assistant-2', runtimeScope],
+            ['assistant-1', { ...runtimeScope, conversationId: 'runtime-2' }],
+            ['assistant-1', { ...runtimeScope, projectId: 'project-2' }],
+            ['assistant-1', { conversationId: null, projectId: null }]
+        ] as const)('denies changed host or runtime scope %s %j', async (hostId, scope) => {
+            const { service, session } = await scopedSession()
+            await expect(
+                service.assertAuthenticatedSessionScope(session.sessionId, hostId, scope)
+            ).rejects.toMatchObject({ status: 403 })
+        })
+        it.each(['currentTenantId', 'getOrganizationId', 'currentUserId'] as const)(
+            'preserves existing session isolation for %s',
+            async (method) => {
+                const { service, session } = await scopedSession()
+                jest.spyOn(RequestContext, method).mockReturnValue('another-scope')
+                await expect(
+                    service.assertAuthenticatedSessionScope(session.sessionId, 'assistant-1', runtimeScope)
+                ).rejects.toMatchObject({ status: 404 })
+            }
+        )
+        it('does not accept a revoked session', async () => {
+            const { service, session } = await scopedSession()
+            await service.revokeSession(session.sessionId)
+            await expect(
+                service.assertAuthenticatedSessionScope(session.sessionId, 'assistant-1', runtimeScope)
+            ).rejects.toMatchObject({ status: 404 })
+        })
+    })
+
     it('creates an HttpOnly scoped session and an opaque grant that can be authorized', async () => {
         const { service, cache, viewExtensions } = createService()
         const session = await service.createSession(

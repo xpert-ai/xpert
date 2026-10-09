@@ -369,6 +369,18 @@ export class WorkspaceFileAccessService {
         return { hostType: session.hostType, hostId: session.hostId }
     }
 
+    /** Delegated entry points bind an owner-checked file session to their authorized runtime. */
+    async assertAuthenticatedSessionScope(sessionId: string, hostId: string, runtimeScope: XpertViewRuntimeScopeInput) {
+        const session = await this.requireAuthenticatedSession(sessionId)
+        if (
+            session.hostType !== 'agent' ||
+            session.hostId !== hostId ||
+            !runtimeScopesMatch(session.runtimeScope, runtimeScope)
+        ) {
+            throw new ForbiddenException(errorMessage('WorkspaceFileAccessDenied', 'Workspace file access was denied.'))
+        }
+    }
+
     private async requireAuthenticatedSession(sessionId: string): Promise<WorkspaceFileAccessSessionRecord> {
         const session = await this.cacheManager.get<WorkspaceFileAccessSessionRecord>(this.sessionKey(sessionId))
         if (!session || hasExpired(session.expiresAt)) {

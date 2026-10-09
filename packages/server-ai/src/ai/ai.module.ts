@@ -1,4 +1,5 @@
 import { GROUP_CONTROLLERS } from './groups'
+import { GroupWorkbenchGuard } from './groups/group-workbench.guard'
 import { GroupScopeGuard } from './groups/group-scope.guard'
 import { ChatGroupModule } from '../chat-group/chat-group.module'
 import { ThreadActivityService } from './thread-activity/thread-activity.service'
@@ -139,6 +140,7 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
     ],
     providers: [
         GroupScopeGuard,
+        GroupWorkbenchGuard,
         ThreadActivityService,
         VoiceSessionService,
         VoiceTaskService,

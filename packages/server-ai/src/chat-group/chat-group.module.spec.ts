@@ -9,7 +9,7 @@ import { XpertProjectService } from '../xpert-project/project.service'
 import { XpertProjectTypeService } from '../xpert-project/services/project-type.service'
 import { AgentPluginModule } from '../agent-plugin/agent-plugin.module'
 import { XpertProjectModule } from '../xpert-project/project.module'
-import { ApiKeyOrClientSecretAuthGuard } from '@xpert-ai/server-core'
+import { ApiKeyOrClientSecretAuthGuard, ViewExtensionModule, ViewExtensionService } from '@xpert-ai/server-core'
 import { ForbiddenException, Global, INestApplication, Module } from '@nestjs/common'
 import { RouterModule } from '@nestjs/core'
 import { CommandBus, CqrsModule } from '@nestjs/cqrs'
@@ -17,8 +17,10 @@ import { Test, TestingModule } from '@nestjs/testing'
 import { DataSource } from 'typeorm'
 import type { AgentChatDispatchPayload, HandoffMessage } from '@xpert-ai/plugin-sdk'
 import type { ChatGroupSnapshot } from '@xpert-ai/contracts'
-import { GroupsController } from '../ai/groups/group.controller'
-import { GroupComposerController } from '../ai/groups/group-composer.controller'
+import { GROUP_CONTROLLERS } from '../ai/groups'
+import { GroupWorkbenchGuard } from '../ai/groups/group-workbench.guard'
+import { WorkspaceFileAccessModule } from '../workspace-file-access/workspace-file-access.module'
+import { WorkspaceFileAccessService } from '../workspace-file-access/workspace-file-access.service'
 import { GroupScopeGuard } from '../ai/groups/group-scope.guard'
 import { GetRuntimeCapabilitiesHandler } from '../xpert/runtime-capabilities/get-runtime-capabilities.handler'
 import { RuntimeCapabilitiesService } from '../xpert/runtime-capabilities/runtime-capabilities.service'
@@ -128,11 +130,29 @@ class ProjectStubModule {}
 })
 class WorkspaceStubModule {}
 
+@Module({
+    providers: [{ provide: ViewExtensionService, useValue: {} }],
+    exports: [ViewExtensionService]
+})
+class ViewStubModule {}
+
+@Module({
+    providers: [{ provide: WorkspaceFileAccessService, useValue: {} }],
+    exports: [WorkspaceFileAccessService]
+})
+class FileAccessStubModule {}
+
 // Only the infrastructure modules are replaced; group providers and their exports are real.
 @Module({
-    imports: [ChatGroupModule, RouterModule.register([{ path: 'ai', module: GroupHttpTestModule }])],
-    controllers: [GroupsController, GroupComposerController],
-    providers: [GroupScopeGuard]
+    imports: [
+        ChatGroupModule,
+        XpertProjectModule,
+        ViewExtensionModule,
+        WorkspaceFileAccessModule,
+        RouterModule.register([{ path: 'ai', module: GroupHttpTestModule }])
+    ],
+    controllers: GROUP_CONTROLLERS,
+    providers: [GroupScopeGuard, GroupWorkbenchGuard]
 })
 class GroupHttpTestModule {}
 
@@ -145,6 +165,10 @@ describe('ChatGroupModule integration boundary', () => {
         jest.spyOn(GroupScopeGuard.prototype, 'canActivate').mockResolvedValue(true)
         jest.spyOn(ApiKeyOrClientSecretAuthGuard.prototype, 'canActivate').mockResolvedValue(true)
         module = await Test.createTestingModule({ imports: [DatabaseStubModule, GroupHttpTestModule] })
+            .overrideModule(ViewExtensionModule)
+            .useModule(ViewStubModule)
+            .overrideModule(WorkspaceFileAccessModule)
+            .useModule(FileAccessStubModule)
             .overrideModule(AgentPluginModule)
             .useModule(AgentPluginStubModule)
             .overrideModule(XpertProjectModule)
