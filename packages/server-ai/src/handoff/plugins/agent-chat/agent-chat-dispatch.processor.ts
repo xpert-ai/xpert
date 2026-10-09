@@ -1,3 +1,9 @@
+import { withGroupRuntime } from '../../../chat-group/group-runtime-context'
+import {
+    PrepareGroupChatCommand,
+    FinishGroupChatCommand,
+    ResolveGroupDeliveryContextCommand
+} from '../../../chat-group/group-dispatch.commands'
 import { HttpException, Injectable, Logger, Optional } from '@nestjs/common'
 import { ModuleRef } from '@nestjs/core'
 import { CommandBus } from '@nestjs/cqrs'
@@ -47,6 +53,33 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
     ) {}
 
     async process(message: HandoffMessage<AgentChatDispatchPayload>, ctx: ProcessContext): Promise<ProcessResult> {
+        if (!message.payload?.options?.groupDeliveryId) return this.processChat(message, ctx)
+        // Group admission owns the input and actor; ordinary chat execution and callbacks remain shared.
+        let dispatchFailed = false
+        let dispatchStarted = false
+        try {
+            const payload = await this.commandBus.execute(new PrepareGroupChatCommand(message))
+            if (!payload) return { status: 'ok' }
+            dispatchStarted = true
+            const result = await withGroupRuntime(payload.request.conversationId, () =>
+                this.processChat({ ...message, payload }, ctx)
+            )
+            dispatchFailed = result.status === 'dead'
+            return result
+        } catch (error) {
+            dispatchFailed = true
+            throw error
+        } finally {
+            await this.commandBus.execute(
+                new FinishGroupChatCommand(message.payload.options.groupDeliveryId, dispatchFailed, dispatchStarted)
+            )
+        }
+    }
+
+    private async processChat(
+        message: HandoffMessage<AgentChatDispatchPayload>,
+        ctx: ProcessContext
+    ): Promise<ProcessResult> {
         const request = message.payload?.request
         const options = message.payload?.options
         const callback = message.payload?.callback
@@ -213,6 +246,8 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
             subscription = observable.subscribe({
                 next: (event) => {
                     ctx.heartbeat?.('agent_chat_dispatch_stream_event')
+                    // Group observers join the persisted run stream; avoid one Handoff callback job per token.
+                    if (callback.events === 'lifecycle') return
                     // this.logger.debug(`Received stream event for source message "${sourceMessage.id}"`, event)
                     enqueueCallback({
                         kind: 'stream',
@@ -390,6 +425,16 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
         message: HandoffMessage<AgentChatDispatchPayload>,
         task: () => Promise<ProcessResult>
     ): Promise<ProcessResult> {
+        if (message.payload.options.groupDeliveryId) {
+            const context = await this.commandBus.execute(
+                new ResolveGroupDeliveryContextCommand(
+                    message.payload.options.groupDeliveryId,
+                    message.tenantId,
+                    message.payload.request.conversationId
+                )
+            )
+            return runWithCapturedRequestContext(context, task)
+        }
         const runtimeContext = await this.resolveRuntimeRequestContext(message)
         if (runtimeContext) {
             return this.withRequestContext(runtimeContext, task)

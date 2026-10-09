@@ -1,5 +1,6 @@
 import { Command } from '@nestjs/cqrs'
 import type { AgentChatDispatchPayload, HandoffMessage } from '@xpert-ai/plugin-sdk'
+import type { RequestContextSnapshot } from '../shared/request-context'
 
 /** Bind a durable group receipt to one runtime input before the common chat processor executes it. */
 export class PrepareGroupChatCommand extends Command<AgentChatDispatchPayload | null> {
@@ -15,6 +16,20 @@ export class FinishGroupChatCommand extends Command<void> {
         public readonly dispatchFailed = false,
         /** True for a terminal processor callback; recovery scans leave this false. */
         public readonly dispatchFinished = false
+    ) {
+        super()
+    }
+}
+
+/**
+ * Reauthorize a prepared group delivery and resolve its real human execution context.
+ * Called inside withGroupRuntime; the returned context stays in-process, never in queue payloads.
+ */
+export class ResolveGroupDeliveryContextCommand extends Command<RequestContextSnapshot> {
+    constructor(
+        public readonly recipientId: string,
+        public readonly tenantId: string,
+        public readonly conversationId: string
     ) {
         super()
     }
