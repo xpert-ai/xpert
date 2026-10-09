@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Param, Post, Req, Res, UseGuards } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Head, Param, Post, Req, Res, UseGuards } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { SecretTokenBindingType } from '@xpert-ai/contracts'
 import {
@@ -13,9 +13,10 @@ import {
     CreateWorkspaceFileAccessSessionDto
 } from '../workspace-file-access/workspace-file-access.dto'
 import { WorkspaceFileAccessService } from '../workspace-file-access/workspace-file-access.service'
+import { sendWorkspaceFileContent } from '../workspace-file-access/workspace-file-content.response'
 import { AssistantFileAccess, AssistantFileAccessGuard } from './assistant-file-access.guard'
 
-/** Runtime authorization lives under /api/ai; issued content URLs remain cookie-bound. */
+/** ChatKit authenticates content reads here; direct content URLs retain their cookie-bound policy. */
 @ApiTags('WorkspaceFilesRuntime')
 @ApiBearerAuth()
 @Public()
@@ -43,6 +44,32 @@ export class WorkspaceFileAccessRuntimeController {
     @UseValidationPipe({ whitelist: true, transform: true })
     createGrant(@Param('sessionId') sessionId: string, @Body() body: CreateWorkspaceFileAccessGrantDto) {
         return this.service.createGrant(sessionId, body)
+    }
+
+    @Get(':sessionId/grants/:grantId/content/:fileName')
+    @AssistantFileAccess('view-session')
+    async content(
+        @Param('sessionId') sessionId: string,
+        @Param('grantId') grantId: string,
+        @Param('fileName') fileName: string,
+        @Req() request: Request,
+        @Res() response: Response
+    ) {
+        const authorization = await this.service.authorizeAuthenticatedContent(sessionId, grantId, fileName)
+        const { filePath } = this.service.resolveAuthorizedFile(authorization)
+        return sendWorkspaceFileContent(authorization, filePath, request, response, request.method === 'HEAD')
+    }
+
+    @Head(':sessionId/grants/:grantId/content/:fileName')
+    @AssistantFileAccess('view-session')
+    headContent(@Req() request: Request, @Res() response: Response) {
+        return this.content(
+            request.params.sessionId,
+            request.params.grantId,
+            request.params.fileName,
+            request,
+            response
+        )
     }
 
     @Delete(':sessionId')

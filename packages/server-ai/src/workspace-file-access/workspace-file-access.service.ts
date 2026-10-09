@@ -13,6 +13,7 @@ import type { Cache } from 'cache-manager'
 import type { CookieOptions, Request } from 'express'
 import { randomUUID } from 'node:crypto'
 import { basename } from 'node:path'
+import { isDeepStrictEqual } from 'node:util'
 import type { JwtPayload } from 'jsonwebtoken'
 import { sign, verify } from 'jsonwebtoken'
 import { t } from 'i18next'
@@ -282,13 +283,23 @@ export class WorkspaceFileAccessService {
 
     /** Native hosts authenticate explicitly when their embedded browser cannot retain file cookies. */
     async authorizeAuthenticatedDownload(sessionId: string, grantId: string, fileName: string) {
+        return this.authorizeAuthenticatedContent(sessionId, grantId, fileName, 'download')
+    }
+
+    /** Revalidate the owner, stored scope and current resource before returning granted bytes. */
+    async authorizeAuthenticatedContent(
+        sessionId: string,
+        grantId: string,
+        fileName: string,
+        requiredPurpose?: XpertViewFileAccessPurpose
+    ): Promise<WorkspaceFileAccessAuthorization> {
         const session = await this.requireAuthenticatedSession(sessionId)
         const grant = await this.cacheManager.get<WorkspaceFileAccessGrantRecord>(this.grantKey(sessionId, grantId))
         if (
             !grant ||
             grant.sessionId !== sessionId ||
             grant.publicFileName !== fileName ||
-            grant.purpose !== 'download' ||
+            (requiredPurpose && grant.purpose !== requiredPurpose) ||
             !bindingsMatch(session, grant) ||
             hasExpired(grant.expiresAt)
         )
@@ -298,7 +309,7 @@ export class WorkspaceFileAccessService {
             session.hostType,
             session.hostId,
             session.viewKey,
-            { fileKey: grant.fileKey, targetId: grant.targetId, purpose: 'download' },
+            { fileKey: grant.fileKey, targetId: grant.targetId, purpose: grant.purpose },
             { runtimeScope: session.runtimeScope }
         )
         this.assertContextMatchesSession(session, {
@@ -313,6 +324,19 @@ export class WorkspaceFileAccessService {
                 `${resolved.context.hostType}:${resolved.context.hostId}`,
             runtimeScope: session.runtimeScope
         })
+        this.assertPortableReference(session, resolved.resource.reference)
+        // A file key can be rebound. An old grant must never select a different or withdrawn file.
+        const volumeScope = (reference: WorkspacePortableFileReference) =>
+            resolveWorkspaceVolumeScope(reference, {
+                tenantId: session.tenantId,
+                userId: reference.userId ?? session.userId
+            })
+        if (
+            resolved.resource.reference.filePath !== grant.reference.filePath ||
+            !isDeepStrictEqual(volumeScope(resolved.resource.reference), volumeScope(grant.reference))
+        ) {
+            throw new NotFoundException(errorMessage('WorkspaceFileAccessNotFound', 'Workspace file was not found.'))
+        }
         return { session, grant }
     }
 

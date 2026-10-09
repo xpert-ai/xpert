@@ -363,6 +363,220 @@ describe('workspace file HTTP authentication', () => {
             }
         }
     )
+    async function issueContentGrant(token = 'cs-x-user', purpose: 'preview' | 'download' = 'preview') {
+        const created = await createSession(token)
+        expect(created.status).toBe(201)
+        const session: { sessionId: string } = await created.json()
+        const response = await fetch(`${origin}/api/ai/workspace-files/view-sessions/${session.sessionId}/grants`, {
+            method: 'POST',
+            headers: headers(token),
+            body: JSON.stringify({ fileKey: 'file-1', purpose })
+        })
+        expect(response.status).toBe(201)
+        const grant: { url: string } = await response.json()
+        const [grantId, fileName] = new URL(grant.url).pathname.split('/').slice(-2)
+        return {
+            sessionId: session.sessionId,
+            route: `/workspace-files/view-sessions/${session.sessionId}/grants/${grantId}/content/${fileName}`
+        }
+    }
+
+    it.each(['fixture-jwt', 'cs-x-user', 'cs-x-enterprise'])(
+        'reads previews and downloads with %s without a browser cookie',
+        async (token) => {
+            for (const purpose of ['preview', 'download'] as const) {
+                const { route } = await issueContentGrant(token, purpose)
+                const url = `${origin}/api/ai${route}`
+                const auth = { ...headers(token), origin: 'http://localhost:5173', 'sec-fetch-site': 'cross-site' }
+                const response = await fetch(url, { headers: auth, credentials: 'omit' })
+                expect(response.status).toBe(200)
+                expect(await response.text()).toBe('complete')
+                expect(response.headers.get('content-disposition')).toContain(
+                    purpose === 'preview' ? 'inline;' : 'attachment;'
+                )
+                expect(response.headers.get('cache-control')).toBe('private, no-store')
+                expect(views.resolveViewFileResource).toHaveBeenLastCalledWith(
+                    'agent',
+                    assistantId,
+                    manifest.key,
+                    { fileKey: 'file-1', targetId: undefined, purpose },
+                    { runtimeScope: { projectId: null, conversationId: null } }
+                )
+                const head = await fetch(url, { method: 'HEAD', headers: auth })
+                expect(head.status).toBe(200)
+                expect(head.headers.get('content-length')).toBe('8')
+                expect(await head.text()).toBe('')
+                const partial = await fetch(url, { headers: { ...auth, range: 'bytes=1-3' } })
+                expect(partial.status).toBe(206)
+                expect(partial.headers.get('content-range')).toBe('bytes 1-3/8')
+                expect(await partial.text()).toBe('omp')
+                const outside = await fetch(url, { headers: { ...auth, range: 'bytes=20-30' } })
+                expect(outside.status).toBe(416)
+                expect(outside.headers.get('content-range')).toBe('bytes */8')
+                await outside.text()
+                // Login-only native downloads must not turn a preview grant into a download.
+                if (purpose === 'preview') {
+                    const download = await fetch(`${origin}/api${route}`, { headers: headers('fixture-jwt') })
+                    expect(download.status).toBe(404)
+                    await download.text()
+                }
+            }
+        }
+    )
+
+    it('rejects missing credentials and mismatched Assistant, owner, tenant or organization on content reads', async () => {
+        const { route } = await issueContentGrant()
+        const principal = identities.get('cs-x-user')!
+        if (!('apiKey' in principal)) throw new Error('Missing test principal')
+        identities.set('cs-x-other-assistant', {
+            ...principal,
+            apiKey: { ...principal.apiKey, entityId: otherAssistantId }
+        })
+        identities.set('cs-x-other-owner', { ...principal, id: 'other-user' })
+        identities.set('cs-x-other-tenant', {
+            ...principal,
+            tenantId: 'other-tenant',
+            apiKey: { ...principal.apiKey, tenantId: 'other-tenant' }
+        })
+        views.resolveViewFileResource.mockClear()
+        for (const [token, status] of [
+            [undefined, 401],
+            ['cs-x-invalid', 401],
+            ['cs-x-public', 403],
+            ['cs-x-api-key', 403],
+            ['cs-x-other-assistant', 403],
+            ['cs-x-other-owner', 404],
+            ['cs-x-other-tenant', 404]
+        ] as const) {
+            for (const method of ['GET', 'HEAD']) {
+                const denied = await fetch(`${origin}/api/ai${route}`, { method, headers: headers(token) })
+                expect(denied.status).toBe(status)
+                await denied.text()
+            }
+        }
+        const differentOrg = await fetch(`${origin}/api/ai${route}`, {
+            headers: { ...headers('fixture-jwt'), 'organization-id': 'other-org' }
+        })
+        expect(differentOrg.status).toBe(404)
+        await differentOrg.text()
+        expect(views.resolveViewFileResource).not.toHaveBeenCalled()
+    })
+
+    it('revalidates revoked resource access, file identity and scope before streaming', async () => {
+        const { route } = await issueContentGrant()
+        const resolved = await views.resolveViewFileResource()
+        views.resolveViewFileResource.mockRejectedValueOnce(new ForbiddenException())
+        let response = await fetch(`${origin}/api/ai${route}`, { headers: headers('cs-x-user') })
+        expect(response.status).toBe(403)
+        await response.text()
+        views.resolveViewFileResource.mockResolvedValueOnce({
+            ...resolved,
+            resource: {
+                ...resolved.resource,
+                reference: { ...resolved.resource.reference, filePath: 'replacement.txt' }
+            }
+        })
+        response = await fetch(`${origin}/api/ai${route}`, { headers: headers('cs-x-user') })
+        expect(response.status).toBe(404)
+        await response.text()
+        views.resolveViewFileResource.mockResolvedValueOnce({
+            ...resolved,
+            context: { ...resolved.context, hostId: otherAssistantId }
+        })
+        response = await fetch(`${origin}/api/ai${route}`, { headers: headers('cs-x-user') })
+        expect(response.status).toBe(404)
+        await response.text()
+        response = await fetch(`${origin}/api/ai${route.replace('result.txt', 'other.txt')}`, {
+            headers: headers('cs-x-user')
+        })
+        expect(response.status).toBe(404)
+        await response.text()
+    })
+
+    it('rejects expired grants and grants from a different session', async () => {
+        const first = await issueContentGrant()
+        const second = await issueContentGrant()
+        let response = await fetch(`${origin}/api/ai${first.route.replace(first.sessionId, second.sessionId)}`, {
+            headers: headers('cs-x-user')
+        })
+        expect(response.status).toBe(404)
+        await response.text()
+        for (const [key, value] of values) {
+            if (value && typeof value === 'object' && 'grantId' in value) {
+                values.set(key, { ...value, expiresAt: new Date(0).toISOString() })
+            }
+        }
+        response = await fetch(`${origin}/api/ai${first.route}`, { headers: headers('cs-x-user') })
+        expect(response.status).toBe(404)
+        await response.text()
+    })
+
+    it('retains the granted project scope and rejects a changed resolved scope', async () => {
+        const resolved = await views.resolveViewFileResource()
+        const projectContext = {
+            tenantId: user.tenantId,
+            organizationId: 'org-1',
+            userId: user.id,
+            hostType: 'agent',
+            hostId: assistantId,
+            runtimeScope: {
+                projectId: 'project-1',
+                conversationId: 'conversation-1',
+                dataScopeKey: 'project:project-1'
+            }
+        }
+        views.resolveViewFileAccessContext.mockResolvedValueOnce({ context: projectContext, manifest })
+        views.resolveViewFileResource.mockResolvedValueOnce({ ...resolved, context: projectContext })
+        const { route } = await issueContentGrant()
+        views.resolveViewFileResource.mockResolvedValueOnce({ ...resolved, context: projectContext })
+        const response = await fetch(`${origin}/api/ai${route}`, { headers: headers('cs-x-user') })
+        expect(response.status).toBe(200)
+        await response.text()
+        expect(views.resolveViewFileResource).toHaveBeenLastCalledWith(
+            'agent',
+            assistantId,
+            manifest.key,
+            { fileKey: 'file-1', purpose: 'preview', targetId: undefined },
+            { runtimeScope: { projectId: 'project-1', conversationId: 'conversation-1' } }
+        )
+        const otherProjectContext = {
+            ...projectContext,
+            runtimeScope: {
+                ...projectContext.runtimeScope,
+                projectId: 'project-2',
+                dataScopeKey: 'project:project-2'
+            }
+        }
+        views.resolveViewFileResource.mockResolvedValueOnce({
+            ...resolved,
+            context: otherProjectContext
+        })
+        const denied = await fetch(`${origin}/api/ai${route}`, { headers: headers('cs-x-user') })
+        expect(denied.status).toBe(404)
+        await denied.text()
+    })
+
+    it('rejects expired and revoked sessions even with valid ChatKit credentials', async () => {
+        const { route, sessionId } = await issueContentGrant()
+        const now = jest.spyOn(Date, 'now').mockReturnValue(Date.now() + 61 * 60 * 1000)
+        try {
+            const expired = await fetch(`${origin}/api/ai${route}`, { headers: headers('cs-x-user') })
+            expect(expired.status).toBe(404)
+            await expired.text()
+        } finally {
+            now.mockRestore()
+        }
+        const revoked = await fetch(`${origin}/api/ai/workspace-files/view-sessions/${sessionId}`, {
+            method: 'DELETE',
+            headers: headers('cs-x-user')
+        })
+        expect(revoked.status).toBe(200)
+        await revoked.text()
+        const denied = await fetch(`${origin}/api/ai${route}`, { headers: headers('cs-x-user') })
+        expect(denied.status).toBe(404)
+        await denied.text()
+    })
+
     it('rejects unauthenticated, public and mismatched file session management before resolving a View', async () => {
         for (const [token, id, status] of [
             [undefined, assistantId, 401],
