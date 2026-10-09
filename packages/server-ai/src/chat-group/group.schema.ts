@@ -90,9 +90,12 @@ export function parseGroupCommunication(value: unknown): ChatGroupCommunication 
     return groupCommunicationSchema.parse(value) as ChatGroupCommunication
 }
 
+/** Parsed at the HTTP boundary; target execution IDs prevent stale UI controls from affecting a newer run. */
 export const groupControlSchema = z
     .object({ action: z.enum(['pause', 'cancel', 'resume']), runId: z.string().uuid() })
     .strict()
+
+export type GroupControlInput = z.output<typeof groupControlSchema>
 
 export const groupCandidatesSchema = z
     .object({
