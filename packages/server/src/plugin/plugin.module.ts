@@ -22,6 +22,7 @@ import {
 import chalk from 'chalk'
 import { PluginController } from './plugin.controller'
 import { getPluginModules, hasLifecycleMethod, loaded } from './plugin.helper'
+import { PluginUninstallService } from './uninstall/plugin-uninstall.service'
 import { PluginManagementService } from './plugin-management.service'
 import { PluginConfigResolver, PluginConfigResolverProvider } from './plugin-config.resolver'
 import { CommandHandlers } from './commands/handlers'
@@ -109,6 +110,7 @@ import { PluginSchemaSyncService } from './plugin-schema-sync.service'
 		PluginAccountBindingPermissionService,
 		PluginIntegrationPermissionService,
 		PluginUserPermissionService,
+		PluginUninstallService,
 		PluginRuntimeStateService,
 		PluginSchemaSyncService,
 		StrategyBus,

@@ -3,7 +3,7 @@ import { TestBed } from '@angular/core/testing'
 import { Router } from '@angular/router'
 import { PluginAPIService, Store } from '@cloud/app/@core/state'
 import { PLUGIN_LEVEL, RequestScopeLevel } from '@xpert-ai/contracts'
-import { TranslateModule } from '@ngx-translate/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { of } from 'rxjs'
 import { PluginRuntimeRestartService } from '../plugin-runtime-restart.service'
 import { PluginInstallComponent } from './install.component'
@@ -33,6 +33,7 @@ describe('PluginInstallComponent anonymous flow', () => {
     navigate: jest.fn(() => Promise.resolve(true))
   }
   const runtimeRestart = {
+    showManualRestart: jest.fn(() => false),
     markRequired: jest.fn(),
     trackPluginConvergence: jest.fn(),
     canRestart: jest.fn(() => false),
@@ -45,6 +46,7 @@ describe('PluginInstallComponent anonymous flow', () => {
 
   beforeEach(async () => {
     store.token = null
+    runtimeRestart.showManualRestart.mockReturnValue(false)
 
     Object.defineProperty(globalThis, 'fetch', {
       configurable: true,
@@ -205,4 +207,23 @@ describe('PluginInstallComponent anonymous flow', () => {
     expect(reload).toHaveBeenCalled()
     expect(refreshStrategies).toHaveBeenCalled()
   })
+
+  it.each([false, true])(
+    'renders the manual restart panel only when role visibility allows it (%s)',
+    async (visible) => {
+      store.token = 'user-token'
+      runtimeRestart.showManualRestart.mockReturnValue(visible)
+      const fixture = TestBed.createComponent(PluginInstallComponent)
+      fixture.componentInstance.plugin.update((plugin) => ({ ...plugin, level: PLUGIN_LEVEL.ORGANIZATION }))
+      fixture.componentInstance.status.set('installed')
+      fixture.componentInstance.restartRequired.set(true)
+      fixture.detectChanges()
+      await fixture.whenStable()
+      const text = fixture.nativeElement.textContent as string
+      const translate = TestBed.inject(TranslateService)
+      expect(text.includes(translate.instant('XP.Plugin.RestartRequired'))).toBe(visible)
+      expect(text.includes(translate.instant('XP.Plugin.RestartLater'))).toBe(visible)
+      expect(text.includes(translate.instant('XP.Plugin.Close'))).toBe(!visible)
+    }
+  )
 })

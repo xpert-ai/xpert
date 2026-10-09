@@ -9,12 +9,7 @@ import { BadRequestException, ForbiddenException, Inject, Injectable, Logger, Op
 import { LazyModuleLoader, ModuleRef } from '@nestjs/core'
 import { ApplicationConfig } from '@nestjs/core'
 import { t } from 'i18next'
-import {
-	IRuntimePluginRequirement,
-	PLUGIN_CONFIGURATION_STATUS,
-	PLUGIN_LEVEL,
-	type PluginLevel
-} from '@xpert-ai/contracts'
+import { PLUGIN_CONFIGURATION_STATUS, PLUGIN_LEVEL, type PluginLevel } from '@xpert-ai/contracts'
 import {
 	derivePluginArtifactNamespace,
 	getErrorMessage,
@@ -36,7 +31,7 @@ import { isRestartRequiredPluginLevel, resolvePluginLevel } from './plugin-insta
 import { PluginInstanceService } from './plugin-instance.service'
 import { loadPlugin } from './plugin-loader'
 import { getOrganizationPluginPath, getOrganizationPluginRoot } from './organization-plugin.store'
-import { canManageGlobalPlugins, canManageSystemPlugins, canManageTenantPlugins } from './plugin-update.utils'
+import { canManageSystemPlugins, canManageTenantPlugins } from './plugin-update.utils'
 import {
 	assertInstalledPluginSdkCompatibility,
 	assertPluginSdkCompatibility,
@@ -77,8 +72,9 @@ import {
 } from './plugin-bundle-manifest'
 import { RuntimeControlService } from '../runtime-control/runtime-control.service'
 import { PluginRuntimeStateService, resolvePluginRuntimeRevision } from './plugin-runtime-state.service'
+import { PluginUninstallService } from './uninstall/plugin-uninstall.service'
 import { PluginSchemaSyncService } from './plugin-schema-sync.service'
-import { assertPluginArtifactNamespaceAvailable, findLoadedPluginByLevels } from './plugin-install-policy'
+import { assertPluginArtifactNamespaceAvailable } from './plugin-install-policy'
 
 @Injectable()
 export class PluginManagementService {
@@ -96,6 +92,7 @@ export class PluginManagementService {
 		private readonly applicationConfig: ApplicationConfig,
 		private readonly runtimeControl: RuntimeControlService,
 		private readonly runtimeState: PluginRuntimeStateService,
+		private readonly uninstaller: PluginUninstallService,
 		@Optional()
 		private readonly pluginSchemaSync?: PluginSchemaSyncService
 	) {}
@@ -574,7 +571,7 @@ export class PluginManagementService {
 				})
 			}
 
-			await this.uninstallByPackageNameWithGuard(
+			await this.uninstaller.uninstallByPackageNameWithGuard(
 				targetTenantId,
 				targetOrganizationId,
 				packageName,
@@ -843,64 +840,8 @@ export class PluginManagementService {
 		}
 	}
 
-	async uninstallByNamesWithGuard(
-		names: string[],
-		targetOrganizationId?: string,
-		targetScopeKey?: string
-	): Promise<{ restartRequired?: boolean; runtimeRequirements?: IRuntimePluginRequirement[] }> {
-		const scopeContext = RequestContext.getScope?.() ?? { tenantId: null, organizationId: null }
-		const currentOrganizationId = scopeContext.organizationId ?? GLOBAL_ORGANIZATION_SCOPE
-		const tenantId = scopeContext.tenantId ?? RequestContext.currentTenantId()
-		const defaultTenantId = await this.pluginInstanceService.getDefaultTenantId()
-		const organizationId = this.resolveUninstallOrganizationId(currentOrganizationId, targetOrganizationId)
-		const allowSystemPlugins =
-			currentOrganizationId === GLOBAL_ORGANIZATION_SCOPE &&
-			organizationId === GLOBAL_ORGANIZATION_SCOPE &&
-			canManageSystemPlugins(currentOrganizationId, defaultTenantId)
-		const targetsLoadedSystemPlugin = !targetScopeKey && !!this.findLoadedSystemPlugin(names)
-		const tenantGlobalScopeKey = resolveTenantGlobalScopeKey(tenantId)
-		const scopeKey =
-			targetScopeKey ??
-			(targetsLoadedSystemPlugin
-				? SYSTEM_GLOBAL_SCOPE
-				: organizationId === GLOBAL_ORGANIZATION_SCOPE
-					? resolveTenantGlobalScopeKey(tenantId)
-					: organizationId)
-		if (scopeKey === SYSTEM_GLOBAL_SCOPE && !canManageSystemPlugins(GLOBAL_ORGANIZATION_SCOPE, defaultTenantId)) {
-			throw new ForbiddenException('Only super admins can uninstall system plugins')
-		}
-		this.assertNoSystemPlugins(names, allowSystemPlugins, scopeKey)
-		const loadedRestartRequiredPlugin = this.findLoadedRestartRequiredPlugin(names, scopeKey)
-		const loadedRestartRequiredLevel = loadedRestartRequiredPlugin
-			? resolvePluginLevel(loadedRestartRequiredPlugin.level ?? loadedRestartRequiredPlugin.instance?.meta?.level)
-			: null
-		if (loadedRestartRequiredLevel === PLUGIN_LEVEL.TENANT) {
-			if (scopeKey !== tenantGlobalScopeKey || !canManageTenantPlugins(tenantId)) {
-				throw new ForbiddenException(
-					'Tenant-level plugins can only be uninstalled by a Super Admin in their tenant'
-				)
-			}
-		}
-		if (scopeKey === SYSTEM_GLOBAL_SCOPE || loadedRestartRequiredLevel === PLUGIN_LEVEL.TENANT) {
-			await this.pluginInstanceService.deactivate(tenantId, organizationId, names, { scopeKey })
-			for (const name of names) this.strategyBus.remove(scopeKey, normalizePluginName(name), 'uninstall')
-			this.logger.log(
-				`Deactivated persisted registrations for ${loadedRestartRequiredLevel ?? 'system'}-level plugins ${names.join(', ')}; API restart required for unload`
-			)
-			return {
-				restartRequired: true,
-				runtimeRequirements: names.map((name) => ({
-					scopeKey,
-					pluginName: normalizePluginName(name),
-					state: 'absent'
-				}))
-			}
-		}
-		await this.pluginInstanceService.uninstall(tenantId, organizationId, names, {
-			scopeKey,
-			cause: 'uninstall'
-		})
-		return {}
+	async uninstallByNamesWithGuard(names: string[], targetOrganizationId?: string, targetScopeKey?: string) {
+		return this.uninstaller.uninstallByNamesWithGuard(names, targetOrganizationId, targetScopeKey)
 	}
 
 	readLoadedPluginBundleComponents(plugin: LoadedPluginRecord) {
@@ -919,45 +860,6 @@ export class PluginManagementService {
 		return collectPluginBundleComponents(packageRoot, manifestResult.manifest)
 	}
 
-	private resolveUninstallOrganizationId(currentOrganizationId: string, targetOrganizationId?: string) {
-		if (!targetOrganizationId || targetOrganizationId === currentOrganizationId) {
-			if (currentOrganizationId === GLOBAL_ORGANIZATION_SCOPE && !canManageGlobalPlugins()) {
-				throw new ForbiddenException('Only super admins can uninstall global plugins')
-			}
-			return currentOrganizationId
-		}
-
-		if (targetOrganizationId === GLOBAL_ORGANIZATION_SCOPE) {
-			if (!canManageGlobalPlugins()) {
-				throw new ForbiddenException('Only super admins can uninstall global plugins')
-			}
-			return GLOBAL_ORGANIZATION_SCOPE
-		}
-
-		throw new ForbiddenException('Plugins can only be uninstalled from the current or global organization scope')
-	}
-
-	private assertNoSystemPlugins(pluginNamesOrPackages: string[], allowSystemPlugins = false, scopeKey?: string) {
-		const matched = this.findLoadedSystemPlugin(pluginNamesOrPackages, scopeKey)
-
-		if (matched && !allowSystemPlugins) {
-			throw new BadRequestException(t('server:Error.PluginSystemUninstallForbidden', { name: matched.name }))
-		}
-	}
-
-	private findLoadedSystemPlugin(pluginNamesOrPackages: string[], scopeKey?: string) {
-		return findLoadedPluginByLevels(this.loadedPlugins, pluginNamesOrPackages, [PLUGIN_LEVEL.SYSTEM], scopeKey)
-	}
-
-	private findLoadedRestartRequiredPlugin(pluginNamesOrPackages: string[], scopeKey?: string) {
-		return findLoadedPluginByLevels(
-			this.loadedPlugins,
-			pluginNamesOrPackages,
-			[PLUGIN_LEVEL.SYSTEM, PLUGIN_LEVEL.TENANT],
-			scopeKey
-		)
-	}
-
 	private assertSystemInstallTenant(
 		tenantId: string | null | undefined,
 		defaultTenantId: string | null | undefined,
@@ -968,24 +870,6 @@ export class PluginManagementService {
 				t('server:Error.PluginSystemLevelDefaultTenantRequired', { name: pluginName })
 			)
 		}
-	}
-
-	private async uninstallByPackageNameWithGuard(
-		tenantId: string | null,
-		organizationId: string,
-		packageName: string,
-		allowSystemPlugins = false,
-		scopeKey?: string | null,
-		cause?: 'refresh' | 'uninstall'
-	) {
-		const resolvedScopeKey =
-			scopeKey ??
-			(organizationId === GLOBAL_ORGANIZATION_SCOPE ? resolveTenantGlobalScopeKey(tenantId) : organizationId)
-		this.assertNoSystemPlugins([packageName], allowSystemPlugins, resolvedScopeKey)
-		await this.pluginInstanceService.uninstallByPackageName(tenantId, organizationId, packageName, {
-			scopeKey: resolvedScopeKey,
-			cause
-		})
 	}
 }
 

@@ -552,6 +552,7 @@ export class PluginsComponent {
     ).subscribe({
       next: (result) => {
         this.removing.set('')
+        this.trackRuntimeConvergence(result as IPluginUninstallResult, plugin.name)
         this.reloadInstalledPlugins()
         if ((result as IPluginUninstallResult).restartRequired) {
           this.showRestartRequired(plugin.name, (result as IPluginUninstallResult).runtimeRequirements)
@@ -782,7 +783,7 @@ export class PluginsComponent {
     })
   }
 
-  private trackRuntimeConvergence(result: IPluginInstallResult, pluginName?: string | null) {
+  private trackRuntimeConvergence(result: IPluginInstallResult | IPluginUninstallResult, pluginName?: string | null) {
     if (result.runtimeConvergence) {
       this.runtimeRestart.trackPluginConvergence(
         result.runtimeConvergence,
