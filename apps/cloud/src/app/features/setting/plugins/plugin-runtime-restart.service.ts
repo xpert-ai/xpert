@@ -6,6 +6,7 @@ import {
   type IPluginRuntimeConvergence,
   type IRuntimePluginRequirement,
   RUNTIME_RESTART_CONFIRMATION,
+  RolesEnum,
   type IRuntimeRestartCapability
 } from '@xpert-ai/contracts'
 import { ZardAlertDialogService } from '@xpert-ai/headless-ui'
@@ -51,6 +52,9 @@ export class PluginRuntimeRestartService {
   readonly canRestart = computed(() => this.restartCapability()?.allowed === true)
   readonly requiresManualRestart = computed(
     () => !!this.pending() && !this.pending()?.restartId && !this.pending()?.generation
+  )
+  readonly showManualRestart = computed(
+    () => this.#currentUser()?.role?.name === RolesEnum.SUPER_ADMIN && this.requiresManualRestart()
   )
   readonly isApplyingInBackground = computed(
     () => !!this.convergence() || !!this.pending()?.restartId || !!this.pending()?.generation

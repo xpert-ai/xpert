@@ -1,4 +1,4 @@
-import { RUNTIME_RESTART_CONFIRMATION, RolesEnum } from '@xpert-ai/contracts'
+import { IApiKey, RUNTIME_RESTART_CONFIRMATION, RolesEnum } from '@xpert-ai/contracts'
 import { setDefaultTenantId } from '@xpert-ai/plugin-sdk'
 import { ForbiddenException, NotFoundException } from '@nestjs/common'
 import { RequestContext } from '../core/context'
@@ -12,6 +12,7 @@ describe('RuntimeControlService', () => {
 		getPluginConvergenceStatus: jest.fn(),
 		recordPluginChange: jest.fn()
 	}
+	const instances = { getRegisteredInstanceDetails: jest.fn(), retireInstance: jest.fn() }
 	let service: RuntimeControlService
 
 	beforeEach(() => {
@@ -30,7 +31,7 @@ describe('RuntimeControlService', () => {
 			signalAfterMs: 750,
 			drainTimeoutMs: 30_000
 		})
-		service = new RuntimeControlService(coordinator as unknown as RuntimeRestartCoordinatorService)
+		service = new RuntimeControlService(coordinator as unknown as RuntimeRestartCoordinatorService, instances)
 	})
 
 	afterEach(() => {
@@ -65,6 +66,29 @@ describe('RuntimeControlService', () => {
 			sourceIp: '127.0.0.1',
 			runtimeRequirements
 		})
+	})
+
+	it('lists membership and retires a specified boot for an authorized operator', async () => {
+		instances.getRegisteredInstanceDetails.mockResolvedValue([
+			{ instanceId: 'api-old', bootId: 'boot-1', online: false }
+		])
+		instances.retireInstance.mockResolvedValue({ status: 'retired' })
+		await expect(service.listInstances()).resolves.toHaveLength(1)
+		await expect(service.retireInstance('api-old', { expectedBootId: 'boot-1' })).resolves.toEqual({
+			status: 'retired'
+		})
+		expect(instances.retireInstance).toHaveBeenCalledWith('api-old', 'boot-1')
+	})
+
+	it.each(['api-key', 'regular-user', 'other-tenant'])('rejects membership changes by %s', async (actor) => {
+		if (actor === 'api-key') jest.spyOn(RequestContext, 'currentApiKey').mockReturnValue({ id: 'key' } as IApiKey)
+		if (actor === 'regular-user') jest.spyOn(RequestContext, 'hasRole').mockReturnValue(false)
+		if (actor === 'other-tenant') jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-other')
+		await expect(service.listInstances()).rejects.toBeInstanceOf(ForbiddenException)
+		await expect(service.retireInstance('api-old', { expectedBootId: 'boot-1' })).rejects.toBeInstanceOf(
+			ForbiddenException
+		)
+		expect(instances.retireInstance).not.toHaveBeenCalled()
 	})
 
 	it('reports restart capability for an interactive default-tenant SuperAdmin', () => {

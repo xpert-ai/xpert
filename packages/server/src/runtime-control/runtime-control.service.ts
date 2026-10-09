@@ -1,5 +1,8 @@
 import {
 	IPluginRuntimeConvergenceStatus,
+	IRuntimeInstanceRegistration,
+	IRuntimePluginRequirement,
+	IRuntimeInstanceRetirementResult,
 	IRuntimeRestartCapability,
 	IRuntimeRestartResponse,
 	IRuntimeRestartStatus,
@@ -8,9 +11,10 @@ import {
 	RuntimeRestartMode
 } from '@xpert-ai/contracts'
 import { getDefaultTenantId } from '@xpert-ai/plugin-sdk'
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { RequestContext } from '../core/context'
-import { RuntimeRestartRequestDto } from './runtime-control.dto'
+import { InstanceRegistryService } from '../managed-connection/instance-registry.service'
+import { RuntimeInstanceRetirementDto, RuntimeRestartRequestDto } from './runtime-control.dto'
 import {
 	PluginRuntimeChangeInput,
 	PluginRuntimeChangeResult,
@@ -27,7 +31,39 @@ export interface RuntimeRestartAuditContext {
 export class RuntimeControlService {
 	private readonly mode: RuntimeRestartMode = 'rolling-self-signal'
 
-	constructor(private readonly coordinator: RuntimeRestartCoordinatorService) {}
+	private readonly logger = new Logger(RuntimeControlService.name)
+
+	constructor(
+		private readonly coordinator: RuntimeRestartCoordinatorService,
+		@Inject(InstanceRegistryService)
+		private readonly instances: Pick<InstanceRegistryService, 'getRegisteredInstanceDetails' | 'retireInstance'>
+	) {}
+
+	async listInstances(): Promise<IRuntimeInstanceRegistration[]> {
+		this.assertAuthorizedActor()
+		return this.instances.getRegisteredInstanceDetails()
+	}
+
+	async retireInstance(
+		instanceId: string,
+		input: RuntimeInstanceRetirementDto,
+		audit: RuntimeRestartAuditContext = {}
+	): Promise<IRuntimeInstanceRetirementResult> {
+		this.assertAuthorizedActor()
+		const result = await this.instances.retireInstance(instanceId, input.expectedBootId)
+		this.logger.log(
+			JSON.stringify({
+				event: 'runtime.instance.retirement',
+				instanceId,
+				expectedBootId: input.expectedBootId,
+				status: result.status,
+				actorUserId: RequestContext.currentUserId(),
+				tenantId: RequestContext.currentTenantId(),
+				sourceIp: audit.sourceIp
+			})
+		)
+		return result
+	}
 
 	restartCapability(): IRuntimeRestartCapability {
 		if (RequestContext.currentApiKey()) {
@@ -93,6 +129,13 @@ export class RuntimeControlService {
 
 	async recordPluginRuntimeChange(input: PluginRuntimeChangeInput): Promise<PluginRuntimeChangeResult> {
 		return await this.coordinator.recordPluginChange(input)
+	}
+
+	async recordPluginRuntimeRequirements(
+		requirements: IRuntimePluginRequirement[],
+		reason: string
+	): Promise<PluginRuntimeChangeResult> {
+		return this.coordinator.recordPluginRequirements(requirements, reason)
 	}
 
 	private assertAuthorizedActor(): void {
