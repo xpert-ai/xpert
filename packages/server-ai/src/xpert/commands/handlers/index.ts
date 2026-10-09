@@ -1,4 +1,5 @@
 import { AdmittedXpertChatHandler } from './admitted-chat.handler'
+import { GetRuntimeCapabilitiesHandler } from '../../runtime-capabilities/get-runtime-capabilities.handler'
 import { CreateMemoryStoreHandler } from './create-memory-store.handler'
 import { XpertCreateHandler } from './create.handler'
 import { XpertDelIntegrationHandler } from './del-integration.handler'
@@ -17,6 +18,7 @@ import { XpertSummarizeMemoryHandler } from './summarize-memory.handler'
 import { XpertSyncTemplateHandler } from './sync-template.handler'
 
 export const CommandHandlers = [
+    GetRuntimeCapabilitiesHandler,
     XpertCreateHandler,
     XpertDeleteHandler,
     XpertEnqueueTriggerDispatchHandler,

@@ -45,9 +45,7 @@ import { EnvironmentModule } from '../environment'
 import { AssistantBindingModule } from '../assistant-binding'
 import { XpertAgentModule } from '../xpert-agent'
 import { SkillPackageModule } from '../skill-package'
-import { RuntimeCommandService } from './runtime-command.service'
 import { PromptWorkflowModule } from '../prompt-workflow'
-import { RuntimeCapabilitiesService } from './runtime-capabilities.service'
 import { SseStreamModule } from '../shared/stream'
 import { XpertProjectModule } from '../xpert-project'
 import { FileUnderstandingModule } from '../file-understanding'
@@ -144,8 +142,6 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
         WorkbenchFilesAuthGuard,
         AssistantThreadScopeGuard,
         AiService,
-        RuntimeCommandService,
-        RuntimeCapabilitiesService,
         ConversationAgentRunsService,
         ...CommandHandlers,
         ...QueryHandlers

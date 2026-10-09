@@ -1,5 +1,4 @@
 import { ForbiddenException, Injectable } from '@nestjs/common'
-import { ModuleRef } from '@nestjs/core'
 import {
     agentLabel,
     agentUniqueName,
@@ -20,23 +19,22 @@ import {
 import { AgentMiddlewareRegistry, RequestContext } from '@xpert-ai/plugin-sdk'
 import { PaginationParams } from '@xpert-ai/server-core'
 import { isNil, omitBy } from 'lodash-es'
-import { AssistantBindingService } from '../assistant-binding'
-import { PromptWorkflowService } from '../prompt-workflow'
-import { SkillPackageService } from '../skill-package'
-import type { SkillPackage } from '../skill-package/skill-package.entity'
-import { SKILLS_MIDDLEWARE_NAME } from '../skill-package/types'
-import { type XpertProjectAccess, XpertProjectAccessService } from '../xpert-project/services/project-access.service'
-import { XpertProjectContentService } from '../xpert-project/services/project-content.service'
+import { AssistantBindingService } from '../../assistant-binding/assistant-binding.service'
+import { PromptWorkflowService } from '../../prompt-workflow/prompt-workflow.service'
+import { SkillPackageService } from '../../skill-package/skill-package.service'
+import type { SkillPackage } from '../../skill-package/skill-package.entity'
+import { SKILLS_MIDDLEWARE_NAME } from '../../skill-package/types'
+import { type XpertProjectAccess, XpertProjectAccessService } from '../../xpert-project/services/project-access.service'
+import { XpertProjectContentService } from '../../xpert-project/services/project-content.service'
 import {
     getAgentSubAgentConnections,
     getSubAgentConnectionTargetKey,
     isRequiredSubAgentConnection
-} from '../shared/agent/sub-agent'
+} from '../../shared/agent/sub-agent'
 import { normalizeRuntimeIcon } from './runtime-icon'
 import { RuntimeCommandService } from './runtime-command.service'
 import { t } from 'i18next'
-
-export const RUNTIME_CAPABILITY_XPERT_RELATIONS = ['agent', 'agent.copilotModel', 'copilotModel']
+import { getRuntimePrimaryAgentKey } from './runtime-capabilities.helpers'
 
 @Injectable()
 export class RuntimeCapabilitiesService {
@@ -46,7 +44,8 @@ export class RuntimeCapabilitiesService {
         private readonly runtimeCommandService: RuntimeCommandService,
         private readonly promptWorkflowService: PromptWorkflowService,
         private readonly assistantBindingService: AssistantBindingService,
-        private readonly moduleRef?: ModuleRef
+        private readonly projectAccessService: XpertProjectAccessService,
+        private readonly projectContentService: XpertProjectContentService
     ) {}
 
     async getRuntimeCapabilities(xpert: IXpert, assistantId?: string, projectId?: string) {
@@ -61,7 +60,7 @@ export class RuntimeCapabilitiesService {
                     })
                 )
             }
-            projectAccess = await this.getProjectAccessService().assertCanUseXpert(normalizedProjectId, targetXpertId)
+            projectAccess = await this.projectAccessService.assertCanUseXpert(normalizedProjectId, targetXpertId)
         }
         const agentKey = getRuntimePrimaryAgentKey(xpert)
         const graph = xpert.graph
@@ -342,7 +341,7 @@ export class RuntimeCapabilitiesService {
     }
 
     private async getProjectRuntimeSkills(projectId: string, projectLabel: string) {
-        const result = await this.getProjectContentService().listSkills(projectId)
+        const result = await this.projectContentService.listSkills(projectId)
         return {
             skills: result.items
                 .filter((skill) => skill.enabled)
@@ -365,30 +364,6 @@ export class RuntimeCapabilitiesService {
                 }),
             commands: []
         }
-    }
-
-    private getProjectAccessService() {
-        const service = this.moduleRef?.get(XpertProjectAccessService, { strict: false })
-        if (!service) {
-            throw new ForbiddenException(
-                t('server-ai:Error.ProjectNotAvailable', {
-                    defaultValue: 'The requested Project is not available'
-                })
-            )
-        }
-        return service
-    }
-
-    private getProjectContentService() {
-        const service = this.moduleRef?.get(XpertProjectContentService, { strict: false })
-        if (!service) {
-            throw new ForbiddenException(
-                t('server-ai:Error.ProjectNotAvailable', {
-                    defaultValue: 'The requested Project is not available'
-                })
-            )
-        }
-        return service
     }
 }
 
@@ -617,13 +592,4 @@ function resolveI18nText(value: unknown, fallback = '') {
     }
 
     return fallback
-}
-
-export function getRuntimePrimaryAgentKey(xpert: IXpert): string | undefined {
-    const key = xpert?.agent?.key
-    if (typeof key !== 'string') {
-        return
-    }
-    const normalized = key.trim()
-    return normalized || undefined
 }
