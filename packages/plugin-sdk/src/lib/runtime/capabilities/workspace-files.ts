@@ -291,10 +291,14 @@ export interface WorkspaceFilesApi {
    */
   resolveFile(input: WorkspaceFileReference): Promise<WorkspaceFile>
 
-  /** Read raw bytes from an explicitly scoped workspace file reference. */
+  /**
+   * Read raw bytes from an explicitly scoped workspace file reference.
+   * Missing paths or an uninitialized volume root reject with `error.code === 'ENOENT'`
+   * in-process; other validation/access failures must not be treated as missing files.
+   */
   readBuffer(input: WorkspaceFileReference): Promise<WorkspaceFileBuffer>
 
-  /** Delete an explicitly scoped workspace file. */
+  /** Delete an explicitly scoped workspace file; missing paths/roots reject with code ENOENT in-process. */
   deleteFile(input: WorkspaceFileReference): Promise<void>
 
   /**
@@ -308,6 +312,8 @@ export interface WorkspaceFilesApi {
    *
    * This is the preferred API for plugin tools that receive `/workspace/...`
    * paths from sandbox commands.
+   * After resolving the locator, missing paths/roots reject with code ENOENT in-process.
+   * Callers must not infer missing files from localized validation or access errors.
    */
   readRuntimeBuffer(input: WorkspaceFileLocator): Promise<WorkspaceRuntimeFileBuffer>
 
