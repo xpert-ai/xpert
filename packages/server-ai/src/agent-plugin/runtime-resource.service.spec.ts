@@ -16,6 +16,7 @@ import { XpertProjectAccessService } from '../xpert-project/services/project-acc
 import type { TAgentMiddlewareMeta } from '@xpert-ai/contracts'
 import { ViewExtensionService } from '@xpert-ai/server-core'
 import { applyRuntimeResourceGraph } from './runtime-resource-graph'
+import { withGroupRuntime } from '../chat-group/group-runtime-context'
 
 jest.mock('./agent-plugin.service', () => ({
     AgentPluginService: class {},
@@ -259,6 +260,33 @@ describe('runtime resource authorization and persistence', () => {
         expect(resolved.selection).toEqual(selection)
         expect(conversation.options.runtimeResources).toEqual({ revision: 3, resources: [] })
         expect(save).not.toHaveBeenCalled()
+    })
+    it('uses each authorized group delivery selection without changing shared preferences', async () => {
+        conversation.options.runtimeResources = { revision: 3, resources: [] }
+        await withGroupRuntime('conversation', async () => {
+            expect((await service.prepare('conversation', selection, false)).selection).toEqual(selection)
+            const empty = { revision: 0, resources: [] }
+            expect((await service.prepare('conversation', empty, false)).selection).toEqual(empty)
+            expect((await service.prepare('conversation', selection, false)).selection).toEqual(selection)
+        })
+        expect(conversation.options.runtimeResources).toEqual({ revision: 3, resources: [] })
+        expect(save).not.toHaveBeenCalled()
+        expect(projectAccess).toHaveBeenCalledWith('project', 'assistant')
+    })
+    it('does not inherit another group sender resources and still rejects revoked bindings', async () => {
+        conversation.options.runtimeResources = { ...selection, revision: 3 }
+        await withGroupRuntime('conversation', async () => {
+            expect((await service.prepare('conversation', undefined, false)).selection.resources).toEqual([])
+            find.mockResolvedValue(null)
+            await expect(service.prepare('conversation', selection, false)).rejects.toThrow()
+        })
+        expect(save).not.toHaveBeenCalled()
+    })
+    it('does not apply a group delivery snapshot to another conversation', async () => {
+        conversation.options.runtimeResources = { revision: 3, resources: [] }
+        await withGroupRuntime('other-conversation', async () => {
+            await expect(service.prepare('conversation', selection, false)).rejects.toThrow()
+        })
     })
     it('rejects stale sends and duplicate or malformed binding references', async () => {
         conversation.options.runtimeResources = { revision: 3, resources: [] }
