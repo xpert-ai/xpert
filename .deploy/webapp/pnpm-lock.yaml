@@ -7,20 +7,20 @@ settings:
 catalogs:
   default:
     '@xpert-ai/chatkit-angular':
-      specifier: 0.12.1
-      version: 0.12.1
+      specifier: 0.12.2
+      version: 0.12.2
     '@xpert-ai/chatkit-types':
-      specifier: 0.12.1
-      version: 0.12.1
+      specifier: 0.12.2
+      version: 0.12.2
     '@xpert-ai/chatkit-ui':
-      specifier: 0.12.1
-      version: 0.12.1
+      specifier: 0.12.2
+      version: 0.12.2
     '@xpert-ai/chatkit-web-component':
-      specifier: 0.12.1
-      version: 0.12.1
+      specifier: 0.12.2
+      version: 0.12.2
     '@xpert-ai/chatkit-web-shared':
-      specifier: 0.12.1
-      version: 0.12.1
+      specifier: 0.12.2
+      version: 0.12.2
 
 overrides:
   '@xpert-ai/plugin-sdk': workspace:*
@@ -132,19 +132,19 @@ importers:
         version: 0.5.3
       '@xpert-ai/chatkit-angular':
         specifier: 'catalog:'
-        version: 0.12.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@angular/core@21.1.4(@angular/compiler@21.1.4)(rxjs@7.8.2)(zone.js@0.16.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
+        version: 0.12.2(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@angular/core@21.1.4(@angular/compiler@21.1.4)(rxjs@7.8.2)(zone.js@0.16.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
       '@xpert-ai/chatkit-types':
         specifier: 'catalog:'
-        version: 0.12.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
+        version: 0.12.2(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
       '@xpert-ai/chatkit-ui':
         specifier: 'catalog:'
-        version: 0.12.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/language@6.12.4)(@codemirror/lint@6.9.7)(@codemirror/search@6.7.1)(@codemirror/state@6.7.1)(@codemirror/theme-one-dark@6.1.3)(@codemirror/view@6.43.9)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(@shikijs/themes@4.5.0)(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(babel-plugin-macros@3.1.0)(codemirror@6.0.2)(openai@5.23.2(ws@8.18.0)(zod@3.25.67))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rxjs@7.8.2)(signal-polyfill@0.2.2)(typescript@5.9.3)(vite@7.3.0(@types/node@22.19.11)(jiti@2.7.0)(less@4.4.2)(lightningcss@1.32.0)(sass-embedded@1.97.3)(sass@1.97.1)(stylus@0.59.0)(terser@5.44.1)(yaml@2.8.2))
+        version: 0.12.2(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/language@6.12.4)(@codemirror/lint@6.9.7)(@codemirror/search@6.7.1)(@codemirror/state@6.7.1)(@codemirror/theme-one-dark@6.1.3)(@codemirror/view@6.43.9)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(@shikijs/themes@4.5.0)(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(babel-plugin-macros@3.1.0)(codemirror@6.0.2)(openai@5.23.2(ws@8.18.0)(zod@3.25.67))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rxjs@7.8.2)(signal-polyfill@0.2.2)(typescript@5.9.3)(vite@7.3.0(@types/node@22.19.11)(jiti@2.7.0)(less@4.4.2)(lightningcss@1.32.0)(sass-embedded@1.97.3)(sass@1.97.1)(stylus@0.59.0)(terser@5.44.1)(yaml@2.8.2))
       '@xpert-ai/chatkit-web-component':
         specifier: 'catalog:'
-        version: 0.12.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
+        version: 0.12.2(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
       '@xpert-ai/chatkit-web-shared':
         specifier: 'catalog:'
-        version: 0.12.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
+        version: 0.12.2(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
       clipboard:
         specifier: ^2.0.11
         version: 2.0.11
@@ -415,19 +415,19 @@ importers:
         version: 0.1.0(react@18.3.1)(rxjs@7.8.2)
       '@xpert-ai/chatkit-angular':
         specifier: 'catalog:'
-        version: 0.12.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@angular/core@21.1.4(@angular/compiler@21.1.4)(rxjs@7.8.2)(zone.js@0.16.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
+        version: 0.12.2(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@angular/core@21.1.4(@angular/compiler@21.1.4)(rxjs@7.8.2)(zone.js@0.16.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
       '@xpert-ai/chatkit-types':
         specifier: 'catalog:'
-        version: 0.12.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
+        version: 0.12.2(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
       '@xpert-ai/chatkit-ui':
         specifier: 'catalog:'
-        version: 0.12.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/language@6.12.4)(@codemirror/lint@6.9.7)(@codemirror/search@6.7.1)(@codemirror/state@6.7.1)(@codemirror/theme-one-dark@6.1.3)(@codemirror/view@6.43.9)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(@shikijs/themes@4.5.0)(@types/react-dom@19.3.0(@types/react@18.3.31))(@types/react@18.3.31)(babel-plugin-macros@3.1.0)(codemirror@6.0.2)(openai@5.23.2(ws@8.18.0)(zod@3.25.67))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rxjs@7.8.2)(signal-polyfill@0.2.2)(typescript@5.9.3)(vite@7.3.0(@types/node@24.13.6)(jiti@2.7.0)(less@4.5.1)(lightningcss@1.32.0)(sass-embedded@1.97.3)(sass@1.97.3)(stylus@0.59.0)(terser@5.46.0)(yaml@2.8.2))
+        version: 0.12.2(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/language@6.12.4)(@codemirror/lint@6.9.7)(@codemirror/search@6.7.1)(@codemirror/state@6.7.1)(@codemirror/theme-one-dark@6.1.3)(@codemirror/view@6.43.9)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(@shikijs/themes@4.5.0)(@types/react-dom@19.3.0(@types/react@18.3.31))(@types/react@18.3.31)(babel-plugin-macros@3.1.0)(codemirror@6.0.2)(openai@5.23.2(ws@8.18.0)(zod@3.25.67))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rxjs@7.8.2)(signal-polyfill@0.2.2)(typescript@5.9.3)(vite@7.3.0(@types/node@24.13.6)(jiti@2.7.0)(less@4.5.1)(lightningcss@1.32.0)(sass-embedded@1.97.3)(sass@1.97.3)(stylus@0.59.0)(terser@5.46.0)(yaml@2.8.2))
       '@xpert-ai/chatkit-web-component':
         specifier: 'catalog:'
-        version: 0.12.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
+        version: 0.12.2(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
       '@xpert-ai/chatkit-web-shared':
         specifier: 'catalog:'
-        version: 0.12.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
+        version: 0.12.2(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
       '@xpert-ai/store':
         specifier: 3.9.1
         version: 3.9.1(immer@10.2.0)(rxjs@7.8.2)
@@ -518,7 +518,7 @@ importers:
         version: 7.0.15
       '@xpert-ai/chatkit-types':
         specifier: 'catalog:'
-        version: 0.12.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
+        version: 0.12.2(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
       zod:
         specifier: 3.25.67
         version: 3.25.67
@@ -6669,8 +6669,8 @@ packages:
     resolution: {integrity: sha512-5AXjrcMClTryPe9LgZrygpB1lj7s0S9E0+W+AHaVKAVyHanafK86iPSvG5xHVSp/jC+VH1UXu0TAEmY279xH7A==}
     engines: {node: '>=14.6'}
 
-  '@xpert-ai/a2ui-react@0.12.1':
-    resolution: {integrity: sha512-M6ldPASokuENXV2rrVALERAR1RcZV1Yyf4JPZw5GS6pFcQXgVLrfLdEQ1LMu5RTk/ZrdNfHyfOKNCElWaujrMQ==}
+  '@xpert-ai/a2ui-react@0.12.2':
+    resolution: {integrity: sha512-uZq4P1CDT+i484jvd+wYF4J+MbVIlMdsg/ZTKhYHaOcF7KJXDhYZ45T7rK0g0FzuDeB77KwcqufTuaMQoIZ8oA==}
     peerDependencies:
       react: ^18.0.0
       react-dom: ^18.0.0
@@ -6681,28 +6681,28 @@ packages:
     engines: {node: '>=22'}
     hasBin: true
 
-  '@xpert-ai/chatkit-angular@0.12.1':
-    resolution: {integrity: sha512-TUQHnFcpN+dFWNMUu+6j10itcdCKAkxgiMTlJBbHgo+2kBc0dl8WK2mZgXbvQ5z208oaiZV2q+WyoHOgaeDD8w==}
+  '@xpert-ai/chatkit-angular@0.12.2':
+    resolution: {integrity: sha512-Ym8qwTroqRWDqlYSJ4dAI7RXxw5Cfx/NWdCS/WwoaCK/5yqS/W4z9IqnbJxeA6NQeEeN8KawYUersSZ9nQsWmg==}
     peerDependencies:
       '@angular/core': '>=17 <22'
 
-  '@xpert-ai/chatkit-types@0.12.1':
-    resolution: {integrity: sha512-/QUCV8ZtXxtib3Sjo9brL6Ser5LYq0oOxAGIAJkCxfdj/yLsn3a0fYAD9vIXd0ajC7yPIiM7hyH24aKuN3HRMQ==}
+  '@xpert-ai/chatkit-types@0.12.2':
+    resolution: {integrity: sha512-8oyfmAgNhZSt4oI7dwYjzKT1CMbkpxUOg7ALfJsJBL2nzXhuQLJdM/RVIB4Dwc9tSHpBRffzO0S5hE9ZGcaUjQ==}
     peerDependencies:
       '@a2ui/lit': ^0.8.1
       '@langchain/core': 0.3.72
 
-  '@xpert-ai/chatkit-ui@0.12.1':
-    resolution: {integrity: sha512-INwYaexAiH/q8RclwaIOTXQ7AZUM2TGiOKx1W/9v7Zvr7jhiua35FGhEVPZL5iucjmv0N1P8J3Y2spPJYWQ8Tg==}
+  '@xpert-ai/chatkit-ui@0.12.2':
+    resolution: {integrity: sha512-RH3LlsB+JsyKE3sJTGEomDPO8rGZGvkYEgM+IOA2yjmQk3HPgMyXRc6NEBiel68CeaI1YXBMV0GpQDnHS7XUGw==}
     peerDependencies:
       react: '>=19'
       react-dom: '>=19'
 
-  '@xpert-ai/chatkit-web-component@0.12.1':
-    resolution: {integrity: sha512-iZQT90/YAJRIXwj7/VosB0CP7LfkS/VJIKH9mmFDmP+W72muIeBSHbsHV1u7XnHyqRrfP8C24d8tzlpNh5K7Jw==}
+  '@xpert-ai/chatkit-web-component@0.12.2':
+    resolution: {integrity: sha512-26EFojxxztF7XYRrTttZE1XT7PowhgUAf4yWbaX5bgmgZJONaj3yYzOwRM4z05Ce4XuDp/3YwEQohGUia8GBhA==}
 
-  '@xpert-ai/chatkit-web-shared@0.12.1':
-    resolution: {integrity: sha512-gaWBbBXN7d0s+Y4QQ/GM05AMpUv8sKQPGMLF4pQb7nEeI8X18+ceP8pi4dq2XQauJVBSkHmCOq4DZAtOF3yirw==}
+  '@xpert-ai/chatkit-web-shared@0.12.2':
+    resolution: {integrity: sha512-LL7V+JjT2TM/CgNBapL1xDhecg377x90kFi3czHAsgydnvmOHJtmmA836eEsNNiDMMPysZb1g2fZmkKZCETSuA==}
 
   '@xpert-ai/store@3.9.1':
     resolution: {integrity: sha512-ovzC/fCNars3fkbei+sijWj94loyRlVSd/qducy3vlzkmUPdluVnKDlhaQ6AEHfm1B2OBQc7oZpj1//4k+kmRA==}
@@ -6718,8 +6718,14 @@ packages:
     peerDependencies:
       '@xterm/xterm': ^5.0.0
 
+  '@xterm/addon-fit@0.11.0':
+    resolution: {integrity: sha512-jYcgT6xtVYhnhgxh3QgYDnnNMYTcf8ElbxxFzX0IZo+vabQqSPAjC3c1wJrKB5E19VwQei89QCiZZP86DCPF7g==}
+
   '@xterm/xterm@5.5.0':
     resolution: {integrity: sha512-hqJHYaQb5OptNunnyAnkHyM8aCjZ1MEIDTQu1iIbbTD/xops91NB5yq1ZK/dC2JDbVWtF23zUtl9JE2NqwT87A==}
+
+  '@xterm/xterm@6.0.0':
+    resolution: {integrity: sha512-TQwDdQGtwwDt+2cgKDLn0IRaSxYu1tSUjgKarSDkUM0ZNiSRXFpjxEsvc/Zgc5kq5omJ+V0a8/kIM2WD3sMOYg==}
 
   '@xtuc/ieee754@1.2.0':
     resolution: {integrity: sha512-DX8nKgqcGwsc0eJSqYt5lwP4DH5FlHnmuWWBRy7X0NcaGR0ZtuyeESgMwTYVEtxmsNGY+qit4QYT/MIYTOTPeA==}
@@ -23045,7 +23051,7 @@ snapshots:
 
   '@xmldom/xmldom@0.9.12': {}
 
-  '@xpert-ai/a2ui-react@0.12.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(signal-polyfill@0.2.2)(tailwindcss@4.3.2)':
+  '@xpert-ai/a2ui-react@0.12.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(signal-polyfill@0.2.2)(tailwindcss@4.3.2)':
     dependencies:
       '@a2ui/lit': 0.8.3(signal-polyfill@0.2.2)
       class-variance-authority: 0.7.1
@@ -23075,22 +23081,22 @@ snapshots:
       - react
       - rxjs
 
-  '@xpert-ai/chatkit-angular@0.12.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@angular/core@21.1.4(@angular/compiler@21.1.4)(rxjs@7.8.2)(zone.js@0.16.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))':
+  '@xpert-ai/chatkit-angular@0.12.2(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@angular/core@21.1.4(@angular/compiler@21.1.4)(rxjs@7.8.2)(zone.js@0.16.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))':
     dependencies:
       '@angular/core': 21.1.4(@angular/compiler@21.1.4)(rxjs@7.8.2)(zone.js@0.16.2)
-      '@xpert-ai/chatkit-types': 0.12.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
-      '@xpert-ai/chatkit-web-component': 0.12.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
+      '@xpert-ai/chatkit-types': 0.12.2(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
+      '@xpert-ai/chatkit-web-component': 0.12.2(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
       tslib: 2.8.1
     transitivePeerDependencies:
       - '@a2ui/lit'
       - '@langchain/core'
 
-  '@xpert-ai/chatkit-types@0.12.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))':
+  '@xpert-ai/chatkit-types@0.12.2(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))':
     dependencies:
       '@a2ui/lit': 0.8.3(signal-polyfill@0.2.2)
       '@langchain/core': 0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67))
 
-  '@xpert-ai/chatkit-ui@0.12.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/language@6.12.4)(@codemirror/lint@6.9.7)(@codemirror/search@6.7.1)(@codemirror/state@6.7.1)(@codemirror/theme-one-dark@6.1.3)(@codemirror/view@6.43.9)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(@shikijs/themes@4.5.0)(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(babel-plugin-macros@3.1.0)(codemirror@6.0.2)(openai@5.23.2(ws@8.18.0)(zod@3.25.67))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rxjs@7.8.2)(signal-polyfill@0.2.2)(typescript@5.9.3)(vite@7.3.0(@types/node@22.19.11)(jiti@2.7.0)(less@4.4.2)(lightningcss@1.32.0)(sass-embedded@1.97.3)(sass@1.97.1)(stylus@0.59.0)(terser@5.44.1)(yaml@2.8.2))':
+  '@xpert-ai/chatkit-ui@0.12.2(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/language@6.12.4)(@codemirror/lint@6.9.7)(@codemirror/search@6.7.1)(@codemirror/state@6.7.1)(@codemirror/theme-one-dark@6.1.3)(@codemirror/view@6.43.9)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(@shikijs/themes@4.5.0)(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(babel-plugin-macros@3.1.0)(codemirror@6.0.2)(openai@5.23.2(ws@8.18.0)(zod@3.25.67))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rxjs@7.8.2)(signal-polyfill@0.2.2)(typescript@5.9.3)(vite@7.3.0(@types/node@22.19.11)(jiti@2.7.0)(less@4.4.2)(lightningcss@1.32.0)(sass-embedded@1.97.3)(sass@1.97.1)(stylus@0.59.0)(terser@5.44.1)(yaml@2.8.2))':
     dependencies:
       '@codemirror/lang-css': 6.3.1
       '@codemirror/lang-html': 6.4.12
@@ -23119,13 +23125,13 @@ snapshots:
       '@uiw/react-codemirror': 4.25.12(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/language@6.12.4)(@codemirror/lint@6.9.7)(@codemirror/search@6.7.1)(@codemirror/state@6.7.1)(@codemirror/theme-one-dark@6.1.3)(@codemirror/view@6.43.9)(codemirror@6.0.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@univerjs/preset-sheets-core': 0.25.1(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rxjs@7.8.2)
       '@univerjs/presets': 0.25.1(@types/react-dom@18.3.7(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rxjs@7.8.2)
-      '@xpert-ai/a2ui-react': 0.12.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(signal-polyfill@0.2.2)(tailwindcss@4.3.2)
+      '@xpert-ai/a2ui-react': 0.12.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(signal-polyfill@0.2.2)(tailwindcss@4.3.2)
       '@xpert-ai/artifact-tool': 0.1.0(react@18.3.1)(rxjs@7.8.2)
-      '@xpert-ai/chatkit-types': 0.12.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
-      '@xpert-ai/chatkit-web-shared': 0.12.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
+      '@xpert-ai/chatkit-types': 0.12.2(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
+      '@xpert-ai/chatkit-web-shared': 0.12.2(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
       '@xpert-ai/xpert-sdk': 0.8.1
-      '@xterm/addon-fit': 0.10.0(@xterm/xterm@5.5.0)
-      '@xterm/xterm': 5.5.0
+      '@xterm/addon-fit': 0.11.0
+      '@xterm/xterm': 6.0.0
       class-variance-authority: 0.7.1
       clsx: 2.1.1
       framer-motion: 12.42.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -23189,7 +23195,7 @@ snapshots:
       - vite
       - yjs
 
-  '@xpert-ai/chatkit-ui@0.12.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/language@6.12.4)(@codemirror/lint@6.9.7)(@codemirror/search@6.7.1)(@codemirror/state@6.7.1)(@codemirror/theme-one-dark@6.1.3)(@codemirror/view@6.43.9)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(@shikijs/themes@4.5.0)(@types/react-dom@19.3.0(@types/react@18.3.31))(@types/react@18.3.31)(babel-plugin-macros@3.1.0)(codemirror@6.0.2)(openai@5.23.2(ws@8.18.0)(zod@3.25.67))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rxjs@7.8.2)(signal-polyfill@0.2.2)(typescript@5.9.3)(vite@7.3.0(@types/node@24.13.6)(jiti@2.7.0)(less@4.5.1)(lightningcss@1.32.0)(sass-embedded@1.97.3)(sass@1.97.3)(stylus@0.59.0)(terser@5.46.0)(yaml@2.8.2))':
+  '@xpert-ai/chatkit-ui@0.12.2(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/language@6.12.4)(@codemirror/lint@6.9.7)(@codemirror/search@6.7.1)(@codemirror/state@6.7.1)(@codemirror/theme-one-dark@6.1.3)(@codemirror/view@6.43.9)(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(@shikijs/themes@4.5.0)(@types/react-dom@19.3.0(@types/react@18.3.31))(@types/react@18.3.31)(babel-plugin-macros@3.1.0)(codemirror@6.0.2)(openai@5.23.2(ws@8.18.0)(zod@3.25.67))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rxjs@7.8.2)(signal-polyfill@0.2.2)(typescript@5.9.3)(vite@7.3.0(@types/node@24.13.6)(jiti@2.7.0)(less@4.5.1)(lightningcss@1.32.0)(sass-embedded@1.97.3)(sass@1.97.3)(stylus@0.59.0)(terser@5.46.0)(yaml@2.8.2))':
     dependencies:
       '@codemirror/lang-css': 6.3.1
       '@codemirror/lang-html': 6.4.12
@@ -23218,13 +23224,13 @@ snapshots:
       '@uiw/react-codemirror': 4.25.12(@babel/runtime@7.29.7)(@codemirror/autocomplete@6.20.3)(@codemirror/language@6.12.4)(@codemirror/lint@6.9.7)(@codemirror/search@6.7.1)(@codemirror/state@6.7.1)(@codemirror/theme-one-dark@6.1.3)(@codemirror/view@6.43.9)(codemirror@6.0.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@univerjs/preset-sheets-core': 0.25.1(@types/react-dom@19.3.0(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rxjs@7.8.2)
       '@univerjs/presets': 0.25.1(@types/react-dom@19.3.0(@types/react@18.3.31))(@types/react@18.3.31)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(rxjs@7.8.2)
-      '@xpert-ai/a2ui-react': 0.12.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(signal-polyfill@0.2.2)(tailwindcss@4.3.2)
+      '@xpert-ai/a2ui-react': 0.12.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(signal-polyfill@0.2.2)(tailwindcss@4.3.2)
       '@xpert-ai/artifact-tool': 0.1.0(react@18.3.1)(rxjs@7.8.2)
-      '@xpert-ai/chatkit-types': 0.12.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
-      '@xpert-ai/chatkit-web-shared': 0.12.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
+      '@xpert-ai/chatkit-types': 0.12.2(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
+      '@xpert-ai/chatkit-web-shared': 0.12.2(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
       '@xpert-ai/xpert-sdk': 0.8.1
-      '@xterm/addon-fit': 0.10.0(@xterm/xterm@5.5.0)
-      '@xterm/xterm': 5.5.0
+      '@xterm/addon-fit': 0.11.0
+      '@xterm/xterm': 6.0.0
       class-variance-authority: 0.7.1
       clsx: 2.1.1
       framer-motion: 12.42.0(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -23288,18 +23294,18 @@ snapshots:
       - vite
       - yjs
 
-  '@xpert-ai/chatkit-web-component@0.12.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))':
+  '@xpert-ai/chatkit-web-component@0.12.2(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))':
     dependencies:
-      '@xpert-ai/chatkit-types': 0.12.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
-      '@xpert-ai/chatkit-web-shared': 0.12.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
+      '@xpert-ai/chatkit-types': 0.12.2(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
+      '@xpert-ai/chatkit-web-shared': 0.12.2(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
     transitivePeerDependencies:
       - '@a2ui/lit'
       - '@langchain/core'
 
-  '@xpert-ai/chatkit-web-shared@0.12.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))':
+  '@xpert-ai/chatkit-web-shared@0.12.2(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))':
     dependencies:
       '@microsoft/fetch-event-source': 2.0.1
-      '@xpert-ai/chatkit-types': 0.12.1(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
+      '@xpert-ai/chatkit-types': 0.12.2(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(@opentelemetry/api@1.9.1)(@opentelemetry/sdk-trace-base@2.7.1(@opentelemetry/api@1.9.1))(openai@5.23.2(ws@8.18.0)(zod@3.25.67)))
     transitivePeerDependencies:
       - '@a2ui/lit'
       - '@langchain/core'
@@ -23324,7 +23330,11 @@ snapshots:
     dependencies:
       '@xterm/xterm': 5.5.0
 
+  '@xterm/addon-fit@0.11.0': {}
+
   '@xterm/xterm@5.5.0': {}
+
+  '@xterm/xterm@6.0.0': {}
 
   '@xtuc/ieee754@1.2.0': {}
 
