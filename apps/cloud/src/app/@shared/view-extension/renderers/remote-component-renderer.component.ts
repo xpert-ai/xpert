@@ -632,7 +632,8 @@ export class RemoteComponentRendererComponent {
       hostType: this.hostType(),
       hostId: this.hostId(),
       viewKey: this.manifest().key,
-      manifest: this.manifest()
+      manifest: this.manifest(),
+      runtimeScope: this.runtimeScope() ?? undefined
     })
   }
 

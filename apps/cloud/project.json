@@ -154,7 +154,8 @@
     "serve": {
       "executor": "@angular/build:dev-server",
       "options": {
-        "proxyConfig": "apps/cloud/proxy.conf.cjs"
+        "proxyConfig": "apps/cloud/proxy.conf.cjs",
+        "prebundle": { "exclude": ["@xpert-ai/desktop-protocol"] }
       },
       "configurations": {
         "production": {
