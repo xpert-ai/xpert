@@ -28,13 +28,32 @@ export function PluginCatalog({ search, revision }: { search: string; revision: 
   const infoId = useId()
   const [filter, setFilter] = useState<'all' | 'available'>('all')
   const [refresh, setRefresh] = useState(0)
+  const request = useRef<{
+    workspaceId: string
+    revision: number
+    refresh: number
+    promise: Promise<PluginLibrary>
+  } | null>(null)
   useEffect(() => {
     let alive = true
     setLoading(true)
     setDetail(null)
     setInstall(null)
     setError('')
-    invoke('pluginLibrary', { workspaceId: workspaceId || selectedWorkspace.current || undefined })
+    // Reuse the same request during React's development effect replay.
+    if (
+      !request.current ||
+      request.current.workspaceId !== workspaceId ||
+      request.current.revision !== revision ||
+      request.current.refresh !== refresh
+    )
+      request.current = {
+        workspaceId,
+        revision,
+        refresh,
+        promise: invoke('pluginLibrary', { workspaceId: workspaceId || selectedWorkspace.current || undefined })
+      }
+    request.current.promise
       .then((result) => {
         if (alive) {
           selectedWorkspace.current = result.workspaceId || ''
