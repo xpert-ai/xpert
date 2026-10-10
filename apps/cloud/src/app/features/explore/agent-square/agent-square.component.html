@@ -507,82 +507,87 @@
 
       @case ('applications') {
         @if (loadingApplications()) {
-          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          <div class="grid grid-cols-[repeat(auto-fill,minmax(min(100%,22rem),1fr))] gap-4">
             @for (placeholder of [1, 2, 3, 4, 5, 6, 7, 8]; track placeholder) {
-              <div class="h-[400px] animate-pulse rounded-xl border border-border bg-card"></div>
+              <div
+                class="aspect-video min-h-[calc(9.5rem+3px)] rounded-xl border border-border bg-muted/40 motion-safe:animate-pulse"
+              ></div>
             }
           </div>
         } @else if (filteredApplications().length) {
-          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+          <div class="grid grid-cols-[repeat(auto-fill,minmax(min(100%,22rem),1fr))] gap-4">
             @for (item of filteredApplications(); track item.application.id) {
               @let screenshots = applicationScreenshots(item);
               @let screenshot = screenshots[0];
-              <!-- Reserve the preview area even without screenshots so application cards share one layout. -->
               <article
                 data-application-card
-                class="group/application relative flex h-[300px] flex-col overflow-hidden rounded-xl border border-border bg-card shadow-sm transition-colors duration-200 hover:border-primary/60"
+                class="group/application relative isolate aspect-video min-h-[calc(9.5rem+3px)] min-w-0 overflow-hidden rounded-xl border border-border bg-muted/40 text-card-foreground transition-colors duration-200 hover:border-primary/60 focus-within:border-primary/60 motion-reduce:transition-none"
               >
-                @if (screenshot) {
-                  <button
-                    type="button"
-                    class="group/screenshot absolute inset-0 block size-full cursor-pointer overflow-hidden bg-muted/40 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-                    [attr.aria-label]="applicationScreenshotAlt(item)"
-                    (click)="openApplicationDetails(item)"
-                  >
+                <button
+                  data-application-media
+                  type="button"
+                  class="absolute inset-0 block size-full cursor-pointer overflow-hidden text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+                  [attr.aria-label]="screenshot ? applicationScreenshotAlt(item) : applicationTitle(item)"
+                  (click)="openApplicationDetails(item)"
+                >
+                  @if (screenshot) {
                     <img
                       data-application-screenshot
-                      class="size-full object-cover transition-transform duration-300 group-hover/screenshot:scale-[1.015]"
+                      class="size-full object-cover object-center"
                       [src]="screenshot"
                       [alt]="applicationScreenshotAlt(item)"
                       loading="lazy"
                       decoding="async"
                     />
-                    @if (screenshots.length > 1) {
-                      <span
-                        class="absolute right-3 top-3 rounded-md border border-border/70 bg-popover/90 px-2 py-1 text-[11px] font-medium text-popover-foreground shadow-sm backdrop-blur-sm"
-                        aria-hidden="true"
-                      >
-                        1 / {{ screenshots.length }}
-                      </span>
-                    }
-                  </button>
-                } @else {
-                  <button
-                    type="button"
-                    class="relative flex min-h-0 w-full flex-1 cursor-pointer items-center justify-center bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
-                    [attr.aria-label]="applicationTitle(item)"
-                    (click)="openApplicationDetails(item)"
+                  } @else {
+                    <span
+                      class="flex size-full items-center justify-center bg-linear-to-br from-muted via-accent/40 to-muted pb-14"
+                    >
+                      <xp-icon [icon]="item.application.icon ?? null" [size]="72" />
+                    </span>
+                  }
+                </button>
+                @if (screenshots.length > 1) {
+                  <span
+                    class="pointer-events-none absolute right-3 top-3 rounded-md bg-background/80 px-2 py-1 text-xs text-foreground"
+                    aria-hidden="true"
                   >
-                    <xp-icon [icon]="item.application.icon ?? null" [size]="72" />
-                  </button>
+                    1 / {{ screenshots.length }}
+                  </span>
                 }
 
                 <div
                   data-application-card-content
-                  class="relative z-10 mt-auto flex shrink-0 flex-col border-t border-border/70 bg-card p-4 text-card-foreground backdrop-blur-sm supports-[backdrop-filter]:bg-card/50 dark:supports-[backdrop-filter]:bg-card/50"
+                  class="absolute inset-x-0 bottom-0 z-10 translate-y-[calc(100%-4rem-1px)] overflow-hidden border-t border-border/40 bg-linear-to-b from-muted/30 via-muted/75 to-border/90 p-3 backdrop-blur-xl transition-transform duration-200 will-change-transform group-hover/application:translate-y-0 group-focus-within/application:translate-y-0 [@media(hover:none)]:translate-y-0 motion-reduce:transition-none"
                 >
-                  <div class="flex items-start justify-between gap-2.5">
+                  <div class="flex h-10 items-center gap-2.5">
                     <button
                       type="button"
-                      class="flex min-w-0 cursor-pointer items-center gap-2.5 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      class="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       (click)="openApplicationDetails(item)"
                     >
                       <span
-                        class="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border bg-muted"
+                        class="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-card"
                       >
-                        <xp-icon [icon]="item.application.icon ?? null" [size]="24" />
+                        <xp-icon [icon]="item.application.icon ?? null" [size]="32" />
                       </span>
-                      <span class="min-w-0">
-                        <span class="block truncate text-base font-semibold text-foreground">{{
-                          applicationTitle(item)
-                        }}</span>
-                        <span class="mt-0.5 block truncate text-xs text-muted-foreground">{{
-                          applicationDeveloper(item)
-                        }}</span>
+                      <span class="min-w-0 flex-1">
+                        <span
+                          class="block translate-y-2 truncate text-base font-semibold leading-5 text-foreground transition-transform duration-200 group-hover/application:translate-y-0 group-focus-within/application:translate-y-0 [@media(hover:none)]:translate-y-0 motion-reduce:transition-none"
+                          [attr.title]="applicationTitle(item)"
+                        >
+                          {{ applicationTitle(item) }}
+                        </span>
+                        <span
+                          class="block truncate text-xs leading-4 text-muted-foreground opacity-0 transition-opacity duration-200 group-hover/application:opacity-100 group-focus-within/application:opacity-100 [@media(hover:none)]:opacity-100 motion-reduce:transition-none"
+                          [attr.title]="applicationDeveloper(item)"
+                        >
+                          {{ applicationDeveloper(item) }}
+                        </span>
                       </span>
                     </button>
                     <span
-                      class="shrink-0 rounded-md border border-border bg-muted px-2 py-1 text-[11px] font-medium text-muted-foreground"
+                      class="max-w-[35%] shrink-0 truncate rounded-md bg-background/60 px-2 py-1 text-xs font-medium text-muted-foreground"
                       [attr.title]="
                         item.status.status === 'not_installed'
                           ? ('XP.Explore.Application.SetupExplanation' | translate)
@@ -592,30 +597,43 @@
                       {{ applicationStatusLabelKey(item.status.status) | translate }}
                     </span>
                   </div>
-                  <p class="mt-3 line-clamp-2 text-sm leading-5 text-muted-foreground">
-                    {{ applicationSummary(item) }}
-                  </p>
-                  <div class="mt-3 flex flex-wrap gap-2 pr-32">
-                    <span class="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
-                      {{ applicationScopeLabelKey(item.application.scope) | translate }}
-                    </span>
-                    @for (tag of item.marketplace.tags.slice(0, 3); track tag) {
-                      <span class="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">{{
-                        tag
-                      }}</span>
-                    }
-                  </div>
-                  <button
-                    data-application-action
-                    z-button
-                    zSize="lg"
-                    type="button"
-                    class="pointer-events-none absolute bottom-4 right-4 z-20 w-auto max-w-[calc(100%-2rem)] translate-y-1 cursor-pointer opacity-0 shadow-lg transition-all duration-200 group-hover/application:pointer-events-auto group-hover/application:translate-y-0 group-hover/application:opacity-100 group-focus-within/application:pointer-events-auto group-focus-within/application:translate-y-0 group-focus-within/application:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:translate-y-0 [@media(hover:none)]:opacity-100"
-                    [disabled]="applicationActionDisabled(item)"
-                    (click)="handleApplicationAction(item, $event)"
+
+                  <div
+                    data-application-details
+                    class="invisible group-hover/application:visible group-focus-within/application:visible [@media(hover:none)]:visible"
                   >
-                    {{ applicationActionLabel(item) }}
-                  </button>
+                    <p class="mt-2 line-clamp-2 break-words text-sm leading-5 text-muted-foreground">
+                      {{ applicationSummary(item) }}
+                    </p>
+                    <div class="mt-2 flex min-w-0 items-center gap-2">
+                      <div
+                        class="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden text-xs text-muted-foreground"
+                        [attr.title]="item.marketplace.tags.join(' · ')"
+                      >
+                        <span class="shrink-0">
+                          {{ applicationScopeLabelKey(item.application.scope) | translate }}
+                        </span>
+                        @for (tag of item.marketplace.tags.slice(0, 2); track tag) {
+                          <span class="min-w-0 truncate rounded-md bg-background/60 px-1.5 py-0.5" [attr.title]="tag">{{
+                            tag
+                          }}</span>
+                        }
+                      </div>
+                      <button
+                        data-application-action
+                        z-button
+                        zSize="sm"
+                        type="button"
+                        class="h-8 min-w-0 max-w-[65%] shrink-0 cursor-pointer gap-1 px-2 text-xs"
+                        [attr.title]="applicationActionLabel(item)"
+                        [disabled]="applicationActionDisabled(item)"
+                        (click)="handleApplicationAction(item, $event)"
+                      >
+                        <span class="truncate">{{ applicationActionLabel(item) }}</span>
+                        <z-icon zType="arrow-right" zSize="sm" class="shrink-0" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </article>
             }

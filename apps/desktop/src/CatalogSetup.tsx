@@ -6,7 +6,7 @@ import { ModelSelect } from './catalog/ModelSelect'
 import { TemplateRequirements } from './catalog/TemplateRequirements'
 import { Check, ExternalLink, LoaderCircle } from 'lucide-react'
 import { HostError, invoke, openWorkspace } from './host'
-import { canUseExpert } from './catalog-labels'
+import { canUseExpert, categoryLabel } from './catalog-labels'
 import { ApplicationScreenshots } from './ApplicationScreenshots'
 import type { ApplicationSetup, CatalogItem, ExpertItem, WorkspaceOption, TemplatePreflight } from './catalog-types'
 
@@ -162,7 +162,20 @@ export function CatalogSetup({
         <div className="mx-auto max-w-2xl space-y-6">
           <p className="text-sm leading-7 text-muted-foreground">{item.description}</p>
           {item.kind === 'applications' && (
-            <ApplicationScreenshots name={item.name} screenshots={setup?.application.screenshots ?? item.screenshots} />
+            <>
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                <span>{item.publisher || 'Xpert'}</span>
+                {item.tags.map((tag) => (
+                  <span key={tag} className="rounded-md bg-muted px-2 py-1">
+                    {categoryLabel(tag)}
+                  </span>
+                ))}
+              </div>
+              <ApplicationScreenshots
+                name={item.name}
+                screenshots={setup?.application.screenshots ?? item.screenshots}
+              />
+            </>
           )}
           {loading && !preflight ? (
             <div role="status" className="flex items-center gap-2 py-8 text-sm text-muted-foreground">

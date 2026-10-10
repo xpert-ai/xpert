@@ -1,25 +1,37 @@
-import { useId, useState } from 'react'
+import { useId, useState, type ReactNode } from 'react'
 import { Button } from '@xpert-ai/shadcn-ui'
 import { ChevronLeft, ChevronRight, ImageOff } from 'lucide-react'
 import { t } from './i18n'
 
-export function ApplicationCardBackground({ screenshots }: { screenshots: string[] }) {
+export function ApplicationCardBackground({
+  screenshots,
+  children,
+  blurred = false
+}: {
+  screenshots: string[]
+  children: ReactNode
+  blurred?: boolean
+}) {
   const [failed, setFailed] = useState<string[]>([])
   const source = screenshots.find((url) => !failed.includes(url))
-  if (!source) return null
   return (
-    <div aria-hidden="true" className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-      <img
-        key={source}
-        src={source}
-        alt=""
-        loading="lazy"
-        decoding="async"
-        referrerPolicy="no-referrer"
-        className="size-full scale-105 object-cover blur-[2px]"
-        onError={() => setFailed((urls) => [...urls, source])}
-      />
-      <div className="absolute inset-0 bg-linear-to-r from-background/95 via-background/85 to-background/65" />
+    <div
+      aria-hidden="true"
+      className={`pointer-events-none absolute ${blurred ? 'inset-x-0 bottom-0 h-[100cqh] blur-xl' : 'inset-0 -z-10 overflow-hidden rounded-[inherit]'}`}
+    >
+      {children}
+      {source && (
+        <img
+          key={source}
+          src={source}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          referrerPolicy="no-referrer"
+          className="absolute inset-0 size-full object-cover object-center"
+          onError={() => setFailed((urls) => [...urls, source])}
+        />
+      )}
     </div>
   )
 }

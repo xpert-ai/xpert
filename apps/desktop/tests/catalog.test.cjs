@@ -146,6 +146,42 @@ test('application screenshots are normalized consistently for catalog and detail
   assert.deepEqual((await service.listCatalog('applications'))[0].screenshots, [])
 })
 
+test('application logos preserve image, SVG and emoji identity in the catalog and details', async () => {
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M2 2h20v20H2z"/></svg>'
+  const response = { ...detail, application: { ...app, icon: null } }
+  const { service } = fixture((path) => (path.endsWith('/catalog') ? [response] : response))
+  service.configure({ ...service.config, webUrl: 'https://workspace.example.com' })
+  service.credentials = { token: 'fixture' }
+  service.profile = { organizationId: 'org-1' }
+  for (const [input, expected] of [
+    [
+      { type: 'image', value: inlineAvatar },
+      { type: 'image', value: inlineAvatar }
+    ],
+    [
+      { type: 'image', value: '/logo.png' },
+      { type: 'image', value: 'https://workspace.example.com/logo.png' }
+    ],
+    [
+      { type: 'svg', value: svg },
+      { type: 'image', value: `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}` }
+    ],
+    [
+      { type: 'emoji', value: '🎙️' },
+      { type: 'emoji', value: '🎙️' }
+    ],
+    [{ type: 'image', value: 'file:///private/logo.png' }, null],
+    [{ type: 'image', value: 'javascript:alert(1)' }, null],
+    [{ type: 'image', value: 'https://user:secret@example.com/logo.png' }, null],
+    [{ type: 'unknown', value: inlineAvatar }, null],
+    [null, null]
+  ]) {
+    response.application.icon = input
+    assert.deepEqual((await service.listCatalog('applications'))[0].icon, expected)
+    assert.deepEqual((await service.applicationSetup(app)).application.icon, expected)
+  }
+})
+
 test('expert access request rechecks access and submits only the reason, not renderer scope', async () => {
   let requested = false
   const { service, calls } = fixture((path, options) => {
