@@ -19,7 +19,7 @@ Sidebar and a Right Content Panel. The right panel embeds the official
 
 The desktop uses an amber primary color (`#f59e0b`) with a 12px radius token
 (10px inputs, 16px cards/dialogs). ChatKit receives the same primary token and
-its native `soft` radius preset; coverage inside the hosted frame depends on ChatKit.
+its native `round` radius preset; coverage inside the hosted frame depends on ChatKit.
 Both light and dark appearance modes use this theme.
 
 Use **用户菜单 → 设置 → 桌面外观** to customize the theme. Desktop options include
