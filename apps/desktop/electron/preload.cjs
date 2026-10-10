@@ -3,6 +3,11 @@ let avatarPointerSubscribers = 0
 contextBridge.exposeInMainWorld('xpertDesktop', {
   requestMicrophonePermission: () => ipcRenderer.invoke('xpert:microphone-permission'),
   audioCapture: (request) => ipcRenderer.invoke('xpert:audio-capture', request),
+  onNewGroup: (callback) => {
+    const listener = () => callback()
+    ipcRenderer.on('xpert:new-group', listener)
+    return () => ipcRenderer.removeListener('xpert:new-group', listener)
+  },
   onWindowActivated: (callback) => {
     const listener = () => callback()
     ipcRenderer.on('xpert:window-activated', listener)

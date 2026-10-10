@@ -7,17 +7,19 @@ import { t } from '../i18n'
 
 type Delivery = { blob: Blob; url: string; name: string; mimeType: string }
 
-export function useDeliveredFile() {
+export function useDeliveredFile(scope?: string) {
   const [visible, setVisible] = useState(false)
   const [file, setFile] = useState<Delivery | null>(null)
   const [error, setError] = useState('')
   const request = useRef(0)
-  useEffect(
-    () => () => {
+  useEffect(() => {
+    setVisible(false)
+    setFile(null)
+    setError('')
+    return () => {
       request.current++
-    },
-    []
-  )
+    }
+  }, [scope])
   useEffect(
     () => () => {
       if (file) URL.revokeObjectURL(file.url)

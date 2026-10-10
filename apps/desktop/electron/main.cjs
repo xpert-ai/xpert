@@ -104,7 +104,13 @@ function updateApplicationMenu() {
     iconPath: appIcon,
     credits: `${translate(locale, 'Your AI team leader.')}\n${translate(locale, 'You set the goal. Bosi leads the team.')}`
   })
-  Menu.setApplicationMenu(Menu.buildFromTemplate(menuTemplate(locale)))
+  Menu.setApplicationMenu(
+    Menu.buildFromTemplate(
+      menuTemplate(locale, process.platform, {
+        newGroup: () => BrowserWindow.getFocusedWindow()?.webContents.send('xpert:new-group')
+      })
+    )
+  )
 }
 
 function resetConnectionSession() {

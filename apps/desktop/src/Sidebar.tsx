@@ -1,3 +1,7 @@
+import { DesktopAddMenu } from './groups/DesktopAddMenu'
+import { GroupItem } from './groups/GroupItem'
+import { useGroupList } from './groups/useGroupList'
+import { conversationGroups, type ConversationRow } from './conversation-list-model'
 import { t } from './i18n'
 import { useEffect, useRef, useState } from 'react'
 import { Button, Input, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@xpert-ai/shadcn-ui'
@@ -6,7 +10,7 @@ import { AssistantItem, type AssistantAction } from './AssistantItems'
 import { AssistantDialog } from './AssistantDialog'
 import { useAssistantList } from './useAssistantList'
 import { AssistantScrollArea } from './AssistantScrollArea'
-import { assistantGroups, assistantRows, type AssistantRow } from './assistant-list-model'
+import { assistantRows, type AssistantRow } from './assistant-list-model'
 import { SidebarResizer } from './SidebarResizer'
 import type { ConversationNotice } from './assistant-list-types'
 import { invoke } from './host'
@@ -27,8 +31,16 @@ export function Sidebar({
   onBrowse,
   onLogout,
   notice,
-  onBotSaved
+  onBotSaved,
+  selectedGroup,
+  groupRevision,
+  onSelectGroup,
+  onCreateGroup
 }: {
+  selectedGroup: string | null
+  groupRevision: number
+  onSelectGroup: (id: string) => void
+  onCreateGroup: () => void
   state: AppState
   bots: Bot[]
   selected: string | null
@@ -51,6 +63,12 @@ export function Sidebar({
     bots.map((bot) => bot.id).join(','),
     notice
   )
+  const groupList = useGroupList(
+    `${state.config.apiUrl}:${state.profile?.user.id}:${state.profile?.organizationId}`,
+    groupRevision,
+    selectedGroup
+  )
+  const [archivedGroups, setArchivedGroups] = useState(false)
   const collapsed = list.sidebar.collapsed
   const [dialog, setDialog] = useState<{ bot: Bot; mode: 'edit' | 'duplicate' | 'section' } | null>(null)
   const [feedback, setFeedback] = useState('')
@@ -63,8 +81,8 @@ export function Sidebar({
     saveLayout(list.sidebar.width, value)
   }
   const rows = assistantRows(bots, list.sidebar, list.activities, query)
-  const pinned = rows.filter((row) => !!row.preference?.pinnedAt)
-  const groups = assistantGroups(rows, list.sidebar)
+  const groups = conversationGroups(rows, groupList.items, list.sidebar, query, archivedGroups)
+  const pinned = groups.find((group) => group.kind === 'pinned')?.rows ?? []
   const groupLabel = (group: (typeof groups)[number]) =>
     group.kind === 'section' || group.kind === 'domain' ? group.name : t(group.name)
   const selectRow = (row: AssistantRow, threadId?: string | null) => {
@@ -118,6 +136,19 @@ export function Sidebar({
       onMove={(row, sectionId) => void list.run(() => list.update({ action: 'move', botId: row.bot.id, sectionId }))}
     />
   )
+  const renderConversation = (row: ConversationRow, mode: 'list' | 'pinned' | 'compact' = 'list') =>
+    row.purpose === 'group' ? (
+      <GroupItem
+        key={`group:${row.group.id}`}
+        group={row.group}
+        mode={mode}
+        selected={selectedGroup}
+        onSelect={onSelectGroup}
+        onChange={groupList.change}
+      />
+    ) : (
+      renderRow(row.assistant, mode)
+    )
   const sections = groups.filter((group) => group.kind !== 'pinned')
   const [history, setHistory] = useState<{ ids: string[]; index: number }>({ ids: [], index: -1 })
   const searchInput = useRef<HTMLInputElement>(null)
@@ -208,8 +239,8 @@ export function Sidebar({
             size="icon"
             variant="ghost"
             className="mb-2 size-12 shrink-0 text-muted-foreground"
-            aria-label={t('Search digital experts')}
-            title={t('Search digital experts')}
+            aria-label={t('Search conversations')}
+            title={t('Search conversations')}
             onClick={() => {
               setCollapsed(false)
               setSearchOpen(true)
@@ -217,7 +248,7 @@ export function Sidebar({
           >
             <Search className="size-5" />
           </Button>
-          <AssistantScrollArea label={t('Assistant avatars')} className="flex flex-col items-center gap-1 px-1 py-1">
+          <AssistantScrollArea label={t('Conversation avatars')} className="flex flex-col items-center gap-1 px-1 py-1">
             {pending && (
               <span
                 role="status"
@@ -234,7 +265,10 @@ export function Sidebar({
                 className="size-12 shrink-0"
                 aria-label={t('Reload assistants')}
                 title={error}
-                onClick={onRefresh}
+                onClick={() => {
+                  onRefresh()
+                  groupList.reload()
+                }}
               >
                 <RefreshCw />
               </Button>
@@ -248,20 +282,17 @@ export function Sidebar({
                   className="flex w-full flex-col items-center gap-1"
                 >
                   {index > 0 && <div role="separator" className="my-2 w-8 shrink-0 border-t" />}
-                  {group.rows.map((row) => renderRow(row, 'compact'))}
+                  {group.rows.map((row) => renderConversation(row, 'compact'))}
                 </section>
               ))}
           </AssistantScrollArea>
-          <Button
-            size="icon"
-            variant="ghost"
-            className="my-1 size-12 shrink-0"
-            aria-label={t('Discover & add')}
-            title={t('Discover digital experts, apps, plugins and templates')}
-            onClick={onBrowse}
-          >
-            <Plus />
-          </Button>
+          <DesktopAddMenu
+            onBrowse={onBrowse}
+            onCreateGroup={onCreateGroup}
+            archivedGroups={archivedGroups}
+            onArchivedGroups={() => setArchivedGroups(!archivedGroups)}
+            compact={true}
+          />
         </div>
       )}
       <div id="bot-sidebar-content" className={collapsed ? 'hidden' : 'flex min-h-0 flex-1 flex-col'}>
@@ -293,8 +324,8 @@ export function Sidebar({
               size="icon"
               variant="ghost"
               className="ml-auto size-8 shrink-0 text-muted-foreground"
-              aria-label={searchOpen ? t('Close search') : t('Search digital experts')}
-              title={searchOpen ? t('Close search') : t('Search digital experts')}
+              aria-label={searchOpen ? t('Close search') : t('Search conversations')}
+              title={searchOpen ? t('Close search') : t('Search conversations')}
               aria-expanded={searchOpen}
               aria-controls="bot-search"
               onClick={() => (searchOpen ? closeSearch() : setSearchOpen(true))}
@@ -307,8 +338,8 @@ export function Sidebar({
               <Search className="pointer-events-none absolute top-3 left-3 size-4 text-muted-foreground" />
               <Input
                 ref={searchInput}
-                aria-label={t('Search digital experts')}
-                placeholder={t('Search digital experts')}
+                aria-label={t('Search conversations')}
+                placeholder={t('Search conversations')}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => {
@@ -320,8 +351,10 @@ export function Sidebar({
           )}
           <div className="mt-4 mb-2 flex items-center justify-between">
             <h2 className="text-[0.8125rem] leading-5 font-medium text-muted-foreground">
-              {t('My digital experts')}
-              <span className="ml-1 text-xs font-normal">{bots.length || ''}</span>
+              {t('Conversations')}
+              <span className="ml-1 text-xs font-normal">
+                {bots.length + groupList.items.filter((group) => !group.archived).length || ''}
+              </span>
             </h2>
             <div className="flex">
               <Button
@@ -331,24 +364,24 @@ export function Sidebar({
                 aria-label={t('Refresh Bots')}
                 title={t('Refresh Bots')}
                 disabled={pending}
-                onClick={onRefresh}
+                onClick={() => {
+                  onRefresh()
+                  groupList.reload()
+                }}
               >
                 <RefreshCw className={pending ? 'animate-spin' : ''} />
               </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="size-7"
-                aria-label={t('Discover & add')}
-                title={t('Discover digital experts, apps, plugins and templates')}
-                onClick={onBrowse}
-              >
-                <Plus />
-              </Button>
+              <DesktopAddMenu
+                onBrowse={onBrowse}
+                onCreateGroup={onCreateGroup}
+                archivedGroups={archivedGroups}
+                onArchivedGroups={() => setArchivedGroups(!archivedGroups)}
+                compact={false}
+              />
             </div>
           </div>
         </div>
-        <AssistantScrollArea label={t('My digital experts')} className="space-y-[var(--desktop-row-gap)] px-3 pb-2">
+        <AssistantScrollArea label={t('Conversations')} className="space-y-[var(--desktop-row-gap)] px-3 pb-2">
           {pending && (
             <p role="status" className="flex items-center gap-2 px-3 py-5 text-sm text-muted-foreground">
               <LoaderCircle className="size-4 animate-spin" />
@@ -360,8 +393,32 @@ export function Sidebar({
               <p role="alert" className="text-sm text-destructive">
                 {error}
               </p>
-              <Button variant="outline" size="sm" className="mt-3" onClick={onRefresh}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3"
+                onClick={() => {
+                  onRefresh()
+                  groupList.reload()
+                }}
+              >
                 {t('Retry')}
+              </Button>
+            </div>
+          )}
+          {groupList.error && (
+            <p role="alert" className="px-2 py-2 text-xs text-destructive">
+              {groupList.error}
+              <button className="ml-2 underline" onClick={groupList.reload}>
+                {t('Retry')}
+              </button>
+            </p>
+          )}
+          {archivedGroups && (
+            <div className="flex items-center justify-between px-2 py-2 text-xs text-muted-foreground">
+              <span>{t('Archived groups')}</span>
+              <Button variant="ghost" size="sm" onClick={() => setArchivedGroups(false)}>
+                {t('Active groups')}
               </Button>
             </div>
           )}
@@ -379,9 +436,9 @@ export function Sidebar({
             </p>
           )}
           {!pending && !error && pinned.length > 0 && (
-            <section aria-label={t('Pinned assistants')} className="mb-3 border-b pb-3">
+            <section aria-label={t('Pinned conversations')} className="mb-3 border-b pb-3">
               <div className="grid grid-cols-[repeat(auto-fill,minmax(84px,1fr))] gap-1">
-                {pinned.map((row) => renderRow(row, 'pinned'))}
+                {pinned.map((row) => renderConversation(row, 'pinned'))}
               </div>
             </section>
           )}
@@ -400,15 +457,19 @@ export function Sidebar({
                         {groupLabel(section)}
                       </h3>
                     )}
-                    <div className="space-y-[var(--desktop-row-gap)]">{section.rows.map((row) => renderRow(row))}</div>
+                    <div className="space-y-[var(--desktop-row-gap)]">
+                      {section.rows.map((row) => renderConversation(row))}
+                    </div>
                   </section>
                 )
             )}
-          {!pending && !error && !rows.length && (
+          {!pending && !error && !groups.some((group) => group.rows.length) && (
             <p className="px-3 py-6 text-sm leading-6 text-muted-foreground">
-              {query
-                ? t('No matching Bots.')
-                : t('No Bots are available in this workspace. Publish an assistant in Xpert, then refresh.')}
+              {archivedGroups
+                ? t('No archived groups')
+                : query
+                  ? t('No matching conversations.')
+                  : t('No Bots are available in this workspace. Publish an assistant in Xpert, then refresh.')}
             </p>
           )}
         </AssistantScrollArea>

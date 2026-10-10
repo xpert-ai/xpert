@@ -154,6 +154,8 @@ test('sidebar ignores DOM focus and keeps rows and conversation mounted during n
         BosiOnboarding: ({ onReady }) =>
           React.createElement('button', { id: 'ready', onClick: () => onReady('bosi', null) }, 'Ready')
       },
+      './groups/CreateGroupDialog': { CreateGroupDialog: () => null },
+      './groups/GroupChatPanel': { GroupChatPanel: () => null },
       './ChatPanel': { ChatPanel: () => React.createElement('iframe', { title: 'Chat', id: 'chat' }) },
       './profile/PreviewScope': { AssistantPreviewScope: ({ children }) => children },
       './voice/VoiceProvider': { VoiceProvider: ({ children }) => children },

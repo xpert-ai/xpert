@@ -30,7 +30,7 @@ function loadRenderer(file, imports, globals = {}) {
   return exports
 }
 
-test('bubble preferences reach initial and live ChatKit options without remounting the conversation', async (t) => {
+test('presentation and Assistant/group navigation reuse the frame with isolated options and listeners', async (t) => {
   const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost/' })
   const previous = { window: global.window, document: global.document, act: global.IS_REACT_ACT_ENVIRONMENT }
   global.window = dom.window
@@ -46,9 +46,14 @@ test('bubble preferences reach initial and live ChatKit options without remounti
     global.IS_REACT_ACT_ENVIRONMENT = previous.act
   })
   const received = []
+  const threadChanges = []
+  const voiceBindings = []
   class ChatKitElement extends dom.window.HTMLElement {
     setOptions(options) {
       received.push(options)
+    }
+    setThreadId(id) {
+      threadChanges.push(id)
     }
   }
   dom.window.customElements.define('xpertai-chatkit', ChatKitElement)
@@ -60,6 +65,7 @@ test('bubble preferences reach initial and live ChatKit options without remounti
   let appearanceDialog
   let appearanceSaves = 0
   let navigate
+  const sessionRequests = []
   const shell = {
     handlers: {},
     dialog: null,
@@ -87,30 +93,42 @@ test('bubble preferences reach initial and live ChatKit options without remounti
         }
       },
       './shell/useShellIntegration': { useShellIntegration: () => shell },
-      './voice/VoiceProvider': { useVoiceOptions: () => undefined },
+      './voice/VoiceProvider': {
+        useVoiceOptions: (target, onThread, enabled) => {
+          voiceBindings.push({ target, onThread, enabled })
+          return undefined
+        }
+      },
       './i18n': { t: (key) => key },
       '@xpert-ai/chatkit-web-component': {},
       '@xpert-ai/shadcn-ui': { Button: 'button' },
       'lucide-react': { LoaderCircle: () => null },
       './host': {
-        invoke: () => {
-          throw new Error('No host requests expected')
+        invoke: async (method, id) => {
+          sessionRequests.push([method, id])
+          return { secret: `test-only-${id}` }
         }
       },
       './theme': theme
     },
-    { window: dom.window, document: dom.window.document, queueMicrotask }
+    { window: dom.window, document: dom.window.document, queueMicrotask, AbortController: dom.window.AbortController }
   )
   let appearance = structuredClone(defaults.appearance)
   appearance.chatkit.messagePresentation = 'bubbles'
+  let bot = { id: 'test-bot', name: 'Test assistant' }
+  let groupId = null
+  let selectionVersion = 0
+  const reads = []
   const render = () =>
     root.render(
       React.createElement(ChatPanel, {
-        bot: { id: 'test-bot', name: 'Test assistant' },
+        bot,
+        groupId,
+        selectionVersion,
         config: { ...DEFAULT_CONFIG, appearance },
         dark: false,
         initialThread: 'existing-thread',
-        onConversationRead() {},
+        onConversationRead: (...args) => reads.push(args),
         onAppearanceSaved: async () => appearanceSaves++
       })
     )
@@ -168,6 +186,40 @@ test('bubble preferences reach initial and live ChatKit options without remounti
   assert.equal(appearanceDialog, undefined, 'old assistant events are ignored after workbench navigation')
   await React.act(() => customize('navigated-assistant'))
   assert.equal(appearanceDialog.botId, 'navigated-assistant')
+
+  const previousSessionKey = received.at(-1).sessionKey
+  const previousVoice = voiceBindings.at(-1)
+  bot = { id: 'second-bot', name: 'Second assistant' }
+  await React.act(render)
+  assert.equal(document.querySelector('xpertai-chatkit'), element, 'Assistant switching preserves the iframe host')
+  assert.equal(received.at(-1).api.xpertId, 'second-bot')
+  assert.notEqual(received.at(-1).sessionKey, previousSessionKey)
+  await React.act(() => previousVoice.onThread('late-voice-thread'))
+  assert.deepEqual(threadChanges, [], 'late voice startup cannot navigate the newly selected Assistant')
+  await React.act(() => element.dispatchEvent(new dom.window.Event('chatkit.thread.load.end')))
+  assert.deepEqual(reads, [['second-bot', 'existing-thread']], 'old Assistant listeners are removed')
+  const assistantSessionKey = received.at(-1).sessionKey
+  selectionVersion++
+  await React.act(render)
+  assert.notEqual(received.at(-1).sessionKey, assistantSessionKey, 'same-Assistant navigation resets logical UI state')
+  assert.equal(document.querySelector('xpertai-chatkit'), element)
+  for (const id of ['group-one', 'group-two', null]) {
+    groupId = id
+    await React.act(render)
+    assert.equal(
+      document.querySelector('xpertai-chatkit'),
+      element,
+      'group/private transitions preserve the iframe host'
+    )
+    assert.equal(received.at(-1).group?.id, id ?? undefined)
+    assert.equal(received.at(-1).api.xpertId, id ? undefined : 'second-bot')
+    assert.equal(voiceBindings.at(-1).enabled, !id, 'group mode leaves call controls with the app voice provider')
+    await received.at(-1).api.getClientSecret(null)
+    assert.deepEqual(
+      JSON.parse(JSON.stringify(sessionRequests.at(-1))),
+      id ? ['chatSession', { scope: { kind: 'conversation', conversationId: id } }] : ['chatSession', 'second-bot']
+    )
+  }
 })
 
 test('local computer status uses policy and connection state without starting a Shell', () => {

@@ -1,3 +1,4 @@
+import { CreateGroupDialog } from './groups/CreateGroupDialog'
 import { VoiceProvider } from './voice/VoiceProvider'
 import type { ConversationNotice } from './assistant-list-types'
 import { t, useLocale, setLocale, localizeValidation, clearValidation } from './i18n'
@@ -19,6 +20,9 @@ import { BosiOnboarding } from './bosi/BosiOnboarding'
 import { subscribeAppActivation } from './app-activation'
 
 export function App() {
+  const [selectedGroup, setSelectedGroup] = useState<string | null>(null)
+  const [createGroup, setCreateGroup] = useState(false)
+  const [groupRevision, setGroupRevision] = useState(0)
   const [state, setState] = useState<AppState | null>(null)
   const [fatal, setFatal] = useState('')
   const [bots, setBots] = useState<Bot[]>([])
@@ -29,6 +33,7 @@ export function App() {
   const [selectionVersion, setSelectionVersion] = useState(0)
   const [bosiReady, setBosiReady] = useState(false)
   const selectBot = (id: string, threadId: string | null = null) => {
+    setSelectedGroup(null)
     setSelected(id)
     setInitialVoice(null)
     setInitialThread(threadId)
@@ -75,6 +80,7 @@ export function App() {
       setFatal(error instanceof Error ? error.message : t('Could not load Bosi.'))
     }
   }, [])
+  useEffect(() => window.xpertDesktop?.onNewGroup?.(() => setCreateGroup(true)), [])
   useEffect(() => {
     void initialize()
   }, [initialize])
@@ -121,6 +127,8 @@ export function App() {
   useEffect(() => {
     request.current++
     setBots([])
+    setSelectedGroup(null)
+    setCreateGroup(false)
     setBosiReady(false)
     setSelected(null)
     setInitialThread(null)
@@ -198,7 +206,11 @@ export function App() {
                   key={binding}
                   state={state}
                   bots={bots}
-                  selected={selected}
+                  selected={selectedGroup ? null : selected}
+                  selectedGroup={selectedGroup}
+                  groupRevision={groupRevision}
+                  onSelectGroup={setSelectedGroup}
+                  onCreateGroup={() => setCreateGroup(true)}
                   pending={pending}
                   error={error}
                   onSelect={selectBot}
@@ -235,7 +247,7 @@ export function App() {
                 />
               </AssistantPreviewScope>
               <main className="flex min-w-0 flex-1 flex-col">
-                {!bosiReady && state.profile.organizationId ? (
+                {!selectedGroup && !bosiReady && state.profile.organizationId ? (
                   <BosiOnboarding
                     key={binding}
                     organizationId={state.profile.organizationId}
@@ -247,9 +259,11 @@ export function App() {
                       setBosiReady(true)
                     }}
                   />
-                ) : bot ? (
+                ) : bot || selectedGroup ? (
                   <ChatPanel
-                    key={`${binding}:${bot.id}:${selectionVersion}`}
+                    key={binding}
+                    groupId={selectedGroup}
+                    selectionVersion={selectionVersion}
                     initialThread={initialThread}
                     initialVoice={initialVoice}
                     onConversationRead={onConversationRead}
@@ -283,6 +297,17 @@ export function App() {
           <Login state={state} onLogin={setState} onSettings={() => openSettings('connection')} />
         )}
       </div>
+      {createGroup && state.profile?.organizationId && (
+        <CreateGroupDialog
+          key={binding}
+          onClose={() => setCreateGroup(false)}
+          onCreated={(id) => {
+            setSelectedGroup(id)
+            setCreateGroup(false)
+            setGroupRevision((value) => value + 1)
+          }}
+        />
+      )}
       {settings && (
         <ConnectionSettings
           config={state.config}

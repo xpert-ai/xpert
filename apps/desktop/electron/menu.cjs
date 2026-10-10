@@ -1,7 +1,7 @@
 const { translate } = require('./i18n/index.mjs')
 const branding = require('./branding.json')
 
-function menuTemplate(locale, platform = process.platform) {
+function menuTemplate(locale, platform = process.platform, actions = {}) {
   const t = (key) => translate(locale, key)
   const role = (role, label) => ({ role, label: t(label) })
   const separator = { type: 'separator' }
@@ -25,7 +25,14 @@ function menuTemplate(locale, platform = process.platform) {
           }
         ]
       : []),
-    { label: t('File'), submenu: [role(mac ? 'close' : 'quit', mac ? 'Close window' : 'Quit Bosi')] },
+    {
+      label: t('File'),
+      submenu: [
+        { label: t('New group'), accelerator: 'CmdOrCtrl+Shift+G', click: () => actions.newGroup?.() },
+        separator,
+        role(mac ? 'close' : 'quit', mac ? 'Close window' : 'Quit Bosi')
+      ]
+    },
     {
       label: t('Edit'),
       submenu: [

@@ -348,13 +348,21 @@ class DesktopService {
     return this.bots
   }
 
-  async chatSession(botId) {
-    if (!this.bots.some((item) => item.id === botId))
+  async chatSession(input) {
+    const conversationId =
+      typeof input === 'object' && input?.scope?.kind === 'conversation' ? input.scope.conversationId : undefined
+    if (typeof input !== 'string' && (typeof conversationId !== 'string' || !/^[0-9a-f-]{36}$/i.test(conversationId)))
+      throw new ClientError('Invalid input.')
+    const botId = typeof input === 'string' ? input : undefined
+    if (!conversationId && !this.bots.some((item) => item.id === botId))
       throw new ClientError('Select a Bot in the current workspace first.', 403)
     const organizationId = this.profile?.organizationId
     const result = await this.request('/api/ai/v1/chatkit/sessions', {
       method: 'POST',
-      body: { assistant: { id: this.bots.find((item) => item.id === botId).assistantId || botId } }
+      scope: 'organization',
+      body: conversationId
+        ? { scope: { kind: 'conversation', conversationId } }
+        : { assistant: { id: this.bots.find((item) => item.id === botId).assistantId || botId } }
     })
     if (typeof result?.client_secret !== 'string' || !result.client_secret)
       throw new ClientError('Could not create a ChatKit session.')
@@ -522,3 +530,5 @@ Object.assign(
 )
 
 Object.assign(DesktopService.prototype, require('./voice.cjs').createVoiceMethods(ClientError))
+
+Object.assign(DesktopService.prototype, require('./groups.cjs').createGroupMethods(ClientError))
