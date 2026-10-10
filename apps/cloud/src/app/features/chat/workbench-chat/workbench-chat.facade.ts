@@ -30,6 +30,8 @@ export type WorkbenchChatFacade = {
   defaultViewKey: Signal<string | null>
   chatkitFrameUrl: Signal<string | null>
   threadId: Signal<string | null>
+  /** Group sessions are bound by conversation ID; they do not load a private Assistant thread. */
+  group?: Signal<{ id: string } | null>
   /** Current Chat Project route scope when this workbench supports Project isolation. */
   projectId?: Signal<string | null>
   /** Initial session binding only; ChatKit resolves runtime Project scope from the saved conversation. */

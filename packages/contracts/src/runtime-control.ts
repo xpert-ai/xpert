@@ -79,3 +79,19 @@ export interface IRuntimeReadiness {
   restartId?: string
   requestedAt?: string
 }
+
+/** Registry membership is distinct from liveness; missing heartbeats do not prove retirement. */
+export interface IRuntimeInstanceRegistration {
+  instanceId: string
+  bootId: string
+  lastSeenAt: string
+  online: boolean
+}
+
+export interface IRuntimeInstanceRetirementRequest {
+  expectedBootId: string
+}
+
+export interface IRuntimeInstanceRetirementResult {
+  status: 'retired' | 'not-found' | 'boot-changed' | 'online'
+}

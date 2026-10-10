@@ -130,7 +130,7 @@ type ClawXpertDocumentCard = {
         >
           <z-icon zType="warning" class="text-3xl text-text-tertiary"></z-icon>
           <div class="mt-4 text-base font-medium text-text-primary">
-            {{ 'XP.Chat.ClawXpert.LoadFailed' | translate: { Default: 'Failed to load ClawXpert.' } }}
+            {{ 'XP.Chat.ClawXpert.LoadFailed' | translate: { Default: 'Failed to load digital expert.' } }}
           </div>
           <div class="mt-2 max-w-sm text-sm text-text-secondary">
             {{ facade.viewErrorMessage() }}

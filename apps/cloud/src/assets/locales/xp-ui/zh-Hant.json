@@ -26,6 +26,16 @@
     "searchPlaceholder": "搜尋",
     "noResults": "未找到結果"
   },
+  "paginator": {
+    "itemsPerPage": "每頁筆數：",
+    "itemsPerPagePlaceholder": "每頁筆數",
+    "firstPage": "第一頁",
+    "previousPage": "上一頁",
+    "nextPage": "下一頁",
+    "lastPage": "最後一頁",
+    "range": "第 {{start}}–{{end}} 筆，共 {{length}} 筆",
+    "emptyRange": "共 {{length}} 筆"
+  },
   "chipGrid": {
     "emptyPlaceholder": "選擇或添加項目"
   }

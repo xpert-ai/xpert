@@ -1,16 +1,30 @@
 import {
 	IPluginRuntimeConvergenceStatus,
+	IRuntimeInstanceRegistration,
+	IRuntimeInstanceRetirementResult,
 	IRuntimeRestartCapability,
 	IRuntimeRestartResponse,
 	IRuntimeRestartStatus,
 	RolesEnum
 } from '@xpert-ai/contracts'
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, ParseIntPipe, Post, Req, UseGuards } from '@nestjs/common'
+import {
+	Body,
+	Controller,
+	Get,
+	HttpCode,
+	HttpStatus,
+	Param,
+	ParseIntPipe,
+	Post,
+	Req,
+	UseGuards,
+	ValidationPipe
+} from '@nestjs/common'
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { Request } from 'express'
 import { Roles } from '../shared/decorators'
 import { RoleGuard, TenantPermissionGuard } from '../shared/guards'
-import { RuntimeRestartRequestDto } from './runtime-control.dto'
+import { RuntimeInstanceRetirementDto, RuntimeRestartRequestDto } from './runtime-control.dto'
 import { RuntimeControlService } from './runtime-control.service'
 
 @ApiTags('System Runtime')
@@ -18,6 +32,26 @@ import { RuntimeControlService } from './runtime-control.service'
 @UseGuards(TenantPermissionGuard)
 export class RuntimeControlController {
 	constructor(private readonly runtimeControl: RuntimeControlService) {}
+
+	@Get('instances')
+	@UseGuards(RoleGuard)
+	@Roles(RolesEnum.SUPER_ADMIN)
+	async listInstances(): Promise<IRuntimeInstanceRegistration[]> {
+		return this.runtimeControl.listInstances()
+	}
+
+	@Post('instances/:instanceId/retire')
+	@HttpCode(HttpStatus.OK)
+	@UseGuards(RoleGuard)
+	@Roles(RolesEnum.SUPER_ADMIN)
+	async retireInstance(
+		@Param('instanceId') instanceId: string,
+		@Body(new ValidationPipe({ transform: true, whitelist: true, forbidNonWhitelisted: true }))
+		input: RuntimeInstanceRetirementDto,
+		@Req() request: Request
+	): Promise<IRuntimeInstanceRetirementResult> {
+		return this.runtimeControl.retireInstance(instanceId, input, { sourceIp: request.ip })
+	}
 
 	@ApiOperation({ summary: 'Read the current interactive session runtime restart capability' })
 	@Get('restart-capability')

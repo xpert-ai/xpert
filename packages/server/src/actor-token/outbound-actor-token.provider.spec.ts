@@ -43,6 +43,7 @@ describe('LocalOutboundActorTokenProvider', () => {
 			id: 'technical-user-1',
 			tenantId: 'tenant-1',
 			principalType: 'api_key',
+			resourceScope: { kind: 'assistant', xpertId: 'xpert-1' },
 			apiKey: {
 				id: 'api-key-1',
 				token: 'redacted',

@@ -13,6 +13,7 @@ import { TypeOrmAgentInvocationStore } from '../../../agent-invocation/typeorm-i
 import { ChatConversation } from '../../../chat-conversation/conversation.entity'
 import { XpertAgentExecution } from '../../../xpert-agent-execution/agent-execution.entity'
 import { HandoffQueueGatewayService } from '../../dispatcher/handoff-queue-gateway.service'
+import { HandoffOutboxAdapters } from '../../outbox-adapters.service'
 import { HandoffQueueService } from '../../message-queue.service'
 import { XPERT_HANDOFF_JOB, XPERT_HANDOFF_QUEUE } from '../../constants'
 import { RuntimeMessageAccessService, AuthorizedRuntimeReply } from '../runtime-message-access.service'
@@ -135,7 +136,12 @@ child(
                 const handoff = Object.assign(Object.create(HandoffQueueService.prototype) as HandoffQueueService, {
                     enqueue: async (message: HandoffMessage) => gateway.enqueue(XPERT_HANDOFF_QUEUE, message)
                 })
-                const transport = new RuntimeMessageTransportService(database, access, handoff)
+                const transport = new RuntimeMessageTransportService(
+                    database,
+                    access,
+                    handoff,
+                    new HandoffOutboxAdapters()
+                )
                 await transport.reconcile()
                 expect(await queue.getWaitingCount()).toBe(1)
             } else if (config.phase.startsWith('receive')) {

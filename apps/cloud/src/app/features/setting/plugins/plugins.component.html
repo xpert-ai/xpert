@@ -117,20 +117,27 @@
         {{ 'XP.Plugin.RuntimeApplyingTitle' | translate: { Default: 'Plugin changes are being applied' } }}
       </div>
       <div class="mt-0.5 text-sm text-text-secondary">
-        {{
-          'XP.Plugin.RuntimeApplyingDescription'
-            | translate
-              : {
-                  Default: 'API replicas are restarting in background batches. You can continue using this page.',
-                  pluginNames: runtimeRestart.backgroundPluginNames().join(', ')
-                }
-        }}
+        @if (runtimeRestart.backgroundPluginNames().length) {
+          {{
+            'XP.Plugin.RuntimeApplyingDescription'
+              | translate
+                : {
+                    Default:
+                      'API replicas are restarting in background batches for {{pluginNames
+          }}. You can continue using this page.', pluginNames: runtimeRestart.backgroundPluginNames().join(', ') } }}
+        } @else {
+          {{
+            'XP.Plugin.RuntimeApplyingGenericDescription'
+              | translate
+                : { Default: 'API replicas are restarting in background batches. You can continue using this page.' }
+          }}
+        }
       </div>
     </div>
   </div>
 }
 
-@if (runtimeRestart.requiresManualRestart()) {
+@if (runtimeRestart.showManualRestart()) {
   <div
     class="mx-8 mb-3 flex items-center justify-between gap-4 rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-3 shadow-sm"
     role="status"

@@ -82,6 +82,12 @@ export * from './chat-message-envelope.model'
  */
 export interface IChatMessage
   extends IBasePerTenantAndOrganizationEntityModel, Omit<Omit<CopilotBaseMessage, 'createdAt'>, 'id'> {
+  /**
+   * Server-assigned order within a conversation using sequenced messages (currently group chat).
+   * Stable across message updates; use for ordering/history cursors, not identity or cross-thread order.
+   * Optional for legacy/unsequenced messages; distinct from the conversation's state revision.
+   */
+  sequence?: number
   /** Persisted host-owned provenance; read-only through public message APIs. */
   messageEnvelope?: TChatMessageEnvelope | null
   parent?: IChatMessage | null

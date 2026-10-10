@@ -3,6 +3,7 @@ import { RouterModule, Routes } from '@angular/router'
 import { OnboardingComponent } from './onboarding.component'
 import { WelcomeComponent } from './welcome/welcome.component'
 import { onboardGuard } from '../@core/guards'
+import { authGuard } from '../@core/auth/auth.guard'
 
 const routes: Routes = [
   {
@@ -18,6 +19,11 @@ const routes: Routes = [
         path: 'tenant',
         loadComponent: () => import('./tenant-details/tenant-details.component').then((m) => m.TenantDetailsComponent),
         canActivate: [onboardGuard]
+      },
+      {
+        path: 'plugins',
+        loadComponent: () => import('./plugins/setup-plugins.component').then((m) => m.SetupPluginsComponent),
+        canActivate: [authGuard]
       },
       {
         path: 'unknown',

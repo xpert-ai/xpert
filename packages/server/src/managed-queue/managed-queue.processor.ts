@@ -1,3 +1,4 @@
+import { resourceScopeFromApiKey } from '../api-key/api-key-principal'
 import { Processor, WorkerHost } from '@nestjs/bullmq'
 import { Injectable, Logger } from '@nestjs/common'
 import type { IApiKey, IApiPrincipal, IUser } from '@xpert-ai/contracts'
@@ -195,20 +196,28 @@ export class ManagedQueueProcessor extends WorkerHost {
 		snapshot: ManagedQueueDelegationSnapshot,
 		tenantId: string
 	): IApiPrincipal {
-		const apiKey: IApiKey = {
-			token: MANAGED_QUEUE_DELEGATED_API_KEY_TOKEN,
-			tenantId: snapshot.apiKey.tenantId,
-			...(snapshot.apiKey.type ? { type: snapshot.apiKey.type } : {}),
-			...(snapshot.apiKey.entityId ? { entityId: snapshot.apiKey.entityId } : {}),
-			...(snapshot.apiKey.organizationId ? { organizationId: snapshot.apiKey.organizationId } : {}),
-			...(snapshot.apiKey.userId ? { userId: snapshot.apiKey.userId } : {})
-		}
+		const apiKey: IApiKey | undefined = snapshot.apiKey
+			? {
+					token: MANAGED_QUEUE_DELEGATED_API_KEY_TOKEN,
+					tenantId: snapshot.apiKey.tenantId,
+					...(snapshot.apiKey.type ? { type: snapshot.apiKey.type } : {}),
+					...(snapshot.apiKey.entityId ? { entityId: snapshot.apiKey.entityId } : {}),
+					...(snapshot.apiKey.organizationId ? { organizationId: snapshot.apiKey.organizationId } : {}),
+					...(snapshot.apiKey.userId ? { userId: snapshot.apiKey.userId } : {})
+				}
+			: undefined
 
 		return {
 			...actor,
 			tenantId,
 			principalType: snapshot.principalType,
 			apiKey,
+			// @deprecated Old persisted jobs may have only an API key binding.
+			// Normalize here once; consumers never fall back to that representation.
+			resourceScope: snapshot.resourceScope ?? (apiKey ? resourceScopeFromApiKey(apiKey) : undefined),
+			clientSecretExpiresAt: snapshot.clientSecretExpiresAt
+				? new Date(snapshot.clientSecretExpiresAt)
+				: undefined,
 			ownerUserId: snapshot.ownerUserId ?? null,
 			apiKeyUserId: snapshot.apiKeyUserId ?? null,
 			requestedUserId: snapshot.requestedUserId ?? null,

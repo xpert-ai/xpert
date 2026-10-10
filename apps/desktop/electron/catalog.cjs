@@ -1,5 +1,6 @@
 const { localizedText } = require('./i18n/index.mjs')
 const { parseBusinessArea } = require('./business-area.cjs')
+const { parseAvatarUrl } = require('./avatar-url.cjs')
 // A narrow marketplace boundary: credentials, template DSL and plugin configuration stay in the host.
 module.exports.createCatalogMethods = function createCatalogMethods(ClientError) {
   const text = (value) => (typeof value === 'string' ? value : '')
@@ -27,7 +28,7 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
     return value
   }
   const avatar = (value) => ({
-    avatarUrl: typeof value?.url === 'string' && /^https?:\/\//.test(value.url) ? value.url : null,
+    avatarUrl: parseAvatarUrl(value?.url),
     avatarEmoji:
       typeof value?.emoji?.id === 'string'
         ? { id: value.emoji.id, unified: typeof value.emoji.unified === 'string' ? value.emoji.unified : null }

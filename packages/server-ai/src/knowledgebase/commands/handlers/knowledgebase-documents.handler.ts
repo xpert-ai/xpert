@@ -137,10 +137,27 @@ export class ListKnowledgebaseDocumentsHandler implements ICommandHandler<ListKn
                       }
                     : {}),
                 ...(command.input.includeFolders ? {} : { sourceType: Not(KDocumentSourceType.FOLDER) }),
-                ...(search ? { name: ILike(`%${escapeLikePattern(search)}%`) } : {})
+                ...(command.input.mimeTypes?.length ? { mimeType: In(command.input.mimeTypes) } : {}),
+                ...(search
+                    ? command.input.searchFields?.includes('path')
+                        ? {
+                              // Keep the OR inside the name predicate so every branch retains the scoped WHERE.
+                              name: Raw(
+                                  (alias) => {
+                                      const table = alias.slice(0, alias.lastIndexOf('.'))
+                                      const pathMatch = `COALESCE(jsonb_extract_path_text(CAST(${table}.metadata AS jsonb), 'originalRelativePath'), '') ILIKE :catalogSearch OR COALESCE(${table}.folder, '') ILIKE :catalogSearch`
+                                      return command.input.searchFields?.includes('name')
+                                          ? `(${alias} ILIKE :catalogSearch OR ${pathMatch})`
+                                          : `(${pathMatch})`
+                                  },
+                                  { catalogSearch: `%${escapeLikePattern(search)}%` }
+                              )
+                          }
+                        : { name: ILike(`%${escapeLikePattern(search)}%`) }
+                    : {})
             } as any,
             relations: hasParentBoundary ? ['parent'] : undefined,
-            order: { updatedAt: 'DESC' } as any,
+            order: command.input.searchFields?.includes('path') ? { id: 'ASC' } : { updatedAt: 'DESC' },
             skip: (page - 1) * pageSize,
             take: pageSize
         })
@@ -448,7 +465,9 @@ export class CreateKnowledgebaseDocumentsHandler implements ICommandHandler<Crea
                 } satisfies Partial<IKnowledgeDocument>
             })
         )
-        const syncResult = await this.documentService.createBulkWithIncrementalSync(drafts)
+        const syncResult = input.idempotencyKey
+            ? await this.documentService.createBulkIdempotently(drafts, input.idempotencyKey)
+            : await this.documentService.createBulkWithIncrementalSync(drafts)
         const docs = syncResult.documents
         let processingStarted = false
         if (input.process && syncResult.processableIds.length) {
@@ -555,6 +574,7 @@ export class ReprocessKnowledgebaseDocumentsHandler implements ICommandHandler<R
         const documentIds = uniqueStrings(command.input.documentIds)
         if (!knowledgebaseId) throw new BadRequestException('knowledgebaseId is required')
         if (!documentIds.length) throw new BadRequestException('documentIds is required')
+        await this.knowledgebaseService.assertKnowledgebaseWriteAccess(knowledgebaseId, { select: { id: true } })
         await this.knowledgebaseService.assertNotRebuilding(knowledgebaseId)
         const { items } = await this.documentService.findAll({
             where: { knowledgebaseId, id: In(documentIds) }

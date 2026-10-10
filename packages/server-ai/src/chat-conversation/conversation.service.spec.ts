@@ -1,3 +1,4 @@
+import { withGroupRuntime } from '../chat-group/group-runtime-context'
 jest.mock('@xpert-ai/server-core', () => ({
     TenantOrganizationBaseEntity: class TenantOrganizationBaseEntity {},
     TenantOrganizationAwareCrudService: class TenantOrganizationAwareCrudService<T> {
@@ -62,7 +63,8 @@ import { Queue } from 'bull'
 import { Repository } from 'typeorm'
 import { ChatMessageService } from '../chat-message/chat-message.service'
 import { ResolveAuthorizedFileAssetQuery } from '../file-understanding/queries'
-import { VolumeClient } from '../shared/volume'
+import { VolumeClient, resolveXpertDataVolumeScope } from '../shared/volume'
+import { ResolveAssistantFileAccessCommand } from '../xpert/assistant-files/resolve-assistant-file-access.command'
 import { VolumeSubtreeClient } from '../shared/volume/volume-subtree'
 import { ChatConversation } from './conversation.entity'
 import { ChatConversationService } from './conversation.service'
@@ -86,6 +88,7 @@ describe('ChatConversationService workspace files', () => {
     }
     let volumeClient: jest.Mocked<Pick<VolumeClient, 'resolve' | 'resolveRoot'>>
     let queryBus: { execute: jest.Mock }
+    let commandBus: { execute: jest.Mock }
     let projectAccessService: {
         assertCanRead: jest.Mock
         assertCanUse: jest.Mock
@@ -138,6 +141,7 @@ describe('ChatConversationService workspace files', () => {
             expect(query.skip).toHaveBeenCalledWith(20)
             expect(query.take).toHaveBeenCalledWith(10)
             expect(query.getManyAndCount).toHaveBeenCalledTimes(1)
+            expect(query.andWhere).toHaveBeenCalledWith("conversation.purpose = 'private'")
         })
         it('includes only owned or authorized technical-user conversations when unassigned', async () => {
             const query = builder()
@@ -221,11 +225,24 @@ describe('ChatConversationService workspace files', () => {
             findByThreadId: jest.fn().mockResolvedValue(null)
         }
 
+        commandBus = {
+            execute: jest.fn(async (command: ResolveAssistantFileAccessCommand) => {
+                const item = await service.findOne('conversation-1')
+                return {
+                    scope: resolveXpertDataVolumeScope({
+                        tenantId: item.tenantId,
+                        userId: RequestContext.currentUserId(),
+                        xpertId: command.assistantId,
+                        workspaceDataScope: item.xpert?.workspaceDataScope
+                    })
+                }
+            })
+        }
         service = new ChatConversationService(
             repository as unknown as Repository<ChatConversation>,
             readStateRepository as any,
             messageService as unknown as ChatMessageService,
-            {} as CommandBus,
+            commandBus as unknown as CommandBus,
             queryBus as unknown as QueryBus,
             {} as Queue,
             volumeClient,
@@ -245,6 +262,37 @@ describe('ChatConversationService workspace files', () => {
                 ...conversation,
                 createdById: 'user-2'
             } as ChatConversation)
+        ).rejects.toBeInstanceOf(ForbiddenException)
+    })
+
+    it('does not expose a shared group through ordinary conversation access, even to its creator', async () => {
+        const group = Object.assign(new ChatConversation(), { ...conversation, purpose: 'group' as const })
+        await expect(service.assertAccess(group)).rejects.toBeInstanceOf(ForbiddenException)
+        await expect(
+            withGroupRuntime(group.id, () => service.assertAccess(group, 'contribute'))
+        ).rejects.toBeInstanceOf(ForbiddenException)
+    })
+
+    it('allows the verified group runtime only inside its exact dispatch scope even for its human creator', async () => {
+        const runtime = Object.assign(new ChatConversation(), {
+            ...conversation,
+            purpose: 'group_assistant_runtime' as const
+        })
+        await expect(service.assertAccess(runtime, 'contribute')).rejects.toBeInstanceOf(ForbiddenException)
+        await expect(
+            withGroupRuntime('unrelated', () => service.assertAccess(runtime, 'contribute'))
+        ).rejects.toBeInstanceOf(ForbiddenException)
+        await expect(withGroupRuntime(runtime.id, () => service.assertAccess(runtime, 'contribute'))).resolves.toBe(
+            runtime
+        )
+        runtime.createdById = 'another-human'
+        await expect(withGroupRuntime(runtime.id, () => service.assertAccess(runtime, 'contribute'))).resolves.toBe(
+            runtime
+        )
+        runtime.projectId = 'project-1'
+        projectAccessService.assertCanUse.mockRejectedValueOnce(new ForbiddenException())
+        await expect(
+            withGroupRuntime(runtime.id, () => service.assertAccess(runtime, 'contribute'))
         ).rejects.toBeInstanceOf(ForbiddenException)
     })
 
@@ -313,6 +361,7 @@ describe('ChatConversationService workspace files', () => {
         ])
         const sql = repository.query.mock.calls[0][0]
         expect(sql).toContain('WITH scoped_conversations AS')
+        expect(sql).toContain("c.purpose = 'private'")
         expect(sql).toContain('latest_read_state AS')
         expect(sql).toContain('conversation_cursors AS')
         expect(sql).toContain('c."createdById" = $2')
@@ -792,6 +841,16 @@ describe('ChatConversationService workspace files', () => {
         } as ChatConversation)
 
         await expect(service.getWorkspaceFiles('conversation-1')).rejects.toBeInstanceOf(BadRequestException)
+    })
+
+    it('revalidates Assistant file authority even when the user still owns the conversation', async () => {
+        jest.spyOn(service, 'findOne').mockResolvedValue(conversation as ChatConversation)
+        commandBus.execute.mockRejectedValueOnce(new ForbiddenException('Assistant grant revoked'))
+        await expect(service.getWorkspaceFiles('conversation-1')).rejects.toThrow('Assistant grant revoked')
+        expect(commandBus.execute).toHaveBeenCalledWith(
+            new ResolveAssistantFileAccessCommand('xpert-1', 'read', 'runtime')
+        )
+        expect(volumeClient.resolve).not.toHaveBeenCalled()
     })
 
     it('finds the conversation by thread id inside the current scope', async () => {

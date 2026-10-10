@@ -98,6 +98,37 @@ describe('ChatConversationController goal routes', () => {
         )
     })
 
+    it('constrains ordinary lists to private conversations regardless of the caller filter', async () => {
+        await controller.findMyAllPublic({
+            where: { purpose: 'group' },
+            take: 10,
+            skip: 0,
+            order: {},
+            withDeleted: false
+        })
+        expect(service.findAll).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: expect.objectContaining({
+                    purpose: 'private',
+                    createdById: 'user-1'
+                })
+            })
+        )
+        await controller.findByXpert('xpert-1', {
+            where: { purpose: 'group_assistant_runtime' },
+            take: 10,
+            skip: 0,
+            order: {},
+            withDeleted: false
+        })
+        expect(service.findAllByXpert).toHaveBeenCalledWith(
+            'xpert-1',
+            expect.objectContaining({
+                where: expect.objectContaining({ purpose: 'private', createdById: 'user-1' })
+            })
+        )
+    })
+
     it('resolves Workbench conversation navigation inside the requested organization scope', async () => {
         await expect(
             controller.resolveWorkbenchNavigation('conversation-1', 'requester-xpert-1', 'organization-1')

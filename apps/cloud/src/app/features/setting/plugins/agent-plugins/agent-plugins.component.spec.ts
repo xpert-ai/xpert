@@ -174,4 +174,39 @@ describe('AgentPluginsComponent publishing', () => {
     expect(component.selectedName()).toBe('')
     http.expectNone((request) => request.method !== 'GET')
   })
+  it('imports defaults with one button request and shows partial results without publishing', async () => {
+    const pending = component.importDefaults()
+    expect(component.importingDefaults()).toBe(true)
+    const request = http.expectOne((request) => request.url.endsWith('/agent-plugins/defaults'))
+    expect(request.request.body).toEqual({})
+    const result = {
+      commit: 'official',
+      items: [
+        { id: 'documents', status: 'imported' },
+        { id: 'pdf', status: 'failed', error: 'Invalid package' }
+      ]
+    }
+    request.flush(result)
+    await Promise.resolve()
+    await Promise.resolve()
+    await Promise.resolve()
+    flushCatalog()
+    await pending
+    expect(component.defaultImportResult()).toEqual(result)
+    expect(component.importingDefaults()).toBe(false)
+    http.expectNone((request) => request.url.endsWith('/bindings') && request.method === 'POST')
+  })
+  it('discards a completed default import response after switching organizations', async () => {
+    const pending = component.importDefaults()
+    const request = http.expectOne((request) => request.url.endsWith('/agent-plugins/defaults'))
+    mockScope.set({ level: 'organization', organizationId: 'organization-two' })
+    fixture.detectChanges()
+    http.expectOne((request) => request.url.endsWith('/agent-plugins')).flush({ packages: [], bindings: [] })
+    http.expectOne((request) => request.url.endsWith('/agent-plugins/options')).flush({ workspaces: [], experts: [] })
+    request.flush({ commit: 'other-org', items: [] })
+    await pending
+    expect(component.defaultImportResult()).toBeNull()
+    expect(component.packages()).toEqual([])
+    expect(component.importingDefaults()).toBe(false)
+  })
 })

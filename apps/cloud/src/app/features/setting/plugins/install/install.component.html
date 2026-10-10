@@ -40,7 +40,7 @@
       @if (error()) {
         <p class="text-text-destructive">{{ error() }}</p>
       }
-      @if (restartRequired()) {
+      @if (restartRequired() && runtimeRestart.showManualRestart()) {
         <p class="text-text-warning">
           {{
             'XP.Plugin.RestartRequired'
@@ -73,7 +73,7 @@
   </div>
 </div>
 <div class="flex items-center justify-end gap-2 self-stretch p-6 pt-5">
-  @if (status() === 'installed' && restartRequired()) {
+  @if (status() === 'installed' && restartRequired() && runtimeRestart.showManualRestart()) {
     @if (!runtimeRestart.canRestart()) {
       <div class="mr-auto max-w-sm text-sm text-text-tertiary">
         {{

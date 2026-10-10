@@ -12,6 +12,8 @@ export const AGENT_CHAT_DISPATCH_ERROR_STEER_TARGET_NOT_RUNNING = 'steer_target_
 
 export interface AgentChatHandoffMessageCallbackTarget {
   transport?: 'handoff-message'
+  /** Defaults to all events; lifecycle emits only terminal callbacks, leaving tokens in the run stream. */
+  events?: 'all' | 'lifecycle'
   messageType: string
   headers?: Record<string, string>
   context?: Record<string, unknown>
@@ -30,6 +32,8 @@ export interface AgentChatDispatchPayload extends Record<string, unknown> {
   request: TChatRequest
   options: TChatOptions &
     TChatSourceAuditOptions & {
+      /** Host-created group recipient receipt; the runtime must reauthorize it before execution. */
+      groupDeliveryId?: string
       /** Host-resolved runtime branch, independent of the conversation root. */
       threadId?: string
       isDerivedThread?: boolean

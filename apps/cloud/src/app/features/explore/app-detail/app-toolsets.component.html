@@ -1,0 +1,78 @@
+@if (requirements().length) {
+  <section class="mt-8 border-t border-border pt-6">
+    <div class="flex items-center justify-between gap-3">
+      <h3 class="text-sm font-semibold text-foreground">{{ 'XP.Explore.Application.Toolsets.Title' | translate }}</h3>
+      <button z-button zType="ghost" type="button" [zDisabled]="disabled() || configuring()" (click)="refresh.emit()">
+        {{ 'XP.Explore.Application.Toolsets.Refresh' | translate }}
+      </button>
+    </div>
+    <p class="mt-2 text-xs leading-5 text-muted-foreground">
+      {{ 'XP.Explore.Application.Toolsets.Description' | translate }}
+    </p>
+    <div class="mt-4 space-y-5">
+      @for (requirement of requirements(); track requirement.key) {
+        <div>
+          <div [id]="'toolset-label-' + requirement.key" class="text-sm font-medium text-foreground">
+            {{ requirement.label | i18n }}
+          </div>
+          @if (requirement.instanceName) {
+            <p class="mt-1 text-xs text-muted-foreground">{{ requirement.instanceName }}</p>
+          }
+          @if (!requirement.providerAvailable) {
+            <p class="mt-2 text-sm text-text-warning">
+              {{ 'XP.Explore.Application.Toolsets.ProviderMissing' | translate: { plugin: requirement.pluginName } }}
+            </p>
+          } @else if (requirement.configuredToolsetId) {
+            <p class="mt-2 text-sm text-muted-foreground">
+              {{ 'XP.Explore.Application.Toolsets.Configured' | translate }}
+            </p>
+            @if (editable()) {
+              <button
+                z-button
+                zType="outline"
+                type="button"
+                class="mt-2"
+                [zDisabled]="disabled() || configuring()"
+                (click)="configure(requirement)"
+              >
+                {{ 'XP.Explore.Application.Toolsets.Edit' | translate }}
+              </button>
+            }
+          } @else {
+            <z-select
+              class="mt-2 block w-full"
+              [attr.aria-labelledby]="'toolset-label-' + requirement.key"
+              [zPlaceholder]="'XP.Explore.Application.Toolsets.Select' | translate"
+              [zDisabled]="disabled() || configuring()"
+              [ngModel]="selected(requirement.key)"
+              (ngModelChange)="select(requirement.key, $event)"
+              [ngModelOptions]="{ standalone: true }"
+            >
+              @for (option of requirement.options; track option.id) {
+                <z-select-item [zValue]="option.id"
+                  >{{ option.name }} ·
+                  {{ option.workspaceName || ('XP.Explore.Application.Toolsets.Personal' | translate) }}</z-select-item
+                >
+              }
+            </z-select>
+            @if (!requirement.options.length) {
+              <p class="mt-2 text-xs text-muted-foreground">
+                {{ 'XP.Explore.Application.Toolsets.Empty' | translate }}
+              </p>
+            }
+            <button
+              z-button
+              zType="outline"
+              type="button"
+              class="mt-2"
+              [zDisabled]="disabled() || configuring()"
+              (click)="configure(requirement)"
+            >
+              {{ 'XP.Explore.Application.Toolsets.Configure' | translate }}
+            </button>
+          }
+        </div>
+      }
+    </div>
+  </section>
+}

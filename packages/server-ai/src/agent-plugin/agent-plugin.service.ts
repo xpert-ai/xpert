@@ -219,7 +219,7 @@ export class AgentPluginService {
             )
         })
         try {
-            return await this.importDirectory(staged.root, { kind: 'git', ...input, commit: staged.commit })
+            return await this.importStagedDirectory(staged.root, { kind: 'git', ...input, commit: staged.commit })
         } finally {
             await rm(staged.temp, { recursive: true, force: true })
         }
@@ -238,7 +238,7 @@ export class AgentPluginService {
                 (await stat(join(directory, entries[0]))).isDirectory()
             )
                 root = join(directory, entries[0])
-            return await this.importDirectory(root, { kind: 'zip' })
+            return await this.importStagedDirectory(root, { kind: 'zip' })
         } catch (error) {
             if (error instanceof BadRequestException) throw error
             throw new BadRequestException(
@@ -251,7 +251,8 @@ export class AgentPluginService {
         }
     }
 
-    private async importDirectory(root: string, source: AgentPluginPackage['source']) {
+    /** Internal staged content only; HTTP imports must pass through Git/ZIP validation first. */
+    async importStagedDirectory(root: string, source: AgentPluginPackage['source']) {
         const scope = requireResourceAdmin()
         try {
             const descriptor = await parseAgentPlugin(root)

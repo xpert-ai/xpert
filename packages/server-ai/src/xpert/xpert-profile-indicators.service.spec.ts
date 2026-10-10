@@ -1,7 +1,7 @@
 import { WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
 import { AgentMiddlewareRegistry } from '@xpert-ai/plugin-sdk'
 import { Repository } from 'typeorm'
-import { RuntimeCapabilitiesService } from '../ai/runtime-capabilities.service'
+import { RuntimeCapabilitiesService } from './runtime-capabilities/runtime-capabilities.service'
 import { ChatConversation } from '../chat-conversation/conversation.entity'
 import { Xpert } from './xpert.entity'
 import { XpertProfileIdentityService } from './xpert-profile-identity.service'

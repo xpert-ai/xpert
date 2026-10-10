@@ -11,10 +11,10 @@ export function useAssistantList(binding: string, botIds: string, notice?: Conve
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const generation = useRef(0)
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (force = true) => {
     const current = generation.current
     try {
-      const items = await invoke('botActivity')
+      const items = await invoke('botActivity', { refresh: force })
       if (current === generation.current) {
         setActivities(items)
         setError('')
@@ -42,12 +42,24 @@ export function useAssistantList(binding: string, botIds: string, notice?: Conve
     }
   }, [binding])
   useEffect(() => {
+    const subscribe = window.xpertDesktop?.onAssistantActivityChanged
+    if (subscribe) {
+      // Native snapshots are polled once in the main process, including while no window is visible.
+      const unsubscribeActivity = subscribe(() => void refresh(false))
+      const unsubscribeActivation = subscribeAppActivation(() => void refresh())
+      void refresh(false)
+      return () => {
+        unsubscribeActivity()
+        unsubscribeActivation()
+      }
+    }
+    // Browser previews and older hosts retain their visible-page polling behavior.
     let pending = false
     const poll = async () => {
       if (pending || document.visibilityState === 'hidden') return
       pending = true
       try {
-        await refresh()
+        await refresh(false)
       } finally {
         pending = false
       }
@@ -69,7 +81,7 @@ export function useAssistantList(binding: string, botIds: string, notice?: Conve
         const value = await invoke('sidebarState')
         if (current !== generation.current) return
         setSidebar(value)
-        await refresh()
+        await refresh(false)
       })
       .catch((error: Error) => {
         if (current === generation.current) setError(error.message)

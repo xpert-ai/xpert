@@ -1,6 +1,6 @@
 import { ForbiddenException } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
-import { ApiKeyBindingType, IApiPrincipal, IChatConversation, SecretTokenBindingType } from '@xpert-ai/contracts'
+import { IApiPrincipal, IChatConversation, SecretTokenBindingType } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
 import { IsPublishedXpertInFamilyQuery } from '../xpert/queries'
@@ -18,11 +18,11 @@ export function getPublicXpertSessionAssistantId() {
         return null
     }
 
-    if (principal.apiKey?.type !== ApiKeyBindingType.ASSISTANT || !principal.apiKey.entityId?.trim()) {
+    if (principal.resourceScope?.kind !== 'assistant' || !principal.resourceScope.xpertId.trim()) {
         throw new ForbiddenException(t('server-ai:Error.RestrictedAssistantBindingRequired'))
     }
 
-    return principal.apiKey.entityId.trim()
+    return principal.resourceScope.xpertId.trim()
 }
 
 export function getPublicXpertSessionConversationScope() {

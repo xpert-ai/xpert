@@ -32,3 +32,5 @@ export * from './lib/mcp/index'
 export * from './lib/tool-provider/index'
 export * from './lib/project-type/index'
 export * from './lib/project-task/index'
+
+export * from './lib/agent-plugin/import-default-agent-plugins.command'

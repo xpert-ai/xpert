@@ -30,6 +30,7 @@ describe('XpertWorkspaceAuthGuard', () => {
             tenantId: 'tenant-1',
             principalType: 'client_secret',
             clientSecretBindingType: SecretTokenBindingType.USER_XPERT,
+            resourceScope: { kind: 'assistant', xpertId: entityId },
             apiKey: {
                 type: ApiKeyBindingType.ASSISTANT,
                 tenantId: 'tenant-1',
@@ -62,6 +63,7 @@ describe('XpertWorkspaceAuthGuard', () => {
         const guard = new TestGuard(new Reflector())
         const principal = {
             ...userXpertPrincipal('xpert-1'),
+            resourceScope: { kind: 'workspace', workspaceId: 'xpert-1' },
             apiKey: {
                 type: ApiKeyBindingType.WORKSPACE,
                 entityId: 'xpert-1'

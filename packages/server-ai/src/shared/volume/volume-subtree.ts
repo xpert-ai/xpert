@@ -292,9 +292,14 @@ export class VolumeSubtreeClient {
             if (error instanceof BadRequestException || error instanceof ForbiddenException) {
                 throw error
             }
-            throw new BadRequestException(
+            const failure = new BadRequestException(
                 t('server-ai:Error.VolumeSubtreeEntryNotFound', { defaultValue: 'Conversation file not found' })
             )
+            // Keep the filesystem discriminator for runtime callers; localized text is not a contract.
+            if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'ENOENT') {
+                throw Object.assign(failure, { code: 'ENOENT' as const })
+            }
+            throw failure
         } finally {
             await subtreeRoot.fileHandle.close()
         }
@@ -329,9 +334,13 @@ export class VolumeSubtreeClient {
             if (error instanceof BadRequestException) {
                 throw error
             }
-            throw new BadRequestException(
+            const failure = new BadRequestException(
                 t('server-ai:Error.VolumeSubtreeWorkspacePathInvalid', { defaultValue: 'Invalid workspace path' })
             )
+            if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'ENOENT') {
+                throw Object.assign(failure, { code: 'ENOENT' as const })
+            }
+            throw failure
         }
     }
 
@@ -353,9 +362,14 @@ export class VolumeSubtreeClient {
             if (error instanceof BadRequestException) {
                 throw error
             }
-            throw new BadRequestException(
+            const failure = new BadRequestException(
                 t('server-ai:Error.VolumeSubtreeEntryNotFound', { defaultValue: 'Conversation file not found' })
             )
+            // Keep the filesystem discriminator for runtime callers; localized text is not a contract.
+            if (typeof error === 'object' && error !== null && 'code' in error && error.code === 'ENOENT') {
+                throw Object.assign(failure, { code: 'ENOENT' as const })
+            }
+            throw failure
         } finally {
             await subtreeRoot.fileHandle.close()
         }

@@ -1,8 +1,42 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { createRequire } from 'node:module'
+import { tmpdir } from 'node:os'
+import { isAbsolute, join, resolve } from 'node:path'
 import { platforms } from './release-plan.mjs'
 import { packaging, appPaths, removeEmptySigningCredentials } from './package.mjs'
+const require = createRequire(import.meta.url)
+const { prepare } = require('./dependencies.cjs')
 const plan = { build: true, sha: 'a'.repeat(40), version: '0.1.1' }
+test('isolated CI packaging loads the signing hook from the app and retains audio entitlements', async (t) => {
+  const workspace = mkdtempSync(join(tmpdir(), 'bosi-packaging-test-'))
+  t.after(() => rmSync(workspace, { recursive: true, force: true }))
+  prepare(workspace, true)
+  const appDirectory = join(workspace, 'apps/desktop')
+  const original = JSON.parse(readFileSync(join(appDirectory, 'package.json'), 'utf8')).build
+  for (const target of platforms) {
+    for (const env of [{}, { CSC_LINK: 'certificate' }]) {
+      const { config } = packaging(plan, target, env, appDirectory)
+      assert.equal(config.afterSign, resolve(appDirectory, original.afterSign))
+      const hook = require(config.afterSign)
+      assert.equal(typeof hook, 'function')
+      assert.equal(typeof hook.verifyAudioSigning, 'function')
+      assert.deepEqual(config.asarUnpack, original.asarUnpack)
+      assert.equal(config[target.platform].icon, original[target.platform].icon)
+      if (target.platform !== 'mac') {
+        await hook({ electronPlatformName: target.platform === 'win' ? 'win32' : 'linux' })
+        continue
+      }
+      assert.deepEqual(config.mac.binaries, original.mac.binaries)
+      for (const key of ['entitlements', 'entitlementsInherit']) {
+        assert.ok(isAbsolute(config.mac[key]), `${key} must work from the CI workspace root`)
+        const plist = readFileSync(config.mac[key], 'utf8')
+        assert.match(plist, /<key>com\.apple\.security\.device\.audio-input<\/key>\s*<true\/>/)
+      }
+    }
+  }
+})
 test('every platform produces two uniquely named installers with implicit publishing disabled', () => {
   for (const target of platforms) {
     const { config } = packaging(plan, target, {})

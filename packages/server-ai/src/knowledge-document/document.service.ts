@@ -1,4 +1,5 @@
 import { sortChunksByDocumentOrder } from './document-chunk-order'
+import { tenantLibraryReadQuery } from './tenant-library-read'
 import { isKnowledgeDocumentVisible } from '@xpert-ai/contracts'
 import { visibleDocumentSql } from './document-list-filter'
 import { assertUserManagedDocument } from './document-management'
@@ -387,21 +388,33 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
     }
 
     override async findAll(filter?: FindManyOptions<KnowledgeDocument>) {
-        return super.findAll(this.withReadableDocumentManyOptions(filter))
+        const options = this.withReadableDocumentManyOptions(filter)
+        const query = tenantLibraryReadQuery(this.repo, options)
+        if (!query) return super.findAll(options)
+        const [items, total] = await query.getManyAndCount()
+        return { items, total }
     }
 
     override async findOne(
         id: string | number | FindOneOptions<KnowledgeDocument>,
         options?: FindOneOptions<KnowledgeDocument>
     ) {
-        if (typeof id === 'object') {
-            return super.findOne(this.withReadableDocumentOneOptions(id))
+        const filter = this.withReadableDocumentOneOptions(typeof id === 'object' ? id : options)
+        if (typeof id !== 'object') {
+            const where = filter.where
+            filter.where = Array.isArray(where)
+                ? where.map((item) => ({ ...item, id: String(id) }))
+                : { ...where, id: String(id) }
         }
-        return super.findOne(id, this.withReadableDocumentOneOptions(options))
+        const query = tenantLibraryReadQuery(this.repo, filter)
+        if (!query) return typeof id === 'object' ? super.findOne(filter) : super.findOne(id, filter)
+        const document = await query.getOne()
+        if (!document) throw new NotFoundException('The requested record was not found')
+        return document
     }
 
     override async findOneByIdString(id: string, options?: FindOneOptions<KnowledgeDocument>) {
-        return super.findOneByIdString(id, this.withReadableDocumentOneOptions(options))
+        return this.findOne(id, options)
     }
 
     private withReadableDocumentManyOptions(
@@ -864,6 +877,54 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
      * @param documents
      * @returns
      */
+    /** Crash-safe creation receipts for staged imports; no processing is started here. */
+    async createBulkIdempotently(
+        documents: Partial<IKnowledgeDocument>[],
+        key: string
+    ): Promise<IncrementalDocumentSyncResult> {
+        if (!key || key.length > 160 || documents.length !== 1 || !documents[0].knowledgebaseId) {
+            throw new BadRequestException(
+                'Idempotent creation requires one document and a key of at most 160 characters'
+            )
+        }
+        const knowledgebaseId = documents[0].knowledgebaseId
+        const sourceKey = `runtime-import:${key}`
+        await this.knowledgebaseService.assertKnowledgebaseWriteAccess(knowledgebaseId)
+        return this.repository.manager.transaction(async (manager) => {
+            await manager.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [
+                `knowledge-import:${knowledgebaseId}:${key}`
+            ])
+            const existing = await manager
+                .getRepository(KnowledgeDocument)
+                .createQueryBuilder('doc')
+                .where('doc.knowledgebaseId = :knowledgebaseId', { knowledgebaseId })
+                .andWhere('doc.sourceKey = :sourceKey', { sourceKey })
+                .getOne()
+            if (existing) {
+                if (existing.metadata?.sourceHash !== documents[0].metadata?.sourceHash)
+                    throw new BadRequestException('Import key content conflict')
+                return {
+                    documents: [existing],
+                    processableIds: [],
+                    skippedIds: [existing.id],
+                    updatedIds: [],
+                    createdIds: []
+                }
+            }
+            const created = await this.createDocument(
+                { ...documents[0], sourceKey, metadata: { ...documents[0].metadata, _runtimeImportKey: key } },
+                manager
+            )
+            return {
+                documents: [created],
+                processableIds: [created.id],
+                skippedIds: [],
+                updatedIds: [],
+                createdIds: [created.id]
+            }
+        })
+    }
+
     async createBulkWithIncrementalSync(
         documents: Partial<IKnowledgeDocument>[],
         manager?: EntityManager

@@ -1,10 +1,11 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { HumanMessage } from '@langchain/core/messages'
-import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common'
+import { BadRequestException, Injectable, InternalServerErrorException, Logger } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { UploadedFile } from '@xpert-ai/contracts'
-import { SpeechToTextTranscribeInput, SpeechToTextTranscribeResult } from '@xpert-ai/plugin-sdk'
-import { FileStorage, RequestContext } from '@xpert-ai/server-core'
+import { RequestContext, SpeechToTextTranscribeInput, SpeechToTextTranscribeResult } from '@xpert-ai/plugin-sdk'
+import { FileStorage } from '@xpert-ai/server-core'
+import { t } from 'i18next'
 import { CopilotGetOneQuery } from '../copilot'
 import { CopilotModelGetChatModelQuery } from '../copilot-model'
 import { FindXpertQuery } from '../xpert'
@@ -18,6 +19,8 @@ export interface SpeechToTextServiceOptions {
 
 @Injectable()
 export class SpeechToTextService {
+    private readonly logger = new Logger(SpeechToTextService.name)
+
     constructor(private readonly queryBus: QueryBus) {}
 
     async transcribeUploadedFile(
@@ -104,7 +107,8 @@ export class SpeechToTextService {
             this.safePathSegment(input.tenantId || RequestContext.currentTenantId() || 'tenant'),
             `${Date.now()}-${Math.random().toString(36).slice(2, 10)}-${originalName}`
         ].join('/')
-        const storedFile = await new FileStorage().getProvider().putFile(buffer, relativePath)
+        const provider = new FileStorage().getProvider()
+        const storedFile = await provider.putFile(buffer, relativePath)
         const uploadedFile: UploadedFile = {
             fieldname: 'file',
             encoding: '7bit',
@@ -116,12 +120,26 @@ export class SpeechToTextService {
             url: storedFile.url,
             path: storedFile.path
         }
-        return this.transcribeUploadedFile(uploadedFile, {
-            xpertId: input.xpertId,
-            isDraft: input.isDraft,
-            tenantId: input.tenantId,
-            organizationId: input.organizationId
-        })
+        try {
+            return await this.transcribeUploadedFile(uploadedFile, {
+                xpertId: input.xpertId,
+                isDraft: input.isDraft,
+                tenantId: input.tenantId,
+                organizationId: input.organizationId
+            })
+        } finally {
+            // Only this API's staged bytes are temporary; caller-owned uploads are untouched.
+            try {
+                await provider.deleteFile(storedFile.key || relativePath)
+            } catch {
+                // Cleanup failure must not discard a transcript or mask the original model error.
+                this.logger.warn(
+                    t('server-ai:SpeechToText.TemporaryFileCleanupFailed', {
+                        defaultValue: 'Failed to delete a temporary speech-to-text audio file.'
+                    })
+                )
+            }
+        }
     }
 
     private normalizeTranscriptionContent(content: unknown): string {

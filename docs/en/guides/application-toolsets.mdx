@@ -1,0 +1,47 @@
+# Application Toolset Configuration
+
+Marketplace applications can require configured builtin toolsets through their Assistant templates. The platform discovers these requirements automatically; an application does not need a custom setup endpoint or another `appConfig` field.
+
+```ts
+dependencies: {
+  toolsets: [
+    {
+      pluginName: '@acme/plugin-image-tools',
+      provider: 'image_generator',
+      instanceName: 'application_images',
+      templateNodeKey: 'image-toolset-node',
+      targetAgentKey: 'Illustrator'
+    }
+  ]
+}
+```
+
+`provider` identifies the registered builtin provider. `instanceName` is the required name inside the application Workspace; the source configuration may have a different name. `templateNodeKey` and `targetAgentKey` identify the template graph binding.
+
+The host reads the entry template and every role and standalone Assistant declared in `assistantSuite`. Identical plugin/provider/instance requirements share one selector and one managed copy. Separate named instances remain separate requirements. An unnamed provider requirement cannot coexist with multiple named instances of that provider because the template installer could not resolve it unambiguously.
+
+## Administrator Workflow
+
+Multi-Assistant applications declare collaborating roles in `assistantSuite.roles`. `coordinatorRoleKeys` selects direct entry dependencies; each role's `externalRoleKeys` declares its children. Omitting `coordinatorRoleKeys` preserves the legacy all-roles entry graph. `standaloneAssistants` are published without delegation. The host rejects unknown references, duplicate links, cycles and unreachable roles, publishes dependencies before callers, and checks nested links when evaluating installation health.
+
+Failed suite initialization retains recorded resources for an in-place retry. Repair preserves existing entry identities and does not adopt Assistants by name. Existing undeclared suite links require review rather than silently removing human edits.
+
+1. Open the application's setup drawer and select its required models.
+2. For each required toolset, select a configuration or choose **New configuration**. The platform first prepares a dedicated Workspace, then opens the existing authorization and tool configuration dialog. New configurations are bound directly to this Workspace, with application status `configuring`. Save the configuration and enable the tools the application needs.
+3. Apply the application. The host reuses the prepared Workspace and its saved configurations. Configurations selected from other Workspaces are copied under the declared instance names. It then creates Knowledge bases and installs and publishes the Assistants.
+
+Opening the drawer is read-only. Closing it preserves saved configuration for the next visit, and failed activation preserves previously saved authorization. **Discard configuration** removes only the unactivated Workspace and its toolsets; active installations, initializing applications, and Workspaces containing other resources cannot be discarded.
+
+Sources are limited to the current organization: configurations in workspaces the administrator can author, or loose configurations owned by that administrator. Installing a provider plugin makes it available for configuration but does not create an authorized instance. Missing providers and missing configurations are shown before initialization.
+
+Copies are independent snapshots. Later changes to the source do not propagate to the application. Configure an installed application's copy in its own Workspace. Workspace-specific references in a source configuration must also be valid in the destination; copying a toolset does not copy environment variables or unrelated resources.
+
+## Lifecycle and API
+
+`PluginApplicationPreflight.toolsetRequirements` includes stable requirement keys, provider availability, safe source labels/IDs, and existing managed bindings. It never includes credentials. Initialize accepts `toolsets: [{ key, toolsetId }]`; the server resolves and rechecks authorization, while deriving the target tenant, organization, Workspace and instance names itself. Unknown requirements, duplicate choices, unavailable sources, credentials and client-supplied scope fields are rejected.
+
+`POST /plugin-applications/prepare` accepts only `pluginName` and `appName`; a transaction, scoped unique key, and installation row lock ensure concurrent preparation creates one Workspace. `POST /plugin-applications/bind-toolset` binds a saved instance using its requirement `key` and `toolsetId`, checking provider and target scope. Credentials remain in the existing toolset API. `POST /plugin-applications/discard-configuration` removes an unactivated configuration. Activation continues through `initialize`, transitioning `configuring` to `initializing` and `ready`.
+
+The installation records each target under `resourceRefs['toolset:<requirement-key>']` before creation. Retry reuses existing managed instances. Repair recreates a missing instance with its original ID so published Assistant graph references remain valid. Failed attempts remove only copies created by that attempt and preserve source configurations. Health checks include previously managed toolsets. Enabling an already healthy application does not upgrade its templates or replace its bindings.
+
+This mechanism currently handles `dependencies.toolsets` builtin providers. MCP server dependencies continue through their existing resource installation lifecycle.

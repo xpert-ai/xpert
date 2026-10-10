@@ -1,6 +1,7 @@
 import { link, mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
+import { BadRequestException } from '@nestjs/common'
 import { VolumeHandle } from './volume'
 import { VolumeSubtreeClient } from './volume-subtree'
 
@@ -8,10 +9,77 @@ describe('VolumeSubtreeClient', () => {
     let tempRoot: string | null = null
 
     afterEach(async () => {
+        jest.restoreAllMocks()
         if (tempRoot) {
             await rm(tempRoot, { recursive: true, force: true })
             tempRoot = null
         }
+    })
+
+    function clientFor(root: string) {
+        return new VolumeSubtreeClient(
+            new VolumeHandle(
+                { tenantId: 'tenant-1', catalog: 'xperts', xpertId: 'assistant-1' },
+                root,
+                root,
+                'http://localhost/volume'
+            ),
+            { allowRootWorkspace: true }
+        )
+    }
+
+    it.each(['readBuffer', 'deleteFile'] as const)(
+        'preserves ENOENT for %s without changing HTTP errors',
+        async (operation) => {
+            tempRoot = await mkdtemp(join(tmpdir(), 'volume-subtree-missing-'))
+            const result = clientFor(tempRoot)[operation]('', 'documents/new/notes.md')
+            await expect(result).rejects.toMatchObject({ code: 'ENOENT' })
+            await expect(result).rejects.toBeInstanceOf(BadRequestException)
+            await result.catch((error: unknown) => {
+                if (!(error instanceof BadRequestException)) throw error
+                expect(error.getStatus()).toBe(400)
+                expect(error.getResponse()).not.toHaveProperty('code')
+            })
+        }
+    )
+
+    it.each(['readBuffer', 'deleteFile'] as const)(
+        'preserves ENOENT for %s when the root or subtree is uninitialized',
+        async (operation) => {
+            tempRoot = await mkdtemp(join(tmpdir(), 'volume-subtree-missing-root-'))
+            await expect(clientFor(join(tempRoot, 'new-assistant'))[operation]('', 'notes.md')).rejects.toMatchObject({
+                code: 'ENOENT'
+            })
+            await expect(clientFor(tempRoot)[operation]('new-subtree', 'notes.md')).rejects.toMatchObject({
+                code: 'ENOENT'
+            })
+        }
+    )
+
+    it.each(['readBuffer', 'deleteFile'] as const)(
+        'does not classify invalid %s paths as missing files',
+        async (operation) => {
+            tempRoot = await mkdtemp(join(tmpdir(), 'volume-subtree-invalid-'))
+            const client = clientFor(tempRoot)
+            await expect(client[operation]('', '../outside')).rejects.not.toHaveProperty('code', 'ENOENT')
+            await expect(client[operation]('', '')).rejects.not.toHaveProperty('code', 'ENOENT')
+            await writeFile(join(tempRoot, 'not-a-directory'), 'file')
+            await expect(client[operation]('not-a-directory', 'notes.md')).rejects.not.toHaveProperty('code', 'ENOENT')
+        }
+    )
+
+    it.each(['EACCES', 'EIO'])('does not classify %s filesystem failures as missing files', async (code) => {
+        tempRoot = await mkdtemp(join(tmpdir(), 'volume-subtree-io-error-'))
+        const client = clientFor(tempRoot)
+        const error = Object.assign(new Error('Storage unavailable'), { code })
+        const open = VolumeHandle.openExistingFile
+        const openSpy = jest.spyOn(VolumeHandle, 'openExistingFile')
+        openSpy.mockRejectedValueOnce(error)
+        await expect(client.readBuffer('', 'notes.md')).rejects.not.toHaveProperty('code', 'ENOENT')
+        openSpy.mockImplementationOnce(open).mockRejectedValueOnce(error)
+        await expect(client.readBuffer('', 'notes.md')).rejects.not.toHaveProperty('code', 'ENOENT')
+        jest.spyOn(VolumeHandle, 'removePath').mockRejectedValueOnce(error)
+        await expect(client.deleteFile('', 'notes.md')).rejects.not.toHaveProperty('code', 'ENOENT')
     })
 
     it('deletes folders recursively inside a subtree', async () => {
@@ -221,12 +289,12 @@ describe('VolumeSubtreeClient', () => {
         )
         const client = new VolumeSubtreeClient(volume, { allowRootWorkspace: true })
 
-        await expect(client.readBuffer('', 'escape/secret.md')).rejects.toBeInstanceOf(Error)
+        await expect(client.readBuffer('', 'escape/secret.md')).rejects.not.toHaveProperty('code', 'ENOENT')
         await expect(client.saveFile('', 'escape/secret.md', 'overwritten')).rejects.toBeInstanceOf(Error)
         await expect(
             client.uploadFile('', 'escape', { originalname: 'uploaded.txt', buffer: Buffer.from('uploaded') })
         ).rejects.toBeInstanceOf(Error)
-        await expect(client.deleteFile('', 'escape/secret.md')).rejects.toBeInstanceOf(Error)
+        await expect(client.deleteFile('', 'escape/secret.md')).rejects.not.toHaveProperty('code', 'ENOENT')
         await expect(readFile(join(privateRoot, 'secret.md'), 'utf8')).resolves.toBe('secret')
         await expect(readFile(join(privateRoot, 'uploaded.txt'), 'utf8')).rejects.toMatchObject({ code: 'ENOENT' })
     })
@@ -281,7 +349,10 @@ describe('VolumeSubtreeClient', () => {
                 buffer: Buffer.from('# Notes\n')
             })
         ).rejects.toBeInstanceOf(Error)
-        await expect(client.deleteFile('', 'shared/project-root/skills/research')).rejects.toBeInstanceOf(Error)
+        await expect(client.deleteFile('', 'shared/project-root/skills/research')).rejects.not.toHaveProperty(
+            'code',
+            'ENOENT'
+        )
 
         await expect(readFile(join(tempRoot, 'project.md'), 'utf8')).resolves.toBe('# Original\n')
         await expect(readFile(join(tempRoot, 'skills', 'research', 'SKILL.md'), 'utf8')).resolves.toBe('# Research\n')

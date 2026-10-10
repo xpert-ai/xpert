@@ -9,7 +9,7 @@ import { PassThrough } from 'node:stream'
 import { AssistantFileAccessGuard } from './assistant-file-access.guard'
 import { ApiKeyOrClientSecretAuthGuard } from '@xpert-ai/server-core'
 import { AssistantWorkspaceFilesController } from './assistant-workspace-files.controller'
-import type { XpertWorkspaceFilesService } from '../xpert/xpert-workspace-files.service'
+import type { AssistantFilesService } from '../xpert/assistant-files/assistant-files.service'
 
 jest.mock('@xpert-ai/server-core', () => ({
     Public: () => SetMetadata('isPublic', true),
@@ -21,13 +21,15 @@ jest.mock('./assistant-file-access.guard', () => ({
     AssistantFileAccessGuard: class {},
     AssistantFileAccess: () => SetMetadata('ai:file-access-policy', 'workspace')
 }))
-jest.mock('../xpert/xpert-workspace-files.service', () => ({ XpertWorkspaceFilesService: class {} }))
+jest.mock('../xpert/assistant-files/assistant-files.service', () => ({ AssistantFilesService: class {} }))
 
 function createController() {
     const service = { list: jest.fn(), read: jest.fn(), download: jest.fn() }
+    const forRuntime = jest.fn(() => service)
     return {
         service,
-        controller: new AssistantWorkspaceFilesController(service as unknown as XpertWorkspaceFilesService)
+        forRuntime,
+        controller: new AssistantWorkspaceFilesController({ forRuntime } as unknown as AssistantFilesService)
     }
 }
 
@@ -58,17 +60,18 @@ describe('AssistantWorkspaceFilesController', () => {
     })
 
     it('passes list and read paths to the scoped workspace service', async () => {
-        const { controller, service } = createController()
+        const { controller, service, forRuntime } = createController()
         service.list.mockResolvedValue([{ filePath: 'runs/result.txt' }])
         service.read.mockResolvedValue({ content: 'complete' })
         await expect(controller.listWorkspaceFiles('assistant', { path: 'runs', deepth: 2 })).resolves.toEqual([
             { filePath: 'runs/result.txt' }
         ])
-        expect(service.list).toHaveBeenCalledWith('assistant', 'runs', 2)
+        expect(forRuntime).toHaveBeenCalledWith('assistant')
+        expect(service.list).toHaveBeenCalledWith('runs', 2)
         await expect(controller.readWorkspaceFile('assistant', { path: 'runs/result.txt' })).resolves.toEqual({
             content: 'complete'
         })
-        expect(service.read).toHaveBeenCalledWith('assistant', 'runs/result.txt')
+        expect(service.read).toHaveBeenCalledWith('runs/result.txt')
     })
 
     it('streams exact file bytes, encodes the filename and releases its handle', async () => {
@@ -87,7 +90,7 @@ describe('AssistantWorkspaceFilesController', () => {
             })
             const { response, headers, chunks } = responseStream()
             await controller.downloadWorkspaceFile('assistant', { path: 'runs/result.txt' }, response)
-            expect(service.download).toHaveBeenCalledWith('assistant', 'runs/result.txt')
+            expect(service.download).toHaveBeenCalledWith('runs/result.txt')
             expect(Buffer.concat(chunks)).toEqual(bytes)
             expect(headers).toHaveBeenCalledWith('Content-Type', 'text/plain')
             expect(headers).toHaveBeenCalledWith(

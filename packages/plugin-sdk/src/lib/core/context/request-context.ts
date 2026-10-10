@@ -23,13 +23,15 @@ export class RequestContext {
     return session
   }
 
+  /** @deprecated For resource authorization use currentApiPrincipal()?.resourceScope; retained for credential metadata. */
   static currentApiKey(): IApiKey | null {
     return RequestContext.currentApiPrincipal()?.apiKey ?? null
   }
 
   static currentApiPrincipal(): IApiPrincipal | null {
     const user = RequestContext.currentUser() as IApiPrincipal | null
-    return user?.apiKey ? user : null
+    // Conversation-scoped client secrets carry no synthetic API key.
+    return user?.apiKey || user?.principalType === 'client_secret' || user?.principalType === 'api_key' ? user : null
   }
 
   static currentRequest(): IncomingMessage {

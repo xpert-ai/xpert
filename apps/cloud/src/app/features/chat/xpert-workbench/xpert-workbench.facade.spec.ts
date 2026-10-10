@@ -22,19 +22,20 @@ jest.mock('../../project/project-api.service', () => ({
   XpertProjectApiService: class XpertProjectApiService {}
 }))
 
-import { NavigationEnd, Router } from '@angular/router'
+import { ActivatedRoute, NavigationEnd, Router } from '@angular/router'
 import { TestBed } from '@angular/core/testing'
 import { signal } from '@angular/core'
 import type { XpertExtensionViewManifest, XpertViewQuery } from '@xpert-ai/contracts'
 import { createWorkbenchProjectNavigation } from '../clawxpert/workbench-project-navigation'
 import type { ClawXpertWorkspaceTab } from '../clawxpert/conversation-detail/workspace/tabs'
-import { Subject, of, throwError } from 'rxjs'
+import { BehaviorSubject, Subject, of, throwError } from 'rxjs'
 import { TranslateService } from '@ngx-translate/core'
 import type { ChatKitControl } from '@xpert-ai/chatkit-angular'
 import { TXpertProjectAccessSummary, XpertWorkbenchInitialLayoutEnum } from '@xpert-ai/contracts'
 import { AssistantBindingService, ChatConversationService, IChatConversation, Store } from '../../../@core'
 import { XpertProjectApiService } from '../../project/project-api.service'
 import { XpertWorkbenchFacade } from './xpert-workbench.facade'
+import type { ConversationEntryResolution } from './conversation-entry.resolver'
 
 describe('XpertWorkbenchFacade', () => {
   let routerEvents: Subject<NavigationEnd>
@@ -62,9 +63,14 @@ describe('XpertWorkbenchFacade', () => {
   let translate: {
     instant: jest.Mock
   }
+  let routeData: BehaviorSubject<{ conversationEntry: ConversationEntryResolution }>
+  const privateEntry = { entry: null, organizationId: 'org-1', error: null }
 
   beforeEach(() => {
     routerEvents = new Subject<NavigationEnd>()
+    routeData = new BehaviorSubject<{ conversationEntry: ConversationEntryResolution }>({
+      conversationEntry: privateEntry
+    })
     router = {
       events: routerEvents,
       navigate: jest.fn().mockResolvedValue(true),
@@ -109,6 +115,7 @@ describe('XpertWorkbenchFacade', () => {
     TestBed.configureTestingModule({
       providers: [
         XpertWorkbenchFacade,
+        { provide: ActivatedRoute, useValue: { data: routeData, snapshot: { data: routeData.value } } },
         {
           provide: Router,
           useValue: router
@@ -157,6 +164,71 @@ describe('XpertWorkbenchFacade', () => {
     expect(projectApi.access).not.toHaveBeenCalled()
     expect(facade.initialLayout()).toBe(XpertWorkbenchInitialLayoutEnum.WorkbenchMaximized)
     expect(facade.defaultViewKey()).toBe('provider__metrics')
+  })
+
+  function navigateEntry(entry: ConversationEntryResolution) {
+    routeData.next({ conversationEntry: entry })
+    routerEvents.next(new NavigationEnd(2, router.url, router.url))
+  }
+
+  it('chooses the group adapter from purpose on the normal conversation route without a personal binding', async () => {
+    router.url = '/chat/x/assistant-primary/c/group-thread'
+    navigateEntry({
+      entry: { id: 'group-1', threadId: 'group-thread', xpertId: 'assistant-primary', title: 'Team', purpose: 'group' },
+      organizationId: 'org-1',
+      error: null
+    })
+    const facade = TestBed.inject(XpertWorkbenchFacade)
+    await settle()
+    expect(facade.viewState()).toBe('ready')
+    expect(facade.group()).toEqual({ id: 'group-1' })
+    expect(facade.assistantId()).toBe('assistant-primary')
+    expect(facade.identity()).toBe('chat-group:group-1')
+    expect(facade.assistantTitle()).toBe('Team')
+    expect(facade.threadId()).toBeNull()
+    expect(assistantBindingService.getAvailableXperts).not.toHaveBeenCalled()
+    facade.onChatThreadChange('runtime-thread')
+    await facade.syncConversationProject('runtime-thread')
+    expect(router.navigate).not.toHaveBeenCalled()
+    expect(conversationService.getByThreadId).not.toHaveBeenCalled()
+  })
+
+  it('does not mount a group whose entry belongs to another organization', async () => {
+    router.url = '/chat/x/primary/c/group-thread'
+    navigateEntry({
+      entry: { id: 'group-1', threadId: 'group-thread', xpertId: 'primary', title: 'Team', purpose: 'group' },
+      organizationId: 'other-org',
+      error: null
+    })
+    const facade = TestBed.inject(XpertWorkbenchFacade)
+    await settle()
+    expect(facade.viewState()).toBe('error')
+  })
+
+  it('shows entry access errors instead of mounting a private chat', async () => {
+    router.url = '/chat/x/sales/c/group-thread'
+    navigateEntry({ entry: null, organizationId: 'org-1', error: 'Access denied' })
+    const facade = TestBed.inject(XpertWorkbenchFacade)
+    await settle()
+    expect(facade.viewState()).toBe('error')
+    expect(facade.viewErrorMessage()).toBe('Access denied')
+  })
+
+  it('restores the ordinary adapter when leaving a group on the same route component', async () => {
+    router.url = '/chat/x/sales/c/group-thread'
+    navigateEntry({
+      entry: { id: 'group-1', threadId: 'group-thread', xpertId: 'xpert-1', title: 'Team', purpose: 'group' },
+      organizationId: 'org-1',
+      error: null
+    })
+    const facade = TestBed.inject(XpertWorkbenchFacade)
+    await settle()
+    router.url = '/chat/x/sales/c'
+    navigateEntry(privateEntry)
+    await settle()
+    expect(facade.group()).toBeNull()
+    expect(facade.identity()).toBe('chat-xpert-workbench:xpert-1')
+    expect(facade.viewState()).toBe('ready')
   })
 
   it('shows an error when the slug is not accessible', async () => {

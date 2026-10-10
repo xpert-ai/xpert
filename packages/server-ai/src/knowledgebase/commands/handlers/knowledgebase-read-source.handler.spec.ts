@@ -121,7 +121,15 @@ describe('governed pre-split source reading', () => {
         const expected = await f.handler.execute({ input })
         const bus = new CommandBus(undefined!)
         const execute = jest.spyOn(bus, 'execute').mockResolvedValue(expected)
-        expect(await new KnowledgebaseDocumentsRuntimeService(bus).readSource(input)).toEqual(expected)
+        const uploads = {
+            create: jest.fn(),
+            status: jest.fn(),
+            append: jest.fn(),
+            complete: jest.fn(),
+            read: jest.fn(),
+            remove: jest.fn()
+        }
+        expect(await new KnowledgebaseDocumentsRuntimeService(bus, uploads).readSource(input)).toEqual(expected)
         expect(execute).toHaveBeenCalledWith(new ReadKnowledgebaseDocumentSourceCommand(input))
     })
 

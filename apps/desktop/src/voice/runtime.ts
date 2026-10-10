@@ -15,6 +15,9 @@ export type VoiceState = 'connecting' | 'listening' | 'speaking' | 'ended' | 'er
 export type VoiceDiagnostic =
   | 'microphone_permission'
   | 'microphone_unavailable'
+  | 'microphone_signing'
+  | 'microphone_permission_check'
+  | 'microphone_no_signal'
   | 'audio_playback'
   | 'network'
   | 'connection_timeout'
@@ -42,6 +45,9 @@ export class VoiceRuntime {
   private generationDone = false
   private playbackBlocked = false
   private state: VoiceState = 'connecting'
+  private zeroInputSamples = 0
+  private inputNotice = false
+  private lastInputAt = 0
 
   constructor(
     private readonly onState: (state: VoiceState) => void,
@@ -60,6 +66,20 @@ export class VoiceRuntime {
       this.sounds.startRinging()
       await this.context.resume()
       if (this.closed) return
+      if (window.xpertDesktop) {
+        failure = 'microphone_permission_check'
+        const permission = await window.xpertDesktop.requestMicrophonePermission?.()
+        if (this.closed) return
+        if (!permission?.success) {
+          return this.fail(
+            permission?.code === 'audio_signing_missing'
+              ? 'microphone_signing'
+              : permission?.code === 'audio_permission_denied'
+                ? 'microphone_permission'
+                : 'microphone_permission_check'
+          )
+        }
+      }
       failure = 'microphone_unavailable'
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
@@ -115,6 +135,8 @@ export class VoiceRuntime {
         else this.close()
       }
       this.timer = setInterval(() => {
+        if (this.ready && !this.muted && Date.now() - this.lastInputAt > 10000)
+          return this.fail('microphone_unavailable')
         if (Date.now() - this.lastMessage > 20000) return this.fail('connection_timeout')
         this.control({ type: 'ping' })
       }, 5000)
@@ -141,6 +163,21 @@ export class VoiceRuntime {
     }
     if (data.type === 'audio' && 'audio' in data && data.audio instanceof ArrayBuffer) {
       if (!this.ready || this.muted || this.socket?.readyState !== WebSocket.OPEN) return
+      if (!data.audio.byteLength || data.audio.byteLength % 2) return this.fail('protocol')
+      this.lastInputAt = Date.now()
+      const samples = new Int16Array(data.audio)
+      // Exact digital zero is not low-volume speech or normal background noise.
+      if (samples.every((sample) => sample === 0)) this.zeroInputSamples += samples.length
+      else {
+        this.zeroInputSamples = 0
+        if (this.inputNotice) this.onDiagnostic(undefined)
+        this.inputNotice = false
+      }
+      if (this.zeroInputSamples >= 16000 * 30) return this.fail('microphone_no_signal')
+      if (this.zeroInputSamples >= 16000 * 10 && !this.inputNotice) {
+        this.inputNotice = true
+        this.onDiagnostic('microphone_no_signal')
+      }
       if (this.socket.bufferedAmount > 32000) return this.fail('network')
       this.socket.send(data.audio)
     }
@@ -187,6 +224,7 @@ export class VoiceRuntime {
         this.sounds?.stopRinging()
         this.onEvent({ type: 'ready', sessionId: this.ticket?.sessionId ?? '' })
         this.ready = true
+        this.lastInputAt = Date.now()
         this.worklet?.port.postMessage({ type: 'enabled', value: true })
         this.onState('listening')
         break
@@ -198,7 +236,7 @@ export class VoiceRuntime {
           this.generationDone = false
           this.playbackBlocked = false
           this.worklet?.port.postMessage({ type: 'response', responseId: event.responseId })
-          this.onDiagnostic(undefined)
+          if (!this.inputNotice) this.onDiagnostic(undefined)
         } else if (event.responseId === this.playbackResponse) {
           this.generationDone = true
           this.worklet?.port.postMessage({ type: 'response.done', responseId: event.responseId })
@@ -267,6 +305,10 @@ export class VoiceRuntime {
   }
   mute(muted: boolean) {
     this.muted = muted
+    this.zeroInputSamples = 0
+    this.lastInputAt = Date.now()
+    if (this.inputNotice) this.onDiagnostic(undefined)
+    this.inputNotice = false
     this.stream?.getAudioTracks().forEach((track) => {
       track.enabled = !muted
     })

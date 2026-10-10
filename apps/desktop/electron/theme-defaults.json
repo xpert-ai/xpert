@@ -10,7 +10,7 @@
     },
     "chatkit": {
       "messagePresentation": "bubbles",
-      "radius": "soft",
+      "radius": "round",
       "density": "normal",
       "baseSize": 15,
       "fontFamily": "",

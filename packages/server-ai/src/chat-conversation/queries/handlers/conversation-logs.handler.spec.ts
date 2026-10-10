@@ -132,6 +132,8 @@ describe('ChatConversationLogsHandler', () => {
         })
         expect(pageIdsQuery.select).toHaveBeenCalledWith('conversation.id')
         expect(pageIdsQuery.where).toHaveBeenCalledWith(where)
+        expect(pageIdsQuery.andWhere).toHaveBeenCalledWith("conversation.purpose IS DISTINCT FROM 'group'")
+        expect(countQuery.andWhere).toHaveBeenCalledWith("conversation.purpose IS DISTINCT FROM 'group'")
         expect(pageIdsQuery.orderBy).toHaveBeenCalledWith('conversation.createdAt', 'DESC')
         expect(pageIdsQuery.offset).toHaveBeenCalledWith(20)
         expect(pageIdsQuery.limit).toHaveBeenCalledWith(10)
@@ -286,10 +288,10 @@ describe('ChatConversationLogsHandler', () => {
 
         expect(pageIdsQuery.leftJoin).toHaveBeenCalledWith('conversation.createdBy', 'createdBy')
         expect(countQuery.leftJoin).toHaveBeenCalledWith('conversation.createdBy', 'createdBy')
-        expect(pageIdsQuery.andWhere).toHaveBeenCalledTimes(1)
-        expect(countQuery.andWhere).toHaveBeenCalledTimes(1)
+        expect(pageIdsQuery.andWhere).toHaveBeenCalledTimes(2)
+        expect(countQuery.andWhere).toHaveBeenCalledTimes(2)
 
-        const bracketCandidate: unknown = pageIdsQuery.andWhere.mock.calls[0][0]
+        const bracketCandidate: unknown = pageIdsQuery.andWhere.mock.calls[1][0]
         expect(bracketCandidate).toBeInstanceOf(Brackets)
         const brackets = bracketCandidate as Brackets
 

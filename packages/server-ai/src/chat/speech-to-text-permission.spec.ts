@@ -57,7 +57,7 @@ describe('PluginSpeechToTextPermissionService', () => {
         const accessService = createAccessService()
         const service = createService(speechToTextService, accessService)
         const actor = assistantServiceUser()
-        actor.apiKey!.entityId = 'xpert-other'
+        actor.resourceScope.xpertId = 'xpert-other'
 
         await expect(runInPluginContext(() => service.transcribe(transcriptionInput()), actor)).rejects.toThrow(
             'speech_to_text_xpert_delegation_mismatch'
@@ -132,6 +132,7 @@ function delegatedUser() {
     return {
         id: 'business-user-1',
         tenantId: 'tenant-1',
+        resourceScope: { kind: 'assistant' as const, xpertId: 'xpert-1' },
         apiKey: {
             token: '[managed-queue-delegation]',
             type: 'assistant',
@@ -146,6 +147,7 @@ function delegatedUser() {
         requestedOrganizationId: 'org-1',
         principalType: 'api_key'
     } as IUser & {
+        resourceScope: { kind: 'assistant'; xpertId: string }
         apiKey: NonNullable<ReturnType<typeof PluginRequestContext.currentApiKey>>
         requestedUserId: string
         principalType: 'api_key'

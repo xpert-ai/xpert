@@ -94,7 +94,7 @@ export class AssistantTaskRuntimeService implements AgentMiddlewareAssistantTask
             executionId: execution?.id ?? normalizeOptionalString(input.executionId),
             conversationId: conversation?.id ?? normalizeOptionalString(input.conversationId),
             threadId: execution?.threadId ?? conversation?.threadId ?? normalizeOptionalString(input.threadId),
-            errorMessage: execution?.error ?? conversation?.error
+            errorMessage: normalizeOptionalString(execution?.error ?? conversation?.error)
         }
     }
 
@@ -336,7 +336,7 @@ export class AssistantTaskRuntimeService implements AgentMiddlewareAssistantTask
             new ChatConversationUpsertCommand({
                 id: conversationId,
                 createdById: RequestContext.currentUserId(),
-                status: 'busy',
+                // Admission owns the busy claim; pre-marking it blocks our own first run.
                 xpertId,
                 from: 'job',
                 projectId,
@@ -377,24 +377,36 @@ export class AssistantTaskRuntimeService implements AgentMiddlewareAssistantTask
             }
         }
 
-        const stream = await this.commandBus.execute<XpertChatCommand, Observable<MessageEvent>>(
-            new XpertChatCommand(request, {
-                xpertId,
-                agentKey,
-                from: 'job',
-                ...(requestedTaskId ? { taskId: requestedTaskId } : {}),
-                projectId: projectId ?? undefined,
-                context: input.context,
-                ...(primaryModelId ? { primaryModelId } : {}),
-                ...(assistantTaskSkillSelection ? { assistantTaskSkillSelection } : {}),
-                execution: { id: execution.id, metadata: execution.metadata },
-                streamPersistence: {
-                    transport: 'redis-stream',
-                    threadId: conversation.threadId,
-                    runId: execution.id
-                }
-            })
-        )
+        let stream: Observable<MessageEvent>
+        try {
+            stream = await this.commandBus.execute<XpertChatCommand, Observable<MessageEvent>>(
+                new XpertChatCommand(request, {
+                    xpertId,
+                    agentKey,
+                    from: 'job',
+                    ...(requestedTaskId ? { taskId: requestedTaskId } : {}),
+                    projectId: projectId ?? undefined,
+                    context: input.context,
+                    ...(primaryModelId ? { primaryModelId } : {}),
+                    ...(assistantTaskSkillSelection ? { assistantTaskSkillSelection } : {}),
+                    execution: { id: execution.id, metadata: execution.metadata },
+                    streamPersistence: {
+                        transport: 'redis-stream',
+                        threadId: conversation.threadId,
+                        runId: execution.id
+                    }
+                })
+            )
+        } catch (error) {
+            // Admission can reject before a stream exists. Do not leave a phantom running execution.
+            await this.commandBus.execute(
+                new XpertAgentExecutionUpsertCommand({
+                    id: execution.id,
+                    status: XpertAgentExecutionStatusEnum.ERROR
+                })
+            )
+            throw error
+        }
 
         const result: AgentMiddlewareAssistantTaskResult = {
             status: 'running',

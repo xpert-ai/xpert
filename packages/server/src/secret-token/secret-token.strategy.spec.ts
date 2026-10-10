@@ -1,5 +1,5 @@
 import { SecretTokenStrategy } from './secret-token.strategy'
-import { SecretTokenBindingType } from '@xpert-ai/contracts'
+import { SecretTokenBindingType, UserType } from '@xpert-ai/contracts'
 import { UnauthorizedException } from '@nestjs/common'
 import type { DataSource } from 'typeorm'
 import type { ApiKeyService } from '../api-key/api-key.service'
@@ -20,7 +20,7 @@ describe('SecretTokenStrategy', () => {
 
 	function createStrategy(requestedOrganizationId: string | null) {
 		const secretTokenService = {
-			findOneByOptions: jest.fn().mockResolvedValue({
+			findBySecret: jest.fn().mockResolvedValue({
 				entityId: 'api-key-1',
 				createdById: 'end-user-1',
 				validUntil: new Date(Date.now() + 60_000),
@@ -141,7 +141,7 @@ describe('SecretTokenStrategy', () => {
 
 	it('resolves public xpert client secrets without loading an api key', async () => {
 		const { strategy, secretTokenService, apiKeyService, userService } = createStrategy(null)
-		secretTokenService.findOneByOptions.mockResolvedValue({
+		secretTokenService.findBySecret.mockResolvedValue({
 			id: 'secret-token-1',
 			type: SecretTokenBindingType.PUBLIC_XPERT,
 			entityId: 'xpert-1',
@@ -178,6 +178,7 @@ describe('SecretTokenStrategy', () => {
 			tenantId: 'tenant-1',
 			principalType: 'client_secret',
 			clientSecretBindingType: 'public_xpert',
+			resourceScope: { kind: 'assistant', xpertId: 'xpert-1' },
 			clientSecretId: 'secret-token-1',
 			requestedOrganizationId: 'org-1',
 			apiKey: {
@@ -193,7 +194,7 @@ describe('SecretTokenStrategy', () => {
 
 	it('resolves user xpert client secrets as an assistant-scoped delegated user', async () => {
 		const { strategy, secretTokenService, apiKeyService, userService } = createStrategy(null)
-		secretTokenService.findOneByOptions.mockResolvedValue({
+		secretTokenService.findBySecret.mockResolvedValue({
 			id: 'secret-token-user-1',
 			type: SecretTokenBindingType.USER_XPERT,
 			entityId: 'xpert-1',
@@ -230,6 +231,7 @@ describe('SecretTokenStrategy', () => {
 			tenantId: 'tenant-1',
 			principalType: 'client_secret',
 			clientSecretBindingType: 'user_xpert',
+			resourceScope: { kind: 'assistant', xpertId: 'xpert-1' },
 			clientSecretId: 'secret-token-user-1',
 			requestedUserId: 'end-user-1',
 			requestedOrganizationId: 'org-1',
@@ -247,7 +249,7 @@ describe('SecretTokenStrategy', () => {
 
 	it('resolves enterprise xpert client secrets as an assistant-scoped bound user', async () => {
 		const { strategy, secretTokenService, apiKeyService, userService, queryBuilder } = createStrategy(null)
-		secretTokenService.findOneByOptions.mockResolvedValue({
+		secretTokenService.findBySecret.mockResolvedValue({
 			id: 'secret-token-enterprise-1',
 			type: SecretTokenBindingType.ENTERPRISE_XPERT,
 			entityId: 'xpert-1',
@@ -285,6 +287,7 @@ describe('SecretTokenStrategy', () => {
 			tenantId: 'tenant-1',
 			principalType: 'client_secret',
 			clientSecretBindingType: 'enterprise_xpert',
+			resourceScope: { kind: 'assistant', xpertId: 'xpert-1' },
 			clientSecretId: 'secret-token-enterprise-1',
 			enterpriseH5Scope: {
 				platform: 'dingtalk',
@@ -306,7 +309,7 @@ describe('SecretTokenStrategy', () => {
 
 	it('rejects legacy enterprise xpert secrets without an exact enterprise H5 channel scope', async () => {
 		const { strategy, secretTokenService, apiKeyService, userService } = createStrategy(null)
-		secretTokenService.findOneByOptions.mockResolvedValue({
+		secretTokenService.findBySecret.mockResolvedValue({
 			id: 'secret-token-enterprise-legacy',
 			type: SecretTokenBindingType.ENTERPRISE_XPERT,
 			entityId: 'xpert-1',
@@ -330,7 +333,7 @@ describe('SecretTokenStrategy', () => {
 
 	it('rejects enterprise xpert secrets after their exact channel is disabled or changed', async () => {
 		const { strategy, secretTokenService, userService, queryBuilder } = createStrategy(null)
-		secretTokenService.findOneByOptions.mockResolvedValue({
+		secretTokenService.findBySecret.mockResolvedValue({
 			id: 'secret-token-enterprise-disabled',
 			type: SecretTokenBindingType.ENTERPRISE_XPERT,
 			entityId: 'xpert-1',
@@ -354,5 +357,55 @@ describe('SecretTokenStrategy', () => {
 			})
 		).rejects.toBeInstanceOf(UnauthorizedException)
 		expect(userService.findOneByIdWithinTenant).not.toHaveBeenCalled()
+	})
+	it.each(['human-A', 'human-B'])(
+		'restores the real human %s with an exact conversation audience and no API key',
+		async (userId) => {
+			const { strategy, secretTokenService, apiKeyService, userService } = createStrategy('forged-org')
+			secretTokenService.findBySecret.mockResolvedValue({
+				id: 'session',
+				type: SecretTokenBindingType.USER_CONVERSATION,
+				entityId: 'group-D',
+				tenantId: 'tenant-1',
+				organizationId: 'org-1',
+				createdById: userId,
+				validUntil: new Date(Date.now() + 60_000)
+			} as never)
+			userService.findOneByIdWithinTenant.mockResolvedValue({
+				id: userId,
+				tenantId: 'tenant-1',
+				type: UserType.USER
+			})
+			const req = {
+				headers: {
+					authorization: 'Bearer cs-x-test',
+					'organization-id': 'forged-org',
+					'tenant-id': 'forged-tenant',
+					'x-principal-user-id': 'forged-user'
+				}
+			}
+			const principal = await authenticate(strategy, req)
+			expect(principal).toMatchObject({
+				id: userId,
+				principalType: 'client_secret',
+				requestedOrganizationId: 'org-1',
+				clientSecretBindingType: SecretTokenBindingType.USER_CONVERSATION,
+				resourceScope: { kind: 'conversation', conversationId: 'group-D' }
+			})
+			expect(principal).not.toHaveProperty('apiKey')
+			expect(req.headers).toMatchObject({ 'tenant-id': 'tenant-1', 'organization-id': 'org-1' })
+			expect(req.headers).not.toHaveProperty('x-principal-user-id')
+			expect(apiKeyService.resolvePrincipal).not.toHaveBeenCalled()
+		}
+	)
+	it('returns 401 for an expired conversation credential', async () => {
+		const { strategy, secretTokenService } = createStrategy('org-1')
+		secretTokenService.findBySecret.mockResolvedValue({
+			type: SecretTokenBindingType.USER_CONVERSATION,
+			validUntil: new Date(0)
+		} as never)
+		await expect(
+			authenticate(strategy, { headers: { authorization: 'Bearer cs-x-expired' } })
+		).rejects.toBeInstanceOf(UnauthorizedException)
 	})
 })

@@ -18,7 +18,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { ApiKeyOrClientSecretAuthGuard, Public, UUIDValidationPipe, ZodValidationPipe } from '@xpert-ai/server-core'
 import type { Response } from 'express'
 import { t } from 'i18next'
-import { XpertWorkspaceFilesService } from '../xpert/xpert-workspace-files.service'
+import { AssistantFilesService } from '../xpert/assistant-files/assistant-files.service'
 import { streamWorkspaceDownload } from '../xpert/workspace-file-download'
 import { AssistantFileAccess, AssistantFileAccessGuard } from './assistant-file-access.guard'
 import { WORKSPACE_FILE_UPLOAD_MAX_BYTES } from '../shared/workspace-file-limits'
@@ -42,14 +42,19 @@ const uploadOptions = { limits: { fileSize: WORKSPACE_FILE_UPLOAD_MAX_BYTES } }
 @AssistantFileAccess('workspace')
 @Controller('assistants/:assistantId/workspace')
 export class AssistantWorkspaceFilesController {
-    constructor(private readonly workspaceFilesService: XpertWorkspaceFilesService) {}
+    constructor(private readonly workspaceFilesService: AssistantFilesService) {}
+
+    @Get('capabilities')
+    capabilities(@Param('assistantId', UUIDValidationPipe) id: string) {
+        return this.workspaceFilesService.forRuntime(id).capabilities()
+    }
 
     @Get('files')
     listWorkspaceFiles(
         @Param('assistantId', UUIDValidationPipe) id: string,
         @Query(new ZodValidationPipe(workspaceFilesQuerySchema, invalidWorkspaceFileRequest)) query: WorkspaceFilesQuery
     ) {
-        return this.workspaceFilesService.list(id, query.path, query.deepth)
+        return this.workspaceFilesService.forRuntime(id).list(query.path, query.deepth)
     }
 
     @Get('file')
@@ -57,7 +62,7 @@ export class AssistantWorkspaceFilesController {
         @Param('assistantId', UUIDValidationPipe) id: string,
         @Query(new ZodValidationPipe(workspaceFileQuerySchema, invalidWorkspaceFileRequest)) query: WorkspaceFileQuery
     ) {
-        return this.workspaceFilesService.read(id, query.path)
+        return this.workspaceFilesService.forRuntime(id).read(query.path)
     }
 
     @Get('file/download')
@@ -66,7 +71,7 @@ export class AssistantWorkspaceFilesController {
         @Query(new ZodValidationPipe(workspaceFileQuerySchema, invalidWorkspaceFileRequest)) query: WorkspaceFileQuery,
         @Res() res: Response
     ) {
-        return streamWorkspaceDownload(await this.workspaceFilesService.download(id, query.path), res)
+        return streamWorkspaceDownload(await this.workspaceFilesService.forRuntime(id).download(query.path), res)
     }
 
     @Put('file')
@@ -74,7 +79,7 @@ export class AssistantWorkspaceFilesController {
         @Param('assistantId', UUIDValidationPipe) id: string,
         @Body(new ZodValidationPipe(workspaceFileWriteSchema, invalidWorkspaceFileRequest)) body: WorkspaceFileWrite
     ) {
-        return this.workspaceFilesService.save(id, body.path, body.content)
+        return this.workspaceFilesService.forRuntime(id).save(body.path, body.content)
     }
 
     @Delete('file')
@@ -82,7 +87,7 @@ export class AssistantWorkspaceFilesController {
         @Param('assistantId', UUIDValidationPipe) id: string,
         @Query(new ZodValidationPipe(workspaceFileQuerySchema, invalidWorkspaceFileRequest)) query: WorkspaceFileQuery
     ) {
-        return this.workspaceFilesService.delete(id, query.path)
+        return this.workspaceFilesService.forRuntime(id).delete(query.path)
     }
 
     @Post('file/upload')
@@ -92,7 +97,7 @@ export class AssistantWorkspaceFilesController {
         @Body(new ZodValidationPipe(workspaceFileUploadSchema, invalidWorkspaceFileRequest)) body: WorkspaceFileUpload,
         @UploadedFile() file: Express.Multer.File
     ) {
-        return this.workspaceFilesService.uploadToFolder(id, body.path, requireFile(file))
+        return this.workspaceFilesService.forRuntime(id).uploadToFolder(body.path, requireFile(file))
     }
 
     @Post('file/save-binary')
@@ -102,7 +107,7 @@ export class AssistantWorkspaceFilesController {
         @Body(new ZodValidationPipe(workspaceFileQuerySchema, invalidWorkspaceFileRequest)) body: WorkspaceFileQuery,
         @UploadedFile() file: Express.Multer.File
     ) {
-        return this.workspaceFilesService.saveBinary(id, body.path, requireFile(file).buffer)
+        return this.workspaceFilesService.forRuntime(id).saveBinary(body.path, requireFile(file).buffer)
     }
 }
 

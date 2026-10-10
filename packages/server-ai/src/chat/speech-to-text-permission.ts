@@ -17,7 +17,7 @@ import {
 } from '@xpert-ai/plugin-sdk'
 import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common'
 import type { IApiPrincipal } from '@xpert-ai/contracts'
-import { ApiKeyBindingType, SecretTokenBindingType } from '@xpert-ai/contracts'
+import { SecretTokenBindingType } from '@xpert-ai/contracts'
 import { SpeechToTextService } from './speech-to-text.service'
 import { PublishedXpertAccessService } from '../xpert'
 
@@ -90,10 +90,10 @@ export class PluginSpeechToTextPermissionService implements SpeechToTextPermissi
         this.validateTargetXpertId(input)
         const xpertId = this.normalizeString(input.xpertId)
         const principal = this.resolveCurrentApiPrincipal()
-        const apiKey = principal?.apiKey
+        const scope = principal?.resourceScope
 
-        if (apiKey?.type === ApiKeyBindingType.ASSISTANT && apiKey.entityId) {
-            if (this.normalizeString(apiKey.entityId) !== xpertId) {
+        if (scope?.kind === 'assistant') {
+            if (this.normalizeString(scope.xpertId) !== xpertId) {
                 throw new ForbiddenException('speech_to_text_xpert_delegation_mismatch')
             }
 

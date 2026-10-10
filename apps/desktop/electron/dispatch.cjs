@@ -1,6 +1,10 @@
 const { translate } = require('./i18n/index.mjs')
 const { ClientError } = require('./service.cjs')
 const methods = new Set([
+  'listGroups',
+  'groupCandidates',
+  'createGroup',
+  'groupPreference',
   'bosiSetup',
   'bosiWorkspace',
   'createBosi',

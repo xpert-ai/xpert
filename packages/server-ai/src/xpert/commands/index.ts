@@ -1,4 +1,5 @@
 export * from './create.command'
+export * from '../runtime-capabilities/get-runtime-capabilities.command'
 export * from './publish.command'
 export * from './publish-triggers.command'
 export * from './enqueue-trigger-dispatch.command'

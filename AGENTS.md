@@ -32,6 +32,13 @@ This repo uses NestJS + TypeORM on the server and Angular 17 (standalone, signal
 - A cohesive subfeature with its own Controller and Service belongs in a dedicated subdirectory under its owning feature, such as `xpert/assistant-appearance/`. Keep its schemas, DTOs, helpers and tests together instead of adding them to the parent directory.
 - Directory boundaries do not require a NestJS Module. Register small subfeatures in the owning Module; introduce a submodule when it provides a meaningful dependency, provider or export boundary.
 
+### Dependency injection and service boundaries
+
+- Declare ordinary service dependencies through constructor injection and explicit module `imports`/`exports`. Do not use generic `ModuleRef.get(..., { strict: false })` helpers or string-based service lookup to hide static dependencies; missing providers should fail during module initialization.
+- For shared operations across domains, prefer an existing typed CQRS entry point or define a focused Command/Query and Handler in the owning domain. Follow the Shared CQRS operations guidance below; keep authorization policy with the capability that owns it.
+- Controllers and business callers must invoke concrete business methods. Do not expose public `service<T>()`, `resources()` or similar getters that return underlying service instances and turn a business service into a general-purpose service locator.
+- Resolve circular dependencies by reviewing module boundaries, extracting cohesive shared capabilities, or moving operations to their owning domain. Do not use `strict: false` to conceal a dependency cycle. Verify module wiring with dependency-injection tests when changing these boundaries.
+
 ### Shared CQRS operations
 
 - When a reusable capability has one cohesive entry point, prefer a typed CQRS Command and Handler over requiring consumers to inject its Service and import its owning Module. Register the Handler once in the owning platform module; consumers use the shared `CommandBus` and public Command contract.
@@ -42,6 +49,17 @@ This repo uses NestJS + TypeORM on the server and Angular 17 (standalone, signal
 ### ChatKit API boundary
 
 - Put ChatKit business endpoints in `AIModule` under `/api/ai`, with shared authentication and explicit Assistant/conversation scope guards. Keep controllers thin and resource authorization in reusable business services; do not open management controllers to client secrets for ChatKit. Cookie-bound or short-lived authorized content URLs may remain separate.
+
+### Authoring workspace versus Assistant file workspace
+
+- `XpertWorkspace` (`xpert_workspace`, `xpert.workspaceId`) is the authoring resource container for Assistants, skills and connectors. Its `canRead/canRun/canWrite/canManage` capabilities are not Assistant file permissions.
+- An Assistant file workspace is runtime data in a Volume, mapped into a sandbox filesystem. For non-Project files, resolve it using `resolveXpertDataVolumeScope`: `shared` uses tenant + Assistant identity; `user` additionally binds the authenticated user. Never substitute the Assistant creator or accept file ownership/catalog/root overrides from a client.
+- Runtime file entry points must authorize the exact published Assistant through `ResolveAssistantFileAccessCommand` / `AssistantFilesService.forRuntime()`. Do not use `XpertService.findOne()`, `XpertWorkspaceService.canAccess()`, or workspace-level `canRun` as the file ACL. UserGroup access must work without authoring workspace membership.
+- Shared Assistant files are explicitly collaborative: authorized users may read, upload, modify and delete. User-isolated files permit the same operations only in the current user's volume. File access never grants authoring workspace membership or editing rights.
+- Studio uses `AssistantFilesService.forAuthoring()` and retains explicit authoring checks, including drafts. Choose the entry in trusted server code; never accept an authoring mode from HTTP data or fall back to authoring after runtime denial.
+- Preserve credential audiences and revalidate current user access for standalone file browsing, including delegated USER_XPERT sessions. Project file access retains Project membership and Assistant binding; a Project-delegated session alone must not unlock the Assistant's non-Project volume.
+- Keep filesystem containment and symlink protection in Volume APIs. Test real authorization services together with file operations for group-only access, revocation, cross-Assistant denial, user isolation and Studio draft access; mocks that always allow `findOne()` or `canAccess()` cannot cover this boundary.
+- Conversation file APIs must distinguish parsed attachments (`/ai/conversations/:id/files`, FileAssets) from runtime directories (`/ai/conversations/:id/workspace/*`, Volumes). Never register both controllers for the same method and URL; keep SDK Workbench routes aligned and test both controllers together.
 
 ### Request validation
 

@@ -1,3 +1,7 @@
+import { SetupPluginsCatalog } from './setup/setup-plugins.catalog'
+import { SetupPluginsController } from './setup/setup-plugins.controller'
+import { SetupPluginsService } from './setup/setup-plugins.service'
+import { SetupPluginsStore } from './setup/setup-plugins.store'
 import { ConfigModule, ConfigService, getConfig } from '@xpert-ai/server-config'
 import { DynamicModule, Global, Inject, Module, OnModuleDestroy, OnModuleInit } from '@nestjs/common'
 import { DiscoveryModule, ModuleRef } from '@nestjs/core'
@@ -18,6 +22,7 @@ import {
 import chalk from 'chalk'
 import { PluginController } from './plugin.controller'
 import { getPluginModules, hasLifecycleMethod, loaded } from './plugin.helper'
+import { PluginUninstallService } from './uninstall/plugin-uninstall.service'
 import { PluginManagementService } from './plugin-management.service'
 import { PluginConfigResolver, PluginConfigResolverProvider } from './plugin-config.resolver'
 import { CommandHandlers } from './commands/handlers'
@@ -53,7 +58,7 @@ import { PluginSchemaSyncService } from './plugin-schema-sync.service'
 		TypeOrmModule.forFeature([PluginInstance, PluginMarketplaceSource, PluginMarketplaceRegistryItem]),
 		CqrsModule
 	],
-	controllers: [PluginController, PluginMarketplaceController],
+	controllers: [PluginController, PluginMarketplaceController, SetupPluginsController],
 	exports: [
 		StrategyBus,
 		XpertToolProviderRegistry,
@@ -64,6 +69,9 @@ import { PluginSchemaSyncService } from './plugin-schema-sync.service'
 		LOADED_PLUGINS
 	],
 	providers: [
+		SetupPluginsService,
+		SetupPluginsStore,
+		SetupPluginsCatalog,
 		{ provide: LOADED_PLUGINS, useValue: loaded },
 		PluginConfigResolverProvider,
 		{
@@ -102,6 +110,7 @@ import { PluginSchemaSyncService } from './plugin-schema-sync.service'
 		PluginAccountBindingPermissionService,
 		PluginIntegrationPermissionService,
 		PluginUserPermissionService,
+		PluginUninstallService,
 		PluginRuntimeStateService,
 		PluginSchemaSyncService,
 		StrategyBus,

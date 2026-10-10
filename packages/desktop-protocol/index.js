@@ -204,3 +204,4 @@ function parsePolicy(value) {
 }
 module.exports.parsePreparation = parsePreparation
 module.exports.parsePolicy = parsePolicy
+Object.assign(module.exports, require('./audio-capture.js'))

@@ -9,7 +9,7 @@ export type TEnterpriseH5TokenScope = {
 
 /**
  * Selects how an opaque client secret is authorized and how entityId is
- * interpreted. createdById only records provenance; it does not distinguish
+ * interpreted. createdById alone does not distinguish
  * an API-key grant, a delegated user session, or a public assistant session.
  */
 export enum SecretTokenBindingType {
@@ -20,6 +20,12 @@ export enum SecretTokenBindingType {
    * as the acting business user for the interactive ChatKit run.
    */
   USER_XPERT = 'user_xpert',
+  /**
+   * entityId is one conversation, initially a group. createdById is the real
+   * authenticated human. This grant never authorizes unrelated conversations,
+   * direct Assistant APIs or session issuance; live domain access still applies.
+   */
+  USER_CONVERSATION = 'user_conversation',
   /**
    * entityId is the only Xpert this verified enterprise identity may access;
    * createdById is the AccountBinding-resolved Xpert user.
@@ -34,6 +40,7 @@ export interface ISecretToken extends IBasePerTenantAndOrganizationEntityModel {
   entityId?: string
   /** Explicit grant/binding semantics for this opaque token. */
   type?: SecretTokenBindingType
+  /** Stored representation: existing opaque secret or sha256:<digest> written by createHashed. Never send a digest as a bearer secret. */
   token: string
   /** Exact enterprise channel that issued an ENTERPRISE_XPERT token. */
   enterpriseH5Scope?: TEnterpriseH5TokenScope | null

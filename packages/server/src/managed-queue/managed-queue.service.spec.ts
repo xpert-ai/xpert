@@ -348,4 +348,36 @@ describe('ManagedQueueService', () => {
 		)
 		await expect(service.getRedis()).resolves.toBe(redis)
 	})
+	it('captures conversation scope and expiry without a synthetic API key', async () => {
+		const { queue } = createQueue()
+		const service = new ManagedQueueService(queue as never)
+		const expiry = new Date('2030-01-01T00:00:00.000Z')
+		jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ id: 'user-1', tenantId: 'tenant-1' } as never)
+		jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+		jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue({
+			id: 'user-1',
+			tenantId: 'tenant-1',
+			principalType: 'client_secret',
+			requestedUserId: 'user-1',
+			requestedOrganizationId: 'org-1',
+			resourceScope: { kind: 'conversation', conversationId: 'group-1' },
+			clientSecretBindingType: SecretTokenBindingType.USER_CONVERSATION,
+			clientSecretExpiresAt: expiry
+		} as ReturnType<typeof RequestContext.currentApiPrincipal>)
+		await service.enqueue({
+			pluginName: 'plugin-a',
+			queueName: 'analysis',
+			jobName: 'run',
+			payload: {},
+			tenantId: 'tenant-1',
+			organizationId: 'org-1'
+		})
+		const envelope = queue.add.mock.calls[0]?.[1]
+		expect(envelope.delegation).toMatchObject({
+			resourceScope: { kind: 'conversation', conversationId: 'group-1' },
+			clientSecretBindingType: SecretTokenBindingType.USER_CONVERSATION,
+			clientSecretExpiresAt: expiry.toISOString()
+		})
+		expect(envelope.delegation.apiKey).toBeUndefined()
+	})
 })

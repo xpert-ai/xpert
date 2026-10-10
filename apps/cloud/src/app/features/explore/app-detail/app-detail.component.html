@@ -62,7 +62,7 @@
                 </p>
               }
               <div class="mt-6 flex flex-wrap gap-3">
-                <button z-button type="button" (click)="primaryAction()" [disabled]="status() === 'initializing'">
+                <button z-button type="button" (click)="primaryAction()" [zDisabled]="status() === 'initializing'">
                   {{ primaryActionLabel() }}
                 </button>
                 <button z-button zType="outline" type="button" (click)="setupOpen.set(true)">
@@ -318,6 +318,33 @@
             </div>
           }
 
+          <xp-application-toolsets
+            [application]="appDetail.application"
+            [editable]="!!appDetail.status.canDiscardConfiguration"
+            [requirements]="toolsetRequirements()"
+            [(selections)]="toolsetSelections"
+            [(configuring)]="configuringToolsets"
+            [disabled]="
+              initializing() || refreshingToolsets() || discarding() || status() === 'initializing' || isReady()
+            "
+            (refresh)="refreshToolsets()"
+          />
+
+          @if (appDetail.status.canDiscardConfiguration) {
+            <div class="mt-4 flex items-center justify-between gap-3 text-xs text-muted-foreground">
+              <p>{{ 'XP.Explore.Application.Toolsets.DraftSaved' | translate }}</p>
+              <button
+                z-button
+                zType="ghost"
+                type="button"
+                [zDisabled]="initializing() || configuringToolsets() || discarding() || refreshingToolsets()"
+                (click)="discardConfiguration()"
+              >
+                {{ 'XP.Explore.Application.Toolsets.Discard' | translate }}
+              </button>
+            </div>
+          }
+
           @if (preflightMessage()) {
             <div
               class="mt-5 rounded-xl border border-state-warning-hover bg-state-warning-hover/10 p-4 text-sm leading-6 text-text-warning"
@@ -350,7 +377,7 @@
           </div>
         </div>
         <footer class="grid grid-cols-2 gap-3 border-t border-border p-6">
-          <button z-button type="button" class="w-full" [disabled]="!canSubmit()" (click)="initialize()">
+          <button z-button type="button" class="w-full" [zDisabled]="!canSubmit()" (click)="initialize()">
             {{ initializeActionLabel() }}
           </button>
           <button
@@ -358,7 +385,7 @@
             zType="outline"
             type="button"
             class="w-full"
-            [disabled]="initializing()"
+            [zDisabled]="initializing() || configuringToolsets() || discarding()"
             (click)="closeSetup()"
           >
             {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}

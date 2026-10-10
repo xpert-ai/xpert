@@ -70,6 +70,39 @@ describe('WorkspaceFilesRuntimeCapabilityService read-only sources', () => {
         await expect(service.resolveFile(reference('drawings/missing.pdf'))).rejects.toThrow('Workspace file not found')
     })
 
+    it.each([false, true])(
+        'preserves ENOENT through scoped plugin file APIs (uninitialized root=%s)',
+        async (uninitialized) => {
+            const parent = await temporaryRoot()
+            const serverRoot = uninitialized ? path.join(parent, 'new-workspace') : parent
+            const service = createService(serverRoot, '/host/project-1')
+            const scoped = service.createScopedApi({
+                tenantId: 'tenant-1',
+                userId: 'user-1',
+                projectId: 'project-1'
+            })
+            const filePath = 'documents/new/notes.md'
+
+            await expect(scoped.readBuffer({ filePath })).rejects.toMatchObject({ code: 'ENOENT' })
+            await expect(scoped.readRuntimeBuffer(`/workspace/${filePath}`)).rejects.toMatchObject({ code: 'ENOENT' })
+            await expect(scoped.deleteFile({ filePath })).rejects.toMatchObject({ code: 'ENOENT' })
+        }
+    )
+
+    it('keeps a runtime scope mismatch distinct from a missing file', async () => {
+        const service = createService(await temporaryRoot(), '/host/project-1')
+        const scoped = service.createScopedApi({
+            tenantId: 'tenant-1',
+            organizationId: 'organization-1',
+            userId: 'user-1',
+            projectId: 'project-1'
+        })
+
+        const result = scoped.readRuntimeBuffer({ ...reference('notes.md'), tenantId: 'tenant-2' })
+        await expect(result).rejects.toBeInstanceOf(BadRequestException)
+        await expect(result).rejects.not.toHaveProperty('code', 'ENOENT')
+    })
+
     it('returns the corrected asset MIME instead of the stale workspace selection MIME', async () => {
         const commandBus = {
             execute: jest.fn().mockResolvedValue({

@@ -1,10 +1,22 @@
 const { contextBridge, ipcRenderer } = require('electron')
 let avatarPointerSubscribers = 0
 contextBridge.exposeInMainWorld('xpertDesktop', {
+  requestMicrophonePermission: () => ipcRenderer.invoke('xpert:microphone-permission'),
+  audioCapture: (request) => ipcRenderer.invoke('xpert:audio-capture', request),
+  onNewGroup: (callback) => {
+    const listener = () => callback()
+    ipcRenderer.on('xpert:new-group', listener)
+    return () => ipcRenderer.removeListener('xpert:new-group', listener)
+  },
   onWindowActivated: (callback) => {
     const listener = () => callback()
     ipcRenderer.on('xpert:window-activated', listener)
     return () => ipcRenderer.removeListener('xpert:window-activated', listener)
+  },
+  onAssistantActivityChanged: (callback) => {
+    const listener = () => callback()
+    ipcRenderer.on('xpert:assistant-activity-changed', listener)
+    return () => ipcRenderer.removeListener('xpert:assistant-activity-changed', listener)
   },
   updates: {
     getState: () => ipcRenderer.invoke('xpert:update', 'state'),

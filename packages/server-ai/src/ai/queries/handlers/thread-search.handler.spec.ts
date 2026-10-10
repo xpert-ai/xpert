@@ -51,7 +51,8 @@ describe('SearchThreadsHandler', () => {
         const query = queryBus.execute.mock.calls[0][0]
         expect(query.conditions).toMatchObject({
             createdById: 'user-1',
-            status: 'idle'
+            status: 'idle',
+            purpose: 'private'
         })
         expect(query.conditions.xpertId).toMatchObject({
             _type: 'in',

@@ -392,7 +392,15 @@ jest.mock('../../assistant/assistant-chatkit.runtime', () => {
   const { signal } = jest.requireActual('@angular/core')
 
   return {
-    injectHostedAssistantChatkitControl: jest.fn(() => signal(null))
+    injectHostedAssistantChatkitControl: jest.fn(() =>
+      signal({
+        element: null,
+        setOptions: jest.fn(),
+        setThreadId: jest.fn(async () => {}),
+        setComposerValue: jest.fn(async () => {}),
+        sendUserMessage: jest.fn(async () => {})
+      })
+    )
   }
 })
 
@@ -2405,7 +2413,7 @@ describe('ClawXpertConversationDetailComponent', () => {
       conversationId: 'job-conversation-1',
       requesterXpertId: 'assistant-1'
     })
-    expect(fixture.nativeElement.querySelector('xpert-chatkit')).not.toBe(primaryChatkitElement)
+    expect(fixture.nativeElement.querySelector('xpert-chatkit')).toBe(primaryChatkitElement)
     expect(getRuntimeInput().requestContext?.()).toEqual(
       expect.objectContaining({
         env: expect.objectContaining({

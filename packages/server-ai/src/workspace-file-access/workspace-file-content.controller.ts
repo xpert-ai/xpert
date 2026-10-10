@@ -1,14 +1,12 @@
-import { Controller, Get, Head, Logger, NotFoundException, Req, Res, UseGuards } from '@nestjs/common'
+import { Controller, Get, Head, NotFoundException, Req, Res, UseGuards } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import type { XpertViewFileAccessPurpose } from '@xpert-ai/contracts'
 import { Public } from '@xpert-ai/server-core'
 import type { Response } from 'express'
 import { t } from 'i18next'
-import { createReadStream } from 'node:fs'
-import { stat } from 'node:fs/promises'
-import { getMediaTypeWithCharset, resolveHttpByteRange } from '../shared'
 import { WorkspaceFileAccessGuard, WorkspaceFileAccessRequest } from './workspace-file-access.guard'
 import { WorkspaceFileAccessService } from './workspace-file-access.service'
+import { sendWorkspaceFileContent } from './workspace-file-content.response'
+export { buildWorkspaceFileContentDisposition } from './workspace-file-content.response'
 
 // Content URLs use the granted file-session cookie, independently of ChatKit credentials.
 @ApiTags('WorkspaceFiles')
@@ -16,8 +14,6 @@ import { WorkspaceFileAccessService } from './workspace-file-access.service'
 @UseGuards(WorkspaceFileAccessGuard)
 @Controller('content')
 export class WorkspaceFileContentController {
-    readonly #logger = new Logger(WorkspaceFileContentController.name)
-
     constructor(private readonly service: WorkspaceFileAccessService) {}
 
     @Get(':sessionId/:grantId/:fileName')
@@ -39,74 +35,6 @@ export class WorkspaceFileContentController {
         }
         const origin = this.service.assertRequestOrigin(authorization.session, request, authorization.grant.purpose)
         const resolved = this.service.resolveAuthorizedFile(authorization)
-        const fileStat = await stat(resolved.filePath).catch(() => null)
-        if (!fileStat?.isFile()) {
-            throw new NotFoundException(
-                t('server-ai:Error.WorkspaceFileAccessNotFound', { defaultValue: 'Workspace file was not found.' })
-            )
-        }
-
-        const { grant } = authorization
-        const range = resolveHttpByteRange(request.headers.range, fileStat.size)
-        response.setHeader('Accept-Ranges', 'bytes')
-        response.setHeader('Cache-Control', 'private, no-store')
-        response.setHeader(
-            'Content-Type',
-            grant.mimeType || getMediaTypeWithCharset(resolved.filePath) || 'application/octet-stream'
-        )
-        response.setHeader('X-Content-Type-Options', 'nosniff')
-        response.setHeader('Referrer-Policy', 'no-referrer')
-        response.setHeader('Content-Disposition', buildWorkspaceFileContentDisposition(grant.purpose, grant.fileName))
-        if (origin) {
-            response.setHeader('Access-Control-Allow-Origin', origin)
-            response.setHeader('Access-Control-Allow-Credentials', 'true')
-            response.setHeader(
-                'Access-Control-Expose-Headers',
-                'Accept-Ranges, Content-Length, Content-Range, Content-Type'
-            )
-            response.setHeader('Vary', 'Origin')
-        }
-
-        if (range.kind === 'unsatisfiable') {
-            response.setHeader('Content-Range', `bytes */${fileStat.size}`)
-            response.status(416).end()
-            return
-        }
-
-        const start = range.kind === 'partial' ? range.start : undefined
-        const end = range.kind === 'partial' ? range.end : undefined
-        const contentLength = range.kind === 'partial' ? range.end - range.start + 1 : fileStat.size
-        response.setHeader('Content-Length', contentLength)
-        if (range.kind === 'partial') {
-            response.status(206)
-            response.setHeader('Content-Range', `bytes ${range.start}-${range.end}/${fileStat.size}`)
-        }
-        if (headOnly) {
-            response.end()
-            return
-        }
-
-        const stream = createReadStream(resolved.filePath, { start, end })
-        stream.on('error', (error) => {
-            this.#logger.warn(`Workspace file stream failed for grant ${grant.grantId}: ${error.message}`)
-            if (!response.headersSent) {
-                response.status(404).end()
-            } else {
-                response.destroy(error)
-            }
-        })
-        response.on('close', () => stream.destroy())
-        stream.pipe(response)
+        return sendWorkspaceFileContent(authorization, resolved.filePath, request, response, headOnly, origin)
     }
-}
-
-export function buildWorkspaceFileContentDisposition(purpose: XpertViewFileAccessPurpose, fileName: string) {
-    // Node.js rejects non-Latin-1 characters in response headers. Keep the
-    // quoted filename ASCII-only and preserve the real name in RFC 5987 form.
-    const fallbackName = fileName.replace(/[^\x20-\x7e]|["\\]/g, '_') || 'workspace-file'
-    const encodedName = encodeURIComponent(fileName).replace(
-        /[!'()*]/g,
-        (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`
-    )
-    return `${purpose === 'download' ? 'attachment' : 'inline'}; filename="${fallbackName}"; filename*=UTF-8''${encodedName}`
 }

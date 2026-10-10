@@ -12,7 +12,7 @@ test('new configurations use independent bubble presentation defaults', () => {
   const second = parseConfig(DEFAULT_CONFIG)
   first.appearance.desktop.light.primary = '#123456'
   assert.deepEqual(second.appearance.desktop.light, {})
-  assert.equal(second.appearance.chatkit.radius, 'soft')
+  assert.equal(second.appearance.chatkit.radius, 'round')
   assert.equal(second.appearance.chatkit.baseSize, 15)
   assert.equal(second.appearance.chatkit.messagePresentation, 'bubbles')
   assert.equal(new DesktopService().snapshot().config.appearance.chatkit.messagePresentation, 'bubbles')

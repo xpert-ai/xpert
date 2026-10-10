@@ -8,6 +8,9 @@ import * as GraphEntities from '../../graphrag/entities'
 import { MCP_PUBLICATION_ENTITIES, McpApiKey } from '../../mcp-publication/entities'
 import { ModelUsageDeliveryReceipt } from '../../copilot-usage/model-usage/model-usage-delivery-receipt.entity'
 import { AgentPluginPackage, AgentResourceBinding } from '../../agent-plugin/agent-plugin.entity'
+import { GROUP_ENTITIES } from '../../chat-group/group.entities'
+import { ChatConversation } from '../../chat-conversation/conversation.entity'
+import { ChatMessage } from '../../chat-message/chat-message.entity'
 
 class MetadataDataSource extends DataSource {
     buildMetadata() {
@@ -21,7 +24,8 @@ describe('ALL_AI_ENTITIES', () => {
         ['document lifecycle', Object.values(DocumentLifecycleEntities)],
         ['MCP publication', MCP_PUBLICATION_ENTITIES],
         ['model usage delivery', [ModelUsageDeliveryReceipt]],
-        ['agent plugins', [AgentPluginPackage, AgentResourceBinding]]
+        ['agent plugins', [AgentPluginPackage, AgentResourceBinding]],
+        ['group chat', GROUP_ENTITIES]
     ])('registers %s entities for standalone schema-sync', (_name, entities) => {
         expect(ALL_AI_ENTITIES).toEqual(expect.arrayContaining(entities))
     })
@@ -46,7 +50,10 @@ describe('ALL_AI_ENTITIES', () => {
                 'model_usage_delivery_receipt',
                 'mcp_publication_access',
                 'agent_plugin_package',
-                'agent_resource_binding'
+                'agent_resource_binding',
+                'chat_group_participant',
+                'chat_message_recipient',
+                'chat_group_interaction'
             ])
         )
         expect(dataSource.getMetadata(McpApiKey).findColumnWithPropertyName('encryptedSecret')).toMatchObject({
@@ -54,6 +61,39 @@ describe('ALL_AI_ENTITIES', () => {
             isNullable: true,
             isSelect: false
         })
+        // New group columns use the contract property names and preserve ordinary-chat defaults.
+        const conversation = dataSource.getMetadata(ChatConversation)
+        expect(conversation.findColumnWithPropertyName('purpose')).toMatchObject({
+            type: 'varchar',
+            default: 'private'
+        })
+        expect(conversation.findColumnWithPropertyName('revision')).toMatchObject({
+            databaseName: 'revision',
+            type: 'int',
+            default: 0
+        })
+        expect(conversation.findColumnWithPropertyName('lastMessageSequence')).toMatchObject({
+            databaseName: 'lastMessageSequence',
+            type: 'int',
+            default: 0
+        })
+        const message = dataSource.getMetadata(ChatMessage)
+        expect(message.findColumnWithPropertyName('sequence')).toMatchObject({
+            databaseName: 'sequence',
+            type: 'int',
+            isNullable: true
+        })
+        expect(message.findColumnWithPropertyName('groupPublicationId')).toMatchObject({ isNullable: true })
+        expect(
+            message.indices
+                .filter((index) => index.isUnique)
+                .map((index) => index.columns.map((column) => column.propertyName))
+        ).toEqual(
+            expect.arrayContaining([
+                ['conversationId', 'sequence'],
+                ['conversationId', 'groupPublicationId']
+            ])
+        )
     })
 
     it('registers all Wiki entities for the standalone schema-sync command', () => {

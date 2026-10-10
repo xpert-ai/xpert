@@ -183,6 +183,9 @@ import { ProjectTaskDecisionService } from './runtime/project-task-decision.serv
         ...CommandHandlers
     ],
     exports: [
+        XpertProjectTypeService,
+        XpertProjectWorkspaceFilesService,
+        XpertProjectFeatureGuard,
         ProjectResourceCardService,
         XpertProjectService,
         XpertProjectAccessModule,

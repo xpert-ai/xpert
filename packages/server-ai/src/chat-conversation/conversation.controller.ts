@@ -1,4 +1,5 @@
 import {
+    ChatConversationEntry,
     IChatConversationMarkReadRequest,
     IChatConversationUnreadXpertSummary,
     IChatConversationUnreadXpertsRequest,
@@ -52,6 +53,7 @@ import { ChatConversationGoalService } from './goal'
 import { assertSafeChatConversationRelations } from './conversation-relations'
 import { navigationThreadSchema, navigationMessageSchema } from './workbench-navigation.schema'
 import { WorkbenchAssistantConversationNavigationService } from './workbench-assistant-conversation-navigation.service'
+import { GetGroupConversationEntryCommand } from '../chat-group/group-conversation-entry.command'
 
 @ApiTags('ChatConversation')
 @ApiBearerAuth()
@@ -83,7 +85,8 @@ export class ChatConversationController {
         assertSafeChatConversationRelations(filter?.relations)
         const where = {
             ...transformWhere(filter?.where ?? {}),
-            createdById: this.requireCurrentUserId()
+            createdById: this.requireCurrentUserId(),
+            purpose: 'private'
         } as any
         if (search) {
             where.title = Like(`%${search}%`)
@@ -124,6 +127,34 @@ export class ChatConversationController {
         return this.organizationScopeService.run(organizationId, async () => {
             const conversation = await this.service.findOneByThreadId(threadId)
             return new ChatConversationPublicDTO(await this.service.assertAccess(conversation))
+        })
+    }
+
+    @Get('entry-by-thread')
+    async findEntryByThreadId(
+        @Query(
+            'threadId',
+            new ZodValidationPipe(
+                navigationThreadSchema.unwrap(),
+                () => new BadRequestException(t('server-ai:ConversationMap.InvalidQuery'))
+            )
+        )
+        threadId: string,
+        @Query('organizationId') organizationId?: string
+    ): Promise<ChatConversationEntry> {
+        return this.organizationScopeService.run(organizationId, async () => {
+            const conversation = await this.service.findOneByThreadId(threadId)
+            if (conversation.purpose === 'group') {
+                return this.commandBus.execute(new GetGroupConversationEntryCommand(conversation.id))
+            }
+            await this.service.assertAccess(conversation)
+            return {
+                id: conversation.id,
+                threadId,
+                xpertId: conversation.xpertId,
+                title: conversation.title,
+                purpose: 'private'
+            }
         })
     }
 
@@ -331,7 +362,8 @@ export class ChatConversationController {
             ...filter,
             where: {
                 ...(filter?.where ?? {}),
-                createdById: this.requireCurrentUserId()
+                createdById: this.requireCurrentUserId(),
+                purpose: 'private'
             }
         })
         return {

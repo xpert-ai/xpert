@@ -202,7 +202,7 @@ export interface HostMethods {
 
   sidebarState: { input: undefined; output: SidebarState }
   updateSidebar: { input: SidebarUpdate; output: SidebarState }
-  botActivity: { input: undefined; output: BotActivity[] }
+  botActivity: { input: { refresh?: boolean } | undefined; output: BotActivity[] }
   botConversation: {
     input: { botId: string; threadId: string }
     output: { id: string; title: string | null; threadId: string | null }
@@ -243,6 +243,10 @@ export interface HostMethods {
   login: { input: { email: string; password: string }; output: AppState }
   loginLocal: { input: undefined; output: AppState }
   selectOrganization: { input: string; output: AppState }
+  listGroups: { input: undefined; output: import('./groups/types').GroupSummary[] }
+  groupCandidates: { input: undefined; output: import('./groups/types').GroupCandidate[] }
+  createGroup: { input: { title: string; assistantId: string }; output: { id: string; title: string } }
+  groupPreference: { input: { id: string; key: 'pinned' | 'archived'; value: boolean }; output: unknown }
   listBots: { input: undefined; output: Bot[] }
   voiceCapability: { input: { botId: string; assistantId?: string }; output: { enabled: boolean } }
   voiceStart: {
@@ -260,7 +264,10 @@ export interface HostMethods {
     input: { threadId: string; sessionId: string }
     output: { ended: boolean; call?: import('@xpert-ai/chatkit-types').CompletedVoiceCall }
   }
-  chatSession: { input: string; output: { secret: string; organizationId: string } }
+  chatSession: {
+    input: string | { scope: { kind: 'conversation'; conversationId: string } }
+    output: { secret: string; organizationId: string }
+  }
   toolOutputPreview: {
     input: Pick<ToolOutputImageAttachment, 'artifactId' | 'artifactVersionId' | 'sha256' | 'mimeType'>
     output: ToolOutputAttachmentPreview
@@ -299,9 +306,21 @@ export interface HostMethods {
 declare global {
   interface Window {
     xpertDesktop?: {
+      requestMicrophonePermission?: () => Promise<
+        | { success: true }
+        | {
+            success: false
+            code: 'audio_signing_missing' | 'audio_permission_denied' | 'audio_permission_check_failed' | 'forbidden'
+          }
+      >
+      audioCapture?: (
+        request: import('@xpert-ai/desktop-protocol').AudioCaptureRequest
+      ) => Promise<import('@xpert-ai/desktop-protocol').AudioCaptureResult>
       updates?: import('./update-types').UpdateBridge
       onAvatarPointer?: (listener: (point: { x: number; y: number } | null) => void) => () => void
+      onNewGroup?: (listener: () => void) => () => void
       onWindowActivated?: (listener: () => void) => () => void
+      onAssistantActivityChanged?: (listener: () => void) => () => void
       invoke: <K extends keyof HostMethods>(
         method: K,
         argument?: HostMethods[K]['input']
