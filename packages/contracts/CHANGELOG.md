@@ -1,5 +1,24 @@
 # @xpert-ai/contracts
 
+## 3.21.0
+
+### Minor Changes
+
+- 4fff330: Upgrade the shared ChatKit packages to 0.13.0 across Cloud, Desktop and server-side chat contracts, keeping workspace and deployment dependency locks aligned.
+
+  Support shared group conversations with human and digital expert participants through the existing ChatKit chat, composer, header and workbench. Include participant-aware messages, member management and links to digital expert execution conversations, along with the new-tab workbench fallback and model names in context usage information.
+
+### Patch Changes
+
+- eecb9fa: Configure required builtin toolsets when enabling marketplace applications. Discover and deduplicate template dependencies across Assistant suites, select authorized source configurations, and provision independently managed copies before installing Assistants. Preserve toolset IDs during repair, roll back newly created copies on failure, and include them in installation health checks.
+
+  Prepare a scoped configuration Workspace before opening toolset authorization. Persist new toolset bindings directly in that Workspace, support resuming or explicitly discarding unactivated configuration, and retain saved authorization after activation failures. Reject invalid Workspace identifiers before database access.
+
+- f76a9c9: Let organization administrators import the official Agent plugins from one Git snapshot with a single button. Reuse existing package versions, isolate package failures, and display import results without granting workspace access. Expose the shared import command for system setup.
+- eecb9fa: Support explicit coordinator and nested role dependencies in application Assistant suites. Validate delegation graphs, publish dependencies before callers, and include nested links in installation health checks. Repair entry-only installations in place, restore published drafts when needed, and retain scoped partial resources and all existing knowledgebase IDs for idempotent retries.
+- c5e19d5: Make plugin runtime convergence account for registered API replicas without a fixed registration window. Retain failed rollout outcomes, guard late replica catch-up, allow authorized retirement of offline instances, and synchronize organization plugin removals. Hide manual restart prompts from non-SuperAdmin users while retaining background progress.
+- 4b7a346: Add plugin installation as the final system setup step, with a paginated marketplace catalog, plugin details, filters, grouping, and selection across pages using Zard UI. Install selected plugins sequentially, skip failures, optionally import the official Agent plugins, and defer runtime activation until the batch finishes. Persist installation progress, resume interrupted work, and enter the organization only after runtime convergence completes.
+
 ## 3.20.0
 
 ### Minor Changes

@@ -1,5 +1,21 @@
 # @xpert-ai/desktop-protocol
 
+## 0.3.0
+
+### Minor Changes
+
+- 17e0342: Add a generic, user-initiated microphone and system-audio capture capability on macOS 15+. Deliver versioned capture events and WAV chunks to callbacks declared by the requesting plugin View, with encrypted local buffering, resumable delivery, device ownership checks, and shutdown on sleep or account changes. Keep application workflows in plugins and publish the shared command and delivery contracts.
+
+### Patch Changes
+
+- Updated dependencies [eecb9fa]
+- Updated dependencies [f76a9c9]
+- Updated dependencies [eecb9fa]
+- Updated dependencies [c5e19d5]
+- Updated dependencies [4b7a346]
+- Updated dependencies [4fff330]
+  - @xpert-ai/contracts@3.21.0
+
 ## 0.2.1
 
 ### Patch Changes

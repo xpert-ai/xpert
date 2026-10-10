@@ -1,5 +1,22 @@
 # @xpert-ai/server-core
 
+## 3.10.2
+
+### Patch Changes
+
+- c5e19d5: Make plugin runtime convergence account for registered API replicas without a fixed registration window. Retain failed rollout outcomes, guard late replica catch-up, allow authorized retirement of offline instances, and synchronize organization plugin removals. Hide manual restart prompts from non-SuperAdmin users while retaining background progress.
+- 4b7a346: Add plugin installation as the final system setup step, with a paginated marketplace catalog, plugin details, filters, grouping, and selection across pages using Zard UI. Install selected plugins sequentially, skip failures, optionally import the official Agent plugins, and defer runtime activation until the batch finishes. Persist installation progress, resume interrupted work, and enter the organization only after runtime convergence completes.
+- Updated dependencies [eecb9fa]
+- Updated dependencies [f76a9c9]
+- Updated dependencies [c9f9379]
+- Updated dependencies [eecb9fa]
+- Updated dependencies [c5e19d5]
+- Updated dependencies [4b7a346]
+- Updated dependencies [4fff330]
+- Updated dependencies [82b8db4]
+    - @xpert-ai/contracts@3.21.0
+    - @xpert-ai/plugin-sdk@3.21.0
+
 ## 3.10.1
 
 ### Patch Changes

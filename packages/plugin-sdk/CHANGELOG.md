@@ -1,5 +1,25 @@
 # @xpert-ai/plugin-sdk
 
+## 3.21.0
+
+### Minor Changes
+
+- c9f9379: Group Knowledge capabilities under `rag/capability` and expose resumable upload sessions through `Documents.uploads`. Support idempotent document imports without automatic processing, plus filename and folder-path search with MIME type filters so unprocessed images remain discoverable.
+
+  Allow organizations to read public tenant libraries while requiring super administrators to explicitly select tenant scope before managing them. Keep document processing behind write-access checks without switching the caller's request scope. Release the SDK and host implementation together for the new upload API.
+
+### Patch Changes
+
+- f76a9c9: Let organization administrators import the official Agent plugins from one Git snapshot with a single button. Reuse existing package versions, isolate package failures, and display import results without granting workspace access. Expose the shared import command for system setup.
+- 82b8db4: Preserve the ENOENT error code when scoped workspace file operations encounter missing files or an uninitialized root. Document the in-process runtime file contract so plugins can distinguish missing files from other failures without interpreting localized messages. Keep path boundaries and HTTP error responses unchanged.
+- Updated dependencies [eecb9fa]
+- Updated dependencies [f76a9c9]
+- Updated dependencies [eecb9fa]
+- Updated dependencies [c5e19d5]
+- Updated dependencies [4b7a346]
+- Updated dependencies [4fff330]
+  - @xpert-ai/contracts@3.21.0
+
 ## 3.20.0
 
 ### Minor Changes
