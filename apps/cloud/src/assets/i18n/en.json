@@ -3290,7 +3290,7 @@
         "UninstallSkillFailed": "Failed to uninstall the selected skill.",
         "UninstallSelectedSkillsFailed": "Failed to uninstall the selected skills.",
         "UpdateSelectedSkillsFailed": "Failed to update the selected skills.",
-        "LoadFailed": "Failed to load ClawXpert.",
+        "LoadFailed": "Failed to load digital expert.",
         "LoadFailedDesc": "Check your assistant access and try again.",
         "ReferenceUnavailable": "Chat composer is not ready yet. Try again in a moment.",
         "ChatkitUnavailable": "Chat is not ready yet.",

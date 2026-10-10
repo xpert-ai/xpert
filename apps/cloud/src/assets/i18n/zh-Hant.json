@@ -4983,7 +4983,7 @@
         "LoadingDesc": "正在載入助手設定與工作區，通常只需片刻。",
         "OrganizationRequired": "請選擇一個組織以使用 ClawXpert",
         "OrganizationRequiredDesc": "ClawXpert 會按用戶和組織維度保存一份助手綁定。",
-        "LoadFailed": "ClawXpert 載入失敗。",
+        "LoadFailed": "數位專家載入失敗。",
         "Onboarding": "新手引導",
         "OnboardingTitle": "初始化 ClawXpert",
         "OnboardingDesc": "使用預設可用模型創建 ClawXpert。下方會展示已安裝插件提供的推薦模板。",

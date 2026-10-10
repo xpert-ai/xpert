@@ -2483,7 +2483,7 @@
         "LoadingDesc": "Loading your assistant settings and workspace. This usually takes only a moment.",
         "OrganizationRequired": "Select an organization to use ClawXpert",
         "OrganizationRequiredDesc": "ClawXpert stores one assistant binding per user and per organization.",
-        "LoadFailed": "Failed to load ClawXpert.",
+        "LoadFailed": "Failed to load digital expert.",
         "Onboarding": "Onboarding",
         "OnboardingTitle": "Initialize ClawXpert",
         "OnboardingDesc": "Create ClawXpert with the default available model. Recommended templates from installed plugins appear below.",

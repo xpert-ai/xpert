@@ -119,4 +119,4 @@ UserGroup 只补充 `canRun`，绝不提升 `canRead`、`canWrite` 或 `canManag
 - `packages/server-ai/src/xpert-workspace/workspace-base.service.ts`
 - `packages/server-ai/src/xpert/commands/handlers/chat.handler.ts`
 - `packages/server-ai/src/xpert/queries/handlers/get-xpert-workflow.handler.ts`
-- `packages/server-ai/src/ai/runtime-capabilities.service.ts`
+- `packages/server-ai/src/xpert/runtime-capabilities/runtime-capabilities.service.ts`
