@@ -17,7 +17,7 @@ export function removeEmptySigningCredentials(env = process.env) {
     if (typeof env[key] === 'string' && env[key].trim() === '') delete env[key]
   return env
 }
-export function packaging(plan, target, env = process.env) {
+export function packaging(plan, target, env = process.env, appDirectory = resolve('apps/desktop')) {
   assert.ok(plan.build && /^[a-f0-9]{40}$/.test(plan.sha), 'Changesets build plan required')
   assert.match(plan.version, /^\d+\.\d+\.\d+(?:-candidate\.(?:main|develop)\.[a-f0-9]{12})?$/)
   assert.ok(
@@ -26,7 +26,11 @@ export function packaging(plan, target, env = process.env) {
     )
   )
   env = removeEmptySigningCredentials({ ...env })
+  const original = JSON.parse(readFileSync(join(appDirectory, 'package.json'), 'utf8')).build
   const config = {
+    ...original,
+    // electron-builder resolves hook strings from cwd, even with projectDir set.
+    afterSign: resolve(appDirectory, original.afterSign),
     extraMetadata: { version: plan.version },
     // AppImage expands ${arch} to x86_64; receipts use the matrix's x64 name.
     artifactName: `Bosi-${plan.version}-${target.platform}-${target.arch}.\${ext}`,
@@ -38,8 +42,9 @@ export function packaging(plan, target, env = process.env) {
     const apple = [env.APPLE_ID, env.APPLE_APP_SPECIFIC_PASSWORD, env.APPLE_TEAM_ID]
     if (apple.some(Boolean) && (!certificate || !apple.every(Boolean)))
       throw new Error('macOS notarization requires a signing certificate and all three Apple credentials')
-    const adhocEntitlements = resolve('.deploy/desktop/entitlements.adhoc.mac.plist')
+    const adhocEntitlements = resolve(appDirectory, '../../.deploy/desktop/entitlements.adhoc.mac.plist')
     config.mac = {
+      ...original.mac,
       target: ['dmg', 'zip'],
       notarize: certificate && apple.every(Boolean),
       hardenedRuntime: true,
@@ -48,10 +53,10 @@ export function packaging(plan, target, env = process.env) {
     config.forceCodeSigning = certificate
     signing = certificate ? (config.mac.notarize ? 'signed-notarized' : 'signed') : 'ad-hoc'
   } else if (target.platform === 'win') {
-    config.win = { target: ['nsis', 'zip'] }
+    config.win = { ...original.win, target: ['nsis', 'zip'] }
     config.forceCodeSigning = Boolean(env.CSC_LINK)
     signing = env.CSC_LINK ? 'signed' : 'unsigned'
-  } else config.linux = { target: ['AppImage', 'tar.gz'], executableName: 'bosi' }
+  } else config.linux = { ...original.linux, target: ['AppImage', 'tar.gz'], executableName: 'bosi' }
   // Candidates and ad-hoc macOS builds must never offer an un-installable update.
   config.extraMetadata.desktopUpdates =
     Boolean(plan.stable) && (target.platform !== 'mac' || ['signed', 'signed-notarized'].includes(signing))
@@ -73,20 +78,15 @@ export async function packageDesktop(plan, target) {
   assert.equal(process.platform, { mac: 'darwin', win: 'win32', linux: 'linux' }[target.platform])
   const appDirectory = resolve('apps/desktop')
   removeEmptySigningCredentials()
-  const { config, signing } = packaging(plan, target)
+  const { config, signing } = packaging(plan, target, process.env, appDirectory)
   const builder = require('electron-builder')
-  const original = JSON.parse(readFileSync(join(appDirectory, 'package.json'), 'utf8'))
   const platform = { mac: builder.Platform.MAC, win: builder.Platform.WINDOWS, linux: builder.Platform.LINUX }[
     target.platform
   ]
   await builder.build({
     projectDir: appDirectory,
     targets: platform.createTarget(undefined, builder.Arch[target.arch]),
-    config: {
-      ...original.build,
-      ...config,
-      [target.platform]: { ...original.build[target.platform], ...config[target.platform] }
-    },
+    config,
     publish: 'never'
   })
   const paths = appPaths(target, join(appDirectory, 'release'))
