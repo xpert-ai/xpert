@@ -521,7 +521,7 @@
               @let screenshot = screenshots[0];
               <article
                 data-application-card
-                class="group/application relative isolate aspect-video min-h-[calc(9.5rem+3px)] min-w-0 overflow-hidden rounded-xl border border-border bg-muted/40 text-card-foreground transition-colors duration-200 hover:border-primary/60 focus-within:border-primary/60 motion-reduce:transition-none"
+                class="group/application relative isolate aspect-video min-h-[calc(9.5rem+3px)] min-w-0 overflow-hidden rounded-xl border border-border bg-muted/40 text-card-foreground transition-colors duration-200 hover:border-primary/60 focus-within:border-primary/60 [--app-card-fade:0.75rem] [--app-card-glass:var(--background)] [--app-card-ink:var(--foreground)] [--app-card-peek:calc(4rem+1px)] [container-type:size] motion-reduce:transition-none"
               >
                 <button
                   data-application-media
@@ -558,8 +558,42 @@
 
                 <div
                   data-application-card-content
-                  class="absolute inset-x-0 bottom-0 z-10 translate-y-[calc(100%-4rem-1px)] overflow-hidden border-t border-border/40 bg-linear-to-b from-muted/30 via-muted/75 to-border/90 p-3 backdrop-blur-xl transition-transform duration-200 will-change-transform group-hover/application:translate-y-0 group-focus-within/application:translate-y-0 [@media(hover:none)]:translate-y-0 motion-reduce:transition-none"
+                  class="absolute inset-x-0 bottom-0 z-10 isolate translate-y-[calc(100%-var(--app-card-peek))] p-3 text-(--app-card-ink) transition-transform duration-200 will-change-transform group-hover/application:translate-y-0 group-focus-within/application:translate-y-0 [@media(hover:none)]:translate-y-0 motion-reduce:transition-none"
                 >
+                  <div
+                    aria-hidden="true"
+                    class="pointer-events-none absolute inset-x-0 -top-[var(--app-card-fade)] bottom-0 -z-10 opacity-25 [mask-image:linear-gradient(to_bottom,transparent,var(--app-card-ink))]"
+                  >
+                    <div
+                      class="absolute inset-x-0 bottom-0 h-[calc(100%-var(--app-card-fade))] translate-y-[calc(var(--app-card-peek)-100%)] transition-transform duration-200 will-change-transform group-hover/application:translate-y-0 group-focus-within/application:translate-y-0 [@media(hover:none)]:translate-y-0 motion-reduce:transition-none"
+                    >
+                      <div class="absolute inset-x-0 bottom-0 h-[100cqh] blur-[0.25rem]">
+                        @if (screenshot) {
+                          <img
+                            class="size-full object-cover object-center"
+                            [src]="screenshot"
+                            alt=""
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        } @else {
+                          <span
+                            class="flex size-full items-center justify-center bg-linear-to-br from-muted via-accent/40 to-muted pb-14"
+                          >
+                            <xp-icon [icon]="item.application.icon ?? null" [size]="72" />
+                          </span>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    aria-hidden="true"
+                    class="pointer-events-none absolute inset-x-0 -top-[var(--app-card-fade)] -z-10 h-[calc(var(--app-card-peek)+var(--app-card-fade))] bg-linear-to-t from-(--app-card-glass)/90 via-(--app-card-glass)/75 via-[65%] to-transparent dark:from-(--app-card-glass)/95 dark:via-(--app-card-glass)/90 transition-opacity duration-200 group-hover/application:opacity-0 group-focus-within/application:opacity-0 [@media(hover:none)]:opacity-0 motion-reduce:transition-none"
+                  ></div>
+                  <div
+                    aria-hidden="true"
+                    class="pointer-events-none absolute inset-x-0 -top-[var(--app-card-fade)] bottom-0 -z-10 bg-linear-to-t from-(--app-card-glass)/90 via-(--app-card-glass)/75 via-[85%] to-transparent opacity-0 dark:from-(--app-card-glass)/95 dark:via-(--app-card-glass)/90 transition-opacity duration-200 group-hover/application:opacity-100 group-focus-within/application:opacity-100 [@media(hover:none)]:opacity-100 motion-reduce:transition-none"
+                  ></div>
                   <div class="flex h-10 items-center gap-2.5">
                     <button
                       type="button"
@@ -567,19 +601,23 @@
                       (click)="openApplicationDetails(item)"
                     >
                       <span
-                        class="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-card"
+                        class="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-md bg-(--app-card-glass) p-0.5 text-(--app-card-ink) [text-shadow:none] dark:bg-(--app-card-ink) dark:text-(--app-card-glass)"
                       >
-                        <xp-icon [icon]="item.application.icon ?? null" [size]="32" />
+                        <xp-icon
+                          class="flex size-full items-center justify-center [&_.icon-image]:size-full! [&_.icon-root]:size-full! [&_.icon-svg]:size-full!"
+                          [icon]="item.application.icon ?? null"
+                          [size]="32"
+                        />
                       </span>
                       <span class="min-w-0 flex-1">
                         <span
-                          class="block translate-y-2 truncate text-base font-semibold leading-5 text-foreground transition-transform duration-200 group-hover/application:translate-y-0 group-focus-within/application:translate-y-0 [@media(hover:none)]:translate-y-0 motion-reduce:transition-none"
+                          class="block translate-y-2 truncate text-base font-semibold leading-5 transition-transform duration-200 group-hover/application:translate-y-0 group-focus-within/application:translate-y-0 [@media(hover:none)]:translate-y-0 motion-reduce:transition-none"
                           [attr.title]="applicationTitle(item)"
                         >
                           {{ applicationTitle(item) }}
                         </span>
                         <span
-                          class="block truncate text-xs leading-4 text-muted-foreground opacity-0 transition-opacity duration-200 group-hover/application:opacity-100 group-focus-within/application:opacity-100 [@media(hover:none)]:opacity-100 motion-reduce:transition-none"
+                          class="block truncate text-xs leading-4 text-(--app-card-ink)/75 opacity-0 transition-opacity duration-200 group-hover/application:opacity-100 group-focus-within/application:opacity-100 [@media(hover:none)]:opacity-100 motion-reduce:transition-none"
                           [attr.title]="applicationDeveloper(item)"
                         >
                           {{ applicationDeveloper(item) }}
@@ -587,7 +625,7 @@
                       </span>
                     </button>
                     <span
-                      class="max-w-[35%] shrink-0 truncate rounded-md bg-background/60 px-2 py-1 text-xs font-medium text-muted-foreground"
+                      class="max-w-[35%] shrink-0 truncate rounded-md bg-(--app-card-ink)/10 px-2 py-1 text-xs font-medium text-(--app-card-ink)/85"
                       [attr.title]="
                         item.status.status === 'not_installed'
                           ? ('XP.Explore.Application.SetupExplanation' | translate)
@@ -602,21 +640,23 @@
                     data-application-details
                     class="invisible group-hover/application:visible group-focus-within/application:visible [@media(hover:none)]:visible"
                   >
-                    <p class="mt-2 line-clamp-2 break-words text-sm leading-5 text-muted-foreground">
+                    <p class="mt-2 line-clamp-2 break-words text-sm leading-5 text-(--app-card-ink)/90">
                       {{ applicationSummary(item) }}
                     </p>
                     <div class="mt-2 flex min-w-0 items-center gap-2">
                       <div
-                        class="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden text-xs text-muted-foreground"
+                        class="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden text-xs text-(--app-card-ink)/75"
                         [attr.title]="item.marketplace.tags.join(' · ')"
                       >
                         <span class="shrink-0">
                           {{ applicationScopeLabelKey(item.application.scope) | translate }}
                         </span>
                         @for (tag of item.marketplace.tags.slice(0, 2); track tag) {
-                          <span class="min-w-0 truncate rounded-md bg-background/60 px-1.5 py-0.5" [attr.title]="tag">{{
-                            tag
-                          }}</span>
+                          <span
+                            class="min-w-0 truncate rounded-md bg-(--app-card-ink)/10 px-1.5 py-0.5"
+                            [attr.title]="tag"
+                            >{{ tag }}</span
+                          >
                         }
                       </div>
                       <button
@@ -624,7 +664,7 @@
                         z-button
                         zSize="sm"
                         type="button"
-                        class="h-8 min-w-0 max-w-[65%] shrink-0 cursor-pointer gap-1 px-2 text-xs"
+                        class="h-8 min-w-0 max-w-[65%] shrink-0 cursor-pointer gap-1 px-2 text-xs [text-shadow:none]"
                         [attr.title]="applicationActionLabel(item)"
                         [disabled]="applicationActionDisabled(item)"
                         (click)="handleApplicationAction(item, $event)"

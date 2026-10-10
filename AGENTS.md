@@ -102,6 +102,13 @@ Rationale: keep simple cases concise, and complex cases structured and maintaina
 - Golden rule: Angular CDK Dialogs use `backdropClass: 'backdrop-blur-xs-black'` and `panelClass: 'xp-overlay-pane-dialog'`; introduce another semantic panel class only for a genuinely different treatment.
 - Dialog component roots own content sizing and layout only. Do not repeat the panel's clipping, radius, background, foreground, border/ring, outline, or shadow utilities at call sites or on the component root.
 
+## Desktop (Electron + React) Dialog Rendering
+
+- Golden rule: Desktop fullscreen Dialogs blur background content with `filter`, not overlay `backdrop-filter`, which caused flicker during foreground animation in native macOS Electron tests. Preserve live blur and card glass; centralize the policy in `apps/desktop/src/styles.css`.
+- Keep Dialog portals outside the filtered root, blur lower dialogs when nested, and restore the background on close. Keep animated glass panels a stable size and prefer `transform`/`opacity`.
+- Desktop marketplace cards use `filter` on a copy of their own cover for glass blur. Keep that image aligned with the full card throughout expansion; avoid `backdrop-filter` on the translated information panel so its glass effect stays independent of the fullscreen background blur. Preserve the theme-derived translucent gray gradient and rounded clipping.
+- Verify hover, nesting, cleanup and focus in native Electron using one-variable comparisons. Browser previews alone cannot prove the fix; do not claim a specific GPU/Chromium defect without evidence.
+
 ## API Endpoints
 
 - Server skill repositories: `POST /skill-repository` to register, `GET /skill-repository` list, indexes at `/skill-repository/indexes` with `POST /sync/:repositoryId`.

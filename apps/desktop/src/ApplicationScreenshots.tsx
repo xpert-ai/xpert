@@ -17,7 +17,7 @@ export function ApplicationCardBackground({
   return (
     <div
       aria-hidden="true"
-      className={`pointer-events-none absolute ${blurred ? 'inset-x-0 bottom-0 h-[100cqh] blur-xl' : 'inset-0 -z-10 overflow-hidden rounded-[inherit]'}`}
+      className={`pointer-events-none absolute ${blurred ? 'inset-x-0 bottom-0 h-[100cqh] blur-[0.25rem]' : 'inset-0 -z-10 overflow-hidden rounded-[inherit]'}`}
     >
       {children}
       {source && (
