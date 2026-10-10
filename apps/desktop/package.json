@@ -6,7 +6,7 @@
   "main": "electron/main.cjs",
   "scripts": {
     "dev": "node scripts/dev.mjs",
-    "dev:web": "vite --host 127.0.0.1 --port 4390 --strictPort",
+    "dev:web": "vite",
     "build": "pnpm build:audio-capture-native && tsc --noEmit && vite build",
     "icons:macos": "node scripts/generate-macos-icons.mjs",
     "start": "electron .",

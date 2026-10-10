@@ -103,16 +103,47 @@ corepack pnpm install
 corepack pnpm --filter @xpert-ai/desktop dev
 ```
 
-The app opens an Electron window. Development uses port **4390** and fails if
-that port is already occupied. For a browser-only preview:
+The app opens an Electron window. Both `dev` and `dev:web` read
+`XPERT_DESKTOP_DEV_URL` from the repository root `.env`; a shell environment override
+takes precedence. The default is `http://127.0.0.1:4390/`. The development server
+uses the configured loopback host and port and fails if that port is already occupied.
+Electron receives the actual Vite URL, so the window and server cannot silently use different ports.
+For a browser-only preview:
 
 ```sh
 corepack pnpm --filter @xpert-ai/desktop dev:web
 ```
 
-Open <http://127.0.0.1:4390/>. This preview uses an HttpOnly, SameSite cookie and an
+Open the local URL printed by Vite (by default <http://127.0.0.1:4390/>).
+This preview uses an HttpOnly, SameSite cookie and an
 in-memory host session. Browser refresh preserves the session; restarting the
 preview server clears it. The development bridge is not part of the packaged app.
+
+### Configure the development address and voice origins together
+
+Keep these related settings next to each other in the repository root `.env`:
+
+```dotenv
+CLIENT_BASE_URL=http://localhost:4200
+# Desktop development renderer; changing this requires restarting dev / dev:web.
+XPERT_DESKTOP_DEV_URL=http://127.0.0.1:4390/
+# API voice WebSocket allowlist; changing this requires restarting the API.
+REALTIME_VOICE_ALLOWED_ORIGINS=http://localhost:4200,http://127.0.0.1:4390
+```
+
+Use your actual Cloud and Desktop addresses. The allowlist contains exact origins
+(scheme, host and port), without paths or trailing slashes; `localhost` and
+`127.0.0.1` are different origins. When changing the Desktop port, update its
+allowlist entry too. The Desktop launcher cannot reconfigure an already running API.
+Only the Desktop development address is read into Vite; other root `.env` values
+are not copied into the renderer.
+
+If the allowlist is omitted, the API allows `CLIENT_BASE_URL` only for HTTP(S)
+renderers. Packaged Desktop uses `file://` and the existing desktop-ticket handling
+for `Origin: null`, so production does not need a local development origin.
+To test the built renderer without packaging an installer, build Desktop, then run
+`corepack pnpm --filter @xpert-ai/desktop start` without a shell-level
+`XPERT_DESKTOP_DEV_URL`. This start command does not load the root `.env`.
 
 ## Connect to Xpert
 
