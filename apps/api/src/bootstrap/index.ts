@@ -6,7 +6,7 @@ import {
   XPERT_VIEW_CONVERSATION_ID_HEADER,
   XPERT_VIEW_PROJECT_ID_HEADER
 } from '@xpert-ai/contracts'
-import { initializeApplicationTracingFromEnv, MetricsService } from '@xpert-ai/server-ai'
+import { applicationMetrics, initializeApplicationTracingFromEnv, MetricsService } from '@xpert-ai/server-ai'
 import {
   AppService,
   AuthGuard,
@@ -42,6 +42,7 @@ import path from 'path'
 import { EntitySubscriberInterface } from 'typeorm'
 import { BootstrapModule } from './bootstrap.module'
 import { createCorsOriginMatcher } from './cors-origin'
+import { createHttpRequestMetricsMiddleware } from './http-request-metrics'
 import { createMcpPublicationJsonBodyParser } from './mcp-publication-body-parser'
 import { createSandboxAwareBodyParserType } from './sandbox-proxy-body-parser'
 import { configureSession } from './session'
@@ -73,6 +74,7 @@ export async function bootstrap(options: { title: string; version: string }) {
   })
 
   const metricsService = app.get(MetricsService)
+  app.use(createHttpRequestMetricsMiddleware((input) => applicationMetrics.recordHttpRequest(input)))
   app.getHttpAdapter().get('/metrics', (_req: Request, res: Response) => {
     res.setHeader('Content-Type', metricsService.contentType)
     res.send(metricsService.render())
