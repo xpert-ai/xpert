@@ -1,5 +1,11 @@
 # @xpert-ai/xpert-api
 
+## 3.21.0
+
+### Version Alignment
+
+- Align the API version baseline with `@xpert-ai/contracts` and `@xpert-ai/plugin-sdk` at 3.21.0, avoiding the historical 3.11.0 Docker image tag. Subsequent API releases continue to require an application Changeset.
+
 ## 3.11.0
 
 ### Minor Changes
