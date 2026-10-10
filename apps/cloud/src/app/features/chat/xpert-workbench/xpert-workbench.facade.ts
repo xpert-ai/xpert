@@ -1,6 +1,6 @@
 import { computed, effect, inject, Injectable, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { NavigationEnd, Router } from '@angular/router'
+import { ActivatedRoute, NavigationEnd, Router } from '@angular/router'
 import { environment } from '@cloud/environments/environment'
 import { TranslateService } from '@ngx-translate/core'
 import { ChatKitControl } from '@xpert-ai/chatkit-angular'
@@ -24,6 +24,7 @@ import type {
 import { sanitizeAssistantFrameUrl } from '../../assistant/assistant-chatkit.runtime'
 import { XpertProjectApiService } from '../../project/project-api.service'
 import { WorkbenchChatFacade, WorkbenchChatViewState } from '../workbench-chat/workbench-chat.facade'
+import type { ConversationEntryResolution } from './conversation-entry.resolver'
 
 @Injectable()
 export class XpertWorkbenchFacade implements WorkbenchChatFacade {
@@ -37,6 +38,11 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
   readonly #router = inject(Router)
   readonly #translate = inject(TranslateService)
   readonly #projectApi = inject(XpertProjectApiService)
+  readonly #route = inject(ActivatedRoute)
+  readonly #entryResolution = toSignal(
+    this.#route.data.pipe(map((data) => data['conversationEntry'] as ConversationEntryResolution | undefined)),
+    { initialValue: this.#route.snapshot.data['conversationEntry'] as ConversationEntryResolution | undefined }
+  )
 
   readonly definition = {
     titleKey: 'XP.Chat.XpertWorkbench.Title',
@@ -56,6 +62,15 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
     { initialValue: normalizeWorkbenchPath(this.#router.url) }
   )
   readonly slug = computed(() => parseWorkbenchSlug(this.currentUrl()))
+  readonly #groupEntry = computed(() => {
+    const entry = this.#entryResolution()?.entry
+    return entry?.purpose === 'group' ? entry : null
+  })
+  readonly groupId = computed(() => this.#groupEntry()?.id ?? null)
+  readonly group = computed(() => {
+    const id = this.groupId()
+    return id ? { id } : null
+  })
   readonly projectId = computed(() => parseWorkbenchProjectId(this.currentUrl()))
   readonly #routeProjectMode = toSignal(
     this.#router.events.pipe(
@@ -91,7 +106,9 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
   })
   readonly projectAccess = signal<TXpertProjectAccessSummary | null>(null)
   readonly projectName = signal<string | null>(null)
-  readonly threadId = computed(() => parseWorkbenchThreadId(this.currentUrl()))
+  readonly threadId = computed(() =>
+    this.groupId() || this.#entryResolution()?.error ? null : parseWorkbenchThreadId(this.currentUrl())
+  )
   readonly availableXperts = signal<IXpert[]>([])
   readonly loading = signal(false)
   readonly loadingUserPreference = signal(false)
@@ -108,13 +125,20 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
 
     return this.availableXperts().find((item) => item.slug === slug || item.id === slug) ?? null
   })
-  readonly xpertId = computed(() => this.currentXpert()?.id ?? null)
+  readonly xpertId = computed(() =>
+    this.groupId() ? (this.#groupEntry()?.xpertId ?? null) : (this.currentXpert()?.id ?? null)
+  )
   readonly assistantId = computed(() => this.xpertId())
-  readonly assistantTitle = computed(() => this.currentXpert()?.title || this.currentXpert()?.name || null)
+  readonly assistantTitle = computed(() =>
+    this.groupId()
+      ? (this.#groupEntry()?.title ?? null)
+      : this.currentXpert()?.title || this.currentXpert()?.name || null
+  )
   readonly assistantAvatar = computed(() => this.currentXpert()?.avatar ?? null)
   readonly initialLayout = computed(() => this.currentXpert()?.options?.workbench?.initialLayout ?? null)
   readonly defaultViewKey = computed(() => this.currentXpert()?.options?.workbench?.defaultViewKey?.trim() || null)
   readonly identity = computed(() => {
+    if (this.groupId()) return `chat-group:${this.groupId()}`
     const xpertId = this.xpertId()
     return xpertId ? `chat-xpert-workbench:${xpertId}` : null
   })
@@ -125,8 +149,11 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
     if (!this.chatkitFrameUrl()) {
       return 'error'
     }
-    if (this.errorMessage()) {
+    if (this.errorMessage() || this.#entryResolution()?.error) {
       return 'error'
+    }
+    if (this.groupId()) {
+      return this.#entryResolution()?.organizationId === this.organizationId() ? 'ready' : 'error'
     }
     if (!this.currentXpert()) {
       return 'wizard'
@@ -145,6 +172,7 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
     effect(() => {
       const organizationId = this.organizationId()
       const slug = this.slug()
+      const groupId = this.groupId()
 
       if (!organizationId) {
         this.#loadRequestId++
@@ -156,7 +184,7 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
         return
       }
 
-      void this.loadState(slug)
+      void this.loadState(slug, groupId)
     })
 
     effect(() => {
@@ -190,6 +218,7 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
 
     return (
       this.errorMessage() ||
+      this.#entryResolution()?.error ||
       this.#translate.instant('XP.Chat.XpertWorkbench.LoadFailedDesc', {
         Default: 'This xpert is unavailable or you do not have access.'
       })
@@ -197,11 +226,13 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
   }
 
   onChatThreadChange(threadId: string | null) {
+    if (this.groupId()) return
     this.handleThreadChange(threadId)
   }
 
   /** Adopt only the server's saved scope, keeping the current stream and composer mounted. */
   async syncConversationProject(threadId: string): Promise<void> {
+    if (this.groupId()) return
     const assistantId = this.assistantId()
     if (!assistantId || this.threadId() !== threadId) return
     const projectId = this.projectId()
@@ -250,6 +281,7 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
     view?: WorkbenchExtensionViewOpenRequest,
     selection?: ProjectSelection
   ): Promise<boolean> {
+    if (this.groupId()) return false
     const normalizedProjectId = projectId?.trim() || null
     if (normalizedProjectId === this.projectId() && !view && !selection) return true
     const slug = this.currentXpert()?.slug ?? this.slug()
@@ -357,10 +389,17 @@ export class XpertWorkbenchFacade implements WorkbenchChatFacade {
     )
   }
 
-  private async loadState(slug: string | null) {
+  private async loadState(slug: string | null, groupId: string | null) {
     const requestId = ++this.#loadRequestId
     this.loading.set(true)
     this.errorMessage.set(null)
+
+    if (groupId) {
+      this.availableXperts.set([])
+      this.activeConversation.set(null)
+      this.loading.set(false)
+      return
+    }
 
     if (!slug) {
       this.availableXperts.set([])

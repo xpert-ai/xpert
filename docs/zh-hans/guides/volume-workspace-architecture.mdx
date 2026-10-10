@@ -5,10 +5,22 @@
 核心约定有三条：
 
 - `Volume` 永远表示 server 进程可见的文件系统路径。
-- `Workspace` 永远表示 sandbox 可见的文件系统路径。
+- 本文路径模型中的 `Workspace` 表示 sandbox 可见的文件系统路径；它不等于数据库中的 `XpertWorkspace` 创作工作区实体。
 - Project 是共享数据边界；非 Project 的 Xpert 数据归属由 Xpert 创建时的不可变策略决定。
 
 两者不是同一个概念，但它们之间存在稳定映射关系。
+
+## 文件工作区与创作工作区
+
+`XpertWorkspace`（`xpert_workspace`、`xpert.workspaceId`）组织 Assistant、技能和连接器等创作资源，具有 owner/member 和 `canRead/canRun/canWrite/canManage`。Assistant file workspace 则是运行文件所在的 Volume 及其 sandbox 映射，二者不能共用一套读取权限判断。
+
+非 Project Assistant 的文件卷通过 `resolveXpertDataVolumeScope()` 定位：`shared` 使用 tenant + Assistant，`user` 还包含当前用户。此过程不使用 `xpert.workspaceId`。`VolumeScope` 的 `workspaceId` 仅在它自身对应的 catalog 中具有意义，不应填到 Assistant 文件卷上。
+
+运行态 API 使用 `AssistantFilesService.forRuntime()`；Studio 使用 `forAuthoring()`。两者通过 `ResolveAssistantFileAccessCommand` 校验各自的资源授权后，再访问同一个 Volume 存储实现。通过 UserGroup 获得 Assistant 使用权的用户可以操作它的文件，无需获得创作工作区读取权。
+
+文件策略明确为：共享卷是协作目录，已授权用户可读、上传、修改和删除；用户独立卷允许相同操作，但仅限当前用户根目录。授权和数据归属由服务端决定，客户端不能指定其他用户或卷根。Project 卷继续使用项目授权，Studio 草稿继续使用创作授权。
+
+本次修正保持目录、文件内容、`workspaceDataScope` 以及 Assistant 文件 API 路径不变。会话运行目录使用 `/api/ai/conversations/:id/workspace/*`；`/api/ai/conversations/:id/files` 专用于已解析的附件 FileAsset 列表，二者不得注册同名路由。SDK Workbench 客户端须同步使用 `/workspace` 路径；旧的单文件路由保留兼容。完整规则与凭证/文件链接有效期边界见 [权限指南](./permission#56-assistant-文件工作区授权)。
 
 ## 为什么要拆开
 

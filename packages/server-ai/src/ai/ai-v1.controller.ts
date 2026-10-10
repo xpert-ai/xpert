@@ -11,7 +11,7 @@ import {
     ApiKeyOrClientSecretAuthGuard,
     ApiKeyDecorator,
     Public,
-    RequestContext,
+    ZodValidationPipe,
     SecretTokenService,
     UploadFileCommand,
     getFileAssetDestination,
@@ -40,6 +40,10 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger'
 import { Response } from 'express'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { chatkitSessionSchema, ChatkitSessionInput, chatkitSessionInvalid } from './chatkit-session.schema'
+import { GetGroupConversationEntryCommand } from '../chat-group/group-conversation-entry.command'
+import { groupDenied } from '../chat-group/group.errors'
 import { randomBytes } from 'crypto'
 import { In } from 'typeorm'
 import { ChatCommand } from '../chat/commands'
@@ -219,18 +223,14 @@ export class AIV1Controller {
     @Post('chatkit/sessions')
     async createChatkitSession(
         @ApiKeyDecorator() apiKey: IApiKey,
-        @Body()
-        body: {
-            assistant?: { id?: string }
-            project?: { id?: string }
-            conversation?: { id?: string; requesterXpertId?: string }
-            user?: string
-            /**
-             * Optional override for session expiration timing in seconds from creation. Defaults to 10 minutes.
-             */
-            expires_after?: number
-        }
+        @Body(new ZodValidationPipe(chatkitSessionSchema, chatkitSessionInvalid)) body: ChatkitSessionInput
     ) {
+        // A conversation credential cannot mint another credential, even via an internal caller.
+        if (
+            RequestContext.currentApiPrincipal()?.clientSecretBindingType === SecretTokenBindingType.USER_CONVERSATION
+        ) {
+            throw groupDenied()
+        }
         const token = `cs-x-${randomBytes(32).toString('hex')}`
 
         const requestedSessionLifetime = body?.expires_after
@@ -248,8 +248,24 @@ export class AIV1Controller {
         // Keep service callers on the existing API-key grant. A user session
         // needs a different binding because it must restore the real user and
         // constrain the resulting client secret to one assistant.
-        if (apiKey?.id) {
-            await this.secretTokenService.create({
+        if (body.scope) {
+            if (RequestContext.currentApiPrincipal() || apiKey?.id) throw groupDenied()
+            const currentUser = RequestContext.currentUser()
+            const tenantId = RequestContext.currentTenantId()
+            const organizationId = RequestContext.getOrganizationId()
+            if (!currentUser?.id || !tenantId || !organizationId) throw groupDenied()
+            await this.commandBus.execute(new GetGroupConversationEntryCommand(body.scope.conversationId))
+            await this.secretTokenService.createHashed({
+                type: SecretTokenBindingType.USER_CONVERSATION,
+                entityId: body.scope.conversationId,
+                tenantId,
+                organizationId,
+                createdById: currentUser.id,
+                token,
+                validUntil
+            })
+        } else if (apiKey?.id) {
+            await this.secretTokenService.createHashed({
                 entityId: apiKey.id,
                 type: SecretTokenBindingType.API_KEY,
                 tenantId: apiKey.tenantId,
@@ -300,7 +316,7 @@ export class AIV1Controller {
             } else {
                 await this.publishedXpertAccessService.getAccessiblePublishedXpert(assistantId)
             }
-            await this.secretTokenService.create({
+            await this.secretTokenService.createHashed({
                 // USER_XPERT makes entityId an assistant audience and makes
                 // createdById the acting user. createdById alone is not enough
                 // because API_KEY and PUBLIC_XPERT secrets also have creators.

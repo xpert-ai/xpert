@@ -163,6 +163,7 @@ describe('PublishedXpertAccessService', () => {
         ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue({
             principalType: 'client_secret',
             clientSecretBindingType: 'public_xpert',
+            resourceScope: { kind: 'assistant', xpertId: 'xpert-public-1' },
             apiKey: {
                 type: ApiKeyBindingType.ASSISTANT,
                 entityId: 'xpert-public-1'
@@ -195,6 +196,7 @@ describe('PublishedXpertAccessService', () => {
         ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue({
             principalType: 'client_secret',
             clientSecretBindingType: 'public_xpert',
+            resourceScope: { kind: 'assistant', xpertId: 'xpert-public-1' },
             apiKey: {
                 type: ApiKeyBindingType.ASSISTANT,
                 entityId: 'xpert-public-1'
@@ -220,6 +222,7 @@ describe('PublishedXpertAccessService', () => {
                 platform: 'dingtalk',
                 integrationId: 'integration-dingtalk-1'
             },
+            resourceScope: { kind: 'assistant', xpertId: 'xpert-enterprise-1' },
             apiKey: {
                 type: ApiKeyBindingType.ASSISTANT,
                 entityId: 'xpert-enterprise-1'
@@ -261,6 +264,7 @@ describe('PublishedXpertAccessService', () => {
                 platform: 'dingtalk',
                 integrationId: 'integration-original'
             },
+            resourceScope: { kind: 'assistant', xpertId: 'xpert-enterprise-1' },
             apiKey: {
                 type: ApiKeyBindingType.ASSISTANT,
                 entityId: 'xpert-enterprise-1'
@@ -299,6 +303,7 @@ describe('PublishedXpertAccessService', () => {
                 platform: 'dingtalk',
                 integrationId: 'integration-dingtalk-1'
             },
+            resourceScope: { kind: 'assistant', xpertId: 'xpert-enterprise-1' },
             apiKey: {
                 type: ApiKeyBindingType.ASSISTANT,
                 entityId: 'xpert-enterprise-1'
@@ -323,6 +328,7 @@ describe('PublishedXpertAccessService', () => {
             requestedUserId: 'user-1',
             principalType: 'client_secret',
             clientSecretBindingType: SecretTokenBindingType.USER_XPERT,
+            resourceScope: { kind: 'assistant', xpertId: 'xpert-user-1' },
             apiKey: {
                 type: ApiKeyBindingType.ASSISTANT,
                 entityId: 'xpert-user-1'
@@ -347,6 +353,7 @@ describe('PublishedXpertAccessService', () => {
             requestedUserId: 'user-1',
             principalType: 'client_secret',
             clientSecretBindingType: SecretTokenBindingType.USER_XPERT,
+            resourceScope: { kind: 'assistant', xpertId: 'xpert-user-1' },
             apiKey: {
                 type: ApiKeyBindingType.ASSISTANT,
                 entityId: 'xpert-user-1'
@@ -376,6 +383,7 @@ describe('PublishedXpertAccessService', () => {
             requestedUserId: 'user-1',
             principalType: 'client_secret',
             clientSecretBindingType: SecretTokenBindingType.USER_XPERT,
+            resourceScope: { kind: 'assistant', xpertId: 'parent' },
             apiKey: { type: ApiKeyBindingType.ASSISTANT, entityId: 'parent' }
         })
         const qb = createQueryBuilderMock({ rows: [{ id: 'resource' }] })
@@ -406,6 +414,7 @@ describe('PublishedXpertAccessService', () => {
         ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue({
             principalType: 'client_secret',
             clientSecretBindingType: SecretTokenBindingType.PUBLIC_XPERT,
+            resourceScope: { kind: 'assistant', xpertId: 'parent' },
             apiKey: { type: ApiKeyBindingType.ASSISTANT, entityId: 'parent' }
         })
         const repository = {
@@ -459,6 +468,7 @@ describe('PublishedXpertAccessService', () => {
 
     it('allows a workspace key to list published assistants in the same workspace without organization context', async () => {
         ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue({
+            resourceScope: { kind: 'workspace', workspaceId: 'workspace-1' },
             apiKey: {
                 type: ApiKeyBindingType.WORKSPACE,
                 entityId: 'workspace-1'
@@ -503,6 +513,7 @@ describe('PublishedXpertAccessService', () => {
 
     it('allows a workspace key to access an organization-level assistant in the same workspace', async () => {
         ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue({
+            resourceScope: { kind: 'workspace', workspaceId: 'workspace-1' },
             apiKey: {
                 type: ApiKeyBindingType.WORKSPACE,
                 entityId: 'workspace-1'
@@ -530,6 +541,7 @@ describe('PublishedXpertAccessService', () => {
 
     it('checks user-level published access when a workspace key includes requestedUserId', async () => {
         ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue({
+            resourceScope: { kind: 'workspace', workspaceId: 'workspace-1' },
             apiKey: {
                 type: ApiKeyBindingType.WORKSPACE,
                 entityId: 'workspace-1'
@@ -566,6 +578,7 @@ describe('PublishedXpertAccessService', () => {
 
     it('rejects a workspace key requested user when published access does not grant the user', async () => {
         ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue({
+            resourceScope: { kind: 'workspace', workspaceId: 'workspace-1' },
             apiKey: {
                 type: ApiKeyBindingType.WORKSPACE,
                 entityId: 'workspace-1'
@@ -594,6 +607,7 @@ describe('PublishedXpertAccessService', () => {
 
     it('rejects a workspace key when the assistant belongs to another workspace', async () => {
         ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue({
+            resourceScope: { kind: 'workspace', workspaceId: 'workspace-1' },
             apiKey: {
                 type: ApiKeyBindingType.WORKSPACE,
                 entityId: 'workspace-1'

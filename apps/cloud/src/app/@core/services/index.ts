@@ -88,3 +88,4 @@ export * from './file-change-review.service'
 export * from './ai-workspace-files.service'
 
 export * from './setup-plugins.service'
+export * from './chat-group.service'

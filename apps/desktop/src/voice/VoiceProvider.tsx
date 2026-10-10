@@ -252,13 +252,18 @@ export function VoiceProvider({ children, onOpen }: { children: ReactNode; onOpe
 }
 
 /** Audio remains at the app root while the embedded ChatKit renders its controls. */
-export function useVoiceOptions(target: CallTarget, onThread: (id: string) => void): RealtimeVoiceOptions | undefined {
+export function useVoiceOptions(
+  target: CallTarget,
+  onThread: (id: string) => void,
+  enabled = true
+): RealtimeVoiceOptions | undefined {
   const voice = useContext(VoiceContext)
   const [capability, setCapability] = useState<{ assistantId: string; enabled: boolean }>()
-  const latest = useRef({ voice, target, onThread })
-  latest.current = { voice, target, onThread }
-  useEffect(() => voice?.mountSurface(), [voice?.mountSurface])
+  const latest = useRef({ voice, target, onThread, enabled })
+  latest.current = { voice, target, onThread, enabled }
+  useEffect(() => (enabled ? voice?.mountSurface() : undefined), [voice?.mountSurface, enabled])
   useEffect(() => {
+    if (!enabled) return
     let current = true
     void invoke('voiceCapability', target)
       .then((result) => {
@@ -270,12 +275,12 @@ export function useVoiceOptions(target: CallTarget, onThread: (id: string) => vo
     return () => {
       current = false
     }
-  }, [target.botId, target.assistantId])
+  }, [target.botId, target.assistantId, enabled])
   const onCommand = useMemo<RealtimeVoiceOptions['onCommand']>(
     () => (input) => {
-      const { voice, target, onThread } = latest.current
+      const { voice, target, onThread, enabled } = latest.current
       if (input.type === 'start') {
-        if (input.assistantId !== target.assistantId || input.threadId !== target.threadId)
+        if (!enabled || input.assistantId !== target.assistantId || input.threadId !== target.threadId)
           throw new Error('Voice scope changed')
         voice?.start(target, onThread)
       } else return voice?.command(input)
@@ -284,7 +289,7 @@ export function useVoiceOptions(target: CallTarget, onThread: (id: string) => vo
   )
   return useMemo(
     () =>
-      voice
+      voice && enabled
         ? {
             enabled: capability?.assistantId === target.assistantId && capability.enabled,
             call: voice.call,
@@ -292,6 +297,6 @@ export function useVoiceOptions(target: CallTarget, onThread: (id: string) => vo
             onCommand
           }
         : undefined,
-    [capability, target.assistantId, voice, onCommand]
+    [capability, target.assistantId, voice, onCommand, enabled]
   )
 }

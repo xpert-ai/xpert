@@ -20,7 +20,7 @@ export class SearchThreadsHandler implements IQueryHandler<SearchThreadsQuery> {
     public async execute(command: SearchThreadsQuery): Promise<ThreadDTO> {
         const request = command.request
 
-        const conditions = {} as FindOptionsWhere<IChatConversation>
+        const conditions: FindOptionsWhere<IChatConversation> = { purpose: 'private' }
         const publicScope = getPublicXpertSessionConversationScope()
         if (publicScope) {
             conditions.createdById = publicScope.createdById

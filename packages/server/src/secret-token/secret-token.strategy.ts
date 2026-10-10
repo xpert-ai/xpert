@@ -1,6 +1,13 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common'
 import { PassportStrategy } from '@nestjs/passport'
-import { ApiKeyBindingType, IApiKey, IApiPrincipal, ISecretToken, SecretTokenBindingType } from '@xpert-ai/contracts'
+import {
+	ApiKeyBindingType,
+	IApiKey,
+	IApiPrincipal,
+	ISecretToken,
+	SecretTokenBindingType,
+	UserType
+} from '@xpert-ai/contracts'
 import { IncomingMessage } from 'http'
 import { Strategy } from 'passport'
 import { DataSource } from 'typeorm'
@@ -49,6 +56,15 @@ export class SecretTokenStrategy extends PassportStrategy(Strategy, 'client-secr
 				// Resolve the principal from the explicit binding type. createdById is
 				// shared provenance metadata and cannot tell API_KEY, USER_XPERT and
 				// PUBLIC_XPERT grants apart.
+				if (secretToken.type === SecretTokenBindingType.USER_CONVERSATION) {
+					const principal = await this.resolveConversationPrincipal(secretToken)
+					// Headers cannot widen the persisted tenant, organization or human binding.
+					req.headers['tenant-id'] = principal.tenantId
+					delete req.headers['x-principal-user-id']
+					applyRequestedOrganizationScopeHeaders(req, principal.requestedOrganizationId)
+					this.success(principal)
+					return
+				}
 				if (this.isPublicXpertToken(secretToken)) {
 					const principal = await this.resolvePublicXpertPrincipal(secretToken)
 					applyRequestedOrganizationScopeHeaders(req, principal?.requestedOrganizationId)
@@ -90,6 +106,27 @@ export class SecretTokenStrategy extends PassportStrategy(Strategy, 'client-secr
 			})
 	}
 
+	/** Authentication restores identity/audience only; opted-in domain routes recheck live membership. */
+	private async resolveConversationPrincipal(secretToken: ISecretToken): Promise<IApiPrincipal> {
+		if (!secretToken.entityId || !secretToken.tenantId || !secretToken.organizationId || !secretToken.createdById) {
+			throw new UnauthorizedException()
+		}
+		const user = await this.userService.findOneByIdWithinTenant(secretToken.createdById, secretToken.tenantId, {
+			relations: ['role', 'role.rolePermissions', 'employee']
+		})
+		if (user.type !== UserType.USER) throw new UnauthorizedException()
+		return {
+			...user,
+			principalType: 'client_secret',
+			clientSecretBindingType: SecretTokenBindingType.USER_CONVERSATION,
+			clientSecretId: secretToken.id,
+			clientSecretExpiresAt: secretToken.validUntil,
+			resourceScope: { kind: 'conversation', conversationId: secretToken.entityId },
+			requestedUserId: user.id,
+			requestedOrganizationId: secretToken.organizationId
+		}
+	}
+
 	private isPublicXpertToken(secretToken: ISecretToken) {
 		return secretToken?.type === SecretTokenBindingType.PUBLIC_XPERT
 	}
@@ -120,6 +157,8 @@ export class SecretTokenStrategy extends PassportStrategy(Strategy, 'client-secr
 				relations: ['role', 'role.rolePermissions', 'employee']
 			}
 		)
+		// @deprecated Synthetic key retained for credential metadata compatibility only.
+		// buildApiKeyPrincipal normalizes the audience; all resource checks use resourceScope.
 		const apiKey = {
 			id: secretToken.id,
 			token: '',
@@ -155,6 +194,8 @@ export class SecretTokenStrategy extends PassportStrategy(Strategy, 'client-secr
 				relations: ['role', 'role.rolePermissions', 'employee']
 			}
 		)
+		// @deprecated Synthetic key retained for credential metadata compatibility only.
+		// buildApiKeyPrincipal normalizes the audience; all resource checks use resourceScope.
 		const apiKey = {
 			id: secretToken.id,
 			token: '',
@@ -197,6 +238,8 @@ export class SecretTokenStrategy extends PassportStrategy(Strategy, 'client-secr
 				relations: ['role', 'role.rolePermissions', 'employee']
 			}
 		)
+		// @deprecated Synthetic key retained for credential metadata compatibility only.
+		// buildApiKeyPrincipal normalizes the audience; all resource checks use resourceScope.
 		const apiKey = {
 			id: secretToken.id,
 			token: '',
@@ -248,10 +291,7 @@ export class SecretTokenStrategy extends PassportStrategy(Strategy, 'client-secr
 	}
 
 	private async validateToken(token: string) {
-		const secretToken = await this.secretTokenService.findOneByOptions({
-			where: { token },
-			order: { createdAt: 'DESC' }
-		})
+		const secretToken = await this.secretTokenService.findBySecret(token)
 
 		if (!secretToken?.validUntil || secretToken.validUntil <= new Date() || secretToken.expired) {
 			throw new UnauthorizedException('Token expired')
@@ -261,7 +301,8 @@ export class SecretTokenStrategy extends PassportStrategy(Strategy, 'client-secr
 		if (
 			this.isPublicXpertToken(secretToken) ||
 			this.isUserXpertToken(secretToken) ||
-			this.isEnterpriseXpertToken(secretToken)
+			this.isEnterpriseXpertToken(secretToken) ||
+			secretToken.type === SecretTokenBindingType.USER_CONVERSATION
 		) {
 			return { apiKey: null, secretToken }
 		}

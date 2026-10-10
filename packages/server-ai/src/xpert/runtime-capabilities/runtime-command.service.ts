@@ -6,11 +6,11 @@ import type {
     SkillSlashCommandAction,
     TXpertCommandProfileEntry
 } from '@xpert-ai/contracts'
-import type { RuntimePromptWorkflowCommandSource } from '../prompt-workflow'
+import type { RuntimePromptWorkflowCommandSource } from '../../prompt-workflow'
 import type {
     TRuntimeCapabilitiesSelection,
     TRuntimeCapabilitiesSelectionSet
-} from '../shared/agent/runtime-capabilities'
+} from '../../shared/agent/runtime-capabilities'
 import { normalizeRuntimeIcon } from './runtime-icon'
 import {
     BUILTIN_SLASH_COMMAND_NAMES,

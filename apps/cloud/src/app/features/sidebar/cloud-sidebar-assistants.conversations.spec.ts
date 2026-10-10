@@ -43,34 +43,10 @@ jest.mock('../../@shared/xpert/assistant-profile/assistant-profile.directive', (
   return { AssistantProfileDirective }
 })
 
-jest.mock('@xpert-ai/headless-ui', () => {
-  const { Component, Directive, Input } = jest.requireActual('@angular/core')
-
-  @Component({
-    standalone: true,
-    selector: 'z-icon',
-    template: ''
-  })
-  class ZardIconComponent {
-    @Input() zType?: string
-  }
-
-  @Directive({
-    standalone: true,
-    // eslint-disable-next-line @angular-eslint/directive-selector
-    selector: '[zTooltip]'
-  })
-  class ZTooltipDirective {
-    @Input() zTooltip?: string
-    @Input() zPosition?: string
-    @Input() zDisabled?: boolean
-  }
-
-  return {
-    ZardIconComponent,
-    ZardTooltipImports: [ZTooltipDirective]
-  }
-})
+jest.mock('@xpert-ai/headless-ui', () => jest.requireActual('./cloud-sidebar-assistants.test-support').headlessUi)
+jest.mock('../chat/workbench-chat/workbench-assistant-menu.component', () => ({
+  WorkbenchAssistantMenuComponent: jest.requireActual('./cloud-sidebar-assistants.test-support').AssistantMenuStub
+}))
 
 jest.mock('../../@core/services/xpert-settings.service', () => ({ XpertSettingsService: class {} }))
 

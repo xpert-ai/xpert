@@ -41,6 +41,31 @@
     "CustomSMTP": "Custom SMTP"
   },
   "XP": {
+    "Groups": {
+      "Pin": "Pin",
+      "Unpin": "Unpin",
+      "Archive": "Archive",
+      "Restore": "Restore",
+      "Active": "Active groups",
+      "Archived": "Archived groups",
+      "Title": "Group chats",
+      "Name": "Group name",
+      "Assistant": "Default Assistant",
+      "SelectAssistant": "Choose an Assistant",
+      "Create": "Create group",
+      "Empty": "Create or select a group to chat together.",
+      "Menu": "Group menu",
+      "New": "New group",
+      "Options": "Group options",
+      "PeopleAndAssistants": "People & assistants",
+      "CreateHint": "Bring people and digital experts into one conversation.",
+      "NamePlaceholder": "e.g. Project collaboration",
+      "AssistantHint": "Replies when no member is mentioned. Invite more members after creating the group.",
+      "SearchAssistants": "Search digital experts",
+      "Loading": "Loading assistants…",
+      "NoMatches": "No matching assistants",
+      "Cancel": "Cancel"
+    },
     "Onboarding": {
       "PluginFinalStep": "Step 3 of 3 · Finish setup",
       "InstallPlugins": "Install plugins",
@@ -587,6 +612,24 @@
         "ClearBusinessDomain": "Clear domain"
       },
       "Application": {
+        "Toolsets": {
+          "Title": "Required toolsets",
+          "Description": "Adding a configuration first prepares the application Workspace. New configurations are saved there; existing configurations are copied when you enable the application.",
+          "Refresh": "Refresh",
+          "Select": "Select a configuration",
+          "Personal": "My configurations",
+          "Empty": "No accessible configuration is available. Create one to continue.",
+          "Configure": "New configuration",
+          "Configured": "Configured in the application workspace; it will be reused.",
+          "ProviderMissing": "Install and enable {{plugin}} to configure this toolset.",
+          "ProvidersRequired": "Some required tool providers are unavailable. Install the indicated plugins and refresh.",
+          "ConfigurationsRequired": "Configure the required toolsets below before enabling the application.",
+          "Edit": "Edit configuration",
+          "SetupChanged": "The application state has changed. Refresh setup and try again.",
+          "DraftSaved": "Configuration is saved for later. Knowledge bases and Assistants are created when you enable the application.",
+          "Discard": "Discard configuration",
+          "DiscardDescription": "Delete this unactivated application Workspace and its toolset configurations. Source configurations in other Workspaces will be kept."
+        },
         "SetupExplanation": "The app is available on this platform. Set it up to create a workspace and entry Assistant for the current organization.",
         "AppTemplate": "App template",
         "LoadingDetails": "Loading application details…",
@@ -620,7 +663,8 @@
           "Repair": "Repair application",
           "Initializing": "Initializing…",
           "ApplyToOrganization": "Apply to current organization",
-          "RepairAndReinitialize": "Repair and reinitialize"
+          "RepairAndReinitialize": "Repair and reinitialize",
+          "ContinueConfiguration": "Continue setup"
         },
         "Preflight": {
           "OrganizationRequired": "Switch to an organization before enabling this organization-scoped application.",
@@ -635,7 +679,8 @@
           "Initializing": "Initializing",
           "Failed": "Initialization failed",
           "Degraded": "Needs repair",
-          "NotInstalled": "Setup required"
+          "NotInstalled": "Setup required",
+          "Configuring": "Configuration in progress"
         },
         "Scope": {
           "Tenant": "Tenant",
@@ -2080,6 +2125,7 @@
       "CurrentScopeActiveRuntimes": "active runtimes in the current tenant and organization"
     },
     "Plugin": {
+      "RuntimeApplyingGenericDescription": "API replicas are restarting in background batches. You can continue using this page.",
       "ArtifactNamespace": "Artifact namespace",
       "MarketplaceContentType_app": "App",
       "MarketplaceContentType_view": "View",
@@ -2457,7 +2503,7 @@
         "LoadingDesc": "Loading your assistant settings and workspace. This usually takes only a moment.",
         "OrganizationRequired": "Select an organization to use ClawXpert",
         "OrganizationRequiredDesc": "ClawXpert stores one assistant binding per user and per organization.",
-        "LoadFailed": "Failed to load ClawXpert.",
+        "LoadFailed": "Failed to load digital expert.",
         "Onboarding": "Onboarding",
         "OnboardingTitle": "Initialize ClawXpert",
         "OnboardingDesc": "Create ClawXpert with the default available model. Recommended templates from installed plugins appear below.",

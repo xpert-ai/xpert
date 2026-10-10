@@ -199,6 +199,22 @@ export type TSensitiveOperation = {
  * Corresponds to the thread in the [Agent Protocol](https://github.com/langchain-ai/agent-protocol).
  */
 export interface IChatConversation extends IBasePerTenantAndOrganizationEntityModel {
+  /**
+   * `private`: ordinary chat; `group`: shared public transcript; `group_assistant_runtime`:
+   * one member Assistant's isolated execution history. Optional for legacy DTOs (treated as private).
+   * Group xpertId identifies the primary Assistant; runtime records require separate access checks.
+   */
+  purpose?: 'private' | 'group' | 'group_assistant_runtime'
+  /**
+   * Server-maintained state version, currently used by group snapshots. Also advances for updates
+   * that append no message (e.g. membership/delivery changes); not a count, sequence or replay cursor.
+   */
+  revision?: number
+  /**
+   * Highest server-allocated message sequence in this conversation (zero before the first allocation).
+   * Used for ordering/read positions, not the number of retained messages; updates reuse their sequence.
+   */
+  lastMessageSequence?: number
   branchSource?: TConversationBranchSource | null
   /**
    * Non-persistent, response-only field populated by the sidebar endpoint.

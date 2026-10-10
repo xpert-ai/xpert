@@ -40,7 +40,10 @@ export class ApiKeyOrClientSecretAuthGuard extends PassportAuthGaurd('api-key') 
 
 	private assertClientSecretBindingAllowed(context: ExecutionContext) {
 		const principal = context.switchToHttp().getRequest().user as IApiPrincipal | undefined
-		if (principal?.clientSecretBindingType !== SecretTokenBindingType.ENTERPRISE_XPERT) {
+		if (
+			principal?.clientSecretBindingType !== SecretTokenBindingType.ENTERPRISE_XPERT &&
+			principal?.clientSecretBindingType !== SecretTokenBindingType.USER_CONVERSATION
+		) {
 			return
 		}
 
@@ -48,7 +51,7 @@ export class ApiKeyOrClientSecretAuthGuard extends PassportAuthGaurd('api-key') 
 			ALLOWED_CLIENT_SECRET_BINDINGS_METADATA,
 			[context.getHandler(), context.getClass()]
 		)
-		if (!allowedBindings?.includes(SecretTokenBindingType.ENTERPRISE_XPERT)) {
+		if (!allowedBindings?.includes(principal.clientSecretBindingType)) {
 			throw new ForbiddenException()
 		}
 	}
@@ -67,9 +70,7 @@ export class ApiKeyOrClientSecretAuthGuard extends PassportAuthGaurd('api-key') 
 		return this.resolveCanActivate(guard.canActivate(context))
 	}
 
-	private async resolveCanActivate(
-		result: boolean | Promise<boolean> | Observable<boolean>
-	): Promise<boolean> {
+	private async resolveCanActivate(result: boolean | Promise<boolean> | Observable<boolean>): Promise<boolean> {
 		if (isObservable(result)) {
 			return lastValueFrom(result)
 		}

@@ -1,4 +1,4 @@
-import { ApiKeyBindingType, IApiPrincipal, SecretTokenBindingType } from '@xpert-ai/contracts'
+import { IApiPrincipal, SecretTokenBindingType } from '@xpert-ai/contracts'
 import { ApiKeyOrClientSecretAuthGuard } from '@xpert-ai/server-core'
 import { ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
@@ -28,11 +28,11 @@ export class XpertWorkspaceAuthGuard extends ApiKeyOrClientSecretAuthGuard {
         if (!principal?.principalType) return true
         assertWorkbenchPrincipal(principal)
 
-        const boundXpertId = principal.apiKey?.entityId?.trim()
+        const boundXpertId = principal.resourceScope?.kind === 'assistant' ? principal.resourceScope.xpertId : undefined
         if (
             (principal.principalType === 'client_secret' &&
                 principal.clientSecretBindingType !== SecretTokenBindingType.USER_XPERT) ||
-            principal.apiKey?.type !== ApiKeyBindingType.ASSISTANT ||
+            principal.resourceScope?.kind !== 'assistant' ||
             !boundXpertId ||
             boundXpertId !== request.params.id
         ) {

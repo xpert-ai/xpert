@@ -27,6 +27,8 @@ import {
     UseInterceptors
 } from '@nestjs/common'
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger'
+import { CommandBus } from '@nestjs/cqrs'
+import { GetRuntimeCapabilitiesCommand } from '../xpert/runtime-capabilities/get-runtime-capabilities.command'
 import { normalizeContextSize } from '@xpert-ai/plugin-sdk'
 import { parseQueryBoolean } from '@xpert-ai/server-common'
 import { isNil, omitBy, pick } from 'lodash-es'
@@ -35,9 +37,8 @@ import { AssistantModelSelectionService, PublishedXpertAccessService } from '../
 import { applyAssistantScope } from './assistant-request-context'
 import {
     getRuntimePrimaryAgentKey,
-    RUNTIME_CAPABILITY_XPERT_RELATIONS,
-    RuntimeCapabilitiesService
-} from './runtime-capabilities.service'
+    RUNTIME_CAPABILITY_XPERT_RELATIONS
+} from '../xpert/runtime-capabilities/runtime-capabilities.helpers'
 
 const ASSISTANT_RELATIONS = RUNTIME_CAPABILITY_XPERT_RELATIONS
 
@@ -53,7 +54,7 @@ export class AssistantsController {
 
     constructor(
         private readonly publishedXpertAccessService: PublishedXpertAccessService,
-        private readonly runtimeCapabilitiesService: RuntimeCapabilitiesService,
+        private readonly commandBus: CommandBus,
         private readonly assistantModelSelectionService: AssistantModelSelectionService
     ) {}
 
@@ -99,9 +100,7 @@ export class AssistantsController {
             relations: ASSISTANT_RELATIONS
         })
         const xpert = resolveRuntimeXpert(sourceXpert, parseQueryBoolean(isDraft))
-        return projectId
-            ? this.runtimeCapabilitiesService.getRuntimeCapabilities(xpert, id, projectId)
-            : this.runtimeCapabilitiesService.getRuntimeCapabilities(xpert, id)
+        return this.commandBus.execute(new GetRuntimeCapabilitiesCommand(xpert, id, projectId))
     }
 
     @Get(':id/models')

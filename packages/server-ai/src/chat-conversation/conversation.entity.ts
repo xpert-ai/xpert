@@ -23,6 +23,17 @@ import type { ChatConversationThread } from './conversation-thread.entity'
 @Index(['tenantId', 'organizationId', 'id'])
 @Index('IDX_chat_conversation_profile_activity', ['tenantId', 'organizationId', 'xpertId', 'createdAt'])
 export class ChatConversation extends TenantOrganizationBaseEntity implements IChatConversation {
+    @Column({ type: 'varchar', default: 'private' })
+    purpose?: 'private' | 'group' | 'group_assistant_runtime'
+
+    /** Public snapshot version, including changes that do not append a message. */
+    @Column({ type: 'int', default: 0 })
+    revision?: number
+
+    /** Last allocated message position; allocated under the conversation row lock. */
+    @Column({ type: 'int', default: 0 })
+    lastMessageSequence?: number
+
     @Column({ type: 'jsonb', nullable: true })
     branchSource?: TConversationBranchSource | null
 

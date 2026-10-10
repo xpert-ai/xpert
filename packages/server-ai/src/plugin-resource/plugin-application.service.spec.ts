@@ -11,6 +11,19 @@ import { PluginApplicationInstallation } from './plugin-application-installation
 import { PluginApplicationService } from './plugin-application.service'
 import { CopilotOneByRoleQuery, FindCopilotModelsQuery } from '../copilot/queries'
 
+function withToolsets(service: PluginApplicationService) {
+    Object.assign(service, {
+        applicationToolsets: {
+            preflight: jest.fn().mockResolvedValue([]),
+            prepare: jest.fn().mockResolvedValue([]),
+            ensure: jest.fn().mockResolvedValue(undefined),
+            rollback: jest.fn().mockResolvedValue(undefined),
+            healthy: jest.fn().mockResolvedValue(true)
+        }
+    })
+    return service
+}
+
 describe('PluginApplicationService', () => {
     afterEach(() => {
         jest.restoreAllMocks()
@@ -22,32 +35,34 @@ describe('PluginApplicationService', () => {
         queryBus: object = {},
         marketplace: object = {}
     ) {
-        return new PluginApplicationService(
-            {} as never,
-            {} as never,
-            {} as never,
-            {} as never,
-            {} as never,
-            {} as never,
-            {} as never,
-            {} as never,
-            queryBus as never,
-            [
-                {
-                    name: '@acme/plugin-example-app',
-                    packageName: '@acme/plugin-example-app@0.2.2',
-                    scopeKey,
-                    instance: {
-                        meta: {
-                            name: '@acme/plugin-example-app',
-                            version: '0.2.2',
-                            targetAppMeta: {
-                                xpert: { marketplace: { ...marketplace, contents } }
+        return withToolsets(
+            new PluginApplicationService(
+                { findOne: jest.fn().mockResolvedValue(null) } as never,
+                {} as never,
+                {} as never,
+                {} as never,
+                {} as never,
+                {} as never,
+                {} as never,
+                {} as never,
+                queryBus as never,
+                [
+                    {
+                        name: '@acme/plugin-example-app',
+                        packageName: '@acme/plugin-example-app@0.2.2',
+                        scopeKey,
+                        instance: {
+                            meta: {
+                                name: '@acme/plugin-example-app',
+                                version: '0.2.2',
+                                targetAppMeta: {
+                                    xpert: { marketplace: { ...marketplace, contents } }
+                                }
                             }
                         }
                     }
-                }
-            ] as never
+                ] as never
+            )
         )
     }
 
@@ -367,51 +382,53 @@ describe('PluginApplicationService', () => {
             findOne: jest.fn().mockResolvedValue({ id: 'xpert-1', slug: 'example-app' })
         }
         const queryBus = { execute: jest.fn() }
-        const service = new PluginApplicationService(
-            installationRepo as never,
-            workspaceRepo as never,
-            knowledgebaseRepo as never,
-            xpertRepo as never,
-            {} as never,
-            {} as never,
-            {} as never,
-            {} as never,
-            queryBus as never,
-            [
-                {
-                    name: '@acme/plugin-example-app',
-                    packageName: '@acme/plugin-example-app@0.2.2',
-                    scopeKey: SYSTEM_GLOBAL_SCOPE,
-                    instance: {
-                        meta: {
-                            name: '@acme/plugin-example-app',
-                            version: '0.2.2',
-                            targetAppMeta: {
-                                xpert: {
-                                    marketplace: {
-                                        contents: [
-                                            {
-                                                type: 'app',
-                                                name: 'example-app',
-                                                appConfig: {
-                                                    scope: 'organization',
-                                                    assistantTemplateKey: 'example-assistant',
-                                                    workspace: {
-                                                        mode: 'dedicated',
-                                                        name: 'Example App Workspace',
-                                                        sharing: 'organization'
-                                                    },
-                                                    modelRequirements: { embedding: true, vision: true }
+        const service = withToolsets(
+            new PluginApplicationService(
+                installationRepo as never,
+                workspaceRepo as never,
+                knowledgebaseRepo as never,
+                xpertRepo as never,
+                {} as never,
+                {} as never,
+                {} as never,
+                {} as never,
+                queryBus as never,
+                [
+                    {
+                        name: '@acme/plugin-example-app',
+                        packageName: '@acme/plugin-example-app@0.2.2',
+                        scopeKey: SYSTEM_GLOBAL_SCOPE,
+                        instance: {
+                            meta: {
+                                name: '@acme/plugin-example-app',
+                                version: '0.2.2',
+                                targetAppMeta: {
+                                    xpert: {
+                                        marketplace: {
+                                            contents: [
+                                                {
+                                                    type: 'app',
+                                                    name: 'example-app',
+                                                    appConfig: {
+                                                        scope: 'organization',
+                                                        assistantTemplateKey: 'example-assistant',
+                                                        workspace: {
+                                                            mode: 'dedicated',
+                                                            name: 'Example App Workspace',
+                                                            sharing: 'organization'
+                                                        },
+                                                        modelRequirements: { embedding: true, vision: true }
+                                                    }
                                                 }
-                                            }
-                                        ]
+                                            ]
+                                        }
                                     }
                                 }
                             }
                         }
                     }
-                }
-            ] as never
+                ] as never
+            )
         )
 
         await expect(
@@ -425,10 +442,23 @@ describe('PluginApplicationService', () => {
         expect(installationRepo.save).not.toHaveBeenCalled()
     })
 
-    const initializationCases = ['new', 'repair-missing-workspace', 'repair-existing-workspace']
+    const initializationCases = [
+        'new',
+        'repair-missing-workspace',
+        'repair-existing-workspace',
+        'repair-knowledgebases',
+        'repair-knowledgebases-missing-middle',
+        'failed-template',
+        'configured',
+        'configured-failed-template',
+        'suite-failed'
+    ]
     it.each(initializationCases)('initializes %s without opening workspace access', async (scenario) => {
-        const isNew = scenario === 'new'
-        const hasWorkspace = scenario === 'repair-existing-workspace'
+        const isNew = scenario === 'new' || scenario === 'failed-template' || scenario === 'suite-failed'
+        const configured = scenario.startsWith('configured')
+        const repairsKnowledgebases = scenario.startsWith('repair-knowledgebases')
+        const missingMiddle = scenario === 'repair-knowledgebases-missing-middle'
+        const hasWorkspace = scenario === 'repair-existing-workspace' || configured || repairsKnowledgebases
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
         jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('installer-1')
@@ -442,15 +472,19 @@ describe('PluginApplicationService', () => {
             appName: 'example-app',
             declaredScope: 'organization',
             scopeKey: 'org-1',
-            status: PLUGIN_APPLICATION_INSTALLATION_STATUS.DEGRADED,
+            status: configured
+                ? PLUGIN_APPLICATION_INSTALLATION_STATUS.CONFIGURING
+                : PLUGIN_APPLICATION_INSTALLATION_STATUS.DEGRADED,
             workspaceId: isNew ? null : 'workspace-1',
-            xpertId: isNew ? null : 'xpert-1',
-            knowledgebaseIds: []
+            xpertId: isNew || configured ? null : 'xpert-1',
+            resourceRefs: configured ? { 'toolset:test': 'managed-toolset' } : {},
+            knowledgebaseIds: repairsKnowledgebases ? ['knowledge-1', 'knowledge-2', 'knowledge-3'] : []
         })
         const claimed = Object.assign(new PluginApplicationInstallation(), {
             ...degraded,
             status: PLUGIN_APPLICATION_INSTALLATION_STATUS.INITIALIZING
         })
+        const savedKnowledgebaseIds: string[][] = []
         const installationRepo = {
             findOne: jest
                 .fn()
@@ -459,61 +493,157 @@ describe('PluginApplicationService', () => {
                 .mockResolvedValueOnce(claimed),
             create: jest.fn().mockReturnValue(claimed),
             update: jest.fn().mockResolvedValue({ affected: 1 }),
-            save: jest.fn(async (value) => value)
+            save: jest.fn(async (value: PluginApplicationInstallation) => {
+                savedKnowledgebaseIds.push([...(value.knowledgebaseIds ?? [])])
+                return value
+            })
         }
         const commandBus = {
             execute: jest.fn().mockResolvedValue({ xpert: { id: 'xpert-1', slug: 'example-app' } })
         }
         const existingWorkspace = { id: 'workspace-1', settings: { access: { visibility: 'organization-shared' } } }
-        const workspaceService = { create: jest.fn().mockResolvedValue({ id: 'replacement-workspace' }) }
-        const service = new PluginApplicationService(
-            installationRepo as never,
-            { findOne: jest.fn().mockResolvedValue(hasWorkspace ? existingWorkspace : null) } as never,
-            {} as never,
-            {
-                findOne: jest.fn().mockResolvedValue({ id: 'xpert-1', slug: 'example-app' })
-            } as never,
-            workspaceService as never,
-            {} as never,
-            { validateName: jest.fn().mockResolvedValue(true) } as never,
-            commandBus as never,
-            { execute: jest.fn() } as never,
-            [
+        const workspaceService = {
+            create: jest.fn().mockResolvedValue({ id: 'replacement-workspace' }),
+            delete: jest.fn().mockResolvedValue(undefined)
+        }
+        const knowledgebaseService = {
+            create: jest.fn().mockResolvedValue({ id: 'replacement-knowledge' }),
+            findOneOrFail: jest.fn().mockResolvedValue({ success: false })
+        }
+        const knowledgebaseRepo = {
+            findOne: jest.fn(async ({ where: { id } }: { where: { id: string } }) =>
+                missingMiddle && id === 'knowledge-2' ? null : { id }
+            )
+        }
+        const service = withToolsets(
+            new PluginApplicationService(
+                installationRepo as never,
+                { findOne: jest.fn().mockResolvedValue(hasWorkspace ? existingWorkspace : null) } as never,
+                knowledgebaseRepo as never,
                 {
-                    name: '@acme/plugin-example-app',
-                    packageName: '@acme/plugin-example-app@0.2.2',
-                    scopeKey: SYSTEM_GLOBAL_SCOPE,
-                    instance: {
-                        meta: {
-                            name: '@acme/plugin-example-app',
-                            version: '0.2.2',
-                            targetAppMeta: {
-                                xpert: {
-                                    marketplace: {
-                                        contents: [
-                                            {
-                                                type: 'app',
-                                                name: 'example-app',
-                                                appConfig: {
-                                                    scope: 'organization',
-                                                    assistantTemplateKey: 'example-assistant',
-                                                    workspace: {
-                                                        mode: 'dedicated',
-                                                        name: 'Example App Workspace',
-                                                        sharing: 'organization'
+                    findOne: jest.fn().mockResolvedValue({ id: 'xpert-1', slug: 'example-app' })
+                } as never,
+                workspaceService as never,
+                knowledgebaseService as never,
+                { validateName: jest.fn().mockResolvedValue(true) } as never,
+                commandBus as never,
+                { execute: jest.fn() } as never,
+                [
+                    {
+                        name: '@acme/plugin-example-app',
+                        packageName: '@acme/plugin-example-app@0.2.2',
+                        scopeKey: SYSTEM_GLOBAL_SCOPE,
+                        instance: {
+                            meta: {
+                                name: '@acme/plugin-example-app',
+                                version: '0.2.2',
+                                targetAppMeta: {
+                                    xpert: {
+                                        marketplace: {
+                                            contents: [
+                                                {
+                                                    type: 'app',
+                                                    name: 'example-app',
+                                                    appConfig: {
+                                                        scope: 'organization',
+                                                        assistantTemplateKey: 'example-assistant',
+                                                        knowledgebases: repairsKnowledgebases
+                                                            ? [1, 2, 3].map((index) => ({
+                                                                  key: `kb-${index}`,
+                                                                  name: `Knowledge ${index}`
+                                                              }))
+                                                            : [],
+                                                        ...(scenario === 'suite-failed'
+                                                            ? {
+                                                                  assistantSuite: {
+                                                                      version: '1',
+                                                                      coordinatorAgentKey: 'Main',
+                                                                      roles: [
+                                                                          {
+                                                                              key: 'writer',
+                                                                              templateKey: 'writer',
+                                                                              primaryAgentKey: 'Writer'
+                                                                          }
+                                                                      ]
+                                                                  }
+                                                              }
+                                                            : {}),
+                                                        workspace: {
+                                                            mode: 'dedicated',
+                                                            name: 'Example App Workspace',
+                                                            sharing: 'organization'
+                                                        }
                                                     }
                                                 }
-                                            }
-                                        ]
+                                            ]
+                                        }
                                     }
                                 }
                             }
                         }
                     }
-                }
-            ] as never
+                ] as never
+            )
         )
 
+        const ensureToolsets = jest
+            .spyOn(service['applicationToolsets'], 'ensure')
+            .mockImplementation(async (_prepared, installation, createdIds) => {
+                installation.resourceRefs = { ...installation.resourceRefs, 'toolset:test': 'managed-toolset' }
+                if (!configured) createdIds.created.push('managed-toolset')
+            })
+        if (scenario === 'suite-failed') {
+            Object.assign(service, {
+                assistantSuites: {
+                    validate: jest.fn(),
+                    healthy: jest.fn().mockResolvedValue(false),
+                    ensure: jest.fn(async (_application, installation: PluginApplicationInstallation) => {
+                        installation.resourceRefs = { ...installation.resourceRefs, 'role:writer': 'partial-writer' }
+                        throw new Error('suite publish failed')
+                    })
+                }
+            })
+            await expect(
+                service.initialize({
+                    pluginName: '@acme/plugin-example-app',
+                    appName: 'example-app',
+                    operationId: 'fail-suite'
+                })
+            ).rejects.toThrow('suite publish failed')
+            expect(claimed.status).toBe('failed')
+            expect(claimed.workspaceId).toBe('replacement-workspace')
+            expect(claimed.resourceRefs).toMatchObject({
+                'role:writer': 'partial-writer',
+                'toolset:test': 'managed-toolset'
+            })
+            expect(service['applicationToolsets'].rollback).not.toHaveBeenCalled()
+            expect(workspaceService.delete).not.toHaveBeenCalled()
+            return
+        }
+        if (scenario.endsWith('failed-template')) {
+            commandBus.execute.mockRejectedValueOnce(new Error('template failed'))
+            await expect(
+                service.initialize({
+                    pluginName: '@acme/plugin-example-app',
+                    appName: 'example-app',
+                    operationId: 'fail'
+                })
+            ).rejects.toThrow('template failed')
+            expect(service['applicationToolsets'].rollback).toHaveBeenCalledWith(
+                { created: configured ? [] : ['managed-toolset'], restored: [] },
+                claimed
+            )
+            if (configured) {
+                expect(workspaceService.delete).not.toHaveBeenCalled()
+                expect(claimed.workspaceId).toBe('workspace-1')
+                expect(claimed.resourceRefs?.['toolset:test']).toBe('managed-toolset')
+            } else {
+                expect(workspaceService.delete).toHaveBeenCalledWith('replacement-workspace')
+                expect(claimed.resourceRefs?.['toolset:test']).toBeUndefined()
+            }
+            expect(claimed.status).toBe('failed')
+            return
+        }
         await expect(
             service.initialize({
                 pluginName: '@acme/plugin-example-app',
@@ -521,11 +651,25 @@ describe('PluginApplicationService', () => {
                 operationId: 'repair-1'
             })
         ).resolves.toMatchObject({ status: 'ready', xpertId: 'xpert-1', assistantSlug: 'example-app' })
-        if (isNew) {
+        if (repairsKnowledgebases) {
+            expect(claimed.knowledgebaseIds).toEqual([
+                'knowledge-1',
+                missingMiddle ? 'replacement-knowledge' : 'knowledge-2',
+                'knowledge-3'
+            ])
+            expect(savedKnowledgebaseIds.every((ids) => ids[2] === 'knowledge-3')).toBe(true)
+            expect(knowledgebaseService.create).toHaveBeenCalledTimes(missingMiddle ? 1 : 0)
+            expect(claimed.resourceRefs?.['knowledgebase:kb-3']).toBe('knowledge-3')
+        }
+        if (isNew || configured) {
+            expect(ensureToolsets.mock.invocationCallOrder[0]).toBeLessThan(
+                commandBus.execute.mock.invocationCallOrder[0]
+            )
+            expect(claimed.resourceRefs?.['toolset:test']).toBe('managed-toolset')
             expect(commandBus.execute).toHaveBeenCalledTimes(1)
             expect(commandBus.execute).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    workspaceId: 'replacement-workspace',
+                    workspaceId: configured ? 'workspace-1' : 'replacement-workspace',
                     publish: true
                 })
             )

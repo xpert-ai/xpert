@@ -1,5 +1,19 @@
 const { allowVoicePermission } = require('./voice-permission.cjs')
-const { app, BrowserWindow, ipcMain, safeStorage, shell, session, Menu, screen, dialog } = require('electron')
+const {
+  app,
+  BrowserWindow,
+  ipcMain,
+  safeStorage,
+  shell,
+  session,
+  Menu,
+  screen,
+  dialog,
+  powerMonitor,
+  Tray,
+  nativeImage,
+  systemPreferences
+} = require('electron')
 const path = require('node:path')
 const { pathToFileURL } = require('node:url')
 const { DesktopService, webUrl } = require('./service.cjs')
@@ -14,9 +28,13 @@ const { translate } = require('./i18n/index.mjs')
 const { platformCommandUrl } = require('./workbench-platform.mjs')
 const { installAvatarPointer } = require('./avatar-pointer.cjs')
 const { installWindowActivation } = require('./window-activation.cjs')
+const { installAssistantActivity } = require('./assistant-activity.cjs')
 const { DesktopUpdater, registerUpdateIpc } = require('./updates/controller.cjs')
 const { findRelease } = require('./updates/release.cjs')
 const { isWorkspaceFileDownload, downloadWorkspaceFile } = require('./workspace-file-download.cjs')
+const { AudioCaptureController } = require('./audio-capture/controller.cjs')
+const { registerAudioCaptureIpc, dispatchWithAudioCapture } = require('./audio-capture/lifecycle.cjs')
+const { createAudioPermissions, registerAudioPermissionIpc } = require('./audio-permissions.cjs')
 
 const branding = require('./branding.json')
 
@@ -31,6 +49,27 @@ let window
 let service
 let connectionSession
 let connectionReloadPending = false
+let audioCaptureTray
+function showAudioCaptureIndicator(recording) {
+  audioCaptureTray?.destroy()
+  audioCaptureTray = undefined
+  if (!recording) return
+  const icon = nativeImage.createFromPath(appIcon).resize({ width: 18, height: 18 })
+  audioCaptureTray = new Tray(icon)
+  const t = (key) => translate(service.config.locale, key)
+  audioCaptureTray.setToolTip(`${branding.name} · ${t('Recording')}`)
+  audioCaptureTray.setContextMenu(
+    Menu.buildFromTemplate([
+      { label: t('Recording'), enabled: false },
+      {
+        label: t('End recording'),
+        click: () => {
+          void service.audioCapture.stop('user')
+        }
+      }
+    ])
+  )
+}
 
 function trusted(event) {
   return (
@@ -66,7 +105,13 @@ function updateApplicationMenu() {
     iconPath: appIcon,
     credits: `${translate(locale, 'Your AI team leader.')}\n${translate(locale, 'You set the goal. Bosi leads the team.')}`
   })
-  Menu.setApplicationMenu(Menu.buildFromTemplate(menuTemplate(locale)))
+  Menu.setApplicationMenu(
+    Menu.buildFromTemplate(
+      menuTemplate(locale, process.platform, {
+        newGroup: () => BrowserWindow.getFocusedWindow()?.webContents.send('xpert:new-group')
+      })
+    )
+  )
 }
 
 function resetConnectionSession() {
@@ -122,6 +167,7 @@ function createWindow(bounds = {}) {
   const createdWindow = window
   window.on('closed', () => {
     if (window === createdWindow) window = undefined
+    void service.audioCapture?.stop('interrupted')
   })
   installAvatarPointer(window, { ipcMain, screen, isTrusted: trusted })
   installWindowActivation(window)
@@ -186,7 +232,21 @@ else {
       systemLanguages: [...app.getPreferredSystemLanguages(), app.getLocale()]
     })
     service.shell = new DesktopShellController(service, path.join(app.getPath('userData'), 'desktop-shell'))
+    const audioPermissions = createAudioPermissions({ systemPreferences, packaged: app.isPackaged })
+    service.audioCapture = new AudioCaptureController(service, {
+      root: path.join(app.getPath('userData'), 'audio-capture'),
+      encryption,
+      permissions: audioPermissions,
+      helper: path
+        .join(__dirname, '../resources/audio-capture/audio-capture')
+        .replace('app.asar/', 'app.asar.unpacked/'),
+      onRecording: showAudioCaptureIndicator
+    })
+    powerMonitor.on('suspend', () => {
+      void service.audioCapture.stop('sleep')
+    })
     resetConnectionSession()
+    installAssistantActivity({ app, activity: service.assistantActivity, getWindow: () => window })
     updateApplicationMenu()
     const updatesEnabled =
       app.isPackaged &&
@@ -199,6 +259,7 @@ else {
       resolveFeed: () => findRelease({ platform: process.platform, arch: process.arch }),
       beforeInstall: async () => {
         // Drain local tools before the updater takes ownership of quitting/restarting.
+        await service.audioCapture.shutdown('quit')
         await service.shell.disable()
         shellShutdownComplete = true
       }
@@ -210,6 +271,8 @@ else {
     })
     updates.start()
     app.once('will-quit', () => updates.dispose())
+    registerAudioCaptureIpc(ipcMain, service.audioCapture, trusted)
+    registerAudioPermissionIpc(ipcMain, audioPermissions, trusted)
     ipcMain.handle('xpert:request', async (event, method, argument) => {
       if (!trusted(event))
         return {
@@ -220,7 +283,7 @@ else {
         }
       const previousPolicy = connectionPolicyKey(service.config)
       const previousLocale = service.config.locale
-      const result = await dispatch(service, method, argument)
+      const result = await dispatchWithAudioCapture(service, dispatch, method, argument, translate)
       if (previousLocale !== service.config.locale) updateApplicationMenu()
       // Only a host-verified, live connection attempt may bring Desktop back from browser authorization.
       if (
@@ -286,7 +349,7 @@ let shellShutdownComplete = false
 app.on('before-quit', (event) => {
   if (!service?.shell || shellShutdownComplete) return
   event.preventDefault()
-  void service.shell.disable().finally(() => {
+  void Promise.all([service.shell.disable(), service.audioCapture?.shutdown('quit')]).finally(() => {
     shellShutdownComplete = true
     app.quit()
   })

@@ -86,3 +86,34 @@ describe('api-key principal helpers', () => {
 		expect(req.headers['x-scope-level']).toBe(RequestScopeLevel.TENANT)
 	})
 })
+
+describe('normalized principal resource audiences', () => {
+	it.each([
+		['assistant', { kind: 'assistant', xpertId: 'target' }],
+		['workspace', { kind: 'workspace', workspaceId: 'target' }]
+	] as const)('normalizes persisted %s bindings once during authentication', (type, resourceScope) => {
+		const principal = buildApiKeyPrincipal({ token: 'test-only', type, entityId: ' target ' } as Parameters<
+			typeof buildApiKeyPrincipal
+		>[0])
+		expect(principal.resourceScope).toEqual(resourceScope)
+	})
+	it.each(['integration', 'client'] as const)(
+		'does not turn %s technical identity into a resource audience',
+		(type) => {
+			const principal = buildApiKeyPrincipal({ token: 'test-only', type, entityId: 'target' } as Parameters<
+				typeof buildApiKeyPrincipal
+			>[0])
+			expect(principal.resourceScope).toBeUndefined()
+		}
+	)
+	it.each(['assistant', 'workspace'] as const)(
+		'rejects an empty %s binding instead of restoring an unscoped principal',
+		(type) => {
+			expect(() =>
+				buildApiKeyPrincipal({ token: 'test-only', type, entityId: ' ' } as Parameters<
+					typeof buildApiKeyPrincipal
+				>[0])
+			).toThrow()
+		}
+	)
+})

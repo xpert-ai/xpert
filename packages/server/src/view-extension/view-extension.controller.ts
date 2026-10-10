@@ -45,14 +45,8 @@ type UploadedViewActionFile = {
 	size?: number
 }
 
-@ApiTags('ViewExtension')
-@ApiBearerAuth()
-@Public()
-@AllowClientSecretBindings(SecretTokenBindingType.ENTERPRISE_XPERT)
-@UseGuards(ApiKeyOrClientSecretAuthGuard)
-@UseInterceptors(TransformInterceptor)
-@Controller()
-export class ViewExtensionController {
+/** Shared protocol routes; each entry point supplies its own authentication boundary. */
+export class ViewExtensionRoutes {
 	constructor(private readonly service: ViewExtensionService) {}
 
 	@Get(':hostType/:hostId/slots/:slot/views')
@@ -148,6 +142,19 @@ export class ViewExtensionController {
 			parseMultipartActionBody(body),
 			file
 		)
+	}
+}
+
+@ApiTags('ViewExtension')
+@ApiBearerAuth()
+@Public()
+@AllowClientSecretBindings(SecretTokenBindingType.ENTERPRISE_XPERT)
+@UseGuards(ApiKeyOrClientSecretAuthGuard)
+@UseInterceptors(TransformInterceptor)
+@Controller()
+export class ViewExtensionController extends ViewExtensionRoutes {
+	constructor(service: ViewExtensionService) {
+		super(service)
 	}
 }
 

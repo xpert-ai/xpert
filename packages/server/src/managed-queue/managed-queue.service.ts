@@ -229,7 +229,7 @@ export class ManagedQueueService implements ManagedQueueServiceContract {
 				: undefined
 
 		const apiKey = principal?.apiKey
-		if (!principal || !apiKey || !currentTenantId) {
+		if (!principal || !currentTenantId) {
 			return { actor }
 		}
 
@@ -244,13 +244,17 @@ export class ManagedQueueService implements ManagedQueueServiceContract {
 			clientSecretBindingType: principal.clientSecretBindingType ?? null,
 			clientSecretId: this.normalizeId(principal.clientSecretId),
 			enterpriseH5Scope: principal.enterpriseH5Scope ?? null,
-			apiKey: {
-				...(apiKey.type ? { type: apiKey.type } : {}),
-				entityId: this.normalizeId(apiKey.entityId),
-				tenantId: this.normalizeId(apiKey.tenantId) || currentTenantId,
-				organizationId: this.normalizeId(apiKey.organizationId),
-				userId: this.normalizeId(apiKey.userId)
-			}
+			resourceScope: principal.resourceScope,
+			clientSecretExpiresAt: principal.clientSecretExpiresAt?.toISOString(),
+			apiKey: apiKey
+				? {
+						...(apiKey.type ? { type: apiKey.type } : {}),
+						entityId: this.normalizeId(apiKey.entityId),
+						tenantId: this.normalizeId(apiKey.tenantId) || currentTenantId,
+						organizationId: this.normalizeId(apiKey.organizationId),
+						userId: this.normalizeId(apiKey.userId)
+					}
+				: undefined
 		}
 		return { actor, delegation }
 	}

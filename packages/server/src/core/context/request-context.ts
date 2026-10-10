@@ -1,8 +1,4 @@
-import {
-	BadRequestException,
-	HttpException,
-	HttpStatus
-} from '@nestjs/common';
+import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common'
 import {
 	IApiKey,
 	IApiPrincipal,
@@ -11,105 +7,105 @@ import {
 	LanguagesEnum,
 	PermissionsEnum,
 	RolesEnum
-} from '@xpert-ai/contracts';
-import type { RequestScopeLevel } from '@xpert-ai/contracts';
-import cls from 'cls-hooked';
-import { ExtractJwt } from 'passport-jwt';
+} from '@xpert-ai/contracts'
+import type { RequestScopeLevel } from '@xpert-ai/contracts'
+import cls from 'cls-hooked'
+import { ExtractJwt } from 'passport-jwt'
 
-const TENANT_SCOPE = 'tenant' as RequestScopeLevel;
-const ORGANIZATION_SCOPE = 'organization' as RequestScopeLevel;
+const TENANT_SCOPE = 'tenant' as RequestScopeLevel
+const ORGANIZATION_SCOPE = 'organization' as RequestScopeLevel
 
 /**
  * @deprecated use RequestContext from @xpert-ai/plugin-sdk
  */
 export class RequestContext {
-	readonly id: number;
-	request: Request;
-	response: Response;
+	readonly id: number
+	request: Request
+	response: Response
 
 	constructor(request: Request, response: Response) {
-		this.id = Math.random();
-		this.request = request;
-		this.response = response;
+		this.id = Math.random()
+		this.request = request
+		this.response = response
 	}
 
 	static currentRequestContext(): RequestContext {
-		const session = cls.getNamespace(RequestContext.name);
+		const session = cls.getNamespace(RequestContext.name)
 		if (session && session.active) {
-			return session.get(RequestContext.name);
+			return session.get(RequestContext.name)
 		}
 
-		return null;
+		return null
 	}
 
 	static currentApiKey(): IApiKey | null {
-		return RequestContext.currentApiPrincipal()?.apiKey ?? null;
+		return RequestContext.currentApiPrincipal()?.apiKey ?? null
 	}
 
 	static currentApiPrincipal(): IApiPrincipal | null {
-		const user = RequestContext.currentUser() as IApiPrincipal | null;
-		return user?.apiKey ? user : null;
+		const user = RequestContext.currentUser() as IApiPrincipal | null
+		// Conversation-scoped client secrets carry no synthetic API key.
+		return user?.apiKey || user?.principalType === 'client_secret' || user?.principalType === 'api_key'
+			? user
+			: null
 	}
 
 	static currentRequest(): Request {
-		const requestContext = RequestContext.currentRequestContext();
+		const requestContext = RequestContext.currentRequestContext()
 
 		if (requestContext) {
-			return requestContext.request;
+			return requestContext.request
 		}
 
-		return null;
+		return null
 	}
 
 	static currentTenantId(): string {
-		const user: IUser = RequestContext.currentUser();
+		const user: IUser = RequestContext.currentUser()
 		if (user) {
-			return user.tenantId;
+			return user.tenantId
 		}
 
-		return null;
+		return null
 	}
 
 	static currentUserId(): string {
-		const user: IUser = RequestContext.currentUser();
+		const user: IUser = RequestContext.currentUser()
 		if (user) {
-			return user.id;
+			return user.id
 		}
-		return null;
+		return null
 	}
 
 	static currentRoleId(): string {
-		const user: IUser = RequestContext.currentUser();
+		const user: IUser = RequestContext.currentUser()
 		if (user) {
-			return user.roleId;
+			return user.roleId
 		}
-		return null;
+		return null
 	}
 
 	static currentUser(throwError?: boolean): IUser {
-		const requestContext = RequestContext.currentRequestContext();
+		const requestContext = RequestContext.currentRequestContext()
 
 		if (requestContext) {
 			// tslint:disable-next-line
-			const user: IUser = requestContext.request['user'];
+			const user: IUser = requestContext.request['user']
 
 			if (user) {
-				return user;
+				return user
 			}
 		}
 
 		if (throwError) {
-			throw new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED);
+			throw new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED)
 		}
 
-		return null;
+		return null
 	}
 
-	static hasPermission(
-		permission: PermissionsEnum | string,
-		throwError?: boolean
-	): boolean {
-		return this.hasPermissions([permission], throwError);
+	static hasPermission(permission: PermissionsEnum | string, throwError?: boolean): boolean {
+		return this.hasPermissions([permission], throwError)
 	}
 
 	/**
@@ -118,68 +114,57 @@ export class RequestContext {
 	 */
 	static getLanguageCode(): LanguagesEnum {
 		// Retrieve the current request
-		const req = RequestContext.currentRequest();
+		const req = RequestContext.currentRequest()
 
 		// Variable to store the extracted language code
-		let lang: LanguagesEnum;
+		let lang: LanguagesEnum
 
 		// Check if a request exists
 		if (req) {
 			// Check if the 'language' header exists in the request
 			if (req.headers && req.headers['language']) {
 				// If found, set the lang variable
-				lang = req.headers['language'] as LanguagesEnum;
+				lang = req.headers['language'] as LanguagesEnum
 			}
 		}
 
 		// Return the extracted language code or the default language (ENGLISH) if not found
-		return lang || LanguagesEnum.English;
+		return lang || LanguagesEnum.English
 	}
 
 	static getScope(): IRequestScopeContext {
-		const request = this.currentRequest();
-		const user = this.currentUser();
-		const tenantId =
-			user?.tenantId ?? getHeaderValue(request, ['tenant-id']) ?? null;
-		const organizationId =
-			getHeaderValue(request, ['organization-id']) ?? null;
-		const scopeLevelHeader = getHeaderValue(request, ['x-scope-level']);
+		const request = this.currentRequest()
+		const user = this.currentUser()
+		const tenantId = user?.tenantId ?? getHeaderValue(request, ['tenant-id']) ?? null
+		const organizationId = getHeaderValue(request, ['organization-id']) ?? null
+		const scopeLevelHeader = getHeaderValue(request, ['x-scope-level'])
 
 		if (scopeLevelHeader) {
-			if (
-				scopeLevelHeader !== TENANT_SCOPE &&
-				scopeLevelHeader !== ORGANIZATION_SCOPE
-			) {
-				throw new BadRequestException(
-					`Unsupported scope level: ${scopeLevelHeader}`
-				);
+			if (scopeLevelHeader !== TENANT_SCOPE && scopeLevelHeader !== ORGANIZATION_SCOPE) {
+				throw new BadRequestException(`Unsupported scope level: ${scopeLevelHeader}`)
 			}
 
 			if (scopeLevelHeader === TENANT_SCOPE) {
 				if (organizationId) {
-					throw new BadRequestException(
-						'Tenant scope requests must not include Organization-Id.'
-					);
+					throw new BadRequestException('Tenant scope requests must not include Organization-Id.')
 				}
 
 				return {
 					tenantId,
 					level: TENANT_SCOPE,
 					organizationId: null
-				};
+				}
 			}
 
 			if (!organizationId) {
-				throw new BadRequestException(
-					'Organization scope requests require Organization-Id.'
-				);
+				throw new BadRequestException('Organization scope requests require Organization-Id.')
 			}
 
 			return {
 				tenantId,
 				level: ORGANIZATION_SCOPE,
 				organizationId
-			};
+			}
 		}
 
 		if (organizationId) {
@@ -187,96 +172,79 @@ export class RequestContext {
 				tenantId,
 				level: ORGANIZATION_SCOPE,
 				organizationId
-			};
+			}
 		}
 
 		return {
 			tenantId,
 			level: TENANT_SCOPE,
 			organizationId: null
-		};
+		}
 	}
 
 	static getOrganizationId(): string | null {
-		return this.getScope().organizationId;
+		return this.getScope().organizationId
 	}
 
 	static isTenantScope(): boolean {
-		return this.getScope().level === TENANT_SCOPE;
+		return this.getScope().level === TENANT_SCOPE
 	}
 
 	static isOrganizationScope(): boolean {
-		return this.getScope().level === ORGANIZATION_SCOPE;
+		return this.getScope().level === ORGANIZATION_SCOPE
 	}
 
 	static requireOrganizationScope(): string {
-		const scope = this.getScope();
-		if (
-			scope.level !== ORGANIZATION_SCOPE ||
-			!scope.organizationId
-		) {
-			throw new BadRequestException(
-				'Organization scope is required for this operation.'
-			);
+		const scope = this.getScope()
+		if (scope.level !== ORGANIZATION_SCOPE || !scope.organizationId) {
+			throw new BadRequestException('Organization scope is required for this operation.')
 		}
 
-		return scope.organizationId;
+		return scope.organizationId
 	}
 
-	static hasPermissions(
-		findPermissions: Array<PermissionsEnum | string>,
-		throwError?: boolean
-	): boolean {
-		const permissions = this.currentPermissions();
+	static hasPermissions(findPermissions: Array<PermissionsEnum | string>, throwError?: boolean): boolean {
+		const permissions = this.currentPermissions()
 		if (permissions.length > 0) {
-			const found = permissions.filter(
-				(value) => findPermissions.indexOf(value) >= 0
-			);
+			const found = permissions.filter((value) => findPermissions.indexOf(value) >= 0)
 			if (found.length === findPermissions.length) {
-				return true;
+				return true
 			}
 		}
 
 		if (throwError) {
-			throw new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED);
+			throw new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED)
 		}
-		return false;
+		return false
 	}
 
-	static hasAnyPermission(
-		findPermissions: PermissionsEnum[],
-		throwError?: boolean
-	): boolean {
-		const permissions = this.currentPermissions();
+	static hasAnyPermission(findPermissions: PermissionsEnum[], throwError?: boolean): boolean {
+		const permissions = this.currentPermissions()
 		if (permissions.length > 0) {
-			const found = permissions.filter(
-				(value) => findPermissions.indexOf(value as PermissionsEnum) >= 0
-			);
+			const found = permissions.filter((value) => findPermissions.indexOf(value as PermissionsEnum) >= 0)
 			if (found.length > 0) {
-				return true;
+				return true
 			}
 		}
 
 		if (throwError) {
-			throw new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED);
+			throw new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED)
 		}
-		return false;
+		return false
 	}
 
 	static currentToken(throwError?: boolean): any {
-		const requestContext = RequestContext.currentRequestContext();
+		const requestContext = RequestContext.currentRequestContext()
 
 		if (requestContext) {
 			// tslint:disable-next-line
-			return ExtractJwt.fromAuthHeaderAsBearerToken()(
-				requestContext.request as any
-			);
+			return ExtractJwt.fromAuthHeaderAsBearerToken()(requestContext.request as any)
 		}
 
 		if (throwError) {
-			throw new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED);
+			throw new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED)
 		}
-		return null;
+		return null
 	}
 
 	/**
@@ -286,7 +254,7 @@ export class RequestContext {
 	 * @returns {boolean} - True if the user has the role, otherwise false.
 	 */
 	static hasRole(role: RolesEnum, throwError?: boolean): boolean {
-		return this.hasRoles([role], throwError);
+		return this.hasRoles([role], throwError)
 	}
 
 	/**
@@ -297,49 +265,46 @@ export class RequestContext {
 	 * @returns True if any of the required roles are found, otherwise false.
 	 */
 	static hasRoles(roles: RolesEnum[], throwError?: boolean): boolean {
-		const context = RequestContext.currentRequestContext();
+		const context = RequestContext.currentRequestContext()
 		if (context) {
-			const role = this.currentUser()?.role?.name;
+			const role = this.currentUser()?.role?.name
 			if (role) {
-				return roles.includes(role as RolesEnum);
+				return roles.includes(role as RolesEnum)
 			}
 		}
 		if (throwError) {
-			throw new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED);
+			throw new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED)
 		}
-		return false;
+		return false
 	}
 
 	private static currentPermissions(): Array<PermissionsEnum | string> {
-		const rolePermissions = this.currentUser()?.role?.rolePermissions;
+		const rolePermissions = this.currentUser()?.role?.rolePermissions
 		if (!rolePermissions?.length) {
-			return [];
+			return []
 		}
 
 		return rolePermissions
 			.filter((rolePermission) => rolePermission?.enabled)
 			.map((rolePermission) => rolePermission?.permission)
-			.filter((permission): permission is PermissionsEnum | string => !!permission);
+			.filter((permission): permission is PermissionsEnum | string => !!permission)
 	}
 }
 
-function getHeaderValue(
-	req: Request | null,
-	keys: string[]
-): string | null {
+function getHeaderValue(req: Request | null, keys: string[]): string | null {
 	if (!req?.headers) {
-		return null;
+		return null
 	}
 
 	for (const key of keys) {
-		const value = req.headers[key];
+		const value = req.headers[key]
 		if (Array.isArray(value)) {
-			return value[0] ?? null;
+			return value[0] ?? null
 		}
 		if (typeof value === 'string' && value) {
-			return value;
+			return value
 		}
 	}
 
-	return null;
+	return null
 }

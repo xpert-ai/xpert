@@ -245,6 +245,7 @@ export class ConversationsController {
     @Post('search')
     async searchConversations(@Body() body: ConversationSearchRequest) {
         const where = transformWhere(body.where ?? {})
+        where['purpose'] = 'private'
         if (body.search) {
             where['title'] = ILike(`%${body.search}%`)
         }

@@ -1,5 +1,4 @@
 import {
-    ApiKeyBindingType,
     IApiPrincipal,
     IUser,
     RolesEnum,
@@ -384,7 +383,7 @@ export class XpertWorkspaceAccessService {
     private async currentApiKeyBoundWorkspaceIdForUser(user?: IUser | null) {
         const apiPrincipal = RequestContext.currentApiPrincipal() as IApiPrincipal | null
         const apiKey = apiPrincipal?.apiKey
-        const entityId = apiKey?.entityId?.trim()
+        const scope = apiPrincipal?.resourceScope
         const userId = user?.id
         const tenantId = user?.tenantId
         const clientSecretBindingType = apiPrincipal?.clientSecretBindingType
@@ -396,11 +395,11 @@ export class XpertWorkspaceAccessService {
             clientSecretBindingType === SecretTokenBindingType.ENTERPRISE_XPERT
         const isRestrictedXpertClientSecret = isPublicXpertClientSecret || isEnterpriseXpertClientSecret
 
-        if (!isRestrictedXpertClientSecret && apiKey?.type === ApiKeyBindingType.WORKSPACE) {
-            return entityId || null
+        if (!isRestrictedXpertClientSecret && scope?.kind === 'workspace') {
+            return scope.workspaceId || null
         }
 
-        if (apiKey?.type !== ApiKeyBindingType.ASSISTANT || !entityId || !tenantId) {
+        if (scope?.kind !== 'assistant' || !scope.xpertId || !tenantId) {
             return null
         }
 
@@ -422,7 +421,7 @@ export class XpertWorkspaceAccessService {
             .select('xpert."workspaceId"', 'workspaceId')
             .addSelect('xpert."userId"', 'userId')
             .from('xpert', 'xpert')
-            .where('xpert.id = :xpertId', { xpertId: entityId })
+            .where('xpert.id = :xpertId', { xpertId: scope.xpertId })
             .andWhere('xpert."tenantId" = :tenantId', { tenantId })
 
         if (isRestrictedXpertClientSecret) {
@@ -456,7 +455,7 @@ export class XpertWorkspaceAccessService {
             return null
         }
 
-        const apiKeyUserId = apiPrincipal?.apiKeyUserId ?? apiKey.userId ?? null
+        const apiKeyUserId = apiPrincipal?.apiKeyUserId ?? apiKey?.userId ?? null
         const principalUserId = xpert.userId || apiKeyUserId
         if (!isRestrictedXpertClientSecret && (!principalUserId || principalUserId !== userId)) {
             return null

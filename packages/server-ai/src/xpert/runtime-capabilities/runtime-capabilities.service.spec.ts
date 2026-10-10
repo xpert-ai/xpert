@@ -1,24 +1,24 @@
 import { createRuntimeSkillCapabilityId, WorkflowNodeTypeEnum, XpertTypeEnum } from '@xpert-ai/contracts'
 
-jest.mock('../assistant-binding', () => ({
+jest.mock('../../assistant-binding/assistant-binding.service', () => ({
     AssistantBindingService: class {}
 }))
-jest.mock('../skill-package', () => ({
+jest.mock('../../skill-package/skill-package.service', () => ({
     SkillPackageService: class {}
 }))
-jest.mock('../prompt-workflow', () => ({
+jest.mock('../../prompt-workflow/prompt-workflow.service', () => ({
     PromptWorkflowService: class {}
 }))
 
 import { RuntimeCapabilitiesService } from './runtime-capabilities.service'
 import { RuntimeCommandService } from './runtime-command.service'
-import { XpertProjectAccessService } from '../xpert-project/services/project-access.service'
-import { XpertProjectContentService } from '../xpert-project/services/project-content.service'
+import { XpertProjectAccessService } from '../../xpert-project/services/project-access.service'
+import { XpertProjectContentService } from '../../xpert-project/services/project-content.service'
 
 describe('RuntimeCapabilitiesService', () => {
     it('omits plugin-relative skill image icons so ChatKit can use its default skill icon', async () => {
         const service = new RuntimeCapabilitiesService(
-            { get: jest.fn() } as any,
+            { get: jest.fn() } as unknown as ConstructorParameters<typeof RuntimeCapabilitiesService>[0],
             {
                 getAllByWorkspaceForRuntime: jest.fn(async () => ({
                     items: [
@@ -39,7 +39,7 @@ describe('RuntimeCapabilitiesService', () => {
                         }
                     ]
                 }))
-            } as any,
+            } as unknown as ConstructorParameters<typeof RuntimeCapabilitiesService>[1],
             new RuntimeCommandService(),
             {
                 resolveRuntimeCommandProfile: jest.fn(async () => ({
@@ -49,10 +49,12 @@ describe('RuntimeCapabilitiesService', () => {
                     preferredSkillEntries: [],
                     skillEntries: []
                 }))
-            } as any,
+            } as unknown as ConstructorParameters<typeof RuntimeCapabilitiesService>[3],
             {
                 getUserPreferenceByAssistantId: jest.fn(async () => null)
-            } as any
+            } as unknown as ConstructorParameters<typeof RuntimeCapabilitiesService>[4],
+            { assertCanUseXpert: jest.fn() } as unknown as XpertProjectAccessService,
+            { listSkills: jest.fn() } as unknown as XpertProjectContentService
         )
 
         const result = await service.getRuntimeCapabilities({
@@ -74,7 +76,7 @@ describe('RuntimeCapabilitiesService', () => {
                 ],
                 connections: [{ type: 'workflow', from: 'agent-1', to: 'skills-middleware' }]
             }
-        } as any)
+        } as unknown as Parameters<RuntimeCapabilitiesService['getRuntimeCapabilities']>[0])
 
         expect(result.skills).toEqual([
             {
@@ -121,7 +123,9 @@ describe('RuntimeCapabilitiesService', () => {
             } as unknown as ConstructorParameters<typeof RuntimeCapabilitiesService>[3],
             {
                 getUserPreferenceByAssistantId: jest.fn(async () => null)
-            } as unknown as ConstructorParameters<typeof RuntimeCapabilitiesService>[4]
+            } as unknown as ConstructorParameters<typeof RuntimeCapabilitiesService>[4],
+            { assertCanUseXpert: jest.fn() } as unknown as XpertProjectAccessService,
+            { listSkills: jest.fn() } as unknown as XpertProjectContentService
         )
 
         const result = await service.getRuntimeCapabilities({
@@ -180,7 +184,11 @@ describe('RuntimeCapabilitiesService', () => {
             {
                 resolveRuntimeCommandProfile: jest.fn()
             } as unknown as ConstructorParameters<typeof RuntimeCapabilitiesService>[3],
-            { getUserPreferenceByAssistantId } as unknown as ConstructorParameters<typeof RuntimeCapabilitiesService>[4]
+            { getUserPreferenceByAssistantId } as unknown as ConstructorParameters<
+                typeof RuntimeCapabilitiesService
+            >[4],
+            { assertCanUseXpert: jest.fn() } as unknown as XpertProjectAccessService,
+            { listSkills: jest.fn() } as unknown as XpertProjectContentService
         )
 
         await expect(
@@ -247,13 +255,6 @@ describe('RuntimeCapabilitiesService', () => {
             ],
             total: 2
         }))
-        const moduleRef = {
-            get: jest.fn((token: unknown) => {
-                if (token === XpertProjectAccessService) return { assertCanUseXpert }
-                if (token === XpertProjectContentService) return { listSkills }
-                return undefined
-            })
-        }
         const service = new RuntimeCapabilitiesService(
             { get: jest.fn() } as unknown as ConstructorParameters<typeof RuntimeCapabilitiesService>[0],
             { getAllByWorkspaceForRuntime } as unknown as ConstructorParameters<typeof RuntimeCapabilitiesService>[1],
@@ -270,7 +271,8 @@ describe('RuntimeCapabilitiesService', () => {
             {
                 getUserPreferenceByAssistantId: jest.fn(async () => null)
             } as unknown as ConstructorParameters<typeof RuntimeCapabilitiesService>[4],
-            moduleRef as unknown as ConstructorParameters<typeof RuntimeCapabilitiesService>[5]
+            { assertCanUseXpert } as unknown as XpertProjectAccessService,
+            { listSkills } as unknown as XpertProjectContentService
         )
 
         const result = await service.getRuntimeCapabilities(

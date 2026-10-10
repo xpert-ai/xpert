@@ -27,6 +27,7 @@ describe('restricted xpert conversation scope', () => {
         ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue({
             principalType: 'client_secret',
             clientSecretBindingType: SecretTokenBindingType.ENTERPRISE_XPERT,
+            resourceScope: { kind: 'assistant', xpertId: 'xpert-1' },
             apiKey: {
                 type: ApiKeyBindingType.ASSISTANT,
                 entityId: 'xpert-1'
@@ -63,6 +64,7 @@ describe('restricted xpert conversation scope', () => {
         ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue({
             principalType: 'client_secret',
             clientSecretBindingType: SecretTokenBindingType.PUBLIC_XPERT,
+            resourceScope: { kind: 'assistant', xpertId: 'xpert-current' },
             apiKey: {
                 type: ApiKeyBindingType.ASSISTANT,
                 entityId: 'xpert-current'

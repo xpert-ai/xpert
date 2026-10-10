@@ -1,6 +1,6 @@
 import { BadRequestException } from '@nestjs/common'
 import { SecretTokenBindingType } from '@xpert-ai/contracts'
-import { RequestContext } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { AIV1Controller } from './ai-v1.controller'
 
 describe('AIV1Controller ChatKit sessions', () => {
@@ -9,7 +9,7 @@ describe('AIV1Controller ChatKit sessions', () => {
             execute: jest.fn()
         }
         const secretTokenService = {
-            create: jest.fn().mockResolvedValue(undefined)
+            createHashed: jest.fn().mockResolvedValue(undefined)
         }
         const publishedXpertAccessService = {
             getAccessiblePublishedXpert: jest.fn().mockResolvedValue({
@@ -70,7 +70,7 @@ describe('AIV1Controller ChatKit sessions', () => {
         })
 
         expect(publishedXpertAccessService.getAccessiblePublishedXpert).toHaveBeenCalledWith('xpert-1')
-        expect(secretTokenService.create).toHaveBeenCalledWith(
+        expect(secretTokenService.createHashed).toHaveBeenCalledWith(
             expect.objectContaining({
                 entityId: 'xpert-1',
                 type: SecretTokenBindingType.USER_XPERT,
@@ -101,7 +101,7 @@ describe('AIV1Controller ChatKit sessions', () => {
         ).rejects.toBeInstanceOf(BadRequestException)
 
         expect(publishedXpertAccessService.getAccessiblePublishedXpert).not.toHaveBeenCalled()
-        expect(secretTokenService.create).not.toHaveBeenCalled()
+        expect(secretTokenService.createHashed).not.toHaveBeenCalled()
     })
 
     it('uses Project membership and the exact Project Assistant binding for a delegated session', async () => {
@@ -119,7 +119,7 @@ describe('AIV1Controller ChatKit sessions', () => {
 
         expect(projectAccessService.assertCanUseXpert).toHaveBeenCalledWith('project-1', 'external-assistant-1')
         expect(publishedXpertAccessService.getAccessiblePublishedXpert).not.toHaveBeenCalled()
-        expect(secretTokenService.create).toHaveBeenCalledWith(
+        expect(secretTokenService.createHashed).toHaveBeenCalledWith(
             expect.objectContaining({
                 entityId: 'external-assistant-1',
                 type: SecretTokenBindingType.USER_XPERT,
@@ -154,7 +154,7 @@ describe('AIV1Controller ChatKit sessions', () => {
         expect(workbenchNavigationService.resolve).toHaveBeenCalledWith('conversation-1', 'orchestrator-1')
         expect(projectAccessService.assertCanUseXpert).not.toHaveBeenCalled()
         expect(publishedXpertAccessService.getAccessiblePublishedXpert).not.toHaveBeenCalled()
-        expect(secretTokenService.create).toHaveBeenCalledWith(
+        expect(secretTokenService.createHashed).toHaveBeenCalledWith(
             expect.objectContaining({
                 entityId: 'external-assistant-1',
                 type: SecretTokenBindingType.USER_XPERT
@@ -187,7 +187,7 @@ describe('AIV1Controller ChatKit sessions', () => {
             })
         ).rejects.toThrow('does not match the requested Assistant scope')
 
-        expect(secretTokenService.create).not.toHaveBeenCalled()
+        expect(secretTokenService.createHashed).not.toHaveBeenCalled()
     })
 
     it('rejects an empty Project id instead of falling back to catalog access', async () => {
@@ -206,7 +206,7 @@ describe('AIV1Controller ChatKit sessions', () => {
 
         expect(projectAccessService.assertCanUseXpert).not.toHaveBeenCalled()
         expect(publishedXpertAccessService.getAccessiblePublishedXpert).not.toHaveBeenCalled()
-        expect(secretTokenService.create).not.toHaveBeenCalled()
+        expect(secretTokenService.createHashed).not.toHaveBeenCalled()
     })
 
     it('caps user session lifetime at one hour', async () => {
@@ -238,7 +238,7 @@ describe('AIV1Controller ChatKit sessions', () => {
             {}
         )
 
-        expect(secretTokenService.create).toHaveBeenCalledWith(
+        expect(secretTokenService.createHashed).toHaveBeenCalledWith(
             expect.objectContaining({
                 entityId: 'api-key-1',
                 type: SecretTokenBindingType.API_KEY,

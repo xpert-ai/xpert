@@ -2,7 +2,8 @@ jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
 
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { DiscoveryService, ModuleRef, Reflector } from '@nestjs/core'
-import { IXpert, XpertTypeEnum } from '@xpert-ai/contracts'
+import { Test } from '@nestjs/testing'
+import { IXpert, XpertTypeEnum, XpertAgentExecutionStatusEnum, TChatConversationStatus } from '@xpert-ai/contracts'
 import {
     AgentMiddlewareAssistantTaskInput,
     AgentRuntimeRegistry,
@@ -11,11 +12,16 @@ import {
     RequestContext
 } from '@xpert-ai/plugin-sdk'
 import { NEVER } from 'rxjs'
+import { DataSource } from 'typeorm'
 import { AssistantTaskRuntimeStrategy } from '../../agent-invocation/assistant-task-adapter'
 import { AgentInvocationRuntime } from '../../agent-invocation/invocation-runtime'
 import { MemoryInvocationStore } from '../../agent-invocation/invocation-test-store'
 import { NativeAgentInvocationReader } from '../../agent-invocation/native-invocation-reader'
 import { ChatConversationUpsertCommand } from '../../chat-conversation/commands/upsert.command'
+import { ChatExecutionAdmissionService } from '../../chat-conversation/chat-execution-admission.service'
+import { ChatConversation } from '../../chat-conversation/conversation.entity'
+import { ChatConversationThread } from '../../chat-conversation/conversation-thread.entity'
+import { ThreadRunControlService } from '../../chat-conversation/thread-run-control.service'
 import { PublishedXpertAccessService } from '../../xpert/published-xpert-access.service'
 import { XpertChatCommand } from '../../xpert/commands/chat.command'
 import { FindXpertQuery } from '../../xpert/queries/get-one.query'
@@ -113,7 +119,7 @@ function fixture(external: boolean) {
               }
             : {})
     }
-    return { service, reader, store, target, input, commands, published }
+    return { service, reader, store, target, input, commands, queries, published }
 }
 
 describe('Assistant Task workspace scope', () => {
@@ -156,6 +162,143 @@ describe('Assistant Task workspace scope', () => {
         f.target.workspaceId = 'moved-workspace'
         await expect(f.reader.inspect(record.invocation)).rejects.toMatchObject({ code: 'InvalidScope' })
     })
+
+    it.each<TChatConversationStatus | undefined>([undefined, 'idle', 'busy', 'paused'])(
+        'uses real admission to claim idle threads and preserve active threads (status=%s)',
+        async (status) => {
+            const f = fixture(false)
+            f.input.conversationId = 'conversation'
+            const conversation = new ChatConversation({ id: 'conversation', threadId: 'thread', status })
+            let thread = status
+                ? new ChatConversationThread({
+                      threadId: 'thread',
+                      status,
+                      ...(status === 'busy' || status === 'paused'
+                          ? {
+                                runControl: {
+                                    executionId: 'existing-run',
+                                    state: status === 'busy' ? 'running' : 'paused'
+                                }
+                            }
+                          : {})
+                  })
+                : undefined
+            const threadRepository = {
+                createQueryBuilder: () => ({
+                    insert: () => ({
+                        values: (value: Partial<ChatConversationThread>) => ({
+                            orIgnore: () => ({
+                                execute: async () => {
+                                    thread ??= new ChatConversationThread(value)
+                                }
+                            })
+                        })
+                    })
+                }),
+                findOne: async () => thread
+            }
+            const executionRepository = {
+                createQueryBuilder: () => ({
+                    insert: () => ({ values: () => ({ orIgnore: () => ({ execute: async () => undefined }) }) })
+                })
+            }
+            const manager = {
+                getRepository: (entity: unknown) =>
+                    entity === ChatConversationThread ? threadRepository : executionRepository,
+                save: jest.fn()
+            }
+            const module = await Test.createTestingModule({
+                providers: [
+                    ChatExecutionAdmissionService,
+                    {
+                        provide: DataSource,
+                        useValue: {
+                            getRepository: () => ({ findOneBy: async () => conversation }),
+                            transaction: async (work: (value: typeof manager) => Promise<unknown>) => work(manager)
+                        }
+                    },
+                    { provide: ThreadRunControlService, useValue: {} }
+                ]
+            }).compile()
+            const admission = module.get(ChatExecutionAdmissionService)
+            const graph = jest.fn(async () => NEVER)
+            const original = f.commands.execute.getMockImplementation()!
+            f.commands.execute.mockImplementation(async (command: unknown) => {
+                if (command instanceof ChatConversationUpsertCommand) return Object.assign(conversation, command.entity)
+                if (command instanceof XpertChatCommand) return admission.run(command.request, command.options, graph)
+                return original(command)
+            })
+            try {
+                if (status === 'busy' || status === 'paused') {
+                    await expect(f.service.startTask(f.input)).rejects.toThrow()
+                    expect(graph).not.toHaveBeenCalled()
+                    expect(thread?.status).toBe(status)
+                    expect(thread?.runControl?.executionId).toBe('existing-run')
+                    expect(manager.save).not.toHaveBeenCalled()
+                } else {
+                    const receipt = await f.service.startTask(f.input)
+                    expect(receipt.status).toBe('running')
+                    expect(graph).toHaveBeenCalledTimes(1)
+                    expect(thread?.runControl).toEqual({ executionId: receipt.executionId, state: 'running' })
+                }
+                expect(conversation.status).toBe(status)
+            } finally {
+                await module.close()
+            }
+        }
+    )
+
+    it('does not pre-mark the conversation busy', async () => {
+        const f = fixture(false)
+        await f.service.startTask(f.input)
+        const upsert = f.commands.execute.mock.calls.find(
+            ([command]) => command instanceof ChatConversationUpsertCommand
+        )?.[0]
+        expect(upsert).toBeInstanceOf(ChatConversationUpsertCommand)
+        if (!(upsert instanceof ChatConversationUpsertCommand)) throw new Error('Missing conversation')
+        expect(upsert.entity).not.toHaveProperty('status')
+    })
+
+    it('marks the reserved execution failed when admission rejects before subscription', async () => {
+        const f = fixture(false)
+        const admissionError = new Error('Admission conflict')
+        const original = f.commands.execute.getMockImplementation()!
+        f.commands.execute.mockImplementation(async (command: unknown) => {
+            if (command instanceof XpertChatCommand) throw admissionError
+            return original(command)
+        })
+        await expect(f.service.startTask(f.input)).rejects.toBe(admissionError)
+        const updates = f.commands.execute.mock.calls
+            .map(([command]) => command)
+            .filter(
+                (command): command is XpertAgentExecutionUpsertCommand =>
+                    command instanceof XpertAgentExecutionUpsertCommand
+            )
+        expect(updates.at(-1)?.execution).toMatchObject({
+            id: updates[0].execution.id,
+            status: XpertAgentExecutionStatusEnum.ERROR
+        })
+        expect(updates).toHaveLength(2)
+        expect(
+            f.commands.execute.mock.calls.filter(([command]) => command instanceof ChatConversationUpsertCommand)
+        ).toHaveLength(1)
+    })
+
+    it.each([null, undefined, '', '   '])(
+        'normalizes absent database errors to the optional task receipt contract (%p)',
+        async (error) => {
+            const f = fixture(false)
+            f.queries.execute.mockImplementation(async () => ({
+                ...f.target,
+                status: XpertAgentExecutionStatusEnum.SUCCESS,
+                error,
+                threadId: 'thread'
+            }))
+            const status = await f.service.getTaskStatus({ executionId: 'execution' })
+            expect(status?.status).toBe('succeeded')
+            expect(status?.errorMessage).toBeUndefined()
+        }
+    )
 
     it('rejects a workspace change between target resolution and dispatch authorization', async () => {
         const f = fixture(false)

@@ -4,9 +4,14 @@ import electron from 'electron'
 
 const server = await createServer()
 await server.listen()
+const rendererUrl = server.resolvedUrls?.local[0]
+if (!rendererUrl) {
+  await server.close()
+  throw new Error('The Desktop development server did not provide a local URL.')
+}
 const child = spawn(electron, ['.'], {
   stdio: 'inherit',
-  env: { ...process.env, XPERT_DESKTOP_DEV_URL: 'http://127.0.0.1:4390/' }
+  env: { ...process.env, XPERT_DESKTOP_DEV_URL: rendererUrl }
 })
 const shutdown = async () => {
   child.kill()

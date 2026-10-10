@@ -8,6 +8,8 @@ const {
 } = require('./i18n/index.mjs')
 const { parseAppearance } = require('./appearance.cjs')
 const { parseBusinessArea } = require('./business-area.cjs')
+const { parseAvatarUrl } = require('./avatar-url.cjs')
+const { AssistantActivity } = require('./assistant-activity.cjs')
 const { apiRootUrl, chatkitUrl } = require('./connection/urls.mjs')
 const { connectionPolicyKey, connectionErrorKey } = require('./connection/tls.cjs')
 const DEFAULT_CONFIG = {
@@ -125,7 +127,7 @@ function parseBots(value, locale) {
           typeof avatar?.emoji?.id === 'string'
             ? { id: avatar.emoji.id, unified: typeof avatar.emoji.unified === 'string' ? avatar.emoji.unified : null }
             : null,
-        avatarUrl: typeof avatar?.url === 'string' && /^https?:\/\//.test(avatar.url) ? avatar.url : null,
+        avatarUrl: parseAvatarUrl(avatar?.url),
         avatar: avatar || null
       }
     })
@@ -175,6 +177,7 @@ class DesktopService {
     this.sourceBots = []
     this.generation = 0
     this.refreshing = null
+    this.assistantActivity = new AssistantActivity(this)
   }
 
   snapshot() {
@@ -275,6 +278,7 @@ class DesktopService {
 
   async bootstrap() {
     this.profile = parseBootstrap(await this.request('/api/mobile/bootstrap'))
+    this.assistantActivity.sync()
     this.applyAccountLanguage()
     return this.profile
   }
@@ -307,6 +311,7 @@ class DesktopService {
       this.profile = profile
       this.applyAccountLanguage()
       this.credentials = { ...this.credentials, organizationId: profile.organizationId }
+      this.assistantActivity.sync()
       this.persist()
       return this.snapshot()
     })().finally(() => {
@@ -324,6 +329,7 @@ class DesktopService {
     this.sourceBots = []
     this.profile = { ...this.profile, organizationId: id }
     this.credentials = { ...this.credentials, organizationId: id }
+    this.assistantActivity.sync()
     this.persist()
     return this.snapshot()
   }
@@ -345,16 +351,25 @@ class DesktopService {
     if (generation !== this.generation) throw new ClientError('The workspace changed. Please retry.', 409)
     this.sourceBots = items
     this.bots = this.decorateBots(items)
+    this.assistantActivity.sync()
     return this.bots
   }
 
-  async chatSession(botId) {
-    if (!this.bots.some((item) => item.id === botId))
+  async chatSession(input) {
+    const conversationId =
+      typeof input === 'object' && input?.scope?.kind === 'conversation' ? input.scope.conversationId : undefined
+    if (typeof input !== 'string' && (typeof conversationId !== 'string' || !/^[0-9a-f-]{36}$/i.test(conversationId)))
+      throw new ClientError('Invalid input.')
+    const botId = typeof input === 'string' ? input : undefined
+    if (!conversationId && !this.bots.some((item) => item.id === botId))
       throw new ClientError('Select a Bot in the current workspace first.', 403)
     const organizationId = this.profile?.organizationId
     const result = await this.request('/api/ai/v1/chatkit/sessions', {
       method: 'POST',
-      body: { assistant: { id: this.bots.find((item) => item.id === botId).assistantId || botId } }
+      scope: 'organization',
+      body: conversationId
+        ? { scope: { kind: 'conversation', conversationId } }
+        : { assistant: { id: this.bots.find((item) => item.id === botId).assistantId || botId } }
     })
     if (typeof result?.client_secret !== 'string' || !result.client_secret)
       throw new ClientError('Could not create a ChatKit session.')
@@ -370,6 +385,7 @@ class DesktopService {
     this.bots = []
     this.sourceBots = []
     this.persist()
+    this.assistantActivity.sync()
     return this.snapshot()
   }
 
@@ -522,3 +538,5 @@ Object.assign(
 )
 
 Object.assign(DesktopService.prototype, require('./voice.cjs').createVoiceMethods(ClientError))
+
+Object.assign(DesktopService.prototype, require('./groups.cjs').createGroupMethods(ClientError))

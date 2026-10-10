@@ -224,4 +224,52 @@ describe('ManagedQueueProcessor', () => {
 			} as any)
 		).rejects.toThrow('No managed queue handler registered')
 	})
+	it.each([
+		{ resourceScope: { kind: 'conversation' as const, conversationId: 'group-1' }, apiKey: undefined },
+		{
+			resourceScope: { kind: 'assistant' as const, xpertId: 'canonical-assistant' },
+			apiKey: { type: 'assistant', entityId: 'old-assistant', tenantId: 'tenant-1', organizationId: 'org-1' }
+		}
+	])(
+		'restores canonical scope without deriving it from credential metadata: $resourceScope.kind',
+		async ({ resourceScope, apiKey }) => {
+			const handler = jest.fn(async () => undefined)
+			const registry = { resolve: jest.fn(() => handler) } as unknown as ManagedQueueHandlerRegistryService
+			const userService = {
+				findOneByIdWithinTenant: jest.fn().mockResolvedValue({ id: 'user-1', tenantId: 'tenant-1' })
+			}
+			const processor = new ManagedQueueProcessor(registry, userService as never)
+			const expiry = '2030-01-01T00:00:00.000Z'
+			const job = {
+				id: 'job-1',
+				attemptsMade: 0,
+				opts: {},
+				updateData: jest.fn(),
+				data: {
+					pluginName: 'plugin-a',
+					queueName: 'analysis',
+					jobName: 'run',
+					payload: {},
+					tenantId: 'tenant-1',
+					organizationId: 'org-1',
+					actor: { userId: 'user-1', tenantId: 'tenant-1', organizationId: 'org-1', type: 'delegated_user' },
+					delegation: {
+						tenantId: 'tenant-1',
+						organizationId: 'org-1',
+						principalType: 'client_secret',
+						requestedUserId: 'user-1',
+						resourceScope,
+						apiKey,
+						clientSecretExpiresAt: expiry
+					},
+					enqueuedAt: new Date().toISOString()
+				}
+			}
+			await processor.process(job as unknown as Parameters<ManagedQueueProcessor['process']>[0])
+			const request = jest.mocked(runWithRequestContext).mock.calls[0]?.[0]
+			expect(request.user).toMatchObject({ id: 'user-1', resourceScope, clientSecretExpiresAt: new Date(expiry) })
+			if (!apiKey) expect(request.user).toHaveProperty('apiKey', undefined)
+			expect(handler).toHaveBeenCalledTimes(1)
+		}
+	)
 })

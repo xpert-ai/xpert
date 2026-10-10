@@ -5,6 +5,8 @@ import { TranslateModule } from '@ngx-translate/core'
 import { of, throwError } from 'rxjs'
 import { AssistantBindingService, ScopeService, Store } from '../../../@core'
 import { WorkbenchAssistantMenuComponent } from './workbench-assistant-menu.component'
+import { ChatGroupService } from '../../../@core/services/chat-group.service'
+import { Dialog } from '@angular/cdk/dialog'
 
 jest.mock('../../../@core', () => ({
   AssistantBindingService: class AssistantBindingService {},
@@ -26,8 +28,11 @@ jest.mock('../../../@shared/avatar/emoji-avatar/avatar.component', () => {
 })
 jest.mock('@xpert-ai/headless-ui', () => {
   const { Directive } = jest.requireActual('@angular/core')
-  @Directive({ selector: '[z-menu-content], [z-menu-item]' })
-  class MenuDirective {}
+  const { Input } = jest.requireActual('@angular/core')
+  @Directive({ selector: '[z-menu-content], [z-menu-item], [z-menu]' })
+  class MenuDirective {
+    @Input() zMenuTriggerFor?: unknown
+  }
   return { ZardMenuImports: [MenuDirective] }
 })
 
@@ -40,11 +45,17 @@ describe('WorkbenchAssistantMenuComponent', () => {
   ]
   let api: { getAvailableXperts: jest.Mock }
   let router: { navigate: jest.Mock }
+  const groups = {
+    list: jest.fn(),
+    preferences: jest.fn(),
+    conversationRoute: jest.fn(() => of(['/chat/x', 'primary', 'c', 'group-thread']))
+  }
   const activeScope = signal({ level: 'organization' })
 
   beforeEach(async () => {
     activeScope.set({ level: 'organization' })
     api = { getAvailableXperts: jest.fn(() => of(items)) }
+    groups.list.mockReturnValue(of([]))
     router = { navigate: jest.fn().mockResolvedValue(true) }
     await TestBed.configureTestingModule({
       imports: [WorkbenchAssistantMenuComponent, TranslateModule.forRoot()],
@@ -52,7 +63,9 @@ describe('WorkbenchAssistantMenuComponent', () => {
         { provide: AssistantBindingService, useValue: api },
         { provide: ScopeService, useValue: { activeScope } },
         { provide: Store, useValue: { userId: 'menu-user', organizationId: 'org' } },
-        { provide: Router, useValue: router }
+        { provide: Router, useValue: router },
+        { provide: ChatGroupService, useValue: groups },
+        { provide: Dialog, useValue: { open: jest.fn() } }
       ]
     }).compileComponents()
   })
@@ -82,6 +95,31 @@ describe('WorkbenchAssistantMenuComponent', () => {
     const fixture = await render()
     fixture.nativeElement.querySelector('[data-assistant-option="b"]').click()
     expect(router.navigate).toHaveBeenCalledWith(['/chat/x', 'quality', 'c'])
+  })
+
+  it('discovers and opens groups in the same switch menu with member avatars', async () => {
+    groups.list.mockReturnValue(
+      of([
+        {
+          id: 'g',
+          purpose: 'group',
+          title: 'Team',
+          archived: false,
+          members: [
+            { id: 'u', kind: 'user', name: 'User' },
+            { id: 'a', kind: 'assistant', name: 'Assistant' }
+          ]
+        }
+      ])
+    )
+    const fixture = await render()
+    const row = fixture.nativeElement.querySelector('[data-group-option="g"]')
+    expect(row.querySelectorAll('emoji-avatar')).toHaveLength(2)
+    row.click()
+    await fixture.whenStable()
+    expect(groups.conversationRoute).toHaveBeenCalledWith('g')
+    expect(router.navigate).toHaveBeenCalledWith(['/chat/x', 'primary', 'c', 'group-thread'])
+    expect(fixture.nativeElement.querySelector('[data-create-group]')).not.toBeNull()
   })
 
   it('marks the current assistant and closes without navigating when it is selected again', async () => {

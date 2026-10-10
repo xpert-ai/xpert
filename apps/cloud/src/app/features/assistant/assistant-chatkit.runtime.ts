@@ -27,12 +27,12 @@ import {
 import { AppService } from '../../app.service'
 import { ArtifactService } from '../../@core/services/artifact.service'
 import { normalizeAssistantFrameUrl } from './assistant-chatkit-frame-url'
+import { injectAssistantChatkitTheme } from './assistant-chatkit-theme'
 import { XpertPublicationService } from '../../@core/services/xpert-publication.service'
 
 export type AssistantRuntimeStatus = 'idle' | 'loading' | 'ready' | 'missing' | 'disabled' | 'error'
 
 type AssistantLocale = 'en' | 'zh-Hans' | 'zh-Hant'
-type AssistantTheme = NonNullable<ChatKitOptions['theme']>
 type ReactiveChatKitOption<T> = T | Signal<T>
 
 // Bid intake supports source files up to 50 MiB. Keep the ChatKit client-side
@@ -69,6 +69,9 @@ type AssistantBindingRuntimeInput = {
 type AssistantHostedRuntimeInput = {
   identity: Signal<string | null>
   assistantId: Signal<string | null>
+  /** Retain the mounted session while the host resolves the next authorized Assistant. */
+  loading?: Signal<boolean>
+  group?: Signal<{ id: string } | null>
   /** Reactive Project scope; changing it recreates the hosted ChatKit binding. */
   projectId?: Signal<string | null>
   /** Server-authorized Workbench record used to mint a delegated external Assistant session. */
@@ -262,28 +265,15 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
     { initialValue: 0 }
   )
   const fixedApiUrl = buildAssistantApiUrl(environment.API_BASE_URL)
-  const theme = computed<AssistantTheme>(() => {
-    const colorScheme = appService.theme$().primary === 'dark' ? ('dark' as const) : ('light' as const)
-    const surfaceFallback = CHATKIT_SURFACE_COLOR_FALLBACKS[colorScheme]
-
-    return {
-      colorScheme,
-      radius: 'soft',
-      density: 'compact',
-      color: {
-        surface: {
-          background: resolveDocumentThemeColorHex(document, '--color-components-card-bg', surfaceFallback.background),
-          foreground: resolveDocumentThemeColorHex(document, '--color-text-primary', surfaceFallback.foreground)
-        }
-      },
-      typography: {
-        baseSize: 14
-      }
-    }
-  })
+  const theme = injectAssistantChatkitTheme(
+    document,
+    computed(() => (appService.theme$().primary === 'dark' ? 'dark' : 'light'))
+  )
   const locale = computed<AssistantLocale>(() => normalizeChatKitLocale(appService.lang() || translate.currentLang))
   const control = signal<ChatKitControl | null>(null)
   const activeRuntimeKey = signal<string | null>(null)
+  let activeSecurityScope: string | null = null
+  let sessionRevision = 0
   const runtimeKey = computed(() => {
     const identity = input.identity()
     const assistantId = input.assistantId()
@@ -292,8 +282,18 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       return null
     }
 
-    // Runtime context is updated through options; identity changes still replace the entire client.
-    return [identity, assistantId, frameUrl, fixedApiUrl, authToken() ?? '', organizationId() ?? ''].join(':')
+    // Rotate the logical session on identity changes; the host can retain the iframe.
+    return [
+      identity,
+      assistantId,
+      input.group?.()?.id ?? '',
+      input.delegatedConversation?.()?.conversationId ?? '',
+      input.delegatedConversation?.()?.requesterXpertId ?? '',
+      frameUrl,
+      fixedApiUrl,
+      authToken() ?? '',
+      organizationId() ?? ''
+    ].join(':')
   })
 
   effect(() => {
@@ -312,6 +312,7 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
     const requestContext = input.requestContext?.() ?? null
     const projectId = input.projectId?.() ?? null
     const delegatedConversation = input.delegatedConversation?.() ?? null
+    const group = input.group?.() ?? undefined
     const composer = input.composer?.() ?? null
     const startScreen = input.startScreen?.() ?? undefined
     const title = input.title?.()?.trim() || translate.instant(input.titleKey, { Default: input.titleDefault })
@@ -319,10 +320,20 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
     const header = readReactiveChatKitOption(input.header)
     const currentControl = untracked(() => control())
     const currentRuntimeKey = untracked(() => activeRuntimeKey())
+    const securityScope = JSON.stringify([frameUrl, fixedApiUrl, currentToken, currentOrganizationId])
     const mcpApps = resolveAssistantMcpAppsOptions(
       environment.MCP_APP_SANDBOX_PROXY_URL,
       environment.MCP_APP_SANDBOX_ALLOWED_DOMAINS
     )
+
+    if (input.loading?.()) {
+      // A pending navigation may keep the frame only within the same authenticated scope.
+      if (securityScope !== activeSecurityScope) {
+        activeRuntimeKey.set(null)
+        control.set(null)
+      }
+      return
+    }
 
     if (!key || !assistantId || !frameUrl) {
       if (currentRuntimeKey !== null) activeRuntimeKey.set(null)
@@ -330,8 +341,19 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       return
     }
 
+    const newSession = !currentControl || currentRuntimeKey !== key
+    if (newSession) sessionRevision++
+    const revision = sessionRevision
+    const forward =
+      <Args extends unknown[]>(handler?: (...args: Args) => void) =>
+      (...args: Args) => {
+        if (!input.loading?.() && revision === sessionRevision && runtimeKey() === key) handler?.(...args)
+      }
     const options = {
       frameUrl,
+      // Opaque local revision: never serialize the runtime key, which contains login credentials.
+      sessionKey: `hosted-session-${revision}`,
+      group,
       api: {
         apiUrl: fixedApiUrl,
         xpertId: assistantId,
@@ -339,15 +361,17 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
         getClientSecret: async (currentClientSecret) =>
           input.getClientSecret
             ? input.getClientSecret(currentClientSecret)
-            : createAssistantChatkitSession(
-                httpClient,
-                fixedApiUrl,
-                assistantId,
-                projectId,
-                delegatedConversation,
-                currentToken,
-                currentOrganizationId
-              )
+            : group
+              ? createGroupChatkitSession(httpClient, fixedApiUrl, group.id, currentOrganizationId)
+              : createAssistantChatkitSession(
+                  httpClient,
+                  fixedApiUrl,
+                  assistantId,
+                  projectId,
+                  delegatedConversation,
+                  currentToken,
+                  currentOrganizationId
+                )
       },
       locale: currentLocale,
       theme: currentTheme,
@@ -355,7 +379,9 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       layout: input.layout,
       pet: input.pet,
       taskSummary: input.taskSummary,
-      messagePresentation: input.messagePresentation,
+      messagePresentation: group
+        ? { ...input.messagePresentation, mode: 'bubbles' as const }
+        : input.messagePresentation,
       workbench: input.workbench,
       ...(mcpApps ? { mcpApps } : {}),
       toolOutputAttachments: {
@@ -407,23 +433,24 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       request: {
         context: requestContext ?? {}
       },
-      onReady: input.onReady,
-      onEffect: input.onEffect,
-      onLog: input.onLog,
-      onResponseStart: input.onResponseStart,
-      onResponseEnd: input.onResponseEnd,
-      onThreadChange: input.onThreadChange,
-      onProjectChange: input.onProjectChange,
-      onThreadLoadStart: input.onThreadLoadStart,
-      onThreadLoadEnd: input.onThreadLoadEnd,
-      onError: (event: { error?: { message?: string } }) => {
+      onReady: forward(input.onReady),
+      onEffect: forward(input.onEffect),
+      onLog: forward(input.onLog),
+      onResponseStart: forward(input.onResponseStart),
+      onResponseEnd: forward(input.onResponseEnd),
+      onThreadChange: forward(input.onThreadChange),
+      onProjectChange: forward(input.onProjectChange),
+      onThreadLoadStart: forward(input.onThreadLoadStart),
+      onThreadLoadEnd: forward(input.onThreadLoadEnd),
+      onError: forward((event: { error?: { message?: string } }) => {
         toastr.error(event?.error?.message || translate.instant('XP.KEY_WORDS.Error', { Default: 'Error' }))
-      }
-    } satisfies CreateChatKitOptions
+      })
+    } satisfies CreateChatKitOptions & { group?: { id: string } }
 
-    if (!currentControl || currentRuntimeKey !== key) {
+    if (newSession) {
       control.set(createChatKit(options))
       activeRuntimeKey.set(key)
+      activeSecurityScope = securityScope
       return
     }
 
@@ -495,86 +522,29 @@ function normalizeChatKitLocale(locale?: string | null): AssistantLocale {
   }
 }
 
-const CHATKIT_SURFACE_COLOR_FALLBACKS = {
-  light: {
-    background: '#ffffff',
-    foreground: '#1f1f1f'
-  },
-  dark: {
-    background: '#16181c',
-    foreground: '#e3e3e3'
-  }
-} as const
-
-function resolveDocumentThemeColorHex(document: Document, cssVariableName: string, fallback: string) {
-  const rootStyle = document.defaultView?.getComputedStyle(document.documentElement)
-  const rawValue = rootStyle?.getPropertyValue(cssVariableName).trim()
-
-  return normalizeColorToHex(document, rawValue || fallback) ?? fallback
-}
-
-function normalizeColorToHex(document: Document, value?: string | null) {
-  const normalizedValue = value?.trim()
-
-  if (!normalizedValue) {
-    return null
-  }
-
-  const hexColor = normalizeHexColor(normalizedValue)
-
-  if (hexColor) {
-    return hexColor
-  }
-
-  const view = document.defaultView
-
-  if (!view) {
-    return null
-  }
-
-  const probe = document.createElement('span')
-  const probeHost = document.body ?? document.documentElement
-
-  probe.style.color = normalizedValue
-  probeHost.appendChild(probe)
-
-  const computedColor = view.getComputedStyle(probe).color
-  probe.remove()
-
-  return normalizeRgbColor(computedColor)
-}
-
-function normalizeHexColor(value: string) {
-  const match = value.match(/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i)
-
-  if (!match) {
-    return null
-  }
-
-  const [, hex] = match
-  const expandedHex = hex.length === 3 ? [...hex].map((character) => character + character).join('') : hex
-
-  return `#${expandedHex.toLowerCase()}`
-}
-
-function normalizeRgbColor(value: string) {
-  const match = value.match(/rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/i)
-
-  if (!match) {
-    return null
-  }
-
-  const channels = match.slice(1, 4).map((channel) => Number(channel).toString(16).padStart(2, '0'))
-
-  return `#${channels.join('')}`
-}
-
 function buildAssistantApiUrl(baseUrl?: string | null) {
   return `${resolveAbsoluteApiBaseUrl(baseUrl)}/api/ai`
 }
 
 type AssistantChatkitSessionResponse = {
   client_secret: string
+}
+
+async function createGroupChatkitSession(
+  httpClient: HttpClient | null,
+  apiUrl: string,
+  groupId: string,
+  organizationId?: string | null
+): Promise<ChatKitClientSecretResult> {
+  if (!httpClient) throw new Error('Group sessions require the platform HTTP client.')
+  const session = await firstValueFrom(
+    httpClient.post<AssistantChatkitSessionResponse>(`${apiUrl}/v1/chatkit/sessions`, {
+      scope: { kind: 'conversation', conversationId: groupId }
+    })
+  )
+  const secret = session.client_secret?.trim()
+  if (!secret) throw new Error('Missing secret in group session response.')
+  return buildAssistantClientSecret(secret, organizationId)
 }
 
 async function createAssistantChatkitSession(

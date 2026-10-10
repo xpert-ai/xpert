@@ -325,7 +325,7 @@ Xpert 权限不能只用 `XPERT_EDIT` 或 `CHAT_VIEW` 一个权限点解释。�
 
 #### 运行态
 
-运行态包括 Assistant 详情、Chat、run stream、工作流编译、运行能力发现、技能和连接器调用。它使用两道不能互相替代的校验：
+运行态包括 Assistant 详情、Chat、run stream、工作流编译、运行能力发现、技能和连接器调用。读取创作工作区内的工作流、技能、连接器等运行依赖时，使用两道不能互相替代的校验；Assistant 文件工作区另见 5.6：
 
 1. `PublishedXpertAccessService` 校验当前用户是否有权使用目标已发布 Xpert。
 2. `XpertWorkspaceAccessService` 校验运行过程是否对目标 Workspace 拥有 `canRun`。
@@ -378,6 +378,48 @@ Workspace 资源服务明确区分编辑态和运行态方法：
 - `packages/server-ai/src/xpert/commands/handlers/chat.handler.ts`
 - `packages/server-ai/src/xpert/queries/handlers/get-xpert-workflow.handler.ts`
 - `packages/server-ai/src/ai/runtime-capabilities.service.ts`
+
+### 5.6 Assistant 文件工作区授权
+
+这里必须区分两个都被称为 workspace 的概念：
+
+| 概念                 | 对象与范围                                         | 权限含义                                     |
+| -------------------- | -------------------------------------------------- | -------------------------------------------- |
+| 创作工作区           | `XpertWorkspace` 实体，`xpert.workspaceId`         | 管理 Assistant、技能、连接器等创作资源       |
+| Assistant 文件工作区 | Volume 中的运行数据，通过 Workspace 映射给 sandbox | 读取、上传、修改、删除所授权文件范围内的数据 |
+
+用户 B 加入 A 创建的 Assistant 所绑定的 UserGroup 后，可以使用该 Assistant 的文件工作区，同时仍没有创作工作区的 `canRead/canWrite`。不得要求 B 加入 `xpert_workspace_member` 才能打开文件，也不得把创作工作区的 `canRun` 当成具体 Assistant 的文件授权。
+
+#### 入口与公共授权能力
+
+`xpert/assistant-files/` 子目录提供 `AssistantFilesService` 和 `ResolveAssistantFileAccessCommand`。Command Handler 统一校验权限并返回服务端确定的文件卷范围；Volume 层负责文件 IO、路径限制和符号链接防护。
+
+| 入口                                                      | 授权                                                                                  |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `/api/ai/assistants/:assistantId/workspace/*`             | `forRuntime()`；目标已发布 Assistant 的当前用户授权                                   |
+| `/api/xpert/:id/workspace/*`                              | Studio compatibility facade → `forAuthoring()`；目标 Assistant 的创作权限，可操作草稿 |
+| 非 Project、非独立 environment 的 conversation 文件       | 先校验 conversation，再通过同一 Command 校验绑定的 Assistant 并解析文件卷             |
+| 非 Project 的 Agent View 文件上传、文件会话及认证内容读取 | 同一 Command，加 View、session 和文件引用自身的权限检查                               |
+| Project 文件                                              | 保留项目成员角色、操作权限及 Assistant 绑定检查，不转为独立 Assistant 卷              |
+
+会话工作区文件使用 `/api/ai/conversations/:id/workspace/*`，SDK Workbench 客户端同步使用此路径。`GET /api/ai/conversations/:id/files` 属于文件理解模块的 FileAsset 附件列表，不能复用于运行目录，否则会因路由注册顺序返回附件或空列表。旧的单文件读取、保存、下载、上传和删除路径继续兼容。
+
+运行态不再调用带创作工作区 `read` 校验的 `XpertService.findOne()`，也不再调用 `XpertWorkspaceService.canAccess()`。入口由服务端决定，运行态失败时不得回退到创作态。
+
+`GET /api/ai/assistants/:assistantId/workspace/capabilities` 返回 `canList/canRead/canWrite/canDelete`。前端可使用这些能力描述操作，后端在每次实际操作时仍重新授权。
+
+#### 数据范围与操作策略
+
+- `workspaceDataScope=shared`：同一 Assistant 的已授权用户共同使用同一文件卷，明确允许读取、上传、修改和删除。B 修改共享文件后，A 会看到同一份修改结果。
+- `workspaceDataScope=user`：文件卷同时绑定当前用户；A、B 各自拥有独立目录，在自己的目录内享有上述操作权限。Assistant 创建者身份不允许选择其他用户的目录。
+- `workspaceDataScope` 只决定运行数据归属，不修改 `XpertWorkspace` 成员关系，不授予修改 Assistant draft、发布或管理创作资源的权限。
+- tenant、当前用户、Assistant 和存储 catalog 均由可信服务端上下文与持久化配置解析，HTTP 参数不得覆盖。
+
+独立 Assistant 文件访问使用 `getAccessiblePublishedXpertForCurrentUser()`。它保留凭证 audience 检查，并对 `USER_XPERT` 委托会话重新检查当前用户的资源授权，避免移出 UserGroup 后继续凭旧会话浏览独立文件卷。一般 Assistant 调用仍保留 Project 委托语义；仅获得 Project 委托的用户不能因此读取独立 Assistant 卷。
+
+认证文件请求在每次操作时复核；已有 cookie-bound 内容链接仍受独立文件 session/grant 的有效期和显式撤销约束，不应把此修复描述为所有已签发链接都会在用户组变更时立即失效。历史共享 Volume 直链行为也不在此次接口授权修正中迁移。
+
+回归测试需组合真实的 Assistant ACL、创作工作区 ACL、文件授权和文件读写服务，仅替换持久化 fixture。覆盖 group-only 用户共享文件 CRUD、用户隔离、同工作区其他 Assistant 拒绝、跨 tenant/organization、授权撤销、委托 audience、Studio 草稿，以及目录越界拒绝。
 
 ## 6. 一次权限判断是如何发生的
 

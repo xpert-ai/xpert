@@ -19,7 +19,7 @@ Sidebar and a Right Content Panel. The right panel embeds the official
 
 The desktop uses an amber primary color (`#f59e0b`) with a 12px radius token
 (10px inputs, 16px cards/dialogs). ChatKit receives the same primary token and
-its native `soft` radius preset; coverage inside the hosted frame depends on ChatKit.
+its native `round` radius preset; coverage inside the hosted frame depends on ChatKit.
 Both light and dark appearance modes use this theme.
 
 Use **用户菜单 → 设置 → 桌面外观** to customize the theme. Desktop options include
@@ -103,16 +103,47 @@ corepack pnpm install
 corepack pnpm --filter @xpert-ai/desktop dev
 ```
 
-The app opens an Electron window. Development uses port **4390** and fails if
-that port is already occupied. For a browser-only preview:
+The app opens an Electron window. Both `dev` and `dev:web` read
+`XPERT_DESKTOP_DEV_URL` from the repository root `.env`; a shell environment override
+takes precedence. The default is `http://127.0.0.1:4390/`. The development server
+uses the configured loopback host and port and fails if that port is already occupied.
+Electron receives the actual Vite URL, so the window and server cannot silently use different ports.
+For a browser-only preview:
 
 ```sh
 corepack pnpm --filter @xpert-ai/desktop dev:web
 ```
 
-Open <http://127.0.0.1:4390/>. This preview uses an HttpOnly, SameSite cookie and an
+Open the local URL printed by Vite (by default <http://127.0.0.1:4390/>).
+This preview uses an HttpOnly, SameSite cookie and an
 in-memory host session. Browser refresh preserves the session; restarting the
 preview server clears it. The development bridge is not part of the packaged app.
+
+### Configure the development address and voice origins together
+
+Keep these related settings next to each other in the repository root `.env`:
+
+```dotenv
+CLIENT_BASE_URL=http://localhost:4200
+# Desktop development renderer; changing this requires restarting dev / dev:web.
+XPERT_DESKTOP_DEV_URL=http://127.0.0.1:4390/
+# API voice WebSocket allowlist; changing this requires restarting the API.
+REALTIME_VOICE_ALLOWED_ORIGINS=http://localhost:4200,http://127.0.0.1:4390
+```
+
+Use your actual Cloud and Desktop addresses. The allowlist contains exact origins
+(scheme, host and port), without paths or trailing slashes; `localhost` and
+`127.0.0.1` are different origins. When changing the Desktop port, update its
+allowlist entry too. The Desktop launcher cannot reconfigure an already running API.
+Only the Desktop development address is read into Vite; other root `.env` values
+are not copied into the renderer.
+
+If the allowlist is omitted, the API allows `CLIENT_BASE_URL` only for HTTP(S)
+renderers. Packaged Desktop uses `file://` and the existing desktop-ticket handling
+for `Origin: null`, so production does not need a local development origin.
+To test the built renderer without packaging an installer, build Desktop, then run
+`corepack pnpm --filter @xpert-ai/desktop start` without a shell-level
+`XPERT_DESKTOP_DEV_URL`. This start command does not load the root `.env`.
 
 ## Connect to Xpert
 
@@ -224,7 +255,14 @@ Unread indicators and conversation activity do not reorder assistants or groups.
 Equal or missing creation dates keep their source order. Existing Cloud drag order
 and Desktop pins/groups remain local preferences; they do not sync across clients.
 Rows show the latest conversation title, falling back to the assistant description.
-Activity refreshes every 15 seconds while visible and when the window regains focus.
+The desktop host refreshes activity every 15 seconds, including while its window
+is hidden or closed and the app is still running. The sidebar shares this snapshot
+and also refreshes when the window regains focus. Browser previews retain polling
+only while visible. On macOS, the Dock badge shows the current organization's total
+unread messages, counting each platform Assistant once even when local copies exist.
+Read-state updates refresh the count; signing out or changing scope clears the old
+badge. Temporary network failures preserve the last successful count. macOS must
+allow the app to display notifications/badges for the Dock counter to be visible.
 
 Profile edits and duplicates affect **only this computer's list**. A duplicate
 connects to the same platform Assistant and conversation history; it does not clone

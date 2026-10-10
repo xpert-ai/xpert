@@ -9,7 +9,7 @@ import { EMPTY, Observable } from 'rxjs'
 import type { CopilotStoreService } from '../copilot-store/copilot-store.service'
 import type { CopilotUsageService } from '../copilot-usage/copilot-usage.service'
 import type { EnvironmentService } from '../environment'
-import type { RuntimeCapabilitiesService } from '../ai/runtime-capabilities.service'
+import { GetRuntimeCapabilitiesCommand } from './runtime-capabilities/get-runtime-capabilities.command'
 import type { AgentChatRealtimeService } from '../handoff/agent-chat-realtime.service'
 import type { HandoffQueueService } from '../handoff/message-queue.service'
 import type { PromptWorkflowService } from '../prompt-workflow'
@@ -118,9 +118,8 @@ jest.mock('../prompt-workflow', () => ({
     PromptWorkflowService: class {}
 }))
 
-jest.mock('../ai/runtime-capabilities.service', () => ({
-    RUNTIME_CAPABILITY_XPERT_RELATIONS: ['agent', 'agent.copilotModel', 'copilotModel'],
-    RuntimeCapabilitiesService: class {}
+jest.mock('./runtime-capabilities/runtime-capabilities.helpers', () => ({
+    RUNTIME_CAPABILITY_XPERT_RELATIONS: ['agent', 'agent.copilotModel', 'copilotModel']
 }))
 
 jest.mock('../core/entities/internal', () => ({
@@ -213,9 +212,6 @@ describe('XpertController', () => {
     let agentChatRealtime: {
         createStream: jest.Mock
     }
-    let runtimeCapabilitiesService: {
-        getRuntimeCapabilities: jest.Mock
-    }
     let xpertPrincipalService: {
         ensurePrincipalUser: jest.Mock
     }
@@ -249,14 +245,6 @@ describe('XpertController', () => {
         agentChatRealtime = {
             createStream: jest.fn()
         }
-        runtimeCapabilitiesService = {
-            getRuntimeCapabilities: jest.fn(async () => ({
-                skills: [],
-                plugins: [],
-                subAgents: [],
-                commands: []
-            }))
-        }
         xpertPrincipalService = {
             ensurePrincipalUser: jest.fn()
         }
@@ -286,7 +274,6 @@ describe('XpertController', () => {
             {} as unknown as SecretTokenService,
             {} as unknown as I18nService,
             {} as unknown as PromptWorkflowService,
-            runtimeCapabilitiesService as unknown as RuntimeCapabilitiesService,
             handoffQueue as unknown as HandoffQueueService,
             agentChatRealtime as unknown as AgentChatRealtimeService,
             xpertPrincipalService as unknown as XpertPrincipalService,
@@ -934,6 +921,7 @@ describe('XpertController', () => {
             }
         })
 
+        commandBus.execute.mockResolvedValueOnce({ skills: [], plugins: [], subAgents: [], commands: [] })
         await expect(controllerAccess.getRuntimeCapabilities('xpert-1', 'true')).resolves.toEqual({
             skills: [],
             plugins: [],
@@ -944,21 +932,23 @@ describe('XpertController', () => {
         expect(xpertService.findOne).toHaveBeenCalledWith('xpert-1', {
             relations: ['agent', 'agent.copilotModel', 'copilotModel']
         })
-        expect(runtimeCapabilitiesService.getRuntimeCapabilities).toHaveBeenCalledWith(
-            expect.objectContaining({
-                id: 'xpert-1',
-                workspaceId: 'workspace-1',
-                name: 'Draft Xpert',
-                title: 'Draft Xpert',
-                agent: {
-                    key: 'draft-agent'
-                },
-                graph: {
-                    nodes: [],
-                    connections: []
-                }
-            }),
-            'xpert-1'
+        expect(commandBus.execute).toHaveBeenCalledWith(
+            new GetRuntimeCapabilitiesCommand(
+                expect.objectContaining({
+                    id: 'xpert-1',
+                    workspaceId: 'workspace-1',
+                    name: 'Draft Xpert',
+                    title: 'Draft Xpert',
+                    agent: {
+                        key: 'draft-agent'
+                    },
+                    graph: {
+                        nodes: [],
+                        connections: []
+                    }
+                }),
+                'xpert-1'
+            )
         )
     })
 })

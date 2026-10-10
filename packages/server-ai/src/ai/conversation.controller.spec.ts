@@ -137,6 +137,14 @@ describe('ConversationsController searchConversations', () => {
         expect(Reflect.get(options.where.title, '_value')).toBe('%Product%')
         expect(options.where.createdById).toBe('user-1')
     })
+    it('does not let search filters expose group timelines or internal runtimes', async () => {
+        const { controller, conversationService } = createController()
+        await controller.searchConversations({ where: { purpose: { $eq: 'group_assistant_runtime' } }, limit: 30 })
+        expect(conversationService.findAllInOrganizationOrTenant.mock.calls[0][0].where).toMatchObject({
+            purpose: 'private',
+            createdById: 'user-1'
+        })
+    })
     beforeEach(() => {
         jest.clearAllMocks()
         ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-1')

@@ -1,3 +1,5 @@
+import { CommandBus } from '@nestjs/cqrs'
+import { ResolveAssistantFileAccessCommand } from '../xpert/assistant-files/resolve-assistant-file-access.command'
 import { ForbiddenException } from '@nestjs/common'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { environment } from '@xpert-ai/server-config'
@@ -58,14 +60,81 @@ describe('WorkspaceFileAccessService', () => {
                 }
             }))
         }
+        const commands = { execute: jest.fn().mockResolvedValue({}) }
         const service = new WorkspaceFileAccessService(
             cache as never,
             { get: jest.fn(() => 'workspace-file-access-test-secret') } as never,
             viewExtensions as never,
-            { resolve: jest.fn() } as never
+            { resolve: jest.fn() } as never,
+            commands as unknown as CommandBus
         )
-        return { service, cache, viewExtensions }
+        return { service, cache, viewExtensions, commands }
     }
+
+    describe('delegated runtime session scope', () => {
+        const runtimeScope = { conversationId: 'runtime-1', projectId: 'project-1' }
+        async function scopedSession() {
+            const { service, viewExtensions } = createService()
+            const resolvedContext = { ...context, runtimeScope }
+            viewExtensions.resolveViewFileAccessContext.mockResolvedValueOnce({ context: resolvedContext, manifest })
+            const session = await service.createSession(
+                { hostType: 'agent', hostId: 'assistant-1', viewKey: manifest.key, runtimeScope },
+                { headers: {}, secure: true }
+            )
+            return { service, session }
+        }
+        it('accepts only the owner-checked session for the selected Assistant and runtime', async () => {
+            const { service, session } = await scopedSession()
+            await expect(
+                service.assertAuthenticatedSessionScope(session.sessionId, 'assistant-1', runtimeScope)
+            ).resolves.toBeUndefined()
+        })
+        it.each([
+            ['assistant-2', runtimeScope],
+            ['assistant-1', { ...runtimeScope, conversationId: 'runtime-2' }],
+            ['assistant-1', { ...runtimeScope, projectId: 'project-2' }],
+            ['assistant-1', { conversationId: null, projectId: null }]
+        ] as const)('denies changed host or runtime scope %s %j', async (hostId, scope) => {
+            const { service, session } = await scopedSession()
+            await expect(
+                service.assertAuthenticatedSessionScope(session.sessionId, hostId, scope)
+            ).rejects.toMatchObject({ status: 403 })
+        })
+        it.each(['currentTenantId', 'getOrganizationId', 'currentUserId'] as const)(
+            'preserves existing session isolation for %s',
+            async (method) => {
+                const { service, session } = await scopedSession()
+                jest.spyOn(RequestContext, method).mockReturnValue('another-scope')
+                await expect(
+                    service.assertAuthenticatedSessionScope(session.sessionId, 'assistant-1', runtimeScope)
+                ).rejects.toMatchObject({ status: 404 })
+            }
+        )
+        it('does not accept a revoked session', async () => {
+            const { service, session } = await scopedSession()
+            await service.revokeSession(session.sessionId)
+            await expect(
+                service.assertAuthenticatedSessionScope(session.sessionId, 'assistant-1', runtimeScope)
+            ).rejects.toMatchObject({ status: 404 })
+        })
+    })
+
+    it('checks Assistant authority on session creation and rechecks it before issuing another grant', async () => {
+        const { service, commands } = createService()
+        const session = await service.createSession(
+            { hostType: 'agent', hostId: 'assistant-1', viewKey: 'cut__workbench' },
+            { headers: {}, secure: false }
+        )
+        expect(commands.execute).toHaveBeenCalledWith(
+            new ResolveAssistantFileAccessCommand('assistant-1', 'read', 'runtime')
+        )
+        commands.execute.mockRejectedValue(new ForbiddenException('Assistant grant revoked'))
+        await expect(service.createGrant(session.sessionId, { fileKey: 'video', purpose: 'preview' })).rejects.toThrow(
+            'Assistant grant revoked'
+        )
+        // Losing Assistant access must not prevent an owner from revoking an existing file session.
+        await expect(service.revokeSession(session.sessionId)).resolves.toBeUndefined()
+    })
 
     it('creates an HttpOnly scoped session and an opaque grant that can be authorized', async () => {
         const { service, cache, viewExtensions } = createService()

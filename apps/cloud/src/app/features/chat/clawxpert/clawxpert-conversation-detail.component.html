@@ -8,7 +8,7 @@
     <div [class]="detailPanelContentClasses()">
       <div
         data-workspace-tab-header
-        class="flex min-w-0 shrink-0 items-center justify-start gap-1.5 border-b border-transparent bg-components-card-bg px-1 py-0.5"
+        class="flex min-w-0 shrink-0 items-center justify-start gap-1.5 border-b border-transparent bg-sidebar px-1 py-0.5"
       >
         <div
           data-workbench-brand
@@ -40,7 +40,7 @@
         </div>
         <ng-template #workbenchAppMenu>
           <xp-workbench-assistant-menu
-            [activeId]="facade.assistantId() || facade.xpertId()"
+            [activeId]="facade.group?.()?.id || facade.assistantId() || facade.xpertId()"
             (selected)="assistantMenuTrigger.close()"
           />
         </ng-template>
@@ -187,6 +187,16 @@
 
         <ng-template #workspaceTabMenu>
           <div z-menu-content class="w-52">
+            <button z-menu-item z-menu [zMenuTriggerFor]="conversationMenu">
+              <span class="flex items-center gap-2"
+                ><i class="ri-group-line text-base"></i
+                ><span>{{ 'XP.Groups.Title' | translate: { Default: 'Group chats' } }}</span></span
+              >
+            </button>
+            <ng-template #conversationMenu
+              ><xp-workbench-assistant-menu
+                [activeId]="facade.group?.()?.id || facade.assistantId() || facade.xpertId()"
+            /></ng-template>
             <button type="button" z-menu-item (click)="openTasksTab()" [disabled]="!facade.xpertId()">
               <span class="flex items-center gap-2"
                 ><i class="ri-calendar-line text-base"></i>
@@ -653,13 +663,18 @@
       class="flex h-full min-h-0 flex-col overflow-hidden transition-[border-color,background-color,box-shadow,border-radius,transform] duration-500 ease-out motion-reduce:transition-none"
       [class]="chatSurfaceClasses()"
     >
-      <div class="min-h-0 flex-1">
+      <div class="relative min-h-0 flex-1">
+        @for (runtime of chatkitMountEntries(); track runtime.key) {
+          <xpert-chatkit
+            #chatkitHost
+            class="block h-full min-h-0"
+            [control]="runtime.control"
+            [attr.inert]="facade.loading() ? '' : null"
+            [attr.aria-busy]="facade.loading() ? 'true' : null"
+          />
+        }
         @if (facade.loading()) {
-          <div
-            class="flex h-full min-h-[32rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary"
-          >
-            {{ 'XP.Chat.ClawXpert.Loading' | translate: { Default: 'Preparing ClawXpert...' } }}
-          </div>
+          <xp-workbench-loading-indicator />
         } @else {
           @switch (facade.viewState()) {
             @case ('organization-required') {
@@ -687,18 +702,14 @@
               >
                 <z-icon zType="warning" class="text-3xl text-text-tertiary"></z-icon>
                 <div class="mt-4 text-base font-medium text-text-primary">
-                  {{ 'XP.Chat.ClawXpert.LoadFailed' | translate: { Default: 'Failed to load ClawXpert.' } }}
+                  {{ 'XP.Chat.ClawXpert.LoadFailed' | translate: { Default: 'Failed to load digital expert.' } }}
                 </div>
                 <div class="mt-2 max-w-sm text-sm text-text-secondary">
                   {{ facade.viewErrorMessage() }}
                 </div>
               </div>
             }
-            @case ('ready') {
-              @for (runtime of chatkitMountEntries(); track runtime.key) {
-                <xpert-chatkit #chatkitHost class="block h-full min-h-0" [control]="runtime.control" />
-              }
-            }
+            @case ('ready') {}
             @default {
               <div
                 class="flex h-full min-h-[32rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center"

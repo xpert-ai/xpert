@@ -1,5 +1,5 @@
 import { inject } from '@angular/core'
-import { Router, Routes, UrlMatchResult, UrlSegment } from '@angular/router'
+import { CanActivateFn, Router, Routes, UrlMatchResult, UrlSegment } from '@angular/router'
 import { of } from 'rxjs'
 import { catchError, map, switchMap } from 'rxjs/operators'
 import { AiFeatureEnum, AssistantBindingScope, AssistantBindingService, AssistantCode, Store } from '../../@core'
@@ -10,6 +10,21 @@ import { ChatHomeComponent } from './home/home.component'
 import { ClawXpertConversationRouteComponent } from './clawxpert/clawxpert-conversation-pane.component'
 import { ClawXpertComponent } from './clawxpert/clawxpert.component'
 import { ChatXpertWorkbenchComponent } from './xpert-workbench/xpert-workbench.component'
+import { ChatGroupService } from '../../@core/services/chat-group.service'
+import { resolveConversationEntry } from './xpert-workbench/conversation-entry.resolver'
+
+// Compatibility only: all chats render at the same Assistant/conversation route.
+const redirectLegacyGroup: CanActivateFn = (route) => {
+  const router = inject(Router)
+  const groups = inject(ChatGroupService)
+  const id = route.paramMap.get('groupId')
+  const target = id ? of(id) : groups.list().pipe(map((items) => items.find((item) => !item.archived)?.id))
+  return target.pipe(
+    switchMap((groupId) => (groupId ? groups.conversationRoute(groupId) : of(['/chat/clawxpert']))),
+    map((commands) => router.createUrlTree(commands)),
+    catchError(() => of(router.createUrlTree(['/chat/clawxpert'])))
+  )
+}
 
 function redirectToDefaultChatEntry() {
   return () => {
@@ -60,6 +75,17 @@ export const routes: Routes = [
     component: ChatHomeComponent,
     children: [
       {
+        path: 'groups',
+        pathMatch: 'full',
+        canActivate: [featureGate([AiFeatureEnum.FEATURE_XPERT]), redirectLegacyGroup],
+        children: []
+      },
+      {
+        path: 'groups/:groupId',
+        canActivate: [featureGate([AiFeatureEnum.FEATURE_XPERT]), redirectLegacyGroup],
+        children: []
+      },
+      {
         path: '',
         // Keep the redirect behind the parent auth guard before resolving user bindings.
         canActivate: [redirectToDefaultChatEntry()],
@@ -89,7 +115,8 @@ export const routes: Routes = [
       {
         matcher: xpertWorkbenchConversationMatcher,
         component: ChatXpertWorkbenchComponent,
-        canActivate: [featureGate([AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_CLAWXPERT])],
+        resolve: { conversationEntry: resolveConversationEntry },
+        canActivate: [featureGate([AiFeatureEnum.FEATURE_XPERT])],
         data: {
           title: 'Chat Xpert Workbench Conversation'
         }

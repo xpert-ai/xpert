@@ -26,6 +26,7 @@ import { applyRuntimeResourceGraph } from './runtime-resource-graph'
 import { discoverRuntimeResources, isResourceInGraph, type RuntimeResourceBinding } from './runtime-resource-discovery'
 import { isSameXpertFamily } from '../xpert/xpert-family'
 import { assertAssistantAudience } from '../ai/assistant-audience'
+import { isGroupRuntime } from '../chat-group/group-runtime-context'
 
 import { parseRuntimeResources, sameRuntimeResources } from './runtime-resource-selection'
 export { runtimeResourcesSchema } from './runtime-resource-selection'
@@ -534,10 +535,13 @@ export class RuntimeResourceService {
         )
         const conversation = await conversations.assertAccess(conversationId, 'contribute')
         assertAssistantAudience(conversation.xpertId)
-        let selection = conversation.options?.runtimeResources ?? { revision: 0, resources: [] }
+        // Group deliveries carry their own validated Composer selection. It must not
+        // overwrite or inherit another member's selection on the shared runtime.
+        const groupDelivery = isGroupRuntime(conversationId)
+        let selection = (!groupDelivery && conversation.options?.runtimeResources) || { revision: 0, resources: [] }
         if (input !== undefined) {
             const requested = parseRuntimeResources(input)
-            if (restoreSnapshot) selection = requested
+            if (restoreSnapshot || groupDelivery) selection = requested
             else if (!conversation.options?.runtimeResources) selection = await this.update(conversationId, requested)
             else if (!sameRuntimeResources(requested, selection))
                 throw new ConflictException(t('server-ai:Error.AgentResourceRevisionConflict'))

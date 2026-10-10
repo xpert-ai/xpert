@@ -1,12 +1,15 @@
 import {
 	API_PRINCIPAL_USER_ID_HEADER,
 	ApiPrincipalType,
+	ApiPrincipalResourceScope,
+	ApiKeyBindingType,
 	IApiKey,
 	IApiPrincipal,
 	IUser,
 	RequestScopeLevel,
 	UserType
 } from '@xpert-ai/contracts'
+import { UnauthorizedException } from '@nestjs/common'
 import type { IncomingMessage } from 'http'
 
 export function buildApiKeyPrincipal(
@@ -26,6 +29,7 @@ export function buildApiKeyPrincipal(
 		tenantId: actingUser?.tenantId ?? apiKey.tenantId,
 		type: actingUser?.type ?? UserType.COMMUNICATION,
 		apiKey,
+		resourceScope: resourceScopeFromApiKey(apiKey),
 		ownerUserId: apiKey.createdById ?? apiKey.createdBy?.id ?? null,
 		apiKeyUserId: apiKey.userId ?? apiKey.user?.id ?? null,
 		requestedUserId: options?.requestedUserId ?? null,
@@ -51,10 +55,7 @@ export function applyTenantScopeHeaders(req: IncomingMessage) {
 	req.headers['x-scope-level'] = RequestScopeLevel.TENANT
 }
 
-export function applyRequestedOrganizationScopeHeaders(
-	req: IncomingMessage,
-	requestedOrganizationId?: string | null
-) {
+export function applyRequestedOrganizationScopeHeaders(req: IncomingMessage, requestedOrganizationId?: string | null) {
 	const organizationId = readRequestValue(requestedOrganizationId)
 	if (!req?.headers || !organizationId) {
 		applyTenantScopeHeaders(req)
@@ -76,4 +77,20 @@ function readRequestValue(value: unknown) {
 
 	const normalized = value.trim()
 	return normalized || null
+}
+
+/**
+ * Authentication/queue restoration boundary only. Translate persisted key bindings
+ * once; domain authorization must not fall back to deprecated apiKey.type/entityId.
+ * Integration and client bindings describe technical identities, not resource audiences.
+ */
+export function resourceScopeFromApiKey(
+	apiKey: Pick<IApiKey, 'type' | 'entityId'>
+): ApiPrincipalResourceScope | undefined {
+	if (apiKey.type !== ApiKeyBindingType.ASSISTANT && apiKey.type !== ApiKeyBindingType.WORKSPACE) return undefined
+	const id = apiKey.entityId?.trim()
+	if (!id) throw new UnauthorizedException()
+	return apiKey.type === ApiKeyBindingType.ASSISTANT
+		? { kind: 'assistant', xpertId: id }
+		: { kind: 'workspace', workspaceId: id }
 }

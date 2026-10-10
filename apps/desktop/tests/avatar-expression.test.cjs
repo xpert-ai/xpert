@@ -6,6 +6,7 @@ const { runInNewContext } = require('node:vm')
 const React = require('react')
 const { renderToStaticMarkup } = require('react-dom/server')
 const ts = require('typescript')
+const { inlineAvatar } = require('./fixtures/avatar.cjs')
 
 const cache = new Map()
 function load(file) {
@@ -59,9 +60,16 @@ test('cleared status returns to the original smile without changing the stable a
 test('conversation status never replaces a custom image or emoji with the default expression', () => {
   for (const overrides of [
     { avatarUrl: 'https://example.test/avatar.png' },
+    { avatarUrl: inlineAvatar },
     { avatarEmoji: { id: 'smile', unified: '1f600' } }
   ]) {
     assert.equal(render('error', overrides), render('idle', overrides))
     assert.ok(!render('error', overrides).includes('data-assistant-mascot'))
   }
+})
+
+test('an imported inline avatar renders as an image instead of the default face', () => {
+  const markup = render('idle', { avatarUrl: inlineAvatar })
+  assert.ok(markup.includes(`<img src="${inlineAvatar}"`))
+  assert.doesNotMatch(markup, /data-assistant-mascot/)
 })

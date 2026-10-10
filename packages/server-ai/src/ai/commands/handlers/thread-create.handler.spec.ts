@@ -157,6 +157,7 @@ describe('ThreadCreateHandler', () => {
             id: 'employee-1',
             principalType: 'client_secret',
             clientSecretBindingType: SecretTokenBindingType.ENTERPRISE_XPERT,
+            resourceScope: { kind: 'assistant', xpertId: 'xpert-1' },
             apiKey: {
                 id: 'secret-1',
                 token: '',
@@ -277,6 +278,7 @@ describe('ThreadCreateHandler', () => {
             id: 'session-user-1',
             principalType: 'client_secret',
             clientSecretBindingType: SecretTokenBindingType.PUBLIC_XPERT,
+            resourceScope: { kind: 'assistant', xpertId: 'xpert-1' },
             apiKey: {
                 id: 'api-key-1',
                 token: 'test-api-key',

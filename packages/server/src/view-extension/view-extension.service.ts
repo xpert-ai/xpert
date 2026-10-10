@@ -13,7 +13,6 @@ import {
 	XpertViewParameterOptionsQuery,
 	XpertViewParameterOptionsResult,
 	XpertViewQuery,
-	ApiKeyBindingType,
 	SecretTokenBindingType
 } from '@xpert-ai/contracts'
 import { RequestContext } from '../core/context'
@@ -435,8 +434,8 @@ export class ViewExtensionService {
 		}
 		if (
 			hostType !== 'agent' ||
-			principal.apiKey?.type !== ApiKeyBindingType.ASSISTANT ||
-			principal.apiKey.entityId?.trim() !== hostId
+			principal.resourceScope?.kind !== 'assistant' ||
+			principal.resourceScope.xpertId.trim() !== hostId
 		) {
 			throw new ForbiddenException()
 		}

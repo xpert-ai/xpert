@@ -1,4 +1,5 @@
 import type { ShellState, ShellSettings, ShellInput, ShellCommand, ShellReport } from '@xpert-ai/contracts'
+export * from './audio-capture'
 
 export type {
   ShellState,

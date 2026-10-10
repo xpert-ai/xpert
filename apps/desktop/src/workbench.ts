@@ -1,3 +1,4 @@
+import { isAudioCaptureCommand } from '@xpert-ai/desktop-protocol'
 import type { ChatKitWorkbenchClientCommandRequest } from '@xpert-ai/chatkit-types'
 import { platformCommandUrl } from '../electron/workbench-platform.mjs'
 import { invoke, HostError } from './host'
@@ -15,6 +16,19 @@ export function createWorkbenchHandler(botId: string, webUrl: string, onSession:
   return async (request: ChatKitWorkbenchClientCommandRequest) => {
     const { commandKey, payload } = request
     try {
+      if (isAudioCaptureCommand(commandKey)) {
+        if (!window.xpertDesktop?.audioCapture) return { success: false, code: 'desktop_required' }
+        // Activation is supplied by ChatKit's trusted shell, never by an iframe payload.
+        const userActivated = 'userActivated' in request && request.userActivated === true
+        return window.xpertDesktop.audioCapture({
+          botId,
+          hostId: request.hostId,
+          viewKey: request.viewKey,
+          commandKey,
+          payload,
+          userActivated
+        })
+      }
       if (commandKey === 'workbench.navigation.open') {
         const target = value(payload, 'target')
         if (target === 'assistant.conversation' || target === 'assistant.project') {

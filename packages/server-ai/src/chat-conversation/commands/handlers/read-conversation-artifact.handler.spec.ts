@@ -120,6 +120,7 @@ describe('conversation artifact access through CommandBus', () => {
             principalType: 'client_secret',
             clientSecretBindingType: binding,
             requestedOrganizationId: 'org',
+            resourceScope: { kind: 'assistant', xpertId: 'assistant' },
             apiKey: {
                 type: ApiKeyBindingType.ASSISTANT,
                 entityId: 'assistant',
@@ -135,6 +136,7 @@ describe('conversation artifact access through CommandBus', () => {
         { tenantId: 'other' },
         { requestedOrganizationId: 'other' },
         {
+            resourceScope: { kind: 'assistant', xpertId: 'other' },
             apiKey: { type: ApiKeyBindingType.ASSISTANT, entityId: 'other', tenantId: 'tenant', organizationId: 'org' }
         }
     ])('rejects delegated credentials outside their tenant/organization/Assistant binding: %p', async (override) => {
@@ -144,6 +146,7 @@ describe('conversation artifact access through CommandBus', () => {
             principalType: 'client_secret',
             clientSecretBindingType: SecretTokenBindingType.USER_XPERT,
             requestedOrganizationId: 'org',
+            resourceScope: { kind: 'assistant', xpertId: 'assistant' },
             apiKey: {
                 type: ApiKeyBindingType.ASSISTANT,
                 entityId: 'assistant',

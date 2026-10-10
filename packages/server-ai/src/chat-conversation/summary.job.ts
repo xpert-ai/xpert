@@ -35,7 +35,7 @@ export class ConversationSummaryProcessor {
         const conversation = await this.service.findOne(conversationId, {
             relations: ['messages', 'createdBy', 'createdBy.role']
         })
-        if (!conversation.messages.length) {
+        if ((conversation.purpose && conversation.purpose !== 'private') || !conversation.messages.length) {
             return
         }
         const messageId = job.data.messageId ?? conversation.messages[conversation.messages.length - 1].id

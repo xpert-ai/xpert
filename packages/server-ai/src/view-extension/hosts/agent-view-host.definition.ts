@@ -30,6 +30,7 @@ import {
 } from '@xpert-ai/server-core'
 import { normalizeUploadedFileName } from '@xpert-ai/server-common'
 import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common'
+import { CommandBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { IsNull, Repository } from 'typeorm'
 import { XpertProfileIdentityService } from '../../xpert/xpert-profile-identity.service'
@@ -44,10 +45,14 @@ import {
 import { ChatConversation } from '../../chat-conversation/conversation.entity'
 import { XpertProjectAccessService } from '../../xpert-project/services/project-access.service'
 import { XpertProjectXpertBindingService } from '../../xpert-project/services/project-xpert-binding.service'
+import { ResolveAssistantFileAccessCommand } from '../../xpert/assistant-files/resolve-assistant-file-access.command'
 
 @Injectable()
 @ViewHostDefinition('agent')
 export class AgentViewHostDefinition implements ViewHostDefinitionContract {
+    @Inject(CommandBus)
+    private readonly commandBus: CommandBus
+
     readonly hostType = 'agent'
     readonly slots: XpertViewSlot[] = [
         { key: AGENT_PROFILE_TABS_SLOT, mode: 'tabs', order: 30, manifestPolicy: { requireFeatureActivation: true } },
@@ -155,8 +160,8 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
                     getNonEmptyString(input.name) ??
                     file.originalname
             ) ?? 'upload'
-        const xpert = await this.xpertService.findOneByIdWithinTenant(context.hostId)
-        const uploaded = await this.createWorkspaceVolumeClient(context, xpert.workspaceDataScope).uploadFile(
+        const files = await this.createWorkspaceVolumeClient(context)
+        const uploaded = await files.uploadFile(
             '',
             workspaceUploadPath,
             normalizeWorkspaceUploadFile(file, uploadFileName)
@@ -182,26 +187,15 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
         }
     }
 
-    private createWorkspaceVolumeClient(
-        context: XpertResolvedViewHostContext,
-        workspaceDataScope?: IXpert['workspaceDataScope']
-    ) {
+    private async createWorkspaceVolumeClient(context: XpertResolvedViewHostContext) {
         const projectId = context.runtimeScope?.projectId
-        return new VolumeSubtreeClient(
-            this.volumeClient.resolve(
-                projectId
-                    ? { tenantId: context.tenantId, catalog: 'projects', projectId }
-                    : resolveXpertDataVolumeScope({
-                          tenantId: context.tenantId,
-                          userId: context.userId,
-                          xpertId: context.hostId,
-                          workspaceDataScope
-                      })
-            ),
-            {
-                allowRootWorkspace: true
-            }
-        )
+        const scope = projectId
+            ? { tenantId: context.tenantId, catalog: 'projects' as const, projectId }
+            : (await this.commandBus.execute(new ResolveAssistantFileAccessCommand(context.hostId, 'write', 'runtime')))
+                  .scope
+        return new VolumeSubtreeClient(this.volumeClient.resolve(scope), {
+            allowRootWorkspace: true
+        })
     }
 
     private async resolveRuntimeScope(

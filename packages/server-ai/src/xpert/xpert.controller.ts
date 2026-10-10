@@ -131,11 +131,12 @@ import { ChatConversationPublicDTO } from '../chat-conversation/dto'
 import { assertSafeChatConversationRelations } from '../chat-conversation/conversation-relations'
 import { EnvironmentService } from '../environment'
 import { XpertDeleteCommand } from './commands/delete.command'
+import { GetRuntimeCapabilitiesCommand } from './runtime-capabilities/get-runtime-capabilities.command'
 import { AGENT_CHAT_DISPATCH_MESSAGE_TYPE, AgentChatDispatchPayload, HandoffMessage } from '@xpert-ai/plugin-sdk'
 import { HandoffQueueService } from '../handoff/message-queue.service'
 import { AgentChatRealtimeService } from '../handoff/agent-chat-realtime.service'
 import { PromptWorkflowService } from '../prompt-workflow'
-import { RUNTIME_CAPABILITY_XPERT_RELATIONS, RuntimeCapabilitiesService } from '../ai/runtime-capabilities.service'
+import { RUNTIME_CAPABILITY_XPERT_RELATIONS } from './runtime-capabilities/runtime-capabilities.helpers'
 import { XpertFrequentQuestionsService } from './xpert-frequent-questions.service'
 import { XpertPrincipalService } from './xpert-principal.service'
 import { parseXpertPublishMarketplaceInput } from './marketplace-profile.parser'
@@ -163,7 +164,6 @@ export class XpertController extends CrudController<Xpert> {
         private readonly secretTokenService: SecretTokenService,
         private readonly i18n: I18nService,
         private readonly promptWorkflowService: PromptWorkflowService,
-        private readonly runtimeCapabilitiesService: RuntimeCapabilitiesService,
         private readonly handoffQueue: HandoffQueueService,
         private readonly agentChatRealtime: AgentChatRealtimeService,
         private readonly xpertPrincipalService: XpertPrincipalService,
@@ -462,9 +462,7 @@ export class XpertController extends CrudController<Xpert> {
             relations: RUNTIME_CAPABILITY_XPERT_RELATIONS
         })
         const xpert = resolveRuntimeXpert(sourceXpert, parseQueryBoolean(isDraft))
-        return projectId
-            ? this.runtimeCapabilitiesService.getRuntimeCapabilities(xpert, id, projectId)
-            : this.runtimeCapabilitiesService.getRuntimeCapabilities(xpert, id)
+        return this.commandBus.execute(new GetRuntimeCapabilitiesCommand(xpert, id, projectId))
     }
 
     @UseGuards(XpertGuard)

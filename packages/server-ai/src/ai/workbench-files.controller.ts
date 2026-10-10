@@ -21,14 +21,15 @@ import { ChatConversationService } from '../chat-conversation/conversation.servi
 import { WorkbenchFilesAuthGuard } from './workbench-files-auth.guard'
 import { sendWorkbenchFileDownload } from './workbench-file-download'
 
-/** Same workspace services as ClawXpert, with explicit delegated-Assistant authorization. */
+// Conversation /files belongs to parsed FileAssets. Workspace directories use
+// /workspace/files; retain the non-conflicting legacy singular-file routes.
 @Public()
 @UseGuards(WorkbenchFilesAuthGuard)
 @UseInterceptors(TransformInterceptor)
 @Controller('conversations/:conversationId')
 export class WorkbenchFilesController {
     constructor(private readonly conversations: ChatConversationService) {}
-    @Get('files')
+    @Get('workspace/files')
     list(
         @Param('conversationId', UUIDValidationPipe) id: string,
         @Query('path') path?: string,
@@ -36,11 +37,11 @@ export class WorkbenchFilesController {
     ) {
         return this.conversations.getWorkspaceFiles(id, path, depth)
     }
-    @Get('file')
+    @Get(['workspace/file', 'file'])
     read(@Param('conversationId', UUIDValidationPipe) id: string, @Query('path') path: string) {
         return this.conversations.readWorkspaceFile(id, path)
     }
-    @Get('file/download')
+    @Get(['workspace/file/download', 'file/download'])
     async download(
         @Param('conversationId', UUIDValidationPipe) id: string,
         @Query('path') path: string,
@@ -48,11 +49,11 @@ export class WorkbenchFilesController {
     ) {
         await sendWorkbenchFileDownload(await this.conversations.getWorkspaceFileDownload(id, path), response)
     }
-    @Put('file')
+    @Put(['workspace/file', 'file'])
     save(@Param('conversationId', UUIDValidationPipe) id: string, @Body() body: { path: string; content: string }) {
         return this.conversations.saveWorkspaceFile(id, body.path, body.content)
     }
-    @Post('file/upload')
+    @Post(['workspace/file/upload', 'file/upload'])
     @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 100 * 1024 * 1024 } }))
     upload(
         @Param('conversationId', UUIDValidationPipe) id: string,
@@ -65,7 +66,7 @@ export class WorkbenchFilesController {
             )
         return this.conversations.uploadWorkspaceFile(id, path, file)
     }
-    @Delete('file')
+    @Delete(['workspace/file', 'file'])
     delete(@Param('conversationId', UUIDValidationPipe) id: string, @Query('path') path: string) {
         return this.conversations.deleteWorkspaceFile(id, path)
     }

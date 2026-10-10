@@ -1,4 +1,4 @@
-import { ApiKeyBindingType, IApiPrincipal, IChatConversation, IUser, SecretTokenBindingType } from '@xpert-ai/contracts'
+import { IApiPrincipal, IChatConversation, IUser, SecretTokenBindingType } from '@xpert-ai/contracts'
 import { ForbiddenException } from '@nestjs/common'
 import { t } from 'i18next'
 
@@ -8,15 +8,18 @@ export function assertWorkbenchPrincipal(principal: IUser | IApiPrincipal, conve
     if (
         (principal.principalType === 'client_secret' &&
             principal.clientSecretBindingType !== SecretTokenBindingType.USER_XPERT) ||
-        principal.apiKey?.type !== ApiKeyBindingType.ASSISTANT ||
-        !principal.apiKey.entityId ||
+        principal.resourceScope?.kind !== 'assistant' ||
+        !principal.resourceScope.xpertId ||
         !principal.tenantId ||
-        principal.apiKey.tenantId !== principal.tenantId ||
-        (principal.requestedOrganizationId && principal.requestedOrganizationId !== principal.apiKey.organizationId) ||
+        (principal.apiKey && principal.apiKey.tenantId !== principal.tenantId) ||
+        (principal.requestedOrganizationId &&
+            principal.apiKey &&
+            principal.requestedOrganizationId !== principal.apiKey.organizationId) ||
         (conversation &&
-            (conversation.xpertId !== principal.apiKey.entityId ||
+            (conversation.xpertId !== principal.resourceScope.xpertId ||
                 conversation.tenantId !== principal.tenantId ||
-                (conversation.organizationId ?? null) !== (principal.apiKey.organizationId ?? null)))
+                (conversation.organizationId ?? null) !==
+                    ((principal.apiKey ? principal.apiKey.organizationId : principal.requestedOrganizationId) ?? null)))
     ) {
         throw new ForbiddenException(
             t('server-ai:Error.AssistantAccessForbidden', {

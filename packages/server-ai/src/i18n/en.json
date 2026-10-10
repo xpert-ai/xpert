@@ -1,4 +1,7 @@
 {
+    "SpeechToText": {
+        "TemporaryFileCleanupFailed": "Failed to delete a temporary speech-to-text audio file."
+    },
     "RuntimeReply": {
         "Completed": "A delegated runtime has finished. Inspect its authorized result and decide the next step. Invocation: {{invocationId}}.",
         "ProjectTask": " Project task: {{taskId}}. Attempt: {{attemptId}}."
@@ -50,6 +53,19 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "GroupPrimaryAssistantInUse": "This Assistant is the primary Assistant of a group and cannot be deleted.",
+        "ChatkitSessionInputInvalid": "Invalid ChatKit session input.",
+        "GroupAccessDenied": "You do not have access to this group.",
+        "GroupInputInvalid": "Invalid group message or request.",
+        "GroupMessageConflict": "This group message can no longer be sent.",
+        "ApplicationSetupScopeRequired": "Select an organization before configuring the application.",
+        "ApplicationSetupConflict": "The application state has changed or its Workspace contains other resources. Refresh setup before continuing.",
+        "WorkspaceIdInvalid": "A valid Workspace ID is required.",
+        "ApplicationToolsetDependencyInvalid": "The application has conflicting or invalid toolset dependencies.",
+        "ApplicationToolsetSelectionInvalid": "Select an available toolset configuration for each application requirement and try again.",
+        "ApplicationInitializeRequestInvalid": "Invalid application setup request. Refresh the application and select its configurations again.",
+        "ApplicationToolsetConfigurationRequired": "Configure the required toolsets before enabling the application.",
+        "ApplicationToolsetProviderRequired": "Install the required tool provider plugins before enabling the application.",
         "InvalidStreamCursor": "Invalid output stream cursor.",
         "AgentInvocationModelSourceRequired": "A Computer Runtime binding for the Project general agent must configure modelSource with a real Assistant for model authorization.",
         "ProjectTaskRuntimeInvalid": "Task delegation requires a valid task specification, explicit completion requirements and a valid request.",
@@ -255,6 +271,8 @@
         "EvolutionBaselineOperationFailed": "Rule baseline operation could not be completed. Refresh the rule status and check permissions.",
         "MarketplaceCacheUnavailable": "The plugin marketplace is temporarily unavailable. Please retry shortly.",
         "KnowledgebaseProvisioningEmbeddingUnavailable": "No available embedding model was found in accessible Copilot providers or other knowledgebases in this workspace. Configure an embedding model and its access permissions, then retry.",
+        "ApplicationSuiteInvalidTopology": "The application Assistant delegation topology is invalid. Check role references, duplicate links, cycles and unreachable roles.",
+        "ApplicationSuiteUndeclaredDelegation": "An Assistant has a delegation link outside the application suite definition. Review the existing link before repairing the application.",
         "ApplicationStandaloneAssistantConnected": "A standalone Assistant is linked to the coordinator. Remove its delegation before repairing this application.",
         "IntegrationQrInvalid": "QR authorization is not available for this request.",
         "IntegrationQrBusy": "Authorization is busy. Please retry shortly.",

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common'
 import { RouterModule } from '@nestjs/core'
+import { CqrsModule } from '@nestjs/cqrs'
 import { VolumeModule } from '../shared/volume'
 import { WorkspaceFileAccessController } from './workspace-file-access.controller'
 import { WorkspaceFileContentController } from './workspace-file-content.controller'
@@ -7,7 +8,11 @@ import { WorkspaceFileAccessGuard } from './workspace-file-access.guard'
 import { WorkspaceFileAccessService } from './workspace-file-access.service'
 
 @Module({
-    imports: [RouterModule.register([{ path: '/workspace-files', module: WorkspaceFileAccessModule }]), VolumeModule],
+    imports: [
+        RouterModule.register([{ path: '/workspace-files', module: WorkspaceFileAccessModule }]),
+        CqrsModule,
+        VolumeModule
+    ],
     controllers: [WorkspaceFileAccessController, WorkspaceFileContentController],
     providers: [WorkspaceFileAccessService, WorkspaceFileAccessGuard],
     exports: [WorkspaceFileAccessService]

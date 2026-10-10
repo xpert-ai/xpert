@@ -2,6 +2,7 @@ const { test } = require('node:test')
 const assert = require('node:assert/strict')
 const { DesktopService } = require('../electron/service.cjs')
 const { dispatch } = require('../electron/dispatch.cjs')
+const { inlineAvatar } = require('./fixtures/avatar.cjs')
 
 const app = {
   id: '@test/app:office',
@@ -79,6 +80,30 @@ test('expert discovery exposes the published business area separately from marke
   assert.deepEqual(item.businessArea, { id: 'area-sales', name: 'Sales' })
   assert.deepEqual(item.categories, ['productivity'])
   assert.doesNotMatch(JSON.stringify(item), /never-expose/)
+})
+
+test('template and expert catalogs preserve inline avatar images and normalize invalid URLs', async () => {
+  const avatars = [
+    { url: inlineAvatar },
+    { url: 'https://example.com/avatar.png' },
+    { url: 'data:text/html;base64,PHNjcmlwdD4=', emoji: { id: 'smile', unified: '1F600' } }
+  ]
+  const { service } = fixture((path) => ({
+    items: avatars.map((avatar, index) =>
+      path === '/api/xpert-marketplace'
+        ? { ...expert('owned'), xpert: { ...expert().xpert, id: `expert-${index}`, avatar } }
+        : { id: `template-${index}`, title: 'Assistant', type: 'agent', avatar }
+    ),
+    total: avatars.length
+  }))
+  for (const kind of ['templates', 'experts']) {
+    const items = await service.listCatalog(kind)
+    assert.deepEqual(
+      items.map((item) => item.avatarUrl),
+      [inlineAvatar, 'https://example.com/avatar.png', null]
+    )
+    assert.deepEqual(items[2].avatarEmoji, { id: 'smile', unified: '1F600' })
+  }
 })
 
 test('application screenshots are normalized consistently for catalog and detail without exposing local files', async () => {

@@ -16,7 +16,7 @@ import { XpertSettingsService } from '../../@core/services/xpert-settings.servic
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { NavigationEnd, Router } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardIconComponent, ZardMenuImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { AGENT_WORKBENCH_SLOT, type IconDefinition, type XpertExtensionViewManifest } from '@xpert-ai/contracts'
 import { Observable, combineLatest, debounceTime, forkJoin, merge, of } from 'rxjs'
 import { catchError, distinctUntilChanged, exhaustMap, filter, map, startWith, switchMap } from 'rxjs/operators'
@@ -66,6 +66,7 @@ import {
 
 import { SidebarConversationArchiveButtonComponent } from './conversation-archive.component'
 import { CloudSidebarConversationComponent } from './cloud-sidebar-conversation.component'
+import { WorkbenchAssistantMenuComponent } from '../chat/workbench-chat/workbench-assistant-menu.component'
 
 export { formatConversationUpdatedAt } from './cloud-sidebar-assistants.utils'
 
@@ -141,6 +142,8 @@ const EMPTY_ASSISTANT_CONVERSATION_STATE: AssistantConversationState = {
     ZardIconComponent,
     CloudSidebarConversationComponent,
     SidebarConversationArchiveButtonComponent,
+    WorkbenchAssistantMenuComponent,
+    ...ZardMenuImports,
     ...ZardTooltipImports
   ],
   changeDetection: ChangeDetectionStrategy.OnPush

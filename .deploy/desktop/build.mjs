@@ -26,7 +26,10 @@ writeFileSync(
   'packages/contracts/dist/package.json',
   JSON.stringify({ ...manifest, types: './index.d.ts' }, null, 2) + '\n'
 )
-const tests = ['packages/desktop-protocol/test', 'apps/desktop/tests'].flatMap((dir) =>
+run('apps/desktop/scripts/build-audio-capture-native.mjs', [])
+const testDirectories = ['packages/desktop-protocol/test', 'apps/desktop/tests', 'apps/desktop/tests/audio-capture']
+if (process.platform === 'darwin') testDirectories.push('apps/desktop/native/audio-capture')
+const tests = testDirectories.flatMap((dir) =>
   readdirSync(dir)
     .filter((file) => file.endsWith('.test.cjs') && !(process.platform === 'win32' && file === 'shell-engine.test.cjs'))
     .map((file) => `${dir}/${file}`)

@@ -1,3 +1,4 @@
+import { assertConversationMutationAccess } from '../../conversation-mutation-access'
 import { visibleFollowUpReferences } from '../../../shared/agent/persisted-follow-up'
 import { bindFileActivityEvent } from '../../../chat-message/file-activity-event'
 import { bindResourceCardEvent } from '../../../chat-message/resource-card-event'
@@ -1628,59 +1629,16 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         request: TChatRequest,
         options?: XpertChatCommand['options']
     ) {
-        const persistedXpertId = conversation.xpertId?.trim() || undefined
-        const normalizedRequestedXpertId = requestedXpertId?.trim() || undefined
-        const sameXpertFamily =
-            persistedXpertId && normalizedRequestedXpertId
-                ? persistedXpertId === normalizedRequestedXpertId ||
-                  (
-                      await this.publishedXpertAccessService.getAccessiblePublishedXpertFamilyIds(
-                          normalizedRequestedXpertId
-                      )
-                  ).includes(persistedXpertId)
-                : false
-        if (!sameXpertFamily) {
-            throw new BadRequestException(
-                t('server-ai:Error.RequestedXpertConversationMismatch', {
-                    defaultValue: 'The requested Xpert does not match the conversation Xpert'
-                })
-            )
-        }
-
-        const persistedProjectId = conversation.projectId?.trim() || undefined
-        const optionProjectId = options?.projectId?.trim() || undefined
-        const requestProjectId = resolveRequestProjectId(request)
-        if (
-            (optionProjectId && optionProjectId !== persistedProjectId) ||
-            (requestProjectId && requestProjectId !== persistedProjectId)
-        ) {
-            throw new BadRequestException(
-                t('server-ai:Error.RequestedProjectConversationMismatch', {
-                    defaultValue: 'The requested Project does not match the conversation Project'
-                })
-            )
-        }
-
-        if (persistedProjectId) {
-            if (!this.projectService) {
-                throw new BadRequestException(
-                    t('server-ai:Error.ProjectConversationUnavailable', {
-                        defaultValue: 'Project conversations are unavailable'
-                    })
-                )
-            }
-            await this.projectService.assertRuntimeAccess(persistedProjectId, persistedXpertId)
-            return
-        }
-
-        const actorUserId = RequestContext.currentUserId()
-        if (!actorUserId || conversation.createdById !== actorUserId) {
-            throw new ForbiddenException(
-                t('server-ai:Error.ConversationAccessDenied', {
-                    defaultValue: 'You do not have access to this conversation'
-                })
-            )
-        }
+        return assertConversationMutationAccess(
+            {
+                conversation,
+                requestedXpertId,
+                requestProjectId: resolveRequestProjectId(request),
+                optionProjectId: options?.projectId
+            },
+            this.publishedXpertAccessService,
+            this.projectService
+        )
     }
 
     private async assertSteerTargetIsActive(

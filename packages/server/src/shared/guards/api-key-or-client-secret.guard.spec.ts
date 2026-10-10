@@ -85,4 +85,17 @@ describe('ApiKeyOrClientSecretAuthGuard', () => {
 			)
 		).toEqual([SecretTokenBindingType.ENTERPRISE_XPERT])
 	})
+	it('denies conversation grants on unannotated routes, including session issuance', async () => {
+		const { context: request } = context(principal(SecretTokenBindingType.USER_CONVERSATION))
+		await expect(new TestGuard(reflector).canActivate(request)).rejects.toBeInstanceOf(ForbiddenException)
+	})
+	it('accepts conversation grants only on explicitly opted-in routes', async () => {
+		const { context: request } = context(principal(SecretTokenBindingType.USER_CONVERSATION))
+		Reflect.defineMetadata(
+			ALLOWED_CLIENT_SECRET_BINDINGS_METADATA,
+			[SecretTokenBindingType.USER_CONVERSATION],
+			request.getHandler()
+		)
+		await expect(new TestGuard(reflector).canActivate(request)).resolves.toBe(true)
+	})
 })

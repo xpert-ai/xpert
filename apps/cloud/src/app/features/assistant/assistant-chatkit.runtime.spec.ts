@@ -6,7 +6,7 @@ import { environment } from '@cloud/environments/environment'
 import { TranslateService } from '@ngx-translate/core'
 import { createChatKit, type CreateChatKitOptions } from '@xpert-ai/chatkit-angular'
 import { ZardDialogService } from '@xpert-ai/headless-ui'
-import { BehaviorSubject, of } from 'rxjs'
+import { BehaviorSubject, of, throwError } from 'rxjs'
 import { AppService } from '../../app.service'
 import { ArtifactService } from '../../@core/services/artifact.service'
 import { XpertPublicationService } from '../../@core/services/xpert-publication.service'
@@ -174,7 +174,10 @@ describe('assistant chatkit runtime helpers', () => {
       }
     })
     const onProjectChange = jest.fn()
-    const assistantId = signal('assistant-1')
+    const assistantId = signal<string | null>('assistant-1')
+    const identity = signal<string | null>('xpert_shared')
+    const loading = signal(false)
+    const initialThread = signal<string | null>('thread-1')
     const projectId = signal<string | null>('project-1')
     const organizationId = new BehaviorSubject('org-1')
     const composer = signal({
@@ -221,10 +224,12 @@ describe('assistant chatkit runtime helpers', () => {
       ]
     })
 
-    TestBed.runInInjectionContext(() => {
-      injectHostedAssistantChatkitControl({
-        identity: signal('xpert_shared'),
+    const control = TestBed.runInInjectionContext(() => {
+      return injectHostedAssistantChatkitControl({
+        identity,
         assistantId,
+        loading,
+        initialThread,
         projectId,
         frameUrl: signal('/chatkit'),
         requestContext,
@@ -262,7 +267,7 @@ describe('assistant chatkit runtime helpers', () => {
         messageNavigation: {
           enabled: true
         },
-        onProjectChange,
+        onProjectChange: expect.any(Function),
         composer: expect.objectContaining({
           projects: { enabled: false },
           connectors: { enabled: true },
@@ -278,6 +283,10 @@ describe('assistant chatkit runtime helpers', () => {
         }
       })
     )
+    const firstOptions: CreateChatKitOptions = createChatKitMock.mock.calls[0][0]
+    firstOptions.onProjectChange?.({ projectId: 'project-1' })
+    expect(onProjectChange).toHaveBeenCalledWith({ projectId: 'project-1' })
+    onProjectChange.mockClear()
 
     const publications = TestBed.inject(XpertPublicationService)
     const createdBeforePublish = createChatKitMock.mock.calls.length
@@ -290,6 +299,7 @@ describe('assistant chatkit runtime helpers', () => {
     flushAngularEffects()
     expect(setOptions).toHaveBeenCalledTimes(1)
     expect(createChatKitMock).toHaveBeenCalledTimes(createdBeforePublish)
+    expect(setOptions.mock.calls[0][0].sessionKey).toBe(firstOptions.sessionKey)
 
     setOptions.mockClear()
     displayMode.set('chat')
@@ -378,7 +388,21 @@ describe('assistant chatkit runtime helpers', () => {
     flushAngularEffects()
     createChatKitMock.mockClear()
     setOptions.mockClear()
+    const mountedControl = control()
+    loading.set(true)
+    identity.set(null)
+    assistantId.set(null)
+    flushAngularEffects()
+    expect(control()).toBe(mountedControl)
+    expect(createChatKitMock).not.toHaveBeenCalled()
+    expect(setOptions).not.toHaveBeenCalled()
+    firstOptions.onProjectChange?.({ projectId: 'stale-project' })
+    expect(onProjectChange).not.toHaveBeenCalled()
+
+    identity.set('role-assistant')
     assistantId.set('role-assistant-1')
+    initialThread.set('role-thread')
+    loading.set(false)
     flushAngularEffects()
 
     // An Assistant change must rotate the delegated session/control before a
@@ -387,19 +411,32 @@ describe('assistant chatkit runtime helpers', () => {
     expect(setOptions).not.toHaveBeenCalled()
     expect(createChatKitMock).toHaveBeenLastCalledWith(
       expect.objectContaining({
+        initialThread: 'role-thread',
         api: expect.objectContaining({
           xpertId: 'role-assistant-1',
           projectId: 'project-2'
         })
       })
     )
+    const roleOptions: CreateChatKitOptions = createChatKitMock.mock.calls[0][0]
+    expect(roleOptions.sessionKey).not.toBe(firstOptions.sessionKey)
+    firstOptions.onProjectChange?.({ projectId: 'stale-project' })
+    expect(onProjectChange).not.toHaveBeenCalled()
+    roleOptions.onProjectChange?.({ projectId: 'project-2' })
+    expect(onProjectChange).toHaveBeenCalledWith({ projectId: 'project-2' })
 
     createChatKitMock.mockClear()
     setOptions.mockClear()
+    loading.set(true)
     organizationId.next('org-2')
+    flushAngularEffects()
+    expect(control()).toBeNull()
+    expect(createChatKitMock).not.toHaveBeenCalled()
+    loading.set(false)
     flushAngularEffects()
     expect(createChatKitMock).toHaveBeenCalledTimes(1)
     expect(setOptions).not.toHaveBeenCalled()
+    expect(createChatKitMock.mock.calls[0][0].sessionKey).not.toBe(roleOptions.sessionKey)
   })
 
   it('does not rebuild ChatKit options when only the routed thread changes', () => {
@@ -650,6 +687,83 @@ describe('assistant chatkit runtime helpers', () => {
         requesterXpertId: 'orchestrator-1'
       }
     })
+  })
+
+  it('keeps the shared Composer/Header/Workbench while isolating and refreshing group sessions', async () => {
+    const createChatKitMock = createChatKit as jest.Mock
+    const post = jest.fn(() => of({ client_secret: 'cs-x-group' }))
+    const group = signal<{ id: string } | null>({ id: 'group-1' })
+    createChatKitMock.mockImplementation(() => ({ setOptions: jest.fn() }))
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: DOCUMENT, useValue: document },
+        { provide: HttpClient, useValue: { post } },
+        { provide: TranslateService, useValue: { currentLang: 'en', instant: (key: string) => key } },
+        { provide: ToastrService, useValue: { error: jest.fn() } },
+        { provide: AppService, useValue: { lang: signal('en'), theme$: signal({ primary: 'light' }) } },
+        {
+          provide: Store,
+          useValue: {
+            token: 'platform',
+            token$: of('platform'),
+            organizationId: 'org-1',
+            hasPermission: () => false,
+            selectOrganizationId: () => of('org-1')
+          }
+        }
+      ]
+    })
+    const rightAction = { icon: 'sidebar-right' as const, onClick: jest.fn() }
+    TestBed.runInInjectionContext(() =>
+      injectHostedAssistantChatkitControl({
+        identity: signal('shared-host'),
+        assistantId: signal('primary'),
+        group,
+        frameUrl: signal('/chatkit'),
+        header: { rightAction },
+        workbench: { enabled: true },
+        composer: signal({ projects: { enabled: true }, connectors: { enabled: true } }),
+        titleKey: 'Assistant',
+        titleDefault: 'Assistant'
+      })
+    )
+    flushAngularEffects()
+    const first = createChatKitMock.mock.calls[0][0]
+    expect(first.group).toEqual({ id: 'group-1' })
+    expect(first.header.rightAction).toEqual(rightAction)
+    expect(first.workbench.enabled).toBe(true)
+    expect(first.composer).toEqual(
+      expect.objectContaining({
+        attachments: expect.objectContaining({ enabled: true }),
+        projects: { enabled: true },
+        connectors: expect.objectContaining({ enabled: true })
+      })
+    )
+    await expect(first.api.getClientSecret(null)).resolves.toEqual({ secret: 'cs-x-group', organizationId: 'org-1' })
+    await first.api.getClientSecret('expired')
+    expect(post).toHaveBeenCalledTimes(2)
+    expect(post).toHaveBeenLastCalledWith('http://localhost:3000/api/ai/v1/chatkit/sessions', {
+      scope: { kind: 'conversation', conversationId: 'group-1' }
+    })
+    group.set({ id: 'group-2' })
+    flushAngularEffects()
+    const second = createChatKitMock.mock.calls[1][0]
+    await second.api.getClientSecret(null)
+    expect(post).toHaveBeenLastCalledWith('http://localhost:3000/api/ai/v1/chatkit/sessions', {
+      scope: { kind: 'conversation', conversationId: 'group-2' }
+    })
+    // In-flight old clients remain bound to their own group, never the newly selected one.
+    await first.api.getClientSecret(null)
+    expect(post).toHaveBeenLastCalledWith('http://localhost:3000/api/ai/v1/chatkit/sessions', {
+      scope: { kind: 'conversation', conversationId: 'group-1' }
+    })
+    post.mockReturnValueOnce(throwError(() => new Error('Membership revoked')))
+    await expect(second.api.getClientSecret(null)).rejects.toThrow('Membership revoked')
+    group.set(null)
+    flushAngularEffects()
+    const ordinary = createChatKitMock.mock.calls[2][0]
+    expect(ordinary.group).toBeUndefined()
+    expect(ordinary.messagePresentation).toBeUndefined()
   })
 
   it('resolves tool-output images through a fixed ArtifactVersion preview', async () => {

@@ -5,8 +5,9 @@ import { fileURLToPath } from 'node:url'
 import { resolve } from 'node:path'
 import { desktopBridge } from './scripts/dev-bridge.mjs'
 import { connectionDefaultsPlugin } from './scripts/connection-defaults.mjs'
+import { desktopDevelopmentServer } from './scripts/development-server.mjs'
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   base: './',
   plugins: [react(), tailwindcss(), desktopBridge(), connectionDefaultsPlugin()],
   resolve: {
@@ -24,7 +25,7 @@ export default defineConfig({
       { find: '@', replacement: fileURLToPath(new URL('../../packages/shadcn-ui/src', import.meta.url)) }
     ]
   },
-  server: { host: '127.0.0.1', port: 4390, strictPort: true },
+  server: command === 'serve' ? desktopDevelopmentServer() : undefined,
   optimizeDeps: { include: ['@xpert-ai/desktop-protocol'] },
   build: { outDir: 'dist', commonjsOptions: { include: [/node_modules/, /packages\/desktop-protocol/] } }
-})
+}))

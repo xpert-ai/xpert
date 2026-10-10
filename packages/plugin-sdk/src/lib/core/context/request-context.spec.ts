@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common'
-import { RolesEnum } from '@xpert-ai/contracts'
+import { RolesEnum, IApiPrincipal, SecretTokenBindingType } from '@xpert-ai/contracts'
 import { runWithRequestContext } from './request-context.middleware'
 import { RequestContext } from './request-context'
 
@@ -132,5 +132,20 @@ describe('RequestContext scope parsing', () => {
 
     expect(first).toBeDefined()
     expect(second).toBe(first)
+  })
+})
+
+describe('RequestContext conversation credentials', () => {
+  afterEach(() => jest.restoreAllMocks())
+  it('recognizes a scoped principal without inventing an API key', () => {
+    const principal = {
+      id: 'A',
+      principalType: 'client_secret',
+      clientSecretBindingType: SecretTokenBindingType.USER_CONVERSATION,
+      resourceScope: { kind: 'conversation', conversationId: 'D' }
+    } as IApiPrincipal
+    jest.spyOn(RequestContext, 'currentUser').mockReturnValue(principal)
+    expect(RequestContext.currentApiPrincipal()).toBe(principal)
+    expect(RequestContext.currentApiKey()).toBeNull()
   })
 })

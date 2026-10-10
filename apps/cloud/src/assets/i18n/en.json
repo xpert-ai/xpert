@@ -42,6 +42,31 @@
     "Connectors": "Connectors"
   },
   "XP": {
+    "Groups": {
+      "Pin": "Pin",
+      "Unpin": "Unpin",
+      "Archive": "Archive",
+      "Restore": "Restore",
+      "Active": "Active groups",
+      "Archived": "Archived groups",
+      "Title": "Group chats",
+      "Name": "Group name",
+      "Assistant": "Default Assistant",
+      "SelectAssistant": "Choose an Assistant",
+      "Create": "Create group",
+      "Empty": "Create or select a group to chat together.",
+      "Menu": "Group menu",
+      "New": "New group",
+      "Options": "Group options",
+      "PeopleAndAssistants": "People & assistants",
+      "CreateHint": "Bring people and digital experts into one conversation.",
+      "NamePlaceholder": "e.g. Project collaboration",
+      "AssistantHint": "Replies when no member is mentioned. Invite more members after creating the group.",
+      "SearchAssistants": "Search digital experts",
+      "Loading": "Loading assistants…",
+      "NoMatches": "No matching assistants",
+      "Cancel": "Cancel"
+    },
     "AgentPlugins": {
       "DefaultImportTitle": "Official Agent plugins",
       "ImportDefaults": "Import default plugins",
@@ -1543,6 +1568,9 @@
       "CurrentScopeActiveRuntimes": "active runtimes in the current tenant and organization"
     },
     "Plugin": {
+      "RuntimeApplyingTitle": "Plugin changes are being applied",
+      "RuntimeApplyingDescription": "API replicas are restarting in background batches for {{pluginNames}}. You can continue using this page.",
+      "RuntimeApplyingGenericDescription": "API replicas are restarting in background batches. You can continue using this page.",
       "LoadingMarketplaceHelp": "Fetching the plugin list. Additional metadata updates in the background.",
       "UpdatingMarketplace": "Updating the plugin list...",
       "ArtifactNamespace": "Artifact namespace",
@@ -2677,6 +2705,24 @@
       "InstallNow": "Install Now",
       "InstallOrUpdate": "Install or Update",
       "Application": {
+        "Toolsets": {
+          "Title": "Required toolsets",
+          "Description": "Adding a configuration first prepares the application Workspace. New configurations are saved there; existing configurations are copied when you enable the application.",
+          "Refresh": "Refresh",
+          "Select": "Select a configuration",
+          "Personal": "My configurations",
+          "Empty": "No accessible configuration is available. Create one to continue.",
+          "Configure": "New configuration",
+          "Configured": "Configured in the application workspace; it will be reused.",
+          "ProviderMissing": "Install and enable {{plugin}} to configure this toolset.",
+          "ProvidersRequired": "Some required tool providers are unavailable. Install the indicated plugins and refresh.",
+          "ConfigurationsRequired": "Configure the required toolsets below before enabling the application.",
+          "Edit": "Edit configuration",
+          "SetupChanged": "The application state has changed. Refresh setup and try again.",
+          "DraftSaved": "Configuration is saved for later. Knowledge bases and Assistants are created when you enable the application.",
+          "Discard": "Discard configuration",
+          "DiscardDescription": "Delete this unactivated application Workspace and its toolset configurations. Source configurations in other Workspaces will be kept."
+        },
         "SetupExplanation": "The app is available on this platform. Set it up to create a workspace and entry Assistant for the current organization.",
         "AppTemplate": "App template",
         "LoadingDetails": "Loading application details…",
@@ -2710,7 +2756,8 @@
           "Repair": "Repair application",
           "Initializing": "Initializing…",
           "ApplyToOrganization": "Apply to current organization",
-          "RepairAndReinitialize": "Repair and reinitialize"
+          "RepairAndReinitialize": "Repair and reinitialize",
+          "ContinueConfiguration": "Continue setup"
         },
         "Preflight": {
           "OrganizationRequired": "Switch to an organization before enabling this organization-scoped application.",
@@ -2725,7 +2772,8 @@
           "Initializing": "Initializing",
           "Failed": "Initialization failed",
           "Degraded": "Needs repair",
-          "NotInstalled": "Setup required"
+          "NotInstalled": "Setup required",
+          "Configuring": "Configuration in progress"
         },
         "Scope": {
           "Tenant": "Tenant",
@@ -3262,7 +3310,7 @@
         "UninstallSkillFailed": "Failed to uninstall the selected skill.",
         "UninstallSelectedSkillsFailed": "Failed to uninstall the selected skills.",
         "UpdateSelectedSkillsFailed": "Failed to update the selected skills.",
-        "LoadFailed": "Failed to load ClawXpert.",
+        "LoadFailed": "Failed to load digital expert.",
         "LoadFailedDesc": "Check your assistant access and try again.",
         "ReferenceUnavailable": "Chat composer is not ready yet. Try again in a moment.",
         "ChatkitUnavailable": "Chat is not ready yet.",

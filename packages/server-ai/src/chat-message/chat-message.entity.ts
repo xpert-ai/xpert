@@ -1,4 +1,5 @@
 import {
+    ChatGroupCommunication,
     ChatMessageStatusEnum,
     CopilotMessageType,
     IChatConversation,
@@ -41,6 +42,8 @@ import { FileAsset } from '../file-understanding/entities'
 @Entity('chat_message')
 @Index(['conversationId'])
 @Index(['createdInThreadId'])
+@Index(['conversationId', 'sequence'], { unique: true })
+@Index(['conversationId', 'groupPublicationId'], { unique: true })
 @Tree('closure-table')
 export class ChatMessage extends TenantOrganizationBaseEntity implements IChatMessage {
     /*
@@ -48,6 +51,16 @@ export class ChatMessage extends TenantOrganizationBaseEntity implements IChatMe
 	| Parent-children relationship 
 	|--------------------------------------------------------------------------
 	*/
+    /** Stable message order within the conversation; absent for unsequenced messages. */
+    @Column({ type: 'int', nullable: true })
+    sequence?: number
+
+    @Column({ type: 'varchar', nullable: true })
+    groupPublicationId?: string
+
+    @Column({ type: 'jsonb', nullable: true })
+    groupCommunication?: ChatGroupCommunication
+
     @TreeChildren()
     children: ChatMessage[]
 

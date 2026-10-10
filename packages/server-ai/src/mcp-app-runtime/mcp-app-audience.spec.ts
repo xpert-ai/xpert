@@ -1,5 +1,5 @@
 import { QueryBus } from '@nestjs/cqrs'
-import { ApiKeyBindingType, type IApiKey, type IXpertAgentExecution } from '@xpert-ai/contracts'
+import { type IApiPrincipal, type IXpertAgentExecution } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { assertMcpAppAssistantAudience } from './mcp-app-audience'
 import { AssertXpertAgentExecutionAccessQuery } from '../xpert-agent-execution/queries/assert-access.query'
@@ -7,9 +7,10 @@ import { AssertXpertAgentExecutionAccessQuery } from '../xpert-agent-execution/q
 describe('delegated MCP App audience', () => {
     const context = { xpertId: 'expert', conversationId: 'conversation', executionId: 'child', threadId: 'thread' }
     beforeEach(() =>
-        jest
-            .spyOn(RequestContext, 'currentApiKey')
-            .mockReturnValue({ type: ApiKeyBindingType.ASSISTANT, entityId: 'main' } as IApiKey)
+        jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue({
+            principalType: 'api_key',
+            resourceScope: { kind: 'assistant', xpertId: 'main' }
+        } as IApiPrincipal)
     )
     afterEach(() => jest.restoreAllMocks())
     function queries(rows: Record<string, Partial<IXpertAgentExecution>>) {
@@ -44,7 +45,7 @@ describe('delegated MCP App audience', () => {
     it('preserves direct Assistant and user JWT behavior', async () => {
         const f = queries({})
         await assertMcpAppAssistantAudience({ ...context, xpertId: 'main' }, f.bus)
-        jest.spyOn(RequestContext, 'currentApiKey').mockReturnValue(undefined)
+        jest.spyOn(RequestContext, 'currentApiPrincipal').mockReturnValue(undefined)
         await assertMcpAppAssistantAudience(context, f.bus)
         expect(f.execute).not.toHaveBeenCalled()
     })

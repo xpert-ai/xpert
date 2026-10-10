@@ -10,11 +10,11 @@ import type {
 } from '@xpert-ai/contracts'
 import { compactObject, nonEmptyArray } from '@xpert-ai/server-common'
 import { isPromptWorkflowScenarios, type PromptWorkflowScenario } from '@xpert-ai/contracts'
-import type { RuntimePromptWorkflowCommandSource } from '../prompt-workflow'
+import type { RuntimePromptWorkflowCommandSource } from '../../prompt-workflow'
 import {
     normalizeRuntimeCapabilitiesSelection,
     type TRuntimeCapabilitiesSelection
-} from '../shared/agent/runtime-capabilities'
+} from '../../shared/agent/runtime-capabilities'
 
 type RuntimeCommandI18nText = NonNullable<SkillSlashCommand['label']>
 

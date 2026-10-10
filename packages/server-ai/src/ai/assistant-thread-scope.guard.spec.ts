@@ -1,5 +1,5 @@
 import { ExecutionContext, ForbiddenException, UnauthorizedException } from '@nestjs/common'
-import { ApiKeyBindingType, IApiPrincipal, SecretTokenBindingType } from '@xpert-ai/contracts'
+import { ApiKeyBindingType, IApiPrincipal, IUser, SecretTokenBindingType } from '@xpert-ai/contracts'
 import { AssistantThreadScopeGuard } from './assistant-thread-scope.guard'
 
 describe('AssistantThreadScopeGuard', () => {
@@ -11,7 +11,10 @@ describe('AssistantThreadScopeGuard', () => {
     )
     let principal: IApiPrincipal
 
-    function context(params: { threadId?: string; thread_id?: string } = { thread_id: 'thread' }, user = principal) {
+    function context(
+        params: { threadId?: string; thread_id?: string } = { thread_id: 'thread' },
+        user: IUser | IApiPrincipal = principal
+    ) {
         return { switchToHttp: () => ({ getRequest: () => ({ user, params }) }) } as ExecutionContext
     }
 
@@ -22,6 +25,7 @@ describe('AssistantThreadScopeGuard', () => {
             tenantId: 'tenant',
             principalType: 'client_secret',
             clientSecretBindingType: SecretTokenBindingType.USER_XPERT,
+            resourceScope: { kind: 'assistant', xpertId: 'assistant' },
             apiKey: { token: '', type: ApiKeyBindingType.ASSISTANT, entityId: 'assistant', tenantId: 'tenant' }
         } as IApiPrincipal
         threads.findOne.mockResolvedValue({
@@ -51,6 +55,23 @@ describe('AssistantThreadScopeGuard', () => {
         }
     )
 
+    it.each(['group', 'group_assistant_runtime'])(
+        'blocks %s on ordinary thread routes for both login users and Assistant credentials',
+        async (purpose) => {
+            const conversation = { purpose, xpertId: 'assistant', tenantId: 'tenant', createdById: 'user' }
+            threads.findOne.mockResolvedValue({ conversation })
+            await expect(guard.canActivate(context())).rejects.toThrow(ForbiddenException)
+            const human = { id: 'user' } as IUser
+            await expect(guard.canActivate(context(undefined, human))).rejects.toThrow(ForbiddenException)
+            threads.findOne.mockResolvedValue(null)
+            conversations.findOneBy.mockResolvedValue(conversation)
+            await expect(guard.canActivate(context(undefined, human))).rejects.toThrow(ForbiddenException)
+        }
+    )
+    it('loads a private thread once when checking its credential scope', async () => {
+        await expect(guard.canActivate(context())).resolves.toBe(true)
+        expect(threads.findOne).toHaveBeenCalledTimes(1)
+    })
     it('rejects nonexistent threads', async () => {
         threads.findOne.mockResolvedValue(null)
         await expect(guard.canActivate(context())).rejects.toThrow(ForbiddenException)

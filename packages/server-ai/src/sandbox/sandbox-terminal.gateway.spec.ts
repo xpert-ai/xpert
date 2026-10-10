@@ -1,8 +1,11 @@
 import { SandboxTerminalClosedReason, SandboxTerminalErrorCode, SandboxTerminalServerEvent } from '@xpert-ai/contracts'
 import type { SandboxTerminalOpenOptions } from '@xpert-ai/plugin-sdk'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import type { Socket } from 'socket.io'
+import { captureRequestContext } from '../shared/request-context'
 import { SandboxConversationContextService } from './sandbox-conversation-context.service'
 import { SandboxTerminalGateway } from './sandbox-terminal.gateway'
+import { ForbiddenException } from '@nestjs/common'
 
 describe('SandboxTerminalGateway', () => {
     let gateway: SandboxTerminalGateway
@@ -12,6 +15,8 @@ describe('SandboxTerminalGateway', () => {
     let client: {
         emit: jest.Mock
         handshake?: {
+            auth?: { organizationId?: string }
+            headers?: { 'organization-id'?: string; 'tenant-id'?: string }
             user?: {
                 id: string
                 tenantId: string
@@ -35,6 +40,48 @@ describe('SandboxTerminalGateway', () => {
 
     afterEach(() => {
         jest.clearAllMocks()
+    })
+
+    it('preserves each authenticated socket context during concurrent workspace resolution', async () => {
+        const entered: string[] = []
+        const resolved: string[] = []
+        let release: () => void = () => undefined
+        const bothEntered = new Promise<void>((resolve) => {
+            release = resolve
+        })
+        sandboxConversationContextService.resolveConversationSandbox.mockImplementation(async ({ actor }) => {
+            entered.push(actor.id)
+            if (entered.length === 2) release()
+            await bothEntered
+
+            expect(RequestContext.currentUserId()).toBe(actor.id)
+            expect(RequestContext.currentTenantId()).toBe(actor.tenantId)
+            expect(RequestContext.getOrganizationId()).toBe(`org-${actor.id}`)
+            // Workspace access still uses the legacy context through this shared bridge.
+            expect(captureRequestContext({}).user).toEqual(actor)
+            resolved.push(actor.id)
+            return { provider: 'unsupported', sandbox: {} }
+        })
+
+        await Promise.all(
+            ['first', 'second'].map((id) =>
+                gateway.open({ conversationId: `conversation-${id}`, requestId: id, cols: 80, rows: 24 }, {
+                    id,
+                    emit: jest.fn(),
+                    handshake: {
+                        user: { id, tenantId: `tenant-${id}` },
+                        // Client secrets normalize scope into headers; JWT clients send auth scope.
+                        ...(id === 'first'
+                            ? { headers: { 'organization-id': `org-${id}`, 'tenant-id': 'untrusted-tenant' } }
+                            : { auth: { organizationId: `org-${id}` } })
+                    }
+                } as unknown as Socket)
+            )
+        )
+
+        expect(entered).toEqual(['first', 'second'])
+        expect(resolved).toEqual(['first', 'second'])
+        expect(RequestContext.currentUserId()).toBeNull()
     })
 
     it('opens terminal sessions and forwards input and resize operations', async () => {
@@ -154,6 +201,32 @@ describe('SandboxTerminalGateway', () => {
             reason: SandboxTerminalClosedReason.UnsupportedProvider,
             requestId: 'request-unsupported'
         })
+    })
+
+    it('preserves the provider restriction code for clients to show capability guidance', async () => {
+        sandboxConversationContextService.resolveConversationSandbox.mockResolvedValue({
+            provider: 'docker-sandbox',
+            sandbox: {
+                backend: {
+                    open: jest.fn().mockRejectedValue(
+                        new ForbiddenException({
+                            code: SandboxTerminalErrorCode.ComputerDesktopRequired,
+                            message: 'Use the Computer desktop terminal.'
+                        })
+                    )
+                }
+            }
+        })
+        await gateway.open(
+            { conversationId: 'conversation-1', requestId: 'restriction', cols: 80, rows: 24 },
+            client as unknown as Socket
+        )
+        expect(client.emit).toHaveBeenCalledWith(SandboxTerminalServerEvent.Error, {
+            code: SandboxTerminalErrorCode.ComputerDesktopRequired,
+            message: 'Use the Computer desktop terminal.',
+            requestId: 'restriction'
+        })
+        expect(client.emit).not.toHaveBeenCalledWith(SandboxTerminalServerEvent.Opened, expect.anything())
     })
 
     it('forwards terminal transport errors instead of reporting a normal process exit', async () => {
@@ -278,6 +351,10 @@ describe('SandboxTerminalGateway', () => {
 
     it('cancels a pending open by request id and closes a session that resolves late', async () => {
         let resolveSession: ((session: { close: jest.Mock; resize: jest.Mock; write: jest.Mock }) => void) | null = null
+        let markOpenStarted: () => void = () => undefined
+        const openStarted = new Promise<void>((resolve) => {
+            markOpenStarted = resolve
+        })
         const session = {
             close: jest.fn(),
             resize: jest.fn(),
@@ -290,7 +367,10 @@ describe('SandboxTerminalGateway', () => {
             provider: 'nsjail',
             sandbox: {
                 backend: {
-                    open: jest.fn(() => openPromise)
+                    open: jest.fn(() => {
+                        markOpenStarted()
+                        return openPromise
+                    })
                 }
             },
             workingDirectory: '/workspace'
@@ -305,7 +385,7 @@ describe('SandboxTerminalGateway', () => {
             },
             client as unknown as Socket
         )
-        await Promise.resolve()
+        await openStarted
 
         await gateway.close(
             {
@@ -329,6 +409,10 @@ describe('SandboxTerminalGateway', () => {
 
     it('closes a pending session that resolves after its socket disconnects', async () => {
         let resolveSession: ((session: { close: jest.Mock; resize: jest.Mock; write: jest.Mock }) => void) | null = null
+        let markOpenStarted: () => void = () => undefined
+        const openStarted = new Promise<void>((resolve) => {
+            markOpenStarted = resolve
+        })
         const session = {
             close: jest.fn(),
             resize: jest.fn(),
@@ -341,7 +425,10 @@ describe('SandboxTerminalGateway', () => {
             provider: 'nsjail',
             sandbox: {
                 backend: {
-                    open: jest.fn(() => openPromise)
+                    open: jest.fn(() => {
+                        markOpenStarted()
+                        return openPromise
+                    })
                 }
             },
             workingDirectory: '/workspace'
@@ -356,7 +443,7 @@ describe('SandboxTerminalGateway', () => {
             },
             client as unknown as Socket
         )
-        await Promise.resolve()
+        await openStarted
 
         await gateway.handleDisconnect(client as unknown as Socket)
         resolveSession?.(session)

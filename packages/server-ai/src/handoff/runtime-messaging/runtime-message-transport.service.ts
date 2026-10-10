@@ -1,4 +1,5 @@
 import { isRuntimeMessageBlocked } from './runtime-message.errors'
+import { HandoffOutboxAdapters } from '../outbox-adapters.service'
 import { Injectable, Logger } from '@nestjs/common'
 import { Interval } from '@nestjs/schedule'
 import { DataSource, LessThanOrEqual } from 'typeorm'
@@ -15,7 +16,8 @@ export class RuntimeMessageTransportService {
     constructor(
         private readonly dataSource: DataSource,
         private readonly access: RuntimeMessageAccessService,
-        private readonly queue: HandoffQueueService
+        private readonly queue: HandoffQueueService,
+        private readonly adapters: HandoffOutboxAdapters
     ) {}
 
     @Interval(5000)
@@ -32,7 +34,12 @@ export class RuntimeMessageTransportService {
         } catch {
             this.logger.warn('Runtime delivery scan deferred')
         } finally {
-            this.scanning = false
+            try {
+                // Feature outboxes reuse this scan and the existing Handoff queue.
+                await this.adapters.reconcile()
+            } finally {
+                this.scanning = false
+            }
         }
     }
 

@@ -297,6 +297,7 @@ describe('XpertWorkspaceAccessService', () => {
             id: 'assistant-user-1',
             tenantId: 'tenant-1',
             role: { name: RolesEnum.VIEWER },
+            resourceScope: { kind: 'assistant', xpertId: 'xpert-1' },
             apiKey: {
                 type: ApiKeyBindingType.ASSISTANT,
                 entityId: 'xpert-1'
@@ -332,6 +333,7 @@ describe('XpertWorkspaceAccessService', () => {
             id: 'xpert-user-1',
             tenantId: 'tenant-1',
             role: { name: RolesEnum.VIEWER },
+            resourceScope: { kind: 'assistant', xpertId: 'xpert-1' },
             apiKey: {
                 type: ApiKeyBindingType.ASSISTANT,
                 entityId: 'xpert-1'
@@ -368,6 +370,7 @@ describe('XpertWorkspaceAccessService', () => {
             id: 'assistant-user-1',
             tenantId: 'tenant-1',
             role: { name: RolesEnum.VIEWER },
+            resourceScope: { kind: 'assistant', xpertId: 'xpert-1' },
             apiKey: {
                 type: ApiKeyBindingType.ASSISTANT,
                 entityId: 'xpert-1'
@@ -404,6 +407,7 @@ describe('XpertWorkspaceAccessService', () => {
             id: 'anonymous-user-1',
             tenantId: 'tenant-1',
             role: { name: RolesEnum.VIEWER },
+            resourceScope: { kind: 'assistant', xpertId: 'xpert-1' },
             apiKey: {
                 type: ApiKeyBindingType.ASSISTANT,
                 entityId: 'xpert-1'
@@ -446,6 +450,7 @@ describe('XpertWorkspaceAccessService', () => {
             id: 'dingtalk-user-1',
             tenantId: 'tenant-1',
             requestedOrganizationId: 'org-1',
+            resourceScope: { kind: 'assistant', xpertId: 'xpert-1' },
             apiKey: {
                 type: ApiKeyBindingType.ASSISTANT,
                 entityId: 'xpert-1'
@@ -502,6 +507,7 @@ describe('XpertWorkspaceAccessService', () => {
             id: 'owner-1',
             tenantId: 'tenant-1',
             role: { name: RolesEnum.VIEWER },
+            resourceScope: { kind: 'workspace', workspaceId: 'workspace-1' },
             apiKey: {
                 type: ApiKeyBindingType.WORKSPACE,
                 entityId: 'workspace-1'
@@ -534,6 +540,7 @@ describe('XpertWorkspaceAccessService', () => {
             id: 'anonymous-user-1',
             tenantId: 'tenant-1',
             role: { name: RolesEnum.VIEWER },
+            resourceScope: { kind: 'assistant', xpertId: 'xpert-1' },
             apiKey: {
                 type: ApiKeyBindingType.ASSISTANT,
                 entityId: 'xpert-1'
@@ -569,6 +576,7 @@ describe('XpertWorkspaceAccessService', () => {
             id: 'owner-1',
             tenantId: 'tenant-1',
             role: { name: RolesEnum.VIEWER },
+            resourceScope: { kind: 'workspace', workspaceId: 'workspace-2' },
             apiKey: {
                 type: ApiKeyBindingType.WORKSPACE,
                 entityId: 'workspace-2'
@@ -600,6 +608,7 @@ describe('XpertWorkspaceAccessService', () => {
             id: 'assistant-user-1',
             tenantId: 'tenant-1',
             role: { name: RolesEnum.VIEWER },
+            resourceScope: { kind: 'assistant', xpertId: 'xpert-1' },
             apiKey: {
                 type: ApiKeyBindingType.ASSISTANT,
                 entityId: 'xpert-1'
@@ -635,6 +644,7 @@ describe('XpertWorkspaceAccessService', () => {
             id: 'user-1',
             tenantId: 'tenant-1',
             role: { name: RolesEnum.VIEWER },
+            resourceScope: { kind: 'assistant', xpertId: 'xpert-1' },
             apiKey: {
                 type: ApiKeyBindingType.ASSISTANT,
                 entityId: 'xpert-1'
@@ -670,6 +680,7 @@ describe('XpertWorkspaceAccessService', () => {
             id: 'user-1',
             tenantId: 'tenant-1',
             role: { name: RolesEnum.VIEWER },
+            resourceScope: { kind: 'assistant', xpertId: 'xpert-1' },
             apiKey: {
                 type: ApiKeyBindingType.ASSISTANT,
                 entityId: 'xpert-1'

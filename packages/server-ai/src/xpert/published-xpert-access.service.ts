@@ -1,5 +1,4 @@
 import {
-    ApiKeyBindingType,
     IApiPrincipal,
     IXpert,
     isTenantSharedXpertWorkspace,
@@ -85,12 +84,12 @@ export class PublishedXpertAccessService {
     }
 
     private currentWorkspaceApiKeyWorkspaceId() {
-        const apiKey = this.currentApiPrincipal()?.apiKey
-        if (apiKey?.type !== ApiKeyBindingType.WORKSPACE) {
+        const scope = this.currentApiPrincipal()?.resourceScope
+        if (scope?.kind !== 'workspace') {
             return null
         }
 
-        const workspaceId = apiKey.entityId?.trim()
+        const workspaceId = scope.workspaceId.trim()
         return workspaceId || null
     }
 
@@ -103,12 +102,12 @@ export class PublishedXpertAccessService {
             return null
         }
 
-        const apiKey = apiPrincipal.apiKey
-        if (apiKey?.type !== ApiKeyBindingType.ASSISTANT || !apiKey.entityId?.trim()) {
+        const scope = apiPrincipal.resourceScope
+        if (scope?.kind !== 'assistant' || !scope.xpertId.trim()) {
             throw new ForbiddenException('Public assistant session is not bound to an assistant.')
         }
 
-        return apiKey.entityId.trim()
+        return scope.xpertId.trim()
     }
 
     /**
@@ -128,12 +127,12 @@ export class PublishedXpertAccessService {
             return null
         }
 
-        const apiKey = apiPrincipal.apiKey
-        if (apiKey?.type !== ApiKeyBindingType.ASSISTANT || !apiKey.entityId?.trim()) {
+        const scope = apiPrincipal.resourceScope
+        if (scope?.kind !== 'assistant' || !scope.xpertId.trim()) {
             throw new ForbiddenException('User assistant session is not bound to an assistant.')
         }
 
-        return apiKey.entityId.trim()
+        return scope.xpertId.trim()
     }
 
     private currentEnterpriseXpertScope() {
@@ -145,8 +144,8 @@ export class PublishedXpertAccessService {
             return null
         }
 
-        const apiKey = apiPrincipal.apiKey
-        if (apiKey?.type !== ApiKeyBindingType.ASSISTANT || !apiKey.entityId?.trim()) {
+        const scope = apiPrincipal.resourceScope
+        if (scope?.kind !== 'assistant' || !scope.xpertId.trim()) {
             throw new ForbiddenException(t('server-ai:Error.EnterpriseAssistantBindingRequired'))
         }
 
@@ -157,7 +156,7 @@ export class PublishedXpertAccessService {
         }
 
         return {
-            xpertId: apiKey.entityId.trim(),
+            xpertId: scope.xpertId.trim(),
             platform,
             integrationId
         }
@@ -678,6 +677,19 @@ export class PublishedXpertAccessService {
             }
         }
 
+        return this.assertCurrentUserAccess(id, xpert)
+    }
+
+    /** File browsing requires a live user grant, not a Project-delegated Assistant audience alone. */
+    async getAccessiblePublishedXpertForCurrentUser(id: string) {
+        const xpert = await this.getAccessiblePublishedXpert(id)
+        if (this.currentUserXpertId()) {
+            return this.assertCurrentUserAccess(id, xpert)
+        }
+        return xpert
+    }
+
+    private async assertCurrentUserAccess(id: string, xpert: Xpert) {
         const userId = this.currentAccessUserId()
 
         if (!xpert.organizationId) {

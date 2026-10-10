@@ -1,3 +1,7 @@
+import { GROUP_CONTROLLERS } from './groups'
+import { GroupWorkbenchGuard } from './groups/group-workbench.guard'
+import { GroupScopeGuard } from './groups/group-scope.guard'
+import { ChatGroupModule } from '../chat-group/chat-group.module'
 import { ThreadActivityService } from './thread-activity/thread-activity.service'
 import { ConversationArtifactsController } from './conversation-artifacts.controller'
 import { VoiceController, VoiceCapabilityController } from './voice.controller'
@@ -45,9 +49,7 @@ import { EnvironmentModule } from '../environment'
 import { AssistantBindingModule } from '../assistant-binding'
 import { XpertAgentModule } from '../xpert-agent'
 import { SkillPackageModule } from '../skill-package'
-import { RuntimeCommandService } from './runtime-command.service'
 import { PromptWorkflowModule } from '../prompt-workflow'
-import { RuntimeCapabilitiesService } from './runtime-capabilities.service'
 import { SseStreamModule } from '../shared/stream'
 import { XpertProjectModule } from '../xpert-project'
 import { FileUnderstandingModule } from '../file-understanding'
@@ -74,6 +76,7 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
                 module: AIModule
             }
         ]),
+        ChatGroupModule,
         WorkspaceFileAccessModule,
         TenantModule,
         TypeOrmModule.forFeature([
@@ -114,6 +117,7 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
         forwardRef(() => XpertToolsetModule)
     ],
     controllers: [
+        ...GROUP_CONTROLLERS,
         ConversationArtifactsController,
         VoiceController,
         VoiceCapabilityController,
@@ -135,6 +139,8 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
         StoreController
     ],
     providers: [
+        GroupScopeGuard,
+        GroupWorkbenchGuard,
         ThreadActivityService,
         VoiceSessionService,
         VoiceTaskService,
@@ -144,8 +150,6 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
         WorkbenchFilesAuthGuard,
         AssistantThreadScopeGuard,
         AiService,
-        RuntimeCommandService,
-        RuntimeCapabilitiesService,
         ConversationAgentRunsService,
         ...CommandHandlers,
         ...QueryHandlers

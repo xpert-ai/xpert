@@ -27,6 +27,7 @@ import {
 import { SandboxTerminalAuthGuard } from './sandbox-terminal-auth.guard'
 import { Socket } from 'socket.io'
 import { SandboxConversationContextService } from './sandbox-conversation-context.service'
+import { runWithCapturedRequestContext } from '../shared/request-context'
 
 type TerminalSessionEntry = {
     closeReason?: SandboxTerminalClosedReason
@@ -58,11 +59,25 @@ export class SandboxTerminalGateway implements OnGatewayDisconnect {
 
         try {
             const actor = readAuthenticatedSocketUser(client)
-            const resolved = await this.sandboxConversationContextService.resolveConversationSandbox({
-                conversationId: data.conversationId,
-                projectId: data.projectId,
-                ...(actor ? { actor } : {})
-            })
+            const organizationId: unknown =
+                client.handshake?.headers?.['organization-id'] ?? client.handshake?.auth?.organizationId
+            // WebSocket handlers do not run through HTTP request-context middleware.
+            // Keep the authenticated actor and selected scope available to workspace access checks.
+            const resolved = await runWithCapturedRequestContext(
+                {
+                    user: actor ?? null,
+                    headers: {
+                        ...(actor ? { 'tenant-id': actor.tenantId } : {}),
+                        ...(typeof organizationId === 'string' ? { 'organization-id': organizationId } : {})
+                    }
+                },
+                () =>
+                    this.sandboxConversationContextService.resolveConversationSandbox({
+                        conversationId: data.conversationId,
+                        projectId: data.projectId,
+                        ...(actor ? { actor } : {})
+                    })
+            )
             if (pendingOpen.canceled) {
                 return
             }

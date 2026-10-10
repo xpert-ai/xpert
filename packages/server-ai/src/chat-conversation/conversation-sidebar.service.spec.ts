@@ -106,6 +106,7 @@ describe('ChatConversationSidebarService', () => {
         })
         listQuery.getManyAndCount.mockResolvedValue([[{ ...conversation, id: 'old' }], 1])
         const result = await service.list('assistant-1')
+        expect(listQuery.andWhere).toHaveBeenCalledWith("conversation.purpose = 'private'")
         expect(listQuery.orderBy).toHaveBeenCalledWith(expect.stringContaining('CASE WHEN'), 'ASC')
         expect(listQuery.setParameter).toHaveBeenCalledWith('pinnedIds', ['old'])
         expect(listQuery.andWhere).toHaveBeenCalledWith('conversation.id NOT IN (:...archivedIds)', {
