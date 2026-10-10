@@ -43,6 +43,7 @@ import { EntitySubscriberInterface } from 'typeorm'
 import { BootstrapModule } from './bootstrap.module'
 import { createCorsOriginMatcher } from './cors-origin'
 import { createHttpRequestMetricsMiddleware } from './http-request-metrics'
+import { captureHttpRouterMountTemplates } from './http-route-templates'
 import { createMcpPublicationJsonBodyParser } from './mcp-publication-body-parser'
 import { createSandboxAwareBodyParserType } from './sandbox-proxy-body-parser'
 import { configureSession } from './session'
@@ -50,6 +51,7 @@ import { configureTrustProxy } from './trust-proxy'
 import { withSchemaSyncProtection } from './schema-sync-bootstrap'
 
 export async function bootstrap(options: { title: string; version: string }) {
+  captureHttpRouterMountTemplates()
   // Pre-bootstrap the application configuration
   const config = await preBootstrapApplicationConfig({})
   initializeApplicationTracingFromEnv()

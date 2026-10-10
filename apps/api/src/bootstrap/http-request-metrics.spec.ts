@@ -149,7 +149,111 @@ describe('HTTP API request metrics', () => {
     app.use('/api/projects/:projectId', router)
     const response = await fetch(`${origin}/api/projects/private-project/items/private-item`)
     await response.text()
-    expect(requests).toEqual([expect.objectContaining({ route: '/items/:id' })])
+    expect(requests).toEqual([expect.objectContaining({ route: '/api/projects/:projectId/items/:id' })])
     expect(JSON.stringify(requests)).not.toMatch(/private-project|private-item/)
+  })
+
+  it('records API requests regardless of URL casing and excludes mixed-case health checks and scrapes', async () => {
+    app.get('/api/items/:id', (_request, response) => response.sendStatus(200))
+    app.get('/api/health', (_request, response) => response.sendStatus(200))
+    app.get('/api/metrics', (_request, response) => response.sendStatus(200))
+    for (const path of ['/API/items/one', '/Api/Items/two', '/API/HEALTH', '/api/METRICS']) {
+      const response = await fetch(origin + path)
+      expect(response.status).toBe(200)
+      await response.text()
+    }
+    expect(requests).toEqual([
+      expect.objectContaining({ route: '/api/items/:id' }),
+      expect.objectContaining({ route: '/api/items/:id' })
+    ])
+  })
+
+  it('keeps the same child route distinct under different router mounts', async () => {
+    for (const prefix of ['/api/catalog', '/api/history']) {
+      const router = express.Router()
+      router.get('/items/:id', (_request, response) => response.sendStatus(200))
+      app.use(prefix, router)
+      const response = await fetch(`${origin}${prefix}/items/private-item`)
+      await response.text()
+    }
+    expect(requests).toEqual([
+      expect.objectContaining({ route: '/api/catalog/items/:id' }),
+      expect.objectContaining({ route: '/api/history/items/:id' })
+    ])
+  })
+
+  it('retains every parameterized mount template across nested routers without changing params', async () => {
+    const parent = express.Router()
+    const child = express.Router()
+    child.get('/items/:id', (request, response) => response.json(request.params))
+    parent.use('/sections/:section', child)
+    app.use('/api/projects/:projectId', parent)
+    const response = await fetch(`${origin}/api/projects/private-project/sections/private-section/items/private-item`)
+    expect(await response.json()).toEqual({ id: 'private-item' })
+    expect(requests).toEqual([
+      expect.objectContaining({ route: '/api/projects/:projectId/sections/:section/items/:id' })
+    ])
+    expect(JSON.stringify(requests)).not.toMatch(/private-project|private-section|private-item/)
+  })
+
+  it('distinguishes aliases when the same router is mounted at an array of paths', async () => {
+    const router = express.Router()
+    router.get('/items/:id', (_request, response) => response.sendStatus(200))
+    app.use(['/api/catalog', '/api/history'], router)
+    for (const prefix of ['/api/catalog', '/api/history']) {
+      const response = await fetch(`${origin}${prefix}/items/private-item`)
+      await response.text()
+    }
+    expect(requests).toEqual([
+      expect.objectContaining({ route: '/api/catalog/items/:id' }),
+      expect.objectContaining({ route: '/api/history/items/:id' })
+    ])
+  })
+
+  it('retains the full mounted route when its error is handled outside the router', async () => {
+    const router = express.Router()
+    router.get('/items/:id', (_request, _response, next) => next(new Error('test failure')))
+    app.use('/api/catalog', router)
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    app.use((_error: Error, _request: express.Request, response: express.Response, _next: express.NextFunction) => {
+      response.sendStatus(500)
+    })
+    const response = await fetch(`${origin}/api/catalog/items/private-item`)
+    expect(response.status).toBe(500)
+    await response.text()
+    expect(requests).toEqual([expect.objectContaining({ route: '/api/catalog/items/:id', statusCode: 500 })])
+  })
+
+  it('keeps mounted route identities isolated across concurrent asynchronous requests', async () => {
+    let releaseCatalog: () => void
+    const catalogStarted = new Promise<void>((resolve) => {
+      releaseCatalog = resolve
+    })
+    const historyStarted = new Promise<void>((resolve) => {
+      const history = express.Router()
+      history.get('/items/:id', async (_request, response) => {
+        await catalogStarted
+        resolve()
+        response.sendStatus(200)
+      })
+      app.use('/api/history', history)
+    })
+    const catalog = express.Router()
+    catalog.get('/items/:id', async (_request, response) => {
+      releaseCatalog()
+      await historyStarted
+      response.sendStatus(200)
+    })
+    app.use('/api/catalog', catalog)
+    await Promise.all(
+      ['/api/catalog', '/api/history'].map(async (prefix) => {
+        const response = await fetch(`${origin}${prefix}/items/private-item`)
+        await response.text()
+      })
+    )
+    expect(requests.map((request) => request.route).sort()).toEqual([
+      '/api/catalog/items/:id',
+      '/api/history/items/:id'
+    ])
   })
 })
