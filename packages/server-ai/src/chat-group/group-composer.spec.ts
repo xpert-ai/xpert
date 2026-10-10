@@ -30,7 +30,7 @@ describe('group Composer scope', () => {
     const projects = { findAvailableForXpert: jest.fn() }
     const types = { list: jest.fn() }
     const commands = { execute: jest.fn() }
-    const access = { authorize: jest.fn(), assistant: jest.fn() }
+    const access = { authorize: jest.fn(), assistant: jest.fn(), withRootUser: jest.fn() }
     const participants = { findOneBy: jest.fn() }
     const conversations = { findOneByOrFail: jest.fn() }
     const threads = { findOneByOrFail: jest.fn() }
@@ -47,6 +47,8 @@ describe('group Composer scope', () => {
     let service: GroupComposerService
     beforeEach(async () => {
         jest.clearAllMocks()
+        access.authorize.mockResolvedValue({ group: { id: 'group' }, actor: { subjectId: 'human' } })
+        access.withRootUser.mockImplementation(async (_group, _user, task) => task())
         feature.canActivate.mockResolvedValue(true)
         projectAccess.assertCanUseXpert.mockResolvedValue(undefined)
         participants.findOneBy.mockResolvedValue(member)
@@ -169,24 +171,24 @@ describe('group Composer scope', () => {
     it('uses the injected resources after Project authorization for catalog, validation and OAuth', async () => {
         const selection = { revision: 1, resources: [] }
         resources.resolve.mockResolvedValue({ selection })
-        await service.resourceCatalog('assistant', { projectId: 'project', search: 'skill' })
+        await service.resourceCatalog(member, { projectId: 'project', search: 'skill' })
         expect(resources.catalog).toHaveBeenCalledWith('assistant', { projectId: 'project', search: 'skill' })
-        await expect(service.validateResources('assistant', selection, 'project')).resolves.toBe(selection)
+        await expect(service.validateResources(member, selection, 'project')).resolves.toBe(selection)
         expect(resources.resolve).toHaveBeenCalledWith('assistant', selection, 'project')
         const reference = { projectId: 'project', bindingId: 'binding', version: '1', serverName: 'mcp' }
-        await service.authorizeResource('assistant', reference)
+        await service.authorizeResource(member, reference)
         expect(resources.authorize).toHaveBeenCalledWith('assistant', reference)
         expect(projectAccess.assertCanUseXpert).toHaveBeenCalledTimes(3)
         expect(projectAccess.assertCanUseXpert).toHaveBeenCalledWith('project', 'assistant')
     })
     it('blocks resource and Project file operations when Project access is denied', async () => {
         projectAccess.assertCanUseXpert.mockRejectedValue(new Error('Project denied'))
-        await expect(service.resourceCatalog('assistant', { projectId: 'project' })).rejects.toThrow('Project denied')
-        await expect(service.validateResources('assistant', { revision: 0, resources: [] }, 'project')).rejects.toThrow(
+        await expect(service.resourceCatalog(member, { projectId: 'project' })).rejects.toThrow('Project denied')
+        await expect(service.validateResources(member, { revision: 0, resources: [] }, 'project')).rejects.toThrow(
             'Project denied'
         )
         await expect(
-            service.authorizeResource('assistant', {
+            service.authorizeResource(member, {
                 projectId: 'project',
                 bindingId: 'b',
                 version: '1',
