@@ -1,5 +1,25 @@
 # @xpert-ai/desktop
 
+## 0.3.0
+
+### Minor Changes
+
+- 4fff330: Upgrade the shared ChatKit packages to 0.13.0 across Cloud, Desktop and server-side chat contracts, keeping workspace and deployment dependency locks aligned.
+
+  Support shared group conversations with human and digital expert participants through the existing ChatKit chat, composer, header and workbench. Include participant-aware messages, member management and links to digital expert execution conversations, along with the new-tab workbench fallback and model names in context usage information.
+
+### Patch Changes
+
+- 074fe87: Resolve macOS signing entitlement files from the Desktop app directory so certificate-signed CI installers can read the app and helper permissions from the isolated workspace.
+- 1d82d89: Fix Bosi installer builds on all platforms by resolving the signing verification hook from the Desktop app directory. Preserve microphone entitlements in ad-hoc macOS builds so audio capture passes the same signing checks as certificate-signed builds.
+- 1df2927: Allow certificate-free ad-hoc macOS signing in pull-request builds so the packaged app, Electron helpers and native recorder pass the audio entitlement checks. Keep certificate secrets restricted to branch builds.
+- 17e0342: Add a generic, user-initiated microphone and system-audio capture capability on macOS 15+. Deliver versioned capture events and WAV chunks to callbacks declared by the requesting plugin View, with encrypted local buffering, resumable delivery, device ownership checks, and shutdown on sleep or account changes. Keep application workflows in plugins and publish the shared command and delivery contracts.
+- b7b2dd1: Include microphone entitlements in macOS app and helper signatures and verify packaged audio executables after signing. Share native microphone permission checks between realtime voice and plugin audio capture, report signing and consent failures before opening a voice session, and detect missing input or sustained digital silence during calls without treating intentional mute as a fault. Distinguish system-audio permission failures from microphone failures.
+- 7b1c018: Fix missing Assistant avatars imported from templates in Desktop by preserving validated inline image Data URLs in Assistant lists and template/expert catalogs. Share avatar URL normalization, enforce the existing 5 MiB avatar limit for embedded images, and retain emoji and default-avatar fallbacks for unsupported URLs.
+- 4d2d5ae: Show the current organization's unread Assistant message total on the macOS Dock icon. Share a main-process activity snapshot with the sidebar, keep polling while the window is hidden or closed, and refresh after messages are marked read. Clear counts on account, organization, or server changes, reject stale responses, and avoid double-counting local Assistant copies.
+- Updated dependencies [17e0342]
+  - @xpert-ai/desktop-protocol@0.3.0
+
 ## 0.2.1
 
 ### Patch Changes

@@ -1,5 +1,49 @@
 # @xpert-ai/server-ai
 
+## 3.12.0
+
+### Minor Changes
+
+- 4fff330: Upgrade the shared ChatKit packages to 0.13.0 across Cloud, Desktop and server-side chat contracts, keeping workspace and deployment dependency locks aligned.
+
+    Support shared group conversations with human and digital expert participants through the existing ChatKit chat, composer, header and workbench. Include participant-aware messages, member management and links to digital expert execution conversations, along with the new-tab workbench fallback and model names in context usage information.
+
+### Patch Changes
+
+- eecb9fa: Configure required builtin toolsets when enabling marketplace applications. Discover and deduplicate template dependencies across Assistant suites, select authorized source configurations, and provision independently managed copies before installing Assistants. Preserve toolset IDs during repair, roll back newly created copies on failure, and include them in installation health checks.
+
+    Prepare a scoped configuration Workspace before opening toolset authorization. Persist new toolset bindings directly in that Workspace, support resuming or explicitly discarding unactivated configuration, and retain saved authorization after activation failures. Reject invalid Workspace identifiers before database access.
+
+- 6fd5b42: Authorize Assistant runtime files through the exact published Assistant's access policy, independently of authoring workspace membership. Users granted access through a user group can read, upload, modify and delete shared Assistant files; user-scoped files remain isolated to the authenticated user. Revalidate access across runtime file entry points while preserving Studio authoring checks and Project access rules.
+
+    Move conversation runtime file operations under `/ai/conversations/:id/workspace/*` to avoid colliding with the parsed attachment listing at `/ai/conversations/:id/files`. Preserve legacy single-file routes and deploy alongside the matching `@xpert-ai/xpert-sdk` Workbench route update. Document the two workspace concepts and verify collaborative access with local accounts.
+
+- 0ee0b6c: Let conversation admission claim background Assistant runs instead of pre-marking conversations busy. Finalize reserved executions when startup is rejected and normalize nullable task errors to the optional receipt contract.
+- 28ad9f5: Allow authenticated ChatKit hosts to read granted previews and downloads without browser cookies. Revalidate file-session ownership, Assistant binding, current resource access and file identity; preserve scoped grants, expiry, revocation, HEAD and byte-range responses.
+- 7b1c018: Fix PostgreSQL UUID/text parameter comparison in personal workspace lookup, which caused Bosi onboarding to return HTTP 500 before loading capabilities and services. Preserve scoped workspace reuse and cover first-time creation and retries with PostgreSQL regression tests.
+- f76a9c9: Let organization administrators import the official Agent plugins from one Git snapshot with a single button. Reuse existing package versions, isolate package failures, and display import results without granting workspace access. Expose the shared import command for system setup.
+- c9f9379: Group Knowledge capabilities under `rag/capability` and expose resumable upload sessions through `Documents.uploads`. Support idempotent document imports without automatic processing, plus filename and folder-path search with MIME type filters so unprocessed images remain discoverable.
+
+    Allow organizations to read public tenant libraries while requiring super administrators to explicitly select tenant scope before managing them. Keep document processing behind write-access checks without switching the caller's request scope. Release the SDK and host implementation together for the new upload API.
+
+- eecb9fa: Support explicit coordinator and nested role dependencies in application Assistant suites. Validate delegation graphs, publish dependencies before callers, and include nested links in installation health checks. Repair entry-only installations in place, restore published drafts when needed, and retain scoped partial resources and all existing knowledgebase IDs for idempotent retries.
+- 2e4de0a: Refresh the packaged coding execution, knowledge workbench, project tasks, scheduler detail, and conversation map assets so the shipped remote components match their current source implementations.
+- 462f53d: Clean up audio files staged by the speech-to-text buffer API after transcription succeeds or fails, while leaving caller-owned uploads untouched. Log cleanup failures without discarding a transcript or masking the original transcription error.
+- 82b8db4: Preserve the ENOENT error code when scoped workspace file operations encounter missing files or an uninitialized root. Document the in-process runtime file contract so plugins can distinguish missing files from other failures without interpreting localized messages. Keep path boundaries and HTTP error responses unchanged.
+- Updated dependencies [eecb9fa]
+- Updated dependencies [17e0342]
+- Updated dependencies [f76a9c9]
+- Updated dependencies [c9f9379]
+- Updated dependencies [eecb9fa]
+- Updated dependencies [c5e19d5]
+- Updated dependencies [4b7a346]
+- Updated dependencies [4fff330]
+- Updated dependencies [82b8db4]
+    - @xpert-ai/contracts@3.21.0
+    - @xpert-ai/desktop-protocol@0.3.0
+    - @xpert-ai/plugin-sdk@3.21.0
+    - @xpert-ai/server-core@3.10.2
+
 ## 3.11.0
 
 ### Minor Changes
