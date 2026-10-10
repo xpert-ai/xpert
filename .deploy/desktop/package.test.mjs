@@ -3,7 +3,7 @@ import { test } from 'node:test'
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
-import { join, resolve } from 'node:path'
+import { isAbsolute, join, resolve } from 'node:path'
 import { platforms } from './release-plan.mjs'
 import { packaging, appPaths, removeEmptySigningCredentials } from './package.mjs'
 const require = createRequire(import.meta.url)
@@ -30,7 +30,8 @@ test('isolated CI packaging loads the signing hook from the app and retains audi
       }
       assert.deepEqual(config.mac.binaries, original.mac.binaries)
       for (const key of ['entitlements', 'entitlementsInherit']) {
-        const plist = readFileSync(resolve(appDirectory, config.mac[key]), 'utf8')
+        assert.ok(isAbsolute(config.mac[key]), `${key} must work from the CI workspace root`)
+        const plist = readFileSync(config.mac[key], 'utf8')
         assert.match(plist, /<key>com\.apple\.security\.device\.audio-input<\/key>\s*<true\/>/)
       }
     }

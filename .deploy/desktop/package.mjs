@@ -48,7 +48,10 @@ export function packaging(plan, target, env = process.env, appDirectory = resolv
       target: ['dmg', 'zip'],
       notarize: certificate && apple.every(Boolean),
       hardenedRuntime: true,
-      ...(certificate ? {} : { identity: '-', entitlements: adhocEntitlements, entitlementsInherit: adhocEntitlements })
+      // codesign reads these from cwd too, rather than electron-builder's projectDir.
+      entitlements: certificate ? resolve(appDirectory, original.mac.entitlements) : adhocEntitlements,
+      entitlementsInherit: certificate ? resolve(appDirectory, original.mac.entitlementsInherit) : adhocEntitlements,
+      ...(certificate ? {} : { identity: '-' })
     }
     config.forceCodeSigning = certificate
     signing = certificate ? (config.mac.notarize ? 'signed-notarized' : 'signed') : 'ad-hoc'
