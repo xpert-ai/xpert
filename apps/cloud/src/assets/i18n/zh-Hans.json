@@ -2273,6 +2273,24 @@
       "InstallNow": "立即安装",
       "InstallOrUpdate": "安装或更新",
       "Application": {
+        "Toolsets": {
+          "Title": "必需工具集",
+          "Description": "首次新增配置将准备应用工作空间。新配置直接保存在其中；选择已有配置时，会在启用应用时复制。",
+          "Refresh": "刷新配置",
+          "Select": "选择工具集配置",
+          "Personal": "我的配置",
+          "Empty": "暂无可用配置，请先新增配置。",
+          "Configure": "新增配置",
+          "Configured": "应用工作空间已配置，将复用现有工具集。",
+          "ProviderMissing": "请安装并启用 {{plugin}} 后配置此工具集。",
+          "ProvidersRequired": "部分工具提供方尚不可用，请安装对应插件后刷新。",
+          "ConfigurationsRequired": "请先完成下方必需工具集的配置，再启用应用。",
+          "Edit": "编辑配置",
+          "SetupChanged": "应用状态已变化，请刷新配置后重试。",
+          "DraftSaved": "配置会保留，关闭后可继续；点击应用后才创建知识库和助手。",
+          "Discard": "放弃配置",
+          "DiscardDescription": "将删除此应用尚未启用的工作空间及其中的工具集配置。其他工作空间中的来源配置不受影响。"
+        },
         "SetupExplanation": "应用已可用。初始化后，将为当前组织创建工作空间和入口助手。",
         "AppTemplate": "App 模板",
         "LoadingDetails": "正在加载应用详情…",
@@ -2306,7 +2324,8 @@
           "Repair": "修复应用",
           "Initializing": "初始化中…",
           "ApplyToOrganization": "应用到当前组织",
-          "RepairAndReinitialize": "修复并重新初始化"
+          "RepairAndReinitialize": "修复并重新初始化",
+          "ContinueConfiguration": "继续配置"
         },
         "Preflight": {
           "OrganizationRequired": "请先切换到一个组织，再启用此组织级应用。",
@@ -2321,7 +2340,8 @@
           "Initializing": "初始化中",
           "Failed": "初始化失败",
           "Degraded": "需要修复",
-          "NotInstalled": "待初始化"
+          "NotInstalled": "待初始化",
+          "Configuring": "待配置"
         },
         "Scope": {
           "Tenant": "租户级",

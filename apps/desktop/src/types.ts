@@ -202,7 +202,7 @@ export interface HostMethods {
 
   sidebarState: { input: undefined; output: SidebarState }
   updateSidebar: { input: SidebarUpdate; output: SidebarState }
-  botActivity: { input: undefined; output: BotActivity[] }
+  botActivity: { input: { refresh?: boolean } | undefined; output: BotActivity[] }
   botConversation: {
     input: { botId: string; threadId: string }
     output: { id: string; title: string | null; threadId: string | null }
@@ -320,6 +320,7 @@ declare global {
       onAvatarPointer?: (listener: (point: { x: number; y: number } | null) => void) => () => void
       onNewGroup?: (listener: () => void) => () => void
       onWindowActivated?: (listener: () => void) => () => void
+      onAssistantActivityChanged?: (listener: () => void) => () => void
       invoke: <K extends keyof HostMethods>(
         method: K,
         argument?: HostMethods[K]['input']

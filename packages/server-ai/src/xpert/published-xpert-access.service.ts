@@ -677,6 +677,19 @@ export class PublishedXpertAccessService {
             }
         }
 
+        return this.assertCurrentUserAccess(id, xpert)
+    }
+
+    /** File browsing requires a live user grant, not a Project-delegated Assistant audience alone. */
+    async getAccessiblePublishedXpertForCurrentUser(id: string) {
+        const xpert = await this.getAccessiblePublishedXpert(id)
+        if (this.currentUserXpertId()) {
+            return this.assertCurrentUserAccess(id, xpert)
+        }
+        return xpert
+    }
+
+    private async assertCurrentUserAccess(id: string, xpert: Xpert) {
         const userId = this.currentAccessUserId()
 
         if (!xpert.organizationId) {

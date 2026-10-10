@@ -62,6 +62,8 @@ import { XpertTemplateWorkspaceInitializer } from './template-workspace-initiali
 import { ModelAccessModule } from '../model-access'
 import { XpertModelAccessValidator } from './model-access-validator'
 import { XpertWorkspaceFilesService } from './xpert-workspace-files.service'
+import { AssistantFilesService } from './assistant-files/assistant-files.service'
+import { AssistantFileAccessService } from './assistant-files/assistant-file-access.service'
 import { AssistantUserPreference } from './assistant-user-preference.entity'
 import { AssistantUserPreferenceService } from './assistant-user-preference.service'
 import { AssistantModelSelectionService } from './assistant-model-selection.service'
@@ -141,14 +143,17 @@ import { XpertTriggerConnectionService } from './trigger-connection.service'
         XpertTemplateWorkspaceInitializer,
         XpertModelAccessValidator,
         XpertWorkspaceFilesService,
+        AssistantFilesService,
         AssistantUserPreferenceService,
         AssistantModelSelectionService,
+        AssistantFileAccessService,
         ...ScheduleTriggerStrategies,
         ...CommandHandlers,
         ...QueryHandlers
     ],
     exports: [
         XpertWorkspaceFilesService,
+        AssistantFilesService,
         XpertService,
         XpertPrincipalService,
         PublishedXpertAccessService,

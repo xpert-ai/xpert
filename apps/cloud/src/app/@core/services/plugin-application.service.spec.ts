@@ -110,4 +110,17 @@ describe('PluginApplicationService initialization refresh', () => {
     expect(workspaceRefresh).not.toHaveBeenCalled()
     expect(xpertAPI.refresh).not.toHaveBeenCalled()
   })
+
+  it('prepares configuration without announcing an enabled Assistant or refreshing resource lists', () => {
+    const identity = { pluginName: input.pluginName, appName: input.appName }
+    service.prepare(identity).subscribe()
+    const request = http.expectOne('/api/plugin-applications/prepare')
+    expect(request.request.body).toEqual(identity)
+    request.flush({ status: 'configuring', workspaceId: 'prepared' })
+    expect(workspaceRefresh).not.toHaveBeenCalled()
+    expect(xpertAPI.refresh).not.toHaveBeenCalled()
+    service.bindToolset({ ...identity, key: 'images', toolsetId: 'saved' }).subscribe()
+    http.expectOne('/api/plugin-applications/bind-toolset').flush({ status: 'configuring' })
+    expect(xpertAPI.refresh).not.toHaveBeenCalled()
+  })
 })

@@ -28,6 +28,57 @@ function assistant(id: string, templateKey: string, primary: string): IXpert {
     } as IXpert
 }
 describe('governed application suite graph', () => {
+    const nestedSuite: PluginMarketplaceAppAssistantSuite = {
+        ...suite,
+        coordinatorRoleKeys: ['quality'],
+        roles: [
+            { ...suite.roles[0], externalRoleKeys: ['images'] },
+            { key: 'images', templateKey: 'images', primaryAgentKey: 'Agent_Images' }
+        ]
+    }
+    it('validates nested role references, duplicate edges, reachability and cycles', () => {
+        expect(() => validateApplicationSuite(nestedSuite, 'coordinator')).not.toThrow()
+        for (const externalRoleKeys of [['missing'], ['quality'], ['images', 'images']]) {
+            expect(() =>
+                validateApplicationSuite(
+                    { ...nestedSuite, roles: [{ ...nestedSuite.roles[0], externalRoleKeys }, nestedSuite.roles[1]] },
+                    'coordinator'
+                )
+            ).toThrow()
+        }
+        expect(() => validateApplicationSuite({ ...nestedSuite, coordinatorRoleKeys: [] }, 'coordinator')).toThrow()
+        expect(() =>
+            validateApplicationSuite({ ...nestedSuite, coordinatorRoleKeys: ['unknown'] }, 'coordinator')
+        ).toThrow()
+        expect(() =>
+            validateApplicationSuite(
+                {
+                    ...nestedSuite,
+                    roles: [nestedSuite.roles[0], { ...nestedSuite.roles[1], externalRoleKeys: ['quality'] }]
+                },
+                'coordinator'
+            )
+        ).toThrow()
+    })
+    it('checks nested published edges and refuses undeclared coordinator delegation', () => {
+        const coordinator = assistant('coordinator', 'coordinator', 'Agent_Coordinator')
+        const quality = assistant('quality', 'quality', 'Agent_Quality')
+        const images = assistant('images', 'images', 'Agent_Images')
+        const roles = new Map([
+            ['quality', quality],
+            ['images', images]
+        ])
+        quality.graph = connectApplicationSuite(quality, nestedSuite, roles, 'quality')
+        coordinator.graph = connectApplicationSuite(coordinator, nestedSuite, roles)
+        expect(coordinator.graph.connections.map((edge) => edge.to)).toEqual(['quality'])
+        expect(() => verifyApplicationSuite(coordinator, nestedSuite, roles)).not.toThrow()
+        quality.graph.connections = []
+        expect(() => verifyApplicationSuite(coordinator, nestedSuite, roles)).toThrow(
+            'application_suite_binding_missing'
+        )
+        coordinator.draft.nodes.push({ type: 'xpert', key: images.id, entity: images, position: { x: 0, y: 0 } })
+        expect(() => connectApplicationSuite(coordinator, nestedSuite, roles)).toThrow()
+    })
     const standaloneSuite: PluginMarketplaceAppAssistantSuite = {
         ...suite,
         version: '2',
@@ -148,6 +199,27 @@ describe('governed application suite graph', () => {
         ])
         expect(() => verifyApplicationSuite({ ...coordinator, graph: draft }, suite, roles)).not.toThrow()
         expect(coordinator.draft?.connections).toHaveLength(0)
+    })
+    it('restores a cleared draft from the publication while preserving instance settings', () => {
+        const coordinator = assistant('coordinator', 'coordinator', 'Agent_Coordinator')
+        coordinator.graph = { nodes: coordinator.draft.nodes, connections: coordinator.draft.connections }
+        coordinator.draft = null
+        coordinator.description = 'Keep my published settings'
+        coordinator.slug = 'keep-link'
+        const roles = new Map([['quality', assistant('quality', 'quality', 'Agent_Quality')]])
+        const draft = connectApplicationSuite(coordinator, suite, roles)
+        expect(draft.team).toMatchObject({
+            id: coordinator.id,
+            slug: 'keep-link',
+            description: 'Keep my published settings',
+            options: coordinator.options
+        })
+        expect(draft.nodes.filter((node) => node.type === 'agent')).toEqual(coordinator.graph.nodes)
+        expect(draft.connections).toHaveLength(1)
+        expect(coordinator.graph.connections).toHaveLength(0)
+        expect(coordinator.draft).toBeNull()
+        coordinator.draft = { ...draft, team: { ...draft.team, description: 'Keep the current draft edit' } }
+        expect(connectApplicationSuite(coordinator, suite, roles).team.description).toBe('Keep the current draft edit')
     })
     it('rejects missing and optional published bindings', () => {
         const coordinator = assistant('coordinator', 'coordinator', 'Agent_Coordinator'),

@@ -16,6 +16,8 @@ import {
     PluginApplicationCatalogMetadata,
     PluginApplicationDetail,
     PluginApplicationInitializeInput,
+    PluginApplicationSetupInput,
+    PluginApplicationBindToolsetInput,
     PluginApplicationModelOption,
     PluginApplicationPreflight,
     PluginApplicationStatusSummary,
@@ -51,6 +53,15 @@ import { PluginResourceInstallResult } from './plugin-resource-installer.service
 import { XpertWorkspace } from '../xpert-workspace/workspace.entity'
 import { XpertWorkspaceService } from '../xpert-workspace/workspace.service'
 import { resolvePluginApplicationConfigAssets } from './plugin-application-assets'
+import {
+    ApplicationToolsetChanges,
+    PluginApplicationToolsetsService
+} from './application-toolsets/plugin-application-toolsets.service'
+import { t } from 'i18next'
+import {
+    PluginApplicationSetupService,
+    canDiscardApplicationConfiguration
+} from './application-setup/plugin-application-setup.service'
 
 /** Trusted App definition paired with the exact plugin template/version to install. */
 type ResolvedApplication = {
@@ -90,6 +101,12 @@ const ORGANIZATION_INITIALIZER_ROLES = new Set<RolesEnum>([RolesEnum.SUPER_ADMIN
  */
 @Injectable()
 export class PluginApplicationService {
+    @Inject(PluginApplicationToolsetsService)
+    private readonly applicationToolsets: PluginApplicationToolsetsService
+
+    @Inject(PluginApplicationSetupService)
+    private readonly applicationSetup: PluginApplicationSetupService
+
     constructor(
         @InjectRepository(PluginApplicationInstallation)
         private readonly installationRepo: Repository<PluginApplicationInstallation>,
@@ -138,6 +155,35 @@ export class PluginApplicationService {
         )
     }
 
+    /** Allocates only the configuration Workspace; model/toolset prerequisites belong to activation. */
+    async prepare(input: PluginApplicationSetupInput) {
+        const resolved = this.resolveApplication(input.pluginName, input.appName)
+        this.assertInitializationAccess(resolved.application)
+        return this.toStatus(await this.applicationSetup.prepare(resolved))
+    }
+
+    async bindToolset(input: PluginApplicationBindToolsetInput) {
+        const { application } = this.resolveApplication(input.pluginName, input.appName)
+        this.assertInitializationAccess(application)
+        return this.toStatus(
+            await this.applicationSetup.bind(application, { key: input.key, toolsetId: input.toolsetId })
+        )
+    }
+
+    async discardConfiguration(input: PluginApplicationSetupInput) {
+        const { application } = this.resolveApplication(input.pluginName, input.appName)
+        this.assertInitializationAccess(application)
+        await this.applicationSetup.discard(application)
+        return this.getStatusForApplication(application)
+    }
+
+    private assertInitializationAccess(application: PluginTemplateApplicationSummary) {
+        const access = this.initializationAccess(application)
+        if (access === 'unsupported') throw new BadRequestException('scope_not_supported')
+        if (access === 'organization_required') throw new BadRequestException('organization_scope_required')
+        if (access === 'role_required') throw new ForbiddenException('role_required')
+    }
+
     /**
      * Initializes or repairs an application in the current organization.
      * A healthy existing installation is returned before model validation so
@@ -151,16 +197,7 @@ export class PluginApplicationService {
             throw new BadRequestException('operationId is required')
         }
 
-        const access = this.initializationAccess(application)
-        if (access === 'unsupported') {
-            throw new BadRequestException('scope_not_supported')
-        }
-        if (access === 'organization_required') {
-            throw new BadRequestException('organization_scope_required')
-        }
-        if (access === 'role_required') {
-            throw new ForbiddenException('role_required')
-        }
+        this.assertInitializationAccess(application)
 
         const existing = await this.findCurrentInstallation(application)
         if (existing?.status === PLUGIN_APPLICATION_INSTALLATION_STATUS.READY) {
@@ -170,11 +207,25 @@ export class PluginApplicationService {
             }
         }
 
-        const preflight = await this.getPreflightForApplication(application)
+        const preflight = await this.getPreflightForApplication(application, existing)
         if (!preflight.supported) {
             throw new BadRequestException(preflight.reason ?? 'scope_not_supported')
         }
         if (!preflight.canInitialize) {
+            if (preflight.reason === 'toolset_provider_required') {
+                throw new BadRequestException(
+                    t('server-ai:Error.ApplicationToolsetProviderRequired', {
+                        defaultValue: 'Install the required tool provider plugins before enabling the application.'
+                    })
+                )
+            }
+            if (preflight.reason === 'toolset_configuration_required') {
+                throw new BadRequestException(
+                    t('server-ai:Error.ApplicationToolsetConfigurationRequired', {
+                        defaultValue: 'Configure the required toolsets before enabling the application.'
+                    })
+                )
+            }
             if (preflight.reason === 'role_required') {
                 throw new ForbiddenException(preflight.reason)
             }
@@ -202,6 +253,7 @@ export class PluginApplicationService {
             if (!this.assistantSuites) throw new BadRequestException('application_suite_runtime_unavailable')
             await this.assistantSuites.validate(application)
         }
+        const preparedToolsets = await this.applicationToolsets.prepare(application, input.toolsets, existing)
         const claim = await this.claimInstallation(resolved, operationId)
         const installation = claim.installation
 
@@ -218,7 +270,9 @@ export class PluginApplicationService {
 
         let createdWorkspaceId: string | null = null
         const createdKnowledgebaseIds: string[] = []
+        const toolsetChanges: ApplicationToolsetChanges = { created: [], restored: [] }
         let createdXpertId: string | null = null
+        let suiteProvisioningStarted = false
         /** Preserve pre-existing repair state; rollback must remove only resources created by this attempt. */
         const previousResourceState = {
             workspaceId: installation.workspaceId,
@@ -258,11 +312,13 @@ export class PluginApplicationService {
             }
             installation.workspaceId = workspaceId
             await this.installationRepo.save(installation)
+            await this.applicationToolsets.ensure(preparedToolsets, installation, toolsetChanges)
 
             const knowledgebases: Knowledgebase[] = []
+            const knowledgebaseIds = [...(installation.knowledgebaseIds ?? [])]
             for (const [index, knowledgebaseConfig] of (application.config.knowledgebases ?? []).entries()) {
-                let knowledgebase = installation.knowledgebaseIds?.[index]
-                    ? await this.knowledgebaseRepo.findOne({ where: { id: installation.knowledgebaseIds[index] } })
+                let knowledgebase = knowledgebaseIds[index]
+                    ? await this.knowledgebaseRepo.findOne({ where: { id: knowledgebaseIds[index] } })
                     : null
                 if (!knowledgebase) {
                     knowledgebase = await this.knowledgebaseService.create({
@@ -284,10 +340,12 @@ export class PluginApplicationService {
                     createdKnowledgebaseIds.push(this.requireResourceId(knowledgebase.id, 'knowledgebase'))
                 }
                 knowledgebases.push(knowledgebase)
-                /** Persist each resource before creating the next one so stale retries can resume by ID. */
-                installation.knowledgebaseIds = knowledgebases.map(({ id }) => id)
+                /** Retain unvisited IDs while saving progress so interrupted repairs can reuse them. */
+                knowledgebaseIds[index] = knowledgebase.id
+                installation.knowledgebaseIds = [...knowledgebaseIds]
                 await this.installationRepo.save(installation)
             }
+            installation.knowledgebaseIds = knowledgebases.map(({ id }) => id)
 
             /** Repair missing resources without duplicating a healthy Assistant from the previous attempt. */
             const existingXpert = installation.xpertId
@@ -303,6 +361,7 @@ export class PluginApplicationService {
             let xpertId = existingXpert?.id
             let xpertSlug = existingXpert?.slug ?? null
             if (application.config.assistantSuite) {
+                suiteProvisioningStarted = true
                 const suite = await this.assistantSuites.ensure(application, installation, workspaceId)
                 xpertId = suite.id
                 xpertSlug = suite.slug ?? null
@@ -345,11 +404,16 @@ export class PluginApplicationService {
             await this.installationRepo.save(installation)
             return this.toStatus(installation, xpertSlug)
         } catch (error) {
-            await this.compensate(createdWorkspaceId, createdKnowledgebaseIds, createdXpertId)
-            installation.workspaceId = previousResourceState.workspaceId
-            installation.knowledgebaseIds = previousResourceState.knowledgebaseIds
-            installation.xpertId = previousResourceState.xpertId
-            installation.resourceRefs = previousResourceState.resourceRefs
+            // A suite can already have published callers. Retain owned dependencies and
+            // per-role receipts so retries cannot duplicate or orphan part of its graph.
+            if (!suiteProvisioningStarted) {
+                await this.applicationToolsets.rollback(toolsetChanges, installation).catch(() => undefined)
+                await this.compensate(createdWorkspaceId, createdKnowledgebaseIds, createdXpertId)
+                installation.workspaceId = previousResourceState.workspaceId
+                installation.knowledgebaseIds = previousResourceState.knowledgebaseIds
+                installation.xpertId = previousResourceState.xpertId
+                installation.resourceRefs = previousResourceState.resourceRefs
+            }
             installation.status = PLUGIN_APPLICATION_INSTALLATION_STATUS.FAILED
             installation.errorCode = 'initialization_failed'
             installation.errorMessage = getErrorMessage(error)
@@ -445,7 +509,8 @@ export class PluginApplicationService {
 
     /** Computes role, scope, and organization-visible model prerequisites. */
     private async getPreflightForApplication(
-        application: PluginTemplateApplicationSummary
+        application: PluginTemplateApplicationSummary,
+        existingInstallation?: PluginApplicationInstallation | null
     ): Promise<PluginApplicationPreflight> {
         const organizationId = RequestContext.getOrganizationId()
         const modelRequirements = application.config.modelRequirements ?? {}
@@ -491,6 +556,20 @@ export class PluginApplicationService {
         if (modelRequirements.primary && !primaryModelAvailable) reason = 'primary_model_required'
         else if (modelRequirements.embedding && !embeddingModels.length) reason = 'embedding_model_required'
         else if (modelRequirements.vision && !visionModels.length) reason = 'vision_model_required'
+        const toolsetRequirements = await this.applicationToolsets.preflight(
+            application,
+            existingInstallation === undefined ? await this.findCurrentInstallation(application) : existingInstallation
+        )
+        if (!reason && toolsetRequirements.some((item) => !item.providerAvailable)) reason = 'toolset_provider_required'
+        else if (
+            !reason &&
+            toolsetRequirements.some((item) =>
+                item.configuredToolsetId
+                    ? !item.options.some((option) => option.id === item.configuredToolsetId)
+                    : !item.options.length
+            )
+        )
+            reason = 'toolset_configuration_required'
         return {
             supported,
             scope: application.scope,
@@ -501,6 +580,7 @@ export class PluginApplicationService {
             defaultEmbeddingModelId,
             defaultVisionModelId,
             primaryModelAvailable,
+            toolsetRequirements,
             modelRequirements
         }
     }
@@ -576,6 +656,7 @@ export class PluginApplicationService {
             throw new ConflictException('application_installation_conflict')
         }
         if (
+            installation.status === PLUGIN_APPLICATION_INSTALLATION_STATUS.CONFIGURING ||
             installation.status === PLUGIN_APPLICATION_INSTALLATION_STATUS.FAILED ||
             installation.status === PLUGIN_APPLICATION_INSTALLATION_STATUS.DEGRADED
         ) {
@@ -583,6 +664,7 @@ export class PluginApplicationService {
                 {
                     id: installation.id,
                     status: In([
+                        PLUGIN_APPLICATION_INSTALLATION_STATUS.CONFIGURING,
                         PLUGIN_APPLICATION_INSTALLATION_STATUS.FAILED,
                         PLUGIN_APPLICATION_INSTALLATION_STATUS.DEGRADED
                     ])
@@ -681,7 +763,8 @@ export class PluginApplicationService {
         const suiteHealthy =
             !application.config.assistantSuite ||
             (this.assistantSuites && (await this.assistantSuites.healthy(application, installation)))
-        if (!workspaceExists || !xpertExists || !knowledgebaseExists || !suiteHealthy) {
+        const toolsetsHealthy = await this.applicationToolsets.healthy(installation)
+        if (!workspaceExists || !xpertExists || !knowledgebaseExists || !suiteHealthy || !toolsetsHealthy) {
             installation.status = PLUGIN_APPLICATION_INSTALLATION_STATUS.DEGRADED
             installation.errorCode = 'resource_missing'
             installation.errorMessage = 'One or more initialized App resources are missing.'
@@ -707,7 +790,10 @@ export class PluginApplicationService {
             xpertId: installation.xpertId,
             assistantSlug: resolvedSlug === undefined ? (xpert?.slug ?? null) : resolvedSlug,
             errorCode: installation.errorCode,
-            errorMessage: installation.errorMessage
+            errorMessage: installation.errorMessage,
+            canDiscardConfiguration:
+                this.initializationAccess({ scope: installation.declaredScope }) === 'allowed' &&
+                canDiscardApplicationConfiguration(installation)
         }
     }
 

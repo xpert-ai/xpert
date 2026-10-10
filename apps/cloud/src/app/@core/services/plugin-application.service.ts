@@ -4,6 +4,8 @@ import {
   PluginApplicationCatalogItem,
   PluginApplicationDetail,
   PluginApplicationInitializeInput,
+  PluginApplicationSetupInput,
+  PluginApplicationBindToolsetInput,
   PluginApplicationStatusSummary
 } from '@xpert-ai/contracts'
 import { API_PREFIX } from '@cloud/app/@core/state'
@@ -40,5 +42,19 @@ export class PluginApplicationService {
         }
       })
     )
+  }
+
+  prepare(input: PluginApplicationSetupInput) {
+    return this.#http.post<PluginApplicationStatusSummary>(`${API_PREFIX}/plugin-applications/prepare`, input)
+  }
+
+  bindToolset(input: PluginApplicationBindToolsetInput) {
+    return this.#http.post<PluginApplicationStatusSummary>(`${API_PREFIX}/plugin-applications/bind-toolset`, input)
+  }
+
+  discardConfiguration(input: PluginApplicationSetupInput) {
+    return this.#http
+      .post<PluginApplicationStatusSummary>(`${API_PREFIX}/plugin-applications/discard-configuration`, input)
+      .pipe(tap(() => this.#workspaces.refresh()))
   }
 }

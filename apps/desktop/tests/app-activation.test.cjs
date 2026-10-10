@@ -71,6 +71,71 @@ test('browser fallback responds only to a hidden tab becoming visible', () => {
   assert.equal(refreshes, 1)
 })
 
+test('native sidebar consumes host snapshots without a renderer timer, including while hidden', async (t) => {
+  const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost/', pretendToBeVisual: true })
+  const previous = { window: global.window, document: global.document, act: global.IS_REACT_ACT_ENVIRONMENT }
+  global.window = dom.window
+  global.document = dom.window.document
+  global.IS_REACT_ACT_ENVIRONMENT = true
+  Object.defineProperty(dom.window.document, 'visibilityState', { value: 'hidden', configurable: true })
+  const listeners = new Set()
+  const activations = new Set()
+  dom.window.xpertDesktop = {
+    onAssistantActivityChanged: (listener) => {
+      listeners.add(listener)
+      return () => listeners.delete(listener)
+    },
+    onWindowActivated: (listener) => {
+      activations.add(listener)
+      return () => activations.delete(listener)
+    }
+  }
+  const timer = t.mock.method(dom.window, 'setInterval')
+  const calls = []
+  let unread = 2
+  const globals = { window: dom.window, document: dom.window.document }
+  const { useAssistantList } = renderer(
+    'useAssistantList.ts',
+    {
+      './host': {
+        invoke: async (method, input) => {
+          calls.push({ method, input })
+          if (method === 'botActivity') return [{ xpertId: 'a', unreadMessages: unread }]
+          if (method === 'sidebarState') return { items: [], copies: [], sections: [] }
+          throw new Error(`Unexpected host call: ${method}`)
+        }
+      },
+      './i18n': { t: (key) => key },
+      './app-activation': renderer('app-activation.ts', {}, globals)
+    },
+    globals
+  )
+  function Probe() {
+    const list = useAssistantList('organization', 'a')
+    return React.createElement('span', { id: 'unread' }, list.activities[0]?.unreadMessages)
+  }
+  const root = require('react-dom/client').createRoot(document.getElementById('root'))
+  t.after(async () => {
+    await React.act(() => root.unmount())
+    assert.equal(listeners.size, 0)
+    assert.equal(activations.size, 0)
+    dom.window.close()
+    global.window = previous.window
+    global.document = previous.document
+    global.IS_REACT_ACT_ENVIRONMENT = previous.act
+  })
+  await React.act(() => root.render(React.createElement(Probe)))
+  assert.equal(document.getElementById('unread').textContent, '2')
+  assert.equal(timer.mock.callCount(), 0)
+  unread = 5
+  await React.act(() => listeners.forEach((listener) => listener()))
+  assert.equal(document.getElementById('unread').textContent, '5')
+  assert.equal(calls.at(-1).input.refresh, false, 'host change notifications only read the shared snapshot')
+  await React.act(() => activations.forEach((listener) => listener()))
+  assert.equal(calls.at(-1).input.refresh, true, 'native activation requests a fresh count')
+  assert.equal(timer.mock.callCount(), 0)
+})
+
 test('sidebar ignores DOM focus and keeps rows and conversation mounted during native background refresh', async (t) => {
   const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost/', pretendToBeVisual: true })
   const previous = { window: global.window, document: global.document, act: global.IS_REACT_ACT_ENVIRONMENT }

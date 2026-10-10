@@ -9,10 +9,12 @@ import {
     UnauthorizedException
 } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+import { CommandBus } from '@nestjs/cqrs'
 import type { Cache } from 'cache-manager'
 import type { CookieOptions, Request } from 'express'
 import { randomUUID } from 'node:crypto'
 import { basename } from 'node:path'
+import { isDeepStrictEqual } from 'node:util'
 import type { JwtPayload } from 'jsonwebtoken'
 import { sign, verify } from 'jsonwebtoken'
 import { t } from 'i18next'
@@ -28,6 +30,7 @@ import { environment } from '@xpert-ai/server-config'
 import { ViewExtensionService } from '@xpert-ai/server-core'
 import { resolveWorkspaceVolumeScope } from '../file-understanding'
 import { VOLUME_CLIENT, VolumeClient, VolumeHandle } from '../shared'
+import { ResolveAssistantFileAccessCommand } from '../xpert/assistant-files/resolve-assistant-file-access.command'
 
 export const WORKSPACE_FILE_ACCESS_COOKIE_NAME = 'xpert_workspace_file_access'
 const WORKSPACE_FILE_ACCESS_AUDIENCE = 'workspace-view-file-access'
@@ -98,7 +101,8 @@ export class WorkspaceFileAccessService {
         private readonly configService: ConfigService,
         private readonly viewExtensionService: ViewExtensionService,
         @Inject(VOLUME_CLIENT)
-        private readonly volumeClient: VolumeClient
+        private readonly volumeClient: VolumeClient,
+        private readonly commandBus: CommandBus
     ) {}
 
     async createSession(
@@ -116,6 +120,7 @@ export class WorkspaceFileAccessService {
             input.viewKey,
             { runtimeScope: input.runtimeScope }
         )
+        await this.assertAssistantFileAccess(resolved.context)
         const sessionId = randomUUID()
         const expiresAt = new Date(Date.now() + WORKSPACE_FILE_ACCESS_TTL_MS).toISOString()
         const session: WorkspaceFileAccessSessionRecord = {
@@ -175,6 +180,7 @@ export class WorkspaceFileAccessService {
 
     async createGrant(sessionId: string, request: XpertViewFileAccessRequest): Promise<XpertViewFileAccessGrantResult> {
         const session = await this.requireAuthenticatedSession(sessionId)
+        await this.assertAssistantFileAccess(session)
         const resolved = await this.viewExtensionService.resolveViewFileResource(
             session.hostType,
             session.hostId,
@@ -282,13 +288,24 @@ export class WorkspaceFileAccessService {
 
     /** Native hosts authenticate explicitly when their embedded browser cannot retain file cookies. */
     async authorizeAuthenticatedDownload(sessionId: string, grantId: string, fileName: string) {
+        return this.authorizeAuthenticatedContent(sessionId, grantId, fileName, 'download')
+    }
+
+    /** Revalidate the owner, stored scope and current resource before returning granted bytes. */
+    async authorizeAuthenticatedContent(
+        sessionId: string,
+        grantId: string,
+        fileName: string,
+        requiredPurpose?: XpertViewFileAccessPurpose
+    ): Promise<WorkspaceFileAccessAuthorization> {
         const session = await this.requireAuthenticatedSession(sessionId)
+        await this.assertAssistantFileAccess(session)
         const grant = await this.cacheManager.get<WorkspaceFileAccessGrantRecord>(this.grantKey(sessionId, grantId))
         if (
             !grant ||
             grant.sessionId !== sessionId ||
             grant.publicFileName !== fileName ||
-            grant.purpose !== 'download' ||
+            (requiredPurpose && grant.purpose !== requiredPurpose) ||
             !bindingsMatch(session, grant) ||
             hasExpired(grant.expiresAt)
         )
@@ -298,7 +315,7 @@ export class WorkspaceFileAccessService {
             session.hostType,
             session.hostId,
             session.viewKey,
-            { fileKey: grant.fileKey, targetId: grant.targetId, purpose: 'download' },
+            { fileKey: grant.fileKey, targetId: grant.targetId, purpose: grant.purpose },
             { runtimeScope: session.runtimeScope }
         )
         this.assertContextMatchesSession(session, {
@@ -313,6 +330,19 @@ export class WorkspaceFileAccessService {
                 `${resolved.context.hostType}:${resolved.context.hostId}`,
             runtimeScope: session.runtimeScope
         })
+        this.assertPortableReference(session, resolved.resource.reference)
+        // A file key can be rebound. An old grant must never select a different or withdrawn file.
+        const volumeScope = (reference: WorkspacePortableFileReference) =>
+            resolveWorkspaceVolumeScope(reference, {
+                tenantId: session.tenantId,
+                userId: reference.userId ?? session.userId
+            })
+        if (
+            resolved.resource.reference.filePath !== grant.reference.filePath ||
+            !isDeepStrictEqual(volumeScope(resolved.resource.reference), volumeScope(grant.reference))
+        ) {
+            throw new NotFoundException(errorMessage('WorkspaceFileAccessNotFound', 'Workspace file was not found.'))
+        }
         return { session, grant }
     }
 
@@ -405,6 +435,17 @@ export class WorkspaceFileAccessService {
             )
         }
         return session
+    }
+
+    private async assertAssistantFileAccess(binding: {
+        hostType: string
+        hostId: string
+        runtimeScope?: XpertViewRuntimeScopeInput
+    }) {
+        // Project Views retain their independently checked Project membership and binding.
+        if (binding.hostType === 'agent' && !binding.runtimeScope?.projectId) {
+            await this.commandBus.execute(new ResolveAssistantFileAccessCommand(binding.hostId, 'read', 'runtime'))
+        }
     }
 
     private assertContextMatchesSession(

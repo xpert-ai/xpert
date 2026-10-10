@@ -42,7 +42,10 @@ export class EnsurePersonalDefaultWorkspaceHandler implements ICommandHandler<En
             .andWhere(`COALESCE((workspace.settings)::jsonb -> 'system' ->> 'kind', '') = :kind`, {
                 kind: 'user-default'
             })
-            .andWhere(`COALESCE((workspace.settings)::jsonb -> 'system' ->> 'userId', '') = :userId`, { userId })
+            // ownerId makes the shared parameter a UUID; JSON ->> yields text.
+            .andWhere(`COALESCE((workspace.settings)::jsonb -> 'system' ->> 'userId', '') = CAST(:userId AS text)`, {
+                userId
+            })
             .orderBy('workspace.createdAt', 'ASC')
             .addOrderBy('workspace.id', 'ASC')
             .getMany()

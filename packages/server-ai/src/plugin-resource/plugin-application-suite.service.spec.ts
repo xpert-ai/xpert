@@ -14,7 +14,7 @@ import { XpertService } from '../xpert/xpert.service'
 import { XpertTemplateService } from '../xpert-template/xpert-template.service'
 import type { PluginTemplateInstallCommand } from './commands/install-template.command'
 
-jest.mock('@xpert-ai/server-core', () => ({ RequestContext: { getLanguageCode: () => 'en-US' } }))
+jest.mock('@xpert-ai/plugin-sdk', () => ({ RequestContext: { getLanguageCode: () => 'en-US' } }))
 jest.mock('../xpert/xpert.service', () => ({ XpertService: class XpertService {} }))
 jest.mock('../xpert-template/xpert-template.service', () => ({ XpertTemplateService: class XpertTemplateService {} }))
 jest.mock('./plugin-application-installation.entity', () => ({
@@ -42,7 +42,7 @@ const application: PluginTemplateApplicationSummary = {
         workspace: { mode: 'dedicated', name: 'Automotive Workspace', sharing: 'organization' }
     }
 }
-async function harness() {
+async function harness(definitionSuite = suite) {
     const installation = Object.assign(new PluginApplicationInstallation(), {
         id: 'installation-001',
         tenantId: 'tenant-001',
@@ -53,9 +53,9 @@ async function harness() {
     const teams = new Map<string, IXpert>()
     let sequence = 0
     const definitions = [
-        { templateKey: 'coordinator', primaryAgentKey: suite.coordinatorAgentKey },
-        ...suite.roles,
-        ...suite.standaloneAssistants
+        { templateKey: 'coordinator', primaryAgentKey: definitionSuite.coordinatorAgentKey },
+        ...definitionSuite.roles,
+        ...(definitionSuite.standaloneAssistants ?? [])
     ]
     const bus = {
         execute: jest.fn(async (command: PluginTemplateInstallCommand) => {
@@ -93,7 +93,8 @@ async function harness() {
         }),
         publish: jest.fn(async (id: string) => {
             const team = teams.get(id)
-            team.graph = team.draft
+            team.graph = structuredClone({ nodes: team.draft.nodes, connections: team.draft.connections })
+            team.draft = null
             team.publishAt = new Date()
             team.latest = true
         }),
@@ -175,7 +176,7 @@ describe('application suite standalone Assistant provisioning', () => {
         expect(h.bus.execute).toHaveBeenCalledTimes(4)
         await expect(h.service.healthy(application, h.installation)).resolves.toBe(true)
     })
-    it('rolls back only newly created Assistants when an upgrade fails to publish', async () => {
+    it('retains owned partial resources and resumes without duplicates after publication fails', async () => {
         const h = await harness()
         const old = {
             ...application,
@@ -191,9 +192,14 @@ describe('application suite standalone Assistant provisioning', () => {
         await expect(h.service.ensure(application, h.installation, h.installation.workspaceId)).rejects.toThrow(
             'publish_failed'
         )
-        expect(h.installation.resourceRefs).toEqual(refs)
-        expect([...h.teams.keys()]).toEqual(existingIds)
-        expect(h.xperts.delete).toHaveBeenCalledTimes(1)
+        expect(h.installation.resourceRefs).toMatchObject(refs)
+        expect([...h.teams.keys()]).toEqual(expect.arrayContaining(existingIds))
+        expect(h.xperts.delete).not.toHaveBeenCalled()
+        const ids = [...h.teams.keys()]
+        await expect(h.service.healthy(application, h.installation)).resolves.toBe(false)
+        await h.service.ensure(application, h.installation, h.installation.workspaceId)
+        expect([...h.teams.keys()]).toEqual(ids)
+        await expect(h.service.healthy(application, h.installation)).resolves.toBe(true)
     })
     it.each(['tenantId', 'organizationId', 'workspaceId'] as const)(
         'rejects a standalone Assistant with mismatched %s',
@@ -208,4 +214,53 @@ describe('application suite standalone Assistant provisioning', () => {
             expect(h.xperts.delete).not.toHaveBeenCalled()
         }
     )
+    it('publishes nested dependencies before callers and checks their bindings on repair', async () => {
+        const nestedSuite: PluginMarketplaceAppAssistantSuite = {
+            ...suite,
+            coordinatorRoleKeys: ['quality'],
+            roles: [
+                { ...suite.roles[0], externalRoleKeys: ['writer'] },
+                { key: 'writer', templateKey: 'writer', primaryAgentKey: 'Agent_Writer', externalRoleKeys: ['images'] },
+                { key: 'images', templateKey: 'images', primaryAgentKey: 'Agent_Images' }
+            ]
+        }
+        const nested = { ...application, config: { ...application.config, assistantSuite: nestedSuite } }
+        const h = await harness(nestedSuite)
+        const coordinator = await h.service.ensure(nested, h.installation, h.installation.workspaceId)
+        const refs = { ...h.installation.resourceRefs }
+        expect(h.xperts.publish.mock.calls.map(([id]) => id)).toEqual([
+            refs['role:images'],
+            refs['role:writer'],
+            refs['role:quality'],
+            refs['role:master_data'],
+            coordinator.id
+        ])
+        expect(coordinator.graph.connections.map((edge) => edge.to)).toEqual([refs['role:quality']])
+        const writer = h.teams.get(refs['role:writer'])
+        expect(writer.graph.connections.map((edge) => edge.to)).toEqual([refs['role:images']])
+        writer.graph.connections[0].required = false
+        await expect(h.service.healthy(nested, h.installation)).resolves.toBe(false)
+        await h.service.ensure(nested, h.installation, h.installation.workspaceId)
+        expect(h.installation.resourceRefs).toEqual(refs)
+        await expect(h.service.healthy(nested, h.installation)).resolves.toBe(true)
+        writer.organizationId = 'other'
+        await expect(h.service.healthy(nested, h.installation)).resolves.toBe(false)
+    })
+    it('repairs an entry-only installation in place', async () => {
+        const h = await harness()
+        const coordinator = await h.service.ensure(application, h.installation, h.installation.workspaceId)
+        h.teams.delete(h.installation.resourceRefs['role:quality'])
+        h.teams.delete(h.installation.resourceRefs['role:master_data'])
+        coordinator.graph = { nodes: [], connections: [] }
+        coordinator.slug = 'keep-original-slug'
+        coordinator.environmentId = 'keep-environment'
+        h.installation.resourceRefs = { assistant: coordinator.id }
+        const repaired = await h.service.ensure(application, h.installation, h.installation.workspaceId)
+        expect(repaired.id).toBe(coordinator.id)
+        expect(repaired.slug).toBe('keep-original-slug')
+        expect(repaired.draft).toBeNull()
+        expect(h.xperts.publish).toHaveBeenLastCalledWith(coordinator.id, false, 'keep-environment', expect.any(String))
+        expect(h.teams.size).toBe(3)
+        await expect(h.service.healthy(application, h.installation)).resolves.toBe(true)
+    })
 })

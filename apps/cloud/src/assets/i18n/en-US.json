@@ -612,6 +612,24 @@
         "ClearBusinessDomain": "Clear domain"
       },
       "Application": {
+        "Toolsets": {
+          "Title": "Required toolsets",
+          "Description": "Adding a configuration first prepares the application Workspace. New configurations are saved there; existing configurations are copied when you enable the application.",
+          "Refresh": "Refresh",
+          "Select": "Select a configuration",
+          "Personal": "My configurations",
+          "Empty": "No accessible configuration is available. Create one to continue.",
+          "Configure": "New configuration",
+          "Configured": "Configured in the application workspace; it will be reused.",
+          "ProviderMissing": "Install and enable {{plugin}} to configure this toolset.",
+          "ProvidersRequired": "Some required tool providers are unavailable. Install the indicated plugins and refresh.",
+          "ConfigurationsRequired": "Configure the required toolsets below before enabling the application.",
+          "Edit": "Edit configuration",
+          "SetupChanged": "The application state has changed. Refresh setup and try again.",
+          "DraftSaved": "Configuration is saved for later. Knowledge bases and Assistants are created when you enable the application.",
+          "Discard": "Discard configuration",
+          "DiscardDescription": "Delete this unactivated application Workspace and its toolset configurations. Source configurations in other Workspaces will be kept."
+        },
         "SetupExplanation": "The app is available on this platform. Set it up to create a workspace and entry Assistant for the current organization.",
         "AppTemplate": "App template",
         "LoadingDetails": "Loading application details…",
@@ -645,7 +663,8 @@
           "Repair": "Repair application",
           "Initializing": "Initializing…",
           "ApplyToOrganization": "Apply to current organization",
-          "RepairAndReinitialize": "Repair and reinitialize"
+          "RepairAndReinitialize": "Repair and reinitialize",
+          "ContinueConfiguration": "Continue setup"
         },
         "Preflight": {
           "OrganizationRequired": "Switch to an organization before enabling this organization-scoped application.",
@@ -660,7 +679,8 @@
           "Initializing": "Initializing",
           "Failed": "Initialization failed",
           "Degraded": "Needs repair",
-          "NotInstalled": "Setup required"
+          "NotInstalled": "Setup required",
+          "Configuring": "Configuration in progress"
         },
         "Scope": {
           "Tenant": "Tenant",

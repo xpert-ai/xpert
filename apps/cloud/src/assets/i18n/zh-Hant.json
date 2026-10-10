@@ -356,6 +356,24 @@
         "ClearBusinessDomain": "清除業務領域"
       },
       "Application": {
+        "Toolsets": {
+          "Title": "必要工具集",
+          "Description": "首次新增配置將準備應用工作空間。新配置直接儲存在其中；選擇已有配置時，會在啟用應用時複製。",
+          "Refresh": "重新整理設定",
+          "Select": "選擇工具集設定",
+          "Personal": "我的設定",
+          "Empty": "暫無可用設定，請先新增設定。",
+          "Configure": "新增設定",
+          "Configured": "應用工作空間已設定，將沿用現有工具集。",
+          "ProviderMissing": "請安裝並啟用 {{plugin}} 後設定此工具集。",
+          "ProvidersRequired": "部分工具提供方尚不可用，請安裝對應外掛後重新整理。",
+          "ConfigurationsRequired": "請先完成下方必要工具集的設定，再啟用應用。",
+          "Edit": "編輯配置",
+          "SetupChanged": "應用狀態已變化，請重新整理配置後重試。",
+          "DraftSaved": "配置會保留，關閉後可繼續；點擊套用後才建立知識庫和助手。",
+          "Discard": "放棄配置",
+          "DiscardDescription": "將刪除此應用尚未啟用的工作空間及其中的工具集配置。其他工作空間中的來源配置不受影響。"
+        },
         "SetupExplanation": "應用程式已可用。初始化後，將為目前組織建立工作空間和入口助理。",
         "AppTemplate": "App 範本",
         "LoadingDetails": "正在載入應用程式詳情…",
@@ -389,7 +407,8 @@
           "Repair": "修復應用程式",
           "Initializing": "初始化中…",
           "ApplyToOrganization": "應用到目前組織",
-          "RepairAndReinitialize": "修復並重新初始化"
+          "RepairAndReinitialize": "修復並重新初始化",
+          "ContinueConfiguration": "繼續配置"
         },
         "Preflight": {
           "OrganizationRequired": "請先切換到一個組織，再啟用此組織級應用程式。",
@@ -404,7 +423,8 @@
           "Initializing": "初始化中",
           "Failed": "初始化失敗",
           "Degraded": "需要修復",
-          "NotInstalled": "待初始化"
+          "NotInstalled": "待初始化",
+          "Configuring": "待配置"
         },
         "Scope": {
           "Tenant": "租戶級",

@@ -46,7 +46,7 @@ export class AssistantFileAccessGuard implements CanActivate {
             )
         if (!policy) throw denied()
         // Login users have no credential-bound Assistant. The domain services
-        // still verify workspace membership and file-session ownership.
+        // still verify exact Assistant/file authority and file-session ownership.
         if (!('principalType' in user)) return true
         const allowedBindings =
             policy === 'workspace'

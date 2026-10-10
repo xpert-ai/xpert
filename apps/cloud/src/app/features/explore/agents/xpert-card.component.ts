@@ -99,6 +99,8 @@ export class ExploreXpertCardComponent {
       }
     }
     switch (this.applicationStatus()?.status) {
+      case 'configuring':
+        return this.#translate.instant('XP.Explore.Application.Action.ContinueConfiguration')
       case 'ready':
         return this.#translate.instant('XP.Explore.Application.Action.Open', { Default: 'Open application' })
       case 'initializing':

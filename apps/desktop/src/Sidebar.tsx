@@ -105,7 +105,7 @@ export function Sidebar({
       if (action === 'unread') {
         if (row.unread) {
           list.setSidebar(await invoke('markAllBotRead', row.bot.id))
-          await list.refresh()
+          await list.refresh(false)
         } else await list.update({ action: 'unread', botId: row.bot.id, unread: true })
       }
       if (action === 'copy') {

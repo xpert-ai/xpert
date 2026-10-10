@@ -1,3 +1,5 @@
+import { CommandBus } from '@nestjs/cqrs'
+import { ResolveAssistantFileAccessCommand } from '../xpert/assistant-files/resolve-assistant-file-access.command'
 import { ForbiddenException } from '@nestjs/common'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { environment } from '@xpert-ai/server-config'
@@ -58,13 +60,15 @@ describe('WorkspaceFileAccessService', () => {
                 }
             }))
         }
+        const commands = { execute: jest.fn().mockResolvedValue({}) }
         const service = new WorkspaceFileAccessService(
             cache as never,
             { get: jest.fn(() => 'workspace-file-access-test-secret') } as never,
             viewExtensions as never,
-            { resolve: jest.fn() } as never
+            { resolve: jest.fn() } as never,
+            commands as unknown as CommandBus
         )
-        return { service, cache, viewExtensions }
+        return { service, cache, viewExtensions, commands }
     }
 
     describe('delegated runtime session scope', () => {
@@ -113,6 +117,23 @@ describe('WorkspaceFileAccessService', () => {
                 service.assertAuthenticatedSessionScope(session.sessionId, 'assistant-1', runtimeScope)
             ).rejects.toMatchObject({ status: 404 })
         })
+    })
+
+    it('checks Assistant authority on session creation and rechecks it before issuing another grant', async () => {
+        const { service, commands } = createService()
+        const session = await service.createSession(
+            { hostType: 'agent', hostId: 'assistant-1', viewKey: 'cut__workbench' },
+            { headers: {}, secure: false }
+        )
+        expect(commands.execute).toHaveBeenCalledWith(
+            new ResolveAssistantFileAccessCommand('assistant-1', 'read', 'runtime')
+        )
+        commands.execute.mockRejectedValue(new ForbiddenException('Assistant grant revoked'))
+        await expect(service.createGrant(session.sessionId, { fileKey: 'video', purpose: 'preview' })).rejects.toThrow(
+            'Assistant grant revoked'
+        )
+        // Losing Assistant access must not prevent an owner from revoking an existing file session.
+        await expect(service.revokeSession(session.sessionId)).resolves.toBeUndefined()
     })
 
     it('creates an HttpOnly scoped session and an opaque grant that can be authorized', async () => {
