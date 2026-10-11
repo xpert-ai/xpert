@@ -1,5 +1,6 @@
 // Invariants: pending application notes authorize candidates for relevant fixes.
 // Downstream sync may explicitly retain notes, but can then build candidates only.
+// Aggregated syncs must verify hidden note consumption at every source version commit.
 // Stable images require complete consumption on main with the exact version bump.
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
@@ -98,28 +99,42 @@ export function releasePlan({
     let baseVersion, evidence
     let retainedForCandidate = false
     if (versioned) {
-      // An indirect dependency bump alone does not authorize an image release.
-      if (!pending.length) {
-        assert.equal(requested.length, 0, `Land ${service.name} Changesets before consuming them`)
-        continue
-      }
       const consumed = pending.filter((note) => !newTree.has(note.file))
       retainedForCandidate = retainedChangesetPolicy === 'candidate' && consumed.length > 0 && remaining.length > 0
-      assert.ok(
-        retainedForCandidate || consumed.length === pending.length,
-        `${service.name} must consume all pending Changesets`
-      )
-      assert.equal(
-        current.version,
-        bump(previous.version, consumed),
-        `${service.name} version must match its requested bump`
-      )
-      baseVersion = retainedForCandidate ? bump(current.version, remaining) : current.version
-      evidence = retainedForCandidate ? [...consumed, ...requested] : consumed
+      const snapshotMatches =
+        consumed.length > 0 &&
+        (retainedForCandidate || consumed.length === pending.length) &&
+        current.version === bump(previous.version, consumed)
+      const merged =
+        retainedChangesetPolicy === 'candidate' && remaining.length > 0 && !snapshotMatches
+          ? mergedVersioning({ git, read, service, previous, current, before, after, cwd, applicationNames })
+          : undefined
+      if (merged) {
+        retainedForCandidate = true
+        baseVersion = bump(current.version, remaining)
+        evidence = [...merged.changesets, ...requested.map((note) => note.file)]
+      } else {
+        // An indirect dependency bump alone does not authorize an image release.
+        if (!pending.length) {
+          assert.equal(requested.length, 0, `Land ${service.name} Changesets before consuming them`)
+          continue
+        }
+        assert.ok(
+          retainedForCandidate || consumed.length === pending.length,
+          `${service.name} must consume all pending Changesets`
+        )
+        assert.equal(
+          current.version,
+          bump(previous.version, consumed),
+          `${service.name} version must match its requested bump`
+        )
+        baseVersion = retainedForCandidate ? bump(current.version, remaining) : current.version
+        evidence = (retainedForCandidate ? [...consumed, ...requested] : consumed).map((note) => note.file)
+      }
     } else {
       if (!requested.length && !(remaining.length && affectsImage(service, changedFiles))) continue
       baseVersion = bump(current.version, remaining)
-      evidence = requested.length ? requested : remaining
+      evidence = (requested.length ? requested : remaining).map((note) => note.file)
     }
     const stable = versioned && !retainedForCandidate && event === 'push' && ref === 'refs/heads/main'
     const channel = event === 'pull_request' ? 'pr' : ref === 'refs/heads/main' ? 'main' : 'develop'
@@ -138,7 +153,7 @@ export function releasePlan({
       tags: [version, `sha-${after}`, ...(stable ? ['main', 'latest'] : [`${channel}-candidate`])]
         .map((value) => `type=raw,value=${value}`)
         .join('\n'),
-      changesets: evidence.map((note) => note.file)
+      changesets: [...new Set(evidence)]
     })
   }
 
@@ -190,6 +205,41 @@ export function releasePlan({
     matrix: { include },
     validationMatrix: { include: validation }
   }
+}
+
+function mergedVersioning({ git, read, service, previous, current, before, after, cwd, applicationNames }) {
+  // A merge can hide notes added and consumed between the compared snapshots.
+  // Walk a continuous ancestor chain and apply the strict gate to each release.
+  let tip = after,
+    version = current.version
+  const changesets = []
+  while (version !== previous.version) {
+    const commits = git('log', '--format=%H', '--no-merges', `${before}..${tip}`, '--', service.manifest)
+    let transition
+    for (const commit of commits.split('\n').filter(Boolean)) {
+      if (read(commit, service.manifest).version !== version) continue
+      const parent = git('rev-parse', `${commit}^`)
+      if (parent === before && tip === after) continue
+      const parentVersion = read(parent, service.manifest).version
+      if (!semver.lt(parentVersion, version) || semver.lt(parentVersion, previous.version)) continue
+      const plan = releasePlan({
+        cwd,
+        before: parent,
+        after: commit,
+        event: 'pull_request',
+        applicationNames
+      })
+      const image = plan.matrix.include.find((entry) => entry.name === service.name && entry.versioned)
+      if (!image) continue
+      changesets.unshift(...image.changesets)
+      transition = { parent, version: parentVersion }
+      break
+    }
+    if (!transition) return
+    tip = transition.parent
+    version = transition.version
+  }
+  return { changesets }
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
