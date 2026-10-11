@@ -147,6 +147,7 @@ export class AgentEvolutionLearningComponent {
   async generateProposal() {
     const confirmed = await firstValueFrom(
       this.#alertDialog.confirm({
+        layout: 'standard',
         title: this.#translate.instant('XP.AgentEvolution.GenerateProposalTitle', {
           Default: 'Generate a proposal from reviewed evidence?'
         }),

@@ -1,3 +1,4 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import {
   AfterViewInit,
@@ -19,7 +20,7 @@ import {
   ZardButtonComponent,
   ZardCardImports,
   ZardCheckboxComponent,
-  ZardDialogService,
+  XpDialogFrameImports,
   ZardDividerComponent,
   ZardIconComponent,
   ZardInputDirective,
@@ -59,6 +60,7 @@ import { isDeprecatedRolePermission, isRolePermissionReadonly } from './deprecat
     ZardInputDirective,
     ZardRadioComponent,
     ZardRadioGroupComponent,
+    ...XpDialogFrameImports,
     ...ZardCardImports,
     ...ZardTooltipImports
   ],
@@ -71,7 +73,7 @@ export class RolesComponent extends TranslationBaseComponent implements OnInit, 
   private readonly rolesService = inject(RoleService)
   private readonly store = inject(Store)
   private readonly cdr = inject(ChangeDetectorRef)
-  private readonly dialog = inject(ZardDialogService)
+  private readonly dialog = inject(Dialog)
   private readonly alertDialog = inject(ZardAlertDialogService)
   private readonly toastr = inject(ToastrService)
 
@@ -388,11 +390,14 @@ export class RolesComponent extends TranslationBaseComponent implements OnInit, 
     this.roleNameDraft = options.value ?? ''
 
     const result = await firstValueFrom(
-      this.dialog
-        .open(this.roleNameDialog, {
-          width: 'min(420px, calc(100vw - 2rem))'
-        })
-        .afterClosed()
+      this.dialog.open(this.roleNameDialog, {
+        width: '420px',
+        maxWidth: 'calc(100vw - 32px)',
+        panelClass: 'xp-overlay-pane-dialog',
+        backdropClass: 'backdrop-blur-xs-black',
+        ariaLabelledBy: 'role-name-dialog-title',
+        autoFocus: 'input'
+      }).closed
     )
     const name = typeof result === 'string' ? result.trim() : ''
     return name || null

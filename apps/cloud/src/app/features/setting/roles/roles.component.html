@@ -303,24 +303,34 @@
 </div>
 
 <ng-template #roleNameDialog let-dialogRef="dialogRef">
-  <div class="flex flex-col gap-5">
-    <div class="flex flex-col gap-1">
-      <h2 class="text-lg font-semibold text-text-primary">{{ roleNameDialogTitle }}</h2>
+  <div xpDialogLayout="standard">
+    <header xpDialogHeader>
+      <h2 xpDialogHeading id="role-name-dialog-title">{{ roleNameDialogTitle }}</h2>
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        xpDialogCloseButton
+        type="button"
+        [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+        (click)="dialogRef.close(null)"
+      >
+        <z-icon zType="x" />
+      </button>
+    </header>
+    <div xpDialogBody>
+      <label class="flex flex-col gap-2">
+        <span class="font-medium text-muted-foreground">{{ roleNameDialogLabel }}</span>
+        <input
+          z-input
+          type="text"
+          autocomplete="off"
+          [(ngModel)]="roleNameDraft"
+          (keydown.enter)="roleNameDraft.trim() && dialogRef.close(roleNameDraft.trim())"
+        />
+      </label>
     </div>
-
-    <label class="flex flex-col gap-2">
-      <span class="text-sm font-medium text-text-secondary">{{ roleNameDialogLabel }}</span>
-      <input
-        z-input
-        type="text"
-        autocomplete="off"
-        autofocus
-        [(ngModel)]="roleNameDraft"
-        (keydown.enter)="roleNameDraft.trim() && dialogRef.close(roleNameDraft.trim())"
-      />
-    </label>
-
-    <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+    <footer xpDialogFooter>
       <button z-button zType="outline" type="button" (click)="dialogRef.close(null)">
         {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
       </button>
@@ -328,11 +338,11 @@
         z-button
         zType="default"
         type="button"
-        [disabled]="!roleNameDraft.trim()"
+        [zDisabled]="!roleNameDraft.trim()"
         (click)="dialogRef.close(roleNameDraft.trim())"
       >
         {{ roleNameDialogAction }}
       </button>
-    </div>
+    </footer>
   </div>
 </ng-template>

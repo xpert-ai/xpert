@@ -19,6 +19,7 @@ import { batchNine } from './batch-09.mjs'
 import { batchTen } from './batch-10.mjs'
 import { batchEleven } from './batch-11.mjs'
 import { batchTwelve } from './batch-12.mjs'
+import { batchThirteen } from './batch-13.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const out = path.join(root, '.cache/dialog-preview')
@@ -66,7 +67,8 @@ for (const [key, scene] of Object.entries({
   ...batchNine,
   ...batchTen,
   ...batchEleven,
-  ...batchTwelve
+  ...batchTwelve,
+  ...batchThirteen
 })) {
   const file = scene.source ?? `apps/cloud/src/app/${scene.path}`
   scenes[key] = file.endsWith('.ts') ? await inline(file) : await read(file)

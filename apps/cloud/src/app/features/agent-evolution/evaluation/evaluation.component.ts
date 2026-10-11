@@ -234,6 +234,7 @@ export class AgentEvolutionEvaluationComponent {
   async rerun() {
     const confirmed = await firstValueFrom(
       this.#alertDialog.confirm({
+        layout: 'standard',
         title: this.#translate.instant('XP.AgentEvolution.RerunEvaluationTitle', {
           Default: 'Rerun Candidate evaluation?'
         }),
@@ -297,6 +298,7 @@ export class AgentEvolutionEvaluationComponent {
     if (!candidate || !evaluation || !this.approvalReason().trim()) return
     const confirmed = await firstValueFrom(
       this.#alertDialog.confirm({
+        layout: 'standard',
         title: this.#translate.instant('XP.AgentEvolution.SubmitApprovalTitle'),
         description: this.#translate.instant(
           this.approvalGate().administratorPath
@@ -317,6 +319,7 @@ export class AgentEvolutionEvaluationComponent {
     if (!candidate || !evaluation || !this.approvalReason().trim()) return
     const confirmed = await firstValueFrom(
       this.#alertDialog.confirm({
+        layout: 'standard',
         title: this.#translate.instant('XP.AgentEvolution.RejectCandidateTitle'),
         description: this.#translate.instant('XP.AgentEvolution.RejectCandidateDescription'),
         actionText: this.#translate.instant('XP.AgentEvolution.ConfirmReject'),
@@ -332,6 +335,7 @@ export class AgentEvolutionEvaluationComponent {
     if (!candidate || !evaluation || !this.canPackage()) return
     const confirmed = await firstValueFrom(
       this.#alertDialog.confirm({
+        layout: 'standard',
         title: this.#translate.instant('XP.AgentEvolution.CreateReleasePackageTitle'),
         description: this.#translate.instant('XP.AgentEvolution.CreateReleasePackageDescription'),
         actionText: this.#translate.instant('XP.AgentEvolution.CreateReleasePackage'),
