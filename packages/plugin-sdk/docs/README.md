@@ -2,7 +2,9 @@
 
 ## Runtime capabilities
 
-See [platform capabilities and scoped factories](./runtime-capabilities.md) for domain registration, execution-scoped APIs and usage outside Agent middleware.
+See [platform capabilities and scoped factories](./en/runtime-capabilities.md) for domain registration, execution-scoped APIs and usage outside Agent middleware.
+
+See [knowledgebase APIs](./en/KNOWLEDGEBASE_API.md) for resource discovery, readiness, permissions and migration from legacy listing.
 
 ## Building
 
@@ -14,11 +16,11 @@ Run `nx test plugin-sdk` to execute the unit tests via [Jest](https://jestjs.io)
 
 ## Schema config
 
-[Schema UI 扩展规范](./SCHEMA_SPECIFICATION.md)
+[Schema UI Extension Specification](./en/SCHEMA_SPECIFICATION.md)
 
 ## Permissions
 
-[插件权限设计指南](./PERMISSIONS.md)
+[Plugin Permission Design Guide](./en/PERMISSIONS.md)
 
 ## Decorator-driven business Tools
 
@@ -115,13 +117,13 @@ For completed operations, `prepareToolResult(() => project(result), () => minima
 
 For a host-native MCP App, declare each static HTML bundle once in the Provider's `apps` array, then bind a Tool with `mcp.app.resourceKey` and include `app` visibility. The App key must exist in the same Provider and its entry must be a relative `.html` path inside the packaged plugin. The host publishes the bundle as a `ui://` resource; plugins must not create a stdio server or put CSP/credentials in Tool results.
 
-Agent middleware can also expose these Apps without a published Toolset. See [middleware Apps and post-tool continuation](./MIDDLEWARE_APPS.md) for `app` bindings and `interruptAfter` checkpoints.
+Agent middleware can also expose these Apps without a published Toolset. See [middleware Apps and post-tool continuation](./en/MIDDLEWARE_APPS.md) for `app` bindings and `interruptAfter` checkpoints.
 
 The host owns the public MCP endpoint identity. It combines the plugin's stable `artifactNamespace`, the Provider key, and an opaque scope hash; client names and product-specific identifiers do not belong in the slug. A tenant- or system-level plugin has one tenant-scoped Publication and capability snapshot, while each organization receives an independent access grant and organization-bound credential. An organization-level plugin receives a dedicated organization-scoped Publication.
 
 ## View extensions
 
-[View Extension Protocol](./docs/view-extension-protocol.md)
+[View Extension Protocol](./en/view-extension-protocol.md)
 
 ## Browser collaboration client
 
@@ -159,7 +161,7 @@ containing these interfaces. They are not part of the published SDK 3.18.3 basel
 
 ## Conversation resource receipts
 
-See [RESOURCE-CARDS.md](./RESOURCE-CARDS.md) for the public protocol, tool/middleware emitter, transactional Project provider example, and coordinated release order.
+See [RESOURCE-CARDS.md](./en/RESOURCE-CARDS.md) for the public protocol, tool/middleware emitter, transactional Project provider example, and coordinated release order.
 
 ## Project task business types
 
@@ -175,7 +177,7 @@ export class ExampleTasks implements IProjectTaskProvider {
     {
       key: 'example.tasks.illustration',
       presentation: {
-        label: { en_US: 'Construction images', zh_Hans: '施工配图' },
+        label: { en_US: 'Construction images' },
         icon: 'Images'
       }
     }
@@ -210,4 +212,4 @@ Deploy matching contracts, SDK and host support before a plugin starts emitting 
 
 ## Tool image references
 
-See [TOOL-IMAGES.md](./TOOL-IMAGES.md) for `ToolImagesRuntimeCapability`, reference-only tool results, temporary visual model inputs, execution scope, and recovery rules. Never persist the messages returned by `prepareModelInput`.
+See [TOOL-IMAGES.md](./en/TOOL-IMAGES.md) for `ToolImagesRuntimeCapability`, reference-only tool results, temporary visual model inputs, execution scope, and recovery rules. Never persist the messages returned by `prepareModelInput`.

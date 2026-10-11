@@ -5,6 +5,8 @@ import { KnowledgeDocumentTag } from './tags/document-tag.entity'
 import { KnowledgeTagService } from './tags/knowledge-tag.service'
 import { KnowledgeTagController, KnowledgeTagUsageController } from './tags/knowledge-tag.controller'
 import { KnowledgebaseRuntimeService } from './runtime/knowledgebase-runtime.service'
+import { KnowledgebaseCatalogService } from './catalog/knowledgebase-catalog.service'
+import { KnowledgebaseCatalogAccessService } from './catalog/knowledgebase-catalog-access.service'
 import { KnowledgebaseDocumentsRuntimeService } from './runtime/knowledgebase-documents-runtime.service'
 import { KnowledgeUploadSessionsService } from './runtime/knowledge-upload-sessions.service'
 import { KnowledgebaseProvisioningRuntimeService } from './runtime/knowledgebase-provisioning-runtime.service'
@@ -122,6 +124,8 @@ import { KeywordTitleSubscriber } from './analyzer/keyword-title.subscriber'
         KnowledgebaseService,
         TenantLibraryAccessService,
         KnowledgebaseRuntimeService,
+        KnowledgebaseCatalogService,
+        KnowledgebaseCatalogAccessService,
         KnowledgebaseDocumentsRuntimeService,
         KnowledgeUploadSessionsService,
         KnowledgebaseProvisioningRuntimeService,

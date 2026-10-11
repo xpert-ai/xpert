@@ -121,7 +121,7 @@ Plugins can emit cards through the same protocol and supply live status through 
 ## Development and integration references
 
 - [Built-in Project Tasks plugin](../packages/server-ai/src/xpert-project/plugins/project-tasks/README.md): tools, identity context, and result decision contracts.
-- [Resource Card plugin SDK](../packages/plugin-sdk/RESOURCE-CARDS.md): card creation, optional Providers, authorization, and refresh boundaries.
+- [Resource Card plugin SDK](../packages/plugin-sdk/docs/en/RESOURCE-CARDS.md): card creation, optional Providers, authorization, and refresh boundaries.
 - [Conversation activity service](../packages/server-ai/src/ai/thread-activity/README.md): background reply discovery and existing execution streams.
 - [Reliable Runtime replies](../packages/server-ai/src/handoff/runtime-messaging/README.md): delivery, consumption, recovery, and troubleshooting.
 - [Project tasks view](../packages/server-ai/src/xpert-project/remote-components/project-tasks/README.md) and [Coding execution viewer](../packages/server-ai/src/agent-invocation/remote-components/coding-execution/README.md): navigation and interface behavior.

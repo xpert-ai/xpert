@@ -205,15 +205,15 @@ For example, add this `content` property to the card passed to `emitResourceCard
 
 ```ts
 content: [
-  { kind: 'fields', fields: [{ label: '状态', value: '已完成' }] },
+  { kind: 'fields', fields: [{ label: 'Status', value: 'Completed' }] },
   {
     kind: 'image-gallery',
-    title: '施工配图',
+    title: 'Construction images',
     images: [
       {
         id: 'site-layout',
-        title: '施工现场平面布置图',
-        alt: '施工分区、出入口和运输路线',
+        title: 'Construction site layout',
+        alt: 'Work zones, entrances, exits and transport routes',
         file: {
           viewKey: 'bid.view-provider__bid.studio',
           fileKey: 'bid-project-image',
@@ -358,4 +358,4 @@ The built-in `platform.agent-invocation/execution` provider owns direct Coding i
 
 The card opens `platform.coding-execution__execution` with the exact invocation ID. Public CLI activity is written through the optional Runtime `context.activity` recorder and queried by the View provider. Resource-card refresh contains only presentation/state/target updates; it does not transport command output or invoke a CLI. Final summary cards are suppressed only when a Coding execution card already covers the run; independently delivered files retain their own cards.
 
-See [Coding Execution View](../server-ai/src/agent-invocation/execution-view/README.md) for the capability, authorization, storage, retention and navigation contract.
+See [Coding Execution View](../../../server-ai/src/agent-invocation/execution-view/README.md) for the capability, authorization, storage, retention and navigation contract.

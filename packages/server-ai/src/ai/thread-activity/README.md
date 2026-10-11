@@ -56,7 +56,7 @@ explicit forbidden/not-found results replace the stale status with unavailabilit
 Neither interrupts run discovery. Conversation access revocation still closes
 observation. Resource identity and message bindings remain host-controlled.
 Types without a provider retain their saved snapshot, including after uninstall.
-See `packages/plugin-sdk/RESOURCE-CARDS.md` for the plugin interface and lifecycle.
+See `packages/plugin-sdk/docs/en/RESOURCE-CARDS.md` for the plugin interface and lifecycle.
 
 Card emission failures do not roll back a committed task or delegation. Cards
 missing because of an emission failure or a crash are not reconstructed from

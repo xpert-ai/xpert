@@ -222,7 +222,7 @@ activity?: {
 - 协议转换：`../xpert-plugins/xpertai/integrations/agent-runtimes/src/lib/{computer-jsonl,codex-computer,qwen-computer.strategy,opencode.strategy}.ts`。
 - 消息入口：Runtime 插件 `invocation.middleware.ts` / `result-cards.ts`；平台 `xpert-project/runtime/project-task-card.provider.ts`。
 - 任务入口：`packages/server-ai/src/xpert-project/views/project-tasks.provider.ts`、`remote-components/project-tasks/src/runtime-detail.tsx`。
-- 卡片能力及续流边界：`packages/plugin-sdk/RESOURCE-CARDS.md`、`packages/server-ai/src/ai/thread-activity/README.md`。
+- 卡片能力及续流边界：`packages/plugin-sdk/docs/en/RESOURCE-CARDS.md`、`packages/server-ai/src/ai/thread-activity/README.md`。
 
 以上为调查后的实施方案；实际落地范围与验收证据见下一节。
 

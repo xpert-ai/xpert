@@ -350,7 +350,6 @@ Provider action results should use `success: false` for business failures that t
   success: false,
   message: {
     en_US: 'Preview has validation errors',
-    zh_Hans: '预览存在校验错误',
   },
   data: {
     errors: ['...'],

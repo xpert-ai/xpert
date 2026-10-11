@@ -1,7 +1,7 @@
 # Tool images with immutable references
 
 For the API responsibilities, image lifecycle, validation limits and server-only
-text-result policy, see the [tool images feature guide](../../docs/tool-images.md).
+text-result policy, see the [tool images feature guide](../../../../docs/tool-images.md).
 
 Use `ToolImagesRuntimeCapability` inside an Agent middleware when a tool returns
 an image for visual inspection. The host stores validated image bytes in
