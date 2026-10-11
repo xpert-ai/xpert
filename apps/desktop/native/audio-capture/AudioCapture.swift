@@ -1,14 +1,68 @@
-// Audio-only outputs: no screen frames are registered, serialized or written.
+// Audio-only sources: no screen capture stream is created.
 import Foundation
-import ScreenCaptureKit
 import AVFoundation
 import CoreMedia
+import OSLog
+
+let captureLog = Logger(subsystem: "ai.xpert.desktop.audio", category: "capture")
+private let systemAudioStartupTimeout: Double = 20
 
 private let outputLock = NSLock()
 func emit(_ event: [String: Any]) {
     guard let bytes = try? JSONSerialization.data(withJSONObject: event) else { return }
     outputLock.lock(); defer { outputLock.unlock() }
     FileHandle.standardOutput.write(bytes); FileHandle.standardOutput.write(Data([10]))
+}
+
+// Complete once, including late device callbacks after a deadline.
+final class CaptureCompletion: @unchecked Sendable {
+    private let lock = NSLock()
+    private var continuation: CheckedContinuation<Void, Error>?
+    init(_ continuation: CheckedContinuation<Void, Error>) { self.continuation = continuation }
+    func finish(_ error: Error?) {
+        lock.lock()
+        let pending = continuation
+        continuation = nil
+        lock.unlock()
+        if let error { pending?.resume(throwing: error) }
+        else { pending?.resume() }
+    }
+}
+
+func captureOperation(timeout: Double, operation: (@escaping @Sendable (Error?) -> Void) -> Void) async throws {
+    try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+        let completion = CaptureCompletion(continuation)
+        let deadline = DispatchWorkItem { completion.finish(NSError(domain: "audio_start_timeout", code: 1)) }
+        DispatchQueue.global().asyncAfter(deadline: .now() + timeout, execute: deadline)
+        operation { error in
+            deadline.cancel()
+            completion.finish(error)
+        }
+    }
+}
+
+// Listen before startup so EOF/stop can cancel it. A blocked device call still
+// needs the parent's shutdown deadline; task cancellation cannot interrupt it.
+func runCapture(start: @escaping @Sendable () async throws -> Void, stop: @escaping @Sendable () async -> Void) async {
+    let (events, continuation) = AsyncStream<Void>.makeStream()
+    DispatchQueue.global().async {
+        _ = readLine()
+        continuation.yield()
+    }
+    let startup = Task {
+        do { try await start() }
+        catch is CancellationError { }
+        catch {
+            let cause = error as NSError
+            captureLog.error("Capture failed: \(cause.domain, privacy: .public) status=\(cause.code)")
+            if #available(macOS 15.0, *) { emit(["type": "error", "code": captureErrorCode(error)]) }
+            continuation.yield()
+        }
+    }
+    for await _ in events { break }
+    continuation.finish()
+    startup.cancel()
+    await stop()
 }
 
 final class Track {
@@ -37,6 +91,10 @@ final class Track {
         let status = CMSampleBufferGetAudioBufferListWithRetainedBlockBuffer(sample, bufferListSizeNeededOut: nil, bufferListOut: list, bufferListSize: size, blockBufferAllocator: nil, blockBufferMemoryAllocator: nil, flags: flags, blockBufferOut: &block)
         guard status == noErr, let input = AVAudioPCMBuffer(pcmFormat: format, bufferListNoCopy: list) else { throw NSError(domain: "audio_buffer_read", code: Int(status)) }
         input.frameLength = AVAudioFrameCount(CMSampleBufferGetNumSamples(sample))
+        try consume(input, timestamp: CMSampleBufferGetPresentationTimeStamp(sample).seconds, epoch: epoch)
+    }
+    func consume(_ input: AVAudioPCMBuffer, timestamp: Double, epoch: Double) throws {
+        let format = input.format
         if converter == nil || converter?.inputFormat != format { converter = AVAudioConverter(from: format, to: target) }
         guard let converter, let output = AVAudioPCMBuffer(pcmFormat: target, frameCapacity: AVAudioFrameCount(Double(input.frameLength) * 24000 / format.sampleRate) + 64) else { throw NSError(domain: "audio_converter", code: 1) }
         var used = false
@@ -46,7 +104,7 @@ final class Track {
             used = true; state.pointee = .haveData; return input
         }
         if let error { throw error }
-        if originMs == nil { originMs = max(0, (CMSampleBufferGetPresentationTimeStamp(sample).seconds - epoch) * 1000) }
+        if originMs == nil { originMs = max(0, (timestamp - epoch) * 1000) }
         let bytes = output.audioBufferList.pointee.mBuffers
         guard let pointer = bytes.mData, bytes.mDataByteSize > 0 else { return }
         let data = Data(bytes: pointer, count: Int(bytes.mDataByteSize))
@@ -82,113 +140,96 @@ final class Track {
 func captureErrorCode(_ error: Error, fallback: String = "audio_source_missing") -> String {
     let cause = error as NSError
     if cause.domain == "microphone_permission_denied" { return "audio_permission_denied" }
-    if cause.domain == SCStreamErrorDomain && cause.code == SCStreamError.Code.userDeclined.rawValue {
-        return "system_audio_permission_denied"
-    }
+    if cause.domain == "system_audio_permission_denied" { return "system_audio_permission_denied" }
+    if cause.domain == "audio_start_timeout" { return "audio_start_timeout" }
     return fallback
 }
 
 @available(macOS 15.0, *)
-final class Capture: NSObject, SCStreamOutput, SCStreamDelegate {
+// Device/session mutations are confined to deviceQueue; sample conversion and
+// flushing are confined to queue. Samples are admitted only after both sources
+// start, when their shared epoch is set.
+final class Capture: NSObject, AVCaptureAudioDataOutputSampleBufferDelegate, @unchecked Sendable {
     let queue = DispatchQueue(label: "ai.xpert.desktop.audio")
+    let deviceQueue = DispatchQueue(label: "ai.xpert.desktop.audio.devices")
     let microphone = Track("microphone"), system = Track("system")
-    var stream: SCStream?
+    let microphoneSession = AVCaptureSession()
+    lazy var systemTap = SystemAudioTap(queue: queue, deviceQueue: deviceQueue) { [weak self] buffer, timestamp in
+        guard let self, self.capturing else { return }
+        do { try self.system.consume(buffer, timestamp: timestamp, epoch: self.epoch) }
+        catch { emit(["type": "error", "code": "audio_conversion_failed"]) }
+    }
     var epoch = 0.0
+    var capturing = false // Confined to the sample queue.
+    @MainActor
     func start() async throws {
+        try Task.checkCancellation()
         let allowed = await AVCaptureDevice.requestAccess(for: .audio)
+        try Task.checkCancellation()
         guard allowed else { throw NSError(domain: "microphone_permission_denied", code: 1) }
-        let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
-        guard let display = content.displays.first else { throw NSError(domain: "system_audio_unavailable", code: 2) }
-        let filter = SCContentFilter(display: display, excludingWindows: [])
-        let configuration = SCStreamConfiguration()
-        configuration.width = 2; configuration.height = 2
-        configuration.minimumFrameInterval = CMTime(value: 1, timescale: 1)
-        configuration.capturesAudio = true; configuration.captureMicrophone = true
-        configuration.sampleRate = 24000; configuration.channelCount = 1
-        configuration.excludesCurrentProcessAudio = true
-        let stream = SCStream(filter: filter, configuration: configuration, delegate: self)
-        try stream.addStreamOutput(self, type: .audio, sampleHandlerQueue: queue)
-        try stream.addStreamOutput(self, type: .microphone, sampleHandlerQueue: queue)
-        self.stream = stream
-        epoch = CMClockGetTime(CMClockGetHostTimeClock()).seconds
-        try await stream.startCapture()
-        emit(["type": "started"])
-    }
-    func stop() async {
-        try? await stream?.stopCapture()
-        queue.sync { microphone.flush(); system.flush() }
-        emit(["type": "stopped", "chunks": ["microphone": microphone.sequence, "system": system.sequence]])
-    }
-    func stream(_ stream: SCStream, didOutputSampleBuffer sampleBuffer: CMSampleBuffer, of type: SCStreamOutputType) {
-        do {
-            if type == .audio { try system.consume(sampleBuffer, epoch: epoch) }
-            if type == .microphone { try microphone.consume(sampleBuffer, epoch: epoch) }
-        } catch { emit(["type": "error", "code": "audio_conversion_failed"]) }
-    }
-    func stream(_ stream: SCStream, didStopWithError error: Error) {
-        emit(["type": "error", "code": captureErrorCode(error, fallback: "device_lost")])
-    }
-}
-
-@main
-struct Main {
-    static func main() async {
-        if CommandLine.arguments.contains("--check") {
-            if #available(macOS 15.0, *) { emit(["type": "capability", "supported": true]) }
-            else { emit(["type": "capability", "supported": false, "code": "macos_15_required"]) }
-            return
-        }
-        if CommandLine.arguments.contains("--self-test") {
-            do { try testSampleConversion() }
-            catch { let cause = error as NSError; emit(["type": "error", "code": "self_test_failed", "stage": cause.domain, "status": cause.code]); exit(1) }
-            return
-        }
-        guard #available(macOS 15.0, *) else { emit(["type": "error", "code": "macos_15_required"]); return }
-        let capture = Capture()
-        do {
-            try await capture.start()
-            // The parent owns session termination. EOF also releases all devices.
-            await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-                DispatchQueue.global().async { _ = readLine(); continuation.resume() }
+        captureLog.info("Starting microphone")
+        try await startMicrophone()
+        try Task.checkCancellation()
+        captureLog.info("Starting private system audio tap")
+        try await captureOperation(timeout: systemAudioStartupTimeout) { completion in
+            deviceQueue.async {
+                do { try self.systemTap.start(); completion(nil) }
+                catch { completion(error) }
             }
-            await capture.stop()
-        } catch {
-            emit(["type": "error", "code": captureErrorCode(error)])
+        }
+        try Task.checkCancellation()
+        // Device setup time is not recorded as silent meeting time.
+        queue.sync {
+            epoch = CMClockGetTime(CMClockGetHostTimeClock()).seconds
+            emit(["type": "started"])
+            capturing = true
+        }
+        captureLog.info("Both audio sources started")
+    }
+    func startMicrophone() async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            deviceQueue.async {
+                do {
+                    guard let device = AVCaptureDevice.default(for: .audio) else {
+                        throw NSError(domain: "microphone_unavailable", code: 1)
+                    }
+                    let input = try AVCaptureDeviceInput(device: device)
+                    let output = AVCaptureAudioDataOutput()
+                    self.microphoneSession.beginConfiguration()
+                    defer { self.microphoneSession.commitConfiguration() }
+                    guard self.microphoneSession.canAddInput(input), self.microphoneSession.canAddOutput(output) else {
+                        throw NSError(domain: "microphone_unavailable", code: 2)
+                    }
+                    self.microphoneSession.addInput(input)
+                    self.microphoneSession.addOutput(output)
+                    output.setSampleBufferDelegate(self, queue: self.queue)
+                } catch {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                self.microphoneSession.startRunning()
+                if self.microphoneSession.isRunning { continuation.resume() }
+                else { continuation.resume(throwing: NSError(domain: "microphone_unavailable", code: 3)) }
+            }
         }
     }
-}
-
-// Synthetic CMSampleBuffers exercise the same conversion path as live capture.
-func testSampleConversion() throws {
-    if #available(macOS 15.0, *) {
-        let denied = NSError(domain: SCStreamErrorDomain, code: SCStreamError.Code.userDeclined.rawValue)
-        guard captureErrorCode(denied) == "system_audio_permission_denied",
-              captureErrorCode(NSError(domain: "microphone_permission_denied", code: 1)) == "audio_permission_denied",
-              captureErrorCode(NSError(domain: "conversion", code: 1)) == "audio_source_missing" else {
-            throw NSError(domain: "test_permission_errors", code: 1)
+    @MainActor
+    func stop() async {
+        captureLog.info("Stopping audio sources")
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            deviceQueue.async {
+                self.systemTap.stop()
+                self.microphoneSession.stopRunning()
+                continuation.resume()
+            }
         }
+        queue.sync { capturing = false; microphone.flush(); system.flush() }
+        emit(["type": "stopped", "chunks": ["microphone": microphone.sequence, "system": system.sequence]])
+        captureLog.info("Audio sources released")
     }
-    for (name, rate, channels) in [("microphone", 48000.0, 2), ("system", 24000.0, 1)] {
-        let track = Track(name)
-        let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: rate, channels: AVAudioChannelCount(channels), interleaved: false)!
-        let frames = AVAudioFrameCount(rate / 20)
-        let pcm = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames)!
-        pcm.frameLength = frames
-        for channel in 0..<channels {
-            for frame in 0..<Int(frames) { pcm.floatChannelData![channel][frame] = Float(sin(Double(frame) * 2 * .pi * 440 / rate)) * 0.2 }
-        }
-        for index in 0..<100 {
-            var timing = CMSampleTimingInfo(duration: CMTime(value: 1, timescale: Int32(rate)), presentationTimeStamp: CMTime(value: Int64(index * Int(frames)), timescale: Int32(rate)), decodeTimeStamp: .invalid)
-            var sample: CMSampleBuffer?
-            let created = CMSampleBufferCreate(allocator: kCFAllocatorDefault, dataBuffer: nil, dataReady: false, makeDataReadyCallback: nil, refcon: nil, formatDescription: format.formatDescription, sampleCount: Int(frames), sampleTimingEntryCount: 1, sampleTimingArray: &timing, sampleSizeEntryCount: 0, sampleSizeArray: nil, sampleBufferOut: &sample)
-            guard created == noErr, let sample else { throw NSError(domain: "test_sample", code: Int(created)) }
-            let copied = CMSampleBufferSetDataBufferFromAudioBufferList(sample, blockBufferAllocator: nil, blockBufferMemoryAllocator: nil, flags: 0, bufferList: pcm.audioBufferList)
-            guard copied == noErr else { throw NSError(domain: "test_copy", code: Int(copied)) }
-            CMSampleBufferSetDataReady(sample)
-            try track.consume(sample, epoch: 0)
-        }
-        track.flush()
-        guard track.samples > 118000 && track.samples <= 120000 else { throw NSError(domain: "test_frames", code: track.samples) }
+    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+        guard capturing else { return }
+        do { try microphone.consume(sampleBuffer, epoch: epoch) }
+        catch { emit(["type": "error", "code": "audio_conversion_failed"]) }
     }
-    emit(["type": "self_test", "passed": true])
 }

@@ -18,6 +18,8 @@ if (process.platform === 'darwin') {
           '-target',
           `${arch}-apple-macosx15.0`,
           resolve(root, 'native/audio-capture/AudioCapture.swift'),
+          resolve(root, 'native/audio-capture/SystemAudioTap.swift'),
+          resolve(root, 'native/audio-capture/CaptureMain.swift'),
           '-o',
           slices[index]
         ],
