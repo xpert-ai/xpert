@@ -6,7 +6,9 @@ This document describes current product behavior. Available executors depend on 
 
 ## Getting started
 
-The project's general Assistant includes Project Tasks by default. For other Assistants, add the built-in **Plugin → Project Tasks** in Studio, connect it to the relevant Agent, and use it in a project conversation. An administrator must configure the executors that the Assistant can call.
+The project's general Assistant includes Project Tasks by default. When creating another Assistant, enable **Project management** in Desktop or in the **Basic information** step of the Cloud creation wizard. Choose a model with tool calling, then use the Assistant in a project conversation. The capability connects the built-in Project Tasks tools automatically and can be changed later in Assistant capability settings. An administrator must configure the executors that the Assistant can call.
+
+For advanced workflows, you can also add **Plugin → Project Tasks** in Studio and connect it to the relevant Agent. Existing Studio-authored nodes remain managed in Studio.
 
 Users describe the desired outcome, completion requirements, and deliverables. For example:
 

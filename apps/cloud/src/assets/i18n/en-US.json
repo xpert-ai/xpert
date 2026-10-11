@@ -3475,6 +3475,12 @@
       "ProjectUpdated": "Project updated"
     },
     "Xpert": {
+      "ProjectManagement": {
+        "Title": "Project management",
+        "Description": "Plan project tasks, track progress, delegate to authorized executors and review results. Use in a project conversation.",
+        "Unavailable": "Project management is unavailable on this server.",
+        "ModelRequired": "Choose an authorized model with tool calling to enable project management."
+      },
       "WorkspaceAccessScopeDesc": "Choose who can access this workspace beyond its owner and assigned members",
       "OrganizationShared": "Organization shared",
       "OrganizationSharedWorkspace": "Organization shared workspace",

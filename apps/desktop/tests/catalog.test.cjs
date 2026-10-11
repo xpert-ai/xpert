@@ -452,3 +452,38 @@ test('blank assistant creation requires an authorized model even with no optiona
   })
   assert.equal(calls.at(-1).headers['organization-id'], 'org-1')
 })
+
+test('blank assistant creation offers and installs Project management with organization scope', async () => {
+  const model = { copilotId: 'provider', model: 'tool-model', modelType: 'llm' }
+  const option = { key: 'project-tasks', label: '项目管理', description: '在项目会话中管理任务、跟踪进度并验收结果。' }
+  const { service, calls } = fixture((path, _options, url) => {
+    if (path.endsWith('/my')) return { items: [{ id: 'workspace', capabilities: { canWrite: true } }] }
+    if (path.endsWith('/setup'))
+      return {
+        canInstall: true,
+        requiresModel: true,
+        requiredModelFeatures: url.searchParams.get('capabilities') ? ['tool-call'] : [],
+        optionalCapabilities: [option],
+        models: [{ id: 'model', label: 'Tool model', copilotModel: model }]
+      }
+    if (path.endsWith('/install')) return { xpert: { id: 'project-assistant' } }
+    return { type: 'agent' }
+  })
+  const input = { id: 'xpert-blank-assistant', title: 'Project assistant', workspaceId: 'workspace' }
+  const setup = await service.templateSetup(input)
+  assert.deepEqual(setup.preflight.optionalCapabilities, [option])
+  assert.equal(
+    calls.some((call) => call.method === 'POST'),
+    false
+  )
+  assert.deepEqual(await service.installTemplate({ ...input, modelId: 'model', capabilities: ['project-tasks'] }), {
+    botId: 'project-assistant'
+  })
+  assert.deepEqual(calls.at(-1).body, {
+    workspaceId: 'workspace',
+    publish: true,
+    basic: { title: 'Project assistant', copilotModel: model },
+    capabilities: ['project-tasks']
+  })
+  assert.equal(calls.at(-1).headers['organization-id'], 'org-1')
+})

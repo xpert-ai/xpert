@@ -1,6 +1,6 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
-import { ChangeDetectionStrategy, Component } from '@angular/core'
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
@@ -74,6 +74,8 @@ import {
 import { BlankWizardResources } from './blank-wizard-resources'
 import { BlankWizardStartComponent } from './blank-wizard-start'
 import { shouldHideBlankWizardPrimaryAgent, shouldInitializeBlankWizardDraft } from './blank-wizard.util'
+import { BlankProjectManagement } from './blank-project-management'
+import { BlankProjectManagementComponent } from './blank-project-management.component'
 
 export { BLANK_XPERT_DIALOG_CATEGORY, normalizeBlankXpertDialogCategory } from './blank-wizard-data'
 export type {
@@ -89,6 +91,7 @@ export type {
     XpDialogActionGroupDirective,
     ...XpDialogFrameImports,
     BlankWizardCapabilitiesComponent,
+    BlankProjectManagementComponent,
     BlankWizardStartComponent,
     TranslateModule,
     RouterModule,
@@ -114,10 +117,13 @@ export type {
     BlankTemplateSelectionComponent
   ],
   templateUrl: './blank.component.html',
+  providers: [BlankProjectManagement],
   styleUrl: './blank.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class XpertNewBlankComponent extends BlankWizardResources {
+  readonly projectManagement = inject(BlankProjectManagement)
+
   async create() {
     if (this.loading() || this.creationInvalid(!!this.basicStepInvalid())) {
       return
@@ -170,6 +176,10 @@ export class XpertNewBlankComponent extends BlankWizardResources {
       }
 
       if (this.isAgentType()) {
+        const template = this.selectedTemplateDraft()
+        await this.projectManagement.validate(
+          this.copilotModel() ?? template?.team.agent?.copilotModel ?? template?.team.copilotModel
+        )
         const templatePluginSkillsReady = await this.prepareTemplatePluginSkillsForCurrentWorkspace()
         if (!templatePluginSkillsReady) {
           return
@@ -438,7 +448,7 @@ export class XpertNewBlankComponent extends BlankWizardResources {
   }
 
   async completeCreation(xpert: IXpert): Promise<BlankXpertWizardResult> {
-    const result = await this.initializeDraftIfNeeded(xpert)
+    const result = await this.prepareProjectManagement(await this.initializeDraftIfNeeded(xpert))
     if (this.completionMode !== 'publish') {
       return { xpert: result.xpert, status: 'created' as const }
     }
@@ -459,6 +469,14 @@ export class XpertNewBlankComponent extends BlankWizardResources {
   }
 
   async completeImportedCreation(xpert: IXpert): Promise<BlankXpertWizardResult> {
+    const prepared = await this.prepareProjectManagement({
+      xpert,
+      draftSaved: true,
+      hasBlockingChecklist: false,
+      preparationFailed: false
+    })
+    xpert = prepared.xpert
+    if (prepared.preparationFailed) return { xpert, status: 'created' }
     if (this.completionMode !== 'publish') {
       return { xpert, status: 'created' as const }
     }
@@ -618,7 +636,13 @@ export class XpertNewBlankComponent extends BlankWizardResources {
   }
 
   async initializeDraftIfNeeded(xpert: IXpert): Promise<DraftPreparationResult> {
-    if (!shouldInitializeBlankWizardDraft(this.selectedMode(), this.hasAdvancedSelections(), this.completionMode)) {
+    if (
+      !shouldInitializeBlankWizardDraft(
+        this.selectedMode(),
+        this.hasAdvancedSelections() || this.projectManagement.enabled(),
+        this.completionMode
+      )
+    ) {
       return {
         xpert,
         draftSaved: false,
@@ -728,6 +752,18 @@ export class XpertNewBlankComponent extends BlankWizardResources {
         releaseNotes: XPERT_AUTO_PUBLISH_RELEASE_NOTES
       })
     )
+  }
+
+  async prepareProjectManagement(result: DraftPreparationResult): Promise<DraftPreparationResult> {
+    if (!this.isAgentType() || !this.projectManagement.enabled() || result.preparationFailed) return result
+    try {
+      const xpert = await this.projectManagement.apply(result.xpert)
+      return { ...result, xpert, draftSaved: true, hasBlockingChecklist: hasBlockingChecklist(xpert.draft?.checklist) }
+    } catch (error) {
+      this.showPreconfigurationNotSavedWarning()
+      this._toastr.error(getErrorMessage(error))
+      return { ...result, preparationFailed: true }
+    }
   }
 
   async provisionKnowledgebaseIfNeeded(xpert: IXpert): Promise<IXpert> {

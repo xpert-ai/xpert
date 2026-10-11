@@ -4386,6 +4386,12 @@
       "ProjectUpdated": "项目更新成功"
     },
     "Xpert": {
+      "ProjectManagement": {
+        "Title": "项目管理",
+        "Description": "拆解项目任务、跟踪进度、委托已授权的执行器并验收结果。在项目会话中使用。",
+        "Unavailable": "当前服务尚未提供项目管理能力。",
+        "ModelRequired": "请选择支持工具调用且有权使用的模型，再开启项目管理。"
+      },
       "AutomaticFrequentQuestions": "自动常用问题",
       "AutomaticFrequentQuestionsDescription": "根据最近 90 天内的 50 条对话，自动提炼最多 5 个常用问题，显示在工作台新对话页。结果缓存 24 小时，到期后再次打开新对话时更新。",
       "ModelSelection": {

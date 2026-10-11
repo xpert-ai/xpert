@@ -67,7 +67,17 @@ Bosi exposes **New digital expert** in **Discover & add → Digital experts**. U
 
 The virtual `xpert-blank-assistant` seed has one Agent and no tools or sandbox enabled. It is not a marketplace template entry. Capability providers must explicitly set `availableForBlankAssistant: true` to appear. All choices default to off. `requiresModelSelection` allows this seed to require an explicit model even when no capability imposes model features. The server revalidates workspace access, capability availability and model authorization before creation.
 
-OSS provides local command line and server sandbox capabilities. Local commands continue through Desktop Shell approval; enabling the capability does not grant execution permission. The server sandbox uses the configured provider. Pro additionally registers its cloud computer capability; portable creation UI and infrastructure contain no Pro-specific branch. Plugins remain selectable through the chat Plugins menu. Models, capabilities and instructions can be edited later in Bosi. Advanced workflow editing remains in Xpert Studio.
+OSS provides local command line, server sandbox and project management capabilities. Local commands continue through Desktop Shell approval; enabling the capability does not grant execution permission. The server sandbox uses the configured provider. Pro additionally registers its cloud computer capability; portable creation UI and infrastructure contain no Pro-specific branch. Plugins remain selectable through the chat Plugins menu. Models, capabilities and instructions can be edited later in Bosi. Advanced workflow editing remains in Xpert Studio.
+
+### Project management
+
+Enable **Project management** when creating an Assistant in Desktop, or on the **Basic information** step of the Cloud Assistant creation wizard. It defaults to off and requires an authorized model with tool calling. The built-in `project-tasks` capability connects the Project Tasks middleware to the primary Agent and supplies task planning, delegation and acceptance instructions. It is also optional for the Bosi desktop template.
+
+Cloud composes the capability through the same server configuration service after saving the initial draft, before optional publication. It checks model eligibility before creation and revalidates scope, availability, model and draft revision during composition. A failed capability save leaves a draft with an error and does not publish it. Both blank and template-based Cloud creation retain the other configured tools and capabilities.
+
+ChatKit creates ordinary projects directly through the SDK `ProjectsClient.create` method using the current interactive session, then selects the saved project. Desktop and Cloud share this flow; neither needs a `project.create` host handler for the current ChatKit. Entity-backed project types continue through their governed application entry. Deploy the ChatKit build together with an SDK build containing this method.
+
+Use the resulting Assistant in a project conversation. Enabling project management does not create a project, grant project membership or configure an executor. Tools retain their existing project and runtime authorization. Capabilities enabled through this flow can be disabled later in Assistant settings; generated nodes and instructions carry managed provenance. Existing Studio-authored Project Tasks nodes remain Studio-managed.
 
 ## Edit an existing assistant in Bosi
 

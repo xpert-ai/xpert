@@ -5227,6 +5227,12 @@
       }
     },
     "Xpert": {
+      "ProjectManagement": {
+        "Title": "Project management",
+        "Description": "Plan project tasks, track progress, delegate to authorized executors and review results. Use in a project conversation.",
+        "Unavailable": "Project management is unavailable on this server.",
+        "ModelRequired": "Choose an authorized model with tool calling to enable project management."
+      },
       "AutomaticFrequentQuestions": "Automatic frequent questions",
       "AutomaticFrequentQuestionsDescription": "Suggest up to 5 common questions on the workbench start screen using the latest 50 conversations from the past 90 days. Results are cached for 24 hours and refresh when starting a new conversation after expiry.",
       "ModelSelection": {
