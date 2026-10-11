@@ -30,7 +30,11 @@
               },
               {
                 "group": "Architecture",
-                "pages": ["en/architecture/ai-agent-architecture", "en/architecture/file-lifecycle-data-flow"]
+                "pages": [
+                  "en/architecture/ai-agent-architecture",
+                  "en/architecture/file-lifecycle-data-flow",
+                  "en/architecture/file-access-preview-architecture"
+                ]
               },
               {
                 "group": "Guides",
@@ -94,7 +98,11 @@
               },
               {
                 "group": "架构",
-                "pages": ["zh-Hans/architecture/ai-agent-architecture", "zh-Hans/architecture/file-lifecycle-data-flow"]
+                "pages": [
+                  "zh-Hans/architecture/ai-agent-architecture",
+                  "zh-Hans/architecture/file-lifecycle-data-flow",
+                  "zh-Hans/architecture/file-access-preview-architecture"
+                ]
               },
               {
                 "group": "指南",

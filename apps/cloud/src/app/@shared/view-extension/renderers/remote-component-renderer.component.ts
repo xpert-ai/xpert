@@ -183,6 +183,7 @@ export class RemoteComponentRendererComponent {
   #fileAccessSession: XpertViewFileAccessSessionResult | null = null
   #fileAccessSessionPromise: Promise<XpertViewFileAccessSessionResult> | null = null
   #fileAccessEpoch = 0
+  readonly #fileObjectUrls = new Set<string>()
 
   constructor() {
     const onMessage = (event: MessageEvent) => this.handleMessage(event)
@@ -568,13 +569,21 @@ export class RemoteComponentRendererComponent {
     const revision = this.#entryRequestId
     const session = await this.ensureFileAccessSession()
     if (revision !== this.#entryRequestId) throw new Error('View context changed')
-    return this.untilDestroyed(
+    const grant = await this.untilDestroyed(
       this.#api.createViewFileAccessGrant(session.sessionId, {
         fileKey,
         targetId: getString(message.targetId) ?? undefined,
         purpose
       })
     )
+    if (revision !== this.#entryRequestId) throw new Error('View context changed')
+    const blob = await this.untilDestroyed(
+      this.#api.readViewFileAccessContent(session.sessionId, grant, this.runtimeScope() ?? undefined)
+    )
+    if (revision !== this.#entryRequestId || this.#destroyRef.destroyed) throw new Error('View context changed')
+    const url = URL.createObjectURL(new Blob([blob], { type: grant.mimeType }))
+    this.#fileObjectUrls.add(url)
+    return { ...grant, url }
   }
 
   private async ensureFileAccessSession(): Promise<XpertViewFileAccessSessionResult> {
@@ -614,6 +623,8 @@ export class RemoteComponentRendererComponent {
 
   private resetFileAccessSession() {
     this.#fileAccessEpoch += 1
+    this.#fileObjectUrls.forEach((url) => URL.revokeObjectURL(url))
+    this.#fileObjectUrls.clear()
     const session = this.#fileAccessSession
     this.#fileAccessSession = null
     this.#fileAccessSessionPromise = null
