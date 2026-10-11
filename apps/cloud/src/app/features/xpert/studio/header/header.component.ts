@@ -145,6 +145,9 @@ export class XpertStudioHeaderComponent {
 
   publish() {
     this.#dialog.open(XpertPublishVersionComponent, {
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)',
       viewContainerRef: this.#viewContainerRef
     })
   }

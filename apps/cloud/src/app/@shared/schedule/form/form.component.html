@@ -2,10 +2,11 @@
   <h1 class="text-sm text-text-secondary font-semibold">
     {{ 'XP.Xpert.Schedule' | translate: { Default: 'Schedule' } }}
   </h1>
-  <div role="group" class="border border-input-border rounded-xl p-1 flex gap-1" cdkListbox [(ngModel)]="_frequency">
+  <div role="group" xpDialogActionGroup="inline" class="flex flex-wrap gap-2" cdkListbox [(ngModel)]="_frequency">
     @for (option of FREQUENCY_OPTIONS; track option) {
       <button
-        class="inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none hover:bg-hover-bg disabled:hover:bg-transparent border h-8 rounded-xl px-3 text-sm grow shrink"
+        z-button
+        zType="outline"
         type="button"
         role="radio"
         [ngClass]="
@@ -15,50 +16,33 @@
         "
         [cdkOption]="option.value"
       >
-        <span class="font-semibold">{{
-          'XP.Xpert.Frequency_' + option.label | translate: { Default: option.label }
-        }}</span>
+        <span>{{ 'XP.Xpert.Frequency_' + option.label | translate: { Default: option.label } }}</span>
       </button>
     }
   </div>
-  <div class="flex gap-3 h-12">
-    <div class="border border-input-border rounded-xl flex items-center pl-3 pr-1 grow justify-between stretch">
+  <div class="flex flex-wrap items-end gap-3">
+    <div class="flex min-w-0 flex-1 flex-col gap-2">
       <h1 class="text-sm text-text-secondary font-medium">{{ 'XP.Xpert.Time' | translate: { Default: 'Time' } }}</h1>
 
       <div class="relative">
-        <input
-          type="time"
-          [(ngModel)]="time"
-          class="inline-flex items-center justify-center gap-2 px-2 pr-9 whitespace-nowrap font-medium cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none text-text-primary hover:bg-hover-bg disabled:hover:bg-transparent border border-transparent h-10 text-sm rounded-lg"
-          min="00:00"
-          max="24:00"
-          value="00:00"
-          required
-        />
-        <i
-          class="ri-time-line pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-base text-text-primary"
-        ></i>
+        <input type="time" [(ngModel)]="time" z-input class="w-full" min="00:00" max="24:00" value="00:00" required />
       </div>
     </div>
 
     @if (!frequency() || frequency() === eTaskFrequency.Once || frequency() === eTaskFrequency.Yearly) {
-      <div class="grow min-h-11">
-        <z-date-picker class="[&>button]:h-full" zSize="lg" [(ngModel)]="date" zFormat="MM-dd" />
+      <div class="min-w-0 flex-1">
+        <z-date-picker class="w-full" [(ngModel)]="date" zFormat="MM-dd" />
       </div>
     }
 
     @if (frequency() === eTaskFrequency.Weekly) {
-      <button
-        class="gap-2 whitespace-nowrap font-medium cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none border-input-border text-text-primary hover:bg-hover-bg [&amp;_svg]:hover:text-text-primary disabled:hover:bg-transparent rounded-xl px-3.5 py-2 flex items-center justify-center h-full w-32 border"
-        type="button"
-        [cdkMenuTriggerFor]="weeklyMenu"
-      >
+      <button z-button zType="outline" xpDialogActionGroup="inline" type="button" [cdkMenuTriggerFor]="weeklyMenu">
         {{ 'XP.SHARED.Schedule.Weekly_' + dayLabel() | translate: { Default: dayLabel() } }}
       </button>
     }
 
     @if (frequency() === eTaskFrequency.Monthly) {
-      <div class="flex min-w-[15rem] shrink-0 items-center justify-between gap-4 font-medium">
+      <div class="flex min-w-0 flex-wrap items-center gap-3">
         <div class="flex min-w-0 flex-col">
           <label class="text-sm">{{ 'XP.Xpert.DayinMonth' | translate: { Default: 'Day in month to run' } }}:</label>
           <label class="text-xs text-text-secondary">{{
@@ -66,10 +50,11 @@
           }}</label>
         </div>
         <input
-          class="h-full w-20 shrink-0 rounded-xl border border-input-border bg-transparent px-3 py-1 text-center"
+          z-input
+          class="w-20 text-center"
           min="1"
           max="31"
-          aria-label="Day in month to run:"
+          [attr.aria-label]="'XP.Xpert.DayinMonth' | translate"
           type="number"
           [(ngModel)]="dayOfMonth"
           placeholder="1-31"

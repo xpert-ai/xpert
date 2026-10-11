@@ -458,6 +458,9 @@ export class ExploreSkillsComponent {
 
   openSkillDetail(item: ISkillRepositoryIndex, featured: ISkillMarketFeaturedSkill | null = null) {
     const dialogRef = this.#dialog.open(ExploreSkillDetailDialogComponent, {
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)',
       data: {
         item,
         featured,

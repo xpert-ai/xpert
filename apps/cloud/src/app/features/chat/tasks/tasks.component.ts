@@ -255,10 +255,11 @@ export class ChatTasksComponent {
   editTask(task: IXpertTask) {
     this.dialog
       .open(XpertTaskDialogComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: { task },
-        disableClose: true,
-        backdropClass: 'xp-overlay-share-sheet',
-        panelClass: 'xp-overlay-pane-share-sheet'
+        disableClose: true
       })
       .closed.subscribe({
         next: (updatedTask) => {

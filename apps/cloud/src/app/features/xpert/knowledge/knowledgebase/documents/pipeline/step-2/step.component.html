@@ -7,12 +7,12 @@
   [documents]="documents()"
   [(parametersValue)]="parametersValue"
 >
-  <footer actions class="flex shrink-0 items-center justify-between gap-3 border-t border-divider-subtle px-6 py-4">
-    <button z-button zType="outline" type="button" [disabled]="loading()" (click)="previousStep()">
+  <footer actions xpDialogFooter class="justify-between">
+    <button z-button zType="outline" type="button" [zDisabled]="loading()" (click)="previousStep()">
       <i class="ri-arrow-left-line" aria-hidden="true"></i>
       {{ 'XP.Knowledgebase.DocumentSource' | translate: { Default: 'Document Source' } }}
     </button>
-    <button z-button type="button" [disabled]="loading()" [zLoading]="loading()" (click)="saveAndProcess()">
+    <button z-button type="button" [zDisabled]="loading()" [zLoading]="loading()" (click)="saveAndProcess()">
       {{ 'XP.Knowledgebase.SaveAndProcess' | translate: { Default: 'Save and Process' } }}
     </button>
   </footer>

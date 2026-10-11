@@ -33,6 +33,9 @@ export class XpertTaskDialogService {
     }
 
     return this.#dialog.open<IXpertTask>(XpertTaskDialogComponent, {
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)',
       data: {
         total: options?.total ?? undefined,
         lockXpertSelection: !!options?.lockXpertSelection,
@@ -40,9 +43,7 @@ export class XpertTaskDialogService {
         ...(options?.connectorOnly ? { connectorOnly: true } : {}),
         ...(Object.keys(task).length ? { task } : {})
       },
-      disableClose: true,
-      backdropClass: 'xp-overlay-share-sheet',
-      panelClass: 'xp-overlay-pane-share-sheet'
+      disableClose: true
     })
   }
 }

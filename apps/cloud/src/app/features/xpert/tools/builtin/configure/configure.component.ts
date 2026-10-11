@@ -1,11 +1,18 @@
+import {
+  ZardButtonComponent,
+  XpDialogFrameImports,
+  XpDialogActionGroupDirective,
+  routeAnimations,
+  XpI18nPipe,
+  XpSpinComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
+
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { routeAnimations } from '@xpert-ai/headless-ui'
-import { XpI18nPipe } from '@xpert-ai/headless-ui'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { isToolEnabled } from '@xpert-ai/contracts'
 import { omit } from 'lodash-es'
@@ -31,7 +38,6 @@ import { environment } from '@cloud/environments/environment'
 import { XpertToolBuiltinToolComponent } from '../tool/tool.component'
 import { XpertToolBuiltinAuthorizeComponent } from '../authorize/authorize.component'
 import { injectOrganizationId } from '@cloud/app/@core/state'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 /**
  * If toolset and tool do not have id, they are considered as templates.
@@ -48,11 +54,13 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     XpSpinComponent,
     CardUpgradeComponent,
     XpertToolBuiltinAuthorizeComponent,
-    XpertToolBuiltinToolComponent
+    XpertToolBuiltinToolComponent,
+    ZardButtonComponent,
+    ...XpDialogFrameImports,
+    XpDialogActionGroupDirective
   ],
   selector: 'xpert-tool-configure-builtin',
   templateUrl: './configure.component.html',
-  styleUrl: 'configure.component.scss',
   animations: [routeAnimations],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -243,6 +251,9 @@ export function injectConfigureBuiltin() {
 
   return (providerName: string, workspaceId: string, toolset?: IXpertToolset, tools?: IXpertTool[]) => {
     return dialog.open<IXpertToolset>(XpertToolConfigureBuiltinComponent, {
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)',
       disableClose: true,
       data: {
         providerName,

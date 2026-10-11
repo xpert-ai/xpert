@@ -58,9 +58,10 @@ export class ApplicationToolsetsComponent {
         await import('../../xpert/tools/builtin/configure/configure.component')
       const result = await firstValueFrom(
         this.#dialog.open<IXpertToolset | boolean>(XpertToolConfigureBuiltinComponent, {
-          disableClose: true,
           backdropClass: 'backdrop-blur-xs-black',
           panelClass: 'xp-overlay-pane-dialog',
+          maxWidth: 'calc(100vw - 32px)',
+          disableClose: true,
           data: {
             providerName: requirement.provider,
             workspaceId: prepared.workspaceId,

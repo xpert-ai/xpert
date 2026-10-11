@@ -14,6 +14,7 @@ import { batchFour } from './batch-04.mjs'
 import { batchFive } from './batch-05.mjs'
 import { batchSix } from './batch-06.mjs'
 import { batchSeven } from './batch-07.mjs'
+import { batchEight } from './batch-08.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const out = path.join(root, '.cache/dialog-preview')
@@ -52,7 +53,7 @@ const scenes = {
 for (const [key, scene] of Object.entries({ ...batchTwo, ...batchThree })) {
   scenes[key] = await inline(`apps/cloud/src/app/features/${scene.file}-dialog.component.ts`)
 }
-for (const [key, scene] of Object.entries({ ...batchFour, ...batchFive, ...batchSix, ...batchSeven })) {
+for (const [key, scene] of Object.entries({ ...batchFour, ...batchFive, ...batchSix, ...batchSeven, ...batchEight })) {
   const file = `apps/cloud/src/app/${scene.path}`
   scenes[key] = scene.path.endsWith('.ts') ? await inline(file) : await read(file)
 }
@@ -80,6 +81,24 @@ scenes.organizationForm = await read(
   'apps/cloud/src/app/features/setting/organizations/organization-step-form/organization-step-form.component.html'
 )
 scenes.reviewList = await inline('apps/cloud/src/app/features/xpert-access-requests/review-requests-list.component.ts')
+scenes.builtinAuthorize = await read(
+  'apps/cloud/src/app/features/xpert/tools/builtin/authorize/authorize.component.html'
+)
+scenes.projectInstallXpert = await read('apps/cloud/src/app/@shared/chat/install-project/xpert/xpert.component.html')
+scenes.projectInstallToolset = await read(
+  'apps/cloud/src/app/@shared/chat/install-project/toolset/toolset.component.html'
+)
+scenes.sandboxFileList = await read('apps/cloud/src/app/@shared/chat/file-list/file-list.component.html')
+scenes.pipelineSource = await read(
+  'apps/cloud/src/app/features/xpert/knowledge/knowledgebase/documents/pipeline/step-1/step.component.html'
+)
+scenes.pipelineProcess = await read(
+  'apps/cloud/src/app/features/xpert/knowledge/knowledgebase/documents/pipeline/step-2/step.component.html'
+)
+scenes.pipelineSettings = await read(
+  'apps/cloud/src/app/features/xpert/knowledge/knowledgebase/documents/pipeline/settings/settings.component.html'
+)
+scenes.scheduleForm = await read('apps/cloud/src/app/@shared/schedule/form/form.component.html')
 await fs.writeFile(path.join(out, 'scenes.json'), JSON.stringify(scenes))
 const zh = JSON.parse(await read('apps/cloud/src/assets/i18n/zh-Hans.json'))
 const en = JSON.parse(await read('apps/cloud/src/assets/i18n/en-US.json'))

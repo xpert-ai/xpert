@@ -91,6 +91,9 @@ export class DocumentImportMenuComponent {
         if (this.destroyed || this.locked()) return
         const result = await firstValueFrom(
           this.dialog.open<KnowledgePipelineImportResult>(KnowledgeDocumentPipelineComponent, {
+            backdropClass: 'backdrop-blur-xs-black',
+            panelClass: 'xp-overlay-pane-dialog',
+            maxWidth: 'calc(100vw - 32px)',
             ...options,
             injector: this.injector,
             data: { parentId },

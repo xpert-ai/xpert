@@ -198,6 +198,9 @@ export class ChatProjectToolsComponent {
   createBuiltinToolset(provider: IToolProvider) {
     this.#dialog
       .open(XpertToolConfigureBuiltinComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         disableClose: true,
         data: {
           providerName: provider.name,
@@ -214,6 +217,9 @@ export class ChatProjectToolsComponent {
   configureBuiltin(toolset: IXpertToolset = null) {
     this.#dialog
       .open(XpertToolConfigureBuiltinComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         disableClose: true,
         data: {
           providerName: toolset.type,

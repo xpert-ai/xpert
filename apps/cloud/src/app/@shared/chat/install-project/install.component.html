@@ -1,177 +1,175 @@
-<div
-  class="max-w-2xl shrink-0 truncate px-8 py-4 font-semibold text-xl leading-[30px] text-text-primary cursor-move"
-  cdkDrag
-  cdkDragRootElement=".cdk-overlay-pane"
-  cdkDragHandle
->
-  {{ 'XP.XProject.ImportProjectTeam' | translate: { Default: 'Import Project Team' } }}
-</div>
-
-<div class="px-8 py-4 relative space-y-4 overflow-auto">
-  <div>
-    <div class="py-2 text-sm font-medium leading-[20px] text-text-primary">
-      <span class="text-red-500">*</span>{{ 'XP.Xpert.Avatar' | translate: { Default: 'Avatar' } }} &amp;
-      {{ 'XP.XProject.Name' | translate: { Default: 'Name' } }}
-    </div>
-    <div class="flex items-center justify-between space-x-2">
-      <emoji-avatar editable [(avatar)]="avatar" class="rounded-lg overflow-hidden shadow-sm shrink-0" />
-      <div class="relative w-full">
-        <input
-          class="xp-input w-full grow h-10"
-          [placeholder]="'XP.XProject.EnterProjectName' | translate: { Default: 'Enter project name' }"
-          [(ngModel)]="name"
-        />
+<section xpDialogLayout="wide" xpDialogPurpose="workflow" class="w-[800px] max-w-full max-h-[calc(100dvh-32px)]">
+  <header xpDialogHeader>
+    <h2 xpDialogHeading>{{ 'XP.XProject.ImportProjectTeam' | translate }}</h2>
+    <button
+      type="button"
+      z-button
+      zType="ghost"
+      zSize="icon"
+      xpDialogCloseButton
+      [zDisabled]="loading()"
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+      (click)="close()"
+    >
+      <z-icon zType="x" />
+    </button>
+  </header>
+  <div xpDialogBody class="relative" [attr.inert]="loading() ? '' : null">
+    <div>
+      <div class="py-2 text-sm font-medium leading-[20px] text-text-primary">
+        <span class="text-text-destructive">*</span>{{ 'XP.Xpert.Avatar' | translate: { Default: 'Avatar' } }} &amp;
+        {{ 'XP.XProject.Name' | translate: { Default: 'Name' } }}
+      </div>
+      <div class="flex items-center justify-between space-x-2">
+        <emoji-avatar editable [(avatar)]="avatar" class="rounded-lg overflow-hidden shadow-sm shrink-0" />
+        <div class="relative w-full">
+          <input
+            z-input
+            class="w-full"
+            [placeholder]="'XP.XProject.EnterProjectName' | translate: { Default: 'Enter project name' }"
+            [(ngModel)]="name"
+          />
+        </div>
       </div>
     </div>
-  </div>
 
-  <div class="py-2 flex flex-col">
-    <div class="text-lg font-semibold">{{ 'XP.XProject.AiModel' | translate: { Default: 'AI Model' } }}</div>
-    <copilot-model-select
-      class="mt-4"
-      [modelType]="eModelType.LLM"
-      [inheritModel]="primaryCopilot()"
-      [(ngModel)]="copilotModel"
-    />
-    @if (!copilotModel() && !primaryCopilot()) {
+    <div class="py-2 flex flex-col">
+      <div class="text-base font-medium">{{ 'XP.XProject.AiModel' | translate: { Default: 'AI Model' } }}</div>
+      <copilot-model-select
+        class="mt-4"
+        [modelType]="eModelType.LLM"
+        [inheritModel]="primaryCopilot()"
+        [(ngModel)]="copilotModel"
+      />
+      @if (!copilotModel() && !primaryCopilot()) {
+        <a href="/copilot/basic" target="_blank" class="text-xs my-1 hover:underline text-primary">
+          {{ 'XP.XProject.GlobalModelConfig' | translate: { Default: 'Global model config' } }}
+        </a>
+      }
+    </div>
+
+    <div class="py-2">
+      <div xpDialogActionGroup="inline" class="flex flex-wrap items-center gap-2 text-text-primary">
+        <span class="text-base">{{
+          'XP.XProject.BindWorkspaceToAddResources' | translate: { Default: 'Bind workspace to add resources' }
+        }}</span>
+
+        <button
+          type="button"
+          z-button
+          zType="ghost"
+          zSize="icon"
+          [attr.aria-label]="'XP.XProject.RefreshWorkspaceList' | translate"
+          [zTooltip]="'XP.XProject.RefreshWorkspaceList' | translate: { Default: 'Refresh workspace list' }"
+          zPosition="top"
+          (click)="refreshWorkspaceOptions()"
+        >
+          <i class="ri-refresh-line"></i>
+        </button>
+      </div>
+
+      <xp-select
+        [selectOptions]="workspaceOptions()"
+        [placeholder]="'XP.Xpert.SelectAWorkspace' | translate: { Default: 'Select a workspace' }"
+        [(ngModel)]="workspaceId"
+      />
+
       <a
-        href="/copilot/basic"
+        [routerLink]="['/xpert/w']"
+        routerLinkActive="router-link-active"
         target="_blank"
-        class="text-xs my-1 hover:underline text-primary-400 hover:text-primary-500"
+        rel="noopener noreferrer"
+        class="inline-flex items-center p-1 text-xs text-primary hover:underline"
       >
-        {{ 'XP.XProject.GlobalModelConfig' | translate: { Default: 'Global model config' } }}
+        {{ 'XP.Xpert.HowtoCreate' | translate: { Default: 'How to create' } }}
+        <i class="ri-external-link-line"></i>
       </a>
-    }
-  </div>
+    </div>
 
-  <div class="py-2">
-    <div class="py-2 leading-[20px] text-text-primary">
-      <span class="text-base">{{
-        'XP.XProject.BindWorkspaceToAddResources' | translate: { Default: 'Bind workspace to add resources' }
-      }}</span>
-
+    <div xpDialogActionGroup="inline" class="flex">
       <button
-        class="inline-flex ml-1 w-6 h-6 justify-center items-center rounded-lg hover:bg-hover-bg"
-        [zTooltip]="'XP.XProject.RefreshWorkspaceList' | translate: { Default: 'Refresh workspace list' }"
-        zPosition="top"
-        (click)="refreshWorkspaceOptions()"
+        type="button"
+        z-button
+        [zLoading]="loading()"
+        [zType]="createdProject() ? 'outline' : 'default'"
+        [zDisabled]="!name() || loading()"
+        (click)="createProject()"
       >
-        <i class="ri-refresh-line"></i>
+        @if (createdProject()) {
+          {{ 'XP.XProject.Update' | translate: { Default: 'Update' } }}
+        } @else {
+          {{ 'XP.XProject.Create' | translate: { Default: 'Create' } }}
+        }
       </button>
     </div>
 
-    <xp-select
-      [selectOptions]="workspaceOptions()"
-      [placeholder]="'XP.Xpert.SelectAWorkspace' | translate: { Default: 'Select a workspace' }"
-      [(ngModel)]="workspaceId"
-    />
-
-    <a
-      [routerLink]="['/xpert/w']"
-      routerLinkActive="router-link-active"
-      target="_blank"
-      rel="noopener noreferrer"
-      class="inline-flex items-center p-1 text-xs !text-primary-400 hover:!text-primary-600"
-    >
-      {{ 'XP.Xpert.HowtoCreate' | translate: { Default: 'How to create' } }}
-      <i class="ri-external-link-line"></i>
-    </a>
-  </div>
-
-  <div class="flex">
-    <button
-      type="button"
-      class="btn disabled:btn-disabled btn-large justify-center w-24"
-      [ngClass]="createdProject() ? 'btn-secondary' : 'btn-primary'"
-      [disabled]="!name() || loading()"
-      (click)="createProject()"
-    >
-      @if (createdProject()) {
-        {{ 'XP.XProject.Update' | translate: { Default: 'Update' } }}
-      } @else {
-        {{ 'XP.XProject.Create' | translate: { Default: 'Create' } }}
-      }
-    </button>
-  </div>
-
-  <div class="border-b border-solid border-divider-regular my-6"></div>
-
-  @if (xperts()?.length) {
-    <div class="flex items-center gap-1 py-2">
-      @if (!createdProject()) {
-        <div class="text-sm text-text-warning">
-          ({{ 'XP.XProject.AfterCreatingProject' | translate: { Default: 'After creating project' } }})
-        </div>
-      }
-      <div class="text-lg font-semibold">
-        {{ 'XP.XProject.ImportXperts' | translate: { Default: 'Import Experts' } }}
-      </div>
-    </div>
-    <div class="flex flex-col items-stretch gap-4">
-      @for (xpert of xperts(); track xpert.slug; let last = $last) {
-        <project-install-xpert
-          [project]="createdProject()"
-          [xpertDraft]="xpert"
-          [myXperts]="myXperts()"
-          (createdXpertChange)="createdXpert(xpert, $event)"
-        />
-        @if (!last) {
-          <div class="border-b border-dashed border-divider-deep"></div>
-        }
-      }
-    </div>
     <div class="border-b border-solid border-divider-regular my-6"></div>
-  }
 
-  @if (toolsets()?.length) {
-    <div class="flex items-center gap-1 py-2">
-      @if (!createdProject()) {
-        <div class="text-sm text-text-warning">
-          ({{ 'XP.XProject.AfterCreatingProject' | translate: { Default: 'After creating project' } }})
-        </div>
-      }
-      <div class="text-lg font-semibold">
-        {{ 'XP.XProject.ImportToolsets' | translate: { Default: 'Import Toolsets' } }}
-      </div>
-    </div>
-
-    <div class="flex flex-col items-stretch gap-4">
-      @for (toolset of toolsets(); track toolset.id; let last = $last) {
-        <project-install-toolset
-          [project]="createdProject()"
-          [toolset]="toolset"
-          (createdToolsetChange)="createdToolset(toolset, $event)"
-        />
-        @if (!last) {
-          <div class="border-b border-dashed border-divider-deep"></div>
+    @if (xperts()?.length) {
+      <div class="flex items-center gap-1 py-2">
+        @if (!createdProject()) {
+          <div class="text-sm text-text-warning">
+            ({{ 'XP.XProject.AfterCreatingProject' | translate: { Default: 'After creating project' } }})
+          </div>
         }
-      }
-    </div>
-  }
+        <div class="text-base font-medium">
+          {{ 'XP.XProject.ImportXperts' | translate: { Default: 'Import Experts' } }}
+        </div>
+      </div>
+      <div class="flex flex-col items-stretch gap-4">
+        @for (xpert of xperts(); track xpert.slug; let last = $last) {
+          <project-install-xpert
+            [project]="createdProject()"
+            [xpertDraft]="xpert"
+            [myXperts]="myXperts()"
+            (createdXpertChange)="createdXpert(xpert, $event)"
+          />
+          @if (!last) {
+            <div class="border-b border-dashed border-divider-deep"></div>
+          }
+        }
+      </div>
+      <div class="border-b border-solid border-divider-regular my-6"></div>
+    }
 
-  @if (loading()) {
-    <xp-spin class="absolute top-0 left-0 w-full h-full" />
-  }
-</div>
+    @if (toolsets()?.length) {
+      <div class="flex items-center gap-1 py-2">
+        @if (!createdProject()) {
+          <div class="text-sm text-text-warning">
+            ({{ 'XP.XProject.AfterCreatingProject' | translate: { Default: 'After creating project' } }})
+          </div>
+        }
+        <div class="text-base font-medium">
+          {{ 'XP.XProject.ImportToolsets' | translate: { Default: 'Import Toolsets' } }}
+        </div>
+      </div>
 
-<div class="border-b border-solid border-divider-regular mt-2"></div>
+      <div class="flex flex-col items-stretch gap-4">
+        @for (toolset of toolsets(); track toolset.id; let last = $last) {
+          <project-install-toolset
+            [project]="createdProject()"
+            [toolset]="toolset"
+            (createdToolsetChange)="createdToolset(toolset, $event)"
+          />
+          @if (!last) {
+            <div class="border-b border-dashed border-divider-deep"></div>
+          }
+        }
+      </div>
+    }
 
-<div class="flex justify-end px-8 py-4">
-  <button
-    type="button"
-    class="btn disabled:btn-disabled btn-secondary btn-large justify-center w-24"
-    [disabled]="loading()"
-    (click)="close()"
-  >
-    {{ 'XP.Xpert.Cancel' | translate: { Default: 'Cancel' } }}
-  </button>
+    @if (loading()) {
+      <xp-spin class="absolute top-0 left-0 w-full h-full" />
+    }
+  </div>
 
-  <button
-    type="button"
-    class="btn disabled:btn-disabled btn-primary btn-large justify-center w-24 ml-2"
-    [disabled]="!createdProject() || loading()"
-    (click)="done()"
-  >
-    {{ 'XP.XProject.Done' | translate: { Default: 'Done' } }}
-  </button>
-</div>
+  <footer xpDialogFooter>
+    <button type="button" z-button zType="outline" [zDisabled]="loading()" (click)="close()">
+      {{ 'XP.Xpert.Cancel' | translate: { Default: 'Cancel' } }}
+    </button>
+
+    <button type="button" z-button [zDisabled]="!createdProject() || loading()" (click)="done()">
+      {{ 'XP.XProject.Done' | translate: { Default: 'Done' } }}
+    </button>
+  </footer>
+</section>

@@ -39,3 +39,5 @@ export {
   ZardSegmentedItemComponent
 } from '../../packages/ui/src/lib/components/segmented/segmented.component'
 export { ZardTooltipImports } from '../../packages/ui/src/lib/components/tooltip/tooltip.imports'
+
+export { XpSelectComponent } from '../../packages/ui/src/lib/ui/compat/common/select/select/select.component'

@@ -278,13 +278,15 @@ export class PluginMarketplaceDetailComponent {
 
     this.#dialog
       .open(PluginMarketplaceSkillDetailDialogComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           plugin,
           content,
           resource,
           component
-        },
-        backdropClass: 'backdrop-blur-sm-black'
+        }
       })
       .closed.subscribe((result) => {
         if (isTrialStartedDialogResult(result)) {

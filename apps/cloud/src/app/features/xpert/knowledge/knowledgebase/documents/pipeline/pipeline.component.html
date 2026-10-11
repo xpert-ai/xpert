@@ -1,19 +1,24 @@
-<div class="flex h-[min(48rem,calc(100dvh-3rem))] w-[min(76rem,calc(100vw-3rem))] flex-col">
-  <header class="flex shrink-0 items-center justify-between gap-4 border-b border-divider-subtle px-6 py-4">
-    <h2 class="font-semibold text-text-primary">{{ 'XP.Knowledgebase.Import.Pipeline' | translate }}</h2>
+<section
+  xpDialogLayout="wide"
+  xpDialogPurpose="workflow"
+  class="h-[min(768px,calc(100dvh-32px))] w-[1064px] max-w-full"
+>
+  <header xpDialogHeader>
+    <h2 xpDialogHeading>{{ 'XP.Knowledgebase.Import.Pipeline' | translate }}</h2>
     <button
+      xpDialogCloseButton
       z-button
       zType="ghost"
       zSize="icon"
       type="button"
-      [disabled]="submitting()"
+      [zDisabled]="submitting()"
       (click)="close()"
       [attr.aria-label]="'XP.Knowledgebase.Import.Close' | translate"
     >
       <i class="ri-close-line" aria-hidden="true"></i>
     </button>
   </header>
-  <ol class="flex shrink-0 items-center gap-4 border-b border-divider-subtle px-6 py-3 sm:gap-8">
+  <ol class="flex shrink-0 items-center gap-4 border-b border-divider-subtle px-(--xp-dialog-padding) pb-4 sm:gap-8">
     @for (
       label of [
         'XP.Knowledgebase.PipelineFlow.Source',
@@ -46,7 +51,7 @@
       </li>
     }
   </ol>
-  <div class="min-h-0 flex-1 overflow-hidden" [attr.inert]="submitting() ? '' : null">
+  <div xpDialogBody class="space-y-0 overflow-hidden p-0" [attr.inert]="submitting() ? '' : null">
     @switch (step()) {
       @case (1) {
         <xp-knowledge-document-pipeline-step-1 class="flex h-full min-h-0 w-full overflow-hidden" />
@@ -63,4 +68,4 @@
       }
     }
   </div>
-</div>
+</section>

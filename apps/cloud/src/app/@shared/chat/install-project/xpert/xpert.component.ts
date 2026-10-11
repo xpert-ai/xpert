@@ -1,3 +1,14 @@
+import {
+  ZardButtonComponent,
+  XpDialogActionGroupDirective,
+  ZardIconComponent,
+  XpSpinComponent,
+  ZardSearchInputComponent,
+  attrModel,
+  linkedModel,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
+
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 
@@ -14,13 +25,10 @@ import {
 } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { XpertBasicDialogComponent } from '@cloud/app/@shared/xpert'
-import { XpSpinComponent, ZardSearchInputComponent } from '@xpert-ai/headless-ui'
-import { attrModel, linkedModel } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { EMPTY, pipe } from 'rxjs'
 import { combineLatestWith, debounceTime, map, startWith, switchMap, tap } from 'rxjs/operators'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -32,7 +40,10 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     ...ZardTooltipImports,
     XpSpinComponent,
     ZardSearchInputComponent,
-    EmojiAvatarComponent
+    EmojiAvatarComponent,
+    ZardButtonComponent,
+    XpDialogActionGroupDirective,
+    ZardIconComponent
   ],
   selector: 'project-install-xpert',
   templateUrl: 'xpert.component.html',

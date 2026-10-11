@@ -1,10 +1,10 @@
-<div class="flex justify-between items-center p-1 border-b border-solid border-divider-deep">
+<div xpDialogActionGroup="inline" class="flex flex-wrap items-center justify-between gap-2 border-b border-border pb-3">
   <div>
     <ng-content></ng-content>
   </div>
 
   <div>
-    <button type="button" class="btn btn-secondary btn-sm bg-transparent" (click)="emptyFiles()">
+    <button type="button" z-button zType="outline" (click)="emptyFiles()">
       {{ 'XP.Chat.Empty' | translate: { Default: 'Empty' } }}
     </button>
   </div>
@@ -17,7 +17,7 @@
       >
         @for (level of item.levels; track $index) {
           <div class="shrink-0 w-[14px] h-full flex justify-center">
-            <div class="w-[1px] min-h-[36px] h-full bg-neutral-200"></div>
+            <div class="w-[1px] min-h-[36px] h-full bg-border"></div>
           </div>
         }
 
@@ -37,15 +37,18 @@
           }}</span>
           <span class="text-xs font-mono text-text-tertiary">{{ item.createdAt | relative }}</span>
         </div>
-        <div
-          class="flex items-center justify-center cursor-pointer rounded-md w-8 h-8 opacity-0 group-hover:opacity-100"
-          type="button"
-          #trigger="cdkMenuTriggerFor"
-          [class.opacity-100]="trigger.isOpen()"
-          [cdkMenuTriggerFor]="menu"
-          [cdkMenuTriggerData]="{ file: item }"
-        >
-          <i class="ri-more-line"></i>
+        <div xpDialogActionGroup="inline">
+          <button
+            type="button"
+            z-button
+            zType="ghost"
+            zSize="icon"
+            [cdkMenuTriggerFor]="menu"
+            [cdkMenuTriggerData]="{ file: item }"
+            [attr.aria-label]="'XP.KEY_WORDS.More' | translate: { Default: 'More actions' }"
+          >
+            <z-icon zType="ellipsis" />
+          </button>
         </div>
       </div>
     }

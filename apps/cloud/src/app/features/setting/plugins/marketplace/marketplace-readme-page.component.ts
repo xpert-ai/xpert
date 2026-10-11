@@ -130,6 +130,9 @@ export class PluginMarketplaceReadmePageComponent {
     }
 
     this.#dialog.open(PluginInstallComponent, {
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)',
       data: {
         plugin,
         reload: () => this.#detail.reload()

@@ -46,6 +46,9 @@ export class ChatComponentMessageFilesComponent {
   openAllFiles() {
     this.#dialog
       .open<TFile>(ChatFilesDialogComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           files: this.files()
         }

@@ -132,6 +132,9 @@ export class ChatProjectsComponent {
   handleImportedDSL(dsl: any) {
     this.#dialog
       .open<IXpertProject>(XpertProjectInstallComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           dsl
         }

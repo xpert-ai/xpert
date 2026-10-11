@@ -1,3 +1,5 @@
+import { ZardButtonComponent, XpDialogFrameImports, XpSpinComponent, myRxResource } from '@xpert-ai/headless-ui'
+
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 
 import { Component, computed, effect, inject, Injector, signal } from '@angular/core'
@@ -7,8 +9,6 @@ import { getErrorMessage, injectHelpWebsite } from '@cloud/app/@core'
 import { PluginComponent, TPlugin } from '@cloud/app/@shared/plugins'
 import { injectActiveScope, injectPluginAPI, injectScopeLevel, Store } from '@cloud/app/@core/state'
 import { IPluginInstallResult, PLUGIN_LEVEL, RequestScopeLevel } from '@xpert-ai/contracts'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
-import { myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { PluginRuntimeRestartService } from '../plugin-runtime-restart.service'
 
@@ -27,10 +27,16 @@ type PluginInstallDialogData = {
 
 @Component({
   standalone: true,
-  imports: [TranslateModule, FormsModule, XpSpinComponent, PluginComponent],
+  imports: [
+    TranslateModule,
+    FormsModule,
+    XpSpinComponent,
+    PluginComponent,
+    ZardButtonComponent,
+    ...XpDialogFrameImports
+  ],
   selector: 'xp-settings-plugin-install',
-  templateUrl: './install.component.html',
-  styleUrls: ['./install.component.scss']
+  templateUrl: './install.component.html'
 })
 export class PluginInstallComponent {
   readonly #dialogRef = inject<DialogRef<PluginInstallResult | undefined>>(DialogRef)

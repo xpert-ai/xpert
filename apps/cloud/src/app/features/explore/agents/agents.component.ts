@@ -196,6 +196,9 @@ export class ExploreAgentsComponent {
     if (item.type === 'project') {
       this.#dialog
         .open<IXpertProject>(XpertProjectInstallComponent, {
+          backdropClass: 'backdrop-blur-xs-black',
+          panelClass: 'xp-overlay-pane-dialog',
+          maxWidth: 'calc(100vw - 32px)',
           data: {
             template: item
           }

@@ -1,5 +1,20 @@
-<div class="flex flex-col space-y-1.5 p-4 text-center sm:text-left">
-  <div class="flex w-full items-start justify-between gap-4">
+<section xpDialogLayout="standard" xpDialogPurpose="workflow" class="w-[640px] max-w-full max-h-[calc(100dvh-32px)]">
+  <header xpDialogHeader>
+    <h2 xpDialogHeading>{{ (task()?.id ? 'XP.Xpert.UpdateTask' : 'XP.Xpert.CreateTask') | translate }}</h2>
+    <button
+      type="button"
+      z-button
+      zType="ghost"
+      zSize="icon"
+      xpDialogCloseButton
+      [zDisabled]="loading()"
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+      (click)="close()"
+    >
+      <z-icon zType="x" />
+    </button>
+  </header>
+  <div xpDialogBody class="relative" [attr.inert]="loading() ? '' : null">
     <label class="flex min-w-0 grow flex-col gap-2 text-left" for="scheduled-task-name">
       <span class="text-sm font-semibold text-text-primary">
         {{ 'XP.Xpert.TaskNameOptional' | translate: { Default: 'Task name (optional)' } }}
@@ -7,193 +22,182 @@
       <input
         id="scheduled-task-name"
         [placeholder]="'XP.Xpert.TaskNamePlaceholder' | translate: { Default: 'e.g. Daily news summary' }"
-        class="h-11 w-full rounded-xl border border-input-border bg-components-card-bg px-3 text-base text-text-primary outline-none transition-shadow placeholder:text-text-tertiary focus-visible:ring-1 focus-visible:ring-ring"
+        z-input
+        class="w-full"
         type="text"
         [disabled]="connectorOnlyMode()"
         [(ngModel)]="name"
       />
     </label>
-    <button
-      class="inline-flex h-10 w-10 shrink-0 cursor-pointer select-none items-center justify-center rounded-xl border border-transparent text-sm font-medium leading-[normal] text-text-primary transition-colors duration-100 hover:bg-hover-bg focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-      type="button"
-      [attr.aria-label]="'XP.ACTIONS.CLOSE' | translate: { Default: 'Close' }"
-      (click)="close()"
-    >
-      <i class="ri-close-large-line" aria-hidden="true"></i>
-    </button>
-  </div>
-</div>
+    @if (!connectorOnlyMode()) {
+      <xp-schedule-form [(ngModel)]="options" />
+    }
 
-<div class="relative gap-3 flex flex-col px-6">
-  @if (!connectorOnlyMode()) {
-    <xp-schedule-form [(ngModel)]="options" />
-  }
-
-  <div class="flex items-center gap-2 border-solid border-[0.5px] border-input-border rounded-xl p-2">
-    <button
-      type="button"
-      class="flex min-w-0 grow items-center gap-2 text-left disabled:text-text-secondary disabled:shadow-none disabled:cursor-not-allowed"
-      [disabled]="lockXpertSelection() || connectorOnlyMode()"
-      [cdkMenuTriggerFor]="lockXpertSelection() || connectorOnlyMode() ? null : xpertsMenu"
-    >
-      <i class="ri-links-line ml-1 text-lg"></i>
-      <emoji-avatar [avatar]="xpert()?.avatar" xs class="shrink-0 rounded-lg overflow-hidden" />
-      <span class="min-w-0 grow truncate">
-        {{ xpert()?.title || xpert()?.name || ('XP.Xpert.SelectExpert' | translate: { Default: 'Select Expert' }) }}
-      </span>
-      @if (lockXpertSelection()) {
-        <i class="ri-lock-line text-text-tertiary"></i>
-      }
-    </button>
-
-    @if (canEditSelectedXpert() && !connectorOnlyMode()) {
+    <div xpDialogActionGroup="inline" class="flex min-w-0 items-center gap-2">
       <button
         type="button"
-        class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-text-secondary hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-        [zTooltip]="'XP.Xpert.EditXpert' | translate: { Default: 'Edit Xpert' }"
-        zPosition="top"
-        (click)="editXpert()"
+        z-button
+        zType="outline"
+        class="min-w-0 flex-1 justify-start"
+        [zDisabled]="lockXpertSelection() || connectorOnlyMode()"
+        [cdkMenuTriggerFor]="lockXpertSelection() || connectorOnlyMode() ? null : xpertsMenu"
       >
-        <i class="ri-settings-3-line text-lg"></i>
+        <i class="ri-links-line ml-1 text-lg"></i>
+        <emoji-avatar [avatar]="xpert()?.avatar" xs class="shrink-0 rounded-lg overflow-hidden" />
+        <span class="min-w-0 grow truncate">
+          {{ xpert()?.title || xpert()?.name || ('XP.Xpert.SelectExpert' | translate: { Default: 'Select Expert' }) }}
+        </span>
+        @if (lockXpertSelection()) {
+          <i class="ri-lock-line text-text-tertiary"></i>
+        }
       </button>
+
+      @if (canEditSelectedXpert() && !connectorOnlyMode()) {
+        <button
+          type="button"
+          z-button
+          zType="ghost"
+          zSize="icon"
+          [attr.aria-label]="'XP.Xpert.EditXpert' | translate: { Default: 'Edit Xpert' }"
+          [zTooltip]="'XP.Xpert.EditXpert' | translate: { Default: 'Edit Xpert' }"
+          zPosition="top"
+          (click)="editXpert()"
+        >
+          <i class="ri-settings-3-line text-lg"></i>
+        </button>
+      }
+    </div>
+
+    @if (!connectorOnlyMode() && runtimeStateSchema(); as stateSchema) {
+      <json-schema-form
+        class="grid grid-cols-1 gap-3 sm:grid-cols-2"
+        [schema]="stateSchema"
+        [ngModel]="runtimeStateValue()"
+        [ngModelOptions]="{ standalone: true }"
+        (ngModelChange)="setRuntimeState($event)"
+      />
+    }
+
+    @if (projectId()) {
+      <section class="space-y-2 rounded-xl border border-input-border p-3">
+        <div>
+          <div class="text-sm font-medium text-text-primary">
+            {{ 'XP.XProject.AutomationConnectors' | translate: { Default: 'Connectors for this automation' } }}
+          </div>
+          <p class="mt-1 text-xs text-text-tertiary">
+            {{
+              'XP.XProject.AutomationConnectorsDescription'
+                | translate: { Default: 'Only selected Project connectors are available when this task runs.' }
+            }}
+          </p>
+        </div>
+        <z-select
+          class="w-full"
+          [zMultiple]="true"
+          [zMaxLabelCount]="3"
+          [zValue]="selectedConnectorBindingIds()"
+          [zDisabled]="connectorOptionsLoading() || !connectorOptions().length"
+          [zPlaceholder]="'XP.XProject.SelectAutomationConnectors' | translate: { Default: 'Select connectors' }"
+          (zSelectionChange)="selectConnectorBindingIds($event)"
+        >
+          @for (option of connectorOptions(); track option.bindingId) {
+            <z-select-item [zValue]="option.bindingId" [zDisabled]="!isConnectorAvailable(option)">
+              {{ option.label | i18n }}
+            </z-select-item>
+          }
+        </z-select>
+        @if (!canManagePersonalConnectors()) {
+          <p class="text-xs text-text-tertiary">
+            {{
+              'XP.XProject.AutomationPersonalConnectorsRunAsOnly'
+                | translate
+                  : {
+                      Default:
+                        'Only the run-as user can select personal connectors. Existing personal selections are preserved.'
+                    }
+            }}
+          </p>
+        }
+        @if (!connectorOptionsLoading() && !connectorOptions().length) {
+          <p class="text-xs text-text-tertiary">
+            {{
+              'XP.XProject.NoAutomationConnectors'
+                | translate: { Default: 'No Project connectors are available for this expert and run-as user.' }
+            }}
+          </p>
+        }
+      </section>
+    }
+
+    <textarea
+      z-input
+      class="w-full"
+      rows="8"
+      [placeholder]="'XP.Xpert.EnterPromptHere' | translate: { Default: 'Enter prompt here.' }"
+      maxlength="8000"
+      [disabled]="connectorOnlyMode()"
+      [(ngModel)]="prompt"
+    ></textarea>
+
+    @if (isTrialUser()) {
+      <div
+        class="mt-3 flex items-center justify-between gap-4 rounded-xl border border-input-border bg-components-card-bg px-3 py-3"
+      >
+        <div class="flex items-center gap-4">
+          <xp-progress-spinner class="w-10 h-10 text-primary" [value]="(total() / 10) * 100" />
+          <div class="flex flex-col gap-0 -my-0.5">
+            <p class="text-sm font-semibold text-text-primary -mb-[2px]">
+              {{ 10 - total() }} {{ 'XP.Xpert.TasksRemaining' | translate: { Default: 'tasks remaining' } }}
+            </p>
+            <p class="text-sm font-medium text-text-secondary -mt-[2px]">
+              {{ 'XP.Xpert.Current' | translate: { Default: 'Current' } }}: {{ total() }}
+              {{ 'XP.Xpert.TasksActive' | translate: { Default: 'tasks active' } }}
+            </p>
+          </div>
+        </div>
+      </div>
+    }
+
+    @if (loading()) {
+      <xp-spin class="absolute top-0 left-0 w-full h-full" />
     }
   </div>
 
-  @if (!connectorOnlyMode() && runtimeStateSchema(); as stateSchema) {
-    <json-schema-form
-      class="grid grid-cols-2 gap-2"
-      [schema]="stateSchema"
-      [ngModel]="runtimeStateValue()"
-      [ngModelOptions]="{ standalone: true }"
-      (ngModelChange)="setRuntimeState($event)"
-    />
-  }
-
-  @if (projectId()) {
-    <section class="space-y-2 rounded-xl border border-input-border p-3">
-      <div>
-        <div class="text-sm font-medium text-text-primary">
-          {{ 'XP.XProject.AutomationConnectors' | translate: { Default: 'Connectors for this automation' } }}
-        </div>
-        <p class="mt-1 text-xs text-text-tertiary">
-          {{
-            'XP.XProject.AutomationConnectorsDescription'
-              | translate: { Default: 'Only selected Project connectors are available when this task runs.' }
-          }}
-        </p>
-      </div>
-      <z-select
-        class="w-full"
-        [zMultiple]="true"
-        [zMaxLabelCount]="3"
-        [zValue]="selectedConnectorBindingIds()"
-        [zDisabled]="connectorOptionsLoading() || !connectorOptions().length"
-        [zPlaceholder]="'XP.XProject.SelectAutomationConnectors' | translate: { Default: 'Select connectors' }"
-        (zSelectionChange)="selectConnectorBindingIds($event)"
-      >
-        @for (option of connectorOptions(); track option.bindingId) {
-          <z-select-item [zValue]="option.bindingId" [zDisabled]="!isConnectorAvailable(option)">
-            {{ option.label | i18n }}
-          </z-select-item>
-        }
-      </z-select>
-      @if (!canManagePersonalConnectors()) {
-        <p class="text-xs text-text-tertiary">
-          {{
-            'XP.XProject.AutomationPersonalConnectorsRunAsOnly'
-              | translate
-                : {
-                    Default:
-                      'Only the run-as user can select personal connectors. Existing personal selections are preserved.'
-                  }
-          }}
-        </p>
-      }
-      @if (!connectorOptionsLoading() && !connectorOptions().length) {
-        <p class="text-xs text-text-tertiary">
-          {{
-            'XP.XProject.NoAutomationConnectors'
-              | translate: { Default: 'No Project connectors are available for this expert and run-as user.' }
-          }}
-        </p>
-      }
-    </section>
-  }
-
-  <textarea
-    class="flex min-h-[60px] w-full bg-transparent text-base shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 rounded-xl p-4 border border-input-border"
-    rows="8"
-    [placeholder]="'XP.Xpert.EnterPromptHere' | translate: { Default: 'Enter prompt here.' }"
-    maxlength="8000"
-    [disabled]="connectorOnlyMode()"
-    [(ngModel)]="prompt"
-  ></textarea>
-
-  @if (isTrialUser()) {
-    <div
-      class="mt-3 flex items-center justify-between gap-4 rounded-xl border border-input-border bg-components-card-bg px-3 py-3"
-    >
-      <div class="flex items-center gap-4">
-        <xp-progress-spinner class="w-10 h-10 text-[var(--sys-primary)]" [value]="(total() / 10) * 100" />
-        <div class="flex flex-col gap-0 -my-0.5">
-          <p class="text-sm font-semibold text-text-primary -mb-[2px]">
-            {{ 10 - total() }} {{ 'XP.Xpert.TasksRemaining' | translate: { Default: 'tasks remaining' } }}
-          </p>
-          <p class="text-sm font-medium text-text-secondary -mt-[2px]">
-            {{ 'XP.Xpert.Current' | translate: { Default: 'Current' } }}: {{ total() }}
-            {{ 'XP.Xpert.TasksActive' | translate: { Default: 'tasks active' } }}
-          </p>
-        </div>
-      </div>
-    </div>
-  }
-
-  @if (loading()) {
-    <xp-spin class="absolute top-0 left-0 w-full h-full" />
-  }
-</div>
-
-<div class="w-full flex justify-end p-6">
-  <div class="flex items-center gap-2">
-    <button type="button" class="btn disabled:btn-disabled btn-large" (click)="close()">
+  <footer xpDialogFooter>
+    <button type="button" z-button zType="outline" [zDisabled]="loading()" (click)="close()">
       {{ 'XP.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
     </button>
 
-    <button
-      type="button"
-      class="btn disabled:btn-disabled btn-primary btn-large"
-      [disabled]="isSubmitDisabled()"
-      (click)="createTask()"
-    >
+    <button type="button" z-button [zLoading]="loading()" [zDisabled]="isSubmitDisabled()" (click)="createTask()">
       @if (task()?.id) {
         {{ 'XP.Xpert.UpdateTask' | translate: { Default: 'Update Task' } }}
       } @else {
         {{ 'XP.Xpert.CreateTask' | translate: { Default: 'Create Task' } }}
       }
     </button>
-  </div>
-</div>
+  </footer>
 
-<ng-template #xpertsMenu>
-  <div cdkMenu class="cdk-menu__large max-w-sm text-text-primary relative p-0">
-    <div class="w-full sticky -top-1 z-10 bg-components-card-bg">
-      <z-search-input
-        class="w-full"
-        [placeholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
-        [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
-        [(ngModel)]="search"
-      />
-    </div>
-
-    @for (item of filteredXperts(); track item.id) {
-      <button class="xp-cdk-menu-item p-1" cdkMenuItem (click)="bindExpert(item)">
-        <emoji-avatar [avatar]="item.avatar" xs class="shrink-0 rounded-lg overflow-hidden shadow-sm mr-1" />
-        <p class="overflow-hidden whitespace-nowrap text-ellipsis">{{ item.title || item.name }}</p>
-      </button>
-    } @empty {
-      <div class="p-2 text-text-secondary">
-        {{ 'XP.XProject.NoExperts' | translate: { Default: 'No experts found' } }}
+  <ng-template #xpertsMenu>
+    <div cdkMenu class="cdk-menu__large max-w-sm text-text-primary relative p-0">
+      <div class="w-full sticky -top-1 z-10 bg-components-card-bg">
+        <z-search-input
+          class="w-full"
+          [placeholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
+          [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
+          [(ngModel)]="search"
+        />
       </div>
-    }
-  </div>
-</ng-template>
+
+      @for (item of filteredXperts(); track item.id) {
+        <button class="xp-cdk-menu-item p-1" cdkMenuItem (click)="bindExpert(item)">
+          <emoji-avatar [avatar]="item.avatar" xs class="shrink-0 rounded-lg overflow-hidden shadow-sm mr-1" />
+          <p class="overflow-hidden whitespace-nowrap text-ellipsis">{{ item.title || item.name }}</p>
+        </button>
+      } @empty {
+        <div class="p-2 text-text-secondary">
+          {{ 'XP.XProject.NoExperts' | translate: { Default: 'No experts found' } }}
+        </div>
+      }
+    </div>
+  </ng-template>
+</section>
