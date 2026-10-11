@@ -364,10 +364,12 @@ describe('SandboxAcquireBackendHandler', () => {
     })
 
     it.each([undefined, { projectContentReadOnly: false }])(
-        'fails closed when a Project runtime provider does not declare Project Content protection support',
+        'temporarily allows providers without Project Content protection support while forwarding the protection request',
         async (capabilities) => {
             provider.type = 'unsupported-sandbox'
             provider.capabilities = capabilities
+            const backend = { id: 'sandbox-project', execute: jest.fn() }
+            provider.create.mockResolvedValue(backend)
 
             await expect(
                 handler.execute(
@@ -387,8 +389,8 @@ describe('SandboxAcquireBackendHandler', () => {
                         workFor: { type: 'environment', id: 'environment-1' }
                     })
                 )
-            ).rejects.toThrow('does not support read-only Project Content')
-            expect(provider.create).not.toHaveBeenCalled()
+            ).resolves.toMatchObject({ provider: 'unsupported-sandbox', backend })
+            expect(provider.create).toHaveBeenCalledWith(expect.objectContaining({ protectProjectContent: true }))
         }
     )
 })
