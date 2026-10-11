@@ -1,3 +1,4 @@
+import { Dialog } from '@angular/cdk/dialog'
 import {
   GENERAL_PROJECT_TYPE,
   resolveI18nText,
@@ -15,7 +16,6 @@ import {
   ZardBadgeComponent,
   ZardButtonComponent,
   ZardCardImports,
-  ZardDialogService,
   ZardSearchInputComponent,
   ZardSegmentedComponent,
   ZardSegmentedItemComponent,
@@ -214,7 +214,7 @@ import { XpertProjectApiService } from './project-api.service'
 })
 export class XpertProjectListComponent implements OnInit {
   readonly facade = inject(XpertProjectFacade)
-  readonly #dialog = inject(ZardDialogService)
+  readonly #dialog = inject(Dialog)
   readonly #router = inject(Router)
   readonly #toastr = injectToastr()
   readonly #api = inject(XpertProjectApiService)
@@ -320,7 +320,7 @@ export class XpertProjectListComponent implements OnInit {
     }
 
     firstValueFrom(
-      this.#dialog.open<XpertProjectCreateDialogComponent, undefined, IXpertProjectCreateInput>(
+      this.#dialog.open<IXpertProjectCreateInput, undefined, XpertProjectCreateDialogComponent>(
         XpertProjectCreateDialogComponent,
         {
           width: 'min(94vw, 600px)',

@@ -1,3 +1,4 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule, DOCUMENT } from '@angular/common'
 import { Clipboard } from '@angular/cdk/clipboard'
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core'
@@ -74,6 +75,7 @@ import { getCurrentModelAccessStatus } from '../model-access/model-access-status
 export class XpAccountModelGatewayComponent implements OnInit {
   readonly #service = inject(ModelGatewayService)
   readonly #dialog = inject(ZardDialogService)
+  readonly #frameDialog = inject(Dialog)
   readonly #toastr = injectToastr()
   readonly #translate = inject(TranslateService)
   readonly #document = inject(DOCUMENT)
@@ -164,13 +166,16 @@ export class XpAccountModelGatewayComponent implements OnInit {
 
   async apply(item: IModelGatewayCatalogItem) {
     const result = await firstValueFrom(
-      this.#dialog.open<
-        ModelGatewayRequestDialogComponent,
+      this.#frameDialog.open<
+        ModelGatewayRequestDialogResult | null,
         IModelGatewayCatalogItem,
-        ModelGatewayRequestDialogResult | null
+        ModelGatewayRequestDialogComponent
       >(ModelGatewayRequestDialogComponent, {
         data: item,
-        width: 'min(92vw, 520px)'
+        width: 'min(92vw, 520px)',
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)'
       }).closed
     )
     if (!result) {
@@ -199,9 +204,14 @@ export class XpAccountModelGatewayComponent implements OnInit {
 
   async withdraw(request: IModelAccessRequest) {
     const result = await firstValueFrom(
-      this.#dialog.open<ModelAccessWithdrawDialogComponent, undefined, ModelAccessWithdrawDialogResult | null>(
+      this.#frameDialog.open<ModelAccessWithdrawDialogResult | null, undefined, ModelAccessWithdrawDialogComponent>(
         ModelAccessWithdrawDialogComponent,
-        { width: 'min(92vw, 500px)' }
+        {
+          width: 'min(92vw, 500px)',
+          backdropClass: 'backdrop-blur-xs-black',
+          panelClass: 'xp-overlay-pane-dialog',
+          maxWidth: 'calc(100vw - 32px)'
+        }
       ).closed
     )
     if (!result) {

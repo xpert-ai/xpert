@@ -1,8 +1,8 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { Component, inject, OnDestroy } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute } from '@angular/router'
 import { firstValueFrom, map } from 'rxjs'
-import { ZardDialogService } from '@xpert-ai/headless-ui'
 import { ChatConversationService, XpertProjectService } from '@cloud/app/@core'
 import { ExtensionHostOutletComponent } from '@cloud/app/@shared/view-extension/extension-host-outlet.component'
 import { ViewClientCommandRegistry } from '@cloud/app/@shared/view-extension/view-client-command-registry.service'
@@ -31,7 +31,7 @@ export class XpertProjectTaskManagementComponent implements OnDestroy {
   private destroyed = false
   readonly projects = inject(XpertProjectService)
   readonly conversations = inject(ChatConversationService)
-  readonly dialog = inject(ZardDialogService)
+  readonly dialog = inject(Dialog)
   readonly unregister = registerWorkbenchNavigationOpenCommand(inject(ViewClientCommandRegistry), {
     openAssistantConversation: async (target) => {
       const projectId = this.projectId()

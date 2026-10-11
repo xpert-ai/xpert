@@ -1,3 +1,4 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { DOCUMENT } from '@angular/common'
 import { Clipboard } from '@angular/cdk/clipboard'
 import { TestBed } from '@angular/core/testing'
@@ -101,6 +102,7 @@ describe('XpAccountModelGatewayComponent', () => {
             getMyCalls
           }
         },
+        { provide: Dialog, useValue: { open: jest.fn() } },
         { provide: ZardDialogService, useValue: { open: jest.fn() } },
         { provide: TranslateService, useValue: { instant: jest.fn((value: string) => value) } },
         { provide: ToastrService, useValue: { error: jest.fn(), success: jest.fn() } },
@@ -141,6 +143,7 @@ describe('XpAccountModelGatewayComponent', () => {
       providers: [
         { provide: Clipboard, useValue: { copy } },
         { provide: ModelGatewayService, useValue: {} },
+        { provide: Dialog, useValue: { open: jest.fn() } },
         { provide: ZardDialogService, useValue: {} },
         { provide: TranslateService, useValue: { instant: jest.fn((value: string) => value) } },
         { provide: ToastrService, useValue: toastr },

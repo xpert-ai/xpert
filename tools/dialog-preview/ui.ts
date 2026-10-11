@@ -9,3 +9,5 @@ export { ZardSwitchComponent } from '../../packages/ui/src/lib/components/switch
 export { XpDialogActionGroupDirective } from '../../packages/ui/src/lib/components/dialog/dialog-action-group.directive'
 export { XpDialogFrameImports } from '../../packages/ui/src/lib/components/dialog/dialog-frame.directive'
 export { provideZard } from '../../packages/ui/src/lib/core/provider/providezard'
+
+export { ZardTagSelectComponent } from '../../packages/ui/src/lib/components/tag-select/tag-select.component'

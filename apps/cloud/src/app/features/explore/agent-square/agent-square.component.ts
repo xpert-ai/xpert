@@ -497,7 +497,12 @@ export class ExploreAgentSquareComponent {
     }
 
     const reason = await firstValueFrom(
-      this.#dialog.open<string | null>(AgentSquareAccessRequestDialogComponent, { data: { item } }).closed
+      this.#dialog.open<string | null>(AgentSquareAccessRequestDialogComponent, {
+        data: { item },
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)'
+      }).closed
     )
     if (reason == null) {
       return

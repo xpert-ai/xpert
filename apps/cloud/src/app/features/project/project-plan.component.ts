@@ -1,3 +1,4 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject, OnInit, signal } from '@angular/core'
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop'
@@ -16,7 +17,6 @@ import type {
 import {
   ZardBadgeComponent,
   ZardButtonComponent,
-  ZardDialogService,
   ZardInputDirective,
   ZardSelectImports,
   ZardTableImports,
@@ -557,7 +557,7 @@ export class XpertProjectPlanComponent implements OnInit {
   readonly #route = inject(ActivatedRoute)
   readonly #router = inject(Router)
   readonly #translate = inject(TranslateService)
-  readonly #dialog = inject(ZardDialogService)
+  readonly #dialog = inject(Dialog)
   readonly #toastr = injectToastr()
   readonly view = signal<PlanView>(this.readView())
   readonly status = signal('all')
@@ -802,15 +802,15 @@ export class XpertProjectPlanComponent implements OnInit {
     }
     const result = await firstValueFrom(
       this.#dialog.open<
-        XpertProjectTaskDialogComponent,
+        XpertProjectTaskDialogResult | null,
         XpertProjectTaskDialogData,
-        XpertProjectTaskDialogResult | null
+        XpertProjectTaskDialogComponent
       >(XpertProjectTaskDialogComponent, {
         data,
         width: 'min(94vw, 720px)',
         maxWidth: 'calc(100vw - 32px)',
-        backdropClass: 'backdrop-blur-sm-black',
-        panelClass: 'xp-overlay-pane-card'
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog'
       }).closed
     )
     if (!result) return
@@ -911,10 +911,16 @@ export class XpertProjectPlanComponent implements OnInit {
   ) {
     const input = await firstValueFrom(
       this.#dialog.open<
-        XpertProjectPlanDialogComponent,
+        XpertProjectPlanDialogResult | null,
         { mode: XpertProjectPlanDialogMode; initial?: XpertProjectPlanDialogResult },
-        XpertProjectPlanDialogResult | null
-      >(XpertProjectPlanDialogComponent, { data: { mode, initial }, width: 'min(94vw, 560px)' }).closed
+        XpertProjectPlanDialogComponent
+      >(XpertProjectPlanDialogComponent, {
+        data: { mode, initial },
+        width: 'min(94vw, 560px)',
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)'
+      }).closed
     )
     if (!input) return
     try {

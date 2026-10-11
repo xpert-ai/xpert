@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing'
 import type { TXpertProjectSkillSummary } from '@xpert-ai/contracts'
-import { Z_MODAL_DATA, ZardDialogRef } from '@xpert-ai/headless-ui'
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { of } from 'rxjs'
 import { ToastrService } from '../../@core'
 import { XpertProjectApiService } from './project-api.service'
@@ -31,8 +31,8 @@ describe('XpertProjectSkillsDialogComponent', () => {
     TestBed.configureTestingModule({
       imports: [XpertProjectSkillsDialogComponent],
       providers: [
-        { provide: ZardDialogRef, useValue: dialogRef },
-        { provide: Z_MODAL_DATA, useValue: { projectId: 'project-1', skills: [skill], canEdit: true } },
+        { provide: DialogRef, useValue: dialogRef },
+        { provide: DIALOG_DATA, useValue: { projectId: 'project-1', skills: [skill], canEdit: true } },
         { provide: XpertProjectApiService, useValue: api },
         { provide: ToastrService, useValue: toastr }
       ]

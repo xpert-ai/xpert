@@ -5,6 +5,7 @@ import { TestBed } from '@angular/core/testing'
 import { ZardButtonComponent } from '../button/button.component'
 import { ZardInputDirective } from '../input/input.directive'
 import { ZardSelectImports } from '../select/select.imports'
+import { ZardTagSelectComponent } from '../tag-select/tag-select.component'
 import { XpDialogActionGroupDirective } from './dialog-action-group.directive'
 import type { XpDialogPurpose } from './dialog-context'
 import { XpDialogFrameImports } from './dialog-frame.directive'
@@ -53,7 +54,40 @@ class DialogFrameHost {
   readonly clicks = signal(0)
 }
 
+@Component({
+  imports: [ZardTagSelectComponent],
+  template: `<z-tag-select mode="multiple" [enableSuggestions]="true" [options]="options" />`
+})
+class DialogTagSelectHost {
+  readonly options = [{ value: 'editor', label: 'Editor' }]
+}
+
 describe('shared Dialog layout', () => {
+  it('closes only tag suggestions on the first Escape and the parent Dialog on the second', async () => {
+    TestBed.configureTestingModule({ providers: [provideZard()] })
+    const fixture = TestBed.createComponent(DialogTagSelectHost)
+    fixture.detectChanges()
+    const dialog = TestBed.inject(Dialog)
+    const ref = dialog.open(DialogTagSelectHost, { autoFocus: false })
+    ref.componentRef!.changeDetectorRef.detectChanges()
+    const overlay = TestBed.inject(OverlayContainer).getContainerElement()
+    const input = overlay.querySelector<HTMLInputElement>('.cdk-dialog-container input')!
+    input.focus()
+    ref.componentRef!.changeDetectorRef.detectChanges()
+    await fixture.whenStable()
+    expect(overlay.querySelector('[role=option]')).not.toBeNull()
+
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', keyCode: 27, bubbles: true }))
+    await fixture.whenStable()
+    expect(overlay.querySelector('[role=option]')).toBeNull()
+    expect(dialog.openDialogs).toContain(ref)
+    expect(document.activeElement).toBe(input)
+
+    input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', keyCode: 27, bubbles: true }))
+    await fixture.whenStable()
+    expect(dialog.openDialogs).not.toContain(ref)
+  })
+
   it('closes only the select popup on Escape and restores focus inside the parent CDK Dialog', async () => {
     TestBed.configureTestingModule({ providers: [provideZard()] })
     const fixture = TestBed.createComponent(DialogFrameHost)

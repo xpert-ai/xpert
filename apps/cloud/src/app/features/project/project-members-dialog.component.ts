@@ -58,7 +58,7 @@ type ProjectMembersDialogData = {
           [attr.aria-label]="'XP.XProject.Close' | translate"
           (click)="close()"
         >
-          <i class="ri-close-line"></i>
+          <z-icon zType="x" aria-hidden="true" />
         </button>
       </header>
 

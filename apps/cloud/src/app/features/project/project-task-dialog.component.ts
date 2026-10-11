@@ -1,3 +1,4 @@
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { Component, inject } from '@angular/core'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
@@ -11,13 +12,12 @@ import type {
 } from '@xpert-ai/contracts'
 import type { XpertProjectConversationTarget, XpertProjectTaskRelations } from './project-api.service'
 import {
-  Z_MODAL_DATA,
   ZardBadgeComponent,
   ZardButtonComponent,
-  ZardDialogRef,
   ZardFormImports,
   ZardInputDirective,
-  ZardSelectImports
+  ZardSelectImports,
+  XpDialogFrameImports
 } from '@xpert-ai/headless-ui'
 
 type TaskForm = {
@@ -35,6 +35,7 @@ type TaskForm = {
   standalone: true,
   selector: 'xp-project-task-dialog',
   imports: [
+    ...XpDialogFrameImports,
     CommonModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -45,27 +46,27 @@ type TaskForm = {
     ...ZardSelectImports
   ],
   template: `
-    <form class="flex max-h-[82vh] min-w-0 flex-col" [formGroup]="form" (ngSubmit)="save()">
-      <header class="flex items-start justify-between border-b border-divider-subtle pb-3">
-        <div class="min-w-0">
-          <p class="text-xs font-medium uppercase tracking-wide text-text-tertiary">
-            {{ 'XP.XProject.TaskDetail' | translate }}
-          </p>
-          <h2 class="mt-1 truncate text-base font-semibold text-text-primary">
-            {{ task?.title || task?.name || ('XP.XProject.UntitledTask' | translate) }}
-          </h2>
-        </div>
+    <form xpDialogLayout="wide" class="max-h-[82vh]" [formGroup]="form" (ngSubmit)="save()">
+      <header xpDialogHeader>
+        <h2 xpDialogHeading>
+          {{ task?.title || task?.name || ('XP.XProject.UntitledTask' | translate) }}
+        </h2>
+        <p xpDialogDescription>
+          {{ 'XP.XProject.TaskDetail' | translate }}
+        </p>
         <button
           z-button
           zType="ghost"
+          zSize="icon"
+          xpDialogCloseButton
           type="button"
           [attr.aria-label]="'XP.XProject.Close' | translate"
           (click)="close()"
         >
-          <i class="ri-close-line"></i>
+          <z-icon zType="x" aria-hidden="true" />
         </button>
       </header>
-      <div class="min-h-0 flex-1 space-y-3 overflow-y-auto py-3">
+      <div xpDialogBody>
         <z-form-field appearance="fill" class="w-full">
           <z-form-label>{{ 'XP.XProject.TaskColumn' | translate }}</z-form-label>
           <input z-input formControlName="title" />
@@ -103,7 +104,7 @@ type TaskForm = {
               <z-select-item [zValue]="assistant.id">{{ assistant.title || assistant.name }}</z-select-item>
             }
           </z-select>
-          <p class="mt-0.5 text-xs text-text-tertiary">
+          <p class="col-span-full mt-0.5 text-xs text-text-tertiary">
             {{ 'XP.XProject.ExecutionAssistantHint' | translate }}
           </p>
         </z-form-field>
@@ -248,8 +249,8 @@ type TaskForm = {
           </dl>
         </section>
       </div>
-      <footer class="flex justify-end gap-2 border-t border-divider-subtle pt-3">
-        <button z-button zType="ghost" type="button" (click)="close()">
+      <footer xpDialogFooter>
+        <button z-button zType="outline" type="button" (click)="close()">
           {{ 'XP.XProject.Cancel' | translate }}
         </button>
         <button z-button zType="default" type="submit">{{ 'XP.XProject.Save' | translate }}</button>
@@ -258,9 +259,8 @@ type TaskForm = {
   `
 })
 export class XpertProjectTaskDialogComponent {
-  readonly data = inject<XpertProjectTaskDialogData>(Z_MODAL_DATA)
-  readonly #dialogRef =
-    inject<ZardDialogRef<XpertProjectTaskDialogComponent, XpertProjectTaskDialogResult | null>>(ZardDialogRef)
+  readonly data = inject<XpertProjectTaskDialogData>(DIALOG_DATA)
+  readonly #dialogRef = inject<DialogRef<XpertProjectTaskDialogResult | null>>(DialogRef)
   readonly task = this.data.task
   readonly relations = this.data.relations
   readonly plans = this.data.plans

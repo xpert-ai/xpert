@@ -59,7 +59,7 @@ describe('XpertProjectConfigComponent Project Content', () => {
       providers: [
         { provide: XpertProjectFacade, useValue: facade },
         { provide: XpertProjectApiService, useValue: api },
-        { provide: Dialog, useValue: { open: jest.fn() } },
+        { provide: Dialog, useValue: dialog },
         { provide: ZardDialogService, useValue: dialog },
         { provide: XpertTaskDialogService, useValue: { openCreateTask: jest.fn() } },
         { provide: XpertTaskService, useValue: {} },

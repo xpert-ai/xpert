@@ -8,6 +8,7 @@ import { build } from 'esbuild'
 import { compileString } from 'sass'
 import { compile } from '@tailwindcss/node'
 import { Scanner } from '@tailwindcss/oxide'
+import { batchTwo } from './batch-02.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const out = path.join(root, '.cache/dialog-preview')
@@ -42,6 +43,9 @@ const scenes = {
   members: await inline('apps/cloud/src/app/features/project/project-members-dialog.component.ts'),
   upload: await inline('apps/cloud/src/app/features/xpert/workspace/skills/skill-upload-dialog.component.ts'),
   confirm: await read('packages/ui/src/lib/ui/compat/common/confirm/cdk-confirm-delete/confirm-delete.component.html')
+}
+for (const [key, scene] of Object.entries(batchTwo)) {
+  scenes[key] = await inline(`apps/cloud/src/app/features/${scene.file}-dialog.component.ts`)
 }
 await fs.writeFile(path.join(out, 'scenes.json'), JSON.stringify(scenes))
 const zh = JSON.parse(await read('apps/cloud/src/assets/i18n/zh-Hans.json'))

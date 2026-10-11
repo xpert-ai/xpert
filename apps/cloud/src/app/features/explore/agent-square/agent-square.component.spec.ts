@@ -365,7 +365,12 @@ describe('ExploreAgentSquareComponent', () => {
 
     await fixture.componentInstance.handleExpertAction(published)
 
-    expect(dialog.open).toHaveBeenCalledWith(AgentSquareAccessRequestDialogComponent, { data: { item: published } })
+    expect(dialog.open).toHaveBeenCalledWith(AgentSquareAccessRequestDialogComponent, {
+      data: { item: published },
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)'
+    })
     expect(marketplaceService.requestAccess).toHaveBeenCalledWith('published-1', { reason: 'Need access' })
   })
 

@@ -1,6 +1,7 @@
 import { computed, Directive, forwardRef, inject, input } from '@angular/core'
 import type { ClassValue } from 'clsx'
 import { mergeClasses } from '../../utils/merge-classes'
+import { ZardIconComponent } from '../icon/icon.component'
 import { XP_DIALOG_ACTION_CONTEXT, XP_DIALOG_CONTEXT, type XpDialogPurpose } from './dialog-context'
 import {
   dialogBodyClasses,
@@ -77,6 +78,7 @@ export class XpDialogFooterDirective {
 export class XpDialogCloseButtonDirective {}
 
 export const XpDialogFrameImports = [
+  ZardIconComponent,
   XpDialogLayoutDirective,
   XpDialogHeaderDirective,
   XpDialogHeadingDirective,

@@ -1,13 +1,14 @@
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject, signal } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import type { IXpert, IXpertProject } from '@xpert-ai/contracts'
 import {
-  Z_MODAL_DATA,
   ZardBadgeComponent,
   ZardButtonComponent,
-  ZardDialogRef,
-  ZardSelectImports
+  ZardSelectImports,
+  XpDialogFrameImports,
+  XpDialogActionGroupDirective
 } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
@@ -22,6 +23,8 @@ export interface XpertProjectAssistantsDialogData {
   standalone: true,
   selector: 'xp-project-assistants-dialog',
   imports: [
+    ...XpDialogFrameImports,
+    XpDialogActionGroupDirective,
     CommonModule,
     TranslateModule,
     ZardBadgeComponent,
@@ -30,32 +33,28 @@ export interface XpertProjectAssistantsDialogData {
     ...ZardSelectImports
   ],
   template: `
-    <section class="flex max-h-[82vh] min-w-0 flex-col">
-      <header class="flex items-start justify-between border-b border-divider-subtle pb-4">
-        <div class="min-w-0">
-          <p class="text-xs font-medium uppercase tracking-wide text-text-tertiary">
-            {{ 'XP.XProject.ProjectExperts' | translate }}
-          </p>
-          <h2 class="mt-1 text-lg font-semibold text-text-primary">
-            {{ 'XP.XProject.ProjectExperts' | translate }}
-          </h2>
-          <p class="mt-1 text-sm text-text-secondary">
-            {{ 'XP.XProject.ProjectExpertsDescription' | translate }}
-          </p>
-        </div>
+    <section xpDialogLayout="wide" class="max-h-[84vh]">
+      <header xpDialogHeader>
+        <h2 xpDialogHeading>
+          {{ 'XP.XProject.ProjectExperts' | translate }}
+        </h2>
+        <p xpDialogDescription>
+          {{ 'XP.XProject.ProjectExpertsDescription' | translate }}
+        </p>
         <button
           z-button
           zType="ghost"
-          zSize="sm"
+          zSize="icon"
+          xpDialogCloseButton
           type="button"
           [attr.aria-label]="'XP.XProject.Close' | translate"
           (click)="close()"
         >
-          <i class="ri-close-line"></i>
+          <z-icon zType="x" aria-hidden="true" />
         </button>
       </header>
 
-      <div class="min-h-0 space-y-5 overflow-y-auto py-5">
+      <div xpDialogBody>
         <section class="space-y-3">
           <div class="flex items-center justify-between gap-3">
             <div>
@@ -69,7 +68,7 @@ export interface XpertProjectAssistantsDialogData {
 
           <div class="divide-y divide-divider-subtle rounded-xl border border-divider-subtle">
             @for (assistant of members(); track assistant.id) {
-              <div class="flex items-center justify-between gap-3 p-3">
+              <div xpDialogActionGroup="inline" class="flex items-center justify-between gap-3 p-3">
                 <div class="flex min-w-0 items-center gap-3">
                   <emoji-avatar
                     [avatar]="assistant.avatar"
@@ -87,9 +86,9 @@ export interface XpertProjectAssistantsDialogData {
                 <button
                   z-button
                   zType="ghost"
-                  zSize="sm"
+                  zSize="icon"
                   type="button"
-                  [disabled]="busy()"
+                  [zDisabled]="busy()"
                   [attr.aria-label]="'XP.XProject.RemoveXpert' | translate"
                   (click)="remove(assistant)"
                 >
@@ -107,7 +106,7 @@ export interface XpertProjectAssistantsDialogData {
             <h3 class="text-sm font-semibold text-text-primary">{{ 'XP.XProject.AddProjectExpert' | translate }}</h3>
             <p class="mt-1 text-xs text-text-secondary">{{ 'XP.XProject.AddProjectExpertDescription' | translate }}</p>
           </div>
-          <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div xpDialogActionGroup="inline" class="flex flex-col gap-2 sm:flex-row sm:items-center">
             <z-select
               class="min-w-0 flex-1"
               [zValue]="selectedId()"
@@ -120,15 +119,8 @@ export interface XpertProjectAssistantsDialogData {
                 <z-select-item [zValue]="assistant.id">{{ assistant.title || assistant.name }}</z-select-item>
               }
             </z-select>
-            <button
-              z-button
-              zType="default"
-              zSize="default"
-              type="button"
-              [disabled]="!selectedId() || busy()"
-              (click)="add()"
-            >
-              <i class="ri-add-line mr-1"></i>{{ 'XP.XProject.AddExpert' | translate }}
+            <button z-button zType="default" type="button" [zDisabled]="!selectedId() || busy()" (click)="add()">
+              <i class="ri-add-line"></i>{{ 'XP.XProject.AddExpert' | translate }}
             </button>
           </div>
           @if (!availableCandidates().length) {
@@ -137,7 +129,7 @@ export interface XpertProjectAssistantsDialogData {
         </section>
       </div>
 
-      <footer class="flex justify-end border-t border-divider-subtle pt-4">
+      <footer xpDialogFooter>
         <button z-button zType="outline" type="button" (click)="close()">
           {{ 'XP.XProject.Done' | translate }}
         </button>
@@ -147,9 +139,9 @@ export interface XpertProjectAssistantsDialogData {
   host: { class: 'block w-full min-w-0' }
 })
 export class XpertProjectAssistantsDialogComponent {
-  readonly #dialogRef = inject<ZardDialogRef<XpertProjectAssistantsDialogComponent, boolean>>(ZardDialogRef)
+  readonly #dialogRef = inject<DialogRef<boolean>>(DialogRef)
   readonly #api = inject(XpertProjectApiService)
-  readonly data = inject<XpertProjectAssistantsDialogData>(Z_MODAL_DATA)
+  readonly data = inject<XpertProjectAssistantsDialogData>(DIALOG_DATA)
   readonly members = signal<IXpert[]>([...(this.data.project.xperts ?? [])])
   readonly selectedId = signal('')
   readonly busy = signal(false)

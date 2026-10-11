@@ -48,7 +48,7 @@ import { firstValueFrom } from 'rxjs'
           [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
           (click)="close()"
         >
-          <i class="ri-close-line text-lg" aria-hidden="true"></i>
+          <z-icon zType="x" aria-hidden="true" />
         </button>
       </header>
 
