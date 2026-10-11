@@ -1,3 +1,4 @@
+import { registerFileAccessTests } from './remote-component-file-access.cases'
 import { registerContextTests } from './remote-component-context.cases'
 jest.mock('@cloud/app/@core', () => {
   const { inject } = jest.requireActual('@angular/core')
@@ -82,6 +83,7 @@ describe('RemoteComponentRendererComponent', () => {
     executeFileAction: jest.Mock
     createViewFileAccessSession: jest.Mock
     createViewFileAccessGrant: jest.Mock
+    readViewFileAccessContent: jest.Mock
     revokeViewFileAccessSession: jest.Mock
   }
   let registry: ViewClientCommandRegistry
@@ -119,6 +121,7 @@ describe('RemoteComponentRendererComponent', () => {
           size: 1024
         })
       ),
+      readViewFileAccessContent: jest.fn(() => of(new Blob(['file bytes'], { type: 'video/mp4' }))),
       revokeViewFileAccessSession: jest.fn(() => of({ success: true }))
     }
 
@@ -612,44 +615,7 @@ describe('RemoteComponentRendererComponent', () => {
     expect(handler).not.toHaveBeenCalled()
   })
 
-  it('creates one host-bound file session and grants only declared purposes', async () => {
-    const fixture = TestBed.createComponent(RemoteComponentRendererComponent)
-    fixture.componentRef.setInput('hostType', 'agent')
-    fixture.componentRef.setInput('hostId', 'assistant-1')
-    fixture.componentRef.setInput('manifest', {
-      ...manifest,
-      fileAccess: { purposes: ['preview'] }
-    })
-    await flushRemoteEntry(fixture)
-
-    const component = fixture.componentInstance as unknown as {
-      handleFileAccessRequest(message: Record<string, unknown>): Promise<unknown>
-    }
-    await expect(
-      component.handleFileAccessRequest({
-        fileKey: 'asset-1',
-        targetId: 'project-1',
-        purpose: 'preview'
-      })
-    ).resolves.toMatchObject({ mimeType: 'video/mp4', size: 1024 })
-    await component.handleFileAccessRequest({ fileKey: 'asset-2', targetId: 'project-1', purpose: 'preview' })
-
-    expect(api.createViewFileAccessSession).toHaveBeenCalledTimes(1)
-    expect(api.createViewFileAccessSession).toHaveBeenCalledWith('agent', 'assistant-1', manifest.key, undefined)
-    expect(api.createViewFileAccessGrant).toHaveBeenNthCalledWith(1, 'session-1', {
-      fileKey: 'asset-1',
-      targetId: 'project-1',
-      purpose: 'preview'
-    })
-    await expect(component.handleFileAccessRequest({ fileKey: 'asset-1', purpose: 'download' })).rejects.toThrow(
-      "File access purpose 'download' is not available"
-    )
-    expect(api.createViewFileAccessGrant).toHaveBeenCalledTimes(2)
-
-    fixture.destroy()
-    await Promise.resolve()
-    expect(api.revokeViewFileAccessSession).toHaveBeenCalledWith('session-1')
-  })
+  registerFileAccessTests(() => ({ api, manifest }), flushRemoteEntry)
 
   registerContextTests(() => ({ api, manifest }), flushRemoteEntry)
 
