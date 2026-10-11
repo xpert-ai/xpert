@@ -2663,26 +2663,26 @@ Xpert Agent 和 ChatKit
 
 ## Xpert
 
-- Toolset 统一加载：<https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-toolset/commands/handlers/get-tools.handler.ts>
-- Plugin SDK BuiltinToolset：<https://github.com/xpert-ai/xpert/blob/main/packages/plugin-sdk/src/lib/toolset/builtin.ts>
-- MCP Consumer Client：<https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-toolset/provider/mcp/types.ts>
-- MCP Toolset：<https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-toolset/provider/mcp/mcp-toolset.ts>
-- MCP Apps Runtime：<https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-toolset/provider/mcp/app-support.ts>
-- MCP Apps Service：<https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-toolset/mcp-apps.service.ts>
-- MCP `_meta` Bridge：<https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-toolset/provider/mcp/meta-artifact-bridge.ts>
-- Xpert ChatKit MCP App：<https://github.com/xpert-ai/chatkit-js/blob/main/packages/chatkit-ui/src/components/thread/messages/mcp-app.tsx>
+- Toolset 统一加载：[https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-toolset/commands/handlers/get-tools.handler.ts](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-toolset/commands/handlers/get-tools.handler.ts)
+- Plugin SDK BuiltinToolset：[https://github.com/xpert-ai/xpert/blob/main/packages/plugin-sdk/src/lib/toolset/builtin.ts](https://github.com/xpert-ai/xpert/blob/main/packages/plugin-sdk/src/lib/toolset/builtin.ts)
+- MCP Consumer Client：[https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-toolset/provider/mcp/types.ts](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-toolset/provider/mcp/types.ts)
+- MCP Toolset：[https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-toolset/provider/mcp/mcp-toolset.ts](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-toolset/provider/mcp/mcp-toolset.ts)
+- MCP Apps Runtime：[https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-toolset/provider/mcp/app-support.ts](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-toolset/provider/mcp/app-support.ts)
+- MCP Apps Service：[https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-toolset/mcp-apps.service.ts](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-toolset/mcp-apps.service.ts)
+- MCP `_meta` Bridge：[https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-toolset/provider/mcp/meta-artifact-bridge.ts](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-toolset/provider/mcp/meta-artifact-bridge.ts)
+- Xpert ChatKit MCP App：[https://github.com/xpert-ai/chatkit-js/blob/main/packages/chatkit-ui/src/components/thread/messages/mcp-app.tsx](https://github.com/xpert-ai/chatkit-js/blob/main/packages/chatkit-ui/src/components/thread/messages/mcp-app.tsx)
 
 ## MCP 官方
 
-- MCP `2026-07-28`：<https://blog.modelcontextprotocol.io/posts/2026-07-28/>
-- Authorization：<https://modelcontextprotocol.io/specification/draft/basic/authorization>
-- MCP Apps：<https://apps.extensions.modelcontextprotocol.io/api/documents/Overview.html>
-- Tasks：<https://tasks.extensions.modelcontextprotocol.io/specification/draft/tasks>
-- Tools：<https://modelcontextprotocol.io/specification/draft/server/tools>
-- Resources：<https://modelcontextprotocol.io/specification/draft/server/resources>
-- Prompts：<https://modelcontextprotocol.io/specification/draft/server/prompts>
-- Completion：<https://modelcontextprotocol.io/specification/draft/server/utilities/completion>
-- Elicitation：<https://modelcontextprotocol.io/specification/draft/client/elicitation>
+- MCP `2026-07-28`：[https://blog.modelcontextprotocol.io/posts/2026-07-28/](https://blog.modelcontextprotocol.io/posts/2026-07-28/)
+- Authorization：[https://modelcontextprotocol.io/specification/draft/basic/authorization](https://modelcontextprotocol.io/specification/draft/basic/authorization)
+- MCP Apps：[https://apps.extensions.modelcontextprotocol.io/api/documents/Overview.html](https://apps.extensions.modelcontextprotocol.io/api/documents/Overview.html)
+- Tasks：[https://tasks.extensions.modelcontextprotocol.io/specification/draft/tasks](https://tasks.extensions.modelcontextprotocol.io/specification/draft/tasks)
+- Tools：[https://modelcontextprotocol.io/specification/draft/server/tools](https://modelcontextprotocol.io/specification/draft/server/tools)
+- Resources：[https://modelcontextprotocol.io/specification/draft/server/resources](https://modelcontextprotocol.io/specification/draft/server/resources)
+- Prompts：[https://modelcontextprotocol.io/specification/draft/server/prompts](https://modelcontextprotocol.io/specification/draft/server/prompts)
+- Completion：[https://modelcontextprotocol.io/specification/draft/server/utilities/completion](https://modelcontextprotocol.io/specification/draft/server/utilities/completion)
+- Elicitation：[https://modelcontextprotocol.io/specification/draft/client/elicitation](https://modelcontextprotocol.io/specification/draft/client/elicitation)
 
 ---
 

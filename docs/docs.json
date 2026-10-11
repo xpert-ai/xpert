@@ -60,6 +60,15 @@
             ]
           },
           {
+            "tab": "Proposals",
+            "groups": [
+              {
+                "group": "Architecture Proposals",
+                "pages": ["en/proposals/scoped-authorization"]
+              }
+            ]
+          },
+          {
             "tab": "OpenAPI",
             "groups": [
               {
@@ -131,6 +140,15 @@
               {
                 "group": "知识库",
                 "pages": ["zh-Hans/guides/graphrag"]
+              }
+            ]
+          },
+          {
+            "tab": "提案",
+            "groups": [
+              {
+                "group": "架构提案",
+                "pages": ["zh-Hans/proposals/scoped-authorization"]
               }
             ]
           },

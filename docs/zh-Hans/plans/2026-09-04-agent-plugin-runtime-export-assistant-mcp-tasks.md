@@ -1,4 +1,6 @@
-# Xpert App 运行态导出 Agent Plugin 与 Assistant MCP Tasks 改造计划
+---
+title: 'Xpert App 运行态导出 Agent Plugin 与 Assistant MCP Tasks 改造计划'
+---
 
 > 文档状态：架构与实施计划  
 > 日期：2026-09-04  
