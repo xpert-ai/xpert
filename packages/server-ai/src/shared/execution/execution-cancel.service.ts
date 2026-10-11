@@ -1,5 +1,5 @@
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common'
-import { REDIS_CLIENT } from '@xpert-ai/server-core'
+import { closeRedisSubscriber, REDIS_CLIENT } from '@xpert-ai/server-core'
 import type { RedisClientType } from 'redis'
 import { ExecutionCancelledError } from './execution-cancelled.error'
 
@@ -27,14 +27,7 @@ export class ExecutionCancelService implements OnModuleInit, OnModuleDestroy {
     }
 
     async onModuleDestroy() {
-        try {
-            if (this.subscriber) {
-                await this.subscriber.unsubscribe(EXECUTION_CANCEL_CHANNEL)
-                await this.subscriber.quit()
-            }
-        } catch (error) {
-            this.#logger.warn(`Failed to shutdown cancel subscriber: ${error}`)
-        }
+        await closeRedisSubscriber('execution-cancel.redis', this.subscriber)
     }
 
     register(executionId: string, controller: AbortController) {

@@ -1,3 +1,5 @@
+jest.mock('@xpert-ai/server-core', () => jest.requireActual('../../../../server/src/runtime-control/shutdown-step'))
+
 import { SandboxRuntimeHealthService } from './sandbox-runtime-health.service'
 import { SandboxRuntimeDefinitionRegistry } from './sandbox-runtime-definition.registry'
 

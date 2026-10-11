@@ -2,7 +2,7 @@ import type { CapabilityChangeEvent, ToolEventsApi } from '@xpert-ai/plugin-sdk'
 import type { ServerEvent, ServerEventBus } from '@modelcontextprotocol/server'
 import { McpResourceUriTemplate } from './mcp-resource-uri-template'
 import type { McpCapabilityType } from '@xpert-ai/contracts'
-import { REDIS_CLIENT } from '@xpert-ai/server-core'
+import { closeRedisSubscriber, REDIS_CLIENT } from '@xpert-ai/server-core'
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit, Optional } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { randomUUID } from 'node:crypto'
@@ -65,14 +65,7 @@ export class McpSubscriptionService implements OnModuleInit, OnModuleDestroy {
     }
 
     async onModuleDestroy() {
-        try {
-            if (this.subscriber?.isOpen) {
-                await this.subscriber.unsubscribe(MCP_SUBSCRIPTION_CHANNEL)
-                await this.subscriber.quit()
-            }
-        } catch (error) {
-            this.#logger.warn(`Failed to close MCP subscription subscriber: ${errorMessage(error)}`)
-        }
+        await closeRedisSubscriber('mcp-subscription.redis', this.subscriber)
     }
 
     bus(publicationId: string): ServerEventBus {

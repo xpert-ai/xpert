@@ -1,3 +1,4 @@
+import { runShutdownStep } from '@xpert-ai/server-core'
 import os from 'node:os'
 import { randomUUID } from 'node:crypto'
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common'
@@ -65,17 +66,16 @@ export class SandboxRuntimeHealthService implements OnModuleInit, OnModuleDestro
     async onModuleDestroy(): Promise<void> {
         this.stopped = true
         if (this.heartbeatTimer) clearInterval(this.heartbeatTimer)
-        const redis = await this.queue.getRedis().catch(() => null)
-        if (!redis) return
-        await Promise.all(
-            this.definitions
-                .list()
-                .map((definition) =>
-                    redis
-                        .eval(DELETE_HASH_FIELD_SCRIPT, 1, healthKey(definition.name), this.executorId)
-                        .catch(() => undefined)
-                )
-        )
+        await runShutdownStep('sandbox-runtime.unregister', async () => {
+            const redis = await this.queue.getRedis()
+            await Promise.all(
+                this.definitions
+                    .list()
+                    .map((definition) =>
+                        redis.eval(DELETE_HASH_FIELD_SCRIPT, 1, healthKey(definition.name), this.executorId)
+                    )
+            )
+        })
     }
 
     /**

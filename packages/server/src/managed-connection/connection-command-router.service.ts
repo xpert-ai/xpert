@@ -9,6 +9,7 @@ import type {
 import { REDIS_CLIENT } from '../core/redis/types'
 import { InstanceRegistryService } from './instance-registry.service'
 import { ManagedConnectionRegistryService } from './managed-connection-registry.service'
+import { closeRedisSubscriber } from '../runtime-control/shutdown-step'
 
 type RedisClientLike = {
 	connect?: () => Promise<unknown>
@@ -17,6 +18,8 @@ type RedisClientLike = {
 	subscribe?: (channel: string, listener: (message: string) => void) => Promise<unknown>
 	unsubscribe?: (channel: string) => Promise<unknown>
 	quit?: () => Promise<unknown>
+	disconnect?: () => void | Promise<unknown>
+	isOpen?: boolean
 }
 
 type RoutedCommandEnvelope = {
@@ -65,13 +68,7 @@ export class ConnectionCommandRouterService implements ConnectionCommandRouter, 
 	}
 
 	async onModuleDestroy(): Promise<void> {
-		const channel = this.commandChannel(this.instanceRegistry.instanceId)
-		await this.subscriber?.unsubscribe?.(channel).catch((error) => {
-			this.logger.warn(`Failed to unsubscribe managed connection command channel: ${this.describeError(error)}`)
-		})
-		await this.subscriber?.quit?.().catch((error) => {
-			this.logger.warn(`Failed to close managed connection command subscriber: ${this.describeError(error)}`)
-		})
+		await closeRedisSubscriber('connection-command-router.redis', this.subscriber)
 		this.subscriber = undefined
 	}
 

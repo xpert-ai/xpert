@@ -2,6 +2,8 @@ import { ConfigModule, getConfig } from '@xpert-ai/server-config'
 import { initializeApplicationTracingFromEnv, ServerAIModule } from '@xpert-ai/server-ai'
 import {
   initI18next,
+  enableRuntimeShutdown,
+  RuntimeQueueShutdownService,
   PluginModule,
   provideBullModule,
   provideCacheModule,
@@ -60,6 +62,8 @@ export async function bootstrapWorker() {
   })
   app.useLogger(app.get(Logger))
   NestLogger.overrideLogger(resolveNestLogLevels())
-  app.enableShutdownHooks()
+  const queues = app.get(RuntimeQueueShutdownService)
+  // Workers share the process deadline and queue barrier, but have no HTTP listener to drain.
+  enableRuntimeShutdown(app, { beforeClose: () => queues.close() })
   return app
 }

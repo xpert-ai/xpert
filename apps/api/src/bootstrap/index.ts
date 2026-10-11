@@ -15,6 +15,10 @@ import {
   getEntitiesFromPlugins,
   getSubscribersFromPlugins,
   initI18next,
+  enableRuntimeShutdown,
+  prepareApiShutdown,
+  RuntimeLifecycleService,
+  RuntimeQueueShutdownService,
   loadOrganizationPluginConfigs,
   normalizePluginName,
   PluginModule,
@@ -61,7 +65,9 @@ export async function bootstrap(options: { title: string; version: string }) {
 
   const app = await NestFactory.create<NestExpressApplication>(RootModule, {
     bodyParser: false,
-    bufferLogs: true
+    bufferLogs: true,
+    // Discard leftover sockets only after the drain and final SSE flush grace periods.
+    forceCloseConnections: true
   })
 
   app.useLogger(app.get(Logger))
@@ -157,7 +163,12 @@ export async function bootstrap(options: { title: string; version: string }) {
   const document = SwaggerModule.createDocument(app, swagger)
   SwaggerModule.setup('swg', app, document)
 
-  app.enableShutdownHooks()
+  const lifecycle = app.get(RuntimeLifecycleService)
+  const queues = app.get(RuntimeQueueShutdownService)
+  // Own signal handling here: Nest's enableShutdownHooks would run an independent, unbounded close path.
+  enableRuntimeShutdown(app, {
+    beforeClose: () => prepareApiShutdown(lifecycle, queues)
+  })
 
   // Listen App
   const port = process.env.PORT || 3000

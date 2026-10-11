@@ -12,7 +12,7 @@ import {
 import { Socket } from 'socket.io'
 import { In, LessThan } from 'typeorm'
 import type { RedisClientType } from 'redis'
-import { REDIS_CLIENT } from '@xpert-ai/server-core'
+import { closeRedisSubscriber, REDIS_CLIENT } from '@xpert-ai/server-core'
 import type { ShellCommand } from '@xpert-ai/contracts'
 import { VERSION, NAMESPACE, LIMITS, isId, parseReport } from '@xpert-ai/desktop-protocol'
 import { DesktopShellAuthService } from './desktop-shell-auth.service'
@@ -251,6 +251,6 @@ export class DesktopShellGateway implements OnGatewayConnection, OnGatewayDiscon
     async onModuleDestroy() {
         clearInterval(this.timer)
         for (const entry of this.connections.values()) entry.socket.disconnect(true)
-        await this.subscriber?.quit()
+        await closeRedisSubscriber('desktop-shell.redis', this.subscriber)
     }
 }

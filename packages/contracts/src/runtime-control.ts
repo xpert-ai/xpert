@@ -1,5 +1,13 @@
 export const RUNTIME_RESTART_CONFIRMATION = 'RESTART' as const
 
+/** Terminal transport interruption; it does not indicate that the background task completed or failed. */
+export const RUNTIME_STREAM_INTERRUPTED_EVENT = 'runtime-interrupted' as const
+
+export interface IRuntimeStreamInterruption {
+  code: 'RUNTIME_RESTARTING'
+  message: string
+}
+
 export type RuntimeRestartMode = 'self-signal' | 'rolling-self-signal'
 
 export type RuntimeRestartStatus = 'in_progress' | 'completed' | 'failed'

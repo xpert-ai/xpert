@@ -12,6 +12,8 @@ export type RuntimeRestartRedisClient = {
 }
 
 export type RuntimeRestartRedisSubscriber = {
+	isOpen?: boolean
+	disconnect?: () => void | Promise<unknown>
 	connect?: () => Promise<unknown>
 	subscribe?: (channel: string, listener: (message: string) => void) => Promise<unknown>
 	unsubscribe?: (channel: string) => Promise<unknown>
