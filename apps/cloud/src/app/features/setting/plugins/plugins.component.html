@@ -124,6 +124,7 @@
                 : {
                     Default:
                       'API replicas are restarting in background batches for {{pluginNames
+
           }}. You can continue using this page.', pluginNames: runtimeRestart.backgroundPluginNames().join(', ') } }}
         } @else {
           {{
@@ -236,6 +237,7 @@
         class="inline-block w-[200px]"
         [zMultiple]="true"
         [zSearchable]="true"
+        [zClearable]="true"
         [zValue]="keywords()"
         [zPlaceholder]="'XP.Plugin.AllKeywords' | translate: { Default: 'All Keywords' }"
         (zSelectionChange)="onKeywordsSelectionChange($event)"
