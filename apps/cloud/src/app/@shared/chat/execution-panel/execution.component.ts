@@ -1,3 +1,10 @@
+import {
+  ZardButtonComponent,
+  XpDialogFrameImports,
+  XpDialogActionGroupDirective,
+  myRxResource,
+  XpSpinComponent
+} from '@xpert-ai/headless-ui'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 
 import {
@@ -12,8 +19,6 @@ import {
   signal
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { myRxResource } from '@xpert-ai/headless-ui'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { interval, Subscription } from 'rxjs'
 import { getErrorMessage, IXpert, XpertAgentExecutionService, XpertAgentExecutionStatusEnum } from '../../../@core'
@@ -22,7 +27,7 @@ import { XpertAgentExecutionAccordionComponent, XpertAgentExecutionComponent } f
 @Component({
   selector: 'chat-message-execution-panel',
   templateUrl: './execution.component.html',
-  styleUrls: ['./execution.component.scss'],
+  host: { class: 'relative flex min-h-0 flex-col' },
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
@@ -30,14 +35,19 @@ import { XpertAgentExecutionAccordionComponent, XpertAgentExecutionComponent } f
     TranslateModule,
     XpSpinComponent,
     XpertAgentExecutionComponent,
-    XpertAgentExecutionAccordionComponent
+    XpertAgentExecutionAccordionComponent,
+    ZardButtonComponent,
+    ...XpDialogFrameImports,
+    XpDialogActionGroupDirective
   ]
 })
 export class ChatMessageExecutionPanelComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum
 
-  readonly #data = inject<{ id: string; xpert: IXpert }>(DIALOG_DATA, { optional: true })
+  readonly #data = inject<{ id: string; xpert: IXpert; presentation?: 'dialog' }>(DIALOG_DATA, { optional: true })
   readonly #dialogRef = inject(DialogRef, { optional: true })
+  // An embedded panel can inherit its parent's DialogRef.
+  readonly inDialog = this.#data?.presentation === 'dialog'
   readonly #executionService = inject(XpertAgentExecutionService)
   readonly #destroyRef = inject(DestroyRef)
 

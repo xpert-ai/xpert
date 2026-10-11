@@ -17,6 +17,7 @@ import { batchSeven } from './batch-07.mjs'
 import { batchEight } from './batch-08.mjs'
 import { batchNine } from './batch-09.mjs'
 import { batchTen } from './batch-10.mjs'
+import { batchEleven } from './batch-11.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const out = path.join(root, '.cache/dialog-preview')
@@ -62,17 +63,24 @@ for (const [key, scene] of Object.entries({
   ...batchSeven,
   ...batchEight,
   ...batchNine,
-  ...batchTen
+  ...batchTen,
+  ...batchEleven
 })) {
-  const file = `apps/cloud/src/app/${scene.path}`
-  scenes[key] = scene.path.endsWith('.ts') ? await inline(file) : await read(file)
+  const file = scene.source ?? `apps/cloud/src/app/${scene.path}`
+  scenes[key] = file.endsWith('.ts') ? await inline(file) : await read(file)
+  const fullTemplate = scenes[key]
   if (scene.fragment) {
     const start = scenes[key].search(new RegExp(`<ng-template\\s+#${scene.fragment}\\b[^>]*>`))
     if (start < 0) throw new Error(`Missing fragment ${scene.fragment}`)
     scenes[key] = scenes[key]
       .slice(start)
       .replace(/^<ng-template[^>]*>/, '')
-      .split('</ng-template>')[0]
+      .split(/<\/ng-template\s*>/)[0]
+  }
+  for (const fragment of scene.appendFragments ?? []) {
+    const start = fullTemplate.search(new RegExp(`<ng-template\\s+#${fragment}\\b[^>]*>`))
+    if (start < 0) throw new Error(`Missing fragment ${fragment}`)
+    scenes[key] += fullTemplate.slice(start).split(/<\/ng-template\s*>/)[0] + '</ng-template>'
   }
 }
 scenes.workspaceGeneral = await read(
@@ -181,6 +189,8 @@ const css = `@config '../../apps/cloud/tailwind.config.js';
 @import '../../apps/cloud/src/styles/theme/theme.tailwind.css';
 @import '@angular/cdk/overlay-prebuilt.css';
 @source '../../packages/ui/src';
+@source '../../libs/formly';
+@import '@ctrl/ngx-emoji-mart/picker';
 @source '../../apps/cloud/src/app';
 @source '../../tools/dialog-preview';
 ${shared}

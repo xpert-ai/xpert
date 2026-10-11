@@ -68,6 +68,9 @@ export class ChatProjectConversationComponent {
   openConversations() {
     this.#dialog
       .open(ChatConversationsComponent, {
+        panelClass: 'xp-overlay-pane-dialog',
+        backdropClass: 'backdrop-blur-xs-black',
+        maxWidth: 'calc(100vw - 32px)',
         viewContainerRef: this.#vcr,
         data: {
           basePath: '/project',

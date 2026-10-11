@@ -1,3 +1,15 @@
+import {
+  ZardButtonComponent,
+  XpDialogFrameImports,
+  XpDialogActionGroupDirective,
+  ZardInputDirective,
+  XpCommonModule,
+  XpHighlightDirective,
+  effectAction,
+  XpI18nPipe,
+  DisplayBehaviour,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { A11yModule } from '@angular/cdk/a11y'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
@@ -17,9 +29,6 @@ import {
 } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { XpCommonModule, XpHighlightDirective } from '@xpert-ai/headless-ui'
-import { effectAction, XpI18nPipe } from '@xpert-ai/headless-ui'
-import { DisplayBehaviour } from '@xpert-ai/headless-ui'
 import { IXpert, PaginationParams } from '@cloud/app/@core/state'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
@@ -37,7 +46,6 @@ import {
 import { AppService } from '../../app.service'
 import { XpertHomeService } from '../home.service'
 import { groupConversations } from '../types'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -50,18 +58,20 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     CdkListboxModule,
     A11yModule,
-    RouterModule,
     TranslateModule,
     ...ZardTooltipImports,
     WaIntersectionObserver,
     XpCommonModule,
     DateRelativePipe,
     XpHighlightDirective,
-    XpI18nPipe
+    XpI18nPipe,
+    ZardButtonComponent,
+    ...XpDialogFrameImports,
+    XpDialogActionGroupDirective,
+    ZardInputDirective
   ],
   selector: 'xpert-chat-conversations',
   templateUrl: './conversations.component.html',
-  styleUrl: 'conversations.component.scss',
   animations: [],
   changeDetection: ChangeDetectionStrategy.OnPush
 })

@@ -1,3 +1,11 @@
+import {
+  ZardButtonComponent,
+  XpDialogFrameImports,
+  XpDialogActionGroupDirective,
+  ZardIconComponent,
+  ZardTableImports
+} from '@xpert-ai/headless-ui'
+import { Dialog } from '@angular/cdk/dialog'
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import {
@@ -14,13 +22,6 @@ import { FormArray, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { cloneDeep } from 'lodash-es'
 import { FieldArrayType, FormlyFieldConfig, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
-import {
-  ZardButtonComponent,
-  ZardDialogModule,
-  ZardDialogService,
-  ZardIconComponent,
-  ZardTableImports
-} from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -32,21 +33,21 @@ import {
     class: 'xp-formly-table'
   },
   imports: [
+    ...XpDialogFrameImports,
+    XpDialogActionGroupDirective,
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
     DragDropModule,
-    ZardDialogModule,
     ZardButtonComponent,
     ZardIconComponent,
     ...ZardTableImports,
     FormlyModule,
-
     TranslateModule
   ]
 })
 export class XpFormlyTableComponent extends FieldArrayType implements OnInit {
-  private readonly _dialog = inject(ZardDialogService)
+  private readonly _dialog = inject(Dialog)
   private readonly _viewContainerRef = inject(ViewContainerRef)
 
   @ViewChild('dialogRef') dialogRef: TemplateRef<any>
@@ -74,11 +75,12 @@ export class XpFormlyTableComponent extends FieldArrayType implements OnInit {
   open(): void {
     this._dialog
       .open(this.dialogRef, {
-        panelClass: ['xp-dialog-container', 'xp-formly__table'],
+        panelClass: 'xp-overlay-pane-dialog',
+        backdropClass: 'backdrop-blur-xs-black',
+        maxWidth: 'calc(100vw - 32px)',
         viewContainerRef: this._viewContainerRef
       })
-      .afterClosed()
-      .subscribe((value) => {
+      .closed.subscribe((value) => {
         console.warn(value)
       })
   }

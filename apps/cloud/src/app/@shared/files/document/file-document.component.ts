@@ -1,3 +1,4 @@
+import { ZardButtonComponent, XpDialogFrameImports } from '@xpert-ai/headless-ui'
 import {
   ChangeDetectionStrategy,
   Component,
@@ -11,14 +12,13 @@ import {
   viewChild
 } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { FileViewerComponent, FileViewerSurface } from '../viewer/viewer.component'
 import { FileDocumentState } from './file-document-state'
 
 @Component({
   standalone: true,
   selector: 'xp-file-document',
-  imports: [TranslateModule, ZardButtonComponent, FileViewerComponent],
+  imports: [TranslateModule, ZardButtonComponent, FileViewerComponent, ...XpDialogFrameImports],
   templateUrl: './file-document.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block h-full min-h-0 min-w-0' }
