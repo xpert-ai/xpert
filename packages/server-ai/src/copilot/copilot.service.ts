@@ -167,13 +167,32 @@ export class CopilotService extends TenantOrganizationAwareCrudService<Copilot> 
         })
         const scopedItems = items.filter((copilot) => queryScopes.has(copilot.organizationId ?? null))
         const hydratedItems = await this.hydrateVisibleModelProviders(scopedItems, tenantId, organizationId ?? null)
-        return hydratedItems.filter((copilot) => {
-            const scopeOrganizationId = copilot.organizationId ?? null
-            return (
-                membershipAllowedScopes.has(scopeOrganizationId) ||
-                (allowDirectOrganizationCredentials && usesOrganizationCredentials(copilot, organizationId))
-            )
-        })
+        const availability = await Promise.all(
+            hydratedItems.map(async (copilot) => {
+                const scopeOrganizationId = copilot.organizationId ?? null
+                if (membershipAllowedScopes.has(scopeOrganizationId)) {
+                    return true
+                }
+                if (!allowDirectOrganizationCredentials) {
+                    return false
+                }
+                if (usesOrganizationCredentials(copilot, organizationId)) {
+                    return true
+                }
+                const model = copilot.copilotModel
+                if (!model?.model || !model.modelType) {
+                    return false
+                }
+                return this.modelAccessService.hasOrganizationModelCredentials({
+                    tenantId,
+                    organizationId,
+                    copilotId: copilot.id,
+                    copilotModelId: model.model,
+                    modelType: model.modelType
+                })
+            })
+        )
+        return hydratedItems.filter((_, index) => availability[index])
     }
 
     async findAllEnabledCopilotsWithoutMembership(
