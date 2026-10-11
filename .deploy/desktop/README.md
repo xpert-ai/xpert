@@ -149,6 +149,10 @@ Configure the following **repository secrets** for branch builds (not PR builds)
 `CSC_LINK` values use electron-builder's supported certificate URL/base64 format.
 When certificates are configured, signing failures fail the job. Partial Apple
 notarization credentials also fail instead of silently producing a different build.
+The PR packaging step enables `CSC_FOR_PULL_REQUEST` with certificate secrets absent
+and identity discovery disabled, so ad-hoc macOS apps and Electron helpers retain
+their audio entitlements.
+
 Without credentials macOS builds use ad-hoc signing and Windows builds are unsigned;
 the release manifest and draft explicitly identify these as test downloads requiring
 OS security confirmation. Configure Developer ID + notarization / Windows signing
