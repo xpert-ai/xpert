@@ -46,6 +46,7 @@ import { provideZard } from '../../core/provider/providezard'
     <input z-input aria-label="Outside" />
     <z-select><z-select-item zValue="editor">Outside item</z-select-item></z-select>
     <button z-button>Outside action</button>
+    <div [xpDialogActionGroup]="null"><button z-button zSize="sm">Compact list action</button></div>
   `
 })
 class DialogFrameHost {
@@ -63,6 +64,16 @@ class DialogTagSelectHost {
 }
 
 describe('shared Dialog layout', () => {
+  it('allows a reused list to retain its normal button variant outside a Dialog', () => {
+    const fixture = TestBed.createComponent(DialogFrameHost)
+    fixture.detectChanges()
+    const buttons = Array.from(fixture.nativeElement.querySelectorAll('button')) as HTMLButtonElement[]
+    const compact = buttons.find((item) => item.textContent?.trim() === 'Compact list action')!
+    expect(compact.getAttribute('data-dialog-action')).toBeNull()
+    expect(compact.classList.contains('h-[36px]')).toBe(false)
+    fixture.destroy()
+  })
+
   it('closes only tag suggestions on the first Escape and the parent Dialog on the second', async () => {
     TestBed.configureTestingModule({ providers: [provideZard()] })
     const fixture = TestBed.createComponent(DialogTagSelectHost)

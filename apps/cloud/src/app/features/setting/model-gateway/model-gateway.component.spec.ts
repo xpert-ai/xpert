@@ -1,3 +1,4 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { FormBuilder } from '@angular/forms'
 import { TestBed } from '@angular/core/testing'
 import { TranslateService } from '@ngx-translate/core'
@@ -6,7 +7,6 @@ import {
   DEFAULT_MODEL_GATEWAY_MAX_CONCURRENT_REQUESTS,
   DEFAULT_MODEL_GATEWAY_REQUESTS_PER_MINUTE
 } from '@xpert-ai/contracts'
-import { ZardDialogService } from '@xpert-ai/headless-ui'
 import { Store } from '@cloud/app/@core/state'
 import { of } from 'rxjs'
 import { ModelGatewayService } from '../../../@core/services/model-gateway.service'
@@ -42,7 +42,7 @@ describe('ModelGatewayAdminComponent', () => {
         FormBuilder,
         { provide: Store, useValue: store },
         { provide: ModelGatewayService, useValue: gatewayService },
-        { provide: ZardDialogService, useValue: {} },
+        { provide: Dialog, useValue: {} },
         {
           provide: ToastrService,
           useValue: {

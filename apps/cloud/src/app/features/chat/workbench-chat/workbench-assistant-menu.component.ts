@@ -363,7 +363,8 @@ export class WorkbenchAssistantMenuComponent {
     const { GroupCreateDialogComponent } = await import('../groups/group-create-dialog.component')
     const ref = this.#dialog.open<string>(GroupCreateDialogComponent, {
       backdropClass: 'backdrop-blur-xs-black',
-      panelClass: 'xp-overlay-pane-dialog'
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)'
     })
     // The dialog outlives the menu that opened it.
     ref.closed.subscribe((id) => {

@@ -8,7 +8,7 @@ export interface XpDialogContext {
 }
 
 export interface XpDialogActionContext extends XpDialogContext {
-  role: Signal<XpDialogActionRole>
+  role: Signal<XpDialogActionRole | undefined>
 }
 
 export const XP_DIALOG_CONTEXT = new InjectionToken<XpDialogContext>('XP_DIALOG_CONTEXT')

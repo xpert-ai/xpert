@@ -1,5 +1,5 @@
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { TestBed } from '@angular/core/testing'
-import { Z_MODAL_DATA, ZardDialogRef } from '@xpert-ai/headless-ui'
 import { ModelAccessActionDialogComponent } from './model-access-action-dialog.component'
 
 describe('ModelAccessActionDialogComponent', () => {
@@ -12,8 +12,8 @@ describe('ModelAccessActionDialogComponent', () => {
     TestBed.configureTestingModule({
       imports: [ModelAccessActionDialogComponent],
       providers: [
-        { provide: ZardDialogRef, useValue: dialogRef },
-        { provide: Z_MODAL_DATA, useValue: { mode: 'approve' } }
+        { provide: DialogRef, useValue: dialogRef },
+        { provide: DIALOG_DATA, useValue: { mode: 'approve' } }
       ]
     }).overrideComponent(ModelAccessActionDialogComponent, {
       set: {

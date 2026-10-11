@@ -258,6 +258,7 @@ export class AssistantTriggersComponent implements OnDestroy {
         },
         backdropClass: 'backdrop-blur-xs-black',
         panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         ariaLabel: this.i18n.transform(card.provider.label)
       }
     )

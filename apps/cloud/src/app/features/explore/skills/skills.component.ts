@@ -601,6 +601,10 @@ export class ExploreSkillsComponent {
 
     this.#dialog
       .open<ISkillPackage | null>(ExploreSkillShareDialogComponent, {
+        width: '640px',
+        maxWidth: 'calc(100vw - 32px)',
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
         data: {
           skill: item,
           workspaceId

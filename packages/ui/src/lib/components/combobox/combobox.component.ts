@@ -26,6 +26,9 @@ import { NgIcon, provideIcons, type IconName } from '@ng-icons/core'
 import { lucideCheck, lucideChevronsUpDown } from '@ng-icons/lucide'
 import type { ClassValue } from 'clsx'
 
+import { XP_DIALOG_CONTEXT } from '../dialog/dialog-context'
+import { dialogControlVariants } from '../dialog/dialog-frame.variants'
+
 import { ZardButtonComponent, type ZardButtonTypeVariants } from '../button'
 import { comboboxVariants, type ZardComboboxWidthVariants } from './combobox.variants'
 import {
@@ -218,13 +221,14 @@ export class ZardComboboxOptionTemplateDirective {
   host: {
     '[class]': 'classes()',
     '(document:keydown.escape)': 'onDocumentKeyDown($event)',
-    '(keydown.escape.prevent-with-stop)': 'onKeyDownEscape()',
+    '(keydown.escape)': 'onKeyDownEscape($event)',
     '(keydown.{arrowdown,arrowup,enter,home,end,pageup,pagedown,space}.prevent)': 'onKeyDown($event)',
     '(keydown.tab)': 'onKeyDown($event)'
   },
   exportAs: 'zCombobox'
 })
 export class ZardComboboxComponent implements ControlValueAccessor {
+  private readonly dialog = inject(XP_DIALOG_CONTEXT, { optional: true })
   private readonly injector = inject(Injector)
 
   readonly class = input<ClassValue>('')
@@ -263,7 +267,9 @@ export class ZardComboboxComponent implements ControlValueAccessor {
     )
   )
 
-  protected readonly buttonClasses = computed(() => 'w-full justify-between')
+  protected readonly buttonClasses = computed(() =>
+    mergeClasses('w-full justify-between', this.dialog ? dialogControlVariants({ kind: 'single' }) : '')
+  )
 
   protected readonly popoverClasses = computed(() => 'w-full p-0')
 
@@ -357,11 +363,15 @@ export class ZardComboboxComponent implements ControlValueAccessor {
     this.buttonRef().nativeElement.focus()
   }
 
-  onKeyDownEscape(): void {
+  onKeyDownEscape(event: Event): void {
     if (this.open()) {
+      event.preventDefault()
+      event.stopPropagation()
       this.popoverDirective().hide()
       this.buttonRef().nativeElement.focus()
-    } else if (this.currentValue()) {
+    } else if (!this.dialog && this.currentValue()) {
+      event.preventDefault()
+      event.stopPropagation()
       this.internalValue.set(null)
       this.onChange(null)
       this.zValueChange.emit(null)

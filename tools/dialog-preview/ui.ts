@@ -11,3 +11,11 @@ export { XpDialogFrameImports } from '../../packages/ui/src/lib/components/dialo
 export { provideZard } from '../../packages/ui/src/lib/core/provider/providezard'
 
 export { ZardTagSelectComponent } from '../../packages/ui/src/lib/components/tag-select/tag-select.component'
+
+export { ZardDatePickerComponent } from '../../packages/ui/src/lib/components/date-picker/date-picker.component'
+export {
+  ZardComboboxComponent,
+  ZardComboboxOptionTemplateDirective
+} from '../../packages/ui/src/lib/components/combobox/combobox.component'
+export { ZardTableImports } from '../../packages/ui/src/lib/components/table/table.imports'
+export { QRCodeComponent } from '../../apps/cloud/src/app/@shared/qrcode/qrcode.component'

@@ -20,7 +20,6 @@ import {
   ZardBadgeComponent,
   ZardButtonComponent,
   ZardCardImports,
-  ZardDialogService,
   ZardEmptyComponent,
   ZardFormImports,
   ZardIconComponent,
@@ -74,7 +73,6 @@ import { getCurrentModelAccessStatus } from '../model-access/model-access-status
 })
 export class XpAccountModelGatewayComponent implements OnInit {
   readonly #service = inject(ModelGatewayService)
-  readonly #dialog = inject(ZardDialogService)
   readonly #frameDialog = inject(Dialog)
   readonly #toastr = injectToastr()
   readonly #translate = inject(TranslateService)
@@ -227,11 +225,16 @@ export class XpAccountModelGatewayComponent implements OnInit {
 
   async createKey() {
     const input = await firstValueFrom(
-      this.#dialog.open<
-        ModelGatewayKeyDialogComponent,
+      this.#frameDialog.open<
+        Parameters<ModelGatewayService['createKey']>[0] | null,
         undefined,
-        Parameters<ModelGatewayService['createKey']>[0] | null
-      >(ModelGatewayKeyDialogComponent, { width: 'min(92vw, 500px)' }).closed
+        ModelGatewayKeyDialogComponent
+      >(ModelGatewayKeyDialogComponent, {
+        width: '500px',
+        maxWidth: 'calc(100vw - 32px)',
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog'
+      }).closed
     )
     if (!input) {
       return
@@ -246,10 +249,17 @@ export class XpAccountModelGatewayComponent implements OnInit {
 
   async revokeKey(key: IModelGatewayApiKey) {
     const result = await firstValueFrom(
-      this.#dialog.open<ModelAccessActionDialogComponent, { mode: 'revoke' }, ModelAccessActionDialogResult | null>(
-        ModelAccessActionDialogComponent,
-        { data: { mode: 'revoke' }, width: 'min(92vw, 500px)' }
-      ).closed
+      this.#frameDialog.open<
+        ModelAccessActionDialogResult | null,
+        { mode: 'revoke' },
+        ModelAccessActionDialogComponent
+      >(ModelAccessActionDialogComponent, {
+        data: { mode: 'revoke' },
+        width: '500px',
+        maxWidth: 'calc(100vw - 32px)',
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog'
+      }).closed
     )
     if (!result?.reason) {
       return

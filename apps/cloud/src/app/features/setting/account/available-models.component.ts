@@ -18,7 +18,6 @@ import {
   ZardBadgeComponent,
   ZardButtonComponent,
   ZardCardImports,
-  ZardDialogService,
   ZardEmptyComponent,
   ZardFormImports,
   ZardInputDirective
@@ -61,7 +60,6 @@ import { getCurrentModelAccessStatus } from '../model-access/model-access-status
 })
 export class XpAccountAvailableModelsComponent {
   readonly #service = inject(ModelAccessService)
-  readonly #dialog = inject(ZardDialogService)
   readonly #frameDialog = inject(Dialog)
   readonly #translate = inject(TranslateService)
   readonly #toastr = injectToastr()
@@ -154,13 +152,16 @@ export class XpAccountAvailableModelsComponent {
       return
     }
     const result = await firstValueFrom(
-      this.#dialog.open<
-        ModelAccessRequestDialogComponent,
+      this.#frameDialog.open<
+        ModelAccessRequestDialogResult | null,
         { items: typeof items },
-        ModelAccessRequestDialogResult | null
+        ModelAccessRequestDialogComponent
       >(ModelAccessRequestDialogComponent, {
         data: { items },
-        width: 'min(92vw, 560px)'
+        width: '560px',
+        maxWidth: 'calc(100vw - 32px)',
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog'
       }).closed
     )
     if (!result) {

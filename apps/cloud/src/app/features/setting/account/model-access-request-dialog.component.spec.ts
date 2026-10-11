@@ -1,7 +1,7 @@
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { TestBed } from '@angular/core/testing'
 import { TranslateModule } from '@ngx-translate/core'
 import { AiModelTypeEnum, IModelAccessCatalogItem, ModelAccessOwnershipScopeEnum } from '@xpert-ai/contracts'
-import { Z_MODAL_DATA, ZardDialogRef } from '@xpert-ai/headless-ui'
 import { ModelAccessRequestDialogComponent } from './model-access-request-dialog.component'
 
 function catalogItem(key: string, ownershipScope: ModelAccessOwnershipScopeEnum): IModelAccessCatalogItem {
@@ -35,13 +35,13 @@ describe('ModelAccessRequestDialogComponent', () => {
       imports: [TranslateModule.forRoot(), ModelAccessRequestDialogComponent],
       providers: [
         {
-          provide: Z_MODAL_DATA,
+          provide: DIALOG_DATA,
           useValue: {
             items: [organizationItem, tenantItem]
           }
         },
         {
-          provide: ZardDialogRef,
+          provide: DialogRef,
           useValue: dialogRef
         }
       ]

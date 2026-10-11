@@ -518,7 +518,11 @@ export class ExploreAgentSquareComponent {
 
   async openReviewDialog() {
     const changed = await firstValueFrom(
-      this.#dialog.open<boolean>(AgentSquareReviewRequestsDialogComponent, { minWidth: 320 }).closed
+      this.#dialog.open<boolean>(AgentSquareReviewRequestsDialogComponent, {
+        maxWidth: 'calc(100vw - 32px)',
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog'
+      }).closed
     )
     if (changed) {
       await Promise.all([this.loadExperts(), this.loadFeaturedExperts(true)])

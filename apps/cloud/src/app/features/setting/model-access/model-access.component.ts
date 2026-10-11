@@ -1,3 +1,4 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
@@ -17,7 +18,6 @@ import {
   ZardBadgeComponent,
   ZardButtonComponent,
   ZardDatePickerComponent,
-  ZardDialogService,
   ZardFormImports,
   ZardInputDirective,
   ZardPaginationImports,
@@ -70,7 +70,7 @@ export class ModelAccessAdminComponent implements OnInit {
   readonly #service = inject(ModelAccessService)
   readonly #store = inject(Store)
   readonly #destroyRef = inject(DestroyRef)
-  readonly #dialog = inject(ZardDialogService)
+  readonly #dialog = inject(Dialog)
   readonly #toastr = injectToastr()
   readonly #formBuilder = inject(FormBuilder)
 
@@ -294,12 +294,15 @@ export class ModelAccessAdminComponent implements OnInit {
   private openAction(mode: ModelAccessActionMode) {
     return firstValueFrom(
       this.#dialog.open<
-        ModelAccessActionDialogComponent,
+        ModelAccessActionDialogResult | null,
         { mode: ModelAccessActionMode },
-        ModelAccessActionDialogResult | null
+        ModelAccessActionDialogComponent
       >(ModelAccessActionDialogComponent, {
         data: { mode },
-        width: 'min(92vw, 520px)'
+        width: '520px',
+        maxWidth: 'calc(100vw - 32px)',
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog'
       }).closed
     )
   }

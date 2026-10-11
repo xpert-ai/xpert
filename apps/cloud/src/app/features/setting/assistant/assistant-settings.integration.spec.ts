@@ -41,6 +41,7 @@ jest.mock('@xpert-ai/headless-ui', () => ({
       return value.en_US
     }
   },
+  XpDialogFrameImports: [],
   ZardCardImports: []
 }))
 

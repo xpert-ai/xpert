@@ -1,3 +1,4 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { TestBed } from '@angular/core/testing'
 import {
   AIPermissionsEnum,
@@ -6,7 +7,6 @@ import {
   RequestScopeLevel
 } from '@xpert-ai/contracts'
 import { Store } from '@cloud/app/@core/state'
-import { ZardDialogService } from '@xpert-ai/headless-ui'
 import { BehaviorSubject, of } from 'rxjs'
 import { ModelAccessService } from '../../../@core/services/model-access.service'
 import { ToastrService } from '../../../@core/services/toastr.service'
@@ -53,7 +53,7 @@ describe('ModelAccessAdminComponent', () => {
       providers: [
         { provide: ModelAccessService, useValue: service },
         { provide: Store, useValue: store },
-        { provide: ZardDialogService, useValue: dialog },
+        { provide: Dialog, useValue: dialog },
         { provide: ToastrService, useValue: { error: jest.fn() } }
       ]
     })

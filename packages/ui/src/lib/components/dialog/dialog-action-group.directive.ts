@@ -11,7 +11,7 @@ import { XP_DIALOG_ACTION_CONTEXT, XP_DIALOG_CONTEXT, type XpDialogActionRole } 
 })
 export class XpDialogActionGroupDirective {
   private readonly dialog = inject(XP_DIALOG_CONTEXT, { optional: true })
-  readonly xpDialogActionGroup = input.required<XpDialogActionRole>()
-  readonly role = computed(() => this.xpDialogActionGroup())
+  readonly xpDialogActionGroup = input.required<XpDialogActionRole | null>()
+  readonly role = computed(() => this.xpDialogActionGroup() ?? undefined)
   readonly purpose = computed(() => (this.role() === 'footer' ? (this.dialog?.purpose() ?? 'standard') : 'standard'))
 }

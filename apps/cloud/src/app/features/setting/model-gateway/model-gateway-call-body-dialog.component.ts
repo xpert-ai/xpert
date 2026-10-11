@@ -1,30 +1,37 @@
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IModelGatewayCall, IModelGatewayCallBody } from '@xpert-ai/contracts'
-import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogRef } from '@xpert-ai/headless-ui'
+import { XpDialogFrameImports, ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   selector: 'xp-model-gateway-call-body-dialog',
-  imports: [CommonModule, TranslateModule, ZardButtonComponent],
+  imports: [CommonModule, TranslateModule, ZardButtonComponent, ...XpDialogFrameImports],
   template: `
-    <section class="flex max-h-[80vh] min-h-0 flex-col">
-      <div class="flex items-start justify-between gap-4">
-        <div class="min-w-0">
-          <h2 class="text-lg font-semibold text-text-primary">
-            {{ 'XP.ModelGateway.CallDetails' | translate: { Default: 'Call details' } }}
-          </h2>
-          <code class="mt-1 block truncate text-xs text-text-tertiary" [title]="data.call.requestId">
-            {{ data.call.requestId }}
-          </code>
-        </div>
-        <button z-button zType="outline" type="button" (click)="close()">
-          {{ 'XP.ACTIONS.Close' | translate: { Default: 'Close' } }}
+    <section xpDialogLayout="wide" class="max-h-[80vh]">
+      <header xpDialogHeader>
+        <h2 xpDialogHeading>
+          {{ 'XP.ModelGateway.CallDetails' | translate: { Default: 'Call details' } }}
+        </h2>
+        <code class="block truncate text-xs text-text-tertiary" [title]="data.call.requestId">
+          {{ data.call.requestId }}
+        </code>
+        <button
+          xpDialogCloseButton
+          z-button
+          zType="ghost"
+          zSize="icon"
+          type="button"
+          [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+          (click)="close()"
+        >
+          <z-icon zType="x" aria-hidden="true" />
         </button>
-      </div>
+      </header>
 
-      <div class="mt-4 min-h-0 space-y-4 overflow-auto">
+      <div xpDialogBody>
         <section>
           <h3 class="mb-2 text-sm font-medium text-text-primary">
             {{ 'XP.ModelGateway.RequestBody' | translate: { Default: 'Request body' } }}
@@ -49,10 +56,10 @@ import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogRef } from '@xpert-ai/head
               'XP.ModelGateway.BodyExpiresAt'
                 | translate
                   : {
-                      Default: 'Retained until {{value
-
-
-            }}', value: formatDate(data.body.expiresAt) } }}
+                      Default: 'Retained until ' + formatDate(data.body.expiresAt),
+                      value: formatDate(data.body.expiresAt)
+                    }
+            }}
           </p>
         }
       </div>
@@ -61,8 +68,8 @@ import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogRef } from '@xpert-ai/head
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ModelGatewayCallBodyDialogComponent {
-  readonly data = inject<{ call: IModelGatewayCall; body: IModelGatewayCallBody }>(Z_MODAL_DATA)
-  readonly #dialogRef = inject<ZardDialogRef<ModelGatewayCallBodyDialogComponent>>(ZardDialogRef)
+  readonly data = inject<{ call: IModelGatewayCall; body: IModelGatewayCallBody }>(DIALOG_DATA)
+  readonly #dialogRef = inject(DialogRef)
 
   format(value: unknown) {
     if (value === null || value === undefined) {

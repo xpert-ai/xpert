@@ -5,7 +5,6 @@ import { TestBed } from '@angular/core/testing'
 import { TranslateService } from '@ngx-translate/core'
 import { Store } from '@cloud/app/@core/state'
 import { AiModelTypeEnum, IModelGatewayCatalogItem, ModelGatewayApiKeyStatusEnum } from '@xpert-ai/contracts'
-import { ZardDialogService } from '@xpert-ai/headless-ui'
 import { of } from 'rxjs'
 import { ModelGatewayService } from '../../../@core/services/model-gateway.service'
 import { ToastrService } from '../../../@core/services/toastr.service'
@@ -103,7 +102,6 @@ describe('XpAccountModelGatewayComponent', () => {
           }
         },
         { provide: Dialog, useValue: { open: jest.fn() } },
-        { provide: ZardDialogService, useValue: { open: jest.fn() } },
         { provide: TranslateService, useValue: { instant: jest.fn((value: string) => value) } },
         { provide: ToastrService, useValue: { error: jest.fn(), success: jest.fn() } },
         { provide: Store, useValue: { selectOrganizationId: jest.fn().mockReturnValue(of(null)) } },
@@ -143,8 +141,7 @@ describe('XpAccountModelGatewayComponent', () => {
       providers: [
         { provide: Clipboard, useValue: { copy } },
         { provide: ModelGatewayService, useValue: {} },
-        { provide: Dialog, useValue: { open: jest.fn() } },
-        { provide: ZardDialogService, useValue: {} },
+        { provide: Dialog, useValue: {} },
         { provide: TranslateService, useValue: { instant: jest.fn((value: string) => value) } },
         { provide: ToastrService, useValue: toastr },
         { provide: Store, useValue: {} },
