@@ -30,3 +30,6 @@ export { FilesUploadComponent } from '../../apps/cloud/src/app/@shared/files/upl
 export { XpTableComponent } from '../../packages/ui/src/lib/ui/compat/common/table/table/table.component'
 
 export * from './upload-deps'
+
+export { XpDialogControlDirective } from '../../packages/ui/src/lib/components/dialog/dialog-frame.directive'
+export { ZardSearchInputComponent } from '../../packages/ui/src/lib/components/search-input/search-input.component'

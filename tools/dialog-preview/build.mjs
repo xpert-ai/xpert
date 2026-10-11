@@ -12,6 +12,7 @@ import { batchTwo } from './batch-02.mjs'
 import { batchThree } from './batch-03.mjs'
 import { batchFour } from './batch-04.mjs'
 import { batchFive } from './batch-05.mjs'
+import { batchSix } from './batch-06.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const out = path.join(root, '.cache/dialog-preview')
@@ -50,10 +51,14 @@ const scenes = {
 for (const [key, scene] of Object.entries({ ...batchTwo, ...batchThree })) {
   scenes[key] = await inline(`apps/cloud/src/app/features/${scene.file}-dialog.component.ts`)
 }
-for (const [key, scene] of Object.entries({ ...batchFour, ...batchFive })) {
+for (const [key, scene] of Object.entries({ ...batchFour, ...batchFive, ...batchSix })) {
   const file = `apps/cloud/src/app/${scene.path}`
   scenes[key] = scene.path.endsWith('.ts') ? await inline(file) : await read(file)
 }
+scenes.mcpTestBody = await read('apps/cloud/src/app/@shared/mcp/tool-test/test/tool.component.html')
+scenes.toolTestBody = await read('apps/cloud/src/app/features/xpert/tools/tool-test/test/tool.component.html')
+scenes.toolAuthInput = await read('apps/cloud/src/app/features/xpert/tools/authorization/input/input.component.html')
+scenes.spin = await read('packages/ui/src/lib/ui/compat/common/spin/spin.component.html')
 scenes.credentialForm = await read('apps/cloud/src/app/@shared/copilot/credential-form/form.component.html')
 scenes.organizationForm = await read(
   'apps/cloud/src/app/features/setting/organizations/organization-step-form/organization-step-form.component.html'

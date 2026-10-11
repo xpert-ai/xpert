@@ -1,13 +1,22 @@
-<h2 cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle class="p-4">
-  <div class="flex-1 text-lg truncate">{{ tool().name | i18n }}</div>
-</h2>
-
-<div class="flex flex-col items-stretch px-4 py-2">
-  <mcp-toolset-tool-test [tool]="tool()" visibleAll />
-</div>
-
-<div class="w-full flex justify-end sticky bottom-0 p-4 bg-components-card-bg">
-  <button z-button zType="ghost" cdkFocusInitial (click)="cancel()">
-    {{ 'XP.ACTIONS.Close' | translate: { Default: 'Close' } }}
-  </button>
-</div>
+<section xpDialogLayout="wide" class="w-[min(720px,calc(100vw-32px))] max-h-[84dvh]">
+  <header xpDialogHeader cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+    <h2 xpDialogHeading>{{ tool().name | i18n }}</h2>
+    <button
+      z-button
+      zType="ghost"
+      type="button"
+      xpDialogCloseButton
+      zSize="icon"
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+      (click)="cancel()"
+    >
+      <z-icon zType="x" aria-hidden="true" />
+    </button>
+  </header>
+  <div xpDialogBody><mcp-toolset-tool-test class="block min-w-0" [tool]="tool()" visibleAll /></div>
+  <footer xpDialogFooter>
+    <button z-button zType="outline" type="button" (click)="cancel()">
+      {{ 'XP.ACTIONS.Close' | translate: { Default: 'Close' } }}
+    </button>
+  </footer>
+</section>

@@ -5,10 +5,15 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { CapitalizePipe, XpDynamicGridDirective } from '@xpert-ai/headless-ui'
-import { injectConfirmUnique, XpCommonModule } from '@xpert-ai/headless-ui'
-import { XpI18nPipe } from '@xpert-ai/headless-ui'
-import { DisplayBehaviour } from '@xpert-ai/headless-ui'
+import {
+  CapitalizePipe,
+  XpDynamicGridDirective,
+  injectConfirmUnique,
+  XpCommonModule,
+  XpI18nPipe,
+  DisplayBehaviour
+} from '@xpert-ai/headless-ui'
+
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { CardCreateComponent } from 'apps/cloud/src/app/@shared/card'
 import { ToolsetCardComponent } from 'apps/cloud/src/app/@shared/xpert'
@@ -159,10 +164,9 @@ export class MCPToolsetsComponent {
   importFromJson(event: Event) {
     event.stopPropagation()
     this.#dialog
-      .open<Partial<IXpertToolset>>(MCPImportJsonComponent, {
-        backdropClass: 'backdrop-blur-lg-white',
-        disableClose: true
-      })
+      .open<
+        Partial<IXpertToolset>
+      >(MCPImportJsonComponent, { backdropClass: 'backdrop-blur-xs-black', panelClass: 'xp-overlay-pane-dialog', maxWidth: 'calc(100vw - 32px)', disableClose: true })
       .closed.subscribe({
         next: (toolset) => {
           if (toolset) {

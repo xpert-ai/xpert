@@ -19,9 +19,15 @@ import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, IsActiveMatchOptions, NavigationEnd, Router, RouterModule } from '@angular/router'
 import { XpertEnvironmentManageComponent } from '@cloud/app/@shared/environment'
 import { injectWorkspace, Store } from '@cloud/app/@core/state'
-import { injectConfirmUnique, XpCommonModule, ZardSearchInputComponent } from '@xpert-ai/headless-ui'
-import { DisplayBehaviour } from '@xpert-ai/headless-ui'
-import { debouncedSignal } from '@xpert-ai/headless-ui'
+import {
+  injectConfirmUnique,
+  XpCommonModule,
+  ZardSearchInputComponent,
+  DisplayBehaviour,
+  debouncedSignal,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
+
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { TagFilterComponent } from 'apps/cloud/src/app/@shared/tag'
 import { concat } from 'lodash-es'
@@ -48,7 +54,7 @@ import {
 import { AppService } from '../../../../app.service'
 import { XpertWorkspaceSettingsComponent } from '../settings/settings.component'
 import { XpertWorkspaceWelcomeComponent } from '../welcome/welcome.component'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+
 import { CustomConnectorsDialogComponent } from '../connectors/custom-connectors-dialog.component'
 
 export type XpertFilterEnum = XpertToolsetCategoryEnum | XpertTypeEnum
@@ -400,7 +406,9 @@ export class XpertWorkspaceHomeComponent {
 
     this.#dialog
       .open(XpertEnvironmentManageComponent, {
-        backdropClass: 'backdrop-blur-md-white',
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           workspaceId: this.selectedWorkspace()?.id
         }

@@ -23,9 +23,11 @@ import {
   XpSpinComponent,
   XpTableComponent,
   TableColumn,
-  ZardSearchInputComponent
+  ZardSearchInputComponent,
+  myRxResource,
+  OverlayAnimation1
 } from '@xpert-ai/headless-ui'
-import { myRxResource } from '@xpert-ai/headless-ui'
+
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { BehaviorSubject, EMPTY, of, Subscription } from 'rxjs'
 import { debounceTime, map, startWith, switchMap, tap } from 'rxjs/operators'
@@ -41,7 +43,7 @@ import {
 } from '../../../../../@core'
 import { UserProfileInlineComponent } from '../../../../../@shared/user'
 import { XpertComponent } from '../../xpert.component'
-import { OverlayAnimation1 } from '@xpert-ai/headless-ui'
+
 import { NgxJsonViewerModule } from 'ngx-json-viewer'
 import { XpertMemoryBulkImportComponent } from '../bulk-import/bulk-import.component'
 
@@ -325,6 +327,9 @@ export class XpertMemoryStoreComponent {
   bulkImport() {
     this.#dialog
       .open(XpertMemoryBulkImportComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           xpertId: this.xpertId(),
           type: this.memoryType() || LongTermMemoryTypeEnum.QA

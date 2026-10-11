@@ -3,13 +3,13 @@ import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-
 
 import { Component, computed, effect, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { XpDensityDirective, XpI18nPipe } from '@xpert-ai/headless-ui'
+import { XpDensityDirective, XpI18nPipe, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { IXpertTool, IXpertToolset } from '@cloud/app/@core/types'
 import { XpertToolNameInputComponent } from '@cloud/app/@shared/xpert'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { MCPToolTestDialogComponent } from '../tool-test'
-import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+
 /**
  *
  */
@@ -60,7 +60,9 @@ export class MCPToolsComponent {
   openToolTest(tool: Partial<IXpertTool>) {
     this.#dialog
       .open(MCPToolTestDialogComponent, {
-        panelClass: 'medium',
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           tool: {
             ...tool,

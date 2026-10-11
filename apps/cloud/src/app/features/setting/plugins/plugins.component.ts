@@ -18,16 +18,22 @@ import {
 import { environment } from '@cloud/environments/environment'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { injectActiveScope, injectPluginAPI } from '@cloud/app/@core/state'
-import { OverlayAnimations } from '@xpert-ai/headless-ui'
-import { injectConfirmDelete, XpHighlightDirective, XpSpinComponent } from '@xpert-ai/headless-ui'
-import { debouncedSignal, linkedModel, myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'
 import {
+  OverlayAnimations,
+  injectConfirmDelete,
+  XpHighlightDirective,
+  XpSpinComponent,
+  debouncedSignal,
+  linkedModel,
+  myRxResource,
+  XpI18nPipe,
   ZardButtonComponent,
   ZardSearchInputComponent,
   ZardSelectImports,
   ZardTooltipImports,
   type ZardSelectValue
 } from '@xpert-ai/headless-ui'
+
 import { TranslateModule } from '@ngx-translate/core'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
 import { firstValueFrom, of } from 'rxjs'
@@ -500,12 +506,13 @@ export class PluginsComponent {
     }
 
     this.#dialog.open(PluginConfigureComponent, {
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)',
       data: {
         plugin,
         reload: this.reload.bind(this)
-      },
-      backdropClass: 'backdrop-blur-xs-black',
-      panelClass: 'xp-overlay-pane-dialog'
+      }
     })
   }
 
