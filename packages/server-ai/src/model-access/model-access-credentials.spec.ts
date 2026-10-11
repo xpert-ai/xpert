@@ -1,13 +1,15 @@
 import {
+    AI_MODEL_TYPE_VARIABLE,
     AiModelTypeEnum,
     AIPermissionsEnum,
     CredentialFormTypeEnum,
+    FormShowOnObject,
     ModelAccessSourceEnum,
     UserType
 } from '@xpert-ai/contracts'
 import { ModelAccessService } from './model-access.service'
 
-function createFixture() {
+function createFixture(showOn?: FormShowOnObject[]) {
     const provider = {
         id: 'provider-1',
         tenantId: 'tenant-1',
@@ -70,7 +72,9 @@ function createFixture() {
     const schema = {
         provider: provider.providerName,
         model_credential_schema: {
-            credential_form_schemas: [{ variable: 'api_key', type: CredentialFormTypeEnum.SECRET_INPUT }]
+            credential_form_schemas: [
+                { variable: 'api_key', type: CredentialFormTypeEnum.SECRET_INPUT, show_on: showOn }
+            ]
         }
     }
     const providersService = {
@@ -124,6 +128,30 @@ describe('ModelAccessService model credentials', () => {
         expect(membershipService.findModelAccess).not.toHaveBeenCalled()
         expect(membershipService.hasConsumableBalance).not.toHaveBeenCalled()
     })
+
+    it.each([
+        [AiModelTypeEnum.LLM, true],
+        [AiModelTypeEnum.RERANK, false]
+    ])(
+        'honors the secret model type condition %s across runtime, catalog and default lookup',
+        async (requiredType, active) => {
+            const { service, input, membershipService } = createFixture([
+                { variable: AI_MODEL_TYPE_VARIABLE, value: requiredType }
+            ])
+
+            await expect(service.resolveModelAccess(input)).resolves.toMatchObject({
+                allowed: active,
+                accessSource: active ? ModelAccessSourceEnum.Direct : null
+            })
+            await expect(service.canUseCatalogModels({ ...input, models: [input] })).resolves.toEqual([active])
+            await expect(service.hasOrganizationModelCredentials(input)).resolves.toBe(active)
+            if (active) {
+                expect(membershipService.findModelAccess).not.toHaveBeenCalled()
+            } else {
+                expect(membershipService.findModelAccess).toHaveBeenCalled()
+            }
+        }
+    )
 
     it('makes only the model with its own key available in the catalog', async () => {
         const { service, input, model, providerModelRepository } = createFixture()

@@ -1,4 +1,12 @@
-import { CredentialFormTypeEnum, ICopilot, ICopilotProviderModel, ModelCredentialSchema } from '@xpert-ai/contracts'
+import {
+    AI_MODEL_TYPE_VARIABLE,
+    AiModelTypeEnum,
+    CredentialFormTypeEnum,
+    FormShowOnObject,
+    ICopilot,
+    ICopilotProviderModel,
+    ModelCredentialSchema
+} from '@xpert-ai/contracts'
 import { usesOrganizationCredentials } from './utils'
 
 describe('usesOrganizationCredentials', () => {
@@ -7,6 +15,7 @@ describe('usesOrganizationCredentials', () => {
     }
     const model: ICopilotProviderModel = {
         providerId: 'provider-1',
+        modelType: AiModelTypeEnum.LLM,
         isValid: null,
         modelProperties: { access_token: 'test-key' }
     }
@@ -25,6 +34,93 @@ describe('usesOrganizationCredentials', () => {
 
     it('recognizes model secrets using the schema rather than a particular key name', () => {
         expect(usesOrganizationCredentials(copilot, 'org-1', model, schema)).toBe(true)
+    })
+
+    function conditionalSchema(showOn: FormShowOnObject[]): ModelCredentialSchema {
+        return {
+            ...schema,
+            credential_form_schemas: [{ ...schema.credential_form_schemas[0], show_on: showOn }]
+        }
+    }
+
+    it.each([
+        ['api_key', true],
+        ['managed', false],
+        [undefined, false],
+        [false, false]
+    ])('counts a retained secret only when auth_mode %p matches show_on', (authMode, expected) => {
+        const configuredModel: ICopilotProviderModel = {
+            ...model,
+            modelProperties: { ...model.modelProperties, auth_mode: authMode }
+        }
+        expect(
+            usesOrganizationCredentials(
+                copilot,
+                'org-1',
+                configuredModel,
+                conditionalSchema([{ variable: 'auth_mode', value: 'api_key' }])
+            )
+        ).toBe(expected)
+    })
+
+    it.each([
+        [AiModelTypeEnum.RERANK, AiModelTypeEnum.LLM, true],
+        [AiModelTypeEnum.LLM, AiModelTypeEnum.RERANK, false],
+        [undefined, AiModelTypeEnum.RERANK, false]
+    ])('uses saved model type %p rather than modelProperties.__model_type %p', (modelType, storedType, expected) => {
+        const configuredModel: ICopilotProviderModel = {
+            ...model,
+            modelType,
+            modelProperties: { ...model.modelProperties, [AI_MODEL_TYPE_VARIABLE]: storedType }
+        }
+        expect(
+            usesOrganizationCredentials(
+                copilot,
+                'org-1',
+                configuredModel,
+                conditionalSchema([{ variable: AI_MODEL_TYPE_VARIABLE, value: AiModelTypeEnum.RERANK }])
+            )
+        ).toBe(expected)
+    })
+
+    it.each([
+        [AiModelTypeEnum.LLM, 'api_key', true],
+        [AiModelTypeEnum.LLM, 'managed', false],
+        [AiModelTypeEnum.RERANK, 'api_key', false]
+    ])('requires every model type and credential condition to match: %p / %p', (modelType, authMode, expected) => {
+        const configuredModel: ICopilotProviderModel = {
+            ...model,
+            modelType,
+            modelProperties: { ...model.modelProperties, auth_mode: authMode }
+        }
+        expect(
+            usesOrganizationCredentials(
+                copilot,
+                'org-1',
+                configuredModel,
+                conditionalSchema([
+                    { variable: AI_MODEL_TYPE_VARIABLE, value: AiModelTypeEnum.LLM },
+                    { variable: 'auth_mode', value: 'api_key' }
+                ])
+            )
+        ).toBe(expected)
+    })
+
+    it('keeps an empty show_on list unconditional', () => {
+        expect(usesOrganizationCredentials(copilot, 'org-1', model, conditionalSchema([]))).toBe(true)
+    })
+
+    it('ignores an inactive secret while allowing another active secret', () => {
+        const credentialsSchema = conditionalSchema([{ variable: 'auth_mode', value: 'managed' }])
+        credentialsSchema.credential_form_schemas.push({
+            ...schema.credential_form_schemas[0],
+            variable: 'active_key'
+        })
+        const configuredModel: ICopilotProviderModel = {
+            ...model,
+            modelProperties: { ...model.modelProperties, auth_mode: 'api_key', active_key: 'active-test-key' }
+        }
+        expect(usesOrganizationCredentials(copilot, 'org-1', configuredModel, credentialsSchema)).toBe(true)
     })
 
     it.each([undefined, null, '', '  ', 123, false, {}, []])('ignores an empty or non-string secret: %p', (value) => {
