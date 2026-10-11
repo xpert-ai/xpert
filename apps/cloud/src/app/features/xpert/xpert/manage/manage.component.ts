@@ -137,6 +137,9 @@ export class XpertBasicManageComponent {
   export(isDraft = false) {
     this.#dialog
       .open(XpertExportDslComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           xpertId: this.xpert().id,
           slug: this.xpert().slug,

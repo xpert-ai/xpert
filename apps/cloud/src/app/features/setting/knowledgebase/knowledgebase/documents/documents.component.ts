@@ -1,3 +1,4 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { animate, state, style, transition, trigger } from '@angular/animations'
 import { afterNextRender, Component, effect, inject, model, signal, viewChild } from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
@@ -72,6 +73,7 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
   readonly knowledgeDocumentService = inject(KnowledgeDocumentService)
   readonly _toastrService = inject(ToastrService)
   readonly #store = inject(Store)
+  readonly #cdkDialog = inject(Dialog)
   readonly #dialog = inject(ZardDialogService)
   readonly #confirmDelete = inject(XpConfirmDeleteService)
   readonly #router = inject(Router)
@@ -213,13 +215,14 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
   }
 
   uploadDocuments() {
-    this.#dialog
+    this.#cdkDialog
       .open(FilesUploadDialogComponent, {
-        panelClass: 'medium',
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {}
       })
-      .afterClosed()
-      .pipe(
+      .closed.pipe(
         switchMap((files: IStorageFile[]) =>
           files
             ? this.knowledgeDocumentService.createBulk(

@@ -1,3 +1,4 @@
+import { XpDialogFrameImports } from '@xpert-ai/headless-ui'
 import { ASSISTANT_SETTINGS_CONTEXT } from '../../../@shared/xpert/assistant-settings/assistant-settings-context'
 import { Clipboard } from '@angular/cdk/clipboard'
 import { HttpErrorResponse } from '@angular/common/http'
@@ -15,60 +16,76 @@ import { AssistantTriggerConnectionService } from './assistant-trigger-connectio
 @Component({
   standalone: true,
   selector: 'xp-assistant-trigger-qr',
-  imports: [TranslateModule, XpI18nPipe, QRCodeComponent, ZardButtonComponent, ZardIconComponent],
+  imports: [
+    ...XpDialogFrameImports,
+    TranslateModule,
+    XpI18nPipe,
+    QRCodeComponent,
+    ZardButtonComponent,
+    ZardIconComponent
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="flex w-[440px] max-w-[calc(100vw-32px)] flex-col">
-      <header class="flex items-center justify-between border-b border-border px-6 py-5">
-        <h2 class="text-lg font-semibold">{{ data.card.provider.label | i18n }}</h2>
-        <button
-          z-button
-          zType="ghost"
-          zSize="icon-sm"
-          type="button"
-          [zDisabled]="state() === 'activating'"
-          [attr.aria-label]="'XP.AssistantSettings.Close' | translate"
-          (click)="dialogRef.close()"
-        >
-          <z-icon zType="x" />
-        </button>
-      </header>
-      <div class="flex min-h-72 flex-col items-center gap-4 px-6 py-6 text-center">
-        <p class="text-sm leading-6 text-muted-foreground">
+    <section xpDialogLayout="wide" class="w-[min(440px,calc(100vw-32px))] max-h-[84dvh]">
+      <header xpDialogHeader>
+        <h2 xpDialogHeading>{{ data.card.provider.label | i18n }}</h2>
+        <p xpDialogDescription>
           {{ 'XP.AssistantSettings.DirectQrIntro' | translate: { provider: (data.card.provider.label | i18n) } }}
         </p>
-        @if (state() === 'waiting' && session(); as qr) {
-          <qrcode [qrdata]="qr.authorizationUrl" [width]="220" />
-          <p role="status" class="text-sm">
-            {{ 'XP.AssistantSettings.DirectQrWaiting' | translate: { provider: (data.card.provider.label | i18n) } }}
-          </p>
+        <button
+          xpDialogCloseButton
+          z-button
+          zType="ghost"
+          zSize="icon"
+          type="button"
+          [zDisabled]="state() === 'activating'"
+          [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+          (click)="dialogRef.close()"
+        >
+          <z-icon zType="x" aria-hidden="true" />
+        </button>
+      </header>
+      <div xpDialogBody>
+        <div class="flex min-h-64 flex-col items-center gap-4 text-center">
+          @if (state() === 'waiting' && session(); as qr) {
+            <qrcode [qrdata]="qr.authorizationUrl" [width]="220" />
+            <p role="status" class="text-sm">
+              {{ 'XP.AssistantSettings.DirectQrWaiting' | translate: { provider: (data.card.provider.label | i18n) } }}
+            </p>
+          }
+          @if (state() === 'loading' || state() === 'activating') {
+            <z-icon zType="loader-circle" class="animate-spin" />
+            <p role="status" class="text-sm">
+              {{
+                (state() === 'loading'
+                  ? 'XP.AssistantSettings.DirectQrLoading'
+                  : 'XP.AssistantSettings.DirectQrActivating'
+                ) | translate
+              }}
+            </p>
+          }
+          @if (error()) {
+            <p role="alert" class="text-sm text-destructive">{{ error() }}</p>
+          }
+          @if (state() === 'expired' || state() === 'failed') {
+            @if (state() === 'expired') {
+              <p class="text-sm">{{ 'XP.AssistantSettings.DirectQrExpired' | translate }}</p>
+            }
+          }
+        </div>
+      </div>
+      <footer xpDialogFooter>
+        @if (state() === 'waiting' && session()) {
           <button z-button zType="outline" type="button" (click)="copyLink()">
             {{ (copied() ? 'XP.AssistantSettings.DirectQrCopied' : 'XP.AssistantSettings.DirectQrCopy') | translate }}
           </button>
         }
-        @if (state() === 'loading' || state() === 'activating') {
-          <z-icon zType="loader-circle" class="animate-spin" />
-          <p role="status" class="text-sm">
-            {{
-              (state() === 'loading'
-                ? 'XP.AssistantSettings.DirectQrLoading'
-                : 'XP.AssistantSettings.DirectQrActivating'
-              ) | translate
-            }}
-          </p>
-        }
-        @if (error()) {
-          <p role="alert" class="text-sm text-destructive">{{ error() }}</p>
-        }
         @if (state() === 'expired' || state() === 'failed') {
-          @if (state() === 'expired') {
-            <p class="text-sm">{{ 'XP.AssistantSettings.DirectQrExpired' | translate }}</p>
-          }
           <button z-button type="button" (click)="authorized ? activate() : start()">
             {{ 'XP.AssistantSettings.DirectQrRetry' | translate }}
           </button>
         }
-      </div>
+      </footer>
     </section>
   `
 })

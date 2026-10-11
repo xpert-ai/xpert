@@ -4,14 +4,15 @@
       <div class="flex items-center py-2 text-sm text-text-primary">
         {{ credential.label | i18n }}
         @if (credential.required) {
-          <span class="ml-1 text-red-500">*</span>
+          <span class="ml-1 text-destructive">*</span>
         }
       </div>
       @switch (credential.type) {
         @case ('secret-input') {
           <div class="relative">
             <input
-              class="xp-input block w-full h-9 text-sm false"
+              z-input
+              class="block w-full"
               [placeholder]="credential.placeholder | i18n"
               type="password"
               [ngModel]="credentials()[credential.variable]"
@@ -22,7 +23,8 @@
         @case ('text-input') {
           <div class="relative">
             <input
-              class="xp-input block w-full h-9 text-sm false"
+              z-input
+              class="block w-full"
               [placeholder]="credential.placeholder | i18n"
               type="text"
               [ngModel]="credentials()[credential.variable]"
@@ -31,13 +33,16 @@
           </div>
         }
         @case ('select') {
-          <xp-select
-            class=""
-            [placeholder]="credential.placeholder | i18n"
-            [selectOptions]="credential.options"
-            [ngModel]="credentials()[credential.variable]"
-            (ngModelChange)="updateValue(credential.variable, $event)"
-          />
+          <z-select
+            class="w-full"
+            [zPlaceholder]="(credential.placeholder | i18n) || ''"
+            [ngModel]="selectedOption(credential)"
+            (ngModelChange)="selectOption(credential, $event)"
+          >
+            @for (option of credential.options; track option.value) {
+              <z-select-item [zValue]="$index">{{ option.label | i18n }}</z-select-item>
+            }
+          </z-select>
         }
         @case ('radio') {
           <z-radio-group

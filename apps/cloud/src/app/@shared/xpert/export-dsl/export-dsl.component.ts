@@ -1,21 +1,18 @@
+import { XpDialogFrameImports, ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 
 import { ChangeDetectionStrategy, Component, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { getErrorMessage, injectToastr, XpertAPIService } from '@cloud/app/@core'
-import { SlideUpAnimation } from '@xpert-ai/headless-ui'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { tap } from 'rxjs/operators'
 import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [FormsModule, TranslateModule, XpSpinComponent, ZardSwitchComponent],
+  imports: [...XpDialogFrameImports, ZardButtonComponent, FormsModule, TranslateModule, ZardSwitchComponent],
   selector: 'xpert-export-dsl',
   templateUrl: './export-dsl.component.html',
-  styleUrl: './export-dsl.component.scss',
-  animations: [SlideUpAnimation],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class XpertExportDslComponent {

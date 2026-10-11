@@ -1,3 +1,9 @@
+import {
+  XpDialogFrameImports,
+  ZardButtonComponent,
+  ZardInputDirective,
+  XpDialogActionGroupDirective
+} from '@xpert-ai/headless-ui'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
@@ -23,9 +29,12 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   standalone: true,
   selector: 'copilot-prompt-generator',
   templateUrl: './generator.component.html',
-  styleUrls: ['./generator.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    ...XpDialogFrameImports,
+    ZardButtonComponent,
+    ZardInputDirective,
+    XpDialogActionGroupDirective,
     FormsModule,
     TranslateModule,
     CdkMenuModule,

@@ -4,7 +4,14 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { isNil } from '@xpert-ai/contracts'
-import { ZardFormImports, ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import {
+  ZardFormImports,
+  ZardInputDirective,
+  ZardTooltipImports,
+  ZardRadioGroupComponent,
+  ZardRadioComponent,
+  ZardSwitchComponent
+} from '@xpert-ai/headless-ui'
 import { XpDensityDirective, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -15,7 +22,7 @@ import {
   CredentialFormTypeEnum,
   ParameterType
 } from '../../../@core'
-import { XpSelectComponent } from '../../common'
+import { ZardSelectImports } from '@xpert-ai/headless-ui'
 
 /**
  * @todo Use JSON Schema to implement
@@ -34,10 +41,13 @@ import { XpSelectComponent } from '../../common'
     DragDropModule,
     ...ZardTooltipImports,
     ZardInputDirective,
+    ZardRadioGroupComponent,
+    ZardRadioComponent,
+    ZardSwitchComponent,
     ...ZardFormImports,
     XpDensityDirective,
     XpI18nPipe,
-    XpSelectComponent
+    ...ZardSelectImports
   ],
   hostDirectives: [NgxControlValueAccessor]
 })
@@ -118,6 +128,19 @@ export class CopilotCredentialFormComponent {
         })
       }
     })
+  }
+
+  // The select control accepts string/number identities; schema values also include booleans.
+  selectedOption(credential: CredentialFormSchema): number | null {
+    const index =
+      credential.options?.findIndex((option) => option.value === this.credentials()[credential.variable]) ?? -1
+    return index < 0 ? null : index
+  }
+
+  selectOption(credential: CredentialFormSchema, index: unknown) {
+    if (typeof index !== 'number') return
+    const option = credential.options?.[index]
+    if (option) this.updateValue(credential.variable, option.value)
   }
 
   updateValue(name: string, value: any) {

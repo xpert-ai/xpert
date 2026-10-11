@@ -11,6 +11,7 @@ import { Scanner } from '@tailwindcss/oxide'
 import { batchTwo } from './batch-02.mjs'
 import { batchThree } from './batch-03.mjs'
 import { batchFour } from './batch-04.mjs'
+import { batchFive } from './batch-05.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const out = path.join(root, '.cache/dialog-preview')
@@ -49,10 +50,11 @@ const scenes = {
 for (const [key, scene] of Object.entries({ ...batchTwo, ...batchThree })) {
   scenes[key] = await inline(`apps/cloud/src/app/features/${scene.file}-dialog.component.ts`)
 }
-for (const [key, scene] of Object.entries(batchFour)) {
+for (const [key, scene] of Object.entries({ ...batchFour, ...batchFive })) {
   const file = `apps/cloud/src/app/${scene.path}`
   scenes[key] = scene.path.endsWith('.ts') ? await inline(file) : await read(file)
 }
+scenes.credentialForm = await read('apps/cloud/src/app/@shared/copilot/credential-form/form.component.html')
 scenes.organizationForm = await read(
   'apps/cloud/src/app/features/setting/organizations/organization-step-form/organization-step-form.component.html'
 )
@@ -78,7 +80,8 @@ await build({
 // Compile the actual shared surface and theme sources, with Cloud's 14px root font.
 const scss = `@use 'sass:meta';
 @include meta.load-css('packages/ui/src/lib/ui/compat/core/style/cdk-dialog.scss');
-@include meta.load-css('apps/cloud/src/styles/utilities.scss');`
+@include meta.load-css('apps/cloud/src/styles/utilities.scss');
+@include meta.load-css('apps/cloud/src/styles/components/radio.scss');`
 const shared = compileString(scss, {
   loadPaths: [root, path.join(root, 'node_modules')],
   logger: { warn() {}, debug() {} }
@@ -90,7 +93,8 @@ const uploadStyles = compileString(await read('apps/cloud/src/app/@shared/files/
 })
   .css.replace(/@reference\s+[^;]+;/g, '')
   .replace(/:host/g, 'xp-upload')
-const css = `@import '../../packages/ui/src/styles.css';
+const css = `@config '../../apps/cloud/tailwind.config.js';
+@import '../../packages/ui/src/styles.css';
 @import '../../apps/cloud/src/styles/theme/theme.tokens.css';
 @import '../../apps/cloud/src/styles/theme/theme.primary.css';
 @import '../../apps/cloud/src/styles/theme/theme.tailwind.css';
@@ -119,3 +123,6 @@ await fs.writeFile(path.join(out, 'app.css'), compiler.build(scanner.scan()))
 await fs.copyFile(path.join(root, 'tools/dialog-preview/index.html'), path.join(out, 'index.html'))
 await fs.cp(path.join(root, 'node_modules/remixicon/fonts'), path.join(out, 'fonts'), { recursive: true })
 console.log(`Dialog preview built: ${out}`)
+
+await fs.mkdir(path.join(out, 'assets'), { recursive: true })
+await fs.copyFile(path.join(root, 'apps/cloud/src/assets/icon.png'), path.join(out, 'assets/icon.png'))

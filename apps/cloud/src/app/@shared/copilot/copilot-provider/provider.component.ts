@@ -178,6 +178,9 @@ export class CopilotProviderComponent {
     }
     this.#dialog
       .open(CopilotProviderModelComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           provider: copilotProvider,
           modelId: null
@@ -203,6 +206,9 @@ export class CopilotProviderComponent {
     }
     this.#dialog
       .open(CopilotProviderModelComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           provider: copilotProvider,
           modelId: model.id
@@ -226,9 +232,10 @@ export class CopilotProviderComponent {
     const copilot = this.copilotProvider().copilot
     this.#dialog
       .open(CopilotAiProviderAuthComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         disableClose: true,
-        backdropClass: 'xp-overlay-share-sheet',
-        panelClass: 'xp-overlay-pane-share-sheet',
         data: {
           providerId: this.copilotProvider().id,
           provider,

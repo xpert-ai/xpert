@@ -73,6 +73,9 @@ export class CopilotAiProvidersComponent {
   openSetup(provider: IAiProviderEntity) {
     this.#dialog
       .open(CopilotAiProviderAuthComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           provider: provider,
           copilot: this.copilot()

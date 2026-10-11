@@ -291,7 +291,9 @@ export class ChatProjectHomeComponent {
   openInstruction() {
     this.#dialog
       .open<{ instruction: string }>(CopilotPromptGeneratorComponent, {
-        panelClass: 'large',
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         disableClose: true,
         data: {
           instruction: this.instruction()
