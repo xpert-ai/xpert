@@ -139,6 +139,7 @@ export class XpertProjectSkillsDialogComponent {
     if (!this.data.canEdit || this.busySkillId()) return
     const confirmed = await firstValueFrom(
       this.#toastr.confirm({
+        layout: 'standard',
         code: 'XP.XProject.UninstallProjectSkillConfirmation',
         params: { name: skill.name }
       })

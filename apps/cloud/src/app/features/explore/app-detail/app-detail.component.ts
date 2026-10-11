@@ -255,6 +255,7 @@ export class ApplicationDetailComponent {
     try {
       const confirmed = await firstValueFrom(
         this.#alertDialog.confirm({
+          layout: 'standard',
           title: this.#translate.instant('XP.Explore.Application.Toolsets.Discard'),
           description: this.#translate.instant('XP.Explore.Application.Toolsets.DiscardDescription'),
           actionText: this.#translate.instant('XP.Explore.Application.Toolsets.Discard'),

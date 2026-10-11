@@ -150,6 +150,7 @@ export class TenantSkillsComponent {
   async forceSyncTemplateSkills() {
     const confirmed = await firstValueFrom(
       this.#toastr.confirm({
+        layout: 'standard',
         code: 'Pro.SkillSync.ConfirmFullSync',
         params: {
           Default:

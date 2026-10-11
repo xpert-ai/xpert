@@ -55,6 +55,7 @@ describe('XpertProjectSkillsDialogComponent', () => {
     await component.uninstall(skill)
 
     expect(toastr.confirm).toHaveBeenCalledWith({
+      layout: 'standard',
       code: 'XP.XProject.UninstallProjectSkillConfirmation',
       params: { name: 'PDF' }
     })

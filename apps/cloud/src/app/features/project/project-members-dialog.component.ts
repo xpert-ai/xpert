@@ -309,6 +309,7 @@ export class XpertProjectMembersDialogComponent {
     if (!this.data.canTransferOwnership || member.projectRole === 'owner') return
     const confirmed = await firstValueFrom(
       this.#toastr.confirm({
+        layout: 'standard',
         code: 'XP.XProject.TransferOwnershipConfirmation',
         params: { name: this.displayUser(member) }
       })

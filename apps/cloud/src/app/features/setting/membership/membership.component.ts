@@ -23,7 +23,6 @@ import {
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom, forkJoin } from 'rxjs'
 import {
-  ZardAlertDialogService,
   ZardBadgeComponent,
   ZardButtonComponent,
   ZardCardImports,
@@ -39,15 +38,19 @@ import {
 } from '@xpert-ai/headless-ui'
 import { userLabel } from '../../../@shared/pipes'
 import { format } from 'date-fns'
-
-type MembershipModelOption = {
-  value: string
-  provider: string
-  model: string
-  available: boolean
-  copilotId?: string
-  copilotLabel?: string
-}
+import { injectMembershipConfirmations } from './membership-confirmations'
+import {
+  type MembershipModelOption,
+  modelOptionValue,
+  decodeModelOptionValue,
+  allowedModelOptionValue,
+  decodeAllowedModelOptionValue,
+  selectionValues,
+  addModelOption,
+  addAllowedModelOption,
+  sortModelOptions,
+  modelRuleSpecificity
+} from './membership-model-options'
 
 type MembershipAdminTab = 'plans' | 'users'
 
@@ -87,7 +90,7 @@ export class MembershipAdminComponent implements OnInit {
   readonly #membership = inject(MembershipService)
   readonly #toastr = injectToastr()
   readonly #translate = inject(TranslateService)
-  readonly #alertDialog = inject(ZardAlertDialogService)
+  readonly #confirm = injectMembershipConfirmations()
   readonly #formBuilder = inject(FormBuilder)
   #planMemberLoadSequence = 0
 
@@ -309,20 +312,7 @@ export class MembershipAdminComponent implements OnInit {
       return
     }
 
-    const confirmed = await firstValueFrom(
-      this.#alertDialog.confirm({
-        title: this.#translate.instant('XP.Membership.ArchivePlanConfirmTitle', {
-          Default: 'Archive membership plan?'
-        }),
-        description: this.#translate.instant('XP.Membership.ArchivePlanConfirmDescription', {
-          Default: 'Archive plan "{{name}}"? It will no longer be available for new assignments.',
-          name: plan.name
-        }),
-        actionText: this.#translate.instant('XP.Membership.ArchivePlan', { Default: 'Archive' }),
-        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: 'Cancel' }),
-        destructive: true
-      })
-    )
+    const confirmed = await this.#confirm.archivePlan(plan.name)
     if (!confirmed) {
       return
     }
@@ -345,18 +335,7 @@ export class MembershipAdminComponent implements OnInit {
       return
     }
 
-    const confirmed = await firstValueFrom(
-      this.#alertDialog.confirm({
-        title: this.#translate.instant('XP.Membership.DeletePlan', { Default: 'Delete plan' }),
-        description: this.#translate.instant('XP.Membership.DeletePlanConfirm', {
-          Default: 'Delete archived plan "{{name}}"? This cannot be undone.',
-          name: plan.name
-        }),
-        actionText: this.#translate.instant('XP.ACTIONS.Delete', { Default: 'Delete' }),
-        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: 'Cancel' }),
-        destructive: true
-      })
-    )
+    const confirmed = await this.#confirm.deletePlan(plan.name)
     if (!confirmed) {
       return
     }
@@ -566,21 +545,7 @@ export class MembershipAdminComponent implements OnInit {
       return
     }
 
-    const confirmed = await firstValueFrom(
-      this.#alertDialog.confirm({
-        title: this.#translate.instant('XP.Membership.BulkActionConfirmTitle', {
-          Default: 'Apply membership action?'
-        }),
-        description: this.#translate.instant('XP.Membership.BulkActionConfirmDescription', {
-          Default: 'Apply "{{action}}" to {{count}} selected users?',
-          action: input.action,
-          count: userIds.length
-        }),
-        actionText: this.#translate.instant('XP.Membership.ApplyBulkAction', { Default: 'Apply action' }),
-        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: 'Cancel' }),
-        destructive: input.action === MembershipBulkActionEnum.Revoke
-      })
-    )
+    const confirmed = await this.#confirm.applyBulkAction(input.action, userIds.length)
     if (!confirmed) {
       return
     }
@@ -651,23 +616,7 @@ export class MembershipAdminComponent implements OnInit {
       return
     }
 
-    const confirmed = await firstValueFrom(
-      this.#alertDialog.confirm({
-        title: this.#translate.instant('XP.Membership.ReassignConfirmTitle', {
-          Default: 'Reassign plan members?'
-        }),
-        description: this.#translate.instant('XP.Membership.ReassignConfirmDescription', {
-          Default:
-            'Move {{count}} members from "{{source}}" to "{{target}}"? Their current cycle and used cycle points will be reset.',
-          count: this.planMemberCount(),
-          source: plan.name,
-          target: targetPlan.name
-        }),
-        actionText: this.#translate.instant('XP.Membership.ReassignMembers', { Default: 'Reassign members' }),
-        cancelText: this.#translate.instant('XP.ACTIONS.Cancel', { Default: 'Cancel' }),
-        destructive: true
-      })
-    )
+    const confirmed = await this.#confirm.reassignMembers(this.planMemberCount(), plan.name, targetPlan.name)
     if (!confirmed) {
       return
     }
@@ -976,91 +925,4 @@ export class MembershipAdminComponent implements OnInit {
     }
     this.allowedModelOptions.set(sortModelOptions(Array.from(allowedOptions.values())))
   }
-}
-
-function modelOptionValue(provider: string, model: string) {
-  return `${encodeURIComponent(provider)}|${encodeURIComponent(model)}`
-}
-
-function decodeModelOptionValue(value?: string): IMembershipAllowedModel | null {
-  if (!value) {
-    return null
-  }
-  const separatorIndex = value.indexOf('|')
-  if (separatorIndex < 0) {
-    return null
-  }
-  try {
-    return {
-      provider: decodeURIComponent(value.slice(0, separatorIndex)),
-      model: decodeURIComponent(value.slice(separatorIndex + 1))
-    }
-  } catch {
-    return null
-  }
-}
-
-function allowedModelOptionValue(provider: string, model: string, copilotId?: string) {
-  return [copilotId ?? '', provider, model].map(encodeURIComponent).join('|')
-}
-
-function decodeAllowedModelOptionValue(value?: string): IMembershipAllowedModel | null {
-  if (!value) {
-    return null
-  }
-  const parts = value.split('|')
-  if (parts.length !== 3) {
-    return null
-  }
-  try {
-    const [copilotId, provider, model] = parts.map(decodeURIComponent)
-    if (!provider || !model) {
-      return null
-    }
-    return copilotId ? { provider, model, copilotId } : { provider, model }
-  } catch {
-    return null
-  }
-}
-
-function selectionValues(value: string | number | Array<string | number>) {
-  return (Array.isArray(value) ? value : [value]).map(String)
-}
-
-function addModelOption(
-  options: Map<string, MembershipModelOption>,
-  provider: string,
-  model: string,
-  available: boolean
-) {
-  const value = modelOptionValue(provider, model)
-  if (!options.has(value)) {
-    options.set(value, { value, provider, model, available })
-  }
-}
-
-function addAllowedModelOption(
-  options: Map<string, MembershipModelOption>,
-  provider: string,
-  model: string,
-  copilotId: string | undefined,
-  copilotLabel: string | undefined,
-  available: boolean
-) {
-  const value = allowedModelOptionValue(provider, model, copilotId)
-  if (!options.has(value)) {
-    options.set(value, { value, provider, model, copilotId, copilotLabel, available })
-  }
-}
-
-function sortModelOptions(options: MembershipModelOption[]) {
-  return options.sort(
-    (left, right) =>
-      left.provider.localeCompare(right.provider) ||
-      (left.model === '*' ? -1 : right.model === '*' ? 1 : left.model.localeCompare(right.model))
-  )
-}
-
-function modelRuleSpecificity(rule: IMembershipModelMultiplier) {
-  return (rule.provider ? 1 : 0) + (rule.model && rule.model !== '*' ? 2 : 0)
 }
