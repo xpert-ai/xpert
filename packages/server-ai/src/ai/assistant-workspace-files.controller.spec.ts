@@ -24,7 +24,12 @@ jest.mock('./assistant-file-access.guard', () => ({
 jest.mock('../xpert/assistant-files/assistant-files.service', () => ({ AssistantFilesService: class {} }))
 
 function createController() {
-    const service = { list: jest.fn(), read: jest.fn(), download: jest.fn() }
+    const service = {
+        list: jest.fn(),
+        read: jest.fn(),
+        capabilities: jest.fn().mockResolvedValue({ canRead: true, canWrite: false }),
+        download: jest.fn()
+    }
     const forRuntime = jest.fn(() => service)
     return {
         service,
@@ -69,7 +74,8 @@ describe('AssistantWorkspaceFilesController', () => {
         expect(forRuntime).toHaveBeenCalledWith('assistant')
         expect(service.list).toHaveBeenCalledWith('runs', 2)
         await expect(controller.readWorkspaceFile('assistant', { path: 'runs/result.txt' })).resolves.toEqual({
-            content: 'complete'
+            content: 'complete',
+            capabilities: { canRead: true, canWrite: false }
         })
         expect(service.read).toHaveBeenCalledWith('runs/result.txt')
     })

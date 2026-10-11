@@ -40,6 +40,7 @@ import { ChatConversationReadState } from './conversation-read-state.entity'
 import { ChatConversationPublicDTO } from './dto'
 import { ChatConversationThreadService } from './conversation-thread.service'
 import { mergeConversationOptionsSql } from './conversation-options-sql'
+import { workspaceFileCapabilities } from './workspace-file-capabilities'
 
 export type ChatConversationAccessOperation = 'read' | 'contribute' | 'manage'
 
@@ -644,6 +645,16 @@ export class ChatConversationService extends TenantOrganizationAwareCrudService<
         const conversation = await this.getAuthorizedWorkspaceConversation(id, 'read')
         const { client, scopePath } = await this.createWorkspaceVolumeClient(conversation, 'read')
         return client.getDownloadTarget(scopePath, filePath)
+    }
+
+    async getWorkspaceFileCapabilities(id: string, filePath: string) {
+        const conversation = await this.getAuthorizedWorkspaceConversation(id, 'read')
+        return workspaceFileCapabilities(async () => {
+            await this.assertAccess(conversation, 'contribute')
+            await this.assertCanMutateWorkspace(conversation)
+            this.assertGenericWorkspaceMutationAllowed(conversation, normalizeWorkspaceFilePath(filePath))
+            await this.createWorkspaceVolumeClient(conversation, 'write')
+        })
     }
 
     async saveWorkspaceFile(id: string, filePath: string, content: string): Promise<TFile> {

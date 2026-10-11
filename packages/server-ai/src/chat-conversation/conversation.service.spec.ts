@@ -853,6 +853,51 @@ describe('ChatConversationService workspace files', () => {
         expect(volumeClient.resolve).not.toHaveBeenCalled()
     })
 
+    it.each([true, false])('reports Project file write authority as %s without writing bytes', async (canWrite) => {
+        jest.spyOn(service, 'findOne').mockResolvedValue({
+            ...conversation,
+            projectId: 'project-1'
+        } as ChatConversation)
+        if (!canWrite) projectAccessService.assertCanEdit.mockRejectedValue(new ForbiddenException())
+        const save = jest.spyOn(VolumeSubtreeClient.prototype, 'saveFile')
+        await expect(service.getWorkspaceFileCapabilities('conversation-1', 'docs/report.md')).resolves.toEqual({
+            canRead: true,
+            canWrite
+        })
+        expect(save).not.toHaveBeenCalled()
+    })
+
+    it('keeps governed Project content read-only even for an editor', async () => {
+        jest.spyOn(service, 'findOne').mockResolvedValue({
+            ...conversation,
+            projectId: 'project-1'
+        } as ChatConversation)
+        await expect(service.getWorkspaceFileCapabilities('conversation-1', 'project.md')).resolves.toEqual({
+            canRead: true,
+            canWrite: false
+        })
+    })
+
+    it('does not return capabilities when conversation read access is denied', async () => {
+        jest.spyOn(service, 'assertAccess').mockRejectedValue(new ForbiddenException())
+        await expect(service.getWorkspaceFileCapabilities('conversation-1', 'report.md')).rejects.toBeInstanceOf(
+            ForbiddenException
+        )
+        expect(volumeClient.resolve).not.toHaveBeenCalled()
+    })
+
+    it('checks personal Assistant write authority independently of successful reads', async () => {
+        jest.spyOn(service, 'findOne').mockResolvedValue(conversation as ChatConversation)
+        commandBus.execute.mockRejectedValue(new ForbiddenException())
+        await expect(service.getWorkspaceFileCapabilities('conversation-1', 'report.md')).resolves.toEqual({
+            canRead: true,
+            canWrite: false
+        })
+        expect(commandBus.execute).toHaveBeenCalledWith(
+            new ResolveAssistantFileAccessCommand('xpert-1', 'write', 'runtime')
+        )
+    })
+
     it('finds the conversation by thread id inside the current scope', async () => {
         const findOneByOptions = jest
             .spyOn(service, 'findOneByOptions')
