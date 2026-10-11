@@ -123,6 +123,9 @@ export class DocumentImportMenuComponent {
       if (source === 'url' || source === 'crawl' || source === 'remote') {
         documents = await firstValueFrom(
           this.dialog.open<Partial<IKnowledgeDocument>[]>(DocumentImportSourceDialogComponent, {
+            backdropClass: 'backdrop-blur-xs-black',
+            panelClass: 'xp-overlay-pane-dialog',
+            maxWidth: 'calc(100vw - 32px)',
             ...options,
             data: source,
             ariaLabel: this.translate.instant(this.prefix + '.' + this.sources.find((item) => item.id === source).key)
@@ -132,6 +135,9 @@ export class DocumentImportMenuComponent {
       }
       const result = await firstValueFrom(
         this.dialog.open<boolean>(DocumentImportDialogComponent, {
+          backdropClass: 'backdrop-blur-xs-black',
+          panelClass: 'xp-overlay-pane-dialog',
+          maxWidth: 'calc(100vw - 32px)',
           ...options,
           data: { knowledgebase, parentId, documents, files, locked: () => this.locked() },
           ariaLabel: this.translate.instant(this.prefix + '.Title')

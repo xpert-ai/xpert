@@ -220,6 +220,9 @@ export class PluginMarketplaceDetailComponent {
     const initialInstallMode = this.installModeForResource(content)
 
     this.#dialog.open(PluginResourcesComponent, {
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)',
       data: {
         plugin: {
           name: pluginName,
@@ -250,8 +253,7 @@ export class PluginMarketplaceDetailComponent {
         ...(content.componentType === PLUGIN_COMPONENT_TYPE.TOOLSET
           ? { allowedInstallModes: ['organization' as const] }
           : {})
-      },
-      backdropClass: 'backdrop-blur-sm-black'
+      }
     })
   }
 

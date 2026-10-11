@@ -86,28 +86,40 @@
 }
 
 <ng-template #newTempl>
-  <div class="flex flex-col p-4 bg-components-card-bg rounded-2xl">
-    <xp-language-selector class="w-48" [(ngModel)]="languageCode" />
-
-    <xp-select
-      class="w-48"
-      label="{{ 'XP.KEY_WORDS.TemplateName' | translate: { Default: 'Template Name' } }}"
-      [selectOptions]="templateNames()"
-      valueKey="key"
-      displayBehaviour="descriptionOnly"
-      [(ngModel)]="name"
-    />
-
-    <div class="w-full flex justify-end">
-      <div class="flex items-center gap-1">
-        <button z-button zType="default" class="shrink-0 w-24" [disabled]="!languageCode || !name()" (click)="create()">
-          <div class="flex items-center">
-            {{ 'XP.ACTIONS.Create' | translate: { Default: 'Create' } }}
-          </div>
-        </button>
-      </div>
+  <section xpDialogLayout="standard" class="w-[440px] max-w-full max-h-[calc(100dvh-32px)]">
+    <header xpDialogHeader>
+      <h2 xpDialogHeading>{{ 'XP.MENU.Email Template' | translate }}</h2>
+      <button
+        xpDialogCloseButton
+        z-button
+        zType="ghost"
+        zSize="icon"
+        type="button"
+        (click)="closeNewTemplate()"
+        [attr.aria-label]="'XP.ACTIONS.Close' | translate"
+      >
+        <z-icon zType="x" />
+      </button>
+    </header>
+    <div xpDialogBody class="space-y-4">
+      <xp-language-selector class="block w-full" [(ngModel)]="languageCode" />
+      <xp-select
+        class="block w-full"
+        label="{{ 'XP.KEY_WORDS.TemplateName' | translate }}"
+        [selectOptions]="templateNames()"
+        valueKey="key"
+        displayBehaviour="descriptionOnly"
+        [(ngModel)]="name"
+      />
     </div>
-  </div>
+    <footer xpDialogFooter>
+      <button z-button zType="outline" type="button" (click)="closeNewTemplate()">
+        {{ 'XP.ACTIONS.Cancel' | translate }}</button
+      ><button z-button [zDisabled]="!languageCode || !name()" (click)="create()">
+        {{ 'XP.ACTIONS.Create' | translate }}
+      </button>
+    </footer>
+  </section>
 </ng-template>
 
 <ng-template #menu let-item="item">

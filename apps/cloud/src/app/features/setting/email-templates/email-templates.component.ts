@@ -1,11 +1,18 @@
+import {
+  ZardButtonComponent,
+  XpDialogFrameImports,
+  DisappearFadeOut,
+  XpDynamicGridDirective,
+  XpSelectComponent,
+  ZardSegmentedComponent,
+  ZardIconComponent
+} from '@xpert-ai/headless-ui'
 import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { Component, computed, effect, inject, model, signal, TemplateRef, viewChild } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import { DisappearFadeOut, XpDynamicGridDirective } from '@xpert-ai/headless-ui'
-import { XpSelectComponent, ZardSegmentedComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { map, switchMap } from 'rxjs/operators'
 import { EmailTemplateNameEnum } from '../../../@core/types'
@@ -19,7 +26,6 @@ import { EmailTemplateComponent } from './template/template.component'
 import { BehaviorSubject, combineLatest } from 'rxjs'
 import { CardCreateComponent } from '../../../@shared/card'
 import { LanguageSelectorComponent } from '../../../@shared/language'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -36,7 +42,8 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     CardCreateComponent,
     XpDynamicGridDirective,
     LanguageSelectorComponent,
-    EmailTemplateComponent
+    EmailTemplateComponent,
+    ...XpDialogFrameImports
   ],
   templateUrl: './email-templates.component.html',
   styleUrls: ['./email-templates.component.scss'],
@@ -121,13 +128,21 @@ export class EmailTemplatesComponent {
   }
 
   newEmailTemplate() {
-    this.dialogRef = this.#dialog.open(this.newTempl())
+    this.dialogRef = this.#dialog.open(this.newTempl(), {
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)'
+    })
 
     this.dialogRef.closed.subscribe({
       next: () => {
         //
       }
     })
+  }
+
+  closeNewTemplate() {
+    this.dialogRef?.close()
   }
 
   async create() {

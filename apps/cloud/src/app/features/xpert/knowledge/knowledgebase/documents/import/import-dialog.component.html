@@ -1,13 +1,19 @@
-<div class="flex h-[min(48rem,calc(100dvh-3rem))] w-[min(76rem,calc(100vw-3rem))] flex-col" [attr.aria-busy]="busy()">
-  <header class="flex shrink-0 items-center justify-between gap-4 border-b border-divider-subtle px-5 py-3">
-    <h2 class="font-semibold">
+<div
+  xpDialogLayout="wide"
+  xpDialogPurpose="workflow"
+  class="h-[min(800px,calc(100dvh-32px))] w-[1064px] max-w-full"
+  [attr.aria-busy]="busy()"
+>
+  <header xpDialogHeader>
+    <h2 xpDialogHeading>
       {{ titleKey | translate }} <span class="ml-2 text-sm text-text-secondary">{{ total() }}</span>
     </h2>
     <button
       z-button
       zType="ghost"
       zSize="icon"
-      [disabled]="busy()"
+      xpDialogCloseButton
+      [zDisabled]="busy()"
       (click)="dialogRef.close()"
       [attr.aria-label]="prefix + '.Close' | translate"
     >
@@ -24,12 +30,14 @@
     />
   } @else {
     <div
-      class="grid min-h-0 flex-1 grid-cols-[minmax(10rem,14rem)_minmax(9rem,12rem)_minmax(24rem,1fr)] overflow-auto"
+      class="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-[200px_168px_minmax(0,1fr)] lg:overflow-hidden"
       [attr.inert]="busy() ? '' : null"
     >
-      <aside class="flex min-h-0 flex-col border-r border-divider-subtle bg-background-default-subtle">
+      <aside
+        class="flex min-h-0 flex-col lg:overflow-y-auto border-r border-divider-subtle bg-background-default-subtle"
+      >
         <div class="space-y-3 border-b border-divider-subtle p-4">
-          <div class="flex items-center justify-between gap-2">
+          <div xpDialogActionGroup="inline" class="flex items-center justify-between gap-2">
             <span class="text-sm font-medium">{{
               (editing ? 'XP.Knowledgebase.DocumentsSettings' : prefix + '.Files') | translate
             }}</span>
@@ -39,7 +47,7 @@
                 zType="ghost"
                 zSize="icon"
                 [cdkMenuTriggerFor]="addMenu"
-                [disabled]="busy() || data.locked()"
+                [zDisabled]="busy() || data.locked()"
                 [attr.aria-label]="prefix + '.AddMore' | translate"
               >
                 <i class="ri-file-add-line"></i>
@@ -61,15 +69,17 @@
               [attr.aria-label]="prefix + '.Location' | translate"
             />
             @if (folderError()) {
-              <button z-button zType="ghost" zSize="sm" (click)="loadFolders()">
-                {{ prefix + '.RetryFolders' | translate }}
-              </button>
+              <div xpDialogActionGroup="inline">
+                <button z-button zType="ghost" (click)="loadFolders()">
+                  {{ prefix + '.RetryFolders' | translate }}
+                </button>
+              </div>
             }
           }
         </div>
-        <div class="min-h-0 flex-1 space-y-2 overflow-auto p-3">
+        <div class="min-h-0 space-y-2 p-3 lg:flex-1 lg:overflow-auto">
           @for (item of uploads(); track item) {
-            <div class="flex items-start gap-2 rounded-lg p-2 hover:bg-hover-bg">
+            <div xpDialogActionGroup="inline" class="flex items-start gap-2 rounded-lg p-2 hover:bg-hover-bg">
               <i class="ri-file-text-line mt-1 text-text-secondary"></i>
               <div class="min-w-0 flex-1">
                 <p class="truncate text-sm" [zTooltip]="item.file.name" zPosition="right" tabindex="0">
@@ -83,7 +93,7 @@
                 }
                 @if (item.error()) {
                   <p class="break-words text-xs text-text-destructive">{{ item.error() }}</p>
-                  <button z-button zType="ghost" zSize="sm" [disabled]="busy()" (click)="item.upload()">
+                  <button z-button zType="ghost" [zDisabled]="busy()" (click)="item.upload()">
                     {{ prefix + '.Retry' | translate }}
                   </button>
                 }
@@ -92,7 +102,7 @@
                 z-button
                 zType="ghost"
                 zSize="icon"
-                [disabled]="busy()"
+                [zDisabled]="busy()"
                 (click)="removeUpload(item)"
                 [attr.aria-label]="prefix + '.Remove' | translate"
               >
@@ -101,7 +111,7 @@
             </div>
           }
           @for (doc of externalDocuments(); track $index) {
-            <div class="flex items-start gap-2 rounded-lg p-2 hover:bg-hover-bg">
+            <div xpDialogActionGroup="inline" class="flex items-start gap-2 rounded-lg p-2 hover:bg-hover-bg">
               <i
                 [class]="
                   editing ? 'ri-file-text-line mt-1 text-text-secondary' : 'ri-links-line mt-1 text-text-secondary'
@@ -115,7 +125,7 @@
                   z-button
                   zType="ghost"
                   zSize="icon"
-                  [disabled]="busy()"
+                  [zDisabled]="busy()"
                   (click)="removeExternal($index)"
                   [attr.aria-label]="prefix + '.Remove' | translate"
                 >
@@ -125,7 +135,7 @@
             </div>
           }
           @if (!total()) {
-            <div class="space-y-3 px-2 py-6 text-sm text-text-secondary">
+            <div xpDialogActionGroup="inline" class="space-y-3 px-2 py-6 text-sm text-text-secondary">
               <p>{{ prefix + '.EmptyFiles' | translate }}</p>
               <button z-button zType="outline" (click)="fileInput.click()">
                 {{ prefix + '.UploadFiles' | translate }}
@@ -135,14 +145,14 @@
         </div>
       </aside>
       <nav
-        class="min-h-0 space-y-1 overflow-auto border-r border-divider-subtle bg-background-default-subtle p-2"
+        class="flex min-h-0 flex-wrap gap-1 border-b border-border bg-muted/30 p-2 lg:block lg:space-y-1 lg:overflow-auto lg:border-r"
         [attr.aria-label]="prefix + '.Settings' | translate"
       >
         <p class="px-3 py-2 text-sm font-semibold">{{ prefix + '.Settings' | translate }}</p>
         @for (item of sections; track item.id) {
           <button
             type="button"
-            class="flex w-full items-start gap-2 rounded-lg px-3 py-3 text-left hover:bg-hover-bg"
+            class="flex items-start gap-2 rounded-lg px-3 py-3 text-left hover:bg-hover-bg lg:w-full"
             [class]="section() === item.id ? 'bg-hover-bg text-text-accent' : 'text-text-secondary'"
             [attr.aria-current]="section() === item.id ? 'page' : null"
             (click)="section.set(item.id)"
@@ -176,8 +186,8 @@
           </button>
         }
       </nav>
-      <section class="flex min-h-0 min-w-0 flex-col overflow-auto px-6 py-5">
-        <h3 class="text-xl font-semibold">{{ prefix + '.' + activeSection().key | translate }}</h3>
+      <section xpDialogBody="section" class="lg:overflow-y-auto">
+        <h3 class="text-sm font-medium">{{ prefix + '.' + activeSection().key | translate }}</h3>
         <p class="mb-5 mt-2 text-sm text-text-secondary">
           {{
             (section() === 'tags'
@@ -190,7 +200,7 @@
         </p>
         @if (section() === 'tags') {
           <div class="space-y-3">
-            <div class="flex items-center gap-3">
+            <div xpDialogActionGroup="inline" class="flex items-center gap-3">
               <input
                 z-input
                 class="min-w-0 flex-1"
@@ -214,19 +224,25 @@
               <p role="alert" class="text-sm text-text-destructive">
                 {{ prefix + '.TagsLoadFailed' | translate }} {{ tagsError() }}
               </p>
-              <button z-button zType="outline" [zDisabled]="busy()" (click)="loadTags()">
-                {{ prefix + '.TagsRetry' | translate }}
-              </button>
+              <div xpDialogActionGroup="inline">
+                <button z-button zType="outline" [zDisabled]="busy()" (click)="loadTags()">
+                  {{ prefix + '.TagsRetry' | translate }}
+                </button>
+              </div>
             } @else {
               @if (!tagsEditable()) {
                 <p class="text-sm text-text-tertiary">{{ 'XP.Knowledgebase.AutomaticTagging.ReadOnly' | translate }}</p>
               }
-              <div class="flex flex-wrap gap-2" role="group" [attr.aria-label]="prefix + '.Tags' | translate">
+              <div
+                xpDialogActionGroup="inline"
+                class="flex flex-wrap gap-2"
+                role="group"
+                [attr.aria-label]="prefix + '.Tags' | translate"
+              >
                 @for (tag of filteredTags(); track tag.id) {
                   <button
                     z-button
                     zType="outline"
-                    zSize="sm"
                     [attr.aria-pressed]="selectedTagIds().includes(tag.id)"
                     [zDisabled]="busy() || data.locked() || !tagsEditable()"
                     (click)="toggleTag(tag.id)"
@@ -264,14 +280,14 @@
       </section>
     </div>
   }
-  <footer class="flex shrink-0 items-center justify-end gap-3 border-t border-divider-subtle px-5 py-4">
+  <footer xpDialogFooter>
     @if (configurationError(); as message) {
       <p role="alert" class="mr-auto text-sm text-text-destructive">{{ message | translate }}</p>
     }
     @if (error()) {
       <p role="alert" class="mr-auto text-sm text-text-destructive">{{ error() }}</p>
     }
-    <button z-button zType="outline" [disabled]="busy()" (click)="dialogRef.close()">
+    <button z-button zType="outline" [zDisabled]="busy()" (click)="dialogRef.close()">
       {{ prefix + '.Cancel' | translate }}
     </button>
     @if (editing) {
@@ -281,16 +297,16 @@
             | translate
         "
       >
-        <button z-button zType="outline" [disabled]="!rechunkReady()" (click)="saveAndProcess('rechunk')">
+        <button z-button zType="outline" [zDisabled]="!rechunkReady()" (click)="saveAndProcess('rechunk')">
           {{ 'XP.Knowledgebase.RechunkOnly' | translate }}
         </button>
       </span>
-      <button z-button [disabled]="!ready()" (click)="saveAndProcess('full')">
+      <button z-button [zLoading]="busy()" [zDisabled]="!ready()" (click)="saveAndProcess('full')">
         {{ 'XP.Knowledgebase.FullReprocess' | translate }}
       </button>
     } @else {
-      <button z-button [disabled]="!ready()" (click)="submit()">
-        {{ prefix + (busy() ? '.Submitting' : '.Submit') | translate }}
+      <button z-button [zLoading]="busy()" [zDisabled]="!ready()" (click)="submit()">
+        {{ prefix + '.Submit' | translate }}
       </button>
     }
   </footer>

@@ -1,42 +1,57 @@
-<div class="kb-create-dialog" cdkDrag cdkDragRootElement=".cdk-overlay-pane">
-  <button
-    z-button
-    zType="secondary"
-    zSize="icon-lg"
-    type="button"
-    class="kb-close-button"
-    [attr.aria-label]="i18nPrefix + '.Close' | translate"
-    (click)="close()"
-  >
-    <i class="ri-close-line"></i>
-  </button>
+<div
+  xpDialogLayout="wide"
+  xpDialogPurpose="workflow"
+  class="w-[1100px] max-w-full h-[min(800px,calc(100dvh-32px))]"
+  cdkDrag
+  cdkDragRootElement=".cdk-overlay-pane"
+>
+  <header xpDialogHeader cdkDragHandle>
+    <h2 xpDialogHeading>{{ i18nPrefix + (isEditMode() ? '.EditTitle' : '.CreateTitle') | translate }}</h2>
+    <button
+      xpDialogCloseButton
+      z-button
+      zType="ghost"
+      zSize="icon"
+      type="button"
+      (click)="close()"
+      [attr.aria-label]="i18nPrefix + '.Close' | translate"
+    >
+      <z-icon zType="x" />
+    </button>
+  </header>
 
-  <div class="kb-settings-container">
-    <aside class="kb-create-sidebar" [attr.aria-label]="i18nPrefix + '.NavigationLabel' | translate">
-      <div class="kb-sidebar-header" cdkDragHandle>
-        <div class="kb-create-title">
-          {{ i18nPrefix + (isEditMode() ? '.EditTitle' : '.CreateTitle') | translate }}
-        </div>
-      </div>
+  <div class="flex min-h-0 flex-1 max-sm:flex-col">
+    <aside
+      class="flex w-[200px] shrink-0 flex-col gap-4 overflow-y-auto border-r border-border bg-muted/30 p-2 max-sm:w-full max-sm:flex-row max-sm:overflow-x-auto max-sm:border-b max-sm:border-r-0"
+      [attr.aria-label]="i18nPrefix + '.NavigationLabel' | translate"
+    >
       @for (group of groupedSections(); track group.group) {
-        <div class="kb-sidebar-group">
-          <div class="kb-sidebar-group-title">{{ i18nPrefix + '.Groups.' + group.group | translate }}</div>
-          <nav class="kb-sidebar-nav">
+        <div class="kb-sidebar-group max-[520px]:flex max-[520px]:items-center max-[520px]:gap-1">
+          <div
+            class="kb-sidebar-group-title px-3 pb-2 text-sm font-semibold leading-5 text-text-tertiary max-sm:hidden max-[520px]:hidden max-[520px]:max-sm:hidden"
+          >
+            {{ i18nPrefix + '.Groups.' + group.group | translate }}
+          </div>
+          <nav xpDialogActionGroup="inline" class="flex flex-col gap-1 max-sm:flex-row">
             @for (section of group.items; track section.key) {
               <button
                 z-button
                 zType="ghost"
-                zSize="lg"
                 type="button"
-                class="kb-sidebar-item"
+                class="w-full justify-start max-sm:w-auto"
+                [attr.aria-label]="i18nPrefix + '.' + section.labelKey | translate"
+                [attr.aria-current]="activeSection() === section.key ? 'page' : null"
                 [class.kb-sidebar-item-active]="activeSection() === section.key"
                 [class.kb-sidebar-item-preview]="section.status !== 'supported'"
                 (click)="selectSection(section.key)"
               >
                 <i [class]="section.icon"></i>
-                <span>{{ i18nPrefix + '.' + section.labelKey | translate }}</span>
+                <span class="max-sm:hidden">{{ i18nPrefix + '.' + section.labelKey | translate }}</span>
                 @if (section.status !== 'supported') {
-                  <span class="kb-sidebar-dot" [attr.title]="sectionStatusKey(section.status) | translate"></span>
+                  <span
+                    class="kb-sidebar-dot ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-text-warning"
+                    [attr.title]="sectionStatusKey(section.status) | translate"
+                  ></span>
                 }
               </button>
             }
@@ -45,21 +60,27 @@
       }
     </aside>
 
-    <section class="kb-settings-content">
-      <main class="kb-create-content">
+    <section class="flex min-h-0 min-w-0 flex-1 flex-col">
+      <main xpDialogBody="section">
         @switch (activeSection()) {
           @case ('basic') {
-            <section class="kb-section">
-              <div class="kb-section-heading">
+            <section class="kb-section mx-auto w-full max-w-4xl pb-8">
+              <div class="kb-section-heading mb-4 max-[720px]:mb-4">
                 <h1>{{ i18nPrefix + '.Sections.Basic' | translate }}</h1>
                 <p>{{ i18nPrefix + (isFAQ() ? '.Basic.FAQDescription' : '.Basic.Description') | translate }}</p>
               </div>
 
-              <div class="kb-field">
-                <label class="kb-label"
-                  >{{ i18nPrefix + '.Basic.KnowledgebaseType' | translate }} <span class="kb-required">*</span></label
+              <div class="kb-field relative mb-6">
+                <label class="kb-label mb-2 block text-sm font-semibold leading-5 text-text-primary"
+                  >{{ i18nPrefix + '.Basic.KnowledgebaseType' | translate }}
+                  <span class="kb-required ml-0.5 text-text-destructive">*</span></label
                 >
-                <z-toggle-group class="kb-type-toggle" zType="outline" zSize="lg" [(ngModel)]="type">
+                <z-toggle-group
+                  class="kb-type-toggle overflow-hidden rounded-md"
+                  zType="outline"
+                  zSize="lg"
+                  [(ngModel)]="type"
+                >
                   <z-toggle-group-item
                     class="min-w-28"
                     [value]="KnowledgebaseTypeEnum.Standard"
@@ -71,15 +92,18 @@
                     {{ i18nPrefix + '.Basic.QandA' | translate }}
                   </z-toggle-group-item>
                 </z-toggle-group>
-                <p class="kb-help-text">{{ i18nPrefix + '.Basic.KnowledgebaseTypeHelp' | translate }}</p>
+                <p class="kb-help-text mt-1 text-xs leading-5 text-text-tertiary">
+                  {{ i18nPrefix + '.Basic.KnowledgebaseTypeHelp' | translate }}
+                </p>
               </div>
 
               @if (!isFAQ()) {
-                <div class="kb-field">
-                  <label class="kb-label"
-                    >{{ i18nPrefix + '.Basic.IndexStrategy' | translate }} <span class="kb-required">*</span></label
+                <div class="kb-field relative mb-6">
+                  <label class="kb-label mb-2 block text-sm font-semibold leading-5 text-text-primary"
+                    >{{ i18nPrefix + '.Basic.IndexStrategy' | translate }}
+                    <span class="kb-required ml-0.5 text-text-destructive">*</span></label
                   >
-                  <p class="kb-help-text">
+                  <p class="kb-help-text mt-1 text-xs leading-5 text-text-tertiary">
                     {{
                       i18nPrefix + '.Basic.IndexCapabilitiesHelp'
                         | translate
@@ -89,59 +113,70 @@
                             }
                     }}
                   </p>
-                  <div class="kb-choice-grid">
+                  <div class="kb-choice-grid grid grid-cols-1 gap-4 md:grid-cols-3">
                     <button
                       type="button"
-                      class="kb-choice-card"
+                      class="kb-choice-card relative flex min-h-36 cursor-pointer flex-col items-start rounded-xl border border-divider-regular bg-components-card-bg p-5 text-left transition hover:border-components-option-card-option-selected-border"
                       [class.kb-choice-card-selected]="true"
                       aria-pressed="true"
                     >
-                      <span class="kb-choice-check"><i class="ri-check-line"></i></span>
-                      <span class="kb-choice-card-title">{{ i18nPrefix + '.Basic.RagSearch' | translate }}</span>
-                      <span class="kb-choice-card-description">{{
+                      <span
+                        class="kb-choice-check border-transparent bg-components-button-primary-bg text-components-button-primary-text"
+                        ><i class="ri-check-line"></i
+                      ></span>
+                      <span class="kb-choice-card-title text-base font-semibold text-text-primary">{{
+                        i18nPrefix + '.Basic.RagSearch' | translate
+                      }}</span>
+                      <span class="kb-choice-card-description mt-2 text-sm leading-5 text-text-tertiary">{{
                         i18nPrefix + '.Basic.RagSearchDescription' | translate
                       }}</span>
                     </button>
                     <button
                       type="button"
-                      class="kb-choice-card"
+                      class="kb-choice-card relative flex min-h-36 cursor-pointer flex-col items-start rounded-xl border border-divider-regular bg-components-card-bg p-5 text-left transition hover:border-components-option-card-option-selected-border"
                       [ngClass]="{
                         'kb-choice-card-selected': wikiEnabled(),
-                        'kb-choice-card-disabled': indexStrategyLocked()
+                        'cursor-not-allowed opacity-70': indexStrategyLocked()
                       }"
                       [attr.aria-pressed]="wikiEnabled()"
                       [disabled]="indexStrategyLocked()"
                       (click)="toggleWiki()"
                     >
                       @if (wikiEnabled()) {
-                        <span class="kb-choice-check"><i class="ri-check-line"></i></span>
+                        <span
+                          class="kb-choice-check border-transparent bg-components-button-primary-bg text-components-button-primary-text"
+                          ><i class="ri-check-line"></i
+                        ></span>
                       } @else {
                         <span class="kb-choice-empty"></span>
                       }
-                      <span class="kb-choice-card-title">{{
+                      <span class="kb-choice-card-title text-base font-semibold text-text-primary">{{
                         i18nPrefix + '.Basic.WikiKnowledgebase' | translate
                       }}</span>
-                      <span class="kb-choice-card-description">{{
+                      <span class="kb-choice-card-description mt-2 text-sm leading-5 text-text-tertiary">{{
                         i18nPrefix + '.Basic.WikiDescription' | translate
                       }}</span>
                     </button>
                     <button
                       type="button"
-                      class="kb-choice-card"
+                      class="kb-choice-card relative flex min-h-36 cursor-pointer flex-col items-start rounded-xl border border-divider-regular bg-components-card-bg p-5 text-left transition hover:border-components-option-card-option-selected-border"
                       data-index-capability="graph"
                       [class.kb-choice-card-selected]="graphEnabled()"
                       [attr.aria-pressed]="graphEnabled()"
                       (click)="toggleGraph()"
                     >
                       @if (graphEnabled()) {
-                        <span class="kb-choice-check"><i class="ri-check-line"></i></span>
+                        <span
+                          class="kb-choice-check border-transparent bg-components-button-primary-bg text-components-button-primary-text"
+                          ><i class="ri-check-line"></i
+                        ></span>
                       } @else {
                         <span class="kb-choice-empty"></span>
                       }
-                      <span class="kb-choice-card-title">{{
+                      <span class="kb-choice-card-title text-base font-semibold text-text-primary">{{
                         i18nPrefix + '.Basic.GraphIndex' | translate: { Default: 'Knowledge graph' }
                       }}</span>
-                      <span class="kb-choice-card-description">{{
+                      <span class="kb-choice-card-description mt-2 text-sm leading-5 text-text-tertiary">{{
                         i18nPrefix + '.Basic.GraphIndexDescription'
                           | translate
                             : {
@@ -172,9 +207,13 @@
                       </p>
                     </div>
 
-                    <div class="kb-field">
-                      <label class="kb-label">{{ i18nPrefix + '.Wiki.ExtractionGranularity' | translate }}</label>
-                      <p class="kb-help-text">{{ i18nPrefix + '.Wiki.ExtractionGranularityHelp' | translate }}</p>
+                    <div class="kb-field relative mb-6">
+                      <label class="kb-label mb-2 block text-sm font-semibold leading-5 text-text-primary">{{
+                        i18nPrefix + '.Wiki.ExtractionGranularity' | translate
+                      }}</label>
+                      <p class="kb-help-text mt-1 text-xs leading-5 text-text-tertiary">
+                        {{ i18nPrefix + '.Wiki.ExtractionGranularityHelp' | translate }}
+                      </p>
                       <z-toggle-group
                         class="w-fit"
                         zType="outline"
@@ -192,110 +231,125 @@
                           {{ i18nPrefix + '.Wiki.Granularity.Exhaustive' | translate }}
                         </z-toggle-group-item>
                       </z-toggle-group>
-                      <p class="kb-help-text">
+                      <p class="kb-help-text mt-1 text-xs leading-5 text-text-tertiary">
                         {{
                           i18nPrefix + '.Wiki.Granularity.' + wikiConfig().extractionGranularity + 'Help' | translate
                         }}
                       </p>
                     </div>
 
-                    <div class="kb-field">
-                      <label class="kb-label">{{
+                    <div class="kb-field relative mb-6">
+                      <label class="kb-label mb-2 block text-sm font-semibold leading-5 text-text-primary">{{
                         i18nPrefix + '.Wiki.ContentGenerationRequirements' | translate
                       }}</label>
-                      <p class="kb-help-text">
+                      <p class="kb-help-text mt-1 text-xs leading-5 text-text-tertiary">
                         {{ i18nPrefix + '.Wiki.ContentGenerationRequirementsHelp' | translate }}
                       </p>
                       <textarea
                         z-input
-                        class="kb-textarea min-h-36"
+                        class="kb-textarea min-h-28 w-full resize-y min-h-36"
                         [ngModel]="wikiConfig().contentGenerationRequirements"
                         (ngModelChange)="updateWikiConfig('contentGenerationRequirements', $event)"
                         [placeholder]="i18nPrefix + '.Wiki.ContentGenerationRequirementsPlaceholder' | translate"
                         maxlength="4000"
                       ></textarea>
-                      <div class="kb-counter">{{ wikiConfig().contentGenerationRequirements?.length ?? 0 }}/4000</div>
+                      <div class="kb-counter absolute bottom-2 right-2 text-xs text-text-quaternary">
+                        {{ wikiConfig().contentGenerationRequirements?.length ?? 0 }}/4000
+                      </div>
                     </div>
 
-                    <div class="kb-field">
-                      <label class="kb-label">{{ i18nPrefix + '.Wiki.ExtractionFocus' | translate }}</label>
-                      <p class="kb-help-text">{{ i18nPrefix + '.Wiki.ExtractionFocusHelp' | translate }}</p>
+                    <div class="kb-field relative mb-6">
+                      <label class="kb-label mb-2 block text-sm font-semibold leading-5 text-text-primary">{{
+                        i18nPrefix + '.Wiki.ExtractionFocus' | translate
+                      }}</label>
+                      <p class="kb-help-text mt-1 text-xs leading-5 text-text-tertiary">
+                        {{ i18nPrefix + '.Wiki.ExtractionFocusHelp' | translate }}
+                      </p>
                       <textarea
                         z-input
-                        class="kb-textarea min-h-36"
+                        class="kb-textarea min-h-28 w-full resize-y min-h-36"
                         [ngModel]="wikiConfig().extractionFocus"
                         (ngModelChange)="updateWikiConfig('extractionFocus', $event)"
                         [placeholder]="i18nPrefix + '.Wiki.ExtractionFocusPlaceholder' | translate"
                         maxlength="4000"
                       ></textarea>
-                      <div class="kb-counter">{{ wikiConfig().extractionFocus?.length ?? 0 }}/4000</div>
+                      <div class="kb-counter absolute bottom-2 right-2 text-xs text-text-quaternary">
+                        {{ wikiConfig().extractionFocus?.length ?? 0 }}/4000
+                      </div>
                     </div>
                   </div>
                 }
               }
 
-              <div class="kb-field">
-                <label class="kb-label"
-                  >{{ i18nPrefix + '.Basic.Name' | translate }} <span class="kb-required">*</span></label
+              <div class="kb-field relative mb-6">
+                <label class="kb-label mb-2 block text-sm font-semibold leading-5 text-text-primary"
+                  >{{ i18nPrefix + '.Basic.Name' | translate }}
+                  <span class="kb-required ml-0.5 text-text-destructive">*</span></label
                 >
                 <input
                   z-input
                   zSize="lg"
-                  class="kb-input"
+                  class="kb-input w-full"
                   [(ngModel)]="name"
                   [placeholder]="i18nPrefix + '.Basic.NamePlaceholder' | translate"
                   maxlength="80"
                 />
               </div>
 
-              <div class="kb-field">
-                <label class="kb-label">{{ i18nPrefix + '.Basic.KnowledgebaseDescription' | translate }}</label>
+              <div class="kb-field relative mb-6">
+                <label class="kb-label mb-2 block text-sm font-semibold leading-5 text-text-primary">{{
+                  i18nPrefix + '.Basic.KnowledgebaseDescription' | translate
+                }}</label>
                 <textarea
                   z-input
-                  class="kb-textarea"
+                  class="kb-textarea min-h-28 w-full resize-y"
                   [(ngModel)]="description"
                   [placeholder]="i18nPrefix + '.Basic.DescriptionPlaceholder' | translate"
                   maxlength="200"
                 ></textarea>
-                <div class="kb-counter">{{ description().length }}/200</div>
+                <div class="kb-counter absolute bottom-2 right-2 text-xs text-text-quaternary">
+                  {{ description().length }}/200
+                </div>
               </div>
             </section>
           }
 
           @case ('models') {
-            <section class="kb-section">
-              <div class="kb-section-heading">
+            <section class="kb-section mx-auto w-full max-w-4xl pb-8">
+              <div class="kb-section-heading mb-4 max-[720px]:mb-4">
                 <h1>{{ i18nPrefix + '.Sections.Models' | translate }}</h1>
                 <p>{{ i18nPrefix + '.Models.Description' | translate }}</p>
               </div>
 
-              <div class="kb-weknora-form">
-                <div class="kb-model-row">
-                  <div class="kb-model-row-copy">
-                    <div class="kb-model-row-title">
-                      {{ i18nPrefix + '.Models.LargeLanguageModel' | translate }} <span class="kb-required">*</span>
+              <div class="kb-weknora-form w-full">
+                <div class="kb-model-row flex items-center justify-between gap-8 py-2">
+                  <div class="kb-model-row-copy min-w-0 flex-1">
+                    <div class="kb-model-row-title text-base font-semibold leading-6 text-text-primary">
+                      {{ i18nPrefix + '.Models.LargeLanguageModel' | translate }}
+                      <span class="kb-required ml-0.5 text-text-destructive">*</span>
                     </div>
                     <p>{{ i18nPrefix + '.Models.LargeLanguageModelDescription' | translate }}</p>
                   </div>
                   <copilot-model-select
-                    class="kb-model-row-select"
+                    class="kb-model-row-select w-[min(100%,30rem)] shrink-0"
                     hiddenLabel
                     [modelType]="eAiModelTypeEnum.LLM"
                     [(ngModel)]="chatModel"
                   />
                 </div>
 
-                <div class="kb-divider"></div>
+                <div class="kb-divider my-5 h-px w-full bg-divider-subtle"></div>
 
-                <div class="kb-model-row">
-                  <div class="kb-model-row-copy">
-                    <div class="kb-model-row-title">
-                      {{ i18nPrefix + '.Models.EmbeddingModel' | translate }} <span class="kb-required">*</span>
+                <div class="kb-model-row flex items-center justify-between gap-8 py-2">
+                  <div class="kb-model-row-copy min-w-0 flex-1">
+                    <div class="kb-model-row-title text-base font-semibold leading-6 text-text-primary">
+                      {{ i18nPrefix + '.Models.EmbeddingModel' | translate }}
+                      <span class="kb-required ml-0.5 text-text-destructive">*</span>
                     </div>
                     <p>{{ i18nPrefix + '.Models.EmbeddingModelDescription' | translate }}</p>
                   </div>
                   <copilot-model-select
-                    class="kb-model-row-select"
+                    class="kb-model-row-select w-[min(100%,30rem)] shrink-0"
                     hiddenLabel
                     required
                     [modelType]="eAiModelTypeEnum.TEXT_EMBEDDING"
@@ -304,15 +358,17 @@
                 </div>
 
                 @if (isWiki()) {
-                  <div class="kb-divider"></div>
+                  <div class="kb-divider my-5 h-px w-full bg-divider-subtle"></div>
 
-                  <div class="kb-model-row">
-                    <div class="kb-model-row-copy">
-                      <div class="kb-model-row-title">{{ i18nPrefix + '.Models.WikiModel' | translate }}</div>
+                  <div class="kb-model-row flex items-center justify-between gap-8 py-2">
+                    <div class="kb-model-row-copy min-w-0 flex-1">
+                      <div class="kb-model-row-title text-base font-semibold leading-6 text-text-primary">
+                        {{ i18nPrefix + '.Models.WikiModel' | translate }}
+                      </div>
                       <p>{{ i18nPrefix + '.Models.WikiModelDescription' | translate }}</p>
                     </div>
                     <copilot-model-select
-                      class="kb-model-row-select"
+                      class="kb-model-row-select w-[min(100%,30rem)] shrink-0"
                       hiddenLabel
                       [modelType]="eAiModelTypeEnum.LLM"
                       [(ngModel)]="wikiModel"
@@ -324,15 +380,17 @@
           }
 
           @case ('vector-storage') {
-            <section class="kb-section">
-              <div class="kb-section-heading">
+            <section class="kb-section mx-auto w-full max-w-4xl pb-8">
+              <div class="kb-section-heading mb-4 max-[720px]:mb-4">
                 <h1>{{ i18nPrefix + '.VectorStorage.Title' | translate }}</h1>
                 <p>{{ i18nPrefix + '.VectorStorage.Description' | translate }}</p>
               </div>
 
-              <div class="kb-model-row">
-                <div class="kb-model-row-copy">
-                  <div class="kb-model-row-title">{{ i18nPrefix + '.VectorStorage.Label' | translate }}</div>
+              <div class="kb-model-row flex items-center justify-between gap-8 py-2">
+                <div class="kb-model-row-copy min-w-0 flex-1">
+                  <div class="kb-model-row-title text-base font-semibold leading-6 text-text-primary">
+                    {{ i18nPrefix + '.VectorStorage.Label' | translate }}
+                  </div>
                   <p>{{ i18nPrefix + '.VectorStorage.LabelDescription' | translate }}</p>
                 </div>
                 <div class="w-[min(100%,30rem)] shrink-0">
@@ -374,8 +432,8 @@
           }
 
           @case ('retrieval') {
-            <section class="kb-section">
-              <div class="kb-section-heading">
+            <section class="kb-section mx-auto w-full max-w-4xl pb-8">
+              <div class="kb-section-heading mb-4 max-[720px]:mb-4">
                 <h1>{{ i18nPrefix + '.Sections.Retrieval' | translate }}</h1>
               </div>
               <xp-keyword-analyzer-settings [(analyzer)]="keywordAnalyzer" [locked]="keywordAnalyzerLocked()" />
@@ -389,8 +447,8 @@
           }
 
           @case ('faq') {
-            <section class="kb-section">
-              <div class="kb-section-heading">
+            <section class="kb-section mx-auto w-full max-w-4xl pb-8">
+              <div class="kb-section-heading mb-4 max-[720px]:mb-4">
                 <h1>{{ i18nPrefix + '.FAQ.Title' | translate }}</h1>
                 <p>{{ i18nPrefix + '.FAQ.Description' | translate }}</p>
               </div>
@@ -400,9 +458,10 @@
                 [class]="faqConfigurationDisabled() ? 'pointer-events-none opacity-60' : ''"
                 [disabled]="faqConfigurationDisabled()"
               >
-                <div class="kb-field">
-                  <label class="kb-label"
-                    >{{ i18nPrefix + '.FAQ.IndexMode' | translate }} <span class="kb-required">*</span></label
+                <div class="kb-field relative mb-6">
+                  <label class="kb-label mb-2 block text-sm font-semibold leading-5 text-text-primary"
+                    >{{ i18nPrefix + '.FAQ.IndexMode' | translate }}
+                    <span class="kb-required ml-0.5 text-text-destructive">*</span></label
                   >
                   <z-toggle-group
                     class="w-fit"
@@ -422,14 +481,17 @@
                       {{ i18nPrefix + '.FAQ.QuestionAnswer' | translate }}
                     </z-toggle-group-item>
                   </z-toggle-group>
-                  <p class="kb-help-text">{{ i18nPrefix + '.FAQ.IndexModeHelp' | translate }}</p>
+                  <p class="kb-help-text mt-1 text-xs leading-5 text-text-tertiary">
+                    {{ i18nPrefix + '.FAQ.IndexModeHelp' | translate }}
+                  </p>
                 </div>
 
                 <div class="border-t border-divider-subtle"></div>
 
-                <div class="kb-field">
-                  <label class="kb-label"
-                    >{{ i18nPrefix + '.FAQ.QuestionIndexMode' | translate }} <span class="kb-required">*</span></label
+                <div class="kb-field relative mb-6">
+                  <label class="kb-label mb-2 block text-sm font-semibold leading-5 text-text-primary"
+                    >{{ i18nPrefix + '.FAQ.QuestionIndexMode' | translate }}
+                    <span class="kb-required ml-0.5 text-text-destructive">*</span></label
                   >
                   <z-toggle-group
                     class="w-fit"
@@ -445,14 +507,17 @@
                       {{ i18nPrefix + '.FAQ.Separate' | translate }}
                     </z-toggle-group-item>
                   </z-toggle-group>
-                  <p class="kb-help-text">{{ i18nPrefix + '.FAQ.QuestionIndexModeHelp' | translate }}</p>
+                  <p class="kb-help-text mt-1 text-xs leading-5 text-text-tertiary">
+                    {{ i18nPrefix + '.FAQ.QuestionIndexModeHelp' | translate }}
+                  </p>
                 </div>
 
                 <div class="border-t border-divider-subtle"></div>
 
-                <div class="kb-field">
-                  <label class="kb-label"
-                    >{{ i18nPrefix + '.FAQ.NegativeMatchMode' | translate }} <span class="kb-required">*</span></label
+                <div class="kb-field relative mb-6">
+                  <label class="kb-label mb-2 block text-sm font-semibold leading-5 text-text-primary"
+                    >{{ i18nPrefix + '.FAQ.NegativeMatchMode' | translate }}
+                    <span class="kb-required ml-0.5 text-text-destructive">*</span></label
                   >
                   <z-toggle-group
                     class="w-fit"
@@ -468,7 +533,9 @@
                       {{ i18nPrefix + '.FAQ.NegativeMatchSemantic' | translate }}
                     </z-toggle-group-item>
                   </z-toggle-group>
-                  <p class="kb-help-text">{{ i18nPrefix + '.FAQ.NegativeMatchModeHelp' | translate }}</p>
+                  <p class="kb-help-text mt-1 text-xs leading-5 text-text-tertiary">
+                    {{ i18nPrefix + '.FAQ.NegativeMatchModeHelp' | translate }}
+                  </p>
                   @if (faqConfig().negativeMatchMode === 'semantic') {
                     <xp-faq-semantic-settings [form]="faqSemanticForm" />
                   }
@@ -533,8 +600,8 @@
           }
 
           @case ('advanced') {
-            <section class="kb-section">
-              <div class="kb-section-heading">
+            <section class="kb-section mx-auto w-full max-w-4xl pb-8">
+              <div class="kb-section-heading mb-4 max-[720px]:mb-4">
                 <h1>{{ i18nPrefix + '.Sections.Advanced' | translate }}</h1>
                 <p>{{ i18nPrefix + '.Advanced.Description' | translate }}</p>
               </div>
@@ -572,54 +639,44 @@
           }
 
           @case ('storage') {
-            <section class="kb-section">
-              <div class="kb-section-heading">
+            <section class="kb-section mx-auto w-full max-w-4xl pb-8">
+              <div class="kb-section-heading mb-4 max-[720px]:mb-4">
                 <h1>{{ i18nPrefix + '.Sections.Storage' | translate }}</h1>
                 <p>{{ i18nPrefix + '.Storage.Description' | translate }}</p>
               </div>
-              <div class="kb-placeholder-card">
-                <div class="kb-placeholder-icon"><i class="ri-hard-drive-3-line"></i></div>
+              <div
+                class="kb-placeholder-card flex items-center gap-4 rounded-xl border border-dashed border-divider-deep bg-components-panel-bg p-5"
+              >
+                <div
+                  class="kb-placeholder-icon flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-components-card-bg text-xl text-text-tertiary"
+                >
+                  <i class="ri-hard-drive-3-line"></i>
+                </div>
                 <div>
-                  <div class="kb-panel-title">{{ i18nPrefix + '.Storage.PlatformDefault' | translate }}</div>
-                  <p class="kb-panel-description">
+                  <div class="kb-panel-title text-sm font-semibold leading-5 text-text-primary">
+                    {{ i18nPrefix + '.Storage.PlatformDefault' | translate }}
+                  </div>
+                  <p class="kb-panel-description mt-1 text-xs leading-5 text-text-tertiary">
                     {{ i18nPrefix + '.Storage.PlatformDefaultDescription' | translate }}
                   </p>
                 </div>
-                <span class="kb-status-badge kb-status-preview">{{
-                  i18nPrefix + '.Storage.SwitchUnsupported' | translate
-                }}</span>
+                <span
+                  class="kb-status-badge kb-status-preview shrink-0 bg-components-input-bg-normal text-text-tertiary"
+                  >{{ i18nPrefix + '.Storage.SwitchUnsupported' | translate }}</span
+                >
               </div>
             </section>
           }
         }
       </main>
-
-      <footer class="kb-create-footer">
-        <button
-          z-button
-          zType="secondary"
-          zSize="lg"
-          type="button"
-          class="kb-footer-button"
-          [disabled]="loading()"
-          (click)="close()"
-        >
-          {{ i18nPrefix + '.Actions.Cancel' | translate }}
-        </button>
-        <button
-          z-button
-          zType="default"
-          zSize="lg"
-          type="button"
-          class="kb-footer-button kb-footer-primary"
-          [disabled]="loading()"
-          [zDisabled]="loading()"
-          [zLoading]="loading()"
-          (click)="submit()"
-        >
-          {{ i18nPrefix + (isEditMode() ? '.Actions.Save' : '.Actions.Create') | translate }}
-        </button>
-      </footer>
     </section>
   </div>
+  <footer xpDialogFooter>
+    <button z-button zType="outline" type="button" [zDisabled]="loading()" (click)="close()">
+      {{ i18nPrefix + '.Actions.Cancel' | translate }}
+    </button>
+    <button z-button zType="default" type="button" [zDisabled]="loading()" [zLoading]="loading()" (click)="submit()">
+      {{ i18nPrefix + (isEditMode() ? '.Actions.Save' : '.Actions.Create') | translate }}
+    </button>
+  </footer>
 </div>

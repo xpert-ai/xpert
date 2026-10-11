@@ -145,7 +145,9 @@ export class MCPToolsetsComponent {
     }
     this.#dialog
       .open(XpertMCPManageComponent, {
-        backdropClass: 'backdrop-blur-lg-white',
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         disableClose: true,
         data: {
           workspaceId: this.workspaceId(),
@@ -172,7 +174,9 @@ export class MCPToolsetsComponent {
           if (toolset) {
             this.#dialog
               .open(XpertMCPManageComponent, {
-                backdropClass: 'backdrop-blur-lg-white',
+                backdropClass: 'backdrop-blur-xs-black',
+                panelClass: 'xp-overlay-pane-dialog',
+                maxWidth: 'calc(100vw - 32px)',
                 disableClose: true,
                 data: {
                   workspaceId: this.workspaceId(),
@@ -194,7 +198,9 @@ export class MCPToolsetsComponent {
   openToolset(toolset: IXpertToolset) {
     this.#dialog
       .open(XpertMCPManageComponent, {
-        backdropClass: 'backdrop-blur-lg-white',
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         disableClose: true,
         data: {
           workspaceId: this.workspaceId(),

@@ -100,6 +100,9 @@ export class XpertBasicManageComponent {
   openBasic() {
     this.#dialog
       .open(XpertBasicComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         viewContainerRef: this.#viewContainerRef
       })
       .closed.subscribe({

@@ -15,6 +15,7 @@ import { batchFive } from './batch-05.mjs'
 import { batchSix } from './batch-06.mjs'
 import { batchSeven } from './batch-07.mjs'
 import { batchEight } from './batch-08.mjs'
+import { batchNine } from './batch-09.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const out = path.join(root, '.cache/dialog-preview')
@@ -53,9 +54,24 @@ const scenes = {
 for (const [key, scene] of Object.entries({ ...batchTwo, ...batchThree })) {
   scenes[key] = await inline(`apps/cloud/src/app/features/${scene.file}-dialog.component.ts`)
 }
-for (const [key, scene] of Object.entries({ ...batchFour, ...batchFive, ...batchSix, ...batchSeven, ...batchEight })) {
+for (const [key, scene] of Object.entries({
+  ...batchFour,
+  ...batchFive,
+  ...batchSix,
+  ...batchSeven,
+  ...batchEight,
+  ...batchNine
+})) {
   const file = `apps/cloud/src/app/${scene.path}`
   scenes[key] = scene.path.endsWith('.ts') ? await inline(file) : await read(file)
+  if (scene.fragment) {
+    const start = scenes[key].indexOf(`<ng-template #${scene.fragment}>`)
+    if (start < 0) throw new Error(`Missing fragment ${scene.fragment}`)
+    scenes[key] = scenes[key]
+      .slice(start)
+      .replace(/^<ng-template[^>]*>/, '')
+      .split('</ng-template>')[0]
+  }
 }
 scenes.workspaceGeneral = await read(
   'apps/cloud/src/app/features/xpert/workspace/settings/general/general.component.html'
@@ -99,6 +115,11 @@ scenes.pipelineSettings = await read(
   'apps/cloud/src/app/features/xpert/knowledge/knowledgebase/documents/pipeline/settings/settings.component.html'
 )
 scenes.scheduleForm = await read('apps/cloud/src/app/@shared/schedule/form/form.component.html')
+scenes.mcpServer = await read('apps/cloud/src/app/@shared/mcp/server/server.component.html')
+scenes.assistantPersonalization = await inline(
+  'apps/cloud/src/app/features/setting/assistant/assistant-personalization.component.ts'
+)
+scenes.assistantTriggers = await inline('apps/cloud/src/app/features/setting/assistant/assistant-triggers.component.ts')
 await fs.writeFile(path.join(out, 'scenes.json'), JSON.stringify(scenes))
 const zh = JSON.parse(await read('apps/cloud/src/assets/i18n/zh-Hans.json'))
 const en = JSON.parse(await read('apps/cloud/src/assets/i18n/en-US.json'))
@@ -133,6 +154,19 @@ const uploadStyles = compileString(await read('apps/cloud/src/app/@shared/files/
 })
   .css.replace(/@reference\s+[^;]+;/g, '')
   .replace(/:host/g, 'xp-upload')
+const knowledgeStyles = compileString(
+  await read('apps/cloud/src/app/features/xpert/knowledge/new/new.component.scss'),
+  {
+    loadPaths: [root, path.join(root, 'node_modules')],
+    logger: { warn() {}, debug() {} }
+  }
+).css.replace(/@reference\s+[^;]+;/g, '')
+const mcpStyles = compileString(await read('apps/cloud/src/app/@shared/mcp/server/server.component.scss'), {
+  loadPaths: [root, path.join(root, 'node_modules')],
+  logger: { warn() {}, debug() {} }
+})
+  .css.replace(/@reference\s+[^;]+;/g, '')
+  .replace(/:host/g, 'mcp-server-form')
 const css = `@config '../../apps/cloud/tailwind.config.js';
 @import '../../packages/ui/src/styles.css';
 @import '../../apps/cloud/src/styles/theme/theme.tokens.css';
@@ -144,6 +178,8 @@ const css = `@config '../../apps/cloud/tailwind.config.js';
 @source '../../tools/dialog-preview';
 ${shared}
 ${uploadStyles}
+${knowledgeStyles}
+${mcpStyles}
 html, body { margin: 0; min-height: 100%; font-size: 14px; font-family: var(--font-xp-sans); background: var(--background); color: var(--foreground); }
 .preview-shell { max-width: 1050px; margin: 0 auto; padding: 56px 28px; }
 .preview-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 14px; }

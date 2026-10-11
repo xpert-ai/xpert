@@ -247,11 +247,9 @@ export class KnowledgebaseComponent {
 
     this.#dialog
       .open<IKnowledgebase>(XpertNewKnowledgeComponent, {
-        width: 'min(96vw, 72rem)',
-        height: 'min(90vh, 52rem)',
-        maxWidth: 'calc(100vw - 1.5rem)',
-        maxHeight: 'calc(100vh - 1.5rem)',
-        panelClass: 'xp-overlay-pane-card',
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           workspaceId: knowledgebase.workspaceId,
           knowledgebase,

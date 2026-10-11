@@ -1,3 +1,11 @@
+import {
+  XpDialogControlDirective,
+  ZardButtonComponent,
+  XpDialogFrameImports,
+  XpDialogActionGroupDirective,
+  XpSpinComponent,
+  myRxResource
+} from '@xpert-ai/headless-ui'
 import { DialogRef, DIALOG_DATA } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
@@ -21,8 +29,6 @@ import {
   PLUGIN_RESOURCE_INSTALLATION_STATUS,
   PluginComponentType
 } from '@cloud/app/@core/state'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
-import { myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom, map, of } from 'rxjs'
 import { TInstalledPlugin } from '../types'
@@ -83,7 +89,16 @@ const XPERT_COMPONENT_TYPES: PluginComponentType[] = [PLUGIN_COMPONENT_TYPE.HOOK
 @Component({
   standalone: true,
   selector: 'xp-plugin-resources',
-  imports: [CommonModule, FormsModule, TranslateModule, XpSpinComponent],
+  imports: [
+    XpDialogControlDirective,
+    CommonModule,
+    FormsModule,
+    TranslateModule,
+    XpSpinComponent,
+    ZardButtonComponent,
+    ...XpDialogFrameImports,
+    XpDialogActionGroupDirective
+  ],
   templateUrl: './resources.component.html'
 })
 export class PluginResourcesComponent {

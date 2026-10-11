@@ -153,7 +153,9 @@ export class MCPMarketplaceComponent {
     }
     this.#dialog
       .open<TXpertMCPManageComponentRet>(XpertMCPManageComponent, {
-        backdropClass: 'backdrop-blur-lg-white',
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         disableClose: true,
         data: {
           workspaceId: this.workspaceId(),
