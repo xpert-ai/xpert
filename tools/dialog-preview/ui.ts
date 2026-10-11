@@ -41,3 +41,5 @@ export {
 export { ZardTooltipImports } from '../../packages/ui/src/lib/components/tooltip/tooltip.imports'
 
 export { XpSelectComponent } from '../../packages/ui/src/lib/ui/compat/common/select/select/select.component'
+
+export { ZardAlertDialogService } from '../../packages/ui/src/lib/components/alert-dialog/alert-dialog.service'

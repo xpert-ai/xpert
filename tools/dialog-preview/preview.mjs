@@ -32,6 +32,7 @@ import { batchNine } from './batch-09.mjs'
 import { batchTen } from './batch-10.mjs'
 import { batchTwelve } from './batch-12.mjs'
 import { batchThirteen } from './batch-13.mjs'
+import { batchFourteen, batchFourteenOptions } from './batch-14.mjs'
 import { batchThirteenFixture, roleNameMode, approvalPath } from './batch-13-fixtures.mjs'
 import { batchTwelveFixture } from './batch-12-fixtures.mjs'
 import { batchTwelveChildren } from './batch-12-children.mjs'
@@ -85,7 +86,8 @@ const names = {
       ...batchTen,
       ...batchEleven,
       ...batchTwelve,
-      ...batchThirteen
+      ...batchThirteen,
+      ...batchFourteen
     }).map(([key, scene]) => [key, scene.name])
   )
 }
@@ -108,7 +110,8 @@ const widths = {
       ...batchTen,
       ...batchEleven,
       ...batchTwelve,
-      ...batchThirteen
+      ...batchThirteen,
+      ...batchFourteen
     }).map(([key, scene]) => [key, scene.width])
   )
 }
@@ -197,8 +200,9 @@ const ninthChildren = batchNineChildren([...imports, ...sixthChildren, ...sevent
 const tenthChildren = batchTenChildren(imports, templates, busy, notify)
 const eleventhChildren = batchElevenChildren(imports)
 const twelfthChildren = batchTwelveChildren(imports, templates)
+const templateSceneKeys = Object.keys(names).filter((key) => !batchFourteen[key])
 const sceneTypes = Object.fromEntries(
-  Object.keys(names).map((key) => {
+  templateSceneKeys.map((key) => {
     class Scene {
       dialogRef = inject(DialogRef)
       close = () => this.dialogRef.close()
@@ -269,7 +273,8 @@ const sceneTypes = Object.fromEntries(
 )
 class PreviewApp {
   dialog = inject(Dialog)
-  batch = signal('thirteenth')
+  alertDialog = inject(ui.ZardAlertDialogService)
+  batch = signal('fourteenth')
   roleNameMode = roleNameMode
   approvalPath = approvalPath
   connectorPreviewMode = connectorPreviewMode
@@ -280,42 +285,45 @@ class PreviewApp {
   planMode = planMode
   get scenes() {
     return Object.entries(names).filter(([key]) =>
-      this.batch() === 'thirteenth'
-        ? !!batchThirteen[key]
-        : this.batch() === 'twelfth'
-          ? !!batchTwelve[key]
-          : this.batch() === 'eleventh'
-            ? !!batchEleven[key] && !batchTwelve[key]
-            : this.batch() === 'tenth'
-              ? !!batchTen[key]
-              : this.batch() === 'ninth'
-                ? !!batchNine[key] && !batchTen[key]
-                : this.batch() === 'eighth'
-                  ? !!batchEight[key] && !batchNine[key] && !batchTen[key]
-                  : this.batch() === 'seventh'
-                    ? !!batchSeven[key] && !batchEight[key] && !batchNine[key] && !batchTen[key]
-                    : this.batch() === 'sixth'
-                      ? !!batchSix[key]
-                      : this.batch() === 'fifth'
-                        ? !!batchFive[key]
-                        : this.batch() === 'fourth'
-                          ? !!batchFour[key]
-                          : this.batch() === 'third'
-                            ? !!batchThree[key]
-                            : this.batch() === 'second'
-                              ? !!batchTwo[key]
-                              : !batchTwo[key] &&
-                                !batchThree[key] &&
-                                !batchFour[key] &&
-                                !batchFive[key] &&
-                                !batchSix[key] &&
-                                !batchSeven[key] &&
-                                !batchEight[key] &&
-                                !batchNine[key] &&
-                                !batchTen[key] &&
-                                !batchEleven[key] &&
-                                !batchTwelve[key] &&
-                                !batchThirteen[key]
+      this.batch() === 'fourteenth'
+        ? !!batchFourteen[key]
+        : this.batch() === 'thirteenth'
+          ? !!batchThirteen[key]
+          : this.batch() === 'twelfth'
+            ? !!batchTwelve[key]
+            : this.batch() === 'eleventh'
+              ? !!batchEleven[key] && !batchTwelve[key]
+              : this.batch() === 'tenth'
+                ? !!batchTen[key]
+                : this.batch() === 'ninth'
+                  ? !!batchNine[key] && !batchTen[key]
+                  : this.batch() === 'eighth'
+                    ? !!batchEight[key] && !batchNine[key] && !batchTen[key]
+                    : this.batch() === 'seventh'
+                      ? !!batchSeven[key] && !batchEight[key] && !batchNine[key] && !batchTen[key]
+                      : this.batch() === 'sixth'
+                        ? !!batchSix[key]
+                        : this.batch() === 'fifth'
+                          ? !!batchFive[key]
+                          : this.batch() === 'fourth'
+                            ? !!batchFour[key]
+                            : this.batch() === 'third'
+                              ? !!batchThree[key]
+                              : this.batch() === 'second'
+                                ? !!batchTwo[key]
+                                : !batchTwo[key] &&
+                                  !batchThree[key] &&
+                                  !batchFour[key] &&
+                                  !batchFive[key] &&
+                                  !batchSix[key] &&
+                                  !batchSeven[key] &&
+                                  !batchEight[key] &&
+                                  !batchNine[key] &&
+                                  !batchTen[key] &&
+                                  !batchEleven[key] &&
+                                  !batchTwelve[key] &&
+                                  !batchThirteen[key] &&
+                                  !batchFourteen[key]
     )
   }
   dark = dark
@@ -328,6 +336,15 @@ class PreviewApp {
   }
   open(key) {
     note.set('')
+    if (batchFourteen[key]) {
+      this.alertDialog
+        .confirm(batchFourteenOptions(key, (key, params) => new PreviewTranslatePipe().transform(key, params)))
+        .subscribe((confirmed) => {
+          if (confirmed && key === 'runtimeRestartPrompt') this.open('runtimeRestartConfirm')
+          else notify(confirmed ? '已确认预览操作，不会修改业务数据或重启服务' : '已取消预览操作')
+        })
+      return
+    }
     this.dialog.open(sceneTypes[key], {
       width: widths[key],
       height: batchTwelve[key]?.height,
@@ -370,15 +387,16 @@ Component({
   <main class="preview-shell">
     <div class="preview-top">
       <div><p class="preview-muted" style="letter-spacing:2px">XPERT / DIALOG</p>
-        <h1 style="font-size:30px;font-weight:600;margin:8px 0">{{ batch() === 'thirteenth' ? '第十三批 · 10 个 Dialog' : batch() === 'twelfth' ? '第十二批 · 10 个 Dialog' : batch() === 'eleventh' ? '第十一批 · 10 个 Dialog' : batch() === 'tenth' ? '第十批 · 10 个 Dialog' : batch() === 'ninth' ? '第九批 · 10 个 Dialog' : batch() === 'eighth' ? '第八批 · 10 个 Dialog' : batch() === 'seventh' ? '第七批 · 10 个 Dialog' : batch() === 'sixth' ? '第六批 · 10 个 Dialog' : batch() === 'fifth' ? '第五批 · 10 个 Dialog' : batch() === 'fourth' ? '第四批 · 10 个 Dialog' : batch() === 'third' ? '第三批 · 10 个 Dialog' : batch() === 'second' ? '第二批 · 10 个 Dialog' : '首批 · 5 个 Dialog' }}</h1></div>
+        <h1 style="font-size:30px;font-weight:600;margin:8px 0">{{ batch() === 'fourteenth' ? '第十四批 · 10 个 Dialog' : batch() === 'thirteenth' ? '第十三批 · 10 个 Dialog' : batch() === 'twelfth' ? '第十二批 · 10 个 Dialog' : batch() === 'eleventh' ? '第十一批 · 10 个 Dialog' : batch() === 'tenth' ? '第十批 · 10 个 Dialog' : batch() === 'ninth' ? '第九批 · 10 个 Dialog' : batch() === 'eighth' ? '第八批 · 10 个 Dialog' : batch() === 'seventh' ? '第七批 · 10 个 Dialog' : batch() === 'sixth' ? '第六批 · 10 个 Dialog' : batch() === 'fifth' ? '第五批 · 10 个 Dialog' : batch() === 'fourth' ? '第四批 · 10 个 Dialog' : batch() === 'third' ? '第三批 · 10 个 Dialog' : batch() === 'second' ? '第二批 · 10 个 Dialog' : '首批 · 5 个 Dialog' }}</h1></div>
       <div class="preview-controls">
-        <select aria-label="预览批次" [value]="batch()" (change)="batch.set($event.target.value)"><option value="thirteenth">第十三批</option><option value="twelfth">第十二批</option><option value="eleventh">第十一批</option><option value="tenth">第十批</option><option value="ninth">第九批</option><option value="eighth">第八批</option><option value="seventh">第七批</option><option value="sixth">第六批</option><option value="fifth">第五批</option><option value="fourth">第四批</option><option value="third">第三批</option><option value="second">第二批</option><option value="first">首批</option></select>
+        <select aria-label="预览批次" [value]="batch()" (change)="batch.set($event.target.value)"><option value="fourteenth">第十四批</option><option value="thirteenth">第十三批</option><option value="twelfth">第十二批</option><option value="eleventh">第十一批</option><option value="tenth">第十批</option><option value="ninth">第九批</option><option value="eighth">第八批</option><option value="seventh">第七批</option><option value="sixth">第六批</option><option value="fifth">第五批</option><option value="fourth">第四批</option><option value="third">第三批</option><option value="second">第二批</option><option value="first">首批</option></select>
         <button (click)="toggleTheme()">{{ dark() ? '浅色' : '深色' }}</button>
         <button (click)="language.set(language() === 'zh' ? 'en' : 'zh')">{{ language() === 'zh' ? 'English' : '中文' }}</button>
         <button (click)="busy.set(!busy())">{{ busy() ? '恢复正常状态' : '查看处理中状态' }}</button>
       </div>
     </div>
     <p class="preview-note">真实模板与共享 UI 组件 · 示例数据。共享布局 · 14px 正文 · 表单与普通操作 36px · 关键流程 40px · 同组等高。<br>点击打开场景，按 Escape 或点击遮罩返回。预览不会调用业务 API。</p>
+    @if (batch() === 'fourteenth') { <p class="preview-note">本批通过生产确认弹窗服务展示 10 个场景，保留普通与危险操作样式，以及插件重启的两步确认和遮罩关闭限制。名称等业务参数为本地示例。</p> }
     @if (batch() === 'thirteenth') {
       <p class="preview-note">角色名称表单与 9 个 Agent Evolution 确认场景，使用生产模板、共享组件及真实翻译；动态业务参数为本地示例。</p>
       <label>角色名称场景 <select aria-label="角色名称场景" [value]="roleNameMode()" (change)="roleNameMode.set($event.target.value)"><option value="create">新建角色</option><option value="rename">重命名角色</option></select></label>

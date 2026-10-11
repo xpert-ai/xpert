@@ -288,6 +288,7 @@ export class RolesComponent extends TranslationBaseComponent implements OnInit, 
   async remove(role: IRole) {
     const confirm = await firstValueFrom(
       this.alertDialog.confirm({
+        layout: 'standard',
         title: this.getTranslation('XP.Role.DeleteTitle', {
           Default: 'Delete role'
         }),

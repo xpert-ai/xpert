@@ -144,6 +144,7 @@ export class PluginRuntimeRestartService {
     try {
       const shouldRestart = await firstValueFrom(
         this.#alertDialog.confirm({
+          layout: 'standard',
           title: this.t('XP.Plugin.RestartRequiredTitle', 'API restart required'),
           description: this.restartDescription(),
           actionText: this.t('XP.Plugin.RestartNow', 'Restart now'),
@@ -167,6 +168,7 @@ export class PluginRuntimeRestartService {
 
     const confirmed = await firstValueFrom(
       this.#alertDialog.confirm({
+        layout: 'standard',
         title: this.t('XP.Plugin.RestartConfirmTitle', 'Restart the API service?'),
         description: this.t(
           'XP.Plugin.RestartConfirmDescription',

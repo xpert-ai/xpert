@@ -136,6 +136,7 @@ export class XpDataSourcesComponent {
 
     this.#alertDialog
       .confirm({
+        layout: 'standard',
         title: this.#getDeleteTitle(displayName),
         actionText: this.#translate.instant('COMPONENTS.COMMON.Confirm', { Default: 'Confirm' }),
         cancelText: this.#translate.instant('COMPONENTS.COMMON.CANCEL', { Default: 'Cancel' }),

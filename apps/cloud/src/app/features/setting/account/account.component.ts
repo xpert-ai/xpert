@@ -105,6 +105,7 @@ export class XpAccountComponent {
 
     const confirmed = await firstValueFrom(
       this.alertDialog.confirm({
+        layout: 'standard',
         title: this.translate.instant('XP.Referral.RegenerateConfirmTitle', {
           Default: 'Regenerate invitation code?'
         }),

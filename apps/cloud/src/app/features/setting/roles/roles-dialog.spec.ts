@@ -2,12 +2,16 @@ import { Dialog } from '@angular/cdk/dialog'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { TranslateModule } from '@ngx-translate/core'
 import { EMPTY, of } from 'rxjs'
-import { RolePermissionsService, RoleService, Store, ToastrService } from '../../../@core'
+import { IRole, RolePermissionsService, RoleService, Store, ToastrService } from '../../../@core'
 import { RolesComponent } from './roles.component'
 
-describe('role name dialog', () => {
+describe('role dialogs', () => {
   let fixture: ComponentFixture<RolesComponent>
-  const roles = { getAll: jest.fn(() => of({ items: [] })), create: jest.fn(() => of(null)) }
+  const roles = {
+    getAll: jest.fn(() => of({ items: [] })),
+    create: jest.fn(() => of(null)),
+    delete: jest.fn(() => of(null))
+  }
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -34,6 +38,21 @@ describe('role name dialog', () => {
     await fixture.whenStable()
     fixture.detectChanges()
   }
+
+  it.each([false, true])('deletes a role only when the dialog result is true (%s)', async (confirmed) => {
+    const role: IRole = { id: 'reviewer', name: 'Research reviewer' }
+    const pending = fixture.componentInstance.remove(role)
+    await settle()
+    const container = document.querySelector<HTMLElement>('[role="alertdialog"]')!
+    expect(container).not.toBeNull()
+    expect(roles.delete).not.toHaveBeenCalled()
+    const action = confirmed ? 'action' : 'cancel'
+    container.querySelector<HTMLButtonElement>(`[data-testid="z-alert-dialog-${action}"]`)!.click()
+    await pending
+    if (confirmed) expect(roles.delete).toHaveBeenCalledWith(role)
+    else expect(roles.delete).not.toHaveBeenCalled()
+    expect(document.querySelector('[role="alertdialog"]')).toBeNull()
+  })
 
   it('rejects whitespace and creates a trimmed name only after confirmation', async () => {
     const pending = fixture.componentInstance.create()
