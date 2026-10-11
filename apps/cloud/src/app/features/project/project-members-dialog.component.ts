@@ -1,3 +1,4 @@
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
@@ -9,10 +10,10 @@ import type {
   TXpertProjectMemberSummary
 } from '@xpert-ai/contracts'
 import {
-  Z_MODAL_DATA,
   ZardBadgeComponent,
+  XpDialogActionGroupDirective,
+  XpDialogFrameImports,
   ZardButtonComponent,
-  ZardDialogRef,
   ZardFormImports,
   ZardInputDirective,
   ZardSelectImports
@@ -36,24 +37,32 @@ type ProjectMembersDialogData = {
     FormsModule,
     TranslateModule,
     ZardBadgeComponent,
+    XpDialogActionGroupDirective,
+    ...XpDialogFrameImports,
     ZardButtonComponent,
     ZardInputDirective,
     ...ZardFormImports,
     ...ZardSelectImports
   ],
   template: `
-    <section class="flex max-h-[84vh] min-w-0 flex-col">
-      <header class="flex items-start justify-between border-b border-divider-subtle pb-4">
-        <div>
-          <h2 class="text-lg font-semibold text-text-primary">{{ 'XP.XProject.ProjectMembers' | translate }}</h2>
-          <p class="mt-1 text-sm text-text-secondary">{{ 'XP.XProject.ProjectMembersDescription' | translate }}</p>
-        </div>
-        <button z-button zType="ghost" zSize="sm" type="button" (click)="close()">
+    <section xpDialogLayout="wide" class="max-h-[min(760px,calc(100dvh-2rem))]">
+      <header xpDialogHeader>
+        <h2 xpDialogHeading>{{ 'XP.XProject.ProjectMembers' | translate }}</h2>
+        <p xpDialogDescription>{{ 'XP.XProject.ProjectMembersDescription' | translate }}</p>
+        <button
+          xpDialogCloseButton
+          z-button
+          zType="ghost"
+          zSize="icon"
+          type="button"
+          [attr.aria-label]="'XP.XProject.Close' | translate"
+          (click)="close()"
+        >
           <i class="ri-close-line"></i>
         </button>
       </header>
 
-      <div class="min-h-0 space-y-6 overflow-y-auto py-5">
+      <div xpDialogBody>
         <section class="space-y-3">
           <div class="flex items-center justify-between gap-3">
             <h3 class="text-sm font-semibold text-text-primary">{{ 'XP.XProject.CurrentMembers' | translate }}</h3>
@@ -66,7 +75,10 @@ type ProjectMembersDialogData = {
                   <p class="truncate text-sm font-medium text-text-primary">{{ displayUser(member) }}</p>
                   <p class="truncate text-xs text-text-tertiary">{{ member.email }}</p>
                 </div>
-                <div class="flex items-center gap-2">
+                <div
+                  xpDialogActionGroup="inline"
+                  class="grid grid-cols-[minmax(0,1fr)_auto] items-center justify-items-start gap-2 sm:flex sm:flex-wrap"
+                >
                   @if (member.projectRole === 'owner') {
                     <z-badge zType="secondary">{{ 'XP.XProject.RoleOwner' | translate }}</z-badge>
                   } @else {
@@ -74,16 +86,16 @@ type ProjectMembersDialogData = {
                       <button
                         z-button
                         zType="outline"
-                        zSize="sm"
+                        class="col-span-2 w-full sm:col-auto sm:w-auto"
                         type="button"
-                        [disabled]="busy()"
+                        [zDisabled]="busy()"
                         (click)="transferOwnership(member)"
                       >
                         {{ 'XP.XProject.TransferOwnership' | translate }}
                       </button>
                     }
                     <z-select
-                      class="w-32"
+                      class="w-full sm:w-32"
                       [zValue]="member.projectRole"
                       [zDisabled]="busy()"
                       (zSelectionChange)="changeRole(member, $event)"
@@ -95,9 +107,9 @@ type ProjectMembersDialogData = {
                     <button
                       z-button
                       zType="ghost"
-                      zSize="sm"
+                      zSize="icon"
                       type="button"
-                      [disabled]="busy()"
+                      [zDisabled]="busy()"
                       [attr.aria-label]="'XP.XProject.RemoveMember' | translate"
                       (click)="remove(member)"
                     >
@@ -121,7 +133,7 @@ type ProjectMembersDialogData = {
               {{ 'XP.XProject.AddOrganizationMemberDescription' | translate }}
             </p>
           </div>
-          <div class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_9rem_auto]">
+          <div xpDialogActionGroup="inline" class="grid items-center gap-2 sm:grid-cols-[minmax(0,1fr)_9rem_auto]">
             <z-select
               [zValue]="selectedUserId()"
               [zDisabled]="busy() || !availableUsers().length"
@@ -137,7 +149,7 @@ type ProjectMembersDialogData = {
                 <z-select-item [zValue]="role">{{ roleLabel(role) | translate }}</z-select-item>
               }
             </z-select>
-            <button z-button zType="default" type="button" [disabled]="busy() || !selectedUserId()" (click)="add()">
+            <button z-button zType="default" type="button" [zDisabled]="busy() || !selectedUserId()" (click)="add()">
               {{ 'XP.XProject.AddMember' | translate }}
             </button>
           </div>
@@ -149,7 +161,7 @@ type ProjectMembersDialogData = {
             <p class="mt-1 text-xs text-text-secondary">{{ 'XP.XProject.InviteByEmailDescription' | translate }}</p>
           </div>
           @if (data.canInviteOrganizationMembers) {
-            <div class="grid gap-2 sm:grid-cols-[minmax(0,1fr)_9rem_auto]">
+            <div xpDialogActionGroup="inline" class="grid items-center gap-2 sm:grid-cols-[minmax(0,1fr)_9rem_auto]">
               <input
                 z-input
                 type="email"
@@ -166,7 +178,7 @@ type ProjectMembersDialogData = {
                 z-button
                 zType="outline"
                 type="button"
-                [disabled]="busy() || !inviteEmail().trim()"
+                [zDisabled]="busy() || !inviteEmail().trim()"
                 (click)="invite()"
               >
                 {{ 'XP.XProject.SendInvitation' | translate }}
@@ -184,16 +196,9 @@ type ProjectMembersDialogData = {
               @for (invitation of pendingInvitations(); track invitation.id) {
                 <div class="flex items-center justify-between gap-3 text-xs">
                   <span class="min-w-0 truncate text-text-secondary">{{ invitation.email }}</span>
-                  <div class="flex items-center gap-2">
+                  <div xpDialogActionGroup="inline" class="flex flex-wrap items-center gap-2">
                     <z-badge zType="outline">{{ roleLabel(invitation.role) | translate }}</z-badge>
-                    <button
-                      z-button
-                      zType="ghost"
-                      zSize="sm"
-                      type="button"
-                      [disabled]="busy()"
-                      (click)="revoke(invitation)"
-                    >
+                    <button z-button zType="ghost" type="button" [zDisabled]="busy()" (click)="revoke(invitation)">
                       {{ 'XP.XProject.RevokeInvitation' | translate }}
                     </button>
                   </div>
@@ -204,19 +209,21 @@ type ProjectMembersDialogData = {
         </section>
       </div>
 
-      <footer class="flex justify-end border-t border-divider-subtle pt-4">
-        <button z-button zType="outline" type="button" (click)="close()">{{ 'XP.XProject.Done' | translate }}</button>
+      <footer xpDialogFooter>
+        <button z-button zType="outline" type="button" (click)="close()">
+          {{ 'XP.XProject.Done' | translate }}
+        </button>
       </footer>
     </section>
   `,
   host: { class: 'block w-full min-w-0' }
 })
 export class XpertProjectMembersDialogComponent {
-  readonly #dialogRef = inject<ZardDialogRef<XpertProjectMembersDialogComponent>>(ZardDialogRef)
+  readonly #dialogRef = inject(DialogRef)
   readonly #api = inject(XpertProjectApiService)
   readonly #organizationMembers = inject(UsersOrganizationsService)
   readonly #toastr = inject(ToastrService)
-  readonly data = inject<ProjectMembersDialogData>(Z_MODAL_DATA)
+  readonly data = inject<ProjectMembersDialogData>(DIALOG_DATA)
   readonly roles: TXpertProjectMemberRole[] = ['manager', 'editor', 'member']
   readonly members = signal<TXpertProjectMemberSummary[]>([])
   readonly organizationUsers = signal<IUser[]>([])

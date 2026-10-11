@@ -973,6 +973,9 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
 
     this.#dialog
       .open(CdkConfirmDeleteComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 2rem)',
         data: {
           value: table.name,
           information: `${infoText}\n\n${this.#translate.instant('XP.Workspace.TableName', { Default: 'Table Name' })}: ${table.name}\n${this.#translate.instant('XP.KEY_WORDS.Description', { Default: 'Description' })}: ${table.description || this.#translate.instant('XP.KEY_WORDS.None', { Default: 'None' })}\n${this.#translate.instant('XP.KEY_WORDS.Status', { Default: 'Status' })}: ${table.status}`

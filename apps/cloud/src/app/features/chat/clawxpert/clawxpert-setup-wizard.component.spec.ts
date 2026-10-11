@@ -703,7 +703,9 @@ describe('ClawXpertSetupWizardComponent', () => {
     expect(fixture.nativeElement.querySelector('[data-onboarding-step="default-clawxpert"]')).not.toBeNull()
     expect(fixture.nativeElement.querySelector('[data-clawxpert-default-install]')).not.toBeNull()
     expect(fixture.nativeElement.querySelector('z-stepper')).toBeNull()
-    expect(fixture.nativeElement.textContent).toContain('XP.Chat.ClawXpert.DefaultInstallTitle')
+    expect(fixture.nativeElement.querySelector('[data-clawxpert-default-install]').textContent).toContain(
+      'XP.Chat.ClawXpert.DefaultInstallCardDesc'
+    )
     expect(fixture.nativeElement.textContent).toContain('XP.Chat.ClawXpert.DefaultModelReady')
     expect(fixture.nativeElement.textContent).toContain('XP.Chat.ClawXpert.CompleteInitialization')
     expect(fixture.nativeElement.textContent).not.toContain('XP.Chat.ClawXpert.CreateFirst')

@@ -136,6 +136,9 @@ export class CopilotProviderComponent {
     }
     this.#dialog
       .open(CdkConfirmDeleteComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 2rem)',
         data: {
           value: this.#i18n.transform(this.label()),
           information: this.#translate.instant('XP.Copilot.DeleteProviderAndModels', {

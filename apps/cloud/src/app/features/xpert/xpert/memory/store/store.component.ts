@@ -225,6 +225,9 @@ export class XpertMemoryStoreComponent {
   clearMemory() {
     this.#dialog
       .open(CdkConfirmDeleteComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 2rem)',
         data: {
           information: this.#translate.instant('XP.Xpert.ClearAllMemoryOfXpert', {
             Default: 'Clear all memories related to this expert'
@@ -245,6 +248,9 @@ export class XpertMemoryStoreComponent {
   delete(id: string, value: any) {
     this.#dialog
       .open(CdkConfirmDeleteComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 2rem)',
         data: {
           value: id,
           information:

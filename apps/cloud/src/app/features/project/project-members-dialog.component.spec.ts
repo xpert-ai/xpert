@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing'
-import { Z_MODAL_DATA, ZardDialogRef } from '@xpert-ai/headless-ui'
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { of } from 'rxjs'
 import { ToastrService } from '../../@core'
 import { UsersOrganizationsService } from '../../@core/services/users-organizations.service'
@@ -18,9 +18,9 @@ describe('XpertProjectMembersDialogComponent', () => {
     TestBed.configureTestingModule({
       imports: [XpertProjectMembersDialogComponent],
       providers: [
-        { provide: ZardDialogRef, useValue: { close: jest.fn() } },
+        { provide: DialogRef, useValue: { close: jest.fn() } },
         {
-          provide: Z_MODAL_DATA,
+          provide: DIALOG_DATA,
           useValue: {
             projectId: 'project-1',
             canTransferOwnership: false,

@@ -18,10 +18,10 @@ import { map, type Observable } from 'rxjs'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import {
   ZardBadgeComponent,
+  XpDialogActionGroupDirective,
+  XpDialogFrameImports,
   ZardButtonComponent,
-  ZardCardImports,
   ZardCheckboxComponent,
-  ZardDialogService,
   ZardEmptyComponent,
   ZardFormImports,
   ZardIconComponent,
@@ -74,8 +74,9 @@ const DEFAULT_REGISTRY_TARGET_APP_META = `{
     SettingsPluginComponent,
     ZardAlertComponent,
     ZardBadgeComponent,
+    XpDialogActionGroupDirective,
+    ...XpDialogFrameImports,
     ZardButtonComponent,
-    ...ZardCardImports,
     ZardCheckboxComponent,
     ZardEmptyComponent,
     ...ZardFormImports,
@@ -93,7 +94,6 @@ export class PluginsMarketplaceComponent {
   readonly pluginAPI = inject(PluginAPIService)
   readonly #activeScope = injectActiveScope()
   readonly #dialog = inject(Dialog)
-  readonly #zardDialog = inject(ZardDialogService)
   readonly #toastr = injectToastr()
   readonly confirmDelete = injectConfirmDelete()
   readonly i18nService = inject(I18nService)
@@ -346,12 +346,11 @@ export class PluginsMarketplaceComponent {
 
     this.resetRegistryForm()
     this.loadRegistryItems()
-    this.#zardDialog.open(template, {
-      backdropClass: 'backdrop-blur-sm-black',
-      panelClass: 'border-0 bg-transparent p-0 shadow-none sm:max-w-none',
-      minWidth: '960px',
-      maxWidth: 'calc(100vw - 48px)',
-      width: 'calc(100vw - 48px)'
+    this.#dialog.open(template, {
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 2rem)',
+      width: 'min(1120px, calc(100vw - 2rem))'
     })
   }
 

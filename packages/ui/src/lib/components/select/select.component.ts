@@ -42,6 +42,8 @@ import {
 } from './select.variants'
 import { injectUiI18nService } from '../../core/i18n/ui-i18n.service'
 import { mergeClasses } from '../../utils/merge-classes'
+import { XP_DIALOG_CONTEXT } from '../dialog/dialog-context'
+import { dialogControlVariants, dialogTypography } from '../dialog/dialog-frame.variants'
 
 type OnTouchedType = () => void
 export type ZardSelectValue = string | number
@@ -147,6 +149,7 @@ const COMPACT_MODE_WIDTH_THRESHOLD = 100
   }
 })
 export class ZardSelectComponent implements ControlValueAccessor, OnDestroy {
+  private readonly dialog = inject(XP_DIALOG_CONTEXT, { optional: true })
   private readonly destroyRef = inject(DestroyRef)
   private readonly elementRef = inject(ElementRef<HTMLElement>)
   private readonly injector = inject(Injector)
@@ -286,12 +289,15 @@ export class ZardSelectComponent implements ControlValueAccessor, OnDestroy {
   }
 
   protected readonly classes = computed(() => mergeClasses(selectVariants(), this.class()))
-  protected readonly contentClasses = computed(() => mergeClasses(selectContentVariants()))
+  protected readonly contentClasses = computed(() =>
+    mergeClasses(selectContentVariants(), this.dialog ? dialogTypography : '')
+  )
   protected readonly triggerClasses = computed(() =>
     mergeClasses(
       selectTriggerVariants({
         zSize: this.zSize()
-      })
+      }),
+      this.dialog ? dialogControlVariants({ kind: this.zMultiple() ? 'multiple' : 'single' }) : ''
     )
   )
 
@@ -312,6 +318,7 @@ export class ZardSelectComponent implements ControlValueAccessor, OnDestroy {
         break
       case 'Escape':
         if (this.isOpen()) {
+          event.stopPropagation()
           this.close()
         }
         break
@@ -334,6 +341,8 @@ export class ZardSelectComponent implements ControlValueAccessor, OnDestroy {
         this.selectFocusedItem(items)
         break
       case 'Escape':
+        // The popup owns this Escape; the parent Dialog must remain open.
+        e.stopPropagation()
         this.close()
         this.focusButton()
         break

@@ -157,6 +157,9 @@ export class XpertPublishComponent {
     if (integration.id) {
       this.#dialog
         .open(CdkConfirmDeleteComponent, {
+          backdropClass: 'backdrop-blur-xs-black',
+          panelClass: 'xp-overlay-pane-dialog',
+          maxWidth: 'calc(100vw - 2rem)',
           data: {
             value: integration.name,
             information: integration.description

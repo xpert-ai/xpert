@@ -21,7 +21,16 @@ import { XpertSkillUploadDialogComponent } from '../../../features/xpert/workspa
   selector: 'xp-skill-repository',
   templateUrl: './skill-repository.component.html',
   styleUrls: ['./skill-repository.component.css'],
-  imports: [CommonModule, RouterModule, FormsModule, ReactiveFormsModule, TranslateModule, ZardSegmentedComponent, ZardSegmentedItemComponent, XpertSkillIndexesComponent]
+  imports: [
+    CommonModule,
+    RouterModule,
+    FormsModule,
+    ReactiveFormsModule,
+    TranslateModule,
+    ZardSegmentedComponent,
+    ZardSegmentedItemComponent,
+    XpertSkillIndexesComponent
+  ]
 })
 export class XpertSkillRepositoryComponent {
   readonly repositoryService = inject(SkillRepositoryService)
@@ -63,6 +72,9 @@ export class XpertSkillRepositoryComponent {
 
     this.#dialog
       .open<Array<ISkillRepositoryIndex> | null>(XpertSkillUploadDialogComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 2rem)',
         data: {
           repositoryId
         }

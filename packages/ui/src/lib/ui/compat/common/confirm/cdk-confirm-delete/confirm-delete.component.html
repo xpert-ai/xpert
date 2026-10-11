@@ -1,35 +1,29 @@
-<header cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle class="pb-2 cursor-move">
-  <h4 class="text-xl pointer-events-none">
-    @if (title()) {
-      {{ title() }}
-    } @else {
-      {{ 'COMPONENTS.CONFIRM.DELETE' | translate: { Default: 'Confirm Delete' } }}
-      @if (value()) {
-        [<span class="font-bold">{{ value() }}</span
-        >]
+<section xpDialogLayout="standard" class="max-h-[calc(100dvh-2rem)]">
+  <header cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle xpDialogHeader class="cursor-move">
+    <h2 xpDialogHeading class="pointer-events-none">
+      @if (title()) {
+        {{ title() }}
+      } @else {
+        {{ 'COMPONENTS.CONFIRM.DELETE' | translate: { Default: 'Confirm Delete' } }}
+        @if (value()) {
+          [<span class="font-bold">{{ value() }}</span
+          >]
+        }
+        ?
       }
-      ?
-    }
-  </h4>
-</header>
+    </h2>
+  </header>
 
-<div class="min-h-[100px] py-4">
-  <div class="whitespace-pre-line">{{ information() }}</div>
-</div>
+  <div xpDialogBody class="text-muted-foreground">
+    <div class="whitespace-pre-line">{{ information() }}</div>
+  </div>
 
-<div class="w-full flex justify-end">
-  <div class="flex items-center gap-1">
-    <button z-button zType="ghost" (click)="dialogRef.close()">
+  <footer xpDialogFooter>
+    <button type="button" z-button zType="outline" cdkFocusInitial (click)="dialogRef.close()">
       {{ 'COMPONENTS.COMMON.CANCEL' | translate: { Default: 'Cancel' } }}
     </button>
-    <button
-      class="border-destructive/20 bg-destructive/10 text-text-destructive hover:bg-destructive/20 hover:text-text-destructive focus-visible:border-destructive/40"
-      z-button
-      zType="default"
-      cdkFocusInitial
-      (click)="dialogRef.close(true)"
-    >
+    <button type="button" z-button zType="destructive" (click)="dialogRef.close(true)">
       {{ 'COMPONENTS.COMMON.Confirm' | translate: { Default: 'Confirm' } }}
     </button>
-  </div>
-</div>
+  </footer>
+</section>

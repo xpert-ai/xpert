@@ -1,3 +1,4 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
@@ -362,6 +363,7 @@ export class XpertProjectConfigComponent {
   readonly facade = inject(XpertProjectFacade)
   readonly #api = inject(XpertProjectApiService)
   readonly #dialog = inject(ZardDialogService)
+  readonly #membersDialog = inject(Dialog)
   readonly #taskDialog = inject(XpertTaskDialogService)
   readonly #taskService = inject(XpertTaskService)
   readonly #store = inject(Store)
@@ -431,7 +433,7 @@ export class XpertProjectConfigComponent {
     const projectId = this.facade.project()?.id
     if (!projectId || !this.canManage()) return
     await firstValueFrom(
-      this.#dialog.open(XpertProjectMembersDialogComponent, {
+      this.#membersDialog.open(XpertProjectMembersDialogComponent, {
         data: {
           projectId,
           canTransferOwnership: this.facade.projectAccess()?.role === 'owner',
@@ -440,8 +442,8 @@ export class XpertProjectConfigComponent {
         width: 'min(94vw, 760px)',
         maxWidth: 'calc(100vw - 32px)',
         disableClose: true,
-        backdropClass: 'backdrop-blur-sm-black',
-        panelClass: 'xp-overlay-pane-card'
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog'
       }).closed
     )
     await this.facade.loadProject(projectId)

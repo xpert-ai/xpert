@@ -1,3 +1,4 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import type { IXpertProject, TXpertProjectAccessSummary, TXpertProjectSkillSummary } from '@xpert-ai/contracts'
@@ -58,10 +59,11 @@ describe('XpertProjectConfigComponent Project Content', () => {
       providers: [
         { provide: XpertProjectFacade, useValue: facade },
         { provide: XpertProjectApiService, useValue: api },
+        { provide: Dialog, useValue: { open: jest.fn() } },
         { provide: ZardDialogService, useValue: dialog },
         { provide: XpertTaskDialogService, useValue: { openCreateTask: jest.fn() } },
         { provide: XpertTaskService, useValue: {} },
-        { provide: Store, useValue: { userId: 'user-1' } },
+        { provide: Store, useValue: { userId: 'user-1', userRolePermissions: [], userRolePermissions$: of([]) } },
         { provide: ToastrService, useValue: toastr },
         {
           provide: XpertAPIService,

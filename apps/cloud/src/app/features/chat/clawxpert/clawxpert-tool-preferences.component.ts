@@ -1339,6 +1339,9 @@ export class ClawXpertToolPreferencesComponent {
 
     this.#uploadDialog
       .open(XpertSkillUploadDialogComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 2rem)',
         data: { workspaceId }
       })
       .closed.pipe(take(1))

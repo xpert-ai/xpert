@@ -111,6 +111,9 @@ export class XpertBasicManageComponent {
     const xpert = this.xpert()
     this.#dialog
       .open(CdkConfirmDeleteComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 2rem)',
         data: {
           value: xpert.title,
           information: this.#translate.instant('XP.Xpert.DeleteAllDataXpert', {
@@ -156,6 +159,9 @@ export class XpertBasicManageComponent {
 
     this.#dialog
       .open(CdkConfirmDeleteComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 2rem)',
         data: {
           value: exportedTemplate.filePath,
           information: this.#translate.instant('XP.Xpert.DeleteExportedTemplateConfirm', {

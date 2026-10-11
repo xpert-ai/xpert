@@ -8,20 +8,22 @@ import {
   inject,
   input,
   linkedSignal,
-  model,
-} from '@angular/core';
-import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
+  model
+} from '@angular/core'
+import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms'
 
-import type { ClassValue } from 'clsx';
+import type { ClassValue } from 'clsx'
 
-import { mergeClasses } from '../../utils/merge-classes';
+import { mergeClasses } from '../../utils/merge-classes'
+import { XP_DIALOG_CONTEXT } from '../dialog/dialog-context'
+import { dialogControlVariants } from '../dialog/dialog-frame.variants'
 
 import {
   inputVariants,
   type ZardInputSizeVariants,
   type ZardInputStatusVariants,
-  type ZardInputTypeVariants,
-} from './input.variants';
+  type ZardInputTypeVariants
+} from './input.variants'
 
 @Directive({
   selector: 'input[z-input], textarea[z-input]',
@@ -29,28 +31,29 @@ import {
     {
       provide: NG_VALUE_ACCESSOR,
       useExisting: forwardRef(() => ZardInputDirective),
-      multi: true,
-    },
+      multi: true
+    }
   ],
   host: {
     '[class]': 'classes()',
     '(input)': 'updateValue($event.target)',
-    '(blur)': 'markAsTouched()',
+    '(blur)': 'markAsTouched()'
   },
-  exportAs: 'zInput',
+  exportAs: 'zInput'
 })
 export class ZardInputDirective implements ControlValueAccessor {
-  private readonly elementRef = inject(ElementRef);
-  private onChange: (value: string | number | null) => void = () => undefined;
-  private onTouched: () => void = () => undefined;
+  private readonly dialog = inject(XP_DIALOG_CONTEXT, { optional: true })
+  private readonly elementRef = inject(ElementRef)
+  private onChange: (value: string | number | null) => void = () => undefined
+  private onTouched: () => void = () => undefined
 
-  readonly class = input<ClassValue>('');
-  readonly zBorderless = input(false, { transform: booleanAttribute });
-  readonly zSize = input<ZardInputSizeVariants>('default');
-  readonly zStatus = input<ZardInputStatusVariants>();
-  readonly value = model<string | number>('');
+  readonly class = input<ClassValue>('')
+  readonly zBorderless = input(false, { transform: booleanAttribute })
+  readonly zSize = input<ZardInputSizeVariants>('default')
+  readonly zStatus = input<ZardInputStatusVariants>()
+  readonly value = model<string | number>('')
 
-  readonly size = linkedSignal<ZardInputSizeVariants>(() => this.zSize());
+  readonly size = linkedSignal<ZardInputSizeVariants>(() => this.zSize())
 
   protected readonly classes = computed(() =>
     mergeClasses(
@@ -58,61 +61,64 @@ export class ZardInputDirective implements ControlValueAccessor {
         zType: this.getType(),
         zSize: this.size(),
         zStatus: this.zStatus(),
-        zBorderless: this.zBorderless(),
+        zBorderless: this.zBorderless()
       }),
       this.class(),
-    ),
-  );
+      this.dialog ? dialogControlVariants({ kind: this.getType() === 'textarea' ? 'textarea' : 'single' }) : ''
+    )
+  )
 
   constructor() {
     effect(() => {
-      const value = this.value();
+      const value = this.value()
 
       if (value !== undefined && value !== null) {
-        this.elementRef.nativeElement.value = value;
+        this.elementRef.nativeElement.value = value
       }
-    });
+    })
   }
 
   disable(b: boolean): void {
-    this.elementRef.nativeElement.disabled = b;
+    this.elementRef.nativeElement.disabled = b
   }
 
   writeValue(value: string | number | null | undefined): void {
-    this.value.set(value ?? '');
+    this.value.set(value ?? '')
   }
 
   registerOnChange(fn: (value: string | number | null) => void): void {
-    this.onChange = fn;
+    this.onChange = fn
   }
 
   registerOnTouched(fn: () => void): void {
-    this.onTouched = fn;
+    this.onTouched = fn
   }
 
   setDisabledState(isDisabled: boolean): void {
-    this.disable(isDisabled);
+    this.disable(isDisabled)
   }
 
   setDataSlot(name: string): void {
     if (this.elementRef?.nativeElement?.dataset) {
-      this.elementRef.nativeElement.dataset.slot = name;
+      this.elementRef.nativeElement.dataset.slot = name
     }
   }
 
   protected updateValue(target: EventTarget | null): void {
-    const el = target as HTMLInputElement | HTMLTextAreaElement | null;
-    const value = el?.value ?? '';
-    this.value.set(value);
-    this.onChange(el instanceof HTMLInputElement && el.type === 'number' ? (value === '' ? null : el.valueAsNumber) : value);
+    const el = target as HTMLInputElement | HTMLTextAreaElement | null
+    const value = el?.value ?? ''
+    this.value.set(value)
+    this.onChange(
+      el instanceof HTMLInputElement && el.type === 'number' ? (value === '' ? null : el.valueAsNumber) : value
+    )
   }
 
   protected markAsTouched(): void {
-    this.onTouched();
+    this.onTouched()
   }
 
   getType(): ZardInputTypeVariants {
-    const isTextarea = this.elementRef.nativeElement.tagName.toLowerCase() === 'textarea';
-    return isTextarea ? 'textarea' : 'default';
+    const isTextarea = this.elementRef.nativeElement.tagName.toLowerCase() === 'textarea'
+    return isTextarea ? 'textarea' : 'default'
   }
 }

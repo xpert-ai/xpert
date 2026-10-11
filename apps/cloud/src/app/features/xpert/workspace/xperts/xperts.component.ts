@@ -153,6 +153,9 @@ export class XpertWorkspaceXpertsComponent {
 
     this.dialog
       .open(CdkConfirmDeleteComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 2rem)',
         data: {
           value: xpert.title,
           information: this.#translate.instant('XP.Xpert.DeleteAllDataXpert', {
