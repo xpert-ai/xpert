@@ -127,14 +127,20 @@ export class TenantSkillsComponent {
   }
 
   openRegisterRepositoryModal() {
-    this.#dialog.open<string | null>(XpertSkillRepositoryRegisterComponent).closed.subscribe({
-      next: (repositoryId) => {
-        if (repositoryId) {
-          this.selectedRepositoryId.set(repositoryId)
-          this.refreshRepositories()
+    this.#dialog
+      .open<string | null>(XpertSkillRepositoryRegisterComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)'
+      })
+      .closed.subscribe({
+        next: (repositoryId) => {
+          if (repositoryId) {
+            this.selectedRepositoryId.set(repositoryId)
+            this.refreshRepositories()
+          }
         }
-      }
-    })
+      })
   }
 
   async syncTemplateSkills() {

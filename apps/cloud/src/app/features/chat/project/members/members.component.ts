@@ -61,6 +61,7 @@ export class ChatProjectMembersComponent {
       .open<{ users: IUser[] }>(UserRoleSelectComponent, {
         backdropClass: 'backdrop-blur-xs-black',
         panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {}
       })
       .closed.pipe(switchMap((result) => (result ? this.updateMembers(result.users) : EMPTY)))

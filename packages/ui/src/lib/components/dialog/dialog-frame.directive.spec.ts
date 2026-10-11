@@ -8,7 +8,7 @@ import { ZardSelectImports } from '../select/select.imports'
 import { ZardTagSelectComponent } from '../tag-select/tag-select.component'
 import { XpDialogActionGroupDirective } from './dialog-action-group.directive'
 import type { XpDialogPurpose } from './dialog-context'
-import { XpDialogFrameImports } from './dialog-frame.directive'
+import { XpDialogControlDirective, XpDialogFrameImports } from './dialog-frame.directive'
 import { provideZard } from '../../core/provider/providezard'
 
 @Component({
@@ -63,7 +63,32 @@ class DialogTagSelectHost {
   readonly options = [{ value: 'editor', label: 'Editor' }]
 }
 
+@Component({
+  selector: 'custom-control',
+  imports: [XpDialogControlDirective],
+  template: `<div xpDialogControl="single" class="h-8 px-1" data-custom-control></div>`
+})
+class CustomControlHost {}
+
+@Component({
+  imports: [...XpDialogFrameImports, CustomControlHost],
+  template: `<section xpDialogLayout="standard" xpDialogPurpose="workflow"><custom-control /></section>
+    <custom-control />`
+})
+class CustomControlScopeHost {}
+
 describe('shared Dialog layout', () => {
+  it('inherits field sizing through a child component only within the Dialog', () => {
+    const fixture = TestBed.createComponent(CustomControlScopeHost)
+    fixture.detectChanges()
+    const controls = fixture.nativeElement.querySelectorAll('[data-custom-control]') as NodeListOf<HTMLElement>
+    expect(controls[0].classList.contains('h-[36px]')).toBe(true)
+    expect(controls[0].classList.contains('min-h-[36px]')).toBe(true)
+    expect(controls[1].classList.contains('h-8')).toBe(true)
+    expect(controls[1].classList.contains('h-[36px]')).toBe(false)
+    fixture.destroy()
+  })
+
   it('allows a reused list to retain its normal button variant outside a Dialog', () => {
     const fixture = TestBed.createComponent(DialogFrameHost)
     fixture.detectChanges()

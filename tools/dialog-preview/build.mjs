@@ -10,6 +10,7 @@ import { compile } from '@tailwindcss/node'
 import { Scanner } from '@tailwindcss/oxide'
 import { batchTwo } from './batch-02.mjs'
 import { batchThree } from './batch-03.mjs'
+import { batchFour } from './batch-04.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const out = path.join(root, '.cache/dialog-preview')
@@ -48,6 +49,13 @@ const scenes = {
 for (const [key, scene] of Object.entries({ ...batchTwo, ...batchThree })) {
   scenes[key] = await inline(`apps/cloud/src/app/features/${scene.file}-dialog.component.ts`)
 }
+for (const [key, scene] of Object.entries(batchFour)) {
+  const file = `apps/cloud/src/app/${scene.path}`
+  scenes[key] = scene.path.endsWith('.ts') ? await inline(file) : await read(file)
+}
+scenes.organizationForm = await read(
+  'apps/cloud/src/app/features/setting/organizations/organization-step-form/organization-step-form.component.html'
+)
 scenes.reviewList = await inline('apps/cloud/src/app/features/xpert-access-requests/review-requests-list.component.ts')
 await fs.writeFile(path.join(out, 'scenes.json'), JSON.stringify(scenes))
 const zh = JSON.parse(await read('apps/cloud/src/assets/i18n/zh-Hans.json'))
@@ -61,6 +69,7 @@ await build({
   entryPoints: [path.join(root, 'tools/dialog-preview/preview.mjs')],
   outfile: path.join(out, 'app.js'),
   bundle: true,
+  alias: { '@xpert-ai/headless-ui': path.join(out, 'ngc/tools/dialog-preview/upload-deps.js') },
   format: 'esm',
   platform: 'browser',
   minify: true,
@@ -74,14 +83,23 @@ const shared = compileString(scss, {
   loadPaths: [root, path.join(root, 'node_modules')],
   logger: { warn() {}, debug() {} }
 }).css.replace(/@reference\s+[^;]+;/g, '')
+// ngc alone does not process a leaf component's SCSS; compile the production upload styles for this preview.
+const uploadStyles = compileString(await read('apps/cloud/src/app/@shared/files/upload/upload.component.scss'), {
+  loadPaths: [root, path.join(root, 'node_modules')],
+  logger: { warn() {}, debug() {} }
+})
+  .css.replace(/@reference\s+[^;]+;/g, '')
+  .replace(/:host/g, 'xp-upload')
 const css = `@import '../../packages/ui/src/styles.css';
 @import '../../apps/cloud/src/styles/theme/theme.tokens.css';
 @import '../../apps/cloud/src/styles/theme/theme.primary.css';
 @import '../../apps/cloud/src/styles/theme/theme.tailwind.css';
 @import '@angular/cdk/overlay-prebuilt.css';
 @source '../../packages/ui/src';
-@source '../../apps/cloud/src/app/features';
+@source '../../apps/cloud/src/app';
+@source '../../tools/dialog-preview';
 ${shared}
+${uploadStyles}
 html, body { margin: 0; min-height: 100%; font-size: 14px; font-family: var(--font-xp-sans); background: var(--background); color: var(--foreground); }
 .preview-shell { max-width: 1050px; margin: 0 auto; padding: 56px 28px; }
 .preview-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 14px; }

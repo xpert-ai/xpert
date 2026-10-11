@@ -197,10 +197,11 @@ export class BrowserAudioCaptureService {
     try {
       const ref = this.zone.run(() =>
         this.dialog.open<BrowserAudioDevices>(BrowserAudioCaptureDialogComponent, {
-          data: { signal: starting.controller.signal },
-          disableClose: true,
           backdropClass: 'backdrop-blur-xs-black',
-          panelClass: 'xp-overlay-pane-dialog'
+          panelClass: 'xp-overlay-pane-dialog',
+          maxWidth: 'calc(100vw - 32px)',
+          data: { signal: starting.controller.signal },
+          disableClose: true
         })
       )
       devices = await firstValueFrom(ref.closed)

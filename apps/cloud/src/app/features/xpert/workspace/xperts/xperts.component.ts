@@ -220,6 +220,9 @@ export class XpertWorkspaceXpertsComponent {
   handleImportedDSL(dsl: TXpertTeamDraft) {
     this.dialog
       .open<Partial<IXpert>>(XpertBasicDialogComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           name: dsl.team.name,
           avatar: dsl.team.avatar,

@@ -144,6 +144,9 @@ export class XpUsersComponent extends TranslationBaseComponent {
 
     const result = await firstValueFrom(
       this._dialog.open<{ total: number }>(InviteMutationComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         disableClose: true
       }).closed
     )
@@ -160,6 +163,9 @@ export class XpUsersComponent extends TranslationBaseComponent {
 
     const result = await firstValueFrom(
       this._dialog.open<{ user: IUser }>(UserMutationComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         disableClose: true,
         data: { isAdmin: true }
       }).closed
@@ -174,12 +180,19 @@ export class XpUsersComponent extends TranslationBaseComponent {
       return
     }
 
-    this._dialog.open(UserUploadComponent, { disableClose: true }).closed.subscribe({
-      next: (users) => {
-        if (users) {
-          this.refresh$.next()
+    this._dialog
+      .open(UserUploadComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
+        disableClose: true
+      })
+      .closed.subscribe({
+        next: (users) => {
+          if (users) {
+            this.refresh$.next()
+          }
         }
-      }
-    })
+      })
   }
 }

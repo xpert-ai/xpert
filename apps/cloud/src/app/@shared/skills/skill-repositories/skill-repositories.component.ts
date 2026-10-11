@@ -116,6 +116,9 @@ export class XpertSkillRepositoriesComponent {
     event.stopPropagation()
     this.#dialog
       .open<string | null>(XpertSkillRepositoryRegisterComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           repository: repo
         }

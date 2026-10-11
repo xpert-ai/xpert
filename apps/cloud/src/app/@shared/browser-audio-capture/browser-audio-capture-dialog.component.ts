@@ -1,3 +1,4 @@
+import { XpDialogFrameImports, XpDialogActionGroupDirective } from '@xpert-ai/headless-ui'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { Component, OnDestroy, inject, signal } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -6,42 +7,65 @@ import { BrowserAudioDevices, closeAudioDevices, openAudioDevices } from './brow
 
 @Component({
   standalone: true,
-  imports: [TranslateModule, ZardButtonComponent, ZardIconComponent],
+  imports: [
+    ...XpDialogFrameImports,
+    XpDialogActionGroupDirective,
+    TranslateModule,
+    ZardButtonComponent,
+    ZardIconComponent
+  ],
   template: `
-    <section class="flex w-[min(28rem,calc(100vw-2rem))] flex-col gap-4 p-6" aria-labelledby="browser-capture-title">
-      <h2 id="browser-capture-title" class="text-lg font-semibold">{{ 'BrowserCapture.Title' | translate }}</h2>
-      <p class="text-sm text-muted-foreground">{{ 'BrowserCapture.Help' | translate }}</p>
-      <button
-        z-button
-        zType="outline"
-        class="h-auto justify-start whitespace-normal py-4 text-left"
-        [disabled]="busy()"
-        (click)="start(false)"
-      >
-        <z-icon zType="mic" class="mr-3 shrink-0" />
-        <span>{{ 'BrowserCapture.Microphone' | translate }}</span>
-      </button>
-      <button
-        z-button
-        zType="outline"
-        class="h-auto justify-start whitespace-normal py-4 text-left"
-        [disabled]="busy() || !sharing"
-        (click)="start(true)"
-      >
-        <z-icon zType="monitor" class="mr-3 shrink-0" />
-        <span>{{ 'BrowserCapture.Shared' | translate }}</span>
-      </button>
-      <p class="text-xs leading-relaxed text-muted-foreground">{{ 'BrowserCapture.SharedHelp' | translate }}</p>
-      <p class="text-xs leading-relaxed text-muted-foreground">{{ 'BrowserCapture.KeepOpen' | translate }}</p>
-      @if (busy()) {
-        <p role="status" class="text-sm text-muted-foreground">{{ 'BrowserCapture.Waiting' | translate }}</p>
-      }
-      @if (error()) {
-        <p role="alert" class="text-sm text-destructive">{{ error() | translate }}</p>
-      }
-      <div class="flex justify-end">
-        <button z-button zType="ghost" (click)="cancel()">{{ 'BrowserCapture.Cancel' | translate }}</button>
+    <section
+      xpDialogLayout="standard"
+      class="w-[min(448px,calc(100vw-32px))] max-h-[84dvh]"
+      aria-labelledby="browser-capture-title"
+    >
+      <header xpDialogHeader>
+        <h2 id="browser-capture-title" xpDialogHeading>{{ 'BrowserCapture.Title' | translate }}</h2>
+        <p xpDialogDescription>{{ 'BrowserCapture.Help' | translate }}</p>
+        <button
+          xpDialogCloseButton
+          z-button
+          zType="ghost"
+          zSize="icon"
+          type="button"
+          [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+          (click)="cancel()"
+        >
+          <z-icon zType="x" aria-hidden="true" />
+        </button>
+      </header>
+      <div xpDialogBody>
+        <div xpDialogActionGroup="inline" class="grid gap-2">
+          <button z-button zType="outline" class="w-full justify-start" [zDisabled]="busy()" (click)="start(false)">
+            <z-icon zType="mic" class="shrink-0" />
+            <span>{{ 'BrowserCapture.Microphone' | translate }}</span>
+          </button>
+          <button
+            z-button
+            zType="outline"
+            class="w-full justify-start"
+            [zDisabled]="busy() || !sharing"
+            (click)="start(true)"
+          >
+            <z-icon zType="monitor" class="shrink-0" />
+            <span>{{ 'BrowserCapture.Shared' | translate }}</span>
+          </button>
+        </div>
+        <p class="text-xs leading-relaxed text-muted-foreground">{{ 'BrowserCapture.SharedHelp' | translate }}</p>
+        <p class="text-xs leading-relaxed text-muted-foreground">{{ 'BrowserCapture.KeepOpen' | translate }}</p>
+        @if (busy()) {
+          <p role="status" class="text-sm text-muted-foreground">{{ 'BrowserCapture.Waiting' | translate }}</p>
+        }
+        @if (error()) {
+          <p role="alert" class="text-sm text-destructive">{{ error() | translate }}</p>
+        }
       </div>
+      <footer xpDialogFooter>
+        <button z-button zType="outline" type="button" (click)="cancel()">
+          {{ 'BrowserCapture.Cancel' | translate }}
+        </button>
+      </footer>
     </section>
   `
 })

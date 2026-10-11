@@ -19,3 +19,14 @@ export {
 } from '../../packages/ui/src/lib/components/combobox/combobox.component'
 export { ZardTableImports } from '../../packages/ui/src/lib/components/table/table.imports'
 export { QRCodeComponent } from '../../apps/cloud/src/app/@shared/qrcode/qrcode.component'
+
+export { ZardRadioGroupComponent, ZardRadioComponent } from '../../packages/ui/src/lib/components/radio/radio.component'
+export { ZardStepperImports } from '../../packages/ui/src/lib/components/stepper/stepper.imports'
+export {
+  ZardToggleGroupComponent,
+  ZardToggleGroupItemComponent
+} from '../../packages/ui/src/lib/components/toggle-group/toggle-group.component'
+export { FilesUploadComponent } from '../../apps/cloud/src/app/@shared/files/upload/upload.component'
+export { XpTableComponent } from '../../packages/ui/src/lib/ui/compat/common/table/table/table.component'
+
+export * from './upload-deps'

@@ -323,6 +323,9 @@ export class XpertBasicManageComponent {
     const xpert = this.xpertComponent.xpert()
     this.#dialog
       .open<Partial<IXpert>>(XpertBasicDialogComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           name: xpert.name,
           avatar: xpert.avatar,

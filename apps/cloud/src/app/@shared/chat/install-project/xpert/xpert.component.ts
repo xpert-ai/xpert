@@ -121,6 +121,9 @@ export class ProjectInstallXpertComponent {
     const dsl = this.xpertDraft()
     this.#dialog
       .open<Partial<IXpert>>(XpertBasicDialogComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           name: dsl.team.name,
           avatar: dsl.team.avatar,

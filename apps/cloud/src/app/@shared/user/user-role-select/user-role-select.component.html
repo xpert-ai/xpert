@@ -1,59 +1,59 @@
-<header
-  cdkDrag
-  cdkDragRootElement=".cdk-overlay-pane"
-  cdkDragHandle
-  class="w-full cursor-pointer text-xl text-text-primary font-medium mb-4"
->
-  {{ 'XP.MENU.AddUsers' | translate: { Default: 'Add Users' } }}
-</header>
+<section xpDialogLayout="standard" class="w-[min(440px,calc(100vw-32px))] max-h-[84dvh]">
+  <header xpDialogHeader>
+    <h2 xpDialogHeading>
+      {{ 'XP.MENU.AddUsers' | translate: { Default: 'Add Users' } }}
+    </h2>
+    <button
+      xpDialogCloseButton
+      z-button
+      zType="ghost"
+      zSize="icon"
+      type="button"
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+      (click)="onCancel()"
+    >
+      <z-icon zType="x" aria-hidden="true" />
+    </button>
+  </header>
 
-<div class="flex flex-col py-4">
-  <z-form-field appearance="fill" color="accent">
-    <z-form-label>{{ 'XP.KEY_WORDS.Users' | translate: { Default: 'Users' } }}</z-form-label>
-    <z-tag-select
-      mode="multiple"
-      [value]="users"
-      [options]="(userOptions$ | async) ?? []"
-      [enableSuggestions]="true"
-      [searchable]="true"
-      [compareWith]="compareUsers"
-      [displayWith]="displayUser"
-      [placeholder]="'XP.SHARED.User.NameEmail' | translate: { Default: 'Name,Email' }"
-      [clearable]="!single"
-      (valueChange)="onUsersChange($event)"
-      (zSearchTermChange)="onSearchTermChange($event)"
-    />
-    @if (loading) {
-      <div class="flex items-center justify-end pt-2">
-        <z-loader diameter="20" />
-      </div>
-    }
-  </z-form-field>
-
-  @if (data?.roles) {
-    <z-radio-group [(ngModel)]="role" displayDensity="cosy">
-      @for (role of data.roles; track role.value) {
-        <z-radio [value]="role.value">{{ role.label }}</z-radio>
+  <div xpDialogBody>
+    <z-form-field appearance="fill" color="accent">
+      <z-form-label>{{ 'XP.KEY_WORDS.Users' | translate: { Default: 'Users' } }}</z-form-label>
+      <z-tag-select
+        mode="multiple"
+        [value]="users"
+        [options]="(userOptions$ | async) ?? []"
+        [enableSuggestions]="true"
+        [searchable]="true"
+        [compareWith]="compareUsers"
+        [displayWith]="displayUser"
+        [placeholder]="'XP.SHARED.User.NameEmail' | translate: { Default: 'Name,Email' }"
+        [clearable]="!single"
+        (valueChange)="onUsersChange($event)"
+        (zSearchTermChange)="onSearchTermChange($event)"
+      />
+      @if (loading) {
+        <div class="flex items-center justify-end pt-2">
+          <z-loader diameter="20" />
+        </div>
       }
-    </z-radio-group>
-  }
-</div>
+    </z-form-field>
 
-<div class="mt-4 flex w-full justify-end">
-  <div class="flex items-center gap-3">
-    <button type="button" z-button zType="secondary" zSize="default" class="h-[40px] px-4" (click)="onCancel()">
+    @if (data?.roles) {
+      <z-radio-group [(ngModel)]="role" displayDensity="cosy">
+        @for (role of data.roles; track role.value) {
+          <z-radio [value]="role.value">{{ role.label }}</z-radio>
+        }
+      </z-radio-group>
+    }
+  </div>
+
+  <footer xpDialogFooter>
+    <button z-button zType="outline" type="button" (click)="onCancel()">
       {{ 'COMPONENTS.COMMON.CANCEL' | translate: { Default: 'Cancel' } }}
     </button>
-    <button
-      type="button"
-      z-button
-      zType="default"
-      zSize="default"
-      class="h-[40px] px-4"
-      cdkFocusInitial
-      (click)="onApply()"
-    >
+    <button z-button type="button" cdkFocusInitial (click)="onApply()">
       {{ 'COMPONENTS.COMMON.APPLY' | translate: { Default: 'Apply' } }}
     </button>
-  </div>
-</div>
+  </footer>
+</section>

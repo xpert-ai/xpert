@@ -6,6 +6,7 @@ import { XP_DIALOG_ACTION_CONTEXT, XP_DIALOG_CONTEXT, type XpDialogPurpose } fro
 import {
   dialogBodyClasses,
   dialogCloseClasses,
+  dialogControlVariants,
   dialogDescriptionClasses,
   dialogFooterClasses,
   dialogFrameVariants,
@@ -76,6 +77,17 @@ export class XpDialogFooterDirective {
 
 @Directive({ selector: '[xpDialogCloseButton]', host: { class: dialogCloseClasses } })
 export class XpDialogCloseButtonDirective {}
+
+// Custom field triggers can reuse the same opt-in sizing as z-input and z-select.
+@Directive({ selector: '[xpDialogControl]', host: { '[class]': 'classes()' } })
+export class XpDialogControlDirective {
+  private readonly dialog = inject(XP_DIALOG_CONTEXT, { optional: true })
+  readonly xpDialogControl = input<'single' | 'multiple' | 'textarea'>('single')
+  readonly class = input<ClassValue>('')
+  protected readonly classes = computed(() =>
+    mergeClasses(this.class(), this.dialog ? dialogControlVariants({ kind: this.xpDialogControl() }) : '')
+  )
+}
 
 export const XpDialogFrameImports = [
   ZardIconComponent,

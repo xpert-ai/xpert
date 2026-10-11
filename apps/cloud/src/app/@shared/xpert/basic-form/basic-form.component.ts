@@ -19,7 +19,7 @@ import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { debounceTime, filter, switchMap } from 'rxjs/operators'
 import { BehaviorSubject } from 'rxjs'
-import { CopilotModelSelectComponent } from '../../copilot'
+import { CopilotModelSelectComponent } from '../../copilot/copilot-model-select/select.component'
 
 @Component({
   standalone: true,

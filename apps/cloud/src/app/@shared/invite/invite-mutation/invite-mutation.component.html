@@ -1,20 +1,31 @@
-<header cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle class="mb-2 px-2">
-  <div class="cursor-move text-2xl font-medium text-text-primary">
-    {{ 'XP.MENU.InviteUsers' | translate: { Default: 'Invite Users' } }}
+<section xpDialogLayout="wide" class="w-[min(520px,calc(100vw-32px))] max-h-[84dvh]">
+  <header xpDialogHeader cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+    <h2 xpDialogHeading>
+      {{ 'XP.MENU.InviteUsers' | translate: { Default: 'Invite Users' } }}
+    </h2>
+    <button
+      xpDialogCloseButton
+      z-button
+      zType="ghost"
+      zSize="icon"
+      type="button"
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+      (click)="cancel()"
+    >
+      <z-icon zType="x" aria-hidden="true" />
+    </button>
+  </header>
+
+  <div xpDialogBody>
+    <xp-email-invite-form #emailInviteForm [invitationType]="invitationType" />
   </div>
-</header>
 
-<div class="flex-1 p-2 overflow-auto">
-  <xp-email-invite-form #emailInviteForm [invitationType]="invitationType" />
-</div>
-
-<div class="w-full flex justify-end">
-  <div class="flex items-center gap-1">
+  <footer xpDialogFooter>
     <button z-button zType="outline" cdkFocusInitial (click)="cancel()">
       {{ 'COMPONENTS.COMMON.CANCEL' | translate: { Default: 'Cancel' } }}
     </button>
-    <button z-button zType="default" [disabled]="emailInviteForm.form.invalid" (click)="onApply()">
+    <button z-button zType="default" [zDisabled]="emailInviteForm.form.invalid" (click)="onApply()">
       {{ 'COMPONENTS.COMMON.APPLY' | translate: { Default: 'Apply' } }}
     </button>
-  </div>
-</div>
+  </footer>
+</section>

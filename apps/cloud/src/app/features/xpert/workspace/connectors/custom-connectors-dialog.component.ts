@@ -1,3 +1,9 @@
+import {
+  XpDialogFrameImports,
+  ZardButtonComponent,
+  ZardInputDirective,
+  XpDialogActionGroupDirective
+} from '@xpert-ai/headless-ui'
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
@@ -23,7 +29,15 @@ type CustomConnectorsDialogData = {
 @Component({
   selector: 'xpert-custom-connectors-dialog',
   standalone: true,
-  imports: [FormsModule, TranslateModule, EmojiAvatarComponent],
+  imports: [
+    ...XpDialogFrameImports,
+    ZardButtonComponent,
+    ZardInputDirective,
+    XpDialogActionGroupDirective,
+    FormsModule,
+    TranslateModule,
+    EmojiAvatarComponent
+  ],
   templateUrl: './custom-connectors-dialog.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })

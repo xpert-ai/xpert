@@ -1,5 +1,14 @@
 import '@angular/compiler'
-import { Component, Pipe, inject, signal, provideZonelessChangeDetection, CUSTOM_ELEMENTS_SCHEMA } from '@angular/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import {
+  Component,
+  Pipe,
+  inject,
+  signal,
+  provideZonelessChangeDetection,
+  importProvidersFrom,
+  CUSTOM_ELEMENTS_SCHEMA
+} from '@angular/core'
 import { bootstrapApplication } from '@angular/platform-browser'
 import { CommonModule } from '@angular/common'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
@@ -13,6 +22,9 @@ import { fixtureFor } from './fixtures.mjs'
 import { batchTwo } from './batch-02.mjs'
 import { batchTwoFixture } from './batch-02-fixtures.mjs'
 import { batchThree } from './batch-03.mjs'
+import { batchFour } from './batch-04.mjs'
+import { batchFourFixture } from './batch-04-fixtures.mjs'
+import { batchFourChildren } from './batch-04-children.mjs'
 import { batchThreeFixture, reviewListFixture } from './batch-03-fixtures.mjs'
 
 const language = signal('zh')
@@ -27,7 +39,9 @@ const names = {
   members: '项目成员',
   upload: '技能上传',
   confirm: '删除确认',
-  ...Object.fromEntries(Object.entries({ ...batchTwo, ...batchThree }).map(([key, scene]) => [key, scene.name]))
+  ...Object.fromEntries(
+    Object.entries({ ...batchTwo, ...batchThree, ...batchFour }).map(([key, scene]) => [key, scene.name])
+  )
 }
 const widths = {
   setup: undefined,
@@ -35,7 +49,9 @@ const widths = {
   members: 'min(760px, calc(100vw - 2rem))',
   upload: undefined,
   confirm: '480px',
-  ...Object.fromEntries(Object.entries({ ...batchTwo, ...batchThree }).map(([key, scene]) => [key, scene.width]))
+  ...Object.fromEntries(
+    Object.entries({ ...batchTwo, ...batchThree, ...batchFour }).map(([key, scene]) => [key, scene.width])
+  )
 }
 const notify = (text) => note.set(text)
 class PreviewTranslatePipe {
@@ -76,7 +92,14 @@ const imports = [
   ...ui.ZardSelectImports,
   ...ui.ZardFormImports,
   ui.ZardCheckboxComponent,
-  ui.ZardSwitchComponent
+  ui.ZardSwitchComponent,
+  ui.ZardRadioGroupComponent,
+  ui.ZardRadioComponent,
+  ...ui.ZardStepperImports,
+  ui.ZardToggleGroupComponent,
+  ui.ZardToggleGroupItemComponent,
+  ui.FilesUploadComponent,
+  ui.XpTableComponent
 ]
 class PreviewReviewList {
   constructor() {
@@ -89,6 +112,7 @@ Component({
   imports,
   template: templates.reviewList
 })(PreviewReviewList)
+const fourthChildren = batchFourChildren(imports, templates)
 const sceneTypes = Object.fromEntries(
   Object.keys(names).map((key) => {
     class Scene {
@@ -99,18 +123,20 @@ const sceneTypes = Object.fromEntries(
       constructor() {
         Object.assign(
           this,
-          batchThree[key]
-            ? batchThreeFixture(key, busy, notify, actionMode, qrState)
-            : batchTwo[key]
-              ? batchTwoFixture(key, busy, notify, planMode)
-              : fixtureFor(key, busy, notify)
+          batchFour[key]
+            ? batchFourFixture(key, busy, notify, this.close)
+            : batchThree[key]
+              ? batchThreeFixture(key, busy, notify, actionMode, qrState)
+              : batchTwo[key]
+                ? batchTwoFixture(key, busy, notify, planMode)
+                : fixtureFor(key, busy, notify)
         )
       }
     }
     const comp = Component({
       standalone: true,
       selector: `preview-${key}`,
-      imports: [...imports, PreviewReviewList],
+      imports: [...imports, PreviewReviewList, ...fourthChildren],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
       host: { class: 'block min-w-0' },
       template: templates[key]
@@ -120,17 +146,19 @@ const sceneTypes = Object.fromEntries(
 )
 class PreviewApp {
   dialog = inject(Dialog)
-  batch = signal('third')
+  batch = signal('fourth')
   actionMode = actionMode
   qrState = qrState
   planMode = planMode
   get scenes() {
     return Object.entries(names).filter(([key]) =>
-      this.batch() === 'third'
-        ? !!batchThree[key]
-        : this.batch() === 'second'
-          ? !!batchTwo[key]
-          : !batchTwo[key] && !batchThree[key]
+      this.batch() === 'fourth'
+        ? !!batchFour[key]
+        : this.batch() === 'third'
+          ? !!batchThree[key]
+          : this.batch() === 'second'
+            ? !!batchTwo[key]
+            : !batchTwo[key] && !batchThree[key] && !batchFour[key]
     )
   }
   dark = signal(false)
@@ -145,7 +173,7 @@ class PreviewApp {
     note.set('')
     this.dialog.open(sceneTypes[key], {
       width: widths[key],
-      maxWidth: batchTwo[key] || batchThree[key] ? 'calc(100vw - 32px)' : 'calc(100vw - 2rem)',
+      maxWidth: batchTwo[key] || batchThree[key] || batchFour[key] ? 'calc(100vw - 32px)' : 'calc(100vw - 2rem)',
       panelClass: 'xp-overlay-pane-dialog',
       backdropClass: 'backdrop-blur-xs-black',
       ariaLabel: names[key]
@@ -160,15 +188,16 @@ Component({
   <main class="preview-shell">
     <div class="preview-top">
       <div><p class="preview-muted" style="letter-spacing:2px">XPERT / DIALOG</p>
-        <h1 style="font-size:30px;font-weight:600;margin:8px 0">{{ batch() === 'third' ? '第三批 · 10 个 Dialog' : batch() === 'second' ? '第二批 · 10 个 Dialog' : '首批 · 5 个 Dialog' }}</h1></div>
+        <h1 style="font-size:30px;font-weight:600;margin:8px 0">{{ batch() === 'fourth' ? '第四批 · 10 个 Dialog' : batch() === 'third' ? '第三批 · 10 个 Dialog' : batch() === 'second' ? '第二批 · 10 个 Dialog' : '首批 · 5 个 Dialog' }}</h1></div>
       <div class="preview-controls">
-        <select aria-label="预览批次" [value]="batch()" (change)="batch.set($event.target.value)"><option value="third">第三批</option><option value="second">第二批</option><option value="first">首批</option></select>
+        <select aria-label="预览批次" [value]="batch()" (change)="batch.set($event.target.value)"><option value="fourth">第四批</option><option value="third">第三批</option><option value="second">第二批</option><option value="first">首批</option></select>
         <button (click)="toggleTheme()">{{ dark() ? '浅色' : '深色' }}</button>
         <button (click)="language.set(language() === 'zh' ? 'en' : 'zh')">{{ language() === 'zh' ? 'English' : '中文' }}</button>
         <button (click)="busy.set(!busy())">{{ busy() ? '恢复正常状态' : '查看处理中状态' }}</button>
       </div>
     </div>
     <p class="preview-note">真实模板与共享 UI 组件 · 示例数据。共享布局 · 14px 正文 · 表单与普通操作 36px · 关键流程 40px · 同组等高。<br>点击打开场景，按 Escape 或点击遮罩返回。预览不会调用业务 API。</p>
+    @if (batch() === 'fourth') { <p class="preview-note">本批使用生产 Dialog 模板；创建用户、邀请用户和创建专家的内嵌表单为本地适配示例，真实数据与校验请在平台验收。</p> }
     @if (batch() === 'second') { <p class="preview-note">计划类型：<select aria-label="计划类型" [value]="planMode()" (change)="planMode.set($event.target.value)"><option value="plan">计划</option><option value="sprint">迭代</option><option value="milestone">里程碑</option></select></p> }
     @if (batch() === 'third') {
     <p class="preview-note">模型审批：<select aria-label="模型审批模式" [value]="actionMode()" (change)="actionMode.set($event.target.value)"><option value="approve">批准</option><option value="reject">拒绝</option><option value="extend">延期</option><option value="revoke">撤销</option></select>
@@ -186,6 +215,12 @@ Component({
   </main>
 `
 })(PreviewApp)
-bootstrapApplication(PreviewApp, { providers: [provideZonelessChangeDetection(), ui.provideZard()] }).catch(
-  console.error
-)
+bootstrapApplication(PreviewApp, {
+  providers: [provideZonelessChangeDetection(), ui.provideZard(), importProvidersFrom(TranslateModule.forRoot())]
+})
+  .then((app) => {
+    const translate = app.injector.get(TranslateService)
+    translate.setTranslation('zh', locales.zh)
+    translate.use('zh')
+  })
+  .catch(console.error)

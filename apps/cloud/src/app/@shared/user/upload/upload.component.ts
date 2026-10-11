@@ -1,10 +1,11 @@
+import { XpDialogFrameImports, ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 
 import { Component, inject, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { UsersService } from '@cloud/app/@core/state'
-import { XpSpinComponent, XpStepperComponent, XpTableComponent } from '@xpert-ai/headless-ui'
+import { XpSpinComponent, ZardStepperImports, XpTableComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { getErrorMessage, injectToastr, IUserUpdateInput } from '../../../@core'
@@ -13,18 +14,19 @@ import { FilesUploadComponent, UploadFile } from '../../files'
 @Component({
   standalone: true,
   imports: [
+    ...XpDialogFrameImports,
+    ZardButtonComponent,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
     DragDropModule,
     FilesUploadComponent,
-    XpStepperComponent,
+    ...ZardStepperImports,
     XpTableComponent,
     XpSpinComponent
   ],
   selector: 'user-upload',
-  templateUrl: 'upload.component.html',
-  styleUrls: ['upload.component.scss']
+  templateUrl: 'upload.component.html'
 })
 export class UserUploadComponent {
   readonly #dialogRef = inject(DialogRef)
@@ -32,21 +34,6 @@ export class UserUploadComponent {
   readonly #toastr = injectToastr()
 
   readonly step = model<number>(1)
-
-  readonly steps = [
-    {
-      title: {
-        en_US: 'Upload files',
-        zh_Hans: '上传文件'
-      }
-    },
-    {
-      title: {
-        en_US: 'Save',
-        zh_Hans: '保存'
-      }
-    }
-  ]
 
   fileList: UploadFile[] = []
 
