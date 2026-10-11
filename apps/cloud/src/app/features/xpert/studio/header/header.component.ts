@@ -5,8 +5,8 @@ import { Component, computed, HostListener, inject, model, signal, ViewContainer
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
-import { nonBlank } from '@xpert-ai/headless-ui'
+import { XpSpinComponent, nonBlank, ZardTooltipImports, OverlayAnimations } from '@xpert-ai/headless-ui'
+
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   ChatConversationService,
@@ -37,8 +37,7 @@ import { XpertExecutionService } from '../services/execution.service'
 import { XpertStudioComponent } from '../studio.component'
 import { XpertPublishVersionComponent } from './publish/publish.component'
 import { ChecklistComponent } from '@cloud/app/@shared/common'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
-import { OverlayAnimations } from '@xpert-ai/headless-ui'
+
 import { XpertSettingsService } from '@cloud/app/@core/services/xpert-settings.service'
 import { createStudioSettingsSource } from './studio-settings-source'
 
@@ -215,6 +214,9 @@ export class XpertStudioHeaderComponent {
   publishToIntegration() {
     this.#dialog
       .open(XpertPublishComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           xpert: this.xpert()
         }

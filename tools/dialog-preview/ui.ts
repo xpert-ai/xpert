@@ -33,3 +33,9 @@ export * from './upload-deps'
 
 export { XpDialogControlDirective } from '../../packages/ui/src/lib/components/dialog/dialog-frame.directive'
 export { ZardSearchInputComponent } from '../../packages/ui/src/lib/components/search-input/search-input.component'
+
+export {
+  ZardSegmentedComponent,
+  ZardSegmentedItemComponent
+} from '../../packages/ui/src/lib/components/segmented/segmented.component'
+export { ZardTooltipImports } from '../../packages/ui/src/lib/components/tooltip/tooltip.imports'

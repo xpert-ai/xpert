@@ -1,3 +1,13 @@
+import {
+  ZardInputDirective,
+  XpDialogActionGroupDirective,
+  ZardButtonComponent,
+  EntriesPipe,
+  routeAnimations,
+  XpSpinComponent,
+  XpDensityDirective,
+  ZardSwitchComponent
+} from '@xpert-ai/headless-ui'
 import { CommonModule } from '@angular/common'
 import {
   ChangeDetectionStrategy,
@@ -19,13 +29,7 @@ import {
   ReactiveFormsModule,
   Validators
 } from '@angular/forms'
-import {
-  EntriesPipe,
-  routeAnimations,
-  XpSpinComponent,
-  XpDensityDirective,
-  ZardSwitchComponent
-} from '@xpert-ai/headless-ui'
+
 import { pick } from 'lodash-es'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -56,6 +60,9 @@ import { combineLatestWith, map } from 'rxjs/operators'
 @Component({
   standalone: true,
   imports: [
+    ZardInputDirective,
+    XpDialogActionGroupDirective,
+    ZardButtonComponent,
     CommonModule,
     FormsModule,
     ReactiveFormsModule,

@@ -13,6 +13,7 @@ import { batchThree } from './batch-03.mjs'
 import { batchFour } from './batch-04.mjs'
 import { batchFive } from './batch-05.mjs'
 import { batchSix } from './batch-06.mjs'
+import { batchSeven } from './batch-07.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const out = path.join(root, '.cache/dialog-preview')
@@ -51,10 +52,25 @@ const scenes = {
 for (const [key, scene] of Object.entries({ ...batchTwo, ...batchThree })) {
   scenes[key] = await inline(`apps/cloud/src/app/features/${scene.file}-dialog.component.ts`)
 }
-for (const [key, scene] of Object.entries({ ...batchFour, ...batchFive, ...batchSix })) {
+for (const [key, scene] of Object.entries({ ...batchFour, ...batchFive, ...batchSix, ...batchSeven })) {
   const file = `apps/cloud/src/app/${scene.path}`
   scenes[key] = scene.path.endsWith('.ts') ? await inline(file) : await read(file)
 }
+scenes.workspaceGeneral = await read(
+  'apps/cloud/src/app/features/xpert/workspace/settings/general/general.component.html'
+)
+scenes.workspaceMembers = await read(
+  'apps/cloud/src/app/features/xpert/workspace/settings/members/members.component.html'
+)
+scenes.projectMembers = await read('apps/cloud/src/app/features/chat/project/members/members.component.html')
+scenes.workspaceApiKeys = await read('apps/cloud/src/app/features/xpert/xpert/develop/api-key/api-key.component.html')
+scenes.openapiConfigure = await read(
+  'apps/cloud/src/app/features/xpert/tools/openapi/configure/configure.component.html'
+)
+scenes.odataConfigure = await read('apps/cloud/src/app/features/xpert/tools/odata/configure/configure.component.html')
+scenes.integrationForm = await read(
+  'apps/cloud/src/app/@shared/integration/integration-form/integration.component.html'
+)
 scenes.mcpTestBody = await read('apps/cloud/src/app/@shared/mcp/tool-test/test/tool.component.html')
 scenes.toolTestBody = await read('apps/cloud/src/app/features/xpert/tools/tool-test/test/tool.component.html')
 scenes.toolAuthInput = await read('apps/cloud/src/app/features/xpert/tools/authorization/input/input.component.html')
@@ -131,3 +147,7 @@ console.log(`Dialog preview built: ${out}`)
 
 await fs.mkdir(path.join(out, 'assets'), { recursive: true })
 await fs.copyFile(path.join(root, 'apps/cloud/src/assets/icon.png'), path.join(out, 'assets/icon.png'))
+
+await fs.cp(path.join(root, 'apps/cloud/src/assets/images/xperts'), path.join(out, 'assets/images/xperts'), {
+  recursive: true
+})

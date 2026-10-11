@@ -5,8 +5,8 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { OverlayAnimations } from '@xpert-ai/headless-ui'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { OverlayAnimations, XpSpinComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+
 import { TranslateModule } from '@ngx-translate/core'
 import { QRCodeComponent } from 'apps/cloud/src/app/@shared/qrcode'
 import { EMPTY, switchMap, tap } from 'rxjs'
@@ -22,7 +22,6 @@ import {
 import { EmojiAvatarComponent } from '../../../../@shared/avatar'
 import { XpertDevelopAppComponent, XpertDevelopEmbeddedComponent } from '../develop'
 import { XpertComponent } from '../xpert.component'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -102,6 +101,9 @@ export class XpertAppComponent {
   openEmbedded() {
     this.#dialog
       .open(XpertDevelopEmbeddedComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           xpert: this.xpert()
         }
@@ -115,6 +117,9 @@ export class XpertAppComponent {
     this.loading.set(true)
     this.#dialog
       .open(XpertDevelopAppComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           app: this.app()
         }

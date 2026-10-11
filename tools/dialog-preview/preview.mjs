@@ -14,6 +14,7 @@ import { CommonModule } from '@angular/common'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { Dialog, DialogModule, DialogRef } from '@angular/cdk/dialog'
 import { A11yModule } from '@angular/cdk/a11y'
+import { CdkMenuModule } from '@angular/cdk/menu'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import * as ui from '../../.cache/dialog-preview/ngc/tools/dialog-preview/ui.js'
@@ -25,6 +26,9 @@ import { batchTwoFixture } from './batch-02-fixtures.mjs'
 import { batchThree } from './batch-03.mjs'
 import { batchFour } from './batch-04.mjs'
 import { batchSix } from './batch-06.mjs'
+import { batchSeven } from './batch-07.mjs'
+import { batchSevenFixture } from './batch-07-fixtures.mjs'
+import { batchSevenChildren } from './batch-07-children.mjs'
 import { batchSixFixture } from './batch-06-fixtures.mjs'
 import { batchSixChildren } from './batch-06-children.mjs'
 import { batchFive } from './batch-05.mjs'
@@ -48,10 +52,9 @@ const names = {
   upload: '技能上传',
   confirm: '删除确认',
   ...Object.fromEntries(
-    Object.entries({ ...batchTwo, ...batchThree, ...batchFour, ...batchFive, ...batchSix }).map(([key, scene]) => [
-      key,
-      scene.name
-    ])
+    Object.entries({ ...batchTwo, ...batchThree, ...batchFour, ...batchFive, ...batchSix, ...batchSeven }).map(
+      ([key, scene]) => [key, scene.name]
+    )
   )
 }
 const widths = {
@@ -61,10 +64,9 @@ const widths = {
   upload: undefined,
   confirm: '480px',
   ...Object.fromEntries(
-    Object.entries({ ...batchTwo, ...batchThree, ...batchFour, ...batchFive, ...batchSix }).map(([key, scene]) => [
-      key,
-      scene.width
-    ])
+    Object.entries({ ...batchTwo, ...batchThree, ...batchFour, ...batchFive, ...batchSix, ...batchSeven }).map(
+      ([key, scene]) => [key, scene.width]
+    )
   )
 }
 const notify = (text) => note.set(text)
@@ -90,6 +92,10 @@ class PreviewModelTypePipe {
 }
 Pipe({ name: 'kebabToCamelCase', standalone: true })(PreviewModelTypePipe)
 const imports = [
+  CdkMenuModule,
+  ui.ZardSegmentedComponent,
+  ui.ZardSegmentedItemComponent,
+  ...ui.ZardTooltipImports,
   CdkListboxModule,
   PreviewModelTypePipe,
   CommonModule,
@@ -140,6 +146,7 @@ Component({
 const fourthChildren = batchFourChildren(imports, templates)
 const fifthChildren = batchFiveChildren(imports, templates)
 const sixthChildren = batchSixChildren(imports, templates, busy, notify)
+const seventhChildren = batchSevenChildren([...imports, ...sixthChildren], templates, busy, notify)
 const sceneTypes = Object.fromEntries(
   Object.keys(names).map((key) => {
     class Scene {
@@ -150,17 +157,19 @@ const sceneTypes = Object.fromEntries(
       constructor() {
         Object.assign(
           this,
-          batchSix[key]
-            ? batchSixFixture(key, busy, notify, this.close)
-            : batchFive[key]
-              ? batchFiveFixture(key, busy, notify, this.close, editMode, qrState)
-              : batchFour[key]
-                ? batchFourFixture(key, busy, notify, this.close)
-                : batchThree[key]
-                  ? batchThreeFixture(key, busy, notify, actionMode, qrState)
-                  : batchTwo[key]
-                    ? batchTwoFixture(key, busy, notify, planMode)
-                    : fixtureFor(key, busy, notify)
+          batchSeven[key]
+            ? batchSevenFixture(key, busy, notify, this.close)
+            : batchSix[key]
+              ? batchSixFixture(key, busy, notify, this.close)
+              : batchFive[key]
+                ? batchFiveFixture(key, busy, notify, this.close, editMode, qrState)
+                : batchFour[key]
+                  ? batchFourFixture(key, busy, notify, this.close)
+                  : batchThree[key]
+                    ? batchThreeFixture(key, busy, notify, actionMode, qrState)
+                    : batchTwo[key]
+                      ? batchTwoFixture(key, busy, notify, planMode)
+                      : fixtureFor(key, busy, notify)
         )
         if (key === 'toolAuth')
           Object.defineProperty(this, 'authType', { get: () => this.formGroup.value.auth_type?.[0] })
@@ -169,7 +178,14 @@ const sceneTypes = Object.fromEntries(
     const comp = Component({
       standalone: true,
       selector: `preview-${key}`,
-      imports: [...imports, PreviewReviewList, ...fourthChildren, ...fifthChildren, ...sixthChildren],
+      imports: [
+        ...imports,
+        PreviewReviewList,
+        ...fourthChildren,
+        ...fifthChildren,
+        ...sixthChildren,
+        ...seventhChildren
+      ],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
       host: { class: 'block min-w-0' },
       template: templates[key]
@@ -179,24 +195,31 @@ const sceneTypes = Object.fromEntries(
 )
 class PreviewApp {
   dialog = inject(Dialog)
-  batch = signal('sixth')
+  batch = signal('seventh')
   editMode = editMode
   actionMode = actionMode
   qrState = qrState
   planMode = planMode
   get scenes() {
     return Object.entries(names).filter(([key]) =>
-      this.batch() === 'sixth'
-        ? !!batchSix[key]
-        : this.batch() === 'fifth'
-          ? !!batchFive[key]
-          : this.batch() === 'fourth'
-            ? !!batchFour[key]
-            : this.batch() === 'third'
-              ? !!batchThree[key]
-              : this.batch() === 'second'
-                ? !!batchTwo[key]
-                : !batchTwo[key] && !batchThree[key] && !batchFour[key] && !batchFive[key] && !batchSix[key]
+      this.batch() === 'seventh'
+        ? !!batchSeven[key]
+        : this.batch() === 'sixth'
+          ? !!batchSix[key]
+          : this.batch() === 'fifth'
+            ? !!batchFive[key]
+            : this.batch() === 'fourth'
+              ? !!batchFour[key]
+              : this.batch() === 'third'
+                ? !!batchThree[key]
+                : this.batch() === 'second'
+                  ? !!batchTwo[key]
+                  : !batchTwo[key] &&
+                    !batchThree[key] &&
+                    !batchFour[key] &&
+                    !batchFive[key] &&
+                    !batchSix[key] &&
+                    !batchSeven[key]
     )
   }
   dark = signal(false)
@@ -212,7 +235,7 @@ class PreviewApp {
     this.dialog.open(sceneTypes[key], {
       width: widths[key],
       maxWidth:
-        batchTwo[key] || batchThree[key] || batchFour[key] || batchFive[key] || batchSix[key]
+        batchTwo[key] || batchThree[key] || batchFour[key] || batchFive[key] || batchSix[key] || batchSeven[key]
           ? 'calc(100vw - 32px)'
           : 'calc(100vw - 2rem)',
       panelClass: 'xp-overlay-pane-dialog',
@@ -229,15 +252,16 @@ Component({
   <main class="preview-shell">
     <div class="preview-top">
       <div><p class="preview-muted" style="letter-spacing:2px">XPERT / DIALOG</p>
-        <h1 style="font-size:30px;font-weight:600;margin:8px 0">{{ batch() === 'sixth' ? '第六批 · 10 个 Dialog' : batch() === 'fifth' ? '第五批 · 10 个 Dialog' : batch() === 'fourth' ? '第四批 · 10 个 Dialog' : batch() === 'third' ? '第三批 · 10 个 Dialog' : batch() === 'second' ? '第二批 · 10 个 Dialog' : '首批 · 5 个 Dialog' }}</h1></div>
+        <h1 style="font-size:30px;font-weight:600;margin:8px 0">{{ batch() === 'seventh' ? '第七批 · 10 个 Dialog' : batch() === 'sixth' ? '第六批 · 10 个 Dialog' : batch() === 'fifth' ? '第五批 · 10 个 Dialog' : batch() === 'fourth' ? '第四批 · 10 个 Dialog' : batch() === 'third' ? '第三批 · 10 个 Dialog' : batch() === 'second' ? '第二批 · 10 个 Dialog' : '首批 · 5 个 Dialog' }}</h1></div>
       <div class="preview-controls">
-        <select aria-label="预览批次" [value]="batch()" (change)="batch.set($event.target.value)"><option value="sixth">第六批</option><option value="fifth">第五批</option><option value="fourth">第四批</option><option value="third">第三批</option><option value="second">第二批</option><option value="first">首批</option></select>
+        <select aria-label="预览批次" [value]="batch()" (change)="batch.set($event.target.value)"><option value="seventh">第七批</option><option value="sixth">第六批</option><option value="fifth">第五批</option><option value="fourth">第四批</option><option value="third">第三批</option><option value="second">第二批</option><option value="first">首批</option></select>
         <button (click)="toggleTheme()">{{ dark() ? '浅色' : '深色' }}</button>
         <button (click)="language.set(language() === 'zh' ? 'en' : 'zh')">{{ language() === 'zh' ? 'English' : '中文' }}</button>
         <button (click)="busy.set(!busy())">{{ busy() ? '恢复正常状态' : '查看处理中状态' }}</button>
       </div>
     </div>
     <p class="preview-note">真实模板与共享 UI 组件 · 示例数据。共享布局 · 14px 正文 · 表单与普通操作 36px · 关键流程 40px · 同组等高。<br>点击打开场景，按 Escape 或点击遮罩返回。预览不会调用业务 API。</p>
+    @if (batch() === 'seventh') { <p class="preview-note">本批使用生产 Dialog、工作空间设置、成员、API Key、工具配置和集成表单模板。头像、用户信息、标签、模型/集成选择、文件和技能列表使用本地适配示例；真实接口与权限请在平台验收。</p> }
     @if (batch() === 'sixth') { <p class="preview-note">本批使用生产 Dialog、工具测试面板与授权入口模板；变量选择、参数表单和插件 JSON Schema 表单使用本地适配示例。授权与保存结果请在平台验收。</p> }
     @if (batch() === 'fifth') { <p class="preview-note">本批使用生产 Dialog 与凭据字段模板；会话列表、模型选择和提示词编辑器使用本地适配示例，业务流程请在平台验收。<br>会话操作：<select aria-label="会话操作" [value]="editMode()" (change)="editMode.set($event.target.value)"><option value="rename">重命名</option><option value="delete">删除</option></select> · 扫码状态：<select aria-label="扫码状态" [value]="qrState()" (change)="qrState.set($event.target.value)"><option value="waiting">等待扫码</option><option value="expired">已过期</option><option value="failed">失败</option></select></p> }
     @if (batch() === 'fourth') { <p class="preview-note">本批使用生产 Dialog 模板；创建用户、邀请用户和创建专家的内嵌表单为本地适配示例，真实数据与校验请在平台验收。</p> }

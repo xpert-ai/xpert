@@ -58,9 +58,10 @@ export class CloudSidebarConversationComponent {
   async openFolder() {
     const { SidebarConversationFilesComponent } = await import('./conversation-files.component')
     this.#dialog.open(SidebarConversationFilesComponent, {
-      data: this.conversation(),
       backdropClass: 'backdrop-blur-xs-black',
-      panelClass: 'xp-overlay-pane-dialog'
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)',
+      data: this.conversation()
     })
   }
 

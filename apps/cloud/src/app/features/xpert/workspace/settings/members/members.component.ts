@@ -1,3 +1,9 @@
+import {
+  XpDialogActionGroupDirective,
+  ZardButtonComponent,
+  ZardDialogService,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { Component, computed, inject, input, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { nonNullable } from '@xpert-ai/contracts'
@@ -8,11 +14,18 @@ import { uniqBy } from 'lodash-es'
 import { EMPTY, filter, switchMap } from 'rxjs'
 import { UserPipe } from 'apps/cloud/src/app/@shared/pipes'
 import { Dialog } from '@angular/cdk/dialog'
-import { ZardDialogService, ZardTooltipImports } from '@xpert-ai/headless-ui'
+
 @Component({
   selector: 'xpert-workspace-members',
   standalone: true,
-  imports: [UserPipe, TranslateModule, ...ZardTooltipImports, UserProfileInlineComponent],
+  imports: [
+    XpDialogActionGroupDirective,
+    ZardButtonComponent,
+    UserPipe,
+    TranslateModule,
+    ...ZardTooltipImports,
+    UserProfileInlineComponent
+  ],
   templateUrl: './members.component.html',
   styleUrl: './members.component.scss'
 })

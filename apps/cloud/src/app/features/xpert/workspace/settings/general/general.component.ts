@@ -1,9 +1,16 @@
+import {
+  XpDialogActionGroupDirective,
+  ZardButtonComponent,
+  ZardInputDirective,
+  injectConfirmDelete,
+  XpSpinComponent
+} from '@xpert-ai/headless-ui'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 
 import { Component, computed, effect, input, model, output, signal } from '@angular/core'
 import { getXpertWorkspaceVisibility } from '@xpert-ai/contracts'
 import { FormsModule } from '@angular/forms'
-import { injectConfirmDelete, XpSpinComponent } from '@xpert-ai/headless-ui'
+
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import {
@@ -19,7 +26,15 @@ import {
 @Component({
   selector: 'xpert-workspace-settings-general',
   standalone: true,
-  imports: [FormsModule, CdkListboxModule, TranslateModule, XpSpinComponent],
+  imports: [
+    XpDialogActionGroupDirective,
+    ZardButtonComponent,
+    ZardInputDirective,
+    FormsModule,
+    CdkListboxModule,
+    TranslateModule,
+    XpSpinComponent
+  ],
   templateUrl: './general.component.html',
   styleUrl: './general.component.scss',
   animations: [IfAnimation]

@@ -484,6 +484,9 @@ export class ExploreSkillsComponent {
     }
 
     this.#dialog.open(ExploreSkillInstallComponent, {
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)',
       data: item
     })
   }

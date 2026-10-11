@@ -387,6 +387,7 @@ export class XpertWorkspaceHomeComponent {
       .open(XpertWorkspaceSettingsComponent, {
         backdropClass: 'backdrop-blur-xs-black',
         panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           id: this.selectedWorkspace()?.id
         }

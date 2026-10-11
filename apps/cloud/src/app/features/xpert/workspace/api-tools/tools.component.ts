@@ -5,10 +5,14 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { XpDynamicGridDirective } from '@xpert-ai/headless-ui'
-import { injectConfirmUnique, XpCommonModule } from '@xpert-ai/headless-ui'
-import { XpI18nPipe } from '@xpert-ai/headless-ui'
-import { DisplayBehaviour } from '@xpert-ai/headless-ui'
+import {
+  XpDynamicGridDirective,
+  injectConfirmUnique,
+  XpCommonModule,
+  XpI18nPipe,
+  DisplayBehaviour
+} from '@xpert-ai/headless-ui'
+
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { CardCreateComponent } from 'apps/cloud/src/app/@shared/card'
 import { ToolsetCardComponent } from 'apps/cloud/src/app/@shared/xpert'
@@ -38,7 +42,6 @@ import { XpertWorkspaceHomeComponent } from '../home/home.component'
     RouterModule,
     DragDropModule,
     CdkMenuModule,
-    RouterModule,
     TranslateModule,
     XpDynamicGridDirective,
     XpCommonModule,
@@ -123,6 +126,9 @@ export class XpertWorkspaceApiToolsComponent {
   createTool() {
     this.dialog
       .open(XpertStudioCreateToolComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         disableClose: true,
         data: {
           workspace: this.workspace(),

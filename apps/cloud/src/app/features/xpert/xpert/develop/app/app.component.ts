@@ -1,3 +1,9 @@
+import {
+  XpDialogFrameImports,
+  ZardButtonComponent,
+  ZardSwitchComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 
 import { ChangeDetectionStrategy, Component, inject, model } from '@angular/core'
@@ -5,24 +11,22 @@ import { FormsModule } from '@angular/forms'
 
 import { TChatApp, TEnterpriseH5Platform } from '@xpert-ai/contracts'
 import { ENTERPRISE_H5_PLATFORM_DEFINITIONS } from '@cloud/app/@core'
-import { SlideUpAnimation } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardButtonComponent, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+
 import { IntegrationSelectComponent } from '@cloud/app/@shared/integration'
 @Component({
   standalone: true,
   imports: [
+    ...XpDialogFrameImports,
+    ZardButtonComponent,
     FormsModule,
     TranslateModule,
     ...ZardTooltipImports,
-    ZardButtonComponent,
     ZardSwitchComponent,
     IntegrationSelectComponent
   ],
   selector: 'xpert-develop-app',
   templateUrl: './app.component.html',
-  styleUrl: 'app.component.scss',
-  animations: [SlideUpAnimation],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class XpertDevelopAppComponent {

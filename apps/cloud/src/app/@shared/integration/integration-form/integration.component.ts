@@ -1,12 +1,18 @@
+import {
+  XpDialogActionGroupDirective,
+  ZardButtonComponent,
+  ZardInputDirective,
+  XpInputComponent,
+  XpSpinComponent,
+  XpI18nPipe
+} from '@xpert-ai/headless-ui'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { TextFieldModule } from '@angular/cdk/text-field'
 
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { ZardInputDirective } from '@xpert-ai/headless-ui'
-import { XpInputComponent, XpSpinComponent } from '@xpert-ai/headless-ui'
-import { XpI18nPipe } from '@xpert-ai/headless-ui'
+
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -19,6 +25,8 @@ import { EmojiAvatarComponent } from '../../avatar'
 @Component({
   standalone: true,
   imports: [
+    XpDialogActionGroupDirective,
+    ZardButtonComponent,
     FormsModule,
     ReactiveFormsModule,
     CdkListboxModule,

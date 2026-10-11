@@ -23,8 +23,16 @@ import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { ChatAttachmentsComponent, isChatAgentFile, type ChatAgentFile } from '@cloud/app/@shared/chat'
 import { CopilotEnableModelComponent, CopilotPromptGeneratorComponent } from '@cloud/app/@shared/copilot'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
-import { attrModel, FileTypePipe, linkedModel, TranslatePipe } from '@xpert-ai/headless-ui'
-import { injectConfirmDelete, XpSpinComponent } from '@xpert-ai/headless-ui'
+import {
+  attrModel,
+  FileTypePipe,
+  linkedModel,
+  TranslatePipe,
+  injectConfirmDelete,
+  XpSpinComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
+
 import { NGXLogger } from 'ngx-logger'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { injectParams } from 'ngxtension/inject-params'
@@ -39,7 +47,7 @@ import { ProjectService } from '../project.service'
 import { ChatProjectFilesComponent } from '../files/files.component'
 import { FileIconComponent } from '@cloud/app/@shared/files'
 import { ChatProjectVcsComponent } from '../vcs/vcs.component'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+
 import { ExtensionHostOutletComponent } from '@cloud/app/@shared/view-extension'
 
 /**
@@ -331,8 +339,9 @@ export class ChatProjectHomeComponent {
   manage() {
     this.#dialog
       .open(ChatProjectManageComponent, {
-        backdropClass: 'xp-overlay-share-sheet',
-        panelClass: 'xp-overlay-pane-share-sheet',
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           id: this.project().id
         }

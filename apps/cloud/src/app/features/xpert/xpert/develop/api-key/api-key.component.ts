@@ -1,10 +1,17 @@
+import {
+  XpDialogActionGroupDirective,
+  MaskPipe,
+  CdkConfirmDeleteComponent,
+  XpSpinComponent,
+  ZardButtonComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { Clipboard } from '@angular/cdk/clipboard'
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MaskPipe } from '@xpert-ai/headless-ui'
-import { CdkConfirmDeleteComponent, XpSpinComponent } from '@xpert-ai/headless-ui'
+
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   ApiKeyBindingType,
@@ -18,7 +25,7 @@ import {
 } from 'apps/cloud/src/app/@core'
 import { EMPTY, firstValueFrom, of } from 'rxjs'
 import { switchMap } from 'rxjs/operators'
-import { ZardButtonComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+
 import { derivedAsync } from 'ngxtension/derived-async'
 
 type ApiKeyListItem = IApiKey & { copied?: boolean }
@@ -28,6 +35,7 @@ const EMPTY_API_KEYS: ApiKeyListItem[] = []
 @Component({
   standalone: true,
   imports: [
+    XpDialogActionGroupDirective,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,

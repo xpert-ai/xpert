@@ -1,57 +1,29 @@
-<div class="flex items-center mb-4 p-3 bg-background-default-subtle rounded-2xl">
-  <div class="grow mx-2">
-    <div class="text-sm font-medium text-text-primary">
-      {{ owner() | user }}
-      <span>{{ 'XP.XProject.S' | translate: { Default: "'s" } }}</span>
-      <span>{{ 'XP.XProject.Project' | translate: { Default: 'Project' } }}</span>
-    </div>
-  </div>
-  <div
-    class="shrink-0 flex items-center py-[7px] px-3 border-[0.5px] border-divider-deep text-[13px] font-medium text-primary-600 bg-components-card-bg shadow-xs rounded-lg cursor-pointer"
-    (click)="openAddUser()"
-  >
-    <i class="ri-user-add-line mr-2"></i>
-    {{ 'XP.ACTIONS.Add' | translate: { Default: 'Add' } }}
+<div class="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
+  <p class="min-w-0 break-words font-medium">
+    {{ owner() | user }} <span>{{ 'XP.XProject.S' | translate: { Default: "'s" } }}</span>
+    {{ 'XP.XProject.Project' | translate: { Default: 'Project' } }}
+  </p>
+  <div xpDialogActionGroup="inline">
+    <button z-button zType="outline" type="button" (click)="openAddUser()">
+      <i class="ri-user-add-line" aria-hidden="true"></i>{{ 'XP.ACTIONS.Add' | translate: { Default: 'Add' } }}
+    </button>
   </div>
 </div>
-<div class="overflow-visible lg:overflow-visible">
-  <div class="flex items-center py-[7px] border-b border-divider-deep min-w-[480px]">
-    <div class="grow px-3 text-sm font-medium text-text-tertiary">
-      {{ 'XP.KEY_WORDS.User' | translate: { Default: 'User' } }}
-    </div>
-    <div class="shrink-0 w-24 px-3 text-sm font-medium text-text-tertiary">
-      {{ 'XP.KEY_WORDS.Actions' | translate: { Default: 'Actions' } }}
-    </div>
-  </div>
-  <div class="min-w-[480px] relative">
-    @for (member of allMembers(); track member.id) {
-      <div class="flex items-center border-b p-2 border-divider-regular hover:bg-hover-bg">
-        <xp-user-profile-inline class="grow" [user]="member" [isMe]="me().id === member.id" />
-
-        <div class="shrink-0 w-24 px-3 flex items-center">
-          @if (owner().id === member.id) {
-            <div
-              class="p-2 text-text-secondary"
-              [zTooltip]="'XP.Xpert.Owner' | translate: { Default: 'Owner' }"
-              zPosition="right"
-            >
-              <svg class="w-6 h-6" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
-                <path
-                  d="M11 14.0619V20H13V14.0619C16.9463 14.554 20 17.9204 20 22H4C4 17.9204 7.05369 14.554 11 14.0619ZM12 13C8.685 13 6 10.315 6 7C6 3.685 8.685 1 12 1C15.315 1 18 3.685 18 7C18 10.315 15.315 13 12 13Z"
-                ></path>
-              </svg>
-            </div>
-          } @else {
-            <button
-              type="button"
-              class="btn btn-secondary btn-danger pressable px-2 py-1 text-sm"
-              (click)="removeMember(member)"
-            >
-              {{ 'XP.ACTIONS.Remove' | translate: { Default: 'Remove' } }}
-            </button>
-          }
-        </div>
+<div class="divide-y divide-border">
+  @for (member of allMembers(); track member.id) {
+    <div class="flex flex-wrap items-center justify-between gap-3 py-3">
+      <xp-user-profile-inline class="min-w-0 flex-1" [user]="member" [isMe]="me()?.id === member.id" />
+      <div xpDialogActionGroup="inline" class="shrink-0">
+        @if (owner()?.id === member.id) {
+          <span class="text-muted-foreground" [zTooltip]="'XP.Xpert.Owner' | translate: { Default: 'Owner' }">{{
+            'XP.Xpert.Owner' | translate: { Default: 'Owner' }
+          }}</span>
+        } @else {
+          <button z-button zType="destructive" type="button" (click)="removeMember(member)">
+            {{ 'XP.ACTIONS.Remove' | translate: { Default: 'Remove' } }}
+          </button>
+        }
       </div>
-    }
-  </div>
+    </div>
+  }
 </div>

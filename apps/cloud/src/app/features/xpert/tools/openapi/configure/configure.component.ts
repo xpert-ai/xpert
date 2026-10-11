@@ -1,3 +1,11 @@
+import {
+  ZardInputDirective,
+  XpDialogActionGroupDirective,
+  ZardButtonComponent,
+  EntriesPipe,
+  routeAnimations,
+  XpSpinComponent
+} from '@xpert-ai/headless-ui'
 import { CommonModule } from '@angular/common'
 import {
   ChangeDetectionStrategy,
@@ -20,7 +28,7 @@ import {
   ReactiveFormsModule,
   Validators
 } from '@angular/forms'
-import { EntriesPipe, routeAnimations, XpSpinComponent } from '@xpert-ai/headless-ui'
+
 import { pick } from 'lodash-es'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -49,6 +57,9 @@ import { XpertToolNameInputComponent } from 'apps/cloud/src/app/@shared/xpert'
 @Component({
   standalone: true,
   imports: [
+    ZardInputDirective,
+    XpDialogActionGroupDirective,
+    ZardButtonComponent,
     CommonModule,
     FormsModule,
     ReactiveFormsModule,

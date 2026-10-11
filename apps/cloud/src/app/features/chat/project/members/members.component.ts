@@ -1,3 +1,4 @@
+import { XpDialogActionGroupDirective, ZardButtonComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { Dialog } from '@angular/cdk/dialog'
 
 import { Component, computed, effect, inject, input, signal } from '@angular/core'
@@ -9,11 +10,18 @@ import { UserPipe } from 'apps/cloud/src/app/@shared/pipes'
 import { UserProfileInlineComponent, UserRoleSelectComponent } from 'apps/cloud/src/app/@shared/user'
 import { uniqBy } from 'lodash-es'
 import { EMPTY, filter, switchMap } from 'rxjs'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+
 @Component({
   selector: 'chat-project-members',
   standalone: true,
-  imports: [UserPipe, TranslateModule, ...ZardTooltipImports, UserProfileInlineComponent],
+  imports: [
+    XpDialogActionGroupDirective,
+    ZardButtonComponent,
+    UserPipe,
+    TranslateModule,
+    ...ZardTooltipImports,
+    UserProfileInlineComponent
+  ],
   templateUrl: './members.component.html',
   styleUrl: './members.component.scss'
 })

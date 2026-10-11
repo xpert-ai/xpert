@@ -1,3 +1,4 @@
+import { XpDialogFrameImports, ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -6,21 +7,23 @@ import { FileWorkbenchComponent, FileWorkbenchFilesLoader, FileWorkbenchFileLoad
 
 @Component({
   standalone: true,
-  imports: [FileWorkbenchComponent, TranslateModule],
-  template: `
-    <section class="flex h-[min(48rem,85vh)] w-[min(70rem,92vw)] min-w-0 flex-col">
-      <header class="flex items-center gap-3 border-b border-border px-5 py-3">
-        <i class="ri-folder-open-line text-xl text-text-secondary" aria-hidden="true"></i>
-        <h2 class="min-w-0 flex-1 truncate font-semibold text-text-primary">{{ conversation.title }}</h2>
-        <button
-          class="flex size-8 items-center justify-center rounded-md text-text-secondary hover:bg-hover-bg hover:text-text-primary"
-          type="button"
-          (click)="dialog.close()"
-          [attr.aria-label]="'XP.Sidebar.CloseConversationFolder' | translate"
-        >
-          <i class="ri-close-line text-xl" aria-hidden="true"></i>
-        </button>
-      </header>
+  imports: [...XpDialogFrameImports, ZardButtonComponent, FileWorkbenchComponent, TranslateModule],
+  template: `<section xpDialogLayout="wide" class="h-[min(740px,84dvh)] w-[min(1120px,calc(100vw-32px))]">
+    <header xpDialogHeader>
+      <h2 xpDialogHeading>{{ conversation.title }}</h2>
+      <button
+        z-button
+        zType="ghost"
+        type="button"
+        xpDialogCloseButton
+        zSize="icon"
+        [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+        (click)="dialog.close()"
+      >
+        <z-icon zType="x" aria-hidden="true" />
+      </button>
+    </header>
+    <div xpDialogBody class="flex flex-col">
       <xp-file-workbench
         class="min-h-0 flex-1"
         [rootId]="conversation.id"
@@ -29,8 +32,13 @@ import { FileWorkbenchComponent, FileWorkbenchFilesLoader, FileWorkbenchFileLoad
         [fileLoader]="loadFile"
         [referenceable]="false"
       />
-    </section>
-  `,
+    </div>
+    <footer xpDialogFooter>
+      <button z-button zType="outline" type="button" (click)="dialog.close()">
+        {{ 'XP.ACTIONS.Close' | translate: { Default: 'Close' } }}
+      </button>
+    </footer>
+  </section>`,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SidebarConversationFilesComponent {
