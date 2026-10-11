@@ -1,3 +1,4 @@
+import { XpDialogFrameImports, XpDialogActionGroupDirective, ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -17,15 +18,20 @@ export const WORKBENCH_FILE_PREVIEW_MAX_BYTES = 1024 * 1024
 @Component({
   standalone: true,
   selector: 'xp-workbench-file-preview-dialog',
-  imports: [TranslateModule, FilePreviewContentComponent, WorkbenchPdfEvidencePreviewComponent],
+  imports: [
+    ...XpDialogFrameImports,
+    XpDialogActionGroupDirective,
+    ZardButtonComponent,
+    TranslateModule,
+    FilePreviewContentComponent,
+    WorkbenchPdfEvidencePreviewComponent
+  ],
   host: {
     class: 'block h-full w-full'
   },
   template: `
-    <section
-      class="flex h-full w-full flex-col overflow-hidden rounded-2xl border border-divider-regular bg-components-card-bg text-text-primary shadow-2xl"
-    >
-      <header class="flex items-start justify-between gap-4 border-b border-divider-regular px-5 py-4">
+    <section xpDialogLayout="wide" class="h-full w-full">
+      <header xpDialogHeader class="border-b border-divider-regular">
         <div class="flex min-w-0 items-start gap-3">
           <div
             class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-background-default-subtle text-text-secondary"
@@ -43,21 +49,23 @@ export const WORKBENCH_FILE_PREVIEW_MAX_BYTES = 1024 * 1024
             }
           </div>
           <div class="min-w-0">
-            <h2 class="truncate text-base font-semibold leading-6">
+            <h2 xpDialogHeading>
               {{ file.name || ('XP.Assistant.FilePreview.SourceDocument' | translate: { Default: 'Source document' }) }}
             </h2>
             @if (file.mimeType) {
-              <p class="mt-1 truncate text-xs text-text-tertiary">{{ file.mimeType }}</p>
+              <p xpDialogDescription class="mt-[8px] break-all">{{ file.mimeType }}</p>
             }
           </div>
         </div>
 
-        <div class="flex shrink-0 items-center gap-2">
+        <div class="flex flex-wrap items-center gap-[8px]">
           @if (!previewTooLarge()) {
             <button
               type="button"
               data-file-preview-open-external="true"
-              class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-divider-regular text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary"
+              z-button
+              zType="outline"
+              zSize="icon"
               [attr.aria-label]="'XP.Assistant.FilePreview.OpenFile' | translate: { Default: 'Open file' }"
               (click)="openExternal()"
             >
@@ -65,47 +73,53 @@ export const WORKBENCH_FILE_PREVIEW_MAX_BYTES = 1024 * 1024
             </button>
           }
           <a
-            class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-divider-regular text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary"
+            z-button
+            zType="outline"
+            zSize="icon"
             [href]="previewUrl()"
             [download]="file.name || 'source-document'"
             [attr.aria-label]="'XP.Assistant.FilePreview.DownloadFile' | translate: { Default: 'Download file' }"
           >
             <i class="ri-download-line"></i>
           </a>
-          <button
-            type="button"
-            class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary"
-            [attr.aria-label]="'XP.Assistant.FilePreview.Close' | translate: { Default: 'Close' }"
-            (click)="close()"
-          >
-            <i class="ri-close-line"></i>
-          </button>
         </div>
+        <button
+          z-button
+          type="button"
+          zType="ghost"
+          zSize="icon"
+          xpDialogCloseButton
+          [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+          (click)="close()"
+        >
+          <z-icon zType="x" />
+        </button>
       </header>
 
-      @if (previewTooLarge()) {
-        <div
-          data-file-preview-too-large="true"
-          class="flex min-h-0 flex-1 items-center justify-center bg-components-card-bg px-6 py-10"
-        >
-          <div class="max-w-lg text-center">
-            <div
-              class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-background-default-subtle text-text-secondary"
-            >
-              <i class="ri-file-download-line text-xl"></i>
-            </div>
-            <h3 class="mt-4 text-base font-semibold text-text-primary">
-              {{ 'XP.Chat.FileTooLargeToPreview' | translate: { Default: 'This file is too large to preview.' } }}
-            </h3>
-            <p class="mt-2 text-sm leading-6 text-text-tertiary">
-              {{
-                'XP.Chat.FileTooLargeDownloadHint'
-                  | translate: { Default: 'Download it and open it locally to view its contents.' }
-              }}
-            </p>
-            @if (fileSizeLabel() && previewSizeLimitLabel()) {
-              <p class="mt-2 text-sm text-text-tertiary">
+      <div xpDialogBody="section" class="flex flex-col space-y-0 overflow-auto">
+        @if (previewTooLarge()) {
+          <div
+            data-file-preview-too-large="true"
+            class="flex min-h-0 flex-1 items-center justify-center bg-components-card-bg px-6 py-10"
+          >
+            <div class="max-w-lg text-center">
+              <div
+                class="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-background-default-subtle text-text-secondary"
+              >
+                <i class="ri-file-download-line text-xl"></i>
+              </div>
+              <h3 class="mt-4 text-base font-semibold text-text-primary">
+                {{ 'XP.Chat.FileTooLargeToPreview' | translate: { Default: 'This file is too large to preview.' } }}
+              </h3>
+              <p class="mt-2 text-sm leading-6 text-text-tertiary">
                 {{
+                  'XP.Chat.FileTooLargeDownloadHint'
+                    | translate: { Default: 'Download it and open it locally to view its contents.' }
+                }}
+              </p>
+              @if (fileSizeLabel() && previewSizeLimitLabel()) {
+                <p class="mt-2 text-sm text-text-tertiary">
+                  {{
                   'XP.Chat.FilePreviewSizeLimit'
                     | translate
                       : {
@@ -116,155 +130,161 @@ export const WORKBENCH_FILE_PREVIEW_MAX_BYTES = 1024 * 1024
 
 
 
-                }}. File preview limit: {{ limit }}.' } }}
-              </p>
-            }
-            <button
-              type="button"
-              class="mt-5 inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-divider-regular px-4 text-sm font-medium text-text-primary transition-colors hover:bg-hover-bg"
-              (click)="downloadFile()"
-            >
-              <i class="ri-download-line"></i>
-              {{ 'XP.Assistant.FilePreview.DownloadFile' | translate: { Default: 'Download file' } }}
-            </button>
-          </div>
-        </div>
-      } @else if (evidence(); as currentEvidence) {
-        <div class="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div class="relative min-h-0 overflow-hidden">
-            @if (controlledPdfEvidence()) {
-              <xp-workbench-pdf-evidence-preview
-                class="block h-full min-h-0"
-                [box]="evidenceBox()"
-                [fileName]="
-                  file.name || ('XP.Assistant.FilePreview.SourceDocument' | translate: { Default: 'Source document' })
-                "
-                [page]="evidencePage()"
-                [rotation]="evidenceRotation()"
-                [searchTerms]="evidenceSearchTerms()"
-                [url]="basePreviewUrl()"
-              />
-            } @else if (imageEvidenceBox(); as box) {
-              <div class="flex h-full min-h-0 items-start justify-center overflow-auto bg-components-panel-bg p-6">
-                <div class="relative m-auto inline-block max-w-full shrink-0">
-                  <img
-                    [src]="basePreviewUrl()"
-                    [alt]="
-                      file.name ||
-                      ('XP.Assistant.FilePreview.SourceDocument' | translate: { Default: 'Source document' })
-                    "
-                    class="block h-auto max-w-full rounded-xl object-contain shadow-sm"
-                  />
-                  <div
-                    data-workbench-image-evidence-box="true"
-                    class="pointer-events-none absolute z-10 border-[3px] border-text-destructive bg-status-error-bg shadow-[0_0_0_9999px_color-mix(in_oklab,var(--color-status-error-bg)_16%,transparent)]"
-                    [style.left.%]="box.x * 100"
-                    [style.top.%]="box.y * 100"
-                    [style.width.%]="box.width * 100"
-                    [style.height.%]="box.height * 100"
-                  ></div>
-                </div>
-              </div>
-            } @else {
-              <xp-file-preview-content
-                class="flex h-full min-h-0 flex-col overflow-hidden bg-components-card-bg"
-                [content]="previewContent()"
-                [documentBlob]="previewData().documentBlob"
-                [downloadable]="true"
-                [error]="previewError()"
-                [fileName]="
-                  file.name || ('XP.Assistant.FilePreview.SourceDocument' | translate: { Default: 'Source document' })
-                "
-                [loading]="previewLoading()"
-                [previewKind]="previewKind()"
-                [spreadsheet]="spreadsheet()"
-                [url]="previewUrl()"
-                (download)="downloadFile()"
-              />
-            }
-          </div>
 
-          <aside
-            class="space-y-3 overflow-auto border-t border-divider-regular bg-components-card-bg p-4 text-sm lg:border-l lg:border-t-0"
-          >
-            <div>
-              <div class="text-xs font-medium uppercase tracking-wide text-text-tertiary">
-                {{ 'XP.Assistant.FilePreview.EvidenceLocation' | translate: { Default: 'Evidence location' } }}
-              </div>
-              <div class="mt-1 text-text-primary">
-                @if (evidencePage()) {
-                  P{{ evidencePage() }}
-                } @else {
-                  P—
-                }
-                @if (currentEvidence.method) {
-                  · {{ currentEvidence.method }}
-                }
-              </div>
-              @if (evidenceBox(); as box) {
-                <div class="mt-1 font-mono text-xs text-text-tertiary">
-                  x={{ box.x.toFixed(3) }}, y={{ box.y.toFixed(3) }}, w={{ box.width.toFixed(3) }}, h={{
-                    box.height.toFixed(3)
-                  }}
-                </div>
+
+
+
+
+
+                  }}. File preview limit: {{ limit }}.' } }}
+                </p>
               }
-              @if (currentEvidence.locator?.recognitionRotation !== undefined) {
-                <div class="mt-1 text-xs text-text-tertiary">
-                  {{ 'XP.Assistant.FilePreview.RecognitionRotation' | translate: { Default: 'Recognition rotation' } }}:
-                  {{ currentEvidence.locator?.recognitionRotation }}°
+              <div xpDialogActionGroup="inline" class="mt-[16px] flex justify-center">
+                <button type="button" z-button zType="outline" (click)="downloadFile()">
+                  <i class="ri-download-line"></i>
+                  {{ 'XP.Assistant.FilePreview.DownloadFile' | translate: { Default: 'Download file' } }}
+                </button>
+              </div>
+            </div>
+          </div>
+        } @else if (evidence(); as currentEvidence) {
+          <div class="grid min-h-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[minmax(0,1fr)_320px]">
+            <div class="relative min-h-0 overflow-hidden">
+              @if (controlledPdfEvidence()) {
+                <xp-workbench-pdf-evidence-preview
+                  class="block h-full min-h-0"
+                  [box]="evidenceBox()"
+                  [fileName]="
+                    file.name || ('XP.Assistant.FilePreview.SourceDocument' | translate: { Default: 'Source document' })
+                  "
+                  [page]="evidencePage()"
+                  [rotation]="evidenceRotation()"
+                  [searchTerms]="evidenceSearchTerms()"
+                  [url]="basePreviewUrl()"
+                />
+              } @else if (imageEvidenceBox(); as box) {
+                <div class="flex h-full min-h-0 items-start justify-center overflow-auto bg-components-panel-bg p-6">
+                  <div class="relative m-auto inline-block max-w-full shrink-0">
+                    <img
+                      [src]="basePreviewUrl()"
+                      [alt]="
+                        file.name ||
+                        ('XP.Assistant.FilePreview.SourceDocument' | translate: { Default: 'Source document' })
+                      "
+                      class="block h-auto max-w-full rounded-xl object-contain shadow-sm"
+                    />
+                    <div
+                      data-workbench-image-evidence-box="true"
+                      class="pointer-events-none absolute z-10 border-[3px] border-text-destructive bg-status-error-bg shadow-[0_0_0_9999px_color-mix(in_oklab,var(--color-status-error-bg)_16%,transparent)]"
+                      [style.left.%]="box.x * 100"
+                      [style.top.%]="box.y * 100"
+                      [style.width.%]="box.width * 100"
+                      [style.height.%]="box.height * 100"
+                    ></div>
+                  </div>
                 </div>
+              } @else {
+                <xp-file-preview-content
+                  class="flex h-full min-h-0 flex-col overflow-hidden bg-components-card-bg"
+                  [content]="previewContent()"
+                  [documentBlob]="previewData().documentBlob"
+                  [downloadable]="true"
+                  [error]="previewError()"
+                  [fileName]="
+                    file.name || ('XP.Assistant.FilePreview.SourceDocument' | translate: { Default: 'Source document' })
+                  "
+                  [loading]="previewLoading()"
+                  [previewKind]="previewKind()"
+                  [spreadsheet]="spreadsheet()"
+                  [url]="previewUrl()"
+                  (download)="downloadFile()"
+                />
               }
             </div>
 
-            @if (currentEvidence.attributeCode || currentEvidence.displayValue) {
-              <div class="rounded-xl border border-divider-regular bg-background-default-subtle p-3">
-                @if (currentEvidence.attributeCode) {
-                  <div class="font-medium text-text-primary">{{ currentEvidence.attributeCode }}</div>
-                }
-                @if (currentEvidence.displayValue) {
-                  <div class="mt-1 text-text-secondary">{{ currentEvidence.displayValue }}</div>
-                }
-              </div>
-            }
-
-            @if (currentEvidence.text) {
+            <aside
+              class="space-y-3 overflow-auto border-t border-divider-regular bg-components-card-bg p-4 text-sm lg:border-l lg:border-t-0"
+            >
               <div>
                 <div class="text-xs font-medium uppercase tracking-wide text-text-tertiary">
-                  {{ 'XP.Assistant.FilePreview.EvidenceText' | translate: { Default: 'Evidence text' } }}
+                  {{ 'XP.Assistant.FilePreview.EvidenceLocation' | translate: { Default: 'Evidence location' } }}
                 </div>
-                <p class="mt-1 whitespace-pre-wrap leading-6 text-text-primary">{{ currentEvidence.text }}</p>
+                <div class="mt-1 text-text-primary">
+                  @if (evidencePage()) {
+                    P{{ evidencePage() }}
+                  } @else {
+                    P—
+                  }
+                  @if (currentEvidence.method) {
+                    · {{ currentEvidence.method }}
+                  }
+                </div>
+                @if (evidenceBox(); as box) {
+                  <div class="mt-1 font-mono text-xs text-text-tertiary">
+                    x={{ box.x.toFixed(3) }}, y={{ box.y.toFixed(3) }}, w={{ box.width.toFixed(3) }}, h={{
+                      box.height.toFixed(3)
+                    }}
+                  </div>
+                }
+                @if (currentEvidence.locator?.recognitionRotation !== undefined) {
+                  <div class="mt-1 text-xs text-text-tertiary">
+                    {{
+                      'XP.Assistant.FilePreview.RecognitionRotation' | translate: { Default: 'Recognition rotation' }
+                    }}: {{ currentEvidence.locator?.recognitionRotation }}°
+                  </div>
+                }
               </div>
-            }
 
-            <p class="text-xs leading-5 text-text-tertiary">
-              {{
-                'XP.Assistant.FilePreview.EvidenceHint'
-                  | translate
-                    : {
-                        Default:
-                          'The host preview overlays the evidence box on PDF pages and images. An external browser tab can only open the original file and cannot render this evidence box.'
-                      }
-              }}
-            </p>
-          </aside>
-        </div>
-      } @else {
-        <xp-file-preview-content
-          class="flex min-h-0 flex-1 flex-col overflow-hidden bg-components-card-bg"
-          [content]="previewContent()"
-          [documentBlob]="previewData().documentBlob"
-          [downloadable]="true"
-          [error]="previewError()"
-          [fileName]="
-            file.name || ('XP.Assistant.FilePreview.SourceDocument' | translate: { Default: 'Source document' })
-          "
-          [loading]="previewLoading()"
-          [previewKind]="previewKind()"
-          [spreadsheet]="spreadsheet()"
-          [url]="previewUrl()"
-          (download)="downloadFile()"
-        />
-      }
+              @if (currentEvidence.attributeCode || currentEvidence.displayValue) {
+                <div class="rounded-xl border border-divider-regular bg-background-default-subtle p-3">
+                  @if (currentEvidence.attributeCode) {
+                    <div class="font-medium text-text-primary">{{ currentEvidence.attributeCode }}</div>
+                  }
+                  @if (currentEvidence.displayValue) {
+                    <div class="mt-1 text-text-secondary">{{ currentEvidence.displayValue }}</div>
+                  }
+                </div>
+              }
+
+              @if (currentEvidence.text) {
+                <div>
+                  <div class="text-xs font-medium uppercase tracking-wide text-text-tertiary">
+                    {{ 'XP.Assistant.FilePreview.EvidenceText' | translate: { Default: 'Evidence text' } }}
+                  </div>
+                  <p class="mt-1 whitespace-pre-wrap leading-6 text-text-primary">{{ currentEvidence.text }}</p>
+                </div>
+              }
+
+              <p class="text-xs leading-5 text-text-tertiary">
+                {{
+                  'XP.Assistant.FilePreview.EvidenceHint'
+                    | translate
+                      : {
+                          Default:
+                            'The host preview overlays the evidence box on PDF pages and images. An external browser tab can only open the original file and cannot render this evidence box.'
+                        }
+                }}
+              </p>
+            </aside>
+          </div>
+        } @else {
+          <xp-file-preview-content
+            class="flex min-h-0 flex-1 flex-col overflow-hidden bg-components-card-bg"
+            [content]="previewContent()"
+            [documentBlob]="previewData().documentBlob"
+            [downloadable]="true"
+            [error]="previewError()"
+            [fileName]="
+              file.name || ('XP.Assistant.FilePreview.SourceDocument' | translate: { Default: 'Source document' })
+            "
+            [loading]="previewLoading()"
+            [previewKind]="previewKind()"
+            [spreadsheet]="spreadsheet()"
+            [url]="previewUrl()"
+            (download)="downloadFile()"
+          />
+        }
+      </div>
     </section>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -337,11 +357,12 @@ export class WorkbenchFilePreviewDialogComponent {
 export function openWorkbenchFilePreviewDialog(dialog: Dialog, file: WorkbenchOpenFile) {
   return dialog.open(WorkbenchFilePreviewDialogComponent, {
     data: file,
-    width: 'min(1440px, calc(100vw - 28px))',
-    height: 'min(960px, calc(100vh - 28px))',
-    maxWidth: 'calc(100vw - 28px)',
-    maxHeight: 'calc(100vh - 28px)',
-    backdropClass: 'backdrop-blur-sm-black'
+    width: 'min(1440px, calc(100vw - 32px))',
+    height: 'min(960px, calc(100dvh - 32px))',
+    maxWidth: 'calc(100vw - 32px)',
+    maxHeight: 'calc(100dvh - 32px)',
+    backdropClass: 'backdrop-blur-xs-black',
+    panelClass: 'xp-overlay-pane-dialog'
   })
 }
 

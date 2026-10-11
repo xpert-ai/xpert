@@ -175,7 +175,15 @@ jest.mock('@xpert-ai/headless-ui', () => {
     return typeof property === 'string' ? property : null
   }
 
-  return { myRxResource, XpI18nPipe, XpSpinComponent, ZardBadgeComponent, ZardButtonComponent }
+  return {
+    myRxResource,
+    XpI18nPipe,
+    XpSpinComponent,
+    ZardBadgeComponent,
+    ZardButtonComponent,
+    XpDialogFrameImports: jest.requireActual('@xpert-ai/headless-ui').XpDialogFrameImports,
+    XpDialogActionGroupDirective: jest.requireActual('@xpert-ai/headless-ui').XpDialogActionGroupDirective
+  }
 })
 
 import { DIALOG_DATA, Dialog, DialogRef } from '@angular/cdk/dialog'

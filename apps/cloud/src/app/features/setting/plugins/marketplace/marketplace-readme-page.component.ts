@@ -151,7 +151,9 @@ export class PluginMarketplaceReadmePageComponent {
       data: {
         plugin
       },
-      backdropClass: 'backdrop-blur-sm-black'
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)'
     })
   }
 

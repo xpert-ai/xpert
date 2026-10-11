@@ -1,4 +1,4 @@
-import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
+import { DIALOG_DATA, Dialog, DialogRef } from '@angular/cdk/dialog'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal, viewChild } from '@angular/core'
@@ -19,7 +19,6 @@ import {
   ZardButtonComponent,
   ZardComboboxDeprecatedComponent,
   ZardCheckboxComponent,
-  ZardDialogService,
   ZardIconComponent,
   ZardSearchInputComponent,
   ZardSelectImports,
@@ -368,7 +367,7 @@ export class XpertNewBlankComponent {
   eWorkflowNodeTypeEnum = WorkflowNodeTypeEnum
   workflowMode = BLANK_XPERT_WORKFLOW_MODE
   readonly #dialogRef = inject(DialogRef<BlankXpertWizardResult>)
-  readonly #dialog = inject(ZardDialogService)
+  readonly #dialog = inject(Dialog)
   readonly #dialogData = inject<BlankXpertDialogData>(DIALOG_DATA)
   readonly #selectedWorkspace = injectWorkspace()
   readonly #pluginAPI = injectPluginAPI()
@@ -1393,15 +1392,16 @@ export class XpertNewBlankComponent {
 
     const skillIndex = await firstValueFrom(
       this.#dialog
-        .open(XpertSkillInstallDialogComponent, {
+        .open<XpertSkillInstallDialogResult>(XpertSkillInstallDialogComponent, {
+          backdropClass: 'backdrop-blur-xs-black',
+          panelClass: 'xp-overlay-pane-dialog',
           width: 'min(96vw, 72rem)',
-          maxWidth: '72rem',
+          maxWidth: 'calc(100vw - 32px)',
           data: {
             workspaceId: this.workspaceId()
           }
         })
-        .afterClosed()
-        .pipe(take(1))
+        .closed.pipe(take(1))
     )
 
     if (skillIndex) {

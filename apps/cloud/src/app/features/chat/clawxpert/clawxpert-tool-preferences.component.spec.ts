@@ -1,7 +1,7 @@
 import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardDialogService } from '@xpert-ai/headless-ui'
+import { Dialog } from '@angular/cdk/dialog'
 import { concat, NEVER, of, throwError } from 'rxjs'
 import {
   ISkillPackage,
@@ -173,7 +173,7 @@ async function configureComponent(options?: {
   }
   const dialog = options?.dialog ?? {
     open: jest.fn(() => ({
-      afterClosed: () => of(undefined)
+      closed: of(undefined)
     }))
   }
 
@@ -195,7 +195,7 @@ async function configureComponent(options?: {
         useValue: toastr
       },
       {
-        provide: ZardDialogService,
+        provide: Dialog,
         useValue: dialog
       },
       {
@@ -319,11 +319,10 @@ describe('ClawXpertToolPreferencesComponent', () => {
     }
     const dialog = {
       open: jest.fn(() => ({
-        afterClosed: () =>
-          of({
-            kind: 'repository-index',
-            skillIndex: { id: 'index-2' } as ISkillRepositoryIndex
-          })
+        closed: of({
+          kind: 'repository-index',
+          skillIndex: { id: 'index-2' } as ISkillRepositoryIndex
+        })
       }))
     }
 

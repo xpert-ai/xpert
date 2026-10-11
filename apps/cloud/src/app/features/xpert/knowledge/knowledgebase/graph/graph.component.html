@@ -767,17 +767,11 @@
   </section>
 </div>
 
-@if (editorMode(); as mode) {
-  <div
-    class="fixed inset-0 z-50 flex items-center justify-center bg-background-default-subtle/80 p-4"
-    role="dialog"
-    aria-modal="true"
-  >
-    <z-card
-      class="w-full max-w-xl gap-0 overflow-hidden rounded-lg border-components-panel-border bg-components-card-bg py-0 shadow-xl"
-    >
-      <z-card-header class="flex items-center justify-between border-b border-components-panel-border px-5 py-4">
-        <z-card-title class="text-base font-semibold text-text-primary">
+<ng-template #editorDialog>
+  @if (editorMode(); as mode) {
+    <section xpDialogLayout="standard" class="w-[560px] max-w-full max-h-[calc(100dvh-32px)]">
+      <header xpDialogHeader>
+        <h2 xpDialogHeading id="knowledge-graph-editor-title">
           @switch (mode) {
             @case ('create-entity') {
               {{ 'XP.Knowledgebase.NewEntity' | translate: { Default: 'New entity' } }}
@@ -792,127 +786,128 @@
               {{ 'XP.Knowledgebase.EditRelation' | translate: { Default: 'Edit relation' } }}
             }
           }
-        </z-card-title>
-        <button z-button type="button" zType="ghost" zSize="icon-sm" (click)="closeEditor()">
+        </h2>
+        <button
+          z-button
+          type="button"
+          zType="ghost"
+          zSize="icon"
+          xpDialogCloseButton
+          [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+          [zDisabled]="saving()"
+          (click)="closeEditor()"
+        >
           <z-icon zType="x" />
         </button>
-      </z-card-header>
+      </header>
 
       @if (mode === 'create-entity' || mode === 'edit-entity') {
-        <form class="space-y-4 p-5" [formGroup]="entityForm" (ngSubmit)="saveEditor()">
-          <z-form-field appearance="fill" floatLabel="always">
-            <z-form-label zRequired>{{ 'XP.KEY_WORDS.Name' | translate: { Default: 'Name' } }}</z-form-label>
-            <input z-input formControlName="name" />
-          </z-form-field>
-          <z-form-field appearance="fill" floatLabel="always">
-            <z-form-label zRequired>{{ 'XP.KEY_WORDS.Type' | translate: { Default: 'Type' } }}</z-form-label>
-            <input z-input formControlName="type" />
-          </z-form-field>
-          <z-form-field appearance="fill" floatLabel="always">
-            <z-form-label>{{ 'XP.Knowledgebase.Aliases' | translate: { Default: 'Aliases' } }}</z-form-label>
-            <input z-input formControlName="aliases" />
-          </z-form-field>
-          <z-form-field appearance="fill" floatLabel="always">
-            <z-form-label>{{ 'XP.KEY_WORDS.Description' | translate: { Default: 'Description' } }}</z-form-label>
-            <textarea z-input class="min-h-24" formControlName="description"></textarea>
-          </z-form-field>
-          <z-form-field appearance="fill" floatLabel="always">
-            <z-form-label>{{ 'XP.Knowledgebase.Visibility' | translate: { Default: 'Visibility' } }}</z-form-label>
-            <z-select formControlName="visibility" class="w-full">
-              @for (visibilityOption of visibilities; track visibilityOption) {
-                <z-select-item [zValue]="visibilityOption">
-                  {{
-                    'XP.Knowledgebase.GraphVisibility_' + visibilityOption | translate: { Default: visibilityOption }
-                  }}
-                </z-select-item>
-              }
-            </z-select>
-          </z-form-field>
-          <div class="flex justify-end gap-2 pt-2">
-            <button z-button type="button" zType="outline" zSize="lg" (click)="closeEditor()">
+        <form class="flex min-h-0 flex-1 flex-col" [formGroup]="entityForm" (ngSubmit)="saveEditor()">
+          <div xpDialogBody>
+            <z-form-field appearance="fill" floatLabel="always">
+              <z-form-label zRequired>{{ 'XP.KEY_WORDS.Name' | translate: { Default: 'Name' } }}</z-form-label>
+              <input z-input formControlName="name" />
+            </z-form-field>
+            <z-form-field appearance="fill" floatLabel="always">
+              <z-form-label zRequired>{{ 'XP.KEY_WORDS.Type' | translate: { Default: 'Type' } }}</z-form-label>
+              <input z-input formControlName="type" />
+            </z-form-field>
+            <z-form-field appearance="fill" floatLabel="always">
+              <z-form-label>{{ 'XP.Knowledgebase.Aliases' | translate: { Default: 'Aliases' } }}</z-form-label>
+              <input z-input formControlName="aliases" />
+            </z-form-field>
+            <z-form-field appearance="fill" floatLabel="always">
+              <z-form-label>{{ 'XP.KEY_WORDS.Description' | translate: { Default: 'Description' } }}</z-form-label>
+              <textarea z-input class="min-h-24" formControlName="description"></textarea>
+            </z-form-field>
+            <z-form-field appearance="fill" floatLabel="always">
+              <z-form-label>{{ 'XP.Knowledgebase.Visibility' | translate: { Default: 'Visibility' } }}</z-form-label>
+              <z-select formControlName="visibility" class="w-full">
+                @for (visibilityOption of visibilities; track visibilityOption) {
+                  <z-select-item [zValue]="visibilityOption">
+                    {{
+                      'XP.Knowledgebase.GraphVisibility_' + visibilityOption | translate: { Default: visibilityOption }
+                    }}
+                  </z-select-item>
+                }
+              </z-select>
+            </z-form-field>
+          </div>
+          <footer xpDialogFooter>
+            <button z-button type="button" zType="outline" [zDisabled]="saving()" (click)="closeEditor()">
               {{ 'XP.KEY_WORDS.Cancel' | translate: { Default: 'Cancel' } }}
             </button>
-            <button
-              z-button
-              type="submit"
-              zSize="lg"
-              [zDisabled]="entityForm.invalid || saving()"
-              [zLoading]="saving()"
-            >
+            <button z-button type="submit" [zDisabled]="entityForm.invalid || saving()" [zLoading]="saving()">
               {{ 'XP.KEY_WORDS.Save' | translate: { Default: 'Save' } }}
             </button>
-          </div>
+          </footer>
         </form>
       } @else {
-        <form class="space-y-4 p-5" [formGroup]="relationForm" (ngSubmit)="saveEditor()">
-          <z-form-field appearance="fill" floatLabel="always">
-            <z-form-label zRequired>{{
-              'XP.Knowledgebase.SourceEntity' | translate: { Default: 'Source entity' }
-            }}</z-form-label>
-            <z-select
-              formControlName="sourceEntityId"
-              class="w-full"
-              [zPlaceholder]="'XP.Knowledgebase.SelectEntity' | translate: { Default: 'Select entity' }"
-            >
-              @for (entity of entityOptions(); track entity.id) {
-                <z-select-item [zValue]="entity.id">{{ entity.name }}</z-select-item>
-              }
-            </z-select>
-          </z-form-field>
-          <z-form-field appearance="fill" floatLabel="always">
-            <z-form-label zRequired>{{
-              'XP.Knowledgebase.TargetEntity' | translate: { Default: 'Target entity' }
-            }}</z-form-label>
-            <z-select
-              formControlName="targetEntityId"
-              class="w-full"
-              [zPlaceholder]="'XP.Knowledgebase.SelectEntity' | translate: { Default: 'Select entity' }"
-            >
-              @for (entity of entityOptions(); track entity.id) {
-                <z-select-item [zValue]="entity.id">{{ entity.name }}</z-select-item>
-              }
-            </z-select>
-          </z-form-field>
-          <z-form-field appearance="fill" floatLabel="always">
-            <z-form-label zRequired>{{ 'XP.KEY_WORDS.Type' | translate: { Default: 'Type' } }}</z-form-label>
-            <input z-input formControlName="type" />
-          </z-form-field>
-          <z-form-field appearance="fill" floatLabel="always">
-            <z-form-label>{{ 'XP.Knowledgebase.Weight' | translate: { Default: 'Weight' } }}</z-form-label>
-            <input z-input type="number" min="0" max="1" step="0.01" formControlName="weight" />
-          </z-form-field>
-          <z-form-field appearance="fill" floatLabel="always">
-            <z-form-label>{{ 'XP.KEY_WORDS.Description' | translate: { Default: 'Description' } }}</z-form-label>
-            <textarea z-input class="min-h-24" formControlName="description"></textarea>
-          </z-form-field>
-          <z-form-field appearance="fill" floatLabel="always">
-            <z-form-label>{{ 'XP.Knowledgebase.Visibility' | translate: { Default: 'Visibility' } }}</z-form-label>
-            <z-select formControlName="visibility" class="w-full">
-              @for (visibilityOption of visibilities; track visibilityOption) {
-                <z-select-item [zValue]="visibilityOption">
-                  {{
-                    'XP.Knowledgebase.GraphVisibility_' + visibilityOption | translate: { Default: visibilityOption }
-                  }}
-                </z-select-item>
-              }
-            </z-select>
-          </z-form-field>
-          <div class="flex justify-end gap-2 pt-2">
-            <button z-button type="button" zType="outline" zSize="lg" (click)="closeEditor()">
+        <form class="flex min-h-0 flex-1 flex-col" [formGroup]="relationForm" (ngSubmit)="saveEditor()">
+          <div xpDialogBody>
+            <z-form-field appearance="fill" floatLabel="always">
+              <z-form-label zRequired>{{
+                'XP.Knowledgebase.SourceEntity' | translate: { Default: 'Source entity' }
+              }}</z-form-label>
+              <z-select
+                formControlName="sourceEntityId"
+                class="w-full"
+                [zPlaceholder]="'XP.Knowledgebase.SelectEntity' | translate: { Default: 'Select entity' }"
+              >
+                @for (entity of entityOptions(); track entity.id) {
+                  <z-select-item [zValue]="entity.id">{{ entity.name }}</z-select-item>
+                }
+              </z-select>
+            </z-form-field>
+            <z-form-field appearance="fill" floatLabel="always">
+              <z-form-label zRequired>{{
+                'XP.Knowledgebase.TargetEntity' | translate: { Default: 'Target entity' }
+              }}</z-form-label>
+              <z-select
+                formControlName="targetEntityId"
+                class="w-full"
+                [zPlaceholder]="'XP.Knowledgebase.SelectEntity' | translate: { Default: 'Select entity' }"
+              >
+                @for (entity of entityOptions(); track entity.id) {
+                  <z-select-item [zValue]="entity.id">{{ entity.name }}</z-select-item>
+                }
+              </z-select>
+            </z-form-field>
+            <z-form-field appearance="fill" floatLabel="always">
+              <z-form-label zRequired>{{ 'XP.KEY_WORDS.Type' | translate: { Default: 'Type' } }}</z-form-label>
+              <input z-input formControlName="type" />
+            </z-form-field>
+            <z-form-field appearance="fill" floatLabel="always">
+              <z-form-label>{{ 'XP.Knowledgebase.Weight' | translate: { Default: 'Weight' } }}</z-form-label>
+              <input z-input type="number" min="0" max="1" step="0.01" formControlName="weight" />
+            </z-form-field>
+            <z-form-field appearance="fill" floatLabel="always">
+              <z-form-label>{{ 'XP.KEY_WORDS.Description' | translate: { Default: 'Description' } }}</z-form-label>
+              <textarea z-input class="min-h-24" formControlName="description"></textarea>
+            </z-form-field>
+            <z-form-field appearance="fill" floatLabel="always">
+              <z-form-label>{{ 'XP.Knowledgebase.Visibility' | translate: { Default: 'Visibility' } }}</z-form-label>
+              <z-select formControlName="visibility" class="w-full">
+                @for (visibilityOption of visibilities; track visibilityOption) {
+                  <z-select-item [zValue]="visibilityOption">
+                    {{
+                      'XP.Knowledgebase.GraphVisibility_' + visibilityOption | translate: { Default: visibilityOption }
+                    }}
+                  </z-select-item>
+                }
+              </z-select>
+            </z-form-field>
+          </div>
+          <footer xpDialogFooter>
+            <button z-button type="button" zType="outline" [zDisabled]="saving()" (click)="closeEditor()">
               {{ 'XP.KEY_WORDS.Cancel' | translate: { Default: 'Cancel' } }}
             </button>
-            <button
-              z-button
-              type="submit"
-              zSize="lg"
-              [zDisabled]="relationForm.invalid || saving()"
-              [zLoading]="saving()"
-            >
+            <button z-button type="submit" [zDisabled]="relationForm.invalid || saving()" [zLoading]="saving()">
               {{ 'XP.KEY_WORDS.Save' | translate: { Default: 'Save' } }}
             </button>
-          </div>
+          </footer>
         </form>
       }
-    </z-card>
-  </div>
-}
+    </section>
+  }
+</ng-template>

@@ -1,7 +1,31 @@
+import {
+  ZardButtonComponent,
+  XpDialogFrameImports,
+  XpDialogActionGroupDirective,
+  injectConfirmDelete,
+  myRxResource,
+  XpCommonModule,
+  ZardBadgeComponent,
+  ZardSearchInputComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
+import { A11yModule } from '@angular/cdk/a11y'
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule, Location } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  output,
+  signal,
+  TemplateRef,
+  untracked,
+  viewChild
+} from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
 import { XpertTaskDialogComponent, XpertTaskDialogService } from '@cloud/app/@shared/chat'
@@ -17,15 +41,6 @@ import {
   XpertTaskService
 } from '../../../@core'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
-import {
-  injectConfirmDelete,
-  myRxResource,
-  XpCommonModule,
-  ZardBadgeComponent,
-  ZardButtonComponent,
-  ZardSearchInputComponent,
-  ZardTooltipImports
-} from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { injectParams } from 'ngxtension/inject-params'
@@ -50,6 +65,7 @@ export type TasksPageView = 'tasks' | 'history' | 'archived'
 @Component({
   standalone: true,
   imports: [
+    A11yModule,
     CommonModule,
     FormsModule,
     CdkMenuModule,
@@ -61,7 +77,9 @@ export type TasksPageView = 'tasks' | 'history' | 'archived'
     XpCommonModule,
     EmojiAvatarComponent,
     DateRelativePipe,
-    XpertInlineProfileComponent
+    XpertInlineProfileComponent,
+    ...XpDialogFrameImports,
+    XpDialogActionGroupDirective
   ],
   selector: 'xp-chat-tasks',
   templateUrl: './tasks.component.html',
@@ -92,6 +110,7 @@ export class ChatTasksComponent {
   readonly batchManaging = signal(false)
   readonly selectedTaskIds = signal(new Set<string>())
   readonly templatePickerOpen = signal(false)
+  readonly templatePickerDialog = viewChild<TemplateRef<unknown>>('templatePickerDialog')
 
   // Scheduled tasks update in the background while the page is open.
   readonly #refresh$ = new BehaviorSubject<void>(null)
@@ -171,6 +190,24 @@ export class ChatTasksComponent {
   readonly taskLastExecution = getTaskLastExecution
 
   constructor() {
+    effect((onCleanup) => {
+      const open = this.templatePickerOpen()
+      const template = this.templatePickerDialog()
+      if (!open || !template) return
+      const ref = untracked(() =>
+        this.dialog.open(template, {
+          backdropClass: 'backdrop-blur-xs-black',
+          panelClass: 'xp-overlay-pane-dialog',
+          maxWidth: 'calc(100vw - 32px)',
+          ariaLabelledBy: 'automation-template-dialog-title'
+        })
+      )
+      const closed = ref.closed.subscribe(() => this.templatePickerOpen.set(false))
+      onCleanup(() => {
+        closed.unsubscribe()
+        ref.close()
+      })
+    })
     effect(() => {
       if (!this.embedded() && this.paramId()) {
         this.taskId.set(this.paramId())

@@ -485,10 +485,10 @@ export class XpertProjectConfigComponent {
       this.#dialog.open(XpertSkillInstallDialogComponent, {
         data: { scope: 'project' },
         width: 'min(96vw, 72rem)',
-        maxWidth: '72rem',
+        maxWidth: 'calc(100vw - 32px)',
         disableClose: true,
-        backdropClass: 'backdrop-blur-sm-black',
-        panelClass: 'xp-overlay-pane-card'
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog'
       }).closed
     )
     if (!result || result.kind !== 'repository-index') return

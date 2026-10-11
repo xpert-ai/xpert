@@ -604,7 +604,9 @@ export class ClawXpertSetupWizardComponent {
           plugin: toPluginMarketplaceDetails(plugin),
           showActions: false
         },
-        backdropClass: 'backdrop-blur-sm-black'
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)'
       })
     } catch (error) {
       this.#toastr.error(getErrorMessage(error))

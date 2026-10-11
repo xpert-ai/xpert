@@ -1,11 +1,18 @@
+import {
+  ZardButtonComponent,
+  XpDialogFrameImports,
+  XpDialogActionGroupDirective,
+  XpSpinComponent,
+  myRxResource,
+  XpI18nPipe,
+  ZardBadgeComponent
+} from '@xpert-ai/headless-ui'
 import { DIALOG_DATA, Dialog, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject, signal } from '@angular/core'
 import { Router } from '@angular/router'
 import { getErrorMessage, injectToastr } from '@cloud/app/@core'
 import { IconComponent } from '@cloud/app/@shared/avatar/icon/icon.component'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
-import { myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   injectPluginAPI,
@@ -21,7 +28,6 @@ import {
   PluginMeta,
   XpertTypeEnum
 } from '@xpert-ai/contracts'
-import { ZardBadgeComponent, ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { map, of } from 'rxjs'
 import { BlankXpertWizardResult, XpertNewBlankComponent } from '../../../xpert/xpert/blank/blank.component'
 import { PluginResourcesComponent } from '../resources/resources.component'
@@ -68,11 +74,13 @@ export type PluginMarketplaceDetailDialogData = {
     IconComponent,
     ZardBadgeComponent,
     ZardButtonComponent,
-    PluginMarketplaceMcpProviderComponent
+    PluginMarketplaceMcpProviderComponent,
+    ...XpDialogFrameImports,
+    XpDialogActionGroupDirective
   ],
   selector: 'xp-plugin-marketplace-detail',
   templateUrl: './marketplace-detail.component.html',
-  styleUrls: ['./marketplace-detail.component.scss']
+  host: { class: 'block min-w-0' }
 })
 export class PluginMarketplaceDetailComponent {
   readonly #dialogRef = inject(DialogRef)

@@ -529,7 +529,8 @@ export class PluginsComponent {
         reload: this.reload.bind(this)
       },
       backdropClass: 'backdrop-blur-xs-black',
-      panelClass: 'xp-overlay-pane-dialog'
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)'
     })
   }
 

@@ -1716,7 +1716,9 @@ export class KnowledgeDocumentsComponent {
         knowledgebase: this.knowledgebase(),
         documentId: doc.id
       },
-      panelClass: 'xp-overlay-pane-share-sheet'
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)'
     })
   }
 
