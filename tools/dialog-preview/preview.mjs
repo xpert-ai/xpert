@@ -29,6 +29,9 @@ import { batchSix } from './batch-06.mjs'
 import { batchSeven } from './batch-07.mjs'
 import { batchEight } from './batch-08.mjs'
 import { batchNine } from './batch-09.mjs'
+import { batchTen } from './batch-10.mjs'
+import { batchTenFixture, workflowPanelMode } from './batch-10-fixtures.mjs'
+import { batchTenChildren } from './batch-10-children.mjs'
 import { batchNineFixture } from './batch-09-fixtures.mjs'
 import { batchNineChildren } from './batch-09-children.mjs'
 import { batchEightFixture } from './batch-08-fixtures.mjs'
@@ -66,7 +69,8 @@ const names = {
       ...batchSix,
       ...batchSeven,
       ...batchEight,
-      ...batchNine
+      ...batchNine,
+      ...batchTen
     }).map(([key, scene]) => [key, scene.name])
   )
 }
@@ -85,7 +89,8 @@ const widths = {
       ...batchSix,
       ...batchSeven,
       ...batchEight,
-      ...batchNine
+      ...batchNine,
+      ...batchTen
     }).map(([key, scene]) => [key, scene.width])
   )
 }
@@ -170,6 +175,7 @@ const sixthChildren = batchSixChildren(imports, templates, busy, notify)
 const seventhChildren = batchSevenChildren([...imports, ...sixthChildren], templates, busy, notify)
 const eighthChildren = batchEightChildren([...imports, ...sixthChildren, ...seventhChildren], templates, busy, notify)
 const ninthChildren = batchNineChildren([...imports, ...sixthChildren, ...seventhChildren], templates, busy, notify)
+const tenthChildren = batchTenChildren(imports, templates, busy, notify)
 const sceneTypes = Object.fromEntries(
   Object.keys(names).map((key) => {
     class Scene {
@@ -180,23 +186,25 @@ const sceneTypes = Object.fromEntries(
       constructor() {
         Object.assign(
           this,
-          batchNine[key]
-            ? batchNineFixture(key, busy, notify, this.close)
-            : batchEight[key]
-              ? batchEightFixture(key, busy, notify, this.close)
-              : batchSeven[key]
-                ? batchSevenFixture(key, busy, notify, this.close)
-                : batchSix[key]
-                  ? batchSixFixture(key, busy, notify, this.close)
-                  : batchFive[key]
-                    ? batchFiveFixture(key, busy, notify, this.close, editMode, qrState)
-                    : batchFour[key]
-                      ? batchFourFixture(key, busy, notify, this.close)
-                      : batchThree[key]
-                        ? batchThreeFixture(key, busy, notify, actionMode, qrState)
-                        : batchTwo[key]
-                          ? batchTwoFixture(key, busy, notify, planMode)
-                          : fixtureFor(key, busy, notify)
+          batchTen[key]
+            ? batchTenFixture(key, busy, notify, this.close)
+            : batchNine[key]
+              ? batchNineFixture(key, busy, notify, this.close)
+              : batchEight[key]
+                ? batchEightFixture(key, busy, notify, this.close)
+                : batchSeven[key]
+                  ? batchSevenFixture(key, busy, notify, this.close)
+                  : batchSix[key]
+                    ? batchSixFixture(key, busy, notify, this.close)
+                    : batchFive[key]
+                      ? batchFiveFixture(key, busy, notify, this.close, editMode, qrState)
+                      : batchFour[key]
+                        ? batchFourFixture(key, busy, notify, this.close)
+                        : batchThree[key]
+                          ? batchThreeFixture(key, busy, notify, actionMode, qrState)
+                          : batchTwo[key]
+                            ? batchTwoFixture(key, busy, notify, planMode)
+                            : fixtureFor(key, busy, notify)
         )
         if (key === 'assistantSettings')
           Object.defineProperty(this, 'title', {
@@ -209,16 +217,18 @@ const sceneTypes = Object.fromEntries(
     const comp = Component({
       standalone: true,
       selector: `preview-${key}`,
-      imports: [
-        ...imports,
-        PreviewReviewList,
-        ...fourthChildren,
-        ...fifthChildren,
-        ...sixthChildren,
-        ...seventhChildren,
-        ...eighthChildren,
-        ...ninthChildren
-      ],
+      imports: batchTen[key]
+        ? [...imports, ...sixthChildren, ...tenthChildren]
+        : [
+            ...imports,
+            PreviewReviewList,
+            ...fourthChildren,
+            ...fifthChildren,
+            ...sixthChildren,
+            ...seventhChildren,
+            ...eighthChildren,
+            ...ninthChildren
+          ],
       schemas: [CUSTOM_ELEMENTS_SCHEMA],
       host: { class: 'block min-w-0' },
       template: templates[key]
@@ -228,37 +238,41 @@ const sceneTypes = Object.fromEntries(
 )
 class PreviewApp {
   dialog = inject(Dialog)
-  batch = signal('ninth')
+  batch = signal('tenth')
+  workflowPanelMode = workflowPanelMode
   editMode = editMode
   actionMode = actionMode
   qrState = qrState
   planMode = planMode
   get scenes() {
     return Object.entries(names).filter(([key]) =>
-      this.batch() === 'ninth'
-        ? !!batchNine[key]
-        : this.batch() === 'eighth'
-          ? !!batchEight[key] && !batchNine[key]
-          : this.batch() === 'seventh'
-            ? !!batchSeven[key] && !batchEight[key] && !batchNine[key]
-            : this.batch() === 'sixth'
-              ? !!batchSix[key]
-              : this.batch() === 'fifth'
-                ? !!batchFive[key]
-                : this.batch() === 'fourth'
-                  ? !!batchFour[key]
-                  : this.batch() === 'third'
-                    ? !!batchThree[key]
-                    : this.batch() === 'second'
-                      ? !!batchTwo[key]
-                      : !batchTwo[key] &&
-                        !batchThree[key] &&
-                        !batchFour[key] &&
-                        !batchFive[key] &&
-                        !batchSix[key] &&
-                        !batchSeven[key] &&
-                        !batchEight[key] &&
-                        !batchNine[key]
+      this.batch() === 'tenth'
+        ? !!batchTen[key]
+        : this.batch() === 'ninth'
+          ? !!batchNine[key] && !batchTen[key]
+          : this.batch() === 'eighth'
+            ? !!batchEight[key] && !batchNine[key] && !batchTen[key]
+            : this.batch() === 'seventh'
+              ? !!batchSeven[key] && !batchEight[key] && !batchNine[key] && !batchTen[key]
+              : this.batch() === 'sixth'
+                ? !!batchSix[key]
+                : this.batch() === 'fifth'
+                  ? !!batchFive[key]
+                  : this.batch() === 'fourth'
+                    ? !!batchFour[key]
+                    : this.batch() === 'third'
+                      ? !!batchThree[key]
+                      : this.batch() === 'second'
+                        ? !!batchTwo[key]
+                        : !batchTwo[key] &&
+                          !batchThree[key] &&
+                          !batchFour[key] &&
+                          !batchFive[key] &&
+                          !batchSix[key] &&
+                          !batchSeven[key] &&
+                          !batchEight[key] &&
+                          !batchNine[key] &&
+                          !batchTen[key]
     )
   }
   dark = signal(false)
@@ -281,7 +295,8 @@ class PreviewApp {
         batchSix[key] ||
         batchSeven[key] ||
         batchEight[key] ||
-        batchNine[key]
+        batchNine[key] ||
+        batchTen[key]
           ? 'calc(100vw - 32px)'
           : 'calc(100vw - 2rem)',
       panelClass: 'xp-overlay-pane-dialog',
@@ -298,15 +313,16 @@ Component({
   <main class="preview-shell">
     <div class="preview-top">
       <div><p class="preview-muted" style="letter-spacing:2px">XPERT / DIALOG</p>
-        <h1 style="font-size:30px;font-weight:600;margin:8px 0">{{ batch() === 'ninth' ? '第九批 · 10 个 Dialog' : batch() === 'eighth' ? '第八批 · 10 个 Dialog' : batch() === 'seventh' ? '第七批 · 10 个 Dialog' : batch() === 'sixth' ? '第六批 · 10 个 Dialog' : batch() === 'fifth' ? '第五批 · 10 个 Dialog' : batch() === 'fourth' ? '第四批 · 10 个 Dialog' : batch() === 'third' ? '第三批 · 10 个 Dialog' : batch() === 'second' ? '第二批 · 10 个 Dialog' : '首批 · 5 个 Dialog' }}</h1></div>
+        <h1 style="font-size:30px;font-weight:600;margin:8px 0">{{ batch() === 'tenth' ? '第十批 · 10 个 Dialog' : batch() === 'ninth' ? '第九批 · 10 个 Dialog' : batch() === 'eighth' ? '第八批 · 10 个 Dialog' : batch() === 'seventh' ? '第七批 · 10 个 Dialog' : batch() === 'sixth' ? '第六批 · 10 个 Dialog' : batch() === 'fifth' ? '第五批 · 10 个 Dialog' : batch() === 'fourth' ? '第四批 · 10 个 Dialog' : batch() === 'third' ? '第三批 · 10 个 Dialog' : batch() === 'second' ? '第二批 · 10 个 Dialog' : '首批 · 5 个 Dialog' }}</h1></div>
       <div class="preview-controls">
-        <select aria-label="预览批次" [value]="batch()" (change)="batch.set($event.target.value)"><option value="ninth">第九批</option><option value="eighth">第八批</option><option value="seventh">第七批</option><option value="sixth">第六批</option><option value="fifth">第五批</option><option value="fourth">第四批</option><option value="third">第三批</option><option value="second">第二批</option><option value="first">首批</option></select>
+        <select aria-label="预览批次" [value]="batch()" (change)="batch.set($event.target.value)"><option value="tenth">第十批</option><option value="ninth">第九批</option><option value="eighth">第八批</option><option value="seventh">第七批</option><option value="sixth">第六批</option><option value="fifth">第五批</option><option value="fourth">第四批</option><option value="third">第三批</option><option value="second">第二批</option><option value="first">首批</option></select>
         <button (click)="toggleTheme()">{{ dark() ? '浅色' : '深色' }}</button>
         <button (click)="language.set(language() === 'zh' ? 'en' : 'zh')">{{ language() === 'zh' ? 'English' : '中文' }}</button>
         <button (click)="busy.set(!busy())">{{ busy() ? '恢复正常状态' : '查看处理中状态' }}</button>
       </div>
     </div>
     <p class="preview-note">真实模板与共享 UI 组件 · 示例数据。共享布局 · 14px 正文 · 表单与普通操作 36px · 关键流程 40px · 同组等高。<br>点击打开场景，按 Escape 或点击遮罩返回。预览不会调用业务 API。</p>
+    @if (batch() === 'tenth') { <p class="preview-note">生产模板与技能子模板；业务接口和 Formly 配置使用本地示例，不会安装插件或修改数据。</p><label>工作流操作场景 <select [value]="workflowPanelMode()" (change)="workflowPanelMode.set($event.target.value)"><option value="discard">未保存离开</option><option value="archive">归档</option><option value="export">导出</option><option value="templates">模板选择</option></select></label> }
     @if (batch() === 'ninth') { <p class="preview-note">本批使用生产窗口、MCP 配置、助手设置子模板；业务接口、模型/目录选择和处理设置使用本地示例适配。业务与权限结果请在平台验收。</p> }
     @if (batch() === 'eighth') { <p class="preview-note">生产窗口及授权、资源导入、文件列表、流水线步骤模板；本地示例数据。Markdown、插件卡片、工具列表、调度字段和 API 选择器为预览适配，业务与权限请在平台验收。</p> }
     @if (batch() === 'seventh') { <p class="preview-note">本批使用生产 Dialog、工作空间设置、成员、API Key、工具配置和集成表单模板。头像、用户信息、标签、模型/集成选择、文件和技能列表使用本地适配示例；真实接口与权限请在平台验收。</p> }

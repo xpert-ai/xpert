@@ -16,6 +16,7 @@ import { batchSix } from './batch-06.mjs'
 import { batchSeven } from './batch-07.mjs'
 import { batchEight } from './batch-08.mjs'
 import { batchNine } from './batch-09.mjs'
+import { batchTen } from './batch-10.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const out = path.join(root, '.cache/dialog-preview')
@@ -60,12 +61,13 @@ for (const [key, scene] of Object.entries({
   ...batchSix,
   ...batchSeven,
   ...batchEight,
-  ...batchNine
+  ...batchNine,
+  ...batchTen
 })) {
   const file = `apps/cloud/src/app/${scene.path}`
   scenes[key] = scene.path.endsWith('.ts') ? await inline(file) : await read(file)
   if (scene.fragment) {
-    const start = scenes[key].indexOf(`<ng-template #${scene.fragment}>`)
+    const start = scenes[key].search(new RegExp(`<ng-template\\s+#${scene.fragment}\\b[^>]*>`))
     if (start < 0) throw new Error(`Missing fragment ${scene.fragment}`)
     scenes[key] = scenes[key]
       .slice(start)
@@ -120,6 +122,11 @@ scenes.assistantPersonalization = await inline(
   'apps/cloud/src/app/features/setting/assistant/assistant-personalization.component.ts'
 )
 scenes.assistantTriggers = await inline('apps/cloud/src/app/features/setting/assistant/assistant-triggers.component.ts')
+scenes.githubInstallBody = await inline('apps/cloud/src/app/@shared/skills/github-install/github-install.component.ts')
+scenes.skillRepositoryBody = await read(
+  'apps/cloud/src/app/@shared/skills/skill-repositories/skill-repositories.component.html'
+)
+scenes.skillIndexesBody = await read('apps/cloud/src/app/@shared/skills/indexes/indexes.component.html')
 await fs.writeFile(path.join(out, 'scenes.json'), JSON.stringify(scenes))
 const zh = JSON.parse(await read('apps/cloud/src/assets/i18n/zh-Hans.json'))
 const en = JSON.parse(await read('apps/cloud/src/assets/i18n/en-US.json'))
@@ -204,5 +211,9 @@ await fs.mkdir(path.join(out, 'assets'), { recursive: true })
 await fs.copyFile(path.join(root, 'apps/cloud/src/assets/icon.png'), path.join(out, 'assets/icon.png'))
 
 await fs.cp(path.join(root, 'apps/cloud/src/assets/images/xperts'), path.join(out, 'assets/images/xperts'), {
+  recursive: true
+})
+
+await fs.cp(path.join(root, 'apps/cloud/src/assets/images/db-logos'), path.join(out, 'assets/images/db-logos'), {
   recursive: true
 })

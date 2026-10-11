@@ -1,20 +1,23 @@
+import {
+  ZardButtonComponent,
+  ZardToggleGroupComponent,
+  ZardToggleGroupItemComponent,
+  XpDialogFrameImports,
+  XpDialogControlDirective,
+  ZardInputDirective,
+  ZardBadgeComponent,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardLoaderComponent,
+  ZardTooltipImports,
+  myRxResource
+} from '@xpert-ai/headless-ui'
+import { DialogRef, DIALOG_DATA } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
-import {
-  Z_MODAL_DATA,
-  ZardBadgeComponent,
-  ZardButtonComponent,
-  ZardDialogRef,
-  ZardFormImports,
-  ZardIconComponent,
-  ZardInputDirective,
-  ZardLoaderComponent,
-  ZardTooltipImports
-} from '@xpert-ai/headless-ui'
 import { DataSourceProtocolEnum, DataSourceService, DataSourceTypesService } from '@cloud/app/@core/state'
-import { myRxResource } from '@xpert-ai/headless-ui'
 import { cloneDeep } from 'lodash-es'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -39,11 +42,14 @@ import { ToastrService } from '../../../../@core/services/toastr.service'
     ZardButtonComponent,
     ZardIconComponent,
     ZardLoaderComponent,
-    FormlyModule
+    FormlyModule,
+    ...XpDialogFrameImports,
+    XpDialogControlDirective,
+    ZardToggleGroupComponent,
+    ZardToggleGroupItemComponent
   ],
   selector: 'xp-data-source-edit',
   templateUrl: 'edit.component.html',
-  styleUrls: ['edit.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class XpDataSourceEditComponent {
@@ -52,8 +58,8 @@ export class XpDataSourceEditComponent {
   readonly dataSourceTypesAPI = inject(DataSourceTypesService)
   readonly dataSourceService = inject(DataSourceService)
   private translateService = inject(TranslateService)
-  public dialogRef = inject<ZardDialogRef<XpDataSourceEditComponent, boolean>>(ZardDialogRef)
-  public data = inject<Pick<IDataSource, 'id'>>(Z_MODAL_DATA)
+  public dialogRef = inject<DialogRef<boolean, XpDataSourceEditComponent>>(DialogRef)
+  public data = inject<Pick<IDataSource, 'id'>>(DIALOG_DATA)
   private toastrService = inject(ToastrService)
   private dataSourceConnection = inject(DataSourceConnectionService)
 

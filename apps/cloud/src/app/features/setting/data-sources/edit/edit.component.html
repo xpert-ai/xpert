@@ -1,107 +1,128 @@
-<header class="flex shrink-0 items-center border-b border-divider-regular px-6 py-4">
-  <div class="min-w-0 flex-1">
-    <h2 class="truncate text-lg font-semibold">
+<div xpDialogLayout="standard" xpDialogPurpose="workflow" class="w-[560px] max-w-full max-h-[85dvh]">
+  <header xpDialogHeader>
+    <h2 xpDialogHeading>
       {{ 'XP.KEY_WORDS.MODIFY' | translate: { Default: 'Modify' } }}
       {{ 'XP.KEY_WORDS.DataSource' | translate: { Default: 'Data Source' } }}
     </h2>
-    <p class="truncate text-xs text-text-secondary">{{ nameCtrl.value }}</p>
-  </div>
-</header>
+    <p xpDialogDescription>{{ nameCtrl.value }}</p>
+    <button
+      xpDialogCloseButton
+      z-button
+      zType="ghost"
+      zSize="icon"
+      type="button"
+      (click)="onCancel()"
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+    >
+      <z-icon zType="close" />
+    </button>
+  </header>
 
-<main class="min-h-0 w-[560px] flex-1 overflow-y-auto px-6 py-5">
-  @if (dataSource()?.type; as type) {
-    <div class="mb-5 flex items-center gap-4 rounded-lg border border-divider-regular bg-components-panel-bg p-4">
-      <img
-        src="assets/images/db-logos/{{ type.type }}.png"
-        width="48"
-        height="48"
-        class="m-0 inline-block shrink-0"
-        [alt]="type.name"
-      />
-      <div class="min-w-0 flex-1">
-        <div class="truncate text-base font-semibold">{{ type.name }}</div>
-        <div class="mt-1 flex items-center gap-2">
-          <z-badge zType="outline" zShape="pill">{{ type.type }}</z-badge>
-          <span class="truncate text-xs text-text-tertiary">{{ type.protocol }}</span>
-        </div>
-      </div>
-    </div>
-  }
-
-  <form [formGroup]="formGroup" class="space-y-5">
-    <z-form-field class="w-full" appearance="fill">
-      <z-form-label [zRequired]="true">
-        {{ 'XP.MENU.DATA_SOURCES.NAME' | translate: { Default: 'Name' } }}
-      </z-form-label>
-      <input z-input formControlName="name" required [zStatus]="nameCtrl?.invalid ? 'error' : undefined" />
-      @if (nameCtrl?.invalid) {
-        <z-form-message zType="error">
-          {{ 'XP.MENU.DATA_SOURCES.NAME_REQUIRED' | translate: { Default: 'Name Required' } }}
-        </z-form-message>
-      }
-    </z-form-field>
-
-    @if (isXmla()) {
-      <div class="rounded-lg border border-divider-regular bg-components-panel-bg p-4">
-        <div class="flex flex-wrap items-center justify-between gap-4">
-          <div class="flex flex-wrap items-center gap-2">
-            <span class="text-sm text-text-secondary">
-              {{ 'XP.MENU.DATA_SOURCES.AuthType' | translate: { Default: 'Auth Type' } }}
-            </span>
-            <z-toggle-group formControlName="authType" name="authType" zType="outline" zSize="sm">
-              <z-toggle-group-item
-                [value]="null"
-                [zTooltip]="
-                  'XP.MENU.DATA_SOURCES.AuthType_None_Description'
-                    | translate: { Default: 'Unified system authorization, no need for users to provide accounts.' }
-                "
-              >
-                {{ 'XP.MENU.DATA_SOURCES.AuthType_None' | translate: { Default: 'None' } }}
-              </z-toggle-group-item>
-              <z-toggle-group-item
-                [value]="AuthenticationEnum.BASIC"
-                [zTooltip]="
-                  'XP.MENU.DATA_SOURCES.AuthType_Basic_Description'
-                    | translate: { Default: 'Users need to provide an account for authorization.' }
-                "
-              >
-                {{ 'XP.MENU.DATA_SOURCES.AuthType_Basic' | translate: { Default: 'Basic' } }}
-              </z-toggle-group-item>
-            </z-toggle-group>
+  <main xpDialogBody>
+    @if (dataSource()?.type; as type) {
+      <div class="mb-5 flex items-center gap-4 rounded-lg border border-divider-regular bg-components-panel-bg p-4">
+        <img
+          src="assets/images/db-logos/{{ type.type }}.png"
+          width="48"
+          height="48"
+          class="m-0 inline-block shrink-0"
+          [alt]="type.name"
+        />
+        <div class="min-w-0 flex-1">
+          <div class="truncate text-base font-semibold">{{ type.name }}</div>
+          <div class="mt-1 flex items-center gap-2">
+            <z-badge zType="outline" zShape="pill">{{ type.type }}</z-badge>
+            <span class="truncate text-xs text-text-tertiary">{{ type.protocol }}</span>
           </div>
         </div>
       </div>
     }
-  </form>
 
-  <div class="mt-5">
-    @if (schema$()) {
-      <formly-form [form]="optionsFormGroup" [fields]="schema$()" [model]="model" />
-    } @else {
-      <div class="flex min-h-48 items-center justify-center gap-2 text-sm text-text-secondary">
-        <z-loader zSize="sm" />
-        <span>{{ 'XP.KEY_WORDS.Loading' | translate: { Default: 'Loading' } }}</span>
-      </div>
-    }
-  </div>
-</main>
+    <form [formGroup]="formGroup" class="space-y-5">
+      <z-form-field class="w-full" appearance="fill">
+        <z-form-label [zRequired]="true">
+          {{ 'XP.MENU.DATA_SOURCES.NAME' | translate: { Default: 'Name' } }}
+        </z-form-label>
+        <input z-input formControlName="name" required [zStatus]="nameCtrl?.invalid ? 'error' : undefined" />
+        @if (nameCtrl?.invalid) {
+          <z-form-message zType="error">
+            {{ 'XP.MENU.DATA_SOURCES.NAME_REQUIRED' | translate: { Default: 'Name Required' } }}
+          </z-form-message>
+        }
+      </z-form-field>
 
-<footer class="flex shrink-0 items-center justify-between gap-3 border-t border-divider-regular px-6 py-4">
-  <button z-button zType="outline" type="button" [zLoading]="_loading()" [disabled]="_loading()" (click)="ping()">
-    {{ 'XP.ACTIONS.PING' | translate: { Default: 'Ping' } }}
-  </button>
-  <div class="flex items-center gap-2">
-    <button z-button zType="secondary" type="button" (click)="onCancel()">
-      {{ 'XP.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
-    </button>
+      @if (isXmla()) {
+        <div class="rounded-lg border border-divider-regular bg-components-panel-bg p-4">
+          <div class="flex flex-wrap items-center justify-between gap-4">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="text-sm text-text-secondary">
+                {{ 'XP.MENU.DATA_SOURCES.AuthType' | translate: { Default: 'Auth Type' } }}
+              </span>
+              <z-toggle-group formControlName="authType" name="authType" zType="outline">
+                <z-toggle-group-item
+                  xpDialogControl="single"
+                  [value]="null"
+                  [zTooltip]="
+                    'XP.MENU.DATA_SOURCES.AuthType_None_Description'
+                      | translate: { Default: 'Unified system authorization, no need for users to provide accounts.' }
+                  "
+                >
+                  {{ 'XP.MENU.DATA_SOURCES.AuthType_None' | translate: { Default: 'None' } }}
+                </z-toggle-group-item>
+                <z-toggle-group-item
+                  xpDialogControl="single"
+                  [value]="AuthenticationEnum.BASIC"
+                  [zTooltip]="
+                    'XP.MENU.DATA_SOURCES.AuthType_Basic_Description'
+                      | translate: { Default: 'Users need to provide an account for authorization.' }
+                  "
+                >
+                  {{ 'XP.MENU.DATA_SOURCES.AuthType_Basic' | translate: { Default: 'Basic' } }}
+                </z-toggle-group-item>
+              </z-toggle-group>
+            </div>
+          </div>
+        </div>
+      }
+    </form>
+
+    <div class="mt-5">
+      @if (schema$()) {
+        <formly-form [form]="optionsFormGroup" [fields]="schema$()" [model]="model" />
+      } @else {
+        <div class="flex min-h-48 items-center justify-center gap-2 text-sm text-text-secondary">
+          <z-loader zSize="sm" />
+          <span>{{ 'XP.KEY_WORDS.Loading' | translate: { Default: 'Loading' } }}</span>
+        </div>
+      }
+    </div>
+  </main>
+
+  <footer xpDialogFooter>
     <button
       z-button
-      zType="default"
+      zType="outline"
       type="button"
-      [disabled]="!dirty() || formGroup.invalid || _loading()"
-      (click)="onSave()"
+      class="mr-auto"
+      [zLoading]="_loading()"
+      [zDisabled]="_loading()"
+      (click)="ping()"
     >
-      {{ 'XP.ACTIONS.SAVE' | translate: { Default: 'Save' } }}
+      {{ 'XP.ACTIONS.PING' | translate: { Default: 'Ping' } }}
     </button>
-  </div>
-</footer>
+    <div class="flex flex-wrap items-center justify-end gap-2">
+      <button z-button zType="outline" type="button" (click)="onCancel()">
+        {{ 'XP.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
+      </button>
+      <button
+        z-button
+        zType="default"
+        type="button"
+        [zDisabled]="(!dirty() && !formGroup.dirty) || formGroup.invalid || _loading()"
+        (click)="onSave()"
+      >
+        {{ 'XP.ACTIONS.SAVE' | translate: { Default: 'Save' } }}
+      </button>
+    </div>
+  </footer>
+</div>

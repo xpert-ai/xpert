@@ -1,3 +1,11 @@
+import {
+  ZardButtonComponent,
+  XpDialogFrameImports,
+  ZardInputDirective,
+  ZardSearchInputComponent,
+  ZardSelectImports,
+  type ZardSelectValue
+} from '@xpert-ai/headless-ui'
 import { DefaultAgentPluginsResultComponent } from '@cloud/app/@shared/agent-plugins/default-agent-plugins-result.component'
 import { DEFAULT_AGENT_PLUGINS_SOURCE, type DefaultAgentPluginsImportResult } from '@xpert-ai/contracts'
 import { A11yModule } from '@angular/cdk/a11y'
@@ -16,12 +24,6 @@ import { API_PREFIX } from '@cloud/app/@core/state/constants'
 import { injectActiveScope } from '@cloud/app/@core/state'
 import { getErrorMessage, injectToastr } from '@cloud/app/@core'
 import type { RuntimeResourceBindingInput } from '@xpert-ai/contracts'
-import {
-  ZardButtonComponent,
-  ZardSearchInputComponent,
-  ZardSelectImports,
-  type ZardSelectValue
-} from '@xpert-ai/headless-ui'
 import {
   BindingSummary,
   groupPluginPackages,
@@ -55,7 +57,9 @@ interface ResourceOptions {
     DefaultAgentPluginsResultComponent,
     ZardSearchInputComponent,
     ZardSelectImports,
-    AgentPluginAvatarComponent
+    AgentPluginAvatarComponent,
+    ...XpDialogFrameImports,
+    ZardInputDirective
   ],
   templateUrl: './agent-plugins.component.html',
   host: { class: 'block min-h-0 flex-1' }
@@ -246,6 +250,7 @@ export class AgentPluginsComponent {
     this.error.set(null)
     this.importDialog = this.dialog.open(template, {
       ariaLabelledBy: 'agent-plugin-import-title',
+      maxWidth: 'calc(100vw - 32px)',
       backdropClass: 'backdrop-blur-xs-black',
       panelClass: 'xp-overlay-pane-dialog',
       disableClose: true

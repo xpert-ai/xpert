@@ -1,9 +1,10 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { DataSourceService } from '@cloud/app/@core/state'
 import { TranslateService } from '@ngx-translate/core'
 import { IDataSource } from '@xpert-ai/contracts'
 import { of } from 'rxjs'
-import { ZardAlertDialogService, ZardDialogService } from '@xpert-ai/headless-ui'
+import { ZardAlertDialogService } from '@xpert-ai/headless-ui'
 import { XpDataSourcesComponent } from './data-sources.component'
 import { XpDataSourceCreationComponent } from './creation/creation.component'
 import { XpDataSourceEditComponent } from './edit/edit.component'
@@ -37,7 +38,7 @@ describe('XpDataSourcesComponent', () => {
           }
         },
         {
-          provide: ZardDialogService,
+          provide: Dialog,
           useValue: {
             open
           }
@@ -78,10 +79,9 @@ describe('XpDataSourcesComponent', () => {
     expect(open).toHaveBeenCalledWith(
       XpDataSourceCreationComponent,
       expect.objectContaining({
-        backdropClass: 'xp-overlay-share-sheet',
-        panelClass: ['xp-overlay-pane-share-sheet', '!p-0'],
-        width: 'min(780px, calc(100vw - 48px))',
-        maxWidth: 'calc(100vw - 48px)'
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)'
       })
     )
     expect(getAll).toHaveBeenCalledTimes(callsBeforeCreate + 1)
@@ -98,10 +98,9 @@ describe('XpDataSourcesComponent', () => {
         data: {
           id: dataSource.id
         },
-        backdropClass: 'xp-overlay-share-sheet',
-        panelClass: ['xp-overlay-pane-share-sheet', '!p-0'],
-        width: 'min(560px, calc(100vw - 48px))',
-        maxWidth: 'calc(100vw - 48px)'
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)'
       })
     )
     expect(getAll).toHaveBeenCalledTimes(callsBeforeEdit + 1)
@@ -116,10 +115,9 @@ describe('XpDataSourcesComponent', () => {
       XpDataSourceCreationComponent,
       expect.objectContaining({
         data: dataSource,
-        backdropClass: 'xp-overlay-share-sheet',
-        panelClass: ['xp-overlay-pane-share-sheet', '!p-0'],
-        width: 'min(780px, calc(100vw - 48px))',
-        maxWidth: 'calc(100vw - 48px)'
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)'
       })
     )
     expect(getAll).toHaveBeenCalledTimes(callsBeforeCopy + 1)

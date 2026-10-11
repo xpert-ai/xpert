@@ -1,3 +1,4 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { Component, inject, signal, ViewContainerRef } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
@@ -17,18 +18,12 @@ import {
   ZardBadgeComponent,
   ZardButtonComponent,
   ZardCardImports,
-  ZardDialogService,
   ZardEmptyComponent,
   ZardIconComponent,
   ZardLoaderComponent,
   ZardMenuImports,
   ZardSearchInputComponent
 } from '@xpert-ai/headless-ui'
-
-const DATA_SOURCE_DIALOG_PANEL_CLASS = ['xp-overlay-pane-share-sheet', '!p-0']
-const DATA_SOURCE_DIALOG_MAX_WIDTH = 'calc(100vw - 48px)'
-const DATA_SOURCE_CREATION_DIALOG_WIDTH = 'min(780px, calc(100vw - 48px))'
-const DATA_SOURCE_EDIT_DIALOG_WIDTH = 'min(560px, calc(100vw - 48px))'
 
 @Component({
   standalone: true,
@@ -53,7 +48,7 @@ export class XpDataSourcesComponent {
   routeAnimationsElements = ROUTE_ANIMATIONS_ELEMENTS
 
   private readonly dataSource = inject(DataSourceService)
-  readonly #dialog = inject(ZardDialogService)
+  readonly #dialog = inject(Dialog)
   readonly #alertDialog = inject(ZardAlertDialogService)
   readonly #translate = inject(TranslateService)
   readonly #viewContainerRef = inject(ViewContainerRef)
@@ -83,10 +78,9 @@ export class XpDataSourcesComponent {
   create() {
     this.#dialog
       .open(XpDataSourceCreationComponent, {
-        backdropClass: 'xp-overlay-share-sheet',
-        panelClass: DATA_SOURCE_DIALOG_PANEL_CLASS,
-        width: DATA_SOURCE_CREATION_DIALOG_WIDTH,
-        maxWidth: DATA_SOURCE_DIALOG_MAX_WIDTH
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)'
       })
       .closed.subscribe({
         next: (result) => {
@@ -104,10 +98,9 @@ export class XpDataSourcesComponent {
           id: dataSource.id
         },
         viewContainerRef: this.#viewContainerRef,
-        backdropClass: 'xp-overlay-share-sheet',
-        panelClass: DATA_SOURCE_DIALOG_PANEL_CLASS,
-        width: DATA_SOURCE_EDIT_DIALOG_WIDTH,
-        maxWidth: DATA_SOURCE_DIALOG_MAX_WIDTH
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)'
       })
       .closed.subscribe({
         next: (result) => {
@@ -122,10 +115,9 @@ export class XpDataSourcesComponent {
     this.#dialog
       .open(XpDataSourceCreationComponent, {
         data,
-        backdropClass: 'xp-overlay-share-sheet',
-        panelClass: DATA_SOURCE_DIALOG_PANEL_CLASS,
-        width: DATA_SOURCE_CREATION_DIALOG_WIDTH,
-        maxWidth: DATA_SOURCE_DIALOG_MAX_WIDTH
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)'
       })
       .closed.subscribe({
         next: (result) => {
