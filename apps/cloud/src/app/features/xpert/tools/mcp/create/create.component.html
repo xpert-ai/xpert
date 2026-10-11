@@ -1,77 +1,80 @@
-<header
-  class="flex justify-between items-center p-4 cursor-move"
-  cdkDrag
-  cdkDragRootElement=".cdk-overlay-pane"
-  cdkDragHandle
->
-  <div class="text-xl font-semibold">
-    {{ 'XP.MCP.CreateMCPToolset' | translate: { Default: 'Create MCP Toolset' } }}
-  </div>
-</header>
-
-<ol
-  class="flex items-center w-full p-3 space-x-2 text-sm font-medium text-center text-text-tertiary bg-components-card-bg rounded-lg shadow-xs sm:text-base sm:px-8 sm:space-x-4 rtl:space-x-reverse"
-  cdkListbox
-  [(ngModel)]="steps"
->
-  <li class="step-option flex items-center cursor-pointer" [cdkOption]="0" [class.active]="steps()[0] === 0">
-    <span
-      class="step-number flex items-center justify-center w-5 h-5 me-2 text-sm border border-gray-500 rounded-full shrink-0 dark:border-gray-400"
+<div xpDialogLayout="wide" xpDialogPurpose="workflow" class="w-full max-h-[calc(100dvh-32px)]">
+  <header xpDialogHeader cdkDrag cdkDragRootElement=".cdk-overlay-pane">
+    <h2 xpDialogHeading cdkDragHandle>
+      {{ 'XP.MCP.CreateMCPToolset' | translate: { Default: 'Create MCP Toolset' } }}
+    </h2>
+    <button
+      xpDialogCloseButton
+      z-button
+      zType="ghost"
+      zSize="icon"
+      type="button"
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+      (click)="cancel()"
     >
-      1
-    </span>
-    {{ 'XP.MCP.BasicInfo' | translate: { Default: 'Basic Info' } }}
-    <i class="ri-arrow-right-double-line ml-4"></i>
-  </li>
-  <li class="step-option flex items-center cursor-pointer" [cdkOption]="1" [class.active]="steps()[0] === 1">
-    <span
-      class="step-number flex items-center justify-center w-5 h-5 me-2 text-sm border border-gray-500 rounded-full shrink-0 dark:border-gray-400"
-    >
-      2
-    </span>
-    {{ 'XP.MCP.Configuration' | translate: { Default: 'Configuration' } }}
-  </li>
-</ol>
-
-<div class="flex flex-col px-8 py-4 overflow-hidden">
-  <xpert-tool-mcp-configure
-    #basic
-    class="step-content hidden"
-    [class.active]="steps()[0] === 0"
-    [ngModel]="toolset()"
-    (valueChange)="toolset.set($event)"
-  />
-
-  <mcp-server-form
-    class="step-content hidden w-full overflow-hidden"
-    [class.active]="steps()[0] === 1"
-    [(ngModel)]="mcpServer"
-    [(tools)]="tools"
-    [toolset]="toolset()"
-  />
-</div>
-
-<div class="w-full flex justify-end p-4">
-  <div class="flex items-center gap-2">
-    <button type="button" class="btn disabled:btn-disabled btn-large" (click)="cancel()">
-      {{ 'XP.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
+      <z-icon zType="x" />
     </button>
+  </header>
+  <div xpDialogBody>
+    <ol
+      class="flex items-center w-full p-3 space-x-2 text-sm font-medium text-center text-text-tertiary bg-components-card-bg rounded-lg shadow-xs sm:text-base sm:px-8 sm:space-x-4 rtl:space-x-reverse"
+      cdkListbox
+      [(ngModel)]="steps"
+    >
+      <li class="step-option flex items-center cursor-pointer" [cdkOption]="0" [class.active]="steps()[0] === 0">
+        <span
+          class="step-number flex items-center justify-center w-5 h-5 me-2 text-sm border border-border rounded-full shrink-0"
+        >
+          1
+        </span>
+        {{ 'XP.MCP.BasicInfo' | translate: { Default: 'Basic Info' } }}
+        <i class="ri-arrow-right-double-line ml-4"></i>
+      </li>
+      <li class="step-option flex items-center cursor-pointer" [cdkOption]="1" [class.active]="steps()[0] === 1">
+        <span
+          class="step-number flex items-center justify-center w-5 h-5 me-2 text-sm border border-border rounded-full shrink-0"
+        >
+          2
+        </span>
+        {{ 'XP.MCP.Configuration' | translate: { Default: 'Configuration' } }}
+      </li>
+    </ol>
 
-    @if (steps()[0] === 0) {
-      <button
-        type="button"
-        class="btn disabled:btn-disabled btn-primary btn-large"
-        [disabled]="basic.inValid()"
-        (click)="steps.set([1])"
-      >
-        <i class="ri-arrow-right-line mr-1"></i>
-        {{ 'XP.MCP.NextStep' | translate: { Default: 'Next Step' } }}
-      </button>
-    } @else {
-      <button type="button" class="btn disabled:btn-disabled btn-primary btn-large" (click)="createTool()">
-        <i class="ri-save-line mr-1"></i>
-        {{ 'XP.ACTIONS.CREATE' | translate: { Default: 'Create' } }}
-      </button>
-    }
+    <div class="flex flex-col px-8 py-4 overflow-hidden">
+      <xpert-tool-mcp-configure
+        #basic
+        class="step-content hidden"
+        [class.active]="steps()[0] === 0"
+        [ngModel]="toolset()"
+        (valueChange)="toolset.set($event)"
+      />
+
+      <mcp-server-form
+        class="step-content hidden w-full overflow-hidden"
+        [class.active]="steps()[0] === 1"
+        [(ngModel)]="mcpServer"
+        [(tools)]="tools"
+        [toolset]="toolset()"
+      />
+    </div>
   </div>
+  <footer xpDialogFooter>
+    <div class="flex items-center gap-2">
+      <button type="button" z-button zType="outline" (click)="cancel()">
+        {{ 'XP.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
+      </button>
+
+      @if (steps()[0] === 0) {
+        <button type="button" z-button [zDisabled]="basic.inValid()" (click)="steps.set([1])">
+          <i class="ri-arrow-right-line"></i>
+          {{ 'XP.MCP.NextStep' | translate: { Default: 'Next Step' } }}
+        </button>
+      } @else {
+        <button type="button" z-button (click)="createTool()">
+          <i class="ri-save-line"></i>
+          {{ 'XP.ACTIONS.CREATE' | translate: { Default: 'Create' } }}
+        </button>
+      }
+    </div>
+  </footer>
 </div>

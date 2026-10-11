@@ -1,11 +1,8 @@
 @reference "../../../../../styles/tailwind-reference.css";
 :host {
-  @apply relative flex flex-col relative rounded-2xl bg-components-card-bg;
-  width: min(1360px, calc(100vw - 2rem));
-  max-width: calc(100vw - 2rem);
-  max-height: calc(100vh - 2rem);
+  @apply relative flex min-h-0 w-full max-w-full flex-col;
+  max-height: calc(100dvh - 32px);
   min-height: 0;
-  overflow: hidden;
 }
 
 .cdk-option-active {

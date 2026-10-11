@@ -293,13 +293,13 @@
 </div>
 
 <ng-template #addSourceDialog let-dialogRef="dialogRef">
-  <div class="w-full rounded-2xl bg-components-card-bg px-6 py-5">
-    <div class="flex items-start justify-between pb-3">
+  <div xpDialogLayout="standard" class="w-full max-h-[calc(100dvh-32px)]">
+    <header xpDialogHeader>
       <div>
-        <div class="text-xl font-semibold text-text-primary">
+        <h2 xpDialogHeading>
           {{ 'XP.Plugin.AddMarketplace' | translate: { Default: 'Add marketplace' } }}
-        </div>
-        <div class="mt-1 max-w-xl text-sm text-text-tertiary">
+        </h2>
+        <div xpDialogDescription class="mt-2">
           {{
             'XP.Plugin.AddMarketplaceDescription'
               | translate
@@ -311,21 +311,24 @@
         </div>
       </div>
       <button
+        xpDialogCloseButton
+        z-button
+        zType="ghost"
+        zSize="icon"
         type="button"
-        class="btn btn-ghost btn-small flex h-8 w-8 items-center justify-center"
+        [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
         (click)="dialogRef.close()"
       >
-        <i class="ri-close-line"></i>
+        <z-icon zType="x" />
       </button>
-    </div>
-
-    <div class="relative flex flex-col gap-4">
-      <div class="grid grid-cols-2 gap-3">
+    </header>
+    <div xpDialogBody class="relative">
+      <div class="grid sm:grid-cols-2 gap-3">
         <label class="flex flex-col gap-2">
           <span class="text-sm font-medium text-text-tertiary">
             {{ 'XP.Plugin.SourceType' | translate: { Default: 'Source type' } }}
           </span>
-          <select class="xp-input w-full text-sm" [(ngModel)]="sourceType">
+          <select xpDialogControl="single" class="xp-input w-full" [(ngModel)]="sourceType">
             <option value="github">{{ 'XP.Plugin.SourceTypeGithub' | translate: { Default: 'Repository' } }}</option>
             <option value="git">{{ 'XP.Plugin.SourceTypeGit' | translate: { Default: 'Git URL' } }}</option>
             <option value="url">{{ 'XP.Plugin.SourceTypeUrl' | translate: { Default: 'Static index URL' } }}</option>
@@ -336,7 +339,8 @@
             {{ 'XP.Plugin.SourceName' | translate: { Default: 'Name' } }}
           </span>
           <input
-            class="xp-input w-full text-sm"
+            z-input
+            class="w-full"
             [placeholder]="'XP.Plugin.SourceNamePlaceholder' | translate: { Default: 'XpertAI Plugin Registry' }"
             [(ngModel)]="sourceName"
           />
@@ -348,7 +352,8 @@
           {{ 'XP.Plugin.SourceUrl' | translate: { Default: 'Source' } }}
         </span>
         <input
-          class="xp-input w-full text-sm"
+          z-input
+          class="w-full"
           [placeholder]="
             'XP.Plugin.SourceUrlPlaceholder'
               | translate: { Default: 'xpert-ai/plugin-registry or https://example.com/plugins/index.json' }
@@ -357,13 +362,14 @@
         />
       </label>
 
-      <div class="grid grid-cols-2 gap-3">
+      <div class="grid sm:grid-cols-2 gap-3">
         <label class="flex flex-col gap-2">
           <span class="text-sm font-medium text-text-tertiary">
             {{ 'XP.Plugin.SourceRef' | translate: { Default: 'Git ref' } }}
           </span>
           <input
-            class="xp-input w-full text-sm"
+            z-input
+            class="w-full"
             [placeholder]="'XP.Plugin.SourceRefPlaceholder' | translate: { Default: 'main' }"
             [(ngModel)]="sourceRef"
           />
@@ -373,7 +379,8 @@
             {{ 'XP.Plugin.SourceSparsePath' | translate: { Default: 'Sparse path' } }}
           </span>
           <input
-            class="xp-input w-full text-sm"
+            z-input
+            class="w-full"
             [placeholder]="'XP.Plugin.SourceSparsePathPlaceholder' | translate: { Default: 'plugins/data-x' }"
             [(ngModel)]="sourceSparsePath"
           />
@@ -390,24 +397,21 @@
       }
     </div>
 
-    <div class="flex items-center justify-end gap-2 pt-5">
-      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large" (click)="dialogRef.close()">
+    <footer xpDialogFooter>
+      <button type="button" z-button zType="outline" (click)="dialogRef.close()">
         {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
       </button>
       <button
         type="button"
-        class="btn disabled:btn-disabled btn-primary btn-large flex items-center gap-1"
-        [disabled]="sourceAdding() || !sourceUrl()?.trim()"
+        z-button
+        [zLoading]="sourceAdding()"
+        [zDisabled]="sourceAdding() || !sourceUrl()?.trim()"
         (click)="confirmAddSource(dialogRef)"
       >
-        @if (sourceAdding()) {
-          <xp-spin small class="!text-primary-200" />
-        } @else {
-          <i class="ri-add-line"></i>
-        }
+        <i class="ri-add-line"></i>
         <span>{{ 'XP.Plugin.AddMarketplace' | translate: { Default: 'Add marketplace' } }}</span>
       </button>
-    </div>
+    </footer>
   </div>
 </ng-template>
 

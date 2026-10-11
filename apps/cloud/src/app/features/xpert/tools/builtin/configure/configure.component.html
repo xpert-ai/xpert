@@ -156,12 +156,7 @@
   <footer xpDialogFooter>
     <div class="mr-auto">
       @if (helpUrl()) {
-        <a
-          [href]="helpUrl()"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="group inline-flex items-center p-1 text-sm text-primary hover:underline"
-        >
+        <a [href]="helpUrl()" target="_blank" rel="noopener noreferrer" z-button zType="link" class="group">
           {{ 'XP.Xpert.HelpDocumentation' | translate: { Default: 'Help Documentation' } }}
           <i class="ri-book-open-line inline-block group-hover:translate-x-1 transition-transform"></i>
         </a>

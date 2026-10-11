@@ -4,7 +4,7 @@ import { TranslateService } from '@ngx-translate/core'
 import { ZardToastService } from '@xpert-ai/headless-ui'
 import { ToastrService } from './toastr.service'
 
-describe('ToastrService confirmation layout opt-in', () => {
+describe('ToastrService confirmation layout', () => {
   beforeEach(() =>
     TestBed.configureTestingModule({
       providers: [
@@ -38,14 +38,14 @@ describe('ToastrService confirmation layout opt-in', () => {
     })
   )
 
-  it('keeps unselected callers on their existing layout', fakeAsync(() => {
+  it('uses the shared frame for callers without a layout option', fakeAsync(() => {
     const received = jest.fn()
     TestBed.inject(ToastrService)
       .confirm({ code: 'LegacyOperation', params: 'Existing description' })
       .subscribe(received)
     TestBed.tick()
-    expect(document.querySelector('[role="alertdialog"]')).toBeNull()
-    expect(document.querySelector('z-dialog')?.textContent).toContain('Existing description')
+    expect(document.querySelector('[role="alertdialog"]')).not.toBeNull()
+    expect(document.querySelector('[role="alertdialog"]')?.textContent).toContain('Existing description')
     document.querySelector<HTMLButtonElement>('[data-testid="z-alert-dialog-cancel"]')!.click()
     tick(150)
     expect(received.mock.calls).toEqual([[false]])

@@ -31,15 +31,16 @@
 
   <ng-template #createServiceDialog>
     <form
-      class="flex max-h-[min(90vh,48rem)] min-h-0 flex-col"
+      xpDialogLayout="standard"
+      class="max-h-[min(90dvh,672px)] w-full"
       [formGroup]="createForm"
       (ngSubmit)="createPublication()"
     >
-      <header class="shrink-0 border-b border-divider-regular px-6 py-5">
-        <h2 class="text-lg font-semibold text-text-primary">
+      <header xpDialogHeader>
+        <h2 xpDialogHeading>
           {{ 'XP.McpPublication.CreateDialogTitle' | translate: { Default: 'Create MCP service' } }}
         </h2>
-        <p class="mt-1 text-sm text-text-tertiary">
+        <p xpDialogDescription>
           {{
             'XP.McpPublication.CreateDialogDescription'
               | translate
@@ -48,9 +49,20 @@
                   }
           }}
         </p>
+        <button
+          xpDialogCloseButton
+          z-button
+          zType="ghost"
+          zSize="icon"
+          type="button"
+          [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+          (click)="closeCreateServiceDialog()"
+        >
+          <z-icon zType="x" />
+        </button>
       </header>
 
-      <div class="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
+      <div xpDialogBody>
         <z-form-field>
           <z-form-label [zRequired]="true">
             {{ 'XP.McpPublication.Name' | translate: { Default: 'Service name' } }}
@@ -98,11 +110,11 @@
         </z-form-field>
       </div>
 
-      <footer class="flex shrink-0 justify-end gap-3 border-t border-divider-regular px-6 py-4">
+      <footer xpDialogFooter>
         <button z-button zType="outline" type="button" [zDisabled]="saving()" (click)="closeCreateServiceDialog()">
           {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
         </button>
-        <button z-button type="submit" [zDisabled]="saving()">
+        <button z-button type="submit" [zDisabled]="saving()" [zLoading]="saving()">
           {{ 'XP.McpPublication.CreateDraft' | translate: { Default: 'Create draft service' } }}
         </button>
       </footer>
@@ -483,398 +495,7 @@
                 }
 
                 @case ('authentication') {
-                  <div class="space-y-6">
-                    <section>
-                      <div class="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <h3 class="font-semibold text-text-primary">
-                            {{ 'XP.McpPublication.ApiKey' | translate: { Default: 'API Key' } }}
-                          </h3>
-                          <p class="mt-1 text-sm text-text-tertiary">
-                            {{
-                              'XP.McpPublication.SecretOnce'
-                                | translate
-                                  : { Default: 'The secret is shown only immediately after creation or rotation.' }
-                            }}
-                          </p>
-                        </div>
-                      </div>
-                      @if (revealedApiKey(); as revealed) {
-                        <div class="mt-4 rounded-xl border border-text-warning bg-components-panel-bg p-4">
-                          <div class="font-medium text-text-primary">
-                            {{ 'XP.McpPublication.CopySecretNow' | translate: { Default: 'Copy this secret now' } }}
-                          </div>
-                          <div class="mt-2 flex min-w-0 items-center gap-2">
-                            <code class="min-w-0 flex-1 overflow-auto rounded-lg bg-components-card-bg p-3 text-xs">{{
-                              revealed.secret
-                            }}</code>
-                            <button z-button type="button" zType="secondary" (click)="copy(revealed.secret)">
-                              {{ 'XP.ACTIONS.Copy' | translate: { Default: 'Copy' } }}
-                            </button>
-                          </div>
-                        </div>
-                      }
-                      @if (canManageMcp()) {
-                        <form
-                          class="mt-4 grid w-full items-end gap-4 lg:grid-cols-2"
-                          [formGroup]="apiKeyForm"
-                          (ngSubmit)="createApiKey()"
-                        >
-                          <z-form-field>
-                            <z-form-label [zRequired]="true">{{
-                              'XP.McpPublication.KeyName' | translate: { Default: 'Key name' }
-                            }}</z-form-label>
-                            <input z-input formControlName="name" placeholder="Codex MacBook" />
-                          </z-form-field>
-                          <z-form-field>
-                            <z-form-label [zRequired]="true">
-                              {{ 'XP.McpPublication.Scopes' | translate: { Default: 'Scopes' } }}
-                            </z-form-label>
-                            <z-select
-                              class="w-full"
-                              [zValue]="apiKeyForm.controls.scopes.value"
-                              [zMultiple]="true"
-                              [zPlaceholder]="
-                                'XP.McpPublication.SelectScopes' | translate: { Default: 'Select permissions' }
-                              "
-                              (zSelectionChange)="selectApiKeyScopes($event)"
-                            >
-                              @for (scope of mcpScopeOptions; track scope.value) {
-                                <z-select-item [zValue]="scope.value">
-                                  {{
-                                    'XP.McpPublication.Scope.' + scope.key | translate: { Default: scope.defaultLabel }
-                                  }}
-                                  ({{ scope.value }})
-                                </z-select-item>
-                              }
-                            </z-select>
-                          </z-form-field>
-                          <z-form-field>
-                            <z-form-label>{{
-                              'XP.McpPublication.ExpiresAt' | translate: { Default: 'Expires at' }
-                            }}</z-form-label>
-                            <input z-input type="datetime-local" formControlName="expiresAt" />
-                          </z-form-field>
-                          <div class="flex lg:col-span-2">
-                            <button z-button type="submit" [zDisabled]="saving()">
-                              {{ 'XP.McpPublication.CreateKey' | translate: { Default: 'Create key' } }}
-                            </button>
-                          </div>
-                        </form>
-                      }
-                      @if (apiKeys().length) {
-                        <div class="mt-4 overflow-auto rounded-xl border border-divider-regular">
-                          <table z-table zSize="compact" class="min-w-[52rem]">
-                            <thead z-table-header>
-                              <tr z-table-row>
-                                <th z-table-head>
-                                  {{ 'XP.McpPublication.KeyName' | translate: { Default: 'Key name' } }}
-                                </th>
-                                <th z-table-head>
-                                  {{ 'XP.McpPublication.Prefix' | translate: { Default: 'Prefix' } }}
-                                </th>
-                                <th z-table-head>
-                                  {{ 'XP.McpPublication.Scopes' | translate: { Default: 'Scopes' } }}
-                                </th>
-                                <th z-table-head>
-                                  {{ 'XP.McpPublication.LastUsed' | translate: { Default: 'Last used' } }}
-                                </th>
-                                <th z-table-head>
-                                  {{ 'XP.McpPublication.StatusLabel' | translate: { Default: 'Status' } }}
-                                </th>
-                                <th z-table-head class="text-right">
-                                  {{ 'XP.ModelGateway.Actions' | translate: { Default: 'Actions' } }}
-                                </th>
-                              </tr>
-                            </thead>
-                            <tbody z-table-body>
-                              @for (key of apiKeys(); track key.id) {
-                                <tr z-table-row>
-                                  <td z-table-cell class="font-medium text-text-primary">{{ key.name }}</td>
-                                  <td z-table-cell>
-                                    <code>{{ key.keyPrefix }}…</code>
-                                  </td>
-                                  <td z-table-cell>{{ key.scopes.join(' ') }}</td>
-                                  <td z-table-cell>
-                                    {{ key.lastUsedAt ? (key.lastUsedAt | date: 'yyyy-MM-dd HH:mm') : '-' }}
-                                  </td>
-                                  <td z-table-cell>
-                                    <z-badge [zType]="isApiKeyActive(key) ? 'secondary' : 'outline'">
-                                      {{
-                                        'XP.McpPublication.ApiKeyStatus.' +
-                                          (isApiKeyActive(key) ? 'active' : 'inactive')
-                                          | translate: { Default: isApiKeyActive(key) ? 'Active' : 'Inactive' }
-                                      }}
-                                    </z-badge>
-                                  </td>
-                                  <td z-table-cell class="text-right">
-                                    @if (isApiKeyActive(key) && canManageMcp()) {
-                                      <div class="flex justify-end gap-2">
-                                        @if (revealedApiKey(); as revealed) {
-                                          @if (revealed.apiKey.id === key.id) {
-                                            <button
-                                              z-button
-                                              zType="outline"
-                                              zSize="sm"
-                                              type="button"
-                                              (click)="copy(revealed.secret)"
-                                            >
-                                              {{ 'XP.ACTIONS.Copy' | translate: { Default: 'Copy' } }}
-                                            </button>
-                                          }
-                                        }
-                                        <button
-                                          z-button
-                                          zType="outline"
-                                          zSize="sm"
-                                          type="button"
-                                          [zDisabled]="saving()"
-                                          (click)="rotateApiKey(key)"
-                                        >
-                                          {{ 'XP.McpPublication.Rotate' | translate: { Default: 'Rotate' } }}
-                                        </button>
-                                        <button
-                                          z-button
-                                          zType="destructive"
-                                          zSize="sm"
-                                          type="button"
-                                          [zDisabled]="saving()"
-                                          (click)="revokeApiKey(key)"
-                                        >
-                                          {{ 'XP.McpPublication.Revoke' | translate: { Default: 'Revoke' } }}
-                                        </button>
-                                      </div>
-                                    }
-                                  </td>
-                                </tr>
-                              }
-                            </tbody>
-                          </table>
-                        </div>
-                      }
-                    </section>
-
-                    <section class="border-t border-divider-regular pt-6">
-                      <h3 class="font-semibold text-text-primary">
-                        {{ 'XP.McpPublication.OAuthOidc' | translate: { Default: 'OAuth 2.0 / OIDC' } }}
-                      </h3>
-                      <p class="mt-1 text-sm text-text-tertiary">
-                        {{
-                          'XP.McpPublication.OAuthHint'
-                            | translate
-                              : {
-                                  Default:
-                                    'Xpert validates issuer, audience, scopes, JWKS, and subject mapping as the MCP Resource Server.'
-                                }
-                        }}
-                      </p>
-                      <div class="mt-4 rounded-xl bg-background-default-subtle p-4">
-                        <h4 class="text-sm font-medium text-text-primary">
-                          {{
-                            'XP.McpPublication.OAuthSetupTitle' | translate: { Default: 'Before you configure OAuth' }
-                          }}
-                        </h4>
-                        <p class="mt-1 text-xs leading-5 text-text-tertiary">
-                          {{
-                            'XP.McpPublication.OAuthSetupDescription'
-                              | translate
-                                : {
-                                    Default:
-                                      'Register this MCP endpoint as an API or resource server in your identity provider. Use the token issuer URL below, set the audience to this service endpoint, and grant the selected scopes to the client application.'
-                                  }
-                          }}
-                        </p>
-                      </div>
-                      <form class="mt-4 w-full space-y-4" [formGroup]="oauthForm" (ngSubmit)="saveOAuthPolicy()">
-                        <div class="grid gap-4 md:grid-cols-2">
-                          <z-form-field>
-                            <z-form-label [zRequired]="true">
-                              {{ 'XP.McpPublication.Issuer' | translate: { Default: 'Issuer' } }}
-                            </z-form-label>
-                            <input z-input formControlName="issuer" placeholder="https://login.example.com" />
-                            <z-form-message>
-                              {{
-                                'XP.McpPublication.OAuthIssuerHint'
-                                  | translate
-                                    : {
-                                        Default:
-                                          'Use the exact iss value from access tokens. Xpert discovers its JWKS from this URL.'
-                                      }
-                              }}
-                            </z-form-message>
-                          </z-form-field>
-                          <z-form-field>
-                            <z-form-label [zRequired]="true">
-                              {{ 'XP.McpPublication.Audience' | translate: { Default: 'Audience' } }}
-                            </z-form-label>
-                            <input
-                              z-input
-                              formControlName="audience"
-                              placeholder="https://xpert.example.com/api/mcp/p/service"
-                            />
-                            <z-form-message>
-                              {{
-                                'XP.McpPublication.OAuthAudienceHint'
-                                  | translate
-                                    : {
-                                        Default:
-                                          'Use the API audience configured in your identity provider; this service endpoint is the recommended value.'
-                                      }
-                              }}
-                            </z-form-message>
-                          </z-form-field>
-                          <z-form-field>
-                            <z-form-label>{{
-                              'XP.McpPublication.RequiredScopes' | translate: { Default: 'Required scopes' }
-                            }}</z-form-label>
-                            <z-select
-                              class="w-full"
-                              [zValue]="oauthForm.controls.requiredScopes.value"
-                              [zMultiple]="true"
-                              [zPlaceholder]="
-                                'XP.McpPublication.SelectScopes' | translate: { Default: 'Select permissions' }
-                              "
-                              (zSelectionChange)="selectOAuthScopes($event)"
-                            >
-                              @for (scope of mcpScopeOptions; track scope.value) {
-                                <z-select-item [zValue]="scope.value">
-                                  {{
-                                    'XP.McpPublication.Scope.' + scope.key | translate: { Default: scope.defaultLabel }
-                                  }}
-                                  ({{ scope.value }})
-                                </z-select-item>
-                              }
-                            </z-select>
-                            <z-form-message>
-                              {{
-                                'XP.McpPublication.OAuthScopesHint'
-                                  | translate
-                                    : {
-                                        Default:
-                                          'Every selected scope must be present in the access token. Configure the same scopes in your identity provider.'
-                                      }
-                              }}
-                            </z-form-message>
-                          </z-form-field>
-                          <z-form-field>
-                            <z-form-label>{{
-                              'XP.McpPublication.SubjectClaim' | translate: { Default: 'Subject claim' }
-                            }}</z-form-label>
-                            <input z-input formControlName="subjectClaim" />
-                            <z-form-message>
-                              {{
-                                'XP.McpPublication.OAuthSubjectClaimHint'
-                                  | translate
-                                    : {
-                                        Default:
-                                          'Claim containing the stable caller identity. Most OIDC providers use sub.'
-                                      }
-                              }}
-                            </z-form-message>
-                          </z-form-field>
-                          <z-form-field>
-                            <z-form-label>{{
-                              'XP.McpPublication.EmailClaim' | translate: { Default: 'Email claim' }
-                            }}</z-form-label>
-                            <input z-input formControlName="emailClaim" />
-                          </z-form-field>
-                          <z-form-field>
-                            <z-form-label>{{
-                              'XP.McpPublication.ClientIdClaim' | translate: { Default: 'Client ID claim' }
-                            }}</z-form-label>
-                            <input z-input formControlName="clientIdClaim" />
-                          </z-form-field>
-                        </div>
-                        <div class="rounded-xl border border-divider-regular bg-components-card-bg p-4">
-                          <div class="flex items-start justify-between gap-4">
-                            <div>
-                              <h4 class="text-sm font-medium text-text-primary">
-                                {{
-                                  'XP.McpPublication.TokenIntrospection' | translate: { Default: 'Token introspection' }
-                                }}
-                              </h4>
-                              <p class="mt-1 text-xs text-text-tertiary">
-                                {{
-                                  'XP.McpPublication.TokenIntrospectionHint'
-                                    | translate
-                                      : {
-                                          Default:
-                                            'Require RFC 7662 active-token checks on every request for immediate authorization-server revocation.'
-                                        }
-                                }}
-                              </p>
-                            </div>
-                            <z-switch formControlName="introspectionEnabled" zSize="sm">
-                              {{ 'XP.Xpert.Enabled' | translate: { Default: 'Enabled' } }}
-                            </z-switch>
-                          </div>
-                          @if (oauthForm.controls.introspectionEnabled.value) {
-                            <div class="mt-4 grid gap-4 md:grid-cols-2">
-                              <z-form-field class="md:col-span-2">
-                                <z-form-label>
-                                  {{
-                                    'XP.McpPublication.IntrospectionEndpoint'
-                                      | translate: { Default: 'Introspection endpoint override' }
-                                  }}
-                                </z-form-label>
-                                <input
-                                  z-input
-                                  formControlName="introspectionEndpoint"
-                                  placeholder="https://login.example.com/oauth2/introspect"
-                                />
-                              </z-form-field>
-                              <z-form-field>
-                                <z-form-label>
-                                  {{
-                                    'XP.McpPublication.IntrospectionClientId'
-                                      | translate: { Default: 'Resource Server client ID' }
-                                  }}
-                                </z-form-label>
-                                <input z-input formControlName="introspectionClientId" autocomplete="off" />
-                              </z-form-field>
-                              <z-form-field>
-                                <z-form-label>
-                                  {{
-                                    'XP.McpPublication.IntrospectionClientSecret'
-                                      | translate: { Default: 'Resource Server client secret' }
-                                  }}
-                                </z-form-label>
-                                <input
-                                  z-input
-                                  type="password"
-                                  formControlName="introspectionClientSecret"
-                                  autocomplete="new-password"
-                                  [placeholder]="
-                                    oauthPolicy()?.introspectionClientSecretConfigured
-                                      ? ('XP.McpPublication.IntrospectionSecretUnchanged'
-                                        | translate: { Default: 'Leave blank to keep the current secret' })
-                                      : ''
-                                  "
-                                />
-                              </z-form-field>
-                            </div>
-                          }
-                        </div>
-                        <div class="flex flex-wrap items-center gap-3">
-                          <z-switch formControlName="enabled" zSize="sm">
-                            {{ 'XP.Xpert.Enabled' | translate: { Default: 'Enabled' } }}
-                          </z-switch>
-                          <button z-button type="submit" [zDisabled]="saving() || !canManageMcp() || !oauthAvailable">
-                            {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
-                          </button>
-                          <button
-                            z-button
-                            zType="outline"
-                            type="button"
-                            [zDisabled]="saving() || !oauthAvailable"
-                            (click)="testOAuthPolicy()"
-                          >
-                            {{ 'XP.McpPublication.TestOAuth' | translate: { Default: 'Test discovery' } }}
-                          </button>
-                        </div>
-                      </form>
-                    </section>
-                  </div>
+                  <xp-mcp-publication-authentication [vm]="this" />
                 }
 
                 @case ('policy') {

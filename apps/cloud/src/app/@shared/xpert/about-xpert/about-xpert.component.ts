@@ -1,10 +1,11 @@
 import { Component, inject } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
+import { XpDialogFrameImports, ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { IXpert } from '../../../@core'
+import { EmojiAvatarComponent } from '../../avatar/emoji-avatar/avatar.component'
 import { KnowledgebaseCardComponent } from '../../copilot'
 import { ToolsetCardComponent } from '../toolset-card/toolset.component'
-import { EmojiAvatarComponent } from '../../avatar/emoji-avatar/avatar.component'
 
 import { Z_MODAL_DATA, ZardDialogRef, ZardDialogService } from '@xpert-ai/headless-ui'
 @Component({
@@ -13,6 +14,8 @@ import { Z_MODAL_DATA, ZardDialogRef, ZardDialogService } from '@xpert-ai/headle
   templateUrl: './about-xpert.component.html',
   styleUrls: ['about-xpert.component.scss'],
   imports: [
+    ...XpDialogFrameImports,
+    ZardButtonComponent,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -28,6 +31,10 @@ export class AboutXpertComponent {
 
   get xpert() {
     return this._data.xpert
+  }
+
+  close() {
+    this.#dialogRef.close()
   }
 
   onStart(statement: string): void {

@@ -11,7 +11,7 @@ import { ZardAlertDialogComponent, type ZardAlertDialogOptions } from './alert-d
 import { ZardAlertDialogContentComponent } from './alert-dialog-content.component'
 
 export interface ZardAlertDialogConfirmOptions extends ZardAlertDialogOptions {
-  /** Opt individual confirmation flows into the shared CDK Dialog frame. */
+  /** Compatibility option; all confirmation flows use the shared frame. */
   layout?: 'standard'
 }
 
@@ -24,20 +24,17 @@ export class ZardAlertDialogService {
   private nextId = 0
 
   open(options: ZardAlertDialogOptions) {
-    return this.dialog.create<ZardAlertDialogComponent, ZardAlertDialogOptions>({
-      zContent: ZardAlertDialogComponent,
-      zData: options,
-      zHideFooter: true,
-      zClosable: options.closable ?? false,
-      zMaskClosable: options.maskClosable ?? true,
-      zWidth: options.width ?? 'min(32rem, calc(100vw - 2rem))',
-      zCustomClasses: options.customClasses,
-      zViewContainerRef: options.viewContainerRef
+    return this.dialog.open<ZardAlertDialogComponent, ZardAlertDialogOptions, boolean>(ZardAlertDialogComponent, {
+      data: options,
+      disableClose: options.maskClosable === false,
+      width: options.width ?? '448px',
+      panelClass: options.customClasses,
+      viewContainerRef: options.viewContainerRef
     }) as ZardDialogRef<ZardAlertDialogComponent, boolean>
   }
 
   confirm(options: ZardAlertDialogConfirmOptions) {
-    const closed = options.layout === 'standard' ? this.openStandard(options).closed : this.open(options).afterClosed()
+    const closed = this.openStandard(options).closed
     return closed.pipe(
       map((result) => !!result),
       take(1)

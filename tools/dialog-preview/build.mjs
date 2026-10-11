@@ -1,3 +1,5 @@
+import { parseTemplate } from '@angular/compiler'
+import { remainingDialogs } from './remaining.mjs'
 // Renders production templates with local fixture data; no application APIs are called.
 import fs from 'node:fs/promises'
 import path from 'node:path'
@@ -68,25 +70,30 @@ for (const [key, scene] of Object.entries({
   ...batchTen,
   ...batchEleven,
   ...batchTwelve,
-  ...batchThirteen
+  ...batchThirteen,
+  ...Object.fromEntries(Object.entries(remainingDialogs).filter(([, scene]) => !scene.service))
 })) {
   const file = scene.source ?? `apps/cloud/src/app/${scene.path}`
   scenes[key] = file.endsWith('.ts') ? await inline(file) : await read(file)
   const fullTemplate = scenes[key]
-  if (scene.fragment) {
-    const start = scenes[key].search(new RegExp(`<ng-template\\s+#${scene.fragment}\\b[^>]*>`))
-    if (start < 0) throw new Error(`Missing fragment ${scene.fragment}`)
-    scenes[key] = scenes[key]
-      .slice(start)
-      .replace(/^<ng-template[^>]*>/, '')
-      .split(/<\/ng-template\s*>/)[0]
+  const fragment = (name, whole = false) => {
+    let found
+    const visit = (nodes) => {
+      for (const node of nodes ?? []) {
+        if (node.references?.some((ref) => ref.name === name)) found = node
+        for (const key of ['children', 'branches', 'cases']) visit(node[key])
+      }
+    }
+    visit(parseTemplate(fullTemplate, file, { preserveWhitespaces: true }).nodes)
+    if (!found) throw new Error(`Missing fragment ${name}`)
+    return fullTemplate.slice(
+      whole ? found.startSourceSpan.start.offset : found.startSourceSpan.end.offset,
+      whole ? found.endSourceSpan.end.offset : found.endSourceSpan.start.offset
+    )
   }
+  if (scene.fragment) scenes[key] = fragment(scene.fragment)
   if (scene.context) scenes[key] = scene.context + scenes[key]
-  for (const fragment of scene.appendFragments ?? []) {
-    const start = fullTemplate.search(new RegExp(`<ng-template\\s+#${fragment}\\b[^>]*>`))
-    if (start < 0) throw new Error(`Missing fragment ${fragment}`)
-    scenes[key] += fullTemplate.slice(start).split(/<\/ng-template\s*>/)[0] + '</ng-template>'
-  }
+  for (const name of scene.appendFragments ?? []) scenes[key] += fragment(name, true)
 }
 scenes.workspaceGeneral = await read(
   'apps/cloud/src/app/features/xpert/workspace/settings/general/general.component.html'
@@ -140,6 +147,10 @@ scenes.skillRepositoryBody = await read(
   'apps/cloud/src/app/@shared/skills/skill-repositories/skill-repositories.component.html'
 )
 scenes.skillIndexesBody = await read('apps/cloud/src/app/@shared/skills/indexes/indexes.component.html')
+scenes.remainingStart = await read('apps/cloud/src/app/features/xpert/xpert/blank/blank-wizard-start.html')
+scenes.remainingCapabilities = await read(
+  'apps/cloud/src/app/features/xpert/xpert/blank/blank-wizard-capabilities.html'
+)
 await fs.writeFile(path.join(out, 'scenes.json'), JSON.stringify(scenes))
 const zh = JSON.parse(await read('apps/cloud/src/assets/i18n/zh-Hans.json'))
 const en = JSON.parse(await read('apps/cloud/src/assets/i18n/en-US.json'))
@@ -187,6 +198,13 @@ const mcpStyles = compileString(await read('apps/cloud/src/app/@shared/mcp/serve
 })
   .css.replace(/@reference\s+[^;]+;/g, '')
   .replace(/:host/g, 'mcp-server-form')
+const wizardStyles = compileString(await read('apps/cloud/src/app/features/xpert/xpert/blank/blank.component.scss'), {
+  loadPaths: [root, path.join(root, 'node_modules')],
+  logger: { warn() {}, debug() {} }
+})
+  .css.replace(/@reference\s+[^;]+;/g, '')
+  .replace(/:host/g, 'preview-remainingWizard')
+  .replace(/::ng-deep/g, '')
 const css = `@config '../../apps/cloud/tailwind.config.js';
 @import '../../packages/ui/src/styles.css';
 @import '../../apps/cloud/src/styles/theme/theme.tokens.css';
@@ -202,6 +220,7 @@ ${shared}
 ${uploadStyles}
 ${knowledgeStyles}
 ${mcpStyles}
+${wizardStyles}
 html, body { margin: 0; min-height: 100%; font-size: 14px; font-family: var(--font-xp-sans); background: var(--background); color: var(--foreground); }
 .preview-shell { max-width: 1050px; margin: 0 auto; padding: 56px 28px; }
 .preview-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 14px; }

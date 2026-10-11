@@ -1,13 +1,14 @@
+import { Clipboard } from '@angular/cdk/clipboard'
+import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import {
-  XpDialogActionGroupDirective,
-  MaskPipe,
   CdkConfirmDeleteComponent,
+  MaskPipe,
+  XpDialogActionGroupDirective,
+  XpDialogFrameImports,
   XpSpinComponent,
   ZardButtonComponent,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
-import { Clipboard } from '@angular/cdk/clipboard'
-import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
@@ -35,6 +36,7 @@ const EMPTY_API_KEYS: ApiKeyListItem[] = []
 @Component({
   standalone: true,
   imports: [
+    ...XpDialogFrameImports,
     XpDialogActionGroupDirective,
     FormsModule,
     ReactiveFormsModule,

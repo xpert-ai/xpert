@@ -20,7 +20,7 @@ import {
   viewChild,
   ViewEncapsulation
 } from '@angular/core'
-import { type ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
+import { FormsModule, NG_VALUE_ACCESSOR, type ControlValueAccessor } from '@angular/forms'
 
 import { NgIcon, provideIcons, type IconName } from '@ng-icons/core'
 import { lucideCheck, lucideChevronsUpDown } from '@ng-icons/lucide'
@@ -29,8 +29,8 @@ import type { ClassValue } from 'clsx'
 import { XP_DIALOG_CONTEXT } from '../dialog/dialog-context'
 import { dialogControlVariants } from '../dialog/dialog-frame.variants'
 
+import { mergeClasses } from '../../utils/merge-classes'
 import { ZardButtonComponent, type ZardButtonTypeVariants } from '../button'
-import { comboboxVariants, type ZardComboboxWidthVariants } from './combobox.variants'
 import {
   ZardCommandComponent,
   ZardCommandEmptyComponent,
@@ -42,7 +42,7 @@ import {
 } from '../command'
 import { ZardEmptyComponent } from '../empty'
 import { ZardPopoverComponent, ZardPopoverDirective } from '../popover'
-import { mergeClasses } from '../../utils/merge-classes'
+import { comboboxVariants, type ZardComboboxWidthVariants } from './combobox.variants'
 
 export interface ZardComboboxOption {
   value: string
@@ -238,6 +238,7 @@ export class ZardComboboxComponent implements ControlValueAccessor {
   readonly searchPlaceholder = input<string>('Search...')
   readonly emptyText = input<string>('No results found.')
   readonly zDisabled = input(false, { transform: booleanAttribute })
+  readonly zClearable = input(true, { transform: booleanAttribute })
   readonly searchable = input(true, { transform: booleanAttribute })
   readonly value = input<string | null>()
   readonly options = input<ZardComboboxOption[]>([])
@@ -330,7 +331,7 @@ export class ZardComboboxComponent implements ControlValueAccessor {
     const selectedValue = commandOption.value as string
 
     // Toggle behavior - if same value is selected, clear it
-    const newValue = selectedValue === this.currentValue() ? null : selectedValue
+    const newValue = this.zClearable() && selectedValue === this.currentValue() ? null : selectedValue
 
     this.internalValue.set(newValue)
     this.onChange(newValue)

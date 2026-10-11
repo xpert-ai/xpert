@@ -1,340 +1,95 @@
-import { DIALOG_DATA, Dialog, DialogRef } from '@angular/cdk/dialog'
+import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
-
-import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal, viewChild } from '@angular/core'
-import { toObservable, toSignal } from '@angular/core/rxjs-interop'
+import { ChangeDetectionStrategy, Component } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { RouterModule } from '@angular/router'
+import { TranslateModule } from '@ngx-translate/core'
 import {
-  injectPluginAPI,
-  injectWorkspace,
-  PLUGIN_COMPONENT_TYPE,
-  PLUGIN_RESOURCE_RUNTIME_TYPE,
-  type PluginResourceComponentSelector
-} from '@cloud/app/@core/state'
-import { parseYAML } from '@xpert-ai/headless-ui'
-import { XpI18nPipe } from '@xpert-ai/headless-ui'
-import { AiModelTypeEnum, AiProviderRole } from '@xpert-ai/contracts'
-import {
+  XpDialogActionGroupDirective,
+  XpDialogFrameImports,
+  XpI18nPipe,
+  XpSpinComponent,
   ZardBadgeComponent,
   ZardButtonComponent,
-  ZardComboboxDeprecatedComponent,
   ZardCheckboxComponent,
+  ZardComboboxComponent,
   ZardIconComponent,
   ZardSearchInputComponent,
   ZardSelectImports,
   ZardStepperImports,
   ZardSwitchComponent,
-  ZardTooltipImports,
-  type ZardStepperSelectionEvent
+  ZardTooltipImports
 } from '@xpert-ai/headless-ui'
-import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { CopilotConfigFormComponent } from 'apps/cloud/src/app/@shared/copilot'
 import {
-  AIPermissionsEnum,
-  CopilotServerService,
-  convertToUrlPath,
-  EnvironmentService,
-  IDocumentChunkerProvider,
-  IDocumentProcessorProvider,
-  IDocumentSourceProvider,
-  IDocumentUnderstandingProvider,
-  I18nObject,
+  hasJsonSchemaRequiredErrors,
+  WorkflowTriggerProviderOption,
+  XpertWorkflowIconComponent
+} from 'apps/cloud/src/app/@shared/workflow'
+import { XpertBasicFormComponent } from 'apps/cloud/src/app/@shared/xpert'
+import { firstValueFrom, take } from 'rxjs'
+import {
   getErrorMessage,
-  ICopilot,
+  I18nObject,
   ICopilotModel,
-  ICopilotWithProvider,
-  IWFNMiddleware,
-  isUserAddableAgentMiddleware,
-  ISkillPackage,
-  ISkillRepositoryIndex,
   IXpert,
-  IXpertToolset,
-  IXpertWorkspace,
-  KnowledgebaseService,
-  OrderTypeEnum,
   resolveI18nText,
-  SkillPackageService,
-  SkillRepositoryService,
-  WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER,
-  TKnowledgePipelineTemplate,
-  TAgentMiddlewareDescriptor,
-  TAgentMiddlewareMeta,
   TAvatar,
-  ToastrService,
   TXpertTeamDraft,
-  TXpertTemplate,
-  TWorkflowTriggerMeta,
-  WorkflowNodeTypeEnum,
-  XpertAgentService,
-  XpertAPIService,
-  XpertTemplateService,
-  XpertToolsetCategoryEnum,
-  XpertToolsetService,
-  XpertWorkspaceService,
+  WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER,
   XpertTypeEnum
 } from '../../../../@core'
 import { genAgentKey } from '../../utils'
-import { XpertBasicFormComponent } from 'apps/cloud/src/app/@shared/xpert'
-import { DragDropModule } from '@angular/cdk/drag-drop'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
-
-import {
-  CHAT_WORKFLOW_TRIGGER_PROVIDER,
-  WorkflowTriggerProviderOption,
-  XpertWorkflowIconComponent,
-  hasJsonSchemaRequiredErrors
-} from 'apps/cloud/src/app/@shared/workflow'
-import { RouterModule } from '@angular/router'
-import { CopilotConfigFormComponent } from 'apps/cloud/src/app/@shared/copilot'
-import { XpertSkillInstallDialogComponent, XpertSkillInstallDialogResult } from 'apps/cloud/src/app/@shared/skills'
-import { injectConfigureBuiltin } from '../../tools'
-import {
-  BehaviorSubject,
-  catchError,
-  distinctUntilChanged,
-  firstValueFrom,
-  from,
-  map,
-  Observable,
-  of,
-  startWith,
-  switchMap,
-  take
-} from 'rxjs'
-import { NgxPermissionsService } from 'ngx-permissions'
 import {
   BlankMiddlewareDefinition,
-  BlankRepositoryDefaultSelection,
-  BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER,
   BlankTriggerSelection,
   BlankWorkflowStarterNodeKey,
   buildBlankKnowledgeDraft,
   buildBlankWorkflowDraft,
   buildBlankXpertDraft,
-  hasBlankWizardSelections,
   isBlankMiddlewareRequired,
   mergeBlankMiddlewareRequiredFeatures,
   normalizeBlankMiddlewareRequiredSelections,
   normalizeBlankMiddlewareSelections
 } from './blank-draft.util'
-import {
-  BLANK_XPERT_WORKFLOW_MODE,
-  BlankXpertCompletionMode,
-  BlankXpertMode,
-  getBlankWizardDefaultMode,
-  getBlankWizardPersistedType,
-  getBlankWizardAvailableModes,
-  isBlankWizardModeDisabled,
-  shouldHideBlankWizardPrimaryAgent,
-  shouldInitializeBlankWizardDraft
-} from './blank-wizard.util'
-import { BlankTriggerSelectionComponent } from './blank-trigger-selection.component'
+import { BlankTemplateSelectionComponent } from './blank-template-selection.component'
 import {
   applyAgentTemplateWizardState,
   applyKnowledgeTemplateWizardState,
   applyTemplateToolsetResolutionsToDraft,
-  BlankTemplateToolsetResolution,
   BlankXpertStartMode,
   extractAgentTemplateWizardState,
   extractKnowledgeTemplateWizardState
 } from './blank-template.util'
-import { BlankTemplateChoice, BlankTemplateSelectionComponent } from './blank-template-selection.component'
-import { resolveTemplatePluginSkillInstallError } from './blank-plugin-resource-error.util'
+import { BlankTriggerSelectionComponent } from './blank-trigger-selection.component'
+import { BlankWizardCapabilitiesComponent } from './blank-wizard-capabilities'
+import {
+  BLANK_XPERT_DIALOG_CATEGORY,
+  BlankXpertWizardResult,
+  CLAWXPERT_PRIMARY_AGENT_PROMPT_TEMPLATE,
+  DraftPreparationResult,
+  hasBlockingChecklist,
+  XPERT_AUTO_PUBLISH_RELEASE_NOTES
+} from './blank-wizard-data'
+import { BlankWizardResources } from './blank-wizard-resources'
+import { BlankWizardStartComponent } from './blank-wizard-start'
+import { shouldHideBlankWizardPrimaryAgent, shouldInitializeBlankWizardDraft } from './blank-wizard.util'
 
-type BlankWorkflowNodeOption = {
-  key: BlankWorkflowStarterNodeKey
-  type: WorkflowNodeTypeEnum
-  labelKey: string
-  defaultLabel: string
-}
-
-type BlankTemplateCatalog = {
-  choices: BlankTemplateChoice[]
-  items: Array<Omit<TXpertTemplate, 'export_data'> | TKnowledgePipelineTemplate>
-}
-
-type BlankWorkspaceSkillItem = {
-  id: string
-  label: string | I18nObject
-  summary?: string | I18nObject | null
-  repositoryId?: string | null
-  repositoryName?: string | null
-  repositoryProvider?: string | null
-}
-
-type BlankMiddlewareProviderOption = {
-  meta: TAgentMiddlewareMeta
-  unavailable?: boolean
-}
-
-type BlankSkillState = {
-  loading: boolean
-  skills: BlankWorkspaceSkillItem[]
-  errorMessage: string | null
-}
-
-type BlankTemplatePluginSkillDependencyGroup = {
-  pluginName: string
-  components: PluginResourceComponentSelector[]
-}
-
-type BlankTemplatePluginSkillBinding = {
-  pluginName: string
-  componentKey: string
-  runtimeId: string
-  targetAgentKey?: string
-}
-
-type BlankTemplateToolsetDependency = {
-  pluginName: string
-  provider: string
-  templateNodeKey: string
-  targetAgentKey?: string
-  instanceName?: string
-}
-
-type BlankTemplateToolsetPreparation = {
-  key: string
-  resolutions: BlankTemplateToolsetResolution[]
-}
-
-type BlankTemplateToolsetSelectionState = {
-  key: string
-  dependency: BlankTemplateToolsetDependency
-  loading: boolean
-  toolsets: IXpertToolset[]
-  selectedToolsetId: string | null
-  errorMessage: string | null
-}
-
-export type BlankXpertWizardStatus = 'created' | 'published'
-
-export type BlankXpertWizardResult = {
-  xpert: IXpert
-  status: BlankXpertWizardStatus
-}
-
-export const BLANK_XPERT_DIALOG_CATEGORY = {
-  CLAW: 'claw'
-} as const
-
-export type BlankXpertDialogCategory = (typeof BLANK_XPERT_DIALOG_CATEGORY)[keyof typeof BLANK_XPERT_DIALOG_CATEGORY]
-
-export function normalizeBlankXpertDialogCategory(
-  category: string | null | undefined
-): BlankXpertDialogCategory | null {
-  const value = category?.trim().toLowerCase()
-
-  switch (value) {
-    case BLANK_XPERT_DIALOG_CATEGORY.CLAW:
-      return value
-    default:
-      return null
-  }
-}
-
-export type BlankXpertDialogData = {
-  workspace?: IXpertWorkspace | null
-  type?: XpertTypeEnum | null
-  allowWorkspaceSelection?: boolean
-  allowedModes?: BlankXpertMode[] | null
-  completionMode?: BlankXpertCompletionMode
-  category?: BlankXpertDialogCategory | null
-  defaultCopilotModel?: ICopilotModel | null
-  initialStartMode?: BlankXpertStartMode
-  initialTemplateId?: string | null
-  lockStartMode?: boolean
-  lockType?: boolean
-  skipTemplateSelectionStep?: boolean
-}
-
-type DraftPreparationResult = {
-  xpert: IXpert
-  draftSaved: boolean
-  hasBlockingChecklist: boolean
-  preparationFailed: boolean
-}
-
-const XPERT_AUTO_PUBLISH_RELEASE_NOTES = 'Initial Xpert bootstrap release.'
-const EMPTY_BLANK_SKILL_STATE: BlankSkillState = {
-  loading: false,
-  skills: [],
-  errorMessage: null
-}
-const CLAWXPERT_PRIMARY_AGENT_PROMPT_TEMPLATE = [
-  'When available, use the following runtime preference context to guide how you respond.',
-  '',
-  'Assistant soul:',
-  '{{sys.soul}}',
-  '',
-  'User profile:',
-  '{{sys.profile}}',
-  '',
-  'Treat the assistant soul as behavior guidance and use the user profile to personalize responses when relevant.'
-].join('\n')
-const UNAVAILABLE_TEMPLATE_MIDDLEWARE_DESCRIPTION: I18nObject = {
-  en_US:
-    'This middleware comes from the selected template, but is not available in the current runtime. Keep it selected to preserve it in the imported draft, or deselect it to remove it.',
-  zh_Hans: '该中间件来自所选模板，但当前运行时不可用。保留勾选会继续带入导入草稿，取消勾选会将其移除。'
-}
-
-const WORKFLOW_ACTION_NODE_OPTIONS: BlankWorkflowNodeOption[] = [
-  {
-    key: 'knowledge',
-    type: WorkflowNodeTypeEnum.KNOWLEDGE,
-    labelKey: 'XP.Workflow.KnowledgeRetrieval',
-    defaultLabel: 'Knowledge Retrieval'
-  },
-  {
-    key: 'http',
-    type: WorkflowNodeTypeEnum.HTTP,
-    labelKey: 'XP.Workflow.HTTPRequest',
-    defaultLabel: 'HTTP Request'
-  },
-  {
-    key: 'code',
-    type: WorkflowNodeTypeEnum.CODE,
-    labelKey: 'XP.Workflow.CodeExecution',
-    defaultLabel: 'Code Execution'
-  }
-]
-
-const WORKFLOW_TRANSFORM_NODE_OPTIONS: BlankWorkflowNodeOption[] = [
-  {
-    key: 'template',
-    type: WorkflowNodeTypeEnum.TEMPLATE,
-    labelKey: 'XP.Workflow.TemplateTransform',
-    defaultLabel: 'Template Transform'
-  },
-  {
-    key: 'assigner',
-    type: WorkflowNodeTypeEnum.ASSIGNER,
-    labelKey: 'XP.Workflow.VariableAssigner',
-    defaultLabel: 'Variable Assigner'
-  },
-  {
-    key: 'json-parse',
-    type: WorkflowNodeTypeEnum.JSON_PARSE,
-    labelKey: 'XP.Workflow.JSONParse',
-    defaultLabel: 'JSON Parse'
-  },
-  {
-    key: 'json-stringify',
-    type: WorkflowNodeTypeEnum.JSON_STRINGIFY,
-    labelKey: 'XP.Workflow.JSONStringify',
-    defaultLabel: 'JSON Stringify'
-  },
-  {
-    key: 'answer',
-    type: WorkflowNodeTypeEnum.ANSWER,
-    labelKey: 'XP.Workflow.Answer',
-    defaultLabel: 'Answer'
-  }
-]
-
+export { BLANK_XPERT_DIALOG_CATEGORY, normalizeBlankXpertDialogCategory } from './blank-wizard-data'
+export type {
+  BlankXpertDialogCategory,
+  BlankXpertDialogData,
+  BlankXpertWizardResult,
+  BlankXpertWizardStatus
+} from './blank-wizard-data'
 @Component({
   selector: 'xpert-new-blank',
   standalone: true,
   imports: [
+    XpDialogActionGroupDirective,
+    ...XpDialogFrameImports,
+    BlankWizardCapabilitiesComponent,
+    BlankWizardStartComponent,
     TranslateModule,
     RouterModule,
     DragDropModule,
@@ -347,7 +102,7 @@ const WORKFLOW_TRANSFORM_NODE_OPTIONS: BlankWorkflowNodeOption[] = [
     ZardBadgeComponent,
     ZardButtonComponent,
     ZardCheckboxComponent,
-    ZardComboboxDeprecatedComponent,
+    ZardComboboxComponent,
     ZardIconComponent,
     ZardSearchInputComponent,
     ...ZardSelectImports,
@@ -362,714 +117,7 @@ const WORKFLOW_TRANSFORM_NODE_OPTIONS: BlankWorkflowNodeOption[] = [
   styleUrl: './blank.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class XpertNewBlankComponent {
-  eXpertTypeEnum = XpertTypeEnum
-  eWorkflowNodeTypeEnum = WorkflowNodeTypeEnum
-  workflowMode = BLANK_XPERT_WORKFLOW_MODE
-  readonly #dialogRef = inject(DialogRef<BlankXpertWizardResult>)
-  readonly #dialog = inject(Dialog)
-  readonly #dialogData = inject<BlankXpertDialogData>(DIALOG_DATA)
-  readonly #selectedWorkspace = injectWorkspace()
-  readonly #pluginAPI = injectPluginAPI()
-  readonly #configureBuiltinToolset = injectConfigureBuiltin()
-  readonly #skillPackageService = inject(SkillPackageService)
-  readonly #skillRepositoryService = inject(SkillRepositoryService)
-  readonly #toolsetService = inject(XpertToolsetService)
-  readonly xpertService = inject(XpertAPIService)
-  readonly xpertAgentService = inject(XpertAgentService)
-  readonly templateService = inject(XpertTemplateService)
-  readonly workspaceService = inject(XpertWorkspaceService)
-  readonly knowledgebaseService = inject(KnowledgebaseService)
-  readonly environmentService = inject(EnvironmentService)
-  readonly #copilotServer = inject(CopilotServerService)
-  readonly #permissionsService = inject(NgxPermissionsService)
-  readonly #toastr = inject(ToastrService)
-  readonly #translate = inject(TranslateService)
-  readonly basicForm = viewChild(XpertBasicFormComponent)
-  readonly clawCopilotForm = viewChild<CopilotConfigFormComponent>('clawCopilotForm')
-
-  readonly requestedType = signal(this.#dialogData.type ?? null)
-  readonly allowedModes = this.#dialogData.allowedModes ?? null
-  readonly completionMode = this.#dialogData.completionMode ?? ('create' as BlankXpertCompletionMode)
-  readonly templateCategory = normalizeBlankXpertDialogCategory(this.#dialogData.category)
-  readonly usesWorkspaceSkillDefaults = computed(() => this.templateCategory === BLANK_XPERT_DIALOG_CATEGORY.CLAW)
-  readonly allowWorkspaceSelection = !!this.#dialogData.allowWorkspaceSelection
-  readonly lockStartMode = !!this.#dialogData.lockStartMode
-  readonly lockType = !!this.#dialogData.lockType
-  readonly skipTemplateSelectionStep =
-    !!this.#dialogData.skipTemplateSelectionStep &&
-    this.#dialogData.initialStartMode === 'template' &&
-    !!this.#dialogData.initialTemplateId
-  readonly agentInitialStepIndex = this.skipTemplateSelectionStep ? 1 : 0
-  readonly initialMode = getBlankWizardDefaultMode(this.#dialogData.type, this.allowedModes)
-  readonly availableModes = computed(() =>
-    this.lockType ? [this.initialMode] : getBlankWizardAvailableModes(this.requestedType(), this.allowedModes)
-  )
-  readonly types = model<BlankXpertMode[]>([this.initialMode])
-  readonly selectedMode = computed<BlankXpertMode>(
-    () => this.types()[0] ?? getBlankWizardDefaultMode(this.requestedType(), this.allowedModes)
-  )
-  readonly selectedType = computed(() => getBlankWizardPersistedType(this.selectedMode()))
-  readonly isAgentType = computed(() => this.selectedMode() === XpertTypeEnum.Agent)
-  readonly isWorkflowType = computed(() => this.selectedMode() === BLANK_XPERT_WORKFLOW_MODE)
-  readonly isKnowledgeType = computed(() => this.selectedMode() === XpertTypeEnum.Knowledge)
-  readonly isClawAgentWizard = computed(
-    () => this.templateCategory === BLANK_XPERT_DIALOG_CATEGORY.CLAW && this.isAgentType()
-  )
-  readonly startMode = model<BlankXpertStartMode>(this.#dialogData.initialStartMode ?? 'blank')
-  readonly workspaceId = model<string | null>(this.#dialogData.workspace?.id ?? this.#selectedWorkspace()?.id ?? null)
-  readonly name = model<string>()
-  readonly description = model<string>()
-  readonly avatar = model<TAvatar>()
-  readonly title = model<string>()
-  readonly copilotModel = model<ICopilotModel>(this.#dialogData.defaultCopilotModel ?? undefined)
-  readonly isolateWorkspaceData = signal(false)
-  readonly selectedTemplateId = model<string | null>(this.#dialogData.initialTemplateId ?? null)
-  readonly selectedTemplate = signal<TXpertTemplate | null>(null)
-  readonly selectedTemplateDraft = signal<TXpertTeamDraft | null>(null)
-  readonly templateLoading = signal(false)
-  readonly templateLoadError = signal<string | null>(null)
-  readonly templatePluginSkillInstallError = signal<string | null>(null)
-  readonly templatePluginSkillBindings = signal<BlankTemplatePluginSkillBinding[]>([])
-  readonly templateToolsetInstallError = signal<string | null>(null)
-  readonly agentTemplateCatalogLoading = signal(true)
-  readonly agentTemplateCatalogError = signal<string | null>(null)
-  readonly knowledgeTemplateCatalogLoading = signal(true)
-  readonly knowledgeTemplateCatalogError = signal<string | null>(null)
-  readonly #refreshWorkspaces$ = new BehaviorSubject<void>(undefined)
-  readonly workspaces = toSignal(
-    this.#refreshWorkspaces$.pipe(
-      switchMap(() =>
-        this.workspaceService
-          .getAllMy({ order: { updatedAt: OrderTypeEnum.DESC } }, { purpose: 'authoring' })
-          .pipe(map(({ items }) => items))
-      )
-    ),
-    { initialValue: [] as IXpertWorkspace[] }
-  )
-  readonly agentTemplateCatalog = toSignal(
-    this.templateService.getSummaries().pipe(
-      map((summaries) => {
-        const items = summaries.filter((template) => template.type === XpertTypeEnum.Agent)
-        return {
-          choices: items.map((template) => ({
-            id: template.id,
-            name: template.name,
-            title: template.title,
-            description: template.description,
-            category: template.category,
-            avatar: template.avatar
-          })),
-          items
-        } satisfies BlankTemplateCatalog
-      }),
-      map((catalog) => {
-        this.agentTemplateCatalogLoading.set(false)
-        this.agentTemplateCatalogError.set(null)
-        return catalog
-      }),
-      catchError((error) => {
-        this.agentTemplateCatalogLoading.set(false)
-        this.agentTemplateCatalogError.set(getErrorMessage(error))
-        return of({ choices: [], items: [] } satisfies BlankTemplateCatalog)
-      })
-    ),
-    { initialValue: { choices: [], items: [] } satisfies BlankTemplateCatalog }
-  )
-  readonly knowledgeTemplateCatalog = toSignal(
-    this.templateService.getAllKnowledgePipelines({}).pipe(
-      map(
-        ({ templates }) =>
-          ({
-            choices: templates.map((template) => ({
-              id: template.id,
-              name: template.name,
-              title: template.title,
-              description: template.description,
-              category: template.category,
-              icon: template.icon
-            })),
-            items: templates
-          }) satisfies BlankTemplateCatalog
-      ),
-      map((catalog) => {
-        this.knowledgeTemplateCatalogLoading.set(false)
-        this.knowledgeTemplateCatalogError.set(null)
-        return catalog
-      }),
-      catchError((error) => {
-        this.knowledgeTemplateCatalogLoading.set(false)
-        this.knowledgeTemplateCatalogError.set(getErrorMessage(error))
-        return of({ choices: [], items: [] } satisfies BlankTemplateCatalog)
-      })
-    ),
-    { initialValue: { choices: [], items: [] } satisfies BlankTemplateCatalog }
-  )
-  readonly workspaceOptions = computed(() =>
-    this.workspaces().map((workspace) => ({
-      value: workspace.id,
-      label: workspace.name
-    }))
-  )
-  readonly triggerProviders = toSignal(this.xpertService.getTriggerProviders(), {
-    initialValue: [] as TWorkflowTriggerMeta[]
-  })
-  readonly middlewareProviders = toSignal(this.xpertAgentService.agentMiddlewares$, {
-    initialValue: [] as TAgentMiddlewareDescriptor[]
-  })
-  readonly dataSourceProviders = toSignal(this.knowledgebaseService.documentSourceStrategies$, {
-    initialValue: [] as { meta: IDocumentSourceProvider; integration: { service: string } }[]
-  })
-  readonly processorProviders = toSignal(this.knowledgebaseService.documentTransformerStrategies$, {
-    initialValue: [] as { meta: IDocumentProcessorProvider; integration: { service: string } }[]
-  })
-  readonly chunkerProviders = toSignal(this.knowledgebaseService.textSplitterStrategies$, {
-    initialValue: [] as IDocumentChunkerProvider[]
-  })
-  readonly understandingProviders = toSignal(this.knowledgebaseService.understandingStrategies$, {
-    initialValue: [] as {
-      meta: IDocumentUnderstandingProvider
-      requireVisionModel: boolean
-      integration: { service: string }
-    }[]
-  })
-  readonly modelProviderLoadError = signal<string | null>(null)
-  readonly availableLlmCopilots = toSignal(
-    toObservable(this.isClawAgentWizard).pipe(
-      distinctUntilChanged(),
-      switchMap((enabled) => {
-        if (!enabled) {
-          this.modelProviderLoadError.set(null)
-          return of(null as ICopilotWithProvider[] | null)
-        }
-
-        return this.#copilotServer.getCopilotModels(AiModelTypeEnum.LLM).pipe(
-          map((copilots) => {
-            this.modelProviderLoadError.set(null)
-            return copilots ?? []
-          }),
-          catchError((error) => {
-            this.modelProviderLoadError.set(getErrorMessage(error) || 'Failed to load model providers.')
-            return of([] as ICopilotWithProvider[])
-          })
-        )
-      })
-    ),
-    { initialValue: null as ICopilotWithProvider[] | null }
-  )
-  readonly orgCopilots = toSignal(
-    toObservable(this.isClawAgentWizard).pipe(
-      distinctUntilChanged(),
-      switchMap((enabled) => {
-        if (!enabled) {
-          return of([] as ICopilot[])
-        }
-
-        return this.#copilotServer.refresh$.pipe(
-          switchMap(() => this.#copilotServer.getAllInOrg()),
-          map(({ items }) => items ?? []),
-          catchError((error) => {
-            this.modelProviderLoadError.set(getErrorMessage(error) || 'Failed to load model providers.')
-            return of([] as ICopilot[])
-          })
-        )
-      })
-    ),
-    { initialValue: [] as ICopilot[] }
-  )
-  readonly hasCopilotEditPermission = toSignal(
-    this.#permissionsService.permissions$.pipe(
-      map((permissions) => !!permissions[AIPermissionsEnum.COPILOT_EDIT]),
-      startWith(!!this.#permissionsService.getPermissions()[AIPermissionsEnum.COPILOT_EDIT])
-    ),
-    { initialValue: !!this.#permissionsService.getPermissions()[AIPermissionsEnum.COPILOT_EDIT] }
-  )
-  readonly triggerProviderOptions = computed(() =>
-    uniqueByName<WorkflowTriggerProviderOption>(
-      [CHAT_WORKFLOW_TRIGGER_PROVIDER, ...this.triggerProviders()],
-      (provider) => provider.name
-    )
-  )
-  readonly middlewareProviderOptions = computed<BlankMiddlewareProviderOption[]>(() => {
-    const runtimeProviders = uniqueByName<BlankMiddlewareProviderOption>(
-      this.middlewareProviders().map(({ meta }) => ({ meta })),
-      (provider) => provider.meta.name
-    ).filter((provider) => provider.meta.name !== BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER)
-    const builtinProviderNames = new Set(
-      runtimeProviders
-        .filter((provider) => !isUserAddableAgentMiddleware(provider.meta))
-        .map((provider) => provider.meta.name)
-    )
-    const availableProviders = runtimeProviders.filter((provider) => isUserAddableAgentMiddleware(provider.meta))
-    const availableNames = new Set(availableProviders.map((provider) => provider.meta.name))
-    const unavailableTemplateSelections = this.selectedMiddlewares()
-      .filter(
-        (provider) =>
-          !!provider &&
-          provider !== BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER &&
-          !availableNames.has(provider) &&
-          !builtinProviderNames.has(provider)
-      )
-      .map((provider) => ({
-        meta: {
-          name: provider,
-          label: {
-            en_US: provider,
-            zh_Hans: provider
-          },
-          description: UNAVAILABLE_TEMPLATE_MIDDLEWARE_DESCRIPTION
-        },
-        unavailable: true
-      }))
-
-    return [...availableProviders, ...unavailableTemplateSelections]
-  })
-  readonly filteredMiddlewareProviderOptions = computed(() =>
-    this.middlewareProviderOptions().filter((provider) => matchesMiddlewareSearch(provider, this.middlewareSearch()))
-  )
-  readonly dataSourceProviderOptions = computed(() =>
-    uniqueByName<{ meta: IDocumentSourceProvider; integration: { service: string } }>(
-      this.dataSourceProviders(),
-      (provider) => provider.meta.name
-    )
-  )
-  readonly processorProviderOptions = computed(() =>
-    uniqueByName<{ meta: IDocumentProcessorProvider; integration: { service: string } }>(
-      this.processorProviders(),
-      (provider) => provider.meta.name
-    )
-  )
-  readonly chunkerProviderOptions = computed(() =>
-    uniqueByName<IDocumentChunkerProvider>(this.chunkerProviders(), (provider) => provider.name)
-  )
-  readonly understandingProviderOptions = computed(() =>
-    uniqueByName<{
-      meta: IDocumentUnderstandingProvider
-      requireVisionModel: boolean
-      integration: { service: string }
-    }>(this.understandingProviders(), (provider) => provider.meta.name)
-  )
-  readonly installingSkillPackage = signal(false)
-  readonly workspacePublicRepositoryId = signal<string | null>(null)
-  readonly skillRefreshTick = signal(0)
-  readonly skillState = toSignal(
-    toObservable(
-      computed(() => ({
-        workspaceId: this.workspaceId(),
-        refreshTick: this.skillRefreshTick()
-      }))
-    ).pipe(
-      switchMap(({ workspaceId }) => {
-        if (!workspaceId) {
-          return of(EMPTY_BLANK_SKILL_STATE)
-        }
-
-        return this.#skillPackageService
-          .getAllByWorkspace(workspaceId, { relations: ['skillIndex', 'skillIndex.repository'] })
-          .pipe(
-            take(1),
-            map(({ items }) => buildBlankWorkspaceSkillState(items ?? [])),
-            catchError((error) =>
-              of({
-                ...EMPTY_BLANK_SKILL_STATE,
-                errorMessage: getErrorMessage(error) || 'Failed to load workspace skills.'
-              })
-            ),
-            startWith({
-              ...EMPTY_BLANK_SKILL_STATE,
-              loading: true
-            })
-          )
-      })
-    ),
-    { initialValue: EMPTY_BLANK_SKILL_STATE }
-  )
-  readonly selectedTriggers = model<BlankTriggerSelection[]>([])
-  readonly selectedExplicitSkills = model<string[]>([])
-  readonly selectedRepositoryDefault = signal<BlankRepositoryDefaultSelection | null>(null)
-  readonly selectedMiddlewares = model<string[]>([])
-  readonly preserveSkillsMiddleware = signal(false)
-  readonly selectedMiddlewareRequired = signal<Record<string, boolean>>({})
-  readonly middlewareSearch = signal('')
-  readonly selectedKnowledgeTriggers = model<BlankTriggerSelection[]>([])
-  readonly selectedDataSources = model<string[]>([])
-  readonly selectedProcessors = model<string[]>([])
-  readonly selectedChunkers = model<string[]>([])
-  readonly selectedUnderstandings = model<string[]>([])
-  readonly selectedWorkflowNodes = model<BlankWorkflowStarterNodeKey[]>([])
-  readonly preparedSkillWorkspaces = signal<Set<string>>(new Set())
-  readonly preparedTemplatePluginSkillDependencies = signal<Map<string, BlankTemplatePluginSkillBinding[]>>(new Map())
-  readonly preparedTemplateToolsetDependencies = signal<BlankTemplateToolsetPreparation | null>(null)
-  readonly loadedTemplateToolsetDependencyKey = signal<string | null>(null)
-  readonly templateToolsetSelectionStates = signal<BlankTemplateToolsetSelectionState[]>([])
-  readonly loadingTemplateToolsets = signal(false)
-  readonly configuringTemplateToolsetKey = signal<string | null>(null)
-  readonly initializedWorkspaceSkillDefaultWorkspaces = signal<Set<string>>(new Set())
-  readonly workflowActionNodeOptions = WORKFLOW_ACTION_NODE_OPTIONS
-  readonly workflowTransformNodeOptions = WORKFLOW_TRANSFORM_NODE_OPTIONS
-  readonly primaryCopilot = computed(
-    () => this.orgCopilots().find((item) => item.role === AiProviderRole.Primary) ?? null
-  )
-  readonly hasAvailableLlmProvider = computed(() => (this.availableLlmCopilots()?.length ?? 0) > 0)
-  readonly checkingModelProviders = computed(
-    () => this.isClawAgentWizard() && this.availableLlmCopilots() === null && !this.modelProviderSetupCompleted()
-  )
-  readonly needsModelProviderSetup = computed(
-    () =>
-      this.isClawAgentWizard() &&
-      !this.modelProviderSetupCompleted() &&
-      this.availableLlmCopilots() !== null &&
-      !this.hasAvailableLlmProvider()
-  )
-  readonly canConfigureModelProvider = computed(() => !!this.hasCopilotEditPermission())
-  readonly showClawModelProviderForm = computed(() => !!this.primaryCopilot()?.enabled)
-  readonly agentModelProviderStepIndex = computed(() => (this.needsModelProviderSetup() ? 1 : -1))
-  readonly agentBasicStepIndex = computed(() => (this.needsModelProviderSetup() ? 2 : 1))
-  readonly agentTriggerStepIndex = computed(() => (this.needsModelProviderSetup() ? 3 : 2))
-  readonly agentSkillStepIndex = computed(() => (this.needsModelProviderSetup() ? 5 : 4))
-  readonly selectedSkills = computed<string[]>(() => {
-    const selected = new Set(this.selectedExplicitSkills())
-    const repositoryDefault = this.selectedRepositoryDefault()
-
-    if (repositoryDefault?.repositoryId) {
-      const disabledSkillIds = new Set(repositoryDefault.disabledSkillIds)
-      for (const skill of this.skillState().skills) {
-        if (skill.repositoryId === repositoryDefault.repositoryId && !disabledSkillIds.has(skill.id)) {
-          selected.add(skill.id)
-        }
-      }
-    }
-
-    return Array.from(selected)
-  })
-  readonly selectedSkillItems = computed<BlankWorkspaceSkillItem[]>(() => {
-    const itemMap = new Map(this.skillState().skills.map((skill) => [skill.id, skill]))
-    return this.selectedSkills().map((skillId) => itemMap.get(skillId) ?? { id: skillId, label: skillId })
-  })
-  readonly templatePluginSkillDependencyGroups = computed<BlankTemplatePluginSkillDependencyGroup[]>(() => {
-    const template = this.selectedTemplate()
-    const defaultPluginName = readNonEmptyString(template?.pluginName)
-    const groups = new Map<string, PluginResourceComponentSelector[]>()
-
-    for (const dependency of template?.dependencies?.skills ?? []) {
-      const componentKey = readNonEmptyString(dependency.componentKey)
-      const pluginName = readNonEmptyString(dependency.pluginName) ?? defaultPluginName
-      if (!componentKey || !pluginName) {
-        continue
-      }
-
-      const targetAgentKey = readNonEmptyString(dependency.targetAgentKey)
-      const components = groups.get(pluginName) ?? []
-      components.push({
-        pluginName,
-        componentType: PLUGIN_COMPONENT_TYPE.SKILL,
-        componentKey,
-        ...(targetAgentKey ? { targetAgentKey } : {})
-      })
-      groups.set(pluginName, components)
-    }
-
-    return Array.from(groups.entries()).map(([pluginName, components]) => ({ pluginName, components }))
-  })
-  readonly templateToolsetDependencies = computed<BlankTemplateToolsetDependency[]>(() => {
-    const template = this.selectedTemplate()
-    const defaultPluginName = readNonEmptyString(template?.pluginName)
-
-    return (template?.dependencies?.toolsets ?? [])
-      .map((dependency) => {
-        const provider = readNonEmptyString(dependency.provider)
-        const templateNodeKey = readNonEmptyString(dependency.templateNodeKey)
-        const pluginName = readNonEmptyString(dependency.pluginName) ?? defaultPluginName
-        if (!provider || !templateNodeKey || !pluginName) {
-          return null
-        }
-
-        const targetAgentKey = readNonEmptyString(dependency.targetAgentKey)
-        const instanceName = readNonEmptyString(dependency.instanceName)
-        return {
-          pluginName,
-          provider,
-          templateNodeKey,
-          ...(targetAgentKey ? { targetAgentKey } : {}),
-          ...(instanceName ? { instanceName } : {})
-        }
-      })
-      .filter((dependency): dependency is BlankTemplateToolsetDependency => !!dependency)
-  })
-  readonly hasTemplateToolsetStep = computed(
-    () => this.isAgentType() && this.startMode() === 'template' && this.templateToolsetDependencies().length > 0
-  )
-  readonly agentToolsetStepIndex = computed(() => (this.hasTemplateToolsetStep() ? this.agentSkillStepIndex() + 1 : -1))
-  readonly agentLastStepIndex = computed(() =>
-    this.hasTemplateToolsetStep() ? this.agentToolsetStepIndex() : this.agentSkillStepIndex()
-  )
-  readonly templateToolsetsStepInvalid = computed(() => {
-    if (!this.hasTemplateToolsetStep()) {
-      return false
-    }
-
-    return (
-      this.loadingTemplateToolsets() ||
-      !!this.templateToolsetInstallError() ||
-      this.templateToolsetSelectionStates().length !== this.templateToolsetDependencies().length ||
-      this.templateToolsetSelectionStates().some(
-        (state) => state.loading || !state.selectedToolsetId || !!state.errorMessage
-      )
-    )
-  })
-  readonly supportsTemplateStart = computed(() => this.isAgentType() || this.isKnowledgeType())
-  readonly templateChoices = computed(() =>
-    this.isAgentType()
-      ? this.agentTemplateCatalog().choices
-      : this.isKnowledgeType()
-        ? this.knowledgeTemplateCatalog().choices
-        : []
-  )
-  readonly templateOptionsLoading = computed(() =>
-    this.isAgentType()
-      ? this.agentTemplateCatalogLoading()
-      : this.isKnowledgeType()
-        ? this.knowledgeTemplateCatalogLoading()
-        : false
-  )
-  readonly templateOptionsError = computed(() =>
-    this.isAgentType()
-      ? this.agentTemplateCatalogError()
-      : this.isKnowledgeType()
-        ? this.knowledgeTemplateCatalogError()
-        : null
-  )
-  readonly startStepInvalid = computed(() => {
-    if (this.startMode() !== 'template') {
-      return false
-    }
-
-    if (!this.supportsTemplateStart()) {
-      return true
-    }
-
-    return (
-      !this.selectedTemplateId() ||
-      this.templateLoading() ||
-      !this.selectedTemplateDraft() ||
-      !!this.templateLoadError()
-    )
-  })
-  readonly selectedWorkspace = computed(() => {
-    const workspaceId = this.workspaceId()
-    if (!workspaceId) {
-      return null
-    }
-
-    return (
-      this.workspaces().find((workspace) => workspace.id === workspaceId) ??
-      (this.#dialogData.workspace?.id === workspaceId ? this.#dialogData.workspace : null)
-    )
-  })
-  readonly noAvailableWorkspaces = computed(() => this.allowWorkspaceSelection && !this.workspaces().length)
-  readonly workspaceSelectionInvalid = computed(() => this.allowWorkspaceSelection && !this.workspaceId())
-  readonly basicInvalid = computed(() => {
-    const basicForm = this.basicForm()
-    return !basicForm || basicForm.checking() || basicForm.invalid()
-  })
-  readonly basicStepInvalid = computed(
-    () => this.basicInvalid() || this.workspaceSelectionInvalid() || this.noAvailableWorkspaces()
-  )
-  readonly directBasicStepInvalid = computed(() => {
-    const basicForm = this.basicForm()
-    if (basicForm) {
-      return (
-        basicForm.checking() ||
-        !!basicForm.invalid() ||
-        this.workspaceSelectionInvalid() ||
-        this.noAvailableWorkspaces()
-      )
-    }
-
-    const name = this.name()?.trim()
-    return (
-      !name ||
-      /[^a-zA-Z0-9-\s]/.test(name) ||
-      convertToUrlPath(name).length < 5 ||
-      !this.copilotModel()?.copilotId ||
-      this.workspaceSelectionInvalid() ||
-      this.noAvailableWorkspaces()
-    )
-  })
-  readonly selectedTriggersInvalid = computed(() =>
-    this.hasInvalidTriggerSelections(this.selectedTriggers(), this.triggerProviderOptions())
-  )
-  readonly selectedKnowledgeTriggersInvalid = computed(() =>
-    this.hasInvalidTriggerSelections(this.selectedKnowledgeTriggers(), this.triggerProviderOptions())
-  )
-  readonly hasAdvancedSelections = computed(() =>
-    hasBlankWizardSelections({
-      triggers: this.selectedTriggers(),
-      skills: this.selectedExplicitSkills(),
-      repositoryDefault: this.selectedRepositoryDefault(),
-      middlewares: this.selectedMiddlewares(),
-      preserveSkillsMiddleware: this.preserveSkillsMiddleware()
-    })
-  )
-
-  readonly loading = signal(false)
-  readonly enablingPrimaryCopilot = signal(false)
-  readonly modelProviderSetupCompleted = signal(false)
-  readonly canCreateDirectly = computed(
-    () => this.lockStartMode && this.startMode() === 'template' && !!this.selectedTemplateId()
-  )
-  readonly directCreateDisabled = computed(
-    () =>
-      !this.canCreateDirectly() ||
-      this.loading() ||
-      this.startStepInvalid() ||
-      this.checkingModelProviders() ||
-      this.modelProviderStepInvalid() ||
-      this.directBasicStepInvalid() ||
-      this.selectedTriggersInvalid() ||
-      this.installingSkillPackage() ||
-      this.loadingTemplateToolsets() ||
-      !!this.configuringTemplateToolsetKey() ||
-      !!this.templatePluginSkillInstallError() ||
-      !!this.templateToolsetInstallError() ||
-      (this.templateToolsetSelectionStates().length > 0 && this.templateToolsetsStepInvalid())
-  )
-
-  refreshWorkspaces() {
-    this.#refreshWorkspaces$.next()
-  }
-
-  constructor() {
-    let previousMode = this.selectedMode()
-    let previousSkillWorkspaceId = this.workspaceId()
-
-    effect(() => {
-      const availableModes = this.availableModes()
-      if (!availableModes.length) {
-        return
-      }
-
-      const currentMode = this.types()[0]
-      if (!currentMode || !availableModes.includes(currentMode)) {
-        this.types.set([getBlankWizardDefaultMode(this.requestedType(), this.allowedModes)])
-      }
-    })
-
-    effect(() => {
-      const workspaces = this.workspaces()
-      const dialogWorkspaceId = this.#dialogData.workspace?.id ?? null
-
-      if (!this.allowWorkspaceSelection) {
-        if (this.workspaceId() !== dialogWorkspaceId) {
-          this.workspaceId.set(dialogWorkspaceId)
-        }
-        return
-      }
-
-      const preferredWorkspaceId = dialogWorkspaceId ?? this.#selectedWorkspace()?.id ?? null
-      const currentWorkspaceId = this.workspaceId()
-      const hasCurrentWorkspace =
-        !!currentWorkspaceId && workspaces.some((workspace) => workspace.id === currentWorkspaceId)
-
-      if (hasCurrentWorkspace) {
-        return
-      }
-
-      if (
-        !currentWorkspaceId &&
-        preferredWorkspaceId &&
-        workspaces.some((workspace) => workspace.id === preferredWorkspaceId)
-      ) {
-        this.workspaceId.set(preferredWorkspaceId)
-        return
-      }
-
-      if (currentWorkspaceId && workspaces.length && !hasCurrentWorkspace) {
-        this.workspaceId.set(null)
-      }
-    })
-
-    effect(() => {
-      const workspaceId = this.workspaceId()
-      if (workspaceId === previousSkillWorkspaceId) {
-        return
-      }
-
-      previousSkillWorkspaceId = workspaceId
-      this.clearWorkspaceScopedAgentSelections()
-      this.skillRefreshTick.update((value) => value + 1)
-    })
-
-    effect(() => {
-      const mode = this.selectedMode()
-      if (mode === previousMode) {
-        return
-      }
-
-      previousMode = mode
-      this.resetTemplateFlow()
-      this.applyBlankDefaults()
-    })
-
-    effect((onCleanup) => {
-      const startMode = this.startMode()
-      const templateId = this.selectedTemplateId()
-      const selectedMode = this.selectedMode()
-
-      if (startMode !== 'template' || !templateId || !this.supportsTemplateStart()) {
-        if (startMode !== 'template') {
-          this.templateLoading.set(false)
-          this.templateLoadError.set(null)
-          this.selectedTemplate.set(null)
-          this.selectedTemplateDraft.set(null)
-        }
-        return
-      }
-
-      this.templateLoading.set(true)
-      this.templateLoadError.set(null)
-      this.selectedTemplate.set(null)
-      this.selectedTemplateDraft.set(null)
-      this.applyBlankDefaults()
-
-      const template$: Observable<{ template: TXpertTemplate | null; export_data: string }> =
-        selectedMode === XpertTypeEnum.Agent
-          ? this.templateService
-              .getTemplate(templateId)
-              .pipe(map((template) => ({ template, export_data: template.export_data })))
-          : this.templateService
-              .getKnowledgePipelineTemplate(templateId)
-              .pipe(map((template) => ({ template: null, export_data: template.export_data })))
-
-      const subscription = template$
-        .pipe(
-          switchMap((data) =>
-            from(parseYAML(data.export_data) as Promise<TXpertTeamDraft>).pipe(
-              map((draft) => ({
-                template: data.template,
-                draft
-              }))
-            )
-          )
-        )
-        .subscribe({
-          next: ({ template, draft }) => {
-            this.templateLoading.set(false)
-            this.selectedTemplate.set(template)
-            this.selectedTemplateDraft.set(draft)
-            this.applyTemplateDefaults(draft)
-          },
-          error: (error) => {
-            this.templateLoading.set(false)
-            this.selectedTemplate.set(null)
-            this.templateLoadError.set(getErrorMessage(error))
-          }
-        })
-
-      onCleanup(() => subscription.unsubscribe())
-    })
-  }
-
+export class XpertNewBlankComponent extends BlankWizardResources {
   async create() {
     if (this.loading() || this.creationInvalid(!!this.basicStepInvalid())) {
       return
@@ -1091,7 +139,7 @@ export class XpertNewBlankComponent {
     await this.runCreate(async () => {
       const nameAvailable = await firstValueFrom(this.xpertService.validateName(name).pipe(take(1)))
       if (!nameAvailable) {
-        this.#toastr.error(this.#translate.instant('XP.Xpert.IDNotAvailable', { Default: 'ID not available' }))
+        this._toastr.error(this._translate.instant('XP.Xpert.IDNotAvailable', { Default: 'ID not available' }))
         return false
       }
 
@@ -1100,7 +148,7 @@ export class XpertNewBlankComponent {
     })
   }
 
-  private creationInvalid(basicStepInvalid: boolean) {
+  creationInvalid(basicStepInvalid: boolean) {
     return (
       this.startStepInvalid() ||
       this.modelProviderStepInvalid() ||
@@ -1114,7 +162,7 @@ export class XpertNewBlankComponent {
     )
   }
 
-  private async runCreate(preflight?: () => Promise<boolean>) {
+  async runCreate(preflight?: () => Promise<boolean>) {
     this.loading.set(true)
     try {
       if (preflight && !(await preflight())) {
@@ -1135,7 +183,7 @@ export class XpertNewBlankComponent {
 
       const result = this.startMode() === 'template' ? await this.createFromTemplate() : await this.createBlankXpert()
 
-      this.#toastr.success(
+      this._toastr.success(
         result.status === 'published' ? 'XP.Xpert.CreatedAndPublishedSuccessfully' : 'XP.Messages.CreatedSuccessfully',
         {
           Default: result.status === 'published' ? 'Created and published successfully' : 'Created Successfully'
@@ -1143,7 +191,7 @@ export class XpertNewBlankComponent {
       )
       this.close(result)
     } catch (error) {
-      this.#toastr.error(getErrorMessage(error))
+      this._toastr.error(getErrorMessage(error))
     } finally {
       this.loading.set(false)
     }
@@ -1187,7 +235,7 @@ export class XpertNewBlankComponent {
 
     this.applyClawModelProviderFormModel()
     this.modelProviderSetupCompleted.set(true)
-    this.#copilotServer.refresh()
+    this._copilotServer.refresh()
   }
 
   setStartMode(mode: BlankXpertStartMode) {
@@ -1208,7 +256,7 @@ export class XpertNewBlankComponent {
     this.applyBlankDefaults()
   }
 
-  private async createBlankXpert(): Promise<BlankXpertWizardResult> {
+  async createBlankXpert(): Promise<BlankXpertWizardResult> {
     const selectedType = this.selectedType()
     const selectedMode = this.selectedMode()
     const selectedMiddlewareDefinitions = this.getSelectedMiddlewareDefinitions()
@@ -1268,7 +316,7 @@ export class XpertNewBlankComponent {
     return this.completeCreation(preparedXpert)
   }
 
-  private async createFromTemplate(): Promise<BlankXpertWizardResult> {
+  async createFromTemplate(): Promise<BlankXpertWizardResult> {
     const draft = this.selectedTemplateDraft()
     if (!draft) {
       throw new Error('Select a template before continuing.')
@@ -1385,96 +433,11 @@ export class XpertNewBlankComponent {
     this.selectedWorkflowNodes.set(this.toggleValue(this.selectedWorkflowNodes(), node, enabled))
   }
 
-  async openSkillInstallDialog() {
-    if (!this.workspaceId() || this.installingSkillPackage()) {
-      return
-    }
-
-    const skillIndex = await firstValueFrom(
-      this.#dialog
-        .open<XpertSkillInstallDialogResult>(XpertSkillInstallDialogComponent, {
-          backdropClass: 'backdrop-blur-xs-black',
-          panelClass: 'xp-overlay-pane-dialog',
-          width: 'min(96vw, 72rem)',
-          maxWidth: 'calc(100vw - 32px)',
-          data: {
-            workspaceId: this.workspaceId()
-          }
-        })
-        .closed.pipe(take(1))
-    )
-
-    if (skillIndex) {
-      await this.handleSkillInstallDialogResult(skillIndex)
-    }
-  }
-
-  async handleSkillInstallDialogResult(result: XpertSkillInstallDialogResult) {
-    if (result.kind === 'repository-index') {
-      await this.installSkill(result.skillIndex)
-      return
-    }
-
-    const packageIds = result.packages.map((item) => item.id).filter((id): id is string => !!id)
-    if (packageIds.length) {
-      this.selectedExplicitSkills.set(Array.from(new Set([...this.selectedExplicitSkills(), ...packageIds])))
-      this.refreshAgentSkillMiddlewareSelections()
-      this.refreshSkills()
-    }
-  }
-
-  async installSkill(item: ISkillRepositoryIndex) {
-    const workspaceId = this.workspaceId()
-    if (!workspaceId || this.installingSkillPackage()) {
-      return
-    }
-
-    this.installingSkillPackage.set(true)
-
-    try {
-      const skillPackage = await firstValueFrom(
-        this.#skillPackageService.installPackage(workspaceId, item.id).pipe(take(1))
-      )
-      if (
-        !this.usesWorkspaceSkillDefaults() &&
-        item.repository?.provider === WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER &&
-        item.repositoryId
-      ) {
-        const repositoryDefault = this.selectedRepositoryDefault()
-        const disabledSkillIds =
-          repositoryDefault?.repositoryId === item.repositoryId
-            ? repositoryDefault.disabledSkillIds.filter((id) => id !== skillPackage.id)
-            : []
-
-        this.selectedRepositoryDefault.set({
-          repositoryId: item.repositoryId,
-          disabledSkillIds
-        })
-      } else {
-        this.selectedExplicitSkills.set(Array.from(new Set([...this.selectedExplicitSkills(), skillPackage.id])))
-      }
-      this.refreshAgentSkillMiddlewareSelections()
-      this.refreshSkills()
-    } catch (error) {
-      this.#toastr.error(getErrorMessage(error) || 'Failed to install the selected skill.')
-    } finally {
-      this.installingSkillPackage.set(false)
-    }
-  }
-
-  removeSkill(skillId: string) {
-    this.toggleSkill(skillId, false)
-  }
-
   close(value?: BlankXpertWizardResult) {
-    this.#dialogRef.close(value)
+    this._dialogRef.close(value)
   }
 
-  private refreshSkills() {
-    this.skillRefreshTick.update((value) => value + 1)
-  }
-
-  private async completeCreation(xpert: IXpert): Promise<BlankXpertWizardResult> {
+  async completeCreation(xpert: IXpert): Promise<BlankXpertWizardResult> {
     const result = await this.initializeDraftIfNeeded(xpert)
     if (this.completionMode !== 'publish') {
       return { xpert: result.xpert, status: 'created' as const }
@@ -1495,7 +458,7 @@ export class XpertNewBlankComponent {
     }
   }
 
-  private async completeImportedCreation(xpert: IXpert): Promise<BlankXpertWizardResult> {
+  async completeImportedCreation(xpert: IXpert): Promise<BlankXpertWizardResult> {
     if (this.completionMode !== 'publish') {
       return { xpert, status: 'created' as const }
     }
@@ -1522,7 +485,7 @@ export class XpertNewBlankComponent {
     }
   }
 
-  private buildTemplateImportDraft(draft: TXpertTeamDraft, defaultSandboxProvider?: string | null) {
+  buildTemplateImportDraft(draft: TXpertTeamDraft, defaultSandboxProvider?: string | null) {
     const selectedCopilotModel =
       this.copilotModel() ?? draft.team.agent?.copilotModel ?? draft.team.copilotModel ?? null
     const finalDraft = this.isAgentType()
@@ -1560,14 +523,14 @@ export class XpertNewBlankComponent {
     }
   }
 
-  private buildTemplateImportDraftWithTemplateToolsets(draft: TXpertTeamDraft, defaultSandboxProvider?: string | null) {
+  buildTemplateImportDraftWithTemplateToolsets(draft: TXpertTeamDraft, defaultSandboxProvider?: string | null) {
     const nextDraft = this.buildTemplateImportDraft(draft, defaultSandboxProvider)
     const resolutions = this.getPreparedTemplateToolsetResolutions()
 
     return resolutions.length ? applyTemplateToolsetResolutionsToDraft(nextDraft, resolutions) : nextDraft
   }
 
-  private getPreparedTemplateToolsetResolutions() {
+  getPreparedTemplateToolsetResolutions() {
     const workspaceId = this.workspaceId()
     const dependencies = this.templateToolsetDependencies()
     if (!workspaceId || !dependencies.length) {
@@ -1579,7 +542,7 @@ export class XpertNewBlankComponent {
     return prepared?.key === dependencyKey ? prepared.resolutions : []
   }
 
-  private applyTemplateDefaults(draft: TXpertTeamDraft) {
+  applyTemplateDefaults(draft: TXpertTeamDraft) {
     if (this.isAgentType()) {
       const state = extractAgentTemplateWizardState(draft)
       this.applyTemplateBasicInfo(state.basic)
@@ -1599,7 +562,7 @@ export class XpertNewBlankComponent {
     }
   }
 
-  private applyTemplateBasicInfo(basic: {
+  applyTemplateBasicInfo(basic: {
     name?: string
     title?: string
     description?: string | I18nObject
@@ -1608,12 +571,12 @@ export class XpertNewBlankComponent {
   }) {
     this.name.set(basic.name)
     this.title.set(basic.title)
-    this.description.set(resolveI18nText(basic.description, this.#translate.currentLang) ?? undefined)
+    this.description.set(resolveI18nText(basic.description, this._translate.currentLang) ?? undefined)
     this.avatar.set(basic.avatar)
     this.copilotModel.set(basic.copilotModel)
   }
 
-  private applyBlankDefaults() {
+  applyBlankDefaults() {
     this.templatePluginSkillBindings.set([])
     this.name.set(undefined)
     this.description.set(undefined)
@@ -1625,7 +588,7 @@ export class XpertNewBlankComponent {
     this.resetSelections()
   }
 
-  private resetSelections() {
+  resetSelections() {
     this.selectedTriggers.set([])
     this.applyAgentSkillSelections({
       skills: [],
@@ -1640,7 +603,7 @@ export class XpertNewBlankComponent {
     this.selectedWorkflowNodes.set([])
   }
 
-  private resetTemplateFlow(options?: { preserveStartMode?: boolean }) {
+  resetTemplateFlow(options?: { preserveStartMode?: boolean }) {
     if (!options?.preserveStartMode) {
       this.startMode.set('blank')
     }
@@ -1654,7 +617,7 @@ export class XpertNewBlankComponent {
     this.preparedTemplatePluginSkillDependencies.set(new Map())
   }
 
-  private async initializeDraftIfNeeded(xpert: IXpert): Promise<DraftPreparationResult> {
+  async initializeDraftIfNeeded(xpert: IXpert): Promise<DraftPreparationResult> {
     if (!shouldInitializeBlankWizardDraft(this.selectedMode(), this.hasAdvancedSelections(), this.completionMode)) {
       return {
         xpert,
@@ -1747,7 +710,7 @@ export class XpertNewBlankComponent {
     }
   }
 
-  private async publishCreatedXpert(xpert: IXpert): Promise<IXpert> {
+  async publishCreatedXpert(xpert: IXpert): Promise<IXpert> {
     const workspaceId = xpert.workspaceId ?? this.workspaceId() ?? null
     let environmentId: string | null = null
 
@@ -1767,7 +730,7 @@ export class XpertNewBlankComponent {
     )
   }
 
-  private async provisionKnowledgebaseIfNeeded(xpert: IXpert): Promise<IXpert> {
+  async provisionKnowledgebaseIfNeeded(xpert: IXpert): Promise<IXpert> {
     if (xpert.type !== XpertTypeEnum.Knowledge) {
       return xpert
     }
@@ -1804,7 +767,7 @@ export class XpertNewBlankComponent {
     }
   }
 
-  private async rollbackKnowledgeXpertCreation(xpertId: string, error: unknown): Promise<never> {
+  async rollbackKnowledgeXpertCreation(xpertId: string, error: unknown): Promise<never> {
     try {
       await firstValueFrom(this.xpertService.delete(xpertId))
     } catch {
@@ -1814,11 +777,7 @@ export class XpertNewBlankComponent {
     throw error
   }
 
-  private async rollbackKnowledgePipelineCreation(
-    xpertId: string,
-    knowledgebaseId: string,
-    error: unknown
-  ): Promise<never> {
+  async rollbackKnowledgePipelineCreation(xpertId: string, knowledgebaseId: string, error: unknown): Promise<never> {
     try {
       await firstValueFrom(this.knowledgebaseService.delete(knowledgebaseId))
     } catch {
@@ -1828,7 +787,7 @@ export class XpertNewBlankComponent {
     return this.rollbackKnowledgeXpertCreation(xpertId, error)
   }
 
-  private async getDraftTeam(xpert: IXpert): Promise<IXpert> {
+  async getDraftTeam(xpert: IXpert): Promise<IXpert> {
     if (xpert.agent?.key) {
       return xpert
     }
@@ -1836,7 +795,7 @@ export class XpertNewBlankComponent {
     return firstValueFrom(this.xpertService.getTeam(xpert.id, { relations: ['agent'] }))
   }
 
-  private showAutoPublishInterruptedWarning(detail?: string) {
+  showAutoPublishInterruptedWarning(detail?: string) {
     this.showTranslatedWarning(
       'XP.Xpert.AutoPublishInterrupted',
       'Expert created, but auto publish was not completed. You can continue in Studio.',
@@ -1844,7 +803,7 @@ export class XpertNewBlankComponent {
     )
   }
 
-  private showAutoPublishFailedWarning(detail?: string) {
+  showAutoPublishFailedWarning(detail?: string) {
     this.showTranslatedWarning(
       'XP.Xpert.AutoPublishFailed',
       'Expert created, but auto publish was not completed. You can continue in Studio.',
@@ -1852,7 +811,7 @@ export class XpertNewBlankComponent {
     )
   }
 
-  private showPreconfigurationNotSavedWarning(detail?: string) {
+  showPreconfigurationNotSavedWarning(detail?: string) {
     this.showTranslatedWarning(
       'XP.Xpert.PreconfigurationNotSaved',
       'Expert created, but the preconfiguration could not be saved. You can continue in Studio.',
@@ -1860,12 +819,12 @@ export class XpertNewBlankComponent {
     )
   }
 
-  private showTranslatedWarning(key: string, defaultMessage: string, detail?: string) {
-    const message = this.#translate.instant(key, { Default: defaultMessage })
-    this.#toastr.warning(detail ? `${message}: ${detail}` : message)
+  showTranslatedWarning(key: string, defaultMessage: string, detail?: string) {
+    const message = this._translate.instant(key, { Default: defaultMessage })
+    this._toastr.warning(detail ? `${message}: ${detail}` : message)
   }
 
-  private getSelections() {
+  getSelections() {
     return {
       triggers: this.selectedTriggers(),
       skills: this.selectedExplicitSkills(),
@@ -1876,7 +835,7 @@ export class XpertNewBlankComponent {
     }
   }
 
-  private buildInitialPrimaryAgentPrompt(): string | undefined {
+  buildInitialPrimaryAgentPrompt(): string | undefined {
     if (this.templateCategory !== BLANK_XPERT_DIALOG_CATEGORY.CLAW) {
       return undefined
     }
@@ -1884,7 +843,7 @@ export class XpertNewBlankComponent {
     return CLAWXPERT_PRIMARY_AGENT_PROMPT_TEMPLATE
   }
 
-  private withInitialPrimaryAgentPromptInDraft(draft: TXpertTeamDraft, prompt?: string): TXpertTeamDraft {
+  withInitialPrimaryAgentPromptInDraft(draft: TXpertTeamDraft, prompt?: string): TXpertTeamDraft {
     const primaryAgentKey = draft.team?.agent?.key
     if (!prompt || !primaryAgentKey) {
       return draft
@@ -1906,7 +865,7 @@ export class XpertNewBlankComponent {
     }
   }
 
-  private withInitialPrimaryAgentPrompt(xpert: IXpert, prompt?: string): IXpert {
+  withInitialPrimaryAgentPrompt(xpert: IXpert, prompt?: string): IXpert {
     if (!prompt || !xpert.agent) {
       return xpert
     }
@@ -1920,7 +879,7 @@ export class XpertNewBlankComponent {
     }
   }
 
-  private getSelectedMiddlewareDefinitions(): BlankMiddlewareDefinition[] {
+  getSelectedMiddlewareDefinitions(): BlankMiddlewareDefinition[] {
     const selected = new Set(this.selectedMiddlewares())
     return this.middlewareProviders()
       .map(({ meta }) => ({
@@ -1931,7 +890,7 @@ export class XpertNewBlankComponent {
       .filter((definition) => selected.has(definition.name))
   }
 
-  private async getDefaultSandboxProviderForMiddlewareDefinitions(
+  async getDefaultSandboxProviderForMiddlewareDefinitions(
     middlewareDefinitions: BlankMiddlewareDefinition[]
   ): Promise<string | null> {
     const requiresSandbox = middlewareDefinitions.some((definition) => definition.features?.includes('sandbox'))
@@ -1943,7 +902,7 @@ export class XpertNewBlankComponent {
     return providers[0]?.type ?? null
   }
 
-  private getKnowledgeSelections() {
+  getKnowledgeSelections() {
     return {
       triggers: this.selectedKnowledgeTriggers(),
       sourceProviders: this.selectedDataSources(),
@@ -1953,13 +912,13 @@ export class XpertNewBlankComponent {
     }
   }
 
-  private getWorkflowSelections() {
+  getWorkflowSelections() {
     return {
       nodes: this.selectedWorkflowNodes()
     }
   }
 
-  private hasInvalidTriggerSelections(
+  hasInvalidTriggerSelections(
     selections: BlankTriggerSelection[],
     providers: WorkflowTriggerProviderOption[]
   ): boolean {
@@ -1973,870 +932,11 @@ export class XpertNewBlankComponent {
     })
   }
 
-  private toggleValue<T extends string>(values: T[], value: T, enabled: boolean): T[] {
+  toggleValue<T extends string>(values: T[], value: T, enabled: boolean): T[] {
     if (enabled) {
       return values.includes(value) ? values : [...values, value]
     }
 
     return values.filter((item) => item !== value)
   }
-
-  isModeDisabled(mode: BlankXpertMode) {
-    return isBlankWizardModeDisabled(mode, this.requestedType(), this.allowedModes)
-  }
-
-  private applyAgentSkillSelections(selections: BlankAgentSkillSelections) {
-    this.preserveSkillsMiddleware.set(selections.preserveSkillsMiddleware ?? false)
-    this.selectedExplicitSkills.set(selections.skills)
-    this.selectedRepositoryDefault.set(cloneRepositoryDefaultSelection(selections.repositoryDefault))
-    const middlewares = normalizeBlankMiddlewareSelections(
-      selections.middlewares,
-      selections.skills,
-      selections.repositoryDefault,
-      selections.preserveSkillsMiddleware
-    )
-    this.selectedMiddlewares.set(middlewares)
-    this.selectedMiddlewareRequired.set(
-      normalizeBlankMiddlewareRequiredSelections(middlewares, selections.middlewareRequired)
-    )
-  }
-
-  private clearWorkspaceScopedAgentSelections() {
-    this.initializedWorkspaceSkillDefaultWorkspaces.set(new Set())
-    this.templatePluginSkillInstallError.set(null)
-    // Installation runtime IDs are workspace-owned. Discard both the bindings
-    // and their idempotency keys so switching back to a workspace refreshes
-    // the IDs instead of reusing bindings resolved for another workspace.
-    this.templatePluginSkillBindings.set([])
-    this.preparedTemplatePluginSkillDependencies.set(new Map())
-    this.clearTemplateToolsetSelections()
-    this.applyAgentSkillSelections({
-      skills: [],
-      repositoryDefault: null,
-      middlewares: this.selectedMiddlewares(),
-      middlewareRequired: this.selectedMiddlewareRequired(),
-      preserveSkillsMiddleware: this.preserveSkillsMiddleware()
-    })
-  }
-
-  async onAgentStepChange(event: ZardStepperSelectionEvent) {
-    if (event.selectedIndex === this.agentModelProviderStepIndex()) {
-      await this.prepareClawModelProviderStep()
-      return
-    }
-
-    if (event.selectedIndex === this.agentSkillStepIndex()) {
-      await this.prepareAgentSkillStep()
-      return
-    }
-
-    if (event.selectedIndex === this.agentToolsetStepIndex()) {
-      await this.prepareTemplateToolsetStep()
-    }
-  }
-
-  private async prepareClawModelProviderStep() {
-    if (
-      !this.needsModelProviderSetup() ||
-      !this.canConfigureModelProvider() ||
-      this.enablingPrimaryCopilot() ||
-      this.primaryCopilot()?.enabled
-    ) {
-      return
-    }
-
-    this.enablingPrimaryCopilot.set(true)
-    try {
-      await firstValueFrom(this.#copilotServer.enableCopilot(AiProviderRole.Primary))
-      this.#copilotServer.refresh()
-    } catch (error) {
-      this.#toastr.error(getErrorMessage(error))
-    } finally {
-      this.enablingPrimaryCopilot.set(false)
-    }
-  }
-
-  private hasSelectedClawModelProviderModel() {
-    const model = this.copilotModel()
-    return !!model?.copilotId && !!model?.model
-  }
-
-  private applyClawModelProviderFormModel() {
-    const model = this.clawCopilotForm()?.formGroup.value.copilotModel as ICopilotModel | null | undefined
-    if (model?.copilotId && model.model) {
-      this.copilotModel.set(model)
-    }
-  }
-
-  private async prepareAgentSkillStep() {
-    const workspaceId = this.workspaceId()
-    if (!workspaceId || this.installingSkillPackage()) {
-      return
-    }
-
-    // Template-declared packages define its defaults; do not also select the
-    // workspace's unrelated shared skills or repository-wide defaults.
-    if (this.templatePluginSkillDependencyGroups().length) {
-      await this.prepareTemplatePluginSkillsForCurrentWorkspace()
-      return
-    }
-
-    if (this.preparedSkillWorkspaces().has(workspaceId)) {
-      if (this.usesWorkspaceSkillDefaults()) {
-        this.applyWorkspaceSkillDefaults(workspaceId, this.getWorkspaceSkillIds())
-        await this.prepareTemplatePluginSkillsForCurrentWorkspace()
-        return
-      }
-
-      if (!this.selectedRepositoryDefault()?.repositoryId) {
-        const repositoryId = await this.getWorkspacePublicRepositoryId()
-        if (repositoryId) {
-          this.selectedRepositoryDefault.set({
-            repositoryId,
-            disabledSkillIds: []
-          })
-          this.refreshAgentSkillMiddlewareSelections()
-        }
-      }
-      await this.prepareTemplatePluginSkillsForCurrentWorkspace()
-      return
-    }
-
-    this.installingSkillPackage.set(true)
-    try {
-      const repositoryId = await this.getWorkspacePublicRepositoryId()
-      let installedSkillIds: string[] = []
-      if (repositoryId) {
-        const installedSkillPackages = await firstValueFrom(
-          this.#skillPackageService.installRepositoryPackages(workspaceId, repositoryId).pipe(take(1))
-        )
-        installedSkillIds = installedSkillPackages
-          .map((item) => (typeof item?.id === 'string' ? item.id.trim() : ''))
-          .filter((id) => !!id)
-
-        if (this.usesWorkspaceSkillDefaults()) {
-          this.selectedRepositoryDefault.set(null)
-        } else if (!this.selectedRepositoryDefault()?.repositoryId) {
-          this.selectedRepositoryDefault.set({
-            repositoryId,
-            disabledSkillIds: []
-          })
-        }
-      }
-
-      this.preparedSkillWorkspaces.update((value) => new Set([...value, workspaceId]))
-      this.applyWorkspaceSkillDefaults(workspaceId, [...this.getWorkspaceSkillIds(), ...installedSkillIds])
-      this.refreshAgentSkillMiddlewareSelections()
-      this.refreshSkills()
-    } catch (error) {
-      this.#toastr.error(getErrorMessage(error) || 'Failed to load default workspace skills.')
-    } finally {
-      this.installingSkillPackage.set(false)
-    }
-
-    await this.prepareTemplatePluginSkillsForCurrentWorkspace()
-  }
-
-  private async prepareTemplatePluginSkillsForCurrentWorkspace() {
-    const workspaceId = this.workspaceId()
-    if (!workspaceId) {
-      return !this.templatePluginSkillDependencyGroups().length
-    }
-
-    return this.prepareTemplatePluginSkills(workspaceId)
-  }
-
-  private async prepareTemplatePluginSkills(workspaceId: string): Promise<boolean> {
-    const groups = this.templatePluginSkillDependencyGroups()
-    if (!groups.length) {
-      this.templatePluginSkillInstallError.set(null)
-      this.templatePluginSkillBindings.set([])
-      return true
-    }
-
-    const dependencyKey = this.templatePluginSkillDependencyInstallKey(workspaceId, groups)
-    const isCurrentSelection = () =>
-      this.workspaceId() === workspaceId &&
-      this.templatePluginSkillDependencyInstallKey(workspaceId, this.templatePluginSkillDependencyGroups()) ===
-        dependencyKey
-    const prepared = this.preparedTemplatePluginSkillDependencies().get(dependencyKey)
-    if (prepared) {
-      this.restoreTemplatePluginSkillBindings(prepared)
-      this.templatePluginSkillInstallError.set(null)
-      return true
-    }
-
-    if (this.installingSkillPackage()) {
-      return false
-    }
-
-    this.installingSkillPackage.set(true)
-    this.templatePluginSkillInstallError.set(null)
-
-    try {
-      const skillBindings: BlankTemplatePluginSkillBinding[] = []
-      for (const group of groups) {
-        const result = await firstValueFrom(
-          this.#pluginAPI
-            .installResourcesToWorkspace(group.pluginName, {
-              workspaceId,
-              components: group.components
-            })
-            .pipe(take(1))
-        )
-
-        // Do not bind a completed request into a different template or workspace.
-        if (!isCurrentSelection()) {
-          return false
-        }
-        const skillInstallations = result.installations.filter(
-          (installation) =>
-            installation.componentType === PLUGIN_COMPONENT_TYPE.SKILL &&
-            installation.runtimeType === PLUGIN_RESOURCE_RUNTIME_TYPE.SKILL_PACKAGE &&
-            !!installation.runtimeId
-        )
-        const installedComponentKeys = new Set(skillInstallations.map((installation) => installation.componentKey))
-        const missingComponentKeys = Array.from(
-          new Set(group.components.map((component) => component.componentKey))
-        ).filter((componentKey) => !installedComponentKeys.has(componentKey))
-
-        if (missingComponentKeys.length) {
-          const components = `${group.pluginName}/${missingComponentKeys.join(', ')}`
-          throw new Error(
-            this.#translate.instant('XP.Xpert.TemplatePluginSkillsMissingRuntimePackages', {
-              Default: `The required template skills could not be installed: ${components}.`,
-              components
-            }) as string
-          )
-        }
-
-        for (const component of group.components) {
-          const installation = skillInstallations.find((item) => item.componentKey === component.componentKey)
-          if (!installation?.runtimeId) {
-            continue
-          }
-          skillBindings.push({
-            pluginName: group.pluginName,
-            componentKey: component.componentKey,
-            runtimeId: installation.runtimeId,
-            ...(component.targetAgentKey ? { targetAgentKey: component.targetAgentKey } : {})
-          })
-        }
-      }
-
-      this.preparedTemplatePluginSkillDependencies.update((value) => new Map(value).set(dependencyKey, skillBindings))
-      this.restoreTemplatePluginSkillBindings(skillBindings)
-      this.refreshSkills()
-      return true
-    } catch (error) {
-      if (!isCurrentSelection()) {
-        return false
-      }
-      const localizedError = resolveTemplatePluginSkillInstallError(error)
-      const message = localizedError
-        ? (this.#translate.instant(localizedError.key, { Default: localizedError.defaultMessage }) as string)
-        : getErrorMessage(error) ||
-          (this.#translate.instant('XP.Xpert.TemplatePluginSkillsInstallFailedDetail', {
-            Default: 'Template skills could not be initialized. Try again.'
-          }) as string)
-      this.templatePluginSkillInstallError.set(message)
-      this.#toastr.error(message)
-      return false
-    } finally {
-      this.installingSkillPackage.set(false)
-    }
-  }
-
-  private restoreTemplatePluginSkillBindings(bindings: BlankTemplatePluginSkillBinding[]) {
-    const primaryAgentKey = this.selectedTemplateDraft()?.team?.agent?.key
-    const primarySkillIds = bindings
-      .filter((binding) => !binding.targetAgentKey || binding.targetAgentKey === primaryAgentKey)
-      .map((binding) => binding.runtimeId)
-    this.selectedExplicitSkills.update((skills) => [...new Set([...skills, ...primarySkillIds])])
-    this.templatePluginSkillBindings.set(bindings)
-    this.refreshAgentSkillMiddlewareSelections()
-  }
-
-  /**
-   * Workspace installation makes a portable skill package selectable. The
-   * imported Xpert draft must additionally bind that package to the Skills
-   * Middleware directly connected to each dependency target Agent so governed
-   * Assistant Tasks can resolve the selected skill at runtime.
-   */
-  private applyTemplatePluginSkillBindings(draft: TXpertTeamDraft) {
-    const nextDraft = draft
-
-    for (const binding of this.templatePluginSkillBindings()) {
-      if (!binding.targetAgentKey) {
-        continue
-      }
-      const connectedMiddlewareKeys = new Set(
-        nextDraft.connections
-          .filter(
-            (connection) =>
-              connection.type === 'workflow' &&
-              (connection.from === binding.targetAgentKey || connection.to === binding.targetAgentKey)
-          )
-          .map((connection) =>
-            connection.from === binding.targetAgentKey ? String(connection.to) : String(connection.from)
-          )
-      )
-      const skillsMiddlewares = nextDraft.nodes.filter((node) => {
-        if (node.type !== 'workflow' || !connectedMiddlewareKeys.has(node.key)) {
-          return false
-        }
-        const entity = node.entity as IWFNMiddleware
-        return (
-          entity.type === WorkflowNodeTypeEnum.MIDDLEWARE && entity.provider === BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER
-        )
-      })
-      if (skillsMiddlewares.length !== 1) {
-        throw new Error(
-          `Template skill '${binding.pluginName}/${binding.componentKey}' requires exactly one Skills Middleware directly connected to Agent '${binding.targetAgentKey}'.`
-        )
-      }
-
-      const middleware = skillsMiddlewares[0].entity as IWFNMiddleware
-      const options = middleware.options && typeof middleware.options === 'object' ? middleware.options : {}
-      const configuredSkills = Array.isArray(Reflect.get(options, 'skills'))
-        ? (Reflect.get(options, 'skills') as unknown[]).filter((item): item is string => typeof item === 'string')
-        : []
-      middleware.options = {
-        ...options,
-        skills: Array.from(new Set([...configuredSkills, binding.runtimeId]))
-      }
-    }
-
-    return nextDraft
-  }
-
-  private async prepareTemplateToolsetsForCurrentWorkspace() {
-    const workspaceId = this.workspaceId()
-    if (!workspaceId) {
-      return !this.templateToolsetDependencies().length
-    }
-
-    return this.prepareTemplateToolsets(workspaceId)
-  }
-
-  private async prepareTemplateToolsets(workspaceId: string): Promise<boolean> {
-    const dependencies = this.templateToolsetDependencies()
-    if (!dependencies.length) {
-      this.templateToolsetInstallError.set(null)
-      this.preparedTemplateToolsetDependencies.set(null)
-      return true
-    }
-
-    const dependencyKey = this.templateToolsetDependencyInstallKey(workspaceId, dependencies)
-    const prepared = this.preparedTemplateToolsetDependencies()
-    if (prepared?.key === dependencyKey) {
-      this.templateToolsetInstallError.set(null)
-      return true
-    }
-
-    const loaded = await this.loadTemplateToolsetSelectionStates(workspaceId)
-    if (!loaded) {
-      return false
-    }
-
-    try {
-      const resolutions: BlankTemplateToolsetResolution[] = []
-      for (const dependency of dependencies) {
-        const dependencyState = this.templateToolsetSelectionStates().find(
-          (state) => state.key === this.templateToolsetDependencyKey(dependency)
-        )
-        const toolset = dependencyState?.toolsets.find((item) => item.id === dependencyState.selectedToolsetId)
-        if (!toolset) {
-          throw new Error(this.getTemplateToolsetSelectionError(dependency, dependencyState?.toolsets ?? []))
-        }
-
-        resolutions.push({
-          templateNodeKey: dependency.templateNodeKey,
-          targetAgentKey: dependency.targetAgentKey,
-          toolset
-        })
-      }
-
-      this.preparedTemplateToolsetDependencies.set({
-        key: dependencyKey,
-        resolutions
-      })
-      return true
-    } catch (error) {
-      const message = getErrorMessage(error) || 'Failed to initialize template toolsets.'
-      this.preparedTemplateToolsetDependencies.set(null)
-      this.templateToolsetInstallError.set(message)
-      this.#toastr.error(message)
-      return false
-    }
-  }
-
-  private async prepareTemplateToolsetStep(force = false) {
-    const workspaceId = this.workspaceId()
-    if (!workspaceId || !this.hasTemplateToolsetStep()) {
-      return
-    }
-
-    await this.loadTemplateToolsetSelectionStates(workspaceId, { force })
-  }
-
-  async refreshTemplateToolsetStep() {
-    await this.prepareTemplateToolsetStep(true)
-  }
-
-  async configureTemplateToolset(key: string) {
-    const workspaceId = this.workspaceId()
-    const state = this.templateToolsetSelectionStates().find((item) => item.key === key)
-    if (!workspaceId || !state || this.configuringTemplateToolsetKey()) {
-      return
-    }
-
-    this.configuringTemplateToolsetKey.set(key)
-    try {
-      const toolset = await firstValueFrom(
-        this.#configureBuiltinToolset(state.dependency.provider, workspaceId).pipe(take(1))
-      )
-      if (!toolset || typeof toolset !== 'object' || !toolset.id) {
-        return
-      }
-
-      this.mergeConfiguredTemplateToolset(key, toolset)
-      this.#toastr.success('XP.Messages.SavedSuccessfully', { Default: 'Saved successfully' })
-    } catch (error) {
-      this.#toastr.error(
-        getErrorMessage(error) ||
-          this.#translate.instant('XP.Xpert.TemplateToolsetConfigureFailed', {
-            Default: 'Failed to configure the required toolset.'
-          })
-      )
-    } finally {
-      this.configuringTemplateToolsetKey.set(null)
-    }
-  }
-
-  selectTemplateToolset(key: string, toolsetId: string | null) {
-    this.templateToolsetSelectionStates.update((states) =>
-      states.map((state) => {
-        if (state.key !== key) {
-          return state
-        }
-
-        const selectedId = readNonEmptyString(toolsetId) ?? null
-        return {
-          ...state,
-          selectedToolsetId: selectedId,
-          errorMessage: selectedId ? null : this.getTemplateToolsetSelectionError(state.dependency, state.toolsets)
-        }
-      })
-    )
-    this.templateToolsetInstallError.set(null)
-    this.preparedTemplateToolsetDependencies.set(null)
-  }
-
-  selectTemplateToolsetValue(key: string, value: unknown) {
-    if (Array.isArray(value)) {
-      this.selectTemplateToolset(key, readNonEmptyString(value[0]) ?? null)
-      return
-    }
-
-    this.selectTemplateToolset(key, readNonEmptyString(value) ?? null)
-  }
-
-  getSelectedTemplateToolset(state: BlankTemplateToolsetSelectionState) {
-    return state.toolsets.find((toolset) => toolset.id === state.selectedToolsetId) ?? null
-  }
-
-  private async loadTemplateToolsetSelectionStates(
-    workspaceId: string,
-    options?: { force?: boolean }
-  ): Promise<boolean> {
-    const dependencies = this.templateToolsetDependencies()
-    if (!dependencies.length) {
-      this.clearTemplateToolsetSelections()
-      return true
-    }
-
-    const dependencyKey = this.templateToolsetDependencyInstallKey(workspaceId, dependencies)
-    if (
-      !options?.force &&
-      this.loadedTemplateToolsetDependencyKey() === dependencyKey &&
-      this.templateToolsetSelectionStates().length === dependencies.length
-    ) {
-      return true
-    }
-
-    const previousStates = new Map(this.templateToolsetSelectionStates().map((state) => [state.key, state]))
-    this.loadingTemplateToolsets.set(true)
-    this.templateToolsetInstallError.set(null)
-    this.preparedTemplateToolsetDependencies.set(null)
-    this.templateToolsetSelectionStates.set(
-      dependencies.map((dependency) => {
-        const key = this.templateToolsetDependencyKey(dependency)
-        const previous = previousStates.get(key)
-        return {
-          key,
-          dependency,
-          loading: true,
-          toolsets: previous?.toolsets ?? [],
-          selectedToolsetId: previous?.selectedToolsetId ?? null,
-          errorMessage: null
-        }
-      })
-    )
-
-    try {
-      const states: BlankTemplateToolsetSelectionState[] = []
-      for (const dependency of dependencies) {
-        const key = this.templateToolsetDependencyKey(dependency)
-        const previous = previousStates.get(key)
-        const toolsets = await this.loadTemplateToolsetCandidates(workspaceId, dependency)
-        const selectedToolset = this.selectDefaultTemplateToolset(toolsets, dependency, previous?.selectedToolsetId)
-        states.push({
-          key,
-          dependency,
-          loading: false,
-          toolsets,
-          selectedToolsetId: selectedToolset?.id ?? null,
-          errorMessage: selectedToolset ? null : this.getTemplateToolsetSelectionError(dependency, toolsets)
-        })
-      }
-
-      this.templateToolsetSelectionStates.set(states)
-      this.loadedTemplateToolsetDependencyKey.set(dependencyKey)
-      return true
-    } catch (error) {
-      const message =
-        getErrorMessage(error) ||
-        this.#translate.instant('XP.Xpert.TemplateToolsetsLoadFailed', {
-          Default: 'Failed to load template toolsets.'
-        })
-      this.templateToolsetSelectionStates.update((states) =>
-        states.map((state) => ({
-          ...state,
-          loading: false,
-          errorMessage: state.errorMessage ?? message
-        }))
-      )
-      this.loadedTemplateToolsetDependencyKey.set(null)
-      this.templateToolsetInstallError.set(message)
-      this.#toastr.error(message)
-      return false
-    } finally {
-      this.loadingTemplateToolsets.set(false)
-    }
-  }
-
-  private async loadTemplateToolsetCandidates(
-    workspaceId: string,
-    dependency: BlankTemplateToolsetDependency
-  ): Promise<IXpertToolset[]> {
-    const response = await firstValueFrom(
-      this.#toolsetService
-        .getAllByWorkspace(workspaceId, {
-          where: {
-            type: dependency.provider,
-            category: XpertToolsetCategoryEnum.BUILTIN
-          },
-          relations: ['tools'],
-          order: {
-            updatedAt: OrderTypeEnum.DESC
-          }
-        })
-        .pipe(take(1))
-    )
-
-    return (Array.isArray(response) ? response : (response?.items ?? []))
-      .filter((toolset) => this.isTemplateDependencyToolset(toolset, dependency))
-      .sort(compareToolsetsByUpdatedAtDesc)
-  }
-
-  private selectDefaultTemplateToolset(
-    toolsets: IXpertToolset[],
-    dependency: BlankTemplateToolsetDependency,
-    previousSelectedToolsetId?: string | null
-  ) {
-    const previousSelected = toolsets.find((toolset) => toolset.id === previousSelectedToolsetId)
-    if (previousSelected) {
-      return previousSelected
-    }
-
-    if (dependency.instanceName) {
-      return toolsets.find((toolset) => toolset.name === dependency.instanceName) ?? null
-    }
-
-    return toolsets.length === 1 ? toolsets[0] : null
-  }
-
-  private mergeConfiguredTemplateToolset(key: string, toolset: IXpertToolset) {
-    this.templateToolsetSelectionStates.update((states) =>
-      states.map((state) => {
-        if (state.key !== key || !this.isTemplateDependencyToolset(toolset, state.dependency)) {
-          return state
-        }
-
-        const toolsets = [toolset, ...state.toolsets.filter((item) => item.id !== toolset.id)].sort(
-          compareToolsetsByUpdatedAtDesc
-        )
-
-        return {
-          ...state,
-          toolsets,
-          selectedToolsetId: toolset.id,
-          errorMessage: null
-        }
-      })
-    )
-    this.templateToolsetInstallError.set(null)
-    this.preparedTemplateToolsetDependencies.set(null)
-  }
-
-  private isTemplateDependencyToolset(toolset: IXpertToolset, dependency: BlankTemplateToolsetDependency) {
-    return (
-      toolset.type === dependency.provider &&
-      (toolset.category ?? XpertToolsetCategoryEnum.BUILTIN) === XpertToolsetCategoryEnum.BUILTIN
-    )
-  }
-
-  private getTemplateToolsetSelectionError(dependency: BlankTemplateToolsetDependency, toolsets: IXpertToolset[]) {
-    if (!toolsets.length) {
-      return dependency.instanceName
-        ? this.#translate.instant('XP.Xpert.TemplateToolsetMissingNamed', {
-            Default: `Required template toolset '${dependency.instanceName}' (${dependency.provider}) is not configured in this workspace.`,
-            instanceName: dependency.instanceName,
-            provider: dependency.provider
-          })
-        : this.#translate.instant('XP.Xpert.TemplateToolsetMissingProvider', {
-            Default: `Required template toolset '${dependency.provider}' is not configured in this workspace.`,
-            provider: dependency.provider
-          })
-    }
-
-    return this.#translate.instant('XP.Xpert.TemplateToolsetSelectRequired', {
-      Default: `Select a '${dependency.provider}' toolset before creating this template.`,
-      provider: dependency.provider
-    })
-  }
-
-  private templatePluginSkillDependencyInstallKey(
-    workspaceId: string,
-    groups: BlankTemplatePluginSkillDependencyGroup[]
-  ) {
-    return JSON.stringify({
-      workspaceId,
-      templateId: this.selectedTemplateId(),
-      groups
-    })
-  }
-
-  private templateToolsetDependencyInstallKey(workspaceId: string, dependencies: BlankTemplateToolsetDependency[]) {
-    return JSON.stringify({
-      workspaceId,
-      templateId: this.selectedTemplateId(),
-      dependencies
-    })
-  }
-
-  private templateToolsetDependencyKey(dependency: BlankTemplateToolsetDependency) {
-    return JSON.stringify({
-      pluginName: dependency.pluginName,
-      provider: dependency.provider,
-      templateNodeKey: dependency.templateNodeKey,
-      targetAgentKey: dependency.targetAgentKey ?? null,
-      instanceName: dependency.instanceName ?? null
-    })
-  }
-
-  private clearTemplateToolsetSelections() {
-    this.templateToolsetInstallError.set(null)
-    this.loadedTemplateToolsetDependencyKey.set(null)
-    this.preparedTemplateToolsetDependencies.set(null)
-    this.templateToolsetSelectionStates.set([])
-    this.loadingTemplateToolsets.set(false)
-    this.configuringTemplateToolsetKey.set(null)
-  }
-
-  private async getWorkspacePublicRepositoryId() {
-    const existing = this.workspacePublicRepositoryId()
-    if (existing) {
-      return existing
-    }
-
-    const { items } = await firstValueFrom(this.#skillRepositoryService.getAllInOrg().pipe(take(1)))
-    const repositoryId =
-      items?.find((repository) => repository.provider === WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER)?.id ?? null
-    this.workspacePublicRepositoryId.set(repositoryId)
-    return repositoryId
-  }
-
-  private getRepositorySkillIds(repositoryId: string) {
-    return this.skillState()
-      .skills.filter((skill) => skill.repositoryId === repositoryId)
-      .map((skill) => skill.id)
-  }
-
-  private getWorkspaceSkillIds() {
-    return this.skillState().skills.map((skill) => skill.id)
-  }
-
-  private applyWorkspaceSkillDefaults(workspaceId: string, skillIds: string[]) {
-    if (!this.usesWorkspaceSkillDefaults()) {
-      return
-    }
-
-    if (this.initializedWorkspaceSkillDefaultWorkspaces().has(workspaceId)) {
-      return
-    }
-
-    const normalizedSkillIds = Array.from(
-      new Set(skillIds.map((skillId) => skillId?.trim()).filter((skillId): skillId is string => !!skillId))
-    )
-    if (normalizedSkillIds.length) {
-      this.selectedExplicitSkills.set(Array.from(new Set([...this.selectedExplicitSkills(), ...normalizedSkillIds])))
-    }
-    this.selectedRepositoryDefault.set(null)
-    this.initializedWorkspaceSkillDefaultWorkspaces.update((value) => new Set([...value, workspaceId]))
-  }
-
-  private refreshAgentSkillMiddlewareSelections() {
-    const middlewares = normalizeBlankMiddlewareSelections(
-      this.selectedMiddlewares(),
-      this.selectedExplicitSkills(),
-      this.selectedRepositoryDefault(),
-      this.preserveSkillsMiddleware()
-    )
-    this.selectedMiddlewares.set(middlewares)
-    this.syncMiddlewareRequiredSelections(middlewares)
-  }
-
-  private syncMiddlewareRequiredSelections(middlewares = this.selectedMiddlewares()) {
-    this.selectedMiddlewareRequired.set(
-      normalizeBlankMiddlewareRequiredSelections(middlewares, this.selectedMiddlewareRequired())
-    )
-  }
-}
-
-type BlankAgentSkillSelections = {
-  skills: string[]
-  repositoryDefault: BlankRepositoryDefaultSelection | null
-  middlewares: string[]
-  middlewareRequired?: Record<string, boolean>
-  preserveSkillsMiddleware?: boolean
-}
-
-function cloneRepositoryDefaultSelection(
-  selection: BlankRepositoryDefaultSelection | null
-): BlankRepositoryDefaultSelection | null {
-  if (!selection) {
-    return null
-  }
-
-  return {
-    repositoryId: selection.repositoryId,
-    disabledSkillIds: [...selection.disabledSkillIds]
-  }
-}
-
-function buildBlankWorkspaceSkillState(skills: ISkillPackage[]): BlankSkillState {
-  return {
-    loading: false,
-    skills: skills.map((skill) => ({
-      id: skill.id,
-      label:
-        skill.metadata?.displayName ??
-        normalizeI18nCandidate(skill.name) ??
-        skill.metadata?.name ??
-        skill.skillIndex?.name ??
-        skill.skillIndex?.skillId ??
-        skill.id,
-      summary:
-        skill.metadata?.summary ??
-        skill.metadata?.description ??
-        normalizeI18nCandidate(skill.metadata?.description) ??
-        skill.skillIndex?.description ??
-        null,
-      repositoryId: skill.skillIndex?.repositoryId ?? skill.skillIndex?.repository?.id ?? null,
-      repositoryName: skill.skillIndex?.repository?.name ?? null,
-      repositoryProvider: skill.skillIndex?.repository?.provider ?? null
-    })),
-    errorMessage: null
-  }
-}
-
-function collectI18nTextValues(value: unknown): string[] {
-  if (typeof value === 'string') {
-    return value.trim() ? [value] : []
-  }
-
-  if (!value || typeof value !== 'object' || Array.isArray(value)) {
-    return []
-  }
-
-  return Object.values(value).filter((item): item is string => typeof item === 'string' && !!item.trim())
-}
-
-function normalizeSearchText(value: string) {
-  return value.trim().toLowerCase().replace(/\s+/g, ' ')
-}
-
-function matchesMiddlewareSearch(provider: BlankMiddlewareProviderOption, search: string) {
-  const normalizedSearch = normalizeSearchText(search)
-  if (!normalizedSearch) {
-    return true
-  }
-
-  return normalizeSearchText(
-    [
-      provider.meta.name,
-      ...collectI18nTextValues(provider.meta.label),
-      ...collectI18nTextValues(provider.meta.description)
-    ]
-      .filter(Boolean)
-      .join(' ')
-  ).includes(normalizedSearch)
-}
-
-function normalizeI18nCandidate(value: unknown): string | I18nObject | null {
-  if (typeof value === 'string') {
-    return value
-  }
-
-  if (value && typeof value === 'object' && !Array.isArray(value)) {
-    return value as I18nObject
-  }
-
-  return null
-}
-
-function readNonEmptyString(value: unknown): string | null {
-  return typeof value === 'string' && value.trim() ? value.trim() : null
-}
-
-function compareToolsetsByUpdatedAtDesc(left: IXpertToolset, right: IXpertToolset) {
-  return readDateTime(right.updatedAt) - readDateTime(left.updatedAt)
-}
-
-function readDateTime(value: unknown) {
-  if (!value) {
-    return 0
-  }
-
-  const time = new Date(value as string).getTime()
-  return Number.isFinite(time) ? time : 0
-}
-
-function uniqueByName<T>(values: T[], getName: (value: T) => string) {
-  const seen = new Set<string>()
-  return values.filter((value) => {
-    const name = getName(value)
-    if (!name || seen.has(name)) {
-      return false
-    }
-
-    seen.add(name)
-    return true
-  })
-}
-
-function hasBlockingChecklist(checklist: Array<{ level?: string }> | null | undefined) {
-  return (checklist ?? []).some((item) => item.level === 'error')
 }

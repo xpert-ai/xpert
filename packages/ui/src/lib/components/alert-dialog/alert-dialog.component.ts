@@ -1,48 +1,61 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { type ViewContainerRef } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, type ViewContainerRef } from '@angular/core'
 
-import { ZardButtonComponent } from '../button/button.component';
-import { Z_MODAL_DATA } from '../dialog/dialog.service';
-import { ZardDialogRef } from '../dialog/dialog-ref';
+import { ZardButtonComponent } from '../button/button.component'
+import { XpDialogFrameImports } from '../dialog/dialog-frame.directive'
+import { ZardDialogRef } from '../dialog/dialog-ref'
+import { Z_MODAL_DATA } from '../dialog/dialog.service'
 
 export interface ZardAlertDialogOptions {
-  title?: string;
-  description?: string;
-  actionText?: string | null;
-  cancelText?: string | null;
-  destructive?: boolean;
-  closable?: boolean;
-  maskClosable?: boolean;
-  width?: string;
-  customClasses?: string;
-  viewContainerRef?: ViewContainerRef;
+  title?: string
+  description?: string
+  actionText?: string | null
+  cancelText?: string | null
+  destructive?: boolean
+  closable?: boolean
+  maskClosable?: boolean
+  width?: string
+  customClasses?: string
+  viewContainerRef?: ViewContainerRef
 }
 
 @Component({
   selector: 'z-alert-dialog',
   standalone: true,
-  imports: [ZardButtonComponent],
+  imports: [ZardButtonComponent, ...XpDialogFrameImports],
   template: `
-    <div class="flex flex-col gap-6">
-      @if (data.title || data.description) {
-        <div class="flex flex-col gap-2 text-left">
+    <div xpDialogLayout="standard">
+      @if (data.title || data.closable) {
+        <header xpDialogHeader>
           @if (data.title) {
-            <h2 class="text-lg font-semibold tracking-tight">{{ data.title }}</h2>
+            <h2 xpDialogHeading>{{ data.title }}</h2>
           }
-
-          @if (data.description) {
-            <p class="text-muted-foreground text-sm leading-6">{{ data.description }}</p>
+          @if (data.closable) {
+            <button
+              z-button
+              zType="ghost"
+              zSize="icon"
+              data-testid="z-alert-dialog-close"
+              xpDialogCloseButton
+              type="button"
+              [attr.aria-label]="data.cancelText ?? 'Cancel'"
+              (click)="close(false)"
+            >
+              <z-icon zType="x" />
+            </button>
           }
+        </header>
+      }
+      @if (data.description) {
+        <div [xpDialogBody]="data.title || data.closable ? '' : 'section'">
+          <p xpDialogDescription>{{ data.description }}</p>
         </div>
       }
-
-      <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+      <footer xpDialogFooter>
         @if (data.cancelText !== null) {
           <button type="button" data-testid="z-alert-dialog-cancel" z-button zType="outline" (click)="close(false)">
             {{ data.cancelText ?? 'Cancel' }}
           </button>
         }
-
         @if (data.actionText !== null) {
           <button
             type="button"
@@ -54,16 +67,16 @@ export interface ZardAlertDialogOptions {
             {{ data.actionText ?? 'Continue' }}
           </button>
         }
-      </div>
+      </footer>
     </div>
   `,
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ZardAlertDialogComponent {
-  protected readonly data = inject<ZardAlertDialogOptions>(Z_MODAL_DATA);
-  private readonly dialogRef = inject(ZardDialogRef<ZardAlertDialogComponent, boolean>);
+  protected readonly data = inject<ZardAlertDialogOptions>(Z_MODAL_DATA)
+  private readonly dialogRef = inject(ZardDialogRef<ZardAlertDialogComponent, boolean>)
 
-  close(result: boolean) {
-    this.dialogRef.close(result);
+  close(result?: boolean) {
+    this.dialogRef.close(result)
   }
 }

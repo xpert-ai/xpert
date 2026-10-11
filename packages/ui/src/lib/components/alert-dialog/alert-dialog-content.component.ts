@@ -20,6 +20,7 @@ import { ZardAlertDialogOptions } from './alert-dialog.component'
               z-button
               zType="ghost"
               zSize="icon"
+              data-testid="z-alert-dialog-close"
               xpDialogCloseButton
               type="button"
               [attr.aria-label]="data.cancelText ?? 'Cancel'"
@@ -31,7 +32,7 @@ import { ZardAlertDialogOptions } from './alert-dialog.component'
         </header>
       }
       @if (data.description) {
-        <div xpDialogBody>
+        <div [xpDialogBody]="data.title || data.closable ? '' : 'section'">
           <p xpDialogDescription [id]="dialogRef.id + '-description'">{{ data.description }}</p>
         </div>
       }

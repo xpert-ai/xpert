@@ -1,16 +1,17 @@
 import { CommonModule } from '@angular/common'
 import { Component, Inject } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { TranslateModule } from '@ngx-translate/core'
 import {
+  ISelectOption,
+  XpDialogFrameImports,
+  Z_MODAL_DATA,
   ZardButtonComponent,
+  ZardDialogRef,
   ZardFormImports,
   ZardLoaderComponent,
-  ZardTagSelectComponent,
-  Z_MODAL_DATA,
-  ZardDialogRef
+  ZardTagSelectComponent
 } from '@xpert-ai/headless-ui'
-import { ISelectOption } from '@xpert-ai/headless-ui'
-import { TranslateModule } from '@ngx-translate/core'
 import { catchError, debounceTime, EMPTY, filter, map, of, switchMap, tap } from 'rxjs'
 import { EmployeesService, IEmployee } from '../../../@core'
 import { userLabel } from '../../pipes'
@@ -30,6 +31,7 @@ function isEmployee(value: unknown): value is IEmployee {
 @Component({
   standalone: true,
   imports: [
+    ...XpDialogFrameImports,
     SharedModule,
     CommonModule,
     FormsModule,
@@ -101,6 +103,10 @@ export class EmployeeSelectComponent {
     }
 
     return userLabel(value.user)
+  }
+
+  cancel() {
+    this._dialogRef.close()
   }
 
   onApply() {

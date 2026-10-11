@@ -1,7 +1,7 @@
-import { Injectable, inject } from '@angular/core'
-import { type ExternalToast } from 'ngx-sonner'
+import { inject, Injectable } from '@angular/core'
 import { TranslateService } from '@ngx-translate/core'
 import { ZardAlertDialogService, ZardToastService, type ZardAlertDialogConfirmOptions } from '@xpert-ai/headless-ui'
+import { type ExternalToast } from 'ngx-sonner'
 import { catchError, EMPTY, Observable, Subject, take, takeUntil, tap } from 'rxjs'
 import { getErrorMessage } from '../types'
 
@@ -134,7 +134,7 @@ export class ToastrService {
     return this.alertDialog
       .confirm({
         layout,
-        title: layout === 'standard' ? confirm : undefined,
+        title: confirm,
         description: message,
         actionText: confirm,
         cancelText: cancel,
