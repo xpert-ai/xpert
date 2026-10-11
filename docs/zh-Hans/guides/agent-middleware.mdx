@@ -1,0 +1,87 @@
+---
+title: '智能体中间件'
+---
+
+Agent Middleware 用于在不改动核心编排逻辑的前提下，为智能体生命周期注入横切能力。
+
+## 核心模型
+
+- `IAgentMiddlewareStrategy`：每个 provider 的策略接口。
+- `createMiddleware`：创建具体中间件实例。
+- 元数据：名称、国际化文案、图标、配置 Schema。
+- 工作流接线：将 middleware 节点连接到 Agent，并按顺序执行。
+
+## 生命周期钩子
+
+| 钩子            | 触发时机             | 常见用途                 |
+| --------------- | -------------------- | ------------------------ |
+| `beforeAgent`   | Agent 启动前，仅一次 | 初始化状态、注入系统提示 |
+| `beforeModel`   | 每次模型调用前       | 上下文整理、动态注入工具 |
+| `afterModel`    | 模型返回后           | 日志记录、参数修正       |
+| `afterAgent`    | Agent 完成后         | 结果落库、资源清理       |
+| `wrapModelCall` | 包裹模型调用         | 重试、缓存、防护策略     |
+| `wrapToolCall`  | 包裹工具调用         | 鉴权、限流、后处理       |
+
+## 平台知识库能力
+
+Agent middleware 可以通过 runtime capability 使用平台知识库，而不是直接依赖知识库 controller。通用能力包括：
+
+- `list`：列出当前 workspace 可用知识库。
+- `search`：按 query、知识库 ID、`k`、分数阈值、metadata filter 和可选 retrieval 设置检索 chunk。
+- `writeChunk`：向知识库写入由 Agent 或业务插件管理的文本 chunk。
+- `deleteChunks`：按 `writeKey` 或 `writeKeyPrefix` 删除由 Agent 或业务插件写入的 chunk。
+
+`writeChunk` 会把内容写入一个系统托管文档下的 chunk。业务 metadata 存在 chunk metadata 上，因此 `search` 的 metadata filter 会同时匹配文档 metadata 和 chunk metadata；命中后再用 `documentId` 或 `chunkId` 限定向量检索范围。这样业务插件可以安全使用类似 `{ documentType: 'bom-product-profile' }` 的 filter，而不要求系统托管文档本身带同样 metadata。
+
+检索模式建议：
+
+- 不传 `retrieval` 时，使用知识库自身保存的检索设置，例如 `vector`、`graph` 或 `hybrid`。
+- 业务插件只在确实需要覆盖知识库默认行为时传 `retrieval.mode`。
+- `graph` / `hybrid` 依赖 GraphRAG 状态。调用方需要在 trace 或 warning 中记录实际模式、fallback 和图谱状态，避免把知识库原始召回分误认为业务最终分。
+
+写入和删除建议：
+
+- 为每类业务数据设计稳定 `writeKey` 前缀，例如 `domain:indexVersion:entityId:`。
+- 重复索引同一业务实体前，先用 `deleteChunks({ writeKeyPrefix })` 清理旧 chunk，再写入新 chunk。
+- 删除业务实体时同步清理对应前缀的知识库 chunk，避免已删除业务数据继续被召回。
+
+## Workspace 文件 Runtime Capability
+
+Agent middleware 需要读取 sandbox 工具产物时，应使用 `platform.workspace.files` runtime capability，而不是在插件里直接 `fs.readFile('/workspace/...')`。
+
+```ts
+import { createHash } from 'node:crypto'
+import { WorkspaceFilesRuntimeCapability } from '@xpert-ai/plugin-sdk'
+
+const workspaceFiles = context.runtime.capabilities.require(WorkspaceFilesRuntimeCapability)
+const file = await workspaceFiles.readRuntimeBuffer({ path: '/workspace/report.docx' })
+const sha256 = createHash('sha256').update(file.buffer).digest('hex')
+
+await outboundQueue.enqueueFile(integration, {
+  type: 'file',
+  uuid,
+  contactId,
+  filePath: file.filePath,
+  fileRef: file.reference,
+  fileName: file.name,
+  mimeType: file.mimeType,
+  size: file.size ?? file.buffer.length,
+  sha256
+})
+```
+
+能力规则：
+
+- `readRuntimeBuffer()` 接受 `/workspace/a.docx`、`a.docx`、`./a.docx` 或平台 portable reference。
+- 当前 Agent runtime 会自动绑定 `tenantId`、`userId`、`projectId` / `xpertId` 和 workspace root。
+- 返回的 `file.reference` 是可持久化引用，适合放入队列、回调或异步任务；队列中只保存 `reference`、`size`、`sha256` 等校验信息。
+- `writeRuntimeBuffer()` 用于把插件生成的 bytes 写回当前 workspace，并返回同样可持久化的 reference。
+
+这样业务 middleware 只处理业务文件，不需要知道 Volume 根目录、Docker bind mount 或 `/workspace` 到 `/sandbox` 的映射。
+
+## 最佳实践
+
+- 保持 hook 幂等，避免重型阻塞逻辑。
+- 用 `stateSchema` 明确持久化状态结构。
+- 在 wrapper 中优先调用传入 `handler`，再叠加自定义逻辑。
+- 将日志、审计、缓存、限流拆分为独立中间件，按顺序组合。

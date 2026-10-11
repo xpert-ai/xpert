@@ -1,0 +1,106 @@
+---
+title: '发布 npm 包与 Docker 镜像'
+---
+
+## Docker 镜像发布
+
+仓库会发布以下 Docker 镜像：
+
+- `ghcr.io/<owner>/xpert-api`
+- `ghcr.io/<owner>/xpert-webapp`
+
+其中 `<owner>` 来自 `github.repository_owner`。在上游仓库里，这个值是 `xpert-ai`。
+
+### Push `develop`
+
+向 `develop` push 时，会为 `api` 和 `webapp` 发布 candidate 镜像：
+
+```bash
+git checkout develop
+git push origin develop
+```
+
+发布的 tag：
+
+- `develop-candidate`
+- `sha-<full_commit_sha>`
+
+### Push `main`
+
+向 `main` push 时，会为 `api` 和 `webapp` 发布 production 镜像：
+
+```bash
+git checkout main
+git push origin main
+```
+
+发布的 tag：
+
+- `main`
+- `latest`
+- `sha-<full_commit_sha>`
+
+### 创建并 push git tag
+
+创建并 push `v3.6.0` 这类 git tag 时，会发布同名 production 镜像：
+
+```bash
+git tag v3.6.0
+git push origin v3.6.0
+```
+
+发布的 tag：
+
+- `v3.6.0`
+
+独立的 `olap` workflow 会将当前 tag 与上一个 tag 做比较。只有当这段范围内有 OLAP 相关变更，或者有提交消息包含 `[build olap]` 时，才会发布。
+
+### 从 GHCR 拉取镜像
+
+按需要部署的分支或版本拉取对应 tag：
+
+```bash
+docker pull ghcr.io/xpert-ai/xpert-api:develop-candidate
+docker pull ghcr.io/xpert-ai/xpert-webapp:main
+docker pull ghcr.io/xpert-ai/xpert-webapp:latest
+docker pull ghcr.io/xpert-ai/xpert-api:v3.6.0
+docker pull ghcr.io/xpert-ai/xpert-olap:develop-candidate
+```
+
+## 发布 npm 包
+
+仓库现在使用 Changesets 管理 npm 发版。
+
+当前自动化范围：
+
+- CI 根据 Changesets 发布受管理的公共包
+- 正式版本使用 `latest` dist-tag
+- 预发布版本如 `3.9.0-beta.0` 会自动使用预发布标识作为 npm dist-tag，例如 `beta`
+
+## 创建 changeset
+
+```bash
+pnpm changeset
+```
+
+只选择源码或公共 API 确实发生变化的公共包。
+
+## 将 changeset 合入 `main`
+
+changeset 文件进入 `main` 后，GitHub Actions 会创建或更新一个名为 `chore: version packages` 的 release PR。
+
+## 合并 release PR
+
+release PR 合并后会自动执行：
+
+- `pnpm changeset:version`，写入版本号和 changelog
+- 将每个变更包构建到其配置的发布目录
+- 通过 trusted publishing 从构建产物发布到 npm
+
+## 本地校验命令
+
+```bash
+pnpm release:verify
+pnpm changeset:version
+pnpm release:publish
+```

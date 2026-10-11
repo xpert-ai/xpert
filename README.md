@@ -112,7 +112,7 @@ Xpert is a **plugin-first, modular NestJS platform**. A shared **Agent + Workflo
 - **Shared runtime & UI contracts:** LangGraph / LangChain, CQRS, Bull handoff, checkpoints, and interrupt/resume underpin execution. Workbench uses View Manifests, View Providers, and an iframe bridge; MCP Apps use tool-linked UI resources.
 - **Governed infrastructure:** scoped identities, approvals, audit, and usage span API, workers, and plugins. PostgreSQL + pgvector, Redis, and storage providers persist state. Data Xpert is a separate API/MCP-connected service; Pro execution providers are marked explicitly.
 
-Open the diagram for full resolution. [AI Agent architecture and source map](docs/ai-agent-architecture.md) · [Agent–Workflow architecture article](https://xpertai.cn/en/blog/agent-workflow-hybrid-architecture)
+Open the diagram for full resolution. [AI Agent architecture and source map](docs/en/architecture/ai-agent-architecture.md) · [Agent–Workflow architecture article](https://xpertai.cn/en/blog/agent-workflow-hybrid-architecture)
 
 ## Ecosystem
 
