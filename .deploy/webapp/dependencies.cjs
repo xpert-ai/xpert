@@ -7,7 +7,7 @@ const os = require('node:os')
 const { spawnSync } = require('node:child_process')
 
 const root = path.resolve(__dirname, '../..')
-const packages = ['apps/cloud', 'packages/contracts', 'packages/ui', 'libs/formly']
+const packages = ['apps/cloud', 'packages/contracts', 'packages/desktop-protocol', 'packages/ui', 'libs/formly']
 const lock = '.deploy/webapp/pnpm-lock.yaml'
 const forbidden = ['node-pty', 'isolated-vm', 'sharp', 'ffmpeg-ffprobe-static', 'electron', 'cypress']
 

@@ -84,7 +84,8 @@
     "@xpert-ai/chatkit-types": "catalog:",
     "@xpert-ai/chatkit-ui": "catalog:",
     "@xpert-ai/chatkit-web-component": "catalog:",
-    "@xpert-ai/chatkit-web-shared": "catalog:"
+    "@xpert-ai/chatkit-web-shared": "catalog:",
+    "@xpert-ai/desktop-protocol": "workspace:*"
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "21.1.4",

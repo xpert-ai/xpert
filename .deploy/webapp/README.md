@@ -1,8 +1,10 @@
 # Web build dependencies
 
 The Web Docker build installs `.deploy/webapp/package.json` with its dedicated
-`pnpm-lock.yaml`. Only Cloud, contracts, UI and Formly workspace manifests are
-included. API, Desktop and optional server plugins are not installed.
+`pnpm-lock.yaml`. Only Cloud, contracts, the browser-safe Desktop protocol, UI and
+Formly workspace manifests are included. The audio-capture protocol supplies the
+browser recorder's runtime validation and TypeScript declarations. API, the Desktop
+application and optional server plugins are not installed.
 
 Angular, Nx and their frontend native binaries (for example esbuild and SWC) are
 still required. Server-only modules such as `node-pty`, `isolated-vm`, `sharp` and

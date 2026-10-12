@@ -33,6 +33,7 @@ COPY --chown=node:node .deploy/webapp/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --chown=node:node pnpm-workspace.yaml .npmrc ./
 COPY --chown=node:node apps/cloud/package.json ./apps/cloud/
 COPY --chown=node:node packages/contracts/package.json ./packages/contracts/
+COPY --chown=node:node packages/desktop-protocol/package.json ./packages/desktop-protocol/
 COPY --chown=node:node packages/ui/package.json ./packages/ui/
 COPY --chown=node:node libs/formly/package.json ./libs/formly/
 COPY --chown=node:node .deploy/webapp/dependencies.cjs ./.deploy/webapp/
@@ -42,6 +43,7 @@ COPY --chown=node:node .eslintrc.json .nxignore nx.json tsconfig.base.json ./
 COPY --chown=node:node tailwind-workspace-reference.css tailwind.workspace.config.js tailwind.theme.vars.js ./
 COPY --chown=node:node apps/cloud ./apps/cloud
 COPY --chown=node:node packages/contracts ./packages/contracts
+COPY --chown=node:node packages/desktop-protocol ./packages/desktop-protocol
 COPY --chown=node:node packages/ui ./packages/ui
 COPY --chown=node:node libs/formly ./libs/formly
 # Connector contracts are browser-safe source; do not install the server SDK.
