@@ -1,6 +1,6 @@
 import { IBasePerTenantEntityModel } from '../base-entity.model'
 import { IconDefinition, TAvatar } from '../types'
-import { TCopilotModel } from './copilot-model.model'
+import { ModelSelectionMetadata, TCopilotModel } from './copilot-model.model'
 import { ModelFeature } from './ai-model.model'
 import { MCPServerType, TMCPServer } from './xpert-tool-mcp.model'
 import { XpertTypeEnum } from './xpert.model'
@@ -147,20 +147,12 @@ export interface AssistantCapabilityDeclaration {
 }
 
 /** Public model metadata for capability setup; never includes provider credentials or model configuration. */
-export interface XpertTemplateModelOption {
+export interface XpertTemplateModelOption extends ModelSelectionMetadata {
   /** Opaque selection key; clients must submit it unchanged rather than reconstructing it. */
   id: string
   label: string
   /** Model reference for installation; setup responses only project copilotId, model and modelType. */
   copilotModel: TCopilotModel
-  /** Display grouping by provider, not a credential scope. Optional for older setup endpoints. */
-  provider?: { id: string; label: string }
-  /** Display name that distinguishes multiple configured connections for the same provider. */
-  connectionName?: string
-  /** Declared model features for badges/recommendations; installation still validates compatibility. */
-  features?: ModelFeature[]
-  /** Context capacity in tokens, not usage; omitted when the provider does not declare it. */
-  contextWindow?: number
 }
 
 export interface XpertTemplateSetup {

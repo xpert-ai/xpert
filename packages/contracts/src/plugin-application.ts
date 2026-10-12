@@ -1,4 +1,5 @@
 import type { AiModelTypeEnum } from './agent'
+import type { ModelSelectionMetadata } from './ai/copilot-model.model'
 import type { IBasePerTenantAndOrganizationEntityModel } from './base-entity.model'
 import type { PluginMarketplaceCategory } from './plugin'
 import type { IconDefinition, I18nObject } from './types'
@@ -160,7 +161,7 @@ export interface IPluginApplicationInstallation extends IBasePerTenantAndOrganiz
 }
 
 /** Host-authorized model choice returned by application initialization preflight. */
-export interface PluginApplicationModelOption {
+export interface PluginApplicationModelOption extends ModelSelectionMetadata {
   id: string
   copilotId: string
   model: string

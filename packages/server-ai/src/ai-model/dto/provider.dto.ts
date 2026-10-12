@@ -5,59 +5,57 @@ import { RequestContext } from '@xpert-ai/plugin-sdk'
 
 @Expose()
 export class AiProviderDto {
-	
-	@Expose()
-	@IsString()
-	provider: string
+    @Expose()
+    @IsString()
+    provider: string
 
-	@Expose()
-	@IsString()
-	background?: string
+    @Expose()
+    @IsString()
+    background?: string
 
-	@Expose()
-	@ValidateNested()
-	label: I18nObject
-	
-	@Expose()
-	@IsOptional()
-	@ValidateNested()
-	@Transform(
-		({ value, obj }) =>
-			value && {
-				en_US: `${obj.urlPrefix}/icon_small/en_US${obj.organizationQuery ?? ''}`,
-				zh_Hans: `${obj.urlPrefix}/icon_small/zh_Hans${obj.organizationQuery ?? ''}`
-			}
-	)
-	icon_small?: I18nObject
+    @Expose()
+    @ValidateNested()
+    label: I18nObject
 
-	@Expose()
-	@IsOptional()
-	@ValidateNested()
-	@Transform(
-		({ value, obj }) =>
-			value && {
-				en_US: `${obj.urlPrefix}/icon_large/en_US${obj.organizationQuery ?? ''}`,
-				zh_Hans: `${obj.urlPrefix}/icon_large/zh_Hans${obj.organizationQuery ?? ''}`
-			}
-	)
-	icon_large?: I18nObject
+    @Expose()
+    @IsOptional()
+    @ValidateNested()
+    @Transform(({ value, obj }) => providerIconUrls(obj, 'icon_small', value))
+    icon_small?: I18nObject
 
-	@Exclude()
-	urlPrefix?: string
+    @Expose()
+    @IsOptional()
+    @ValidateNested()
+    @Transform(({ value, obj }) => providerIconUrls(obj, 'icon_large', value))
+    icon_large?: I18nObject
 
-	@Exclude()
-	organizationId?: string
+    @Exclude()
+    urlPrefix?: string
 
-	@Exclude()
-	organizationQuery?: string
+    @Exclude()
+    organizationId?: string
 
-	constructor(partial: Partial<AiProviderDto>, baseUrl: string, organizationId?: string) {
-		Object.assign(this, partial)
+    @Exclude()
+    organizationQuery?: string
 
-		this.organizationId = organizationId ?? RequestContext.getOrganizationId()
-		this.organizationQuery = this.organizationId
-			? `?organizationId=${encodeURIComponent(this.organizationId)}`
-			: ''
-		this.urlPrefix = baseUrl + (baseUrl.endsWith('/') ? '' : '/') +  `api/ai-model/provider/${partial.provider}`
-	}
+    constructor(partial: Partial<AiProviderDto>, baseUrl: string, organizationId?: string) {
+        Object.assign(this, partial)
+
+        this.organizationId = organizationId ?? RequestContext.getOrganizationId()
+        this.organizationQuery = this.organizationId ? `?organizationId=${encodeURIComponent(this.organizationId)}` : ''
+        this.urlPrefix = baseUrl + (baseUrl.endsWith('/') ? '' : '/') + `api/ai-model/provider/${partial.provider}`
+    }
+}
+
+// Share the public, organization-aware asset URLs with model selection metadata.
+export function providerIconUrls(
+    provider: Pick<AiProviderDto, 'urlPrefix' | 'organizationQuery'>,
+    iconType: 'icon_small' | 'icon_large',
+    icon?: I18nObject
+): I18nObject | undefined {
+    if (!icon || !provider.urlPrefix) return undefined
+    return {
+        en_US: `${provider.urlPrefix}/${iconType}/en_US${provider.organizationQuery ?? ''}`,
+        zh_Hans: `${provider.urlPrefix}/${iconType}/zh_Hans${provider.organizationQuery ?? ''}`
+    }
 }

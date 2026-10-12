@@ -1,7 +1,7 @@
 const { test } = require('node:test')
 const assert = require('node:assert/strict')
 const { readFileSync } = require('node:fs')
-const { join } = require('node:path')
+const { join, dirname, posix } = require('node:path')
 const { createRequire } = require('node:module')
 const { runInNewContext } = require('node:vm')
 const ts = require('typescript')
@@ -112,6 +112,21 @@ async function mountCatalog(t, handler, onUse = async () => {}) {
     Input: element('input'),
     Label: element('label'),
     Textarea: element('textarea'),
+    Checkbox: ({ checked, onCheckedChange, ...props }) =>
+      e('input', { ...props, type: 'checkbox', checked, onChange: (event) => onCheckedChange(event.target.checked) }),
+    Select: ({ children, value, onValueChange, disabled }) => {
+      const trigger = React.Children.toArray(children).find((child) => child.type === ui.SelectTrigger)
+      return e(
+        'select',
+        { id: trigger?.props.id, value, disabled, onChange: (event) => onValueChange(event.target.value) },
+        e('option', { value: '' }, 'Select'),
+        children
+      )
+    },
+    SelectTrigger: () => null,
+    SelectValue: () => null,
+    SelectContent: ({ children }) => e(React.Fragment, {}, children),
+    SelectItem: ({ children, value }) => e('option', { value }, children),
     Dialog: element('section'),
     DialogContent: element('div'),
     DialogHeader: element('header'),
@@ -182,7 +197,7 @@ async function mountCatalog(t, handler, onUse = async () => {}) {
             items.map((item) => e('option', { key: item.id, value: item.id }, item.name))
           )
       },
-      './catalog/ModelSelect': { ModelSelect: () => null },
+      './catalog/ModelCascader': { ModelCascader: () => null },
       './catalog/TemplateRequirements': { TemplateRequirements: () => null },
       './PluginInstallDialog': { PluginInstallDialog: () => null }
     }
@@ -195,9 +210,14 @@ async function mountCatalog(t, handler, onUse = async () => {}) {
       crypto: global.crypto,
       require(id) {
         if (Object.hasOwn(imports, id)) return imports[id]
+        if (id === '../host') return host
+        if (id === '../i18n') return imports['./i18n']
         if (['react', 'react/jsx-runtime'].includes(id)) return require(id)
         if (['./CatalogSetup', './PluginCatalog'].includes(id)) return renderer(id.slice(2) + '.tsx')
         if (id === './catalog-labels') return renderer('catalog-labels.ts')
+        if (id.endsWith('/application-toolsets')) return require('../src/catalog/application-toolsets.ts')
+        if (['./catalog/ApplicationToolsets', './ApplicationToolsetEditor'].includes(id))
+          return renderer(posix.normalize(posix.join(dirname(file), id)) + '.tsx')
         throw new Error(`Unexpected import: ${id}`)
       }
     })
@@ -293,7 +313,10 @@ test('refreshing application settings updates its cached status without reloadin
           defaultEmbeddingModelId: '',
           defaultVisionModelId: '',
           requireEmbedding: false,
-          requireVision: false
+          requireVision: false,
+          embeddingModels: [],
+          visionModels: [],
+          toolsetRequirements: []
         }
       : defaultResult(method, input)
   )
@@ -327,7 +350,10 @@ test('a completed installation invalidates catalogs even if opening the assistan
           defaultEmbeddingModelId: '',
           defaultVisionModelId: '',
           requireEmbedding: false,
-          requireVision: false
+          requireVision: false,
+          embeddingModels: [],
+          visionModels: [],
+          toolsetRequirements: []
         }
       if (method === 'listCatalog' && input === 'applications')
         return [{ ...app, status: installed ? 'ready' : 'not_installed', botId: installed ? 'bot' : null }]
@@ -349,4 +375,119 @@ test('a completed installation invalidates catalogs even if opening the assistan
   assert.equal(view.count('listCatalog', 'applications'), 2)
   await view.click('Digital experts')
   assert.equal(view.count('listCatalog', 'experts'), 2)
+})
+
+test('app tool selection blocks installation, survives refresh and submits only the selected configuration', async (t) => {
+  let revoked = false
+  const setup = () => ({
+    application: app,
+    canInitialize: true,
+    canConfigure: true,
+    reason: '',
+    defaultEmbeddingModelId: '',
+    defaultVisionModelId: '',
+    embeddingModels: [],
+    visionModels: [],
+    requireEmbedding: false,
+    requireVision: false,
+    toolsetRequirements: [
+      {
+        key: 'images',
+        label: 'Image tools',
+        provider: 'seedream',
+        providerAvailable: true,
+        options: revoked ? [] : [{ id: 'chosen', name: 'Seedream', workspaceName: 'Organization' }]
+      }
+    ]
+  })
+  const view = await mountCatalog(t, (method, input) => {
+    if (method === 'applicationSetup') return setup()
+    if (method === 'initializeApplication') return { botId: 'installed' }
+    return defaultResult(method, input)
+  })
+  await view.click('Apps')
+  await view.click('Meetings')
+  const submit = () => document.querySelector('button[type="submit"]')
+  assert.equal(submit().disabled, true)
+  await React.act(async () => {
+    const select = document.getElementById('app-toolset-images')
+    select.value = 'chosen'
+    select.dispatchEvent(new view.dom.window.Event('change', { bubbles: true }))
+  })
+  assert.equal(submit().disabled, false)
+  await view.click('Refresh settings')
+  assert.equal(document.getElementById('app-toolset-images').value, 'chosen')
+  revoked = true
+  await view.click('Refresh settings')
+  assert.equal(submit().disabled, true)
+  assert.equal(document.getElementById('app-toolset-images').value, '')
+  revoked = false
+  await view.click('Refresh settings')
+  assert.equal(submit().disabled, true, 'an available configuration is not silently selected')
+  await React.act(async () => {
+    const select = document.getElementById('app-toolset-images')
+    select.value = 'chosen'
+    select.dispatchEvent(new view.dom.window.Event('change', { bubbles: true }))
+  })
+  await view.click('Install & use')
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(view.calls.find((call) => call.method === 'initializeApplication').input.toolsets)),
+    [{ key: 'images', toolsetId: 'chosen' }]
+  )
+})
+
+test('native tool configuration requires an enabled tool and refreshes the saved app binding', async (t) => {
+  let saved = false
+  const view = await mountCatalog(t, (method, input) => {
+    if (method === 'applicationSetup')
+      return {
+        application: { ...app, status: saved ? 'configuring' : 'not_installed' },
+        canInitialize: saved,
+        canConfigure: true,
+        reason: '',
+        defaultEmbeddingModelId: '',
+        defaultVisionModelId: '',
+        embeddingModels: [],
+        visionModels: [],
+        requireEmbedding: false,
+        requireVision: false,
+        toolsetRequirements: [
+          {
+            key: 'images',
+            label: 'Image tools',
+            provider: 'seedream',
+            providerAvailable: true,
+            configuredToolsetId: saved ? 'managed' : undefined,
+            options: saved ? [{ id: 'managed', name: 'Images' }] : []
+          }
+        ]
+      }
+    if (method === 'applicationToolsetSetup')
+      return {
+        name: 'Images',
+        supported: true,
+        fields: [],
+        tools: [{ name: 'generate_image', label: 'Generate image', enabled: false }]
+      }
+    if (method === 'saveApplicationToolset') {
+      saved = true
+      return { key: 'images', toolsetId: 'managed' }
+    }
+    return defaultResult(method, input)
+  })
+  await view.click('Apps')
+  await view.click('Meetings')
+  await view.click('New configuration')
+  assert.equal(document.querySelector('button[type="submit"]').disabled, true)
+  const save = [...document.querySelectorAll('button')].find((button) => button.textContent === 'Save configuration')
+  assert.equal(save.disabled, true)
+  await React.act(async () => document.getElementById('app-tool-generate_image').click())
+  assert.equal(save.disabled, false)
+  await view.click('Save configuration')
+  const call = view.calls.find((call) => call.method === 'saveApplicationToolset')
+  assert.deepEqual(Array.from(call.input.tools), ['generate_image'])
+  assert.equal(call.input.name, 'Images')
+  assert.equal(document.getElementById('app-toolset-images').value, 'managed')
+  assert.equal(document.querySelector('button[type="submit"]').disabled, false)
+  assert.equal(view.count('initializeApplication'), 0)
 })

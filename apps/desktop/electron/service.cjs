@@ -518,6 +518,10 @@ Object.assign(
   DesktopService.prototype,
   require('./assistant-configuration.cjs').createAssistantConfigurationMethods(ClientError)
 )
+Object.assign(
+  DesktopService.prototype,
+  require('./application-toolsets.cjs').createApplicationToolsetMethods(ClientError)
+)
 Object.assign(DesktopService.prototype, require('./assistant-list.cjs').createAssistantListMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./assistant-profile.cjs').createAssistantProfileMethods(ClientError))
 Object.assign(DesktopService.prototype, require('./assistant-triggers.cjs').createAssistantTriggerMethods(ClientError))

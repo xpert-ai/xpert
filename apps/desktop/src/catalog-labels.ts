@@ -54,6 +54,7 @@ export function statusLabel(item: CatalogItem): string {
   return {
     ready: t('Installed'),
     not_installed: t('Available to install'),
+    configuring: t('Configuration in progress'),
     initializing: t('Installing'),
     degraded: t('Repair needed'),
     failed: t('Installation failed')
@@ -70,6 +71,7 @@ export function actionLabel(item: CatalogItem): string {
   return {
     ready: t('Use now'),
     not_installed: t('Install app'),
+    configuring: t('Continue configuration'),
     initializing: t('View status'),
     degraded: t('Repair app'),
     failed: t('Reinstall')

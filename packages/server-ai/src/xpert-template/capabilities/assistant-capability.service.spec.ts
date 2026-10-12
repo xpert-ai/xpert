@@ -20,6 +20,8 @@ import {
 } from './template-capability-reference'
 import { parseCapabilityTemplateDraft } from './template-draft'
 import { ProjectTasksCapabilityProvider } from '../../xpert-project/plugins/project-tasks/project-tasks.capability'
+import { ProviderWithModelsDto } from '../../copilot/dto/provider-with-models'
+import { instanceToPlain } from 'class-transformer'
 
 const language = LanguagesEnum.English
 const model = { copilotId: 'authorized', model: 'capable', modelType: AiModelTypeEnum.LLM }
@@ -186,7 +188,36 @@ describe('Assistant capabilities (OSS)', () => {
         expect(result.models.map((item) => item.copilotModel.model)).toEqual(['text', 'capable'])
         expect(result.models[0].features).toEqual([ModelFeature.TOOL_CALL])
         expect(result.models[0].contextWindow).toBeUndefined()
+        expect(result.models[0].provider?.iconUrl).toBeUndefined()
     })
+    it.each(['icon_small', 'icon_large'] as const)(
+        'reuses localized Xpert %s URLs for provider logos',
+        async (iconType) => {
+            jest.mocked(RequestContext.getLanguageCode).mockReturnValue(LanguagesEnum.SimplifiedChinese)
+            const provider = new ProviderWithModelsDto(
+                {
+                    provider: 'sample-provider',
+                    label: { en_US: 'Provider' },
+                    [iconType]: { en_US: 'logo.svg', zh_Hans: 'logo-zh.svg' },
+                    models: []
+                },
+                'https://api.example.com'
+            )
+            query.execute.mockResolvedValue([
+                {
+                    id: 'connection',
+                    providerWithModels: {
+                        ...provider,
+                        models: [{ model: 'sample' }]
+                    }
+                }
+            ])
+            const { models } = await service.setup({ ...template, requiresModelSelection: true }, language)
+            const iconUrl = `https://api.example.com/api/ai-model/provider/sample-provider/${iconType}/zh_Hans?organizationId=organization`
+            expect(models[0].provider?.iconUrl).toBe(iconUrl)
+            expect(instanceToPlain(provider)[iconType].zh_Hans).toBe(iconUrl)
+        }
+    )
     it('localizes provider labels and keeps same-name models in distinct connections selectable', async () => {
         jest.mocked(RequestContext.getLanguageCode).mockReturnValue(LanguagesEnum.SimplifiedChinese)
         query.execute.mockResolvedValue([

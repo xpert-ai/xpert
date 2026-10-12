@@ -1,6 +1,8 @@
 const { localizedText } = require('./i18n/index.mjs')
 const { parseBusinessArea } = require('./business-area.cjs')
 const { parseAvatarUrl } = require('./avatar-url.cjs')
+const { applicationToolsets, selectedApplicationToolsets } = require('./application-toolsets.cjs')
+const { modelOptions: projectModelOptions } = require('./model-options.cjs')
 // A narrow marketplace boundary: credentials, template DSL and plugin configuration stay in the host.
 module.exports.createCatalogMethods = function createCatalogMethods(ClientError) {
   const text = (value) => (typeof value === 'string' ? value : '')
@@ -110,7 +112,14 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
         ...(value.marketplace?.featured ? ['featured'] : [])
       ],
       tags: strings(value.marketplace?.tags),
-      status: choice(value.status?.status, ['ready', 'not_installed', 'initializing', 'degraded', 'failed']),
+      status: choice(value.status?.status, [
+        'ready',
+        'not_installed',
+        'configuring',
+        'initializing',
+        'degraded',
+        'failed'
+      ]),
       botId: text(value.status?.xpertId) || null,
       initializationAccess: text(value.status?.initializationAccess),
       summary: localized(presentation?.initializationSummary),
@@ -133,18 +142,16 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
   const scope = (service) => {
     if (!service.profile?.organizationId) throw new ClientError('Select an organization first.', 403)
   }
-  const modelOptions = (value, locale) =>
-    list(value).map((model) => ({
-      id: required(model?.id, 'Model ID'),
-      label: localizedText(model.label, locale) || text(model.model)
-    }))
+  const modelOptions = (value, locale) => projectModelOptions(value, locale, ClientError)
   const preflightReasons = {
     organization_scope_required: 'Select an organization first.',
     role_required: 'Organization administrator access is required to install this app.',
     scope_not_supported: 'This app cannot be installed in the current scope.',
     primary_model_required: "Configure the organization's primary model in Xpert.",
     embedding_model_required: 'Configure an available embedding model in Xpert.',
-    vision_model_required: 'Configure an available vision model in Xpert.'
+    vision_model_required: 'Configure an available vision model in Xpert.',
+    toolset_provider_required: 'Install the required tool provider plugin in Xpert, then refresh settings.',
+    toolset_configuration_required: 'Select or configure the tools required for installation.'
   }
   const templateCapabilities = (input) => {
     const value = input?.capabilities ?? []
@@ -220,7 +227,8 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
       const pluginName = required(input?.pluginName, 'Plugin name')
       const appName = required(input?.appName, 'App name')
       const detail = await this.request(
-        `/api/plugin-applications/detail?${new URLSearchParams({ pluginName, appName })}`
+        `/api/plugin-applications/detail?${new URLSearchParams({ pluginName, appName })}`,
+        { scope: 'organization', includeServerMessage: true }
       )
       const check = detail?.preflight
       if (!check || typeof check.canInitialize !== 'boolean')
@@ -230,6 +238,9 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
       return {
         application: application(detail, this.config.locale, this.config.webUrl),
         canInitialize: check.supported === true && check.canInitialize,
+        canConfigure: check.supported === true && detail.status?.initializationAccess === 'allowed',
+        canDiscardConfiguration: detail.status?.canDiscardConfiguration === true,
+        toolsetRequirements: applicationToolsets(check.toolsetRequirements, this.config.locale, ClientError),
         reason:
           preflightReasons[check.reason] ||
           (check.canInitialize ? '' : 'This app cannot be installed. Check the platform settings.'),
@@ -264,11 +275,15 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
         if (needed && !id) throw new ClientError('Select the models required for installation.')
         if (id) body[field] = id
       }
+      const toolsets = selectedApplicationToolsets(input?.toolsets, setup.toolsetRequirements, ClientError)
+      if (toolsets.length || input?.toolsets !== undefined) body.toolsets = toolsets
       // The server derives the workspace and organization. Renderer-supplied scope is never forwarded.
       const result = await this.request('/api/plugin-applications/initialize', {
         method: 'POST',
         body,
-        timeout: 180000
+        timeout: 180000,
+        scope: 'organization',
+        includeServerMessage: true
       })
       if (result?.status !== 'ready' || !result.xpertId)
         throw new ClientError('The app is not ready yet. Refresh the catalog to check its status.', 409)
@@ -304,9 +319,9 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
                   label: text(option.label),
                   description: text(option.description)
                 })),
-                realtimeModels: check.realtimeModels?.map(({ id, label, voices, defaultVoice }) => ({
-                  id,
-                  label,
+                defaultModelId: text(check.defaultModelId),
+                realtimeModels: check.realtimeModels?.map(({ voices, defaultVoice, ...model }) => ({
+                  ...modelOptions([model], this.config.locale)[0],
                   voices,
                   defaultVoice
                 })),
