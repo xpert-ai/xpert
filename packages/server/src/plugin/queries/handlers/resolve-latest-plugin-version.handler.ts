@@ -1,8 +1,8 @@
-import { execFile } from 'node:child_process'
 import { Logger } from '@nestjs/common'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { getErrorMessage } from '@xpert-ai/plugin-sdk'
 import { ResolveLatestPluginVersionQuery } from '../resolve-latest-plugin-version.query'
+import { NpmPluginVersionClient } from './npm-plugin-version'
 
 const PLUGIN_VERSION_CACHE_TTL_MS = 5 * 60 * 1000
 
@@ -16,6 +16,7 @@ type PluginVersionCacheEntry = {
 export class ResolveLatestPluginVersionHandler implements IQueryHandler<ResolveLatestPluginVersionQuery> {
 	private readonly logger = new Logger(ResolveLatestPluginVersionHandler.name)
 	private readonly cache = new Map<string, PluginVersionCacheEntry>()
+	private readonly registry = new NpmPluginVersionClient()
 
 	async execute(query: ResolveLatestPluginVersionQuery): Promise<string | undefined> {
 		const now = Date.now()
@@ -29,8 +30,8 @@ export class ResolveLatestPluginVersionHandler implements IQueryHandler<ResolveL
 			return cached.latestVersion
 		}
 
-		const pending = execFileUtf8('npm', ['view', query.packageName, 'version', '--json'])
-			.then(parseLatestVersionOutput)
+		const pending = this.registry
+			.resolveLatestVersion(query.packageName)
 			.then((latestVersion) => {
 				this.cache.set(query.packageName, {
 					expiresAt: Date.now() + PLUGIN_VERSION_CACHE_TTL_MS,
@@ -57,26 +58,4 @@ export class ResolveLatestPluginVersionHandler implements IQueryHandler<ResolveL
 
 		return pending
 	}
-}
-
-function parseLatestVersionOutput(output: string) {
-	const trimmed = output.trim()
-	if (!trimmed) {
-		return undefined
-	}
-
-	const parsed = JSON.parse(trimmed)
-	return typeof parsed === 'string' ? parsed : undefined
-}
-
-function execFileUtf8(command: string, args: string[]) {
-	return new Promise<string>((resolve, reject) => {
-		execFile(command, args, { encoding: 'utf8' }, (error, stdout) => {
-			if (error) {
-				reject(error)
-				return
-			}
-			resolve(stdout.trim())
-		})
-	})
 }
