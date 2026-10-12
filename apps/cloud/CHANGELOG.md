@@ -1,5 +1,23 @@
 # @xpert-ai/xpert-ui
 
+## 3.20.1
+
+### Patch Changes
+
+- 75f1cd3: Support browser microphone recording with optional shared tab audio through declared View client commands and a host permission dialog. Produce independent 24 kHz PCM WAV chunks, preserve ordered retryable delivery in page memory, and carry the initiating View runtime scope to event and file actions. Add translated source selection and upload-lifetime guidance.
+
+  Keep capture state and controls scoped to the initiating identity, View and Project, respect capture ID selection, and stop on device loss, scope changes or recording limits. Confirm meeting creation before starting capture, release devices on failed or cancelled startup, and preserve the final audio block before the stopped event. Add regression coverage for permission cleanup, delivery retries, scope changes, PCM processing and browser/native command separation.
+
+- ae1fb5f: Add scoped knowledgebase discovery, readiness and action-permission APIs with authorization-aware cursor pagination. Preserve the legacy list behavior with deprecation guidance, and fail indexing when supplied generated-image semantics are invalid instead of indexing placeholder content.
+
+  Clarify runtime and provisioning API responsibilities, and organize the SDK guides into English documentation with updated navigation, branding, package assets and cross-references.
+
+- e55a7dc: Improve application marketplace cards in Web and Desktop with full-bleed previews, app logos and compact translucent glass overlays. Reveal descriptions and actions on hover or keyboard focus, keep them available on touch devices, and size cards to prevent internal vertical scrolling or clipped actions at narrow widths. Use fixed-size panels with transform animations and matching loading placeholders.
+
+  Preserve validated image, SVG and emoji application icons in the Desktop catalog and setup details, provide preview and logo fallbacks, and show publisher and tag information in application details. Add catalog regression coverage for supported icons and rejected URLs.
+
+- 9286a0f: Refine marketplace application cards with theme-aware translucent gradients, compact logos, and cover-aligned blur layers that stay aligned while details expand. Improve dark-theme text contrast and keep the web card glass independent of backdrop sampling.
+
 ## 3.20.0
 
 ### Minor Changes
