@@ -22,9 +22,11 @@ describe.each([
     const id = '11111111-1111-4111-8111-111111111111'
     const files = [{ filePath: 'shared.txt' }]
     const assets = [{ id: 'asset-1', originalName: 'attachment.pdf' }]
+    const capabilities = { canRead: true, canWrite: true }
     const conversations = {
         getWorkspaceFiles: jest.fn(async () => files),
         readWorkspaceFile: jest.fn(async () => ({ contents: 'shared' })),
+        getWorkspaceFileCapabilities: jest.fn(async () => capabilities),
         saveWorkspaceFile: jest.fn(async () => ({ contents: 'updated' })),
         deleteWorkspaceFile: jest.fn(async () => ({ deleted: true }))
     }
@@ -68,7 +70,8 @@ describe.each([
     it.each(['workspace/file', 'file'])('supports canonical and existing singular routes: %s', async (route) => {
         const read = await fetch(`${origin}/${route}?path=shared.txt`)
         expect(read.status).toBe(200)
-        expect(await read.json()).toEqual({ contents: 'shared' })
+        expect(await read.json()).toEqual({ contents: 'shared', capabilities })
+        expect(conversations.getWorkspaceFileCapabilities).toHaveBeenCalledWith(id, 'shared.txt')
         const save = await fetch(`${origin}/${route}`, {
             method: 'PUT',
             headers: { 'content-type': 'application/json' },
