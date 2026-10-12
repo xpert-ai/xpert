@@ -245,17 +245,6 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
       }
     },
     {
-      title: 'CodeXpert',
-      icon: 'ri-code-box-line',
-      link: environment.CODE_XPERT_URL,
-      external: true,
-      scopeContext: 'dual-scope',
-      data: {
-        translationKey: 'CodeXpert',
-        featureKey: [AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_CODEXPERT]
-      }
-    },
-    {
       title: 'Data & Ontology',
       icon: 'ri-node-tree',
       link: environment.DATA_ONTOLOGY_URL,
