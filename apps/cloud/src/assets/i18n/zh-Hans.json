@@ -10307,6 +10307,7 @@
       "MarketplaceNoTechnicalPreview": "暂未识别到技术分类",
       "RefreshConnectorsTooltip": "刷新连接器列表和连接状态",
       "ConnectorUnavailable": "当前工作空间中的连接器不可用。",
+      "ConnectorManageWorkspace": "管理工作空间连接",
       "ConnectorWorkspaceMigration": "不再支持个人连接。请由空间管理员删除旧连接，再创建工作空间连接。"
     },
     "UserGroup": {

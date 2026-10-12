@@ -5517,6 +5517,7 @@
       "MarketplaceNoTechnicalPreview": "No technical category detected yet",
       "RefreshConnectorsTooltip": "Refresh connector list and connection status",
       "ConnectorUnavailable": "The connector is unavailable in this workspace.",
+      "ConnectorManageWorkspace": "Manage workspace connections",
       "ConnectorWorkspaceMigration": "Personal connections are no longer supported. A workspace administrator must delete this connection and create a workspace connection."
     },
     "DataSources": {
