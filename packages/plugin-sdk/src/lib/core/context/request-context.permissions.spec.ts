@@ -49,6 +49,39 @@ describe('RequestContext authenticated permissions', () => {
     })
   })
 
+  it('checks permission membership independently of duplicate grants or requirements', () => {
+    const duplicateUser = {
+      ...user,
+      role: {
+        ...user.role,
+        rolePermissions: [...user.role.rolePermissions, user.role.rolePermissions[0]]
+      }
+    }
+
+    inRequest('cs-x-session', duplicateUser, () => {
+      expect(RequestContext.hasPermission(create)).toBe(true)
+      expect(RequestContext.hasPermissions([create, permission])).toBe(true)
+      expect(RequestContext.hasPermissions([create, create, create])).toBe(true)
+    })
+  })
+
+  it('does not substitute duplicate grants for a missing or disabled permission', () => {
+    const duplicateUser = {
+      ...user,
+      role: {
+        ...user.role,
+        rolePermissions: [...user.role.rolePermissions, user.role.rolePermissions[0]]
+      }
+    }
+
+    inRequest('cs-x-session', duplicateUser, () => {
+      expect(RequestContext.hasPermissions([create, AIPermissionsEnum.XPERT_PROJECT_EDIT])).toBe(false)
+      expect(() => RequestContext.hasPermissions([create, AIPermissionsEnum.XPERT_PROJECT_EDIT], true)).toThrow(
+        HttpException
+      )
+    })
+  })
+
   it.each([undefined, { id: 'human' } as IUser])('fails closed without authenticated permissions (%p)', (principal) => {
     inRequest('cs-x-session', principal, () => {
       expect(RequestContext.hasPermission(create)).toBe(false)
