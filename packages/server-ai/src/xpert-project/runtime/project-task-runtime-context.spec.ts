@@ -1,5 +1,7 @@
 jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
 import { Test } from '@nestjs/testing'
+import { CommandBus } from '@nestjs/cqrs'
+import { AuthorizeGroupTaskCallerCommand } from '../../chat-group/group-project/group-task.commands'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { randomUUID } from 'node:crypto'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
@@ -25,7 +27,13 @@ describe('Project task caller authorization', () => {
             threadId: 'thread',
             sourceMessageId: 'message'
         }
-        const conversation = { id: caller.conversationId, threadId: 'thread' }
+        const conversation = {
+            id: caller.conversationId,
+            threadId: 'thread',
+            createdById: actor.userId,
+            purpose: 'chat'
+        }
+        const commands = { execute: jest.fn() }
         const execution = {
             id: caller.executionId,
             xpertId: caller.xpertId,
@@ -42,6 +50,7 @@ describe('Project task caller authorization', () => {
         const module = await Test.createTestingModule({
             providers: [
                 ProjectTaskRuntimeContextService,
+                { provide: CommandBus, useValue: commands },
                 { provide: XpertProjectAccessService, useValue: access },
                 { provide: getRepositoryToken(ChatConversation), useValue: conversations },
                 { provide: getRepositoryToken(XpertAgentExecution), useValue: executions }
@@ -56,7 +65,8 @@ describe('Project task caller authorization', () => {
             conversation,
             execution,
             conversations,
-            executions
+            executions,
+            commands
         }
     }
     it('derives the scope from the authenticated actor and owned execution, never model input', async () => {
@@ -74,9 +84,25 @@ describe('Project task caller authorization', () => {
             id: f.caller.conversationId,
             projectId: f.projectId,
             tenantId: f.actor.tenantId,
-            organizationId: f.actor.organizationId,
-            createdById: f.actor.userId
+            organizationId: f.actor.organizationId
         })
+        expect(f.commands.execute).not.toHaveBeenCalled()
+    })
+    it('authorizes later group initiators through group policy while retaining private conversation ownership', async () => {
+        const f = await fixture()
+        f.conversation.createdById = randomUUID()
+        await expect(f.service.resolve(f.projectId, f.caller)).rejects.toThrow()
+        expect(f.commands.execute).not.toHaveBeenCalled()
+        f.conversation.purpose = 'group_assistant_runtime'
+        const scope = await f.service.resolve(f.projectId, f.caller)
+        expect(f.commands.execute).toHaveBeenCalledWith(new AuthorizeGroupTaskCallerCommand(scope))
+        expect(f.executions.findOne).toHaveBeenLastCalledWith(
+            expect.objectContaining({
+                where: expect.objectContaining({ createdById: f.actor.userId })
+            })
+        )
+        f.commands.execute.mockRejectedValueOnce(new Error('Group membership revoked'))
+        await expect(f.service.resolve(f.projectId, f.caller)).rejects.toThrow('Group membership revoked')
     })
     it('authorizes the explicitly typed Project general agent against the project workspace', async () => {
         const f = await fixture()

@@ -17,7 +17,7 @@ import { ThreadRunControlService, threadGraphRevision } from '../chat-conversati
 import { ChatMessage } from '../chat-message/chat-message.entity'
 import { XpertAgentExecution } from '../xpert-agent-execution/agent-execution.entity'
 import { AGENT_CHAT_CALLBACK_NOOP_MESSAGE_TYPE } from '../handoff/plugins/agent-chat/agent-chat-callback-noop.processor'
-import { voiceTaskAnswer } from '../realtime-voice/voice-task-result'
+import { chatMessageText } from '../shared/chat-message-text'
 import { GroupParticipant, GroupMessageRecipient } from './group.entity'
 import { GroupAccessService } from './group-access.service'
 import { GroupMessagesService } from './group-messages.service'
@@ -79,6 +79,15 @@ export class GroupRuntimeService {
             await this.access.withRootUser(group, initiatorUserId, async () => {
                 await this.access.assistant(member.subjectId)
                 if (communication.composer) await this.composer.validate(member, communication.composer)
+                const taskProjectId = communication.projectTask?.projectId ?? communication.runtimeResult?.projectId
+                if (taskProjectId) {
+                    const runtime = await this.db
+                        .getRepository(ChatConversation)
+                        .findOneByOrFail({ id: member.runtimeConversationId })
+                    if (runtime.projectId !== taskProjectId || group.projectId !== runtime.projectId)
+                        throw new Error('group_project_changed')
+                    await this.composer.project(member.subjectId, runtime.projectId)
+                }
             })
             if (receipt.control)
                 await this.access.withRootUser(group, receipt.control.actorId, () =>
@@ -168,7 +177,9 @@ export class GroupRuntimeService {
                 const runtime = await manager.findOneByOrFail(ChatConversation, { id: member.runtimeConversationId })
                 const projectId = communication.composer.projectId ?? null
                 const locked =
-                    thread.status !== 'idle' || (await manager.existsBy(ChatMessage, { conversationId: runtime.id }))
+                    Boolean(group.projectId && group.projectId === runtime.projectId) ||
+                    thread.status !== 'idle' ||
+                    (await manager.existsBy(ChatMessage, { conversationId: runtime.id }))
                 if (locked && (runtime.projectId ?? null) !== projectId) {
                     row.status = 'blocked'
                     row.error = 'composer_project_changed'
@@ -180,10 +191,14 @@ export class GroupRuntimeService {
                 await manager.save(runtime)
             }
             const busy = thread.status === 'busy'
+            // A task attempt owns a complete run and must never become a steer into another task.
+            if (busy && (communication.projectTask || communication.runtimeResult)) return null
             const realtime =
                 job.headers?.handoffQueue === 'realtime' || job.headers?.handoffQueue === 'handoff:realtime'
             if (busy !== realtime || (busy && !thread.runControl)) return null
-            receipt.executionId = busy ? thread.runControl.executionId : randomUUID()
+            receipt.executionId = busy
+                ? thread.runControl.executionId
+                : (communication.runtimeResult?.consumerExecutionId ?? randomUUID())
             receipt.status = busy ? 'steering' : 'starting'
             row.executionId = receipt.executionId
             row.status = receipt.status
@@ -244,10 +259,10 @@ export class GroupRuntimeService {
                 )
                 .map((row) => ({
                     id: row.id,
-                    text: voiceTaskAnswer(row.content)?.slice(0, 4000) ?? '',
+                    text: chatMessageText(row.content)?.slice(0, 4000) ?? '',
                     communication: parseGroupCommunication(row.groupCommunication)
                 })),
-            addressed: { id: source.id, text: voiceTaskAnswer(source.content) ?? '', communication }
+            addressed: { id: source.id, text: chatMessageText(source.content) ?? '', communication }
         })
         // Advance only over history actually projected into this input, never over messages posted during the run.
         receipt.contextSequence = Math.max(
@@ -473,12 +488,12 @@ export class GroupRuntimeService {
             where: { conversationId: member.runtimeConversationId, executionId: execution.id, role: 'ai' },
             order: { createdAt: 'ASC' }
         })
-        const visible = outputs.filter((output) => voiceTaskAnswer(output.content))
+        const visible = outputs.filter((output) => chatMessageText(output.content))
         const replyTarget = completed ? await this.automaticReplyTarget(member, source) : undefined
         let publicationBlocked = false
         for (const [index, output] of visible.entries()) {
             if (!member.active) break
-            const text = voiceTaskAnswer(output.content)
+            const text = chatMessageText(output.content)
             const publicationId = `output:${output.id}`
             const isAnswer = completed && index === visible.length - 1 && !!replyTarget
             try {
@@ -515,11 +530,19 @@ export class GroupRuntimeService {
                         ? 'canceled'
                         : completed && !publicationBlocked
                           ? 'consumed'
-                          : 'blocked',
+                          : execution.status === XpertAgentExecutionStatusEnum.ERROR
+                            ? 'failed'
+                            : 'blocked',
                 phase: 'finalized',
                 inputMessageId: input?.id,
                 control: null,
-                error: publicationBlocked ? 'publication_blocked' : completed ? null : 'execution_not_completed'
+                error: publicationBlocked
+                    ? 'publication_blocked'
+                    : completed
+                      ? null
+                      : execution.status === XpertAgentExecutionStatusEnum.ERROR
+                        ? 'execution_failed'
+                        : 'execution_not_completed'
             }
         )
         await this.db

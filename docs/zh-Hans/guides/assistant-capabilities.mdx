@@ -1,0 +1,70 @@
+---
+title: 'Assistant 能力配置'
+description: '在创建和编辑 Assistant 时选择能力，复用统一的模型授权、工作流组合与发布规则。'
+---
+
+Assistant 能力配置属于开源平台。发行版或插件通过 SDK 的 `IAssistantCapabilityProvider` 实现能力，并在自己的 Nest 模块中使用 `@AssistantCapabilityProvider('stable-key')` 注册。带作用域的注册表复用现有插件策略生命周期，以及组织和租户之间的优先级规则。
+
+## 声明与选择
+
+模板贡献或目录描述可以声明：
+
+```ts
+capabilities: [
+  { key: 'document-analysis', required: true },
+  { key: 'browser-automation', required: false }
+]
+```
+
+Provider 也可以通过 `templates` 条目扩展明确指定的模板，使发行版无需修改可移植模板就能添加可选功能。Provider 中的可选条目不能覆盖模板的必需声明。可选能力默认关闭，并且只有在对应 Provider 已注册时才显示；必需能力或用户明确选择的能力缺少 Provider 时，操作会被拒绝。
+
+## 生命周期
+
+1. `GET /xpert-template/:id/setup?capabilities=key1,key2` 返回本地化选项、可用性、所需模型特性和当前用户有权使用的模型。
+2. 通用服务汇总全部已启用 Provider 的模型要求。模型列表复用现有受管查询，不返回 Provider 凭据。
+3. 安装时先检查工作空间的创作权限，解析模板变体，再调用各个已启用 Provider 的 `apply` 钩子组合草稿。组合必须具有确定性，不得创建资源或改变外部状态。
+4. 在导入或发布前，服务重新检查 Provider 可用性和模型授权；先前获取的设置结果不能替代这次校验。
+5. 可选能力的选择编码在稳定的 `capabilities~…` 模板引用中。可以从中恢复基础模板 ID 和排序后的选择，后续从源模板更新时也会重新组合相同能力。该引用只是标识，不代表授权；Provider 可见性和适用性仍会重新检查。
+
+没有声明能力、也没有 Provider 补充能力的现有模板继续使用原有初始化流程。Desktop 根据 API 返回值渲染选项，不按能力 ID 编写分支。设置接口兼容旧客户端；没有明确选择能力时，Desktop 也兼容旧服务端。
+
+这是模板初始化和更新的基础设施，不会静默为已安装的 Assistant 开启功能、授予工具权限、启动运行环境或替代运行时访问检查。Bosi 编辑器也通过同一 Provider 契约明确修改已安装的 Assistant。
+
+## 发行版边界
+
+开源平台包含契约、SDK 注册表、设置与安装服务，以及 Desktop UI，不内置 Cloud Computer Provider。Pro 在 Computer 模块注册 `cloud-computer`：检查配置的 Computer 镜像和 Docker Provider，要求模型支持视觉与工具调用，并组合 Computer 工具和指令。ClawXpert 将其作为可选能力，专用 Cloud Computer 模板则将其设为必需能力。
+
+发行版通过内置资源旁可选的 `catalog-extensions.json` 声明目录扩展。每个条目指定迁移、源 JSON 文件和新增模板 ID。共享升级器仅补充一次缺失条目，保留用户覆盖和后续主动删除。Pro 自己维护该清单及 `pro-templates.json`。
+
+## 新建空白数字专家
+
+Bosi 在**发现与添加 → 数字专家**中提供**新建数字专家**。用户选择可编辑工作空间、名称、有权使用的模型和可选能力；创建过程复用现有受管导入与发布流程，然后打开会话。每个新专家都有唯一的内部名称。
+
+虚拟种子 `xpert-blank-assistant` 仅包含一个 Agent，不启用工具或沙箱，也不是市场模板条目。能力 Provider 必须明确设置 `availableForBlankAssistant: true` 才会显示；所有能力默认关闭。即使没有能力提出模型特性要求，种子也可以通过 `requiresModelSelection` 要求用户明确选择模型。服务端在创建前重新校验工作空间访问、能力可用性和模型授权。
+
+开源平台提供本地命令行、服务端沙箱和项目管理能力。本地命令仍需经过 Desktop Shell 审批，开启能力不代表获得执行权限；服务端沙箱使用已配置的 Provider。Pro 额外注册 Cloud Computer 能力，可移植的创建界面和基础设施不包含 Pro 专属分支。插件仍从聊天的插件菜单中选择。模型、能力和指令可以随后在 Bosi 中编辑；高级工作流编辑仍在 Xpert Studio 中完成。
+
+### 项目管理
+
+在 Desktop 新建 Assistant 时，或在 Cloud 创建向导的**基本信息**步骤中开启**项目管理**。该能力默认关闭，要求选择当前用户有权使用且支持工具调用的模型。内置 `project-tasks` 能力将 Project Tasks 中间件连接到主 Agent，并补充任务规划、派发和验收指令。Bosi Desktop 模板也将其作为可选能力。
+
+Cloud 在保存初始草稿后、可选的发布操作之前，通过同一个服务端配置服务组合能力。创建前检查模型是否符合要求，组合时重新校验作用域、能力可用性、模型和草稿版本。能力保存失败时保留草稿并显示错误，不会发布。Cloud 的空白创建和基于模板创建都保留其他已配置的工具和能力。
+
+ChatKit 使用当前交互会话，通过 SDK 的 `ProjectsClient.create` 直接创建普通项目，并选中保存后的项目。Desktop 与 Cloud 共用这一流程，当前 ChatKit 无需宿主提供 `project.create` 处理器。关联业务实体的项目类型仍通过受管应用入口创建。部署 ChatKit 时，应配套包含该方法的 SDK 构建。
+
+在项目会话中使用创建出的 Assistant。开启项目管理不会创建项目、授予项目成员权限或配置执行器；工具继续检查原有项目和运行时权限。通过此流程开启的能力可以随后在 Assistant 设置中关闭，生成的节点和指令都带有受管来源标记。既有的 Studio Project Tasks 节点仍由 Studio 管理。
+
+## 在 Bosi 编辑现有 Assistant
+
+**编辑资料**弹窗区分个人显示覆盖与共享创作设置：
+
+- **资料**仅修改个人描述，只有读取权限的用户也可以使用；此处显示的名称为只读。
+- **自定义你的 Assistant**需要工作空间创作权限，可以修改公开名称和头像。只更新公开资料元数据，不发布，也不覆盖工作流或草稿。参见 [Bosi 引导与公开外观](https://github.com/xpert-ai/xpert/blob/develop/docs/bosi-desktop-onboarding.md)。
+- **模型与能力**和**指令**要求当前组织内该 Assistant 工作空间的创作权限，不会移动工作空间。
+- **保存并发布**重新校验可用模型和能力 Provider，保存草稿并发布新版本。刚发布后尚无草稿时，弹窗以已保存的工作流图为编辑基线，同样可以使用。
+- 用户指令独立于自动生成的能力指令；创建和编辑均支持可选用户指令。清空用户指令不会移除能力所需的指令。
+- 受管能力的贡献带有来源标记。关闭能力只移除它自己的贡献，保留无关的 Studio 改动。如果 Studio 修改了受管内容，编辑会因冲突停止，需要在 Xpert 中检查工作流。
+- 没有受管来源标记的原始工作流能力仍作为内置能力保留。高级工作流改动继续使用 Xpert Studio。
+- 并发编辑通过版本号检查。发布失败会说明草稿已保存；结果不确定的请求不会自动重试。
+
+共享群项目、成员分工、依赖和分批执行参见[群聊项目任务](/zh-Hans/guides/group-project-tasks)。能力负责启用任务工具；群项目设置另行绑定所选 Assistants，并保留正常的项目授权检查。

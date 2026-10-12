@@ -40,7 +40,11 @@
                 "group": "Guides",
                 "pages": [
                   "en/guides/plugin",
+                  "en/guides/assistant-capabilities",
                   "en/guides/project-application-types",
+                  "en/guides/group-chat",
+                  "en/guides/project-tasks",
+                  "en/guides/group-project-tasks",
                   "en/guides/managed-connection",
                   "en/guides/managed-queue",
                   "en/guides/graceful-api-shutdown",
@@ -108,7 +112,11 @@
                 "group": "指南",
                 "pages": [
                   "zh-Hans/guides/plugin",
+                  "zh-Hans/guides/assistant-capabilities",
                   "zh-Hans/guides/project-application-types",
+                  "zh-Hans/guides/group-chat",
+                  "zh-Hans/guides/project-tasks",
+                  "zh-Hans/guides/group-project-tasks",
                   "zh-Hans/guides/managed-connection",
                   "zh-Hans/guides/managed-queue",
                   "zh-Hans/guides/graceful-api-shutdown",

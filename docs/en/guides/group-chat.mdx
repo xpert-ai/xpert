@@ -1,8 +1,11 @@
-# Group Chat
+---
+title: 'Group chat'
+description: 'Collaborate with humans and Assistants in a shared conversation, with independent runtimes, authorized routing and live updates.'
+---
 
 Group Chat lets multiple human users and digital experts (Assistants in the API) collaborate in one shared conversation. Everyone sees the same public message history, while each Assistant keeps an independent model context and execution thread. Cloud and Desktop use the existing ChatKit Chat, Composer, Header, and Workbench.
 
-This document describes the implementation in `develop`, reviewed on October 10, 2026. It is the canonical feature reference, including the historical acceptance evidence and its limits.
+This document describes the group-chat implementation. Historical acceptance evidence below records checks from October 9–10, 2026 and does not establish that the current revision has been revalidated.
 
 ## Using a group
 
@@ -133,6 +136,8 @@ The current projection reads up to 40 newer public messages after the member's c
 
 Only public answer text is projected into the shared transcript and live stream. Tool payloads, system prompts, credentials, checkpoints, and hidden reasoning remain outside the public group stream. Personal memory and private resource contexts are not implicitly shared between members.
 
+Shared group context also asks every Assistant to keep public replies, progress updates and member messages concise, explain results or blockers in business language, and avoid internal technical details. Required deliverables and evidence remain complete. See [How Assistants communicate in the group](/en/guides/group-project-tasks#how-assistants-communicate-in-the-group).
+
 Execution audit records belong to the real human who caused the execution:
 
 - A new human request uses its authenticated User Account.
@@ -187,7 +192,7 @@ The host sends this request using its existing login and tenant/organization hea
 
 The grant uses `USER_CONVERSATION` and `IApiPrincipal.resourceScope = { kind: 'conversation', conversationId }`. It binds the real user and the exact tenant, organization, conversation, and expiry. Existing Assistant-scoped secrets cannot be widened to access a group. Group business entry points and stream refreshes recheck live membership and expiry; private runtime and file access have additional checks.
 
-There is no separate group credential header or `GroupsClient.createSession` endpoint. Use the unified ChatKit session mechanism for issuance and refresh. The host integration uses published ChatKit 0.13.0 and Xpert SDK 0.9.1; local SDK linking scripts are not required.
+There is no separate group credential header or `GroupsClient.createSession` endpoint. Use the unified ChatKit session mechanism for issuance and refresh. The original group-chat host integration was verified with published ChatKit 0.13.0 and Xpert SDK 0.9.1. For additional group-project APIs and their release order, see [Group project tasks](/en/guides/group-project-tasks).
 
 Removing a member revokes affected pending work and interactions before canceling affected runs through existing control commands. It does not erase historical messages. A plain group reply such as "approved" never approves a tool operation.
 
@@ -250,20 +255,20 @@ Current validators limit groups to 32 active members, messages to 32,000 UTF-16 
 
 The current feature does not expose conversion of a private conversation into a group, private directed messages, cross-organization human membership, public-message editing, or user-selected branches of Assistant runtimes. Ordinary chat branching remains a separate feature.
 
-| Area                                         | Source                                                                                                                                                                                                                                                                                            |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Public protocol and persistence interfaces   | [chat-group.model.ts](../packages/contracts/src/ai/chat-group.model.ts), [chat-group-entity.model.ts](../packages/contracts/src/ai/chat-group-entity.model.ts)                                                                                                                                    |
-| Existing conversation/message extensions     | [conversation.entity.ts](../packages/server-ai/src/chat-conversation/conversation.entity.ts), [chat-message.entity.ts](../packages/server-ai/src/chat-message/chat-message.entity.ts)                                                                                                             |
-| Group entities and module                    | [group.entity.ts](../packages/server-ai/src/chat-group/group.entity.ts), [chat-group.module.ts](../packages/server-ai/src/chat-group/chat-group.module.ts)                                                                                                                                        |
-| Access and membership                        | [group-access.service.ts](../packages/server-ai/src/chat-group/group-access.service.ts), [group-members.service.ts](../packages/server-ai/src/chat-group/group-members.service.ts)                                                                                                                |
-| Messages and validation                      | [group-messages.service.ts](../packages/server-ai/src/chat-group/group-messages.service.ts), [group.schema.ts](../packages/server-ai/src/chat-group/group.schema.ts), [group-mentions.ts](../packages/server-ai/src/chat-group/group-mentions.ts)                                                 |
-| Runtime and existing-queue adapter           | [group-runtime.service.ts](../packages/server-ai/src/chat-group/group-runtime.service.ts), [group-outbox.service.ts](../packages/server-ai/src/chat-group/group-outbox.service.ts)                                                                                                                |
-| Model context and Assistant messaging        | [group-context.ts](../packages/server-ai/src/chat-group/group-context.ts), [group-tools.service.ts](../packages/server-ai/src/chat-group/group-tools.service.ts)                                                                                                                                  |
-| Streaming, interactions, and execution views | [group-stream.service.ts](../packages/server-ai/src/chat-group/group-stream.service.ts), [group-interactions.service.ts](../packages/server-ai/src/chat-group/group-interactions.service.ts), [group-runtime-view.service.ts](../packages/server-ai/src/chat-group/group-runtime-view.service.ts) |
-| HTTP entry points                            | [group.controller.ts](../packages/server-ai/src/ai/groups/group.controller.ts), [group-composer.controller.ts](../packages/server-ai/src/ai/groups/group-composer.controller.ts), [group-workbench.controller.ts](../packages/server-ai/src/ai/groups/group-workbench.controller.ts)              |
-| Unified session input                        | [chatkit-session.schema.ts](../packages/server-ai/src/ai/chatkit-session.schema.ts)                                                                                                                                                                                                               |
+| Area                                         | Source                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Public protocol and persistence interfaces   | [chat-group.model.ts](https://github.com/xpert-ai/xpert/blob/develop/packages/contracts/src/ai/chat-group.model.ts), [chat-group-entity.model.ts](https://github.com/xpert-ai/xpert/blob/develop/packages/contracts/src/ai/chat-group-entity.model.ts)                                                                                                                                                                                |
+| Existing conversation/message extensions     | [conversation.entity.ts](https://github.com/xpert-ai/xpert/blob/develop/packages/server-ai/src/chat-conversation/conversation.entity.ts), [chat-message.entity.ts](https://github.com/xpert-ai/xpert/blob/develop/packages/server-ai/src/chat-message/chat-message.entity.ts)                                                                                                                                                         |
+| Group entities and module                    | [group.entity.ts](https://github.com/xpert-ai/xpert/blob/develop/packages/server-ai/src/chat-group/group.entity.ts), [chat-group.module.ts](https://github.com/xpert-ai/xpert/blob/develop/packages/server-ai/src/chat-group/chat-group.module.ts)                                                                                                                                                                                    |
+| Access and membership                        | [group-access.service.ts](https://github.com/xpert-ai/xpert/blob/develop/packages/server-ai/src/chat-group/group-access.service.ts), [group-members.service.ts](https://github.com/xpert-ai/xpert/blob/develop/packages/server-ai/src/chat-group/group-members.service.ts)                                                                                                                                                            |
+| Messages and validation                      | [group-messages.service.ts](https://github.com/xpert-ai/xpert/blob/develop/packages/server-ai/src/chat-group/group-messages.service.ts), [group.schema.ts](https://github.com/xpert-ai/xpert/blob/develop/packages/server-ai/src/chat-group/group.schema.ts), [group-mentions.ts](https://github.com/xpert-ai/xpert/blob/develop/packages/server-ai/src/chat-group/group-mentions.ts)                                                 |
+| Runtime and existing-queue adapter           | [group-runtime.service.ts](https://github.com/xpert-ai/xpert/blob/develop/packages/server-ai/src/chat-group/group-runtime.service.ts), [group-outbox.service.ts](https://github.com/xpert-ai/xpert/blob/develop/packages/server-ai/src/chat-group/group-outbox.service.ts)                                                                                                                                                            |
+| Model context and Assistant messaging        | [group-context.ts](https://github.com/xpert-ai/xpert/blob/develop/packages/server-ai/src/chat-group/group-context.ts), [group-tools.service.ts](https://github.com/xpert-ai/xpert/blob/develop/packages/server-ai/src/chat-group/group-tools.service.ts)                                                                                                                                                                              |
+| Streaming, interactions, and execution views | [group-stream.service.ts](https://github.com/xpert-ai/xpert/blob/develop/packages/server-ai/src/chat-group/group-stream.service.ts), [group-interactions.service.ts](https://github.com/xpert-ai/xpert/blob/develop/packages/server-ai/src/chat-group/group-interactions.service.ts), [group-runtime-view.service.ts](https://github.com/xpert-ai/xpert/blob/develop/packages/server-ai/src/chat-group/group-runtime-view.service.ts) |
+| HTTP entry points                            | [group.controller.ts](https://github.com/xpert-ai/xpert/blob/develop/packages/server-ai/src/ai/groups/group.controller.ts), [group-composer.controller.ts](https://github.com/xpert-ai/xpert/blob/develop/packages/server-ai/src/ai/groups/group-composer.controller.ts), [group-workbench.controller.ts](https://github.com/xpert-ai/xpert/blob/develop/packages/server-ai/src/ai/groups/group-workbench.controller.ts)              |
+| Unified session input                        | [chatkit-session.schema.ts](https://github.com/xpert-ai/xpert/blob/develop/packages/server-ai/src/ai/chatkit-session.schema.ts)                                                                                                                                                                                                                                                                                                       |
 
-Runtime capabilities remain in their owning [Xpert capability service](../packages/server-ai/src/xpert/runtime-capabilities/runtime-capabilities.service.ts), using explicit dependencies and typed CQRS operations across domains. They are not a second group runtime service.
+Runtime capabilities remain in their owning [Xpert capability service](https://github.com/xpert-ai/xpert/blob/develop/packages/server-ai/src/xpert/runtime-capabilities/runtime-capabilities.service.ts), using explicit dependencies and typed CQRS operations across domains. They are not a second group runtime service.
 
 ## Verification record and limits
 
@@ -309,9 +314,13 @@ These historical checks cover different revisions and are not a combined test to
 
 For future regression acceptance, repeat the interaction matrix with both browser perspectives, concurrent inputs, reconnection/replay, member removal, run controls, interaction claim races, Composer resources, and runtime-view authorization. Keep new execution evidence separate from assertions based only on unit tests or code review.
 
+## Project task collaboration
+
+Desktop and Cloud share the ChatKit group project entry. A group owner can create or select an authorized project and explicitly include the Assistant members who will work in it. The coordinator plans, delegates and accepts tasks; the platform records real executions and reliably returns results. Native Assistant execution uses `xpert-task` with group context. See [Group Project Tasks](/en/guides/group-project-tasks) for setup, batches, assignees, dependencies, the domain ER diagram and execution flow.
+
 ## Related features
 
-- [UserGroup authorization and workspace runtime access](plans/PLAN_xpert_user_groups_access.md) describes published-Assistant access groups, not chat membership.
-- [Conversation branching](conversation-branching.md) describes ordinary conversation branches, not per-member group runtimes.
-- [Conversation Map](conversation-map.md) describes Workbench conversation navigation.
-- [Xpert Tag proposal](plans/tag.mdx) covers external IM channels and is a separate product proposal, not an implemented capability implied by this document.
+- [UserGroup authorization and workspace runtime access](https://github.com/xpert-ai/xpert/blob/develop/docs/plans/PLAN_xpert_user_groups_access.md) describes published-Assistant access groups, not chat membership.
+- [Conversation branching](https://github.com/xpert-ai/xpert/blob/develop/docs/conversation-branching.md) describes ordinary conversation branches, not per-member group runtimes.
+- [Conversation Map](https://github.com/xpert-ai/xpert/blob/develop/docs/conversation-map.md) describes Workbench conversation navigation.
+- [Xpert Tag proposal](https://github.com/xpert-ai/xpert/blob/develop/docs/plans/tag.mdx) covers external IM channels and is a separate product proposal, not an implemented capability implied by this document.

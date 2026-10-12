@@ -127,6 +127,7 @@ async function fixture() {
     })
     const factory = {
         resolveBackgroundTarget: jest.fn(async () => target),
+        resolveGroupTarget: jest.fn(async () => target),
         createCapturedApi: jest.fn(() => ({ start }))
     }
     const context = { resolve: jest.fn(async () => scope) }
@@ -161,6 +162,63 @@ async function fixture() {
 }
 
 describe('explicit Project task delegation', () => {
+    it('requires exactly one target and the assigned group Assistant, preserving the task execution ledger', async () => {
+        const f = await fixture()
+        const target = { type: 'group_member' as const, participantId: f.target.bindingId }
+        f.target.provider = 'xpert-task'
+        f.target.configuration = {
+            executionContext: {
+                type: 'group_member',
+                groupId: randomUUID(),
+                participantId: f.target.bindingId,
+                sourceParticipantId: randomUUID(),
+                projectId: f.scope.projectId
+            }
+        }
+        await expect(f.service.dispatch(f.scope.projectId, { ...f.input, target }, f.caller)).rejects.toThrow()
+        const input = { ...f.input, bindingId: undefined, target }
+        await expect(f.service.dispatch(f.scope.projectId, input, f.caller)).rejects.toThrow()
+        f.task.assigneeXpertId = f.target.reference
+        const receipt = await f.service.dispatch(f.scope.projectId, input, f.caller)
+        expect(f.factory.resolveBackgroundTarget).not.toHaveBeenCalled()
+        expect(f.factory.resolveGroupTarget).toHaveBeenCalledWith(f.scope, target.participantId)
+        expect(f.rows[0]).toMatchObject({
+            xpertId: f.task.assigneeXpertId,
+            invocationId: receipt.invocationId,
+            dispatchState: 'submitted'
+        })
+        await f.service.dispatch(f.scope.projectId, input, f.caller)
+        expect(f.rows).toHaveLength(1)
+        expect(f.start.mock.calls[1][0]).toEqual(f.start.mock.calls[0][0])
+    })
+    it('enforces predecessor completion for group targets before creating an attempt', async () => {
+        const f = await fixture()
+        f.target.provider = 'xpert-task'
+        f.target.configuration = {
+            executionContext: {
+                type: 'group_member',
+                groupId: randomUUID(),
+                participantId: f.target.bindingId,
+                sourceParticipantId: randomUUID(),
+                projectId: f.scope.projectId
+            }
+        }
+        f.task.assigneeXpertId = f.target.reference
+        f.task.predecessorIds = [randomUUID()]
+        const input = {
+            ...f.input,
+            bindingId: undefined,
+            target: { type: 'group_member' as const, participantId: f.target.bindingId }
+        }
+        await expect(f.service.dispatch(f.scope.projectId, input, f.caller)).rejects.toThrow()
+        expect(f.rows).toHaveLength(0)
+        expect(f.start).not.toHaveBeenCalled()
+        f.taskRepo.find.mockResolvedValue([
+            Object.assign(new XpertProjectTask(), { id: f.task.predecessorIds[0], status: 'done' })
+        ])
+        await f.service.dispatch(f.scope.projectId, input, f.caller)
+        expect(f.rows).toHaveLength(1)
+    })
     it('pins output selection for either CLI and rejects changed delivery on replay or recovery', async () => {
         for (const provider of ['opencode', 'codex-computer']) {
             const f = await fixture()

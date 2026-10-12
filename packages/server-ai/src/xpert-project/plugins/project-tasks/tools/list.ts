@@ -40,6 +40,10 @@ export const createListTasksTool = ({
                 assigneeXpertId: task.assigneeXpertId,
                 planId: task.planId,
                 milestoneId: task.milestoneId,
+                parentTaskId: task.parentTaskId,
+                predecessorIds: task.predecessorIds ?? [],
+                plannedStartAt: task.plannedStartAt,
+                plannedEndAt: task.plannedEndAt,
                 threadId: task.threadId,
                 latestExecution: task.executions?.[task.executions.length - 1]
                     ? {

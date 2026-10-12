@@ -1186,5 +1186,10 @@
         "Untitled": "Untitled conversation",
         "InvalidAction": "Invalid topic action",
         "InvalidQuery": "Invalid map query"
+    },
+    "GroupTaskResult": {
+        "succeeded": "Task “{{title}}” succeeded and is awaiting acceptance.",
+        "failed": "Task “{{title}}” failed.",
+        "cancelled": "Task “{{title}}” was cancelled."
     }
 }

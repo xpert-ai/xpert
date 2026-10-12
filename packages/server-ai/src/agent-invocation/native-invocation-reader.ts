@@ -9,13 +9,14 @@ import {
     XPERT_RUNTIME_CAPABILITIES_TOKEN
 } from '@xpert-ai/plugin-sdk'
 import { z } from 'zod/v3'
+import { assistantTaskGroupContext } from '@xpert-ai/contracts'
 import { GetXpertWorkflowQuery, TXpertWorkflowQueryOutput } from '../xpert/queries/get-xpert-workflow.query'
 import { AssertXpertAgentExecutionAccessQuery } from '../xpert-agent-execution/queries/assert-access.query'
 import { invocationError } from './invocation-runtime'
 
 export function isNativeInvocation(invocation: AgentInvocation): boolean {
     const provider = invocation.request.target.provider
-    return provider === 'xpert' || provider === 'xpert-task'
+    return (provider === 'xpert' || provider === 'xpert-task') && !assistantTaskGroupContext(invocation.request.target)
 }
 
 @Injectable()

@@ -9,7 +9,7 @@ import { XpertAgentExecution } from '../xpert-agent-execution/agent-execution.en
 import { XpertWorkspaceAccessService } from '../xpert-workspace/workspace-access.service'
 import { XpertProjectAccessService } from '../xpert-project/services/project-access.service'
 import { parseGroupCommunication } from './group.schema'
-import { groupDenied, groupConflict } from './group.errors'
+import { groupDenied, groupConflict, groupExecutionError } from './group.errors'
 
 /**
  * Invariants: group membership does not grant access to private execution records.
@@ -101,6 +101,7 @@ export class GroupRuntimeViewService {
             executionId,
             messageId: anchorId,
             status: execution.status,
+            error: groupExecutionError(execution.error),
             messages: rows.flatMap((row) => {
                 // Replace the machine-generated group context with the actual public question.
                 const input =

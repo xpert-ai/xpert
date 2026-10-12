@@ -1186,5 +1186,10 @@
         "Untitled": "未命名对话",
         "InvalidAction": "主题操作无效",
         "InvalidQuery": "查询条件无效"
+    },
+    "GroupTaskResult": {
+        "succeeded": "任务「{{title}}」执行成功，等待验收。",
+        "failed": "任务「{{title}}」执行失败。",
+        "cancelled": "任务「{{title}}」已取消。"
     }
 }

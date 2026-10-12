@@ -64,9 +64,13 @@ export class GroupComposerService {
             .getRepository(ChatConversationThread)
             .findOneByOrFail({ threadId: member.runtimeThreadId })
         const hasMessages = await this.db.getRepository(ChatMessage).existsBy({ conversationId: conversation.id })
+        const group = await this.db.getRepository(ChatConversation).findOneByOrFail({ id: member.groupId })
         return {
             projectId: conversation.projectId ?? null,
-            locked: hasMessages || thread.status !== 'idle',
+            locked:
+                hasMessages ||
+                thread.status !== 'idle' ||
+                Boolean(group.projectId && group.projectId === conversation.projectId),
             busy: thread.status !== 'idle'
         }
     }

@@ -23,6 +23,15 @@ import { GroupToolsService } from './group-tools.service'
 import { GROUP_ENTITIES } from './group.entities'
 import { ResolveGroupDeliveryContextHandler } from './group-delivery-context.handler'
 import { GetGroupConversationEntryHandler } from './group-conversation-entry.handler'
+import { GroupProjectService } from './group-project/group-project.service'
+import {
+    AuthorizeGroupTaskCallerHandler,
+    GroupTaskTargetService,
+    ListGroupTaskTargetsHandler,
+    ResolveGroupTaskTargetHandler
+} from './group-project/group-task-target.service'
+import { ExecuteGroupTaskHandler } from './group-project/group-task-execution.handler'
+import { DeliverGroupTaskResultHandler } from './group-project/group-task-result.handler'
 
 /** Owns group policy, delivery and runtime handlers; AIModule hosts only the authenticated HTTP adapters. */
 @Module({
@@ -38,6 +47,13 @@ import { GetGroupConversationEntryHandler } from './group-conversation-entry.han
         SseStreamModule
     ],
     providers: [
+        AuthorizeGroupTaskCallerHandler,
+        GroupTaskTargetService,
+        ListGroupTaskTargetsHandler,
+        ResolveGroupTaskTargetHandler,
+        ExecuteGroupTaskHandler,
+        DeliverGroupTaskResultHandler,
+        GroupProjectService,
         GroupAccessService,
         GetGroupConversationEntryHandler,
         GroupCatalogService,
@@ -57,6 +73,7 @@ import { GetGroupConversationEntryHandler } from './group-conversation-entry.han
         GroupToolsService
     ],
     exports: [
+        GroupProjectService,
         GroupAccessService,
         GroupCatalogService,
         GroupComposerService,

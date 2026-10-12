@@ -1,15 +1,20 @@
 import { Injectable } from '@nestjs/common'
+import { CommandBus } from '@nestjs/cqrs'
+import { ResolveGroupTaskTargetCommand } from '../../chat-group/group-project/group-task.commands'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { z } from 'zod/v3'
-import type { XpertResolvedViewHostContext } from '@xpert-ai/contracts'
+import { assistantTaskGroupContext, type XpertResolvedViewHostContext } from '@xpert-ai/contracts'
 import { AgentInvocationEntity, AgentRuntimeBindingEntity } from '../invocation.entity'
 import { invocationError } from '../invocation-runtime'
 
 /** View Host authorizes the host/conversation; this layer authorizes the exact private invocation. */
 @Injectable()
 export class ExecutionReaderService {
-    constructor(@InjectRepository(AgentInvocationEntity) private readonly records: Repository<AgentInvocationEntity>) {}
+    constructor(
+        @InjectRepository(AgentInvocationEntity) private readonly records: Repository<AgentInvocationEntity>,
+        private readonly commands: CommandBus
+    ) {}
     async read(context: XpertResolvedViewHostContext, id: string) {
         if (
             !['agent', 'project'].includes(context.hostType) ||
@@ -38,6 +43,12 @@ export class ExecutionReaderService {
             (context.runtimeScope?.conversationId && scope.conversationId !== context.runtimeScope.conversationId)
         )
             throw invocationError('NotFound')
+        if (assistantTaskGroupContext(row.invocation.request.target)) {
+            await this.commands.execute(
+                new ResolveGroupTaskTargetCommand(scope, row.invocation.request.target.bindingId)
+            )
+            return row.invocation
+        }
         // A disabled/deleted binding is explicit revocation. An uninstalled adapter is not a read dependency.
         const binding = await this.records.manager.getRepository(AgentRuntimeBindingEntity).findOneBy({
             id: row.invocation.request.target.bindingId,

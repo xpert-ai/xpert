@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { DataSource } from 'typeorm'
 import { User, UserOrganization } from '@xpert-ai/server-core'
-import { UserType } from '@xpert-ai/contracts'
+import { UserType, assistantTaskGroupContext } from '@xpert-ai/contracts'
 import {
     AgentInvocation,
     AgentInvocationScope,
@@ -123,8 +123,7 @@ export class RuntimeMessageAccessService {
             const conversation = await this.dataSource.getRepository(ChatConversation).findOneBy({
                 id: recipient.conversationId,
                 tenantId: scope.tenantId,
-                organizationId: scope.organizationId,
-                createdById: scope.userId
+                organizationId: scope.organizationId
             })
             const parent = await this.dataSource.getRepository(XpertAgentExecution).findOneBy({
                 id: scope.parentExecutionId,
@@ -136,12 +135,20 @@ export class RuntimeMessageAccessService {
             })
             if (
                 !conversation ||
+                (conversation.purpose !== 'group_assistant_runtime' && conversation.createdById !== scope.userId) ||
                 (conversation.projectId ?? undefined) !== scope.projectId ||
                 !parent ||
                 (recipient.type !== 'project_agent' && parent.xpertId !== recipient.xpertId) ||
                 (recipient.type === 'project_agent' && (parent.type !== 'project_agent' || parent.xpertId))
             )
                 throw runtimeMessageError('Access')
+            if (conversation.purpose === 'group_assistant_runtime') {
+                // Group runtime conversations retain their first initiator as creator. Authorize the current
+                // caller's actual membership and published Assistants rather than equating creator with owner.
+                const group = assistantTaskGroupContext(invocation.request.target)
+                if (!group) throw runtimeMessageError('Access')
+                await this.factory.resolveGroupTarget(scope, group.participantId)
+            }
             if (recipient.type === 'project_agent' && conversation.threadId !== recipient.threadId)
                 throw runtimeMessageError('Blocked')
             if (conversation.threadId !== recipient.threadId) {
