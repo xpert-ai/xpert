@@ -58,6 +58,7 @@ import { KnowledgebaseTaskService, KnowledgeTaskServiceQuery } from '../../../kn
 import { validateXpertParameterValues } from '../../../shared/agent/parameter'
 import { SandboxAcquireBackendCommand } from '../../../sandbox/commands'
 import { resolveSandboxWorkFor } from '../../../sandbox/sandbox-work-for'
+import { RetainExecutionSandbox, SandboxExecutionLeaseService } from '../../../sandbox/sandbox-execution-lease.service'
 import { applicationTracing } from '../../../tracing'
 import { resolveEffectiveCopilotModel } from '../../effective-copilot-model'
 import { ThreadRunControlService, threadGraphRevision } from '../../../chat-conversation/thread-run-control.service'
@@ -86,6 +87,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         private readonly outboundActorTokenProvider: OutboundActorTokenProvider | undefined,
         @InjectRepository(ChatMessage)
         private readonly chatMessageRepository: Repository<ChatMessage>,
+        private readonly sandboxExecutionLeases: SandboxExecutionLeaseService,
         @Optional() private readonly threadRunControl?: ThreadRunControlService,
         @Optional() private readonly messageCheckpoints?: MessageCheckpointService
     ) {}
@@ -122,6 +124,30 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
     }
 
     public async execute(command: XpertAgentInvokeCommand): Promise<Observable<MessageContent>> {
+        const abortController = new AbortController()
+        const executionId = command.options.execution?.id
+        if (executionId) {
+            this.executionCancelService.register(executionId, abortController)
+        }
+        try {
+            return await this.sandboxExecutionLeases.run(
+                (retain) => this.invoke(command, retain, abortController),
+                abortController.signal
+            )
+        } catch (error) {
+            abortController.abort()
+            if (executionId) {
+                this.executionCancelService.unregister(executionId)
+            }
+            throw error
+        }
+    }
+
+    private async invoke(
+        command: XpertAgentInvokeCommand,
+        retain: RetainExecutionSandbox,
+        abortController: AbortController
+    ): Promise<Observable<MessageContent>> {
         const { state, agentKeyOrName, xpert, options } = command
         const { execution, subscriber, memories } = options
         const tenantId = RequestContext.currentTenantId()
@@ -180,6 +206,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                 throw err
             }
         }
+        await retain(sandboxContext)
         const volumePath = workArea.volumePath
         const workspacePath =
             sandboxContext?.workingDirectory ?? initialWorkspaceBinding?.workspacePath ?? workArea.workingDirectory
@@ -203,10 +230,6 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         }
         options.environment = mergeEnvironmentWithEnvState(options.environment, getContextEnvState(options.context))
 
-        const abortController = new AbortController()
-        if (execution?.id) {
-            this.executionCancelService.register(execution.id, abortController)
-        }
         const executionContext: ExecutionContext = { sandbox: sandboxContext }
         const planMode = options.planMode === true || isPlanModeEnabledFromState(state)
         const { graph, agent, xpertGraph } = await withExecutionContext(executionContext, () =>

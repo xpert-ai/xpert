@@ -32,6 +32,7 @@ import { AgentInvocationModule } from '../agent-invocation/agent-invocation.modu
 import { NativeAgentCompiler } from '../agent-invocation/native-agent.compiler'
 import { MiddlewareMcpAppsService } from '../mcp-app-runtime/middleware-mcp-apps.service'
 import { McpAppBundleService } from '../mcp-publication/mcp-app-bundle.service'
+import { SandboxExecutionLeaseService } from '../sandbox/sandbox-execution-lease.service'
 
 @Module({
     imports: [
@@ -57,6 +58,7 @@ import { McpAppBundleService } from '../mcp-publication/mcp-app-bundle.service'
     controllers: [XpertAgentController],
     providers: [
         XpertAgentService,
+        SandboxExecutionLeaseService,
         ConversationTitleService,
         XpertTitleMiddlewareService,
         AgentInvocationGraphService,
