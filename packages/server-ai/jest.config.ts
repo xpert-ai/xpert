@@ -66,7 +66,7 @@ export default {
     globals: {},
     testEnvironment: 'node',
     transform: {
-        '^.+\\.(ts|tsx)$': [
+        '^.+\\.(ts|tsx|cts)$': [
             'ts-jest',
             {
                 tsconfig: '<rootDir>/tsconfig.spec.json'
@@ -79,10 +79,10 @@ export default {
             }
         ]
     },
-    moduleFileExtensions: ['ts', 'js', 'html'],
+    moduleFileExtensions: ['ts', 'cts', 'js', 'html'],
     coverageDirectory: '../../coverage/packages/server-ai',
     moduleNameMapper: {
-        '^@xpert-ai/shadcn-ui/brand-icons$': '<rootDir>/../shadcn-ui/src/brand-icons/index.ts',
+        '^@xpert-ai/shadcn-ui/brand-icons$': '<rootDir>/../shadcn-ui/src/brand-icons/index.cts',
         '^@xpert-ai/server-core$': '<rootDir>/../server/src/index.ts',
         '^@xpert-ai/cli-model-profiles$': '<rootDir>/../plugins/cli-model-profiles/src/index.ts',
         '^@xpert-ai/contracts$': '<rootDir>/../contracts/src/index.ts',

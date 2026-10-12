@@ -20,9 +20,10 @@
       "default": "./dist/index.js"
     },
     "./brand-icons": {
-      "types": "./src/brand-icons/index.d.ts",
-      "import": "./src/brand-icons/index.js",
-      "default": "./src/brand-icons/index.js"
+      "types": "./src/brand-icons/index.d.cts",
+      "import": "./src/brand-icons/index.cjs",
+      "require": "./src/brand-icons/index.cjs",
+      "default": "./src/brand-icons/index.cjs"
     },
     "./styles.css": "./src/styles.css"
   },
@@ -36,7 +37,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.lib.json",
     "shadcn:add": "pnpm dlx shadcn@latest add --cwd . --path src/components/ui",
-    "test": "tsc -p tsconfig.lib.json --noEmit",
+    "test": "node --test test/brand-icons-runtime.test.cjs && tsc -p tsconfig.lib.json --noEmit",
     "typecheck": "tsc -p tsconfig.lib.json --noEmit"
   },
   "dependencies": {

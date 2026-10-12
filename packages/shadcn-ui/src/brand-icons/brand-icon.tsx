@@ -1,4 +1,4 @@
-import { getBrandIcon, type BrandIconId } from './index'
+import { getBrandIcon, type BrandIconId } from './index.cjs'
 
 /** Renders trusted bundled assets only; neutral paths inherit the host foreground. */
 export function BrandIcon({
