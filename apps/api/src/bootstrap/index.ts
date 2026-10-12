@@ -1,3 +1,4 @@
+import { captureSignedJsonBody } from './signed-json-body'
 import { environment as env, getConfig, setConfig } from '@xpert-ai/server-config'
 import {
   API_PRINCIPAL_USER_ID_HEADER,
@@ -108,7 +109,8 @@ export async function bootstrap(options: { title: string; version: string }) {
   app.use(
     json({
       limit: '50mb',
-      type: createSandboxAwareBodyParserType('application/json')
+      type: createSandboxAwareBodyParserType('application/json'),
+      verify: captureSignedJsonBody
     })
   )
   app.use(

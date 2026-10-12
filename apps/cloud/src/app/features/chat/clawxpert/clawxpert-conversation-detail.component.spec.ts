@@ -1,4 +1,9 @@
 import { createFileArtifactTab, type WorkbenchArtifactTab } from './workbench-artifact-tabs'
+import { injectWorkspaceConnectorClientCommand } from '../../assistant/workspace-connector-client-command'
+
+jest.mock('../../assistant/workspace-connector-client-command', () => ({
+  injectWorkspaceConnectorClientCommand: jest.fn()
+}))
 jest.mock('./workbench-artifact-panel.component', () => {
   const { Component, Input, Output, EventEmitter } = jest.requireActual('@angular/core')
   @Component({ standalone: true, selector: 'xp-workbench-artifact-panel', template: '{{ tab().title }}' })
@@ -158,6 +163,7 @@ jest.mock('@xpert-ai/headless-ui', () => {
   }
 
   return {
+    ...jest.requireActual('@xpert-ai/headless-ui'),
     ZardButtonComponent,
     ZardIconComponent,
     ZardMenuImports: [ZardMenuDirective, ZardMenuContentDirective, ZardMenuItemDirective],
@@ -2403,6 +2409,8 @@ describe('ClawXpertConversationDetailComponent', () => {
     )
     expect(conversationService.getById).not.toHaveBeenCalledWith('job-conversation-1', { relations: ['messages'] })
     expect(getRuntimeInput().assistantId?.()).toBe('role-assistant-current')
+    const connectorAssistantId = jest.mocked(injectWorkspaceConnectorClientCommand).mock.calls[0][0]
+    expect(connectorAssistantId()).toBe('role-assistant-current')
     expect(getRuntimeInput().projectId?.()).toBe('case-project-1')
     expect(getRuntimeInput().composer?.().projects).toMatchObject({
       selection: undefined,
