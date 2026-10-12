@@ -1,0 +1,4 @@
+{
+  "main": "../src/brand-icons/index.cjs",
+  "types": "../src/brand-icons/index.d.cts"
+}
