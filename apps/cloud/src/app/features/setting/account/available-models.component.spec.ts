@@ -1,3 +1,4 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { TestBed } from '@angular/core/testing'
 import { TranslateService } from '@ngx-translate/core'
 import {
@@ -9,7 +10,6 @@ import {
   ModelAccessSourceEnum,
   UserModelGrantStatusEnum
 } from '@xpert-ai/contracts'
-import { ZardDialogService } from '@xpert-ai/headless-ui'
 import { defer, of } from 'rxjs'
 import { ModelAccessService } from '../../../@core/services/model-access.service'
 import { ToastrService } from '../../../@core/services/toastr.service'
@@ -102,7 +102,7 @@ describe('XpAccountAvailableModelsComponent', () => {
             formatValidUntil: jest.fn()
           }
         },
-        { provide: ZardDialogService, useValue: { open: jest.fn() } },
+        { provide: Dialog, useValue: { open: jest.fn() } },
         { provide: TranslateService, useValue: { instant: jest.fn((value: string) => value) } },
         { provide: ToastrService, useValue: { error: jest.fn(), success: jest.fn() } }
       ]

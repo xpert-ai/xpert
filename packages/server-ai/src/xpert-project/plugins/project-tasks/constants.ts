@@ -4,6 +4,7 @@ export const PROJECT_TASKS_MIDDLEWARE = 'project-tasks'
 export const PROJECT_TASKS_MIDDLEWARE_NODE = '__project_tasks__'
 
 export enum ProjectToolEnum {
+    UpdatePlan = 'project_update_task_plan',
     ListTasks = 'project_list_tasks',
     CreateTasks = 'project_create_tasks',
     UpdateTasks = 'project_update_tasks',
@@ -14,6 +15,7 @@ export enum ProjectToolEnum {
 }
 
 export const PROJECT_TASK_TOOL_TITLES: Record<ProjectToolEnum, I18nObject> = {
+    [ProjectToolEnum.UpdatePlan]: { en_US: 'Update task plan', zh_Hans: '更新任务依赖与计划' },
     [ProjectToolEnum.DecideTask]: { en_US: 'Decide project task', zh_Hans: '确认任务结果' },
     [ProjectToolEnum.ListTasks]: { en_US: 'List project tasks', zh_Hans: '列出项目任务' },
     [ProjectToolEnum.CreateTasks]: { en_US: 'Create project tasks', zh_Hans: '创建项目任务' },

@@ -1,5 +1,11 @@
 import { ClaimAgentRuntimeResultsCommand } from '../handoff/runtime-messaging/runtime-message.commands'
-import { agentRuntimeModelSourceSchema } from '@xpert-ai/contracts'
+import {
+    GroupTaskTargetItem,
+    ListGroupTaskTargetsCommand,
+    ResolveGroupTaskTargetCommand,
+    ExecuteGroupTaskCommand
+} from '../chat-group/group-project/group-task.commands'
+import { agentRuntimeModelSourceSchema, assistantTaskGroupContext } from '@xpert-ai/contracts'
 import { XpertProject } from '../xpert-project/entities/project.entity'
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
@@ -30,6 +36,7 @@ import { AgentInvocationRuntime, invocationError, sameInvocationData } from './i
 import { awaitInvocationTasks } from './invocation-task-wait'
 import { z } from 'zod/v3'
 import { InvocationCardProvider } from './execution-view/invocation-card.provider'
+import { AssistantTaskExecution } from './assistant-task-execution'
 
 @Injectable()
 @RuntimeCapabilityProvider(AgentRuntimeFactoryCapability)
@@ -67,6 +74,13 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
         return target
     }
 
+    async resolveGroupTarget(scope: AgentInvocationScope, participantId: string): Promise<AgentTarget> {
+        if (!this.commands) throw invocationError('Unsupported')
+        const target = await this.commands.execute(new ResolveGroupTaskTargetCommand(scope, participantId))
+        this.runtime.assertBackgroundTarget(target, scope.organizationId)
+        return target
+    }
+
     async listProjectBindings(scope: AgentInvocationScope) {
         const bindings = await this.bindings.find({
             where: {
@@ -77,7 +91,9 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
             order: { title: 'ASC' }
         })
         const candidates = bindings.filter((binding) => binding.workspaceIds.includes(scope.workspaceId))
-        const items: Array<{ bindingId: string; title: string; provider: string; revision: string }> = []
+        const items: Array<
+            { bindingId: string; title: string; provider: string; revision: string } | GroupTaskTargetItem
+        > = this.commands ? await this.commands.execute(new ListGroupTaskTargetsCommand(scope)) : []
         for (const binding of candidates) {
             const target = await this.createCapturedApi(scope).resolve(binding.id)
             items.push({
@@ -166,7 +182,10 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
                 scope,
                 capabilities: scoped,
                 authorize: async (target) => {
-                    const allowed = await resolve(target.bindingId)
+                    const group = assistantTaskGroupContext(target)
+                    const allowed = group
+                        ? await this.resolveGroupTarget(scope, target.bindingId)
+                        : await resolve(target.bindingId)
                     if (
                         allowed.revision !== target.revision ||
                         allowed.provider !== target.provider ||
@@ -174,6 +193,19 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
                         !sameInvocationData(allowed.configuration, target.configuration)
                     ) {
                         throw invocationError('CallConflict')
+                    }
+                    if (group) {
+                        if (!this.commands) throw invocationError('Unsupported')
+                        scoped.register(AssistantTaskExecution, {
+                            start: (request, context) =>
+                                this.commands.execute(new ExecuteGroupTaskCommand({ type: 'start', request }, context)),
+                            inspect: (handle, context) =>
+                                this.commands.execute(
+                                    new ExecuteGroupTaskCommand({ type: 'inspect', handle }, context)
+                                ),
+                            cancel: (handle, context) =>
+                                this.commands.execute(new ExecuteGroupTaskCommand({ type: 'cancel', handle }, context))
+                        })
                     }
                 }
             })
@@ -229,7 +261,9 @@ export class AgentInvocationFactoryService implements AgentRuntimeFactory {
                     ownerId: scope.userId
                 })
                 if (!row || !sameInvocationData(row.invocation.scope, scope)) throw invocationError('NotFound')
-                await resolve(row.invocation.request.target.bindingId)
+                if (assistantTaskGroupContext(row.invocation.request.target))
+                    await this.resolveGroupTarget(scope, row.invocation.request.target.bindingId)
+                else await resolve(row.invocation.request.target.bindingId)
                 return row.invocation.activity ? this.cards.createCard(row.invocation) : null
             },
             ...controls,

@@ -1,3 +1,11 @@
+import {
+  ZardButtonComponent,
+  XpDialogFrameImports,
+  XpDialogActionGroupDirective,
+  XpThemeService,
+  ZardIconComponent
+} from '@xpert-ai/headless-ui'
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, effect, inject, model, signal } from '@angular/core'
@@ -8,38 +16,32 @@ import { TranslateModule } from '@ngx-translate/core'
 import { pick } from 'lodash-es'
 import { firstValueFrom } from 'rxjs'
 import { StorageFileService, TAvatar } from '../../../@core'
-import {
-  Z_MODAL_DATA,
-  ZardButtonComponent,
-  ZardDialogModule,
-  ZardDialogRef,
-  ZardIconComponent
-} from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'emoji-avatar-editor',
   templateUrl: './avatar-editor.component.html',
-  styleUrl: './avatar-editor.component.scss',
   host: {
-    class: 'xp-dialog-container'
+    class: 'block min-w-0'
   },
   imports: [
     CommonModule,
     CdkListboxModule,
     ZardIconComponent,
     ZardButtonComponent,
-    ZardDialogModule,
     TranslateModule,
     PickerComponent,
-    EmojiComponent
+    EmojiComponent,
+    ...XpDialogFrameImports,
+    XpDialogActionGroupDirective
   ]
 })
 export class EmojiAvatarEditorComponent {
+  readonly themeService = inject(XpThemeService)
   readonly storageFileService = inject(StorageFileService)
-  readonly #dialogRef = inject(ZardDialogRef)
-  readonly avatar = inject<TAvatar>(Z_MODAL_DATA)
+  readonly #dialogRef = inject(DialogRef)
+  readonly avatar = inject<TAvatar>(DIALOG_DATA)
 
   readonly disabled = signal<boolean>(false)
   readonly type = model<'emoji' | 'image'>('emoji')
@@ -109,6 +111,10 @@ export class EmojiAvatarEditorComponent {
   addEmoji(event: { emoji: any }) {
     this.emoji.set(pick(event.emoji, 'id', 'set', 'colons', 'unified'))
     this.type.set('emoji')
+  }
+
+  cancel() {
+    this.#dialogRef.close()
   }
 
   apply() {

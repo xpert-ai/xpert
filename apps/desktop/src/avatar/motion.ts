@@ -8,6 +8,8 @@ interface Face {
   mouth: SVGGElement
   current: AvatarGaze
   visible: boolean
+  active: boolean
+  transforms?: ReturnType<typeof gazeTransforms>
 }
 
 // One observer, pointer subscription and settling RAF for all visible fallback avatars.
@@ -19,19 +21,25 @@ class AvatarMotion {
   private stopPointer: (() => void) | null = null
   private reduced = window.matchMedia('(prefers-reduced-motion: reduce)')
   private fine = window.matchMedia('(any-pointer: fine)')
+  // Radix hides the page behind a modal without changing viewport intersection.
+  private interaction = new MutationObserver(() => this.updateTracking())
   private observer = new IntersectionObserver((entries) => {
     for (const entry of entries) {
       if (!(entry.target instanceof SVGSVGElement)) continue
       const face = this.faces.get(entry.target)
       if (!face) continue
       face.visible = entry.isIntersecting
-      if (!face.visible) this.reset(face)
     }
     this.updateTracking()
     this.schedule()
   })
 
   constructor() {
+    this.interaction.observe(document.body, {
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['aria-hidden', 'inert']
+    })
     this.reduced.addEventListener('change', this.updateTracking)
     this.fine.addEventListener('change', this.updateTracking)
     document.addEventListener('visibilitychange', this.updateTracking)
@@ -40,7 +48,7 @@ class AvatarMotion {
   }
 
   add(node: SVGSVGElement, left: SVGGElement, right: SVGGElement, mouth: SVGGElement) {
-    this.faces.set(node, { node, left, right, mouth, current: { ...restingGaze }, visible: false })
+    this.faces.set(node, { node, left, right, mouth, current: { ...restingGaze }, visible: false, active: false })
     this.observer.observe(node)
     return () => {
       this.observer.unobserve(node)
@@ -48,6 +56,7 @@ class AvatarMotion {
       this.updateTracking()
       if (!this.faces.size) {
         this.observer.disconnect()
+        this.interaction.disconnect()
         this.reduced.removeEventListener('change', this.updateTracking)
         this.fine.removeEventListener('change', this.updateTracking)
         document.removeEventListener('visibilitychange', this.updateTracking)
@@ -65,17 +74,22 @@ class AvatarMotion {
 
   private paint(face: Face) {
     const transforms = gazeTransforms(face.current)
-    face.left.setAttribute('transform', transforms.left)
-    face.right.setAttribute('transform', transforms.right)
-    face.mouth.setAttribute('transform', transforms.mouth)
+    if (transforms.left !== face.transforms?.left) face.left.setAttribute('transform', transforms.left)
+    if (transforms.right !== face.transforms?.right) face.right.setAttribute('transform', transforms.right)
+    if (transforms.mouth !== face.transforms?.mouth) face.mouth.setAttribute('transform', transforms.mouth)
+    face.transforms = transforms
   }
 
   private updateTracking = () => {
+    for (const face of this.faces.values()) {
+      // The SVG itself is decorative (aria-hidden); only an ancestor can block interaction.
+      face.active = face.visible && !face.node.parentElement?.closest('[aria-hidden="true"], [inert]')
+    }
     const enabled =
       !document.hidden &&
       !this.reduced.matches &&
       this.fine.matches &&
-      [...this.faces.values()].some((face) => face.visible)
+      [...this.faces.values()].some((face) => face.active)
     if (enabled && !this.stopPointer) {
       this.stopPointer = window.xpertDesktop?.onAvatarPointer
         ? window.xpertDesktop.onAvatarPointer(this.move)
@@ -87,8 +101,12 @@ class AvatarMotion {
       cancelAnimationFrame(this.frame)
       this.frame = 0
       this.lastTime = 0
-      for (const face of this.faces.values()) this.reset(face)
+      // Freeze covered/background faces in place instead of snapping them back under the blur.
+      if (this.reduced.matches || !this.fine.matches) {
+        for (const face of this.faces.values()) this.reset(face)
+      }
     }
+    if (enabled) this.schedule()
   }
 
   private browserPointer() {
@@ -123,7 +141,7 @@ class AvatarMotion {
     this.lastTime = time
     // Read every visible bound before writing SVG transforms; scroll and layout shifts stay accurate.
     const samples = [...this.faces.values()]
-      .filter((face) => face.visible)
+      .filter((face) => face.active)
       .map((face) => ({
         face,
         target: avatarGaze(this.pointer, face.node.getBoundingClientRect())

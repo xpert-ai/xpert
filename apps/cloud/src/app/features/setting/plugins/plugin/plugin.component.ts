@@ -104,6 +104,9 @@ export class SettingsPluginComponent {
 
     this.#dialog
       .open(PluginInstallComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           plugin,
           reload: this.reloadInstalledPlugins(),
@@ -177,7 +180,9 @@ export class SettingsPluginComponent {
         plugin,
         showActions: !this.publicCatalog()
       },
-      backdropClass: 'backdrop-blur-xs-black'
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)'
     })
   }
 }

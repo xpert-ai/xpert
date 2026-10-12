@@ -1,3 +1,21 @@
+import {
+  ZardButtonComponent,
+  XpDialogFrameImports,
+  XpDialogActionGroupDirective,
+  ZardInputDirective,
+  OverlayAnimations,
+  injectConfirmDelete,
+  XpHighlightDirective,
+  XpSpinComponent,
+  debouncedSignal,
+  linkedModel,
+  myRxResource,
+  XpI18nPipe,
+  ZardSearchInputComponent,
+  ZardSelectImports,
+  ZardTooltipImports,
+  type ZardSelectValue
+} from '@xpert-ai/headless-ui'
 import { AgentPluginsComponent } from './agent-plugins/agent-plugins.component'
 import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
@@ -18,16 +36,7 @@ import {
 import { environment } from '@cloud/environments/environment'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { injectActiveScope, injectPluginAPI } from '@cloud/app/@core/state'
-import { OverlayAnimations } from '@xpert-ai/headless-ui'
-import { injectConfirmDelete, XpHighlightDirective, XpSpinComponent } from '@xpert-ai/headless-ui'
-import { debouncedSignal, linkedModel, myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'
-import {
-  ZardButtonComponent,
-  ZardSearchInputComponent,
-  ZardSelectImports,
-  ZardTooltipImports,
-  type ZardSelectValue
-} from '@xpert-ai/headless-ui'
+
 import { TranslateModule } from '@ngx-translate/core'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
 import { firstValueFrom, of } from 'rxjs'
@@ -92,7 +101,10 @@ function parseListParam(value: string | null): string[] {
     IconComponent,
     XpSpinComponent,
     PluginsMarketplaceComponent,
-    AgentPluginsComponent
+    AgentPluginsComponent,
+    ...XpDialogFrameImports,
+    XpDialogActionGroupDirective,
+    ZardInputDirective
   ],
   selector: 'xp-settings-plugins',
   templateUrl: './plugins.component.html',
@@ -500,12 +512,13 @@ export class PluginsComponent {
     }
 
     this.#dialog.open(PluginConfigureComponent, {
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)',
       data: {
         plugin,
         reload: this.reload.bind(this)
-      },
-      backdropClass: 'backdrop-blur-xs-black',
-      panelClass: 'xp-overlay-pane-dialog'
+      }
     })
   }
 
@@ -516,7 +529,8 @@ export class PluginsComponent {
         reload: this.reload.bind(this)
       },
       backdropClass: 'backdrop-blur-xs-black',
-      panelClass: 'xp-overlay-pane-dialog'
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)'
     })
   }
 
@@ -606,8 +620,9 @@ export class PluginsComponent {
     this.npmPackageName.set('')
     this.npmPackageVersion.set('')
     const dialogRef = this.#dialog.open(template, {
-      backdropClass: 'backdrop-blur-sm-black',
-      minWidth: '400px'
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)'
     })
     dialogRef.closed.subscribe(() => {
       this.npmInstalling.set(false)
@@ -624,8 +639,9 @@ export class PluginsComponent {
     this.localInstalling.set(false)
 
     const dialogRef = this.#dialog.open(template, {
-      backdropClass: 'backdrop-blur-sm-black',
-      minWidth: '480px'
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)'
     })
     dialogRef.closed.subscribe(() => {
       this.localInstalling.set(false)
@@ -643,8 +659,9 @@ export class PluginsComponent {
     this.archiveInstalling.set(false)
 
     const dialogRef = this.#dialog.open(template, {
-      backdropClass: 'backdrop-blur-sm-black',
-      minWidth: '480px'
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)'
     })
     dialogRef.closed.subscribe(() => {
       this.archiveInstalling.set(false)

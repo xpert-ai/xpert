@@ -7,7 +7,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { getErrorMessage, SkillPackageService, ToastrService } from '@cloud/app/@core'
 import type { IShareSkillPackageInput, ISkillPackage } from '@cloud/app/@core'
 import { XpI18nPipe } from '@xpert-ai/headless-ui'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { XpDialogFrameImports, ZardButtonComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 
 type ExploreSkillShareDialogData = {
   skill: ISkillPackage
@@ -17,161 +17,151 @@ type ExploreSkillShareDialogData = {
 @Component({
   standalone: true,
   selector: 'xp-explore-skill-share-dialog',
-  imports: [CommonModule, ReactiveFormsModule, TranslateModule, XpI18nPipe, XpSpinComponent],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    TranslateModule,
+    XpI18nPipe,
+    ZardButtonComponent,
+    ZardInputDirective,
+    ...XpDialogFrameImports
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="w-full max-w-2xl rounded-[28px] bg-components-card-bg px-6 py-6 shadow-xl">
-      <div class="flex items-start justify-between gap-4">
-        <div>
-          <div class="text-2xl font-semibold text-text-primary">
-            {{
-              skill.publishAt
-                ? ('XP.Explore.RepublishSkillTitle' | translate: { Default: 'Update Skill Share' })
-                : ('XP.Explore.ShareSkillTitle' | translate: { Default: 'Share Skill to Organization Market' })
-            }}
-          </div>
-          <p class="mt-2 text-sm leading-6 text-text-tertiary">
-            {{
-              'XP.Explore.ShareSkillDialogHint'
-                | translate
-                  : {
-                      Default:
-                        'Edit the display information before publishing to the current organization market. Later workspace file changes will not sync automatically, so republish manually when needed.'
-                    }
-            }}
-          </p>
-        </div>
-
+    <form xpDialogLayout="wide" class="w-full max-h-[84vh]" [formGroup]="form" (ngSubmit)="submit()">
+      <header xpDialogHeader>
+        <h2 xpDialogHeading>
+          {{
+            skill.publishAt
+              ? ('XP.Explore.RepublishSkillTitle' | translate: { Default: 'Update Skill Share' })
+              : ('XP.Explore.ShareSkillTitle' | translate: { Default: 'Share Skill to Organization Market' })
+          }}
+        </h2>
+        <p xpDialogDescription>
+          {{
+            'XP.Explore.ShareSkillDialogHint'
+              | translate
+                : {
+                    Default:
+                      'Edit the display information before publishing to the current organization market. Later workspace file changes will not sync automatically, so republish manually when needed.'
+                  }
+          }}
+        </p>
         <button
+          xpDialogCloseButton
+          z-button
+          zType="ghost"
+          zSize="icon"
           type="button"
-          class="flex h-10 w-10 items-center justify-center rounded-full text-text-tertiary transition-colors hover:bg-background-default-subtle hover:text-text-primary"
-          [disabled]="submitting()"
+          [zDisabled]="submitting()"
+          [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
           (click)="close()"
         >
-          <i class="ri-close-line text-lg"></i>
+          <z-icon zType="x" aria-hidden="true" />
         </button>
-      </div>
-
-      <div class="mt-5 rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-4">
-        <div class="text-xs font-medium uppercase tracking-[0.16em] text-text-quaternary">
-          {{ 'XP.Explore.SourceSkill' | translate: { Default: 'Source Skill' } }}
-        </div>
-        <div class="mt-2 text-base font-semibold text-text-primary">
-          {{ (skill.metadata?.displayName | i18n) || skill.name || skill.metadata?.name || '-' }}
-        </div>
-        <div class="mt-1 text-sm text-text-tertiary">
-          {{
-            skill.metadata?.author?.name ||
-              ('XP.Explore.AutoCreatorHint' | translate: { Default: 'Creator will be generated from the current user' })
-          }}
-        </div>
-      </div>
-
-      <form class="mt-6 grid gap-4" [formGroup]="form" (ngSubmit)="submit()">
-        <label class="grid gap-2">
-          <span class="text-sm font-medium text-text-primary">
-            {{ 'XP.Explore.ShareDisplayName' | translate: { Default: 'Display Name' } }}
-          </span>
-          <input
-            type="text"
-            formControlName="displayName"
-            class="w-full rounded-xl border border-divider-regular bg-background-default-subtle px-4 py-3 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
-          />
-        </label>
-
-        <label class="grid gap-2">
-          <span class="text-sm font-medium text-text-primary">
-            {{ 'XP.Explore.ShareDescription' | translate: { Default: 'Description' } }}
-          </span>
-          <textarea
-            rows="5"
-            formControlName="description"
-            class="w-full rounded-xl border border-divider-regular bg-background-default-subtle px-4 py-3 text-sm leading-6 text-text-primary outline-none placeholder:text-text-tertiary"
-          ></textarea>
-        </label>
-
-        <div class="grid gap-4 md:grid-cols-2">
-          <label class="grid gap-2">
-            <span class="text-sm font-medium text-text-primary">
-              {{ 'XP.Explore.ShareVersion' | translate: { Default: 'Version' } }}
-            </span>
-            <input
-              type="text"
-              formControlName="version"
-              class="w-full rounded-xl border border-divider-regular bg-background-default-subtle px-4 py-3 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
-            />
-          </label>
-
-          <label class="grid gap-2">
-            <span class="text-sm font-medium text-text-primary">
-              {{ 'XP.KEY_WORDS.License' | translate: { Default: 'License' } }}
-            </span>
-            <input
-              type="text"
-              formControlName="license"
-              class="w-full rounded-xl border border-divider-regular bg-background-default-subtle px-4 py-3 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
-            />
-          </label>
-        </div>
-
-        <label class="grid gap-2">
-          <span class="text-sm font-medium text-text-primary">
-            {{ 'XP.Explore.ShareTags' | translate: { Default: 'Tags' } }}
-          </span>
-          <input
-            type="text"
-            formControlName="tags"
-            class="w-full rounded-xl border border-divider-regular bg-background-default-subtle px-4 py-3 text-sm text-text-primary outline-none placeholder:text-text-tertiary"
-            [placeholder]="'XP.Explore.ShareTagsPlaceholder' | translate: { Default: 'Separate tags with commas' }"
-          />
-        </label>
-
-        <div class="rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-4">
+      </header>
+      <div xpDialogBody>
+        <div class="space-y-2">
           <div class="text-xs font-medium uppercase tracking-[0.16em] text-text-quaternary">
-            {{ 'XP.Explore.Creator' | translate: { Default: 'Creator' } }}
+            {{ 'XP.Explore.SourceSkill' | translate: { Default: 'Source Skill' } }}
           </div>
-          <div class="mt-2 text-sm font-medium text-text-primary">
-            {{ creatorName }}
+          <div class="mt-2 text-base font-semibold text-text-primary">
+            {{ (skill.metadata?.displayName | i18n) || skill.name || skill.metadata?.name || '-' }}
           </div>
-          <div class="mt-1 text-xs text-text-tertiary">
+          <div class="mt-1 text-sm text-text-tertiary">
             {{
-              'XP.Explore.CreatorReadonlyHint'
-                | translate
-                  : { Default: 'Creator is filled automatically from the current user and cannot be edited here.' }
+              skill.metadata?.author?.name ||
+                ('XP.Explore.AutoCreatorHint'
+                  | translate: { Default: 'Creator will be generated from the current user' })
             }}
           </div>
         </div>
 
-        @if (form.invalid && form.touched) {
-          <div
-            class="rounded-2xl border border-status-destructive bg-status-destructive/10 px-4 py-3 text-sm text-status-destructive"
-          >
-            {{
-              'XP.Explore.ShareValidationHint'
-                | translate: { Default: 'Please complete the display name and description first.' }
-            }}
-          </div>
-        }
+        <div class="grid gap-4">
+          <label class="grid gap-2">
+            <span class="text-sm font-medium text-text-primary">
+              {{ 'XP.Explore.ShareDisplayName' | translate: { Default: 'Display Name' } }}
+            </span>
+            <input z-input type="text" formControlName="displayName" class="w-full" />
+          </label>
 
-        <div class="flex justify-end gap-3 pt-2">
-          <button type="button" class="btn btn-secondary btn-medium" [disabled]="submitting()" (click)="close()">
-            {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
-          </button>
-          <button type="submit" class="btn btn-primary btn-medium min-w-[132px]" [disabled]="submitting()">
-            @if (submitting()) {
-              <xp-spin size="small" class="mr-1" />
-              {{ 'XP.ACTIONS.Saving' | translate: { Default: 'Saving...' } }}
-            } @else {
+          <label class="grid gap-2">
+            <span class="text-sm font-medium text-text-primary">
+              {{ 'XP.Explore.ShareDescription' | translate: { Default: 'Description' } }}
+            </span>
+            <textarea z-input rows="5" formControlName="description" class="w-full"></textarea>
+          </label>
+
+          <div class="grid gap-4 md:grid-cols-2">
+            <label class="grid gap-2">
+              <span class="text-sm font-medium text-text-primary">
+                {{ 'XP.Explore.ShareVersion' | translate: { Default: 'Version' } }}
+              </span>
+              <input z-input type="text" formControlName="version" class="w-full" />
+            </label>
+
+            <label class="grid gap-2">
+              <span class="text-sm font-medium text-text-primary">
+                {{ 'XP.KEY_WORDS.License' | translate: { Default: 'License' } }}
+              </span>
+              <input z-input type="text" formControlName="license" class="w-full" />
+            </label>
+          </div>
+
+          <label class="grid gap-2">
+            <span class="text-sm font-medium text-text-primary">
+              {{ 'XP.Explore.ShareTags' | translate: { Default: 'Tags' } }}
+            </span>
+            <input
+              z-input
+              type="text"
+              formControlName="tags"
+              class="w-full"
+              [placeholder]="'XP.Explore.ShareTagsPlaceholder' | translate: { Default: 'Separate tags with commas' }"
+            />
+          </label>
+
+          <div class="border-t border-border pt-4">
+            <div class="text-xs font-medium uppercase tracking-[0.16em] text-text-quaternary">
+              {{ 'XP.Explore.Creator' | translate: { Default: 'Creator' } }}
+            </div>
+            <div class="mt-2 text-sm font-medium text-text-primary">
+              {{ creatorName }}
+            </div>
+            <div class="mt-1 text-xs text-text-tertiary">
               {{
-                skill.publishAt
-                  ? ('XP.Explore.RepublishSkill' | translate: { Default: 'Update Share' })
-                  : ('XP.Explore.ShareSkill' | translate: { Default: 'Share' })
+                'XP.Explore.CreatorReadonlyHint'
+                  | translate
+                    : { Default: 'Creator is filled automatically from the current user and cannot be edited here.' }
               }}
-            }
-          </button>
+            </div>
+          </div>
+
+          @if (form.invalid && form.touched) {
+            <div
+              class="rounded-2xl border border-status-destructive bg-status-destructive/10 px-4 py-3 text-sm text-status-destructive"
+            >
+              {{
+                'XP.Explore.ShareValidationHint'
+                  | translate: { Default: 'Please complete the display name and description first.' }
+              }}
+            </div>
+          }
         </div>
-      </form>
-    </div>
+      </div>
+      <footer xpDialogFooter>
+        <button z-button zType="outline" type="button" [zDisabled]="submitting()" (click)="close()">
+          {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+        </button>
+        <button z-button type="submit" [zLoading]="submitting()" [zDisabled]="submitting()">
+          {{
+            skill.publishAt
+              ? ('XP.Explore.RepublishSkill' | translate: { Default: 'Update Share' })
+              : ('XP.Explore.ShareSkill' | translate: { Default: 'Share' })
+          }}
+        </button>
+      </footer>
+    </form>
   `
 })
 export class ExploreSkillShareDialogComponent {

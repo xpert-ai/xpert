@@ -1,12 +1,13 @@
+import { XpDialogFrameImports, ZardButtonComponent, ZardSelectImports } from '@xpert-ai/headless-ui'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { RouterModule } from '@angular/router'
 import { injectWorkspace } from '@cloud/app/@core/state'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
+
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { ZardSelectImports } from '@xpert-ai/headless-ui'
+
 import {
   getErrorMessage,
   injectToastr,
@@ -20,13 +21,16 @@ import { map } from 'rxjs/operators'
 @Component({
   standalone: true,
   selector: 'xp-explore-skill-install',
-  imports: [CommonModule, RouterModule, TranslateModule, XpSpinComponent, ...ZardSelectImports],
+  imports: [
+    ...XpDialogFrameImports,
+    ZardButtonComponent,
+    CommonModule,
+    RouterModule,
+    TranslateModule,
+    ...ZardSelectImports
+  ],
   templateUrl: './install.component.html',
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  host: {
-    class:
-      'flex w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-components-panel-bg px-8 py-6 text-left shadow-xl'
-  }
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ExploreSkillInstallComponent {
   readonly #dialogRef = inject(DialogRef)

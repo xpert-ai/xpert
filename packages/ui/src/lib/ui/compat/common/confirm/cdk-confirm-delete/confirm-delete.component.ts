@@ -1,11 +1,11 @@
 import { A11yModule } from '@angular/cdk/a11y'
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { Component, computed, HostBinding, inject } from '@angular/core'
+import { Component, computed, inject } from '@angular/core'
 
 import { TranslateModule } from '@ngx-translate/core'
 import { EMPTY, isObservable, Observable, of, switchMap } from 'rxjs'
-import { ZardButtonComponent } from '../../../../../components'
+import { XpDialogFrameImports, ZardButtonComponent } from '../../../../../components'
 
 export type TConfirmDeleteInfo = {
   title?: string
@@ -18,24 +18,14 @@ export type TConfirmDeleteInfo = {
   selector: 'cdk-confirm-delete',
   templateUrl: './confirm-delete.component.html',
   styleUrls: ['./confirm-delete.component.scss'],
-  imports: [TranslateModule, A11yModule, DragDropModule, ZardButtonComponent],
+  imports: [TranslateModule, A11yModule, DragDropModule, XpDialogFrameImports, ZardButtonComponent],
   host: {
-    '[class]': "hasDialogPanel ? 'p-6' : 'cdk-dialog-card'"
+    class: 'block'
   }
 })
 export class CdkConfirmDeleteComponent {
   readonly #data = inject<TConfirmDeleteInfo>(DIALOG_DATA)
   readonly dialogRef = inject(DialogRef)
-
-  @HostBinding('class.xp-dialog-container') isDialogContainer = true
-
-  // Legacy callers still supply the surface on the content; standard panels own it themselves.
-  readonly hasDialogPanel = (() => {
-    const panelClass = this.dialogRef.config?.panelClass
-    return Array.isArray(panelClass)
-      ? panelClass.includes('xp-overlay-pane-dialog')
-      : panelClass === 'xp-overlay-pane-dialog'
-  })()
 
   readonly title = computed(() => this.#data?.title)
   readonly value = computed(() => this.#data?.value)

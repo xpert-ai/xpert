@@ -1,7 +1,8 @@
-import { Component, HostBinding, inject } from '@angular/core'
+import { ZardButtonComponent, XpDialogFrameImports } from '../../../../../components'
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
+import { DragDropModule } from '@angular/cdk/drag-drop'
+import { Component, inject } from '@angular/core'
 import { CountdownConfig, CountdownEvent, CountdownTimer } from '../../countdown'
-
-import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardDialogRef } from '../../../../../components'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpCountdownModule } from '../../countdown'
 /**
@@ -10,22 +11,12 @@ import { XpCountdownModule } from '../../countdown'
 @Component({
   selector: 'xp-countdown-confirmation',
   templateUrl: 'countdown.component.html',
-  styles: [
-    `
-      .center {
-        align-items: center;
-        width: 350px;
-      }
-    `
-  ],
   providers: [CountdownTimer],
-  imports: [XpCountdownModule, TranslateModule, ZardDialogModule, ZardButtonComponent]
+  imports: [XpCountdownModule, TranslateModule, ...XpDialogFrameImports, ZardButtonComponent, DragDropModule]
 })
 export class XpCountdownConfirmationComponent {
-  @HostBinding('class.xp-dialog-container') isDialogContainer = true
-
-  protected dialogRef: ZardDialogRef<XpCountdownConfirmationComponent> = inject(ZardDialogRef)
-  private data = inject(Z_MODAL_DATA)
+  protected dialogRef: DialogRef<'continue'> = inject(DialogRef)
+  private data = inject<{ recordType: string; isEnabled?: boolean }>(DIALOG_DATA)
 
   recordType: string
   isEnabled: boolean

@@ -1,14 +1,9 @@
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import { IModelGatewayCatalogItem } from '@xpert-ai/contracts'
-import {
-  Z_MODAL_DATA,
-  ZardButtonComponent,
-  ZardDialogRef,
-  ZardFormImports,
-  ZardInputDirective
-} from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardFormImports, ZardInputDirective, XpDialogFrameImports } from '@xpert-ai/headless-ui'
 
 export type ModelGatewayRequestDialogResult = {
   reason: string
@@ -17,14 +12,23 @@ export type ModelGatewayRequestDialogResult = {
 @Component({
   standalone: true,
   selector: 'xp-model-gateway-request-dialog',
-  imports: [ReactiveFormsModule, TranslateModule, ZardButtonComponent, ZardInputDirective, ...ZardFormImports],
+  imports: [
+    ...XpDialogFrameImports,
+    ReactiveFormsModule,
+    TranslateModule,
+    ZardButtonComponent,
+    ZardInputDirective,
+    ...ZardFormImports
+  ],
   template: `
-    <section>
-      <h2 class="text-lg font-semibold text-text-primary">
-        {{ 'XP.ModelGateway.ApplyTitle' | translate: { Default: 'Apply for external API access' } }}
-      </h2>
-      <p class="mt-2 text-sm text-text-secondary">{{ item.externalModelId }} · {{ item.provider }}/{{ item.model }}</p>
-      <form class="mt-5 space-y-4" [formGroup]="form" (ngSubmit)="submit()">
+    <form xpDialogLayout="standard" class="max-h-[84vh]" [formGroup]="form" (ngSubmit)="submit()">
+      <header xpDialogHeader>
+        <h2 xpDialogHeading>
+          {{ 'XP.ModelGateway.ApplyTitle' | translate: { Default: 'Apply for external API access' } }}
+        </h2>
+        <p xpDialogDescription>{{ item.externalModelId }} · {{ item.provider }}/{{ item.model }}</p>
+      </header>
+      <div xpDialogBody>
         <z-form-field class="w-full">
           <z-form-label>{{ 'XP.ModelGateway.Reason' | translate: { Default: 'Reason' } }}</z-form-label>
           <textarea
@@ -38,24 +42,23 @@ export type ModelGatewayRequestDialogResult = {
             "
           ></textarea>
         </z-form-field>
-        <footer class="flex justify-end gap-2">
-          <button z-button zType="outline" type="button" (click)="close()">
-            {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
-          </button>
-          <button z-button type="submit" [disabled]="form.invalid">
-            {{ 'XP.ModelGateway.Submit' | translate: { Default: 'Submit request' } }}
-          </button>
-        </footer>
-      </form>
-    </section>
+      </div>
+      <footer xpDialogFooter>
+        <button z-button zType="outline" type="button" (click)="close()">
+          {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+        </button>
+        <button z-button type="submit" [zDisabled]="form.invalid">
+          {{ 'XP.ModelGateway.Submit' | translate: { Default: 'Submit request' } }}
+        </button>
+      </footer>
+    </form>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ModelGatewayRequestDialogComponent {
-  readonly #dialogRef =
-    inject<ZardDialogRef<ModelGatewayRequestDialogComponent, ModelGatewayRequestDialogResult | null>>(ZardDialogRef)
+  readonly #dialogRef = inject<DialogRef<ModelGatewayRequestDialogResult | null>>(DialogRef)
   readonly #formBuilder = inject(FormBuilder)
-  readonly item = inject<IModelGatewayCatalogItem>(Z_MODAL_DATA)
+  readonly item = inject<IModelGatewayCatalogItem>(DIALOG_DATA)
   readonly form = this.#formBuilder.nonNullable.group({
     reason: this.#formBuilder.nonNullable.control('', [
       Validators.required,

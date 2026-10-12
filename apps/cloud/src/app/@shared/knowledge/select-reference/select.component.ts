@@ -1,17 +1,17 @@
+import { XpDialogFrameImports, ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 
-import { Component, computed, effect, inject, model } from '@angular/core'
+import { Component, computed, inject, model } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { FormsModule } from '@angular/forms'
 import { IKnowledgebase, KDocumentSourceType } from '../../../@core/types'
 
 @Component({
   standalone: true,
-  imports: [FormsModule, TranslateModule, CdkListboxModule],
+  imports: [...XpDialogFrameImports, ZardButtonComponent, FormsModule, TranslateModule, CdkListboxModule],
   selector: 'knowledge-select-reference',
-  templateUrl: `select.component.html`,
-  styleUrl: `select.component.scss`
+  templateUrl: `select.component.html`
 })
 export class KnowledgeSelectReferenceComponent {
   eKDocumentSourceType = KDocumentSourceType

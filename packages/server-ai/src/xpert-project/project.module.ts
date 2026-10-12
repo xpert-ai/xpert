@@ -86,6 +86,7 @@ import { ProjectTaskGraphController } from './project-task-graph.controller'
 import { ProjectTaskGraphService } from './services/project-task-graph.service'
 import { ProjectTasksViewProvider } from './views/project-tasks.provider'
 import { ProjectTasksMiddleware } from './plugins/project-tasks/project-tasks.middleware'
+import { ProjectTasksCapabilityProvider } from './plugins/project-tasks/project-tasks.capability'
 import { ProjectTaskDecisionService } from './runtime/project-task-decision.service'
 
 @Module({
@@ -149,6 +150,7 @@ import { ProjectTaskDecisionService } from './runtime/project-task-decision.serv
         ProjectRuntimeObservationHandler,
         ProjectTaskCardProvider,
         ProjectTasksMiddleware,
+        ProjectTasksCapabilityProvider,
         ProjectTaskRuntimeContextService,
         ProjectTaskDispatchService,
         ProjectTaskRuntimeReadService,

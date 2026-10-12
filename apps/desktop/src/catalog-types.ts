@@ -12,6 +12,7 @@ export interface ExpertItem extends CatalogBase {
 }
 export interface ApplicationItem extends CatalogBase {
   kind: 'applications'
+  icon: { type: 'image' | 'emoji'; value: string } | null
   pluginName: string
   appName: string
   status: 'ready' | 'not_installed' | 'initializing' | 'degraded' | 'failed'

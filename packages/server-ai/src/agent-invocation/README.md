@@ -34,7 +34,7 @@ File delivery defaults to `none`. Findings, code edits and test runs do not auto
 
 `InvocationResultsProvider` supplies an on-demand task-results View. Result tools emit ChatKit resource cards using the SDK event bridge; the host binds each event to its actual assistant reply before persistence and streaming. The View revalidates the task owner, Assistant, conversation/project scope and binding. Downloads must reference an artifact recorded on that task and resolve its pinned version through the platform file-access flow. Resource cards never grant access by themselves and never enter the model's text context.
 
-Deploy the matching ChatKit types/UI, contracts/SDK and host before updating a consuming runtime plugin. See [Resource card integration](../../../plugin-sdk/RESOURCE-CARDS.md).
+Deploy the matching ChatKit types/UI, contracts/SDK and host before updating a consuming runtime plugin. See [Resource card integration](../../../plugin-sdk/docs/en/RESOURCE-CARDS.md).
 
 ## Host execution runner
 

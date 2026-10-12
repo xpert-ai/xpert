@@ -57,7 +57,7 @@ describe('XpertWorkspaceSettingsComponent', () => {
     await fixture.whenStable()
     fixture.detectChanges()
 
-    const menuItems: NodeListOf<HTMLElement> = fixture.debugElement.nativeElement.querySelectorAll('.menu-item')
+    const menuItems: NodeListOf<HTMLElement> = fixture.debugElement.nativeElement.querySelectorAll('[cdkOption]')
     expect(Array.from(menuItems, (item) => item.textContent.trim())).toEqual([
       'XP.Xpert.General',
       'XP.Xpert.Members',

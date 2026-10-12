@@ -1,3 +1,11 @@
+import {
+  ZardButtonComponent,
+  XpDialogFrameImports,
+  XpDialogActionGroupDirective,
+  ZardInputDirective,
+  ZardIconComponent,
+  ZardSwitchComponent
+} from '@xpert-ai/headless-ui'
 import { A11yModule } from '@angular/cdk/a11y'
 import { Dialog, DialogModule, DialogRef } from '@angular/cdk/dialog'
 import {
@@ -12,7 +20,6 @@ import {
 } from '@angular/core'
 import { FormControl, FormRecord, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { ZardButtonComponent, ZardIconComponent, ZardInputDirective, ZardSwitchComponent } from '@xpert-ai/headless-ui'
 import { AssistantTriggersComponent } from './assistant-triggers.component'
 import { AssistantPersonalizationComponent } from './assistant-personalization.component'
 import { AssistantSettingsSection, SETTINGS_BLOCKS, SETTINGS_SECTIONS } from './assistant-settings.data'
@@ -30,7 +37,9 @@ import { AssistantSettingsSection, SETTINGS_BLOCKS, SETTINGS_SECTIONS } from './
     ZardSwitchComponent,
     ZardIconComponent,
     AssistantTriggersComponent,
-    AssistantPersonalizationComponent
+    AssistantPersonalizationComponent,
+    ...XpDialogFrameImports,
+    XpDialogActionGroupDirective
   ],
   templateUrl: './assistant-settings.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -78,6 +87,7 @@ export class AssistantSettingsComponent implements OnDestroy {
     this.sheetDialog = this.dialog.open(this.sheetTemplate(), {
       backdropClass: 'backdrop-blur-xs-black',
       panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)',
       ariaLabel: this.translate.instant('XP.AssistantSettings.' + key)
     })
     this.sheetDialog.closed.subscribe(() => {

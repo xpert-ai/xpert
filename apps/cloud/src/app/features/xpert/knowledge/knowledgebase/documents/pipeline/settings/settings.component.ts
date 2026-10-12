@@ -1,3 +1,10 @@
+import {
+  ZardButtonComponent,
+  XpDialogActionGroupDirective,
+  XpI18nPipe,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
+
 import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { Component, computed, effect, inject, input, model, signal } from '@angular/core'
@@ -25,12 +32,10 @@ import {
   buildJsonSchemaDefaults,
   jsonSchemaHasConfigFields
 } from '@cloud/app/@shared/workflow/trigger-config/trigger-config.util'
-import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { Subscription } from 'rxjs'
 import { startWith, switchMap } from 'rxjs/operators'
-import { ZardButtonComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -47,7 +52,8 @@ import { ZardButtonComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     XpI18nPipe,
     IconComponent,
     JSONSchemaFormComponent,
-    KnowledgeChunkComponent
+    KnowledgeChunkComponent,
+    XpDialogActionGroupDirective
   ]
 })
 export class KnowledgeDocumentPipelineSettingsComponent {

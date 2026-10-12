@@ -1,10 +1,15 @@
+import { DragDropModule } from '@angular/cdk/drag-drop'
+import {
+  ZardButtonComponent,
+  XpDialogFrameImports,
+  ZardInputDirective,
+  ZardFormImports
+} from '../../../../../components'
 import { A11yModule } from '@angular/cdk/a11y'
 import { Dialog, DIALOG_DATA, DialogModule, DialogRef } from '@angular/cdk/dialog'
-import { DragDropModule } from '@angular/cdk/drag-drop'
 
-import { Component, HostBinding, OnInit, inject } from '@angular/core'
+import { Component, OnInit, inject } from '@angular/core'
 import { AbstractControl, FormControl, FormsModule, ReactiveFormsModule, ValidationErrors } from '@angular/forms'
-import { ZardButtonComponent, ZardFormImports, ZardInputDirective } from '../../../../../components'
 import { TranslateModule } from '@ngx-translate/core'
 import { EMPTY, Observable, switchMap } from 'rxjs'
 
@@ -18,10 +23,11 @@ export type TConfirmUniqueInfo = {
 @Component({
   standalone: true,
   imports: [
+    DragDropModule,
+    ...XpDialogFrameImports,
     A11yModule,
     FormsModule,
     ReactiveFormsModule,
-    DragDropModule,
     DialogModule,
     ZardButtonComponent,
     ...ZardFormImports,
@@ -30,14 +36,11 @@ export type TConfirmUniqueInfo = {
   ],
   selector: 'cdk-confirm-unique',
   templateUrl: './confirm-unique.component.html',
-  styleUrls: ['./confirm-unique.component.scss'],
   host: {
-    class: 'cdk-dialog-card'
+    class: 'block min-w-0'
   }
 })
 export class CdkConfirmUniqueComponent implements OnInit {
-  @HostBinding('class.xp-dialog-container') isDialogContainer = true
-
   public data = inject<TConfirmUniqueInfo>(DIALOG_DATA)
   private _dialogRef = inject(DialogRef<string, CdkConfirmUniqueComponent>)
 
@@ -78,6 +81,9 @@ export function injectConfirmUnique() {
 
   return <T>(info: TConfirmUniqueInfo, execution?: (value: string) => Observable<T>) => {
     const dialogRef = dialog.open<string>(CdkConfirmUniqueComponent, {
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)',
       data: info
     }).closed
 

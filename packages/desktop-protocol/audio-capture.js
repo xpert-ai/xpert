@@ -71,3 +71,18 @@ module.exports = {
   parseAudioCaptureDelivery,
   parseAudioCapturePayload
 }
+
+// Browser hosts share the delivery wire format, but never dispatch to native device commands.
+const BROWSER_AUDIO_CAPTURE_COMMANDS = Object.freeze([
+  'browser.audio.capture.start',
+  'browser.audio.capture.stop',
+  'browser.audio.capture.state',
+  'browser.audio.capture.retry'
+])
+function parseBrowserAudioCapturePayload(commandKey, payload) {
+  const index = BROWSER_AUDIO_CAPTURE_COMMANDS.indexOf(commandKey)
+  if (index < 0) throw new Error('unsupported')
+  return parseAudioCapturePayload(AUDIO_CAPTURE_COMMANDS[index], payload)
+}
+module.exports.BROWSER_AUDIO_CAPTURE_COMMANDS = BROWSER_AUDIO_CAPTURE_COMMANDS
+module.exports.parseBrowserAudioCapturePayload = parseBrowserAudioCapturePayload

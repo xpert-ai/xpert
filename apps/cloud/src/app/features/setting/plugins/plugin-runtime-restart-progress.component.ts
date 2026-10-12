@@ -1,8 +1,8 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { Component, inject, OnInit, signal } from '@angular/core'
 import { getErrorMessage } from '@cloud/app/@core'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { XpDialogFrameImports, XpSpinComponent, ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 type RestartProgressDialogData = {
   run: () => Promise<unknown>
@@ -12,10 +12,10 @@ type RestartProgressDialogData = {
 @Component({
   standalone: true,
   selector: 'xp-plugin-runtime-restart-progress',
-  imports: [TranslateModule, XpSpinComponent],
+  imports: [TranslateModule, XpSpinComponent, ZardButtonComponent, ...XpDialogFrameImports],
   template: `
-    <div class="flex flex-col gap-5 p-6">
-      <div class="flex items-start gap-4">
+    <div xpDialogLayout="standard" class="w-full max-h-[calc(100dvh-32px)]">
+      <header xpDialogHeader class="flex-row items-start gap-4">
         <div
           class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-background-default-subtle text-text-accent"
         >
@@ -28,7 +28,7 @@ type RestartProgressDialogData = {
           }
         </div>
         <div class="min-w-0">
-          <h2 class="text-lg font-semibold text-text-primary">
+          <h2 xpDialogHeading>
             @switch (state()) {
               @case ('starting') {
                 {{ 'XP.Plugin.RestartingTitle' | translate: { Default: 'Restarting API service' } }}
@@ -44,7 +44,7 @@ type RestartProgressDialogData = {
               }
             }
           </h2>
-          <p class="mt-1 text-sm leading-6 text-text-secondary">
+          <p xpDialogDescription class="mt-2">
             @switch (state()) {
               @case ('starting') {
                 {{
@@ -71,24 +71,26 @@ type RestartProgressDialogData = {
             }
           </p>
         </div>
-      </div>
+      </header>
 
       @if (state() === 'starting' || state() === 'waiting') {
-        <div class="h-1.5 overflow-hidden rounded-full bg-components-input-bg-normal">
-          <div class="h-full w-1/2 animate-pulse rounded-full bg-primary-600"></div>
+        <div xpDialogBody>
+          <div class="h-1.5 overflow-hidden rounded-full bg-muted">
+            <div class="h-full w-1/2 animate-pulse rounded-full bg-primary"></div>
+          </div>
         </div>
       }
 
       @if (state() === 'error') {
-        <div class="flex justify-end gap-2">
-          <button type="button" class="btn btn-secondary btn-medium" (click)="close()">
+        <footer xpDialogFooter>
+          <button type="button" z-button zType="outline" (click)="close()">
             {{ 'XP.Plugin.RestartLater' | translate: { Default: 'Later' } }}
           </button>
-          <button type="button" class="btn btn-primary btn-medium" (click)="retry()">
-            <i class="ri-refresh-line mr-1"></i>
+          <button type="button" z-button (click)="retry()">
+            <i class="ri-refresh-line"></i>
             {{ 'XP.Plugin.RestartRetry' | translate: { Default: 'Try again' } }}
           </button>
-        </div>
+        </footer>
       }
     </div>
   `

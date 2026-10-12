@@ -1,3 +1,4 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
@@ -362,6 +363,7 @@ export class XpertProjectConfigComponent {
   readonly facade = inject(XpertProjectFacade)
   readonly #api = inject(XpertProjectApiService)
   readonly #dialog = inject(ZardDialogService)
+  readonly #frameDialog = inject(Dialog)
   readonly #taskDialog = inject(XpertTaskDialogService)
   readonly #taskService = inject(XpertTaskService)
   readonly #store = inject(Store)
@@ -414,13 +416,13 @@ export class XpertProjectConfigComponent {
     const project = this.facade.project()
     if (!project || !this.canManage()) return
     await firstValueFrom(
-      this.#dialog.open(XpertProjectAssistantsDialogComponent, {
+      this.#frameDialog.open(XpertProjectAssistantsDialogComponent, {
         data: { project, availableXperts: this.availableXperts() },
         width: 'min(94vw, 680px)',
         maxWidth: 'calc(100vw - 32px)',
         disableClose: true,
-        backdropClass: 'backdrop-blur-sm-black',
-        panelClass: 'xp-overlay-pane-card'
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog'
       }).closed
     )
     await this.facade.loadProject(project.id)
@@ -431,7 +433,7 @@ export class XpertProjectConfigComponent {
     const projectId = this.facade.project()?.id
     if (!projectId || !this.canManage()) return
     await firstValueFrom(
-      this.#dialog.open(XpertProjectMembersDialogComponent, {
+      this.#frameDialog.open(XpertProjectMembersDialogComponent, {
         data: {
           projectId,
           canTransferOwnership: this.facade.projectAccess()?.role === 'owner',
@@ -440,8 +442,8 @@ export class XpertProjectConfigComponent {
         width: 'min(94vw, 760px)',
         maxWidth: 'calc(100vw - 32px)',
         disableClose: true,
-        backdropClass: 'backdrop-blur-sm-black',
-        panelClass: 'xp-overlay-pane-card'
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog'
       }).closed
     )
     await this.facade.loadProject(projectId)
@@ -452,13 +454,13 @@ export class XpertProjectConfigComponent {
     const projectId = this.facade.project()?.id
     if (!projectId) return
     await firstValueFrom(
-      this.#dialog.open(XpertProjectConnectorsDialogComponent, {
+      this.#frameDialog.open(XpertProjectConnectorsDialogComponent, {
         data: { projectId, canManage: this.canManage() },
         width: 'min(96vw, 840px)',
         maxWidth: 'calc(100vw - 24px)',
         disableClose: true,
-        backdropClass: 'backdrop-blur-sm-black',
-        panelClass: 'xp-overlay-pane-card'
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog'
       }).closed
     )
   }
@@ -483,10 +485,10 @@ export class XpertProjectConfigComponent {
       this.#dialog.open(XpertSkillInstallDialogComponent, {
         data: { scope: 'project' },
         width: 'min(96vw, 72rem)',
-        maxWidth: '72rem',
+        maxWidth: 'calc(100vw - 32px)',
         disableClose: true,
-        backdropClass: 'backdrop-blur-sm-black',
-        panelClass: 'xp-overlay-pane-card'
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog'
       }).closed
     )
     if (!result || result.kind !== 'repository-index') return
@@ -517,13 +519,13 @@ export class XpertProjectConfigComponent {
     const projectId = this.facade.project()?.id
     if (!projectId) return
     const changed = await firstValueFrom(
-      this.#dialog.open(XpertProjectSkillsDialogComponent, {
+      this.#frameDialog.open(XpertProjectSkillsDialogComponent, {
         data: { projectId, skills: this.facade.projectSkills(), canEdit: this.canEdit() },
         width: 'min(94vw, 760px)',
         maxWidth: 'calc(100vw - 32px)',
         disableClose: true,
-        backdropClass: 'backdrop-blur-sm-black',
-        panelClass: 'xp-overlay-pane-card'
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog'
       }).closed
     )
     if (changed) await this.facade.reloadProjectContent(projectId)

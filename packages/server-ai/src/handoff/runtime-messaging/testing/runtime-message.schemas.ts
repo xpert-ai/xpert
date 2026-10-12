@@ -56,6 +56,7 @@ export const runtimeMessageTestSchemas = [
             ...base,
             threadId: text,
             projectId: { ...uuid, nullable: true },
+            purpose: nullableText,
             status: text,
             operation: json
         }

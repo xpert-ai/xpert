@@ -1,7 +1,14 @@
-<form class="flex max-h-[85dvh] w-[min(44rem,calc(100vw-2rem))] flex-col" [formGroup]="form" (ngSubmit)="load()">
-  <header class="flex items-center justify-between gap-4 border-b border-divider-subtle px-6 py-4">
-    <h2 class="text-lg font-semibold">{{ title() | translate }}</h2>
+<form
+  xpDialogLayout="standard"
+  xpDialogPurpose="workflow"
+  class="w-[640px] max-w-full max-h-[calc(100dvh-32px)]"
+  [formGroup]="form"
+  (ngSubmit)="load()"
+>
+  <header xpDialogHeader>
+    <h2 xpDialogHeading>{{ title() | translate }}</h2>
     <button
+      xpDialogCloseButton
       z-button
       zType="ghost"
       zSize="icon"
@@ -9,10 +16,10 @@
       (click)="dialogRef.close()"
       [attr.aria-label]="prefix + '.Close' | translate"
     >
-      <i class="ri-close-line text-lg"></i>
+      <z-icon zType="x" />
     </button>
   </header>
-  <div class="min-h-0 space-y-5 overflow-auto p-6">
+  <div xpDialogBody>
     <fieldset class="space-y-5" [disabled]="busy()" [attr.inert]="busy() ? '' : null">
       @if (mode === 'remote') {
         <z-form-field>
@@ -104,17 +111,22 @@
       </div>
     }
   </div>
-  <footer class="flex justify-end gap-3 border-t border-divider-subtle px-6 py-4">
+  <footer xpDialogFooter>
     <button z-button zType="outline" type="button" (click)="dialogRef.close()">
       {{ prefix + '.Cancel' | translate }}
     </button>
     @if (results().length) {
-      <button z-button type="button" [disabled]="!selected().size || busy()" (click)="confirm()">
+      <button z-button type="button" [zDisabled]="!selected().size || busy()" (click)="confirm()">
         {{ prefix + '.AddSelected' | translate }}
       </button>
     } @else {
-      <button z-button type="submit" [disabled]="loadingSchema() || busy() || (mode === 'remote' && !remoteStrategy())">
-        {{ prefix + (busy() ? '.Loading' : '.Confirm') | translate }}
+      <button
+        z-button
+        type="submit"
+        [zLoading]="busy()"
+        [zDisabled]="loadingSchema() || busy() || (mode === 'remote' && !remoteStrategy())"
+      >
+        {{ prefix + '.Confirm' | translate }}
       </button>
     }
   </footer>

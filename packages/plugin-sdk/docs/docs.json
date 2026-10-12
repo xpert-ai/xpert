@@ -1,0 +1,72 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "linden",
+  "name": "plugin sdk",
+  "colors": {
+    "primary": "#16A34A",
+    "light": "#07C983",
+    "dark": "#15803D"
+  },
+  "favicon": "/logo/logo.png",
+  "navigation": {
+    "groups": [
+      {
+        "group": "Getting Started",
+        "pages": ["en/runtime-capabilities", "en/SCHEMA_SPECIFICATION", "en/PERMISSIONS"]
+      },
+      {
+        "group": "Knowledge",
+        "pages": ["en/KNOWLEDGEBASE_API", "en/structured-knowledge-graph"]
+      },
+      {
+        "group": "Tools and Media",
+        "pages": ["en/MIDDLEWARE_APPS", "en/TOOL-IMAGES", "en/video-generation-protocol"]
+      },
+      {
+        "group": "Views and Resource Cards",
+        "pages": ["en/view-extension-protocol", "en/RESOURCE-CARDS", "en/RESOURCE-CARDS-VALIDATION"]
+      }
+    ],
+    "global": {
+      "anchors": [
+        {
+          "anchor": "Documentation",
+          "href": "https://mintlify.com/docs",
+          "icon": "book-open-cover"
+        },
+        {
+          "anchor": "Blog",
+          "href": "https://mintlify.com/blog",
+          "icon": "newspaper"
+        }
+      ]
+    }
+  },
+  "logo": {
+    "light": "/logo/logo.png",
+    "dark": "/logo/logo.png"
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Support",
+        "href": "mailto:support@mintlify.com"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Dashboard",
+      "href": "https://app.mintlify.com"
+    }
+  },
+  "contextual": {
+    "options": ["copy", "view", "chatgpt", "claude", "perplexity", "mcp", "cursor", "vscode"]
+  },
+  "footer": {
+    "socials": {
+      "x": "https://x.com/mintlify",
+      "github": "https://github.com/mintlify",
+      "linkedin": "https://linkedin.com/company/mintlify"
+    }
+  }
+}

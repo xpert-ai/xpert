@@ -1,4 +1,17 @@
 {
+  "BrowserCapture": {
+    "Title": "Choose audio sources",
+    "Help": "Let everyone know before recording. Your browser will ask for the required permissions.",
+    "Microphone": "Microphone only",
+    "Shared": "Microphone + shared tab audio",
+    "SharedHelp": "Choose a browser tab playing audio and enable “Share tab audio”. Availability depends on your browser and the selected source.",
+    "KeepOpen": "Keep this page open until uploads finish. Audio awaiting upload is held in page memory and is lost if you close or reload the page.",
+    "Waiting": "Complete the selection in your browser’s permission window…",
+    "NoSharedAudio": "No shared audio track was received. Choose a tab and enable audio sharing, or use microphone only.",
+    "PermissionDenied": "Permission was cancelled or denied. Allow microphone access or select the shared source again.",
+    "DeviceError": "Could not open the audio device. Check the device and browser permissions, then retry.",
+    "Cancel": "Cancel"
+  },
   "Auth": {
     "McpConsent": {
       "Eyebrow": "Authorization request",
@@ -3462,6 +3475,12 @@
       "ProjectUpdated": "Project updated"
     },
     "Xpert": {
+      "ProjectManagement": {
+        "Title": "Project management",
+        "Description": "Plan project tasks, track progress, delegate to authorized executors and review results. Use in a project conversation.",
+        "Unavailable": "Project management is unavailable on this server.",
+        "ModelRequired": "Choose an authorized model with tool calling to enable project management."
+      },
       "WorkspaceAccessScopeDesc": "Choose who can access this workspace beyond its owner and assigned members",
       "OrganizationShared": "Organization shared",
       "OrganizationSharedWorkspace": "Organization shared workspace",

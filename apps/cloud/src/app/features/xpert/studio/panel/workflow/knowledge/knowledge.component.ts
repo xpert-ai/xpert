@@ -23,8 +23,7 @@ import {
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
-import { attrModel, linkedModel, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { attrModel, linkedModel, ZardCheckboxComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-workflow-knowledge',
@@ -137,6 +136,9 @@ export class XpertWorkflowKnowledgeComponent extends XpertWorkflowBaseComponent 
   select() {
     this.#dialog
       .open<string[]>(KnowledgeSelectReferenceComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           knowledgebases: this.knowledgebaseList(),
           selected: this.knowledgebases()

@@ -1,137 +1,105 @@
-<div class="flex h-[80vh] flex-wrap">
-  @if (show()) {
-    <div class="w-[570px] shrink-0 p-6 h-full overflow-y-auto border-r border-divider-regular">
-      <div class="mb-8">
-        <div
-          class="leading-[28px] text-xl font-bold bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-transparent bg-clip-text"
-        >
-          {{ 'XP.Copilot.PromptGenerator' | translate: { Default: 'Prompt Generator' } }}
-        </div>
-        <div class="mt-1 text-sm font-normal text-text-secondary">
-          {{
-            'XP.Copilot.PromptGeneratorDesc'
-              | translate
-                : {
-                    Default:
-                      'The Prompt Generator uses the configured model to optimize prompts for higher quality and better structure. Please write clear and detailed instructions.'
-                  }
-          }}
-        </div>
-
-        <copilot-model-select
-          class="w-full block mt-4"
-          [inheritModel]="inheritCopilotModel()"
-          [modelType]="eModelType.LLM"
-          [(ngModel)]="copilotModel"
-        />
-      </div>
-      <div>
-        <div class="flex items-center">
-          <div class="mr-3 shrink-0 leading-[18px] text-sm font-semibold text-text-tertiary uppercase">
-            {{ 'XP.Copilot.TryIt' | translate: { Default: 'Try it' } }}
-          </div>
-          <div
-            class="grow h-px"
-            style="background: linear-gradient(to right, rgb(243, 244, 246), rgba(243, 244, 246, 0))"
-          ></div>
-        </div>
-        <div class="flex flex-wrap">
-          @for (item of PRESET_INSTRUCTIONS; track $index) {
-            <div
-              class="mt-2 mr-1 shrink-0 flex h-8 items-center px-2 rounded-lg cursor-pointer font-medium pressable bg-components-input-bg-normal hover:text-indigo-500"
-              (click)="presetInstruction(item.key)"
-            >
-              <i class="{{ item.icon }}"></i>
-              <div
-                class="ml-1 text-sm hover:bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 hover:text-transparent bg-clip-text"
-              >
-                {{ 'XP.Copilot.PromptGenerator.' + item.key + '.name' | translate: { Default: item.name } }}
-              </div>
-            </div>
-          }
-        </div>
-      </div>
-      <div class="mt-6">
-        <div class="text-[0px]">
-          <div class="mb-2 leading-5 text-sm font-medium text-text-primary">
-            {{ 'XP.Copilot.Instructions' | translate: { Default: 'Instructions' } }}
-          </div>
-          <textarea
-            class="xp-input w-full h-[200px] overflow-y-auto text-sm"
-            [placeholder]="
-              'XP.Copilot.WriteClearInstructions' | translate: { Default: 'Write clear and specific instructions.' }
-            "
-            [(ngModel)]="instructions"
-          ></textarea>
-        </div>
-        <div class="mt-5 flex justify-end">
-          <button
-            type="button"
-            class="btn disabled:btn-disabled btn-primary btn-large flex space-x-1"
-            [disabled]="!instructions() || loading()"
-            (click)="generate()"
-          >
-            <i class="ri-sparkling-2-fill mr-1 text-current"></i>
-
-            <span class="text-sm font-semibold text-current">
-              {{ 'XP.ACTIONS.Generate' | translate: { Default: 'Generate' } }}
-            </span>
-          </button>
-        </div>
-      </div>
-    </div>
-  }
-
-  <div class="w-0 h-full grow p-4 flex flex-col items-stretch relative overflow-auto bg-background-default-subtle">
-    <div
-      class="shrink-0 flex items-center mb-3 cursor-move text-text-primary"
-      cdkDrag
-      cdkDragRootElement=".cdk-overlay-pane"
-      cdkDragHandle
+<section xpDialogLayout="wide" class="w-[min(1080px,calc(100vw-32px))] max-h-[84dvh]">
+  <header xpDialogHeader cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+    <h2 xpDialogHeading>{{ 'XP.Copilot.Prompt' | translate: { Default: 'Prompt' } }}</h2>
+    <button
+      xpDialogCloseButton
+      z-button
+      zType="ghost"
+      zSize="icon"
+      type="button"
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+      (click)="cancel()"
     >
-      <button
-        type="button"
-        class="btn disabled:btn-disabled btn-medium flex space-x-1 shrink-0 mr-2"
-        [class.btn-secondary]="!show()"
-        [class.btn-primary]="show()"
-        [zTooltip]="'XP.Copilot.PromptGenerator' | translate: { Default: 'Prompt Generator' }"
-        zPosition="top"
-        (click)="toggleGen()"
-      >
-        <i class="ri-sparkling-2-fill"></i>
-      </button>
-      <span class="leading-[160%] text-xl font-semibold">
-        {{ 'XP.Copilot.Prompt' | translate: { Default: 'Prompt' } }}
-      </span>
+      <z-icon zType="x" aria-hidden="true" />
+    </button>
+  </header>
+  <div xpDialogBody>
+    <div class="grid min-h-0 gap-4" [class]="show() ? 'lg:grid-cols-2' : ''">
+      @if (show()) {
+        <section class="min-w-0 space-y-4 lg:border-r lg:border-border lg:pr-4">
+          <h3 class="font-medium">{{ 'XP.Copilot.PromptGenerator' | translate: { Default: 'Prompt Generator' } }}</h3>
+          <p class="text-muted-foreground">
+            {{
+              'XP.Copilot.PromptGeneratorDesc'
+                | translate: { Default: 'Write clear and detailed instructions to generate a prompt.' }
+            }}
+          </p>
+          <copilot-model-select
+            class="block w-full"
+            [inheritModel]="inheritCopilotModel()"
+            [modelType]="eModelType.LLM"
+            [(ngModel)]="copilotModel"
+          />
+          <div>
+            <p class="mb-2 font-medium">{{ 'XP.Copilot.TryIt' | translate: { Default: 'Try it' } }}</p>
+            <div xpDialogActionGroup="inline" class="flex flex-wrap gap-2">
+              @for (item of PRESET_INSTRUCTIONS; track item.key) {
+                <button z-button zType="outline" type="button" (click)="presetInstruction(item.key)">
+                  <i [class]="item.icon" aria-hidden="true"></i
+                  >{{ 'XP.Copilot.PromptGenerator.' + item.key + '.name' | translate: { Default: item.name } }}
+                </button>
+              }
+            </div>
+          </div>
+          <label class="flex flex-col gap-2"
+            ><span>{{ 'XP.Copilot.Instructions' | translate: { Default: 'Instructions' } }}</span
+            ><textarea
+              z-input
+              class="w-full"
+              rows="7"
+              [placeholder]="
+                'XP.Copilot.WriteClearInstructions' | translate: { Default: 'Write clear and specific instructions.' }
+              "
+              [(ngModel)]="instructions"
+            ></textarea>
+          </label>
+          <div xpDialogActionGroup="inline" class="flex justify-end">
+            <button
+              z-button
+              type="button"
+              [zDisabled]="!instructions() || loading()"
+              [zLoading]="loading()"
+              (click)="generate()"
+            >
+              <z-icon zType="sparkles" aria-hidden="true" />{{
+                'XP.ACTIONS.Generate' | translate: { Default: 'Generate' }
+              }}
+            </button>
+          </div>
+        </section>
+      }
+      <section class="relative flex min-h-80 min-w-0 flex-col gap-4">
+        <div xpDialogActionGroup="inline" class="flex items-center gap-2">
+          <button
+            z-button
+            [zType]="show() ? 'default' : 'outline'"
+            zSize="icon"
+            type="button"
+            [attr.aria-label]="'XP.Copilot.PromptGenerator' | translate: { Default: 'Prompt Generator' }"
+            [attr.aria-expanded]="show()"
+            (click)="toggleGen()"
+          >
+            <z-icon zType="sparkles" aria-hidden="true" />
+          </button>
+          <h3 class="font-medium">{{ 'XP.Copilot.Prompt' | translate: { Default: 'Prompt' } }}</h3>
+        </div>
+        <copilot-instruction-editor
+          class="block h-[min(560px,60dvh)] min-h-80 w-full"
+          initHeight="100%"
+          lineNumbers
+          [(instruction)]="instruction"
+        />
+        @if (loading()) {
+          <xp-spin class="absolute inset-0" />
+        }
+      </section>
     </div>
-
-    <copilot-instruction-editor class="flex-1" initHeight="100%" lineNumbers [(instruction)]="instruction" />
-
-    <div class="flex justify-end pt-2 sticky bottom-0">
-      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large" (click)="cancel()">
-        {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
-      </button>
-      <button
-        type="button"
-        class="btn disabled:btn-disabled btn-primary btn-large ml-2"
-        [disabled]="!instruction() || loading()"
-        (click)="apply()"
-      >
-        {{ 'XP.ACTIONS.Apply' | translate: { Default: 'Apply' } }}
-      </button>
-    </div>
-
-    @if (loading()) {
-      <xp-spin
-        class="absolute top-0 left-0 w-full h-full transition-all backdrop-blur-sm bg-background-default-subtle/60"
-      />
-    }
   </div>
-
-  <div
-    class="absolute z-10 top-5 right-5 w-7 h-7 text-lg rounded-lg flex items-center justify-center hover:cursor-pointer hover:bg-hover-bg hover:text-text-destructive"
-    (click)="cancel()"
-  >
-    <i class="ri-close-line"></i>
-  </div>
-</div>
+  <footer xpDialogFooter>
+    <button z-button zType="outline" type="button" (click)="cancel()">
+      {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}</button
+    ><button z-button zType="default" type="button" [zDisabled]="!instruction() || loading()" (click)="apply()">
+      {{ 'XP.ACTIONS.Apply' | translate: { Default: 'Apply' } }}
+    </button>
+  </footer>
+</section>

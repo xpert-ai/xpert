@@ -1,3 +1,4 @@
+import { XpDialogControlDirective, ZardIconComponent, inputVariants } from '@xpert-ai/headless-ui'
 
 import { Component, computed, inject } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
@@ -9,17 +10,14 @@ import { Dialog } from '@angular/cdk/dialog'
 
 @Component({
   standalone: true,
-  imports: [
-    TranslateModule,
-    FormsModule,
-    ReactiveFormsModule
-],
+  imports: [XpDialogControlDirective, ZardIconComponent, TranslateModule, FormsModule, ReactiveFormsModule],
   selector: 'xpert-tool-authorization-input',
   templateUrl: 'input.component.html',
   styleUrls: ['input.component.scss'],
   hostDirectives: [NgxControlValueAccessor]
 })
 export class XpertToolAuthorizationInputComponent {
+  readonly controlClasses = inputVariants()
   eApiProviderAuthType = ApiAuthType
 
   readonly #dialog = inject(Dialog)
@@ -30,15 +28,17 @@ export class XpertToolAuthorizationInputComponent {
   openAuth() {
     const credentials = this.credentials() ?? {}
     this.#dialog
-      .open<{api_key_header_prefix: string[]; auth_type: string[]}>(XpertToolAuthorizationComponent, {
+      .open<{ api_key_header_prefix: string[]; auth_type: string[] }>(XpertToolAuthorizationComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           ...credentials,
           auth_type: credentials.auth_type ? [credentials.auth_type] : [],
           api_key_header_prefix: credentials.api_key_header_prefix ? [credentials.api_key_header_prefix] : []
         }
       })
-      .closed
-      .subscribe((value) => {
+      .closed.subscribe((value) => {
         if (value) {
           this.cva.value$.set({
             ...value,

@@ -5,6 +5,7 @@ import {
     IUser,
     IUserOrganization,
     PermissionsEnum,
+    RolesEnum,
     SANDBOX_TERMINAL_NAMESPACE,
     XpertMobileAssistantBindingSummary,
     XpertMobileBootstrap,
@@ -51,8 +52,11 @@ export class MobileService {
             currentOrganizationId: activeOrganizationId
         })
         let organizations = summarizeOrganizations(user.organizations ?? [])
-        // Tenant administrators can enter organizations without a membership, just as in Cloud.
-        if (RequestContext.hasAnyPermission([PermissionsEnum.ALL_ORG_VIEW, PermissionsEnum.ALL_ORG_EDIT])) {
+        // ADMIN's Desktop/Mobile organization picker stays membership-based, even with legacy tenant grants.
+        if (
+            user.role?.name !== RolesEnum.ADMIN &&
+            RequestContext.hasAnyPermission([PermissionsEnum.ALL_ORG_VIEW, PermissionsEnum.ALL_ORG_EDIT])
+        ) {
             const result = await this.organizationService.findAll({
                 where: { tenantId: user.tenantId, isActive: true },
                 select: [

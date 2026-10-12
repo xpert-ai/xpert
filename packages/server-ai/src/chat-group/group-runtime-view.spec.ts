@@ -154,6 +154,20 @@ async function fixture() {
 }
 
 describe('group execution view', () => {
+    it('returns the selected execution error without leaking stack frames or credentials', async () => {
+        const { view, group, member, execution, source } = await fixture()
+        const error = '403 The request failed because your account has an overdue balance.'
+        Object.assign(execution, {
+            status: 'error',
+            error: `${error} Authorization: Bearer private-token\n    at privateStack (/server/file.ts:1)`
+        })
+        const result = await view.get(group.id, source.id, member.id)
+        expect(result.status).toBe('error')
+        expect(result.error).toContain(error)
+        expect(result.error).not.toContain('private-')
+        expect(result.error).not.toContain('privateStack')
+        expect(result.error).not.toContain('/server/')
+    })
     it('binds an Assistant output to its exact execution and replaces generated context with public questions', async () => {
         const {
             view,

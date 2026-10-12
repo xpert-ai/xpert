@@ -1,3 +1,13 @@
+import {
+  ZardInputDirective,
+  XpDialogActionGroupDirective,
+  ZardButtonComponent,
+  EntriesPipe,
+  routeAnimations,
+  XpSpinComponent,
+  XpDensityDirective,
+  ZardSwitchComponent
+} from '@xpert-ai/headless-ui'
 import { CommonModule } from '@angular/common'
 import {
   ChangeDetectionStrategy,
@@ -19,7 +29,7 @@ import {
   ReactiveFormsModule,
   Validators
 } from '@angular/forms'
-import { EntriesPipe, routeAnimations } from '@xpert-ai/headless-ui'
+
 import { pick } from 'lodash-es'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -35,10 +45,10 @@ import {
 } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
+
 import { Samples } from '../types'
 import { outputFromObservable, toSignal } from '@angular/core/rxjs-interop'
-import { XpDensityDirective } from '@xpert-ai/headless-ui'
+
 import { XpertToolAuthorizationInputComponent } from '../../authorization'
 import { XpertToolTestDialogComponent } from '../../tool-test'
 import { XpertConfigureToolComponent } from '../../api-tool/types'
@@ -46,11 +56,13 @@ import { Dialog, DialogModule } from '@angular/cdk/dialog'
 import { TagSelectComponent } from 'apps/cloud/src/app/@shared/tag'
 import { XpertToolNameInputComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { combineLatestWith, map } from 'rxjs/operators'
-import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   imports: [
+    ZardInputDirective,
+    XpDialogActionGroupDirective,
+    ZardButtonComponent,
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
@@ -235,7 +247,9 @@ export class XpertStudioConfigureODataComponent extends XpertConfigureToolCompon
   openToolTest(tool: Partial<IXpertTool>) {
     this.#dialog
       .open(XpertToolTestDialogComponent, {
-        panelClass: 'medium',
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           tool: {
             ...tool,

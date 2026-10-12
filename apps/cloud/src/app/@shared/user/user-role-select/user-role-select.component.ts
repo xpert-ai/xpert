@@ -1,3 +1,4 @@
+import { XpDialogFrameImports } from '@xpert-ai/headless-ui'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { Component, inject, Input } from '@angular/core'
@@ -5,6 +6,8 @@ import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import {
   ZardButtonComponent,
   ZardFormImports,
+  ZardRadioGroupComponent,
+  ZardRadioComponent,
   ZardLoaderComponent,
   ZardTagSelectComponent
 } from '@xpert-ai/headless-ui'
@@ -35,18 +38,20 @@ function isUser(value: unknown): value is IUser {
 @Component({
   standalone: true,
   imports: [
+    ...XpDialogFrameImports,
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
     ZardButtonComponent,
     ZardTagSelectComponent,
     ...ZardFormImports,
+    ZardRadioGroupComponent,
+    ZardRadioComponent,
     ZardLoaderComponent,
     TranslateModule
   ],
   selector: 'xp-user-role-select',
-  templateUrl: 'user-role-select.component.html',
-  styleUrls: ['user-role-select.component.scss']
+  templateUrl: 'user-role-select.component.html'
 })
 export class UserRoleSelectComponent {
   private userService = inject(UsersService)

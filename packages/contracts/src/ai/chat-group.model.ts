@@ -81,6 +81,18 @@ export interface ChatGroupComposerInput {
 
 /** Server-authored routing and causality metadata; public senders cannot supply or override identity. */
 export interface ChatGroupCommunication {
+  /** Host-only task routing metadata; never accepted by group send APIs or model tools. */
+  projectTask?: { invocationId: string; projectId: string; projectTaskId: string; taskExecutionId: string }
+  /** Durable Invocation result notification, delivered through the group queue. */
+  runtimeResult?: {
+    invocationId: string
+    consumerExecutionId: string
+    revision: number
+    projectId: string
+    projectTaskId: string
+    taskExecutionId: string
+    specificationDigest: string
+  }
   /** Validated Composer selections for this message, when supplied by a human sender. */
   composer?: ChatGroupComposerInput
   intent: ChatGroupIntent
@@ -115,7 +127,12 @@ export interface ChatGroupMessage {
   /** Members with linked execution records; opening one still requires separate runtime-view authorization. */
   runtimeParticipantIds?: string[]
   /** Delivery state per addressed member; an empty list does not imply unread or failed delivery. */
-  deliveries: { participantId: string; status: ChatGroupDeliveryStatus }[]
+  deliveries: {
+    participantId: string
+    status: ChatGroupDeliveryStatus
+    /** Credential-redacted execution failure; absent for pending or successful deliveries. */
+    error?: string
+  }[]
 }
 /**
  * Binds a member to an exact `@name` span in the submitted text. Offsets use JavaScript UTF-16
@@ -272,6 +289,8 @@ export interface ChatGroupRuntimeView {
   messageId?: string
   /** Execution status, distinct from the group's delivery and thread statuses. */
   status: string
+  /** Credential-redacted error for this execution, independent of later runs in the conversation. */
+  error?: string
   /** Display projection for this execution; human runtime context is replaced with the public question. */
   messages: {
     /** Runtime ChatMessage ID, not the public group message ID. */
@@ -286,4 +305,16 @@ export interface ChatGroupRuntimeView {
     /** ISO 8601 timestamp. */
     createdAt: string
   }[]
+}
+/** Shared Project membership is explicitly selected; group membership alone grants no Project access. */
+export interface ChatGroupProjectInput {
+  project: { mode: 'create'; id: string; name: string } | { mode: 'existing'; projectId: string }
+  /** Include the primary Assistant. Updates add participants and preserve existing bindings. */
+  participantIds: string[]
+}
+export interface ChatGroupProject {
+  projectId: string
+  name: string
+  /** Complete active selection after the operation, including previously bound members. */
+  participantIds: string[]
 }

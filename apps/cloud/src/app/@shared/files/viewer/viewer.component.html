@@ -164,7 +164,7 @@
         type="button"
         data-refresh-button="viewer"
         [zDisabled]="loading() || saving()"
-        (menuItemTriggered)="refresh.emit()"
+        (menuItemTriggered)="refreshPreview()"
       >
         <i class="ri-refresh-line mr-2" aria-hidden="true"></i>
         {{ 'XP.Files.RefreshFile' | translate: { Default: 'Refresh' } }}
@@ -218,7 +218,7 @@
 
   <div class="xp-pane-body relative overflow-hidden" [attr.inert]="saving() ? '' : null">
     @if (filePath()) {
-      @if (loading()) {
+      @if (loading() || (markdown() && !readable() && previewLoading())) {
         <xp-spin
           class="absolute inset-0 z-10 flex items-center justify-center bg-components-card-bg/20 backdrop-blur-sm"
         />
@@ -294,7 +294,19 @@
           (htmlInspectModeChange)="htmlInspectMode.set($event)"
           (referenceSelection)="referenceSelection.emit($event)"
         />
-      } @else if (!readable()) {
+      } @else if (markdown() && !readable() && previewData().error) {
+        <div role="alert" class="flex h-full flex-col items-center justify-center gap-3 p-6 text-text-secondary">
+          <p>{{ 'XP.Files.LoadFileFailed' | translate: { Default: 'Failed to load file' } }}</p>
+          <button z-button zType="secondary" type="button" (click)="refreshPreview()">
+            {{ 'XP.Files.Refresh' | translate: { Default: 'Refresh' } }}
+          </button>
+          @if (downloadable()) {
+            <button z-button zType="secondary" type="button" (click)="download.emit()">
+              {{ 'XP.Files.Download' | translate: { Default: 'Download' } }}
+            </button>
+          }
+        </div>
+      } @else if (!previewReadable()) {
         <div class="flex h-full items-center justify-center p-6">
           <div
             class="flex w-full max-w-lg flex-col items-center rounded-3xl border border-dashed border-divider-regular bg-background-default-subtle/60 px-6 py-8 text-center"
@@ -324,7 +336,7 @@
         </div>
       } @else if (markdown() && isPreviewMode()) {
         <div #markdownPreviewHost class="relative h-full overflow-auto px-6 py-5">
-          <markdown class="xp-copilot-markdown block" [data]="content()" />
+          <markdown class="xp-copilot-markdown block" [data]="previewContent()" />
 
           @if (markdownPreviewReference(); as previewSelection) {
             <button
@@ -350,7 +362,7 @@
           lineNumbers
           wordWrap
           [fileName]="filePath() || ''"
-          [content]="content()"
+          [content]="previewContent()"
           (referenceSelection)="referenceSelection.emit($event)"
         />
       }

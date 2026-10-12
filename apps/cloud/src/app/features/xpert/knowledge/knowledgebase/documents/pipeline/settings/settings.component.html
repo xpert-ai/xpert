@@ -1,23 +1,25 @@
 <div class="flex min-h-0 min-w-0 flex-1 flex-col">
   <div class="grid min-h-0 flex-1 grid-cols-1 overflow-y-auto lg:grid-cols-2 lg:overflow-hidden">
-    <section class="min-h-0 min-w-0 overflow-y-auto px-6 py-6 lg:px-8">
-      <h3 class="text-xl font-semibold text-text-primary">
+    <section class="min-h-0 min-w-0 overflow-y-auto px-(--xp-dialog-padding) py-4">
+      <h3 class="text-base font-medium text-text-primary">
         {{ 'XP.Knowledgebase.ProcessingDocuments' | translate: { Default: 'Processing Documents' } }}
       </h3>
       <p class="mt-2 text-sm leading-6 text-text-tertiary">
         {{ 'XP.Knowledgebase.PipelineProcessing.SettingsHint' | translate }}
       </p>
 
-      <div class="mt-8 flex items-center justify-between gap-3 border-b border-divider-subtle pb-4">
+      <div
+        xpDialogActionGroup="inline"
+        class="mt-4 flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4"
+      >
         <h4 class="text-sm font-semibold text-text-primary">
           {{ 'XP.Knowledgebase.ChunkSettings' | translate: { Default: 'Chunk Settings' } }}
         </h4>
         <button
           z-button
           zType="outline"
-          zSize="sm"
           type="button"
-          [disabled]="previewing() || !canPreview()"
+          [zDisabled]="previewing() || !canPreview()"
           [zLoading]="previewing()"
           (click)="previewChunks()"
         >
@@ -67,7 +69,8 @@
       [attr.aria-busy]="previewing()"
     >
       <header
-        class="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-divider-subtle px-6 py-4"
+        xpDialogActionGroup="inline"
+        class="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-divider-subtle px-(--xp-dialog-padding) py-4"
       >
         <h3 class="text-sm font-semibold text-text-primary">
           {{ 'XP.KEY_WORDS.Preview' | translate: { Default: 'Preview' } }}
@@ -76,10 +79,9 @@
           <button
             z-button
             zType="ghost"
-            zSize="sm"
             type="button"
             class="min-w-0 max-w-64"
-            [disabled]="!documents()?.length"
+            [zDisabled]="!documents()?.length"
             [cdkMenuTriggerFor]="docsMenu"
           >
             <i class="ri-file-text-line shrink-0 text-text-tertiary" aria-hidden="true"></i>
@@ -101,10 +103,14 @@
           <p class="mb-4 text-sm text-text-tertiary">{{ 'XP.Knowledgebase.PipelineProcessing.Loading' | translate }}</p>
           <bullet-list-content-loader class="block w-full" />
         } @else if (taskError(); as error) {
-          <div role="alert" class="flex h-full min-h-64 flex-col items-center justify-center gap-3 text-center">
+          <div
+            role="alert"
+            xpDialogActionGroup="inline"
+            class="flex h-full min-h-64 flex-col items-center justify-center gap-3 text-center"
+          >
             <i class="ri-error-warning-line text-2xl text-text-destructive" aria-hidden="true"></i>
             <p class="max-w-sm break-words text-sm leading-6 text-text-tertiary">{{ error }}</p>
-            <button z-button zType="outline" type="button" [disabled]="!canPreview()" (click)="previewChunks()">
+            <button z-button zType="outline" type="button" [zDisabled]="!canPreview()" (click)="previewChunks()">
               {{ 'XP.Knowledgebase.PipelineProcessing.Retry' | translate }}
             </button>
           </div>
@@ -113,21 +119,27 @@
             @for (chunk of previewDocChunks(); track $index; let i = $index) {
               <xp-knowledge-chunk [chunk]="chunk" [index]="i" />
             } @empty {
-              <div class="flex min-h-64 flex-col items-center justify-center gap-3 text-center text-text-tertiary">
+              <div
+                xpDialogActionGroup="inline"
+                class="flex min-h-64 flex-col items-center justify-center gap-3 text-center text-text-tertiary"
+              >
                 <i class="ri-file-search-line text-2xl" aria-hidden="true"></i>
                 <p class="max-w-sm text-sm leading-6">{{ 'XP.Knowledgebase.PipelineProcessing.Empty' | translate }}</p>
               </div>
             }
           </div>
         } @else {
-          <div class="flex h-full min-h-64 flex-col items-center justify-center gap-3 text-center">
+          <div
+            xpDialogActionGroup="inline"
+            class="flex h-full min-h-64 flex-col items-center justify-center gap-3 text-center"
+          >
             <div class="flex size-12 items-center justify-center rounded-xl bg-components-panel-bg text-text-tertiary">
               <i class="ri-file-search-line text-2xl" aria-hidden="true"></i>
             </div>
             <p class="max-w-sm text-sm leading-6 text-text-tertiary">
               {{ 'XP.Knowledgebase.PipelineProcessing.PreviewHint' | translate }}
             </p>
-            <button z-button zType="outline" type="button" [disabled]="!canPreview()" (click)="previewChunks()">
+            <button z-button zType="outline" type="button" [zDisabled]="!canPreview()" (click)="previewChunks()">
               {{ 'XP.Knowledgebase.PreviewChunks' | translate: { Default: 'Preview Chunks' } }}
             </button>
           </div>

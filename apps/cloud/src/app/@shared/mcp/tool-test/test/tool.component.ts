@@ -1,4 +1,14 @@
 import {
+  ZardButtonComponent,
+  ZardIconComponent,
+  XpDialogActionGroupDirective,
+  XpSpinComponent,
+  XpDensityDirective,
+  ZardInputDirective,
+  ZardSwitchComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
+import {
   booleanAttribute,
   ChangeDetectionStrategy,
   Component,
@@ -11,8 +21,7 @@ import {
   signal
 } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
-import { XpDensityDirective } from '@xpert-ai/headless-ui'
+
 import { TranslateModule } from '@ngx-translate/core'
 import {
   getErrorMessage,
@@ -27,11 +36,13 @@ import {
 import { JSONSchemaFormComponent } from 'apps/cloud/src/app/@shared/forms'
 import { isNil, omit } from 'lodash-es'
 import { Subscription } from 'rxjs'
-import { ZardInputDirective, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   imports: [
+    ZardButtonComponent,
+    ZardIconComponent,
+    XpDialogActionGroupDirective,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,

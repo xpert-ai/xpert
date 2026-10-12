@@ -1,3 +1,4 @@
+import { XpDialogActionGroupDirective } from '@xpert-ai/headless-ui'
 import { ASSISTANT_SETTINGS_CONTEXT } from '../../../@shared/xpert/assistant-settings/assistant-settings-context'
 import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import {
@@ -34,6 +35,7 @@ import {
   standalone: true,
   selector: 'xp-assistant-triggers',
   imports: [
+    XpDialogActionGroupDirective,
     RouterLink,
     TranslateModule,
     XpI18nPipe,
@@ -51,7 +53,7 @@ import {
           {{ 'XP.AssistantSettings.TriggersIntro' | translate }}
         </p>
       </div>
-      <div class="flex shrink-0 flex-wrap items-center gap-2">
+      <div xpDialogActionGroup="inline" class="flex shrink-0 flex-wrap items-center gap-2">
         <a
           z-button
           zType="outline"
@@ -92,7 +94,7 @@ import {
         @for (card of cards(); track card.key) {
           <z-card class="gap-0 p-0 shadow-none"
             ><z-card-content class="p-4">
-              <div class="flex items-start justify-between gap-3">
+              <div xpDialogActionGroup="inline" class="flex flex-wrap items-start justify-between gap-3">
                 <div class="flex min-w-0 items-center gap-2">
                   @if (card.icon) {
                     <xp-icon [icon]="card.icon" [size]="24" class="shrink-0" />
@@ -258,6 +260,7 @@ export class AssistantTriggersComponent implements OnDestroy {
         },
         backdropClass: 'backdrop-blur-xs-black',
         panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         ariaLabel: this.i18n.transform(card.provider.label)
       }
     )

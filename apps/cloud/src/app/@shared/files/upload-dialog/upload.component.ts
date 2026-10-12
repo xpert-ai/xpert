@@ -1,46 +1,22 @@
+import { XpDialogFrameImports, ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { HttpEventType } from '@angular/common/http'
-import { Component, computed, inject, signal } from '@angular/core'
-import { toSignal } from '@angular/core/rxjs-interop'
-import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { ZardSearchInputComponent } from '@xpert-ai/headless-ui'
+import { Component, inject, signal } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { uniqWith } from 'lodash-es'
-import { catchError, combineLatest, of, startWith, tap } from 'rxjs'
-import { IStorageFile, StorageFileService, ToastrService, getErrorMessage, listAnimation } from '../../../@core'
-import { SharedUiModule } from '../../ui.module'
+import { catchError, combineLatest, of, tap } from 'rxjs'
+import { IStorageFile, StorageFileService, getErrorMessage } from '../../../@core'
 import { FilesUploadComponent, UploadFile } from '../upload/upload.component'
 
-import { Z_MODAL_DATA, ZardDialogRef, ZardDialogService } from '@xpert-ai/headless-ui'
+import { DialogRef } from '@angular/cdk/dialog'
 @Component({
   standalone: true,
   selector: 'xp-files-upload',
   templateUrl: './upload.component.html',
-  styleUrls: ['upload.component.scss'],
-  providers: [],
-  imports: [
-    FormsModule,
-    ReactiveFormsModule,
-    SharedUiModule,
-    TranslateModule,
-    ZardSearchInputComponent,
-    FilesUploadComponent
-  ],
-  animations: [listAnimation]
+  imports: [...XpDialogFrameImports, ZardButtonComponent, TranslateModule, FilesUploadComponent]
 })
 export class FilesUploadDialogComponent {
-  private readonly _dialog = inject(ZardDialogService)
-  readonly #dialogRef = inject(ZardDialogRef)
-  private readonly _data = inject<{ projectId: string }>(Z_MODAL_DATA)
-  private readonly _toastrService = inject(ToastrService)
+  readonly #dialogRef = inject(DialogRef)
   private readonly storageFileService = inject(StorageFileService)
-
-  readonly #files = signal<IStorageFile[]>([])
-  readonly searchControl = new FormControl('')
-  readonly search = toSignal(this.searchControl.valueChanges.pipe(startWith('')))
-  readonly filteredFiles = computed(() => {
-    const text = this.search()?.toLowerCase()
-    return text ? this.#files().filter((file) => file.originalName?.toLowerCase().includes(text)) : this.#files()
-  })
 
   readonly loading = signal(false)
   fileList: UploadFile[] = []
@@ -57,13 +33,17 @@ export class FilesUploadDialogComponent {
     }
   }
   removeFile(index: number) {
-    const file = this.fileList[index]
     this.fileList.splice(index, 1)
     this.fileList = [...this.fileList]
   }
 
+  close() {
+    this.#dialogRef.close()
+  }
+
   async upload() {
-    this.loading.set(false)
+    if (this.loading() || !this.fileList.length) return
+    this.loading.set(true)
     const storageFiles: IStorageFile[] = []
     combineLatest(
       this.fileList.map((item) =>

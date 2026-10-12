@@ -111,7 +111,7 @@ Xpert 是**以插件为核心的 NestJS 模块化平台**。统一的 **Agent + 
 - **统一运行与交互契约：** LangGraph / LangChain、CQRS、Bull Handoff、检查点与中断恢复支撑执行；Workbench 通过 View Manifest、View Provider 与 iframe 桥接交互，MCP Apps 使用工具关联的 UI 资源。
 - **治理与基础设施：** 作用域身份、审批、审计和用量贯穿 API、Worker 与插件。PostgreSQL + pgvector、Redis 和存储 Provider 持久化状态；Data Xpert 是通过 API/MCP 接入的独立服务，Pro 执行能力单独标记。
 
-点击图片可查看原尺寸。[架构分析与完整扩展点目录](docs/architecture/README.md) · [智能体与工作流架构文章](https://xpertai.cn/blog/agent-workflow-hybrid-architecture)
+点击图片可查看原尺寸。[AI Agent 架构与源码地图](docs/zh-Hans/architecture/ai-agent-architecture.md) · [智能体与工作流架构文章](https://xpertai.cn/blog/agent-workflow-hybrid-architecture)
 
 ## 生态
 

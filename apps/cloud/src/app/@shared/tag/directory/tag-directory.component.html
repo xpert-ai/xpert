@@ -240,35 +240,34 @@
   </div></ng-template
 >
 <ng-template #panel>
-  <div class="flex max-h-[90vh] w-[480px] max-w-full flex-col">
-    <header class="flex shrink-0 items-start justify-between gap-4 border-b border-divider-regular p-6">
-      <div>
-        <h3 class="text-lg font-semibold">
-          {{
-            (mode() === 'edit'
-              ? selected()
-                ? 'XP.TagDirectory.Edit'
-                : 'XP.TagDirectory.Create'
-              : 'XP.TagDirectory.' + mode()
-            ) | translate
-          }}
-        </h3>
-        @if (selected()) {
-          <p class="mt-1 text-sm text-text-tertiary">{{ displayName(selected()) }}</p>
-        }
-      </div>
+  <div xpDialogLayout="standard" class="w-[480px] max-w-full max-h-[85dvh]">
+    <header xpDialogHeader>
+      <h3 xpDialogHeading>
+        {{
+          (mode() === 'edit'
+            ? selected()
+              ? 'XP.TagDirectory.Edit'
+              : 'XP.TagDirectory.Create'
+            : 'XP.TagDirectory.' + mode()
+          ) | translate
+        }}
+      </h3>
+      @if (selected()) {
+        <p xpDialogDescription>{{ displayName(selected()) }}</p>
+      }
       <button
+        xpDialogCloseButton
         z-button
         zType="ghost"
         zSize="icon"
         (click)="close()"
-        [disabled]="saving()"
+        [zDisabled]="saving()"
         [attr.aria-label]="'XP.TagDirectory.Close' | translate"
       >
         <z-icon zType="close" />
       </button>
     </header>
-    <div class="min-h-0 flex-1 overflow-y-auto p-6">
+    <div xpDialogBody>
       @if (mode() === 'edit') {
         <form id="tag-directory-form" [formGroup]="form" (ngSubmit)="save()" class="space-y-5">
           <z-form-field
@@ -290,7 +289,7 @@
           </z-form-field>
           <fieldset class="space-y-2">
             <legend class="mb-2 text-sm font-medium">{{ 'XP.TagDirectory.Targets' | translate }}</legend>
-            <div class="grid grid-cols-2 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               @for (target of targets; track target) {
                 <z-checkbox
                   [ngModel]="form.controls.targets.value.includes(target)"
@@ -308,7 +307,7 @@
             <summary class="cursor-pointer text-sm text-text-tertiary">
               {{ 'XP.TagDirectory.Translations' | translate }}
             </summary>
-            <div class="mt-3 grid grid-cols-2 gap-3">
+            <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
               <z-form-field
                 ><label z-form-label for="tag-directory-en">English</label
                 ><input z-input id="tag-directory-en" formControlName="en_US" maxlength="100" /></z-form-field
@@ -359,7 +358,7 @@
                     <button
                       z-button
                       zType="outline"
-                      zSize="sm"
+                      xpDialogActionGroup="inline"
                       (click)="loadKnowledgeUsage(knowledgeUsage().length > 0)"
                     >
                       {{ 'XP.TagDirectory.Retry' | translate }}
@@ -373,9 +372,9 @@
                     <button
                       z-button
                       zType="ghost"
-                      zSize="sm"
+                      xpDialogActionGroup="inline"
                       class="mt-3"
-                      [disabled]="knowledgeUsageLoading()"
+                      [zDisabled]="knowledgeUsageLoading()"
                       (click)="loadKnowledgeUsage(true)"
                     >
                       {{ 'XP.TagDirectory.MoreKnowledge' | translate }}
@@ -419,7 +418,12 @@
                   } @else if (xpertUsageError()) {
                     <div class="mt-3 space-y-2">
                       <p role="alert" class="text-xs text-text-destructive">{{ xpertUsageError() }}</p>
-                      <button z-button zType="outline" zSize="sm" (click)="loadXpertUsage(xpertUsage().length > 0)">
+                      <button
+                        z-button
+                        zType="outline"
+                        xpDialogActionGroup="inline"
+                        (click)="loadXpertUsage(xpertUsage().length > 0)"
+                      >
                         {{ 'XP.TagDirectory.Retry' | translate }}
                       </button>
                     </div>
@@ -430,9 +434,9 @@
                     <button
                       z-button
                       zType="ghost"
-                      zSize="sm"
+                      xpDialogActionGroup="inline"
                       class="mt-3"
-                      [disabled]="xpertUsageLoading()"
+                      [zDisabled]="xpertUsageLoading()"
                       (click)="loadXpertUsage(true)"
                     >
                       {{ 'XP.TagDirectory.MoreExperts' | translate }}
@@ -451,23 +455,35 @@
         <p class="text-sm text-text-secondary">{{ 'XP.TagDirectory.Confirm.' + mode() | translate }}</p>
       }
     </div>
-    <footer class="shrink-0 space-y-3 border-t border-divider-regular p-5">
+    <footer xpDialogFooter>
       @if (panelError()) {
-        <p role="alert" class="max-h-24 overflow-y-auto break-words text-sm text-text-destructive">
+        <p role="alert" class="w-full max-h-24 overflow-y-auto break-words text-sm text-text-destructive">
           {{ panelError() }}
         </p>
       }
-      <div class="flex justify-end gap-2">
-        <button z-button zType="outline" [disabled]="saving()" (click)="close()">
+      <div class="flex flex-wrap justify-end gap-2">
+        <button z-button zType="outline" [zDisabled]="saving()" (click)="close()">
           {{ 'XP.TagDirectory.Close' | translate }}
         </button>
         @if (mode() === 'edit') {
-          <button z-button type="submit" form="tag-directory-form" [disabled]="saving() || !canCreate()">
-            {{ (saving() ? 'XP.TagDirectory.Saving' : 'XP.TagDirectory.Save') | translate }}
+          <button
+            z-button
+            type="submit"
+            form="tag-directory-form"
+            [zLoading]="saving()"
+            [zDisabled]="saving() || !canCreate()"
+          >
+            {{ 'XP.TagDirectory.Save' | translate }}
           </button>
         } @else if (mode() !== 'usage') {
-          <button z-button [disabled]="saving()" (click)="confirm()">
-            {{ (saving() ? 'XP.TagDirectory.Saving' : 'XP.TagDirectory.ConfirmAction') | translate }}
+          <button
+            z-button
+            [zType]="mode() === 'delete' ? 'destructive' : 'default'"
+            [zLoading]="saving()"
+            [zDisabled]="saving()"
+            (click)="confirm()"
+          >
+            {{ 'XP.TagDirectory.ConfirmAction' | translate }}
           </button>
         }
       </div>

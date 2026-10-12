@@ -255,6 +255,7 @@ export class IntegrationConfigurationComponent implements IsDirty, OnDestroy {
       viewContainerRef: this.viewContainerRef,
       backdropClass: 'backdrop-blur-xs-black',
       panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)',
       ariaLabelledBy: 'integration-qr-title',
       data: {
         provider,

@@ -1,134 +1,97 @@
-<header class="px-4 pt-2" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-  <h4 class="text-xl font-semibold cursor-move">
-    {{ 'XP.Xpert.AuthorizationMethod' | translate: { Default: 'Authorization method' } }}
-  </h4>
-</header>
-
-<div class="flex p-4">
-  <form class="space-y-4" [formGroup]="formGroup">
-    <div>
-      <div class="py-2 leading-5 text-sm font-medium">
-        {{ 'XP.Xpert.AuthorizationType' | translate: { Default: 'Authorization type' } }}
+<section xpDialogLayout="wide" class="w-[min(560px,calc(100vw-32px))] max-h-[84dvh]">
+  <header xpDialogHeader cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+    <h2 xpDialogHeading>{{ 'XP.Xpert.AuthorizationMethod' | translate: { Default: 'Authorization method' } }}</h2>
+    <button
+      z-button
+      zType="ghost"
+      type="button"
+      xpDialogCloseButton
+      zSize="icon"
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+      (click)="cancel()"
+    >
+      <z-icon zType="x" aria-hidden="true" />
+    </button>
+  </header>
+  <div xpDialogBody>
+    <form [formGroup]="formGroup" class="space-y-4">
+      <div class="space-y-2">
+        <p>{{ 'XP.Xpert.AuthorizationType' | translate: { Default: 'Authorization type' } }}</p>
+        <ul class="xp-radio-select grid grid-cols-1 gap-3 sm:grid-cols-3" cdkListbox formControlName="auth_type">
+          <li class="min-w-0" [cdkOption]="eApiProviderAuthType.NONE">
+            <div class="radio-indicator shrink-0"></div>
+            <span>None</span>
+          </li>
+          <li class="min-w-0" [cdkOption]="eApiProviderAuthType.BASIC">
+            <div class="radio-indicator shrink-0"></div>
+            <span>Basic</span>
+          </li>
+          <li class="min-w-0" [cdkOption]="eApiProviderAuthType.API_KEY">
+            <div class="radio-indicator shrink-0"></div>
+            <span>API Key</span>
+          </li>
+        </ul>
       </div>
-      <ul class="xp-radio-select flex space-x-3" cdkListbox formControlName="auth_type">
-        <li [cdkOption]="eApiProviderAuthType.NONE" class="w-40">
-          <div class="radio-indicator"></div>
-          <div class="text-sm font-normal">None</div>
-        </li>
-        <li [cdkOption]="eApiProviderAuthType.BASIC" class="w-40">
-          <div class="radio-indicator"></div>
-          <div class="text-sm font-normal">Basic</div>
-        </li>
-        <li [cdkOption]="eApiProviderAuthType.API_KEY" class="w-40">
-          <div class="radio-indicator"></div>
-          <div class="text-sm font-normal">API Key</div>
-        </li>
-      </ul>
-    </div>
-
-    @if (authType === eApiProviderAuthType.BASIC) {
-      <div>
-        <div class="py-2 leading-5 text-sm font-medium">
-          {{ 'XP.KEY_WORDS.Username' | translate: { Default: 'Username' } }}
-        </div>
-        <input
-          class="xp-input w-full h-10 px-3 text-sm font-normal rounded-lg grow"
-          [placeholder]="'XP.KEY_WORDS.EnterUsername' | translate: { Default: 'Enter username' }"
-          type="text"
-          formControlName="username"
-          autocomplete="username"
-        />
-      </div>
-      <div>
-        <div class="py-2 leading-5 text-sm font-medium">
-          {{ 'XP.KEY_WORDS.Password' | translate: { Default: 'Password' } }}
-        </div>
-        <input
-          class="xp-input w-full h-10 px-3 text-sm font-normal rounded-lg grow"
-          [placeholder]="'XP.KEY_WORDS.EnterPassword' | translate: { Default: 'Enter password' }"
-          type="password"
-          formControlName="password"
-          autocomplete="current-password"
-        />
-      </div>
-    } @else if (authType === eApiProviderAuthType.API_KEY) {
-      <div class="py-2 leading-5 text-sm font-medium">
-        {{ 'XP.Xpert.AuthType' | translate: { Default: 'Auth Type' } }}
-      </div>
-      <ul class="xp-radio-select flex space-x-3" cdkListbox formControlName="api_key_header_prefix">
-        <li class="w-40" cdkOption="">
-          <div class="radio-indicator"></div>
-          <div class="text-sm font-normal">Basic</div>
-        </li>
-        <li class="w-40" cdkOption="bearar">
-          <div class="radio-indicator"></div>
-          <div class="text-sm font-normal">Bearer</div>
-        </li>
-        <li class="w-40" cdkOption="custom">
-          <div class="radio-indicator"></div>
-          <div class="text-sm font-normal">Custom</div>
-        </li>
-      </ul>
-      <div>
-        <div class="flex items-center h-8 text-[13px] font-medium">
-          {{ 'XP.KEY_WORDS.Key' | translate: { Default: 'Key' } }}
-          <div
-            class="ml-0.5 w-4 h-4"
-            [zTooltip]="
-              'XP.Xpert.HttpHeaderKey'
-                | translate
-                  : {
-                      Default:
-                        'Http Header Key, you can leave it with `Authorization` if you have no idea what it is or set it to custom value'
-                    }
-            "
+      @if (authType === eApiProviderAuthType.BASIC) {
+        <label class="flex flex-col gap-2"
+          ><span>{{ 'XP.KEY_WORDS.Username' | translate: { Default: 'Username' } }}</span
+          ><input z-input class="w-full" type="text" formControlName="username" autocomplete="off" /></label
+        ><label class="flex flex-col gap-2"
+          ><span>{{ 'XP.KEY_WORDS.Password' | translate: { Default: 'Password' } }}</span
+          ><input z-input class="w-full" type="password" formControlName="password" autocomplete="current-password"
+        /></label>
+      } @else if (authType === eApiProviderAuthType.API_KEY) {
+        <div class="space-y-2">
+          <p>{{ 'XP.Xpert.AuthType' | translate: { Default: 'Auth Type' } }}</p>
+          <ul
+            class="xp-radio-select grid grid-cols-1 gap-3 sm:grid-cols-3"
+            cdkListbox
+            formControlName="api_key_header_prefix"
           >
-            <svg
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              fill="currentColor"
-              class="text-text-quaternary hover:text-text-tertiary w-full h-full"
-            >
-              <path
-                d="M12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22ZM12 20C16.4183 20 20 16.4183 20 12C20 7.58172 16.4183 4 12 4C7.58172 4 4 7.58172 4 12C4 16.4183 7.58172 20 12 20ZM11 15H13V17H11V15ZM13 13.3551V14H11V12.5C11 11.9477 11.4477 11.5 12 11.5C12.8284 11.5 13.5 10.8284 13.5 10C13.5 9.17157 12.8284 8.5 12 8.5C11.2723 8.5 10.6656 9.01823 10.5288 9.70577L8.56731 9.31346C8.88637 7.70919 10.302 6.5 12 6.5C13.933 6.5 15.5 8.067 15.5 10C15.5 11.5855 14.4457 12.9248 13 13.3551Z"
-              ></path>
-            </svg>
-          </div>
+            <li class="min-w-0" cdkOption="">
+              <div class="radio-indicator shrink-0"></div>
+              <span>Basic</span>
+            </li>
+            <li class="min-w-0" cdkOption="bearar">
+              <div class="radio-indicator shrink-0"></div>
+              <span>Bearer</span>
+            </li>
+            <li class="min-w-0" cdkOption="custom">
+              <div class="radio-indicator shrink-0"></div>
+              <span>Custom</span>
+            </li>
+          </ul>
         </div>
-        <input
-          class="xp-input w-full h-10 px-3 text-sm font-normal rounded-lg grow"
-          placeholder="HTTP header name for API Key"
-          formControlName="api_key_header"
-          autocomplete="off"
-        />
-      </div>
-      <div>
-        <div class="py-2 leading-5 text-sm font-medium">
-          {{ 'XP.KEY_WORDS.Value' | translate: { Default: 'Value' } }}
-        </div>
-        <input
-          class="xp-input w-full h-10 px-3 text-sm font-normal rounded-lg grow"
-          [placeholder]="'XP.Xpert.EnterAPIKey' | translate: { Default: 'Enter API Key' }"
-          type="password"
-          formControlName="api_key_value"
-          autocomplete="current-password"
-        />
-      </div>
-    }
-  </form>
-</div>
-
-<div class="w-full flex justify-end p-2">
-  <div class="flex items-center gap-2">
-    <button type="button" class="btn disabled:btn-disabled btn-large" (click)="cancel()">
-      {{ 'XP.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
-    </button>
-
-    <button type="button" class="btn disabled:btn-disabled btn-primary btn-large" (click)="save()">
-      <i class="ri-save-line mr-1"></i>
-      {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
-    </button>
+        <label class="flex flex-col gap-2"
+          ><span>{{ 'XP.KEY_WORDS.Key' | translate: { Default: 'Key' } }}</span
+          ><input
+            z-input
+            class="w-full"
+            type="text"
+            formControlName="api_key_header"
+            autocomplete="off"
+            [title]="
+              'XP.Xpert.HttpHeaderKey'
+                | translate: { Default: 'HTTP header key; use Authorization or a custom header name.' }
+            " /></label
+        ><label class="flex flex-col gap-2"
+          ><span>{{ 'XP.KEY_WORDS.Value' | translate: { Default: 'Value' } }}</span
+          ><input
+            z-input
+            class="w-full"
+            type="password"
+            formControlName="api_key_value"
+            [placeholder]="'XP.Xpert.EnterAPIKey' | translate: { Default: 'Enter API Key' }"
+            autocomplete="current-password"
+        /></label>
+      }
+    </form>
   </div>
-</div>
+  <footer xpDialogFooter>
+    <button z-button zType="outline" type="button" (click)="cancel()">
+      {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}</button
+    ><button z-button zType="default" type="button" (click)="save()">
+      <z-icon zType="save" aria-hidden="true" />{{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
+    </button>
+  </footer>
+</section>

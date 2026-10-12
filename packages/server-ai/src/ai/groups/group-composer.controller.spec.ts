@@ -8,7 +8,12 @@ import { GroupScopeGuard } from './group-scope.guard'
 
 const id = '11111111-1111-4111-8111-111111111111'
 describe('group Composer HTTP validation and member scope', () => {
-    const composer = { member: jest.fn(), resourceCatalog: jest.fn(), authorizeResource: jest.fn() }
+    const composer = {
+        member: jest.fn(),
+        resourceCatalog: jest.fn(),
+        validateResources: jest.fn(),
+        authorizeResource: jest.fn()
+    }
     let app: INestApplication
     let origin: string
     beforeAll(async () => {
@@ -35,18 +40,20 @@ describe('group Composer HTTP validation and member scope', () => {
         composer.member.mockResolvedValue({ subjectId: id })
         composer.authorizeResource.mockResolvedValue({})
         composer.resourceCatalog.mockResolvedValue({ items: [], total: 0 })
+        composer.validateResources.mockImplementation(async (_member, selection) => selection)
     })
-    const authorize = (body: unknown) =>
-        fetch(`${origin}/authorize`, {
+    const post = (action: string, body: unknown) =>
+        fetch(`${origin}/${action}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)
         })
+    const authorize = (body: unknown) => post('authorize', body)
     const input = { bindingId: id, version: '1', serverName: 'example' }
     it('coerces resource pagination and supplies defaults at the HTTP boundary', async () => {
         expect((await fetch(`${origin}?offset=2`)).status).toBe(200)
         expect(composer.member).toHaveBeenCalledWith(id, id, id)
-        expect(composer.resourceCatalog).toHaveBeenCalledWith(id, { offset: 2, limit: 50 })
+        expect(composer.resourceCatalog).toHaveBeenCalledWith({ subjectId: id }, { offset: 2, limit: 50 })
     })
     it.each(['limit=101', 'offset=-1', 'userId=spoofed', 'kind=unknown'])(
         'rejects invalid resource query %s before member or resource work',
@@ -59,7 +66,7 @@ describe('group Composer HTTP validation and member scope', () => {
     it('authorizes a binding only after checking the selected group member and Assistant', async () => {
         expect((await authorize({ ...input, projectId: id })).status).toBe(201)
         expect(composer.member).toHaveBeenCalledWith(id, id, id)
-        expect(composer.authorizeResource).toHaveBeenCalledWith(id, { ...input, projectId: id })
+        expect(composer.authorizeResource).toHaveBeenCalledWith({ subjectId: id }, { ...input, projectId: id })
         expect(composer.member.mock.invocationCallOrder[0]).toBeLessThan(
             composer.authorizeResource.mock.invocationCallOrder[0]
         )
@@ -81,5 +88,30 @@ describe('group Composer HTTP validation and member scope', () => {
         composer.member.mockRejectedValueOnce(new ForbiddenException())
         expect((await authorize(input)).status).toBe(403)
         expect(composer.authorizeResource).not.toHaveBeenCalled()
+    })
+    it('passes the verified member and parsed selection to resource validation', async () => {
+        const selection = { revision: 1, resources: [{ bindingId: id, version: 'a'.repeat(64) }] }
+        const response = await post('validate', { projectId: id, runtimeResources: selection })
+        expect(response.status).toBe(201)
+        expect(await response.json()).toEqual(selection)
+        expect(composer.member).toHaveBeenCalledWith(id, id, id)
+        expect(composer.validateResources).toHaveBeenCalledWith({ subjectId: id }, selection, id)
+        expect(composer.member.mock.invocationCallOrder[0]).toBeLessThan(
+            composer.validateResources.mock.invocationCallOrder[0]
+        )
+    })
+    it.each([
+        { runtimeResources: { revision: -1, resources: [] } },
+        { runtimeResources: { revision: 0, resources: [{ bindingId: id, version: 'invalid' }] } },
+        { runtimeResources: { revision: 0, resources: [] }, userId: id }
+    ])('rejects invalid or forged resource selection before resolving the member: %j', async (body) => {
+        expect((await post('validate', body)).status).toBe(400)
+        expect(composer.member).not.toHaveBeenCalled()
+        expect(composer.validateResources).not.toHaveBeenCalled()
+    })
+    it('does not validate resources when membership fails', async () => {
+        composer.member.mockRejectedValueOnce(new ForbiddenException())
+        expect((await post('validate', { runtimeResources: { revision: 0, resources: [] } })).status).toBe(403)
+        expect(composer.validateResources).not.toHaveBeenCalled()
     })
 })

@@ -1,4 +1,3 @@
-import { defaultMcpToolApprovalMode, canAllowMcpToolDirectly } from '@xpert-ai/contracts'
 import { Clipboard } from '@angular/cdk/clipboard'
 import { CommonModule } from '@angular/common'
 import {
@@ -13,7 +12,11 @@ import {
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
+import { environment } from '@cloud/environments/environment'
+import { TranslateModule } from '@ngx-translate/core'
 import {
+  canAllowMcpToolDirectly,
+  defaultMcpToolApprovalMode,
   IMcpApiKey,
   IMcpCapabilityCatalog,
   IMcpInvocationAudit,
@@ -25,6 +28,8 @@ import {
   McpCapabilityType
 } from '@xpert-ai/contracts'
 import {
+  XpDialogFrameImports,
+  XpSpinComponent,
   ZardAccordionImports,
   ZardBadgeComponent,
   ZardButtonComponent,
@@ -40,10 +45,7 @@ import {
   ZardTableImports,
   type ZardSelectValue
 } from '@xpert-ai/headless-ui'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
-import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
-import { environment } from '@cloud/environments/environment'
 import {
   CreatedMcpApiKey,
   getErrorMessage,
@@ -55,6 +57,7 @@ import {
   Store,
   XpertToolsetService
 } from '../../../@core'
+import { McpPublicationAuthenticationComponent } from './mcp-publication-authentication'
 
 type PublicationSection = 'basic' | 'capabilities' | 'authentication' | 'policy' | 'instructions' | 'audit' | 'test'
 
@@ -100,6 +103,8 @@ const DEFAULT_MCP_API_KEY_SCOPES = [
     class: 'flex min-h-0 min-w-0 w-full flex-1'
   },
   imports: [
+    ...XpDialogFrameImports,
+    McpPublicationAuthenticationComponent,
     CommonModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -378,9 +383,11 @@ export class XpertMcpPublicationsComponent {
     if (!template) return
     this.createForm.reset({ name: '', slug: '', instructions: '' })
     this.#createServiceDialogRef = this.#dialog.open(template, {
-      width: 'min(92vw, 680px)',
+      width: '680px',
+      maxWidth: 'calc(100vw - 32px)',
+      backdropClass: 'backdrop-blur-xs-black',
       maxHeight: 'min(90vh, 48rem)',
-      panelClass: 'overflow-hidden'
+      panelClass: 'xp-overlay-pane-dialog'
     })
     this.#createServiceDialogRef.closed.subscribe(() => {
       this.#createServiceDialogRef = null

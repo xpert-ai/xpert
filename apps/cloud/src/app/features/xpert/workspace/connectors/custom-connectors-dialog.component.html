@@ -1,72 +1,43 @@
-<section
-  class="flex h-[min(960px,calc(100vh-32px))] w-[min(1280px,calc(100vw-32px))] flex-col"
-  role="dialog"
-  aria-modal="true"
-  [attr.aria-label]="'XP.Xpert.MCPServiceManagement' | translate: { Default: 'MCP service management' }"
->
-  <header class="flex items-start justify-between gap-4 border-b border-divider-regular px-6 py-5">
-    <div class="flex min-w-0 items-center gap-4">
-      <div
-        class="flex size-12 shrink-0 items-center justify-center rounded-lg bg-background-default-subtle text-text-secondary"
-      >
-        <i class="ri-server-line text-2xl" aria-hidden="true"></i>
-      </div>
-      <div class="min-w-0">
-        <h2 class="text-xl font-semibold text-text-primary">
-          {{ 'XP.Xpert.MCPServiceManagement' | translate: { Default: 'MCP service management' } }}
-        </h2>
-        <p class="mt-1 text-sm text-text-secondary">
-          {{
-            'XP.Xpert.MCPServiceManagementDescription'
-              | translate: { Default: 'Install MCP services to extend the tools available to AI.' }
-          }}
-        </p>
-      </div>
-    </div>
-
-    <div class="flex shrink-0 items-center gap-2">
-      <button
-        type="button"
-        class="inline-flex h-10 cursor-pointer items-center gap-2 rounded-lg border border-divider-regular bg-components-card-bg px-3 text-sm font-medium text-text-primary transition-colors hover:bg-hover-bg disabled:cursor-default disabled:opacity-50"
-        [disabled]="!canManage"
-        (click)="createMCPServer()"
-      >
-        <i class="ri-settings-3-line text-lg" aria-hidden="true"></i>
-        {{ 'XP.Xpert.ConfigureMCP' | translate: { Default: 'Configure MCP' } }}
-      </button>
-      <button
-        type="button"
-        class="flex size-10 cursor-pointer items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary"
-        [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
-        [title]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
-        (click)="close()"
-      >
-        <i class="ri-close-line text-xl" aria-hidden="true"></i>
-      </button>
-    </div>
+<section xpDialogLayout="wide" class="h-[min(960px,calc(100dvh-32px))] w-[min(1280px,calc(100vw-32px))]">
+  <header xpDialogHeader>
+    <h2 xpDialogHeading>{{ 'XP.Xpert.MCPServiceManagement' | translate: { Default: 'MCP service management' } }}</h2>
+    <p xpDialogDescription>
+      {{
+        'XP.Xpert.MCPServiceManagementDescription'
+          | translate: { Default: 'Install MCP services to extend the tools available to AI.' }
+      }}
+    </p>
+    <button
+      xpDialogCloseButton
+      z-button
+      zType="ghost"
+      zSize="icon"
+      type="button"
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+      (click)="close()"
+    >
+      <z-icon zType="x" aria-hidden="true" />
+    </button>
   </header>
-
-  <div class="flex min-h-0 flex-1 flex-col px-6 py-5">
-    <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+  <div xpDialogBody class="flex flex-col">
+    <div xpDialogActionGroup="inline" class="flex shrink-0 flex-wrap items-center gap-3">
       <label class="relative min-w-0 flex-1">
         <span class="sr-only">{{ 'XP.Xpert.SearchMCPServers' | translate: { Default: 'Search MCP servers' } }}</span>
-        <i
-          class="ri-search-line pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-lg text-text-tertiary"
-          aria-hidden="true"
-        ></i>
         <input
           type="search"
-          class="h-10 w-full rounded-lg border border-divider-regular bg-components-card-bg pl-10 pr-3 text-sm text-text-primary outline-none transition-colors placeholder:text-text-tertiary focus:border-primary-500"
+          z-input
+          class="w-full"
           [placeholder]="'XP.Xpert.SearchMCPServers' | translate: { Default: 'Search MCP servers' }"
           [ngModel]="searchQuery()"
           (ngModelChange)="searchQuery.set($event)"
         />
       </label>
-      <button
-        type="button"
-        class="inline-flex h-10 cursor-pointer items-center justify-center gap-2 rounded-lg border border-divider-regular bg-components-card-bg px-4 text-sm font-medium text-text-primary transition-colors hover:bg-hover-bg"
-        (click)="openMCPHub()"
-      >
+      <button z-button type="button" [zDisabled]="!canManage" (click)="createMCPServer()">
+        <z-icon zType="settings" aria-hidden="true" />{{
+          'XP.Xpert.ConfigureMCP' | translate: { Default: 'Configure MCP' }
+        }}
+      </button>
+      <button type="button" z-button zType="outline" (click)="openMCPHub()">
         <i class="ri-external-link-line text-lg" aria-hidden="true"></i>
         {{ 'XP.Xpert.MCPHub' | translate: { Default: 'MCP Hub' } }}
       </button>
@@ -141,14 +112,18 @@
                   | translate: { Default: 'Use the configure button to add an MCP server.' }
               }}
             </p>
-            <button
-              type="button"
-              class="mt-5 inline-flex h-10 cursor-pointer items-center rounded-lg border border-divider-regular bg-components-card-bg px-4 text-sm font-medium text-text-primary transition-colors hover:bg-hover-bg disabled:cursor-default disabled:opacity-50"
-              [disabled]="!canManage"
-              (click)="createMCPServer()"
-            >
-              {{ 'XP.Xpert.Configure' | translate: { Default: 'Configure' } }}
-            </button>
+            <div xpDialogActionGroup="inline">
+              <button
+                type="button"
+                z-button
+                zType="outline"
+                class="mt-5"
+                [zDisabled]="!canManage"
+                (click)="createMCPServer()"
+              >
+                {{ 'XP.Xpert.Configure' | translate: { Default: 'Configure' } }}
+              </button>
+            </div>
           }
         </div>
       }

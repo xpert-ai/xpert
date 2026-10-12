@@ -13,6 +13,7 @@ import { RuntimeMessageInboxService } from '../runtime-message-inbox.service'
 import { RuntimeMessageAccessService, AuthorizedRuntimeReply } from '../runtime-message-access.service'
 import { RuntimeMessageContinuationService } from '../runtime-message-continuation.service'
 import { RuntimeMessageTransportService } from '../runtime-message-transport.service'
+import { HandoffOutboxAdapters } from '../../outbox-adapters.service'
 import { RuntimeObservationMonitorService } from '../runtime-observation-monitor.service'
 import { ClaimAgentRuntimeResultsCommand, ProjectRuntimeObservationCommand } from '../runtime-message.commands'
 import { HandoffQueueService } from '../../message-queue.service'
@@ -36,6 +37,7 @@ import { ProjectTaskCaller } from '../../../xpert-project/runtime/project-task-d
 import { XpertProjectTaskExecution } from '../../../xpert-project/entities/project-task-execution.entity'
 import { XpertProjectTask } from '../../../xpert-project/entities/project-task.entity'
 import { queueRecoveryCases } from './queue-recovery.cases'
+import { DeliverGroupTaskResultCommand } from '../../../chat-group/group-project/group-task.commands'
 
 type Fixture = {
     database: DataSource
@@ -306,7 +308,7 @@ export function reliableReturnIntegrationCases(fixture: () => Fixture) {
             const queue = Object.assign(Object.create(HandoffQueueService.prototype) as HandoffQueueService, {
                 enqueue
             })
-            const transport = new RuntimeMessageTransportService(database, access, queue)
+            const transport = new RuntimeMessageTransportService(database, access, queue, new HandoffOutboxAdapters())
             await transport.deliver(delivery)
             expect((await database.getRepository(AgentRuntimeDelivery).findOneBy({ id: delivery.id })).state).toBe(
                 'pending'
@@ -371,6 +373,61 @@ export function reliableReturnIntegrationCases(fixture: () => Fixture) {
             const stored = await database.getRepository(AgentRuntimeInbox).findOneBy({ id: row.id })
             expect(stored.state).toBe('processed')
             expect(run).toHaveBeenCalledTimes(stored.claim.consumer.type === 'wait' ? 0 : 1)
+        })
+        it('uses the same inbox claim for group delivery and wait, without reserving another thread writer', async () => {
+            const { row, invocationId } = await receive()
+            conversation.purpose = 'group_assistant_runtime'
+            await database.getRepository(ChatConversation).update(conversation.id, { purpose: conversation.purpose })
+            const deliver = jest.fn(async (command: DeliverGroupTaskResultCommand) => {
+                expect(command).toBeInstanceOf(DeliverGroupTaskResultCommand)
+                const saved = await database.getRepository(AgentRuntimeInbox).findOneByOrFail({ id: row.id })
+                expect(saved.claim.consumer).toEqual({ type: 'follow_up', executionId: command.executionId })
+                expect(await database.getRepository(XpertAgentExecution).countBy({ id: command.executionId })).toBe(0)
+                return { state: 'processed' as const }
+            })
+            const groupContinuation = new RuntimeMessageContinuationService(database, access, {
+                execute: deliver
+            } as unknown as CommandBus)
+            await Promise.allSettled([
+                inbox.claimWait(new ClaimAgentRuntimeResultsCommand(scope, 'group-wait', [invocationId])),
+                groupContinuation.consume(row),
+                groupContinuation.consume(row)
+            ])
+            const stored = await database.getRepository(AgentRuntimeInbox).findOneByOrFail({ id: row.id })
+            expect(stored.state).toBe('processed')
+            expect(deliver).toHaveBeenCalledTimes(stored.claim.consumer.type === 'wait' ? 0 : 1)
+            expect(run).not.toHaveBeenCalled()
+        })
+        it('retries group publication with the same claim after a transient failure and respects user stop', async () => {
+            const { row } = await receive()
+            conversation.purpose = 'group_assistant_runtime'
+            await database.getRepository(ChatConversation).update(conversation.id, { purpose: conversation.purpose })
+            const deliver = jest
+                .fn()
+                .mockRejectedValueOnce(new Error('offline'))
+                .mockResolvedValue({ state: 'pending' })
+            const groupContinuation = new RuntimeMessageContinuationService(database, access, {
+                execute: deliver
+            } as unknown as CommandBus)
+            await groupContinuation.consume(row)
+            await groupContinuation.consume(row)
+            expect(deliver.mock.calls[1][0]).toEqual(deliver.mock.calls[0][0])
+            const stored = await database.getRepository(AgentRuntimeInbox).findOneByOrFail({ id: row.id })
+            expect(stored.state).toBe('processing')
+            await database.getRepository(ChatConversationThread).update(
+                { threadId: caller.threadId },
+                {
+                    runtimeContinuationBlockedAt: new Date(),
+                    status: 'idle',
+                    runControl: null
+                }
+            )
+            await groupContinuation.consume(row)
+            expect(deliver).toHaveBeenCalledTimes(2)
+            expect(await database.getRepository(AgentRuntimeInbox).findOneByOrFail({ id: row.id })).toMatchObject({
+                state: 'blocked',
+                lastError: 'user_stopped'
+            })
         })
         it('reserves one new turn for an idle parent despite duplicate workers', async () => {
             const { row } = await receive()

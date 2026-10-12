@@ -2,14 +2,20 @@ import { Dialog } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { XpDynamicGridDirective, uploadYamlFile } from '@xpert-ai/headless-ui'
-import { CdkConfirmDeleteComponent, injectConfirmUnique, XpCommonModule } from '@xpert-ai/headless-ui'
-import { myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'
-import { DisplayBehaviour } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import {
+  CdkConfirmDeleteComponent,
+  DisplayBehaviour,
+  injectConfirmUnique,
+  myRxResource,
+  uploadYamlFile,
+  XpCommonModule,
+  XpDynamicGridDirective,
+  XpI18nPipe
+} from '@xpert-ai/headless-ui'
 import { XpertBasicDialogComponent, XpertCardComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { isNil, omitBy } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
@@ -132,6 +138,10 @@ export class XpertWorkspaceXpertsComponent {
 
     this.dialog
       .open<BlankXpertWizardResult>(XpertNewBlankComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        width: '1360px',
+        maxWidth: 'calc(100vw - 32px)',
         disableClose: true,
         data: {
           workspace: this.workspace(),
@@ -153,6 +163,9 @@ export class XpertWorkspaceXpertsComponent {
 
     this.dialog
       .open(CdkConfirmDeleteComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 2rem)',
         data: {
           value: xpert.title,
           information: this.#translate.instant('XP.Xpert.DeleteAllDataXpert', {
@@ -217,6 +230,9 @@ export class XpertWorkspaceXpertsComponent {
   handleImportedDSL(dsl: TXpertTeamDraft) {
     this.dialog
       .open<Partial<IXpert>>(XpertBasicDialogComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           name: dsl.team.name,
           avatar: dsl.team.avatar,

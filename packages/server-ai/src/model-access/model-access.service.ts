@@ -2111,7 +2111,12 @@ export class ModelAccessService {
                 copilot.modelProvider.isValid !== false &&
                 custom?.isValid !== false &&
                 predefined?.deprecated !== true,
-            usesOrganizationCredentials: usesOrganizationCredentials(copilot, organizationId)
+            usesOrganizationCredentials: usesOrganizationCredentials(
+                copilot,
+                organizationId,
+                custom,
+                providerSchema.model_credential_schema
+            )
         }
     }
 
@@ -2351,6 +2356,14 @@ export class ModelAccessService {
                 target.copilotId
             )
         )
+    }
+
+    /** Credential presence only; callers retain their existing access policy. */
+    async hasOrganizationModelCredentials(
+        input: Pick<ResolveModelInput, 'tenantId' | 'organizationId' | 'copilotId' | 'copilotModelId' | 'modelType'>
+    ): Promise<boolean> {
+        const target = await this.loadTarget(input, input.organizationId)
+        return target?.enabled === true && target.usesOrganizationCredentials
     }
 
     async hasConfiguredOrganizationModels(tenantId: string, organizationId: string): Promise<boolean> {

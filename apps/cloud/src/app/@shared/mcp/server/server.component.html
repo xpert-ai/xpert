@@ -1,14 +1,15 @@
-<div class="flex flex-col gap-2 p-2 overflow-auto">
+<div class="flex min-w-0 flex-col gap-4">
   <div class="flex justify-center pb-2">
     <ul
-      class="w-80 p-1 flex items-center justify-center gap-2 bg-hover-bg rounded-xl"
+      class="w-full p-1 flex flex-wrap items-center justify-center gap-2 bg-hover-bg rounded-xl"
       cdkListbox
       [(ngModel)]="types"
       (ngModelChange)="updateType($event)"
     >
       <li
+        xpDialogControl="single"
         #option1="cdkOption"
-        class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium"
+        class="flex flex-1 items-center justify-center rounded-md font-medium"
         [class.selected]="option1.isSelected()"
         [cdkOption]="eMCPServerType.SSE"
         [cdkOptionDisabled]="!!toolsetId()"
@@ -17,8 +18,9 @@
         <i class="ri-route-line mr-1"></i>SSE
       </li>
       <li
+        xpDialogControl="single"
         #option4="cdkOption"
-        class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium"
+        class="flex flex-1 items-center justify-center rounded-md font-medium"
         [class.selected]="option4.isSelected()"
         [cdkOption]="eMCPServerType.HTTP"
         [cdkOptionDisabled]="!!toolsetId()"
@@ -27,8 +29,9 @@
         <i class="ri-global-line mr-1"></i>HTTP
       </li>
       <li
+        xpDialogControl="single"
         #option2="cdkOption"
-        class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium"
+        class="flex flex-1 items-center justify-center rounded-md font-medium"
         [class.selected]="option2.isSelected()"
         [cdkOption]="eMCPServerType.STDIO"
         [cdkOptionDisabled]="!!toolsetId()"
@@ -38,8 +41,9 @@
       </li>
 
       <li
+        xpDialogControl="single"
         #option3="cdkOption"
-        class="relative p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium"
+        class="relative flex flex-1 items-center justify-center rounded-md font-medium"
         [class.selected]="option3.isSelected()"
         [cdkOption]="eMCPServerType.CODE"
         [cdkOptionDisabled]="!pro || !!toolsetId()"
@@ -48,7 +52,7 @@
         <i class="ri-code-s-slash-line mr-1"></i>Code
         @if (!pro) {
           <div
-            class="absolute -right-1 -top-1 w-5 h-5 flex justify-center items-center shadow-sm rounded-md bg-components-card-bg text-orange-500"
+            class="absolute -right-1 -top-1 w-5 h-5 flex justify-center items-center shadow-sm rounded-md bg-components-card-bg text-text-warning"
             [zTooltip]="'PRO'"
             zPosition="top"
           >
@@ -63,14 +67,14 @@
     <div class="flex justify-between items-center">
       <div class="py-2 leading-5 font-medium">
         {{ 'XP.Xpert.Schema' | translate: { Default: 'Schema' } }}
-        <span class="ml-1 text-red-500">*</span>
+        <span class="ml-1 text-destructive">*</span>
       </div>
-      <div class="mx-2 w-px h-3 bg-black/5"></div>
+      <div class="mx-2 w-px h-3 bg-border"></div>
       <a
         href="https://modelcontextprotocol.io/introduction"
         target="_blank"
         rel="noopener noreferrer"
-        class="group flex items-center h-[18px] space-x-1 text-[#155EEF] hover:text-primary-600"
+        class="group flex items-center h-[18px] space-x-1 text-primary hover:text-primary/80"
       >
         <div class="text-xs font-normal">
           {{ 'XP.Xpert.ViewMCPSpec' | translate: { Default: 'View the MCP Specification' } }}
@@ -106,7 +110,7 @@
       </div>
       <div class="grow">
         <div class="relative w-full">
-          <input class="xp-input w-full" [(ngModel)]="url" />
+          <input z-input class="w-full" [(ngModel)]="url" />
         </div>
       </div>
     </div>
@@ -121,7 +125,7 @@
       </div>
     }
 
-    <div class="my-4 space-y-3 rounded-xl border border-divider-regular p-3">
+    <div class="my-4 space-y-3 border-t border-border pt-4">
       <div class="text-semibold flex h-6 items-center text-text-secondary">
         {{ 'XP.MCP.Authentication' | translate: { Default: 'Authentication' } }}
       </div>
@@ -130,7 +134,7 @@
           {{ 'XP.AgentPlugins.ConnectorAuthorization' | translate: { Default: 'Authorize through Connector' } }}
         </div>
       } @else {
-        <z-select class="w-full" zSize="sm" [zValue]="authType()" (zSelectionChange)="selectAuthType($event)">
+        <z-select class="w-full" [zValue]="authType()" (zSelectionChange)="selectAuthType($event)">
           <z-select-item zValue="none">
             {{ 'XP.MCP.AuthNone' | translate: { Default: 'No authentication' } }}
           </z-select-item>
@@ -173,7 +177,7 @@
 
       @if (authType() === 'oauth') {
         <div class="grid grid-cols-2 gap-3">
-          <z-select class="w-full" zSize="sm" [zValue]="oauthBinding" (zSelectionChange)="selectOAuthBinding($event)">
+          <z-select class="w-full" [zValue]="oauthBinding" (zSelectionChange)="selectOAuthBinding($event)">
             <z-select-item zValue="user">
               {{ 'XP.MCP.OAuthUserBinding' | translate: { Default: 'Current user' } }}
             </z-select-item>
@@ -189,15 +193,15 @@
           />
         </div>
         @if (toolsetId()) {
-          <div class="flex flex-wrap items-center gap-2">
-            <button type="button" class="btn btn-primary" (click)="authorizeOAuth()">
+          <div xpDialogActionGroup="inline" class="flex flex-wrap items-center gap-2">
+            <button type="button" z-button (click)="authorizeOAuth()">
               {{ 'XP.MCP.AuthorizeOAuth' | translate: { Default: 'Authorize' } }}
             </button>
-            <button type="button" class="btn" (click)="refreshOAuthStatus()">
+            <button type="button" z-button zType="outline" (click)="refreshOAuthStatus()">
               {{ 'XP.MCP.RefreshOAuthStatus' | translate: { Default: 'Refresh status' } }}
             </button>
             @if (oauthStatus() === 'connected' || oauthStatus() === 'expired') {
-              <button type="button" class="btn btn-danger" (click)="disconnectOAuth()">
+              <button type="button" z-button zType="destructive" (click)="disconnectOAuth()">
                 {{ 'XP.MCP.DisconnectOAuth' | translate: { Default: 'Disconnect' } }}
               </button>
             }
@@ -221,15 +225,20 @@
 
     @if (authType() === 'manual_header') {
       <div class="my-4">
-        <div class="text-semibold mb-1 flex h-6 justify-between items-center gap-1 text-text-secondary">
+        <div class="mb-1 flex justify-between items-center gap-1 text-text-secondary">
           <div class="truncate">{{ 'XP.MCP.Headers' | translate: { Default: 'Headers' } }}</div>
 
-          <div
-            class="w-6 h-6 flex justify-center items-center rounded-md cursor-pointer hover:bg-hover-bg select-none pressable"
-            (click)="addHeader()"
-          >
-            <i class="ri-add-line"></i>
-          </div>
+          <span xpDialogActionGroup="inline"
+            ><button
+              z-button
+              zType="ghost"
+              zSize="icon"
+              type="button"
+              [attr.aria-label]="'XP.KEY_WORDS.AddItem' | translate"
+              (click)="addHeader()"
+            >
+              <z-icon zType="plus" /></button
+          ></span>
         </div>
 
         <div class="grid grid-cols-3 gap-3">
@@ -239,7 +248,8 @@
             <div class="col-span-1">
               <input
                 #input1
-                class="xp-input w-full"
+                z-input
+                class="w-full"
                 [ngModel]="row[0]"
                 (blur)="updateHeaderName(row[0], input1.value)"
               />
@@ -252,12 +262,17 @@
                 [ngModel]="row[1]"
                 (blur)="updateHeaderValue(row[0], input2.value$())"
               />
-              <div
-                class="w-7 h-7 btn flex justify-center items-center rounded-lg cursor-pointer hover:bg-hover-bg select-none danger pressable"
-                (click)="removeHeader(row[0])"
-              >
-                <i class="ri-close-line"></i>
-              </div>
+              <span xpDialogActionGroup="inline"
+                ><button
+                  z-button
+                  zType="ghost"
+                  zSize="icon"
+                  type="button"
+                  [attr.aria-label]="'XP.ACTIONS.Remove' | translate"
+                  (click)="removeHeader(row[0])"
+                >
+                  <z-icon zType="x" /></button
+              ></span>
             </div>
           } @empty {
             <div
@@ -271,26 +286,31 @@
     }
   } @else {
     <div class="">
-      <div class="text-semibold mb-1 flex h-6 justify-between items-center gap-1 text-text-secondary">
+      <div class="mb-1 flex justify-between items-center gap-1 text-text-secondary">
         <div class="truncate">{{ 'XP.MCP.Command' | translate: { Default: 'Command' } }}</div>
       </div>
       <div class="grow">
         <div class="relative w-full">
-          <input class="xp-input w-full" [(ngModel)]="command" [disabled]="isCode()" />
+          <input z-input class="w-full" [(ngModel)]="command" [disabled]="isCode()" />
         </div>
       </div>
     </div>
 
     <div class="my-4">
-      <div class="text-semibold mb-1 flex h-6 justify-between items-center gap-1 text-text-secondary">
+      <div class="mb-1 flex justify-between items-center gap-1 text-text-secondary">
         <div class="truncate">{{ 'XP.MCP.Args' | translate: { Default: 'Args' } }}</div>
 
-        <div
-          class="pressable w-6 h-6 flex justify-center items-center rounded-md cursor-pointer hover:bg-hover-bg select-none"
-          (click)="addArg()"
-        >
-          <i class="ri-add-line"></i>
-        </div>
+        <span xpDialogActionGroup="inline"
+          ><button
+            z-button
+            zType="ghost"
+            zSize="icon"
+            type="button"
+            [attr.aria-label]="'XP.KEY_WORDS.AddItem' | translate"
+            (click)="addArg()"
+          >
+            <z-icon zType="plus" /></button
+        ></span>
       </div>
       <div class="grow space-y-2">
         @for (item of args(); track i; let i = $index) {
@@ -303,12 +323,17 @@
               (ngModelChange)="updateArg(i, $event)"
             />
 
-            <div
-              class="pressable w-7 h-7 shrink-0 btn flex justify-center items-center rounded-lg cursor-pointer hover:bg-hover-bg select-none danger"
-              (click)="removeArg(i)"
-            >
-              <i class="ri-close-line"></i>
-            </div>
+            <span xpDialogActionGroup="inline"
+              ><button
+                z-button
+                zType="ghost"
+                zSize="icon"
+                type="button"
+                [attr.aria-label]="'XP.ACTIONS.Remove' | translate"
+                (click)="removeArg(i)"
+              >
+                <z-icon zType="x" /></button
+            ></span>
           </div>
         } @empty {
           <div
@@ -322,15 +347,20 @@
 
     @if (types()[0] !== 'sse') {
       <div class="my-4">
-        <div class="text-semibold mb-1 flex h-6 justify-between items-center gap-1 text-text-secondary">
+        <div class="mb-1 flex justify-between items-center gap-1 text-text-secondary">
           <div class="truncate">{{ 'XP.MCP.Env' | translate: { Default: 'Env' } }}</div>
 
-          <div
-            class="w-6 h-6 flex justify-center items-center rounded-md cursor-pointer hover:bg-hover-bg select-none pressable"
-            (click)="addEnv()"
-          >
-            <i class="ri-add-line"></i>
-          </div>
+          <span xpDialogActionGroup="inline"
+            ><button
+              z-button
+              zType="ghost"
+              zSize="icon"
+              type="button"
+              [attr.aria-label]="'XP.KEY_WORDS.AddItem' | translate"
+              (click)="addEnv()"
+            >
+              <z-icon zType="plus" /></button
+          ></span>
         </div>
 
         <div class="grid grid-cols-3 gap-3">
@@ -338,7 +368,7 @@
           <div class="col-span-2">{{ 'XP.MCP.Value' | translate: { Default: 'Value' } }}</div>
           @for (row of env() | entries; track row[0]) {
             <div class="col-span-1">
-              <input #input1 class="xp-input w-full" [ngModel]="row[0]" (blur)="updateEnvName(row[0], input1.value)" />
+              <input #input1 z-input class="w-full" [ngModel]="row[0]" (blur)="updateEnvName(row[0], input1.value)" />
             </div>
             <div class="col-span-2 flex items-center gap-1">
               <xpert-env-input
@@ -348,12 +378,17 @@
                 [ngModel]="row[1]"
                 (blur)="updateEnvValue(row[0], input2.value$())"
               />
-              <div
-                class="w-7 h-7 btn flex justify-center items-center rounded-lg cursor-pointer hover:bg-hover-bg select-none danger pressable"
-                (click)="removeEnv(row[0])"
-              >
-                <i class="ri-close-line"></i>
-              </div>
+              <span xpDialogActionGroup="inline"
+                ><button
+                  z-button
+                  zType="ghost"
+                  zSize="icon"
+                  type="button"
+                  [attr.aria-label]="'XP.ACTIONS.Remove' | translate"
+                  (click)="removeEnv(row[0])"
+                >
+                  <z-icon zType="x" /></button
+              ></span>
             </div>
           } @empty {
             <div
@@ -369,7 +404,7 @@
 
   <!-- @if (types()[0] !== eMCPServerType.STDIO) { -->
   <div class="my-4">
-    <div class="text-semibold mb-1 flex h-6 justify-between items-center gap-1 text-text-secondary">
+    <div class="mb-1 flex justify-between items-center gap-1 text-text-secondary">
       <div class="truncate">{{ 'XP.MCP.Reconnect' | translate: { Default: 'Reconnect' } }}</div>
 
       <z-switch [(ngModel)]="reconnectEnabled" />
@@ -400,29 +435,24 @@
   <!-- } -->
 
   <div class="my-2">
-    <div class="text-semibold mb-1 flex h-6 justify-between items-center gap-1 text-text-secondary">
+    <div class="mb-1 flex justify-between items-center gap-1 text-text-secondary">
       <div class="truncate">{{ 'XP.MCP.ToolNamePrefix' | translate: { Default: 'Tool Name Prefix' } }}</div>
     </div>
     <div class="grow">
       <div class="relative w-full">
-        <input class="xp-input w-full" [(ngModel)]="toolNamePrefix" />
+        <input z-input class="w-full" [(ngModel)]="toolNamePrefix" />
       </div>
     </div>
   </div>
 
-  <div class="w-full mt-4 flex justify-between space-x-2">
-    <button
-      type="button"
-      class="shrink-0 grow btn disabled:btn-disabled btn-primary btn-large justify-center shadow-sm"
-      [disabled]="loading()"
-      (click)="connect()"
-    >
+  <div xpDialogActionGroup="inline" class="mt-4 flex flex-wrap gap-2">
+    <button type="button" z-button class="flex-1" [zLoading]="loading()" [zDisabled]="loading()" (click)="connect()">
       <i class="ri-play-large-line mr-1"></i>
       {{ 'XP.MCP.Connect' | translate: { Default: 'Connect' } }}
     </button>
 
     @if (loading()) {
-      <button type="button" class="btn disabled:btn-disabled h-10 btn-danger pressable" (click)="stopConnect()">
+      <button type="button" z-button zType="destructive" (click)="stopConnect()">
         <div class="w-full text-center">
           <i class="ri-stop-line"></i>
           {{ 'XP.Xpert.Stop' | translate: { Default: 'Stop' } }}
@@ -485,7 +515,7 @@
         <button
           #view1="cdkOption"
           type="button"
-          class="view-option p-2 inline-flex items-center gap-x-2 border-b-2 border-transparent text-sm whitespace-nowrap text-text-tertiary hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none active"
+          class="view-option p-2 inline-flex items-center gap-x-2 border-b-2 border-transparent text-sm whitespace-nowrap text-text-tertiary hover:text-primary focus:outline-hidden focus:text-primary disabled:opacity-50 disabled:pointer-events-none active"
           id="tabs-with-icons-item-1"
           aria-selected="true"
           data-hs-tab="#tabs-with-icons-1"
@@ -502,7 +532,7 @@
         <button
           #view2="cdkOption"
           type="button"
-          class="view-option p-2 inline-flex items-center gap-x-2 border-b-2 border-transparent text-sm whitespace-nowrap text-text-tertiary hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none active"
+          class="view-option p-2 inline-flex items-center gap-x-2 border-b-2 border-transparent text-sm whitespace-nowrap text-text-tertiary hover:text-primary focus:outline-hidden focus:text-primary disabled:opacity-50 disabled:pointer-events-none active"
           id="tabs-with-icons-item-1"
           aria-selected="true"
           data-hs-tab="#tabs-with-icons-1"
@@ -518,7 +548,7 @@
       <button
         #view3="cdkOption"
         type="button"
-        class="view-option p-2 pr-4 inline-flex items-center gap-x-2 border-b-2 border-transparent text-sm whitespace-nowrap text-text-tertiary hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none"
+        class="view-option p-2 pr-4 inline-flex items-center gap-x-2 border-b-2 border-transparent text-sm whitespace-nowrap text-text-tertiary hover:text-primary focus:outline-hidden focus:text-primary disabled:opacity-50 disabled:pointer-events-none"
         id="tabs-with-icons-item-2"
         aria-selected="false"
         data-hs-tab="#tabs-with-icons-2"
@@ -553,6 +583,7 @@
           <ul cdkListbox [(ngModel)]="fileIndex" class="shrink-0 flex justify-start items-center gap-2 mb-2">
             @for (file of files(); track file; let i = $index) {
               <li
+                xpDialogControl="single"
                 class="file-option px-2 py-0.5 rounded-lg cursor-pointer border border-solid border-transparent hover:bg-hover-bg"
                 [cdkOption]="i"
                 [class.active]="i === fileIndex()[0]"

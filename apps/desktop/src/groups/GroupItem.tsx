@@ -39,14 +39,17 @@ export function GroupItem({
       <ContextMenuTrigger asChild>
         <div
           data-conversation-kind={group.purpose}
-          className={`group relative flex shrink-0 items-center rounded-xl transition-colors ${compact ? 'size-12 justify-center' : pinned ? 'min-w-0 flex-col gap-2 px-2 py-3' : 'w-full gap-[var(--desktop-avatar-gap)] px-2 py-[var(--desktop-row-padding)]'} ${active ? 'bg-primary/10' : 'hover:bg-muted'}`}
+          onClick={(event) => {
+            if (event.target === event.currentTarget) onSelect(group.id)
+          }}
+          className={`group relative flex shrink-0 cursor-pointer items-center rounded-xl transition-colors ${compact ? 'size-12 justify-center' : pinned ? 'min-w-0 flex-col gap-2 px-2 py-3' : 'w-full gap-[var(--desktop-avatar-gap)] px-2 py-[var(--desktop-row-padding)]'} ${active ? 'bg-primary/10' : 'hover:bg-muted'}`}
         >
           <button
             aria-label={compact ? group.title : t('{{name}} avatar', { name: group.title })}
             aria-current={active ? 'page' : undefined}
             title={group.title}
             onClick={() => onSelect(group.id)}
-            className="relative shrink-0 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="relative shrink-0 cursor-default rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <span className={`block ${compact ? 'size-10' : pinned ? 'size-14' : 'size-12'}`}>
               <GroupAvatar members={group.members} memberCount={group.memberCount} />
@@ -64,7 +67,7 @@ export function GroupItem({
               aria-current={active ? 'page' : undefined}
               title={group.lastMessage || group.title}
               onClick={() => onSelect(group.id)}
-              className={`min-w-0 self-stretch rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring ${pinned ? 'w-full text-center' : 'flex-1 text-left'}`}
+              className={`min-w-0 cursor-pointer self-stretch rounded-md outline-none focus-visible:ring-2 focus-visible:ring-ring ${pinned ? 'w-full text-center' : 'flex-1 text-left'}`}
             >
               <span
                 className={`block truncate leading-5 ${pinned ? 'text-xs' : 'text-sm'} ${active || group.unread ? 'font-semibold' : 'font-medium'}`}
@@ -84,7 +87,7 @@ export function GroupItem({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="absolute right-1 top-1 size-6 opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100"
+                  className="absolute right-1 top-1 size-6 cursor-pointer opacity-0 group-hover:opacity-100 focus-visible:opacity-100 data-[state=open]:opacity-100"
                   aria-label={t('Group options')}
                 >
                   <MoreHorizontal className="size-4" />

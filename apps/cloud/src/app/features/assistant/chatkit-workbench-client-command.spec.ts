@@ -52,7 +52,8 @@ describe('embedded ChatKit Workbench host bridge', () => {
       hostType: 'agent',
       hostId: 'assistant',
       viewKey: manifest.key,
-      manifest
+      manifest,
+      runtimeScope: { projectId: 'project', conversationId: 'current' }
     })
   })
   it.each([

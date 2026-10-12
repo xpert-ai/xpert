@@ -31,6 +31,7 @@ import { XP_API_BASE_URL } from '@cloud/app/auth'
 import { environment } from '../environments/environment'
 import { createUiI18nAdapter, I18nService, initI18n } from './@shared/i18n'
 import { CustomElementsService, initializeCustomElements, provideChatMarkdown } from './@shared/chat'
+import { BrowserAudioCaptureService } from './@shared/browser-audio-capture'
 
 const TYPE_KEY = '__subject__'
 function detectSubjectType(subject) {
@@ -68,6 +69,12 @@ function detectSubjectType(subject) {
     })
   ],
   providers: [
+    {
+      provide: APP_INITIALIZER,
+      useFactory: (capture: BrowserAudioCaptureService) => () => capture.register(),
+      deps: [BrowserAudioCaptureService],
+      multi: true
+    },
     provideHttpClient(withInterceptorsFromDi()),
     provideAnimations(),
     provideZard(),

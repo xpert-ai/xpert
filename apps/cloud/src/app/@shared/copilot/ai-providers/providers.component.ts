@@ -1,10 +1,18 @@
+import {
+  XpDialogFrameImports,
+  ZardButtonComponent,
+  XpDialogActionGroupDirective,
+  ZardInputDirective,
+  ZardTooltipImports,
+  XpI18nPipe
+} from '@xpert-ai/headless-ui'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
+
 import { TranslateModule } from '@ngx-translate/core'
 import { Dialog, DialogRef, DIALOG_DATA } from '@angular/cdk/dialog'
-import { XpI18nPipe } from '@xpert-ai/headless-ui'
+
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import {
   getErrorMessage,
@@ -21,9 +29,11 @@ import { CopilotAiProviderAuthComponent } from '../provider-authorization/author
   standalone: true,
   selector: 'copilot-ai-providers-dialog',
   templateUrl: './providers.component.html',
-  styleUrls: ['./providers.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    ...XpDialogFrameImports,
+    ZardButtonComponent,
+    XpDialogActionGroupDirective,
     CommonModule,
     FormsModule,
     TranslateModule,
@@ -73,6 +83,9 @@ export class CopilotAiProvidersComponent {
   openSetup(provider: IAiProviderEntity) {
     this.#dialog
       .open(CopilotAiProviderAuthComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           provider: provider,
           copilot: this.copilot()

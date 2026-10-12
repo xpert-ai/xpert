@@ -1,5 +1,6 @@
 // A Desktop changeset requests a candidate. Consuming it on main authorizes a
 // stable build; dependency-only version bumps must not accidentally release Bosi.
+// Versions inherited from a newly merged main ancestor only establish a candidate baseline.
 import { execFileSync } from 'node:child_process'
 import { appendFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -17,7 +18,7 @@ export const platforms = [
   { id: 'linux-x64', runner: 'ubuntu-24.04', platform: 'linux', arch: 'x64' },
   { id: 'linux-arm64', runner: 'ubuntu-24.04-arm', platform: 'linux', arch: 'arm64' }
 ]
-export function releasePlan({ before, after, event, ref, cwd = process.cwd() }) {
+export function releasePlan({ before, after, event, ref, mainSha, cwd = process.cwd() }) {
   if (!['push', 'pull_request'].includes(event)) throw new Error('Unsupported Desktop release event')
   const skip = (reason) => ({ build: false, reason })
   if (event === 'push' && !['refs/heads/main', 'refs/heads/develop'].includes(ref)) return skip('Not a release branch')
@@ -61,7 +62,20 @@ export function releasePlan({ before, after, event, ref, cwd = process.cwd() }) 
       version,
       pending.reduce((highest, note) => (priorities[note.type] > priorities[highest] ? note.type : highest), 'patch')
     )
-  const bumped = current.version !== previous.version
+  let adoptedMainVersion = false
+  if (mainSha !== undefined) {
+    if (!/^[a-f0-9]{40}$/.test(mainSha)) throw new Error('Exact main commit SHA required')
+    const ancestor = git('merge-base', mainSha, after)
+    if (
+      (event === 'pull_request' || ref === 'refs/heads/develop') &&
+      git('merge-base', before, ancestor) !== ancestor &&
+      git('ls-tree', '--name-only', ancestor, '--', manifestPath) === manifestPath
+    )
+      adoptedMainVersion =
+        semver.gt(current.version, previous.version) &&
+        JSON.parse(read(ancestor, manifestPath)).version === current.version
+  }
+  const bumped = current.version !== previous.version && !adoptedMainVersion
   let baseVersion, evidence
   if (bumped) {
     if (!oldNotes.length) return skip('No Desktop changeset: dependency-only or unrequested version bump')
@@ -96,7 +110,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     before: process.env.DESKTOP_RELEASE_BEFORE,
     after: process.env.DESKTOP_RELEASE_AFTER,
     event: process.env.DESKTOP_RELEASE_EVENT,
-    ref: process.env.DESKTOP_RELEASE_REF
+    ref: process.env.DESKTOP_RELEASE_REF,
+    mainSha: process.env.DESKTOP_RELEASE_MAIN
   })
   console.log(JSON.stringify(plan))
   if (process.env.GITHUB_OUTPUT)

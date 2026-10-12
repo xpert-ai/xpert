@@ -1,28 +1,36 @@
+import {
+  XpDialogFrameImports,
+  ZardButtonComponent,
+  ZardInputDirective,
+  XpDialogControlDirective,
+  ZardRadioGroupComponent,
+  ZardRadioComponent,
+  linkedModel
+} from '@xpert-ai/headless-ui'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { linkedModel } from '@xpert-ai/headless-ui'
-import { XpRadioSelectComponent } from '@xpert-ai/headless-ui'
+
 import { TranslateModule } from '@ngx-translate/core'
 import { ApiAuthType, TSelectOption, TWorkflowAuthorization, TWorkflowVarGroup } from '../../../@core/types'
-import { TXpertVariablesOptions, XpertVariableInputComponent } from '../../agent'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { XpertVariableInputComponent } from '../../agent'
 @Component({
   selector: 'xpert-workflow-authorization',
   templateUrl: './authorization.component.html',
-  styleUrls: ['./authorization.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    ...XpDialogFrameImports,
+    ZardButtonComponent,
+    ZardInputDirective,
+    XpDialogControlDirective,
+    ZardRadioGroupComponent,
+    ZardRadioComponent,
     FormsModule,
-    CdkMenuModule,
     DragDropModule,
     TranslateModule,
-    ...ZardTooltipImports,
-    XpRadioSelectComponent,
     XpertVariableInputComponent
   ]
 })

@@ -1,8 +1,8 @@
+import { XpDialogFrameImports, ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { Component, inject } from '@angular/core'
 import { Router } from '@angular/router'
 import { I18nService } from '@cloud/app/@shared/i18n'
 import { UsersService } from '@cloud/app/@core/state'
-import { OverlayAnimation1 } from '@xpert-ai/headless-ui'
 import { ThemesEnum } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectHelpWebsite, injectToastr, LANGUAGES, Store } from '../../../@core'
@@ -12,11 +12,9 @@ import { environment } from '@cloud/environments/environment'
 
 @Component({
   standalone: true,
-  imports: [TranslateModule],
+  imports: [...XpDialogFrameImports, ZardButtonComponent, TranslateModule],
   selector: 'xp-header-about',
-  templateUrl: './about.component.html',
-  styleUrl: 'about.component.scss',
-  animations: [OverlayAnimation1]
+  templateUrl: './about.component.html'
 })
 export class HeaderAboutComponent {
   languages = LANGUAGES

@@ -1,14 +1,20 @@
+import {
+  ZardButtonComponent,
+  XpDialogActionGroupDirective,
+  ZardInputDirective,
+  attrModel,
+  linkedModel,
+  ZardDatePickerComponent
+} from '@xpert-ai/headless-ui'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { TaskFrequency, TScheduleOptions } from '@cloud/app/@core'
-import { attrModel, linkedModel } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { format, parse } from 'date-fns'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-import { ZardDatePickerComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xp-schedule-form',
@@ -20,7 +26,10 @@ import { ZardDatePickerComponent } from '@xpert-ai/headless-ui'
     ReactiveFormsModule,
     CdkListboxModule,
     CdkMenuModule,
-    ZardDatePickerComponent
+    ZardDatePickerComponent,
+    ZardButtonComponent,
+    XpDialogActionGroupDirective,
+    ZardInputDirective
   ],
   templateUrl: './form.component.html',
   styleUrl: './form.component.scss',

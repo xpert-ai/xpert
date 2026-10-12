@@ -198,13 +198,15 @@ export async function loadDocumentPreview(url: string): Promise<Blob> {
 
 export function createFilePreviewState(
   source: Signal<FilePreviewSource | null>,
-  loadText: (url: string) => Promise<string>
+  loadText: (url: string) => Promise<string>,
+  revision?: Signal<number>
 ) {
   const previewKind = computed(() => resolveFilePreviewKind(source()))
   const previewData = signal<FilePreviewData>(createEmptyFilePreviewData())
   const previewLoading = signal(false)
 
   effect((onCleanup) => {
+    revision?.()
     const currentSource = source()
     const kind = previewKind()
     let active = true

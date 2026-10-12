@@ -1,3 +1,13 @@
+import {
+  ZardButtonComponent,
+  XpDialogFrameImports,
+  XpDialogActionGroupDirective,
+  myRxResource,
+  XpI18nPipe,
+  ZardCheckboxComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
+
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 
@@ -5,7 +15,6 @@ import { Component, computed, effect, inject, model, signal } from '@angular/cor
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { IconComponent } from '@cloud/app/@shared/avatar'
-import { myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { nonNullable } from '@xpert-ai/contracts'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
@@ -35,7 +44,6 @@ import { KnowledgeDocumentsComponent } from '../../documents.component'
 import { KnowledgeDocumentPipelineComponent } from '../pipeline.component'
 import { XpertParametersFormComponent } from '@cloud/app/@shared/xpert'
 import { MarkdownModule } from 'ngx-markdown'
-import { ZardButtonComponent, ZardCheckboxComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -58,7 +66,9 @@ import { ZardButtonComponent, ZardCheckboxComponent, ZardTooltipImports } from '
     KnowledgeFilePreviewComponent,
     KnowledgeLocalFileComponent,
     XpertParametersFormComponent,
-    KnowledgeDocumentPreviewComponent
+    KnowledgeDocumentPreviewComponent,
+    ...XpDialogFrameImports,
+    XpDialogActionGroupDirective
   ]
 })
 export class KnowledgeDocumentPipelineStep1Component {

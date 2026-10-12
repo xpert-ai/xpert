@@ -1,3 +1,20 @@
+import {
+  ZardButtonComponent,
+  ZardRadioGroupComponent,
+  ZardRadioComponent,
+  ZardToggleGroupComponent,
+  ZardToggleGroupItemComponent,
+  XpDialogFrameImports,
+  XpDialogControlDirective,
+  ZardInputDirective,
+  ZardBadgeComponent,
+  ZardEmptyComponent,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardLoaderComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
+import { DialogRef, DIALOG_DATA } from '@angular/cdk/dialog'
 import { Component, OnInit, computed, effect, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
@@ -12,18 +29,6 @@ import { ToastrService } from '@cloud/app/@core/services/toastr.service'
 import { CommonModule } from '@angular/common'
 
 import { FormlyModule } from '@ngx-formly/core'
-import {
-  Z_MODAL_DATA,
-  ZardBadgeComponent,
-  ZardButtonComponent,
-  ZardDialogRef,
-  ZardEmptyComponent,
-  ZardFormImports,
-  ZardIconComponent,
-  ZardInputDirective,
-  ZardLoaderComponent,
-  ZardTooltipImports
-} from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -39,11 +44,16 @@ import {
     ZardInputDirective,
     ZardLoaderComponent,
     ...ZardFormImports,
-    ...ZardTooltipImports
+    ...ZardTooltipImports,
+    ...XpDialogFrameImports,
+    XpDialogControlDirective,
+    ZardToggleGroupComponent,
+    ZardToggleGroupItemComponent,
+    ZardRadioGroupComponent,
+    ZardRadioComponent
   ],
   selector: 'xp-data-source-creation',
-  templateUrl: './creation.component.html',
-  styleUrls: ['./creation.component.scss']
+  templateUrl: './creation.component.html'
 })
 export class XpDataSourceCreationComponent implements OnInit {
   AuthenticationEnum = AuthenticationEnum
@@ -52,8 +62,8 @@ export class XpDataSourceCreationComponent implements OnInit {
   private dataSourceService = inject(DataSourceService)
   private toastrService = inject(ToastrService)
   private translateService = inject(TranslateService)
-  private data = inject<IDataSource | null>(Z_MODAL_DATA, { optional: true })
-  public dialogRef = inject<ZardDialogRef<XpDataSourceCreationComponent, Partial<IDataSource>>>(ZardDialogRef)
+  private data = inject<IDataSource | null>(DIALOG_DATA, { optional: true })
+  public dialogRef = inject<DialogRef<Partial<IDataSource>, XpDataSourceCreationComponent>>(DialogRef)
   private dataSourceConnection = inject(DataSourceConnectionService)
 
   readonly loading = signal(false)

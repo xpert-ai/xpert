@@ -5,11 +5,12 @@ import { FormControl, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { debounceTime, distinctUntilChanged, firstValueFrom } from 'rxjs'
 import {
+  XP_DIALOG_CONTEXT,
+  XpDialogActionGroupDirective,
   ZardBadgeComponent,
   ZardButtonComponent,
   ZardIconComponent,
   ZardInputDirective,
-  ZardInputGroupComponent,
   ZardTableImports
 } from '@xpert-ai/headless-ui'
 import { injectToastr } from '../../@core/services/toastr.service'
@@ -23,35 +24,37 @@ import { getErrorMessage, IXpertAccessRequest } from '../../@core/types'
     CommonModule,
     ReactiveFormsModule,
     TranslateModule,
+    XpDialogActionGroupDirective,
     ZardBadgeComponent,
     ZardButtonComponent,
     ZardIconComponent,
     ZardInputDirective,
-    ZardInputGroupComponent,
     ...ZardTableImports
   ],
   template: `
-    <ng-template #searchIcon>
-      <z-icon zType="search" class="size-4 text-muted-foreground" />
-    </ng-template>
-
-    <section class="flex h-full min-h-0 flex-col overflow-hidden rounded-lg border border-border bg-card shadow-sm">
-      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3">
+    <section
+      class="flex h-full min-h-0 flex-col overflow-hidden"
+      [class]="inDialog ? '' : 'rounded-lg border border-border bg-card shadow-sm'"
+    >
+      <div
+        [xpDialogActionGroup]="inDialog ? 'inline' : null"
+        class="flex flex-wrap items-center justify-between gap-3 border-b border-border"
+        [class]="inDialog ? 'pb-4' : 'px-4 py-3'"
+      >
         <div class="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-          <z-input-group class="min-w-[240px] flex-1 md:max-w-[420px]" zSize="sm" [zAddonBefore]="searchIcon">
-            <input
-              z-input
-              type="search"
-              [formControl]="searchControl"
-              [placeholder]="
-                'XP.XpertAccessRequests.SearchPlaceholder'
-                  | translate: { Default: 'Search assistant, requester, or reason' }
-              "
-            />
-          </z-input-group>
+          <input
+            class="min-w-0 flex-1 md:max-w-[420px]"
+            z-input
+            type="search"
+            [formControl]="searchControl"
+            [placeholder]="
+              'XP.XpertAccessRequests.SearchPlaceholder'
+                | translate: { Default: 'Search assistant, requester, or reason' }
+            "
+          />
 
           @if (searchTerm()) {
-            <button z-button zType="ghost" zSize="sm" type="button" (click)="resetSearch()">
+            <button z-button zType="ghost" [zSize]="inDialog ? 'default' : 'sm'" type="button" (click)="resetSearch()">
               <z-icon zType="x" />
               {{ 'XP.KEY_WORDS.Reset' | translate: { Default: 'Reset' } }}
             </button>
@@ -67,7 +70,14 @@ import { getErrorMessage, IXpertAccessRequest } from '../../@core/types'
                       Default: '{{visible}}
             / {{ total }} visible', visible: filteredRequests().length, total: requests().length } }}
           </z-badge>
-          <button z-button zType="outline" zSize="sm" type="button" [disabled]="loading()" (click)="load()">
+          <button
+            z-button
+            zType="outline"
+            [zSize]="inDialog ? 'default' : 'sm'"
+            type="button"
+            [zDisabled]="loading()"
+            (click)="load()"
+          >
             <z-icon zType="autorenew" [class.animate-spin]="loading()" />
             {{ 'XP.ACTIONS.Refresh' | translate: { Default: 'Refresh' } }}
           </button>
@@ -129,9 +139,9 @@ import { getErrorMessage, IXpertAccessRequest } from '../../@core/types'
             <colgroup>
               <col class="w-[25%]" />
               <col class="w-[18%]" />
-              <col class="w-[29%]" />
-              <col class="w-[15%]" />
-              <col class="w-[13%]" />
+              <col class="w-[23%]" />
+              <col class="w-[12%]" />
+              <col class="w-[22%]" />
             </colgroup>
             <thead z-table-header>
               <tr z-table-row class="border-b bg-muted/40 hover:bg-muted/40">
@@ -209,14 +219,17 @@ import { getErrorMessage, IXpertAccessRequest } from '../../@core/types'
                     }
                   </td>
                   <td z-table-cell class="text-right">
-                    <div class="inline-flex items-center justify-end gap-2">
+                    <div
+                      [xpDialogActionGroup]="inDialog ? 'inline' : null"
+                      class="inline-flex flex-wrap items-center justify-end gap-2"
+                    >
                       <button
                         z-button
+                        [zSize]="inDialog ? 'default' : 'sm'"
                         zType="destructive"
-                        zSize="sm"
                         type="button"
                         data-testid="reject-request"
-                        [disabled]="processingId() === request.id"
+                        [zDisabled]="processingId() === request.id"
                         (click)="reject(request)"
                       >
                         <z-icon zType="block" />
@@ -224,10 +237,10 @@ import { getErrorMessage, IXpertAccessRequest } from '../../@core/types'
                       </button>
                       <button
                         z-button
-                        zSize="sm"
+                        [zSize]="inDialog ? 'default' : 'sm'"
                         type="button"
                         data-testid="approve-request"
-                        [disabled]="processingId() === request.id"
+                        [zDisabled]="processingId() === request.id"
                         (click)="approve(request)"
                       >
                         <z-icon zType="done" />
@@ -246,6 +259,7 @@ import { getErrorMessage, IXpertAccessRequest } from '../../@core/types'
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class XpertAccessRequestReviewListComponent {
+  readonly inDialog = !!inject(XP_DIALOG_CONTEXT, { optional: true })
   readonly changed = output<void>()
   readonly requestCountChange = output<number>()
   readonly visibleCountChange = output<number>()

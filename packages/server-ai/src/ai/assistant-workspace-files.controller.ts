@@ -58,11 +58,13 @@ export class AssistantWorkspaceFilesController {
     }
 
     @Get('file')
-    readWorkspaceFile(
+    async readWorkspaceFile(
         @Param('assistantId', UUIDValidationPipe) id: string,
         @Query(new ZodValidationPipe(workspaceFileQuerySchema, invalidWorkspaceFileRequest)) query: WorkspaceFileQuery
     ) {
-        return this.workspaceFilesService.forRuntime(id).read(query.path)
+        const workspace = this.workspaceFilesService.forRuntime(id)
+        const file = await workspace.read(query.path)
+        return { ...file, capabilities: await workspace.capabilities() }
     }
 
     @Get('file/download')

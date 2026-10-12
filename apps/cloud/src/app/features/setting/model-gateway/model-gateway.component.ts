@@ -1,3 +1,4 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
@@ -21,7 +22,6 @@ import {
 import {
   ZardBadgeComponent,
   ZardButtonComponent,
-  ZardDialogService,
   ZardFormImports,
   ZardInputDirective,
   ZardSwitchComponent,
@@ -67,7 +67,7 @@ type GatewayAdminTab = 'calls' | 'keys' | 'settings'
 export class ModelGatewayAdminComponent implements OnInit {
   readonly #service = inject(ModelGatewayService)
   readonly #formBuilder = inject(FormBuilder)
-  readonly #dialog = inject(ZardDialogService)
+  readonly #dialog = inject(Dialog)
   readonly #toastr = injectToastr()
   readonly #translate = inject(TranslateService)
   readonly #store = inject(Store)
@@ -310,11 +310,14 @@ export class ModelGatewayAdminComponent implements OnInit {
   async viewCallBody(call: IModelGatewayCall) {
     try {
       const body = await firstValueFrom(this.#service.getAdminCallBody(call.id))
-      this.#dialog.open<ModelGatewayCallBodyDialogComponent, { call: IModelGatewayCall; body: typeof body }>(
+      this.#dialog.open<void, { call: IModelGatewayCall; body: typeof body }, ModelGatewayCallBodyDialogComponent>(
         ModelGatewayCallBodyDialogComponent,
         {
           data: { call, body },
-          width: 'min(92vw, 960px)'
+          width: '960px',
+          maxWidth: 'calc(100vw - 32px)',
+          backdropClass: 'backdrop-blur-xs-black',
+          panelClass: 'xp-overlay-pane-dialog'
         }
       )
     } catch (error) {
@@ -330,9 +333,15 @@ export class ModelGatewayAdminComponent implements OnInit {
 
   private async requestReason() {
     return firstValueFrom(
-      this.#dialog.open<ModelAccessActionDialogComponent, { mode: 'revoke' }, ModelAccessActionDialogResult | null>(
+      this.#dialog.open<ModelAccessActionDialogResult | null, { mode: 'revoke' }, ModelAccessActionDialogComponent>(
         ModelAccessActionDialogComponent,
-        { data: { mode: 'revoke' }, width: 'min(92vw, 500px)' }
+        {
+          data: { mode: 'revoke' },
+          width: '500px',
+          maxWidth: 'calc(100vw - 32px)',
+          backdropClass: 'backdrop-blur-xs-black',
+          panelClass: 'xp-overlay-pane-dialog'
+        }
       ).closed
     )
   }

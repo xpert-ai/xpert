@@ -107,7 +107,7 @@ export function AssistantItem(props: ItemProps & { mode?: 'list' | 'pinned' | 'c
       aria-label={compact ? row.bot.name : t('{{name}} avatar', { name: row.bot.name })}
       aria-current={active ? 'page' : undefined}
       onClick={() => onSelect(row)}
-      className={`relative flex shrink-0 items-center justify-center rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${compact ? 'size-12' : ''}`}
+      className={`relative flex shrink-0 cursor-default items-center justify-center rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${compact ? 'size-12' : ''}`}
     >
       <span className="relative shrink-0">
         <BotAvatar
@@ -128,7 +128,10 @@ export function AssistantItem(props: ItemProps & { mode?: 'list' | 'pinned' | 'c
     <AssistantMenu {...props}>
       <div
         ref={rowRef}
-        className={`relative flex shrink-0 items-center rounded-xl transition-colors ${compact ? 'size-12 justify-center' : pinned ? 'min-w-0 flex-col gap-2 px-2 py-3' : 'w-full gap-[var(--desktop-avatar-gap)] px-2 py-[var(--desktop-row-padding)]'} ${active ? 'bg-primary/10' : 'hover:bg-muted'}`}
+        onClick={(event) => {
+          if (event.target === event.currentTarget) onSelect(row)
+        }}
+        className={`relative flex shrink-0 cursor-pointer items-center rounded-xl transition-colors ${compact ? 'size-12 justify-center' : pinned ? 'min-w-0 flex-col gap-2 px-2 py-3' : 'w-full gap-[var(--desktop-avatar-gap)] px-2 py-[var(--desktop-row-padding)]'} ${active ? 'bg-primary/10' : 'hover:bg-muted'}`}
       >
         {props.preview !== false ? (
           <AssistantPreview
@@ -148,7 +151,7 @@ export function AssistantItem(props: ItemProps & { mode?: 'list' | 'pinned' | 'c
             aria-current={active ? 'page' : undefined}
             title={`${row.bot.name}${row.subtitle ? ` · ${row.subtitle}` : ''}${row.unread ? ` · ${t('Unread')}` : ''}`}
             onClick={() => onSelect(row)}
-            className={`min-w-0 self-stretch rounded-md outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${pinned ? 'w-full text-center' : 'flex-1 text-left'}`}
+            className={`min-w-0 cursor-pointer self-stretch rounded-md outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring ${pinned ? 'w-full text-center' : 'flex-1 text-left'}`}
           >
             <span
               className={`block truncate leading-5 ${pinned ? 'text-xs' : 'text-sm'} ${active || row.unread ? 'font-semibold' : 'font-medium'}`}

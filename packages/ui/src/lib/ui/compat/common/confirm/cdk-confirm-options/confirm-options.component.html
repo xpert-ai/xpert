@@ -1,32 +1,33 @@
-<header cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle class="pb-2 cursor-move">
-  <h4 class="text-xl pointer-events-none">
-    {{ data?.information }}
-  </h4>
-</header>
-
-<div class="py-4 min-h-[100px]" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
-  <formly-form
-    #form
-    class="w-full"
-    [form]="formGroup"
-    [fields]="fields()"
-    [model]="model"
-    (modelChange)="onModelChange($event)"
-    [options]="options"
-  />
-</div>
-
-<div class="w-full flex justify-end items-center gap-2">
-  <button type="button" class="btn disabled:btn-disabled btn-large" (click)="cancel()">
-    {{ 'COMPONENTS.COMMON.CANCEL' | translate: { Default: 'Cancel' } }}
-  </button>
-  <button
-    type="button"
-    class="btn disabled:btn-disabled btn-primary btn-large"
-    cdkFocusInitial
-    [disabled]="form.form.invalid"
-    (click)="apply()"
-  >
-    {{ 'COMPONENTS.COMMON.Confirm' | translate: { Default: 'Confirm' } }}
-  </button>
+<div xpDialogLayout="standard" class="w-[480px] max-w-full max-h-[85dvh]">
+  <header xpDialogHeader cdkDrag cdkDragRootElement=".cdk-overlay-pane">
+    <h2 cdkDragHandle class="cursor-move" xpDialogHeading>{{ data?.information }}</h2>
+    <button
+      type="button"
+      z-button
+      zType="ghost"
+      zSize="icon"
+      xpDialogCloseButton
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+      (click)="cancel()"
+    >
+      <z-icon zType="x" />
+    </button>
+  </header>
+  <div xpDialogBody>
+    <formly-form
+      class="w-full"
+      [form]="formGroup"
+      [fields]="fields()"
+      [model]="model"
+      (modelChange)="onModelChange($event)"
+      [options]="options"
+    />
+  </div>
+  <footer xpDialogFooter>
+    <button type="button" z-button zType="outline" (click)="cancel()">
+      {{ 'COMPONENTS.COMMON.CANCEL' | translate: { Default: 'Cancel' } }}</button
+    ><button type="button" z-button zType="default" [zDisabled]="formGroup.invalid" cdkFocusInitial (click)="apply()">
+      {{ 'COMPONENTS.COMMON.CONFIRM' | translate: { Default: 'Confirm' } }}
+    </button>
+  </footer>
 </div>

@@ -1,11 +1,12 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
+import { XpDialogFrameImports, ZardButtonComponent } from '@xpert-ai/headless-ui'
 
-import { ChangeDetectionStrategy, Component, effect, inject, model, signal, viewChild } from '@angular/core'
+import { ChangeDetectionStrategy, Component, effect, inject, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { routeAnimations } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
+import { routeAnimations } from '@xpert-ai/headless-ui'
 import {
   getErrorMessage,
   IXpertTool,
@@ -16,8 +17,8 @@ import {
   ToastrService,
   XpertToolsetService
 } from 'apps/cloud/src/app/@core'
-import { isNil, omitBy } from 'lodash-es'
 import { MCPServerFormComponent } from 'apps/cloud/src/app/@shared/mcp'
+import { isNil, omitBy } from 'lodash-es'
 import { XpertStudioConfigureMCPComponent } from '../configure/configure.component'
 
 /**
@@ -26,6 +27,8 @@ import { XpertStudioConfigureMCPComponent } from '../configure/configure.compone
 @Component({
   standalone: true,
   imports: [
+    ...XpDialogFrameImports,
+    ZardButtonComponent,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,

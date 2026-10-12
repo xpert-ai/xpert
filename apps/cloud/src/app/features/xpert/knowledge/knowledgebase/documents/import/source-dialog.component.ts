@@ -1,3 +1,12 @@
+import {
+  ZardButtonComponent,
+  XpDialogFrameImports,
+  ZardInputDirective,
+  XpI18nPipe,
+  ZardCheckboxComponent,
+  ZardFormImports,
+  ZardSelectImports
+} from '@xpert-ai/headless-ui'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { Component, computed, DestroyRef, effect, inject, model, signal, viewChild } from '@angular/core'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
@@ -20,14 +29,6 @@ import {
   TRagWebOptions
 } from '@cloud/app/@core'
 import { JSONSchemaFormComponent, ParameterComponent } from '@cloud/app/@shared/forms'
-import {
-  XpI18nPipe,
-  ZardButtonComponent,
-  ZardCheckboxComponent,
-  ZardFormImports,
-  ZardInputDirective,
-  ZardSelectImports
-} from '@xpert-ai/headless-ui'
 import { quickWebOptions, remoteSourceDocuments } from './import-model'
 
 export type SourceDialogMode = 'url' | 'crawl' | 'remote'
@@ -46,7 +47,8 @@ export type SourceDialogMode = 'url' | 'crawl' | 'remote'
     ZardInputDirective,
     ...ZardSelectImports,
     JSONSchemaFormComponent,
-    ParameterComponent
+    ParameterComponent,
+    ...XpDialogFrameImports
   ],
   templateUrl: './source-dialog.component.html'
 })

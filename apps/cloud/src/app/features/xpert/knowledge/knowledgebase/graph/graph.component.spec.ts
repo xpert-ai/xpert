@@ -1,3 +1,4 @@
+import { OverlayContainer } from '@angular/cdk/overlay'
 import { signal } from '@angular/core'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { provideNoopAnimations } from '@angular/platform-browser/animations'
@@ -61,6 +62,38 @@ describe('KnowledgeGraphComponent settings and indexing', () => {
     TestBed.resetTestingModule()
     jest.clearAllMocks()
   })
+
+  it.each(['entity', 'relation'] as const)(
+    'opens the %s editor in a managed overlay and preserves form and close guards',
+    async (kind) => {
+      const component = fixture.componentInstance
+      if (kind === 'entity') component.openCreateEntity()
+      else component.openCreateRelation()
+      await settle()
+      const overlay = TestBed.inject(OverlayContainer).getContainerElement()
+      const dialog = overlay.querySelector<HTMLElement>('.cdk-dialog-container')!
+      expect(dialog).not.toBeNull()
+      expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull()
+      expect(dialog.querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled).toBe(true)
+      if (kind === 'entity') component.entityForm.patchValue({ name: 'Preview', type: 'Organization' })
+      else component.relationForm.patchValue({ sourceEntityId: 'source', targetEntityId: 'target', type: 'LINKS_TO' })
+      await settle()
+      expect(dialog.querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled).toBe(false)
+      component.saving.set(true)
+      await settle()
+      const close = dialog.querySelector<HTMLButtonElement>('[xpDialogCloseButton]')!
+      expect(close.disabled).toBe(true)
+      overlay.querySelector<HTMLElement>('.cdk-overlay-backdrop')!.click()
+      await settle()
+      expect(component.editorMode()).toBe(`create-${kind}`)
+      component.saving.set(false)
+      await settle()
+      close.click()
+      await settle()
+      expect(component.editorMode()).toBeNull()
+      expect(overlay.querySelector('.cdk-dialog-container')).toBeNull()
+    }
+  )
 
   it('opens model settings from the gear and basic settings from the disabled state', () => {
     const root = fixture.nativeElement as HTMLElement

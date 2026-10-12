@@ -1,3 +1,4 @@
+import { XpDialogActionGroupDirective } from '@xpert-ai/headless-ui'
 import { ASSISTANT_SETTINGS_CONTEXT } from '../../../@shared/xpert/assistant-settings/assistant-settings-context'
 import { ChangeDetectionStrategy, Component, effect, inject, input, OnDestroy, signal, untracked } from '@angular/core'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
@@ -19,7 +20,13 @@ type PersonalizationDocuments = { soul: string; profile: string }
 @Component({
   standalone: true,
   selector: 'xp-assistant-personalization',
-  imports: [ReactiveFormsModule, TranslateModule, ZardButtonComponent, ZardInputDirective],
+  imports: [
+    XpDialogActionGroupDirective,
+    ReactiveFormsModule,
+    TranslateModule,
+    ZardButtonComponent,
+    ZardInputDirective
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (facade.loading() || loading()) {
@@ -34,7 +41,7 @@ type PersonalizationDocuments = { soul: string; profile: string }
         {{ 'XP.AssistantSettings.BindingRequired' | translate }}
       </p>
     } @else if (loadError()) {
-      <div role="alert" class="space-y-3 rounded-lg border border-border p-4">
+      <div xpDialogActionGroup="inline" role="alert" class="space-y-3 rounded-lg border border-border p-4">
         <p class="text-sm text-destructive">{{ loadError() }}</p>
         <button z-button zType="outline" type="button" (click)="load()">
           {{ 'XP.AssistantSettings.Retry' | translate }}
@@ -107,7 +114,8 @@ type PersonalizationDocuments = { soul: string; profile: string }
         }
         @if (showFooter()) {
           <footer
-            class="sticky -bottom-6 -mx-6 mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-border bg-background px-6 py-4"
+            xpDialogActionGroup="inline"
+            class="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4"
           >
             <p class="text-xs text-muted-foreground">
               {{
@@ -115,11 +123,16 @@ type PersonalizationDocuments = { soul: string; profile: string }
                   | translate
               }}
             </p>
-            <div class="flex gap-2">
+            <div xpDialogActionGroup="inline" class="flex flex-wrap gap-2">
               <button z-button zType="outline" type="button" [zDisabled]="saving() || !dirty" (click)="reset()">
                 {{ 'XP.Common.Reset' | translate }}
               </button>
-              <button z-button type="submit" [zDisabled]="saving() || facade.savingUserPreference() || !dirty">
+              <button
+                z-button
+                type="submit"
+                [zLoading]="saving()"
+                [zDisabled]="saving() || facade.savingUserPreference() || !dirty"
+              >
                 {{ (saving() ? 'XP.AssistantSettings.Saving' : 'XP.KEY_WORDS.Save') | translate }}
               </button>
             </div>

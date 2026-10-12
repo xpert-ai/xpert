@@ -1,11 +1,12 @@
 import { Injectable } from '@angular/core'
-import { XpertExtensionViewManifest } from '@xpert-ai/contracts'
+import { XpertExtensionViewManifest, XpertViewRuntimeScopeInput } from '@xpert-ai/contracts'
 
 export type ViewClientCommandContext = {
   hostType: string
   hostId: string
   viewKey: string
   manifest: XpertExtensionViewManifest
+  runtimeScope?: XpertViewRuntimeScopeInput
 }
 
 export type ViewClientCommandHandler = (

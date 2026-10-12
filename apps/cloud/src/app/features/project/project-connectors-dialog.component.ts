@@ -1,3 +1,4 @@
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core'
 import { FormControl, FormRecord, ReactiveFormsModule, Validators } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
@@ -11,13 +12,13 @@ import type {
 } from '@xpert-ai/plugin-sdk/connector'
 import {
   XpI18nPipe,
-  Z_MODAL_DATA,
   ZardBadgeComponent,
   ZardButtonComponent,
-  ZardDialogRef,
   ZardFormImports,
   ZardInputDirective,
-  ZardSelectImports
+  ZardSelectImports,
+  XpDialogFrameImports,
+  XpDialogActionGroupDirective
 } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
 import { getErrorMessage, ToastrService, XpertConnectorService } from '../../@core'
@@ -31,6 +32,8 @@ type ProjectConnectorsDialogData = {
   standalone: true,
   selector: 'xp-project-connectors-dialog',
   imports: [
+    ...XpDialogFrameImports,
+    XpDialogActionGroupDirective,
     ReactiveFormsModule,
     TranslateModule,
     XpI18nPipe,
@@ -41,18 +44,26 @@ type ProjectConnectorsDialogData = {
     ...ZardSelectImports
   ],
   template: `
-    <section class="flex max-h-[86vh] min-w-0 flex-col">
-      <header class="flex items-start justify-between border-b border-divider-subtle pb-4">
-        <div>
-          <h2 class="text-lg font-semibold text-text-primary">{{ 'XP.XProject.ProjectConnectors' | translate }}</h2>
-          <p class="mt-1 text-sm text-text-secondary">{{ 'XP.XProject.ProjectConnectorsDescription' | translate }}</p>
-        </div>
-        <button z-button zType="ghost" zSize="sm" type="button" (click)="close()"><i class="ri-close-line"></i></button>
+    <section xpDialogLayout="wide" class="max-h-[84vh]">
+      <header xpDialogHeader>
+        <h2 xpDialogHeading>{{ 'XP.XProject.ProjectConnectors' | translate }}</h2>
+        <p xpDialogDescription>{{ 'XP.XProject.ProjectConnectorsDescription' | translate }}</p>
+        <button
+          z-button
+          zType="ghost"
+          zSize="icon"
+          xpDialogCloseButton
+          type="button"
+          [attr.aria-label]="'XP.XProject.Close' | translate"
+          (click)="close()"
+        >
+          <z-icon zType="x" aria-hidden="true" />
+        </button>
       </header>
 
-      <div class="min-h-0 space-y-5 overflow-y-auto py-5">
+      <div xpDialogBody>
         @if (data.canManage) {
-          <section class="space-y-3 rounded-xl border border-divider-subtle p-4">
+          <section class="space-y-3">
             <div>
               <h3 class="text-sm font-semibold text-text-primary">
                 {{ 'XP.XProject.AddProjectConnector' | translate }}
@@ -62,6 +73,7 @@ type ProjectConnectorsDialogData = {
               </p>
             </div>
             <div
+              xpDialogActionGroup="inline"
               [class]="
                 canSelectAuthorizationMode()
                   ? 'grid gap-2 sm:grid-cols-[minmax(0,1fr)_10rem_auto]'
@@ -89,7 +101,7 @@ type ProjectConnectorsDialogData = {
                 z-button
                 zType="default"
                 type="button"
-                [disabled]="busy() || !selectedProvider()"
+                [zDisabled]="busy() || !selectedProvider()"
                 (click)="createBinding()"
               >
                 {{ 'XP.XProject.AddConnector' | translate }}
@@ -107,9 +119,9 @@ type ProjectConnectorsDialogData = {
             @let authMethods = definition ? authMethodsFor(definition) : [];
             @let authMethod = definition ? selectedAuthMethod(binding, definition) : null;
             <article class="space-y-3 rounded-xl border border-divider-subtle p-4">
-              <div class="flex items-start justify-between gap-3">
+              <div xpDialogActionGroup="inline" class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
-                  <div class="flex flex-wrap items-center gap-2">
+                  <div xpDialogActionGroup="inline" class="flex flex-wrap items-center gap-2">
                     <h3 class="truncate text-sm font-semibold text-text-primary">
                       {{ definition ? (definition.label | i18n) : binding.provider }}
                     </h3>
@@ -126,9 +138,10 @@ type ProjectConnectorsDialogData = {
                   <button
                     z-button
                     zType="ghost"
-                    zSize="sm"
+                    zSize="icon"
                     type="button"
-                    [disabled]="busy()"
+                    [attr.aria-label]="'XP.ACTIONS.Delete' | translate"
+                    [zDisabled]="busy()"
                     (click)="deleteBinding(binding)"
                   >
                     <i class="ri-delete-bin-line text-text-destructive"></i>
@@ -164,13 +177,12 @@ type ProjectConnectorsDialogData = {
                     </z-form-field>
                   }
                 </form>
-                <div class="flex flex-wrap items-center gap-2">
+                <div xpDialogActionGroup="inline" class="flex flex-wrap items-center gap-2">
                   <button
                     z-button
                     zType="default"
-                    zSize="sm"
                     type="button"
-                    [disabled]="busy() || (binding.authorizationMode === 'shared' && !data.canManage)"
+                    [zDisabled]="busy() || (binding.authorizationMode === 'shared' && !data.canManage)"
                     (click)="connect(binding, definition)"
                   >
                     {{
@@ -181,13 +193,7 @@ type ProjectConnectorsDialogData = {
                     }}
                   </button>
                   @if (pendingAuthorizationUrls()[binding.id]; as authorizationUrl) {
-                    <button
-                      z-button
-                      zType="ghost"
-                      zSize="sm"
-                      type="button"
-                      (click)="openAuthorizationUrl(authorizationUrl)"
-                    >
+                    <button z-button zType="ghost" type="button" (click)="openAuthorizationUrl(authorizationUrl)">
                       {{ 'XP.XProject.ContinueAuthorization' | translate }}
                     </button>
                   }
@@ -206,7 +212,7 @@ type ProjectConnectorsDialogData = {
         </section>
       </div>
 
-      <footer class="flex justify-end border-t border-divider-subtle pt-4">
+      <footer xpDialogFooter>
         <button z-button zType="outline" type="button" (click)="close()">{{ 'XP.XProject.Done' | translate }}</button>
       </footer>
     </section>
@@ -214,11 +220,11 @@ type ProjectConnectorsDialogData = {
   host: { class: 'block w-full min-w-0' }
 })
 export class XpertProjectConnectorsDialogComponent {
-  readonly #dialogRef = inject<ZardDialogRef<XpertProjectConnectorsDialogComponent>>(ZardDialogRef)
+  readonly #dialogRef = inject<DialogRef<void>>(DialogRef)
   readonly #connectorService = inject(XpertConnectorService)
   readonly #toastr = inject(ToastrService)
   readonly #destroyRef = inject(DestroyRef)
-  readonly data = inject<ProjectConnectorsDialogData>(Z_MODAL_DATA)
+  readonly data = inject<ProjectConnectorsDialogData>(DIALOG_DATA)
   readonly definitions = signal<ConnectorStrategyDefinition[]>([])
   readonly bindings = signal<ConnectorBinding[]>([])
   readonly selectedProvider = signal('')

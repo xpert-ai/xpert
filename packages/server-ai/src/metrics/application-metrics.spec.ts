@@ -1,6 +1,32 @@
 import { ApplicationMetricsRegistry, applicationMetrics } from './application-metrics'
 
 describe('ApplicationMetricsRegistry', () => {
+    it('records completed and aborted HTTP requests with exact slow-request buckets and resets them', () => {
+        const registry = new ApplicationMetricsRegistry()
+        const request = {
+            method: 'GET',
+            route: '/api/items/:id',
+            statusCode: 200,
+            responseType: 'http' as const,
+            outcome: 'completed' as const
+        }
+        registry.recordHttpRequest({ ...request, durationMs: 500 })
+        registry.recordHttpRequest({ ...request, durationMs: 501 })
+        registry.recordHttpRequest({ ...request, outcome: 'aborted', statusCode: 499, durationMs: 750 })
+        registry.recordHttpRequest({ ...request, responseType: 'sse', durationMs: 20000 })
+
+        const output = registry.render()
+        const labels = 'method="GET",outcome="completed",response_type="http",route="/api/items/:id",status_code="200"'
+        expect(output).toContain(`xpert_http_requests_total{${labels}} 2`)
+        expect(output).toContain(`xpert_http_request_duration_seconds_bucket{${labels},le="0.5"} 1`)
+        expect(output).toContain(`xpert_http_request_duration_seconds_bucket{${labels},le="+Inf"} 2`)
+        expect(output).toContain(`xpert_http_request_duration_seconds_sum{${labels}} 1.001`)
+        expect(output).toContain('outcome="aborted",response_type="http",route="/api/items/:id",status_code="499"} 1')
+        expect(output).toContain('outcome="completed",response_type="sse",route="/api/items/:id",status_code="200"} 1')
+        registry.reset()
+        expect(registry.render()).not.toContain(`xpert_http_requests_total{${labels}}`)
+    })
+
     it('records branch outcomes and sizes without conversation identifiers or payloads', () => {
         const registry = new ApplicationMetricsRegistry()
         registry.recordConversationBranch({

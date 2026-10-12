@@ -1,3 +1,10 @@
+import {
+  ZardButtonComponent,
+  XpDialogFrameImports,
+  XpDialogActionGroupDirective,
+  ZardInputDirective,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { getTagTargets, ITag } from '@xpert-ai/contracts'
 import { KnowledgeTagsService } from '@cloud/app/@core/services/knowledge-tags.service'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
@@ -19,7 +26,6 @@ import {
   KnowledgeDocumentService,
   KnowledgeFileUploader
 } from '@cloud/app/@core'
-import { ZardButtonComponent, ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { XpTreeSelectComponent } from '@cloud/app/@shared/form-fields/tree-select/tree-select.component'
 import { createKnowledgeProcessingForm, KnowledgeProcessingSection } from '../../../processing/processing-form'
 import { KnowledgeProcessingSettingsComponent } from '../../../processing/processing-settings.component'
@@ -57,7 +63,9 @@ export interface DocumentImportDialogData {
     ...ZardTooltipImports,
     XpTreeSelectComponent,
     KnowledgeDocumentPipelineSettingsComponent,
-    KnowledgeProcessingSettingsComponent
+    KnowledgeProcessingSettingsComponent,
+    ...XpDialogFrameImports,
+    XpDialogActionGroupDirective
   ],
   templateUrl: './import-dialog.component.html'
 })

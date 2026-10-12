@@ -53,6 +53,11 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "KnowledgebaseCatalogInputInvalid": "Invalid knowledgebase catalog request.",
+        "KnowledgebaseCatalogContextRequired": "Authenticated tenant and organization scope are required.",
+        "KnowledgebaseCatalogUnavailable": "Knowledgebase is unavailable in the current scope.",
+        "KnowledgebaseCatalogCursorInvalid": "The catalog cursor is invalid for this query.",
+        "RuntimeRestartInterrupted": "The service is restarting and the live reply was interrupted. The task may still be running. Refresh the conversation to check its result.",
         "GroupPrimaryAssistantInUse": "This Assistant is the primary Assistant of a group and cannot be deleted.",
         "ChatkitSessionInputInvalid": "Invalid ChatKit session input.",
         "GroupAccessDenied": "You do not have access to this group.",
@@ -1181,5 +1186,10 @@
         "Untitled": "Untitled conversation",
         "InvalidAction": "Invalid topic action",
         "InvalidQuery": "Invalid map query"
+    },
+    "GroupTaskResult": {
+        "succeeded": "Task “{{title}}” succeeded and is awaiting acceptance.",
+        "failed": "Task “{{title}}” failed.",
+        "cancelled": "Task “{{title}}” was cancelled."
     }
 }

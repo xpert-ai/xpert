@@ -1,168 +1,162 @@
-<div class="flex w-[44px] flex-col border-r border-divider-burn pl-4 pr-6 sm:w-[224px]">
-  <div class="text-2xl font-semibold mb-8 mt-6 px-3 py-2 text-text-primary">
-    {{ 'XP.Environment.Environments' | translate: { Default: 'Environments' } }}
-  </div>
-  <div class="w-full">
-    <div class="mb-2">
-      @for (env of environments(); track env.id) {
-        <div
-          class="group relative mb-0.5 flex h-[37px] cursor-pointer items-center rounded-lg p-1 pl-3 text-sm system-sm-medium hover:bg-hover-bg"
-          [class.bg-components-list-option-active-bg]="env.id === environment()?.id"
-          [class.text-primary-500]="env.id === environment()?.id"
-          [title]="env.name"
-          (click)="setEnvironment(env)"
-        >
-          <div class="truncate">{{ env.name }}</div>
-          <div class="absolute right-2">
-            @if (env.isDefault) {
-              <i
-                class="ri-checkbox-circle-fill text-xl text-text-success"
-                [zTooltip]="'XP.Environment.IsDefault' | translate: { Default: 'Is Default' }"
-              ></i>
-            } @else {
-              <i
-                class="ri-checkbox-circle-line text-xl opacity-0 group-hover:opacity-100"
-                [zTooltip]="'XP.Environment.SetAsDefault' | translate: { Default: 'Set as Default' }"
-                (click)="setDefault(env)"
-              ></i>
-            }
-          </div>
-        </div>
-      }
-    </div>
-
-    <div class="flex justify-end items-center mb-8">
-      <button type="button" class="btn disabled:btn-disabled btn-primary btn-large" (click)="addEnvironment()">
-        <i class="ri-add-line mr-1"></i>
-        <span class="system-sm-medium">
-          {{ 'XP.Environment.AddEnvironment' | translate: { Default: 'Add Environment' } }}
-        </span>
-      </button>
-    </div>
-  </div>
-</div>
-
-<div class="relative flex w-[824px]">
-  <div class="absolute -right-11 top-6 z-[9999] flex flex-col items-center">
-    <button type="button" class="btn disabled:btn-disabled btn-tertiary btn-large px-2" (click)="close()">
-      <i class="ri-close-large-line"></i>
+<section xpDialogLayout="wide" class="w-[min(1048px,calc(100vw-32px))] max-h-[84dvh]">
+  <header xpDialogHeader>
+    <h2 xpDialogHeading>
+      {{ 'XP.Environment.Environments' | translate: { Default: 'Environments' } }} ·
+      {{ 'XP.Environment.Variables' | translate: { Default: 'Variables' } }}
+    </h2>
+    <button
+      z-button
+      zType="ghost"
+      type="button"
+      xpDialogCloseButton
+      zSize="icon"
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+      (click)="close()"
+    >
+      <z-icon zType="x" aria-hidden="true" />
     </button>
-    <div class="system-2xs-medium-uppercase mt-1 text-text-tertiary">ESC</div>
-  </div>
-
-  <div class="w-full flex flex-col overflow-y-auto bg-components-panel-bg pb-4">
-    <div class="sticky top-0 z-20 mx-8 mb-[18px] flex items-center bg-components-panel-bg pb-2 pt-[27px]">
-      <div class="text-2xl font-semibold shrink-0 text-text-primary">
-        {{ 'XP.Environment.Variables' | translate: { Default: 'Variables' } }}
-      </div>
-      @if (dirty()) {
-        <span
-          class="w-3 h-3 rounded-full ml-4 border-2 border-white text-xs font-medium bg-text-warning text-white dark:border-background-body"
-        >
-          <span class="sr-only">Is dirty</span>
-        </span>
-      }
-    </div>
-    <div class="grow px-4 pt-2 sm:px-8">
-      @if (environment(); as environment) {
-        <div class="flex flex-col">
-          <div
-            class="mb-4 flex items-center gap-3 rounded-xl border-l-[0.5px] border-t-[0.5px] border-divider-subtle bg-gradient-to-r from-gray-100 to-gray-50 p-3 pr-5"
-          >
-            <div class="grow">
+  </header>
+  <div xpDialogBody [attr.inert]="loading() ? '' : null" [attr.aria-busy]="loading()">
+    <div class="grid min-h-0 gap-4 md:grid-cols-[220px_minmax(0,1fr)]">
+      <aside class="min-w-0 space-y-4 md:border-r md:border-border md:pr-4">
+        <div class="space-y-2">
+          @for (env of environments(); track env.id) {
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                class="min-w-0 flex-1 rounded-lg p-3 text-left hover:bg-muted"
+                [class]="env.id === environment()?.id ? 'bg-muted font-medium' : ''"
+                [attr.aria-pressed]="env.id === environment()?.id"
+                (click)="setEnvironment(env)"
+              >
+                <span class="block truncate">{{ env.name }}</span></button
+              ><button
+                type="button"
+                class="shrink-0 rounded-md p-2 text-muted-foreground hover:bg-muted"
+                [attr.aria-label]="
+                  (env.isDefault ? 'XP.Environment.IsDefault' : 'XP.Environment.SetAsDefault')
+                    | translate: { Default: 'Set as Default' }
+                "
+                [disabled]="loading() || env.isDefault"
+                (click)="setDefault(env)"
+              >
+                <z-icon [zType]="env.isDefault ? 'circle-check' : 'circle'" aria-hidden="true" />
+              </button>
+            </div>
+          }
+        </div>
+        <div xpDialogActionGroup="inline" class="flex flex-wrap">
+          <button z-button zType="outline" type="button" [zDisabled]="loading()" (click)="addEnvironment()">
+            <z-icon zType="plus" aria-hidden="true" />{{
+              'XP.Environment.AddEnvironment' | translate: { Default: 'Add Environment' }
+            }}
+          </button>
+        </div>
+      </aside>
+      <section class="min-w-0 space-y-4">
+        @if (environment(); as environment) {
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div class="min-w-0">
               @if (editing()) {
-                <input [(ngModel)]="environmentName" (keydown)="onKeyDown($event)" />
+                <input
+                  z-input
+                  class="w-full"
+                  [attr.aria-label]="'XP.Environment.Name' | translate: { Default: 'Name' }"
+                  [(ngModel)]="environmentName"
+                  (keydown)="onKeyDown($event)"
+                />
               } @else {
-                <div
-                  class="system-md-semibold text-text-secondary"
+                <button
+                  type="button"
+                  class="break-words text-left font-medium hover:underline"
                   (click)="editing.set(true); environmentName.set(environment.name)"
                 >
                   {{ environment.name }}
-                </div>
+                </button>
               }
-              <div class="text-sm font-medium mt-1 text-text-tertiary">
-                <div class="flex space-x-1">
-                  <div>{{ 'XP.Environment.Total' | translate: { Default: 'Total' } }}</div>
-                  <div class="mx-1">{{ environment.variables?.length || 0 }}</div>
-                  <div>{{ 'XP.Environment.Variables' | translate: { Default: 'Variables' } }}</div>
-                </div>
-              </div>
+              <p class="mt-1 text-muted-foreground">
+                {{ 'XP.Environment.Total' | translate: { Default: 'Total' } }} {{ environment.variables?.length || 0 }}
+                {{ 'XP.Environment.Variables' | translate: { Default: 'Variables' } }}
+              </p>
             </div>
-
-            <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium shrink-0" (click)="addVar()">
-              <i class="ri-add-line mr-1"></i>
-              {{ 'XP.Environment.AddVariable' | translate: { Default: 'Add Variable' } }}
-            </button>
+            <div xpDialogActionGroup="inline">
+              <button z-button zType="default" type="button" [zDisabled]="loading()" (click)="addVar()">
+                <z-icon zType="plus" aria-hidden="true" />{{
+                  'XP.Environment.AddVariable' | translate: { Default: 'Add Variable' }
+                }}
+              </button>
+            </div>
           </div>
-          <div class="overflow-visible lg:overflow-visible">
-            <div class="flex min-w-[480px] items-center border-b border-divider-regular py-[7px]">
-              <div class="system-xs-medium-uppercase w-[204px] shrink-0 text-text-tertiary">
-                {{ 'XP.Environment.Name' | translate: { Default: 'Name' } }}
-              </div>
-              <div class="system-xs-medium-uppercase w-[104px] shrink-0 text-text-tertiary">
-                {{ 'XP.Environment.Type' | translate: { Default: 'Type' } }}
-              </div>
-              <div class="system-xs-medium-uppercase grow px-3 text-text-tertiary">
-                {{ 'XP.Environment.Value' | translate: { Default: 'Value' } }}
-              </div>
-            </div>
-            <div class="relative min-w-[480px]">
-              @for (item of environment.variables; track i; let i = $index) {
-                <div class="flex items-center border-b border-divider-subtle">
-                  <div class="flex w-[204px] shrink-0 items-center py-2">
-                    <input
-                      class="xp-input block h-9 w-full text-sm"
-                      [placeholder]="
-                        'XP.Environment.KeepUniqueInEnv'
-                          | translate: { Default: 'Keep it unique within the environment' }
-                      "
-                      type="text"
-                      [ngModel]="item.name"
-                      (ngModelChange)="updateVar(i, { name: $event })"
-                    />
-                  </div>
-                  <div class="system-sm-regular flex w-[104px] shrink-0 items-center py-2 text-text-secondary">
-                    <xp-select
-                      class="mx-2 w-36"
-                      [selectOptions]="VariableTypeOptions"
-                      [nullable]="false"
-                      [ngModel]="item.type"
-                      (ngModelChange)="updateVar(i, { type: $event })"
-                    />
-                  </div>
-                  <div class="flex grow items-center">
-                    <input
-                      class="xp-input block h-9 w-full text-sm"
-                      [type]="item.type === 'secret' ? 'password' : 'text'"
-                      [ngModel]="item.value"
-                      (ngModelChange)="updateVar(i, { value: $event })"
-                    />
-                  </div>
-
-                  <div
-                    class="pressable w-7 h-7 shrink-0 mx-2 btn flex justify-center items-center rounded-lg cursor-pointer hover:bg-hover-bg select-none danger"
+          <div class="space-y-4">
+            @for (item of environment.variables; track i; let i = $index) {
+              <div
+                class="grid grid-cols-1 items-end gap-3 border-b border-border pb-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_minmax(0,1.2fr)_auto]"
+              >
+                <label class="min-w-0 space-y-2"
+                  ><span>{{ 'XP.Environment.Name' | translate: { Default: 'Name' } }}</span
+                  ><input
+                    z-input
+                    class="w-full"
+                    [placeholder]="
+                      'XP.Environment.KeepUniqueInEnv' | translate: { Default: 'Keep it unique within the environment' }
+                    "
+                    [ngModel]="item.name"
+                    (ngModelChange)="updateVar(i, { name: $event })" /></label
+                ><label class="min-w-0 space-y-2"
+                  ><span>{{ 'XP.Environment.Type' | translate: { Default: 'Type' } }}</span
+                  ><z-select class="w-full" [ngModel]="item.type" (ngModelChange)="updateVar(i, { type: $event })">
+                    @for (option of VariableTypeOptions; track option.value) {
+                      <z-select-item [zValue]="option.value">{{ option.label | i18n }}</z-select-item>
+                    }
+                  </z-select></label
+                ><label class="min-w-0 space-y-2"
+                  ><span>{{ 'XP.Environment.Value' | translate: { Default: 'Value' } }}</span
+                  ><input
+                    z-input
+                    class="w-full"
+                    [type]="item.type === 'secret' ? 'password' : 'text'"
+                    [ngModel]="item.value"
+                    (ngModelChange)="updateVar(i, { value: $event })"
+                /></label>
+                <div xpDialogActionGroup="inline">
+                  <button
+                    z-button
+                    zType="ghost"
+                    zSize="icon"
+                    type="button"
+                    [attr.aria-label]="'XP.ACTIONS.Remove' | translate: { Default: 'Remove' }"
+                    [zDisabled]="loading()"
                     (click)="removeVar(i)"
                   >
-                    <i class="ri-close-line"></i>
-                  </div>
+                    <z-icon zType="x" aria-hidden="true" />
+                  </button>
                 </div>
-              }
-            </div>
+              </div>
+            }
           </div>
-        </div>
-      }
-    </div>
-
-    <div class="flex justify-start items-center px-4">
-      @if (environment()) {
-        <button type="button" class="btn disabled:btn-disabled btn-danger btn-large" (click)="delete()">
-          {{ 'XP.ACTIONS.Delete' | translate: { Default: 'Delete' } }}
-        </button>
-      }
+        }
+      </section>
     </div>
   </div>
-
-  @if (loading()) {
-    <xp-spin class="absolute w-full h-full left-0 top-0" />
-  }
-</div>
+  <footer xpDialogFooter>
+    @if (environment()) {
+      <button z-button zType="destructive" type="button" class="mr-auto" [zDisabled]="loading()" (click)="delete()">
+        {{ 'XP.ACTIONS.Delete' | translate: { Default: 'Delete' } }}
+      </button>
+    }
+    @if (loading()) {
+      <span role="status" class="flex items-center gap-2 text-muted-foreground"
+        ><z-icon zType="loader-circle" class="animate-spin" aria-hidden="true" />{{
+          'XP.KEY_WORDS.Loading' | translate: { Default: 'Loading' }
+        }}</span
+      >
+    } @else if (dirty()) {
+      <span role="status" class="text-text-warning">{{
+        'XP.XpertSettings.PendingSave' | translate: { Default: 'Unsaved changes' }
+      }}</span>
+    }
+    <button z-button zType="outline" type="button" (click)="close()">
+      {{ 'XP.ACTIONS.Close' | translate: { Default: 'Close' } }}
+    </button>
+  </footer>
+</section>

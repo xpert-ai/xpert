@@ -1,26 +1,30 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
-import { Component, ElementRef, computed, effect, inject, viewChild } from '@angular/core'
+import { Component, computed, effect, ElementRef, inject, viewChild } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { getErrorMessage } from '@cloud/app/@core'
+import { injectPluginAPI, IPluginMarketplaceDetailItem, PluginMarketplaceItem } from '@cloud/app/@core/state'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { I18nService } from '@cloud/app/@shared/i18n'
-import { IPluginMarketplaceDetailItem, injectPluginAPI, PluginMarketplaceItem } from '@cloud/app/@core/state'
-import { JSONValue, XpertTypeEnum } from '@xpert-ai/contracts'
-import { ZardBadgeComponent, ZardButtonComponent } from '@xpert-ai/headless-ui'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
-import { myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
+import { JSONValue, XpertTypeEnum } from '@xpert-ai/contracts'
+import {
+  myRxResource,
+  XpI18nPipe,
+  XpSpinComponent,
+  ZardBadgeComponent,
+  ZardButtonComponent
+} from '@xpert-ai/headless-ui'
 import { MarkdownModule } from 'ngx-markdown'
 import { map } from 'rxjs'
+import { BlankXpertWizardResult, XpertNewBlankComponent } from '../../../xpert/xpert/blank/blank.component'
 import { PluginInstallComponent } from '../install/install.component'
-import { mergeMarketplaceContributions } from './plugin-marketplace-metadata'
-import { pluginNameFromMarketplaceRoute } from './plugin-marketplace-navigation'
 import { getPluginMarketplaceSourceI18nKey, TPluginWithDownloads } from '../types'
 import { PluginMarketplaceDetailComponent } from './marketplace-detail.component'
 import { PLUGIN_MARKETPLACE_TARGET_APP } from './plugin-marketplace-categories'
-import { BlankXpertWizardResult, XpertNewBlankComponent } from '../../../xpert/xpert/blank/blank.component'
+import { mergeMarketplaceContributions } from './plugin-marketplace-metadata'
+import { pluginNameFromMarketplaceRoute } from './plugin-marketplace-navigation'
 
 @Component({
   standalone: true,
@@ -130,6 +134,9 @@ export class PluginMarketplaceReadmePageComponent {
     }
 
     this.#dialog.open(PluginInstallComponent, {
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)',
       data: {
         plugin,
         reload: () => this.#detail.reload()
@@ -148,13 +155,19 @@ export class PluginMarketplaceReadmePageComponent {
       data: {
         plugin
       },
-      backdropClass: 'backdrop-blur-sm-black'
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)'
     })
   }
 
   private openAssistantTemplate(templateId: string) {
     this.#dialog
       .open<BlankXpertWizardResult>(XpertNewBlankComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        width: '1360px',
+        maxWidth: 'calc(100vw - 32px)',
         disableClose: true,
         data: {
           type: XpertTypeEnum.Agent,

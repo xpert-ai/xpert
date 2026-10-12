@@ -325,47 +325,76 @@
 </ng-template>
 
 <ng-template #githubInstallDialog>
-  <div class="relative flex w-[36rem] min-w-[32rem] max-w-[calc(100vw-2rem)] max-sm:min-w-0 flex-col overflow-hidden">
-    <div class="flex w-full items-center justify-between bg-components-card-bg px-6 pb-2 pt-6">
-      <div class="text-lg font-semibold text-text-primary">
+  <div xpDialogLayout="standard" xpDialogPurpose="workflow" class="w-[560px] max-w-full max-h-[85dvh]">
+    <header xpDialogHeader>
+      <h2 xpDialogHeading>
         {{ 'XP.Skill.AddSkillFromGithubTitle' | translate: { Default: 'Add skill from GitHub' } }}
-      </div>
+      </h2>
       <button
+        xpDialogCloseButton
+        z-button
+        zType="ghost"
+        zSize="icon"
         type="button"
-        class="btn btn-ghost flex h-8 w-8 items-center justify-center rounded-full"
         (click)="closeGithubInstallDialog()"
+        [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
       >
-        <i class="ri-close-line"></i>
+        <z-icon zType="close" />
       </button>
-    </div>
-    <div class="px-6 pb-6 pt-4">
+    </header>
+    <div xpDialogBody>
       <xp-github-skill-install
+        #githubInstall
+        [showActions]="false"
         [workspaceId]="workspace()?.id ?? null"
         [showTitle]="false"
         (installed)="onGithubSkillsInstalled($event)"
       />
     </div>
+    <footer xpDialogFooter>
+      <button z-button zType="outline" type="button" (click)="closeGithubInstallDialog()">
+        {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+      </button>
+      <button
+        z-button
+        type="button"
+        [zLoading]="githubInstall.installing()"
+        [zDisabled]="githubInstall.installing()"
+        (click)="githubInstall.install()"
+      >
+        {{ 'XP.Skill.InstallGithubSkills' | translate: { Default: 'Install skills' } }}
+      </button>
+    </footer>
   </div>
 </ng-template>
 
 <ng-template #registerRepositoryDialog>
-  <div class="relative flex h-full max-h-[80vh] w-full flex-col overflow-hidden">
-    <div class="sticky top-0 z-20 flex w-full items-center justify-between bg-components-card-bg px-6 pb-2 pt-6">
-      <div class="text-lg font-semibold text-text-primary">
+  <div xpDialogLayout="wide" class="relative w-[960px] max-w-full max-h-[85dvh]">
+    <header xpDialogHeader>
+      <h2 xpDialogHeading>
         {{ 'XP.Skill.RegisterSkillRepositoryTitle' | translate: { Default: 'Register a skill repository' } }}
-      </div>
+      </h2>
       <button
+        xpDialogCloseButton
+        z-button
+        zType="ghost"
+        zSize="icon"
         type="button"
-        class="btn btn-ghost flex h-8 w-8 items-center justify-center rounded-full"
         (click)="closeRegisterDialog()"
+        [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
       >
-        <i class="ri-close-line"></i>
+        <z-icon zType="close" />
       </button>
-    </div>
-    <div class="flex flex-col overflow-auto px-6 py-4">
+    </header>
+    <div xpDialogBody>
       <xp-skill-repositories class="mb-4" [readonly]="true" [(selectedRepository)]="selectedRepository" />
       <xp-skill-indexes [selectedRepository]="selectedRepository()" (installing)="onInstalling($event)" />
     </div>
+    <footer xpDialogFooter>
+      <button z-button zType="outline" type="button" (click)="closeRegisterDialog()">
+        {{ 'XP.ACTIONS.Close' | translate: { Default: 'Close' } }}
+      </button>
+    </footer>
     @if (registering()) {
       <xp-spin
         class="absolute inset-0 z-10 flex items-center justify-center bg-components-card-bg/20 backdrop-blur-sm"

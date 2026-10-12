@@ -1,6 +1,6 @@
 import { DestroyRef, inject } from '@angular/core'
 import { IDataSource, PermissionsEnum } from '@xpert-ai/contracts'
-import { ZardDialogRef, ZardDialogService } from '@xpert-ai/headless-ui'
+import { DialogRef, Dialog } from '@angular/cdk/dialog'
 import { firstValueFrom } from 'rxjs'
 import { Store } from '../../@core/state/store.service'
 import { ViewClientCommandRegistry } from '../../@shared/view-extension/view-client-command-registry.service'
@@ -10,10 +10,10 @@ import { registerDataSourceCreateCommand } from './data-source-create-client-com
 export function injectDataSourceCreateCommand() {
   const registry = inject(ViewClientCommandRegistry)
   const store = inject(Store)
-  const dialog = inject(ZardDialogService)
+  const dialog = inject(Dialog)
   const destroyRef = inject(DestroyRef)
   let active: Promise<Partial<IDataSource> | undefined> | undefined
-  let dialogRef: ZardDialogRef<XpDataSourceCreationComponent, Partial<IDataSource>, undefined> | undefined
+  let dialogRef: DialogRef<Partial<IDataSource>, XpDataSourceCreationComponent> | undefined
   const unregister = registerDataSourceCreateCommand(registry, {
     canCreate: () => store.hasPermission(PermissionsEnum.DATA_SOURCE_EDIT),
     create: () => {
@@ -21,13 +21,12 @@ export function injectDataSourceCreateCommand() {
         active = (async () => {
           const { XpDataSourceCreationComponent } = await import('../setting/data-sources/creation/creation.component')
           if (destroyRef.destroyed) return undefined
-          dialogRef = dialog.open<XpDataSourceCreationComponent, undefined, Partial<IDataSource>>(
+          dialogRef = dialog.open<Partial<IDataSource>, undefined, XpDataSourceCreationComponent>(
             XpDataSourceCreationComponent,
             {
-              backdropClass: 'xp-overlay-share-sheet',
-              panelClass: ['xp-overlay-pane-share-sheet', '!p-0'],
-              width: 'min(780px, calc(100vw - 48px))',
-              maxWidth: 'calc(100vw - 48px)'
+              backdropClass: 'backdrop-blur-xs-black',
+              panelClass: 'xp-overlay-pane-dialog',
+              maxWidth: 'calc(100vw - 32px)'
             }
           )
           return firstValueFrom(dialogRef.closed, { defaultValue: undefined })

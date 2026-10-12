@@ -34,11 +34,39 @@
 }
 
 <ng-template #dialog>
-  <div class="cursor-pointer" (click)="closeImage()">
-    @if (uploadedUrl()) {
-      <img class="h-[80vh] mx-auto object-cover" [src]="uploadedUrl()" [alt]="name()" />
-    } @else {
-      <img class="h-[80vh] mx-auto object-cover" [src]="previewUrl()" [alt]="name()" />
-    }
-  </div>
-</ng-template>
+  <div xpDialogLayout="wide" class="w-[900px] max-w-full max-h-[85dvh]">
+    <header xpDialogHeader>
+      <h2 xpDialogHeading>{{ name() }}</h2>
+      <button
+        type="button"
+        z-button
+        zType="ghost"
+        zSize="icon"
+        xpDialogCloseButton
+        [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+        (click)="closeImage()"
+      >
+        <z-icon zType="x" />
+      </button>
+    </header>
+    <div xpDialogBody>
+      <button
+        type="button"
+        class="block w-full cursor-zoom-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+        (click)="closeImage()"
+      >
+        <img
+          class="mx-auto max-h-[65dvh] max-w-full object-contain"
+          [src]="uploadedUrl() || previewUrl()"
+          [alt]="name()"
+        />
+      </button>
+    </div>
+    <footer xpDialogFooter>
+      <button type="button" z-button zType="outline" (click)="closeImage()">
+        {{ 'XP.ACTIONS.Close' | translate: { Default: 'Close' } }}
+      </button>
+    </footer>
+  </div></ng-template
+>

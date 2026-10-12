@@ -4,6 +4,8 @@ import { _TFile } from './types'
 export type TFile = _TFile & {
   fileType?: string
   contents?: string
+  /** Authority resolved by the file service for this request, never inferred from MIME or identity. */
+  capabilities?: { canRead: boolean; canWrite: boolean }
   previewText?: string
   description?: string
   size?: number

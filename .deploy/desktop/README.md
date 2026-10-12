@@ -37,6 +37,10 @@ Git tags and dependency-only Desktop version bumps do not request an installer b
 Shared UI, contracts or protocol changes intended for a Bosi release must include a
 Desktop changeset too.
 
+Release tooling and workflow edits also run the release checks on pushes. To retry
+installer builds after a repair, add a new Desktop Changeset; checking the pipeline
+alone does not authorize another candidate build.
+
 - PRs with a new Desktop note build candidate artifacts with no signing secrets
   and no release-writing permission. Subsequent PR commits verify the complete diff
   from the merge base, so source updates still rerun those candidate builds.
@@ -51,6 +55,14 @@ Desktop changeset too.
   commit. It attaches all twelve installers, architecture-specific update feeds,
   `SHA256SUMS.txt` and `release-manifest.json`. Review and publish the draft manually.
   Publishing also makes its update feeds available to stable installed Desktop apps.
+
+When `main` is merged back into `develop`, its Desktop version becomes the
+candidate baseline. The workflow passes the fetched main SHA as
+`DESKTOP_RELEASE_MAIN` (`mainSha` for API callers). The planner accepts only a
+matching version increase from a main ancestor newly included in the source SHA.
+New Desktop notes still request the candidate, while all pending notes determine
+its next version. Unmerged main versions, mismatched versions and main pushes keep
+the normal consumption checks; synchronization never authorizes a stable draft.
 
 There is no manual-dispatch bypass. A partial draft upload can be rerun: existing
 assets must have the same source commit and SHA-256 digests. Published releases,

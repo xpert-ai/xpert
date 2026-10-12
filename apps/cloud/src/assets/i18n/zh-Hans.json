@@ -1,4 +1,17 @@
 {
+  "BrowserCapture": {
+    "Title": "选择录音来源",
+    "Help": "录音前，请告知所有参会者。选择后，浏览器将请求相应权限。",
+    "Microphone": "仅麦克风",
+    "Shared": "麦克风 + 共享标签页音频",
+    "SharedHelp": "共享时选择有声音的浏览器标签页，并勾选“分享标签页音频”。支持情况取决于浏览器与共享来源。",
+    "KeepOpen": "上传完成前请保持本页面打开。尚未上传的音频暂存在本页面内存中，关闭或刷新页面会丢失。",
+    "Waiting": "请在浏览器权限窗口中完成选择…",
+    "NoSharedAudio": "未获得共享音轨。请重新选择标签页并勾选分享音频，或选择仅麦克风。",
+    "PermissionDenied": "录音授权已取消或被拒绝。请允许浏览器使用麦克风，或重新选择共享来源。",
+    "DeviceError": "无法打开录音设备，请检查设备与浏览器权限后重试。",
+    "Cancel": "取消"
+  },
   "Auth": {
     "McpConsent": {
       "Eyebrow": "授权请求",
@@ -9171,6 +9184,12 @@
       }
     },
     "Xpert": {
+      "ProjectManagement": {
+        "Title": "项目管理",
+        "Description": "拆解项目任务、跟踪进度、委托已授权的执行器并验收结果。在项目会话中使用。",
+        "Unavailable": "当前服务尚未提供项目管理能力。",
+        "ModelRequired": "请选择支持工具调用且有权使用的模型，再开启项目管理。"
+      },
       "AutomaticFrequentQuestions": "自动常用问题",
       "AutomaticFrequentQuestionsDescription": "根据最近 90 天内的 50 条对话，自动提炼最多 5 个常用问题，显示在工作台新对话页。结果缓存 24 小时，到期后再次打开新对话时更新。",
       "ModelSelection": {

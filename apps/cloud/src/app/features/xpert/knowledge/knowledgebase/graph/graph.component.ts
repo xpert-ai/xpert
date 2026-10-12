@@ -1,3 +1,19 @@
+import {
+  ZardButtonComponent,
+  XpDialogFrameImports,
+  ZardInputDirective,
+  ZardBadgeComponent,
+  ZardCheckboxComponent,
+  ZardCardImports,
+  ZardEmptyComponent,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardSearchInputComponent,
+  ZardComboboxComponent,
+  ZardSelectImports,
+  XpSpinComponent
+} from '@xpert-ai/headless-ui'
+import { Dialog } from '@angular/cdk/dialog'
 import { graphStyles, graphCssVar } from './graph-canvas-style'
 import { CommonModule } from '@angular/common'
 import {
@@ -11,25 +27,12 @@ import {
   NgZone,
   signal,
   untracked,
-  viewChild
+  viewChild,
+  TemplateRef
 } from '@angular/core'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
-import {
-  ZardBadgeComponent,
-  ZardButtonComponent,
-  ZardCheckboxComponent,
-  ZardCardImports,
-  ZardEmptyComponent,
-  ZardFormImports,
-  ZardIconComponent,
-  ZardInputDirective,
-  ZardSearchInputComponent,
-  ZardComboboxComponent,
-  ZardSelectImports
-} from '@xpert-ai/headless-ui'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import cytoscape from 'cytoscape'
 import { firstValueFrom } from 'rxjs'
 import {
@@ -102,7 +105,8 @@ const ALL_SELECT_VALUE = '__all__'
     ...ZardCardImports,
     ...ZardFormImports,
     ZardComboboxComponent,
-    ...ZardSelectImports
+    ...ZardSelectImports,
+    ...XpDialogFrameImports
   ],
   styles: `
     :host {
@@ -125,6 +129,8 @@ export class KnowledgeGraphComponent {
   readonly #ngZone = inject(NgZone)
   readonly #destroyRef = inject(DestroyRef)
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
+  readonly #dialog = inject(Dialog)
+  readonly editorDialog = viewChild<TemplateRef<unknown>>('editorDialog')
   readonly graphCanvas = viewChild<ElementRef<HTMLElement>>('graphCanvas')
 
   #requestId = 0
@@ -248,6 +254,34 @@ export class KnowledgeGraphComponent {
   })
 
   constructor() {
+    effect((onCleanup) => {
+      const mode = this.editorMode()
+      const template = this.editorDialog()
+      if (!mode || !template) return
+      const ref = untracked(() =>
+        this.#dialog.open(template, {
+          backdropClass: 'backdrop-blur-xs-black',
+          panelClass: 'xp-overlay-pane-dialog',
+          maxWidth: 'calc(100vw - 32px)',
+          ariaLabelledBy: 'knowledge-graph-editor-title',
+          disableClose: true
+        })
+      )
+      const backdrop = ref.backdropClick.subscribe(() => {
+        if (!this.saving()) this.closeEditor()
+      })
+      const keyboard = ref.keydownEvents.subscribe((event) => {
+        if (event.key === 'Escape' && !this.saving()) {
+          event.preventDefault()
+          this.closeEditor()
+        }
+      })
+      onCleanup(() => {
+        backdrop.unsubscribe()
+        keyboard.unsubscribe()
+        ref.close()
+      })
+    })
     this.#destroyRef.onDestroy(() => this.destroyGraph())
 
     effect(() => {

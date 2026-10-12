@@ -1,3 +1,4 @@
+import { redactCredentials } from '../../shared/redact-credentials'
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -15,7 +16,7 @@ import {
     AGENT_TASK_RESULTS_FEATURE,
     type IXpertViewExtensionProvider
 } from '@xpert-ai/plugin-sdk'
-import { InvocationActivityService, redact } from '../activity/activity.service'
+import { InvocationActivityService } from '../activity/activity.service'
 import { ExecutionReaderService } from './execution-reader.service'
 import { ArtifactsService } from '../../artifacts/artifacts.service'
 import { invocationError } from '../invocation-runtime'
@@ -107,9 +108,12 @@ export class CodingExecutionProvider implements IXpertViewExtensionProvider {
                     tool: invocation.handle?.runner?.tool,
                     workingDirectory: invocation.handle?.runner?.workingDirectory,
                     result: invocation.result
-                        ? { text: redact(invocation.result.text ?? ''), artifacts: invocation.result.artifacts }
+                        ? {
+                              text: redactCredentials(invocation.result.text ?? ''),
+                              artifacts: invocation.result.artifacts
+                          }
                         : undefined,
-                    error: invocation.error ? redact(invocation.error) : undefined
+                    error: invocation.error ? redactCredentials(invocation.error) : undefined
                 },
                 activity: await this.activity.page(invocation, parameters.after)
             }

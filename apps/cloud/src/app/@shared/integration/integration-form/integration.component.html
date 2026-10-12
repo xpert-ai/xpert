@@ -1,14 +1,15 @@
-<form [formGroup]="formGroup" class="w-full grow p-8 overflow-y-auto flex flex-col gap-2">
+<form [formGroup]="formGroup" class="w-full min-w-0 flex flex-col gap-4">
   <emoji-avatar formControlName="avatar" large editable class="self-center rounded-xl overflow-hidden shadow-lg" />
 
-  <xp-input class="flex-1" [label]="'XP.KEY_WORDS.Name' | translate: { Default: 'Name' }" formControlName="name" />
+  <label class="flex flex-col gap-2"
+    ><span class="font-medium">{{ 'XP.KEY_WORDS.Name' | translate: { Default: 'Name' } }}</span
+    ><input z-input class="w-full" formControlName="name"
+  /></label>
 
-  <div class="flex-1 min-w-full flex flex-col">
-    <label class="xp-input-label shrink-0">{{
-      'XP.KEY_WORDS.Description' | translate: { Default: 'Description' }
-    }}</label>
+  <div class="flex flex-col gap-2">
+    <label class="font-medium">{{ 'XP.KEY_WORDS.Description' | translate: { Default: 'Description' } }}</label>
     <textarea
-      class="xp-input-element"
+      class="w-full"
       z-input
       formControlName="description"
       cdkTextareaAutosize
@@ -27,14 +28,14 @@
   @if (webhookUrl()) {
     <div>
       <p>{{ 'XP.Integration.WebhookUrl' | translate: { Default: 'Webhook url' } }}:</p>
-      <pre class="px-2 py-1 rounded-md text-sm whitespace-break-spaces bg-background-default-subtle">{{
+      <pre class="px-2 py-1 rounded-md text-sm whitespace-break-spaces break-all bg-background-default-subtle">{{
         webhookUrl()
       }}</pre>
     </div>
   }
 
-  <div class="w-full flex justify-start">
-    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium" (click)="test()">
+  <div xpDialogActionGroup="inline" class="flex justify-start">
+    <button type="button" z-button zType="outline" [zDisabled]="loading()" [zLoading]="loading()" (click)="test()">
       {{ 'XP.KEY_WORDS.Test' | translate: { Default: 'Test' } }}
     </button>
   </div>

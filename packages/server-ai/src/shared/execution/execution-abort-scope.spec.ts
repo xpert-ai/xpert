@@ -1,4 +1,7 @@
-jest.mock('@xpert-ai/server-core', () => ({ REDIS_CLIENT: 'redis' }))
+jest.mock('@xpert-ai/server-core', () => ({
+    REDIS_CLIENT: 'redis',
+    ...jest.requireActual('../../../../server/src/runtime-control/shutdown-step')
+}))
 
 import type { RedisClientType } from 'redis'
 import { ExecutionCancelService } from './execution-cancel.service'

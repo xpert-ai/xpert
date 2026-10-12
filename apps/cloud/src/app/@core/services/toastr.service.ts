@@ -1,7 +1,7 @@
-import { Injectable, inject } from '@angular/core'
-import { type ExternalToast } from 'ngx-sonner'
+import { inject, Injectable } from '@angular/core'
 import { TranslateService } from '@ngx-translate/core'
-import { ZardAlertDialogService, ZardToastService } from '@xpert-ai/headless-ui'
+import { ZardAlertDialogService, ZardToastService, type ZardAlertDialogConfirmOptions } from '@xpert-ai/headless-ui'
+import { type ExternalToast } from 'ngx-sonner'
 import { catchError, EMPTY, Observable, Subject, take, takeUntil, tap } from 'rxjs'
 import { getErrorMessage } from '../types'
 
@@ -119,13 +119,22 @@ export class ToastrService {
     )
   }
 
-  confirm({ code, params }: { code: string; params?: TranslationParams }, _config?: ToastrConfig) {
+  confirm(
+    {
+      code,
+      params,
+      layout
+    }: { code: string; params?: TranslationParams; layout?: ZardAlertDialogConfirmOptions['layout'] },
+    _config?: ToastrConfig
+  ) {
     const message = this.getTranslation(code, this.toTranslationParams(params))
     const confirm = this.getTranslation('XP.KEY_WORDS.Confirm', { Default: 'Confirm' })
     const cancel = this.getTranslation('COMPONENTS.COMMON.CANCEL', { Default: 'Cancel' })
 
     return this.alertDialog
       .confirm({
+        layout,
+        title: confirm,
         description: message,
         actionText: confirm,
         cancelText: cancel,

@@ -113,17 +113,32 @@ export const projectTaskDispatchReceiptSchema = projectTaskExecutionReferenceSch
 export type ProjectTaskDispatchReceipt = z.output<typeof projectTaskDispatchReceiptSchema>
 
 /** Explicit delegation. Routing and actor identity come from the host. */
-export const projectTaskDispatchInputSchema = z
+const projectTaskDispatchFieldsSchema = z
   .object({
     requestId: z.string().uuid(),
     taskId: z.string().uuid(),
     expectedRevision: z.number().int().positive(),
-    bindingId: z.string().uuid(),
+    bindingId: z.string().uuid().optional(),
+    target: z
+      .object({ type: z.literal('group_member'), participantId: z.string().uuid() })
+      .strict()
+      .optional(),
     purpose: projectTaskExecutionPurposeSchema.optional(),
     delivery: agentOutputDeliverySchema.optional(),
     instructions: z.string().trim().max(16000).default('')
   })
   .strict()
+const hasOneDispatchTarget = (input: {
+  bindingId?: string
+  target?: { type?: 'group_member'; participantId?: string }
+}) => Boolean(input.bindingId) !== Boolean(input.target)
+export const projectTaskDispatchInputSchema = projectTaskDispatchFieldsSchema.refine(
+  hasOneDispatchTarget,
+  'Choose exactly one Runtime binding or group member'
+)
+export const projectTaskDispatchToolInputSchema = projectTaskDispatchFieldsSchema
+  .omit({ requestId: true })
+  .refine(hasOneDispatchTarget, 'Choose exactly one Runtime binding or group member')
 export type ProjectTaskDispatchInput = z.output<typeof projectTaskDispatchInputSchema>
 
 /** Exact JSON response from an evidence-only reviewer; prose never implies a passing verdict. */

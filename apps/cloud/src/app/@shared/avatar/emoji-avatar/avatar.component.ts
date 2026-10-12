@@ -15,7 +15,7 @@ import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { TAvatar } from '../../../@core'
 import { EmojiAvatarEditorComponent } from '../emoji-avatar-editor/avatar-editor.component'
 
-import { ZardDialogService } from '@xpert-ai/headless-ui'
+import { Dialog } from '@angular/cdk/dialog'
 @Component({
   standalone: true,
   imports: [CommonModule, EmojiComponent],
@@ -56,7 +56,7 @@ import { ZardDialogService } from '@xpert-ai/headless-ui'
   }
 })
 export class EmojiAvatarComponent {
-  readonly dialog = inject(ZardDialogService)
+  readonly dialog = inject(Dialog)
   protected cva = inject<NgxControlValueAccessor<Partial<TAvatar> | null>>(NgxControlValueAccessor)
 
   readonly alt = input<string>()
@@ -119,12 +119,13 @@ export class EmojiAvatarComponent {
     if (this.editable()) {
       this.focused = true
       this.dialog
-        .open(EmojiAvatarEditorComponent, {
+        .open<TAvatar>(EmojiAvatarEditorComponent, {
           data: this.avatar(),
-          panelClass: 'gap-3 p-4'
+          panelClass: 'xp-overlay-pane-dialog',
+          backdropClass: 'backdrop-blur-xs-black',
+          maxWidth: 'calc(100vw - 32px)'
         })
-        .afterClosed()
-        .subscribe({
+        .closed.subscribe({
           next: (result) => {
             this.focused = false
             if (result) {

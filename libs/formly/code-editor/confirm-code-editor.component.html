@@ -1,37 +1,42 @@
-<div class="cursor-move" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-  <h4 style="pointer-events: none">
-    {{ 'COMPONENTS.EDITOR.EDIT' | translate: { Default: 'Edit' } }}
-  </h4>
-</div>
-
-<div class="flex flex-col">
-  <ngx-monaco-editor
-    class="xp-confirm__monaco-editor flex-1 h-full"
-    [options]="editorOptions"
-    [(ngModel)]="statement"
-    (onInit)="editor$.next($event)"
-  />
-</div>
-
-<div class="flex justify-between items-center">
-  <div class="flex items-center gap-1">
-    <button z-button zType="ghost" (click)="onReset()">
-      {{ 'COMPONENTS.COMMON.RESET' | translate: { Default: 'Reset' } }}
+<div xpDialogLayout="wide" xpDialogPurpose="workflow" class="w-[800px] max-w-full max-h-[85dvh]">
+  <header xpDialogHeader cdkDrag cdkDragRootElement=".cdk-overlay-pane">
+    <h2 cdkDragHandle class="cursor-move" xpDialogHeading>
+      {{ 'COMPONENTS.EDITOR.EDIT' | translate: { Default: 'Edit' } }}
+    </h2>
+    <button
+      type="button"
+      z-button
+      zType="ghost"
+      zSize="icon"
+      xpDialogCloseButton
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+      (click)="onCancel()"
+    >
+      <z-icon zType="x" />
     </button>
-    <button z-button zType="ghost" (click)="onClear()">
-      {{ 'COMPONENTS.COMMON.CLEAR' | translate: { Default: 'Clear' } }}
-    </button>
+  </header>
+  <div xpDialogBody>
+    <ngx-monaco-editor
+      class="block w-full h-[400px]"
+      [options]="editorOptions"
+      [(ngModel)]="statement"
+      (onInit)="editor$.next($event)"
+    />
   </div>
-
-  <div class="flex items-center gap-1">
-    <button z-button zType="ghost" (click)="onCancel()">
-      {{ 'COMPONENTS.COMMON.CANCEL' | translate: { Default: 'Cancel' } }}
-    </button>
-    <button class="text-text-accent hover:text-text-accent" z-button zType="ghost" cdkFocusInitial (click)="onApply()">
-      {{ 'COMPONENTS.COMMON.APPLY' | translate: { Default: 'Apply' } }}
-    </button>
-    <button z-button zType="default" cdkFocusInitial (click)="onOk()">
+  <footer xpDialogFooter>
+    <div class="mr-auto flex flex-wrap gap-2">
+      <button type="button" z-button zType="outline" (click)="onReset()">
+        {{ 'COMPONENTS.COMMON.RESET' | translate: { Default: 'Reset' } }}</button
+      ><button type="button" z-button zType="outline" (click)="onClear()">
+        {{ 'COMPONENTS.COMMON.CLEAR' | translate: { Default: 'Clear' } }}
+      </button>
+    </div>
+    <button type="button" z-button zType="outline" (click)="onCancel()">
+      {{ 'COMPONENTS.COMMON.CANCEL' | translate: { Default: 'Cancel' } }}</button
+    ><button type="button" z-button zType="outline" (click)="onApply()">
+      {{ 'COMPONENTS.COMMON.APPLY' | translate: { Default: 'Apply' } }}</button
+    ><button type="button" z-button zType="default" (click)="onOk()">
       {{ 'COMPONENTS.COMMON.CONFIRM' | translate: { Default: 'Confirm' } }}
     </button>
-  </div>
+  </footer>
 </div>

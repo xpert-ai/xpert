@@ -43,6 +43,7 @@ export class ZardDialogService {
     config: ZardDialogOpenConfig<D> = {}
   ): ZardDialogRef<T, R, D> {
     const zardConfig = new ZardDialogOptions<T, D>()
+    zardConfig.zBare = true
     zardConfig.zBackdropClass = config.backdropClass
     zardConfig.zClosable = false
     zardConfig.zContent = componentOrTemplateRef
@@ -84,9 +85,17 @@ export class ZardDialogService {
   private createOverlay<T, U>(config: ZardDialogOptions<T, U>): OverlayRef | undefined {
     if (isPlatformBrowser(this.platformId)) {
       const overlayConfig = new OverlayConfig({
-        backdropClass: config.zBackdropClass,
+        backdropClass: config.zBackdropClass ?? 'backdrop-blur-xs-black',
+        panelClass: ['xp-overlay-pane-dialog', ...(config.zCustomClasses?.split(/\s+/).filter(Boolean) ?? [])],
+        width: config.zWidth ?? '448px',
+        maxWidth: config.zMaxWidth ?? 'calc(100vw - 32px)',
+        height: config.zHeight,
+        maxHeight: config.zMaxHeight ?? 'calc(100dvh - 32px)',
+        minHeight: config.zMinHeight,
+        minWidth: config.zMinWidth,
+        scrollStrategy: this.overlay.scrollStrategies.block(),
         hasBackdrop: true,
-        positionStrategy: this.overlay.position().global(),
+        positionStrategy: this.overlay.position().global().centerHorizontally().centerVertically(),
         usePopover: false
       })
 
@@ -113,6 +122,7 @@ export class ZardDialogService {
 
     const containerRef = overlayRef.attach<ZardDialogComponent<T, U>>(containerPortal)
 
+    containerRef.changeDetectorRef.detectChanges()
     return containerRef.instance
   }
 

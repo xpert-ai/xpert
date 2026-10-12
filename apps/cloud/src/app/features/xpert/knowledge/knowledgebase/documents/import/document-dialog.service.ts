@@ -35,6 +35,9 @@ export class KnowledgeDocumentDialogService {
       if (locked() || current.status === KnowledgebaseStatusEnum.REBUILDING) return false
       return !!(await firstValueFrom(
         this.dialog.open<boolean>(DocumentImportDialogComponent, {
+          backdropClass: 'backdrop-blur-xs-black',
+          panelClass: 'xp-overlay-pane-dialog',
+          maxWidth: 'calc(100vw - 32px)',
           ...this.options,
           data: { knowledgebase: current, parentId, locked },
           ariaLabel: this.translate.instant('XP.Knowledgebase.Import.Title')
@@ -59,6 +62,9 @@ export class KnowledgeDocumentDialogService {
       if (locked() || knowledgebase.status === KnowledgebaseStatusEnum.REBUILDING) return false
       return !!(await firstValueFrom(
         this.dialog.open<boolean>(DocumentImportDialogComponent, {
+          backdropClass: 'backdrop-blur-xs-black',
+          panelClass: 'xp-overlay-pane-dialog',
+          maxWidth: 'calc(100vw - 32px)',
           ...this.options,
           data: { knowledgebase, parentId: null, locked, editDocument: document },
           ariaLabel: this.translate.instant('XP.Knowledgebase.ModifyProcessingSettings')

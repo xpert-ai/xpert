@@ -9,6 +9,7 @@ import {
   TXpertTemplateCatalogPage,
   TXpertTemplateCatalogQuery,
   TXpertTemplateSummary,
+  XpertTemplateSetup,
   XpertWorkspaceDataScope
 } from '@xpert-ai/contracts'
 import { API_PREFIX, PaginationParams, TKnowledgePipelineTemplate, toHttpParams } from '@cloud/app/@core/state'
@@ -54,6 +55,12 @@ export class XpertTemplateService {
   getTemplate(id: string, locale?: string) {
     return this.#httpClient.get<TXpertTemplate>(API_PREFIX + `/xpert-template/${encodeURIComponent(id)}`, {
       params: locale ? { locale } : {}
+    })
+  }
+
+  getSetup(id: string, capabilities: string[] = []) {
+    return this.#httpClient.get<XpertTemplateSetup>(API_PREFIX + `/xpert-template/${encodeURIComponent(id)}/setup`, {
+      params: { capabilities: capabilities.join(',') }
     })
   }
 

@@ -1,0 +1,637 @@
+@switch (section()) { @case ('Middleware1') {
+
+<div class="space-y-3">
+  <div class="text-sm leading-6 text-text-secondary">
+    {{ 'XP.Xpert.SelectMiddlewares' | translate : { Default: 'Choose the middlewares to preload for the primary agent.
+    Detailed configuration stays in Studio.' } }}
+  </div>
+  <div class="text-xs leading-5 text-text-secondary">
+    {{ 'XP.Xpert.MiddlewareFeaturesAutoEnabled' | translate : { Default: 'If a middleware requires Xpert features such
+    as sandbox, they will be enabled automatically for this Xpert.' } }}
+  </div>
+  <div class="text-xs leading-5 text-text-secondary">
+    {{ 'XP.Xpert.MiddlewareRequiredModeHelp' | translate : { Default: 'Selected middlewares default to Always load. Turn
+    it off to create the node without forcing runtime loading; you can continue adjusting it in Studio.' } }}
+  </div>
+
+  <z-search-input
+    class="max-w-md"
+    [value]="vm().middlewareSearch()"
+    [placeholder]="
+                'XP.Xpert.SearchMiddlewaresPlaceholder'
+                  | translate: { Default: 'Search middleware name or description' }
+              "
+    [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
+    (valueChange)="vm().middlewareSearch.set($event)"
+  />
+
+  <div class="grid gap-2 md:grid-cols-2">
+    @for (middleware of vm().filteredMiddlewareProviderOptions(); track middleware.meta.name) {
+    <div
+      class="flex items-start gap-3 rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-3 cursor-pointer transition-colors hover:bg-hover-bg"
+      [class.border-primary]="vm().selectedMiddlewares().includes(middleware.meta.name)"
+      [class.bg-background-default]="vm().selectedMiddlewares().includes(middleware.meta.name)"
+      (click)="
+                    vm().toggleMiddleware(middleware.meta.name, !vm().selectedMiddlewares().includes(middleware.meta.name))
+                  "
+    >
+      <z-checkbox
+        class="mt-1 shrink-0"
+        displayDensity="compact"
+        [ngModel]="vm().selectedMiddlewares().includes(middleware.meta.name)"
+        (click)="$event.stopPropagation()"
+        (checkChange)="vm().toggleMiddleware(middleware.meta.name, $event)"
+      />
+      <div class="min-w-0 flex-1">
+        <div class="flex flex-wrap items-center gap-2 font-medium text-text-primary">
+          <span [class]="middleware.meta.deprecated ? 'line-through decoration-2 decoration-current' : ''">
+            {{ middleware.meta.label ? (middleware.meta.label | i18n) : middleware.meta.name }}
+          </span>
+          @if (middleware.meta.deprecated) {
+          <i
+            class="ri-alert-line shrink-0 text-text-warning"
+            [zTooltip]="
+                            middleware.meta.deprecationMessage
+                              ? (middleware.meta.deprecationMessage | i18n)
+                              : ('XP.Xpert.DeprecatedMiddleware'
+                                | translate
+                                  : {
+                                      Default:
+                                        'This middleware is deprecated. Use the built-in feature or a replacement middleware instead.'
+                                    })
+                          "
+            zPosition="top"
+          ></i>
+          } @if (middleware.unavailable) {
+          <span
+            class="inline-flex items-center rounded-md bg-components-input-bg-normal px-2 py-px text-xs text-text-warning"
+          >
+            {{ 'XP.Xpert.TemplateMiddlewareUnavailable' | translate: { Default: 'Unavailable in current runtime' } }}
+          </span>
+          }
+        </div>
+        <div class="text-sm text-text-secondary">
+          {{ middleware.meta.description ? (middleware.meta.description | i18n) : middleware.meta.name }}
+        </div>
+      </div>
+      @if (vm().selectedMiddlewares().includes(middleware.meta.name)) {
+      <div class="ml-auto flex shrink-0 items-center pl-2" (click)="$event.stopPropagation()">
+        <z-switch
+          zSize="sm"
+          [ngModel]="vm().isMiddlewareRequired(middleware.meta.name)"
+          (ngModelChange)="vm().toggleMiddlewareRequired(middleware.meta.name, $event)"
+        >
+          @if (vm().isMiddlewareRequired(middleware.meta.name)) { {{ 'XP.Xpert.MiddlewareRequiredBadge' | translate: {
+          Default: 'Always load' } }} } @else { {{ 'XP.Xpert.MiddlewareOptionalBadge' | translate: { Default: 'Manual
+          load' } }} }
+        </z-switch>
+      </div>
+      }
+    </div>
+    } @empty { @if (vm().middlewareProviderOptions().length) {
+    <div
+      class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary md:col-span-2"
+    >
+      {{ 'XP.Xpert.NoMatchingMiddlewares' | translate: { Default: 'No matching middlewares found' } }}
+    </div>
+    } @else {
+    <div
+      class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary md:col-span-2"
+    >
+      {{ 'XP.Workflow.NoMiddlewaresAvailable' | translate: { Default: 'No middleware providers available' } }}
+    </div>
+    } }
+  </div>
+</div>
+
+} @case ('Skill1') {
+
+<div class="space-y-4">
+  <div class="flex flex-wrap items-start justify-between gap-3">
+    <div class="max-w-3xl text-sm leading-6 text-text-secondary">
+      {{ 'XP.Xpert.AddWorkspaceSkillsHelp' | translate : { Default: vm().usesWorkspaceSkillDefaults() ? 'All workspace
+      skills shown here are enabled by default for ClawXpert. Uncheck any skill to exclude it.' : 'The first time you
+      open this step, we sync the built-in public skill repository into the workspace and enable it by default.
+      Unchecked public skills become this Xpert’s blacklist, while other workspace skills stay opt-in.' } }}
+    </div>
+
+    <div class="flex items-center gap-2">
+      @if (vm().installingSkillPackage()) {
+      <span
+        class="inline-flex items-center rounded-full border border-components-panel-border bg-components-card-bg px-3 py-1 text-xs text-text-secondary"
+      >
+        {{ 'XP.Xpert.InstallingSkill' | translate: { Default: 'Installing…' } }}
+      </span>
+      }
+
+      <button
+        type="button"
+        z-button
+        zType="outline"
+        xpDialogActionGroup="inline"
+        [zDisabled]="!vm().workspaceId() || vm().installingSkillPackage()"
+        (click)="vm().openSkillInstallDialog()"
+      >
+        <i class="ri-download-cloud-2-line"></i>
+        <span>{{ 'XP.Xpert.BrowseWorkspaceSkills' | translate: { Default: 'Browse & install skills' } }}</span>
+      </button>
+    </div>
+  </div>
+
+  @if (!vm().workspaceId()) {
+  <div
+    class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm leading-6 text-text-secondary"
+  >
+    {{ 'XP.Xpert.WorkspaceRequiredForSkillInstall' | translate : { Default: 'Select a workspace first before installing
+    or selecting skills for this Xpert via Skills Middleware.' } }}
+  </div>
+  } @else if (vm().templatePluginSkillInstallError()) {
+  <div class="rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-4">
+    <div class="flex items-start gap-3">
+      <i class="ri-error-warning-line mt-0.5 text-base text-text-warning"></i>
+      <div class="min-w-0">
+        <div class="text-sm font-semibold text-text-primary">
+          {{ 'XP.Xpert.TemplatePluginSkillsInstallFailed' | translate: { Default: 'Failed to initialize template skills'
+          } }}
+        </div>
+        <div class="mt-1 text-sm leading-6 text-text-secondary">{{ vm().templatePluginSkillInstallError() }}</div>
+      </div>
+    </div>
+  </div>
+  } @else if (vm().skillState().loading) {
+  <div class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary">
+    {{ 'XP.Xpert.LoadingWorkspaceSkills' | translate: { Default: 'Loading workspace skills…' } }}
+  </div>
+  } @else { @if (vm().skillState().errorMessage) {
+  <div class="rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-4">
+    <div class="flex items-start gap-3">
+      <i class="ri-error-warning-line mt-0.5 text-base text-text-warning"></i>
+      <div class="min-w-0">
+        <div class="text-sm font-semibold text-text-primary">
+          {{ 'XP.Xpert.WorkspaceSkillsLoadFailed' | translate: { Default: 'Failed to load workspace skills' } }}
+        </div>
+        <div class="mt-1 text-sm leading-6 text-text-secondary">{{ vm().skillState().errorMessage }}</div>
+      </div>
+    </div>
+  </div>
+  } @else if (!vm().skillState().skills.length) {
+  <div
+    class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm leading-6 text-text-secondary"
+  >
+    {{ 'XP.Xpert.NoWorkspaceSkillsAvailableDesc' | translate : { Default: 'No workspace skills installed yet. Use the
+    install dialog to add a skill, then enable it here through Skills Middleware.' } }}
+  </div>
+  } @else {
+  <div class="grid gap-2 md:grid-cols-2">
+    @for (skill of vm().skillState().skills; track skill.id) {
+    <label
+      class="flex items-start gap-3 rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-3 cursor-pointer transition-colors hover:bg-hover-bg"
+    >
+      <input
+        type="checkbox"
+        class="mt-1 h-4 w-4 shrink-0"
+        [ngModel]="vm().selectedSkills().includes(skill.id)"
+        (ngModelChange)="vm().toggleSkill(skill.id, $event)"
+      />
+      <div class="min-w-0 flex-1">
+        <div class="font-medium text-text-primary">{{ skill.label | i18n }}</div>
+        @if (skill.summary) {
+        <div class="mt-1 text-sm leading-6 text-text-secondary">{{ skill.summary | i18n }}</div>
+        } @if (skill.repositoryName) {
+        <div
+          class="mt-2 inline-flex items-center rounded-full border border-components-panel-border bg-background-default px-2.5 py-1 text-xs text-text-tertiary"
+        >
+          {{ skill.repositoryName }}
+        </div>
+        }
+      </div>
+    </label>
+    }
+  </div>
+  } } @if (vm().selectedSkillItems().length) {
+  <div class="space-y-2">
+    <div class="text-xs font-medium uppercase tracking-wide text-text-tertiary">
+      {{ vm().selectedSkillItems().length }} {{ 'XP.KEY_WORDS.Selected' | translate: { Default: 'selected' } }}
+    </div>
+    <div class="flex flex-wrap gap-2">
+      @for (skill of vm().selectedSkillItems(); track skill.id) {
+      <button type="button" z-button zType="outline" xpDialogActionGroup="inline" (click)="vm().removeSkill(skill.id)">
+        <span>{{ skill.label | i18n }}</span>
+        <i class="ri-close-line"></i>
+      </button>
+      }
+    </div>
+  </div>
+  } @else {
+  <div class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary">
+    {{ 'XP.Workflow.NoSkillsAdded' | translate: { Default: 'No skills added yet' } }}
+  </div>
+  }
+</div>
+
+} @case ('Toolsets1') {
+
+<div class="space-y-4">
+  <div class="flex flex-wrap items-start justify-between gap-3">
+    <div class="max-w-3xl text-sm leading-6 text-text-secondary">
+      {{ 'XP.Xpert.TemplateToolsetsHelp' | translate : { Default: 'Select the configured workspace toolsets required by
+      this assistant template. Missing built-in toolsets can be configured here before creating.' } }}
+    </div>
+
+    <button
+      z-button
+      type="button"
+      zType="outline"
+      xpDialogActionGroup="inline"
+      [zDisabled]="!vm().workspaceId() || vm().loadingTemplateToolsets()"
+      (click)="vm().refreshTemplateToolsetStep()"
+    >
+      <z-icon zType="refresh"></z-icon>
+      <span>{{ 'XP.Xpert.TemplateToolsetRefresh' | translate: { Default: 'Refresh' } }}</span>
+    </button>
+  </div>
+
+  @if (!vm().workspaceId()) {
+  <div
+    class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm leading-6 text-text-secondary"
+  >
+    {{ 'XP.Xpert.WorkspaceRequiredForToolsets' | translate : { Default: 'Select a workspace first before choosing the
+    built-in toolsets for this template.' } }}
+  </div>
+  } @else { @if (vm().templateToolsetInstallError()) {
+  <div class="rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-4">
+    <div class="flex items-start gap-3">
+      <i class="ri-error-warning-line mt-0.5 text-base text-text-warning"></i>
+      <div class="min-w-0">
+        <div class="text-sm font-semibold text-text-primary">
+          {{ 'XP.Xpert.TemplateToolsetsInstallFailed' | translate: { Default: 'Failed to initialize template toolsets' }
+          }}
+        </div>
+        <div class="mt-1 text-sm leading-6 text-text-secondary">{{ vm().templateToolsetInstallError() }}</div>
+      </div>
+    </div>
+  </div>
+  }
+
+  <div class="space-y-3">
+    @for (state of vm().templateToolsetSelectionStates(); track state.key) {
+    <div class="rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-4">
+      <div class="flex flex-wrap items-start justify-between gap-3">
+        <div class="min-w-0">
+          <div class="flex flex-wrap items-center gap-2">
+            <div class="font-medium text-text-primary">{{ state.dependency.provider }}</div>
+            @if (state.loading) {
+            <z-badge zType="outline" zShape="pill" class="text-text-secondary">
+              {{ 'XP.Xpert.TemplateToolsetStatusLoading' | translate: { Default: 'Loading' } }}
+            </z-badge>
+            } @else if (state.selectedToolsetId) {
+            <z-badge zType="outline" zShape="pill" class="text-text-success">
+              {{ 'XP.Xpert.TemplateToolsetStatusReady' | translate: { Default: 'Ready' } }}
+            </z-badge>
+            } @else if (state.toolsets.length) {
+            <z-badge zType="outline" zShape="pill" class="text-text-warning">
+              {{ 'XP.Xpert.SelectionRequired' | translate: { Default: 'Selection required' } }}
+            </z-badge>
+            } @else {
+            <z-badge zType="destructive" zShape="pill">
+              {{ 'XP.Xpert.TemplateToolsetStatusMissing' | translate: { Default: 'Missing' } }}
+            </z-badge>
+            }
+          </div>
+          <div class="mt-2 grid gap-x-4 gap-y-1 text-xs leading-5 text-text-secondary md:grid-cols-2">
+            <div>
+              <span class="text-text-tertiary">
+                {{ 'XP.Xpert.TemplateToolsetPlugin' | translate: { Default: 'Plugin' } }}
+              </span>
+              <span class="ml-1 font-mono">{{ state.dependency.pluginName }}</span>
+            </div>
+            <div>
+              <span class="text-text-tertiary">
+                {{ 'XP.Xpert.TemplateToolsetAgent' | translate: { Default: 'Agent' } }}
+              </span>
+              <span class="ml-1 font-mono">{{ state.dependency.targetAgentKey || '-' }}</span>
+            </div>
+            <div>
+              <span class="text-text-tertiary">
+                {{ 'XP.Xpert.TemplateToolsetNode' | translate: { Default: 'Node' } }}
+              </span>
+              <span class="ml-1 font-mono">{{ state.dependency.templateNodeKey }}</span>
+            </div>
+            <div>
+              <span class="text-text-tertiary">
+                {{ 'XP.Xpert.TemplateToolsetDefaultInstance' | translate: { Default: 'Default' } }}
+              </span>
+              <span class="ml-1">{{ state.dependency.instanceName || '-' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <button
+          z-button
+          type="button"
+          zType="outline"
+          xpDialogActionGroup="inline"
+          class="shrink-0"
+          [zDisabled]="
+                            !vm().workspaceId() ||
+                            state.loading ||
+                            vm().loadingTemplateToolsets() ||
+                            !!vm().configuringTemplateToolsetKey()
+                          "
+          [zLoading]="vm().configuringTemplateToolsetKey() === state.key"
+          (click)="vm().configureTemplateToolset(state.key)"
+        >
+          <z-icon zType="settings"></z-icon>
+          <span> {{ 'XP.Xpert.ConfigureToolset' | translate: { Default: 'Configure Toolset' } }} </span>
+        </button>
+      </div>
+
+      @if (state.loading) {
+      <div
+        class="relative mt-4 flex min-h-20 items-center justify-center rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary"
+      >
+        {{ 'XP.Xpert.LoadingWorkspaceToolsets' | translate: { Default: 'Loading workspace toolsets…' } }}
+        <xp-spin class="absolute inset-0 flex items-center justify-center" />
+      </div>
+      } @else if (state.toolsets.length) {
+      <div class="mt-4 flex flex-col gap-2 md:flex-row md:items-center">
+        <z-select
+          class="min-w-0 flex-1"
+          [zValue]="state.selectedToolsetId || ''"
+          [zPlaceholder]="
+                              'XP.Xpert.SelectToolsetInstance' | translate: { Default: 'Select a toolset instance' }
+                            "
+          (zSelectionChange)="vm().selectTemplateToolsetValue(state.key, $event)"
+        >
+          @for (toolset of state.toolsets; track toolset.id) {
+          <z-select-item [zValue]="toolset.id"> {{ toolset.name || toolset.id }} </z-select-item>
+          }
+        </z-select>
+      </div>
+
+      @if (vm().getSelectedTemplateToolset(state); as selectedToolset) {
+      <div class="mt-3 text-sm leading-6 text-text-secondary">
+        {{ selectedToolset.description || selectedToolset.name || selectedToolset.id }} @if
+        (selectedToolset.tools?.length) {
+        <span class="ml-2 text-xs text-text-tertiary">
+          {{ selectedToolset.tools.length }} {{ 'XP.Xpert.TemplateToolsetToolsCount' | translate: { Default: 'tools' }
+          }}
+        </span>
+        }
+      </div>
+      } } @else {
+      <div
+        class="mt-4 rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm leading-6 text-text-secondary"
+      >
+        {{ 'XP.Xpert.NoMatchingToolsetConfigured' | translate : { Default: 'No matching built-in toolset is configured
+        in this workspace. Configure one to continue.' } }}
+      </div>
+      } @if (state.errorMessage) {
+      <div class="mt-3 text-sm leading-6 text-text-destructive">{{ state.errorMessage }}</div>
+      }
+    </div>
+    } @empty {
+    <div class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary">
+      {{ 'XP.Xpert.NoTemplateToolsetsRequired' | translate: { Default: 'No toolsets required' } }}
+    </div>
+    }
+  </div>
+  }
+</div>
+
+} @case ('WorkflowActionNodes1') {
+
+<div class="space-y-3">
+  <div class="text-sm leading-6 text-text-secondary">
+    {{ 'XP.Xpert.WorkflowActionNodesHelp' | translate : { Default: 'Choose the starter action nodes to place after the
+    default Chat Trigger. We will connect them in a left-to-right workflow for you.' } }}
+  </div>
+
+  <div class="rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-3">
+    <div class="flex items-start gap-3">
+      <div
+        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-components-panel-border bg-background-default-subtle"
+      >
+        <xpert-workflow-icon [type]="vm().eWorkflowNodeTypeEnum.TRIGGER" class="h-6 w-6" />
+      </div>
+      <div class="min-w-0 grow">
+        <div class="font-medium text-text-primary">{{ 'XP.Workflow.Chat' | translate: { Default: 'Chat' } }}</div>
+        <div class="text-sm text-text-secondary">
+          {{ 'XP.Xpert.WorkflowChatTriggerIncluded' | translate: { Default: 'Always included as the first node in this
+          starter workflow.' } }}
+        </div>
+      </div>
+      <div
+        class="shrink-0 rounded-full border border-components-panel-border bg-background-default-subtle px-2 py-0.5 text-xs font-medium text-text-secondary"
+      >
+        {{ 'XP.KEY_WORDS.Default' | translate: { Default: 'Default' } }}
+      </div>
+    </div>
+  </div>
+
+  <div class="grid gap-2 md:grid-cols-2">
+    @for (node of vm().workflowActionNodeOptions; track node.key) {
+    <label
+      class="flex items-start gap-3 rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-3 cursor-pointer transition-colors hover:bg-hover-bg"
+    >
+      <input
+        type="checkbox"
+        class="mt-0.5 h-4 w-4 shrink-0"
+        [ngModel]="vm().selectedWorkflowNodes().includes(node.key)"
+        (ngModelChange)="vm().toggleWorkflowNode(node.key, $event)"
+      />
+      <div
+        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-components-panel-border bg-background-default-subtle"
+      >
+        <xpert-workflow-icon [type]="node.type" class="h-6 w-6" />
+      </div>
+      <div class="min-w-0">
+        <div class="font-medium text-text-primary">{{ node.labelKey | translate: { Default: node.defaultLabel } }}</div>
+        <div class="text-sm text-text-secondary">
+          {{ 'XP.Xpert.WorkflowNodeWillBeChained' | translate: { Default: 'Added into the starter flow' } }}
+        </div>
+      </div>
+    </label>
+    }
+  </div>
+</div>
+
+} @case ('WorkflowTransformResponse1') {
+
+<div class="space-y-3">
+  <div class="text-sm leading-6 text-text-secondary">
+    {{ 'XP.Xpert.WorkflowTransformNodesHelp' | translate : { Default: 'Choose the transform and response nodes to append
+    after the action stage. The selected nodes will keep the fixed starter order.' } }}
+  </div>
+
+  <div class="grid gap-2 md:grid-cols-2">
+    @for (node of vm().workflowTransformNodeOptions; track node.key) {
+    <label
+      class="flex items-start gap-3 rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-3 cursor-pointer transition-colors hover:bg-hover-bg"
+    >
+      <input
+        type="checkbox"
+        class="mt-0.5 h-4 w-4 shrink-0"
+        [ngModel]="vm().selectedWorkflowNodes().includes(node.key)"
+        (ngModelChange)="vm().toggleWorkflowNode(node.key, $event)"
+      />
+      <div
+        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-components-panel-border bg-background-default-subtle"
+      >
+        <xpert-workflow-icon [type]="node.type" class="h-6 w-6" />
+      </div>
+      <div class="min-w-0">
+        <div class="font-medium text-text-primary">{{ node.labelKey | translate: { Default: node.defaultLabel } }}</div>
+        <div class="text-sm text-text-secondary">
+          {{ 'XP.Xpert.WorkflowNodeWillBeChained' | translate: { Default: 'Added into the starter flow' } }}
+        </div>
+      </div>
+    </label>
+    }
+  </div>
+</div>
+
+} @case ('DataSource1') {
+
+<div class="space-y-3">
+  <div class="text-sm leading-6 text-text-secondary">
+    {{ 'XP.Xpert.SelectDataSources' | translate : { Default: 'Choose the data source providers to seed this knowledge
+    pipeline. You can adjust their configuration later in Studio.' } }}
+  </div>
+
+  <div class="grid gap-2 md:grid-cols-2">
+    @for (provider of vm().dataSourceProviderOptions(); track provider.meta.name) {
+    <label
+      class="flex items-start gap-3 rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-3 cursor-pointer transition-colors hover:bg-hover-bg"
+    >
+      <input
+        type="checkbox"
+        class="h-4 w-4 shrink-0"
+        [ngModel]="vm().selectedDataSources().includes(provider.meta.name)"
+        (ngModelChange)="vm().toggleDataSource(provider.meta.name, $event)"
+      />
+      <div class="min-w-0">
+        <div class="font-medium text-text-primary">
+          {{ provider.meta.label ? (provider.meta.label | i18n) : provider.meta.name }}
+        </div>
+        <div class="text-sm text-text-secondary">
+          {{ provider.meta.description ? (provider.meta.description | i18n) : provider.meta.name }}
+        </div>
+      </div>
+    </label>
+    } @empty {
+    <div class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary">
+      {{ 'XP.Xpert.NoDataSourcesAvailable' | translate: { Default: 'No data source providers available' } }}
+    </div>
+    }
+  </div>
+</div>
+
+} @case ('Processor1') {
+
+<div class="space-y-3">
+  <div class="text-sm leading-6 text-text-secondary">
+    {{ 'XP.Xpert.SelectProcessors' | translate : { Default: 'Choose the processors to run after the data source step.
+    Detailed configuration stays in Studio.' } }}
+  </div>
+
+  <div class="grid gap-2 md:grid-cols-2">
+    @for (provider of vm().processorProviderOptions(); track provider.meta.name) {
+    <label
+      class="flex items-start gap-3 rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-3 cursor-pointer transition-colors hover:bg-hover-bg"
+    >
+      <input
+        type="checkbox"
+        class="h-4 w-4 shrink-0"
+        [ngModel]="vm().selectedProcessors().includes(provider.meta.name)"
+        (ngModelChange)="vm().toggleProcessor(provider.meta.name, $event)"
+      />
+      <div class="min-w-0">
+        <div class="font-medium text-text-primary">
+          {{ provider.meta.label ? (provider.meta.label | i18n) : provider.meta.name }}
+        </div>
+        <div class="text-sm text-text-secondary">
+          {{ provider.meta.description ? (provider.meta.description | i18n) : provider.meta.name }}
+        </div>
+      </div>
+    </label>
+    } @empty {
+    <div class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary">
+      {{ 'XP.Xpert.NoProcessorsAvailable' | translate: { Default: 'No processor providers available' } }}
+    </div>
+    }
+  </div>
+</div>
+
+} @case ('Chunker1') {
+
+<div class="space-y-3">
+  <div class="text-sm leading-6 text-text-secondary">
+    {{ 'XP.Xpert.SelectChunkers' | translate : { Default: 'Choose the chunkers to split processed content before it
+    reaches the knowledge base.' } }}
+  </div>
+
+  <div class="grid gap-2 md:grid-cols-2">
+    @for (provider of vm().chunkerProviderOptions(); track provider.name) {
+    <label
+      class="flex items-start gap-3 rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-3 cursor-pointer transition-colors hover:bg-hover-bg"
+    >
+      <input
+        type="checkbox"
+        class="h-4 w-4 shrink-0"
+        [ngModel]="vm().selectedChunkers().includes(provider.name)"
+        (ngModelChange)="vm().toggleChunker(provider.name, $event)"
+      />
+      <div class="min-w-0">
+        <div class="font-medium text-text-primary">{{ provider.label ? (provider.label | i18n) : provider.name }}</div>
+        <div class="text-sm text-text-secondary">
+          {{ provider.description ? (provider.description | i18n) : provider.name }}
+        </div>
+      </div>
+    </label>
+    } @empty {
+    <div class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary">
+      {{ 'XP.Xpert.NoChunkersAvailable' | translate: { Default: 'No chunker providers available' } }}
+    </div>
+    }
+  </div>
+</div>
+
+} @case ('ImageUnderstanding1') {
+
+<div class="space-y-3">
+  <div class="text-sm leading-6 text-text-secondary">
+    {{ 'XP.Xpert.SelectImageUnderstandings' | translate : { Default: 'Choose the image understanding providers needed
+    for OCR or visual extraction. You can skip this step.' } }}
+  </div>
+
+  <div class="grid gap-2 md:grid-cols-2">
+    @for (provider of vm().understandingProviderOptions(); track provider.meta.name) {
+    <label
+      class="flex items-start gap-3 rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-3 cursor-pointer transition-colors hover:bg-hover-bg"
+    >
+      <input
+        type="checkbox"
+        class="h-4 w-4 shrink-0"
+        [ngModel]="vm().selectedUnderstandings().includes(provider.meta.name)"
+        (ngModelChange)="vm().toggleUnderstanding(provider.meta.name, $event)"
+      />
+      <div class="min-w-0">
+        <div class="font-medium text-text-primary">
+          {{ provider.meta.label ? (provider.meta.label | i18n) : provider.meta.name }}
+        </div>
+        <div class="text-sm text-text-secondary">
+          {{ provider.meta.description ? (provider.meta.description | i18n) : provider.meta.name }}
+        </div>
+      </div>
+    </label>
+    } @empty {
+    <div class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary">
+      {{ 'XP.Xpert.NoImageUnderstandingsAvailable' | translate: { Default: 'No image understanding providers available'
+      } }}
+    </div>
+    }
+  </div>
+</div>
+
+} }

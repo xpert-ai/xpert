@@ -6,7 +6,7 @@ import {
   XPERT_VIEW_CONVERSATION_ID_HEADER,
   XPERT_VIEW_PROJECT_ID_HEADER
 } from '@xpert-ai/contracts'
-import { initializeApplicationTracingFromEnv, MetricsService } from '@xpert-ai/server-ai'
+import { applicationMetrics, initializeApplicationTracingFromEnv, MetricsService } from '@xpert-ai/server-ai'
 import {
   AppService,
   AuthGuard,
@@ -15,6 +15,10 @@ import {
   getEntitiesFromPlugins,
   getSubscribersFromPlugins,
   initI18next,
+  enableRuntimeShutdown,
+  prepareApiShutdown,
+  RuntimeLifecycleService,
+  RuntimeQueueShutdownService,
   loadOrganizationPluginConfigs,
   normalizePluginName,
   PluginModule,
@@ -42,6 +46,8 @@ import path from 'path'
 import { EntitySubscriberInterface } from 'typeorm'
 import { BootstrapModule } from './bootstrap.module'
 import { createCorsOriginMatcher } from './cors-origin'
+import { createHttpRequestMetricsMiddleware } from './http-request-metrics'
+import { captureHttpRouterMountTemplates } from './http-route-templates'
 import { createMcpPublicationJsonBodyParser } from './mcp-publication-body-parser'
 import { createSandboxAwareBodyParserType } from './sandbox-proxy-body-parser'
 import { configureSession } from './session'
@@ -49,6 +55,7 @@ import { configureTrustProxy } from './trust-proxy'
 import { withSchemaSyncProtection } from './schema-sync-bootstrap'
 
 export async function bootstrap(options: { title: string; version: string }) {
+  captureHttpRouterMountTemplates()
   // Pre-bootstrap the application configuration
   const config = await preBootstrapApplicationConfig({})
   initializeApplicationTracingFromEnv()
@@ -61,7 +68,9 @@ export async function bootstrap(options: { title: string; version: string }) {
 
   const app = await NestFactory.create<NestExpressApplication>(RootModule, {
     bodyParser: false,
-    bufferLogs: true
+    bufferLogs: true,
+    // Discard leftover sockets only after the drain and final SSE flush grace periods.
+    forceCloseConnections: true
   })
 
   app.useLogger(app.get(Logger))
@@ -73,6 +82,7 @@ export async function bootstrap(options: { title: string; version: string }) {
   })
 
   const metricsService = app.get(MetricsService)
+  app.use(createHttpRequestMetricsMiddleware((input) => applicationMetrics.recordHttpRequest(input)))
   app.getHttpAdapter().get('/metrics', (_req: Request, res: Response) => {
     res.setHeader('Content-Type', metricsService.contentType)
     res.send(metricsService.render())
@@ -157,7 +167,12 @@ export async function bootstrap(options: { title: string; version: string }) {
   const document = SwaggerModule.createDocument(app, swagger)
   SwaggerModule.setup('swg', app, document)
 
-  app.enableShutdownHooks()
+  const lifecycle = app.get(RuntimeLifecycleService)
+  const queues = app.get(RuntimeQueueShutdownService)
+  // Own signal handling here: Nest's enableShutdownHooks would run an independent, unbounded close path.
+  enableRuntimeShutdown(app, {
+    beforeClose: () => prepareApiShutdown(lifecycle, queues)
+  })
 
   // Listen App
   const port = process.env.PORT || 3000

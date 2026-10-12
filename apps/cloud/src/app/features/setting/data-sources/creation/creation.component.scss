@@ -1,4 +1,0 @@
-@reference "../../../../../styles/tailwind-reference.css";
-:host {
-  @apply flex h-[80vh] max-h-[80vh] w-[780px] max-w-[calc(100vw-48px)] flex-col overflow-hidden bg-components-card-bg text-text-primary;
-}

@@ -1,5 +1,6 @@
 // Invariants: public activity is a separate ledger; only the captured invocation can append.
 // Item updates and source cursors commit together. Viewer reads never inspect or restart a CLI.
+import { redactCredentials } from '../../shared/redact-credentials'
 import { Inject, Injectable, Logger, Optional } from '@nestjs/common'
 import { Interval } from '@nestjs/schedule'
 import { DataSource, MoreThan, LessThanOrEqual } from 'typeorm'
@@ -55,7 +56,7 @@ export class InvocationActivityService {
                     for (const raw of batch.items) {
                         let item = executionActivityItemSchema.parse(
                             JSON.parse(JSON.stringify(raw), (_key, value) =>
-                                typeof value === 'string' ? redact(value) : value
+                                typeof value === 'string' ? redactCredentials(value) : value
                             )
                         )
                         if (item.content.kind === 'tool') delete item.content.outputRef
@@ -244,12 +245,4 @@ export class InvocationActivityService {
 function configuredLimit(name: string, fallback: number, minimum: number, maximum: number) {
     const value = Number(process.env[name])
     return Number.isInteger(value) && value >= minimum && value <= maximum ? value : fallback
-}
-
-/** Defense in depth after adapter allowlists; never persist common credential representations. */
-export function redact(value: string) {
-    return value
-        .replace(/Bearer\s+[A-Za-z0-9._~+\/-]+/gi, 'Bearer [REDACTED]')
-        .replace(/\b(?:sk-|xai-)[A-Za-z0-9_-]{16,}/g, '[REDACTED]')
-        .replace(/((?:api[_-]?key|access[_-]?token|password|authorization)[\\"'\s:=]+)[^\\"'\s,}]+/gi, '$1[REDACTED]')
 }

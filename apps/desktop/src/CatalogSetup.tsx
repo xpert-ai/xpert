@@ -6,7 +6,7 @@ import { ModelSelect } from './catalog/ModelSelect'
 import { TemplateRequirements } from './catalog/TemplateRequirements'
 import { Check, ExternalLink, LoaderCircle } from 'lucide-react'
 import { HostError, invoke, openWorkspace } from './host'
-import { canUseExpert } from './catalog-labels'
+import { canUseExpert, categoryLabel } from './catalog-labels'
 import { ApplicationScreenshots } from './ApplicationScreenshots'
 import type { ApplicationSetup, CatalogItem, ExpertItem, WorkspaceOption, TemplatePreflight } from './catalog-types'
 
@@ -16,7 +16,9 @@ export function CatalogSetup({
   webUrl,
   onBusy,
   onUse,
-  onRequested
+  onRequested,
+  onInstalled,
+  onItemUpdated
 }: {
   item: CatalogItem
   creation?: boolean
@@ -24,6 +26,8 @@ export function CatalogSetup({
   onBusy: (busy: boolean) => void
   onUse: (id: string) => Promise<void>
   onRequested: (item: ExpertItem) => void
+  onInstalled: () => void
+  onItemUpdated: (item: CatalogItem) => void
 }) {
   const [setup, setSetup] = useState<ApplicationSetup | null>(null)
   const [workspaces, setWorkspaces] = useState<WorkspaceOption[]>([])
@@ -55,6 +59,7 @@ export function CatalogSetup({
         if (item.kind === 'applications') {
           const result = await invoke('applicationSetup', { pluginName: item.pluginName, appName: item.appName })
           if (!active) return
+          onItemUpdated(result.application)
           setSetup(result)
           setEmbedding(result.defaultEmbeddingModelId)
           setVision(result.defaultVisionModelId)
@@ -84,7 +89,7 @@ export function CatalogSetup({
     return () => {
       active = false
     }
-  }, [item, revision, capabilities])
+  }, [item, revision, capabilities, onItemUpdated])
   const initializing = setup?.application.status === 'initializing'
   const canSubmit =
     !busy &&
@@ -116,6 +121,7 @@ export function CatalogSetup({
       }
       if (item.kind === 'experts') {
         const result = await invoke('requestExpertAccess', { id: item.id, reason: reason.trim() })
+        onItemUpdated(result)
         if (canUseExpert(result)) await onUse(result.id)
         else onRequested(result)
         return
@@ -140,6 +146,7 @@ export function CatalogSetup({
             })
       setInstalled(result.botId)
       installationComplete = true
+      onInstalled()
       await onUse(result.botId)
     } catch (error) {
       if (!installationComplete && item.kind === 'templates' && error instanceof HostError && error.status === 503)
@@ -162,7 +169,20 @@ export function CatalogSetup({
         <div className="mx-auto max-w-2xl space-y-6">
           <p className="text-sm leading-7 text-muted-foreground">{item.description}</p>
           {item.kind === 'applications' && (
-            <ApplicationScreenshots name={item.name} screenshots={setup?.application.screenshots ?? item.screenshots} />
+            <>
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                <span>{item.publisher || 'Xpert'}</span>
+                {item.tags.map((tag) => (
+                  <span key={tag} className="rounded-md bg-muted px-2 py-1">
+                    {categoryLabel(tag)}
+                  </span>
+                ))}
+              </div>
+              <ApplicationScreenshots
+                name={item.name}
+                screenshots={setup?.application.screenshots ?? item.screenshots}
+              />
+            </>
           )}
           {loading && !preflight ? (
             <div role="status" className="flex items-center gap-2 py-8 text-sm text-muted-foreground">

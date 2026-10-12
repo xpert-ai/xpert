@@ -1,4 +1,6 @@
 import { Test } from '@nestjs/testing'
+import { CommandBus } from '@nestjs/cqrs'
+import { ResolveGroupTaskTargetCommand } from '../chat-group/group-project/group-task.commands'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { randomUUID } from 'node:crypto'
 import { AGENT_WORKBENCH_SLOT, type XpertResolvedViewHostContext } from '@xpert-ai/contracts'
@@ -29,7 +31,13 @@ async function setup() {
         artifacts: [{ id: 'file', versionId: 'version', name: 'report.txt' }]
     }
     scope.workspaceId = 'workspace'
-    const invocation = { id, scope, result, request: { target: { bindingId: 'binding' } } }
+    const invocation = {
+        id,
+        scope,
+        result,
+        request: { target: { bindingId: 'binding', provider: 'test', configuration: {} } }
+    }
+    const commands = { execute: jest.fn() }
     const binding = jest.fn().mockResolvedValue({ workspaceIds: ['workspace'] })
     const records = {
         findOneBy: jest.fn().mockResolvedValue({ invocation }),
@@ -50,6 +58,7 @@ async function setup() {
             InvocationResultsProvider,
             { provide: getRepositoryToken(AgentInvocationEntity), useValue: records },
             ExecutionReaderService,
+            { provide: CommandBus, useValue: commands },
             { provide: ArtifactsService, useValue: artifacts }
         ]
     }).compile()
@@ -66,6 +75,8 @@ async function setup() {
         scope,
         result,
         records,
+        invocation,
+        commands,
         inspect,
         binding,
         artifacts,
@@ -74,6 +85,28 @@ async function setup() {
     }
 }
 describe('task result resource view', () => {
+    it('reads group task evidence only after current group and Project authorization', async () => {
+        const f = await setup()
+        f.invocation.request.target.provider = 'xpert-task'
+        f.invocation.request.target.configuration = {
+            executionContext: {
+                type: 'group_member',
+                groupId: randomUUID(),
+                participantId: randomUUID(),
+                sourceParticipantId: randomUUID(),
+                projectId: randomUUID()
+            }
+        }
+        expect(await f.provider.getViewData(f.context, 'results', { selectionId: f.id })).toMatchObject({
+            item: { result: f.result }
+        })
+        expect(f.commands.execute).toHaveBeenCalledWith(new ResolveGroupTaskTargetCommand(f.scope, 'binding'))
+        expect(f.binding).not.toHaveBeenCalled()
+        f.commands.execute.mockRejectedValueOnce(new Error('member revoked'))
+        await expect(f.provider.getViewData(f.context, 'results', { selectionId: f.id })).rejects.toThrow(
+            'member revoked'
+        )
+    })
     it('activates through the feature policy and accepts the card navigation query', async () => {
         const f = await setup()
         const context: XpertResolvedViewHostContext = {

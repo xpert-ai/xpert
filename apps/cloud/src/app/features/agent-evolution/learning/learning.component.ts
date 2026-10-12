@@ -147,6 +147,7 @@ export class AgentEvolutionLearningComponent {
   async generateProposal() {
     const confirmed = await firstValueFrom(
       this.#alertDialog.confirm({
+        layout: 'standard',
         title: this.#translate.instant('XP.AgentEvolution.GenerateProposalTitle', {
           Default: 'Generate a proposal from reviewed evidence?'
         }),
@@ -224,6 +225,7 @@ export class AgentEvolutionLearningComponent {
     if (!proposal || !this.canBuildCandidate() || !this.candidateDraftValid()) return
     const confirmed = await firstValueFrom(
       this.#alertDialog.confirm({
+        layout: 'standard',
         title: this.#translate.instant('XP.AgentEvolution.BuildIsolatedCandidateTitle'),
         description: this.#translate.instant('XP.AgentEvolution.BuildIsolatedCandidateDescription'),
         actionText: this.#translate.instant('XP.AgentEvolution.BuildCandidate'),

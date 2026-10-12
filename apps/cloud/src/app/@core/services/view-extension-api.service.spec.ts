@@ -86,4 +86,29 @@ describe('ViewExtensionApiService', () => {
     expect(request.request.withCredentials).toBe(true)
     request.flush({ success: true })
   })
+
+  it('reads grant bytes through the authenticated runtime API with the current project scope', () => {
+    const bytes = new Blob(['image bytes'], { type: 'image/png' })
+    const received = jest.fn()
+    service
+      .readViewFileAccessContent(
+        'session-1',
+        {
+          url: '/api/workspace-files/content/session-1/grant-1/image.png',
+          fileName: 'image.png',
+          mimeType: 'image/png',
+          expiresAt: '2099-01-01T00:00:00Z'
+        },
+        { projectId: 'project-1', conversationId: 'conversation-1' }
+      )
+      .subscribe(received)
+    const request = httpMock.expectOne(
+      'http://localhost:3000/api/ai/workspace-files/view-sessions/session-1/grants/grant-1/content/image.png'
+    )
+    expect(request.request.responseType).toBe('blob')
+    expect(request.request.headers.get('X-Xpert-View-Project-Id')).toBe('project-1')
+    expect(request.request.headers.get('X-Xpert-View-Conversation-Id')).toBe('conversation-1')
+    request.flush(bytes)
+    expect(received).toHaveBeenCalledWith(bytes)
+  })
 })

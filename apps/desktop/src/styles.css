@@ -40,6 +40,18 @@ xpertai-chatkit {
   width: 100%;
   height: 100%;
 }
+
+/* Filter the background surface itself: a fullscreen backdrop-filter flashes
+   on macOS Electron when layers in front of it animate. Dialog portals remain
+   outside #root, so the dialog and its card glass stay sharp and independent. */
+body:has(> [data-slot='dialog-overlay']) > #root,
+body > [data-slot='dialog-content']:has(~ [data-slot='dialog-overlay']) {
+  filter: blur(2px);
+}
+body > [data-slot='dialog-overlay'] {
+  backdrop-filter: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

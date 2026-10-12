@@ -95,6 +95,33 @@ class LegacyScalarMultiSelectHostComponent {
   readonly control = new FormControl<ZardSelectValue | ZardSelectValue[]>('ADMIN', { nonNullable: true })
 }
 
+@Component({
+  standalone: true,
+  imports: [ReactiveFormsModule, ZardSelectComponent, ZardSelectItemComponent],
+  template: `
+    <z-select
+      [formControl]="control"
+      [zMultiple]="multiple()"
+      [zClearable]="clearable()"
+      [zDisabled]="disabled()"
+      [zSearchable]="true"
+      zPlaceholder="All keywords"
+      (zSelectionChange)="selectionChanges.push($event)"
+    >
+      <z-select-item zValue="DashScope">DashScope</z-select-item>
+      <z-select-item zValue="model">model</z-select-item>
+      <z-select-item [zValue]="0">Zero</z-select-item>
+    </z-select>
+  `
+})
+class ClearableSelectHostComponent {
+  readonly control = new FormControl<ZardSelectValue | ZardSelectValue[]>(['DashScope', 'model'], { nonNullable: true })
+  readonly multiple = signal(true)
+  readonly clearable = signal(true)
+  readonly disabled = signal(false)
+  readonly selectionChanges: Array<ZardSelectValue | ZardSelectValue[]> = []
+}
+
 function createI18nProvider(language: WritableSignal<string>) {
   return provideUiI18nAdapter({
     language,
@@ -120,6 +147,95 @@ function createI18nProvider(language: WritableSignal<string>) {
 }
 
 describe('ZardSelectComponent', () => {
+  it('clears all selected values, notifies the form and restores focus without opening the dropdown', async () => {
+    const fixture = TestBed.configureTestingModule({
+      imports: [ClearableSelectHostComponent]
+    }).createComponent(ClearableSelectHostComponent)
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    const trigger = fixture.nativeElement.querySelector('button[role="combobox"]') as HTMLButtonElement
+    const clearButton = fixture.nativeElement.querySelector('button[aria-label="Clear selection"]') as HTMLButtonElement
+    expect(trigger.contains(clearButton)).toBe(false)
+    clearButton.focus()
+    const enter = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })
+    clearButton.dispatchEvent(enter)
+    expect(enter.defaultPrevented).toBe(false)
+    clearButton.click()
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    expect(fixture.componentInstance.control.value).toEqual([])
+    expect(fixture.componentInstance.control.touched).toBe(true)
+    expect(fixture.componentInstance.selectionChanges).toEqual([[]])
+    expect(trigger.textContent).toContain('All keywords')
+    expect(trigger.getAttribute('aria-expanded')).toBe('false')
+    expect(document.activeElement).toBe(trigger)
+    expect(fixture.nativeElement.querySelector('button[aria-label="Clear selection"]')).toBeNull()
+  })
+
+  it('closes an open dropdown and resets its search when clearing', async () => {
+    const fixture = TestBed.configureTestingModule({
+      imports: [ClearableSelectHostComponent]
+    }).createComponent(ClearableSelectHostComponent)
+    const overlayContainer = TestBed.inject(OverlayContainer)
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    const trigger = fixture.nativeElement.querySelector('button[role="combobox"]') as HTMLButtonElement
+    trigger.click()
+    fixture.detectChanges()
+    await fixture.whenStable()
+    const input = overlayContainer.getContainerElement().querySelector('input') as HTMLInputElement
+    input.value = 'DashScope'
+    input.dispatchEvent(new Event('input', { bubbles: true }))
+    fixture.detectChanges()
+
+    const clearButton = fixture.nativeElement.querySelector('button[aria-label="Clear selection"]') as HTMLButtonElement
+    clearButton.click()
+    fixture.detectChanges()
+    await fixture.whenStable()
+    expect(overlayContainer.getContainerElement().querySelector('[role="listbox"]')).toBeNull()
+
+    trigger.click()
+    fixture.detectChanges()
+    await fixture.whenStable()
+    expect((overlayContainer.getContainerElement().querySelector('input') as HTMLInputElement).value).toBe('')
+    expect(fixture.componentInstance.control.value).toEqual([])
+  })
+
+  it('allows clearing a numeric zero in single-select mode', async () => {
+    const fixture = TestBed.configureTestingModule({
+      imports: [ClearableSelectHostComponent]
+    }).createComponent(ClearableSelectHostComponent)
+    fixture.componentInstance.multiple.set(false)
+    fixture.componentInstance.control.setValue(0)
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    const clearButton = fixture.nativeElement.querySelector('button[aria-label="Clear selection"]') as HTMLButtonElement
+    clearButton.click()
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    expect(fixture.componentInstance.control.value).toBe('')
+    expect(fixture.componentInstance.selectionChanges).toEqual([''])
+    expect(fixture.nativeElement.querySelector('button[role="combobox"]').textContent).toContain('All keywords')
+  })
+
+  it.each(['disabled', 'not clearable'])('hides the clear button when the select is %s', async (state) => {
+    const fixture = TestBed.configureTestingModule({
+      imports: [ClearableSelectHostComponent]
+    }).createComponent(ClearableSelectHostComponent)
+    fixture.componentInstance.disabled.set(state === 'disabled')
+    fixture.componentInstance.clearable.set(state !== 'not clearable')
+    fixture.detectChanges()
+    await fixture.whenStable()
+
+    expect(fixture.nativeElement.querySelector('button[aria-label="Clear selection"]')).toBeNull()
+    expect(fixture.componentInstance.control.value).toEqual(['DashScope', 'model'])
+  })
+
   it('localizes the default placeholder when the language changes', async () => {
     const language = signal('en-US')
     const fixture = TestBed.configureTestingModule({

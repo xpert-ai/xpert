@@ -1,3 +1,10 @@
+import {
+  XpDialogFrameImports,
+  ZardButtonComponent,
+  XpDialogActionGroupDirective,
+  ZardSegmentedComponent,
+  ZardSegmentedItemComponent
+} from '@xpert-ai/headless-ui'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { Dialog } from '@angular/cdk/dialog'
@@ -11,7 +18,7 @@ import {
   WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER
 } from '@cloud/app/@core'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardSegmentedComponent, ZardSegmentedItemComponent } from '@xpert-ai/headless-ui'
+
 import { SkillRepositoryIndexService, SkillRepositoryService, ToastrService } from '../../../@core/services'
 import { XpertSkillIndexesComponent } from '../indexes/indexes.component'
 import { XpertSkillUploadDialogComponent } from '../../../features/xpert/workspace/skills/skill-upload-dialog.component'
@@ -20,8 +27,19 @@ import { XpertSkillUploadDialogComponent } from '../../../features/xpert/workspa
   standalone: true,
   selector: 'xp-skill-repository',
   templateUrl: './skill-repository.component.html',
-  styleUrls: ['./skill-repository.component.css'],
-  imports: [CommonModule, RouterModule, FormsModule, ReactiveFormsModule, TranslateModule, ZardSegmentedComponent, ZardSegmentedItemComponent, XpertSkillIndexesComponent]
+  imports: [
+    ...XpDialogFrameImports,
+    ZardButtonComponent,
+    XpDialogActionGroupDirective,
+    CommonModule,
+    RouterModule,
+    FormsModule,
+    ReactiveFormsModule,
+    TranslateModule,
+    ZardSegmentedComponent,
+    ZardSegmentedItemComponent,
+    XpertSkillIndexesComponent
+  ]
 })
 export class XpertSkillRepositoryComponent {
   readonly repositoryService = inject(SkillRepositoryService)
@@ -63,6 +81,9 @@ export class XpertSkillRepositoryComponent {
 
     this.#dialog
       .open<Array<ISkillRepositoryIndex> | null>(XpertSkillUploadDialogComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 2rem)',
         data: {
           repositoryId
         }

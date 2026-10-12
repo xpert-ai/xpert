@@ -1,3 +1,4 @@
+import { XpDialogFrameImports, ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 
@@ -18,6 +19,8 @@ import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
+    ...XpDialogFrameImports,
+    ZardButtonComponent,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -28,7 +31,6 @@ import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
   ],
   selector: 'xpert-basic-dialog',
   templateUrl: 'basic-dialog.component.html',
-  styleUrl: 'basic-dialog.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: []
 })

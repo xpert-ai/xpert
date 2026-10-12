@@ -6,8 +6,8 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { XpertEnvironmentManageComponent, XpertEnvVariableFormComponent } from '@cloud/app/@shared/environment'
-import { AsteriskPipe } from '@xpert-ai/headless-ui'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { AsteriskPipe, XpSpinComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+
 import { isNil } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { EnvironmentService, injectHelpWebsite } from 'apps/cloud/src/app/@core'
@@ -15,7 +15,7 @@ import { IEnvironment, TEnvironmentVariable, VariableOperationEnum } from '../..
 import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioPanelComponent } from '../panel.component'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+
 @Component({
   selector: 'xpert-studio-panel-environment',
   templateUrl: './environment.component.html',
@@ -79,7 +79,9 @@ export class XpertStudioPanelEnvironmentComponent {
   openManageEnvs() {
     this.#dialog
       .open(XpertEnvironmentManageComponent, {
-        backdropClass: 'backdrop-blur-md-white',
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           workspaceId: this.workspaceId()
         }

@@ -69,6 +69,9 @@ export class XpertStudioPanelVariablesComponent {
     const variable = this.stateVariables()[index]
     this.#dialog
       .open(CdkConfirmDeleteComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 2rem)',
         data: {
           value: variable.name
         }

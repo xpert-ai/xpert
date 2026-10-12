@@ -1,3 +1,4 @@
+import { projectTaskPlanSchema } from '../project-task-plan.schema'
 import { readFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -22,18 +23,6 @@ import { projectTaskDecisionInputSchema } from '@xpert-ai/contracts'
 
 const text = (en_US: string, zh_Hans: string) => ({ en_US, zh_Hans })
 const requireHere = createRequire(__filename)
-const change = z
-    .object({
-        taskId: z.string().uuid(),
-        expectedRevision: z.number().int().positive(),
-        parentTaskId: z.string().uuid().nullable().optional(),
-        predecessorIds: z.array(z.string().uuid()).optional(),
-        plannedStartAt: z.string().datetime().nullable().optional(),
-        plannedEndAt: z.string().datetime().nullable().optional(),
-        estimatedDurationMs: z.number().finite().nonnegative().nullable().optional()
-    })
-    .strict()
-
 /** Built-in project management View provider; other task Views share the same runtime API. */
 @ViewExtensionProvider('platform.project-tasks')
 export class ProjectTasksViewProvider implements IXpertViewExtensionProvider {
@@ -195,7 +184,7 @@ export class ProjectTasksViewProvider implements IXpertViewExtensionProvider {
             }
         }
         if (actionKey !== 'change') throw Error(t('server-ai:Error.ProjectTaskActionUnsupported'))
-        const input = change.parse(request.input)
+        const input = projectTaskPlanSchema.parse(request.input)
         const graph = await this.tasks.change(this.context(context), {
             ...input,
             taskId: input.taskId!,

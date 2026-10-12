@@ -16,6 +16,8 @@ import {
 import { DeleteAgentKnowledgeChunksCommand, WriteAgentKnowledgeChunkCommand } from '../commands'
 import { KnowledgeSearchQuery, ListWorkspaceKnowledgebasesQuery } from '../queries'
 import { RuntimeCapabilityProvider } from '../../shared/runtime/runtime-capability-provider.decorator'
+import type { KnowledgebaseQuery, KnowledgebaseGetInput, KnowledgebaseAccessInput } from '@xpert-ai/plugin-sdk'
+import { KnowledgebaseCatalogService } from '../catalog/knowledgebase-catalog.service'
 import { normalizeOptionalString } from '../../shared/runtime/runtime-input'
 
 @Injectable()
@@ -23,9 +25,23 @@ import { normalizeOptionalString } from '../../shared/runtime/runtime-input'
 export class KnowledgebaseRuntimeService implements KnowledgebaseApi {
     constructor(
         private readonly commandBus: CommandBus,
-        private readonly queryBus: QueryBus
+        private readonly queryBus: QueryBus,
+        private readonly catalog: KnowledgebaseCatalogService
     ) {}
 
+    query(input: KnowledgebaseQuery) {
+        return this.catalog.query(input)
+    }
+
+    get(input: KnowledgebaseGetInput) {
+        return this.catalog.get(input)
+    }
+
+    getAccess(input: KnowledgebaseAccessInput) {
+        return this.catalog.getAccess(input)
+    }
+
+    /** @deprecated Use query for new integrations; preserve this method's legacy behavior. */
     async list(input: KnowledgebaseListInput = {}): Promise<KnowledgebaseListItem[]> {
         const workspaceId = normalizeOptionalString(input.workspaceId)
         if (!workspaceId && input.scope !== 'tenant') {

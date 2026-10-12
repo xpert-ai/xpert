@@ -626,30 +626,32 @@ describe('KnowledgeDocLoadHandler', () => {
         }
         jest.spyOn(handler, 'splitDocuments').mockResolvedValue({ chunks: [splitChunk] })
 
-        const result = await handler.execute(
-            new KnowledgeDocLoadCommand({
-                doc: {
-                    id: 'doc-1',
-                    name: 'image.png',
-                    type: 'png',
-                    category: KBDocumentCategoryEnum.Image,
-                    knowledgebaseId: 'kb-1',
-                    filePath: 'image.png',
-                    parserConfig: {
-                        imageUnderstandingType: 'plugin-image-policy',
-                        imageUnderstanding: { semanticSource: 'manual' }
-                    },
-                    status: KBDocumentStatusEnum.RUNNING
-                } as any,
-                stage: 'test'
-            })
-        )
+        const command = new KnowledgeDocLoadCommand({
+            doc: {
+                id: 'doc-1',
+                name: 'image.png',
+                type: 'png',
+                category: KBDocumentCategoryEnum.Image,
+                knowledgebaseId: 'kb-1',
+                filePath: 'image.png',
+                parserConfig: {
+                    imageUnderstandingType: 'plugin-image-policy',
+                    imageUnderstanding: { semanticSource: 'manual' }
+                },
+                status: KBDocumentStatusEnum.RUNNING
+            } as any,
+            stage: 'test'
+        })
+        const result = await handler.execute(command)
 
         expect(result.chunks).toEqual([understoodChunk])
         expect(strategy.requiresVisionModel).toHaveBeenCalledWith(
             expect.objectContaining({ stage: 'test', semanticSource: 'manual' })
         )
         expect(strategy.understandImages).toHaveBeenCalledTimes(1)
+        expect(knowledgebaseService.getVisionModel).not.toHaveBeenCalled()
+        strategy.understandImages.mockRejectedValueOnce(new Error('Supplied image semantics invalid'))
+        await expect(handler.execute(command)).rejects.toThrow('Supplied image semantics invalid')
         expect(knowledgebaseService.getVisionModel).not.toHaveBeenCalled()
     })
 

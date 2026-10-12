@@ -6736,6 +6736,12 @@
       }
     },
     "Xpert": {
+      "ProjectManagement": {
+        "Title": "專案管理",
+        "Description": "拆解專案任務、追蹤進度、委派已授權的執行器並驗收結果。在專案對話中使用。",
+        "Unavailable": "目前服務尚未提供專案管理能力。",
+        "ModelRequired": "請選擇支援工具呼叫且有權使用的模型，再開啟專案管理。"
+      },
       "AutomaticFrequentQuestions": "自動常用問題",
       "AutomaticFrequentQuestionsDescription": "根據最近 90 天內的 50 條對話，自動提煉最多 5 個常用問題，顯示在工作台新對話頁。結果快取 24 小時，到期後再次開啟新對話時更新。",
       "ModelSelection": {

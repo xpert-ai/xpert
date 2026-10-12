@@ -1,28 +1,29 @@
-import { CdkListboxModule } from '@angular/cdk/listbox'
+import { XpDialogFrameImports, ZardInputDirective, ZardButtonComponent, ZardSelectImports } from '@xpert-ai/headless-ui'
 
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgxFloatUiModule, NgxFloatUiPlacements, NgxFloatUiTriggers } from 'ngx-float-ui'
 import { getErrorMessage, TagCategoryEnum, TagService, ToastrService } from '../../../@core'
-import { SharedUiModule } from '../../ui.module'
 
-import { ZardDialogRef } from '@xpert-ai/headless-ui'
+import { DialogRef } from '@angular/cdk/dialog'
 @Component({
   standalone: true,
-  imports: [ReactiveFormsModule, TranslateModule, SharedUiModule, CdkListboxModule, NgxFloatUiModule],
+  imports: [
+    ...XpDialogFrameImports,
+    ZardInputDirective,
+    ZardButtonComponent,
+    ...ZardSelectImports,
+    ReactiveFormsModule,
+    TranslateModule
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'tag-creator',
-  templateUrl: './creator.component.html',
-  styleUrls: ['./creator.component.scss']
+  templateUrl: './creator.component.html'
 })
 export class TagCreatorComponent {
-  eNgxFloatUiTriggers = NgxFloatUiTriggers
-  eNgxFloatUiPlacements = NgxFloatUiPlacements
-
   readonly tagService = inject(TagService)
   readonly #toastr = inject(ToastrService)
-  readonly #dialogRef = inject(ZardDialogRef)
+  readonly #dialogRef = inject(DialogRef)
   readonly #fb = inject(FormBuilder)
 
   readonly formGroup = this.#fb.group({
@@ -34,7 +35,12 @@ export class TagCreatorComponent {
 
   readonly allCategories = Object.values(TagCategoryEnum)
 
+  close() {
+    this.#dialogRef.close()
+  }
+
   apply() {
+    if (this.formGroup.invalid || this.formGroup.pristine) return
     this.tagService.create(this.formGroup.value).subscribe({
       next: (tag) => {
         this.#dialogRef.close(tag)

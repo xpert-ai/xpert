@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "../../.cache/dialog-preview/ngc",
+    "declaration": false,
+    "sourceMap": false,
+    "types": [],
+    "moduleResolution": "bundler"
+  },
+  "angularCompilerOptions": {
+    "compilationMode": "full"
+  },
+  "files": ["ui.ts"],
+  "include": []
+}

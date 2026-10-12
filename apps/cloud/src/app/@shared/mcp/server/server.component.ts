@@ -1,11 +1,24 @@
+import {
+  XpDialogControlDirective,
+  ZardButtonComponent,
+  XpDialogActionGroupDirective,
+  ZardInputDirective,
+  ZardIconComponent,
+  EntriesPipe,
+  linkedModel,
+  XpAutoScrollBottomDirective,
+  XpTimerDirective,
+  attrModel,
+  type ZardSelectValue,
+  ZardSelectImports,
+  ZardSwitchComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 
 import { Component, computed, effect, inject, input, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { environment } from '@cloud/environments/environment'
-import { EntriesPipe, linkedModel } from '@xpert-ai/headless-ui'
-import { XpAutoScrollBottomDirective, XpTimerDirective } from '@xpert-ai/headless-ui'
-import { attrModel } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { omit } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -29,19 +42,13 @@ import {
 import { CodeEditorComponent } from '../../editors'
 import { MCPToolsComponent } from '../tools/tools.component'
 import { XpertEnvVarInputComponent } from '../../environment'
-import {
-  type ZardSelectValue,
-  ZardInputDirective,
-  ZardSelectImports,
-  ZardSwitchComponent,
-  ZardTooltipImports
-} from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'mcp-server-form',
   templateUrl: './server.component.html',
   styleUrl: 'server.component.scss',
   imports: [
+    XpDialogControlDirective,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -55,7 +62,10 @@ import {
     XpTimerDirective,
     ZardSwitchComponent,
     ZardInputDirective,
-    ...ZardSelectImports
+    ...ZardSelectImports,
+    ZardButtonComponent,
+    XpDialogActionGroupDirective,
+    ZardIconComponent
   ],
   hostDirectives: [NgxControlValueAccessor]
 })

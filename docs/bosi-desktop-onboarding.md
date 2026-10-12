@@ -13,7 +13,7 @@ Users without a binding proceed through:
 3. **Computer, local Shell and model selection**: cloud computer is selected by default when available; local Shell starts off and retains the existing command approval flow. The server supplies capability availability and compatible models, and Desktop additionally checks native Shell support. The searchable model picker groups models by provider and displays feature badges, including vision recommendations for computer use. A compatible organization default model is preferred.
 4. **Creation and welcome**: install and publish the assistant, open its initial conversation and explicitly start the welcome run. The welcome prompt requests a brief introduction of enabled capabilities and an invitation to customize the name and avatar.
 
-The `xpert-bosi-assistant` template derives from `xpert-my-claw-xpert`, preserving its skills, memory, planning and workflow. Selected capabilities and Desktop welcome instructions are composed through the shared [assistant capability mechanism](assistant-capabilities.md).
+The `xpert-bosi-assistant` template derives from `xpert-my-claw-xpert`, preserving its skills, memory, planning and workflow. Selected capabilities and Desktop welcome instructions are composed through the shared [assistant capability mechanism](en/guides/assistant-capabilities.mdx).
 
 The computer illustration is a bundled preview, not a live desktop. Application hotspots change the preview caption; they do not launch applications, install software or provision a computer. The live computer view is available through the conversation's assistant dialog when the capability is available.
 

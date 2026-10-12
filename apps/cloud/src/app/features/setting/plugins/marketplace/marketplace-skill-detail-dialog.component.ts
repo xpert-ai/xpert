@@ -1,3 +1,12 @@
+import {
+  ZardButtonComponent,
+  XpDialogFrameImports,
+  ZardBadgeComponent,
+  XpSpinComponent,
+  myRxResource,
+  XpI18nPipe
+} from '@xpert-ai/headless-ui'
+
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core'
@@ -5,9 +14,6 @@ import { getErrorMessage, injectToastr } from '@cloud/app/@core'
 import { IconComponent } from '@cloud/app/@shared/avatar/icon/icon.component'
 import { type IPluginComponentDefinition, type IPluginComponentDocument, injectPluginAPI } from '@cloud/app/@core/state'
 import { type I18nObject, type IconDefinition } from '@xpert-ai/contracts'
-import { ZardBadgeComponent, ZardButtonComponent } from '@xpert-ai/headless-ui'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
-import { myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
 import { of } from 'rxjs'
@@ -41,7 +47,8 @@ const DEFAULT_SKILL_ICON = {
     XpSpinComponent,
     IconComponent,
     ZardBadgeComponent,
-    ZardButtonComponent
+    ZardButtonComponent,
+    ...XpDialogFrameImports
   ],
   templateUrl: './marketplace-skill-detail-dialog.component.html',
   styleUrls: ['./marketplace-skill-detail-dialog.component.scss']

@@ -100,6 +100,9 @@ export class XpertBasicManageComponent {
   openBasic() {
     this.#dialog
       .open(XpertBasicComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         viewContainerRef: this.#viewContainerRef
       })
       .closed.subscribe({
@@ -111,6 +114,9 @@ export class XpertBasicManageComponent {
     const xpert = this.xpert()
     this.#dialog
       .open(CdkConfirmDeleteComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 2rem)',
         data: {
           value: xpert.title,
           information: this.#translate.instant('XP.Xpert.DeleteAllDataXpert', {
@@ -134,6 +140,9 @@ export class XpertBasicManageComponent {
   export(isDraft = false) {
     this.#dialog
       .open(XpertExportDslComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           xpertId: this.xpert().id,
           slug: this.xpert().slug,
@@ -156,6 +165,9 @@ export class XpertBasicManageComponent {
 
     this.#dialog
       .open(CdkConfirmDeleteComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 2rem)',
         data: {
           value: exportedTemplate.filePath,
           information: this.#translate.instant('XP.Xpert.DeleteExportedTemplateConfirm', {
@@ -317,6 +329,9 @@ export class XpertBasicManageComponent {
     const xpert = this.xpertComponent.xpert()
     this.#dialog
       .open<Partial<IXpert>>(XpertBasicDialogComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           name: xpert.name,
           avatar: xpert.avatar,

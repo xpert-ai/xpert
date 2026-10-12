@@ -1,0 +1,334 @@
+# Graceful Shutdown of the Current API Process
+
+Xpert can shut down its current Node.js API process so that the process supervisor starts a replacement. This supports plugin runtime changes and coordinated API restarts while giving accepted requests, background jobs, and resource cleanup a bounded opportunity to finish.
+
+The repository's Docker Compose API service runs `pm2-runtime main.js`. For a self-initiated restart, the API signals its own PID, performs shutdown, and exits; PM2 remains responsible for starting the next Node process. Docker's container restart policy applies at a different level and is not what replaces this child process.
+
+## Scope and ownership
+
+| Component                                        | Responsibility                                                                                                 |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| `RuntimeRestartCoordinatorService`               | Coordinates replicas and plugin convergence, drains a selected replica, then requests `SIGTERM`.               |
+| `enableRuntimeShutdown`                          | Handles signals once, arms the process deadline, runs preparation and Nest cleanup, and exits the current PID. |
+| `prepareApiShutdown` / `RuntimeLifecycleService` | Reject new application requests and wait for accepted HTTP responses before touching queues.                   |
+| `RuntimeQueueShutdownService`                    | Discovers local consumers, waits at a common drain barrier, then closes their queue/worker connections.        |
+| Nest lifecycle hooks / `runShutdownStep`         | Release service-owned resources with observable, bounded waits.                                                |
+| PM2                                              | Observes the child exit and starts a replacement according to its configured restart policy.                   |
+
+The HTTP API and the dedicated worker bootstrap both install `enableRuntimeShutdown`. A dedicated worker has no HTTP listener, so its preparation starts with the queue barrier.
+
+This feature does not guarantee that every business task finishes before exit. It does not implement durable SSE replay, exactly-once job execution, or automatic repair of a plugin that fails during the replacement process's startup.
+
+## Triggering shutdown
+
+The rolling restart coordinator calls the injected `RUNTIME_PROCESS_SIGNALER`, whose production implementation uses `process.kill(process.pid, signal)`. The coordinator requests `SIGTERM`. The shared shutdown handler also handles Nest's supported shutdown signals, including `SIGINT`, which PM2 normally uses for a managed stop.
+
+Application integrations should use the existing runtime-control capability instead of registering another signal listener or calling `process.exit()` directly:
+
+- An interactive restart uses `POST /api/system/runtime/restart` with `confirmation: "RESTART"`. It requires an interactive SuperAdmin session in the Default tenant; it is a coordinated operation across active API replicas, not a public single-PID kill endpoint.
+- Plugin runtime changes enter through `RuntimeControlService.recordPluginRuntimeChange()` or `recordPluginRuntimeRequirements()` and the existing convergence coordinator.
+- An external process manager can deliver a supported signal to the API process for ordinary shutdown.
+
+`enableRuntimeShutdown` replaces Nest's `app.enableShutdownHooks()` at these bootstraps. Installing both would create competing shutdown paths. Direct `app.close()` calls do not arm this process watchdog; production shutdown must enter through the shared handler.
+
+## Shutdown sequence
+
+```mermaid
+sequenceDiagram
+    participant C as Restart coordinator / supervisor
+    participant P as Current API PID
+    participant H as HTTP lifecycle
+    participant Q as Local queues
+    participant N as Nest services
+    participant M as PM2
+    C->>P: SIGTERM or SIGINT
+    P->>P: Arm one 30-second deadline
+    P->>H: Enter drain; reject new application requests
+    H-->>P: Accepted responses finish or 10-second grace expires
+    P->>Q: Pause all local consumers; keep producers open
+    Q-->>P: All pause waits settle or reach their 10-second limits
+    P->>Q: Close queue/worker connections in parallel
+    P->>N: app.close(signal)
+    N->>N: Module cleanup; interrupt unfinished agent streams
+    N->>H: Allow up to 1 second for final response writes
+    N->>N: Dispose HTTP adapter; finish application shutdown hooks
+    P->>P: Exit 0, or exit 1 on top-level failure/deadline
+    M->>M: Observe child exit and start replacement
+```
+
+The diagram shows the self-restart path with PM2 still running. A deliberate PM2/container stop does not promise a replacement in that same container. If the process deadline expires at any phase, Xpert writes a final diagnostic directly to stderr and exits with code `1`.
+
+### 1. Drain accepted HTTP work
+
+`RuntimeDrainMiddleware` tracks accepted requests until response `finish` or `close`. Its release callback is idempotent because both events can fire for one response. Health routes bypass this request gate, and `/api/health/ready` returns `503` with `status: "draining"` once drain begins.
+
+New application requests reaching the middleware receive `503`, `errorCode: "RUNTIME_DRAINING"`, `Retry-After: 5`, and `Connection: close`. Already accepted requests get up to 10 seconds to finish. Their queue producers **and consumers** remain available during this window: a request may query the database before enqueuing, or wait for a job result before responding.
+
+An earlier rolling drain does not skip this check. If it timed out, active HTTP requests can still exist when the signal arrives. Long-lived SSE responses also count as active requests and can consume this grace period.
+
+### 2. Drain all local consumers before closing any queue
+
+Discovery recognizes Nest-provided Bull queues and BullMQ `WorkerHost` instances, deduplicating provider aliases by object identity. Bull uses `pause(true)` for a local pause; BullMQ pauses the local worker. Other replicas remain able to consume work.
+
+All pause operations run concurrently. No discovered queue is closed until every pause wait has completed, failed, or timed out. This common barrier protects an idle queue that may still receive a callback or follow-up job from another queue's active task.
+
+After the barrier, close operations run concurrently under individual 3-second waits. `close(true)` avoids waiting indefinitely for an active job a second time. For BullMQ, this phase closes discovered workers; separately owned producers follow their owning module's lifecycle.
+
+Pausing does not empty Redis's waiting-job backlog. Work can remain for another or replacement consumer. A timeout does not cancel arbitrary job JavaScript, and jobs that await another locally paused consumer can exhaust the grace period. Job handlers still need appropriate idempotency, retries, and business cancellation semantics. See [Managed Queue](/en/guides/managed-queue).
+
+### 3. Run Nest cleanup and flush interruption events
+
+Once preparation settles, `app.close(signal)` runs the Nest lifecycle: module destruction, `beforeApplicationShutdown`, adapter disposal, then application shutdown hooks.
+
+During module destruction, `AgentChatRealtimeService` sends a terminal interruption event to unfinished streams, completes their observables, and closes their dedicated Redis subscribers. `RuntimeLifecycleService.beforeApplicationShutdown()` then gives tracked responses up to 1 second to emit `finish`. This matters because Nest serializes the final SSE write asynchronously: completing the observable alone does not prove the bytes have left the response.
+
+The HTTP bootstrap uses `forceCloseConnections: true`, so remaining sockets cannot indefinitely block adapter disposal after that flush grace period. Delivery is still best effort if the client, network, or process deadline prevents the final write.
+
+Other bounded cleanup includes instance heartbeat/unregistration, dedicated Pub/Sub subscribers, plugin destroy hooks, legacy MCP sessions, sandbox runtime unregistration, and the explicit PostgreSQL pool. Each named operation emits start and result logs. Nest or third-party cleanup without an individual wrapper is still bounded by the process-wide deadline.
+
+### 4. Exit the old PID
+
+The first signal owns the shutdown promise and deadline. Additional signals reuse that operation without restarting cleanup or extending its time budget.
+
+- **Exit `0`:** preparation and Nest close returned successfully. Individual resource failures or timeouts may already have been logged and tolerated; this is not proof that every task or resource finished.
+- **Exit `1`:** preparation failed, Nest close failed, or the process deadline expired. If preparation fails, Nest destruction is not started underneath it.
+
+The handler explicitly exits after cleanup so leftover handles cannot keep the old PID alive. Replacement readiness and plugin convergence are checked by the restart coordinator separately. A new PID alone does not prove that the required plugin loaded.
+
+## Time budgets
+
+| Wait                                | Current budget | Owner / meaning                                                                          |
+| ----------------------------------- | -------------- | ---------------------------------------------------------------------------------------- |
+| Whole process shutdown              | 30,000 ms      | `RUNTIME_SHUTDOWN_TIMEOUT_MS`, measured from the first received signal.                  |
+| HTTP preparation                    | 10,000 ms      | `HTTP_SHUTDOWN_DRAIN_TIMEOUT_MS`, before queue pausing.                                  |
+| Queue drain                         | 10,000 ms      | Default in `drainShutdownQueues`; all consumers wait concurrently.                       |
+| One resource close                  | 3,000 ms       | `SHUTDOWN_STEP_TIMEOUT_MS`; includes queue closes and wrapped resource hooks.            |
+| Final HTTP/SSE response flush       | 1,000 ms       | `RuntimeLifecycleService.beforeApplicationShutdown`, within Nest close.                  |
+| Coordinator's earlier replica drain | 30,000 ms      | `DEFAULT_DRAIN_TIMEOUT_MS`, before the self-signal; outside the process shutdown budget. |
+
+These are current code defaults, not environment-variable settings. `enableRuntimeShutdown` accepts a `timeoutMs` option for another bootstrap or tests; normal API and worker bootstraps use the defaults. Changing a phase budget requires reviewing the total budget and external supervisor timeouts together.
+
+The process timer stays armed across all phases. It is not reset for Nest close or for each plugin. Sequential resource waits can consume the remaining time, so later hooks may never run. A timed-out promise continues executing unless the resource itself provides cancellation.
+
+## Agent stream interruption contract
+
+The shared contract lives in `packages/contracts/src/runtime-control.ts`:
+
+```text
+event: runtime-interrupted
+data: {"code":"RUNTIME_RESTARTING","message":"The service is restarting and the live reply was interrupted. The task may still be running. Refresh the conversation to check its result."}
+
+```
+
+The message is localized using the request language captured when the stream was created. Consumers should branch on the event name and `code`, not the message text.
+
+The server marks the stream settled **before** emitting this event. A client may immediately unsubscribe while handling it; that teardown must not dispatch a business cancellation command for a task that can continue elsewhere. Ordinary client disconnect cancellation remains unchanged.
+
+The web client's `fetchEventSource` wrapper validates this event, raises `RuntimeStreamInterruptedError`, and aborts the transport. Existing chat error handling can show the interruption instead of marking an unfinished reply successful on EOF. It does not reconnect or replay the original POST, since doing so could submit the task again. Refreshing a conversation checks whatever result has been persisted; it is not a guarantee of automatic stream recovery.
+
+Deploy the backend contract and the corresponding web transport handling together. Custom SSE consumers need the same terminal-event handling.
+
+## Debug logs and troubleshooting
+
+### Enable and collect logs
+
+Set `LOG_LEVEL=debug` in the **API container environment**, for example through a Compose override:
+
+```yaml
+services:
+  api:
+    environment:
+      LOG_LEVEL: debug
+```
+
+The repository's API Compose service also reads its `.env` through `env_file`; setting `LOG_LEVEL=debug` there works unless an explicit `environment` entry overrides it. Apply the environment through the normal container deployment workflow. Editing an env file does not change an already running Node process. Both Nest and Pino read this setting; `LOG_LEVEL=verbose` also includes debug messages. Return to the usual log level after troubleshooting if the additional output is no longer needed.
+
+From the directory/project used for deployment, collect both stdout and stderr (adjust `api` and Compose file options for your deployment):
+
+```bash
+docker compose logs --since 15m --timestamps api
+docker compose logs --since 15m --timestamps api | rg 'runtime\.(restart|shutdown)\.'
+```
+
+Normal production output uses Pino JSON. These events are serialized into its `msg` string; they are not necessarily top-level Pino fields. The final deadline diagnostic is a plain JSON line written synchronously to stderr, bypassing the normal logger transport. Search both forms. Normal buffered log delivery is best effort near process exit.
+
+Correlate by container/hostname, timestamp, and `pid`; PID numbers can repeat across containers. Coordinator audit events also carry `restartId`, replica identity, and boot identity where applicable. `instance-unregister-started` links the exiting PID to its registry `instanceId` and `bootId`. Shutdown diagnostics contain phase metadata and counts, not request bodies, chat content, or credentials.
+
+### Expected events
+
+All event names below have the `runtime.shutdown.` prefix. HTTP events are absent in worker-only preparation, and service hooks can interleave within Nest lifecycle phases.
+
+| Event                                                | Level         | What it establishes                                                                                            |
+| ---------------------------------------------------- | ------------- | -------------------------------------------------------------------------------------------------------------- |
+| `handlers-installed`                                 | DEBUG         | The PID installed the handler; includes signals, process timeout, and whether preparation exists.              |
+| `started`                                            | INFO          | A signal reached the handler and started the global timer.                                                     |
+| `signal-ignored`                                     | DEBUG         | A repeated signal reused an existing shutdown.                                                                 |
+| `drain-entered`, `drain-cancelled`                   | DEBUG         | Local request admission changed; can also occur during coordinator work before a signal.                       |
+| `http-drain-started`, `http-drain-finished`          | DEBUG         | Preparation's request count, grace, result, and elapsed time.                                                  |
+| `idle-wait-started`, `idle-wait-finished`            | DEBUG         | Individual request waits, including the earlier rolling drain; includes active request count and result.       |
+| `http-drain-timeout`                                 | WARN          | Accepted responses remain when their preparation grace expires.                                                |
+| `queues-discovered`                                  | DEBUG         | Counts of Bull queues and BullMQ workers discovered through Nest.                                              |
+| `queue-drain-started`, `queue-drain-finished`        | DEBUG         | Queue names, grace, elapsed time, and each pause result. The latter marks the common barrier.                  |
+| `queues-closed`                                      | DEBUG         | Close waits settled; inspect each result for failures/timeouts. It does not guarantee every connection closed. |
+| `queues-already-closing`                             | DEBUG         | A caller reused the existing queue close operation.                                                            |
+| `nest-close-started`                                 | DEBUG         | Preparation ended; includes remaining process budget.                                                          |
+| `agent-streams-interrupting`, `agent-streams-closed` | DEBUG         | Tracked stream/subscriber counts and completion of interruption cleanup waits.                                 |
+| `agent-stream-rejected`                              | DEBUG         | A late stream subscription was interrupted before starting new work.                                           |
+| `response-flush-started`, `response-flush-finished`  | DEBUG         | Final response-write grace, remaining requests, and whether the flush drained.                                 |
+| `instance-unregister-started`                        | DEBUG         | Registry identity and whether a heartbeat write was in flight.                                                 |
+| `redis-close-started`                                | DEBUG         | Named subscriber's local `disconnect` or fallback `quit` strategy.                                             |
+| `step-started`                                       | INFO          | A named resource wait began with its own timeout.                                                              |
+| `step-finished`                                      | INFO / WARN   | `completed` is INFO; `failed` or `timed_out` is WARN, with elapsed time.                                       |
+| `step-error`                                         | WARN          | The cleanup error message; `afterTimeout` distinguishes a late failure.                                        |
+| `step-settled-after-timeout`                         | DEBUG         | An operation returned after its waiter had timed out; includes its actual result and elapsed time.             |
+| `prepare-aborted`                                    | DEBUG         | Preparation did not complete; Nest cleanup is skipped and exit code is `1`.                                    |
+| `finished`                                           | INFO          | Nest close settled; includes the intended exit code and total elapsed time.                                    |
+| `deadline-exceeded`                                  | Direct stderr | Forced exit diagnostic with PID, signal, elapsed time, timeout, and pending waiters.                           |
+
+Named steps include `runtime.prepare-close`, `nest.application-close`, `queue.<name>.drain`, `queue.<name>.close`, `plugin.<class>.destroy`, `instance-registry.heartbeat`, `instance-registry.unregister`, and `database.pool.end`. Nested and parallel steps can appear together.
+
+Resource helpers are also used during ordinary stream/session cleanup. A standalone `step-*` or `redis-close-started` event does not itself mean the process is shutting down; look for `started` for that PID.
+
+### Locate the last reached phase
+
+| Evidence                                                                           | Investigation                                                                                                                                                                                                 |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Coordinator reports `runtime.restart.replica-signaling`, but no shutdown `started` | Confirm the signal targets the expected PID, the deployed bootstrap installed the handler, and log collection includes that replica. Check whether the event loop or external termination prevented handling. |
+| `http-drain-started` without its finish yet                                        | Inspect `activeRequests` and elapsed grace. Persistent SSE streams can legitimately hold this phase until timeout.                                                                                            |
+| `queue-drain-started` without its finish yet                                       | Find unfinished `queue.<name>.drain` steps. Check active jobs and dependencies on other paused consumers.                                                                                                     |
+| `nest-close-started` without `finished`                                            | Inspect resource step starts/results. A plugin, Redis close, registry operation, MCP session, or DB pool may be consuming the remaining budget.                                                               |
+| `response-flush-finished` has `drained: false`                                     | Some responses did not finish during the final grace; their sockets will be closed by adapter disposal. An interruption event may not reach those clients.                                                    |
+| `deadline-exceeded` contains only `nest.application-close`                         | The blocker may be an uninstrumented Nest/third-party hook. Wrap the owning cleanup with a named bounded step to narrow it down.                                                                              |
+| A step timed out but is absent from `pendingSteps`                                 | Expected: pending steps are current waiters, not all still-running operations or open handles. Search its earlier warning and any later settlement event.                                                     |
+| Old PID exited, but no replacement is ready                                        | Inspect PM2 state/restart policy, startup errors, and plugin convergence. This is beyond the old PID's shutdown path.                                                                                         |
+| Logs stop and no deadline diagnostic appears                                       | Check PM2/Docker forced termination, OOM events, missing stderr, or a blocked event loop. A JavaScript timer cannot preempt synchronous CPU work, a blocked native call, or `SIGKILL`.                        |
+
+## PM2 and Docker integration
+
+Keep PM2 running with automatic child restart enabled for self-restarts, including normal exit code `0`. For local development, use the project's watcher/supervisor; a bare `node main.js` process exits without starting itself again.
+
+The application watchdog covers the self-signal path. PM2's `kill_timeout` governs PM2-initiated stops/restarts and must allow the application's cleanup window when that path is used. See [PM2 graceful shutdown](https://pm2.keymetrics.io/docs/usage/signals-clean-restart/).
+
+Docker can independently kill a stopping container when its `stop_grace_period` expires. Keep the container's grace longer than the supervisor's allowed shutdown time, with operational margin. See [Compose stop grace period](https://docs.docker.com/reference/compose-file/services/#stop_grace_period).
+
+### Configure external shutdown grace before deployment
+
+To preserve the full cleanup window during deployment stops and restarts, explicitly configure PM2 and Compose shutdown grace and verify the effective values. Use the following deployment settings for the current implementation:
+
+| Layer          | Setting                       | Duration   |
+| -------------- | ----------------------------- | ---------- |
+| API process    | `RUNTIME_SHUTDOWN_TIMEOUT_MS` | 30 seconds |
+| PM2            | `kill_timeout: 35000`         | 35 seconds |
+| Docker Compose | `stop_grace_period: 45s`      | 45 seconds |
+
+Keep `application deadline < PM2 kill timeout < container stop grace`. Adjust the external budgets whenever the application deadline changes. The checked-in Compose API commands currently use `pm2-runtime main.js` without either external grace set explicitly; this feature does not apply these deployment settings automatically.
+
+During local acceptance on 2026-10-11 with Docker Compose and PM2 7.0.4, `pm2 restart main` caused PM2 to send `SIGKILL` after waiting 1600ms. This truncates cleanup and can prevent the application from emitting `finished` or `deadline-exceeded`. The observation matches the [default stopping behavior documented by PM2](https://pm2.keymetrics.io/docs/usage/docker-pm2-nodejs/#enabling-graceful-shutdown). The application's 30-second watchdog cannot prevent an earlier external kill.
+
+The same acceptance run passed the plugin-triggered self-`SIGTERM` path, including the 30-second fallback for indefinitely pending asynchronous cleanup. That result does not validate the separate `pm2 restart` and container-stop paths.
+
+### Configuration example
+
+Create `.deploy/api/ecosystem.config.json` under the repository root, retaining one Node process per API container:
+
+```json
+{
+  "apps": [
+    {
+      "name": "main",
+      "cwd": "/srv/xpert",
+      "script": "main.js",
+      "exec_mode": "fork",
+      "instances": 1,
+      "autorestart": true,
+      "watch": false,
+      "stop_exit_codes": [],
+      "kill_timeout": 35000
+    }
+  ]
+}
+```
+
+Merge these settings into the existing `api` service in the repository-root Compose configuration, preserving its environment and volume mounts:
+
+```yaml
+services:
+  api:
+    command: ['pm2-runtime', '/srv/xpert/ecosystem.config.json']
+    stop_grace_period: 45s
+    volumes:
+      - ./.deploy/api/ecosystem.config.json:/srv/xpert/ecosystem.config.json:ro
+```
+
+Create the configuration file before mounting it; alternatively, copy it to the same container path during the image build. Recreate the API container through the deployment workflow to apply the Compose command, mount and stop grace. Editing documentation or restarting the old PM2 process alone does not apply these settings.
+
+### Verify the effective configuration
+
+1. Check the running PM2 application's `kill_timeout` is `35000`, `autorestart` is `true`, and normal exit code `0` is absent from `stop_exit_codes`; check the container's `Config.StopTimeout` is `45` seconds.
+2. In an isolated environment, test plugin-triggered self-exit, `pm2 restart main`, and Compose container stopping separately. Use cleanup that takes longer than 1.6 seconds but remains within the application budget, and confirm PM2 does not send an early `SIGKILL`. Separately inject pending asynchronous cleanup to verify the application's approximately 30-second fallback can execute.
+3. For restart paths, verify the replacement PID, readiness, plugin load state and actual version. A container-stop test should stop normally and does not require automatic recovery. Retain logs and effective settings; a running container or successful install response alone is insufficient evidence.
+
+## Extending cleanup safely
+
+1. Register shutdown once in the bootstrap and preserve the order: HTTP grace, all-consumer queue barrier, queue close, Nest cleanup. Never close an idle queue while other queues are still draining.
+2. Keep resource ownership in a concrete injected service. Use `runShutdownStep` from `@xpert-ai/server-core` for cleanup that can block; use a stable resource/operation name with no secrets or request payloads.
+3. Stop new work first: clear intervals and pause acquisition before awaiting in-flight work. Instance unregistration must keep its boot-ID comparison so old cleanup cannot delete a replacement's registration.
+4. Treat a timeout as the end of a wait, not cancellation. If further cleanup depends on actual completion, use the resource's explicit cancellation mechanism or retain the dependency until process exit.
+5. Use `closeRedisSubscriber` only for dedicated Pub/Sub clients. Do not disconnect a shared producer or Redis command client while another draining operation still needs it.
+6. Workers created outside Nest discovery need explicit lifecycle integration. If they write to the discovered queues, integrate their drain before the same producer-close barrier; an `onModuleDestroy` hook alone is too late for that dependency.
+7. Preserve stream interruption semantics and the final response flush when adding streaming endpoints. Do not automatically replay a mutation to recover a broken subscription.
+
+For example, a service that owns a network client can bound its release hook:
+
+```ts
+import { Injectable, OnModuleDestroy } from '@nestjs/common'
+import { runShutdownStep } from '@xpert-ai/server-core'
+import { ConnectorClient } from './connector-client'
+
+@Injectable()
+export class ConnectorService implements OnModuleDestroy {
+  constructor(private readonly client: ConnectorClient) {}
+
+  async onModuleDestroy(): Promise<void> {
+    await runShutdownStep('connector.client.close', () => this.client.close())
+  }
+}
+```
+
+This wrapper gives a timeout and diagnostics; the service must still define safe client-close semantics and stop its producers. Plugin authors should release plugin-owned resources in `onPluginDestroy`; the host bounds each such hook. Plugin destroy hooks run sequentially within the shared process deadline.
+
+## Source map and verification
+
+| Area                                 | Repository source                                                                                                                    |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Process deadline and exit            | `packages/server/src/runtime-control/runtime-shutdown.ts`                                                                            |
+| HTTP preparation and response flush  | `packages/server/src/runtime-control/runtime-shutdown-preparation.ts`, `runtime-lifecycle.service.ts`, `runtime-drain.middleware.ts` |
+| Queue barrier                        | `packages/server/src/runtime-control/runtime-queue-shutdown.service.ts`                                                              |
+| Resource deadlines / late settlement | `packages/server/src/runtime-control/shutdown-step.ts`                                                                               |
+| HTTP and worker bootstrap            | `apps/api/src/bootstrap/index.ts`, `apps/api/src/bootstrap-worker.ts`                                                                |
+| Agent stream interruption            | `packages/server-ai/src/handoff/agent-chat-realtime.service.ts`, `packages/contracts/src/runtime-control.ts`                         |
+| Web stream handling                  | `apps/cloud/src/app/@core/services/fetch-event-source.ts`                                                                            |
+| Log-level configuration              | `packages/server/src/logger/pino-logger.ts`                                                                                          |
+
+Focused tests cover cross-queue writes during drain, late HTTP enqueues, real Node self-signals, stuck cleanup deadlines, SSE interruption delivery over HTTP, frontend error handling, and cleanup that settles after its timeout. The real-process fixture uses Nest and HTTP with isolated queue/Redis doubles, so it does not require production infrastructure or prove production Redis/PM2 configuration.
+
+Run from the repository root:
+
+```bash
+corepack pnpm exec jest --config packages/server/jest.config.ts --runInBand --runTestsByPath \
+  packages/server/src/runtime-control/runtime-shutdown.spec.ts \
+  packages/server/src/runtime-control/runtime-shutdown-preparation.spec.ts \
+  packages/server/src/runtime-control/runtime-queue-shutdown.service.spec.ts \
+  packages/server/src/runtime-control/runtime-lifecycle.service.spec.ts \
+  packages/server/src/runtime-control/shutdown-step.spec.ts
+
+corepack pnpm exec jest --config packages/server-ai/jest.config.ts --runInBand --runTestsByPath \
+  packages/server-ai/src/handoff/agent-chat-realtime.service.spec.ts
+
+corepack pnpm exec jest --config apps/cloud/jest.config.ts --runInBand --runTestsByPath \
+  apps/cloud/src/app/@core/services/fetch-event-source.spec.ts
+
+corepack pnpm exec tsc --project apps/api/tsconfig.app.json --noEmit --incremental false
+```
+
+For deployment acceptance, additionally observe the old PID's exit, PM2's replacement PID, readiness recovery, and the required plugin's loaded state. Exercise both a self-restart and the deployment's normal external-stop path because their supervisor deadlines differ.

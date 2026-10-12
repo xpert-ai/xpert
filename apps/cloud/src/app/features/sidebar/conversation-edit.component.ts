@@ -1,3 +1,4 @@
+import { XpDialogFrameImports, ZardButtonComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { A11yModule } from '@angular/cdk/a11y'
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
@@ -6,46 +7,67 @@ import { TranslateModule } from '@ngx-translate/core'
 
 @Component({
   standalone: true,
-  imports: [A11yModule, ReactiveFormsModule, TranslateModule],
+  imports: [
+    ...XpDialogFrameImports,
+    ZardButtonComponent,
+    ZardInputDirective,
+    A11yModule,
+    ReactiveFormsModule,
+    TranslateModule
+  ],
   template: `
-    <form class="flex w-[min(26rem,90vw)] flex-col gap-4 p-6" [formGroup]="form" (ngSubmit)="submit()">
-      <h2 class="text-lg font-semibold text-text-primary">
-        {{ (data.mode === 'rename' ? 'XP.Sidebar.RenameConversation' : 'XP.Sidebar.DeleteConversation') | translate }}
-      </h2>
-      @if (data.mode === 'rename') {
-        <input
-          cdkFocusInitial
-          class="w-full rounded-md border border-border bg-components-input-bg-normal px-3 py-2 text-text-primary outline-none focus:ring-2 focus:ring-ring"
-          formControlName="title"
-          [attr.aria-label]="'XP.Sidebar.ConversationTitle' | translate"
-          maxlength="200"
-        />
-      } @else {
-        <p class="break-words text-sm text-text-secondary">
-          {{ 'XP.Sidebar.DeleteConversationConfirm' | translate: { title: data.title } }}
-        </p>
-      }
-      <div class="flex justify-end gap-2">
+    <form
+      xpDialogLayout="wide"
+      class="w-[min(440px,calc(100vw-32px))] max-h-[84dvh]"
+      [formGroup]="form"
+      (ngSubmit)="submit()"
+    >
+      <header xpDialogHeader>
+        <h2 xpDialogHeading>
+          {{ (data.mode === 'rename' ? 'XP.Sidebar.RenameConversation' : 'XP.Sidebar.DeleteConversation') | translate }}
+        </h2>
         <button
+          xpDialogCloseButton
+          z-button
+          zType="ghost"
+          zSize="icon"
           type="button"
-          class="rounded-md px-4 py-2 text-sm text-text-secondary hover:bg-hover-bg"
+          [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
           (click)="dialog.close()"
         >
-          {{ 'XP.Sidebar.CancelConversationAction' | translate }}
+          <z-icon zType="x" aria-hidden="true" />
         </button>
-        <button
+      </header>
+      <div xpDialogBody>
+        @if (data.mode === 'rename') {
+          <input
+            z-input
+            cdkFocusInitial
+            class="w-full"
+            formControlName="title"
+            [attr.aria-label]="'XP.Sidebar.ConversationTitle' | translate"
+            maxlength="200"
+          />
+        } @else {
+          <p class="break-words text-muted-foreground">
+            {{ 'XP.Sidebar.DeleteConversationConfirm' | translate: { title: data.title } }}
+          </p>
+        }
+      </div>
+      <footer xpDialogFooter>
+        <button z-button zType="outline" type="button" (click)="dialog.close()">
+          {{ 'XP.Sidebar.CancelConversationAction' | translate }}</button
+        ><button
+          z-button
           type="submit"
-          class="rounded-md px-4 py-2 text-sm disabled:opacity-40"
-          [class]="
-            data.mode === 'delete' ? 'bg-destructive text-destructive-foreground' : 'bg-primary text-primary-foreground'
-          "
-          [disabled]="data.mode === 'rename' && (title.invalid || !title.value.trim())"
+          [zType]="data.mode === 'delete' ? 'destructive' : 'default'"
+          [zDisabled]="data.mode === 'rename' && (title.invalid || !title.value.trim())"
         >
           {{
             (data.mode === 'rename' ? 'XP.Sidebar.SaveConversationTitle' : 'XP.Sidebar.DeleteConversation') | translate
           }}
         </button>
-      </div>
+      </footer>
     </form>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush

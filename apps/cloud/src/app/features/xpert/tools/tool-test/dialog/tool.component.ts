@@ -1,18 +1,19 @@
+import { XpDialogFrameImports, XpI18nPipe, ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
 import { DIALOG_DATA, DialogModule, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { XpI18nPipe } from '@xpert-ai/headless-ui'
+
 import { TranslateModule } from '@ngx-translate/core'
 import { IXpertTool } from 'apps/cloud/src/app/@core'
 import { XpertToolAuthorizationInputComponent } from '../../authorization'
 import { XpertToolsetToolTestComponent } from '../test/tool.component'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   imports: [
+    ...XpDialogFrameImports,
     FormsModule,
     TranslateModule,
     DialogModule,
@@ -24,7 +25,6 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
   ],
   selector: 'xpert-tool-test-dialog',
   templateUrl: './tool.component.html',
-  styleUrl: 'tool.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class XpertToolTestDialogComponent {

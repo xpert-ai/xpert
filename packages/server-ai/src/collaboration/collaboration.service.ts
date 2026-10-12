@@ -39,11 +39,12 @@ import {
     type UpsertVirtualPresenceInput
 } from '@xpert-ai/plugin-sdk'
 import { environment } from '@xpert-ai/server-config'
-import { REDIS_CLIENT } from '@xpert-ai/server-core'
+import { closeRedisSubscriber, REDIS_CLIENT } from '@xpert-ai/server-core'
 import type { RedisClientType } from 'redis'
 import { Repository } from 'typeorm'
 import * as Y from 'yjs'
 import { CollaborationDocument, CollaborationUpdate } from './entities'
+import { clamp, optionalBase64, optionalText, positiveInteger, requiredText } from './collaboration-input'
 
 const SESSION_TTL_SECONDS = 600
 const PRESENCE_TTL_SECONDS = 30
@@ -118,14 +119,7 @@ export class CollaborationService implements CollaborationApi, OnModuleInit, OnM
     }
 
     async onModuleDestroy() {
-        try {
-            if (this.subscriber?.isOpen) {
-                await this.subscriber.unsubscribe(BROADCAST_CHANNEL)
-                await this.subscriber.quit()
-            }
-        } catch (error) {
-            this.logger.warn(`Failed to close collaboration subscriber: ${errorMessage(error)}`)
-        }
+        await closeRedisSubscriber('collaboration.redis', this.subscriber)
     }
 
     /** Bind runtime identity and scope once so plugins cannot provide arbitrary tenant context per call. */
@@ -987,24 +981,6 @@ function collaborationConnectionUrl() {
     return new URL(COLLABORATION_NAMESPACE, base.endsWith('/') ? base : `${base}/`).toString().replace(/\/$/, '')
 }
 
-function requiredText(value: unknown, label: string, max: number) {
-    const text = optionalText(value, max)
-    if (!text) throw new BadRequestException(`${label} is required.`)
-    return text
-}
-function optionalText(value: unknown, max: number) {
-    return typeof value === 'string' && value.trim() && value.trim().length <= max ? value.trim() : undefined
-}
-function optionalBase64(value: unknown, max: number) {
-    const text = optionalText(value, max)
-    return text && /^[A-Za-z0-9+/=_-]+$/.test(text) ? text : null
-}
-function positiveInteger(value: unknown, fallback: number) {
-    return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? Math.trunc(value) : fallback
-}
-function clamp(value: number, min: number, max: number) {
-    return Math.min(max, Math.max(min, value))
-}
 function errorMessage(error: unknown) {
     return error instanceof Error ? error.message : String(error)
 }

@@ -199,6 +199,18 @@ export class ZardPopoverDirective implements OnInit, OnDestroy {
         hasBackdrop: false,
         scrollStrategy: this.overlay.scrollStrategies.reposition()
       })
+      // Register with CDK's overlay stack so Escape dismisses this layer before a parent Dialog.
+      this.overlayRef
+        .keydownEvents()
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe((event) => {
+          if (event.key === 'Escape' && !event.altKey && !event.ctrlKey && !event.metaKey && !event.shiftKey) {
+            event.preventDefault()
+            event.stopPropagation()
+            this.hide()
+            this.nativeElement.focus()
+          }
+        })
     }
   }
 

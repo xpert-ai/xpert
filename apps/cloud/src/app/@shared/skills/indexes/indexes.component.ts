@@ -1,3 +1,9 @@
+import {
+  ZardButtonComponent,
+  XpDialogActionGroupDirective,
+  ZardInputDirective,
+  debouncedSignal
+} from '@xpert-ai/headless-ui'
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, input, model, output, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
@@ -9,7 +15,6 @@ import {
   ISkillRepositoryIndex,
   SkillRepositoryIndexService
 } from '@cloud/app/@core'
-import { debouncedSignal } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 
 @Component({
@@ -17,7 +22,16 @@ import { TranslateModule } from '@ngx-translate/core'
   selector: 'xp-skill-indexes',
   templateUrl: './indexes.component.html',
   styleUrls: ['./indexes.component.scss'],
-  imports: [CommonModule, RouterModule, FormsModule, ReactiveFormsModule, TranslateModule]
+  imports: [
+    CommonModule,
+    RouterModule,
+    FormsModule,
+    ReactiveFormsModule,
+    TranslateModule,
+    ZardButtonComponent,
+    XpDialogActionGroupDirective,
+    ZardInputDirective
+  ]
 })
 export class XpertSkillIndexesComponent {
   readonly indexService = inject(SkillRepositoryIndexService)

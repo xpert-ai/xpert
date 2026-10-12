@@ -1,3 +1,4 @@
+import { XpDialogFrameImports, ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
@@ -33,9 +34,10 @@ import { CopilotCredentialFormComponent } from '../credential-form/form.componen
   standalone: true,
   selector: 'copilot-provider-model',
   templateUrl: './model.component.html',
-  styleUrls: ['./model.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
+    ...XpDialogFrameImports,
+    ZardButtonComponent,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,

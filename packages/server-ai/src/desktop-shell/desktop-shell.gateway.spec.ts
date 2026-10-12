@@ -6,7 +6,11 @@ import { DesktopShellGateway } from './desktop-shell.gateway'
 import { DesktopShellAuthService } from './desktop-shell-auth.service'
 import { DesktopShellOperationService, SHELL_DISPATCH_CHANNEL } from './desktop-shell-operation.service'
 
-jest.mock('@xpert-ai/server-core', () => ({ TenantOrganizationBaseEntity: class {}, REDIS_CLIENT: 'REDIS_CLIENT' }))
+jest.mock('@xpert-ai/server-core', () => ({
+    TenantOrganizationBaseEntity: class {},
+    REDIS_CLIENT: 'REDIS_CLIENT',
+    ...jest.requireActual('../../../server/src/runtime-control/shutdown-step')
+}))
 jest.mock('@xpert-ai/plugin-sdk', () => ({ RequestContext: {} }))
 jest.mock('i18next', () => ({ t: (_key: string, opts: { defaultValue: string }) => opts.defaultValue }))
 

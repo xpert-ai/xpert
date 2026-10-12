@@ -289,11 +289,11 @@ export class KnowledgeFAQComponent {
 
     this.#dialog
       .open<KnowledgeFAQImportResult | undefined>(KnowledgeFAQImportDialogComponent, {
-        data: { knowledgebaseId },
-        width: '600px',
-        maxWidth: 'calc(100vw - 2rem)',
         backdropClass: 'backdrop-blur-xs-black',
-        panelClass: 'xp-overlay-pane-dialog'
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
+        data: { knowledgebaseId },
+        width: '600px'
       })
       .closed.subscribe((result) => {
         if (!result) return

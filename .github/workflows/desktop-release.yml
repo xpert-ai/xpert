@@ -16,6 +16,8 @@ on:
     paths:
       - '.changeset/**'
       - 'apps/desktop/package.json'
+      - '.deploy/desktop/**'
+      - '.github/workflows/desktop-release.yml'
 
 permissions:
   contents: read
@@ -53,7 +55,9 @@ jobs:
           DESKTOP_RELEASE_AFTER: ${{ github.event.pull_request.head.sha || github.sha }}
           DESKTOP_RELEASE_EVENT: ${{ github.event_name }}
           DESKTOP_RELEASE_REF: ${{ github.ref }}
-        run: node .deploy/desktop/release-plan.mjs
+        run: |
+          desktop_release_main_sha="$(git rev-parse refs/remotes/origin/main)"
+          DESKTOP_RELEASE_MAIN="$desktop_release_main_sha" node .deploy/desktop/release-plan.mjs
 
   build:
     name: Package ${{ matrix.id }}

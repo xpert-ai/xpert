@@ -7,8 +7,8 @@ import {
   XpertWorkflowErrorHandlingComponent,
   XpertWorkflowRetryComponent
 } from '@cloud/app/@shared/workflow'
-import { linkedModel } from '@xpert-ai/headless-ui'
-import { XpRadioSelectComponent } from '@xpert-ai/headless-ui'
+import { linkedModel, XpRadioSelectComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+
 import { TranslateModule } from '@ngx-translate/core'
 import {
   BodyType,
@@ -28,7 +28,6 @@ import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 import { CopilotPromptEditorComponent } from '@cloud/app/@shared/copilot'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -357,6 +356,9 @@ export class XpertWorkflowHttpComponent extends XpertWorkflowBaseComponent {
   openAuth() {
     this.#dialog
       .open(XpertWorkflowAuthorizationComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           authorization: this.authorization(),
           variables: this.variables()

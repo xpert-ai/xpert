@@ -15,7 +15,7 @@ import {
 } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { XpHighlightDirective } from '@xpert-ai/headless-ui'
+import { XpDialogControlDirective, XpHighlightDirective } from '@xpert-ai/headless-ui'
 import { debouncedSignal, myRxResource, XpI18nPipe, nonBlank } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -67,6 +67,7 @@ const SELECTED_MODEL_INLINE_TAGS_MIN_WIDTH = 520
     ...ZardTooltipImports,
     XpI18nPipe,
     XpHighlightDirective,
+    XpDialogControlDirective,
     ModelParameterInputComponent,
     ZardAlertComponent,
     ZardButtonComponent,

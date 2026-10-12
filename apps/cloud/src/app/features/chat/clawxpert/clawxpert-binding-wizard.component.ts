@@ -1,5 +1,5 @@
-import { CommonModule } from '@angular/common'
 import { Dialog } from '@angular/cdk/dialog'
+import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
@@ -15,8 +15,8 @@ import {
   BlankXpertWizardResult,
   XpertNewBlankComponent
 } from '../../xpert/xpert'
-import { ClawXpertFacade } from './clawxpert.facade'
 import { CLAWXPERT_TEMPLATE_ID } from './clawxpert-template.constants'
+import { ClawXpertFacade } from './clawxpert.facade'
 
 @Component({
   standalone: true,
@@ -323,6 +323,10 @@ export class ClawXpertBindingWizardComponent {
     this.creatingXpert.set(true)
     this.#dialog
       .open<BlankXpertWizardResult>(XpertNewBlankComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        width: '1360px',
+        maxWidth: 'calc(100vw - 32px)',
         disableClose: true,
         data: dialogData
       })

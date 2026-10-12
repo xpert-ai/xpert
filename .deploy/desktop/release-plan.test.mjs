@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
+import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { packageName, platforms, releasePlan } from './release-plan.mjs'
 function fixture(t, { desktop = true } = {}) {
   const cwd = mkdtempSync(path.join(tmpdir(), 'desktop-release-'))
@@ -38,10 +39,136 @@ function fixture(t, { desktop = true } = {}) {
   if (desktop) version('0.1.0')
   write('.changeset/config.json', JSON.stringify({ privatePackages: { version: true } }))
   const initial = commit()
-  const plan = (before, after, event = 'push', ref = 'refs/heads/develop') =>
-    releasePlan({ cwd, before, after, event, ref })
+  const plan = (before, after, event = 'push', ref = 'refs/heads/develop', mainSha) =>
+    releasePlan({ cwd, before, after, event, ref, mainSha })
   return { cwd, git, write, version, note, remove, commit, initial, plan }
 }
+
+function mainSyncFixture(t, { newNote = true } = {}) {
+  const f = fixture(t)
+  f.note('released', 'minor')
+  const fork = f.commit()
+  f.remove('released')
+  f.version('0.2.0')
+  f.commit()
+  f.note('next-release', 'minor')
+  f.commit()
+  f.remove('next-release')
+  f.version('0.3.0')
+  const main = f.commit()
+  f.git('checkout', '--detach', fork)
+  f.note('retained')
+  const before = f.commit()
+  f.git(
+    '-c',
+    'core.hooksPath=/dev/null',
+    '-c',
+    'user.name=Desktop tests',
+    '-c',
+    'user.email=test@example.invalid',
+    'merge',
+    '--no-ff',
+    '-qm',
+    'Sync main',
+    main
+  )
+  if (newNote) {
+    f.note('repair')
+    f.commit()
+  }
+  return { ...f, main, before, after: f.git('rev-parse', 'HEAD') }
+}
+
+test('newly merged main versions allow new notes to request candidates without consuming retained notes', (t) => {
+  const f = mainSyncFixture(t)
+  assert.throws(() => f.plan(f.before, f.after), /consume/)
+  for (const [event, ref] of [
+    ['push', 'refs/heads/develop'],
+    ['pull_request', 'refs/pull/1/merge']
+  ]) {
+    const plan = f.plan(f.before, f.after, event, ref, f.main)
+    assert.equal(plan.version, `0.3.1-candidate.develop.${f.after.slice(0, 12)}`)
+    assert.equal(plan.tag, `desktop-v${plan.version}`)
+    assert.equal(plan.stable, false)
+    assert.deepEqual(plan.changesets, ['.changeset/repair.md'])
+    assert.deepEqual(plan.matrix.include, platforms)
+  }
+  assert.throws(() => f.plan(f.before, f.after, 'push', 'refs/heads/main', f.main), /consume/)
+})
+
+test('retained higher bumps determine the candidate version after main synchronization', (t) => {
+  const f = mainSyncFixture(t)
+  f.note('retained', 'minor')
+  const plan = f.plan(f.before, f.commit(), 'push', 'refs/heads/develop', f.main)
+  assert.equal(plan.baseVersion, '0.4.0')
+  assert.deepEqual(plan.changesets, ['.changeset/repair.md'])
+})
+
+test('only the main ancestor actually merged into the source can establish its version baseline', (t) => {
+  const f = mainSyncFixture(t)
+  f.git('checkout', '--detach', f.main)
+  f.version('0.4.0')
+  const laterMain = f.commit()
+  const plan = f.plan(f.before, f.after, 'push', 'refs/heads/develop', laterMain)
+  assert.equal(plan.baseVersion, '0.3.1')
+})
+
+test('an unmerged main version does not justify a local Desktop version increase', (t) => {
+  const f = mainSyncFixture(t)
+  f.git('checkout', '--detach', f.before)
+  f.version('0.3.0')
+  f.note('repair')
+  assert.throws(() => f.plan(f.before, f.commit(), 'push', 'refs/heads/develop', f.main), /consume/)
+})
+
+test('different versions and previously merged main history still enforce consumption checks', (t) => {
+  const f = mainSyncFixture(t)
+  f.version('0.4.0')
+  const after = f.commit()
+  assert.throws(() => f.plan(f.before, after, 'push', 'refs/heads/develop', f.main), /requested bump/)
+  assert.throws(() => f.plan(f.after, after, 'push', 'refs/heads/develop', f.main), /requested bump/)
+})
+
+test('main synchronization without a new Desktop note does not request installers', (t) => {
+  const f = mainSyncFixture(t, { newNote: false })
+  assert.equal(f.plan(f.before, f.after, 'push', 'refs/heads/develop', f.main).build, false)
+  f.remove('retained')
+  assert.equal(f.plan(f.before, f.commit(), 'push', 'refs/heads/develop', f.main).build, false)
+})
+
+test('later source edits and renamed notes do not rebuild a synchronized candidate', (t) => {
+  const f = mainSyncFixture(t)
+  f.write('apps/desktop/source.txt', 'repair')
+  const source = f.commit()
+  assert.equal(f.plan(f.after, source, 'push', 'refs/heads/develop', f.main).build, false)
+  f.git('mv', '.changeset/repair.md', '.changeset/renamed.md')
+  assert.equal(f.plan(source, f.commit(), 'push', 'refs/heads/develop', f.main).build, false)
+  assert.throws(() => f.plan(f.before, f.after, 'push', 'refs/heads/develop', 'main'), /Exact main commit SHA/)
+})
+
+test('the CLI passes the pinned main SHA and exports the candidate plan to Actions', (t) => {
+  const f = mainSyncFixture(t)
+  const output = path.join(f.cwd, 'actions-output')
+  const stdout = execFileSync(process.execPath, [fileURLToPath(new URL('./release-plan.mjs', import.meta.url))], {
+    cwd: f.cwd,
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      DESKTOP_RELEASE_BEFORE: f.before,
+      DESKTOP_RELEASE_AFTER: f.after,
+      DESKTOP_RELEASE_EVENT: 'push',
+      DESKTOP_RELEASE_REF: 'refs/heads/develop',
+      DESKTOP_RELEASE_MAIN: f.main,
+      GITHUB_OUTPUT: output
+    }
+  })
+  const plan = JSON.parse(stdout)
+  assert.equal(plan.baseVersion, '0.3.1')
+  assert.equal(plan.stable, false)
+  const exported = readFileSync(output, 'utf8')
+  assert.match(exported, /^build=true\nstable=false\n/)
+  assert.ok(exported.includes(`plan=${JSON.stringify(plan)}\n`))
+})
 test('new Desktop notes build all six native platform/architecture pairs', (t) => {
   const f = fixture(t)
   f.note('desktop', 'minor')
@@ -128,6 +255,7 @@ test('main requires consumed notes and a matching version for stable builds', (t
   assert.equal(result.version, '0.1.1')
   assert.equal(result.tag, 'desktop-v0.1.1')
   assert.equal(result.stable, true)
+  assert.equal(f.plan(before, after, 'push', 'refs/heads/main', after).stable, true)
   assert.equal(f.plan(before, after).stable, false)
 })
 test('dependency-only version bumps do not accidentally release Desktop', (t) => {

@@ -3,8 +3,6 @@ title: Sandbox Runtime and Sandbox Jobs Architecture
 description: Architecture and release contracts for Xpert Sandbox Jobs Core, Runtime Definitions and Bindings, Provider SPI, Browser Runtime, and Action Bundles.
 ---
 
-# Sandbox Runtime and Sandbox Jobs Architecture
-
 Xpert separates task orchestration, runtime definitions, runtime implementations, and plugin behavior. OSS Core owns generic Job semantics and the Provider SPI; Runtime Suite publishes provider-neutral Definitions and artifacts; system plugins own reviewable Action Bundles; Pro or another distribution supplies production Runtime Bindings and Providers. OSS additionally includes a reduced-isolation local Binding for development and tests only.
 
 The first implementation is Browser Runtime for Presentation Studio PDF/PPTX export. It does not reuse an interactive agent sandbox and works without an active conversation.

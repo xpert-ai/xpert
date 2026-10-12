@@ -1,127 +1,121 @@
-<div
-  class="absolute right-6 top-6 z-10 flex h-8 w-8 items-center justify-center rounded-2xl hover:cursor-pointer hover:bg-hover-bg"
-  (click)="close()"
->
-  <i class="ri-close-line"></i>
-</div>
-<div class="flex items-start gap-2 self-stretch pb-3 pl-6 pr-14 pt-6">
-  <div class="text-2xl font-semibold self-stretch text-text-primary">
-    {{ 'XP.Plugin.InstallPlugin' | translate: { Default: 'Install Plugin' } }}
-  </div>
-</div>
-<div class="flex flex-col items-start justify-center gap-4 self-stretch px-6 py-3">
-  <div class="system-md-regular text-text-secondary">
-    @if (systemPluginUnavailableInCurrentScope()) {
-      <p>
-        {{
-          'XP.Plugin.SystemPluginTenantScopeRequired'
-            | translate: { Default: 'System and tenant-level plugins can only be installed from tenant scope.' }
-        }}
-      </p>
-    } @else if (installedVersion() === pluginVersion()) {
-      <p>
-        {{
-          'XP.Plugin.PluginAlreadyInstalled'
-            | translate: { Default: 'The latest version of this plugin is already installed' }
-        }}
-      </p>
-    } @else {
-      @if (status() === 'installed') {
-        <p>{{ 'XP.Plugin.PluginInstalled' | translate: { Default: 'Plugin Installed' } }}</p>
-      } @else if (status() === 'installing') {
-        <p>{{ 'XP.Plugin.PluginInstalling' | translate: { Default: 'Installing Plugin' } }}</p>
-      } @else if (status() === 'error') {
+<section xpDialogLayout="standard" xpDialogPurpose="workflow" class="w-[560px] max-w-full max-h-[calc(100dvh-32px)]">
+  <header xpDialogHeader>
+    <h2 xpDialogHeading>{{ 'XP.Plugin.InstallPlugin' | translate: { Default: 'Install Plugin' } }}</h2>
+    <button
+      type="button"
+      z-button
+      zType="ghost"
+      zSize="icon"
+      xpDialogCloseButton
+      [zDisabled]="status() === 'installing'"
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+      (click)="close()"
+    >
+      <z-icon zType="x" />
+    </button>
+  </header>
+  <div xpDialogBody>
+    <div class="system-md-regular text-text-secondary">
+      @if (systemPluginUnavailableInCurrentScope()) {
         <p>
-          {{ 'XP.Plugin.PluginInstallError' | translate: { Default: 'Plugin installation failed, please try again' } }}
-        </p>
-      } @else {
-        <p>{{ 'XP.Plugin.PluginWillInstall' | translate: { Default: 'The following plugin will be installed' } }}</p>
-      }
-      @if (error()) {
-        <p class="text-text-destructive">{{ error() }}</p>
-      }
-      @if (restartRequired() && runtimeRestart.showManualRestart()) {
-        <p class="text-text-warning">
           {{
-            'XP.Plugin.RestartRequired'
-              | translate
-                : { Default: 'Plugin changes were staged successfully. Restart the API service to activate them.' }
+            'XP.Plugin.SystemPluginTenantScopeRequired'
+              | translate: { Default: 'System and tenant-level plugins can only be installed from tenant scope.' }
           }}
         </p>
-      }
-    }
-  </div>
-  <div
-    class="relative flex flex-wrap content-start items-start gap-1 self-stretch rounded-2xl bg-components-input-bg-normal p-2"
-  >
-    <xp-plugin [plugin]="plugin()" [installed]="!!installed()">
-      <div version>
-        @if (installedVersion() && installedVersion() !== pluginVersion()) {
-          <div class="badge badge-s mx-1 badge-warning px-[5px] py-[3px] system-2xs-medium">
-            {{ installedVersion() }} -&gt; {{ pluginVersion() }}
-          </div>
+      } @else if (installedVersion() === pluginVersion()) {
+        <p>
+          {{
+            'XP.Plugin.PluginAlreadyInstalled'
+              | translate: { Default: 'The latest version of this plugin is already installed' }
+          }}
+        </p>
+      } @else {
+        @if (status() === 'installed') {
+          <p>{{ 'XP.Plugin.PluginInstalled' | translate: { Default: 'Plugin Installed' } }}</p>
+        } @else if (status() === 'installing') {
+          <p>{{ 'XP.Plugin.PluginInstalling' | translate: { Default: 'Installing Plugin' } }}</p>
+        } @else if (status() === 'error') {
+          <p>
+            {{
+              'XP.Plugin.PluginInstallError' | translate: { Default: 'Plugin installation failed, please try again' }
+            }}
+          </p>
         } @else {
-          <div class="badge badge-s mx-1 px-[5px] py-[3px] system-2xs-medium font-mono">{{ pluginVersion() }}</div>
+          <p>{{ 'XP.Plugin.PluginWillInstall' | translate: { Default: 'The following plugin will be installed' } }}</p>
         }
-      </div>
-    </xp-plugin>
-    @if (status() === 'installing') {
-      <xp-spin
-        class="absolute inset-0 left-0 top-0 w-full h-full rounded-2xl backdrop-blur-sm bg-components-card-bg/20"
-      />
-    }
+        @if (error()) {
+          <p class="text-text-destructive">{{ error() }}</p>
+        }
+        @if (restartRequired() && runtimeRestart.showManualRestart()) {
+          <p class="text-text-warning">
+            {{
+              'XP.Plugin.RestartRequired'
+                | translate
+                  : { Default: 'Plugin changes were staged successfully. Restart the API service to activate them.' }
+            }}
+          </p>
+        }
+      }
+    </div>
+    <div class="relative min-w-0">
+      <xp-plugin class="block min-w-0" [plugin]="plugin()" [installed]="!!installed()">
+        <div version>
+          @if (installedVersion() && installedVersion() !== pluginVersion()) {
+            <div class="badge badge-s mx-1 badge-warning px-[5px] py-[3px] system-2xs-medium">
+              {{ installedVersion() }} -&gt; {{ pluginVersion() }}
+            </div>
+          } @else {
+            <div class="badge badge-s mx-1 px-[5px] py-[3px] system-2xs-medium font-mono">{{ pluginVersion() }}</div>
+          }
+        </div>
+      </xp-plugin>
+      @if (status() === 'installing') {
+        <xp-spin
+          class="absolute inset-0 left-0 top-0 w-full h-full rounded-2xl backdrop-blur-sm bg-components-card-bg/20"
+        />
+      }
+    </div>
   </div>
-</div>
-<div class="flex items-center justify-end gap-2 self-stretch p-6 pt-5">
-  @if (status() === 'installed' && restartRequired() && runtimeRestart.showManualRestart()) {
-    @if (!runtimeRestart.canRestart()) {
-      <div class="mr-auto max-w-sm text-sm text-text-tertiary">
-        {{
-          runtimeRestart.restartUnavailableMessageKey()
-            | translate: { Default: 'Ask a SuperAdmin in the default tenant scope to restart the API service.' }
-        }}
-      </div>
-    }
-    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large min-w-[72px]" (click)="close()">
-      {{ 'XP.Plugin.RestartLater' | translate: { Default: 'Later' } }}
-    </button>
-    @if (runtimeRestart.canRestart()) {
+  <footer xpDialogFooter>
+    @if (status() === 'installed' && restartRequired() && runtimeRestart.showManualRestart()) {
+      @if (!runtimeRestart.canRestart()) {
+        <div class="mr-auto max-w-sm text-sm text-text-tertiary">
+          {{
+            runtimeRestart.restartUnavailableMessageKey()
+              | translate: { Default: 'Ask a SuperAdmin in the default tenant scope to restart the API service.' }
+          }}
+        </div>
+      }
+      <button type="button" z-button zType="outline" (click)="close()">
+        {{ 'XP.Plugin.RestartLater' | translate: { Default: 'Later' } }}
+      </button>
+      @if (runtimeRestart.canRestart()) {
+        <button type="button" z-button (click)="restartNow()">
+          <i class="ri-restart-line"></i>
+          {{ 'XP.Plugin.RestartNow' | translate: { Default: 'Restart now' } }}
+        </button>
+      }
+    } @else if (
+      systemPluginUnavailableInCurrentScope() || status() === 'installed' || installedVersion() === pluginVersion()
+    ) {
+      <button type="button" z-button (click)="close()">
+        <span>{{ 'XP.Plugin.Close' | translate: { Default: 'Close' } }}</span>
+      </button>
+    } @else {
+      <button type="button" z-button zType="outline" [zDisabled]="status() === 'installing'" (click)="close()">
+        {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+      </button>
+
       <button
         type="button"
-        class="btn disabled:btn-disabled btn-primary btn-large flex min-w-[112px] items-center justify-center"
-        (click)="restartNow()"
+        z-button
+        [zDisabled]="status() === 'installing'"
+        [zLoading]="status() === 'installing'"
+        (click)="install()"
       >
-        <i class="ri-restart-line mr-1"></i>
-        {{ 'XP.Plugin.RestartNow' | translate: { Default: 'Restart now' } }}
+        <span>{{ 'XP.Plugin.Install' | translate: { Default: 'Install' } }}</span>
       </button>
     }
-  } @else if (
-    systemPluginUnavailableInCurrentScope() || status() === 'installed' || installedVersion() === pluginVersion()
-  ) {
-    <button
-      type="button"
-      class="btn disabled:btn-disabled btn-primary btn-large flex min-w-[72px] space-x-0.5"
-      (click)="close()"
-    >
-      <span>{{ 'XP.Plugin.Close' | translate: { Default: 'Close' } }}</span>
-    </button>
-  } @else {
-    <button
-      type="button"
-      class="btn disabled:btn-disabled btn-secondary btn-large min-w-[72px]"
-      [disabled]="status() === 'installing'"
-      (click)="close()"
-    >
-      {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
-    </button>
-
-    <button
-      type="button"
-      class="btn disabled:btn-disabled btn-primary btn-large flex min-w-[72px] space-x-0.5"
-      [disabled]="status() === 'installing'"
-      (click)="install()"
-    >
-      <span>{{ 'XP.Plugin.Install' | translate: { Default: 'Install' } }}</span>
-    </button>
-  }
-</div>
+  </footer>
+</section>

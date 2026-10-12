@@ -52,7 +52,12 @@ function fixture() {
         ownerId: scope.userId,
         invocation
     })
-    const conversation = new ChatConversation({ id: scope.conversationId, threadId: 'thread', projectId: null })
+    const conversation = new ChatConversation({
+        id: scope.conversationId,
+        threadId: 'thread',
+        projectId: null,
+        createdById: scope.userId
+    })
     const parent = new XpertAgentExecution({
         id: scope.parentExecutionId,
         xpertId: scope.callerXpertId,
@@ -80,9 +85,10 @@ function fixture() {
                         : { findOneBy: async () => null }
     })
     const inspect = jest.fn(async () => invocation)
+    const resolveGroupTarget = jest.fn()
     const factory = Object.assign(
         Object.create(AgentInvocationFactoryService.prototype) as AgentInvocationFactoryService,
-        { createCapturedApi: () => ({ inspect }) }
+        { createCapturedApi: () => ({ inspect }), resolveGroupTarget }
     )
     return {
         service: new RuntimeMessageAccessService(database, factory),
@@ -93,11 +99,36 @@ function fixture() {
         members,
         users,
         inspect,
-        records
+        records,
+        conversation,
+        resolveGroupTarget
     }
 }
 
 describe('runtime reply authorization', () => {
+    it('reauthorizes a group initiator independently of the runtime conversation creator', async () => {
+        const f = fixture()
+        f.conversation.createdById = randomUUID()
+        await expect(f.service.withReply(f.invocation.id, f.record, async () => undefined)).rejects.toThrow()
+        f.conversation.purpose = 'group_assistant_runtime'
+        await expect(f.service.withReply(f.invocation.id, f.record, async () => undefined)).rejects.toThrow()
+        f.invocation.request.target.provider = 'xpert-task'
+        f.invocation.request.target.configuration = {
+            executionContext: {
+                type: 'group_member',
+                groupId: randomUUID(),
+                participantId: f.invocation.request.target.bindingId,
+                sourceParticipantId: randomUUID(),
+                projectId: randomUUID()
+            }
+        }
+        await f.service.withReply(f.invocation.id, f.record, async () => undefined)
+        expect(f.resolveGroupTarget).toHaveBeenCalledWith(f.scope, f.invocation.request.target.bindingId)
+        f.resolveGroupTarget.mockRejectedValueOnce(new Error('membership revoked'))
+        await expect(f.service.withReply(f.invocation.id, f.record, async () => undefined)).rejects.toThrow(
+            'membership revoked'
+        )
+    })
     it('restores the real scoped actor and reloads the authorized invocation', async () => {
         const f = fixture()
         const result = await f.service.withReply(f.invocation.id, f.record, async () => ({

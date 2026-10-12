@@ -1,63 +1,66 @@
-<header
-  class="flex justify-between items-center p-4 cursor-move"
-  cdkDrag
-  cdkDragRootElement=".cdk-overlay-pane"
-  cdkDragHandle
->
-  <div class="text-xl font-semibold">{{ 'XP.Xpert.CreateToolset' | translate: { Default: 'Create Toolset' } }}</div>
-</header>
-
-<div class="flex justify-center pb-2">
-  <ul
-    class="w-80 p-1 flex items-center justify-center gap-2 bg-hover-bg rounded-xl"
-    cdkListbox
-    [(ngModel)]="providerTypes"
-  >
-    <li
-      #option2="cdkOption"
-      class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium cursor-pointer"
-      [ngClass]="option2.isSelected() ? 'shadow-md bg-components-card-bg' : ''"
-      [cdkOption]="'openapi'"
-    >
-      <i class="ri-links-line"></i> &nbsp; OpenAPI
-    </li>
-
-    <li
-      #option3="cdkOption"
-      class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 font-medium cursor-pointer"
-      [ngClass]="option3.isSelected() ? 'shadow-md bg-components-card-bg' : ''"
-      [cdkOption]="'odata'"
-    >
-      <i class="ri-exchange-2-line"></i> &nbsp; OData
-    </li>
-  </ul>
-</div>
-
-<div class="block px-8 py-2 overflow-auto">
-  @switch (providerTypes()[0]) {
-    @case ('openapi') {
-      <xpert-tool-openapi-configure #configure (valueChange)="onValueChange($event)" />
-    }
-    @case ('odata') {
-      <xpert-tool-odata-configure #configure (valueChange)="onValueChange($event)" />
-    }
-  }
-</div>
-
-<div class="w-full flex justify-end p-4">
-  <div class="flex items-center gap-2">
-    <button type="button" class="btn disabled:btn-disabled btn-large" (click)="cancel()">
-      {{ 'XP.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
-    </button>
-
+<section xpDialogLayout="wide" xpDialogPurpose="workflow" class="w-[min(880px,calc(100vw-32px))] max-h-[84dvh]">
+  <header xpDialogHeader cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+    <h2 xpDialogHeading>{{ 'XP.Xpert.CreateToolset' | translate: { Default: 'Create Toolset' } }}</h2>
     <button
+      z-button
+      zType="ghost"
       type="button"
-      class="btn disabled:btn-disabled btn-primary btn-large"
-      [disabled]="!configure()?.isValid()"
+      xpDialogCloseButton
+      zSize="icon"
+      [zDisabled]="loading()"
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+      (click)="cancel()"
+    >
+      <z-icon zType="x" aria-hidden="true" />
+    </button>
+  </header>
+  <div xpDialogBody>
+    <ul
+      class="grid grid-cols-2 gap-2 rounded-lg bg-muted p-1"
+      cdkListbox
+      [cdkListboxDisabled]="loading()"
+      [(ngModel)]="providerTypes"
+    >
+      <li
+        #openapi="cdkOption"
+        cdkOption="openapi"
+        class="cursor-pointer rounded-md p-3 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        [class]="openapi.isSelected() ? 'bg-background font-medium shadow-sm' : ''"
+      >
+        OpenAPI
+      </li>
+      <li
+        #odata="cdkOption"
+        cdkOption="odata"
+        class="cursor-pointer rounded-md p-3 text-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        [class]="odata.isSelected() ? 'bg-background font-medium shadow-sm' : ''"
+      >
+        OData
+      </li>
+    </ul>
+    <div [attr.inert]="loading() ? '' : null">
+      @switch (providerTypes()[0]) {
+        @case ('openapi') {
+          <xpert-tool-openapi-configure #configure (valueChange)="onValueChange($event)" />
+        }
+        @case ('odata') {
+          <xpert-tool-odata-configure #configure (valueChange)="onValueChange($event)" />
+        }
+      }
+    </div>
+  </div>
+  <footer xpDialogFooter>
+    <button z-button zType="outline" type="button" [zDisabled]="loading()" (click)="cancel()">
+      {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}</button
+    ><button
+      z-button
+      zType="default"
+      type="button"
+      [zDisabled]="loading() || !configure()?.isValid()"
+      [zLoading]="loading()"
       (click)="createTool()"
     >
-      <i class="ri-save-line mr-1"></i>
-      {{ 'XP.ACTIONS.CREATE' | translate: { Default: 'Create' } }}
+      <z-icon zType="plus" aria-hidden="true" />{{ 'XP.ACTIONS.Create' | translate: { Default: 'Create' } }}
     </button>
-  </div>
-</div>
+  </footer>
+</section>

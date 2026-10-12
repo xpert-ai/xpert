@@ -1,4 +1,5 @@
 export * from './knowledgebase'
+export * from './knowledgebase-catalog'
 export * from './knowledge-graph'
 export * from './knowledgebase-documents'
 export * from './knowledge-upload-sessions'

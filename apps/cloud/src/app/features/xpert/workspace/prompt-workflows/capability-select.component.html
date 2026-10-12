@@ -76,10 +76,11 @@
 </div>
 
 <ng-template #panel>
-  <div class="flex max-h-[90vh] w-full flex-col md:w-2xl">
-    <header class="flex items-center justify-between gap-3 border-b border-divider-regular px-6 py-4">
-      <h2 class="text-lg font-semibold">{{ 'XP.PromptWorkflow.Capabilities.Add' | translate }}</h2>
+  <div xpDialogLayout="standard" class="w-[640px] max-w-full max-h-[calc(100dvh-32px)]">
+    <header xpDialogHeader>
+      <h2 xpDialogHeading>{{ 'XP.PromptWorkflow.Capabilities.Add' | translate }}</h2>
       <button
+        xpDialogCloseButton
         z-button
         zType="ghost"
         zSize="icon"
@@ -87,10 +88,10 @@
         (click)="close()"
         [attr.aria-label]="'XP.PromptWorkflow.Close' | translate"
       >
-        <z-icon zType="close" />
+        <z-icon zType="x" />
       </button>
     </header>
-    <div class="min-h-0 space-y-4 overflow-y-auto p-6">
+    <div xpDialogBody>
       <p class="text-sm text-text-tertiary">{{ 'XP.PromptWorkflow.Capabilities.ExpertHelp' | translate }}</p>
       @if (eligibleExperts().length) {
         <z-select
@@ -106,6 +107,7 @@
         </z-select>
         <div
           class="flex flex-wrap gap-2"
+          xpDialogActionGroup="inline"
           role="group"
           [attr.aria-label]="'XP.PromptWorkflow.Capabilities.Category' | translate"
         >
@@ -113,7 +115,6 @@
             <button
               z-button
               [zType]="kind() === category ? 'secondary' : 'ghost'"
-              zSize="sm"
               type="button"
               [attr.aria-pressed]="kind() === category"
               (click)="kind.set(category)"
@@ -135,7 +136,7 @@
             {{ 'XP.PromptWorkflow.Capabilities.Reasons.Loading' | translate }}
           </p>
         } @else if (catalogError(); as error) {
-          <div role="alert" class="space-y-2 py-4">
+          <div xpDialogActionGroup="inline" role="alert" class="space-y-2 py-4">
             <p class="text-sm text-text-destructive">
               {{ 'XP.PromptWorkflow.Capabilities.Reasons.LoadFailed' | translate }} · {{ error }}
             </p>
@@ -179,7 +180,7 @@
         <p class="py-6 text-sm text-text-tertiary">{{ 'XP.PromptWorkflow.Capabilities.NoExperts' | translate }}</p>
       }
     </div>
-    <footer class="flex justify-end border-t border-divider-regular px-6 py-4">
+    <footer xpDialogFooter>
       <button z-button type="button" (click)="close()">{{ 'XP.PromptWorkflow.Capabilities.Done' | translate }}</button>
     </footer>
   </div>

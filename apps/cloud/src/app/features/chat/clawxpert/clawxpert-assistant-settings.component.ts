@@ -20,9 +20,10 @@ export class ClawXpertAssistantSettingsComponent implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.settingsDialog = this.dialog.open<void, unknown, AssistantSettingsComponent>(AssistantSettingsComponent, {
-      viewContainerRef: this.viewContainerRef,
       backdropClass: 'backdrop-blur-xs-black',
       panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)',
+      viewContainerRef: this.viewContainerRef,
       ariaLabelledBy: 'assistant-settings-title',
       autoFocus: '#assistant-settings-title'
     })

@@ -1,6 +1,14 @@
 import { ICommand } from '@nestjs/cqrs'
-import { ProjectTaskDispatchInput, ProjectTaskDecisionInput } from '@xpert-ai/contracts'
+import { ProjectTaskDispatchInput, ProjectTaskDecisionInput, ProjectTaskGraphChange } from '@xpert-ai/contracts'
 import { ProjectTaskCaller } from './project-task-dispatch.schema'
+
+/** Change a task plan using the same revision and graph validation as the Project Tasks view. */
+export class UpdateProjectTaskPlanCommand implements ICommand {
+    constructor(
+        readonly projectId: string,
+        readonly input: ProjectTaskGraphChange
+    ) {}
+}
 
 /** Record a version-bound business acceptance/rework decision after inspecting the implementation evidence. */
 export class DecideProjectTaskCommand implements ICommand {

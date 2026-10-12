@@ -1,3 +1,5 @@
+import { ZardButtonComponent, XpDialogFrameImports } from '@xpert-ai/headless-ui'
+
 import { DialogRef, DIALOG_DATA } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
@@ -20,12 +22,9 @@ type ExploreSkillDetailDialogData = {
 @Component({
   standalone: true,
   selector: 'xp-explore-skill-detail-dialog',
-  imports: [CommonModule, TranslateModule],
+  imports: [CommonModule, TranslateModule, ZardButtonComponent, ...XpDialogFrameImports],
   templateUrl: './detail-dialog.component.html',
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  host: {
-    class: 'block w-full max-w-3xl rounded-[28px] bg-components-panel-bg shadow-xl'
-  }
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ExploreSkillDetailDialogComponent {
   readonly #dialogRef = inject(DialogRef)

@@ -59,6 +59,9 @@ export class PluginSkillTrialLauncherService {
 
     const workspaceId = await this.resolveClawXpertWorkspaceId()
     const dialogRef = this.#dialog.open(PluginResourcesComponent, {
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)',
       data: {
         plugin,
         initialComponents: [
@@ -71,8 +74,7 @@ export class PluginSkillTrialLauncherService {
         initialInstallMode: 'workspace',
         closeOnSuccess: input.closeOnSuccess === true,
         reload: input.reload
-      },
-      backdropClass: 'backdrop-blur-sm-black'
+      }
     })
 
     const result = (await firstValueFrom(dialogRef.closed)) as IPluginResourceInstallResult | null | undefined

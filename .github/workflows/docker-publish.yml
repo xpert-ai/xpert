@@ -48,7 +48,9 @@ jobs:
           IMAGE_RELEASE_AFTER: ${{ github.event.pull_request.head.sha || github.sha }}
           IMAGE_RELEASE_EVENT: ${{ github.event_name }}
           IMAGE_RELEASE_REF: ${{ github.ref }}
-        run: node .deploy/application-images/release-plan.mjs
+        run: |
+          image_release_main_sha="$(git rev-parse refs/remotes/origin/main)"
+          IMAGE_RELEASE_MAIN="$image_release_main_sha" node .deploy/application-images/release-plan.mjs
 
   validate-api:
     needs: prepare

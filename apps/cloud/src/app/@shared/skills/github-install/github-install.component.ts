@@ -4,7 +4,7 @@ import { AbstractControl, FormControl, ReactiveFormsModule, ValidationErrors, Va
 import { getErrorMessage, ISkillPackage, SkillPackageService, ToastrService } from '@cloud/app/@core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { parseGithubSkillInstallCommand } from '@xpert-ai/contracts'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, XpDialogActionGroupDirective } from '@xpert-ai/headless-ui'
 import { ZardIconComponent } from '@xpert-ai/headless-ui'
 import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
@@ -16,12 +16,16 @@ import { firstValueFrom } from 'rxjs'
     CommonModule,
     ReactiveFormsModule,
     TranslateModule,
+    XpDialogActionGroupDirective,
     ZardButtonComponent,
     ZardIconComponent,
     ZardInputDirective
   ],
   template: `
-    <form class="rounded-lg border border-divider-regular bg-background p-5" (submit)="install($event)">
+    <form
+      [class]="showTitle() ? 'rounded-lg border border-divider-regular bg-background p-5' : 'min-w-0'"
+      (submit)="install($event)"
+    >
       @if (showTitle()) {
         <div class="flex items-start gap-3">
           <div
@@ -52,7 +56,7 @@ import { firstValueFrom } from 'rxjs'
           <input
             z-input
             type="text"
-            class="h-11 w-full text-sm"
+            class="w-full"
             [formControl]="commandControl"
             [placeholder]="'XP.Skill.GithubSkillInstallInputPlaceholder' | translate: { Default: exampleCommand }"
           />
@@ -70,20 +74,14 @@ import { firstValueFrom } from 'rxjs'
           }
         </label>
 
-        <div class="flex justify-end">
-          <button z-button zType="default" type="submit" class="h-10 shrink-0 gap-2 px-4" [disabled]="installing()">
-            @if (installing()) {
-              <z-icon zType="refresh-cw" zSize="sm" class="animate-spin" />
-            } @else {
-              <z-icon zType="file_download" zSize="sm" />
-            }
-            {{
-              installing()
-                ? ('XP.Skill.InstallingGithubSkills' | translate: { Default: 'Installing...' })
-                : ('XP.Skill.InstallGithubSkills' | translate: { Default: 'Install skills' })
-            }}
-          </button>
-        </div>
+        @if (showActions()) {
+          <div xpDialogActionGroup="inline" class="flex justify-end">
+            <button z-button type="submit" [zLoading]="installing()" [zDisabled]="installing()">
+              <z-icon zType="file_download" />
+              {{ 'XP.Skill.InstallGithubSkills' | translate: { Default: 'Install skills' } }}
+            </button>
+          </div>
+        }
       </div>
     </form>
   `,
@@ -92,6 +90,7 @@ import { firstValueFrom } from 'rxjs'
 export class XpertGithubSkillInstallComponent {
   readonly workspaceId = input<string | null>(null)
   readonly showTitle = input(true)
+  readonly showActions = input(true)
   readonly installed = output<ISkillPackage[]>()
 
   readonly #skillPackageService = inject(SkillPackageService)

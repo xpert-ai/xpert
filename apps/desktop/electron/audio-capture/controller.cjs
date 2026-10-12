@@ -13,6 +13,9 @@ const { AudioCaptureCache } = require('./cache.cjs')
 const { CaptureDelivery } = require('./delivery.cjs')
 const { parseNativeEvent } = require('./native-events.cjs')
 const MAX_DURATION = AUDIO_CAPTURE_LIMITS.durationMs
+const STARTUP_TIMEOUT_MS = 60000 // Whole helper startup, including OS consent.
+const INPUT_TIMEOUT_MS = 15000 // Per-track first frame and subsequent input gaps.
+const SHUTDOWN_TIMEOUT_MS = 7000 // OS device calls may ignore native cancellation.
 class AudioCaptureController {
   constructor(
     service,
@@ -216,12 +219,12 @@ class AudioCaptureController {
       void this.stop('limit')
       return
     }
-    if (
-      Date.now() - active.launchedAt > 15000 &&
-      (!active.nativeStarted ||
-        tracks.some((track) => Date.now() - (active.lastInput[track] || active.launchedAt) > 15000))
-    ) {
-      record.errorCode = 'audio_source_missing'
+    // Native initialization and first-frame delivery have independent budgets.
+    const timedOut = !active.nativeStarted
+      ? Date.now() - active.launchedAt > STARTUP_TIMEOUT_MS
+      : tracks.some((track) => Date.now() - Math.max(active.lastInput[track], record.startedAt) > INPUT_TIMEOUT_MS)
+    if (timedOut) {
+      record.errorCode = active.nativeStarted ? 'audio_input_timeout' : 'audio_start_timeout'
       void this.stop('device_lost')
       return
     }
@@ -303,7 +306,7 @@ class AudioCaptureController {
     active.stopPromise = (async () => {
       active.record.reason = reason
       active.child.stdin.end('\n')
-      const kill = setTimeout(() => active.child.kill('SIGKILL'), 7000)
+      const kill = setTimeout(() => active.child.kill('SIGKILL'), SHUTDOWN_TIMEOUT_MS)
       await active.exit
       clearTimeout(kill)
       await active.write
@@ -360,6 +363,8 @@ class AudioCaptureController {
         } while (record.stopped && tracks.some((track) => record.uploaded[track] < record.counts[track]))
         // Stop can append the final microphone chunk while a system upload is in flight.
         if (record.stopped && tracks.every((track) => record.uploaded[track] === record.counts[track])) {
+          // Stop must persist the final state before delivery removes its cache directory.
+          if (this.active?.record === record) await this.active.stopPromise
           await this.delivery.event(record, 'stopped', {
             durationMs: record.durationMs,
             reason: record.reason,

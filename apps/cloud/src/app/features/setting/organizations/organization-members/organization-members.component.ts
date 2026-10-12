@@ -72,6 +72,7 @@ export class OrganizationMembersComponent extends TranslationBaseComponent {
       this.dialog.open<{ users: IUser[] }>(UserRoleSelectComponent, {
         backdropClass: 'backdrop-blur-xs-black',
         panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           emptyHint: this.getTranslation('FORM.PLACEHOLDERS.MEMBERS_EMPTY_HINT', {
             Default: 'Use the input on the right to search and add members'

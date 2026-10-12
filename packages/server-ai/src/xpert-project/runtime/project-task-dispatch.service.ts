@@ -9,6 +9,7 @@ import { randomUUID } from 'node:crypto'
 import { z } from 'zod/v3'
 import { In, Repository } from 'typeorm'
 import {
+    assistantTaskGroupContext,
     ProjectTaskDispatchInput,
     ProjectTaskDispatchReceipt,
     projectTaskDispatchInputSchema,
@@ -53,9 +54,12 @@ export class ProjectTaskDispatchService {
         const parsed = projectTaskDispatchInputSchema.safeParse(input)
         if (!parsed.success) throw projectTaskRuntimeError('Invalid')
         input = parsed.data
+        if (input.target && input.delivery && input.delivery.mode !== 'none') throw projectTaskRuntimeError('Invalid')
         const scope = await this.context.resolve(projectId, caller)
         // Authorization precedes both reservation and idempotent replay.
-        const target = await this.factory.resolveBackgroundTarget(scope, input.bindingId)
+        const target = input.target
+            ? await this.factory.resolveGroupTarget(scope, input.target.participantId)
+            : await this.factory.resolveBackgroundTarget(scope, input.bindingId)
         const purpose = input.purpose ?? { type: 'implementation' as const }
         // Evidence-only confinement is currently enforced by the Computer runner.
         if (
@@ -95,6 +99,7 @@ export class ProjectTaskDispatchService {
             })
             if (!task) throw projectTaskRuntimeError('NotFound')
             assertOrdinaryTask(task)
+            if (input.target && task.assigneeXpertId !== target.reference) throw projectTaskRuntimeError('Scope')
             if (task.revision !== input.expectedRevision) throw projectTaskRuntimeError('Conflict')
             if (task.kind !== 'task' || !['todo', 'in_progress', 'blocked', 'review'].includes(task.status))
                 throw projectTaskRuntimeError('State')
@@ -150,8 +155,16 @@ export class ProjectTaskDispatchService {
                 : []
             if (
                 attempts.some((attempt) => {
+                    // Group members have isolated conversation runtimes; retries of the same task remain serialized.
                     if (!attempt.invocationId) return attempt.status === 'queued' || attempt.status === 'running'
                     const record = invocations.find((record) => record.id === attempt.invocationId)
+                    if (
+                        input.target &&
+                        attempt.taskId !== task.id &&
+                        record &&
+                        assistantTaskGroupContext(record.invocation.request.target)
+                    )
+                        return false
                     return !record || !isAgentInvocationTerminal(record.invocation.status)
                 })
             )
@@ -347,7 +360,8 @@ export class ProjectTaskDispatchService {
             intent.input.requestId !== execution.dispatchRequestId ||
             intent.input.taskId !== execution.taskId ||
             intent.request.dispatch.requestId !== execution.dispatchRequestId ||
-            intent.request.target.bindingId !== intent.input.bindingId ||
+            intent.request.target.bindingId !== (intent.input.target?.participantId ?? intent.input.bindingId) ||
+            Boolean(intent.input.target) !== Boolean(assistantTaskGroupContext(intent.request.target)) ||
             !sameInvocationData(
                 intent.input.delivery ?? { mode: 'none' },
                 intent.request.input.delivery ?? { mode: 'none' }

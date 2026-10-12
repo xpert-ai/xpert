@@ -1,4 +1,13 @@
 import {
+  ZardButtonComponent,
+  XpDialogFrameImports,
+  XpDialogActionGroupDirective,
+  ZardInputDirective,
+  ZardCheckboxComponent,
+  ZardIconComponent,
+  ZardSelectImports
+} from '@xpert-ai/headless-ui'
+import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
@@ -20,13 +29,6 @@ import {
   parsePromptCapabilitySelection,
   resolvePromptWorkflowCapabilities
 } from '@xpert-ai/contracts'
-import {
-  ZardButtonComponent,
-  ZardCheckboxComponent,
-  ZardIconComponent,
-  ZardInputDirective,
-  ZardSelectImports
-} from '@xpert-ai/headless-ui'
 import { firstValueFrom, take } from 'rxjs'
 import { getErrorMessage, injectXpertAPI, XpertConnectorService } from '../../../../@core'
 import type { PromptWorkflowExpert } from './expert-association-select.component'
@@ -53,7 +55,9 @@ type Catalog = { loading: boolean; options: PromptCapabilityOption[]; runtimeErr
     ZardCheckboxComponent,
     ZardIconComponent,
     ZardInputDirective,
-    ...ZardSelectImports
+    ...ZardSelectImports,
+    ...XpDialogFrameImports,
+    XpDialogActionGroupDirective
   ],
   templateUrl: './capability-select.component.html',
   host: { class: 'block min-w-0' }
@@ -183,9 +187,10 @@ export class PromptCapabilitySelectComponent {
     if (this.disabled() || this.unsupported()) return
     this.search.set('')
     this.#ref = this.#dialog.open(this.panel(), {
+      maxWidth: 'calc(100vw - 32px)',
       backdropClass: 'backdrop-blur-xs-black',
       panelClass: 'xp-overlay-pane-dialog',
-      maxWidth: '95vw',
+
       maxHeight: '90vh',
       ariaLabel: this.#translate.instant('XP.PromptWorkflow.Capabilities.Add')
     })

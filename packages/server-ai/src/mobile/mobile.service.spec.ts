@@ -21,7 +21,14 @@ jest.mock('../xpert/published-xpert-access.service', () => ({
     PublishedXpertAccessService: class PublishedXpertAccessService {}
 }))
 
-import { AssistantBindingScope, AssistantBindingSourceScope, AssistantCode, XpertTypeEnum } from '@xpert-ai/contracts'
+import {
+    AssistantBindingScope,
+    AssistantBindingSourceScope,
+    AssistantCode,
+    PermissionsEnum,
+    RolesEnum,
+    XpertTypeEnum
+} from '@xpert-ai/contracts'
 import { UnauthorizedException } from '@nestjs/common'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import {
@@ -53,6 +60,7 @@ describe('MobileService', () => {
         userService.findCurrentUser.mockResolvedValue({
             id: 'user-1',
             tenantId: 'tenant-1',
+            role: { name: RolesEnum.ADMIN },
             email: 'person@example.com',
             hash: 'secret-hash',
             token: 'secret-token',
@@ -147,7 +155,13 @@ describe('MobileService', () => {
         expect(result.deployment.capabilities.chatkit).toBe(true)
     })
 
-    it('lists active tenant organizations for authorized administrators without inventing memberships', async () => {
+    it('lists active tenant organizations for authorized super administrators without inventing memberships', async () => {
+        userService.findCurrentUser.mockResolvedValueOnce({
+            id: 'user-1',
+            tenantId: 'tenant-1',
+            role: { name: RolesEnum.SUPER_ADMIN },
+            organizations: []
+        })
         jest.mocked(RequestContext.hasAnyPermission).mockReturnValue(true)
         organizationService.findAll.mockResolvedValue({
             items: [{ id: 'new-org', name: 'New organization', tenantId: 'tenant-1', isActive: true }]
@@ -163,7 +177,47 @@ describe('MobileService', () => {
     })
 
     it('does not expose tenant organizations to ordinary members', async () => {
+        userService.findCurrentUser.mockResolvedValueOnce({
+            id: 'user-1',
+            tenantId: 'tenant-1',
+            role: { name: RolesEnum.VIEWER },
+            organizations: []
+        })
         await createService().getBootstrap()
+        expect(organizationService.findAll).not.toHaveBeenCalled()
+    })
+
+    it.each([PermissionsEnum.ALL_ORG_VIEW, PermissionsEnum.ALL_ORG_EDIT])(
+        'keeps ADMIN organization choices membership-based despite %s and a stale selection',
+        async (permission) => {
+            jest.mocked(RequestContext.hasAnyPermission).mockImplementation((permissions) =>
+                permissions.includes(permission)
+            )
+            jest.mocked(RequestContext.getOrganizationId).mockReturnValue('unrelated-org')
+
+            const result = await createService().getBootstrap()
+
+            expect(result.organizations.map((organization) => organization.id)).toEqual(['org-1', 'org-2'])
+            expect(result.activeOrganizationId).toBe('org-1')
+            expect(result.defaultOrganizationId).toBe('org-1')
+            expect(organizationService.findAll).not.toHaveBeenCalled()
+        }
+    )
+
+    it('returns no organization choices for ADMIN without memberships even with tenant permissions', async () => {
+        userService.findCurrentUser.mockResolvedValueOnce({
+            id: 'user-1',
+            tenantId: 'tenant-1',
+            role: { name: RolesEnum.ADMIN },
+            organizations: []
+        })
+        jest.mocked(RequestContext.hasAnyPermission).mockReturnValue(true)
+
+        const result = await createService().getBootstrap()
+
+        expect(result.organizations).toEqual([])
+        expect(result.activeOrganizationId).toBeNull()
+        expect(result.defaultOrganizationId).toBeNull()
         expect(organizationService.findAll).not.toHaveBeenCalled()
     })
 

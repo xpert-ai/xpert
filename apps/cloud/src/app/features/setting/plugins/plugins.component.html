@@ -124,6 +124,13 @@
                 : {
                     Default:
                       'API replicas are restarting in background batches for {{pluginNames
+
+
+
+
+
+
+
           }}. You can continue using this page.', pluginNames: runtimeRestart.backgroundPluginNames().join(', ') } }}
         } @else {
           {{
@@ -236,6 +243,7 @@
         class="inline-block w-[200px]"
         [zMultiple]="true"
         [zSearchable]="true"
+        [zClearable]="true"
         [zValue]="keywords()"
         [zPlaceholder]="'XP.Plugin.AllKeywords' | translate: { Default: 'All Keywords' }"
         (zSelectionChange)="onKeywordsSelectionChange($event)"
@@ -700,26 +708,31 @@
 </ng-template>
 
 <ng-template #npmInstallDialog let-dialogRef="dialogRef">
-  <div class="w-full rounded-2xl bg-components-card-bg px-6 py-5">
-    <div class="flex items-start justify-between pb-3">
-      <div class="text-xl font-semibold text-text-primary">
+  <div xpDialogLayout="standard" xpDialogPurpose="workflow" class="w-[560px] max-w-full max-h-[85dvh]">
+    <header xpDialogHeader>
+      <h2 xpDialogHeading>
         {{ 'XP.Plugin.InstallFromNpm' | translate: { Default: 'Install from NPM' } }}
-      </div>
+      </h2>
       <button
+        xpDialogCloseButton
+        z-button
+        zType="ghost"
+        zSize="icon"
         type="button"
-        class="btn btn-ghost btn-small w-8 h-8 flex items-center justify-center"
         (click)="dialogRef.close()"
+        [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
       >
-        <i class="ri-close-line"></i>
+        <z-icon zType="close" />
       </button>
-    </div>
-    <div class="relative flex flex-col gap-4">
+    </header>
+    <div xpDialogBody class="relative">
       <div class="flex flex-col gap-2">
         <label class="text-sm font-medium text-text-tertiary">
           {{ 'XP.Plugin.NpmPackageName' | translate: { Default: 'NPM package name' } }}
         </label>
         <input
-          class="xp-input w-full"
+          z-input
+          class="w-full"
           [placeholder]="'XP.Plugin.InputPackageName' | translate: { Default: 'e.g. @scope/xpert-plugin' }"
           [(ngModel)]="npmPackageName"
         />
@@ -729,7 +742,8 @@
           {{ 'XP.Plugin.NpmPackageVersion' | translate: { Default: 'Version (optional)' } }}
         </label>
         <input
-          class="xp-input w-full"
+          z-input
+          class="w-full"
           [placeholder]="'XP.Plugin.InputPackageVersion' | translate: { Default: 'e.g. 1.0.0' }"
           [(ngModel)]="npmPackageVersion"
         />
@@ -741,40 +755,42 @@
         <xp-spin class="absolute left-0 top-0 w-full h-full rounded-xl backdrop-blur-sm bg-components-card-bg/20" />
       }
     </div>
-    <div class="flex items-center justify-end gap-2 pt-4">
-      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large" (click)="dialogRef.close()">
+    <footer xpDialogFooter>
+      <button type="button" z-button zType="outline" (click)="dialogRef.close()">
         {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
       </button>
       <button
         type="button"
-        class="btn disabled:btn-disabled btn-primary btn-large flex items-center gap-1"
-        [disabled]="npmInstalling() || !npmPackageName()?.trim()"
+        z-button
+        [zLoading]="npmInstalling()"
+        [zDisabled]="npmInstalling() || !npmPackageName()?.trim()"
         (click)="confirmInstallNpm(dialogRef)"
       >
-        @if (npmInstalling()) {
-          <xp-spin small class="!text-primary-200" />
-        }
         <span>{{ 'XP.Plugin.Install' | translate: { Default: 'Install' } }}</span>
       </button>
-    </div>
+    </footer>
   </div>
 </ng-template>
 
 <ng-template #archiveInstallDialog let-dialogRef="dialogRef">
-  <div class="w-full rounded-2xl bg-components-card-bg px-6 py-5">
-    <div class="flex items-start justify-between pb-3">
-      <div class="text-xl font-semibold text-text-primary">
+  <div xpDialogLayout="standard" xpDialogPurpose="workflow" class="w-[560px] max-w-full max-h-[85dvh]">
+    <header xpDialogHeader>
+      <h2 xpDialogHeading>
         {{ 'XP.Plugin.InstallFromArchive' | translate: { Default: 'Install from Archive' } }}
-      </div>
+      </h2>
       <button
+        xpDialogCloseButton
+        z-button
+        zType="ghost"
+        zSize="icon"
         type="button"
-        class="btn btn-ghost btn-small w-8 h-8 flex items-center justify-center"
         (click)="dialogRef.close()"
+        [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
       >
-        <i class="ri-close-line"></i>
+        <z-icon zType="close" />
       </button>
-    </div>
-    <div class="relative flex flex-col gap-4">
+    </header>
+    <div xpDialogBody class="relative">
       <div
         class="rounded-xl border border-divider-regular bg-background-default-subtle px-3 py-2 text-xs text-text-tertiary"
       >
@@ -798,32 +814,34 @@
         <label class="text-sm font-medium text-text-tertiary">
           {{ 'XP.Plugin.ArchiveFile' | translate: { Default: 'Archive file' } }}
         </label>
-        <div class="flex items-center gap-2">
+        <div xpDialogActionGroup="inline" class="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            class="btn disabled:btn-disabled btn-secondary btn-large shrink-0"
-            [disabled]="archiveInstalling()"
+            z-button
+            zType="outline"
+            class="shrink-0"
+            [zDisabled]="archiveInstalling()"
             (click)="archiveFileInput.click()"
           >
-            <i class="ri-folder-zip-line mr-1"></i>
+            <i class="ri-folder-zip-line" aria-hidden="true"></i>
             {{ 'XP.Plugin.ChooseArchiveFile' | translate: { Default: 'Choose file' } }}
           </button>
-          <div
-            class="flex h-10 min-w-0 grow items-center rounded-lg border border-divider-regular px-3 text-sm text-text-secondary"
-          >
-            @if (archiveFile()) {
-              <span class="truncate">{{ archiveFile()?.name }}</span>
-            } @else {
-              <span class="text-text-tertiary">
-                {{ 'XP.Plugin.NoArchiveFileSelected' | translate: { Default: 'No file selected' } }}
-              </span>
-            }
-          </div>
+          <input
+            z-input
+            readonly
+            class="min-w-0 flex-1"
+            [value]="archiveFile()?.name ?? ''"
+            [attr.aria-label]="'XP.Plugin.ArchiveFile' | translate: { Default: 'Archive file' }"
+            [placeholder]="'XP.Plugin.NoArchiveFileSelected' | translate: { Default: 'No file selected' }"
+          />
           @if (archiveFile()) {
             <button
               type="button"
-              class="btn btn-ghost btn-small h-10 w-10 shrink-0"
-              [disabled]="archiveInstalling()"
+              z-button
+              zType="ghost"
+              zSize="icon"
+              [attr.aria-label]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear' }"
+              [zDisabled]="archiveInstalling()"
               (click)="clearArchiveFile(archiveFileInput)"
             >
               <i class="ri-close-line"></i>
@@ -840,40 +858,42 @@
         <xp-spin class="absolute left-0 top-0 w-full h-full rounded-xl backdrop-blur-sm bg-components-card-bg/20" />
       }
     </div>
-    <div class="flex items-center justify-end gap-2 pt-4">
-      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large" (click)="dialogRef.close()">
+    <footer xpDialogFooter>
+      <button type="button" z-button zType="outline" (click)="dialogRef.close()">
         {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
       </button>
       <button
         type="button"
-        class="btn disabled:btn-disabled btn-primary btn-large flex items-center gap-1"
-        [disabled]="archiveInstalling() || !archiveFile()"
+        z-button
+        [zDisabled]="archiveInstalling() || !archiveFile()"
+        [zLoading]="archiveInstalling()"
         (click)="confirmInstallArchive(dialogRef)"
       >
-        @if (archiveInstalling()) {
-          <xp-spin small class="!text-primary-200" />
-        }
         <span>{{ 'XP.Plugin.Install' | translate: { Default: 'Install' } }}</span>
       </button>
-    </div>
+    </footer>
   </div>
 </ng-template>
 
 <ng-template #localInstallDialog let-dialogRef="dialogRef">
-  <div class="w-full rounded-2xl bg-components-card-bg px-6 py-5">
-    <div class="flex items-start justify-between pb-3">
-      <div class="text-xl font-semibold text-text-primary">
+  <div xpDialogLayout="standard" xpDialogPurpose="workflow" class="w-[560px] max-w-full max-h-[85dvh]">
+    <header xpDialogHeader>
+      <h2 xpDialogHeading>
         {{ 'XP.Plugin.InstallFromLocal' | translate: { Default: 'Install from Local Workspace' } }}
-      </div>
+      </h2>
       <button
+        xpDialogCloseButton
+        z-button
+        zType="ghost"
+        zSize="icon"
         type="button"
-        class="btn btn-ghost btn-small w-8 h-8 flex items-center justify-center"
         (click)="dialogRef.close()"
+        [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
       >
-        <i class="ri-close-line"></i>
+        <z-icon zType="close" />
       </button>
-    </div>
-    <div class="relative flex flex-col gap-4">
+    </header>
+    <div xpDialogBody class="relative">
       <div
         class="rounded-xl border border-divider-regular bg-background-default-subtle px-3 py-2 text-xs text-text-tertiary"
       >
@@ -891,7 +911,8 @@
           {{ 'XP.Plugin.LocalPluginName' | translate: { Default: 'Plugin package name' } }}
         </label>
         <input
-          class="xp-input w-full"
+          z-input
+          class="w-full"
           [placeholder]="'XP.Plugin.InputLocalPluginName' | translate: { Default: 'e.g. @xpert-ai/plugin-lark' }"
           [(ngModel)]="localPluginName"
         />
@@ -901,7 +922,8 @@
           {{ 'XP.Plugin.LocalWorkspacePath' | translate: { Default: 'Workspace path' } }}
         </label>
         <input
-          class="xp-input w-full"
+          z-input
+          class="w-full"
           [placeholder]="
             'XP.Plugin.InputLocalWorkspacePath'
               | translate: { Default: '/Users/.../xpert-plugins/xpertai/integrations/lark' }
@@ -927,21 +949,19 @@
         <xp-spin class="absolute left-0 top-0 w-full h-full rounded-xl backdrop-blur-sm bg-components-card-bg/20" />
       }
     </div>
-    <div class="flex items-center justify-end gap-2 pt-4">
-      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large" (click)="dialogRef.close()">
+    <footer xpDialogFooter>
+      <button type="button" z-button zType="outline" (click)="dialogRef.close()">
         {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
       </button>
       <button
         type="button"
-        class="btn disabled:btn-disabled btn-primary btn-large flex items-center gap-1"
-        [disabled]="localInstalling() || !localPluginName()?.trim() || !localWorkspacePath()?.trim()"
+        z-button
+        [zLoading]="localInstalling()"
+        [zDisabled]="localInstalling() || !localPluginName()?.trim() || !localWorkspacePath()?.trim()"
         (click)="confirmInstallLocal(dialogRef)"
       >
-        @if (localInstalling()) {
-          <xp-spin small class="!text-primary-200" />
-        }
         <span>{{ 'XP.Plugin.Install' | translate: { Default: 'Install' } }}</span>
       </button>
-    </div>
+    </footer>
   </div>
 </ng-template>

@@ -1,3 +1,18 @@
+import {
+  ZardButtonComponent,
+  XpDialogFrameImports,
+  XpDialogActionGroupDirective,
+  ZardInputDirective,
+  attrModel,
+  linkedModel,
+  ListSlideStaggerAnimation,
+  XpDensityDirective,
+  injectConfirmDelete,
+  injectConfirmUnique,
+  XpSpinComponent,
+  ZardSwitchComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
@@ -23,9 +38,6 @@ import {
   XpertToolsetCategoryEnum,
   XpertToolsetService
 } from '@cloud/app/@core'
-import { attrModel, linkedModel, ListSlideStaggerAnimation } from '@xpert-ai/headless-ui'
-import { XpDensityDirective } from '@xpert-ai/headless-ui'
-import { injectConfirmDelete, injectConfirmUnique, XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { isEqual, omit } from 'lodash-es'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -35,7 +47,6 @@ import { TagSelectComponent } from '../../tag'
 import { XpertToolNameInputComponent } from '../../xpert'
 import { MCPServerFormComponent } from '../server/server.component'
 import { MCPToolsetToolTestComponent } from '../tool-test'
-import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 export type TXpertMCPManageComponentRet =
   | {
       saved?: boolean
@@ -62,10 +73,14 @@ export type TXpertMCPManageComponentRet =
     MCPServerFormComponent,
     MCPToolsetToolTestComponent,
     XpertToolNameInputComponent,
-    ZardSwitchComponent
+    ZardSwitchComponent,
+    ZardButtonComponent,
+    ...XpDialogFrameImports,
+    XpDialogActionGroupDirective,
+    ZardInputDirective
   ],
+  host: { class: 'block min-w-0' },
   templateUrl: './manage.component.html',
-  styleUrl: './manage.component.scss',
   animations: [ListSlideStaggerAnimation]
 })
 export class XpertMCPManageComponent {

@@ -1,5 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import {
+    UpdateProjectTaskPlanCommand,
     DispatchProjectTaskCommand,
     DecideProjectTaskCommand,
     GetProjectRuntimeTaskCommand,
@@ -10,6 +11,18 @@ import { ProjectTaskRuntimeReadService } from './project-task-runtime-read.servi
 import { ProjectTaskRuntimeContextService } from './project-task-runtime-context.service'
 import { AgentInvocationFactoryService } from '../../agent-invocation/invocation-factory.service'
 import { ProjectTaskDecisionService } from './project-task-decision.service'
+import { ProjectTaskGraphService } from '../services/project-task-graph.service'
+
+@CommandHandler(UpdateProjectTaskPlanCommand)
+export class UpdateProjectTaskPlanHandler implements ICommandHandler<UpdateProjectTaskPlanCommand> {
+    constructor(
+        private readonly graph: ProjectTaskGraphService,
+        private readonly context: ProjectTaskRuntimeContextService
+    ) {}
+    execute(command: UpdateProjectTaskPlanCommand) {
+        return this.graph.change({ projectId: command.projectId, actor: this.context.actor() }, command.input)
+    }
+}
 
 @CommandHandler(DecideProjectTaskCommand)
 export class DecideProjectTaskHandler implements ICommandHandler<DecideProjectTaskCommand> {
@@ -44,6 +57,7 @@ export class ListProjectRuntimeBindingsHandler implements ICommandHandler<ListPr
     }
 }
 export const ProjectTaskRuntimeHandlers = [
+    UpdateProjectTaskPlanHandler,
     DecideProjectTaskHandler,
     DispatchProjectTaskHandler,
     GetProjectRuntimeTaskHandler,

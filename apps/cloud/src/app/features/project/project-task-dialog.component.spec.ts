@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing'
 import type { IXpertProjectTask } from '@xpert-ai/contracts'
-import { Z_MODAL_DATA, ZardDialogRef } from '@xpert-ai/headless-ui'
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import {
   XpertProjectTaskDialogComponent,
   type XpertProjectTaskDialogData,
@@ -15,9 +15,9 @@ describe('XpertProjectTaskDialogComponent conversation targets', () => {
     dialogRef.close.mockReset()
     TestBed.configureTestingModule({
       providers: [
-        { provide: ZardDialogRef, useValue: dialogRef },
+        { provide: DialogRef, useValue: dialogRef },
         {
-          provide: Z_MODAL_DATA,
+          provide: DIALOG_DATA,
           useValue: {
             task,
             relations: { conversations: [], executions: [] },

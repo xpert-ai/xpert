@@ -23,9 +23,9 @@
         "tsConfig": "packages/plugin-sdk/tsconfig.lib.json",
         "assets": [
           {
-            "glob": "*.md",
-            "input": "packages/plugin-sdk/",
-            "output": "."
+            "glob": "**/*.md",
+            "input": "packages/plugin-sdk/docs",
+            "output": "docs"
           }
         ],
         "project": "packages/plugin-sdk/package.json",

@@ -47,8 +47,8 @@ export class GroupComposerController {
         @Query(new ZodValidationPipe(composerResourcesQuery, groupInvalid))
         query: z.output<typeof composerResourcesQuery>
     ) {
-        await this.composer.member(group, member, assistant)
-        return this.composer.resourceCatalog(assistant, query)
+        const target = await this.composer.member(group, member, assistant)
+        return this.composer.resourceCatalog(target, query)
     }
     @Post('assistants/:assistantId/resources/validate')
     async validate(
@@ -58,12 +58,8 @@ export class GroupComposerController {
         @Body(new ZodValidationPipe(composerValidateSchema, groupInvalid))
         input: z.output<typeof composerValidateSchema>
     ) {
-        await this.composer.member(group, member, assistant)
-        return this.composer.validateResources(
-            assistant,
-            parseRuntimeResources(input.runtimeResources),
-            input.projectId
-        )
+        const target = await this.composer.member(group, member, assistant)
+        return this.composer.validateResources(target, parseRuntimeResources(input.runtimeResources), input.projectId)
     }
     @Post('assistants/:assistantId/resources/authorize')
     async authorize(
@@ -73,8 +69,8 @@ export class GroupComposerController {
         @Body(new ZodValidationPipe(composerAuthorizeSchema, groupInvalid))
         input: z.output<typeof composerAuthorizeSchema>
     ) {
-        await this.composer.member(group, member, assistant)
-        return this.composer.authorizeResource(assistant, {
+        const target = await this.composer.member(group, member, assistant)
+        return this.composer.authorizeResource(target, {
             bindingId: input.bindingId,
             version: input.version,
             serverName: input.serverName,

@@ -19,10 +19,16 @@ import { GroupParticipant, GroupMessageRecipient, GroupInteraction } from './gro
 import { GroupAccessService } from './group-access.service'
 import { publicMembers } from './group-members.service'
 import { parseGroupCommunication, GroupSendInput } from './group.schema'
-import { groupConflict, groupDenied } from './group.errors'
+import { groupConflict, groupDenied, groupExecutionError } from './group.errors'
+import { XpertAgentExecution } from '../xpert-agent-execution/agent-execution.entity'
+import { XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 
 /** Public message projection; runtime links expose participant IDs rather than private thread identifiers. */
-export function publicMessage(message: ChatMessage, receipts: GroupMessageRecipient[]): ChatGroupMessage {
+export function publicMessage(
+    message: ChatMessage,
+    receipts: GroupMessageRecipient[],
+    failedExecutions: XpertAgentExecution[] = []
+): ChatGroupMessage {
     return {
         id: message.id,
         clientMessageId: message.messageEnvelope?.correlation?.messageId ?? message.id,
@@ -42,7 +48,21 @@ export function publicMessage(message: ChatMessage, receipts: GroupMessageRecipi
         ],
         deliveries: receipts
             .filter((receipt) => receipt.messageId === message.id)
-            .map((receipt) => ({ participantId: receipt.participantId, status: receipt.status }))
+            .map((receipt) => {
+                const failure =
+                    (receipt.status === 'failed' ||
+                        (receipt.status === 'blocked' && receipt.error === 'execution_not_completed')) &&
+                    failedExecutions.find(
+                        (execution) =>
+                            execution.id === receipt.executionId &&
+                            execution.status === XpertAgentExecutionStatusEnum.ERROR
+                    )
+                return {
+                    participantId: receipt.participantId,
+                    status: failure ? 'failed' : receipt.status,
+                    ...(failure ? { error: groupExecutionError(failure.error) } : {})
+                }
+            })
     }
 }
 
@@ -96,7 +116,8 @@ export class GroupMessagesService {
         root?: ChatGroupCommunication,
         publicationId?: string,
         projection = false,
-        causedByMessageId?: string
+        causedByMessageId?: string,
+        hostContext?: Pick<ChatGroupCommunication, 'projectTask' | 'runtimeResult'>
     ) {
         if (!author.active || author.groupId !== group.id) throw groupDenied()
         const recipients = input.intent === 'reply' ? [] : input.recipientIds
@@ -176,6 +197,9 @@ export class GroupMessagesService {
                         existing.content !== input.text ||
                         communication.senderId !== sender.id ||
                         communication.intent !== input.intent ||
+                        !isEqual(communication.projectTask, hostContext?.projectTask) ||
+                        (hostContext?.runtimeResult &&
+                            !isEqual(communication.runtimeResult, hostContext.runtimeResult)) ||
                         !isEqual(communication.composer, input.composer) ||
                         (input.intent === 'reply'
                             ? communication.replyToMessageId !== input.replyToMessageId
@@ -231,6 +255,7 @@ export class GroupMessagesService {
             )
                 throw groupDenied()
             const communication: ChatGroupCommunication = {
+                ...hostContext,
                 ...(input.composer ? { composer: input.composer } : {}),
                 intent: input.intent,
                 senderId: sender.id,
@@ -293,8 +318,19 @@ export class GroupMessagesService {
                         groupId: group.id,
                         messageId: id,
                         participantId: member.id,
-                        wake: member.kind === 'assistant' && input.intent !== 'message',
-                        status: member.kind === 'assistant' && input.intent !== 'message' ? 'pending' : 'consumed'
+                        // Formal task replies stay visible, but only the persisted Invocation result wakes the caller.
+                        wake:
+                            member.kind === 'assistant' &&
+                            (hostContext?.runtimeResult ||
+                                (input.intent !== 'message' && !(input.intent === 'reply' && inherited?.projectTask)))
+                                ? true
+                                : false,
+                        status:
+                            member.kind === 'assistant' &&
+                            (hostContext?.runtimeResult ||
+                                (input.intent !== 'message' && !(input.intent === 'reply' && inherited?.projectTask)))
+                                ? 'pending'
+                                : 'consumed'
                     })
                 )
             )
@@ -326,6 +362,23 @@ export class GroupMessagesService {
                   .findBy({ messageId: In(messages.map((message) => message.id)) })
             : []
         const runtimes = members.filter((member) => member.active && member.runtimeThreadId)
+        // Include legacy finalized failures without mutating or retrying their receipts.
+        const failureIds = receipts
+            .filter(
+                (receipt) =>
+                    receipt.executionId &&
+                    (receipt.status === 'failed' ||
+                        (receipt.status === 'blocked' && receipt.error === 'execution_not_completed'))
+            )
+            .map((receipt) => receipt.executionId)
+        const failedExecutions = failureIds.length
+            ? await this.db.getRepository(XpertAgentExecution).findBy({
+                  id: In(failureIds),
+                  tenantId: group.tenantId,
+                  organizationId: group.organizationId,
+                  status: XpertAgentExecutionStatusEnum.ERROR
+              })
+            : []
         const threads = runtimes.length
             ? await this.db
                   .getRepository(ChatConversationThread)
@@ -348,7 +401,7 @@ export class GroupMessagesService {
                 status: item.status
             })),
             members: await publicMembers(this.db, group, members),
-            messages: messages.map((message) => publicMessage(message, receipts)),
+            messages: messages.map((message) => publicMessage(message, receipts, failedExecutions)),
             hasMore: rows.length > limit,
             runs: threads
                 .filter((thread) => thread.runControl)

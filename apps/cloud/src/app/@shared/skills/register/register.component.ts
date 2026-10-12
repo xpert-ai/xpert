@@ -1,3 +1,4 @@
+import { XpDialogFrameImports, ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
@@ -17,8 +18,9 @@ import { JSONSchemaFormComponent } from '../../forms'
   standalone: true,
   selector: 'xp-skill-repository-register',
   templateUrl: './register.component.html',
-  styleUrls: ['./register.component.scss'],
   imports: [
+    ...XpDialogFrameImports,
+    ZardButtonComponent,
     CommonModule,
     RouterModule,
     FormsModule,
@@ -83,6 +85,10 @@ export class XpertSkillRepositoryRegisterComponent {
       },
       { allowSignalWrites: true }
     )
+  }
+
+  close() {
+    this.#dialogRef.close(null)
   }
 
   registerRepository() {

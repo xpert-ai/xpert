@@ -1,5 +1,5 @@
 import { CodingToolIcon } from '../../../../shared/coding-tools/coding-tool-icon'
-import { codingToolBrand } from '../../../../shared/coding-tools/branding'
+import { executionProviderLabel } from './execution-provider'
 import { useEffect, useState } from 'react'
 import { z } from 'zod/v3'
 import { Button, Textarea, Label } from '@xpert-ai/shadcn-ui'
@@ -280,8 +280,7 @@ export function RuntimeDetail({
                                 decorative
                             />
                             #{attempt.attempt} · {attempt.purpose?.type === 'review' ? t.review : t.implementation} ·{' '}
-                            {codingToolBrand({ toolId: attempt.runtimeToolId, provider: attempt.runtimeProvider })
-                                ?.name ?? attempt.runtimeProvider}
+                            {executionProviderLabel(attempt)}
                         </h4>
                         <p className="text-xs">
                             {attempt.invocationStatus === 'unknown'

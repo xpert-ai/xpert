@@ -1,32 +1,45 @@
-<header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-  <h4 style="pointer-events: none">
-    {{ 'COMPONENTS.COUNTDOWN_CONFIRMATION.CONFIRM' | translate: { Default: 'Confirm' } }}
-  </h4>
-</header>
+<section xpDialogLayout="standard" class="w-[480px] max-w-full max-h-[calc(100dvh-32px)]">
+  <header xpDialogHeader cdkDrag cdkDragRootElement=".cdk-overlay-pane">
+    <h2 xpDialogHeading cdkDragHandle class="cursor-move">
+      {{ 'COMPONENTS.COUNTDOWN_CONFIRMATION.CONFIRM' | translate: { Default: 'Confirm' } }}
+    </h2>
+    <button
+      z-button
+      type="button"
+      zType="ghost"
+      zSize="icon"
+      xpDialogCloseButton
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+      (click)="close()"
+    >
+      <z-icon zType="x" />
+    </button>
+  </header>
 
-<xp-dialog-content class="">
-  <span>
-    <b>{{ recordType }}</b>
-    {{ 'COMPONENTS.COUNTDOWN_CONFIRMATION.WAS' | translate: { Default: 'Waiting seconds' } }}
-    {{ countDownConfig.leftTime }}
-    {{
-      (isEnabled
-        ? ('COMPONENTS.COUNTDOWN_CONFIRMATION.ENABLED' | translate: { Default: 'Enabled' })
-        : ('COMPONENTS.COUNTDOWN_CONFIRMATION.DISABLED' | translate: { Default: 'Disabled' })) + '?'
-    }}
-  </span>
-  <div class="mt-2">
-    {{ 'COMPONENTS.COUNTDOWN_CONFIRMATION.WAIT_UNTIL_RELOAD' | translate: { Default: 'Waiting until reload' } }}
-    <xp-countdown #cd [config]="countDownConfig" (event)="handleActionEvent($event)" />
+  <div xpDialogBody>
+    <span>
+      <b>{{ recordType }}</b>
+      {{ 'COMPONENTS.COUNTDOWN_CONFIRMATION.WAS' | translate: { Default: 'Waiting seconds' } }}
+      {{ countDownConfig.leftTime }}
+      {{
+        (isEnabled
+          ? ('COMPONENTS.COUNTDOWN_CONFIRMATION.ENABLED' | translate: { Default: 'Enabled' })
+          : ('COMPONENTS.COUNTDOWN_CONFIRMATION.DISABLED' | translate: { Default: 'Disabled' })) + '?'
+      }}
+    </span>
+    <div class="mt-2">
+      {{ 'COMPONENTS.COUNTDOWN_CONFIRMATION.WAIT_UNTIL_RELOAD' | translate: { Default: 'Waiting until reload' } }}
+      <xp-countdown #cd [config]="countDownConfig" (event)="handleActionEvent($event)" />
+    </div>
   </div>
-</xp-dialog-content>
-<xp-dialog-actions align="end">
-  <div class="flex items-center gap-1">
-    <button class="text-text-accent hover:text-text-accent" z-button zType="ghost" xpDialogClose>
-      {{ 'COMPONENTS.COMMON.CANCEL' | translate: { Default: 'Cancel' } }}
-    </button>
-    <button z-button zType="default" (click)="continue()">
-      {{ 'COMPONENTS.COMMON.APPLY' | translate: { Default: 'Apply' } }}
-    </button>
-  </div>
-</xp-dialog-actions>
+  <footer xpDialogFooter>
+    <div class="flex flex-wrap gap-[8px]">
+      <button z-button type="button" zType="outline" (click)="close()">
+        {{ 'COMPONENTS.COMMON.CANCEL' | translate: { Default: 'Cancel' } }}
+      </button>
+      <button z-button type="button" zType="default" (click)="continue()">
+        {{ 'COMPONENTS.COMMON.APPLY' | translate: { Default: 'Apply' } }}
+      </button>
+    </div>
+  </footer>
+</section>

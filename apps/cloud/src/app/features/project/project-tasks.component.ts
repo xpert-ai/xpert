@@ -1,3 +1,4 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject, OnInit, signal } from '@angular/core'
 import { ActivatedRoute, RouterLink } from '@angular/router'
@@ -5,7 +6,6 @@ import { TranslateModule } from '@ngx-translate/core'
 import type { IChatConversation } from '@xpert-ai/contracts'
 import {
   ZardButtonComponent,
-  ZardDialogService,
   ZardInputDirective,
   ZardToggleGroupComponent,
   ZardToggleGroupItemComponent
@@ -166,7 +166,7 @@ type ConversationFilter = 'all' | 'busy' | 'idle' | 'interrupted' | 'error'
 })
 export class XpertProjectTasksComponent implements OnInit {
   readonly facade = inject(XpertProjectFacade)
-  readonly #dialog = inject(ZardDialogService)
+  readonly #dialog = inject(Dialog)
   readonly #route = inject(ActivatedRoute)
   readonly projectId = this.#route.parent?.snapshot.paramMap.get('id') ?? ''
   readonly search = signal('')
@@ -234,8 +234,8 @@ export class XpertProjectTasksComponent implements OnInit {
       data,
       width: 'min(96vw, 980px)',
       maxWidth: 'calc(100vw - 24px)',
-      backdropClass: 'backdrop-blur-sm-black',
-      panelClass: 'xp-overlay-pane-card'
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog'
     })
   }
 }

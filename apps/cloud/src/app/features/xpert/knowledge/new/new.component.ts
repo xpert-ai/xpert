@@ -1,3 +1,17 @@
+import {
+  ZardButtonComponent,
+  XpDialogFrameImports,
+  XpDialogActionGroupDirective,
+  ZardInputDirective,
+  injectConfirm,
+  ZardAccordionImports,
+  ZardCheckboxComponent,
+  ZardSelectImports,
+  ZardSwitchComponent,
+  ZardToggleGroupComponent,
+  ZardToggleGroupItemComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { KnowledgeTagsComponent } from '../tags/knowledge-tags.component'
 import { KeywordAnalyzerSettingsComponent } from './keyword-analyzer-settings.component'
 import {
@@ -19,18 +33,6 @@ import { FormsModule } from '@angular/forms'
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
 import { hasEnabledKnowledgeRetrievalSource, KnowledgeRetrievalSettingsComponent } from '@cloud/app/@shared/knowledge'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import {
-  injectConfirm,
-  ZardAccordionImports,
-  ZardButtonComponent,
-  ZardCheckboxComponent,
-  ZardInputDirective,
-  ZardSelectImports,
-  ZardSwitchComponent,
-  ZardToggleGroupComponent,
-  ZardToggleGroupItemComponent,
-  ZardTooltipImports
-} from '@xpert-ai/headless-ui'
 import {
   AiModelTypeEnum,
   DEFAULT_KNOWLEDGEBASE_FAQ_CONFIG,
@@ -111,8 +113,11 @@ type KnowledgeDialogData = {
     ZardToggleGroupItemComponent,
     ...ZardAccordionImports,
     ...ZardSelectImports,
-    ...ZardTooltipImports
+    ...ZardTooltipImports,
+    ...XpDialogFrameImports,
+    XpDialogActionGroupDirective
   ],
+  host: { class: 'block min-w-0' },
   templateUrl: './new.component.html',
   styleUrl: './new.component.scss'
 })

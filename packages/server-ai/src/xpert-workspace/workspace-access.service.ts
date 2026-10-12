@@ -14,11 +14,12 @@ import {
     Brackets,
     FindOptionsOrder,
     FindOptionsRelations,
+    In,
     Repository,
     SelectQueryBuilder,
     WhereExpressionBuilder
 } from 'typeorm'
-import { RequestContext } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { XpertWorkspace } from './workspace.entity'
 
 export type XpertWorkspaceAccessAction = 'read' | 'run' | 'write' | 'manage'
@@ -164,7 +165,10 @@ export class XpertWorkspaceAccessService {
      * workspaces into per-user membership rows. Sharing applies only when the
      * workspace belongs to the RequestContext organization and tenant.
      */
-    async getCapabilities(workspace: XpertWorkspace): Promise<TXpertWorkspaceCapabilities> {
+    async getCapabilities(
+        workspace: XpertWorkspace,
+        options?: { includePublishedRunAccess?: boolean }
+    ): Promise<TXpertWorkspaceCapabilities> {
         const user = RequestContext.currentUser()
         const tenantId = user?.tenantId
         const userId = user?.id
@@ -201,12 +205,13 @@ export class XpertWorkspaceAccessService {
             // A published Xpert grant unlocks execution only; it must not expose workspace authoring resources.
             const canRun =
                 canRead ||
-                (await this.hasPublishedXpertRunAccess({
-                    workspaceId: workspace.id,
-                    tenantId,
-                    organizationId,
-                    userId
-                }))
+                (options?.includePublishedRunAccess !== false &&
+                    (await this.hasPublishedXpertRunAccess({
+                        workspaceId: workspace.id,
+                        tenantId,
+                        organizationId,
+                        userId
+                    })))
             return {
                 canRead,
                 canRun,
@@ -236,6 +241,29 @@ export class XpertWorkspaceAccessService {
         }
 
         return this.emptyCapabilities()
+    }
+
+    /** Batch resource authorization uses the same authoring policy, without execution-only grant lookups. */
+    async getResourceCapabilities(workspaceIds: string[]): Promise<Map<string, TXpertWorkspaceCapabilities>> {
+        const ids = [...new Set(workspaceIds)]
+        const tenantId = RequestContext.currentTenantId()
+        if (!tenantId || !RequestContext.currentUserId() || ids.length > 100) throw new ForbiddenException()
+        if (!ids.length) return new Map()
+        const workspaces = await this.workspaceRepository.find({
+            where: { tenantId, id: In(ids) },
+            relations: { members: true }
+        })
+        return new Map(
+            await Promise.all(
+                workspaces.map(
+                    async (workspace) =>
+                        [
+                            workspace.id,
+                            await this.getCapabilities(workspace, { includePublishedRunAccess: false })
+                        ] as const
+                )
+            )
+        )
     }
 
     private async hasPublishedXpertRunAccess(input: {

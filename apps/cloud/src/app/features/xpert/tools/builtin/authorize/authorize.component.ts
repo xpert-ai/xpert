@@ -1,4 +1,16 @@
 import {
+  ZardButtonComponent,
+  XpDialogActionGroupDirective,
+  ZardInputDirective,
+  routeAnimations,
+  XpSpinComponent,
+  XpI18nPipe,
+  ZardDialogModule,
+  ZardSwitchComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
+
+import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
@@ -13,9 +25,6 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { routeAnimations } from '@xpert-ai/headless-ui'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
-import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   CredentialsType,
@@ -30,7 +39,6 @@ import { derivedAsync } from 'ngxtension/derived-async'
 import { of } from 'rxjs'
 import { XpertToolBuiltinCredentialComponent } from './credential/credential.component'
 import { isNil } from 'lodash-es'
-import { ZardDialogModule, ZardInputDirective, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { TextFieldModule } from '@angular/cdk/text-field'
 
 @Component({
@@ -46,7 +54,9 @@ import { TextFieldModule } from '@angular/cdk/text-field'
     ZardInputDirective,
     TextFieldModule,
     XpertToolBuiltinCredentialComponent,
-    ZardSwitchComponent
+    ZardSwitchComponent,
+    ZardButtonComponent,
+    XpDialogActionGroupDirective
   ],
   selector: 'xpert-tool-builtin-authorize',
   templateUrl: './authorize.component.html',

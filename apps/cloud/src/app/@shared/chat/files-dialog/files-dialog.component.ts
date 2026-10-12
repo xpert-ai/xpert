@@ -1,10 +1,16 @@
+import {
+  ZardButtonComponent,
+  XpDialogFrameImports,
+  XpDialogActionGroupDirective,
+  FileTypePipe
+} from '@xpert-ai/headless-ui'
+
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { Component, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { FileTypePipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { DateRelativePipe, injectToastr, TFile } from '../../../@core'
 
@@ -12,8 +18,17 @@ import { DateRelativePipe, injectToastr, TFile } from '../../../@core'
   standalone: true,
   selector: 'chat-files-dialog',
   templateUrl: `files-dialog.component.html`,
-  styleUrl: `files-dialog.component.scss`,
-  imports: [FormsModule, DragDropModule, CdkMenuModule, TranslateModule, DateRelativePipe, FileTypePipe]
+  imports: [
+    FormsModule,
+    DragDropModule,
+    CdkMenuModule,
+    TranslateModule,
+    DateRelativePipe,
+    FileTypePipe,
+    ZardButtonComponent,
+    ...XpDialogFrameImports,
+    XpDialogActionGroupDirective
+  ]
 })
 export class ChatFilesDialogComponent {
   readonly #data = inject<{ files: TFile[] }>(DIALOG_DATA)

@@ -1,15 +1,13 @@
-import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
+import { ZardButtonComponent, XpDialogFrameImports, EditorThemeMap, XpThemeService } from '@xpert-ai/headless-ui'
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 
-import { Component, HostBinding, effect, inject } from '@angular/core'
+import { Component, effect, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-
-import { EditorThemeMap, XpThemeService } from '@xpert-ai/headless-ui'
 import { isBlank } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
 import { BehaviorSubject } from 'rxjs'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 export interface ConfirmCodeEditorData {
   language?: string
@@ -19,17 +17,21 @@ export interface ConfirmCodeEditorData {
 
 @Component({
   standalone: true,
-  imports: [FormsModule, TranslateModule, DragDropModule, ZardButtonComponent, MonacoEditorModule],
+  imports: [
+    DragDropModule,
+    ...XpDialogFrameImports,
+    FormsModule,
+    TranslateModule,
+    ZardButtonComponent,
+    MonacoEditorModule
+  ],
   selector: 'xp-confirm-code-editor',
-  templateUrl: './confirm-code-editor.component.html',
-  styleUrls: ['./confirm-code-editor.component.scss']
+  templateUrl: './confirm-code-editor.component.html'
 })
 export class XpConfirmCodeEditorComponent {
   readonly themeService = inject(XpThemeService)
   readonly data = inject<ConfirmCodeEditorData>(DIALOG_DATA)
   readonly dialogRef = inject(DialogRef)
-
-  @HostBinding('class.xp-dialog-container') isDialogContainer = true
 
   public editor$ = new BehaviorSubject(null)
   editorOptions = {

@@ -1,3 +1,4 @@
+import { XpDialogFrameImports, ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { Dialog, DialogModule, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
@@ -31,53 +32,62 @@ export class SidebarConversationArchiveButtonComponent {
 
   open() {
     this.#dialog.open(SidebarConversationArchiveComponent, {
-      data: { xpertId: this.xpertId(), routeBase: this.routeBase() } satisfies ArchiveData,
       backdropClass: 'backdrop-blur-xs-black',
-      panelClass: 'xp-overlay-pane-dialog'
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)',
+      data: { xpertId: this.xpertId(), routeBase: this.routeBase() } satisfies ArchiveData
     })
   }
 }
 
 @Component({
   standalone: true,
-  imports: [TranslateModule, CloudSidebarConversationComponent],
+  imports: [...XpDialogFrameImports, ZardButtonComponent, TranslateModule, CloudSidebarConversationComponent],
   template: `
-    <section class="flex max-h-[80vh] w-[min(40rem,92vw)] flex-col p-4">
-      <header class="mb-3 flex items-center justify-between gap-4">
-        <h2 class="font-semibold text-text-primary">{{ 'XP.Sidebar.ArchivedConversations' | translate }}</h2>
+    <section xpDialogLayout="wide" class="w-[min(560px,calc(100vw-32px))] max-h-[84dvh]">
+      <header xpDialogHeader>
+        <h2 xpDialogHeading>{{ 'XP.Sidebar.ArchivedConversations' | translate }}</h2>
         <button
+          xpDialogCloseButton
+          z-button
+          zType="ghost"
+          zSize="icon"
           type="button"
-          class="flex size-8 items-center justify-center rounded text-text-secondary hover:bg-hover-bg"
+          [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
           (click)="dialog.close()"
-          [attr.aria-label]="'XP.Sidebar.CloseConversationFolder' | translate"
         >
-          <i class="ri-close-line text-xl" aria-hidden="true"></i>
+          <z-icon zType="x" aria-hidden="true" />
         </button>
       </header>
-      <div class="min-h-0 overflow-y-auto">
+      <div xpDialogBody>
         @for (conversation of items(); track conversation.id) {
           <xp-sidebar-conversation [conversation]="conversation" [route]="route(conversation)" />
         } @empty {
-          <p class="p-3 text-sm text-text-tertiary">
+          <p class="text-muted-foreground">
             {{
               (loading() ? 'XP.Sidebar.LoadingRecentConversations' : 'XP.Sidebar.NoArchivedConversations') | translate
             }}
           </p>
         }
-        @if (items().length < total()) {
+        @if (error()) {
+          <p role="alert" class="text-destructive">{{ error() }}</p>
+        }
+      </div>
+
+      @if (items().length < total()) {
+        <footer xpDialogFooter>
           <button
+            z-button
+            zType="outline"
             type="button"
-            class="w-full py-2 text-sm text-text-secondary hover:text-text-primary"
-            [disabled]="loading()"
+            [zDisabled]="loading()"
+            [zLoading]="loading()"
             (click)="load(true)"
           >
             {{ 'XP.Sidebar.LoadEarlierConversations' | translate }}
           </button>
-        }
-        @if (error()) {
-          <p role="alert" class="p-2 text-sm text-text-destructive">{{ error() }}</p>
-        }
-      </div>
+        </footer>
+      }
     </section>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
