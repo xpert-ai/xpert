@@ -136,6 +136,9 @@ export const WORKBENCH_FILE_PREVIEW_MAX_BYTES = 1024 * 1024
 
 
 
+
+
+
                   }}. File preview limit: {{ limit }}.' } }}
                 </p>
               }

@@ -53,6 +53,9 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "PrimaryModelEmptyResponse": "The Primary LLM returned an empty response.",
+        "PrimaryModelVerificationTimedOut": "Primary LLM verification timed out after 20 seconds.",
+        "ClawXpertRecoveryRequiresMember": "Join the current organization before recovering your personal assistant.",
         "WorkspaceAppDataScopeRequired": "Application data requires a bound Assistant workspace.",
         "WorkspaceManagedDataProtected": "Managed application data is accessible only through the application storage API.",
         "WorkspaceAtomicTargetInvalid": "The write target must be a regular file with no symbolic or additional hard links.",
@@ -1028,7 +1031,11 @@
         "KnowledgeQuestionsUnavailable": "Enable question generation and finish processing this text chunk before generating questions.",
         "KnowledgeSourceVectorFilterUnsupported": "Unsupported source vector metadata filter.",
         "PromptWorkflowAssociationsUnavailable": "The selected tags or experts are unavailable. Refresh and select items from this workspace.",
-        "AgentResourceConfigurationRequired": "Complete the plugin configuration before using it."
+        "AgentResourceConfigurationRequired": "Complete the plugin configuration before using it.",
+        "McpAppSessionExpired": "This App session has expired. Its saved result is still available.",
+        "McpAppSessionUnavailable": "This App cannot resume. Its saved result is still available.",
+        "McpAppMessageMismatch": "This App does not belong to the requested message.",
+        "McpAppHistoryQueryInvalid": "A valid message identifier is required."
     },
     "Mcp": {
         "Test": {

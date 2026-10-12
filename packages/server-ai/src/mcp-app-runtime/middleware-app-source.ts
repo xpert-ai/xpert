@@ -11,7 +11,14 @@ const sourceSchema = z.object({
     agentKey: z.string().min(1),
     pluginName: z.string().min(1),
     isDraft: z.boolean().optional(),
-    interruptAfter: z.boolean()
+    interruptAfter: z.boolean(),
+    /** Original host-selected grants; callbacks also require a current graph grant. */
+    connectorGrants: z
+        .object({
+            bindingIds: z.array(z.string().min(1)),
+            providers: z.array(z.string().min(1))
+        })
+        .optional()
 })
 export type MiddlewareAppSource = z.infer<typeof sourceSchema>
 export function parseMiddlewareAppSource(value: unknown): MiddlewareAppSource | undefined {

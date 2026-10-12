@@ -12,6 +12,7 @@ import {
     listMcpToolAppMetadata,
     readMcpAppResource,
     registerMcpAppInstance,
+    removeMcpAppInstance,
     restoreMcpAppInstance,
     runMcpAppInstanceMutation,
     snapshotMcpAppInstance,
@@ -63,6 +64,27 @@ describe('MCP App instance lifecycle', () => {
         jest.restoreAllMocks()
         global.fetch = originalFetch
         jest.useRealTimers()
+    })
+
+    it('persists the completed initial result before exposing a card and hydrates without renewing the lease', async () => {
+        const client = {} as MultiServerMCPClient
+        const save = jest.fn().mockResolvedValue(true)
+        configureMcpAppInstancePersistence({ save, get: jest.fn(), delete: jest.fn() })
+        const result = { content: [{ type: 'text', text: 'Saved result' }], structuredContent: { places: [1, 2] } }
+        const app = registerMcpAppInstance({
+            client,
+            toolset: createToolset(),
+            tool: createTool('saved_map', 'ui://saved-map'),
+            toolResult: result
+        })!
+        await waitForMcpAppInstancePersistence(app.appInstanceId)
+        const original = getMcpAppInstance(app.appInstanceId)!
+        expect(save).toHaveBeenCalledTimes(1)
+        expect(save.mock.calls[0][0].toolResult).toEqual(result)
+        const restored = restoreMcpAppInstance({ ...original, expiresAt: Date.now() + 1000 })!
+        expect(restored.expiresAt).toBeLessThanOrEqual(Date.now() + 1000)
+        expect(save).toHaveBeenCalledTimes(1)
+        detachMcpAppInstancesForClient(client)
     })
 
     it.each([false, true])('registers and restores Apps by default when production=%s', (production) => {
@@ -119,6 +141,30 @@ describe('MCP App instance lifecycle', () => {
         expect(getMcpAppInstance(first!.appInstanceId)).toBeNull()
         expect(getMcpAppInstance(second!.appInstanceId)).not.toBeNull()
         expect(detachMcpAppInstancesForClient(otherClient)).toBe(1)
+    })
+
+    it('deletes only the removed lease version and leaves missing local instances untouched', async () => {
+        const deleteSnapshot = jest.fn().mockResolvedValue(undefined)
+        configureMcpAppInstancePersistence({
+            save: jest.fn().mockResolvedValue(true),
+            get: jest.fn(),
+            delete: deleteSnapshot
+        })
+        const client = { close: jest.fn().mockResolvedValue(undefined) } as unknown as MultiServerMCPClient
+        const app = registerMcpAppInstance({
+            client,
+            toolset: createToolset(),
+            tool: createTool('remove_map', 'ui://remove-map')
+        })!
+        await waitForMcpAppInstancePersistence(app.appInstanceId)
+        const version = getMcpAppInstance(app.appInstanceId)!.stateVersion
+
+        expect(removeMcpAppInstance(app.appInstanceId)).toBe(true)
+        await waitForMcpAppInstancePersistence(app.appInstanceId)
+        expect(deleteSnapshot).toHaveBeenCalledWith(app.appInstanceId, version)
+        expect(removeMcpAppInstance(app.appInstanceId)).toBe(false)
+        await waitForMcpAppInstancePersistence(app.appInstanceId)
+        expect(deleteSnapshot).toHaveBeenCalledTimes(1)
     })
 
     it('treats app instances with closed MCP clients as missing so later requests can revive them', async () => {

@@ -1,6 +1,7 @@
 import { ResolveAssistantFileAccessCommand } from '../../xpert/assistant-files/resolve-assistant-file-access.command'
 import { WorkflowNodeTypeEnum, XpertTypeEnum, type XpertViewHostContext } from '@xpert-ai/contracts'
-import { RequestContext, type ViewHostResolution } from '@xpert-ai/server-core'
+import { type ViewHostResolution } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { ForbiddenException } from '@nestjs/common'
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'

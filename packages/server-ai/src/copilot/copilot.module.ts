@@ -13,6 +13,7 @@ import { CommandHandlers } from './commands/handlers'
 import { CopilotProviderModule } from '../copilot-provider'
 import { MembershipModule } from '../membership'
 import { ModelAccessModule } from '../model-access'
+import { PrimaryModelSmokeService } from './primary-model-smoke.service'
 
 @Module({
     imports: [
@@ -27,7 +28,7 @@ import { ModelAccessModule } from '../model-access'
         ModelAccessModule
     ],
     controllers: [CopilotController],
-    providers: [CopilotService, ...QueryHandlers, ...CommandHandlers],
+    providers: [CopilotService, PrimaryModelSmokeService, ...QueryHandlers, ...CommandHandlers],
     exports: [CopilotService]
 })
 export class CopilotModule {}

@@ -1,3 +1,20 @@
+import { mcpAppSessionTtl } from '../mcp-app-runtime/mcp-app-session'
+import { collectMcpAppComponentData, matchesExpectedValue } from '../mcp-app-runtime/mcp-app-history-component'
+import { McpAppHistoryService, mcpAppSessionUnavailable } from '../mcp-app-runtime/mcp-app-history.service'
+import { McpAppHistoryStoreService } from '../mcp-app-runtime/mcp-app-history-store.service'
+import {
+    McpAppReviveQuery,
+    NormalizedMcpAppReviveQuery,
+    JsonRpcRequest,
+    isRecord,
+    getErrorMessage,
+    readString,
+    normalizeReviveQuery,
+    reviveQueryFromSnapshot,
+    parseJsonRpcRequest,
+    jsonRpcResult,
+    jsonRpcError
+} from '../mcp-app-runtime/mcp-app-request'
 import { MiddlewareMcpAppsService } from '../mcp-app-runtime/middleware-mcp-apps.service'
 import { assertMcpAppAssistantAudience } from '../mcp-app-runtime/mcp-app-audience'
 import type { RuntimeResourceService } from '../agent-plugin/runtime-resource.service'
@@ -33,6 +50,7 @@ import {
     removeMcpAppInstance,
     readMcpAppResource,
     readMcpAppServerResource,
+    createMcpAppInstanceToken,
     refreshMcpAppInstanceToken,
     restoreMcpAppInstance,
     runMcpAppInstanceMutation,
@@ -55,168 +73,7 @@ import { LangChainMcpConnection } from '../mcp-consumer/connection/langchain-mcp
 import { McpConsumerPrompts } from '../mcp-consumer/prompts/mcp-consumer-prompts'
 import { McpConsumerResources } from '../mcp-consumer/resources/mcp-consumer-resources'
 
-export type McpAppReviveQuery = {
-    toolsetId?: string | string[]
-    serverName?: string | string[]
-    toolName?: string | string[]
-    toolCallId?: string | string[]
-    resourceUri?: string | string[]
-    title?: string | string[]
-    token?: string | string[]
-    messageId?: string | string[]
-}
-
-type NormalizedMcpAppReviveQuery = {
-    toolsetId?: string
-    serverName?: string
-    toolName?: string
-    toolCallId?: string
-    resourceUri?: string
-    title?: string
-    token?: string
-    messageId?: string
-}
-
-export type JsonRpcRequest = {
-    jsonrpc?: '2.0'
-    id?: string | number | null
-    method?: string
-    params?: unknown
-}
-
-type JsonRpcError = {
-    code: number
-    message: string
-    data?: unknown
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-    return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
-}
-
-function getErrorMessage(error: unknown) {
-    return error instanceof Error ? error.message : String(error)
-}
-
-function readQueryString(value: string | string[] | undefined): string | undefined {
-    const item = Array.isArray(value) ? value[0] : value
-    return typeof item === 'string' && item.trim() ? item.trim() : undefined
-}
-
-function normalizeReviveQuery(query?: McpAppReviveQuery): NormalizedMcpAppReviveQuery {
-    return {
-        toolsetId: readQueryString(query?.toolsetId),
-        serverName: readQueryString(query?.serverName),
-        toolName: readQueryString(query?.toolName),
-        toolCallId: readQueryString(query?.toolCallId),
-        resourceUri: readQueryString(query?.resourceUri),
-        title: readQueryString(query?.title),
-        token: readQueryString(query?.token),
-        messageId: readQueryString(query?.messageId)
-    }
-}
-
-function readString(value: unknown): string | undefined {
-    return typeof value === 'string' && value.trim() ? value.trim() : undefined
-}
-
-function readMcpAppComponentData(value: unknown): Record<string, unknown> | null {
-    if (!isRecord(value)) {
-        return null
-    }
-    if (value.type === 'McpApp') {
-        return value
-    }
-    if (isRecord(value.data) && value.data.type === 'McpApp') {
-        return value.data
-    }
-    return null
-}
-
-function collectMcpAppComponentData(value: unknown, items: Record<string, unknown>[] = []) {
-    if (Array.isArray(value)) {
-        for (const item of value) {
-            collectMcpAppComponentData(item, items)
-        }
-        return items
-    }
-
-    if (!isRecord(value)) {
-        return items
-    }
-
-    const data = readMcpAppComponentData(value)
-    if (data) {
-        items.push(data)
-    }
-
-    if (isRecord(value.data)) {
-        collectMcpAppComponentData(value.data, items)
-    }
-
-    return items
-}
-
-function matchesExpectedValue(actual: string | undefined, expected: Array<string | undefined>) {
-    const expectedValues = expected.filter((value): value is string => Boolean(value))
-    return expectedValues.length === 0 || (Boolean(actual) && expectedValues.includes(actual))
-}
-
-function jsonRpcResult(id: JsonRpcRequest['id'], result: unknown) {
-    return {
-        jsonrpc: '2.0',
-        id: id ?? null,
-        result
-    }
-}
-
-function jsonRpcError(id: JsonRpcRequest['id'], error: JsonRpcError) {
-    return {
-        jsonrpc: '2.0',
-        id: id ?? null,
-        error
-    }
-}
-
-function reviveQueryFromSnapshot(
-    query: NormalizedMcpAppReviveQuery,
-    snapshot: McpAppInstanceSnapshot | null
-): NormalizedMcpAppReviveQuery {
-    if (!snapshot) return query
-    return {
-        toolsetId: query.toolsetId ?? snapshot.toolsetId,
-        serverName: query.serverName ?? snapshot.serverName,
-        toolName: query.toolName ?? snapshot.toolName,
-        toolCallId: query.toolCallId ?? snapshot.toolCallId,
-        resourceUri: query.resourceUri ?? snapshot.resourceUri,
-        title: query.title,
-        token: query.token,
-        messageId: query.messageId
-    }
-}
-
-function parseJsonRpcRequest(value: unknown): JsonRpcRequest | null {
-    if (!isRecord(value)) return null
-    const jsonrpc = value.jsonrpc
-    const id = value.id
-    const method = value.method
-    if (jsonrpc !== undefined && jsonrpc !== '2.0') return null
-    if (id !== undefined && id !== null && typeof id !== 'string' && typeof id !== 'number') return null
-    if (method !== undefined && typeof method !== 'string') return null
-    let normalizedId: string | number | null | undefined
-    if (id === null) {
-        normalizedId = null
-    } else if (typeof id === 'string' || typeof id === 'number') {
-        normalizedId = id
-    }
-    return {
-        ...(jsonrpc === '2.0' ? { jsonrpc } : {}),
-        ...(normalizedId !== undefined ? { id: normalizedId } : {}),
-        ...(typeof method === 'string' ? { method } : {}),
-        ...(Reflect.has(value, 'params') ? { params: value.params } : {})
-    }
-}
-
+export type { McpAppReviveQuery, JsonRpcRequest } from '../mcp-app-runtime/mcp-app-request'
 @Injectable()
 export class McpAppsService implements OnModuleInit, OnModuleDestroy {
     private readonly logger = new Logger(McpAppsService.name)
@@ -229,15 +86,22 @@ export class McpAppsService implements OnModuleInit, OnModuleDestroy {
         private readonly audit: McpAppAuditService,
         private readonly instanceStore: McpAppInstanceStoreService,
         private readonly approvals: McpAppToolApprovalService,
+        private readonly history: McpAppHistoryService,
+        private readonly historyStore: McpAppHistoryStoreService,
         @Optional() @Inject('XpertRuntimeResourceService') private readonly runtimeResources?: RuntimeResourceService,
         @Optional() private readonly middlewareApps?: MiddlewareMcpAppsService
     ) {}
 
     onModuleInit() {
         configureMcpAppInstancePersistence({
-            save: (snapshot) => this.instanceStore.save(snapshot),
+            save: async (snapshot) => {
+                await this.historyStore.preserve(snapshot)
+                return this.instanceStore.save(snapshot)
+            },
             get: (appInstanceId) => this.instanceStore.get(appInstanceId),
-            delete: (appInstanceId) => this.instanceStore.delete(appInstanceId),
+            delete: async (appInstanceId, expectedStateVersion) => {
+                await this.instanceStore.delete(appInstanceId, expectedStateVersion)
+            },
             onError: (operation, error) =>
                 this.logger.error(`Failed to ${operation} MCP App instance state: ${getErrorMessage(error)}`)
         })
@@ -265,7 +129,12 @@ export class McpAppsService implements OnModuleInit, OnModuleDestroy {
         }
 
         const snapshot = await this.instanceStore.get(appInstanceId)
-        await assertMcpAppAssistantAudience(snapshot?.executionContext, this.queryBus)
+        if (!snapshot) {
+            if (!normalizedQuery.messageId) throw new NotFoundException()
+            const { snapshot: original } = await this.history.load(appInstanceId, normalizedQuery.messageId)
+            throw mcpAppSessionUnavailable(Boolean(original))
+        }
+        await assertMcpAppAssistantAudience(snapshot.executionContext, this.queryBus)
         normalizedQuery = reviveQueryFromSnapshot(normalizedQuery, snapshot)
         const revived = await this.reviveInstance(appInstanceId, normalizedQuery, options, snapshot)
         if (!revived) {
@@ -371,7 +240,7 @@ export class McpAppsService implements OnModuleInit, OnModuleDestroy {
             return
         }
 
-        const message = await this.messageService.findOne(query.messageId).catch(() => null)
+        const message = await this.messageService.findOneAuthorized(query.messageId)
         const components = [
             ...collectMcpAppComponentData(message?.events),
             ...collectMcpAppComponentData(message?.content)
@@ -470,11 +339,19 @@ export class McpAppsService implements OnModuleInit, OnModuleDestroy {
         appInstanceId: string,
         query: NormalizedMcpAppReviveQuery,
         options?: { allowMessageBootstrap?: boolean },
-        snapshot?: McpAppInstanceSnapshot | null
+        snapshot?: McpAppInstanceSnapshot | null,
+        resume = false
     ) {
         if (snapshot?.source && this.middlewareApps) {
             this.assertInstanceUser(snapshot.userId)
-            const restored = await this.middlewareApps.restore(snapshot)
+            const restored = await this.middlewareApps.restore(snapshot, {
+                ...(resume
+                    ? {
+                          prepareSession: (authorized: McpAppInstanceSnapshot) =>
+                              this.instanceStore.resume(authorized, Date.now() + mcpAppSessionTtl(authorized.source))
+                      }
+                    : {})
+            })
             if (!restored) return null
             await this.assertAccessForInstance(restored, query, options)
             await waitForMcpAppInstancePersistence(appInstanceId)
@@ -490,6 +367,7 @@ export class McpAppsService implements OnModuleInit, OnModuleDestroy {
         }
         await this.assertReviveAccess(appInstanceId, query, toolset, undefined, snapshot?.userId, options)
 
+        await this.runtimeResources?.assertToolsetAccess(toolset)
         const schema = JSON.parse(toolset.schema) as TMCPSchema
         const envState = await this.queryBus.execute(new EnvStateQuery(toolset.workspaceId))
         const { client, destroy } = this.toolsetService.isPro()
@@ -512,6 +390,8 @@ export class McpAppsService implements OnModuleInit, OnModuleDestroy {
             }
             await this.assertReviveAccess(appInstanceId, query, toolset, toolMeta, snapshot?.userId, options)
 
+            if (resume && snapshot)
+                snapshot = await this.instanceStore.resume(snapshot, Date.now() + mcpAppSessionTtl(snapshot.source))
             const restored = restoreMcpAppInstance({
                 id: appInstanceId,
                 client,
@@ -575,14 +455,36 @@ export class McpAppsService implements OnModuleInit, OnModuleDestroy {
         }
     }
 
+    async getHistory(appInstanceId: string, messageId: string) {
+        return (await this.history.load(appInstanceId, messageId)).history
+    }
+
+    async resume(appInstanceId: string, messageId: string) {
+        const { snapshot } = await this.history.load(appInstanceId, messageId)
+        if (!snapshot?.executionContext || !snapshot.userId || (!snapshot.source && !snapshot.toolsetId))
+            throw mcpAppSessionUnavailable(false)
+        this.assertInstanceUser(snapshot.userId)
+        await assertMcpAppAssistantAudience(snapshot.executionContext, this.queryBus)
+        return runMcpAppInstanceMutation(appInstanceId, async () => {
+            const query = reviveQueryFromSnapshot({ messageId }, snapshot)
+            // Repeated resumes reuse a valid lease; Redis arbitrates simultaneous API replicas.
+            const instance =
+                getMcpAppInstance(appInstanceId) ??
+                (await this.reviveInstance(appInstanceId, query, { allowMessageBootstrap: true }, snapshot, true))
+            if (!instance) throw mcpAppSessionUnavailable(false)
+            this.assertInstanceUser(instance.userId)
+            await assertMcpAppAssistantAudience(instance.executionContext, this.queryBus)
+            if (instance.middleware) await instance.middleware.assertAccess()
+            else await this.runtimeResources?.assertToolsetAccess(instance.toolset)
+            await waitForMcpAppInstancePersistence(appInstanceId)
+            return this.getResource(appInstanceId, { ...query, token: createMcpAppInstanceToken(instance) })
+        })
+    }
+
     async getResource(appInstanceId: string, query?: McpAppReviveQuery) {
         const instance = await this.getInstance(appInstanceId, query, { allowMessageBootstrap: true })
         const resource = await readMcpAppResource(instance)
-        const appInstanceToken = await runMcpAppInstanceMutation(appInstanceId, async () => {
-            const token = refreshMcpAppInstanceToken(instance)
-            await waitForMcpAppInstancePersistence(appInstanceId)
-            return token
-        })
+        const appInstanceToken = createMcpAppInstanceToken(instance)
 
         return {
             ...resource,
@@ -873,7 +775,6 @@ export class McpAppsService implements OnModuleInit, OnModuleDestroy {
             }
             removeMcpAppInstance(instance.id)
             await waitForMcpAppInstancePersistence(instance.id)
-            await this.instanceStore.delete(instance.id)
         })
     }
 

@@ -39,10 +39,7 @@ export class McpAppInstanceStoreService {
 
     async save(snapshot: McpAppInstanceSnapshot): Promise<boolean> {
         const ttl = Math.max(0, snapshot.expiresAt - Date.now())
-        if (!ttl) {
-            await this.delete(snapshot.appInstanceId)
-            return false
-        }
+        if (!ttl) return false
         const serialized = JSON.stringify(snapshot)
         if (Buffer.byteLength(serialized, 'utf8') > APP_INSTANCE_MAX_BYTES) {
             throw new Error('MCP App instance snapshot exceeds the persistence limit')
@@ -60,27 +57,88 @@ export class McpAppInstanceStoreService {
         if (isDeletedSnapshot(raw)) return null
         let snapshot: McpAppInstanceSnapshot | null = null
         try {
-            snapshot = parseSnapshot(JSON.parse(raw))
+            snapshot = parseMcpAppInstanceSnapshot(JSON.parse(raw))
         } catch {
             snapshot = null
         }
         if (!snapshot || snapshot.appInstanceId !== appInstanceId || snapshot.expiresAt <= Date.now()) {
-            await this.delete(appInstanceId)
+            await this.redis.eval(TOMBSTONE_IF_RAW_SCRIPT, {
+                keys: [instanceKey(appInstanceId)],
+                arguments: [raw, JSON.stringify({ version: 1, deleted: true }), String(APP_INSTANCE_TOMBSTONE_TTL_MS)]
+            })
             return null
         }
         return snapshot
     }
 
-    async delete(appInstanceId: string) {
-        await this.redis.set(instanceKey(appInstanceId), JSON.stringify({ version: 1, deleted: true }), {
-            PX: APP_INSTANCE_TOMBSTONE_TTL_MS
+    /** Called only after current message, Assistant and tool access have authorized an explicit resume. */
+    async resume(snapshot: McpAppInstanceSnapshot, expiresAt: number): Promise<McpAppInstanceSnapshot> {
+        const now = Date.now()
+        const ttl = Math.ceil(expiresAt - now)
+        if (!Number.isFinite(ttl) || ttl <= 0) {
+            throw new RangeError('MCP App resumed lease must expire in the future')
+        }
+        // Keep this property first so Lua can replace its number without re-encoding empty JSON arrays.
+        const { stateVersion, ...state } = snapshot
+        const serialized = JSON.stringify({ stateVersion, ...state, expiresAt })
+        if (Buffer.byteLength(serialized, 'utf8') > APP_INSTANCE_MAX_BYTES) {
+            throw new Error('MCP App instance snapshot exceeds the persistence limit')
+        }
+        const saved = await this.redis.eval(RESUME_AUTHORIZED_SCRIPT, {
+            keys: [instanceKey(snapshot.appInstanceId)],
+            arguments: [serialized, String(snapshot.stateVersion), String(now), String(ttl)]
         })
+        const resumed = typeof saved === 'string' ? parseMcpAppInstanceSnapshot(JSON.parse(saved)) : null
+        if (!resumed || resumed.appInstanceId !== snapshot.appInstanceId) {
+            throw new Error('MCP App resumed snapshot could not be persisted')
+        }
+        return resumed
+    }
+
+    async delete(appInstanceId: string, expectedStateVersion?: number): Promise<boolean> {
+        if (
+            expectedStateVersion !== undefined &&
+            (!Number.isInteger(expectedStateVersion) || expectedStateVersion < 1)
+        ) {
+            throw new RangeError('MCP App deletion requires a valid state version')
+        }
+        const removed = await this.redis.eval(TOMBSTONE_IF_VERSION_SCRIPT, {
+            keys: [instanceKey(appInstanceId)],
+            arguments: [
+                JSON.stringify({ version: 1, deleted: true }),
+                String(APP_INSTANCE_TOMBSTONE_TTL_MS),
+                expectedStateVersion === undefined ? '' : String(expectedStateVersion)
+            ]
+        })
+        return removed === 1
     }
 }
 
 function instanceKey(appInstanceId: string) {
     return `${APP_INSTANCE_KEY_PREFIX}${appInstanceId}`
 }
+
+const TOMBSTONE_IF_RAW_SCRIPT = `
+local expectedRaw = ARGV[1]
+if redis.call('GET', KEYS[1]) ~= expectedRaw then
+    return 0
+end
+redis.call('SET', KEYS[1], ARGV[2], 'PX', ARGV[3])
+return 1
+`
+
+const TOMBSTONE_IF_VERSION_SCRIPT = `
+local expectedVersion = ARGV[3]
+local current = redis.call('GET', KEYS[1])
+if current and expectedVersion ~= '' then
+    local ok, value = pcall(cjson.decode, current)
+    if not ok or type(value) ~= 'table' then return 0 end
+    if value.deleted == true then return 1 end
+    if tonumber(value.stateVersion or 1) ~= tonumber(expectedVersion) then return 0 end
+end
+redis.call('SET', KEYS[1], ARGV[1], 'PX', ARGV[2])
+return 1
+`
 
 const SAVE_IF_CURRENT_SCRIPT = `
 local current = redis.call('GET', KEYS[1])
@@ -108,6 +166,32 @@ redis.call('SET', KEYS[1], ARGV[1], 'PX', ARGV[3])
 return 1
 `
 
+const RESUME_AUTHORIZED_SCRIPT = `
+local nextVersion = math.max(tonumber(ARGV[2]) + 1, tonumber(ARGV[3]))
+local incoming = cjson.decode(ARGV[1])
+local current = redis.call('GET', KEYS[1])
+if current then
+    local ok, value = pcall(cjson.decode, current)
+    if ok and type(value) == 'table' then
+        local currentVersion = tonumber(value.stateVersion) or 0
+        if value.version == 1 and value.deleted ~= true
+            and value.appInstanceId == incoming.appInstanceId
+            and currentVersion >= 1 and currentVersion % 1 == 0
+            and (tonumber(value.expiresAt) or 0) > tonumber(ARGV[3]) then
+            return current
+        end
+        nextVersion = math.max(nextVersion, currentVersion + 1)
+    end
+end
+local resumed, replacements = string.gsub(ARGV[1], '^%{"stateVersion":%d+',
+    '{"stateVersion":' .. string.format('%.0f', nextVersion), 1)
+if replacements ~= 1 then
+    return redis.error_reply('MCP App resume requires an initial state version')
+end
+redis.call('SET', KEYS[1], resumed, 'PX', ARGV[4])
+return resumed
+`
+
 function isDeletedSnapshot(raw: string) {
     try {
         const value: unknown = JSON.parse(raw)
@@ -123,7 +207,7 @@ function isDeletedSnapshot(raw: string) {
     }
 }
 
-function parseSnapshot(value: unknown): McpAppInstanceSnapshot | null {
+export function parseMcpAppInstanceSnapshot(value: unknown): McpAppInstanceSnapshot | null {
     if (typeof value !== 'object' || value === null || Array.isArray(value)) return null
     const version = Reflect.get(value, 'version')
     // Version 1 snapshots created before replica reconciliation did not carry a state version.
