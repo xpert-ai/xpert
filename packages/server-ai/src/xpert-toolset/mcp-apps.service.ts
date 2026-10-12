@@ -27,7 +27,6 @@ import {
     getInitialMcpAppToolResult,
     getMcpAppToolMetadata,
     getMcpAppInstance,
-    isMcpAppsEnabled,
     isMcpAppTokenRequired,
     listMcpToolAppMetadata,
     listMcpAppVisibleToolMetadata,
@@ -248,18 +247,11 @@ export class McpAppsService implements OnModuleInit, OnModuleDestroy {
         configureMcpAppInstancePersistence(null)
     }
 
-    private assertEnabled() {
-        if (!isMcpAppsEnabled()) {
-            throw new NotFoundException('MCP Apps are not enabled')
-        }
-    }
-
     private async getInstance(
         appInstanceId: string,
         query?: McpAppReviveQuery,
         options?: { allowMessageBootstrap?: boolean }
     ) {
-        this.assertEnabled()
         let normalizedQuery = normalizeReviveQuery(query)
         const instance = getMcpAppInstance(appInstanceId)
         if (instance) {
