@@ -80,7 +80,7 @@ describe('plugin orm metadata helpers', () => {
 		).not.toThrow()
 	})
 
-	it('refreshes an initialized data source and synchronizes new plugin entities', async () => {
+	it('refreshes metadata without repeating global DDL after plugin schema preflight', async () => {
 		const dataSource = {
 			options: {
 				entities: [CoreEntity],
@@ -103,7 +103,7 @@ describe('plugin orm metadata helpers', () => {
 			})
 		).resolves.toEqual({
 			changed: true,
-			synchronized: true
+			synchronized: false
 		})
 
 		expect(dataSource.setOptions).toHaveBeenCalledWith({
@@ -111,7 +111,7 @@ describe('plugin orm metadata helpers', () => {
 			subscribers: [CoreSubscriber, PluginSubscriber]
 		})
 		expect(dataSource.buildMetadatas).toHaveBeenCalledTimes(1)
-		expect(dataSource.synchronize).toHaveBeenCalledTimes(1)
+		expect(dataSource.synchronize).not.toHaveBeenCalled()
 	})
 
 	it('only refreshes metadata when schema synchronization is externally managed', async () => {

@@ -10,6 +10,7 @@ import { createPluginLogger, GLOBAL_ORGANIZATION_SCOPE, type PluginContext } fro
 import { RedisLockService } from '../core/redis/redis-lock.service'
 import { collectPluginOrmMetadata, validatePluginEntityTableNames } from './plugin-orm-metadata'
 import { loadPlugin } from './plugin-loader'
+import { scopePluginSchemaSynchronization } from './plugin-schema-scope'
 
 const PLUGIN_SCHEMA_SYNC_LOCK = 'xpert:plugin:schema-sync'
 const PLUGIN_SCHEMA_SYNC_LOCK_TTL = 5 * 60 * 1000
@@ -85,17 +86,23 @@ export class PluginSchemaSyncService {
 		if (!ormMetadata.entities.length) return
 
 		const entities = this.mergeTargets(this.dataSource.options.entities, ormMetadata.entities)
-		const subscribers = this.mergeTargets(this.dataSource.options.subscribers, ormMetadata.subscribers)
 		const migrationDataSource = new DataSource({
 			...this.dataSource.options,
 			entities,
-			subscribers,
+			subscribers: [],
 			migrations: [],
+			migrationsRun: false,
+			dropSchema: false,
 			synchronize: false
 		})
 
 		try {
 			await migrationDataSource.initialize()
+			scopePluginSchemaSynchronization(
+				migrationDataSource,
+				ormMetadata.entities,
+				input.artifactNamespace ?? plugin.meta.artifactNamespace
+			)
 			await migrationDataSource.synchronize()
 		} finally {
 			if (migrationDataSource.isInitialized) {

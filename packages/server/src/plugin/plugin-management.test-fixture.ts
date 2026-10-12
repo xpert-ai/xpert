@@ -27,6 +27,8 @@ jest.mock('@xpert-ai/contracts', () => ({
 }))
 
 jest.mock('@xpert-ai/plugin-sdk', () => ({
+	isPluginArtifactNamespace: jest.requireActual('../../../plugin-sdk/src/lib/artifact-namespace')
+		.isPluginArtifactNamespace,
 	derivePluginArtifactNamespace: jest.fn((packageName: string) =>
 		packageName
 			.replace(/^@[^/]+\//, '')

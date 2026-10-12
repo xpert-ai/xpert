@@ -2,7 +2,7 @@
  * Why this exists:
  * Runtime-installed plugins are not automatically part of the live TypeORM `DataSource`.
  * Without merging and rebuilding metadata first, repository access can fail with `EntityMetadataNotFoundError`.
- * Keep registration deterministic, reject entity name conflicts, and only call `synchronize()` when the DataSource is configured for it.
+ * Registration only refreshes metadata; the locked plugin schema preflight owns DDL.
  */
 import { BadRequestException, ConflictException, DynamicModule, Type } from '@nestjs/common'
 import { DataSource, EntitySubscriberInterface, MixedList, getMetadataArgsStorage } from 'typeorm'
@@ -132,11 +132,6 @@ export async function registerPluginOrmMetadataInDataSource(
 	}
 
 	await (dataSource as DataSource & { buildMetadatas: () => Promise<void> }).buildMetadatas()
-
-	if (hasEntityChanges && dataSource.options.synchronize) {
-		await dataSource.synchronize()
-		return { changed: true, synchronized: true }
-	}
 
 	return { changed: true, synchronized: false }
 }
