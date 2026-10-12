@@ -182,6 +182,53 @@ test('application logos preserve image, SVG and emoji identity in the catalog an
   }
 })
 
+test('application preflight exposes model display metadata without private model configuration', async () => {
+  const response = structuredClone(detail)
+  response.preflight.embeddingModels = [
+    {
+      id: 'opaque/model%2Fname',
+      label: { zh_Hans: '嵌入模型', en_US: 'Embedding' },
+      model: 'model/name',
+      copilotId: 'private-binding',
+      credentials: 'never-expose',
+      options: { apiKey: 'never-expose' },
+      provider: {
+        id: 'provider',
+        label: { en_US: 'Provider', zh_Hans: '供应商' },
+        iconUrl: 'http://localhost:3333/api/ai-model/provider/provider/icon_small/zh_Hans?organizationId=organization',
+        credentials: 'never-expose'
+      },
+      connectionName: 'Team connection',
+      features: ['vision'],
+      contextWindow: 128000
+    }
+  ]
+  const { service } = fixture(() => response)
+  service.config.locale = 'zh-Hans'
+  const setup = await service.applicationSetup(app)
+  assert.deepEqual(setup.embeddingModels, [
+    {
+      id: 'opaque/model%2Fname',
+      label: '嵌入模型',
+      model: 'model/name',
+      provider: {
+        id: 'provider',
+        label: '供应商',
+        iconUrl: response.preflight.embeddingModels[0].provider.iconUrl
+      },
+      connectionName: 'Team connection',
+      features: ['vision'],
+      contextWindow: 128000
+    }
+  ])
+  assert.doesNotMatch(JSON.stringify(setup), /never-expose|private-binding/)
+  for (const iconUrl of ['file:///private/logo.svg', 'javascript:alert(1)', 'https://user:secret@example.com/icon']) {
+    response.preflight.embeddingModels[0].provider.iconUrl = iconUrl
+    const refreshed = await service.applicationSetup(app)
+    assert.equal(refreshed.embeddingModels[0].provider.iconUrl, undefined)
+  }
+})
+
 test('expert access request rechecks access and submits only the reason, not renderer scope', async () => {
   let requested = false
   const { service, calls } = fixture((path, options) => {
@@ -384,7 +431,7 @@ test('capability template setup selects a compatible model without relying on th
     title: 'Sample Assistant'
   }
   const setup = await service.templateSetup(input)
-  assert.deepEqual(setup.preflight.models, [{ id: 'vision', label: 'Vision model' }])
+  assert.deepEqual(setup.preflight.models, [{ id: 'vision', label: 'Vision model', model: 'vision-model' }])
   assert.doesNotMatch(JSON.stringify(setup), /never-expose|copilotModel|vision-provider/)
   await assert.rejects(service.installTemplate(input), /compatible model/)
   await assert.rejects(service.installTemplate({ ...input, modelId: 'forged' }), /compatible model/)

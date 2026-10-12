@@ -1,6 +1,7 @@
 export * from './actor-token'
 export * from './artifacts'
 export * from './workspace-files'
+export * from './workspace-storage'
 export * from './sandbox-jobs'
 export * from './project-provisioning'
 export * from './project-access'

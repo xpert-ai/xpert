@@ -193,10 +193,9 @@ export class RequestContext {
    * ChatKit client secrets before this check; the bearer is not always a JWT.
    */
   static hasPermissions(findPermissions: Array<PermissionsEnum | string>, throwError?: boolean): boolean {
-    const permissions = this.currentPermissions()
-    if (permissions.length > 0) {
-      const found = permissions.filter((value) => findPermissions.indexOf(value) >= 0)
-      if (found.length === findPermissions.length) return true
+    const permissions = new Set(this.currentPermissions())
+    if (permissions.size > 0 && findPermissions.every((permission) => permissions.has(permission))) {
+      return true
     }
 
     if (throwError) {

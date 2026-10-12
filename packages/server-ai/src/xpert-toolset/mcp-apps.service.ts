@@ -44,7 +44,6 @@ import {
     getInitialMcpAppToolResult,
     getMcpAppToolMetadata,
     getMcpAppInstance,
-    isMcpAppsEnabled,
     isMcpAppTokenRequired,
     listMcpToolAppMetadata,
     listMcpAppVisibleToolMetadata,
@@ -112,18 +111,11 @@ export class McpAppsService implements OnModuleInit, OnModuleDestroy {
         configureMcpAppInstancePersistence(null)
     }
 
-    private assertEnabled() {
-        if (!isMcpAppsEnabled()) {
-            throw new NotFoundException('MCP Apps are not enabled')
-        }
-    }
-
     private async getInstance(
         appInstanceId: string,
         query?: McpAppReviveQuery,
         options?: { allowMessageBootstrap?: boolean }
     ) {
-        this.assertEnabled()
         let normalizedQuery = normalizeReviveQuery(query)
         const instance = getMcpAppInstance(appInstanceId)
         if (instance) {
@@ -464,12 +456,10 @@ export class McpAppsService implements OnModuleInit, OnModuleDestroy {
     }
 
     async getHistory(appInstanceId: string, messageId: string) {
-        this.assertEnabled()
         return (await this.history.load(appInstanceId, messageId)).history
     }
 
     async resume(appInstanceId: string, messageId: string) {
-        this.assertEnabled()
         const { snapshot } = await this.history.load(appInstanceId, messageId)
         if (!snapshot?.executionContext || !snapshot.userId || (!snapshot.source && !snapshot.toolsetId))
             throw mcpAppSessionUnavailable(false)

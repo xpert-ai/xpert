@@ -257,8 +257,8 @@ class PocProbe:
         result = self.client.json("GET", "/health")
         assert result == {
             "status": "ok",
-            "protocolVersion": 2,
-            "capabilities": {"projectContentReadOnly": True},
+            "protocolVersion": 3,
+            "capabilities": {"projectContentReadOnly": True, "appDataProtection": True},
         }, result
 
     def check_invalid_token(self) -> None:
@@ -455,8 +455,8 @@ finally:
         assert result["exitCode"] not in (0, None), result
         assert self.client.json("GET", "/health") == {
             "status": "ok",
-            "protocolVersion": 2,
-            "capabilities": {"projectContentReadOnly": True},
+            "protocolVersion": 3,
+            "capabilities": {"projectContentReadOnly": True, "appDataProtection": True},
         }
         assert oom_events > 0, observed_events
         self.metrics["oomExitCode"] = result["exitCode"]

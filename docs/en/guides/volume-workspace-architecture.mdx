@@ -180,8 +180,8 @@ Resolution rules:
 
 - `/workspace/foo.docx` or `workspaceRoot/foo.docx` is normalized to the Volume-relative path `foo.docx`.
 - `foo.docx` and `./foo.docx` are resolved relative to the current Agent runtime workspace.
-- Persisted portable references are read from their explicit catalog/scope.
-- Default scope is inferred from the current Agent runtime: `projectId` resolves to `catalog: 'projects'`; otherwise `xpertId` resolves to `catalog: 'xperts'` with `isolateByUser: false`.
+- Persisted portable references carry a catalog/scope, but cannot override the current runtime's bound owner or bypass authorization.
+- The runtime supplies the scope: `projectId` selects `catalog: 'projects'`; otherwise the published Assistant's `workspaceDataScope` determines `xperts` or `user-xperts`. Plugins do not select another Assistant data catalog.
 
 Safety rules:
 
@@ -209,9 +209,147 @@ await outboundQueue.enqueue({
 
 This keeps business plugins focused on file references while the platform owns path normalization, scope inference, Volume IO, and tenant isolation.
 
+## Assistant application data
+
+`WorkspaceFilesRuntimeCapability.appData()` stores a plugin's internal state in its owning Assistant's file workspace. It uses the same `platform.workspace.files` capability as ordinary files; the separate `AssistantWorkspaceStorageCapability` / `AssistantWorkspaceStorageApi` is removed. The SDK must expose `appData()`, and the running host must implement it. Updating plugin dependencies alone does not upgrade the host.
+
+### Choose the right file API
+
+| Data                                                           | API                                                           | Location within the authorized Assistant Volume                      |
+| -------------------------------------------------------------- | ------------------------------------------------------------- | -------------------------------------------------------------------- |
+| User-visible exports and documents                             | `readRuntimeBuffer()`, `writeRuntimeBuffer()`, `deleteFile()` | Ordinary paths, such as `meetings/<meeting-id>/notes.md`             |
+| Internal manifests, recording chunks, checkpoints and receipts | `appData({ pluginName })`                                     | `.apps/<artifactNamespace>/...`                                      |
+| Collaborative document state                                   | Platform Collaboration capability                             | Platform-managed document storage; Markdown files can be projections |
+
+```mermaid
+flowchart TD
+  A[Trusted runtime actor and Assistant] --> B[Published Assistant authorization]
+  B --> C[Assistant Volume]
+  C --> D[Ordinary Files API: visible files]
+  C --> E[appData: registered plugin namespace]
+  E --> F[.apps: internal application state]
+  C --> G[NsJail workspace]
+  G --> H[.apps masked by an empty read-only mount]
+```
+
+### Bind the actor, Assistant and namespace
+
+Obtain the API from the host-provided scoped runtime:
+
+```ts
+import { WorkspaceFilesRuntimeCapability } from '@xpert-ai/plugin-sdk'
+
+const workspaceFiles = context.runtime.capabilities.require(WorkspaceFilesRuntimeCapability)
+const state = workspaceFiles.appData({
+  pluginName: '@example/plugin-notes',
+  requireUserIsolation: true
+})
+```
+
+`pluginName` is the plugin's own registered identity, supplied by trusted plugin code. The host resolves `artifactNamespace` from the loaded plugin in the current organization, tenant or system installation scope. Callers cannot pass a physical directory or a namespace override. The registered namespace uses lowercase letters, digits and underscores (`^[a-z0-9_]+$`). Plugin runtime metadata must read `version`, `xpert.plugin.level` and `xpert.plugin.artifactNamespace` from its own `package.json`.
+
+Each operation rechecks the authenticated tenant, organization, current user and exact published Assistant. A UserGroup grant is sufficient without authoring workspace membership; authoring workspace `canRun` is not a substitute for the published Assistant ACL. Lock acquisition rechecks access after waiting. Missing identity, changed actor, revoked access or unavailable plugin metadata fails before application data access.
+
+The published Assistant selects the data scope:
+
+| `workspaceDataScope` | Catalog                          | Standard path below the tenant Volume root                            |
+| -------------------- | -------------------------------- | --------------------------------------------------------------------- |
+| `shared`             | `xperts`, `isolateByUser: false` | `xpert/<assistantId>/.apps/<artifactNamespace>/`                      |
+| `user`               | `user-xperts`                    | `user/<currentUserId>/xpert/<assistantId>/.apps/<artifactNamespace>/` |
+
+The organization participates in authorization; it is not an extra path segment. The user is the authenticated caller, never the Assistant creator. `requireUserIsolation: true` rejects shared Assistants. `appData()` currently requires an Assistant binding and rejects Project bindings and other catalogs; it does not fall back to a machine-local directory.
+
+A storage handle stays bound to its first resolved Volume and namespace. If either changes, create a fresh handle only after validating the new business scope. A private ordinary-file binding also refuses to follow a changed policy into shared storage, preventing private projections from being copied there. `workspaceDataScope` is chosen when creating an Assistant; these drift checks do not introduce a supported in-place policy switch or data migration. Background jobs must restore trusted actor/organization context and obtain a fresh scoped API instead of serializing handles or absolute paths. See [Managed Queue](./managed-queue).
+
+Native plugins remain trusted server code. This API governs cooperating plugins; it does not isolate malicious native code that can directly access the host filesystem.
+
+### Storage operations and concurrent updates
+
+| Method                                | Behavior                                                                           |
+| ------------------------------------- | ---------------------------------------------------------------------------------- |
+| `read(path)`                          | Returns a complete file generation as a `Buffer`                                   |
+| `write(path, stringOrBytes)`          | Creates parents and atomically replaces one file                                   |
+| `mkdir(path)`                         | Creates directories within the application namespace                               |
+| `list(path)`                          | Returns immediate child names, excluding internal lock and temporary entries       |
+| `remove(path)`                        | Removes a file or subtree; the namespace root cannot be removed                    |
+| `withLock(key, callback, { waitMs })` | Serializes cooperating writers using the same key in the same Volume and namespace |
+
+Paths and lock keys must be canonical relative paths. Absolute paths, backslashes, NUL, `.` / `..` segments, repeated or trailing `/`, and `.locks` segments including case variants are rejected. Only `mkdir('')` and `list('')` accept the namespace root. Do not include `.apps/<artifactNamespace>` in an application-relative path.
+
+Read, validate and write inside the same lock. For example, a schema-validated counter can be initialized and updated across API instances:
+
+```ts
+import { z } from 'zod/v3'
+
+const Counter = z.object({ revision: z.number().int().nonnegative() }).strict()
+
+await state.withLock(
+  'records/example',
+  async () => {
+    let bytes: Buffer | undefined
+    try {
+      bytes = await state.read('records/example/counter.json')
+    } catch (error) {
+      if (!error || typeof error !== 'object' || !('code' in error) || error.code !== 'ENOENT') {
+        throw error
+      }
+    }
+    const current = bytes ? Counter.parse(JSON.parse(bytes.toString('utf8'))) : { revision: 0 }
+    await state.write('records/example/counter.json', JSON.stringify({ revision: current.revision + 1 }))
+  },
+  { waitMs: 10_000 }
+)
+```
+
+The host writes a temporary file, flushes it, renames it over the destination and flushes the parent directory. Readers see one complete file generation. This is not a transaction across multiple files, and atomic replacement alone does not serialize read-modify-write operations. Plugins still own revision checks, idempotency, tombstones and recovery manifests. Every writer for the same business resource must use the same lock key.
+
+Locks live in `.apps/<artifactNamespace>/.locks/`, outside removable business folders. The current implementation attempts a heartbeat every 10 seconds with a 120-second stale threshold. Only a successful filesystem heartbeat extends the local lease. Ownership and expiry are checked before mutations; stale callbacks cannot release a replacement owner's lock. Lock loss rejects subsequent app-data and ordinary Volume writes/deletes in that callback.
+
+`waitMs` controls acquisition retries, not callback duration: the default is 10 seconds, the maximum is 180 seconds, and `0` disables acquisition retries. Await all work inside the callback; detached work cannot keep using a released lease. External effects such as model calls or network requests are not rolled back by this filesystem lock.
+
+### Protect `.apps`
+
+Generic file listing, reading, editing, uploading, downloading, archives and file-understanding inputs reject or omit managed state. Checks cover lexical paths, resolved aliases, hard-linked files and mounted-workspace root aliases. Generic recursive deletion checks descendants, so deleting a public parent cannot erase a protected `.apps` child. Reserved names are checked case-insensitively, including `.workspace-write-*.tmp`.
+
+NsJail Runner protocol **3** advertises `appDataProtection: true`. Every execution, terminal and service overlays `/workspace/.apps` with an empty read-only mount, even before the first application write. File RPCs and working-directory selection reject `.apps`. The host app-data API continues to access the real storage outside that mount namespace.
+
+The API refuses older Runners or Runners without this capability. Upgrade the Runner before the API and restart existing runtimes during rollout. Local Shell is trusted development execution and does not provide this OS-level protection. A hidden directory by itself is not an access-control boundary.
+
+### Configure persistent storage once
+
+There is no fixed Meetings path such as `/var/lib/xpert/data/plugins/meetings`, and Meetings has no independent `dataDirectory`. The platform's Volume configuration determines the root:
+
+| Runtime                                    | Root and configuration                                                                                   |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------- |
+| API running directly on a development host | `SANDBOX_VOLUME/<tenantId>`, or `~/data/<tenantId>` when unset                                           |
+| API container                              | `/sandbox/<tenantId>`; the deployment mounts persistent storage at `/sandbox`                            |
+| Docker-host path resolution                | `SANDBOX_VOLUME` supplies the host-side root when configured; it must agree with the actual mount source |
+| NsJail Runner                              | Its workspace mount must expose the same underlying data as the API/worker mount                         |
+
+Set `SANDBOX_VOLUME` in the platform's environment configuration and configure the actual API/worker/Runner mounts in the deployment. Setting an environment variable does not create shared storage. The repository's `docker-compose.yml` and `.deploy/nsjail-runner/docker-compose.nsjail.yml` currently bind `./docker/volumes/api/sandbox/` to `/sandbox/`; changing `SANDBOX_VOLUME` alone does not rewrite those literal mounts.
+
+For multiple instances, mount the **same persistent filesystem** on every API/worker instance that accesses these files. Identical local directory names on separate machines do not share data or locks. The filesystem must support atomic directory creation, rename and coherent metadata/heartbeat visibility; an object-storage bucket or object-storage FUSE mount is not this backend. Use the standard tenant/scope layout for this feature, not the development-only `legacy-flat` compatibility layout. See the root matrix below for path resolution details.
+
+### Meetings example and troubleshooting
+
+Meetings requires a user-isolated Assistant. Recording chunks, capture bindings, manifests, checkpoints and synchronization receipts use `.apps/meetings/records/` and `.apps/meetings/captures/`. User-visible Markdown and exports use `meetings/<creation-date-title-meeting-uuid>/` in the same user/Assistant Volume, outside `sessions/`. After document initialization, platform Collaboration stores the CRDT state; Markdown and manifest document checkpoints are projections. This refactor does not migrate data from the old plugin directory.
+
+| Failure                                | Check                                                                                                                                    |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `appData` unavailable                  | Host and SDK compatibility; do not add a local filesystem fallback                                                                       |
+| `assistant_user_workspace_required`    | The app requires `workspaceDataScope: user`; a shared Assistant cannot hold its private data                                             |
+| `403`                                  | Actor, organization and exact published Assistant grant; for generic Files, also check for a managed path                                |
+| `404` resolving plugin namespace       | The plugin is loaded in the current installation scope and has valid registered metadata                                                 |
+| `EINVAL`                               | Invalid relative path or a handle whose Volume/namespace changed                                                                         |
+| `ELOCKED`                              | Another owner holds the same resource; retry according to the business policy                                                            |
+| `ELOCKLOST`                            | Stop the stale operation, reacquire and reread before recomputing; check filesystem latency, process stalls and shared mount consistency |
+| Different state on different instances | Compare their actual mounts, tenant, current user, Assistant and namespace, not just their path strings                                  |
+
+The implementation is covered by `workspace-storage.spec.ts`, `workspace-managed-path.spec.ts`, `assistant-files.integration.spec.ts` and mounted-workspace upload tests under `packages/server-ai/src`. Runner regressions are in `.deploy/nsjail-runner/test_runner.py`; `verify_app_data.py` exercises real Linux mount/RPC isolation in a disposable container. These checks cover process concurrency, atomic reads, lease takeover, revocation, scope drift and protected-path aliases. Deployment acceptance must additionally verify the actual shared filesystem and mount configuration.
+
 ## Root path matrix
 
-Root calculation is centralized in [packages/server-ai/src/shared/volume/volume-layout.ts](/Users/xpertai03/Pro/data/xpert/packages/server-ai/src/shared/volume/volume-layout.ts:1).
+Root calculation is centralized in `packages/server-ai/src/shared/volume/volume-layout.ts`.
 
 ### API-container root
 
@@ -265,16 +403,17 @@ Changing the setting does not move, copy, or delete existing files. Keep `legacy
 
 `getVolumeSubpath()` defines the logical subpaths:
 
-| `catalog`              | Subpath                            |
-| ---------------------- | ---------------------------------- |
-| `environment`          | `/environment/${environmentId}`    |
-| `knowledges`           | `/knowledges/${knowledgeId}`       |
-| `projects`             | `/project/${projectId}`            |
-| `skills`               | `/skills/${rootId}`                |
-| `users`                | `/user/${userId}`                  |
-| `workspaces`           | `/workspaces/${workspaceId}`       |
-| `xperts` shared        | `/xpert/${xpertId}`                |
-| `xperts` user-isolated | `/xpert/${xpertId}/user/${userId}` |
+| `catalog`                             | Subpath                            |
+| ------------------------------------- | ---------------------------------- |
+| `environment`                         | `/environment/${environmentId}`    |
+| `knowledges`                          | `/knowledges/${knowledgeId}`       |
+| `projects`                            | `/project/${projectId}`            |
+| `skills`                              | `/skills/${rootId}`                |
+| `users`                               | `/user/${userId}`                  |
+| `workspaces`                          | `/workspaces/${workspaceId}`       |
+| `xperts` shared                       | `/xpert/${xpertId}`                |
+| `user-xperts` user-isolated           | `/user/${userId}/xpert/${xpertId}` |
+| Legacy `xperts + isolateByUser: true` | `/xpert/${xpertId}/user/${userId}` |
 
 From that subpath we derive:
 
@@ -283,13 +422,14 @@ From that subpath we derive:
 
 Examples:
 
-| Logical object             | Server path                                            | Public URL                                            |
-| -------------------------- | ------------------------------------------------------ | ----------------------------------------------------- |
-| Project                    | `/sandbox/${tenantId}/project/${projectId}`            | `/api/sandbox/volume/project/${projectId}`            |
-| User                       | `/sandbox/${tenantId}/user/${userId}`                  | `/api/sandbox/volume/user/${userId}`                  |
-| Shared Xpert volume        | `/sandbox/${tenantId}/xpert/${xpertId}`                | `/api/sandbox/volume/xpert/${xpertId}`                |
-| User-isolated Xpert volume | `/sandbox/${tenantId}/xpert/${xpertId}/user/${userId}` | `/api/sandbox/volume/xpert/${xpertId}/user/${userId}` |
-| Workspace                  | `/sandbox/${tenantId}/workspaces/${workspaceId}`       | `/api/sandbox/volume/workspaces/${workspaceId}`       |
+| Logical object                    | Server path                                            | Public URL                                            |
+| --------------------------------- | ------------------------------------------------------ | ----------------------------------------------------- |
+| Project                           | `/sandbox/${tenantId}/project/${projectId}`            | `/api/sandbox/volume/project/${projectId}`            |
+| User                              | `/sandbox/${tenantId}/user/${userId}`                  | `/api/sandbox/volume/user/${userId}`                  |
+| Shared Xpert volume               | `/sandbox/${tenantId}/xpert/${xpertId}`                | `/api/sandbox/volume/xpert/${xpertId}`                |
+| User-isolated Xpert volume        | `/sandbox/${tenantId}/user/${userId}/xpert/${xpertId}` | `/api/sandbox/volume/user/${userId}/xpert/${xpertId}` |
+| Legacy user-isolated Xpert volume | `/sandbox/${tenantId}/xpert/${xpertId}/user/${userId}` | `/api/sandbox/volume/xpert/${xpertId}/user/${userId}` |
+| Workspace                         | `/sandbox/${tenantId}/workspaces/${workspaceId}`       | `/api/sandbox/volume/workspaces/${workspaceId}`       |
 
 ## Xpert Work Area Rules
 
@@ -298,9 +438,9 @@ Xpert runtime working directories are resolved by `XpertWorkAreaResolver` in `pa
 The design rules are:
 
 - The default working directory is the current Xpert / project Volume root.
-- The Xpert / project root is the default shared workspace; when multiple users share one Xpert, shared files are expected.
+- A Project Volume is shared by authorized project members. A non-Project Xpert uses the shared or user-isolated root selected by its `workspaceDataScope`.
 - `shared` remains as an explicit shared subdirectory for backward compatibility and tools that need a stable shared path.
-- Xpert long-term FileMemory is shared at Xpert level and is not isolated by user.
+- Xpert long-term FileMemory follows the resolved data scope; user-isolated Assistants also isolate memory by the current user.
 - Agent invoke, terminal, sandbox upload, conversation workspace files, and managed sandbox services should all use the same resolver output so the Agent cwd and terminal cwd do not diverge.
 - Conversation workspace file APIs must browse the project / Xpert Volume root directly. They should not add a `users/<userId>` subtree under the root.
 
@@ -310,15 +450,17 @@ Canonical layout:
 /sandbox/<tenantId>/
   project/<projectId>/
     shared/
-    agents/<xpertId>/
     sessions/<conversationId>/
-    .xpert/
+    .xpert/memory/xperts/<xpertId>/
 
   xpert/<xpertId>/
     shared/
     .xpert/memory/
 
   user/<userId>/
+    xpert/<xpertId>/
+      shared/
+      .xpert/memory/
   environment/<environmentId>/
 ```
 
@@ -337,13 +479,13 @@ When `projectId` exists, the resolver uses the project Volume:
 
 Relative path rules:
 
-| Purpose                                  | Relative path inside the Volume |
-| ---------------------------------------- | ------------------------------- |
-| Default cwd                              | Volume root                     |
-| Project explicit shared subdirectory     | `shared`                        |
-| Xpert agent workspace inside the project | `agents/<xpertId>`              |
-| Single-conversation temporary area       | `sessions/<conversationId>`     |
-| Project internal state                   | `.xpert`                        |
+| Purpose                              | Relative path inside the Volume  |
+| ------------------------------------ | -------------------------------- |
+| Default cwd                          | Volume root                      |
+| Project explicit shared subdirectory | `shared`                         |
+| Xpert memory inside the project      | `.xpert/memory/xperts/<xpertId>` |
+| Single-conversation temporary area   | `sessions/<conversationId>`      |
+| Project internal state               | `.xpert`                         |
 
 In a local shell sandbox, `workspace_path` is a server-visible path, for example:
 
@@ -359,17 +501,14 @@ In a Docker sandbox, the same directory is mapped to:
 
 ### Non-project Xpert conversations
 
-When there is no `projectId` and an `xpertId` exists, the resolver uses the shared Xpert Volume:
+When there is no `projectId` or explicit environment and an `xpertId` exists, the resolver follows the persisted `workspaceDataScope`:
 
-```ts
-{
-  tenantId,
-  catalog: 'xperts',
-  xpertId,
-  userId,
-  isolateByUser: false
-}
-```
+| Policy   | Volume scope                                           | Path below the tenant root      |
+| -------- | ------------------------------------------------------ | ------------------------------- |
+| `shared` | `catalog: 'xperts'`, `xpertId`, `isolateByUser: false` | `xpert/<xpertId>`               |
+| `user`   | `catalog: 'user-xperts'`, `xpertId`, current `userId`  | `user/<userId>/xpert/<xpertId>` |
+
+The policy defaults to `shared` and is chosen at creation. It cannot be changed on an existing Assistant; create or copy an Assistant with the required policy instead. Portable DSL content does not override local data ownership. Changing this model does not automatically move existing files between roots.
 
 Relative path rules:
 
@@ -379,11 +518,7 @@ Relative path rules:
 | Xpert explicit shared subdirectory | `shared`                        |
 | Xpert long-term FileMemory         | `.xpert/memory`                 |
 
-So when multiple users talk to the same Xpert:
-
-- File operations default to the same `xpert/<xpertId>` workspace root.
-- Tools that need a stable shared subdirectory may still use `xpert/<xpertId>/shared`.
-- `memory_write`, Dream, and memory file APIs all read and write the same `xpert/<xpertId>/.xpert/memory`.
+For `shared`, authorized users see the same files and memory. For `user`, each authenticated user has separate files and memory under their own root. A directory named `shared` inside a user-isolated Volume does not grant access to other users. New runtime references use the actual catalog; the old `xpert/<xpertId>/user/<userId>` layout remains only for compatibility.
 
 ### Docker container example
 
@@ -392,7 +527,7 @@ Assume:
 - `tenantId = tenant-1`
 - `userId = user-A`
 - `xpertId = xpert-X`
-- this is a non-project conversation
+- this is a non-project conversation with `workspaceDataScope: shared`
 - the sandbox provider is Docker
 
 The API service container sees this server-side Volume:
@@ -448,11 +583,11 @@ If the conversation belongs to project `project-1`, the default directory switch
 /workspace
 ```
 
-Project shared, agent, and session directories are:
+Project shared, Assistant memory, and session directories are:
 
 ```text
 /sandbox/tenant-1/project/project-1/shared
-/sandbox/tenant-1/project/project-1/agents/xpert-X
+/sandbox/tenant-1/project/project-1/.xpert/memory/xperts/xpert-X
 /sandbox/tenant-1/project/project-1/sessions/<conversationId>
 ```
 
@@ -460,7 +595,7 @@ In a Docker sandbox, they map to:
 
 ```text
 /workspace/shared
-/workspace/agents/xpert-X
+/workspace/.xpert/memory/xperts/xpert-X
 /workspace/sessions/<conversationId>
 ```
 
@@ -478,20 +613,14 @@ DELETE /api/chat-conversation/:conversationId/file
 
 These endpoints use the conversation only to resolve the current workspace root:
 
-| Conversation context             | Volume scope                                           | Subtree scope |
-| -------------------------------- | ------------------------------------------------------ | ------------- |
-| `projectId` exists               | `catalog: 'projects'`, `projectId`                     | Volume root   |
-| no `projectId`, `xpertId` exists | `catalog: 'xperts'`, `xpertId`, `isolateByUser: false` | Volume root   |
-| no `projectId` and no `xpertId`  | invalid for workspace file access                      | N/A           |
+| Conversation context                 | Volume scope                                           | Subtree scope |
+| ------------------------------------ | ------------------------------------------------------ | ------------- |
+| `projectId` exists                   | `catalog: 'projects'`, `projectId`                     | Volume root   |
+| no Project, Xpert policy is `shared` | `catalog: 'xperts'`, `xpertId`, `isolateByUser: false` | Volume root   |
+| no Project, Xpert policy is `user`   | `catalog: 'user-xperts'`, `xpertId`, current `userId`  | Volume root   |
+| no `projectId` and no `xpertId`      | invalid for workspace file access                      | N/A           |
 
-For a non-project ClawXpert conversation, `/api/chat-conversation/:id/files` therefore lists the shared Xpert workspace root:
-
-```text
-/sandbox/<tenantId>/xpert/<xpertId>
-/workspace
-```
-
-The `conversationId` is still used for lookup and permission context, but it is not a filesystem directory segment. Users sharing the same Xpert see the same workspace files.
+The `conversationId` is used for lookup and permission context, not as the workspace root. Project conversations browse the project Volume; non-Project conversations browse the resolved shared or user-isolated Xpert Volume.
 
 ### Workspace File Relative Path Resolution
 
@@ -503,7 +632,7 @@ Standard input shape:
 {
   tenantId,
   userId,
-  catalog: 'projects' | 'users' | 'knowledges' | 'skills' | 'xperts',
+  catalog: 'projects' | 'users' | 'knowledges' | 'skills' | 'xperts' | 'user-xperts',
   scopeId,
   filePath: 'files/wechat/<integrationId>/<messageId>/<fileName>'
 }
@@ -517,13 +646,14 @@ packages/server-ai/src/file-understanding/domain/workspace-file.ts
 
 It maps `catalog` / `scopeId` to `VolumeScope` consistently:
 
-| catalog      | Scope fields               | Volume scope output                                     |
-| ------------ | -------------------------- | ------------------------------------------------------- |
-| `projects`   | `projectId` or `scopeId`   | `{ catalog: 'projects', projectId, userId }`            |
-| `xperts`     | `xpertId` or `scopeId`     | `{ catalog: 'xperts', xpertId, userId, isolateByUser }` |
-| `users`      | `scopeId` or `userId`      | `{ catalog: 'users', userId }`                          |
-| `knowledges` | `knowledgeId` or `scopeId` | `{ catalog: 'knowledges', knowledgeId, userId }`        |
-| `skills`     | `rootId` or `scopeId`      | `{ catalog: 'skills', rootId, userId }`                 |
+| catalog       | Scope fields                             | Volume scope output                                     |
+| ------------- | ---------------------------------------- | ------------------------------------------------------- |
+| `projects`    | `projectId` or `scopeId`                 | `{ catalog: 'projects', projectId, userId }`            |
+| `xperts`      | `xpertId` or `scopeId`                   | `{ catalog: 'xperts', xpertId, userId, isolateByUser }` |
+| `user-xperts` | `xpertId` or `scopeId`, current `userId` | `{ catalog: 'user-xperts', xpertId, userId }`           |
+| `users`       | `scopeId` or `userId`                    | `{ catalog: 'users', userId }`                          |
+| `knowledges`  | `knowledgeId` or `scopeId`               | `{ catalog: 'knowledges', knowledgeId, userId }`        |
+| `skills`      | `rootId` or `scopeId`                    | `{ catalog: 'skills', rootId, userId }`                 |
 
 Readers should pass only the relative path to `VolumeHandle.path(relativePath)`:
 
@@ -536,7 +666,7 @@ Do not pass `files/wechat/...` directly to Node `fs.open()`. That path would be 
 
 ### Environment sandboxes
 
-When `sandboxEnvironmentId` exists, the environment sandbox has the highest priority and ignores project context:
+Without a Project, an explicit environment uses the environment Volume:
 
 ```ts
 {
@@ -547,28 +677,24 @@ When `sandboxEnvironmentId` exists, the environment sandbox has the highest prio
 }
 ```
 
-The default cwd remains the environment Volume root, `environment/<environmentId>`. These directories are for explicit environment-level sandboxes and do not participate in the project / Xpert user-directory split.
+The default cwd is the environment Volume root, `environment/<environmentId>`. If the conversation belongs to a Project, the data root and cwd remain the Project Volume even when execution targets a separate environment.
 
 ### Xpert FileMemory
 
-The canonical Xpert FileMemory root is:
+FileMemory follows the resolved work area:
 
-```text
-xpert/<xpertId>/.xpert/memory
-```
-
-The full server-side path is:
-
-```text
-/sandbox/<tenantId>/xpert/<xpertId>/.xpert/memory
-```
+| Context                 | Server-side path                                                         |
+| ----------------------- | ------------------------------------------------------------------------ |
+| Shared Assistant        | `/sandbox/<tenantId>/xpert/<xpertId>/.xpert/memory`                      |
+| User-isolated Assistant | `/sandbox/<tenantId>/user/<userId>/xpert/<xpertId>/.xpert/memory`        |
+| Project                 | `/sandbox/<tenantId>/project/<projectId>/.xpert/memory/xperts/<xpertId>` |
 
 Notes:
 
-- New writes no longer use `.xpert/memory/xperts/<xpertId>`.
+- Non-Project writes use `.xpert/memory`; Project memory retains an Assistant-specific subtree.
 - Topic frontmatter still keeps `scopeId=<xpertId>` so each memory entry states which Xpert owns it.
-- FileMemory uses `catalog: 'xperts'` and `isolateByUser: false`.
-- On first access, the service lazily migrates from the legacy `.xpert/memory/xperts/<xpertId>` path in a non-destructive way: it copies only files missing from the new root, keeps new files on conflict, and writes a migration report under `.dream/migrations/`.
+- FileMemory uses the same data-scope resolver as workspace files and does not independently select a shared catalog.
+- Legacy memory initialization copies missing files within the resolved Volume and keeps existing destination files. It does not migrate data across shared, user or Project roots.
 
 ## Knowledge Work Area Rules
 
@@ -691,17 +817,17 @@ Agent runtime writes the resolver output into `sys`:
 
 ### Workspace paths
 
-From [packages/server-ai/src/xpert-workspace/types.ts](/Users/xpertai03/Pro/data/xpert/packages/server-ai/src/xpert-workspace/types.ts:1):
+From `packages/server-ai/src/xpert-workspace/types.ts`:
 
 - workspace root: `${volumeRoot}/workspaces/${workspaceId}`
 
-From [packages/server-ai/src/skill-repository/types.ts](/Users/xpertai03/Pro/data/xpert/packages/server-ai/src/skill-repository/types.ts:1):
+From `packages/server-ai/src/skill-repository/types.ts`:
 
 - workspace skills root: `${workspaceRoot}/skills`
 
 ### Organization shared skill paths
 
-Also from [packages/server-ai/src/skill-repository/types.ts](/Users/xpertai03/Pro/data/xpert/packages/server-ai/src/skill-repository/types.ts:1):
+Also from `packages/server-ai/src/skill-repository/types.ts`:
 
 - organization shared skills root: `${volumeRoot}/organizations/${organizationId}/skills/public`
 - global shared skills root: `${volumeRoot}/skills/public`
@@ -751,13 +877,14 @@ Do not pass a server path such as `/sandbox/...` directly into a Docker sandbox 
 
 Skills middleware normally reads the runtime sandbox from `request.runtime.configurable.sandbox`. If a tool call needs a backend and the runtime sandbox is missing, the fallback sandbox must use the same workspace ownership rules:
 
-| Context                          | Fallback Volume scope                                  |
-| -------------------------------- | ------------------------------------------------------ |
-| `projectId` exists               | `catalog: 'projects'`, `projectId`                     |
-| no `projectId`, `xpertId` exists | `catalog: 'xperts'`, `xpertId`, `isolateByUser: false` |
-| neither exists                   | `catalog: 'users'`, `userId`                           |
+| Context                              | Fallback Volume scope                                  |
+| ------------------------------------ | ------------------------------------------------------ |
+| `projectId` exists                   | `catalog: 'projects'`, `projectId`                     |
+| no Project, Xpert policy is `shared` | `catalog: 'xperts'`, `xpertId`, `isolateByUser: false` |
+| no Project, Xpert policy is `user`   | `catalog: 'user-xperts'`, `xpertId`, current `userId`  |
+| neither exists                       | `catalog: 'users'`, `userId`                           |
 
-This prevents skill file reads or skill shell execution from silently switching a ClawXpert run back to a private `user/<userId>` Volume.
+This keeps skill file reads and skill shell execution within the Assistant's persisted data scope.
 
 ## File-upload semantics
 
@@ -782,7 +909,7 @@ Those path families should not be mixed together.
 
 ## `VolumeSubtreeClient`
 
-The older `WorkspaceVolumeClient` has been reframed as `VolumeSubtreeClient`, defined in [packages/server-ai/src/shared/volume/volume-subtree.ts](/Users/xpertai03/Pro/data/xpert/packages/server-ai/src/shared/volume/volume-subtree.ts:1).
+The older `WorkspaceVolumeClient` has been reframed as `VolumeSubtreeClient`, defined in `packages/server-ai/src/shared/volume/volume-subtree.ts`.
 
 Its job is not to represent a full Workspace. Instead it:
 
@@ -798,7 +925,7 @@ It is a good fit for:
 
 ## Dependency injection entry points
 
-The new architecture is exposed through [packages/server-ai/src/shared/volume/volume.module.ts](/Users/xpertai03/Pro/data/xpert/packages/server-ai/src/shared/volume/volume.module.ts:1):
+The new architecture is exposed through `packages/server-ai/src/shared/volume/volume.module.ts`:
 
 - `VOLUME_CLIENT`
 - `WorkspacePathMapperFactory`

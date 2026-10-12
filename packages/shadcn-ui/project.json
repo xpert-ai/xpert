@@ -15,6 +15,7 @@
         "assets": [
           "packages/shadcn-ui/*.md",
           "packages/shadcn-ui/components.json",
+          "packages/shadcn-ui/brand-icons/package.json",
           "packages/shadcn-ui/src/styles.css",
           "packages/shadcn-ui/src/brand-icons/*.md",
           "packages/shadcn-ui/src/brand-icons/*.txt"
@@ -24,7 +25,7 @@
     "test": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "pnpm --dir packages/shadcn-ui typecheck"
+        "command": "corepack pnpm --dir packages/shadcn-ui test"
       }
     },
     "test-overlays": {
@@ -37,7 +38,7 @@
       "executor": "@nx/eslint:lint",
       "outputs": ["{options.outputFile}"],
       "options": {
-        "lintFilePatterns": ["packages/shadcn-ui/**/*.ts", "packages/shadcn-ui/**/*.tsx"]
+        "lintFilePatterns": ["packages/shadcn-ui/**/*.ts", "packages/shadcn-ui/**/*.tsx", "packages/shadcn-ui/**/*.cts"]
       }
     }
   },

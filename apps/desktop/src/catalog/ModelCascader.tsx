@@ -12,12 +12,13 @@ import {
   PopoverContent,
   PopoverTrigger
 } from '@xpert-ai/shadcn-ui'
-import { Brain, Check, ChevronDown, ChevronRight, Eye, ScanText, Sparkles, Wrench } from 'lucide-react'
+import { Brain, Check, ChevronDown, ChevronRight, Eye, ScanText, Sparkles, Wrench, Boxes } from 'lucide-react'
 import { t } from '../i18n'
 import { isComputerModel, matchesModel, modelTags, providerGroups, rankModels, type ModelOption } from './model-options'
 
 export function ModelCascader({
   id,
+  label = t('Model'),
   models,
   value,
   onChange,
@@ -26,6 +27,7 @@ export function ModelCascader({
   defaultModelId
 }: {
   id: string
+  label?: string
   models: ModelOption[]
   value: string
   onChange: (value: string) => void
@@ -49,8 +51,12 @@ export function ModelCascader({
   const chooseProvider = (provider: string | null) => setProviderId(provider)
   return (
     <div className="space-y-2">
-      <Label htmlFor={id}>{t('Model')}</Label>
+      <Label id={`${id}-label`} htmlFor={id}>
+        {label}
+      </Label>
+      {/* The portaled list needs its own scroll scope inside modal dialogs. */}
       <Popover
+        modal
         open={open && !disabled}
         onOpenChange={(next) => {
           setOpen(next)
@@ -67,20 +73,25 @@ export function ModelCascader({
             type="button"
             variant="outline"
             disabled={disabled}
-            aria-label={selected ? t('Selected model: {{name}}', { name: selected.label }) : t('Select a model')}
+            aria-labelledby={`${id}-label ${id}-value`}
             className="h-auto min-h-14 w-full justify-between gap-3 rounded-xl px-3 py-2.5 text-left font-normal"
           >
             <span className="min-w-0 flex-1 space-y-1.5">
               <span className="flex min-w-0 items-center gap-2">
-                <span className="truncate font-medium">{selected?.label || t('Select a model')}</span>
+                <span id={`${id}-value`} className="truncate font-medium">
+                  {selected?.label || t('Select a model')}
+                </span>
                 {selected?.id === defaultModelId && (
                   <span className="shrink-0 text-xs text-muted-foreground">{t('Organization default')}</span>
                 )}
               </span>
               {selected && (
                 <>
-                  <span className="block truncate text-xs text-muted-foreground">
-                    {[selected.provider?.label, selected.connectionName].filter(Boolean).join(' / ')}
+                  <span className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+                    <ProviderIcon src={selected.provider?.iconUrl} />
+                    <span className="truncate">
+                      {[selected.provider?.label, selected.connectionName].filter(Boolean).join(' / ')}
+                    </span>
                   </span>
                   <ModelBadges model={selected} />
                 </>
@@ -127,10 +138,11 @@ export function ModelCascader({
                 className="max-h-80 space-y-1 overflow-y-auto overscroll-contain border-r bg-muted/30 p-1.5"
               >
                 {[
-                  { id: null, label: t('All providers'), count: matching.length },
+                  { id: null, label: t('All providers'), count: matching.length, iconUrl: undefined },
                   ...groups.map((group) => ({
                     id: group.id,
                     label: group.label || t('Other providers'),
+                    iconUrl: group.iconUrl,
                     count: group.models.length
                   }))
                 ].map((group) => (
@@ -147,6 +159,7 @@ export function ModelCascader({
                     }}
                     className={`flex w-full items-center gap-1 rounded-lg px-2 py-2.5 text-left text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring ${providerId === group.id ? 'bg-accent font-medium text-accent-foreground' : 'text-muted-foreground hover:bg-accent/60'}`}
                   >
+                    <ProviderIcon src={group.iconUrl} />
                     <span className="min-w-0 flex-1 break-words">{group.label}</span>
                     <span className="text-[10px] tabular-nums opacity-70">{group.count}</span>
                     <ChevronRight className="size-3 shrink-0" />
@@ -156,7 +169,15 @@ export function ModelCascader({
               <CommandList className="max-h-80 min-h-32 min-w-0 overscroll-contain p-1" aria-label={t('Models')}>
                 <CommandEmpty>{t('No matching models')}</CommandEmpty>
                 {visible.map((group) => (
-                  <CommandGroup key={group.id} heading={group.label || t('Other providers')}>
+                  <CommandGroup
+                    key={group.id}
+                    heading={
+                      <span className="flex items-center gap-1.5">
+                        <ProviderIcon src={group.iconUrl} />
+                        {group.label || t('Other providers')}
+                      </span>
+                    }
+                  >
                     {group.models.map((model) => (
                       <CommandItem
                         key={model.id}
@@ -202,6 +223,21 @@ export function ModelCascader({
         </p>
       )}
     </div>
+  )
+}
+
+function ProviderIcon({ src }: { src?: string }) {
+  const [failedUrl, setFailedUrl] = useState<string>()
+  return src && src !== failedUrl ? (
+    <img
+      src={src}
+      alt=""
+      className="size-4 shrink-0 object-contain"
+      referrerPolicy="no-referrer"
+      onError={() => setFailedUrl(src)}
+    />
+  ) : (
+    <Boxes className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
   )
 }
 

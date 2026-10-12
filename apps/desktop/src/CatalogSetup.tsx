@@ -2,13 +2,22 @@ import { t } from './i18n'
 import { useEffect, useState } from 'react'
 import { Button, Input, Label, Textarea } from '@xpert-ai/shadcn-ui'
 import { CatalogCombobox } from './CatalogCombobox'
-import { ModelSelect } from './catalog/ModelSelect'
+import { ModelCascader } from './catalog/ModelCascader'
 import { TemplateRequirements } from './catalog/TemplateRequirements'
+import { ApplicationToolsets } from './catalog/ApplicationToolsets'
+import { applicationToolsetsSelected, reconcileApplicationToolsets } from './catalog/application-toolsets'
 import { Check, ExternalLink, LoaderCircle } from 'lucide-react'
 import { HostError, invoke, openWorkspace } from './host'
 import { canUseExpert, categoryLabel } from './catalog-labels'
 import { ApplicationScreenshots } from './ApplicationScreenshots'
-import type { ApplicationSetup, CatalogItem, ExpertItem, WorkspaceOption, TemplatePreflight } from './catalog-types'
+import type {
+  ApplicationSetup,
+  ApplicationToolsetSelection,
+  CatalogItem,
+  ExpertItem,
+  WorkspaceOption,
+  TemplatePreflight
+} from './catalog-types'
 
 export function CatalogSetup({
   item,
@@ -42,6 +51,9 @@ export function CatalogSetup({
   const [reason, setReason] = useState('')
   const [embedding, setEmbedding] = useState('')
   const [vision, setVision] = useState('')
+  const [toolsets, setToolsets] = useState<ApplicationToolsetSelection[]>([])
+  const [editingToolset, setEditingToolset] = useState(false)
+  const [confirmDiscard, setConfirmDiscard] = useState(false)
   const [operationId] = useState(() => crypto.randomUUID())
   const [loading, setLoading] = useState(item.kind !== 'experts')
   const [busy, setBusy] = useState(false)
@@ -61,8 +73,13 @@ export function CatalogSetup({
           if (!active) return
           onItemUpdated(result.application)
           setSetup(result)
-          setEmbedding(result.defaultEmbeddingModelId)
-          setVision(result.defaultVisionModelId)
+          setEmbedding((current) =>
+            result.embeddingModels.some((model) => model.id === current) ? current : result.defaultEmbeddingModelId
+          )
+          setVision((current) =>
+            result.visionModels.some((model) => model.id === current) ? current : result.defaultVisionModelId
+          )
+          setToolsets((current) => reconcileApplicationToolsets(result.toolsetRequirements, current))
           if (result.application.status === 'ready') setInstalled(result.application.botId)
         } else if (item.kind === 'templates') {
           const result = await invoke('templateSetup', { id: item.id, capabilities })
@@ -77,6 +94,7 @@ export function CatalogSetup({
         }
       } catch (error) {
         if (active) {
+          if (item.kind === 'applications') setSetup(null)
           setPreflight(null)
           setTemplateModel('')
           setError(error instanceof Error ? error.message : t('Could not load installation settings.'))
@@ -95,6 +113,7 @@ export function CatalogSetup({
     !busy &&
     !loading &&
     !uncertain &&
+    !editingToolset &&
     (installed ||
       (item.kind === 'experts'
         ? reason.trim().length > 0
@@ -107,7 +126,8 @@ export function CatalogSetup({
           : setup?.canInitialize &&
             !initializing &&
             (!setup.requireEmbedding || embedding) &&
-            (!setup.requireVision || vision)))
+            (!setup.requireVision || vision) &&
+            applicationToolsetsSelected(setup.toolsetRequirements, toolsets)))
   const submit = async () => {
     if (!canSubmit) return
     setBusy(true)
@@ -132,6 +152,7 @@ export function CatalogSetup({
               pluginName: item.pluginName,
               appName: item.appName,
               operationId,
+              toolsets,
               ...(embedding ? { embeddingModelId: embedding } : {}),
               ...(vision ? { visionModelId: vision } : {})
             })
@@ -151,6 +172,27 @@ export function CatalogSetup({
     } catch (error) {
       if (!installationComplete && item.kind === 'templates' && error instanceof HostError && error.status === 503)
         setUncertain(true)
+      setError(error instanceof Error ? error.message : t('The operation failed. Please retry.'))
+    } finally {
+      setBusy(false)
+      onBusy(false)
+    }
+  }
+  const discardConfiguration = async () => {
+    if (item.kind !== 'applications' || !setup?.canDiscardConfiguration || busy || editingToolset) return
+    setBusy(true)
+    onBusy(true)
+    setError('')
+    try {
+      const result = await invoke('discardApplicationConfiguration', {
+        pluginName: item.pluginName,
+        appName: item.appName
+      })
+      setSetup(result)
+      setToolsets([])
+      setConfirmDiscard(false)
+      onItemUpdated(result.application)
+    } catch (error) {
       setError(error instanceof Error ? error.message : t('The operation failed. Please retry.'))
     } finally {
       setBusy(false)
@@ -325,24 +367,80 @@ export function CatalogSetup({
                       {(setup.requireEmbedding || setup.requireVision) && (
                         <div className="space-y-5 border-t pt-5">
                           {setup.requireEmbedding && (
-                            <ModelSelect
+                            <ModelCascader
                               id="embedding-model"
                               label={t(setup.embeddingLabel)}
-                              options={setup.embeddingModels}
+                              models={setup.embeddingModels}
+                              defaultModelId={setup.defaultEmbeddingModelId}
                               value={embedding}
                               onChange={setEmbedding}
-                              disabled={busy}
+                              disabled={busy || editingToolset}
                             />
                           )}
                           {setup.requireVision && (
-                            <ModelSelect
+                            <ModelCascader
                               id="vision-model"
                               label={t(setup.visionLabel)}
-                              options={setup.visionModels}
+                              models={setup.visionModels}
+                              defaultModelId={setup.defaultVisionModelId}
                               value={vision}
                               onChange={setVision}
-                              disabled={busy}
+                              disabled={busy || editingToolset}
                             />
+                          )}
+                        </div>
+                      )}
+                      <ApplicationToolsets
+                        application={{ pluginName: item.pluginName, appName: item.appName }}
+                        setup={setup}
+                        selections={toolsets}
+                        onSelections={setToolsets}
+                        disabled={busy || loading || initializing}
+                        webUrl={webUrl}
+                        onRefresh={() => setRevision((value) => value + 1)}
+                        onEditing={setEditingToolset}
+                        onBusy={(value) => {
+                          setBusy(value)
+                          onBusy(value)
+                        }}
+                      />
+                      {setup.canDiscardConfiguration && !initializing && (
+                        <div className="space-y-3 border-t pt-5">
+                          {confirmDiscard ? (
+                            <>
+                              <p className="text-sm text-muted-foreground">
+                                {t(
+                                  'Discard this unfinished app configuration and its setup workspace? Existing source configurations are kept.'
+                                )}
+                              </p>
+                              <div className="flex gap-2">
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  disabled={busy}
+                                  onClick={() => setConfirmDiscard(false)}
+                                >
+                                  {t('Cancel')}
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="destructive"
+                                  disabled={busy || editingToolset}
+                                  onClick={() => void discardConfiguration()}
+                                >
+                                  {t('Discard configuration')}
+                                </Button>
+                              </div>
+                            </>
+                          ) : (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              disabled={busy || editingToolset}
+                              onClick={() => setConfirmDiscard(true)}
+                            >
+                              {t('Discard configuration')}
+                            </Button>
                           )}
                         </div>
                       )}
@@ -388,7 +486,7 @@ export function CatalogSetup({
             <Button
               type="button"
               variant="outline"
-              disabled={busy || loading || uncertain}
+              disabled={busy || loading || uncertain || editingToolset}
               onClick={() => setRevision((value) => value + 1)}
             >
               {t('Refresh settings')}

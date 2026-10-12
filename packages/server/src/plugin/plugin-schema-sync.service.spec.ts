@@ -25,10 +25,21 @@ class PluginSubscriber {
 
 describe('plugin schema preflight', () => {
 	const input = { pluginName: 'test-plugin', pluginBaseDir: '/test-plugin' }
-	const migration = { initialize: jest.fn(), synchronize: jest.fn(), destroy: jest.fn(), isInitialized: true }
+	const pluginMetadata = { target: PluginEntity, tableName: 'plugin_test_entity', synchronize: true, relations: [] }
+	const hostMetadata = { target: class HostEntity {}, tableName: 'host_entity', synchronize: true, relations: [] }
+	const migration = {
+		initialize: jest.fn(),
+		synchronize: jest.fn(),
+		destroy: jest.fn(),
+		isInitialized: true,
+		entityMetadatas: [pluginMetadata, hostMetadata]
+	}
 	let service: PluginSchemaSyncService
 	beforeEach(() => {
 		jest.clearAllMocks()
+		pluginMetadata.synchronize = true
+		hostMetadata.synchronize = true
+		migration.synchronize.mockReset()
 		jest.mocked(DataSource).mockImplementation(() => migration as unknown as DataSource)
 		jest.mocked(loadPlugin).mockResolvedValue({
 			meta: {
@@ -69,10 +80,26 @@ describe('plugin schema preflight', () => {
 		jest.mocked(collectPluginOrmMetadata).mockReturnValue({ entities: [PluginEntity], subscribers: [] })
 		await service.synchronize(input)
 		expect(DataSource).toHaveBeenCalledWith(
-			expect.objectContaining({ entities: [PluginEntity], synchronize: false })
+			expect.objectContaining({
+				entities: [PluginEntity],
+				synchronize: false,
+				dropSchema: false,
+				migrationsRun: false,
+				migrations: [],
+				subscribers: []
+			})
 		)
+		expect(pluginMetadata.synchronize).toBe(true)
+		expect(hostMetadata.synchronize).toBe(false)
 		expect(migration.initialize).toHaveBeenCalledTimes(1)
 		expect(migration.synchronize).toHaveBeenCalledTimes(1)
+		expect(migration.destroy).toHaveBeenCalledTimes(1)
+	})
+
+	it('closes the migration connection and propagates a failed schema change', async () => {
+		jest.mocked(collectPluginOrmMetadata).mockReturnValue({ entities: [PluginEntity], subscribers: [] })
+		migration.synchronize.mockRejectedValueOnce(new Error('schema change rejected'))
+		await expect(service.synchronize(input)).rejects.toThrow('schema change rejected')
 		expect(migration.destroy).toHaveBeenCalledTimes(1)
 	})
 })

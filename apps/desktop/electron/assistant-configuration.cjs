@@ -1,4 +1,5 @@
 // Configuration writes always use the platform's workspace-authoring check and current organization.
+const { modelOptions } = require('./model-options.cjs')
 function createAssistantConfigurationMethods(ClientError) {
   function assistant(service, input) {
     const bot = service.bots.find((bot) => bot.id === input?.botId)
@@ -54,13 +55,13 @@ function createAssistantConfigurationMethods(ClientError) {
           reason: result.setup.reason || '',
           requiresModel: true,
           optionalCapabilities: result.setup.optionalCapabilities,
-          realtimeModels: result.setup.realtimeModels?.map(({ id, label, voices, defaultVoice }) => ({
-            id,
-            label,
+          defaultModelId: result.setup.defaultModelId,
+          realtimeModels: result.setup.realtimeModels?.map(({ voices, defaultVoice, ...model }) => ({
+            ...modelOptions([model], this.config?.locale, ClientError)[0],
             voices,
             defaultVoice
           })),
-          models: result.setup.models.map(({ id, label }) => ({ id, label }))
+          models: modelOptions(result.setup.models, this.config?.locale, ClientError)
         }
       }
     },

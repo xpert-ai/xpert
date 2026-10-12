@@ -79,6 +79,8 @@ await outboundQueue.enqueueFile(integration, {
 
 这样业务 middleware 只处理业务文件，不需要知道 Volume 根目录、Docker bind mount 或 `/workspace` 到 `/sandbox` 的映射。
 
+应用内部状态使用同一能力的 `appData({ pluginName, requireUserIsolation: true })` API，将插件命名空间绑定到已授权 Assistant Volume，并获得原子写入与共享文件系统锁。普通文件 API 不能访问 `.apps`。作用域、并发、持久存储配置和 Meetings 示例见 [Assistant 应用数据](./volume-workspace-architecture#assistant-应用数据)。
+
 ## 最佳实践
 
 - 保持 hook 幂等，避免重型阻塞逻辑。

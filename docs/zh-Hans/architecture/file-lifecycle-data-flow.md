@@ -71,7 +71,7 @@ contexts/<tenantId>/files-<timestamp>-<random>.docx
 
 上传控制器不接受客户端直接指定可信的工作区路径；`workspacePath` 在完成授权和实际文件投影后由服务端生成。租户、组织和用户身份来自请求认证上下文。
 
-来源：[上传控制器](../../../packages/server-ai/src/ai/context.controller.ts)、[上传编排](../../../packages/server/src/file/file-upload/upload-file.service.ts)、[存储目标](../../../packages/server/src/file/file-upload/strategies/storage-target.strategy.ts)、[LOCAL Provider](../../../packages/server/src/file/file-storage/providers/local.provider.ts)、[创建文件资产](../../../packages/server-ai/src/file-understanding/commands/handlers/create-file-asset.handler.ts)。
+来源：[上传控制器](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/ai/context.controller.ts)、[上传编排](https://github.com/xpert-ai/xpert/blob/main/packages/server/src/file/file-upload/upload-file.service.ts)、[存储目标](https://github.com/xpert-ai/xpert/blob/main/packages/server/src/file/file-upload/strategies/storage-target.strategy.ts)、[LOCAL Provider](https://github.com/xpert-ai/xpert/blob/main/packages/server/src/file/file-storage/providers/local.provider.ts)、[创建文件资产](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/file-understanding/commands/handlers/create-file-asset.handler.ts)。
 
 ## 解析与建立文本索引
 
@@ -100,7 +100,7 @@ flowchart TD
 
 `IndexFileChunksHandler` 对可分块的 artifact 正文切分，保存 `file_chunk.content`，并建立引用锚点和向量索引。解析完成后回写 `file_asset.status`、`summary`、`capabilities`、`metadata.parser`、`metadata.chunkCount` 和 `parsedAt`。状态 `ready` 表示这条解析链完成，不会改变原始 DOCX 字节。
 
-来源：[解析 Handler](../../../packages/server-ai/src/file-understanding/commands/handlers/parse-file-asset.handler.ts)、[解析调度](../../../packages/server-ai/src/file-understanding/commands/handlers/enqueue-file-parse.handler.ts)、[Office 解析器](../../../packages/server-ai/src/file-understanding/parsers/office.parser.ts)、[文本分块](../../../packages/server-ai/src/file-understanding/commands/handlers/index-file-chunks.handler.ts)。
+来源：[解析 Handler](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/file-understanding/commands/handlers/parse-file-asset.handler.ts)、[解析调度](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/file-understanding/commands/handlers/enqueue-file-parse.handler.ts)、[Office 解析器](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/file-understanding/parsers/office.parser.ts)、[文本分块](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/file-understanding/commands/handlers/index-file-chunks.handler.ts)。
 
 ## 工作区副本与路径传递
 
@@ -128,7 +128,7 @@ workspacePath = /workspace/sessions/<C>/files/<F>/示例招标文件.docx
 
 投影复制的是原文件 `Buffer`，不是 `file_chunk.content`。拥有 `workspace` capability 只说明文件可以按路径访问，不说明文件可以作为 UTF-8 文本读取。
 
-来源：[工作区投影](../../../packages/server-ai/src/file-understanding/file-workspace-projection.service.ts)、[工作区路径解析](../../../packages/server-ai/src/file-understanding/domain/workspace-file.ts)。
+来源：[工作区投影](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/file-understanding/file-workspace-projection.service.ts)、[工作区路径解析](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/file-understanding/domain/workspace-file.ts)。
 
 ## 附件引用进入对话与模型输入
 
@@ -173,7 +173,7 @@ attachChatFileAssetsToConversation()
 
 字段名 `id` 随对象类型变化：上传返回的 `AgentFile.id` 是 `F`；`resolveAttachmentFile()` 命中 `StorageFile` 分支时，内部对象的 `id` 可变成 `S`，同时保留 `fileId=F`、`fileAssetId=F`。跨层定位文件应使用明确的 `fileAssetId/fileId` 和 `storageFileId`。
 
-来源：[聊天文件引用归一化](../../../packages/server-ai/src/xpert/commands/handlers/chat-file-assets.ts)、[附件关联对话](../../../packages/server-ai/src/file-understanding/commands/handlers/attach-file-to-conversation.handler.ts)、[模型附件输入](../../../packages/server-ai/src/shared/agent/message.ts)、[消息附件关系](../../../packages/server-ai/src/chat-message/chat-message.entity.ts)。
+来源：[聊天文件引用归一化](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert/commands/handlers/chat-file-assets.ts)、[附件关联对话](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/file-understanding/commands/handlers/attach-file-to-conversation.handler.ts)、[模型附件输入](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/shared/agent/message.ts)、[消息附件关系](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/chat-message/chat-message.entity.ts)。
 
 ## Agent 读取文件的两条路径
 
@@ -214,7 +214,7 @@ flowchart TD
 
 截至实现基线，`BaseSandbox.read()` 的 slice 和 indentation 模式都执行 `fs.readFileSync(filePath, 'utf-8')`。它们没有复用文件理解层 `decodeTextFileContent()` 的二进制检查。DOCX 等原文件即使解析状态为 `ready`，走这条原文件路径仍可能产生乱码和空字符。
 
-来源：[解析文件工具](../../../packages/server-ai/src/file-understanding/tools/file-understanding.tools.ts)、[搜索 Handler](../../../packages/server-ai/src/file-understanding/queries/handlers/search-file-chunks.handler.ts)、[读取 Handler](../../../packages/server-ai/src/file-understanding/queries/handlers/read-file-chunk.handler.ts)、[沙箱文件工具](../../../packages/server-ai/src/sandbox/middlewares/sandbox-file.middleware.ts)、[BaseSandbox](../../../packages/plugin-sdk/src/lib/sandbox/sandbox.ts)、[文本解码校验](../../../packages/server-ai/src/file-understanding/parsers/text-file.ts)。
+来源：[解析文件工具](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/file-understanding/tools/file-understanding.tools.ts)、[搜索 Handler](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/file-understanding/queries/handlers/search-file-chunks.handler.ts)、[读取 Handler](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/file-understanding/queries/handlers/read-file-chunk.handler.ts)、[沙箱文件工具](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/sandbox/middlewares/sandbox-file.middleware.ts)、[BaseSandbox](https://github.com/xpert-ai/xpert/blob/main/packages/plugin-sdk/src/lib/sandbox/sandbox.ts)、[文本解码校验](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/file-understanding/parsers/text-file.ts)。
 
 ## 工具输出进入对话消息
 
@@ -258,7 +258,7 @@ BaseSandbox.read() 返回 result 字符串
 
 `ON_TOOL_MESSAGE` 还有写入 `aiMessage.events` 的处理分支；本次 `category='Tool'` 事件先被转换为组件消息，异常字节实际位于 `content[2].data.output`，该记录的 `events` 为空。
 
-来源：[工具事件封装](../../../packages/server-ai/src/sandbox/middlewares/tool-message.utils.ts)、[Agent 事件转换](../../../packages/server-ai/src/xpert-agent/agent.ts)、[聊天流处理](../../../packages/server-ai/src/xpert/commands/handlers/chat.handler.ts)、[消息保存前处理](../../../packages/server-ai/src/chat-message/message-step-persistence.ts)、[消息持久化 Handler](../../../packages/server-ai/src/chat-message/commands/handlers/upsert.handler.ts)。
+来源：[工具事件封装](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/sandbox/middlewares/tool-message.utils.ts)、[Agent 事件转换](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-agent/agent.ts)、[聊天流处理](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert/commands/handlers/chat.handler.ts)、[消息保存前处理](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/chat-message/message-step-persistence.ts)、[消息持久化 Handler](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/chat-message/commands/handlers/upsert.handler.ts)。
 
 ## 历史对话读取
 
@@ -293,7 +293,7 @@ message.content::jsonb -> 0 ->> 'type' = 'call_ended'
 
 `content` 列本身是 `json`。为判断首个块的 `type`，上述条件会将整条内容转换成 `jsonb`。因此，即使问题字符位于嵌套的工具输出中，也可能使整次历史消息查询失败。该过滤发生在分页之前，调整前端分页数量不能可靠避开异常记录。
 
-来源：[历史消息控制器](../../../packages/server-ai/src/ai/conversation.controller.ts)、[线程消息查询](../../../packages/server-ai/src/chat-conversation/conversation-thread.service.ts)。
+来源：[历史消息控制器](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/ai/conversation.controller.ts)、[线程消息查询](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/chat-conversation/conversation-thread.service.ts)。
 
 ## 字段映射速查
 
@@ -350,4 +350,4 @@ message.content::jsonb -> 0 ->> 'type' = 'call_ended'
 - [统一文件上传架构](../guides/file-upload-architecture.mdx)
 - [文件理解架构](../guides/file-understanding-architecture.mdx)
 - [Volume 与工作区架构](../guides/volume-workspace-architecture.mdx)
-- [AI Agent 架构与源码地图](ai-agent-architecture.md)
+- [AI Agent 架构与源码地图](/zh-Hans/architecture/ai-agent-architecture)

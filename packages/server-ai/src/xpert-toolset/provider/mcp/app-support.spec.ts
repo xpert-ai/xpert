@@ -1,6 +1,7 @@
 import type { DynamicStructuredTool } from '@langchain/core/tools'
 import type { MultiServerMCPClient } from '@langchain/mcp-adapters'
 import type { IXpertToolset } from '@xpert-ai/contracts'
+import { environment } from '@xpert-ai/server-config'
 import {
     appendMcpAppMessage,
     applyMcpAppInstanceSnapshot,
@@ -58,13 +59,9 @@ function createToolset(): Pick<
 describe('MCP App instance lifecycle', () => {
     const originalFetch = global.fetch
 
-    beforeEach(() => {
-        process.env.XPERT_MCP_APPS_ENABLED = 'true'
-    })
-
     afterEach(() => {
         configureMcpAppInstancePersistence(null)
-        delete process.env.XPERT_MCP_APPS_ENABLED
+        jest.restoreAllMocks()
         global.fetch = originalFetch
         jest.useRealTimers()
     })
@@ -87,6 +84,37 @@ describe('MCP App instance lifecycle', () => {
         const restored = restoreMcpAppInstance({ ...original, expiresAt: Date.now() + 1000 })!
         expect(restored.expiresAt).toBeLessThanOrEqual(Date.now() + 1000)
         expect(save).toHaveBeenCalledTimes(1)
+        detachMcpAppInstancesForClient(client)
+    })
+
+    it.each([false, true])('registers and restores Apps by default when production=%s', (production) => {
+        jest.replaceProperty(environment, 'production', production)
+        jest.replaceProperty(process, 'env', {
+            ...process.env,
+            XPERT_MCP_APP_TOKEN_SECRET: 'mcp-app-test-signing-secret-32-characters'
+        })
+        const client = {} as MultiServerMCPClient
+        const app = registerMcpAppInstance({
+            client,
+            toolset: createToolset(),
+            tool: createTool('project_settings', 'ui://project-settings'),
+            toolInput: { title: 'New project' },
+            toolResult: { content: [{ type: 'text', text: 'Review settings' }] }
+        })
+
+        expect(app?.appInstanceId).toBeTruthy()
+        expect(app?.appInstanceToken).toBeTruthy()
+        const instance = getMcpAppInstance(app!.appInstanceId)!
+        expect(detachMcpAppInstancesForClient(client)).toBe(1)
+        expect(getMcpAppInstance(instance.id)).toBeNull()
+
+        const restored = restoreMcpAppInstance(instance)
+        expect(restored).toMatchObject({
+            id: instance.id,
+            toolInput: { title: 'New project' },
+            toolResult: { content: [{ type: 'text', text: 'Review settings' }] }
+        })
+        expect(getMcpAppInstance(instance.id)).toBe(restored)
         detachMcpAppInstancesForClient(client)
     })
 

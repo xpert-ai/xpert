@@ -280,6 +280,15 @@ export interface HostMethods {
   requestExpertAccess: { input: { id: string; reason: string }; output: ExpertItem }
   applicationSetup: { input: ApplicationInput; output: ApplicationSetup }
   initializeApplication: { input: InitializeApplicationInput; output: { botId: string } }
+  applicationToolsetSetup: {
+    input: import('./catalog-types').ApplicationToolsetInput
+    output: import('./catalog-types').ApplicationToolsetSetup
+  }
+  saveApplicationToolset: {
+    input: import('./catalog-types').SaveApplicationToolsetInput
+    output: import('./catalog-types').ApplicationToolsetSelection
+  }
+  discardApplicationConfiguration: { input: ApplicationInput; output: ApplicationSetup }
   templateWorkspaces: { input: undefined; output: WorkspaceOption[] }
   templateSetup: {
     input: { id: string; capabilities?: string[] }

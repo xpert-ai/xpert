@@ -244,7 +244,7 @@ flowchart LR
 - 使用宿主传入的 `fileScope` 和 Workspace Files 读取原文件；不接受任意本地路径或远程下载地址。
 - `configSchema` 首期为空；图像理解、分块大小等仍在现有知识库设置中。
 
-复用入口：[SDK Transformer 接口](../packages/plugin-sdk/src/lib/rag/transformer/strategy.interface.ts)、[MarkItDown Sandbox 适配参考](https://github.com/xpert-ai/xpert-plugins/blob/159e9e211e0c4d6c5b5d7b7714991455fb2e01ca/xpertai/middlewares/markitdown/src/lib/convert.ts)。这是新插件，不复制改名现有 MarkItDown 插件或共用其业务标识。
+复用入口：[SDK Transformer 接口](https://github.com/xpert-ai/xpert/blob/main/packages/plugin-sdk/src/lib/rag/transformer/strategy.interface.ts)、[MarkItDown Sandbox 适配参考](https://github.com/xpert-ai/xpert-plugins/blob/159e9e211e0c4d6c5b5d7b7714991455fb2e01ca/xpertai/middlewares/markitdown/src/lib/convert.ts)。这是新插件，不复制改名现有 MarkItDown 插件或共用其业务标识。
 
 #### 6.5.2 转换与资产
 
@@ -284,14 +284,14 @@ Action 返回内部结果 manifest，包含 schema 版本、正文和受限的�
 
 已在平台 #1044 补齐以下入口：
 
-| 位置                                                                                                       | 必要改动                                                               | 保持的行为                                                           |
-| ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| [上传组件](../apps/cloud/src/app/@shared/knowledge/source-local-file/local-file.component.ts) 及实际调用处 | 将已安装解析器声明的格式纳入可接受格式；RTF、DOC、PPT 等能进入导入流程 | 未选择／未安装可用解析器时明确提示，不能误走文本读取                 |
-| [解析器分组](../apps/cloud/src/app/features/xpert/knowledge/processing/parser-engine-rows.ts)              | 同类格式沿用合并行展示，如 DOC／DOCX、PPT／PPTX；新类别只增加必要行    | 不再次按每个扩展名拆成大量重复配置                                   |
-| [格式规范化](../packages/contracts/src/ai/knowledge-parser-selection.ts)                                   | 验证扩展名、MIME 和常见别名一致；只补真实缺口                          | 不把 anydoc 支持的格式加入内置解析器能力列表                         |
-| [压缩包导入](../packages/server-ai/src/knowledgebase/commands/handlers/knowledgebase-documents.handler.ts) | 默认格式范围与已注册解析器能力衔接；保留调用方显式的更窄范围           | 原有数量、大小、层级限制不变                                         |
-| [错误提示](../packages/server-ai/src/knowledge-document/parser-error.ts) 及语言资源                        | 将受限的 anydoc 错误码翻译为可操作的消息                               | 不把所有异常抹成 Internal server error，不回显文档正文或内部绝对路径 |
-| 平台 Sandbox Runtime                                                                                       | 新增文档 Node 镜像、定义、注册、受管本地依赖和健康检查                 | Python、浏览器、LibreOffice profile 的约定不变                       |
+| 位置                                                                                                                                                | 必要改动                                                               | 保持的行为                                                           |
+| --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| [上传组件](https://github.com/xpert-ai/xpert/blob/main/apps/cloud/src/app/@shared/knowledge/source-local-file/local-file.component.ts) 及实际调用处 | 将已安装解析器声明的格式纳入可接受格式；RTF、DOC、PPT 等能进入导入流程 | 未选择／未安装可用解析器时明确提示，不能误走文本读取                 |
+| [解析器分组](https://github.com/xpert-ai/xpert/blob/main/apps/cloud/src/app/features/xpert/knowledge/processing/parser-engine-rows.ts)              | 同类格式沿用合并行展示，如 DOC／DOCX、PPT／PPTX；新类别只增加必要行    | 不再次按每个扩展名拆成大量重复配置                                   |
+| [格式规范化](https://github.com/xpert-ai/xpert/blob/main/packages/contracts/src/ai/knowledge-parser-selection.ts)                                   | 验证扩展名、MIME 和常见别名一致；只补真实缺口                          | 不把 anydoc 支持的格式加入内置解析器能力列表                         |
+| [压缩包导入](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/knowledgebase/commands/handlers/knowledgebase-documents.handler.ts) | 默认格式范围与已注册解析器能力衔接；保留调用方显式的更窄范围           | 原有数量、大小、层级限制不变                                         |
+| [错误提示](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/knowledge-document/parser-error.ts) 及语言资源                        | 将受限的 anydoc 错误码翻译为可操作的消息                               | 不把所有异常抹成 Internal server error，不回显文档正文或内部绝对路径 |
+| 平台 Sandbox Runtime                                                                                                                                | 新增文档 Node 镜像、定义、注册、受管本地依赖和健康检查                 | Python、浏览器、LibreOffice profile 的约定不变                       |
 
 新增格式的接受范围依据真实已注册能力扩展；已有页面调用方指定 `accepts` 时保留其限制。解析器不可用时保留用户原选择并报错，不静默替换已有配置。
 

@@ -45,6 +45,47 @@ test('a denied user gets no editable prompt and unknown bots cannot address arbi
   assert.deepEqual(await service.assistantConfiguration({ botId: 'copy' }), { canEdit: false })
   await assert.rejects(service.assistantConfiguration({ botId: 'other' }), { status: 403 })
 })
+
+test('assistant setup preserves display metadata for reasoning and realtime models without bindings or secrets', async () => {
+  const model = {
+    id: 'opaque',
+    label: 'Alias',
+    copilotModel: { model: 'native', copilotId: 'private-binding', options: { apiKey: 'never-expose' } },
+    provider: {
+      id: 'provider',
+      label: 'Provider',
+      iconUrl: 'https://api.example.com/icon.svg',
+      credentials: 'never-expose'
+    },
+    connectionName: 'Team',
+    features: ['vision'],
+    contextWindow: 64000
+  }
+  const service = fixture(async () => ({
+    ...reply,
+    setup: {
+      ...reply.setup,
+      models: [model],
+      realtimeModels: [{ ...model, voices: [{ id: 'voice', label: 'Voice' }], defaultVoice: 'voice' }]
+    }
+  }))
+  const { preflight } = await service.assistantConfiguration({ botId: 'copy' })
+  assert.deepEqual(preflight.models[0], {
+    id: 'opaque',
+    label: 'Alias',
+    model: 'native',
+    provider: { id: 'provider', label: 'Provider', iconUrl: 'https://api.example.com/icon.svg' },
+    connectionName: 'Team',
+    features: ['vision'],
+    contextWindow: 64000
+  })
+  assert.deepEqual(preflight.realtimeModels[0], {
+    ...preflight.models[0],
+    voices: [{ id: 'voice', label: 'Voice' }],
+    defaultVoice: 'voice'
+  })
+  assert.doesNotMatch(JSON.stringify(preflight), /never-expose|private-binding/)
+})
 test('saving publishes once, scopes the request, and passes an empty prompt unchanged', async () => {
   let called = 0
   const service = fixture(async (path, options) => {

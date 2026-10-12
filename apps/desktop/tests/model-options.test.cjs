@@ -33,6 +33,8 @@ test('provider cascade keeps same-name models and separate authorized connection
   assert.equal(matchesModel(entries[1], 'native-model'), true)
   assert.equal(matchesModel(entries[1], 'team'), false)
   assert.equal(matchesModel(entries[0], '  '), true)
+  assert.equal(matchesModel({ id: 'display', label: 'Alias', model: 'native-name' }, 'native-name'), true)
+  assert.equal(matchesModel({ id: 'legacy', label: 'Legacy' }, 'legacy'), true)
 })
 test('cloud recommendation uses declared capabilities and preserves organization default within compatible choices', () => {
   const entries = [

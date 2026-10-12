@@ -2,7 +2,7 @@
 
 日期：2026-10-07  
 状态：已实施，最终交互验收与发布记录见第 10 节。用户已授权连续实施和验收，无需逐步确认。  
-前置设计：[2026-10-06 Coding 执行查看器](2026-10-06-coding-cli-execution-view.md)。本文收敛其实现范围和顺序；旧文档中的布局原型保留为参考。
+前置设计：[2026-10-06 Coding 执行查看器](/plans/2026-10-06-coding-cli-execution-view)。本文收敛其实现范围和顺序；旧文档中的布局原型保留为参考。
 
 ## 1. 建议与首版范围
 
@@ -232,7 +232,7 @@ activity?: {
 
 五步中的协议、采集、只读 View、统一入口和自动化/真实 CLI 验证均已实现。数据库迁移已应用到本地环境；contracts/SDK/API 和 Runtime 插件已构建，插件按 system/tenant 范围刷新，xpert-pro 的 3000 API 已重启。原有 Assistant 未改写；新增独立验收 Assistant 和项目用于真实测试。没有发布 npm 包或提交版本。
 
-实际结构和运维说明见 [Coding Execution View README](../../packages/server-ai/src/agent-invocation/execution-view/README.md)。为保持首版简单，以下实现细节替代上文中的建议草案：
+实际结构和运维说明见 [Coding Execution View README](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/agent-invocation/execution-view/README.md)。为保持首版简单，以下实现细节替代上文中的建议草案：
 
 - 只增加可选 `activity: { version: 1, presentation: 'coding' }` 和 invocation-scoped recorder，不增加 kinds 注册、独立 Provider 注册表或第二套 Runtime。
 - 两张活动表；稳定 item ID、规范化 hash、事务内源游标 CAS、终态防回退。初始读取合并快照，后续按 seq 合并更新。
@@ -308,7 +308,7 @@ HTTP 测试首次运行被仓库已有的 `agent-execution.service.ts:10` 类型
 | 文件下载 | Web 与 Desktop 沿用版本授权，下载既有汇总 JSON，实际校验 count=12、sum=78、min=1、max=12                                   |
 | 视觉     | 同屏对照选定原型和最终实现；纸白/炭黑/深蓝、窄窗口及默认 14px 检查通过                                                     |
 
-实现说明见 [Transcript README](../../packages/server-ai/src/agent-invocation/remote-components/coding-execution/README.md)，视觉验收见 [design-qa.md](../../packages/server-ai/src/agent-invocation/remote-components/coding-execution/design-qa.md)。本地 API 的 remote component 构建产物已更新，可重新打开现有查看器测试；运行与采集服务没有为此重启。真实回执与界面截图保留在受保护本地验收目录，不将组织和执行标识写入源码。
+实现说明见 [Transcript README](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/agent-invocation/remote-components/coding-execution/README.md)，视觉验收见 [design-qa.md](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/agent-invocation/remote-components/coding-execution/design-qa.md)。本地 API 的 remote component 构建产物已更新，可重新打开现有查看器测试；运行与采集服务没有为此重启。真实回执与界面截图保留在受保护本地验收目录，不将组织和执行标识写入源码。
 
 ### 11.3 Header 与字号调整
 

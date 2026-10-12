@@ -1,6 +1,6 @@
 # Assistant Profile implementation and acceptance
 
-Date: 2026-09-03. Scope: the approved [implementation plan](PLAN_assistant_profile_hover_card.md).
+Date: 2026-09-03. Scope: the approved [implementation plan](/plans/PLAN_assistant_profile_hover_card).
 
 ## Installed environment
 

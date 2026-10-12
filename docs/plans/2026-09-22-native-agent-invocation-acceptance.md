@@ -2,7 +2,7 @@
 
 Date: 2026-09-22
 
-Related design: [Unified Agent Invocation](2026-09-22-unified-agent-invocation.md).
+Related design: [Unified Agent Invocation](/plans/2026-09-22-unified-agent-invocation).
 
 ## Result
 

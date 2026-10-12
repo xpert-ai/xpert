@@ -1,7 +1,7 @@
 # Assistant Profile hover card and plugin views
 
 Status: implemented and locally accepted on 2026-09-03. Approved on 2026-09-03.
-See [implementation and acceptance evidence](QA_assistant_profile_hover_card.md).
+See [implementation and acceptance evidence](/plans/QA_assistant_profile_hover_card).
 
 ## Goal and sequence
 

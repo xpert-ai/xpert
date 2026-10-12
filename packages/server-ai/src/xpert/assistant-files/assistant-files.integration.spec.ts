@@ -16,6 +16,8 @@ import { XpertService } from '../xpert.service'
 import { XpertWorkspaceFilesService } from '../xpert-workspace-files.service'
 import { AssistantFileAccessService } from './assistant-file-access.service'
 import { AssistantFilesService } from './assistant-files.service'
+import { WorkspaceFilesRuntimeCapabilityService } from '../../shared/runtime/workspace-files-runtime-capability.service'
+import { DefaultRuntimeCapabilityRegistry } from '@xpert-ai/plugin-sdk'
 
 // Bind legacy consumers to the same test actor without introducing another deprecated context import.
 jest.mock('@xpert-ai/server-core', () => ({
@@ -133,7 +135,7 @@ describe('Assistant file authority integration', () => {
             const directory = path.join(root, scope.tenantId, relative)
             return new VolumeHandle(scope, directory, directory, 'http://localhost/files', root)
         })
-        files = new AssistantFilesService(module.get(CommandBus), { createScopedApi: jest.fn() }, { resolve })
+        files = new AssistantFilesService(module.get(CommandBus), { resolve })
         studio = new XpertWorkspaceFilesService(files)
     })
 
@@ -253,5 +255,149 @@ describe('Assistant file authority integration', () => {
         const runtime = files.forRuntime(assistant.id)
         await expect(runtime.save('../outside.txt', 'escape')).rejects.toThrow()
         await expect(runtime.read('../../outside.txt')).rejects.toThrow()
+    })
+
+    const application = (actor: IUser, assistantId: string) => ({
+        tenantId: actor.tenantId,
+        organizationId: 'org-1',
+        userId: actor.id,
+        xpertId: assistantId
+    })
+
+    const createFiles = () =>
+        new WorkspaceFilesRuntimeCapabilityService(
+            module.get(CommandBus),
+            { resolve },
+            new DefaultRuntimeCapabilityRegistry(),
+            { execute: jest.fn().mockResolvedValue('meetings') }
+        )
+    const privateApp = { pluginName: '@xpert-ai/plugin-meetings', requireUserIsolation: true }
+
+    it('stores application state in the same user Assistant volume across independent API instances', async () => {
+        assistant.workspaceDataScope = 'user'
+        const first = createFiles()
+        const second = createFiles()
+        const a = first.createScopedApi(application(actor, assistant.id)).appData(privateApp)
+        const b = second.createScopedApi(application(actor, assistant.id)).appData(privateApp)
+        await a.write('records/meeting/meeting.json', '{"revision":1}')
+        await expect(b.read('records/meeting/meeting.json')).resolves.toEqual(Buffer.from('{"revision":1}'))
+        await expect(
+            files.forRuntime(assistant.id).read('.apps/meetings/records/meeting/meeting.json')
+        ).rejects.toThrow(ForbiddenException)
+        const writes = await Promise.allSettled(
+            [a, b].map((store) =>
+                store.withLock('meeting', async () => {
+                    const state = JSON.parse((await store.read('records/meeting/meeting.json')).toString())
+                    if (state.revision !== 1) throw new Error('revision_conflict')
+                    await store.write('records/meeting/meeting.json', '{"revision":2}')
+                })
+            )
+        )
+        expect(writes.filter((result) => result.status === 'fulfilled')).toHaveLength(1)
+        expect(writes.filter((result) => result.status === 'rejected')).toHaveLength(1)
+        expect((await b.read('records/meeting/meeting.json')).toString()).toBe('{"revision":2}')
+    })
+
+    it('isolates application storage by actor and rejects shared workspaces and stale bindings', async () => {
+        const service = createFiles()
+        const alice = service.createScopedApi(application(actor, assistant.id)).appData(privateApp)
+        await expect(alice.write('secret', 'private')).rejects.toMatchObject({
+            response: { code: 'assistant_user_workspace_required' }
+        })
+        expect(resolve).not.toHaveBeenCalled()
+        assistant.workspaceDataScope = 'user'
+        await alice.write('secret', 'private')
+        actor = { ...actor, id: 'user-a' }
+        await expect(alice.read('secret')).rejects.toThrow(ForbiddenException)
+        const bob = service.createScopedApi(application(actor, assistant.id)).appData(privateApp)
+        await expect(bob.read('secret')).rejects.toMatchObject({ code: 'ENOENT' })
+        await expect(files.forRuntime(assistant.id).read('.apps/meetings/secret')).rejects.toThrow(ForbiddenException)
+        await expect(
+            service.createScopedApi(application(actor, 'other-assistant')).appData(privateApp).read('secret')
+        ).rejects.toThrow()
+        await expect(
+            service
+                .createScopedApi({ ...application(actor, assistant.id), tenantId: 'other' })
+                .appData(privateApp)
+                .read('secret')
+        ).rejects.toThrow()
+        await expect(
+            service
+                .createScopedApi({ ...application(actor, assistant.id), organizationId: 'other' })
+                .appData(privateApp)
+                .read('secret')
+        ).rejects.toThrow()
+    })
+
+    it('revalidates application access after revocation and after switching the Assistant to shared mode', async () => {
+        assistant.workspaceDataScope = 'user'
+        const service = createFiles()
+        const storage = service.createScopedApi(application(actor, assistant.id)).appData(privateApp)
+        await storage.write('secret', 'private')
+        groupGrant = false
+        resolve.mockClear()
+        await expect(storage.read('secret')).rejects.toThrow(ForbiddenException)
+        await expect(storage.write('secret', 'changed')).rejects.toThrow(ForbiddenException)
+        await expect(storage.remove('secret')).rejects.toThrow(ForbiddenException)
+        expect(resolve).not.toHaveBeenCalled()
+        groupGrant = true
+        assistant.workspaceDataScope = 'shared'
+        await expect(storage.read('secret')).rejects.toMatchObject({
+            response: { code: 'assistant_user_workspace_required' }
+        })
+    })
+    it('supports shared app data by policy and reauthorizes ordinary runtime file access', async () => {
+        const service = createFiles()
+        const app = service.createScopedApi(application(actor, assistant.id)).appData({ pluginName: 'shared_app' })
+        await app.write('state', 'collaborative')
+        actor = { ...actor, id: 'user-c' }
+        const other = service.createScopedApi(application(actor, assistant.id)).appData({ pluginName: 'shared_app' })
+        await expect(other.read('state')).resolves.toEqual(Buffer.from('collaborative'))
+        await files
+            .forRuntime(assistant.id)
+            .uploadToFolder('visible', { originalname: 'a.txt', buffer: Buffer.from('ok') })
+        const runtime = service.createScopedApi(application(actor, assistant.id))
+        await expect(runtime.readRuntimeBuffer('/workspace/visible/a.txt')).resolves.toMatchObject({
+            buffer: Buffer.from('ok')
+        })
+        groupGrant = false
+        await expect(runtime.readRuntimeBuffer('/workspace/visible/a.txt')).rejects.toThrow(ForbiddenException)
+        await expect(runtime.deleteFile({ filePath: 'visible/a.txt' })).rejects.toThrow(ForbiddenException)
+    })
+
+    it('never redirects private file projections into a newly shared Assistant workspace', async () => {
+        assistant.workspaceDataScope = 'user'
+        const service = createFiles()
+        const privateFiles = service.createScopedApi({
+            ...application(actor, assistant.id),
+            catalog: 'user-xperts',
+            isolateByUser: true
+        })
+        assistant.workspaceDataScope = 'shared'
+        resolve.mockClear()
+        await expect(
+            privateFiles.writeRuntimeBuffer({
+                path: '/workspace/meetings/notes.md',
+                buffer: Buffer.from('private notes')
+            })
+        ).rejects.toThrow(ForbiddenException)
+        await expect(privateFiles.readRuntimeBuffer('/workspace/meetings/notes.md')).rejects.toThrow(ForbiddenException)
+        await expect(privateFiles.deleteFile({ filePath: 'meetings/notes.md' })).rejects.toThrow(ForbiddenException)
+        expect(resolve).not.toHaveBeenCalled()
+    })
+
+    it('uploads Studio drafts with authoring authority without falling back from runtime', async () => {
+        groupGrant = false
+        actor = { ...actor, id: 'user-a' }
+        assistant.publishAt = null
+        const studio = files.forAuthoring(assistant.id)
+        const file = {
+            originalname: 'draft.txt',
+            buffer: Buffer.from('draft'),
+            mimetype: 'text/plain'
+        } as Express.Multer.File
+        const reference = await studio.upload(file)
+        await expect(studio.read(reference.filePath)).resolves.toMatchObject({ contents: 'draft' })
+        await expect(files.forRuntime(assistant.id).upload(file)).rejects.toThrow(NotFoundException)
     })
 })

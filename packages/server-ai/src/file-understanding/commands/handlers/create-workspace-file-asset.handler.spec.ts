@@ -192,7 +192,7 @@ describe('CreateWorkspaceFileAssetHandler content type', () => {
             )
             expect(links.save.mock.calls[0][0]).toMatchObject({ metadata: expected.metadata })
             expect(commandBus.execute).toHaveBeenCalledWith(new EnqueueFileParseCommand('asset-1', { runInline: true }))
-            expect(VolumeHandle.openExistingFile).toHaveBeenCalledWith('/srv/project', 'shared/streamLoad(1).ts', {
+            expect(VolumeHandle.openFileSnapshot).toHaveBeenCalledWith('/srv/project', 'shared/streamLoad(1).ts', {
                 boundaryRoot: '/srv/project'
             })
             expect(fileHandle.readFile).toHaveBeenCalledTimes(1)
@@ -268,7 +268,7 @@ describe('CreateWorkspaceFileAssetHandler content type', () => {
         access.assertConversationAccess.mockRejectedValueOnce(new ForbiddenException())
 
         await expect(handler.execute(command())).rejects.toBeInstanceOf(ForbiddenException)
-        expect(VolumeHandle.openExistingFile).not.toHaveBeenCalled()
+        expect(VolumeHandle.openFileSnapshot).not.toHaveBeenCalled()
         expect(repository.save).not.toHaveBeenCalled()
     })
 
@@ -318,7 +318,7 @@ describe('CreateWorkspaceFileAssetHandler content type', () => {
 
 function mockOpenedFile(data: Buffer) {
     const fileHandle = { readFile: jest.fn().mockResolvedValue(data), close: jest.fn().mockResolvedValue(undefined) }
-    jest.spyOn(VolumeHandle, 'openExistingFile').mockResolvedValue({
+    jest.spyOn(VolumeHandle, 'openFileSnapshot').mockResolvedValue({
         fileStat: { isFile: () => true, size: data.length },
         fileHandle
     } as never)

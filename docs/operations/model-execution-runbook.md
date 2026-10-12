@@ -57,7 +57,7 @@ Token 必须是非负安全整数，`totalTokens = inputTokens + outputTokens`�
 
 ## 新任务：有界等待与 Agent 轮询
 
-普通长任务采用 [统一任务观察](../../packages/server-ai/src/runtime-task/README.md)：启动器返回已有 task handle，Agent 使用 `task_status({ taskIds, timeoutMs, mode })` 观察同一任务。默认等待 30 秒；设 0 即时查询，正值按宿主上限截断，默认上限为 60 秒。窗口结束返回 `pending`，不挂起父图，也不意味着任务失败；不得因此重复启动。没有独立的模型侧 `task_wait` 工具。
+普通长任务采用 [统一任务观察](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/runtime-task/README.md)：启动器返回已有 task handle，Agent 使用 `task_status({ taskIds, timeoutMs, mode })` 观察同一任务。默认等待 30 秒；设 0 即时查询，正值按宿主上限截断，默认上限为 60 秒。窗口结束返回 `pending`，不挂起父图，也不意味着任务失败；不得因此重复启动。没有独立的模型侧 `task_wait` 工具。
 
 后端在窗口内检查状态，不在每个定时 tick 调用模型。下一次模型决策由 Agent 自主发起；需检查 Assistant 提示词没有禁止轮询，以及父执行的迭代上限。用户取消父任务会终止观察；取消子任务须显式调用取消能力，并继续确认终态，不能把 `cancelling` 当作已停止。真正需要人确认的交互仍可 interrupt，不能由时间到期自动批准。
 
@@ -67,13 +67,13 @@ Token 必须是非负安全整数，`totalTokens = inputTokens + outputTokens`�
 
 新普通等待不写 `agent_invocation_wait`。旧监控器保留用于安全处理升级前的挂起记录：每 5 秒扫描到期待检查项，独立 dispatcher 每秒扫描 ready 项。数据库租约、原身份／插件绑定校验和准确 checkpoint 匹配共同防止重复恢复或批准另一个人机交互。
 
-`xpert_agent_invocation_wait{kind="oldest_error_seconds"}` 计算 waiting、ready、blocked 中有 `lastError` 的记录自创建以来的最大年龄，不是错误连续持续时长。其中 `awaiting_user` 可能是正常等待人工确认。收到恢复告警应先辨别原因；只有用户回应当前交互才能继续，不能自动批准或批量清除 blocked。临时故障修复后 waiting/ready 由调度器重试；stale 表示原检查点已失效，不能强行恢复。详见 [Invocation runtime](../../packages/server-ai/src/agent-invocation/README.md)。
+`xpert_agent_invocation_wait{kind="oldest_error_seconds"}` 计算 waiting、ready、blocked 中有 `lastError` 的记录自创建以来的最大年龄，不是错误连续持续时长。其中 `awaiting_user` 可能是正常等待人工确认。收到恢复告警应先辨别原因；只有用户回应当前交互才能继续，不能自动批准或批量清除 blocked。临时故障修复后 waiting/ready 由调度器重试；stale 表示原检查点已失效，不能强行恢复。详见 [Invocation runtime](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/agent-invocation/README.md)。
 
 ## 部署与回退
 
 基础 Agent Invocation 和 ModelExecution 表存在后，按顺序应用对应增量脚本，再启动完整新版 API/worker：
 
-1. [执行消费审计](../../packages/server-ai/src/model-execution/migrations/20261001-execution-operations.sql)。
-2. [历史等待记录](../../packages/server-ai/src/agent-invocation/migrations/20261001-invocation-wait.sql)，随后应用 [等待分组兼容](../../packages/server-ai/src/agent-invocation/migrations/20261002-task-wait-groups.sql)。即使新任务不挂起，已部署的历史监控器仍需要完整字段。
+1. [执行消费审计](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/model-execution/migrations/20261001-execution-operations.sql)。
+2. [历史等待记录](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/agent-invocation/migrations/20261001-invocation-wait.sql)，随后应用 [等待分组兼容](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/agent-invocation/migrations/20261002-task-wait-groups.sql)。即使新任务不挂起，已部署的历史监控器仍需要完整字段。
 
 部署前按既有流程备份并确认旧 worker 已退出。回退先停止新任务派发并撤销相关执行授权；旧 `enabled` 字段不再控制准入。保留可用的账本投递和证据应用 worker，处理完遗留消费与历史等待后再停监控器。不得删除用量、证据和等待表。撤销模型授权不证明 guest 进程或文件操作已停止；需要取消并确认终态。浏览器退出不应重启已有任务。

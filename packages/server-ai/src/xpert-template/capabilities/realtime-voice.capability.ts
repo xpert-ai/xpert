@@ -11,6 +11,7 @@ import { AssistantCapabilityProvider, IAssistantCapabilityProvider, RequestConte
 import { t } from 'i18next'
 import { FindCopilotModelsQuery } from '../../copilot/queries'
 import { CopilotWithProviderDto } from '../../copilot/dto'
+import { modelSelectionMetadata } from '../../copilot-model/model-selection-metadata'
 
 @Injectable()
 export class RealtimeModelCatalog {
@@ -30,6 +31,7 @@ export class RealtimeModelCatalog {
                 return [
                     {
                         ...model.realtime,
+                        ...modelSelectionMetadata(copilot, model, RequestContext.getLanguageCode()),
                         id: `${copilot.id}/${encodeURIComponent(model.model)}`,
                         label: `${resolveI18nText(copilot.providerWithModels.label, RequestContext.getLanguageCode()) || copilot.providerWithModels.provider} / ${resolveI18nText(model.label, RequestContext.getLanguageCode()) || model.model}`,
                         copilotModel: { copilotId: copilot.id, model: model.model, modelType: AiModelTypeEnum.REALTIME }

@@ -1,6 +1,7 @@
 import {
     AiModelTypeEnum,
     AiProviderRole,
+    LanguagesEnum,
     ModelFeature,
     PLUGIN_APPLICATION_INSTALLATION_STATUS,
     RolesEnum
@@ -65,6 +66,58 @@ describe('PluginApplicationService', () => {
             )
         )
     }
+
+    it('projects authorized model metadata while preserving connection identity and excluding secrets', async () => {
+        jest.spyOn(RequestContext, 'getLanguageCode').mockReturnValue(LanguagesEnum.SimplifiedChinese)
+        const execute = jest.fn().mockResolvedValue(
+            ['first', 'second'].map((id) => ({
+                id,
+                name: `${id} connection`,
+                credentials: { key: 'never-expose' },
+                providerWithModels: {
+                    provider: 'shared-provider',
+                    label: { en_US: 'Provider', zh_Hans: '供应商' },
+                    icon_small: { en_US: 'icon.svg', zh_Hans: 'icon-zh.svg' },
+                    urlPrefix: 'https://api.example.com/api/ai-model/provider/shared-provider',
+                    organizationQuery: '?organizationId=organization',
+                    credentials: { key: 'never-expose' },
+                    models: [
+                        {
+                            model: 'family/model',
+                            model_type: AiModelTypeEnum.LLM,
+                            label: 'Shared name',
+                            features: [ModelFeature.VISION],
+                            model_properties: { context_size: '128000', secret: 'never-expose' },
+                            options: { token: 'never-expose' }
+                        },
+                        { model: 'text-only', model_type: AiModelTypeEnum.LLM, label: 'Text only', features: [] }
+                    ]
+                }
+            }))
+        )
+        const service = createService([], SYSTEM_GLOBAL_SCOPE, { execute })
+        const models = await service['modelOptions'](AiModelTypeEnum.LLM, ModelFeature.VISION)
+        expect(models).toEqual(
+            ['first', 'second'].map((id) => ({
+                id: `${id}/family%2Fmodel`,
+                copilotId: id,
+                model: 'family/model',
+                label: 'Shared name',
+                modelType: AiModelTypeEnum.LLM,
+                provider: {
+                    id: 'shared-provider',
+                    label: '供应商',
+                    iconUrl:
+                        'https://api.example.com/api/ai-model/provider/shared-provider/icon_small/zh_Hans?organizationId=organization'
+                },
+                connectionName: `${id} connection`,
+                features: [ModelFeature.VISION],
+                contextWindow: 128000
+            }))
+        )
+        expect(execute).toHaveBeenCalledWith(new FindCopilotModelsQuery(AiModelTypeEnum.LLM))
+        expect(JSON.stringify(models)).not.toContain('never-expose')
+    })
 
     it.each(['private', 'organization', undefined])('normalizes %s sharing to private', (sharing) => {
         const workspace = Object.freeze({ mode: 'dedicated', name: 'Example App Workspace', sharing })

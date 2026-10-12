@@ -268,7 +268,7 @@ function parseHealthResult(value: unknown): NsjailRunnerHealth {
     if (!isObjectLike(value) || readString(value, 'status') !== 'ok') {
         return {
             available: false,
-            capabilities: { projectContentReadOnly: false },
+            capabilities: { projectContentReadOnly: false, appDataProtection: false },
             protocolVersion: null
         }
     }
@@ -284,7 +284,11 @@ function parseHealthResult(value: unknown): NsjailRunnerHealth {
 
     return {
         available: true,
-        capabilities: { projectContentReadOnly },
+        capabilities: {
+            projectContentReadOnly,
+            appDataProtection:
+                isObjectLike(capabilitiesValue) && readBoolean(capabilitiesValue, 'appDataProtection') === true
+        },
         protocolVersion
     }
 }

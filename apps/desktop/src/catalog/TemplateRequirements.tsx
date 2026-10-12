@@ -2,6 +2,7 @@ import { Label, Switch } from '@xpert-ai/shadcn-ui'
 import type { TemplatePreflight, VoiceSelection } from '../catalog-types'
 import { t } from '../i18n'
 import { ModelSelect } from './ModelSelect'
+import { ModelCascader } from './ModelCascader'
 
 export function TemplateRequirements({
   preflight,
@@ -42,10 +43,12 @@ export function TemplateRequirements({
         </div>
       ))}
       {preflight.requiresModel && preflight.models.length > 0 && (
-        <ModelSelect
+        <ModelCascader
           id="template-model"
           label={t('Assistant model')}
-          options={preflight.models}
+          models={preflight.models}
+          defaultModelId={preflight.defaultModelId}
+          computer={capabilities.includes('cloud-computer')}
           value={model}
           onChange={onModel}
           disabled={disabled}
@@ -53,10 +56,10 @@ export function TemplateRequirements({
       )}
       {capabilities.includes('realtime-voice') && preflight.realtimeModels && onRealtimeVoice && (
         <div className="space-y-4 border-t pt-4">
-          <ModelSelect
+          <ModelCascader
             id="realtime-model"
             label={t('Voice model')}
-            options={preflight.realtimeModels}
+            models={preflight.realtimeModels}
             value={realtimeVoice?.modelId ?? ''}
             disabled={disabled}
             onChange={(id) =>

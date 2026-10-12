@@ -64,7 +64,7 @@ Organization membership policy is resolved through the shared `ResolveUserOrgani
 
 Saving checks an appearance revision and updates only `title`, `titleCN` and `avatar`. It does not overwrite workflow, instructions or unpublished drafts and does not require publishing a new workflow version. After saving, Desktop refreshes its list and active ChatKit configuration.
 
-`TAvatar.appearance` has `version: 1` and an explicit `kind`: `character`, `pet` or `image`. Appearance and character types are re-exported from ChatKit types through [the contracts package](../packages/contracts/src/types.ts). The existing `url` static preview and emoji fields remain available to older avatar components.
+`TAvatar.appearance` has `version: 1` and an explicit `kind`: `character`, `pet` or `image`. Appearance and character types are re-exported from ChatKit types through [the contracts package](https://github.com/xpert-ai/xpert/blob/main/packages/contracts/src/types.ts). The existing `url` static preview and emoji fields remain available to older avatar components.
 
 Character and pet IDs are extensible resource strings, not enums of built-in names. Validation limits their length and safe characters. Pet assets can be a `sprite-atlas` or `animated-image` with a resource URL. Legacy pets identified only by ID retain the frame's `/pets/<id>/spritesheet.webp` convention.
 
@@ -94,8 +94,8 @@ Assistant appearance comes from public Assistant data. Desktop disables the addi
 
 Deploy the server and contracts, Cloud authorization page, ChatKit frame, then Desktop. Deployments that manage database structure outside ORM synchronization must apply these additive, nullable-column migrations in order:
 
-1. [Bootstrap checkpoint migration](../packages/server-ai/src/assistant-binding/migrations/20261003-bosi-bootstrap.sql).
-2. [Onboarding preferences migration](../packages/server-ai/src/assistant-binding/migrations/20261004-bosi-onboarding.sql).
+1. [Bootstrap checkpoint migration](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/assistant-binding/migrations/20261003-bosi-bootstrap.sql).
+2. [Onboarding preferences migration](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/assistant-binding/migrations/20261004-bosi-onboarding.sql).
 
 Existing bindings require no backfill. Keeping internal checkpoint types server-only changes no JSON storage keys and needs no additional migration. Desktop reports an upgrade requirement when an old server lacks the initialization APIs.
 
@@ -109,4 +109,4 @@ For changes to this flow, validate:
 - Public appearance permissions and conflicts, upload failure, legacy avatars, sprite versions, pet switching and metadata refresh across clients.
 - Real activity transitions, artifact and computer view opening, dialog dismissal and focus restoration, themes, narrow windows, keyboard operation and reduced motion in Electron.
 
-Relevant regression suites live alongside [bootstrap and onboarding](../packages/server-ai/src/assistant-binding/bosi), [public appearance](../packages/server-ai/src/xpert/assistant-appearance) and [Desktop Host tests](../apps/desktop/tests). Run the related backend and Desktop tests/build, plus ChatKit types and component checks when changing the shared frame contract. Runtime computer and third-party authorization checks need an environment with the corresponding services.
+Relevant regression suites live alongside [bootstrap and onboarding](https://github.com/xpert-ai/xpert/tree/main/packages/server-ai/src/assistant-binding/bosi), [public appearance](https://github.com/xpert-ai/xpert/tree/main/packages/server-ai/src/xpert/assistant-appearance) and [Desktop Host tests](https://github.com/xpert-ai/xpert/tree/main/apps/desktop/tests). Run the related backend and Desktop tests/build, plus ChatKit types and component checks when changing the shared frame contract. Runtime computer and third-party authorization checks need an environment with the corresponding services.

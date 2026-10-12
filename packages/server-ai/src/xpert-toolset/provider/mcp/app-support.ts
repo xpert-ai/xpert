@@ -1023,14 +1023,6 @@ function pruneExpiredMcpAppInstances(now = Date.now()) {
     }
 }
 
-export function isMcpAppsEnabled(): boolean {
-    const raw = process.env.XPERT_MCP_APPS_ENABLED?.trim().toLowerCase()
-    if (raw) {
-        return ['1', 'true', 'yes', 'on'].includes(raw)
-    }
-    return !environment.production
-}
-
 export function registerMcpAppInstance(options: {
     client?: MultiServerMCPClient
     middleware?: MiddlewareAppBackend
@@ -1043,10 +1035,6 @@ export function registerMcpAppInstance(options: {
     toolInput?: unknown
     toolResult?: unknown
 }): TMcpAppComponentData | null {
-    if (!isMcpAppsEnabled()) {
-        return null
-    }
-
     const toolMeta = options.toolMeta ?? getMcpToolAppMeta(options.tool)
     if (!toolMeta || !toolMeta.visibility.includes('app')) {
         return null
@@ -1139,10 +1127,6 @@ export function restoreMcpAppInstance(options: {
     createdAt?: number
     expiresAt?: number
 }): McpAppInstance | null {
-    if (!isMcpAppsEnabled()) {
-        return null
-    }
-
     const ui = options.toolMeta.ui
     if (!ui?.resourceUri?.startsWith('ui://') || !options.toolMeta.visibility.includes('app')) {
         return null

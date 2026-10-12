@@ -125,7 +125,12 @@ Xpert 是**以插件为核心的 NestJS 模块化平台**。统一的 **Agent + 
 
 ## 使用 Agent Skills 进行本地开发
 
-为 Codex 安装这些 [`xpert-skills`](https://github.com/xpert-ai/xpert-skills)，以搭建平台和开发应用。移除 `--global` 可仅安装到当前项目；`codex` 可替换为其他受支持的智能体。
+为 Codex 安装所需的 [`xpert-skills`](https://github.com/xpert-ai/xpert-skills)，以搭建平台、开发插件或接入自己的应用。移除 `--global` 可仅安装到当前项目；`codex` 可替换为其他受支持的智能体。
+
+不使用平台插件体系的应用，可按场景选择：
+
+- `xpert-chatkit-integration`：在自己的应用中嵌入 ChatKit 聊天界面，具体用法以 [ChatKit 官方文档](https://docs.xpertai.cn/zh-Hans/ai/chatkit)为准。
+- `xpert-sdk-integration`：在服务、脚本或自定义界面中单独使用 SDK，不依赖 ChatKit，具体用法以 [SDK 官方文档](https://docs.xpertai.cn/zh-Hans/ai/agent/development-api)为准。
 
 ```bash
 npx skills add xpert-ai/xpert-skills \
@@ -142,9 +147,19 @@ npx skills add xpert-ai/xpert-skills \
   --skill xpert-plugin-development \
   --agent codex \
   --global
+
+npx skills add xpert-ai/xpert-skills \
+  --skill xpert-chatkit-integration \
+  --agent codex \
+  --global
+
+npx skills add xpert-ai/xpert-skills \
+  --skill xpert-sdk-integration \
+  --agent codex \
+  --global
 ```
 
-新建智能体会话，依次执行：
+安装后新建智能体会话。开发平台插件时，依次执行：
 
 1. **搭建并验证 Xpert**
 

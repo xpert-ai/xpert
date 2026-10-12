@@ -3,9 +3,9 @@
 ### Summary
 
 - 现状已经确认：
-  - 前端把 `Tenant` 混入 organization 列表，用户在一个 selector 里切换了两种不同语义的上下文，见 [organization-selector.component.ts](/Users/xpertai03/GitHub/xpert/apps/cloud/src/app/@theme/header/organization-selector/organization-selector.component.ts)。
-  - 请求层默认靠是否带 `Organization-Id` 判断组织上下文，见 [tenant.interceptor.ts](/Users/xpertai03/GitHub/xpert/apps/cloud/src/app/@core/interceptors/tenant.interceptor.ts)。
-  - 后端基类把“未带 organization”直接解释成 `organizationId IS NULL`，见 [organization-aware-crud.service.ts](/Users/xpertai03/GitHub/xpert/packages/server/src/core/crud/organization-aware-crud.service.ts)。
+  - 前端把 `Tenant` 混入 organization 列表，用户在一个 selector 里切换了两种不同语义的上下文，见 [organization-selector.component.ts](https://github.com/xpert-ai/xpert/blob/main/apps/cloud/src/app/@theme/header/organization-selector/organization-selector.component.ts)。
+  - 请求层默认靠是否带 `Organization-Id` 判断组织上下文，见 [tenant.interceptor.ts](https://github.com/xpert-ai/xpert/blob/main/apps/cloud/src/app/@core/interceptors/tenant.interceptor.ts)。
+  - 后端基类把“未带 organization”直接解释成 `organizationId IS NULL`，见 [organization-aware-crud.service.ts](https://github.com/xpert-ai/xpert/blob/main/packages/server/src/core/crud/organization-aware-crud.service.ts)。
 - 新方案原则：
   - “作用域”必须显式，不再把 tenant 当成一个假 organization。
   - tenant 模式定义为“租户级治理/默认配置模式”，不是跨组织混合浏览模式。
