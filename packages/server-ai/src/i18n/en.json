@@ -53,6 +53,13 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "WorkspaceAppDataScopeRequired": "Application data requires a bound Assistant workspace.",
+        "WorkspaceManagedDataProtected": "Managed application data is accessible only through the application storage API.",
+        "WorkspaceAtomicTargetInvalid": "The write target must be a regular file with no symbolic or additional hard links.",
+        "NsJailRunnerAppDataProtectionUnsupported": "NsJail Runner must support managed application data protection (protocol 3).",
+        "WorkspaceStorageLockLost": "The application storage lock was lost. Retry the operation.",
+        "WorkspaceStorageInvalidPath": "The application storage path is invalid.",
+        "AssistantUserWorkspaceRequired": "This application requires a user-isolated Assistant workspace.",
         "KnowledgebaseCatalogInputInvalid": "Invalid knowledgebase catalog request.",
         "KnowledgebaseCatalogContextRequired": "Authenticated tenant and organization scope are required.",
         "KnowledgebaseCatalogUnavailable": "Knowledgebase is unavailable in the current scope.",

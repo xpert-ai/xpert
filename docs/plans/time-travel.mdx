@@ -1,17 +1,20 @@
 # Studio LangGraph State Inspector + Time Travel
 
 ## Summary
-- 当前运行链路已经具备“execution 反查 checkpoint/state”的基础：graph 在 [subgraph.handler.ts](/Users/xpertai03/GitHub/xpert/packages/server-ai/src/xpert-agent/commands/handlers/subgraph.handler.ts) 中用 `CopilotCheckpointSaver` 编译，执行结束后在 [invoke.handler.ts](/Users/xpertai03/GitHub/xpert/packages/server-ai/src/xpert-agent/commands/handlers/invoke.handler.ts) 把最新 `threadId/checkpointNs/checkpointId` 回写到 execution，现有 [agent-execution.controller.ts](/Users/xpertai03/GitHub/xpert/packages/server-ai/src/xpert-agent-execution/agent-execution.controller.ts) 也已经能按 execution 取 state。
+
+- 当前运行链路已经具备“execution 反查 checkpoint/state”的基础：graph 在 [subgraph.handler.ts](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-agent/commands/handlers/subgraph.handler.ts) 中用 `CopilotCheckpointSaver` 编译，执行结束后在 [invoke.handler.ts](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-agent/commands/handlers/invoke.handler.ts) 把最新 `threadId/checkpointNs/checkpointId` 回写到 execution，现有 [agent-execution.controller.ts](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-agent-execution/agent-execution.controller.ts) 也已经能按 execution 取 state。
 - 官方语义对齐：LangGraph 会把每个 super-step 持久化为 checkpoint；time-travel 本质是“选中历史 checkpoint，再从该 checkpoint 继续执行”。参考 [Persistence](https://docs.langchain.com/oss/javascript/langgraph/persistence) 和 [Use time-travel](https://docs.langchain.com/oss/javascript/langgraph/use-time-travel)。
 - v1 范围：在 Studio 预览调试里，为“选中的根执行”增加底部 state inspector；同时支持历史快照浏览和从选中 checkpoint 分叉重跑。
 
 ## Public APIs / Types
+
 - 保持现有 `GET /xpert-agent-execution/:id/state` 响应 shape 不变，但增加可选 `checkpointId` 查询参数，用于读取任意历史 checkpoint 的 `channel_values`。
 - 新增 `GET /xpert-agent-execution/:id/checkpoints`，返回该 execution 的 checkpoint 谱系，按 `oldest -> newest` 排序；每项包含 `threadId`, `checkpointNs`, `checkpointId`, `parentCheckpointId`, `createdAt`, `metadata`, `isCurrent`。
 - 扩展 `TXpertChatRetryRequest` 增加可选 `checkpointId`；未传时保持现有“回退到最近 input checkpoint”语义，传入时直接从指定 checkpoint replay。
 - 前端服务同步补齐 `getCheckpoints(id)`, `getOneState(id, checkpointId?)`, `retryMessage(messageId?, checkpointId?)` 的类型和调用。
 
 ## Implementation Changes
+
 - Backend:
   - 新增 `XpertAgentExecutionCheckpointsQuery` / handler，不重新编译 graph，而是从 execution 当前 checkpoint 开始沿 `copilot_checkpoint.parent_id` 回溯，组装 lineage；这是当前仓库最便宜也最稳定的历史来源。
   - 扩展 execution state query/controller，让 inspector 能按任意 checkpoint 取值，并继续对 `messages` 做 `StoredMessage` 序列化，避免现有 execution accordion 回归。
@@ -28,6 +31,7 @@
   - 选中 checkpoint 后，如果当前 snapshot 正在运行或没有 lineage，显示明确的 loading / empty / disabled 状态。
 
 ## Test Plan
+
 - Backend Jest:
   - `GET /xpert-agent-execution/:id/checkpoints` 能按 parent 链正确返回 `oldest -> newest` 谱系，并标记 current checkpoint。
   - `GET /xpert-agent-execution/:id/state?checkpointId=...` 能返回指定历史 snapshot，且 `messages` 仍按现有 shape 序列化。
@@ -39,6 +43,7 @@
   - 现有右侧 execution panel / execution accordion 继续可用，不受新增 inspector 影响。
 
 ## Assumptions
+
 - 已确认 v1 同时需要“历史快照浏览 + 从历史 checkpoint 分叉重跑”。
 - v1 的可执行 time-travel 只覆盖 Studio preview 里的根执行；子执行或非根 `checkpoint_ns` 先支持只读查看，不做分叉执行按钮。
 - 不依赖当前未实现的 `/threads/:thread_id/history`，直接使用已落库的 execution + checkpoint 数据链路。

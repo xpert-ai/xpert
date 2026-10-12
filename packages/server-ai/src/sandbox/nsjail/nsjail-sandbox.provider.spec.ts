@@ -1,8 +1,8 @@
 import { NsjailSandboxProvider, NsjailWorkspacePathMapper } from './nsjail-sandbox.provider'
 
 const protectedRunnerHealth = {
-    capabilities: { projectContentReadOnly: true },
-    protocolVersion: 2,
+    capabilities: { projectContentReadOnly: true, appDataProtection: true },
+    protocolVersion: 3,
     status: 'ok'
 }
 
@@ -110,7 +110,7 @@ describe('NsjailSandboxProvider', () => {
         process.env.NSJAIL_RUNNER_TOKEN = 'secret'
         fetchSpy
             .mockResolvedValueOnce(
-                new Response(JSON.stringify({ status: 'ok' }), {
+                new Response(JSON.stringify(protectedRunnerHealth), {
                     headers: { 'content-type': 'application/json' },
                     status: 200
                 })
@@ -133,6 +133,27 @@ describe('NsjailSandboxProvider', () => {
         })
 
         expect(fetchSpy.mock.calls.at(-1)?.[1]?.body).not.toEqual(expect.stringContaining('protectProjectContent'))
+    })
+
+    it.each([
+        { protocolVersion: 2, capabilities: { appDataProtection: true } },
+        { protocolVersion: 3, capabilities: { appDataProtection: false } }
+    ])('fails closed for an unprotected non-Project Runner: %j', async (health) => {
+        process.env.NSJAIL_RUNNER_URL = 'http://runner:8090'
+        process.env.NSJAIL_RUNNER_TOKEN = 'secret'
+        fetchSpy.mockResolvedValue(new Response(JSON.stringify({ status: 'ok', ...health })))
+        await expect(
+            new NsjailSandboxProvider().create({
+                tenantId: 'tenant-1',
+                workFor: { type: 'user', id: 'user-1' },
+                workspaceBinding: {
+                    volumeRoot: '/sandbox/tenant-1/user/user-1',
+                    workspaceRoot: '/workspace',
+                    workspacePath: '/workspace'
+                }
+            })
+        ).rejects.toThrow('protocol 3')
+        expect(fetchSpy).toHaveBeenCalledTimes(1)
     })
 
     it('fails closed when a legacy Runner cannot declare Project Content protection', async () => {

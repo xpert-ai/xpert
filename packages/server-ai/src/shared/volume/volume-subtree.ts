@@ -1,3 +1,4 @@
+import { assertPublicWorkspacePath, isManagedWorkspacePath } from './workspace-managed-path'
 import { TFile, TFileDirectory } from '@xpert-ai/contracts'
 import { normalizeUploadedFileName } from '@xpert-ai/server-common'
 import { BadRequestException, ForbiddenException } from '@nestjs/common'
@@ -198,17 +199,10 @@ export class VolumeSubtreeClient {
             }
 
             const nextBuffer = Buffer.from(content ?? '', 'utf8')
-            await openedFile.fileHandle.truncate(0)
-            let offset = 0
-            while (offset < nextBuffer.length) {
-                const { bytesWritten } = await openedFile.fileHandle.write(
-                    nextBuffer,
-                    offset,
-                    nextBuffer.length - offset,
-                    offset
-                )
-                offset += bytesWritten
-            }
+            await VolumeHandle.writeFile(this.volume.serverRoot, openedFile.volumeRelativePath, nextBuffer, {
+                boundaryRoot: this.volume.serverRoot,
+                assertCanWrite: (relative, stat) => this.assertMutationAllowed(relative, stat)
+            })
         } finally {
             await openedFile.fileHandle.close()
         }
@@ -228,17 +222,10 @@ export class VolumeSubtreeClient {
                 )
             }
 
-            await openedFile.fileHandle.truncate(0)
-            let offset = 0
-            while (offset < content.length) {
-                const { bytesWritten } = await openedFile.fileHandle.write(
-                    content,
-                    offset,
-                    content.length - offset,
-                    offset
-                )
-                offset += bytesWritten
-            }
+            await VolumeHandle.writeFile(this.volume.serverRoot, openedFile.volumeRelativePath, content, {
+                boundaryRoot: this.volume.serverRoot,
+                assertCanWrite: (relative, stat) => this.assertMutationAllowed(relative, stat)
+            })
         } finally {
             await openedFile.fileHandle.close()
         }
@@ -264,6 +251,7 @@ export class VolumeSubtreeClient {
             }
 
             relativeFilePath = [relativeFolderPath, fileName].filter(Boolean).join('/')
+            assertPublicWorkspacePath(relativeFilePath)
             await VolumeHandle.writeFile(subtreeRoot.descriptorPath, relativeFilePath, file.buffer, {
                 boundaryRoot: this.volume.serverRoot,
                 assertCanWrite: (canonicalRelativePath, fileStat) =>
@@ -307,6 +295,7 @@ export class VolumeSubtreeClient {
 
     private async openSubtreeRoot(scopePath: string) {
         const normalizedScopePath = normalizeSubtreePath(scopePath)
+        assertPublicWorkspacePath(normalizedScopePath)
         if (!normalizedScopePath && !this.options?.allowRootWorkspace) {
             throw new BadRequestException(
                 t('server-ai:Error.VolumeSubtreeWorkspacePathRequired', {
@@ -329,9 +318,15 @@ export class VolumeSubtreeClient {
                     })
                 )
             }
+            try {
+                assertPublicWorkspacePath(openedRoot.volumeRelativePath)
+            } catch (error) {
+                await openedRoot.fileHandle.close()
+                throw error
+            }
             return openedRoot
         } catch (error) {
-            if (error instanceof BadRequestException) {
+            if (error instanceof BadRequestException || error instanceof ForbiddenException) {
                 throw error
             }
             const failure = new BadRequestException(
@@ -344,7 +339,12 @@ export class VolumeSubtreeClient {
         }
     }
 
-    private async openSubtreeEntry(scopePath: string, filePath: string, flags = fsConstants.O_RDONLY) {
+    private async openSubtreeEntry(
+        scopePath: string,
+        filePath: string,
+        flags = fsConstants.O_RDONLY,
+        fileOnly = false
+    ) {
         const subtreeRoot = await this.openSubtreeRoot(scopePath)
         try {
             const relativePath = this.resolveSubtreeRelativePath(subtreeRoot.filePath, filePath)
@@ -353,13 +353,23 @@ export class VolumeSubtreeClient {
                     t('server-ai:Error.VolumeSubtreeFilePathRequired', { defaultValue: 'File path is required' })
                 )
             }
-            const openedFile = await VolumeHandle.openExistingFile(subtreeRoot.descriptorPath, relativePath, {
-                boundaryRoot: this.volume.serverRoot,
-                flags
-            })
+            const openedFile = await (fileOnly ? VolumeHandle.openFileSnapshot : VolumeHandle.openExistingFile)(
+                subtreeRoot.descriptorPath,
+                relativePath,
+                {
+                    boundaryRoot: this.volume.serverRoot,
+                    flags
+                }
+            )
+            try {
+                assertPublicWorkspacePath(openedFile.volumeRelativePath, openedFile.fileStat)
+            } catch (error) {
+                await openedFile.fileHandle.close()
+                throw error
+            }
             return { openedFile, relativePath }
         } catch (error) {
-            if (error instanceof BadRequestException) {
+            if (error instanceof BadRequestException || error instanceof ForbiddenException) {
                 throw error
             }
             const failure = new BadRequestException(
@@ -376,7 +386,7 @@ export class VolumeSubtreeClient {
     }
 
     private async openSubtreeFile(scopePath: string, filePath: string, flags = fsConstants.O_RDONLY) {
-        const result = await this.openSubtreeEntry(scopePath, filePath, flags)
+        const result = await this.openSubtreeEntry(scopePath, filePath, flags, true)
         if (!result.openedFile.fileStat.isFile()) {
             await result.openedFile.fileHandle.close()
             throw new BadRequestException(
@@ -393,7 +403,7 @@ export class VolumeSubtreeClient {
         try {
             const entries = await fsPromises.readdir(openedDirectory.descriptorPath, { withFileTypes: true })
             for (const entry of entries) {
-                if (entry.isSymbolicLink()) {
+                if (entry.isSymbolicLink() || isManagedWorkspacePath(entry.name)) {
                     continue
                 }
 
@@ -406,6 +416,8 @@ export class VolumeSubtreeClient {
                               (typeof fsConstants.O_DIRECTORY === 'number' ? fsConstants.O_DIRECTORY : 0)
                             : fsConstants.O_RDONLY
                     })
+                    if (openedEntry.fileStat.isFile() && openedEntry.fileStat.nlink > 1) continue
+                    assertPublicWorkspacePath(openedEntry.volumeRelativePath)
                     const archivePath = [prefix, entry.name].filter(Boolean).join('/')
                     if (openedEntry.fileStat.isDirectory()) {
                         yield { archivePath: `${archivePath}/`, type: 'directory' }
@@ -426,6 +438,7 @@ export class VolumeSubtreeClient {
 
     private resolveSubtreeRelativePath(subtreeRoot: string, filePath?: string | null) {
         const normalizedPath = normalizeSubtreePath(filePath)
+        assertPublicWorkspacePath(normalizedPath)
         if (!normalizedPath) {
             return ''
         }
@@ -444,6 +457,7 @@ export class VolumeSubtreeClient {
     }
 
     private assertMutationAllowed(canonicalRelativePath: string, fileStat?: { nlink: number }) {
+        assertPublicWorkspacePath(canonicalRelativePath, fileStat)
         if (fileStat && fileStat.nlink !== 1) {
             throw new ForbiddenException(
                 t('server-ai:Error.VolumeSubtreeMultipleLinksForbidden', {

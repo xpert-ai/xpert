@@ -27,7 +27,13 @@ import {
 } from './volume'
 
 describe('Volume runtime clients', () => {
+    const originalVolume = process.env.SANDBOX_VOLUME
+    afterAll(() => {
+        if (originalVolume === undefined) delete process.env.SANDBOX_VOLUME
+        else process.env.SANDBOX_VOLUME = originalVolume
+    })
     beforeEach(() => {
+        delete process.env.SANDBOX_VOLUME
         mockEnvironment.env.IS_DOCKER = 'true'
         mockEnvironment.env.SANDBOX_VOLUME_LAYOUT = undefined
         mockEnvironment.envName = 'prod'

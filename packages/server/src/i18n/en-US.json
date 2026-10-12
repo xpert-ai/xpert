@@ -1,5 +1,6 @@
 {
 	"Error": {
+		"PluginAppDataNamespaceUnavailable": "A loaded plugin with a registered application namespace is required.",
 		"PluginPackageNameRequired": "Plugin package name is required",
 		"PluginSystemLevelInstallForbidden": "Plugin {{name}} is system-level and cannot be installed from this API",
 		"PluginSystemLevelDefaultTenantRequired": "System-level plugin {{name}} can only be installed from the Default tenant",

@@ -1670,6 +1670,9 @@ importers:
       playwright:
         specifier: ^1.50.1
         version: 1.58.2
+      proper-lockfile:
+        specifier: 4.1.2
+        version: 4.1.2
       python-shell:
         specifier: 5.0.0
         version: 5.0.0
@@ -42289,7 +42292,7 @@ snapshots:
       isstream: 0.1.2
       jsonwebtoken: 9.0.3
       mime-types: 2.1.35
-      retry-axios: 2.6.0(axios@1.18.1)
+      retry-axios: 2.6.0(axios@1.18.1(debug@4.4.3))
       tough-cookie: 4.1.4
     transitivePeerDependencies:
       - supports-color
@@ -48724,7 +48727,7 @@ snapshots:
 
   ret@0.1.15: {}
 
-  retry-axios@2.6.0(axios@1.18.1):
+  retry-axios@2.6.0(axios@1.18.1(debug@4.4.3)):
     dependencies:
       axios: 1.18.1(debug@4.4.3)
 

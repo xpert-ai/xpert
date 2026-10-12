@@ -183,7 +183,7 @@ const file = await workspaceFiles.readRuntimeBuffer('/workspace/report.docx')
 
 - `/workspace/foo.docx` 或当前 `workspaceRoot/foo.docx` 会归一化为 Volume 相对路径 `foo.docx`。
 - `foo.docx`、`./foo.docx` 按当前 Agent runtime workspace 的相对路径处理。
-- 已持久化的 portable reference 会按其中的显式 catalog/scope 读取。
+- portable reference 携带 catalog/scope，但不能覆盖当前 runtime 绑定的所有者或绕过授权。
 - 默认 scope 由当前 Agent runtime 提供：存在 `projectId` 时使用 `catalog: 'projects'`；否则按 Xpert 持久化的 `workspaceDataScope` 使用 `catalog: 'xperts'` 或 `catalog: 'user-xperts'`。插件调用方不自行选择 Xpert catalog。
 
 安全规则：
@@ -212,9 +212,147 @@ await outboundQueue.enqueue({
 
 这样插件只处理业务文件引用，路径归一化、scope 推断、Volume 读写和租户隔离都由平台统一负责。
 
+## Assistant 应用数据
+
+`WorkspaceFilesRuntimeCapability.appData()` 将插件内部状态保存在所属 Assistant 的文件工作区中，与普通文件共用 `platform.workspace.files` 能力入口。原有独立的 `AssistantWorkspaceStorageCapability` / `AssistantWorkspaceStorageApi` 已移除。SDK 必须提供 `appData()`，运行中的宿主也必须实现它；只更新插件依赖不会升级宿主能力。
+
+### 选择文件入口
+
+| 数据                                 | API                                                           | 在已授权 Assistant Volume 中的位置              |
+| ------------------------------------ | ------------------------------------------------------------- | ----------------------------------------------- |
+| 用户可见的导出文件与文档             | `readRuntimeBuffer()`、`writeRuntimeBuffer()`、`deleteFile()` | 普通路径，例如 `meetings/<meeting-id>/notes.md` |
+| 内部清单、录音分片、检查点和同步回执 | `appData({ pluginName })`                                     | `.apps/<artifactNamespace>/...`                 |
+| 协作文档状态                         | 平台 Collaboration 能力                                       | 平台管理的文档存储；Markdown 可以是其投影       |
+
+```mermaid
+flowchart TD
+  A[可信 runtime 操作者与 Assistant] --> B[已发布 Assistant 授权]
+  B --> C[Assistant Volume]
+  C --> D[普通 Files API：用户可见文件]
+  C --> E[appData：已注册插件命名空间]
+  E --> F[.apps：应用内部状态]
+  C --> G[NsJail workspace]
+  G --> H[.apps 被空的只读挂载覆盖]
+```
+
+### 绑定操作者、Assistant 和命名空间
+
+从宿主提供的 scoped runtime 获取 API：
+
+```ts
+import { WorkspaceFilesRuntimeCapability } from '@xpert-ai/plugin-sdk'
+
+const workspaceFiles = context.runtime.capabilities.require(WorkspaceFilesRuntimeCapability)
+const state = workspaceFiles.appData({
+  pluginName: '@example/plugin-notes',
+  requireUserIsolation: true
+})
+```
+
+`pluginName` 是插件自身的注册身份，由可信插件代码提供。宿主按当前组织、租户或系统安装范围查找已加载插件，并从其元数据解析 `artifactNamespace`。调用方不能指定物理目录或覆盖命名空间。注册命名空间只允许小写字母、数字和下划线（`^[a-z0-9_]+$`）。插件运行时元数据必须从自己的 `package.json` 读取 `version`、`xpert.plugin.level` 和 `xpert.plugin.artifactNamespace`。
+
+每次操作都会重新校验已认证租户、组织、当前用户和确切的已发布 Assistant。UserGroup 授权可以独立于创作工作区成员身份生效，不能用创作工作区的 `canRun` 代替已发布 Assistant ACL。等待锁结束后也会重新鉴权。身份缺失、操作者改变、访问被撤销或插件元数据不可用时，应用数据访问失败。
+
+数据范围由已发布 Assistant 决定：
+
+| `workspaceDataScope` | Catalog                          | 租户 Volume 根下的标准路径                                            |
+| -------------------- | -------------------------------- | --------------------------------------------------------------------- |
+| `shared`             | `xperts`，`isolateByUser: false` | `xpert/<assistantId>/.apps/<artifactNamespace>/`                      |
+| `user`               | `user-xperts`                    | `user/<currentUserId>/xpert/<assistantId>/.apps/<artifactNamespace>/` |
+
+组织参与授权，不额外进入路径；用户是当前已认证调用者，不是 Assistant 创建者。`requireUserIsolation: true` 会拒绝共享 Assistant。`appData()` 当前要求 Assistant 绑定，拒绝 Project 绑定和其他 catalog，也不会回退到机器本地目录。
+
+存储句柄会固定首次解析出的 Volume 和命名空间。二者变化后，必须重新验证业务范围，再创建新句柄。普通文件的私有绑定同样拒绝跟随策略变化进入共享目录，防止将私有投影复制到共享存储。`workspaceDataScope` 在创建 Assistant 时选择；这些防漂移检查不意味着支持原地切换策略或自动迁移数据。后台任务应恢复可信操作者与组织上下文，再取得 scoped API，不要序列化句柄或绝对路径。参见 [Managed Queue](./managed-queue)。
+
+原生插件仍是可信服务端代码。此 API 约束按平台协议访问数据的插件，不是针对可直接访问宿主文件系统的恶意原生代码的隔离沙箱。
+
+### 存储操作与并发更新
+
+| 方法                                  | 行为                                           |
+| ------------------------------------- | ---------------------------------------------- |
+| `read(path)`                          | 返回某一完整文件版本的 `Buffer`                |
+| `write(path, stringOrBytes)`          | 创建父目录并原子替换单个文件                   |
+| `mkdir(path)`                         | 在应用命名空间内创建目录                       |
+| `list(path)`                          | 返回直接子项名称，排除内部锁与临时项           |
+| `remove(path)`                        | 删除文件或子树；不能删除命名空间根             |
+| `withLock(key, callback, { waitMs })` | 将同一 Volume、命名空间和 key 的协作写入串行化 |
+
+路径和锁 key 必须是规范的相对路径。拒绝绝对路径、反斜杠、NUL、`.` / `..` 段、重复或末尾的 `/`，以及 `.locks` 段及其大小写变体。只有 `mkdir('')` 和 `list('')` 接受命名空间根。应用相对路径中不要再加 `.apps/<artifactNamespace>` 前缀。
+
+读取、校验与写入必须位于同一把锁内。下面的示例可以跨 API 实例初始化并更新经过 schema 校验的计数器：
+
+```ts
+import { z } from 'zod/v3'
+
+const Counter = z.object({ revision: z.number().int().nonnegative() }).strict()
+
+await state.withLock(
+  'records/example',
+  async () => {
+    let bytes: Buffer | undefined
+    try {
+      bytes = await state.read('records/example/counter.json')
+    } catch (error) {
+      if (!error || typeof error !== 'object' || !('code' in error) || error.code !== 'ENOENT') {
+        throw error
+      }
+    }
+    const current = bytes ? Counter.parse(JSON.parse(bytes.toString('utf8'))) : { revision: 0 }
+    await state.write('records/example/counter.json', JSON.stringify({ revision: current.revision + 1 }))
+  },
+  { waitMs: 10_000 }
+)
+```
+
+宿主先写临时文件并刷盘，再用 rename 替换目标，最后刷写父目录。读者读取某一完整文件版本。这不是多文件事务，原子替换本身也不能串行化“读—改—写”。插件仍需负责 revision 校验、幂等、删除标记和恢复清单；同一业务资源的所有写入方必须使用同一个锁 key。
+
+锁位于 `.apps/<artifactNamespace>/.locks/`，不放在可删除的业务文件夹里。当前实现每 10 秒尝试心跳，过期阈值为 120 秒；只有文件系统心跳成功才延长本地租约。变更前校验锁归属和有效期，旧回调不会释放接管者的锁。失锁后，该回调中后续的 app-data 和普通 Volume 写入、删除都会被拒绝。
+
+`waitMs` 控制获取锁的重试时间，不是回调执行超时：默认 10 秒，最大 180 秒，`0` 表示不重试。必须在回调内 await 全部工作，脱离回调的异步任务不能继续使用已释放的租约。模型调用或网络请求等外部副作用不会被文件系统锁回滚。
+
+### `.apps` 保护
+
+普通文件列表、读取、编辑、上传、下载、目录归档和文件理解输入会拒绝或隐藏受管理状态。检查覆盖原始路径、真实路径别名、硬链接文件，以及 mounted-workspace 根目录别名。普通递归删除会检查后代，因此不能通过删除公开父目录来抹除其中受保护的 `.apps`。保留名称不区分大小写，也包括 `.workspace-write-*.tmp`。
+
+NsJail Runner 协议 **3** 声明 `appDataProtection: true`。每次执行、终端和服务都会用空的只读挂载覆盖 `/workspace/.apps`，首次应用写入之前也如此。文件 RPC 和工作目录选择拒绝 `.apps`，宿主 app-data API 则在该挂载命名空间之外访问真实存储。
+
+API 会拒绝旧 Runner 或缺少此能力的 Runner。升级时先更新 Runner，再更新 API，并重启现存 runtime。Local Shell 是可信开发执行模式，不提供这一操作系统级隔离；隐藏目录本身不是访问控制边界。
+
+### 在平台统一配置持久存储
+
+Meetings 没有固定的 `/var/lib/xpert/data/plugins/meetings` 目录，也没有独立 `dataDirectory`。存储根由平台 Volume 配置决定：
+
+| 运行方式                 | 根路径与配置                                                       |
+| ------------------------ | ------------------------------------------------------------------ |
+| API 直接运行在开发宿主机 | `SANDBOX_VOLUME/<tenantId>`；未配置时为 `~/data/<tenantId>`        |
+| API 容器                 | `/sandbox/<tenantId>`；部署将持久存储挂载到 `/sandbox`             |
+| Docker 宿主机路径解析    | 配置了 `SANDBOX_VOLUME` 时，以其作为宿主机根，必须与实际挂载源一致 |
+| NsJail Runner            | 其 workspace 挂载必须与 API/worker 挂载指向同一份底层数据          |
+
+在平台环境配置中设置 `SANDBOX_VOLUME`，并在部署配置中设置 API/worker/Runner 的实际挂载；设置环境变量不会创建共享存储。当前仓库的 `docker-compose.yml` 和 `.deploy/nsjail-runner/docker-compose.nsjail.yml` 将 `./docker/volumes/api/sandbox/` 绑定到 `/sandbox/`，只修改 `SANDBOX_VOLUME` 不会重写这两个显式挂载。
+
+多实例时，所有访问这些文件的 API/worker 必须挂载**同一个持久文件系统**。不同机器上同名的本地目录既不共享数据，也不共享锁。文件系统必须支持目录原子创建、rename，以及一致的元数据和心跳可见性；对象存储桶或对象存储 FUSE 挂载不属于此后端。此功能应使用标准租户/作用域分层布局，不使用仅供开发兼容的 `legacy-flat`。具体路径解析见下方根路径矩阵。
+
+### Meetings 示例与排查
+
+Meetings 要求按用户隔离的 Assistant。录音分片、capture 绑定、清单、检查点和同步回执使用 `.apps/meetings/records/` 与 `.apps/meetings/captures/`；用户可见 Markdown 和导出文件位于同一用户/Assistant Volume 的 `meetings/<creation-date-title-meeting-uuid>/`，不放在 `sessions/` 中。文档初始化后由平台 Collaboration 存储 CRDT 状态，Markdown 与清单中的文档检查点是投影。本次重构不迁移旧插件目录的数据。
+
+| 现象                                | 检查项                                                                           |
+| ----------------------------------- | -------------------------------------------------------------------------------- |
+| `appData` 不可用                    | 宿主与 SDK 兼容性；不要加入本地文件系统回退                                      |
+| `assistant_user_workspace_required` | 应用要求 `workspaceDataScope: user`，共享 Assistant 不能保存此应用的私有数据     |
+| `403`                               | 操作者、组织和确切已发布 Assistant 的授权；普通 Files 还需检查是否触及受管理路径 |
+| 解析插件命名空间时 `404`            | 插件是否在当前安装范围已加载，注册元数据是否有效                                 |
+| `EINVAL`                            | 相对路径非法，或句柄对应的 Volume/命名空间发生变化                               |
+| `ELOCKED`                           | 同一资源被其他执行者持锁，按业务策略重试                                         |
+| `ELOCKLOST`                         | 停止旧操作，重新获取锁并读取后再计算；检查文件系统延迟、进程停顿和共享挂载一致性 |
+| 不同实例读到不同状态                | 比较实际挂载、租户、当前用户、Assistant 和命名空间，不能只比较路径字符串         |
+
+实现由 `packages/server-ai/src` 下的 `workspace-storage.spec.ts`、`workspace-managed-path.spec.ts`、`assistant-files.integration.spec.ts` 和 mounted-workspace 上传测试覆盖。Runner 回归位于 `.deploy/nsjail-runner/test_runner.py`，`verify_app_data.py` 在一次性容器中验证真实 Linux 挂载/RPC 隔离。这些检查覆盖进程并发、原子读取、锁接管、权限撤销、作用域漂移和受保护路径别名；部署验收还需确认实际共享文件系统与挂载配置。
+
 ## 根路径矩阵
 
-根路径计算集中在 [packages/server-ai/src/shared/volume/volume-layout.ts](/Users/xpertai03/Pro/data/xpert/packages/server-ai/src/shared/volume/volume-layout.ts:1)。
+根路径计算集中在 `packages/server-ai/src/shared/volume/volume-layout.ts`。
 
 ### API 容器根
 
@@ -311,7 +449,7 @@ Xpert 运行时工作目录由 `XpertWorkAreaResolver` 统一解析，入口在 
 设计原则：
 
 - Project Volume 是项目成员的共享数据边界；同一 Project 中的多个 Xpert 挂载同一个项目根。
-- Project 中每个 Xpert 的默认 cwd 是 `agents/<xpertId>`，用于减少普通相对路径互相覆盖；它不是安全边界。
+- Project 中每个 Xpert 的默认 cwd 是项目 Volume 根；Agent 子目录不是独立的安全边界。
 - 非 Project Xpert 根据创建时的 `workspaceDataScope` 选择共享根或按用户隔离根。
 - `workspaceDataScope` 默认是 `shared`，创建后不可修改；复制 Xpert 时可以在创建新记录前重新选择。
 - `shared` 是显式共享成果目录。Project 中多个 Xpert 都能访问项目根及 `shared/`。
@@ -337,10 +475,8 @@ Xpert 运行时工作目录由 `XpertWorkAreaResolver` 统一解析，入口在 
     project.md
     skills/
     shared/
-    agents/<xpertId>/
-      .xpert/memory/
     sessions/<conversationId>/
-    .xpert/
+    .xpert/memory/xperts/<xpertId>/
 
   xpert/<xpertId>/
     shared/
@@ -368,28 +504,27 @@ Xpert 运行时工作目录由 `XpertWorkAreaResolver` 统一解析，入口在 
 
 相对路径规则：
 
-| 用途                          | Volume 内相对路径                |
-| ----------------------------- | -------------------------------- |
-| 默认 cwd                      | `agents/<xpertId>`               |
-| 项目显式共享子目录            | `shared`                         |
-| Xpert 在项目下的 agent 工作区 | `agents/<xpertId>`               |
-| Xpert 在项目下的 FileMemory   | `agents/<xpertId>/.xpert/memory` |
-| 单次会话临时区                | `sessions/<conversationId>`      |
-| 项目内部状态                  | `.xpert`                         |
+| 用途                        | Volume 内相对路径                |
+| --------------------------- | -------------------------------- |
+| 默认 cwd                    | Volume 根                        |
+| 项目显式共享子目录          | `shared`                         |
+| Xpert 在项目下的 FileMemory | `.xpert/memory/xperts/<xpertId>` |
+| 单次会话临时区              | `sessions/<conversationId>`      |
+| 项目内部状态                | `.xpert`                         |
 
 本地 shell sandbox 中，`workspace_path` 会是 server 可见路径，例如：
 
 ```text
-/sandbox/<tenantId>/project/<projectId>/agents/<xpertId>
+/sandbox/<tenantId>/project/<projectId>
 ```
 
 Docker sandbox 中，同一目录会映射为：
 
 ```text
-/workspace/agents/<xpertId>
+/workspace
 ```
 
-Volume 的挂载根仍然是整个 `/project/<projectId>`。因此两个 Xpert 的默认 cwd 不同，但都可以通过项目根下的 `shared/` 交换成果，也可以访问项目内其他约定目录。`workspaceDataScope` 在 Project 场景下被忽略。
+Volume 的挂载根和默认 cwd 都是整个 `/project/<projectId>`。多个 Xpert 共用项目文件，并通过 `.xpert/memory/xperts/<xpertId>` 区分记忆。`workspaceDataScope` 在 Project 场景下被忽略。
 
 ### Project、Workspace 与成员边界
 
@@ -409,7 +544,7 @@ Project 的内容真源直接位于 Project Volume：
   skills/
     <skill>/SKILL.md
   shared/
-  agents/<xpertId>/
+  .xpert/memory/xperts/<xpertId>/
 ```
 
 `project.md` 是服务端在运行开始时加载的 Project 指令，客户端不能覆盖；Project 技能只从 `skills/**/SKILL.md` 发现。Editor 及以上可以通过 Project Content 接口修改这两类内容，Agent 运行时只读。旧 Project 首次读取时可以从旧的 `settings.instruction` 初始化 `project.md`，初始化完成后不再双写。
@@ -497,15 +632,15 @@ Connector 不写入 Project Volume。它是独立的作用域绑定：
 如果这次对话属于项目 `project-1`，默认目录会切换到项目 Volume：
 
 ```text
-/sandbox/tenant-1/project/project-1/agents/xpert-X
-/workspace/agents/xpert-X
+/sandbox/tenant-1/project/project-1
+/workspace
 ```
 
-项目共享、agent 和 session 目录分别是：
+项目共享、Assistant 记忆和 session 目录分别是：
 
 ```text
 /sandbox/tenant-1/project/project-1/shared
-/sandbox/tenant-1/project/project-1/agents/xpert-X
+/sandbox/tenant-1/project/project-1/.xpert/memory/xperts/xpert-X
 /sandbox/tenant-1/project/project-1/sessions/<conversationId>
 ```
 
@@ -513,7 +648,7 @@ Connector 不写入 Project Volume。它是独立的作用域绑定：
 
 ```text
 /workspace/shared
-/workspace/agents/xpert-X
+/workspace/.xpert/memory/xperts/xpert-X
 /workspace/sessions/<conversationId>
 ```
 
@@ -597,21 +732,21 @@ const absolutePath = volumeClient.resolve(volumeScope).path(input.filePath)
 }
 ```
 
-此时 sandbox 仍可按 `sandboxEnvironmentId` 获取或复用运行实例，但挂载 `/project/<projectId>`，默认 cwd 为 `agents/<xpertId>`。只有不属于 Project 的会话才使用 `environment/<environmentId>` 作为数据根。
+此时 sandbox 仍可按 `sandboxEnvironmentId` 获取或复用运行实例，但挂载 `/project/<projectId>`，默认 cwd 为项目 Volume 根。只有不属于 Project 的会话才使用 `environment/<environmentId>` 作为数据根。
 
 ### Xpert FileMemory
 
-Xpert FileMemory 固定在当前解析出的 Xpert / Project 数据根下的 `.xpert/memory`：
+Xpert FileMemory 跟随解析出的数据范围；Project 中再按 Assistant 区分记忆子目录：
 
 | 场景            | server 侧完整路径                                                        |
 | --------------- | ------------------------------------------------------------------------ |
 | 非 Project 共享 | `/sandbox/<tenantId>/xpert/<xpertId>/.xpert/memory`                      |
 | 非 Project 用户 | `/sandbox/<tenantId>/user/<userId>/xpert/<xpertId>/.xpert/memory`        |
-| Project         | `/sandbox/<tenantId>/project/<projectId>/agents/<xpertId>/.xpert/memory` |
+| Project         | `/sandbox/<tenantId>/project/<projectId>/.xpert/memory/xperts/<xpertId>` |
 
 注意：
 
-- 不再使用 `.xpert/memory/xperts/<xpertId>` 作为新写入路径。
+- 非 Project 场景使用 `.xpert/memory`；Project 记忆保留按 Assistant 区分的子树。
 - frontmatter 中仍保留 `scopeId=<xpertId>`，用于表达记忆属于哪个 Xpert。
 - FileMemory 与会话文件、terminal 和 sandbox 使用同一个 resolver 结果，不单独选择 catalog。
 - 在同一个已解析 Volume 根内，首次访问时会从旧路径 `.xpert/memory/xperts/<xpertId>` 做非破坏性 lazy migration：只复制新目录缺失的文件，冲突时保留新文件，并在 `.dream/migrations/` 写 migration report；不会跨 `/xpert`、`/user` 或 `/project` 根自动搬运数据。
@@ -737,17 +872,17 @@ Agent 运行时会把 resolver 结果写入 `sys`：
 
 ### Workspace 路径
 
-[packages/server-ai/src/xpert-workspace/types.ts](/Users/xpertai03/Pro/data/xpert/packages/server-ai/src/xpert-workspace/types.ts:1)：
+`packages/server-ai/src/xpert-workspace/types.ts`：
 
 - workspace 根目录：`${volumeRoot}/workspaces/${workspaceId}`
 
-[packages/server-ai/src/skill-repository/types.ts](/Users/xpertai03/Pro/data/xpert/packages/server-ai/src/skill-repository/types.ts:1)：
+`packages/server-ai/src/skill-repository/types.ts`：
 
 - workspace skills 根目录：`${workspaceRoot}/skills`
 
 ### 组织共享技能路径
 
-同样在 [packages/server-ai/src/skill-repository/types.ts](/Users/xpertai03/Pro/data/xpert/packages/server-ai/src/skill-repository/types.ts:1)：
+同样在 `packages/server-ai/src/skill-repository/types.ts`：
 
 - 组织级共享技能根：`${volumeRoot}/organizations/${organizationId}/skills/public`
 - 全局共享技能根：`${volumeRoot}/skills/public`
@@ -830,7 +965,7 @@ Skills middleware 正常情况下会从 `request.runtime.configurable.sandbox` �
 
 ## `VolumeSubtreeClient`
 
-旧的 `WorkspaceVolumeClient` 现在重定责为 `VolumeSubtreeClient`，定义在 [packages/server-ai/src/shared/volume/volume-subtree.ts](/Users/xpertai03/Pro/data/xpert/packages/server-ai/src/shared/volume/volume-subtree.ts:1)。
+旧的 `WorkspaceVolumeClient` 现在重定责为 `VolumeSubtreeClient`，定义在 `packages/server-ai/src/shared/volume/volume-subtree.ts`。
 
 它的职责不是“代表一个 Workspace”，而是：
 
@@ -846,7 +981,7 @@ Skills middleware 正常情况下会从 `request.runtime.configurable.sandbox` �
 
 ## 依赖注入入口
 
-新架构默认通过 [packages/server-ai/src/shared/volume/volume.module.ts](/Users/xpertai03/Pro/data/xpert/packages/server-ai/src/shared/volume/volume.module.ts:1) 注入：
+新架构默认通过 `packages/server-ai/src/shared/volume/volume.module.ts` 注入：
 
 - `VOLUME_CLIENT`
 - `WorkspacePathMapperFactory`

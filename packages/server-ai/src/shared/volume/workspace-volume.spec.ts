@@ -12,12 +12,7 @@ describe('WorkspaceVolumeClient', () => {
     beforeEach(async () => {
         tempRoot = await fsPromises.mkdtemp(path.join(os.tmpdir(), 'workspace-volume-'))
         workspaceVolume = new WorkspaceVolumeClient(
-            new VolumeHandle(
-                { tenantId: 'tenant-1', catalog: 'users', userId: 'user-1' },
-                tempRoot,
-                tempRoot,
-                baseUrl
-            )
+            new VolumeHandle({ tenantId: 'tenant-1', catalog: 'users', userId: 'user-1' }, tempRoot, tempRoot, baseUrl)
         )
 
         await fsPromises.writeFile(path.join(tempRoot, 'MEMORY.md'), '# Memory\n', 'utf8')
@@ -35,7 +30,7 @@ describe('WorkspaceVolumeClient', () => {
     it('lists workspace files relative to the workspace root', async () => {
         const files = await workspaceVolume.list('thread-1')
 
-        expect(files.map((file) => file.fullPath)).toEqual(expect.arrayContaining(['/README.md', '/docs', '/binary.bin']))
+        expect(files.map((file) => file.fullPath)).toEqual(expect.arrayContaining(['README.md', 'docs', 'binary.bin']))
         expect(files.find((file) => file.filePath === 'README.md')?.url).toContain('/thread-1/README.md')
     })
 
@@ -64,9 +59,7 @@ describe('WorkspaceVolumeClient', () => {
     })
 
     it('rejects editing binary files even when they exist inside the workspace', async () => {
-        await expect(workspaceVolume.saveFile('thread-1', 'binary.bin', 'nope')).rejects.toThrow(
-            'This file type cannot be edited'
-        )
+        await expect(workspaceVolume.saveFile('thread-1', 'binary.bin', 'nope')).rejects.toMatchObject({ status: 400 })
     })
 
     it('rejects path traversal outside the workspace root', async () => {
@@ -83,17 +76,12 @@ describe('WorkspaceVolumeClient', () => {
 
     it('supports root-scoped workspaces when explicitly enabled', async () => {
         const rootWorkspaceVolume = new WorkspaceVolumeClient(
-            new VolumeHandle(
-                { tenantId: 'tenant-1', catalog: 'users', userId: 'user-1' },
-                tempRoot,
-                tempRoot,
-                baseUrl
-            ),
+            new VolumeHandle({ tenantId: 'tenant-1', catalog: 'users', userId: 'user-1' }, tempRoot, tempRoot, baseUrl),
             { allowRootWorkspace: true }
         )
 
         const files = await rootWorkspaceVolume.list('')
-        expect(files.map((file) => file.fullPath)).toEqual(expect.arrayContaining(['/MEMORY.md', '/thread-1']))
+        expect(files.map((file) => file.fullPath)).toEqual(expect.arrayContaining(['MEMORY.md', 'thread-1']))
 
         await expect(rootWorkspaceVolume.readFile('', 'MEMORY.md')).resolves.toMatchObject({
             filePath: 'MEMORY.md',

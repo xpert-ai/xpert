@@ -1,3 +1,7 @@
+import { randomUUID } from 'node:crypto'
+import { assertPublicWorkspacePath, isManagedWorkspacePath } from './workspace-managed-path'
+import { removeVolumePath, type VolumeRemoveOptions } from './volume-remove'
+import { assertWorkspaceLeases } from './workspace-storage-lock'
 import {
     DEFAULT_XPERT_WORKSPACE_DATA_SCOPE,
     FileUploadVolumeCatalog,
@@ -337,6 +341,7 @@ export function getVolumeRootPath(client: VolumeClient, scope: VolumeScope) {
 type TVolumeWriteOptions = {
     boundaryRoot?: string
     encoding?: BufferEncoding
+    beforeCommit?: () => void | Promise<void>
     assertCanWrite?: (canonicalRelativePath: string, fileStat?: { nlink: number }) => void
 }
 
@@ -360,11 +365,16 @@ export class VolumeHandle {
         content: string | Uint8Array,
         options?: Omit<TVolumeWriteOptions, 'boundaryRoot'>
     ) {
+        assertPublicWorkspacePath(relativePath)
         const openedRoot = await this.openOrCreateRoot()
         try {
             await VolumeHandle.writeFile(openedRoot.descriptorPath, relativePath, content, {
                 ...options,
-                boundaryRoot: openedRoot.descriptorPath
+                boundaryRoot: openedRoot.descriptorPath,
+                assertCanWrite: (relative, stat) => {
+                    assertPublicWorkspacePath(relative, stat)
+                    options?.assertCanWrite?.(relative, stat)
+                }
             })
         } finally {
             await openedRoot.fileHandle.close()
@@ -440,15 +450,80 @@ export class VolumeHandle {
         }
     }
 
+    /** Open a complete file generation even when a concurrent writer atomically replaces its name. */
+    static async openFileSnapshot(
+        root: string,
+        relativePath: string,
+        options?: { boundaryRoot?: string; followSymlink?: boolean }
+    ): Promise<Awaited<ReturnType<typeof VolumeHandle.openExistingFile>>> {
+        assertPublicWorkspacePath(relativePath)
+        const target = VolumeHandle.resolvePath(root, relativePath)
+        const parent = await VolumeHandle.openExistingFile(path.dirname(target), null, {
+            boundaryRoot: options?.boundaryRoot ?? root
+        })
+        try {
+            const canonicalRoot = await fsPromises.realpath(options?.boundaryRoot ?? root)
+            const filePath = path.join(parent.filePath, path.basename(target))
+            const volumeRelativePath = path.relative(canonicalRoot, filePath).replace(/\\/g, '/')
+            assertPublicWorkspacePath(volumeRelativePath)
+            const anchoredTarget = path.join(parent.descriptorPath, path.basename(target))
+            if (options?.followSymlink !== false && (await fsPromises.lstat(anchoredTarget)).isSymbolicLink()) {
+                const canonicalTarget = await VolumeHandle.resolveExistingPath(canonicalRoot, volumeRelativePath)
+                // Resolve a final alias once, then open its canonical name without following a raced replacement.
+                return await VolumeHandle.openFileSnapshot(
+                    canonicalRoot,
+                    path.relative(canonicalRoot, canonicalTarget),
+                    {
+                        boundaryRoot: canonicalRoot,
+                        followSymlink: false
+                    }
+                )
+            }
+            const fileHandle = await fsPromises.open(
+                anchoredTarget,
+                fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW | fsConstants.O_NONBLOCK
+            )
+            try {
+                const fileStat = await fileHandle.stat()
+                if (!fileStat.isFile()) throw new Error(t('server-ai:Error.WorkspaceAtomicTargetInvalid'))
+                // nlink=0 is the complete old generation after rename; additional aliases are forbidden.
+                assertPublicWorkspacePath(volumeRelativePath, fileStat)
+                return {
+                    fileHandle,
+                    fileStat,
+                    filePath,
+                    volumeRelativePath,
+                    descriptorPath: process.platform === 'linux' ? `/proc/self/fd/${fileHandle.fd}` : filePath
+                }
+            } catch (error) {
+                await fileHandle.close()
+                throw error
+            }
+        } finally {
+            await parent.fileHandle.close()
+        }
+    }
+
     static async writeFile(
         root: string,
         relativePath: string,
         content: string | Uint8Array,
         options?: TVolumeWriteOptions
     ) {
+        await assertWorkspaceLeases()
+        assertPublicWorkspacePath(relativePath)
         const targetPath = VolumeHandle.resolvePath(root, relativePath)
         const parentPath = path.dirname(targetPath)
-        await VolumeHandle.ensureDirectory(root, path.relative(root, parentPath), options?.boundaryRoot)
+        await VolumeHandle.ensureDirectory(
+            root,
+            path.relative(root, parentPath),
+            options?.boundaryRoot,
+            false,
+            (relative) => {
+                assertPublicWorkspacePath(relative)
+                options?.assertCanWrite?.(relative)
+            }
+        )
 
         const openedParent = await VolumeHandle.openExistingFile(parentPath, null, {
             boundaryRoot: options?.boundaryRoot ?? root,
@@ -463,43 +538,61 @@ export class VolumeHandle {
             ensurePathWithinRoot(canonicalRoot, canonicalTargetPath)
             options?.assertCanWrite?.(path.relative(canonicalRoot, canonicalTargetPath).replace(/\\/g, '/'))
             const anchoredTarget = path.join(openedParent.descriptorPath, path.basename(targetPath))
-            const noFollow = typeof fsConstants.O_NOFOLLOW === 'number' ? fsConstants.O_NOFOLLOW : 0
-            const nonBlock = typeof fsConstants.O_NONBLOCK === 'number' ? fsConstants.O_NONBLOCK : 0
-            const fileHandle = await fsPromises.open(
-                anchoredTarget,
-                fsConstants.O_WRONLY | fsConstants.O_CREAT | noFollow | nonBlock,
-                0o600
-            )
+            const existing = await fsPromises.lstat(anchoredTarget).catch((error: NodeJS.ErrnoException) => {
+                if (error.code !== 'ENOENT') throw error
+                return null
+            })
+            if (existing && (!existing.isFile() || existing.nlink !== 1)) {
+                throw new Error(t('server-ai:Error.WorkspaceAtomicTargetInvalid'))
+            }
+            if (existing)
+                options?.assertCanWrite?.(
+                    path.relative(canonicalRoot, canonicalTargetPath).replace(/\\/g, '/'),
+                    existing
+                )
+            const temporary = path.join(openedParent.descriptorPath, `.workspace-write-${randomUUID()}.tmp`)
             try {
-                const fileStat = await fileHandle.stat()
-                if (!fileStat.isFile()) {
-                    throw new Error('Volume write target is not a regular file')
+                const file = await fsPromises.open(
+                    temporary,
+                    fsConstants.O_WRONLY | fsConstants.O_CREAT | fsConstants.O_EXCL,
+                    existing ? existing.mode & 0o777 : 0o600
+                )
+                try {
+                    await file.writeFile(
+                        content,
+                        options?.encoding && typeof content === 'string' ? { encoding: options.encoding } : undefined
+                    )
+                    await file.sync()
+                } finally {
+                    await file.close()
                 }
-                if (fileStat.nlink !== 1) {
-                    throw new Error('Volume write target must have exactly one hard link')
-                }
-                const canonicalTarget =
-                    process.platform === 'linux'
-                        ? await fsPromises.realpath(`/proc/self/fd/${fileHandle.fd}`)
-                        : await fsPromises.realpath(anchoredTarget)
-                ensurePathWithinRoot(canonicalRoot, canonicalTarget)
-                options?.assertCanWrite?.(path.relative(canonicalRoot, canonicalTarget).replace(/\\/g, '/'), fileStat)
-                await fileHandle.truncate(0)
-                if (options?.encoding && typeof content === 'string') {
-                    await fileHandle.writeFile(content, { encoding: options.encoding })
-                } else {
-                    await fileHandle.writeFile(content)
-                }
+                await options?.beforeCommit?.()
+                await assertWorkspaceLeases()
+                // The parent is FD-anchored. Rename never follows a final symlink introduced by a race.
+                await fsPromises.rename(temporary, anchoredTarget)
+                await openedParent.fileHandle.sync()
             } finally {
-                await fileHandle.close()
+                await fsPromises.rm(temporary, { force: true })
             }
         } finally {
             await openedParent.fileHandle.close()
         }
     }
 
-    static async ensureDirectory(root: string, relativePath?: string | null, boundaryRoot?: string) {
-        const openedDirectory = await VolumeHandle.openOrCreateDirectory(root, relativePath, boundaryRoot)
+    static async ensureDirectory(
+        root: string,
+        relativePath?: string | null,
+        boundaryRoot?: string,
+        rejectSymlinks = false,
+        assertDirectory?: (relative: string) => void
+    ) {
+        const openedDirectory = await VolumeHandle.openOrCreateDirectory(
+            root,
+            relativePath,
+            boundaryRoot,
+            rejectSymlinks,
+            assertDirectory
+        )
         await openedDirectory.fileHandle.close()
     }
 
@@ -507,7 +600,8 @@ export class VolumeHandle {
         root: string,
         relativePath?: string | null,
         boundaryRoot?: string,
-        rejectSymlinks = false
+        rejectSymlinks = false,
+        assertDirectory?: (relative: string) => void
     ) {
         const targetPath = VolumeHandle.resolvePath(root, relativePath)
         const relativeDirectory = path.relative(root, targetPath)
@@ -523,7 +617,12 @@ export class VolumeHandle {
             if (!openedDirectory.fileStat.isDirectory()) {
                 throw new Error('Volume root is not a directory')
             }
+            const canonicalRoot = await fsPromises.realpath(boundaryRoot ?? root)
+            assertDirectory?.(openedDirectory.volumeRelativePath)
             for (const segment of relativeDirectory.split(path.sep).filter(Boolean)) {
+                assertDirectory?.(
+                    path.relative(canonicalRoot, path.join(openedDirectory.filePath, segment)).replace(/\\/g, '/')
+                )
                 const childPath = path.join(openedDirectory.descriptorPath, segment)
                 await fsPromises.mkdir(childPath).catch((error: unknown) => {
                     if (!error || typeof error !== 'object' || !('code' in error) || error.code !== 'EEXIST') {
@@ -539,6 +638,7 @@ export class VolumeHandle {
                 })
                 await openedDirectory.fileHandle.close()
                 openedDirectory = nextDirectory
+                assertDirectory?.(openedDirectory.volumeRelativePath)
                 if (!openedDirectory.fileStat.isDirectory()) {
                     throw new Error('Volume path component is not a directory')
                 }
@@ -550,38 +650,19 @@ export class VolumeHandle {
         }
     }
 
-    static async removePath(
-        root: string,
-        relativePath: string,
-        options?: {
-            boundaryRoot?: string
-            assertCanRemove?: (canonicalRelativePath: string) => void
-        }
-    ) {
-        const targetPath = VolumeHandle.resolvePath(root, relativePath)
-        const parentPath = path.dirname(targetPath)
-        const openedParent = await VolumeHandle.openExistingFile(parentPath, null, {
-            boundaryRoot: options?.boundaryRoot ?? root,
-            flags: fsConstants.O_RDONLY | (typeof fsConstants.O_DIRECTORY === 'number' ? fsConstants.O_DIRECTORY : 0)
-        })
-        try {
-            if (!openedParent.fileStat.isDirectory()) {
-                throw new Error('Volume file parent is not a directory')
-            }
-            const canonicalRoot = await fsPromises.realpath(options?.boundaryRoot ?? root)
-            const canonicalTargetPath = path.join(openedParent.filePath, path.basename(targetPath))
-            ensurePathWithinRoot(canonicalRoot, canonicalTargetPath)
-            options?.assertCanRemove?.(path.relative(canonicalRoot, canonicalTargetPath).replace(/\\/g, '/'))
-            const anchoredTarget = path.join(openedParent.descriptorPath, path.basename(targetPath))
-            const targetStat = await fsPromises.lstat(anchoredTarget)
-            if (targetStat.isDirectory() && !targetStat.isSymbolicLink()) {
-                await fsPromises.rm(anchoredTarget, { recursive: true, force: true })
-            } else {
-                await fsPromises.unlink(anchoredTarget)
-            }
-        } finally {
-            await openedParent.fileHandle.close()
-        }
+    static async removePath(root: string, relativePath: string, options?: VolumeRemoveOptions) {
+        await removeVolumePath(
+            root,
+            relativePath,
+            {
+                ...options,
+                beforeCommit: async () => {
+                    await options?.beforeCommit?.()
+                    await assertWorkspaceLeases()
+                }
+            },
+            VolumeHandle
+        )
     }
 
     path(relativePath?: string | null) {
@@ -606,16 +687,18 @@ export class VolumeHandle {
         const fileName = normalizeUploadedFileName(file.originalname)
 
         const publicRelativePath = path.posix.join(normalizedFolder, fileName)
-        await VolumeHandle.writeFile(this.serverRoot, publicRelativePath, file.buffer)
+        await this.writeFile(publicRelativePath, file.buffer)
         return this.publicUrl(publicRelativePath)
     }
 
     async readFile(filePath: string) {
-        const openedFile = await VolumeHandle.openExistingFile(this.serverRoot, filePath)
+        assertPublicWorkspacePath(filePath)
+        const openedFile = await VolumeHandle.openFileSnapshot(this.serverRoot, filePath)
         try {
             if (!openedFile.fileStat.isFile()) {
                 throw new Error('Volume path is not a file')
             }
+            assertPublicWorkspacePath(openedFile.volumeRelativePath, openedFile.fileStat)
             return await openedFile.fileHandle.readFile('utf-8')
         } finally {
             await openedFile.fileHandle.close()
@@ -625,10 +708,10 @@ export class VolumeHandle {
     async deleteFile(filePath: string): Promise<void> {
         try {
             if (!normalizeRelativePathForVolume(filePath)) {
-                await fsPromises.rm(this.serverRoot, { recursive: true, force: true })
-                return
+                throw new Error(t('server-ai:Error.VolumeSubtreeFilePathRequired'))
             }
-            await VolumeHandle.removePath(this.serverRoot, filePath)
+            assertPublicWorkspacePath(filePath)
+            await VolumeHandle.removePath(this.serverRoot, filePath, { assertCanRemove: assertPublicWorkspacePath })
         } catch (error: unknown) {
             if (!(error instanceof Error) || !('code' in error) || error.code !== 'ENOENT') {
                 throw error
@@ -661,11 +744,13 @@ export async function listVolumeFiles(
     options: { baseUrl: string; boundaryRoot: string; depth: number }
 ): Promise<TFileDirectory[]> {
     const normalizedPath = normalizeRelativePathForVolume(relativePath)
+    assertPublicWorkspacePath(normalizedPath)
     const openedRoot = await VolumeHandle.openExistingFile(root, normalizedPath, {
         boundaryRoot: options.boundaryRoot,
         flags: fsConstants.O_RDONLY | (typeof fsConstants.O_DIRECTORY === 'number' ? fsConstants.O_DIRECTORY : 0)
     })
     try {
+        assertPublicWorkspacePath(openedRoot.volumeRelativePath)
         if (!openedRoot.fileStat.isDirectory()) {
             return []
         }
@@ -688,7 +773,7 @@ async function listOpenedVolumeDirectory(
     const entries = await fsPromises.readdir(openedDirectory.descriptorPath, { withFileTypes: true })
     const files: TFileDirectory[] = []
     for (const entry of entries) {
-        if (entry.isSymbolicLink()) {
+        if (entry.isSymbolicLink() || isManagedWorkspacePath(entry.name)) {
             continue
         }
 
@@ -700,6 +785,8 @@ async function listOpenedVolumeDirectory(
                     ? fsConstants.O_RDONLY | (typeof fsConstants.O_DIRECTORY === 'number' ? fsConstants.O_DIRECTORY : 0)
                     : fsConstants.O_RDONLY
             })
+            if (openedEntry.fileStat.isFile() && openedEntry.fileStat.nlink > 1) continue
+            assertPublicWorkspacePath(openedEntry.volumeRelativePath)
             const fullPath = path.posix.join(logicalDirectory, entry.name)
             if (openedEntry.fileStat.isDirectory()) {
                 const children = await listOpenedVolumeDirectory(openedEntry, fullPath, options, currentDepth + 1)

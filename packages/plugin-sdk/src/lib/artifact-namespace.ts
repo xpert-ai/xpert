@@ -39,3 +39,7 @@ function assertPluginArtifactNamePart(value: string, label: string) {
     throw new Error(`${label} must contain only lowercase letters, numbers, and underscores`)
   }
 }
+
+export function isPluginArtifactNamespace(value: unknown): value is string {
+  return typeof value === 'string' && ARTIFACT_NAMESPACE_PATTERN.test(value)
+}

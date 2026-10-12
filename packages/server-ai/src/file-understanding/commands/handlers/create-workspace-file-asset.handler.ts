@@ -80,7 +80,7 @@ export class CreateWorkspaceFileAssetHandler implements ICommandHandler<CreateWo
             normalizeOptionalString(input.mimeType) ?? (detectedMimeType ? String(detectedMimeType) : undefined)
         const { volumeScope, catalog, scopeId } = this.resolveVolumeScope(input)
         const volume = await this.volumeClient.resolve(volumeScope).ensureRoot()
-        const openedFile = await VolumeHandle.openExistingFile(volume.serverRoot, filePath, {
+        const openedFile = await VolumeHandle.openFileSnapshot(volume.serverRoot, filePath, {
             boundaryRoot: volume.serverRoot
         }).catch(() => null)
         if (!openedFile) {

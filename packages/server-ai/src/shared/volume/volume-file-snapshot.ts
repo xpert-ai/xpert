@@ -1,4 +1,5 @@
-import { constants as fsConstants, createWriteStream } from 'node:fs'
+import { assertPublicWorkspacePath } from './workspace-managed-path'
+import { createWriteStream } from 'node:fs'
 import fsPromises from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
@@ -16,12 +17,13 @@ export async function createVolumeFileSnapshot(
     relativePath: string,
     originalName?: string | null
 ): Promise<VolumeFileSnapshot> {
-    const openedFile = await VolumeHandle.openExistingFile(volume.serverRoot, relativePath, {
-        boundaryRoot: volume.serverRoot,
-        flags: fsConstants.O_RDONLY
+    assertPublicWorkspacePath(relativePath)
+    const openedFile = await VolumeHandle.openFileSnapshot(volume.serverRoot, relativePath, {
+        boundaryRoot: volume.serverRoot
     })
     let temporaryDirectory: string | null = null
     try {
+        assertPublicWorkspacePath(openedFile.volumeRelativePath, openedFile.fileStat)
         if (!openedFile.fileStat.isFile()) {
             throw new Error('Workspace source is not a regular file')
         }

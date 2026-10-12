@@ -15,7 +15,11 @@ import { Injectable } from '@nestjs/common'
 import { NsjailRunnerClient } from './nsjail-runner.client'
 import { getNsjailMessage } from './nsjail-i18n'
 import { NsjailSandbox } from './nsjail-sandbox'
-import { NSJAIL_RUNNER_PROJECT_CONTENT_PROTOCOL_VERSION, type NsjailRunnerHealth } from './nsjail.types'
+import {
+    NSJAIL_RUNNER_APP_DATA_PROTOCOL_VERSION,
+    NSJAIL_RUNNER_PROJECT_CONTENT_PROTOCOL_VERSION,
+    type NsjailRunnerHealth
+} from './nsjail.types'
 
 export const NSJAIL_SANDBOX_PROVIDER = 'nsjail'
 const NSJAIL_DEFAULT_WORKING_DIRECTORY = '/workspace'
@@ -102,7 +106,7 @@ export class NsjailSandboxProvider implements ISandboxProvider<NsjailSandbox> {
             .catch(
                 (): NsjailRunnerHealth => ({
                     available: false,
-                    capabilities: { projectContentReadOnly: false },
+                    capabilities: { projectContentReadOnly: false, appDataProtection: false },
                     protocolVersion: null
                 })
             )
@@ -166,6 +170,18 @@ export class NsjailSandboxProvider implements ISandboxProvider<NsjailSandbox> {
                 getNsjailMessage(
                     'NsJailRunnerProjectContentReadOnlyUnsupported',
                     'NsJail Runner does not declare support for read-only Project Content.'
+                )
+            )
+        }
+
+        if (
+            !runnerHealth.capabilities.appDataProtection ||
+            (runnerHealth.protocolVersion ?? 0) < NSJAIL_RUNNER_APP_DATA_PROTOCOL_VERSION
+        ) {
+            throw new Error(
+                getNsjailMessage(
+                    'NsJailRunnerAppDataProtectionUnsupported',
+                    'NsJail Runner must support managed application data protection (protocol 3).'
                 )
             )
         }

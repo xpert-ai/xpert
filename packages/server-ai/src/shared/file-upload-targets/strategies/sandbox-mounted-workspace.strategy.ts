@@ -1,3 +1,4 @@
+import { assertPublicWorkspacePath } from '../../volume/workspace-managed-path'
 import { IFileAssetDestination, IUploadFileSandboxTarget } from '@xpert-ai/contracts'
 import {
     FileUploadTargetStrategy,
@@ -6,7 +7,6 @@ import {
     TResolvedFileUploadSource
 } from '@xpert-ai/plugin-sdk'
 import { ForbiddenException, Injectable } from '@nestjs/common'
-import fsPromises from 'fs/promises'
 import { t } from 'i18next'
 import path from 'path'
 import { urlJoin } from '@xpert-ai/server-common'
@@ -24,16 +24,23 @@ export class SandboxMountedWorkspaceTargetStrategy implements IFileUploadTargetS
         if (!target.workspacePath) {
             throw new Error('Sandbox mounted workspace path is required')
         }
-
         const fileName = normalizeFileName(target.fileName || source.originalName)
         const filePath = normalizeRelativePath(target.folder, fileName)
+        assertPublicWorkspacePath(filePath)
         let localPath: string
-        if (target.workspaceBoundaryPath) {
-            const workspaceRelativePath = path.relative(target.workspaceBoundaryPath, target.workspacePath)
+        const root = await VolumeHandle.openExistingFile(target.workspaceBoundaryPath ?? target.workspacePath)
+        try {
+            // Pin the checked root; later symlink replacement must not retarget this upload.
+            assertPublicWorkspacePath(root.filePath)
+            const workspaceRelativePath = target.workspaceBoundaryPath
+                ? path.relative(target.workspaceBoundaryPath, target.workspacePath)
+                : ''
             const boundaryRelativePath = normalizeRelativePath(workspaceRelativePath, filePath)
-            await VolumeHandle.writeFile(target.workspaceBoundaryPath, boundaryRelativePath, source.buffer, {
-                boundaryRoot: target.workspaceBoundaryPath,
+            assertPublicWorkspacePath(boundaryRelativePath)
+            await VolumeHandle.writeFile(root.descriptorPath, boundaryRelativePath, source.buffer, {
+                boundaryRoot: root.descriptorPath,
                 assertCanWrite: (canonicalRelativePath, fileStat) => {
+                    assertPublicWorkspacePath(canonicalRelativePath, fileStat)
                     if (
                         target.projectContentReadOnly &&
                         (isProjectGovernedContentPath(canonicalRelativePath) || (fileStat && fileStat.nlink !== 1))
@@ -47,11 +54,9 @@ export class SandboxMountedWorkspaceTargetStrategy implements IFileUploadTargetS
                     }
                 }
             })
-            localPath = path.join(target.workspaceBoundaryPath, boundaryRelativePath)
-        } else {
-            localPath = path.join(target.workspacePath, filePath)
-            await fsPromises.mkdir(path.dirname(localPath), { recursive: true })
-            await fsPromises.writeFile(localPath, source.buffer)
+            localPath = path.join(root.filePath, boundaryRelativePath)
+        } finally {
+            await root.fileHandle.close()
         }
 
         return {
