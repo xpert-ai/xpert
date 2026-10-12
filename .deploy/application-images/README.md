@@ -64,6 +64,16 @@ without an application note are built and checked, but never published.
   Version commits on `develop` remain candidates. PRs can validate either plan
   but cannot publish images or access registry credentials.
 
+When `main` is merged back into `develop`, its application and shared-package
+versions are already the release baseline. The workflow supplies the fetched
+`main` SHA through `IMAGE_RELEASE_MAIN` (`mainSha` for API callers). The planner
+uses only its common ancestor with the exact source SHA, and only if that ancestor
+was not already included in the previous revision. Matching version increases
+reuse remaining application notes for candidates; they never authorize stable
+tags. Unmerged main commits, different versions and main pushes retain the normal
+versioning checks. Shared-package releases already present in that ancestor do
+not require consuming the downstream application notes a second time.
+
 Downstream wrappers may explicitly select `retainedChangesetPolicy: 'candidate'`
 when synchronizing upstream releases. The version increase must match the notes
 actually consumed. If application notes remain, the next candidate version is
