@@ -53,6 +53,9 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "PrimaryModelEmptyResponse": "The Primary LLM returned an empty response.",
+        "PrimaryModelVerificationTimedOut": "Primary LLM verification timed out after 20 seconds.",
+        "ClawXpertRecoveryRequiresMember": "Join the current organization before recovering your personal assistant.",
         "GroupPrimaryAssistantInUse": "This Assistant is the primary Assistant of a group and cannot be deleted.",
         "ChatkitSessionInputInvalid": "Invalid ChatKit session input.",
         "GroupAccessDenied": "You do not have access to this group.",

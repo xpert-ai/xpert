@@ -14,6 +14,8 @@ import { AssistantBindingModule } from '../assistant-binding'
 import { AI_BOOTSTRAP_QUEUE } from './constants'
 import { ServerAIBootstrapProcessor } from './bootstrap.processor'
 import { ServerAIBootstrapService } from './bootstrap.service'
+import { ClawXpertRecoveryController } from './clawxpert-recovery.controller'
+import { ClawXpertRecoveryService } from './clawxpert-recovery.service'
 
 @Module({
     imports: [
@@ -35,6 +37,7 @@ import { ServerAIBootstrapService } from './bootstrap.service'
         ModelGatewayModule,
         AssistantBindingModule
     ],
-    providers: [ServerAIBootstrapProcessor, ServerAIBootstrapService]
+    controllers: [ClawXpertRecoveryController],
+    providers: [ServerAIBootstrapProcessor, ServerAIBootstrapService, ClawXpertRecoveryService]
 })
 export class InitializationModule {}

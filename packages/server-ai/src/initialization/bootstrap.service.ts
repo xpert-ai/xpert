@@ -55,6 +55,7 @@ export type TenantSkillRepositoryBootstrapResult = {
 export type UserOrganizationBootstrapResult = {
     workspaceId: string | null
     createdNewUserDefaultWorkspace: boolean
+    clawXpertError?: string
 }
 
 type EnsuredUserWorkspaceResult = {
@@ -158,10 +159,15 @@ export class ServerAIBootstrapService {
     }
 
     async bootstrapUserInOrganization(event: UserOrganizationCreatedEvent): Promise<UserOrganizationBootstrapResult> {
+        // Queue retries outlive membership removal; never restore access from a stale event.
+        if (!(await this.isActiveOrganizationMember(event))) {
+            return { workspaceId: null, createdNewUserDefaultWorkspace: false }
+        }
         const user = await this.userService.findOne(event.userId, { relations: ['role'] })
         let workspaceId: string | null = null
         let environmentId: string | null = null
         let createdNewUserDefaultWorkspace = false
+        let clawXpertError: string | undefined
 
         await this.membershipService.ensureTenantDefaultMembership({
             tenantId: event.tenantId,
@@ -206,13 +212,16 @@ export class ServerAIBootstrapService {
                             error
                         )}`
                     )
+                    // The processor schedules workspace skills before retaining this failure for retry.
+                    clawXpertError = getErrorMessage(error)
                 }
             }
         })
 
         return {
             workspaceId,
-            createdNewUserDefaultWorkspace
+            createdNewUserDefaultWorkspace,
+            ...(clawXpertError ? { clawXpertError } : {})
         }
     }
 
@@ -222,6 +231,7 @@ export class ServerAIBootstrapService {
         userId: string
         workspaceId: string
     }) {
+        if (!(await this.isActiveOrganizationMember(event))) return
         const user = await this.userService.findOne(event.userId, { relations: ['role'] })
 
         await this.runInOrganizationContext(user, event.organizationId, async () => {
@@ -280,6 +290,19 @@ export class ServerAIBootstrapService {
                 )
             }
         })
+    }
+
+    private async isActiveOrganizationMember(event: UserOrganizationCreatedEvent): Promise<boolean> {
+        if (!event.tenantId || !event.organizationId || !event.userId) return false
+        const activeMembershipCount = await this.userOrganizationService.count({
+            where: {
+                tenantId: event.tenantId,
+                organizationId: event.organizationId,
+                userId: event.userId,
+                isActive: true
+            }
+        })
+        return activeMembershipCount > 0
     }
 
     async cleanupUserInOrganization(event: UserOrganizationDeletedEvent) {
@@ -471,10 +494,16 @@ export class ServerAIBootstrapService {
             AssistantBindingScope.USER
         )
         if (existingBinding?.assistantId) {
-            return
+            const available = await this.assistantBindingService.getAvailableXperts(
+                AssistantBindingScope.USER,
+                AssistantCode.CLAWXPERT
+            )
+            if (available.some((xpert) => xpert.id === existingBinding.assistantId)) {
+                return
+            }
         }
 
-        const copilotModel = await this.resolveFirstAvailableLlmModel()
+        const copilotModel = await this.getAvailableClawXpertModel()
         if (!copilotModel) {
             return
         }
@@ -521,7 +550,7 @@ export class ServerAIBootstrapService {
         })
     }
 
-    private async resolveFirstAvailableLlmModel(): Promise<TCopilotModel | null> {
+    async getAvailableClawXpertModel(): Promise<TCopilotModel | null> {
         const copilots = await this.queryBus.execute<FindCopilotModelsQuery, ICopilotWithProvider[]>(
             new FindCopilotModelsQuery(AiModelTypeEnum.LLM)
         )

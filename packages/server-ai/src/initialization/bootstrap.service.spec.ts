@@ -182,6 +182,7 @@ describe('ServerAIBootstrapService', () => {
             })
         }
         const userOrganizationService = {
+            count: jest.fn().mockResolvedValue(1),
             findUserIdsByOrganization: jest.fn().mockResolvedValue(['owner-1', 'member-2'])
         }
         const workspaceService = {
@@ -909,7 +910,8 @@ connections: []`
             } as UserOrganizationCreatedEvent)
         ).resolves.toEqual({
             workspaceId: 'workspace-2',
-            createdNewUserDefaultWorkspace: true
+            createdNewUserDefaultWorkspace: true,
+            clawXpertError: 'template install failed'
         })
 
         expect(membershipService.ensureUserAssignedIfScopeInitialized).toHaveBeenCalledWith({
