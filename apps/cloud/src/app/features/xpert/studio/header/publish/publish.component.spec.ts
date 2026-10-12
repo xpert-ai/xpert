@@ -3,18 +3,15 @@ import { join } from 'node:path'
 
 describe('XpertPublishVersionComponent layout', () => {
   const template = readFileSync(join(__dirname, 'publish.component.html'), 'utf8')
-  const styles = readFileSync(join(__dirname, 'publish.component.scss'), 'utf8')
 
   it('keeps publish actions visible while the dialog body scrolls', () => {
-    expect(styles).toContain('max-h-[calc(100vh-4rem)]')
-
-    const bodyClasses = classAttributeFor('<div class="relative flex')
-
-    expect(bodyClasses).toEqual(expect.arrayContaining(['flex-1', 'min-h-0', 'overflow-y-auto']))
-
-    const actionsClasses = classAttributeFor('<div class="w-full')
-
-    expect(actionsClasses).toContain('shrink-0')
+    expect(template).toContain('max-h-[calc(100dvh-32px)]')
+    const bodyStart = template.indexOf('<div xpDialogBody')
+    const footerStart = template.indexOf('<footer xpDialogFooter')
+    expect(bodyStart).toBeGreaterThan(0)
+    expect(footerStart).toBeGreaterThan(bodyStart)
+    expect(template.slice(footerStart)).toContain('(click)="publish()"')
+    expect(template.slice(bodyStart, footerStart)).not.toContain('(click)="publish()"')
   })
 
   it('keeps marketplace information last and collapsed by default', () => {
@@ -41,20 +38,4 @@ describe('XpertPublishVersionComponent layout', () => {
     expect(businessAreaSection).toContain('[selectOptions]="businessAreaOptions()"')
     expect(businessAreaSection).not.toContain('MenuPreview')
   })
-
-  function classAttributeFor(fragment: string) {
-    const start = template.indexOf(fragment)
-    if (start < 0) {
-      throw new Error(`Could not find template fragment: ${fragment}`)
-    }
-
-    const tagEnd = template.indexOf('>', start)
-    const tag = template.slice(start, tagEnd)
-    const match = tag.match(/class="([^"]*)"/)
-    if (!match) {
-      throw new Error(`Could not find class attribute for template fragment: ${fragment}`)
-    }
-
-    return match[1].split(/\s+/)
-  }
 })

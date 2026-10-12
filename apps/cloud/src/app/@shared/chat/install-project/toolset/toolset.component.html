@@ -1,28 +1,43 @@
-<div class="flex justify-between items-center gap-2">
-  <div class="flex flex-col">
-    <div>
+<div xpDialogActionGroup="inline" class="flex flex-wrap items-start justify-between gap-3">
+  <div class="min-w-0 flex-1 space-y-2">
+    <div class="flex flex-wrap items-center gap-2">
       <span class="font-semibold text-base truncate">{{ name() }}</span>
       <span class="mx-2">
         {{ 'XP.XProject.Or' | translate: { Default: 'or' } }}
       </span>
 
       <button
-        class="border-solid border-[0.5px] border-divider-deep rounded-lg shadow-sm pl-1 pr-2 ml-2 disabled:text-text-secondary disabled:shadow-none disabled:cursor-not-allowed"
-        [disabled]="!project() || loading() || createdToolset()"
+        type="button"
+        z-button
+        zType="outline"
+        class="max-w-full"
+        [zDisabled]="!project() || loading() || createdToolset()"
         [cdkMenuTriggerFor]="toolsMenu"
       >
-        <i class="ri-links-line ml-1 text-lg"></i>
+        <i class="ri-links-line"></i>
         @if (bindedToolset()) {
-          <span>
+          <span class="truncate">
             {{ bindedToolset().name }}
           </span>
-          <i class="ri-close-circle-line cursor-pointer" (click)="removeBindedToolset()"></i>
         } @else {
           <span>
             {{ 'XP.XProject.IntroduceExistToolset' | translate: { Default: 'Introduce Exist Toolset' } }}
           </span>
         }
       </button>
+      @if (bindedToolset()) {
+        <button
+          type="button"
+          z-button
+          zType="ghost"
+          zSize="icon"
+          [zDisabled]="!project() || loading() || !!createdToolset()"
+          [attr.aria-label]="'XP.ACTIONS.Remove' | translate: { Default: 'Remove' }"
+          (click)="removeBindedToolset()"
+        >
+          <z-icon zType="x" />
+        </button>
+      }
       @if (createdToolset()) {
         <i
           class="ri-checkbox-circle-fill ml-1 text-text-success"
@@ -38,13 +53,12 @@
 
   <button
     type="button"
-    class="btn disabled:btn-disabled btn-secondary btn-medium justify-center w-24"
-    [disabled]="loading() || createdToolset() || !project()?.workspaceId"
+    z-button
+    zType="outline"
+    [zLoading]="loading()"
+    [zDisabled]="loading() || createdToolset() || !project()?.workspaceId"
     (click)="importToolset()"
   >
-    @if (loading()) {
-      <xp-spin class="w-5 h-5 mr-1" />
-    }
     @if (bindedToolset()) {
       {{ 'XP.XProject.Binding' | translate: { Default: 'Binding' } }}
     } @else {

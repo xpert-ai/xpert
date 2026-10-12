@@ -1,3 +1,4 @@
+import { McpAppHistory } from '../mcp-app-runtime/mcp-app-history.entity'
 import { ConflictException } from '@nestjs/common'
 import { DataSource, EntityManager, Repository } from 'typeorm'
 import { ChatMessage } from '../chat-message/chat-message.entity'
@@ -27,6 +28,59 @@ describe('ChatConversationThreadService', () => {
             dataSource as DataSource
         )
     }
+
+    it('deletes branch App history atomically with only the scoped branch messages', async () => {
+        const manager = {
+            find: jest.fn().mockResolvedValue([
+                {
+                    id: 'message',
+                    events: [
+                        {
+                            data: {
+                                type: 'McpApp',
+                                appInstanceId: 'app'
+                            }
+                        }
+                    ]
+                }
+            ]),
+            delete: jest.fn(),
+            softDelete: jest.fn()
+        }
+        const transaction = jest.fn(async (work) => work(manager))
+        const service = createService({ dataSource: { transaction } })
+        jest.spyOn(service, 'requireByThreadId').mockResolvedValue({
+            threadId: 'branch',
+            conversationId: 'conversation',
+            tenantId: 'tenant',
+            organizationId: 'org'
+        } as ChatConversationThread)
+        await service.deleteBranchMessages('branch')
+        expect(transaction).toHaveBeenCalledTimes(1)
+        expect(manager.find).toHaveBeenCalledWith(ChatMessage, {
+            where: {
+                tenantId: 'tenant',
+                organizationId: 'org',
+                conversationId: 'conversation',
+                createdInThreadId: 'branch'
+            },
+            select: { id: true, content: true, events: true }
+        })
+        expect(manager.delete).toHaveBeenCalledWith(
+            McpAppHistory,
+            expect.objectContaining({
+                tenantId: 'tenant',
+                organizationId: 'org',
+                id: expect.objectContaining({ _value: ['app'] })
+            })
+        )
+        expect(manager.softDelete).toHaveBeenCalledWith(ChatMessage, {
+            tenantId: 'tenant',
+            organizationId: 'org',
+            conversationId: 'conversation',
+            createdInThreadId: 'branch'
+        })
+    })
 
     it('includes call receipts in display history without adding them to model ancestry', async () => {
         const call = { id: 'call-1', createdAt: new Date('2026-10-05T01:01:17Z') }

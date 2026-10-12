@@ -1,39 +1,43 @@
-<header cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle class="pb-2 cursor-move">
-  <h4 class="text-xl pointer-events-none">
-    {{ title || ('COMPONENTS.CONFIRM.INPUT_UNIQUE_VALUE' | translate: { Default: 'Input Unique Value' }) }}
-  </h4>
-</header>
-
-<div class="py-4" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
-  @if (data?.description) {
-    <p class="mb-4 font-body text-sm text-text-secondary">
-      {{ data.description }}
-    </p>
-  }
-  <form (ngSubmit)="onApply()" class="max-w-xs">
-    <z-form-field appearance="fill" class="w-full">
-      <z-form-label>{{ 'COMPONENTS.CONFIRM.NAME' | translate: { Default: 'Name' } }}</z-form-label>
-      <input cdkFocusInitial z-input name="value" [formControl]="value" />
-      @if (invalid) {
-        <z-form-message zType="error">
-          {{ error || 'Error' }}
-        </z-form-message>
-      }
-    </z-form-field>
-  </form>
-</div>
-
-<div class="w-full flex justify-between items-center">
-  <button z-button zType="ghost" (click)="reset()">
-    {{ 'COMPONENTS.COMMON.RESET' | translate: { Default: 'Reset' } }}
-  </button>
-
-  <div class="ml-8 flex items-center gap-1">
-    <button z-button zType="secondary" (click)="onCancel()">
-      {{ 'COMPONENTS.COMMON.CANCEL' | translate: { Default: 'Cancel' } }}
+<div xpDialogLayout="standard" class="w-[480px] max-w-full max-h-[85dvh]">
+  <header xpDialogHeader cdkDrag cdkDragRootElement=".cdk-overlay-pane">
+    <h2 cdkDragHandle class="cursor-move" xpDialogHeading>
+      {{ title || ('COMPONENTS.CONFIRM.INPUT_UNIQUE_VALUE' | translate: { Default: 'Input Unique Value' }) }}
+    </h2>
+    @if (data?.description) {
+      <p xpDialogDescription>{{ data.description }}</p>
+    }
+    <button
+      type="button"
+      z-button
+      zType="ghost"
+      zSize="icon"
+      xpDialogCloseButton
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+      (click)="onCancel()"
+    >
+      <z-icon zType="x" />
     </button>
-    <button z-button zType="default" [disabled]="invalid" cdkFocusInitial (click)="onApply()">
+  </header>
+  <div xpDialogBody>
+    <form (ngSubmit)="onApply()">
+      <z-form-field appearance="fill" class="w-full">
+        <z-form-label>{{ 'COMPONENTS.CONFIRM.NAME' | translate: { Default: 'Name' } }}</z-form-label>
+        <input cdkFocusInitial z-input name="value" [formControl]="value" />
+        @if (invalid) {
+          <z-form-message zType="error">
+            {{ error || 'Error' }}
+          </z-form-message>
+        }
+      </z-form-field>
+    </form>
+  </div>
+  <footer xpDialogFooter>
+    <button type="button" z-button zType="outline" class="mr-auto" (click)="reset()">
+      {{ 'COMPONENTS.COMMON.RESET' | translate: { Default: 'Reset' } }}</button
+    ><button type="button" z-button zType="outline" (click)="onCancel()">
+      {{ 'COMPONENTS.COMMON.CANCEL' | translate: { Default: 'Cancel' } }}</button
+    ><button type="button" z-button zType="default" [zDisabled]="invalid" (click)="onApply()">
       {{ 'COMPONENTS.COMMON.APPLY' | translate: { Default: 'Apply' } }}
     </button>
-  </div>
+  </footer>
 </div>

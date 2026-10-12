@@ -1,19 +1,26 @@
+import { ZardButtonComponent, XpDialogFrameImports, XpSpinComponent, myRxResource } from '@xpert-ai/headless-ui'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { DateRelativePipe, IKnowledgebase, KnowledgeDocumentService } from '@cloud/app/@core'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
-import { myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
 import { ChatMessageExecutionPanelComponent } from '../../chat'
 
 @Component({
   standalone: true,
-  imports: [TranslateModule, MarkdownModule, XpSpinComponent, DateRelativePipe, ChatMessageExecutionPanelComponent],
+  imports: [
+    TranslateModule,
+    MarkdownModule,
+    XpSpinComponent,
+    DateRelativePipe,
+    ChatMessageExecutionPanelComponent,
+    ZardButtonComponent,
+    ...XpDialogFrameImports
+  ],
   selector: 'xp-knowledge-task',
   templateUrl: 'task.component.html',
-  styleUrls: ['task.component.scss']
+  host: { class: 'block min-w-0' }
 })
 export class KnowledgeTaskComponent {
   readonly #data = inject<{ knowledgebase: IKnowledgebase; documentId: string }>(DIALOG_DATA)

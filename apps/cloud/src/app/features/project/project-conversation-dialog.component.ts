@@ -1,9 +1,10 @@
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ChatKit } from '@xpert-ai/chatkit-angular'
 import type { IChatConversation, IXpertProject } from '@xpert-ai/contracts'
-import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogRef } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, XpDialogFrameImports } from '@xpert-ai/headless-ui'
 import { environment } from '@cloud/environments/environment'
 import { injectHostedAssistantChatkitControl, sanitizeAssistantFrameUrl } from '../assistant/assistant-chatkit.runtime'
 
@@ -17,45 +18,44 @@ export type XpertProjectConversationDialogData = {
 @Component({
   standalone: true,
   selector: 'xp-project-conversation-dialog',
-  imports: [CommonModule, TranslateModule, ChatKit, ZardButtonComponent],
+  imports: [...XpDialogFrameImports, CommonModule, TranslateModule, ChatKit, ZardButtonComponent],
   template: `
-    <section class="flex h-[min(82vh,760px)] max-h-[calc(100vh-32px)] min-h-0 min-w-0 flex-col">
-      <header class="flex shrink-0 items-start justify-between gap-3 border-b border-divider-subtle pb-3">
-        <div class="min-w-0">
-          <p class="text-xs font-medium uppercase tracking-wide text-text-tertiary">
-            {{ 'XP.XProject.ConversationDetail' | translate }}
-          </p>
-          <h2 class="mt-1 truncate text-base font-semibold text-text-primary">
-            {{ conversation.title || ('XP.XProject.UntitledConversation' | translate) }}
-          </h2>
-          <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-text-tertiary">
-            <span class="max-w-[18rem] truncate font-mono" [title]="conversation.id"
-              >{{ 'XP.XProject.ConversationId' | translate }}: {{ shortId(conversation.id) }}</span
+    <section xpDialogLayout="wide" class="h-[min(82vh,760px)] max-h-[calc(100vh-32px)]">
+      <header xpDialogHeader>
+        <h2 xpDialogHeading>
+          {{ conversation.title || ('XP.XProject.UntitledConversation' | translate) }}
+        </h2>
+        <p xpDialogDescription>
+          {{ 'XP.XProject.ConversationDetail' | translate }}
+        </p>
+        <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-text-tertiary">
+          <span class="max-w-[18rem] truncate font-mono" [title]="conversation.id"
+            >{{ 'XP.XProject.ConversationId' | translate }}: {{ shortId(conversation.id) }}</span
+          >
+          <span class="max-w-[18rem] truncate font-mono" [title]="conversation.threadId || ''"
+            >{{ 'XP.XProject.Thread' | translate }}: {{ shortId(conversation.threadId) }}</span
+          >
+          @if (executionId()) {
+            <span class="max-w-[18rem] truncate font-mono" [title]="executionId() || ''"
+              >{{ 'XP.XProject.ExecutionId' | translate }}: {{ shortId(executionId()) }}</span
             >
-            <span class="max-w-[18rem] truncate font-mono" [title]="conversation.threadId || ''"
-              >{{ 'XP.XProject.Thread' | translate }}: {{ shortId(conversation.threadId) }}</span
-            >
-            @if (executionId()) {
-              <span class="max-w-[18rem] truncate font-mono" [title]="executionId() || ''"
-                >{{ 'XP.XProject.ExecutionId' | translate }}: {{ shortId(executionId()) }}</span
-              >
-            }
-          </div>
+          }
         </div>
         <button
           z-button
           zType="ghost"
           zSize="icon"
+          xpDialogCloseButton
           type="button"
           [attr.aria-label]="'XP.XProject.Close' | translate"
           [title]="'XP.XProject.Close' | translate"
           (click)="close()"
         >
-          <i class="ri-close-line"></i>
+          <z-icon zType="x" aria-hidden="true" />
         </button>
       </header>
 
-      <div class="min-h-0 flex-1 pt-3">
+      <div xpDialogBody>
         @if (!assistantId()) {
           <div class="flex h-full min-h-0 flex-col items-center justify-center px-6 text-center">
             <i class="ri-chat-off-line text-3xl text-text-tertiary"></i>
@@ -67,10 +67,7 @@ export type XpertProjectConversationDialogData = {
             </p>
           </div>
         } @else if (control(); as chatkitControl) {
-          <xpert-chatkit
-            class="block h-full min-h-0 overflow-hidden rounded-lg border border-divider-subtle"
-            [control]="chatkitControl"
-          />
+          <xpert-chatkit class="block h-full min-h-0" [control]="chatkitControl" />
         } @else {
           <div class="flex h-full min-h-0 items-center justify-center text-sm text-text-secondary">
             {{ 'XP.XProject.ProjectChatLoading' | translate }}
@@ -83,8 +80,8 @@ export type XpertProjectConversationDialogData = {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class XpertProjectConversationDialogComponent {
-  readonly data = inject<XpertProjectConversationDialogData>(Z_MODAL_DATA)
-  readonly #dialogRef = inject(ZardDialogRef)
+  readonly data = inject<XpertProjectConversationDialogData>(DIALOG_DATA)
+  readonly #dialogRef = inject<DialogRef<void>>(DialogRef)
   readonly conversation = this.data.conversation
   readonly executionId = signal(this.data.executionId?.trim() || this.conversation.executions?.[0]?.id || null)
   readonly projectId = this.data.projectId.trim()

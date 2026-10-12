@@ -1,3 +1,4 @@
+import { projectTaskPlanSchema } from '../../../project-task-plan.schema'
 import { emitResourceCard } from '@xpert-ai/plugin-sdk'
 import { Logger } from '@nestjs/common'
 import type { ProjectTaskDispatchService } from '../../../runtime/project-task-dispatch.service'
@@ -6,13 +7,14 @@ import { tool } from '@langchain/core/tools'
 import { CommandBus } from '@nestjs/cqrs'
 import {
     getToolCallFromConfig,
-    projectTaskDispatchInputSchema,
+    projectTaskDispatchToolInputSchema,
     projectTaskDecisionInputSchema
 } from '@xpert-ai/contracts'
 import type { IAgentMiddlewareContext } from '@xpert-ai/plugin-sdk'
 import { z } from 'zod/v3'
 import { v5 as uuidv5 } from 'uuid'
 import {
+    UpdateProjectTaskPlanCommand,
     DispatchProjectTaskCommand,
     DecideProjectTaskCommand,
     GetProjectRuntimeTaskCommand,
@@ -66,6 +68,26 @@ export function createProjectRuntimeTools(
     }
     return [
         tool(
+            async (input) => {
+                await assertPermission('edit')
+                return commandBus.execute(
+                    new UpdateProjectTaskPlanCommand(context.projectId, {
+                        ...input,
+                        taskId: input.taskId!,
+                        expectedRevision: input.expectedRevision!
+                    })
+                )
+            },
+            {
+                name: ProjectToolEnum.UpdatePlan,
+                schema: projectTaskPlanSchema.extend({
+                    predecessorIds: z.array(z.string().uuid()).max(100).optional()
+                }),
+                description:
+                    'Persist task dependencies and schedule using the latest task revision. Set predecessorIds to the exact earlier task IDs before dispatching a dependent batch. Rejects cycles, cross-project dependencies and stale revisions. Does not start execution.'
+            }
+        ),
+        tool(
             async (input, config) => {
                 await assertPermission('edit')
                 const actor = caller(config)
@@ -104,9 +126,9 @@ export function createProjectRuntimeTools(
             },
             {
                 name: ProjectToolEnum.DispatchTask,
-                schema: projectTaskDispatchInputSchema.omit({ requestId: true }),
+                schema: projectTaskDispatchToolInputSchema,
                 description:
-                    'Explicitly delegate an existing task to an authorized background Runtime, using the revision from project_get_task. Requirements must be defined. For file delivery use exact paths relative to the project working directory; wildcards/globs are not supported. If paths will be decided during execution, set delivery={mode:"files"} without paths and require the executor to declare every deliverable as a file result item. The platform manages operation identity and retry deduplication. If a previous call has an uncertain outcome, inspect project_get_task instead of submitting another delegation. Make a new call only for an intentional new attempt. Returns task, attempt and invocation IDs; success of the Runtime does not accept the task.'
+                    'Explicitly delegate an existing task using its latest revision from project_get_task. Requirements must be defined. For a group member, use the target object returned by project_list_task_runtimes and omit bindingId and delivery; the member returns ordinary Assistant output. For an external Runtime use bindingId and omit target. Only external Runtimes support file delivery: use delivery={mode:"files",paths:["relative/path"]}, with exact project-relative paths and no wildcards. If paths are decided during execution, use delivery={mode:"files"} and require file result items. delivery is an optional object, never a string. The platform manages operation identity and retry deduplication. After an uncertain outcome inspect project_get_task instead of dispatching again. Make a new call only for an intentional new attempt. Returns task, attempt and invocation IDs; Runtime success does not accept the task.'
             }
         ),
         tool(
@@ -130,7 +152,7 @@ export function createProjectRuntimeTools(
                 name: ProjectToolEnum.ListRuntimes,
                 schema: z.object({}).strict(),
                 description:
-                    'List Runtime bindings authorized for the current project caller workspace. Choose a bindingId for project_dispatch_task; dispatch also checks background capability and Computer policy.'
+                    'List authorized Runtime bindings and Project-bound group members. For a group member, assign the task to its assigneeXpertId and dispatch using its target object; for a Runtime binding use bindingId. Supply exactly one of target or bindingId.'
             }
         )
     ]

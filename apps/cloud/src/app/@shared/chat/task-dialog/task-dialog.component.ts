@@ -1,3 +1,18 @@
+import {
+  ZardButtonComponent,
+  XpDialogFrameImports,
+  XpDialogActionGroupDirective,
+  ZardInputDirective,
+  XpI18nPipe,
+  XpProgressSpinnerComponent,
+  XpSpinComponent,
+  ZardSearchInputComponent,
+  ZardSelectImports,
+  ZardTooltipImports,
+  attrModel,
+  myRxResource
+} from '@xpert-ai/headless-ui'
+
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
@@ -23,15 +38,6 @@ import {
 } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
-import {
-  XpI18nPipe,
-  XpProgressSpinnerComponent,
-  XpSpinComponent,
-  ZardSearchInputComponent,
-  ZardSelectImports
-} from '@xpert-ai/headless-ui'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
-import { attrModel, myRxResource } from '@xpert-ai/headless-ui'
 import type { ConnectorRuntimeOption } from '@xpert-ai/plugin-sdk/connector'
 import { TranslateModule } from '@ngx-translate/core'
 import { isNil } from 'lodash-es'
@@ -58,10 +64,13 @@ import { readTaskConnectorBindingIds, withTaskConnectorBindingIds } from './task
     JSONSchemaFormComponent,
     XpI18nPipe,
     ...ZardSelectImports,
-    ...ZardTooltipImports
+    ...ZardTooltipImports,
+    ZardButtonComponent,
+    ...XpDialogFrameImports,
+    XpDialogActionGroupDirective,
+    ZardInputDirective
   ],
-  templateUrl: './task-dialog.component.html',
-  styleUrl: './task-dialog.component.scss'
+  templateUrl: './task-dialog.component.html'
 })
 export class XpertTaskDialogComponent {
   eTaskFrequency = TaskFrequency

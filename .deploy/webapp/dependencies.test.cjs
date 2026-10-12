@@ -29,6 +29,33 @@ test('the Web lock contains only the selected frontend workspace importers', () 
   assert.deepEqual(names.sort(), ['.', ...packages].sort())
 })
 
+test('browser audio capture has its runtime and type dependency in the isolated Web workspace', (t) => {
+  const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'web-audio-dependency-test-'))
+  t.after(() => fs.rmSync(temporary, { recursive: true, force: true }))
+  prepareManifestWorkspace(temporary)
+  const web = JSON.parse(fs.readFileSync(path.join(temporary, 'package.json'), 'utf8'))
+  const protocolDirectory = 'packages/desktop-protocol'
+  const protocol = JSON.parse(fs.readFileSync(path.join(temporary, protocolDirectory, 'package.json'), 'utf8'))
+  assert.equal(web.dependencies[protocol.name], 'workspace:*')
+  for (const entry of ['audio-capture.js', 'audio-capture.d.ts']) {
+    assert.ok(protocol.files.includes(entry), `${entry} must be shipped with the protocol`)
+    assert.ok(fs.existsSync(path.join(root, protocolDirectory, entry)), `Missing browser protocol entry: ${entry}`)
+  }
+})
+
+test('Docker installs every selected manifest before copying its complete build sources', () => {
+  const dockerfile = read('.deploy/webapp/Dockerfile')
+  const install = dockerfile.indexOf('RUN pnpm install --frozen-lockfile')
+  const build = dockerfile.indexOf('RUN pnpm nx build cloud')
+  assert.ok(install >= 0 && build > install)
+  for (const directory of packages) {
+    const manifest = dockerfile.indexOf(`COPY --chown=node:node ${directory}/package.json ./${directory}/`)
+    const source = dockerfile.indexOf(`COPY --chown=node:node ${directory} ./${directory}\n`)
+    assert.ok(manifest >= 0 && manifest < install, `${directory}: copy manifest before installation`)
+    assert.ok(source > install && source < build, `${directory}: copy sources before compilation`)
+  }
+})
+
 test('deployment locks keep server native modules out of Web and PTY out of the base API', () => {
   const containsPackage = (lock, name) => new RegExp(`^  ['"]?${name}@`, 'm').test(lock)
   const web = read('.deploy/webapp/pnpm-lock.yaml')

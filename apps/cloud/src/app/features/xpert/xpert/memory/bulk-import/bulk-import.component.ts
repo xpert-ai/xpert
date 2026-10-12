@@ -1,22 +1,31 @@
+import {
+  XpDialogFrameImports,
+  ZardButtonComponent,
+  XpDialogActionGroupDirective,
+  XpDndDirective
+} from '@xpert-ai/headless-ui'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
-import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { getErrorMessage, injectToastr, XpertAPIService } from '@cloud/app/@core'
-import { LongTermMemoryTypeEnum, TMemoryQA, TMemoryUserProfile } from '@xpert-ai/contracts'
-import { XpDndDirective, OverlayAnimation1 } from '@xpert-ai/headless-ui'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { LongTermMemoryTypeEnum } from '@xpert-ai/contracts'
+
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 
 @Component({
   standalone: true,
-  imports: [FormsModule, TranslateModule, CdkMenuModule, XpDndDirective, XpSpinComponent],
+  imports: [
+    ...XpDialogFrameImports,
+    ZardButtonComponent,
+    XpDialogActionGroupDirective,
+    FormsModule,
+    TranslateModule,
+    XpDndDirective
+  ],
   selector: 'xpert-memory-bulk-import',
   templateUrl: './bulk-import.component.html',
-  styleUrl: './bulk-import.component.scss',
-  animations: [OverlayAnimation1],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class XpertMemoryBulkImportComponent {
@@ -66,6 +75,7 @@ export class XpertMemoryBulkImportComponent {
   }
 
   async onFile(file: File) {
+    if (this.loading()) return
     try {
       this.loading.set(true)
       this.file.set(file)
@@ -88,6 +98,7 @@ export class XpertMemoryBulkImportComponent {
   }
 
   async upload() {
+    if (this.loading() || !this.file()) return
     this.loading.set(true)
     this.#xpertAPI.bulkCreateMemories(this.xpertId(), { type: this.type(), memories: this.rows() }).subscribe({
       next: (response) => {

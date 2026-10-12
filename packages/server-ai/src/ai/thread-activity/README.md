@@ -38,7 +38,7 @@ Task status and execution status remain separate: a successful execution is not
 task acceptance. Coding execution cards open their independent execution viewer;
 task-level cards and receipts without a Coding execution target open the Project
 tasks view. Task details use that view's Dialog. See the [Project tasks product
-guide](../../../../../docs/project-tasks.md) for navigation and user-facing behavior.
+guide](../../../../../docs/en/guides/project-tasks.mdx) for navigation and user-facing behavior.
 
 `ThreadActivityService` reads runs and messages, binds stored resource cards to
 their message/execution, and calls `RefreshConversationResourceCardsCommand`.
@@ -56,7 +56,7 @@ explicit forbidden/not-found results replace the stale status with unavailabilit
 Neither interrupts run discovery. Conversation access revocation still closes
 observation. Resource identity and message bindings remain host-controlled.
 Types without a provider retain their saved snapshot, including after uninstall.
-See `packages/plugin-sdk/RESOURCE-CARDS.md` for the plugin interface and lifecycle.
+See `packages/plugin-sdk/docs/en/RESOURCE-CARDS.md` for the plugin interface and lifecycle.
 
 Card emission failures do not roll back a committed task or delegation. Cards
 missing because of an emission failure or a crash are not reconstructed from

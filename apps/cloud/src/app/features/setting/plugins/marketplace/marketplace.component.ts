@@ -1,27 +1,40 @@
 import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { Component, TemplateRef, computed, effect, inject, input, model, signal, viewChild } from '@angular/core'
+import { Component, computed, effect, inject, input, model, signal, TemplateRef, viewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { getErrorMessage, injectToastr, routeAnimations } from '@cloud/app/@core'
-import { XpSelectComponent } from '@cloud/app/@shared/common'
 import {
   injectActiveScope,
   IPluginMarketplaceRegistryItem,
   IPluginMarketplaceRegistrySection,
   PluginAPIService
 } from '@cloud/app/@core/state'
-import { OverlayAnimations } from '@xpert-ai/headless-ui'
-import { injectConfirmDelete, XpSpinComponent } from '@xpert-ai/headless-ui'
-import { debouncedSignal, myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'
-import { TranslateModule } from '@ngx-translate/core'
-import { map, type Observable } from 'rxjs'
+import { XpSelectComponent } from '@cloud/app/@shared/common'
 import { I18nService } from '@cloud/app/@shared/i18n'
+import { TranslateModule } from '@ngx-translate/core'
 import {
+  type I18nObject,
+  type I18nText,
+  JSONValue,
+  PluginMarketplaceCategory,
+  PluginTargetAppMarketplaceMetadata,
+  PluginTargetAppMeta,
+  PluginTargetAppMetadata
+} from '@xpert-ai/contracts'
+import {
+  debouncedSignal,
+  injectConfirmDelete,
+  myRxResource,
+  OverlayAnimations,
+  XpDialogActionGroupDirective,
+  XpDialogControlDirective,
+  XpDialogFrameImports,
+  XpI18nPipe,
+  XpSpinComponent,
+  ZardAlertComponent,
   ZardBadgeComponent,
   ZardButtonComponent,
-  ZardCardImports,
   ZardCheckboxComponent,
-  ZardDialogService,
   ZardEmptyComponent,
   ZardFormImports,
   ZardIconComponent,
@@ -29,22 +42,13 @@ import {
   ZardLoaderComponent,
   ZardSelectImports
 } from '@xpert-ai/headless-ui'
-import { ZardAlertComponent } from '@xpert-ai/headless-ui'
-import {
-  type I18nObject,
-  type I18nText,
-  PluginMarketplaceCategory,
-  PluginTargetAppMarketplaceMetadata,
-  PluginTargetAppMeta,
-  PluginTargetAppMetadata,
-  JSONValue
-} from '@xpert-ai/contracts'
-import { getPluginMarketplaceSourceI18nKey, PLATFORM_REGISTRY_SOURCE_ID, TPluginWithDownloads } from '../types'
+import { map, type Observable } from 'rxjs'
 import { SettingsPluginComponent } from '../plugin/plugin.component'
+import { getPluginMarketplaceSourceI18nKey, PLATFORM_REGISTRY_SOURCE_ID, TPluginWithDownloads } from '../types'
 import {
   marketplaceCategoryOptions as buildMarketplaceCategoryOptions,
-  marketplaceSubcategoryOptionsFor,
   groupPluginsByMarketplaceCategory,
+  marketplaceSubcategoryOptionsFor,
   matchesPluginMarketplaceCategoryFilters,
   normalizePluginMarketplaceCategory,
   PLUGIN_MARKETPLACE_TARGET_APP
@@ -74,8 +78,10 @@ const DEFAULT_REGISTRY_TARGET_APP_META = `{
     SettingsPluginComponent,
     ZardAlertComponent,
     ZardBadgeComponent,
+    XpDialogActionGroupDirective,
+    XpDialogControlDirective,
+    ...XpDialogFrameImports,
     ZardButtonComponent,
-    ...ZardCardImports,
     ZardCheckboxComponent,
     ZardEmptyComponent,
     ...ZardFormImports,
@@ -93,7 +99,6 @@ export class PluginsMarketplaceComponent {
   readonly pluginAPI = inject(PluginAPIService)
   readonly #activeScope = injectActiveScope()
   readonly #dialog = inject(Dialog)
-  readonly #zardDialog = inject(ZardDialogService)
   readonly #toastr = injectToastr()
   readonly confirmDelete = injectConfirmDelete()
   readonly i18nService = inject(I18nService)
@@ -333,8 +338,10 @@ export class PluginsMarketplaceComponent {
 
     this.resetAddSourceForm()
     this.#dialog.open(template, {
-      backdropClass: 'backdrop-blur-sm-black',
-      minWidth: '520px'
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      width: '560px',
+      maxWidth: 'calc(100vw - 32px)'
     })
   }
 
@@ -346,12 +353,11 @@ export class PluginsMarketplaceComponent {
 
     this.resetRegistryForm()
     this.loadRegistryItems()
-    this.#zardDialog.open(template, {
-      backdropClass: 'backdrop-blur-sm-black',
-      panelClass: 'border-0 bg-transparent p-0 shadow-none sm:max-w-none',
-      minWidth: '960px',
-      maxWidth: 'calc(100vw - 48px)',
-      width: 'calc(100vw - 48px)'
+    this.#dialog.open(template, {
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 2rem)',
+      width: 'min(1120px, calc(100vw - 2rem))'
     })
   }
 

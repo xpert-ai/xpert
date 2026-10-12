@@ -1,3 +1,5 @@
+import { ZardButtonComponent, XpDialogFrameImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
+
 import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
@@ -17,7 +19,6 @@ import { KnowledgeDocumentsComponent } from '../../documents.component'
 import { KnowledgeDocumentPipelineComponent } from '../pipeline.component'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { KnowledgeDocumentPipelineSettingsComponent } from '../settings/settings.component'
-import { ZardButtonComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -32,7 +33,8 @@ import { ZardButtonComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     TranslateModule,
     ...ZardTooltipImports,
     ContentLoaderModule,
-    KnowledgeDocumentPipelineSettingsComponent
+    KnowledgeDocumentPipelineSettingsComponent,
+    ...XpDialogFrameImports
   ]
 })
 export class KnowledgeDocumentPipelineStep2Component {

@@ -77,12 +77,26 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
       access: choice(value.accessStatus, ['owned', 'accessible', 'approved', 'requested', 'not_requested', 'rejected'])
     }
   }
+  const applicationIcon = (icon, webUrl) => {
+    if (typeof icon?.value !== 'string') return null
+    if (icon.type === 'emoji') return { type: 'emoji', value: icon.value.slice(0, 64) }
+    // SVG remains an isolated image document, never markup in the renderer DOM.
+    const source =
+      icon.type === 'svg'
+        ? `data:image/svg+xml;base64,${Buffer.from(icon.value).toString('base64')}`
+        : icon.type === 'image'
+          ? screenshots([icon.value], webUrl)[0]
+          : null
+    const image = parseAvatarUrl(source)
+    return image ? { type: 'image', value: image } : null
+  }
   const application = (value, locale, webUrl) => {
     const localized = (value) => localizedText(value, locale)
     const app = value?.application
     const presentation = app?.config?.presentation
     return {
       kind: 'applications',
+      icon: applicationIcon(app?.icon, webUrl),
       id: required(app?.id, 'App ID'),
       pluginName: required(app.pluginName, 'Plugin name'),
       appName: required(app.appName, 'App name'),

@@ -37,6 +37,8 @@ export class DirtyCheckGuard {
 
   confirmChanges(currentRoute: ActivatedRouteSnapshot): Observable<boolean> | boolean {
     return this.alertDialog.confirm({
+      layout: 'standard',
+      title: this.getTranslation('XP.KEY_WORDS.Confirm', { Default: 'Confirm' }),
       description: this.getTranslation('XP.MESSAGE.ConfirmExitDirtyData', {
         Default: 'Has dirty data, confirm exit?'
       }),
@@ -74,6 +76,8 @@ function confirmChanges(
   translateService: TranslateService
 ): Observable<boolean> | boolean {
   return alertDialog.confirm({
+    layout: 'standard',
+    title: translateService.instant('XP.KEY_WORDS.Confirm', { Default: 'Confirm' }),
     description: translateService.instant('XP.MESSAGE.ConfirmExitDirtyData', {
       Default: 'Has dirty data, confirm exit?'
     }),

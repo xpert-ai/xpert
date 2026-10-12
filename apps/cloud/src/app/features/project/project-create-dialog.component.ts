@@ -1,3 +1,4 @@
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
@@ -5,13 +6,12 @@ import { FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angu
 import { TranslateModule } from '@ngx-translate/core'
 import type { IUser, IXpertProject, IXpertProjectCreateInput } from '@xpert-ai/contracts'
 import {
-  Z_MODAL_DATA,
   ZardButtonComponent,
-  ZardDialogRef,
   ZardFormImports,
   ZardInputDirective,
   ZardTagSelectComponent,
-  type ZardTagSelectOption
+  type ZardTagSelectOption,
+  XpDialogFrameImports
 } from '@xpert-ai/headless-ui'
 import { catchError, map, of } from 'rxjs'
 import { UsersOrganizationsService } from '../../@core/services/users-organizations.service'
@@ -21,6 +21,7 @@ import { Store } from '../../@core'
   standalone: true,
   selector: 'xp-project-create-dialog',
   imports: [
+    ...XpDialogFrameImports,
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
@@ -31,27 +32,32 @@ import { Store } from '../../@core'
     ...ZardFormImports
   ],
   template: `
-    <form class="flex max-h-[min(82vh,720px)] min-w-0 flex-col" [formGroup]="form" (ngSubmit)="submit()">
-      <div class="flex items-start justify-between border-b border-divider-subtle pb-3">
-        <div>
-          <p class="text-xs font-medium uppercase tracking-wide text-text-tertiary">
-            {{ 'XP.XProject.StepOf' | translate: { step: step(), total: 2 } }}
-          </p>
-          <h2 class="mt-1 text-base font-semibold text-text-primary">{{ 'XP.XProject.NewProject' | translate }}</h2>
-        </div>
+    <form
+      xpDialogLayout="wide"
+      xpDialogPurpose="workflow"
+      class="max-h-[min(82vh,720px)]"
+      [formGroup]="form"
+      (ngSubmit)="submit()"
+    >
+      <header xpDialogHeader>
+        <h2 xpDialogHeading>{{ 'XP.XProject.NewProject' | translate }}</h2>
+        <p xpDialogDescription>
+          {{ 'XP.XProject.StepOf' | translate: { step: step(), total: 2 } }}
+        </p>
         <button
           z-button
           zType="ghost"
-          zSize="sm"
+          xpDialogCloseButton
+          zSize="icon"
           type="button"
           [attr.aria-label]="'XP.XProject.Close' | translate"
           (click)="close()"
         >
-          <i class="ri-close-line"></i>
+          <z-icon zType="x" aria-hidden="true" />
         </button>
-      </div>
+      </header>
 
-      <div class="min-h-0 flex-1 space-y-4 overflow-y-auto py-4">
+      <div xpDialogBody>
         @if (step() === 1) {
           <z-form-field appearance="fill" class="w-full">
             <z-form-label [zRequired]="true">{{ 'XP.XProject.ProjectName' | translate }}</z-form-label>
@@ -107,26 +113,32 @@ import { Store } from '../../@core'
         }
       </div>
 
-      <div class="flex items-center justify-between border-t border-divider-subtle pt-3">
-        <button z-button zType="ghost" type="button" [disabled]="step() === 1" (click)="previous()">
+      <footer xpDialogFooter>
+        <button z-button zType="outline" class="mr-auto" type="button" [zDisabled]="step() === 1" (click)="previous()">
           {{ 'XP.XProject.Back' | translate }}
         </button>
         @if (step() === 1) {
-          <button z-button zType="default" type="button" [disabled]="form.controls.name.invalid" (click)="next()">
+          <button z-button zType="default" type="button" [zDisabled]="form.controls.name.invalid" (click)="next()">
             {{ 'XP.XProject.Continue' | translate }}
           </button>
         } @else {
-          <button z-button zType="default" type="submit" [disabled]="form.invalid || submitting()">
+          <button
+            z-button
+            zType="default"
+            type="submit"
+            [zLoading]="submitting()"
+            [zDisabled]="form.invalid || submitting()"
+          >
             {{ 'XP.XProject.CreateProject' | translate }}
           </button>
         }
-      </div>
+      </footer>
     </form>
   `,
   host: { class: 'block w-full min-w-0' }
 })
 export class XpertProjectCreateDialogComponent {
-  readonly #dialogRef = inject<ZardDialogRef<XpertProjectCreateDialogComponent>>(ZardDialogRef)
+  readonly #dialogRef = inject<DialogRef<IXpertProjectCreateInput>>(DialogRef)
   readonly #fb = inject(FormBuilder)
   readonly #membersService = inject(UsersOrganizationsService)
   readonly #store = inject(Store)
@@ -158,7 +170,7 @@ export class XpertProjectCreateDialogComponent {
       description: 'XP.XProject.AdvancedModeDescription'
     }
   ]
-  readonly data = inject<{ initial?: Partial<IXpertProject> }>(Z_MODAL_DATA, { optional: true })
+  readonly data = inject<{ initial?: Partial<IXpertProject> }>(DIALOG_DATA, { optional: true })
 
   readonly displayUser = (user: unknown) => {
     return isUserValue(user) ? user.fullName || user.username || user.email || '' : ''

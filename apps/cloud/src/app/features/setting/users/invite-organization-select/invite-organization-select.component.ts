@@ -1,13 +1,18 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, HostBinding, computed, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { XpHighlightDirective, ZardSearchInputComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
+import {
+  XpDialogFrameImports,
+  XpHighlightDirective,
+  ZardButtonComponent,
+  ZardIconComponent,
+  ZardSearchInputComponent
+} from '@xpert-ai/headless-ui'
 import { IOrganization } from '../../../../@core'
 import { OrgAvatarComponent } from '../../../../@shared/organization'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 export interface InviteOrganizationSelectDialogData {
   organizations: IOrganization[]
@@ -23,6 +28,7 @@ export interface InviteOrganizationSelectDialogData {
     class: 'flex max-w-2xl flex-col'
   },
   imports: [
+    ...XpDialogFrameImports,
     CommonModule,
     FormsModule,
     DragDropModule,
@@ -35,8 +41,6 @@ export interface InviteOrganizationSelectDialogData {
   ]
 })
 export class InviteOrganizationSelectComponent {
-  @HostBinding('class.xp-dialog-container') isDialogContainer = true
-
   readonly dialogRef = inject(DialogRef<IOrganization | undefined>)
   readonly data = inject<InviteOrganizationSelectDialogData>(DIALOG_DATA)
 

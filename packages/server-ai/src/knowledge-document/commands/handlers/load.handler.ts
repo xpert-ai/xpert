@@ -344,6 +344,7 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                     docParserConfig.imageUnderstandingEnabled !== false &&
                     (docParserConfig.imageUnderstandingEnabled === true || !providesImageText)
                 ) {
+                    let requiresVisionModel = true
                     try {
                         const imageUnderstandingDocument = this.createImageUnderstandingDocument(
                             doc,
@@ -371,7 +372,7 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                                 ...(docParserConfig.imageUnderstanding ?? {}),
                                 stage
                             }
-                            const requiresVisionModel =
+                            requiresVisionModel =
                                 (await imageUnderstanding.requiresVisionModel?.(strategyConfig)) ?? true
                             if (requiresVisionModel && !visionModel) {
                                 visionModel = await this.knowledgebaseService.getVisionModel(
@@ -432,6 +433,8 @@ export class KnowledgeDocLoadHandler implements ICommandHandler<KnowledgeDocLoad
                             await this.kbDocumentService.update(doc.id, { status: KBDocumentStatusEnum.UNDERSTOOD })
                         }
                     } catch (error) {
+                        // Supplied semantic text is authoritative input: failure must not index a placeholder.
+                        if (!requiresVisionModel) throw error
                         chunks.push(...splitted.chunks)
                         await this.recordImageUnderstandingWarnings(doc, stage, [
                             {

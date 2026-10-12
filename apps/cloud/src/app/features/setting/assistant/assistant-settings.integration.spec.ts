@@ -41,6 +41,8 @@ jest.mock('@xpert-ai/headless-ui', () => ({
       return value.en_US
     }
   },
+  XpDialogActionGroupDirective: class XpDialogActionGroupDirective {},
+  XpDialogFrameImports: [],
   ZardCardImports: []
 }))
 

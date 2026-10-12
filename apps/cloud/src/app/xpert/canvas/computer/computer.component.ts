@@ -66,6 +66,9 @@ export class ChatCanvasComputerComponent {
 
   openFiles() {
     this.#dialog.open(ChatConversationFilesComponent, {
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)',
       data: {
         projectId: this.projectId(),
         conversationId: this.homeService.conversation().id

@@ -1,3 +1,15 @@
+import {
+  ZardButtonComponent,
+  XpDialogFrameImports,
+  ZardInputDirective,
+  ZardBadgeComponent,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardMenuImports,
+  ZardSelectImports,
+  ZardTableImports,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { Clipboard } from '@angular/cdk/clipboard'
 import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
@@ -25,17 +37,6 @@ import {
   PromptWorkflowVisibility,
   parsePromptCapabilityConfig
 } from '@xpert-ai/contracts'
-import {
-  ZardBadgeComponent,
-  ZardButtonComponent,
-  ZardFormImports,
-  ZardIconComponent,
-  ZardInputDirective,
-  ZardMenuImports,
-  ZardSelectImports,
-  ZardTableImports,
-  ZardTooltipImports
-} from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
 import { getErrorMessage, injectPromptWorkflowAPI, injectToastr, injectXpertAPI } from '../../../../@core'
 import { TagSelectComponent } from '../../../../@shared/tag/tag-select/tag-select.component'
@@ -70,7 +71,8 @@ type Panel = 'templates' | 'archive' | 'discard' | 'tags' | 'export'
     TagDirectoryComponent,
     PromptExpertSelectComponent,
     PromptCapabilitySelectComponent,
-    PromptScenarioSettingsComponent
+    PromptScenarioSettingsComponent,
+    ...XpDialogFrameImports
   ],
   selector: 'xp-workspace-prompt-workflows',
   templateUrl: './workflows.component.html',
@@ -372,8 +374,7 @@ export class XpertWorkspacePromptWorkflowsComponent {
     this.#ref = this.#dialog.open(this.dialogTemplate(), {
       backdropClass: 'backdrop-blur-xs-black',
       panelClass: 'xp-overlay-pane-dialog',
-      maxWidth: '95vw',
-      maxHeight: '90vh',
+      maxWidth: 'calc(100vw - 32px)',
       disableClose: panel === 'discard',
       ariaLabel: this.#translate.instant('XP.PromptWorkflow.Panel.' + panel)
     })

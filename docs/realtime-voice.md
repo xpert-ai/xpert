@@ -11,7 +11,7 @@ The integration supports Doubao Seeduplex 3.0 and Qwen-Omni-Realtime through mod
 3. When creating a Bosi assistant, select **Realtime voice calls**, a voice model and a voice. For an existing assistant, use **Edit profile → Model & capabilities**.
 4. Save and publish the assistant configuration. Calls use the published configuration, and the server rechecks model access and the selected voice when a call starts.
 
-Voice selection is independent of the assistant's reasoning model. Changing the voice does not change its tools or grant additional permissions. Advanced workflow changes remain in Xpert Studio. See [Assistant capabilities](assistant-capabilities.md) for the shared authoring and publishing rules.
+Voice selection is independent of the assistant's reasoning model. Changing the voice does not change its tools or grant additional permissions. Advanced workflow changes remain in Xpert Studio. See [Assistant capabilities](en/guides/assistant-capabilities.mdx) for the shared authoring and publishing rules.
 
 The published feature is stored in `features.realtimeVoice` with `enabled`, `copilotModel` and `voice`. The model selection contains `copilotId`, `model` and `modelType: 'realtime'`. Clients select an authorized model from the catalog; provider credentials stay on the server.
 

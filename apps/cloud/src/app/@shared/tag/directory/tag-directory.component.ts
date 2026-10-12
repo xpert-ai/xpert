@@ -1,3 +1,15 @@
+import {
+  ZardButtonComponent,
+  XpDialogFrameImports,
+  XpDialogActionGroupDirective,
+  ZardInputDirective,
+  ZardCheckboxComponent,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardMenuImports,
+  ZardSelectImports,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { KnowledgeTagsService } from '../../../@core/services/knowledge-tags.service'
 import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import {
@@ -24,16 +36,6 @@ import {
   TagCategoryEnum,
   TagTarget
 } from '@xpert-ai/contracts'
-import {
-  ZardButtonComponent,
-  ZardCheckboxComponent,
-  ZardFormImports,
-  ZardIconComponent,
-  ZardInputDirective,
-  ZardMenuImports,
-  ZardSelectImports,
-  ZardTooltipImports
-} from '@xpert-ai/headless-ui'
 import { firstValueFrom, map } from 'rxjs'
 import { getErrorMessage, RequestScopeLevel, Store, TagService, ToastrService, XpertAPIService } from '../../../@core'
 
@@ -54,7 +56,9 @@ type PanelMode = 'edit' | 'usage' | 'disable' | 'enable' | 'delete'
     ZardInputDirective,
     ...ZardMenuImports,
     ...ZardSelectImports,
-    ...ZardTooltipImports
+    ...ZardTooltipImports,
+    ...XpDialogFrameImports,
+    XpDialogActionGroupDirective
   ],
   templateUrl: './tag-directory.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -217,8 +221,7 @@ export class TagDirectoryComponent {
     this.ref = this.dialog.open(this.panel(), {
       backdropClass: 'backdrop-blur-xs-black',
       panelClass: 'xp-overlay-pane-dialog',
-      maxWidth: '95vw',
-      maxHeight: '90vh',
+      maxWidth: 'calc(100vw - 32px)',
       ariaLabel: this.text(mode === 'edit' ? (tag ? 'Edit' : 'Create') : mode)
     })
     const ref = this.ref

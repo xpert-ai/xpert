@@ -48,11 +48,127 @@ function fixture(t, { legacy = false, retainedChangesetPolicy } = {}) {
   }
   write('.changeset/config.json', JSON.stringify({ privatePackages: { version: true } }))
   const initial = commit()
-  const plan = (before, after, event = 'push', ref = 'refs/heads/develop') =>
-    releasePlan({ cwd, before, after, event, ref, retainedChangesetPolicy })
+  const plan = (before, after, event = 'push', ref = 'refs/heads/develop', mainSha) =>
+    releasePlan({ cwd, before, after, event, ref, mainSha, retainedChangesetPolicy })
   return { cwd, git, write, version, note, remove, commit, initial, plan }
 }
 const tags = (image) => image.tags.split('\n').map((tag) => tag.replace('type=raw,value=', ''))
+
+function mainSyncFixture(t) {
+  const f = fixture(t)
+  f.note('released', [api.name, web.name, contracts], 'minor')
+  const fork = f.commit()
+  f.remove('released')
+  f.version(api, '1.1.0')
+  f.version(web, '1.1.0')
+  f.write('packages/contracts/package.json', JSON.stringify({ name: contracts, version: '1.1.0' }))
+  f.commit()
+  // Main may contain multiple releases or an intentional version baseline alignment.
+  f.version(api, '1.11.0')
+  const main = f.commit()
+  f.git('checkout', '--detach', fork)
+  f.note('downstream', [api.name, web.name])
+  const before = f.commit()
+  f.git(
+    '-c',
+    'core.hooksPath=/dev/null',
+    '-c',
+    'user.name=Release tests',
+    '-c',
+    'user.email=test@example.invalid',
+    'merge',
+    '--no-ff',
+    '-qm',
+    'Sync main',
+    main
+  )
+  const after = f.git('rev-parse', 'HEAD')
+  return { ...f, main, before, after }
+}
+
+test('newly merged main versions retain downstream notes and authorize only candidates', (t) => {
+  const f = mainSyncFixture(t)
+  assert.throws(() => f.plan(f.before, f.after), /consume all pending/)
+  for (const [event, ref, channel] of [
+    ['push', 'refs/heads/develop', 'develop'],
+    ['pull_request', 'refs/pull/1/merge', 'pr']
+  ]) {
+    const plan = f.plan(f.before, f.after, event, ref, f.main)
+    assert.equal(plan.publish, event === 'push')
+    assert.deepEqual(
+      plan.matrix.include.map((image) => image.image_name),
+      ['xpert-api', 'xpert-webapp']
+    )
+    for (const [i, image] of plan.matrix.include.entries()) {
+      assert.equal(image.baseVersion, i === 0 ? '1.11.1' : '1.1.1')
+      assert.equal(image.version, `${image.baseVersion}-candidate.${channel}.${f.after.slice(0, 12)}`)
+      assert.equal(image.versioned, false)
+      assert.equal(image.stable, false)
+      assert.equal(image.target, 'candidate')
+      assert.deepEqual(image.changesets, ['.changeset/downstream.md'])
+      assert.deepEqual(tags(image), [image.version, `sha-${f.after}`, `${channel}-candidate`])
+    }
+  }
+  assert.throws(() => f.plan(f.before, f.after, 'push', 'refs/heads/main', f.main), /consume all pending/)
+})
+
+test('a later main tip uses only the version baseline actually merged into the source SHA', (t) => {
+  const f = mainSyncFixture(t)
+  f.git('checkout', '--detach', f.main)
+  f.version(api, '1.12.0')
+  const laterMain = f.commit()
+  const [image] = f.plan(f.before, f.after, 'push', 'refs/heads/develop', laterMain).matrix.include
+  assert.equal(image.baseVersion, '1.11.1')
+})
+
+test('an unmerged main version cannot justify a local version increase', (t) => {
+  const f = mainSyncFixture(t)
+  f.git('checkout', '--detach', f.before)
+  f.version(api, '1.11.0')
+  assert.throws(() => f.plan(f.before, f.commit(), 'push', 'refs/heads/develop', f.main), /consume all pending/)
+})
+
+test('versions differing from merged main still require complete Changeset consumption', (t) => {
+  const f = mainSyncFixture(t)
+  f.version(api, '1.12.0')
+  const after = f.commit()
+  assert.throws(() => f.plan(f.before, after, 'push', 'refs/heads/develop', f.main), /consume all pending/)
+  assert.throws(() => f.plan(f.after, after, 'push', 'refs/heads/develop', f.main), /consume all pending/)
+})
+
+test('syncs without remaining application notes validate source but cannot publish', (t) => {
+  const f = mainSyncFixture(t)
+  f.remove('downstream')
+  const plan = f.plan(f.before, f.commit(), 'push', 'refs/heads/develop', f.main)
+  assert.equal(plan.publish, false)
+  assert.equal(plan.validate, true)
+  assert.deepEqual(plan.matrix.include, [])
+  assert.ok(plan.validationMatrix.include.every((image) => !image.publish))
+})
+
+test('main synchronization keeps shared-package declaration and consumption checks', (t) => {
+  const f = mainSyncFixture(t)
+  f.note('undeclared-shared', [contracts])
+  assert.throws(
+    () => f.plan(f.before, f.commit(), 'push', 'refs/heads/develop', f.main),
+    /Missing application image release declarations/
+  )
+  f.remove('undeclared-shared')
+  f.write('packages/contracts/package.json', JSON.stringify({ name: contracts, version: '1.2.0' }))
+  assert.throws(
+    () => f.plan(f.before, f.commit(), 'push', 'refs/heads/develop', f.main),
+    /consume an application Changeset/
+  )
+})
+
+test('main syncs do not make old notes fresh for later documentation-only pushes', (t) => {
+  const f = mainSyncFixture(t)
+  f.write('README.md', 'Documentation after synchronization')
+  const plan = f.plan(f.after, f.commit(), 'push', 'refs/heads/develop', f.main)
+  assert.equal(plan.publish, false)
+  assert.equal(plan.validate, false)
+  assert.throws(() => f.plan(f.before, f.after, 'push', 'refs/heads/develop', 'main'), /Exact main commit SHA/)
+})
 
 test('an API Changeset selects only API and publishes candidate/version/SHA tags', (t) => {
   const f = fixture(t)

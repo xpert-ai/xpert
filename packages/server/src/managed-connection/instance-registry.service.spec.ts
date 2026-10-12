@@ -47,6 +47,25 @@ class FakeRedis {
 describe('InstanceRegistryService', () => {
 	const originalInstanceId = process.env.XPERT_INSTANCE_ID
 
+	it('bounds an in-flight heartbeat and an unresponsive unregister call', async () => {
+		jest.useFakeTimers()
+		const redis = new FakeRedis()
+		const registry = new InstanceRegistryService(redis)
+		await registry.onModuleInit()
+		jest.spyOn(redis, 'eval').mockImplementation(() => new Promise<never>(() => {}))
+		await jest.advanceTimersByTimeAsync(15_000)
+		let closed = false
+		const closing = registry.onModuleDestroy().then(() => {
+			closed = true
+		})
+		await jest.advanceTimersByTimeAsync(5_999)
+		expect(closed).toBe(false)
+		await jest.advanceTimersByTimeAsync(1)
+		await closing
+		expect(closed).toBe(true)
+		expect(jest.getTimerCount()).toBe(0)
+	})
+
 	afterEach(() => {
 		jest.useRealTimers()
 		if (originalInstanceId === undefined) {

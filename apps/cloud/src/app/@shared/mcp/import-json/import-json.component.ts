@@ -1,3 +1,4 @@
+import { XpDialogFrameImports, ZardButtonComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { DialogRef } from '@angular/cdk/dialog'
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
@@ -52,7 +53,7 @@ export function createMCPToolsetFromJson(source: string): Partial<IXpertToolset>
 @Component({
   standalone: true,
   selector: 'xp-mcp-import-json',
-  imports: [FormsModule, TranslateModule],
+  imports: [...XpDialogFrameImports, ZardButtonComponent, ZardInputDirective, FormsModule, TranslateModule],
   templateUrl: './import-json.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })

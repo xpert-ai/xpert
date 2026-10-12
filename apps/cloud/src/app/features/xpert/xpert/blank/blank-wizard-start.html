@@ -1,0 +1,250 @@
+@switch (section()) { @case ('StartFrom1') {
+
+<div>
+  <div class="space-y-4">
+    <div class="text-sm leading-6 text-text-secondary">
+      {{ 'XP.Xpert.StartFromHelp' | translate : { Default: 'Choose a blank starter or load a template first. You can
+      keep editing the rest of the wizard before creating the Xpert.' } }}
+    </div>
+
+    @if (!vm().lockStartMode) {
+    <div class="grid gap-3 lg:grid-cols-2">
+      <button
+        type="button"
+        class="rounded-xl border px-4 py-4 text-left transition-colors"
+        [class.border-primary]="vm().startMode() === 'blank'"
+        [class.bg-background-default]="vm().startMode() === 'blank'"
+        [class.border-components-panel-border]="vm().startMode() !== 'blank'"
+        (click)="vm().setStartMode('blank')"
+      >
+        <div class="text-base font-semibold text-text-primary">
+          {{ 'XP.Xpert.BlankStart' | translate: { Default: 'Blank' } }}
+        </div>
+        <div class="mt-2 text-sm leading-6 text-text-secondary">
+          {{ 'XP.Xpert.BlankStartHelp' | translate : { Default: 'Start from the default blank wizard and choose
+          triggers, middlewares, and skills yourself.' } }}
+        </div>
+      </button>
+
+      <button
+        type="button"
+        class="rounded-xl border px-4 py-4 text-left transition-colors"
+        [class.border-primary]="vm().startMode() === 'template'"
+        [class.bg-background-default]="vm().startMode() === 'template'"
+        [class.border-components-panel-border]="vm().startMode() !== 'template'"
+        (click)="vm().setStartMode('template')"
+      >
+        <div class="text-base font-semibold text-text-primary">
+          {{ 'XP.Xpert.TemplateStart' | translate: { Default: 'Template' } }}
+        </div>
+        <div class="mt-2 text-sm leading-6 text-text-secondary">
+          {{ 'XP.Xpert.TemplateStartHelp' | translate : { Default: 'Select an agent template, preload the wizard from
+          its draft, and keep tailoring the result before creating.' } }}
+        </div>
+      </button>
+    </div>
+    } @if (vm().startMode() === 'template') {
+    <xpert-blank-template-selection
+      [(selectedId)]="vm().selectedTemplateId"
+      [templates]="vm().templateChoices()"
+      [category]="vm().templateCategory"
+      [loading]="vm().templateOptionsLoading()"
+      [error]="vm().templateOptionsError()"
+      [emptyKey]="'XP.Xpert.NoAgentTemplatesFound'"
+      [emptyDefault]="'No agent templates found'"
+    />
+
+    @if (vm().selectedTemplateId() && vm().templateLoading()) {
+    <div class="text-sm text-text-secondary">
+      {{ 'XP.Xpert.LoadingSelectedTemplate' | translate: { Default: 'Loading template details...' } }}
+    </div>
+    } @if (vm().templateLoadError()) {
+    <div class="rounded-xl border border-components-panel-border px-4 py-3 mt-2 text-sm text-text-destructive">
+      {{ vm().templateLoadError() }}
+    </div>
+    } @else if (vm().selectedTemplateDraft()) {
+    <div class="rounded-xl border border-components-panel-border px-4 py-3 mt-2 text-sm text-text-secondary">
+      {{ 'XP.Xpert.TemplateLoadedHelp' | translate : { Default: 'Template loaded. Continue through the wizard to adjust
+      the generated triggers and defaults.' } }}
+    </div>
+    } } @if (vm().checkingModelProviders()) {
+    <div class="text-sm text-text-secondary">
+      {{ 'XP.Xpert.CheckingModelProviders' | translate: { Default: 'Checking available model providers...' } }}
+    </div>
+    }
+  </div>
+</div>
+
+} @case ('StartFrom2') {
+
+<div>
+  <div class="space-y-4">
+    <div class="text-sm leading-6 text-text-secondary">
+      {{ 'XP.Xpert.WorkflowStartFromHelp' | translate : { Default: 'Workflow templates are not available in this starter
+      yet, so you can begin with the blank workflow setup for now.' } }}
+    </div>
+
+    <div class="grid gap-3 lg:grid-cols-2">
+      <button
+        type="button"
+        class="rounded-xl border border-primary bg-background-default px-4 py-4 text-left transition-colors"
+        (click)="vm().setStartMode('blank')"
+      >
+        <div class="text-base font-semibold text-text-primary">
+          {{ 'XP.Xpert.BlankStart' | translate: { Default: 'Blank' } }}
+        </div>
+        <div class="mt-2 text-sm leading-6 text-text-secondary">
+          {{ 'XP.Xpert.WorkflowBlankStartHelp' | translate : { Default: 'Start with the default chat-trigger workflow
+          scaffold and choose the action and transform nodes you want.' } }}
+        </div>
+      </button>
+
+      <button
+        type="button"
+        class="rounded-xl border border-components-panel-border px-4 py-4 text-left opacity-70"
+        disabled
+      >
+        <div class="flex items-center justify-between gap-3">
+          <div class="text-base font-semibold text-text-primary">
+            {{ 'XP.Xpert.TemplateStart' | translate: { Default: 'Template' } }}
+          </div>
+          <div
+            class="rounded-full border border-components-panel-border px-2 py-0.5 text-xs font-medium text-text-secondary"
+          >
+            {{ 'XP.KEY_WORDS.ComingSoon' | translate: { Default: 'Coming soon' } }}
+          </div>
+        </div>
+        <div class="mt-2 text-sm leading-6 text-text-secondary">
+          {{ 'XP.Xpert.WorkflowTemplateStartHelp' | translate : { Default: 'Workflow template starters will be supported
+          in a later iteration of the shared wizard.' } }}
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+
+} @case ('StartFrom3') {
+
+<div>
+  <div class="space-y-4">
+    <div class="text-sm leading-6 text-text-secondary">
+      {{ 'XP.Xpert.KnowledgeStartFromHelp' | translate : { Default: 'Choose a blank pipeline or start from a knowledge
+      template, then keep editing triggers and stages before creating.' } }}
+    </div>
+
+    <div class="grid gap-3 lg:grid-cols-2">
+      <button
+        type="button"
+        class="rounded-xl border px-4 py-4 text-left transition-colors"
+        [class.border-primary]="vm().startMode() === 'blank'"
+        [class.bg-background-default]="vm().startMode() === 'blank'"
+        [class.border-components-panel-border]="vm().startMode() !== 'blank'"
+        (click)="vm().setStartMode('blank')"
+      >
+        <div class="text-base font-semibold text-text-primary">
+          {{ 'XP.Xpert.BlankStart' | translate: { Default: 'Blank' } }}
+        </div>
+        <div class="mt-2 text-sm leading-6 text-text-secondary">
+          {{ 'XP.Xpert.KnowledgeBlankStartHelp' | translate : { Default: 'Start from the default knowledge pipeline
+          wizard and choose the trigger, source, processor, chunker, and understanding stages yourself.' } }}
+        </div>
+      </button>
+
+      <button
+        type="button"
+        class="rounded-xl border px-4 py-4 text-left transition-colors"
+        [class.border-primary]="vm().startMode() === 'template'"
+        [class.bg-background-default]="vm().startMode() === 'template'"
+        [class.border-components-panel-border]="vm().startMode() !== 'template'"
+        (click)="vm().setStartMode('template')"
+      >
+        <div class="text-base font-semibold text-text-primary">
+          {{ 'XP.Xpert.TemplateStart' | translate: { Default: 'Template' } }}
+        </div>
+        <div class="mt-2 text-sm leading-6 text-text-secondary">
+          {{ 'XP.Xpert.KnowledgeTemplateStartHelp' | translate : { Default: 'Select a knowledge pipeline template,
+          prefill the wizard from its draft, and continue customizing the pipeline stages.' } }}
+        </div>
+      </button>
+    </div>
+
+    @if (vm().startMode() === 'template') {
+    <xpert-blank-template-selection
+      [(selectedId)]="vm().selectedTemplateId"
+      [templates]="vm().templateChoices()"
+      [category]="vm().templateCategory"
+      [loading]="vm().templateOptionsLoading()"
+      [error]="vm().templateOptionsError()"
+      [emptyKey]="'XP.Xpert.NoKnowledgeTemplatesFound'"
+      [emptyDefault]="'No knowledge pipeline templates found'"
+    />
+
+    @if (vm().selectedTemplateId() && vm().templateLoading()) {
+    <div class="text-sm text-text-secondary">
+      {{ 'XP.Xpert.LoadingSelectedTemplate' | translate: { Default: 'Loading template details...' } }}
+    </div>
+    } @if (vm().templateLoadError()) {
+    <div class="rounded-xl border border-components-panel-border px-4 py-3 text-sm text-text-destructive">
+      {{ vm().templateLoadError() }}
+    </div>
+    } @else if (vm().selectedTemplateDraft()) {
+    <div class="rounded-xl border border-components-panel-border px-4 py-3 text-sm text-text-secondary">
+      {{ 'XP.Xpert.TemplateLoadedKnowledgeHelp' | translate : { Default: 'Template loaded. Continue through the wizard
+      to refine the pipeline stages before creating.' } }}
+    </div>
+    } }
+  </div>
+</div>
+
+} @case ('StartFrom4') {
+
+<div>
+  <div class="space-y-4">
+    <div class="text-sm leading-6 text-text-secondary">
+      {{ 'XP.Xpert.StartFromHelp' | translate : { Default: 'Choose a blank starter or load a template first. You can
+      keep editing the wizard before creating the Xpert.' } }}
+    </div>
+
+    <div class="grid gap-3 lg:grid-cols-2">
+      <button
+        type="button"
+        class="rounded-xl border px-4 py-4 text-left transition-colors"
+        [class.border-primary]="vm().startMode() === 'blank'"
+        [class.bg-background-default]="vm().startMode() === 'blank'"
+        [class.border-components-panel-border]="vm().startMode() !== 'blank'"
+        (click)="vm().setStartMode('blank')"
+      >
+        <div class="text-base font-semibold text-text-primary">
+          {{ 'XP.Xpert.BlankStart' | translate: { Default: 'Blank' } }}
+        </div>
+        <div class="mt-2 text-sm leading-6 text-text-secondary">
+          {{ 'XP.Xpert.BlankStartHelp' | translate : { Default: 'Start from the default blank wizard and configure the
+          rest of the setup yourself.' } }}
+        </div>
+      </button>
+
+      <button
+        type="button"
+        class="rounded-xl border border-components-panel-border px-4 py-4 text-left opacity-70"
+        [disabled]="!vm().supportsTemplateStart()"
+      >
+        <div class="flex items-center justify-between gap-3">
+          <div class="text-base font-semibold text-text-primary">
+            {{ 'XP.Xpert.TemplateStart' | translate: { Default: 'Template' } }}
+          </div>
+          <div
+            class="rounded-full border border-components-panel-border px-2 py-0.5 text-xs font-medium text-text-secondary"
+          >
+            {{ 'XP.KEY_WORDS.ComingSoon' | translate: { Default: 'Coming soon' } }}
+          </div>
+        </div>
+        <div class="mt-2 text-sm leading-6 text-text-secondary">
+          {{ 'XP.Xpert.TemplateUnavailableForMode' | translate: { Default: 'Template starters are not available for this
+          mode yet.' } }}
+        </div>
+      </button>
+    </div>
+  </div>
+</div>
+
+} }

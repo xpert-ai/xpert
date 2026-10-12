@@ -1,6 +1,9 @@
 jest.mock('yargs', () => ({ __esModule: true, default: () => ({ argv: {} }) }))
 import { DiscoveryService, Reflector } from '@nestjs/core'
-import { QueryBus } from '@nestjs/cqrs'
+import { CommandBus, QueryBus } from '@nestjs/cqrs'
+import { randomUUID } from 'node:crypto'
+import { AssistantTaskRuntimeStrategy } from './assistant-task-adapter'
+import { ExecuteGroupTaskCommand, ResolveGroupTaskTargetCommand } from '../chat-group/group-project/group-task.commands'
 import {
     AgentExecutionRunner,
     AgentExecutionRunnerCapability,
@@ -79,7 +82,8 @@ function fixture() {
         capabilities,
         identity,
         api: factory.createScopedApi(identity),
-        registry
+        registry,
+        runtime
     }
 }
 
@@ -106,6 +110,50 @@ function runnerFixture(scope: Readonly<AgentInvocationScope>) {
 }
 
 describe('Agent invocation factory and controller boundaries', () => {
+    it('uses the existing native task strategy for group transport and permits bounded result inspection', async () => {
+        const f = fixture()
+        f.registry.register('xpert-task', new AssistantTaskRuntimeStrategy(), {
+            kind: 'builtin',
+            scopeKey: BUILTIN_GLOBAL_SCOPE
+        })
+        const target = {
+            bindingId,
+            provider: 'xpert-task',
+            reference: randomUUID(),
+            revision: '1',
+            configuration: {
+                executionContext: {
+                    type: 'group_member',
+                    groupId: randomUUID(),
+                    participantId: bindingId,
+                    sourceParticipantId: randomUUID(),
+                    projectId: randomUUID()
+                }
+            }
+        }
+        const execute = jest.fn(async (command: ResolveGroupTaskTargetCommand | ExecuteGroupTaskCommand) => {
+            if (command instanceof ResolveGroupTaskTargetCommand) return target
+            expect(command).toBeInstanceOf(ExecuteGroupTaskCommand)
+            return { status: 'succeeded', result: { text: '42' } }
+        })
+        const factory = new AgentInvocationFactoryService(
+            f.repository as unknown as Repository<AgentRuntimeBindingEntity>,
+            f.query as unknown as QueryBus,
+            f.runtime,
+            f.capabilities,
+            undefined,
+            { execute } as unknown as CommandBus
+        )
+        const api = factory.createScopedApi(f.identity)
+        const request = { target, callId: 'group-task', input: { prompt: 'Calculate the answer' } }
+        const first = await api.start(request)
+        expect((await api.start(request)).id).toBe(first.id)
+        expect(execute.mock.calls.filter(([command]) => command instanceof ExecuteGroupTaskCommand)).toHaveLength(1)
+        expect(await api.awaitResult(first.id)).toMatchObject({ status: 'succeeded', result: { text: '42' } })
+        expect(f.repository.findOneBy).not.toHaveBeenCalled()
+        execute.mockRejectedValueOnce(new Error('group member revoked'))
+        await expect(api.inspect(first.id)).rejects.toThrow('group member revoked')
+    })
     it('keeps the runner optional and does not expose global capabilities to runtime strategies', async () => {
         const f = fixture()
         f.capabilities.register('host-only', { secretReference: 'private' })

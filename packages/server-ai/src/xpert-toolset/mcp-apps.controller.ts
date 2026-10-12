@@ -1,4 +1,7 @@
-import { Body, Controller, Delete, Get, Param, Post, Query } from '@nestjs/common'
+import { t } from 'i18next'
+import { McpAppHistoryQuery, mcpAppHistoryQuerySchema } from '../mcp-app-runtime/mcp-app-history.schema'
+import { ZodValidationPipe } from '@xpert-ai/server-core'
+import { BadRequestException, Body, Controller, Delete, Get, Param, Post, Query } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { McpAppReviveQuery, McpAppsService } from './mcp-apps.service'
 
@@ -7,6 +10,44 @@ import { McpAppReviveQuery, McpAppsService } from './mcp-apps.service'
 @Controller('mcp-apps')
 export class McpAppsController {
     constructor(private readonly service: McpAppsService) {}
+
+    @Get(':appInstanceId/history')
+    getHistory(
+        @Param('appInstanceId') appInstanceId: string,
+        @Query(
+            new ZodValidationPipe(
+                mcpAppHistoryQuerySchema,
+                () =>
+                    new BadRequestException(
+                        t('server-ai:Error.McpAppHistoryQueryInvalid', {
+                            defaultValue: 'A valid message identifier is required.'
+                        })
+                    )
+            )
+        )
+        query: McpAppHistoryQuery
+    ) {
+        return this.service.getHistory(appInstanceId, query.messageId)
+    }
+
+    @Post(':appInstanceId/resume')
+    resume(
+        @Param('appInstanceId') appInstanceId: string,
+        @Query(
+            new ZodValidationPipe(
+                mcpAppHistoryQuerySchema,
+                () =>
+                    new BadRequestException(
+                        t('server-ai:Error.McpAppHistoryQueryInvalid', {
+                            defaultValue: 'A valid message identifier is required.'
+                        })
+                    )
+            )
+        )
+        query: McpAppHistoryQuery
+    ) {
+        return this.service.resume(appInstanceId, query.messageId)
+    }
 
     @Get(':appInstanceId/resource')
     async getResource(@Param('appInstanceId') appInstanceId: string, @Query() query: McpAppReviveQuery) {

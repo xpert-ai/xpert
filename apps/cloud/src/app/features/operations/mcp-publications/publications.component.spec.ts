@@ -263,7 +263,9 @@ describe('XpertMcpPublicationsComponent', () => {
   })
 
   it('uses a dialog, lazy accordion groups, multi-select scopes, and select-based approval policies', () => {
-    const template = readFileSync(join(__dirname, 'publications.component.html'), 'utf8')
+    const template =
+      readFileSync(join(__dirname, 'publications.component.html'), 'utf8') +
+      readFileSync(join(__dirname, 'mcp-publication-authentication.html'), 'utf8').replaceAll('vm().', '')
 
     expect(template).toContain("'XP.McpPublication.Title'")
     expect(template).toContain("'XP.McpPublication.Description'")

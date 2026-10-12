@@ -1,14 +1,15 @@
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { Component, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import type { TXpertProjectSkillSummary } from '@xpert-ai/contracts'
 import {
-  Z_MODAL_DATA,
   ZardBadgeComponent,
   ZardButtonComponent,
-  ZardDialogRef,
-  ZardSwitchComponent
+  ZardSwitchComponent,
+  XpDialogFrameImports,
+  XpDialogActionGroupDirective
 } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
 import { getErrorMessage, ToastrService } from '../../@core'
@@ -23,22 +24,37 @@ type ProjectSkillsDialogData = {
 @Component({
   standalone: true,
   selector: 'xp-project-skills-dialog',
-  imports: [CommonModule, FormsModule, TranslateModule, ZardBadgeComponent, ZardButtonComponent, ZardSwitchComponent],
+  imports: [
+    ...XpDialogFrameImports,
+    XpDialogActionGroupDirective,
+    CommonModule,
+    FormsModule,
+    TranslateModule,
+    ZardBadgeComponent,
+    ZardButtonComponent,
+    ZardSwitchComponent
+  ],
   template: `
-    <section class="flex max-h-[84vh] min-w-0 flex-col">
-      <header class="flex items-start justify-between border-b border-divider-subtle pb-4">
-        <div>
-          <h2 class="text-lg font-semibold text-text-primary">{{ 'XP.XProject.ManageProjectSkills' | translate }}</h2>
-          <p class="mt-1 text-sm text-text-secondary">
-            {{ 'XP.XProject.ManageProjectSkillsDescription' | translate }}
-          </p>
-        </div>
-        <button z-button zType="ghost" zSize="sm" type="button" (click)="close()">
-          <i class="ri-close-line"></i>
+    <section xpDialogLayout="wide" class="max-h-[84vh]">
+      <header xpDialogHeader>
+        <h2 xpDialogHeading>{{ 'XP.XProject.ManageProjectSkills' | translate }}</h2>
+        <p xpDialogDescription>
+          {{ 'XP.XProject.ManageProjectSkillsDescription' | translate }}
+        </p>
+        <button
+          z-button
+          zType="ghost"
+          zSize="icon"
+          xpDialogCloseButton
+          type="button"
+          [attr.aria-label]="'XP.XProject.Close' | translate"
+          (click)="close()"
+        >
+          <z-icon zType="x" aria-hidden="true" />
         </button>
       </header>
 
-      <div class="min-h-0 flex-1 overflow-y-auto py-5">
+      <div xpDialogBody>
         <div class="divide-y divide-divider-subtle rounded-xl border border-divider-subtle">
           @for (skill of skills(); track skill.id) {
             <div class="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -54,7 +70,7 @@ type ProjectSkillsDialogData = {
                   <p class="mt-1 line-clamp-2 text-xs text-text-secondary">{{ skill.description }}</p>
                 }
               </div>
-              <div class="flex shrink-0 items-center justify-end gap-3">
+              <div xpDialogActionGroup="inline" class="flex shrink-0 items-center justify-end gap-3">
                 <span class="text-xs text-text-tertiary">
                   {{
                     (skill.enabled ? 'XP.XProject.ProjectSkillEnabled' : 'XP.XProject.ProjectSkillDisabled') | translate
@@ -70,9 +86,9 @@ type ProjectSkillsDialogData = {
                   <button
                     z-button
                     zType="ghost"
-                    zSize="sm"
+                    zSize="icon"
                     type="button"
-                    [disabled]="busySkillId() === skill.id"
+                    [zDisabled]="busySkillId() === skill.id"
                     [attr.aria-label]="'XP.XProject.UninstallProjectSkill' | translate"
                     (click)="uninstall(skill)"
                   >
@@ -87,7 +103,7 @@ type ProjectSkillsDialogData = {
         </div>
       </div>
 
-      <footer class="flex justify-end border-t border-divider-subtle pt-4">
+      <footer xpDialogFooter>
         <button z-button zType="outline" type="button" (click)="close()">
           {{ 'XP.XProject.Done' | translate }}
         </button>
@@ -97,10 +113,10 @@ type ProjectSkillsDialogData = {
   host: { class: 'block w-full min-w-0' }
 })
 export class XpertProjectSkillsDialogComponent {
-  readonly #dialogRef = inject<ZardDialogRef<XpertProjectSkillsDialogComponent, boolean>>(ZardDialogRef)
+  readonly #dialogRef = inject<DialogRef<boolean>>(DialogRef)
   readonly #api = inject(XpertProjectApiService)
   readonly #toastr = inject(ToastrService)
-  readonly data = inject<ProjectSkillsDialogData>(Z_MODAL_DATA)
+  readonly data = inject<ProjectSkillsDialogData>(DIALOG_DATA)
   readonly skills = signal(this.data.skills.map((skill) => ({ ...skill })))
   readonly busySkillId = signal<string | null>(null)
   readonly changed = signal(false)
@@ -123,6 +139,7 @@ export class XpertProjectSkillsDialogComponent {
     if (!this.data.canEdit || this.busySkillId()) return
     const confirmed = await firstValueFrom(
       this.#toastr.confirm({
+        layout: 'standard',
         code: 'XP.XProject.UninstallProjectSkillConfirmation',
         params: { name: skill.name }
       })

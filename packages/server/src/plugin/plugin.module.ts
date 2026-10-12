@@ -47,6 +47,7 @@ import { PLUGIN_WEBHOOK_CREDENTIAL_SERVICE_TOKEN } from './plugin-webhook.tokens
 import { RuntimeControlModule } from '../runtime-control/runtime-control.module'
 import { PluginRuntimeStateService } from './plugin-runtime-state.service'
 import { PluginSchemaSyncService } from './plugin-schema-sync.service'
+import { runShutdownStep } from '../runtime-control/shutdown-step'
 
 @Global()
 @Module({
@@ -197,7 +198,16 @@ export class PluginModule implements OnModuleInit, OnModuleDestroy {
 
 			// If the plugin instance exists and it implements the specified lifecycle method, call it
 			if (pluginInstance && hasLifecycleMethod(pluginInstance, lifecycleMethod)) {
-				await pluginInstance[lifecycleMethod]()
+				if (lifecycleMethod === 'onPluginDestroy') {
+					// Bound each plugin hook so one stalled integration cannot prevent later cleanup.
+					// The global process deadline still caps the sum of these sequential hooks.
+					const status = await runShutdownStep(`plugin.${pluginModule.name}.destroy`, () =>
+						pluginInstance[lifecycleMethod]()
+					)
+					if (status !== 'completed') continue
+				} else {
+					await pluginInstance[lifecycleMethod]()
+				}
 
 				// Execute the closure function if provided
 				if (typeof closure === 'function') {

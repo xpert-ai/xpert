@@ -38,8 +38,10 @@ export class WorkbenchFilesController {
         return this.conversations.getWorkspaceFiles(id, path, depth)
     }
     @Get(['workspace/file', 'file'])
-    read(@Param('conversationId', UUIDValidationPipe) id: string, @Query('path') path: string) {
-        return this.conversations.readWorkspaceFile(id, path)
+    async read(@Param('conversationId', UUIDValidationPipe) id: string, @Query('path') path: string) {
+        const file = await this.conversations.readWorkspaceFile(id, path)
+        const capabilities = await this.conversations.getWorkspaceFileCapabilities(id, path)
+        return { ...file, capabilities }
     }
     @Get(['workspace/file/download', 'file/download'])
     async download(

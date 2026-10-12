@@ -75,6 +75,27 @@ export const groupPreferencesSchema = z
 export const groupJobSchema = z.object({ recipientId: z.string().uuid() }).strict()
 export const groupCommunicationSchema = z
     .object({
+        projectTask: z
+            .object({
+                invocationId: z.string().uuid(),
+                projectId: z.string().uuid(),
+                projectTaskId: z.string().uuid(),
+                taskExecutionId: z.string().uuid()
+            })
+            .strict()
+            .optional(),
+        runtimeResult: z
+            .object({
+                invocationId: z.string().uuid(),
+                consumerExecutionId: z.string().uuid(),
+                revision: z.number().int().nonnegative(),
+                projectId: z.string().uuid(),
+                projectTaskId: z.string().uuid(),
+                taskExecutionId: z.string().uuid(),
+                specificationDigest: z.string().regex(/^sha256:[a-f0-9]{64}$/)
+            })
+            .strict()
+            .optional(),
         composer: groupComposerSchema.optional(),
         intent: z.enum(['request', 'reply', 'message']),
         senderId: z.string().uuid(),

@@ -2,7 +2,7 @@
 
 Xpert provides a shared runtime capability for tools that return images for model inspection, such as screenshots, rendered charts or document previews. It stores image files with immutable Artifact versions, keeps references in conversation messages and execution checkpoints, and loads verified image bytes only when preparing a model request.
 
-This guide explains the SDK interface, the server implementation and the optional server policy for operations that legitimately return text. For a complete plugin middleware example, see the [SDK integration guide](../packages/plugin-sdk/TOOL-IMAGES.md).
+This guide explains the SDK interface, the server implementation and the optional server policy for operations that legitimately return text. For a complete plugin middleware example, see the [SDK integration guide](../packages/plugin-sdk/docs/en/TOOL-IMAGES.md).
 
 ## Components and responsibilities
 
@@ -148,7 +148,7 @@ corepack pnpm exec jest --config packages/server-ai/jest.config.ts --runInBand -
   packages/server-ai/src/shared/runtime/image-coordinate-frame.spec.ts
 ```
 
-- [SDK middleware integration guide](../packages/plugin-sdk/TOOL-IMAGES.md)
+- [SDK middleware integration guide](../packages/plugin-sdk/docs/en/TOOL-IMAGES.md)
 - [Runtime capability registration](../packages/server-ai/src/shared/agent/middleware-runtime/middleware-runtime.service.ts)
 - [Image persistence and text-result tests](../packages/server-ai/src/shared/runtime/tool-image-artifacts.spec.ts)
 - [Per-call scope and recovery tests](../packages/server-ai/src/shared/runtime/tool-images-runtime.spec.ts)

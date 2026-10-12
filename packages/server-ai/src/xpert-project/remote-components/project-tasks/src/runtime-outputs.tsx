@@ -1,5 +1,5 @@
 import { CodingToolIcon } from '../../../../shared/coding-tools/coding-tool-icon'
-import { codingToolBrand } from '../../../../shared/coding-tools/branding'
+import { executionProviderLabel } from './execution-provider'
 import { z } from 'zod/v3'
 import { FileText } from 'lucide-react'
 import { Button } from '@xpert-ai/shadcn-ui'
@@ -68,9 +68,7 @@ export function RuntimeOutputs({
                                     provider={attempt.runtimeProvider}
                                     decorative
                                 />
-                                #{attempt.attempt} ·{' '}
-                                {codingToolBrand({ toolId: attempt.runtimeToolId, provider: attempt.runtimeProvider })
-                                    ?.name ?? attempt.runtimeProvider}
+                                #{attempt.attempt} · {executionProviderLabel(attempt)}
                             </h3>
                             {attempt.observation === 'restricted' ? (
                                 <p className="text-sm text-muted-foreground">

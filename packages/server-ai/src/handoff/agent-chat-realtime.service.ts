@@ -1,9 +1,11 @@
 import { Inject, Injectable, Logger, OnModuleDestroy } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
+import { IRuntimeStreamInterruption, RUNTIME_STREAM_INTERRUPTED_EVENT } from '@xpert-ai/contracts'
 import type { AgentChatCallbackEnvelopePayload } from '@xpert-ai/plugin-sdk'
-import { REDIS_CLIENT } from '@xpert-ai/server-core'
+import { closeRedisSubscriber, REDIS_CLIENT } from '@xpert-ai/server-core'
 import type { RedisClientType } from 'redis'
 import { Observable } from 'rxjs'
+import { t } from 'i18next'
 import { StopHandoffMessageCommand } from './commands'
 
 const AGENT_CHAT_REALTIME_CHANNEL_PREFIX = 'ai:handoff:agent-chat:'
@@ -12,6 +14,9 @@ const AGENT_CHAT_REALTIME_CHANNEL_PREFIX = 'ai:handoff:agent-chat:'
 export class AgentChatRealtimeService implements OnModuleDestroy {
     readonly #logger = new Logger(AgentChatRealtimeService.name)
     readonly #subscribers = new Set<RedisClientType>()
+    readonly #streams = new Set<() => void>()
+    readonly #closingClients = new Set<Promise<void>>()
+    #shuttingDown = false
 
     constructor(
         @Inject(REDIS_CLIENT)
@@ -20,8 +25,34 @@ export class AgentChatRealtimeService implements OnModuleDestroy {
     ) {}
 
     async onModuleDestroy() {
-        await Promise.all(Array.from(this.#subscribers).map((client) => this.closeClient(client)))
+        const startedAt = Date.now()
+        this.#shuttingDown = true
+        this.#logger.debug(
+            JSON.stringify({
+                event: 'runtime.shutdown.agent-streams-interrupting',
+                pid: process.pid,
+                streams: this.#streams.size,
+                redisSubscribers: this.#subscribers.size,
+                closingClients: this.#closingClients.size
+            })
+        )
+        // Notify clients before ending HTTP streams; EOF alone would be mistaken for a completed chat.
+        for (const interrupt of [...this.#streams]) interrupt()
+        // Interruptions schedule teardown; snapshot pending disconnects only after every stream was notified.
+        await Promise.all([
+            ...this.#closingClients,
+            ...Array.from(this.#subscribers).map((client) => this.closeClient(client))
+        ])
         this.#subscribers.clear()
+        this.#logger.debug(
+            JSON.stringify({
+                event: 'runtime.shutdown.agent-streams-closed',
+                pid: process.pid,
+                streams: this.#streams.size,
+                closingClients: this.#closingClients.size,
+                durationMs: Date.now() - startedAt
+            })
+        )
     }
 
     getChannel(runId: string) {
@@ -38,7 +69,24 @@ export class AgentChatRealtimeService implements OnModuleDestroy {
     }
 
     createStream(runId: string, start: () => Promise<void>): Observable<MessageEvent> {
+        // Capture the request's language while its context still exists, before the shutdown signal.
+        const interruption: IRuntimeStreamInterruption = {
+            code: 'RUNTIME_RESTARTING',
+            message: t('server-ai:Error.RuntimeRestartInterrupted', {
+                defaultValue:
+                    'The service is restarting and the live reply was interrupted. The task may still be running. Refresh the conversation to check its result.'
+            })
+        }
         return new Observable<MessageEvent>((subscriber) => {
+            if (this.#shuttingDown) {
+                // Requests admitted before drain can reach this service late; never start new work here.
+                this.#logger.debug(
+                    JSON.stringify({ event: 'runtime.shutdown.agent-stream-rejected', pid: process.pid })
+                )
+                subscriber.next({ type: RUNTIME_STREAM_INTERRUPTED_EVENT, data: interruption } as MessageEvent)
+                subscriber.complete()
+                return
+            }
             const channel = this.getChannel(runId)
             let client: RedisClientType | null = null
             let closed = false
@@ -52,7 +100,13 @@ export class AgentChatRealtimeService implements OnModuleDestroy {
                 }
                 client = null
                 this.#subscribers.delete(closing)
-                await this.closeClient(closing)
+                const cleanup = this.closeClient(closing)
+                this.#closingClients.add(cleanup)
+                try {
+                    await cleanup
+                } finally {
+                    this.#closingClients.delete(cleanup)
+                }
             }
 
             const complete = () => {
@@ -63,6 +117,16 @@ export class AgentChatRealtimeService implements OnModuleDestroy {
                 subscriber.complete()
                 void close()
             }
+            const interrupt = () => {
+                if (settled) return
+                // Settle before notifying: frontend teardown must not cancel the background task.
+                // This transport interruption says nothing about the business task's final status.
+                settled = true
+                subscriber.next({ type: RUNTIME_STREAM_INTERRUPTED_EVENT, data: interruption } as MessageEvent)
+                subscriber.complete()
+                void close()
+            }
+            this.#streams.add(interrupt)
 
             const emitErrorEvent = (error: unknown) => {
                 if (settled) {
@@ -128,6 +192,7 @@ export class AgentChatRealtimeService implements OnModuleDestroy {
 
             return () => {
                 closed = true
+                this.#streams.delete(interrupt)
                 const shouldCancel = started && !settled
                 void close()
                 if (shouldCancel) {
@@ -155,13 +220,7 @@ export class AgentChatRealtimeService implements OnModuleDestroy {
     }
 
     private async closeClient(client: RedisClientType) {
-        try {
-            if (client.isOpen) {
-                await client.quit()
-            }
-        } catch (error) {
-            this.#logger.warn(`Failed to close agent chat realtime subscriber: ${this.getErrorMessage(error)}`)
-        }
+        await closeRedisSubscriber('agent-chat.redis', client)
     }
 
     private getErrorMessage(error: unknown): string {

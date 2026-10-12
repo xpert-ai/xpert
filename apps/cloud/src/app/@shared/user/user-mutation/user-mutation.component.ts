@@ -1,15 +1,7 @@
+import { XpDialogFrameImports } from '@xpert-ai/headless-ui'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import {
-  ChangeDetectionStrategy,
-  Component,
-  HostBinding,
-  inject,
-  Inject,
-  Input,
-  OnInit,
-  ViewChild
-} from '@angular/core'
+import { ChangeDetectionStrategy, Component, inject, Inject, Input, OnInit, ViewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
 import { ITag, IUser } from '@xpert-ai/contracts'
@@ -21,15 +13,20 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [FormsModule, ZardIconComponent, ZardButtonComponent, DragDropModule, TranslateModule, UserFormsModule],
+  imports: [
+    ...XpDialogFrameImports,
+    FormsModule,
+    ZardIconComponent,
+    ZardButtonComponent,
+    DragDropModule,
+    TranslateModule,
+    UserFormsModule
+  ],
   selector: 'xp-user-mutation',
   templateUrl: './user-mutation.component.html',
-  styleUrls: ['./user-mutation.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class UserMutationComponent implements OnInit {
-  @HostBinding('class.xp-dialog-container') isDialogContainer = true
-
   readonly dialogRef = inject(DialogRef<{ user: IUser }, UserMutationComponent>)
 
   @ViewChild('userBasicInfo')

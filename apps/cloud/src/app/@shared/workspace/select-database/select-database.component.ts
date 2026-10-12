@@ -1,9 +1,18 @@
+import { FormsModule } from '@angular/forms'
+import {
+  XpDialogFrameImports,
+  ZardButtonComponent,
+  XpDialogActionGroupDirective,
+  ZardSelectImports,
+  myRxResource,
+  ZardSearchInputComponent
+} from '@xpert-ai/headless-ui'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 
 import { Component, computed, effect, inject, input, model, output, signal } from '@angular/core'
 import { injectXpertTableAPI } from '@cloud/app/@core'
 import { IXpertTable } from '@xpert-ai/contracts'
-import { myRxResource, ZardSearchInputComponent } from '@xpert-ai/headless-ui'
+
 import { TranslateModule } from '@ngx-translate/core'
 
 export type SelectDatabaseOrder = 'createdAt' | 'updatedAt' | 'name'
@@ -70,9 +79,16 @@ const DEFAULT_ORDER_OPTIONS: SelectDatabaseFilterOption<SelectDatabaseOrder>[] =
 @Component({
   selector: 'xp-workspace-select-database',
   standalone: true,
-  imports: [TranslateModule, ZardSearchInputComponent],
-  templateUrl: './select-database.component.html',
-  styleUrls: ['./select-database.component.scss']
+  imports: [
+    FormsModule,
+    ...XpDialogFrameImports,
+    ZardButtonComponent,
+    XpDialogActionGroupDirective,
+    ...ZardSelectImports,
+    TranslateModule,
+    ZardSearchInputComponent
+  ],
+  templateUrl: './select-database.component.html'
 })
 export class WorkspaceSelectDatabaseComponent {
   // Injectors
@@ -134,7 +150,6 @@ export class WorkspaceSelectDatabaseComponent {
   readonly selectedNav = signal(DEFAULT_NAV_ITEMS[0].value)
   readonly selectedOwner = signal(DEFAULT_OWNER_OPTIONS[0].value)
   readonly selectedOrder = signal<SelectDatabaseOrder>('createdAt')
-  readonly filterPanel = signal<'owner' | 'order' | null>(null)
 
   // Outputs for parent integrations
   readonly closed = output<void>()
@@ -210,10 +225,6 @@ export class WorkspaceSelectDatabaseComponent {
     return table.id ?? table.name
   }
 
-  onOverlayClick() {
-    this.close()
-  }
-
   close() {
     this.dialogRef.close()
     this.closed.emit()
@@ -227,18 +238,12 @@ export class WorkspaceSelectDatabaseComponent {
     this.searchTerm.set(term)
   }
 
-  toggleFilter(panel: 'owner' | 'order') {
-    this.filterPanel.update((current) => (current === panel ? null : panel))
-  }
-
   pickOwner(value: string) {
     this.selectedOwner.set(value)
-    this.filterPanel.set(null)
   }
 
   pickOrder(value: SelectDatabaseOrder) {
     this.selectedOrder.set(value)
-    this.filterPanel.set(null)
   }
 
   selectDatabase(table: IXpertTable) {

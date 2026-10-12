@@ -7,6 +7,7 @@ import { Params } from 'nestjs-pino'
 import pretty from 'pino-pretty'
 import * as path from 'path'
 import { RotatingFileStream } from './pino-rotating-file.stream'
+import { HTTP_LOG_REDACTION } from './pino-redaction'
 
 const SERVICE_NAME = 'xpert-server'
 
@@ -155,18 +156,7 @@ export function buildPinoLoggerParams(): Params {
 			autoLogging: {
 				ignore: (req: IncomingMessage) => isHealthPath(req.url)
 			},
-			redact: {
-				paths: [
-					'req.headers.authorization',
-					'req.headers.cookie',
-					'req.headers["x-api-key"]',
-					'req.body.password',
-					'req.body.token',
-					'req.body.accessToken',
-					'req.body.refreshToken'
-				],
-				censor: '[Redacted]'
-			}
+			redact: HTTP_LOG_REDACTION
 		}
 	}
 }

@@ -56,7 +56,7 @@ export function injectBosiConnectorConnect(workspaceId: Signal<string | null>, r
         injector: context,
         backdropClass: 'backdrop-blur-xs-black',
         panelClass: 'xp-overlay-pane-dialog',
-        maxWidth: 'calc(100vw - 2rem)',
+        maxWidth: 'calc(100vw - 32px)',
         maxHeight: '90dvh'
       })
       return (await firstValueFrom(dialog.closed, { defaultValue: undefined })) ?? { status: 'cancelled' }

@@ -1,17 +1,6 @@
-import type { IChatMessage, RealtimeTaskContext, VoiceServerControl } from '@xpert-ai/contracts'
+import type { RealtimeTaskContext, VoiceServerControl } from '@xpert-ai/contracts'
 
-/** Read the visible answer only. Component payloads and reasoning are not speech or tool results. */
-export function voiceTaskAnswer(content: IChatMessage['content']): string | undefined {
-    if (typeof content === 'string') return content || undefined
-    if (!Array.isArray(content)) return undefined
-    return (
-        content
-            .flatMap((block) =>
-                block.type === 'text' && 'text' in block && typeof block.text === 'string' ? [block.text] : []
-            )
-            .join('\n\n') || undefined
-    )
-}
+export { chatMessageText as voiceTaskAnswer } from '../shared/chat-message-text'
 
 /** Keep the source section at the end when bounding model context; the full answer stays in chat. */
 export function boundedVoiceResult(text?: string | null) {

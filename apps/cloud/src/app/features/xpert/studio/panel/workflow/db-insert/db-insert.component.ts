@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { attrModel, linkedModel, myRxResource } from '@xpert-ai/headless-ui'
+import { attrModel, linkedModel, myRxResource, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { AiModelTypeEnum, IWFNDBInsert, IXpertTable, ModelFeature, injectXpertTableAPI } from 'apps/cloud/src/app/@core'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
@@ -9,7 +9,7 @@ import { Dialog } from '@angular/cdk/dialog'
 import { WorkspaceSelectDatabaseComponent } from '@cloud/app/@shared/workspace'
 import { TXpertTableColumn } from '@xpert-ai/contracts'
 import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+
 type InsertColumns = NonNullable<IWFNDBInsert['columns']>
 type InsertColumnConfig = InsertColumns[keyof InsertColumns]
 
@@ -94,6 +94,9 @@ export class XpertWorkflowPanelDBInsertComponent extends XpertWorkflowBaseCompon
   addDBTable() {
     this.dialog
       .open<IXpertTable>(WorkspaceSelectDatabaseComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           workspaceId: this.workspaceId()
         }

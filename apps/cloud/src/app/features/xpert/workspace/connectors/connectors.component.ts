@@ -1,3 +1,15 @@
+import {
+  ZardButtonComponent,
+  XpDialogFrameImports,
+  XpDialogActionGroupDirective,
+  ZardInputDirective,
+  XpI18nPipe,
+  XpSpinComponent,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardSelectImports,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { Clipboard } from '@angular/cdk/clipboard'
 import { NgTemplateOutlet } from '@angular/common'
 import { Dialog, DialogModule, DialogRef } from '@angular/cdk/dialog'
@@ -15,16 +27,6 @@ import type {
   ConnectorInstance,
   ConnectorStrategyDefinition
 } from '@xpert-ai/plugin-sdk/connector'
-import {
-  XpI18nPipe,
-  XpSpinComponent,
-  ZardButtonComponent,
-  ZardFormImports,
-  ZardIconComponent,
-  ZardInputDirective,
-  ZardSelectImports,
-  ZardTooltipImports
-} from '@xpert-ai/headless-ui'
 import { AlertCircle, Cable, Link2Off, LoaderCircle, RefreshCw } from 'lucide-angular'
 import { firstValueFrom } from 'rxjs'
 import { getErrorMessage, injectToastr, XpertConnectorService, XpertWorkspaceService } from 'apps/cloud/src/app/@core'
@@ -56,7 +58,9 @@ type ConnectorStatusLabel = {
     ZardInputDirective,
     ...ZardFormImports,
     ...ZardSelectImports,
-    ...ZardTooltipImports
+    ...ZardTooltipImports,
+    ...XpDialogFrameImports,
+    XpDialogActionGroupDirective
   ],
   templateUrl: './workspace-connectors.component.html'
 })
@@ -216,8 +220,7 @@ export class XpertConnectorsComponent {
     const ref = this.#dialog.open(this.connectorDialog(), {
       backdropClass: 'backdrop-blur-xs-black',
       panelClass: 'xp-overlay-pane-dialog',
-      maxWidth: 'calc(100vw - 2rem)',
-      maxHeight: '90dvh',
+      maxWidth: 'calc(100vw - 32px)',
       ariaLabelledBy: 'workspace-connector-dialog-title'
     })
     this.#dialogRef = ref

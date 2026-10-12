@@ -64,9 +64,13 @@ export class GroupComposerService {
             .getRepository(ChatConversationThread)
             .findOneByOrFail({ threadId: member.runtimeThreadId })
         const hasMessages = await this.db.getRepository(ChatMessage).existsBy({ conversationId: conversation.id })
+        const group = await this.db.getRepository(ChatConversation).findOneByOrFail({ id: member.groupId })
         return {
             projectId: conversation.projectId ?? null,
-            locked: hasMessages || thread.status !== 'idle',
+            locked:
+                hasMessages ||
+                thread.status !== 'idle' ||
+                Boolean(group.projectId && group.projectId === conversation.projectId),
             busy: thread.status !== 'idle'
         }
     }
@@ -87,17 +91,29 @@ export class GroupComposerService {
         await this.projectCatalog()
         return this.projects.findAvailableForXpert(input)
     }
-    async resourceCatalog(assistantId: string, query: Parameters<RuntimeResourceService['catalog']>[1]) {
-        if (query.projectId) await this.project(assistantId, query.projectId)
-        return this.runtimeResources.catalog(assistantId, query)
+    /** Recheck the group binding before reusing Assistant-only resource APIs as the authenticated human. */
+    private async withResourceActor<T>(member: GroupParticipant, task: () => Promise<T>) {
+        const { group, actor } = await this.access.authorize(member.groupId)
+        await this.member(member.groupId, member.id, member.subjectId)
+        return this.access.withRootUser(group, actor.subjectId, task)
     }
-    async validateResources(assistantId: string, selection: RuntimeResourcesSelection, projectId?: string) {
-        if (projectId) await this.project(assistantId, projectId)
-        return (await this.runtimeResources.resolve(assistantId, selection, projectId)).selection
+    async resourceCatalog(member: GroupParticipant, query: Parameters<RuntimeResourceService['catalog']>[1]) {
+        return this.withResourceActor(member, async () => {
+            if (query.projectId) await this.project(member.subjectId, query.projectId)
+            return this.runtimeResources.catalog(member.subjectId, query)
+        })
     }
-    async authorizeResource(assistantId: string, input: Parameters<RuntimeResourceService['authorize']>[1]) {
-        if (input.projectId) await this.project(assistantId, input.projectId)
-        return this.runtimeResources.authorize(assistantId, input)
+    async validateResources(member: GroupParticipant, selection: RuntimeResourcesSelection, projectId?: string) {
+        return this.withResourceActor(member, async () => {
+            if (projectId) await this.project(member.subjectId, projectId)
+            return (await this.runtimeResources.resolve(member.subjectId, selection, projectId)).selection
+        })
+    }
+    async authorizeResource(member: GroupParticipant, input: Parameters<RuntimeResourceService['authorize']>[1]) {
+        return this.withResourceActor(member, async () => {
+            if (input.projectId) await this.project(member.subjectId, input.projectId)
+            return this.runtimeResources.authorize(member.subjectId, input)
+        })
     }
     /** Query the published graph through shared CQRS, preserving the selected Project scope. */
     async capabilities(assistantId: string, projectId?: string) {
@@ -123,8 +139,7 @@ export class GroupComposerService {
         const context = await this.context(member)
         // Match the original Chat: a started conversation retains its project scope.
         if (context.locked && context.projectId !== (input.projectId ?? null)) throw groupConflict()
-        if (input.runtimeResources)
-            await this.runtimeResources.resolve(member.subjectId, input.runtimeResources, input.projectId)
+        if (input.runtimeResources) await this.validateResources(member, input.runtimeResources, input.projectId)
         for (const file of input.files ?? []) {
             const path = file.workspacePath
             if (

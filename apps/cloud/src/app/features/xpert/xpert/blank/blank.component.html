@@ -1,1946 +1,838 @@
-<div class="shrink-0 flex flex-col h-full rounded-t-xl bg-components-card-bg">
-  <div
-    class="shrink-0 pl-8 pr-6 pt-6 pb-3 text-xl rounded-t-xl leading-[30px] font-semibold cursor-pointer z-10"
-    cdkDrag
-    cdkDragRootElement=".cdk-overlay-pane"
-    cdkDragHandle
-  >
-    {{
-      (startMode() === 'template' ? 'XP.Xpert.CreateXpert' : 'XP.Xpert.CreateBlankXpert')
-        | translate
-          : {
-              Default: startMode() === 'template' ? 'Create Xpert' : 'Create blank Xpert'
+<div xpDialogLayout="wide" xpDialogPurpose="workflow" class="relative min-h-0 max-h-[calc(100dvh-32px)] w-full flex-1">
+  <header xpDialogHeader cdkDrag cdkDragRootElement=".cdk-overlay-pane">
+    <h2 xpDialogHeading cdkDragHandle>
+      {{
+        (startMode() === 'template' ? 'XP.Xpert.CreateXpert' : 'XP.Xpert.CreateBlankXpert')
+          | translate
+            : {
+                Default: startMode() === 'template' ? 'Create Xpert' : 'Create blank Xpert'
+              }
+      }}
+    </h2>
+    <button
+      xpDialogCloseButton
+      z-button
+      zType="ghost"
+      zSize="icon"
+      type="button"
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+      (click)="close()"
+    >
+      <z-icon zType="x" />
+    </button>
+  </header>
+  <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+    @if (availableModes().length > 1) {
+      <div class="shrink-0 px-(--xp-dialog-padding) pb-4">
+        <div class="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center md:gap-5">
+          <div class="py-2 text-sm leading-[20px] font-medium">
+            {{ 'XP.Xpert.ChooseXpertType' | translate: { Default: 'What type of Xpert do you want?' } }}
+          </div>
+          <ul class="xpert-type-list flex flex-wrap items-center gap-1.5" cdkListbox [(ngModel)]="types">
+            @if (availableModes().includes(eXpertTypeEnum.Agent)) {
+              <li [cdkOption]="eXpertTypeEnum.Agent" [cdkOptionDisabled]="isModeDisabled(eXpertTypeEnum.Agent)">
+                <svg
+                  width="13"
+                  height="12"
+                  viewBox="0 0 13 12"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-4 w-4 text-primary"
+                >
+                  <g id="chat-bot">
+                    <path
+                      id="Vector"
+                      d="M4.20913 2.76912L4.09542 2.83543L3.98172 2.76912C3.90566 2.72476 3.86328 2.64979 3.86328 2.57101C3.86328 2.44347 3.96789 2.33887 4.09542 2.33887C4.22296 2.33887 4.32757 2.44347 4.32757 2.57101C4.32757 2.64979 4.28519 2.72476 4.20913 2.76912Z"
+                      fill="currentColor"
+                      stroke="currentColor"
+                      stroke-width="1.25"
+                    ></path>
+                    <path
+                      id="Vector_2"
+                      d="M10.0174 6.00058C10.0123 5.98686 10.0097 5.97229 10.0046 5.95858C9.81684 5.48158 9.35398 5.14258 8.81056 5.14258H8.66784L7.52484 5.99972C7.33713 6.14029 7.11556 6.21444 6.88284 6.21444C6.29184 6.21444 5.81056 5.73358 5.81056 5.14258H2.81013C2.10127 5.14258 1.52441 5.71944 1.52441 6.42829V9.85686C1.52441 10.5657 2.10127 11.1426 2.81013 11.1426H8.81013C9.51899 11.1426 10.0958 10.5657 10.0958 9.85686V6.42829C10.0958 6.34386 10.0868 6.26158 10.071 6.18186C10.0586 6.11886 10.0384 6.05972 10.0174 6.00058ZM3.88156 8.57115C3.52713 8.57115 3.2387 8.28272 3.2387 7.92829C3.2387 7.57386 3.52713 7.28544 3.88156 7.28544C4.23599 7.28544 4.52441 7.57386 4.52441 7.92829C4.52441 8.28272 4.23599 8.57115 3.88156 8.57115ZM7.7387 8.57115C7.38427 8.57115 7.09584 8.28272 7.09584 7.92829C7.09584 7.57386 7.38427 7.28544 7.7387 7.28544C8.09313 7.28544 8.38156 7.57386 8.38156 7.92829C8.38156 8.28272 8.09313 8.57115 7.7387 8.57115Z"
+                      fill="currentColor"
+                    ></path>
+                    <path
+                      id="Vector_3"
+                      d="M6.66699 5.14314V1.71456C6.66699 1.24099 7.05056 0.857422 7.52413 0.857422H10.9527C11.4263 0.857422 11.8098 1.24099 11.8098 1.71456V3.42885C11.8098 3.90242 11.4263 4.28599 10.9527 4.28599H8.38128L7.00985 5.31456C6.86842 5.42042 6.66699 5.31971 6.66699 5.14314Z"
+                      fill="currentColor"
+                    ></path>
+                  </g>
+                </svg>
+                <div class="text-[13px] font-medium leading-[18px]">
+                  {{ 'XP.Xpert.Agent' | translate: { Default: 'Agent' } }}
+                </div>
+              </li>
             }
-    }}
-  </div>
-</div>
 
-<div class="flex min-h-0 flex-1 flex-col overflow-hidden">
-  @if (availableModes().length > 1) {
-    <div class="shrink-0 py-2 px-8">
-      <div class="flex flex-col gap-3 md:flex-row md:flex-wrap md:items-center md:gap-5">
-        <div class="py-2 text-sm leading-[20px] font-medium">
-          {{ 'XP.Xpert.ChooseXpertType' | translate: { Default: 'What type of Xpert do you want?' } }}
+            @if (availableModes().includes(workflowMode)) {
+              <li [cdkOption]="workflowMode" [cdkOptionDisabled]="isModeDisabled(workflowMode)">
+                <i class="ri-flow-chart text-xl text-text-info"></i>
+
+                <div class="h-5 text-[13px] font-medium leading-[18px]">
+                  {{ 'XP.Xpert.Workflow' | translate: { Default: 'Workflow' } }}
+                </div>
+              </li>
+            }
+
+            @if (availableModes().includes(eXpertTypeEnum.Knowledge)) {
+              <li [cdkOption]="eXpertTypeEnum.Knowledge" [cdkOptionDisabled]="isModeDisabled(eXpertTypeEnum.Knowledge)">
+                <i class="ri-contacts-book-fill text-base text-text-success"></i>
+
+                <div class="text-[13px] font-medium leading-[18px]">
+                  {{ 'XP.Xpert.KnowledgePipeline' | translate: { Default: 'Knowledge Pipeline' } }}
+                </div>
+              </li>
+            }
+          </ul>
         </div>
-        <ul class="xpert-type-list flex flex-wrap items-center gap-1.5" cdkListbox [(ngModel)]="types">
-          @if (availableModes().includes(eXpertTypeEnum.Agent)) {
-            <li [cdkOption]="eXpertTypeEnum.Agent" [cdkOptionDisabled]="isModeDisabled(eXpertTypeEnum.Agent)">
-              <svg
-                width="13"
-                height="12"
-                viewBox="0 0 13 12"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-4 w-4 text-primary-600"
-              >
-                <g id="chat-bot">
-                  <path
-                    id="Vector"
-                    d="M4.20913 2.76912L4.09542 2.83543L3.98172 2.76912C3.90566 2.72476 3.86328 2.64979 3.86328 2.57101C3.86328 2.44347 3.96789 2.33887 4.09542 2.33887C4.22296 2.33887 4.32757 2.44347 4.32757 2.57101C4.32757 2.64979 4.28519 2.72476 4.20913 2.76912Z"
-                    fill="currentColor"
-                    stroke="currentColor"
-                    stroke-width="1.25"
-                  ></path>
-                  <path
-                    id="Vector_2"
-                    d="M10.0174 6.00058C10.0123 5.98686 10.0097 5.97229 10.0046 5.95858C9.81684 5.48158 9.35398 5.14258 8.81056 5.14258H8.66784L7.52484 5.99972C7.33713 6.14029 7.11556 6.21444 6.88284 6.21444C6.29184 6.21444 5.81056 5.73358 5.81056 5.14258H2.81013C2.10127 5.14258 1.52441 5.71944 1.52441 6.42829V9.85686C1.52441 10.5657 2.10127 11.1426 2.81013 11.1426H8.81013C9.51899 11.1426 10.0958 10.5657 10.0958 9.85686V6.42829C10.0958 6.34386 10.0868 6.26158 10.071 6.18186C10.0586 6.11886 10.0384 6.05972 10.0174 6.00058ZM3.88156 8.57115C3.52713 8.57115 3.2387 8.28272 3.2387 7.92829C3.2387 7.57386 3.52713 7.28544 3.88156 7.28544C4.23599 7.28544 4.52441 7.57386 4.52441 7.92829C4.52441 8.28272 4.23599 8.57115 3.88156 8.57115ZM7.7387 8.57115C7.38427 8.57115 7.09584 8.28272 7.09584 7.92829C7.09584 7.57386 7.38427 7.28544 7.7387 7.28544C8.09313 7.28544 8.38156 7.57386 8.38156 7.92829C8.38156 8.28272 8.09313 8.57115 7.7387 8.57115Z"
-                    fill="currentColor"
-                  ></path>
-                  <path
-                    id="Vector_3"
-                    d="M6.66699 5.14314V1.71456C6.66699 1.24099 7.05056 0.857422 7.52413 0.857422H10.9527C11.4263 0.857422 11.8098 1.24099 11.8098 1.71456V3.42885C11.8098 3.90242 11.4263 4.28599 10.9527 4.28599H8.38128L7.00985 5.31456C6.86842 5.42042 6.66699 5.31971 6.66699 5.14314Z"
-                    fill="currentColor"
-                  ></path>
-                </g>
-              </svg>
-              <div class="text-[13px] font-medium leading-[18px]">
-                {{ 'XP.Xpert.Agent' | translate: { Default: 'Agent' } }}
-              </div>
-            </li>
-          }
-
-          @if (availableModes().includes(workflowMode)) {
-            <li [cdkOption]="workflowMode" [cdkOptionDisabled]="isModeDisabled(workflowMode)">
-              <i class="ri-flow-chart text-xl text-text-info"></i>
-
-              <div class="h-5 text-[13px] font-medium leading-[18px]">
-                {{ 'XP.Xpert.Workflow' | translate: { Default: 'Workflow' } }}
-              </div>
-            </li>
-          }
-
-          @if (availableModes().includes(eXpertTypeEnum.Knowledge)) {
-            <li [cdkOption]="eXpertTypeEnum.Knowledge" [cdkOptionDisabled]="isModeDisabled(eXpertTypeEnum.Knowledge)">
-              <i class="ri-contacts-book-fill text-base text-text-success"></i>
-
-              <div class="text-[13px] font-medium leading-[18px]">
-                {{ 'XP.Xpert.KnowledgePipeline' | translate: { Default: 'Knowledge Pipeline' } }}
-              </div>
-            </li>
-          }
-        </ul>
       </div>
-    </div>
-  }
+    }
 
-  @if (isAgentType()) {
-    <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <z-stepper
-        #stepper="zStepper"
-        orientation="horizontal"
-        zSize="sm"
-        [selectedIndex]="agentInitialStepIndex"
-        class="min-h-0 flex-1 overflow-visible px-4 pt-2 pb-2"
-        (selectionChange)="onAgentStepChange($event)"
-      >
-        <z-step
-          [label]="'XP.Xpert.StartFrom' | translate: { Default: 'Start from' }"
-          [completed]="skipTemplateSelectionStep"
-          [editable]="!skipTemplateSelectionStep"
+    @if (isAgentType()) {
+      <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <z-stepper
+          xpDialogBody
+          #stepper="zStepper"
+          orientation="horizontal"
+          zSize="sm"
+          [selectedIndex]="agentInitialStepIndex"
+          class="min-h-0 flex-1"
+          (selectionChange)="onAgentStepChange($event)"
         >
-          <div class="px-4">
-            <div class="space-y-4 rounded-xl bg-background-default-subtle px-4 py-4">
-              <div class="text-sm leading-6 text-text-secondary">
-                {{
-                  'XP.Xpert.StartFromHelp'
-                    | translate
-                      : {
-                          Default:
-                            'Choose a blank starter or load a template first. You can keep editing the rest of the wizard before creating the Xpert.'
-                        }
-                }}
-              </div>
+          <z-step
+            [label]="'XP.Xpert.StartFrom' | translate: { Default: 'Start from' }"
+            [completed]="skipTemplateSelectionStep"
+            [editable]="!skipTemplateSelectionStep"
+            ><xp-blank-wizard-start [vm]="this" section="StartFrom1"
+          /></z-step>
 
-              @if (!lockStartMode) {
-                <div class="grid gap-3 lg:grid-cols-2">
-                  <button
-                    type="button"
-                    class="rounded-xl border px-4 py-4 text-left transition-colors"
-                    [class.border-primary-500]="startMode() === 'blank'"
-                    [class.bg-background-default]="startMode() === 'blank'"
-                    [class.border-components-panel-border]="startMode() !== 'blank'"
-                    (click)="setStartMode('blank')"
-                  >
-                    <div class="text-base font-semibold text-text-primary">
-                      {{ 'XP.Xpert.BlankStart' | translate: { Default: 'Blank' } }}
-                    </div>
-                    <div class="mt-2 text-sm leading-6 text-text-secondary">
-                      {{
-                        'XP.Xpert.BlankStartHelp'
-                          | translate
-                            : {
-                                Default:
-                                  'Start from the default blank wizard and choose triggers, middlewares, and skills yourself.'
-                              }
-                      }}
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    class="rounded-xl border px-4 py-4 text-left transition-colors"
-                    [class.border-primary-500]="startMode() === 'template'"
-                    [class.bg-background-default]="startMode() === 'template'"
-                    [class.border-components-panel-border]="startMode() !== 'template'"
-                    (click)="setStartMode('template')"
-                  >
-                    <div class="text-base font-semibold text-text-primary">
-                      {{ 'XP.Xpert.TemplateStart' | translate: { Default: 'Template' } }}
-                    </div>
-                    <div class="mt-2 text-sm leading-6 text-text-secondary">
-                      {{
-                        'XP.Xpert.TemplateStartHelp'
-                          | translate
-                            : {
-                                Default:
-                                  'Select an agent template, preload the wizard from its draft, and keep tailoring the result before creating.'
-                              }
-                      }}
-                    </div>
-                  </button>
-                </div>
-              }
-
-              @if (startMode() === 'template') {
-                <xpert-blank-template-selection
-                  [(selectedId)]="selectedTemplateId"
-                  [templates]="templateChoices()"
-                  [category]="templateCategory"
-                  [loading]="templateOptionsLoading()"
-                  [error]="templateOptionsError()"
-                  [emptyKey]="'XP.Xpert.NoAgentTemplatesFound'"
-                  [emptyDefault]="'No agent templates found'"
-                />
-
-                @if (selectedTemplateId() && templateLoading()) {
-                  <div class="text-sm text-text-secondary">
-                    {{ 'XP.Xpert.LoadingSelectedTemplate' | translate: { Default: 'Loading template details...' } }}
-                  </div>
-                }
-
-                @if (templateLoadError()) {
-                  <div
-                    class="rounded-xl border border-components-panel-border px-4 py-3 mt-2 text-sm text-text-destructive"
-                  >
-                    {{ templateLoadError() }}
-                  </div>
-                } @else if (selectedTemplateDraft()) {
-                  <div
-                    class="rounded-xl border border-components-panel-border px-4 py-3 mt-2 text-sm text-text-secondary"
-                  >
+          @if (needsModelProviderSetup()) {
+            <z-step [label]="'XP.Xpert.ModelProvider' | translate: { Default: 'Model provider' }">
+              <div>
+                <div class="space-y-4">
+                  <div class="text-sm leading-6 text-text-secondary">
                     {{
-                      'XP.Xpert.TemplateLoadedHelp'
+                      'XP.Xpert.ConfigureModelProviderBeforeBasic'
                         | translate
                           : {
                               Default:
-                                'Template loaded. Continue through the wizard to adjust the generated triggers and defaults.'
+                                'Configure a primary model provider before entering basic information so this ClawXpert can run immediately after creation.'
                             }
                     }}
                   </div>
-                }
-              }
 
-              @if (checkingModelProviders()) {
-                <div class="text-sm text-text-secondary">
-                  {{
-                    'XP.Xpert.CheckingModelProviders' | translate: { Default: 'Checking available model providers...' }
-                  }}
-                </div>
-              }
-            </div>
-          </div>
-        </z-step>
-
-        @if (needsModelProviderSetup()) {
-          <z-step [label]="'XP.Xpert.ModelProvider' | translate: { Default: 'Model provider' }">
-            <div class="px-4">
-              <div class="space-y-4 rounded-xl bg-background-default-subtle px-4 py-4">
-                <div class="text-sm leading-6 text-text-secondary">
-                  {{
-                    'XP.Xpert.ConfigureModelProviderBeforeBasic'
-                      | translate
-                        : {
-                            Default:
-                              'Configure a primary model provider before entering basic information so this ClawXpert can run immediately after creation.'
-                          }
-                  }}
-                </div>
-
-                @if (modelProviderLoadError()) {
-                  <div class="rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-3">
-                    <div class="flex items-start gap-3">
-                      <i class="ri-error-warning-line mt-0.5 text-base text-text-warning"></i>
-                      <div class="min-w-0 text-sm leading-6 text-text-secondary">
-                        {{ modelProviderLoadError() }}
-                      </div>
-                    </div>
-                  </div>
-                }
-
-                @if (!canConfigureModelProvider()) {
-                  <div
-                    class="rounded-xl border border-dashed border-components-panel-border bg-components-card-bg px-4 py-6 text-sm leading-6 text-text-secondary"
-                  >
-                    {{
-                      'XP.Xpert.ModelProviderPermissionRequired'
-                        | translate
-                          : {
-                              Default:
-                                'Your account cannot configure model providers. Contact an administrator to configure a primary LLM provider before creating ClawXpert.'
-                            }
-                    }}
-                  </div>
-                } @else if (enablingPrimaryCopilot() || !showClawModelProviderForm()) {
-                  <div
-                    class="relative flex min-h-40 items-center justify-center rounded-xl border border-dashed border-components-panel-border bg-components-card-bg px-4 py-6 text-sm text-text-secondary"
-                  >
-                    {{ 'XP.Xpert.PreparingModelProvider' | translate: { Default: 'Preparing model provider...' } }}
-                    <xp-spin class="absolute inset-0 flex items-center justify-center" />
-                  </div>
-                } @else {
-                  <xp-copilot-config-form #clawCopilotForm class="w-full" [copilot]="primaryCopilot()" />
-                }
-              </div>
-            </div>
-          </z-step>
-        }
-
-        <z-step [label]="'XP.Xpert.BasicInformation' | translate: { Default: 'Basic information' }">
-          <div class="px-4">
-            @if (allowWorkspaceSelection) {
-              <div class="pb-4">
-                <div class="py-2 text-sm font-medium leading-[20px] text-text-primary">
-                  <span class="text-text-destructive">*</span>
-                  {{ 'XP.KEY_WORDS.Workspace' | translate: { Default: 'Workspace' } }}
-                </div>
-                <div class="flex items-center gap-2">
-                  <z-combobox-deprecated
-                    class="flex-1"
-                    [options]="workspaceOptions()"
-                    [placeholder]="'XP.Xpert.SelectAWorkspace' | translate: { Default: 'Select a workspace' }"
-                    [searchPlaceholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
-                    [(ngModel)]="workspaceId"
-                  />
-                  <button
-                    type="button"
-                    class="btn btn-secondary flex shrink-0 items-center justify-center"
-                    [title]="'XP.ACTIONS.REFRESH' | translate: { Default: 'Refresh' }"
-                    (click)="refreshWorkspaces()"
-                  >
-                    <i class="ri-refresh-line"></i>
-                  </button>
-                </div>
-
-                @if (noAvailableWorkspaces()) {
-                  <div
-                    class="mt-3 rounded-xl border border-dashed border-components-panel-border px-4 py-4 text-sm text-text-secondary"
-                  >
-                    {{
-                      'XP.Xpert.NoWorkspaceAvailableForCreate'
-                        | translate: { Default: 'Create a workspace first before creating a new Xpert.' }
-                    }}
-                    <a
-                      class="ml-1 inline-flex items-center text-primary-500 hover:underline"
-                      [routerLink]="['/xpert/w']"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {{ 'XP.Chat.GotoWorkspace' | translate: { Default: 'Go to Workspace' } }}
-                    </a>
-                  </div>
-                } @else if (workspaceSelectionInvalid()) {
-                  <div class="mt-2 text-sm text-text-destructive">
-                    {{
-                      'XP.Xpert.WorkspaceRequiredForCreate'
-                        | translate: { Default: 'Select a workspace before continuing.' }
-                    }}
-                  </div>
-                }
-              </div>
-            }
-
-            <xpert-basic-form
-              [(name)]="name"
-              [(avatar)]="avatar"
-              [(description)]="description"
-              [(title)]="title"
-              [(copilotModel)]="copilotModel"
-            />
-            <div
-              class="mt-5 flex items-start justify-between gap-4 rounded-xl border border-components-panel-border p-4"
-            >
-              <div class="min-w-0">
-                <div class="text-sm font-medium text-text-primary">
-                  {{ 'XP.Xpert.IsolateWorkspaceDataByUser' | translate: { Default: 'Isolate runtime data by user' } }}
-                </div>
-                <div class="mt-1 text-xs leading-5 text-text-secondary">
-                  {{
-                    'XP.Xpert.IsolateWorkspaceDataByUserHint'
-                      | translate
-                        : {
-                            Default:
-                              'When enabled, each user gets separate runtime files. When disabled, all users who can run this Xpert share the same files.'
-                          }
-                  }}
-                </div>
-              </div>
-              <z-switch
-                zSize="sm"
-                class="shrink-0"
-                [ngModel]="isolateWorkspaceData()"
-                (ngModelChange)="isolateWorkspaceData.set($event)"
-              />
-            </div>
-          </div>
-        </z-step>
-
-        <z-step [label]="'XP.Workflow.Trigger' | translate: { Default: 'Trigger' }">
-          <xp-blank-trigger-selection
-            [(selections)]="selectedTriggers"
-            [providers]="triggerProviderOptions()"
-            [descriptionKey]="'XP.Xpert.SelectTriggerProviders'"
-            [defaultDescription]="'Choose the triggers you want to prepare now. You can skip this and configure details later in Studio.'"
-          />
-        </z-step>
-
-        <z-step [label]="'XP.KEY_WORDS.Middleware' | translate: { Default: 'Middleware' }">
-          <div class="rounded-xl bg-background-default-subtle px-4 py-2 space-y-3">
-            <div class="text-sm leading-6 text-text-secondary">
-              {{
-                'XP.Xpert.SelectMiddlewares'
-                  | translate
-                    : {
-                        Default:
-                          'Choose the middlewares to preload for the primary agent. Detailed configuration stays in Studio.'
-                      }
-              }}
-            </div>
-            <div class="text-xs leading-5 text-text-secondary">
-              {{
-                'XP.Xpert.MiddlewareFeaturesAutoEnabled'
-                  | translate
-                    : {
-                        Default:
-                          'If a middleware requires Xpert features such as sandbox, they will be enabled automatically for this Xpert.'
-                      }
-              }}
-            </div>
-            <div class="text-xs leading-5 text-text-secondary">
-              {{
-                'XP.Xpert.MiddlewareRequiredModeHelp'
-                  | translate
-                    : {
-                        Default:
-                          'Selected middlewares default to Always load. Turn it off to create the node without forcing runtime loading; you can continue adjusting it in Studio.'
-                      }
-              }}
-            </div>
-
-            <z-search-input
-              class="max-w-md"
-              [value]="middlewareSearch()"
-              [placeholder]="
-                'XP.Xpert.SearchMiddlewaresPlaceholder'
-                  | translate: { Default: 'Search middleware name or description' }
-              "
-              [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
-              (valueChange)="middlewareSearch.set($event)"
-            />
-
-            <div class="grid gap-2 md:grid-cols-2">
-              @for (middleware of filteredMiddlewareProviderOptions(); track middleware.meta.name) {
-                <div
-                  class="flex items-start gap-3 rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-3 cursor-pointer transition-colors hover:bg-hover-bg"
-                  [class.border-primary-500]="selectedMiddlewares().includes(middleware.meta.name)"
-                  [class.bg-background-default]="selectedMiddlewares().includes(middleware.meta.name)"
-                  (click)="
-                    toggleMiddleware(middleware.meta.name, !selectedMiddlewares().includes(middleware.meta.name))
-                  "
-                >
-                  <z-checkbox
-                    class="mt-1 shrink-0"
-                    displayDensity="compact"
-                    [ngModel]="selectedMiddlewares().includes(middleware.meta.name)"
-                    (click)="$event.stopPropagation()"
-                    (checkChange)="toggleMiddleware(middleware.meta.name, $event)"
-                  />
-                  <div class="min-w-0 flex-1">
-                    <div class="flex flex-wrap items-center gap-2 font-medium text-text-primary">
-                      <span [class]="middleware.meta.deprecated ? 'line-through decoration-2 decoration-current' : ''">
-                        {{ middleware.meta.label ? (middleware.meta.label | i18n) : middleware.meta.name }}
-                      </span>
-                      @if (middleware.meta.deprecated) {
-                        <i
-                          class="ri-alert-line shrink-0 text-text-warning"
-                          [zTooltip]="
-                            middleware.meta.deprecationMessage
-                              ? (middleware.meta.deprecationMessage | i18n)
-                              : ('XP.Xpert.DeprecatedMiddleware'
-                                | translate
-                                  : {
-                                      Default:
-                                        'This middleware is deprecated. Use the built-in feature or a replacement middleware instead.'
-                                    })
-                          "
-                          zPosition="top"
-                        ></i>
-                      }
-                      @if (middleware.unavailable) {
-                        <span
-                          class="inline-flex items-center rounded-md bg-components-input-bg-normal px-2 py-px text-xs text-text-warning"
-                        >
-                          {{
-                            'XP.Xpert.TemplateMiddlewareUnavailable'
-                              | translate: { Default: 'Unavailable in current runtime' }
-                          }}
-                        </span>
-                      }
-                    </div>
-                    <div class="text-sm text-text-secondary">
-                      {{ middleware.meta.description ? (middleware.meta.description | i18n) : middleware.meta.name }}
-                    </div>
-                  </div>
-                  @if (selectedMiddlewares().includes(middleware.meta.name)) {
-                    <div class="ml-auto flex shrink-0 items-center pl-2" (click)="$event.stopPropagation()">
-                      <z-switch
-                        zSize="sm"
-                        [ngModel]="isMiddlewareRequired(middleware.meta.name)"
-                        (ngModelChange)="toggleMiddlewareRequired(middleware.meta.name, $event)"
-                      >
-                        @if (isMiddlewareRequired(middleware.meta.name)) {
-                          {{ 'XP.Xpert.MiddlewareRequiredBadge' | translate: { Default: 'Always load' } }}
-                        } @else {
-                          {{ 'XP.Xpert.MiddlewareOptionalBadge' | translate: { Default: 'Manual load' } }}
-                        }
-                      </z-switch>
-                    </div>
-                  }
-                </div>
-              } @empty {
-                @if (middlewareProviderOptions().length) {
-                  <div
-                    class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary md:col-span-2"
-                  >
-                    {{ 'XP.Xpert.NoMatchingMiddlewares' | translate: { Default: 'No matching middlewares found' } }}
-                  </div>
-                } @else {
-                  <div
-                    class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary md:col-span-2"
-                  >
-                    {{
-                      'XP.Workflow.NoMiddlewaresAvailable' | translate: { Default: 'No middleware providers available' }
-                    }}
-                  </div>
-                }
-              }
-            </div>
-          </div>
-        </z-step>
-
-        <z-step [label]="'XP.Workflow.Skill' | translate: { Default: 'Skill' }">
-          <div class="rounded-xl bg-background-default-subtle px-4 py-4 space-y-4">
-            <div class="flex flex-wrap items-start justify-between gap-3">
-              <div class="max-w-3xl text-sm leading-6 text-text-secondary">
-                {{
-                  'XP.Xpert.AddWorkspaceSkillsHelp'
-                    | translate
-                      : {
-                          Default: usesWorkspaceSkillDefaults()
-                            ? 'All workspace skills shown here are enabled by default for ClawXpert. Uncheck any skill to exclude it.'
-                            : 'The first time you open this step, we sync the built-in public skill repository into the workspace and enable it by default. Unchecked public skills become this Xpert’s blacklist, while other workspace skills stay opt-in.'
-                        }
-                }}
-              </div>
-
-              <div class="flex items-center gap-2">
-                @if (installingSkillPackage()) {
-                  <span
-                    class="inline-flex items-center rounded-full border border-components-panel-border bg-components-card-bg px-3 py-1 text-xs text-text-secondary"
-                  >
-                    {{ 'XP.Xpert.InstallingSkill' | translate: { Default: 'Installing…' } }}
-                  </span>
-                }
-
-                <button
-                  type="button"
-                  class="btn btn-secondary flex items-center gap-2 disabled:btn-disabled"
-                  [disabled]="!workspaceId() || installingSkillPackage()"
-                  (click)="openSkillInstallDialog()"
-                >
-                  <i class="ri-download-cloud-2-line"></i>
-                  <span>{{
-                    'XP.Xpert.BrowseWorkspaceSkills' | translate: { Default: 'Browse & install skills' }
-                  }}</span>
-                </button>
-              </div>
-            </div>
-
-            @if (!workspaceId()) {
-              <div
-                class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm leading-6 text-text-secondary"
-              >
-                {{
-                  'XP.Xpert.WorkspaceRequiredForSkillInstall'
-                    | translate
-                      : {
-                          Default:
-                            'Select a workspace first before installing or selecting skills for this Xpert via Skills Middleware.'
-                        }
-                }}
-              </div>
-            } @else if (templatePluginSkillInstallError()) {
-              <div class="rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-4">
-                <div class="flex items-start gap-3">
-                  <i class="ri-error-warning-line mt-0.5 text-base text-text-warning"></i>
-                  <div class="min-w-0">
-                    <div class="text-sm font-semibold text-text-primary">
-                      {{
-                        'XP.Xpert.TemplatePluginSkillsInstallFailed'
-                          | translate: { Default: 'Failed to initialize template skills' }
-                      }}
-                    </div>
-                    <div class="mt-1 text-sm leading-6 text-text-secondary">
-                      {{ templatePluginSkillInstallError() }}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            } @else if (skillState().loading) {
-              <div
-                class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary"
-              >
-                {{ 'XP.Xpert.LoadingWorkspaceSkills' | translate: { Default: 'Loading workspace skills…' } }}
-              </div>
-            } @else {
-              @if (skillState().errorMessage) {
-                <div class="rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-4">
-                  <div class="flex items-start gap-3">
-                    <i class="ri-error-warning-line mt-0.5 text-base text-text-warning"></i>
-                    <div class="min-w-0">
-                      <div class="text-sm font-semibold text-text-primary">
-                        {{
-                          'XP.Xpert.WorkspaceSkillsLoadFailed'
-                            | translate: { Default: 'Failed to load workspace skills' }
-                        }}
-                      </div>
-                      <div class="mt-1 text-sm leading-6 text-text-secondary">
-                        {{ skillState().errorMessage }}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              } @else if (!skillState().skills.length) {
-                <div
-                  class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm leading-6 text-text-secondary"
-                >
-                  {{
-                    'XP.Xpert.NoWorkspaceSkillsAvailableDesc'
-                      | translate
-                        : {
-                            Default:
-                              'No workspace skills installed yet. Use the install dialog to add a skill, then enable it here through Skills Middleware.'
-                          }
-                  }}
-                </div>
-              } @else {
-                <div class="grid gap-2 md:grid-cols-2">
-                  @for (skill of skillState().skills; track skill.id) {
-                    <label
-                      class="flex items-start gap-3 rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-3 cursor-pointer transition-colors hover:bg-hover-bg"
-                    >
-                      <input
-                        type="checkbox"
-                        class="mt-1 h-4 w-4 shrink-0"
-                        [ngModel]="selectedSkills().includes(skill.id)"
-                        (ngModelChange)="toggleSkill(skill.id, $event)"
-                      />
-                      <div class="min-w-0 flex-1">
-                        <div class="font-medium text-text-primary">
-                          {{ skill.label | i18n }}
+                  @if (modelProviderLoadError()) {
+                    <div class="rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-3">
+                      <div class="flex items-start gap-3">
+                        <i class="ri-error-warning-line mt-0.5 text-base text-text-warning"></i>
+                        <div class="min-w-0 text-sm leading-6 text-text-secondary">
+                          {{ modelProviderLoadError() }}
                         </div>
-                        @if (skill.summary) {
-                          <div class="mt-1 text-sm leading-6 text-text-secondary">
-                            {{ skill.summary | i18n }}
-                          </div>
-                        }
-                        @if (skill.repositoryName) {
-                          <div
-                            class="mt-2 inline-flex items-center rounded-full border border-components-panel-border bg-background-default px-2.5 py-1 text-xs text-text-tertiary"
-                          >
-                            {{ skill.repositoryName }}
-                          </div>
-                        }
                       </div>
-                    </label>
+                    </div>
+                  }
+
+                  @if (!canConfigureModelProvider()) {
+                    <div
+                      class="rounded-xl border border-dashed border-components-panel-border bg-components-card-bg px-4 py-6 text-sm leading-6 text-text-secondary"
+                    >
+                      {{
+                        'XP.Xpert.ModelProviderPermissionRequired'
+                          | translate
+                            : {
+                                Default:
+                                  'Your account cannot configure model providers. Contact an administrator to configure a primary LLM provider before creating ClawXpert.'
+                              }
+                      }}
+                    </div>
+                  } @else if (enablingPrimaryCopilot() || !showClawModelProviderForm()) {
+                    <div
+                      class="relative flex min-h-40 items-center justify-center rounded-xl border border-dashed border-components-panel-border bg-components-card-bg px-4 py-6 text-sm text-text-secondary"
+                    >
+                      {{ 'XP.Xpert.PreparingModelProvider' | translate: { Default: 'Preparing model provider...' } }}
+                      <xp-spin class="absolute inset-0 flex items-center justify-center" />
+                    </div>
+                  } @else {
+                    <xp-copilot-config-form #clawCopilotForm class="w-full" [copilot]="primaryCopilot()" />
                   }
                 </div>
-              }
-            }
+              </div>
+            </z-step>
+          }
 
-            @if (selectedSkillItems().length) {
-              <div class="space-y-2">
-                <div class="text-xs font-medium uppercase tracking-wide text-text-tertiary">
-                  {{ selectedSkillItems().length }} {{ 'XP.KEY_WORDS.Selected' | translate: { Default: 'selected' } }}
-                </div>
-                <div class="flex flex-wrap gap-2">
-                  @for (skill of selectedSkillItems(); track skill.id) {
+          <z-step [label]="'XP.Xpert.BasicInformation' | translate: { Default: 'Basic information' }">
+            <div>
+              @if (allowWorkspaceSelection) {
+                <div class="pb-4">
+                  <div class="py-2 text-sm font-medium leading-[20px] text-text-primary">
+                    <span class="text-text-destructive">*</span>
+                    {{ 'XP.KEY_WORDS.Workspace' | translate: { Default: 'Workspace' } }}
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <z-combobox
+                      class="flex-1"
+                      [options]="workspaceOptions()"
+                      [zClearable]="false"
+                      [ariaLabel]="'XP.KEY_WORDS.Workspace' | translate: { Default: 'Workspace' }"
+                      [placeholder]="'XP.Xpert.SelectAWorkspace' | translate: { Default: 'Select a workspace' }"
+                      [searchPlaceholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
+                      [(ngModel)]="workspaceId"
+                    />
                     <button
                       type="button"
-                      class="inline-flex items-center gap-2 rounded-full border border-components-panel-border bg-components-card-bg px-3 py-1.5 text-sm text-text-primary hover:bg-hover-bg"
-                      (click)="removeSkill(skill.id)"
+                      z-button
+                      zType="outline"
+                      zSize="icon"
+                      xpDialogActionGroup="inline"
+                      class="shrink-0"
+                      [attr.aria-label]="'XP.ACTIONS.REFRESH' | translate: { Default: 'Refresh' }"
+                      (click)="refreshWorkspaces()"
                     >
-                      <span>{{ skill.label | i18n }}</span>
-                      <i class="ri-close-line"></i>
+                      <i class="ri-refresh-line"></i>
                     </button>
-                  }
-                </div>
-              </div>
-            } @else {
-              <div
-                class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary"
-              >
-                {{ 'XP.Workflow.NoSkillsAdded' | translate: { Default: 'No skills added yet' } }}
-              </div>
-            }
-          </div>
-        </z-step>
-
-        @if (hasTemplateToolsetStep()) {
-          <z-step [label]="'XP.KEY_WORDS.Toolsets' | translate: { Default: 'Toolsets' }">
-            <div class="rounded-xl bg-background-default-subtle px-4 py-4 space-y-4">
-              <div class="flex flex-wrap items-start justify-between gap-3">
-                <div class="max-w-3xl text-sm leading-6 text-text-secondary">
-                  {{
-                    'XP.Xpert.TemplateToolsetsHelp'
-                      | translate
-                        : {
-                            Default:
-                              'Select the configured workspace toolsets required by this assistant template. Missing built-in toolsets can be configured here before creating.'
-                          }
-                  }}
-                </div>
-
-                <button
-                  z-button
-                  type="button"
-                  zType="secondary"
-                  class="flex items-center gap-2"
-                  [zDisabled]="!workspaceId() || loadingTemplateToolsets()"
-                  (click)="refreshTemplateToolsetStep()"
-                >
-                  <z-icon zType="refresh"></z-icon>
-                  <span>{{ 'XP.Xpert.TemplateToolsetRefresh' | translate: { Default: 'Refresh' } }}</span>
-                </button>
-              </div>
-
-              @if (!workspaceId()) {
-                <div
-                  class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm leading-6 text-text-secondary"
-                >
-                  {{
-                    'XP.Xpert.WorkspaceRequiredForToolsets'
-                      | translate
-                        : {
-                            Default: 'Select a workspace first before choosing the built-in toolsets for this template.'
-                          }
-                  }}
-                </div>
-              } @else {
-                @if (templateToolsetInstallError()) {
-                  <div class="rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-4">
-                    <div class="flex items-start gap-3">
-                      <i class="ri-error-warning-line mt-0.5 text-base text-text-warning"></i>
-                      <div class="min-w-0">
-                        <div class="text-sm font-semibold text-text-primary">
-                          {{
-                            'XP.Xpert.TemplateToolsetsInstallFailed'
-                              | translate: { Default: 'Failed to initialize template toolsets' }
-                          }}
-                        </div>
-                        <div class="mt-1 text-sm leading-6 text-text-secondary">
-                          {{ templateToolsetInstallError() }}
-                        </div>
-                      </div>
-                    </div>
                   </div>
-                }
 
-                <div class="space-y-3">
-                  @for (state of templateToolsetSelectionStates(); track state.key) {
-                    <div class="rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-4">
-                      <div class="flex flex-wrap items-start justify-between gap-3">
-                        <div class="min-w-0">
-                          <div class="flex flex-wrap items-center gap-2">
-                            <div class="font-medium text-text-primary">{{ state.dependency.provider }}</div>
-                            @if (state.loading) {
-                              <z-badge zType="outline" zShape="pill" class="text-text-secondary">
-                                {{ 'XP.Xpert.TemplateToolsetStatusLoading' | translate: { Default: 'Loading' } }}
-                              </z-badge>
-                            } @else if (state.selectedToolsetId) {
-                              <z-badge zType="outline" zShape="pill" class="text-text-success">
-                                {{ 'XP.Xpert.TemplateToolsetStatusReady' | translate: { Default: 'Ready' } }}
-                              </z-badge>
-                            } @else if (state.toolsets.length) {
-                              <z-badge zType="outline" zShape="pill" class="text-text-warning">
-                                {{ 'XP.Xpert.SelectionRequired' | translate: { Default: 'Selection required' } }}
-                              </z-badge>
-                            } @else {
-                              <z-badge zType="destructive" zShape="pill">
-                                {{ 'XP.Xpert.TemplateToolsetStatusMissing' | translate: { Default: 'Missing' } }}
-                              </z-badge>
-                            }
-                          </div>
-                          <div class="mt-2 grid gap-x-4 gap-y-1 text-xs leading-5 text-text-secondary md:grid-cols-2">
-                            <div>
-                              <span class="text-text-tertiary">
-                                {{ 'XP.Xpert.TemplateToolsetPlugin' | translate: { Default: 'Plugin' } }}
-                              </span>
-                              <span class="ml-1 font-mono">{{ state.dependency.pluginName }}</span>
-                            </div>
-                            <div>
-                              <span class="text-text-tertiary">
-                                {{ 'XP.Xpert.TemplateToolsetAgent' | translate: { Default: 'Agent' } }}
-                              </span>
-                              <span class="ml-1 font-mono">{{ state.dependency.targetAgentKey || '-' }}</span>
-                            </div>
-                            <div>
-                              <span class="text-text-tertiary">
-                                {{ 'XP.Xpert.TemplateToolsetNode' | translate: { Default: 'Node' } }}
-                              </span>
-                              <span class="ml-1 font-mono">{{ state.dependency.templateNodeKey }}</span>
-                            </div>
-                            <div>
-                              <span class="text-text-tertiary">
-                                {{ 'XP.Xpert.TemplateToolsetDefaultInstance' | translate: { Default: 'Default' } }}
-                              </span>
-                              <span class="ml-1">{{ state.dependency.instanceName || '-' }}</span>
-                            </div>
-                          </div>
-                        </div>
-
-                        <button
-                          z-button
-                          type="button"
-                          zType="secondary"
-                          class="flex shrink-0 items-center gap-2"
-                          [zDisabled]="
-                            !workspaceId() ||
-                            state.loading ||
-                            loadingTemplateToolsets() ||
-                            !!configuringTemplateToolsetKey()
-                          "
-                          [zLoading]="configuringTemplateToolsetKey() === state.key"
-                          (click)="configureTemplateToolset(state.key)"
-                        >
-                          <z-icon zType="settings"></z-icon>
-                          <span>
-                            @if (configuringTemplateToolsetKey() === state.key) {
-                              {{ 'XP.Xpert.TemplateToolsetConfiguring' | translate: { Default: 'Configuring…' } }}
-                            } @else {
-                              {{ 'XP.Xpert.ConfigureToolset' | translate: { Default: 'Configure Toolset' } }}
-                            }
-                          </span>
-                        </button>
-                      </div>
-
-                      @if (state.loading) {
-                        <div
-                          class="relative mt-4 flex min-h-20 items-center justify-center rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary"
-                        >
-                          {{
-                            'XP.Xpert.LoadingWorkspaceToolsets' | translate: { Default: 'Loading workspace toolsets…' }
-                          }}
-                          <xp-spin class="absolute inset-0 flex items-center justify-center" />
-                        </div>
-                      } @else if (state.toolsets.length) {
-                        <div class="mt-4 flex flex-col gap-2 md:flex-row md:items-center">
-                          <z-select
-                            class="min-w-0 flex-1"
-                            [zValue]="state.selectedToolsetId || ''"
-                            [zPlaceholder]="
-                              'XP.Xpert.SelectToolsetInstance' | translate: { Default: 'Select a toolset instance' }
-                            "
-                            (zSelectionChange)="selectTemplateToolsetValue(state.key, $event)"
-                          >
-                            @for (toolset of state.toolsets; track toolset.id) {
-                              <z-select-item [zValue]="toolset.id">
-                                {{ toolset.name || toolset.id }}
-                              </z-select-item>
-                            }
-                          </z-select>
-                        </div>
-
-                        @if (getSelectedTemplateToolset(state); as selectedToolset) {
-                          <div class="mt-3 text-sm leading-6 text-text-secondary">
-                            {{ selectedToolset.description || selectedToolset.name || selectedToolset.id }}
-                            @if (selectedToolset.tools?.length) {
-                              <span class="ml-2 text-xs text-text-tertiary">
-                                {{ selectedToolset.tools.length }}
-                                {{ 'XP.Xpert.TemplateToolsetToolsCount' | translate: { Default: 'tools' } }}
-                              </span>
-                            }
-                          </div>
-                        }
-                      } @else {
-                        <div
-                          class="mt-4 rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm leading-6 text-text-secondary"
-                        >
-                          {{
-                            'XP.Xpert.NoMatchingToolsetConfigured'
-                              | translate
-                                : {
-                                    Default:
-                                      'No matching built-in toolset is configured in this workspace. Configure one to continue.'
-                                  }
-                          }}
-                        </div>
-                      }
-
-                      @if (state.errorMessage) {
-                        <div class="mt-3 text-sm leading-6 text-text-destructive">
-                          {{ state.errorMessage }}
-                        </div>
-                      }
-                    </div>
-                  } @empty {
+                  @if (noAvailableWorkspaces()) {
                     <div
-                      class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary"
+                      class="mt-3 rounded-xl border border-dashed border-components-panel-border px-4 py-4 text-sm text-text-secondary"
                     >
-                      {{ 'XP.Xpert.NoTemplateToolsetsRequired' | translate: { Default: 'No toolsets required' } }}
+                      {{
+                        'XP.Xpert.NoWorkspaceAvailableForCreate'
+                          | translate: { Default: 'Create a workspace first before creating a new Xpert.' }
+                      }}
+                      <a
+                        class="ml-1 inline-flex items-center text-primary hover:underline"
+                        [routerLink]="['/xpert/w']"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {{ 'XP.Chat.GotoWorkspace' | translate: { Default: 'Go to Workspace' } }}
+                      </a>
+                    </div>
+                  } @else if (workspaceSelectionInvalid()) {
+                    <div class="mt-2 text-sm text-text-destructive">
+                      {{
+                        'XP.Xpert.WorkspaceRequiredForCreate'
+                          | translate: { Default: 'Select a workspace before continuing.' }
+                      }}
                     </div>
                   }
                 </div>
               }
+
+              <xpert-basic-form
+                [(name)]="name"
+                [(avatar)]="avatar"
+                [(description)]="description"
+                [(title)]="title"
+                [(copilotModel)]="copilotModel"
+              />
+              <xp-blank-project-management [state]="projectManagement" [disabled]="loading()" />
+              <div
+                class="mt-5 flex items-start justify-between gap-4 rounded-xl border border-components-panel-border p-4"
+              >
+                <div class="min-w-0">
+                  <div class="text-sm font-medium text-text-primary">
+                    {{ 'XP.Xpert.IsolateWorkspaceDataByUser' | translate: { Default: 'Isolate runtime data by user' } }}
+                  </div>
+                  <div class="mt-1 text-xs leading-5 text-text-secondary">
+                    {{
+                      'XP.Xpert.IsolateWorkspaceDataByUserHint'
+                        | translate
+                          : {
+                              Default:
+                                'When enabled, each user gets separate runtime files. When disabled, all users who can run this Xpert share the same files.'
+                            }
+                    }}
+                  </div>
+                </div>
+                <z-switch
+                  zSize="sm"
+                  class="shrink-0"
+                  [ngModel]="isolateWorkspaceData()"
+                  (ngModelChange)="isolateWorkspaceData.set($event)"
+                />
+              </div>
             </div>
           </z-step>
-        }
-      </z-stepper>
 
-      <div class="w-full shrink-0 flex justify-end p-4">
-        <div class="flex items-center gap-2">
-          <button type="button" class="btn disabled:btn-disabled btn-large" (click)="close()">
-            {{ 'XP.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
-          </button>
+          <z-step [label]="'XP.Workflow.Trigger' | translate: { Default: 'Trigger' }">
+            <xp-blank-trigger-selection
+              [(selections)]="selectedTriggers"
+              [providers]="triggerProviderOptions()"
+              [descriptionKey]="'XP.Xpert.SelectTriggerProviders'"
+              [defaultDescription]="'Choose the triggers you want to prepare now. You can skip this and configure details later in Studio.'"
+            />
+          </z-step>
 
-          @if (stepper.selectedIndex > agentInitialStepIndex) {
-            <button
-              type="button"
-              class="btn disabled:btn-disabled btn-large"
-              [disabled]="loading()"
-              (click)="stepper.previous()"
-            >
-              {{ 'XP.ACTIONS.PREVIOUS' | translate: { Default: 'Previous' } }}
-            </button>
+          <z-step [label]="'XP.KEY_WORDS.Middleware' | translate: { Default: 'Middleware' }"
+            ><xp-blank-wizard-capabilities [vm]="this" section="Middleware1"
+          /></z-step>
+
+          <z-step [label]="'XP.Workflow.Skill' | translate: { Default: 'Skill' }"
+            ><xp-blank-wizard-capabilities [vm]="this" section="Skill1"
+          /></z-step>
+
+          @if (hasTemplateToolsetStep()) {
+            <z-step [label]="'XP.KEY_WORDS.Toolsets' | translate: { Default: 'Toolsets' }"
+              ><xp-blank-wizard-capabilities [vm]="this" section="Toolsets1"
+            /></z-step>
           }
+        </z-stepper>
 
-          @if (stepper.selectedIndex < agentLastStepIndex()) {
-            @if (stepper.selectedIndex === agentModelProviderStepIndex()) {
-              <button
-                type="button"
-                class="btn disabled:btn-disabled btn-primary btn-large"
-                [disabled]="clawModelProviderSaveDisabled()"
-                (click)="saveClawModelProviderStep()"
-              >
-                {{ 'XP.Xpert.SaveModelProviderAndContinue' | translate: { Default: 'Save and continue' } }}
+        <footer xpDialogFooter>
+          <div class="flex items-center gap-2">
+            <button type="button" z-button zType="outline" (click)="close()">
+              {{ 'XP.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
+            </button>
+
+            @if (stepper.selectedIndex > agentInitialStepIndex) {
+              <button type="button" z-button zType="outline" [zDisabled]="loading()" (click)="stepper.previous()">
+                {{ 'XP.ACTIONS.PREVIOUS' | translate: { Default: 'Previous' } }}
               </button>
+            }
+
+            @if (stepper.selectedIndex < agentLastStepIndex()) {
+              @if (stepper.selectedIndex === agentModelProviderStepIndex()) {
+                <button
+                  type="button"
+                  z-button
+                  [disabled]="clawModelProviderSaveDisabled()"
+                  (click)="saveClawModelProviderStep()"
+                >
+                  {{ 'XP.Xpert.SaveModelProviderAndContinue' | translate: { Default: 'Save and continue' } }}
+                </button>
+              } @else {
+                <button
+                  type="button"
+                  z-button
+                  [disabled]="
+                    loading() ||
+                    (stepper.selectedIndex === 0 && (startStepInvalid() || checkingModelProviders())) ||
+                    (stepper.selectedIndex === agentBasicStepIndex() && basicStepInvalid()) ||
+                    (stepper.selectedIndex === agentTriggerStepIndex() && selectedTriggersInvalid()) ||
+                    (stepper.selectedIndex === agentSkillStepIndex() &&
+                      (installingSkillPackage() || !!templatePluginSkillInstallError())) ||
+                    (stepper.selectedIndex === agentToolsetStepIndex() && templateToolsetsStepInvalid())
+                  "
+                  (click)="stepper.next()"
+                >
+                  {{ 'XP.ACTIONS.NEXT' | translate: { Default: 'Next' } }}
+                </button>
+              }
+
+              @if (canCreateDirectly()) {
+                <button type="button" z-button [disabled]="directCreateDisabled()" (click)="createDirectly()">
+                  <i class="ri-save-line"></i>
+                  {{
+                    (completionMode === 'publish' ? 'XP.Xpert.CreateAndPublishDirectly' : 'XP.Xpert.CreateDirectly')
+                      | translate
+                        : {
+                            Default: completionMode === 'publish' ? 'Create and publish directly' : 'Create directly'
+                          }
+                  }}
+                </button>
+              }
             } @else {
               <button
                 type="button"
-                class="btn disabled:btn-disabled btn-primary btn-large"
+                z-button
+                cdkFocusInitial
                 [disabled]="
                   loading() ||
-                  (stepper.selectedIndex === 0 && (startStepInvalid() || checkingModelProviders())) ||
-                  (stepper.selectedIndex === agentBasicStepIndex() && basicStepInvalid()) ||
-                  (stepper.selectedIndex === agentTriggerStepIndex() && selectedTriggersInvalid()) ||
-                  (stepper.selectedIndex === agentSkillStepIndex() &&
-                    (installingSkillPackage() || !!templatePluginSkillInstallError())) ||
-                  (stepper.selectedIndex === agentToolsetStepIndex() && templateToolsetsStepInvalid())
+                  startStepInvalid() ||
+                  modelProviderStepInvalid() ||
+                  basicStepInvalid() ||
+                  selectedTriggersInvalid() ||
+                  !!templatePluginSkillInstallError() ||
+                  templateToolsetsStepInvalid()
+                "
+                (click)="create()"
+              >
+                <i class="ri-save-line"></i>
+                {{
+                  (completionMode === 'publish' ? 'XP.Xpert.CreateAndPublish' : 'XP.ACTIONS.SAVE')
+                    | translate: { Default: completionMode === 'publish' ? 'Create and publish' : 'Save' }
+                }}
+              </button>
+            }
+          </div>
+        </footer>
+      </div>
+    } @else if (isWorkflowType()) {
+      <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <z-stepper xpDialogBody #stepper="zStepper" orientation="horizontal" zSize="sm" class="min-h-0 flex-1">
+          <z-step [label]="'XP.Xpert.StartFrom' | translate: { Default: 'Start from' }"
+            ><xp-blank-wizard-start [vm]="this" section="StartFrom2"
+          /></z-step>
+
+          <z-step [label]="'XP.Xpert.BasicInformation' | translate: { Default: 'Basic information' }">
+            <div>
+              @if (allowWorkspaceSelection) {
+                <div class="pb-4">
+                  <div class="py-2 text-sm font-medium leading-[20px] text-text-primary">
+                    <span class="text-text-destructive">*</span>
+                    {{ 'XP.KEY_WORDS.Workspace' | translate: { Default: 'Workspace' } }}
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <z-combobox
+                      class="flex-1"
+                      [options]="workspaceOptions()"
+                      [zClearable]="false"
+                      [ariaLabel]="'XP.KEY_WORDS.Workspace' | translate: { Default: 'Workspace' }"
+                      [placeholder]="'XP.Xpert.SelectAWorkspace' | translate: { Default: 'Select a workspace' }"
+                      [searchPlaceholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
+                      [(ngModel)]="workspaceId"
+                    />
+                    <button
+                      type="button"
+                      z-button
+                      zType="outline"
+                      zSize="icon"
+                      xpDialogActionGroup="inline"
+                      class="shrink-0"
+                      [attr.aria-label]="'XP.ACTIONS.REFRESH' | translate: { Default: 'Refresh' }"
+                      (click)="refreshWorkspaces()"
+                    >
+                      <i class="ri-refresh-line"></i>
+                    </button>
+                  </div>
+
+                  @if (noAvailableWorkspaces()) {
+                    <div
+                      class="mt-3 rounded-xl border border-dashed border-components-panel-border px-4 py-4 text-sm text-text-secondary"
+                    >
+                      {{
+                        'XP.Xpert.NoWorkspaceAvailableForCreate'
+                          | translate: { Default: 'Create a workspace first before creating a new Xpert.' }
+                      }}
+                      <a
+                        class="ml-1 inline-flex items-center text-primary hover:underline"
+                        [routerLink]="['/xpert/w']"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {{ 'XP.Chat.GotoWorkspace' | translate: { Default: 'Go to Workspace' } }}
+                      </a>
+                    </div>
+                  } @else if (workspaceSelectionInvalid()) {
+                    <div class="mt-2 text-sm text-text-destructive">
+                      {{
+                        'XP.Xpert.WorkspaceRequiredForCreate'
+                          | translate: { Default: 'Select a workspace before continuing.' }
+                      }}
+                    </div>
+                  }
+                </div>
+              }
+
+              <xpert-basic-form
+                [(name)]="name"
+                [(avatar)]="avatar"
+                [(description)]="description"
+                [(title)]="title"
+                [(copilotModel)]="copilotModel"
+              />
+              <div
+                class="mt-5 flex items-start justify-between gap-4 rounded-xl border border-components-panel-border p-4"
+              >
+                <div class="min-w-0">
+                  <div class="text-sm font-medium text-text-primary">
+                    {{ 'XP.Xpert.IsolateWorkspaceDataByUser' | translate: { Default: 'Isolate runtime data by user' } }}
+                  </div>
+                  <div class="mt-1 text-xs leading-5 text-text-secondary">
+                    {{
+                      'XP.Xpert.IsolateWorkspaceDataByUserHint'
+                        | translate
+                          : {
+                              Default:
+                                'When enabled, each user gets separate runtime files. When disabled, all users who can run this Xpert share the same files.'
+                            }
+                    }}
+                  </div>
+                </div>
+                <z-switch
+                  zSize="sm"
+                  class="shrink-0"
+                  [ngModel]="isolateWorkspaceData()"
+                  (ngModelChange)="isolateWorkspaceData.set($event)"
+                />
+              </div>
+            </div>
+          </z-step>
+
+          <z-step [label]="'XP.Xpert.WorkflowActionNodes' | translate: { Default: 'Action nodes' }"
+            ><xp-blank-wizard-capabilities [vm]="this" section="WorkflowActionNodes1"
+          /></z-step>
+
+          <z-step [label]="'XP.Xpert.WorkflowTransformResponse' | translate: { Default: 'Transform & response' }"
+            ><xp-blank-wizard-capabilities [vm]="this" section="WorkflowTransformResponse1"
+          /></z-step>
+        </z-stepper>
+
+        <footer xpDialogFooter>
+          <div class="flex items-center gap-2">
+            <button type="button" z-button zType="outline" (click)="close()">
+              {{ 'XP.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
+            </button>
+
+            @if (stepper.selectedIndex > 0) {
+              <button type="button" z-button zType="outline" [zDisabled]="loading()" (click)="stepper.previous()">
+                {{ 'XP.ACTIONS.PREVIOUS' | translate: { Default: 'Previous' } }}
+              </button>
+            }
+
+            @if (stepper.selectedIndex < 3) {
+              <button
+                type="button"
+                z-button
+                [disabled]="
+                  loading() ||
+                  (stepper.selectedIndex === 0 && startStepInvalid()) ||
+                  (stepper.selectedIndex === 1 && basicStepInvalid())
                 "
                 (click)="stepper.next()"
               >
                 {{ 'XP.ACTIONS.NEXT' | translate: { Default: 'Next' } }}
               </button>
-            }
-
-            @if (canCreateDirectly()) {
+            } @else {
               <button
                 type="button"
-                class="btn disabled:btn-disabled btn-primary btn-large"
-                [disabled]="directCreateDisabled()"
-                (click)="createDirectly()"
+                z-button
+                cdkFocusInitial
+                [zDisabled]="loading() || startStepInvalid() || basicStepInvalid()"
+                (click)="create()"
               >
-                <i class="ri-save-line mr-1"></i>
+                <i class="ri-save-line"></i>
                 {{
-                  (completionMode === 'publish' ? 'XP.Xpert.CreateAndPublishDirectly' : 'XP.Xpert.CreateDirectly')
-                    | translate
-                      : {
-                          Default: completionMode === 'publish' ? 'Create and publish directly' : 'Create directly'
-                        }
+                  (completionMode === 'publish' ? 'XP.Xpert.CreateAndPublish' : 'XP.ACTIONS.SAVE')
+                    | translate: { Default: completionMode === 'publish' ? 'Create and publish' : 'Save' }
                 }}
               </button>
             }
-          } @else {
-            <button
-              type="button"
-              class="btn disabled:btn-disabled btn-primary btn-large"
-              cdkFocusInitial
-              [disabled]="
-                loading() ||
-                startStepInvalid() ||
-                modelProviderStepInvalid() ||
-                basicStepInvalid() ||
-                selectedTriggersInvalid() ||
-                !!templatePluginSkillInstallError() ||
-                templateToolsetsStepInvalid()
-              "
-              (click)="create()"
-            >
-              <i class="ri-save-line mr-1"></i>
-              {{
-                (completionMode === 'publish' ? 'XP.Xpert.CreateAndPublish' : 'XP.ACTIONS.SAVE')
-                  | translate: { Default: completionMode === 'publish' ? 'Create and publish' : 'Save' }
-              }}
-            </button>
-          }
-        </div>
+          </div>
+        </footer>
       </div>
-    </div>
-  } @else if (isWorkflowType()) {
-    <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <z-stepper
-        #stepper="zStepper"
-        orientation="horizontal"
-        zSize="sm"
-        class="min-h-0 flex-1 overflow-hidden px-4 pb-2"
-      >
-        <z-step [label]="'XP.Xpert.StartFrom' | translate: { Default: 'Start from' }">
-          <div class="px-4">
-            <div class="space-y-4 rounded-xl bg-background-default-subtle px-4 py-4">
-              <div class="text-sm leading-6 text-text-secondary">
-                {{
-                  'XP.Xpert.WorkflowStartFromHelp'
-                    | translate
-                      : {
-                          Default:
-                            'Workflow templates are not available in this starter yet, so you can begin with the blank workflow setup for now.'
-                        }
-                }}
-              </div>
+    } @else if (isKnowledgeType()) {
+      <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <z-stepper xpDialogBody #stepper="zStepper" orientation="horizontal" zSize="sm" class="min-h-0 flex-1">
+          <z-step [label]="'XP.Xpert.StartFrom' | translate: { Default: 'Start from' }"
+            ><xp-blank-wizard-start [vm]="this" section="StartFrom3"
+          /></z-step>
 
-              <div class="grid gap-3 lg:grid-cols-2">
-                <button
-                  type="button"
-                  class="rounded-xl border border-primary-500 bg-background-default px-4 py-4 text-left transition-colors"
-                  (click)="setStartMode('blank')"
-                >
-                  <div class="text-base font-semibold text-text-primary">
-                    {{ 'XP.Xpert.BlankStart' | translate: { Default: 'Blank' } }}
+          <z-step [label]="'XP.Xpert.BasicInformation' | translate: { Default: 'Basic information' }">
+            <div>
+              @if (allowWorkspaceSelection) {
+                <div class="pb-4">
+                  <div class="py-2 text-sm font-medium leading-[20px] text-text-primary">
+                    <span class="text-text-destructive">*</span>
+                    {{ 'XP.KEY_WORDS.Workspace' | translate: { Default: 'Workspace' } }}
                   </div>
-                  <div class="mt-2 text-sm leading-6 text-text-secondary">
-                    {{
-                      'XP.Xpert.WorkflowBlankStartHelp'
-                        | translate
-                          : {
-                              Default:
-                                'Start with the default chat-trigger workflow scaffold and choose the action and transform nodes you want.'
-                            }
-                    }}
+                  <div class="flex items-center gap-2">
+                    <z-combobox
+                      class="flex-1"
+                      [options]="workspaceOptions()"
+                      [zClearable]="false"
+                      [ariaLabel]="'XP.KEY_WORDS.Workspace' | translate: { Default: 'Workspace' }"
+                      [placeholder]="'XP.Xpert.SelectAWorkspace' | translate: { Default: 'Select a workspace' }"
+                      [searchPlaceholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
+                      [(ngModel)]="workspaceId"
+                    />
+                    <button
+                      type="button"
+                      z-button
+                      zType="outline"
+                      zSize="icon"
+                      xpDialogActionGroup="inline"
+                      class="shrink-0"
+                      [attr.aria-label]="'XP.ACTIONS.REFRESH' | translate: { Default: 'Refresh' }"
+                      (click)="refreshWorkspaces()"
+                    >
+                      <i class="ri-refresh-line"></i>
+                    </button>
                   </div>
-                </button>
 
-                <button
-                  type="button"
-                  class="rounded-xl border border-components-panel-border px-4 py-4 text-left opacity-70"
-                  disabled
-                >
-                  <div class="flex items-center justify-between gap-3">
-                    <div class="text-base font-semibold text-text-primary">
-                      {{ 'XP.Xpert.TemplateStart' | translate: { Default: 'Template' } }}
-                    </div>
+                  @if (noAvailableWorkspaces()) {
                     <div
-                      class="rounded-full border border-components-panel-border px-2 py-0.5 text-xs font-medium text-text-secondary"
+                      class="mt-3 rounded-xl border border-dashed border-components-panel-border px-4 py-4 text-sm text-text-secondary"
                     >
-                      {{ 'XP.KEY_WORDS.ComingSoon' | translate: { Default: 'Coming soon' } }}
+                      {{
+                        'XP.Xpert.NoWorkspaceAvailableForCreate'
+                          | translate: { Default: 'Create a workspace first before creating a new Xpert.' }
+                      }}
+                      <a
+                        class="ml-1 inline-flex items-center text-primary hover:underline"
+                        [routerLink]="['/xpert/w']"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {{ 'XP.Chat.GotoWorkspace' | translate: { Default: 'Go to Workspace' } }}
+                      </a>
                     </div>
-                  </div>
-                  <div class="mt-2 text-sm leading-6 text-text-secondary">
-                    {{
-                      'XP.Xpert.WorkflowTemplateStartHelp'
-                        | translate
-                          : {
-                              Default:
-                                'Workflow template starters will be supported in a later iteration of the shared wizard.'
-                            }
-                    }}
-                  </div>
-                </button>
-              </div>
-            </div>
-          </div>
-        </z-step>
+                  } @else if (workspaceSelectionInvalid()) {
+                    <div class="mt-2 text-sm text-text-destructive">
+                      {{
+                        'XP.Xpert.WorkspaceRequiredForCreate'
+                          | translate: { Default: 'Select a workspace before continuing.' }
+                      }}
+                    </div>
+                  }
+                </div>
+              }
 
-        <z-step [label]="'XP.Xpert.BasicInformation' | translate: { Default: 'Basic information' }">
-          <div class="px-4">
-            @if (allowWorkspaceSelection) {
-              <div class="pb-4">
-                <div class="py-2 text-sm font-medium leading-[20px] text-text-primary">
-                  <span class="text-text-destructive">*</span>
-                  {{ 'XP.KEY_WORDS.Workspace' | translate: { Default: 'Workspace' } }}
-                </div>
-                <div class="flex items-center gap-2">
-                  <z-combobox-deprecated
-                    class="flex-1"
-                    [options]="workspaceOptions()"
-                    [placeholder]="'XP.Xpert.SelectAWorkspace' | translate: { Default: 'Select a workspace' }"
-                    [searchPlaceholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
-                    [(ngModel)]="workspaceId"
-                  />
-                  <button
-                    type="button"
-                    class="btn btn-secondary flex shrink-0 items-center justify-center"
-                    [title]="'XP.ACTIONS.REFRESH' | translate: { Default: 'Refresh' }"
-                    (click)="refreshWorkspaces()"
-                  >
-                    <i class="ri-refresh-line"></i>
-                  </button>
-                </div>
-
-                @if (noAvailableWorkspaces()) {
-                  <div
-                    class="mt-3 rounded-xl border border-dashed border-components-panel-border px-4 py-4 text-sm text-text-secondary"
-                  >
-                    {{
-                      'XP.Xpert.NoWorkspaceAvailableForCreate'
-                        | translate: { Default: 'Create a workspace first before creating a new Xpert.' }
-                    }}
-                    <a
-                      class="ml-1 inline-flex items-center text-primary-500 hover:underline"
-                      [routerLink]="['/xpert/w']"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {{ 'XP.Chat.GotoWorkspace' | translate: { Default: 'Go to Workspace' } }}
-                    </a>
-                  </div>
-                } @else if (workspaceSelectionInvalid()) {
-                  <div class="mt-2 text-sm text-text-destructive">
-                    {{
-                      'XP.Xpert.WorkspaceRequiredForCreate'
-                        | translate: { Default: 'Select a workspace before continuing.' }
-                    }}
-                  </div>
-                }
-              </div>
-            }
-
-            <xpert-basic-form
-              [(name)]="name"
-              [(avatar)]="avatar"
-              [(description)]="description"
-              [(title)]="title"
-              [(copilotModel)]="copilotModel"
-            />
-            <div
-              class="mt-5 flex items-start justify-between gap-4 rounded-xl border border-components-panel-border p-4"
-            >
-              <div class="min-w-0">
-                <div class="text-sm font-medium text-text-primary">
-                  {{ 'XP.Xpert.IsolateWorkspaceDataByUser' | translate: { Default: 'Isolate runtime data by user' } }}
-                </div>
-                <div class="mt-1 text-xs leading-5 text-text-secondary">
-                  {{
-                    'XP.Xpert.IsolateWorkspaceDataByUserHint'
-                      | translate
-                        : {
-                            Default:
-                              'When enabled, each user gets separate runtime files. When disabled, all users who can run this Xpert share the same files.'
-                          }
-                  }}
-                </div>
-              </div>
-              <z-switch
-                zSize="sm"
-                class="shrink-0"
-                [ngModel]="isolateWorkspaceData()"
-                (ngModelChange)="isolateWorkspaceData.set($event)"
+              <xpert-basic-form
+                [(name)]="name"
+                [(avatar)]="avatar"
+                [(description)]="description"
+                [(title)]="title"
+                [(copilotModel)]="copilotModel"
               />
-            </div>
-          </div>
-        </z-step>
-
-        <z-step [label]="'XP.Xpert.WorkflowActionNodes' | translate: { Default: 'Action nodes' }">
-          <div class="rounded-xl bg-background-default-subtle px-4 py-2 space-y-3">
-            <div class="text-sm leading-6 text-text-secondary">
-              {{
-                'XP.Xpert.WorkflowActionNodesHelp'
-                  | translate
-                    : {
-                        Default:
-                          'Choose the starter action nodes to place after the default Chat Trigger. We will connect them in a left-to-right workflow for you.'
-                      }
-              }}
-            </div>
-
-            <div class="rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-3">
-              <div class="flex items-start gap-3">
-                <div
-                  class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-components-panel-border bg-background-default-subtle"
-                >
-                  <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.TRIGGER" class="h-6 w-6" />
-                </div>
-                <div class="min-w-0 grow">
-                  <div class="font-medium text-text-primary">
-                    {{ 'XP.Workflow.Chat' | translate: { Default: 'Chat' } }}
+              <div
+                class="mt-5 flex items-start justify-between gap-4 rounded-xl border border-components-panel-border p-4"
+              >
+                <div class="min-w-0">
+                  <div class="text-sm font-medium text-text-primary">
+                    {{ 'XP.Xpert.IsolateWorkspaceDataByUser' | translate: { Default: 'Isolate runtime data by user' } }}
                   </div>
-                  <div class="text-sm text-text-secondary">
+                  <div class="mt-1 text-xs leading-5 text-text-secondary">
                     {{
-                      'XP.Xpert.WorkflowChatTriggerIncluded'
-                        | translate: { Default: 'Always included as the first node in this starter workflow.' }
-                    }}
-                  </div>
-                </div>
-                <div
-                  class="shrink-0 rounded-full border border-components-panel-border bg-background-default-subtle px-2 py-0.5 text-xs font-medium text-text-secondary"
-                >
-                  {{ 'XP.KEY_WORDS.Default' | translate: { Default: 'Default' } }}
-                </div>
-              </div>
-            </div>
-
-            <div class="grid gap-2 md:grid-cols-2">
-              @for (node of workflowActionNodeOptions; track node.key) {
-                <label
-                  class="flex items-start gap-3 rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-3 cursor-pointer transition-colors hover:bg-hover-bg"
-                >
-                  <input
-                    type="checkbox"
-                    class="mt-0.5 h-4 w-4 shrink-0"
-                    [ngModel]="selectedWorkflowNodes().includes(node.key)"
-                    (ngModelChange)="toggleWorkflowNode(node.key, $event)"
-                  />
-                  <div
-                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-components-panel-border bg-background-default-subtle"
-                  >
-                    <xpert-workflow-icon [type]="node.type" class="h-6 w-6" />
-                  </div>
-                  <div class="min-w-0">
-                    <div class="font-medium text-text-primary">
-                      {{ node.labelKey | translate: { Default: node.defaultLabel } }}
-                    </div>
-                    <div class="text-sm text-text-secondary">
-                      {{ 'XP.Xpert.WorkflowNodeWillBeChained' | translate: { Default: 'Added into the starter flow' } }}
-                    </div>
-                  </div>
-                </label>
-              }
-            </div>
-          </div>
-        </z-step>
-
-        <z-step [label]="'XP.Xpert.WorkflowTransformResponse' | translate: { Default: 'Transform & response' }">
-          <div class="rounded-xl bg-background-default-subtle px-4 py-2 space-y-3">
-            <div class="text-sm leading-6 text-text-secondary">
-              {{
-                'XP.Xpert.WorkflowTransformNodesHelp'
-                  | translate
-                    : {
-                        Default:
-                          'Choose the transform and response nodes to append after the action stage. The selected nodes will keep the fixed starter order.'
-                      }
-              }}
-            </div>
-
-            <div class="grid gap-2 md:grid-cols-2">
-              @for (node of workflowTransformNodeOptions; track node.key) {
-                <label
-                  class="flex items-start gap-3 rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-3 cursor-pointer transition-colors hover:bg-hover-bg"
-                >
-                  <input
-                    type="checkbox"
-                    class="mt-0.5 h-4 w-4 shrink-0"
-                    [ngModel]="selectedWorkflowNodes().includes(node.key)"
-                    (ngModelChange)="toggleWorkflowNode(node.key, $event)"
-                  />
-                  <div
-                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-components-panel-border bg-background-default-subtle"
-                  >
-                    <xpert-workflow-icon [type]="node.type" class="h-6 w-6" />
-                  </div>
-                  <div class="min-w-0">
-                    <div class="font-medium text-text-primary">
-                      {{ node.labelKey | translate: { Default: node.defaultLabel } }}
-                    </div>
-                    <div class="text-sm text-text-secondary">
-                      {{ 'XP.Xpert.WorkflowNodeWillBeChained' | translate: { Default: 'Added into the starter flow' } }}
-                    </div>
-                  </div>
-                </label>
-              }
-            </div>
-          </div>
-        </z-step>
-      </z-stepper>
-
-      <div class="w-full shrink-0 flex justify-end p-4">
-        <div class="flex items-center gap-2">
-          <button type="button" class="btn disabled:btn-disabled btn-large" (click)="close()">
-            {{ 'XP.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
-          </button>
-
-          @if (stepper.selectedIndex > 0) {
-            <button
-              type="button"
-              class="btn disabled:btn-disabled btn-large"
-              [disabled]="loading()"
-              (click)="stepper.previous()"
-            >
-              {{ 'XP.ACTIONS.PREVIOUS' | translate: { Default: 'Previous' } }}
-            </button>
-          }
-
-          @if (stepper.selectedIndex < 3) {
-            <button
-              type="button"
-              class="btn disabled:btn-disabled btn-primary btn-large"
-              [disabled]="
-                loading() ||
-                (stepper.selectedIndex === 0 && startStepInvalid()) ||
-                (stepper.selectedIndex === 1 && basicStepInvalid())
-              "
-              (click)="stepper.next()"
-            >
-              {{ 'XP.ACTIONS.NEXT' | translate: { Default: 'Next' } }}
-            </button>
-          } @else {
-            <button
-              type="button"
-              class="btn disabled:btn-disabled btn-primary btn-large"
-              cdkFocusInitial
-              [disabled]="loading() || startStepInvalid() || basicStepInvalid()"
-              (click)="create()"
-            >
-              <i class="ri-save-line mr-1"></i>
-              {{
-                (completionMode === 'publish' ? 'XP.Xpert.CreateAndPublish' : 'XP.ACTIONS.SAVE')
-                  | translate: { Default: completionMode === 'publish' ? 'Create and publish' : 'Save' }
-              }}
-            </button>
-          }
-        </div>
-      </div>
-    </div>
-  } @else if (isKnowledgeType()) {
-    <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <z-stepper
-        #stepper="zStepper"
-        orientation="horizontal"
-        zSize="sm"
-        class="min-h-0 flex-1 overflow-visible px-4 pt-2 pb-2"
-      >
-        <z-step [label]="'XP.Xpert.StartFrom' | translate: { Default: 'Start from' }">
-          <div class="px-4">
-            <div class="space-y-4 rounded-xl bg-background-default-subtle px-4 py-4">
-              <div class="text-sm leading-6 text-text-secondary">
-                {{
-                  'XP.Xpert.KnowledgeStartFromHelp'
-                    | translate
-                      : {
-                          Default:
-                            'Choose a blank pipeline or start from a knowledge template, then keep editing triggers and stages before creating.'
-                        }
-                }}
-              </div>
-
-              <div class="grid gap-3 lg:grid-cols-2">
-                <button
-                  type="button"
-                  class="rounded-xl border px-4 py-4 text-left transition-colors"
-                  [class.border-primary-500]="startMode() === 'blank'"
-                  [class.bg-background-default]="startMode() === 'blank'"
-                  [class.border-components-panel-border]="startMode() !== 'blank'"
-                  (click)="setStartMode('blank')"
-                >
-                  <div class="text-base font-semibold text-text-primary">
-                    {{ 'XP.Xpert.BlankStart' | translate: { Default: 'Blank' } }}
-                  </div>
-                  <div class="mt-2 text-sm leading-6 text-text-secondary">
-                    {{
-                      'XP.Xpert.KnowledgeBlankStartHelp'
+                      'XP.Xpert.IsolateWorkspaceDataByUserHint'
                         | translate
                           : {
                               Default:
-                                'Start from the default knowledge pipeline wizard and choose the trigger, source, processor, chunker, and understanding stages yourself.'
+                                'When enabled, each user gets separate runtime files. When disabled, all users who can run this Xpert share the same files.'
                             }
                     }}
                   </div>
-                </button>
-
-                <button
-                  type="button"
-                  class="rounded-xl border px-4 py-4 text-left transition-colors"
-                  [class.border-primary-500]="startMode() === 'template'"
-                  [class.bg-background-default]="startMode() === 'template'"
-                  [class.border-components-panel-border]="startMode() !== 'template'"
-                  (click)="setStartMode('template')"
-                >
-                  <div class="text-base font-semibold text-text-primary">
-                    {{ 'XP.Xpert.TemplateStart' | translate: { Default: 'Template' } }}
-                  </div>
-                  <div class="mt-2 text-sm leading-6 text-text-secondary">
-                    {{
-                      'XP.Xpert.KnowledgeTemplateStartHelp'
-                        | translate
-                          : {
-                              Default:
-                                'Select a knowledge pipeline template, prefill the wizard from its draft, and continue customizing the pipeline stages.'
-                            }
-                    }}
-                  </div>
-                </button>
-              </div>
-
-              @if (startMode() === 'template') {
-                <xpert-blank-template-selection
-                  [(selectedId)]="selectedTemplateId"
-                  [templates]="templateChoices()"
-                  [category]="templateCategory"
-                  [loading]="templateOptionsLoading()"
-                  [error]="templateOptionsError()"
-                  [emptyKey]="'XP.Xpert.NoKnowledgeTemplatesFound'"
-                  [emptyDefault]="'No knowledge pipeline templates found'"
+                </div>
+                <z-switch
+                  zSize="sm"
+                  class="shrink-0"
+                  [ngModel]="isolateWorkspaceData()"
+                  (ngModelChange)="isolateWorkspaceData.set($event)"
                 />
-
-                @if (selectedTemplateId() && templateLoading()) {
-                  <div class="text-sm text-text-secondary">
-                    {{ 'XP.Xpert.LoadingSelectedTemplate' | translate: { Default: 'Loading template details...' } }}
-                  </div>
-                }
-
-                @if (templateLoadError()) {
-                  <div class="rounded-xl border border-components-panel-border px-4 py-3 text-sm text-text-destructive">
-                    {{ templateLoadError() }}
-                  </div>
-                } @else if (selectedTemplateDraft()) {
-                  <div class="rounded-xl border border-components-panel-border px-4 py-3 text-sm text-text-secondary">
-                    {{
-                      'XP.Xpert.TemplateLoadedKnowledgeHelp'
-                        | translate
-                          : {
-                              Default:
-                                'Template loaded. Continue through the wizard to refine the pipeline stages before creating.'
-                            }
-                    }}
-                  </div>
-                }
-              }
-            </div>
-          </div>
-        </z-step>
-
-        <z-step [label]="'XP.Xpert.BasicInformation' | translate: { Default: 'Basic information' }">
-          <div class="px-4">
-            @if (allowWorkspaceSelection) {
-              <div class="pb-4">
-                <div class="py-2 text-sm font-medium leading-[20px] text-text-primary">
-                  <span class="text-text-destructive">*</span>
-                  {{ 'XP.KEY_WORDS.Workspace' | translate: { Default: 'Workspace' } }}
-                </div>
-                <div class="flex items-center gap-2">
-                  <z-combobox-deprecated
-                    class="flex-1"
-                    [options]="workspaceOptions()"
-                    [placeholder]="'XP.Xpert.SelectAWorkspace' | translate: { Default: 'Select a workspace' }"
-                    [searchPlaceholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
-                    [(ngModel)]="workspaceId"
-                  />
-                  <button
-                    type="button"
-                    class="btn btn-secondary flex shrink-0 items-center justify-center"
-                    [title]="'XP.ACTIONS.REFRESH' | translate: { Default: 'Refresh' }"
-                    (click)="refreshWorkspaces()"
-                  >
-                    <i class="ri-refresh-line"></i>
-                  </button>
-                </div>
-
-                @if (noAvailableWorkspaces()) {
-                  <div
-                    class="mt-3 rounded-xl border border-dashed border-components-panel-border px-4 py-4 text-sm text-text-secondary"
-                  >
-                    {{
-                      'XP.Xpert.NoWorkspaceAvailableForCreate'
-                        | translate: { Default: 'Create a workspace first before creating a new Xpert.' }
-                    }}
-                    <a
-                      class="ml-1 inline-flex items-center text-primary-500 hover:underline"
-                      [routerLink]="['/xpert/w']"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {{ 'XP.Chat.GotoWorkspace' | translate: { Default: 'Go to Workspace' } }}
-                    </a>
-                  </div>
-                } @else if (workspaceSelectionInvalid()) {
-                  <div class="mt-2 text-sm text-text-destructive">
-                    {{
-                      'XP.Xpert.WorkspaceRequiredForCreate'
-                        | translate: { Default: 'Select a workspace before continuing.' }
-                    }}
-                  </div>
-                }
               </div>
+            </div>
+          </z-step>
+
+          <z-step [label]="'XP.Workflow.Trigger' | translate: { Default: 'Trigger' }">
+            <xp-blank-trigger-selection
+              [(selections)]="selectedKnowledgeTriggers"
+              [providers]="triggerProviderOptions()"
+              [descriptionKey]="'XP.Xpert.SelectKnowledgeTriggers'"
+              [defaultDescription]="'Choose the triggers to prepare for this knowledge pipeline. You can skip this step and add more later in Studio.'"
+            />
+          </z-step>
+
+          <z-step [label]="'XP.Xpert.DataSource' | translate: { Default: 'Data Source' }"
+            ><xp-blank-wizard-capabilities [vm]="this" section="DataSource1"
+          /></z-step>
+
+          <z-step [label]="'XP.Xpert.Processor' | translate: { Default: 'Processor' }"
+            ><xp-blank-wizard-capabilities [vm]="this" section="Processor1"
+          /></z-step>
+
+          <z-step [label]="'XP.Xpert.Chunker' | translate: { Default: 'Chunker' }"
+            ><xp-blank-wizard-capabilities [vm]="this" section="Chunker1"
+          /></z-step>
+
+          <z-step [label]="'XP.Xpert.ImageUnderstanding' | translate: { Default: 'Image Understanding' }"
+            ><xp-blank-wizard-capabilities [vm]="this" section="ImageUnderstanding1"
+          /></z-step>
+        </z-stepper>
+
+        <footer xpDialogFooter>
+          <div class="flex items-center gap-2">
+            <button type="button" z-button zType="outline" (click)="close()">
+              {{ 'XP.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
+            </button>
+
+            @if (stepper.selectedIndex > 0) {
+              <button type="button" z-button zType="outline" [zDisabled]="loading()" (click)="stepper.previous()">
+                {{ 'XP.ACTIONS.PREVIOUS' | translate: { Default: 'Previous' } }}
+              </button>
             }
 
-            <xpert-basic-form
-              [(name)]="name"
-              [(avatar)]="avatar"
-              [(description)]="description"
-              [(title)]="title"
-              [(copilotModel)]="copilotModel"
-            />
-            <div
-              class="mt-5 flex items-start justify-between gap-4 rounded-xl border border-components-panel-border p-4"
-            >
-              <div class="min-w-0">
-                <div class="text-sm font-medium text-text-primary">
-                  {{ 'XP.Xpert.IsolateWorkspaceDataByUser' | translate: { Default: 'Isolate runtime data by user' } }}
-                </div>
-                <div class="mt-1 text-xs leading-5 text-text-secondary">
-                  {{
-                    'XP.Xpert.IsolateWorkspaceDataByUserHint'
-                      | translate
-                        : {
-                            Default:
-                              'When enabled, each user gets separate runtime files. When disabled, all users who can run this Xpert share the same files.'
-                          }
-                  }}
-                </div>
-              </div>
-              <z-switch
-                zSize="sm"
-                class="shrink-0"
-                [ngModel]="isolateWorkspaceData()"
-                (ngModelChange)="isolateWorkspaceData.set($event)"
-              />
-            </div>
-          </div>
-        </z-step>
-
-        <z-step [label]="'XP.Workflow.Trigger' | translate: { Default: 'Trigger' }">
-          <xp-blank-trigger-selection
-            [(selections)]="selectedKnowledgeTriggers"
-            [providers]="triggerProviderOptions()"
-            [descriptionKey]="'XP.Xpert.SelectKnowledgeTriggers'"
-            [defaultDescription]="'Choose the triggers to prepare for this knowledge pipeline. You can skip this step and add more later in Studio.'"
-          />
-        </z-step>
-
-        <z-step [label]="'XP.Xpert.DataSource' | translate: { Default: 'Data Source' }">
-          <div class="rounded-xl bg-background-default-subtle px-4 py-2 space-y-3">
-            <div class="text-sm leading-6 text-text-secondary">
-              {{
-                'XP.Xpert.SelectDataSources'
-                  | translate
-                    : {
-                        Default:
-                          'Choose the data source providers to seed this knowledge pipeline. You can adjust their configuration later in Studio.'
-                      }
-              }}
-            </div>
-
-            <div class="grid gap-2 md:grid-cols-2">
-              @for (provider of dataSourceProviderOptions(); track provider.meta.name) {
-                <label
-                  class="flex items-start gap-3 rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-3 cursor-pointer transition-colors hover:bg-hover-bg"
-                >
-                  <input
-                    type="checkbox"
-                    class="h-4 w-4 shrink-0"
-                    [ngModel]="selectedDataSources().includes(provider.meta.name)"
-                    (ngModelChange)="toggleDataSource(provider.meta.name, $event)"
-                  />
-                  <div class="min-w-0">
-                    <div class="font-medium text-text-primary">
-                      {{ provider.meta.label ? (provider.meta.label | i18n) : provider.meta.name }}
-                    </div>
-                    <div class="text-sm text-text-secondary">
-                      {{ provider.meta.description ? (provider.meta.description | i18n) : provider.meta.name }}
-                    </div>
-                  </div>
-                </label>
-              } @empty {
-                <div
-                  class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary"
-                >
-                  {{ 'XP.Xpert.NoDataSourcesAvailable' | translate: { Default: 'No data source providers available' } }}
-                </div>
-              }
-            </div>
-          </div>
-        </z-step>
-
-        <z-step [label]="'XP.Xpert.Processor' | translate: { Default: 'Processor' }">
-          <div class="rounded-xl bg-background-default-subtle px-4 py-2 space-y-3">
-            <div class="text-sm leading-6 text-text-secondary">
-              {{
-                'XP.Xpert.SelectProcessors'
-                  | translate
-                    : {
-                        Default:
-                          'Choose the processors to run after the data source step. Detailed configuration stays in Studio.'
-                      }
-              }}
-            </div>
-
-            <div class="grid gap-2 md:grid-cols-2">
-              @for (provider of processorProviderOptions(); track provider.meta.name) {
-                <label
-                  class="flex items-start gap-3 rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-3 cursor-pointer transition-colors hover:bg-hover-bg"
-                >
-                  <input
-                    type="checkbox"
-                    class="h-4 w-4 shrink-0"
-                    [ngModel]="selectedProcessors().includes(provider.meta.name)"
-                    (ngModelChange)="toggleProcessor(provider.meta.name, $event)"
-                  />
-                  <div class="min-w-0">
-                    <div class="font-medium text-text-primary">
-                      {{ provider.meta.label ? (provider.meta.label | i18n) : provider.meta.name }}
-                    </div>
-                    <div class="text-sm text-text-secondary">
-                      {{ provider.meta.description ? (provider.meta.description | i18n) : provider.meta.name }}
-                    </div>
-                  </div>
-                </label>
-              } @empty {
-                <div
-                  class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary"
-                >
-                  {{ 'XP.Xpert.NoProcessorsAvailable' | translate: { Default: 'No processor providers available' } }}
-                </div>
-              }
-            </div>
-          </div>
-        </z-step>
-
-        <z-step [label]="'XP.Xpert.Chunker' | translate: { Default: 'Chunker' }">
-          <div class="rounded-xl bg-background-default-subtle px-4 py-2 space-y-3">
-            <div class="text-sm leading-6 text-text-secondary">
-              {{
-                'XP.Xpert.SelectChunkers'
-                  | translate
-                    : {
-                        Default: 'Choose the chunkers to split processed content before it reaches the knowledge base.'
-                      }
-              }}
-            </div>
-
-            <div class="grid gap-2 md:grid-cols-2">
-              @for (provider of chunkerProviderOptions(); track provider.name) {
-                <label
-                  class="flex items-start gap-3 rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-3 cursor-pointer transition-colors hover:bg-hover-bg"
-                >
-                  <input
-                    type="checkbox"
-                    class="h-4 w-4 shrink-0"
-                    [ngModel]="selectedChunkers().includes(provider.name)"
-                    (ngModelChange)="toggleChunker(provider.name, $event)"
-                  />
-                  <div class="min-w-0">
-                    <div class="font-medium text-text-primary">
-                      {{ provider.label ? (provider.label | i18n) : provider.name }}
-                    </div>
-                    <div class="text-sm text-text-secondary">
-                      {{ provider.description ? (provider.description | i18n) : provider.name }}
-                    </div>
-                  </div>
-                </label>
-              } @empty {
-                <div
-                  class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary"
-                >
-                  {{ 'XP.Xpert.NoChunkersAvailable' | translate: { Default: 'No chunker providers available' } }}
-                </div>
-              }
-            </div>
-          </div>
-        </z-step>
-
-        <z-step [label]="'XP.Xpert.ImageUnderstanding' | translate: { Default: 'Image Understanding' }">
-          <div class="rounded-xl bg-background-default-subtle px-4 py-2 space-y-3">
-            <div class="text-sm leading-6 text-text-secondary">
-              {{
-                'XP.Xpert.SelectImageUnderstandings'
-                  | translate
-                    : {
-                        Default:
-                          'Choose the image understanding providers needed for OCR or visual extraction. You can skip this step.'
-                      }
-              }}
-            </div>
-
-            <div class="grid gap-2 md:grid-cols-2">
-              @for (provider of understandingProviderOptions(); track provider.meta.name) {
-                <label
-                  class="flex items-start gap-3 rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-3 cursor-pointer transition-colors hover:bg-hover-bg"
-                >
-                  <input
-                    type="checkbox"
-                    class="h-4 w-4 shrink-0"
-                    [ngModel]="selectedUnderstandings().includes(provider.meta.name)"
-                    (ngModelChange)="toggleUnderstanding(provider.meta.name, $event)"
-                  />
-                  <div class="min-w-0">
-                    <div class="font-medium text-text-primary">
-                      {{ provider.meta.label ? (provider.meta.label | i18n) : provider.meta.name }}
-                    </div>
-                    <div class="text-sm text-text-secondary">
-                      {{ provider.meta.description ? (provider.meta.description | i18n) : provider.meta.name }}
-                    </div>
-                  </div>
-                </label>
-              } @empty {
-                <div
-                  class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary"
-                >
-                  {{
-                    'XP.Xpert.NoImageUnderstandingsAvailable'
-                      | translate: { Default: 'No image understanding providers available' }
-                  }}
-                </div>
-              }
-            </div>
-          </div>
-        </z-step>
-      </z-stepper>
-
-      <div class="w-full shrink-0 flex justify-end p-4">
-        <div class="flex items-center gap-2">
-          <button type="button" class="btn disabled:btn-disabled btn-large" (click)="close()">
-            {{ 'XP.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
-          </button>
-
-          @if (stepper.selectedIndex > 0) {
-            <button
-              type="button"
-              class="btn disabled:btn-disabled btn-large"
-              [disabled]="loading()"
-              (click)="stepper.previous()"
-            >
-              {{ 'XP.ACTIONS.PREVIOUS' | translate: { Default: 'Previous' } }}
-            </button>
-          }
-
-          @if (stepper.selectedIndex < 6) {
-            <button
-              type="button"
-              class="btn disabled:btn-disabled btn-primary btn-large"
-              [disabled]="
-                loading() ||
-                (stepper.selectedIndex === 0 && startStepInvalid()) ||
-                (stepper.selectedIndex === 1 && basicStepInvalid()) ||
-                (stepper.selectedIndex === 2 && selectedKnowledgeTriggersInvalid())
-              "
-              (click)="stepper.next()"
-            >
-              {{ 'XP.ACTIONS.NEXT' | translate: { Default: 'Next' } }}
-            </button>
-          } @else {
-            <button
-              type="button"
-              class="btn disabled:btn-disabled btn-primary btn-large"
-              cdkFocusInitial
-              [disabled]="loading() || startStepInvalid() || basicStepInvalid() || selectedKnowledgeTriggersInvalid()"
-              (click)="create()"
-            >
-              <i class="ri-save-line mr-1"></i>
-              {{
-                (completionMode === 'publish' ? 'XP.Xpert.CreateAndPublish' : 'XP.ACTIONS.SAVE')
-                  | translate: { Default: completionMode === 'publish' ? 'Create and publish' : 'Save' }
-              }}
-            </button>
-          }
-        </div>
-      </div>
-    </div>
-  } @else {
-    <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <z-stepper
-        #stepper="zStepper"
-        orientation="horizontal"
-        zSize="sm"
-        class="min-h-0 flex-1 overflow-visible px-4 pt-2 pb-2"
-      >
-        <z-step [label]="'XP.Xpert.StartFrom' | translate: { Default: 'Start from' }">
-          <div class="px-4">
-            <div class="space-y-4 rounded-xl bg-background-default-subtle px-4 py-4">
-              <div class="text-sm leading-6 text-text-secondary">
+            @if (stepper.selectedIndex < 6) {
+              <button
+                type="button"
+                z-button
+                [disabled]="
+                  loading() ||
+                  (stepper.selectedIndex === 0 && startStepInvalid()) ||
+                  (stepper.selectedIndex === 1 && basicStepInvalid()) ||
+                  (stepper.selectedIndex === 2 && selectedKnowledgeTriggersInvalid())
+                "
+                (click)="stepper.next()"
+              >
+                {{ 'XP.ACTIONS.NEXT' | translate: { Default: 'Next' } }}
+              </button>
+            } @else {
+              <button
+                type="button"
+                z-button
+                cdkFocusInitial
+                [zDisabled]="
+                  loading() || startStepInvalid() || basicStepInvalid() || selectedKnowledgeTriggersInvalid()
+                "
+                (click)="create()"
+              >
+                <i class="ri-save-line"></i>
                 {{
-                  'XP.Xpert.StartFromHelp'
-                    | translate
-                      : {
-                          Default:
-                            'Choose a blank starter or load a template first. You can keep editing the wizard before creating the Xpert.'
-                        }
+                  (completionMode === 'publish' ? 'XP.Xpert.CreateAndPublish' : 'XP.ACTIONS.SAVE')
+                    | translate: { Default: completionMode === 'publish' ? 'Create and publish' : 'Save' }
                 }}
-              </div>
+              </button>
+            }
+          </div>
+        </footer>
+      </div>
+    } @else {
+      <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <z-stepper xpDialogBody #stepper="zStepper" orientation="horizontal" zSize="sm" class="min-h-0 flex-1">
+          <z-step [label]="'XP.Xpert.StartFrom' | translate: { Default: 'Start from' }"
+            ><xp-blank-wizard-start [vm]="this" section="StartFrom4"
+          /></z-step>
 
-              <div class="grid gap-3 lg:grid-cols-2">
-                <button
-                  type="button"
-                  class="rounded-xl border px-4 py-4 text-left transition-colors"
-                  [class.border-primary-500]="startMode() === 'blank'"
-                  [class.bg-background-default]="startMode() === 'blank'"
-                  [class.border-components-panel-border]="startMode() !== 'blank'"
-                  (click)="setStartMode('blank')"
-                >
-                  <div class="text-base font-semibold text-text-primary">
-                    {{ 'XP.Xpert.BlankStart' | translate: { Default: 'Blank' } }}
+          <z-step [label]="'XP.Xpert.BasicInformation' | translate: { Default: 'Basic information' }">
+            <div>
+              @if (allowWorkspaceSelection) {
+                <div class="pb-4">
+                  <div class="py-2 text-sm font-medium leading-[20px] text-text-primary">
+                    <span class="text-text-destructive">*</span>
+                    {{ 'XP.KEY_WORDS.Workspace' | translate: { Default: 'Workspace' } }}
                   </div>
-                  <div class="mt-2 text-sm leading-6 text-text-secondary">
+                  <div class="flex items-center gap-2">
+                    <z-combobox
+                      class="flex-1"
+                      [options]="workspaceOptions()"
+                      [zClearable]="false"
+                      [ariaLabel]="'XP.KEY_WORDS.Workspace' | translate: { Default: 'Workspace' }"
+                      [placeholder]="'XP.Xpert.SelectAWorkspace' | translate: { Default: 'Select a workspace' }"
+                      [searchPlaceholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
+                      [(ngModel)]="workspaceId"
+                    />
+                    <button
+                      type="button"
+                      z-button
+                      zType="outline"
+                      zSize="icon"
+                      xpDialogActionGroup="inline"
+                      class="shrink-0"
+                      [attr.aria-label]="'XP.ACTIONS.REFRESH' | translate: { Default: 'Refresh' }"
+                      (click)="refreshWorkspaces()"
+                    >
+                      <i class="ri-refresh-line"></i>
+                    </button>
+                  </div>
+
+                  @if (noAvailableWorkspaces()) {
+                    <div
+                      class="mt-3 rounded-xl border border-dashed border-components-panel-border px-4 py-4 text-sm text-text-secondary"
+                    >
+                      {{
+                        'XP.Xpert.NoWorkspaceAvailableForCreate'
+                          | translate: { Default: 'Create a workspace first before creating a new Xpert.' }
+                      }}
+                      <a
+                        class="ml-1 inline-flex items-center text-primary hover:underline"
+                        [routerLink]="['/xpert/w']"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {{ 'XP.Chat.GotoWorkspace' | translate: { Default: 'Go to Workspace' } }}
+                      </a>
+                    </div>
+                  } @else if (workspaceSelectionInvalid()) {
+                    <div class="mt-2 text-sm text-text-destructive">
+                      {{
+                        'XP.Xpert.WorkspaceRequiredForCreate'
+                          | translate: { Default: 'Select a workspace before continuing.' }
+                      }}
+                    </div>
+                  }
+                </div>
+              }
+
+              <xpert-basic-form
+                [(name)]="name"
+                [(avatar)]="avatar"
+                [(description)]="description"
+                [(title)]="title"
+                [(copilotModel)]="copilotModel"
+              />
+              <div
+                class="mt-5 flex items-start justify-between gap-4 rounded-xl border border-components-panel-border p-4"
+              >
+                <div class="min-w-0">
+                  <div class="text-sm font-medium text-text-primary">
+                    {{ 'XP.Xpert.IsolateWorkspaceDataByUser' | translate: { Default: 'Isolate runtime data by user' } }}
+                  </div>
+                  <div class="mt-1 text-xs leading-5 text-text-secondary">
                     {{
-                      'XP.Xpert.BlankStartHelp'
+                      'XP.Xpert.IsolateWorkspaceDataByUserHint'
                         | translate
                           : {
                               Default:
-                                'Start from the default blank wizard and configure the rest of the setup yourself.'
+                                'When enabled, each user gets separate runtime files. When disabled, all users who can run this Xpert share the same files.'
                             }
                     }}
                   </div>
-                </button>
-
-                <button
-                  type="button"
-                  class="rounded-xl border border-components-panel-border px-4 py-4 text-left opacity-70"
-                  [disabled]="!supportsTemplateStart()"
-                >
-                  <div class="flex items-center justify-between gap-3">
-                    <div class="text-base font-semibold text-text-primary">
-                      {{ 'XP.Xpert.TemplateStart' | translate: { Default: 'Template' } }}
-                    </div>
-                    <div
-                      class="rounded-full border border-components-panel-border px-2 py-0.5 text-xs font-medium text-text-secondary"
-                    >
-                      {{ 'XP.KEY_WORDS.ComingSoon' | translate: { Default: 'Coming soon' } }}
-                    </div>
-                  </div>
-                  <div class="mt-2 text-sm leading-6 text-text-secondary">
-                    {{
-                      'XP.Xpert.TemplateUnavailableForMode'
-                        | translate: { Default: 'Template starters are not available for this mode yet.' }
-                    }}
-                  </div>
-                </button>
+                </div>
+                <z-switch
+                  zSize="sm"
+                  class="shrink-0"
+                  [ngModel]="isolateWorkspaceData()"
+                  (ngModelChange)="isolateWorkspaceData.set($event)"
+                />
               </div>
             </div>
-          </div>
-        </z-step>
+          </z-step>
+        </z-stepper>
 
-        <z-step [label]="'XP.Xpert.BasicInformation' | translate: { Default: 'Basic information' }">
-          <div class="px-4">
-            @if (allowWorkspaceSelection) {
-              <div class="pb-4">
-                <div class="py-2 text-sm font-medium leading-[20px] text-text-primary">
-                  <span class="text-text-destructive">*</span>
-                  {{ 'XP.KEY_WORDS.Workspace' | translate: { Default: 'Workspace' } }}
-                </div>
-                <div class="flex items-center gap-2">
-                  <z-combobox-deprecated
-                    class="flex-1"
-                    [options]="workspaceOptions()"
-                    [placeholder]="'XP.Xpert.SelectAWorkspace' | translate: { Default: 'Select a workspace' }"
-                    [searchPlaceholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
-                    [(ngModel)]="workspaceId"
-                  />
-                  <button
-                    type="button"
-                    class="btn btn-secondary flex shrink-0 items-center justify-center"
-                    [title]="'XP.ACTIONS.REFRESH' | translate: { Default: 'Refresh' }"
-                    (click)="refreshWorkspaces()"
-                  >
-                    <i class="ri-refresh-line"></i>
-                  </button>
-                </div>
+        <footer xpDialogFooter>
+          <div class="flex items-center gap-2">
+            <button type="button" z-button zType="outline" (click)="close()">
+              {{ 'XP.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
+            </button>
 
-                @if (noAvailableWorkspaces()) {
-                  <div
-                    class="mt-3 rounded-xl border border-dashed border-components-panel-border px-4 py-4 text-sm text-text-secondary"
-                  >
-                    {{
-                      'XP.Xpert.NoWorkspaceAvailableForCreate'
-                        | translate: { Default: 'Create a workspace first before creating a new Xpert.' }
-                    }}
-                    <a
-                      class="ml-1 inline-flex items-center text-primary-500 hover:underline"
-                      [routerLink]="['/xpert/w']"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {{ 'XP.Chat.GotoWorkspace' | translate: { Default: 'Go to Workspace' } }}
-                    </a>
-                  </div>
-                } @else if (workspaceSelectionInvalid()) {
-                  <div class="mt-2 text-sm text-text-destructive">
-                    {{
-                      'XP.Xpert.WorkspaceRequiredForCreate'
-                        | translate: { Default: 'Select a workspace before continuing.' }
-                    }}
-                  </div>
-                }
-              </div>
+            @if (stepper.selectedIndex > 0) {
+              <button type="button" z-button zType="outline" [zDisabled]="loading()" (click)="stepper.previous()">
+                {{ 'XP.ACTIONS.PREVIOUS' | translate: { Default: 'Previous' } }}
+              </button>
             }
 
-            <xpert-basic-form
-              [(name)]="name"
-              [(avatar)]="avatar"
-              [(description)]="description"
-              [(title)]="title"
-              [(copilotModel)]="copilotModel"
-            />
-            <div
-              class="mt-5 flex items-start justify-between gap-4 rounded-xl border border-components-panel-border p-4"
-            >
-              <div class="min-w-0">
-                <div class="text-sm font-medium text-text-primary">
-                  {{ 'XP.Xpert.IsolateWorkspaceDataByUser' | translate: { Default: 'Isolate runtime data by user' } }}
-                </div>
-                <div class="mt-1 text-xs leading-5 text-text-secondary">
-                  {{
-                    'XP.Xpert.IsolateWorkspaceDataByUserHint'
-                      | translate
-                        : {
-                            Default:
-                              'When enabled, each user gets separate runtime files. When disabled, all users who can run this Xpert share the same files.'
-                          }
-                  }}
-                </div>
-              </div>
-              <z-switch
-                zSize="sm"
-                class="shrink-0"
-                [ngModel]="isolateWorkspaceData()"
-                (ngModelChange)="isolateWorkspaceData.set($event)"
-              />
-            </div>
+            @if (stepper.selectedIndex < 1) {
+              <button
+                type="button"
+                z-button
+                [zDisabled]="loading() || (stepper.selectedIndex === 0 && startStepInvalid())"
+                (click)="stepper.next()"
+              >
+                {{ 'XP.ACTIONS.NEXT' | translate: { Default: 'Next' } }}
+              </button>
+            } @else {
+              <button
+                type="button"
+                z-button
+                cdkFocusInitial
+                [zDisabled]="loading() || startStepInvalid() || basicStepInvalid()"
+                (click)="create()"
+              >
+                <i class="ri-save-line"></i>
+                {{
+                  (completionMode === 'publish' ? 'XP.Xpert.CreateAndPublish' : 'XP.ACTIONS.SAVE')
+                    | translate: { Default: completionMode === 'publish' ? 'Create and publish' : 'Save' }
+                }}
+              </button>
+            }
           </div>
-        </z-step>
-      </z-stepper>
-
-      <div class="w-full shrink-0 flex justify-end p-4">
-        <div class="flex items-center gap-2">
-          <button type="button" class="btn disabled:btn-disabled btn-large" (click)="close()">
-            {{ 'XP.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
-          </button>
-
-          @if (stepper.selectedIndex > 0) {
-            <button
-              type="button"
-              class="btn disabled:btn-disabled btn-large"
-              [disabled]="loading()"
-              (click)="stepper.previous()"
-            >
-              {{ 'XP.ACTIONS.PREVIOUS' | translate: { Default: 'Previous' } }}
-            </button>
-          }
-
-          @if (stepper.selectedIndex < 1) {
-            <button
-              type="button"
-              class="btn disabled:btn-disabled btn-primary btn-large"
-              [disabled]="loading() || (stepper.selectedIndex === 0 && startStepInvalid())"
-              (click)="stepper.next()"
-            >
-              {{ 'XP.ACTIONS.NEXT' | translate: { Default: 'Next' } }}
-            </button>
-          } @else {
-            <button
-              type="button"
-              class="btn disabled:btn-disabled btn-primary btn-large"
-              cdkFocusInitial
-              [disabled]="loading() || startStepInvalid() || basicStepInvalid()"
-              (click)="create()"
-            >
-              <i class="ri-save-line mr-1"></i>
-              {{
-                (completionMode === 'publish' ? 'XP.Xpert.CreateAndPublish' : 'XP.ACTIONS.SAVE')
-                  | translate: { Default: completionMode === 'publish' ? 'Create and publish' : 'Save' }
-              }}
-            </button>
-          }
-        </div>
+        </footer>
       </div>
-    </div>
+    }
+  </div>
+  @if (loading()) {
+    <xp-spin class="absolute top-0 left-0 w-full h-full" />
   }
 </div>
-
-<button
-  type="button"
-  class="absolute right-5 top-5 p-2 danger btn-close btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer z-20"
-  (click)="close()"
->
-  <i class="ri-close-line"></i>
-</button>
-
-@if (loading()) {
-  <xp-spin class="absolute top-0 left-0 w-full h-full" />
-}

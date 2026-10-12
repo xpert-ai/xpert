@@ -1,12 +1,12 @@
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import {
-  Z_MODAL_DATA,
+  XpDialogFrameImports,
   ZardButtonComponent,
   ZardDatePickerComponent,
-  ZardDialogRef,
   ZardFormImports,
   ZardInputDirective
 } from '@xpert-ai/headless-ui'
@@ -27,17 +27,31 @@ export type ModelAccessActionDialogResult = {
     CommonModule,
     ReactiveFormsModule,
     TranslateModule,
+    ...XpDialogFrameImports,
     ZardButtonComponent,
     ZardDatePickerComponent,
     ZardInputDirective,
     ...ZardFormImports
   ],
   template: `
-    <section>
-      <h2 class="text-lg font-semibold text-text-primary">
-        {{ 'XP.ModelAccess.Action.' + mode() + '.Title' | translate }}
-      </h2>
-      <form class="mt-5 space-y-4" [formGroup]="form" (ngSubmit)="submit()">
+    <form xpDialogLayout="standard" class="max-h-[84vh]" [formGroup]="form" (ngSubmit)="submit()">
+      <header xpDialogHeader>
+        <h2 xpDialogHeading>
+          {{ 'XP.ModelAccess.Action.' + mode() + '.Title' | translate }}
+        </h2>
+        <button
+          xpDialogCloseButton
+          z-button
+          zType="ghost"
+          zSize="icon"
+          type="button"
+          [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+          (click)="close()"
+        >
+          <z-icon zType="x" aria-hidden="true" />
+        </button>
+      </header>
+      <div xpDialogBody>
         @if (showsExpiration()) {
           <z-form-field class="w-full">
             <z-form-label>
@@ -62,29 +76,27 @@ export type ModelAccessActionDialogResult = {
           </z-form-label>
           <textarea z-input class="min-h-24 resize-y" formControlName="message" maxlength="1000"></textarea>
         </z-form-field>
-
-        <footer class="flex justify-end gap-2">
-          <button z-button zType="outline" type="button" (click)="close()">
-            {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
-          </button>
-          <button
-            z-button
-            type="submit"
-            [zType]="requiresReason() ? 'destructive' : 'default'"
-            [disabled]="form.invalid"
-          >
-            {{ 'XP.ModelAccess.Action.' + mode() + '.Submit' | translate }}
-          </button>
-        </footer>
-      </form>
-    </section>
+      </div>
+      <footer xpDialogFooter>
+        <button z-button zType="outline" type="button" (click)="close()">
+          {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+        </button>
+        <button
+          z-button
+          type="submit"
+          [zType]="requiresReason() ? 'destructive' : 'default'"
+          [zDisabled]="form.invalid"
+        >
+          {{ 'XP.ModelAccess.Action.' + mode() + '.Submit' | translate }}
+        </button>
+      </footer>
+    </form>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ModelAccessActionDialogComponent {
-  readonly #dialogRef =
-    inject<ZardDialogRef<ModelAccessActionDialogComponent, ModelAccessActionDialogResult | null>>(ZardDialogRef)
-  readonly #data = inject<{ mode: ModelAccessActionMode }>(Z_MODAL_DATA)
+  readonly #dialogRef = inject<DialogRef<ModelAccessActionDialogResult | null>>(DialogRef)
+  readonly #data = inject<{ mode: ModelAccessActionMode }>(DIALOG_DATA)
   readonly #formBuilder = inject(FormBuilder)
 
   readonly mode = computed(() => this.#data.mode)

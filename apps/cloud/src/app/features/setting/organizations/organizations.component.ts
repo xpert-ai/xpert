@@ -254,8 +254,9 @@ export class OrganizationsComponent {
   async addOrganization() {
     const organization = await firstValueFrom(
       this.#dialog.open<IOrganizationCreateInput>(OrganizationMutationComponent, {
-        backdropClass: 'xp-overlay-share-sheet',
-        panelClass: 'xp-overlay-pane-share-sheet'
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)'
       }).closed
     )
     if (!organization) {

@@ -1,4 +1,6 @@
-import { ForbiddenException } from '@nestjs/common'
+import { McpAppHistoryService } from '../mcp-app-runtime/mcp-app-history.service'
+import { McpAppHistoryStoreService } from '../mcp-app-runtime/mcp-app-history-store.service'
+import { ForbiddenException, GoneException, NotFoundException } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import type { MultiServerMCPClient } from '@langchain/mcp-adapters'
 import type { TMcpToolAppMeta } from '@xpert-ai/contracts'
@@ -43,6 +45,7 @@ jest.mock('./provider/mcp/app-support', () => ({
     readMcpAppResource: jest.fn(),
     readMcpAppServerResource: jest.fn(),
     refreshMcpAppInstanceToken: jest.fn(),
+    createMcpAppInstanceToken: jest.fn(() => 'refreshed-token'),
     removeMcpAppInstance: jest.fn(),
     restoreMcpAppInstance: jest.fn(),
     runMcpAppInstanceMutation: jest.fn((_appInstanceId: string, task: () => Promise<unknown>) => task()),
@@ -62,6 +65,7 @@ import {
     listMcpToolAppMetadata,
     readMcpAppResource,
     refreshMcpAppInstanceToken,
+    removeMcpAppInstance,
     restoreMcpAppInstance
 } from './provider/mcp/app-support'
 import { createMCPClient } from './provider/mcp/types'
@@ -86,8 +90,10 @@ describe('McpAppsService RPC approval orchestration', () => {
         approve: jest.Mock
         reject: jest.Mock
     }
-    let instanceStore: { get: jest.Mock; delete: jest.Mock }
-    let messageService: { findOne: jest.Mock }
+    let instanceStore: { get: jest.Mock; delete: jest.Mock; resume: jest.Mock }
+    let messageService: { findOneAuthorized: jest.Mock }
+    let history: { load: jest.Mock }
+    let historyStore: { preserve: jest.Mock }
     let queryBus: { execute: jest.Mock }
     let toolsetService: { findOne: jest.Mock; isPro: jest.Mock }
     let service: McpAppsService
@@ -108,8 +114,10 @@ describe('McpAppsService RPC approval orchestration', () => {
             start: jest.fn().mockResolvedValue({ id: 'audit-1' }),
             finish: jest.fn()
         }
-        instanceStore = { get: jest.fn().mockResolvedValue(null), delete: jest.fn() }
-        messageService = { findOne: jest.fn() }
+        instanceStore = { get: jest.fn().mockResolvedValue(null), delete: jest.fn(), resume: jest.fn() }
+        messageService = { findOneAuthorized: jest.fn() }
+        history = { load: jest.fn() }
+        historyStore = { preserve: jest.fn() }
         queryBus = { execute: jest.fn() }
         toolsetService = { findOne: jest.fn(), isPro: jest.fn().mockReturnValue(false) }
         service = new McpAppsService(
@@ -119,7 +127,9 @@ describe('McpAppsService RPC approval orchestration', () => {
             messageService as unknown as ChatMessageService,
             audit as unknown as McpAppAuditService,
             instanceStore as unknown as McpAppInstanceStoreService,
-            approvals as unknown as McpAppToolApprovalService
+            approvals as unknown as McpAppToolApprovalService,
+            history as unknown as McpAppHistoryService,
+            historyStore as unknown as McpAppHistoryStoreService
         )
         mockGetMcpAppToolMetadata.mockResolvedValue({
             serverName: 'default',
@@ -134,6 +144,13 @@ describe('McpAppsService RPC approval orchestration', () => {
     afterEach(() => {
         jest.restoreAllMocks()
         jest.clearAllMocks()
+    })
+
+    it('tears down a lease through one versioned persistence operation', async () => {
+        await expect(service.teardown('app-1')).resolves.toEqual({ removed: true })
+        expect(removeMcpAppInstance).toHaveBeenCalledTimes(1)
+        expect(removeMcpAppInstance).toHaveBeenCalledWith('app-1')
+        expect(instanceStore.delete).not.toHaveBeenCalled()
     })
 
     it('retains a paused native form on unmount and returns its scoped continuation', async () => {
@@ -203,10 +220,9 @@ describe('McpAppsService RPC approval orchestration', () => {
             ...instance,
             executionContext: { xpertId: 'assistant-a', conversationId: 'conversation', executionId: 'run' }
         })
-        jest.spyOn(SdkRequestContext, 'currentApiKey').mockReturnValue({
-            type: ApiKeyBindingType.ASSISTANT,
-            entityId: 'assistant-b'
-        } as IApiKey)
+        jest.spyOn(SdkRequestContext, 'currentApiPrincipal').mockReturnValue({
+            resourceScope: { kind: 'assistant', xpertId: 'assistant-b' }
+        } as ReturnType<typeof SdkRequestContext.currentApiPrincipal>)
         await expect(
             service.handleRpc('app-1', {
                 jsonrpc: '2.0',
@@ -229,10 +245,9 @@ describe('McpAppsService RPC approval orchestration', () => {
                 threadId: 'thread'
             }
         })
-        jest.spyOn(SdkRequestContext, 'currentApiKey').mockReturnValue({
-            type: ApiKeyBindingType.ASSISTANT,
-            entityId: 'main'
-        } as IApiKey)
+        jest.spyOn(SdkRequestContext, 'currentApiPrincipal').mockReturnValue({
+            resourceScope: { kind: 'assistant', xpertId: 'main' }
+        } as ReturnType<typeof SdkRequestContext.currentApiPrincipal>)
         queryBus.execute.mockImplementation(async (query) =>
             query.id === 'child'
                 ? { id: 'child', xpertId: 'expert', threadId: 'thread', parentId: 'root' }
@@ -253,10 +268,9 @@ describe('McpAppsService RPC approval orchestration', () => {
     it('rejects another Assistant audience before restoring an App backend', async () => {
         mockGetMcpAppInstance.mockReturnValueOnce(null)
         instanceStore.get.mockResolvedValue({ executionContext: { xpertId: 'assistant-a' } })
-        jest.spyOn(SdkRequestContext, 'currentApiKey').mockReturnValue({
-            type: ApiKeyBindingType.ASSISTANT,
-            entityId: 'assistant-b'
-        } as IApiKey)
+        jest.spyOn(SdkRequestContext, 'currentApiPrincipal').mockReturnValue({
+            resourceScope: { kind: 'assistant', xpertId: 'assistant-b' }
+        } as ReturnType<typeof SdkRequestContext.currentApiPrincipal>)
         await expect(
             service.handleRpc('app-1', {
                 jsonrpc: '2.0',
@@ -350,7 +364,143 @@ describe('McpAppsService RPC approval orchestration', () => {
         ).resolves.toMatchObject({ error: { code: -32000, message: expect.stringContaining('http or https') } })
     })
 
-    it.each([false, true])('revives a historical App with persisted execution context: %s', async (withContext) => {
+    it.each([
+        [null, 'MCP_APP_SESSION_UNAVAILABLE'],
+        [{ executionContext: { xpertId: 'assistant' } }, 'MCP_APP_SESSION_EXPIRED']
+    ])('returns a structured expired lease error without reviving (%s)', async (snapshot, code) => {
+        mockGetMcpAppInstance.mockReturnValueOnce(null)
+        history.load.mockResolvedValue({ snapshot, history: {} })
+        await expect(service.getResource('app-old', { messageId: 'message-old' })).rejects.toMatchObject({
+            response: { code },
+            status: 410
+        })
+        expect(history.load).toHaveBeenCalledWith('app-old', 'message-old')
+        expect(mockRestoreMcpAppInstance).not.toHaveBeenCalled()
+        expect(mockCallMcpAppTool).not.toHaveBeenCalled()
+    })
+
+    it('does not expose missing sessions without an authorized message', async () => {
+        mockGetMcpAppInstance.mockReturnValueOnce(null)
+        await expect(service.getResource('app-old')).rejects.toBeInstanceOf(NotFoundException)
+        expect(history.load).not.toHaveBeenCalled()
+    })
+
+    it('preserves history ACL denial rather than translating it to session expiry', async () => {
+        mockGetMcpAppInstance.mockReturnValueOnce(null)
+        history.load.mockRejectedValue(new ForbiddenException())
+        await expect(service.getResource('app-old', { messageId: 'foreign-message' })).rejects.toBeInstanceOf(
+            ForbiddenException
+        )
+        expect(mockCallMcpAppTool).not.toHaveBeenCalled()
+    })
+
+    it('refuses to resume legacy cards without trusted provenance', async () => {
+        history.load.mockResolvedValue({ snapshot: null, history: { canResume: false } })
+        await expect(service.resume('app-old', 'message-old')).rejects.toBeInstanceOf(GoneException)
+        expect(mockCreateMcpClient).not.toHaveBeenCalled()
+        expect(mockCallMcpAppTool).not.toHaveBeenCalled()
+    })
+
+    it('explicitly resumes the same card with a fresh lease without replaying its opening tool', async () => {
+        const original = {
+            version: 1,
+            stateVersion: 1,
+            appInstanceId: 'app-resume',
+            userId: 'user-1',
+            source: {
+                kind: 'middleware' as const,
+                provider: 'maps',
+                nodeKey: 'maps',
+                agentKey: 'agent',
+                pluginName: 'maps',
+                interruptAfter: false
+            },
+            executionContext: { xpertId: 'assistant', executionId: 'run', conversationId: 'conversation' },
+            expiresAt: 1
+        }
+        const active = mockGetMcpAppInstance('app-1')!
+        const assertAccess = jest.fn()
+        const restored: McpAppInstance = {
+            ...active,
+            id: 'app-resume',
+            userId: 'user-1',
+            executionContext: original.executionContext,
+            middleware: {
+                source: original.source,
+                assertAccess,
+                callTool: jest.fn(),
+                readResource: jest.fn(),
+                listTools: jest.fn(),
+                requiresApproval: jest.fn()
+            }
+        }
+        const restore = jest.fn(async (snapshot, options) => {
+            await options.prepareSession(snapshot)
+            return restored
+        })
+        Object.assign(service, { middlewareApps: { restore } })
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
+        history.load.mockResolvedValue({ snapshot: original, history: { canResume: true } })
+        instanceStore.resume.mockResolvedValue({ ...original, stateVersion: 10, expiresAt: Date.now() + 1000 })
+        messageService.findOneAuthorized.mockResolvedValue({
+            content: [{ type: 'McpApp', appInstanceId: 'app-resume' }]
+        })
+        mockGetMcpAppInstance.mockReturnValueOnce(null).mockReturnValueOnce(restored)
+        mockReadMcpAppResource.mockResolvedValue({ text: '<main>Maps</main>' } as Awaited<
+            ReturnType<typeof readMcpAppResource>
+        >)
+        await expect(service.resume('app-resume', 'message')).resolves.toMatchObject({
+            appInstanceToken: 'refreshed-token'
+        })
+        expect(history.load).toHaveBeenCalledWith('app-resume', 'message')
+        expect(instanceStore.resume).toHaveBeenCalledWith(original, expect.any(Number))
+        expect(assertAccess).toHaveBeenCalled()
+        expect(mockCallMcpAppTool).not.toHaveBeenCalled()
+    })
+
+    it('reuses a valid in-memory lease for repeated resume without extending its expiry', async () => {
+        const expiry = Date.now() + 10_000
+        const active = { ...mockGetMcpAppInstance('app-1')!, userId: 'user-1', expiresAt: expiry }
+        history.load.mockResolvedValue({
+            snapshot: {
+                userId: 'user-1',
+                toolsetId: 'toolset-1',
+                executionContext: { xpertId: 'assistant', executionId: 'run', conversationId: 'conversation' }
+            }
+        })
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
+        mockGetMcpAppInstance.mockReturnValue(active)
+        mockReadMcpAppResource.mockResolvedValue({ text: '<main>Saved</main>' } as Awaited<
+            ReturnType<typeof readMcpAppResource>
+        >)
+        await service.resume('app-1', 'message')
+        await service.resume('app-1', 'message')
+        expect(active.expiresAt).toBe(expiry)
+        expect(instanceStore.resume).not.toHaveBeenCalled()
+        expect(mockRefreshMcpAppInstanceToken).not.toHaveBeenCalled()
+        expect(mockRestoreMcpAppInstance).not.toHaveBeenCalled()
+        expect(mockCallMcpAppTool).not.toHaveBeenCalled()
+        mockGetMcpAppInstance.mockReturnValue({ ...active, userId: undefined })
+    })
+
+    it('does not mint a lease when current middleware permissions were revoked', async () => {
+        history.load.mockResolvedValue({
+            snapshot: {
+                appInstanceId: 'app',
+                userId: 'user-1',
+                source: { kind: 'middleware' },
+                executionContext: { xpertId: 'assistant', executionId: 'run', conversationId: 'conversation' }
+            }
+        })
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
+        Object.assign(service, { middlewareApps: { restore: jest.fn().mockRejectedValue(new ForbiddenException()) } })
+        mockGetMcpAppInstance.mockReturnValueOnce(null)
+        await expect(service.resume('app', 'message')).rejects.toBeInstanceOf(ForbiddenException)
+        expect(instanceStore.resume).not.toHaveBeenCalled()
+        expect(mockCallMcpAppTool).not.toHaveBeenCalled()
+    })
+
+    it.each([true])('restores an unexpired Redis lease with persisted execution context: %s', async (withContext) => {
         const executionContext = {
             xpertId: 'assistant-1',
             conversationId: 'conversation-1',
@@ -390,7 +540,7 @@ describe('McpAppsService RPC approval orchestration', () => {
         mockIsMcpAppTokenRequired.mockReturnValueOnce(true).mockReturnValueOnce(true)
         toolsetService.findOne.mockResolvedValue(toolset)
         queryBus.execute.mockResolvedValue({})
-        messageService.findOne.mockResolvedValue({
+        messageService.findOneAuthorized.mockResolvedValue({
             content: [
                 {
                     data: {
@@ -440,7 +590,7 @@ describe('McpAppsService RPC approval orchestration', () => {
             text: '<main>Recovered</main>'
         })
 
-        expect(messageService.findOne).toHaveBeenCalledWith('message-history')
+        expect(messageService.findOneAuthorized).toHaveBeenCalledWith('message-history')
         expect(mockCreateMcpClient).toHaveBeenCalledWith(
             toolset,
             expect.any(Object),

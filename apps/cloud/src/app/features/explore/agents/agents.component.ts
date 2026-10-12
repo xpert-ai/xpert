@@ -2,14 +2,12 @@ import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core'
 import { Router } from '@angular/router'
-import { TranslateModule } from '@ngx-translate/core'
-import { firstValueFrom } from 'rxjs'
 import {
   getErrorMessage,
+  injectToastr,
   IXpert,
   IXpertProject,
   IXpertWorkspace,
-  injectToastr,
   OrderTypeEnum,
   PluginApplicationService,
   PluginApplicationStatusSummary,
@@ -19,10 +17,12 @@ import {
   XpertTypeEnum
 } from '@cloud/app/@core'
 import { XpertProjectInstallComponent } from '@cloud/app/@shared/chat'
+import { TranslateModule } from '@ngx-translate/core'
 import { XpSpinComponent } from '@xpert-ai/headless-ui'
-import { ExploreXpertCardComponent } from './xpert-card.component'
-import { createAgentTemplateWizardData } from './agent-template-wizard'
+import { firstValueFrom } from 'rxjs'
 import { type BlankXpertWizardResult, XpertNewBlankComponent } from '../../xpert/xpert'
+import { createAgentTemplateWizardData } from './agent-template-wizard'
+import { ExploreXpertCardComponent } from './xpert-card.component'
 
 type ExploreViewMode = 'square' | 'mine'
 
@@ -182,6 +182,10 @@ export class ExploreAgentsComponent {
     if (item.type === XpertTypeEnum.Agent || item.type === XpertTypeEnum.Copilot) {
       this.#dialog
         .open<BlankXpertWizardResult>(XpertNewBlankComponent, {
+          backdropClass: 'backdrop-blur-xs-black',
+          panelClass: 'xp-overlay-pane-dialog',
+          width: '1360px',
+          maxWidth: 'calc(100vw - 32px)',
           disableClose: true,
           data: createAgentTemplateWizardData(item.id, this.workspace())
         })
@@ -196,6 +200,9 @@ export class ExploreAgentsComponent {
     if (item.type === 'project') {
       this.#dialog
         .open<IXpertProject>(XpertProjectInstallComponent, {
+          backdropClass: 'backdrop-blur-xs-black',
+          panelClass: 'xp-overlay-pane-dialog',
+          maxWidth: 'calc(100vw - 32px)',
           data: {
             template: item
           }

@@ -251,7 +251,7 @@ describe('workspace file HTTP authentication', () => {
             }
         )
         const grant: { url: string } = await grantResponse.json()
-        const [grantId, fileName] = new URL(grant.url).pathname.split('/').slice(-2)
+        const [grantId, fileName] = new URL(grant.url, origin).pathname.split('/').slice(-2)
         const url = `${origin}/api/workspace-files/view-sessions/${session.sessionId}/grants/${grantId}/content/${fileName}`
         const downloaded = await fetch(url, { headers: headers('fixture-jwt') })
         expect(downloaded.status).toBe(200)
@@ -283,7 +283,7 @@ describe('workspace file HTTP authentication', () => {
             }
         )
         const preview: { url: string } = await previewResponse.json()
-        const previewId = new URL(preview.url).pathname.split('/').at(-2)!
+        const previewId = new URL(preview.url, origin).pathname.split('/').at(-2)!
         const wrongPurpose = await fetch(url.replace(grantId, previewId), { headers: headers('fixture-jwt') })
         expect(wrongPurpose.status).toBe(404)
         await wrongPurpose.text()
@@ -338,7 +338,8 @@ describe('workspace file HTTP authentication', () => {
             )
             expect(grantResponse.status).toBe(201)
             const grant: { url: string } = await grantResponse.json()
-            const contentPath = new URL(grant.url).pathname
+            expect(grant.url).toMatch(/^\/api\/workspace-files\/content\//)
+            const contentPath = new URL(grant.url, origin).pathname
             for (const method of ['GET', 'HEAD']) {
                 const noCookie = await fetch(`${origin}${contentPath}`, { method, headers: headers(token) })
                 expect(noCookie.status).toBe(401)
@@ -390,7 +391,7 @@ describe('workspace file HTTP authentication', () => {
         })
         expect(response.status).toBe(201)
         const grant: { url: string } = await response.json()
-        const [grantId, fileName] = new URL(grant.url).pathname.split('/').slice(-2)
+        const [grantId, fileName] = new URL(grant.url, origin).pathname.split('/').slice(-2)
         return {
             sessionId: session.sessionId,
             route: `/workspace-files/view-sessions/${session.sessionId}/grants/${grantId}/content/${fileName}`
@@ -403,7 +404,8 @@ describe('workspace file HTTP authentication', () => {
             for (const purpose of ['preview', 'download'] as const) {
                 const { route } = await issueContentGrant(token, purpose)
                 const url = `${origin}/api/ai${route}`
-                const auth = { ...headers(token), origin: 'http://localhost:5173', 'sec-fetch-site': 'cross-site' }
+                // LAN HTTP and Blob iframes can omit Origin, Referer and Fetch Metadata.
+                const auth = headers(token)
                 const response = await fetch(url, { headers: auth, credentials: 'omit' })
                 expect(response.status).toBe(200)
                 expect(await response.text()).toBe('complete')

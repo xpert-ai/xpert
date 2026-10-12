@@ -1,8 +1,0 @@
-@reference "../../../../styles/tailwind-reference.css";
-:host {
-  @apply mx-auto flex h-[100vh] max-w-[1048px];
-}
-
-.tool-item.selected {
-  @apply bg-components-card-bg shadow-sm;
-}

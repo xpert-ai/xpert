@@ -73,17 +73,20 @@ export class SandboxAcquireBackendHandler implements ICommandHandler<
                     }) || fallbackMessage
             })
         }
-        if (protectProjectContent && providerInstance.capabilities?.projectContentReadOnly !== true) {
-            const fallbackMessage = 'Sandbox provider ' + provider + ' does not support read-only Project Content'
-            throw new BadRequestException({
-                code: SandboxManagedServiceErrorCode.UnsupportedProvider,
-                message:
-                    t('server-ai:Error.SandboxProviderProjectContentReadOnlyUnsupported', {
-                        defaultValue: fallbackMessage,
-                        provider
-                    }) || fallbackMessage
-            })
-        }
+        // TODO: Temporarily disable this check for providers that lack or do not declare read-only protection.
+        // Re-enable it once a common Project Content protection mechanism is implemented across providers.
+        // Keep forwarding protectProjectContent; providers without support do not guarantee read-only content.
+        // if (protectProjectContent && providerInstance.capabilities?.projectContentReadOnly !== true) {
+        //     const fallbackMessage = 'Sandbox provider ' + provider + ' does not support read-only Project Content'
+        //     throw new BadRequestException({
+        //         code: SandboxManagedServiceErrorCode.UnsupportedProvider,
+        //         message:
+        //             t('server-ai:Error.SandboxProviderProjectContentReadOnlyUnsupported', {
+        //                 defaultValue: fallbackMessage,
+        //                 provider
+        //             }) || fallbackMessage
+        //     })
+        // }
         const backend = await providerInstance.create({
             environmentId,
             tenantId,

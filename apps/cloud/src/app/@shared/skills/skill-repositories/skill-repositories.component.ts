@@ -95,12 +95,13 @@ export class XpertSkillRepositoriesComponent {
     event.stopPropagation()
     this.#dialog
       .open(XpertSkillRepositoryComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           repository: repo
         },
-        disableClose: true,
-        backdropClass: 'xp-overlay-share-sheet',
-        panelClass: 'xp-overlay-pane-share-sheet'
+        disableClose: true
       })
       .closed.subscribe({
         next: (result) => {
@@ -116,6 +117,9 @@ export class XpertSkillRepositoriesComponent {
     event.stopPropagation()
     this.#dialog
       .open<string | null>(XpertSkillRepositoryRegisterComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           repository: repo
         }

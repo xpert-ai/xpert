@@ -293,13 +293,13 @@
 </div>
 
 <ng-template #addSourceDialog let-dialogRef="dialogRef">
-  <div class="w-full rounded-2xl bg-components-card-bg px-6 py-5">
-    <div class="flex items-start justify-between pb-3">
+  <div xpDialogLayout="standard" class="w-full max-h-[calc(100dvh-32px)]">
+    <header xpDialogHeader>
       <div>
-        <div class="text-xl font-semibold text-text-primary">
+        <h2 xpDialogHeading>
           {{ 'XP.Plugin.AddMarketplace' | translate: { Default: 'Add marketplace' } }}
-        </div>
-        <div class="mt-1 max-w-xl text-sm text-text-tertiary">
+        </h2>
+        <div xpDialogDescription class="mt-2">
           {{
             'XP.Plugin.AddMarketplaceDescription'
               | translate
@@ -311,21 +311,24 @@
         </div>
       </div>
       <button
+        xpDialogCloseButton
+        z-button
+        zType="ghost"
+        zSize="icon"
         type="button"
-        class="btn btn-ghost btn-small flex h-8 w-8 items-center justify-center"
+        [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
         (click)="dialogRef.close()"
       >
-        <i class="ri-close-line"></i>
+        <z-icon zType="x" />
       </button>
-    </div>
-
-    <div class="relative flex flex-col gap-4">
-      <div class="grid grid-cols-2 gap-3">
+    </header>
+    <div xpDialogBody class="relative">
+      <div class="grid sm:grid-cols-2 gap-3">
         <label class="flex flex-col gap-2">
           <span class="text-sm font-medium text-text-tertiary">
             {{ 'XP.Plugin.SourceType' | translate: { Default: 'Source type' } }}
           </span>
-          <select class="xp-input w-full text-sm" [(ngModel)]="sourceType">
+          <select xpDialogControl="single" class="xp-input w-full" [(ngModel)]="sourceType">
             <option value="github">{{ 'XP.Plugin.SourceTypeGithub' | translate: { Default: 'Repository' } }}</option>
             <option value="git">{{ 'XP.Plugin.SourceTypeGit' | translate: { Default: 'Git URL' } }}</option>
             <option value="url">{{ 'XP.Plugin.SourceTypeUrl' | translate: { Default: 'Static index URL' } }}</option>
@@ -336,7 +339,8 @@
             {{ 'XP.Plugin.SourceName' | translate: { Default: 'Name' } }}
           </span>
           <input
-            class="xp-input w-full text-sm"
+            z-input
+            class="w-full"
             [placeholder]="'XP.Plugin.SourceNamePlaceholder' | translate: { Default: 'XpertAI Plugin Registry' }"
             [(ngModel)]="sourceName"
           />
@@ -348,7 +352,8 @@
           {{ 'XP.Plugin.SourceUrl' | translate: { Default: 'Source' } }}
         </span>
         <input
-          class="xp-input w-full text-sm"
+          z-input
+          class="w-full"
           [placeholder]="
             'XP.Plugin.SourceUrlPlaceholder'
               | translate: { Default: 'xpert-ai/plugin-registry or https://example.com/plugins/index.json' }
@@ -357,13 +362,14 @@
         />
       </label>
 
-      <div class="grid grid-cols-2 gap-3">
+      <div class="grid sm:grid-cols-2 gap-3">
         <label class="flex flex-col gap-2">
           <span class="text-sm font-medium text-text-tertiary">
             {{ 'XP.Plugin.SourceRef' | translate: { Default: 'Git ref' } }}
           </span>
           <input
-            class="xp-input w-full text-sm"
+            z-input
+            class="w-full"
             [placeholder]="'XP.Plugin.SourceRefPlaceholder' | translate: { Default: 'main' }"
             [(ngModel)]="sourceRef"
           />
@@ -373,7 +379,8 @@
             {{ 'XP.Plugin.SourceSparsePath' | translate: { Default: 'Sparse path' } }}
           </span>
           <input
-            class="xp-input w-full text-sm"
+            z-input
+            class="w-full"
             [placeholder]="'XP.Plugin.SourceSparsePathPlaceholder' | translate: { Default: 'plugins/data-x' }"
             [(ngModel)]="sourceSparsePath"
           />
@@ -390,48 +397,42 @@
       }
     </div>
 
-    <div class="flex items-center justify-end gap-2 pt-5">
-      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large" (click)="dialogRef.close()">
+    <footer xpDialogFooter>
+      <button type="button" z-button zType="outline" (click)="dialogRef.close()">
         {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
       </button>
       <button
         type="button"
-        class="btn disabled:btn-disabled btn-primary btn-large flex items-center gap-1"
-        [disabled]="sourceAdding() || !sourceUrl()?.trim()"
+        z-button
+        [zLoading]="sourceAdding()"
+        [zDisabled]="sourceAdding() || !sourceUrl()?.trim()"
         (click)="confirmAddSource(dialogRef)"
       >
-        @if (sourceAdding()) {
-          <xp-spin small class="!text-primary-200" />
-        } @else {
-          <i class="ri-add-line"></i>
-        }
+        <i class="ri-add-line"></i>
         <span>{{ 'XP.Plugin.AddMarketplace' | translate: { Default: 'Add marketplace' } }}</span>
       </button>
-    </div>
+    </footer>
   </div>
 </ng-template>
 
 <ng-template #registryDialog let-dialogRef="dialogRef">
-  <div
-    class="flex max-h-[calc(100vh-48px)] w-full flex-col overflow-hidden rounded-2xl bg-components-card-bg px-6 py-5"
-  >
-    <div class="flex shrink-0 items-start justify-between pb-4">
-      <div>
-        <div class="text-xl font-semibold text-text-primary">
-          {{ 'XP.Plugin.ManageRegisteredPlugins' | translate: { Default: 'Manage registered plugins' } }}
-        </div>
-        <div class="mt-1 max-w-2xl text-sm text-text-tertiary">
-          {{
-            'XP.Plugin.ManageRegisteredPluginsDescription'
-              | translate
-                : {
-                    Default:
-                      'Maintain platform-level plugin entries that users can discover and install from the marketplace.'
-                  }
-          }}
-        </div>
-      </div>
+  <div xpDialogLayout="wide" class="h-[min(760px,calc(100dvh-2rem))] w-full">
+    <header xpDialogHeader>
+      <h2 xpDialogHeading>
+        {{ 'XP.Plugin.ManageRegisteredPlugins' | translate: { Default: 'Manage registered plugins' } }}
+      </h2>
+      <p xpDialogDescription class="max-w-2xl">
+        {{
+          'XP.Plugin.ManageRegisteredPluginsDescription'
+            | translate
+              : {
+                  Default:
+                    'Maintain platform-level plugin entries that users can discover and install from the marketplace.'
+                }
+        }}
+      </p>
       <button
+        xpDialogCloseButton
         type="button"
         z-button
         zType="ghost"
@@ -441,23 +442,23 @@
       >
         <z-icon zType="x" />
       </button>
-    </div>
+    </header>
 
-    <div class="grid min-h-0 flex-1 grid-cols-[320px_minmax(0,1fr)] gap-4 overflow-hidden">
-      <z-card class="min-h-0 gap-0 overflow-hidden border-divider-regular bg-components-panel-bg p-0 py-0 shadow-none">
-        <z-card-header
-          class="sticky top-0 z-10 flex shrink-0 items-center justify-between border-b border-divider-regular bg-components-panel-bg px-3 py-2"
-        >
-          <div class="system-sm-semibold text-text-secondary">
+    <div
+      class="grid min-h-0 flex-1 grid-cols-1 grid-rows-[auto_minmax(0,1fr)] overflow-hidden md:grid-cols-[260px_minmax(0,1fr)] md:grid-rows-1"
+    >
+      <aside class="flex min-h-0 flex-col border-b border-divider-regular md:border-b-0 md:border-r">
+        <div xpDialogActionGroup="inline" class="flex shrink-0 items-center justify-between gap-2 px-4 py-4">
+          <div class="text-sm font-medium text-text-secondary">
             {{ 'XP.Plugin.RegisteredPlugins' | translate: { Default: 'Registered plugins' } }}
           </div>
-          <button type="button" z-button zType="ghost" zSize="sm" (click)="resetRegistryForm()">
+          <button type="button" z-button zType="outline" (click)="resetRegistryForm()">
             <z-icon zType="plus" />
-            <span class="pl-1">{{ 'XP.ACTIONS.New' | translate: { Default: 'New' } }}</span>
+            <span>{{ 'XP.ACTIONS.New' | translate: { Default: 'New' } }}</span>
           </button>
-        </z-card-header>
+        </div>
 
-        <z-card-content class="min-h-0 grow overflow-auto p-2">
+        <div class="max-h-40 min-h-0 overflow-y-auto px-3 pb-4 md:max-h-none md:grow">
           @if (registryLoading()) {
             <div class="flex h-40 items-center justify-center">
               <z-loader diameter="30" />
@@ -482,7 +483,7 @@
                 >
                   <z-icon zType="puzzle" class="mt-0.5 shrink-0 text-text-tertiary" />
                   <span class="min-w-0 grow">
-                    <span class="block truncate system-sm-semibold text-text-primary">{{
+                    <span class="block truncate text-sm font-medium text-text-primary">{{
                       item.displayName | i18n
                     }}</span>
                     <span class="block truncate text-xs text-text-tertiary">{{ item.packageName }}</span>
@@ -496,65 +497,28 @@
               }
             </div>
           }
-        </z-card-content>
-      </z-card>
+        </div>
+      </aside>
 
-      <z-card
-        class="relative min-h-0 gap-0 overflow-hidden border-divider-regular bg-components-panel-bg px-4 pb-4 pt-6 shadow-none"
-      >
-        <z-card-header class="mb-5 flex shrink-0 items-center justify-between gap-3 p-0">
-          <div>
-            <div class="system-md-semibold text-text-primary">
-              @if (registryEditingId()) {
-                {{ 'XP.Plugin.EditRegisteredPlugin' | translate: { Default: 'Edit registered plugin' } }}
-              } @else {
-                {{ 'XP.Plugin.RegisterPlugin' | translate: { Default: 'Register plugin' } }}
-              }
-            </div>
-            <div class="mt-0.5 text-xs text-text-tertiary">
-              {{ 'XP.Plugin.PlatformRegistry' | translate: { Default: 'XpertAI Platform Registry' } }}
-            </div>
-          </div>
-          <div class="flex shrink-0 items-center gap-2">
-            @if (registryEditingId()) {
-              <button
-                type="button"
-                z-button
-                zType="destructive"
-                zSize="sm"
-                [zLoading]="registryDeleting() === registryEditingId()"
-                [zDisabled]="registryDeleting() === registryEditingId() || !selectedRegistryItem()"
-                (click)="selectedRegistryItem() && deleteRegistryItem(selectedRegistryItem()!)"
-              >
-                @if (registryDeleting() !== registryEditingId()) {
-                  <z-icon zType="trash" />
+      <section class="relative flex min-h-0 min-w-0 flex-col">
+        <div xpDialogBody="section">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <div class="text-sm font-medium text-text-primary">
+                @if (registryEditingId()) {
+                  {{ 'XP.Plugin.EditRegisteredPlugin' | translate: { Default: 'Edit registered plugin' } }}
+                } @else {
+                  {{ 'XP.Plugin.RegisterPlugin' | translate: { Default: 'Register plugin' } }}
                 }
-                <span>{{ 'XP.ACTIONS.Delete' | translate: { Default: 'Delete' } }}</span>
-              </button>
-            }
-            <button type="button" z-button zType="secondary" zSize="sm" (click)="resetRegistryForm()">
-              {{ 'XP.ACTIONS.Reset' | translate: { Default: 'Reset' } }}
-            </button>
-            <button
-              type="button"
-              z-button
-              zType="default"
-              zSize="sm"
-              [zLoading]="registrySaving()"
-              [zDisabled]="registrySaveDisabled()"
-              (click)="saveRegistryItem()"
-            >
-              @if (!registrySaving()) {
-                <z-icon zType="save" />
-              }
-              <span>{{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}</span>
-            </button>
+              </div>
+              <div class="mt-0.5 text-xs text-text-tertiary">
+                {{ 'XP.Plugin.PlatformRegistry' | translate: { Default: 'XpertAI Platform Registry' } }}
+              </div>
+            </div>
           </div>
-        </z-card-header>
 
-        <z-card-content class="min-h-0 grow overflow-auto p-1 pb-6 pr-2">
-          <div class="grid grid-cols-2 gap-x-3 gap-y-5">
-            <z-form-field class="gap-y-2.5 bg-transparent p-0" displayDensity="compact">
+          <div class="grid grid-cols-1 gap-[16px] sm:grid-cols-2">
+            <z-form-field class="gap-y-[8px] bg-transparent p-0" displayDensity="compact">
               <z-form-label zRequired>
                 {{ 'XP.Plugin.PackageName' | translate: { Default: 'Package name' } }}
               </z-form-label>
@@ -568,7 +532,7 @@
                 />
               </z-form-control>
             </z-form-field>
-            <z-form-field class="gap-y-2.5 bg-transparent p-0" displayDensity="compact">
+            <z-form-field class="gap-y-[8px] bg-transparent p-0" displayDensity="compact">
               <z-form-label>
                 {{ 'XP.Plugin.NpmPackageVersion' | translate: { Default: 'Version' } }}
               </z-form-label>
@@ -576,7 +540,7 @@
                 <input z-input placeholder="latest" [(ngModel)]="registryVersion" />
               </z-form-control>
             </z-form-field>
-            <z-form-field class="gap-y-2.5 bg-transparent p-0" displayDensity="compact">
+            <z-form-field class="gap-y-[8px] bg-transparent p-0" displayDensity="compact">
               <z-form-label zRequired>
                 {{ 'XP.Plugin.DisplayName' | translate: { Default: 'Display name' } }} (en_US)
               </z-form-label>
@@ -589,7 +553,7 @@
                 />
               </z-form-control>
             </z-form-field>
-            <z-form-field class="gap-y-2.5 bg-transparent p-0" displayDensity="compact">
+            <z-form-field class="gap-y-[8px] bg-transparent p-0" displayDensity="compact">
               <z-form-label>
                 {{ 'XP.Plugin.DisplayName' | translate: { Default: 'Display name' } }} (zh_Hans)
               </z-form-label>
@@ -597,7 +561,7 @@
                 <input z-input [(ngModel)]="registryDisplayNameZhHans" />
               </z-form-control>
             </z-form-field>
-            <z-form-field class="gap-y-2.5 bg-transparent p-0" displayDensity="compact">
+            <z-form-field class="gap-y-[8px] bg-transparent p-0" displayDensity="compact">
               <z-form-label zRequired>
                 {{ 'XP.Plugin.Author' | translate: { Default: 'Author' } }}
               </z-form-label>
@@ -610,7 +574,7 @@
                 />
               </z-form-control>
             </z-form-field>
-            <z-form-field class="gap-y-2.5 bg-transparent p-0" displayDensity="compact">
+            <z-form-field class="gap-y-[8px] bg-transparent p-0" displayDensity="compact">
               <z-form-label zRequired>
                 {{ 'XP.Plugin.Category' | translate: { Default: 'Category' } }}
               </z-form-label>
@@ -624,7 +588,7 @@
                 </z-select>
               </z-form-control>
             </z-form-field>
-            <z-form-field class="gap-y-2.5 bg-transparent p-0" displayDensity="compact">
+            <z-form-field class="gap-y-[8px] bg-transparent p-0" displayDensity="compact">
               <z-form-label>
                 {{ 'XP.Plugin.RegistrySection' | translate: { Default: 'Section' } }}
               </z-form-label>
@@ -638,7 +602,7 @@
                 </z-select>
               </z-form-control>
             </z-form-field>
-            <z-form-field class="gap-y-2.5 bg-transparent p-0" displayDensity="compact">
+            <z-form-field class="gap-y-[8px] bg-transparent p-0" displayDensity="compact">
               <z-form-label zRequired>
                 {{ 'XP.Plugin.TargetApps' | translate: { Default: 'Target apps' } }}
               </z-form-label>
@@ -651,7 +615,7 @@
                 />
               </z-form-control>
             </z-form-field>
-            <z-form-field class="gap-y-2.5 bg-transparent p-0" displayDensity="compact">
+            <z-form-field class="gap-y-[8px] bg-transparent p-0" displayDensity="compact">
               <z-form-label>
                 {{ 'XP.Plugin.Keywords' | translate: { Default: 'Keywords' } }}
               </z-form-label>
@@ -659,7 +623,7 @@
                 <input z-input [(ngModel)]="registryKeywords" />
               </z-form-control>
             </z-form-field>
-            <z-form-field class="col-span-2 gap-y-2.5 bg-transparent p-0" displayDensity="compact">
+            <z-form-field class="sm:col-span-2 gap-y-[8px] bg-transparent p-0" displayDensity="compact">
               <z-form-label zRequired>
                 {{ 'XP.Plugin.Description' | translate: { Default: 'Description' } }} (en_US)
               </z-form-label>
@@ -674,7 +638,7 @@
                 ></textarea>
               </z-form-control>
             </z-form-field>
-            <z-form-field class="col-span-2 gap-y-2.5 bg-transparent p-0" displayDensity="compact">
+            <z-form-field class="sm:col-span-2 gap-y-[8px] bg-transparent p-0" displayDensity="compact">
               <z-form-label>
                 {{ 'XP.Plugin.Description' | translate: { Default: 'Description' } }} (zh_Hans)
               </z-form-label>
@@ -682,7 +646,7 @@
                 <textarea z-input rows="2" class="resize-none" [(ngModel)]="registryDescriptionZhHans"></textarea>
               </z-form-control>
             </z-form-field>
-            <z-form-field class="gap-y-2.5 bg-transparent p-0" displayDensity="compact">
+            <z-form-field class="gap-y-[8px] bg-transparent p-0" displayDensity="compact">
               <z-form-label>
                 {{ 'XP.Plugin.Homepage' | translate: { Default: 'Homepage' } }}
               </z-form-label>
@@ -690,7 +654,7 @@
                 <input z-input [(ngModel)]="registryHomepage" />
               </z-form-control>
             </z-form-field>
-            <z-form-field class="gap-y-2.5 bg-transparent p-0" displayDensity="compact">
+            <z-form-field class="gap-y-[8px] bg-transparent p-0" displayDensity="compact">
               <z-form-label>
                 {{ 'XP.Plugin.Repository' | translate: { Default: 'Repository' } }}
               </z-form-label>
@@ -698,7 +662,7 @@
                 <input z-input [(ngModel)]="registryRepositoryUrl" />
               </z-form-control>
             </z-form-field>
-            <z-form-field class="gap-y-2.5 bg-transparent p-0" displayDensity="compact">
+            <z-form-field class="gap-y-[8px] bg-transparent p-0" displayDensity="compact">
               <z-form-label>
                 {{ 'XP.Plugin.Priority' | translate: { Default: 'Priority' } }}
               </z-form-label>
@@ -711,7 +675,7 @@
                 {{ 'XP.Plugin.Enabled' | translate: { Default: 'Enabled' } }}
               </z-checkbox>
             </div>
-            <z-form-field class="col-span-2 gap-y-2.5 bg-transparent p-0" displayDensity="compact">
+            <z-form-field class="sm:col-span-2 gap-y-[8px] bg-transparent p-0" displayDensity="compact">
               <z-form-label>
                 {{ 'XP.Plugin.AdvancedJson' | translate: { Default: 'Advanced JSON' } }}
               </z-form-label>
@@ -756,7 +720,38 @@
               />
             }
           }
-        </z-card-content>
+        </div>
+
+        <footer xpDialogFooter>
+          @if (registryEditingId()) {
+            <button
+              type="button"
+              z-button
+              zType="destructive"
+              class="mr-auto"
+              [zLoading]="registryDeleting() === registryEditingId()"
+              [zDisabled]="registryDeleting() === registryEditingId() || !selectedRegistryItem()"
+              (click)="selectedRegistryItem() && deleteRegistryItem(selectedRegistryItem()!)"
+            >
+              <z-icon zType="trash" />
+              <span>{{ 'XP.ACTIONS.Delete' | translate: { Default: 'Delete' } }}</span>
+            </button>
+          }
+          <button type="button" z-button zType="ghost" (click)="resetRegistryForm()">
+            {{ 'XP.ACTIONS.Reset' | translate: { Default: 'Reset' } }}
+          </button>
+          <button
+            type="button"
+            z-button
+            zType="default"
+            [zLoading]="registrySaving()"
+            [zDisabled]="registrySaveDisabled()"
+            (click)="saveRegistryItem()"
+          >
+            <z-icon zType="save" />
+            <span>{{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}</span>
+          </button>
+        </footer>
 
         @if (registrySaving()) {
           <div
@@ -765,7 +760,7 @@
             <z-loader diameter="30" />
           </div>
         }
-      </z-card>
+      </section>
     </div>
   </div>
 </ng-template>

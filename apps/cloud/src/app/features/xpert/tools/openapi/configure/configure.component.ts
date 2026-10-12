@@ -1,3 +1,11 @@
+import {
+  ZardInputDirective,
+  XpDialogActionGroupDirective,
+  ZardButtonComponent,
+  EntriesPipe,
+  routeAnimations,
+  XpSpinComponent
+} from '@xpert-ai/headless-ui'
 import { CommonModule } from '@angular/common'
 import {
   ChangeDetectionStrategy,
@@ -20,7 +28,7 @@ import {
   ReactiveFormsModule,
   Validators
 } from '@angular/forms'
-import { EntriesPipe, routeAnimations } from '@xpert-ai/headless-ui'
+
 import { pick } from 'lodash-es'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -39,7 +47,7 @@ import { combineLatestWith, distinctUntilChanged, filter, map, of, switchMap } f
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { Samples } from '../types'
 import { XpertToolAuthorizationInputComponent } from '../../authorization'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
+
 import { XpertToolTestDialogComponent } from '../../tool-test'
 import { XpertConfigureToolComponent } from '../../api-tool/types'
 import { Dialog } from '@angular/cdk/dialog'
@@ -49,6 +57,9 @@ import { XpertToolNameInputComponent } from 'apps/cloud/src/app/@shared/xpert'
 @Component({
   standalone: true,
   imports: [
+    ZardInputDirective,
+    XpDialogActionGroupDirective,
+    ZardButtonComponent,
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
@@ -244,7 +255,9 @@ export class XpertStudioConfigureToolComponent extends XpertConfigureToolCompone
   openToolTest(tool: Partial<IXpertTool>) {
     this.#dialog
       .open(XpertToolTestDialogComponent, {
-        panelClass: 'medium',
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           tool: {
             ...tool,

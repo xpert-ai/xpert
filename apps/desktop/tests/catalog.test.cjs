@@ -146,6 +146,42 @@ test('application screenshots are normalized consistently for catalog and detail
   assert.deepEqual((await service.listCatalog('applications'))[0].screenshots, [])
 })
 
+test('application logos preserve image, SVG and emoji identity in the catalog and details', async () => {
+  const svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M2 2h20v20H2z"/></svg>'
+  const response = { ...detail, application: { ...app, icon: null } }
+  const { service } = fixture((path) => (path.endsWith('/catalog') ? [response] : response))
+  service.configure({ ...service.config, webUrl: 'https://workspace.example.com' })
+  service.credentials = { token: 'fixture' }
+  service.profile = { organizationId: 'org-1' }
+  for (const [input, expected] of [
+    [
+      { type: 'image', value: inlineAvatar },
+      { type: 'image', value: inlineAvatar }
+    ],
+    [
+      { type: 'image', value: '/logo.png' },
+      { type: 'image', value: 'https://workspace.example.com/logo.png' }
+    ],
+    [
+      { type: 'svg', value: svg },
+      { type: 'image', value: `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}` }
+    ],
+    [
+      { type: 'emoji', value: '🎙️' },
+      { type: 'emoji', value: '🎙️' }
+    ],
+    [{ type: 'image', value: 'file:///private/logo.png' }, null],
+    [{ type: 'image', value: 'javascript:alert(1)' }, null],
+    [{ type: 'image', value: 'https://user:secret@example.com/logo.png' }, null],
+    [{ type: 'unknown', value: inlineAvatar }, null],
+    [null, null]
+  ]) {
+    response.application.icon = input
+    assert.deepEqual((await service.listCatalog('applications'))[0].icon, expected)
+    assert.deepEqual((await service.applicationSetup(app)).application.icon, expected)
+  }
+})
+
 test('expert access request rechecks access and submits only the reason, not renderer scope', async () => {
   let requested = false
   const { service, calls } = fixture((path, options) => {
@@ -413,6 +449,41 @@ test('blank assistant creation requires an authorized model even with no optiona
     workspaceId: 'writable',
     publish: true,
     basic: { title: 'My expert', copilotModel: model }
+  })
+  assert.equal(calls.at(-1).headers['organization-id'], 'org-1')
+})
+
+test('blank assistant creation offers and installs Project management with organization scope', async () => {
+  const model = { copilotId: 'provider', model: 'tool-model', modelType: 'llm' }
+  const option = { key: 'project-tasks', label: '项目管理', description: '在项目会话中管理任务、跟踪进度并验收结果。' }
+  const { service, calls } = fixture((path, _options, url) => {
+    if (path.endsWith('/my')) return { items: [{ id: 'workspace', capabilities: { canWrite: true } }] }
+    if (path.endsWith('/setup'))
+      return {
+        canInstall: true,
+        requiresModel: true,
+        requiredModelFeatures: url.searchParams.get('capabilities') ? ['tool-call'] : [],
+        optionalCapabilities: [option],
+        models: [{ id: 'model', label: 'Tool model', copilotModel: model }]
+      }
+    if (path.endsWith('/install')) return { xpert: { id: 'project-assistant' } }
+    return { type: 'agent' }
+  })
+  const input = { id: 'xpert-blank-assistant', title: 'Project assistant', workspaceId: 'workspace' }
+  const setup = await service.templateSetup(input)
+  assert.deepEqual(setup.preflight.optionalCapabilities, [option])
+  assert.equal(
+    calls.some((call) => call.method === 'POST'),
+    false
+  )
+  assert.deepEqual(await service.installTemplate({ ...input, modelId: 'model', capabilities: ['project-tasks'] }), {
+    botId: 'project-assistant'
+  })
+  assert.deepEqual(calls.at(-1).body, {
+    workspaceId: 'workspace',
+    publish: true,
+    basic: { title: 'Project assistant', copilotModel: model },
+    capabilities: ['project-tasks']
   })
   assert.equal(calls.at(-1).headers['organization-id'], 'org-1')
 })

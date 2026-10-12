@@ -1,4 +1,5 @@
 import { Test } from '@nestjs/testing'
+import { CommandBus } from '@nestjs/cqrs'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { randomUUID } from 'node:crypto'
 import { AGENT_WORKBENCH_SLOT, type XpertResolvedViewHostContext } from '@xpert-ai/contracts'
@@ -63,6 +64,7 @@ async function fixture() {
         providers: [
             CodingExecutionProvider,
             ExecutionReaderService,
+            { provide: CommandBus, useValue: { execute: jest.fn() } },
             { provide: getRepositoryToken(AgentInvocationEntity), useValue: records },
             { provide: InvocationActivityService, useValue: activity },
             { provide: ArtifactsService, useValue: artifacts }

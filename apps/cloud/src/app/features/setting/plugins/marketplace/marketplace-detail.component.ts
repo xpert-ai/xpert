@@ -1,18 +1,16 @@
-import { DIALOG_DATA, Dialog, DialogRef } from '@angular/cdk/dialog'
+import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject, signal } from '@angular/core'
 import { Router } from '@angular/router'
 import { getErrorMessage, injectToastr } from '@cloud/app/@core'
-import { IconComponent } from '@cloud/app/@shared/avatar/icon/icon.component'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
-import { myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'
-import { TranslateModule } from '@ngx-translate/core'
 import {
   injectPluginAPI,
   IPluginComponentDefinition,
   PLUGIN_COMPONENT_TYPE,
   PluginComponentType
 } from '@cloud/app/@core/state'
+import { IconComponent } from '@cloud/app/@shared/avatar/icon/icon.component'
+import { TranslateModule } from '@ngx-translate/core'
 import {
   I18nObject,
   IconDefinition,
@@ -21,7 +19,15 @@ import {
   PluginMeta,
   XpertTypeEnum
 } from '@xpert-ai/contracts'
-import { ZardBadgeComponent, ZardButtonComponent } from '@xpert-ai/headless-ui'
+import {
+  myRxResource,
+  XpDialogActionGroupDirective,
+  XpDialogFrameImports,
+  XpI18nPipe,
+  XpSpinComponent,
+  ZardBadgeComponent,
+  ZardButtonComponent
+} from '@xpert-ai/headless-ui'
 import { map, of } from 'rxjs'
 import { BlankXpertWizardResult, XpertNewBlankComponent } from '../../../xpert/xpert/blank/blank.component'
 import { PluginResourcesComponent } from '../resources/resources.component'
@@ -31,8 +37,8 @@ import {
   TPluginResourceContribution,
   TPluginWithDownloads
 } from '../types'
-import { PluginMarketplaceSkillDetailDialogComponent } from './marketplace-skill-detail-dialog.component'
 import { PluginMarketplaceMcpProviderComponent } from './marketplace-mcp-provider.component'
+import { PluginMarketplaceSkillDetailDialogComponent } from './marketplace-skill-detail-dialog.component'
 import { PluginSkillTrialLauncherService } from './plugin-skill-trial-launcher.service'
 import { isRuntimeNativeMcp, runtimeMcpProviderDescription, runtimeMcpProviderName } from './runtime-mcp-provider.util'
 
@@ -68,11 +74,13 @@ export type PluginMarketplaceDetailDialogData = {
     IconComponent,
     ZardBadgeComponent,
     ZardButtonComponent,
-    PluginMarketplaceMcpProviderComponent
+    PluginMarketplaceMcpProviderComponent,
+    ...XpDialogFrameImports,
+    XpDialogActionGroupDirective
   ],
   selector: 'xp-plugin-marketplace-detail',
   templateUrl: './marketplace-detail.component.html',
-  styleUrls: ['./marketplace-detail.component.scss']
+  host: { class: 'block min-w-0' }
 })
 export class PluginMarketplaceDetailComponent {
   readonly #dialogRef = inject(DialogRef)
@@ -220,6 +228,9 @@ export class PluginMarketplaceDetailComponent {
     const initialInstallMode = this.installModeForResource(content)
 
     this.#dialog.open(PluginResourcesComponent, {
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)',
       data: {
         plugin: {
           name: pluginName,
@@ -250,8 +261,7 @@ export class PluginMarketplaceDetailComponent {
         ...(content.componentType === PLUGIN_COMPONENT_TYPE.TOOLSET
           ? { allowedInstallModes: ['organization' as const] }
           : {})
-      },
-      backdropClass: 'backdrop-blur-sm-black'
+      }
     })
   }
 
@@ -278,13 +288,15 @@ export class PluginMarketplaceDetailComponent {
 
     this.#dialog
       .open(PluginMarketplaceSkillDetailDialogComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           plugin,
           content,
           resource,
           component
-        },
-        backdropClass: 'backdrop-blur-sm-black'
+        }
       })
       .closed.subscribe((result) => {
         if (isTrialStartedDialogResult(result)) {
@@ -307,6 +319,10 @@ export class PluginMarketplaceDetailComponent {
 
     this.#dialog
       .open<BlankXpertWizardResult>(XpertNewBlankComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        width: '1360px',
+        maxWidth: 'calc(100vw - 32px)',
         disableClose: true,
         data: {
           type: XpertTypeEnum.Agent,

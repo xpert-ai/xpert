@@ -1,11 +1,11 @@
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import {
-  Z_MODAL_DATA,
+  XpDialogFrameImports,
   ZardButtonComponent,
-  ZardDialogRef,
   ZardFormImports,
   ZardInputDirective,
   ZardSelectImports
@@ -26,18 +26,19 @@ export type ModelAccessRequestDialogResult = {
     ReactiveFormsModule,
     TranslateModule,
     XpI18nPipe,
+    ...XpDialogFrameImports,
     ZardButtonComponent,
     ZardInputDirective,
     ...ZardFormImports,
     ...ZardSelectImports
   ],
   template: `
-    <section>
-      <header class="space-y-2">
-        <h2 class="text-lg font-semibold text-text-primary">
+    <form xpDialogLayout="standard" class="max-h-[84vh]" [formGroup]="form" (ngSubmit)="submit()">
+      <header xpDialogHeader>
+        <h2 xpDialogHeading>
           {{ 'XP.ModelAccess.ApplyTitle' | translate: { Default: 'Apply for model access' } }}
         </h2>
-        <p class="text-sm leading-6 text-text-secondary">
+        <p xpDialogDescription>
           {{
             'XP.ModelAccess.ApplyDescription'
               | translate
@@ -46,9 +47,20 @@ export type ModelAccessRequestDialogResult = {
                   }
           }}
         </p>
+        <button
+          xpDialogCloseButton
+          z-button
+          zType="ghost"
+          zSize="icon"
+          type="button"
+          [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+          (click)="close()"
+        >
+          <z-icon zType="x" aria-hidden="true" />
+        </button>
       </header>
 
-      <form class="mt-5 space-y-4" [formGroup]="form" (ngSubmit)="submit()">
+      <div xpDialogBody>
         <z-form-field class="w-full">
           <z-form-label>
             {{ 'XP.ModelAccess.RequestScope' | translate: { Default: 'Request scope' } }}
@@ -89,24 +101,22 @@ export type ModelAccessRequestDialogResult = {
             "
           ></textarea>
         </z-form-field>
-
-        <footer class="flex justify-end gap-2 pt-1">
-          <button z-button zType="outline" type="button" (click)="close()">
-            {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
-          </button>
-          <button z-button type="submit" [disabled]="form.invalid">
-            {{ 'XP.ModelAccess.Submit' | translate: { Default: 'Submit request' } }}
-          </button>
-        </footer>
-      </form>
-    </section>
+      </div>
+      <footer xpDialogFooter>
+        <button z-button zType="outline" type="button" (click)="close()">
+          {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+        </button>
+        <button z-button type="submit" [zDisabled]="form.invalid">
+          {{ 'XP.ModelAccess.Submit' | translate: { Default: 'Submit request' } }}
+        </button>
+      </footer>
+    </form>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ModelAccessRequestDialogComponent {
-  readonly #dialogRef =
-    inject<ZardDialogRef<ModelAccessRequestDialogComponent, ModelAccessRequestDialogResult | null>>(ZardDialogRef)
-  readonly #data = inject<{ items: IModelAccessCatalogItem[] }>(Z_MODAL_DATA)
+  readonly #dialogRef = inject<DialogRef<ModelAccessRequestDialogResult | null>>(DialogRef)
+  readonly #data = inject<{ items: IModelAccessCatalogItem[] }>(DIALOG_DATA)
   readonly #formBuilder = inject(FormBuilder)
 
   readonly items = this.#data.items

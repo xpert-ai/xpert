@@ -426,6 +426,7 @@ export class UserMembershipComponent implements OnChanges {
   }) {
     return firstValueFrom(
       this.#alertDialog.confirm({
+        layout: 'standard',
         title: this.#translate.instant(options.titleKey, { Default: options.titleDefault }),
         description: this.#translate.instant(options.descriptionKey, { Default: options.descriptionDefault }),
         actionText: this.#translate.instant(options.actionKey, { Default: options.actionDefault }),

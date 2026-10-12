@@ -1,21 +1,24 @@
-<header
-  class="flex items-center pt-4 pr-4 pl-4 cursor-move"
-  cdkDrag
-  cdkDragRootElement=".cdk-overlay-pane"
-  cdkDragHandle
->
-  <h1 class="flex-1 text-text-primary text-lg font-semibold">
-    {{ 'XP.Chat.AllFilesInTask' | translate: { Default: 'All files in this task' } }}
-  </h1>
-  <div class="flex items-center gap-4">
+<section xpDialogLayout="wide" class="w-[960px] max-w-full max-h-[calc(100dvh-32px)]">
+  <header xpDialogHeader>
+    <h2 xpDialogHeading>{{ 'XP.Chat.AllFilesInTask' | translate: { Default: 'All Files in Task' } }}</h2>
     <button
       type="button"
-      class="btn-close btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer hover:text-text-destructive z-20"
+      z-button
+      zType="ghost"
+      zSize="icon"
+      xpDialogCloseButton
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
       (click)="close()"
     >
-      <i class="ri-close-line"></i>
+      <z-icon zType="x" />
     </button>
+  </header>
+  <div xpDialogBody>
+    <chat-file-list class="block min-w-0" [projectId]="projectId()" [conversationId]="conversationId()" />
   </div>
-</header>
-
-<chat-file-list class="p-2" [projectId]="projectId()" [conversationId]="conversationId()" />
+  <footer xpDialogFooter>
+    <button type="button" z-button zType="outline" (click)="close()">
+      {{ 'XP.ACTIONS.Close' | translate: { Default: 'Close' } }}
+    </button>
+  </footer>
+</section>

@@ -19,6 +19,7 @@ import {
     parseTemplateCapabilities
 } from './template-capability-reference'
 import { parseCapabilityTemplateDraft } from './template-draft'
+import { ProjectTasksCapabilityProvider } from '../../xpert-project/plugins/project-tasks/project-tasks.capability'
 
 const language = LanguagesEnum.English
 const model = { copilotId: 'authorized', model: 'capable', modelType: AiModelTypeEnum.LLM }
@@ -109,6 +110,44 @@ describe('Assistant capabilities (OSS)', () => {
         expect(draft.team.copilotModel).toEqual(model)
         query.execute.mockResolvedValue([])
         await expect(service.prepareInstallation(blank, draft, language, [], model, [])).rejects.toThrow()
+    })
+    it('offers Project management in both creation clients, defaults off and requires an authorized tool-calling model', async () => {
+        const provider = new ProjectTasksCapabilityProvider()
+        providers.push(provider)
+        query.execute.mockResolvedValue([
+            {
+                id: 'authorized',
+                providerWithModels: {
+                    provider: 'model-provider',
+                    models: [
+                        { model: 'text-only', features: [] },
+                        { model: model.model, features: [ModelFeature.TOOL_CALL] }
+                    ]
+                }
+            }
+        ])
+        const blank = service.blankTemplate()
+        const setup = await service.setup(blank, language)
+        expect(setup.optionalCapabilities).toEqual([
+            expect.objectContaining({ key: 'project-tasks', label: 'Project management' })
+        ])
+        expect(
+            provider.isEnabled(
+                parseCapabilityTemplateDraft((await service.compose(blank, language, [], jest.fn())).export_data)
+            )
+        ).toBe(false)
+        const enabled = await service.setup(blank, language, [provider.key])
+        expect(enabled.requiredModelFeatures).toEqual([ModelFeature.TOOL_CALL])
+        expect(enabled.models.map((entry) => entry.copilotModel.model)).toEqual([model.model])
+        const composed = await service.compose(blank, language, [provider.key], jest.fn())
+        const draft = parseCapabilityTemplateDraft(composed.export_data)
+        expect(provider.isEnabled(draft)).toBe(true)
+        expect(draft.team.options?.assistantCapabilities?.selected).toEqual([provider.key])
+        await service.prepareInstallation(composed, draft, language, [provider.key], model, [])
+        query.execute.mockResolvedValue([])
+        await expect(
+            service.prepareInstallation(composed, draft, language, [provider.key], model, [])
+        ).rejects.toThrow()
     })
     it('offers arbitrary registered capabilities, defaults off, and checks only enabled ones', async () => {
         const provider = createProvider('document-analysis', [ModelFeature.VISION])

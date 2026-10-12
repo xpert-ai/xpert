@@ -78,7 +78,8 @@ export function createChatkitWorkbenchClientCommandHandler(options: {
       hostType: 'agent',
       hostId: scope.assistantId,
       viewKey: manifest.key,
-      manifest
+      manifest,
+      runtimeScope: scope.runtimeScope
     })
   }
 }

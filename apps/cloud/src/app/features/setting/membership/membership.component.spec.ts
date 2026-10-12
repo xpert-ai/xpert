@@ -38,6 +38,7 @@ describe('MembershipAdminComponent', () => {
   } as IMembershipPlan
 
   let membershipService: {
+    deletePlan: jest.Mock
     archivePlan: jest.Mock
     reassignPlanMembers: jest.Mock
     getScopeStatus: jest.Mock
@@ -53,6 +54,7 @@ describe('MembershipAdminComponent', () => {
 
   beforeEach(() => {
     membershipService = {
+      deletePlan: jest.fn().mockReturnValue(of(undefined)),
       archivePlan: jest.fn().mockReturnValue(of(sourcePlan)),
       reassignPlanMembers: jest.fn().mockReturnValue(of({ updated: 2 })),
       getScopeStatus: jest.fn().mockReturnValue(of(null)),
@@ -88,6 +90,19 @@ describe('MembershipAdminComponent', () => {
     const fixture = TestBed.createComponent(MembershipAdminComponent)
     component = fixture.componentInstance
     component.plans.set([sourcePlan, targetPlan])
+  })
+
+  it.each([false, true])('deletes an archived plan only after confirmation (%s)', async (confirmed) => {
+    alertDialog.confirm.mockReturnValue(of(confirmed))
+    await component.deletePlan({ ...sourcePlan, status: MembershipPlanStatusEnum.Archived })
+    if (confirmed) expect(membershipService.deletePlan).toHaveBeenCalledWith(sourcePlan.id)
+    else expect(membershipService.deletePlan).not.toHaveBeenCalled()
+  })
+
+  it('never opens deletion confirmation for an active plan', async () => {
+    await component.deletePlan(sourcePlan)
+    expect(alertDialog.confirm).not.toHaveBeenCalled()
+    expect(membershipService.deletePlan).not.toHaveBeenCalled()
   })
 
   it('does not archive a plan when confirmation is cancelled', async () => {

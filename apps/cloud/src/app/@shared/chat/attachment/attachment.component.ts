@@ -1,3 +1,12 @@
+import {
+  ZardButtonComponent,
+  XpDialogFrameImports,
+  FileTypePipe,
+  linkedModel,
+  effectAction,
+  XpDensityDirective,
+  XpProgressSpinnerComponent
+} from '@xpert-ai/headless-ui'
 import { HttpEventType } from '@angular/common/http'
 import {
   booleanAttribute,
@@ -14,18 +23,22 @@ import {
 } from '@angular/core'
 import { StorageFileService } from '@cloud/app/@core'
 import { getErrorMessage } from '@cloud/app/@core/types'
-import { FileTypePipe, linkedModel } from '@xpert-ai/headless-ui'
-import { effectAction, XpDensityDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { catchError, EMPTY, Observable, of, switchMap, tap } from 'rxjs'
-import { XpProgressSpinnerComponent } from '@xpert-ai/headless-ui'
 import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import { FileIconComponent } from '../../files'
 import { getChatStorageFileId, type ChatAttachmentStorageFile } from '../attachments/agent-file'
 
 @Component({
   standalone: true,
-  imports: [TranslateModule, XpProgressSpinnerComponent, FileTypePipe, FileIconComponent],
+  imports: [
+    TranslateModule,
+    XpProgressSpinnerComponent,
+    FileTypePipe,
+    FileIconComponent,
+    ZardButtonComponent,
+    ...XpDialogFrameImports
+  ],
   selector: 'chat-attachment',
   templateUrl: './attachment.component.html',
   styleUrls: ['./attachment.component.scss'],
@@ -205,7 +218,9 @@ export class ChatAttachmentComponent {
 
   openImage() {
     this.dialogRef = this.#dialog.open(this.imageDialog(), {
-      backdropClass: 'backdrop-blur-sm-black'
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)'
     })
   }
 

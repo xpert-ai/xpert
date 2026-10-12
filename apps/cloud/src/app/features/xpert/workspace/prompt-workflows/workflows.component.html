@@ -371,23 +371,28 @@
 >
 
 <ng-template #dialogTemplate>
-  <div class="flex max-h-[90vh] w-full flex-col" [class]="panel() === 'tags' ? 'md:w-4xl' : 'md:w-2xl'">
-    <header class="flex items-center justify-between gap-4 border-b border-divider-regular px-6 py-4">
-      <h2 class="text-lg font-semibold">{{ 'XP.PromptWorkflow.Panel.' + panel() | translate }}</h2>
+  <div
+    xpDialogLayout="wide"
+    [xpDialogPurpose]="panel() === 'discard' ? 'workflow' : 'standard'"
+    [class]="panel() === 'tags' ? 'w-[960px] max-w-full max-h-[85dvh]' : 'w-[640px] max-w-full max-h-[85dvh]'"
+  >
+    <header xpDialogHeader>
+      <h2 xpDialogHeading>{{ 'XP.PromptWorkflow.Panel.' + panel() | translate }}</h2>
       @if (panel() !== 'discard') {
         <button
+          xpDialogCloseButton
           z-button
           zType="ghost"
           zSize="icon"
           (click)="closePanel()"
-          [disabled]="saving()"
+          [zDisabled]="saving()"
           [attr.aria-label]="'XP.PromptWorkflow.Close' | translate"
         >
           <z-icon zType="close" />
         </button>
       }
     </header>
-    <div class="min-h-0 overflow-y-auto p-6">
+    <div xpDialogBody>
       @if (panelError()) {
         <p role="alert" class="mb-4 text-sm text-text-destructive">{{ panelError() }}</p>
       }
@@ -403,23 +408,13 @@
               <z-select-item [zValue]="expert.id">{{ expert.title || expert.name }}</z-select-item>
             }
           </z-select>
-          <button
-            z-button
-            type="button"
-            class="mt-4"
-            [disabled]="!exportExpertId()"
-            (click)="copySkillCommand(panelWorkflow(), exportExpertId())"
-          >
-            {{ 'XP.PromptWorkflow.CopySkillCommand' | translate }}
-          </button>
         }
         @case ('templates') {
           <div class="grid gap-3 sm:grid-cols-2">
             @for (template of templates; track template.name) {
               <button
-                z-button
-                zType="outline"
-                class="h-auto flex-col items-start gap-2 p-4 text-left whitespace-normal"
+                type="button"
+                class="flex flex-col items-start gap-2 rounded-lg border border-border p-4 text-left whitespace-normal hover:bg-accent focus-visible:outline-2 focus-visible:outline-ring"
                 (click)="createFromTemplate(template)"
               >
                 <span class="font-medium">{{ templateText(template, 'Label') }}</span
@@ -435,30 +430,55 @@
           <p class="text-sm leading-6">
             {{ 'XP.PromptWorkflow.ArchiveHelp' | translate: { name: panelWorkflow()?.label || panelWorkflow()?.name } }}
           </p>
-          <div class="mt-6 flex justify-end gap-2">
-            <button z-button zType="outline" [disabled]="saving()" (click)="closePanel()">
-              {{ 'XP.PromptWorkflow.Cancel' | translate }}</button
-            ><button z-button zType="destructive" [disabled]="saving()" (click)="archive()">
-              {{ 'XP.PromptWorkflow.Archive' | translate }}
-            </button>
-          </div>
         }
         @case ('discard') {
           <p class="text-sm text-text-tertiary">{{ 'XP.PromptWorkflow.UnsavedHelp' | translate }}</p>
-          <div class="mt-6 flex flex-wrap justify-end gap-2">
-            <button z-button zType="outline" [disabled]="saving()" (click)="closePanel(false)">
-              {{ 'XP.PromptWorkflow.ContinueEditing' | translate }}</button
-            ><button z-button zType="outline" [disabled]="saving()" (click)="closePanel(true)">
-              {{ 'XP.PromptWorkflow.Discard' | translate }}</button
-            ><button z-button [disabled]="saving() || !canWriteWorkspace()" (click)="saveAndLeave()">
-              {{ 'XP.PromptWorkflow.SaveAndLeave' | translate }}
-            </button>
-          </div>
+
           @if (saveError()) {
             <p role="alert" class="mt-4 text-sm text-text-destructive">{{ saveError() }}</p>
           }
         }
       }
     </div>
+    <footer xpDialogFooter>
+      @switch (panel()) {
+        @case ('export') {
+          <button
+            z-button
+            type="button"
+            [zDisabled]="!exportExpertId()"
+            (click)="copySkillCommand(panelWorkflow(), exportExpertId())"
+          >
+            {{ 'XP.PromptWorkflow.CopySkillCommand' | translate }}
+          </button>
+        }
+        @case ('archive') {
+          <button z-button zType="outline" [zDisabled]="saving()" (click)="closePanel()">
+            {{ 'XP.PromptWorkflow.Cancel' | translate }}</button
+          ><button z-button zType="destructive" [zLoading]="saving()" [zDisabled]="saving()" (click)="archive()">
+            {{ 'XP.PromptWorkflow.Archive' | translate }}
+          </button>
+        }
+        @case ('discard') {
+          <button z-button zType="outline" [zDisabled]="saving()" (click)="closePanel(false)">
+            {{ 'XP.PromptWorkflow.ContinueEditing' | translate }}</button
+          ><button z-button zType="outline" [zDisabled]="saving()" (click)="closePanel(true)">
+            {{ 'XP.PromptWorkflow.Discard' | translate }}</button
+          ><button
+            z-button
+            [zLoading]="saving()"
+            [zDisabled]="saving() || !canWriteWorkspace()"
+            (click)="saveAndLeave()"
+          >
+            {{ 'XP.PromptWorkflow.SaveAndLeave' | translate }}
+          </button>
+        }
+        @default {
+          <button z-button zType="outline" type="button" (click)="closePanel()">
+            {{ 'XP.PromptWorkflow.Close' | translate }}
+          </button>
+        }
+      }
+    </footer>
   </div>
 </ng-template>

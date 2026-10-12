@@ -1,10 +1,11 @@
+import { DialogRef } from '@angular/cdk/dialog'
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import { ModelGatewayApiKeyLifetimeEnum, TModelGatewayApiKeyCreateInput } from '@xpert-ai/contracts'
 import {
+  XpDialogFrameImports,
   ZardButtonComponent,
-  ZardDialogRef,
   ZardFormImports,
   ZardInputDirective,
   ZardSelectImports
@@ -16,23 +17,37 @@ import {
   imports: [
     ReactiveFormsModule,
     TranslateModule,
+    ...XpDialogFrameImports,
     ZardButtonComponent,
     ZardInputDirective,
     ...ZardFormImports,
     ...ZardSelectImports
   ],
   template: `
-    <section>
-      <h2 class="text-lg font-semibold text-text-primary">
-        {{ 'XP.ModelGateway.CreateKey' | translate: { Default: 'Create API key' } }}
-      </h2>
-      <p class="mt-2 text-sm leading-6 text-text-secondary">
-        {{
-          'XP.ModelGateway.KeyOwnerHint'
-            | translate: { Default: 'Usage from this key is charged to your own membership and point balance.' }
-        }}
-      </p>
-      <form class="mt-5 space-y-4" [formGroup]="form" (ngSubmit)="submit()">
+    <form xpDialogLayout="standard" class="max-h-[84vh]" [formGroup]="form" (ngSubmit)="submit()">
+      <header xpDialogHeader>
+        <h2 xpDialogHeading>
+          {{ 'XP.ModelGateway.CreateKey' | translate: { Default: 'Create API key' } }}
+        </h2>
+        <p xpDialogDescription>
+          {{
+            'XP.ModelGateway.KeyOwnerHint'
+              | translate: { Default: 'Usage from this key is charged to your own membership and point balance.' }
+          }}
+        </p>
+        <button
+          xpDialogCloseButton
+          z-button
+          zType="ghost"
+          zSize="icon"
+          type="button"
+          [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+          (click)="close()"
+        >
+          <z-icon zType="x" aria-hidden="true" />
+        </button>
+      </header>
+      <div xpDialogBody>
         <z-form-field class="w-full">
           <z-form-label>{{ 'XP.ModelGateway.KeyName' | translate: { Default: 'Key name' } }}</z-form-label>
           <input z-input formControlName="name" maxlength="100" />
@@ -47,22 +62,21 @@ import {
             }
           </z-select>
         </z-form-field>
-        <footer class="flex justify-end gap-2">
-          <button z-button zType="outline" type="button" (click)="close()">
-            {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
-          </button>
-          <button z-button type="submit" [disabled]="form.invalid">
-            {{ 'XP.ModelGateway.Create' | translate: { Default: 'Create' } }}
-          </button>
-        </footer>
-      </form>
-    </section>
+      </div>
+      <footer xpDialogFooter>
+        <button z-button zType="outline" type="button" (click)="close()">
+          {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+        </button>
+        <button z-button type="submit" [zDisabled]="form.invalid">
+          {{ 'XP.ModelGateway.Create' | translate: { Default: 'Create' } }}
+        </button>
+      </footer>
+    </form>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ModelGatewayKeyDialogComponent {
-  readonly #dialogRef =
-    inject<ZardDialogRef<ModelGatewayKeyDialogComponent, TModelGatewayApiKeyCreateInput | null>>(ZardDialogRef)
+  readonly #dialogRef = inject<DialogRef<TModelGatewayApiKeyCreateInput | null>>(DialogRef)
   readonly #formBuilder = inject(FormBuilder)
   readonly lifetimes = Object.values(ModelGatewayApiKeyLifetimeEnum)
   readonly form = this.#formBuilder.nonNullable.group({

@@ -1,10 +1,11 @@
+import { XpDialogFrameImports, ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject, model, signal, viewChild } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { routeAnimations } from '@xpert-ai/headless-ui'
+
 import { TranslateModule } from '@ngx-translate/core'
 import {
   getErrorMessage,
@@ -21,6 +22,8 @@ import { XpertStudioConfigureToolComponent } from '../openapi/'
 @Component({
   standalone: true,
   imports: [
+    ...XpDialogFrameImports,
+    ZardButtonComponent,
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
@@ -32,8 +35,6 @@ import { XpertStudioConfigureToolComponent } from '../openapi/'
   ],
   selector: 'xp-xpert-tool-create',
   templateUrl: './create.component.html',
-  styleUrl: 'create.component.scss',
-  animations: [routeAnimations],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class XpertStudioCreateToolComponent {
@@ -57,6 +58,8 @@ export class XpertStudioCreateToolComponent {
   }
 
   createTool() {
+    if (this.loading() || !this.configure()?.isValid()) return
+    this.loading.set(true)
     this.xpertToolsetService
       .create({
         ...omitBy(this.toolset(), isNil),
@@ -64,10 +67,12 @@ export class XpertStudioCreateToolComponent {
       })
       .subscribe({
         next: (result) => {
+          this.loading.set(false)
           this.#toastr.success('XP.Messages.CreatedSuccessfully', { Default: 'Created Successfully!' }, result.name)
           this.#dialogRef.close(result)
         },
         error: (error) => {
+          this.loading.set(false)
           this.#toastr.error(getErrorMessage(error))
         }
       })

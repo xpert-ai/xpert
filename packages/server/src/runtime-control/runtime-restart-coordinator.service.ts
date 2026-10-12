@@ -37,6 +37,7 @@ import type {
 	RestartOperationInput
 } from './runtime-restart.types'
 import { RUNTIME_PROCESS_SIGNALER, RuntimeProcessSignaler } from './runtime-process-signaler'
+import { closeRedisSubscriber } from './shutdown-step'
 import { RuntimeRestartTargetStore } from './runtime-restart-target.store'
 import { evaluateRuntimeRequirements, mergeRuntimeRequirements } from './plugin-runtime-requirements'
 import { RuntimeLifecycleService } from './runtime-lifecycle.service'
@@ -127,8 +128,7 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 			clearInterval(this.pollTimer)
 			this.pollTimer = undefined
 		}
-		await this.subscriber?.unsubscribe?.(RESTART_CHANNEL).catch(() => undefined)
-		await this.subscriber?.quit?.().catch(() => undefined)
+		await closeRedisSubscriber('restart-coordinator.redis', this.subscriber)
 		this.subscriber = undefined
 	}
 
@@ -619,6 +619,7 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 	}
 
 	private async terminateAfterDrain(metadata: RestartOperationMetadata, target: RestartTargetState): Promise<void> {
+		// This rolling-restart grace precedes the process watchdog, which starts only when SIGTERM is received.
 		const drained = await this.lifecycle.waitForIdle(this.drainTimeoutMs)
 		this.writeAuditLog('runtime.restart.replica-signaling', {
 			restartId: metadata.restartId,
@@ -981,7 +982,7 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 	}
 
 	private writeAuditLog(event: string, details: Record<string, unknown>): void {
-		this.logger.warn(JSON.stringify({ event, ...details }))
+		this.logger.warn(JSON.stringify({ event, pid: process.pid, ...details }))
 	}
 
 	private describeError(error: unknown): string {

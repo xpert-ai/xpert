@@ -1,81 +1,79 @@
-<div class="mb-2 text-xl font-semibold text-text-primary">
-  {{ 'XP.Explore.InstallSkillTitle' | translate: { Default: 'Install Skill' } }}
-</div>
-
-<p class="mb-6 text-sm leading-6 text-text-tertiary">
-  {{
-    'XP.Explore.InstallSkillDescription'
-      | translate
-        : {
-            name: item.name || item.skillId || item.skillPath,
-            Default:
-              'Select a target workspace for skill "' +
-              (item.name || item.skillId || item.skillPath) +
-              '". If it is already installed there, we will reuse it. If a newer version is available, we will update it in place.'
-          }
-  }}
-</p>
-
-<div class="rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-4">
-  <div class="text-sm font-medium text-text-primary">
-    {{ 'XP.KEY_WORDS.Workspace' | translate: { Default: 'Workspace' } }}
-  </div>
-  <div class="mt-3">
-    <z-select
-      class="w-full"
-      [zValue]="workspace()"
-      [zPlaceholder]="'XP.Xpert.SelectAWorkspace' | translate: { Default: 'Select a workspace' }"
-      (zSelectionChange)="selectWorkspace($event)"
-    >
-      @for (workspaceOption of workspaceOptions(); track workspaceOption.value) {
-        <z-select-item [zValue]="workspaceOption.value">
-          {{ workspaceOption.label }}
-        </z-select-item>
-      }
-    </z-select>
-  </div>
-
-  @if (!workspaces()?.length) {
-    <div class="mt-3 text-sm text-text-tertiary">
+<section xpDialogLayout="wide" xpDialogPurpose="workflow" class="w-[min(560px,calc(100vw-32px))] max-h-[84dvh]">
+  <header xpDialogHeader>
+    <h2 xpDialogHeading>{{ 'XP.Explore.InstallSkillTitle' | translate: { Default: 'Install Skill' } }}</h2>
+    <p xpDialogDescription>
       {{
-        'XP.Explore.NoWorkspaceFound'
+        'XP.Explore.InstallSkillDescription'
           | translate
-            : { Default: 'No workspace is available as an installation target yet. Please create a workspace first.' }
+            : {
+                name: item.name || item.skillId || item.skillPath,
+                Default:
+                  'Select a target workspace for skill "' +
+                  (item.name || item.skillId || item.skillPath) +
+                  '". If it is already installed there, we will reuse it. If a newer version is available, we will update it in place.'
+              }
       }}
-      <a
-        class="ml-1 text-primary-500 hover:text-primary-600"
-        routerLink="/xpert/w"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        {{ 'XP.Explore.OpenWorkspace' | translate: { Default: 'Open Workspace' } }}
-      </a>
+    </p>
+    <button
+      z-button
+      zType="ghost"
+      type="button"
+      xpDialogCloseButton
+      zSize="icon"
+      [zDisabled]="loading()"
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+      (click)="close()"
+    >
+      <z-icon zType="x" aria-hidden="true" />
+    </button>
+  </header>
+  <div xpDialogBody>
+    <div class="text-sm font-medium text-text-primary">
+      {{ 'XP.KEY_WORDS.Workspace' | translate: { Default: 'Workspace' } }}
     </div>
-  }
-</div>
+    <div class="mt-3">
+      <z-select
+        class="w-full"
+        [zValue]="workspace()"
+        [zDisabled]="loading()"
+        [zPlaceholder]="'XP.Xpert.SelectAWorkspace' | translate: { Default: 'Select a workspace' }"
+        (zSelectionChange)="selectWorkspace($event)"
+      >
+        @for (workspaceOption of workspaceOptions(); track workspaceOption.value) {
+          <z-select-item [zValue]="workspaceOption.value">
+            {{ workspaceOption.label }}
+          </z-select-item>
+        }
+      </z-select>
+    </div>
 
-@if (loading()) {
-  <div class="mt-5 flex items-center gap-2 text-sm text-text-tertiary">
-    <xp-spin />
-    {{ 'XP.Explore.InstallingSkill' | translate: { Default: 'Installing skill...' } }}
+    @if (!workspaces()?.length) {
+      <div class="mt-3 text-sm text-text-tertiary">
+        {{
+          'XP.Explore.NoWorkspaceFound'
+            | translate
+              : { Default: 'No workspace is available as an installation target yet. Please create a workspace first.' }
+        }}
+        <a class="ml-1 text-primary hover:underline" routerLink="/xpert/w" target="_blank" rel="noopener noreferrer">
+          {{ 'XP.Explore.OpenWorkspace' | translate: { Default: 'Open Workspace' } }}
+        </a>
+      </div>
+    }
   </div>
-}
-
-<div class="mt-8 flex flex-row-reverse gap-2">
-  <button
-    type="button"
-    class="btn btn-primary btn-medium disabled:btn-disabled"
-    [disabled]="!workspace() || loading()"
-    (click)="install()"
-  >
-    {{ 'XP.Explore.InstallOrUpdate' | translate: { Default: 'Install or Update' } }}
-  </button>
-  <button
-    type="button"
-    class="btn btn-secondary btn-medium disabled:btn-disabled"
-    [disabled]="loading()"
-    (click)="close()"
-  >
-    {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
-  </button>
-</div>
+  <footer xpDialogFooter>
+    <button z-button zType="outline" type="button" [zDisabled]="loading()" (click)="close()">
+      {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}</button
+    ><button
+      z-button
+      zType="default"
+      type="button"
+      [zDisabled]="!workspace() || loading()"
+      [zLoading]="loading()"
+      (click)="install()"
+    >
+      <z-icon zType="file_download" aria-hidden="true" />{{
+        'XP.Explore.InstallOrUpdate' | translate: { Default: 'Install or Update' }
+      }}
+    </button>
+  </footer>
+</section>

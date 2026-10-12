@@ -1,11 +1,18 @@
+import {
+  ZardButtonComponent,
+  XpDialogActionGroupDirective,
+  ZardIconComponent,
+  FileTypePipe,
+  XpSpinComponent,
+  linkedModel,
+  myRxResource
+} from '@xpert-ai/headless-ui'
+
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { booleanAttribute, Component, computed, effect, inject, input, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { FileTypePipe } from '@xpert-ai/headless-ui'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
-import { linkedModel, myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { cloneDeep, sortBy } from 'lodash-es'
 import { of } from 'rxjs'
@@ -41,7 +48,10 @@ export type TFileDirectoryItem = TFileDirectory & {
     XpSpinComponent,
     DateRelativePipe,
     FileTypePipe,
-    FileIconComponent
+    FileIconComponent,
+    ZardButtonComponent,
+    XpDialogActionGroupDirective,
+    ZardIconComponent
   ]
 })
 export class ChatFileListComponent {

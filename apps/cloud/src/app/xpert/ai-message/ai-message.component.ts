@@ -467,8 +467,11 @@ export class ChatAiMessageComponent {
   openLogs() {
     this.#dialog
       .open(ChatMessageExecutionPanelComponent, {
-        panelClass: 'chat-message-executions-dialog',
+        panelClass: 'xp-overlay-pane-dialog',
+        backdropClass: 'backdrop-blur-xs-black',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
+          presentation: 'dialog',
           id: this.message().executionId,
           xpert: this.xpert()
         }

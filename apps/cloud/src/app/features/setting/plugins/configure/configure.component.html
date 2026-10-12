@@ -1,78 +1,70 @@
-<div class="relative flex min-h-0 w-[min(760px,92vw)] max-h-[70vh] flex-col">
-  <div class="flex shrink-0 items-start justify-between px-6 pt-4 pb-3">
-    <div>
-      <div class="text-2xl font-semibold text-text-primary">
-        {{ 'XP.Plugin.ConfigurePlugin' | translate: { Default: 'Configure Plugin' } }}
-      </div>
-      <div class="pt-1 text-sm text-text-tertiary">
-        {{ plugin()?.meta?.displayName || plugin()?.name | i18n }}
-      </div>
-    </div>
+<section xpDialogLayout="wide" class="w-[min(760px,calc(100vw-32px))] max-h-[84dvh]">
+  <header xpDialogHeader>
+    <h2 xpDialogHeading>{{ 'XP.Plugin.ConfigurePlugin' | translate: { Default: 'Configure Plugin' } }}</h2>
+    <p xpDialogDescription>{{ plugin()?.meta?.displayName || plugin()?.name | i18n }}</p>
     <button
+      z-button
+      zType="ghost"
       type="button"
-      class="btn btn-ghost btn-small flex h-8 w-8 items-center justify-center hover:text-text-destructive"
+      xpDialogCloseButton
+      zSize="icon"
+      [zDisabled]="saving()"
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
       (click)="close()"
     >
-      <i class="ri-close-line"></i>
+      <z-icon zType="x" aria-hidden="true" />
     </button>
-  </div>
-
-  @if (needsConfiguration()) {
-    <div
-      class="mx-6 mb-4 rounded-xl border border-text-warning bg-background-default-subtle px-4 py-3 text-sm text-text-warning"
-    >
-      <div class="flex items-start gap-2">
-        <i class="ri-alert-line mt-0.5"></i>
-        <div class="min-w-0">
-          <div class="font-medium">
-            {{
-              'XP.Plugin.RequiresConfiguration'
-                | translate: { Default: 'This plugin needs configuration before it can be used.' }
-            }}
+  </header>
+  <div xpDialogBody>
+    @if (needsConfiguration()) {
+      <div
+        class="rounded-xl border border-text-warning bg-background-default-subtle px-4 py-3 text-sm text-text-warning"
+      >
+        <div class="flex items-start gap-2">
+          <i class="ri-alert-line mt-0.5"></i>
+          <div class="min-w-0">
+            <div class="font-medium">
+              {{
+                'XP.Plugin.RequiresConfiguration'
+                  | translate: { Default: 'This plugin needs configuration before it can be used.' }
+              }}
+            </div>
+            @if (configurationError()) {
+              <div class="mt-1 break-words text-text-secondary">{{ configurationError() }}</div>
+            }
           </div>
-          @if (configurationError()) {
-            <div class="mt-1 break-words text-text-secondary">{{ configurationError() }}</div>
-          }
         </div>
       </div>
-    </div>
-  }
-
-  <div class="relative min-h-[200px] flex-1 overflow-y-auto px-6 pb-6">
-    @if (schema(); as schema) {
-      <json-schema-form class="grid grid-cols-2 gap-3" [schema]="schema" [(ngModel)]="config" />
-    } @else {
-      <div class="rounded-xl border border-divider-deep bg-components-card-bg px-4 py-6 text-sm text-text-tertiary">
-        {{ 'XP.Plugin.NoConfigSchema' | translate: { Default: 'This plugin does not expose a configuration schema.' } }}
-      </div>
     }
 
-    @if (loading() || saving()) {
-      <xp-spin
-        class="absolute inset-0 rounded-xl backdrop-blur-sm"
-        style="background-color: color-mix(in oklab, var(--background) 40%, transparent)"
-      />
-    }
-  </div>
-
-  @if (error()) {
-    <div class="p-3 text-sm text-text-destructive">{{ error() }}</div>
-  }
-
-  <div class="flex shrink-0 items-center justify-end gap-2 px-6 py-4">
-    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large" (click)="close()">
-      {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
-    </button>
-    <button
-      type="button"
-      class="btn disabled:btn-disabled btn-primary btn-large flex items-center gap-1"
-      [disabled]="invalid()"
-      (click)="save()"
-    >
-      @if (saving()) {
-        <xp-spin small class="!text-primary-200" />
+    <div class="relative min-h-[200px]">
+      @if (schema(); as schema) {
+        <json-schema-form class="grid grid-cols-1 gap-3 sm:grid-cols-2" [schema]="schema" [(ngModel)]="config" />
+      } @else {
+        <div class="rounded-xl border border-divider-deep bg-components-card-bg px-4 py-6 text-sm text-text-tertiary">
+          {{
+            'XP.Plugin.NoConfigSchema' | translate: { Default: 'This plugin does not expose a configuration schema.' }
+          }}
+        </div>
       }
-      <span>{{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}</span>
-    </button>
+
+      @if (loading() || saving()) {
+        <xp-spin
+          class="absolute inset-0 rounded-xl backdrop-blur-sm"
+          style="background-color: color-mix(in oklab, var(--background) 40%, transparent)"
+        />
+      }
+    </div>
+
+    @if (error()) {
+      <div role="alert" class="text-destructive">{{ error() }}</div>
+    }
   </div>
-</div>
+  <footer xpDialogFooter>
+    <button z-button zType="outline" type="button" [zDisabled]="saving()" (click)="close()">
+      {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}</button
+    ><button z-button zType="default" type="button" [zDisabled]="invalid()" [zLoading]="saving()" (click)="save()">
+      {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
+    </button>
+  </footer>
+</section>

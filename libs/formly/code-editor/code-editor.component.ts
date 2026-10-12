@@ -17,7 +17,9 @@ export class XpFormlyCodeEditorComponent extends FieldType {
   async openCodeEditorDialog() {
     const result = await firstValueFrom(
       this.#dialog.open(XpConfirmCodeEditorComponent, {
-        panelClass: 'large',
+        panelClass: 'xp-overlay-pane-dialog',
+        backdropClass: 'backdrop-blur-xs-black',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           model: this.field.formControl!.value,
           language: this.props?.language,

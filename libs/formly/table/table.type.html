@@ -15,98 +15,110 @@
 }
 
 <ng-template #inlineTable>
-  <div class="overflow-auto w-full">
-    <table z-table class="w-full">
-      <thead z-table-header>
-        <tr z-table-row class="border-b bg-muted/30 hover:bg-muted/30">
-          <th z-table-head class="w-12 min-w-12"></th>
+  <div xpDialogLayout="standard" class="w-full">
+    <div class="overflow-auto w-full">
+      <table z-table class="w-full">
+        <thead z-table-header>
+          <tr z-table-row class="border-b bg-muted/30 hover:bg-muted/30">
+            <th z-table-head class="w-12 min-w-12"></th>
 
-          @for (column of columns; track column.key) {
-          <th z-table-head [style.width]="column.width">{{ column.label }}</th>
+            @for (column of columns; track column.key) {
+            <th z-table-head [style.width]="column.width">{{ column.label }}</th>
+            }
+
+            <th z-table-head class="w-16 min-w-16"></th>
+          </tr>
+        </thead>
+
+        <tbody z-table-body cdkDropList [cdkDropListData]="data" (cdkDropListDropped)="drop($event)">
+          @for (row of data; track $index; let i = $index) {
+          <tr z-table-row cdkDrag cdkDragLockAxis="y">
+            <td z-table-cell cdkDragHandle class="xp-formly-table__drag-handle">
+              <svg
+                t="1630562920128"
+                class="cursor-pointer fill-current text-muted-foreground"
+                viewBox="0 0 1024 1024"
+                version="1.1"
+                xmlns="http://www.w3.org/2000/svg"
+                p-id="2318"
+                width="20"
+                height="20"
+              >
+                <path
+                  d="M469.333333 256a85.333333 85.333333 0 1 1-85.333333-85.333333 85.333333 85.333333 0 0 1 85.333333 85.333333z m-85.333333 170.666667a85.333333 85.333333 0 1 0 85.333333 85.333333 85.333333 85.333333 0 0 0-85.333333-85.333333z m0 256a85.333333 85.333333 0 1 0 85.333333 85.333333 85.333333 85.333333 0 0 0-85.333333-85.333333z m256-341.333334a85.333333 85.333333 0 1 0-85.333333-85.333333 85.333333 85.333333 0 0 0 85.333333 85.333333z m0 85.333334a85.333333 85.333333 0 1 0 85.333333 85.333333 85.333333 85.333333 0 0 0-85.333333-85.333333z m0 256a85.333333 85.333333 0 1 0 85.333333 85.333333 85.333333 85.333333 0 0 0-85.333333-85.333333z"
+                  p-id="2319"
+                ></path>
+              </svg>
+            </td>
+
+            @for (column of columns; track column.key; let j = $index) {
+            <td z-table-cell [style.width]="column.width">
+              <formly-field [field]="field.fieldGroup[i]?.fieldGroup[j]" [style.width]="column.width"></formly-field>
+            </td>
+            }
+
+            <td z-table-cell>
+              <div xpDialogActionGroup="inline">
+                <button
+                  z-button
+                  zType="destructive"
+                  zSize="icon"
+                  [attr.aria-label]="'XP.ACTIONS.Delete' | translate: {Default: 'Delete'}"
+                  (click)="deleteRow(i)"
+                >
+                  <z-icon zType="close"></z-icon>
+                </button>
+              </div>
+            </td>
+          </tr>
+          } @empty {
+          <tr z-table-row>
+            <td z-table-cell class="py-8 text-center text-muted-foreground" [attr.colspan]="columns.length + 2">
+              {{ 'XP.Table.NoData' | translate: { Default: 'No data' } }}
+            </td>
+          </tr>
           }
-
-          <th z-table-head class="w-16 min-w-16"></th>
-        </tr>
-      </thead>
-
-      <tbody z-table-body cdkDropList [cdkDropListData]="data" (cdkDropListDropped)="drop($event)">
-        @for (row of data; track $index; let i = $index) {
-        <tr z-table-row cdkDrag cdkDragLockAxis="y">
-          <td z-table-cell cdkDragHandle class="xp-formly-table__drag-handle">
-            <svg
-              t="1630562920128"
-              class="cursor-pointer dark:fill-slate-200"
-              viewBox="0 0 1024 1024"
-              version="1.1"
-              xmlns="http://www.w3.org/2000/svg"
-              p-id="2318"
-              width="20"
-              height="20"
-            >
-              <path
-                d="M469.333333 256a85.333333 85.333333 0 1 1-85.333333-85.333333 85.333333 85.333333 0 0 1 85.333333 85.333333z m-85.333333 170.666667a85.333333 85.333333 0 1 0 85.333333 85.333333 85.333333 85.333333 0 0 0-85.333333-85.333333z m0 256a85.333333 85.333333 0 1 0 85.333333 85.333333 85.333333 85.333333 0 0 0-85.333333-85.333333z m256-341.333334a85.333333 85.333333 0 1 0-85.333333-85.333333 85.333333 85.333333 0 0 0 85.333333 85.333333z m0 85.333334a85.333333 85.333333 0 1 0 85.333333 85.333333 85.333333 85.333333 0 0 0-85.333333-85.333333z m0 256a85.333333 85.333333 0 1 0 85.333333 85.333333 85.333333 85.333333 0 0 0-85.333333-85.333333z"
-                p-id="2319"
-              ></path>
-            </svg>
-          </td>
-
-          @for (column of columns; track column.key; let j = $index) {
-          <td z-table-cell [style.width]="column.width">
-            <formly-field [field]="field.fieldGroup[i]?.fieldGroup[j]" [style.width]="column.width"></formly-field>
-          </td>
-          }
-
-          <td z-table-cell>
-            <button z-button zType="destructive" zSize="icon-sm" zShape="circle" (click)="deleteRow(i)">
-              <z-icon zType="close"></z-icon>
-            </button>
-          </td>
-        </tr>
-        } @empty {
-        <tr z-table-row>
-          <td z-table-cell class="py-8 text-center text-muted-foreground" [attr.colspan]="columns.length + 2">
-            {{ 'XP.Table.NoData' | translate: { Default: 'No data' } }}
-          </td>
-        </tr>
-        }
-      </tbody>
-    </table>
-  </div>
-  <div class="my-2">
-    <button z-button zType="outline" class="border-dashed" zSize="sm" (click)="addRow()">
-      <div class="flex items-center justify-start">
-        <z-icon zType="add"></z-icon>
-        {{'FORMLY.TABLE.AddRow' | translate: {Default: 'Add'} }}
-      </div>
-    </button>
+        </tbody>
+      </table>
+    </div>
+    <div xpDialogActionGroup="inline" class="mt-3">
+      <button z-button zType="outline" class="border-dashed" (click)="addRow()">
+        <div class="flex items-center justify-start">
+          <z-icon zType="add"></z-icon>
+          {{'FORMLY.TABLE.AddRow' | translate: {Default: 'Add'} }}
+        </div>
+      </button>
+    </div>
   </div>
 </ng-template>
 
-<ng-template #dialogRef>
-  <header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-    <h4 style="pointer-events: none">
-      {{ props?.title || ('FORMLY.TABLE.Options' | translate: {Default: 'Options'}) }}
-    </h4>
-  </header>
-
-  <xp-dialog-content class="xp-formly-table">
-    <ng-container *ngTemplateOutlet="inlineTable"></ng-container>
-  </xp-dialog-content>
-
-  <xp-dialog-actions class="flex justify-between items-center">
-    <div>
-      <button z-button zType="ghost" (click)="clear()">
-        {{ 'FORMLY.COMMON.Clear' | translate: {Default: 'Clear'} }}
+<ng-template #dialogRef let-dialogRef="dialogRef">
+  <div xpDialogLayout="wide" xpDialogPurpose="workflow" class="w-[800px] max-w-full max-h-[85dvh]">
+    <header xpDialogHeader cdkDrag cdkDragRootElement=".cdk-overlay-pane">
+      <h2 cdkDragHandle class="cursor-move" xpDialogHeading>
+        {{ props?.title || ('FORMLY.TABLE.Options' | translate: {Default: 'Options'}) }}
+      </h2>
+      <button
+        type="button"
+        z-button
+        zType="ghost"
+        zSize="icon"
+        xpDialogCloseButton
+        [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+        (click)="dialogRef.close()"
+      >
+        <z-icon zType="x" />
       </button>
-    </div>
-
-    <div class="flex items-center gap-1">
-      <button z-button zType="ghost" xpDialogClose>
-        {{ 'FORMLY.COMMON.Cancel' | translate: {Default: 'Cancel'} }}
+    </header>
+    <div xpDialogBody><ng-container *ngTemplateOutlet="inlineTable" /></div>
+    <footer xpDialogFooter>
+      <button type="button" z-button zType="outline" class="mr-auto" (click)="clear()">
+        {{ 'COMPONENTS.COMMON.CLEAR' | translate: { Default: 'Clear' } }}</button
+      ><button type="button" z-button zType="outline" (click)="dialogRef.close()">
+        {{ 'COMPONENTS.COMMON.CANCEL' | translate: { Default: 'Cancel' } }}</button
+      ><button type="button" z-button zType="default" (click)="dialogRef.close(true)">
+        {{ 'COMPONENTS.COMMON.APPLY' | translate: { Default: 'Apply' } }}
       </button>
-      <button z-button zType="default" cdkFocusInitial [xpDialogClose]="true">
-        {{ 'FORMLY.COMMON.Apply' | translate: {Default: 'Apply'} }}
-      </button>
-    </div>
-  </xp-dialog-actions>
-</ng-template>
+    </footer>
+  </div></ng-template
+>

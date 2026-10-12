@@ -416,6 +416,7 @@ export class AgentEvolutionReleaseComponent {
     if (!release || !action || !action.enabled) return
     const confirmed = await firstValueFrom(
       this.#alertDialog.confirm({
+        layout: 'standard',
         title: this.#translate.instant('XP.AgentEvolution.NextReleaseTitle', {
           Default: `${action.label}?`
         }),
@@ -434,6 +435,7 @@ export class AgentEvolutionReleaseComponent {
     if (!release) return
     const confirmed = await firstValueFrom(
       this.#alertDialog.confirm({
+        layout: 'standard',
         title: this.#translate.instant('XP.AgentEvolution.PauseReleaseTitle'),
         description: this.#translate.instant('XP.AgentEvolution.PauseReleaseDescription'),
         actionText: this.#translate.instant('XP.AgentEvolution.PauseReleaseAction'),
@@ -448,6 +450,7 @@ export class AgentEvolutionReleaseComponent {
     if (!release) return
     const confirmed = await firstValueFrom(
       this.#alertDialog.confirm({
+        layout: 'standard',
         title: this.#translate.instant('XP.AgentEvolution.RollbackTitle'),
         description: this.#translate.instant('XP.AgentEvolution.RollbackDescription', {
           from: release.targetVersionId,
@@ -467,6 +470,7 @@ export class AgentEvolutionReleaseComponent {
     const reason = this.manualTestReason().trim()
     const confirmed = await firstValueFrom(
       this.#alertDialog.confirm({
+        layout: 'standard',
         title: this.#translate.instant('XP.AgentEvolution.CanaryTestOverrideConfirmTitle'),
         description: this.#translate.instant('XP.AgentEvolution.CanaryTestOverrideConfirmDescription', {
           subjectKey

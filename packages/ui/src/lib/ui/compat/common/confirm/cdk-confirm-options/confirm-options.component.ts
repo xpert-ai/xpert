@@ -1,27 +1,35 @@
+import { DragDropModule } from '@angular/cdk/drag-drop'
+import { ZardButtonComponent, XpDialogFrameImports } from '../../../../../components'
+
 import { A11yModule } from '@angular/cdk/a11y'
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
-import { DragDropModule } from '@angular/cdk/drag-drop'
 
-import { Component, HostBinding, inject, signal } from '@angular/core'
+import { Component, inject, signal } from '@angular/core'
 import { FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 
 @Component({
   standalone: true,
-  imports: [A11yModule, FormsModule, ReactiveFormsModule, FormlyModule, TranslateModule, DragDropModule],
+  imports: [
+    DragDropModule,
+    ...XpDialogFrameImports,
+    ZardButtonComponent,
+    A11yModule,
+    FormsModule,
+    ReactiveFormsModule,
+    FormlyModule,
+    TranslateModule
+  ],
   selector: 'cdk-confirm-options',
   templateUrl: './confirm-options.component.html',
-  styleUrls: ['./confirm-options.component.scss'],
   host: {
-    class: 'cdk-dialog-card'
+    class: 'block min-w-0'
   }
 })
 export class CdkConfirmOptionsComponent<T> {
   readonly data = inject<{ formFields: FormlyFieldConfig[]; information: string; value: T }>(DIALOG_DATA)
   readonly dialogRef = inject(DialogRef)
-
-  @HostBinding('class.xp-dialog-container') isDialogContainer = true
 
   formGroup = new FormGroup({})
   model = {}
@@ -51,6 +59,9 @@ export function injectConfirmOptions() {
 
   return <T>(info: { formFields: FormlyFieldConfig[]; information?: string; value?: T }) => {
     return dialog.open<T>(CdkConfirmOptionsComponent, {
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)',
       data: info
     }).closed
   }

@@ -1,3 +1,4 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import type {
@@ -40,7 +41,9 @@ describe('XpertProjectConfigComponent run-as transfer', () => {
     schedule: jest.fn()
   }
   const store = {
-    userId: 'user-1'
+    userId: 'user-1',
+    userRolePermissions: [],
+    userRolePermissions$: of([])
   }
 
   beforeEach(() => {
@@ -64,6 +67,7 @@ describe('XpertProjectConfigComponent run-as transfer', () => {
             getAllMy: jest.fn(() => of({ items: [] }))
           }
         },
+        { provide: Dialog, useValue: { open: jest.fn() } },
         { provide: ZardDialogService, useValue: { open: jest.fn() } },
         { provide: XpertTaskDialogService, useValue: { openCreateTask: jest.fn() } },
         { provide: XpertTaskService, useValue: taskService },

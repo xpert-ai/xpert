@@ -1,13 +1,20 @@
+import {
+  XpDialogFrameImports,
+  ZardButtonComponent,
+  XpDialogActionGroupDirective,
+  CdkConfirmDeleteComponent,
+  XpI18nPipe,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { TextFieldModule } from '@angular/cdk/text-field'
 
-import { ChangeDetectionStrategy, Component, effect, inject, model, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, effect, inject, model, signal, viewChild } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { CdkConfirmDeleteComponent, XpSpinComponent } from '@xpert-ai/headless-ui'
-import { XpI18nPipe } from '@xpert-ai/headless-ui'
+
 import { TranslateModule } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { EMPTY, of, switchMap } from 'rxjs'
@@ -23,7 +30,6 @@ import {
 import { EmojiAvatarComponent, IconComponent } from '../../avatar'
 import { IntegrationFormComponent } from '../../integration'
 import { environment } from '@cloud/environments/environment'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 /**
  * @deprecated use triggers in workflow instead
@@ -32,8 +38,10 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   standalone: true,
   selector: 'xpert-publish-dialog',
   templateUrl: './publish.component.html',
-  styleUrls: ['publish.component.scss'],
   imports: [
+    ...XpDialogFrameImports,
+    ZardButtonComponent,
+    XpDialogActionGroupDirective,
     FormsModule,
     ReactiveFormsModule,
     DragDropModule,
@@ -41,7 +49,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     TranslateModule,
     ...ZardTooltipImports,
-    XpSpinComponent,
     EmojiAvatarComponent,
     IconComponent,
     IntegrationFormComponent,
@@ -62,6 +69,7 @@ export class XpertPublishComponent {
 
   readonly #providers = toSignal(this.integrationService.getProviders(), { initialValue: [] })
 
+  readonly integrationForm = viewChild(IntegrationFormComponent)
   readonly loading = signal(false)
 
   readonly providers = signal<TIntegrationProvider[]>([])
@@ -130,6 +138,12 @@ export class XpertPublishComponent {
     this.selectedIntegrations.set([])
   }
 
+  saveSelectedIntegration() {
+    const form = this.integrationForm()?.formGroup
+    if (this.loading() || !form || form.invalid || form.pristine) return
+    this.save(form.value)
+  }
+
   save(value: Partial<IIntegration>) {
     this.loading.set(true)
     this.xpertService
@@ -157,6 +171,9 @@ export class XpertPublishComponent {
     if (integration.id) {
       this.#dialog
         .open(CdkConfirmDeleteComponent, {
+          backdropClass: 'backdrop-blur-xs-black',
+          panelClass: 'xp-overlay-pane-dialog',
+          maxWidth: 'calc(100vw - 2rem)',
           data: {
             value: integration.name,
             information: integration.description

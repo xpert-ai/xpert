@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing'
 import type { ConnectorBinding, ConnectorStrategyDefinition } from '@xpert-ai/plugin-sdk/connector'
-import { Z_MODAL_DATA, ZardDialogRef } from '@xpert-ai/headless-ui'
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { of } from 'rxjs'
 import { ToastrService, XpertConnectorService } from '../../@core'
 import { XpertProjectConnectorsDialogComponent } from './project-connectors-dialog.component'
@@ -124,8 +124,8 @@ async function createComponent(input: {
     providers: [
       { provide: XpertConnectorService, useValue: connectorService },
       { provide: ToastrService, useValue: { error: jest.fn() } },
-      { provide: ZardDialogRef, useValue: { close: jest.fn() } },
-      { provide: Z_MODAL_DATA, useValue: { projectId: 'project-1', canManage: input.canManage } }
+      { provide: DialogRef, useValue: { close: jest.fn() } },
+      { provide: DIALOG_DATA, useValue: { projectId: 'project-1', canManage: input.canManage } }
     ]
   })
     .overrideComponent(XpertProjectConnectorsDialogComponent, { set: { template: '', imports: [] } })

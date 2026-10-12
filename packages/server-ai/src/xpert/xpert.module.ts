@@ -45,6 +45,8 @@ import { XpertProfileIdentityService } from './xpert-profile-identity.service'
 import { PublishedXpertAccessService } from './published-xpert-access.service'
 import { AssistantBindingModule } from '../assistant-binding/assistant-binding.module'
 import { AgentViewHostDefinition } from '../view-extension/hosts/agent-view-host.definition'
+import { ViewMiddlewareRuntimeService } from '../view-extension/view-middleware-runtime.service'
+import { AgentMiddlewareRuntimeModule } from '../shared/agent/middleware-runtime/middleware-runtime.module'
 import { SkillPackageModule } from '../skill-package'
 import { XpertTemplateModule } from '../xpert-template/xpert-template.module'
 import { PromptWorkflowModule } from '../prompt-workflow'
@@ -102,6 +104,7 @@ import { XpertTriggerConnectionService } from './trigger-connection.service'
         PromptWorkflowModule,
         ModelAccessModule,
         WorkspaceFilesRuntimeModule,
+        AgentMiddlewareRuntimeModule,
         SandboxModule,
         CopilotCheckpointModule,
         CopilotStoreModule,
@@ -131,6 +134,7 @@ import { XpertTriggerConnectionService } from './trigger-connection.service'
         AnonymousStrategy,
         WorkflowTriggerRegistry,
         AgentViewHostDefinition,
+        ViewMiddlewareRuntimeService,
         PublishedXpertAccessService,
         XpertProfileIdentityService,
         XpertProfileIndicatorsService,

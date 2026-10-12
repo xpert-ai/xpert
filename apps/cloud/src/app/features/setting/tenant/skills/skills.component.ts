@@ -110,6 +110,9 @@ export class TenantSkillsComponent {
 
     this.#dialog
       .open<Array<ISkillPackage | ISkillRepositoryIndex> | null>(XpertSkillUploadDialogComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 2rem)',
         data: {
           repositoryId: repository.id
         }
@@ -124,14 +127,20 @@ export class TenantSkillsComponent {
   }
 
   openRegisterRepositoryModal() {
-    this.#dialog.open<string | null>(XpertSkillRepositoryRegisterComponent).closed.subscribe({
-      next: (repositoryId) => {
-        if (repositoryId) {
-          this.selectedRepositoryId.set(repositoryId)
-          this.refreshRepositories()
+    this.#dialog
+      .open<string | null>(XpertSkillRepositoryRegisterComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)'
+      })
+      .closed.subscribe({
+        next: (repositoryId) => {
+          if (repositoryId) {
+            this.selectedRepositoryId.set(repositoryId)
+            this.refreshRepositories()
+          }
         }
-      }
-    })
+      })
   }
 
   async syncTemplateSkills() {
@@ -141,6 +150,7 @@ export class TenantSkillsComponent {
   async forceSyncTemplateSkills() {
     const confirmed = await firstValueFrom(
       this.#toastr.confirm({
+        layout: 'standard',
         code: 'Pro.SkillSync.ConfirmFullSync',
         params: {
           Default:

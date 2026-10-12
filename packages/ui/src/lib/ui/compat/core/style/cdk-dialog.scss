@@ -144,7 +144,8 @@ z-dialog.xp-overlay-pane-card {
 }
 
 .cdk-overlay-pane.xp-overlay-pane-dialog {
-  .cdk-dialog-container {
+  .cdk-dialog-container,
+  > z-dialog {
     @apply overflow-hidden rounded-xl bg-popover text-popover-foreground ring-1 ring-foreground/10 outline-none;
   }
 }

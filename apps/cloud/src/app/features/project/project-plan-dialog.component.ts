@@ -1,3 +1,4 @@
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { Component, inject } from '@angular/core'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
@@ -12,12 +13,11 @@ import type {
   TXpertProjectSprintStrategy
 } from '@xpert-ai/contracts'
 import {
-  Z_MODAL_DATA,
   ZardButtonComponent,
-  ZardDialogRef,
   ZardFormImports,
   ZardInputDirective,
-  ZardSelectImports
+  ZardSelectImports,
+  XpDialogFrameImports
 } from '@xpert-ai/headless-ui'
 
 export type XpertProjectPlanDialogMode = 'plan' | 'sprint' | 'milestone'
@@ -36,6 +36,7 @@ export type XpertProjectPlanDialogResult =
   standalone: true,
   selector: 'xp-project-plan-dialog',
   imports: [
+    ...XpDialogFrameImports,
     CommonModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -45,17 +46,17 @@ export type XpertProjectPlanDialogResult =
     ...ZardSelectImports
   ],
   template: `
-    <section class="min-w-0">
-      <header class="border-b border-divider-subtle pb-4">
-        <p class="text-xs font-medium uppercase tracking-wide text-text-tertiary">
-          {{ 'XP.XProject.' + modeLabel() | translate: { Default: modeLabel() } }}
-        </p>
-        <h2 class="mt-1 text-lg font-semibold text-text-primary">
+    <form xpDialogLayout="wide" class="max-h-[84vh]" [formGroup]="form" (ngSubmit)="submit()">
+      <header xpDialogHeader>
+        <h2 xpDialogHeading>
           {{ 'XP.XProject.' + titleKey() | translate: { Default: titleKey() } }}
         </h2>
+        <p xpDialogDescription>
+          {{ 'XP.XProject.' + modeLabel() | translate: { Default: modeLabel() } }}
+        </p>
       </header>
 
-      <form class="space-y-4 py-5" [formGroup]="form" (ngSubmit)="submit()">
+      <div xpDialogBody>
         @if (mode === 'plan') {
           <z-form-field class="w-full">
             <z-form-label [zRequired]="true">{{ 'XP.XProject.PlanName' | translate }}</z-form-label>
@@ -136,25 +137,23 @@ export type XpertProjectPlanDialogResult =
             </z-form-field>
           </div>
         }
-
-        <footer class="flex justify-end gap-2 border-t border-divider-subtle pt-4">
-          <button z-button zType="outline" type="button" (click)="close()">
-            {{ 'XP.XProject.Cancel' | translate }}
-          </button>
-          <button z-button zType="default" type="submit" [disabled]="form.invalid">
-            {{ 'XP.XProject.' + submitKey() | translate: { Default: submitKey() } }}
-          </button>
-        </footer>
-      </form>
-    </section>
+      </div>
+      <footer xpDialogFooter>
+        <button z-button zType="outline" type="button" (click)="close()">
+          {{ 'XP.XProject.Cancel' | translate }}
+        </button>
+        <button z-button zType="default" type="submit" [zDisabled]="form.invalid">
+          {{ 'XP.XProject.' + submitKey() | translate: { Default: submitKey() } }}
+        </button>
+      </footer>
+    </form>
   `,
   host: { class: 'block w-full min-w-0' }
 })
 export class XpertProjectPlanDialogComponent {
-  readonly #dialogRef =
-    inject<ZardDialogRef<XpertProjectPlanDialogComponent, XpertProjectPlanDialogResult | null>>(ZardDialogRef)
+  readonly #dialogRef = inject<DialogRef<XpertProjectPlanDialogResult | null>>(DialogRef)
   readonly #fb = inject(FormBuilder)
-  readonly #data = inject<XpertProjectPlanDialogData>(Z_MODAL_DATA)
+  readonly #data = inject<XpertProjectPlanDialogData>(DIALOG_DATA)
 
   readonly mode = this.#data.mode
   readonly planStatuses: TXpertProjectPlanStatus[] = ['draft', 'active', 'completed', 'archived']

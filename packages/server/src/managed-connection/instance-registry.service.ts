@@ -1,6 +1,7 @@
 import type { IRuntimeInstanceRegistration, IRuntimeInstanceRetirementResult } from '@xpert-ai/contracts'
 import { randomUUID } from 'crypto'
 import { hostname } from 'os'
+import { runShutdownStep } from '../runtime-control/shutdown-step'
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common'
 import { REDIS_CLIENT } from '../core/redis/types'
 
@@ -88,19 +89,28 @@ export class InstanceRegistryService implements OnModuleInit, OnModuleDestroy {
 	}
 
 	async onModuleDestroy(): Promise<void> {
+		this.logger.debug(
+			JSON.stringify({
+				event: 'runtime.shutdown.instance-unregister-started',
+				pid: process.pid,
+				instanceId: this.instanceId,
+				bootId: this.bootId,
+				heartbeatInFlight: Boolean(this.heartbeatInFlight)
+			})
+		)
+		// Stop creating heartbeat writes before waiting for the write already in flight.
 		if (this.timer) {
 			clearInterval(this.timer)
 			this.timer = undefined
 		}
-		await this.heartbeatInFlight
-		await this.redisClient
-			.eval(REMOVE_INSTANCE_SCRIPT, {
+		await runShutdownStep('instance-registry.heartbeat', () => this.heartbeatInFlight)
+		// Compare boot IDs atomically: late cleanup from this PID must never remove its replacement's registration.
+		await runShutdownStep('instance-registry.unregister', () =>
+			this.redisClient.eval(REMOVE_INSTANCE_SCRIPT, {
 				keys: [INSTANCE_MEMBERS_KEY, this.key(this.instanceId)],
 				arguments: [this.instanceId, this.bootId]
 			})
-			.catch((error) => {
-				this.logger.warn(`Failed to remove managed connection instance heartbeat: ${this.describeError(error)}`)
-			})
+		)
 	}
 
 	async getRegisteredInstances(): Promise<RuntimeInstance[]> {

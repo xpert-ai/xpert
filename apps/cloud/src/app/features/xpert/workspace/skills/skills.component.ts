@@ -1,3 +1,19 @@
+import {
+  ZardButtonComponent,
+  XpDialogFrameImports,
+  ZardInputDirective,
+  OverlayAnimation1,
+  injectConfirmDelete,
+  XpSpinComponent,
+  myRxResource,
+  XpI18nPipe,
+  cx,
+  ZardBadgeComponent,
+  ZardCardImports,
+  ZardCheckboxComponent,
+  ZardIconComponent,
+  ZardInputGroupComponent
+} from '@xpert-ai/headless-ui'
 import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
@@ -29,21 +45,8 @@ import {
   XpertSkillRepositoriesComponent
 } from '@cloud/app/@shared/skills'
 import { IconComponent } from '@cloud/app/@shared/avatar'
-import { OverlayAnimation1 } from '@xpert-ai/headless-ui'
-import { injectConfirmDelete, XpSpinComponent } from '@xpert-ai/headless-ui'
-import { myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom, forkJoin } from 'rxjs'
-import {
-  cx,
-  ZardBadgeComponent,
-  ZardButtonComponent,
-  ZardCardImports,
-  ZardCheckboxComponent,
-  ZardIconComponent,
-  ZardInputDirective,
-  ZardInputGroupComponent
-} from '@xpert-ai/headless-ui'
 import { getErrorMessage, injectSkillPackageAPI, injectToastr } from '../../../../@core'
 import type { IconDefinition, ISkillPackage, ISkillRepository, ISkillRepositoryIndex } from '../../../../@core'
 import { XpertAssistantFacade } from '../../assistant-shell/assistant.facade'
@@ -73,7 +76,8 @@ type MobilePane = 'skills' | 'tree' | 'file'
     ZardIconComponent,
     ZardInputDirective,
     ZardInputGroupComponent,
-    ...ZardCardImports
+    ...ZardCardImports,
+    ...XpDialogFrameImports
   ],
   selector: 'xp-workspace-skills',
   templateUrl: './skills.component.html',
@@ -406,6 +410,9 @@ export class XpertWorkspaceSkillsComponent {
 
     this.#dialog
       .open<ISkillPackage[] | null>(XpertSkillUploadDialogComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 2rem)',
         data: { workspaceId }
       })
       .closed.subscribe((result) => {
@@ -422,12 +429,10 @@ export class XpertWorkspaceSkillsComponent {
     }
 
     this.#githubInstallDialogRef = this.#dialog.open(dialogTemplate, {
-      width: '36rem',
-      minWidth: 'min(32rem, calc(100vw - 2rem))',
-      maxWidth: 'calc(100vw - 2rem)',
+      maxWidth: 'calc(100vw - 32px)',
       disableClose: true,
-      backdropClass: 'xp-overlay-share-sheet',
-      panelClass: 'xp-overlay-pane-share-sheet'
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog'
     })
   }
 
@@ -452,11 +457,10 @@ export class XpertWorkspaceSkillsComponent {
     }
 
     this.#registerDialogRef = this.#dialog.open(dialogTemplate, {
-      maxWidth: '80vw',
-      maxHeight: '80vh',
+      maxWidth: 'calc(100vw - 32px)',
       disableClose: true,
-      backdropClass: 'xp-overlay-share-sheet',
-      panelClass: 'xp-overlay-pane-share-sheet'
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog'
     })
 
     this.#registerDialogRef.closed?.subscribe({

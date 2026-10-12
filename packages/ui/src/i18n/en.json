@@ -25,6 +25,7 @@
     "moreItemsSelected_one": "{{count}} more item selected",
     "moreItemsSelected_other": "{{count}} more items selected",
     "searchPlaceholder": "Search...",
+    "clearSelection": "Clear selection",
     "noResults": "No results found."
   },
   "paginator": {

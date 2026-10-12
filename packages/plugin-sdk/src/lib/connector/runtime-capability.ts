@@ -8,6 +8,8 @@ export const ConnectorRuntimeCapability = createRuntimeCapability<ConnectorRunti
 
 /** No binding or provider grants means no connector access. */
 export type ConnectorRuntimeScope = RuntimeIdentityScope & {
+  /** Server-owned View host identity, set only after the host authorizes the Assistant and its graph. */
+  viewHost?: { type: 'agent'; id: string }
   /** Host-validated Agent Plugin dependencies may use their workspace binding in an authorized project. */
   allowWorkspaceBindingsInProject?: boolean
   /** Host-selected bindings, including IDs pinned by enabled graph Connector nodes. */

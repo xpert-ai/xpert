@@ -1,48 +1,45 @@
-<div class="flex w-[640px] max-w-[calc(100vw-2rem)] flex-col rounded-2xl bg-components-panel-bg p-6 shadow-xl">
-  <div class="mb-4 flex items-start justify-between gap-4">
-    <div>
-      <div class="text-xl font-semibold text-text-primary">
-        {{ 'XP.MCP.CreateFromJson' | translate: { Default: 'Create from JSON' } }}
-      </div>
-      <div class="mt-1 text-sm text-text-tertiary">
-        {{ 'XP.MCP.PasteMCPJson' | translate: { Default: 'Paste an MCP JSON config to create a toolset.' } }}
-      </div>
-      <div class="mt-2 flex items-start gap-1 text-xs text-text-warning">
-        <i class="ri-information-line mt-0.5"></i>
-        <span>
-          {{
-            'XP.MCP.UrlOnlySSECompatibility'
-              | translate: { Default: 'URL-only configs are imported as SSE for legacy compatibility.' }
-          }}
-        </span>
-      </div>
-    </div>
-    <button type="button" class="btn btn-tertiary btn-medium px-2" (click)="close()">
-      <i class="ri-close-line"></i>
+<section xpDialogLayout="wide" class="w-[min(640px,calc(100vw-32px))] max-h-[84dvh]">
+  <header xpDialogHeader>
+    <h2 xpDialogHeading>{{ 'XP.MCP.CreateFromJson' | translate: { Default: 'Create from JSON' } }}</h2>
+    <p xpDialogDescription>
+      {{ 'XP.MCP.PasteMCPJson' | translate: { Default: 'Paste an MCP JSON config to create a toolset.' } }}
+    </p>
+    <button
+      z-button
+      zType="ghost"
+      type="button"
+      xpDialogCloseButton
+      zSize="icon"
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+      (click)="close()"
+    >
+      <z-icon zType="x" aria-hidden="true" />
     </button>
+  </header>
+  <div xpDialogBody>
+    <p class="flex items-start gap-2 text-text-warning">
+      <z-icon zType="info" class="shrink-0" aria-hidden="true" />{{
+        'XP.MCP.UrlOnlySSECompatibility'
+          | translate: { Default: 'URL-only configs are imported as SSE for legacy compatibility.' }
+      }}
+    </p>
+    <textarea
+      z-input
+      class="w-full min-h-80 resize-y font-mono"
+      [attr.aria-label]="'XP.MCP.CreateFromJson' | translate: { Default: 'MCP JSON' }"
+      [ngModel]="value()"
+      (ngModelChange)="updateValue($event)"
+      spellcheck="false"
+    ></textarea>
+    @if (error()) {
+      <p role="alert" class="break-words text-destructive">{{ error() }}</p>
+    }
   </div>
-
-  <textarea
-    class="xp-input min-h-80 w-full resize-y border-divider-regular font-mono text-sm text-text-primary"
-    [ngModel]="value()"
-    (ngModelChange)="updateValue($event)"
-    spellcheck="false"
-  ></textarea>
-
-  @if (error()) {
-    <div class="mt-3 flex items-start gap-2 rounded-lg bg-status-error-bg px-3 py-2 text-sm text-text-destructive">
-      <i class="ri-error-warning-line mt-0.5"></i>
-      <span>{{ error() }}</span>
-    </div>
-  }
-
-  <div class="mt-5 flex justify-end gap-2">
-    <button type="button" class="btn btn-secondary btn-large" (click)="close()">
-      {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+  <footer xpDialogFooter>
+    <button z-button zType="outline" type="button" (click)="close()">
+      {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}</button
+    ><button z-button zType="default" type="button" (click)="importJson()">
+      <z-icon zType="file-code" aria-hidden="true" />{{ 'XP.MCP.NextStep' | translate: { Default: 'Next Step' } }}
     </button>
-    <button type="button" class="btn btn-primary btn-large" (click)="importJson()">
-      <i class="ri-file-code-line mr-1"></i>
-      {{ 'XP.MCP.NextStep' | translate: { Default: 'Next Step' } }}
-    </button>
-  </div>
-</div>
+  </footer>
+</section>

@@ -76,6 +76,9 @@ export class ChatHomeComponent {
     const xpert = this.xpert()
     this.#dialog
       .open(ChatConversationsComponent, {
+        panelClass: 'xp-overlay-pane-dialog',
+        backdropClass: 'backdrop-blur-xs-black',
+        maxWidth: 'calc(100vw - 32px)',
         viewContainerRef: this.#vcr,
         data: {
           xpertSlug: xpert?.slug,

@@ -1,3 +1,13 @@
+import {
+  ZardButtonComponent,
+  XpDialogFrameImports,
+  XpDialogActionGroupDirective,
+  ZardInputDirective,
+  ZardIconComponent,
+  IsDirty,
+  XpSpinComponent,
+  XpDensityDirective
+} from '@xpert-ai/headless-ui'
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { DialogRef } from '@angular/cdk/dialog'
@@ -5,10 +15,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormArray, FormBuilder, FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { ZardButtonComponent, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
-import { IsDirty } from '@xpert-ai/headless-ui'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
-import { XpDensityDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { TCopilotModel } from '@xpert-ai/contracts'
 import {
@@ -47,10 +53,12 @@ import { isEqual } from 'lodash-es'
     EmojiAvatarComponent,
     CopilotModelSelectComponent,
     TagSelectComponent,
-    XpSpinComponent
+    XpSpinComponent,
+    ...XpDialogFrameImports,
+    XpDialogActionGroupDirective
   ],
+  host: { class: 'block min-w-0' },
   templateUrl: './basic.component.html',
-  styleUrl: './basic.component.scss',
   animations: [IfAnimation]
 })
 export class XpertBasicComponent implements IsDirty {

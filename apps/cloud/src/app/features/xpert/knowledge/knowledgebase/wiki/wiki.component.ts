@@ -303,7 +303,8 @@ export class KnowledgeWikiComponent {
       this.#dialog.open<WikiFolderDialogResult>(WikiFolderDialogComponent, {
         data: { folders: this.taxonomy()?.folders ?? [], folder },
         backdropClass: 'backdrop-blur-xs-black',
-        panelClass: 'xp-overlay-pane-dialog'
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)'
       }).closed
     )
     if (!result) return
@@ -322,7 +323,8 @@ export class KnowledgeWikiComponent {
       this.#dialog.open<WikiFolderDialogResult>(WikiFolderDialogComponent, {
         data: { folders: this.taxonomy()?.folders ?? [], move: true, folderId: page.placement?.folderId },
         backdropClass: 'backdrop-blur-xs-black',
-        panelClass: 'xp-overlay-pane-dialog'
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)'
       }).closed
     )
     if (result?.action !== 'save') return

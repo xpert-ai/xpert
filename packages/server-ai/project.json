@@ -20,6 +20,12 @@
                 "main": "packages/server-ai/src/index.ts",
                 "assets": [
                     {
+                        "glob": "src/**/remote-components/*/app.{js,css}",
+                        "input": "packages/server-ai/",
+                        "output": "./",
+                        "includeIgnoredFiles": true
+                    },
+                    {
                         "glob": "**/*.(csv|json|js|css|svg|png|jpg|yaml|yml|py|sh|md|txt)",
                         "input": "packages/server-ai/",
                         "output": "./"

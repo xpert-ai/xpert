@@ -258,6 +258,10 @@ export class ZardTagSelectComponent implements ControlValueAccessor {
         }
         break
       case 'Escape':
+        if (this.overlayRef?.hasAttached()) {
+          event.preventDefault()
+          event.stopPropagation()
+        }
         this.activeIndex.set(-1)
         this.inputFocused.set(false)
         this.closeSuggestions()

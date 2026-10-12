@@ -122,6 +122,9 @@ export class CopilotConfigFormComponent {
 
   openAiProviders() {
     const dialogRef = this.#dialog.open<string>(CopilotAiProvidersComponent, {
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)',
       data: {
         copilot: this.formGroup.value
       }

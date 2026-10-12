@@ -1,6 +1,7 @@
+import { XpDialogFrameImports } from '@xpert-ai/headless-ui'
 import { DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { ChangeDetectionStrategy, Component, HostBinding, Input, ViewChild, inject } from '@angular/core'
+import { ChangeDetectionStrategy, Component, Input, ViewChild, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
 import { TranslateModule } from '@ngx-translate/core'
@@ -14,15 +15,19 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [FormsModule, TranslateModule, ZardButtonComponent, DragDropModule, InviteFormsModule],
+  imports: [
+    ...XpDialogFrameImports,
+    FormsModule,
+    TranslateModule,
+    ZardButtonComponent,
+    DragDropModule,
+    InviteFormsModule
+  ],
   selector: 'xp-invite-mutation',
   templateUrl: './invite-mutation.component.html',
-  styleUrls: ['./invite-mutation.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class InviteMutationComponent extends TranslationBaseComponent {
-  @HostBinding('class.xp-dialog-container') isDialogContainer = true
-
   private readonly toastrService = inject(ToastrService)
   private readonly _dialogRef = inject(DialogRef<ICreateEmailInvitesOutput>)
 

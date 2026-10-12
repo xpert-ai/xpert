@@ -1,3 +1,16 @@
+import {
+  ZardButtonComponent,
+  XpDialogFrameImports,
+  XpDialogActionGroupDirective,
+  ZardInputDirective,
+  parseYAML,
+  XpSpinComponent,
+  attrModel,
+  linkedModel,
+  myRxResource,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
+
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
@@ -6,9 +19,6 @@ import { FormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
-import { parseYAML } from '@xpert-ai/headless-ui'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
-import { attrModel, linkedModel, myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
@@ -33,7 +43,6 @@ import { of } from 'rxjs'
 import { map, switchMap } from 'rxjs/operators'
 import { ProjectInstallToolsetComponent } from './toolset/toolset.component'
 import { ProjectInstallXpertComponent } from './xpert/xpert.component'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -49,11 +58,14 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     XpSelectComponent,
     CopilotModelSelectComponent,
     ProjectInstallXpertComponent,
-    ProjectInstallToolsetComponent
+    ProjectInstallToolsetComponent,
+    ZardButtonComponent,
+    ...XpDialogFrameImports,
+    XpDialogActionGroupDirective,
+    ZardInputDirective
   ],
   selector: 'xpert-project-install',
   templateUrl: 'install.component.html',
-  styleUrl: 'install.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class XpertProjectInstallComponent {

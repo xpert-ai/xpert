@@ -1,37 +1,39 @@
 <form [formGroup]="formGroup" class="flex flex-col space-y-2">
   <div>
     <div class="py-2 leading-5 font-medium">
-      {{ 'XP.KEY_WORDS.Name' | translate: { Default: 'Name' } }} <span class="ml-1 text-red-500">*</span>
+      {{ 'XP.KEY_WORDS.Name' | translate: { Default: 'Name' } }} <span class="ml-1 text-destructive">*</span>
     </div>
     <div class="flex items-center justify-between gap-3">
       <emoji-avatar class="rounded-lg overflow-hidden" [(avatar)]="avatar" editable />
       <input
-        class="xp-input h-10 px-3 text-base font-normal grow"
+        z-input
+        class="min-w-0 grow"
         [placeholder]="'XP.Xpert.EnterToolsetName' | translate: { Default: 'Enter the toolset name' }"
         formControlName="name"
-        [ngClass]="{ error: name.invalid && (name.dirty || name.touched) }"
+        [zStatus]="name.invalid && (name.dirty || name.touched) ? 'error' : undefined"
       />
     </div>
 
     <textarea
       formControlName="description"
-      class="xp-input w-full mt-2 text-sm active:border-divider-regular focus-within:border-divider-regular bg-background-default-subtle"
+      z-input
+      class="w-full mt-2"
       [placeholder]="'XP.Xpert.EnterToolsetDescription' | translate: { Default: 'Enter toolset description' }"
     ></textarea>
   </div>
   <div class="select-none relative">
-    <div class="flex justify-between items-center">
+    <div class="flex flex-wrap justify-between items-center gap-3">
       <div class="flex items-center">
         <div class="py-2 leading-5 font-medium">
           {{ 'XP.Xpert.Schema' | translate: { Default: 'Schema' } }}
-          <span class="ml-1 text-red-500">*</span>
+          <span class="ml-1 text-destructive">*</span>
         </div>
-        <div class="mx-2 w-px h-3 bg-black/5"></div>
+        <div class="mx-2 w-px h-3 bg-border"></div>
         <a
           href="https://swagger.io/specification/"
           target="_blank"
           rel="noopener noreferrer"
-          class="flex items-center h-[18px] space-x-1 text-[#155EEF] hover:text-primary-600"
+          class="flex items-center h-[18px] space-x-1 text-primary hover:underline"
         >
           <div class="text-xs font-normal">
             {{ 'XP.Xpert.ViewOpenAPISwaggerSpec' | translate: { Default: 'View the OpenAPI-Swagger Specification' } }}
@@ -56,11 +58,12 @@
           </svg>
         </a>
       </div>
-      <div class="flex space-x-1 justify-end relative w-[224px]">
+      <div xpDialogActionGroup="inline" class="flex flex-wrap gap-2">
         <div>
           <button
             type="button"
-            class="btn disabled:btn-disabled btn-secondary btn-small space-x-1"
+            z-button
+            zType="outline"
             [cdkMenuTriggerFor]="urlMenu"
             #urlMenuTrigger="cdkMenuTriggerFor"
           >
@@ -74,26 +77,22 @@
             >
               <path d="M11 11V5H13V11H19V13H13V19H11V13H5V11H11Z"></path>
             </svg>
-            <div class="text-sm font-medium text-zinc-700">
+            <div class="text-sm font-medium text-foreground">
               {{ 'XP.Xpert.ImportFromURL' | translate: { Default: 'Import from URL' } }}
             </div>
           </button>
 
           <ng-template #urlMenu>
-            <div cdkMenu class="relative p-2">
+            <div cdkMenu xpDialogActionGroup="inline" class="flex max-w-[calc(100vw-32px)] items-center gap-2 p-2">
               <input
-                class="w-[244px] h-9 pl-1.5 pr-[44px] overflow-x-auto border border-divider-deep rounded-lg text-sm"
+                z-input
+                class="min-w-0 flex-1"
                 placeholder="https://..."
                 type="text"
                 [(ngModel)]="url"
                 [ngModelOptions]="{ standalone: true }"
               />
-              <button
-                type="button"
-                class="btn disabled:btn-disabled btn-primary btn-small text-sm absolute top-3 right-3"
-                [disabled]="!url()"
-                (click)="urlMenuTrigger.close(); getMetadata()"
-              >
+              <button type="button" z-button [disabled]="!url()" (click)="urlMenuTrigger.close(); getMetadata()">
                 {{ 'XP.Xpert.Ok' | translate: { Default: 'Ok' } }}
               </button>
             </div>
@@ -102,7 +101,8 @@
         <div class="relative">
           <button
             type="button"
-            class="btn disabled:btn-disabled btn-secondary btn-small space-x-1"
+            z-button
+            zType="outline"
             [cdkMenuTriggerFor]="sampleMenu"
             #sampleMenuTrigger="cdkMenuTriggerFor"
           >
@@ -139,10 +139,11 @@
       </div>
     </div>
     <textarea
-      class="xp-input w-full h-[240px] leading-5 text-sm overflow-y-auto text-text-primary"
+      z-input
+      class="w-full min-h-60 font-mono"
       [placeholder]="'XP.Xpert.EnterYourOpenAPISchema' | translate: { Default: 'Enter your OpenAPI schema here' }"
       formControlName="schema"
-      [ngClass]="{ error: schema.invalid && (schema.dirty || schema.touched) }"
+      [zStatus]="schema.invalid && (schema.dirty || schema.touched) ? 'error' : undefined"
     ></textarea>
 
     <div formGroupName="options">
@@ -151,7 +152,7 @@
       </div>
       <input
         z-input
-        class="w-full h-10 text-sm grow"
+        class="w-full"
         [placeholder]="'XP.Xpert.EnterBaseUrl' | translate: { Default: 'Please enter base url' }"
         formControlName="baseUrl"
       />
@@ -186,23 +187,19 @@
                     formControlName="enabled"
                     id="tool-disabled-{{ i }}"
                     type="checkbox"
-                    class="w-4 h-4 text-blue-600 bg-components-input-bg-normal border-divider-deep rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                    class="size-4 accent-primary"
                   />
                 </td>
                 <td class="p-2 pl-3 font-medium">
                   <xpert-tool-name-input formControlName="name" />
                 </td>
                 <td class="p-2 pl-3 font-medium">
-                  <input formControlName="description" class="w-full xp-input-inline xp-input-sm" />
+                  <input formControlName="description" z-input class="w-full" />
                 </td>
                 <td class="p-2 pl-3 font-medium">{{ tool.value.options.api_bundle.method }}</td>
                 <td class="p-2 pl-3 font-medium">{{ tool.value.options.api_bundle.server_url }}</td>
-                <td class="pl-3 font-medium">
-                  <button
-                    type="button"
-                    class="btn disabled:btn-disabled btn-secondary btn-small space-x-1"
-                    (click)="openToolTest(tool.value)"
-                  >
+                <td xpDialogActionGroup="inline" class="pl-3">
+                  <button type="button" z-button zType="outline" (click)="openToolTest(tool.value)">
                     <div class="text-sm font-medium">{{ 'XP.Xpert.Test' | translate: { Default: 'Test' } }}</div>
                   </button>
                 </td>
@@ -228,7 +225,7 @@
     </div>
     <input
       z-input
-      class="w-full h-10 text-sm grow"
+      class="w-full"
       [placeholder]="'XP.Xpert.EnterPrivacyPolicy' | translate: { Default: 'Please enter privacy policy' }"
       formControlName="privacyPolicy"
     />
@@ -239,7 +236,7 @@
     </div>
     <input
       z-input
-      class="w-full h-10 text-sm grow"
+      class="w-full"
       [placeholder]="'XP.Xpert.EnterCustomDisclaimer' | translate: { Default: 'Please enter custom disclaimer' }"
       formControlName="customDisclaimer"
     />

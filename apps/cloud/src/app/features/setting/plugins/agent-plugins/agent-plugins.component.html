@@ -544,48 +544,55 @@
 </div>
 
 <ng-template #importTemplate>
-  <div class="flex max-h-[85dvh] w-[min(36rem,calc(100vw-2rem))] flex-col p-6">
-    <header class="mb-6 flex items-center justify-between gap-3">
-      <h2 id="agent-plugin-import-title" class="text-xl font-semibold">{{ 'XP.AgentPlugins.Import' | translate }}</h2>
+  <form
+    xpDialogLayout="standard"
+    xpDialogPurpose="workflow"
+    class="w-[560px] max-w-full max-h-[85dvh]"
+    [formGroup]="git"
+    (ngSubmit)="importGit()"
+  >
+    <header xpDialogHeader>
+      <h2 id="agent-plugin-import-title" xpDialogHeading>{{ 'XP.AgentPlugins.Import' | translate }}</h2>
       <button
         type="button"
-        class="btn btn-ghost btn-small h-8 w-8"
-        [disabled]="busy()"
+        xpDialogCloseButton
+        z-button
+        zType="ghost"
+        zSize="icon"
+        [zDisabled]="busy()"
         (click)="closeImport()"
         [attr.aria-label]="'XP.AgentPlugins.Close' | translate"
       >
-        <i class="ri-close-line text-xl" aria-hidden="true"></i>
+        <z-icon zType="close" />
       </button>
     </header>
-    <form [formGroup]="git" (ngSubmit)="importGit()" class="flex min-h-0 flex-col gap-4 overflow-y-auto">
+    <div xpDialogBody>
       <label class="flex flex-col gap-1.5 text-sm"
         >{{ 'XP.AgentPlugins.Repository' | translate
-        }}<input formControlName="url" type="url" class="xp-input" placeholder="https://github.com/team/plugin"
+        }}<input formControlName="url" type="url" z-input class="w-full" placeholder="https://github.com/team/plugin"
       /></label>
-      <div class="grid grid-cols-2 gap-3">
+      <div class="grid gap-3 sm:grid-cols-2">
         <label class="flex flex-col gap-1.5 text-sm"
-          >{{ 'XP.AgentPlugins.Ref' | translate }}<input formControlName="ref" class="xp-input" placeholder="v1.0.0"
+          >{{ 'XP.AgentPlugins.Ref' | translate
+          }}<input formControlName="ref" z-input class="w-full" placeholder="v1.0.0"
         /></label>
         <label class="flex flex-col gap-1.5 text-sm"
           >{{ 'XP.AgentPlugins.Directory' | translate
-          }}<input formControlName="subdirectory" class="xp-input" placeholder="."
+          }}<input formControlName="subdirectory" z-input class="w-full" placeholder="."
         /></label>
       </div>
       @if (error()) {
         <p class="break-words text-sm text-text-destructive" role="alert">{{ error() }}</p>
       }
-      <div class="mt-3 flex justify-end gap-3">
-        <button type="button" class="btn btn-secondary btn-medium" [disabled]="busy()" (click)="zipInput.click()">
-          <i class="ri-upload-2-line mr-1" aria-hidden="true"></i>{{ 'XP.AgentPlugins.UploadZip' | translate }}
-        </button>
-        <button type="submit" class="btn btn-primary btn-medium" [disabled]="busy() || git.invalid">
-          @if (busy()) {
-            <i class="ri-loader-4-line mr-1 animate-spin" aria-hidden="true"></i>
-          }
-          {{ 'XP.AgentPlugins.Import' | translate }}
-        </button>
-      </div>
-    </form>
+    </div>
+    <footer xpDialogFooter>
+      <button type="button" z-button zType="outline" [zDisabled]="busy()" (click)="zipInput.click()">
+        <i class="ri-upload-2-line" aria-hidden="true"></i>{{ 'XP.AgentPlugins.UploadZip' | translate }}
+      </button>
+      <button type="submit" z-button [zLoading]="busy()" [zDisabled]="busy() || git.invalid">
+        {{ 'XP.AgentPlugins.Import' | translate }}
+      </button>
+    </footer>
     <input #zipInput type="file" class="hidden" accept=".zip,application/zip" (change)="importZip($event)" />
-  </div>
+  </form>
 </ng-template>

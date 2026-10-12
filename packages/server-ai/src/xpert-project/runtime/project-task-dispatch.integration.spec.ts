@@ -192,7 +192,7 @@ integration('explicit task delegation / PostgreSQL', () => {
         await database.query(`CREATE TABLE chat_conversation_thread (id uuid PRIMARY KEY DEFAULT gen_random_uuid(), "threadId" varchar UNIQUE, "conversationId" uuid, "tenantId" uuid, "organizationId" uuid,
             "createdById" uuid, "updatedById" uuid, "createdAt" timestamptz DEFAULT now(), "updatedAt" timestamptz DEFAULT now(),
             status varchar, "runControl" jsonb, error varchar, operation jsonb, metadata jsonb DEFAULT '{}', "encryptedRunContext" varchar);
-            CREATE TABLE chat_conversation (id uuid PRIMARY KEY, "threadId" varchar, "projectId" uuid, "tenantId" uuid, "organizationId" uuid,
+            CREATE TABLE chat_conversation (id uuid PRIMARY KEY, purpose varchar, "threadId" varchar, "projectId" uuid, "tenantId" uuid, "organizationId" uuid,
             "createdById" uuid, "updatedById" uuid, "createdAt" timestamptz DEFAULT now(), "updatedAt" timestamptz DEFAULT now(), status varchar, operation jsonb);
             CREATE TABLE xpert_agent_execution (id uuid PRIMARY KEY, "threadId" varchar, "agentKey" varchar, "xpertId" uuid, type varchar, status varchar, error varchar,
             "tenantId" uuid, "organizationId" uuid, "createdById" uuid, "updatedById" uuid, "createdAt" timestamptz DEFAULT now(), "updatedAt" timestamptz DEFAULT now());`)

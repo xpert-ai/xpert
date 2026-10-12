@@ -1,30 +1,33 @@
-import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
-import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CdkListboxModule } from '@angular/cdk/listbox'
-import { CdkMenuModule } from '@angular/cdk/menu'
+import {
+  XpDialogFrameImports,
+  ZardButtonComponent,
+  ZardInputDirective,
+  ZardSelectImports,
+  XpI18nPipe,
+  XpDialogActionGroupDirective,
+  linkedModel,
+  injectConfirmDelete,
+  injectConfirmUnique,
+  effectAction
+} from '@xpert-ai/headless-ui'
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 
 import { Component, effect, inject, model, signal } from '@angular/core'
-import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { Router } from '@angular/router'
+import { FormsModule } from '@angular/forms'
 import {
   EnvironmentService,
   getErrorMessage,
   IEnvironment,
-  IfAnimation,
   injectToastr,
   OrderTypeEnum,
   TEnvironmentVariable
 } from '@cloud/app/@core'
-import { linkedModel } from '@xpert-ai/headless-ui'
-import { injectConfirmDelete, injectConfirmUnique, XpSpinComponent } from '@xpert-ai/headless-ui'
-import { effectAction } from '@xpert-ai/headless-ui'
+
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { BehaviorSubject, Observable, pipe } from 'rxjs'
 import { combineLatestWith, debounceTime, map, startWith, switchMap, tap } from 'rxjs/operators'
-import { XpSelectComponent } from '../../common'
 import { VariableTypeOptions } from '../types'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 const AutoSaveDebounceTime = 1000
 
@@ -32,28 +35,23 @@ const AutoSaveDebounceTime = 1000
   selector: 'xpert-environment-manage',
   standalone: true,
   imports: [
+    ...XpDialogFrameImports,
+    ZardButtonComponent,
+    ZardInputDirective,
+    ...ZardSelectImports,
+    XpI18nPipe,
+    XpDialogActionGroupDirective,
     FormsModule,
-    ReactiveFormsModule,
-    TranslateModule,
-    CdkMenuModule,
-    CdkListboxModule,
-    DragDropModule,
-    ...ZardTooltipImports,
-    XpSpinComponent,
-    XpSelectComponent
+    TranslateModule
   ],
-  templateUrl: './manage.component.html',
-  styleUrl: './manage.component.scss',
-  animations: [IfAnimation]
+  templateUrl: './manage.component.html'
 })
 export class XpertEnvironmentManageComponent {
-  readonly #dialog = inject(Dialog)
   readonly #dialogRef = inject(DialogRef)
   readonly #data = inject<{ workspaceId: string }>(DIALOG_DATA)
   readonly environmentService = inject(EnvironmentService)
   readonly #translate = inject(TranslateService)
   readonly #toastr = injectToastr()
-  readonly #router = inject(Router)
   readonly confirmName = injectConfirmUnique()
   readonly confirmDelete = injectConfirmDelete()
 

@@ -118,12 +118,22 @@ export class FileViewerComponent {
       fileUrl: this.previewUrl() || this.file()?.fileUrl || null
     })
   )
-  readonly previewState = createFilePreviewState(this.previewSource, (url) =>
-    firstValueFrom(this.#httpClient.get(url, { responseType: 'text' }))
+  readonly previewRevision = signal(0)
+  readonly previewState = createFilePreviewState(
+    this.previewSource,
+    (url) => firstValueFrom(this.#httpClient.get(url, { responseType: 'text' })),
+    this.previewRevision
   )
   readonly previewKind = this.previewState.previewKind
   readonly previewData = this.previewState.previewData
   readonly previewLoading = this.previewState.previewLoading
+  // URL-only artifacts have preview text but no editable workspace document.
+  readonly previewReadable = computed(
+    () => this.readable() || (this.markdown() && typeof this.previewData().content === 'string')
+  )
+  readonly previewContent = computed(() =>
+    this.markdown() && !this.readable() ? (this.previewData().content ?? '') : this.content()
+  )
   readonly canTogglePreview = this.previewState.canTogglePreview
   readonly isPreviewMode = computed(
     () => this.mode() === 'view' && (!this.canTogglePreview() || this.previewMode() === 'preview')
@@ -242,6 +252,11 @@ export class FileViewerComponent {
       window.removeEventListener('resize', clearHandler)
       window.removeEventListener('scroll', clearHandler, true)
     })
+  }
+
+  refreshPreview() {
+    if (this.markdown() && !this.readable()) this.previewRevision.update((revision) => revision + 1)
+    this.refresh.emit()
   }
 
   emitFileReference() {

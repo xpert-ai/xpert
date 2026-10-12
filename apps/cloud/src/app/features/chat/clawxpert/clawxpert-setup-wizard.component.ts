@@ -4,7 +4,12 @@ import { Component, computed, effect, inject, signal, viewChild } from '@angular
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardButtonComponent, ZardCheckboxComponent, ZardSwitchComponent } from '@xpert-ai/headless-ui'
+import {
+  XpDialogFrameImports,
+  ZardButtonComponent,
+  ZardCheckboxComponent,
+  ZardSwitchComponent
+} from '@xpert-ai/headless-ui'
 import { injectPluginAPI, IPluginDescriptor } from '@cloud/app/@core/state'
 import { AiProviderRole } from '@xpert-ai/contracts'
 import { catchError, firstValueFrom, from, map, of, switchMap } from 'rxjs'
@@ -66,6 +71,7 @@ type RecommendedTemplateToolsetDependency = {
     CommonModule,
     FormsModule,
     TranslateModule,
+    ...XpDialogFrameImports,
     ZardButtonComponent,
     ZardCheckboxComponent,
     ZardSwitchComponent,
@@ -73,32 +79,16 @@ type RecommendedTemplateToolsetDependency = {
   ],
   template: `
     <div
-      class="flex max-h-[min(46rem,calc(100vh-2rem))] w-[min(58rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-2xl bg-components-card-bg shadow-xl"
+      xpDialogLayout="wide"
+      xpDialogPurpose="workflow"
+      class="max-h-[min(46rem,calc(100dvh-2rem))] w-[min(58rem,calc(100vw-2rem))]"
     >
-      <div class="border-b border-divider-regular px-6 py-5">
-        <div class="min-w-0">
-          <div class="text-xs uppercase tracking-[0.24em] text-text-tertiary">
-            {{ 'XP.Chat.ClawXpert.Onboarding' | translate }}
-          </div>
-          <div class="mt-2 text-xl font-semibold text-text-primary">
-            {{ 'XP.Chat.ClawXpert.OnboardingTitle' | translate }}
-          </div>
-          <p class="mt-2 max-w-2xl text-sm leading-6 text-text-secondary">
-            {{ 'XP.Chat.ClawXpert.OnboardingDesc' | translate }}
-          </p>
-        </div>
-      </div>
+      <header xpDialogHeader>
+        <h2 xpDialogHeading>{{ 'XP.Chat.ClawXpert.OnboardingTitle' | translate }}</h2>
+        <p xpDialogDescription>{{ 'XP.Chat.ClawXpert.OnboardingDesc' | translate }}</p>
+      </header>
 
-      <section data-onboarding-step="default-clawxpert" class="min-h-0 flex-1 overflow-auto px-6 py-5">
-        <div class="min-w-0">
-          <div class="text-base font-semibold text-text-primary">
-            {{ 'XP.Chat.ClawXpert.DefaultInstallTitle' | translate }}
-          </div>
-          <p class="mt-2 text-sm leading-6 text-text-secondary">
-            {{ 'XP.Chat.ClawXpert.DefaultInstallDesc' | translate }}
-          </p>
-        </div>
-
+      <section xpDialogBody data-onboarding-step="default-clawxpert">
         @if (llmCopilots() === null) {
           <div class="mt-4 flex min-h-48 items-center justify-center gap-2 text-sm text-text-secondary">
             <i class="ri-loader-4-line animate-spin"></i>
@@ -107,7 +97,7 @@ type RecommendedTemplateToolsetDependency = {
         } @else {
           <div
             data-clawxpert-default-install
-            class="mt-4 rounded-xl border border-divider-regular bg-background-default-subtle p-4"
+            class="rounded-xl border border-divider-regular bg-background-default-subtle p-4"
           >
             <div class="flex items-start gap-3">
               <div
@@ -143,9 +133,7 @@ type RecommendedTemplateToolsetDependency = {
             </div>
           </div>
 
-          <div
-            class="mt-4 flex items-start justify-between gap-4 rounded-xl border border-divider-regular bg-components-card-bg p-4"
-          >
+          <div class="flex items-start justify-between gap-4 py-2">
             <div class="min-w-0">
               <div class="text-sm font-medium text-text-primary">
                 {{ 'XP.Xpert.IsolateWorkspaceDataByUser' | translate: { Default: 'Isolate runtime data by user' } }}
@@ -170,10 +158,7 @@ type RecommendedTemplateToolsetDependency = {
           </div>
 
           @if (!hasSelectedCopilotModel() && hasCopilotFeature()) {
-            <div
-              data-model-provider-config-form
-              class="mt-4 rounded-xl border border-divider-regular bg-components-card-bg p-4"
-            >
+            <div data-model-provider-config-form class="border-t border-divider-regular pt-4">
               <div class="min-w-0">
                 <div class="text-sm font-semibold text-text-primary">
                   {{ 'XP.Chat.ClawXpert.ModelProviderStepTitle' | translate }}
@@ -290,7 +275,7 @@ type RecommendedTemplateToolsetDependency = {
         }
       </section>
 
-      <div class="flex items-center justify-between gap-3 border-t border-divider-regular px-6 py-4">
+      <footer xpDialogFooter class="flex-col items-stretch sm:flex-row sm:items-center sm:justify-between">
         <div class="min-w-0 text-sm text-text-tertiary">
           @if (initializationError(); as error) {
             <div
@@ -320,42 +305,34 @@ type RecommendedTemplateToolsetDependency = {
           }
         </div>
 
-        <div class="flex shrink-0 items-center gap-2">
+        <div class="flex shrink-0 items-center justify-end gap-2">
           @if (hasLoadedLlmModelProviders()) {
             @if (!hasSelectedCopilotModel() && hasCopilotFeature()) {
               <button
                 z-button
                 zType="default"
-                zSize="sm"
                 type="button"
-                [disabled]="modelProviderSaveDisabled()"
+                [zLoading]="savingModelProvider()"
+                [zDisabled]="modelProviderSaveDisabled()"
                 (click)="saveModelProvider()"
               >
-                @if (savingModelProvider()) {
-                  <i class="ri-loader-4-line mr-1 animate-spin"></i>
-                }
                 {{ 'XP.Chat.ClawXpert.SaveModelProvider' | translate }}
               </button>
             } @else {
               <button
                 z-button
                 zType="default"
-                zSize="sm"
                 type="button"
-                [disabled]="creatingXpert() || !canCreateXpert()"
+                [zLoading]="creatingXpert()"
+                [zDisabled]="creatingXpert() || !canCreateXpert()"
                 (click)="completeInitialization()"
               >
-                @if (creatingXpert()) {
-                  <i class="ri-loader-4-line mr-1 animate-spin"></i>
-                  {{ 'XP.Chat.ClawXpert.Initializing' | translate }}
-                } @else {
-                  {{ 'XP.Chat.ClawXpert.CompleteInitialization' | translate }}
-                }
+                {{ 'XP.Chat.ClawXpert.CompleteInitialization' | translate }}
               </button>
             }
           }
         </div>
-      </div>
+      </footer>
     </div>
   `
 })
@@ -627,7 +604,9 @@ export class ClawXpertSetupWizardComponent {
           plugin: toPluginMarketplaceDetails(plugin),
           showActions: false
         },
-        backdropClass: 'backdrop-blur-sm-black'
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)'
       })
     } catch (error) {
       this.#toastr.error(getErrorMessage(error))

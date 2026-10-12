@@ -3,9 +3,9 @@
     class="grid min-h-0 flex-1 overflow-y-auto"
     [class]="selectedFile() || selectedDocument() ? 'lg:grid-cols-2' : 'grid-cols-1'"
   >
-    <section class="mx-auto flex min-h-0 w-full max-w-3xl flex-col gap-6 overflow-y-auto px-6 py-6 lg:px-8">
+    <section class="mx-auto flex min-h-0 w-full max-w-3xl flex-col gap-6 overflow-y-auto px-(--xp-dialog-padding) py-4">
       <div>
-        <h3 class="text-xl font-semibold text-text-primary">
+        <h3 class="text-base font-medium text-text-primary">
           {{ 'XP.Knowledgebase.ChooseADataSource' | translate: { Default: 'Choose a Data Source' } }}
         </h3>
         <p class="mt-2 text-sm leading-6 text-text-tertiary">
@@ -51,7 +51,7 @@
       </div>
       @if (integration(); as integration) {
         <div class="flex items-center justify-between gap-3 border-b border-divider-subtle pb-4 text-sm">
-          <div class="flex min-w-0 items-center gap-2">
+          <div xpDialogActionGroup="inline" class="flex min-w-0 items-center gap-2">
             <i class="ri-plug-line text-text-tertiary" aria-hidden="true"></i>
             <span class="truncate">{{
               selectedIntegration() ? (selectedIntegration().label | i18n) : integration.service
@@ -95,9 +95,12 @@
           }
         } @else {
           <section class="min-w-0 space-y-4">
-            <div class="flex items-center justify-between gap-3 border-b border-divider-subtle pb-4">
+            <div
+              xpDialogActionGroup="inline"
+              class="flex flex-wrap items-center justify-between gap-3 border-b border-divider-subtle pb-4"
+            >
               <h4 class="text-sm font-semibold">{{ 'XP.KEY_WORDS.Options' | translate: { Default: 'Options' } }}</h4>
-              <button z-button type="button" [disabled]="testing()" [zLoading]="testing()" (click)="runStep()">
+              <button z-button type="button" [zDisabled]="testing()" [zLoading]="testing()" (click)="runStep()">
                 <i class="ri-play-line" aria-hidden="true"></i>{{ 'XP.ACTIONS.Run' | translate: { Default: 'Run' } }}
               </button>
             </div>
@@ -154,7 +157,10 @@
         @if (providerCategory() === eDocumentSourceProviderCategoryEnum.LocalFile && selectedFile(); as file) {
           <xp-knowledge-file-preview class="flex min-h-0 flex-1 flex-col" [file]="file" (closed)="closePreview()" />
         } @else if (selectedDocument(); as doc) {
-          <header class="flex shrink-0 items-start justify-between gap-3 border-b border-divider-subtle px-6 py-4">
+          <header
+            xpDialogActionGroup="header"
+            class="flex shrink-0 items-start justify-between gap-3 border-b border-divider-subtle px-6 py-4"
+          >
             <div class="min-w-0">
               <h3 class="text-sm font-semibold">{{ 'XP.KEY_WORDS.Preview' | translate: { Default: 'Preview' } }}</h3>
               <p class="mt-2 truncate text-sm">{{ doc.name || doc.metadata?.title }}</p>
@@ -176,11 +182,11 @@
       </aside>
     }
   </div>
-  <footer class="flex shrink-0 items-center justify-between gap-3 border-t border-divider-subtle px-6 py-4">
+  <footer xpDialogFooter class="justify-between">
     <button z-button zType="outline" type="button" (click)="pipelineComponent.close()">
       {{ 'XP.KEY_WORDS.Cancel' | translate: { Default: 'Cancel' } }}
     </button>
-    <button z-button type="button" [disabled]="!canContinue()" (click)="nextStep()">
+    <button z-button type="button" [zDisabled]="!canContinue()" (click)="nextStep()">
       {{ 'XP.KEY_WORDS.Next' | translate: { Default: 'Next' } }}<i class="ri-arrow-right-line" aria-hidden="true"></i>
     </button>
   </footer>

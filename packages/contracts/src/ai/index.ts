@@ -122,6 +122,7 @@ export * from './assistant-trigger.model'
 
 export * from './model-execution.model'
 export * from './agent-runtime.model'
+export * from './assistant-task-context.model'
 export * from './project-task-runtime.model'
 export * from './realtime-voice.model'
 export * from './chat-group.model'

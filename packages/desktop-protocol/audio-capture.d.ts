@@ -94,3 +94,22 @@ export function parseAudioCapturePayload(
   commandKey: Exclude<AudioCaptureCommand, 'desktop.audio.capture.start'>,
   payload: unknown
 ): AudioCaptureSelectionPayload
+
+export type BrowserAudioCaptureCommand =
+  | 'browser.audio.capture.start'
+  | 'browser.audio.capture.stop'
+  | 'browser.audio.capture.state'
+  | 'browser.audio.capture.retry'
+export type BrowserAudioCaptureState = AudioCaptureState & {
+  runtime: 'browser'
+  tracks: AudioCaptureTrack[]
+}
+export const BROWSER_AUDIO_CAPTURE_COMMANDS: readonly BrowserAudioCaptureCommand[]
+export function parseBrowserAudioCapturePayload(
+  command: 'browser.audio.capture.start',
+  payload: unknown
+): AudioCaptureStartPayload
+export function parseBrowserAudioCapturePayload(
+  command: Exclude<BrowserAudioCaptureCommand, 'browser.audio.capture.start'>,
+  payload: unknown
+): AudioCaptureSelectionPayload

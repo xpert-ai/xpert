@@ -22,6 +22,7 @@ import { z } from 'zod'
 import { toJsonSchema } from '@langchain/core/utils/json_schema'
 import { AgentMiddlewareRuntimeService } from '../shared/agent/middleware-runtime/middleware-runtime.service'
 import { getRuntimeEnabledMiddlewareNodes } from '../shared/agent/middleware'
+import { getConnectorMiddlewareScope } from '../shared/agent/connector-runtime'
 import { resolveToolRuntimeScope } from '../tool-runtime/workspace-scope'
 import { GetXpertWorkflowQuery, type TXpertWorkflowQueryOutput } from '../xpert/queries/get-xpert-workflow.query'
 import { McpAppBundleService } from '../mcp-publication/mcp-app-bundle.service'
@@ -57,7 +58,11 @@ export class MiddlewareMcpAppsService {
     bind(
         middleware: AgentMiddleware,
         context: IAgentMiddlewareContext,
-        options: { interruptAfter?: string[]; isDraft?: boolean }
+        options: {
+            interruptAfter?: string[]
+            isDraft?: boolean
+            connectorGrants?: MiddlewareAppSource['connectorGrants']
+        }
     ): AgentMiddleware {
         if (!middleware.apps) return middleware
         const strategy = this.registry.get(context.node.provider)
@@ -70,7 +75,15 @@ export class MiddlewareMcpAppsService {
             nodeKey: context.node.key,
             agentKey: context.agentKey,
             pluginName: provenance.pluginName,
-            isDraft: options.isDraft
+            isDraft: options.isDraft,
+            ...(options.connectorGrants
+                ? {
+                      connectorGrants: {
+                          bindingIds: [...options.connectorGrants.bindingIds],
+                          providers: [...options.connectorGrants.providers]
+                      }
+                  }
+                : {})
         }
         const bindings = middleware.apps.tools
         return {
@@ -100,7 +113,7 @@ export class MiddlewareMcpAppsService {
                             const toolCallId = config?.metadata?.tool_call_id ?? config?.configurable?.tool_call_id
                             const executionContext = readMcpAppExecutionContext({ ...identity, executionId })
                             if (!executionContext || typeof toolCallId !== 'string') throw this.denied()
-                            const backend = this.backend(source, identity)
+                            const backend = this.backend(source, { ...identity, ...executionContext })
                             const toolMeta = this.metadata(source, tool, middleware)
                             const data = registerMcpAppInstance({
                                 middleware: backend,
@@ -127,7 +140,12 @@ export class MiddlewareMcpAppsService {
         }
     }
 
-    async restore(snapshot: McpAppInstanceSnapshot) {
+    async restore(
+        snapshot: McpAppInstanceSnapshot,
+        options?: {
+            prepareSession?: (authorizedSnapshot: McpAppInstanceSnapshot) => Promise<McpAppInstanceSnapshot>
+        }
+    ) {
         if (!snapshot.source || !snapshot.executionContext) throw this.denied()
         const identity: AppContext = {
             ...snapshot.executionContext,
@@ -148,9 +166,10 @@ export class MiddlewareMcpAppsService {
         if (!tool) throw this.denied()
         const toolMeta = this.metadata(snapshot.source, tool, middleware)
         if (toolMeta.ui?.resourceUri !== snapshot.resourceUri) throw this.denied()
-        const modelContext = modelContextSchema.safeParse(snapshot.modelContext)
+        const session = options?.prepareSession ? await options.prepareSession(snapshot) : snapshot
+        const modelContext = modelContextSchema.safeParse(session.modelContext)
         return restoreMcpAppInstance({
-            ...snapshot,
+            ...session,
             id: snapshot.appInstanceId,
             middleware: this.backend(snapshot.source, identity),
             toolset: this.scope(identity),
@@ -216,7 +235,8 @@ export class MiddlewareMcpAppsService {
         const { agent, graph } = await this.queryBus.execute<GetXpertWorkflowQuery, TXpertWorkflowQueryOutput>(
             new GetXpertWorkflowQuery(identity.xpertId, source.agentKey, source.isDraft)
         )
-        const node = getRuntimeEnabledMiddlewareNodes(graph, agent).find((item) => item.key === source.nodeKey)
+        const middlewareNodes = getRuntimeEnabledMiddlewareNodes(graph, agent)
+        const node = middlewareNodes.find((item) => item.key === source.nodeKey)
         if (
             !node ||
             node.type !== 'workflow' ||
@@ -231,12 +251,25 @@ export class MiddlewareMcpAppsService {
         const provenance = this.registry.getSource(strategy)
         if (provenance.kind !== 'plugin' || provenance.pluginName !== source.pluginName) throw this.denied()
         const runtimeScope = resolveToolRuntimeScope(identity, agent.team.workspaceDataScope)
+        const graphConnectors = getConnectorMiddlewareScope(middlewareNodes, [])
+        // Never expand an old App's grants when optional nodes or graph pins change.
+        const connectorBindingIds = graphConnectors.connectorBindingIds.filter((id) =>
+            source.connectorGrants?.bindingIds.includes(id)
+        )
+        const connectorProviders = graphConnectors.connectorProviders.filter((provider) =>
+            source.connectorGrants?.providers.includes(provider)
+        )
         const context: IAgentMiddlewareContext = {
             ...identity,
             node: entity,
             xpertFeatures: agent.team.features,
             tools: new Map(),
-            runtime: this.runtime.createScopedApi({ ...identity, ...runtimeScope })
+            runtime: this.runtime.createScopedApi({
+                ...identity,
+                ...runtimeScope,
+                connectorBindingIds,
+                connectorProviders
+            })
         }
         const middleware = await strategy.createMiddleware(entity.options, context)
         if (!middleware.apps) throw this.denied()

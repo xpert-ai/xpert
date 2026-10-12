@@ -1,90 +1,87 @@
-<div class="flex flex-col gap-4">
-  <div
-    class="cursor-move text-2xl font-medium text-text-primary"
-    cdkDrag
-    cdkDragRootElement=".cdk-overlay-pane"
-    cdkDragHandle
-  >
-    {{ 'XP.SHARED.User.CreateAccounts' | translate: { Default: 'Create Accounts' } }}
+<section xpDialogLayout="wide" xpDialogPurpose="workflow" class="w-[min(840px,calc(100vw-32px))] max-h-[84dvh]">
+  <header xpDialogHeader>
+    <h2 xpDialogHeading cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+      {{ 'XP.SHARED.User.CreateAccounts' | translate: { Default: 'Create Accounts' } }}
+    </h2>
+    <button
+      xpDialogCloseButton
+      z-button
+      zType="ghost"
+      zSize="icon"
+      type="button"
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+      (click)="close()"
+    >
+      <z-icon zType="x" aria-hidden="true" />
+    </button>
+  </header>
+  <div xpDialogBody class="relative">
+    <z-stepper class="w-full" [selectedIndex]="step() - 1" (selectedIndexChange)="step.set($event + 1)">
+      <z-step [label]="'Pro.UploadFiles' | translate: { Default: 'Upload files' }">
+        <xp-upload
+          class="min-h-64"
+          [files]="fileList"
+          (filesChange)="onFileListChange($event)"
+          (removeFileChange)="removeFiles($event)"
+        />
+      </z-step>
+      <z-step [label]="'XP.ACTIONS.Save' | translate: { Default: 'Save' }">
+        <div class="min-w-0 overflow-x-auto">
+          <xp-table
+            class="flex-1"
+            [data]="users()"
+            [columns]="[
+              {
+                name: 'username',
+                caption: ('XP.SHARED.USER_BASIC.Username' | translate: { Default: 'Username' })
+              },
+              {
+                name: 'email',
+                caption: ('XP.SHARED.USER_BASIC.Email' | translate: { Default: 'Email' })
+              },
+              {
+                name: 'hash',
+                caption: ('XP.SHARED.USER_BASIC.Passwrod' | translate: { Default: 'Passwrod' })
+              },
+              {
+                name: 'firstName',
+                caption: ('XP.SHARED.USER_BASIC.firstName' | translate: { Default: 'First Name' })
+              },
+              {
+                name: 'lastName',
+                caption: ('XP.SHARED.USER_BASIC.lastName' | translate: { Default: 'Last Name' })
+              },
+              {
+                name: 'roleName',
+                caption: ('XP.SHARED.USER_BASIC.Role' | translate: { Default: 'Role' })
+              },
+              {
+                name: 'thirdPartyId',
+                caption: ('XP.SHARED.USER_BASIC.ThirdPartyId' | translate: { Default: 'Third Party Id' })
+              }
+            ]"
+          />
+        </div>
+      </z-step>
+    </z-stepper>
+    @if (loading()) {
+      <xp-spin class="absolute inset-0" />
+    }
   </div>
-
-  <xp-stepper class="overflow-hidden space-y-8 mb-8" [(ngModel)]="step" [steps]="steps" />
-</div>
-
-<div class="m-6 border-l border-solid border-divider-regular"></div>
-
-<div class="relative w-[600px] min-h-[400px] flex flex-col gap-2 mt-8 mb-2">
-  @switch (step()) {
-    @case (1) {
-      <xp-upload
-        class="flex-1"
-        [files]="fileList"
-        (filesChange)="onFileListChange($event)"
-        (removeFileChange)="removeFiles($event)"
-      />
-
-      <div class="w-full flex justify-end">
-        <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large mr-2" (click)="downloadTempl()">
-          <i class="ri-table-view font-normal mr-1"></i>
-          {{ 'XP.SHARED.User.DownloadTemplate' | translate: { Default: 'Download Template' } }}
-        </button>
-      </div>
+  <footer xpDialogFooter>
+    <button z-button zType="outline" type="button" (click)="close()">
+      {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+    </button>
+    @if (step() === 1) {
+      <button z-button zType="outline" type="button" (click)="downloadTempl()">
+        <z-icon zType="file_download" aria-hidden="true" />{{
+          'XP.SHARED.User.DownloadTemplate' | translate: { Default: 'Download Template' }
+        }}
+      </button>
+    } @else {
+      <button z-button type="button" [zLoading]="loading()" [zDisabled]="loading() || !users().length" (click)="save()">
+        <z-icon zType="save" aria-hidden="true" />{{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
+      </button>
     }
-
-    @case (2) {
-      <xp-table
-        class="flex-1"
-        [data]="users()"
-        [columns]="[
-          {
-            name: 'username',
-            caption: ('XP.SHARED.USER_BASIC.Username' | translate: { Default: 'Username' })
-          },
-          {
-            name: 'email',
-            caption: ('XP.SHARED.USER_BASIC.Email' | translate: { Default: 'Email' })
-          },
-          {
-            name: 'hash',
-            caption: ('XP.SHARED.USER_BASIC.Passwrod' | translate: { Default: 'Passwrod' })
-          },
-          {
-            name: 'firstName',
-            caption: ('XP.SHARED.USER_BASIC.firstName' | translate: { Default: 'First Name' })
-          },
-          {
-            name: 'lastName',
-            caption: ('XP.SHARED.USER_BASIC.lastName' | translate: { Default: 'Last Name' })
-          },
-          {
-            name: 'roleName',
-            caption: ('XP.SHARED.USER_BASIC.Role' | translate: { Default: 'Role' })
-          },
-          {
-            name: 'thirdPartyId',
-            caption: ('XP.SHARED.USER_BASIC.ThirdPartyId' | translate: { Default: 'Third Party Id' })
-          }
-        ]"
-      />
-
-      <div class="w-full flex justify-end">
-        <button
-          type="button"
-          class="btn disabled:btn-disabled btn-primary btn-large"
-          [disabled]="loading() || !users().length"
-          (click)="save()"
-        >
-          <i class="ri-save-line mr-1"></i>{{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
-        </button>
-      </div>
-    }
-  }
-
-  @if (loading()) {
-    <xp-spin class="absolute top-0 left-0 w-full h-full" />
-  }
-</div>
-
-<button type="button" class="btn rounded-xl justify-center absolute top-4 right-4 w-8 h-8" (click)="close()">
-  <i class="ri-close-line"></i>
-</button>
+  </footer>
+</section>

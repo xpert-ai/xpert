@@ -10,7 +10,7 @@ import {
   TIntegrationQrCreateInput,
   TIntegrationQrSession
 } from '@xpert-ai/contracts'
-import { XpI18nPipe, ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { XpI18nPipe, ZardButtonComponent, XpDialogFrameImports } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
 import { getErrorMessage, IntegrationService, Store } from '../../../../@core'
 import { QRCodeComponent } from '../../../../@shared/qrcode'
@@ -25,59 +25,66 @@ export interface IntegrationQrDialogData {
 @Component({
   standalone: true,
   selector: 'xp-integration-qr-dialog',
-  imports: [TranslateModule, XpI18nPipe, QRCodeComponent, ZardButtonComponent, ZardIconComponent],
+  imports: [TranslateModule, XpI18nPipe, QRCodeComponent, ZardButtonComponent, ...XpDialogFrameImports],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="flex w-[440px] max-w-[calc(100vw-32px)] flex-col">
-      <header class="flex items-center justify-between gap-3 border-b border-border px-6 py-5">
-        <div class="min-w-0">
-          <h2 id="integration-qr-title" class="text-lg font-semibold">{{ 'XP.Integration.Qr.Title' | translate }}</h2>
-          <p class="mt-1 text-sm text-muted-foreground">{{ data.provider.label | i18n }} · {{ data.input.name }}</p>
-        </div>
+    <section xpDialogLayout="standard" class="w-[440px] max-w-[calc(100vw-32px)] max-h-[84dvh]">
+      <header xpDialogHeader>
+        <h2 id="integration-qr-title" xpDialogHeading>{{ 'XP.Integration.Qr.Title' | translate }}</h2>
+        <p xpDialogDescription>{{ data.provider.label | i18n }} · {{ data.input.name }}</p>
         <button
+          xpDialogCloseButton
           z-button
           zType="ghost"
-          zSize="icon-sm"
+          zSize="icon"
           type="button"
           [zDisabled]="state() === 'saving'"
           [attr.aria-label]="'XP.Integration.Qr.Close' | translate"
           (click)="dialogRef.close()"
         >
-          <z-icon zType="x" />
+          <z-icon zType="x" aria-hidden="true" />
         </button>
       </header>
-      <div class="flex min-h-72 flex-col items-center gap-4 px-6 py-6 text-center">
-        <p class="text-sm leading-6 text-muted-foreground">{{ 'XP.Integration.Qr.Intro' | translate }}</p>
-        @if (state() === 'waiting' && session(); as qr) {
-          <qrcode [qrdata]="qr.authorizationUrl" [width]="220" />
-          <p role="status" class="text-sm">{{ 'XP.Integration.Qr.Waiting' | translate }}</p>
+      <div xpDialogBody>
+        <div class="flex min-h-72 flex-col items-center gap-4 text-center">
+          <p class="text-sm leading-6 text-muted-foreground">{{ 'XP.Integration.Qr.Intro' | translate }}</p>
+          @if (state() === 'waiting' && session(); as qr) {
+            <qrcode [qrdata]="qr.authorizationUrl" [width]="220" />
+            <p role="status" class="text-sm">{{ 'XP.Integration.Qr.Waiting' | translate }}</p>
+          }
+          @if (state() === 'loading' || state() === 'saving') {
+            <z-icon zType="loader-circle" class="animate-spin" />
+            <p role="status" class="text-sm">
+              {{ (state() === 'loading' ? 'XP.Integration.Qr.Loading' : 'XP.Integration.Qr.Saving') | translate }}
+            </p>
+          }
+          @if (error()) {
+            <p role="alert" class="text-sm text-destructive">{{ error() }}</p>
+          }
+          @if (state() === 'expired' || state() === 'failed') {
+            @if (!error()) {
+              <p role="status" class="text-sm">
+                {{ (state() === 'expired' ? 'XP.Integration.Qr.Expired' : 'XP.Integration.Qr.Failed') | translate }}
+              </p>
+            }
+          }
+        </div>
+      </div>
+      <footer xpDialogFooter>
+        <p class="w-full text-xs text-muted-foreground">
+          {{ 'XP.Integration.Qr.BindingHint' | translate }}
+        </p>
+        @if (state() === 'waiting' && session()) {
           <button z-button zType="outline" type="button" (click)="copyLink()">
             {{ (copied() ? 'XP.Integration.Qr.Copied' : 'XP.Integration.Qr.Copy') | translate }}
           </button>
         }
-        @if (state() === 'loading' || state() === 'saving') {
-          <z-icon zType="loader-circle" class="animate-spin" />
-          <p role="status" class="text-sm">
-            {{ (state() === 'loading' ? 'XP.Integration.Qr.Loading' : 'XP.Integration.Qr.Saving') | translate }}
-          </p>
-        }
-        @if (error()) {
-          <p role="alert" class="text-sm text-destructive">{{ error() }}</p>
-        }
         @if (state() === 'expired' || state() === 'failed') {
-          @if (!error()) {
-            <p role="status" class="text-sm">
-              {{ (state() === 'expired' ? 'XP.Integration.Qr.Expired' : 'XP.Integration.Qr.Failed') | translate }}
-            </p>
-          }
           <button z-button type="button" (click)="authorized ? complete() : start()">
             {{ 'XP.Integration.Qr.Retry' | translate }}
           </button>
         }
-      </div>
-      <p class="border-t border-border px-6 py-4 text-xs leading-5 text-muted-foreground">
-        {{ 'XP.Integration.Qr.BindingHint' | translate }}
-      </p>
+      </footer>
     </section>
   `
 })

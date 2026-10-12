@@ -42,8 +42,11 @@ export class WorkspaceFileAccessRuntimeController {
     @Post(':sessionId/grants')
     @AssistantFileAccess('view-session')
     @UseValidationPipe({ whitelist: true, transform: true })
-    createGrant(@Param('sessionId') sessionId: string, @Body() body: CreateWorkspaceFileAccessGrantDto) {
-        return this.service.createGrant(sessionId, body)
+    async createGrant(@Param('sessionId') sessionId: string, @Body() body: CreateWorkspaceFileAccessGrantDto) {
+        const grant = await this.service.createGrant(sessionId, body)
+        // Runtime clients resolve this reference against their configured API transport.
+        // The public API origin can differ from the browser's authenticated proxy.
+        return { ...grant, url: new URL(grant.url).pathname }
     }
 
     @Get(':sessionId/grants/:grantId/content/:fileName')

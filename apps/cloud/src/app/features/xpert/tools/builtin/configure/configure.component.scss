@@ -1,8 +1,0 @@
-@reference "../../../../../../styles/tailwind-reference.css";
-:host {
-    @apply flex flex-col grow w-[420px] max-h-[90vh] rounded-3xl overflow-auto bg-components-card-bg;
-}
-
-.open-authorize-btn.tempalte {
-  @apply border-orange-500 bg-orange-50;
-}

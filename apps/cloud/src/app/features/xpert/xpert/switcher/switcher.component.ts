@@ -4,13 +4,13 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { rxResource } from '@angular/core/rxjs-interop'
 import { Router } from '@angular/router'
-import { OverlayAnimations } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
+import { OverlayAnimations } from '@xpert-ai/headless-ui'
 import { IXpert, IXpertWorkspace, OrderTypeEnum, XpertAPIService, XpertTypeEnum } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { map, of } from 'rxjs'
-import { XpertService } from '../xpert.service'
 import { BlankXpertWizardResult, XpertNewBlankComponent } from '../blank/blank.component'
+import { XpertService } from '../xpert.service'
 
 @Component({
   selector: 'xp-header-switcher',
@@ -91,6 +91,10 @@ export class XpertHeaderSwitcherComponent {
 
     this.#dialog
       .open<BlankXpertWizardResult>(XpertNewBlankComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        width: '1360px',
+        maxWidth: 'calc(100vw - 32px)',
         disableClose: true,
         data: {
           workspace: this.xpert()?.workspace ?? ({ id: workspaceId } as IXpertWorkspace),

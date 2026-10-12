@@ -1,3 +1,13 @@
+import {
+  XpDialogFrameImports,
+  ZardButtonComponent,
+  XpDialogActionGroupDirective,
+  attrModel,
+  injectConfirmDelete,
+  linkedModel,
+  myRxResource,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 
@@ -8,9 +18,7 @@ import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
 import { IntegrationSelectComponent } from '@cloud/app/@shared/integration'
 import { XP_API_BASE_URL } from '@cloud/app/auth'
-import { attrModel } from '@xpert-ai/headless-ui'
-import { injectConfirmDelete, XpSpinComponent } from '@xpert-ai/headless-ui'
-import { linkedModel, myRxResource } from '@xpert-ai/headless-ui'
+
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
@@ -25,23 +33,23 @@ import {
 } from 'apps/cloud/src/app/@core'
 import { EMPTY, map, switchMap } from 'rxjs'
 import { ChatProjectMembersComponent } from '../members/members.component'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'chat-project-manage',
   standalone: true,
   imports: [
+    ...XpDialogFrameImports,
+    ZardButtonComponent,
+    XpDialogActionGroupDirective,
     FormsModule,
     DragDropModule,
     TranslateModule,
     ...ZardTooltipImports,
     CopilotModelSelectComponent,
-    XpSpinComponent,
     ChatProjectMembersComponent,
     IntegrationSelectComponent
   ],
-  templateUrl: './manage.component.html',
-  styleUrl: './manage.component.scss'
+  templateUrl: './manage.component.html'
 })
 export class ChatProjectManageComponent {
   eModelType = AiModelTypeEnum

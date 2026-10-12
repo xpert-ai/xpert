@@ -1,3 +1,4 @@
+import { XpDialogFrameImports, ZardInputDirective, ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
@@ -7,21 +8,21 @@ import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
 import { TranslateModule } from '@ngx-translate/core'
 import { ApiAuthType } from 'apps/cloud/src/app/@core/types'
-import { ZardButtonComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+
 @Component({
   standalone: true,
   imports: [
+    ...XpDialogFrameImports,
+    ZardInputDirective,
     TranslateModule,
     FormsModule,
     ReactiveFormsModule,
     CdkListboxModule,
     DragDropModule,
-    ...ZardTooltipImports,
     ZardButtonComponent
-],
+  ],
   selector: 'xpert-tool-authorization',
-  templateUrl: 'authorization.component.html',
-  styleUrls: ['authorization.component.scss']
+  templateUrl: 'authorization.component.html'
 })
 export class XpertToolAuthorizationComponent {
   eApiProviderAuthType = ApiAuthType

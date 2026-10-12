@@ -1,5 +1,5 @@
 import { inject } from '@angular/core'
-import { RequestScopeLevel } from '@xpert-ai/contracts'
+import { IRuntimeStreamInterruption, RequestScopeLevel, RUNTIME_STREAM_INTERRUPTED_EVENT } from '@xpert-ai/contracts'
 import { EventSourceMessage, EventStreamContentType, fetchEventSource } from '@microsoft/fetch-event-source'
 import { firstValueFrom, Observable } from 'rxjs'
 import { AuthStrategy } from '../auth'
@@ -8,12 +8,27 @@ import { injectLanguage } from '../providers'
 import { isPublicXpertRequest } from '../utils/public-xpert-request'
 import { createOptionalQueryParams } from './query-params'
 
+export class RuntimeStreamInterruptedError extends Error {
+  readonly code: IRuntimeStreamInterruption['code']
+
+  constructor(interruption: IRuntimeStreamInterruption) {
+    super(interruption.message)
+    this.name = 'RuntimeStreamInterruptedError'
+    this.code = interruption.code
+  }
+}
+
 export function injectFetchEventSource<T extends BodyInit | null>() {
   const store = inject(Store)
   const auth = inject(AuthStrategy)
   const lang = injectLanguage()
 
-  return (params: string | {url: string; method: 'POST' | 'GET'; headers?: Record<string, any>; params?: Record<string, any>}, data?: T) => {
+  return (
+    params:
+      | string
+      | { url: string; method: 'POST' | 'GET'; headers?: Record<string, any>; params?: Record<string, any> },
+    data?: T
+  ) => {
     const url: string = typeof params === 'string' ? params : params.url
     const method = typeof params === 'object' && params.method ? params.method : 'POST'
     return new Observable<EventSourceMessage>((subscriber) => {
@@ -78,6 +93,26 @@ export function injectFetchEventSource<T extends BodyInit | null>() {
             }
           },
           onmessage(msg) {
+            if (msg.event === RUNTIME_STREAM_INTERRUPTED_EVENT) {
+              const interruption: unknown = JSON.parse(msg.data)
+              if (
+                !interruption ||
+                typeof interruption !== 'object' ||
+                !('code' in interruption) ||
+                interruption.code !== 'RUNTIME_RESTARTING' ||
+                !('message' in interruption) ||
+                typeof interruption.message !== 'string'
+              ) {
+                throw new Error('Invalid runtime stream interruption event')
+              }
+              // Error the observable before EOF; completing it would mark an unfinished reply as successful.
+              // Do not retry the POST: the backend task may still be running on another replica.
+              subscriber.error(
+                new RuntimeStreamInterruptedError({ code: interruption.code, message: interruption.message })
+              )
+              ctrl.abort()
+              return
+            }
             subscriber.next(msg)
           },
           onclose() {
@@ -89,7 +124,7 @@ export function injectFetchEventSource<T extends BodyInit | null>() {
             subscriber.error(err)
             throw err
           }
-        })
+        }).catch((error: unknown) => subscriber.error(error))
       }
 
       req()

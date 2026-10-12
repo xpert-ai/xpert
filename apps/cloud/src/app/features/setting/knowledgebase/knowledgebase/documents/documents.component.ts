@@ -1,10 +1,10 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { animate, state, style, transition, trigger } from '@angular/animations'
 import { afterNextRender, Component, effect, inject, model, signal, viewChild } from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import {
   ZardBadgeComponent,
-  ZardDialogService,
   ZardPaginatorComponent,
   ZardProgressCircleComponent,
   type ZardTableSortDirection
@@ -72,7 +72,7 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
   readonly knowledgeDocumentService = inject(KnowledgeDocumentService)
   readonly _toastrService = inject(ToastrService)
   readonly #store = inject(Store)
-  readonly #dialog = inject(ZardDialogService)
+  readonly #cdkDialog = inject(Dialog)
   readonly #confirmDelete = inject(XpConfirmDeleteService)
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
@@ -213,13 +213,14 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
   }
 
   uploadDocuments() {
-    this.#dialog
+    this.#cdkDialog
       .open(FilesUploadDialogComponent, {
-        panelClass: 'medium',
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {}
       })
-      .afterClosed()
-      .pipe(
+      .closed.pipe(
         switchMap((files: IStorageFile[]) =>
           files
             ? this.knowledgeDocumentService.createBulk(
@@ -289,14 +290,16 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
   }
 
   restartParsing(id: string) {
-    this.#dialog
+    this.#cdkDialog
       .open(XpCountdownConfirmationComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           recordType: 'Restart parsing job?'
         }
       })
-      .afterClosed()
-      .pipe(switchMap((confirm) => (confirm ? this.knowledgeDocumentService.startParsing(id) : EMPTY)))
+      .closed.pipe(switchMap((confirm) => (confirm ? this.knowledgeDocumentService.startParsing(id) : EMPTY)))
       .subscribe({
         next: () => {
           this.refresh()
@@ -308,14 +311,16 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
   }
 
   stopParsing(id: string) {
-    this.#dialog
+    this.#cdkDialog
       .open(XpCountdownConfirmationComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           recordType: 'Stop the parsing job?'
         }
       })
-      .afterClosed()
-      .pipe(switchMap((confirm) => (confirm ? this.knowledgeDocumentService.stopParsing(id) : EMPTY)))
+      .closed.pipe(switchMap((confirm) => (confirm ? this.knowledgeDocumentService.stopParsing(id) : EMPTY)))
       .subscribe({
         next: () => {
           this.refresh()

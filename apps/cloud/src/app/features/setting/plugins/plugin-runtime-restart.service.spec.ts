@@ -53,6 +53,43 @@ describe('PluginRuntimeRestartService', () => {
     localStorage.clear()
   })
 
+  it.each([false, true])('waits for both real confirmation dialogs before restarting (%s)', async (confirmed) => {
+    TestBed.overrideProvider(Dialog, { useFactory: () => new Dialog() })
+    TestBed.overrideProvider(ZardAlertDialogService, { useFactory: () => new ZardAlertDialogService() })
+    runtimeControlAPI.restart.mockReturnValue(
+      of({
+        accepted: true,
+        restartId: 'restart-two-step',
+        mode: 'rolling-self-signal',
+        instanceId: 'api-1',
+        requestedAt: new Date().toISOString(),
+        signalAfterMs: 750,
+        drainTimeoutMs: 30_000
+      })
+    )
+    runtimeControlAPI.restartStatus.mockReturnValue(new Subject())
+    const service = TestBed.inject(PluginRuntimeRestartService)
+    service.restartCapability.set({ allowed: true, mode: 'rolling-self-signal', reason: 'allowed' })
+    service.markRequired('@xpert-ai/plugin-test')
+
+    const pending = service.prompt()
+    TestBed.tick()
+    document.querySelector<HTMLElement>('.cdk-overlay-backdrop')!.click()
+    TestBed.tick()
+    expect(document.querySelector('[role="alertdialog"]')).not.toBeNull()
+    expect(runtimeControlAPI.restart).not.toHaveBeenCalled()
+    document.querySelector<HTMLButtonElement>('[data-testid="z-alert-dialog-action"]')!.click()
+    await flushAsync()
+    TestBed.tick()
+    expect(document.querySelector('[role="alertdialog"]')?.textContent).toContain('Restart the API service?')
+    expect(runtimeControlAPI.restart).not.toHaveBeenCalled()
+    const action = confirmed ? 'action' : 'cancel'
+    document.querySelector<HTMLButtonElement>(`[data-testid="z-alert-dialog-${action}"]`)!.click()
+    await pending
+    expect(runtimeControlAPI.restart).toHaveBeenCalledTimes(confirmed ? 1 : 0)
+    expect(document.querySelector('[role="alertdialog"]')).toBeNull()
+  })
+
   it('shows manual restart only to superadmins and keeps background progress visible to other roles', () => {
     const service = TestBed.inject(PluginRuntimeRestartService)
     service.markRequired('@xpert-ai/plugin-test')

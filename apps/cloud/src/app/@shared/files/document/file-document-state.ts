@@ -527,7 +527,8 @@ export class FileDocumentState {
     this.#dirtyDialogRef = this.#dialog.open(dialogTemplate, {
       disableClose: true,
       backdropClass: 'backdrop-blur-xs-black',
-      panelClass: 'xp-overlay-pane-dialog'
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)'
     })
   }
 

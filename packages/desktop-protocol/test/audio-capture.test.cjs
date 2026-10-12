@@ -1,6 +1,12 @@
 const { test } = require('node:test')
 const assert = require('node:assert/strict')
-const { parseAudioCapturePayload: parse, isAudioCaptureCommand, AUDIO_CAPTURE_COMMANDS } = require('..')
+const {
+  parseAudioCapturePayload: parse,
+  isAudioCaptureCommand,
+  AUDIO_CAPTURE_COMMANDS,
+  BROWSER_AUDIO_CAPTURE_COMMANDS,
+  parseBrowserAudioCapturePayload: parseBrowser
+} = require('..')
 const start = 'desktop.audio.capture.start'
 const delivery = { eventAction: 'on-audio-event', chunkAction: 'on-audio-chunk', context: { externalReference: 'a' } }
 test('generic audio capture commands accept opaque plugin context without application-specific types', () => {
@@ -34,4 +40,18 @@ test('state can discover a local capture while stop and retry require its exact 
   }
   for (const suffix of ['stop', 'retry'])
     assert.throws(() => parse(`desktop.audio.capture.${suffix}`, {}), /invalid_input/)
+})
+test('browser commands reuse strict audio payload validation without accepting native commands', () => {
+  const captureId = '00000000-0000-4000-8000-000000000001'
+  assert.deepEqual(parseBrowser('browser.audio.capture.start', { delivery }), { delivery })
+  assert.deepEqual(parseBrowser('browser.audio.capture.state', {}), {})
+  for (const command of BROWSER_AUDIO_CAPTURE_COMMANDS.slice(1)) {
+    assert.deepEqual(parseBrowser(command, { captureId }), { captureId })
+    assert.throws(() => parseBrowser(command, { captureId, extra: true }), /invalid_input/)
+  }
+  for (const command of ['browser.audio.capture.stop', 'browser.audio.capture.retry'])
+    assert.throws(() => parseBrowser(command, {}), /invalid_input/)
+  assert.throws(() => parseBrowser('browser.audio.capture.start', { delivery, userActivated: true }), /invalid_input/)
+  for (const command of AUDIO_CAPTURE_COMMANDS) assert.throws(() => parseBrowser(command, {}), /unsupported/)
+  for (const command of BROWSER_AUDIO_CAPTURE_COMMANDS) assert.throws(() => parse(command, {}), /unsupported/)
 })

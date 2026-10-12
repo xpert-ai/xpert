@@ -9,6 +9,17 @@ const { load } = parseRequire('js-yaml')
 const workflow = (name) => load(readFileSync(new URL(`../../.github/workflows/${name}.yml`, import.meta.url), 'utf8'))
 const { jobs } = workflow('docker-publish')
 
+test('planning pins main from the fetched repository history', () => {
+  const checkout = jobs.prepare.steps.find((step) => step.uses === 'actions/checkout@v4')
+  assert.equal(checkout.with['fetch-depth'], 0)
+  const plan = jobs.prepare.steps.find((step) => step.id === 'plan')
+  assert.match(plan.run, /git rev-parse refs\/remotes\/origin\/main/)
+  assert.match(
+    plan.run,
+    /IMAGE_RELEASE_MAIN="\$image_release_main_sha" node \.deploy\/application-images\/release-plan\.mjs/
+  )
+})
+
 test('image builds wait for dependency checks of the exact planned source SHA', () => {
   assert.deepEqual(jobs.build.needs, ['prepare', 'validate-api', 'validate-web'])
   for (const [job, name] of [

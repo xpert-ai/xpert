@@ -1,29 +1,43 @@
-<div class="absolute right-4 top-4 flex h-9 w-9 cursor-pointer items-center justify-center" (click)="close()">
-  <i class="ri-close-line"></i>
-</div>
-
-<div class="flex flex-col items-center gap-4 py-8">
-  <img class="block object-contain w-16 rounded-full mx-auto" alt="Xpert logo" src="/assets/icon.png" />
-  <div class="text-center text-sm font-normal text-text-tertiary">Version {{ Version }}</div>
-  <div class="flex flex-col items-center gap-2 text-center text-sm font-normal text-text-secondary">
-    <div>© 2025 XpertAI, Inc., Contributors.</div>
-    <div class="text-text-accent">
-      <a target="_blank" rel="noopener noreferrer" href="{{ helpWebsite() }}/privacy">Privacy Policy</a>
-      ,&nbsp;
-      <a target="_blank" rel="noopener noreferrer" href="{{ helpWebsite() }}/terms">Terms of Service</a>
+<section xpDialogLayout="wide" class="w-[min(480px,calc(100vw-32px))] max-h-[84dvh]">
+  <header xpDialogHeader>
+    <h2 xpDialogHeading>{{ 'XP.MENU.About' | translate: { Default: 'About' } }}</h2>
+    <button
+      xpDialogCloseButton
+      z-button
+      zType="ghost"
+      zSize="icon"
+      type="button"
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+      (click)="close()"
+    >
+      <z-icon zType="x" aria-hidden="true" />
+    </button>
+  </header>
+  <div xpDialogBody>
+    <div class="flex flex-col items-center gap-4 py-4">
+      <img class="block object-contain w-16 rounded-full mx-auto" alt="Xpert logo" src="/assets/icon.png" />
+      <div class="text-center text-sm font-normal text-text-tertiary">Version {{ Version }}</div>
+      <div class="flex flex-col items-center gap-2 text-center text-sm font-normal text-text-secondary">
+        <div>© 2025 XpertAI, Inc., Contributors.</div>
+        <div class="text-text-accent">
+          <a target="_blank" rel="noopener noreferrer" href="{{ helpWebsite() }}/privacy">Privacy Policy</a>
+          ,&nbsp;
+          <a target="_blank" rel="noopener noreferrer" href="{{ helpWebsite() }}/terms">Terms of Service</a>
+        </div>
+      </div>
     </div>
   </div>
-</div>
-<div class="-mx-8 mb-4 h-[0.5px] bg-divider-regular"></div>
-<div class="flex items-center justify-between">
-  <div class="text-sm font-medium text-text-tertiary">
-    XpertAI {{ Version }} {{ 'XP.MENU.IsLatest' | translate: { Default: 'is the latest version available.' } }}
-  </div>
-  <div class="flex items-center">
-    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small mr-2">
-      <a target="_blank" rel="noopener noreferrer" href="https://github.com/xpert-ai/xpert/tags">
-        {{ 'XP.KEY_WORDS.Changelog' | translate: { Default: 'Changelog' } }}
-      </a>
-    </button>
-  </div>
-</div>
+  <footer xpDialogFooter>
+    <p class="min-w-0 flex-1 text-muted-foreground">
+      XpertAI {{ Version }} {{ 'XP.MENU.IsLatest' | translate: { Default: 'is the latest version available.' } }}
+    </p>
+    <a
+      z-button
+      zType="outline"
+      target="_blank"
+      rel="noopener noreferrer"
+      href="https://github.com/xpert-ai/xpert/tags"
+      >{{ 'XP.KEY_WORDS.Changelog' | translate: { Default: 'Changelog' } }}</a
+    >
+  </footer>
+</section>

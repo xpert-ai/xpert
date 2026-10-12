@@ -2,16 +2,40 @@
   @if (selectedDefinition()) {
     <ng-container [ngTemplateOutlet]="connectorDialog" />
   } @else {
-    <div class="flex w-lg max-w-full flex-col gap-4 p-5">
-      @if (errorMessage(); as error) {
-        <p role="alert" class="text-text-danger">{{ error }}</p>
-        <button z-button type="button" (click)="refresh()">{{ 'XP.ACTIONS.Refresh' | translate }}</button>
-      } @else {
-        <xp-spin />
-      }
-      <button z-button zType="ghost" type="button" (click)="closeConnectorDialog()">
-        {{ 'XP.ACTIONS.Close' | translate }}
-      </button>
+    <div xpDialogLayout="standard" class="w-[560px] max-w-full max-h-[85dvh]">
+      <header xpDialogHeader>
+        <h2 xpDialogHeading id="workspace-connector-dialog-title">
+          {{ 'XP.Xpert.Connectors' | translate: { Default: 'Connectors' } }}
+        </h2>
+        <button
+          type="button"
+          z-button
+          zType="ghost"
+          zSize="icon"
+          xpDialogCloseButton
+          [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+          (click)="closeConnectorDialog()"
+        >
+          <z-icon zType="x" />
+        </button>
+      </header>
+      <div xpDialogBody class="relative min-h-24">
+        @if (errorMessage(); as error) {
+          <p role="alert" class="text-destructive">{{ error }}</p>
+        } @else {
+          <xp-spin />
+        }
+      </div>
+      <footer xpDialogFooter>
+        <button z-button zType="outline" type="button" (click)="closeConnectorDialog()">
+          {{ 'XP.ACTIONS.Close' | translate: { Default: 'Close' } }}
+        </button>
+        @if (errorMessage()) {
+          <button z-button type="button" [zLoading]="loading()" [zDisabled]="loading()" (click)="refresh()">
+            {{ 'XP.ACTIONS.Refresh' | translate: { Default: 'Refresh' } }}
+          </button>
+        }
+      </footer>
     </div>
   }
 } @else {
@@ -209,15 +233,13 @@
     @let authorizationLink = pendingAuthorizationUrl(binding);
 
     <div
-      class="flex min-w-0 max-w-full flex-col"
-      [class]="
-        authorizationPresentation && binding?.status === 'pending'
-          ? 'max-h-[min(860px,90dvh)] w-3xl'
-          : 'max-h-[min(760px,90dvh)] w-lg'
-      "
+      xpDialogLayout="wide"
+      xpDialogPurpose="workflow"
+      class="max-w-full max-h-[85dvh]"
+      [class]="authorizationPresentation && binding?.status === 'pending' ? 'w-[760px]' : 'w-[560px]'"
       data-connector-dialog
     >
-      <header class="flex shrink-0 items-start justify-between gap-4 border-b border-divider-regular px-5 py-4">
+      <header xpDialogHeader>
         <div class="flex min-w-0 items-center gap-3">
           <div
             class="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-divider-regular bg-background-default-subtle"
@@ -233,10 +255,7 @@
             }
           </div>
           <div class="min-w-0">
-            <h2
-              id="workspace-connector-dialog-title"
-              class="text-base font-semibold text-text-primary [overflow-wrap:anywhere]"
-            >
+            <h2 id="workspace-connector-dialog-title" xpDialogHeading>
               {{ definition.label | i18n }}
             </h2>
             <div class="mt-1 flex items-center gap-1.5 text-xs text-text-secondary">
@@ -250,7 +269,7 @@
           zType="ghost"
           zSize="icon"
           type="button"
-          class="shrink-0"
+          xpDialogCloseButton
           [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
           (click)="closeConnectorDialog()"
         >
@@ -259,8 +278,9 @@
       </header>
 
       <div
-        class="min-h-0 min-w-0 overflow-y-auto [overflow-wrap:anywhere]"
-        [class]="authorizationPresentation && binding?.status === 'pending' ? 'px-5 py-5' : 'space-y-5 px-5 py-5'"
+        xpDialogBody
+        class="[overflow-wrap:anywhere]"
+        [class]="authorizationPresentation && binding?.status === 'pending' ? '' : 'space-y-4'"
       >
         @if (authorizationPresentation && binding?.status === 'pending' && authorizationLink) {
           <div class="py-4 sm:py-6" data-connector-authorization-qr>
@@ -345,15 +365,9 @@
           }
 
           @if (binding?.status === 'pending') {
-            <div class="flex flex-wrap items-center gap-2">
+            <div xpDialogActionGroup="inline" class="flex flex-wrap items-center gap-2">
               @if (authorizationLink) {
-                <button
-                  z-button
-                  type="button"
-                  zType="default"
-                  zSize="default"
-                  (click)="openPendingAuthorizationUrl(binding)"
-                >
+                <button z-button type="button" zType="default" (click)="openPendingAuthorizationUrl(binding)">
                   <z-icon zType="arrow-up-right" />
                   {{ 'XP.Xpert.ConnectorOpenAuthorization' | translate: { Default: 'Continue authorization' } }}
                 </button>
@@ -437,37 +451,28 @@
         }
       </div>
 
-      <footer
-        [class]="
-          authorizationPresentation && binding?.status === 'pending'
-            ? 'flex shrink-0 flex-wrap items-center justify-between gap-3 border-t border-divider-regular px-5 py-4'
-            : 'flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-divider-regular px-5 py-4'
-        "
-      >
+      <footer xpDialogFooter>
         @if (authorizationPresentation && binding?.status === 'pending') {
-          <span class="text-sm text-text-secondary">{{ authorizationPresentation.completionHint | i18n }}</span>
+          <span class="mr-auto text-sm text-muted-foreground">{{
+            authorizationPresentation.completionHint | i18n
+          }}</span>
           <div class="flex flex-wrap items-center justify-end gap-2">
             <button
               z-button
-              zType="ghost"
-              zSize="default"
+              zType="outline"
               type="button"
               data-connector-action="cancel-authorization"
               class="text-text-danger"
               [zDisabled]="loading() || isCancelling(binding) || !canManageWorkspace()"
+              [zLoading]="isCancelling(binding)"
               (click)="cancelAuthorization(binding)"
             >
-              @if (isCancelling(binding)) {
-                <z-icon [zType]="loadingIcon" class="animate-spin" />
-              } @else {
-                <z-icon [zType]="disconnectIcon" />
-              }
+              <z-icon [zType]="disconnectIcon" />
               {{ authorizationPresentation.cancelLabel | i18n }}
             </button>
             <button
               z-button
               zType="outline"
-              zSize="default"
               type="button"
               data-connector-action="copy-authorization-url"
               [zDisabled]="!authorizationLink"
@@ -478,7 +483,7 @@
             </button>
           </div>
         } @else {
-          <button z-button zType="ghost" zSize="default" type="button" (click)="closeConnectorDialog()">
+          <button z-button zType="outline" type="button" (click)="closeConnectorDialog()">
             {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
           </button>
 
@@ -487,17 +492,13 @@
               <button
                 z-button
                 zType="default"
-                zSize="default"
                 type="button"
                 data-connector-action="connect"
                 [zDisabled]="loading() || isConnecting(binding, definition)"
+                [zLoading]="isConnecting(binding, definition)"
                 (click)="connect(binding, definition)"
               >
-                @if (isConnecting(binding, definition)) {
-                  <z-icon [zType]="loadingIcon" class="animate-spin" />
-                } @else {
-                  <z-icon [zType]="connectorIcon" />
-                }
+                <z-icon [zType]="connectorIcon" />
                 {{ 'XP.Xpert.ConnectorConnect' | translate: { Default: 'Connect' } }}
               </button>
             }
@@ -506,18 +507,14 @@
               <button
                 z-button
                 zType="outline"
-                zSize="default"
                 type="button"
                 class="text-text-danger"
                 data-connector-action="cancel-authorization"
                 [zDisabled]="loading() || isCancelling(binding)"
+                [zLoading]="isCancelling(binding)"
                 (click)="cancelAuthorization(binding)"
               >
-                @if (isCancelling(binding)) {
-                  <z-icon [zType]="loadingIcon" class="animate-spin" />
-                } @else {
-                  <z-icon [zType]="disconnectIcon" />
-                }
+                <z-icon [zType]="disconnectIcon" />
                 {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel authorization' } }}
               </button>
             }
@@ -526,35 +523,27 @@
               <button
                 z-button
                 zType="outline"
-                zSize="default"
                 type="button"
                 class="text-text-danger"
                 data-connector-action="disconnect"
                 [zDisabled]="loading() || isDisconnecting(binding)"
+                [zLoading]="isDisconnecting(binding)"
                 (click)="disconnect(binding)"
               >
-                @if (isDisconnecting(binding)) {
-                  <z-icon [zType]="loadingIcon" class="animate-spin" />
-                } @else {
-                  <z-icon [zType]="disconnectIcon" />
-                }
+                <z-icon [zType]="disconnectIcon" />
                 {{ 'XP.Xpert.ConnectorDisconnect' | translate: { Default: 'Disconnect' } }}
               </button>
             } @else if (binding.status !== 'pending' && canManageWorkspace()) {
               <button
                 z-button
                 zType="default"
-                zSize="default"
                 type="button"
                 data-connector-action="connect"
                 [zDisabled]="loading() || isConnecting(binding)"
+                [zLoading]="isConnecting(binding)"
                 (click)="connect(binding, definition)"
               >
-                @if (isConnecting(binding)) {
-                  <z-icon [zType]="loadingIcon" class="animate-spin" />
-                } @else {
-                  <z-icon [zType]="connectorIcon" />
-                }
+                <z-icon [zType]="connectorIcon" />
                 {{ 'XP.Xpert.ConnectorConnect' | translate: { Default: 'Connect' } }}
               </button>
             }

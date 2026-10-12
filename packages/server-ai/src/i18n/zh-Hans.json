@@ -56,6 +56,11 @@
         "PrimaryModelEmptyResponse": "Primary LLM 返回了空响应。",
         "PrimaryModelVerificationTimedOut": "Primary LLM 验证超过 20 秒，请稍后重试。",
         "ClawXpertRecoveryRequiresMember": "请先加入当前组织，再恢复个人助理。",
+        "KnowledgebaseCatalogInputInvalid": "知识库目录查询参数无效。",
+        "KnowledgebaseCatalogContextRequired": "需要已认证的租户及组织上下文。",
+        "KnowledgebaseCatalogUnavailable": "当前范围内无法访问该知识库。",
+        "KnowledgebaseCatalogCursorInvalid": "目录游标无效或不属于当前查询。",
+        "RuntimeRestartInterrupted": "服务正在重启，实时回复已中断。任务可能仍在运行，请刷新会话查看结果。",
         "GroupPrimaryAssistantInUse": "该数字专家是群组的主数字专家，暂时无法删除。",
         "ChatkitSessionInputInvalid": "ChatKit 会话参数无效。",
         "GroupAccessDenied": "无权访问此群聊。",
@@ -1018,7 +1023,11 @@
         "KnowledgeQuestionsStale": "原文分块已更新，请重新生成问题。",
         "KnowledgeQuestionsUnavailable": "请先启用 AI 问题生成，并完成此文本分块的处理。",
         "KnowledgeSourceVectorFilterUnsupported": "不支持此原文分块向量筛选条件。",
-        "PromptWorkflowAssociationsUnavailable": "所选标签或数字专家已不可用，请刷新后选择当前工作空间中的项目。"
+        "PromptWorkflowAssociationsUnavailable": "所选标签或数字专家已不可用，请刷新后选择当前工作空间中的项目。",
+        "McpAppSessionExpired": "交互会话已过期，历史结果仍可查看。",
+        "McpAppSessionUnavailable": "此应用无法恢复交互，历史结果仍可查看。",
+        "McpAppMessageMismatch": "此应用不属于所请求的消息。",
+        "McpAppHistoryQueryInvalid": "需要提供有效的消息标识。"
     },
     "Mcp": {
         "Test": {
@@ -1184,5 +1193,10 @@
         "Untitled": "未命名对话",
         "InvalidAction": "主题操作无效",
         "InvalidQuery": "查询条件无效"
+    },
+    "GroupTaskResult": {
+        "succeeded": "任务「{{title}}」执行成功，等待验收。",
+        "failed": "任务「{{title}}」执行失败。",
+        "cancelled": "任务「{{title}}」已取消。"
     }
 }

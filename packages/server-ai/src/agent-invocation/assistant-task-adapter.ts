@@ -1,3 +1,4 @@
+import { AssistantTaskExecution } from './assistant-task-execution'
 import { Injectable } from '@nestjs/common'
 import {
     AgentMiddlewareAssistantTaskInput,
@@ -8,7 +9,6 @@ import {
     AgentRuntimeStart,
     AgentRuntimeStrategy,
     AgentInvocationStatus,
-    createRuntimeCapability,
     DefaultRuntimeCapabilityRegistry,
     IAgentRuntimeStrategy,
     RequestContext
@@ -19,7 +19,6 @@ import { AgentInvocationRuntime, invocationError } from './invocation-runtime'
 import { resolveAgentExecutionScope } from '../shared/agent/middleware-runtime/execution-scope'
 
 interface TaskExecutor {
-    handle?(operationId: string): AgentRuntimeHandle
     start(
         operationId: string,
         checkpoint?: (task: AgentMiddlewareAssistantTaskResult) => Promise<void>
@@ -27,7 +26,6 @@ interface TaskExecutor {
     inspect(handle: AgentRuntimeHandle): Promise<AgentMiddlewareAssistantTaskResult | null>
     cancel(handle: AgentRuntimeHandle): Promise<void>
 }
-const TaskExecution = createRuntimeCapability<TaskExecutor>('xpert.internal.assistant_task_execution')
 const Receipt = z.object({
     status: z.enum(['queued', 'running', 'interrupted', 'succeeded', 'failed', 'unknown']),
     taskId: z.string().optional(),
@@ -47,25 +45,14 @@ const Receipt = z.object({
 @AgentRuntimeStrategy('xpert-task')
 export class AssistantTaskRuntimeStrategy implements IAgentRuntimeStrategy {
     readonly capabilities = { recovery: 'session' as const, interactions: false, cancellation: true, background: true }
-    async start(_request: AgentRuntimeStart, context: AgentRuntimeContext): Promise<AgentRuntimeObservation> {
-        const executor = context.capabilities.require(TaskExecution)
-        const handle = executor.handle?.(context.invocationId) ?? {
-            sessionId: context.invocationId,
-            runId: context.invocationId
-        }
-        await context.checkpoint({ status: 'running', handle })
-        return observation(
-            await executor.start(context.invocationId, (task) => context.checkpoint(observation(task, handle))),
-            handle
-        )
+    async start(request: AgentRuntimeStart, context: AgentRuntimeContext): Promise<AgentRuntimeObservation> {
+        return context.capabilities.require(AssistantTaskExecution).start(request, context)
     }
     async inspect(handle: AgentRuntimeHandle, context: AgentRuntimeContext) {
-        const task = await context.capabilities.require(TaskExecution).inspect(handle)
-        return task ? observation(task, handle) : { status: 'unknown' as const, handle }
+        return context.capabilities.require(AssistantTaskExecution).inspect(handle, context)
     }
     async cancel(handle: AgentRuntimeHandle, context: AgentRuntimeContext) {
-        await context.capabilities.require(TaskExecution).cancel(handle)
-        return { status: 'cancelling' as const, handle }
+        return context.capabilities.require(AssistantTaskExecution).cancel(handle, context)
     }
 }
 
@@ -89,9 +76,26 @@ export async function invokeAssistantTask(
             callerAgentKey: identity.agentKey || input.target?.requesterAgentKey || input.xpertId,
             callerXpertId: input.xpertId
         },
-        capabilities: new DefaultRuntimeCapabilityRegistry().register(TaskExecution, {
-            ...executor,
-            handle: (id) => ({ sessionId: input.conversationId || id, runId: input.executionId || id })
+        capabilities: new DefaultRuntimeCapabilityRegistry().register(AssistantTaskExecution, {
+            async start(_request, context) {
+                const handle = {
+                    sessionId: input.conversationId || context.invocationId,
+                    runId: input.executionId || context.invocationId
+                }
+                await context.checkpoint({ status: 'running', handle })
+                return observation(
+                    await executor.start(context.invocationId, (task) => context.checkpoint(observation(task, handle))),
+                    handle
+                )
+            },
+            async inspect(handle) {
+                const task = await executor.inspect(handle)
+                return task ? observation(task, handle) : { status: 'unknown', handle }
+            },
+            async cancel(handle) {
+                await executor.cancel(handle)
+                return { status: 'cancelling', handle }
+            }
         }),
         authorize
     })

@@ -2,13 +2,19 @@ import { Dialog, DialogModule } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, input, model } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { routeAnimations } from '@xpert-ai/headless-ui'
-import { XpDensityDirective, XpI18nPipe } from '@xpert-ai/headless-ui'
+import {
+  routeAnimations,
+  XpDensityDirective,
+  XpI18nPipe,
+  ZardSwitchComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
+
 import { TranslateModule } from '@ngx-translate/core'
 import { IBuiltinTool, IXpertToolset, XpertToolsetService } from 'apps/cloud/src/app/@core'
 import { XpertToolTestDialogComponent } from '../../tool-test'
 import { XpertToolBuiltinParametersComponent } from '../parameters/parameters.component'
-import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+
 @Component({
   standalone: true,
   imports: [
@@ -55,7 +61,9 @@ export class XpertToolBuiltinToolComponent {
     }
     this.#dialog
       .open(XpertToolTestDialogComponent, {
-        panelClass: 'medium',
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           tool: {
             name: tool.identity.name,

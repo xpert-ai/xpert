@@ -76,7 +76,8 @@ export class XpertSettingsService {
       this.dialogRef = this.dialog.open(XpertSettingsDialogComponent, {
         viewContainerRef,
         backdropClass: 'backdrop-blur-xs-black',
-        panelClass: ['xp-overlay-pane-dialog', 'xp-overlay-pane-assistant-settings'],
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         disableClose: true,
         ariaLabel: this.translate.instant('XP.XpertSettings.Title'),
         data: {

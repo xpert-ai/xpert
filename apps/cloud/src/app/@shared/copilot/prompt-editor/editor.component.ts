@@ -136,7 +136,9 @@ export class CopilotPromptEditorComponent {
   generate() {
     this.#dialog
       .open<{ instruction: string }>(CopilotPromptGeneratorComponent, {
-        panelClass: 'large',
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           instruction: this.prompt()
         }

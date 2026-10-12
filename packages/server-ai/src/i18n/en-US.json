@@ -56,6 +56,11 @@
         "PrimaryModelEmptyResponse": "The Primary LLM returned an empty response.",
         "PrimaryModelVerificationTimedOut": "Primary LLM verification timed out after 20 seconds.",
         "ClawXpertRecoveryRequiresMember": "Join the current organization before recovering your personal assistant.",
+        "KnowledgebaseCatalogInputInvalid": "Invalid knowledgebase catalog request.",
+        "KnowledgebaseCatalogContextRequired": "Authenticated tenant and organization scope are required.",
+        "KnowledgebaseCatalogUnavailable": "Knowledgebase is unavailable in the current scope.",
+        "KnowledgebaseCatalogCursorInvalid": "The catalog cursor is invalid for this query.",
+        "RuntimeRestartInterrupted": "The service is restarting and the live reply was interrupted. The task may still be running. Refresh the conversation to check its result.",
         "GroupPrimaryAssistantInUse": "This Assistant is the primary Assistant of a group and cannot be deleted.",
         "ChatkitSessionInputInvalid": "Invalid ChatKit session input.",
         "GroupAccessDenied": "You do not have access to this group.",
@@ -1018,7 +1023,11 @@
         "KnowledgeQuestionsStale": "The source chunk changed. Regenerate its questions.",
         "KnowledgeQuestionsUnavailable": "Enable question generation and finish processing this text chunk before generating questions.",
         "KnowledgeSourceVectorFilterUnsupported": "Unsupported source vector metadata filter.",
-        "PromptWorkflowAssociationsUnavailable": "The selected tags or experts are unavailable. Refresh and select items from this workspace."
+        "PromptWorkflowAssociationsUnavailable": "The selected tags or experts are unavailable. Refresh and select items from this workspace.",
+        "McpAppSessionExpired": "This App session has expired. Its saved result is still available.",
+        "McpAppSessionUnavailable": "This App cannot resume. Its saved result is still available.",
+        "McpAppMessageMismatch": "This App does not belong to the requested message.",
+        "McpAppHistoryQueryInvalid": "A valid message identifier is required."
     },
     "Mcp": {
         "Test": {
@@ -1184,5 +1193,10 @@
         "Untitled": "Untitled conversation",
         "InvalidAction": "Invalid topic action",
         "InvalidQuery": "Invalid map query"
+    },
+    "GroupTaskResult": {
+        "succeeded": "Task “{{title}}” succeeded and is awaiting acceptance.",
+        "failed": "Task “{{title}}” failed.",
+        "cancelled": "Task “{{title}}” was cancelled."
     }
 }

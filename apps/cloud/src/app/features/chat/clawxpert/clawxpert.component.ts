@@ -111,7 +111,9 @@ export class ClawXpertComponent implements OnDestroy {
 
     this.#setupDialogRef = this.#dialog.open(ClawXpertSetupWizardComponent, {
       disableClose: true,
-      backdropClass: 'backdrop-blur-sm-black',
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 2rem)',
       injector: this.#injector
     })
     this.#setupDialogRef.closed.subscribe(() => {

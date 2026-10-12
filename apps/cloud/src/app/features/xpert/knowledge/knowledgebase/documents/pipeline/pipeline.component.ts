@@ -1,11 +1,11 @@
+import { ZardButtonComponent, XpDialogFrameImports, myRxResource } from '@xpert-ai/headless-ui'
+
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { SelectionModel } from '@angular/cdk/collections'
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { myRxResource } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
 import { BehaviorSubject } from 'rxjs'
@@ -34,7 +34,6 @@ import { KnowledgePipelineImportResult } from '../import/import-model'
   standalone: true,
   selector: 'xp-knowledge-document-pipeline',
   templateUrl: './pipeline.component.html',
-  styleUrls: ['./pipeline.component.scss'],
   imports: [
     ZardButtonComponent,
     FormsModule,
@@ -42,7 +41,8 @@ import { KnowledgePipelineImportResult } from '../import/import-model'
     RouterModule,
     KnowledgeDocumentPipelineStep1Component,
     KnowledgeDocumentPipelineStep2Component,
-    KnowledgeDocumentCreateStep3Component
+    KnowledgeDocumentCreateStep3Component,
+    ...XpDialogFrameImports
   ]
 })
 export class KnowledgeDocumentPipelineComponent {

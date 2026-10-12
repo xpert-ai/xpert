@@ -2,7 +2,9 @@
 
 `project-tasks` is registered with `@AgentMiddlewareStrategy` in the platform's built-in middleware catalog and provided by `XpertProjectModule`. It requires no separate npm plugin installation and no longer constructs a `ProjectToolset`.
 
-The project's general agent loads this middleware from the registry by default. Other Assistants can add **Plugin → Project Tasks** in Studio and connect it to an Agent. Tool toggles and runtime user preferences use the standard Middleware Tools flow. The middleware does not set `meta.builtin: true`: that flag hides a middleware and prevents users from adding it, unlike the registration source `source.kind: builtin`.
+The project's general agent loads this middleware from the registry by default. Other Assistants can enable **Project management** during Desktop or Cloud creation. `ProjectTasksCapabilityProvider`, registered in the same module, composes a required middleware connection to the primary Agent through the shared Assistant capability mechanism. The capability defaults to off, requires tool calling, and records provenance so Assistant settings can remove its generated contribution later. It creates no project, executor or permission grant.
+
+Studio users can also add **Plugin → Project Tasks** and connect it to an Agent. Existing nodes and their tool selections are preserved by capability composition. Tool toggles and runtime user preferences use the standard Middleware Tools flow. The middleware does not set `meta.builtin: true`: that flag hides a middleware and prevents users from adding it, unlike the registration source `source.kind: builtin`.
 
 ## Tools
 

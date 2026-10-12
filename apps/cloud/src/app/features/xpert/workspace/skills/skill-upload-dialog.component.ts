@@ -3,7 +3,7 @@ import { AfterViewInit, Component, ElementRef, inject, signal, viewChild } from 
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { XpDialogActionGroupDirective, XpDialogFrameImports, ZardButtonComponent } from '@xpert-ai/headless-ui'
 import {
   getErrorMessage,
   injectSkillPackageAPI,
@@ -17,91 +17,102 @@ import { firstValueFrom } from 'rxjs'
 @Component({
   standalone: true,
   selector: 'xp-skill-upload-dialog',
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, XpSpinComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    TranslateModule,
+    XpDialogActionGroupDirective,
+    ...XpDialogFrameImports,
+    ZardButtonComponent
+  ],
   template: `
-    <div class="w-[420px] overflow-hidden rounded-2xl bg-components-card-bg text-text-primary shadow-2xl">
-      <div class="flex items-center justify-between border-b border-divider-regular px-4 py-3">
-        <div class="text-lg font-semibold">
+    <section xpDialogLayout="standard" class="max-h-[calc(100dvh-2rem)] w-[480px] max-w-[calc(100vw-2rem)]">
+      <header xpDialogHeader>
+        <h2 xpDialogHeading>
           {{ 'XP.Skill.UploadSkills' | translate: { Default: 'Upload Skills' } }}
-        </div>
-        <button type="button" class="text-text-tertiary transition-colors hover:text-text-primary" (click)="close()">
-          <i class="ri-close-line text-xl"></i>
+        </h2>
+        <p xpDialogDescription>
+          {{
+            'XP.Skill.UploadSkillsHint'
+              | translate: { Default: 'Upload a zip containing one or more skill folders (each with SKILL.md).' }
+          }}
+        </p>
+        <button
+          xpDialogCloseButton
+          z-button
+          zType="ghost"
+          zSize="icon"
+          type="button"
+          [zDisabled]="loading()"
+          [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+          (click)="close()"
+        >
+          <z-icon zType="x" aria-hidden="true" />
         </button>
-      </div>
+      </header>
 
-      <div class="p-4 space-y-4">
-        <div class="rounded-lg border-2 border-dashed border-divider-regular bg-background-default-subtle p-4">
-          <p class="mb-2 text-sm text-text-secondary">
-            {{
-              'XP.Skill.UploadSkillsHint'
-                | translate: { Default: 'Upload a zip containing one or more skill folders (each with SKILL.md).' }
-            }}
-          </p>
+      <div xpDialogBody>
+        <div xpDialogActionGroup="inline">
           <button
+            z-button
+            zType="outline"
             type="button"
-            class="flex w-full cursor-pointer items-center justify-between rounded-md bg-components-input-bg-normal px-3 py-2 transition-colors hover:bg-hover-bg"
-            [disabled]="loading()"
+            class="w-full"
+            [zDisabled]="loading()"
             (click)="openFilePicker()"
           >
-            <div class="flex items-center gap-2">
-              <i class="ri-upload-2-line"></i>
-              <span class="text-sm text-text-primary">
-                {{ 'XP.Skill.ChooseFile' | translate: { Default: 'Choose file' } }}
-              </span>
-            </div>
-            <span class="text-xs text-text-tertiary">{{ files().length }}</span>
-            <input
-              #fileInput
-              type="file"
-              class="hidden"
-              accept=".zip,application/zip"
-              multiple
-              (change)="onFileChange($event)"
-            />
+            <i class="ri-upload-2-line" aria-hidden="true"></i>
+            {{ 'XP.Skill.ChooseFile' | translate: { Default: 'Choose file' } }}
           </button>
+          <input
+            #fileInput
+            type="file"
+            class="hidden"
+            accept=".zip,application/zip"
+            multiple
+            (change)="onFileChange($event)"
+          />
+        </div>
 
-          @if (files().length) {
-            <div class="mt-3 max-h-40 overflow-auto space-y-2">
-              @for (file of files(); track fileTrackBy($index, file)) {
-                <div
-                  class="flex items-center justify-between rounded-md border border-divider-regular bg-components-card-bg/80 px-3 py-2"
+        @if (files().length) {
+          <ul class="divide-y divide-divider-regular">
+            @for (file of files(); track fileTrackBy($index, file)) {
+              <li xpDialogActionGroup="inline" class="flex items-center justify-between gap-3 py-2">
+                <div class="min-w-0 truncate text-sm text-text-primary">{{ file.name }}</div>
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="icon"
+                  type="button"
+                  [zDisabled]="loading()"
+                  [attr.aria-label]="('XP.ACTIONS.Remove' | translate: { Default: 'Remove' }) + ' ' + file.name"
+                  (click)="removeFile($index)"
                 >
-                  <div class="min-w-0 truncate text-sm text-text-primary">{{ file.name }}</div>
-                  <button
-                    type="button"
-                    class="ml-2 text-text-tertiary transition-colors hover:text-text-destructive"
-                    [disabled]="loading()"
-                    (click)="removeFile($index)"
-                  >
-                    <i class="ri-delete-bin-line"></i>
-                  </button>
-                </div>
-              }
-            </div>
-          }
-        </div>
-
-        <div class="flex items-center justify-end gap-2">
-          <button type="button" class="btn btn-secondary btn-medium" [disabled]="loading()" (click)="close()">
-            {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
-          </button>
-          <button
-            type="button"
-            class="btn btn-primary btn-medium"
-            [class.btn-disabled]="!files().length"
-            [disabled]="!files().length || loading()"
-            (click)="upload()"
-          >
-            @if (loading()) {
-              <xp-spin size="small" class="mr-1" /> {{ 'XP.ACTIONS.Uploading' | translate: { Default: 'Uploading' } }}
-            } @else {
-              <i class="ri-cloud-upload-line mr-1"></i>
-              {{ 'XP.ACTIONS.Upload' | translate: { Default: 'Upload' } }}
+                  <i class="ri-delete-bin-line text-text-destructive" aria-hidden="true"></i>
+                </button>
+              </li>
             }
-          </button>
-        </div>
+          </ul>
+        }
       </div>
-    </div>
+
+      <footer xpDialogFooter>
+        <button z-button zType="outline" type="button" [zDisabled]="loading()" (click)="close()">
+          {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+        </button>
+        <button
+          z-button
+          type="button"
+          [zLoading]="loading()"
+          [zDisabled]="!files().length || loading()"
+          (click)="upload()"
+        >
+          <i class="ri-upload-cloud-line" aria-hidden="true"></i>
+          {{ 'XP.ACTIONS.Upload' | translate: { Default: 'Upload' } }}
+        </button>
+      </footer>
+    </section>
   `,
   styles: []
 })

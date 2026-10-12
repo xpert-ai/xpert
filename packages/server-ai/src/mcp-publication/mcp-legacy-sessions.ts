@@ -7,6 +7,7 @@ import type { Request, Response } from 'express'
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { createHash, randomUUID } from 'node:crypto'
 import type { McpInvocationAudit } from './entities'
+import { runShutdownStep } from '@xpert-ai/server-core'
 
 export interface LegacyRequestContext {
     requestId: string
@@ -106,7 +107,11 @@ export class McpLegacySessions {
     }
 
     async close() {
-        await Promise.all([...this.sessions.keys()].map((id) => this.remove(id)))
+        // Drain independent sessions in parallel so their timeouts do not accumulate per connected client.
+        // Bound only process cleanup; ordinary session removal retains its normal close semantics.
+        await Promise.all(
+            [...this.sessions.keys()].map((id) => runShutdownStep('mcp-legacy.session.close', () => this.remove(id)))
+        )
     }
 
     private async remove(id: string) {

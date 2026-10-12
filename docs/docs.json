@@ -2,6 +2,9 @@
   "$schema": "https://mintlify.com/docs.json",
   "theme": "mint",
   "name": "Xpert",
+  "metadata": {
+    "timestamp": true
+  },
   "colors": {
     "primary": "#16A34A",
     "light": "#07C983",
@@ -26,12 +29,25 @@
                 "pages": ["en/index"]
               },
               {
+                "group": "Architecture",
+                "pages": [
+                  "en/architecture/ai-agent-architecture",
+                  "en/architecture/file-lifecycle-data-flow",
+                  "en/architecture/file-access-preview-architecture"
+                ]
+              },
+              {
                 "group": "Guides",
                 "pages": [
                   "en/guides/plugin",
+                  "en/guides/assistant-capabilities",
                   "en/guides/project-application-types",
+                  "en/guides/group-chat",
+                  "en/guides/project-tasks",
+                  "en/guides/group-project-tasks",
                   "en/guides/managed-connection",
                   "en/guides/managed-queue",
+                  "en/guides/graceful-api-shutdown",
                   "en/guides/sandbox-jobs-architecture",
                   "en/guides/sso-architecture",
                   "en/guides/organization-bootstrap",
@@ -48,6 +64,15 @@
                   "en/guides/release",
                   "en/guides/message-assembly-v2"
                 ]
+              }
+            ]
+          },
+          {
+            "tab": "Proposals",
+            "groups": [
+              {
+                "group": "Architecture Proposals",
+                "pages": ["en/proposals/scoped-authorization"]
               }
             ]
           },
@@ -73,51 +98,73 @@
             "groups": [
               {
                 "group": "开始",
-                "pages": ["zh-hans/index"]
+                "pages": ["zh-Hans/index"]
+              },
+              {
+                "group": "架构",
+                "pages": [
+                  "zh-Hans/architecture/ai-agent-architecture",
+                  "zh-Hans/architecture/file-lifecycle-data-flow",
+                  "zh-Hans/architecture/file-access-preview-architecture"
+                ]
               },
               {
                 "group": "指南",
                 "pages": [
-                  "zh-hans/guides/plugin",
-                  "zh-hans/guides/project-application-types",
-                  "zh-hans/guides/managed-connection",
-                  "zh-hans/guides/managed-queue",
-                  "zh-hans/guides/sandbox-jobs-architecture",
-                  "zh-hans/guides/sso-architecture",
-                  "zh-hans/guides/organization-bootstrap",
-                  "zh-hans/guides/volume-workspace-architecture",
-                  "zh-hans/guides/file-upload-architecture",
-                  "zh-hans/guides/file-understanding-architecture",
-                  "zh-hans/guides/minio-file-storage",
-                  "zh-hans/guides/rustfs-file-storage",
-                  "zh-hans/guides/chatkit-third-party-integration",
-                  "zh-hans/guides/assistant-architecture",
-                  "zh-hans/guides/clawxpert-skill-selection",
-                  "zh-hans/guides/agent-middleware",
-                  "zh-hans/guides/workspace-skill-creator",
-                  "zh-hans/guides/view-extension-runtime-features",
-                  "zh-hans/guides/datax-metric-management-plugin",
-                  "zh-hans/guides/xpert-prometheus-metrics",
-                  "zh-hans/guides/chatkit-slash-commands",
-                  "zh-hans/guides/conversation-goal-architecture",
-                  "zh-hans/guides/handoff",
-                  "zh-hans/guides/icon-schema",
-                  "zh-hans/guides/release",
-                  "zh-hans/guides/message-assembly-v2",
-                  "zh-hans/guides/follow-up-architecture",
-                  "zh-hans/guides/permission",
-                  "zh-hans/guides/newroles",
-                  "zh-hans/guides/features-current",
-                  "zh-hans/guides/permissions-current"
+                  "zh-Hans/guides/plugin",
+                  "zh-Hans/guides/assistant-capabilities",
+                  "zh-Hans/guides/project-application-types",
+                  "zh-Hans/guides/group-chat",
+                  "zh-Hans/guides/project-tasks",
+                  "zh-Hans/guides/group-project-tasks",
+                  "zh-Hans/guides/managed-connection",
+                  "zh-Hans/guides/managed-queue",
+                  "zh-Hans/guides/graceful-api-shutdown",
+                  "zh-Hans/guides/sandbox-jobs-architecture",
+                  "zh-Hans/guides/sso-architecture",
+                  "zh-Hans/guides/organization-bootstrap",
+                  "zh-Hans/guides/volume-workspace-architecture",
+                  "zh-Hans/guides/file-upload-architecture",
+                  "zh-Hans/guides/file-understanding-architecture",
+                  "zh-Hans/guides/minio-file-storage",
+                  "zh-Hans/guides/rustfs-file-storage",
+                  "zh-Hans/guides/chatkit-third-party-integration",
+                  "zh-Hans/guides/assistant-architecture",
+                  "zh-Hans/guides/clawxpert-skill-selection",
+                  "zh-Hans/guides/agent-middleware",
+                  "zh-Hans/guides/workspace-skill-creator",
+                  "zh-Hans/guides/view-extension-runtime-features",
+                  "zh-Hans/guides/datax-metric-management-plugin",
+                  "zh-Hans/guides/xpert-prometheus-metrics",
+                  "zh-Hans/guides/chatkit-slash-commands",
+                  "zh-Hans/guides/conversation-goal-architecture",
+                  "zh-Hans/guides/handoff",
+                  "zh-Hans/guides/icon-schema",
+                  "zh-Hans/guides/release",
+                  "zh-Hans/guides/message-assembly-v2",
+                  "zh-Hans/guides/follow-up-architecture",
+                  "zh-Hans/guides/permission",
+                  "zh-Hans/guides/newroles",
+                  "zh-Hans/guides/features-current",
+                  "zh-Hans/guides/permissions-current"
                 ]
               },
               {
                 "group": "记忆",
-                "pages": ["zh-hans/guides/file-memory-dream-refactor"]
+                "pages": ["zh-Hans/guides/file-memory-dream-refactor"]
               },
               {
                 "group": "知识库",
-                "pages": ["zh-hans/guides/graphrag"]
+                "pages": ["zh-Hans/guides/graphrag"]
+              }
+            ]
+          },
+          {
+            "tab": "提案",
+            "groups": [
+              {
+                "group": "架构提案",
+                "pages": ["zh-Hans/proposals/scoped-authorization"]
               }
             ]
           },
@@ -127,24 +174,24 @@
               {
                 "group": "计划",
                 "pages": [
-                  "zh-hans/plans/2026-09-04-agent-plugin-runtime-export-assistant-mcp-tasks",
-                  "zh-hans/plans/follow-up-behavior-agent-chat"
+                  "zh-Hans/plans/2026-09-04-agent-plugin-runtime-export-assistant-mcp-tasks",
+                  "zh-Hans/plans/follow-up-behavior-agent-chat"
                 ]
               },
               {
                 "group": "项目架构",
                 "pages": [
-                  "zh-hans/solutions/xpert-project-product-architecture",
-                  "zh-hans/solutions/xpert-project-plan-design"
+                  "zh-Hans/solutions/xpert-project-product-architecture",
+                  "zh-Hans/solutions/xpert-project-plan-design"
                 ]
               },
               {
                 "group": "快速开始",
                 "pages": [
-                  "zh-hans/solutions/declarative-extended-view-system",
-                  "zh-hans/solutions/user-me-loading-optimization",
-                  "zh-hans/solutions/tenant-domain-routing",
-                  "zh-hans/solutions/browser-automation-reading-layer"
+                  "zh-Hans/solutions/declarative-extended-view-system",
+                  "zh-Hans/solutions/user-me-loading-optimization",
+                  "zh-Hans/solutions/tenant-domain-routing",
+                  "zh-Hans/solutions/browser-automation-reading-layer"
                 ]
               }
             ]
@@ -156,7 +203,7 @@
                 "group": "AI",
                 "openapi": {
                   "source": "api/openapi.ai.json",
-                  "directory": "zh-hans/api-reference"
+                  "directory": "zh-Hans/api-reference"
                 }
               }
             ]

@@ -1,3 +1,9 @@
+import { groupResultSchemas, groupTaskResultCases } from './group-project/testing/group-task-result.postgres.cases'
+import i18next from 'i18next'
+import { GroupProjectService } from './group-project/group-project.service'
+import { XpertProjectService } from '../xpert-project/project.service'
+import { XpertProjectAccessService } from '../xpert-project/services/project-access.service'
+import { XpertProjectFeatureGuard } from '../xpert-project/guards/project-feature.guard'
 import { GroupComposerService } from './group-composer.service'
 import { GroupInteractionsService } from './group-interactions.service'
 import { UserType, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
@@ -17,6 +23,7 @@ import { GroupToolsService } from './group-tools.service'
 import { ThreadRunControlService } from '../chat-conversation/thread-run-control.service'
 import { QueryBus } from '@nestjs/cqrs'
 import { XpertAgentExecution } from '../xpert-agent-execution/agent-execution.entity'
+import { Xpert } from '../xpert/xpert.entity'
 import type { AgentChatDispatchPayload, HandoffMessage } from '@xpert-ai/plugin-sdk'
 
 // A fresh, disposable PostgreSQL database is required; never point this test at a platform database.
@@ -35,6 +42,7 @@ const uuid = { type: 'uuid' as const, nullable: true }
 const text = { type: 'varchar' as const, nullable: true }
 const json = { type: 'jsonb' as const, nullable: true }
 const schemas = [
+    ...groupResultSchemas,
     new EntitySchema({
         name: 'User',
         target: User,
@@ -42,8 +50,15 @@ const schemas = [
         columns: {
             id: base.id,
             tenantId: base.tenantId,
-            type: text
+            type: text,
+            imageUrl: text
         }
+    }),
+    new EntitySchema({
+        name: 'Xpert',
+        target: Xpert,
+        tableName: 'xpert',
+        columns: { ...base, avatar: json }
     }),
     new EntitySchema({
         name: 'ChatConversation',
@@ -166,7 +181,16 @@ const schemas = [
         name: 'XpertAgentExecution',
         target: XpertAgentExecution,
         tableName: 'xpert_agent_execution',
-        columns: { ...base, parentId: uuid, threadId: text, xpertId: uuid, agentKey: text, type: text, status: text }
+        columns: {
+            ...base,
+            parentId: uuid,
+            threadId: text,
+            xpertId: uuid,
+            agentKey: text,
+            type: text,
+            status: text,
+            error: text
+        }
     })
 ]
 
@@ -175,6 +199,12 @@ postgres('group runtime admission and recovery with PostgreSQL', () => {
     let db: DataSource
     let messages: GroupMessagesService
     let runtime: GroupRuntimeService
+    let projects: GroupProjectService
+    const binding = { addXpert: jest.fn() }
+    const projectAccess = {
+        assertCanManage: jest.fn(async (id) => ({ project: { id, name: 'Test project' } })),
+        assertCanRead: jest.fn(async (id) => ({ project: { id, name: 'Test project' } }))
+    }
     let interactions: GroupInteractionsService
     let group: ChatConversation
     let a: GroupParticipant, b: GroupParticipant, c: GroupParticipant, e: GroupParticipant
@@ -182,6 +212,7 @@ postgres('group runtime admission and recovery with PostgreSQL', () => {
     const access = { authorize: jest.fn(), assistant: jest.fn(), withRootUser: jest.fn() }
     const control = { start: jest.fn(), recoverExpiredRun: jest.fn() }
     beforeAll(async () => {
+        await i18next.init({ lng: 'en', resources: {} })
         db = await new DataSource({
             type: 'postgres',
             url: databaseUrl,
@@ -194,11 +225,16 @@ postgres('group runtime admission and recovery with PostgreSQL', () => {
         const module = await Test.createTestingModule({
             providers: [
                 GroupMessagesService,
+                GroupProjectService,
+                { provide: XpertProjectService, useValue: binding },
+                { provide: XpertProjectAccessService, useValue: projectAccess },
+                { provide: XpertProjectFeatureGuard, useValue: { canActivate: jest.fn() } },
                 {
                     provide: GroupComposerService,
                     useValue: {
                         member: (groupId, id) => db.getRepository(GroupParticipant).findOneByOrFail({ groupId, id }),
-                        validate: jest.fn()
+                        validate: jest.fn(),
+                        project: jest.fn()
                     }
                 },
                 GroupRuntimeService,
@@ -211,10 +247,21 @@ postgres('group runtime admission and recovery with PostgreSQL', () => {
                 { provide: GroupOutboxService, useValue: { flush: jest.fn() } }
             ]
         }).compile()
+        projects = module.get(GroupProjectService)
         messages = module.get(GroupMessagesService)
         runtime = module.get(GroupRuntimeService)
         interactions = module.get(GroupInteractionsService)
     })
+    groupTaskResultCases(() => ({
+        db,
+        messages,
+        runtime,
+        group,
+        c,
+        e,
+        a,
+        access: access as unknown as GroupAccessService
+    }))
     afterAll(async () => {
         if (db) {
             await db.query(`DROP SCHEMA "${testSchema}" CASCADE`)
@@ -223,6 +270,8 @@ postgres('group runtime admission and recovery with PostgreSQL', () => {
     })
     beforeEach(async () => {
         for (const table of [
+            'agent_runtime_inbox',
+            'agent_invocation',
             '"user"',
             'chat_group_interaction',
             'chat_message_recipient',
@@ -276,6 +325,8 @@ postgres('group runtime admission and recovery with PostgreSQL', () => {
             return member
         }
         a = await participant('user', 'A')
+        a.role = 'owner'
+        await db.getRepository(GroupParticipant).save(a)
         b = await participant('user', 'B')
         c = await participant('assistant', 'C')
         e = await participant('assistant', 'E')
@@ -308,6 +359,158 @@ postgres('group runtime admission and recovery with PostgreSQL', () => {
             callback: { messageType: 'noop' }
         },
         headers: { organizationId: scope.organizationId, handoffQueue: queue }
+    })
+    it('binds selected runtimes to one Project and serializes competing Project choices', async () => {
+        const choices = [randomUUID(), randomUUID()]
+        const results = await Promise.allSettled(
+            choices.map((projectId) =>
+                projects.set(group.id, { project: { mode: 'existing', projectId }, participantIds: [c.id, e.id] })
+            )
+        )
+        expect(results.filter((result) => result.status === 'fulfilled')).toHaveLength(1)
+        const stored = await db.getRepository(ChatConversation).findOneByOrFail({ id: group.id })
+        for (const member of [c, e])
+            expect(
+                (await db.getRepository(ChatConversation).findOneByOrFail({ id: member.runtimeConversationId }))
+                    .projectId
+            ).toBe(stored.projectId)
+        expect(binding.addXpert).toHaveBeenCalledTimes(2)
+    })
+    it('preserves existing participants when an update omits them and returns the complete stored selection', async () => {
+        const projectId = randomUUID()
+        await projects.set(group.id, { project: { mode: 'existing', projectId }, participantIds: [c.id, e.id] })
+        const saved = await projects.set(group.id, { project: { mode: 'existing', projectId }, participantIds: [c.id] })
+        expect(saved.participantIds.sort()).toEqual([c.id, e.id].sort())
+        Object.assign(group, await db.getRepository(ChatConversation).findOneByOrFail({ id: group.id }))
+        const read = await projects.get(group.id)
+        expect(read.participantIds.sort()).toEqual(saved.participantIds)
+    })
+    it('rejects missing primary, foreign members and a started runtime without changing Project bindings', async () => {
+        const projectId = randomUUID()
+        for (const participantIds of [[e.id], [c.id, randomUUID()]])
+            await expect(
+                projects.set(group.id, { project: { mode: 'existing', projectId }, participantIds })
+            ).rejects.toMatchObject({ status: 403 })
+        await db
+            .getRepository(ChatMessage)
+            .save({ ...scope, conversationId: e.runtimeConversationId, role: 'human', content: 'already started' })
+        await expect(
+            projects.set(group.id, { project: { mode: 'existing', projectId }, participantIds: [c.id, e.id] })
+        ).rejects.toMatchObject({ status: 409 })
+        expect(binding.addXpert).not.toHaveBeenCalled()
+        expect((await db.getRepository(ChatConversation).findOneByOrFail({ id: group.id })).projectId).toBeNull()
+    })
+    it('rechecks owner membership under the group lock before binding Assistants', async () => {
+        await db.getRepository(GroupParticipant).update({ id: a.id }, { role: 'member' })
+        await expect(
+            projects.set(group.id, {
+                project: { mode: 'existing', projectId: randomUUID() },
+                participantIds: [c.id, e.id]
+            })
+        ).rejects.toMatchObject({ status: 403 })
+        expect(binding.addXpert).not.toHaveBeenCalled()
+    })
+    it('queues formal tasks behind a busy member and starts each task in a separate execution', async () => {
+        group.projectId = randomUUID()
+        await db.getRepository(ChatConversation).save(group)
+        await db.getRepository(ChatConversation).update({ id: e.runtimeConversationId }, { projectId: group.projectId })
+        const root = await messages.send(group.id, request([c.id]))
+        const task = () => ({
+            invocationId: randomUUID(),
+            projectId: group.projectId,
+            projectTaskId: randomUUID(),
+            taskExecutionId: randomUUID()
+        })
+        const first = await messages.publish(group, c, request([e.id]), root.communication, 'task-1', false, root.id, {
+            projectTask: task()
+        })
+        const firstReceipt = await db.getRepository(GroupMessageRecipient).findOneByOrFail({ messageId: first.id })
+        const initial = await runtime.prepare(job(firstReceipt))
+        expect(initial.request.action).toBe('send')
+        const second = await messages.publish(group, c, request([e.id]), root.communication, 'task-2', false, root.id, {
+            projectTask: task()
+        })
+        const receipt = await db.getRepository(GroupMessageRecipient).findOneByOrFail({ messageId: second.id })
+        expect(await runtime.prepare(job(receipt, 'realtime'))).toBeNull()
+        expect((await db.getRepository(GroupMessageRecipient).findOneByOrFail({ id: receipt.id })).status).toBe(
+            'pending'
+        )
+        await db
+            .getRepository(ChatConversationThread)
+            .update({ threadId: e.runtimeThreadId }, { status: 'idle', runControl: null })
+        const next = await runtime.prepare(job(receipt))
+        expect(next.request.action).toBe('send')
+        expect(next.options.execution.id).not.toBe(initial.options.execution.id)
+    })
+    it('wakes the coordinator once through the durable result notification, not the worker reply', async () => {
+        const root = await messages.send(group.id, request([c.id]))
+        const projectTask = {
+            invocationId: randomUUID(),
+            projectId: randomUUID(),
+            projectTaskId: randomUUID(),
+            taskExecutionId: randomUUID()
+        }
+        const delegated = await messages.publish(
+            group,
+            c,
+            request([e.id]),
+            root.communication,
+            'formal-task',
+            false,
+            root.id,
+            { projectTask }
+        )
+        const reply = await messages.publish(group, e, {
+            intent: 'reply',
+            replyToMessageId: delegated.id,
+            text: '42',
+            clientMessageId: randomUUID()
+        })
+        const replied = await db.getRepository(GroupMessageRecipient).findOneByOrFail({ messageId: reply.id })
+        expect(replied).toMatchObject({ wake: false, status: 'consumed' })
+        const input = {
+            intent: 'message' as const,
+            recipientIds: [c.id],
+            text: 'Awaiting acceptance: 42',
+            clientMessageId: projectTask.invocationId
+        }
+        const host = {
+            runtimeResult: {
+                ...projectTask,
+                consumerExecutionId: randomUUID(),
+                revision: 4,
+                specificationDigest: `sha256:${'a'.repeat(64)}`
+            }
+        }
+        const result = await messages.publish(
+            group,
+            e,
+            input,
+            delegated.communication,
+            'formal-result',
+            false,
+            delegated.id,
+            host
+        )
+        const duplicate = await messages.publish(
+            group,
+            e,
+            input,
+            delegated.communication,
+            'formal-result',
+            false,
+            delegated.id,
+            host
+        )
+        expect(result.id).toBe(duplicate.id)
+        expect(await db.getRepository(GroupMessageRecipient).findBy({ messageId: result.id })).toEqual([
+            expect.objectContaining({ wake: true, status: 'pending', participantId: c.id })
+        ])
+        await expect(
+            messages.publish(group, e, input, delegated.communication, 'formal-result', false, delegated.id, {
+                runtimeResult: { ...host.runtimeResult, invocationId: randomUUID() }
+            })
+        ).rejects.toMatchObject({ status: 409 })
     })
     it('persists Composer choices, includes them in idempotency, and forwards them into the existing runtime', async () => {
         const projectId = randomUUID()
@@ -440,6 +643,43 @@ postgres('group runtime admission and recovery with PostgreSQL', () => {
         expect(await runtime.prepare(job(finished))).toBeNull()
         expect(control.start).toHaveBeenCalledTimes(1)
     })
+    it.each([false, true])(
+        'exposes provider failures durably without replaying execution (legacy=%s)',
+        async (legacy) => {
+            const human = await messages.send(group.id, request([c.id]))
+            const receipt = await db.getRepository(GroupMessageRecipient).findOneByOrFail({ messageId: human.id })
+            const prepared = await runtime.prepare(job(receipt))
+            const error = '403 The request failed because your account has an overdue balance.'
+            await db.getRepository(XpertAgentExecution).update(
+                { id: prepared.options.execution.id },
+                {
+                    status: XpertAgentExecutionStatusEnum.ERROR,
+                    error: `${error}\n    at privateStack (/server/file.ts:1)`
+                }
+            )
+            await db
+                .getRepository(ChatConversationThread)
+                .update({ threadId: c.runtimeThreadId }, { status: 'error', runControl: null })
+            await runtime.finish(receipt.id, true, true)
+            const finished = await db.getRepository(GroupMessageRecipient).findOneByOrFail({ id: receipt.id })
+            expect(finished).toMatchObject({ status: 'failed', phase: 'finalized', error: 'execution_failed' })
+            if (legacy) {
+                await db
+                    .getRepository(GroupMessageRecipient)
+                    .update({ id: receipt.id }, { status: 'blocked', error: 'execution_not_completed' })
+            }
+            const snapshot = await messages.snapshot(group.id)
+            expect(snapshot.messages).toHaveLength(1)
+            expect(snapshot.messages[0].deliveries).toEqual([{ participantId: c.id, status: 'failed', error }])
+            // Reading legacy failures does not rewrite business state or silently resend tools.
+            const persisted = await db.getRepository(GroupMessageRecipient).findOneByOrFail({ id: receipt.id })
+            expect(persisted.status).toBe(legacy ? 'blocked' : 'failed')
+            expect(await runtime.prepare(job(persisted))).toBeNull()
+            await runtime.finish(receipt.id, true, true)
+            expect(control.start).toHaveBeenCalledTimes(1)
+            expect(await db.getRepository(XpertAgentExecution).count()).toBe(1)
+        }
+    )
     it('keeps A request open while C waits for E, then correlates the final C answer to A', async () => {
         const human = await messages.send(group.id, request([c.id]))
         const initialReceipt = await db.getRepository(GroupMessageRecipient).findOneByOrFail({ messageId: human.id })

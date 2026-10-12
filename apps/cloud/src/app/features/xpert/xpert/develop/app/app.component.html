@@ -1,66 +1,71 @@
-<h3 class="p-6 text-2xl font-semibold text-text-primary">
-  {{ 'XP.Xpert.ChatApp' | translate: { Default: 'Chat App' } }}
-</h3>
-<div
-  class="absolute z-10 top-6 right-6 w-5 h-5 rounded-2xl flex items-center justify-center hover:cursor-pointer hover:bg-hover-bg"
-  (click)="close()"
->
-  <i class="ri-close-line"></i>
-</div>
+<section xpDialogLayout="wide" class="w-[min(580px,calc(100vw-32px))] max-h-[84dvh]">
+  <header xpDialogHeader>
+    <h2 xpDialogHeading>{{ 'XP.Xpert.ChatApp' | translate: { Default: 'Chat App' } }}</h2>
+    <button
+      z-button
+      zType="ghost"
+      type="button"
+      xpDialogCloseButton
+      zSize="icon"
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+      (click)="close()"
+    >
+      <z-icon zType="x" aria-hidden="true" />
+    </button>
+  </header>
+  <div xpDialogBody>
+    <z-switch [(ngModel)]="public">{{ 'XP.Xpert.PublicChatApp' | translate: { Default: 'Public chat app' } }}</z-switch>
 
-<div class="px-6 flex flex-col">
-  <z-switch [(ngModel)]="public">{{ 'XP.Xpert.PublicChatApp' | translate: { Default: 'Public chat app' } }}</z-switch>
-
-  <div class="relative my-3 text-text-secondary">
-    @if (public) {
-      <div @slideUpAnimation>
-        {{ 'XP.Xpert.ChatApp_Everyone' | translate: { Default: 'Accessible to everyone, including anonymous users' } }}
-      </div>
-    } @else {
-      <div @slideUpAnimation>
-        {{
-          'XP.Xpert.ChatApp_Account'
-            | translate: { Default: 'Anyone with an account can access it, anonymous users are not allowed' }
-        }}
-      </div>
-    }
-  </div>
-
-  @for (definition of enterpriseH5Platforms; track definition.platform) {
-    <div class="my-3 border-t border-divider-regular pt-4">
-      <z-switch
-        [ngModel]="isEnterpriseH5Enabled(definition.platform)"
-        (ngModelChange)="setEnterpriseH5Enabled(definition.platform, $event)"
-      >
-        {{ definition.appLabel.key | translate: { Default: definition.appLabel.default } }}
-      </z-switch>
-
-      @if (isEnterpriseH5Enabled(definition.platform)) {
-        <div class="mt-4 flex flex-col gap-2" @slideUpAnimation>
-          <xp-integration-select
-            [enterpriseH5Platform]="definition.platform"
-            [placeholder]="
-              definition.integrationPlaceholder.key | translate: { Default: definition.integrationPlaceholder.default }
-            "
-            [ngModel]="getEnterpriseH5IntegrationId(definition.platform)"
-            (ngModelChange)="setEnterpriseH5IntegrationId(definition.platform, $event)"
-          />
-          <p class="text-sm text-text-tertiary">
-            {{ definition.hint.key | translate: { Default: definition.hint.default } }}
-          </p>
+    <div class="relative my-3 text-text-secondary">
+      @if (public) {
+        <div>
+          {{
+            'XP.Xpert.ChatApp_Everyone' | translate: { Default: 'Accessible to everyone, including anonymous users' }
+          }}
+        </div>
+      } @else {
+        <div>
+          {{
+            'XP.Xpert.ChatApp_Account'
+              | translate: { Default: 'Anyone with an account can access it, anonymous users are not allowed' }
+          }}
         </div>
       }
     </div>
-  }
-</div>
 
-<div class="flex justify-end p-4">
-  <div class="flex items-center gap-1">
-    <button z-button zType="secondary" (click)="close()">
-      {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
-    </button>
-    <button z-button zType="default" [disabled]="!canApply()" (click)="apply()">
+    @for (definition of enterpriseH5Platforms; track definition.platform) {
+      <div class="my-3 border-t border-divider-regular pt-4">
+        <z-switch
+          [ngModel]="isEnterpriseH5Enabled(definition.platform)"
+          (ngModelChange)="setEnterpriseH5Enabled(definition.platform, $event)"
+        >
+          {{ definition.appLabel.key | translate: { Default: definition.appLabel.default } }}
+        </z-switch>
+
+        @if (isEnterpriseH5Enabled(definition.platform)) {
+          <div class="mt-4 flex flex-col gap-2">
+            <xp-integration-select
+              [enterpriseH5Platform]="definition.platform"
+              [placeholder]="
+                definition.integrationPlaceholder.key
+                  | translate: { Default: definition.integrationPlaceholder.default }
+              "
+              [ngModel]="getEnterpriseH5IntegrationId(definition.platform)"
+              (ngModelChange)="setEnterpriseH5IntegrationId(definition.platform, $event)"
+            />
+            <p class="text-sm text-text-tertiary">
+              {{ definition.hint.key | translate: { Default: definition.hint.default } }}
+            </p>
+          </div>
+        }
+      </div>
+    }
+  </div>
+  <footer xpDialogFooter>
+    <button z-button zType="outline" type="button" (click)="close()">
+      {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}</button
+    ><button z-button zType="default" type="button" [zDisabled]="!canApply()" (click)="apply()">
       {{ 'XP.ACTIONS.Apply' | translate: { Default: 'Apply' } }}
     </button>
-  </div>
-</div>
+  </footer>
+</section>

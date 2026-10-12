@@ -42,6 +42,8 @@ import {
 } from './select.variants'
 import { injectUiI18nService } from '../../core/i18n/ui-i18n.service'
 import { mergeClasses } from '../../utils/merge-classes'
+import { XP_DIALOG_CONTEXT } from '../dialog/dialog-context'
+import { dialogControlVariants, dialogTypography } from '../dialog/dialog-frame.variants'
 
 type OnTouchedType = () => void
 export type ZardSelectValue = string | number
@@ -79,8 +81,25 @@ const COMPACT_MODE_WIDTH_THRESHOLD = 100
           <span class="text-muted-foreground truncate">{{ displayPlaceholder() }}</span>
         }
       </span>
-      <z-icon zType="chevron-down" zSize="lg" class="opacity-50" />
+      @if (showClear()) {
+        <span class="size-4 shrink-0" aria-hidden="true"></span>
+      } @else {
+        <z-icon zType="chevron-down" zSize="lg" class="opacity-50" />
+      }
     </button>
+
+    @if (showClear()) {
+      <button
+        type="button"
+        class="absolute right-2 top-1/2 inline-flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:bg-accent hover:text-foreground"
+        [attr.aria-label]="clearSelectionLabel()"
+        [attr.title]="clearSelectionLabel()"
+        (click)="clearSelection($event)"
+        (keydown)="$event.stopPropagation()"
+      >
+        <z-icon zType="x" class="size-4" />
+      </button>
+    }
 
     <ng-template #dropdownTemplate>
       <div
@@ -130,6 +149,7 @@ const COMPACT_MODE_WIDTH_THRESHOLD = 100
   }
 })
 export class ZardSelectComponent implements ControlValueAccessor, OnDestroy {
+  private readonly dialog = inject(XP_DIALOG_CONTEXT, { optional: true })
   private readonly destroyRef = inject(DestroyRef)
   private readonly elementRef = inject(ElementRef<HTMLElement>)
   private readonly injector = inject(Injector)
@@ -146,6 +166,7 @@ export class ZardSelectComponent implements ControlValueAccessor, OnDestroy {
   private portal?: TemplatePortal
 
   readonly class = input<ClassValue>('')
+  readonly zClearable = input(false, { transform: booleanAttribute })
   readonly zDisabled = input(false, { transform: booleanAttribute })
   readonly zLabel = input<string>('')
   readonly zMaxLabelCount = input<number>(1)
@@ -158,6 +179,18 @@ export class ZardSelectComponent implements ControlValueAccessor, OnDestroy {
   readonly zValue = model<ZardSelectValue | ZardSelectValue[]>(this.zMultiple() ? [] : '')
 
   readonly zSelectionChange = output<ZardSelectValue | ZardSelectValue[]>()
+
+  protected readonly showClear = computed(() => {
+    const value = this.zValue()
+    return (
+      this.zClearable() &&
+      !this.zDisabled() &&
+      (Array.isArray(value) ? value.length > 0 : value !== '' && value != null)
+    )
+  })
+  protected readonly clearSelectionLabel = computed(() =>
+    this.i18n.t('xp-ui:select.clearSelection', { Default: 'Clear selection' })
+  )
 
   readonly isOpen = signal(false)
   readonly focusedIndex = signal(-1)
@@ -256,12 +289,15 @@ export class ZardSelectComponent implements ControlValueAccessor, OnDestroy {
   }
 
   protected readonly classes = computed(() => mergeClasses(selectVariants(), this.class()))
-  protected readonly contentClasses = computed(() => mergeClasses(selectContentVariants()))
+  protected readonly contentClasses = computed(() =>
+    mergeClasses(selectContentVariants(), this.dialog ? dialogTypography : '')
+  )
   protected readonly triggerClasses = computed(() =>
     mergeClasses(
       selectTriggerVariants({
         zSize: this.zSize()
-      })
+      }),
+      this.dialog ? dialogControlVariants({ kind: this.zMultiple() ? 'multiple' : 'single' }) : ''
     )
   )
 
@@ -282,6 +318,7 @@ export class ZardSelectComponent implements ControlValueAccessor, OnDestroy {
         break
       case 'Escape':
         if (this.isOpen()) {
+          event.stopPropagation()
           this.close()
         }
         break
@@ -304,6 +341,8 @@ export class ZardSelectComponent implements ControlValueAccessor, OnDestroy {
         this.selectFocusedItem(items)
         break
       case 'Escape':
+        // The popup owns this Escape; the parent Dialog must remain open.
+        e.stopPropagation()
         this.close()
         this.focusButton()
         break
@@ -340,6 +379,20 @@ export class ZardSelectComponent implements ControlValueAccessor, OnDestroy {
     } else {
       this.open()
     }
+  }
+
+  protected clearSelection(event: Event): void {
+    event.stopPropagation()
+    if (this.zDisabled()) {
+      return
+    }
+
+    const value = this.zMultiple() ? [] : ''
+    this.zValue.set(value)
+    this.onChange(value)
+    this.zSelectionChange.emit(value)
+    this.close()
+    this.focusButton()
   }
 
   selectItem(value: ZardSelectValue, label: string) {

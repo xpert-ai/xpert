@@ -134,7 +134,11 @@ export class HeaderUserComponent {
   }
 
   onAbout() {
-    this.#dialog.open(HeaderAboutComponent)
+    this.#dialog.open(HeaderAboutComponent, {
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)'
+    })
   }
 
   onEntryGuideClick() {

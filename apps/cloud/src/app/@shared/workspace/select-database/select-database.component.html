@@ -1,233 +1,148 @@
-<div class="xp-select-database fixed inset-0 z-[999] flex items-center justify-center text-text-primary">
-  <div class="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" (click)="onOverlayClick()"></div>
-
-  <div
-    class="relative z-10 flex h-[640px] w-[980px] max-w-[96vw] overflow-hidden rounded-[28px] bg-components-panel-bg shadow-2xl ring-1 ring-black/10"
-  >
-    <aside class="flex w-64 flex-shrink-0 flex-col border-r border-divider-regular bg-background-default-subtle/80">
-      <div class="border-b border-divider-regular p-5">
-        <p class="text-lg font-semibold">{{ title() }}</p>
-        <p class="mt-1 text-sm text-text-tertiary dark:text-text-quaternary">{{ description() }}</p>
+<section xpDialogLayout="wide" class="w-[min(980px,calc(100vw-32px))] max-h-[84dvh]">
+  <header xpDialogHeader>
+    <h2 xpDialogHeading>{{ title() }}</h2>
+    <p xpDialogDescription>{{ description() }}</p>
+    <button
+      z-button
+      zType="ghost"
+      type="button"
+      xpDialogCloseButton
+      zSize="icon"
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+      (click)="close()"
+    >
+      <z-icon zType="x" aria-hidden="true" />
+    </button>
+  </header>
+  <div xpDialogBody>
+    <div class="grid min-h-0 gap-4 md:grid-cols-[220px_minmax(0,1fr)]">
+      <aside class="min-w-0 space-y-4 md:border-r md:border-border md:pr-4">
         <z-search-input
-          class="mt-4 w-full"
+          class="block w-full"
           [placeholder]="'XP.Workspace.SelectDB.Search' | translate: { Default: 'Search' }"
           [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
           [value]="searchTerm()"
           (valueChange)="updateSearch($event)"
         />
-        <button
-          type="button"
-          class="mt-3 inline-flex w-full items-center justify-between rounded-xl bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary/80"
-          (click)="requestCreate()"
-        >
-          <span>{{ 'XP.Workspace.SelectDB.NewTable' | translate: { Default: 'New Table' } }}</span>
-          <i class="ri-add-line text-base"></i>
-        </button>
-      </div>
-
-      <div class="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-        <p class="px-2 pb-1 text-xs font-semibold uppercase tracking-wide text-text-quaternary">
-          {{ 'XP.Workspace.SelectDB.DatabaseResources' | translate: { Default: 'Database Resources' } }}
-        </p>
-        @for (item of navItems(); track item.value) {
-          <button
-            type="button"
-            class="group flex w-full items-start gap-3 rounded-xl px-3 py-2 text-left text-sm transition hover:bg-hover-bg"
-            [class.bg-components-card-bg]="selectedNav() === item.value"
-            [class.shadow-sm]="selectedNav() === item.value"
-            [class.text-text-primary]="selectedNav() === item.value"
-            [class.text-text-tertiary]="selectedNav() !== item.value"
-            (click)="selectNav(item.value)"
-          >
-            <span
-              class="flex h-10 w-10 items-center justify-center rounded-xl bg-components-card-bg text-lg text-text-secondary shadow-sm group-hover:text-primary-500"
-              [class.bg-primary-50]="selectedNav() === item.value"
-              [class.text-primary-500]="selectedNav() === item.value"
-            >
-              <i [class]="item.icon"></i>
-            </span>
-            <span class="flex flex-1 flex-col">
-              <span class="font-medium">{{ item.label }}</span>
-              @if (item.description) {
-                <span class="text-xs text-text-quaternary">{{ item.description }}</span>
-              }
-            </span>
-          </button>
-        }
-      </div>
-    </aside>
-
-    <section class="flex flex-1 flex-col bg-components-panel-bg">
-      <header class="flex items-center justify-between border-b border-divider-regular px-6 py-4">
-        <div>
-          <p class="text-base font-semibold">
-            {{ 'XP.Workspace.SelectDB.DatabaseList' | translate: { Default: 'Database List' } }}
-          </p>
-          <p class="text-xs text-text-quaternary">
-            {{ 'XP.Workspace.SelectDB.CurrentFilters' | translate: { Default: 'Current filters' } }}:
-            {{ selectedCollectionLabel() }} · {{ selectedOwnerLabel() }} · {{ selectedOrderLabel() }}
-          </p>
-        </div>
-
-        <div class="flex items-center gap-2">
-          <div class="relative">
-            <button
-              type="button"
-              class="inline-flex items-center gap-1 rounded-full border border-divider-deep px-3 py-1.5 text-sm text-text-secondary transition hover:border-divider-deep hover:text-text-primary"
-              (click)="toggleFilter('owner')"
-            >
-              <i class="ri-team-line text-base text-primary-500"></i>
-              <span>{{ selectedOwnerLabel() }}</span>
-              <i class="ri-arrow-down-s-line text-base"></i>
-            </button>
-
-            @if (filterPanel() === 'owner') {
-              <div
-                class="absolute right-0 top-12 z-20 w-44 rounded-2xl border border-divider-regular bg-components-panel-bg p-1 text-sm shadow-xl"
-              >
-                @for (owner of ownerOptions(); track owner.value) {
-                  <button
-                    type="button"
-                    class="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left transition hover:bg-hover-bg"
-                    (click)="pickOwner(owner.value)"
-                  >
-                    <span>{{ owner.label }}</span>
-                    @if (owner.value === selectedOwner()) {
-                      <i class="ri-check-line text-primary-500"></i>
-                    }
-                  </button>
-                }
-              </div>
-            }
-          </div>
-
-          <div class="relative">
-            <button
-              type="button"
-              class="inline-flex items-center gap-1 rounded-full border border-divider-deep px-3 py-1.5 text-sm text-text-secondary transition hover:border-divider-deep hover:text-text-primary"
-              (click)="toggleFilter('order')"
-            >
-              <i class="ri-time-line text-base text-primary-500"></i>
-              <span>{{ selectedOrderLabel() }}</span>
-              <i class="ri-arrow-down-s-line text-base"></i>
-            </button>
-
-            @if (filterPanel() === 'order') {
-              <div
-                class="absolute right-0 top-12 z-20 w-44 rounded-2xl border border-divider-regular bg-components-panel-bg p-1 text-sm shadow-xl"
-              >
-                @for (order of orderOptions(); track order.value) {
-                  <button
-                    type="button"
-                    class="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left transition hover:bg-hover-bg"
-                    (click)="pickOrder(order.value)"
-                  >
-                    <span>{{ order.label }}</span>
-                    @if (order.value === selectedOrder()) {
-                      <i class="ri-check-line text-primary-500"></i>
-                    }
-                  </button>
-                }
-              </div>
-            }
-          </div>
-
-          <button
-            type="button"
-            class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-divider-deep text-text-tertiary transition hover:border-divider-deep hover:text-text-primary"
-            [class.animate-spin]="loading()"
-            (click)="requestRefresh()"
-          >
-            <i class="ri-refresh-line text-lg"></i>
-          </button>
-
-          <button
-            class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-transparent bg-background-default-subtle p-2 text-text-tertiary transition hover:bg-hover-bg"
-            (click)="close()"
-            type="button"
-          >
-            <i class="ri-close-line text-lg"></i>
+        <div xpDialogActionGroup="inline">
+          <button z-button zType="default" type="button" (click)="requestCreate()">
+            <z-icon zType="plus" aria-hidden="true" />{{
+              'XP.Workspace.SelectDB.NewTable' | translate: { Default: 'New Table' }
+            }}
           </button>
         </div>
-      </header>
-
-      <div class="flex-1 overflow-hidden">
-        @if (loading()) {
-          <div class="flex h-full flex-col items-center justify-center gap-3 text-sm text-text-quaternary">
-            <span class="h-10 w-10 animate-spin rounded-full border-2 border-divider-deep border-t-primary-500"></span>
-            <span>{{ 'XP.Workspace.SelectDB.LoadingDatabases' | translate: { Default: 'Loading databases...' } }}</span>
-          </div>
-        } @else {
-          @if (filteredDatabases().length) {
-            <ul class="h-full divide-y divide-divider-regular overflow-y-auto">
-              @for (table of filteredDatabases(); track trackByTable($index, table)) {
-                <li class="flex items-center justify-between px-6 py-4 transition hover:bg-hover-bg">
-                  <div class="flex items-center gap-4">
-                    <div
-                      class="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-100 text-2xl text-orange-500 dark:bg-orange-500/20"
-                    >
-                      <i class="ri-database-2-fill"></i>
-                    </div>
-                    <div class="min-w-0">
-                      <p class="font-medium text-text-primary">{{ table.name }}</p>
-                      <p class="text-sm text-text-tertiary dark:text-text-quaternary">
-                        {{
-                          table.description ||
-                            ('XP.Workspace.SelectDB.NoDescription' | translate: { Default: 'No description' })
-                        }}
-                      </p>
-                    </div>
-                  </div>
-                  <div class="flex items-center gap-3 text-right">
-                    <div class="text-xs text-text-quaternary">
-                      <p>
-                        {{
-                          table.database ||
-                            ('XP.Workspace.SelectDB.DefaultDatabase' | translate: { Default: 'Default database' })
-                        }}
-                      </p>
-                      <p>
-                        {{
-                          table.schema ||
-                            ('XP.Workspace.SelectDB.DefaultSchema' | translate: { Default: 'Default Schema' })
-                        }}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      class="rounded-full border border-primary-200 px-4 py-1.5 text-sm font-semibold text-primary-600 transition hover:bg-primary-50 dark:border-primary-500/40 dark:text-primary-300"
-                      (click)="selectDatabase(table)"
-                    >
-                      {{ 'XP.Workspace.SelectDB.Add' | translate: { Default: 'Add' } }}
-                    </button>
-                  </div>
-                </li>
-              }
-            </ul>
-          } @else {
-            <div class="flex h-full flex-col items-center justify-center text-sm text-text-quaternary">
-              <i class="ri-inbox-archive-line mb-3 text-4xl"></i>
-              <p>
-                {{ 'XP.Workspace.SelectDB.NoMatchingDatabases' | translate: { Default: 'No matching databases' } }}
-              </p>
-              <p class="text-xs">{{ emptyHint() }}</p>
-            </div>
+        <nav class="space-y-1">
+          <h3 class="mb-2 font-medium">
+            {{ 'XP.Workspace.SelectDB.DatabaseResources' | translate: { Default: 'Database Resources' } }}
+          </h3>
+          @for (item of navItems(); track item.value) {
+            <button
+              type="button"
+              class="flex w-full items-start gap-3 rounded-lg p-3 text-left hover:bg-muted"
+              [class]="selectedNav() === item.value ? 'bg-muted text-foreground' : 'text-muted-foreground'"
+              [attr.aria-pressed]="selectedNav() === item.value"
+              (click)="selectNav(item.value)"
+            >
+              <i [class]="item.icon" aria-hidden="true"></i
+              ><span class="min-w-0"
+                ><span class="block break-words">{{ item.label }}</span>
+                @if (item.description) {
+                  <span class="mt-1 block text-xs">{{ item.description }}</span>
+                }
+              </span>
+            </button>
           }
-        }
-      </div>
-
-      @if (!loading() && hasMore()) {
-        <div class="border-t border-divider-regular px-6 py-3 text-center">
-          <button
-            type="button"
-            class="inline-flex items-center justify-center gap-2 rounded-full border border-divider-deep px-4 py-2 text-sm text-text-secondary transition hover:border-divider-deep hover:text-text-primary"
-            (click)="requestLoadMore()"
-          >
-            <i class="ri-arrow-down-circle-line text-lg"></i>
-            {{ 'XP.Workspace.SelectDB.LoadMore' | translate: { Default: 'Load More' } }}
-          </button>
+        </nav>
+      </aside>
+      <section class="min-w-0 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <h3 class="font-medium">
+            {{ 'XP.Workspace.SelectDB.DatabaseList' | translate: { Default: 'Database List' } }}
+          </h3>
+          <div xpDialogActionGroup="inline">
+            <button
+              z-button
+              zType="outline"
+              type="button"
+              [zDisabled]="loading()"
+              [zLoading]="loading()"
+              (click)="requestRefresh()"
+            >
+              <z-icon zType="refresh-cw" aria-hidden="true" />{{
+                'XP.ACTIONS.Refresh' | translate: { Default: 'Refresh' }
+              }}
+            </button>
+          </div>
         </div>
-      }
-    </section>
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <z-select class="w-full" [ngModel]="selectedOwner()" (ngModelChange)="pickOwner($event)">
+            @for (owner of ownerOptions(); track owner.value) {
+              <z-select-item [zValue]="owner.value">{{ owner.label }}</z-select-item>
+            }</z-select
+          ><z-select class="w-full" [ngModel]="selectedOrder()" (ngModelChange)="pickOrder($event)">
+            @for (order of orderOptions(); track order.value) {
+              <z-select-item [zValue]="order.value">{{ order.label }}</z-select-item>
+            }
+          </z-select>
+        </div>
+        <p class="break-words text-muted-foreground">
+          {{ 'XP.Workspace.SelectDB.CurrentFilters' | translate: { Default: 'Current filters' } }}:
+          {{ selectedCollectionLabel() }} · {{ selectedOwnerLabel() }} · {{ selectedOrderLabel() }}
+        </p>
+        @if (loading()) {
+          <p role="status" class="py-12 text-center text-muted-foreground">
+            {{ 'XP.Workspace.SelectDB.LoadingDatabases' | translate: { Default: 'Loading databases...' } }}
+          </p>
+        } @else {
+          <ul class="divide-y divide-border">
+            @for (table of filteredDatabases(); track trackByTable($index, table)) {
+              <li class="flex flex-wrap items-center justify-between gap-3 py-4">
+                <div class="min-w-0 flex-1">
+                  <p class="break-words font-medium">{{ table.name }}</p>
+                  <p class="break-words text-muted-foreground">
+                    {{
+                      table.description ||
+                        ('XP.Workspace.SelectDB.NoDescription' | translate: { Default: 'No description' })
+                    }}
+                  </p>
+                  <p class="mt-1 break-words text-xs text-muted-foreground">
+                    {{
+                      table.database ||
+                        ('XP.Workspace.SelectDB.DefaultDatabase' | translate: { Default: 'Default database' })
+                    }}
+                    ·
+                    {{
+                      table.schema || ('XP.Workspace.SelectDB.DefaultSchema' | translate: { Default: 'Default Schema' })
+                    }}
+                  </p>
+                </div>
+                <div xpDialogActionGroup="inline">
+                  <button z-button zType="outline" type="button" (click)="selectDatabase(table)">
+                    {{ 'XP.Workspace.SelectDB.Add' | translate: { Default: 'Add' } }}
+                  </button>
+                </div>
+              </li>
+            } @empty {
+              <li class="py-12 text-center text-muted-foreground">
+                <p>
+                  {{ 'XP.Workspace.SelectDB.NoMatchingDatabases' | translate: { Default: 'No matching databases' } }}
+                </p>
+                <p class="mt-2 text-xs">{{ emptyHint() }}</p>
+              </li>
+            }
+          </ul>
+        }
+      </section>
+    </div>
   </div>
-</div>
+  <footer xpDialogFooter>
+    @if (!loading() && hasMore()) {
+      <button z-button zType="outline" type="button" class="mr-auto" (click)="requestLoadMore()">
+        {{ 'XP.Workspace.SelectDB.LoadMore' | translate: { Default: 'Load More' } }}
+      </button>
+    }
+    <button z-button zType="outline" type="button" (click)="close()">
+      {{ 'XP.ACTIONS.Close' | translate: { Default: 'Close' } }}
+    </button>
+  </footer>
+</section>

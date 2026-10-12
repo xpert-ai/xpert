@@ -165,7 +165,9 @@ export class XpertWorkflowToolComponent extends XpertWorkflowBaseComponent {
     let toolset: Partial<IXpertToolset> = null
     this.#dialog
       .open<{ toolset: IXpertToolset }>(XpertMCPManageComponent, {
-        backdropClass: 'backdrop-blur-lg-white',
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         disableClose: true,
         data: {
           workspaceId: this.workspaceId(),

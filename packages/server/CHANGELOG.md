@@ -1,5 +1,58 @@
 # @xpert-ai/server-core
 
+## 3.10.2
+
+### Patch Changes
+
+- c5e19d5: Make plugin runtime convergence account for registered API replicas without a fixed registration window. Retain failed rollout outcomes, guard late replica catch-up, allow authorized retirement of offline instances, and synchronize organization plugin removals. Hide manual restart prompts from non-SuperAdmin users while retaining background progress.
+- 4b7a346: Add plugin installation as the final system setup step, with a paginated marketplace catalog, plugin details, filters, grouping, and selection across pages using Zard UI. Install selected plugins sequentially, skip failures, optionally import the official Agent plugins, and defer runtime activation until the batch finishes. Persist installation progress, resume interrupted work, and enter the organization only after runtime convergence completes.
+- Updated dependencies [eecb9fa]
+- Updated dependencies [f76a9c9]
+- Updated dependencies [c9f9379]
+- Updated dependencies [eecb9fa]
+- Updated dependencies [c5e19d5]
+- Updated dependencies [4b7a346]
+- Updated dependencies [4fff330]
+- Updated dependencies [82b8db4]
+    - @xpert-ai/contracts@3.21.0
+    - @xpert-ai/plugin-sdk@3.21.0
+
+## 3.10.1
+
+### Patch Changes
+
+- 01fd502: Add the on-demand Conversation Map Workbench View with shared shadcn controls, React Flow layouts, searchable conversation and branch navigation, and host-backed display preferences. Include compact directory rows, content-sized cards, accessible action tooltips, and reproducible source builds.
+
+    Use `agent.workbench` as the canonical Assistant Workbench slot. Normalize legacy `agent.workbench.fixed` and `agent.workbench.main` requests and plugin declarations at the host boundary, preserving authorization and opening preferences without duplicate views.
+
+- b86bba1: Provide a shared CQRS entry point for resolving user organization access, keeping role-specific access policy out of business callers. Add a reusable Zod request-validation pipe and skip plugin schema synchronization when a plugin declares no entities.
+- Updated dependencies [d18aa7f]
+- Updated dependencies [b86bba1]
+- Updated dependencies [a01cd48]
+- Updated dependencies [1df94f0]
+- Updated dependencies [bf33018]
+- Updated dependencies [bf33018]
+- Updated dependencies [aa33949]
+- Updated dependencies [d4dba33]
+- Updated dependencies [01fd502]
+- Updated dependencies [deff039]
+- Updated dependencies [b66bdcc]
+- Updated dependencies [b86bba1]
+- Updated dependencies [f5add6a]
+- Updated dependencies [c941907]
+- Updated dependencies [c0dd14c]
+- Updated dependencies [00b626e]
+- Updated dependencies [3142346]
+- Updated dependencies [3185f56]
+- Updated dependencies [98a7367]
+- Updated dependencies [55ec356]
+- Updated dependencies [00db21e]
+- Updated dependencies [fffb0f4]
+- Updated dependencies [d81dbe2]
+- Updated dependencies [a131790]
+    - @xpert-ai/contracts@3.20.0
+    - @xpert-ai/plugin-sdk@3.20.0
+
 ## 3.10.0
 
 ### Minor Changes

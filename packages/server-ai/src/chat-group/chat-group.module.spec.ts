@@ -1,3 +1,4 @@
+import { GroupProjectService } from './group-project/group-project.service'
 import { XpertWorkspaceModule } from '../xpert-workspace/workspace.module'
 import { XpertWorkspaceAccessService } from '../xpert-workspace/workspace-access.service'
 import { RuntimeResourceService } from '../agent-plugin/runtime-resource.service'
@@ -231,6 +232,30 @@ describe('ChatGroupModule integration boundary', () => {
         expect((await fetch(`${origin}/api/groups/${id}`)).status).toBe(404)
     })
 
+    it('validates group Project setup at the HTTP boundary and preserves access denials', async () => {
+        const projects = module.get(GroupProjectService)
+        const set = jest.spyOn(projects, 'set').mockResolvedValue({ projectId: id, name: 'Test', participantIds: [id] })
+        const put = (body: unknown) =>
+            fetch(`${origin}/api/ai/groups/${id}/project`, {
+                method: 'PUT',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify(body)
+            })
+        const valid = { project: { mode: 'create', id, name: '  Test  ' }, participantIds: [id] }
+        expect((await put(valid)).status).toBe(200)
+        expect(set).toHaveBeenCalledWith(id, { ...valid, project: { ...valid.project, name: 'Test' } })
+        for (const invalid of [
+            { ...valid, participantIds: [] },
+            { ...valid, participantIds: [id, id] },
+            { ...valid, project: { ...valid.project, ownerId: id } },
+            { ...valid, project: { ...valid.project, name: '' } },
+            { ...valid, organizationId: id }
+        ])
+            expect((await put(invalid)).status).toBe(400)
+        expect(set).toHaveBeenCalledTimes(1)
+        set.mockRejectedValueOnce(new ForbiddenException('project access denied'))
+        expect((await put({ project: { mode: 'existing', projectId: id }, participantIds: [id] })).status).toBe(403)
+    })
     it('routes resource requests through concrete Composer operations after member checks', async () => {
         const composer = module.get(GroupComposerService)
         const member = jest.spyOn(composer, 'member').mockResolvedValue(Object.assign(new GroupParticipant(), { id }))
@@ -240,7 +265,7 @@ describe('ChatGroupModule integration boundary', () => {
         )
         expect(response.status).toBe(200)
         expect(member).toHaveBeenCalledWith(id, id, id)
-        expect(catalog).toHaveBeenCalledWith(id, { projectId: id, offset: 0, limit: 50 })
+        expect(catalog).toHaveBeenCalledWith(expect.objectContaining({ id }), { projectId: id, offset: 0, limit: 50 })
         member.mockRejectedValueOnce(new ForbiddenException('member denied'))
         catalog.mockClear()
         const denied = await fetch(`${origin}/api/ai/groups/${id}/members/${id}/composer/assistants/${id}/resources`)

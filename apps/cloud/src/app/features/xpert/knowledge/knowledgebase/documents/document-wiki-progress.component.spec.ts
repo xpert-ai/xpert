@@ -1,5 +1,5 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { OverlayContainer } from '@angular/cdk/overlay'
+import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { provideRouter } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { KnowledgeWikiDocumentProgress } from '@xpert-ai/contracts'
@@ -100,7 +100,7 @@ describe('Document Wiki progress UI', () => {
     expect(confirm).not.toHaveBeenCalled()
     expect(api.retryJob).toHaveBeenCalledWith('kb', 'job', false)
   })
-  it.each(['z-cancel-button', 'z-close-header-button', 'escape'])(
+  it.each(['z-alert-dialog-cancel', 'z-alert-dialog-close', 'escape'])(
     'does not retry when the charge dialog is dismissed with %s',
     async (dismissal) => {
       fixture.componentRef.setInput('details', true)
@@ -118,7 +118,7 @@ describe('Document Wiki progress UI', () => {
       expect(overlay.textContent).toContain('XP.Knowledgebase.Wiki.RetryChargeConfirm')
       expect(api.retryJob).not.toHaveBeenCalled()
       if (dismissal === 'escape') {
-        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }))
+        document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', keyCode: 27, bubbles: true }))
       } else {
         overlay.querySelector<HTMLButtonElement>(`[data-testid="${dismissal}"]`).click()
       }
@@ -141,9 +141,9 @@ describe('Document Wiki progress UI', () => {
     await fixture.componentInstance.retry()
     fixture.detectChanges()
     const overlay = TestBed.inject(OverlayContainer).getContainerElement()
-    expect(overlay.querySelectorAll('z-dialog')).toHaveLength(1)
+    expect(overlay.querySelectorAll('[role="alertdialog"]')).toHaveLength(1)
     expect(api.retryJob).not.toHaveBeenCalled()
-    overlay.querySelector<HTMLButtonElement>('[data-testid="z-ok-button"]').click()
+    overlay.querySelector<HTMLButtonElement>('[data-testid="z-alert-dialog-action"]').click()
     await fixture.whenStable()
     await fixture.componentInstance.retry()
     expect(api.retryJob).toHaveBeenCalledTimes(1)

@@ -58,9 +58,10 @@ export class CloudSidebarConversationComponent {
   async openFolder() {
     const { SidebarConversationFilesComponent } = await import('./conversation-files.component')
     this.#dialog.open(SidebarConversationFilesComponent, {
-      data: this.conversation(),
       backdropClass: 'backdrop-blur-xs-black',
-      panelClass: 'xp-overlay-pane-dialog'
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)',
+      data: this.conversation()
     })
   }
 
@@ -68,9 +69,10 @@ export class CloudSidebarConversationComponent {
     const { SidebarConversationEditComponent } = await import('./conversation-edit.component')
     const title = await firstValueFrom(
       this.#dialog.open<string>(SidebarConversationEditComponent, {
-        data: { mode: 'rename', title: this.title() },
         backdropClass: 'backdrop-blur-xs-black',
-        panelClass: 'xp-overlay-pane-dialog'
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
+        data: { mode: 'rename', title: this.title() }
       }).closed
     )
     if (!title || title === this.title()) return
@@ -84,9 +86,10 @@ export class CloudSidebarConversationComponent {
     const { SidebarConversationEditComponent } = await import('./conversation-edit.component')
     const confirmed = await firstValueFrom(
       this.#dialog.open<boolean>(SidebarConversationEditComponent, {
-        data: { mode: 'delete', title: this.title() },
         backdropClass: 'backdrop-blur-xs-black',
-        panelClass: 'xp-overlay-pane-dialog'
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
+        data: { mode: 'delete', title: this.title() }
       }).closed
     )
     if (!confirmed) return

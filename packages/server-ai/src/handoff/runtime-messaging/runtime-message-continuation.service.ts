@@ -13,11 +13,13 @@ import { TChatMessageEnvelope, XpertAgentExecutionStatusEnum } from '@xpert-ai/c
 import { AgentRuntimeInbox } from './runtime-message.entity'
 import { AuthorizedRuntimeReply, RuntimeMessageAccessService } from './runtime-message-access.service'
 import { ChatConversationThread } from '../../chat-conversation/conversation-thread.entity'
+import { ChatConversation } from '../../chat-conversation/conversation.entity'
 import { lockRuntimeThread } from '../../chat-conversation/chat-execution-admission.service'
 import { XpertAgentExecution } from '../../xpert-agent-execution/agent-execution.entity'
 import { ChatCommonCommand } from '../../chat/commands/chat-common.command'
 import { XpertChatCommand } from '../../xpert/commands/chat.command'
 import { isRuntimeMessageBlocked, runtimeMessageError } from './runtime-message.errors'
+import { DeliverGroupTaskResultCommand } from '../../chat-group/group-project/group-task.commands'
 
 export function runtimeReplyBlocked(thread: ChatConversationThread, invocationCreatedAt: string): string | null {
     if (
@@ -83,6 +85,18 @@ export class RuntimeMessageContinuationService {
             await this.access.withReply(row.invocationId, row, async (reply) => {
                 const reservation = await this.reserve(row.id, leaseToken, reply)
                 if (!reservation) return
+                if (reply.conversation.purpose === 'group_assistant_runtime') {
+                    const claim = agentRuntimeResultClaimSchema.parse(reservation.claim)
+                    const delivery = await this.commands.execute(
+                        new DeliverGroupTaskResultCommand(reply.invocation.id, claim.consumer.executionId)
+                    )
+                    await repo.update(owned, {
+                        state: delivery.state === 'pending' ? 'processing' : delivery.state,
+                        lastError: delivery.error ?? null,
+                        nextAttemptAt: new Date(Date.now() + 5000)
+                    })
+                    return
+                }
                 if (reservation.phase === 'started') {
                     await this.recover(reservation)
                     return
@@ -145,6 +159,20 @@ export class RuntimeMessageContinuationService {
                 return null
             }
             if (previous?.consumer.type === 'wait') return null
+            // The shared inbox owns the claim; the group queue alone owns member-thread admission.
+            // Keep phase reserved until delivery is observed, so a crash can safely retry publication.
+            if (reply.conversation.purpose === 'group_assistant_runtime') {
+                inbox.claim = previous ?? {
+                    invocationId: inbox.invocationId,
+                    resultRevision: inbox.event.revision,
+                    recipient: reply.dispatch.replyTo,
+                    consumer: { type: 'follow_up', executionId: randomUUID() }
+                }
+                inbox.state = 'processing'
+                inbox.phase = 'reserved'
+                inbox.lastError = null
+                return repo.save(inbox)
+            }
             if (
                 (thread.runControl && thread.runControl.executionId !== previous?.consumer.executionId) ||
                 (!thread.runControl && thread.status === 'busy')
@@ -265,6 +293,8 @@ export class RuntimeMessageContinuationService {
             if (inbox?.phase !== 'reserved' || !['blocked', 'failed'].includes(inbox.state)) return
             const parsed = agentRuntimeResultClaimSchema.safeParse(inbox.claim)
             if (!parsed.success || parsed.data.consumer.type !== 'follow_up') return
+            const conversation = await manager.findOneBy(ChatConversation, { id: parsed.data.recipient.conversationId })
+            if (conversation?.purpose === 'group_assistant_runtime') return
             const thread = await manager.getRepository(ChatConversationThread).findOne({
                 where: {
                     threadId: parsed.data.recipient.threadId,

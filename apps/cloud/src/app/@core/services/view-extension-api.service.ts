@@ -12,6 +12,7 @@ import {
   XpertViewRuntimeScopeInput
 } from '@xpert-ai/contracts'
 import { injectApiBaseUrl } from '../providers'
+import { viewFileContentRoute } from './view-file-content-route'
 
 @Injectable({ providedIn: 'root' })
 export class ViewExtensionApiService {
@@ -115,6 +116,18 @@ export class ViewExtensionApiService {
       `${this.workspaceFilesBaseUrl}/view-sessions/${encodeURIComponent(sessionId)}/grants`,
       request
     )
+  }
+
+  readViewFileAccessContent(
+    sessionId: string,
+    grant: XpertViewFileAccessGrantResult,
+    runtimeScope?: XpertViewRuntimeScopeInput
+  ) {
+    const route = viewFileContentRoute(grant.url, sessionId, `${this.apiBaseUrl}${API_PREFIX}`)
+    return this.httpClient.get(`${this.workspaceFilesBaseUrl}${route}`, {
+      responseType: 'blob',
+      headers: createRuntimeScopeHeaders(runtimeScope)
+    })
   }
 
   revokeViewFileAccessSession(sessionId: string) {

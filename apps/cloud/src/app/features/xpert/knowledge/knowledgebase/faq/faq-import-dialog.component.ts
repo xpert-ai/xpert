@@ -1,3 +1,4 @@
+import { XpDialogFrameImports, XpDialogActionGroupDirective } from '@xpert-ai/headless-ui'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
@@ -21,6 +22,8 @@ export type KnowledgeFAQImportDialogData = {
   standalone: true,
   selector: 'xp-knowledge-faq-import-dialog',
   imports: [
+    ...XpDialogFrameImports,
+    XpDialogActionGroupDirective,
     CommonModule,
     FormsModule,
     TranslateModule,
@@ -30,9 +33,6 @@ export type KnowledgeFAQImportDialogData = {
     ZardToggleGroupItemComponent
   ],
   templateUrl: './faq-import-dialog.component.html',
-  host: {
-    class: 'flex max-h-[min(720px,calc(100vh-2rem))] w-[600px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden'
-  },
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class KnowledgeFAQImportDialogComponent {

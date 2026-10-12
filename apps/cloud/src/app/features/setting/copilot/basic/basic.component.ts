@@ -6,11 +6,12 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { injectOrganizationId } from '@cloud/app/@core/state'
 import { AiProviderRole, ICopilot, MembershipStatusEnum } from '@xpert-ai/contracts'
-import { CapitalizePipe, DisappearAnimations } from '@xpert-ai/headless-ui'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
-import { XpDensityDirective, XpI18nPipe } from '@xpert-ai/headless-ui'
-import { TranslateModule } from '@ngx-translate/core'
 import {
+  CapitalizePipe,
+  DisappearAnimations,
+  XpSpinComponent,
+  XpDensityDirective,
+  XpI18nPipe,
   ZardAccordionImports,
   type ZardAccordionItemLike,
   ZardBadgeComponent,
@@ -19,6 +20,9 @@ import {
   ZardSwitchComponent,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
+
+import { TranslateModule } from '@ngx-translate/core'
+
 import {
   getErrorMessage,
   injectCopilots,
@@ -177,6 +181,9 @@ export class CopilotBasicComponent {
       .pipe(
         switchMap((copilot) => {
           return this.#dialog.open<string>(CopilotAiProvidersComponent, {
+            backdropClass: 'backdrop-blur-xs-black',
+            panelClass: 'xp-overlay-pane-dialog',
+            maxWidth: 'calc(100vw - 32px)',
             data: {
               copilot
             }

@@ -1,11 +1,24 @@
+import {
+  ZardButtonComponent,
+  XpDialogFrameImports,
+  XpDialogActionGroupDirective,
+  ZardInputDirective,
+  nonBlank,
+  SlideUpAnimation,
+  injectConfirmDelete,
+  XpSpinComponent,
+  injectConfirm,
+  ZardAccordionImports,
+  ZardSwitchComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
+
 import { DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { nonBlank, SlideUpAnimation } from '@xpert-ai/headless-ui'
-import { injectConfirmDelete, XpSpinComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   AiFeatureEnum,
@@ -28,7 +41,6 @@ import { catchError, Observable, of, switchMap } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
 import { XpSelectComponent } from '@cloud/app/@shared/common'
 import { XpertService } from '../../../xpert/xpert.service'
-import { injectConfirm, ZardAccordionImports, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -41,11 +53,14 @@ import { injectConfirm, ZardAccordionImports, ZardSwitchComponent, ZardTooltipIm
     ...ZardTooltipImports,
     XpSpinComponent,
     XpSelectComponent,
-    ZardSwitchComponent
+    ZardSwitchComponent,
+    ZardButtonComponent,
+    ...XpDialogFrameImports,
+    XpDialogActionGroupDirective,
+    ZardInputDirective
   ],
   selector: 'xpert-publish',
   templateUrl: './publish.component.html',
-  styleUrl: 'publish.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
   animations: [SlideUpAnimation]
 })

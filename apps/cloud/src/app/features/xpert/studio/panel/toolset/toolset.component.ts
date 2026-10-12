@@ -303,7 +303,9 @@ export class XpertStudioPanelToolsetComponent {
     } else if (toolset.category === XpertToolsetCategoryEnum.MCP) {
       this.dialog
         .open(XpertMCPManageComponent, {
-          backdropClass: 'backdrop-blur-lg-white',
+          backdropClass: 'backdrop-blur-xs-black',
+          panelClass: 'xp-overlay-pane-dialog',
+          maxWidth: 'calc(100vw - 32px)',
           disableClose: true,
           data: {
             workspaceId: this.workspaceId(),
@@ -321,6 +323,9 @@ export class XpertStudioPanelToolsetComponent {
     } else {
       this.dialog
         .open(XpertToolConfigureBuiltinComponent, {
+          backdropClass: 'backdrop-blur-xs-black',
+          panelClass: 'xp-overlay-pane-dialog',
+          maxWidth: 'calc(100vw - 32px)',
           disableClose: true,
           data: {
             toolset,

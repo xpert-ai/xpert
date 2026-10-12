@@ -6,6 +6,7 @@ import { TypeOrmModule } from '@nestjs/typeorm'
 import { Pool } from 'pg'
 import { DataSource } from 'typeorm'
 import { initializeApplicationDataSource } from './application-data-source'
+import { runShutdownStep } from '../runtime-control/shutdown-step'
 
 export const DATABASE_POOL_TOKEN = 'DATABASE_POOL'
 
@@ -45,7 +46,10 @@ const databasePoolFactory = async (configService: ConfigService) => {
 				if (!options) {
 					throw new Error('Database connection options are required')
 				}
-				return initializeApplicationDataSource(options, (dataSourceOptions) => new DataSource(dataSourceOptions))
+				return initializeApplicationDataSource(
+					options,
+					(dataSourceOptions) => new DataSource(dataSourceOptions)
+				)
 			},
 			// Use useFactory, useClass, or useExisting
 			useFactory: async (configService: ConfigService) => {
@@ -64,10 +68,7 @@ const databasePoolFactory = async (configService: ConfigService) => {
 			useFactory: databasePoolFactory
 		}
 	],
-	exports: [
-		TypeOrmModule,
-		DATABASE_POOL_TOKEN
-	]
+	exports: [TypeOrmModule, DATABASE_POOL_TOKEN]
 })
 export class DatabaseModule implements OnApplicationShutdown {
 	private readonly logger = new Logger(DatabaseModule.name)
@@ -77,6 +78,7 @@ export class DatabaseModule implements OnApplicationShutdown {
 	onApplicationShutdown(signal?: string): any {
 		this.logger.log(`Shutting down on signal ${signal}`)
 		const pool = this.moduleRef.get(DATABASE_POOL_TOKEN) as Pool
-		return pool.end()
+		// pool.end waits for checked-out clients; a leaked transaction must not hold this PID indefinitely.
+		return runShutdownStep('database.pool.end', () => pool.end())
 	}
 }

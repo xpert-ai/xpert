@@ -36,6 +36,21 @@ class ComboboxProjectionHostComponent {
 }
 
 describe('ZardComboboxComponent', () => {
+  it.each([true, false])('respects zClearable=%s when selecting the current form value', (clearable) => {
+    const fixture = TestBed.configureTestingModule({ imports: [ZardComboboxComponent] }).createComponent(
+      ZardComboboxComponent
+    )
+    fixture.componentRef.setInput('zClearable', clearable)
+    fixture.componentRef.setInput('options', [{ value: 'alpha', label: 'Alpha' }])
+    const change = jest.fn()
+    fixture.componentInstance.registerOnChange(change)
+    fixture.componentInstance.writeValue('alpha')
+    fixture.detectChanges()
+    fixture.componentInstance.handleSelect({ value: 'alpha', label: 'Alpha' })
+    expect(change).toHaveBeenCalledWith(clearable ? null : 'alpha')
+    fixture.destroy()
+  })
+
   it('honors an explicit null after the parent clears a previously selected value', () => {
     const fixture = TestBed.configureTestingModule({ imports: [ZardComboboxComponent] }).createComponent(
       ZardComboboxComponent

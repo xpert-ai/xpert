@@ -1,5 +1,6 @@
 // Invariants: pending application notes authorize candidates for relevant fixes.
 // Downstream sync may explicitly retain notes, but can then build candidates only.
+// Versions adopted from a newly merged main ancestor are candidate baselines only.
 // Stable images require complete consumption on main with the exact version bump.
 import assert from 'node:assert/strict'
 import { execFileSync } from 'node:child_process'
@@ -22,6 +23,7 @@ export function releasePlan({
   after,
   event,
   ref,
+  mainSha,
   cwd = process.cwd(),
   retainedChangesetPolicy = 'reject',
   applicationNames = services.map((service) => service.name)
@@ -57,6 +59,16 @@ export function releasePlan({
   const oldTree = tree(before),
     newTree = tree(after)
   const read = (sha, file) => JSON.parse(git('show', `${sha}:${file}`))
+  let mergedMain
+  if (mainSha !== undefined) {
+    assert.match(mainSha, /^[a-f0-9]{40}$/, 'Exact main commit SHA required')
+    const ancestor = git('merge-base', mainSha, after)
+    if ((event === 'pull_request' || ref === 'refs/heads/develop') && git('merge-base', before, ancestor) !== ancestor)
+      mergedMain = ancestor
+  }
+  const mainTree = mergedMain ? tree(mergedMain) : new Set()
+  const adoptedMainVersion = (manifest, previous, current) =>
+    mainTree.has(manifest) && semver.gt(current, previous) && read(mergedMain, manifest).version === current
   assert.equal(
     read(after, '.changeset/config.json').privatePackages?.version,
     true,
@@ -94,7 +106,8 @@ export function releasePlan({
     const pending = oldNotes.filter((note) => note.name === service.name)
     const remaining = newNotes.filter((note) => note.name === service.name)
     const requested = fresh.filter((note) => note.name === service.name)
-    const versioned = current.version !== previous.version
+    const versioned =
+      current.version !== previous.version && !adoptedMainVersion(service.manifest, previous.version, current.version)
     let baseVersion, evidence
     let retainedForCandidate = false
     if (versioned) {
@@ -150,6 +163,7 @@ export function releasePlan({
       const consumed =
         oldTree.has(manifest) &&
         read(before, manifest).version !== current.version &&
+        !adoptedMainVersion(manifest, read(before, manifest).version, current.version) &&
         oldNotes.some((note) => note.name === current.name && !newTree.has(note.file))
       if (!newlyDeclared && !consumed) continue
       const image = include.find((entry) => entry.name === service.name)
@@ -197,7 +211,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     before: process.env.IMAGE_RELEASE_BEFORE,
     after: process.env.IMAGE_RELEASE_AFTER,
     event: process.env.IMAGE_RELEASE_EVENT,
-    ref: process.env.IMAGE_RELEASE_REF
+    ref: process.env.IMAGE_RELEASE_REF,
+    mainSha: process.env.IMAGE_RELEASE_MAIN
   })
   console.log(JSON.stringify(plan, null, 2))
   if (process.env.GITHUB_OUTPUT)

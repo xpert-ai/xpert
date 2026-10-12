@@ -3,13 +3,13 @@ import { CommonModule } from '@angular/common'
 import {
   ChangeDetectionStrategy,
   Component,
-  DestroyRef,
-  WritableSignal,
   computed,
+  DestroyRef,
   effect,
   inject,
   input,
-  signal
+  signal,
+  WritableSignal
 } from '@angular/core'
 import { ActivatedRoute, Router } from '@angular/router'
 import {
@@ -34,8 +34,8 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { linkedModel, ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
 import { firstValueFrom } from 'rxjs'
-import { createAgentTemplateWizardData } from '../agents/agent-template-wizard'
 import { type BlankXpertWizardResult, XpertNewBlankComponent } from '../../xpert/xpert'
+import { createAgentTemplateWizardData } from '../agents/agent-template-wizard'
 import { AgentSquareAccessRequestDialogComponent } from './access-request-dialog.component'
 import { AgentSquareReviewRequestsDialogComponent } from './review-requests-dialog.component'
 
@@ -497,7 +497,12 @@ export class ExploreAgentSquareComponent {
     }
 
     const reason = await firstValueFrom(
-      this.#dialog.open<string | null>(AgentSquareAccessRequestDialogComponent, { data: { item } }).closed
+      this.#dialog.open<string | null>(AgentSquareAccessRequestDialogComponent, {
+        data: { item },
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)'
+      }).closed
     )
     if (reason == null) {
       return
@@ -513,7 +518,11 @@ export class ExploreAgentSquareComponent {
 
   async openReviewDialog() {
     const changed = await firstValueFrom(
-      this.#dialog.open<boolean>(AgentSquareReviewRequestsDialogComponent, { minWidth: 320 }).closed
+      this.#dialog.open<boolean>(AgentSquareReviewRequestsDialogComponent, {
+        maxWidth: 'calc(100vw - 32px)',
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog'
+      }).closed
     )
     if (changed) {
       await Promise.all([this.loadExperts(), this.loadFeaturedExperts(true)])
@@ -763,6 +772,10 @@ export class ExploreAgentSquareComponent {
     event?.stopPropagation()
     this.#dialog
       .open<BlankXpertWizardResult>(XpertNewBlankComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        width: '1360px',
+        maxWidth: 'calc(100vw - 32px)',
         disableClose: true,
         data: createAgentTemplateWizardData(template.id, this.workspace())
       })

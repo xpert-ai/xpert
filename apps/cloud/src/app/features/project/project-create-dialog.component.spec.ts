@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing'
-import { Z_MODAL_DATA, ZardDialogRef } from '@xpert-ai/headless-ui'
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { of } from 'rxjs'
 import { UsersOrganizationsService } from '../../@core/services/users-organizations.service'
 import { Store } from '../../@core'
@@ -12,8 +12,8 @@ describe('XpertProjectCreateDialogComponent', () => {
     TestBed.configureTestingModule({
       imports: [XpertProjectCreateDialogComponent],
       providers: [
-        { provide: ZardDialogRef, useValue: dialogRef },
-        { provide: Z_MODAL_DATA, useValue: null },
+        { provide: DialogRef, useValue: dialogRef },
+        { provide: DIALOG_DATA, useValue: null },
         { provide: Store, useValue: { userId: 'owner-1' } },
         { provide: UsersOrganizationsService, useValue: { getAllInOrg: jest.fn(() => of({ items: [] })) } }
       ]
@@ -48,8 +48,8 @@ describe('XpertProjectCreateDialogComponent', () => {
     TestBed.configureTestingModule({
       imports: [XpertProjectCreateDialogComponent],
       providers: [
-        { provide: ZardDialogRef, useValue: dialogRef },
-        { provide: Z_MODAL_DATA, useValue: null },
+        { provide: DialogRef, useValue: dialogRef },
+        { provide: DIALOG_DATA, useValue: null },
         { provide: Store, useValue: { userId: 'owner-1' } },
         { provide: UsersOrganizationsService, useValue: { getAllInOrg: jest.fn(() => of({ items: [] })) } }
       ]

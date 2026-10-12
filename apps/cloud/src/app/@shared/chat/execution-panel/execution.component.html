@@ -1,57 +1,80 @@
-<div class="sticky top-0 z-10 bg-components-panel-bg mb-4">
-  <div class="flex justify-between items-center p-2">
-    <h1 class="shrink-0 text-lg px-2 font-semibold text-text-primary">
-      {{ 'XP.Xpert.ConversationLog' | translate: { Default: 'Conversation Log' } }}
-    </h1>
+<div
+  xpDialogLayout="wide"
+  class="relative max-w-full min-h-0"
+  [class]="inDialog ? 'w-[900px] max-h-[85dvh]' : 'w-full h-full'"
+>
+  <header xpDialogHeader>
+    <h2 xpDialogHeading>{{ 'XP.Xpert.ConversationLog' | translate: { Default: 'Conversation Log' } }}</h2>
     <button
       type="button"
-      class="btn-close btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer z-20"
+      z-button
+      zType="ghost"
+      zSize="icon"
+      xpDialogCloseButton
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
       (click)="onClose()"
     >
-      <i class="ri-close-line"></i>
+      <z-icon zType="x" />
     </button>
-  </div>
-  <div class="shrink-0 flex items-center px-4 border-b-[0.5px] border-[rgba(0,0,0,0.05)]">
+  </header>
+  <div xpDialogBody class="relative flex-1 space-y-4">
     <div
-      class="tab mr-6 py-3 border-b-2 border-transparent font-semibold leading-[18px] text-text-quaternary cursor-pointer"
-      [class.active]="pageType() === 'primary'"
-      (click)="pageType.set('primary')"
+      xpDialogActionGroup="inline"
+      class="flex flex-wrap gap-2"
+      role="group"
+      [attr.aria-label]="'XP.Xpert.ConversationLog' | translate: { Default: 'Conversation Log' }"
     >
-      {{ 'XP.Xpert.PrimaryAgent' | translate: { Default: 'Primary Agent' } }}
+      <button
+        type="button"
+        z-button
+        [zType]="pageType() === 'primary' ? 'secondary' : 'ghost'"
+        [attr.aria-pressed]="pageType() === 'primary'"
+        (click)="pageType.set('primary')"
+      >
+        {{ 'XP.Xpert.PrimaryAgent' | translate: { Default: 'Primary Agent' } }}
+      </button>
+      <button
+        type="button"
+        z-button
+        [zType]="pageType() === 'members' ? 'secondary' : 'ghost'"
+        [attr.aria-pressed]="pageType() === 'members'"
+        (click)="pageType.set('members')"
+      >
+        {{ 'XP.Xpert.MembersOrSteps' | translate: { Default: 'Members/Steps' } }}
+      </button>
     </div>
-    <div
-      class="tab mr-6 py-3 border-b-2 border-transparent font-semibold leading-[18px] text-text-quaternary cursor-pointer"
-      [class.active]="pageType() === 'members'"
-      (click)="pageType.set('members')"
-    >
-      {{ 'XP.Xpert.MembersOrSteps' | translate: { Default: 'Members/Steps' } }}
-    </div>
-  </div>
-</div>
-
-@switch (pageType()) {
-  @case ('primary') {
-    @if (execution(); as execution) {
-      <xpert-agent-execution class="w-full px-4" [execution]="execution" />
+    @switch (pageType()) {
+      @case ('primary') {
+        @if (execution(); as execution) {
+          <xpert-agent-execution class="block w-full" [execution]="execution" />
+        }
+      }
+      @case ('members') {
+        @for (execution of executions(); track execution.id) {
+          <xpert-agent-execution-accordion class="block mb-2" [execution]="execution" />
+        } @empty {
+          <div class="w-full py-8 flex justify-center items-center text-text-secondary">
+            {{ 'XP.Xpert.NoExecutionMembersSteps' | translate: { Default: 'No execution sub-members or steps' } }}
+          </div>
+        }
+      }
     }
-  }
-  @case ('members') {
-    @for (execution of executions(); track execution.id) {
-      <xpert-agent-execution-accordion class="px-2 mb-1" [execution]="execution" />
-    } @empty {
-      <div class="w-full p-8 flex justify-center items-center text-text-secondary">
-        {{ 'XP.Xpert.NoExecutionMembersSteps' | translate: { Default: 'No execution sub-members or steps' } }}
+
+    @if (error()) {
+      <div class="w-full py-4 flex justify-center text-destructive">
+        {{ error() }}
       </div>
     }
-  }
-}
 
-@if (error()) {
-  <div class="w-full p-4 flex justify-center text-text-destructive">
-    {{ error() }}
+    @if (loading()) {
+      <xp-spin class="absolute inset-0 z-10" />
+    }
   </div>
-}
-
-@if (loading()) {
-  <xp-spin class="absolute left-0 top-0 w-full h-full z-10" />
-}
+  @if (inDialog) {
+    <footer xpDialogFooter>
+      <button type="button" z-button zType="outline" (click)="onClose()">
+        {{ 'XP.ACTIONS.Close' | translate: { Default: 'Close' } }}
+      </button>
+    </footer>
+  }
+</div>

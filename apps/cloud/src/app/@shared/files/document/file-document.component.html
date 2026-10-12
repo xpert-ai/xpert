@@ -67,30 +67,64 @@
 }
 
 <ng-template #unsavedChangesDialog>
-  <div class="w-[min(28rem,calc(100vw-2rem))] p-6">
-    <div class="text-lg font-semibold text-text-primary">
-      {{ 'XP.Files.UnsavedChangesTitle' | translate: { Default: 'Unsaved changes' } }}
-    </div>
-    <div class="mt-2 text-sm leading-6 text-text-tertiary">
-      {{
-        'XP.Files.UnsavedChangesInfo'
-          | translate
-            : {
-                Default:
-                  'You have unsaved edits in the current file. Save them before switching, or discard the pending changes.'
-              }
-      }}
-    </div>
-    <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-      <button z-button zType="secondary" type="button" (click)="state.resolveDirtyDialog('cancel')">
+  @let state = document();
+  <div xpDialogLayout="standard" xpDialogPurpose="workflow" class="w-[480px] max-w-full max-h-[85dvh]">
+    <header xpDialogHeader>
+      <h2 xpDialogHeading>
+        {{ 'XP.Files.UnsavedChangesTitle' | translate: { Default: 'Unsaved changes' } }}
+      </h2>
+      <p xpDialogDescription>
+        {{
+          'XP.Files.UnsavedChangesInfo'
+            | translate
+              : {
+                  Default:
+                    'You have unsaved edits in the current file. Save them before switching, or discard the pending changes.'
+                }
+        }}
+      </p>
+      <button
+        type="button"
+        z-button
+        zType="ghost"
+        zSize="icon"
+        xpDialogCloseButton
+        [zDisabled]="state.saving()"
+        [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+        (click)="state.resolveDirtyDialog('cancel')"
+      >
+        <z-icon zType="x" />
+      </button>
+    </header>
+    <footer xpDialogFooter>
+      <button
+        z-button
+        zType="outline"
+        type="button"
+        [zDisabled]="state.saving()"
+        (click)="state.resolveDirtyDialog('cancel')"
+      >
         {{ 'COMPONENTS.COMMON.CANCEL' | translate: { Default: 'Cancel' } }}
       </button>
-      <button z-button zType="secondary" type="button" (click)="state.resolveDirtyDialog('discard')">
+      <button
+        z-button
+        zType="outline"
+        type="button"
+        [zDisabled]="state.saving()"
+        (click)="state.resolveDirtyDialog('discard')"
+      >
         {{ 'XP.Files.Discard' | translate: { Default: 'Discard' } }}
       </button>
-      <button z-button zType="default" type="button" (click)="state.resolveDirtyDialog('save')">
+      <button
+        z-button
+        zType="default"
+        [zLoading]="state.saving()"
+        type="button"
+        [zDisabled]="state.saving()"
+        (click)="state.resolveDirtyDialog('save')"
+      >
         {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
       </button>
-    </div>
+    </footer>
   </div>
 </ng-template>

@@ -1,19 +1,16 @@
-import { DialogRef } from '@angular/cdk/dialog'
 import {
-  ChangeDetectionStrategy,
-  Component,
-  ElementRef,
-  ViewEncapsulation,
-  computed,
-  inject,
-  signal,
-  viewChild
-} from '@angular/core'
+  ZardButtonComponent,
+  XpDialogFrameImports,
+  ZardInputDirective,
+  ZardSelectImports,
+  ZardSelectValue
+} from '@xpert-ai/headless-ui'
+import { DialogRef } from '@angular/cdk/dialog'
+import { ChangeDetectionStrategy, Component, ElementRef, computed, inject, signal, viewChild } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { RouterLink } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { ZardButtonComponent, ZardInputDirective, ZardSelectImports, ZardSelectValue } from '@xpert-ai/headless-ui'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { XpertSettingsEditor } from './xpert-settings.editor'
 import { XPERT_SETTINGS_SECTIONS, type XpertSettingsSection } from './xpert-settings.types'
@@ -54,19 +51,18 @@ import { SettingsMiddlewareComponent } from './settings-middleware.component'
     SettingsStatisticsComponent,
     SettingsExternalExpertsComponent,
     SettingsSubagentsComponent,
-    SettingsMiddlewareComponent
+    SettingsMiddlewareComponent,
+    ...XpDialogFrameImports
   ],
   providers: [
     XpertSettingsEditor,
     XpertSettingsContextService,
     { provide: ASSISTANT_SETTINGS_CONTEXT, useExisting: XpertSettingsContextService }
   ],
-  encapsulation: ViewEncapsulation.None,
-  styleUrl: './xpert-settings-dialog.component.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     class:
-      'text-base [--spacing:4px] [&_[z-button]]:h-10 [&_[z-button]]:min-w-10 [&_[z-button]]:gap-2 [&_[z-button]]:rounded-xl [&_[z-button]]:px-4 [&_[z-button]]:text-base flex h-[min(780px,calc(100dvh-64px))] w-[min(1120px,calc(100vw-48px))] max-sm:h-[100dvh] max-sm:w-screen'
+      'block [--assistant-settings-item-radius:12px] h-[min(780px,calc(100dvh-32px))] w-[min(1120px,calc(100vw-32px))]'
   },
   templateUrl: './xpert-settings-dialog.component.html'
 })

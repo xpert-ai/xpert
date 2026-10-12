@@ -1,9 +1,10 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { CdkListboxModule, ListboxValueChangeEvent } from '@angular/cdk/listbox'
 
 import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject, input, model } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { ZardDialogService, ZardInputDirective } from '@xpert-ai/headless-ui'
+import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxFloatUiPlacements, NgxFloatUiTriggers } from 'ngx-float-ui'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -24,7 +25,7 @@ export class TagMaintainComponent {
   eNgxFloatUiPlacements = NgxFloatUiPlacements
 
   readonly tagService = inject(TagService)
-  readonly #dialog = inject(ZardDialogService)
+  readonly #dialog = inject(Dialog)
   readonly #toastr = inject(ToastrService)
 
   readonly tenant = input<boolean, string | boolean>(false, {
@@ -51,10 +52,13 @@ export class TagMaintainComponent {
 
   createTag() {
     const dialogRef = this.#dialog.open(TagCreatorComponent, {
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)',
       data: { category: this.category() }
     })
 
-    dialogRef.afterClosed().subscribe((result) => {
+    dialogRef.closed.subscribe((result) => {
       if (result) {
         this.tagService.refresh()
       }

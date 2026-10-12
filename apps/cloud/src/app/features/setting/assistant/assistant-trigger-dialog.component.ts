@@ -3,7 +3,7 @@ import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { XpI18nPipe, ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { XpI18nPipe, ZardButtonComponent, XpDialogFrameImports } from '@xpert-ai/headless-ui'
 import { isEqual } from 'lodash-es'
 import { genXpertTriggerKey, getErrorMessage, ToastrService } from '../../../@core'
 import { JSONSchemaFormComponent } from '../../../@shared/forms'
@@ -24,28 +24,34 @@ export interface AssistantTriggerDialogData {
 @Component({
   standalone: true,
   selector: 'xp-assistant-trigger-dialog',
-  imports: [FormsModule, TranslateModule, XpI18nPipe, JSONSchemaFormComponent, ZardButtonComponent, ZardIconComponent],
+  imports: [
+    FormsModule,
+    TranslateModule,
+    XpI18nPipe,
+    JSONSchemaFormComponent,
+    ZardButtonComponent,
+    ...XpDialogFrameImports
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <section class="flex max-h-[85dvh] w-[520px] max-w-[calc(100vw-32px)] flex-col">
-      <header class="flex items-center justify-between gap-3 border-b border-border px-6 py-5">
-        <h2 class="text-lg font-semibold">{{ data.card.provider.label | i18n }}</h2>
+    <section xpDialogLayout="standard" class="max-h-[85dvh] w-[520px] max-w-[calc(100vw-32px)]">
+      <header xpDialogHeader>
+        <h2 xpDialogHeading>{{ data.card.provider.label | i18n }}</h2>
+        <p xpDialogDescription>{{ 'XP.AssistantSettings.TriggerConfigIntro' | translate }}</p>
         <button
+          xpDialogCloseButton
           z-button
           zType="ghost"
-          zSize="icon-sm"
+          zSize="icon"
           type="button"
           [zDisabled]="saving()"
           (click)="dialogRef.close()"
           [attr.aria-label]="'XP.AssistantSettings.Close' | translate"
         >
-          <z-icon zType="x" />
+          <z-icon zType="x" aria-hidden="true" />
         </button>
       </header>
-      <div class="min-h-0 flex-1 overflow-y-auto p-6">
-        <p class="mb-5 text-sm leading-6 text-muted-foreground">
-          {{ 'XP.AssistantSettings.TriggerConfigIntro' | translate }}
-        </p>
+      <div xpDialogBody>
         @if (configSchema; as schema) {
           @if (hasFields()) {
             <json-schema-form
@@ -77,21 +83,22 @@ export interface AssistantTriggerDialogData {
           <p role="alert" class="mt-4 text-sm text-destructive">{{ error() }}</p>
         }
       </div>
-      <footer class="border-t border-border px-6 py-4">
-        <p class="mb-4 text-xs leading-5 text-muted-foreground">
+      <footer xpDialogFooter>
+        <p class="w-full text-xs text-muted-foreground">
           {{ 'XP.AssistantSettings.TriggerSaveHint' | translate }}
         </p>
-        <div class="flex justify-end gap-2">
+        <div class="ml-auto flex flex-wrap justify-end gap-[8px]">
           <button z-button zType="outline" type="button" [zDisabled]="saving()" (click)="dialogRef.close()">
             {{ 'XP.AssistantSettings.Cancel' | translate }}
           </button>
           <button
             z-button
             type="button"
+            [zLoading]="saving()"
             [zDisabled]="saving() || facade.savingTriggerDraft() || invalid() || bindingChanged() || !dirty()"
             (click)="save()"
           >
-            {{ (saving() ? 'XP.AssistantSettings.Saving' : 'XP.Chat.ClawXpert.SaveTriggerDraft') | translate }}
+            {{ 'XP.Chat.ClawXpert.SaveTriggerDraft' | translate }}
           </button>
         </div>
       </footer>

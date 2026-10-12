@@ -8,6 +8,7 @@ import {
   input,
   model,
   output,
+  signal,
   viewChild,
   ViewEncapsulation,
   type TemplateRef
@@ -15,6 +16,9 @@ import {
 import { NG_VALUE_ACCESSOR, type ControlValueAccessor } from '@angular/forms'
 
 import type { ClassValue } from 'clsx'
+
+import { XP_DIALOG_CONTEXT } from '../dialog/dialog-context'
+import { dialogControlVariants } from '../dialog/dialog-frame.variants'
 
 import { ZardButtonComponent, type ZardButtonTypeVariants } from '../button'
 import { ZardCalendarComponent } from '../calendar'
@@ -52,14 +56,14 @@ const HEIGHT_BY_SIZE: Record<ZardDatePickerSizeVariants, string> = {
       type="button"
       [zType]="zType()"
       [zSize]="zSize()"
-      [disabled]="disabled()"
+      [zDisabled]="disabled()"
       [class]="buttonClasses()"
       zPopover
       #popoverDirective="zPopover"
       [zContent]="calendarTemplate"
       zTrigger="click"
       (zVisibleChange)="onPopoverVisibilityChange($event)"
-      [attr.aria-expanded]="false"
+      [attr.aria-expanded]="open()"
       [attr.aria-haspopup]="true"
       [attr.aria-label]="chooseDateAriaLabel()"
     >
@@ -99,13 +103,15 @@ const HEIGHT_BY_SIZE: Record<ZardDatePickerSizeVariants, string> = {
   exportAs: 'zDatePicker'
 })
 export class ZardDatePickerComponent implements ControlValueAccessor {
+  private readonly dialog = inject(XP_DIALOG_CONTEXT, { optional: true })
   private readonly datePipe = inject(DatePipe)
   private readonly i18n = injectUiI18nService()
 
   readonly calendarTemplate = viewChild.required<TemplateRef<unknown>>('calendarTemplate')
   readonly popoverDirective = viewChild.required<ZardPopoverDirective>('popoverDirective')
-  readonly calendar = viewChild.required<ZardCalendarComponent>('calendar')
+  readonly calendar = viewChild<ZardCalendarComponent>('calendar')
 
+  readonly open = signal(false)
   readonly class = input<ClassValue>('')
   readonly zType = input<ZardButtonTypeVariants>('outline')
   readonly zSize = input<ZardDatePickerSizeVariants>('default')
@@ -133,7 +139,8 @@ export class ZardDatePickerComponent implements ControlValueAccessor {
       'justify-start text-left font-normal',
       !hasValue && 'text-muted-foreground',
       height,
-      'w-full min-w-[240px]'
+      'w-full min-w-[240px]',
+      this.dialog ? [dialogControlVariants({ kind: 'single' }), 'min-w-0'] : ''
     )
   })
 
@@ -164,11 +171,10 @@ export class ZardDatePickerComponent implements ControlValueAccessor {
   }
 
   protected onPopoverVisibilityChange(visible: boolean): void {
+    this.open.set(visible)
     if (visible) {
       setTimeout(() => {
-        if (this.calendar()) {
-          this.calendar().resetNavigation()
-        }
+        this.calendar()?.resetNavigation()
       })
     }
   }

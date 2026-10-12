@@ -56,6 +56,9 @@ export class XpertWorkflowPanelDBBaseComponent extends XpertWorkflowBaseComponen
   addDBTable() {
     this.dialog
       .open<IXpertTable>(WorkspaceSelectDatabaseComponent, {
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)',
         data: {
           workspaceId: this.workspaceId()
         }

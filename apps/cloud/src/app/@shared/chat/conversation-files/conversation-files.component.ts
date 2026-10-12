@@ -1,3 +1,5 @@
+import { ZardButtonComponent, XpDialogFrameImports } from '@xpert-ai/headless-ui'
+
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
@@ -12,8 +14,15 @@ import { ChatFileListComponent } from '../file-list/file-list.component'
   standalone: true,
   selector: 'chat-conversation-files',
   templateUrl: `conversation-files.component.html`,
-  styleUrl: `conversation-files.component.scss`,
-  imports: [FormsModule, DragDropModule, CdkMenuModule, TranslateModule, ChatFileListComponent]
+  imports: [
+    FormsModule,
+    DragDropModule,
+    CdkMenuModule,
+    TranslateModule,
+    ChatFileListComponent,
+    ZardButtonComponent,
+    ...XpDialogFrameImports
+  ]
 })
 export class ChatConversationFilesComponent {
   readonly #data = inject<{ projectId?: string; conversationId: string }>(DIALOG_DATA)

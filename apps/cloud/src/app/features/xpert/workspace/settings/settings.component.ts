@@ -1,3 +1,4 @@
+import { XpDialogFrameImports, ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
@@ -5,7 +6,7 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
-import { ApiKeyBindingType, IfAnimation, IXpertWorkspace, XpertWorkspaceService } from 'apps/cloud/src/app/@core'
+import { ApiKeyBindingType, IXpertWorkspace, XpertWorkspaceService } from 'apps/cloud/src/app/@core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { XpertDevelopApiKeyComponent } from '../../xpert/develop'
 import { XpertWorkspaceSettingsGeneralComponent } from './general/general.component'
@@ -15,6 +16,8 @@ import { XpertWorkspaceMembersComponent } from './members/members.component'
   selector: 'xpert-workspace-settings',
   standalone: true,
   imports: [
+    ...XpDialogFrameImports,
+    ZardButtonComponent,
     FormsModule,
     CdkListboxModule,
     DragDropModule,
@@ -23,9 +26,7 @@ import { XpertWorkspaceMembersComponent } from './members/members.component'
     XpertWorkspaceSettingsGeneralComponent,
     XpertDevelopApiKeyComponent
   ],
-  templateUrl: './settings.component.html',
-  styleUrl: './settings.component.scss',
-  animations: [IfAnimation]
+  templateUrl: './settings.component.html'
 })
 export class XpertWorkspaceSettingsComponent {
   readonly workspaceService = inject(XpertWorkspaceService)

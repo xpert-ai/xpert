@@ -1,5 +1,7 @@
 import { ChatConversationThread } from '../../chat-conversation/conversation-thread.entity'
 import { Injectable } from '@nestjs/common'
+import { CommandBus } from '@nestjs/cqrs'
+import { AuthorizeGroupTaskCallerCommand } from '../../chat-group/group-project/group-task.commands'
 import { InjectRepository } from '@nestjs/typeorm'
 import { AgentInvocationScope, RequestContext } from '@xpert-ai/plugin-sdk'
 import { Repository } from 'typeorm'
@@ -15,7 +17,8 @@ export class ProjectTaskRuntimeContextService {
     constructor(
         private readonly access: XpertProjectAccessService,
         @InjectRepository(ChatConversation) private readonly conversations: Repository<ChatConversation>,
-        @InjectRepository(XpertAgentExecution) private readonly executions: Repository<XpertAgentExecution>
+        @InjectRepository(XpertAgentExecution) private readonly executions: Repository<XpertAgentExecution>,
+        private readonly commands: CommandBus
     ) {}
 
     async resolve(projectId: string, caller: ProjectTaskCaller): Promise<AgentInvocationScope> {
@@ -29,11 +32,17 @@ export class ProjectTaskRuntimeContextService {
             await this.access.assertCanUseXpert(projectId, caller.xpertId, actor)
         }
         const [conversation, execution] = await Promise.all([
-            this.conversations.findOneBy({ id: caller.conversationId, projectId, ...actorWhere(actor) }),
+            this.conversations.findOneBy({
+                id: caller.conversationId,
+                projectId,
+                tenantId: actor.tenantId,
+                organizationId: actor.organizationId
+            }),
             this.executions.findOne({ where: { id: caller.executionId, ...actorWhere(actor) }, relations: ['xpert'] })
         ])
         if (
             !conversation ||
+            (conversation.purpose !== 'group_assistant_runtime' && conversation.createdById !== actor.userId) ||
             !execution ||
             execution.threadId !== caller.threadId ||
             execution.agentKey !== caller.agentKey
@@ -61,7 +70,7 @@ export class ProjectTaskRuntimeContextService {
                 : execution.xpertId !== caller.xpertId)
         )
             throw projectTaskRuntimeError('Scope')
-        return {
+        const scope: AgentInvocationScope = {
             ...actor,
             projectId,
             conversationId: conversation.id,
@@ -72,6 +81,11 @@ export class ProjectTaskRuntimeContextService {
                 : { callerXpertId: caller.xpertId }),
             callerAgentKey: caller.agentKey
         }
+        if (conversation.purpose === 'group_assistant_runtime') {
+            if (caller.type !== 'xpert') throw projectTaskRuntimeError('Scope')
+            await this.commands.execute(new AuthorizeGroupTaskCallerCommand(scope))
+        }
+        return scope
     }
 
     actor() {

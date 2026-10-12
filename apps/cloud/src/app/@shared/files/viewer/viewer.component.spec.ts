@@ -1,4 +1,5 @@
 import { provideHttpClient } from '@angular/common/http'
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing'
 import { TestBed } from '@angular/core/testing'
 import { By } from '@angular/platform-browser'
 import { TranslateModule } from '@ngx-translate/core'
@@ -214,13 +215,96 @@ describe('FileViewerComponent', () => {
     TestBed.resetTestingModule()
     await TestBed.configureTestingModule({
       imports: [TranslateModule.forRoot(), FileViewerComponent],
-      providers: [provideHttpClient()]
+      providers: [provideHttpClient(), provideHttpClientTesting()]
     }).compileComponents()
   })
 
   afterEach(() => {
     TestBed.resetTestingModule()
     jest.clearAllMocks()
+  })
+
+  function remoteMarkdown(url = '/artifact-preview/v1') {
+    const fixture = TestBed.createComponent(FileViewerComponent)
+    fixture.componentRef.setInput('filePath', '交付说明.md')
+    fixture.componentRef.setInput('file', { filePath: '交付说明.md', mimeType: 'text/markdown', fileUrl: url })
+    fixture.componentRef.setInput('markdown', true)
+    fixture.componentRef.setInput('readable', false)
+    fixture.componentRef.setInput('editable', false)
+    fixture.componentRef.setInput('downloadable', true)
+    fixture.detectChanges()
+    return fixture
+  }
+
+  it('loads URL-only Markdown and renders preview and source without granting edit access', async () => {
+    const fixture = remoteMarkdown()
+    const http = TestBed.inject(HttpTestingController)
+    expect(fixture.debugElement.query(By.css('xp-spin'))).not.toBeNull()
+    http.expectOne('/artifact-preview/v1').flush('# 已保存版本\n\n中文正文')
+    await fixture.whenStable()
+    fixture.detectChanges()
+    expect(fixture.debugElement.query(By.css('markdown')).componentInstance.data).toBe('# 已保存版本\n\n中文正文')
+    expect(fixture.nativeElement.textContent).not.toContain('This file cannot be previewed here')
+    expect(fixture.componentInstance.editable()).toBe(false)
+    fixture.componentInstance.updatePreviewMode('code')
+    fixture.detectChanges()
+    expect(fixture.debugElement.query(By.css('xp-file-editor')).componentInstance.content).toBe(
+      '# 已保存版本\n\n中文正文'
+    )
+    http.verify()
+  })
+
+  it('shows a load error instead of a binary-format error and retries the preview', async () => {
+    const fixture = remoteMarkdown()
+    const http = TestBed.inject(HttpTestingController)
+    http.expectOne('/artifact-preview/v1').flush('expired', { status: 403, statusText: 'Forbidden' })
+    await fixture.whenStable()
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('[role="alert"]').textContent).toContain('XP.Files.LoadFileFailed')
+    expect(fixture.nativeElement.textContent).not.toContain('This file is not a text-based format')
+    const refresh = jest.fn()
+    fixture.componentInstance.refresh.subscribe(refresh)
+    const buttons = fixture.debugElement.queryAll(By.css('[role="alert"] button'))
+    buttons[0].nativeElement.click()
+    expect(refresh).toHaveBeenCalledTimes(1)
+    fixture.detectChanges()
+    http.expectOne('/artifact-preview/v1').flush('# refreshed')
+    await fixture.whenStable()
+    fixture.detectChanges()
+    expect(fixture.debugElement.query(By.css('markdown')).componentInstance.data).toBe('# refreshed')
+    http.verify()
+  })
+
+  it('ignores stale URL text after switching to another Markdown artifact', async () => {
+    const fixture = remoteMarkdown()
+    const http = TestBed.inject(HttpTestingController)
+    const old = http.expectOne('/artifact-preview/v1')
+    fixture.componentRef.setInput('file', {
+      filePath: 'new.md',
+      mimeType: 'text/markdown',
+      fileUrl: '/artifact-preview/new'
+    })
+    fixture.componentRef.setInput('filePath', 'new.md')
+    fixture.detectChanges()
+    http.expectOne('/artifact-preview/new').flush('# new')
+    await fixture.whenStable()
+    old.flush('# stale')
+    await fixture.whenStable()
+    fixture.detectChanges()
+    expect(fixture.debugElement.query(By.css('markdown')).componentInstance.data).toBe('# new')
+    http.verify()
+  })
+
+  it('prefers an existing workspace draft and does not replace it with signed URL text', () => {
+    const fixture = TestBed.createComponent(FileViewerComponent)
+    fixture.componentRef.setInput('filePath', 'draft.md')
+    fixture.componentRef.setInput('file', { filePath: 'draft.md', fileUrl: '/artifact-preview/draft' })
+    fixture.componentRef.setInput('markdown', true)
+    fixture.componentRef.setInput('readable', true)
+    fixture.componentRef.setInput('content', '# local unsaved draft')
+    fixture.detectChanges()
+    expect(fixture.debugElement.query(By.css('markdown')).componentInstance.data).toBe('# local unsaved draft')
+    TestBed.inject(HttpTestingController).expectNone('/artifact-preview/draft')
   })
 
   it('emits file references for readable files and enables selection references after switching to code mode', () => {

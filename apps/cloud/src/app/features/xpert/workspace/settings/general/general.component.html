@@ -1,26 +1,22 @@
-<div
-  class="sticky top-0 px-6 py-4 flex items-center h-14 bg-components-card-bg text-base font-medium text-text-primary z-20"
->
-  <div class="shrink-0 text-xl">{{ 'XP.Xpert.General' | translate: { Default: 'General' } }}</div>
-  <div class="grow flex justify-end"></div>
-</div>
+<h3 class="mb-3 font-medium">{{ 'XP.Xpert.General' | translate: { Default: 'General' } }}</h3>
 
-<div class="relative flex-1 flex flex-col justify-between items-stretch px-8 py-4">
+<div class="relative flex flex-col gap-6">
   <div class="pt-2">
     <div class="pb-2">
       <label class="py-2 font-medium leading-[20px] text-text-primary">{{
         'XP.Xpert.Name' | translate: { Default: 'Name' }
       }}</label>
       <input
-        class="xp-input w-full h-10 text-sm hover:border focus:border"
+        z-input
+        class="w-full"
         [placeholder]="'XP.Xpert.EnterWorkspaceName' | translate: { Default: 'Enter workspace name' }"
         [disabled]="loading() || !canManageWorkspace()"
         [(ngModel)]="name"
       />
     </div>
 
-    <div class="mt-5 rounded-lg border border-divider-regular bg-background-default-subtle p-4">
-      <div class="flex items-center justify-between gap-4">
+    <div class="mt-5 border-t border-border pt-4">
+      <div class="flex flex-wrap items-center justify-between gap-4">
         <div>
           <div class="font-semibold text-text-primary">
             {{ 'XP.Xpert.WorkspaceAccess' | translate: { Default: 'Workspace access' } }}
@@ -55,7 +51,7 @@
         </div>
       </div>
 
-      <div class="mt-4 flex items-center justify-between gap-4">
+      <div class="mt-4 flex flex-wrap items-center justify-between gap-4">
         <div class="min-w-0">
           <div id="workspace-sharing-label" class="font-medium text-text-primary">
             @if (isTenantWorkspace()) {
@@ -110,24 +106,28 @@
       </div>
     </div>
 
-    <button
-      type="button"
-      class="btn disabled:btn-disabled btn-large btn-primary pressable mt-4"
-      [disabled]="loading() || !canManageWorkspace()"
-      (click)="update()"
-    >
-      {{ 'XP.ACTIONS.Update' | translate: { Default: 'Update' } }}
-    </button>
+    <div xpDialogActionGroup="inline" class="mt-4">
+      <button
+        type="button"
+        z-button
+        zType="default"
+        [zLoading]="loading()"
+        [disabled]="loading() || !canManageWorkspace()"
+        (click)="update()"
+      >
+        {{ 'XP.ACTIONS.Update' | translate: { Default: 'Update' } }}
+      </button>
+    </div>
   </div>
 
   <div>
-    <div class="text-xl font-semibold text-orange-500 pb-2">
+    <div class="font-medium text-destructive pb-2">
       {{ 'XP.KEY_WORDS.DangerZone' | translate: { Default: 'Danger zone' } }}
     </div>
 
-    <div class="border border-solid border-orange-500 rounded-xl flex flex-col">
-      <div class="w-full flex justify-between items-center p-4">
-        <div class="flex flex-col">
+    <div class="flex flex-col divide-y divide-border">
+      <div class="flex flex-wrap justify-between items-center gap-3 py-4">
+        <div class="min-w-0 flex-1">
           <div class="font-semibold">
             {{ 'XP.Xpert.ArchiveWorkspace' | translate: { Default: 'Archive this workspace' } }}
           </div>
@@ -140,15 +140,15 @@
           </div>
         </div>
 
-        <button type="button" class="btn btn-large danger pressable" (click)="archive()">
-          {{ 'XP.Xpert.ArchiveWorkspace' | translate: { Default: 'Archive this workspace' } }}
-        </button>
+        <div xpDialogActionGroup="inline">
+          <button z-button zType="destructive" type="button" [zDisabled]="loading()" (click)="archive()">
+            {{ 'XP.Xpert.ArchiveWorkspace' | translate: { Default: 'Archive this workspace' } }}
+          </button>
+        </div>
       </div>
 
-      <div class="border-b border-solid border-divider-regular"></div>
-
-      <div class="w-full flex justify-between items-center p-4">
-        <div class="flex flex-col">
+      <div class="flex flex-wrap justify-between items-center gap-3 py-4">
+        <div class="min-w-0 flex-1">
           <div class="font-semibold">
             {{ 'XP.Xpert.DeleteWorkspace' | translate: { Default: 'Delete this workspace' } }}
           </div>
@@ -160,9 +160,11 @@
           </div>
         </div>
 
-        <button type="button" class="btn btn-large danger pressable" (click)="delete()">
-          {{ 'XP.Xpert.DeleteWorkspace' | translate: { Default: 'Delete this workspace' } }}
-        </button>
+        <div xpDialogActionGroup="inline">
+          <button z-button zType="destructive" type="button" [zDisabled]="loading()" (click)="delete()">
+            {{ 'XP.Xpert.DeleteWorkspace' | translate: { Default: 'Delete this workspace' } }}
+          </button>
+        </div>
       </div>
     </div>
   </div>

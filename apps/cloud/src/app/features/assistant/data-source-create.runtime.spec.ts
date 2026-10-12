@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing'
 import { createEnvironmentInjector, EnvironmentInjector, runInInjectionContext } from '@angular/core'
 import { PermissionsEnum } from '@xpert-ai/contracts'
-import { ZardDialogService } from '@xpert-ai/headless-ui'
+import { Dialog } from '@angular/cdk/dialog'
 import { Subject } from 'rxjs'
 import { Store } from '../../@core/state/store.service'
 import {
@@ -41,7 +41,7 @@ describe('Platform data source dialog integration', () => {
     TestBed.configureTestingModule({
       providers: [
         { provide: Store, useValue: { hasPermission } },
-        { provide: ZardDialogService, useValue: { open } }
+        { provide: Dialog, useValue: { open } }
       ]
     })
     const host = createEnvironmentInjector([], TestBed.inject(EnvironmentInjector))
@@ -54,7 +54,11 @@ describe('Platform data source dialog integration', () => {
     expect(open).toHaveBeenCalledTimes(1)
     expect(open).toHaveBeenCalledWith(
       XpDataSourceCreationComponent,
-      expect.objectContaining({ width: 'min(780px, calc(100vw - 48px))' })
+      expect.objectContaining({
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog',
+        maxWidth: 'calc(100vw - 32px)'
+      })
     )
     expect(hasPermission).toHaveBeenCalledWith(PermissionsEnum.DATA_SOURCE_EDIT)
     closed.next({ id: 'created-source' })

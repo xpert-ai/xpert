@@ -879,32 +879,32 @@ Codex / WorkBuddy / ChatGPT / Claude
 
 ## MCP 官方
 
-- MCP `2026-07-28` 发布说明：<https://blog.modelcontextprotocol.io/posts/2026-07-28/>
-- MCP Apps 发布说明：<https://blog.modelcontextprotocol.io/posts/2026-01-26-mcp-apps/>
-- MCP Apps Overview：<https://apps.extensions.modelcontextprotocol.io/api/documents/Overview.html>
-- MCP Tasks：<https://tasks.extensions.modelcontextprotocol.io/specification/draft/tasks>
-- Tools：<https://modelcontextprotocol.io/specification/draft/server/tools>
-- Resources：<https://modelcontextprotocol.io/specification/draft/server/resources>
-- Prompts：<https://modelcontextprotocol.io/specification/draft/server/prompts>
-- Completion：<https://modelcontextprotocol.io/specification/draft/server/utilities/completion>
-- Elicitation：<https://modelcontextprotocol.io/specification/draft/client/elicitation>
-- Authorization：<https://modelcontextprotocol.io/specification/draft/basic/authorization>
+- MCP `2026-07-28` 发布说明：[https://blog.modelcontextprotocol.io/posts/2026-07-28/](https://blog.modelcontextprotocol.io/posts/2026-07-28/)
+- MCP Apps 发布说明：[https://blog.modelcontextprotocol.io/posts/2026-01-26-mcp-apps/](https://blog.modelcontextprotocol.io/posts/2026-01-26-mcp-apps/)
+- MCP Apps Overview：[https://apps.extensions.modelcontextprotocol.io/api/documents/Overview.html](https://apps.extensions.modelcontextprotocol.io/api/documents/Overview.html)
+- MCP Tasks：[https://tasks.extensions.modelcontextprotocol.io/specification/draft/tasks](https://tasks.extensions.modelcontextprotocol.io/specification/draft/tasks)
+- Tools：[https://modelcontextprotocol.io/specification/draft/server/tools](https://modelcontextprotocol.io/specification/draft/server/tools)
+- Resources：[https://modelcontextprotocol.io/specification/draft/server/resources](https://modelcontextprotocol.io/specification/draft/server/resources)
+- Prompts：[https://modelcontextprotocol.io/specification/draft/server/prompts](https://modelcontextprotocol.io/specification/draft/server/prompts)
+- Completion：[https://modelcontextprotocol.io/specification/draft/server/utilities/completion](https://modelcontextprotocol.io/specification/draft/server/utilities/completion)
+- Elicitation：[https://modelcontextprotocol.io/specification/draft/client/elicitation](https://modelcontextprotocol.io/specification/draft/client/elicitation)
+- Authorization：[https://modelcontextprotocol.io/specification/draft/basic/authorization](https://modelcontextprotocol.io/specification/draft/basic/authorization)
 
 ## 客户端
 
-- Codex MCP 文档：<https://learn.chatgpt.com/docs/extend/mcp>
-- WorkBuddy MCP：<https://www.codebuddy.ai/docs/workbuddy/From-Beginner-to-Expert-Guide/Function-Description/MCP-Guide>
-- WorkBuddy MCP Apps：<https://www.codebuddy.cn/docs/cli/mcp-apps>
-- OpenAI ChatKit JS：<https://github.com/openai/chatkit-js>
-- Xpert ChatKit JS：<https://github.com/xpert-ai/chatkit-js>
+- Codex MCP 文档：[https://learn.chatgpt.com/docs/extend/mcp](https://learn.chatgpt.com/docs/extend/mcp)
+- WorkBuddy MCP：[https://www.codebuddy.ai/docs/workbuddy/From-Beginner-to-Expert-Guide/Function-Description/MCP-Guide](https://www.codebuddy.ai/docs/workbuddy/From-Beginner-to-Expert-Guide/Function-Description/MCP-Guide)
+- WorkBuddy MCP Apps：[https://www.codebuddy.cn/docs/cli/mcp-apps](https://www.codebuddy.cn/docs/cli/mcp-apps)
+- OpenAI ChatKit JS：[https://github.com/openai/chatkit-js](https://github.com/openai/chatkit-js)
+- Xpert ChatKit JS：[https://github.com/xpert-ai/chatkit-js](https://github.com/xpert-ai/chatkit-js)
 
 ## Xpert 代码依据
 
-- MCP Toolset：<https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-toolset/provider/mcp/mcp-toolset.ts>
-- MCP Client 创建：<https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-toolset/provider/mcp/types.ts>
-- MCP Apps 后端支持：<https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-toolset/provider/mcp/app-support.ts>
-- MCP Apps Service：<https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-toolset/mcp-apps.service.ts>
-- `_meta` 兼容 Bridge：<https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-toolset/provider/mcp/meta-artifact-bridge.ts>
-- MCP 数据类型：<https://github.com/xpert-ai/xpert/blob/main/packages/contracts/src/ai/xpert-tool-mcp.model.ts>
-- MCP 配置页面：<https://github.com/xpert-ai/xpert/blob/main/apps/cloud/src/app/@shared/mcp/server/server.component.ts>
-- Xpert ChatKit MCP App UI：<https://github.com/xpert-ai/chatkit-js/blob/main/packages/chatkit-ui/src/components/thread/messages/mcp-app.tsx>
+- MCP Toolset：[https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-toolset/provider/mcp/mcp-toolset.ts](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-toolset/provider/mcp/mcp-toolset.ts)
+- MCP Client 创建：[https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-toolset/provider/mcp/types.ts](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-toolset/provider/mcp/types.ts)
+- MCP Apps 后端支持：[https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-toolset/provider/mcp/app-support.ts](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-toolset/provider/mcp/app-support.ts)
+- MCP Apps Service：[https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-toolset/mcp-apps.service.ts](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-toolset/mcp-apps.service.ts)
+- `_meta` 兼容 Bridge：[https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-toolset/provider/mcp/meta-artifact-bridge.ts](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-toolset/provider/mcp/meta-artifact-bridge.ts)
+- MCP 数据类型：[https://github.com/xpert-ai/xpert/blob/main/packages/contracts/src/ai/xpert-tool-mcp.model.ts](https://github.com/xpert-ai/xpert/blob/main/packages/contracts/src/ai/xpert-tool-mcp.model.ts)
+- MCP 配置页面：[https://github.com/xpert-ai/xpert/blob/main/apps/cloud/src/app/@shared/mcp/server/server.component.ts](https://github.com/xpert-ai/xpert/blob/main/apps/cloud/src/app/@shared/mcp/server/server.component.ts)
+- Xpert ChatKit MCP App UI：[https://github.com/xpert-ai/chatkit-js/blob/main/packages/chatkit-ui/src/components/thread/messages/mcp-app.tsx](https://github.com/xpert-ai/chatkit-js/blob/main/packages/chatkit-ui/src/components/thread/messages/mcp-app.tsx)

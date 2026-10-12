@@ -4,10 +4,6 @@
       {{ 'XP.Xpert.Parameters' | translate: { Default: 'Parameters' } }} &amp;
       {{ 'XP.Xpert.Value' | translate: { Default: 'Value' } }}
     </div>
-    <!-- <button type="button" class="btn btn-medium h-8"
-      [disabled]="!parameters()"
-      (click)="saveAsDefault()">
-      {{ 'XP.Xpert.SaveAsDefault' | translate: { Default: 'Save as default' } }}</button> -->
   </div>
 
   <div class="rounded-lg border border-divider-deep max-h-80 p-2 overflow-y-auto">
@@ -15,22 +11,20 @@
   </div>
 </div>
 
-<div class="flex gap-2 items-center mt-4">
+<div xpDialogActionGroup="inline" class="mt-4 flex flex-wrap justify-end gap-2">
   <button
+    z-button
+    zType="default"
     type="button"
-    class="flex-1 btn disabled:btn-disabled btn-primary h-10 active:scale-x-[0.99] active:scale-y-95"
-    [disabled]="loading() || invalid()"
+    [zDisabled]="loading() || invalid()"
+    [zLoading]="loading()"
     (click)="testTool()"
   >
-    <div class="w-full text-center">{{ 'XP.Xpert.Test' | translate: { Default: 'Test' } }}</div>
+    <z-icon zType="play" aria-hidden="true" />{{ 'XP.Xpert.Test' | translate: { Default: 'Test' } }}
   </button>
-
   @if (loading()) {
-    <button type="button" class="btn disabled:btn-disabled btn-danger h-10 pressable" (click)="stopTestTool()">
-      <div class="w-full text-center">
-        <i class="ri-stop-line"></i>
-        {{ 'XP.Xpert.Stop' | translate: { Default: 'Stop' } }}
-      </div>
+    <button z-button zType="destructive" type="button" (click)="stopTestTool()">
+      <z-icon zType="square" aria-hidden="true" />{{ 'XP.Xpert.Stop' | translate: { Default: 'Stop' } }}
     </button>
   }
 </div>
@@ -40,7 +34,7 @@
     <div class="leading-[18px] text-sm font-semibold text-text-tertiary">
       {{ 'XP.Xpert.TestResults' | translate: { Default: 'Test Results' } }}
     </div>
-    <div class="grow w-0 h-px bg-[rgb(243, 244, 246)]"></div>
+    <div class="grow w-0 h-px bg-border"></div>
   </div>
   <div
     class="mt-2 px-3 py-2 h-[200px] overflow-auto rounded-lg leading-4 text-sm font-normal whitespace-pre-wrap bg-components-input-bg-normal text-text-secondary"
