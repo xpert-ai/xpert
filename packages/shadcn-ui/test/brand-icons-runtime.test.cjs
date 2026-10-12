@@ -1,10 +1,12 @@
 const { test } = require('node:test')
 const assert = require('node:assert/strict')
 const { spawnSync } = require('node:child_process')
-const { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } = require('node:fs')
+const { mkdtempSync, mkdirSync, readFileSync, realpathSync, writeFileSync, rmSync } = require('node:fs')
 const { tmpdir } = require('node:os')
 const path = require('node:path')
 const ts = require('typescript')
+const { computeCompilerOptionsPaths } = require('@nx/js/src/utils/buildable-libs-utils')
+const { CopyAssetsHandler } = require('@nx/js/src/utils/assets/copy-assets-handler')
 
 const packageRoot = path.resolve(__dirname, '..')
 const workspaceRoot = path.resolve(packageRoot, '../..')
@@ -37,8 +39,8 @@ test('the API ts-node loader can synchronously load coding tool branding', () =>
   assert.match(brand.svg, /^<svg\b/)
 })
 
-test('the compiled brand-icons package entry supports both require and import', () => {
-  const temporaryRoot = mkdtempSync(path.join(tmpdir(), 'xpert-brand-icons-'))
+test('the compiled brand-icons entry supports Node loaders and Nx TypeScript consumers', async () => {
+  const temporaryRoot = realpathSync(mkdtempSync(path.join(tmpdir(), 'xpert-brand-icons-')))
   try {
     const outputRoot = path.join(temporaryRoot, 'node_modules/@xpert-ai/shadcn-ui')
     mkdirSync(outputRoot, { recursive: true })
@@ -85,6 +87,51 @@ test('the compiled brand-icons package entry supports both require and import', 
         [...apiConfig.errors, ...libraryConfig.errors, ...ts.getPreEmitDiagnostics(program), ...emitted.diagnostics],
         formatHost
       ),
+      ''
+    )
+
+    // Exercise Nx's real asset copying and secondary-entry path remapping, as used by server-ai:build.
+    const project = JSON.parse(readFileSync(path.join(packageRoot, 'project.json'), 'utf8'))
+    await new CopyAssetsHandler({
+      rootDir: workspaceRoot,
+      projectDir: packageRoot,
+      outputDir: outputRoot,
+      assets: project.targets.build.options.assets
+    }).processAllAssetsOnce()
+    const consumerConfigPath = path.join(workspaceRoot, 'packages/server-ai/tsconfig.lib.json')
+    const consumerConfig = ts.getParsedCommandLineOfConfigFile(consumerConfigPath, {}, configHost)
+    const consumerOptions = {
+      ...consumerConfig.options,
+      rootDir: undefined,
+      noEmit: true,
+      paths: computeCompilerOptionsPaths(consumerConfigPath, [
+        {
+          name: manifest.name,
+          outputs: [outputRoot],
+          node: {
+            name: project.name,
+            type: 'lib',
+            data: { root: path.relative(workspaceRoot, packageRoot) }
+          }
+        }
+      ])
+    }
+    const consumerFile = path.join(workspaceRoot, 'packages/server-ai/src/shared/coding-tools/branding.ts')
+    const declaration = ts.resolveModuleName(catalogModule, consumerFile, consumerOptions, ts.sys).resolvedModule
+    assert.equal(declaration?.resolvedFileName, path.join(outputRoot, 'src/brand-icons/index.d.cts'))
+    const typeCheckFile = path.join(temporaryRoot, 'brand-icons-types.ts')
+    writeFileSync(
+      typeCheckFile,
+      `
+      import { type BrandIconId } from '${catalogModule}'
+      const valid: BrandIconId = 'codex'
+      // @ts-expect-error Unknown brands must remain type errors, not silently become any.
+      const invalid: BrandIconId = '__unknown_brand__'
+    `
+    )
+    const consumer = ts.createProgram([consumerFile, typeCheckFile], consumerOptions)
+    assert.equal(
+      ts.formatDiagnostics([...consumerConfig.errors, ...ts.getPreEmitDiagnostics(consumer)], formatHost),
       ''
     )
 

@@ -29,6 +29,7 @@
   },
   "files": [
     "dist",
+    "brand-icons",
     "src/styles.css",
     "src/brand-icons",
     "components.json",
