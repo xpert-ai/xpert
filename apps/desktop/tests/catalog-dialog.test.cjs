@@ -267,37 +267,32 @@ async function mountCatalog(t, handler, onUse = async () => {}) {
 
 function defaultResult(method, input) {
   if (method === 'listCatalog') return input === 'applications' ? [app] : input === 'experts' ? [expert] : []
-  if (method === 'pluginLibrary') return { ...library, workspaceId: input.workspaceId || 'one' }
+  if (method === 'pluginLibrary') return library
   throw new Error(`Unexpected host call: ${method}`)
 }
 
-test('dialog caches tabs, reuses the plugin mount and workspace, refreshes explicitly, and resets with organization', async (t) => {
+test('dialog caches the installation catalog without workspace controls, refreshes explicitly, and resets with organization', async (t) => {
   const view = await mountCatalog(t, defaultResult)
   assert.equal(view.count('listCatalog', 'experts'), 1, 'StrictMode replay shares the pending load')
   await view.click('Apps')
   await view.click('Plugins')
   assert.equal(view.count('pluginLibrary'), 1, 'plugin StrictMode replay shares the request')
-  const section = document.querySelector('[aria-label="Workspace plugin library"]')
-  const select = document.querySelector('select')
-  await React.act(async () => {
-    select.value = 'two'
-    select.dispatchEvent(new view.dom.window.Event('change', { bubbles: true }))
-  })
+  const section = document.querySelector('[aria-label="Installed plugins"]')
+  assert.equal(document.querySelector('select'), null)
   await view.click('Agent templates')
   await view.click('Apps')
   await view.click('Plugins')
-  assert.equal(document.querySelector('[aria-label="Workspace plugin library"]'), section)
-  assert.equal(document.querySelector('select').value, 'two')
-  assert.equal(view.count('pluginLibrary'), 2, 'returning to the plugin tab does not reload')
+  assert.equal(document.querySelector('[aria-label="Installed plugins"]'), section)
+  assert.equal(view.count('pluginLibrary'), 1, 'returning to the plugin tab does not reload')
   assert.equal(view.count('listCatalog', 'applications'), 1)
   await view.click('Refresh catalog')
-  assert.equal(view.count('pluginLibrary'), 3)
+  assert.equal(view.count('pluginLibrary'), 2)
   await view.click('Apps')
   await view.click('Refresh catalog')
   assert.equal(view.count('listCatalog', 'applications'), 2)
   await view.render('organization-two')
   assert.equal(view.count('listCatalog', 'experts'), 2)
-  assert.equal(document.querySelector('[aria-label="Workspace plugin library"]'), null)
+  assert.equal(document.querySelector('[aria-label="Installed plugins"]'), null)
   await view.click('Apps')
   assert.equal(view.count('listCatalog', 'applications'), 3)
 })

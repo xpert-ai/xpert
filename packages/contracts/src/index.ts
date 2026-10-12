@@ -96,7 +96,8 @@ export type {
   WorkspaceAgentPlugin,
   WorkspaceAgentPluginOptions,
   WorkspaceAgentPluginAddInput,
-  WorkspaceAgentPluginAddResult
+  WorkspaceAgentPluginAddResult,
+  InstalledAgentPlugin
 } from './agent-plugin'
 
 export * from './desktop-shell.model'

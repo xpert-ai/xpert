@@ -1171,5 +1171,17 @@
   "Edit configuration": "Edit configuration",
   "New configuration": "New configuration",
   "Discard this unfinished app configuration and its setup workspace? Existing source configurations are kept.": "Discard this unfinished app configuration and its setup workspace? Existing source configurations are kept.",
-  "Discard configuration": "Discard configuration"
+  "Discard configuration": "Discard configuration",
+  "Installed plugins": "Installed plugins",
+  "Installed for your tenant or organization": "Installed for your tenant or organization",
+  "About installed plugins": "About installed plugins",
+  "Installed plugins are available in the conversation Plugins menu. Select a plugin there to use it. Connections keep their existing authorization requirements.": "Installed plugins are available in the conversation Plugins menu. Select a plugin there to use it. Connections keep their existing authorization requirements.",
+  "Available in the conversation Plugins menu": "Available in the conversation Plugins menu",
+  "Select this plugin from the conversation Plugins menu. Required connections are configured separately.": "Select this plugin from the conversation Plugins menu. Required connections are configured separately.",
+  "No plugins are installed for your tenant or organization. Ask an administrator to install one, then refresh this catalog.": "No plugins are installed for your tenant or organization. Ask an administrator to install one, then refresh this catalog.",
+  "No available plugins. Switch to All to view plugins that need configuration.": "No available plugins. Switch to All to view plugins that need configuration.",
+  "Tenant": "Tenant",
+  "Organization": "Organization",
+  "Available": "Available",
+  "Sign in first.": "Sign in first."
 }

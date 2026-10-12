@@ -1,3 +1,5 @@
+import type { AgentPluginInstallationsService } from './agent-plugin-installations.service'
+jest.mock('./agent-plugin-installations.service', () => ({ AgentPluginInstallationsService: class {} }))
 import { CommandBus } from '@nestjs/cqrs'
 import { BadRequestException, ForbiddenException, ConflictException } from '@nestjs/common'
 import { ModuleRef } from '@nestjs/core'
@@ -9,6 +11,8 @@ import { AgentPluginPackage, AgentResourceBinding } from './agent-plugin.entity'
 import { XpertWorkspaceAccessService } from '../xpert-workspace/workspace-access.service'
 import { PublishedXpertAccessService } from '../xpert/published-xpert-access.service'
 import { PluginResourceInstallerService } from '../plugin-resource/plugin-resource-installer.service'
+import { RolesEnum } from '@xpert-ai/contracts'
+import { importedPluginBinding } from './installed-plugin-catalog'
 
 jest.mock('./agent-plugin.entity', () => ({ AgentPluginPackage: class {}, AgentResourceBinding: class {} }))
 jest.mock('../xpert-workspace/workspace-access.service', () => ({ XpertWorkspaceAccessService: class {} }))
@@ -19,6 +23,8 @@ jest.mock('./agent-plugin-connector.service', () => ({ AgentPluginConnectorServi
 describe('workspace editor Agent Plugins', () => {
     const pkg = Object.assign(new AgentPluginPackage(), {
         id: 'package',
+        tenantId: 'tenant',
+        organizationId: 'org',
         digest: 'digest',
         rootPath: '/private/source',
         source: { kind: 'git' as const, url: 'https://private.example' },
@@ -50,16 +56,19 @@ describe('workspace editor Agent Plugins', () => {
             .mockReset()
             .mockResolvedValue([{ id: 'workspace', name: 'Editable', organizationId: 'org' }])
         expert.mockReset().mockResolvedValue({ id: 'expert', publishAt: new Date('2026-09-27') })
+        query.mockReset()
         const manager = {
             query,
-            findOne: jest.fn(),
+            findOne: jest
+                .fn()
+                .mockImplementation(async (_entity, { where }) => records.find(({ id }) => id === where.id)),
             save: saved,
             transaction: async (work: (manager: object) => Promise<unknown>) => work(manager)
         }
         saved.mockReset().mockImplementation(async (entity: unknown, value?: AgentResourceBinding) => {
             const binding = value || (entity as AgentResourceBinding)
-            Object.assign(binding, { id: 'binding' })
-            records.push(binding)
+            binding.id ??= 'binding'
+            if (!records.includes(binding)) records.push(binding)
             return binding
         })
         service = new AgentPluginService(
@@ -69,6 +78,7 @@ describe('workspace editor Agent Plugins', () => {
             } as unknown as Repository<AgentPluginPackage>,
             {
                 find: jest.fn().mockImplementation(async () => records),
+                findOneBy: jest.fn().mockImplementation(async ({ id }) => records.find((binding) => binding.id === id)),
                 create: (value: object) => value,
                 manager
             } as unknown as Repository<AgentResourceBinding>,
@@ -177,9 +187,56 @@ describe('workspace editor Agent Plugins', () => {
         ).rejects.toBeInstanceOf(ForbiddenException)
     })
     it('rejects forged scope or configuration fields at the HTTP boundary', () => {
-        const controller = new AgentPluginController(service, {} as CommandBus)
+        const controller = new AgentPluginController(service, {} as CommandBus, {} as AgentPluginInstallationsService)
         const id = '00000000-0000-4000-8000-000000000001'
         expect(() => controller.addToWorkspace(id, { packageId: id, experts: {}, workspaceIds: ['other'] })).toThrow()
         expect(() => controller.addToWorkspace('../other', { packageId: id, experts: {} })).toThrow()
+    })
+    it.each(['org', null])(
+        'configures an installation in %s scope without workspace authoring rights',
+        async (organizationId) => {
+            jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(organizationId)
+            jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ role: { name: RolesEnum.ADMIN } } as ReturnType<
+                typeof RequestContext.currentUser
+            >)
+            assertCanWrite.mockRejectedValue(new ForbiddenException())
+            const configured = await service.createBinding({
+                title: 'Documents',
+                workspaceIds: [],
+                definition: { kind: 'agent_plugin', packageId: 'package', experts: {} }
+            })
+            expect(configured).toMatchObject({
+                tenantId: 'tenant',
+                organizationId,
+                workspaceIds: [],
+                definition: { availability: 'scope' }
+            })
+            expect(assertCanWrite).not.toHaveBeenCalled()
+        }
+    )
+    it('preserves the imported reference when configuring it, and rejects replacing that revision twice', async () => {
+        jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ role: { name: RolesEnum.ADMIN } } as ReturnType<
+            typeof RequestContext.currentUser
+        >)
+        const imported = importedPluginBinding(pkg)
+        const input = {
+            title: 'Configured Documents',
+            workspaceIds: [],
+            replacesBindingId: imported.id,
+            definition: { kind: 'agent_plugin' as const, packageId: pkg.id, experts: {} }
+        }
+        const configured = await service.createBinding(input)
+        expect(records.find(({ id }) => id === imported.id)).toMatchObject({
+            id: imported.id,
+            version: imported.version,
+            definition: imported.definition,
+            enabled: true,
+            supersededById: configured.id
+        })
+        expect(query).toHaveBeenCalledWith(expect.stringContaining('pg_advisory_xact_lock'), [
+            `agent-plugin:${imported.id}`
+        ])
+        await expect(service.createBinding(input)).rejects.toBeInstanceOf(ConflictException)
+        expect(records).toHaveLength(2)
     })
 })

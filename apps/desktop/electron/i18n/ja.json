@@ -1171,5 +1171,17 @@
   "Edit configuration": "設定を編集",
   "New configuration": "設定を新規作成",
   "Discard this unfinished app configuration and its setup workspace? Existing source configurations are kept.": "未完了のアプリ設定と設定用ワークスペースを破棄しますか？既存のコピー元の設定は保持されます。",
-  "Discard configuration": "設定を破棄"
+  "Discard configuration": "設定を破棄",
+  "Installed plugins": "インストール済みプラグイン",
+  "Installed for your tenant or organization": "テナントまたは組織にインストールされたプラグイン",
+  "About installed plugins": "インストール済みプラグインについて",
+  "Installed plugins are available in the conversation Plugins menu. Select a plugin there to use it. Connections keep their existing authorization requirements.": "インストール済みプラグインは会話のプラグインメニューから選択できます。接続には従来どおりの認証が必要です。",
+  "Available in the conversation Plugins menu": "会話のプラグインメニューで利用可能",
+  "Select this plugin from the conversation Plugins menu. Required connections are configured separately.": "会話のプラグインメニューから選択してください。必要な接続は個別に設定します。",
+  "No plugins are installed for your tenant or organization. Ask an administrator to install one, then refresh this catalog.": "このテナントまたは組織にはプラグインがありません。管理者にインストールを依頼し、一覧を更新してください。",
+  "No available plugins. Switch to All to view plugins that need configuration.": "利用可能なプラグインはありません。「すべて」に切り替えると設定が必要なプラグインを表示できます。",
+  "Tenant": "テナント",
+  "Organization": "組織",
+  "Available": "利用可能",
+  "Sign in first.": "先にログインしてください。"
 }

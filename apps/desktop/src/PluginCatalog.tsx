@@ -1,35 +1,28 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { Button, HoverCard, HoverCardContent, HoverCardTrigger } from '@xpert-ai/shadcn-ui'
-import { ArrowLeft, Check, Info, LoaderCircle, Plus } from 'lucide-react'
-import { CatalogCombobox } from './CatalogCombobox'
+import { ArrowLeft, Check, Info, LoaderCircle } from 'lucide-react'
 import { PluginAvatar } from './avatar'
-import { PluginInstallDialog } from './PluginInstallDialog'
 import { invoke } from './host'
 import { t } from './i18n'
 import type { PluginLibrary, PluginLibraryItem } from './plugin-library-types'
 
 const statuses = {
-  available: 'Added to this workspace',
-  not_published: 'Not added to this workspace',
-  disabled: 'Disabled in this workspace'
+  available: 'Available in the conversation Plugins menu',
+  configuration_required: 'Configuration required',
+  disabled: 'Disabled'
 }
 const components = { skill: 'Skill', mcp: 'Tools', middleware: 'Middleware', external_xpert: 'Digital expert' }
 
 export function PluginCatalog({ search, revision }: { search: string; revision: number }) {
-  const [workspaceId, setWorkspaceId] = useState('')
-  const selectedWorkspace = useRef('')
   const [data, setData] = useState<PluginLibrary | null>(null)
   const [detail, setDetail] = useState<PluginLibraryItem | null>(null)
-  const [install, setInstall] = useState<PluginLibraryItem | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [notice, setNotice] = useState('')
   const [infoOpen, setInfoOpen] = useState(false)
   const infoId = useId()
   const [filter, setFilter] = useState<'all' | 'available'>('all')
   const [refresh, setRefresh] = useState(0)
   const request = useRef<{
-    workspaceId: string
     revision: number
     refresh: number
     promise: Promise<PluginLibrary>
@@ -38,25 +31,17 @@ export function PluginCatalog({ search, revision }: { search: string; revision: 
     let alive = true
     setLoading(true)
     setDetail(null)
-    setInstall(null)
     setError('')
     // Reuse the same request during React's development effect replay.
-    if (
-      !request.current ||
-      request.current.workspaceId !== workspaceId ||
-      request.current.revision !== revision ||
-      request.current.refresh !== refresh
-    )
+    if (!request.current || request.current.revision !== revision || request.current.refresh !== refresh)
       request.current = {
-        workspaceId,
         revision,
         refresh,
-        promise: invoke('pluginLibrary', { workspaceId: workspaceId || selectedWorkspace.current || undefined })
+        promise: invoke('pluginLibrary', undefined)
       }
     request.current.promise
       .then((result) => {
         if (alive) {
-          selectedWorkspace.current = result.workspaceId || ''
           setData(result)
         }
       })
@@ -69,22 +54,15 @@ export function PluginCatalog({ search, revision }: { search: string; revision: 
     return () => {
       alive = false
     }
-  }, [workspaceId, revision, refresh])
-  const workspace = data?.workspaces.find((item) => item.id === data.workspaceId)
-  const action = (item: PluginLibraryItem) =>
-    item.status === 'available' ? (
-      <span className="flex items-center gap-1 text-xs text-muted-foreground">
-        <Check className="size-3.5" />
-        {t('Added')}
-      </span>
-    ) : item.status === 'disabled' ? (
-      <span className="text-xs text-muted-foreground">{t('Contact administrator')}</span>
-    ) : (
-      <Button size="sm" variant="outline" disabled={!workspace || loading || !!error} onClick={() => setInstall(item)}>
-        <Plus className="size-3.5" />
-        {t('Add to workspace')}
-      </Button>
-    )
+  }, [revision, refresh])
+  const action = (item: PluginLibraryItem) => (
+    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+      {item.status === 'available' && <Check className="size-3.5" />}
+      {t(
+        item.status === 'available' ? 'Available' : item.status === 'disabled' ? 'Disabled' : 'Configuration required'
+      )}
+    </span>
+  )
   const items =
     data?.items.filter(
       (item) =>
@@ -94,27 +72,16 @@ export function PluginCatalog({ search, revision }: { search: string; revision: 
           .includes(search.trim().toLowerCase())
     ) ?? []
   return (
-    <section aria-label={t('Workspace plugin library')} className="flex min-h-0 flex-1 flex-col">
+    <section aria-label={t('Installed plugins')} className="flex min-h-0 flex-1 flex-col">
       <div className="flex shrink-0 flex-wrap items-center gap-3 border-b px-6 py-3 text-sm">
-        <span className="text-muted-foreground">{t('Workspace')}</span>
-        <CatalogCombobox
-          items={data?.workspaces ?? []}
-          value={workspace?.id || ''}
-          label={t('Select a workspace')}
-          searchLabel={t('Search workspaces')}
-          disabled={loading || !data?.workspaces.length}
-          onChange={(id) => {
-            setNotice('')
-            setWorkspaceId(id)
-          }}
-        />
+        <span className="text-muted-foreground">{t('Installed for your tenant or organization')}</span>
         <HoverCard open={infoOpen} onOpenChange={setInfoOpen} openDelay={200} closeDelay={150}>
           <HoverCardTrigger asChild>
             <Button
               variant="ghost"
               size="icon"
               className="ml-auto shrink-0 text-muted-foreground"
-              aria-label={t('About workspace plugins')}
+              aria-label={t('About installed plugins')}
               aria-describedby={infoOpen ? infoId : undefined}
               onClick={() => setInfoOpen(true)}
               onKeyDown={(event) => {
@@ -132,16 +99,11 @@ export function PluginCatalog({ search, revision }: { search: string; revision: 
             collisionPadding={16}
             className="w-80 max-w-[calc(100vw-2rem)] text-sm leading-6"
           >
-            {t('Only workspaces you can edit are listed.')}{' '}
-            {notice ||
-              t(
-                'Add plugins to this workspace here. Experts in this workspace can then select them from the conversation Plugins menu.'
-              )}
+            {t(
+              'Installed plugins are available in the conversation Plugins menu. Select a plugin there to use it. Connections keep their existing authorization requirements.'
+            )}
           </HoverCardContent>
         </HoverCard>
-        <span role="status" className="sr-only">
-          {notice}
-        </span>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto bg-muted/20 px-6 py-4">
         {error && (
@@ -160,10 +122,6 @@ export function PluginCatalog({ search, revision }: { search: string; revision: 
             <LoaderCircle className="size-5 animate-spin" />
             {t('Loading plugins...')}
           </div>
-        ) : !data?.workspaces.length ? (
-          <p className="py-12 text-center text-sm text-muted-foreground">
-            {t('You have no editable workspaces in this organization.')}
-          </p>
         ) : detail ? (
           <div className="space-y-5">
             <Button variant="ghost" onClick={() => setDetail(null)}>
@@ -193,7 +151,7 @@ export function PluginCatalog({ search, revision }: { search: string; revision: 
             </p>
             <p className="text-sm text-muted-foreground">
               {t(
-                'Adding a plugin makes it available to this workspace. It does not select it in a conversation or authorize a service connection.'
+                'Select this plugin from the conversation Plugins menu. Required connections are configured separately.'
               )}
             </p>
           </div>
@@ -208,7 +166,7 @@ export function PluginCatalog({ search, revision }: { search: string; revision: 
                 variant={filter === 'available' ? 'secondary' : 'ghost'}
                 onClick={() => setFilter('available')}
               >
-                {t('Added to this workspace')}
+                {t('Available')}
               </Button>
               <span className="ml-auto text-xs text-muted-foreground">
                 {items.length} {t('Plugins')}
@@ -233,7 +191,9 @@ export function PluginCatalog({ search, revision }: { search: string; revision: 
                   {item.description && (
                     <p className="mt-1.5 line-clamp-2 text-sm leading-5 text-muted-foreground">{item.description}</p>
                   )}
-                  <p className="mt-1.5 truncate text-xs text-muted-foreground">{t(statuses[item.status])}</p>
+                  <p className="mt-1.5 truncate text-xs text-muted-foreground">
+                    {t(item.scope === 'tenant' ? 'Tenant' : 'Organization')} · {t(statuses[item.status])}
+                  </p>
                   <div className="pointer-events-none absolute bottom-0 left-0 flex w-full translate-y-1 items-center justify-between border-t bg-background px-4 py-2 opacity-0 transition-[opacity,transform] group-hover/plugin:pointer-events-auto group-hover/plugin:translate-y-0 group-hover/plugin:opacity-100 group-focus-within/plugin:pointer-events-auto group-focus-within/plugin:translate-y-0 group-focus-within/plugin:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:translate-y-0 [@media(hover:none)]:opacity-100">
                     <Button size="sm" variant="ghost" onClick={() => setDetail(item)}>
                       {t('View details')}
@@ -247,9 +207,9 @@ export function PluginCatalog({ search, revision }: { search: string; revision: 
               <p className="mx-auto max-w-md py-12 text-center text-sm leading-6 text-muted-foreground">
                 {t(
                   !data?.items.length
-                    ? 'This organization has no imported plugins. Ask an organization administrator to import a plugin in Xpert plugin management, then refresh this catalog.'
+                    ? 'No plugins are installed for your tenant or organization. Ask an administrator to install one, then refresh this catalog.'
                     : filter === 'available' && !search.trim()
-                      ? 'No plugins have been added to this workspace. Switch to All to choose one.'
+                      ? 'No available plugins. Switch to All to view plugins that need configuration.'
                       : 'No matching results'
                 )}
               </p>
@@ -257,19 +217,6 @@ export function PluginCatalog({ search, revision }: { search: string; revision: 
           </>
         )}
       </div>
-      {install && workspace && data && (
-        <PluginInstallDialog
-          item={install}
-          workspace={workspace}
-          experts={data.experts}
-          onClose={() => setInstall(null)}
-          onAdded={() => {
-            setInstall(null)
-            setNotice(t('Plugin added. Select it from the conversation Plugins menu to use it.'))
-            setRefresh((value) => value + 1)
-          }}
-        />
-      )}
     </section>
   )
 }

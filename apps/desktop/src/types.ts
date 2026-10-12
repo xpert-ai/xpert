@@ -145,11 +145,8 @@ export interface HostMethods {
     output: { items: import('./usage/types').UsageEntry[]; nextSkip: number | null }
   }
   checkConnectionCertificates: { input: Pick<ConnectionConfig, ConnectionUrlField>; output: CertificateCheck[] }
-  pluginLibrary: { input: { workspaceId?: string }; output: PluginLibrary }
-  addWorkspacePlugin: {
-    input: { workspaceId: string; packageId: string; experts: { [reference: string]: string } }
-    output: { status: 'added' | 'already_added'; bindingId: string }
-  }
+  pluginLibrary: { input: undefined; output: PluginLibrary }
+
   pluginConnection: {
     input: { assistantId: string; bindingId: string }
     output: {

@@ -1,3 +1,5 @@
+jest.mock('../agent-plugin-installations.service', () => ({ AgentPluginInstallationsService: class {} }))
+import { AgentPluginInstallationsService } from '../agent-plugin-installations.service'
 import { Test } from '@nestjs/testing'
 import { CommandBus } from '@nestjs/cqrs'
 import type { INestApplication } from '@nestjs/common'
@@ -8,11 +10,16 @@ describe('default Agent plugins HTTP boundary', () => {
     let app: INestApplication
     let url: string
     const execute = jest.fn(async () => ({ commit: 'fixed', items: [] }))
+    const createBinding = jest.fn(async (input) => input)
     beforeAll(async () => {
         const module = await Test.createTestingModule({
             controllers: [AgentPluginController],
             providers: [
-                { provide: 'XpertAgentPluginService', useValue: {} },
+                {
+                    provide: AgentPluginInstallationsService,
+                    useValue: { catalog: jest.fn(async () => ({ items: [] })) }
+                },
+                { provide: 'XpertAgentPluginService', useValue: { createBinding } },
                 { provide: CommandBus, useValue: { execute } }
             ]
         }).compile()
@@ -43,4 +50,37 @@ describe('default Agent plugins HTTP boundary', () => {
             expect(execute).not.toHaveBeenCalled()
         }
     )
+    it('serves the installation catalog without a workspace parameter', async () => {
+        const response = await fetch(`${url}/agent-plugins/catalog`)
+        expect(response.status).toBe(200)
+        expect(await response.json()).toEqual({ items: [] })
+    })
+    it('accepts configuration without workspace targets and rejects forged scope fields', async () => {
+        const input = {
+            title: 'Documents',
+            definition: {
+                kind: 'agent_plugin',
+                packageId: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
+                availability: 'scope'
+            }
+        }
+        const configure = (body: object) =>
+            fetch(`${url}/agent-plugins/bindings`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            })
+        expect((await configure(input)).status).toBe(201)
+        expect(createBinding).toHaveBeenLastCalledWith({
+            ...input,
+            workspaceIds: [],
+            definition: { ...input.definition, experts: {} }
+        })
+        createBinding.mockClear()
+        expect((await configure({ ...input, tenantId: 'foreign' })).status).toBe(400)
+        expect((await configure({ ...input, definition: { ...input.definition, availability: 'other' } })).status).toBe(
+            400
+        )
+        expect(createBinding).not.toHaveBeenCalled()
+    })
 })

@@ -362,7 +362,7 @@
   "Desktop Shell requires the native macOS app.": "桌面 Shell 需要在 macOS 原生应用中使用。",
   "Connected": "已连接",
   "Connecting…": "正在连接…",
-  "Disabled": "已关闭",
+  "Disabled": "已禁用",
   "This computer Shell": "此电脑的 Shell",
   "Allow an authorized conversation to run commands with your computer user permissions. Command output is sent to Xpert. The working directory does not restrict file access.": "允许已授权的会话以此电脑用户的权限执行命令。命令输出会发送给 Xpert。工作目录不会限制文件访问范围。",
   "Computer name": "电脑名称",
@@ -1171,5 +1171,17 @@
   "Edit configuration": "编辑配置",
   "New configuration": "新建配置",
   "Discard this unfinished app configuration and its setup workspace? Existing source configurations are kept.": "放弃此应用尚未完成的配置，并删除其配置工作空间？原有来源配置将保留。",
-  "Discard configuration": "放弃配置"
+  "Discard configuration": "放弃配置",
+  "Installed plugins": "已安装插件",
+  "Installed for your tenant or organization": "租户或组织内已安装的插件",
+  "About installed plugins": "关于已安装插件",
+  "Installed plugins are available in the conversation Plugins menu. Select a plugin there to use it. Connections keep their existing authorization requirements.": "已安装的插件可直接在会话的插件菜单中选择使用，连接仍按现有流程配置和授权。",
+  "Available in the conversation Plugins menu": "可在会话插件菜单中使用",
+  "Select this plugin from the conversation Plugins menu. Required connections are configured separately.": "在会话插件菜单中选择此插件即可使用，所需连接单独配置。",
+  "No plugins are installed for your tenant or organization. Ask an administrator to install one, then refresh this catalog.": "当前租户或组织尚未安装插件，请联系管理员安装后刷新目录。",
+  "No available plugins. Switch to All to view plugins that need configuration.": "暂无可用插件，切换到全部查看需要配置的插件。",
+  "Tenant": "租户",
+  "Organization": "组织",
+  "Available": "可用",
+  "Sign in first.": "请先登录。"
 }

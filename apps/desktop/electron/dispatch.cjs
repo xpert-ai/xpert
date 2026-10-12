@@ -82,7 +82,6 @@ const methods = new Set([
   'checkPluginConnection',
   'cancelPluginConnection',
   'pluginLibrary',
-  'addWorkspacePlugin',
   'requestExpertAccess',
   'applicationSetup',
   'initializeApplication',

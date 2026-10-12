@@ -31,7 +31,7 @@ const currentBinding: BindingSummary = {
   definition: { kind: 'agent_plugin', packageId: 'old', experts: {} }
 }
 
-describe('AgentPluginsComponent publishing', () => {
+describe('AgentPluginsComponent installation configuration', () => {
   let fixture: ComponentFixture<AgentPluginsComponent>
   let component: AgentPluginsComponent
   let http: HttpTestingController
@@ -70,30 +70,27 @@ describe('AgentPluginsComponent publishing', () => {
   it('loads the current binding and keeps scope and title while choosing another imported version', () => {
     component.openGroup(component.groups()[0])
     expect(component.selectedPackageId()).toBe('old')
-    expect(component.workspaceIds()).toEqual(['workspace'])
     component.selectVersion('new')
     expect(component.replacesBindingId()).toBe('binding')
-    expect(component.workspaceIds()).toEqual(['workspace'])
     expect(component.binding.controls.title.value).toBe('Documents')
     http.expectNone((request) => request.method === 'POST')
   })
-  it('publishes only an agent_plugin binding and explicitly replaces the chosen configuration', async () => {
+  it('saves scope configuration without selecting workspaces and preserves the chosen replacement', async () => {
     component.openGroup(component.groups()[0])
     component.selectVersion('new')
-    component.toggleWorkspace('second')
-    const pending = component.publish()
+    const pending = component.saveConfiguration()
     const request = http.expectOne((request) => request.method === 'POST')
     expect(request.request.body).toEqual({
       replacesBindingId: 'binding',
       title: 'Documents',
       description: '',
-      workspaceIds: ['workspace', 'second'],
-      definition: { kind: 'agent_plugin', packageId: 'new', experts: {} }
+      workspaceIds: [],
+      definition: { kind: 'agent_plugin', availability: 'scope', packageId: 'new', experts: {} }
     })
     request.flush({
       ...currentBinding,
       id: 'replacement',
-      definition: { kind: 'agent_plugin', packageId: 'new', experts: {} }
+      definition: { kind: 'agent_plugin', availability: 'scope', packageId: 'new', experts: {} }
     })
     await Promise.resolve()
     await Promise.resolve()
@@ -122,15 +119,14 @@ describe('AgentPluginsComponent publishing', () => {
     component.openGroup(component.groups()[0])
     component.loadBinding()
     expect(component.replacesBindingId()).toBe('')
-    expect(component.workspaceIds()).toEqual([])
     expect(component.selectedPackageId()).toBe('new')
   })
-  it('blocks publishing when existing workspace access is no longer manageable', () => {
+  it('does not render workspace publication or addition controls', () => {
     component.openGroup(component.groups()[0])
-    component.options.set({ ...options, workspaces: [] })
-    component.publish()
-    expect(component.unavailableWorkspaceCount()).toBe(1)
-    http.expectNone((request) => request.method === 'POST')
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('input[type="checkbox"]')).toBeNull()
+    expect(fixture.nativeElement.textContent).not.toContain('XP.AgentPlugins.SelectWorkspaces')
+    expect(fixture.nativeElement.textContent).toContain('XP.AgentPlugins.SaveConfiguration')
   })
   it('ignores an earlier scope response when the active organization changes', async () => {
     const pending = component.refresh()
@@ -156,8 +152,6 @@ describe('AgentPluginsComponent publishing', () => {
     flushCatalog()
     await refresh
     expect(component.selectedName()).toBe('documents')
-    expect(component.workspaceIds()).toEqual(['workspace'])
-    expect(component.desktopWorkspaceName()).toBe('Second')
     http.expectNone((request) => request.method !== 'GET')
   })
 

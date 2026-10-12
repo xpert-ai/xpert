@@ -1,3 +1,5 @@
+import type { AgentPluginInstallationsService } from './agent-plugin-installations.service'
+jest.mock('./agent-plugin-installations.service', () => ({ AgentPluginInstallationsService: class {} }))
 import { ModuleRef } from '@nestjs/core'
 import { AgentMiddlewareRegistry, RequestContext } from '@xpert-ai/plugin-sdk'
 import { BadRequestException, ForbiddenException } from '@nestjs/common'
@@ -107,7 +109,11 @@ describe('runtime resource authorization and persistence', () => {
                 validateMiddleware: jest.fn(),
                 bindings: { findOneBy: find, find: bindings }
             } as unknown as AgentPluginService,
-            { get: (type: unknown) => dependencies.get(type) } as ModuleRef
+            { get: (type: unknown) => dependencies.get(type) } as ModuleRef,
+            {
+                runtimeCatalog: jest.fn().mockResolvedValue([]),
+                reference: jest.fn().mockResolvedValue(null)
+            } as unknown as AgentPluginInstallationsService
         )
     })
     afterEach(() => jest.restoreAllMocks())

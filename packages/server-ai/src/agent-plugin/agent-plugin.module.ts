@@ -8,16 +8,24 @@ import { RuntimeResourceService } from './runtime-resource.service'
 import { AgentPluginController } from './agent-plugin.controller'
 import { ConnectorModule } from '../connector/connector.module'
 import { AgentPluginConnectorService } from './agent-plugin-connector.service'
+import { AgentPluginInstallationsService } from './agent-plugin-installations.service'
+import { PluginResourceModule } from '../plugin-resource/plugin-resource.module'
 
 @Global()
 @Module({
-    imports: [CqrsModule, TypeOrmModule.forFeature([AgentPluginPackage, AgentResourceBinding]), ConnectorModule],
+    imports: [
+        CqrsModule,
+        TypeOrmModule.forFeature([AgentPluginPackage, AgentResourceBinding]),
+        ConnectorModule,
+        PluginResourceModule
+    ],
     controllers: [AgentPluginController],
     providers: [
         AgentPluginService,
         ImportDefaultAgentPluginsHandler,
         RuntimeResourceService,
         AgentPluginConnectorService,
+        AgentPluginInstallationsService,
         { provide: 'XpertAgentPluginService', useExisting: AgentPluginService },
         { provide: 'XpertRuntimeResourceService', useExisting: RuntimeResourceService }
     ],

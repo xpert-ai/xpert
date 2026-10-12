@@ -27,10 +27,6 @@
       <p role="alert" class="my-4 text-sm text-text-destructive">
         {{ 'XP.Desktop.ConnectionOrganizationMismatch' | translate }}
       </p>
-    } @else if (desktopWorkspaceName()) {
-      <p class="my-4 text-sm text-text-secondary">
-        {{ 'XP.Desktop.PluginWorkspaceHint' | translate: { workspace: desktopWorkspaceName() } }}
-      </p>
     }
     <div class="my-5 flex flex-col gap-3 rounded-lg border border-divider-regular p-4">
       <div class="flex flex-wrap items-center justify-between gap-3">
@@ -107,7 +103,7 @@
             </th>
             <th scope="col" class="w-[17%] px-3 py-3 font-medium">{{ 'XP.AgentPlugins.Status' | translate }}</th>
             <th scope="col" class="w-[20%] px-3 py-3 font-medium">
-              {{ 'XP.AgentPlugins.AvailableWorkspaces' | translate }}
+              {{ 'XP.AgentPlugins.InstallationScope' | translate }}
             </th>
             <th scope="col" class="w-[8%] px-2 py-3 text-right font-medium">
               {{ 'XP.AgentPlugins.Actions' | translate }}
@@ -155,11 +151,12 @@
                 </span>
               </td>
               <td class="px-3 py-5 text-text-secondary">
-                @if (group.workspaceIds.length) {
-                  {{ 'XP.AgentPlugins.WorkspaceCount' | translate: { count: group.workspaceIds.length } }}
-                } @else {
-                  &mdash;
-                }
+                {{
+                  (installationScope() === 'tenant'
+                    ? 'XP.AgentPlugins.TenantScope'
+                    : 'XP.AgentPlugins.OrganizationScope'
+                  ) | translate
+                }}
               </td>
               <td class="px-2 py-4 text-right">
                 <button
@@ -179,7 +176,7 @@
                     <button
                       cdkMenuItem
                       class="w-full rounded-lg px-3 py-2 text-left hover:bg-hover-bg"
-                      (click)="openGroup(group, 'workspaces')"
+                      (click)="openGroup(group, 'overview')"
                     >
                       {{ 'XP.AgentPlugins.ManageAvailability' | translate }}
                     </button>
@@ -270,8 +267,7 @@
             <z-select [zDisabled]="busy()" [zValue]="replacesBindingId()" (zSelectionChange)="chooseBinding($event)">
               @for (item of group.currentBindings; track item.id) {
                 <z-select-item [zValue]="item.id">
-                  {{ $index + 1 }}. {{ item.title }} · {{ bindingVersion(item) }} ·
-                  {{ 'XP.AgentPlugins.WorkspaceCount' | translate: { count: item.workspaceIds.length } }}
+                  {{ $index + 1 }}. {{ item.title }} · {{ bindingVersion(item) }}
                 </z-select-item>
               }
               <z-select-item zValue="">{{ 'XP.AgentPlugins.NewConfiguration' | translate }}</z-select-item>
@@ -311,64 +307,16 @@
           >
             {{ 'XP.AgentPlugins.Overview' | translate }}
           </button>
-          <button
-            type="button"
-            class="border-b-2 px-2 py-3 text-sm"
-            [class]="
-              detailTab() === 'workspaces'
-                ? 'border-text-primary font-semibold'
-                : 'border-transparent text-text-tertiary'
-            "
-            [attr.aria-pressed]="detailTab() === 'workspaces'"
-            (click)="detailTab.set('workspaces')"
-          >
-            {{ 'XP.AgentPlugins.WorkspaceTab' | translate }}
-          </button>
           @if (detailTab() === 'history') {
             <span class="border-b-2 border-text-primary px-2 py-3 text-sm font-semibold">{{
               'XP.AgentPlugins.History' | translate
             }}</span>
           }
         </nav>
-        @if (detailTab() === 'workspaces') {
-          <h3 class="font-semibold">{{ 'XP.AgentPlugins.Availability' | translate }}</h3>
-          <p class="mt-1 text-xs text-text-tertiary">{{ 'XP.AgentPlugins.SelectWorkspaces' | translate }}</p>
-          <z-search-input
-            class="my-4"
-            [value]="workspaceSearch()"
-            (valueChange)="workspaceSearch.set($event)"
-            [placeholder]="'XP.AgentPlugins.SearchWorkspaces' | translate"
-            [clearLabel]="'XP.ACTIONS.Clear' | translate"
-          />
-          <div class="flex flex-col gap-1 rounded-lg border border-divider-regular p-2">
-            @for (workspace of filteredWorkspaces(); track workspace.id) {
-              <label class="flex cursor-pointer items-start gap-2.5 rounded-md px-2 py-2 text-base hover:bg-hover-bg">
-                <input
-                  type="checkbox"
-                  class="mt-0.5 h-4 w-4 shrink-0 accent-text-primary"
-                  [disabled]="busy()"
-                  [checked]="workspaceIds().includes(workspace.id)"
-                  (change)="toggleWorkspace(workspace.id)"
-                />
-                <span class="min-w-0 break-words">{{ workspace.name }}</span>
-              </label>
-            } @empty {
-              <p class="p-3 text-sm text-text-tertiary">
-                {{
-                  (options().workspaces.length ? 'XP.AgentPlugins.NoResults' : 'XP.AgentPlugins.NoWorkspaces')
-                    | translate
-                }}
-              </p>
-            }
-          </div>
-          <p class="my-4 text-xs text-text-tertiary">{{ 'XP.AgentPlugins.AvailabilityHint' | translate }}</p>
-          @if (unavailableWorkspaceCount()) {
-            <p role="alert" class="mb-4 text-sm text-text-destructive">
-              {{ 'XP.AgentPlugins.UnavailableWorkspaces' | translate }}
-            </p>
-          }
+        @if (detailTab() === 'overview') {
+          <p class="mb-4 text-sm text-text-secondary">{{ 'XP.AgentPlugins.ScopeAvailabilityHint' | translate }}</p>
           @if (selectedBinding(); as item) {
-            <div class="mt-auto flex items-center justify-between gap-2 border-t border-divider-regular py-4 text-sm">
+            <div class="mb-4 flex items-center justify-between gap-2 border-b border-divider-regular py-3 text-sm">
               <span>{{
                 (item.enabled ? 'XP.AgentPlugins.Status_published' : 'XP.AgentPlugins.Status_disabled') | translate
               }}</span>
@@ -377,7 +325,6 @@
               </button>
             </div>
           }
-        } @else if (detailTab() === 'overview') {
           @if (selectedPackage(); as pkg) {
             <form [formGroup]="binding" class="mb-5 flex flex-col gap-4">
               <label class="flex flex-col gap-1.5 text-sm"
@@ -393,7 +340,7 @@
                 type="button"
                 class="btn btn-secondary btn-small mb-5 self-start"
                 [disabled]="busy()"
-                (click)="loadBinding(); detailTab.set('workspaces')"
+                (click)="loadBinding(); detailTab.set('overview')"
               >
                 {{ 'XP.AgentPlugins.NewConfiguration' | translate }}
               </button>
@@ -459,7 +406,7 @@
               class="mb-1 flex w-full items-center justify-between gap-2 rounded-lg px-3 py-3 text-left text-sm hover:bg-hover-bg"
               [disabled]="busy()"
               [class]="selectedPackageId() === pkg.id ? 'bg-background-default-subtle' : ''"
-              (click)="selectVersion(pkg.id); detailTab.set('workspaces')"
+              (click)="selectVersion(pkg.id); detailTab.set('overview')"
             >
               <span
                 >{{ versionLabel(pkg)
@@ -519,20 +466,13 @@
           <button
             type="button"
             class="btn btn-primary btn-medium min-w-0 flex-1"
-            [disabled]="
-              busy() ||
-              loading() ||
-              binding.invalid ||
-              !workspaceIds().length ||
-              missingMappings() ||
-              !!unavailableWorkspaceCount()
-            "
-            (click)="publish()"
+            [disabled]="busy() || loading() || binding.invalid || missingMappings()"
+            (click)="saveConfiguration()"
           >
             @if (busy()) {
               <i class="ri-loader-4-line mr-1 animate-spin" aria-hidden="true"></i>
             }
-            {{ (selectedBinding() ? 'XP.AgentPlugins.SaveAvailability' : 'XP.AgentPlugins.PublishPlugin') | translate }}
+            {{ 'XP.AgentPlugins.SaveConfiguration' | translate }}
           </button>
           <button type="button" class="btn btn-secondary btn-medium px-6" [disabled]="busy()" (click)="closeDetails()">
             {{ 'XP.AgentPlugins.Cancel' | translate }}

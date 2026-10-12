@@ -54,13 +54,13 @@ describe('agent plugin catalog', () => {
     expect(group.currentBindings.map((item) => item.id)).toEqual(['a', 'b'])
     expect(group.publishedVersions).toEqual(['new', 'old'])
   })
-  it('distinguishes never published from disabled, and excludes historical versions from current status', () => {
+  it('makes imports available by default while keeping explicitly disabled versions disabled', () => {
     expect(groupPluginPackages([pkg('pkg', 'documents')], [binding('off', 'pkg', { enabled: false })])[0].status).toBe(
       'disabled'
     )
-    expect(groupPluginPackages([pkg('pkg', 'documents')], [])[0].status).toBe('unpublished')
+    expect(groupPluginPackages([pkg('pkg', 'documents')], [])[0].status).toBe('published')
     expect(
       groupPluginPackages([pkg('pkg', 'documents')], [binding('old', 'pkg', { supersededById: 'other' })])[0].status
-    ).toBe('unpublished')
+    ).toBe('published')
   })
 })

@@ -1027,7 +1027,8 @@
         "KnowledgeQuestionsStale": "原文分块已更新，请重新生成问题。",
         "KnowledgeQuestionsUnavailable": "请先启用 AI 问题生成，并完成此文本分块的处理。",
         "KnowledgeSourceVectorFilterUnsupported": "不支持此原文分块向量筛选条件。",
-        "PromptWorkflowAssociationsUnavailable": "所选标签或数字专家已不可用，请刷新后选择当前工作空间中的项目。"
+        "PromptWorkflowAssociationsUnavailable": "所选标签或数字专家已不可用，请刷新后选择当前工作空间中的项目。",
+        "AgentResourceConfigurationRequired": "请先补齐插件配置。"
     },
     "Mcp": {
         "Test": {
