@@ -135,6 +135,37 @@ repair; path changes without one trigger validation only.
 
 ## Local verification
 
+### Commit and push hooks
+
+The repository's `prepare` script enables `git-hooks`. To enable them explicitly
+and install the same small, locked checker dependencies used by CI:
+
+```bash
+git config core.hooksPath git-hooks
+npm ci --prefix .deploy/application-images/release-tools --ignore-scripts --no-audit --no-fund
+```
+
+`pre-commit` checks the staged release metadata before formatting or regenerating
+locks. It reuses the CI planner against an unreferenced Git snapshot of the index,
+including pending merge parents, without changing the branch or staged contents.
+Stage both the shared package note and the required application notes; an unstaged
+fix cannot satisfy the check. Deletion-only version commits are checked as well.
+Initial commits without a release baseline follow CI's skip behavior.
+
+`pre-push` checks the full outgoing update of existing `main` and `develop` branches.
+This covers automatic merges and batches of commits that may bypass `pre-commit`.
+Both hooks run locally without fetching, installing dependencies, building images,
+or publishing. Commits without release metadata changes skip the planner. CI keeps
+the authoritative check, since local hooks can be disabled or bypassed.
+
+To check the current index manually:
+
+```bash
+corepack pnpm check:application-changesets
+```
+
+### Planner tests
+
 The planner installs only five small release-tool packages, without application
 dependencies or native server modules:
 
