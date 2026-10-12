@@ -1,3 +1,6 @@
+import { McpAppHistory } from '../mcp-app-runtime/mcp-app-history.entity'
+import { McpAppHistoryStoreService } from '../mcp-app-runtime/mcp-app-history-store.service'
+import { McpAppHistoryService } from '../mcp-app-runtime/mcp-app-history.service'
 import { RedisModule, TenantModule } from '@xpert-ai/server-core'
 import { Module, forwardRef } from '@nestjs/common'
 import { DiscoveryModule, RouterModule } from '@nestjs/core'
@@ -47,6 +50,7 @@ import { McpConsumerCapabilitiesController, McpConsumerCapabilitiesService } fro
             McpCapabilityCatalog,
             McpPublicationCapability,
             McpAppAudit,
+            McpAppHistory,
             McpConsumerOAuthCredential,
             McpConsumerOAuthSession
         ]),
@@ -71,6 +75,8 @@ import { McpConsumerCapabilitiesController, McpConsumerCapabilitiesService } fro
         McpAppsService,
         McpRuntimeAuditService,
         McpAppAuditService,
+        McpAppHistoryStoreService,
+        McpAppHistoryService,
         McpAppInstanceStoreService,
         McpAppToolApprovalService,
         McpConsumerOAuthService,

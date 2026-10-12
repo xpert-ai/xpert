@@ -1020,7 +1020,11 @@
         "KnowledgeQuestionsStale": "The source chunk changed. Regenerate its questions.",
         "KnowledgeQuestionsUnavailable": "Enable question generation and finish processing this text chunk before generating questions.",
         "KnowledgeSourceVectorFilterUnsupported": "Unsupported source vector metadata filter.",
-        "PromptWorkflowAssociationsUnavailable": "The selected tags or experts are unavailable. Refresh and select items from this workspace."
+        "PromptWorkflowAssociationsUnavailable": "The selected tags or experts are unavailable. Refresh and select items from this workspace.",
+        "McpAppSessionExpired": "This App session has expired. Its saved result is still available.",
+        "McpAppSessionUnavailable": "This App cannot resume. Its saved result is still available.",
+        "McpAppMessageMismatch": "This App does not belong to the requested message.",
+        "McpAppHistoryQueryInvalid": "A valid message identifier is required."
     },
     "Mcp": {
         "Test": {

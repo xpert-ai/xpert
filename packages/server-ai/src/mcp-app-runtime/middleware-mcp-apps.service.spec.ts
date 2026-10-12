@@ -4,14 +4,20 @@ import { z } from 'zod'
 import {
     RequestContext,
     AgentMiddlewareRegistry,
+    ConnectorRuntimeCapability,
+    DefaultRuntimeCapabilityRegistry,
     type AgentMiddleware,
+    type AgentMiddlewareRuntimeScope,
     type IAgentMiddlewareContext
 } from '@xpert-ai/plugin-sdk'
-import { WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
+import { WorkflowNodeTypeEnum, type TXpertGraph, type IWFNMiddleware } from '@xpert-ai/contracts'
 import { MiddlewareMcpAppsService } from './middleware-mcp-apps.service'
 import { AgentMiddlewareRuntimeService } from '../shared/agent/middleware-runtime/middleware-runtime.service'
 import { McpAppBundleService } from '../mcp-publication/mcp-app-bundle.service'
 import type { McpAppInstanceSnapshot } from './mcp-app-instance-store.service'
+import { registerMcpAppInstance } from '../xpert-toolset/provider/mcp/app-support'
+
+jest.mock('@langchain/core/callbacks/dispatch', () => ({ dispatchCustomEvent: jest.fn(async () => undefined) }))
 
 jest.mock('../xpert-toolset/provider/mcp/app-support', () => ({
     createMcpToolAppMeta: (serverName, displayName, tool) => ({
@@ -23,6 +29,9 @@ jest.mock('../xpert-toolset/provider/mcp/app-support', () => ({
         ui: tool._meta.ui
     }),
     restoreMcpAppInstance: (input) => input,
+    registerMcpAppInstance: jest.fn(() => ({ appInstanceId: 'new-app' })),
+    waitForMcpAppInstancePersistence: jest.fn(async () => undefined),
+    buildMcpAppComponentMessage: (data) => ({ data }),
     normalizeMcpAppToolResult: (output) => ({ content: [{ type: 'text', text: output }] })
 }))
 
@@ -52,11 +61,16 @@ function fixture() {
         type: WorkflowNodeTypeEnum.MIDDLEWARE,
         provider: 'Settings'
     }
-    const graph = {
-        nodes: [{ key: node.key, type: 'workflow', entity: node }],
-        connections: [{ from: 'Main', to: node.key, type: 'workflow' }]
+    const graph: TXpertGraph = {
+        nodes: [{ key: node.key, type: 'workflow', entity: node, position: { x: 0, y: 0 } }],
+        connections: [{ key: `Main/${node.key}`, from: 'Main', to: node.key, type: 'workflow' }]
     }
-    const strategy = { createMiddleware: jest.fn(async () => ({ ...middleware, tools: [...middleware.tools] })) }
+    const strategy = {
+        createMiddleware: jest.fn(async (_options: unknown, _context: IAgentMiddlewareContext) => ({
+            ...middleware,
+            tools: [...middleware.tools]
+        }))
+    }
     const registry = {
         get: jest.fn(() => strategy),
         getSource: jest.fn(() => ({ kind: 'plugin', pluginName: 'test-plugin' }))
@@ -78,7 +92,11 @@ function fixture() {
         tools: new Map(),
         runtime: {}
     } as IAgentMiddlewareContext
-    const runtime = { createScopedApi: jest.fn(() => ({})) }
+    const runtime = {
+        createScopedApi: jest.fn((_scope: AgentMiddlewareRuntimeScope) => ({
+            capabilities: new DefaultRuntimeCapabilityRegistry()
+        }))
+    }
     const bundles = {
         readForScope: jest.fn(async () => ({
             uri: 'ui://test',
@@ -123,10 +141,70 @@ function fixture() {
         createdAt: Date.now(),
         expiresAt: Date.now() + 60000
     }
-    return { service, context, middleware, snapshot, graph, node, registry, runtime, bundles, submit }
+    return { service, context, middleware, snapshot, graph, node, registry, runtime, bundles, submit, strategy }
+}
+
+function addConnector(graph: TXpertGraph, key: string, provider: string, bindingId?: string) {
+    const entity: IWFNMiddleware = {
+        id: key,
+        key,
+        type: WorkflowNodeTypeEnum.MIDDLEWARE,
+        provider: 'ConnectorMiddleware',
+        options: { provider, ...(bindingId ? { connectorId: bindingId } : {}) }
+    }
+    graph.nodes.push({ key, type: 'workflow', entity, position: { x: 0, y: 0 } })
+    graph.connections.push({ key: `Main/${key}`, from: 'Main', to: key, type: 'workflow' })
+}
+
+function useConnectorTool(f: ReturnType<typeof fixture>, bindingId?: string) {
+    const credentialRead = jest.fn()
+    f.runtime.createScopedApi.mockImplementation((scope) => ({
+        capabilities: new DefaultRuntimeCapabilityRegistry().register(ConnectorRuntimeCapability, {
+            getConnector: async () => {
+                throw new Error('Legacy credentials are not used')
+            },
+            getConnectorCredential: async (input) => {
+                if (!scope.conversationId || !scope.executionId) throw new Error('execution_scope_required')
+                const granted = input.bindingId
+                    ? scope.connectorBindingIds?.includes(input.bindingId)
+                    : Boolean(input.provider && scope.connectorProviders?.includes(input.provider))
+                if (!granted) throw new Error('connector_access_denied')
+                credentialRead(scope)
+                return {
+                    connectorId: input.bindingId ?? 'amap-1',
+                    bindingId: input.bindingId ?? 'amap-1',
+                    scope: { type: 'workspace', workspaceId: 'workspace' },
+                    authorizationMode: 'shared',
+                    provider: 'amap',
+                    authMethodId: 'api-key',
+                    credentials: { apiKey: 'test-only' }
+                }
+            }
+        })
+    }))
+    f.strategy.createMiddleware.mockImplementation(async (_options, context) => ({
+        ...f.middleware,
+        tools: [
+            f.middleware.tools[0],
+            tool(
+                async () => {
+                    const connector = context.runtime.capabilities?.get(ConnectorRuntimeCapability)
+                    if (!connector?.getConnectorCredential) throw new Error('Connector capability unavailable')
+                    const result = await connector.getConnectorCredential({
+                        provider: 'amap',
+                        ...(bindingId ? { bindingId } : {})
+                    })
+                    return result.provider
+                },
+                { name: 'save', description: 'Read scoped map data', schema: z.object({}).strict() }
+            )
+        ]
+    }))
+    return credentialRead
 }
 describe('middleware MCP Apps boundary', () => {
     beforeEach(() => {
+        jest.mocked(registerMcpAppInstance).mockClear()
         jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user')
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant')
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org')
@@ -138,6 +216,33 @@ describe('middleware MCP Apps boundary', () => {
         expect(bound.tools.map((item) => item.name)).toEqual(['configure'])
         expect(bound.tools[0].metadata.middlewareMcpApp).toBe(true)
         expect(f.submit).not.toHaveBeenCalled()
+    })
+    it('keeps the invoking execution on a new App callback before snapshot restoration', async () => {
+        const f = fixture()
+        addConnector(f.graph, 'amap', 'amap', 'amap-1')
+        const credentialRead = useConnectorTool(f, 'amap-1')
+        expect(f.context.executionId).toBeUndefined()
+        const bound = f.service.bind(f.middleware, f.context, {
+            connectorGrants: { bindingIds: ['amap-1'], providers: [] }
+        })
+        await bound.tools[0].invoke(
+            {},
+            {
+                configurable: { executionId: 'new-run' },
+                metadata: { tool_call_id: 'new-call' }
+            }
+        )
+        const backend = jest.mocked(registerMcpAppInstance).mock.calls[0][0].middleware
+        if (!backend) throw new Error('App middleware backend was not registered')
+        await expect(backend.callTool('save', {})).resolves.toMatchObject({ content: [{ text: 'amap' }] })
+        expect(credentialRead).toHaveBeenCalledWith(
+            expect.objectContaining({
+                conversationId: 'conversation',
+                executionId: 'new-run',
+                connectorBindingIds: ['amap-1']
+            })
+        )
+        expect(credentialRead.mock.calls[0][0]).not.toHaveProperty('viewHost')
     })
     it('restores native Apps with their project/thread scope and validates App tool schemas', async () => {
         const f = fixture(),
@@ -168,5 +273,59 @@ describe('middleware MCP Apps boundary', () => {
         jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user')
         f.registry.getSource.mockReturnValue({ kind: 'plugin', pluginName: 'replacement' })
         await expect(f.service.restore(f.snapshot)).rejects.toThrow()
+    })
+    it('restores only the exact connector binding granted to the original run and revokes disconnected nodes', async () => {
+        const f = fixture()
+        addConnector(f.graph, 'amap-node', 'amap', 'amap-1')
+        f.snapshot.source.connectorGrants = { bindingIds: ['amap-1'], providers: [] }
+        const credentialRead = useConnectorTool(f, 'amap-1')
+        const app = await f.service.restore(f.snapshot)
+        await expect(app.middleware.callTool('save', {})).resolves.toMatchObject({ content: [{ text: 'amap' }] })
+        expect(credentialRead).toHaveBeenCalledWith(
+            expect.objectContaining({
+                tenantId: 'tenant',
+                organizationId: 'org',
+                userId: 'user',
+                workspaceId: 'workspace',
+                projectId: 'project',
+                connectorBindingIds: ['amap-1'],
+                connectorProviders: []
+            })
+        )
+        f.graph.connections = f.graph.connections.filter(({ to }) => to !== 'amap-node')
+        await expect(app.middleware.callTool('save', {})).rejects.toThrow('connector_access_denied')
+        expect(credentialRead).toHaveBeenCalledTimes(1)
+    })
+    it('does not grant newly connected optional connectors or replace an original pinned binding', async () => {
+        const f = fixture()
+        addConnector(f.graph, 'amap-node', 'amap', 'replacement')
+        f.snapshot.source.connectorGrants = { bindingIds: ['amap-1'], providers: [] }
+        const credentialRead = useConnectorTool(f, 'replacement')
+        const app = await f.service.restore(f.snapshot)
+        await expect(app.middleware.callTool('save', {})).rejects.toThrow('connector_access_denied')
+        expect(credentialRead).not.toHaveBeenCalled()
+    })
+    it('restores explicitly granted provider lookup without authorizing unrelated providers', async () => {
+        const f = fixture()
+        addConnector(f.graph, 'amap-node', 'amap')
+        addConnector(f.graph, 'unselected-node', 'tencent-map')
+        f.snapshot.source.connectorGrants = { bindingIds: [], providers: ['amap'] }
+        const credentialRead = useConnectorTool(f)
+        const app = await f.service.restore(f.snapshot)
+        await expect(app.middleware.callTool('save', {})).resolves.toMatchObject({ content: [{ text: 'amap' }] })
+        expect(credentialRead).toHaveBeenCalledWith(
+            expect.objectContaining({
+                connectorBindingIds: [],
+                connectorProviders: ['amap']
+            })
+        )
+    })
+    it('fails closed for legacy Apps without original connector grants even with connected graph nodes', async () => {
+        const f = fixture()
+        addConnector(f.graph, 'amap-node', 'amap')
+        const credentialRead = useConnectorTool(f)
+        const app = await f.service.restore(f.snapshot)
+        await expect(app.middleware.callTool('save', {})).rejects.toThrow('connector_access_denied')
+        expect(credentialRead).not.toHaveBeenCalled()
     })
 })

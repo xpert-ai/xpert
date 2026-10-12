@@ -1,3 +1,5 @@
+import { McpAppHistory } from '../mcp-app-runtime/mcp-app-history.entity'
+import { collectMcpAppComponentData } from '../mcp-app-runtime/mcp-app-history-component'
 import {
     ChatThreadPurpose,
     isRuntimeChatMessage,
@@ -368,7 +370,22 @@ export class ChatConversationThreadService extends TenantOrganizationAwareCrudSe
     }
 
     async deleteBranchMessages(threadId: string): Promise<void> {
-        await this.messageRepository.softDelete({ createdInThreadId: this.normalizeThreadId(threadId) })
+        const thread = await this.requireByThreadId(threadId)
+        await this.dataSource.transaction(async (manager) => {
+            const scope = { tenantId: thread.tenantId, organizationId: thread.organizationId ?? IsNull() }
+            const where = { ...scope, conversationId: thread.conversationId, createdInThreadId: thread.threadId }
+            const messages = await manager.find(ChatMessage, {
+                where,
+                select: { id: true, content: true, events: true }
+            })
+            const ids = messages.flatMap((message) =>
+                [...collectMcpAppComponentData(message.events), ...collectMcpAppComponentData(message.content)].map(
+                    (component) => component.appInstanceId
+                )
+            )
+            if (ids.length) await manager.delete(McpAppHistory, { ...scope, id: In(ids) })
+            await manager.softDelete(ChatMessage, where)
+        })
     }
 
     async findVisibleMessages(
