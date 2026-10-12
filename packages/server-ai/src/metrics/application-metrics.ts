@@ -6,6 +6,16 @@ type MetricType = 'counter' | 'gauge' | 'histogram'
 
 const DEFAULT_DURATION_BUCKETS = [0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60, 120, 300]
 const LLM_LATENCY_BUCKETS = [0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60]
+const HTTP_DURATION_BUCKETS = [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10, 30, 60, 120, 300]
+
+export type HttpRequestMetricInput = {
+    method: string
+    route: string
+    statusCode: number
+    responseType: 'http' | 'sse'
+    outcome: 'completed' | 'aborted'
+    durationMs: number
+}
 
 type ChatMetricInput = {
     action?: MetricLabelValue
@@ -214,6 +224,12 @@ class HistogramMetric {
 }
 
 export class ApplicationMetricsRegistry {
+    private readonly httpRequests = new CounterMetric('xpert_http_requests_total', 'Total Xpert HTTP API requests.')
+    private readonly httpRequestDuration = new HistogramMetric(
+        'xpert_http_request_duration_seconds',
+        'Xpert HTTP API request duration until response completion or client disconnect.',
+        HTTP_DURATION_BUCKETS
+    )
     private readonly conversationBranches = new CounterMetric(
         'xpert_conversation_branches_total',
         'Conversation branch outcomes.'
@@ -335,6 +351,8 @@ export class ApplicationMetricsRegistry {
     }
 
     reset() {
+        this.httpRequests.reset()
+        this.httpRequestDuration.reset()
         this.modelExecutionEvents.reset()
         this.modelExecutionPending.reset()
         this.invocationWait.reset()
@@ -364,6 +382,18 @@ export class ApplicationMetricsRegistry {
         this.mcpAppInstancesActive.reset()
         this.mcpAppRpc.reset()
         this.info.set({ service: process.env.OTEL_SERVICE_NAME || process.env.SERVICE_NAME || 'xpert-api' }, 1)
+    }
+
+    recordHttpRequest(input: HttpRequestMetricInput) {
+        const labels = {
+            method: input.method,
+            route: input.route,
+            status_code: input.statusCode,
+            response_type: input.responseType,
+            outcome: input.outcome
+        }
+        this.httpRequests.inc(labels)
+        this.observeDuration(this.httpRequestDuration, labels, input.durationMs)
     }
 
     startChat(input: Pick<ChatMetricInput, 'from'>) {
@@ -575,6 +605,8 @@ export class ApplicationMetricsRegistry {
         return (
             [
                 this.info.render(),
+                this.httpRequests.render(),
+                this.httpRequestDuration.render(),
                 this.modelExecutionEvents.render(),
                 this.modelExecutionPending.render(),
                 this.invocationWait.render(),

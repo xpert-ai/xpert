@@ -1,4 +1,4 @@
-import { AiProviderRole, AIPermissionsEnum } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, AiProviderRole, AIPermissionsEnum } from '@xpert-ai/contracts'
 import { ConfigService } from '@xpert-ai/server-config'
 import { RequestContext } from '@xpert-ai/server-core'
 import { QueryBus } from '@nestjs/cqrs'
@@ -32,7 +32,10 @@ describe('CopilotService', () => {
         Pick<MembershipService, 'findModelAccess' | 'ensureScopeInitialized' | 'isMembershipPlanEnabled'>
     >
     let modelAccessService: jest.Mocked<
-        Pick<ModelAccessService, 'handleCopilotStateChanged' | 'hasConfiguredOrganizationModels'>
+        Pick<
+            ModelAccessService,
+            'handleCopilotStateChanged' | 'hasConfiguredOrganizationModels' | 'hasOrganizationModelCredentials'
+        >
     >
     let configService: jest.Mocked<Pick<ConfigService, 'get'>>
     let service: CopilotService
@@ -62,7 +65,8 @@ describe('CopilotService', () => {
         }
         modelAccessService = {
             handleCopilotStateChanged: jest.fn().mockResolvedValue(undefined),
-            hasConfiguredOrganizationModels: jest.fn().mockResolvedValue(false)
+            hasConfiguredOrganizationModels: jest.fn().mockResolvedValue(false),
+            hasOrganizationModelCredentials: jest.fn().mockResolvedValue(false)
         }
         configService = {
             get: jest.fn().mockReturnValue('http://localhost')
@@ -450,6 +454,42 @@ describe('CopilotService', () => {
 
         expect(result.map((copilot) => copilot.id)).toEqual(['organization-copilot'])
         permissionSpy.mockRestore()
+    })
+
+    it.each([true, false])('checks selected model credentials for default Copilot availability: %s', async (configured) => {
+        jest.spyOn(RequestContext, 'hasPermission').mockReturnValue(false)
+        membershipService.findModelAccess.mockResolvedValue(null)
+        repository.find.mockResolvedValue([
+            createCopilot({
+                id: 'organization-copilot',
+                organizationId: 'org-1',
+                copilotModel: { model: 'custom-model', modelType: AiModelTypeEnum.LLM }
+            })
+        ])
+        copilotProviderService.findVisibleByCopilotIds.mockResolvedValue(
+            new Map([
+                [
+                    'organization-copilot',
+                    createProvider({
+                        id: 'organization-provider',
+                        organizationId: 'org-1',
+                        credentials: null
+                    })
+                ]
+            ])
+        )
+        modelAccessService.hasOrganizationModelCredentials.mockResolvedValue(configured)
+
+        const result = await service.findAllAvailablesCopilots('tenant-1', 'org-1')
+
+        expect(result.map((copilot) => copilot.id)).toEqual(configured ? ['organization-copilot'] : [])
+        expect(modelAccessService.hasOrganizationModelCredentials).toHaveBeenCalledWith({
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            copilotId: 'organization-copilot',
+            copilotModelId: 'custom-model',
+            modelType: AiModelTypeEnum.LLM
+        })
     })
 
     it('returns no organization copilots without configured credentials when membership access is missing', async () => {

@@ -93,3 +93,6 @@ Thumbs.db
 docker/volumes/
 
 /storage
+
+# Local plugin runtime records, notes and audio (not source files).
+/data/plugins/

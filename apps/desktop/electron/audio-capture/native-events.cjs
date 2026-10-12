@@ -11,6 +11,7 @@ function parseNativeEvent(event) {
       code: [
         'audio_permission_denied',
         'system_audio_permission_denied',
+        'audio_start_timeout',
         'audio_source_missing',
         'audio_conversion_failed'
       ].includes(event.code)

@@ -22,6 +22,90 @@ test('system audio consent remains distinct from microphone consent', () => {
   )
 })
 
+for (const code of ['audio_start_timeout', 'system_audio_permission_denied']) {
+  test(`native ${code} remains actionable through stopped delivery`, async (t) => {
+    const f = await setup(t)
+    await f.start()
+    f.emit({ type: 'error', code })
+    await f.controller.stop('device_lost')
+    await f.controller.draining?.promise
+    const stopped = f.requests.find((item) => item.options.body?.input?.event === 'stopped').options.body.input
+    assert.equal(stopped.errorCode, code)
+    assert.deepEqual(stopped.chunks, { microphone: 0, system: 0 })
+  })
+}
+
+test('shutdown kills a helper still blocked in device startup after seven seconds', async (t) => {
+  const f = await setup(t)
+  await f.start()
+  const child = f.children[0]
+  child.stdin.removeAllListeners('finish') // A blocked native device call ignores EOF.
+  const signals = []
+  child.kill = (signal) => {
+    signals.push(signal)
+    child.emit('close', null, signal)
+  }
+  t.mock.timers.enable({ apis: ['setTimeout'] })
+  const stopped = f.controller.stop('user')
+  t.mock.timers.tick(6999)
+  assert.deepEqual(signals, [])
+  assert.notEqual(f.controller.active, null)
+  t.mock.timers.tick(1)
+  await stopped
+  await f.controller.draining?.promise
+  assert.deepEqual(signals, ['SIGKILL'])
+  assert.equal(f.controller.active, null)
+  assert.deepEqual(f.indicators, [true, false])
+  assert.equal(f.requests.filter((item) => item.options.body?.input?.event === 'stopped').length, 1)
+})
+
+test('final delivery waits for the stop-state write before removing cached audio', async (t) => {
+  const f = await setup(t)
+  await f.start()
+  const active = f.controller.active
+  let releaseAuthorization, releaseSave, saving
+  const authorization = new Promise((resolve) => {
+    releaseAuthorization = resolve
+  })
+  const saveGate = new Promise((resolve) => {
+    releaseSave = resolve
+  })
+  const saveStarted = new Promise((resolve) => {
+    saving = resolve
+  })
+  const save = f.controller.cache.save.bind(f.controller.cache)
+  f.controller.cache.save = async (record) => {
+    if (record.stopped) {
+      saving()
+      await saveGate
+    }
+    return save(record)
+  }
+  const authorize = f.controller.delivery.authorize.bind(f.controller.delivery)
+  f.controller.delivery.authorize = async (...args) => {
+    await authorization
+    return authorize(...args)
+  }
+  const draining = f.controller.drain(active.record)
+  const stopped = f.controller.stop('user')
+  try {
+    await saveStarted
+    releaseAuthorization()
+    await new Promise((resolve) => setImmediate(resolve))
+    assert.equal(
+      f.requests.some((item) => item.options.body?.input?.event === 'stopped'),
+      false
+    )
+  } finally {
+    releaseAuthorization()
+    releaseSave()
+    await stopped
+    await draining
+  }
+  assert.deepEqual(await f.controller.cache.list(scope), [])
+  assert.equal(f.requests.filter((item) => item.options.body?.input?.event === 'stopped').length, 1)
+})
+
 test('cache encrypts audio, restores it after restart and isolates user and View scopes', async (t) => {
   const f = await setup(t),
     r = record(),
@@ -233,8 +317,55 @@ test('device startup timeout counts from helper launch, excluding slow authoriza
   assert.equal(active.stopping, false)
   active.launchedAt -= 30000
   f.controller.tick(active)
+  assert.equal(active.stopping, false, 'native initialization may take longer than 15 seconds')
+  active.launchedAt -= 30001
+  f.controller.tick(active)
   await f.controller.stop('device_lost')
   await f.controller.draining?.promise
-  assert.equal(active.record.errorCode, 'audio_source_missing')
+  assert.equal(active.record.errorCode, 'audio_start_timeout')
   assert.equal(f.controller.active, null)
+})
+
+test('slow native startup leaves a full first-frame window and still detects subsequent input loss', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: 100000 })
+  const f = await setup(t)
+  await f.start()
+  const active = f.controller.active
+  t.mock.timers.tick(14400)
+  f.emit({ type: 'started' })
+  t.mock.timers.tick(600)
+  f.emit({ type: 'level', track: 'system', level: 0 })
+  f.controller.tick(active)
+  assert.equal(active.stopping, false, 'initialization must not consume the first microphone frame budget')
+  t.mock.timers.tick(1500)
+  for (const track of ['microphone', 'system']) f.emit({ type: 'level', track, level: 0 })
+  f.controller.tick(active)
+  assert.equal((await f.command('state')).data.status, 'recording')
+  t.mock.timers.tick(16000)
+  f.emit({ type: 'level', track: 'system', level: 0 })
+  f.controller.tick(active)
+  await f.controller.stop('device_lost')
+  await f.controller.draining?.promise
+  assert.equal(active.record.errorCode, 'audio_input_timeout')
+  const stopped = f.requests.find((item) => item.options.body?.input?.event === 'stopped').options.body.input
+  assert.equal(stopped.errorCode, 'audio_input_timeout')
+})
+
+test('missing first frames time out relative to native startup completion', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: 100000 })
+  const f = await setup(t)
+  await f.start()
+  const active = f.controller.active
+  t.mock.timers.tick(1000)
+  f.emit({ type: 'level', track: 'system', level: 0 })
+  t.mock.timers.tick(44000)
+  f.emit({ type: 'started' })
+  t.mock.timers.tick(15000)
+  f.controller.tick(active)
+  assert.equal(active.stopping, false)
+  t.mock.timers.tick(1)
+  f.controller.tick(active)
+  await f.controller.stop('device_lost')
+  await f.controller.draining?.promise
+  assert.equal(active.record.errorCode, 'audio_input_timeout')
 })
