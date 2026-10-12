@@ -10,6 +10,7 @@ import { t } from 'i18next'
 import { randomUUID } from 'node:crypto'
 import { IsNull, Repository } from 'typeorm'
 import {
+    awaitConversationProjectConfirmation,
     bindEmptyConversationProject,
     selectConversationNoProject
 } from '../../chat-conversation/bind-empty-conversation-project'
@@ -46,19 +47,7 @@ export class ConversationProjectService {
     /** Record setup intent, without a Project, business record, or Project files. */
     async awaitConfirmation(conversation: IChatConversation): Promise<IChatConversation> {
         await this.queryBus.execute(new AssertChatConversationAccessQuery({ id: conversation.id }, 'contribute'))
-        await this.conversations.query(
-            `UPDATE chat_conversation AS c SET options = (COALESCE(c.options::jsonb, '{}'::jsonb)
-             || '{"projectCreation":{"status":"awaiting_confirmation"}}'::jsonb)::json
-             WHERE c.id=$1 AND c."projectId" IS NULL
-               AND (c.options->'projectSelection'->>'mode') IS DISTINCT FROM 'none'
-               AND NOT EXISTS (SELECT 1 FROM chat_message m WHERE m."conversationId"=c.id)
-               AND NOT EXISTS (SELECT 1 FROM xpert_agent_execution e WHERE e."threadId"=c."threadId")`,
-            [conversation.id]
-        )
-        const current = await this.conversations.findOneByOrFail({ id: conversation.id })
-        if (!current.projectId && current.options?.projectCreation?.status !== 'awaiting_confirmation')
-            this.confirmationDenied()
-        return current
+        return awaitConversationProjectConfirmation(this.conversations, conversation.id)
     }
 
     async confirm(input: Parameters<NonNullable<ProjectProvisioningApi['confirmConversation']>>[0]) {
@@ -155,7 +144,9 @@ export class ConversationProjectService {
             }
             if (confirmation && current.options?.projectCreation?.status !== 'awaiting_confirmation')
                 this.confirmationDenied()
-            if (current.options?.projectSelection?.mode === 'none') {
+            // The pending marker was checked above. Recover legacy `none` only
+            // through an authorized App confirmation, never ordinary auto-create.
+            if (current.options?.projectSelection?.mode === 'none' && !confirmation) {
                 throw new ForbiddenException(
                     t('server-ai:Error.ConversationProjectImmutable', {
                         defaultValue: 'A conversation cannot be moved to another Project'

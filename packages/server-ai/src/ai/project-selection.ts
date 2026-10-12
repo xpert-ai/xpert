@@ -17,6 +17,22 @@ export function resolveSendProjectSelection(
     contextProjectId?: string
 ): { projectId?: string; selection?: ProjectSelection } {
     const savedSelection = conversation.options?.projectSelection
+    // A deferred setup has not chosen a personal workspace. Older clients sent
+    // `none` when restoring any history without a Project id; retain server intent.
+    if (
+        !conversation.projectId &&
+        conversation.options?.projectCreation?.status === 'awaiting_confirmation' &&
+        xpert.options?.workspaceScope?.onMissing === 'confirm'
+    ) {
+        if (request.projectSelection?.mode === 'existing' || (!request.projectSelection && request.projectId)) {
+            throw new BadRequestException(
+                t('server-ai:Error.ConversationProjectImmutable', {
+                    defaultValue: 'A conversation cannot be moved to another Project'
+                })
+            )
+        }
+        return { selection: { mode: 'auto-new' } }
+    }
     if (savedSelection?.mode === 'none' && request.projectSelection?.mode === 'existing') {
         throw new BadRequestException(
             t('server-ai:Error.ConversationProjectImmutable', {

@@ -42,6 +42,29 @@ describe('first-send Project intent', () => {
         ).toEqual({ projectId: 'selected', selection: { mode: 'existing', projectId: 'selected' } })
     })
 
+    it.each([undefined, 'none', 'auto-new'] as const)(
+        'preserves server pending intent for an affected conversation when the client sends %s',
+        (mode) => {
+            const pending: IChatConversation = {
+                ...conversation,
+                options: {
+                    projectCreation: { status: 'awaiting_confirmation' },
+                    projectSelection: { mode: 'none' }
+                }
+            }
+            const assistant = {
+                ...xpert,
+                options: { workspaceScope: { mode: 'project-required' as const, onMissing: 'confirm' as const } }
+            }
+            expect(
+                resolveSendProjectSelection(request(mode ? { mode } : undefined), pending, assistant, 'stale-context')
+            ).toEqual({ selection: { mode: 'auto-new' } })
+            expect(() =>
+                resolveSendProjectSelection(request({ mode: 'existing', projectId: 'other' }), pending, assistant)
+            ).toThrow()
+        }
+    )
+
     it('reuses the first-send binding on an auto-new retry', () => {
         expect(
             resolveSendProjectSelection(request({ mode: 'auto-new' }), { ...conversation, projectId: 'created' }, xpert)
