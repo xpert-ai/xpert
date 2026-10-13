@@ -7059,6 +7059,24 @@
       "AvatarHint": "Click your avatar to change it. Uploads are saved automatically.",
       "InvitationCode": "Invitation code",
       "InvitationHint": "Copy your invitation code to invite others."
+    },
+    "PasswordSettings": {
+      "Description": "Update your account sign-in password.",
+      "ChangePassword": "Change password",
+      "VerificationHint": "Enter your current password to verify your identity, then choose a new password.",
+      "CurrentPassword": "Current password",
+      "NewPassword": "New password",
+      "ConfirmPassword": "Confirm new password",
+      "MinLength": "Use at least 8 characters for your new password.",
+      "CurrentRequired": "Enter your current password.",
+      "NewRequired": "Enter a new password.",
+      "ConfirmationRequired": "Enter your new password again.",
+      "MustMatch": "The new passwords do not match.",
+      "CurrentRejected": "Current password verification failed. Check it and try again.",
+      "ShowPassword": "Show {{field}}",
+      "HidePassword": "Hide {{field}}",
+      "UpdatePassword": "Update password",
+      "Clear": "Clear"
     }
   },
   "ViewExtension": {

@@ -10778,6 +10778,24 @@
       "AvatarHint": "点击头像更换，上传后自动保存。",
       "InvitationCode": "邀请码",
       "InvitationHint": "复制邀请码，邀请他人加入。"
+    },
+    "PasswordSettings": {
+      "Description": "更新你的账号登录密码。",
+      "ChangePassword": "更改密码",
+      "VerificationHint": "输入当前密码以验证身份，再设置新密码。",
+      "CurrentPassword": "当前密码",
+      "NewPassword": "新密码",
+      "ConfirmPassword": "确认新密码",
+      "MinLength": "新密码至少 8 个字符。",
+      "CurrentRequired": "请输入当前密码。",
+      "NewRequired": "请输入新密码。",
+      "ConfirmationRequired": "请再次输入新密码。",
+      "MustMatch": "两次输入的新密码不一致。",
+      "CurrentRejected": "当前密码校验未通过，请检查后重试。",
+      "ShowPassword": "显示{{field}}",
+      "HidePassword": "隐藏{{field}}",
+      "UpdatePassword": "更新密码",
+      "Clear": "清空"
     }
   },
   "ViewExtension": {

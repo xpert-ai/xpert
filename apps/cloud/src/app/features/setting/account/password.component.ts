@@ -1,148 +1,129 @@
 import { HttpErrorResponse } from '@angular/common/http'
-import { Component, signal } from '@angular/core'
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
-import { matchValidator, matchWithValidator } from '@cloud/app/auth'
+import { Component, inject, signal } from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
 import { UsersService } from '@cloud/app/@core/state'
-import { pick } from 'lodash-es'
 import { TranslateModule } from '@ngx-translate/core'
-import { cloneDeep } from 'lodash-es'
+import {
+  ZardBadgeComponent,
+  ZardButtonComponent,
+  ZardFormFieldComponent,
+  ZardFormLabelComponent,
+  ZardIconComponent,
+  ZardInputDirective
+} from '@xpert-ai/headless-ui'
+import { EyeOff } from 'lucide-angular'
 import { firstValueFrom } from 'rxjs'
-import { HttpStatus, Store, ToastrService, User, getErrorMessage } from '../../../@core'
-import { UserFormsModule } from '../../../@shared/user/forms'
+import { matchValidator } from '../../../auth/services/validators'
+import { HttpStatus, Store, ToastrService, getErrorMessage } from '../../../@core'
+
+type PasswordField = 'hash' | 'password' | 'confirmPassword'
 
 @Component({
   standalone: true,
-  imports: [
-    ZardButtonComponent,
-    ZardIconComponent,
-    ...ZardFormImports,
-    ZardInputDirective,
-    FormsModule,
-    ReactiveFormsModule,
-    UserFormsModule,
-    TranslateModule
-  ],
   selector: 'xp-account-password',
-  template: `<form
-    class="flex flex-col items-start justify-start p-4 m-auto w-96"
-    [formGroup]="passwordForm"
-    (ngSubmit)="resetPassword()"
-  >
-    <input
-      z-input
-      type="text"
-      id="username"
-      name="username"
-      autocomplete="username"
-      aria-hidden="true"
-      class="hidden"
-    />
-    <z-form-field appearance="fill" floatLabel="always" class="self-stretch">
-      <z-form-label>
-        <span class="text-red-500">*</span
-        >{{ 'XP.KEY_WORDS.CurrentPassword' | translate: { Default: 'Current Password' } }}
-      </z-form-label>
-      <input type="password" z-input formControlName="hash" autocomplete="current-password" />
-      @if (hash.invalid) {
-        <z-form-message zType="error">{{ 'XP.KEY_WORDS.Error' | translate: { Default: 'Error' } }}</z-form-message>
-      }
-    </z-form-field>
-    <z-form-field appearance="fill" floatLabel="always" class="self-stretch">
-      <z-form-label>
-        <span class="text-red-500">*</span>{{ 'XP.KEY_WORDS.NewPassword' | translate: { Default: 'New Password' } }}
-      </z-form-label>
-      <input type="password" z-input formControlName="password" autocomplete="new-password" />
-      @if (minlengthError(); as error) {
-        <z-form-message zType="error">
-          {{ 'XP.Onboarding.Minlength' | translate: { Default: 'Min length' } }} {{ error.requiredLength }}
-          {{ 'XP.Onboarding.Actuallength' | translate: { Default: 'actual length' } }}
-          {{ error.actualLength }}</z-form-message
-        >
-      }
-    </z-form-field>
-
-    <z-form-field appearance="fill" floatLabel="always" class="self-stretch">
-      <z-form-label>
-        <span class="text-red-500">*</span
-        >{{ 'XP.KEY_WORDS.ConfirmPassword' | translate: { Default: 'Confirm Password' } }}
-      </z-form-label>
-      <input type="password" z-input formControlName="confirmPassword" autocomplete="new-password" />
-      @if (mustMatchError(); as error) {
-        <z-form-message zType="error">{{
-          'XP.Onboarding.PasswordMustMatch' | translate: { Default: 'Password must match' }
-        }}</z-form-message>
-      }
-    </z-form-field>
-
-    <div class="w-full flex justify-center items-center gap-2">
-      <button
-        type="submit"
-        class="btn disabled:btn-disabled btn-primary btn-large"
-        [disabled]="passwordForm.pristine || passwordForm.invalid || loading()"
-      >
-        {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
-      </button>
-    </div>
-  </form>`
+  templateUrl: './password.component.html',
+  imports: [
+    ReactiveFormsModule,
+    TranslateModule,
+    ZardBadgeComponent,
+    ZardButtonComponent,
+    ZardFormFieldComponent,
+    ZardFormLabelComponent,
+    ZardIconComponent,
+    ZardInputDirective
+  ]
 })
 export class XpAccountPasswordComponent {
-  user: User
-  readonly passwordControl = new FormControl(null, [Validators.required, Validators.minLength(8)])
-  passwordForm = new FormGroup(
+  private readonly userService = inject(UsersService)
+  private readonly toastr = inject(ToastrService)
+  readonly user = toSignal(inject(Store).user$)
+  readonly loading = signal(false)
+  readonly eyeOffIcon = EyeOff
+  readonly revealed = signal({ hash: false, password: false, confirmPassword: false })
+  readonly fields = [
+    { key: 'hash', label: 'XP.PasswordSettings.CurrentPassword', autocomplete: 'current-password' },
+    { key: 'password', label: 'XP.PasswordSettings.NewPassword', autocomplete: 'new-password' },
+    { key: 'confirmPassword', label: 'XP.PasswordSettings.ConfirmPassword', autocomplete: 'new-password' }
+  ] as const
+  readonly passwordForm = new FormGroup(
     {
-      hash: new FormControl(null, [Validators.required]), // Add required validator for current password
-      password: this.passwordControl,
-      confirmPassword: new FormControl(null, [Validators.required, matchWithValidator(this.passwordControl)])
+      hash: new FormControl('', { nonNullable: true, validators: Validators.required }),
+      password: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.minLength(8)] }),
+      confirmPassword: new FormControl('', { nonNullable: true, validators: Validators.required })
     },
-    {
-      validators: [matchValidator('password', 'confirmPassword')]
-    }
+    { validators: matchValidator('password', 'confirmPassword') }
   )
 
-  get hash() {
-    return this.passwordForm.get('hash')
+  fieldError(key: PasswordField): string | null {
+    const control = this.passwordForm.controls[key]
+    if (!control.touched) {
+      return null
+    }
+    if (control.hasError('required')) {
+      return {
+        hash: 'XP.PasswordSettings.CurrentRequired',
+        password: 'XP.PasswordSettings.NewRequired',
+        confirmPassword: 'XP.PasswordSettings.ConfirmationRequired'
+      }[key]
+    }
+    if (control.hasError('minlength')) {
+      return 'XP.PasswordSettings.MinLength'
+    }
+    if (key === 'confirmPassword' && this.passwordForm.hasError('mismatch')) {
+      return 'XP.PasswordSettings.MustMatch'
+    }
+    if (key === 'hash' && control.hasError('error')) {
+      return 'XP.PasswordSettings.CurrentRejected'
+    }
+    return null
   }
 
-  readonly loading = signal(false)
-
-  private _userSub = this.store.user$.pipe(takeUntilDestroyed()).subscribe((user) => {
-    this.user = cloneDeep(user) as User
-  })
-  constructor(
-    private readonly store: Store,
-    private readonly userService: UsersService,
-    private readonly _toastrService: ToastrService
-  ) {}
-
-  minlengthError() {
-    return this.passwordForm.get('password').getError('minlength')
+  describedBy(key: PasswordField): string | null {
+    if (this.fieldError(key)) {
+      return `password-${key}-error`
+    }
+    return key === 'password' ? 'password-requirement' : null
   }
 
-  mustMatchError() {
-    return this.passwordForm.get('confirmPassword').getError('mismatch')
+  toggleVisibility(key: PasswordField) {
+    this.revealed.update((state) => ({ ...state, [key]: !state[key] }))
+  }
+
+  clear() {
+    if (!this.loading()) {
+      this.passwordForm.reset()
+      this.revealed.set({ hash: false, password: false, confirmPassword: false })
+    }
   }
 
   async resetPassword() {
-    if (this.passwordForm.valid) {
-      try {
-        this.loading.set(true)
-        await firstValueFrom(this.userService.password(this.user.id, pick(this.passwordForm.value, 'hash', 'password')))
-        this.passwordForm.markAsPristine()
-        this._toastrService.success('XP.MESSAGE.PasswordChange', { Default: 'Password change' })
-      } catch (err) {
-        this._toastrService.error(getErrorMessage(err))
-        if (err instanceof HttpErrorResponse) {
-          if (err.status === HttpStatus.FORBIDDEN) {
-            this.passwordForm.get('hash').setErrors({
-              error: `Error`
-            })
-          }
-        }
-      } finally {
-        this.loading.set(false)
+    if (this.loading()) {
+      return
+    }
+    if (this.passwordForm.invalid) {
+      this.passwordForm.markAllAsTouched()
+      return
+    }
+    if (this.passwordForm.pristine || !this.user()?.id) {
+      return
+    }
+
+    const { hash, password } = this.passwordForm.getRawValue()
+    this.loading.set(true)
+    try {
+      await firstValueFrom(this.userService.password(this.user().id, { hash, password }))
+      this.passwordForm.reset()
+      this.revealed.set({ hash: false, password: false, confirmPassword: false })
+      this.toastr.success('XP.MESSAGE.PasswordChange', { Default: 'Password change' })
+    } catch (error) {
+      this.toastr.error(getErrorMessage(error))
+      if (error instanceof HttpErrorResponse && error.status === HttpStatus.FORBIDDEN) {
+        this.passwordForm.controls.hash.setErrors({ error: true })
+        this.passwordForm.controls.hash.markAsTouched()
       }
+    } finally {
+      this.loading.set(false)
     }
   }
 }
