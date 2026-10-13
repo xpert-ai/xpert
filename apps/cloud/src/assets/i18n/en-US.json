@@ -2187,7 +2187,18 @@
       "LoadError": "Invitation relationships could not be loaded.",
       "Previous": "Previous",
       "Next": "Next",
-      "PageSummary": "Page {{page}} of {{pages}} · {{total}} total"
+      "PageSummary": "Page {{page}} of {{pages}} · {{total}} total",
+      "DirectoryDescription": "View direct account invitation relationships in this tenant.",
+      "RelationCount": "{{count}} relationships",
+      "ReadOnly": "Read-only records",
+      "ClearSearch": "Clear search",
+      "Refresh": "Refresh relationships",
+      "NoResults": "No matching relationships",
+      "SearchHint": "Try another account or invitation code.",
+      "EmptyHint": "Relationships appear here when someone registers using an invitation code.",
+      "RetryHint": "The list has not been updated. Please try again.",
+      "Unavailable": "Invitation relationships are currently unavailable.",
+      "PagePosition": "Page {{page}} of {{pages}}"
     },
     "Operations": {
       "McpManagementSections": "MCP management sections",

@@ -1221,7 +1221,18 @@
       "LoadError": "邀請關係載入失敗。",
       "Previous": "上一頁",
       "Next": "下一頁",
-      "PageSummary": "第 {{page}} / {{pages}} 頁，共 {{total}} 筆"
+      "PageSummary": "第 {{page}} / {{pages}} 頁，共 {{total}} 筆",
+      "DirectoryDescription": "檢視目前租戶內帳號之間的直接邀請關係。",
+      "RelationCount": "共 {{count}} 筆關係",
+      "ReadOnly": "僅供檢視",
+      "ClearSearch": "清除搜尋",
+      "Refresh": "重新整理邀請關係",
+      "NoResults": "沒有符合的邀請關係",
+      "SearchHint": "試試其他帳號或邀請碼。",
+      "EmptyHint": "新帳號使用邀請碼註冊後，邀請關係會顯示在這裡。",
+      "RetryHint": "清單尚未更新，請重試。",
+      "Unavailable": "暫時無法顯示邀請關係。",
+      "PagePosition": "第 {{page}} / {{pages}} 頁"
     },
     "Operations": {
       "McpManagementSections": "MCP 管理分區",

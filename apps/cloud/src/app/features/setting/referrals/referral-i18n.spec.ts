@@ -27,7 +27,18 @@ const referralTranslationKeys = [
   'LoadError',
   'Previous',
   'Next',
-  'PageSummary'
+  'PageSummary',
+  'DirectoryDescription',
+  'RelationCount',
+  'ReadOnly',
+  'ClearSearch',
+  'Refresh',
+  'NoResults',
+  'SearchHint',
+  'EmptyHint',
+  'RetryHint',
+  'Unavailable',
+  'PagePosition'
 ]
 
 describe('referral translations', () => {

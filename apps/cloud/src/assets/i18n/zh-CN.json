@@ -575,7 +575,18 @@
       "LoadError": "邀请关系加载失败。",
       "Previous": "上一页",
       "Next": "下一页",
-      "PageSummary": "第 {{page}} / {{pages}} 页，共 {{total}} 条"
+      "PageSummary": "第 {{page}} / {{pages}} 页，共 {{total}} 条",
+      "DirectoryDescription": "查看当前租户内账号之间的直接邀请关系。",
+      "RelationCount": "共 {{count}} 条关系",
+      "ReadOnly": "仅供查看",
+      "ClearSearch": "清空搜索",
+      "Refresh": "刷新邀请关系",
+      "NoResults": "没有匹配的邀请关系",
+      "SearchHint": "试试其他账号或邀请码。",
+      "EmptyHint": "新账号使用邀请码注册后，邀请关系会显示在这里。",
+      "RetryHint": "列表尚未更新，请重试。",
+      "Unavailable": "暂时无法显示邀请关系。",
+      "PagePosition": "第 {{page}} / {{pages}} 页"
     },
     "Operations": {
       "McpManagementSections": "MCP 管理分区",
