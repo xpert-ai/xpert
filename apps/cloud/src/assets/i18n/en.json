@@ -588,6 +588,33 @@
         "Reused": "The robot already has a system integration. Its authorization was updated; existing name, avatar and description were kept."
       }
     },
+    "IntegrationSettings": {
+      "Description": "Manage external service connections for assistants and workspaces.",
+      "SearchPlaceholder": "Search name or description…",
+      "SearchProviders": "Search providers…",
+      "NoProviders": "No matching providers",
+      "Count": "{{count}} integrations",
+      "LoadFailed": "Unable to load integrations. Please try again.",
+      "MoreActions": "More actions",
+      "NoDescription": "No description",
+      "UpdatedAt": "Updated",
+      "ViewConfiguration": "View configuration",
+      "NoResults": "No matching integrations",
+      "NoResultsHint": "Try another keyword or clear the provider filter.",
+      "EmptyTitle": "No integrations yet",
+      "EmptyDescription": "Add an integration to connect the services your team uses.",
+      "ClearFilters": "Clear filters",
+      "BackToList": "Back to integrations",
+      "EditTitle": "Edit integration",
+      "Basics": "Basic information",
+      "BasicsHint": "Set a name, avatar and description so your team can identify this connection.",
+      "Connection": "Connection settings",
+      "ConnectionHint": "Choose a provider and enter its connection parameters.",
+      "SelectProviderHint": "Choose a provider to see its setup methods and settings.",
+      "TestResults": "Connection and test results",
+      "Yes": "Yes",
+      "No": "No"
+    },
     "AssistantSettings": {
       "DirectQrSaveHint": "QR connections take effect immediately. Other trigger changes are saved as drafts and require publishing.",
       "DirectQrOffline": "The robot is enabled but currently offline. Refresh to check its connection.",

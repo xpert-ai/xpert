@@ -1,126 +1,180 @@
-<h2 class="xp-page-title">{{ 'XP.Integration.SystemIntegrations' | translate: { Default: 'System Integrations' } }}</h2>
+<div class="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+  <header class="flex flex-wrap items-start justify-between gap-4">
+    <div>
+      <div class="flex flex-wrap items-center gap-3">
+        <h1 class="text-2xl font-semibold tracking-tight">
+          {{ 'XP.Integration.SystemIntegrations' | translate: { Default: 'System Integrations' } }}
+        </h1>
+        <z-badge zType="outline">{{
+          (activeScope().level === tenantScope ? 'XP.Assistant.TenantScope' : 'XP.Assistant.OrganizationScope')
+            | translate
+        }}</z-badge>
+      </div>
+      <p class="mt-2 text-sm text-muted-foreground">{{ 'XP.IntegrationSettings.Description' | translate }}</p>
+    </div>
+    <button z-button type="button" class="pointer-coarse:min-h-[44px]" (click)="newIntegration()">
+      <z-icon zType="add" />{{ 'XP.Integration.AddIntegration' | translate: { Default: 'Add Integration' } }}
+    </button>
+  </header>
 
-<div class="w-full flex justify-start items-center gap-2 p-4">
-  <xp-select
-    class="w-64"
-    [selectOptions]="providers()"
-    [(ngModel)]="provider"
-    [placeholder]="'XP.Integration.AllProviders' | translate: { Default: 'All Providers' }"
-  >
-    <div icon>
-      @if (integrationProvider(); as provider) {
-        @if (provider.icon) {
-          <xp-icon
-            [icon]="provider.icon"
-            class="w-5 h-5 shrink-0 rounded-lg mr-1 bg-components-input-bg-normal flex justify-center items-center"
-          />
-        } @else if (provider.avatar) {
-          <img class="w-5 h-5 rounded-lg mr-1" [src]="'/assets/images/integrations/' + provider.avatar" />
-        }
+  <div class="flex flex-wrap items-center gap-3">
+    <z-search-input
+      class="w-full min-w-0 sm:max-w-xs pointer-coarse:[&_input]:min-h-[44px]"
+      [formControl]="searchControl"
+      [placeholder]="'XP.IntegrationSettings.SearchPlaceholder' | translate"
+      [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
+    />
+    <xp-integration-provider-select
+      class="min-w-0 flex-1 sm:max-w-56"
+      [providers]="providers()"
+      [(value)]="provider"
+      [placeholder]="'XP.Integration.AllProviders' | translate: { Default: 'All Providers' }"
+    />
+    <div class="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
+      <span role="status">{{
+        'XP.IntegrationSettings.Count' | translate: { count: filteredIntegrations().length }
+      }}</span>
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        type="button"
+        class="pointer-coarse:size-[44px]"
+        [zDisabled]="loading()"
+        (click)="refresh()"
+        [attr.aria-label]="'XP.Referral.Refresh' | translate"
+      >
+        <z-icon zType="refresh" [class]="loading() ? 'animate-spin motion-reduce:animate-none' : ''" />
+      </button>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div
+      role="status"
+      class="flex min-h-64 items-center justify-center gap-2 rounded-lg border border-border text-sm text-muted-foreground"
+    >
+      <z-icon zType="loader-circle" class="animate-spin motion-reduce:animate-none" />{{
+        'XP.Common.Loading' | translate
+      }}
+    </div>
+  } @else if (loadFailed()) {
+    <div role="alert" class="flex flex-wrap items-center gap-3 rounded-lg border border-border p-5">
+      <z-icon zType="circle-alert" class="text-muted-foreground" />
+      <p class="min-w-0 flex-1 text-sm">{{ 'XP.IntegrationSettings.LoadFailed' | translate }}</p>
+      <button z-button zType="outline" type="button" (click)="refresh()">
+        {{ 'XP.UserSettings.Retry' | translate }}
+      </button>
+    </div>
+  } @else if (filteredIntegrations().length) {
+    <div class="grid min-w-0 grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+      @for (item of filteredIntegrations(); track item.id) {
+        <article class="flex min-w-0 flex-col rounded-lg border border-border bg-card">
+          <div class="flex items-start gap-3 p-5 pb-3">
+            <emoji-avatar [avatar]="item.avatar" class="shrink-0 overflow-hidden rounded-lg" />
+            <div class="min-w-0 flex-1">
+              <a
+                class="block truncate text-base font-semibold hover:underline focus-visible:outline-ring"
+                [routerLink]="[item.id]"
+                [title]="item.name"
+                >{{ item.name }}</a
+              >
+              <span class="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
+                @if (providerInfo(item.provider); as provider) {
+                  @if (provider.icon) {
+                    <xp-icon [icon]="provider.icon" [size]="14" class="shrink-0" />
+                  } @else if (provider.avatar) {
+                    <img
+                      class="size-3.5 object-contain"
+                      [src]="'/assets/images/integrations/' + provider.avatar"
+                      alt=""
+                    />
+                  }
+                  {{ provider.label | i18n }}
+                } @else {
+                  {{ item.provider }}
+                }
+              </span>
+            </div>
+            <button
+              z-button
+              zType="ghost"
+              zSize="icon"
+              type="button"
+              z-menu
+              [zMenuTriggerFor]="menu"
+              [zMenuTriggerData]="{ item: item }"
+              class="shrink-0 pointer-coarse:size-[44px]"
+              [attr.aria-label]="('XP.IntegrationSettings.MoreActions' | translate) + ' · ' + item.name"
+            >
+              <z-icon zType="ellipsis" />
+            </button>
+          </div>
+          <p class="mx-5 mb-4 line-clamp-2 min-h-10 text-sm leading-5 text-muted-foreground" [title]="item.description">
+            {{ item.description || ('XP.IntegrationSettings.NoDescription' | translate) }}
+          </p>
+          <div class="mx-5 mb-4 text-xs text-muted-foreground">
+            <p class="truncate">{{ 'XP.KEY_WORDS.By' | translate: { Default: 'By' } }} {{ item.createdBy | user }}</p>
+            <p class="mt-1">
+              {{ 'XP.IntegrationSettings.UpdatedAt' | translate }} {{ item.updatedAt | date: 'short' }}
+            </p>
+          </div>
+          <div class="mt-auto flex justify-end border-t border-border px-4 py-2">
+            <a z-button zType="ghost" [routerLink]="[item.id]" class="pointer-coarse:min-h-[44px]"
+              >{{ 'XP.IntegrationSettings.ViewConfiguration' | translate }}<z-icon zType="arrow-right"
+            /></a>
+          </div>
+        </article>
       }
     </div>
-    <ng-template #option let-option>
-      <div class="relative flex gap-2">
-        @if (option.avatar) {
-          <img class="w-8 h-8 rounded-lg" [src]="'/assets/images/integrations/' + option.avatar" />
-        } @else if (option._icon) {
-          <xp-icon
-            [icon]="option._icon"
-            class="w-8 h-8 shrink-0 rounded-lg bg-components-input-bg-normal flex justify-center items-center"
-          />
-        }
-        <div class="flex flex-col">
-          <div class="text-text-secondary text-sm leading-5">{{ option.label | i18n }}</div>
-          <div class="text-text-tertiary text-xs leading-3 line-clamp-3" [title]="option.description | i18n">
-            {{ option.description | i18n }}
-          </div>
-        </div>
+  } @else {
+    <div
+      class="flex min-h-72 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border px-6 py-10 text-center"
+    >
+      <span class="flex size-11 items-center justify-center rounded-lg bg-muted text-muted-foreground"
+        ><z-icon zType="ri-plug-line"
+      /></span>
+      <div>
+        <h2 class="text-base font-semibold">
+          {{
+            (search() || provider() ? 'XP.IntegrationSettings.NoResults' : 'XP.IntegrationSettings.EmptyTitle')
+              | translate
+          }}
+        </h2>
+        <p class="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
+          {{
+            (search() || provider()
+              ? 'XP.IntegrationSettings.NoResultsHint'
+              : 'XP.IntegrationSettings.EmptyDescription'
+            ) | translate
+          }}
+        </p>
       </div>
-    </ng-template>
-  </xp-select>
-  <z-search-input
-    [formControl]="searchControl"
-    [placeholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
-    [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
-  />
-</div>
-
-<nav
-  class="min-h-full content-start gap-4 px-4 pt-4 grow shrink-0 pb-4 overflow-auto"
-  xpDynamicGrid
-  colWidth="280"
-  box="content-box"
->
-  <xp-card-create
-    [title]="'XP.Integration.AddIntegration' | translate: { Default: 'Add Integration' }"
-    [helpTitle]="'XP.Integration.AddIntegrationHelp' | translate: { Default: 'Learn more about custom integrations' }"
-    helpUrl="/docs/server/organization/integration"
-    (create)="newIntegration()"
-  />
-
-  @for (item of filteredIntegrations(); track item.id) {
-    <div class="xp-card w-full p-4 group min-h-[160px] bg-background-default-subtle hover:bg-hover-bg">
-      <div class="h-full flex flex-col cursor-pointer" (click)="open(item.id)">
-        <div class="flex items-start gap-2">
-          <emoji-avatar [avatar]="item.avatar" class="rounded-lg overflow-hidden shadow-sm" />
-          <div class="flex flex-col items-start">
-            <p class="text-sm flex items-center gap-1 text-text-secondary opacity-80">
-              <z-badge
-                zType="outline"
-                zShape="pill"
-                class="border-text-success/30 bg-text-success/10 text-text-success"
-              >
-                {{ item.provider }}
-              </z-badge>
-              <span>{{ item.updatedAt | date: 'short' }}</span>
-            </p>
-            <div class="font-bold text-base">{{ item.name }}</div>
-          </div>
-        </div>
-
-        <div class="w-full my-1 text-sm text-text-secondary line-clamp-3" [title]="item.description">
-          {{ item.description }}
-        </div>
-
-        <div class="flex-1"></div>
-
-        <div class="flex justify-between items-end">
-          <div class="text-sm text-text-secondary">
-            {{ 'XP.KEY_WORDS.By' | translate: { Default: 'By' } }} <span>{{ item.createdBy | user }}</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="absolute left-0 bottom-0 w-full p-1 hidden group-hover:flex">
-        <div class="flex-1"></div>
-
-        <button
-          class="group flex items-center justify-center bg-components-input-bg-normal !bg-transparent h-8 w-8 !p-2 rounded-md border-none hover:!bg-black/5"
-          type="button"
-          #mt="cdkMenuTriggerFor"
-          [cdkMenuTriggerFor]="menu"
-          [cdkMenuTriggerData]="{ item: item }"
-          [class.active]="mt.isOpen()"
-        >
-          <i class="ri-more-line"></i>
+      @if (search() || provider()) {
+        <button z-button zType="outline" type="button" (click)="clearFilters()">
+          {{ 'XP.IntegrationSettings.ClearFilters' | translate }}
         </button>
-      </div>
+      }
     </div>
   }
-</nav>
-
+  <a
+    class="inline-flex w-fit items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground hover:underline"
+    [href]="helpWebsite() + '/docs/server/organization/integration'"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    <z-icon zType="help_outline" zSize="sm" />{{
+      'XP.Integration.AddIntegrationHelp' | translate: { Default: 'Learn more about custom integrations' }
+    }}
+  </a>
+</div>
 <ng-template #menu let-item="item">
-  <div class="xp-cdk-menu p-2" cdkMenu>
-    <button cdkMenuItem class="xp-cdk-menu-item p-1" (click)="edit(item)">
-      <i class="ri-pencil-line mr-1"></i>
-      <span>
-        {{ 'XP.ACTIONS.Edit' | translate: { Default: 'Edit' } }}
-      </span>
+  <div z-menu-content>
+    <button z-menu-item type="button" (click)="edit(item)">
+      <z-icon zType="edit" />{{ 'XP.ACTIONS.Edit' | translate: { Default: 'Edit' } }}
     </button>
-
-    <button cdkMenuItem class="xp-cdk-menu-item danger p-1" (click)="remove(item)">
-      <i class="ri-delete-bin-line mr-1"></i>
-      <span>{{ 'XP.ACTIONS.Delete' | translate: { Default: 'Delete' } }}</span>
+    <button z-menu-item zType="destructive" type="button" (click)="remove(item)">
+      <z-icon zType="delete" />{{ 'XP.ACTIONS.Delete' | translate: { Default: 'Delete' } }}
     </button>
   </div>
 </ng-template>

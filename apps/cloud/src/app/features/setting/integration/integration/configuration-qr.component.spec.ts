@@ -46,6 +46,19 @@ describe('Integration configuration QR entry', () => {
 
   afterEach(() => TestBed.resetTestingModule())
 
+  it('marks provider and dynamic parameter changes as unsaved without changing other fields', () => {
+    const { component } = setup()
+    component.formGroup.markAsPristine()
+    component.selectProvider('manual-provider')
+    expect(component.formGroup.controls.provider.value).toBe('manual-provider')
+    expect(component.isDirty()).toBe(true)
+    component.formGroup.markAsPristine()
+    component.updateOptions({ endpoint: 'https://example.com' })
+    expect(component.optionsControl.value).toEqual({ endpoint: 'https://example.com' })
+    expect(component.isDirty()).toBe(true)
+    expect(component.name).toBe('Robot')
+  })
+
   it('uses the provider capability and keeps manual configuration available', () => {
     const { component } = setup()
     expect(component.canScan()).toBe(true)

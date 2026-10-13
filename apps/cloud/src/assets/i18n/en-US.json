@@ -2161,6 +2161,33 @@
         }
       }
     },
+    "IntegrationSettings": {
+      "Description": "Manage external service connections for assistants and workspaces.",
+      "SearchPlaceholder": "Search name or description…",
+      "SearchProviders": "Search providers…",
+      "NoProviders": "No matching providers",
+      "Count": "{{count}} integrations",
+      "LoadFailed": "Unable to load integrations. Please try again.",
+      "MoreActions": "More actions",
+      "NoDescription": "No description",
+      "UpdatedAt": "Updated",
+      "ViewConfiguration": "View configuration",
+      "NoResults": "No matching integrations",
+      "NoResultsHint": "Try another keyword or clear the provider filter.",
+      "EmptyTitle": "No integrations yet",
+      "EmptyDescription": "Add an integration to connect the services your team uses.",
+      "ClearFilters": "Clear filters",
+      "BackToList": "Back to integrations",
+      "EditTitle": "Edit integration",
+      "Basics": "Basic information",
+      "BasicsHint": "Set a name, avatar and description so your team can identify this connection.",
+      "Connection": "Connection settings",
+      "ConnectionHint": "Choose a provider and enter its connection parameters.",
+      "SelectProviderHint": "Choose a provider to see its setup methods and settings.",
+      "TestResults": "Connection and test results",
+      "Yes": "Yes",
+      "No": "No"
+    },
     "AssistantSettings": {
       "Title": "Assistants",
       "TenantDescription": "Set default assistants for chat and workspaces. Organizations inherit these settings unless they configure an override.",

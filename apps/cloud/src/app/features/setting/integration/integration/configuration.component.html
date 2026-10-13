@@ -1,295 +1,324 @@
-<div class="flex-1 overflow-auto">
-  <form class="flex max-w-full flex-col gap-2 p-4 mx-auto lg:max-w-lg" [formGroup]="formGroup">
-    <emoji-avatar formControlName="avatar" large editable class="self-center overflow-hidden rounded-xl shadow-sm" />
-
-    <xp-input
-      class="flex-1"
-      [label]="'XP.KEY_WORDS.Name' | translate: { Default: 'Name' }"
-      [placeholder]="'XP.Integration.Qr.NamePlaceholder' | translate"
-      formControlName="name"
-    >
-      @if (!name) {
-        <div xpError>{{ 'XP.KEY_WORDS.NameRequired' | translate: { Default: 'Name is required' } }}</div>
-      }
-    </xp-input>
-
-    <div class="flex min-w-full flex-1 flex-col">
-      <label class="xp-input-label shrink-0">{{
-        'XP.KEY_WORDS.Description' | translate: { Default: 'Description' }
-      }}</label>
-      <textarea
-        class="xp-input-element"
-        z-input
-        formControlName="description"
-        cdkTextareaAutosize
-        cdkAutosizeMinRows="1"
-        cdkAutosizeMaxRows="5"
-      ></textarea>
-    </div>
-
-    <div class="flex min-w-full flex-1 flex-col">
-      <label class="xp-input-label flex shrink-0 items-center justify-between">
-        {{ 'XP.Integration.Provider' | translate: { Default: 'Provider' } }}
-
-        @if (providerHelpLinks().length) {
-          <span class="flex items-center gap-3">
-            @for (helpLink of providerHelpLinks(); track helpLink.url) {
-              <a
-                [href]="helpLink.url"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="group inline-flex items-center text-xs text-primary-400 hover:text-primary-600 hover:underline"
-              >
-                @if (helpLink.label) {
-                  {{ helpLink.label | i18n }}
-                } @else {
-                  {{ 'XP.KEY_WORDS.Help' | translate: { Default: 'Help' } }}
-                }
-                <i class="ri-book-open-line ml-1 flex items-center justify-center group-hover:hidden"></i>
-                <i class="ri-book-open-fill ml-1 hidden items-center justify-center group-hover:flex"></i>
-              </a>
-            }
-          </span>
-        }
-      </label>
-      <xp-select
-        class="flex-1"
-        [placeholder]="'XP.Integration.SelectProvider' | translate: { Default: 'Select a provider' }"
-        formControlName="provider"
-        [selectOptions]="providers()"
-      >
-        <div icon>
-          @if (integrationProvider(); as provider) {
-            @if (provider.icon) {
-              <xp-icon
-                [icon]="provider.icon"
-                class="mr-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-components-input-bg-normal"
-              />
-            } @else if (provider.avatar) {
-              <img class="mr-1 h-5 w-5 rounded-lg" [src]="'/assets/images/integrations/' + provider.avatar" />
-            }
+<form class="flex w-full min-w-0 max-w-4xl flex-col gap-6" [formGroup]="formGroup" [attr.aria-busy]="loading()">
+  <section aria-labelledby="integration-basics-title" class="min-w-0">
+    <h2 id="integration-basics-title" class="text-base font-semibold">
+      {{ 'XP.IntegrationSettings.Basics' | translate }}
+    </h2>
+    <p class="mt-1 text-sm text-muted-foreground">{{ 'XP.IntegrationSettings.BasicsHint' | translate }}</p>
+    <div class="mt-5 flex items-start gap-4">
+      <emoji-avatar formControlName="avatar" large editable class="shrink-0 overflow-hidden rounded-lg" />
+      <div class="grid min-w-0 flex-1 gap-4">
+        <div class="grid gap-2">
+          <label for="integration-name" class="text-sm font-medium"
+            >{{ 'XP.KEY_WORDS.Name' | translate: { Default: 'Name' } }}
+            <span aria-hidden="true" class="text-destructive">*</span></label
+          >
+          <input
+            z-input
+            id="integration-name"
+            formControlName="name"
+            required
+            maxlength="100"
+            class="pointer-coarse:min-h-[44px]"
+            [placeholder]="'XP.Integration.Qr.NamePlaceholder' | translate"
+            [attr.aria-invalid]="formGroup.controls.name.invalid && formGroup.controls.name.touched"
+            [attr.aria-describedby]="
+              formGroup.controls.name.invalid && formGroup.controls.name.touched ? 'integration-name-error' : null
+            "
+          />
+          @if (formGroup.controls.name.invalid && formGroup.controls.name.touched) {
+            <p id="integration-name-error" class="text-xs text-destructive">
+              {{ 'XP.KEY_WORDS.NameRequired' | translate: { Default: 'Name is required' } }}
+            </p>
           }
         </div>
-        <ng-template #option let-option>
-          <div class="relative flex gap-2">
-            @if (option.avatar) {
-              <img class="h-8 w-8 rounded-lg" [src]="'/assets/images/integrations/' + option.avatar" />
-            } @else if (option._icon) {
-              <xp-icon
-                [icon]="option._icon"
-                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-components-input-bg-normal"
-              />
-            }
-            <div class="flex flex-col">
-              <div class="text-sm leading-5 text-text-secondary">{{ option.label | i18n }}</div>
-              <div class="line-clamp-3 text-xs leading-3 text-text-tertiary" [title]="option.description | i18n">
-                {{ option.description | i18n }}
-              </div>
-            </div>
-          </div>
-        </ng-template>
-      </xp-select>
+        <div class="grid gap-2">
+          <label for="integration-description" class="text-sm font-medium">{{
+            'XP.KEY_WORDS.Description' | translate: { Default: 'Description' }
+          }}</label>
+          <textarea
+            z-input
+            id="integration-description"
+            formControlName="description"
+            class="min-h-20 resize-y"
+            cdkTextareaAutosize
+            cdkAutosizeMinRows="1"
+            cdkAutosizeMaxRows="5"
+          ></textarea>
+        </div>
+      </div>
     </div>
+  </section>
 
-    @if (canScan()) {
-      <div
-        class="mt-3 flex gap-2 rounded-lg bg-muted p-1"
-        role="group"
-        [attr.aria-label]="'XP.Integration.Qr.SetupMethod' | translate"
-      >
-        <button
-          z-button
-          class="flex-1"
-          type="button"
-          [zType]="scanMode() ? 'default' : 'ghost'"
-          [attr.aria-pressed]="scanMode()"
-          (click)="setupMode.set('qr')"
-        >
-          {{ 'XP.Integration.Qr.ScanMode' | translate }}
-        </button>
-        <button
-          z-button
-          class="flex-1"
-          type="button"
-          [zType]="scanMode() ? 'ghost' : 'default'"
-          [attr.aria-pressed]="!scanMode()"
-          (click)="setupMode.set('manual')"
-        >
-          {{ 'XP.Integration.Qr.ManualMode' | translate }}
-        </button>
-      </div>
-    }
-
-    @if (scanMode()) {
-      <div class="flex flex-col items-center gap-3 py-8 text-center">
-        <z-icon zType="ri-qr-code-line" class="text-muted-foreground" zSize="xl" />
-        <h3 class="text-base font-semibold">{{ 'XP.Integration.Qr.Title' | translate }}</h3>
-        <p class="max-w-sm text-sm leading-6 text-muted-foreground">{{ 'XP.Integration.Qr.SetupHint' | translate }}</p>
-        <p class="max-w-sm text-xs leading-5 text-muted-foreground">
-          {{ 'XP.Integration.Qr.BindingHint' | translate }}
-        </p>
-        @if (!qrOrganizationId()) {
-          <p role="status" class="text-sm text-muted-foreground">
-            {{ 'XP.Integration.Qr.OrganizationRequired' | translate }}
-          </p>
-        }
-      </div>
-    } @else if (integrationProvider(); as provider) {
-      @if (provider.pro && !pro) {
-        <card-pro
-          helpUrl="/pricing/"
-          [description]="{
-            zh_Hans: '专业版集成场景',
-            en_US: 'Integration Scenarios of Professional Edition'
-          }"
+  <section aria-labelledby="integration-connection-title" class="min-w-0 border-t border-border pt-6">
+    <h2 id="integration-connection-title" class="text-base font-semibold">
+      {{ 'XP.IntegrationSettings.Connection' | translate }}
+    </h2>
+    <p class="mt-1 text-sm text-muted-foreground">{{ 'XP.IntegrationSettings.ConnectionHint' | translate }}</p>
+    <div class="mt-5 grid gap-4">
+      <div class="grid gap-2">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <span class="text-sm font-medium">{{ 'XP.Integration.Provider' | translate: { Default: 'Provider' } }}</span>
+          @if (providerHelpLinks().length) {
+            <span class="flex flex-wrap items-center gap-3">
+              @for (helpLink of providerHelpLinks(); track helpLink.url) {
+                <a
+                  [href]="helpLink.url"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground hover:underline"
+                >
+                  {{ helpLink.label ? (helpLink.label | i18n) : ('XP.KEY_WORDS.Help' | translate: { Default: 'Help' })
+                  }}<z-icon zType="arrow-up-right" zSize="sm" />
+                </a>
+              }
+            </span>
+          }
+        </div>
+        <xp-integration-provider-select
+          [providers]="providersResource()"
+          [value]="provider()"
+          (valueChange)="selectProvider($event)"
+          [placeholder]="'XP.Integration.SelectProvider' | translate: { Default: 'Select a provider' }"
         />
-      } @else {
-        <parameter-form
-          #optionsForm
-          [schema]="schema()"
-          [ngModel]="optionsControl.value"
-          (ngModelChange)="optionsControl.setValue($event)"
-          [ngModelOptions]="{ standalone: true }"
-        />
+      </div>
+      @if (canScan()) {
+        <div
+          class="mt-3 flex gap-2 rounded-lg bg-muted p-1"
+          role="group"
+          [attr.aria-label]="'XP.Integration.Qr.SetupMethod' | translate"
+        >
+          <button
+            z-button
+            class="flex-1 pointer-coarse:min-h-[44px]"
+            type="button"
+            [zType]="scanMode() ? 'default' : 'ghost'"
+            [attr.aria-pressed]="scanMode()"
+            (click)="setupMode.set('qr')"
+          >
+            {{ 'XP.Integration.Qr.ScanMode' | translate }}
+          </button>
+          <button
+            z-button
+            class="flex-1 pointer-coarse:min-h-[44px]"
+            type="button"
+            [zType]="scanMode() ? 'ghost' : 'default'"
+            [attr.aria-pressed]="!scanMode()"
+            (click)="setupMode.set('manual')"
+          >
+            {{ 'XP.Integration.Qr.ManualMode' | translate }}
+          </button>
+        </div>
       }
-    }
 
-    @if (webhookUrl()) {
-      <div>
-        <p>{{ 'XP.Integration.WebhookUrl' | translate: { Default: 'Webhook url' } }}:</p>
-        <pre class="whitespace-break-spaces rounded-md bg-background-default-subtle px-2 py-1 text-sm">{{
-          webhookUrl()
-        }}</pre>
-      </div>
-    }
+      @if (scanMode()) {
+        <div class="flex flex-col items-center gap-3 py-8 text-center">
+          <z-icon zType="ri-qr-code-line" class="text-muted-foreground" zSize="xl" />
+          <h3 class="text-base font-semibold">{{ 'XP.Integration.Qr.Title' | translate }}</h3>
+          <p class="max-w-sm text-sm leading-6 text-muted-foreground">
+            {{ 'XP.Integration.Qr.SetupHint' | translate }}
+          </p>
+          <p class="max-w-sm text-xs leading-5 text-muted-foreground">
+            {{ 'XP.Integration.Qr.BindingHint' | translate }}
+          </p>
+          @if (!qrOrganizationId()) {
+            <p role="status" class="text-sm text-muted-foreground">
+              {{ 'XP.Integration.Qr.OrganizationRequired' | translate }}
+            </p>
+          }
+        </div>
+      } @else if (integrationProvider(); as provider) {
+        @if (provider.pro && !pro) {
+          <card-pro
+            helpUrl="/pricing/"
+            [description]="{
+              zh_Hans: '专业版集成场景',
+              en_US: 'Integration Scenarios of Professional Edition'
+            }"
+          />
+        } @else {
+          <parameter-form
+            #optionsForm
+            [schema]="schema()"
+            [ngModel]="optionsControl.value"
+            (ngModelChange)="updateOptions($event)"
+            [ngModelOptions]="{ standalone: true }"
+          />
+        }
+      }
 
-    @if (callbackUrl()) {
-      <div class="flex flex-col gap-2">
-        <p>{{ 'XP.KEY_WORDS.CallbackUrl' | translate: { Default: 'Callback URL' } }}:</p>
-        <pre class="whitespace-break-spaces rounded-md bg-background-default-subtle px-2 py-1 text-sm">{{
-          callbackUrl()
-        }}</pre>
-      </div>
-    }
+      @if (!integrationProvider()) {
+        <p class="rounded-md bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
+          {{ 'XP.IntegrationSettings.SelectProviderHint' | translate }}
+        </p>
+      }
+    </div>
+  </section>
 
-    @if (authorizationUrl()) {
-      <div class="flex flex-col gap-2 rounded-lg border border-divider-subtle p-3">
-        <p>{{ 'XP.KEY_WORDS.Authorization' | translate: { Default: 'Authorization' } }}</p>
-        <div class="text-sm text-text-secondary">
+  @if (
+    webhookUrl() ||
+    callbackUrl() ||
+    authorizationUrl() ||
+    longConnectionProbe() ||
+    testWarnings().length ||
+    (authorizationRequiresSavedIntegration() && !paramId() && callbackUrl())
+  ) {
+    <section aria-labelledby="integration-results-title" class="grid min-w-0 gap-4 border-t border-border pt-6">
+      <h2 id="integration-results-title" class="text-base font-semibold">
+        {{ 'XP.IntegrationSettings.TestResults' | translate }}
+      </h2>
+      @if (webhookUrl()) {
+        <div>
+          <p>{{ 'XP.Integration.WebhookUrl' | translate: { Default: 'Webhook url' } }}:</p>
+          <pre class="whitespace-pre-wrap break-all rounded-md bg-muted/50 px-2 py-1 text-sm">{{ webhookUrl() }}</pre>
+        </div>
+      }
+
+      @if (callbackUrl()) {
+        <div class="flex flex-col gap-2">
+          <p>{{ 'XP.KEY_WORDS.CallbackUrl' | translate: { Default: 'Callback URL' } }}:</p>
+          <pre class="whitespace-pre-wrap break-all rounded-md bg-muted/50 px-2 py-1 text-sm">{{ callbackUrl() }}</pre>
+        </div>
+      }
+
+      @if (authorizationUrl()) {
+        <div class="flex flex-col gap-2 rounded-lg border border-border p-3">
+          <p>{{ 'XP.KEY_WORDS.Authorization' | translate: { Default: 'Authorization' } }}</p>
+          <div class="text-sm text-muted-foreground">
+            {{
+              (longConnectionProbe()?.connected
+                ? 'XP.Integration.ReconnectSlackHint'
+                : 'XP.Integration.ConnectSlackHint'
+              )
+                | translate
+                  : {
+                      Default: longConnectionProbe()?.connected
+                        ? 'Reconnect the Slack app if you need to refresh workspace authorization.'
+                        : 'Open Slack to install the app and grant the required workspace scopes.'
+                    }
+            }}
+          </div>
+          <div>
+            <button
+              class="pointer-coarse:min-h-[44px]"
+              z-button
+              zType="outline"
+              type="button"
+              (click)="openAuthorizationUrl()"
+            >
+              {{
+                (longConnectionProbe()?.connected ? 'XP.Integration.ReconnectSlack' : 'XP.Integration.ConnectSlack')
+                  | translate
+                    : {
+                        Default: longConnectionProbe()?.connected ? 'Reconnect Slack' : 'Connect to Slack'
+                      }
+              }}
+            </button>
+          </div>
+        </div>
+      } @else if (authorizationRequiresSavedIntegration() && !paramId() && callbackUrl()) {
+        <div class="rounded-lg border border-border p-3 text-sm text-muted-foreground">
           {{
-            (longConnectionProbe()?.connected ? 'XP.Integration.ReconnectSlackHint' : 'XP.Integration.ConnectSlackHint')
+            'XP.Integration.SaveIntegrationBeforeAuthorize'
               | translate
                 : {
-                    Default: longConnectionProbe()?.connected
-                      ? 'Reconnect the Slack app if you need to refresh workspace authorization.'
-                      : 'Open Slack to install the app and grant the required workspace scopes.'
+                    Default: 'Save this integration first, then the authorization button will appear here.'
                   }
           }}
         </div>
-        <div>
-          <button z-button zType="secondary" type="button" (click)="openAuthorizationUrl()">
-            {{
-              (longConnectionProbe()?.connected ? 'XP.Integration.ReconnectSlack' : 'XP.Integration.ConnectSlack')
-                | translate
-                  : {
-                      Default: longConnectionProbe()?.connected ? 'Reconnect Slack' : 'Connect to Slack'
-                    }
-            }}
-          </button>
-        </div>
-      </div>
-    } @else if (authorizationRequiresSavedIntegration() && !paramId() && callbackUrl()) {
-      <div class="rounded-lg border border-divider-subtle p-3 text-sm text-text-secondary">
-        {{
-          'XP.Integration.SaveIntegrationBeforeAuthorize'
-            | translate
-              : {
-                  Default: 'Save this integration first, then the authorization button will appear here.'
-                }
-        }}
-      </div>
-    }
+      }
 
-    @if (longConnectionProbe(); as probe) {
-      <div class="flex flex-col gap-2">
-        <p>{{ 'XP.Integration.LongConnectionStatus' | translate: { Default: 'Long connection status' } }}:</p>
-        <div class="flex flex-col gap-1 rounded-md bg-background-default-subtle px-3 py-2 text-sm">
-          <div>
-            <span class="font-medium">{{ 'XP.KEY_WORDS.Connected' | translate: { Default: 'Connected' } }}:</span>
-            {{ probe.connected === true ? 'Yes' : probe.connected === false ? 'No' : '-' }}
-          </div>
-          <div>
-            <span class="font-medium">{{ 'XP.KEY_WORDS.State' | translate: { Default: 'State' } }}:</span>
-            {{ probe.state || '-' }}
-          </div>
-          <div>
-            <span class="font-medium">{{ 'XP.KEY_WORDS.Error' | translate: { Default: 'Last error' } }}:</span>
-            <span class="whitespace-break-spaces">{{ probe.lastError || '-' }}</span>
-          </div>
-          <div>
-            <span class="font-medium">{{ 'XP.KEY_WORDS.CheckedAt' | translate: { Default: 'Checked at' } }}:</span>
-            {{ formatCheckedAt(probe.checkedAt) || '-' }}
+      @if (longConnectionProbe(); as probe) {
+        <div class="flex flex-col gap-2">
+          <p>{{ 'XP.Integration.LongConnectionStatus' | translate: { Default: 'Long connection status' } }}:</p>
+          <div class="flex flex-col gap-1 rounded-md bg-muted/50 px-3 py-2 text-sm">
+            <div>
+              <span class="font-medium">{{ 'XP.KEY_WORDS.Connected' | translate: { Default: 'Connected' } }}:</span>
+              {{
+                probe.connected === true
+                  ? ('XP.IntegrationSettings.Yes' | translate)
+                  : probe.connected === false
+                    ? ('XP.IntegrationSettings.No' | translate)
+                    : '-'
+              }}
+            </div>
+            <div>
+              <span class="font-medium">{{ 'XP.KEY_WORDS.State' | translate: { Default: 'State' } }}:</span>
+              {{ probe.state || '-' }}
+            </div>
+            <div>
+              <span class="font-medium">{{ 'XP.KEY_WORDS.Error' | translate: { Default: 'Last error' } }}:</span>
+              <span class="whitespace-pre-wrap break-all">{{ probe.lastError || '-' }}</span>
+            </div>
+            <div>
+              <span class="font-medium">{{ 'XP.KEY_WORDS.CheckedAt' | translate: { Default: 'Checked at' } }}:</span>
+              {{ formatCheckedAt(probe.checkedAt) || '-' }}
+            </div>
           </div>
         </div>
-      </div>
-    }
+      }
 
-    @if (testWarnings().length) {
-      <div class="flex flex-col gap-2">
-        <p>{{ 'XP.KEY_WORDS.Warnings' | translate: { Default: 'Warnings' } }}:</p>
-        <div class="rounded-md bg-amber-50 px-3 py-2 text-sm dark:bg-amber-500/10">
-          <ul class="flex list-disc flex-col gap-1 pl-5">
-            @for (warning of testWarnings(); track warning) {
-              <li class="whitespace-break-spaces">{{ warning }}</li>
-            }
-          </ul>
+      @if (testWarnings().length) {
+        <div class="flex flex-col gap-2">
+          <p>{{ 'XP.KEY_WORDS.Warnings' | translate: { Default: 'Warnings' } }}:</p>
+          <div class="rounded-md bg-muted px-3 py-2 text-sm">
+            <ul class="flex list-disc flex-col gap-1 pl-5">
+              @for (warning of testWarnings(); track warning) {
+                <li class="whitespace-pre-wrap break-all">{{ warning }}</li>
+              }
+            </ul>
+          </div>
         </div>
-      </div>
+      }
+    </section>
+  }
+  <footer
+    class="sticky bottom-0 flex w-full flex-wrap items-center justify-between gap-3 border-t border-border bg-background/95 py-4 backdrop-blur-sm"
+  >
+    @if (!scanMode()) {
+      <button
+        class="pointer-coarse:min-h-[44px]"
+        z-button
+        zType="outline"
+        type="button"
+        [zDisabled]="loading() || !integrationProvider() || optionsInvalid"
+        (click)="test()"
+      >
+        {{ 'XP.KEY_WORDS.Test' | translate: { Default: 'Test' } }}
+      </button>
     }
-
-    <div class="filter-bar flex w-full items-center justify-between gap-4 p-2">
-      @if (!scanMode()) {
+    <div class="ml-auto flex items-center gap-2">
+      <button class="pointer-coarse:min-h-[44px]" z-button zType="outline" type="button" (click)="cancel()">
+        {{ 'XP.KEY_WORDS.Cancel' | translate: { Default: 'Cancel' } }}
+      </button>
+      @if (scanMode()) {
         <button
+          class="pointer-coarse:min-h-[44px]"
           z-button
-          zType="secondary"
+          zType="default"
           type="button"
-          [disabled]="!integrationProvider() || optionsInvalid"
-          (click)="test()"
+          [zDisabled]="loading() || !name?.trim() || formGroup.controls.name.invalid || !qrOrganizationId()"
+          (click)="createByQr()"
         >
-          {{ 'XP.KEY_WORDS.Test' | translate: { Default: 'Test' } }}
+          <z-icon zType="ri-qr-code-line" />{{ 'XP.Integration.Qr.ScanMode' | translate }}
+        </button>
+      } @else {
+        <button
+          class="pointer-coarse:min-h-[44px]"
+          z-button
+          zType="default"
+          type="button"
+          [zTooltip]="'XP.KEY_WORDS.Save' | translate: { Default: 'Save' }"
+          zPosition="top"
+          [zDisabled]="loading() || formGroup.invalid || formGroup.pristine || optionsInvalid"
+          (click)="upsert()"
+        >
+          <z-icon zType="save"></z-icon>
+          {{ 'XP.KEY_WORDS.Save' | translate: { Default: 'Save' } }}
         </button>
       }
-      <div class="ml-auto flex items-center gap-2">
-        <button z-button zType="secondary" type="button" (click)="cancel()">
-          {{ 'XP.KEY_WORDS.Cancel' | translate: { Default: 'Cancel' } }}
-        </button>
-        @if (scanMode()) {
-          <button
-            z-button
-            zType="default"
-            type="button"
-            [zDisabled]="!name?.trim() || formGroup.controls.name.invalid || !qrOrganizationId()"
-            (click)="createByQr()"
-          >
-            <z-icon zType="ri-qr-code-line" />{{ 'XP.Integration.Qr.ScanMode' | translate }}
-          </button>
-        } @else {
-          <button
-            z-button
-            zType="default"
-            [zTooltip]="'XP.KEY_WORDS.Save' | translate: { Default: 'Save' }"
-            zPosition="top"
-            [disabled]="formGroup.invalid || formGroup.pristine || optionsInvalid"
-            (click)="upsert()"
-          >
-            <z-icon zType="save"></z-icon>
-            {{ 'XP.KEY_WORDS.Save' | translate: { Default: 'Save' } }}
-          </button>
-        }
-      </div>
     </div>
-  </form>
-</div>
+  </footer>
+</form>
 
 @if (loading()) {
   <xp-spin class="absolute left-0 top-0 h-full w-full"></xp-spin>

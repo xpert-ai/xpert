@@ -1,47 +1,53 @@
-import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule, DatePipe } from '@angular/common'
-import { Component, computed, inject, model } from '@angular/core'
+import { Component, computed, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { FormControl, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { XpDynamicGridDirective } from '@xpert-ai/headless-ui'
-import { XpConfirmDeleteService, ZardBadgeComponent, ZardSearchInputComponent } from '@xpert-ai/headless-ui'
+import {
+  XpConfirmDeleteService,
+  ZardBadgeComponent,
+  ZardSearchInputComponent,
+  ZardButtonComponent,
+  ZardIconComponent,
+  ZardMenuImports
+} from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { BehaviorSubject, combineLatestWith, debounceTime, EMPTY, map, startWith, switchMap } from 'rxjs'
+import { BehaviorSubject, catchError, debounceTime, EMPTY, map, of, startWith, switchMap } from 'rxjs'
 import {
   getErrorMessage,
   IIntegration,
   IntegrationService,
   OrderTypeEnum,
   routeAnimations,
+  Store,
+  RequestScopeLevel,
   ToastrService
 } from '../../../@core'
 import { EmojiAvatarComponent, IconComponent } from '../../../@shared/avatar'
-import { CardCreateComponent } from '../../../@shared/card'
 import { UserPipe } from '../../../@shared/pipes'
-import { XpSelectComponent } from '@cloud/app/@shared/common'
 import { XpI18nPipe } from '@xpert-ai/headless-ui'
+import { injectHelpWebsite } from '../../../@core/providers/website'
+import { IntegrationProviderSelectComponent } from './integration-provider-select.component'
 
 @Component({
   standalone: true,
   selector: 'xp-settings-integrations',
   templateUrl: './home.component.html',
-  styleUrls: ['./home.component.scss'],
+  host: { class: 'block w-full min-w-0' },
   imports: [
     CommonModule,
     DatePipe,
-    FormsModule,
     ReactiveFormsModule,
     RouterModule,
     TranslateModule,
-    CdkMenuModule,
     UserPipe,
     ZardBadgeComponent,
-    CardCreateComponent,
     EmojiAvatarComponent,
-    XpDynamicGridDirective,
-    XpSelectComponent,
     ZardSearchInputComponent,
+    ZardButtonComponent,
+    ZardIconComponent,
+    ...ZardMenuImports,
+    IntegrationProviderSelectComponent,
     IconComponent,
     XpI18nPipe
   ],
@@ -59,46 +65,57 @@ export class IntegrationHomeComponent {
   readonly searchControl = new FormControl('')
   readonly provider = model<string | null>(null)
 
-  readonly #providers = toSignal(this.integrationAPI.getProviders(), { initialValue: [] })
-  readonly integrations = toSignal(
+  private readonly store = inject(Store)
+  readonly activeScope = toSignal(this.store.selectActiveScope(), { initialValue: this.store.activeScope })
+  readonly tenantScope = RequestScopeLevel.TENANT
+  readonly helpWebsite = injectHelpWebsite()
+  readonly loadFailed = signal(false)
+  readonly providers = toSignal(this.integrationAPI.getProviders(), { initialValue: [] })
+  readonly search = toSignal(
+    this.searchControl.valueChanges.pipe(
+      debounceTime(300),
+      map((value) => value?.trim().toLowerCase() ?? '')
+    ),
+    { initialValue: '' }
+  )
+  readonly directory = toSignal(
     this.refresh$.pipe(
-      switchMap(() =>
-        this.integrationAPI.getAllInOrg({ relations: ['createdBy'], order: { updatedAt: OrderTypeEnum.DESC } })
-      ),
-      combineLatestWith(
-        this.searchControl.valueChanges.pipe(
-          debounceTime(300),
-          map((text) => text?.toLowerCase()),
-          startWith('')
-        )
-      ),
-      map(([{ items }, search]) =>
-        search
-          ? items.filter(
-              (item) => item.name.toLowerCase().includes(search) || item.description?.toLowerCase().includes(search)
-            )
-          : items
-      )
+      switchMap(() => {
+        this.loadFailed.set(false)
+        return this.integrationAPI
+          .getAllInOrg({ relations: ['createdBy'], order: { updatedAt: OrderTypeEnum.DESC } })
+          .pipe(
+            map(({ items }) => ({ items, loading: false })),
+            startWith({ items: [] as IIntegration[], loading: true }),
+            catchError((error) => {
+              this.loadFailed.set(true)
+              this.#toastr.error(getErrorMessage(error))
+              return of({ items: [] as IIntegration[], loading: false })
+            })
+          )
+      })
+    ),
+    { initialValue: { items: [] as IIntegration[], loading: true } }
+  )
+  readonly loading = computed(() => this.directory().loading)
+  readonly filteredIntegrations = computed(() =>
+    this.directory().items.filter(
+      (item) =>
+        (!this.provider() || item.provider === this.provider()) &&
+        (!this.search() ||
+          item.name.toLowerCase().includes(this.search()) ||
+          item.description?.toLowerCase().includes(this.search()))
     )
   )
-  readonly filteredIntegrations = computed(() => {
-    const provider = this.provider()
-    if (provider) {
-      return this.integrations().filter((item) => item.provider === provider)
-    }
-    return this.integrations()
-  })
-  readonly providers = computed(() => {
-    return this.#providers()?.map((provider) => ({
-      value: provider.name,
-      label: provider.label,
-      description: provider.description,
-      avatar: provider.avatar,
-      _icon: provider.icon
-    }))
-  })
 
-  readonly integrationProvider = computed(() => this.#providers()?.find((item) => item.name === this.provider()))
+  providerInfo(name: string) {
+    return this.providers().find((provider) => provider.name === name)
+  }
+
+  clearFilters() {
+    this.searchControl.setValue('')
+    this.provider.set(null)
+  }
 
   newIntegration() {
     this.#router.navigate(['create'], { relativeTo: this.#route })

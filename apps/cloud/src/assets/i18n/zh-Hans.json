@@ -769,6 +769,33 @@
         "Apply": "应用到草稿"
       }
     },
+    "IntegrationSettings": {
+      "Description": "管理外部服务连接，为助手和工作空间提供集成能力。",
+      "SearchPlaceholder": "搜索名称或描述…",
+      "SearchProviders": "搜索提供商…",
+      "NoProviders": "没有匹配的提供商",
+      "Count": "{{count}} 个集成",
+      "LoadFailed": "暂时无法加载系统集成，请重试。",
+      "MoreActions": "更多操作",
+      "NoDescription": "暂无描述",
+      "UpdatedAt": "更新于",
+      "ViewConfiguration": "查看配置",
+      "NoResults": "没有匹配的集成",
+      "NoResultsHint": "尝试其他关键词，或清除提供商筛选。",
+      "EmptyTitle": "尚未添加系统集成",
+      "EmptyDescription": "添加一个集成，连接团队使用的外部服务。",
+      "ClearFilters": "清除筛选",
+      "BackToList": "返回集成列表",
+      "EditTitle": "编辑集成",
+      "Basics": "基础信息",
+      "BasicsHint": "设置名称、头像和说明，便于团队识别。",
+      "Connection": "连接配置",
+      "ConnectionHint": "选择提供商，填写其要求的连接参数。",
+      "SelectProviderHint": "选择提供商后，显示对应的接入方式和配置项。",
+      "TestResults": "连接与测试结果",
+      "Yes": "是",
+      "No": "否"
+    },
     "AssistantSettings": {
       "DirectQrSaveHint": "扫码连接会立即生效；其他触发器配置仍需保存草稿并发布。",
       "DirectQrOffline": "机器人已启用，消息连接暂未就绪，可刷新检查状态。",
