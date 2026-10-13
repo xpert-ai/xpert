@@ -1,4 +1,11 @@
-import { AiModelTypeEnum, IAiProviderEntity, ICopilotModel, ProviderModel, AIModelEntity } from '@xpert-ai/contracts'
+import {
+  AiModelTypeEnum,
+  IAiProviderEntity,
+  ICopilotModel,
+  ProviderModel,
+  AIModelEntity,
+  DiscoveredModel
+} from '@xpert-ai/contracts'
 import { BaseLanguageModel } from '@langchain/core/language_models/base'
 import { Embeddings } from '@langchain/core/embeddings'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
@@ -7,6 +14,8 @@ import { AIModel } from './ai-model'
 import type { NativeModelClientFactory } from './native-model'
 
 export interface IAIModelProviderStrategy {
+  /** Fetch account-visible models without persisting them or invoking model inference. */
+  discoverModels?(credentials: Record<string, unknown>): Promise<DiscoveredModel[]>
   getNativeModelClient?: NativeModelClientFactory
   /**
    * Provider metadata

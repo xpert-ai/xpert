@@ -13,12 +13,12 @@ import {
   signal
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { ZardInputDirective, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardInputDirective, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { CdkConfirmDeleteComponent, XpSpinComponent } from '@xpert-ai/headless-ui'
 import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { BehaviorSubject, EMPTY, switchMap } from 'rxjs'
+import { firstValueFrom, BehaviorSubject, EMPTY, switchMap } from 'rxjs'
 import {
   getErrorMessage,
   ICopilotProviderModel,
@@ -28,8 +28,10 @@ import {
 } from '../../../@core'
 import { CopilotProviderModelComponent } from '../copilot-provider-model/model.component'
 import { CopilotAiProviderAuthComponent } from '../provider-authorization/authorization.component'
-import { customProviderModelDisplayTags, providerModelDisplayTags } from '../model-tags'
 import { canCreateCustomProviderModel } from './provider-schema'
+import { providerModelRows } from './provider-models'
+import { ModelDiscoveryComponent } from '../model-discovery/discovery.component'
+import { ModelImportResult, isConfiguredModelAvailable } from '@xpert-ai/contracts'
 
 @Component({
   standalone: true,
@@ -46,7 +48,8 @@ import { canCreateCustomProviderModel } from './provider-schema'
     ZardInputDirective,
     XpI18nPipe,
     XpSpinComponent,
-    ZardSwitchComponent
+    ZardSwitchComponent,
+    ZardButtonComponent
   ],
   host: {
     '[style.background]': 'background()'
@@ -69,9 +72,9 @@ export class CopilotProviderComponent {
   // Outputs
   readonly deleted = output<void>()
   readonly addedModel = output<ICopilotProviderModel>()
+  readonly modelsImported = output<ModelImportResult>()
 
   readonly refresh$ = new BehaviorSubject<void>(null)
-  readonly showModels = signal(false)
   readonly copilotProvider = derivedAsync(() => {
     return this.providerId()
       ? this.refresh$.pipe(
@@ -90,15 +93,19 @@ export class CopilotProviderComponent {
   readonly canCustomizableModel = computed(() => canCreateCustomProviderModel(this.copilotProvider()?.provider))
 
   readonly #models = derivedAsync(() => {
-    return this.showModels()
+    return this.providerId()
       ? this.refresh$.pipe(switchMap(() => this.#copilotProviderService.getModels(this.providerId())))
       : null
   })
 
-  readonly customModels = computed(() => this.#models()?.custom)
-  readonly builtinModels = computed(() => this.#models()?.builtin)
+  readonly modelRows = computed(() => providerModelRows(this.#models()))
+  readonly discoverySupported = computed(() => this.#models()?.discoverySupported === true)
 
-  readonly modelCount = computed(() => (this.customModels()?.length ?? 0) + (this.builtinModels()?.length ?? 0))
+  readonly modelDiscovery = computed(() => this.#models()?.modelDiscovery)
+  readonly modelCount = computed(() => this.modelRows().length)
+  modelAvailable(model: ICopilotProviderModel) {
+    return isConfiguredModelAvailable({ options: { modelDiscovery: this.modelDiscovery() } }, model)
+  }
 
   readonly loading = signal(false)
 
@@ -114,9 +121,6 @@ export class CopilotProviderComponent {
   readonly usageWarn = computed(() => this.tokenRemain() < 40 && this.tokenRemain() > 1)
   readonly usageError = computed(() => this.tokenRemain() < 1)
 
-  readonly customModelTags = customProviderModelDisplayTags
-  readonly builtinModelTags = providerModelDisplayTags
-
   constructor() {
     effect(() => {
       // console.log(this.#models())
@@ -125,9 +129,6 @@ export class CopilotProviderComponent {
 
   toggleShowModels() {
     this.isShowModels.update((state) => !state)
-    if (this.isShowModels()) {
-      this.showModels.set(true)
-    }
   }
 
   delete() {
@@ -168,7 +169,7 @@ export class CopilotProviderComponent {
       })
   }
 
-  addModel() {
+  async addModel() {
     if (this.readonly()) {
       return
     }
@@ -176,22 +177,51 @@ export class CopilotProviderComponent {
     if (!copilotProvider || !canCreateCustomProviderModel(copilotProvider.provider)) {
       return
     }
+    this.loading.set(true)
+    try {
+      const catalog =
+        this.#models() ?? (await firstValueFrom(this.#copilotProviderService.getModels(copilotProvider.id)))
+      this.#dialog
+        .open(CopilotProviderModelComponent, {
+          backdropClass: 'backdrop-blur-xs-black',
+          panelClass: 'xp-overlay-pane-dialog',
+          maxWidth: 'calc(100vw - 32px)',
+          data: {
+            provider: copilotProvider,
+            modelId: null,
+            catalog
+          }
+        })
+        .closed.subscribe({
+          next: (result) => {
+            if (result) {
+              this.addedModel.emit(result)
+              this.refresh$.next()
+            }
+          }
+        })
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
+    } finally {
+      this.loading.set(false)
+    }
+  }
+
+  discoverModels() {
+    if (this.readonly() || !this.discoverySupported()) return
     this.#dialog
-      .open(CopilotProviderModelComponent, {
+      .open<ModelImportResult>(ModelDiscoveryComponent, {
         backdropClass: 'backdrop-blur-xs-black',
         panelClass: 'xp-overlay-pane-dialog',
         maxWidth: 'calc(100vw - 32px)',
-        data: {
-          provider: copilotProvider,
-          modelId: null
-        }
+        data: { provider: this.copilotProvider() }
       })
-      .closed.subscribe({
-        next: (result) => {
-          if (result) {
-            this.addedModel.emit(result)
-            this.refresh$.next()
-          }
+      .closed.subscribe((result) => {
+        // Edits in the discovery dialog persist independently of confirming a catalog sync.
+        this.refresh$.next()
+        this.modelsImported.emit(result ?? { added: 0, skipped: 0 })
+        if (result) {
+          this.#toastr.success('XP.Copilot.Discovery.Imported', { added: result.added, skipped: result.skipped })
         }
       })
   }

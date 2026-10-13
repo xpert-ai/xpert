@@ -4,6 +4,7 @@
     class="mb-2 rounded-xl border-[0.5px] border-black/5 shadow-sm"
     (deleted)="removedModelProvider()"
     (addedModel)="onAddedModel($event)"
+    (modelsImported)="onModelsImported()"
   />
 } @else {
   <div

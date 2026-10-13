@@ -1,4 +1,4 @@
-import { ICopilotProviderModel } from '@xpert-ai/contracts'
+import { configuredModelSource, ICopilotProviderModel, modelConfigurationSchema } from '@xpert-ai/contracts'
 import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { IAIModelProviderStrategy } from '@xpert-ai/plugin-sdk'
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common'
@@ -35,7 +35,7 @@ export class CopilotProviderModelService extends TenantOrganizationAwareCrudServ
      * @throws {HttpException} If model properties are missing during creation.
      */
     async upsertModel(entity: Partial<ICopilotProviderModel>) {
-        const previous = entity.id ? await this.findOne(entity.id) : null
+        let previous = entity.id ? await this.findOne(entity.id) : null
         const modelProperties = entity.modelProperties
         const providerId = entity.providerId
         // Must provide model credentials when create custom model
@@ -61,10 +61,38 @@ export class CopilotProviderModelService extends TenantOrganizationAwareCrudServ
             // ignore not found
         }
         if (existingModel && existingModel.id !== entity.id) {
-            throw new HttpException(
-                t('server-ai:Error.ModelNameExists', { modelName: entity.modelName }),
-                HttpStatus.FORBIDDEN
-            )
+            if (
+                !entity.id &&
+                existingModel.modelType === entity.modelType &&
+                configuredModelSource(existingModel) === 'discovered'
+            ) {
+                // A manual override replaces the imported configuration in place, keeping picker references stable.
+                previous = existingModel
+                entity.id = existingModel.id
+                entity.modelProperties = { ...existingModel.modelProperties, ...modelProperties }
+            } else {
+                throw new HttpException(
+                    t('server-ai:Error.ModelNameExists', { modelName: entity.modelName }),
+                    HttpStatus.FORBIDDEN
+                )
+            }
+        }
+
+        if (entity.modelProperties?.model_configuration != null) {
+            const parsed = modelConfigurationSchema.safeParse(entity.modelProperties.model_configuration)
+            if (!parsed.success || parsed.data.modelType !== entity.modelType) {
+                throw new HttpException(t('server-ai:Error.ModelDiscoverySelectionInvalid'), HttpStatus.BAD_REQUEST)
+            }
+            entity.modelProperties = { ...entity.modelProperties, model_configuration: parsed.data }
+        }
+        if (entity.modelProperties) {
+            // Configuration precedence and upstream identity are separate: editing an import must not bypass availability.
+            entity.modelProperties = { ...entity.modelProperties, configuration_source: 'manual' }
+            if (previous?.modelProperties?.discovery_model_id) {
+                entity.modelProperties.discovery_model_id = previous.modelProperties.discovery_model_id
+            } else {
+                delete entity.modelProperties.discovery_model_id
+            }
         }
 
         // Validate model credentials

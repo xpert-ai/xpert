@@ -133,30 +133,31 @@
             {{ 'XP.Copilot.Collapse' | translate: { Default: 'Collapse' } }}
           </span>
         </span>
-        @if (canCustomizableModel()) {
-          <div class="grow flex justify-end">
-            @if (!readonly()) {
-              <span
-                class="shrink-0 flex items-center px-1.5 h-6 text-sm font-medium text-text-tertiary cursor-pointer hover:bg-primary-50 hover:text-primary-600 rounded-md undefined"
-                (click)="addModel()"
-              >
-                <i class="ri-add-circle-line"></i>
-                {{ 'XP.Copilot.AddModel' | translate: { Default: 'Add model' } }}
-              </span>
-            }
-          </div>
-        }
+        <ng-container *ngTemplateOutlet="modelActions" />
       </div>
 
-      @for (model of customModels(); track model.id) {
-        <div class="group flex items-center pl-2 pr-2.5 h-8 rounded-lg hover:bg-hover-bg">
+      @for (model of modelRows(); track model.key) {
+        <div
+          class="group flex items-center pl-2 pr-2.5 h-8 rounded-lg hover:bg-hover-bg"
+          [class]="model.deprecated ? 'opacity-60' : ''"
+          [zTooltip]="model.deprecated ? ('XP.Copilot.Deprecated' | translate: { Default: 'Deprecated' }) : ''"
+          zPosition="left"
+        >
           @if (smallIcon()) {
             <img alt="model-icon" class="w-4 h-4 shrink-0 mr-2" [src]="smallIcon() | i18n" />
           }
 
           <div class="flex min-w-0 items-center overflow-hidden text-[13px] grow text-sm font-normal text-text-primary">
-            <div class="min-w-0 truncate" [title]="model.modelName">{{ model.modelName }}</div>
-            @for (tag of customModelTags(model); track tag.id) {
+            <div class="min-w-0 truncate" [title]="model.name">{{ model.name }}</div>
+            <span class="ml-2 shrink-0 text-xs text-text-tertiary">{{
+              'XP.Copilot.Discovery.ModelSource.' + model.source | translate
+            }}</span>
+            @if (model.configuredModel && !modelAvailable(model.configuredModel)) {
+              <span class="ml-2 shrink-0 text-xs text-text-warning">{{
+                'XP.Copilot.Discovery.NotReturned' | translate
+              }}</span>
+            }
+            @for (tag of model.tags; track tag.id) {
               <div
                 class="flex shrink-0 items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1 whitespace-nowrap"
               >
@@ -168,43 +169,19 @@
             }
           </div>
 
-          <div class="shrink-0 flex items-center">
-            @if (!readonly() && canCustomizableModel()) {
-              <button
-                type="button"
-                class="btn disabled:btn-disabled btn-secondary btn-small hidden group-hover:flex h-7 mr-2 items-center"
-                (click)="editModel(model)"
-              >
-                <i class="ri-settings-5-line mr-1"></i>
-                {{ 'XP.Copilot.Configure' | translate: { Default: 'Configure' } }}
-              </button>
-            }
-          </div>
-        </div>
-      }
-
-      @for (model of builtinModels(); track model.model) {
-        <div
-          class="group flex items-center pl-2 pr-2.5 h-8 rounded-lg hover:bg-hover-bg"
-          [ngClass]="model.deprecated ? 'opacity-60' : ''"
-          [zTooltip]="model.deprecated ? ('XP.Copilot.Deprecated' | translate: { Default: 'Deprecated' }) : ''"
-          zPosition="left"
-        >
-          <img alt="model-icon" [src]="smallIcon() | i18n" class="w-4 h-4 shrink-0 mr-2" />
-
-          <div class="flex min-w-0 items-center overflow-hidden text-base grow font-normal text-text-primary">
-            <div class="min-w-0 truncate" [title]="model.model">{{ model.model }}</div>
-            @for (tag of builtinModelTags(model); track tag.id) {
-              <div
-                class="flex shrink-0 items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1 whitespace-nowrap"
-              >
-                @if (tag.iconClass) {
-                  <i class="mr-0.5 text-[11px] leading-none" [ngClass]="tag.iconClass"></i>
-                }
-                {{ tag.defaultText }}
-              </div>
-            }
-          </div>
+          @if (model.configuredModel && !readonly() && canCustomizableModel()) {
+            <button
+              z-button
+              zType="secondary"
+              zSize="sm"
+              type="button"
+              class="shrink-0"
+              (click)="editModel(model.configuredModel)"
+            >
+              <i class="ri-settings-5-line"></i>
+              {{ 'XP.Copilot.Configure' | translate: { Default: 'Configure' } }}
+            </button>
+          }
         </div>
       }
     </div>
@@ -230,17 +207,25 @@
       }}
     </div>
 
-    @if (!readonly() && canCustomizableModel()) {
-      <span
-        class="shrink-0 items-center px-1.5 h-6 text-sm font-medium text-text-tertiary cursor-pointer hover:bg-primary-50 hover:text-primary-600 rounded-md flex group-hover:text-primary-600"
-        (click)="addModel()"
-      >
-        <i class="ri-add-circle-line"></i>
-        {{ 'XP.Copilot.AddModel' | translate: { Default: 'Add model' } }}
-      </span>
-    }
+    <ng-container *ngTemplateOutlet="modelActions" />
   </div>
 }
+
+<ng-template #modelActions>
+  @if (!readonly() && canCustomizableModel()) {
+    <div class="grow flex items-center justify-end gap-2">
+      @if (discoverySupported()) {
+        <button z-button zType="secondary" zSize="sm" type="button" (click)="discoverModels()">
+          <i class="ri-download-cloud-line"></i>{{ 'XP.Copilot.Discovery.Title' | translate }}
+        </button>
+      }
+      <button z-button zType="secondary" zSize="sm" type="button" (click)="addModel()">
+        <i class="ri-add-circle-line"></i>
+        {{ 'XP.Copilot.AddModel' | translate: { Default: 'Add model' } }}
+      </button>
+    </div>
+  }
+</ng-template>
 
 @if (loading()) {
   <xp-spin class="absolute top-0 left-0 w-full h-full" />

@@ -5781,6 +5781,40 @@
       "Untitled": "未命名认证"
     },
     "Copilot": {
+      "Discovery": {
+        "Title": "拉取模型",
+        "Description": "从当前提供商增量同步模型，保留已有参数。确认同步后仅使用已配置模型；本次未返回的接口模型保留配置并停用。",
+        "ContextSize": "上下文长度（Token）",
+        "MaxConcurrency": "客户端并发上限",
+        "MaxOutputTokens": "最大输出 Token",
+        "DefaultMaxTokens": "默认输出 Token",
+        "Dimensions": "向量维度（可选）",
+        "BatchSize": "向量批次大小",
+        "ConfigurationHint": "缺失规格使用可编辑的默认值，不代表已核实的厂商上限。并发限制作用于单个模型客户端，不代表账号配额。向量维度留空使用模型默认值。",
+        "InvalidConfiguration": "请填写正整数，且默认输出 ≤ 最大输出 ≤ 上下文长度。并发范围为 1–1000，向量批次范围为 1–2048。",
+        "Search": "搜索模型 ID 或名称",
+        "Loading": "正在拉取可用模型…",
+        "Empty": "没有匹配的模型",
+        "Imported": "同步完成：新增 {{added}} 个，保留 {{skipped}} 个已有模型",
+        "Features": {
+          "tool-call": "工具调用",
+          "multi-tool-call": "并行工具调用",
+          "stream-tool-call": "流式工具调用",
+          "vision": "图片输入",
+          "video": "视频输入",
+          "structured-output": "结构化输出"
+        },
+        "DefaultType": "默认类型，可在配置中调整",
+        "NotReturnedPreview": "本次未返回 · 同步后停用",
+        "NotReturned": "本次未返回 · 已停用",
+        "SyncAndImport": "同步并导入新模型",
+        "SaveSync": "保存同步结果",
+        "ModelSource": {
+          "builtin": "内置",
+          "discovered": "接口导入",
+          "manual": "手动配置"
+        }
+      },
       "ExecutionInvalidFilters": "请检查任务 ID、文本长度和日期范围。",
       "ExecutionAssistantName": "助手",
       "ExecutionAll": "全部",

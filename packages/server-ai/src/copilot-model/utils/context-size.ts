@@ -1,4 +1,4 @@
-import { ICopilotModel, ModelPropertyKey } from '@xpert-ai/contracts'
+import { ICopilotModel, ModelPropertyKey, readModelConfiguration } from '@xpert-ai/contracts'
 import { IAIModelProviderStrategy, normalizeContextSize } from '@xpert-ai/plugin-sdk'
 
 type TCustomModel = {
@@ -25,7 +25,8 @@ export function ensureCopilotModelContextSize(
     }
 
     const customModelContextSize = normalizeContextSize(
-        customModels?.[0]?.modelProperties?.[ModelPropertyKey.CONTEXT_SIZE]
+        readModelConfiguration(customModels?.[0]?.modelProperties)?.contextSize ??
+            customModels?.[0]?.modelProperties?.[ModelPropertyKey.CONTEXT_SIZE]
     )
     const predefinedModelContextSize = modelName
         ? normalizeContextSize(

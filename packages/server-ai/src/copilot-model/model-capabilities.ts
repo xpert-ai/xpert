@@ -1,5 +1,11 @@
 import { BaseMessage, HumanMessage, isHumanMessage } from '@langchain/core/messages'
-import { ICopilotProviderModel, ModelFeature, ProviderModel } from '@xpert-ai/contracts'
+import {
+    AiModelTypeEnum,
+    ICopilotProviderModel,
+    ModelFeature,
+    ProviderModel,
+    readModelConfiguration
+} from '@xpert-ai/contracts'
 import type { ModelRequirements } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
 
@@ -12,6 +18,9 @@ export function resolveModelVisionSupport(
     providerModels: ProviderModel[] = []
 ): boolean {
     if (customModels.length) {
+        const configuration = readModelConfiguration(customModels[0].modelProperties)
+        if (configuration?.modelType === AiModelTypeEnum.LLM)
+            return configuration.features.includes(ModelFeature.VISION)
         return customModels[0].modelProperties?.vision_support === 'support'
     }
     return providerModels.find((model) => model.model === modelName)?.features?.includes(ModelFeature.VISION) ?? false
