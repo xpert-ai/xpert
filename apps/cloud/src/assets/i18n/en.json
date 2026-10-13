@@ -7038,6 +7038,27 @@
       "ConnectionDraftSafe": "Your draft stays in Bosi. Connecting a shared service requires workspace management permission.",
       "ConnectionAuthorizeStep": "Authorize service",
       "ConnectionReturnStep": "Return to Bosi"
+    },
+    "ProfileSettings": {
+      "Description": "Manage your profile, language and regional preferences.",
+      "BasicInfo": "Basic information",
+      "BasicHint": "Used in your profile and collaboration records.",
+      "LanguageRegion": "Language and region",
+      "PreferencesHint": "Used for the interface language and time display.",
+      "AccountInfo": "Account information",
+      "ManagedHint": "These details are read-only.",
+      "EmailHint": "Your email cannot be changed on this page.",
+      "UsernameRequired": "Enter a username.",
+      "SelectLanguage": "Select a language",
+      "SearchTimeZone": "Search cities or time zones…",
+      "NoTimeZone": "No matching time zones",
+      "Unsaved": "You have unsaved changes",
+      "SaveHint": "Save after editing your profile.",
+      "SaveChanges": "Save changes",
+      "Avatar": "Avatar",
+      "AvatarHint": "Click your avatar to change it. Uploads are saved automatically.",
+      "InvitationCode": "Invitation code",
+      "InvitationHint": "Copy your invitation code to invite others."
     }
   },
   "ViewExtension": {

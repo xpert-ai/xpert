@@ -1,0 +1,180 @@
+<form [formGroup]="form" (ngSubmit)="save()" class="min-w-0" [attr.aria-busy]="saving()">
+  <fieldset [disabled]="saving()" class="min-w-0 space-y-6">
+    <section
+      aria-labelledby="profile-basic-heading"
+      class="grid min-w-0 gap-5 border-b border-border pb-6 md:grid-cols-[170px_minmax(0,1fr)] md:gap-8"
+    >
+      <div>
+        <h2 id="profile-basic-heading" class="text-base font-semibold text-foreground">
+          {{ 'XP.ProfileSettings.BasicInfo' | translate }}
+        </h2>
+        <p class="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+          {{ 'XP.ProfileSettings.BasicHint' | translate }}
+        </p>
+      </div>
+      <div class="grid min-w-0 gap-x-5 gap-y-4 sm:grid-cols-2">
+        <z-form-field class="flex min-w-0 flex-col gap-2 bg-transparent p-0">
+          <label z-form-label for="profile-first-name">{{ 'XP.SHARED.USER_BASIC.firstName' | translate }}</label>
+          <input
+            z-input
+            id="profile-first-name"
+            formControlName="firstName"
+            autocomplete="given-name"
+            class="pointer-coarse:min-h-[44px]"
+          />
+        </z-form-field>
+        <z-form-field class="flex min-w-0 flex-col gap-2 bg-transparent p-0">
+          <label z-form-label for="profile-last-name">{{ 'XP.SHARED.USER_BASIC.lastName' | translate }}</label>
+          <input
+            z-input
+            id="profile-last-name"
+            formControlName="lastName"
+            autocomplete="family-name"
+            class="pointer-coarse:min-h-[44px]"
+          />
+        </z-form-field>
+        <z-form-field class="flex min-w-0 flex-col gap-2 bg-transparent p-0">
+          <label z-form-label for="profile-username" zRequired>{{ 'XP.SHARED.USER_BASIC.Username' | translate }}</label>
+          <input
+            z-input
+            id="profile-username"
+            formControlName="username"
+            autocomplete="username"
+            required
+            class="pointer-coarse:min-h-[44px]"
+            [zStatus]="form.controls.username.invalid && form.controls.username.touched ? 'error' : undefined"
+            [attr.aria-invalid]="form.controls.username.invalid && form.controls.username.touched"
+            [attr.aria-describedby]="
+              form.controls.username.invalid && form.controls.username.touched ? 'profile-username-error' : null
+            "
+          />
+          @if (form.controls.username.invalid && form.controls.username.touched) {
+            <p id="profile-username-error" role="alert" class="text-xs text-destructive">
+              {{ 'XP.ProfileSettings.UsernameRequired' | translate }}
+            </p>
+          }
+        </z-form-field>
+        <z-form-field class="flex min-w-0 flex-col gap-2 bg-transparent p-0">
+          <label z-form-label for="profile-email">{{ 'XP.SHARED.USER_BASIC.Email' | translate }}</label>
+          <input
+            z-input
+            id="profile-email"
+            formControlName="email"
+            autocomplete="email"
+            aria-describedby="profile-email-hint"
+            class="pointer-coarse:min-h-[44px]"
+          />
+          <p id="profile-email-hint" class="text-xs text-muted-foreground">
+            {{ 'XP.ProfileSettings.EmailHint' | translate }}
+          </p>
+        </z-form-field>
+        <z-form-field class="flex min-w-0 flex-col gap-2 bg-transparent p-0 sm:col-span-2">
+          <label z-form-label for="profile-image-url">{{ 'XP.SHARED.USER_BASIC.AvatarUrl' | translate }}</label>
+          <input
+            z-input
+            id="profile-image-url"
+            formControlName="imageUrl"
+            inputmode="url"
+            autocomplete="url"
+            placeholder="https://…"
+            class="pointer-coarse:min-h-[44px]"
+          />
+        </z-form-field>
+      </div>
+    </section>
+
+    <section
+      aria-labelledby="profile-preferences-heading"
+      class="grid min-w-0 gap-5 border-b border-border pb-6 md:grid-cols-[170px_minmax(0,1fr)] md:gap-8"
+    >
+      <div>
+        <h2 id="profile-preferences-heading" class="text-base font-semibold text-foreground">
+          {{ 'XP.ProfileSettings.LanguageRegion' | translate }}
+        </h2>
+        <p class="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+          {{ 'XP.ProfileSettings.PreferencesHint' | translate }}
+        </p>
+      </div>
+      <div class="grid min-w-0 gap-5 sm:grid-cols-2">
+        <z-form-field class="flex min-w-0 flex-col gap-2 bg-transparent p-0">
+          <z-form-label>{{ 'XP.SHARED.USER_BASIC.PreferredLanguage' | translate }}</z-form-label>
+          <z-combobox
+            formControlName="preferredLanguage"
+            [options]="languages"
+            zWidth="full"
+            [searchable]="false"
+            [zDisabled]="saving()"
+            [ariaLabel]="'XP.SHARED.USER_BASIC.PreferredLanguage' | translate"
+            [placeholder]="'XP.ProfileSettings.SelectLanguage' | translate"
+            class="block min-w-0 [&_button]:h-9 pointer-coarse:[&_button]:min-h-[44px]"
+          />
+        </z-form-field>
+        <z-form-field class="flex min-w-0 flex-col gap-2 bg-transparent p-0">
+          <z-form-label>{{ 'XP.SHARED.USER_BASIC.TimeZone' | translate }}</z-form-label>
+          <z-combobox
+            formControlName="timeZone"
+            [options]="timeZones"
+            zWidth="full"
+            [zDisabled]="saving()"
+            [ariaLabel]="'XP.SHARED.USER_BASIC.TimeZone' | translate"
+            [placeholder]="'XP.SHARED.USER_BASIC.SelectTimeZone' | translate"
+            [searchPlaceholder]="'XP.ProfileSettings.SearchTimeZone' | translate"
+            [emptyText]="'XP.ProfileSettings.NoTimeZone' | translate"
+            class="block min-w-0 [&_button]:h-9 pointer-coarse:[&_button]:min-h-[44px]"
+          />
+        </z-form-field>
+      </div>
+    </section>
+
+    <section
+      aria-labelledby="profile-account-heading"
+      class="grid min-w-0 gap-5 md:grid-cols-[170px_minmax(0,1fr)] md:gap-8"
+    >
+      <div>
+        <h2 id="profile-account-heading" class="text-base font-semibold text-foreground">
+          {{ 'XP.ProfileSettings.AccountInfo' | translate }}
+        </h2>
+        <p class="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+          {{ 'XP.ProfileSettings.ManagedHint' | translate }}
+        </p>
+      </div>
+      <dl class="grid min-w-0 gap-5 sm:grid-cols-2">
+        <div class="min-w-0">
+          <dt class="text-sm text-muted-foreground">{{ 'XP.SHARED.USER_BASIC.Role' | translate }}</dt>
+          <dd class="mt-2 break-words text-sm font-medium text-foreground" data-profile-role>{{ roleLabel() }}</dd>
+        </div>
+        <div class="min-w-0">
+          <dt class="text-sm text-muted-foreground">{{ 'XP.SHARED.USER_BASIC.ThirdPartyId' | translate }}</dt>
+          <dd class="mt-2 break-words text-sm text-foreground">{{ user()?.thirdPartyId || '—' }}</dd>
+        </div>
+      </dl>
+    </section>
+  </fieldset>
+
+  <footer class="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-5">
+    <p role="status" class="text-sm text-muted-foreground">
+      {{ (form.dirty ? 'XP.ProfileSettings.Unsaved' : 'XP.ProfileSettings.SaveHint') | translate }}
+    </p>
+    <div class="flex items-center gap-2">
+      <button
+        z-button
+        zType="outline"
+        type="button"
+        [zDisabled]="saving() || form.pristine"
+        (click)="reset()"
+        class="pointer-coarse:min-h-[44px]"
+      >
+        {{ 'XP.ACTIONS.Reset' | translate }}
+      </button>
+      <button
+        z-button
+        type="submit"
+        [zDisabled]="saving() || form.invalid || form.pristine"
+        [zLoading]="saving()"
+        class="pointer-coarse:min-h-[44px]"
+      >
+        {{ 'XP.ProfileSettings.SaveChanges' | translate }}
+      </button>
+    </div>
+  </footer>
+</form>

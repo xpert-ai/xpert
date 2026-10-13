@@ -29,19 +29,19 @@ jest.mock('../../../@shared/user', () => ({
 }))
 
 describe('XpAccountComponent template', () => {
-  it('places larger invitation code actions above the personal information form', () => {
+  it('keeps invitation actions in a separate section after the personal information form', () => {
     const template = readFileSync(join(__dirname, 'account.component.html'), 'utf8')
     const copyActionIndex = template.indexOf('data-referral-copy')
     const regenerateActionIndex = template.indexOf('data-referral-regenerate')
     const routerOutletIndex = template.indexOf('<router-outlet')
 
     expect(routerOutletIndex).toBeGreaterThan(-1)
-    expect(copyActionIndex).toBeLessThan(routerOutletIndex)
+    expect(copyActionIndex).toBeGreaterThan(routerOutletIndex)
     expect(regenerateActionIndex).toBeGreaterThan(copyActionIndex)
     expect(template).toContain("o.activatedRoute.snapshot.routeConfig?.path === 'profile'")
     expect(template).toContain('canUseReferral() && referralCode()')
-    expect(template).toMatch(/data-referral-copy[\s\S]*?class="h-auto px-0 py-0 text-base"/)
-    expect(template).toMatch(/data-referral-regenerate[\s\S]*?class="h-auto px-0 py-0 text-base"/)
+    expect(template).toMatch(/data-referral-copy[\s\S]*?class="pointer-coarse:min-h-\[44px\]"/)
+    expect(template).toMatch(/data-referral-regenerate[\s\S]*?class="pointer-coarse:min-h-\[44px\]"/)
     expect(template).not.toContain("['configuration']")
   })
 

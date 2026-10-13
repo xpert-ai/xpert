@@ -10757,6 +10757,27 @@
       "ConnectionDraftSafe": "消息草稿保留在 Bosi 中。配置共享服务需要相应工作空间的管理权限。",
       "ConnectionAuthorizeStep": "完成服务授权",
       "ConnectionReturnStep": "返回 Bosi"
+    },
+    "ProfileSettings": {
+      "Description": "管理你的个人资料、语言与地区偏好。",
+      "BasicInfo": "基本信息",
+      "BasicHint": "用于个人资料和协作记录。",
+      "LanguageRegion": "语言与地区",
+      "PreferencesHint": "用于界面语言和时间显示。",
+      "AccountInfo": "账号信息",
+      "ManagedHint": "以下信息仅供查看。",
+      "EmailHint": "邮箱在此页面不可修改。",
+      "UsernameRequired": "请输入用户名。",
+      "SelectLanguage": "选择语言",
+      "SearchTimeZone": "搜索城市或时区…",
+      "NoTimeZone": "未找到匹配的时区",
+      "Unsaved": "有未保存的更改",
+      "SaveHint": "修改资料后点击保存。",
+      "SaveChanges": "保存更改",
+      "Avatar": "头像",
+      "AvatarHint": "点击头像更换，上传后自动保存。",
+      "InvitationCode": "邀请码",
+      "InvitationHint": "复制邀请码，邀请他人加入。"
     }
   },
   "ViewExtension": {
