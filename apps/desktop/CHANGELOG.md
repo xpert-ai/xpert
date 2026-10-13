@@ -1,5 +1,13 @@
 # @xpert-ai/desktop
 
+## 0.3.3
+
+### Patch Changes
+
+- dd9fe6b: Add native Settings, Check for updates and Sign out menu actions, disable Developer Tools in packaged apps, and publish verified stable Bosi releases automatically.
+- dd9fe6b: Restore the last visited Assistant and conversation when reopening Bosi. Keep navigation scoped to the service, tenant, account and organization, and fall back to a new chat when the remembered conversation is no longer accessible.
+  - @xpert-ai/desktop-protocol@0.3.3
+
 ## 0.3.2
 
 ### Patch Changes

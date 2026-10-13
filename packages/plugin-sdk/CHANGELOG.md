@@ -1,5 +1,14 @@
 # @xpert-ai/plugin-sdk
 
+## 3.22.1
+
+### Patch Changes
+
+- 558b1cd: Add provider model discovery and incremental imports for LLM, embedding, and rerank models. Preserve edited configuration across synchronization, expose model sources and editable limits, and apply the synchronized catalog to model selection and execution access.
+- Updated dependencies [f60db7b]
+- Updated dependencies [558b1cd]
+  - @xpert-ai/contracts@3.21.2
+
 ## 3.22.0
 
 ### Minor Changes

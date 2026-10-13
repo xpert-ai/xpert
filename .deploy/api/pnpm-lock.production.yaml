@@ -15676,8 +15676,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  agent-base@7.1.4:
-    optional: true
+  agent-base@7.1.4: {}
 
   agentkeepalive@3.5.3:
     dependencies:
@@ -18000,7 +17999,6 @@ snapshots:
       debug: 4.4.3
     transitivePeerDependencies:
       - supports-color
-    optional: true
 
   http-signature@1.2.0:
     dependencies:
@@ -18021,7 +18019,6 @@ snapshots:
       debug: 4.4.3
     transitivePeerDependencies:
       - supports-color
-    optional: true
 
   humanize-ms@1.2.1:
     dependencies:
