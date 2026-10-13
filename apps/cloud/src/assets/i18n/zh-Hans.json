@@ -260,6 +260,19 @@
     "Connectors": "连接器"
   },
   "XP": {
+    "SettingsShell": {
+      "Personal": "个人",
+      "People": "成员与组织",
+      "Connections": "AI 与连接",
+      "Governance": "管理与治理",
+      "Extensions": "扩展",
+      "Search": "搜索设置…",
+      "NoResults": "没有匹配的设置，请换个关键词。",
+      "BackToApp": "返回工作台",
+      "OpenNavigation": "打开设置菜单",
+      "CloseNavigation": "关闭设置菜单",
+      "ToggleTheme": "切换浅色 / 深色主题"
+    },
     "Groups": {
       "Pin": "置顶",
       "Unpin": "取消置顶",

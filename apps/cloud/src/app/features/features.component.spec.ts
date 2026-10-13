@@ -351,6 +351,22 @@ describe('FeaturesComponent sidebar organization default', () => {
     expect(component.sidebarCollapsed()).toBe(false)
   })
 
+  it('hides the platform sidebar only inside settings without changing its saved layout', async () => {
+    const { component } = await setup()
+    component.sidebarWidth.set(320)
+    component.sidebarCollapsed.set(false)
+    component.activeRouteUrl.set('/settings/account/profile?tab=details')
+    expect(component.platformSidebarHidden()).toBe(true)
+    expect(component.sidebarWidth()).toBe(320)
+    expect(component.sidebarCollapsed()).toBe(false)
+    component.activeRouteUrl.set('/chat')
+    expect(component.platformSidebarHidden()).toBe(false)
+    expect(component.sidebarWidth()).toBe(320)
+    expect(component.sidebarCollapsed()).toBe(false)
+    component.activeRouteUrl.set('/settings-other')
+    expect(component.platformSidebarHidden()).toBe(false)
+  })
+
   it('expands the sidebar when the active organization enables the default', async () => {
     const { component } = await setup({ sidebarExpandedByDefault: true })
     component.sidebarCollapsed.set(true)

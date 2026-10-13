@@ -54,6 +54,19 @@
     "CustomSMTP": "Custom SMTP"
   },
   "XP": {
+    "SettingsShell": {
+      "Personal": "Personal",
+      "People": "People & organizations",
+      "Connections": "AI & connections",
+      "Governance": "Administration",
+      "Extensions": "Extensions",
+      "Search": "Search settings…",
+      "NoResults": "No matching settings. Try another keyword.",
+      "BackToApp": "Back to workspace",
+      "OpenNavigation": "Open settings navigation",
+      "CloseNavigation": "Close settings navigation",
+      "ToggleTheme": "Toggle light / dark theme"
+    },
     "Groups": {
       "Pin": "Pin",
       "Unpin": "Unpin",

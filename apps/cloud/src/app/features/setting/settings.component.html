@@ -1,92 +1,164 @@
-<div
-  class="flex flex-col w-14 max-w-[240px] shrink-0 transition-all overflow-y-auto bg-background-default-subtle"
-  [class.w-[240px]]="sideMenuOpened()"
->
-  <div class="px-2 pt-2 pb-1">
-    <div
-      class="rounded-lg border border-divider-regular bg-components-card-bg/70 p-2"
-      [zTooltip]="scopeTooltip()"
-      zPosition="right"
-      [zDisabled]="sideMenuOpened()"
-    >
-      <div class="flex items-center gap-2" [class.justify-center]="!sideMenuOpened()">
-        <div
-          class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-background-default-subtle text-text-secondary"
+<z-layout zDirection="horizontal" class="h-full min-w-0 flex-1 overflow-hidden bg-background">
+  @if (!compact()) {
+    <z-sidebar [zWidth]="244" class="h-full p-0! [&>div]:flex [&>div]:min-h-0 [&>div]:flex-col [&>div]:overflow-hidden">
+      <ng-container *ngTemplateOutlet="navigation" />
+    </z-sidebar>
+  }
+
+  <div class="flex min-h-0 min-w-0 flex-1 flex-col">
+    <header class="flex h-16 shrink-0 items-center gap-3 border-b border-border px-4 md:px-6">
+      @if (compact()) {
+        <button
+          z-button
+          zType="ghost"
+          zSize="icon"
+          type="button"
+          [attr.aria-label]="'XP.SettingsShell.OpenNavigation' | translate"
+          [attr.aria-expanded]="mobileMenuOpen()"
+          (click)="openNavigation(mobileNavigation)"
         >
-          <z-icon class="size-6 text-2xl" zSize="xl" [zType]="scopeIcon()"></z-icon>
-        </div>
-
-        @if (sideMenuOpened()) {
-          <div class="min-w-0 flex-1">
-            <div class="truncate text-[10px] uppercase tracking-[0.24em] text-text-tertiary">
-              {{ scopeTitle() }}
-            </div>
-            <div class="truncate text-sm font-medium text-text-primary">
-              {{ scopeLabel() }}
-            </div>
-            <div class="truncate text-xs text-text-secondary">
-              {{ scopeDescription() }}
-            </div>
-          </div>
-        }
-      </div>
-    </div>
-  </div>
-
-  <ul class="xp-nav__tab-bar flex-1 p-2 rounded-lg">
-    @for (e of menus(); track $index) {
-      <li
-        class="link flex justify-start items-center px-3 py-2 cursor-pointer rounded-lg hover:bg-hover-bg"
-        [routerLink]="e.link"
-        [routerLinkActiveOptions]="{ exact: false }"
-        routerLinkActive
-        #rla="routerLinkActive"
-        [class.active]="rla.isActive"
-        [zTooltip]="'XP.MENU.' + e.label | translate: { Default: e.label }"
-        zPosition="right"
-        [zDisabled]="sideMenuOpened()"
-      >
-        @if (e.icon) {
-          <z-icon zSize="lg" [zType]="e.icon"></z-icon>
-        }
-
-        @if (sideMenuOpened()) {
-          <span
-            [class]="
-              e.deprecated
-                ? 'ml-2 min-w-0 truncate line-through decoration-2 decoration-current'
-                : 'ml-2 min-w-0 truncate'
-            "
+          <z-icon zType="panel-left" />
+        </button>
+      }
+      <z-breadcrumb zSize="sm" class="min-w-0" zWrap="nowrap">
+        <li>
+          <a
+            [routerLink]="['/settings']"
+            class="rounded-sm hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            {{ 'XP.MENU.' + e.label | translate: { Default: e.label } }}
-            @if (e.deprecated) {
-              {{ 'XP.KEY_WORDS.DeprecatedSuffix' | translate: { Default: ' (Deprecated)' } }}
-            }
-          </span>
-
-          @if (e.deprecated) {
-            <i
-              class="ri-alert-line ml-2 shrink-0 text-text-warning"
-              [zTooltip]="'XP.KEY_WORDS.Deprecated' | translate: { Default: 'Deprecated' }"
-              zPosition="top"
-            ></i>
+            {{ 'XP.MENU.Settings' | translate: { Default: 'Settings' } }}
+          </a>
+        </li>
+        @if (activeGroup(); as group) {
+          @if (!compact()) {
+            <li aria-hidden="true"><z-icon zType="chevron-right" class="size-3 text-muted-foreground" /></li>
+            <li class="text-muted-foreground">
+              {{ 'XP.SettingsShell.' + group.key | translate: { Default: group.label } }}
+            </li>
           }
         }
-      </li>
+        @if (activeItem(); as item) {
+          <li aria-hidden="true"><z-icon zType="chevron-right" class="size-3 text-muted-foreground" /></li>
+          <li class="min-w-0 truncate font-medium text-foreground" aria-current="page">
+            {{ item.translationKey | translate: { Default: item.label } }}
+          </li>
+        }
+      </z-breadcrumb>
+      <div class="ml-auto flex shrink-0 items-center gap-2">
+        <button
+          z-button
+          zType="ghost"
+          zSize="icon"
+          type="button"
+          [attr.aria-label]="'XP.SettingsShell.ToggleTheme' | translate"
+          [zTooltip]="'XP.SettingsShell.ToggleTheme' | translate"
+          (click)="toggleTheme()"
+        >
+          <z-icon [zType]="theme().primary === 'dark' ? 'sun' : 'moon'" />
+        </button>
+        @if (user(); as currentUser) {
+          <xp-header-user [user]="currentUser" [compact]="true" menuPlacement="header" />
+        }
+      </div>
+    </header>
+    <main class="settings-content" [attr.aria-label]="activeItem()?.translationKey || 'XP.MENU.Settings' | translate">
+      <router-outlet />
+    </main>
+  </div>
+</z-layout>
+
+<ng-template #mobileNavigation>
+  <div
+    class="flex h-full min-h-0 flex-col bg-sidebar text-sidebar-foreground"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-label]="'XP.KEY_WORDS.SettingsNavigation' | translate: { Default: 'Settings navigation' }"
+    cdkTrapFocus
+    [cdkTrapFocusAutoCapture]="true"
+  >
+    <ng-container *ngTemplateOutlet="navigation; context: { mobile: true }" />
+  </div>
+</ng-template>
+
+<ng-template #navigation let-mobile="mobile">
+  <div class="flex h-16 shrink-0 items-center gap-2 px-4">
+    <a
+      class="flex min-w-0 flex-1 items-center gap-2 rounded-md font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      [routerLink]="['/']"
+      [attr.aria-label]="'XP.SettingsShell.BackToApp' | translate"
+    >
+      <img src="/assets/icon.png" alt="" class="size-7 object-contain" />
+      <span>Xpert</span>
+      <span class="ml-auto text-xs font-normal text-muted-foreground">{{
+        'XP.MENU.Settings' | translate: { Default: 'Settings' }
+      }}</span>
+    </a>
+    @if (mobile) {
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        type="button"
+        cdkFocusInitial
+        [attr.aria-label]="'XP.SettingsShell.CloseNavigation' | translate"
+        (click)="closeNavigation()"
+      >
+        <z-icon zType="x" />
+      </button>
     }
-  </ul>
-</div>
-
-<div
-  [@routeAnimations]="o.isActivated && o.activatedRouteData?.title"
-  class="xp-nav__router relative flex-1 bg-background"
->
-  <router-outlet #o="outlet"></router-outlet>
-
-  <xp-drawer-trigger
-    class="absolute -left-2 top-1/2 -translate-y-1/2 z-40"
-    [(opened)]="sideMenuOpened"
-    [zTooltip]="'XP.KEY_WORDS.SettingsNavigation' | translate: { Default: 'Settings Navigation' }"
-    zPosition="right"
-  />
-</div>
+  </div>
+  <div class="shrink-0 space-y-3 px-3 pb-3">
+    <xp-organization-selector class="block min-w-0 [&>div]:mx-0 [&>div]:text-left" />
+    <z-search-input
+      [value]="search()"
+      (valueChange)="search.set($event)"
+      [placeholder]="'XP.SettingsShell.Search' | translate"
+      [aria-label]="'XP.SettingsShell.Search' | translate"
+      [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
+    />
+  </div>
+  <nav
+    class="min-h-0 flex-1 space-y-4 overflow-y-auto px-3 pb-4"
+    [attr.aria-label]="'XP.KEY_WORDS.SettingsNavigation' | translate: { Default: 'Settings navigation' }"
+  >
+    @for (group of filteredGroups(); track group.key) {
+      <z-sidebar-group>
+        <z-sidebar-group-label>{{
+          'XP.SettingsShell.' + group.key | translate: { Default: group.label }
+        }}</z-sidebar-group-label>
+        @for (item of group.items; track item.path) {
+          <a
+            class="flex h-9 w-full items-center gap-2.5 rounded-md px-3 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            [routerLink]="'/settings/' + item.path"
+            routerLinkActive
+            #rla="routerLinkActive"
+            [class]="
+              rla.isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium' : 'text-muted-foreground'
+            "
+            [attr.aria-current]="rla.isActive ? 'page' : null"
+          >
+            <z-icon [zType]="item.icon" class="size-4" />
+            <span class="min-w-0 truncate" [class]="item.deprecated ? 'line-through' : ''">
+              {{ item.translationKey | translate: { Default: item.label } }}
+              @if (item.deprecated) {
+                {{ 'XP.KEY_WORDS.DeprecatedSuffix' | translate: { Default: ' (Deprecated)' } }}
+              }
+            </span>
+          </a>
+        }
+      </z-sidebar-group>
+    } @empty {
+      <p role="status" class="px-3 py-6 text-center text-sm text-muted-foreground">
+        {{ 'XP.SettingsShell.NoResults' | translate }}
+      </p>
+    }
+  </nav>
+  <div class="shrink-0 border-t border-sidebar-border p-3">
+    <a
+      class="flex h-9 w-full items-center gap-2 rounded-md px-3 text-sm text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      [routerLink]="['/']"
+    >
+      <z-icon zType="arrow-left" class="size-4" />{{ 'XP.SettingsShell.BackToApp' | translate }}
+    </a>
+  </div>
+</ng-template>

@@ -155,6 +155,8 @@ export class FeaturesComponent implements OnInit {
   )
   readonly activeRouteUrl = signal(this.#router.url)
   readonly pendingRouteUrl = signal<string | null>(null)
+  readonly settingsLayout = computed(() => /^\/settings(?:\/|$)/.test(this.activeRouteUrl().split(/[?#]/)[0]))
+  readonly platformSidebarHidden = computed(() => this.workbenchImmersive() || this.settingsLayout())
   readonly disableContentRouteAnimations = computed(
     () => isWorkspaceRoute(this.activeRouteUrl()) || isWorkspaceRoute(this.pendingRouteUrl())
   )
