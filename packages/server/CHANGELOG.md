@@ -1,5 +1,18 @@
 # @xpert-ai/server-core
 
+## 3.10.5
+
+### Patch Changes
+
+- f60db7b: Exclude expired and unready replica registrations from plugin rollouts, validate returning replicas before admitting traffic, and restart one candidate at a time. Preserve healthy peers on failure, add bounded plugin startup diagnostics and an event-loop-independent watchdog, and restore verified last-known-good plugin configurations without retrying failed recovery indefinitely.
+
+    Protect the last healthy replica unless an authorized operator explicitly permits downtime. Pin replacement admission to the active generation's cumulative plugin manifest so queued updates cannot block the current rollout or inherit outage consent.
+
+- Updated dependencies [f60db7b]
+- Updated dependencies [558b1cd]
+    - @xpert-ai/contracts@3.21.2
+    - @xpert-ai/plugin-sdk@3.22.1
+
 ## 3.10.4
 
 ### Patch Changes

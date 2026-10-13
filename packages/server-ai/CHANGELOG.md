@@ -1,5 +1,21 @@
 # @xpert-ai/server-ai
 
+## 3.12.3
+
+### Patch Changes
+
+- 558b1cd: Add provider model discovery and incremental imports for LLM, embedding, and rerank models. Preserve edited configuration across synchronization, expose model sources and editable limits, and apply the synchronized catalog to model selection and execution access.
+- f60db7b: Remove the legacy Project migration service and its automatic startup backfill. API startup no longer scans existing Projects, rewrites legacy membership or task state, indexes old assets, or disables enabled automations. Keep normal Project creation, content initialization and plan provisioning in their existing business services.
+
+    Deprecate `project.members` in favor of `memberships` and the Project membership API. Legacy membership data is not migrated or used as an authorization fallback.
+
+- Updated dependencies [f60db7b]
+- Updated dependencies [558b1cd]
+    - @xpert-ai/server-core@3.10.5
+    - @xpert-ai/contracts@3.21.2
+    - @xpert-ai/plugin-sdk@3.22.1
+    - @xpert-ai/desktop-protocol@0.3.3
+
 ## 3.12.2
 
 ### Patch Changes
