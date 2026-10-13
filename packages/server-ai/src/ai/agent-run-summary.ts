@@ -3,7 +3,8 @@ import type { XpertAgentExecution } from '../xpert-agent-execution/agent-executi
 import { avatarForChat } from '../shared/avatar'
 
 export function toAgentRunSummary(
-    execution: Partial<XpertAgentExecution> & Pick<XpertAgentExecution, 'id'>
+    execution: Partial<Omit<XpertAgentExecution, 'xpert'>> &
+        Pick<XpertAgentExecution, 'id'> & { xpert?: Partial<XpertAgentExecution['xpert']> }
 ): TChatAgentRunSummary {
     const metadata = execution.metadata
     return {

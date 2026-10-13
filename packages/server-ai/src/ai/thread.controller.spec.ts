@@ -31,7 +31,10 @@ jest.mock('../core', () => ({
 jest.mock('../xpert-agent-execution', () => ({
     FindAgentExecutionsQuery: class FindAgentExecutionsQuery {},
     GetThreadContextUsageQuery: class GetThreadContextUsageQuery {},
-    XpertAgentExecutionOneQuery: class XpertAgentExecutionOneQuery {}
+    XpertAgentExecutionOneQuery: class XpertAgentExecutionOneQuery {},
+    GetAgentExecutionRunSummaryQuery: class GetAgentExecutionRunSummaryQuery {
+        constructor(public readonly id: string) {}
+    }
 }))
 
 jest.mock('../chat-conversation', () => ({
@@ -57,8 +60,10 @@ import {
     ConflictException,
     ExecutionContext,
     ForbiddenException,
-    INestApplication
+    INestApplication,
+    NotFoundException
 } from '@nestjs/common'
+import { XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
 import { Test } from '@nestjs/testing'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiKeyOrClientSecretAuthGuard, TransformInterceptor } from '@xpert-ai/server-core'
@@ -69,12 +74,240 @@ import { EMPTY, Subject } from 'rxjs'
 import { AiService } from './ai.service'
 import { RedisSseStreamService, SseMessageEvent } from '../shared/stream/redis-sse.service'
 import { RunCreateStreamCommand } from './commands'
-import { getPublicXpertSessionConversationScope } from './public-xpert-principal'
+import {
+    assertPublicXpertSessionConversationAccess,
+    getPublicXpertSessionConversationScope
+} from './public-xpert-principal'
+import { AssertChatConversationAccessQuery } from '../chat-conversation'
+import { GetAgentExecutionRunSummaryQuery, XpertAgentExecutionOneQuery } from '../xpert-agent-execution'
+import type { TAgentExecutionRunSummary } from '../xpert-agent-execution/queries/get-run-summary.query'
+import { TransformInterceptor as HttpTransformInterceptor } from '../../../server/src/core/interceptors/transform.interceptor'
 import { ThreadsController } from './thread.controller'
 import { writeSseResponse } from '../shared/stream/write-sse-response'
 import { CancelExternalAssistantCommand } from '../chat-conversation/commands/cancel-external-assistant.command'
 
 describe('ThreadsController', () => {
+    describe('GET run status', () => {
+        const createdAt = new Date('2026-10-12T08:00:00Z')
+        const updatedAt = new Date('2026-10-12T08:01:00Z')
+        const execution = {
+            id: 'run',
+            threadId: 'thread',
+            parentId: 'parent',
+            xpertId: 'assistant',
+            type: 'llm',
+            category: 'agent',
+            agentKey: 'reviewer',
+            title: 'Review',
+            status: XpertAgentExecutionStatusEnum.INTERRUPTED,
+            error: 'Cancelled by user',
+            elapsedTime: 60000,
+            inputs: { input: 'Please review' },
+            createdAt,
+            updatedAt,
+            xpert: { avatar: { url: '/fallback.png' } },
+            metadata: {
+                assistantName: 'Reviewer',
+                assistantAvatar: { url: '/reviewer.png' },
+                invocationKind: 'external_assistant',
+                sourceToolCallId: 'call',
+                model: 'test-model',
+                businessOutcome: { status: 'not_claimed', subjectId: 'task', accepted: false }
+            }
+        } satisfies TAgentExecutionRunSummary
+        const conversation = { id: 'conversation', threadId: 'thread' }
+
+        function setup(row: TAgentExecutionRunSummary = execution) {
+            const queries = {
+                execute: jest.fn(async (query: object) => {
+                    if (query instanceof AssertChatConversationAccessQuery) return conversation
+                    if (query instanceof XpertAgentExecutionOneQuery) {
+                        throw new Error('Full execution details and checkpoints are unavailable')
+                    }
+                    if (query instanceof GetAgentExecutionRunSummaryQuery) return row
+                    throw new Error('Unexpected query')
+                })
+            }
+            const controller = new ThreadsController({} as never, queries as never, {} as never, {} as never)
+            return { controller, queries }
+        }
+
+        it('returns the complete existing run contract without loading execution details', async () => {
+            const { controller } = setup()
+            const run = await controller.getThreadRun('thread', 'run')
+            expect(JSON.parse(JSON.stringify(run))).toEqual({
+                run_id: 'run',
+                thread_id: 'thread',
+                assistant_id: 'assistant',
+                created_at: '2026-10-12T08:00:00.000Z',
+                updated_at: '2026-10-12T08:01:00.000Z',
+                status: 'interrupted',
+                metadata: {
+                    ...execution.metadata,
+                    agentRun: {
+                        id: 'run',
+                        parentId: 'parent',
+                        type: 'llm',
+                        category: 'agent',
+                        agentKey: 'reviewer',
+                        xpertId: 'assistant',
+                        xpertName: 'Reviewer',
+                        avatar: { url: '/reviewer.png' },
+                        title: 'Review',
+                        invocationKind: 'external_assistant',
+                        sourceToolCallId: 'call',
+                        model: 'test-model',
+                        status: 'interrupted',
+                        businessOutcome: { status: 'not_claimed', subjectId: 'task', accepted: false },
+                        elapsedTime: 60000,
+                        inputs: { input: 'Please review' },
+                        error: 'Cancelled by user',
+                        createdAt: '2026-10-12T08:00:00.000Z',
+                        updatedAt: '2026-10-12T08:01:00.000Z'
+                    }
+                }
+            })
+        })
+
+        it.each(Object.values(XpertAgentExecutionStatusEnum))('preserves the persisted %s status', async (status) => {
+            const { controller } = setup({ ...execution, status })
+            await expect(controller.getThreadRun('thread', 'run')).resolves.toMatchObject({
+                status,
+                metadata: { agentRun: { status } }
+            })
+        })
+
+        it('reads the requested run ID through the summary query', async () => {
+            const { controller, queries } = setup({ ...execution, id: 'selected-run' })
+            await expect(controller.getThreadRun('thread', 'selected-run')).resolves.toMatchObject({
+                run_id: 'selected-run'
+            })
+            expect(queries.execute).toHaveBeenLastCalledWith(new GetAgentExecutionRunSummaryQuery('selected-run'))
+        })
+
+        it('preserves resume ancestry and extension metadata through the HTTP response', async () => {
+            const metadata = {
+                resumedFromExecutionId: 'previous-root',
+                extension: { enabled: false, count: 0, value: null, ids: ['one', 'two'] },
+                agentRun: { id: 'stale-snapshot', status: 'running' }
+            }
+            const { queries } = setup({
+                ...execution,
+                id: 'resumed-root',
+                parentId: null,
+                status: XpertAgentExecutionStatusEnum.SUCCESS,
+                error: null,
+                metadata
+            })
+            const module = await Test.createTestingModule({
+                controllers: [ThreadsController],
+                providers: [
+                    { provide: AiService, useValue: {} },
+                    { provide: QueryBus, useValue: queries },
+                    { provide: CommandBus, useValue: {} },
+                    { provide: RedisSseStreamService, useValue: {} }
+                ]
+            })
+                .overrideGuard(ApiKeyOrClientSecretAuthGuard)
+                .useValue({ canActivate: () => true })
+                .overrideInterceptor(TransformInterceptor)
+                .useClass(HttpTransformInterceptor)
+                .compile()
+            const app = module.createNestApplication({ logger: false })
+            app.setGlobalPrefix('api/ai')
+            try {
+                await app.listen(0, '127.0.0.1')
+                const address: AddressInfo = app.getHttpServer().address()
+                const response = await fetch(`http://127.0.0.1:${address.port}/api/ai/threads/thread/runs/resumed-root`)
+                expect(response.status).toBe(200)
+                expect(await response.json()).toEqual({
+                    run_id: 'resumed-root',
+                    thread_id: 'thread',
+                    assistant_id: 'assistant',
+                    created_at: '2026-10-12T08:00:00.000Z',
+                    updated_at: '2026-10-12T08:01:00.000Z',
+                    status: 'success',
+                    metadata: {
+                        resumedFromExecutionId: 'previous-root',
+                        extension: { enabled: false, count: 0, value: null, ids: ['one', 'two'] },
+                        agentRun: {
+                            id: 'resumed-root',
+                            parentId: null,
+                            type: 'llm',
+                            category: 'agent',
+                            agentKey: 'reviewer',
+                            xpertId: 'assistant',
+                            avatar: { url: '/fallback.png' },
+                            title: 'Review',
+                            status: 'success',
+                            elapsedTime: 60000,
+                            inputs: { input: 'Please review' },
+                            error: null,
+                            createdAt: '2026-10-12T08:00:00.000Z',
+                            updatedAt: '2026-10-12T08:01:00.000Z'
+                        }
+                    }
+                })
+                expect(queries.execute).toHaveBeenLastCalledWith(new GetAgentExecutionRunSummaryQuery('resumed-root'))
+            } finally {
+                await app.close()
+            }
+        })
+
+        it.each([null, undefined])(
+            'supports legacy runs with %s metadata and the Assistant avatar fallback',
+            async (metadata) => {
+                const { controller } = setup({
+                    ...execution,
+                    metadata,
+                    xpert: { avatar: { emoji: { id: 'smile' } } }
+                })
+                const run = await controller.getThreadRun('thread', 'run')
+                expect(run.metadata.agentRun).toMatchObject({
+                    id: 'run',
+                    avatar: { emoji: { id: 'smile', unified: '1f604' } }
+                })
+            }
+        )
+
+        it('returns a legacy run whose Assistant has been removed', async () => {
+            const { controller } = setup({ ...execution, metadata: null, xpert: null })
+            const run = JSON.parse(JSON.stringify(await controller.getThreadRun('thread', 'run')))
+            expect(run.metadata.agentRun.id).toBe('run')
+            expect(run.metadata.agentRun).not.toHaveProperty('avatar')
+        })
+
+        it('checks conversation read access before reading a run', async () => {
+            const { controller, queries } = setup()
+            queries.execute.mockRejectedValueOnce(new ForbiddenException())
+            await expect(controller.getThreadRun('thread', 'run')).rejects.toThrow(ForbiddenException)
+            expect(queries.execute).toHaveBeenCalledTimes(1)
+            expect(queries.execute).toHaveBeenCalledWith(
+                new AssertChatConversationAccessQuery({ threadId: 'thread' }, 'read')
+            )
+        })
+
+        it('checks restricted Assistant credentials before reading a run', async () => {
+            const { controller, queries } = setup()
+            jest.mocked(assertPublicXpertSessionConversationAccess).mockRejectedValueOnce(new ForbiddenException())
+            await expect(controller.getThreadRun('thread', 'run')).rejects.toThrow(ForbiddenException)
+            expect(queries.execute).toHaveBeenCalledTimes(1)
+            expect(assertPublicXpertSessionConversationAccess).toHaveBeenCalledWith(conversation, queries)
+        })
+
+        it('rejects a run from another thread', async () => {
+            const { controller } = setup({ ...execution, threadId: 'another-thread' })
+            await expect(controller.getThreadRun('thread', 'run')).rejects.toThrow(ForbiddenException)
+        })
+
+        it('preserves not-found errors without falling back to the full detail query', async () => {
+            const { controller, queries } = setup()
+            queries.execute.mockResolvedValueOnce(conversation).mockRejectedValueOnce(new NotFoundException())
+            await expect(controller.getThreadRun('thread', 'missing')).rejects.toThrow(NotFoundException)
+            expect(queries.execute).toHaveBeenCalledTimes(2)
+        })
+    })
+
     it('returns the persisted expert status, error and elapsed time through the SDK run metadata', async () => {
         const execution = {
             id: 'expert',
