@@ -5,7 +5,14 @@ import { Component, DestroyRef, effect, inject, signal, untracked } from '@angul
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { ModelExecutionCallView, ModelExecutionCallQuery } from '@xpert-ai/contracts'
-import { ZardButtonComponent, ZardSelectImports } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardCardImports,
+  ZardEmptyComponent,
+  ZardInputDirective,
+  ZardSelectImports,
+  ZardTableImports
+} from '@xpert-ai/headless-ui'
 import { injectOrganizationId } from '../../../@core/state'
 import { CopilotUsageService } from '../../../@core/services/copilot-usage.service'
 
@@ -14,7 +21,17 @@ const ALL_EXECUTION_FILTERS = '__all__'
 @Component({
   standalone: true,
   selector: 'xp-execution-usage',
-  imports: [ReactiveFormsModule, CommonModule, TranslateModule, ZardButtonComponent, ...ZardSelectImports],
+  imports: [
+    ReactiveFormsModule,
+    CommonModule,
+    TranslateModule,
+    ZardButtonComponent,
+    ZardEmptyComponent,
+    ZardInputDirective,
+    ...ZardCardImports,
+    ...ZardSelectImports,
+    ...ZardTableImports
+  ],
   templateUrl: './execution-usage.component.html'
 })
 export class ExecutionUsageComponent {

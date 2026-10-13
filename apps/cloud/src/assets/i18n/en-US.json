@@ -54,6 +54,25 @@
     "CustomSMTP": "Custom SMTP"
   },
   "XP": {
+    "BillingSettings": {
+      "Description": "Review your current plan, personal points, and balance deductions.",
+      "Refresh": "Refresh plan and deductions",
+      "PlanAndBalance": "Plan & balance",
+      "DebitRecords": "Deductions",
+      "ToolUsage": "Coding tool usage",
+      "PermanentBalance": "Does not reset with your plan cycle",
+      "UsageAndRules": "Usage & rules",
+      "CycleConsumption": "Model consumption this cycle",
+      "DebitBasis": "How deductions are recorded",
+      "DebitHint": "Only actual balance deductions appear here. Priced calls with unlimited access or no balance deduction still count toward model consumption this cycle.",
+      "PointChange": "Point change",
+      "NoDebits": "No deductions yet",
+      "NoDebitsHint": "No recent balance deductions does not mean there was no model consumption.",
+      "ExpandDetails": "Expand deduction details",
+      "CollapseDetails": "Collapse deduction details",
+      "DetailsFailed": "Could not load deduction details",
+      "LoadFailed": "Could not load plan and deductions"
+    },
     "UsageDashboard": {
       "Personal": "Personal",
       "Description": "View your point consumption, activity trends, and plan benefits.",

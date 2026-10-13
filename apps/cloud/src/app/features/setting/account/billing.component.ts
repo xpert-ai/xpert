@@ -1,6 +1,7 @@
 import { ExecutionUsageComponent } from './execution-usage.component'
 import { CommonModule } from '@angular/common'
-import { Component, OnInit, inject, signal } from '@angular/core'
+import { Component, DestroyRef, OnInit, inject, signal } from '@angular/core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { MembershipService, getErrorMessage, injectToastr } from '../../../@core'
 import {
   IMembershipMe,
@@ -14,9 +15,13 @@ import {
   ZardBadgeComponent,
   ZardButtonComponent,
   ZardCardImports,
+  ZardEmptyComponent,
   ZardIconComponent,
-  ZardProgressBarComponent
+  ZardProgressBarComponent,
+  ZardTableImports,
+  ZardTabsImports
 } from '@xpert-ai/headless-ui'
+import { forkJoin, take } from 'rxjs'
 
 @Component({
   standalone: true,
@@ -27,9 +32,12 @@ import {
     TranslateModule,
     ZardBadgeComponent,
     ZardButtonComponent,
+    ZardEmptyComponent,
     ZardIconComponent,
     ZardProgressBarComponent,
-    ...ZardCardImports
+    ...ZardCardImports,
+    ...ZardTableImports,
+    ...ZardTabsImports
   ],
   templateUrl: './billing.component.html',
   styleUrls: ['./billing.component.scss']
@@ -37,33 +45,44 @@ import {
 export class XpAccountBillingComponent implements OnInit {
   readonly #membership = inject(MembershipService)
   readonly #toastr = injectToastr()
+  readonly #destroyRef = inject(DestroyRef)
+  #loadVersion = 0
 
   readonly me = signal<IMembershipMe | null>(null)
   readonly usageSummaries = signal<IMembershipUsageSummary[]>([])
   readonly expandedSummaryKey = signal<string | null>(null)
   readonly summaryDetails = signal<Record<string, IMembershipPointLedger[]>>({})
   readonly summaryDetailsLoading = signal<Record<string, boolean>>({})
+  readonly summaryDetailsFailed = signal<Record<string, boolean>>({})
   readonly loading = signal(false)
+  readonly loadFailed = signal(false)
 
   ngOnInit() {
     this.load()
   }
 
   load() {
+    if (this.loading()) return
+    this.#loadVersion++
     this.loading.set(true)
-    this.#membership.getMe().subscribe({
-      next: (me) => {
-        this.me.set(me)
-        this.#membership.getMyUsageSummary({ take: 20 }).subscribe({
-          next: (result) => {
-            this.usageSummaries.set(result.items ?? [])
-            this.loading.set(false)
-          },
-          error: (error) => this.handleError(error)
-        })
-      },
-      error: (error) => this.handleError(error)
+    this.loadFailed.set(false)
+    this.expandedSummaryKey.set(null)
+    this.summaryDetails.set({})
+    this.summaryDetailsLoading.set({})
+    this.summaryDetailsFailed.set({})
+    forkJoin({
+      me: this.#membership.getMe().pipe(take(1)),
+      summaries: this.#membership.getMyUsageSummary({ take: 20 }).pipe(take(1))
     })
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe({
+        next: ({ me, summaries }) => {
+          this.me.set(me)
+          this.usageSummaries.set(summaries.items ?? [])
+          this.loading.set(false)
+        },
+        error: (error) => this.handleError(error)
+      })
   }
 
   usedPercent() {
@@ -72,13 +91,6 @@ export class XpAccountBillingComponent implements OnInit {
       return 0
     }
     return Math.min(100, Math.round((me.pointsUsed / me.pointsGranted) * 100))
-  }
-
-  remainingPercent() {
-    if (this.isUnlimited()) {
-      return 100
-    }
-    return Math.max(0, 100 - this.usedPercent())
   }
 
   isUnlimited() {
@@ -110,21 +122,32 @@ export class XpAccountBillingComponent implements OnInit {
     }
 
     this.expandedSummaryKey.set(key)
-    if (this.summaryDetails()[key]) {
-      return
-    }
+    this.loadSummaryDetails(summary)
+  }
+
+  loadSummaryDetails(summary: IMembershipUsageSummary) {
+    const key = this.summaryKey(summary)
+    if (this.summaryDetails()[key] || this.summaryDetailsLoading()[key]) return
+    const version = this.#loadVersion
 
     this.summaryDetailsLoading.update((value) => ({ ...value, [key]: true }))
-    this.#membership.getMyDetails(this.toDetailsQuery(summary)).subscribe({
-      next: (result) => {
-        this.summaryDetails.update((value) => ({ ...value, [key]: result.items ?? [] }))
-        this.summaryDetailsLoading.update((value) => ({ ...value, [key]: false }))
-      },
-      error: (error) => {
-        this.summaryDetailsLoading.update((value) => ({ ...value, [key]: false }))
-        this.#toastr.error(getErrorMessage(error))
-      }
-    })
+    this.summaryDetailsFailed.update((value) => ({ ...value, [key]: false }))
+    this.#membership
+      .getMyDetails(this.toDetailsQuery(summary))
+      .pipe(take(1), takeUntilDestroyed(this.#destroyRef))
+      .subscribe({
+        next: (result) => {
+          if (version !== this.#loadVersion) return
+          this.summaryDetails.update((value) => ({ ...value, [key]: result.items ?? [] }))
+          this.summaryDetailsLoading.update((value) => ({ ...value, [key]: false }))
+        },
+        error: (error) => {
+          if (version !== this.#loadVersion) return
+          this.summaryDetailsLoading.update((value) => ({ ...value, [key]: false }))
+          this.summaryDetailsFailed.update((value) => ({ ...value, [key]: true }))
+          this.#toastr.error(getErrorMessage(error))
+        }
+      })
   }
 
   getSummaryDetails(summary: IMembershipUsageSummary) {
@@ -170,6 +193,7 @@ export class XpAccountBillingComponent implements OnInit {
 
   private handleError(error: unknown) {
     this.loading.set(false)
+    this.loadFailed.set(true)
     this.#toastr.error(getErrorMessage(error))
   }
 }

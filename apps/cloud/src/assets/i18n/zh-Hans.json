@@ -260,6 +260,25 @@
     "Connectors": "连接器"
   },
   "XP": {
+    "BillingSettings": {
+      "Description": "查看当前套餐、个人点数与实际扣点记录。",
+      "Refresh": "刷新套餐与扣点记录",
+      "PlanAndBalance": "套餐与余额",
+      "DebitRecords": "扣点记录",
+      "ToolUsage": "编程工具用量",
+      "PermanentBalance": "不会随套餐周期重置",
+      "UsageAndRules": "用量与规则",
+      "CycleConsumption": "本周期模型消耗",
+      "DebitBasis": "扣点口径",
+      "DebitHint": "仅显示实际余额扣点；不限量和未扣余额的已定价调用仍计入本周期模型消耗。",
+      "PointChange": "点数变动",
+      "NoDebits": "暂无扣点记录",
+      "NoDebitsHint": "最近暂无余额扣点，这不代表没有产生模型消耗。",
+      "ExpandDetails": "展开扣点明细",
+      "CollapseDetails": "收起扣点明细",
+      "DetailsFailed": "扣点明细加载失败",
+      "LoadFailed": "套餐与扣点记录加载失败"
+    },
     "UsageDashboard": {
       "Personal": "个人",
       "Description": "查看个人点数消耗、使用趋势和套餐权益。",

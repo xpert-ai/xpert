@@ -1,331 +1,351 @@
-<div class="mx-auto flex w-full max-w-7xl flex-col gap-4 p-4">
-  <div class="grid gap-4 xl:grid-cols-12">
-    <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none xl:col-span-8">
-      <z-card-header class="border-b border-divider-regular py-5">
-        <div class="flex w-full flex-col gap-3 md:flex-row md:items-start md:justify-between">
-          <div class="min-w-0">
-            <div class="mb-2 flex flex-wrap items-center gap-2">
-              <z-badge zType="secondary" zShape="pill">
-                {{ 'XP.Membership.CurrentPlan' | translate: { Default: 'Current plan' } }}
-              </z-badge>
-              <span class="text-sm text-text-tertiary">
-                {{
-                  'XP.Membership.AdminManagedPlan'
-                    | translate: { Default: 'Plan changes are managed by an administrator.' }
-                }}
-              </span>
-            </div>
-            <z-card-title class="truncate text-2xl" [title]="me()?.plan?.name || '-'">{{
-              me()?.plan?.name || '-'
-            }}</z-card-title>
-          </div>
+<div class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+  <header class="flex items-start justify-between gap-4">
+    <div class="min-w-0">
+      <div class="flex flex-wrap items-center gap-3">
+        <h1 class="text-2xl font-semibold tracking-tight text-foreground">
+          {{ 'XP.Membership.UsageBilling' | translate }}
+        </h1>
+        <z-badge zType="outline">{{ 'XP.UsageDashboard.Personal' | translate }}</z-badge>
+      </div>
+      <p class="mt-2 text-sm text-muted-foreground">{{ 'XP.BillingSettings.Description' | translate }}</p>
+    </div>
+    <button
+      z-button
+      zType="outline"
+      zSize="icon"
+      type="button"
+      [zDisabled]="loading()"
+      [attr.aria-label]="'XP.BillingSettings.Refresh' | translate"
+      (click)="load()"
+    >
+      <z-icon zType="refresh" [class]="loading() ? 'motion-safe:animate-spin' : ''" />
+    </button>
+  </header>
 
-          <div class="shrink-0 rounded-lg bg-components-panel-bg px-3 py-2 text-left md:text-right">
-            <div class="text-xs font-medium text-text-tertiary">
-              {{ 'XP.Membership.PeriodEnd' | translate: { Default: 'Period end' } }}
-            </div>
-            <div class="mt-1 font-semibold text-text-primary">{{ me()?.currentPeriodEnd | date: 'medium' }}</div>
-          </div>
-        </div>
-      </z-card-header>
-
-      <z-card-content class="p-5">
-        <div class="grid gap-3 md:grid-cols-3">
-          <div class="rounded-lg bg-components-panel-bg p-4">
-            <div class="text-xs font-medium text-text-tertiary">
-              {{ 'XP.Membership.PointBalance' | translate: { Default: 'Point balance' } }}
-            </div>
-            <div class="mt-2 text-2xl font-semibold text-text-primary">
-              @if (isUnlimited()) {
-                {{ 'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
-              } @else {
-                {{ me()?.pointsRemaining | number: '1.0-2' }} / {{ me()?.pointsGranted | number: '1.0-2' }}
+  <z-tab-group [preserveContent]="true" animationDuration="0ms">
+    <z-tab [label]="'XP.BillingSettings.PlanAndBalance' | translate" bodyClass="pt-6">
+      @if (loading()) {
+        <ng-container [ngTemplateOutlet]="loadingState" />
+      } @else if (loadFailed()) {
+        <ng-container [ngTemplateOutlet]="errorState" />
+      } @else if (me(); as account) {
+        <div class="grid gap-4 lg:grid-cols-3">
+          <z-card class="min-w-0 shadow-none lg:col-span-2">
+            <z-card-header class="block px-5 pt-5 pb-4">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <p class="mb-2 text-sm text-muted-foreground">{{ 'XP.Membership.CurrentPlan' | translate }}</p>
+                  <z-card-title class="break-words text-xl">{{
+                    account.plan?.name || ('XP.UsageDashboard.NoPlan' | translate)
+                  }}</z-card-title>
+                </div>
+                @if (account.membership?.status; as status) {
+                  <z-badge zType="secondary">{{ 'XP.Membership.MemberStatuses.' + status | translate }}</z-badge>
+                }
+              </div>
+              @if (account.currentPeriodEnd) {
+                <p class="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                  <z-icon zType="calendar" class="size-3.5" />
+                  <span
+                    >{{ account.currentPeriodStart | date: 'mediumDate' }} –
+                    {{ account.currentPeriodEnd | date: 'medium' }}</span
+                  >
+                </p>
               }
-            </div>
-            <div class="mt-1 text-xs text-text-tertiary">
-              @if (isUnlimited()) {
-                {{ 'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
-              } @else {
-                {{ remainingPercent() | number }}%
-                {{ 'XP.Membership.RemainingPoints' | translate: { Default: 'Remaining points' } }}
+            </z-card-header>
+            <z-card-content class="space-y-5 px-5 pt-0 pb-5">
+              <div>
+                <p class="text-sm text-muted-foreground">{{ 'XP.Membership.RemainingPoints' | translate }}</p>
+                <div class="mt-2 break-words text-3xl font-semibold tracking-tight tabular-nums">
+                  @if (isUnlimited()) {
+                    {{ 'XP.Membership.Unlimited' | translate }}
+                  } @else {
+                    {{ account.pointsRemaining | number: '1.0-2' }}
+                    <span class="text-sm font-normal text-muted-foreground"
+                      >/ {{ account.pointsGranted | number: '1.0-2' }}</span
+                    >
+                  }
+                </div>
+              </div>
+              @if (!isUnlimited()) {
+                <div>
+                  <z-progress-bar [progress]="usedPercent()" zShape="default" />
+                  <div class="mt-2 flex flex-wrap justify-between gap-2 text-xs text-muted-foreground">
+                    <span>{{ 'XP.Membership.QuotaPointUsage' | translate }}</span>
+                    <span class="tabular-nums"
+                      >{{ account.pointsUsed | number: '1.0-2' }} / {{ account.pointsGranted | number: '1.0-2' }} ·
+                      {{ usedPercent() }}%</span
+                    >
+                  </div>
+                </div>
               }
-            </div>
-          </div>
+              <p
+                class="flex items-start gap-2 border-t border-border pt-4 text-xs leading-relaxed text-muted-foreground"
+              >
+                <z-icon zType="shield" class="mt-0.5 size-3.5 shrink-0" />
+                {{ 'XP.Membership.AdminManagedPlan' | translate }}
+              </p>
+            </z-card-content>
+          </z-card>
 
-          <div class="rounded-lg bg-components-panel-bg p-4">
-            <div class="text-xs font-medium text-text-tertiary">
-              {{ 'XP.Membership.UsedPoints' | translate: { Default: 'Used points' } }}
-            </div>
-            <div class="mt-2 text-2xl font-semibold text-text-primary">
-              {{ me()?.consumedPoints ?? me()?.pointsUsed | number: '1.0-0' }}
-            </div>
-            <div class="mt-1 text-xs text-text-tertiary">
-              {{ 'XP.Membership.ConsumedPointsHint' | translate }}
-            </div>
-          </div>
-
-          <div class="rounded-lg bg-components-panel-bg p-4">
-            <div class="text-xs font-medium text-text-tertiary">
-              {{ 'XP.Membership.PersonalPoints' | translate: { Default: 'Personal points' } }}
-            </div>
-            <div class="mt-2 text-2xl font-semibold text-text-primary">
-              {{ me()?.personalPointsBalance | number: '1.0-2' }}
-            </div>
-            <div class="mt-1 text-xs text-text-tertiary">
-              {{
-                'XP.Membership.PersonalPointsHint'
-                  | translate: { Default: 'Permanent balance. Membership cycle points are consumed first.' }
-              }}
-            </div>
-          </div>
+          <z-card class="min-w-0 shadow-none">
+            <z-card-header class="block px-5 pt-5 pb-4">
+              <div class="flex items-center justify-between gap-3">
+                <z-card-title class="text-base">{{ 'XP.Membership.PersonalPoints' | translate }}</z-card-title>
+                <z-icon zType="credit-card" class="text-muted-foreground" />
+              </div>
+              <z-card-subtitle>{{ 'XP.BillingSettings.PermanentBalance' | translate }}</z-card-subtitle>
+            </z-card-header>
+            <z-card-content class="px-5 pt-0 pb-5">
+              <p class="break-words text-3xl font-semibold tracking-tight tabular-nums">
+                {{ account.personalPointsBalance | number: '1.0-2' }}
+                <span class="text-sm font-normal text-muted-foreground">{{ 'XP.Membership.Points' | translate }}</span>
+              </p>
+              <p class="mt-5 text-sm leading-relaxed text-muted-foreground">
+                {{ 'XP.Membership.PersonalPointsHint' | translate }}
+              </p>
+            </z-card-content>
+          </z-card>
         </div>
 
-        @if (!isUnlimited()) {
-          <div class="mt-5">
-            <div class="mb-2 flex items-center justify-between gap-3 text-xs text-text-tertiary">
-              <span>{{ 'XP.Membership.QuotaPointUsage' | translate }}</span>
-              <span>{{ me()?.pointsUsed | number: '1.0-2' }} / {{ me()?.pointsGranted | number: '1.0-2' }}</span>
+        <section class="mt-8" aria-labelledby="billing-rules-title">
+          <h2 id="billing-rules-title" class="text-base font-semibold text-foreground">
+            {{ 'XP.BillingSettings.UsageAndRules' | translate }}
+          </h2>
+          <dl class="mt-3 divide-y divide-border border-y border-border">
+            <div class="flex flex-wrap items-center justify-between gap-x-8 gap-y-2 py-4">
+              <dt class="min-w-0 flex-1">
+                <span class="text-sm font-medium">{{ 'XP.BillingSettings.CycleConsumption' | translate }}</span>
+                <p class="mt-1 max-w-2xl text-xs leading-relaxed text-muted-foreground">
+                  {{ 'XP.Membership.ConsumedPointsHint' | translate }}
+                </p>
+              </dt>
+              <dd class="text-right text-lg font-semibold tabular-nums">
+                {{ account.consumedPoints ?? account.pointsUsed | number: '1.0-0' }}
+                <span class="text-xs font-normal text-muted-foreground">{{ 'XP.Membership.Points' | translate }}</span>
+              </dd>
             </div>
-            <z-progress-bar [progress]="usedPercent()" zShape="default" />
-          </div>
-        }
-      </z-card-content>
-    </z-card>
+            <div class="flex items-center justify-between gap-8 py-4">
+              <dt class="text-sm font-medium">{{ 'XP.Membership.PointsPerPeriod' | translate }}</dt>
+              <dd class="text-sm tabular-nums">
+                @if (account.plan?.includedPoints === null) {
+                  {{ 'XP.Membership.Unlimited' | translate }}
+                } @else {
+                  {{ account.plan?.includedPoints | number: '1.0-2' }}
+                }
+              </dd>
+            </div>
+            <div class="py-4">
+              <dt class="text-sm font-medium">{{ 'XP.BillingSettings.DebitBasis' | translate }}</dt>
+              <dd class="mt-1 text-xs leading-relaxed text-muted-foreground">
+                {{ 'XP.BillingSettings.DebitHint' | translate }}
+              </dd>
+            </div>
+          </dl>
+        </section>
+      } @else {
+        <z-empty
+          zIcon="credit-card"
+          [zTitle]="'XP.UsageDashboard.NoPlan' | translate"
+          [zDescription]="'XP.Membership.AdminManagedPlan' | translate"
+        />
+      }
+    </z-tab>
 
-    <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none xl:col-span-4">
-      <z-card-header class="border-b border-divider-regular py-5">
-        <div class="flex items-center gap-2">
-          <span
-            class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-components-panel-bg text-text-secondary"
-          >
-            <z-icon zType="shield"></z-icon>
-          </span>
-          <div>
-            <z-card-title>{{ 'XP.Membership.PlanRules' | translate: { Default: 'Plan rules' } }}</z-card-title>
-            <z-card-subtitle class="mt-1">
-              {{ 'XP.Membership.PointRules' | translate: { Default: 'Point rules' } }}
-            </z-card-subtitle>
-          </div>
-        </div>
-      </z-card-header>
-
-      <z-card-content class="space-y-3 p-4">
-        <div class="flex items-center justify-between rounded-lg bg-components-panel-bg px-3 py-2">
-          <span class="text-sm text-text-tertiary">{{
-            'XP.Membership.PointsPerPeriod' | translate: { Default: 'Points per period' }
-          }}</span>
-          <span class="font-semibold text-text-primary">
-            @if (me()?.plan?.includedPoints === null) {
-              {{ 'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
-            } @else {
-              {{ me()?.plan?.includedPoints | number: '1.0-2' }}
-            }
-          </span>
-        </div>
-      </z-card-content>
-    </z-card>
-  </div>
-
-  <div class="grid gap-4 xl:grid-cols-12">
-    <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none xl:col-span-12">
-      <z-card-header class="border-b border-divider-regular py-4">
-        <div class="flex w-full flex-col gap-2 md:flex-row md:items-center md:justify-between">
-          <div>
-            <z-card-title>{{
-              'XP.Membership.RecentDebitSummary' | translate: { Default: 'Recent usage summary' }
-            }}</z-card-title>
-            <z-card-subtitle class="mt-1">
-              {{
-                'XP.Membership.RecentDebitSummaryHint'
-                  | translate: { Default: 'Grouped by session, model, and hourly usage window.' }
-              }}
-            </z-card-subtitle>
-          </div>
+    <z-tab [label]="'XP.BillingSettings.DebitRecords' | translate" bodyClass="pt-6">
+      <z-card class="min-w-0 overflow-hidden shadow-none" [attr.aria-busy]="loading()">
+        <z-card-header class="block px-5 py-5">
+          <z-card-title class="text-base">{{ 'XP.Membership.RecentDebitSummary' | translate }}</z-card-title>
+          <z-card-subtitle class="mt-1 leading-relaxed">{{
+            'XP.BillingSettings.DebitHint' | translate
+          }}</z-card-subtitle>
+        </z-card-header>
+        <z-card-content class="p-0">
           @if (loading()) {
-            <z-badge zType="secondary" zShape="pill">
-              {{ 'XP.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}
-            </z-badge>
-          }
-        </div>
-      </z-card-header>
-
-      <z-card-content class="p-0">
-        <div class="overflow-auto">
-          <table class="min-w-full text-sm">
-            <thead class="border-b border-divider-regular bg-components-panel-bg text-xs text-text-tertiary">
-              <tr>
-                <th class="whitespace-nowrap px-4 py-3 text-left font-medium">
-                  {{ 'XP.KEY_WORDS.Date' | translate: { Default: 'Date' } }}
-                </th>
-                <th class="whitespace-nowrap px-4 py-3 text-left font-medium">
-                  {{ 'XP.Membership.Session' | translate: { Default: 'Session' } }}
-                </th>
-                <th class="whitespace-nowrap px-4 py-3 text-left font-medium">
-                  {{ 'XP.Copilot.Model' | translate: { Default: 'Model' } }}
-                </th>
-                <th class="whitespace-nowrap px-4 py-3 text-right font-medium">
-                  {{ 'XP.Membership.Calls' | translate: { Default: 'Calls' } }}
-                </th>
-                <th class="whitespace-nowrap px-4 py-3 text-right font-medium">
-                  {{ 'XP.Membership.Points' | translate: { Default: 'Points' } }}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (summary of usageSummaries(); track summaryKey(summary)) {
-                <tr class="border-b border-divider-subtle last:border-b-0 hover:bg-hover-bg">
-                  <td class="whitespace-nowrap px-4 py-3 text-text-primary">
-                    <div class="flex items-center gap-2">
-                      <button
-                        z-button
-                        zType="ghost"
-                        zSize="icon-sm"
-                        zShape="circle"
-                        type="button"
-                        (click)="toggleSummary(summary)"
-                      >
-                        <z-icon [zType]="isExpanded(summary) ? 'chevron-down' : 'chevron-right'"></z-icon>
-                      </button>
-                      <div>
-                        <div>{{ summary.lastUsedAt | date: 'yyyy/M/d HH:00' }}</div>
-                        <div class="text-xs text-text-tertiary">{{ summary.lastUsedAt | date: 'shortTime' }}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td
-                    class="max-w-56 px-4 py-3"
-                    [title]="
-                      conversationLabel(summary) +
-                      ' / ' +
-                      (isExternalApi(summary)
-                        ? ('XP.Membership.ApiCall' | translate: { Default: 'API call' })
-                        : ('XP.Copilot.ExecutionEntry.' + (summary.usageChannel || 'xpert') | translate) +
-                          ' ' +
-                          xpertLabel(summary))
-                    "
-                  >
-                    <div class="truncate text-text-primary">
-                      {{ conversationLabel(summary) }}
-                    </div>
-                    <div class="truncate text-xs text-text-tertiary">
-                      @if (isExternalApi(summary)) {
-                        {{ 'XP.Membership.ApiCall' | translate: { Default: 'API call' } }}
-                      } @else {
-                        {{ 'XP.Copilot.ExecutionEntry.' + (summary.usageChannel || 'xpert') | translate }}
-                        {{ xpertLabel(summary) }}
-                      }
-                    </div>
-                  </td>
-                  <td
-                    class="max-w-48 truncate px-4 py-3 text-text-primary"
-                    [title]="summary.provider || summary.model || '-'"
-                  >
-                    @if (summary.provider || summary.model) {
-                      {{ summary.provider || '*' }} / {{ summary.model || '*' }}
-                    } @else {
-                      -
-                    }
-                  </td>
-                  <td class="whitespace-nowrap px-4 py-3 text-right text-text-secondary">
-                    {{ summary.callCount | number }}
-                  </td>
-                  <td
-                    class="whitespace-nowrap px-4 py-3 text-right font-semibold"
-                    [ngClass]="summary.pointsDelta > 0 ? 'text-text-success' : 'text-text-primary'"
-                  >
-                    {{ summary.pointsDelta > 0 ? '+' : '' }}{{ summary.pointsDelta | number: '1.0-2' }}
-                  </td>
-                </tr>
-                @if (isExpanded(summary)) {
-                  <tr class="border-b border-divider-subtle bg-components-panel-bg">
-                    <td colspan="5" class="px-4 py-3">
-                      <div class="rounded-lg border border-divider-subtle bg-components-card-bg">
-                        <div class="flex items-center justify-between border-b border-divider-subtle px-4 py-3">
-                          <div class="text-sm font-medium text-text-primary">
-                            {{ 'XP.Membership.UsageDetails' | translate: { Default: 'Usage details' } }}
+            <ng-container [ngTemplateOutlet]="loadingState" />
+          } @else if (loadFailed()) {
+            <ng-container [ngTemplateOutlet]="errorState" />
+          } @else if (!usageSummaries().length) {
+            <z-empty
+              class="border-t border-border py-12"
+              zIcon="activity"
+              [zTitle]="'XP.BillingSettings.NoDebits' | translate"
+              [zDescription]="'XP.BillingSettings.NoDebitsHint' | translate"
+            />
+          } @else {
+            <div class="overflow-x-auto border-t border-border">
+              <table z-table class="w-full text-sm">
+                <thead z-table-header class="bg-muted/40">
+                  <tr z-table-row>
+                    <th z-table-head class="px-4">{{ 'XP.KEY_WORDS.Date' | translate }}</th>
+                    <th z-table-head class="px-4">{{ 'XP.Membership.Session' | translate }}</th>
+                    <th z-table-head class="px-4">{{ 'XP.Copilot.Model' | translate }}</th>
+                    <th z-table-head class="px-4 text-right">{{ 'XP.Membership.Calls' | translate }}</th>
+                    <th z-table-head class="px-4 text-right">{{ 'XP.BillingSettings.PointChange' | translate }}</th>
+                  </tr>
+                </thead>
+                <tbody z-table-body>
+                  @for (summary of usageSummaries(); track summaryKey(summary)) {
+                    <tr z-table-row>
+                      <td z-table-cell class="whitespace-nowrap px-4 py-3">
+                        <div class="flex items-center gap-2">
+                          <button
+                            z-button
+                            zType="ghost"
+                            zSize="icon-sm"
+                            type="button"
+                            [attr.aria-expanded]="isExpanded(summary)"
+                            [attr.aria-label]="
+                              (isExpanded(summary)
+                                ? 'XP.BillingSettings.CollapseDetails'
+                                : 'XP.BillingSettings.ExpandDetails'
+                              ) | translate
+                            "
+                            (click)="toggleSummary(summary)"
+                          >
+                            <z-icon [zType]="isExpanded(summary) ? 'chevron-down' : 'chevron-right'" />
+                          </button>
+                          <div>
+                            <div>{{ summary.lastUsedAt | date: 'yyyy/M/d HH:00' }}</div>
+                            <div class="text-xs text-muted-foreground">
+                              {{ summary.lastUsedAt | date: 'shortTime' }}
+                            </div>
                           </div>
-                          @if (isSummaryDetailsLoading(summary)) {
-                            <z-badge zType="secondary" zShape="pill">
-                              {{ 'XP.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}
-                            </z-badge>
+                        </div>
+                      </td>
+                      <td
+                        z-table-cell
+                        class="max-w-56 px-4 py-3"
+                        [title]="
+                          conversationLabel(summary) +
+                          ' / ' +
+                          (isExternalApi(summary)
+                            ? ('XP.Membership.ApiCall' | translate)
+                            : ('XP.Copilot.ExecutionEntry.' + (summary.usageChannel || 'xpert') | translate) +
+                              ' ' +
+                              xpertLabel(summary))
+                        "
+                      >
+                        <div class="truncate font-medium">{{ conversationLabel(summary) }}</div>
+                        <div class="truncate text-xs text-muted-foreground">
+                          @if (isExternalApi(summary)) {
+                            {{ 'XP.Membership.ApiCall' | translate }}
+                          } @else {
+                            {{ 'XP.Copilot.ExecutionEntry.' + (summary.usageChannel || 'xpert') | translate }}
+                            {{ xpertLabel(summary) }}
                           }
                         </div>
-
-                        <table class="min-w-full text-xs">
-                          <thead class="border-b border-divider-subtle text-text-tertiary">
-                            <tr>
-                              <th class="px-4 py-2 text-left font-medium">
-                                {{ 'XP.KEY_WORDS.Date' | translate: { Default: 'Date' } }}
-                              </th>
-                              <th class="px-4 py-2 text-left font-medium">
-                                {{ 'XP.Membership.Source' | translate: { Default: 'Source' } }}
-                              </th>
-                              <th class="px-4 py-2 text-right font-medium">
-                                {{ 'XP.Membership.Points' | translate: { Default: 'Points' } }}
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            @for (ledger of getSummaryDetails(summary); track ledger.id) {
-                              <tr class="border-b border-divider-subtle last:border-b-0">
-                                <td class="whitespace-nowrap px-4 py-2 text-text-primary">
-                                  {{ ledger.createdAt | date: 'short' }}
-                                </td>
-                                <td class="px-4 py-2">
-                                  <z-badge zType="secondary" zShape="pill">
-                                    {{
-                                      'XP.Membership.LedgerSource.' + ledger.source
-                                        | translate: { Default: ledger.source }
-                                    }}
-                                  </z-badge>
-                                </td>
-                                <td
-                                  class="whitespace-nowrap px-4 py-2 text-right font-semibold"
-                                  [ngClass]="ledger.pointsDelta > 0 ? 'text-text-success' : 'text-text-primary'"
-                                >
-                                  {{ ledger.pointsDelta > 0 ? '+' : '' }}{{ ledger.pointsDelta | number: '1.0-2' }}
-                                </td>
-                              </tr>
-                            } @empty {
-                              <tr>
-                                <td colspan="3" class="px-4 py-6 text-center text-text-tertiary">
-                                  {{
-                                    isSummaryDetailsLoading(summary)
-                                      ? ('XP.KEY_WORDS.Loading' | translate: { Default: 'Loading...' })
-                                      : ('XP.Membership.NoUsageDetails' | translate: { Default: 'No usage details.' })
-                                  }}
-                                </td>
-                              </tr>
-                            }
-                          </tbody>
-                        </table>
-                      </div>
-                    </td>
-                  </tr>
-                }
-              } @empty {
-                <tr>
-                  <td colspan="5" class="px-4 py-12">
-                    <div
-                      class="flex min-h-32 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-divider-regular bg-components-panel-bg p-6 text-center"
-                    >
-                      <span
-                        class="flex size-11 items-center justify-center rounded-xl bg-components-card-bg text-text-tertiary"
+                      </td>
+                      <td
+                        z-table-cell
+                        class="max-w-48 truncate px-4 py-3"
+                        [title]="(summary.provider || '*') + ' / ' + (summary.model || '*')"
                       >
-                        <z-icon zType="activity"></z-icon>
-                      </span>
-                      <div class="text-sm text-text-tertiary">
-                        {{ 'XP.Membership.NoUsageSummary' | translate: { Default: 'No usage summary yet.' } }}
-                      </div>
-                    </div>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      </z-card-content>
-    </z-card>
-  </div>
-  <xp-execution-usage />
+                        @if (summary.provider || summary.model) {
+                          {{ summary.provider || '*' }} / {{ summary.model || '*' }}
+                        } @else {
+                          –
+                        }
+                      </td>
+                      <td z-table-cell class="px-4 py-3 text-right tabular-nums">{{ summary.callCount | number }}</td>
+                      <td
+                        z-table-cell
+                        class="whitespace-nowrap px-4 py-3 text-right font-medium tabular-nums"
+                        [class]="summary.pointsDelta > 0 ? 'text-text-success' : ''"
+                      >
+                        {{ summary.pointsDelta > 0 ? '+' : '' }}{{ summary.pointsDelta | number: '1.0-2' }}
+                      </td>
+                    </tr>
+                    @if (isExpanded(summary)) {
+                      <tr z-table-row class="bg-muted/30 hover:bg-muted/30">
+                        <td z-table-cell colspan="5" class="px-5 py-4">
+                          <p class="mb-3 text-sm font-medium">{{ 'XP.Membership.UsageDetails' | translate }}</p>
+                          @if (isSummaryDetailsLoading(summary)) {
+                            <p role="status" class="py-4 text-sm text-muted-foreground">
+                              {{ 'XP.KEY_WORDS.Loading' | translate }}
+                            </p>
+                          } @else if (summaryDetailsFailed()[summaryKey(summary)]) {
+                            <div role="alert" class="flex items-center gap-3 py-3 text-sm text-muted-foreground">
+                              {{ 'XP.BillingSettings.DetailsFailed' | translate }}
+                              <button
+                                z-button
+                                zType="outline"
+                                zSize="sm"
+                                type="button"
+                                (click)="loadSummaryDetails(summary)"
+                              >
+                                {{ 'XP.ACTIONS.Retry' | translate }}
+                              </button>
+                            </div>
+                          } @else {
+                            <table z-table zSize="compact" class="w-full text-xs">
+                              <thead z-table-header>
+                                <tr z-table-row>
+                                  <th z-table-head>{{ 'XP.KEY_WORDS.Date' | translate }}</th>
+                                  <th z-table-head>{{ 'XP.Membership.Source' | translate }}</th>
+                                  <th z-table-head class="text-right">
+                                    {{ 'XP.BillingSettings.PointChange' | translate }}
+                                  </th>
+                                </tr>
+                              </thead>
+                              <tbody z-table-body>
+                                @for (ledger of getSummaryDetails(summary); track ledger.id) {
+                                  <tr z-table-row>
+                                    <td z-table-cell class="whitespace-nowrap">
+                                      {{ ledger.createdAt | date: 'short' }}
+                                    </td>
+                                    <td z-table-cell>
+                                      <z-badge zType="secondary">{{
+                                        'XP.Membership.LedgerSource.' + ledger.source
+                                          | translate: { Default: ledger.source }
+                                      }}</z-badge>
+                                    </td>
+                                    <td
+                                      z-table-cell
+                                      class="text-right font-medium tabular-nums"
+                                      [class]="ledger.pointsDelta > 0 ? 'text-text-success' : ''"
+                                    >
+                                      {{ ledger.pointsDelta > 0 ? '+' : '' }}{{ ledger.pointsDelta | number: '1.0-2' }}
+                                    </td>
+                                  </tr>
+                                } @empty {
+                                  <tr z-table-row>
+                                    <td z-table-cell colspan="3" class="py-5 text-center text-muted-foreground">
+                                      {{ 'XP.Membership.NoUsageDetails' | translate }}
+                                    </td>
+                                  </tr>
+                                }
+                              </tbody>
+                            </table>
+                          }
+                        </td>
+                      </tr>
+                    }
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </z-card-content>
+      </z-card>
+    </z-tab>
+    <z-tab [label]="'XP.BillingSettings.ToolUsage' | translate" bodyClass="pt-6">
+      <ng-template zTabContent><xp-execution-usage /></ng-template>
+    </z-tab>
+  </z-tab-group>
 </div>
+
+<ng-template #loadingState>
+  <div role="status" class="flex min-h-60 items-center justify-center gap-3 text-sm text-muted-foreground">
+    <z-icon zType="loader-circle" class="motion-safe:animate-spin" />{{ 'XP.KEY_WORDS.Loading' | translate }}
+  </div>
+</ng-template>
+<ng-template #errorState>
+  <z-empty
+    zIcon="credit-card"
+    [zTitle]="'XP.BillingSettings.LoadFailed' | translate"
+    [zDescription]="'XP.UsageDashboard.RetryHint' | translate"
+  >
+    <button z-button zType="outline" type="button" (click)="load()">{{ 'XP.ACTIONS.Retry' | translate }}</button>
+  </z-empty>
+</ng-template>
