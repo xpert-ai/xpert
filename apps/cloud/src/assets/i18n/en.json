@@ -55,6 +55,44 @@
     "Connectors": "Connectors"
   },
   "XP": {
+    "ModelSettings": {
+      "Type": "Type",
+      "Access": "Access & scope",
+      "PropertiesAndParameters": "Properties & parameters",
+      "ContextSize": "Context window",
+      "ModelId": "Model ID",
+      "Configuration": "Model configuration",
+      "Ownership": "Ownership scope",
+      "Capabilities": "Capabilities",
+      "Parameters": "Request parameters",
+      "ParametersHint": "Defaults and ranges from the model definition. Individual tasks may use different settings.",
+      "LoadingProperties": "Loading model parameters…",
+      "PropertiesFailed": "Unable to load model parameters",
+      "Parameter": "Parameter",
+      "DefaultValue": "Default",
+      "Range": "Range",
+      "NotProvided": "Not provided",
+      "NoParameters": "No parameter definitions are available for this model.",
+      "Feature": {
+        "tool-call": "Tool calling",
+        "multi-tool-call": "Parallel tools",
+        "agent-thought": "Reasoning",
+        "vision": "Vision",
+        "stream-tool-call": "Streaming tools",
+        "video": "Video",
+        "structured-output": "Structured output"
+      },
+      "ProviderModelCount": "{{count}} models",
+      "Catalog": "Model catalog",
+      "ClearSearch": "Clear search",
+      "AllTypes": "All types",
+      "ResultCount": "Showing {{count}} of {{total}} models",
+      "NoMatchesHint": "Try a different name, provider, or model type.",
+      "ClearFilters": "Clear filters",
+      "RequestsHint": "Track request status and history. Pending requests can be withdrawn.",
+      "GrantsHint": "Review active personal grants, their scope, and expiration.",
+      "RequestHistory": "Request history"
+    },
     "BillingSettings": {
       "Description": "Review your current plan, personal points, and balance deductions.",
       "Refresh": "Refresh plan and deductions",
@@ -4163,6 +4201,8 @@
       },
       "ModelType": "Model type",
       "ModelTypeValue": {
+        "image": "Image generation",
+        "video": "Video generation",
         "realtime": "Realtime voice",
         "llm": "LLM",
         "text-embedding": "Text embedding",

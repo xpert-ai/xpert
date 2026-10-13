@@ -260,6 +260,44 @@
     "Connectors": "连接器"
   },
   "XP": {
+    "ModelSettings": {
+      "Type": "类型",
+      "Access": "授权与范围",
+      "PropertiesAndParameters": "属性与参数",
+      "ContextSize": "上下文长度",
+      "ModelId": "模型 ID",
+      "Configuration": "模型配置",
+      "Ownership": "所属范围",
+      "Capabilities": "支持能力",
+      "Parameters": "调用参数",
+      "ParametersHint": "以下为模型定义的默认值与取值范围，具体任务可单独配置。",
+      "LoadingProperties": "正在加载模型参数…",
+      "PropertiesFailed": "模型参数加载失败",
+      "Parameter": "参数",
+      "DefaultValue": "默认值",
+      "Range": "取值范围",
+      "NotProvided": "未提供",
+      "NoParameters": "此模型暂未提供可查看的参数定义。",
+      "Feature": {
+        "tool-call": "工具调用",
+        "multi-tool-call": "并行工具调用",
+        "agent-thought": "推理",
+        "vision": "视觉",
+        "stream-tool-call": "流式工具调用",
+        "video": "视频",
+        "structured-output": "结构化输出"
+      },
+      "ProviderModelCount": "{{count}} 个模型",
+      "Catalog": "模型目录",
+      "ClearSearch": "清除搜索",
+      "AllTypes": "全部类型",
+      "ResultCount": "显示 {{count}} / {{total}} 个模型",
+      "NoMatchesHint": "试试其他名称、提供商或模型类型。",
+      "ClearFilters": "清除筛选",
+      "RequestsHint": "查看申请进度与处理记录；待审批的申请可以撤回。",
+      "GrantsHint": "查看生效中的个人授权、所属范围与到期时间。",
+      "RequestHistory": "处理记录"
+    },
     "BillingSettings": {
       "Description": "查看当前套餐、个人点数与实际扣点记录。",
       "Refresh": "刷新套餐与扣点记录",
@@ -6449,6 +6487,8 @@
       },
       "ModelType": "模型类型",
       "ModelTypeValue": {
+        "image": "图像生成",
+        "video": "视频生成",
         "realtime": "实时语音",
         "llm": "大语言模型",
         "text-embedding": "文本嵌入",
