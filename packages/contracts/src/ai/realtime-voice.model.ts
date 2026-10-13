@@ -1,4 +1,4 @@
-import type { TCopilotModel } from './copilot-model.model'
+import type { ModelSelectionMetadata, TCopilotModel } from './copilot-model.model'
 import type { VoiceTaskStatus } from './realtime-voice.transport'
 
 /** Realtime is a separate model capability, not the Assistant's reasoning model. */
@@ -19,7 +19,7 @@ export interface RealtimeModelMetadata {
   notification: 'text' | 'next-turn'
 }
 
-export interface RealtimeModelOption extends RealtimeModelMetadata {
+export interface RealtimeModelOption extends RealtimeModelMetadata, ModelSelectionMetadata {
   id: string
   label: string
   copilotModel: TCopilotModel

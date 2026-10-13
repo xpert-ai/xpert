@@ -56,6 +56,7 @@ RUN apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 update && \
 COPY --from=nsjail-build /src/nsjail/nsjail /usr/local/bin/nsjail
 COPY --from=jail-rootfs / /opt/xpert-rootfs/
 RUN mkdir -p \
+      /opt/xpert-app-data-mask \
       /etc/xpert-nsjail \
       /opt/xpert-rootfs/dev \
       /opt/xpert-rootfs/run \
@@ -63,6 +64,7 @@ RUN mkdir -p \
       /opt/xpert-rootfs/workspace \
       /sandbox \
       /var/lib/xpert-nsjail && \
+    chmod 0555 /opt/xpert-app-data-mask && \
     touch \
       /opt/xpert-rootfs/dev/null \
       /opt/xpert-rootfs/dev/random \

@@ -1,4 +1,5 @@
 #!/bin/sh
+node .deploy/application-images/check-release.mjs --staged || exit 1
 FILES=$(git diff --cached --name-only --diff-filter=ACMR | sed 's| |\\ |g')
 [ -z "$FILES" ] && exit 0
 echo "$FILES" | xargs corepack pnpm format:fix || exit 1

@@ -1,273 +1,99 @@
-jest.mock('@xpert-ai/plugin-sdk', () => ({
-    ...jest.requireActual('@xpert-ai/plugin-sdk'),
-    RequestContext: {
-        currentUserId: jest.fn(),
-        currentTenantId: jest.fn(() => 'tenant-1')
-    }
-}))
-
-jest.mock('../../shared/runtime/workspace-files-runtime-capability.service', () => ({
-    WorkspaceFilesRuntimeCapabilityService: class WorkspaceFilesRuntimeCapabilityService {}
-}))
-
-import type { IArtifactWorkspaceFileReference, IXpert } from '@xpert-ai/contracts'
-import { RequestContext } from '@xpert-ai/plugin-sdk'
-import { createHash } from 'node:crypto'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { VolumeHandle, VolumeSubtreeClient, resolveXpertDataVolumeScope } from '../../shared/volume'
-import { CommandBus } from '@nestjs/cqrs'
+import { createHash } from 'node:crypto'
+import { VolumeHandle, resolveXpertDataVolumeScope } from '../../shared/volume'
 import { AssistantFilesService } from './assistant-files.service'
-import { ResolveAssistantFileAccessCommand } from './resolve-assistant-file-access.command'
 
-function createService(
-    xperts: { findOne(id: string): Promise<Pick<IXpert, 'id' | 'tenantId' | 'workspaceDataScope'>> },
-    workspaceFiles: ConstructorParameters<typeof AssistantFilesService>[1],
-    volumes: ConstructorParameters<typeof AssistantFilesService>[2]
-) {
-    const commands = {
-        execute: async (command: ResolveAssistantFileAccessCommand) => {
-            const xpert = await xperts.findOne(command.assistantId)
-            return {
-                scope: resolveXpertDataVolumeScope({
-                    ...xpert,
-                    tenantId: xpert.tenantId,
-                    xpertId: xpert.id,
-                    userId: RequestContext.currentUserId()
-                })
-            }
-        }
-    }
-    return new AssistantFilesService(commands as unknown as CommandBus, workspaceFiles, volumes).forRuntime('xpert-1')
-}
-
+/** Filesystem behavior; real published Assistant ACL is exercised by assistant-files.integration.spec. */
 describe('AssistantFilesService storage', () => {
-    afterEach(() => {
-        jest.restoreAllMocks()
-    })
-
-    it('uploads through a server-scoped shared Xpert workspace and returns the portable reference', async () => {
-        jest.mocked(RequestContext.currentUserId).mockReturnValue('user-1')
-        const reference: IArtifactWorkspaceFileReference = {
-            source: 'platform.workspace.files',
-            filePath: 'imports/report.html',
-            workspacePath: '/workspace/imports/report.html',
-            tenantId: 'tenant-1',
-            userId: 'user-1',
-            catalog: 'xperts',
-            scopeId: 'xpert-1',
-            xpertId: 'xpert-1',
-            isolateByUser: false,
-            originalName: 'report.html',
-            name: 'report.html',
-            mimeType: 'text/html',
-            size: 13
+    let root: string
+    let user: string
+    let dataScope: 'shared' | 'user'
+    let service: AssistantFilesService
+    let commands: { execute: jest.Mock }
+    beforeEach(async () => {
+        root = await mkdtemp(path.join(tmpdir(), 'assistant-files-'))
+        user = 'user-a'
+        dataScope = 'shared'
+        commands = {
+            execute: jest.fn(async () => ({
+                scope: resolveXpertDataVolumeScope({
+                    tenantId: 'tenant',
+                    xpertId: 'assistant',
+                    userId: user,
+                    workspaceDataScope: dataScope
+                })
+            }))
         }
-        const writeRuntimeBuffer = jest.fn().mockResolvedValue({ reference })
-        const createScopedApi = jest.fn().mockReturnValue({ writeRuntimeBuffer })
-        const xpertService = {
-            findOne: jest.fn().mockResolvedValue({
-                id: 'xpert-1',
-                tenantId: 'tenant-1',
-                workspaceDataScope: 'shared'
-            })
-        }
-        const service = createService(xpertService, { createScopedApi }, { resolve: jest.fn() })
-        const file = {
-            originalname: 'report.html',
-            mimetype: 'text/html',
-            size: 13,
-            buffer: Buffer.from('<html></html>')
-        } as Express.Multer.File
-        const contentSha256 = createHash('sha256').update(file.buffer).digest('hex')
-
-        await expect(service.upload(file)).resolves.toEqual(reference)
-        expect(xpertService.findOne).toHaveBeenCalledWith('xpert-1')
-        expect(createScopedApi).toHaveBeenCalledWith({
-            tenantId: 'tenant-1',
-            userId: 'user-1',
-            xpertId: 'xpert-1',
-            catalog: 'xperts',
-            scopeId: 'xpert-1',
-            isolateByUser: false
-        })
-        expect(writeRuntimeBuffer).toHaveBeenCalledWith({
-            folder: `uploads/${contentSha256}`,
-            fileName: 'report.html',
-            buffer: file.buffer,
-            originalName: 'report.html',
-            mimeType: 'text/html',
-            size: 13
-        })
-    })
-
-    it('uses the same content-addressed destination for identical bytes', async () => {
-        jest.mocked(RequestContext.currentUserId).mockReturnValue('user-1')
-        const writeRuntimeBuffer = jest.fn().mockResolvedValue({
-            reference: {
-                source: 'platform.workspace.files',
-                filePath: 'uploads/content/report.html',
-                workspacePath: '/workspace/uploads/content/report.html'
+        service = new AssistantFilesService(commands, {
+            resolve: (scope) => {
+                const directory = path.join(
+                    root,
+                    scope.catalog,
+                    scope.catalog === 'user-xperts' ? scope.userId : 'shared'
+                )
+                return new VolumeHandle(scope, directory, directory, 'http://localhost/files', root)
             }
         })
-        const createScopedApi = jest.fn().mockReturnValue({ writeRuntimeBuffer })
-        const service = createService(
-            {
-                findOne: jest.fn().mockResolvedValue({
-                    id: 'xpert-1',
-                    tenantId: 'tenant-1',
-                    workspaceDataScope: 'shared'
-                })
-            },
-            { createScopedApi },
-            { resolve: jest.fn() }
-        )
-        const file = {
+    })
+    afterEach(async () => {
+        await rm(root, { recursive: true, force: true })
+    })
+    const file = () =>
+        ({
             originalname: 'report.html',
+            buffer: Buffer.from('<html></html>'),
             mimetype: 'text/html',
-            size: 13,
-            buffer: Buffer.from('<html></html>')
-        } as Express.Multer.File
+            size: 13
+        }) as Express.Multer.File
 
-        await service.upload(file)
-        await service.upload(file)
-
-        expect(writeRuntimeBuffer).toHaveBeenCalledTimes(2)
-        expect(writeRuntimeBuffer.mock.calls[0][0].folder).toBe(writeRuntimeBuffer.mock.calls[1][0].folder)
-        expect(writeRuntimeBuffer.mock.calls[0][0]).not.toEqual(
-            expect.objectContaining({
-                tenantId: expect.anything(),
-                xpertId: expect.anything(),
-                catalog: expect.anything()
-            })
-        )
-    })
-
-    it('lists the bound xpert workspace without requiring a conversation', async () => {
-        jest.mocked(RequestContext.currentUserId).mockReturnValue('user-1')
-        const ensureRoot = jest.fn()
-        const volume = { name: 'xpert-volume', ensureRoot }
-        ensureRoot.mockResolvedValue(volume)
-        const resolve = jest.fn().mockReturnValue(volume)
-        const list = jest.spyOn(VolumeSubtreeClient.prototype, 'list').mockResolvedValue([])
-        const service = createService(
-            {
-                findOne: jest.fn().mockResolvedValue({
-                    id: 'xpert-1',
-                    tenantId: 'tenant-1',
-                    workspaceDataScope: 'shared'
-                })
-            },
-            { createScopedApi: jest.fn() },
-            { resolve }
-        )
-
-        await expect(service.list('files', 2)).resolves.toEqual([])
-
-        expect(resolve).toHaveBeenCalledWith({
-            tenantId: 'tenant-1',
+    it('uploads atomically to a content-addressed folder and returns a portable reference', async () => {
+        const input = file()
+        const files = service.forRuntime('assistant')
+        const reference = await files.upload(input)
+        expect(reference).toMatchObject({
+            source: 'platform.workspace.files',
+            tenantId: 'tenant',
             catalog: 'xperts',
-            userId: 'user-1',
-            xpertId: 'xpert-1',
-            isolateByUser: false
+            scopeId: 'assistant',
+            xpertId: 'assistant',
+            originalName: 'report.html',
+            size: 13,
+            filePath: `uploads/${createHash('sha256').update(input.buffer).digest('hex')}/report.html`
         })
-        expect(list).toHaveBeenCalledWith('', { path: 'files', deepth: 2 })
+        expect(await files.upload(input)).toEqual(reference)
+        await expect(files.read(reference.filePath)).resolves.toMatchObject({ contents: '<html></html>' })
+        expect(commands.execute.mock.calls.every(([command]) => command.entry === 'runtime')).toBe(true)
     })
 
-    it('initializes a missing xpert workspace before listing it for the first time', async () => {
-        jest.mocked(RequestContext.currentUserId).mockReturnValue('user-1')
-        const provisioningRoot = await mkdtemp(path.join(tmpdir(), 'xpert-workspace-files-'))
-        const workspaceRoot = path.join(provisioningRoot, 'xpert', 'xpert-1')
-        const volume = new VolumeHandle(
-            {
-                tenantId: 'tenant-1',
-                catalog: 'xperts',
-                userId: 'user-1',
-                xpertId: 'xpert-1',
-                isolateByUser: false
-            },
-            workspaceRoot,
-            workspaceRoot,
-            'http://localhost/volume/xpert/xpert-1',
-            provisioningRoot
-        )
-        const service = createService(
-            {
-                findOne: jest.fn().mockResolvedValue({
-                    id: 'xpert-1',
-                    tenantId: 'tenant-1',
-                    workspaceDataScope: 'shared'
-                })
-            },
-            { createScopedApi: jest.fn() },
-            { resolve: jest.fn().mockReturnValue(volume) }
-        )
-
-        try {
-            await expect(service.list()).resolves.toEqual([])
-        } finally {
-            await rm(provisioningRoot, { recursive: true, force: true })
-        }
+    it('initializes a missing workspace and lists without requiring a conversation', async () => {
+        const files = service.forRuntime('assistant')
+        await expect(files.list()).resolves.toEqual([])
+        await files.uploadToFolder('reports', file())
+        await expect(files.list('reports')).resolves.toEqual([expect.objectContaining({ filePath: 'report.html' })])
     })
 
-    it('resolves the same user-scoped Xpert to distinct volumes for two users', async () => {
-        const ensureRoot = jest.fn()
-        const volume = { ensureRoot }
-        ensureRoot.mockResolvedValue(volume)
-        const resolve = jest.fn().mockReturnValue(volume)
-        const list = jest.spyOn(VolumeSubtreeClient.prototype, 'list').mockResolvedValue([])
-        const xpertService = {
-            findOne: jest.fn().mockResolvedValue({
-                id: 'xpert-1',
-                tenantId: 'tenant-1',
-                workspaceDataScope: 'user'
-            })
-        }
-        const service = createService(xpertService, { createScopedApi: jest.fn() }, { resolve })
-
-        jest.mocked(RequestContext.currentUserId).mockReturnValue('user-a')
-        await service.list()
-        jest.mocked(RequestContext.currentUserId).mockReturnValue('user-b')
-        await service.list()
-
-        expect(resolve.mock.calls.map(([scope]) => scope)).toEqual([
-            { tenantId: 'tenant-1', catalog: 'user-xperts', userId: 'user-a', xpertId: 'xpert-1' },
-            { tenantId: 'tenant-1', catalog: 'user-xperts', userId: 'user-b', xpertId: 'xpert-1' }
-        ])
-        expect(list).toHaveBeenCalledTimes(2)
+    it('binds every upload and read to the current user for user-isolated workspaces', async () => {
+        dataScope = 'user'
+        const files = service.forRuntime('assistant')
+        const a = await files.upload(file())
+        expect(a).toMatchObject({ userId: 'user-a', catalog: 'user-xperts' })
+        user = 'user-b'
+        await expect(files.read(a.filePath)).rejects.toMatchObject({ code: 'ENOENT' })
+        const b = await files.upload(file())
+        expect(b).toMatchObject({ userId: 'user-b', catalog: 'user-xperts' })
+        expect(b.filePath).toBe(a.filePath)
     })
 
-    it('binds upload to the current user when the Xpert workspace is user-scoped', async () => {
-        jest.mocked(RequestContext.currentUserId).mockReturnValue('user-a')
-        const createScopedApi = jest.fn().mockReturnValue({
-            writeRuntimeBuffer: jest.fn().mockResolvedValue({ reference: { filePath: 'uploads/a.txt' } })
-        })
-        const service = createService(
-            {
-                findOne: jest.fn().mockResolvedValue({
-                    id: 'xpert-1',
-                    tenantId: 'tenant-1',
-                    workspaceDataScope: 'user'
-                })
-            },
-            { createScopedApi },
-            { resolve: jest.fn() }
+    it('preserves Studio authority for upload, and never silently changes runtime authority', async () => {
+        await service.forAuthoring('assistant').upload(file())
+        expect(commands.execute).toHaveBeenLastCalledWith(
+            expect.objectContaining({ entry: 'authoring', operation: 'write' })
         )
-
-        await service.upload({
-            originalname: 'a.txt',
-            mimetype: 'text/plain',
-            size: 1,
-            buffer: Buffer.from('a')
-        } as Express.Multer.File)
-
-        expect(createScopedApi).toHaveBeenCalledWith({
-            tenantId: 'tenant-1',
-            catalog: 'user-xperts',
-            userId: 'user-a',
-            xpertId: 'xpert-1',
-            scopeId: 'xpert-1'
-        })
+        await service.forRuntime('assistant').upload(file())
+        expect(commands.execute).toHaveBeenLastCalledWith(
+            expect.objectContaining({ entry: 'runtime', operation: 'write' })
+        )
     })
 })

@@ -1,3 +1,4 @@
+import { injectWorkspaceConnectorClientCommand } from '../../assistant/workspace-connector-client-command'
 import {
   installConversationMapLinks,
   focusConversationMapMessage
@@ -665,6 +666,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   )
 
   constructor() {
+    injectWorkspaceConnectorClientCommand(this.chatkitAssistantId)
     effect((onCleanup) => {
       if (this.immersiveWorkbench()) onCleanup(this.#presentation.enter())
     })

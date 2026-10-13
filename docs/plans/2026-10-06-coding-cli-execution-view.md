@@ -4,7 +4,7 @@
 状态：可行性分析与产品设计，未实施。  
 范围修正：本文取代上一版设计中以任务为中心的执行详情及导航身份；原有 ChatKit 自动接收后台回答的方案继续有效。
 
-2026-10-07 更新：基于 Qwen/Codex/OpenCode 的当前实现，新增[调查与实施计划](2026-10-07-coding-cli-execution-view-implementation.md)。实施范围和顺序以新文档为准：优先复用已有插件扩展点，首版分页轮询、只读观察，暂缓专用 SSE、交互操作和完整 Diff/测试工作台。本文保留产品定位、证据边界及原型参考。
+2026-10-07 更新：基于 Qwen/Codex/OpenCode 的当前实现，新增[调查与实施计划](/plans/2026-10-07-coding-cli-execution-view-implementation)。实施范围和顺序以新文档为准：优先复用已有插件扩展点，首版分页轮询、只读观察，暂缓专用 SSE、交互操作和完整 Diff/测试工作台。本文保留产品定位、证据边界及原型参考。
 
 ## 1. 产品定位
 
@@ -233,11 +233,11 @@ kind 可以包括公开 Agent 消息、工具操作、命令、文件变更、�
 
 ### 本轮原型
 
-已使用 Product Design 插件生成三个独立的静态原型，编号按对话中的展示顺序对应。它们展示的是同一个独立 Coding Viewer 的候选阅读布局，不是三个需要分别建设的功能。
+本轮曾生成三个独立的静态原型，展示同一个 Coding Viewer 的候选阅读布局。仓库保留了最终选定的原型 2，以及后续实现截图；原型 1、3 未归档，以下不再引用其缺失文件。原型与实现的对应关系见[视觉验收记录](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/agent-invocation/remote-components/coding-execution/design-qa.md)。
 
-- [原型 1](assets/2026-10-06-coding-execution-option-1.png)
-- [原型 2](assets/2026-10-06-coding-execution-option-2.png)
-- [原型 3](assets/2026-10-06-coding-execution-option-3.png)
+- [选定原型 2：浅色连续 Transcript](/plans/assets/coding-execution-webtui-reference.png)
+- [实现截图：Paper 主题](/plans/assets/coding-execution-webtui-paper.png)
+- [实现截图：shadcn Header 更新](/plans/assets/coding-execution-shadcn-header.png)
 
 图片已检查：执行详情是主体，关联任务为来源链接，主对话保留独立的回传后续回答。图片中的代码、日志、时间与测试数字仅为视觉示意，不是验收证据或可直接使用的实现。实施时，输入来源必须由真实委托记录标识；橙色选中态不能被理解为运行中状态，运行状态仍以明确标签表示。
 

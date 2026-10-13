@@ -1,4 +1,10 @@
 import type { Bot } from './types'
+import type { ModelOption } from './catalog/model-options'
+import type {
+  PluginApplicationStatusSummary,
+  PluginApplicationToolsetRequirement,
+  PluginApplicationToolsetSelection
+} from '@xpert-ai/contracts'
 
 export type CatalogKind = 'experts' | 'applications' | 'plugins' | 'templates'
 interface CatalogBase extends Bot {
@@ -15,7 +21,7 @@ export interface ApplicationItem extends CatalogBase {
   icon: { type: 'image' | 'emoji'; value: string } | null
   pluginName: string
   appName: string
-  status: 'ready' | 'not_installed' | 'initializing' | 'degraded' | 'failed'
+  status: PluginApplicationStatusSummary['status']
   botId: string | null
   initializationAccess: string
   summary: string
@@ -35,11 +41,16 @@ export interface ApplicationSetup {
   requireVision: boolean
   embeddingLabel: string
   visionLabel: string
-  embeddingModels: { id: string; label: string }[]
-  visionModels: { id: string; label: string }[]
+  embeddingModels: ModelOption[]
+  visionModels: ModelOption[]
   defaultEmbeddingModelId: string
   defaultVisionModelId: string
+  canConfigure: boolean
+  canDiscardConfiguration: boolean
+  toolsetRequirements: ApplicationToolsetRequirement[]
 }
+export type ApplicationToolsetRequirement = Omit<PluginApplicationToolsetRequirement, 'label'> & { label: string }
+export type ApplicationToolsetSelection = PluginApplicationToolsetSelection
 export interface ApplicationInput {
   pluginName: string
   appName: string
@@ -48,6 +59,33 @@ export interface InitializeApplicationInput extends ApplicationInput {
   operationId: string
   embeddingModelId?: string
   visionModelId?: string
+  toolsets?: ApplicationToolsetSelection[]
+}
+export interface ApplicationToolsetInput extends ApplicationInput {
+  key: string
+}
+export type ApplicationCredentialValue = string | number | boolean
+export interface ApplicationCredentialField {
+  name: string
+  type: 'secret-input' | 'text-input' | 'select' | 'boolean' | 'int' | 'number'
+  label: string
+  help: string
+  placeholder: string
+  required: boolean
+  hasValue: boolean
+  value?: ApplicationCredentialValue
+  options: { value: string; label: string }[]
+}
+export interface ApplicationToolsetSetup {
+  name: string
+  supported: boolean
+  fields: ApplicationCredentialField[]
+  tools: { name: string; label: string; enabled: boolean }[]
+}
+export interface SaveApplicationToolsetInput extends ApplicationToolsetInput {
+  name: string
+  credentials: Record<string, ApplicationCredentialValue>
+  tools: string[]
 }
 export interface WorkspaceOption {
   id: string
@@ -55,9 +93,7 @@ export interface WorkspaceOption {
 }
 
 export type VoiceSelection = { modelId: string; voice: string }
-export interface VoiceModelOption {
-  id: string
-  label: string
+export interface VoiceModelOption extends ModelOption {
   voices: { id: string; label: string }[]
   defaultVoice: string
 }
@@ -68,5 +104,6 @@ export interface TemplatePreflight {
   reason: string
   requiresModel: boolean
   optionalCapabilities: { key: string; label: string; description: string }[]
-  models: { id: string; label: string }[]
+  models: ModelOption[]
+  defaultModelId?: string
 }

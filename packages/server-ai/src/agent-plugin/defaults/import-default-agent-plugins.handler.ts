@@ -8,6 +8,7 @@ import { t } from 'i18next'
 import { DEFAULT_AGENT_PLUGINS_SOURCE, type DefaultAgentPluginsImportResult } from '@xpert-ai/contracts'
 import { ImportDefaultAgentPluginsCommand, getErrorMessage } from '@xpert-ai/plugin-sdk'
 import { AgentPluginService, requireResourceAdmin } from '../agent-plugin.service'
+import { agentPluginScopeWhere } from '../agent-plugin-scope'
 import { stagePortableGit } from '../agent-plugin-source'
 import { containedPath } from '../agent-plugin-parser'
 import { defaultAgentPluginsManifest } from './default-agent-plugins.schema'
@@ -62,7 +63,9 @@ export class ImportDefaultAgentPluginsHandler implements ICommandHandler<ImportD
         })
         try {
             const manifest = await this.readManifest(staged.root)
-            const existing = new Set((await this.plugins.packages.find({ where: scope })).map((pkg) => pkg.digest))
+            const existing = new Set(
+                (await this.plugins.packages.find({ where: agentPluginScopeWhere(scope) })).map((pkg) => pkg.digest)
+            )
             const result: DefaultAgentPluginsImportResult = { commit: staged.commit, items: [] }
             for (const { id } of manifest.plugins) {
                 try {

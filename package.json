@@ -61,6 +61,7 @@
     "seed:module": "cross-env NODE_ENV=development NODE_OPTIONS=--max_old_space_size=7000 pnpm ts-node -r tsconfig-paths/register --project apps/api/tsconfig.app.json ./apps/api/src/seed-module.ts --name",
     "bootstrap": "bash ./tools/scripts/bootstrap.sh",
     "changeset": "changeset",
+    "check:application-changesets": "node .deploy/application-images/check-release.mjs --staged",
     "changeset:version": "changeset version && node packages/sandbox-runtime/scripts/sync-version.mjs && pnpm run lockfile:update",
     "lockfile:update": "pnpm install --lockfile-only --ignore-scripts && node .deploy/api/dependencies.cjs update && node .deploy/webapp/dependencies.cjs update && node .deploy/desktop/dependencies.cjs update",
     "lockfile:check": "pnpm install --lockfile-only --frozen-lockfile --ignore-scripts && node .deploy/api/dependencies.cjs check && node .deploy/webapp/dependencies.cjs check && node .deploy/desktop/dependencies.cjs check",

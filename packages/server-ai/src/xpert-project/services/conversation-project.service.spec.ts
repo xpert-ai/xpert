@@ -295,47 +295,90 @@ describe('first-send Project creation', () => {
         expect(save).not.toHaveBeenCalled()
     })
 
-    it('creates with confirmed fields, binds once and reprojects existing attachments', async () => {
+    it.each([false, true])(
+        'confirms and retries a pending project with legacy no-project selection %s',
+        async (legacyNone) => {
+            xpert.options.workspaceScope.onMissing = 'confirm'
+            conversation.options = {
+                projectCreation: { status: 'awaiting_confirmation' },
+                ...(legacyNone ? { projectSelection: { mode: 'none' as const } } : {})
+            }
+            bound.mockResolvedValue(conversation)
+            files.mockResolvedValue([{ fileAssetId: 'attachment' }])
+            const input = {
+                conversationId: 'conversation',
+                xpertId: 'assistant',
+                confirmationId: 'form',
+                name: 'Confirmed',
+                configuration: { scope: 'commercial' }
+            }
+            await expect(service.confirm(input)).resolves.toEqual({ projectId: 'project' })
+            expect(classification).toHaveBeenCalledWith(
+                undefined,
+                xpert,
+                expect.objectContaining({
+                    name: 'Confirmed',
+                    confirmation: { id: 'form', configuration: input.configuration }
+                })
+            )
+            expect(saveConversation).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    projectId: 'project',
+                    options: expect.objectContaining({
+                        projectCreation: { status: 'confirmed', confirmationId: 'form' }
+                    })
+                })
+            )
+            expect(attach).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    input: expect.objectContaining({
+                        fileAssetId: 'attachment',
+                        projectId: 'project',
+                        conversationId: 'conversation'
+                    })
+                })
+            )
+            await expect(service.confirm(input)).resolves.toEqual({ projectId: 'project' })
+            expect(save).toHaveBeenCalledTimes(1)
+            expect(initialize).toHaveBeenCalledTimes(2)
+            await expect(service.confirm({ ...input, confirmationId: 'different-form' })).rejects.toThrow()
+            expect(save).toHaveBeenCalledTimes(1)
+        }
+    )
+
+    it('does not promote an ordinary personal conversation through App confirmation', async () => {
         xpert.options.workspaceScope.onMissing = 'confirm'
+        conversation.options = { projectSelection: { mode: 'none' } }
+        bound.mockResolvedValue(conversation)
+        await expect(
+            service.confirm({
+                conversationId: 'conversation',
+                xpertId: 'assistant',
+                confirmationId: 'form',
+                name: 'New',
+                configuration: {}
+            })
+        ).rejects.toThrow()
+        expect(save).not.toHaveBeenCalled()
+        expect(classification).not.toHaveBeenCalled()
+    })
+
+    it('does not replace an existing project even if it carries stale pending metadata', async () => {
+        xpert.options.workspaceScope.onMissing = 'confirm'
+        conversation.projectId = 'existing-project'
         conversation.options = { projectCreation: { status: 'awaiting_confirmation' } }
         bound.mockResolvedValue(conversation)
-        files.mockResolvedValue([{ fileAssetId: 'attachment' }])
-        const input = {
-            conversationId: 'conversation',
-            xpertId: 'assistant',
-            confirmationId: 'form',
-            name: 'Confirmed',
-            configuration: { scope: 'commercial' }
-        }
-        await expect(service.confirm(input)).resolves.toEqual({ projectId: 'project' })
-        expect(classification).toHaveBeenCalledWith(
-            undefined,
-            xpert,
-            expect.objectContaining({
-                name: 'Confirmed',
-                confirmation: { id: 'form', configuration: input.configuration }
+        await expect(
+            service.confirm({
+                conversationId: 'conversation',
+                xpertId: 'assistant',
+                confirmationId: 'form',
+                name: 'New',
+                configuration: {}
             })
-        )
-        expect(saveConversation).toHaveBeenCalledWith(
-            expect.objectContaining({
-                projectId: 'project',
-                options: expect.objectContaining({ projectCreation: { status: 'confirmed', confirmationId: 'form' } })
-            })
-        )
-        expect(attach).toHaveBeenCalledWith(
-            expect.objectContaining({
-                input: expect.objectContaining({
-                    fileAssetId: 'attachment',
-                    projectId: 'project',
-                    conversationId: 'conversation'
-                })
-            })
-        )
-        await expect(service.confirm(input)).resolves.toEqual({ projectId: 'project' })
-        expect(save).toHaveBeenCalledTimes(1)
-        expect(initialize).toHaveBeenCalledTimes(2)
-        await expect(service.confirm({ ...input, confirmationId: 'different-form' })).rejects.toThrow()
-        expect(save).toHaveBeenCalledTimes(1)
+        ).rejects.toThrow()
+        expect(save).not.toHaveBeenCalled()
+        expect(saveConversation).not.toHaveBeenCalled()
     })
 
     it('rolls back a rejected business configuration before any binding', async () => {

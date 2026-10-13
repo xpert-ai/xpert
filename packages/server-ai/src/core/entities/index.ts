@@ -1,3 +1,4 @@
+import { McpAppHistory } from '../../mcp-app-runtime/mcp-app-history.entity'
 import { GROUP_ENTITIES } from '../../chat-group/group.entities'
 import { RealtimeVoiceSession, RealtimeVoiceTask, RealtimeVoiceTurn } from '../../realtime-voice/voice.entity'
 import { ModelExecutionReconciliation } from '../../model-execution/execution-reconciliation.entity'
@@ -131,6 +132,7 @@ import {
 } from './internal'
 
 export const ALL_AI_ENTITIES = [
+    McpAppHistory,
     ...GROUP_ENTITIES,
     RealtimeVoiceSession,
     RealtimeVoiceTask,

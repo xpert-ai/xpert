@@ -163,7 +163,7 @@ describe('getSettingsMenuItems', () => {
 })
 
 describe('getFeatureMenus', () => {
-  it('uses configured URLs for the external Xpert application menus without restoring DeepResearch', () => {
+  it('uses the configured data URL without restoring removed application menus', () => {
     const originalCodeXpertUrl = environment.CODE_XPERT_URL
     const originalDataOntologyUrl = environment.DATA_ONTOLOGY_URL
     environment.CODE_XPERT_URL = 'https://code.internal.example/'
@@ -172,7 +172,7 @@ describe('getFeatureMenus', () => {
     try {
       const menus = getFeatureMenus(RequestScopeLevel.TENANT, null)
 
-      expect(menus.find((item) => item.title === 'CodeXpert')?.link).toBe('https://code.internal.example/')
+      expect(menus.find((item) => item.title === 'CodeXpert')).toBeUndefined()
       expect(menus.find((item) => item.title === 'Data & Ontology')?.link).toBe('https://data.internal.example/')
       expect(menus.find((item) => item.title === 'DeepResearch')).toBeUndefined()
     } finally {

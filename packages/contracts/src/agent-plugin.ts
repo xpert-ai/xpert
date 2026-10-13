@@ -10,7 +10,7 @@ export type RuntimeResourceKind = 'agent_plugin' | 'middleware' | 'external_xper
 
 /**
  * Availability in the current user/project context; execution still revalidates access.
- * partial means some components are usable; requires_auth needs personal authorization;
+ * partial means some components are usable; requires_auth needs Connector authorization;
  * configuration_required needs administrator configuration.
  */
 export type RuntimeResourceStatus = 'ready' | 'requires_auth' | 'configuration_required' | 'partial' | 'unavailable'
@@ -135,6 +135,8 @@ export type RuntimeResourceDefinition =
   | {
       kind: 'agent_plugin'
       packageId: string
+      /** Scope installation/configuration. Omitted on legacy workspace bindings. */
+      availability?: 'scope'
       /** Portable expert reference to approved, published Assistant ID. */
       experts: { [reference: string]: string }
       /** Direct MCP OAuth server names; must not overlap connectorServers. */
@@ -153,13 +155,13 @@ export type RuntimeResourceDefinition =
       xpertId: string
     }
 
-/** Administrator request to publish a resource binding. */
+/** Administrator request to configure an installed resource. */
 export interface RuntimeResourceBindingInput {
   /** Supersede an existing binding; its conversation selections are not silently rewritten. */
   replacesBindingId?: string
   title: string
   description?: string
-  /** Workspaces granted access within the organization. */
+  /** Legacy targets; Agent Plugins are visible throughout their installation scope. */
   workspaceIds: string[]
   definition: RuntimeResourceDefinition
 }
@@ -190,4 +192,10 @@ export interface WorkspaceAgentPluginAddInput {
 export interface WorkspaceAgentPluginAddResult {
   status: 'added' | 'already_added'
   bindingId: string
+}
+
+/** Read-only installation catalog, independent of authoring workspace membership. */
+export interface InstalledAgentPlugin extends Omit<WorkspaceAgentPlugin, 'status'> {
+  scope: 'tenant' | 'organization'
+  status: 'available' | 'configuration_required' | 'disabled'
 }

@@ -22,8 +22,8 @@ class RunnerHealthContractTest(unittest.TestCase):
             runner.health_response(),
             {
                 "status": "ok",
-                "protocolVersion": 2,
-                "capabilities": {"projectContentReadOnly": True},
+                "protocolVersion": 3,
+                "capabilities": {"projectContentReadOnly": True, "appDataProtection": True},
             },
         )
 
@@ -230,6 +230,7 @@ class RunnerProjectContentMountTest(unittest.TestCase):
         self.assertEqual(
             read_only_mounts,
             [
+                f"{runner.APP_DATA_MASK}:/workspace/.apps",
                 f"{self.workspace / 'project.md'}:/workspace/project.md",
                 f"{self.workspace / 'skills'}:/workspace/skills",
             ],
@@ -241,7 +242,32 @@ class RunnerProjectContentMountTest(unittest.TestCase):
 
         runtime = runner.create_runtime(payload)
 
-        self.assertNotIn("--bindmount_ro", runner.nsjail_args(runtime, "true"))
+        args = runner.nsjail_args(runtime, "true")
+        mounts = [args[i + 1] for i, item in enumerate(args) if item == "--bindmount_ro"]
+        self.assertEqual(mounts, [f"{runner.APP_DATA_MASK}:/workspace/.apps"])
+
+    def test_app_data_is_masked_and_file_rpc_cannot_read_or_write_it(self) -> None:
+        runtime = runner.create_runtime(self.create_payload())
+        private = self.workspace / ".apps" / "meetings"
+        private.mkdir()
+        (private / "secret.txt").write_text("secret")
+        for target in ("/workspace/.apps/meetings/secret.txt", ".apps/other/new.txt", "/workspace/.APPS/meetings/secret.txt"):
+            with self.assertRaises(runner.RunnerError):
+                runner.read_file_content(runtime, target)
+            self.assertIsNotNone(runner.upload_file(runtime, target, base64.b64encode(b"bad").decode())["error"])
+        self.assertEqual((private / "secret.txt").read_text(), "secret")
+        alias = self.workspace / "alias"
+        alias.symlink_to(private, target_is_directory=True)
+        with self.assertRaises(OSError):
+            runner.read_file_content(runtime, "/workspace/alias/secret.txt")
+
+    def test_rejects_symlinked_managed_directory_and_working_directory(self) -> None:
+        (self.workspace / ".apps").symlink_to(self.workspace / "skills", target_is_directory=True)
+        with self.assertRaises(runner.RunnerError):
+            runner.create_runtime(self.create_payload())
+        (self.workspace / ".apps").unlink()
+        with self.assertRaises(runner.RunnerError):
+            runner.create_runtime(self.create_payload(workingDirectory="/workspace/.apps"))
 
     def test_runner_file_uploads_cannot_bypass_project_content_mounts(self) -> None:
         runtime = runner.create_runtime(self.create_payload())

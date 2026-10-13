@@ -27,6 +27,8 @@ import {
 } from '../mcp-consumer/auth/mcp-consumer-auth.registry'
 import { XpertToolset } from '../xpert-toolset/xpert-toolset.entity'
 import { connectorMcpAuth, matchesPortableMcpSchema } from './agent-plugin-mcp'
+import { agentPluginScope, agentPluginScopeWhere, visibleAgentPluginScopes } from './agent-plugin-scope'
+import { installedPluginBindings } from './installed-plugin-catalog'
 
 @Injectable()
 export class AgentPluginConnectorService implements OnApplicationBootstrap, OnModuleDestroy {
@@ -44,9 +46,12 @@ export class AgentPluginConnectorService implements OnApplicationBootstrap, OnMo
             const pkg = await this.packages.findOneBy({
                 id: binding.definition.packageId,
                 tenantId: binding.tenantId,
-                organizationId: binding.organizationId
+                organizationId: agentPluginScopeWhere({
+                    tenantId: binding.tenantId,
+                    organizationId: binding.organizationId ?? null
+                }).organizationId
             })
-            if (pkg) this.register(pkg, binding.definition.connectorServers)
+            if (pkg?.organizationId) this.register(pkg, binding.definition.connectorServers)
         }
         configureMcpConnectorAuthProviderResolver((request) => this.provider(request))
     }
@@ -55,7 +60,11 @@ export class AgentPluginConnectorService implements OnApplicationBootstrap, OnMo
         configureMcpConnectorAuthProviderResolver(null)
     }
 
-    register(pkg: AgentPluginPackage, requirements: { [server: string]: AgentPluginConnectorAuth }) {
+    register(
+        pkg: AgentPluginPackage,
+        requirements: { [server: string]: AgentPluginConnectorAuth },
+        organizationId = pkg.organizationId
+    ) {
         const providers = new Map<string, string>()
         for (const [key, requirement] of Object.entries(requirements)) {
             const server = pkg.descriptor.servers.find((item) => item.key === key)
@@ -68,10 +77,12 @@ export class AgentPluginConnectorService implements OnApplicationBootstrap, OnMo
                 providers.set(key, requirement.provider)
                 continue
             }
+            // Tenant packages register their OAuth provider in the consuming organization on demand.
+            if (!organizationId) continue
             const icon = pkg.descriptor.extension?.interface?.icon
             const config: McpOAuthConnectorConfig = {
                 tenantId: pkg.tenantId,
-                organizationId: pkg.organizationId,
+                organizationId,
                 serverUrl: server.config.url,
                 title: `${pkg.descriptor.extension?.interface?.displayName ?? pkg.descriptor.name} (${key})`,
                 icon: icon ? { type: 'image', value: icon } : undefined,
@@ -80,12 +91,12 @@ export class AgentPluginConnectorService implements OnApplicationBootstrap, OnMo
             }
             const provider = mcpConnectorProvider(config)
             const existing = this.registry
-                .listRuntime(pkg.organizationId)
+                .listRuntime(organizationId)
                 .find((item) => item.definition.provider === provider)
             if (!existing) {
                 this.registry.register(provider, new McpOAuthConnectorStrategy(config), {
                     kind: 'builtin',
-                    scopeKey: pkg.organizationId
+                    scopeKey: organizationId
                 })
             } else if (!existing.definition.icon && config.icon) {
                 existing.definition.icon = config.icon
@@ -124,6 +135,30 @@ export class AgentPluginConnectorService implements OnApplicationBootstrap, OnMo
         const status = await this.connectors.authorizationStatusBinding(reference.bindingId, assistantId)
         if (status.connector.provider !== reference.provider) throw invalidConfiguration()
         return status.granted ? ('ready' as const) : ('requires_auth' as const)
+    }
+
+    /** Reuse existing shared connections through Assistant run access; never create or authorize one here. */
+    async runtimeBindings(
+        pkg: AgentPluginPackage,
+        assistantId: string,
+        requirements: { [server: string]: AgentPluginConnectorAuth },
+        previous: { [server: string]: AgentPluginConnectorBinding } = {}
+    ) {
+        const providers = this.register(pkg, requirements, RequestContext.getOrganizationId())
+        if (!providers.size) return {}
+        const options = await this.connectors.runtimeOptions(assistantId)
+        const result: { [server: string]: AgentPluginConnectorBinding } = {}
+        for (const [key, provider] of providers) {
+            const existing = previous[key]
+            const option = options.items.find(
+                (item) =>
+                    item.provider === provider &&
+                    item.authorizationMode === 'shared' &&
+                    (!existing || item.bindingId === existing.bindingId)
+            )
+            if (option) result[key] = { bindingId: option.bindingId, provider }
+        }
+        return result
     }
 
     async authorization(reference: AgentPluginConnectorBinding, assistantId: string) {
@@ -169,16 +204,36 @@ export class AgentPluginConnectorService implements OnApplicationBootstrap, OnMo
                 .getRepository(XpertToolset)
                 .findOneBy({ ...where, id: request.toolset.id })
             if (!toolset || toolset.workspaceId !== request.toolset.workspaceId) throw denied()
-            const candidates = await this.bindings.find({ where: { ...where, enabled: true } })
+            const candidates = await this.bindings.find({ where: visibleAgentPluginScopes(agentPluginScope()) })
             const owner = candidates.find(
                 (binding) =>
-                    binding.workspaceIds.includes(toolset.workspaceId) &&
+                    binding.enabled &&
                     binding.installations[toolset.workspaceId]?.toolsets.includes(toolset.id) &&
                     binding.installations[toolset.workspaceId]?.connectors?.[request.serverName]?.bindingId ===
                         config.bindingId
             )
             if (!owner || owner.definition.kind !== 'agent_plugin') throw denied()
-            const pkg = await this.packages.findOneByOrFail({ ...where, id: owner.definition.packageId })
+            const pkg = await this.packages.findOneByOrFail({
+                ...agentPluginScopeWhere({ tenantId: where.tenantId, organizationId: owner.organizationId ?? null }),
+                id: owner.definition.packageId
+            })
+            const packages = await this.packages.find({ where: visibleAgentPluginScopes(agentPluginScope()) })
+            const effective = installedPluginBindings(packages, candidates, agentPluginScope(), toolset.workspaceId)
+            if (
+                !effective.some((item) => {
+                    const definition = item.definition
+                    return (
+                        item.enabled &&
+                        definition.kind === 'agent_plugin' &&
+                        packages.some(
+                            (candidate) =>
+                                candidate.id === definition.packageId &&
+                                candidate.descriptor.name === pkg.descriptor.name
+                        )
+                    )
+                })
+            )
+                throw denied()
             const server = pkg.descriptor.servers.find((item) => item.key === request.serverName)
             const expected = connectorMcpAuth(
                 owner.installations[toolset.workspaceId].connectors?.[request.serverName],

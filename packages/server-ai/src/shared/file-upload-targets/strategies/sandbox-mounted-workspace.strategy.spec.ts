@@ -1,6 +1,7 @@
 import fsPromises from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
+import { ForbiddenException } from '@nestjs/common'
 import { SandboxMountedWorkspaceTargetStrategy } from './sandbox-mounted-workspace.strategy'
 
 describe('SandboxMountedWorkspaceTargetStrategy', () => {
@@ -13,6 +14,36 @@ describe('SandboxMountedWorkspaceTargetStrategy', () => {
     afterEach(async () => {
         await fsPromises.rm(tempRoot, { recursive: true, force: true })
     })
+
+    it.each([false, true])(
+        'rejects a workspace root alias into .apps (explicit boundary: %s)',
+        async (withBoundary) => {
+            const app = path.join(tempRoot, '.apps/meetings')
+            const alias = path.join(tempRoot, 'alias')
+            await fsPromises.mkdir(app, { recursive: true })
+            await fsPromises.writeFile(path.join(app, 'secret.txt'), 'original')
+            await fsPromises.symlink(app, alias)
+            const strategy = new SandboxMountedWorkspaceTargetStrategy()
+            await expect(
+                strategy.upload(
+                    {
+                        name: 'secret.txt',
+                        originalName: 'secret.txt',
+                        buffer: Buffer.from('overwrite'),
+                        source: { kind: 'multipart' }
+                    },
+                    {
+                        kind: 'sandbox',
+                        mode: 'mounted_workspace',
+                        workspacePath: alias,
+                        ...(withBoundary ? { workspaceBoundaryPath: alias } : {})
+                    },
+                    { request: { tenantId: 'tenant', userId: 'alice' } }
+                )
+            ).rejects.toThrow(ForbiddenException)
+            expect(await fsPromises.readFile(path.join(app, 'secret.txt'), 'utf8')).toBe('original')
+        }
+    )
 
     it('anchors mounted workspace writes to the supplied volume boundary', async () => {
         const volumeRoot = path.join(tempRoot, 'volume')

@@ -34,7 +34,7 @@
 - OAuth 使用本地协议测试服务器，尚未使用第三方生产账号验收。
 - Git 导入有源码与单元校验，本轮实际导入使用 ZIP；尚未针对外部 Git 服务做端到端验收。
 - 本地数据库由开发环境同步表结构；独立 SQL 迁移仍需在目标发布环境的预演数据库执行。
-- 初次验收使用本地构建链接；2026-09-22 已升级到正式发布的 SDK/ChatKit 包并更新消费者依赖与 lockfile，未部署生产环境。发布顺序和共享包存储要求见 [操作文档](./README.md)。
+- 初次验收使用本地构建链接；2026-09-22 已升级到正式发布的 SDK/ChatKit 包并更新消费者依赖与 lockfile，未部署生产环境。发布顺序和共享包存储要求见 [操作文档](https://github.com/xpert-ai/xpert/blob/main/docs/agent-plugins/README.md)。
 
 ## Exa / Notion 首批接入补充验收
 

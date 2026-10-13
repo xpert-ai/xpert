@@ -2,16 +2,16 @@
 
 Xpert provides a shared runtime capability for tools that return images for model inspection, such as screenshots, rendered charts or document previews. It stores image files with immutable Artifact versions, keeps references in conversation messages and execution checkpoints, and loads verified image bytes only when preparing a model request.
 
-This guide explains the SDK interface, the server implementation and the optional server policy for operations that legitimately return text. For a complete plugin middleware example, see the [SDK integration guide](../packages/plugin-sdk/docs/en/TOOL-IMAGES.md).
+This guide explains the SDK interface, the server implementation and the optional server policy for operations that legitimately return text. For a complete plugin middleware example, see the [SDK integration guide](https://github.com/xpert-ai/xpert/blob/main/packages/plugin-sdk/docs/en/TOOL-IMAGES.md).
 
 ## Components and responsibilities
 
-| Component                                                                                   | Responsibility                                                                                                                           |
-| ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| [`ToolImagesApi`](../packages/plugin-sdk/src/lib/runtime/capabilities/tool-images.ts)       | SDK interface exposing `save` and `prepareModelInput`. Plugins use this interface through the `platform.tool-images` runtime capability. |
-| [`ToolImageArtifacts`](../packages/server-ai/src/shared/runtime/tool-image-artifacts.ts)    | Server implementation that coordinates Workspace Files, Artifact versions, image validation and model input.                             |
-| [`createToolImagesApi`](../packages/server-ai/src/shared/runtime/tool-images-runtime.ts)    | Runtime facade that resolves the current execution scope separately for each API call and creates scoped storage services.               |
-| [`tool-image-messages.ts`](../packages/server-ai/src/shared/runtime/tool-image-messages.ts) | Matches tool calls and replies, prepares message copies, and recognizes explicitly permitted text results.                               |
+| Component                                                                                                                            | Responsibility                                                                                                                           |
+| ------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| [`ToolImagesApi`](https://github.com/xpert-ai/xpert/blob/main/packages/plugin-sdk/src/lib/runtime/capabilities/tool-images.ts)       | SDK interface exposing `save` and `prepareModelInput`. Plugins use this interface through the `platform.tool-images` runtime capability. |
+| [`ToolImageArtifacts`](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/shared/runtime/tool-image-artifacts.ts)    | Server implementation that coordinates Workspace Files, Artifact versions, image validation and model input.                             |
+| [`createToolImagesApi`](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/shared/runtime/tool-images-runtime.ts)    | Runtime facade that resolves the current execution scope separately for each API call and creates scoped storage services.               |
+| [`tool-image-messages.ts`](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/shared/runtime/tool-image-messages.ts) | Matches tool calls and replies, prepares message copies, and recognizes explicitly permitted text results.                               |
 
 The owning tool captures or produces the image and authorizes access to the business resource. The image runtime then handles storage and model delivery. `save` completing successfully proves that the image was stored; the model still needs to inspect it before reporting a visual finding.
 
@@ -148,9 +148,9 @@ corepack pnpm exec jest --config packages/server-ai/jest.config.ts --runInBand -
   packages/server-ai/src/shared/runtime/image-coordinate-frame.spec.ts
 ```
 
-- [SDK middleware integration guide](../packages/plugin-sdk/docs/en/TOOL-IMAGES.md)
-- [Runtime capability registration](../packages/server-ai/src/shared/agent/middleware-runtime/middleware-runtime.service.ts)
-- [Image persistence and text-result tests](../packages/server-ai/src/shared/runtime/tool-image-artifacts.spec.ts)
-- [Per-call scope and recovery tests](../packages/server-ai/src/shared/runtime/tool-images-runtime.spec.ts)
+- [SDK middleware integration guide](https://github.com/xpert-ai/xpert/blob/main/packages/plugin-sdk/docs/en/TOOL-IMAGES.md)
+- [Runtime capability registration](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/shared/agent/middleware-runtime/middleware-runtime.service.ts)
+- [Image persistence and text-result tests](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/shared/runtime/tool-image-artifacts.spec.ts)
+- [Per-call scope and recovery tests](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/shared/runtime/tool-images-runtime.spec.ts)
 
 Deploy compatible SDK, host runtime and ChatKit contracts before adopting this API. A source-tree interface alone does not establish that the corresponding published package or deployed service contains it.

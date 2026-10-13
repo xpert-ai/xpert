@@ -2,7 +2,6 @@ import type { IArtifactWorkspaceFileReference } from '@xpert-ai/contracts'
 import { Inject, Injectable } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { createHash } from 'node:crypto'
-import { WorkspaceFilesRuntimeCapabilityService } from '../../shared/runtime/workspace-files-runtime-capability.service'
 import { VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../../shared/volume'
 import {
     AssistantFileEntry,
@@ -13,9 +12,7 @@ import {
 @Injectable()
 export class AssistantFilesService {
     constructor(
-        private readonly commandBus: CommandBus,
-        @Inject(WorkspaceFilesRuntimeCapabilityService)
-        private readonly workspaceFiles: Pick<WorkspaceFilesRuntimeCapabilityService, 'createScopedApi'>,
+        @Inject(CommandBus) private readonly commandBus: Pick<CommandBus, 'execute'>,
         @Inject(VOLUME_CLIENT)
         private readonly volumeClient: Pick<VolumeClient, 'resolve'>
     ) {}
@@ -51,16 +48,24 @@ export class AssistantFilesService {
             upload: async (file: Express.Multer.File): Promise<IArtifactWorkspaceFileReference> => {
                 const { scope } = await authorize('write')
                 const contentSha256 = createHash('sha256').update(file.buffer).digest('hex')
-                const files = this.workspaceFiles.createScopedApi({ ...scope, scopeId: scope.xpertId })
-                const written = await files.writeRuntimeBuffer({
-                    folder: `uploads/${contentSha256}`,
-                    fileName: file.originalname,
-                    buffer: file.buffer,
+                // This entry already chose runtime or Studio authority. Do not re-enter runtime ACL for drafts.
+                const volume = await this.volumeClient.resolve(scope).ensureRoot()
+                const written = await new VolumeSubtreeClient(volume, { allowRootWorkspace: true }).uploadFile(
+                    '',
+                    `uploads/${contentSha256}`,
+                    file
+                )
+                return {
+                    ...scope,
+                    source: 'platform.workspace.files',
+                    scopeId: scope.xpertId,
+                    filePath: written.filePath,
+                    workspacePath: `/workspace/${written.filePath}`,
                     originalName: file.originalname,
+                    name: written.filePath.split('/').pop(),
                     mimeType: file.mimetype,
-                    size: file.size ?? file.buffer.length
-                })
-                return written.reference
+                    size: file.buffer.length
+                }
             }
         }
     }

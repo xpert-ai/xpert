@@ -1,3 +1,4 @@
+import { assertPublicWorkspacePath } from '../shared/volume/workspace-managed-path'
 import { keepAlive, takeUntilClose } from '@xpert-ai/server-common'
 import { environment } from '@xpert-ai/server-config'
 import {
@@ -284,13 +285,14 @@ export class SandboxController {
         res: Response,
         options?: { rejectProtectedPaths?: boolean }
     ) {
+        assertPublicWorkspacePath(subpath)
         // Extract the file extension
         const fileName = subpath.split('?')[0].split('/').pop() || ''
         let filePath = VolumeHandle.resolvePath(volumeRoot, subpath)
         let fileStat: fs.Stats
         let fileHandle: fs.promises.FileHandle
         try {
-            const openedFile = await VolumeHandle.openExistingFile(volumeRoot, subpath)
+            const openedFile = await VolumeHandle.openFileSnapshot(volumeRoot, subpath)
             fileHandle = openedFile.fileHandle
             filePath = openedFile.filePath
             fileStat = openedFile.fileStat

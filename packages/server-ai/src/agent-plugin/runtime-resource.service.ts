@@ -20,13 +20,15 @@ import { t } from 'i18next'
 import { isEqual } from 'lodash'
 import { normalizeMiddlewareProvider } from '@xpert-ai/contracts'
 import { AgentPluginService, resourceScope } from './agent-plugin.service'
-import type { AgentResourceBinding } from './agent-plugin.entity'
+import type { AgentPluginPackage, AgentResourceBinding } from './agent-plugin.entity'
 import { WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
 import { applyRuntimeResourceGraph } from './runtime-resource-graph'
 import { discoverRuntimeResources, isResourceInGraph, type RuntimeResourceBinding } from './runtime-resource-discovery'
 import { isSameXpertFamily } from '../xpert/xpert-family'
 import { assertAssistantAudience } from '../ai/assistant-audience'
 import { isGroupRuntime } from '../chat-group/group-runtime-context'
+import { AgentPluginInstallationsService } from './agent-plugin-installations.service'
+import { visibleAgentPluginScopes } from './agent-plugin-scope'
 
 import { parseRuntimeResources, sameRuntimeResources } from './runtime-resource-selection'
 export { runtimeResourcesSchema } from './runtime-resource-selection'
@@ -51,7 +53,8 @@ export const emptyRuntimeResources = (): ResolvedRuntimeResources => ({
 export class RuntimeResourceService {
     constructor(
         private readonly plugins: AgentPluginService,
-        private readonly modules: ModuleRef
+        private readonly modules: ModuleRef,
+        private readonly installations: AgentPluginInstallationsService
     ) {}
 
     private async assistant(id: string, projectId?: string | null) {
@@ -75,17 +78,25 @@ export class RuntimeResourceService {
         query: { projectId?: string; search?: string; kind?: RuntimeResourceKind; offset?: number; limit?: number }
     ): Promise<RuntimeResourceCatalog> {
         const assistant = await this.assistant(assistantId, query.projectId)
-        const bindings = await this.plugins.bindings.find({
+        const managed = await this.plugins.bindings.find({
             where: resourceScope(),
             order: { title: 'ASC', id: 'ASC' }
         })
+        const installed =
+            !query.kind || query.kind === 'agent_plugin'
+                ? await this.installations.runtimeCatalog(assistant.workspaceId)
+                : []
+        const bindings = [
+            ...managed.filter((binding) => binding.definition.kind !== 'agent_plugin'),
+            ...installed.map(({ binding }) => binding)
+        ]
         const items: RuntimeResourceCatalogItem[] = []
         for (const binding of bindings) {
             if (
                 !binding.enabled ||
                 binding.supersededById ||
                 isResourceInGraph(binding, assistant) ||
-                !binding.workspaceIds.includes(assistant.workspaceId) ||
+                (binding.definition.kind !== 'agent_plugin' && !binding.workspaceIds.includes(assistant.workspaceId)) ||
                 (query.kind && binding.definition.kind !== query.kind)
             )
                 continue
@@ -94,8 +105,16 @@ export class RuntimeResourceService {
                 !`${binding.title} ${binding.description ?? ''}`.toLowerCase().includes(query.search.toLowerCase())
             )
                 continue
-            const item = await this.describe(binding, assistant.workspaceId, assistantId)
+            const item = await this.describe(
+                binding,
+                assistant,
+                installed.find((item) => item.binding.id === binding.id)?.pkg
+            )
             try {
+                if (binding.definition.kind === 'agent_plugin') {
+                    items.push(item)
+                    continue
+                }
                 const resolved = await this.resolve(
                     assistantId,
                     { revision: 0, resources: [{ bindingId: binding.id, version: binding.version }] },
@@ -121,7 +140,7 @@ export class RuntimeResourceService {
                 !`${binding.title} ${binding.description ?? ''}`.toLowerCase().includes(query.search.toLowerCase())
             )
                 continue
-            items.push(await this.describe(binding, assistant.workspaceId, assistantId))
+            items.push(await this.describe(binding, assistant))
         }
         items.sort((a, b) => a.title.localeCompare(b.title) || a.bindingId.localeCompare(b.bindingId))
         const offset = query.offset ?? 0
@@ -198,9 +217,10 @@ export class RuntimeResourceService {
 
     private async describe(
         binding: RuntimeResourceBinding,
-        workspaceId: string,
-        assistantId: string
+        assistant: IXpert,
+        pkg?: AgentPluginPackage
     ): Promise<RuntimeResourceCatalogItem> {
+        const { workspaceId, id: assistantId } = assistant
         const base: RuntimeResourceCatalogItem = {
             bindingId: binding.id,
             version: binding.version,
@@ -215,8 +235,8 @@ export class RuntimeResourceService {
             components: []
         }
         const definition = binding.definition
+        const registry = this.modules.get(AgentMiddlewareRegistry, { strict: false })
         if (definition.kind === 'middleware') {
-            const registry = this.modules.get(AgentMiddlewareRegistry, { strict: false })
             base.iconDefinition = registry
                 .list(resourceScope().organizationId)
                 .find(
@@ -226,10 +246,10 @@ export class RuntimeResourceService {
                 )?.meta.icon
         }
         if (binding.definition.kind === 'agent_plugin') {
-            const pkg = await this.plugins.packages.findOneByOrFail({
-                ...resourceScope(),
-                id: binding.definition.packageId
-            })
+            if (!pkg) {
+                base.status = 'unavailable'
+                return base
+            }
             base.diagnostics = [...pkg.descriptor.diagnostics]
             base.icon = pkg.descriptor.extension?.interface?.icon
             base.status = base.diagnostics.length ? 'partial' : 'ready'
@@ -248,8 +268,12 @@ export class RuntimeResourceService {
                 }))
             ]
             if (!base.components.length) base.status = 'unavailable'
-            for (const key of Object.keys(binding.definition.connectorServers ?? {})) {
-                const reference = binding.installations[workspaceId]?.connectors?.[key]
+            const requirements = binding.definition.connectorServers ?? pkg.descriptor.extension?.connectors ?? {}
+            const references = await this.installations
+                .connectorReferences(pkg, binding, { id: assistantId, workspaceId })
+                .catch(() => ({}))
+            for (const key of Object.keys(requirements)) {
+                const reference = references[key]
                 const status = reference
                     ? await this.modules
                           .get(AgentPluginConnectorService, { strict: false })
@@ -259,6 +283,42 @@ export class RuntimeResourceService {
                 const component = base.components.find((item) => item.kind === 'mcp' && item.key === key)
                 if (component) component.status = status
                 if (status !== 'ready') base.status = status
+            }
+            for (const expert of pkg.descriptor.extension?.experts ?? []) {
+                const component = base.components.find(
+                    (item) => item.key === expert.key && item.kind === 'external_xpert'
+                )
+                if (
+                    !binding.definition.experts[expert.reference] ||
+                    !binding.expertVersions?.[binding.definition.experts[expert.reference]]
+                ) {
+                    base.status = 'configuration_required'
+                    if (component) component.status = 'configuration_required'
+                    base.diagnostics.push({
+                        component: expert.key,
+                        code: 'configuration_required',
+                        message: t('server-ai:Error.AgentResourceExpertMapping', { reference: expert.reference })
+                    })
+                } else {
+                    try {
+                        const id = binding.definition.experts[expert.reference]
+                        await this.publishedExpert(id, binding.expertVersions[id], assistant)
+                    } catch {
+                        if (component) component.status = 'unavailable'
+                        base.status = 'unavailable'
+                    }
+                }
+            }
+            try {
+                for (const middleware of pkg.descriptor.extension?.middlewares ?? [])
+                    this.plugins.validateMiddleware(
+                        registry,
+                        middleware.provider,
+                        middleware.options ?? {},
+                        resourceScope().organizationId
+                    )
+            } catch {
+                base.status = 'unavailable'
             }
             // Older user-scoped OAuth installations require an explicit workspace reconfiguration.
             for (const key of binding.definition.oauthServers ?? []) {
@@ -281,19 +341,13 @@ export class RuntimeResourceService {
         reference: { bindingId: string; version: string; serverName: string; projectId?: string }
     ) {
         const assistant = await this.assistant(assistantId, reference.projectId)
-        await this.resolve(
-            assistantId,
-            { revision: 0, resources: [{ bindingId: reference.bindingId, version: reference.version }] },
-            reference.projectId
-        )
-        const binding = await this.plugins.bindings.findOneByOrFail({
-            ...resourceScope(),
-            id: reference.bindingId,
-            version: reference.version,
-            enabled: true
-        })
+        const resolved = await this.installations.reference(reference, assistant.workspaceId)
+        if (!resolved) throw new ForbiddenException(t('server-ai:Error.AgentResourceUnavailable'))
+        const { binding, pkg } = resolved
         if (binding.definition.kind === 'agent_plugin' && binding.definition.connectorServers?.[reference.serverName]) {
-            const connector = binding.installations[assistant.workspaceId]?.connectors?.[reference.serverName]
+            const connector = (await this.installations.connectorReferences(pkg, binding, assistant))[
+                reference.serverName
+            ]
             if (!connector) throw new BadRequestException(t('server-ai:Error.AgentPluginConnectorConfiguration'))
             return this.modules
                 .get(AgentPluginConnectorService, { strict: false })
@@ -319,10 +373,6 @@ export class RuntimeResourceService {
         result.selection = validated
         const packages = new Map<string, AgentResourceBinding['definition']>()
         const registry = this.modules.get(AgentMiddlewareRegistry, { strict: false })
-        const access = this.modules.get(
-            (await import('../xpert/published-xpert-access.service')).PublishedXpertAccessService,
-            { strict: false }
-        )
         const addMiddleware = (key: string, provider: string, options: IWFNMiddleware['options']) => {
             this.plugins.validateMiddleware(registry, provider, options ?? {}, scope.organizationId)
             provider = normalizeMiddlewareProvider(provider)
@@ -333,12 +383,7 @@ export class RuntimeResourceService {
             })
         }
         const addExpert = async (id: string, version: string | undefined) => {
-            if (id === assistantId) throw new BadRequestException(t('server-ai:Error.AgentResourceSelfReference'))
-            const expert = await access.getAccessiblePublishedResource(id, assistantId)
-            if (isSameXpertFamily(expert, assistant))
-                throw new BadRequestException(t('server-ai:Error.AgentResourceSelfReference'))
-            if (!version || publishedResourceVersion(expert.publishAt) !== version)
-                throw new ForbiddenException(t('server-ai:Error.AgentResourceUnavailable'))
+            const expert = await this.publishedExpert(id, version, assistant)
             if (!result.experts.some((item) => item.id === expert.id)) result.experts.push(expert)
         }
         let discovered: Map<string, RuntimeResourceBinding> | undefined
@@ -350,6 +395,9 @@ export class RuntimeResourceService {
                 enabled: true
             })
             if (!binding) {
+                binding = (await this.installations.reference(reference, assistant.workspaceId))?.binding
+            }
+            if (!binding) {
                 if (!discovered) {
                     const managed = await this.plugins.bindings.find({ where: scope })
                     discovered = new Map((await this.discover(assistant, managed)).map((item) => [item.id, item]))
@@ -357,7 +405,10 @@ export class RuntimeResourceService {
                 const candidate = discovered.get(reference.bindingId)
                 if (candidate?.version === reference.version) binding = candidate
             }
-            if (!binding || !binding.workspaceIds.includes(assistant.workspaceId))
+            if (
+                !binding ||
+                (binding.definition.kind !== 'agent_plugin' && !binding.workspaceIds.includes(assistant.workspaceId))
+            )
                 throw new ForbiddenException(
                     t('server-ai:Error.AgentResourceUnavailable', {
                         defaultValue: 'This resource is no longer available.'
@@ -377,9 +428,15 @@ export class RuntimeResourceService {
                 if (definition.oauthServers?.length)
                     throw new BadRequestException(t('server-ai:Error.ConnectorWorkspaceConnectionRequired'))
                 packages.set(definition.packageId, definition)
-                const pkg = await this.plugins.packages.findOneByOrFail({ ...scope, id: definition.packageId })
-                const installation = binding.installations[assistant.workspaceId]
-                if (!installation) throw new ForbiddenException(t('server-ai:Error.AgentResourceNotInstalled'))
+                const pkg = await this.installations.package(binding, assistant.workspaceId)
+                for (const middleware of pkg.descriptor.extension?.middlewares ?? [])
+                    addMiddleware(`resource_${binding.id}_${middleware.key}`, middleware.provider, middleware.options)
+                for (const expert of pkg.descriptor.extension?.experts ?? [])
+                    await addExpert(
+                        definition.experts[expert.reference],
+                        binding.expertVersions?.[definition.experts[expert.reference]]
+                    )
+                const { installation } = await this.installations.prepare(reference, assistant)
                 result.skillIds.push(...installation.skills)
                 result.skillSources ??= []
                 pkg.descriptor.skills.forEach((skill, index) => {
@@ -422,13 +479,6 @@ export class RuntimeResourceService {
                     }
                     result.toolsetIds.push(id)
                 }
-                for (const middleware of pkg.descriptor.extension?.middlewares ?? [])
-                    addMiddleware(`resource_${binding.id}_${middleware.key}`, middleware.provider, middleware.options)
-                for (const expert of pkg.descriptor.extension?.experts ?? [])
-                    await addExpert(
-                        definition.experts[expert.reference],
-                        binding.expertVersions?.[definition.experts[expert.reference]]
-                    )
             }
         }
         result.skillIds = [...new Set(result.skillIds)]
@@ -442,6 +492,21 @@ export class RuntimeResourceService {
         return result
     }
 
+    private async publishedExpert(id: string, version: string | undefined, assistant: IXpert) {
+        if (!id || !version) throw new BadRequestException(t('server-ai:Error.AgentResourceConfigurationRequired'))
+        if (id === assistant.id) throw new BadRequestException(t('server-ai:Error.AgentResourceSelfReference'))
+        const access = this.modules.get(
+            (await import('../xpert/published-xpert-access.service')).PublishedXpertAccessService,
+            { strict: false }
+        )
+        const expert = await access.getAccessiblePublishedResource(id, assistant.id)
+        if (isSameXpertFamily(expert, assistant))
+            throw new BadRequestException(t('server-ai:Error.AgentResourceSelfReference'))
+        if (publishedResourceVersion(expert.publishAt) !== version)
+            throw new ForbiddenException(t('server-ai:Error.AgentResourceUnavailable'))
+        return expert
+    }
+
     /** MCP App RPCs outlive the originating run, so their signed token is not enough. */
     async assertToolsetAccess(toolset: {
         id?: string
@@ -451,14 +516,14 @@ export class RuntimeResourceService {
     }) {
         if (!toolset.id || !toolset.tenantId || !toolset.organizationId) return
         const bindings = await this.plugins.bindings.find({
-            where: { tenantId: toolset.tenantId, organizationId: toolset.organizationId }
+            where: visibleAgentPluginScopes({ tenantId: toolset.tenantId, organizationId: toolset.organizationId })
         })
         const owners = bindings.filter((binding) =>
             Object.values(binding.installations).some((installation) => installation.toolsets.includes(toolset.id))
         )
         if (!owners.length) return
         const scope = resourceScope()
-        const binding = owners.find((item) => item.enabled && item.workspaceIds.includes(toolset.workspaceId))
+        const binding = owners.find((item) => item.enabled)
         if (
             !binding ||
             scope.tenantId !== toolset.tenantId ||
@@ -472,7 +537,7 @@ export class RuntimeResourceService {
                 strict: false
             })
             .assertCanRun(toolset.workspaceId)
-        const pkg = await this.plugins.packages.findOneByOrFail({ ...scope, id: binding.definition.packageId })
+        const pkg = await this.installations.package(binding, toolset.workspaceId)
         const index = binding.installations[toolset.workspaceId]?.toolsets.indexOf(toolset.id) ?? -1
         const server = pkg.descriptor.servers[index]
         const current = await this.plugins.packages.manager

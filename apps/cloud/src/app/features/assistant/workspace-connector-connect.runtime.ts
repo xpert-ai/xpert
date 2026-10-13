@@ -1,6 +1,7 @@
 // The iframe supplies identities only; resolve the workspace and permission using the host session.
 import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import { DestroyRef, Injector, Signal, effect, inject } from '@angular/core'
+import { Router } from '@angular/router'
 import type { WorkspaceConnectorConnectHandler, WorkspaceConnectorConnectResult } from '@xpert-ai/chatkit-types'
 import { firstValueFrom } from 'rxjs'
 import { XpertConnectorService } from '../../@core/services/xpert-connector.service'
@@ -15,7 +16,7 @@ export function injectWorkspaceConnectorConnect(
   let active:
     | { assistantId: string; bindingId: string; requestKey?: string; promise: Promise<WorkspaceConnectorConnectResult> }
     | undefined
-  let dialogRef: DialogRef<WorkspaceConnectorConnectResult> | undefined
+  let dialogRef: DialogRef<WorkspaceConnectorConnectResult | 'manage'> | undefined
   effect(() => {
     const currentId = assistantId()
     const requestKey = options?.requestKey?.()
@@ -69,7 +70,11 @@ export function injectWorkspaceConnectorConnect(
       }
       if (binding.authorizationMode === 'shared' && binding.status === 'active' && binding.granted)
         return { status: 'connected' }
-      const { XpertConnectorsComponent } = await import('../xpert/workspace/connectors/connectors.component')
+      const component =
+        binding.authorizationMode === 'personal'
+          ? (await import('./workspace-connector-migration-dialog.component'))
+              .WorkspaceConnectorMigrationDialogComponent
+          : (await import('../xpert/workspace/connectors/connectors.component')).XpertConnectorsComponent
       if (!isCurrent()) return { status: 'cancelled' }
       const context = Injector.create({
         parent: injector,
@@ -85,14 +90,19 @@ export function injectWorkspaceConnectorConnect(
         ]
       })
       try {
-        dialogRef = injector.get(Dialog).open<WorkspaceConnectorConnectResult>(XpertConnectorsComponent, {
+        dialogRef = injector.get(Dialog).open<WorkspaceConnectorConnectResult | 'manage'>(component, {
           injector: context,
           backdropClass: 'backdrop-blur-xs-black',
           panelClass: 'xp-overlay-pane-dialog',
           maxWidth: 'calc(100vw - 32px)',
           maxHeight: '90dvh'
         })
-        return (await firstValueFrom(dialogRef.closed, { defaultValue: undefined })) ?? { status: 'cancelled' }
+        const result = await firstValueFrom(dialogRef.closed, { defaultValue: undefined })
+        if (result === 'manage') {
+          if (isCurrent()) await injector.get(Router).navigate(['/xpert/w', workspace.workspaceId, 'connectors'])
+          return { status: 'cancelled' }
+        }
+        return result ?? { status: 'cancelled' }
       } finally {
         context.destroy()
       }

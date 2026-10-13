@@ -70,10 +70,18 @@ export async function selectConversationNoProject(
              "updatedAt" = NOW()
          WHERE conversation.id = $1
            AND conversation."projectId" IS NULL
+           AND (conversation.options->'projectCreation'->>'status') IS DISTINCT FROM 'awaiting_confirmation'
            AND (conversation.options->'projectSelection'->>'mode') IS DISTINCT FROM 'none'`,
         [conversationId]
     )
     const conversation = await repository.findOneByOrFail({ id: conversationId })
+    if (conversation.options?.projectCreation?.status === 'awaiting_confirmation') {
+        throw new ForbiddenException(
+            t('server-ai:Error.ProjectConfirmationRequired', {
+                defaultValue: 'Confirm the pending project settings in the App before creating a Project.'
+            })
+        )
+    }
     if (conversation.projectId || conversation.options?.projectSelection?.mode !== 'none') {
         throw new ForbiddenException(
             t('server-ai:Error.ConversationProjectImmutable', {
@@ -82,4 +90,30 @@ export async function selectConversationNoProject(
         )
     }
     return conversation
+}
+
+/** Preserve deferred setup under the same row lock as personal selection and binding. */
+export async function awaitConversationProjectConfirmation(
+    repository: Pick<Repository<ChatConversation>, 'query' | 'findOneByOrFail'>,
+    conversationId: string
+) {
+    await repository.query(
+        `UPDATE chat_conversation AS c SET options = (COALESCE(c.options::jsonb, '{}'::jsonb)
+         || '{"projectCreation":{"status":"awaiting_confirmation"},"projectSelection":{"mode":"auto-new"}}'::jsonb)::json
+         WHERE c.id=$1 AND c."projectId" IS NULL
+           AND ((c.options->'projectCreation'->>'status') = 'awaiting_confirmation'
+             OR ((c.options->'projectSelection'->>'mode') IS DISTINCT FROM 'none'
+               AND NOT EXISTS (SELECT 1 FROM chat_message m WHERE m."conversationId"=c.id)
+               AND NOT EXISTS (SELECT 1 FROM xpert_agent_execution e WHERE e."threadId"=c."threadId")))`,
+        [conversationId]
+    )
+    const current = await repository.findOneByOrFail({ id: conversationId })
+    if (!current.projectId && current.options?.projectCreation?.status !== 'awaiting_confirmation') {
+        throw new ForbiddenException(
+            t('server-ai:Error.ProjectConfirmationRequired', {
+                defaultValue: 'Confirm the pending project settings in the App before creating a Project.'
+            })
+        )
+    }
+    return current
 }

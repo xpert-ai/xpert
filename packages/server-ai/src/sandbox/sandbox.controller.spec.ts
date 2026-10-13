@@ -74,7 +74,7 @@ jest.mock('../shared/volume/volume', () => ({
     },
     VolumeHandle: {
         resolvePath: (root: string, subpath: string) => `${root}/${subpath}`,
-        openExistingFile: jest.fn().mockRejectedValue(new Error('File not found'))
+        openFileSnapshot: jest.fn().mockRejectedValue(new Error('File not found'))
     },
     assertValidVolumeScopeId: (value: string) => {
         if (!value || value === '.' || value === '..' || value.includes('\0') || /[\\/]/.test(value)) {
@@ -235,7 +235,7 @@ describe('SandboxController', () => {
                     {} as Response
                 )
             ).rejects.toBeInstanceOf(ForbiddenException)
-            expect(RuntimeVolumeHandle.openExistingFile).not.toHaveBeenCalled()
+            expect(RuntimeVolumeHandle.openFileSnapshot).not.toHaveBeenCalled()
         }
     )
 
@@ -317,12 +317,12 @@ describe('SandboxController', () => {
                 {} as Response
             )
         ).rejects.toBeInstanceOf(BadRequestException)
-        expect(RuntimeVolumeHandle.openExistingFile).not.toHaveBeenCalled()
+        expect(RuntimeVolumeHandle.openFileSnapshot).not.toHaveBeenCalled()
     })
 
     it('rejects a public-path symlink that resolves into a private xpert subtree', async () => {
         const close = jest.fn().mockResolvedValue(undefined)
-        jest.spyOn(RuntimeVolumeHandle, 'openExistingFile').mockResolvedValueOnce({
+        jest.spyOn(RuntimeVolumeHandle, 'openFileSnapshot').mockResolvedValueOnce({
             fileHandle: { close } as never,
             filePath: '/sandbox/tenant-1/user/user-1/xpert/xpert-1/report.txt',
             volumeRelativePath: 'user/user-1/xpert/xpert-1/report.txt',
@@ -344,7 +344,7 @@ describe('SandboxController', () => {
 
     it('rejects a public Xpert symlink that resolves into a Project subtree', async () => {
         const close = jest.fn().mockResolvedValue(undefined)
-        jest.spyOn(RuntimeVolumeHandle, 'openExistingFile').mockResolvedValueOnce({
+        jest.spyOn(RuntimeVolumeHandle, 'openFileSnapshot').mockResolvedValueOnce({
             fileHandle: { close } as never,
             filePath: '/sandbox/tenant-1/project/project-1/project.md',
             volumeRelativePath: 'project/project-1/project.md',
@@ -375,7 +375,7 @@ describe('SandboxController', () => {
             response
         )
 
-        expect(RuntimeVolumeHandle.openExistingFile).toHaveBeenCalledWith(
+        expect(RuntimeVolumeHandle.openFileSnapshot).toHaveBeenCalledWith(
             '/sandbox/tenant-1',
             'xpert/xpert-1/report.txt'
         )
@@ -519,7 +519,7 @@ describe('SandboxController', () => {
                     `${await app.getUrl()}/volume/runtime-jobs/job-1/.platform/inputs/source.snapshot`
                 )
                 expect(response.status).toBe(403)
-                expect(RuntimeVolumeHandle.openExistingFile).not.toHaveBeenCalled()
+                expect(RuntimeVolumeHandle.openFileSnapshot).not.toHaveBeenCalled()
             } finally {
                 await app.close()
             }
@@ -600,7 +600,7 @@ describe('SandboxController', () => {
 
         it('rejects an anonymous Xpert symlink whose canonical target is Project content', async () => {
             const close = jest.fn().mockResolvedValue(undefined)
-            jest.spyOn(RuntimeVolumeHandle, 'openExistingFile').mockResolvedValueOnce({
+            jest.spyOn(RuntimeVolumeHandle, 'openFileSnapshot').mockResolvedValueOnce({
                 fileHandle: { close } as never,
                 filePath: '/sandbox/tenant-1/project/project-1/project.md',
                 volumeRelativePath: 'project/project-1/project.md',
@@ -625,7 +625,7 @@ describe('SandboxController', () => {
                 const response = await fetch(`${await app.getUrl()}/volume/xpert/xpert-1/report.txt?tenant=tenant-1`)
                 expect(response.status).toBe(404)
                 expect(projectAccessService.assertCanRead).not.toHaveBeenCalled()
-                expect(RuntimeVolumeHandle.openExistingFile).toHaveBeenCalledWith(
+                expect(RuntimeVolumeHandle.openFileSnapshot).toHaveBeenCalledWith(
                     '/sandbox/tenant-1',
                     'xpert/xpert-1/report.txt'
                 )

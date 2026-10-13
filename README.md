@@ -126,7 +126,12 @@ Open the diagram for full resolution. [AI Agent architecture and source map](doc
 
 ## Local Development with Agent Skills
 
-Install these [`xpert-skills`](https://github.com/xpert-ai/xpert-skills) for Codex to set up Xpert and build apps. Remove `--global` for a project-only installation; replace `codex` for another supported agent.
+Install the [`xpert-skills`](https://github.com/xpert-ai/xpert-skills) you need for Codex to set up Xpert, build plugins, or integrate your own application. Remove `--global` for a project-only installation; replace `codex` for another supported agent.
+
+For applications outside the platform plugin system, choose:
+
+- `xpert-chatkit-integration`: embed ChatKit's chat UI in your application, following the [official ChatKit documentation](https://docs.xpertai.cn/en/ai/chatkit).
+- `xpert-sdk-integration`: use the SDK in a service, script or custom interface without ChatKit, following the [official SDK documentation](https://docs.xpertai.cn/en/ai/agent/development-api).
 
 ```bash
 npx skills add xpert-ai/xpert-skills \
@@ -143,9 +148,19 @@ npx skills add xpert-ai/xpert-skills \
   --skill xpert-plugin-development \
   --agent codex \
   --global
+
+npx skills add xpert-ai/xpert-skills \
+  --skill xpert-chatkit-integration \
+  --agent codex \
+  --global
+
+npx skills add xpert-ai/xpert-skills \
+  --skill xpert-sdk-integration \
+  --agent codex \
+  --global
 ```
 
-Start a new agent session, then ask:
+Start a new agent session after installation. For platform plugin development, ask:
 
 1. **Set up and verify Xpert**
 

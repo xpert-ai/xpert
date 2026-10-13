@@ -1,5 +1,6 @@
 import { effectiveLoadedPlugins } from './effective-loaded-plugins'
 import { PluginApplicationSuiteService } from './plugin-application-suite.service'
+import { modelSelectionMetadata } from '../copilot-model/model-selection-metadata'
 import {
     AiModelTypeEnum,
     AiProviderRole,
@@ -820,7 +821,8 @@ export class PluginApplicationService {
                     copilotId: copilot.id,
                     model: model.model,
                     label: model.label,
-                    modelType: model.model_type
+                    modelType: model.model_type,
+                    ...modelSelectionMetadata(copilot, model, RequestContext.getLanguageCode())
                 }))
         )
     }

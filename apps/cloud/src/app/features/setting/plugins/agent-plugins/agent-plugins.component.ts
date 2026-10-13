@@ -75,7 +75,6 @@ export class AgentPluginsComponent {
     const scope = this.scope()
     return !!requested && (!scope || !('organizationId' in scope) || scope.organizationId !== requested)
   }
-  readonly desktopWorkspaceName = signal('')
   private readonly dialog = inject(Dialog)
   private readonly endpoint = `${API_PREFIX}/agent-plugins`
   private importDialog?: DialogRef
@@ -123,16 +122,8 @@ export class AgentPluginsComponent {
   readonly selectedBinding = computed(() =>
     this.selectedGroup()?.currentBindings.find((item) => item.id === this.replacesBindingId())
   )
-  readonly detailTab = signal<'overview' | 'workspaces' | 'history'>('workspaces')
-  readonly workspaceSearch = signal('')
-  readonly workspaceIds = signal<string[]>([])
-  readonly filteredWorkspaces = computed(() => {
-    const query = this.workspaceSearch().trim().toLocaleLowerCase()
-    return this.options().workspaces.filter((workspace) => workspace.name.toLocaleLowerCase().includes(query))
-  })
-  readonly unavailableWorkspaceCount = computed(
-    () => this.workspaceIds().filter((id) => !this.options().workspaces.some((workspace) => workspace.id === id)).length
-  )
+  readonly detailTab = signal<'overview' | 'history'>('overview')
+  readonly installationScope = computed(() => (this.scope()?.level === 'tenant' ? 'tenant' : 'organization'))
   readonly expertMappings = signal<{ [reference: string]: string }>({})
   readonly missingMappings = computed(() =>
     (this.selectedPackage()?.descriptor.extension?.experts ?? []).some(
@@ -166,7 +157,6 @@ export class AgentPluginsComponent {
       untracked(() => {
         this.generation++
         this.handledDesktopLink = false
-        this.desktopWorkspaceName.set('')
         this.importDialog?.close()
         this.packages.set([])
         this.bindings.set([])
@@ -212,19 +202,16 @@ export class AgentPluginsComponent {
     const query = this.route?.snapshot.queryParamMap
     if (!query?.get('organizationId')) return
     const workspaceId = query.get('workspaceId')
-    const workspace = this.options().workspaces.find((item) => item.id === workspaceId)
-    if (workspaceId && !workspace) return
     this.handledDesktopLink = true
-    this.desktopWorkspaceName.set(workspace?.name ?? '')
     const packageId = query.get('packageId')
     const group = this.groups().find((item) => item.packages.some((pkg) => pkg.id === packageId))
     if (!group) return
-    this.openGroup(group, 'workspaces')
+    this.openGroup(group, 'overview')
     const binding =
       group.currentBindings.find((item) => item.workspaceIds.includes(workspaceId) && item.enabled) ??
       group.currentBindings.find((item) => item.workspaceIds.includes(workspaceId))
     if (binding) this.loadBinding(binding)
-    // Keep all existing workspace selections. A link never publishes or checks a new workspace by itself.
+    // Older Desktop links still select their existing configuration without changing it.
   }
 
   private async run(work: () => Promise<void>) {
@@ -305,7 +292,6 @@ export class AgentPluginsComponent {
     const group = this.groups().find((item) => item.name === pkg.descriptor.name)
     if (group) {
       this.selectedName.set(group.name)
-      this.workspaceSearch.set('')
       this.detailTab.set('overview')
       this.loadBinding(group.currentBindings.find((item) => item.enabled) ?? group.currentBindings[0])
     }
@@ -327,11 +313,10 @@ export class AgentPluginsComponent {
       this.page.set(0)
     }
   }
-  openGroup(group: PluginGroup, tab: 'overview' | 'workspaces' | 'history' = 'workspaces') {
+  openGroup(group: PluginGroup, tab: 'overview' | 'history' = 'overview') {
     if (this.busy()) return
     this.selectedName.set(group.name)
     this.notice.set(false)
-    this.workspaceSearch.set('')
     this.detailTab.set(tab)
     this.loadBinding(group.currentBindings.find((item) => item.enabled) ?? group.currentBindings[0])
   }
@@ -339,7 +324,6 @@ export class AgentPluginsComponent {
     this.selectedName.set('')
     this.selectedPackageId.set('')
     this.replacesBindingId.set('')
-    this.workspaceIds.set([])
     this.expertMappings.set({})
   }
   loadBinding(binding?: PluginBinding) {
@@ -348,7 +332,6 @@ export class AgentPluginsComponent {
     const pkg = group.packages.find((item) => item.id === binding?.definition.packageId) ?? group.packages[0]
     this.replacesBindingId.set(binding?.id ?? '')
     this.selectedPackageId.set(pkg.id)
-    this.workspaceIds.set([...(binding?.workspaceIds ?? [])])
     this.expertMappings.set({ ...binding?.definition.experts })
     this.binding.reset({
       title: binding?.title || packageTitle(pkg),
@@ -383,37 +366,25 @@ export class AgentPluginsComponent {
       this.selectedGroup()?.packages.filter((item) => packageVersion(item) === packageVersion(pkg)).length ?? 0
     return duplicates > 1 ? `${packageVersion(pkg)} (${pkg.digest.slice(0, 8)})` : packageVersion(pkg)
   }
-  toggleWorkspace(id: string) {
-    this.workspaceIds.update((ids) => (ids.includes(id) ? ids.filter((value) => value !== id) : [...ids, id]))
-    this.notice.set(false)
-  }
   mapExpert(reference: string, value: ZardSelectValue | ZardSelectValue[]) {
     if (typeof value === 'string') {
       this.expertMappings.update((values) => ({ ...values, [reference]: value }))
     }
   }
-  workspaceName(id: string) {
-    return this.options().workspaces.find((workspace) => workspace.id === id)?.name
-  }
   bindingVersion(binding: PluginBinding) {
     const pkg = this.selectedGroup()?.packages.find((item) => item.id === binding.definition.packageId)
     return pkg ? packageVersion(pkg) : ''
   }
-  publish() {
+  saveConfiguration() {
     const pkg = this.selectedPackage()
-    if (
-      !pkg ||
-      this.binding.invalid ||
-      !this.workspaceIds().length ||
-      this.missingMappings() ||
-      this.unavailableWorkspaceCount()
-    ) {
+    if (!pkg || this.binding.invalid || this.missingMappings()) {
       this.binding.markAllAsTouched()
       return
     }
     const previous = this.selectedBinding()
     const definition: RuntimeResourceBindingInput['definition'] = {
       kind: 'agent_plugin',
+      availability: 'scope',
       packageId: pkg.id,
       experts: this.expertMappings(),
       ...(previous?.definition.packageId === pkg.id
@@ -426,7 +397,7 @@ export class AgentPluginsComponent {
     const input: RuntimeResourceBindingInput = {
       ...(previous ? { replacesBindingId: previous.id } : {}),
       ...this.binding.getRawValue(),
-      workspaceIds: this.workspaceIds(),
+      workspaceIds: [],
       definition
     }
     const generation = this.generation

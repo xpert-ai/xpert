@@ -77,6 +77,8 @@ Capability rules:
 
 This keeps business middleware focused on business files without depending on Volume roots, Docker bind mounts, or `/workspace` to `/sandbox` path mappings.
 
+For internal application state, use the same capability's `appData({ pluginName, requireUserIsolation: true })` API. It binds the plugin namespace to an authorized Assistant Volume and provides atomic writes and shared-filesystem locks. Generic file APIs cannot access `.apps`. See [Assistant application data](./volume-workspace-architecture#assistant-application-data) for scope rules, concurrency, persistent storage configuration and the Meetings example.
+
 ## Best practices
 
 - Keep hooks idempotent and lightweight.

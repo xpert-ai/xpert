@@ -3,7 +3,12 @@ import { PARAMTYPES_METADATA, SELF_DECLARED_DEPS_METADATA } from '@nestjs/common
 import { ModuleRef } from '@nestjs/core'
 import { RequestContext, encryptSecret } from '@xpert-ai/server-core'
 import { environment } from '@xpert-ai/server-config'
-import type { ConnectorAuthorizationMode, ConnectorScope, ConnectorStrategyRuntime } from '@xpert-ai/plugin-sdk'
+import type {
+    ConnectorAuthorizationMode,
+    ConnectorRuntimeScope,
+    ConnectorScope,
+    ConnectorStrategyRuntime
+} from '@xpert-ai/plugin-sdk'
 import { FindOperator, type FindOptionsWhere } from 'typeorm'
 import { PublishedXpertAccessService } from '../xpert/published-xpert-access.service'
 import { XpertProjectAccessService } from '../xpert-project/services/project-access.service'
@@ -1927,6 +1932,12 @@ describe('ConnectorService', () => {
             connectorProviders: ['example'],
             connectorBindingIds: [] as string[]
         })
+        const viewScope = (): ConnectorRuntimeScope => ({
+            ...runtimeScope(),
+            conversationId: undefined,
+            executionId: undefined,
+            viewHost: { type: 'agent', id: 'xpert-1' }
+        })
 
         async function connectTestBinding(
             scope: ConnectorScope = { type: 'workspace', workspaceId: 'workspace-1' },
@@ -1954,6 +1965,83 @@ describe('ConnectorService', () => {
             expect(runtimeAudits.items).toEqual([
                 expect.objectContaining({ connectorId: binding.id, actorUserId: 'user-1', outcome: 'resolved' })
             ])
+        })
+
+        it('resolves an authorized View binding without inventing a conversation or execution in its audit', async () => {
+            const binding = await connectTestBinding()
+            const scope = { ...viewScope(), connectorProviders: [], connectorBindingIds: [binding.id] }
+            await expect(
+                service.createScopedApi(scope).getConnectorCredential({
+                    provider: 'example',
+                    connectorId: binding.id
+                })
+            ).resolves.toEqual(expect.objectContaining({ bindingId: binding.id }))
+            expect(runtimeAudits.items).toEqual([
+                expect.objectContaining({
+                    connectorId: binding.id,
+                    actorUserId: 'user-1',
+                    xpertId: 'xpert-1',
+                    conversationId: null,
+                    executionId: null,
+                    outcome: 'resolved'
+                })
+            ])
+        })
+
+        it.each(['conversationId', 'executionId'] as const)(
+            'still requires %s for ordinary Agent and MCP calls',
+            async (field) => {
+                await connectTestBinding()
+                const scope = { ...runtimeScope(), [field]: undefined }
+                await expect(
+                    service.createScopedApi(scope).getConnectorCredential({ provider: 'example' })
+                ).rejects.toBeInstanceOf(BadRequestException)
+                expect(runtimeAudits.items).toHaveLength(0)
+            }
+        )
+
+        it('rejects a View source naming a different Assistant', async () => {
+            await connectTestBinding()
+            const scope = { ...viewScope(), viewHost: { type: 'agent' as const, id: 'different-assistant' } }
+            await expect(
+                service.createScopedApi(scope).getConnectorCredential({ provider: 'example' })
+            ).rejects.toBeInstanceOf(ForbiddenException)
+        })
+
+        it.each(['grant', 'tenant', 'user', 'organization', 'xpert', 'workspace', 'project'] as const)(
+            'retains the %s restriction for a View without an Agent execution',
+            async (denied) => {
+                await connectTestBinding()
+                const scope = viewScope()
+                if (denied === 'grant') scope.connectorProviders = []
+                if (denied === 'tenant') scope.tenantId = 'other-tenant'
+                if (denied === 'user') currentUserId = 'other-user'
+                if (denied === 'organization') scope.organizationId = 'other-organization'
+                if (denied === 'xpert')
+                    publishedXpertAccess.getAccessiblePublishedXpert.mockRejectedValue(new ForbiddenException())
+                if (denied === 'workspace')
+                    publishedXpertAccess.getAccessiblePublishedXpert.mockResolvedValue({
+                        id: 'xpert-1',
+                        workspaceId: 'different-workspace'
+                    })
+                if (denied === 'project') {
+                    scope.projectId = 'project-1'
+                    projectAccess.assertCanUseXpert.mockRejectedValue(new ForbiddenException())
+                }
+                await expect(
+                    service.createScopedApi(scope).getConnectorCredential({ provider: 'example' })
+                ).rejects.toThrow()
+            }
+        )
+
+        it('snapshots the authorized View host when creating its connector API', async () => {
+            await connectTestBinding()
+            const scope = viewScope()
+            const api = service.createScopedApi(scope)
+            scope.viewHost.id = 'different-assistant'
+            await expect(api.getConnectorCredential({ provider: 'example' })).resolves.toEqual(
+                expect.objectContaining({ provider: 'example' })
+            )
         })
 
         it('does not grant provider lookup to an absent or disabled graph node', async () => {

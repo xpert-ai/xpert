@@ -12,6 +12,7 @@ import { t } from 'i18next'
 import { PLUGIN_CONFIGURATION_STATUS, PLUGIN_LEVEL, type PluginLevel } from '@xpert-ai/contracts'
 import {
 	derivePluginArtifactNamespace,
+	isPluginArtifactNamespace,
 	getErrorMessage,
 	GLOBAL_ORGANIZATION_SCOPE,
 	RequestContext,
@@ -871,8 +872,4 @@ export class PluginManagementService {
 			)
 		}
 	}
-}
-
-function isPluginArtifactNamespace(value: string) {
-	return /^[a-z0-9_]+$/.test(value)
 }

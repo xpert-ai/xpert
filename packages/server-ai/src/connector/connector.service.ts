@@ -1498,6 +1498,7 @@ export class ConnectorService implements ConnectorRuntimeFactory {
     createScopedApi(scope: ConnectorRuntimeScope): ConnectorRuntimeApi {
         scope = {
             ...scope,
+            ...(scope.viewHost ? { viewHost: { ...scope.viewHost } } : {}),
             connectorBindingIds: [...(scope.connectorBindingIds ?? [])],
             connectorProviders: [...(scope.connectorProviders ?? [])]
         }
@@ -1945,7 +1946,16 @@ export class ConnectorService implements ConnectorRuntimeFactory {
     private assertRuntimeIdentityScope(scope: ConnectorRuntimeScope) {
         requiredConnectorText(scope.tenantId, 'runtime.tenantId')
         requiredConnectorText(scope.userId, 'runtime.userId')
-        requiredConnectorText(scope.xpertId, 'runtime.xpertId')
+        const xpertId = requiredConnectorText(scope.xpertId, 'runtime.xpertId')
+        if (scope.viewHost) {
+            // Views can run before a conversation or outside an Agent execution.
+            // Only the authorized server-side View resolver supplies this source;
+            // binding, identity, published Assistant and Project checks still run.
+            if (scope.viewHost.type !== 'agent' || scope.viewHost.id !== xpertId) {
+                throw new ForbiddenException(connectorAccessDeniedMessage())
+            }
+            return
+        }
         requiredConnectorText(scope.conversationId, 'runtime.conversationId')
         requiredConnectorText(scope.executionId, 'runtime.executionId')
     }

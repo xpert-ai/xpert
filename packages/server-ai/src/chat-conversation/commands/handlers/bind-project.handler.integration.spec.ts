@@ -5,7 +5,10 @@ import { randomUUID } from 'node:crypto'
 import { DataSource, QueryRunner } from 'typeorm'
 import type { ChatConversation } from '../../conversation.entity'
 import { ChatConversationService } from '../../conversation.service'
-import { selectConversationNoProject } from '../../bind-empty-conversation-project'
+import {
+    awaitConversationProjectConfirmation,
+    selectConversationNoProject
+} from '../../bind-empty-conversation-project'
 import { ChatConversationBindProjectCommand } from '../bind-project.command'
 import { ChatConversationBindProjectHandler } from './bind-project.handler'
 
@@ -52,7 +55,7 @@ postgresDescribe('conversation Project selection PostgreSQL integration', () => 
     }, 30000)
 
     beforeEach(async () => {
-        await queryRunner.query('TRUNCATE "chat_conversation"')
+        await queryRunner.query('TRUNCATE "chat_conversation", "chat_message", "xpert_agent_execution"')
         await queryRunner.query(`INSERT INTO "chat_conversation" (id, "threadId", options) VALUES ($1, $2, $3)`, [
             conversationId,
             threadId,
@@ -85,8 +88,9 @@ postgresDescribe('conversation Project selection PostgreSQL integration', () => 
         }
     }
 
-    function choose(runner: QueryRunner, mode: 'project' | 'none') {
+    function choose(runner: QueryRunner, mode: 'project' | 'none' | 'confirm') {
         const repository = repositoryFor(runner)
+        if (mode === 'confirm') return awaitConversationProjectConfirmation(repository, conversationId)
         if (mode === 'none') return selectConversationNoProject(repository, conversationId)
         const handler = new ChatConversationBindProjectHandler({ repository } as unknown as ChatConversationService)
         return handler.execute(new ChatConversationBindProjectCommand(conversationId, projectId))
@@ -112,9 +116,51 @@ postgresDescribe('conversation Project selection PostgreSQL integration', () => 
         })
     })
 
-    it.each(['project', 'none'] as const)(
-        'keeps only %s when its transaction wins a concurrent first send',
-        async (winner) => {
+    it('keeps pending setup canonical and rejects a stale personal selection', async () => {
+        await expect(choose(queryRunner, 'confirm')).resolves.toMatchObject({
+            projectId: null,
+            options: {
+                sandboxEnvironmentId: 'keep-environment',
+                projectSelection: { mode: 'auto-new' },
+                projectCreation: { status: 'awaiting_confirmation' }
+            }
+        })
+        await expect(choose(queryRunner, 'none')).rejects.toBeInstanceOf(ForbiddenException)
+    })
+
+    it('repairs legacy pending intent after messages and executions exist without binding a project', async () => {
+        await choose(queryRunner, 'confirm')
+        await queryRunner.query(
+            `UPDATE chat_conversation SET options = jsonb_set(options::jsonb,
+            '{projectSelection}', '{"mode":"none"}'::jsonb)::json WHERE id = $1`,
+            [conversationId]
+        )
+        await queryRunner.query('INSERT INTO chat_message ("conversationId") VALUES ($1)', [conversationId])
+        await queryRunner.query('INSERT INTO xpert_agent_execution ("threadId") VALUES ($1)', [threadId])
+        await expect(choose(queryRunner, 'confirm')).resolves.toMatchObject({
+            projectId: null,
+            options: {
+                sandboxEnvironmentId: 'keep-environment',
+                projectSelection: { mode: 'auto-new' },
+                projectCreation: { status: 'awaiting_confirmation' }
+            }
+        })
+        await expect(choose(queryRunner, 'project')).rejects.toBeInstanceOf(ForbiddenException)
+    })
+
+    it('does not turn a historical personal conversation into pending setup', async () => {
+        await queryRunner.query('INSERT INTO chat_message ("conversationId") VALUES ($1)', [conversationId])
+        await expect(choose(queryRunner, 'confirm')).rejects.toBeInstanceOf(ForbiddenException)
+    })
+
+    it.each([
+        { winner: 'project', competitor: 'none' },
+        { winner: 'none', competitor: 'project' },
+        { winner: 'confirm', competitor: 'none' },
+        { winner: 'none', competitor: 'confirm' }
+    ] as const)(
+        'keeps only $winner when it wins a concurrent $competitor first send',
+        async ({ winner, competitor }) => {
             const loser = dataSource.createQueryRunner()
             await loser.connect()
             let pending: Promise<unknown> | undefined
@@ -127,7 +173,7 @@ postgresDescribe('conversation Project selection PostgreSQL integration', () => 
                 const [{ pid: loserPid }]: Array<{ pid: number }> = await loser.query('SELECT pg_backend_pid() AS pid')
                 await queryRunner.startTransaction()
                 await choose(queryRunner, winner)
-                pending = choose(loser, winner === 'project' ? 'none' : 'project').then(
+                pending = choose(loser, competitor).then(
                     (value) => ({ status: 'fulfilled', value }),
                     (error: unknown) => ({ status: 'rejected', error })
                 )
@@ -153,7 +199,13 @@ postgresDescribe('conversation Project selection PostgreSQL integration', () => 
                 expect(saved.projectId).toBe(winner === 'project' ? projectId : null)
                 expect(saved.options).toEqual({
                     sandboxEnvironmentId: 'keep-environment',
-                    ...(winner === 'none' ? { projectSelection: { mode: 'none' } } : {})
+                    ...(winner === 'none' ? { projectSelection: { mode: 'none' } } : {}),
+                    ...(winner === 'confirm'
+                        ? {
+                              projectSelection: { mode: 'auto-new' },
+                              projectCreation: { status: 'awaiting_confirmation' }
+                          }
+                        : {})
                 })
                 // A rejected competitor must not poison subsequent sends/retries in the winning scope.
                 await expect(choose(queryRunner, winner)).resolves.toEqual(saved)

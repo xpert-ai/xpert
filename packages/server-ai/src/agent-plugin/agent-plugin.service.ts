@@ -32,6 +32,8 @@ import { connectorMcpAuth, portableMcpSchema } from './agent-plugin-mcp'
 import { AgentPluginConnectorService } from './agent-plugin-connector.service'
 import { publishedResourceVersion } from './published-resource-version'
 import { workspacePluginCatalog } from './workspace-plugin-catalog'
+import { agentPluginScope, agentPluginScopeWhere } from './agent-plugin-scope'
+import { importedPluginBinding } from './installed-plugin-catalog'
 
 export function resourceScope() {
     const tenantId = RequestContext.currentTenantId()
@@ -54,7 +56,7 @@ export function requireResourceAdmin() {
             })
         )
     }
-    return resourceScope()
+    return agentPluginScope()
 }
 
 @Injectable()
@@ -79,6 +81,7 @@ export class AgentPluginService {
 
     async options() {
         const scope = requireResourceAdmin()
+        if (!scope.organizationId) return { workspaces: [], experts: [], middlewares: [] }
         const access = this.modules.get(
             (await import('../xpert-workspace/workspace-access.service')).XpertWorkspaceAccessService,
             { strict: false }
@@ -117,10 +120,19 @@ export class AgentPluginService {
     async list() {
         const scope = requireResourceAdmin()
         const [packages, bindings] = await Promise.all([
-            this.packages.find({ where: scope, order: { createdAt: 'DESC' } }),
-            this.bindings.find({ where: scope, order: { createdAt: 'DESC' } })
+            this.packages.find({ where: agentPluginScopeWhere(scope), order: { createdAt: 'DESC' } }),
+            this.bindings.find({ where: agentPluginScopeWhere(scope), order: { createdAt: 'DESC' } })
         ])
-        return { packages: packages.map(({ rootPath, ...item }) => item), bindings }
+        const defaults = packages
+            .filter(
+                (pkg) =>
+                    !bindings.some(
+                        (binding) =>
+                            binding.definition.kind === 'agent_plugin' && binding.definition.packageId === pkg.id
+                    )
+            )
+            .map(importedPluginBinding)
+        return { packages: packages.map(({ rootPath, ...item }) => item), bindings: [...defaults, ...bindings] }
     }
 
     private async workspaceAccess() {
@@ -257,7 +269,7 @@ export class AgentPluginService {
         try {
             const descriptor = await parseAgentPlugin(root)
             const digest = await portablePackageDigest(root)
-            const existing = await this.packages.findOne({ where: { ...scope, digest } })
+            const existing = await this.packages.findOne({ where: { ...agentPluginScopeWhere(scope), digest } })
             if (existing) {
                 const { rootPath, ...result } = existing
                 return result
@@ -265,7 +277,7 @@ export class AgentPluginService {
             const rootPath = resolve(
                 process.env.XPERT_AGENT_PLUGIN_PATH || 'storage/agent-plugins',
                 scope.tenantId,
-                scope.organizationId,
+                scope.organizationId ?? '_tenant',
                 randomUUID()
             )
             await mkdir(rootPath, { recursive: true })
@@ -300,6 +312,18 @@ export class AgentPluginService {
 
     async createBinding(input: RuntimeResourceBindingInput) {
         const scope = requireResourceAdmin()
+        if (input.definition.kind === 'agent_plugin') {
+            return this.createAuthorizedBinding(
+                {
+                    ...input,
+                    workspaceIds: [],
+                    definition: { ...input.definition, availability: 'scope' }
+                },
+                scope
+            )
+        }
+        if (!scope.organizationId || !input.workspaceIds.length)
+            throw new BadRequestException(t('server-ai:Error.AgentResourceOrganizationRequired'))
         const access = this.modules.get(
             (await import('../xpert-workspace/workspace-access.service')).XpertWorkspaceAccessService,
             { strict: false }
@@ -313,11 +337,22 @@ export class AgentPluginService {
     }
 
     // Callers authorize either organization-wide management or a single-workspace editor addition first.
-    private async createAuthorizedBinding(input: RuntimeResourceBindingInput, scope: ReturnType<typeof resourceScope>) {
+    private async createAuthorizedBinding(
+        input: RuntimeResourceBindingInput,
+        scope: ReturnType<typeof agentPluginScope>
+    ) {
+        const where = agentPluginScopeWhere(scope)
+        let projectedPrevious: AgentResourceBinding | null = null
         if (input.replacesBindingId) {
-            const previous = await this.bindings.findOneBy({ ...scope, id: input.replacesBindingId })
+            const stored = await this.bindings.findOneBy({ ...where, id: input.replacesBindingId })
+            const previous =
+                stored ??
+                (await this.packages.find({ where }))
+                    .map(importedPluginBinding)
+                    .find((binding) => binding.id === input.replacesBindingId)
             if (!previous || previous.definition.kind !== input.definition.kind)
                 throw new BadRequestException(t('server-ai:Error.AgentResourceNotFound'))
+            if (!stored) projectedPrevious = previous
         }
         const expertVersions: AgentResourceBinding['expertVersions'] = {}
         const definition = input.definition
@@ -328,7 +363,7 @@ export class AgentPluginService {
         const registry = this.modules.get(AgentMiddlewareRegistry, { strict: false })
         let pkg: AgentPluginPackage | null = null
         if (definition.kind === 'agent_plugin') {
-            pkg = await this.packages.findOneBy({ ...scope, id: definition.packageId })
+            pkg = await this.packages.findOneBy({ ...where, id: definition.packageId })
             if (!pkg) throw new NotFoundException(t('server-ai:Error.AgentPluginNotFound'))
             definition.connectorServers ??= pkg.descriptor.extension?.connectors
             if (definition.oauthServers?.length)
@@ -359,7 +394,7 @@ export class AgentPluginService {
             .update(JSON.stringify({ ...input, expertVersions, digest: pkg?.digest }))
             .digest('hex')
         const installations: AgentResourceBinding['installations'] = {}
-        if (pkg) {
+        if (pkg && input.workspaceIds.length) {
             const installer = this.modules.get(
                 (await import('../plugin-resource/plugin-resource-installer.service')).PluginResourceInstallerService,
                 { strict: false }
@@ -411,12 +446,16 @@ export class AgentPluginService {
         }
         return this.bindings.manager.transaction(async (manager) => {
             const { replacesBindingId, ...values } = input
-            const previous = replacesBindingId
+            if (replacesBindingId)
+                await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`agent-plugin:${replacesBindingId}`])
+            let previous = replacesBindingId
                 ? await manager.findOne(AgentResourceBinding, {
-                      where: { ...scope, id: replacesBindingId },
+                      where: { ...where, id: replacesBindingId },
                       lock: { mode: 'pessimistic_write' }
                   })
                 : null
+            if (!previous && projectedPrevious)
+                previous = await manager.save(AgentResourceBinding, this.bindings.create(projectedPrevious))
             if (replacesBindingId && (!previous || previous.supersededById))
                 throw new ConflictException(t('server-ai:Error.AgentResourceRevisionConflict'))
             const next = await manager.save(
@@ -433,10 +472,16 @@ export class AgentPluginService {
 
     async setEnabled(id: string, enabled: boolean) {
         const scope = requireResourceAdmin()
-        const binding = await this.bindings.findOneBy({ ...scope, id })
-        if (!binding) throw new NotFoundException(t('server-ai:Error.AgentResourceNotFound'))
-        binding.enabled = enabled
-        return this.bindings.save(binding)
+        const where = agentPluginScopeWhere(scope)
+        return this.bindings.manager.transaction(async (manager) => {
+            await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`agent-plugin:${id}`])
+            const binding =
+                (await manager.findOneBy(AgentResourceBinding, { ...where, id })) ??
+                (await this.packages.find({ where })).map(importedPluginBinding).find((item) => item.id === id)
+            if (!binding) throw new NotFoundException(t('server-ai:Error.AgentResourceNotFound'))
+            binding.enabled = enabled
+            return manager.save(AgentResourceBinding, this.bindings.create(binding))
+        })
     }
 
     private components(pkg: AgentPluginPackage, version: string): RuntimeComponent[] {

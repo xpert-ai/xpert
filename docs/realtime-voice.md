@@ -135,7 +135,7 @@ Session creation requires a persisted, authorized thread and the matching assist
 
 Connect to `/api/ai/voice/stream` with two subprotocols: `xpert-voice-v1` and `ticket.<ticket>`. Redis atomically consumes the ticket, which expires after 30 seconds. The endpoint rejects query parameters, keeping tickets out of URLs.
 
-The transport carries bounded binary PCM frames and typed JSON controls. Client controls include `mute`, `interrupt`, `end`, `ping` and `playback.done`; server events include readiness, transcripts, response boundaries, task state, audio clearing, errors and termination. See the [transport contract](../packages/contracts/src/ai/realtime-voice.transport.ts) for exact fields.
+The transport carries bounded binary PCM frames and typed JSON controls. Client controls include `mute`, `interrupt`, `end`, `ping` and `playback.done`; server events include readiness, transcripts, response boundaries, task state, audio clearing, errors and termination. See the [transport contract](https://github.com/xpert-ai/xpert/blob/main/packages/contracts/src/ai/realtime-voice.transport.ts) for exact fields.
 
 Authorization runs at session creation, connection establishment and every 10 seconds during the call. Checks include organization, user, published assistant configuration, thread access, model access and quota. Allowed origins come from `REALTIME_VOICE_ALLOWED_ORIGINS`, falling back to `CLIENT_BASE_URL`. An opaque `Origin: null` is accepted only for a ticket explicitly created in desktop mode. Electron limits microphone access to trusted top-level content.
 
@@ -161,7 +161,7 @@ The host stores voice sessions, task mappings, final transcripts, interruption f
 
 Missing provider usage or a failed ledger write marks the session `incomplete`. Missing pricing remains unpriced; transcript length is not used to estimate audio cost. `reported` means recognized receipts were received, not that every provider billing dimension was available. There is no automatic ledger-redelivery job.
 
-Voice delegation records provenance in the dedicated `ChatMessage.messageEnvelope` JSONB column. The [message envelope contract](../packages/contracts/src/ai/chat-message-envelope.model.ts) describes a version, source, presentation, optional target and correlation. Voice requests use `source: voice` and `presentation: runtime`, preserving execution and retry history while remaining hidden from ordinary chat messages.
+Voice delegation records provenance in the dedicated `ChatMessage.messageEnvelope` JSONB column. The [message envelope contract](https://github.com/xpert-ai/xpert/blob/main/packages/contracts/src/ai/chat-message-envelope.model.ts) describes a version, source, presentation, optional target and correlation. Voice requests use `source: voice` and `presentation: runtime`, preserving execution and retry history while remaining hidden from ordinary chat messages.
 
 The envelope describes provenance and does not grant authority. Its target is audit information; the authorized request controls routing. `thirdPartyMessage` retains its separate purpose. Source variants for users, assistants, agents and automations allow reuse of the contract without implying that a general cross-Agent messaging service is part of voice calls.
 
@@ -170,9 +170,9 @@ Call termination locks the session row and atomically saves the first end time a
 ## Deployment
 
 1. Deploy compatible host contracts, plugin SDK, API, provider plugins, Desktop and ChatKit builds. Satisfy the plugins' declared peer dependencies; local source links do not establish that required packages have been published.
-2. Create the voice entities and timing columns through the platform's existing TypeORM schema synchronization. With `DB_SCHEMA_SYNC_MODE=external`, run the schema-sync job before API instances start. There is no separate realtime voice SQL migration. For the existing chat table, apply the [message-envelope migration](../packages/server-ai/src/chat-message/migrations/20261005-message-envelope.sql) before deploying message provenance support.
+2. Create the voice entities and timing columns through the platform's existing TypeORM schema synchronization. With `DB_SCHEMA_SYNC_MODE=external`, run the schema-sync job before API instances start. There is no separate realtime voice SQL migration. For the existing chat table, apply the [message-envelope migration](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/chat-message/migrations/20261005-message-envelope.sql) before deploying message provenance support.
 3. Allow WebSocket upgrades on `/api/ai/voice/stream` through the reverse proxy and configure timeouts for long connections. Use HTTPS/WSS for remote services.
-4. Set `REALTIME_VOICE_ALLOWED_ORIGINS` to a comma-separated list of exact allowed renderer origins (no paths or trailing slashes), or provide the appropriate `CLIENT_BASE_URL` fallback. For local Desktop development, configure `XPERT_DESKTOP_DEV_URL` and its matching voice origin together in the root `.env`; see [Desktop development configuration](../apps/desktop/README.md#configure-the-development-address-and-voice-origins-together). Restart Desktop after changing its URL and restart the API after changing its allowlist. Packaged Desktop uses the existing desktop-mode `Origin: null` handling and needs no development-port entry.
+4. Set `REALTIME_VOICE_ALLOWED_ORIGINS` to a comma-separated list of exact allowed renderer origins (no paths or trailing slashes), or provide the appropriate `CLIENT_BASE_URL` fallback. For local Desktop development, configure `XPERT_DESKTOP_DEV_URL` and its matching voice origin together in the root `.env`; see [Desktop development configuration](https://github.com/xpert-ai/xpert/blob/main/apps/desktop/README.md#configure-the-development-address-and-voice-origins-together). Restart Desktop after changing its URL and restart the API after changing its allowlist. Packaged Desktop uses the existing desktop-mode `Origin: null` handling and needs no development-port entry.
 5. Install plugins at their declared installation scope. Configure providers, Copilots and published assistants in the intended business organization; installation scope and business request scope are separate.
 6. Ensure the desktop build includes microphone permissions. macOS declares microphone usage; system authorization, signing and device behavior still need validation for the distributed application.
 
@@ -196,14 +196,14 @@ Provider behavior must be qualified for the target account and deployment. Douba
 
 ## Source map
 
-| Area                                         | Location                                                                         |
-| -------------------------------------------- | -------------------------------------------------------------------------------- |
-| Shared model and transport types             | [Realtime voice contracts](../packages/contracts/src/ai/realtime-voice.model.ts) |
-| Provider protocol abstraction                | [Realtime SDK interfaces](../packages/plugin-sdk/src/lib/ai-model/realtime.ts)   |
-| HTTP boundary                                | [Voice controllers](../packages/server-ai/src/ai/voice.controller.ts)            |
-| Sessions, tasks, audio relay and persistence | [Realtime voice backend](../packages/server-ai/src/realtime-voice/)              |
-| Desktop audio and call lifecycle             | [Desktop voice runtime](../apps/desktop/src/voice/)                              |
-| ChatKit interface                            | `chatkit-js`: `packages/chatkit-ui/src/components/chat/voice/`                   |
-| Provider adapters                            | `xpert-plugins`: `xpertai/models/tongyi` and `xpertai/models/volcengine`         |
+| Area                                         | Location                                                                                                                  |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Shared model and transport types             | [Realtime voice contracts](https://github.com/xpert-ai/xpert/blob/main/packages/contracts/src/ai/realtime-voice.model.ts) |
+| Provider protocol abstraction                | [Realtime SDK interfaces](https://github.com/xpert-ai/xpert/blob/main/packages/plugin-sdk/src/lib/ai-model/realtime.ts)   |
+| HTTP boundary                                | [Voice controllers](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/ai/voice.controller.ts)            |
+| Sessions, tasks, audio relay and persistence | [Realtime voice backend](https://github.com/xpert-ai/xpert/tree/main/packages/server-ai/src/realtime-voice)               |
+| Desktop audio and call lifecycle             | [Desktop voice runtime](https://github.com/xpert-ai/xpert/tree/main/apps/desktop/src/voice)                               |
+| ChatKit interface                            | `chatkit-js`: `packages/chatkit-ui/src/components/chat/voice/`                                                            |
+| Provider adapters                            | `xpert-plugins`: `xpertai/models/tongyi` and `xpertai/models/volcengine`                                                  |
 
 Provider-specific protocol checks and packaging commands are documented in the plugin repository's `plugin-dev-harness/REALTIME-VOICE.md`.

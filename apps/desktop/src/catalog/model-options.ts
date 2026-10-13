@@ -1,23 +1,37 @@
 import type { XpertTemplateModelOption } from '@xpert-ai/contracts'
 
-export type ModelOption = XpertTemplateModelOption
+export type ModelOption = Pick<
+  XpertTemplateModelOption,
+  'id' | 'label' | 'provider' | 'connectionName' | 'features' | 'contextWindow'
+> & {
+  model?: string
+  // Bosi setup supplies its existing typed model reference; other selectors receive display data only.
+  copilotModel?: Pick<XpertTemplateModelOption['copilotModel'], 'model'>
+}
 
 export function providerGroups(models: ModelOption[]) {
-  const groups = new Map<string, { id: string; label: string; models: ModelOption[] }>()
+  const groups = new Map<string, { id: string; label: string; iconUrl?: string; models: ModelOption[] }>()
   for (const model of models) {
     const id = model.provider?.id ?? ''
     let group = groups.get(id)
     if (!group) {
-      group = { id, label: model.provider?.label ?? '', models: [] }
+      group = { id, label: model.provider?.label ?? '', iconUrl: model.provider?.iconUrl, models: [] }
       groups.set(id, group)
     }
+    group.iconUrl ||= model.provider?.iconUrl
     group.models.push(model)
   }
   return [...groups.values()].sort((a, b) => a.label.localeCompare(b.label))
 }
 
 export function matchesModel(model: ModelOption, query: string) {
-  const text = [model.label, model.copilotModel.model, model.provider?.label, model.provider?.id, model.connectionName]
+  const text = [
+    model.label,
+    model.model ?? model.copilotModel?.model,
+    model.provider?.label,
+    model.provider?.id,
+    model.connectionName
+  ]
     .filter(Boolean)
     .join(' ')
     .toLocaleLowerCase()

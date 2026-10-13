@@ -1,6 +1,16 @@
 import { AiModelTypeEnum } from '../agent'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { ICopilot } from './copilot.model'
+import type { ModelFeature } from './ai-model.model'
+
+/** Public catalog metadata for model selectors; excludes credentials and runtime configuration. */
+export interface ModelSelectionMetadata {
+  provider?: { id: string; label: string; iconUrl?: string }
+  connectionName?: string
+  features?: ModelFeature[]
+  /** Declared context capacity in tokens, not usage. */
+  contextWindow?: number
+}
 
 export interface ICopilotModel extends TCopilotModel, IBasePerTenantAndOrganizationEntityModel {}
 

@@ -144,6 +144,28 @@ describe('run first-send Project preparation', () => {
         expect(assertRuntimeAccess).toHaveBeenCalledWith('confirmed-project', 'assistant')
     })
 
+    it('recovers pending setup on an old client send without persisting personal scope or creating a project', async () => {
+        jest.mocked(resolveAssistantForRequest).mockResolvedValue({
+            ...xpert,
+            options: { workspaceScope: { mode: 'project-required', onMissing: 'confirm' } }
+        })
+        conversation.options = {
+            projectCreation: { status: 'awaiting_confirmation' },
+            projectSelection: { mode: 'none' }
+        }
+        const request = command()
+        Object.assign(request.runCreate.input, { projectSelection: { mode: 'none' }, projectId: 'stale-project' })
+        Object.assign(request.runCreate, { context: { projectId: 'stale-project' } })
+        await handler.execute(request)
+        expect(awaitConfirmation).toHaveBeenCalledTimes(1)
+        expect(selectNone).not.toHaveBeenCalled()
+        expect(prepare).not.toHaveBeenCalled()
+        const dispatched = execute.mock.calls.map(([cmd]) => cmd).find((cmd) => cmd instanceof XpertChatCommand)
+        expect(dispatched.request).toMatchObject({ action: 'send', projectSelection: { mode: 'auto-new' } })
+        expect(dispatched.options.projectId).toBeUndefined()
+        expect(dispatched.options.context).not.toHaveProperty('projectId')
+    })
+
     it('reuses a persisted Project', async () => {
         conversation.projectId = 'existing'
         await handler.execute(command())

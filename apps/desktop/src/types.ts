@@ -145,11 +145,8 @@ export interface HostMethods {
     output: { items: import('./usage/types').UsageEntry[]; nextSkip: number | null }
   }
   checkConnectionCertificates: { input: Pick<ConnectionConfig, ConnectionUrlField>; output: CertificateCheck[] }
-  pluginLibrary: { input: { workspaceId?: string }; output: PluginLibrary }
-  addWorkspacePlugin: {
-    input: { workspaceId: string; packageId: string; experts: { [reference: string]: string } }
-    output: { status: 'added' | 'already_added'; bindingId: string }
-  }
+  pluginLibrary: { input: undefined; output: PluginLibrary }
+
   pluginConnection: {
     input: { assistantId: string; bindingId: string }
     output: {
@@ -280,6 +277,15 @@ export interface HostMethods {
   requestExpertAccess: { input: { id: string; reason: string }; output: ExpertItem }
   applicationSetup: { input: ApplicationInput; output: ApplicationSetup }
   initializeApplication: { input: InitializeApplicationInput; output: { botId: string } }
+  applicationToolsetSetup: {
+    input: import('./catalog-types').ApplicationToolsetInput
+    output: import('./catalog-types').ApplicationToolsetSetup
+  }
+  saveApplicationToolset: {
+    input: import('./catalog-types').SaveApplicationToolsetInput
+    output: import('./catalog-types').ApplicationToolsetSelection
+  }
+  discardApplicationConfiguration: { input: ApplicationInput; output: ApplicationSetup }
   templateWorkspaces: { input: undefined; output: WorkspaceOption[] }
   templateSetup: {
     input: { id: string; capabilities?: string[] }

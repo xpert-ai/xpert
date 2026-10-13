@@ -21,18 +21,20 @@ import type { AgentPluginService } from './agent-plugin.service'
 import type { RuntimeResourceBindingInput, WorkspaceAgentPluginAddInput } from '@xpert-ai/contracts'
 import { jsonValue } from './agent-plugin-parser'
 import { agentPluginConnectorsSchema } from './agent-plugin-connector.schema'
+import { AgentPluginInstallationsService } from './agent-plugin-installations.service'
 
 const bindingSchema = z
     .object({
         replacesBindingId: z.string().uuid().optional(),
         title: z.string().trim().min(1).max(200),
         description: z.string().max(2000).optional(),
-        workspaceIds: z.array(z.string().uuid()).min(1).max(100),
+        workspaceIds: z.array(z.string().uuid()).max(100).default([]),
         definition: z.discriminatedUnion('kind', [
             z
                 .object({
                     kind: z.literal('agent_plugin'),
                     packageId: z.string().uuid(),
+                    availability: z.literal('scope').optional(),
                     experts: z.record(z.string().uuid()).default({}),
                     oauthServers: z.array(z.string()).optional(),
                     connectorServers: agentPluginConnectorsSchema.optional()
@@ -60,7 +62,8 @@ export function parseResourceInput<T>(schema: z.ZodType<T>, input: unknown): T {
 export class AgentPluginController {
     constructor(
         @Inject('XpertAgentPluginService') private readonly service: AgentPluginService,
-        private readonly commands: CommandBus
+        private readonly commands: CommandBus,
+        private readonly installations: AgentPluginInstallationsService
     ) {}
 
     @Post('defaults')
@@ -71,6 +74,10 @@ export class AgentPluginController {
         _input: z.output<typeof importDefaultAgentPluginsInput>
     ) {
         return this.commands.execute(new ImportDefaultAgentPluginsCommand())
+    }
+
+    @Get('catalog') catalog() {
+        return this.installations.catalog()
     }
 
     @Get('workspace-options') workspaceOptions() {
@@ -120,7 +127,7 @@ export class AgentPluginController {
     }
     @Put('bindings/:id') setEnabled(@Param('id') id: string, @Body() input: unknown) {
         return this.service.setEnabled(
-            id,
+            parseResourceInput(z.string().uuid(), id),
             parseResourceInput(z.object({ enabled: z.boolean() }).strict(), input).enabled
         )
     }

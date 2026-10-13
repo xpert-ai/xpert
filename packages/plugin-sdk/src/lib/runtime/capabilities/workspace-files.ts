@@ -1,3 +1,4 @@
+import type { WorkspaceAppDataOptions, WorkspaceStorage } from './workspace-storage'
 import { createRuntimeCapability } from '../../core/runtime-capability'
 
 /** Logical workspace volume catalog supported by plugin-facing file APIs. */
@@ -260,6 +261,10 @@ export type WorkspaceSearchUnderstandingChunksInput = WorkspaceFileScope & {
  * understanding files in Xpert workspace Volumes.
  */
 export interface WorkspaceFilesApi {
+  /** Managed .apps data in the bound Assistant workspace. Each operation reauthorizes the actor.
+   * Ordinary Files/sandbox access cannot access this namespace. Requires a scoped runtime API. */
+  appData(options: WorkspaceAppDataOptions): WorkspaceStorage
+
   /** Host-bound storage identity for restoring the same scope in durable jobs. */
   readonly scope?: Readonly<WorkspaceFileScope>
   /** Upload raw bytes into an explicitly scoped workspace Volume. */

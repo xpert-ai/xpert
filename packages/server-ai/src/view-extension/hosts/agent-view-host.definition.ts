@@ -19,9 +19,8 @@ import {
     XpertViewSlot,
     XpertViewRuntimeScope
 } from '@xpert-ai/contracts'
-import { AgentMiddlewareRegistry } from '@xpert-ai/plugin-sdk'
+import { AgentMiddlewareRegistry, RequestContext } from '@xpert-ai/plugin-sdk'
 import {
-    RequestContext,
     ViewExtensionFileActionFile,
     ViewHostDefinition,
     ViewHostDefinitionContract,
@@ -79,6 +78,20 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
     ) {}
 
     async resolve(hostId: string, options?: ViewHostResolutionOptions) {
+        const runtimeXpert = await this.loadRuntimeAssistant(hostId, options)
+        return runtimeXpert ? this.describeRuntimeAssistant(runtimeXpert, options) : null
+    }
+
+    /** Server-only resolution; keep the graph out of the serializable View host context. */
+    async resolveAuthorizedAssistant(context: XpertViewHostContext, options?: ViewHostResolutionOptions) {
+        const xpert = await this.loadRuntimeAssistant(context.hostId, options)
+        if (!xpert) throw new NotFoundException()
+        const resolution = await this.describeRuntimeAssistant(xpert, options)
+        if (!(await this.canRead(context, resolution, options))) throw new ForbiddenException()
+        return { xpert, resolution }
+    }
+
+    private async loadRuntimeAssistant(hostId: string, options?: ViewHostResolutionOptions) {
         const xpert = await this.xpertService.findOneByIdWithinTenant(hostId, {
             relations: ['agent']
         })
@@ -86,7 +99,10 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
             return null
         }
 
-        const runtimeXpert = resolveRuntimeXpert(xpert as IXpert, options?.isDraft === true)
+        return resolveRuntimeXpert(xpert as IXpert, options?.isDraft === true)
+    }
+
+    private async describeRuntimeAssistant(runtimeXpert: IXpert, options?: ViewHostResolutionOptions) {
         const agentContext = await this.resolveAgentContext(runtimeXpert)
         const runtimeScope = await this.resolveRuntimeScope(runtimeXpert, options)
 

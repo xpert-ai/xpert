@@ -1,3 +1,4 @@
+import { mcpAppSessionTtl } from '../../../mcp-app-runtime/mcp-app-session'
 import { parseMcpAppRefresh } from '../../../mcp-app-runtime/mcp-app-refresh'
 import type { MiddlewareAppBackend } from '../../../mcp-app-runtime/middleware-app-source'
 import type { McpAppExecutionContext } from '../../../mcp-app-runtime/mcp-app-execution-context'
@@ -37,13 +38,8 @@ import {
 } from '../../../mcp-consumer/tools/mcp-consumer-call-tool-result'
 import { applicationMetrics } from '../../../metrics/application-metrics'
 
-const MCP_APP_INSTANCE_TTL_MS = 30 * 60 * 1000
-// Paused native forms have no remote connection to keep alive. Retain their
-// scoped identity across overnight pauses; every RPC revalidates the binding.
-const MIDDLEWARE_FORM_TTL_MS = 7 * 24 * 60 * 60 * 1000
-
 function appInstanceTtl(middleware?: MiddlewareAppBackend) {
-    return middleware?.source.interruptAfter ? MIDDLEWARE_FORM_TTL_MS : MCP_APP_INSTANCE_TTL_MS
+    return mcpAppSessionTtl(middleware?.source)
 }
 const MCP_APP_RESOURCE_MAX_BYTES = 2 * 1024 * 1024
 const MCP_APP_HISTORY_TOOL_RESULT_MAX_BYTES = 128 * 1024
@@ -123,7 +119,7 @@ const mcpAppInstances = new Map<string, McpAppInstance>()
 type McpAppInstancePersistence = {
     save(snapshot: McpAppInstanceSnapshot): Promise<boolean>
     get(appInstanceId: string): Promise<McpAppInstanceSnapshot | null>
-    delete(appInstanceId: string): Promise<void>
+    delete(appInstanceId: string, expectedStateVersion?: number): Promise<void>
     onError?(operation: 'save' | 'delete', error: unknown): void
 }
 
@@ -183,11 +179,11 @@ function persistMcpAppInstance(instance: McpAppInstance) {
     })
 }
 
-function deletePersistedMcpAppInstance(appInstanceId: string) {
+function deletePersistedMcpAppInstance(appInstanceId: string, expectedStateVersion: number) {
     if (!mcpAppInstancePersistence) return Promise.resolve()
     const persistence = mcpAppInstancePersistence
     return enqueueMcpAppInstancePersistence(appInstanceId, persistence, 'delete', () =>
-        persistence.delete(appInstanceId)
+        persistence.delete(appInstanceId, expectedStateVersion)
     )
 }
 
@@ -1027,14 +1023,6 @@ function pruneExpiredMcpAppInstances(now = Date.now()) {
     }
 }
 
-export function isMcpAppsEnabled(): boolean {
-    const raw = process.env.XPERT_MCP_APPS_ENABLED?.trim().toLowerCase()
-    if (raw) {
-        return ['1', 'true', 'yes', 'on'].includes(raw)
-    }
-    return !environment.production
-}
-
 export function registerMcpAppInstance(options: {
     client?: MultiServerMCPClient
     middleware?: MiddlewareAppBackend
@@ -1047,10 +1035,6 @@ export function registerMcpAppInstance(options: {
     toolInput?: unknown
     toolResult?: unknown
 }): TMcpAppComponentData | null {
-    if (!isMcpAppsEnabled()) {
-        return null
-    }
-
     const toolMeta = options.toolMeta ?? getMcpToolAppMeta(options.tool)
     if (!toolMeta || !toolMeta.visibility.includes('app')) {
         return null
@@ -1143,10 +1127,6 @@ export function restoreMcpAppInstance(options: {
     createdAt?: number
     expiresAt?: number
 }): McpAppInstance | null {
-    if (!isMcpAppsEnabled()) {
-        return null
-    }
-
     const ui = options.toolMeta.ui
     if (!ui?.resourceUri?.startsWith('ui://') || !options.toolMeta.visibility.includes('app')) {
         return null
@@ -1158,7 +1138,7 @@ export function restoreMcpAppInstance(options: {
 
     const now = Date.now()
     pruneExpiredMcpAppInstances(now)
-    const expiresAt = Math.max(now + appInstanceTtl(options.middleware), options.expiresAt ?? 0)
+    const expiresAt = options.expiresAt ?? now + appInstanceTtl(options.middleware)
     const stateVersion =
         (options.stateVersion ?? 1) + (options.expiresAt !== undefined && expiresAt > options.expiresAt ? 1 : 0)
 
@@ -1186,7 +1166,7 @@ export function restoreMcpAppInstance(options: {
     const isNewInstance = !mcpAppInstances.has(options.id)
     mcpAppInstances.set(options.id, instance)
     if (isNewInstance) applicationMetrics.startMcpAppInstance({ publicationId: 'consumer' })
-    persistMcpAppInstance(instance)
+    // Hydrate an already persisted lease; only explicit resume and mutations write authority.
     return instance
 }
 
@@ -1262,7 +1242,7 @@ export function getMcpAppInstance(appInstanceId: string): McpAppInstance | null 
 export function removeMcpAppInstance(appInstanceId: string) {
     const instance = mcpAppInstances.get(appInstanceId)
     deleteMcpAppInstanceRecord(appInstanceId)
-    deletePersistedMcpAppInstance(appInstanceId)
+    if (instance) deletePersistedMcpAppInstance(appInstanceId, instance.stateVersion)
     if (instance) closeMcpAppInstanceClient({ ...instance, closeClientOnExpire: true })
     return Boolean(instance)
 }

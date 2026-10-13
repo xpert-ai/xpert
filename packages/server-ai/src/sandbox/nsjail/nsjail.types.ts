@@ -2,6 +2,7 @@ import type { ExecuteResponse, FileOperationError } from '@xpert-ai/plugin-sdk'
 import type { TSandboxManagedServiceStatus, TSandboxManagedServiceTransportMode } from '@xpert-ai/contracts'
 
 export const NSJAIL_RUNNER_PROJECT_CONTENT_PROTOCOL_VERSION = 2
+export const NSJAIL_RUNNER_APP_DATA_PROTOCOL_VERSION = 3
 
 export type NsjailRunnerConfig = {
     baseUrl: string
@@ -13,6 +14,7 @@ export type NsjailRunnerHealth = {
     protocolVersion: number | null
     capabilities: {
         projectContentReadOnly: boolean
+        appDataProtection: boolean
     }
 }
 

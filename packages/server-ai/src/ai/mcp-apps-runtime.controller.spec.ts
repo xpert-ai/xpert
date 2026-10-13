@@ -5,7 +5,7 @@ import { Reflector, RouterModule } from '@nestjs/core'
 import { PassportStrategy } from '@nestjs/passport'
 import { Strategy, ExtractJwt } from 'passport-jwt'
 import type { DataSource } from 'typeorm'
-import { ISecretToken, SecretTokenBindingType } from '@xpert-ai/contracts'
+import { ISecretToken, SecretTokenBindingType, UserType } from '@xpert-ai/contracts'
 import { RequestContext, RequestContextMiddleware } from '@xpert-ai/plugin-sdk'
 import { AuthGuard } from '../../../server/src/shared/guards/auth.guard'
 import { SecretTokenStrategy } from '../../../server/src/secret-token/secret-token.strategy'
@@ -26,6 +26,8 @@ describe('MCP Apps runtime HTTP authentication', () => {
     const tokens = new Map<string, ISecretToken>()
     const service = {
         getResource: jest.fn(),
+        getHistory: jest.fn(),
+        resume: jest.fn(),
         handleRpc: jest.fn(),
         approve: jest.fn(),
         reject: jest.fn(),
@@ -55,9 +57,11 @@ describe('MCP Apps runtime HTTP authentication', () => {
 
     beforeAll(async () => {
         const secretTokens = {
-            findOneByOptions: jest.fn(async (options: { where: { token: string } }) => tokens.get(options.where.token))
+            findBySecret: jest.fn(async (token: string) => tokens.get(token))
         }
-        const users = { findOneByIdWithinTenant: jest.fn(async () => ({ id: 'user-1', tenantId: 'tenant-1' })) }
+        const users = {
+            findOneByIdWithinTenant: jest.fn(async () => ({ id: 'user-1', tenantId: 'tenant-1', type: UserType.USER }))
+        }
         const module = await Test.createTestingModule({
             imports: [
                 RuntimeModule,
@@ -111,6 +115,8 @@ describe('MCP Apps runtime HTTP authentication', () => {
             actor: RequestContext.currentUserId(),
             organization: RequestContext.getOrganizationId()
         }))
+        service.getHistory.mockResolvedValue({ appInstanceId: 'app-1', canResume: false })
+        service.resume.mockResolvedValue({ appInstanceToken: 'fresh-token' })
         service.handleRpc.mockResolvedValue({ result: {} })
         service.approve.mockResolvedValue({ approved: true })
         service.reject.mockResolvedValue({ approved: false })
@@ -144,6 +150,8 @@ describe('MCP Apps runtime HTTP authentication', () => {
     )
     it.each([
         ['GET', '/resource'],
+        ['GET', '/history?messageId=message-1'],
+        ['POST', '/resume?messageId=message-1'],
         ['POST', '/rpc'],
         ['POST', '/approvals/approval-1/approve'],
         ['POST', '/approvals/approval-1/reject'],
@@ -163,6 +171,28 @@ describe('MCP Apps runtime HTTP authentication', () => {
         expect(service.reject).toHaveBeenCalledWith('app-1', 'approval-1', {})
         expect((await request(base, 'cs-x-valid', 'DELETE')).status).toBe(200)
         expect(service.teardown).toHaveBeenCalledWith('app-1', {})
+    })
+    it('authorizes history reads and requires explicit resume through separate routes', async () => {
+        expect((await request('ai/mcp-apps/app-1/history?messageId=message-1')).status).toBe(200)
+        expect(service.getHistory).toHaveBeenCalledWith('app-1', 'message-1')
+        expect(service.resume).not.toHaveBeenCalled()
+        expect((await request('ai/mcp-apps/app-1/resume?messageId=message-1', 'cs-x-valid', 'POST')).status).toBe(201)
+        expect(service.resume).toHaveBeenCalledWith('app-1', 'message-1')
+    })
+    it.each(['', '?messageId=', '?messageId=one&messageId=two', '?messageId=one&source=forged'])(
+        'rejects invalid history/resume query metadata: %s',
+        async (suffix) => {
+            expect((await request(`ai/mcp-apps/app-1/history${suffix}`)).status).toBe(400)
+            expect((await request(`ai/mcp-apps/app-1/resume${suffix}`, 'cs-x-valid', 'POST')).status).toBe(400)
+            expect(service.getHistory).not.toHaveBeenCalled()
+            expect(service.resume).not.toHaveBeenCalled()
+        }
+    )
+    it('preserves revoked access on history and resume', async () => {
+        service.getHistory.mockRejectedValueOnce(new ForbiddenException())
+        service.resume.mockRejectedValueOnce(new ForbiddenException())
+        expect((await request('ai/mcp-apps/app-1/history?messageId=message-1')).status).toBe(403)
+        expect((await request('ai/mcp-apps/app-1/resume?messageId=message-1', 'cs-x-valid', 'POST')).status).toBe(403)
     })
     it('preserves service-level permission failures', async () => {
         service.getResource.mockRejectedValueOnce(new ForbiddenException())

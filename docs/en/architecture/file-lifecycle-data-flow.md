@@ -69,7 +69,7 @@ For the `LOCAL` provider, `LocalProvider.putFile()` writes bytes to `config.root
 
 The upload controller does not accept a client-supplied path as a trusted workspace path. The server generates `workspacePath` after authorization and actual file projection. Tenant, organization, and user identities come from the authenticated request context.
 
-Sources: [upload controller](../../../packages/server-ai/src/ai/context.controller.ts), [upload orchestration](../../../packages/server/src/file/file-upload/upload-file.service.ts), [storage target](../../../packages/server/src/file/file-upload/strategies/storage-target.strategy.ts), [LOCAL provider](../../../packages/server/src/file/file-storage/providers/local.provider.ts), [file asset creation](../../../packages/server-ai/src/file-understanding/commands/handlers/create-file-asset.handler.ts).
+Sources: [upload controller](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/ai/context.controller.ts), [upload orchestration](https://github.com/xpert-ai/xpert/blob/main/packages/server/src/file/file-upload/upload-file.service.ts), [storage target](https://github.com/xpert-ai/xpert/blob/main/packages/server/src/file/file-upload/strategies/storage-target.strategy.ts), [LOCAL provider](https://github.com/xpert-ai/xpert/blob/main/packages/server/src/file/file-storage/providers/local.provider.ts), [file asset creation](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/file-understanding/commands/handlers/create-file-asset.handler.ts).
 
 ## Parsing and building the text index
 
@@ -98,7 +98,7 @@ For a standard DOCX file, `OfficeFileParser.parse()` uses `DocxLoader` to extrac
 
 `IndexFileChunksHandler` splits chunkable artifact text, saves `file_chunk.content`, and builds citation anchors and a vector index. When parsing completes, it updates `file_asset.status`, `summary`, `capabilities`, `metadata.parser`, `metadata.chunkCount`, and `parsedAt`. The `ready` status means this parsing pipeline completed; it does not change the original DOCX bytes.
 
-Sources: [parse handler](../../../packages/server-ai/src/file-understanding/commands/handlers/parse-file-asset.handler.ts), [parse scheduling](../../../packages/server-ai/src/file-understanding/commands/handlers/enqueue-file-parse.handler.ts), [Office parser](../../../packages/server-ai/src/file-understanding/parsers/office.parser.ts), [text chunking](../../../packages/server-ai/src/file-understanding/commands/handlers/index-file-chunks.handler.ts).
+Sources: [parse handler](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/file-understanding/commands/handlers/parse-file-asset.handler.ts), [parse scheduling](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/file-understanding/commands/handlers/enqueue-file-parse.handler.ts), [Office parser](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/file-understanding/parsers/office.parser.ts), [text chunking](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/file-understanding/commands/handlers/index-file-chunks.handler.ts).
 
 ## Workspace copies and path propagation
 
@@ -126,7 +126,7 @@ workspacePath = /workspace/sessions/<C>/files/<F>/example-tender.docx
 
 Projection copies the original file `Buffer`, not `file_chunk.content`. The `workspace` capability means the file is accessible by path; it does not mean the file can be read as UTF-8 text.
 
-Sources: [workspace projection](../../../packages/server-ai/src/file-understanding/file-workspace-projection.service.ts), [workspace path resolution](../../../packages/server-ai/src/file-understanding/domain/workspace-file.ts).
+Sources: [workspace projection](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/file-understanding/file-workspace-projection.service.ts), [workspace path resolution](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/file-understanding/domain/workspace-file.ts).
 
 ## Attachment references in conversations and model inputs
 
@@ -171,7 +171,7 @@ For model input, `createHumanMessage()` → `resolveAttachmentFile()` resolves a
 
 The meaning of `id` changes with the object type: the uploaded `AgentFile.id` is `F`; when `resolveAttachmentFile()` takes the `StorageFile` branch, the internal object's `id` can become `S`, while retaining `fileId=F` and `fileAssetId=F`. To trace a file across layers, use the explicit `fileAssetId/fileId` and `storageFileId` fields.
 
-Sources: [chat file reference normalization](../../../packages/server-ai/src/xpert/commands/handlers/chat-file-assets.ts), [conversation attachment](../../../packages/server-ai/src/file-understanding/commands/handlers/attach-file-to-conversation.handler.ts), [model attachment input](../../../packages/server-ai/src/shared/agent/message.ts), [message attachment relation](../../../packages/server-ai/src/chat-message/chat-message.entity.ts).
+Sources: [chat file reference normalization](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert/commands/handlers/chat-file-assets.ts), [conversation attachment](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/file-understanding/commands/handlers/attach-file-to-conversation.handler.ts), [model attachment input](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/shared/agent/message.ts), [message attachment relation](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/chat-message/chat-message.entity.ts).
 
 ## Two paths for Agent file reads
 
@@ -212,7 +212,7 @@ The sandbox path contract asks the model for a path relative to the working dire
 
 At the implementation baseline, both slice and indentation modes in `BaseSandbox.read()` execute `fs.readFileSync(filePath, 'utf-8')`. They do not reuse the binary-file checks in the file-understanding layer's `decodeTextFileContent()`. Reading original files such as DOCX through this path can therefore produce garbled text and NUL characters even when parsing status is `ready`.
 
-Sources: [parsed file tools](../../../packages/server-ai/src/file-understanding/tools/file-understanding.tools.ts), [search handler](../../../packages/server-ai/src/file-understanding/queries/handlers/search-file-chunks.handler.ts), [read handler](../../../packages/server-ai/src/file-understanding/queries/handlers/read-file-chunk.handler.ts), [sandbox file tools](../../../packages/server-ai/src/sandbox/middlewares/sandbox-file.middleware.ts), [BaseSandbox](../../../packages/plugin-sdk/src/lib/sandbox/sandbox.ts), [text decoding checks](../../../packages/server-ai/src/file-understanding/parsers/text-file.ts).
+Sources: [parsed file tools](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/file-understanding/tools/file-understanding.tools.ts), [search handler](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/file-understanding/queries/handlers/search-file-chunks.handler.ts), [read handler](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/file-understanding/queries/handlers/read-file-chunk.handler.ts), [sandbox file tools](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/sandbox/middlewares/sandbox-file.middleware.ts), [BaseSandbox](https://github.com/xpert-ai/xpert/blob/main/packages/plugin-sdk/src/lib/sandbox/sandbox.ts), [text decoding checks](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/file-understanding/parsers/text-file.ts).
 
 ## Tool outputs in conversation messages
 
@@ -256,7 +256,7 @@ Here, `output` is a snapshot of one invocation's result, independent of `file_ch
 
 There is also an `ON_TOOL_MESSAGE` branch that writes to `aiMessage.events`. In this case, the `category='Tool'` event was first converted into a component message. The problematic bytes were in `content[2].data.output`, and the record's `events` field was empty.
 
-Sources: [tool event wrapper](../../../packages/server-ai/src/sandbox/middlewares/tool-message.utils.ts), [Agent event conversion](../../../packages/server-ai/src/xpert-agent/agent.ts), [chat stream handling](../../../packages/server-ai/src/xpert/commands/handlers/chat.handler.ts), [message preprocessing for persistence](../../../packages/server-ai/src/chat-message/message-step-persistence.ts), [message persistence handler](../../../packages/server-ai/src/chat-message/commands/handlers/upsert.handler.ts).
+Sources: [tool event wrapper](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/sandbox/middlewares/tool-message.utils.ts), [Agent event conversion](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert-agent/agent.ts), [chat stream handling](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/xpert/commands/handlers/chat.handler.ts), [message preprocessing for persistence](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/chat-message/message-step-persistence.ts), [message persistence handler](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/chat-message/commands/handlers/upsert.handler.ts).
 
 ## Reading conversation history
 
@@ -291,7 +291,7 @@ message.content::jsonb -> 0 ->> 'type' = 'call_ended'
 
 The `content` column itself has type `json`. To inspect the first block's `type`, this condition converts the entire content value to `jsonb`. Consequently, a problematic character inside a nested tool output can fail the whole history query. Filtering happens before pagination, so changing the frontend page size cannot reliably bypass the affected record.
 
-Sources: [history controller](../../../packages/server-ai/src/ai/conversation.controller.ts), [thread message query](../../../packages/server-ai/src/chat-conversation/conversation-thread.service.ts).
+Sources: [history controller](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/ai/conversation.controller.ts), [thread message query](https://github.com/xpert-ai/xpert/blob/main/packages/server-ai/src/chat-conversation/conversation-thread.service.ts).
 
 ## Field mapping reference
 
@@ -348,4 +348,4 @@ Related architecture documents:
 - [Unified file upload architecture](../guides/file-upload-architecture.mdx)
 - [File-understanding architecture](../guides/file-understanding-architecture.mdx)
 - [Volume and workspace architecture](../guides/volume-workspace-architecture.mdx)
-- [AI Agent architecture and source map](ai-agent-architecture.md)
+- [AI Agent architecture and source map](/en/architecture/ai-agent-architecture)

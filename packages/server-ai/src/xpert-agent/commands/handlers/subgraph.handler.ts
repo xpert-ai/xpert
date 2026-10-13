@@ -984,7 +984,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 middleware.apps
                     ? this.middlewareApps.bind(middleware, context, {
                           interruptAfter: team.agentConfig?.interruptAfter,
-                          isDraft: options.isDraft
+                          isDraft: options.isDraft,
+                          connectorGrants: {
+                              bindingIds: connectorScope.connectorBindingIds,
+                              providers: connectorScope.connectorProviders
+                          }
                       })
                     : middleware
         )

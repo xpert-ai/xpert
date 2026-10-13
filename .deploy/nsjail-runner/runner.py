@@ -45,7 +45,8 @@ from network import EgressConfig, NetworkLease, NetworkManager
 RUNNER_HOST = os.environ.get("XPERT_NSJAIL_RUNNER_HOST", "0.0.0.0")
 RUNNER_PORT = int(os.environ.get("XPERT_NSJAIL_RUNNER_PORT", "8090"))
 RUNNER_TOKEN = os.environ.get("XPERT_NSJAIL_RUNNER_TOKEN", "").strip()
-RUNNER_PROTOCOL_VERSION = 2
+RUNNER_PROTOCOL_VERSION = 3
+APP_DATA_MASK = pathlib.Path("/opt/xpert-app-data-mask")
 WORKSPACE_ROOT = pathlib.Path(os.environ.get("XPERT_NSJAIL_WORKSPACE_ROOT", "/sandbox")).resolve()
 ROOTFS = pathlib.Path(os.environ.get("XPERT_NSJAIL_ROOTFS", "/opt/xpert-rootfs")).resolve()
 STATE_ROOT = pathlib.Path(os.environ.get("XPERT_NSJAIL_STATE_ROOT", "/var/lib/xpert-nsjail")).resolve()
@@ -116,7 +117,7 @@ def health_response() -> dict[str, Any]:
     return {
         "status": "ok",
         "protocolVersion": RUNNER_PROTOCOL_VERSION,
-        "capabilities": {"projectContentReadOnly": True},
+        "capabilities": {"projectContentReadOnly": True, "appDataProtection": True},
     }
 
 
@@ -421,6 +422,17 @@ def project_content_mounts(workspace_path: pathlib.Path) -> tuple[tuple[pathlib.
     return tuple(validated)
 
 
+
+def prepare_app_data_mount(workspace_path: pathlib.Path) -> None:
+    # Host-owned state is never mounted into the jail. Keep a fixed empty RO overlay
+    # even before a plugin first writes, so already-running shells cannot access later data.
+    workspace_path = workspace_path.resolve(strict=True)
+    target = workspace_path / ".apps"
+    target.mkdir(mode=0o755, exist_ok=True)
+    if not stat.S_ISDIR(target.lstat().st_mode) or target.resolve(strict=True) != target:
+        raise RunnerError("Managed application directory must not be a symbolic link")
+
+
 def validate_service_id(value: Any) -> str:
     if not isinstance(value, str) or not SERVICE_ID_PATTERN.fullmatch(value):
         raise RunnerError("Invalid serviceId")
@@ -521,6 +533,8 @@ def nsjail_args(
         "--bindmount",
         f"{runtime.workspace_path}:/workspace",
     ]
+    prepare_app_data_mount(runtime.workspace_path)
+    args.extend(["--bindmount_ro", f"{APP_DATA_MASK}:/workspace/.apps"])
     if runtime.protect_project_content:
         for source, target in project_content_mounts(runtime.workspace_path):
             args.extend(["--bindmount_ro", f"{source}:{target}"])
@@ -759,7 +773,10 @@ def proxy_slot(runtime: Runtime) -> Iterator[None]:
 
 def workspace_parts(path_value: Any, *, allow_root: bool = False) -> list[str]:
     relative = validate_sandbox_path(path_value, allow_root=allow_root)
-    return [part for part in relative.split("/") if part]
+    parts = [part for part in relative.split("/") if part]
+    if any(part.lower() == ".apps" or (part.lower().startswith(".workspace-write-") and part.lower().endswith(".tmp")) for part in parts):
+        raise RunnerError("Managed application data is protected", HTTPStatus.FORBIDDEN)
+    return parts
 
 
 def is_protected_project_content_path(runtime: Runtime, parts: list[str]) -> bool:
@@ -1195,9 +1212,10 @@ def create_runtime(payload: Any) -> Runtime:
     workspace_path = validate_workspace_path(payload.get("workspacePath"))
     working_directory = validate_working_directory(payload.get("workingDirectory"))
     protect_project_content = validate_protect_project_content(payload.get("protectProjectContent"))
+    prepare_app_data_mount(workspace_path)
     if protect_project_content:
         project_content_mounts(workspace_path)
-    relative_working_directory = validate_sandbox_path(working_directory)
+    relative_working_directory = "/".join(workspace_parts(working_directory, allow_root=True))
     host_working_directory = workspace_path.joinpath(*relative_working_directory.split("/"))
     if not host_working_directory.is_dir():
         raise RunnerError("workingDirectory does not exist in the workspace")

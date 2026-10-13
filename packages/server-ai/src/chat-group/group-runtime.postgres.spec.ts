@@ -650,15 +650,13 @@ postgres('group runtime admission and recovery with PostgreSQL', () => {
             const receipt = await db.getRepository(GroupMessageRecipient).findOneByOrFail({ messageId: human.id })
             const prepared = await runtime.prepare(job(receipt))
             const error = '403 The request failed because your account has an overdue balance.'
-            await db
-                .getRepository(XpertAgentExecution)
-                .update(
-                    { id: prepared.options.execution.id },
-                    {
-                        status: XpertAgentExecutionStatusEnum.ERROR,
-                        error: `${error}\n    at privateStack (/server/file.ts:1)`
-                    }
-                )
+            await db.getRepository(XpertAgentExecution).update(
+                { id: prepared.options.execution.id },
+                {
+                    status: XpertAgentExecutionStatusEnum.ERROR,
+                    error: `${error}\n    at privateStack (/server/file.ts:1)`
+                }
+            )
             await db
                 .getRepository(ChatConversationThread)
                 .update({ threadId: c.runtimeThreadId }, { status: 'error', runControl: null })

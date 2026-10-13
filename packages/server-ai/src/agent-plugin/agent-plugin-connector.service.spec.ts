@@ -49,6 +49,9 @@ describe('Agent Plugin Connector binding boundary', () => {
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org')
         jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user')
         const owner = {
+            id: 'owner',
+            tenantId: 'tenant',
+            organizationId: 'org',
             enabled: true,
             workspaceIds: ['workspace'],
             definition: { kind: 'agent_plugin', packageId: 'package', connectorServers: { test: requirement } },
@@ -65,7 +68,20 @@ describe('Agent Plugin Connector binding boundary', () => {
         service = new AgentPluginConnectorService(
             {
                 findOneBy: jest.fn().mockResolvedValue(null),
-                findOneByOrFail: jest.fn().mockResolvedValue({ descriptor: { servers: [server] } }),
+                findOneByOrFail: jest.fn().mockResolvedValue({
+                    id: 'package',
+                    tenantId: 'tenant',
+                    organizationId: 'org',
+                    descriptor: { name: 'test', servers: [server] }
+                }),
+                find: jest.fn().mockResolvedValue([
+                    {
+                        id: 'package',
+                        tenantId: 'tenant',
+                        organizationId: 'org',
+                        descriptor: { name: 'test', servers: [server] }
+                    }
+                ]),
                 manager: { getRepository: () => ({ findOneBy: currentToolset }) }
             } as unknown as Repository<AgentPluginPackage>,
             { find: owners } as unknown as Repository<AgentResourceBinding>,

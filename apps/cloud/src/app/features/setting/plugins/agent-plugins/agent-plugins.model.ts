@@ -69,8 +69,9 @@ export function groupPluginPackages(packages: PackageSummary[], bindings: Bindin
         binding.definition.kind === 'agent_plugin' && ids.has(binding.definition.packageId)
     )
     const currentBindings = matches.filter((binding) => !binding.supersededById)
-    const enabled = currentBindings.filter((binding) => binding.enabled)
-    const current = enabled[0] ?? currentBindings[0]
+    const scoped = currentBindings.find((binding) => binding.definition.availability === 'scope')
+    const enabled = scoped ? (scoped.enabled ? [scoped] : []) : currentBindings.filter((binding) => binding.enabled)
+    const current = scoped ?? enabled[0] ?? currentBindings[0]
     const displayPackage = versions.find((pkg) => pkg.id === current?.definition.packageId) ?? versions[0]
     return {
       name,
@@ -83,7 +84,14 @@ export function groupPluginPackages(packages: PackageSummary[], bindings: Bindin
       displayPackage,
       publishedVersions: [...new Set(enabled.map((binding) => binding.definition.packageId))],
       workspaceIds: [...new Set(enabled.flatMap((binding) => binding.workspaceIds))],
-      status: enabled.length ? 'published' : currentBindings.length ? 'disabled' : 'unpublished'
+      status:
+        current && !current.enabled
+          ? 'disabled'
+          : (displayPackage.descriptor.extension?.experts ?? []).some(
+                (expert) => !current?.definition.experts[expert.reference]
+              )
+            ? 'unpublished'
+            : 'published'
     }
   })
 }

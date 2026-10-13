@@ -1,0 +1,2 @@
+#!/bin/sh
+exec node .deploy/application-images/check-release.mjs --pre-push "$1"
