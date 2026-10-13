@@ -23,6 +23,8 @@ const { probeCertificate } = require('./connection/certificates.cjs')
 const { createStorage } = require('./storage.cjs')
 const { dispatch } = require('./dispatch.cjs')
 const { menuTemplate } = require('./menu.cjs')
+const { createMenuActions } = require('./menu-actions.cjs')
+const { createUpdateMenuAction } = require('./updates/menu.cjs')
 const { DesktopShellController } = require('./shell/controller.cjs')
 const { translate } = require('./i18n/index.mjs')
 const { platformCommandUrl } = require('./workbench-platform.mjs')
@@ -50,6 +52,16 @@ let service
 let connectionSession
 let connectionReloadPending = false
 let audioCaptureTray
+let checkForUpdates
+const menuActions = createMenuActions({ ipcMain, isTrusted: trusted, showWindow })
+
+function showWindow() {
+  if (!window || window.isDestroyed()) createWindow()
+  if (window.isMinimized()) window.restore()
+  window.show()
+  window.focus()
+  return window
+}
 function showAudioCaptureIndicator(recording) {
   audioCaptureTray?.destroy()
   audioCaptureTray = undefined
@@ -107,9 +119,20 @@ function updateApplicationMenu() {
   })
   Menu.setApplicationMenu(
     Menu.buildFromTemplate(
-      menuTemplate(locale, process.platform, {
-        newGroup: () => BrowserWindow.getFocusedWindow()?.webContents.send('xpert:new-group')
-      })
+      menuTemplate(
+        locale,
+        process.platform,
+        {
+          newGroup: () => BrowserWindow.getFocusedWindow()?.webContents.send('xpert:new-group'),
+          settings: () => menuActions.send('settings'),
+          signOut: () => menuActions.send('sign-out'),
+          checkForUpdates: () => {
+            showWindow()
+            void checkForUpdates?.()
+          }
+        },
+        { development: !app.isPackaged, signedIn: Boolean(service.profile) }
+      )
     )
   )
 }
@@ -161,10 +184,15 @@ function createWindow(bounds = {}) {
       nodeIntegration: false,
       sandbox: true,
       webSecurity: true,
+      devTools: !app.isPackaged,
       session: connectionSession
     }
   })
   const createdWindow = window
+  menuActions.reset()
+  window.webContents.on('did-start-navigation', (_event, _url, inPlace, mainFrame) => {
+    if (mainFrame && !inPlace) menuActions.reset()
+  })
   window.on('closed', () => {
     if (window === createdWindow) window = undefined
     void service.audioCapture?.stop('interrupted')
@@ -264,6 +292,11 @@ else {
         shellShutdownComplete = true
       }
     })
+    checkForUpdates = createUpdateMenuAction({
+      updates,
+      t: (key, params) => translate(service.config.locale, key, params),
+      showMessageBox: (options) => dialog.showMessageBox(options)
+    })
     registerUpdateIpc(ipcMain, updates, trusted)
     updates.on('state', (state) => {
       if (state.status === 'error' && state.operation === 'install') shellShutdownComplete = false
@@ -283,8 +316,9 @@ else {
         }
       const previousPolicy = connectionPolicyKey(service.config)
       const previousLocale = service.config.locale
+      const wasSignedIn = Boolean(service.profile)
       const result = await dispatchWithAudioCapture(service, dispatch, method, argument, translate)
-      if (previousLocale !== service.config.locale) updateApplicationMenu()
+      if (previousLocale !== service.config.locale || wasSignedIn !== Boolean(service.profile)) updateApplicationMenu()
       // Only a host-verified, live connection attempt may bring Desktop back from browser authorization.
       if (
         ['checkPluginConnection', 'bosiCheckConnection'].includes(method) &&

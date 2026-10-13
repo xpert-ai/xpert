@@ -14,6 +14,7 @@ import { invoke } from './host'
 import { getChatKitMessagePresentation, getChatKitTheme } from './theme'
 import type { Bot, ConnectionConfig } from './types'
 import { AssistantAppearanceDialog } from './avatar/AssistantAppearanceDialog'
+import type { DesktopLastSession } from './assistant-list-types'
 
 // A thin React lifecycle adapter; ChatKit owns every conversation interaction.
 export function ChatPanel({
@@ -25,6 +26,7 @@ export function ChatPanel({
   initialThread,
   initialVoice,
   onConversationRead,
+  onSessionChange,
   onAppearanceSaved
 }: {
   bot?: Bot
@@ -35,6 +37,7 @@ export function ChatPanel({
   initialThread: string | null
   initialVoice?: { assistantId: string; conversationId: string } | null
   onConversationRead: (botId: string, threadId: string | null) => void
+  onSessionChange?: (session: DesktopLastSession) => void
   onAppearanceSaved: () => Promise<void>
 }) {
   const botId = bot?.id ?? ''
@@ -76,6 +79,8 @@ export function ChatPanel({
   const connection = useWorkspaceConnection(config.webUrl, shellAssistantId)
   const connectRef = useRef(connection.connect)
   connectRef.current = connection.connect
+  const sessionChangeRef = useRef(onSessionChange)
+  sessionChangeRef.current = onSessionChange
 
   useEffect(() => {
     const node = document.createElement('xpertai-chatkit')
@@ -118,6 +123,15 @@ export function ChatPanel({
     const listeners = new AbortController()
     let activeThread = groupId ? null : initialThread
     let activeAssistant = groupId ? '' : initialVoice?.assistantId || bot?.assistantId || botId
+    let activeConversation = initialThread ? (initialVoice ?? undefined) : undefined
+    const remember = () => {
+      if (disposed || groupId || (activeAssistant !== (bot?.assistantId || botId) && !activeConversation)) return
+      sessionChangeRef.current?.({
+        botId,
+        threadId: activeThread,
+        ...(activeConversation ? { conversation: activeConversation } : {})
+      })
+    }
     setShellAssistantId(activeAssistant)
     setThreadId(activeThread)
     setCustomizeId(null)
@@ -137,8 +151,13 @@ export function ChatPanel({
             if (!disposed) {
               activeAssistant = session.assistantId
               activeThread = session.threadId
+              activeConversation =
+                session.conversationId && session.threadId
+                  ? { assistantId: session.assistantId, conversationId: session.conversationId }
+                  : undefined
               setShellAssistantId(session.assistantId)
               setThreadId(session.threadId)
+              remember()
             }
           })
     }
@@ -203,8 +222,10 @@ export function ChatPanel({
       'chatkit.thread.change',
       (event) => {
         if (!disposed) {
+          if (activeThread !== event.detail.threadId) activeConversation = undefined
           activeThread = event.detail.threadId
           setThreadId(event.detail.threadId)
+          remember()
         }
       },
       { signal: listeners.signal }
@@ -237,6 +258,7 @@ export function ChatPanel({
       { signal: listeners.signal }
     )
     const read = () => {
+      remember()
       if (!disposed && !groupId && activeAssistant === (bot?.assistantId || botId))
         onConversationRead(botId, activeThread)
     }

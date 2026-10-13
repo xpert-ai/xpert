@@ -1183,5 +1183,9 @@
   "Tenant": "Tenant",
   "Organization": "Organization",
   "Available": "Available",
-  "Sign in first.": "Sign in first."
+  "Sign in first.": "Sign in first.",
+  "Check for updates…": "Check for updates…",
+  "Updates are not available in this build.": "Updates are not available in this build.",
+  "Bosi is up to date.": "Bosi is up to date.",
+  "Bosi {{version}} is available.": "Bosi {{version}} is available."
 }

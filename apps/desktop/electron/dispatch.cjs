@@ -48,6 +48,8 @@ const methods = new Set([
   'selectOrganization',
   'listBots',
   'sidebarState',
+  'restoreSession',
+  'rememberSession',
   'updateSidebar',
   'botActivity',
   'botConversation',

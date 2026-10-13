@@ -1,6 +1,11 @@
 import type { IChatConversationUnreadXpertSummary } from '../../../packages/contracts/src/ai/chat-activity.model'
 
 export type BotActivity = IChatConversationUnreadXpertSummary
+export interface DesktopLastSession {
+  botId: string
+  threadId: string | null
+  conversation?: { assistantId: string; conversationId: string }
+}
 export interface SidebarPreference {
   botId: string
   pinnedAt?: number | null
@@ -9,6 +14,7 @@ export interface SidebarPreference {
   sectionId?: string | null
 }
 export interface SidebarState {
+  lastSession?: DesktopLastSession
   width: number
   collapsed: boolean
   copies: { id: string; assistantId: string }[]
