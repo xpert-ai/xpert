@@ -1586,9 +1586,12 @@
       "CurrentScopeActiveRuntimes": "active runtimes in the current tenant and organization"
     },
     "Plugin": {
+      "RestartConfirmDescription": "Active requests will finish before restarting. If only one instance is available, the service will be briefly unavailable and connections will resume afterward.",
+      "PendingRestartDescription": "Installed. Restart the service to use this plugin.",
+      "PendingRestart": "Restart required",
       "RuntimeApplyingTitle": "Plugin changes are being applied",
-      "RuntimeApplyingDescription": "API replicas are restarting in background batches for {{pluginNames}}. You can continue using this page.",
-      "RuntimeApplyingGenericDescription": "API replicas are restarting in background batches. You can continue using this page.",
+      "RuntimeApplyingDescription": "Synchronizing {{pluginNames}} across the service. This page will update when ready.",
+      "RuntimeApplyingGenericDescription": "Synchronizing plugins across the service. This page will update when ready.",
       "LoadingMarketplaceHelp": "Fetching the plugin list. Additional metadata updates in the background.",
       "UpdatingMarketplace": "Updating the plugin list...",
       "ArtifactNamespace": "Artifact namespace",

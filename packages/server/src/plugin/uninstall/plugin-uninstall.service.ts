@@ -11,6 +11,7 @@ import { t } from 'i18next'
 import { RuntimeControlService } from '../../runtime-control/runtime-control.service'
 import { PluginInstanceService } from '../plugin-instance.service'
 import { findLoadedPluginByLevels } from '../plugin-install-policy'
+import { requiresPluginRestart } from '../plugin-runtime-policy'
 import { resolvePluginLevel } from '../plugin-instance.entity'
 import { PluginRuntimeStateService } from '../plugin-runtime-state.service'
 import { canManageGlobalPlugins, canManageSystemPlugins, canManageTenantPlugins } from '../plugin-update.utils'
@@ -65,19 +66,41 @@ export class PluginUninstallService {
 				)
 			}
 		}
-		if (scopeKey === SYSTEM_GLOBAL_SCOPE || loadedRestartRequiredLevel === PLUGIN_LEVEL.TENANT) {
+		const packageNames = new Set(names.map(normalizePluginName))
+		const loadedTargets = this.loadedPlugins.filter(
+			(plugin) =>
+				(plugin.scopeKey ?? plugin.organizationId) === scopeKey &&
+				[plugin.name, plugin.packageName].some((name) => name && packageNames.has(normalizePluginName(name)))
+		)
+		const requiresRestart = loadedTargets.length
+			? loadedTargets.some((plugin) =>
+					requiresPluginRestart(
+						plugin.instance?.meta?.runtimePolicy,
+						resolvePluginLevel(plugin.level ?? plugin.instance?.meta?.level),
+						'uninstall'
+					)
+				)
+			: scopeKey === SYSTEM_GLOBAL_SCOPE
+		if (requiresRestart) {
 			await this.pluginInstanceService.deactivate(tenantId, organizationId, names, { scopeKey })
 			for (const name of names) this.strategyBus.remove(scopeKey, normalizePluginName(name), 'uninstall')
 			this.logger.log(
 				`Deactivated persisted registrations for ${loadedRestartRequiredLevel ?? 'system'}-level plugins ${names.join(', ')}; API restart required for unload`
 			)
+			const runtimeRequirements: IRuntimePluginRequirement[] = names.map((name) => ({
+				scopeKey,
+				pluginName: normalizePluginName(name),
+				state: 'absent'
+			}))
+			const convergence = await this.runtimeControl.recordPluginRuntimeRequirements(
+				runtimeRequirements,
+				`Uninstall ${names.join(', ')} in ${scopeKey}`
+			)
 			return {
-				restartRequired: true,
-				runtimeRequirements: names.map((name) => ({
-					scopeKey,
-					pluginName: normalizePluginName(name),
-					state: 'absent'
-				}))
+				runtimeRequirements,
+				...(convergence.scheduled
+					? { runtimeConvergence: { generation: convergence.generation } }
+					: { restartRequired: true })
 			}
 		}
 		await this.pluginInstanceService.uninstall(tenantId, organizationId, names, {

@@ -374,6 +374,30 @@ describe('RuntimeRestartCoordinatorService', () => {
 		await expect(redis.get('xpert:system:runtime:restart:active')).resolves.toBeNull()
 	})
 
+	it('keeps a staged single-replica installation pending until explicit outage approval', async () => {
+		const node = await createNode(redis, 'api-1', 'boot-1', emptyPluginState())
+		nodes.push(node)
+		await advance(5_000)
+		const change = await node.coordinator.recordPluginChange(requirement)
+		await expect(node.coordinator.getPluginConvergenceStatus(change.generation)).resolves.toMatchObject({
+			status: 'awaiting_restart'
+		})
+		await expect(redis.get('xpert:system:runtime:restart:active')).resolves.toBeNull()
+		await advance(400_000)
+		expect(node.signaler.signal).not.toHaveBeenCalled()
+		expect(node.lifecycle.readiness().status).toBe('ready')
+		await expect(node.coordinator.getPluginConvergenceStatus(change.generation)).resolves.toMatchObject({
+			status: 'awaiting_restart'
+		})
+		await node.coordinator.requestRestart({
+			source: 'interactive',
+			allowDowntime: true,
+			runtimeRequirements: [requirement]
+		})
+		await advance(5_000)
+		expect(node.signaler.signal).toHaveBeenCalledTimes(1)
+	})
+
 	it('does not restart a single API that already hot-loaded an organization plugin', async () => {
 		const node = await createNode(redis, 'api-1', 'api-1-boot-1', loadedPluginState())
 		nodes.push(node)

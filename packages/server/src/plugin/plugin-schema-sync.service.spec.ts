@@ -59,7 +59,7 @@ describe('plugin schema preflight', () => {
 			{
 				runWithLock: async (_key: string, _ttl: number, work: () => Promise<boolean>) => ({
 					acquired: true,
-					result: await work()
+					value: await work()
 				})
 			} as unknown as RedisLockService
 		)
@@ -69,7 +69,11 @@ describe('plugin schema preflight', () => {
 		'does not run host DDL for a plugin with no entities',
 		async ({ subscribers }) => {
 			jest.mocked(collectPluginOrmMetadata).mockReturnValue({ entities: [], subscribers })
-			await service.synchronize(input)
+			await expect(service.synchronize(input)).resolves.toMatchObject({
+				name: input.pluginName,
+				displayName: 'Test',
+				description: 'Test plugin'
+			})
 			expect(validatePluginEntityTableNames).toHaveBeenCalled()
 			expect(DataSource).not.toHaveBeenCalled()
 			expect(migration.synchronize).not.toHaveBeenCalled()
@@ -78,7 +82,7 @@ describe('plugin schema preflight', () => {
 
 	it('still applies and closes schema preflight for plugins declaring entities', async () => {
 		jest.mocked(collectPluginOrmMetadata).mockReturnValue({ entities: [PluginEntity], subscribers: [] })
-		await service.synchronize(input)
+		await expect(service.synchronize(input)).resolves.toMatchObject({ name: input.pluginName, version: '1.0.0' })
 		expect(DataSource).toHaveBeenCalledWith(
 			expect.objectContaining({
 				entities: [PluginEntity],

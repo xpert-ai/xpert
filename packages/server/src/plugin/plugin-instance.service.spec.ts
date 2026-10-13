@@ -66,7 +66,7 @@ jest.mock('../core/crud', () => ({
 }))
 
 const { IsNull } = require('typeorm')
-const { rmSync } = require('node:fs')
+const { existsSync, readFileSync, rmSync, writeFileSync } = require('node:fs')
 const { RequestContext } = require('@xpert-ai/plugin-sdk')
 const { clearPluginLoadFailure } = require('./plugin.helper')
 const {
@@ -149,6 +149,10 @@ describe('PluginInstanceService', () => {
 	})
 
 	it('deactivates system plugins without deleting runtime files or live strategies', async () => {
+		existsSync.mockReturnValueOnce(true)
+		readFileSync.mockReturnValueOnce(
+			JSON.stringify(['@xpert-ai/plugin-system-demo@1.0.0', '@xpert-ai/plugin-other'])
+		)
 		const removePluginsSpy = jest.spyOn(service, 'removePlugins').mockResolvedValue(undefined)
 
 		await service.deactivate(null, '__global__', ['@xpert-ai/plugin-system-demo'], {
@@ -165,6 +169,10 @@ describe('PluginInstanceService', () => {
 			pluginName: expect.anything()
 		})
 		expect(removePluginsSpy).not.toHaveBeenCalled()
+		expect(writeFileSync).toHaveBeenCalledWith(
+			'/tmp/__global__/manifest.json',
+			JSON.stringify(['@xpert-ai/plugin-other'], null, 2)
+		)
 		expect(strategyBus.remove).not.toHaveBeenCalled()
 		expect(rmSync).not.toHaveBeenCalled()
 	})

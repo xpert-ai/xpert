@@ -156,24 +156,55 @@ describe('PluginManagementService', () => {
 		)
 	})
 
-	it('rejects package metadata system-level installs outside the system management scope', async () => {
-		;(canManageSystemPlugins as jest.Mock).mockReturnValue(false)
-		;(assertPluginSdkInstallCandidate as jest.Mock).mockResolvedValue({
-			hostVersion: '3.8.4',
-			peerRange: '^3.8.0',
-			warnings: [],
-			level: 'system'
-		})
-
-		await expect(
-			fixture.service.installPlugin({
-				pluginName: '@xpert-ai/plugin-system-demo'
+	it.each([undefined, { install: 'hot', update: 'restart', uninstall: 'restart' }])(
+		'rejects system installs outside the management scope, with policy %j',
+		async (runtimePolicy) => {
+			;(canManageSystemPlugins as jest.Mock).mockReturnValue(false)
+			;(assertPluginSdkInstallCandidate as jest.Mock).mockResolvedValue({
+				hostVersion: '3.8.4',
+				peerRange: '^3.8.0',
+				warnings: [],
+				level: 'system',
+				runtimePolicy
 			})
-		).rejects.toBeInstanceOf(Error)
 
-		expect(registerPluginsAsync).not.toHaveBeenCalled()
-		expect(loadPlugin).not.toHaveBeenCalled()
-		expect(pluginInstanceService.upsert).not.toHaveBeenCalled()
+			await expect(
+				fixture.service.installPlugin({
+					pluginName: '@xpert-ai/plugin-system-demo'
+				})
+			).rejects.toBeInstanceOf(Error)
+
+			expect(registerPluginsAsync).not.toHaveBeenCalled()
+			expect(loadPlugin).not.toHaveBeenCalled()
+			expect(pluginInstanceService.upsert).not.toHaveBeenCalled()
+		}
+	)
+
+	it('hot-loads an explicitly supported system plugin without changing its authorization scope', async () => {
+		RequestContext.getScope.mockReturnValue({ tenantId: 'tenant-1', organizationId: '__global__' })
+		canManageSystemPlugins.mockReturnValue(true)
+		const runtimePolicy = { install: 'hot', update: 'restart', uninstall: 'restart' }
+		assertPluginSdkInstallCandidate.mockResolvedValue({ level: 'system', runtimePolicy })
+		registerPluginsAsync.mockResolvedValue({ modules: [{ module: class MeetingsModule {} }], errors: [] })
+		fixture.getEntitiesFromPlugins.mockReturnValue([])
+		fixture.getSubscribersFromPlugins.mockReturnValue([])
+		lazyLoader.load.mockResolvedValue({})
+		loadPlugin.mockResolvedValue({
+			meta: { name: '@xpert-ai/plugin-meetings', version: '0.3.0', level: 'system', runtimePolicy }
+		})
+		const result = await fixture.service.installPlugin({ pluginName: '@xpert-ai/plugin-meetings' })
+		expect(result.success).toBe(true)
+		expect(result.restartRequired).toBeUndefined()
+		expect(lazyLoader.load).toHaveBeenCalled()
+		expect(pluginInstanceService.upsert).toHaveBeenCalledWith(
+			expect.objectContaining({
+				scopeKey: 'system:global',
+				tenantId: null,
+				level: 'system',
+				pendingRestart: false,
+				meta: expect.objectContaining({ name: '@xpert-ai/plugin-meetings' })
+			})
+		)
 	})
 
 	it('stages system-level plugins without mutating the live Nest module graph', async () => {
@@ -487,7 +518,7 @@ describe('PluginManagementService', () => {
 			fixture.service.uninstallByNamesWithGuard(['@xpert-ai/plugin-system-demo'], '__global__', 'system:global')
 		).resolves.toEqual(
 			expect.objectContaining({
-				restartRequired: true,
+				runtimeConvergence: { generation: 2 },
 				runtimeRequirements: [
 					{
 						scopeKey: 'system:global',
@@ -532,7 +563,7 @@ describe('PluginManagementService', () => {
 			)
 		).resolves.toEqual(
 			expect.objectContaining({
-				restartRequired: true,
+				runtimeConvergence: { generation: 2 },
 				runtimeRequirements: [
 					{
 						scopeKey: 'tenant:tenant-bom:global',

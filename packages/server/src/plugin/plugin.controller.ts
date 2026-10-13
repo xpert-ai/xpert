@@ -46,7 +46,7 @@ import { resolvePluginConfigSchema } from './plugin-config-schema'
 import { resolvePluginLevel } from './plugin-instance.entity'
 import { PluginInstanceService } from './plugin-instance.service'
 import { PluginManagementService } from './plugin-management.service'
-import { getCodeWorkspacePath } from './source-config'
+import { getCodeRuntimeName, getCodeWorkspacePath } from './source-config'
 import {
 	canManageSystemPlugins,
 	canManageTenantPlugins,
@@ -439,7 +439,12 @@ export class PluginController {
 				this.pluginManagementService.readLoadedPluginBundleComponents(plugin)
 			)
 		)
-		const meta = plugin.instance.meta
+		const pendingRestart =
+			instance?.pendingRestart === true &&
+			(instance.version !== plugin.instance.meta?.version ||
+				instance.source !== plugin.source ||
+				getCodeRuntimeName(instance.sourceConfig) !== getCodeRuntimeName(plugin.sourceConfig))
+		const meta = pendingRestart ? (instance.meta ?? plugin.instance.meta) : plugin.instance.meta
 
 		return {
 			organizationId: scope,
@@ -466,7 +471,7 @@ export class PluginController {
 			configurationStatus,
 			configurationError,
 			sdkCompatibilityWarnings: plugin.sdkCompatibilityWarnings ?? [],
-			loadStatus: PLUGIN_LOAD_STATUS.LOADED,
+			loadStatus: pendingRestart ? PLUGIN_LOAD_STATUS.PENDING_RESTART : PLUGIN_LOAD_STATUS.LOADED,
 			loadError: null,
 			effectiveInCurrentScope: scopeSemantics.effectiveInCurrentScope,
 			scopeRelation: scopeSemantics.scopeRelation,
@@ -483,9 +488,11 @@ export class PluginController {
 		const scope = plugin.organizationId ?? GLOBAL_ORGANIZATION_SCOPE
 		const scopeKey = plugin.scopeKey ?? this.getScopeKey(scope, plugin.tenantId ?? this.getCurrentTenantId())
 		const failure = findPluginLoadFailure(scopeKey, plugin.pluginName, plugin.packageName)
-		const loadError =
-			failure?.error ??
-			'This plugin is registered in the database but could not be loaded by the current server process.'
+		const pendingRestart = plugin.pendingRestart === true && !failure
+		const loadError = pendingRestart
+			? null
+			: (failure?.error ??
+				'This plugin is registered in the database but could not be loaded by the current server process.')
 		const workspacePath = getCodeWorkspacePath(plugin.sourceConfig)
 		const scopeSemantics = this.resolveDescriptorScopeSemantics(
 			this.getNormalizedPluginName(plugin.pluginName, plugin.packageName),
@@ -503,14 +510,16 @@ export class PluginController {
 			organizationId: scope,
 			scopeKey,
 			name: plugin.pluginName,
-			meta: {
+			meta: plugin.meta ?? {
 				name: plugin.packageName ?? plugin.pluginName,
 				version: plugin.version ?? '',
 				artifactNamespace: resolvePluginArtifactNamespace(plugin.packageName ?? plugin.pluginName),
 				level: plugin.level,
 				category: 'integration',
 				displayName: plugin.pluginName,
-				description: 'Plugin metadata is unavailable because the plugin failed to load.',
+				description: pendingRestart
+					? 'Installed. Restart the API to use this plugin.'
+					: 'Plugin metadata is unavailable because the plugin failed to load.',
 				keywords: [],
 				author: '-'
 			},
@@ -529,7 +538,7 @@ export class PluginController {
 			configurationStatus: plugin.configurationStatus,
 			configurationError: plugin.configurationError,
 			sdkCompatibilityWarnings: [],
-			loadStatus: PLUGIN_LOAD_STATUS.FAILED,
+			loadStatus: pendingRestart ? PLUGIN_LOAD_STATUS.PENDING_RESTART : PLUGIN_LOAD_STATUS.FAILED,
 			loadError,
 			effectiveInCurrentScope: scopeSemantics.effectiveInCurrentScope,
 			scopeRelation: scopeSemantics.scopeRelation

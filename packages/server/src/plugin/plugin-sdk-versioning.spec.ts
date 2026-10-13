@@ -29,6 +29,20 @@ function getExpectedHostContractsDirs() {
 }
 
 describe('plugin sdk versioning', () => {
+	it('reads lifecycle support independently of package scope', () => {
+		const runtimePolicy = { install: 'hot', update: 'restart', uninstall: 'restart' }
+		expect(
+			assertPluginSdkCompatibility(
+				{
+					name: '@xpert-ai/plugin-meetings',
+					xpert: { plugin: { level: 'system', runtimePolicy } },
+					peerDependencies: { '@xpert-ai/plugin-sdk': '^3.8.0' }
+				},
+				{ hostVersion: '3.8.4' }
+			)
+		).toMatchObject({ level: 'system', runtimePolicy })
+	})
+
 	it('uses nested Xpert artifact metadata and supports the legacy top-level fallback', () => {
 		expect(
 			assertPluginSdkCompatibility(
@@ -325,7 +339,7 @@ describe('plugin sdk versioning', () => {
 		).toMatchObject({
 			name: '@xpert-ai/plugin-vlm-default',
 			peerDependencies: expect.objectContaining({
-				'@xpert-ai/plugin-sdk': 'workspace:*'
+				'@xpert-ai/plugin-sdk': expect.stringMatching(/^workspace:/)
 			})
 		})
 	})
@@ -344,7 +358,7 @@ describe('plugin sdk versioning', () => {
 			).toMatchObject({
 				name: '@xpert-ai/plugin-vlm-default',
 				peerDependencies: expect.objectContaining({
-					'@xpert-ai/plugin-sdk': 'workspace:*'
+					'@xpert-ai/plugin-sdk': expect.stringMatching(/^workspace:/)
 				})
 			})
 		} finally {

@@ -5,7 +5,8 @@ import {
 	PluginConfigurationStatus,
 	PluginLevel,
 	PluginSourceConfig,
-	PluginSource
+	PluginSource,
+	PluginMeta
 } from '@xpert-ai/contracts'
 import { ApiProperty } from '@nestjs/swagger'
 import { Column, Entity, Index } from 'typeorm'
@@ -59,6 +60,12 @@ export class PluginInstance extends TenantOrganizationBaseEntity implements IPlu
 	@Column({ type: 'varchar', nullable: true })
 	@IsString()
 	source?: PluginSource
+
+	@Column({ type: 'jsonb', nullable: true })
+	meta?: PluginMeta | null
+
+	@Column({ type: 'boolean', default: false })
+	pendingRestart?: boolean
 
 	@ApiProperty({ type: () => Object, required: false })
 	@Column({ type: 'jsonb', nullable: true })

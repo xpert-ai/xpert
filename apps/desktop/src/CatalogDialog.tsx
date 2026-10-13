@@ -23,6 +23,7 @@ import { actionLabel, businessCategories, canUseExpert, categoryLabel, statusLab
 import type { CatalogItem, CatalogKind } from './catalog-types'
 import { catalogBusinessAreas, matchesBusinessArea } from './catalog/business-area-filter'
 import { blankAssistant } from './catalog/blank-assistant'
+import { subscribeAppActivation } from './app-activation'
 import { createCatalogCache } from './catalog/catalog-cache'
 
 const tabs: { id: CatalogKind; label: string }[] = [
@@ -64,6 +65,7 @@ export function CatalogDialog({
     }
     void cache.load(kind, true)
   }, [cache, kind])
+  useEffect(() => subscribeAppActivation(reload), [reload])
   useEffect(() => {
     setCategory('all')
     setBusinessAreaId(null)

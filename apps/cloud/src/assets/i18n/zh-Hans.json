@@ -3783,9 +3783,11 @@
       "SelectEnv": "选择环境"
     },
     "Plugin": {
+      "PendingRestartDescription": "插件已安装，重启服务后即可使用。",
+      "PendingRestart": "待重启生效",
       "RuntimeApplyingTitle": "正在应用插件变更",
-      "RuntimeApplyingDescription": "API 服务副本正在后台分批重启，以应用 {{pluginNames}} 的变更。你可以继续使用此页面。",
-      "RuntimeApplyingGenericDescription": "API 服务副本正在后台分批重启。你可以继续使用此页面。",
+      "RuntimeApplyingDescription": "正在同步 {{pluginNames}} 的运行状态，完成后会自动更新。",
+      "RuntimeApplyingGenericDescription": "正在同步插件运行状态，完成后会自动更新。",
       "ArtifactNamespace": "制品命名空间",
       "Plugins": "插件",
       "AllCategories": "所有类别",
@@ -3902,7 +3904,7 @@
       "RestartLater": "稍后处理",
       "RestartNow": "立即重启",
       "RestartConfirmTitle": "确认重启 API 服务？",
-      "RestartConfirmDescription": "服务会先等待正在处理的请求结束，然后重启进程。期间用户连接可能短暂中断。",
+      "RestartConfirmDescription": "重启会等待正在处理的请求结束。若当前只有一个可用实例，服务将短暂不可用，连接会在服务恢复后重新建立。",
       "RestartConfirmAction": "确认重启",
       "RestartingTitle": "正在重启 API 服务",
       "RestartingDescription": "服务正在等待活动请求结束，然后会安全重启。",

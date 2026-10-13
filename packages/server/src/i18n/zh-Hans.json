@@ -1,5 +1,7 @@
 {
 	"Error": {
+		"PluginRuntimePolicyInvalid": "插件 runtimePolicy 必须将 install、update 和 uninstall 声明为 hot 或 restart。",
+		"PluginRuntimePolicyChanged": "插件运行策略在安装期间发生变化，请使用最新的插件信息重试。",
 		"PluginAppDataNamespaceUnavailable": "需要具有已注册应用命名空间的已加载插件。",
 		"PluginPackageNameRequired": "插件包名不能为空",
 		"PluginSystemLevelInstallForbidden": "插件 {{name}} 为系统级插件，不能通过此 API 安装",

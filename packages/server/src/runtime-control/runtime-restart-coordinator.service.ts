@@ -1,3 +1,4 @@
+import { awaitPluginRestartApproval } from './plugin-convergence-capacity'
 /**
  * Invariants:
  * - Only live, ready boots join a rollout; historical members remain available for audit.
@@ -822,6 +823,7 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 
 		const changes = await this.generations.readPending()
 		if (!changes.length) return null
+		if (await awaitPluginRestartApproval(changes, this.instanceRegistry, this.generations)) return null
 
 		const latest = changes[changes.length - 1]
 		try {

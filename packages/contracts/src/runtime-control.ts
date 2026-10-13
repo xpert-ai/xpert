@@ -10,7 +10,7 @@ export interface IRuntimeStreamInterruption {
 
 export type RuntimeRestartMode = 'self-signal' | 'rolling-self-signal'
 
-export type RuntimeRestartStatus = 'in_progress' | 'completed' | 'failed'
+export type RuntimeRestartStatus = 'in_progress' | 'completed' | 'failed' | 'awaiting_restart'
 
 export interface IRuntimePluginRequirement {
   scopeKey: string

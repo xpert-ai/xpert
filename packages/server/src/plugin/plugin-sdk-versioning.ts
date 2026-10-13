@@ -4,6 +4,8 @@ import {
 	type PluginSdkCompatibilityWarning,
 	type PluginSourceConfig
 } from '@xpert-ai/contracts'
+import { parsePluginRuntimePolicy } from './plugin-runtime-policy'
+import type { PluginRuntimePolicy } from '@xpert-ai/contracts'
 import { execFile } from 'node:child_process'
 import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync } from 'node:fs'
 import { createRequire } from 'node:module'
@@ -41,6 +43,7 @@ type PluginPackageManifest = {
 	xpert?: {
 		plugin?: {
 			level?: unknown
+			runtimePolicy?: unknown
 			artifactNamespace?: unknown
 		}
 	}
@@ -51,17 +54,19 @@ export interface PluginSdkCompatibilityInfo {
 	peerRange: string
 	warnings: PluginSdkCompatibilityWarning[]
 	level?: PluginLevel
+	runtimePolicy?: PluginRuntimePolicy
 	version?: string
 	artifactNamespace?: string
 }
 
 function createCompatibilityInfo(
 	manifest: PluginPackageManifest,
-	input: Omit<PluginSdkCompatibilityInfo, 'version' | 'artifactNamespace'>
+	input: Omit<PluginSdkCompatibilityInfo, 'version' | 'artifactNamespace' | 'runtimePolicy'>
 ): PluginSdkCompatibilityInfo {
 	return {
 		...input,
 		version: manifest.version,
+		runtimePolicy: parsePluginRuntimePolicy(manifest.xpert?.plugin?.runtimePolicy),
 		artifactNamespace: readPluginArtifactNamespaceFromManifest(manifest)
 	}
 }
