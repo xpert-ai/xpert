@@ -1,9 +1,9 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core'
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms'
-import { TranslateModule } from '@ngx-translate/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,
   AIPermissionsEnum,
@@ -12,20 +12,20 @@ import {
   IUserModelGrant,
   ModelAccessChannelEnum,
   ModelAccessRequestStatusEnum,
+  RequestScopeLevel,
   UserModelGrantStatusEnum
 } from '@xpert-ai/contracts'
 import {
   ZardBadgeComponent,
   ZardButtonComponent,
   ZardDatePickerComponent,
-  ZardFormImports,
-  ZardInputDirective,
+  ZardComboboxComponent,
+  ZardIconComponent,
+  ZardSearchInputComponent,
   ZardPaginationImports,
-  ZardSelectImports,
   ZardTableImports,
   ZardTabsImports
 } from '@xpert-ai/headless-ui'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { format } from 'date-fns'
 import { firstValueFrom } from 'rxjs'
@@ -36,6 +36,7 @@ import { getErrorMessage } from '../../../@core/types'
 import {
   ModelAccessActionDialogComponent,
   ModelAccessActionDialogResult,
+  ModelAccessActionDialogData,
   ModelAccessActionMode
 } from './model-access-action-dialog.component'
 import { getGrantUnavailableReason } from './model-access-status'
@@ -53,15 +54,14 @@ type ModelAccessAdminTab = 'requests' | 'grants' | 'audit'
     CommonModule,
     ReactiveFormsModule,
     TranslateModule,
-    XpSpinComponent,
     XpI18nPipe,
     ZardBadgeComponent,
     ZardButtonComponent,
     ZardDatePickerComponent,
-    ZardInputDirective,
-    ...ZardFormImports,
+    ZardComboboxComponent,
+    ZardIconComponent,
+    ZardSearchInputComponent,
     ...ZardPaginationImports,
-    ...ZardSelectImports,
     ...ZardTableImports,
     ...ZardTabsImports
   ]
@@ -74,6 +74,14 @@ export class ModelAccessAdminComponent implements OnInit {
   readonly #toastr = injectToastr()
   readonly #formBuilder = inject(FormBuilder)
 
+  readonly #translate = inject(TranslateService)
+  readonly #language = toSignal(this.#translate.onLangChange)
+  #loadVersion = 0
+
+  readonly scopeLevel = signal(RequestScopeLevel.TENANT)
+  readonly tenantScope = RequestScopeLevel.TENANT
+  readonly loadFailed = signal(false)
+  readonly filtered = signal(false)
   readonly activeTab = signal<ModelAccessAdminTab>('requests')
   readonly requests = signal<IModelAccessRequest[]>([])
   readonly grants = signal<IUserModelGrant[]>([])
@@ -131,6 +139,19 @@ export class ModelAccessAdminComponent implements OnInit {
     this.activeTab() === 'requests' ? this.requestStatuses : this.activeTab() === 'grants' ? this.grantStatuses : []
   )
 
+  readonly channelOptions = computed(() => this.options(this.channels, 'ChannelValue', 'AllChannels'))
+  readonly modelTypeOptions = computed(() => this.options(this.modelTypes, 'ModelTypeValue', 'AllTypes'))
+  readonly filterStatusOptions = computed(() => this.options(this.statusOptions(), 'StatusValue', 'AllStatuses'))
+  readonly emptyTitle = computed(() =>
+    this.filtered()
+      ? 'NoResults'
+      : {
+          requests: 'NoRequests',
+          grants: 'NoGrants',
+          audit: 'NoAudit'
+        }[this.activeTab()]
+  )
+
   readonly filterForm = this.#formBuilder.nonNullable.group({
     channel: '',
     search: '',
@@ -143,25 +164,35 @@ export class ModelAccessAdminComponent implements OnInit {
     this.#store
       .selectActiveScope()
       .pipe(takeUntilDestroyed(this.#destroyRef))
-      .subscribe(() => {
+      .subscribe((scope) => {
+        this.scopeLevel.set(scope.level)
         this.resetPageIndexes()
         void this.load()
       })
   }
 
   setTab(tab: ModelAccessAdminTab) {
+    if (tab === this.activeTab()) return
+    const { status, expiresBefore } = this.filterForm.getRawValue()
     this.activeTab.set(tab)
-    this.filterForm.controls.status.setValue('')
+    this.filterForm.patchValue({ status: '', expiresBefore: null })
+    if (status || expiresBefore) {
+      this.resetPageIndexes()
+      void this.load()
+    }
   }
 
   async load() {
+    const version = ++this.#loadVersion
     this.loading.set(true)
+    this.loadFailed.set(false)
     const raw = this.filterForm.getRawValue()
     const common = {
       channel: this.channels.find((value) => value === raw.channel),
       search: raw.search.trim() || undefined,
       modelType: this.modelTypes.find((value) => value === raw.modelType)
     }
+    this.filtered.set(Boolean(common.search || common.channel || common.modelType || raw.status || raw.expiresBefore))
     const pageSize = this.pageSize()
     const requestStatus = this.requestStatuses.find((value) => value === raw.status)
     const grantStatus = this.grantStatuses.find((value) => value === raw.status)
@@ -192,6 +223,7 @@ export class ModelAccessAdminComponent implements OnInit {
           })
         )
       ])
+      if (version !== this.#loadVersion) return
       this.requests.set(requests.items)
       this.requestTotal.set(requests.total)
       this.grants.set(grants.items)
@@ -199,9 +231,11 @@ export class ModelAccessAdminComponent implements OnInit {
       this.events.set(events.items)
       this.eventTotal.set(events.total)
     } catch (error) {
+      if (version !== this.#loadVersion) return
+      this.loadFailed.set(true)
       this.#toastr.error(getErrorMessage(error))
     } finally {
-      this.loading.set(false)
+      if (version === this.#loadVersion) this.loading.set(false)
     }
   }
 
@@ -246,7 +280,7 @@ export class ModelAccessAdminComponent implements OnInit {
   }
 
   async approve(request: IModelAccessRequest) {
-    const result = await this.openAction('approve')
+    const result = await this.openAction('approve', request)
     if (!result) {
       return
     }
@@ -261,7 +295,7 @@ export class ModelAccessAdminComponent implements OnInit {
   }
 
   async reject(request: IModelAccessRequest) {
-    const result = await this.openAction('reject')
+    const result = await this.openAction('reject', request)
     if (!result?.reason) {
       return
     }
@@ -269,7 +303,7 @@ export class ModelAccessAdminComponent implements OnInit {
   }
 
   async extend(grant: IUserModelGrant) {
-    const result = await this.openAction('extend')
+    const result = await this.openAction('extend', grant)
     if (!result) {
       return
     }
@@ -284,21 +318,40 @@ export class ModelAccessAdminComponent implements OnInit {
   }
 
   async revoke(grant: IUserModelGrant) {
-    const result = await this.openAction('revoke')
+    const result = await this.openAction('revoke', grant)
     if (!result?.reason) {
       return
     }
     await this.runMutation(() => firstValueFrom(this.#service.revokeGrant(grant.id, { reason: result.reason })))
   }
 
-  private openAction(mode: ModelAccessActionMode) {
+  private options(values: string[], prefix: string, allKey: string) {
+    this.#language()
+    return [
+      { value: '', label: this.#translate.instant('XP.ModelAccessSettings.' + allKey) },
+      ...values.map((value) => ({ value, label: this.#translate.instant('XP.ModelAccess.' + prefix + '.' + value) }))
+    ]
+  }
+
+  private openAction(mode: ModelAccessActionMode, target: IModelAccessRequest | IUserModelGrant) {
     return firstValueFrom(
       this.#dialog.open<
         ModelAccessActionDialogResult | null,
-        { mode: ModelAccessActionMode },
+        ModelAccessActionDialogData,
         ModelAccessActionDialogComponent
       >(ModelAccessActionDialogComponent, {
-        data: { mode },
+        data: {
+          mode,
+          target: {
+            userName: 'requesterId' in target ? target.requesterName : target.userName,
+            model: target.model,
+            modelSnapshot: target.modelSnapshot,
+            channel: target.channel,
+            ownershipScope: target.ownershipScope,
+            reason: 'requesterId' in target ? target.reason : null,
+            validUntil: 'userId' in target && target.validUntil ? this.formatValidUntil(target.validUntil) : null
+          }
+        },
         width: '520px',
         maxWidth: 'calc(100vw - 32px)',
         backdropClass: 'backdrop-blur-xs-black',
