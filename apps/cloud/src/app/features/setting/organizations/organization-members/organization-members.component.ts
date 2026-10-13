@@ -1,12 +1,12 @@
 import { Dialog } from '@angular/cdk/dialog'
-import { Component, Input, inject } from '@angular/core'
+import { Component, Input, computed, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { injectConfirmDelete, XpTableComponent } from '@xpert-ai/headless-ui'
+import { injectConfirmDelete, XpTableComponent, ZardSearchInputComponent } from '@xpert-ai/headless-ui'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
 import { UserProfileInlineComponent, UserRoleSelectComponent } from 'apps/cloud/src/app/@shared/user'
 import { BehaviorSubject, combineLatest, firstValueFrom, of } from 'rxjs'
-import { map, switchMap } from 'rxjs/operators'
+import { catchError, map, switchMap, tap } from 'rxjs/operators'
 import { IUser } from '@xpert-ai/contracts'
 import { getErrorMessage, IUserOrganization, ToastrService, UsersOrganizationsService } from '../../../../@core'
 import { SharedModule } from '../../../../@shared/shared.module'
@@ -19,7 +19,14 @@ import { ZardButtonComponent, ZardSwitchComponent } from '@xpert-ai/headless-ui'
   host: {
     class: 'block w-full min-w-0'
   },
-  imports: [SharedModule, ZardButtonComponent, ZardSwitchComponent, UserProfileInlineComponent, XpTableComponent]
+  imports: [
+    SharedModule,
+    ZardButtonComponent,
+    ZardSwitchComponent,
+    UserProfileInlineComponent,
+    XpTableComponent,
+    ZardSearchInputComponent
+  ]
 })
 export class OrganizationMembersComponent extends TranslationBaseComponent {
   readonly confirmDelete = injectConfirmDelete()
@@ -37,8 +44,21 @@ export class OrganizationMembersComponent extends TranslationBaseComponent {
 
   @Input() canEdit = false
 
+  readonly loading = signal(false)
+  readonly loadFailed = signal(false)
+  readonly search = signal('')
+  readonly userLabel = userLabel
+
+  refresh() {
+    this.refresh$.next()
+  }
+
   readonly memberships = toSignal(
     combineLatest([this.organizationId$, this.refresh$]).pipe(
+      tap(([organizationId]) => {
+        this.loading.set(!!organizationId)
+        this.loadFailed.set(false)
+      }),
       switchMap(([organizationId]) =>
         organizationId
           ? this.userOrganizationsService
@@ -54,13 +74,28 @@ export class OrganizationMembersComponent extends TranslationBaseComponent {
 
                     return userLabel(left.user).localeCompare(userLabel(right.user))
                   })
-                )
+                ),
+                tap(() => this.loading.set(false)),
+                catchError(() => {
+                  this.loading.set(false)
+                  this.loadFailed.set(true)
+                  return of([])
+                })
               )
           : of([])
       )
     ),
     { initialValue: [] }
   )
+
+  readonly visibleMemberships = computed(() => {
+    const search = this.search().trim().toLocaleLowerCase()
+    return this.memberships().filter(
+      ({ user }) =>
+        !search ||
+        [userLabel(user), user?.email, user?.role?.name].some((value) => value?.toLocaleLowerCase().includes(search))
+    )
+  })
 
   async openMemberSelect() {
     const organizationId = this.organizationId$.value

@@ -1,11 +1,12 @@
+import { Clipboard } from '@angular/cdk/clipboard'
 import { Dialog } from '@angular/cdk/dialog'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { TestBed } from '@angular/core/testing'
 import { ActivatedRoute, convertToParamMap, Router } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { IOrganization } from '@xpert-ai/contracts'
+import { IOrganization, PermissionsEnum } from '@xpert-ai/contracts'
 import { UsersService } from '@cloud/app/@core/state'
-import { firstValueFrom, of } from 'rxjs'
+import { firstValueFrom, of, throwError } from 'rxjs'
 import { OrganizationsService, RequestScopeLevel, StorageFileService, Store, ToastrService } from '../../../@core'
 import { OrganizationsComponent } from './organizations.component'
 
@@ -50,13 +51,9 @@ class MockStore {
     return of(this.activeScope)
   }
 
-  hasPermission() {
-    return true
-  }
+  hasPermission = jest.fn(() => true)
 
-  hasFeatureEnabled() {
-    return true
-  }
+  hasFeatureEnabled = jest.fn(() => true)
 }
 
 describe('OrganizationsComponent', () => {
@@ -145,7 +142,7 @@ describe('OrganizationsComponent', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="organization-id-input"]')).toBeNull()
   })
 
-  it('renders a readable tenant organization id column', async () => {
+  it('shows organization identity first and moves the full id to details', async () => {
     store.activeScope = { level: RequestScopeLevel.TENANT }
 
     const translate = TestBed.inject(TranslateService)
@@ -179,14 +176,18 @@ describe('OrganizationsComponent', () => {
     const headers = Array.from(fixture.nativeElement.querySelectorAll<HTMLTableCellElement>('thead th')).map((header) =>
       header.textContent?.trim()
     )
-    const idCell = fixture.nativeElement.querySelector<HTMLTableCellElement>('tbody tr td:nth-child(3)')
+    const identityCell = fixture.nativeElement.querySelector<HTMLTableCellElement>('tbody tr td:first-child')
 
-    expect(headers).toContain('组织 ID')
-    expect(headers.filter((header) => header === '标识')).toHaveLength(1)
-    expect(table?.className).not.toContain('table-fixed')
-    expect(idCell?.textContent?.trim()).toBe(organization.id)
-    expect(idCell?.className).toContain('min-w-[280px]')
-    expect(idCell?.className).not.toContain('truncate')
+    expect(headers).not.toContain('组织 ID')
+    expect(table?.querySelector('xp-org-avatar')).not.toBeNull()
+    expect(identityCell?.textContent).toContain(organization.name)
+    expect(identityCell?.textContent).not.toContain(organization.id)
+    expect(fixture.componentInstance.detailTabs().map((tab) => tab.id)).toEqual([
+      'general',
+      'members',
+      'user-groups',
+      'controls'
+    ])
   })
 
   it('loads and saves the organization sidebar default', async () => {
@@ -205,5 +206,80 @@ describe('OrganizationsComponent', () => {
       organization.id,
       expect.objectContaining({ sidebarExpandedByDefault: false })
     )
+  })
+  it('keeps governance disabled in organization scope and hides SMTP when unavailable', async () => {
+    store.hasFeatureEnabled.mockReturnValue(false)
+    const fixture = TestBed.createComponent(OrganizationsComponent)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    expect(fixture.componentInstance.form.controls.isDefault.disabled).toBe(true)
+    expect(fixture.componentInstance.form.controls.isActive.disabled).toBe(true)
+    expect(fixture.componentInstance.detailTabs().map((tab) => tab.id)).toEqual([
+      'general',
+      'members',
+      'user-groups',
+      'controls',
+      'tags',
+      'demo'
+    ])
+    await fixture.componentInstance.addOrganization()
+    expect(TestBed.inject(Dialog).open).not.toHaveBeenCalled()
+  })
+
+  it('disables edits and blocks saves without organization edit permission', async () => {
+    store.hasPermission.mockImplementation(
+      (permission?: PermissionsEnum) => permission !== PermissionsEnum.ALL_ORG_EDIT
+    )
+    const fixture = TestBed.createComponent(OrganizationsComponent)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    expect(fixture.componentInstance.form.disabled).toBe(true)
+    expect(fixture.componentInstance.canManageSelectedMembers()).toBe(true)
+    await fixture.componentInstance.saveOrganization()
+    expect(TestBed.inject(OrganizationsService).update).not.toHaveBeenCalled()
+  })
+
+  it('copies the full id through CDK clipboard on the first click', async () => {
+    const copy = jest.spyOn(TestBed.inject(Clipboard), 'copy').mockReturnValue(true)
+    const fixture = TestBed.createComponent(OrganizationsComponent)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    fixture.nativeElement.querySelector('button[aria-label="XP.OrganizationSettings.CopyId"]').click()
+    expect(copy).toHaveBeenCalledTimes(1)
+    expect(copy).toHaveBeenCalledWith(organization.id)
+  })
+
+  it('resets dirty values and keeps invalid input from reaching the service', async () => {
+    const fixture = TestBed.createComponent(OrganizationsComponent)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    const component = fixture.componentInstance
+    component.form.controls.name.setValue('')
+    component.form.markAsDirty()
+    await component.saveOrganization()
+    expect(TestBed.inject(OrganizationsService).update).not.toHaveBeenCalled()
+    component.resetForm()
+    expect(component.form.controls.name.value).toBe(organization.name)
+    expect(component.form.pristine).toBe(true)
+  })
+
+  it('recovers the detail workspace after a load failure', async () => {
+    const service = TestBed.inject(OrganizationsService)
+    jest.spyOn(service, 'getById').mockReturnValueOnce(throwError(() => new Error('Unavailable')))
+    const fixture = TestBed.createComponent(OrganizationsComponent)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    expect(fixture.componentInstance.error()).toBeTruthy()
+    fixture.componentInstance.refresh()
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    expect(fixture.componentInstance.error()).toBeNull()
+    expect(fixture.componentInstance.selectedOrganizationId()).toBe(organization.id)
   })
 })
