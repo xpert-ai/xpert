@@ -260,6 +260,26 @@
     "Connectors": "连接器"
   },
   "XP": {
+    "ModelGatewaySettings": {
+      "NoMatchesHint": "试试其他模型 ID、提供商或模型名称。",
+      "KeysTitle": "我的 API Key",
+      "KeysEmptyHint": "创建专用密钥，在外部客户端中使用已获授权的模型。",
+      "ModelAccess": "模型权限",
+      "MyRequests": "我的申请",
+      "Calls": "调用记录",
+      "Guide": "接入指南",
+      "RequestsHint": "跟踪模型权限申请与审批结果。",
+      "CallsHint": "查看模型调用状态、消耗点数和时间。",
+      "Pricing": "计费方式",
+      "Requestable": "可申请",
+      "ShowKey": "显示密钥",
+      "HideKey": "隐藏密钥",
+      "CopyKey": "复制密钥",
+      "CopyModelId": "复制模型 ID",
+      "LoadFailed": "外部 API 信息加载失败",
+      "GuideTitle": "OpenAI 兼容接口",
+      "BaseUrl": "API 地址"
+    },
     "ModelSettings": {
       "Type": "类型",
       "Access": "授权与范围",

@@ -54,6 +54,26 @@
     "CustomSMTP": "Custom SMTP"
   },
   "XP": {
+    "ModelGatewaySettings": {
+      "NoMatchesHint": "Try another model ID, provider, or model name.",
+      "KeysTitle": "My API keys",
+      "KeysEmptyHint": "Create a dedicated key to use approved models in external clients.",
+      "ModelAccess": "Model access",
+      "MyRequests": "My requests",
+      "Calls": "Call history",
+      "Guide": "Integration guide",
+      "RequestsHint": "Track model access requests and approval results.",
+      "CallsHint": "Review model call status, points charged, and timing.",
+      "Pricing": "Pricing",
+      "Requestable": "Request available",
+      "ShowKey": "Show key",
+      "HideKey": "Hide key",
+      "CopyKey": "Copy key",
+      "CopyModelId": "Copy model ID",
+      "LoadFailed": "Unable to load external API data",
+      "GuideTitle": "OpenAI-compatible API",
+      "BaseUrl": "API endpoint"
+    },
     "ModelSettings": {
       "Type": "Type",
       "Access": "Access & scope",

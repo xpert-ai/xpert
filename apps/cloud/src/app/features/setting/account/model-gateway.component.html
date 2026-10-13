@@ -1,440 +1,510 @@
-<div class="flex h-full w-full min-w-0 flex-col">
-  <div class="xp-page-body flex min-h-0 w-full min-w-0 flex-1 flex-col gap-5 overflow-auto p-4">
-    @if (loading()) {
-      <div class="flex min-h-52 items-center justify-center"><xp-spin /></div>
-    } @else {
-      <section class="rounded-xl border border-divider-regular bg-components-card-bg p-4">
-        <div class="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h2 class="font-semibold text-text-primary">
-              {{ 'XP.ModelGateway.ExternalApi' | translate: { Default: 'External API' } }}
-              ·
-              {{ 'XP.ModelGateway.Connection' | translate: { Default: 'Connection' } }}
-            </h2>
-            <p class="mt-1 text-sm text-text-secondary">
-              {{
-                'XP.ModelGateway.AccountDescription'
-                  | translate
-                    : {
-                        Default:
-                          'Apply for external model access, create dedicated API keys, and use your own membership balance from other platforms.'
-                      }
-              }}
-            </p>
-            <p class="mt-2 text-sm text-text-tertiary">
-              {{
-                'XP.ModelGateway.OpenAICompatible'
-                  | translate
-                    : {
-                        Default:
-                          'Use this base URL in OpenAI-compatible clients. Direct Claude Code support requires the Anthropic protocol planned for a later phase.'
-                      }
-              }}
-            </p>
-          </div>
-          <button z-button zType="outline" type="button" (click)="copy(apiBaseUrl)">
-            {{ 'XP.ACTIONS.Copy' | translate: { Default: 'Copy' } }}
-          </button>
+<div class="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+  <header class="flex flex-wrap items-start justify-between gap-4">
+    <div>
+      <div class="flex items-center gap-3">
+        <h1 class="text-2xl font-semibold tracking-tight text-foreground">
+          {{ 'XP.ModelGateway.ExternalApi' | translate }}
+        </h1>
+        <z-badge zType="outline">{{ 'XP.UsageDashboard.Personal' | translate }}</z-badge>
+      </div>
+      <p class="mt-2 text-sm text-muted-foreground">{{ 'XP.ModelGateway.AccountDescription' | translate }}</p>
+    </div>
+    <button z-button zType="outline" type="button" [disabled]="loading()" (click)="load()">
+      <z-icon [zType]="loading() ? 'loader-circle' : 'refresh'" [class]="loading() ? 'animate-spin' : ''" />
+      {{ 'XP.ACTIONS.Refresh' | translate }}
+    </button>
+  </header>
+
+  @if (loading()) {
+    <div role="status" class="flex min-h-64 items-center justify-center gap-2 text-sm text-muted-foreground">
+      <z-icon zType="loader-circle" class="animate-spin" />{{ 'XP.KEY_WORDS.Loading' | translate }}
+    </div>
+  } @else if (loadFailed()) {
+    <z-empty
+      zIcon="circle-alert"
+      [zTitle]="'XP.ModelGatewaySettings.LoadFailed' | translate"
+      [zDescription]="'XP.UsageDashboard.RetryHint' | translate"
+    >
+      <button z-button zType="outline" type="button" (click)="load()">{{ 'XP.ACTIONS.Retry' | translate }}</button>
+    </z-empty>
+  } @else {
+    <z-tab-group
+      [selectedIndex]="selectedTabIndex()"
+      (selectedIndexChange)="selectedTabIndex.set($event)"
+      [preserveContent]="true"
+      animationDuration="0ms"
+    >
+      <z-tab [label]="'XP.ModelGateway.ApiKeys' | translate" bodyClass="pt-6">
+        <z-card class="min-w-0 overflow-hidden shadow-none">
+          <z-card-header class="flex flex-wrap items-start justify-between gap-3 px-5 py-5">
+            <div>
+              <div class="flex items-center gap-2">
+                <z-card-title role="heading" aria-level="2" class="text-base">{{
+                  'XP.ModelGatewaySettings.KeysTitle' | translate
+                }}</z-card-title>
+                <z-badge zType="secondary">{{ keys().length }}</z-badge>
+              </div>
+              <z-card-subtitle class="block mt-2">{{ 'XP.ModelGateway.KeysHint' | translate }}</z-card-subtitle>
+            </div>
+            <button z-button type="button" (click)="createKey()">
+              <z-icon zType="plus" />{{ 'XP.ModelGateway.CreateKey' | translate }}
+            </button>
+          </z-card-header>
+          <z-card-content class="p-0">
+            @if (keys().length) {
+              <div class="overflow-x-auto border-t border-border">
+                <table z-table class="min-w-[700px]">
+                  <thead z-table-header class="bg-muted/40">
+                    <tr z-table-row>
+                      <th z-table-head>{{ 'XP.ModelGateway.KeyName' | translate }}</th>
+                      <th z-table-head>{{ 'XP.ModelGateway.ApiKey' | translate }}</th>
+                      <th z-table-head>{{ 'XP.ModelGateway.Status' | translate }}</th>
+                      <th z-table-head>{{ 'XP.ModelGateway.ExpiresAt' | translate }}</th>
+                      <th z-table-head class="text-right">{{ 'XP.ModelGateway.Actions' | translate }}</th>
+                    </tr>
+                  </thead>
+                  <tbody z-table-body>
+                    @for (key of keys(); track key.id) {
+                      <tr z-table-row>
+                        <td z-table-cell class="max-w-48 break-words py-4 font-medium">{{ key.name }}</td>
+                        <td z-table-cell class="py-4">
+                          @if (key.secret; as secret) {
+                            <div class="flex items-center gap-1">
+                              <code
+                                class="max-w-56 text-xs"
+                                [class]="revealedKeys().has(key.id) ? 'break-all' : 'truncate'"
+                                >{{ revealedKeys().has(key.id) ? secret : key.prefix + '••••••••' }}</code
+                              >
+                              <button
+                                z-button
+                                zType="ghost"
+                                zSize="icon-sm"
+                                type="button"
+                                [attr.aria-label]="
+                                  (revealedKeys().has(key.id)
+                                    ? 'XP.ModelGatewaySettings.HideKey'
+                                    : 'XP.ModelGatewaySettings.ShowKey'
+                                  ) | translate
+                                "
+                                [attr.aria-pressed]="revealedKeys().has(key.id)"
+                                [zTooltip]="
+                                  (revealedKeys().has(key.id)
+                                    ? 'XP.ModelGatewaySettings.HideKey'
+                                    : 'XP.ModelGatewaySettings.ShowKey'
+                                  ) | translate
+                                "
+                                (click)="toggleKey(key.id)"
+                              >
+                                <z-icon [zType]="revealedKeys().has(key.id) ? eyeOffIcon : 'eye'" />
+                              </button>
+                              <button
+                                z-button
+                                zType="ghost"
+                                zSize="icon-sm"
+                                type="button"
+                                [attr.aria-label]="'XP.ModelGatewaySettings.CopyKey' | translate"
+                                [zTooltip]="'XP.ModelGatewaySettings.CopyKey' | translate"
+                                (click)="copy(secret)"
+                              >
+                                <z-icon zType="copy" />
+                              </button>
+                            </div>
+                          } @else {
+                            <code class="text-xs">{{ key.prefix }}…</code>
+                            <p class="mt-1 max-w-56 text-xs text-muted-foreground">
+                              {{ 'XP.ModelGateway.LegacyKeyUnavailable' | translate }}
+                            </p>
+                          }
+                        </td>
+                        <td z-table-cell>
+                          <z-badge [zType]="key.status === keyStatus.Active ? 'secondary' : 'outline'">{{
+                            'XP.ModelGateway.KeyStatus.' + key.status | translate: { Default: key.status }
+                          }}</z-badge>
+                        </td>
+                        <td z-table-cell class="whitespace-nowrap text-xs text-muted-foreground">
+                          {{ formatDate(key.validUntil) }}
+                        </td>
+                        <td z-table-cell class="text-right">
+                          @if (key.status === keyStatus.Active) {
+                            <button z-button zType="destructive" zSize="sm" type="button" (click)="revokeKey(key)">
+                              {{ 'XP.ModelGateway.Revoke' | translate }}
+                            </button>
+                          }
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else {
+              <z-empty
+                zIcon="shield"
+                [zTitle]="'XP.ModelGateway.NoKeys' | translate"
+                [zDescription]="'XP.ModelGatewaySettings.KeysEmptyHint' | translate"
+              >
+                <button z-button zType="outline" type="button" (click)="selectedTabIndex.set(4)">
+                  {{ 'XP.ModelGatewaySettings.Guide' | translate }}<z-icon zType="arrow-right" />
+                </button>
+              </z-empty>
+            }
+          </z-card-content>
+        </z-card>
+      </z-tab>
+
+      <z-tab [label]="'XP.ModelGatewaySettings.ModelAccess' | translate" bodyClass="pt-6">
+        <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+          <p class="text-sm text-muted-foreground">{{ 'XP.ModelGateway.ModelsHint' | translate }}</p>
+          <p role="status" class="text-xs text-muted-foreground">
+            {{
+              'XP.ModelSettings.ResultCount'
+                | translate: { count: filteredCatalogItems().length, total: catalog()?.items?.length || 0 }
+            }}
+          </p>
+          <z-search-input
+            class="w-full sm:w-80"
+            [formControl]="modelSearchControl"
+            [placeholder]="'XP.ModelGateway.SearchModelsPlaceholder' | translate"
+            [aria-label]="'XP.ModelGateway.SearchModels' | translate"
+            [clearLabel]="'XP.ModelSettings.ClearSearch' | translate"
+          />
         </div>
-        <code class="mt-3 block overflow-auto rounded-lg bg-components-panel-bg p-3 text-sm">{{ apiBaseUrl }}</code>
-        <div class="mt-4 border-t border-divider-regular pt-4">
-          <z-accordion displayDensity="compact">
-            <z-accordion-item>
-              <z-accordion-header class="px-0">
-                <z-accordion-title class="text-text-primary">
-                  {{ 'XP.ModelGateway.QuickStart' | translate: { Default: 'Quick start' } }}
-                </z-accordion-title>
-                <z-accordion-description>
+        @if (filteredCatalogItems().length) {
+          <div class="overflow-x-auto rounded-lg border border-border">
+            <table z-table class="min-w-[680px]">
+              <thead z-table-header class="bg-muted/40">
+                <tr z-table-row>
+                  <th z-table-head>{{ 'XP.ModelGateway.Model' | translate }}</th>
+                  <th z-table-head>{{ 'XP.ModelGatewaySettings.Pricing' | translate }}</th>
+                  <th z-table-head>{{ 'XP.ModelGateway.Status' | translate }}</th>
+                  <th
+                    z-table-head
+                    class="sticky right-0 border-l border-border bg-muted text-right md:static md:border-l-0 md:bg-transparent"
+                  >
+                    {{ 'XP.ModelGateway.Actions' | translate }}
+                  </th>
+                </tr>
+              </thead>
+              <tbody z-table-body>
+                @for (item of filteredCatalogItems(); track item.id) {
+                  <tr z-table-row>
+                    <td z-table-cell class="max-w-80 py-3">
+                      <div class="flex items-center gap-1.5">
+                        <h2 class="min-w-0 truncate font-medium" [title]="item.externalModelId">
+                          {{ item.externalModelId }}
+                        </h2>
+                        <button
+                          z-button
+                          zType="ghost"
+                          zSize="icon-xs"
+                          type="button"
+                          [attr.aria-label]="'XP.ModelGatewaySettings.CopyModelId' | translate"
+                          [zTooltip]="'XP.ModelGatewaySettings.CopyModelId' | translate"
+                          (click)="copy(item.externalModelId)"
+                        >
+                          <z-icon zType="copy" />
+                        </button>
+                      </div>
+                      <p
+                        class="mt-1 truncate text-xs text-muted-foreground"
+                        [title]="item.provider + ' / ' + item.model"
+                      >
+                        {{ item.provider }} / {{ item.model }}
+                      </p>
+                    </td>
+                    <td z-table-cell class="whitespace-nowrap text-xs text-muted-foreground">
+                      {{
+                        (item.planIncluded ? 'XP.ModelGateway.PlanPricing' : 'XP.ModelGateway.StandardPricing')
+                          | translate
+                      }}
+                    </td>
+                    <td z-table-cell class="max-w-64">
+                      <div class="flex flex-wrap gap-1.5">
+                        @if (item.deprecated) {
+                          <z-badge zType="destructive">{{ 'XP.KEY_WORDS.Deprecated' | translate }}</z-badge>
+                        }
+                        @if (item.grant) {
+                          <z-badge [zType]="item.allowed ? 'secondary' : 'destructive'">{{
+                            (item.allowed ? 'XP.ModelGateway.Available' : 'XP.ModelGateway.TemporarilyUnavailable')
+                              | translate
+                          }}</z-badge>
+                        } @else if (item.pendingRequest) {
+                          <z-badge zType="outline">{{ 'XP.ModelGateway.Pending' | translate }}</z-badge>
+                        } @else if (item.requestable) {
+                          <span class="text-xs text-muted-foreground">{{
+                            'XP.ModelGatewaySettings.Requestable' | translate
+                          }}</span>
+                        }
+                      </div>
+                      @if (item.grant && !item.allowed && item.unavailableReason) {
+                        <p class="mt-2 text-xs text-text-warning">
+                          {{ 'XP.ModelAccess.Unavailable.' + item.unavailableReason | translate }}
+                        </p>
+                      }
+                    </td>
+                    <td
+                      z-table-cell
+                      class="sticky right-0 border-l border-border bg-background text-right md:static md:border-l-0 md:bg-transparent"
+                    >
+                      @if (item.requestable) {
+                        <button z-button zSize="sm" type="button" (click)="apply(item)">
+                          {{ 'XP.ModelGateway.Apply' | translate }}
+                        </button>
+                      } @else if (item.pendingRequest) {
+                        <button
+                          z-button
+                          zType="outline"
+                          zSize="sm"
+                          type="button"
+                          (click)="withdraw(item.pendingRequest)"
+                        >
+                          {{ 'XP.ModelGateway.Withdraw' | translate }}
+                        </button>
+                      } @else {
+                        <span class="text-muted-foreground">—</span>
+                      }
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        } @else if (catalog()?.items?.length) {
+          <z-empty
+            zIcon="search"
+            [zTitle]="'XP.ModelGateway.NoMatchingModels' | translate"
+            [zDescription]="'XP.ModelGatewaySettings.NoMatchesHint' | translate"
+          >
+            <button z-button zType="outline" type="button" (click)="modelSearchControl.setValue('')">
+              {{ 'XP.ModelSettings.ClearSearch' | translate }}
+            </button>
+          </z-empty>
+        } @else {
+          <z-empty zIcon="sparkles" [zTitle]="'XP.ModelGateway.NoAvailableApiModels' | translate" />
+        }
+      </z-tab>
+
+      <z-tab [label]="'XP.ModelGatewaySettings.MyRequests' | translate" bodyClass="pt-6">
+        <z-card class="min-w-0 overflow-hidden shadow-none">
+          <z-card-header class="block px-5 py-5">
+            <div class="flex items-center gap-2">
+              <z-card-title role="heading" aria-level="2" class="text-base">{{
+                'XP.ModelGateway.ApplicationStatus' | translate
+              }}</z-card-title>
+              <z-badge zType="secondary">{{ requests().length }}</z-badge>
+            </div>
+            <z-card-subtitle class="block mt-2">{{
+              'XP.ModelGatewaySettings.RequestsHint' | translate
+            }}</z-card-subtitle>
+          </z-card-header>
+          <z-card-content class="p-0">
+            @if (requests().length) {
+              <div class="overflow-x-auto border-t border-border">
+                <table z-table class="min-w-[720px]">
+                  <thead z-table-header class="bg-muted/40">
+                    <tr z-table-row>
+                      <th z-table-head>{{ 'XP.ModelGateway.Model' | translate }}</th>
+                      <th z-table-head>{{ 'XP.ModelGateway.Reason' | translate }}</th>
+                      <th z-table-head>{{ 'XP.ModelGateway.Status' | translate }}</th>
+                      <th z-table-head>{{ 'XP.ModelGateway.SubmittedAt' | translate }}</th>
+                      <th z-table-head class="text-right">{{ 'XP.ModelGateway.Actions' | translate }}</th>
+                    </tr>
+                  </thead>
+                  <tbody z-table-body>
+                    @for (request of pagedRequests(); track request.id) {
+                      <tr z-table-row>
+                        <td z-table-cell class="max-w-64 py-4">
+                          <p class="break-words font-medium">
+                            {{ request.externalModelId || request.modelSnapshot.externalModelId || request.model }}
+                          </p>
+                          <p class="mt-1 truncate text-xs text-muted-foreground">
+                            {{ request.provider }} / {{ request.model }}
+                          </p>
+                        </td>
+                        <td z-table-cell>
+                          <p class="line-clamp-2 max-w-56 text-xs text-muted-foreground" [title]="request.reason">
+                            {{ request.reason }}
+                          </p>
+                        </td>
+                        <td z-table-cell>
+                          <z-badge zType="outline">{{
+                            'XP.ModelAccess.StatusValue.' + currentRequestStatus(request)
+                              | translate: { Default: currentRequestStatus(request) }
+                          }}</z-badge>
+                        </td>
+                        <td z-table-cell class="whitespace-nowrap text-xs text-muted-foreground">
+                          {{ formatDate(request.createdAt) }}
+                        </td>
+                        <td z-table-cell class="text-right">
+                          @if (request.status === requestStatus.Requested) {
+                            <button z-button zType="outline" zSize="sm" type="button" (click)="withdraw(request)">
+                              {{ 'XP.ModelGateway.Withdraw' | translate }}
+                            </button>
+                          } @else {
+                            <span class="text-muted-foreground">—</span>
+                          }
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+              <div
+                class="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-4 text-xs text-muted-foreground"
+              >
+                <span>{{
+                  'XP.ModelGateway.PageSummary'
+                    | translate
+                      : { current: requestPageIndex() + 1, pages: requestPageCount(), total: requests().length }
+                }}</span>
+                <div class="flex gap-2">
                   <button
                     z-button
                     zType="outline"
                     zSize="sm"
                     type="button"
-                    (click)="$event.stopPropagation(); copy(curlExample())"
-                    (keydown)="$event.stopPropagation()"
+                    [disabled]="requestPageIndex() === 0"
+                    (click)="previousRequestsPage()"
                   >
-                    {{ 'XP.ModelGateway.CopyExample' | translate: { Default: 'Copy example' } }}
+                    {{ 'XP.ModelGateway.PreviousPage' | translate }}
                   </button>
-                </z-accordion-description>
-              </z-accordion-header>
-              <pre
-                class="overflow-auto whitespace-pre-wrap break-words rounded-lg bg-components-panel-bg p-3 text-xs text-text-secondary"
-                >{{ curlExample() }}</pre
-              >
-            </z-accordion-item>
-          </z-accordion>
-        </div>
-      </section>
-
-      <section>
-        <z-accordion displayDensity="compact">
-          <z-accordion-item zValue="external-models" class="[&_[data-slot=accordion-body]>div]:px-0">
-            <z-accordion-header class="px-0">
-              <z-accordion-title class="items-start text-base">
-                <div>
-                  <h2 class="font-semibold text-text-primary">
-                    {{ 'XP.ModelGateway.Models' | translate: { Default: 'External models' } }}
-                  </h2>
-                  <p class="mt-1 text-sm font-normal text-text-tertiary">
-                    {{
-                      'XP.ModelGateway.ModelsHint'
-                        | translate: { Default: 'Every model needs its own approval, including models in your plan.' }
-                    }}
-                  </p>
+                  <button
+                    z-button
+                    zType="outline"
+                    zSize="sm"
+                    type="button"
+                    [disabled]="requestPageIndex() + 1 >= requestPageCount()"
+                    (click)="nextRequestsPage()"
+                  >
+                    {{ 'XP.ModelGateway.NextPage' | translate }}
+                  </button>
                 </div>
-              </z-accordion-title>
-            </z-accordion-header>
-            <div class="mb-3 flex justify-end">
-              <z-form-field class="w-full sm:max-w-sm">
-                <z-form-label>
-                  {{ 'XP.ModelGateway.SearchModels' | translate: { Default: 'Search models' } }}
-                </z-form-label>
-                <input
-                  z-input
-                  [formControl]="modelSearchControl"
-                  [placeholder]="
-                    'XP.ModelGateway.SearchModelsPlaceholder'
-                      | translate: { Default: 'Model ID, provider, or model name' }
-                  "
-                />
-              </z-form-field>
+              </div>
+            } @else {
+              <z-empty zIcon="file-text" [zTitle]="'XP.ModelGateway.NoRequests' | translate">
+                <button z-button zType="outline" type="button" (click)="selectedTabIndex.set(1)">
+                  {{ 'XP.ModelGatewaySettings.ModelAccess' | translate }}<z-icon zType="arrow-right" />
+                </button>
+              </z-empty>
+            }
+          </z-card-content>
+        </z-card>
+      </z-tab>
+
+      <z-tab [label]="'XP.ModelGatewaySettings.Calls' | translate" bodyClass="pt-6">
+        <z-card class="min-w-0 overflow-hidden shadow-none">
+          <z-card-header class="block px-5 py-5">
+            <div class="flex items-center gap-2">
+              <z-card-title role="heading" aria-level="2" class="text-base">{{
+                'XP.ModelGateway.RecentCalls' | translate
+              }}</z-card-title>
+              <z-badge zType="secondary">{{ callTotal() }}</z-badge>
             </div>
-            <div id="external-models-list">
-              @if (catalog()?.items?.length) {
-                @if (filteredCatalogItems().length) {
-                  <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    @for (item of filteredCatalogItems(); track item.id) {
-                      <div class="rounded-xl border border-divider-regular bg-components-card-bg p-4">
-                        <div class="flex items-start justify-between gap-3">
-                          <div class="min-w-0">
-                            <div class="truncate font-medium text-text-primary" [title]="item.externalModelId">
-                              {{ item.externalModelId }}
-                            </div>
-                            <div class="mt-1 truncate text-xs text-text-tertiary">
-                              {{ item.provider }} / {{ item.model }}
-                            </div>
-                          </div>
-                          <div class="flex shrink-0 flex-wrap justify-end gap-1">
-                            @if (item.deprecated) {
-                              <z-badge zType="destructive">
-                                {{ 'XP.KEY_WORDS.Deprecated' | translate: { Default: 'Deprecated' } }}
-                              </z-badge>
-                            }
-                            @if (item.grant) {
-                              @if (item.allowed) {
-                                <z-badge zType="secondary">
-                                  {{ 'XP.ModelGateway.Available' | translate: { Default: 'Available' } }}
-                                </z-badge>
-                              } @else {
-                                <z-badge zType="destructive">
-                                  {{
-                                    'XP.ModelGateway.TemporarilyUnavailable'
-                                      | translate: { Default: 'Temporarily unavailable' }
-                                  }}
-                                </z-badge>
-                              }
-                            } @else if (item.pendingRequest) {
-                              <z-badge zType="outline">
-                                {{ 'XP.ModelGateway.Pending' | translate: { Default: 'Pending' } }}
-                              </z-badge>
-                            }
-                          </div>
-                        </div>
-                        @if (item.grant && !item.allowed && item.unavailableReason) {
-                          <div class="mt-2 text-xs text-text-warning">
-                            {{ 'XP.ModelAccess.Unavailable.' + item.unavailableReason | translate }}
-                          </div>
-                        }
-                        <div class="mt-4 flex items-center justify-between gap-3 text-xs text-text-secondary">
-                          <span>
-                            {{
-                              item.planIncluded
-                                ? ('XP.ModelGateway.PlanPricing' | translate: { Default: 'Plan pricing' })
-                                : ('XP.ModelGateway.StandardPricing' | translate: { Default: '1× pricing' })
-                            }}
-                          </span>
-                          @if (item.requestable) {
-                            <button z-button zSize="sm" type="button" (click)="apply(item)">
-                              {{ 'XP.ModelGateway.Apply' | translate: { Default: 'Apply' } }}
-                            </button>
-                          } @else if (item.pendingRequest) {
-                            <button
-                              z-button
-                              zType="outline"
-                              zSize="sm"
-                              type="button"
-                              (click)="withdraw(item.pendingRequest)"
-                            >
-                              {{ 'XP.ModelGateway.Withdraw' | translate: { Default: 'Withdraw' } }}
-                            </button>
-                          }
-                        </div>
-                      </div>
+            <z-card-subtitle class="block mt-2">{{ 'XP.ModelGatewaySettings.CallsHint' | translate }}</z-card-subtitle>
+          </z-card-header>
+          <z-card-content class="p-0">
+            @if (calls().length) {
+              <div class="overflow-x-auto border-t border-border">
+                <table z-table class="min-w-[560px]">
+                  <thead z-table-header class="bg-muted/40">
+                    <tr z-table-row>
+                      <th z-table-head>{{ 'XP.ModelGateway.Model' | translate }}</th>
+                      <th z-table-head>{{ 'XP.ModelGateway.Status' | translate }}</th>
+                      <th z-table-head class="text-right">{{ 'XP.ModelGateway.Points' | translate }}</th>
+                      <th z-table-head>{{ 'XP.ModelGateway.StartedAt' | translate }}</th>
+                    </tr>
+                  </thead>
+                  <tbody z-table-body>
+                    @for (call of calls(); track call.id) {
+                      <tr z-table-row>
+                        <td z-table-cell class="max-w-64 break-words py-4 font-medium">{{ call.externalModelId }}</td>
+                        <td z-table-cell>
+                          <z-badge zType="outline">{{
+                            'XP.ModelGateway.CallStatus.' + call.status | translate: { Default: call.status }
+                          }}</z-badge>
+                        </td>
+                        <td z-table-cell class="text-right tabular-nums">{{ call.chargedPoints | number: '1.0-2' }}</td>
+                        <td z-table-cell class="whitespace-nowrap text-xs text-muted-foreground">
+                          {{ formatDate(call.startedAt) }}
+                        </td>
+                      </tr>
                     }
-                  </div>
-                } @else {
-                  <z-empty
-                    [zDescription]="
-                      'XP.ModelGateway.NoMatchingModels' | translate: { Default: 'No models match your search.' }
-                    "
-                  />
-                }
-              } @else {
-                <z-empty
-                  [zDescription]="
-                    'XP.ModelGateway.NoAvailableApiModels'
-                      | translate: { Default: 'No tenant chat models are currently available for API access.' }
-                  "
-                />
-              }
-            </div>
-          </z-accordion-item>
-        </z-accordion>
-      </section>
+                  </tbody>
+                </table>
+              </div>
+              <div
+                class="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-4 text-xs text-muted-foreground"
+              >
+                <span>{{
+                  'XP.ModelGateway.PageSummary'
+                    | translate: { current: callPageIndex() + 1, pages: callPageCount(), total: callTotal() }
+                }}</span>
+                <div class="flex gap-2">
+                  <button
+                    z-button
+                    zType="outline"
+                    zSize="sm"
+                    type="button"
+                    [disabled]="callPageIndex() === 0"
+                    (click)="previousCallsPage()"
+                  >
+                    {{ 'XP.ModelGateway.PreviousPage' | translate }}
+                  </button>
+                  <button
+                    z-button
+                    zType="outline"
+                    zSize="sm"
+                    type="button"
+                    [disabled]="callPageIndex() + 1 >= callPageCount()"
+                    (click)="nextCallsPage()"
+                  >
+                    {{ 'XP.ModelGateway.NextPage' | translate }}
+                  </button>
+                </div>
+              </div>
+            } @else {
+              <z-empty zIcon="activity" [zTitle]="'XP.ModelGateway.NoCalls' | translate" />
+            }
+          </z-card-content>
+        </z-card>
+      </z-tab>
 
-      <section>
-        <div class="mb-3 flex items-center justify-between gap-3">
-          <div>
-            <h2 class="font-semibold text-text-primary">
-              {{ 'XP.ModelGateway.ApiKeys' | translate: { Default: 'API keys' } }}
-            </h2>
-            <p class="mt-1 text-sm text-text-tertiary">
-              {{ 'XP.ModelGateway.KeysHint' | translate: { Default: 'Keys do not grant model permissions.' } }}
-            </p>
-          </div>
-          <button z-button type="button" (click)="createKey()">
-            <z-icon zType="plus" />
-            {{ 'XP.ModelGateway.CreateKey' | translate: { Default: 'Create API key' } }}
-          </button>
-        </div>
-        @if (keys().length) {
-          <div class="overflow-auto rounded-xl border border-divider-regular bg-components-card-bg">
-            <table z-table zSize="compact" class="min-w-[64rem]">
-              <thead z-table-header>
-                <tr z-table-row>
-                  <th z-table-head>{{ 'XP.ModelGateway.KeyName' | translate: { Default: 'Name' } }}</th>
-                  <th z-table-head>{{ 'XP.ModelGateway.ApiKey' | translate: { Default: 'API key' } }}</th>
-                  <th z-table-head>{{ 'XP.ModelGateway.Status' | translate: { Default: 'Status' } }}</th>
-                  <th z-table-head>{{ 'XP.ModelGateway.ExpiresAt' | translate: { Default: 'Expires at' } }}</th>
-                  <th z-table-head class="text-right">
-                    {{ 'XP.ModelGateway.Actions' | translate: { Default: 'Actions' } }}
-                  </th>
-                </tr>
-              </thead>
-              <tbody z-table-body>
-                @for (key of keys(); track key.id) {
-                  <tr z-table-row>
-                    <td z-table-cell class="font-medium text-text-primary">{{ key.name }}</td>
-                    <td z-table-cell>
-                      @if (key.secret; as secret) {
-                        <div class="flex min-w-0 items-center gap-2">
-                          <code class="block max-w-96 truncate" [title]="secret">{{ secret }}</code>
-                          <button z-button zType="outline" zSize="sm" type="button" (click)="copy(secret)">
-                            {{ 'XP.ACTIONS.Copy' | translate: { Default: 'Copy' } }}
-                          </button>
-                        </div>
-                      } @else {
-                        <div>
-                          <code>{{ key.prefix }}…</code>
-                          <div class="mt-1 text-xs text-text-tertiary">
-                            {{
-                              'XP.ModelGateway.LegacyKeyUnavailable'
-                                | translate: { Default: 'Create a new key to make it copyable.' }
-                            }}
-                          </div>
-                        </div>
-                      }
-                    </td>
-                    <td z-table-cell>
-                      <z-badge zType="outline">
-                        {{ 'XP.ModelGateway.KeyStatus.' + key.status | translate: { Default: key.status } }}
-                      </z-badge>
-                    </td>
-                    <td z-table-cell>{{ formatDate(key.validUntil) }}</td>
-                    <td z-table-cell class="text-right">
-                      @if (key.status === keyStatus.Active) {
-                        <button z-button zType="destructive" zSize="sm" type="button" (click)="revokeKey(key)">
-                          {{ 'XP.ModelGateway.Revoke' | translate: { Default: 'Revoke' } }}
-                        </button>
-                      }
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        } @else {
-          <z-empty [zDescription]="'XP.ModelGateway.NoKeys' | translate: { Default: 'No API keys yet.' }" />
-        }
-      </section>
-
-      <section>
-        <h2 class="mb-3 font-semibold text-text-primary">
-          {{ 'XP.ModelGateway.ApplicationStatus' | translate: { Default: 'Application status' } }}
-        </h2>
-        @if (requests().length) {
-          <div class="overflow-auto rounded-xl border border-divider-regular bg-components-card-bg">
-            <table z-table zSize="compact" class="min-w-[64rem]">
-              <thead z-table-header>
-                <tr z-table-row>
-                  <th z-table-head>{{ 'XP.ModelGateway.Model' | translate: { Default: 'Model' } }}</th>
-                  <th z-table-head>{{ 'XP.ModelGateway.Reason' | translate: { Default: 'Reason' } }}</th>
-                  <th z-table-head>{{ 'XP.ModelGateway.Status' | translate: { Default: 'Status' } }}</th>
-                  <th z-table-head>{{ 'XP.ModelGateway.SubmittedAt' | translate: { Default: 'Submitted at' } }}</th>
-                  <th z-table-head class="text-right">
-                    {{ 'XP.ModelGateway.Actions' | translate: { Default: 'Actions' } }}
-                  </th>
-                </tr>
-              </thead>
-              <tbody z-table-body>
-                @for (request of pagedRequests(); track request.id) {
-                  <tr z-table-row>
-                    <td z-table-cell>
-                      <div class="font-medium text-text-primary">
-                        {{ request.externalModelId || request.modelSnapshot.externalModelId || request.model }}
-                      </div>
-                      <div class="mt-1 text-xs text-text-tertiary">{{ request.provider }} / {{ request.model }}</div>
-                    </td>
-                    <td z-table-cell>
-                      <div class="max-w-96 line-clamp-2 text-text-secondary" [title]="request.reason">
-                        {{ request.reason }}
-                      </div>
-                    </td>
-                    <td z-table-cell>
-                      <z-badge zType="outline">
-                        {{
-                          'XP.ModelAccess.StatusValue.' + currentRequestStatus(request)
-                            | translate: { Default: currentRequestStatus(request) }
-                        }}
-                      </z-badge>
-                    </td>
-                    <td z-table-cell class="whitespace-nowrap">{{ formatDate(request.createdAt) }}</td>
-                    <td z-table-cell class="text-right">
-                      @if (request.status === requestStatus.Requested) {
-                        <button z-button zType="outline" zSize="sm" type="button" (click)="withdraw(request)">
-                          {{ 'XP.ModelGateway.Withdraw' | translate: { Default: 'Withdraw' } }}
-                        </button>
-                      } @else {
-                        <span class="text-text-tertiary">—</span>
-                      }
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-          <div class="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-text-tertiary">
-            <span>
-              {{
-                'XP.ModelGateway.PageSummary'
-                  | translate
-                    : {
-                        current: requestPageIndex() + 1,
-                        pages: requestPageCount(),
-                        total: requests().length,
-                        Default: 'Page {{current}}
-              of {{ pages }} · {{ total }} records' } }}
-            </span>
-            <div class="flex gap-2">
-              <button
-                z-button
-                zType="outline"
-                zSize="sm"
-                type="button"
-                [disabled]="requestPageIndex() === 0"
-                (click)="previousRequestsPage()"
-              >
-                {{ 'XP.ModelGateway.PreviousPage' | translate: { Default: 'Previous' } }}
-              </button>
-              <button
-                z-button
-                zType="outline"
-                zSize="sm"
-                type="button"
-                [disabled]="requestPageIndex() + 1 >= requestPageCount()"
-                (click)="nextRequestsPage()"
-              >
-                {{ 'XP.ModelGateway.NextPage' | translate: { Default: 'Next' } }}
-              </button>
+      <z-tab [label]="'XP.ModelGatewaySettings.Guide' | translate" bodyClass="pt-6">
+        <z-card class="min-w-0 max-w-4xl shadow-none">
+          <z-card-header class="block px-5 py-5">
+            <z-card-title role="heading" aria-level="2" class="text-base">{{
+              'XP.ModelGatewaySettings.GuideTitle' | translate
+            }}</z-card-title>
+            <z-card-subtitle class="block mt-2 leading-relaxed">{{
+              'XP.ModelGateway.OpenAICompatible' | translate
+            }}</z-card-subtitle>
+          </z-card-header>
+          <z-card-content class="space-y-6 px-5 pb-5">
+            <div>
+              <h3 class="mb-2 text-sm font-medium">
+                {{ 'XP.ModelGatewaySettings.BaseUrl' | translate }}
+                <span class="ml-1 text-xs font-normal text-muted-foreground">Base URL</span>
+              </h3>
+              <div class="flex min-w-0 items-center gap-2 rounded-lg border border-border bg-muted/40 p-2">
+                <code class="min-w-0 flex-1 break-all px-1 text-xs leading-relaxed">{{ apiBaseUrl }}</code>
+                <button z-button zType="outline" zSize="sm" type="button" (click)="copy(apiBaseUrl)">
+                  <z-icon zType="copy" />{{ 'XP.ACTIONS.Copy' | translate }}
+                </button>
+              </div>
             </div>
-          </div>
-        } @else {
-          <z-empty
-            [zDescription]="
-              'XP.ModelGateway.NoRequests' | translate: { Default: 'No external API model applications yet.' }
-            "
-          />
-        }
-      </section>
-
-      <section>
-        <h2 class="mb-3 font-semibold text-text-primary">
-          {{ 'XP.ModelGateway.RecentCalls' | translate: { Default: 'Recent API calls' } }}
-        </h2>
-        @if (calls().length) {
-          <div class="overflow-auto rounded-xl border border-divider-regular bg-components-card-bg">
-            <table z-table zSize="compact" class="min-w-[48rem]">
-              <thead z-table-header>
-                <tr z-table-row>
-                  <th z-table-head>{{ 'XP.ModelGateway.Model' | translate: { Default: 'Model' } }}</th>
-                  <th z-table-head>{{ 'XP.ModelGateway.Status' | translate: { Default: 'Status' } }}</th>
-                  <th z-table-head>{{ 'XP.ModelGateway.Points' | translate: { Default: 'Points' } }}</th>
-                  <th z-table-head>{{ 'XP.ModelGateway.StartedAt' | translate: { Default: 'Started at' } }}</th>
-                </tr>
-              </thead>
-              <tbody z-table-body>
-                @for (call of calls(); track call.id) {
-                  <tr z-table-row>
-                    <td z-table-cell class="font-medium text-text-primary">{{ call.externalModelId }}</td>
-                    <td z-table-cell>
-                      {{ 'XP.ModelGateway.CallStatus.' + call.status | translate: { Default: call.status } }}
-                    </td>
-                    <td z-table-cell>{{ call.chargedPoints | number: '1.0-2' }}</td>
-                    <td z-table-cell>{{ formatDate(call.startedAt) }}</td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-          <div class="mt-3 flex flex-wrap items-center justify-between gap-3 text-sm text-text-tertiary">
-            <span>
-              {{
-                'XP.ModelGateway.PageSummary'
-                  | translate
-                    : {
-                        current: callPageIndex() + 1,
-                        pages: callPageCount(),
-                        total: callTotal(),
-                        Default: 'Page {{current}}
-              of {{ pages }} · {{ total }} records' } }}
-            </span>
-            <div class="flex gap-2">
-              <button
-                z-button
-                zType="outline"
-                zSize="sm"
-                type="button"
-                [disabled]="callPageIndex() === 0"
-                (click)="previousCallsPage()"
-              >
-                {{ 'XP.ModelGateway.PreviousPage' | translate: { Default: 'Previous' } }}
-              </button>
-              <button
-                z-button
-                zType="outline"
-                zSize="sm"
-                type="button"
-                [disabled]="callPageIndex() + 1 === callPageCount()"
-                (click)="nextCallsPage()"
-              >
-                {{ 'XP.ModelGateway.NextPage' | translate: { Default: 'Next' } }}
-              </button>
+            <div class="border-t border-border pt-5">
+              <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+                <h3 class="text-sm font-medium">{{ 'XP.ModelGateway.QuickStart' | translate }}</h3>
+                <button z-button zType="outline" zSize="sm" type="button" (click)="copy(curlExample())">
+                  <z-icon zType="copy" />{{ 'XP.ModelGateway.CopyExample' | translate }}
+                </button>
+              </div>
+              <pre
+                class="overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-muted/50 p-4 text-xs leading-relaxed text-muted-foreground"
+              ><code>{{ curlExample() }}</code></pre>
             </div>
-          </div>
-        } @else {
-          <z-empty [zDescription]="'XP.ModelGateway.NoCalls' | translate: { Default: 'No external API calls yet.' }" />
-        }
-      </section>
-    }
-  </div>
+          </z-card-content>
+        </z-card>
+      </z-tab>
+    </z-tab-group>
+  }
 </div>
