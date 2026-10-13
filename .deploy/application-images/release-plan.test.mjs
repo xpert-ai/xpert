@@ -305,6 +305,70 @@ test('source changes without a release note are validated on PRs and pushes but 
     assert.equal(plan.validationMatrix.include[0].target, 'production')
   }
 })
+test('NsJail runtime edits, deletions and renames require an image declaration on PRs and release branches', (t) => {
+  const f = fixture(t)
+  f.write('.deploy/nsjail-runner/runner.py', 'original')
+  let before = f.commit()
+  for (const change of [
+    () => f.write('.deploy/nsjail-runner/runner.py', 'protocol 3'),
+    () => f.git('mv', '.deploy/nsjail-runner/runner.py', '.deploy/nsjail-runner/runtime.py'),
+    () => f.git('rm', '.deploy/nsjail-runner/runtime.py'),
+    () => f.write('.deploy/nsjail-runner/Dockerfile', 'changed rootfs')
+  ]) {
+    change()
+    const after = f.commit()
+    for (const [event, ref] of [
+      ['pull_request', 'refs/pull/1/merge'],
+      ['push', 'refs/heads/develop'],
+      ['push', 'refs/heads/main']
+    ])
+      assert.throws(
+        () => f.plan(before, after, event, ref),
+        /nsjail-runner: add an application Changeset for changed image runtime inputs/
+      )
+    before = after
+  }
+})
+
+test('a new NsJail declaration publishes a main candidate and a pending note covers later fixes', (t) => {
+  const f = fixture(t)
+  f.write('.deploy/nsjail-runner/runner.py', 'protocol 3')
+  f.note('nsjail', [jail.name])
+  const candidate = f.commit()
+  const [image] = f.plan(f.initial, candidate, 'push', 'refs/heads/main').matrix.include
+  assert.equal(image.image_name, 'xpert-nsjail-runner')
+  assert.equal(image.health_check, '.deploy/nsjail-runner/check-image.cjs')
+  assert.deepEqual(tags(image), [
+    `1.0.1-candidate.main.${candidate.slice(0, 12)}`,
+    `sha-${candidate}`,
+    'main-candidate'
+  ])
+  f.write('.deploy/nsjail-runner/runner.py', 'protocol 3 repair')
+  const repaired = f.plan(candidate, f.commit(), 'push', 'refs/heads/main')
+  assert.equal(repaired.validationMatrix.include[0].publish, true)
+  assert.deepEqual(repaired.matrix.include[0].changesets, ['.changeset/nsjail.md'])
+})
+
+test('NsJail docs and unit tests do not require a release, and API/Web-only consumers stay independent', (t) => {
+  const f = fixture(t)
+  f.write('.deploy/nsjail-runner/README.md', 'documentation')
+  f.write('.deploy/nsjail-runner/test_runner.py', 'unit test')
+  const tests = f.commit()
+  assert.equal(f.plan(f.initial, tests).publish, false)
+  f.write('.deploy/nsjail-runner/runner.py', 'protocol 3')
+  const after = f.commit()
+  const plan = releasePlan({
+    cwd: f.cwd,
+    before: tests,
+    after,
+    event: 'push',
+    ref: 'refs/heads/main',
+    applicationNames: [api.name, web.name]
+  })
+  assert.equal(plan.publish, false)
+  assert.equal(plan.validate, false)
+})
+
 test('a pending-note repair on main remains a candidate, including in its PR', (t) => {
   const f = fixture(t)
   f.note('api')

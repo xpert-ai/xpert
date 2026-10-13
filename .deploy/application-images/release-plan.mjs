@@ -7,7 +7,7 @@ import { execFileSync } from 'node:child_process'
 import { appendFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { pathToFileURL } from 'node:url'
-import { affectsImage, services } from './services.mjs'
+import { affectsImage, requiresImageRelease, services } from './services.mjs'
 const require = createRequire(new URL('./release-tools/package.json', import.meta.url))
 const parse = require('@changesets/parse').default
 const semver = require('semver')
@@ -157,6 +157,8 @@ export function releasePlan({
 
   const missing = new Set()
   for (const service of selectedServices) {
+    if (requiresImageRelease(service, changedFiles) && !include.some((image) => image.name === service.name))
+      missing.add(`${service.name}: add an application Changeset for changed image runtime inputs`)
     for (const manifest of service.shared) {
       const current = read(after, manifest)
       const newlyDeclared = fresh.some((note) => note.name === current.name)

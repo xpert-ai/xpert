@@ -8,7 +8,7 @@ import { test } from 'node:test'
 import { checkPushReleases, checkStagedRelease } from './check-release.mjs'
 import { services } from './services.mjs'
 
-const [api, web] = services
+const [api, web, jail] = services
 const contracts = '@xpert-ai/contracts'
 const sdk = '@xpert-ai/plugin-sdk'
 const script = fileURLToPath(new URL('./check-release.mjs', import.meta.url))
@@ -75,6 +75,37 @@ test('staged shared notes require new staged application notes; unstaged fixes c
   )
   assert.equal(f.git('diff', '--cached', '--binary'), staged)
   assert.equal(f.git('rev-parse', 'HEAD'), f.initial)
+})
+
+test('staged NsJail runtime changes cannot skip the release check or use an unstaged note', async (t) => {
+  const f = fixture(t)
+  f.write('.deploy/nsjail-runner/runner.py', 'protocol 3')
+  f.git('add', '.deploy/nsjail-runner/runner.py')
+  f.note('nsjail', [jail.name])
+  await assert.rejects(f.check, /nsjail-runner: add an application Changeset/)
+  f.git('add', '.changeset/nsjail.md')
+  const { plan } = await f.check()
+  assert.deepEqual(
+    plan.matrix.include.map(({ name }) => name),
+    [jail.name]
+  )
+})
+
+test('pre-push checks source-only NsJail changes across the complete outgoing batch', async (t) => {
+  const f = fixture(t)
+  f.write('.deploy/nsjail-runner/network.py', 'runtime fix')
+  f.commit()
+  f.write('README.md', 'later unrelated change')
+  const broken = f.commit()
+  await assert.rejects(
+    () => checkPushReleases(f.push(f.initial, broken), { cwd: f.cwd }),
+    /nsjail-runner: add an application Changeset/
+  )
+  f.note('nsjail', [jail.name])
+  const fixed = f.commit()
+  const [plan] = await checkPushReleases(f.push(f.initial, fixed, 'refs/heads/main'), { cwd: f.cwd })
+  assert.equal(plan.matrix.include[0].image_name, 'xpert-nsjail-runner')
+  assert.match(plan.matrix.include[0].tags, /main-candidate/)
 })
 
 test('editing an old application note does not satisfy a new shared package declaration', async (t) => {
@@ -161,6 +192,10 @@ test('the actual hooks block incomplete declarations before formatting or pushin
   symlinkSync(
     fileURLToPath(new URL('./release-plan.mjs', import.meta.url)),
     path.join(f.cwd, '.deploy/application-images/release-plan.mjs')
+  )
+  symlinkSync(
+    fileURLToPath(new URL('./services.mjs', import.meta.url)),
+    path.join(f.cwd, '.deploy/application-images/services.mjs')
   )
   f.git('config', 'core.hooksPath', hooks)
   f.note('shared', [contracts, api.name])
