@@ -11,6 +11,8 @@ jest.mock(
   '@xpert-ai/server-core',
   () => ({
     loadOrganizationPluginConfigs: jest.fn(),
+    selectPluginStartup: (groups: unknown) => groups,
+    PluginStartupTimeoutError: class extends Error {},
     registerPluginsAsync: jest.fn(),
     getEntitiesFromPlugins: jest.fn(() => []),
     normalizePluginName: (name: string) => (name.lastIndexOf('@') > 0 ? name.slice(0, name.lastIndexOf('@')) : name)

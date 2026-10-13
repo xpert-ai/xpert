@@ -127,8 +127,8 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-  draft-release:
-    name: Create reviewed-release draft
+  release:
+    name: Publish verified release
     needs: [prepare, build]
     if: github.event_name == 'push' && needs.prepare.outputs.stable == 'true' && needs.build.result == 'success'
     runs-on: ubuntu-24.04
@@ -146,8 +146,8 @@ jobs:
           pattern: Bosi-${{ needs.prepare.outputs.version }}-*
           path: installers
           merge-multiple: true
-      - name: Verify all six platforms and create a draft
+      - name: Verify all six platforms and publish release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DESKTOP_RELEASE_PLAN: ${{ needs.prepare.outputs.plan }}
-        run: node .deploy/desktop/draft-release.mjs
+        run: node .deploy/desktop/release.mjs

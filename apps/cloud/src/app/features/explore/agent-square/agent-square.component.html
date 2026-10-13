@@ -1,4 +1,5 @@
 <section class="space-y-6">
+  <xp-explore-scope />
   <ng-template #catalogNavigation>
     <header class="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <nav
@@ -18,9 +19,11 @@
           (click)="setCatalog('experts')"
         >
           {{ 'XP.Explore.AgentSquare.Catalog.Experts' | translate: { Default: 'Experts' } }}
-          <span class="text-lg font-normal leading-none tracking-normal text-muted-foreground">{{
-            expertTotal()
-          }}</span>
+          @if (!loadingExperts() && !expertLoadError() && expertTotal() !== null) {
+            <span class="text-lg font-normal leading-none tracking-normal text-muted-foreground">{{
+              expertTotal()
+            }}</span>
+          }
         </button>
         <button
           type="button"
@@ -93,13 +96,13 @@
 
   @if (loadingFeatured() && !featuredExperts().length) {
     <div class="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
-      <div class="h-[360px] animate-pulse rounded-xl border border-border bg-card"></div>
-      <div class="h-[360px] animate-pulse rounded-xl border border-border bg-card"></div>
+      <div class="h-[360px] animate-pulse rounded-xl border border-border bg-card md:h-[260px] lg:h-[360px]"></div>
+      <div class="hidden h-[360px] animate-pulse rounded-xl border border-border bg-card xl:block"></div>
     </div>
   } @else if (featuredItem(); as featured) {
     <div class="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
       <section
-        class="relative min-h-[360px] min-w-0 overflow-hidden rounded-3xl border border-border bg-card px-5 py-8 md:px-8 md:py-10"
+        class="relative min-w-0 overflow-hidden rounded-2xl border border-border bg-card p-4 sm:p-5 lg:min-h-[360px] lg:rounded-3xl lg:px-8 lg:py-10"
         (mouseenter)="pauseHeroCarousel()"
         (mouseleave)="resumeHeroCarousel()"
         (focusin)="pauseHeroCarousel()"
@@ -151,19 +154,21 @@
         </svg>
 
         <div
-          class="relative z-10 grid min-h-[276px] min-w-0 items-center gap-8 lg:grid-cols-[minmax(260px,1fr)_minmax(300px,420px)]"
+          class="relative z-10 grid min-w-0 items-center gap-4 md:grid-cols-2 md:gap-5 lg:min-h-[276px] lg:grid-cols-[minmax(260px,1fr)_minmax(300px,420px)] lg:gap-8"
         >
           <div class="min-w-0 max-w-2xl">
             <div class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
               {{ 'XP.Explore.AgentSquare.FeaturedAgent' | translate: { Default: 'Featured expert' } }}
             </div>
-            <h2 class="mt-3 break-words text-3xl font-semibold leading-tight text-foreground md:text-4xl">
+            <h2
+              class="mt-2 break-words text-xl font-semibold leading-tight text-foreground sm:text-2xl lg:mt-3 lg:text-4xl"
+            >
               {{
                 'XP.Explore.AgentSquare.HeroTitle'
                   | translate: { Default: 'Find the right expert for the current task' }
               }}
             </h2>
-            <p class="mt-4 max-w-2xl text-sm leading-7 text-muted-foreground">
+            <p class="mt-2 max-w-2xl text-xs leading-5 text-muted-foreground lg:mt-4 lg:text-sm lg:leading-7">
               {{
                 'XP.Explore.AgentSquare.HeroSubtitle'
                   | translate
@@ -177,7 +182,7 @@
               z-button
               type="button"
               zSize="lg"
-              class="mt-6 w-fit cursor-pointer"
+              class="mt-3 h-8 w-fit cursor-pointer lg:mt-6 lg:h-9"
               [disabled]="featured.accessStatus === 'requested'"
               (click)="handleExpertAction(featured)"
             >
@@ -187,7 +192,7 @@
           </div>
 
           <article
-            class="relative isolate h-[320px] max-h-[320px] min-w-0 overflow-hidden rounded-2xl border border-border bg-background shadow-xl md:h-[300px] md:max-h-[300px]"
+            class="relative isolate h-[190px] min-w-0 overflow-hidden rounded-xl border border-border bg-background shadow-md sm:h-[200px] lg:h-[300px] lg:rounded-2xl lg:shadow-xl"
           >
             @let preview = featuredApplicationPreview();
             @if (preview) {
@@ -220,8 +225,8 @@
               data-featured-expert-content
               [class]="
                 preview
-                  ? 'pointer-events-none absolute inset-x-0 bottom-0 z-10 max-h-[68%] overflow-hidden rounded-b-[inherit] border-t border-border/70 bg-card p-4 text-card-foreground backdrop-blur-sm supports-[backdrop-filter]:bg-card/50 dark:supports-[backdrop-filter]:bg-card/50 md:p-5'
-                  : 'relative z-10 flex h-full flex-col p-5'
+                  ? 'pointer-events-none absolute inset-x-0 bottom-0 z-10 max-h-[80%] overflow-hidden rounded-b-[inherit] border-t border-border/70 bg-card p-3 text-card-foreground backdrop-blur-sm supports-[backdrop-filter]:bg-card/50 dark:supports-[backdrop-filter]:bg-card/50 lg:max-h-[68%] lg:p-5'
+                  : 'relative z-10 flex h-full flex-col p-3 lg:p-5'
               "
             >
               <div
@@ -230,7 +235,7 @@
                 <span>{{ 'XP.Explore.AgentSquare.FeaturedAgent' | translate: { Default: 'Featured expert' } }}</span>
                 <span>{{ featuredIndex() + 1 }} / {{ featuredExperts().length }}</span>
               </div>
-              <div class="mt-3 flex min-w-0 items-start gap-3">
+              <div class="mt-2 flex min-w-0 items-start gap-2 lg:mt-3 lg:gap-3">
                 <emoji-avatar
                   large
                   class="shrink-0 overflow-hidden rounded-xl shadow-sm"
@@ -239,14 +244,19 @@
                   [fallbackLabel]="expertTitle(featured)"
                 />
                 <div class="min-w-0">
-                  <h3 class="truncate text-lg font-semibold text-foreground">{{ expertTitle(featured) }}</h3>
+                  <h3 class="truncate text-base font-semibold text-foreground lg:text-lg">
+                    {{ expertTitle(featured) }}
+                  </h3>
                   <p class="mt-1 text-xs text-muted-foreground">{{ expertCreator(featured) }}</p>
                 </div>
               </div>
-              <p class="mt-3 line-clamp-2 text-sm leading-5 text-muted-foreground">
+              <p class="mt-2 line-clamp-2 text-xs leading-5 text-muted-foreground lg:mt-3 lg:text-sm">
                 {{ expertSummary(featured) }}
               </p>
-              <div class="mt-auto flex flex-wrap gap-2 border-t border-border/80 pt-3">
+              <div
+                class="mt-auto flex flex-wrap gap-1.5 border-t border-border/80 pt-2 lg:gap-2 lg:pt-3"
+                [class]="preview ? 'hidden lg:flex' : ''"
+              >
                 @for (tag of expertTags(featured).slice(0, 3); track tag) {
                   <span class="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">{{ tag }}</span>
                 }
@@ -256,7 +266,7 @@
         </div>
 
         @if (featuredExperts().length > 1) {
-          <div class="relative z-10 mt-6 flex items-center gap-2 lg:absolute lg:bottom-6 lg:left-8 lg:mt-0">
+          <div class="relative z-10 mt-3 flex items-center gap-2 lg:absolute lg:bottom-6 lg:left-8 lg:mt-0">
             @for (item of featuredExperts(); track item.xpert.id; let index = $index) {
               <button
                 type="button"
@@ -274,7 +284,7 @@
         }
       </section>
 
-      <aside class="min-w-0 rounded-xl border border-border bg-card p-5">
+      <aside class="hidden min-w-0 rounded-xl border border-border bg-card p-5 xl:block">
         <h3 class="text-base font-semibold text-foreground">
           {{ 'XP.Explore.AgentSquare.WeeklyRecommended' | translate: { Default: 'Weekly picks' } }}
         </h3>
@@ -464,14 +474,18 @@
           </div>
         } @else if (expertLoadError(); as error) {
           <div
-            class="flex min-h-80 items-center justify-center rounded-xl border border-destructive/40 bg-destructive/5 px-6 text-center"
+            class="flex min-h-64 items-center justify-center rounded-xl border border-border bg-card px-6 text-center"
           >
             <div class="max-w-md">
-              <z-icon zType="triangle-alert" class="text-4xl text-destructive" />
+              <z-icon zType="triangle-alert" class="text-4xl text-muted-foreground" />
               <h4 class="mt-4 text-lg font-semibold text-foreground">
                 {{ 'XP.Explore.AgentSquare.LoadFailed' | translate: { Default: 'Unable to load this catalog' } }}
               </h4>
-              <p class="mt-2 break-words text-sm text-muted-foreground">{{ error }}</p>
+              <p class="mt-2 text-sm text-muted-foreground">{{ 'XP.Explore.Scope.CatalogFailedHint' | translate }}</p>
+              <details class="mt-2 text-xs text-muted-foreground">
+                <summary class="cursor-pointer">{{ 'XP.Explore.Scope.ErrorDetails' | translate }}</summary>
+                <p class="mt-2 break-words">{{ error }}</p>
+              </details>
               <button
                 z-button
                 zType="outline"
@@ -492,14 +506,29 @@
             <div class="max-w-md">
               <z-icon zType="users" class="text-4xl text-muted-foreground" />
               <h4 class="mt-4 text-lg font-semibold text-foreground">
-                {{ 'XP.Explore.AgentSquare.EmptyTitle' | translate: { Default: 'No matching experts' } }}
+                {{
+                  (scope.isTenant() && !search() && !activeExpertFilterCount()
+                    ? 'XP.Explore.Scope.EmptyTitle'
+                    : 'XP.Explore.AgentSquare.EmptyTitle'
+                  ) | translate
+                }}
               </h4>
               <p class="mt-2 text-sm text-muted-foreground">
                 {{
-                  'XP.Explore.AgentSquare.EmptyHint'
-                    | translate: { Default: 'Try a different search or filter combination.' }
+                  (scope.isTenant() && !search() && !activeExpertFilterCount()
+                    ? 'XP.Explore.Scope.EmptyHint'
+                    : 'XP.Explore.AgentSquare.EmptyHint'
+                  ) | translate
                 }}
               </p>
+              <div class="mt-5 flex flex-wrap justify-center gap-2">
+                <button z-button zType="outline" type="button" (click)="scope.choose(true)">
+                  {{ 'XP.Explore.Scope.BrowseOrganization' | translate }}
+                </button>
+                <button z-button zType="ghost" type="button" (click)="setCatalog('templates')">
+                  {{ 'XP.Explore.Scope.BrowseTemplates' | translate }}
+                </button>
+              </div>
             </div>
           </div>
         }

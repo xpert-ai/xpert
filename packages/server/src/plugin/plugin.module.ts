@@ -1,3 +1,4 @@
+import { runPluginStartupStep } from './plugin-startup-step'
 import { SetupPluginsCatalog } from './setup/setup-plugins.catalog'
 import { SetupPluginsController } from './setup/setup-plugins.controller'
 import { SetupPluginsService } from './setup/setup-plugins.service'
@@ -206,7 +207,9 @@ export class PluginModule implements OnModuleInit, OnModuleDestroy {
 					)
 					if (status !== 'completed') continue
 				} else {
-					await pluginInstance[lifecycleMethod]()
+					await runPluginStartupStep(pluginModule.name, lifecycleMethod, () =>
+						pluginInstance[lifecycleMethod]()
+					)
 				}
 
 				// Execute the closure function if provided

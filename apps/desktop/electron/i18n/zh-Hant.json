@@ -1183,5 +1183,9 @@
   "Tenant": "租戶",
   "Organization": "組織",
   "Available": "可用",
-  "Sign in first.": "請先登入。"
+  "Sign in first.": "請先登入。",
+  "Check for updates…": "檢查更新…",
+  "Updates are not available in this build.": "此版本不支援應用程式內更新。",
+  "Bosi is up to date.": "Bosi 已是最新版本。",
+  "Bosi {{version}} is available.": "Bosi {{version}} 已可更新。"
 }

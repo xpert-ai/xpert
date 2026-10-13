@@ -623,6 +623,23 @@
       "RemoteComponentLoadFailedHint": "The remote component did not start. Try again or review the technical details."
     },
     "Explore": {
+      "Scope": {
+        "Label": "Browsing scope",
+        "Select": "Choose a browsing scope",
+        "SwitchHint": "Choosing an organization switches the current scope. You can then continue browsing or configure this application.",
+        "Tenant": "Tenant shared",
+        "TenantHint": "Explore shared experts, apps and templates",
+        "OrganizationHint": "Organization and tenant-shared content",
+        "NoOrganizations": "No organizations are available. Contact your tenant administrator to join one; you can still browse shared content.",
+        "KeepBrowsing": "Keep browsing",
+        "LoadFailed": "Organizations could not be loaded. Please try again.",
+        "CatalogFailedHint": "Please try again later. Applications and templates are still available.",
+        "ErrorDetails": "Error details",
+        "EmptyTitle": "No tenant-shared experts yet",
+        "EmptyHint": "Browse templates, or switch to an organization to discover team experts.",
+        "BrowseOrganization": "Browse organization content",
+        "BrowseTemplates": "Browse templates"
+      },
       "AgentSquare": {
         "UseExpert": "Use Expert",
         "BusinessDomains": "Business domains",
@@ -2143,7 +2160,9 @@
       "CurrentScopeActiveRuntimes": "active runtimes in the current tenant and organization"
     },
     "Plugin": {
-      "RuntimeApplyingGenericDescription": "API replicas are restarting in background batches. You can continue using this page.",
+      "PendingRestartDescription": "Installed. Restart the service to use this plugin.",
+      "PendingRestart": "Restart required",
+      "RuntimeApplyingGenericDescription": "Synchronizing plugins across the service. This page will update when ready.",
       "ArtifactNamespace": "Artifact namespace",
       "MarketplaceContentType_app": "App",
       "MarketplaceContentType_view": "View",
@@ -2234,12 +2253,12 @@
       "RestartRequiredDescription": "Plugin changes for {{pluginNames}} are waiting to converge. Restart all API replicas to activate them.",
       "RestartRequiredGenericDescription": "Process-level plugin changes are staged. Restart the API service to activate them.",
       "RuntimeApplyingTitle": "Plugin changes are being applied",
-      "RuntimeApplyingDescription": "API replicas are restarting in background batches for {{pluginNames}}. You can continue using this page.",
+      "RuntimeApplyingDescription": "Synchronizing {{pluginNames}} across the service. This page will update when ready.",
       "RestartAdminRequired": "Ask a SuperAdmin in the default tenant scope to restart the API service.",
       "RestartLater": "Later",
       "RestartNow": "Restart now",
       "RestartConfirmTitle": "Restart the API service?",
-      "RestartConfirmDescription": "API replicas will restart in bounded batches after draining active requests. Capacity is temporarily reduced during the rollout.",
+      "RestartConfirmDescription": "Active requests will finish before restarting. If only one instance is available, the service will be briefly unavailable and connections will resume afterward.",
       "RestartConfirmAction": "Confirm restart",
       "RestartingTitle": "Restarting API service",
       "RestartingDescription": "API replicas are draining active requests and restarting in bounded batches.",

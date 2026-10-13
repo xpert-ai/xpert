@@ -1,6 +1,6 @@
 import type { PluginLibrary } from './plugin-library-types'
 import type { CertificateCheck, ConnectionUrlField } from './connection/certificate-types'
-import type { BotActivity, SidebarState, SidebarUpdate } from './assistant-list-types'
+import type { BotActivity, DesktopLastSession, SidebarState, SidebarUpdate } from './assistant-list-types'
 import type {
   ShellSettings,
   ShellResult,
@@ -90,6 +90,8 @@ export interface WorkbenchSession {
   organizationId: string
 }
 export interface HostMethods {
+  restoreSession: { input: undefined; output: DesktopLastSession | null }
+  rememberSession: { input: { scope: string; session: DesktopLastSession }; output: void }
   bosiOnboarding: { input: undefined; output: import('@xpert-ai/contracts').BosiOnboardingCatalog }
   bosiChoose: {
     input: import('@xpert-ai/contracts').BosiOnboardingChoice
@@ -325,6 +327,7 @@ declare global {
       updates?: import('./update-types').UpdateBridge
       onAvatarPointer?: (listener: (point: { x: number; y: number } | null) => void) => () => void
       onNewGroup?: (listener: () => void) => () => void
+      onMenuAction?: (listener: (action: 'settings' | 'sign-out') => void) => () => void
       onWindowActivated?: (listener: () => void) => () => void
       onAssistantActivityChanged?: (listener: () => void) => () => void
       invoke: <K extends keyof HostMethods>(

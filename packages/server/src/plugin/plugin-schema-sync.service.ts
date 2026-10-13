@@ -3,6 +3,7 @@
  * active before its entities have been applied to the shared database.
  * The lock keeps concurrent API replicas from running TypeORM DDL together.
  */
+import type { PluginMeta } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import { ModuleRef } from '@nestjs/core'
 import { DataSource, MixedList } from 'typeorm'
@@ -35,18 +36,18 @@ export class PluginSchemaSyncService {
 		private readonly locks: RedisLockService
 	) {}
 
-	async synchronize(input: PluginSchemaSyncInput): Promise<void> {
+	async synchronize(input: PluginSchemaSyncInput): Promise<PluginMeta> {
 		const result = await this.locks.runWithLock(PLUGIN_SCHEMA_SYNC_LOCK, PLUGIN_SCHEMA_SYNC_LOCK_TTL, async () => {
-			await this.synchronizeWithLock(input)
-			return true
+			return this.synchronizeWithLock(input)
 		})
 
 		if (!result.acquired) {
 			throw new Error('Another plugin schema migration is already in progress')
 		}
+		return result.value
 	}
 
-	private async synchronizeWithLock(input: PluginSchemaSyncInput): Promise<void> {
+	private async synchronizeWithLock(input: PluginSchemaSyncInput): Promise<PluginMeta> {
 		const plugin = await loadPlugin(input.pluginName, {
 			basedir: input.pluginBaseDir,
 			source: input.source,
@@ -83,7 +84,7 @@ export class PluginSchemaSyncService {
 
 		// Providers without entities have no schema to apply. Synchronizing the host
 		// here would run unrelated DDL even when host migrations are managed externally.
-		if (!ormMetadata.entities.length) return
+		if (!ormMetadata.entities.length) return plugin.meta
 
 		const entities = this.mergeTargets(this.dataSource.options.entities, ormMetadata.entities)
 		const migrationDataSource = new DataSource({
@@ -109,6 +110,7 @@ export class PluginSchemaSyncService {
 				await migrationDataSource.destroy()
 			}
 		}
+		return plugin.meta
 	}
 
 	private mergeTargets<T>(existing: MixedList<T> | undefined, additions: T[]): T[] {

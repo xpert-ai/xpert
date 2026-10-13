@@ -1,5 +1,5 @@
 // Never let electron-builder publish implicitly. A single later job assembles all
-// platforms into a draft release only after packaging and runtime checks succeed.
+// platforms into a published release only after packaging and runtime checks succeed.
 import assert from 'node:assert/strict'
 import { createRequire } from 'node:module'
 import { readFileSync, writeFileSync, mkdirSync, copyFileSync } from 'node:fs'

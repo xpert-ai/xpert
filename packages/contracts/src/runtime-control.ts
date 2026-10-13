@@ -10,7 +10,7 @@ export interface IRuntimeStreamInterruption {
 
 export type RuntimeRestartMode = 'self-signal' | 'rolling-self-signal'
 
-export type RuntimeRestartStatus = 'in_progress' | 'completed' | 'failed'
+export type RuntimeRestartStatus = 'in_progress' | 'completed' | 'failed' | 'awaiting_restart'
 
 export interface IRuntimePluginRequirement {
   scopeKey: string
@@ -42,6 +42,8 @@ export interface IRuntimeRestartRequest {
   confirmation: typeof RUNTIME_RESTART_CONFIRMATION
   /** Optional non-sensitive reason written to the structured server audit log. */
   reason?: string
+  /** Explicitly permit restarting the last healthy replica during an operator-approved outage. Defaults to false. */
+  allowDowntime?: boolean
   /** Plugin runtime state that every replacement process must confirm after boot. */
   runtimeRequirements?: IRuntimePluginRequirement[]
 }
@@ -81,7 +83,7 @@ export interface IPluginRuntimeConvergenceStatus {
 }
 
 export interface IRuntimeReadiness {
-  status: 'ready' | 'draining'
+  status: 'ready' | 'draining' | 'unready'
   instanceId: string
   activeRequests: number
   restartId?: string

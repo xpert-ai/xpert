@@ -79,7 +79,11 @@ export class RuntimeControlController {
 	@Roles(RolesEnum.SUPER_ADMIN)
 	@HttpCode(HttpStatus.ACCEPTED)
 	@Post('restart')
-	async restart(@Body() input: RuntimeRestartRequestDto, @Req() request: Request): Promise<IRuntimeRestartResponse> {
+	async restart(
+		@Body(new ValidationPipe({ transform: true, whitelist: true, forbidNonWhitelisted: true }))
+		input: RuntimeRestartRequestDto,
+		@Req() request: Request
+	): Promise<IRuntimeRestartResponse> {
 		return await this.runtimeControl.requestRestart(input, { sourceIp: request.ip })
 	}
 }

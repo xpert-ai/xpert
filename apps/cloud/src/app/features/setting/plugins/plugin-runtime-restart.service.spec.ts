@@ -90,6 +90,21 @@ describe('PluginRuntimeRestartService', () => {
     expect(document.querySelector('[role="alertdialog"]')).toBeNull()
   })
 
+  it('stops polling while a single-instance installation awaits an explicit restart', async () => {
+    jest.useFakeTimers()
+    runtimeControlAPI.pluginConvergenceStatus.mockReturnValue(of({ generation: 19, status: 'awaiting_restart' }))
+    const service = TestBed.inject(PluginRuntimeRestartService)
+    service.trackPluginConvergence({ generation: 19 }, '@xpert-ai/plugin-meetings')
+    await jest.advanceTimersByTimeAsync(1000)
+    expect(service.isApplyingInBackground()).toBe(false)
+    expect(service.requiresManualRestart()).toBe(true)
+    expect(service.lastError()).toBeNull()
+    const calls = runtimeControlAPI.pluginConvergenceStatus.mock.calls.length
+    await jest.advanceTimersByTimeAsync(60_000)
+    expect(runtimeControlAPI.pluginConvergenceStatus).toHaveBeenCalledTimes(calls)
+    expect(runtimeControlAPI.restart).not.toHaveBeenCalled()
+  })
+
   it('shows manual restart only to superadmins and keeps background progress visible to other roles', () => {
     const service = TestBed.inject(PluginRuntimeRestartService)
     service.markRequired('@xpert-ai/plugin-test')

@@ -16,14 +16,15 @@ test('Desktop planning pins main from the fetched repository history', () => {
   assert.match(plan.run, /DESKTOP_RELEASE_MAIN="\$desktop_release_main_sha" node \.deploy\/desktop\/release-plan\.mjs/)
 })
 
-test('release tooling repairs run checks while installer builds and drafts retain their gates', () => {
+test('release tooling repairs run checks while installer builds and publication retain their gates', () => {
   assert.deepEqual(workflow.on.push.branches, ['develop', 'main'])
   for (const file of ['.changeset/**', '.deploy/desktop/**', '.github/workflows/desktop-release.yml']) {
     assert.ok(workflow.on.push.paths.includes(file))
   }
   assert.equal(workflow.jobs.build.if, "needs.prepare.outputs.build == 'true'")
   assert.equal(
-    workflow.jobs['draft-release'].if,
+    workflow.jobs.release.if,
     "github.event_name == 'push' && needs.prepare.outputs.stable == 'true' && needs.build.result == 'success'"
   )
+  assert.ok(workflow.jobs.release.steps.some((step) => step.run === 'node .deploy/desktop/release.mjs'))
 })

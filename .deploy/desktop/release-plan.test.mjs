@@ -232,7 +232,7 @@ test('highest pending bump determines the candidate version', (t) => {
   f.note('patch')
   assert.equal(f.plan(before, f.commit()).baseVersion, '0.2.0')
 })
-test('PR uses merge base and can never authorize a stable draft', (t) => {
+test('PR uses merge base and can never authorize a stable release', (t) => {
   const f = fixture(t)
   f.note('target', 'major')
   const target = f.commit()

@@ -53,6 +53,7 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "RuntimeNotReady": "The API instance is not ready",
         "PrimaryModelEmptyResponse": "The Primary LLM returned an empty response.",
         "PrimaryModelVerificationTimedOut": "Primary LLM verification timed out after 20 seconds.",
         "ClawXpertRecoveryRequiresMember": "Join the current organization before recovering your personal assistant.",
@@ -63,6 +64,9 @@
         "WorkspaceStorageLockLost": "The application storage lock was lost. Retry the operation.",
         "WorkspaceStorageInvalidPath": "The application storage path is invalid.",
         "AssistantUserWorkspaceRequired": "This application requires a user-isolated Assistant workspace.",
+        "ModelDiscoverySelectionInvalid": "Invalid model selection or configuration. Fetch the model list again and check the parameters.",
+        "ModelDiscoveryProviderScope": "Model discovery is only allowed in the provider’s own tenant and organization.",
+        "ModelDiscoveryUnsupported": "This provider does not support model discovery.",
         "KnowledgebaseCatalogInputInvalid": "Invalid knowledgebase catalog request.",
         "KnowledgebaseCatalogContextRequired": "Authenticated tenant and organization scope are required.",
         "KnowledgebaseCatalogUnavailable": "Knowledgebase is unavailable in the current scope.",

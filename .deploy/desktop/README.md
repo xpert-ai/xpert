@@ -50,11 +50,11 @@ alone does not authorize another candidate build.
   (or run `corepack pnpm changeset:version` on a branch from that `main`). The matching
   version increase and consumed note authorize the stable build. Keep these as separate
   pushes so the previous revision contains the pending release evidence.
-- After **all six** stable jobs pass, the production job creates a GitHub Release
-  **draft** named `Bosi <version>` with tag `desktop-v<version>` pinned to the source
+- After **all six** stable jobs pass, the production job publishes a GitHub Release
+  named `Bosi <version>` with tag `desktop-v<version>` pinned to the source
   commit. It attaches all twelve installers, architecture-specific update feeds,
-  `SHA256SUMS.txt` and `release-manifest.json`. Review and publish the draft manually.
-  Publishing also makes its update feeds available to stable installed Desktop apps.
+  `SHA256SUMS.txt` and `release-manifest.json`. No manual draft publication is needed.
+  Publication makes its update feeds available to stable installed Desktop apps.
 
 When `main` is merged back into `develop`, its Desktop version becomes the
 candidate baseline. The workflow passes the fetched main SHA as
@@ -62,15 +62,17 @@ candidate baseline. The workflow passes the fetched main SHA as
 matching version increase from a main ancestor newly included in the source SHA.
 New Desktop notes still request the candidate, while all pending notes determine
 its next version. Unmerged main versions, mismatched versions and main pushes keep
-the normal consumption checks; synchronization never authorizes a stable draft.
+the normal consumption checks; synchronization never authorizes a stable release.
 
-There is no manual-dispatch bypass. A partial draft upload can be rerun: existing
-assets must have the same source commit and SHA-256 digests. Published releases,
-conflicting tags or assets are never overwritten.
+There is no manual-dispatch bypass. A partial upload left as a draft can be rerun
+and published automatically: existing assets must have the same source commit and
+SHA-256 digests. Published releases, conflicting tags or assets are never overwritten.
 
 ## In-app updates
 
 Stable packages check for updates 15 seconds after launch and every six hours.
+The application menu also provides a manual check with version and result feedback.
+Downloading and restarting still require an explicit user action.
 The host selects published, non-prerelease `desktop-v<version>` releases with a
 feed for the running OS/architecture; platform releases in this shared repository
 are ignored. No GitHub token or workspace credentials are used. Discovery uses
@@ -166,11 +168,11 @@ and identity discovery disabled, so ad-hoc macOS apps and Electron helpers retai
 their audio entitlements.
 
 Without credentials macOS builds use ad-hoc signing and Windows builds are unsigned;
-the release manifest and draft explicitly identify these as test downloads requiring
+the release manifest and release notes explicitly identify these as test downloads requiring
 OS security confirmation. Configure Developer ID + notarization / Windows signing
 before distributing trusted installers to end users. No certificates are embedded
-in artifacts. The draft job uses the production environment and `GITHUB_TOKEN` with
-`contents: write`; it never publishes automatically.
+in artifacts. The release job uses the production environment and `GITHUB_TOKEN` with
+`contents: write`; it publishes automatically after all six native builds pass.
 
 Signing options target the installed electron-builder 26.x API; see the
 [versioned signing documentation](https://www.electron.build/v26/docs/features/code-signing/).

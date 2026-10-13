@@ -2160,6 +2160,23 @@
       "WorkspaceScopeCommandsHelp": "工作空间提示词按关联范围默认启用，可在此单独停用。技能命令仍由当前命令配置控制。"
     },
     "Explore": {
+      "Scope": {
+        "Label": "浏览范围",
+        "Select": "选择浏览范围",
+        "SwitchHint": "选择组织后将切换当前范围，你可以继续浏览或配置此应用。",
+        "Tenant": "租户共享",
+        "TenantHint": "探索共享专家、应用与模板",
+        "OrganizationHint": "当前组织与租户共享内容",
+        "NoOrganizations": "暂时没有可用的组织。请联系租户管理员加入组织，你仍可继续浏览共享内容。",
+        "KeepBrowsing": "继续浏览",
+        "LoadFailed": "组织列表暂时无法加载，请重试。",
+        "CatalogFailedHint": "请稍后重试，你仍可浏览应用与智能体模板。",
+        "ErrorDetails": "错误详情",
+        "EmptyTitle": "还没有租户共享专家",
+        "EmptyHint": "你可以先浏览模板，或切换组织查看团队发布的专家。",
+        "BrowseOrganization": "浏览组织内容",
+        "BrowseTemplates": "浏览模板"
+      },
       "Square": "广场",
       "SkillPlaza": "技能",
       "ExpertsTab": "专家",
@@ -3766,9 +3783,11 @@
       "SelectEnv": "选择环境"
     },
     "Plugin": {
+      "PendingRestartDescription": "插件已安装，重启服务后即可使用。",
+      "PendingRestart": "待重启生效",
       "RuntimeApplyingTitle": "正在应用插件变更",
-      "RuntimeApplyingDescription": "API 服务副本正在后台分批重启，以应用 {{pluginNames}} 的变更。你可以继续使用此页面。",
-      "RuntimeApplyingGenericDescription": "API 服务副本正在后台分批重启。你可以继续使用此页面。",
+      "RuntimeApplyingDescription": "正在同步 {{pluginNames}} 的运行状态，完成后会自动更新。",
+      "RuntimeApplyingGenericDescription": "正在同步插件运行状态，完成后会自动更新。",
       "ArtifactNamespace": "制品命名空间",
       "Plugins": "插件",
       "AllCategories": "所有类别",
@@ -3885,7 +3904,7 @@
       "RestartLater": "稍后处理",
       "RestartNow": "立即重启",
       "RestartConfirmTitle": "确认重启 API 服务？",
-      "RestartConfirmDescription": "服务会先等待正在处理的请求结束，然后重启进程。期间用户连接可能短暂中断。",
+      "RestartConfirmDescription": "重启会等待正在处理的请求结束。若当前只有一个可用实例，服务将短暂不可用，连接会在服务恢复后重新建立。",
       "RestartConfirmAction": "确认重启",
       "RestartingTitle": "正在重启 API 服务",
       "RestartingDescription": "服务正在等待活动请求结束，然后会安全重启。",
@@ -5762,6 +5781,40 @@
       "Untitled": "未命名认证"
     },
     "Copilot": {
+      "Discovery": {
+        "Title": "拉取模型",
+        "Description": "从当前提供商增量同步模型，保留已有参数。确认同步后仅使用已配置模型；本次未返回的接口模型保留配置并停用。",
+        "ContextSize": "上下文长度（Token）",
+        "MaxConcurrency": "客户端并发上限",
+        "MaxOutputTokens": "最大输出 Token",
+        "DefaultMaxTokens": "默认输出 Token",
+        "Dimensions": "向量维度（可选）",
+        "BatchSize": "向量批次大小",
+        "ConfigurationHint": "缺失规格使用可编辑的默认值，不代表已核实的厂商上限。并发限制作用于单个模型客户端，不代表账号配额。向量维度留空使用模型默认值。",
+        "InvalidConfiguration": "请填写正整数，且默认输出 ≤ 最大输出 ≤ 上下文长度。并发范围为 1–1000，向量批次范围为 1–2048。",
+        "Search": "搜索模型 ID 或名称",
+        "Loading": "正在拉取可用模型…",
+        "Empty": "没有匹配的模型",
+        "Imported": "同步完成：新增 {{added}} 个，保留 {{skipped}} 个已有模型",
+        "Features": {
+          "tool-call": "工具调用",
+          "multi-tool-call": "并行工具调用",
+          "stream-tool-call": "流式工具调用",
+          "vision": "图片输入",
+          "video": "视频输入",
+          "structured-output": "结构化输出"
+        },
+        "DefaultType": "默认类型，可在配置中调整",
+        "NotReturnedPreview": "本次未返回 · 同步后停用",
+        "NotReturned": "本次未返回 · 已停用",
+        "SyncAndImport": "同步并导入新模型",
+        "SaveSync": "保存同步结果",
+        "ModelSource": {
+          "builtin": "内置",
+          "discovered": "接口导入",
+          "manual": "手动配置"
+        }
+      },
       "ExecutionInvalidFilters": "请检查任务 ID、文本长度和日期范围。",
       "ExecutionAssistantName": "助手",
       "ExecutionAll": "全部",

@@ -5,7 +5,7 @@ import { mkdtempSync, writeFileSync, readFileSync, rmSync } from 'node:fs'
 import path from 'node:path'
 import { tmpdir } from 'node:os'
 import { platforms } from './release-plan.mjs'
-import { collectAssets, releaseDraft } from './draft-release.mjs'
+import { collectAssets, publishRelease } from './release.mjs'
 const plan = { build: true, stable: true, version: '0.1.1', sha: 'b'.repeat(40), tag: 'desktop-v0.1.1' }
 function fixture(t) {
   const directory = mkdtempSync(path.join(tmpdir(), 'bosi-installers-'))
@@ -34,45 +34,46 @@ test('all six native targets and both installer formats are required and checksu
   rmSync(path.join(directory, 'win-arm64.json'))
   assert.throws(() => collectAssets(directory, plan), /ENOENT/)
 })
-test('corrupt installers or another commit cannot enter the draft', (t) => {
+test('corrupt installers or another commit cannot enter the release', (t) => {
   const directory = fixture(t)
   assert.throws(() => collectAssets(directory, { ...plan, sha: 'c'.repeat(40) }))
   writeFileSync(path.join(directory, 'Bosi-0.1.1-win-x64.exe'), 'corrupt')
   assert.throws(() => collectAssets(directory, plan), /Checksum mismatch/)
   assert.throws(() => collectAssets(directory, { ...plan, stable: false }), /Only a stable/)
 })
-test('new release is always a draft pinned to the verified commit', (t) => {
+test('new release publishes every verified asset directly at the verified commit', (t) => {
   const directory = fixture(t),
     calls = []
-  releaseDraft(directory, plan, 'xpert-ai/xpert', (args) => {
+  publishRelease(directory, plan, 'xpert-ai/xpert', (args) => {
     calls.push(args)
     if (args[0] === 'api' && args[1] === '--paginate') return '[[]]'
     if (args[0] === 'api') throw new Error('HTTP 404')
     return ''
   })
   const create = calls.find((args) => args[1] === 'create')
-  assert.ok(create.includes('--draft'))
+  assert.ok(!create.includes('--draft'))
+  for (const { file } of collectAssets(directory, plan).assets) assert.ok(create.includes(path.join(directory, file)))
   assert.ok(create.includes(plan.sha))
-  assert.equal(calls.filter((args) => args[1] === 'upload').length, 18)
+  assert.equal(calls.filter((args) => args[1] === 'upload').length, 0)
   assert.ok(!calls.some((args) => args.includes('--clobber')))
 })
 test('published releases, tag collisions and registry read failures cannot be overwritten', (t) => {
   const directory = fixture(t)
   assert.throws(
     () =>
-      releaseDraft(directory, plan, 'xpert-ai/xpert', () => JSON.stringify([[{ tag_name: plan.tag, draft: false }]])),
+      publishRelease(directory, plan, 'xpert-ai/xpert', () => JSON.stringify([[{ tag_name: plan.tag, draft: false }]])),
     /published/
   )
   assert.throws(
     () =>
-      releaseDraft(directory, plan, 'xpert-ai/xpert', (args) =>
+      publishRelease(directory, plan, 'xpert-ai/xpert', (args) =>
         args[1] === '--paginate' ? '[[]]' : JSON.stringify({ object: { sha: 'wrong' } })
       ),
     /different source/
   )
   assert.throws(
     () =>
-      releaseDraft(directory, plan, 'xpert-ai/xpert', () => {
+      publishRelease(directory, plan, 'xpert-ai/xpert', () => {
         throw new Error('HTTP 403')
       }),
     /403/
@@ -92,10 +93,12 @@ test('identical draft assets resume without upload; changed ones fail before any
     calls.push(args)
     return JSON.stringify([[draft]])
   }
-  releaseDraft(directory, plan, 'xpert-ai/xpert', gh)
-  assert.equal(calls.length, 1)
+  publishRelease(directory, plan, 'xpert-ai/xpert', gh)
+  assert.equal(calls.filter((args) => args[1] === 'upload').length, 0)
+  assert.ok(calls.at(-1).includes('--draft=false'))
+  calls.length = 0
   draft.assets[0].digest = 'sha256:different'
-  assert.throws(() => releaseDraft(directory, plan, 'xpert-ai/xpert', gh), /Refusing to overwrite/)
+  assert.throws(() => publishRelease(directory, plan, 'xpert-ai/xpert', gh), /Refusing to overwrite/)
   assert.ok(calls.every((args) => args[0] === 'api'))
 })
 test('update feeds use SHA-512 of the matching installer and exclude unsigned macOS', (t) => {
@@ -116,5 +119,34 @@ test('update feeds use SHA-512 of the matching installer and exclude unsigned ma
     assert.equal(metadata.version, plan.version)
     assert.equal(metadata.sha512, createHash('sha512').update(installer).digest('base64'))
     assert.deepEqual(metadata.files, [{ url: metadata.path, sha512: metadata.sha512, size: installer.length }])
+  }
+})
+
+test('a partial draft publishes only after all missing assets upload successfully', (t) => {
+  const directory = fixture(t)
+  const { assets } = collectAssets(directory, plan)
+  const draft = {
+    tag_name: plan.tag,
+    draft: true,
+    target_commitish: plan.sha,
+    assets: assets.slice(0, -2).map((asset) => ({ name: asset.file, digest: `sha256:${asset.sha256}` }))
+  }
+  for (const fail of [true, false]) {
+    const calls = []
+    const gh = (args) => {
+      calls.push(args)
+      if (args[0] === 'api') return JSON.stringify([[draft]])
+      if (args[1] === 'upload' && fail) throw new Error('Upload failed')
+      return ''
+    }
+    if (fail) {
+      assert.throws(() => publishRelease(directory, plan, 'xpert-ai/xpert', gh), /Upload failed/)
+      assert.ok(!calls.some((args) => args[1] === 'edit'))
+    } else {
+      publishRelease(directory, plan, 'xpert-ai/xpert', gh)
+      assert.equal(calls.filter((args) => args[1] === 'upload').length, 2)
+      assert.equal(calls.at(-1)[1], 'edit')
+      assert.ok(calls.at(-1).includes('--draft=false'))
+    }
   }
 })

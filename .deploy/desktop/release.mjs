@@ -1,5 +1,5 @@
-// Only verified, complete native builds may be attached to the stable draft.
-// Never publish a release or overwrite an existing asset with different content.
+// Publish only verified, complete native builds pinned to their source commit.
+// Existing published releases and assets with different content are immutable.
 import assert from 'node:assert/strict'
 import { createHash } from 'node:crypto'
 import { readFileSync, writeFileSync } from 'node:fs'
@@ -10,7 +10,7 @@ import { platforms } from './release-plan.mjs'
 import { createUpdateAssets } from './update-metadata.mjs'
 
 export function collectAssets(directory, plan) {
-  assert.ok(plan.build && plan.stable, 'Only a stable Changesets release can create a draft')
+  assert.ok(plan.build && plan.stable, 'Only a stable Changesets release can be published')
   assert.match(plan.version, /^\d+\.\d+\.\d+$/)
   assert.match(plan.sha, /^[a-f0-9]{40}$/)
   assert.equal(plan.tag, `desktop-v${plan.version}`)
@@ -63,14 +63,14 @@ export function collectAssets(directory, plan) {
     '| --- | --- |',
     ...receipts.map((receipt) => `| ${receipt.target} | ${receipt.signing} |`),
     '',
-    'Review the installers before publishing this draft. Publishing makes the attached architecture-specific update feeds available to installed stable Desktop apps. Unsigned/ad-hoc builds are test downloads and may require OS security confirmation; ad-hoc macOS builds have no update feed.',
+    'This release makes the attached architecture-specific update feeds available to installed stable Desktop apps. Unsigned/ad-hoc builds are test downloads and may require OS security confirmation; ad-hoc macOS builds have no update feed.',
     '',
     'Checksums and source/signing metadata are attached.'
   ].join('\n')
   return { assets, notes }
 }
 
-export function releaseDraft(
+export function publishRelease(
   directory,
   plan,
   repository,
@@ -105,9 +105,9 @@ export function releaseDraft(
       'release',
       'create',
       plan.tag,
+      ...assets.map((asset) => join(directory, asset.file)),
       '--repo',
       repository,
-      '--draft',
       '--target',
       plan.sha,
       '--title',
@@ -116,12 +116,15 @@ export function releaseDraft(
       notesFile
     ])
   }
-  const missing = assets.filter((asset) => !release?.assets.some((existing) => existing.name === asset.file))
-  for (const asset of missing) gh(['release', 'upload', plan.tag, join(directory, asset.file), '--repo', repository])
+  if (release) {
+    const missing = assets.filter((asset) => !release.assets.some((existing) => existing.name === asset.file))
+    for (const asset of missing) gh(['release', 'upload', plan.tag, join(directory, asset.file), '--repo', repository])
+    gh(['release', 'edit', plan.tag, '--repo', repository, '--draft=false', '--notes-file', notesFile])
+  }
   return `https://github.com/${repository}/releases/tag/${plan.tag}`
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   console.log(
-    releaseDraft('installers', JSON.parse(process.env.DESKTOP_RELEASE_PLAN ?? '{}'), process.env.GITHUB_REPOSITORY)
+    publishRelease('installers', JSON.parse(process.env.DESKTOP_RELEASE_PLAN ?? '{}'), process.env.GITHUB_REPOSITORY)
   )
 }

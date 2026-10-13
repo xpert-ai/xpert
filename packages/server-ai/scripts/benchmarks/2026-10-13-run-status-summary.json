@@ -1,0 +1,220 @@
+{
+    "at": "2026-10-13T04:41:59.442Z",
+    "node": "v20.20.2",
+    "scope": "actual handlers and checkpoint serializer; read-only SQL adapter; one connection; no HTTP/auth/ORM/pool queue",
+    "source_sha256": {
+        "xpert-agent-execution/queries/handlers/get-one.handler": "8bb44a492101748e18195076a0b0fcc7f16aae74bea88bec1d0f2e04b771233e",
+        "xpert-agent-execution/queries/handlers/get-run-summary.handler": "66e29cd5cb0788b79db9f3d53bc8cc3fdaf371d1d2ca7fe6a124752c06c8c37c",
+        "xpert-agent-execution/queries/get-one.query": "0c8e21ad42946733b201ccc03fd9bdc8eeffebe16bac6e62d34ac3a499c72a75",
+        "xpert-agent-execution/queries/get-run-summary.query": "607a829513e13bdd135199a2e1d3baa03235e4e5aaebdc6f684fa41fa0853951",
+        "xpert-agent-execution/dto/execution.dto": "5c1486520b4d372abcd5ed8e20ea516023f6345791bec2a0b2933a20f6b63c3f",
+        "xpert-agent-execution/model-usage.execution": "cfa43d888b443b053a588d3c978d5c4a4b877cc129f437cff4d8007f643d49aa",
+        "copilot-checkpoint/checkpoint-saver": "5f9799e351e55ed53e6b6b651294d23084f6ce5f19d0d72947172864b317f445",
+        "copilot-checkpoint/checkpoint-reference": "5df9fe580331a27f1c078e1f7437d0333002f9c9841c5c4d2d3527399c19d265",
+        "copilot-checkpoint/serde/message-state": "0348aeb4a577bbd92558406b415d2d21e256ec3dfff4896a7fef0d9c56d0875c",
+        "copilot-checkpoint/queries/get-tuple.query": "c1ecdee17a34057079b7cd6cab3b59773729e6d7e11b9aae702b9802dc76e22c",
+        "ai/agent-run-summary": "b7ebd45346b2bce8dcceffbb3a48afd5fdd7c0008b59900395ecdf3d83d68fe9",
+        "shared/avatar": "1d0a8c4edd44a96fe319a3d034858da3ac1fcd2f7b81444c020f6e1da0af4295"
+    },
+    "response_equality": true,
+    "samples": [
+        {
+            "sample": "d9091d67",
+            "iteration": 0,
+            "warmup": true,
+            "before_ms": 190.61515299999974,
+            "after_ms": 1.8594069999999192,
+            "before_queries": 12,
+            "after_queries": 1,
+            "response_bytes": 11121,
+            "response_sha256": "1cb795d04c5f3cc20e10d41b647974514c0727d87f4ce2ff70427a5ff1060b81"
+        },
+        {
+            "sample": "d9091d67",
+            "iteration": 1,
+            "warmup": false,
+            "before_ms": 167.86083000000008,
+            "after_ms": 1.5127639999996063,
+            "before_queries": 12,
+            "after_queries": 1,
+            "response_bytes": 11121,
+            "response_sha256": "1cb795d04c5f3cc20e10d41b647974514c0727d87f4ce2ff70427a5ff1060b81"
+        },
+        {
+            "sample": "d9091d67",
+            "iteration": 2,
+            "warmup": false,
+            "before_ms": 139.44522299999971,
+            "after_ms": 0.9880269999998745,
+            "before_queries": 12,
+            "after_queries": 1,
+            "response_bytes": 11121,
+            "response_sha256": "1cb795d04c5f3cc20e10d41b647974514c0727d87f4ce2ff70427a5ff1060b81"
+        },
+        {
+            "sample": "d9091d67",
+            "iteration": 3,
+            "warmup": false,
+            "before_ms": 134.48300100000006,
+            "after_ms": 0.8393479999999727,
+            "before_queries": 12,
+            "after_queries": 1,
+            "response_bytes": 11121,
+            "response_sha256": "1cb795d04c5f3cc20e10d41b647974514c0727d87f4ce2ff70427a5ff1060b81"
+        },
+        {
+            "sample": "d9091d67",
+            "iteration": 4,
+            "warmup": false,
+            "before_ms": 147.48871700000018,
+            "after_ms": 1.1646200000000135,
+            "before_queries": 12,
+            "after_queries": 1,
+            "response_bytes": 11121,
+            "response_sha256": "1cb795d04c5f3cc20e10d41b647974514c0727d87f4ce2ff70427a5ff1060b81"
+        },
+        {
+            "sample": "d9091d67",
+            "iteration": 5,
+            "warmup": false,
+            "before_ms": 131.03980500000034,
+            "after_ms": 0.999025999999958,
+            "before_queries": 12,
+            "after_queries": 1,
+            "response_bytes": 11121,
+            "response_sha256": "1cb795d04c5f3cc20e10d41b647974514c0727d87f4ce2ff70427a5ff1060b81"
+        },
+        {
+            "sample": "835bbb9c",
+            "iteration": 0,
+            "warmup": true,
+            "before_ms": 130.73055599999998,
+            "after_ms": 1.1982299999999668,
+            "before_queries": 5,
+            "after_queries": 1,
+            "response_bytes": 1924,
+            "response_sha256": "0412cf60a78a181f5400910ff3f8e9a0071283708683a0e83a2a0b5e63a48664"
+        },
+        {
+            "sample": "835bbb9c",
+            "iteration": 1,
+            "warmup": false,
+            "before_ms": 125.02421299999969,
+            "after_ms": 0.9529620000002978,
+            "before_queries": 5,
+            "after_queries": 1,
+            "response_bytes": 1924,
+            "response_sha256": "0412cf60a78a181f5400910ff3f8e9a0071283708683a0e83a2a0b5e63a48664"
+        },
+        {
+            "sample": "835bbb9c",
+            "iteration": 2,
+            "warmup": false,
+            "before_ms": 123.36290099999951,
+            "after_ms": 0.9362510000000839,
+            "before_queries": 5,
+            "after_queries": 1,
+            "response_bytes": 1924,
+            "response_sha256": "0412cf60a78a181f5400910ff3f8e9a0071283708683a0e83a2a0b5e63a48664"
+        },
+        {
+            "sample": "835bbb9c",
+            "iteration": 3,
+            "warmup": false,
+            "before_ms": 123.90630099999998,
+            "after_ms": 0.7845999999999549,
+            "before_queries": 5,
+            "after_queries": 1,
+            "response_bytes": 1924,
+            "response_sha256": "0412cf60a78a181f5400910ff3f8e9a0071283708683a0e83a2a0b5e63a48664"
+        },
+        {
+            "sample": "835bbb9c",
+            "iteration": 4,
+            "warmup": false,
+            "before_ms": 133.67618500000026,
+            "after_ms": 0.9778710000000501,
+            "before_queries": 5,
+            "after_queries": 1,
+            "response_bytes": 1924,
+            "response_sha256": "0412cf60a78a181f5400910ff3f8e9a0071283708683a0e83a2a0b5e63a48664"
+        },
+        {
+            "sample": "835bbb9c",
+            "iteration": 5,
+            "warmup": false,
+            "before_ms": 124.89280999999937,
+            "after_ms": 0.810617999999522,
+            "before_queries": 5,
+            "after_queries": 1,
+            "response_bytes": 1924,
+            "response_sha256": "0412cf60a78a181f5400910ff3f8e9a0071283708683a0e83a2a0b5e63a48664"
+        },
+        {
+            "sample": "d5bf6462",
+            "iteration": 0,
+            "warmup": true,
+            "before_ms": 162.91215499999998,
+            "after_ms": 0.9558660000002419,
+            "before_queries": 5,
+            "after_queries": 1,
+            "response_bytes": 2179,
+            "response_sha256": "b4d0a6bb179887dbe9374a3f2fa4c96660754ba50c870c93cb1387469c5da64a"
+        },
+        {
+            "sample": "d5bf6462",
+            "iteration": 1,
+            "warmup": false,
+            "before_ms": 154.54109900000003,
+            "after_ms": 0.8180350000002363,
+            "before_queries": 5,
+            "after_queries": 1,
+            "response_bytes": 2179,
+            "response_sha256": "b4d0a6bb179887dbe9374a3f2fa4c96660754ba50c870c93cb1387469c5da64a"
+        },
+        {
+            "sample": "d5bf6462",
+            "iteration": 2,
+            "warmup": false,
+            "before_ms": 152.37888399999974,
+            "after_ms": 1.0288650000002235,
+            "before_queries": 5,
+            "after_queries": 1,
+            "response_bytes": 2179,
+            "response_sha256": "b4d0a6bb179887dbe9374a3f2fa4c96660754ba50c870c93cb1387469c5da64a"
+        },
+        {
+            "sample": "d5bf6462",
+            "iteration": 3,
+            "warmup": false,
+            "before_ms": 151.50949000000037,
+            "after_ms": 0.7861580000007962,
+            "before_queries": 5,
+            "after_queries": 1,
+            "response_bytes": 2179,
+            "response_sha256": "b4d0a6bb179887dbe9374a3f2fa4c96660754ba50c870c93cb1387469c5da64a"
+        },
+        {
+            "sample": "d5bf6462",
+            "iteration": 4,
+            "warmup": false,
+            "before_ms": 152.1749720000007,
+            "after_ms": 0.922961000000214,
+            "before_queries": 5,
+            "after_queries": 1,
+            "response_bytes": 2179,
+            "response_sha256": "b4d0a6bb179887dbe9374a3f2fa4c96660754ba50c870c93cb1387469c5da64a"
+        },
+        {
+            "sample": "d5bf6462",
+            "iteration": 5,
+            "warmup": false,
+            "before_ms": 152.97653900000023,
+            "after_ms": 0.773511000000326,
+            "before_queries": 5,
+            "after_queries": 1,
+            "response_bytes": 2179,
+            "response_sha256": "b4d0a6bb179887dbe9374a3f2fa4c96660754ba50c870c93cb1387469c5da64a"
+        }
+    ]
+}

@@ -5,8 +5,8 @@ import { RoleGuard, TenantPermissionGuard } from '../shared/guards'
 import { RuntimeControlController } from './runtime-control.controller'
 import { RuntimeControlService } from './runtime-control.service'
 
-describe('Runtime membership HTTP boundary', () => {
-	const service = { retireInstance: jest.fn(), listInstances: jest.fn() }
+describe('Runtime control HTTP boundary', () => {
+	const service = { retireInstance: jest.fn(), listInstances: jest.fn(), requestRestart: jest.fn() }
 	let app: INestApplication
 	let origin: string
 
@@ -27,6 +27,7 @@ describe('Runtime membership HTTP boundary', () => {
 	beforeEach(() => {
 		jest.clearAllMocks()
 		service.retireInstance.mockResolvedValue({ status: 'retired' })
+		service.requestRestart.mockResolvedValue({ accepted: true })
 	})
 	afterAll(async () => app?.close())
 
@@ -37,13 +38,43 @@ describe('Runtime membership HTTP boundary', () => {
 			body: JSON.stringify(body)
 		})
 
-	it('preserves tenant and role guards on both membership endpoints', () => {
+	it('preserves tenant and role guards on membership and restart endpoints', () => {
 		expect(Reflect.getMetadata(GUARDS_METADATA, RuntimeControlController)).toContain(TenantPermissionGuard)
-		for (const method of ['listInstances', 'retireInstance'] as const) {
+		for (const method of ['listInstances', 'retireInstance', 'restart'] as const) {
 			expect(Reflect.getMetadata(GUARDS_METADATA, RuntimeControlController.prototype[method])).toContain(
 				RoleGuard
 			)
 		}
+	})
+
+	const restart = (body: unknown) =>
+		fetch(`${origin}/system/runtime/restart`, {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify(body)
+		})
+
+	it.each([{}, { allowDowntime: false }, { allowDowntime: true }])(
+		'validates explicit outage consent without defaulting it on: %j',
+		async (options) => {
+			const body = { confirmation: 'RESTART', ...options }
+			expect((await restart(body)).status).toBe(202)
+			expect(service.requestRestart).toHaveBeenCalledWith(body, { sourceIp: expect.any(String) })
+		}
+	)
+
+	it.each([
+		{ confirmation: 'RESTART', allowDowntime: 'true' },
+		{ confirmation: 'RESTART', allowDowntime: 1 },
+		{ confirmation: 'RESTART', force: true },
+		{ confirmation: 'wrong', allowDowntime: true },
+		{ allowDowntime: true },
+		{ confirmation: 'RESTART', runtimeRequirements: [{ state: 'loaded' }] }
+	])('rejects invalid restart input before requesting an outage: %j', async (body) => {
+		const response = await restart(body)
+		expect(response.status).toBe(400)
+		expect(await response.json()).toMatchObject({ statusCode: 400, error: 'Bad Request' })
+		expect(service.requestRestart).not.toHaveBeenCalled()
 	})
 
 	it('passes a validated boot identity and audit address to retirement', async () => {

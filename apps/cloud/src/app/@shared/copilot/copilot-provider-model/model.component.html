@@ -1,6 +1,6 @@
 <section xpDialogLayout="wide" class="w-[min(600px,calc(100vw-32px))] max-h-[84dvh]">
   <header xpDialogHeader cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-    <h2 xpDialogHeading>{{ 'XP.ACTIONS.Add' | translate: { Default: 'Add' } }} {{ label() | i18n }}</h2>
+    <h2 xpDialogHeading>{{ (modelId() ? 'XP.ACTIONS.Edit' : 'XP.ACTIONS.Add') | translate }} {{ label() | i18n }}</h2>
     <button
       xpDialogCloseButton
       z-button
@@ -19,14 +19,16 @@
       <div class="mb-2 font-medium">
         {{ 'XP.Copilot.ModelType' | translate: { Default: 'Model type' } }}<span class="ml-1 text-destructive">*</span>
       </div>
-      <ul class="xp-radio-select grid grid-cols-1 gap-3 sm:grid-cols-3" cdkListbox [(ngModel)]="modelTypes">
+      <z-radio-group
+        class="grid grid-cols-1 gap-3 sm:grid-cols-3"
+        [ngModel]="modelTypes()[0]"
+        (ngModelChange)="modelTypes.set([$event])"
+        [disabled]="loading()"
+      >
         @for (type of supported_model_types(); track type) {
-          <li [cdkOption]="type">
-            <div class="radio-indicator"></div>
-            <div class="text-sm font-normal">{{ type | kebabToCamelCase }}</div>
-          </li>
+          <z-radio [value]="type">{{ 'XP.ModelAccess.ModelTypeValue.' + type | translate: { Default: type } }}</z-radio>
         }
-      </ul>
+      </z-radio-group>
     </div>
     <label class="flex flex-col gap-2"
       ><span>{{ modelSchema().label | i18n }}<span class="ml-1 text-destructive">*</span></span
@@ -51,6 +53,9 @@
     @if (error()) {
       <p role="alert" class="text-destructive">{{ error() }}</p>
     }
+    @if (configuration(); as config) {
+      <copilot-model-configuration [configuration]="config" (configurationChange)="configuration.set($event)" />
+    }
   </div>
   <footer xpDialogFooter>
     @if (help()) {
@@ -62,7 +67,7 @@
         >{{ help().title | i18n }}</a
       >
     }
-    @if (modelId()) {
+    @if (modelId() && allowDelete) {
       <button z-button zType="destructive" type="button" class="mr-auto" [zDisabled]="loading()" (click)="delete()">
         {{ 'XP.ACTIONS.Delete' | translate: { Default: 'Delete' } }}
       </button>

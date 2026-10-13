@@ -1,5 +1,7 @@
 {
 	"Error": {
+		"PluginRuntimePolicyInvalid": "Plugin runtimePolicy must declare install, update and uninstall as hot or restart.",
+		"PluginRuntimePolicyChanged": "Plugin runtime policy changed during installation. Retry with the current package metadata.",
 		"PluginAppDataNamespaceUnavailable": "A loaded plugin with a registered application namespace is required.",
 		"PluginPackageNameRequired": "Plugin package name is required",
 		"PluginSystemLevelInstallForbidden": "Plugin {{name}} is system-level and cannot be installed from this API",
