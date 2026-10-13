@@ -839,6 +839,8 @@
         "ProjectPermissionRequired": "需要项目权限。",
         "ProjectExternalExpectationsLimit": "一次项目同步最多允许 32 条外部数字专家预期。",
         "ProjectRequesterAgentMismatch": "请求 Agent 必须是项目数字专家的主 Agent。",
+        "ProjectInitialAssistantUnavailable": "Assistant {{assistantId}} 或关联的 External Assistant 在当前项目范围内不可用，请检查发布版本和组织。",
+        "ProjectInitialAssistantsLimit": "项目初始化最多支持 256 个不同的 Assistant。",
         "ProjectAssistantBindingAmbiguous": "所需外部数字专家绑定存在歧义。",
         "ProjectAssistantBindingUnpublished": "所需外部数字专家尚未发布。",
         "ProjectAssistantBindingCrossOrganization": "所需外部数字专家属于其他组织。",

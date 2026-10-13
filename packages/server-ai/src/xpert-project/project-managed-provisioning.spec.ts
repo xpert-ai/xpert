@@ -3,15 +3,16 @@ import { PluginApplicationInstallation } from '../plugin-resource/plugin-applica
 import { XpertProjectTypeService } from './services/project-type.service'
 import type { IUser, IXpert } from '@xpert-ai/contracts'
 import type { CommandBus, QueryBus } from '@nestjs/cqrs'
-import type { Repository } from 'typeorm'
+import { EntityManager, type DeepPartial, type Repository } from 'typeorm'
 import type { ConnectorService } from '../connector/connector.service'
 import type { PublishedXpertAccessService } from '../xpert/published-xpert-access.service'
-import type { XpertProject } from './entities/project.entity'
+import { XpertProject } from './entities/project.entity'
+import { Xpert } from '../xpert/xpert.entity'
 import { XpertProjectService } from './project.service'
 import type { XpertProjectAccessService } from './services/project-access.service'
 import type { XpertProjectContentService } from './services/project-content.service'
 import type { XpertProjectTaskService } from './services'
-import type { XpertProjectXpertBindingService } from './services/project-xpert-binding.service'
+import { XpertProjectXpertBindingService } from './services/project-xpert-binding.service'
 
 const expectation = {
     pluginName: '@xpert-ai/plugin-factory-operations',
@@ -23,6 +24,8 @@ describe('XpertProjectService managed provisioning', () => {
     beforeEach(() => {
         jest.restoreAllMocks()
         jest.spyOn(RequestContext, 'currentUser').mockReturnValue({ id: 'user-1', tenantId: 'tenant-1' } as IUser)
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
     })
 
@@ -50,10 +53,7 @@ describe('XpertProjectService managed provisioning', () => {
             name: 'Automotive Case',
             status: 'active' as const
         }
-        jest.mocked(harness.service.create).mockImplementationOnce(async () => {
-            harness.repository.findOne.mockResolvedValue(harness.createdProject)
-            throw new Error('content storage temporarily unavailable')
-        })
+        harness.content.initialize.mockRejectedValueOnce(new Error('content storage temporarily unavailable'))
         await expect(harness.service.ensureManagedProject(input)).rejects.toThrow(
             'content storage temporarily unavailable'
         )
@@ -62,7 +62,7 @@ describe('XpertProjectService managed provisioning', () => {
             operation: 'updated',
             xpertIds: [requester.id]
         })
-        expect(harness.service.create).toHaveBeenCalledTimes(1)
+        expect(harness.repository.insert).toHaveBeenCalledTimes(1)
         expect(harness.content.initialize).toHaveBeenCalledWith(harness.createdProject)
     })
 
@@ -140,7 +140,7 @@ describe('XpertProjectService managed provisioning', () => {
         })
 
         expect(result.xpertIds).toEqual([requester.id, role.id])
-        expect(harness.repository.save).toHaveBeenCalledTimes(1)
+        expect(harness.repository.insert).toHaveBeenCalledTimes(1)
         expect(harness.createdProject.xperts).toEqual([requester, role])
     })
 
@@ -161,12 +161,12 @@ describe('XpertProjectService managed provisioning', () => {
             response: { errorCode: 'project_assistant_binding_missing' }
         })
 
-        expect(harness.service.create).not.toHaveBeenCalled()
+        expect(harness.repository.insert).not.toHaveBeenCalled()
         expect(harness.repository.findOne).not.toHaveBeenCalled()
         expect(harness.repository.save).not.toHaveBeenCalled()
     })
 
-    it('provisions selected role dependencies without replaying the root token against a nested Assistant', async () => {
+    it('provisions every connected role and optional dependency without replaying the root token', async () => {
         const role = buildRole(),
             child = buildRole('figure'),
             optional = buildRole('optional'),
@@ -203,13 +203,13 @@ describe('XpertProjectService managed provisioning', () => {
             name: 'Nested case',
             status: 'active'
         })
-        expect(result.xpertIds).toEqual([requester.id, role.id, child.id])
+        expect(result.xpertIds).toEqual([requester.id, role.id, unrelated.id, child.id, optional.id])
         expect(harness.publishedXpertAccess.getAccessiblePublishedXpert.mock.calls.map(([id]) => id)).toEqual([
             requester.id
         ])
     })
 
-    it.each(['cross_organization', 'cross_tenant', 'unpublished', 'cycle'] as const)(
+    it.each(['cross_organization', 'cross_tenant', 'unpublished'] as const)(
         'rejects a %s dependency before Project writes',
         async (invalid) => {
             const role = buildRole(),
@@ -221,13 +221,6 @@ describe('XpertProjectService managed provisioning', () => {
             if (invalid === 'cross_organization') child.organizationId = 'another-org'
             if (invalid === 'cross_tenant') child.tenantId = 'another-tenant'
             if (invalid === 'unpublished') child.active = false
-            if (invalid === 'cycle')
-                child.graph = {
-                    nodes: [{ type: 'xpert', key: role.id, entity: role, position: { x: 0, y: 0 } }],
-                    connections: [
-                        { key: 'child/role', type: 'xpert', from: child.agent.key, to: role.id, required: true }
-                    ]
-                }
             const requester = buildRequester([role.id]),
                 harness = buildHarness({ requester, roles: [role, child] })
             await expect(
@@ -241,13 +234,158 @@ describe('XpertProjectService managed provisioning', () => {
                 })
             ).rejects.toMatchObject({
                 response: {
-                    errorCode: `project_assistant_binding_${invalid === 'cycle' ? 'incompatible' : invalid === 'cross_tenant' ? 'cross_organization' : invalid}`
+                    errorCode: 'project_initial_assistant_unavailable'
                 }
             })
             expect(harness.repository.save).not.toHaveBeenCalled()
-            expect(harness.service.create).not.toHaveBeenCalled()
+            expect(harness.repository.insert).not.toHaveBeenCalled()
         }
     )
+
+    it('seeds all assistants on ordinary API creation without later add-member calls', async () => {
+        const child = buildRole('child')
+        const root = buildRequester([child.id])
+        root.graph.connections[0].required = false
+        const harness = buildHarness({ requester: root, roles: [child] })
+        const project = await harness.service.createProject({ name: 'Ordinary', xpertIds: [root.id, root.id] })
+        expect(project.xperts.map((member) => member.id)).toEqual([root.id, child.id])
+        expect(harness.repository.save).toHaveBeenCalledWith(
+            expect.objectContaining({
+                xperts: [{ id: root.id }, { id: child.id }]
+            })
+        )
+    })
+
+    it('expands initial members when copying a Project', async () => {
+        const child = buildRole('child')
+        const root = buildRequester([child.id])
+        const harness = buildHarness({ requester: root, roles: [child] })
+        const source = Object.assign(new XpertProject(), {
+            id: 'source',
+            name: 'Source',
+            xperts: [root],
+            attachments: [],
+            tenantId: 'tenant-1',
+            organizationId: 'org-1'
+        })
+        jest.spyOn(harness.service, 'findOne').mockResolvedValue(source)
+        Object.assign(harness.repository.manager, { getRepository: () => ({ find: async () => [] }) })
+        const result = await harness.service.duplicate(source.id)
+        expect(result.xperts.map((member) => member.id)).toEqual([root.id, child.id])
+        expect(source.xperts).toEqual([root])
+    })
+
+    it('keeps manually removed members removed and supports explicit re-addition without expanding their graphs', async () => {
+        const child = buildRole('child')
+        const root = buildRequester([child.id])
+        const harness = buildHarness({ requester: root, roles: [child] })
+        const input = { projectId: 'project-1', xpertId: root.id, name: 'Case', status: 'active' as const }
+        await harness.service.ensureManagedProject(input)
+        jest.spyOn(harness.service, 'findOne').mockResolvedValue(harness.createdProject)
+        Object.assign(harness.repository.manager, { getRepository: () => ({ update: jest.fn() }) })
+        await harness.service.removeXpert(input.projectId, child.id)
+        expect((await harness.service.ensureManagedProject(input)).xpertIds).toEqual([root.id])
+        const expand = jest.spyOn(harness.bindingService, 'resolveInitialMembers')
+        await harness.service.addXpert(input.projectId, child.id)
+        expect(harness.createdProject.xperts.map((member) => member.id)).toEqual([root.id, child.id])
+        expect(expand).not.toHaveBeenCalled()
+    })
+
+    it('initializes without expectations and never restores removed members or adds new graph dependencies', async () => {
+        const child = buildRole('child')
+        const later = buildRole('later')
+        const root = buildRequester([child.id])
+        root.graph.connections[0].required = false
+        const harness = buildHarness({ requester: root, roles: [child, later] })
+        const input = { projectId: 'project-1', xpertId: root.id, name: 'Case', status: 'active' as const }
+        expect((await harness.service.ensureManagedProject(input)).xpertIds).toEqual([root.id, child.id])
+        harness.createdProject.xperts = []
+        root.graph.nodes.push({ type: 'xpert', key: later.id, entity: later, position: { x: 0, y: 0 } })
+        root.graph.connections.push({ key: 'later-edge', type: 'xpert', from: root.agent.key, to: later.id })
+        const expand = jest.spyOn(harness.bindingService, 'resolveInitialMembers')
+        const result = await harness.service.ensureManagedProject(input)
+        expect(result.xpertIds).toEqual([])
+        expect(expand).not.toHaveBeenCalled()
+        expect(harness.repository.save.mock.calls[0][0]).not.toHaveProperty('xperts')
+        expect(harness.relation.add).toHaveBeenCalledTimes(1)
+    })
+
+    it('validates role expectations without restoring explicitly removed role members', async () => {
+        const role = buildRole()
+        const root = buildRequester([role.id])
+        const harness = buildHarness({ requester: root, roles: [role] })
+        const input = {
+            projectId: 'project-1',
+            xpertId: root.id,
+            name: 'Case',
+            status: 'active' as const,
+            requesterAgentKey: root.agent.key,
+            externalAssistantExpectations: [expectation]
+        }
+        await harness.service.ensureManagedProject(input)
+        harness.createdProject.xperts = [root]
+        expect((await harness.service.ensureManagedProject(input)).xpertIds).toEqual([root.id])
+        expect(harness.relation.add).toHaveBeenCalledTimes(1)
+        expect(harness.repository.save.mock.calls[0][0]).not.toHaveProperty('xperts')
+    })
+
+    it('retains initialized members after published External edges are removed', async () => {
+        const role = buildRole()
+        const root = buildRequester([role.id])
+        const harness = buildHarness({ requester: root, roles: [role] })
+        const input = { projectId: 'project-1', xpertId: root.id, name: 'Case', status: 'active' as const }
+        await harness.service.ensureManagedProject(input)
+        root.graph.connections = []
+        expect((await harness.service.ensureManagedProject(input)).xpertIds).toEqual([root.id, role.id])
+        expect(harness.repository.save.mock.calls[0][0]).not.toHaveProperty('xperts')
+    })
+
+    it('does not restore a concurrently removed member from the metadata read snapshot', async () => {
+        const child = buildRole('child')
+        const root = buildRequester([child.id])
+        const harness = buildHarness({ requester: root, roles: [child] })
+        const input = { projectId: 'project-1', xpertId: root.id, name: 'Case', status: 'active' as const }
+        await harness.service.ensureManagedProject(input)
+        harness.repository.findOne.mockResolvedValue({ ...harness.createdProject, xperts: [root, child] })
+        harness.createdProject.xperts = [root]
+        await harness.service.ensureManagedProject(input)
+        expect(harness.createdProject.xperts).toEqual([root])
+        expect(harness.repository.save.mock.calls[0][0]).not.toHaveProperty('xperts')
+    })
+
+    it('persists identity and members in the same transaction before initializing content', async () => {
+        const child = buildRole('child')
+        const root = buildRequester([child.id])
+        const harness = buildHarness({ requester: root, roles: [child] })
+        await harness.service.ensureManagedProject({
+            projectId: 'project-1',
+            xpertId: root.id,
+            name: 'Case',
+            status: 'active'
+        })
+        expect(harness.transaction).toHaveBeenCalledTimes(1)
+        expect(harness.relation.of).toHaveBeenCalledWith('project-1')
+        expect(harness.relation.add).toHaveBeenCalledWith([root.id, child.id])
+        expect(harness.relation.add.mock.invocationCallOrder[0]).toBeLessThan(
+            harness.content.initialize.mock.invocationCallOrder[0]
+        )
+    })
+
+    it('fails the creation transaction if linking initial members fails', async () => {
+        const root = buildRequester([])
+        const harness = buildHarness({ requester: root })
+        harness.relation.add.mockRejectedValueOnce(new Error('membership write failed'))
+        await expect(
+            harness.service.ensureManagedProject({
+                projectId: 'project-1',
+                xpertId: root.id,
+                name: 'Case',
+                status: 'active'
+            })
+        ).rejects.toThrow('membership write failed')
+        await expect(harness.transaction.mock.results[0].value).rejects.toThrow('membership write failed')
+        expect(harness.content.initialize).not.toHaveBeenCalled()
+    })
 
     it('rejects an expectation that resolves to more than one direct Assistant', async () => {
         const roles = [buildRole('role-1'), buildRole('role-2')]
@@ -277,7 +415,9 @@ function buildRequester(roleIds: string[]): IXpert {
         organizationId: 'org-1',
         name: 'factory-orchestrator',
         active: true,
+        latest: true,
         version: '4',
+        publishAt: new Date('2026-09-01T00:00:00.000Z'),
         agent: { key: 'Agent_FactoryOrchestrator' },
         graph: {
             nodes: [
@@ -301,6 +441,7 @@ function buildRole(id = 'role-1'): IXpert {
         organizationId: 'org-1',
         name: `equipment-diagnostics-${id}`,
         active: true,
+        latest: true,
         publishAt: new Date('2026-09-01T00:00:00.000Z'),
         version: '2',
         agent: { key: expectation.agentKey },
@@ -324,8 +465,13 @@ function buildHarness(input: { requester: IXpert; roles?: IXpert[] }) {
         xperts: []
     } as unknown as XpertProject
     const repository = {
-        findOne: jest.fn().mockResolvedValue(null),
-        save: jest.fn(async (project: XpertProject) => project)
+        create: jest.fn((entity: DeepPartial<XpertProject>) => Object.assign(createdProject, entity)),
+        insert: jest.fn(async () => {
+            repository.findOne.mockResolvedValue(createdProject)
+        }),
+        findOne: jest.fn<Promise<XpertProject | null>, []>().mockResolvedValue(null),
+        save: jest.fn(async (project: DeepPartial<XpertProject>) => Object.assign(createdProject, project)),
+        manager: new EntityManager(undefined)
     }
     const xperts = new Map([input.requester, ...(input.roles ?? [])].map((xpert) => [xpert.id, xpert]))
     const publishedXpertAccess = {
@@ -340,29 +486,54 @@ function buildHarness(input: { requester: IXpert; roles?: IXpert[] }) {
             return candidate
         })
     }
-    const bindingService = {
-        resolveCurrent: jest.fn(async (xpert: IXpert) => xpert),
-        normalize: jest.fn(async (project: XpertProject) => project),
-        contains: jest.fn(
-            (project: XpertProject, xpert: IXpert) => project.xperts?.some((item) => item.id === xpert.id) ?? false
-        ),
-        isSameXpert: jest.fn((left: IXpert, right: IXpert) => left.id === right.id)
+    const xpertRepository = {
+        findOne: jest.fn(async (options: { where: { id?: string; tenantId?: string; organizationId?: string } }) => {
+            const candidate = xperts.get(options.where.id ?? '')
+            return candidate?.tenantId === options.where.tenantId &&
+                candidate?.organizationId === options.where.organizationId
+                ? candidate
+                : null
+        })
     }
-    const content = Object.assign({} as XpertProjectContentService, { initialize: jest.fn() })
+    const bindingService = new XpertProjectXpertBindingService(
+        xpertRepository as unknown as Repository<Xpert>,
+        repository as unknown as Repository<XpertProject>
+    )
+    const relation = {
+        relation: jest.fn().mockReturnThis(),
+        of: jest.fn().mockReturnThis(),
+        add: jest.fn(async (ids: string[]) => {
+            createdProject.xperts = ids.map((id) => xperts.get(id)!)
+        })
+    }
+    const transaction = jest.fn(async (work: (manager: EntityManager) => Promise<void>) =>
+        work(
+            Object.assign(new EntityManager(undefined), {
+                getRepository: () => repository,
+                createQueryBuilder: () => relation
+            })
+        )
+    )
+    Object.assign(repository.manager, { transaction })
+    const content = {
+        initialize: jest.fn<Promise<void>, [XpertProject]>().mockResolvedValue(undefined),
+        readInstructions: jest.fn().mockResolvedValue({ content: 'Instructions' })
+    }
     const service = new XpertProjectService(
         repository as unknown as Repository<XpertProject>,
         {} as CommandBus,
         queryBus as unknown as QueryBus,
         {} as XpertProjectTaskService,
-        {} as XpertProjectAccessService,
-        content,
+        {
+            assertCanManage: async () => ({ project: createdProject, role: 'owner' })
+        } as unknown as XpertProjectAccessService,
+        content as unknown as XpertProjectContentService,
         publishedXpertAccess as unknown as PublishedXpertAccessService,
         {} as ConnectorService,
         bindingService as unknown as XpertProjectXpertBindingService,
         projectTypeTestService()
     )
-    jest.spyOn(service, 'create').mockResolvedValue(createdProject)
-    return { service, repository, createdProject, content, publishedXpertAccess }
+    return { service, repository, createdProject, content, publishedXpertAccess, bindingService, transaction, relation }
 }
 
 function projectTypeTestService() {

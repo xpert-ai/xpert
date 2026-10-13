@@ -156,6 +156,7 @@ export class XpertProjectController extends XpertProjectPlanningController {
         void knowledgebaseIds
         const project = await this.service.createProject({
             ...projectInput,
+            xpertIds,
             status: projectInput.status ?? 'active',
             settings: {
                 instruction: projectInput.settings?.instruction ?? '',
@@ -164,16 +165,12 @@ export class XpertProjectController extends XpertProjectPlanningController {
             }
         })
 
-        const initialXpertIds = [
-            ...new Set((xpertIds ?? []).map((id) => id?.trim()).filter((id): id is string => !!id))
-        ]
         const initialMemberIds = [
             ...new Set(
                 (memberIds ?? []).map((id) => id?.trim()).filter((id): id is string => !!id && id !== project.ownerId)
             )
         ]
 
-        for (const xpertId of initialXpertIds) await this.service.addXpert(project.id, xpertId)
         for (const memberId of initialMemberIds) await this.membershipService.add(project.id, memberId, 'member')
 
         await this.planService.ensureDefaults(project.id)
@@ -183,7 +180,7 @@ export class XpertProjectController extends XpertProjectPlanningController {
             entityType: 'project',
             entityId: project.id,
             payload: {
-                xpertCount: initialXpertIds.length,
+                xpertCount: project.xperts?.length ?? 0,
                 // Deprecated direct capability selections are intentionally ignored.
                 toolsetCount: 0,
                 knowledgebaseCount: 0,

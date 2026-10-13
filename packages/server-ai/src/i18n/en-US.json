@@ -839,6 +839,8 @@
         "ProjectPermissionRequired": "Project permission is required.",
         "ProjectExternalExpectationsLimit": "A Project ensure request cannot contain more than 32 External Assistant expectations.",
         "ProjectRequesterAgentMismatch": "The requester Agent must be the primary Agent of the Project Assistant.",
+        "ProjectInitialAssistantUnavailable": "Assistant {{assistantId}} or an External Assistant is unavailable in this Project scope. Check its published version and organization.",
+        "ProjectInitialAssistantsLimit": "Project initialization supports up to 256 distinct Assistants.",
         "ProjectAssistantBindingAmbiguous": "A required External Assistant binding is ambiguous.",
         "ProjectAssistantBindingUnpublished": "A required External Assistant is not published.",
         "ProjectAssistantBindingCrossOrganization": "A required External Assistant belongs to another Organization.",

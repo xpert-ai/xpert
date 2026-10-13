@@ -27,6 +27,32 @@ describe('XpertProjectController collaboration endpoints', () => {
         )
     })
 
+    it('passes creation seeds to the service and records the complete initialized member count', async () => {
+        const project = {
+            id: 'project',
+            ownerId: 'owner',
+            name: 'Project',
+            xperts: [{ id: 'root' }, { id: 'child' }, { id: 'leaf' }]
+        }
+        const service = {
+            createProject: jest.fn().mockResolvedValue(project),
+            findOne: jest.fn().mockResolvedValue(project),
+            addXpert: jest.fn()
+        }
+        const plans = { ensureDefaults: jest.fn() }
+        const activity = { record: jest.fn() }
+        const controller = createController(service, {}, {}, {}, plans, activity)
+        await expect(controller.create({ name: 'Project', xpertIds: ['root'] })).resolves.toBe(project)
+        expect(service.createProject).toHaveBeenCalledWith(expect.objectContaining({ xpertIds: ['root'] }))
+        expect(service.addXpert).not.toHaveBeenCalled()
+        expect(activity.record).toHaveBeenCalledWith(
+            'project',
+            expect.objectContaining({
+                payload: expect.objectContaining({ xpertCount: 3 })
+            })
+        )
+    })
+
     it('preserves route and permission metadata on extracted planning endpoints', () => {
         const method = XpertProjectController.prototype.createTask
         expect(Reflect.getMetadata('path', method)).toBe(':id/tasks')
@@ -97,15 +123,17 @@ function createController(
     service: object,
     accessService: object = {},
     membershipService: object = {},
-    contentService: object = {}
+    contentService: object = {},
+    planService: object = {},
+    activityService: object = {}
 ) {
     return new XpertProjectController(
         service as XpertProjectService,
         {} as XpertProjectTypeService,
         {} as CommandBus,
         {} as QueryBus,
-        {} as XpertProjectPlanService,
-        {} as XpertProjectActivityService,
+        planService as XpertProjectPlanService,
+        activityService as XpertProjectActivityService,
         {} as XpertProjectAssetService,
         {} as XpertProjectAutomationService,
         accessService as XpertProjectAccessService,

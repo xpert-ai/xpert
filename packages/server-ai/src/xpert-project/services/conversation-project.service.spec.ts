@@ -3,7 +3,8 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { RequestContext, runWithRequestContext, type ConversationProjectCreation } from '@xpert-ai/plugin-sdk'
 import { AIPermissionsEnum, IUser, IXpert } from '@xpert-ai/contracts'
-import { EntityManager, IsNull } from 'typeorm'
+import { EntityManager, IsNull, type Repository } from 'typeorm'
+import { Xpert } from '../../xpert/xpert.entity'
 import { ChatConversation } from '../../chat-conversation/conversation.entity'
 import { PublishedXpertAccessService } from '../../xpert/published-xpert-access.service'
 import { XpertProject } from '../entities/project.entity'
@@ -20,8 +21,13 @@ describe('first-send Project creation', () => {
         title: 'Bid',
         tenantId: 'tenant',
         organizationId: 'org',
+        latest: true,
+        publishAt: new Date(),
+        agent: { key: 'root-agent' },
+        graph: { nodes: [], connections: [] },
         options: { workspaceScope: { mode: 'project-required', onMissing: 'create' } }
     } as IXpert
+    const assistants = new Map<string, IXpert>()
     const conversation = Object.assign(new ChatConversation(), {
         id: 'conversation',
         createdById: 'human',
@@ -48,6 +54,9 @@ describe('first-send Project creation', () => {
         jest.restoreAllMocks()
         jest.clearAllMocks()
         xpert.options.workspaceScope.onMissing = 'create'
+        xpert.graph = { nodes: [], connections: [] }
+        assistants.clear()
+        assistants.set(xpert.id, xpert)
         delete conversation.options
         delete conversation.projectId
         files.mockResolvedValue([])
@@ -96,7 +105,16 @@ describe('first-send Project creation', () => {
                 { provide: CommandBus, useValue: { execute: attach } },
                 { provide: XpertProjectFeatureGuard, useValue: { canActivate: feature } },
                 { provide: XpertProjectTypeService, useValue: { forConversation: classification } },
-                { provide: XpertProjectXpertBindingService, useValue: { resolveCurrent: async () => xpert } },
+                {
+                    provide: XpertProjectXpertBindingService,
+                    useValue: new XpertProjectXpertBindingService(
+                        {
+                            findOne: async (options: { where: { id: string } }) =>
+                                assistants.get(options.where.id) ?? null
+                        } as unknown as Repository<Xpert>,
+                        {} as Repository<XpertProject>
+                    )
+                },
                 { provide: PublishedXpertAccessService, useValue: { getAccessiblePublishedXpert: access } },
                 { provide: XpertProjectContentService, useValue: { initialize } }
             ]
@@ -123,6 +141,48 @@ describe('first-send Project creation', () => {
         )
         expect(query).toHaveBeenCalledWith(expect.stringContaining('NOT EXISTS'), ['conversation', 'project'])
         expect(initialize).toHaveBeenCalledTimes(1)
+    })
+
+    it.each(['create', 'confirm'] as const)('initializes recursive optional members through %s', async (mode) => {
+        const child: IXpert = {
+            ...xpert,
+            id: 'child',
+            graph: {
+                nodes: [{ type: 'xpert', key: 'leaf', entity: { ...xpert, id: 'leaf' }, position: { x: 0, y: 0 } }],
+                connections: [{ key: 'edge', type: 'xpert', from: 'internal-agent', to: 'leaf', required: false }]
+            }
+        }
+        const leaf: IXpert = { ...xpert, id: 'leaf', graph: { nodes: [], connections: [] } }
+        assistants.set(child.id, child)
+        assistants.set(leaf.id, leaf)
+        xpert.graph = {
+            nodes: [{ type: 'xpert', key: child.id, entity: child, position: { x: 0, y: 0 } }],
+            connections: [{ key: 'edge', type: 'xpert', from: xpert.agent.key, to: child.id }]
+        }
+        xpert.options.workspaceScope.onMissing = mode
+        if (mode === 'confirm') conversation.options = { projectCreation: { status: 'awaiting_confirmation' } }
+        await service.prepare(
+            conversation,
+            xpert,
+            mode === 'confirm' ? { id: 'setup', name: 'Confirmed', configuration: {} } : undefined
+        )
+        expect(save).toHaveBeenCalledWith(
+            expect.objectContaining({
+                xperts: [{ id: xpert.id }, { id: child.id }, { id: leaf.id }]
+            })
+        )
+    })
+
+    it('rejects an unavailable optional Assistant before creating business or Project records', async () => {
+        xpert.graph = {
+            nodes: [{ type: 'xpert', key: 'missing', entity: { ...xpert, id: 'missing' }, position: { x: 0, y: 0 } }],
+            connections: [{ key: 'edge', type: 'xpert', from: xpert.agent.key, to: 'missing', required: false }]
+        }
+        await expect(service.prepare(conversation, xpert)).rejects.toMatchObject({
+            response: { errorCode: 'project_initial_assistant_unavailable' }
+        })
+        expect(classification).not.toHaveBeenCalled()
+        expect(save).not.toHaveBeenCalled()
     })
 
     it('creates with an opaque ChatKit client secret using the authenticated user permissions', async () => {

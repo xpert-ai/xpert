@@ -7,23 +7,21 @@ import { DeepPartial, IsNull, Repository } from 'typeorm'
 import { t } from 'i18next'
 import { XpertProject } from '../entities/project.entity'
 import { XpertProjectTypeService } from './project-type.service'
-import { XpertProjectXpertBindingService } from './project-xpert-binding.service'
-import { requiredProjectText, resolveProjectExternalXperts } from './project-external-assistants'
+import { requiredProjectText, validateProjectExternalAssistants } from './project-external-assistants'
 
 export interface ManagedProjectStore {
     repository: Repository<XpertProject>
     queryBus: QueryBus
-    bindings: XpertProjectXpertBindingService
     types: XpertProjectTypeService
     initialize: (project: XpertProject) => Promise<unknown>
-    create: (entity: DeepPartial<XpertProject>) => Promise<XpertProject>
+    create: (entity: DeepPartial<XpertProject>, roots: IXpert[]) => Promise<XpertProject>
     resolveXpert: (id: string) => Promise<IXpert>
 }
 
 /**
  * Reconcile the business-owned Project under its persisted ID and request scope.
  * Validate classification and required Assistants before writes; retries repair content
- * initialization while preserving existing Assistant connections and Project identity.
+ * initialization while preserving independently managed membership and Project identity.
  */
 export async function ensureManagedProject(
     store: ManagedProjectStore,
@@ -48,10 +46,7 @@ export async function ensureManagedProject(
             })
         )
     }
-    const externalXperts = await resolveProjectExternalXperts(store.queryBus, xpert, input)
-    const requiredXperts = [xpert, ...externalXperts].filter(
-        (candidate, index, items) => items.findIndex((item) => store.bindings.isSameXpert(item, candidate)) === index
-    )
+    await validateProjectExternalAssistants(store.queryBus, xpert, input)
 
     // Tenant and organization participate in lookup so retries cannot adopt
     // a same-id Project from a different security boundary.
@@ -76,15 +71,16 @@ export async function ensureManagedProject(
         )
     }
     if (!project) {
-        project = await store.create({
-            id: projectId,
-            ...classification,
-            name,
-            status: input.status,
-            ownerId: user.id
-        })
-        project.xperts = requiredXperts
-        project = await store.repository.save(project)
+        project = await store.create(
+            {
+                id: projectId,
+                ...classification,
+                name,
+                status: input.status,
+                ownerId: user.id
+            },
+            [xpert]
+        )
     } else {
         // Reconcile a conversation-created name once. Subsequent provisioning
         // must preserve user naming, including changes before the first ensure.
@@ -94,24 +90,20 @@ export async function ensureManagedProject(
             project.name = name
         if (bootstrap) bootstrap.nameResolved = true
         project.status = input.status
-        project.xperts ??= []
-        await store.bindings.normalize(project)
-        for (const requiredXpert of requiredXperts) {
-            if (!store.bindings.contains(project, requiredXpert)) {
-                project.xperts.push(requiredXpert)
-            }
-        }
-        project = await store.repository.save(project)
+        // Never save a loaded relation snapshot: a concurrent explicit removal
+        // must not be restored by business metadata synchronization.
+        const { xperts, ...metadata } = project
+        project = { ...(await store.repository.save(metadata)), xperts }
     }
 
     // A prior attempt may have persisted the row before content initialization failed.
-    await store.initialize(project)
+    if (operation === 'updated') await store.initialize(project)
     return {
         projectId: project.id,
         // Compatibility only: provisioning clients still carry a Workspace id,
         // but Project persistence and runtime no longer use it.
         workspaceId: input.workspaceId,
-        xpertIds: project.xperts?.map((item) => item.id) ?? [xpert.id],
+        xpertIds: project.xperts?.map((item) => item.id) ?? [],
         operation
     }
 }

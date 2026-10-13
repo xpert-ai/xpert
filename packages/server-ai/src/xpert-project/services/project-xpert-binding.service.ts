@@ -5,6 +5,7 @@ import { IsNull, Not, Repository } from 'typeorm'
 import { Xpert } from '../../xpert/xpert.entity'
 import { isSameXpertFamily } from '../../xpert/xpert-family'
 import { XpertProject } from '../entities/project.entity'
+import { resolveInitialProjectAssistants } from './project-initial-assistants'
 
 export type XpertProjectXpertScope = {
     tenantId: string
@@ -43,7 +44,8 @@ export class XpertProjectXpertBindingService {
                     slug: xpert.slug,
                     latest: true,
                     publishAt: Not(IsNull())
-                }
+                },
+                relations: ['agent']
             })) ?? xpert
         )
     }
@@ -55,12 +57,17 @@ export class XpertProjectXpertBindingService {
                 tenantId: scope.tenantId,
                 organizationId: scope.organizationId ?? IsNull(),
                 publishAt: Not(IsNull())
-            }
+            },
+            relations: ['agent']
         })
 
         if (!xpert) return null
         const currentXpert = await this.resolveCurrent(xpert)
         return currentXpert.latest === true ? currentXpert : null
+    }
+
+    resolveInitialMembers(roots: IXpert[], scope: XpertProjectXpertScope): Promise<IXpert[]> {
+        return resolveInitialProjectAssistants(roots, scope, (id) => this.resolveCurrentById(id, scope))
     }
 
     async normalize(project: XpertProject, options: { persist?: boolean } = {}): Promise<XpertProject> {
