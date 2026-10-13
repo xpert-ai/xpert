@@ -77,6 +77,117 @@ describe('NpmPluginVersionClient', () => {
 		expect(process.env).toEqual(environment)
 	})
 
+	it('allows all 96 slow queries to finish even when later requests wait more than ten seconds', async () => {
+		const started = performance.now()
+		const arrivals: number[] = []
+		let active = 0
+		let peakActive = 0
+		respond = (response) => {
+			arrivals.push(performance.now() - started)
+			peakActive = Math.max(peakActive, ++active)
+			const timer = setTimeout(() => response.end('{"latest":"1.2.3"}'), 2000)
+			response.once('close', () => {
+				clearTimeout(timer)
+				active--
+			})
+		}
+		const results = await Promise.allSettled(
+			Array.from({ length: 96 }, (_, index) => client.resolveLatestVersion(`slow-plugin-${index}`))
+		)
+		console.info('Slow registry batch:', {
+			queries: results.length,
+			succeeded: results.filter((result) => result.status === 'fulfilled').length,
+			failed: results.filter((result) => result.status === 'rejected').length,
+			requestsReceived: requests.length,
+			peakActive,
+			lastRequestStartedMs: Math.round(arrivals.at(-1) ?? 0),
+			totalMs: Math.round(performance.now() - started)
+		})
+		expect(results).toEqual(Array(96).fill({ status: 'fulfilled', value: '1.2.3' }))
+		expect(requests).toHaveLength(96)
+		expect(peakActive).toBe(15)
+		expect(arrivals.at(-1)).toBeGreaterThan(10_000)
+	}, 30_000)
+
+	it.each([1, 3])('honors maxsockets=%i across scoped registry paths on the same origin', async (maxSockets) => {
+		process.env.npm_config_maxsockets = String(maxSockets)
+		await writeFile(join(directory, '.npmrc'), `@private:registry=${registry}/private/\n`)
+		let active = 0
+		let peakActive = 0
+		respond = (response) => {
+			peakActive = Math.max(peakActive, ++active)
+			const timer = setTimeout(() => response.end('{"latest":"1.2.3"}'), 20)
+			response.once('close', () => {
+				clearTimeout(timer)
+				active--
+			})
+		}
+		const versions = await Promise.all(
+			Array.from({ length: 8 }, (_, index) =>
+				client.resolveLatestVersion(index % 2 ? `@private/plugin-${index}` : `plugin-${index}`)
+			)
+		)
+		expect(versions).toEqual(Array(8).fill('1.2.3'))
+		expect(peakActive).toBe(maxSockets)
+	})
+
+	it('does not make a different registry origin wait behind a busy registry', async () => {
+		process.env.npm_config_maxsockets = '1'
+		const privateRegistry = createServer((_request, response) => response.end('{"latest":"2.0.0"}'))
+		let heldResponse: ServerResponse | undefined
+		let publicQuery: Promise<string | undefined> | undefined
+		try {
+			await new Promise<void>((resolve) => privateRegistry.listen(0, '127.0.0.1', resolve))
+			const address = privateRegistry.address()
+			if (!address || typeof address === 'string') throw new Error('Expected a TCP registry listener')
+			await writeFile(join(directory, '.npmrc'), `@private:registry=http://127.0.0.1:${address.port}/\n`)
+			const received = new Promise<void>((resolve) => {
+				respond = (response) => {
+					heldResponse = response
+					resolve()
+				}
+			})
+			publicQuery = client.resolveLatestVersion('public-plugin')
+			await received
+			await expect(client.resolveLatestVersion('@private/plugin')).resolves.toBe('2.0.0')
+			expect(heldResponse?.writableEnded).toBe(false)
+		} finally {
+			heldResponse?.end('{"latest":"1.2.3"}')
+			await publicQuery
+			privateRegistry.closeAllConnections()
+			await new Promise<void>((resolve, reject) =>
+				privateRegistry.close((error) => (error ? reject(error) : resolve()))
+			)
+		}
+	})
+
+	it('cancels an active stalled query after ten seconds and gives the queued query its own deadline', async () => {
+		process.env.npm_config_maxsockets = '1'
+		const started = performance.now()
+		const arrivals: number[] = []
+		const deadline = jest.spyOn(AbortSignal, 'timeout')
+		respond = (response) => {
+			arrivals.push(performance.now() - started)
+			if (requests.length === 1) {
+				response.writeHead(200, { 'content-type': 'application/json' })
+				response.write('{"latest":')
+				return
+			}
+			response.end('{"latest":"2.0.0"}')
+		}
+		const results = await Promise.allSettled([
+			client.resolveLatestVersion('stalled-plugin'),
+			client.resolveLatestVersion('queued-plugin')
+		])
+		expect(results[0].status).toBe('rejected')
+		expect(results[1]).toEqual({ status: 'fulfilled', value: '2.0.0' })
+		expect(requests).toHaveLength(2)
+		expect(arrivals[1] - arrivals[0]).toBeGreaterThan(9500)
+		expect(deadline).toHaveBeenCalledTimes(2)
+		expect(deadline).toHaveBeenNthCalledWith(1, 10_000)
+		expect(deadline).toHaveBeenNthCalledWith(2, 10_000)
+	}, 20_000)
+
 	it('honors project scoped registries, interpolated user tokens and the configured tag', async () => {
 		process.env.TEST_NPM_TOKEN = 'test-only-private-token'
 		await writeFile(join(directory, '.npmrc'), `@private:registry=${registry}/private/\ntag=beta\n`)
@@ -117,12 +228,15 @@ describe('NpmPluginVersionClient', () => {
 	)
 
 	it.each([401, 404])('fails promptly on HTTP %i without retrying', async (status) => {
+		process.env.npm_config_maxsockets = '1'
 		respond = (response) => {
 			response.writeHead(status)
 			response.end('{"error":"unavailable"}')
 		}
 		await expect(client.resolveLatestVersion('plugin')).rejects.toThrow()
 		expect(requests).toHaveLength(1)
+		respond = (response) => response.end('{"latest":"2.0.0"}')
+		await expect(client.resolveLatestVersion('next-plugin')).resolves.toBe('2.0.0')
 	})
 
 	it.each([429, 503])('recovers from one temporary HTTP %i failure', async (status) => {
