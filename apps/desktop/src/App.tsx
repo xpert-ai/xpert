@@ -411,6 +411,8 @@ export function App() {
       {catalog && state.profile && (
         <CatalogDialog
           key={binding}
+          installationScope={binding}
+          organizationId={state.profile.organizationId || ''}
           organization={
             state.profile.organizations.find((org) => org.id === state.profile?.organizationId)?.name ||
             t('Current organization')

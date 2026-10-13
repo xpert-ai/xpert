@@ -93,6 +93,10 @@ const methods = new Set([
   'templateWorkspaces',
   'templateSetup',
   'installTemplate',
+  'createTemplateInstallation',
+  'getTemplateInstallation',
+  'retryTemplateInstallation',
+  'listTemplateInstallations',
   'logout'
 ])
 async function dispatch(service, method, argument) {

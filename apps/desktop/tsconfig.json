@@ -14,6 +14,8 @@
     "types": ["vite/client", "node"],
     "baseUrl": ".",
     "paths": {
+      "@xpert-ai/contracts": ["../../packages/contracts/dist/index.d.ts"],
+      "@xpert-ai/template-installation-client": ["../../libs/template-installation/client.ts"],
       "@xpert-ai/shadcn-ui": ["src/ui.ts"],
       "@/*": ["../../packages/shadcn-ui/src/*"]
     }

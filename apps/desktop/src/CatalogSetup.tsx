@@ -1,5 +1,6 @@
-import { t } from './i18n'
-import { useEffect, useState } from 'react'
+import { TemplateInstallationProgress, useTemplateInstallation } from './catalog/TemplateInstallation'
+import { getLocale, t } from './i18n'
+import { useEffect, useRef, useState } from 'react'
 import { Button, Input, Label, Textarea } from '@xpert-ai/shadcn-ui'
 import { CatalogCombobox } from './CatalogCombobox'
 import { ModelCascader } from './catalog/ModelCascader'
@@ -7,7 +8,7 @@ import { TemplateRequirements } from './catalog/TemplateRequirements'
 import { ApplicationToolsets } from './catalog/ApplicationToolsets'
 import { applicationToolsetsSelected, reconcileApplicationToolsets } from './catalog/application-toolsets'
 import { Check, ExternalLink, LoaderCircle } from 'lucide-react'
-import { HostError, invoke, openWorkspace } from './host'
+import { invoke, openWorkspace } from './host'
 import { canUseExpert, categoryLabel } from './catalog-labels'
 import { ApplicationScreenshots } from './ApplicationScreenshots'
 import type {
@@ -20,6 +21,8 @@ import type {
 } from './catalog-types'
 
 export function CatalogSetup({
+  installationScope,
+  organizationId,
   item,
   creation = false,
   webUrl,
@@ -29,6 +32,8 @@ export function CatalogSetup({
   onInstalled,
   onItemUpdated
 }: {
+  organizationId: string
+  installationScope: string
   item: CatalogItem
   creation?: boolean
   webUrl: string
@@ -60,7 +65,17 @@ export function CatalogSetup({
   const [error, setError] = useState('')
   const [revision, setRevision] = useState(0)
   const [installed, setInstalled] = useState<string | null>(null)
-  const [uncertain, setUncertain] = useState(false)
+  const installation = useTemplateInstallation(installationScope, item.kind === 'templates' ? workspaceId : '', item.id)
+  const templateLocked = !!installation.state.operation || installation.state.uncertain || installation.state.busy
+  const uncertain = installation.state.uncertain
+  const completedInstallation = useRef<string | null>(null)
+  useEffect(() => {
+    const operation = installation.state.operation
+    if (operation?.status === 'succeeded' && operation.id !== completedInstallation.current) {
+      completedInstallation.current = operation.id
+      onInstalled()
+    }
+  }, [installation.state.operation, onInstalled])
   useEffect(() => {
     let active = true
     async function load() {
@@ -118,7 +133,9 @@ export function CatalogSetup({
       (item.kind === 'experts'
         ? reason.trim().length > 0
         : item.kind === 'templates'
-          ? workspaceId &&
+          ? installation.client &&
+            !templateLocked &&
+            workspaceId &&
             title.trim() &&
             preflight?.canInstall !== false &&
             (!capabilities.includes('realtime-voice') || !!(realtimeVoice?.modelId && realtimeVoice.voice)) &&
@@ -133,7 +150,6 @@ export function CatalogSetup({
     setBusy(true)
     onBusy(true)
     setError('')
-    let installationComplete = !!installed
     try {
       if (installed) {
         await onUse(installed)
@@ -146,32 +162,34 @@ export function CatalogSetup({
         else onRequested(result)
         return
       }
-      const result =
-        item.kind === 'applications'
-          ? await invoke('initializeApplication', {
-              pluginName: item.pluginName,
-              appName: item.appName,
-              operationId,
-              toolsets,
-              ...(embedding ? { embeddingModelId: embedding } : {}),
-              ...(vision ? { visionModelId: vision } : {})
-            })
-          : await invoke('installTemplate', {
-              id: item.id,
-              workspaceId,
-              title: title.trim(),
-              ...(creation ? { prompt } : {}),
-              capabilities,
-              realtimeVoice: capabilities.includes('realtime-voice') ? realtimeVoice : undefined,
-              modelId: templateModel || undefined
-            })
+      if (item.kind === 'templates') {
+        await installation.client?.start({
+          templateId: item.id,
+          workspaceId,
+          publish: true,
+          locale: getLocale(),
+          capabilities,
+          basic: {
+            title: title.trim(),
+            ...(creation ? { prompt } : {}),
+            realtimeVoice: capabilities.includes('realtime-voice') ? realtimeVoice : undefined,
+            copilotModel: preflight?.models.find((model) => model.id === templateModel)?.copilotModel
+          }
+        })
+        return
+      }
+      const result = await invoke('initializeApplication', {
+        pluginName: item.pluginName,
+        appName: item.appName,
+        operationId,
+        toolsets,
+        ...(embedding ? { embeddingModelId: embedding } : {}),
+        ...(vision ? { visionModelId: vision } : {})
+      })
       setInstalled(result.botId)
-      installationComplete = true
       onInstalled()
       await onUse(result.botId)
     } catch (error) {
-      if (!installationComplete && item.kind === 'templates' && error instanceof HostError && error.status === 503)
-        setUncertain(true)
       setError(error instanceof Error ? error.message : t('The operation failed. Please retry.'))
     } finally {
       setBusy(false)
@@ -271,7 +289,7 @@ export function CatalogSetup({
                       autoFocus={creation}
                       placeholder={creation ? t('New digital expert') : undefined}
                       required
-                      disabled={busy || !!installed}
+                      disabled={busy || !!installed || templateLocked}
                       onChange={(event) => setTitle(event.target.value)}
                     />
                   </div>
@@ -283,7 +301,7 @@ export function CatalogSetup({
                       items={workspaces}
                       value={workspaceId}
                       onChange={setWorkspaceId}
-                      disabled={busy || !!installed}
+                      disabled={busy || installation.state.busy}
                     />
                     {!error && !workspaces.length && (
                       <p className="text-sm text-destructive">
@@ -301,7 +319,7 @@ export function CatalogSetup({
                         placeholder={t('Describe the assistant’s role, goals and response style.')}
                         maxLength={32000}
                         rows={5}
-                        disabled={busy || !!installed}
+                        disabled={busy || !!installed || templateLocked}
                       />
                       <p className="text-xs text-muted-foreground">
                         {t('Optional. Capability instructions are managed automatically.')}
@@ -316,7 +334,7 @@ export function CatalogSetup({
                     onModel={setTemplateModel}
                     realtimeVoice={realtimeVoice}
                     onRealtimeVoice={setRealtimeVoice}
-                    disabled={busy || loading || !!installed}
+                    disabled={busy || loading || !!installed || templateLocked}
                   />
                   {loading && (
                     <p role="status" className="text-sm text-muted-foreground">
@@ -466,6 +484,15 @@ export function CatalogSetup({
               )}
             </>
           )}
+          {item.kind === 'templates' && (
+            <TemplateInstallationProgress
+              organizationId={organizationId}
+              state={installation.state}
+              client={installation.client}
+              webUrl={webUrl}
+              onUse={onUse}
+            />
+          )}
           {error && (
             <div
               role="alert"
@@ -492,20 +519,22 @@ export function CatalogSetup({
               {t('Refresh settings')}
             </Button>
           )}
-          <Button type="submit" disabled={!canSubmit}>
-            {busy && <LoaderCircle className="size-4 animate-spin" />}
-            {busy
-              ? item.kind === 'experts'
-                ? t('Submitting…')
-                : t('Preparing assistant…')
-              : installed
-                ? t('Open assistant')
-                : item.kind === 'experts'
-                  ? t('Submit request')
-                  : creation
-                    ? t('Create & chat')
-                    : t('Install & use')}
-          </Button>
+          {!(item.kind === 'templates' && (installation.state.operation || uncertain)) && (
+            <Button type="submit" disabled={!canSubmit}>
+              {busy && <LoaderCircle className="size-4 animate-spin" />}
+              {busy
+                ? item.kind === 'experts'
+                  ? t('Submitting…')
+                  : t('Preparing assistant…')
+                : installed
+                  ? t('Open assistant')
+                  : item.kind === 'experts'
+                    ? t('Submit request')
+                    : creation
+                      ? t('Create & chat')
+                      : t('Install & use')}
+            </Button>
+          )}
         </div>
       </div>
     </form>

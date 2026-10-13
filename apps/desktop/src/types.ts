@@ -309,6 +309,16 @@ export interface HostMethods {
     }
     output: { botId: string }
   }
+  createTemplateInstallation: {
+    input: import('@xpert-ai/contracts').TemplateInstallationInput
+    output: import('@xpert-ai/contracts').TemplateInstallation
+  }
+  getTemplateInstallation: { input: string; output: import('@xpert-ai/contracts').TemplateInstallation }
+  retryTemplateInstallation: { input: string; output: import('@xpert-ai/contracts').TemplateInstallation }
+  listTemplateInstallations: {
+    input: { workspaceId: string; skip: number }
+    output: { items: import('@xpert-ai/contracts').TemplateInstallation[]; total: number }
+  }
   logout: { input: undefined; output: AppState }
 }
 declare global {

@@ -33,11 +33,15 @@ const tabs: { id: CatalogKind; label: string }[] = [
 ]
 
 export function CatalogDialog({
+  installationScope,
+  organizationId,
   organization,
   webUrl,
   onClose,
   onUse
 }: {
+  organizationId: string
+  installationScope: string
   organization: string
   webUrl: string
   onClose: () => void
@@ -160,6 +164,8 @@ export function CatalogDialog({
         </DialogHeader>
         {selected && (
           <CatalogSetup
+            installationScope={installationScope}
+            organizationId={organizationId}
             key={selected.id}
             item={selected}
             creation={creating}

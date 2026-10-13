@@ -183,6 +183,7 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
     return check
   }
   return {
+    ...require('./template-installations.cjs').createTemplateInstallationMethods(ClientError),
     async listCatalog(kind) {
       scope(this)
       if (kind === 'applications')
@@ -325,7 +326,17 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
                   voices,
                   defaultVoice
                 })),
-                models: modelOptions(check.models, this.config.locale)
+                models: modelOptions(check.models, this.config.locale).map((option) => {
+                  const model = check.models.find((item) => item.id === option.id)?.copilotModel
+                  return {
+                    ...option,
+                    copilotModel: {
+                      copilotId: required(model?.copilotId, 'Model provider'),
+                      model: required(model?.model, 'Model'),
+                      modelType: 'llm'
+                    }
+                  }
+                })
               }
             }
           : {})

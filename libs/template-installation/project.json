@@ -1,0 +1,8 @@
+{
+  "name": "template-installation-client",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/template-installation",
+  "projectType": "library",
+  "tags": [],
+  "targets": {}
+}

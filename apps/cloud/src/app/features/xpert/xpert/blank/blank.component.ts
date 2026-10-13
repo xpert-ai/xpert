@@ -1,3 +1,4 @@
+import { TemplateInstallationComponent } from '../template-installation/template-installation.component'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
@@ -89,6 +90,7 @@ export type {
   selector: 'xpert-new-blank',
   standalone: true,
   imports: [
+    TemplateInstallationComponent,
     XpDialogActionGroupDirective,
     ...XpDialogFrameImports,
     BlankWizardCapabilitiesComponent,

@@ -13,6 +13,10 @@ export default defineConfig(({ command }) => ({
   resolve: {
     dedupe: ['react', 'react-dom'],
     alias: [
+      {
+        find: '@xpert-ai/template-installation-client',
+        replacement: fileURLToPath(new URL('../../libs/template-installation/client.ts', import.meta.url))
+      },
       // Exercise a locally built ChatKit before its next package release.
       ...(process.env.XPERT_DESKTOP_CHATKIT_BUNDLE
         ? [{ find: '@xpert-ai/chatkit-web-component', replacement: resolve(process.env.XPERT_DESKTOP_CHATKIT_BUNDLE) }]

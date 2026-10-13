@@ -104,6 +104,6 @@ export interface TemplatePreflight {
   reason: string
   requiresModel: boolean
   optionalCapabilities: { key: string; label: string; description: string }[]
-  models: ModelOption[]
+  models: (ModelOption & { copilotModel: { copilotId: string; model: string } })[]
   defaultModelId?: string
 }

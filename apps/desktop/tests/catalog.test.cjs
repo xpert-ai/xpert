@@ -431,8 +431,10 @@ test('capability template setup selects a compatible model without relying on th
     title: 'Sample Assistant'
   }
   const setup = await service.templateSetup(input)
-  assert.deepEqual(setup.preflight.models, [{ id: 'vision', label: 'Vision model', model: 'vision-model' }])
-  assert.doesNotMatch(JSON.stringify(setup), /never-expose|copilotModel|vision-provider/)
+  assert.deepEqual(setup.preflight.models, [
+    { id: 'vision', label: 'Vision model', model: 'vision-model', copilotModel: model }
+  ])
+  assert.doesNotMatch(JSON.stringify(setup), /never-expose|credentials/)
   await assert.rejects(service.installTemplate(input), /compatible model/)
   await assert.rejects(service.installTemplate({ ...input, modelId: 'forged' }), /compatible model/)
   assert.equal(calls.filter((call) => call.method === 'POST').length, 0)
