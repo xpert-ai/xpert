@@ -54,6 +54,32 @@
     "CustomSMTP": "Custom SMTP"
   },
   "XP": {
+    "UsageDashboard": {
+      "Personal": "Personal",
+      "Description": "View your point consumption, activity trends, and plan benefits.",
+      "Refresh": "Refresh usage overview",
+      "Loading": "Loading usage overview…",
+      "LoadFailed": "Could not load usage overview",
+      "RetryHint": "Please try again in a moment.",
+      "RefreshFailed": "Refresh failed. Previously loaded data is shown.",
+      "RecentConsumption": "Total consumption over the last 30 days",
+      "PersonalPointsHint": "Current personal points balance",
+      "Trend": "Point consumption trend",
+      "TrendHint": "Daily priced usage over the last 30 days",
+      "NoConsumption": "No point consumption yet",
+      "NoConsumptionHint": "Your trend will appear here once priced usage is recorded.",
+      "ConsumptionHint": "Consumption and balance deductions are tracked separately",
+      "ViewDetails": "View details",
+      "Rankings": "Usage rankings",
+      "RankingsHint": "Last 30 days, ranked by points consumed",
+      "ActivityHint": "Daily point consumption over the past 12 months",
+      "Less": "Less",
+      "More": "More",
+      "CycleConsumption": "Points consumed this cycle",
+      "NoPlan": "No plan assigned",
+      "NoPlanHint": "There are no plan benefits in this scope. Contact an administrator about assignment.",
+      "RuleCount": "{{count}} rules"
+    },
     "SettingsShell": {
       "Personal": "Personal",
       "People": "People & organizations",

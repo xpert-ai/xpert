@@ -260,6 +260,32 @@
     "Connectors": "连接器"
   },
   "XP": {
+    "UsageDashboard": {
+      "Personal": "个人",
+      "Description": "查看个人点数消耗、使用趋势和套餐权益。",
+      "Refresh": "刷新使用概览",
+      "Loading": "正在加载使用概览…",
+      "LoadFailed": "使用概览加载失败",
+      "RetryHint": "请稍后重试。",
+      "RefreshFailed": "刷新失败，当前展示上次加载的数据。",
+      "RecentConsumption": "最近 30 天累计消耗",
+      "PersonalPointsHint": "当前个人永久点数余额",
+      "Trend": "点数消耗趋势",
+      "TrendHint": "最近 30 天，按日统计已定价用量",
+      "NoConsumption": "暂无点数消耗",
+      "NoConsumptionHint": "产生已定价用量后，趋势会显示在这里。",
+      "ConsumptionHint": "消耗点数与余额扣点分别统计",
+      "ViewDetails": "查看明细",
+      "Rankings": "使用排行",
+      "RankingsHint": "最近 30 天，按消耗点数排序",
+      "ActivityHint": "过去 12 个月的每日点数消耗",
+      "Less": "少",
+      "More": "多",
+      "CycleConsumption": "本周期已用点数",
+      "NoPlan": "暂无套餐",
+      "NoPlanHint": "当前范围尚无套餐权益，请联系管理员了解分配情况。",
+      "RuleCount": "{{count}} 项规则"
+    },
     "SettingsShell": {
       "Personal": "个人",
       "People": "成员与组织",
