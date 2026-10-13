@@ -11,6 +11,7 @@ const routes: Routes = [
   {
     path: 'edit/:id',
     component: XpEditUserComponent,
+    canDeactivate: [(component: XpEditUserComponent) => component.canLeave()],
     data: {
       title: 'Settings/User/Edit',
       scopeContext: 'tenant-only'
@@ -59,6 +60,7 @@ const routes: Routes = [
       {
         path: ':id',
         component: XpEditUserComponent,
+        canDeactivate: [(component: XpEditUserComponent) => component.canLeave()],
         data: {
           title: 'Settings/User/Edit',
           scopeContext: 'dual-scope'

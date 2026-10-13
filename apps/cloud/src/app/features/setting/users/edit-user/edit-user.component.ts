@@ -1,27 +1,35 @@
-import { Component, computed, effect, inject, model, signal } from '@angular/core'
-import { toSignal } from '@angular/core/rxjs-interop'
+import { Component, computed, effect, HostListener, inject, model, signal, viewChild } from '@angular/core'
+import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
+import { NgxPermissionsService } from 'ngx-permissions'
 
 import { ActivatedRoute, Router } from '@angular/router'
 import { UserChangePasswordFormComponent } from '@cloud/app/@shared/user/forms'
 import { Store, UsersService } from '@cloud/app/@core/state'
-import { AiFeatureEnum, IUser, PermissionsEnum, UserType } from '@xpert-ai/contracts'
-import { injectConfirmDelete, XpSpinComponent } from '@xpert-ai/headless-ui'
+import { AiFeatureEnum, IRole, IUser, PermissionsEnum, UserType } from '@xpert-ai/contracts'
+import { injectConfirmDelete } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
-import { of } from 'rxjs'
-import { distinctUntilChanged, filter, map, startWith, switchMap } from 'rxjs/operators'
+import { BehaviorSubject, combineLatest, firstValueFrom, from, of } from 'rxjs'
+import { catchError, distinctUntilChanged, filter, map, startWith, switchMap } from 'rxjs/operators'
 import {
   AIPermissionsEnum,
   getErrorMessage,
   injectToastr,
   RequestScopeLevel,
   RolesEnum,
-  routeAnimations
+  RoleService
 } from '../../../../@core'
 import { XpUserOrganizationsComponent } from '../organizations/organizations.component'
 import { UserBasicComponent } from '../user-basic/user-basic.component'
-import { ZardBadgeComponent, ZardButtonComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
+import {
+  ZardAlertDialogService,
+  ZardAvatarComponent,
+  ZardBadgeComponent,
+  ZardButtonComponent,
+  ZardIconComponent,
+  ZardTabsImports
+} from '@xpert-ai/headless-ui'
 import { UserMembershipComponent } from '../user-membership/user-membership.component'
 
 type UserDetailTab = 'basic' | 'membership' | 'organizations' | 'security'
@@ -37,15 +45,15 @@ const USER_DETAIL_TABS: Array<{ id: UserDetailTab; regularOnly?: boolean }> = [
   standalone: true,
   selector: 'xp-edit-user',
   templateUrl: './edit-user.component.html',
-  styleUrls: ['./edit-user.component.scss'],
-  animations: [routeAnimations],
+  host: { class: 'relative block min-w-0' },
   imports: [
     FormsModule,
     TranslateModule,
+    ZardAvatarComponent,
+    ZardIconComponent,
     ZardBadgeComponent,
     ZardButtonComponent,
     ...ZardTabsImports,
-    XpSpinComponent,
     UserBasicComponent,
     UserChangePasswordFormComponent,
     XpUserOrganizationsComponent,
@@ -65,13 +73,30 @@ export class XpEditUserComponent {
   readonly confirmDelete = injectConfirmDelete()
 
   readonly me = this.store.user
+  private readonly alertDialog = inject(ZardAlertDialogService)
+  private readonly permissionsService = inject(NgxPermissionsService)
+  readonly permissions = toSignal(this.permissionsService.permissions$, {
+    initialValue: this.permissionsService.getPermissions()
+  })
+  readonly basicInfo = viewChild(UserBasicComponent)
+  private readonly refresh$ = new BehaviorSubject<void>(undefined)
+  readonly roles = toSignal<IRole[], IRole[]>(
+    inject(RoleService)
+      .getAll()
+      .pipe(
+        map(({ items }) => items),
+        catchError(() => of([]))
+      ),
+    { initialValue: [] }
+  )
   readonly activeScope = toSignal(this.store.selectActiveScope(), {
     initialValue: this.store.activeScope
   })
   readonly isTenantScope = computed(() => this.activeScope().level === RequestScopeLevel.TENANT)
-  readonly canManageTenantUser = computed(
-    () => this.isTenantScope() && this.store.hasPermission(PermissionsEnum.ALL_ORG_EDIT)
-  )
+  readonly canManageTenantUser = computed(() => {
+    this.permissions()
+    return this.isTenantScope() && this.store.hasPermission(PermissionsEnum.ALL_ORG_EDIT)
+  })
 
   public readonly userId$ = this.route.params.pipe(
     startWith(this.route.snapshot.params),
@@ -80,7 +105,55 @@ export class XpEditUserComponent {
     distinctUntilChanged()
   )
 
-  public readonly user = toSignal(this.userId$.pipe(switchMap((userId) => this.userService.getUserById(userId))))
+  readonly userState = toSignal(
+    combineLatest([this.userId$, this.refresh$, toObservable(this.activeScope)]).pipe(
+      switchMap(([userId]) =>
+        from(this.userService.getUserById(userId, ['role'])).pipe(
+          map((user) => ({ user, loading: false, error: false })),
+          catchError(() => of({ user: null, loading: false, error: true })),
+          startWith({ user: null, loading: true, error: false })
+        )
+      )
+    ),
+    { initialValue: { user: null, loading: true, error: false } }
+  )
+  readonly user = computed(() => {
+    const user = this.userState().user
+    return user ? { ...user, role: user.role ?? this.roles().find(({ id }) => id === user.roleId) } : null
+  })
+  readonly roleLabel = computed(() => this.user()?.role?.name || (this.user()?.roleId ? '—' : null))
+  readonly userInitials = computed(() =>
+    userLabel(this.user() ?? {})
+      .split(/\s+/)
+      .map((word) => word[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase()
+  )
+
+  reloadUser() {
+    this.refresh$.next()
+  }
+
+  async canLeave() {
+    if (!this.basicInfo()?.hasChanges()) return true
+    return firstValueFrom(
+      this.alertDialog.confirm({
+        title: this.#translate.instant('XP.UserDetail.UnsavedTitle'),
+        description: this.#translate.instant('XP.UserDetail.UnsavedDescription'),
+        actionText: this.#translate.instant('XP.UserDetail.DiscardAndLeave'),
+        cancelText: this.#translate.instant('XP.UserDetail.KeepEditing')
+      })
+    )
+  }
+
+  @HostListener('window:beforeunload', ['$event'])
+  beforeUnload(event: BeforeUnloadEvent) {
+    if (this.basicInfo()?.hasChanges()) {
+      event.preventDefault()
+      event.returnValue = ''
+    }
+  }
 
   readonly loading = signal(false)
   readonly membershipPlanEnabled = toSignal(this.store.selectHasFeatureEnabled(AiFeatureEnum.FEATURE_MEMBERSHIP_PLAN), {
@@ -137,6 +210,7 @@ export class XpEditUserComponent {
 
   readonly canShowMembershipTab = computed(() => {
     this.activeScope()
+    this.permissions()
     return this.membershipPlanEnabled() && this.store.hasPermission(AIPermissionsEnum.MEMBERSHIP_EDIT as never)
   })
 
@@ -200,7 +274,7 @@ export class XpEditUserComponent {
   }
 
   deleteUser() {
-    if (!this.canManageTenantUser()) {
+    if (!this.canManageTenantUser() || this.isTechnicalUser(this.user()) || !this.user() || this.loading()) {
       return
     }
 
@@ -220,6 +294,7 @@ export class XpEditUserComponent {
     ).subscribe({
       next: () => {
         this.loading.set(false)
+        this.basicInfo()?.form.markAsPristine()
         this.toastr.success('XP.USERS_PAGE.UserDeletedSuccessfully', { Default: 'User deleted successfully' })
         this.router.navigate(['..'], { relativeTo: this.route })
       },
@@ -231,11 +306,14 @@ export class XpEditUserComponent {
   }
 
   async changePassword() {
-    if (!this.canManageTenantUser()) {
+    if (!this.canManageTenantUser() || this.isTechnicalUser(this.user()) || !this.user() || this.loading()) {
       return
     }
 
-    if (this.newPassword().password && this.newPassword().confirmPassword === this.newPassword().password) {
+    if (
+      this.newPassword()?.password?.length >= 8 &&
+      this.newPassword().confirmPassword === this.newPassword().password
+    ) {
       this.loading.set(true)
       try {
         await this.userService.update(this.user().id, { hash: this.newPassword().password })

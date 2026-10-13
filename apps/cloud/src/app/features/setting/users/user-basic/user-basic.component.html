@@ -1,50 +1,191 @@
-<div class="w-full max-w-[700px]">
-  <xp-user-basic-info-form
-    #userBasicInfo
-    class="block w-full"
-    [isSuperAdmin]="true"
-    [password]="false"
-    [readOnly]="readOnly()"
-    [(ngModel)]="user"
-  />
-</div>
-
-@if (showLinkedXpert()) {
-  <div class="mt-4 w-full max-w-[700px] rounded-lg border border-divider-deep bg-components-card-bg px-4 py-3">
-    <div class="text-sm text-text-tertiary">
-      {{ 'XP.Users.LinkedXpert' | translate: { Default: 'Linked Xpert' } }}
-    </div>
-
-    @if (linkedXpert(); as xpert) {
-      <div class="mt-1 text-sm font-medium text-text-primary">
-        {{ xpert.organizationName || xpert.tenantName || '—' }} / {{ xpert.workspaceName || '—' }} /
-        {{ xpert.title || xpert.name }}
+<form [formGroup]="form" (ngSubmit)="save()" class="min-w-0">
+  @if (readOnly()) {
+    <p class="mb-2 flex items-start gap-2 text-xs leading-6 text-muted-foreground">
+      <z-icon zType="lock" class="mt-1 size-4 shrink-0" />{{ readonlyHint() | translate }}
+    </p>
+  }
+  <fieldset [disabled]="saving()" class="min-w-0">
+    <section class="grid min-w-0 gap-5 border-b border-border py-6 md:grid-cols-[150px_minmax(0,1fr)] md:gap-8">
+      <div>
+        <h2 class="text-sm font-semibold">{{ 'XP.UserDetail.AccountDetails' | translate }}</h2>
+        <p class="mt-1 hidden text-xs text-muted-foreground md:block">
+          {{ 'XP.UserDetail.AccountDetailsHint' | translate }}
+        </p>
       </div>
-    } @else if (linkedXpert() === null) {
-      <div class="mt-1 text-sm text-text-secondary">
-        {{
-          'XP.Users.LinkedXpertMissing' | translate: { Default: 'No linked Xpert was found. It may have been deleted.' }
-        }}
+      <dl class="grid min-w-0 max-w-3xl grid-cols-2 gap-x-6 gap-y-6">
+        @for (field of accountFields; track field.key) {
+          <ng-container *ngTemplateOutlet="textField; context: { $implicit: field }" />
+        }
+        <div class="min-w-0">
+          @if (!readOnly() && allowRoleChange()) {
+            <label z-form-label class="mb-2 block text-xs" zRequired>{{
+              'XP.UserDetail.TenantRole' | translate
+            }}</label>
+            <z-combobox
+              formControlName="roleId"
+              [options]="roleOptions()"
+              zWidth="full"
+              [searchable]="false"
+              [zDisabled]="saving()"
+              [ariaLabel]="'XP.UserDetail.TenantRole' | translate"
+              class="block min-w-0 [&_button]:h-9 pointer-coarse:[&_button]:min-h-[44px]"
+            />
+          } @else {
+            <dt class="text-xs text-muted-foreground">{{ 'XP.UserDetail.TenantRole' | translate }}</dt>
+            <dd class="mt-2 break-words text-sm">
+              {{ userComponent.roleLabel() || ('XP.USERS_PAGE.NoRole' | translate) }}
+            </dd>
+          }
+        </div>
+      </dl>
+    </section>
+    <section class="grid min-w-0 gap-5 border-b border-border py-6 md:grid-cols-[150px_minmax(0,1fr)] md:gap-8">
+      <div>
+        <h2 class="text-sm font-semibold">{{ 'XP.UserDetail.Preferences' | translate }}</h2>
+        <p class="mt-1 hidden text-xs text-muted-foreground md:block">
+          {{ 'XP.UserDetail.PreferencesHint' | translate }}
+        </p>
       </div>
+      <dl class="grid min-w-0 max-w-3xl grid-cols-2 gap-6">
+        <div class="min-w-0">
+          @if (readOnly()) {
+            <dt class="text-xs text-muted-foreground">{{ 'XP.SHARED.USER_BASIC.PreferredLanguage' | translate }}</dt>
+            <dd class="mt-2 break-words text-sm">{{ languageLabel() || ('XP.UserDetail.NotSet' | translate) }}</dd>
+          } @else {
+            <label z-form-label class="mb-2 block text-xs">{{
+              'XP.SHARED.USER_BASIC.PreferredLanguage' | translate
+            }}</label>
+            <z-combobox
+              formControlName="preferredLanguage"
+              [options]="languages"
+              zWidth="full"
+              [searchable]="false"
+              [zDisabled]="saving()"
+              [ariaLabel]="'XP.SHARED.USER_BASIC.PreferredLanguage' | translate"
+              [placeholder]="'XP.ProfileSettings.SelectLanguage' | translate"
+              class="block min-w-0 [&_button]:h-9 pointer-coarse:[&_button]:min-h-[44px]"
+            />
+          }
+        </div>
+        <div class="min-w-0">
+          @if (readOnly()) {
+            <dt class="text-xs text-muted-foreground">{{ 'XP.SHARED.USER_BASIC.TimeZone' | translate }}</dt>
+            <dd class="mt-2 break-words text-sm">{{ timeZoneLabel() || ('XP.UserDetail.NotSet' | translate) }}</dd>
+          } @else {
+            <label z-form-label class="mb-2 block text-xs">{{ 'XP.SHARED.USER_BASIC.TimeZone' | translate }}</label>
+            <z-combobox
+              formControlName="timeZone"
+              [options]="timeZones"
+              zWidth="full"
+              [zDisabled]="saving()"
+              [ariaLabel]="'XP.SHARED.USER_BASIC.TimeZone' | translate"
+              [placeholder]="'XP.SHARED.USER_BASIC.SelectTimeZone' | translate"
+              [searchPlaceholder]="'XP.ProfileSettings.SearchTimeZone' | translate"
+              [emptyText]="'XP.ProfileSettings.NoTimeZone' | translate"
+              class="block min-w-0 [&_button]:h-9 pointer-coarse:[&_button]:min-h-[44px]"
+            />
+          }
+        </div>
+      </dl>
+    </section>
+    @if (showLinkedXpert()) {
+      <section class="grid min-w-0 gap-5 border-b border-border py-6 md:grid-cols-[150px_minmax(0,1fr)] md:gap-8">
+        <h2 class="text-sm font-semibold">{{ 'XP.Users.LinkedXpert' | translate }}</h2>
+        @if (linkedXpert(); as xpert) {
+          <div class="flex min-w-0 items-center gap-3">
+            <span class="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border bg-muted"
+              ><z-icon zType="bot"
+            /></span>
+            <div class="min-w-0">
+              <p class="break-words text-sm font-medium">{{ xpert.title || xpert.name }}</p>
+              <p class="mt-1 break-words text-xs text-muted-foreground">
+                {{ xpert.organizationName || xpert.tenantName || '—' }} / {{ xpert.workspaceName || '—' }}
+              </p>
+            </div>
+          </div>
+        } @else {
+          <p class="text-sm text-muted-foreground">
+            {{ (linkedXpert() === null ? 'XP.Users.LinkedXpertMissing' : 'XP.Users.LinkedXpertLoading') | translate }}
+          </p>
+        }
+      </section>
+    }
+    <details class="group border-b border-border py-4">
+      <summary
+        class="flex min-h-9 cursor-pointer list-none items-center gap-2 rounded-sm text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:min-h-[44px] [&::-webkit-details-marker]:hidden"
+      >
+        <z-icon
+          zType="chevron-right"
+          class="size-4 transition-transform group-open:rotate-90 motion-reduce:transition-none"
+        />{{ 'XP.UserDetail.MoreDetails' | translate
+        }}<span class="ml-auto text-xs font-normal text-muted-foreground">{{
+          'XP.UserDetail.MoreDetailsHint' | translate
+        }}</span>
+      </summary>
+      <dl class="mt-5 grid min-w-0 max-w-3xl grid-cols-2 gap-6 pb-2 md:ml-[182px]">
+        @for (field of extraFields; track field.key) {
+          <ng-container *ngTemplateOutlet="textField; context: { $implicit: field }" />
+        }
+      </dl>
+    </details>
+  </fieldset>
+  @if (!readOnly()) {
+    <footer class="mt-6 flex flex-wrap items-center justify-end gap-2">
+      <span class="mr-auto text-xs text-muted-foreground" role="status">
+        @if (form.dirty) {
+          {{ 'XP.UserDetail.UnsavedChanges' | translate }}
+        }
+      </span>
+      <button
+        z-button
+        zType="outline"
+        type="button"
+        [zDisabled]="form.pristine || saving()"
+        (click)="reset()"
+        class="pointer-coarse:min-h-[44px]"
+      >
+        {{ 'XP.UserDetail.Reset' | translate }}
+      </button>
+      <button
+        z-button
+        type="submit"
+        [zDisabled]="form.pristine || form.invalid || saving()"
+        [zLoading]="saving()"
+        class="pointer-coarse:min-h-[44px]"
+      >
+        {{ 'XP.UserDetail.SaveChanges' | translate }}
+      </button>
+    </footer>
+  }
+</form>
+<ng-template #textField let-field>
+  <div class="min-w-0">
+    @if (readOnly()) {
+      <dt class="text-xs text-muted-foreground">{{ field.label | translate }}</dt>
+      <dd class="mt-2 break-all text-sm" [class.text-muted-foreground]="!form.controls[field.key].value">
+        {{ form.controls[field.key].value || ('XP.UserDetail.NotSet' | translate) }}
+      </dd>
     } @else {
-      <div class="mt-1 text-sm text-text-tertiary">
-        {{ 'XP.Users.LinkedXpertLoading' | translate: { Default: 'Loading linked Xpert...' } }}
-      </div>
+      <label z-form-label [for]="'user-detail-' + field.key" [zRequired]="field.required" class="mb-2 block text-xs">{{
+        field.label | translate
+      }}</label>
+      <input
+        z-input
+        [id]="'user-detail-' + field.key"
+        [formControl]="form.controls[field.key]"
+        [type]="field.key === 'email' ? 'email' : 'text'"
+        [autocomplete]="field.autocomplete"
+        [required]="field.required"
+        class="pointer-coarse:min-h-[44px]"
+        [zStatus]="fieldError(field.key) ? 'error' : undefined"
+        [attr.aria-invalid]="!!fieldError(field.key)"
+        [attr.aria-describedby]="fieldError(field.key) ? 'user-detail-' + field.key + '-error' : null"
+      />
+      @if (fieldError(field.key); as error) {
+        <p [id]="'user-detail-' + field.key + '-error'" role="alert" class="mt-1 text-xs text-destructive">
+          {{ error | translate }}
+        </p>
+      }
     }
   </div>
-}
-
-@if (readOnly()) {
-  <div class="w-full max-w-[700px] px-2 pt-2 text-sm text-text-tertiary">
-    {{
-      'XP.Users.TechnicalUserReadonlyHint'
-        | translate: { Default: 'Basic account fields are read-only for technical users.' }
-    }}
-  </div>
-} @else {
-  <div class="flex w-full max-w-[700px] justify-end p-2">
-    <button z-button zType="default" (click)="save()">
-      {{ 'XP.ACTIONS.SAVE' | translate: { Default: 'Save' } }}
-    </button>
-  </div>
-}
+</ng-template>

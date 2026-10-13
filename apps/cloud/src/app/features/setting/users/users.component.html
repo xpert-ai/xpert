@@ -1,75 +1,68 @@
-<div class="xp-page-header">
-  <div class="w-full flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-    <div class="flex flex-col">
-      <div class="xp-page-title">{{ 'XP.MENU.MANAGE_USERS' | translate: { Default: 'Manage Users' } }}</div>
-    </div>
-
-    @if (isListRoute()) {
-      <div class="flex flex-wrap items-center gap-2">
-        @if (canBatchImport()) {
-          <button type="button" z-button zType="secondary" (click)="batImport()">
-            <z-icon zType="upload"></z-icon>
-            {{ 'XP.USERS_PAGE.BatchImport' | translate: { Default: 'Batch Import' } }}
-          </button>
-        }
-        @if (canInviteUsers()) {
-          <button type="button" z-button zType="secondary" (click)="invite()">
-            <z-icon zType="person_add"></z-icon>
-            {{ 'XP.ACTIONS.INVITE' | translate: { Default: 'Invite' } }}
-          </button>
-        }
-        @if (canCreateUsers()) {
-          <button type="button" z-button zType="default" (click)="addUser()">
-            <z-icon zType="add"></z-icon>
-            {{ 'XP.ACTIONS.NEW' | translate: { Default: 'New' } }}
-          </button>
-        }
+<div class="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+  @if (isDirectoryRoute()) {
+    <header class="flex flex-wrap items-start justify-between gap-4">
+      <div class="min-w-0">
+        <div class="flex flex-wrap items-center gap-3">
+          <h1 class="text-2xl font-semibold tracking-tight text-foreground">{{ 'XP.MENU.USERS' | translate }}</h1>
+          <z-badge zType="outline">{{
+            (isTenantScope() ? 'XP.UserSettings.TenantScope' : 'XP.UserSettings.OrganizationScope') | translate
+          }}</z-badge>
+        </div>
+        <p class="mt-2 text-sm text-muted-foreground">
+          {{
+            (isTenantScope() ? 'XP.UserSettings.TenantDescription' : 'XP.UserSettings.OrganizationDescription')
+              | translate
+          }}
+        </p>
       </div>
-    }
-  </div>
-
-  <nav
-    z-tab-nav-bar
-    class="xp-tab-nav-bar self-stretch max-w-full overflow-hidden"
-    color="accent"
-    alignTabs="start"
-    stretchTabs="false"
-    disableRipple
-    zSize="default"
-    [tabPanel]="tabPanel"
-  >
-    <span
-      z-tab-link
-      [routerLink]="['.']"
-      routerLinkActive
-      #rla="routerLinkActive"
-      [routerLinkActiveOptions]="{ exact: true }"
-      [active]="rla.isActive"
-    >
-      <z-icon zSize="default" class="mr-1" zType="account_circle"></z-icon>
-      {{ 'XP.MENU.USERS' | translate: { Default: 'Users' } }}
-    </span>
-
-    @if (showInviteTab()) {
-      <span
+      @if (isDirectoryRoute()) {
+        <div class="flex flex-wrap items-center gap-2">
+          @if (isListRoute() && canBatchImport()) {
+            <button type="button" z-button zType="outline" class="pointer-coarse:min-h-[44px]" (click)="batImport()">
+              <z-icon zType="upload" />{{ 'XP.USERS_PAGE.BatchImport' | translate }}
+            </button>
+          }
+          @if (canInviteUsers()) {
+            <button type="button" z-button class="pointer-coarse:min-h-[44px]" (click)="invite()">
+              <z-icon zType="person_add" />{{ 'XP.UserSettings.InviteUser' | translate }}
+            </button>
+          }
+          @if (isListRoute() && canCreateUsers()) {
+            <button type="button" z-button class="pointer-coarse:min-h-[44px]" (click)="addUser()">
+              <z-icon zType="plus" />{{ 'XP.UserSettings.AddUser' | translate }}
+            </button>
+          }
+        </div>
+      }
+    </header>
+    <nav z-tab-nav-bar class="max-w-full" [tabPanel]="tabPanel" [attr.aria-label]="'XP.MENU.USERS' | translate">
+      <a
         z-tab-link
-        [routerLink]="['invites']"
+        [routerLink]="['.']"
         routerLinkActive
-        #inviteRla="routerLinkActive"
+        #rla="routerLinkActive"
         [routerLinkActiveOptions]="{ exact: true }"
-        [active]="inviteRla.isActive"
+        [active]="rla.isActive"
+        class="pointer-coarse:min-h-[44px]"
       >
-        <z-icon zSize="default" class="mr-1" zType="person_add"></z-icon>
-        {{ 'XP.ACTIONS.INVITE' | translate: { Default: 'Invite' } }}
-      </span>
-    }
-  </nav>
+        {{ 'XP.UserSettings.Directory' | translate }}
+      </a>
+      @if (showInviteTab()) {
+        <a
+          z-tab-link
+          [routerLink]="['invites']"
+          routerLinkActive
+          #inviteRla="routerLinkActive"
+          [routerLinkActiveOptions]="{ exact: true }"
+          [active]="inviteRla.isActive"
+          class="pointer-coarse:min-h-[44px]"
+        >
+          {{ 'XP.UserSettings.Invitations' | translate }}
+        </a>
+      }
+    </nav>
+  }
+  <z-tab-nav-panel #tabPanel class="block min-w-0">
+    <router-outlet class="hidden" />
+  </z-tab-nav-panel>
 </div>
-
-<z-tab-nav-panel
-  #tabPanel
-  class="xp-page-body"
-  [@routeAnimations]="o.isActivated ? (o.activatedRoute.routeConfig?.path ?? '') : ''"
->
-  <router-outlet #o="outlet"></router-outlet>
-</z-tab-nav-panel>

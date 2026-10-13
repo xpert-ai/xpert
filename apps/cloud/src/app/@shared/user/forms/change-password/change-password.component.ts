@@ -1,133 +1,71 @@
-import { Component, ElementRef, forwardRef, inject, ViewChild } from '@angular/core'
-import { ControlValueAccessor, FormGroup, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { AuthService } from '@cloud/app/@core/state'
-import { IUser } from '@xpert-ai/contracts'
-import { DisplayBehaviour } from '@xpert-ai/headless-ui'
-import { FORMLY_ROW, FORMLY_W_1_2 } from '@xpert-ai/formly'
-import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core'
-import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { firstValueFrom } from 'rxjs'
-import { Store } from '../../../../@core'
+import { Component, DestroyRef, forwardRef, inject } from '@angular/core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
+import {
+  ControlValueAccessor,
+  FormControl,
+  FormGroup,
+  NG_VALUE_ACCESSOR,
+  ReactiveFormsModule,
+  Validators
+} from '@angular/forms'
+import { TranslateModule } from '@ngx-translate/core'
+import { ZardFormLabelComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import { matchValidator } from '../../../../auth/services/validators'
+
+type PasswordValue = { password: string; confirmPassword: string }
 
 @Component({
   standalone: true,
-  imports: [FormsModule, ReactiveFormsModule, TranslateModule, FormlyModule],
+  imports: [ReactiveFormsModule, TranslateModule, ZardFormLabelComponent, ZardInputDirective],
   selector: 'xp-user-change-password-form',
   templateUrl: 'change-password.component.html',
-  styleUrls: ['change-password.component.scss'],
   providers: [
-    {
-      provide: NG_VALUE_ACCESSOR,
-      multi: true,
-      useExisting: forwardRef(() => UserChangePasswordFormComponent)
-    }
+    { provide: NG_VALUE_ACCESSOR, multi: true, useExisting: forwardRef(() => UserChangePasswordFormComponent) }
   ]
 })
 export class UserChangePasswordFormComponent implements ControlValueAccessor {
-  eDisplayBehaviour = DisplayBehaviour
-
-  readonly #store = inject(Store)
-  readonly #authService = inject(AuthService)
-  readonly #translate = inject(TranslateService)
-
-  @ViewChild('imagePreview')
-  imagePreviewElement: ElementRef
-
-  //Fields for the form
-  public form = new FormGroup({})
-  model = {} as any
-  fields: FormlyFieldConfig[] = []
-
+  readonly form = new FormGroup(
+    {
+      password: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.minLength(8)] }),
+      confirmPassword: new FormControl('', {
+        nonNullable: true,
+        validators: [Validators.required, Validators.minLength(8)]
+      })
+    },
+    { validators: matchValidator('password', 'confirmPassword') }
+  )
+  readonly fields = [
+    { key: 'password', label: 'XP.PasswordSettings.NewPassword' },
+    { key: 'confirmPassword', label: 'XP.PasswordSettings.ConfirmPassword' }
+  ] as const
+  private onChange: (value: PasswordValue) => void = () => undefined
+  onTouched: () => void = () => undefined
+  constructor() {
+    this.form.valueChanges
+      .pipe(takeUntilDestroyed(inject(DestroyRef)))
+      .subscribe(() => this.onChange(this.form.getRawValue()))
+  }
   get invalid() {
     return this.form.invalid
   }
-
-  onChange: (value: any) => any
-
-  writeValue(obj: any): void {
-    if (obj) {
-      this.form.patchValue(obj)
-      this.model = obj
-    }
+  writeValue(value: PasswordValue | null) {
+    this.form.reset(value ?? { password: '', confirmPassword: '' }, { emitEvent: false })
   }
-  registerOnChange(fn: any): void {
+  registerOnChange(fn: (value: PasswordValue) => void) {
     this.onChange = fn
   }
-  registerOnTouched(fn: any): void {}
-  setDisabledState?(isDisabled: boolean): void {}
-
-  ngOnInit() {
-    const TRANSLATES = this.#translate.instant('XP.SHARED.USER_BASIC')
-    this.fields = [
-      {
-        fieldGroupClassName: FORMLY_ROW,
-        fieldGroup: [
-          {
-            className: FORMLY_W_1_2,
-            key: 'password',
-            type: 'input',
-            props: {
-              label: TRANSLATES?.Passwrod ?? 'Passwrod',
-              placeholder: '',
-              type: 'password',
-              required: true,
-              appearance: 'fill',
-              minLength: 8
-            }
-          },
-          {
-            className: FORMLY_W_1_2,
-            key: 'confirmPassword',
-            type: 'input',
-            props: {
-              label: TRANSLATES?.RepeatPasswrod ?? 'Repeat Passwrod',
-              placeholder: '',
-              type: 'password',
-              required: true,
-              appearance: 'fill',
-              minLength: 8
-            },
-            validators: {
-              fieldMatch: {
-                expression: (control) => {
-                  const password = control.parent?.get('password')?.value
-                  const confirmPassword = control.value
-                  return password === confirmPassword
-                },
-                message: (error, field: FormlyFieldConfig) =>
-                  this.#translate.instant('XP.KEY_WORDS.PasswordsNotMatch', { Default: 'Passwords do not match' })
-              }
-            }
-          }
-        ]
-      }
-    ]
+  registerOnTouched(fn: () => void) {
+    this.onTouched = fn
   }
-
-  onFormChange(model: any) {
-    this.onChange?.(model)
+  setDisabledState(disabled: boolean) {
+    disabled ? this.form.disable({ emitEvent: false }) : this.form.enable({ emitEvent: false })
   }
-
-  async registerUser(organizationId?: string, createdById?: string) {
-    if (this.form.valid) {
-      const { tenant } = this.#store.user
-      const user: IUser = {
-        ...this.model,
-        tenantId: tenant.id
-      }
-
-      return await firstValueFrom(
-        this.#authService.register({
-          user,
-          // password: this.model.password,
-          // confirmPassword: this.model.confirmPassword,
-          organizationId,
-          createdById,
-          timeZone: this.model.timeZone
-        })
-      )
-    }
-
-    return null
+  errorFor(key: keyof PasswordValue) {
+    const control = this.form.controls[key]
+    if (!control.touched) return null
+    if (control.hasError('required'))
+      return key === 'password' ? 'XP.PasswordSettings.NewRequired' : 'XP.PasswordSettings.ConfirmationRequired'
+    if (control.hasError('minlength')) return 'XP.PasswordSettings.MinLength'
+    return key === 'confirmPassword' && this.form.hasError('mismatch') ? 'XP.PasswordSettings.MustMatch' : null
   }
 }

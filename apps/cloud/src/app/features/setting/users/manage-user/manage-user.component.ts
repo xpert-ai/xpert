@@ -1,5 +1,5 @@
 import { Component, computed, inject } from '@angular/core'
-import { toSignal } from '@angular/core/rxjs-interop'
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { ToastrService, UsersService } from '@cloud/app/@core/state'
 import {
   type IOrganization,
@@ -22,7 +22,17 @@ import {
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
 import { includes } from 'lodash-es'
-import { BehaviorSubject, combineLatest, firstValueFrom, map, shareReplay, switchMap } from 'rxjs'
+import {
+  BehaviorSubject,
+  catchError,
+  combineLatest,
+  firstValueFrom,
+  map,
+  of,
+  shareReplay,
+  startWith,
+  switchMap
+} from 'rxjs'
 import { XpUsersComponent } from '../users.component'
 import { FormsModule } from '@angular/forms'
 import { CommonModule } from '@angular/common'
@@ -82,7 +92,7 @@ const USER_STATUS_OPTIONS: Array<{ value: UserStatusFilter; labelKey: string; de
   standalone: true,
   selector: 'xp-manage-user',
   templateUrl: './manage-user.component.html',
-  styleUrls: ['./manage-user.component.scss'],
+  host: { class: 'flex min-w-0 flex-col gap-4' },
   imports: [
     CommonModule,
     FormsModule,
@@ -226,8 +236,8 @@ export class ManageUserComponent extends TranslationBaseComponent {
     this.organizationIds = []
   }
 
-  private refresh$ = new BehaviorSubject<void>(null)
-  public readonly users$ = combineLatest([
+  readonly refresh$ = new BehaviorSubject<void>(null)
+  public readonly state$ = combineLatest([
     this.refresh$,
     this.scopeLevel$,
     this.roles$,
@@ -237,7 +247,7 @@ export class ManageUserComponent extends TranslationBaseComponent {
     this.organizationIds$
   ]).pipe(
     switchMap(([, scopeLevel, roles, userTypes, search, status, organizationIds]) =>
-      scopeLevel === RequestScopeLevel.TENANT
+      (scopeLevel === RequestScopeLevel.TENANT
         ? combineLatest([
             this.userService.getAll(['role'], undefined, undefined, {
               types: userTypes.length ? userTypes : MANAGED_USER_TYPES,
@@ -252,10 +262,15 @@ export class ManageUserComponent extends TranslationBaseComponent {
             map(({ items }) => this.mapMembershipsToUsers(items)),
             map((users) => this.filterUsers(users, search, roles, userTypes, status, organizationIds, true))
           )
+      ).pipe(
+        map((users) => ({ status: 'ready' as const, users })),
+        startWith({ status: 'loading' as const, users: [] as UserTableRow[] }),
+        catchError(() => of({ status: 'error' as const, users: [] as UserTableRow[] }))
+      )
     )
   )
 
-  private refreshSub = this.usersComponent.refresh$.subscribe(() => {
+  private refreshSub = this.usersComponent.refresh$.pipe(takeUntilDestroyed()).subscribe(() => {
     this.refresh$.next()
   })
 

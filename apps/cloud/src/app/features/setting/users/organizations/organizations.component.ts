@@ -1,11 +1,10 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { Component, computed } from '@angular/core'
+import { Component, computed, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 
-import { injectConfirmDelete, XpTableComponent } from '@xpert-ai/headless-ui'
+import { injectConfirmDelete, ZardTableImports } from '@xpert-ai/headless-ui'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
-import { UserProfileInlineComponent } from 'apps/cloud/src/app/@shared/user'
 import { differenceWith } from 'lodash-es'
 import { BehaviorSubject, combineLatest, firstValueFrom } from 'rxjs'
 import { map, switchMap } from 'rxjs/operators'
@@ -33,14 +32,7 @@ import { ZardButtonComponent, ZardSwitchComponent } from '@xpert-ai/headless-ui'
       }
     `
   ],
-  imports: [
-    SharedModule,
-    CdkMenuModule,
-    ZardButtonComponent,
-    ZardSwitchComponent,
-    UserProfileInlineComponent,
-    XpTableComponent
-  ]
+  imports: [SharedModule, CdkMenuModule, ZardButtonComponent, ZardSwitchComponent, ...ZardTableImports]
 })
 export class XpUserOrganizationsComponent extends TranslationBaseComponent {
   readonly confirmDelete = injectConfirmDelete()
@@ -51,6 +43,15 @@ export class XpUserOrganizationsComponent extends TranslationBaseComponent {
       switchMap(([userId]) => this.userOrganizationsService.getAll(['user', 'organization'], { userId })),
       map(({ items }) => items)
     )
+  )
+  readonly page = signal(1)
+  readonly pageSize = 10
+  readonly totalPages = computed(() => Math.max(1, Math.ceil((this.userOrganizations()?.length ?? 0) / this.pageSize)))
+  readonly currentPage = computed(() => Math.min(this.page(), this.totalPages()))
+  readonly pageRows = computed(
+    () =>
+      this.userOrganizations()?.slice((this.currentPage() - 1) * this.pageSize, this.currentPage() * this.pageSize) ??
+      []
   )
   readonly activeMembershipCount = computed(
     () => this.userOrganizations()?.filter((membership) => membership.isActive).length ?? 0
