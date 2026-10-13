@@ -4,6 +4,29 @@ import { json } from 'express'
 import { get, Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { createHttpRequestMetricsMiddleware } from './http-request-metrics'
+import { identifyViewDataRequest } from '../../../../packages/server/src/view-extension/view-request-metrics'
+import type { XpertExtensionViewManifest, XpertResolvedViewHostContext } from '@xpert-ai/contracts'
+
+jest.mock('@xpert-ai/server-core', () =>
+  jest.requireActual('../../../../packages/server/src/view-extension/view-request-metrics')
+)
+
+const viewContext: XpertResolvedViewHostContext = {
+  tenantId: 'tenant-private',
+  userId: 'user-private',
+  hostType: 'agent',
+  hostId: 'assistant-private',
+  slots: []
+}
+const viewManifest: XpertExtensionViewManifest = {
+  key: 'provider__review',
+  title: { en_US: 'Review' },
+  hostType: 'agent',
+  slot: 'main',
+  source: { provider: 'provider' },
+  view: { type: 'raw_json' },
+  dataSource: { mode: 'platform' }
+}
 
 describe('HTTP API request metrics', () => {
   let server: Server
@@ -47,6 +70,93 @@ describe('HTTP API request metrics', () => {
       expect.objectContaining({ route: '/api/items/:id', durationMs: 600, method: 'GET', outcome: 'completed' })
     ])
     expect(JSON.stringify(requests)).not.toMatch(/item-one|item-two|private-value|token=/)
+  })
+
+  it.each([200, 304, 500])(
+    'uses the resolved view identity for %s without splitting by resource ID or query',
+    async (status) => {
+      const router = express.Router()
+      router.get('/:hostType/:hostId/views/:viewKey/data', (request, response) => {
+        identifyViewDataRequest(request, viewContext, viewManifest)
+        elapsed += 650
+        response.status(status).end()
+      })
+      app.use('/api/view-hosts', router)
+      for (const id of ['assistant-one', 'assistant-two']) {
+        const response = await fetch(`${origin}/api/view-hosts/agent/${id}/views/provider__review/data?search=private`)
+        expect(response.status).toBe(status)
+        await response.text()
+      }
+      expect(requests).toEqual(
+        [0, 1].map(() =>
+          expect.objectContaining({
+            route: '/api/view-hosts/agent/:hostId/views/provider__review/data',
+            statusCode: status,
+            durationMs: 650,
+            outcome: 'completed'
+          })
+        )
+      )
+      expect(JSON.stringify(requests)).not.toMatch(/assistant-one|assistant-two|private|search=/)
+    }
+  )
+
+  it('keeps unresolved view parameters in the template', async () => {
+    app.get('/api/view-hosts/:hostType/:hostId/views/:viewKey/data', (_request, response) => response.sendStatus(404))
+    const response = await fetch(`${origin}/api/view-hosts/arbitrary/private-id/views/arbitrary-key/data`)
+    await response.text()
+    expect(requests).toEqual([
+      expect.objectContaining({
+        route: '/api/view-hosts/:hostType/:hostId/views/:viewKey/data',
+        statusCode: 404
+      })
+    ])
+    expect(JSON.stringify(requests)).not.toMatch(/arbitrary|private-id/)
+  })
+
+  it('retains the outer resolved view across nested calls and isolates concurrent requests', async () => {
+    let releaseReview: () => void
+    let markReviewStarted: () => void
+    const reviewStarted = new Promise<void>((resolve) => {
+      markReviewStarted = resolve
+    })
+    const released = new Promise<void>((resolve) => {
+      releaseReview = resolve
+    })
+    app.get('/api/view-hosts/:hostType/:hostId/views/:viewKey/data', async (request, response) => {
+      if (request.params.viewKey === 'provider__review') {
+        identifyViewDataRequest(request, viewContext, viewManifest)
+        identifyViewDataRequest(request, viewContext, { ...viewManifest, key: 'nested__detail' })
+        markReviewStarted()
+        await released
+      } else {
+        await reviewStarted
+        identifyViewDataRequest(
+          request,
+          { ...viewContext, hostType: 'project' },
+          { ...viewManifest, hostType: 'project', key: 'provider__tasks' }
+        )
+        releaseReview()
+      }
+      response.end()
+    })
+    await Promise.all([
+      fetch(`${origin}/api/view-hosts/agent/private-id/views/provider__review/data`).then((r) => r.text()),
+      fetch(`${origin}/api/view-hosts/project/private-id/views/provider__tasks/data`).then((r) => r.text())
+    ])
+    expect(requests.map(({ route }) => route).sort()).toEqual([
+      '/api/view-hosts/agent/:hostId/views/provider__review/data',
+      '/api/view-hosts/project/:hostId/views/provider__tasks/data'
+    ])
+  })
+
+  it('does not relabel other endpoints that internally load a view', async () => {
+    app.get('/api/groups/:id', (request, response) => {
+      identifyViewDataRequest(request, viewContext, viewManifest)
+      response.end()
+    })
+    await fetch(`${origin}/api/groups/private-id`).then((r) => r.text())
+    expect(requests).toEqual([expect.objectContaining({ route: '/api/groups/:id' })])
   })
 
   it('includes auth failures and error responses without changing them', async () => {
