@@ -36,6 +36,7 @@ import {
   resolveI18nText,
   TAvatar,
   TXpertTeamDraft,
+  uuid,
   WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER,
   XpertTypeEnum
 } from '../../../../@core'
@@ -587,7 +588,7 @@ export class XpertNewBlankComponent extends BlankWizardResources {
     avatar?: TAvatar
     copilotModel?: ICopilotModel
   }) {
-    this.name.set(basic.name)
+    this.name.set(`assistant-${uuid()}`)
     this.title.set(basic.title)
     this.description.set(resolveI18nText(basic.description, this._translate.currentLang) ?? undefined)
     this.avatar.set(basic.avatar)

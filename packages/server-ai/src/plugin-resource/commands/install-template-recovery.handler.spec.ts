@@ -132,7 +132,10 @@ async function createFixture() {
         findOneByIdWithinTenant: jest.fn(async (_id: string) => xpert),
         delete: jest.fn(async (_id: string) => undefined)
     }
-    const capabilities = { prepareInstallation: jest.fn(async () => undefined) }
+    const capabilities = {
+        prepareInstallation: jest.fn(async () => undefined),
+        configureRealtimeVoice: jest.fn(async () => undefined)
+    }
     const module = await Test.createTestingModule({
         providers: [
             PluginTemplateInstallHandler,

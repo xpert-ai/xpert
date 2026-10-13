@@ -73,7 +73,9 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
         const parsed = yaml.parse(template.export_data) as unknown
         const sandboxProviders = await this.xpertService.getSandboxProviders()
         const draft = this.normalizeDraft(parsed, command.workspaceId, command.basic, sandboxProviders)
-        if ((parseCapabilityTemplateId(template.id)?.templateId ?? template.id) === BLANK_ASSISTANT_TEMPLATE_ID) {
+        const isBlankTemplate =
+            (parseCapabilityTemplateId(template.id)?.templateId ?? template.id) === BLANK_ASSISTANT_TEMPLATE_ID
+        if (isBlankTemplate) {
             draft.team.name = `assistant-${randomUUID()}`
             const primary = draft.nodes.find((node) => node.type === 'agent' && node.key === draft.team.agent?.key)
             if (primary?.type === 'agent') {
@@ -101,6 +103,10 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
         }
         const resumeXpertId = command.bootstrap?.resumeXpertId
         const resumedXpert = resumeXpertId ? await this.xpertService.findOneByIdWithinTenant(resumeXpertId) : null
+        if (!isBlankTemplate && !resumedXpert && command.basic?.name === undefined) {
+            // Each installation owns its identity; the source name may already exist.
+            draft.team.name = `assistant-${randomUUID()}`
+        }
         let xpert =
             resumedXpert ??
             (await this.commandBus.execute<XpertImportCommand, IXpert>(new XpertImportCommand(draft, importOptions)))
@@ -182,6 +188,7 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
         const teamValue = Reflect.get(value, 'team')
         const nodesValue = Reflect.get(value, 'nodes')
         const connectionsValue = Reflect.get(value, 'connections')
+        const memoriesValue = Reflect.get(value, 'memories')
         if (!Array.isArray(nodesValue) || !Array.isArray(connectionsValue)) {
             throw new BadRequestException('Template draft must include nodes and connections')
         }
@@ -197,7 +204,9 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
                 workspaceId
             },
             nodes: nodesValue as TXpertTeamNode[],
-            connections: connectionsValue as TXpertTeamConnection[]
+            connections: connectionsValue as TXpertTeamConnection[],
+            // The import handler persists seed memories under the newly created Assistant.
+            ...(Array.isArray(memoriesValue) ? { memories: memoriesValue } : {})
         })
     }
 

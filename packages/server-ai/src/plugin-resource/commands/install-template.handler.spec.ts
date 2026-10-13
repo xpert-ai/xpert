@@ -8,6 +8,12 @@ jest.mock('@nestjs/typeorm', () => ({
     }
 }))
 
+jest.mock('@xpert-ai/server-core', () => jest.requireActual('../../../../server/src/plugin/types'))
+
+jest.mock('../../xpert-template/capabilities/assistant-capability.service', () => ({
+    AssistantCapabilityService: class AssistantCapabilityService {}
+}))
+
 jest.mock('../../xpert/dto', () => ({
     XpertDraftDslDTO: class XpertDraftDslDTO {
         constructor(value: unknown) {
@@ -105,6 +111,84 @@ connections:
 `
 
 describe('PluginTemplateInstallHandler', () => {
+    it('creates distinct template instances without reusing the source internal name', async () => {
+        const { handler, commandBus } = createHandler({ templateDsl: TEMPLATE_DSL })
+        const command = new PluginTemplateInstallCommand('office-ops', 'workspace-1', LanguagesEnum.English, {
+            title: 'Office Ops'
+        })
+        await handler.execute(command)
+        await handler.execute(command)
+        const imports = commandBus.execute.mock.calls
+            .map(([value]) => value)
+            .filter((value): value is XpertImportCommand => value instanceof XpertImportCommand)
+        expect(imports).toHaveLength(2)
+        expect(imports[0].draft.team.name).not.toBe('template-agent')
+        expect(imports[0].draft.team.name).not.toBe(imports[1].draft.team.name)
+        expect(imports[0].draft.team.title).toBe('Office Ops')
+        expect(imports[0].draft.nodes).toEqual(imports[1].draft.nodes)
+    })
+
+    it.each(['requested-name', ''])('preserves an explicit internal name for import validation (%j)', async (name) => {
+        const { handler, commandBus } = createHandler({ templateDsl: TEMPLATE_DSL })
+        await handler.execute(
+            new PluginTemplateInstallCommand('office-ops', 'workspace-1', LanguagesEnum.English, { name })
+        )
+        const imported = commandBus.execute.mock.calls
+            .map(([value]) => value)
+            .find((value): value is XpertImportCommand => value instanceof XpertImportCommand)
+        expect(imported?.draft.team.name).toBe(name)
+    })
+
+    it.each([false, true])('preserves template memories when publish is %s', async (publish) => {
+        const memories = [
+            {
+                prefix: 'memory:qa',
+                value: {
+                    question: 'Where is the office operations record?',
+                    answer: 'Use the persistent ledger, not chat history.'
+                }
+            }
+        ]
+        const { handler, commandBus } = createHandler({
+            templateDsl: JSON.stringify({
+                team: { name: 'office-ops', type: 'agent' },
+                nodes: [],
+                connections: [],
+                memories
+            })
+        })
+        await handler.execute(
+            new PluginTemplateInstallCommand('office-ops', 'workspace-1', LanguagesEnum.English, undefined, publish)
+        )
+
+        const imports = commandBus.execute.mock.calls
+            .map(([command]) => command)
+            .filter((command): command is XpertImportCommand => command instanceof XpertImportCommand)
+        expect(imports).toHaveLength(1)
+        expect(imports[0].draft.memories).toEqual(memories)
+        expect(imports[0].draft.team.workspaceId).toBe('workspace-1')
+    })
+
+    it.each([{ memories: undefined }, { memories: [] }])(
+        'installs templates without seed memories (%j)',
+        async ({ memories }) => {
+            const { handler, commandBus } = createHandler({
+                templateDsl: JSON.stringify({
+                    team: { name: 'office-ops', type: 'agent' },
+                    nodes: [],
+                    connections: [],
+                    memories
+                })
+            })
+            await handler.execute(new PluginTemplateInstallCommand('office-ops', 'workspace-1', LanguagesEnum.English))
+            const imported = commandBus.execute.mock.calls
+                .map(([command]) => command)
+                .find((command): command is XpertImportCommand => command instanceof XpertImportCommand)
+            expect(imported).toBeDefined()
+            expect(imported?.draft.memories).toEqual(memories)
+        }
+    )
+
     it('creates distinct blank experts and preserves the user name on their primary agents', async () => {
         const { handler, templateService, commandBus } = createHandler({ templateDsl: createSandboxTemplateDsl() })
         const { id, export_data } = blankAssistantTemplate([])
