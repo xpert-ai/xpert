@@ -95,6 +95,7 @@ export class RuntimeControlService {
 
 		return await this.coordinator.requestRestart({
 			source: 'interactive',
+			...(input.allowDowntime === true ? { allowDowntime: true } : {}),
 			reason: input.reason?.trim() || undefined,
 			actorUserId: RequestContext.currentUserId(),
 			tenantId: RequestContext.currentTenantId(),

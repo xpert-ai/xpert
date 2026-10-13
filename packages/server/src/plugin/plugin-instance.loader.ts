@@ -226,7 +226,9 @@ export function buildOrganizationPluginConfigs(
  *
  * @returns
  */
-export async function loadOrganizationPluginConfigs(): Promise<OrganizationPluginConfig[]> {
+export async function loadOrganizationPluginConfigs(
+	options: { strict?: boolean } = {}
+): Promise<OrganizationPluginConfig[]> {
 	let dataSource: DataSource | null = null
 	try {
 		const cfg = getConfig()
@@ -243,6 +245,7 @@ export async function loadOrganizationPluginConfigs(): Promise<OrganizationPlugi
 		const instances = await loadPluginInstances({ defaultTenantId })
 		return buildOrganizationPluginConfigs(instances, { defaultTenantId })
 	} catch (err) {
+		if (options.strict) throw err
 		console.warn('Failed to load plugin instances from DB, fallback to defaults', err)
 		return []
 	} finally {

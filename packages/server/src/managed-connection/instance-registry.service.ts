@@ -77,6 +77,9 @@ export class InstanceRegistryService implements OnModuleInit, OnModuleDestroy {
 	private timer?: ReturnType<typeof setInterval>
 	private pluginState: RuntimePluginState | null = null
 	private heartbeatInFlight?: Promise<void>
+	private ready = false
+	private readyUntil = 0
+	private leaseExpiresAt = 0
 
 	constructor(
 		@Inject(REDIS_CLIENT)
@@ -115,6 +118,41 @@ export class InstanceRegistryService implements OnModuleInit, OnModuleDestroy {
 
 	async getRegisteredInstances(): Promise<RuntimeInstance[]> {
 		return (await this.readMembers()).map(({ instanceId, bootId }) => ({ instanceId, bootId }))
+	}
+
+	/** Historical members remain auditable; only the matching live, ready boot can join a rollout. */
+	async getReadyInstances(): Promise<RuntimeInstance[]> {
+		const result: RuntimeInstance[] = []
+		for (const member of await this.readMembers()) {
+			const value = await this.redisClient.get?.(this.key(member.instanceId))
+			if (!value) continue
+			const live: unknown = JSON.parse(value)
+			if (
+				typeof live === 'object' &&
+				live !== null &&
+				'bootId' in live &&
+				live.bootId === member.bootId &&
+				'ready' in live &&
+				live.ready === true &&
+				'readyUntil' in live &&
+				typeof live.readyUntil === 'number' &&
+				live.readyUntil > Date.now()
+			)
+				result.push({ instanceId: member.instanceId, bootId: member.bootId })
+		}
+		return result
+	}
+
+	isLeaseValid(): boolean {
+		return Date.now() < this.leaseExpiresAt
+	}
+
+	async setReady(ready: boolean, validUntil = Date.now() + INSTANCE_HEARTBEAT_TTL_SECONDS * 1_000): Promise<void> {
+		if (this.ready === ready && (!ready || this.readyUntil === validUntil)) return
+		this.ready = ready
+		this.readyUntil = ready ? validUntil : 0
+		await this.heartbeatInFlight
+		await this.refreshHeartbeat()
 	}
 
 	async getRegisteredInstanceDetails(): Promise<IRuntimeInstanceRegistration[]> {
@@ -203,12 +241,16 @@ export class InstanceRegistryService implements OnModuleInit, OnModuleDestroy {
 			bootId: this.bootId,
 			host: hostname(),
 			pid: process.pid,
-			lastSeenAt: new Date().toISOString()
+			lastSeenAt: new Date().toISOString(),
+			ready: this.ready && Date.now() < this.readyUntil,
+			readyUntil: this.readyUntil
 		})
+		const startedAt = Date.now()
 		await this.redisClient.eval(WRITE_INSTANCE_SCRIPT, {
 			keys: [INSTANCE_MEMBERS_KEY, this.key(this.instanceId)],
 			arguments: [this.instanceId, payload, `${INSTANCE_HEARTBEAT_TTL_SECONDS}`]
 		})
+		this.leaseExpiresAt = startedAt + INSTANCE_HEARTBEAT_TTL_SECONDS * 1_000
 	}
 
 	private key(instanceId: string): string {

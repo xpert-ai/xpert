@@ -75,6 +75,53 @@ describe('InstanceRegistryService', () => {
 		}
 	})
 
+	it('selects only a live matching boot with fresh readiness, retaining offline history for audit', async () => {
+		jest.useFakeTimers()
+		const redis = new FakeRedis()
+		process.env.XPERT_INSTANCE_ID = 'api-1'
+		const registry = new InstanceRegistryService(redis)
+		await registry.onModuleInit()
+		expect(await registry.getReadyInstances()).toEqual([])
+		await registry.setReady(true, Date.now() + 5_000)
+		expect(await registry.getReadyInstances()).toEqual([
+			{ instanceId: registry.instanceId, bootId: registry.bootId }
+		])
+		await jest.advanceTimersByTimeAsync(5_001)
+		expect(await registry.getReadyInstances()).toEqual([])
+		expect(await registry.getRegisteredInstances()).toHaveLength(1)
+		await registry.setReady(true)
+		const key = `managed-connection:instance:${registry.instanceId}`
+		const live = redis.values.get(key)
+		if (!live) throw new Error('Missing heartbeat')
+		redis.values.set(key, JSON.stringify({ ...JSON.parse(live), bootId: 'other-boot' }))
+		expect(await registry.getReadyInstances()).toEqual([])
+		redis.values.delete(key)
+		expect(await registry.getReadyInstances()).toEqual([])
+		expect(await registry.getRegisteredInstances()).toHaveLength(1)
+		await registry.onModuleDestroy()
+	})
+
+	it('writes a drain after an older readiness heartbeat finishes', async () => {
+		const redis = new FakeRedis()
+		const registry = new InstanceRegistryService(redis)
+		await registry.onModuleInit()
+		const original = redis.eval.bind(redis)
+		let resume: () => void = () => undefined
+		jest.spyOn(redis, 'eval').mockImplementationOnce(async (...args) => {
+			await new Promise<void>((resolve) => {
+				resume = resolve
+			})
+			return original(...args)
+		})
+		const ready = registry.setReady(true)
+		await Promise.resolve()
+		const draining = registry.setReady(false)
+		resume()
+		await Promise.all([ready, draining])
+		expect(await registry.getReadyInstances()).toEqual([])
+		await registry.onModuleDestroy()
+	})
+
 	it('registers boot identity but keeps reported plugin state local', async () => {
 		const redis = new FakeRedis()
 		process.env.XPERT_INSTANCE_ID = 'api-1'

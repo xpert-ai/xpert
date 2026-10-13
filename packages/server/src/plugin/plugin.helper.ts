@@ -4,6 +4,7 @@
  * - Local code plugins with a persisted workspace path should be restaged before load so restarts do not depend on stale copies.
  * - Non-code plugins continue to install through the organization plugin store and keep load-failure tracking centralized here.
  */
+import { runPluginStartupStep, PluginStartupTimeoutError } from './plugin-startup-step'
 import { isNotEmpty } from '@xpert-ai/server-common'
 import { getConfig } from '@xpert-ai/server-config'
 import { DynamicModule, Type, Logger } from '@nestjs/common'
@@ -522,20 +523,22 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 					: undefined
 			let sdkCompatibilityWarnings: PluginSdkCompatibilityWarning[] = []
 			// 2) Load each plugin and merge its configuration defaults.
-			const plugin = await loadPlugin(name, {
-				basedir: pluginBaseDir,
-				source,
-				workspacePath,
-				codeLoadMode:
-					source === 'code'
-						? configuredWorkspacePath || configuredPackageDir
-							? 'staged-package'
-							: 'workspace-ts'
-						: undefined,
-				onCompatibilityWarnings: (warnings) => {
-					sdkCompatibilityWarnings = warnings
-				}
-			})
+			const plugin = await runPluginStartupStep(name, 'import', () =>
+				loadPlugin(name, {
+					basedir: pluginBaseDir,
+					source,
+					workspacePath,
+					codeLoadMode:
+						source === 'code'
+							? configuredWorkspacePath || configuredPackageDir
+								? 'staged-package'
+								: 'workspace-ts'
+							: undefined,
+					onCompatibilityWarnings: (warnings) => {
+						sdkCompatibilityWarnings = warnings
+					}
+				})
+			)
 			const resolvedLevel = resolvePluginLevel(plugin.meta?.level ?? level)
 			if (resolvedLevel === PLUGIN_LEVEL.SYSTEM && opts.allowSystemPlugins === false) {
 				throw new PluginLoadRejectedError(
@@ -558,7 +561,7 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 				organizationId,
 				scopeKey
 			})
-			const mod = plugin.register(ctx)
+			const mod = await runPluginStartupStep(name, 'register', () => plugin.register(ctx))
 
 			// 4) Tag the module and its providers with organization and plugin metadata.
 			tagModuleWithPluginScope(mod, scopeKey, normalizePluginName(name), plugin.meta.version)
@@ -585,6 +588,7 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}, 
 				sdkCompatibilityWarnings
 			})
 		} catch (error) {
+			if (error instanceof PluginStartupTimeoutError) throw error
 			const message = appendStageWorkspacePluginError(getErrorMessage(error), stageError)
 			const stack = error instanceof Error ? error.stack : undefined
 			const code = getPluginLoadFailureCode(error)

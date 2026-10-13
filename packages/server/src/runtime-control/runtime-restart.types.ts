@@ -31,6 +31,9 @@ export type RestartOperationMetadata = {
 	pluginGeneration: number
 	pluginGenerations: number[]
 	runtimeRequirements: IRuntimePluginRequirement[]
+	/** Full desired manifest at this operation's generation, never a later queued generation. */
+	admissionRequirements?: IRuntimePluginRequirement[]
+	allowDowntime?: boolean
 	registrationDeadlineAt?: string
 	// Keep legacy phases readable while the creator publishes generation status before activation.
 	phase: 'collecting' | 'rolling'
@@ -57,6 +60,7 @@ export type PluginGenerationChange = {
 	generation: number
 	requirements: IRuntimePluginRequirement[]
 	source: 'interactive' | 'plugin-change'
+	allowDowntime?: boolean
 	reason?: string
 	actorUserId?: string
 	tenantId?: string
@@ -71,6 +75,7 @@ export type PluginGenerationState = {
 }
 
 export type RestartOperationInput = {
+	allowDowntime?: boolean
 	reason?: string
 	source: RestartOperationMetadata['source']
 	actorUserId?: string

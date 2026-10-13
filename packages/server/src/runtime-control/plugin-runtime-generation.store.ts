@@ -3,6 +3,7 @@
  * - Desired requirements and the outcome outlive expiring operation history.
  * - A failed generation stays blocked until a new generation is explicitly published.
  * - Catch-up admission checks the current outcome atomically with acquiring the active operation.
+ * - Publication atomically freezes the cumulative manifest before a later change can overwrite it.
  */
 import type { IRuntimePluginRequirement, RuntimeRestartStatus } from '@xpert-ai/contracts'
 import type { PluginGenerationChange, PluginGenerationState, RuntimeRestartRedisClient } from './runtime-restart.types'
@@ -24,6 +25,14 @@ for _, requirement in ipairs(change['requirements']) do
   redis.call('hset', KEYS[2], cjson.encode({requirement['scopeKey'], requirement['pluginName']}), cjson.encode(requirement))
 end
 redis.call('hset', KEYS[2], 'generation', tostring(generation), 'status', 'in_progress')
+local desired = redis.call('hgetall', KEYS[2])
+local requirements = {}
+for i = 1, #desired, 2 do
+  if desired[i] ~= 'generation' and desired[i] ~= 'status' then
+    table.insert(requirements, cjson.decode(desired[i + 1]))
+  end
+end
+redis.call('set', ARGV[2] .. generation .. ':requirements', cjson.encode(requirements), 'EX', tonumber(ARGV[3]))
 return generation
 `
 
@@ -92,6 +101,19 @@ export class PluginRuntimeGenerationStore {
 		return Number(attempts[replicaId] ?? 0) >= generation
 	}
 
+	async readRequirements(generation: number): Promise<IRuntimePluginRequirement[] | undefined> {
+		if (generation === 0) return []
+		const value = await this.redis.get(`${PLUGIN_GENERATION_PREFIX}${generation}:requirements`)
+		if (!value) {
+			const desired = await this.readDesired()
+			return desired?.generation === generation ? desired.requirements : undefined
+		}
+		const parsed: unknown = JSON.parse(value)
+		if (!Array.isArray(parsed) || !parsed.every((item) => this.isRuntimePluginRequirement(item)))
+			throw new Error('Invalid plugin generation admission manifest')
+		return parsed
+	}
+
 	async current(): Promise<number> {
 		const value = await this.redis.get(PLUGIN_GENERATION_KEY)
 		const parsed = Number.parseInt(value ?? '0', 10)
@@ -133,6 +155,7 @@ export class PluginRuntimeGenerationStore {
 			generation: value.generation,
 			requirements,
 			source: 'source' in value && value.source === 'interactive' ? 'interactive' : 'plugin-change',
+			...('allowDowntime' in value && value.allowDowntime === true ? { allowDowntime: true } : {}),
 			...('reason' in value && typeof value.reason === 'string' ? { reason: value.reason } : {}),
 			...('actorUserId' in value && typeof value.actorUserId === 'string'
 				? { actorUserId: value.actorUserId }

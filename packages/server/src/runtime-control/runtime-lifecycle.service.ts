@@ -14,6 +14,11 @@ export class RuntimeLifecycleService implements BeforeApplicationShutdown {
 
 	private readonly logger = new Logger(RuntimeLifecycleService.name)
 	private activeRequests = 0
+	private readinessGuard: () => boolean = () => true
+
+	setReadinessGuard(guard: () => boolean): void {
+		this.readinessGuard = guard
+	}
 	private drainState: RuntimeDrainState | null = null
 	private readonly idleWaiters = new Set<() => void>()
 
@@ -71,7 +76,7 @@ export class RuntimeLifecycleService implements BeforeApplicationShutdown {
 	}
 
 	trackRequest(): (() => void) | null {
-		if (this.drainState) {
+		if (this.drainState || !this.readinessGuard()) {
 			return null
 		}
 
@@ -141,7 +146,7 @@ export class RuntimeLifecycleService implements BeforeApplicationShutdown {
 
 	readiness(): IRuntimeReadiness {
 		return {
-			status: this.drainState ? 'draining' : 'ready',
+			status: this.drainState ? 'draining' : this.readinessGuard() ? 'ready' : 'unready',
 			instanceId: this.instanceId,
 			activeRequests: this.activeRequests,
 			...(this.drainState ?? {})

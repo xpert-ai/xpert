@@ -181,6 +181,7 @@ export interface IXpertProject extends TXpertProject, IBasePerTenantAndOrganizat
   xperts?: IXpert[]
   toolsets?: IXpertToolset[]
   knowledges?: IKnowledgebase[]
+  /** @deprecated Legacy relation. Use memberships and the Project membership API for access management. */
   members?: IUser[]
   memberships?: IXpertProjectMembership[]
   /**

@@ -1,10 +1,20 @@
 /**
  * Invariants:
- * - Restart targets are snapshotted before activation; missing participants never reduce the expected count.
+ * - Only live, ready boots join a rollout; historical members remain available for audit.
  * - A process already satisfying every runtime requirement acknowledges without restarting.
- * - A bounded batch of stale processes drains at a time, and replacements acknowledge only after reporting plugin state.
- * - Plugin generations are monotonic, so changes during a rollout cause a follow-up rollout.
+ * - One candidate drains at a time; the last healthy replica needs explicit operator outage consent.
+ * - Admission uses the active generation's full manifest; queued changes run in a follow-up rollout.
  */
+import {
+	REPLICA_RESTART_TIMEOUT_MS,
+	operationDeadlineAt,
+	operationDeadlineError,
+	operationStateTtlSeconds,
+	restartStatus
+} from './runtime-restart-deadlines'
+import { RuntimePluginAdmission, RestartRegistry } from './runtime-plugin-admission'
+import { createRestartMetadata, INITIAL_OPERATION_TTL_MS, replacementAdmission } from './runtime-rollout-policy'
+import { preparePluginStartupRetry, getPluginStartupFailure } from '../plugin/plugin-startup-state'
 import {
 	IPluginRuntimeConvergenceStatus,
 	IRuntimePluginRequirement,
@@ -31,7 +41,6 @@ import type {
 	RuntimeRestartRedisSubscriber,
 	RestartOperationMetadata,
 	RestartTargetState,
-	PluginGenerationChange,
 	PluginRuntimeChangeInput,
 	PluginRuntimeChangeResult,
 	RestartOperationInput
@@ -49,13 +58,8 @@ const RESTART_CHANNEL = 'xpert:system:runtime:restart:events'
 const DEFAULT_SIGNAL_DELAY_MS = 750
 const DEFAULT_DRAIN_TIMEOUT_MS = 30_000
 const PENDING_TARGET_TIMEOUT_MS = 45_000
-const REPLICA_RESTART_TIMEOUT_MS = 120_000
-const INITIAL_OPERATION_TTL_MS = 15 * 60_000
-const OPERATION_DEADLINE_GRACE_MS = 30_000
 const ACTIVE_RESTART_EXPIRY_GRACE_MS = 30_000
-const OPERATION_STATUS_RETENTION_MS = 15 * 60_000
 const COORDINATOR_POLL_MS = 1_000
-const MAX_UNAVAILABLE_RATIO = 0.2
 const RELEASE_LOCK_SCRIPT = `
 if redis.call('get', KEYS[1]) == ARGV[1] then
   return redis.call('del', KEYS[1])
@@ -94,6 +98,7 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 	private bootstrapped = false
 	private readonly generations: PluginRuntimeGenerationStore
 	private readonly targets: RuntimeRestartTargetStore
+	private readonly admission: RuntimePluginAdmission
 
 	constructor(
 		@Inject(REDIS_CLIENT)
@@ -102,13 +107,11 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 		private readonly processSignaler: RuntimeProcessSignaler,
 		private readonly lifecycle: RuntimeLifecycleService,
 		@Inject(InstanceRegistryService)
-		private readonly instanceRegistry: Pick<
-			InstanceRegistryService,
-			'instanceId' | 'bootId' | 'getPluginState' | 'getRegisteredInstances'
-		>
+		private readonly instanceRegistry: RestartRegistry
 	) {
 		this.generations = new PluginRuntimeGenerationStore(redis)
 		this.targets = new RuntimeRestartTargetStore(redis)
+		this.admission = new RuntimePluginAdmission(instanceRegistry, lifecycle)
 	}
 
 	async onModuleInit(): Promise<void> {
@@ -133,6 +136,7 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 	}
 
 	async requestRestart(input: {
+		allowDowntime?: boolean
 		reason?: string
 		source: RestartOperationMetadata['source']
 		actorUserId?: string
@@ -146,6 +150,7 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 				generation: 0,
 				requirements: runtimeRequirements,
 				source: 'interactive',
+				allowDowntime: input.source === 'interactive' && input.allowDowntime === true,
 				reason: input.reason,
 				actorUserId: input.actorUserId,
 				tenantId: input.tenantId,
@@ -181,6 +186,7 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 		return await this.startOperation({
 			reason: input.reason,
 			source: input.source,
+			allowDowntime: input.allowDowntime,
 			actorUserId: input.actorUserId,
 			tenantId: input.tenantId,
 			sourceIp: input.sourceIp,
@@ -238,32 +244,7 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 			return null
 		}
 		const targets = await this.targets.read(restartId)
-		const failed = targets.filter((target) => target.status === 'failed')
-		const completed = targets.filter((target) => target.status === 'completed')
-		const completedOperation =
-			metadata.phase === 'rolling' &&
-			completed.length === metadata.targetReplicaCount &&
-			targets.length === metadata.targetReplicaCount
-		const deadlineError = !completedOperation && this.operationDeadlineError(metadata)
-		const status: RuntimeRestartStatus = failed.length
-			? 'failed'
-			: completedOperation
-				? 'completed'
-				: deadlineError
-					? 'failed'
-					: 'in_progress'
-
-		return {
-			restartId,
-			mode: 'rolling-self-signal',
-			status,
-			requestedAt: metadata.requestedAt,
-			targetReplicaCount: metadata.phase === 'collecting' ? targets.length : metadata.targetReplicaCount,
-			completedReplicaCount: completed.length,
-			failedReplicaCount: failed.length || (deadlineError ? 1 : 0),
-			pluginGeneration: metadata.pluginGeneration,
-			...(failed[0]?.error || deadlineError ? { error: failed[0]?.error ?? deadlineError } : {})
-		}
+		return restartStatus(metadata, targets)
 	}
 
 	async getPluginConvergenceStatus(generation: number): Promise<IPluginRuntimeConvergenceStatus | null> {
@@ -317,34 +298,18 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 	private async prepareOperation(input: RestartOperationInput): Promise<RestartOperationMetadata> {
 		const restartId = randomUUID()
 		const requestedAt = new Date().toISOString()
-		const members = await this.instanceRegistry.getRegisteredInstances()
+		const members = await this.instanceRegistry.getReadyInstances()
 		const participants = new Map(members.map((member) => [member.instanceId, member]))
-		participants.set(this.instanceRegistry.instanceId, this.instanceRegistry)
-		const maxConcurrentRestarts = this.restartBatchSize(participants.size)
-		const metadata: RestartOperationMetadata = {
+		if (input.source === 'plugin-catch-up')
+			participants.set(this.instanceRegistry.instanceId, this.instanceRegistry)
+		if (!participants.size) throw new Error('No healthy runtime replicas available')
+		const metadata = createRestartMetadata(
+			input,
 			restartId,
 			requestedAt,
-			reason: input.reason?.trim() || undefined,
-			source: input.source,
-			actorUserId: input.actorUserId,
-			tenantId: input.tenantId,
-			sourceIp: input.sourceIp,
-			pluginGeneration: input.pluginGeneration,
-			pluginGenerations:
-				input.source === 'plugin-catch-up'
-					? [input.pluginGeneration]
-					: input.pluginChanges.map((change) => change.generation),
-			runtimeRequirements: mergeRuntimeRequirements([
-				...input.runtimeRequirements,
-				...input.pluginChanges.flatMap((change) => change.requirements)
-			]),
-			phase: 'collecting',
-			preparing: true,
-			registrationDeadlineAt: new Date(Date.now() + INITIAL_OPERATION_TTL_MS).toISOString(),
-			targetReplicaCount: participants.size,
-			maxConcurrentRestarts,
-			deadlineAt: this.operationDeadlineAt(participants.size, maxConcurrentRestarts)
-		}
+			participants.size,
+			await this.generations.readRequirements(input.pluginGeneration)
+		)
 		for (const member of participants.values()) {
 			await this.targets.initialize(restartId, {
 				replicaId: member.instanceId,
@@ -353,7 +318,7 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 				updatedAt: requestedAt
 			})
 		}
-		await this.redis.expire(this.targets.key(restartId), this.operationStateTtlSeconds(metadata))
+		await this.redis.expire(this.targets.key(restartId), operationStateTtlSeconds(metadata))
 		return metadata
 	}
 
@@ -367,7 +332,8 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 			tenantId: metadata.tenantId,
 			sourceIp: metadata.sourceIp,
 			pluginGeneration: metadata.pluginGeneration,
-			runtimeRequirements: metadata.runtimeRequirements
+			runtimeRequirements: metadata.runtimeRequirements,
+			allowDowntime: metadata.allowDowntime === true
 		})
 		for (const generation of metadata.pluginGenerations) {
 			await this.generations.writeState({
@@ -380,12 +346,12 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 			metadata.targetReplicaCount,
 			(await this.targets.read(metadata.restartId)).length
 		)
-		metadata.maxConcurrentRestarts = this.restartBatchSize(metadata.targetReplicaCount)
-		metadata.deadlineAt = this.operationDeadlineAt(metadata.targetReplicaCount, metadata.maxConcurrentRestarts)
+		metadata.maxConcurrentRestarts = 1
+		metadata.deadlineAt = operationDeadlineAt(metadata.targetReplicaCount, metadata.maxConcurrentRestarts)
 		metadata.phase = 'rolling'
 		metadata.preparing = false
 		await this.extendActiveRestart(metadata)
-		await this.redis.expire(this.targets.key(metadata.restartId), this.operationStateTtlSeconds(metadata))
+		await this.redis.expire(this.targets.key(metadata.restartId), operationStateTtlSeconds(metadata))
 		await this.writeMetadata(metadata)
 		await this.publish(metadata.restartId)
 		void this.processActiveRestart()
@@ -408,18 +374,23 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 		this.processing = true
 		try {
 			const restartId = await this.redis.get(ACTIVE_RESTART_KEY)
+			let metadata = restartId ? await this.readMetadata(restartId) : null
+			let targets = metadata ? await this.targets.read(metadata.restartId) : []
+			await this.admission.refresh(
+				this.generations,
+				replacementAdmission(metadata, targets, this.instanceRegistry.instanceId, this.instanceRegistry.bootId)
+			)
 			if (!restartId) {
 				if (!(await this.ensurePendingPluginOperation())) await this.reconcileLocalPlugins()
 				return
 			}
-			let metadata = await this.readMetadata(restartId)
 			if (!metadata) {
 				await this.releaseLock(ACTIVE_RESTART_KEY, restartId)
 				return
 			}
 
 			if (metadata.preparing) {
-				const error = this.operationDeadlineError(metadata)
+				const error = operationDeadlineError(metadata)
 				if (error) await this.finishOperation(metadata, 'failed', error)
 				return
 			}
@@ -428,7 +399,7 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 				if (metadata.phase === 'collecting') return
 			}
 
-			let targets = await this.targets.read(restartId)
+			targets = await this.targets.read(restartId)
 			if (targets.length > metadata.targetReplicaCount) metadata = await this.finalizeRegistration(metadata)
 			let ownTarget = targets.find((target) => target.replicaId === this.instanceRegistry.instanceId)
 			if (ownTarget?.status === 'pending' && ownTarget.expectedBootId === this.instanceRegistry.bootId) {
@@ -482,7 +453,7 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 				await this.finishOperation(metadata, 'completed')
 				return
 			}
-			const deadlineError = this.operationDeadlineError(metadata)
+			const deadlineError = operationDeadlineError(metadata)
 			if (deadlineError) {
 				const unfinished = targets.find((target) => target.status !== 'completed')
 				if (unfinished) {
@@ -494,8 +465,20 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 			if (!ownTarget || ownTarget.status === 'completed' || ownTarget.status === 'failed') return
 
 			if (ownTarget.expectedBootId !== this.instanceRegistry.bootId) {
+				const startupFailure = getPluginStartupFailure()
+				if (startupFailure) {
+					if (
+						await this.failTarget(
+							restartId,
+							ownTarget,
+							`${startupFailure.code}: ${startupFailure.pluginName} (${startupFailure.stage})`
+						)
+					)
+						await this.finishOperation(metadata, 'failed')
+					return
+				}
 				const result = evaluateRuntimeRequirements(
-					metadata.runtimeRequirements,
+					metadata.admissionRequirements ?? metadata.runtimeRequirements,
 					this.instanceRegistry.getPluginState()
 				)
 				if (result.status === 'waiting') return
@@ -504,6 +487,7 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 					if (failed) await this.finishOperation(metadata, 'failed')
 					return
 				}
+				if (!this.admission.isStable()) return
 				await this.completeTarget(restartId, ownTarget, 'replacement-ready')
 				return
 			}
@@ -539,7 +523,7 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 			// Upgrade a rollout created by the previous coordinator without dropping registered targets.
 			const registered = await this.targets.read(metadata.restartId)
 			for (const member of current.phase === 'collecting'
-				? await this.instanceRegistry.getRegisteredInstances()
+				? await this.instanceRegistry.getReadyInstances()
 				: []) {
 				if (!registered.some((target) => target.replicaId === member.instanceId)) {
 					await this.targets.initialize(metadata.restartId, {
@@ -552,16 +536,16 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 			}
 			const targets = await this.targets.read(metadata.restartId)
 			const targetReplicaCount = Math.max(current.targetReplicaCount, targets.length)
-			const maxConcurrentRestarts = this.restartBatchSize(targetReplicaCount)
+			const maxConcurrentRestarts = 1
 			const rolling: RestartOperationMetadata = {
 				...current,
 				phase: 'rolling',
 				targetReplicaCount,
 				maxConcurrentRestarts,
-				deadlineAt: this.operationDeadlineAt(targetReplicaCount, maxConcurrentRestarts)
+				deadlineAt: operationDeadlineAt(targetReplicaCount, maxConcurrentRestarts)
 			}
 			await this.extendActiveRestart(rolling)
-			await this.redis.expire(this.targets.key(rolling.restartId), this.operationStateTtlSeconds(rolling))
+			await this.redis.expire(this.targets.key(rolling.restartId), operationStateTtlSeconds(rolling))
 			await this.writeMetadata(rolling)
 			this.writeAuditLog('runtime.restart.participants-registered', {
 				restartId: metadata.restartId,
@@ -576,17 +560,28 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 	}
 
 	private async beginReplicaRestart(metadata: RestartOperationMetadata, target: RestartTargetState): Promise<void> {
+		if (this.lifecycle.readiness().status === 'ready' && !this.admission.isStable()) return
 		const lockToken = `${metadata.restartId}:${target.replicaId}:${this.instanceRegistry.bootId}:${randomUUID()}`
 		const restartSlot = await this.claimRestartSlot(metadata, lockToken)
 		if (restartSlot === null) return
 
+		const healthy = await this.instanceRegistry.getReadyInstances()
+		const hasCapacity =
+			metadata.allowDowntime === true || healthy.some((item) => item.instanceId !== target.replicaId)
 		const currentTargets = await this.targets.read(metadata.restartId)
 		const current = currentTargets.find((item) => item.replicaId === target.replicaId)
-		if (!current || current.status !== 'pending' || current.expectedBootId !== this.instanceRegistry.bootId) {
+		if (
+			!hasCapacity ||
+			!current ||
+			current.status !== 'pending' ||
+			current.expectedBootId !== this.instanceRegistry.bootId ||
+			currentTargets.some((item) => item.status === 'failed' || item.status === 'restarting')
+		) {
 			await this.releaseRestartSlot(metadata.restartId, restartSlot, lockToken)
 			return
 		}
 
+		preparePluginStartupRetry()
 		const startedAt = new Date().toISOString()
 		const restarting: RestartTargetState = {
 			...current,
@@ -614,26 +609,45 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 			replicaId: target.replicaId,
 			bootId: this.instanceRegistry.bootId
 		})
+		await this.instanceRegistry.setReady(false)
 		const timer = setTimeout(() => void this.terminateAfterDrain(metadata, restarting), this.signalDelayMs)
 		timer.unref?.()
 	}
 
 	private async terminateAfterDrain(metadata: RestartOperationMetadata, target: RestartTargetState): Promise<void> {
-		// This rolling-restart grace precedes the process watchdog, which starts only when SIGTERM is received.
-		const drained = await this.lifecycle.waitForIdle(this.drainTimeoutMs)
-		this.writeAuditLog('runtime.restart.replica-signaling', {
-			restartId: metadata.restartId,
-			replicaId: target.replicaId,
-			bootId: this.instanceRegistry.bootId,
-			drained,
-			activeRequests: this.lifecycle.readiness().activeRequests,
-			signal: 'SIGTERM'
-		})
 		try {
+			// This rolling-restart grace precedes the process watchdog, which starts only when SIGTERM is received.
+			const drained = await this.lifecycle.waitForIdle(this.drainTimeoutMs)
+			if (
+				(await this.redis.get(ACTIVE_RESTART_KEY)) !== metadata.restartId ||
+				(await this.targets.read(metadata.restartId)).some((item) => item.status === 'failed')
+			) {
+				this.lifecycle.cancelDrain(metadata.restartId)
+				return
+			}
+			if (
+				metadata.allowDowntime !== true &&
+				!(await this.instanceRegistry.getReadyInstances()).some((item) => item.instanceId !== target.replicaId)
+			) {
+				throw new Error('No healthy peer remains before candidate restart')
+			}
+			this.writeAuditLog('runtime.restart.replica-signaling', {
+				restartId: metadata.restartId,
+				replicaId: target.replicaId,
+				bootId: this.instanceRegistry.bootId,
+				drained,
+				activeRequests: this.lifecycle.readiness().activeRequests,
+				signal: 'SIGTERM'
+			})
 			this.processSignaler.signal('SIGTERM')
 		} catch (error) {
-			const failed = await this.failTarget(metadata.restartId, target, this.describeError(error))
-			if (failed) await this.finishOperation(metadata, 'failed')
+			this.lifecycle.cancelDrain(metadata.restartId)
+			try {
+				const failed = await this.failTarget(metadata.restartId, target, this.describeError(error))
+				if (failed) await this.finishOperation(metadata, 'failed')
+			} catch {
+				this.logger.warn('Runtime restart aborted; failed to persist candidate failure')
+			}
 		}
 	}
 
@@ -884,7 +898,7 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 
 	private async writeMetadata(metadata: RestartOperationMetadata): Promise<void> {
 		await this.redis.set(this.metadataKey(metadata.restartId), JSON.stringify(metadata), {
-			EX: this.operationStateTtlSeconds(metadata)
+			EX: operationStateTtlSeconds(metadata)
 		})
 	}
 
@@ -897,29 +911,6 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 			this.logger.warn(`Failed to release runtime restart lock: ${this.describeError(error)}`)
 			return false
 		}
-	}
-
-	private restartBatchSize(targetReplicaCount: number): number {
-		if (targetReplicaCount <= 1) return 1
-		return Math.min(targetReplicaCount - 1, Math.max(1, Math.floor(targetReplicaCount * MAX_UNAVAILABLE_RATIO)))
-	}
-
-	private operationDeadlineAt(targetReplicaCount: number, maxConcurrentRestarts: number): string {
-		const batchCount = Math.max(1, Math.ceil(targetReplicaCount / maxConcurrentRestarts))
-		return new Date(
-			Date.now() + batchCount * REPLICA_RESTART_TIMEOUT_MS + OPERATION_DEADLINE_GRACE_MS
-		).toISOString()
-	}
-
-	private operationDeadlineError(metadata: RestartOperationMetadata): string | undefined {
-		if (!metadata.deadlineAt || Date.now() <= new Date(metadata.deadlineAt).getTime()) return undefined
-		return `API runtime restart exceeded its server deadline at ${metadata.deadlineAt}`
-	}
-
-	private operationStateTtlSeconds(metadata: RestartOperationMetadata): number {
-		if (!metadata.deadlineAt) return Math.ceil(INITIAL_OPERATION_TTL_MS / 1_000)
-		const remainingExecutionMs = Math.max(0, new Date(metadata.deadlineAt).getTime() - Date.now())
-		return Math.ceil((remainingExecutionMs + OPERATION_STATUS_RETENTION_MS) / 1_000)
 	}
 
 	private async extendActiveRestart(metadata: RestartOperationMetadata): Promise<void> {
@@ -937,7 +928,7 @@ export class RuntimeRestartCoordinatorService implements OnModuleInit, OnApplica
 	}
 
 	private async claimRestartSlot(metadata: RestartOperationMetadata, lockToken: string): Promise<number | null> {
-		const batchSize = metadata.maxConcurrentRestarts ?? this.restartBatchSize(metadata.targetReplicaCount)
+		const batchSize = 1
 		for (let slot = 0; slot < batchSize; slot += 1) {
 			const claimed = await this.redis.set(this.restartSlotKey(metadata.restartId, slot), lockToken, {
 				NX: true,

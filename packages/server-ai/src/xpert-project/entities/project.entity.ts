@@ -199,7 +199,7 @@ export class XpertProject extends TenantOrganizationBaseEntity implements IXpert
     | @ManyToMany 
     |--------------------------------------------------------------------------
     */
-    // Project's members
+    /** @deprecated Legacy relation. Use memberships and the Project membership API; no startup backfill is performed. */
     @ManyToMany(() => User)
     @JoinTable({
         name: 'xpert_project_member'
