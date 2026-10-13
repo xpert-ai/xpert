@@ -130,3 +130,5 @@ export * from './chat-group-entity.model'
 export * from './conversation-entry.model'
 
 export type { ThreadActivitySnapshot } from './thread-activity.model'
+
+export * from './template-installation.model'

@@ -38,6 +38,7 @@ import { XpertDraftDslDTO } from '../../dto'
 import { normalizeImportedSandboxFeatures } from '../../import-draft.utils'
 import { createTemplateSourceFromIds, resolveTemplateSourceFromOptions } from '../../template-source'
 import { XpertImportCommand } from '../import.command'
+import { loadReservedTemplateAssistant } from '../../template-import-recovery'
 
 const SYSTEM_FIELDS = ['tenantId', 'organizationId', 'id', 'createdById', 'updatedById']
 const OVERWRITE_PROTECTED_TEAM_FIELDS = [
@@ -130,7 +131,8 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
             draft,
             command.options?.normalizeCopilotModels === true,
             templateSource,
-            command.options.workspaceDataScope
+            command.options.workspaceDataScope,
+            command.options.newXpertId
         )
     }
 
@@ -142,10 +144,14 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
         draft: XpertDraftDslDTO,
         normalizeCopilotModels = false,
         templateSource?: TXpertTemplateSource | null,
-        workspaceDataScope = DEFAULT_XPERT_WORKSPACE_DATA_SCOPE
+        workspaceDataScope = DEFAULT_XPERT_WORKSPACE_DATA_SCOPE,
+        newXpertId?: string
     ): Promise<IXpert> {
         const team = draft.team
-        await this.validateImportedName(team.name)
+        const prior = newXpertId
+            ? await loadReservedTemplateAssistant(this.xpertService, newXpertId, team.workspaceId, templateSource)
+            : null
+        await this.validateImportedName(team.name, prior)
 
         if (!team.agent) {
             throw new BadRequestException(t('server-ai:Error.PrimaryAgentNotFound'))
@@ -154,23 +160,26 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
         const modelSyncContext = normalizeCopilotModels ? await this.prepareManagedLlmModelSyncContext(draft) : null
         const primaryAgent = await this.syncImportDraftLlmModels(draft, modelSyncContext)
 
-        const xpert = await this.xpertService.create({
-            ...omit(
-                team,
-                'draft',
-                'agent',
-                'agents',
-                'toolsets',
-                'knowledgebases',
-                'workspaceDataScope',
-                ...SYSTEM_FIELDS
-            ),
-            workspaceDataScope,
-            options: this.withTemplateSource(team.options, templateSource),
-            latest: true,
-            version: null,
-            agent: omit(primaryAgent, ...SYSTEM_FIELDS)
-        })
+        const xpert =
+            prior ??
+            (await this.xpertService.create({
+                ...omit(
+                    team,
+                    'draft',
+                    'agent',
+                    'agents',
+                    'toolsets',
+                    'knowledgebases',
+                    'workspaceDataScope',
+                    ...SYSTEM_FIELDS
+                ),
+                ...(newXpertId ? { id: newXpertId } : {}),
+                workspaceDataScope,
+                options: this.withTemplateSource(team.options, templateSource),
+                latest: true,
+                version: null,
+                agent: omit(primaryAgent, ...SYSTEM_FIELDS)
+            }))
 
         let nextDraft = draft as TXpertTeamDraft
         if (!xpert.agent.options?.hidden) {
@@ -184,11 +193,12 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
 
         if (draft.memories?.length) {
             const items = groupBy(
-                draft.memories.map((item) => {
+                draft.memories.map((item, index) => {
                     const namespace = item.prefix.split(':')
                     return {
                         type: namespace[namespace.length - 1] as LongTermMemoryTypeEnum,
-                        value: item.value
+                        value: item.value,
+                        key: newXpertId ? `template-seed-${newXpertId}-${index}` : undefined
                     }
                 }),
                 'type'
@@ -198,10 +208,13 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
                     .filter((name) => !!name && items[name].length)
                     .map((type: LongTermMemoryTypeEnum) => {
                         const memories = items[type].map((_) => _.value)
-                        return this.xpertService.createBulkMemories(xpert.id, {
-                            type,
-                            memories
-                        })
+                        return newXpertId
+                            ? this.xpertService.createBulkMemories(
+                                  xpert.id,
+                                  { type, memories },
+                                  items[type].map((item) => item.key)
+                              )
+                            : this.xpertService.createBulkMemories(xpert.id, { type, memories })
                     })
             )
         }

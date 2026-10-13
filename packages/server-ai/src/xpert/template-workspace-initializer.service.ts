@@ -1,4 +1,4 @@
-import { LanguagesEnum } from '@xpert-ai/contracts'
+import { LanguagesEnum, TXpertTemplate } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { Injectable, Logger } from '@nestjs/common'
 import { PromptWorkflowService } from '../prompt-workflow/prompt-workflow.service'
@@ -29,10 +29,12 @@ export class XpertTemplateWorkspaceInitializer {
         templateId: string,
         workspaceId: string,
         language: LanguagesEnum,
-        xpertId: string
+        xpertId: string,
+        resolvedTemplate?: TXpertTemplate
     ): Promise<TemplateWorkspaceInitializationResult> {
         try {
-            const template = await this.xpertTemplateService.getTemplateDetail(templateId, language)
+            const template =
+                resolvedTemplate ?? (await this.xpertTemplateService.getTemplateDetail(templateId, language))
             const result = await this.promptWorkflowService.initializeDefaultsInWorkspace(
                 workspaceId,
                 template.promptWorkflows ?? [],

@@ -66,6 +66,10 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
             ]
         })
 
+        if (command.resumePublished && xpert.publishAt) {
+            await this.finishPublication(xpert)
+            return xpert
+        }
         if (!xpert.draft) {
             throw new NotFoundException(`No draft found on Xpert '${xpert.name}'`)
         }
@@ -410,21 +414,24 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
         xpert.agent = undefined // Avoid updating the primary agent again and causing `updatedAt` inconsistency
 
         const _xpert = await this.xpertService.save(xpert)
+        await this.finishPublication(_xpert, previousGraph)
+        return _xpert
+    }
+
+    private async finishPublication(xpert: Xpert, previousGraph?: TXpertGraph) {
         // USER_XPERT sessions run as the real user, but scheduled/background
         // execution still needs a stable assistant principal prepared at publish.
-        await this.ensurePrincipalUser(_xpert)
+        await this.ensurePrincipalUser(xpert)
 
         // Publish triggers
         await this.commandBus.execute(
-            new XpertPublishTriggersCommand(_xpert, {
+            new XpertPublishTriggersCommand(xpert, {
                 strict: true,
                 previousGraph
             })
         )
 
-        await this.eventEmitter.emitAsync(EventName_XpertPublished, _xpert)
-
-        return _xpert
+        await this.eventEmitter.emitAsync(EventName_XpertPublished, xpert)
     }
 
     private async ensurePrincipalUser(xpert: Xpert) {

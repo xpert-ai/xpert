@@ -798,7 +798,8 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
 
     async createBulkMemories(
         xpertId: string,
-        body: { type: LongTermMemoryTypeEnum; memories: Array<TMemoryQA | TMemoryUserProfile> }
+        body: { type: LongTermMemoryTypeEnum; memories: Array<TMemoryQA | TMemoryUserProfile> },
+        keys?: string[]
     ) {
         const xpert = await this.findOne(xpertId, { relations: ['agent'] })
         const memory = xpert.memory
@@ -818,7 +819,8 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
                 body.type,
                 body.memories,
                 [xpertId, body.type || LongTermMemoryTypeEnum.QA],
-                embeddings
+                embeddings,
+                keys
             )
         )
     }

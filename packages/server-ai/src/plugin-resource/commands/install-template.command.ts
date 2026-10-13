@@ -7,6 +7,7 @@ import {
     XpertWorkspaceDataScope,
     XpertTemplateCapability
 } from '@xpert-ai/contracts'
+import type { TemplateInstallationStage } from '@xpert-ai/contracts'
 
 export type PluginTemplateInstallBasic = {
     realtimeVoice?: import('@xpert-ai/contracts').RealtimeVoiceSelection
@@ -38,7 +39,14 @@ export class PluginTemplateInstallCommand extends Command<PluginResourceInstallR
         /** Internal resumable bootstrap; never accepted from an HTTP body. */
         public readonly bootstrap?: {
             resumeXpertId?: string
+            /** Server-reserved new identity, persisted before the first import write. */
+            newXpertId?: string
+            expectedSourceHash?: string
+            publicationCompleted?: boolean
+            onPublished?: () => Promise<void>
             onImported: (xpert: { id: string }) => Promise<void>
+            onStage?: (stage: TemplateInstallationStage) => Promise<void>
+            onDependenciesInstalled?: (result: PluginResourceInstallResult) => Promise<void>
         }
     ) {
         super()

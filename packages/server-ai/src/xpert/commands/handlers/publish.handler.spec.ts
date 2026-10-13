@@ -375,6 +375,23 @@ describe('XpertPublishHandler', () => {
         expect(xpertPrincipalService.ensurePrincipalUser).not.toHaveBeenCalled()
     })
 
+    it('finishes interrupted publication without saving or replacing a later user draft', async () => {
+        const { handler, xpert, xpertService, xpertPrincipalService, commandBus, eventEmitter } = createHandler({
+            publishAt: new Date(),
+            version: '1',
+            userId: null
+        })
+        const draft = xpert.draft
+        await handler.execute(new XpertPublishCommand(xpert.id, false, undefined, '', undefined, undefined, true))
+        expect(xpertPrincipalService.ensurePrincipalUser).toHaveBeenCalledWith(xpert)
+        expect(commandBus.execute).toHaveBeenCalledWith(expect.any(XpertPublishTriggersCommand))
+        expect(eventEmitter.emitAsync).toHaveBeenCalledWith('xpert.published', xpert)
+        expect(xpertService.save).not.toHaveBeenCalled()
+        expect(xpertService.validate).not.toHaveBeenCalled()
+        expect(xpert.draft).toBe(draft)
+        expect(xpert.version).toBe('1')
+    })
+
     it('preserves workspace data scope in a published version backup', async () => {
         const { handler, xpert, xpertService } = createHandler({
             version: '1',

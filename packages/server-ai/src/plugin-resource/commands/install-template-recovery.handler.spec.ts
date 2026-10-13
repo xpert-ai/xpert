@@ -65,6 +65,7 @@ import { XpertWorkspaceAccessService } from '../../xpert-workspace'
 import { PluginResourceInstallerService, PluginResourceInstallResult } from '../plugin-resource-installer.service'
 import { PluginTemplateInstallCommand } from './install-template.command'
 import { PluginTemplateInstallHandler } from './install-template.handler'
+import { templateInstallationSourceHash } from '../template-installation/template-installation-source'
 
 const templateId = 'example-assistant'
 const workspaceId = 'workspace-1'
@@ -295,5 +296,60 @@ describe('resumable template installation', () => {
         f.installer.installComponentsForXpert.mockRejectedValueOnce(new Error('installation failed'))
         await expect(f.handler.execute(command())).rejects.toThrow('installation failed')
         expect(f.xperts.delete).toHaveBeenCalledWith('xpert-1')
+    })
+
+    it('rejects changed source content before importing or touching an existing Assistant', async () => {
+        const f = await createFixture()
+        await expect(
+            f.handler.execute(
+                command({ newXpertId: 'reserved', expectedSourceHash: 'old-hash', onImported: f.checkpoint })
+            )
+        ).rejects.toThrow('source changed')
+        expect(f.commands.execute).not.toHaveBeenCalled()
+        expect(f.checkpoint).not.toHaveBeenCalled()
+    })
+
+    it('treats a reported initialization failure as a retryable installation failure', async () => {
+        const f = await createFixture()
+        const template = await f.templates.getTemplateDetail()
+        const initialize = f.initialize as jest.MockedFunction<() => Promise<unknown>>
+        initialize.mockResolvedValueOnce({ status: 'failed', created: [], skipped: [] })
+        const published = jest.fn(async () => undefined)
+        await expect(
+            f.handler.execute(
+                command({
+                    newXpertId: f.xpert.id,
+                    expectedSourceHash: templateInstallationSourceHash(template),
+                    onImported: f.checkpoint,
+                    onPublished: published
+                })
+            )
+        ).rejects.toThrow('initialization failed')
+        expect(published).toHaveBeenCalledTimes(1)
+        expect(f.xperts.delete).not.toHaveBeenCalled()
+        expect(f.initialize).toHaveBeenCalledWith(templateId, workspaceId, LanguagesEnum.English, f.xpert.id, template)
+    })
+
+    it.each([false, true])('resumes only unfinished publication side effects (completed=%s)', async (completed) => {
+        const f = await createFixture()
+        f.xpert.publishAt = new Date()
+        const draft = f.xpert.draft
+        const template = await f.templates.getTemplateDetail()
+        const published = jest.fn(async () => undefined)
+        await f.handler.execute(
+            command({
+                resumeXpertId: f.xpert.id,
+                onImported: f.checkpoint,
+                expectedSourceHash: templateInstallationSourceHash(template),
+                publicationCompleted: completed,
+                onPublished: published
+            })
+        )
+        expect(f.commands.execute).toHaveBeenCalledTimes(completed ? 0 : 1)
+        if (!completed)
+            expect(f.commands.execute).toHaveBeenCalledWith(expect.objectContaining({ resumePublished: true }))
+        expect(f.xpert.draft).toBe(draft)
+        expect(f.installer.installComponentsForXpert).not.toHaveBeenCalled()
+        expect(f.initialize).toHaveBeenCalledTimes(1)
     })
 })

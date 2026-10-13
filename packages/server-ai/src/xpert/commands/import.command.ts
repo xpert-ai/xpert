@@ -3,6 +3,8 @@ import { TXpertTemplateSource, XpertWorkspaceDataScope } from '@xpert-ai/contrac
 import { XpertDraftDslDTO } from '../dto'
 
 export type XpertImportCommandOptions = {
+    /** Internal template installer only; never bind this from an HTTP request or DSL. */
+    newXpertId?: string
     targetXpertId?: string
     /**
      * Locale used to resolve localized template metadata before persistence.

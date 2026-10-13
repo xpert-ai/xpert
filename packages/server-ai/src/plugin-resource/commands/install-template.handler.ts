@@ -38,6 +38,10 @@ import { XpertWorkspaceAccessService } from '../../xpert-workspace'
 import { PluginResourceInstallResult, PluginResourceInstallerService } from '../plugin-resource-installer.service'
 import { PluginTemplateInstallCommand, PluginTemplateInstallBasic } from './install-template.command'
 import { resolveTemplateRuntimeDependencyComponents } from './template-runtime-dependencies'
+import {
+    InstallationSourceChangedError,
+    templateInstallationSourceHash
+} from '../template-installation/template-installation-source'
 
 type TemplateToolsetResolution = {
     dependency: Required<Pick<XpertTemplatePluginToolsetDependency, 'provider' | 'templateNodeKey'>> &
@@ -70,13 +74,19 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
                   locale: command.locale
               })
             : await this.xpertTemplateService.getTemplateDetail(templateId, command.language)
+        if (
+            command.bootstrap?.expectedSourceHash &&
+            command.bootstrap.expectedSourceHash !== templateInstallationSourceHash(template)
+        ) {
+            throw new InstallationSourceChangedError()
+        }
         const parsed = yaml.parse(template.export_data) as unknown
         const sandboxProviders = await this.xpertService.getSandboxProviders()
         const draft = this.normalizeDraft(parsed, command.workspaceId, command.basic, sandboxProviders)
         const isBlankTemplate =
             (parseCapabilityTemplateId(template.id)?.templateId ?? template.id) === BLANK_ASSISTANT_TEMPLATE_ID
         if (isBlankTemplate) {
-            draft.team.name = `assistant-${randomUUID()}`
+            draft.team.name = `assistant-${command.bootstrap?.newXpertId ?? randomUUID()}`
             const primary = draft.nodes.find((node) => node.type === 'agent' && node.key === draft.team.agent?.key)
             if (primary?.type === 'agent') {
                 primary.entity.name = draft.team.name
@@ -99,14 +109,16 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
             templateId,
             sourceTemplateId: template.id,
             templateSource: createXpertTemplateSource(template),
-            workspaceDataScope: command.basic?.workspaceDataScope
+            workspaceDataScope: command.basic?.workspaceDataScope,
+            newXpertId: command.bootstrap?.newXpertId
         }
         const resumeXpertId = command.bootstrap?.resumeXpertId
         const resumedXpert = resumeXpertId ? await this.xpertService.findOneByIdWithinTenant(resumeXpertId) : null
         if (!isBlankTemplate && !resumedXpert && command.basic?.name === undefined) {
             // Each installation owns its identity; the source name may already exist.
-            draft.team.name = `assistant-${randomUUID()}`
+            draft.team.name = `assistant-${command.bootstrap?.newXpertId ?? randomUUID()}`
         }
+        if (!resumedXpert) await command.bootstrap?.onStage?.('importing')
         let xpert =
             resumedXpert ??
             (await this.commandBus.execute<XpertImportCommand, IXpert>(new XpertImportCommand(draft, importOptions)))
@@ -123,12 +135,24 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
         // Publishing clears the draft. Recovery must not overwrite a published Assistant
         // or a subsequent user draft when only workspace initialization remains unfinished.
         if (resumedXpert?.publishAt) {
-            await this.templateWorkspaceInitializer.initializeByTemplateId(
+            if (command.bootstrap?.expectedSourceHash && command.publish && !command.bootstrap.publicationCompleted) {
+                await command.bootstrap.onStage?.('publishing')
+                await this.commandBus.execute(
+                    new XpertPublishCommand(xpert.id, false, undefined, '', undefined, undefined, true)
+                )
+                await command.bootstrap.onPublished?.()
+            }
+            await command.bootstrap?.onStage?.('initializing')
+            const initialization = await this.templateWorkspaceInitializer.initializeByTemplateId(
                 command.templateId,
                 xpert.workspaceId,
                 command.language,
-                xpert.id
+                xpert.id,
+                ...(command.bootstrap?.expectedSourceHash ? [template] : [])
             )
+            if (command.bootstrap?.expectedSourceHash && initialization?.status === 'failed') {
+                throw new Error('Template workspace initialization failed')
+            }
             return { installations: [], pendingAuth: [], xpert }
         }
 
@@ -140,6 +164,7 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
         }
 
         try {
+            await command.bootstrap?.onStage?.('dependencies')
             const dependencies = template.dependencies
             const pluginName = template.pluginName
             const components = await resolveTemplateRuntimeDependencyComponents(
@@ -152,20 +177,28 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
             if (toolsets.length) {
                 await this.attachTemplateToolsetsToXpert(xpert.id, toolsets)
             }
+            await command.bootstrap?.onDependenciesInstalled?.(result)
             const environment = command.publish
                 ? await this.environmentService.getDefaultByWorkspace(xpert.workspaceId ?? command.workspaceId)
                 : null
+            if (command.publish) await command.bootstrap?.onStage?.('publishing')
             const installedXpert = command.publish
                 ? await this.commandBus.execute<XpertPublishCommand, IXpert>(
                       new XpertPublishCommand(xpert.id, false, environment?.id ?? null, 'Installed from template')
                   )
                 : xpert
-            await this.templateWorkspaceInitializer.initializeByTemplateId(
+            if (command.publish) await command.bootstrap?.onPublished?.()
+            await command.bootstrap?.onStage?.('initializing')
+            const initialization = await this.templateWorkspaceInitializer.initializeByTemplateId(
                 command.templateId,
                 installedXpert.workspaceId ?? command.workspaceId,
                 command.language,
-                installedXpert.id
+                installedXpert.id,
+                ...(command.bootstrap?.expectedSourceHash ? [template] : [])
             )
+            if (command.bootstrap?.expectedSourceHash && initialization?.status === 'failed') {
+                throw new Error('Template workspace initialization failed')
+            }
             return {
                 ...result,
                 xpert: installedXpert

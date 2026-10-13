@@ -1,3 +1,7 @@
+import { TemplateInstallationController } from './template-installation/template-installation.controller'
+import { TemplateInstallationService } from './template-installation/template-installation.service'
+import { TemplateInstallationEntity } from './template-installation/template-installation.entity'
+import { TemplateInstallationLocks } from './template-installation/template-installation-locks'
 import { PluginApplicationSuiteService } from './plugin-application-suite.service'
 import { PluginApplicationToolsetsService } from './application-toolsets/plugin-application-toolsets.service'
 import { PluginApplicationSetupService } from './application-setup/plugin-application-setup.service'
@@ -38,6 +42,7 @@ import { PluginMcpServerService } from './plugin-mcp-server.service'
     imports: [
         TypeOrmModule.forFeature([
             PluginResourceInstallation,
+            TemplateInstallationEntity,
             PluginApplicationInstallation,
             SkillPackage,
             XpertToolset,
@@ -60,8 +65,10 @@ import { PluginMcpServerService } from './plugin-mcp-server.service'
         CopilotModule,
         McpPublicationModule
     ],
-    controllers: [PluginResourceController, PluginApplicationController],
+    controllers: [PluginResourceController, PluginApplicationController, TemplateInstallationController],
     providers: [
+        TemplateInstallationService,
+        TemplateInstallationLocks,
         PluginApplicationSetupService,
         PluginApplicationToolsetsService,
         PluginApplicationSuiteService,
