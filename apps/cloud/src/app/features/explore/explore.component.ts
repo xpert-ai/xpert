@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal, untracked } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
@@ -18,6 +18,7 @@ import { firstValueFrom } from 'rxjs'
 import { ExploreAgentSquareComponent } from './agent-square/agent-square.component'
 import { DEFAULT_EXPLORE_TAB, normalizeExploreTab, type ExploreTab } from './explore-route-state'
 import { ExploreSkillsComponent } from './skills/skills.component'
+import { ExploreScopeService } from './explore-scope.service'
 
 type ExploreMode = 'square' | 'mine'
 
@@ -49,6 +50,8 @@ export class ExploreComponent {
   readonly #route = inject(ActivatedRoute)
   readonly #store = inject(Store)
   readonly #workspaceService = inject(XpertWorkspaceService)
+  readonly #scope = inject(ExploreScopeService)
+  #workspaceVersion = 0
 
   readonly #queryMode = injectQueryParams<string>('mode')
   readonly #queryTab = injectQueryParams<string>('tab')
@@ -97,7 +100,12 @@ export class ExploreComponent {
   })
 
   constructor() {
-    void this.loadDefaultWorkspace()
+    effect(() => {
+      this.#scope.key()
+      untracked(() => {
+        void this.loadDefaultWorkspace()
+      })
+    })
     if (this.#queryTab() === 'connectors') {
       queueMicrotask(() => this.openConnectorManagement())
     }
@@ -151,10 +159,13 @@ export class ExploreComponent {
   }
 
   async loadDefaultWorkspace() {
+    const version = ++this.#workspaceVersion
+    this.defaultWorkspace.set(null)
     try {
-      this.defaultWorkspace.set(await firstValueFrom(this.#workspaceService.getMyDefault({ purpose: 'authoring' })))
+      const workspace = await firstValueFrom(this.#workspaceService.getMyDefault({ purpose: 'authoring' }))
+      if (version === this.#workspaceVersion) this.defaultWorkspace.set(workspace)
     } catch {
-      this.defaultWorkspace.set(null)
+      if (version === this.#workspaceVersion) this.defaultWorkspace.set(null)
     }
   }
 

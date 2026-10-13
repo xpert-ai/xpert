@@ -14,8 +14,9 @@ import {
     XpertAccessRequestStatusEnum,
     XpertTypeEnum
 } from '@xpert-ai/contracts'
-import { RequestContext, User, UserGroup } from '@xpert-ai/server-core'
-import { Repository } from 'typeorm'
+import { User, UserGroup } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { DataSource, Repository } from 'typeorm'
 import type { Xpert } from '../xpert/xpert.entity'
 import { XpertWorkspaceAccessService } from '../xpert-workspace'
 import type { XpertWorkspace } from '../xpert-workspace/workspace.entity'
@@ -589,5 +590,70 @@ describe('XpertMarketplaceService', () => {
             status: XpertAccessRequestStatusEnum.APPROVED,
             accessGroupId: 'group-existing'
         })
+    })
+    it('lists and reads shared tenant experts without any organization request or approval lookup', async () => {
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const xpert = createDiscoverableXpert({
+            organizationId: null,
+            workspace: createWorkspace({ organizationId: null, settings: { access: { visibility: 'tenant-shared' } } })
+        })
+        const { service, requestRepository, workspaceAccessService } = createService({ xpert })
+        const result = await service.findMarketplace()
+        expect(result.items[0]).toMatchObject({ accessStatus: 'accessible', request: null, canReview: false })
+        expect(result.reviewableCount).toBe(0)
+        expect(await service.getMarketplaceItem(xpert.id)).toMatchObject({ accessStatus: 'accessible', request: null })
+        expect(requestRepository.createQueryBuilder).not.toHaveBeenCalled()
+        expect(requestRepository.find).not.toHaveBeenCalled()
+        expect(requestRepository.findOne).not.toHaveBeenCalled()
+        expect(workspaceAccessService.getCapabilities).not.toHaveBeenCalled()
+    })
+
+    it.each([null, 'org-1'])(
+        'keeps tenant and organization discovery predicates isolated for %s',
+        async (organizationId) => {
+            jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(organizationId)
+            const { service, queryBuilder } = createService({ xperts: [] })
+            await service.findMarketplace()
+            // Compile the actual nested TypeORM predicates without connecting to a database.
+            const qb = new DataSource({ type: 'postgres' })
+                .createQueryBuilder()
+                .select('xpert.id')
+                .from('xpert', 'xpert')
+            for (const [condition, parameters] of [
+                ...queryBuilder.where.mock.calls,
+                ...queryBuilder.andWhere.mock.calls
+            ]) {
+                qb.andWhere(condition, parameters)
+            }
+            const sql = qb.getQuery()
+            expect(qb.getParameters().tenantId).toBe('tenant-1')
+            expect(sql).toContain('xpert.organizationId IS NULL')
+            expect(sql).toContain('workspace.id IS NOT NULL')
+            expect(sql).toContain("= 'tenant-shared'")
+            expect(sql).toContain('xpert.publishAt IS NOT NULL')
+            if (organizationId) {
+                expect(sql).toContain('OR xpert.organizationId = :organizationId')
+                expect(qb.getParameters().organizationId).toBe(organizationId)
+            } else {
+                expect(sql).not.toContain('xpert.organizationId = :organizationId')
+                expect(qb.getParameters()).not.toHaveProperty('organizationId')
+            }
+        }
+    )
+
+    it('continues to require an organization for access-request writes', async () => {
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const { service, requestRepository, userGroupRepository } = createService()
+        await expect(service.requestAccess('xpert-1')).rejects.toBeInstanceOf(ForbiddenException)
+        await expect(service.approveRequest('request-1')).rejects.toBeInstanceOf(ForbiddenException)
+        await expect(service.rejectRequest('request-1')).rejects.toBeInstanceOf(ForbiddenException)
+        expect(requestRepository.save).not.toHaveBeenCalled()
+        expect(userGroupRepository.save).not.toHaveBeenCalled()
+    })
+
+    it('requires an authenticated user even when the tenant catalog is empty', async () => {
+        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue(null)
+        const { service } = createService({ xperts: [] })
+        await expect(service.findMarketplace()).rejects.toBeInstanceOf(ForbiddenException)
     })
 })
