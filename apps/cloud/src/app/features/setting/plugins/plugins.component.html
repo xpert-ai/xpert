@@ -1,31 +1,40 @@
-<div class="flex justify-between items-center px-8 py-4">
-  <div class="flex justify-between items-center">
-    <div class="xp-page-title mr-2">{{ 'XP.KEY_WORDS.Plugins' | translate: { Default: 'Plugins' } }}</div>
-    <div class="relative inline-flex items-center justify-center gap-1 rounded-[10px] h-10 bg-(--secondary) p-0.5">
-      <div
+<div class="flex shrink-0 flex-wrap items-center justify-between gap-x-6 gap-y-4 px-4 py-4 sm:px-8">
+  <div class="flex min-w-0 max-w-full flex-wrap items-center gap-x-3 gap-y-2">
+    <div class="xp-page-title shrink-0 whitespace-nowrap">
+      {{ 'XP.KEY_WORDS.Plugins' | translate: { Default: 'Plugins' } }}
+    </div>
+    <div
+      class="relative inline-flex min-h-10 max-w-full flex-wrap items-center gap-1 rounded-[10px] bg-(--secondary) p-0.5"
+    >
+      <button
+        type="button"
         id="tab-0"
-        class="tab relative z-10 flex cursor-pointer items-center justify-center gap-1 rounded-[10px] px-2.5 py-1.5 transition-colors duration-300 ease-in-out system-md-semibold text-text-tertiary"
-        [class.active]="category() === 'plugins'"
+        class="tab relative z-10 flex shrink-0 cursor-pointer items-center justify-center gap-1 whitespace-nowrap rounded-[10px] px-2.5 py-1.5 transition-colors duration-300 ease-in-out system-md-semibold text-text-tertiary"
+        [class]="category() === 'plugins' ? 'active' : ''"
+        [attr.aria-pressed]="category() === 'plugins'"
         (click)="category.set('plugins')"
       >
         {{ 'XP.Plugin.Installed' | translate: { Default: 'Installed' } }}
-        <div class="badge badge-s px-[5px] py-[3px] text-xs leading-3 font-medium uppercase">
+        <span class="badge badge-s px-[5px] py-[3px] text-xs leading-3 font-medium uppercase">
           {{ plugins().length }}
-        </div>
-      </div>
-      <div
+        </span>
+      </button>
+      <button
+        type="button"
         id="tab-1"
-        class="tab relative z-10 flex cursor-pointer items-center justify-center gap-1 rounded-[10px] px-2.5 py-1.5 transition-colors duration-300 ease-in-out system-md-semibold text-text-tertiary"
-        [class.active]="category() === 'marketplace'"
+        class="tab relative z-10 flex shrink-0 cursor-pointer items-center justify-center gap-1 whitespace-nowrap rounded-[10px] px-2.5 py-1.5 transition-colors duration-300 ease-in-out system-md-semibold text-text-tertiary"
+        [class]="category() === 'marketplace' ? 'active' : ''"
+        [attr.aria-pressed]="category() === 'marketplace'"
         (click)="category.set('marketplace')"
       >
         {{ 'XP.Plugin.ExploreMarketplace' | translate: { Default: 'Explore Marketplace' } }}
-      </div>
+      </button>
       @if (isResourceAdmin()) {
         <button
           type="button"
-          class="tab rounded-[10px] px-2.5 py-1.5 system-md-semibold"
-          [class.active]="category() === 'agent-plugins'"
+          class="tab relative z-10 flex shrink-0 cursor-pointer items-center justify-center gap-1 whitespace-nowrap rounded-[10px] px-2.5 py-1.5 transition-colors duration-300 ease-in-out system-md-semibold text-text-tertiary"
+          [class]="category() === 'agent-plugins' ? 'active' : ''"
+          [attr.aria-pressed]="category() === 'agent-plugins'"
           (click)="category.set('agent-plugins')"
         >
           {{ 'XP.AgentPlugins.PageTitle' | translate: { Default: 'Agent Plugins' } }}
@@ -34,12 +43,12 @@
     </div>
   </div>
 
-  <div class="flex shrink-0 items-center gap-1">
+  <div class="ml-auto flex max-w-full flex-wrap items-center justify-end gap-2">
     @if (category() === 'marketplace') {
       @if (isSuperAdmin()) {
         <button
           type="button"
-          class="btn disabled:btn-disabled btn-secondary btn-medium shrink-0"
+          class="btn disabled:btn-disabled btn-secondary btn-medium shrink-0 whitespace-nowrap"
           [disabled]="marketplaceLoading() || marketplaceRefreshingSource()"
           (click)="refreshMarketplaceSource()"
         >
@@ -52,7 +61,7 @@
         </button>
         <button
           type="button"
-          class="btn disabled:btn-disabled btn-secondary btn-medium shrink-0"
+          class="btn disabled:btn-disabled btn-secondary btn-medium shrink-0 whitespace-nowrap"
           (click)="openManageRegisteredPlugins()"
         >
           <i class="ri-list-settings-line"></i>
@@ -62,31 +71,33 @@
         </button>
         <button
           type="button"
-          class="btn disabled:btn-disabled btn-primary btn-medium shrink-0"
+          class="btn disabled:btn-disabled btn-primary btn-medium shrink-0 whitespace-nowrap"
           (click)="openAddMarketplace()"
         >
           <i class="ri-add-line"></i>
           <span class="pl-1">{{ 'XP.Plugin.AddMarketplace' | translate: { Default: 'Add marketplace' } }}</span>
         </button>
-        <div class="mx-1 h-3.5 w-[1px] shrink-0 bg-divider-regular"></div>
       }
-      <a target="_blank" href="https://github.com/xpert-ai/xpert-plugins/issues/new?template=plugin_request.yaml">
-        <button type="button" class="btn disabled:btn-disabled btn-ghost btn-medium text-text-tertiary">
-          {{ 'XP.Plugin.RequestPlugin' | translate: { Default: 'Request a plugin' } }}
-        </button>
+      <a
+        target="_blank"
+        href="https://github.com/xpert-ai/xpert-plugins/issues/new?template=plugin_request.yaml"
+        class="btn btn-ghost btn-medium shrink-0 whitespace-nowrap text-text-tertiary"
+      >
+        {{ 'XP.Plugin.RequestPlugin' | translate: { Default: 'Request a plugin' } }}
       </a>
-      <a target="_blank" [href]="releaseHelpUrl()">
-        <button type="button" class="btn disabled:btn-disabled btn-secondary-accent btn-medium px-3">
-          <i class="ri-book-open-line mr-1 shrink-0"></i>
-          {{ 'XP.Plugin.PublishPlugins' | translate: { Default: 'Publish plugins' } }}
-        </button>
+      <a
+        target="_blank"
+        [href]="releaseHelpUrl()"
+        class="btn btn-secondary-accent btn-medium shrink-0 whitespace-nowrap px-3"
+      >
+        <i class="ri-book-open-line mr-1 shrink-0"></i>
+        {{ 'XP.Plugin.PublishPlugins' | translate: { Default: 'Publish plugins' } }}
       </a>
-      <div class="mx-1 h-3.5 w-[1px] shrink-0 bg-divider-regular"></div>
     }
     @if (category() !== 'agent-plugins') {
       <button
         type="button"
-        class="btn disabled:btn-disabled btn-secondary btn-medium p-2 text-text-secondary"
+        class="btn disabled:btn-disabled btn-secondary btn-medium shrink-0 whitespace-nowrap p-2 text-text-secondary"
         [cdkMenuTriggerFor]="installMenu"
       >
         <i class="ri-add-line"></i>
@@ -124,6 +135,7 @@
                 : {
                     Default:
                       'API replicas are restarting in background batches for {{pluginNames
+
 
 
 
