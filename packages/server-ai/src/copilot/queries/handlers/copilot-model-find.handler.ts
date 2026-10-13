@@ -4,7 +4,10 @@ import {
     FetchFrom,
     ICopilotProviderModel,
     ModelFeature,
-    ProviderModel
+    ProviderModel,
+    isConfiguredModelAvailable,
+    usesConfiguredModelCatalog,
+    readModelConfiguration
 } from '@xpert-ai/contracts'
 import { ConfigService } from '@xpert-ai/server-config'
 import { RequestContext } from '@xpert-ai/server-core'
@@ -57,7 +60,8 @@ export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModels
                 const provider = this.providersService.getProvider(copilot.modelProvider.providerName)
                 if (provider) {
                     // Predefined models
-                    const predefinedModels = provider.getProviderModels(command.type)
+                    const configuredOnly = usesConfiguredModelCatalog(copilot.modelProvider)
+                    const predefinedModels = configuredOnly ? [] : provider.getProviderModels(command.type)
                     // Custom models
                     const customModels = await this.queryBus.execute<
                         GetCopilotProviderModelQuery,
@@ -66,20 +70,27 @@ export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModels
                     const models: ProviderModel[] = []
                     if (customModels?.length) {
                         models.push(
-                            ...customModels.map(
-                                (model) =>
-                                    ({
+                            ...customModels
+                                .filter((model) => isConfiguredModelAvailable(copilot.modelProvider, model))
+                                .map((model) => {
+                                    const configuration = readModelConfiguration(model.modelProperties)
+                                    const schema = configuration
+                                        ? provider
+                                              .getModelManager(model.modelType)
+                                              .getModelSchema(model.modelName, model.modelProperties)
+                                        : null
+                                    return {
                                         model: model.modelName,
                                         model_type: model.modelType,
                                         fetch_from: FetchFrom.CUSTOMIZABLE_MODEL,
-                                        model_properties: model.modelProperties,
-                                        features: customFeatures(model.modelProperties),
+                                        model_properties: schema?.model_properties ?? model.modelProperties,
+                                        features: schema?.features ?? customFeatures(model.modelProperties),
                                         label: {
                                             zh_Hans: model.modelName,
                                             en_US: model.modelName
                                         }
-                                    }) as ProviderModel
-                            )
+                                    } as ProviderModel
+                                })
                         )
                     }
 
@@ -89,7 +100,7 @@ export class FindCopilotModelsHandler implements IQueryHandler<FindCopilotModels
                         }
                     })
                     const selectedModel = selectedCopilotModelAsProviderModel(copilot.copilotModel, command.type)
-                    if (selectedModel && !models.some((_) => _.model === selectedModel.model)) {
+                    if (!configuredOnly && selectedModel && !models.some((_) => _.model === selectedModel.model)) {
                         models.push(selectedModel)
                     }
 

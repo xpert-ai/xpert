@@ -2,6 +2,7 @@ import { AiModelTypeEnum } from '../agent'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IAiProviderEntity } from './ai-model.model'
 import { ICopilot } from './copilot.model'
+import type { ModelConfiguration, ModelDiscoveryState } from './model-discovery.model'
 
 export interface ICopilotProvider extends IBasePerTenantAndOrganizationEntityModel {
   providerName?: string
@@ -16,7 +17,7 @@ export interface ICopilotProvider extends IBasePerTenantAndOrganizationEntityMod
 
   /**
    */
-  options?: any
+  options?: Record<string, unknown> & { modelDiscovery?: ModelDiscoveryState }
 
   copilot?: ICopilot
   copilotId?: string
@@ -27,13 +28,16 @@ export interface ICopilotProvider extends IBasePerTenantAndOrganizationEntityMod
   provider?: IAiProviderEntity
 }
 
-
 export interface ICopilotProviderModel extends IBasePerTenantAndOrganizationEntityModel {
   providerName?: string
   modelName?: string
   modelType?: AiModelTypeEnum
   // encryptedConfig?: Record<string, any>
-  modelProperties?: Record<string, any>
+  modelProperties?: Record<string, any> & {
+    model_configuration?: ModelConfiguration
+    discovery_model_id?: string
+    configuration_source?: 'discovered' | 'manual'
+  }
   isValid?: boolean
 
   // Many to one

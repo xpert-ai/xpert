@@ -2687,3 +2687,60 @@ describe('model access expiration dates', () => {
         })
     })
 })
+
+describe('ModelAccessService synchronized provider catalog', () => {
+    const options = {
+        modelDiscovery: { mode: 'configured', syncedAt: '2026-10-13T00:00:00Z', availableModelIds: ['live'] }
+    }
+    it.each([null, 'missing'])(
+        'rejects direct execution of an unconfigured or missing model (%s)',
+        async (sourceId) => {
+            const { copilotRepository, providerModelRepository, input, membershipService, service } = createFixture()
+            copilotRepository.findOne.mockResolvedValue({
+                id: 'copilot-1',
+                tenantId: 'tenant-1',
+                organizationId: null,
+                name: 'Primary',
+                enabled: true,
+                copilotModel: { model: 'gpt-4.1', modelType: AiModelTypeEnum.LLM },
+                modelProvider: { id: 'provider-1', providerName: 'openai', isValid: true, options }
+            })
+            if (sourceId)
+                providerModelRepository.findOne.mockResolvedValue({
+                    modelName: 'gpt-4.1',
+                    modelType: AiModelTypeEnum.LLM,
+                    modelProperties: { discovery_model_id: sourceId }
+                })
+            membershipService.findModelAccess.mockResolvedValue({
+                organizationId: null,
+                membership: { planId: 'plan-1', plan: {} }
+            })
+            membershipService.isModelAllowed.mockReturnValue(true)
+            await expect(service.resolveModelAccess(input)).resolves.toMatchObject({
+                allowed: false,
+                unavailableReason: ModelAccessUnavailableReasonEnum.ModelDisabled
+            })
+            await expect(service.assertCanUseModel(input)).rejects.toThrow()
+        }
+    )
+
+    it('does not count catalog or selected fallbacks as configured organization models', async () => {
+        const { copilotRepository, providerModelRepository, service } = createFixture()
+        copilotRepository.find.mockResolvedValue([
+            {
+                id: 'copilot-1',
+                tenantId: 'tenant-1',
+                organizationId: 'org-1',
+                enabled: true,
+                copilotModel: { model: 'gpt-4.1' },
+                modelProvider: { id: 'provider-1', providerName: 'openai', isValid: true, options }
+            }
+        ])
+        providerModelRepository.find.mockResolvedValue([
+            { modelName: 'old', modelProperties: { discovery_model_id: 'missing' } }
+        ])
+        await expect(service.hasConfiguredOrganizationModels('tenant-1', 'org-1')).resolves.toBe(false)
+        providerModelRepository.find.mockResolvedValue([{ modelName: 'manual', modelProperties: {} }])
+        await expect(service.hasConfiguredOrganizationModels('tenant-1', 'org-1')).resolves.toBe(true)
+    })
+})

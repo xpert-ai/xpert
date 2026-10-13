@@ -3,7 +3,8 @@ import {
   ICopilotProviderModel,
   ModelFeature,
   ModelPropertyKey,
-  ProviderModel
+  ProviderModel,
+  readModelConfiguration
 } from '@xpert-ai/contracts'
 
 export type ModelTag = {
@@ -43,11 +44,14 @@ export function providerModelDisplayTags(model: ProviderModel | null | undefined
 }
 
 export function customProviderModelDisplayTags(model: ICopilotProviderModel | null | undefined): ModelTag[] {
+  const configuration = readModelConfiguration(model?.modelProperties)
   return modelTags(
     model?.modelType,
-    model?.modelProperties?.[ModelPropertyKey.MODE],
-    model?.modelProperties?.[ModelPropertyKey.CONTEXT_SIZE],
-    customModelFeatures(model?.modelProperties)
+    configuration?.modelType === AiModelTypeEnum.LLM ? 'chat' : model?.modelProperties?.[ModelPropertyKey.MODE],
+    configuration?.contextSize ?? model?.modelProperties?.[ModelPropertyKey.CONTEXT_SIZE],
+    configuration?.modelType === AiModelTypeEnum.LLM
+      ? configuration.features
+      : customModelFeatures(model?.modelProperties)
   )
 }
 

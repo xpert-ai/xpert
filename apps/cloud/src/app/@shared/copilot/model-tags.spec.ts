@@ -1,7 +1,26 @@
 import { AiModelTypeEnum, FetchFrom, ModelFeature, ModelPropertyKey, ProviderModel } from '@xpert-ai/contracts'
-import { providerModelDisplayTags, providerModelFilterTags } from './model-tags'
+import { providerModelDisplayTags, providerModelFilterTags, customProviderModelDisplayTags } from './model-tags'
 
 describe('model tag helpers', () => {
+  it('uses saved imported context and capabilities instead of legacy properties', () => {
+    expect(
+      customProviderModelDisplayTags({
+        modelType: AiModelTypeEnum.LLM,
+        modelProperties: {
+          context_size: 8192,
+          vision_support: 'support',
+          model_configuration: {
+            modelType: AiModelTypeEnum.LLM,
+            contextSize: 64000,
+            maxOutputTokens: 4096,
+            defaultMaxTokens: 2048,
+            maxConcurrency: 1,
+            features: []
+          }
+        }
+      }).map((tag) => tag.defaultText)
+    ).toEqual(['LLM', 'CHAT', '64K'])
+  })
   const model: ProviderModel = {
     model: 'vision-tool-model',
     label: {},

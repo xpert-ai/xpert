@@ -549,3 +549,63 @@ describe('FindCopilotModelsHandler', () => {
         expect(modelAccessService.canUseCatalogModels).not.toHaveBeenCalled()
     })
 })
+
+describe('configured-only discovery catalog', () => {
+    afterEach(() => jest.restoreAllMocks())
+    it.each([CopilotModelCatalogMode.Available, CopilotModelCatalogMode.Management])(
+        'excludes builtin, selected fallback and missing imported models in %s mode',
+        async (catalogMode) => {
+            jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
+            jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+            jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
+            const handler = new FindCopilotModelsHandler(
+                {
+                    execute: jest.fn().mockResolvedValue([
+                        {
+                            modelName: 'renamed',
+                            modelType: AiModelTypeEnum.LLM,
+                            modelProperties: { discovery_model_id: 'live' }
+                        },
+                        {
+                            modelName: 'missing',
+                            modelType: AiModelTypeEnum.LLM,
+                            modelProperties: { discovery_model_id: 'gone' }
+                        },
+                        { modelName: 'manual', modelType: AiModelTypeEnum.LLM, modelProperties: {} }
+                    ])
+                } as never,
+                {
+                    findAllEnabledCopilotsWithoutMembership: jest.fn().mockResolvedValue([
+                        {
+                            id: 'copilot-1',
+                            copilotModel: { model: 'selected', modelType: AiModelTypeEnum.LLM },
+                            modelProvider: {
+                                id: 'provider-1',
+                                providerName: 'xirang',
+                                options: {
+                                    modelDiscovery: {
+                                        mode: 'configured',
+                                        syncedAt: '2026-10-13T00:00:00Z',
+                                        availableModelIds: ['live']
+                                    }
+                                }
+                            }
+                        }
+                    ])
+                } as never,
+                {
+                    getProvider: () => ({
+                        getProviderModels: () => [{ model: 'builtin', model_type: AiModelTypeEnum.LLM }],
+                        getProviderSchema: () => ({ provider: 'xirang' })
+                    })
+                } as never,
+                {
+                    canUseCatalogModels: jest.fn().mockImplementation(async ({ models }) => models.map(() => true))
+                } as never
+            )
+            Object.defineProperty(handler, 'configService', { value: { get: () => 'http://localhost:3000' } })
+            const result = await handler.execute(new FindCopilotModelsQuery(AiModelTypeEnum.LLM, catalogMode))
+            expect(result[0].providerWithModels.models.map((model) => model.model)).toEqual(['renamed', 'manual'])
+        }
+    )
+})
