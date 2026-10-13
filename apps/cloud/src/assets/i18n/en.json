@@ -2592,6 +2592,23 @@
       "WorkspaceScopeCommandsHelp": "Workspace prompts follow their expert associations and are enabled by default. You can explicitly disable a prompt for this expert; skill commands follow this command profile."
     },
     "Explore": {
+      "Scope": {
+        "Label": "Browsing scope",
+        "Select": "Choose a browsing scope",
+        "SwitchHint": "Choosing an organization switches the current scope. You can then continue browsing or configure this application.",
+        "Tenant": "Tenant shared",
+        "TenantHint": "Explore shared experts, apps and templates",
+        "OrganizationHint": "Organization and tenant-shared content",
+        "NoOrganizations": "No organizations are available. Contact your tenant administrator to join one; you can still browse shared content.",
+        "KeepBrowsing": "Keep browsing",
+        "LoadFailed": "Organizations could not be loaded. Please try again.",
+        "CatalogFailedHint": "Please try again later. Applications and templates are still available.",
+        "ErrorDetails": "Error details",
+        "EmptyTitle": "No tenant-shared experts yet",
+        "EmptyHint": "Browse templates, or switch to an organization to discover team experts.",
+        "BrowseOrganization": "Browse organization content",
+        "BrowseTemplates": "Browse templates"
+      },
       "Square": "Square",
       "SkillPlaza": "Skills",
       "ExpertsTab": "Experts",

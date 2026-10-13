@@ -20,7 +20,8 @@ import {
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { RequestContext, User, UserGroup } from '@xpert-ai/server-core'
+import { User, UserGroup } from '@xpert-ai/server-core'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
 import { Brackets, Repository } from 'typeorm'
 import { Xpert } from '../xpert/xpert.entity'
@@ -55,6 +56,7 @@ export class XpertMarketplaceService {
         query: TXpertMarketplaceQuery = {},
         language = LanguagesEnum.English
     ): Promise<IXpertMarketplaceListResponse> {
+        this.currentUserId()
         const xperts = await this.findDiscoverableXperts(query.search)
         const businessAreas = new Map<string, { id: string; name: string }>()
         for (const xpert of xperts) {
@@ -73,7 +75,7 @@ export class XpertMarketplaceService {
         const total = allItems.length
         const skip = Math.max(query.skip ?? 0, 0)
         const take = Math.min(Math.max(query.take ?? DEFAULT_TAKE, 1), MAX_TAKE)
-        const reviewableCount = (await this.findReviewableRequests()).length
+        const reviewableCount = RequestContext.getOrganizationId() ? (await this.findReviewableRequests()).length : 0
         let recommendedTemplates: IXpertMarketplaceListResponse['recommendedTemplates'] = []
         try {
             recommendedTemplates = await this.xpertTemplateService.getMarketplaceRecommendedTemplates(language)
@@ -96,12 +98,14 @@ export class XpertMarketplaceService {
     }
 
     async getMarketplaceItem(id: string): Promise<IXpertMarketplaceItem> {
+        this.currentUserId()
         const xpert = await this.findDiscoverableXpert(id)
         const request = await this.findCurrentUserRequest(id)
         return await this.toMarketplaceItem(xpert, request)
     }
 
     async requestAccess(id: string, input?: TXpertAccessRequestCreateInput): Promise<IXpertAccessRequest> {
+        const organizationId = this.currentOrganizationId()
         const xpert = await this.findDiscoverableXpert(id)
         const accessStatus = this.resolveAccessStatus(xpert, null)
         if (accessStatus === 'owned' || accessStatus === 'accessible') {
@@ -113,7 +117,6 @@ export class XpertMarketplaceService {
         }
 
         const tenantId = this.currentTenantId()
-        const organizationId = this.currentOrganizationId()
         const requesterId = this.currentUserId()
         const reason = this.normalizeText(input?.reason, MAX_REASON_LENGTH, 'reason')
         const existing = await this.requestRepository.findOne({
@@ -276,7 +279,7 @@ export class XpertMarketplaceService {
 
     private buildDiscoverableXpertQuery() {
         const tenantId = this.currentTenantId()
-        const organizationId = this.currentOrganizationId()
+        const organizationId = RequestContext.getOrganizationId()
         return this.xpertRepository
             .createQueryBuilder('xpert')
             .leftJoinAndSelect('xpert.workspace', 'workspace')
@@ -293,7 +296,7 @@ export class XpertMarketplaceService {
             })
             .andWhere(
                 new Brackets((scopeQb) => {
-                    scopeQb.where('xpert.organizationId = :organizationId', { organizationId }).orWhere(
+                    scopeQb.where(
                         new Brackets((tenantQb) => {
                             tenantQb
                                 .where('xpert.organizationId IS NULL')
@@ -301,6 +304,9 @@ export class XpertMarketplaceService {
                                 .andWhere(TENANT_SHARED_WORKSPACE_FILTER)
                         })
                     )
+                    if (organizationId) {
+                        scopeQb.orWhere('xpert.organizationId = :organizationId', { organizationId })
+                    }
                 })
             )
     }
@@ -318,24 +324,27 @@ export class XpertMarketplaceService {
     }
 
     private async findCurrentUserRequests(xpertIds: string[]) {
-        if (!xpertIds.length) {
+        const organizationId = RequestContext.getOrganizationId()
+        if (!organizationId || !xpertIds.length) {
             return []
         }
 
         return this.requestRepository
             .createQueryBuilder('request')
             .where('request.tenantId = :tenantId', { tenantId: this.currentTenantId() })
-            .andWhere('request.organizationId = :organizationId', { organizationId: this.currentOrganizationId() })
+            .andWhere('request.organizationId = :organizationId', { organizationId })
             .andWhere('request.requesterId = :requesterId', { requesterId: this.currentUserId() })
             .andWhere('request.xpertId IN (:...xpertIds)', { xpertIds })
             .getMany()
     }
 
     private async findCurrentUserRequest(xpertId: string) {
+        const organizationId = RequestContext.getOrganizationId()
+        if (!organizationId) return null
         return this.requestRepository.findOne({
             where: {
                 tenantId: this.currentTenantId(),
-                organizationId: this.currentOrganizationId(),
+                organizationId,
                 requesterId: this.currentUserId(),
                 xpertId
             }
@@ -415,7 +424,7 @@ export class XpertMarketplaceService {
             marketplace,
             accessStatus: this.resolveAccessStatus(xpert, request ?? null),
             request: request ? this.toPublicRequest(request) : null,
-            canReview: await this.canReviewXpert(xpert)
+            canReview: !!RequestContext.getOrganizationId() && (await this.canReviewXpert(xpert))
         }
     }
 
@@ -447,7 +456,7 @@ export class XpertMarketplaceService {
     }
 
     private hasRuntimeAccess(xpert: Xpert, userId: string) {
-        const organizationId = this.currentOrganizationId()
+        const organizationId = RequestContext.getOrganizationId()
         const tenantId = this.currentTenantId()
 
         if (!xpert.organizationId && isTenantSharedXpertWorkspace(xpert.workspace)) {

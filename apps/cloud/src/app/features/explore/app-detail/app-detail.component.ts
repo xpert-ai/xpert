@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, inject, model, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal, untracked } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot/copilot-model-select/select.component'
@@ -26,6 +26,8 @@ import {
 } from '../../setting/plugins/marketplace/runtime-mcp-provider.util'
 import { pluginApplicationDefaultCopilotModel, pluginApplicationModelId } from './app-detail-model.util'
 import { ApplicationToolsetsComponent } from './app-toolsets.component'
+import { ExploreScopeService } from '../explore-scope.service'
+import { ExploreScopeComponent } from '../explore-scope.component'
 import { applicationToolsetsSelected, reconcileApplicationToolsets } from './app-toolsets.util'
 
 /** Marketplace detail and governed initialization surface for a trusted plugin App. */
@@ -44,13 +46,18 @@ import { applicationToolsetsSelected, reconcileApplicationToolsets } from './app
     ZardButtonComponent,
     ZardIconComponent,
     PluginMarketplaceMcpProviderComponent,
-    ApplicationToolsetsComponent
+    ApplicationToolsetsComponent,
+    ExploreScopeComponent
   ],
   templateUrl: './app-detail.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block w-full min-h-full bg-background' }
 })
 export class ApplicationDetailComponent {
+  readonly #scope = inject(ExploreScopeService)
+  #loadVersion = 0
+  #resumeSetupFromScope: string | null = null
+  #loadedScopeKey: string | null = null
   readonly #route = inject(ActivatedRoute)
   readonly #router = inject(Router)
   readonly #applications = inject(PluginApplicationService)
@@ -95,11 +102,27 @@ export class ApplicationDetailComponent {
   )
 
   constructor() {
-    void this.load()
+    effect(() => {
+      const key = this.#scope.key()
+      untracked(() => {
+        if (this.#loadedScopeKey !== null) this.setupOpen.set(false)
+        this.#loadedScopeKey = key
+        this.detail.set(null)
+        this.mcpProviders.set([])
+        this.toolsetSelections.set([])
+        this.embeddingModel.set(null)
+        this.visionModel.set(null)
+        this.refreshingToolsets.set(false)
+        this.initializing.set(false)
+        this.discarding.set(false)
+        void this.load()
+      })
+    })
   }
 
   /** Loads trusted App metadata and seeds each required selector from server-authorized options. */
   async load() {
+    const version = ++this.#loadVersion
     const pluginName = this.#route.snapshot.queryParamMap.get('plugin')?.trim()
     const appName = this.#route.snapshot.paramMap.get('appName')?.trim()
     if (!pluginName || !appName) {
@@ -115,11 +138,13 @@ export class ApplicationDetailComponent {
     this.loading.set(true)
     try {
       const detail = await firstValueFrom(this.#applications.getDetail(pluginName, appName))
+      if (version !== this.#loadVersion) return
       this.detail.set(detail)
       this.toolsetSelections.update((previous) =>
         reconcileApplicationToolsets(detail.preflight.toolsetRequirements ?? [], previous)
       )
-      await this.loadMcpProviders(pluginName)
+      await this.loadMcpProviders(pluginName, version)
+      if (version !== this.#loadVersion) return
       this.embeddingModel.set(
         pluginApplicationDefaultCopilotModel(
           detail.preflight.embeddingModels,
@@ -134,12 +159,19 @@ export class ApplicationDetailComponent {
           AiModelTypeEnum.LLM
         )
       )
+      if (this.#resumeSetupFromScope !== null && this.#resumeSetupFromScope !== this.#scope.key()) {
+        this.#resumeSetupFromScope = null
+        this.setupOpen.set(true)
+      }
+      if (this.setupOpen() && this.isReady()) this.openApplication(detail.status)
     } catch (error) {
+      if (version !== this.#loadVersion) return
+      this.#resumeSetupFromScope = null
       this.detail.set(null)
       this.mcpProviders.set([])
       this.#toastr.error(getErrorMessage(error))
     } finally {
-      this.loading.set(false)
+      if (version === this.#loadVersion) this.loading.set(false)
     }
   }
 
@@ -151,26 +183,28 @@ export class ApplicationDetailComponent {
   async refreshToolsets() {
     const app = this.application()
     if (!app || this.refreshingToolsets()) return
+    const version = this.#loadVersion
     this.refreshingToolsets.set(true)
     try {
       const detail = await firstValueFrom(this.#applications.getDetail(app.pluginName, app.appName))
+      if (version !== this.#loadVersion) return
       this.detail.set(detail)
       this.toolsetSelections.update((previous) =>
         reconcileApplicationToolsets(detail.preflight.toolsetRequirements ?? [], previous)
       )
     } catch (error) {
-      this.#toastr.error(getErrorMessage(error))
+      if (version === this.#loadVersion) this.#toastr.error(getErrorMessage(error))
     } finally {
-      this.refreshingToolsets.set(false)
+      if (version === this.#loadVersion) this.refreshingToolsets.set(false)
     }
   }
 
-  async loadMcpProviders(pluginName: string) {
+  async loadMcpProviders(pluginName: string, version = this.#loadVersion) {
     try {
       const result = await firstValueFrom(this.#pluginAPI.getPluginComponents(pluginName))
-      this.mcpProviders.set((result.items ?? []).filter(isRuntimeNativeMcp))
+      if (version === this.#loadVersion) this.mcpProviders.set((result.items ?? []).filter(isRuntimeNativeMcp))
     } catch {
-      this.mcpProviders.set([])
+      if (version === this.#loadVersion) this.mcpProviders.set([])
     }
   }
 
@@ -190,9 +224,14 @@ export class ApplicationDetailComponent {
     return runtimeMcpProviderToolCount(component)
   }
 
-  primaryAction() {
+  async primaryAction() {
     if (this.isReady()) {
       this.openApplication(this.detail()?.status)
+      return
+    }
+    if (this.detail()?.preflight.reason === 'organization_scope_required') {
+      this.#resumeSetupFromScope = this.#scope.key()
+      if (!(await this.#scope.choose(true))) this.#resumeSetupFromScope = null
       return
     }
     this.setupOpen.set(true)
@@ -251,6 +290,7 @@ export class ApplicationDetailComponent {
       this.initializing()
     )
       return
+    const version = this.#loadVersion
     this.discarding.set(true)
     try {
       const confirmed = await firstValueFrom(
@@ -263,16 +303,17 @@ export class ApplicationDetailComponent {
           destructive: true
         })
       )
-      if (!confirmed) return
+      if (!confirmed || version !== this.#loadVersion) return
       await firstValueFrom(
         this.#applications.discardConfiguration({ pluginName: app.pluginName, appName: app.appName })
       )
+      if (version !== this.#loadVersion) return
       this.toolsetSelections.set([])
       await this.refreshToolsets()
     } catch (error) {
-      this.#toastr.error(getErrorMessage(error))
+      if (version === this.#loadVersion) this.#toastr.error(getErrorMessage(error))
     } finally {
-      this.discarding.set(false)
+      if (version === this.#loadVersion) this.discarding.set(false)
     }
   }
 
@@ -283,6 +324,7 @@ export class ApplicationDetailComponent {
       return
     }
 
+    const version = this.#loadVersion
     this.initializing.set(true)
     try {
       const status = await firstValueFrom(
@@ -295,6 +337,7 @@ export class ApplicationDetailComponent {
           operationId: globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`
         })
       )
+      if (version !== this.#loadVersion) return
       this.detail.update((detail) => (detail ? { ...detail, status } : detail))
       if (status.status === 'ready') {
         this.#toastr.success(
@@ -307,10 +350,11 @@ export class ApplicationDetailComponent {
         this.openApplication(status)
       }
     } catch (error) {
+      if (version !== this.#loadVersion) return
       this.#toastr.error(getErrorMessage(error))
       await this.load()
     } finally {
-      this.initializing.set(false)
+      if (version === this.#loadVersion) this.initializing.set(false)
     }
   }
 

@@ -497,6 +497,23 @@
       "RemoteComponentLoadFailedHint": "远程组件未能启动。请重试，或查看技术详情。"
     },
     "Explore": {
+      "Scope": {
+        "Label": "浏览范围",
+        "Select": "选择浏览范围",
+        "SwitchHint": "选择组织后将切换当前范围，你可以继续浏览或配置此应用。",
+        "Tenant": "租户共享",
+        "TenantHint": "探索共享专家、应用与模板",
+        "OrganizationHint": "当前组织与租户共享内容",
+        "NoOrganizations": "暂时没有可用的组织。请联系租户管理员加入组织，你仍可继续浏览共享内容。",
+        "KeepBrowsing": "继续浏览",
+        "LoadFailed": "组织列表暂时无法加载，请重试。",
+        "CatalogFailedHint": "请稍后重试，你仍可浏览应用与智能体模板。",
+        "ErrorDetails": "错误详情",
+        "EmptyTitle": "还没有租户共享专家",
+        "EmptyHint": "你可以先浏览模板，或切换组织查看团队发布的专家。",
+        "BrowseOrganization": "浏览组织内容",
+        "BrowseTemplates": "浏览模板"
+      },
       "AgentSquare": {
         "UseExpert": "使用专家",
         "BusinessDomains": "业务域",

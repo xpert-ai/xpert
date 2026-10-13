@@ -9,6 +9,7 @@ import {
   inject,
   input,
   signal,
+  untracked,
   WritableSignal
 } from '@angular/core'
 import { ActivatedRoute, Router } from '@angular/router'
@@ -38,6 +39,8 @@ import { type BlankXpertWizardResult, XpertNewBlankComponent } from '../../xpert
 import { createAgentTemplateWizardData } from '../agents/agent-template-wizard'
 import { AgentSquareAccessRequestDialogComponent } from './access-request-dialog.component'
 import { AgentSquareReviewRequestsDialogComponent } from './review-requests-dialog.component'
+import { ExploreScopeService } from '../explore-scope.service'
+import { ExploreScopeComponent } from '../explore-scope.component'
 
 export type AgentSquareCatalog = 'experts' | 'applications' | 'templates'
 type ExpertSort = 'match' | 'updated'
@@ -54,11 +57,20 @@ const TEMPLATE_SOURCES: TemplateSource[] = ['builtin', 'plugin']
 @Component({
   standalone: true,
   selector: 'xp-explore-agent-square',
-  imports: [CommonModule, TranslateModule, EmojiAvatarComponent, IconComponent, ZardButtonComponent, ZardIconComponent],
+  imports: [
+    CommonModule,
+    TranslateModule,
+    EmojiAvatarComponent,
+    IconComponent,
+    ZardButtonComponent,
+    ZardIconComponent,
+    ExploreScopeComponent
+  ],
   templateUrl: './agent-square.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ExploreAgentSquareComponent {
+  readonly scope = inject(ExploreScopeService)
   readonly search = input('')
   readonly workspace = input<IXpertWorkspace | null>(null)
 
@@ -101,7 +113,7 @@ export class ExploreAgentSquareComponent {
 
   readonly experts = signal<IXpertMarketplaceItem[]>([])
   readonly featuredExperts = signal<IXpertMarketplaceItem[]>([])
-  readonly expertTotal = signal(0)
+  readonly expertTotal = signal<number | null>(null)
   readonly reviewableCount = signal(0)
   readonly loadingExperts = signal(false)
   readonly expertLoadError = signal<string | null>(null)
@@ -286,6 +298,9 @@ export class ExploreAgentSquareComponent {
     })
   })
 
+  #scopeVersion = 0
+  #loadedScopeKey: string | null = null
+  #featuredQueryVersion = 0
   #expertQueryVersion = 0
   #featuredLoaded = false
   #applicationsLoaded = false
@@ -297,28 +312,47 @@ export class ExploreAgentSquareComponent {
       this.filteredTemplates()
       this.visibleTemplateCount.set(24)
     })
-    void this.loadFeaturedExperts()
-    void this.loadApplications(this.catalog() !== 'applications')
-
     effect(() => {
+      const scopeKey = this.scope.key()
       const catalog = this.catalog()
-      if (catalog === 'experts') {
-        const query = {
-          search: this.search(),
-          businessAreaIds: this.selectedBusinessAreaIds(),
-          businessCategories: this.selectedBusinessCategories(),
-          sort: this.expertSort(),
-          take: 60
+      const query = this.currentExpertQuery()
+      untracked(() => {
+        if (scopeKey !== this.#loadedScopeKey) {
+          this.#loadedScopeKey = scopeKey
+          this.resetScope()
+          void this.loadFeaturedExperts()
+          if (catalog !== 'applications') void this.loadApplications(true)
         }
-        void this.loadExperts(query)
-      } else if (catalog === 'applications') {
-        void this.loadApplications()
-      } else {
-        void this.loadTemplates()
-      }
+        if (catalog === 'experts') void this.loadExperts(query)
+        else if (catalog === 'applications') void this.loadApplications()
+        else void this.loadTemplates()
+      })
     })
 
     this.#destroyRef.onDestroy(() => this.pauseHeroCarousel())
+  }
+
+  private resetScope() {
+    ++this.#scopeVersion
+    ++this.#expertQueryVersion
+    ++this.#featuredQueryVersion
+    this.#featuredLoaded = this.#applicationsLoaded = this.#templatesLoaded = false
+    this.pauseHeroCarousel()
+    this.experts.set([])
+    this.featuredExperts.set([])
+    this.applications.set([])
+    this.templates.set([])
+    this.businessAreas.set([])
+    this.selectedBusinessAreaIds.set([])
+    this.expertTotal.set(null)
+    this.reviewableCount.set(0)
+    this.loadingFeatured.set(false)
+    this.loadingExperts.set(false)
+    this.loadingApplications.set(false)
+    this.loadingTemplates.set(false)
+    this.expertLoadError.set(null)
+    this.applicationLoadError.set(null)
+    this.templateLoadError.set(null)
   }
 
   setCatalog(catalog: AgentSquareCatalog) {
@@ -341,11 +375,10 @@ export class ExploreAgentSquareComponent {
     } catch (error) {
       if (version === this.#expertQueryVersion) {
         this.experts.set([])
-        this.expertTotal.set(0)
+        this.expertTotal.set(null)
         this.reviewableCount.set(0)
         const message = getErrorMessage(error)
         this.expertLoadError.set(message)
-        this.#toastr.error(message)
       }
     } finally {
       if (version === this.#expertQueryVersion) {
@@ -358,10 +391,12 @@ export class ExploreAgentSquareComponent {
     if ((this.#featuredLoaded && !force) || this.loadingFeatured()) {
       return
     }
+    const version = ++this.#featuredQueryVersion
     this.#featuredLoaded = true
     this.loadingFeatured.set(true)
     try {
       const result = await firstValueFrom(this.#marketplaceService.findMarketplace({ sort: 'match', skip: 0, take: 4 }))
+      if (version !== this.#featuredQueryVersion) return
       this.featuredExperts.set(result.items ?? [])
       if (this.catalog() !== 'experts') {
         this.expertTotal.set(result.total ?? 0)
@@ -370,10 +405,11 @@ export class ExploreAgentSquareComponent {
       this.featuredIndex.set(0)
       this.restartHeroCarousel()
     } catch {
+      if (version !== this.#featuredQueryVersion) return
       this.featuredExperts.set([])
       this.pauseHeroCarousel()
     } finally {
-      this.loadingFeatured.set(false)
+      if (version === this.#featuredQueryVersion) this.loadingFeatured.set(false)
     }
   }
 
@@ -381,12 +417,15 @@ export class ExploreAgentSquareComponent {
     if (this.#applicationsLoaded) {
       return
     }
+    const version = this.#scopeVersion
     this.#applicationsLoaded = true
     this.loadingApplications.set(true)
     this.applicationLoadError.set(null)
     try {
-      this.applications.set(await firstValueFrom(this.#applicationService.getCatalog()))
+      const result = await firstValueFrom(this.#applicationService.getCatalog())
+      if (version === this.#scopeVersion) this.applications.set(result)
     } catch (error) {
+      if (version !== this.#scopeVersion) return
       this.#applicationsLoaded = false
       this.applications.set([])
       const message = getErrorMessage(error)
@@ -395,7 +434,7 @@ export class ExploreAgentSquareComponent {
         this.#toastr.error(message)
       }
     } finally {
-      this.loadingApplications.set(false)
+      if (version === this.#scopeVersion) this.loadingApplications.set(false)
     }
   }
 
@@ -403,20 +442,22 @@ export class ExploreAgentSquareComponent {
     if (this.#templatesLoaded) {
       return
     }
+    const version = this.#scopeVersion
     this.#templatesLoaded = true
     this.loadingTemplates.set(true)
     this.templateLoadError.set(null)
     try {
       const result = await firstValueFrom(this.#templateService.getSummaries())
-      this.templates.set(result)
+      if (version === this.#scopeVersion) this.templates.set(result)
     } catch (error) {
+      if (version !== this.#scopeVersion) return
       this.#templatesLoaded = false
       this.templates.set([])
       const message = getErrorMessage(error)
       this.templateLoadError.set(message)
       this.#toastr.error(message)
     } finally {
-      this.loadingTemplates.set(false)
+      if (version === this.#scopeVersion) this.loadingTemplates.set(false)
     }
   }
 
@@ -619,10 +660,14 @@ export class ExploreAgentSquareComponent {
     })
   }
 
-  handleApplicationAction(item: PluginApplicationCatalogItem, event?: Event) {
+  async handleApplicationAction(item: PluginApplicationCatalogItem, event?: Event) {
     event?.stopPropagation()
     if (item.status.status === 'ready' && item.status.assistantSlug) {
       void this.#router.navigate(['/chat/x', item.status.assistantSlug, 'c'])
+      return
+    }
+    if (item.status.initializationAccess === 'organization_required') {
+      if (await this.scope.choose(true)) this.openApplicationDetails(item, true)
       return
     }
     const canSetup =

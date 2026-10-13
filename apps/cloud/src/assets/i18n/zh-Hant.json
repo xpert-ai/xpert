@@ -364,6 +364,23 @@
     },
     "Title": "元數分析雲",
     "Explore": {
+      "Scope": {
+        "Label": "瀏覽範圍",
+        "Select": "選擇瀏覽範圍",
+        "SwitchHint": "選擇組織後將切換目前範圍，你可以繼續瀏覽或設定此應用。",
+        "Tenant": "租戶共享",
+        "TenantHint": "探索共享專家、應用與範本",
+        "OrganizationHint": "目前組織與租戶共享內容",
+        "NoOrganizations": "暫時沒有可用的組織。請聯絡租戶管理員加入組織，你仍可繼續瀏覽共享內容。",
+        "KeepBrowsing": "繼續瀏覽",
+        "LoadFailed": "組織列表暫時無法載入，請重試。",
+        "CatalogFailedHint": "請稍後重試，你仍可瀏覽應用與智慧體範本。",
+        "ErrorDetails": "錯誤詳情",
+        "EmptyTitle": "還沒有租戶共享專家",
+        "EmptyHint": "你可以先瀏覽範本，或切換組織查看團隊發布的專家。",
+        "BrowseOrganization": "瀏覽組織內容",
+        "BrowseTemplates": "瀏覽範本"
+      },
       "AgentSquare": {
         "UseExpert": "使用專家",
         "BusinessDomains": "業務領域",

@@ -1,5 +1,5 @@
 import { Dialog } from '@angular/cdk/dialog'
-import { signal } from '@angular/core'
+import { signal, WritableSignal } from '@angular/core'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { ActivatedRoute, Router } from '@angular/router'
 import { TranslateService } from '@ngx-translate/core'
@@ -60,6 +60,9 @@ jest.mock('../../xpert/xpert', () => ({
   XpertNewBlankComponent: class XpertNewBlankComponent {}
 }))
 
+jest.mock('../explore-scope.service', () => ({ ExploreScopeService: class ExploreScopeService {} }))
+jest.mock('../explore-scope.component', () => ({ ExploreScopeComponent: class ExploreScopeComponent {} }))
+
 jest.mock('./access-request-dialog.component', () => ({
   AgentSquareAccessRequestDialogComponent: class AgentSquareAccessRequestDialogComponent {}
 }))
@@ -79,6 +82,7 @@ import {
   XpertTemplateService,
   XpertTypeEnum
 } from '@cloud/app/@core'
+import { ExploreScopeService } from '../explore-scope.service'
 import { XpertNewBlankComponent } from '../../xpert/xpert'
 import { AgentSquareAccessRequestDialogComponent } from './access-request-dialog.component'
 import { ExploreAgentSquareComponent, normalizeAgentSquareCatalog } from './agent-square.component'
@@ -164,8 +168,10 @@ describe('ExploreAgentSquareComponent', () => {
   let dialog: { open: jest.Mock }
   let router: { navigate: jest.Mock }
   let matchMedia: jest.Mock
+  let scope: { key: WritableSignal<string>; isTenant: WritableSignal<boolean>; choose: jest.Mock }
 
   beforeEach(async () => {
+    scope = { key: signal('user:tenant:org-1'), isTenant: signal(false), choose: jest.fn().mockResolvedValue(true) }
     marketplaceService = {
       findMarketplace: jest.fn(() => of(EMPTY_RESPONSE)),
       requestAccess: jest.fn(() => of({}))
@@ -180,6 +186,7 @@ describe('ExploreAgentSquareComponent', () => {
     await TestBed.configureTestingModule({
       imports: [ExploreAgentSquareComponent],
       providers: [
+        { provide: ExploreScopeService, useValue: scope },
         { provide: XpertMarketplaceService, useValue: marketplaceService },
         { provide: PluginApplicationService, useValue: applicationService },
         { provide: XpertTemplateService, useValue: templateService },
@@ -203,6 +210,7 @@ describe('ExploreAgentSquareComponent', () => {
       .compileComponents()
 
     fixture = TestBed.createComponent(ExploreAgentSquareComponent)
+    fixture.detectChanges()
     await Promise.resolve()
     marketplaceService.findMarketplace.mockClear()
   })
@@ -353,10 +361,13 @@ describe('ExploreAgentSquareComponent', () => {
 
     fixture.componentInstance.openTemplate(template)
 
-    expect(dialog.open).toHaveBeenCalledWith(XpertNewBlankComponent, {
-      disableClose: true,
-      data: expect.objectContaining({ initialTemplateId: template.id, skipTemplateSelectionStep: true })
-    })
+    expect(dialog.open).toHaveBeenCalledWith(
+      XpertNewBlankComponent,
+      expect.objectContaining({
+        disableClose: true,
+        data: expect.objectContaining({ initialTemplateId: template.id, skipTemplateSelectionStep: true })
+      })
+    )
   })
 
   it('requests access for a published expert that is not yet accessible', async () => {
@@ -460,5 +471,54 @@ describe('ExploreAgentSquareComponent', () => {
 
     expect(matchMedia).toHaveBeenCalledWith('(prefers-reduced-motion: reduce)')
     expect(fixture.componentInstance.featuredIndex()).toBe(0)
+  })
+  it('chooses an organization before continuing application setup and does nothing on cancel', async () => {
+    const item = createApplication('new')
+    item.status.initializationAccess = 'organization_required'
+    scope.choose.mockResolvedValueOnce(false)
+    await fixture.componentInstance.handleApplicationAction(item)
+    expect(router.navigate).not.toHaveBeenCalled()
+    await fixture.componentInstance.handleApplicationAction(item)
+    expect(scope.choose).toHaveBeenCalledWith(true)
+    expect(router.navigate).toHaveBeenCalledWith(['/explore/apps', 'new'], {
+      queryParams: { plugin: '@acme/plugin', setup: 1 }
+    })
+  })
+
+  it('clears all old scope results and ignores late expert, featured, App and template responses', async () => {
+    const oldExperts = new Subject<IXpertMarketplaceListResponse>()
+    const oldApps = new Subject<PluginApplicationCatalogItem[]>()
+    const oldTemplates = new Subject<TXpertTemplate[]>()
+    marketplaceService.findMarketplace.mockReturnValue(oldExperts)
+    applicationService.getCatalog.mockReturnValue(oldApps)
+    templateService.getSummaries.mockReturnValue(oldTemplates)
+    scope.key.set('user:tenant:org-2')
+    fixture.detectChanges()
+    const oldTemplateLoad = fixture.componentInstance.loadTemplates()
+    fixture.componentInstance.experts.set([createPublished('old')])
+    fixture.componentInstance.featuredExperts.set([createPublished('old-featured')])
+    fixture.componentInstance.applications.set([createApplication('old-app')])
+    fixture.componentInstance.templates.set([createTemplate('old-template')])
+    fixture.componentRef.setInput('search', 'kept search')
+    marketplaceService.findMarketplace.mockReturnValue(of(EMPTY_RESPONSE))
+    applicationService.getCatalog.mockReturnValue(of([]))
+    templateService.getSummaries.mockReturnValue(of([]))
+    scope.key.set('user:tenant:tenant')
+    fixture.detectChanges()
+    expect(fixture.componentInstance.experts()).toEqual([])
+    expect(fixture.componentInstance.featuredExperts()).toEqual([])
+    expect(fixture.componentInstance.applications()).toEqual([])
+    expect(fixture.componentInstance.templates()).toEqual([])
+    oldExperts.next({ ...EMPTY_RESPONSE, items: [createPublished('late')], total: 99 })
+    oldApps.next([createApplication('late-app')])
+    oldTemplates.next([createTemplate('late-template')])
+    await oldTemplateLoad
+    await Promise.resolve()
+    expect(fixture.componentInstance.experts()).toEqual([])
+    expect(fixture.componentInstance.featuredExperts()).toEqual([])
+    expect(fixture.componentInstance.applications()).toEqual([])
+    expect(fixture.componentInstance.templates()).toEqual([])
+    expect(fixture.componentInstance.expertTotal()).toBe(0)
+    expect(fixture.componentInstance.search()).toBe('kept search')
   })
 })
