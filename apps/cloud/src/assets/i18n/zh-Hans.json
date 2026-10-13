@@ -3111,6 +3111,22 @@
         "Retry": "重试"
       }
     },
+    "AssistantSettings": {
+      "Title": "助手",
+      "TenantDescription": "为聊天和工作空间配置默认助手。组织可单独覆盖，未覆盖时继承租户配置。",
+      "OrganizationDescription": "默认继承租户配置。保存后仅对当前组织生效，也可随时恢复继承。",
+      "TenantDefault": "租户默认",
+      "OrganizationOverride": "组织覆盖",
+      "InheritTenant": "继承租户",
+      "EffectiveAssistant": "当前生效",
+      "BoundExpert": "绑定专家",
+      "UnsavedChanges": "有未保存的更改",
+      "InheritHint": "保存后将覆盖当前组织的默认配置",
+      "NotBound": "尚未绑定专家",
+      "RestoreInheritance": "恢复继承",
+      "EmptyTitle": "暂无可配置的助手",
+      "EmptyDescription": "当前范围尚未启用助手功能。"
+    },
     "Assistant": {
       "SettingsButton": "助理设置",
       "SettingsEyebrow": "统一助手配置",

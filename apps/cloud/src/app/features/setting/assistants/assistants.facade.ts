@@ -89,6 +89,7 @@ export class AssistantsSettingsFacade {
   })
 
   readonly loading = signal(true)
+  readonly loadFailed = signal(false)
   readonly savingKey = signal<string | null>(null)
   readonly tenantConfigs = signal<Partial<Record<AssistantCode, IAssistantBinding>>>({})
   readonly organizationConfigs = signal<Partial<Record<AssistantCode, IAssistantBinding>>>({})
@@ -140,6 +141,18 @@ export class AssistantsSettingsFacade {
 
   effectiveConfig(code: AssistantCode) {
     return this.effectiveConfigs()[code] ?? null
+  }
+
+  effectiveAssistantLabel(code: AssistantCode) {
+    const config = this.effectiveConfig(code)
+    if (!config || config.sourceScope === AssistantBindingSourceScope.NONE || !config.assistantId) {
+      return this.t('XP.Assistant.NotConfigured', 'Not Configured')
+    }
+    return this.getXpertLabel(this.xpertLookup()[config.assistantId]) || config.assistantId
+  }
+
+  retry() {
+    return this.loadConfigs()
   }
 
   sourceLabel(sourceScope?: string | null) {
@@ -256,6 +269,7 @@ export class AssistantsSettingsFacade {
     const assistants = this.assistants()
 
     this.loading.set(true)
+    this.loadFailed.set(false)
     try {
       const [tenantConfigs, organizationConfigs, effectiveConfigs]: [
         IAssistantBinding[],
@@ -299,6 +313,7 @@ export class AssistantsSettingsFacade {
         Object.values(this.organizationForms).forEach((form) => form.disable({ emitEvent: false }))
       }
     } catch (error) {
+      this.loadFailed.set(true)
       this.#toastr.error(
         getErrorMessage(error) || this.t('XP.Assistant.LoadFailed', 'Failed to load assistant configurations.')
       )

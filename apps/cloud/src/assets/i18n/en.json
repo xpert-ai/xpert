@@ -4497,6 +4497,22 @@
       "RequestId": "Request ID",
       "User": "User"
     },
+    "AssistantSettings": {
+      "Title": "Assistants",
+      "TenantDescription": "Set default assistants for chat and workspaces. Organizations inherit these settings unless they configure an override.",
+      "OrganizationDescription": "Inherit tenant defaults or save an override for this organization. You can restore inheritance at any time.",
+      "TenantDefault": "Tenant default",
+      "OrganizationOverride": "Organization override",
+      "InheritTenant": "Inherits tenant",
+      "EffectiveAssistant": "Currently effective",
+      "BoundExpert": "Bound expert",
+      "UnsavedChanges": "Unsaved changes",
+      "InheritHint": "Saving overrides the default for this organization",
+      "NotBound": "No expert bound yet",
+      "RestoreInheritance": "Restore inheritance",
+      "EmptyTitle": "No assistants to configure",
+      "EmptyDescription": "Assistant features are not enabled in this scope."
+    },
     "Assistant": {
       "SettingsButton": "Assistant settings",
       "SettingsEyebrow": "Unified assistant configuration",

@@ -4,10 +4,11 @@ import { ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   ZardButtonComponent,
-  ZardCheckboxComponent,
+  ZardBadgeComponent,
+  ZardIconComponent,
+  ZardSwitchComponent,
   ZardComboboxComponent,
-  ZardComboboxOptionTemplateDirective,
-  ZardFormImports
+  ZardComboboxOptionTemplateDirective
 } from '@xpert-ai/headless-ui'
 import { AssistantBindingScope, AssistantCode } from '../../../@core'
 import { AssistantsSettingsFacade } from './assistants.facade'
@@ -20,195 +21,15 @@ import { AssistantsSettingsFacade } from './assistants.facade'
     ReactiveFormsModule,
     TranslateModule,
     ZardButtonComponent,
-    ZardCheckboxComponent,
+    ZardBadgeComponent,
+    ZardIconComponent,
+    ZardSwitchComponent,
     ZardComboboxComponent,
-    ZardComboboxOptionTemplateDirective,
-    ...ZardFormImports
+    ZardComboboxOptionTemplateDirective
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <div class="space-y-6">
-      @for (assistant of facade.assistants(); track assistant.code) {
-        <section class="">
-          <div
-            class="flex flex-col gap-4 border-b border-divider-regular px-5 py-5 lg:flex-row lg:items-start lg:justify-between"
-          >
-            <div class="min-w-0">
-              <div class="text-xs uppercase tracking-[0.24em] text-text-tertiary">
-                {{ 'XP.Assistant.Code' | translate: { Default: 'Assistant Code' } }}
-              </div>
-              <div class="mt-2 text-xl font-semibold text-text-primary">
-                {{ assistant.labelKey | translate: { Default: assistant.defaultLabel } }}
-              </div>
-              <p class="mt-2 max-w-3xl text-sm text-text-secondary">
-                {{ assistant.descriptionKey | translate: { Default: assistant.defaultDescription } }}
-              </p>
-            </div>
-
-            @if (isOrganizationScope()) {
-              <div
-                class="grid gap-3 rounded-2xl border border-divider-regular bg-background-default-subtle p-4 text-sm text-text-secondary md:grid-cols-3"
-              >
-                <div>
-                  <div class="text-xs uppercase tracking-[0.18em] text-text-tertiary">
-                    {{ 'XP.Assistant.EffectiveSource' | translate: { Default: 'Effective Source' } }}
-                  </div>
-                  <div class="mt-2 font-medium text-text-primary">
-                    {{ facade.sourceLabel(facade.effectiveConfig(assistant.code)?.sourceScope) }}
-                  </div>
-                </div>
-                <div>
-                  <div class="text-xs uppercase tracking-[0.18em] text-text-tertiary">
-                    {{ 'XP.Assistant.EffectiveStatus' | translate: { Default: 'Effective Status' } }}
-                  </div>
-                  <div class="mt-2 font-medium text-text-primary">
-                    {{ facade.effectiveStatusLabel(facade.effectiveConfig(assistant.code)) }}
-                  </div>
-                </div>
-                <div>
-                  <div class="text-xs uppercase tracking-[0.18em] text-text-tertiary">
-                    {{ 'XP.Assistant.ActiveOrganization' | translate: { Default: 'Active Organization' } }}
-                  </div>
-                  <div class="mt-2 font-medium text-text-primary">
-                    {{
-                      facade.organizationName() ||
-                        ('XP.Assistant.NoOrganization' | translate: { Default: 'No organization selected' })
-                    }}
-                  </div>
-                </div>
-              </div>
-            }
-          </div>
-
-          <form class="space-y-4 p-5" [formGroup]="form(assistant.code)">
-            <div class="rounded-2xl border border-border bg-background-default-subtle p-4">
-              <div class="flex items-start justify-between gap-3">
-                <div>
-                  <div class="text-sm font-semibold text-text-primary">
-                    {{
-                      (isTenantScope() ? 'XP.Assistant.TenantDefault' : 'XP.Assistant.OrganizationOverride')
-                        | translate
-                          : {
-                              Default: isTenantScope() ? 'Tenant Default' : 'Organization Override'
-                            }
-                    }}
-                  </div>
-                  <div class="mt-1 text-xs text-text-secondary">
-                    {{
-                      (isTenantScope() ? 'XP.Assistant.TenantDefaultDesc' : 'XP.Assistant.OrganizationOverrideDesc')
-                        | translate
-                          : {
-                              Default: isTenantScope()
-                                ? 'Configure the tenant-level default assistant for this experience.'
-                                : 'Configure an organization-specific override. Leave it unset to inherit the tenant default.'
-                            }
-                    }}
-                  </div>
-                </div>
-                <z-checkbox formControlName="enabled" displayDensity="cosy" class="text-text-secondary">{{
-                  'XP.Assistant.Enabled' | translate: { Default: 'Enabled' }
-                }}</z-checkbox>
-              </div>
-
-              <div class="mt-4 grid gap-4">
-                <label class="grid gap-2">
-                  <span class="text-sm text-text-secondary">
-                    {{ 'XP.Assistant.AssistantId' | translate: { Default: 'Assistant ID / Xpert ID' } }}
-                  </span>
-                  <z-combobox
-                    zWidth="lg"
-                    [value]="facade.assistantSelectionValue(scope(), assistant.code)"
-                    [options]="facade.assistantXpertOptions(scope(), assistant.code)"
-                    [zDisabled]="!canEdit()"
-                    [placeholder]="
-                      'XP.Assistant.AssistantIdPlaceholder'
-                        | translate: { Default: 'Search accessible xperts by name or id' }
-                    "
-                    [searchPlaceholder]="
-                      'XP.Assistant.AssistantIdPlaceholder'
-                        | translate: { Default: 'Search accessible xperts by name or id' }
-                    "
-                    (zValueChange)="facade.selectAssistantXpert(scope(), assistant.code, $event)"
-                  >
-                    <ng-template zComboboxOption let-option>
-                      <div class="flex min-w-0 flex-1 flex-col gap-1 py-1">
-                        <span class="text-sm font-medium text-text-primary">{{ option.data?.label }}</span>
-                        @if (option.data?.description) {
-                          <span class="text-xs text-text-secondary line-clamp-3">{{ option.data?.description }}</span>
-                        }
-                        @if (option.data?.meta) {
-                          <span class="font-mono text-xs text-text-tertiary">{{ option.data?.meta }}</span>
-                        }
-                      </div>
-                    </ng-template>
-                  </z-combobox>
-                </label>
-              </div>
-
-              <div class="mt-4 flex items-center justify-between gap-3">
-                <div class="text-xs text-text-tertiary">
-                  {{ facade.sourceStateLabel(config(assistant.code)) }}
-                </div>
-                <div class="flex items-center gap-2">
-                  @if (isOrganizationScope()) {
-                    <button
-                      z-button
-                      zType="outline"
-                      zShape="circle"
-                      type="button"
-                      [zDisabled]="
-                        !facade.organizationId() ||
-                        !facade.organizationConfig(assistant.code) ||
-                        facade.savingKey() === assistant.code + ':organization:delete'
-                      "
-                      (click)="facade.resetOrganizationOverride(assistant)"
-                    >
-                      {{ 'XP.Assistant.UseTenantDefault' | translate: { Default: 'Use Tenant Default' } }}
-                    </button>
-                  }
-
-                  <button
-                    z-button
-                    zType="default"
-                    zShape="circle"
-                    type="button"
-                    [zDisabled]="
-                      !canEdit() || form(assistant.code).invalid || facade.savingKey() === savingKey(assistant.code)
-                    "
-                    (click)="facade.saveConfig(assistant, scope())"
-                  >
-                    {{ 'XP.KEY_WORDS.Save' | translate: { Default: 'Save' } }}
-                  </button>
-                </div>
-              </div>
-
-              @if (isTenantScope() && !facade.canManageTenant()) {
-                <div
-                  class="mt-4 rounded-2xl border border-dashed border-divider-regular px-4 py-3 text-sm text-text-secondary"
-                >
-                  {{
-                    'XP.Assistant.TenantPermissionRequired'
-                      | translate: { Default: 'Only super admins can edit tenant default assistant settings.' }
-                  }}
-                </div>
-              }
-
-              @if (isOrganizationScope() && !facade.organizationId()) {
-                <div
-                  class="mt-4 rounded-2xl border border-dashed border-divider-regular px-4 py-3 text-sm text-text-secondary"
-                >
-                  {{
-                    'XP.Assistant.OrganizationRequired'
-                      | translate: { Default: 'Select an organization to manage organization-level overrides.' }
-                  }}
-                </div>
-              }
-            </div>
-          </form>
-        </section>
-      }
-    </div>
-  `
+  host: { class: 'block w-full min-w-0' },
+  templateUrl: './assistants-scope.component.html'
 })
 export class AssistantsScopeComponent {
   readonly facade = inject(AssistantsSettingsFacade)
