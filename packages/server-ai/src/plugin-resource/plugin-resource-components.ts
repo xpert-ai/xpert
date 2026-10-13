@@ -66,7 +66,7 @@ export function listRuntimeToolProviderComponents(
         }))
 }
 
-export function resolveLoadedPluginResourceRoot(pluginName: string, loadedPlugins: LoadedPluginRecord[]) {
+export function resolveScopedLoadedPlugin(pluginName: string, loadedPlugins: LoadedPluginRecord[]): LoadedPluginRecord {
     const normalizedPluginName = normalizePluginName(pluginName)
     const organizationId = RequestContext.getOrganizationId() ?? GLOBAL_ORGANIZATION_SCOPE
     const tenantId = RequestContext.getScope()?.tenantId ?? RequestContext.currentTenantId()
@@ -86,6 +86,12 @@ export function resolveLoadedPluginResourceRoot(pluginName: string, loadedPlugin
     if (!record) {
         throw new NotFoundException(`Loaded plugin '${normalizedPluginName}' was not found`)
     }
+    return record
+}
+
+export function resolveLoadedPluginResourceRoot(pluginName: string, loadedPlugins: LoadedPluginRecord[]) {
+    const normalizedPluginName = normalizePluginName(pluginName)
+    const record = resolveScopedLoadedPlugin(pluginName, loadedPlugins)
     const root = resolveLoadedPluginBundleRoot(record)
     if (!root) {
         throw new NotFoundException(

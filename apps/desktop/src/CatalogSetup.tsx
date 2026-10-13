@@ -1,3 +1,5 @@
+import { TemplateManifestDetails } from './catalog/TemplateManifestDetails'
+import { platformCommandUrl } from '../electron/workbench-platform.mjs'
 import { TemplateInstallationProgress, useTemplateInstallation } from './catalog/TemplateInstallation'
 import { getLocale, t } from './i18n'
 import { useEffect, useRef, useState } from 'react'
@@ -97,7 +99,11 @@ export function CatalogSetup({
           setToolsets((current) => reconcileApplicationToolsets(result.toolsetRequirements, current))
           if (result.application.status === 'ready') setInstalled(result.application.botId)
         } else if (item.kind === 'templates') {
-          const result = await invoke('templateSetup', { id: item.id, capabilities })
+          const result = await invoke('templateSetup', {
+            id: item.id,
+            capabilities,
+            ...(workspaceId ? { workspaceId } : {})
+          })
           if (!active) return
           setWorkspaces(result.workspaces)
           setWorkspaceId((current) =>
@@ -122,7 +128,7 @@ export function CatalogSetup({
     return () => {
       active = false
     }
-  }, [item, revision, capabilities, onItemUpdated])
+  }, [item, revision, capabilities, onItemUpdated, workspaceId])
   const initializing = setup?.application.status === 'initializing'
   const canSubmit =
     !busy &&
@@ -326,6 +332,17 @@ export function CatalogSetup({
                       </p>
                     </div>
                   )}
+                  <TemplateManifestDetails
+                    readiness={preflight?.readiness}
+                    onManage={() => {
+                      const target = { target: 'workspace.plugins.manage', organizationId, workspaceId }
+                      if (window.xpertDesktop) void window.xpertDesktop.openPlatform(target)
+                      else {
+                        const url = platformCommandUrl(webUrl, target)
+                        if (url) window.open(url, '_blank', 'noopener,noreferrer')
+                      }
+                    }}
+                  />
                   <TemplateRequirements
                     preflight={preflight}
                     capabilities={capabilities}
@@ -380,6 +397,21 @@ export function CatalogSetup({
                       ))}
                     </ol>
                   </div>
+                  {!!setup.application.composition?.length && (
+                    <section className="space-y-2 border-t pt-4">
+                      <h3 className="font-medium">{t('Included with this application')}</h3>
+                      <ul className="space-y-2 text-sm">
+                        {setup.application.composition.map((entry) => (
+                          <li key={entry.key}>
+                            {entry.title}{' '}
+                            <span className="text-muted-foreground">
+                              · {t(`App composition ${entry.role ?? entry.kind}`)}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </section>
+                  )}
                   {!installed && (
                     <>
                       {(setup.requireEmbedding || setup.requireVision) && (

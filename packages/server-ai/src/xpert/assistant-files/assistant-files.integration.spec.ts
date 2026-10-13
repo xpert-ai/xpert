@@ -1,7 +1,14 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common'
 import { CommandBus, CqrsModule } from '@nestjs/cqrs'
 import { Test, TestingModule } from '@nestjs/testing'
-import { ApiKeyBindingType, IApiPrincipal, IUser, RolesEnum, SecretTokenBindingType } from '@xpert-ai/contracts'
+import {
+    ApiKeyBindingType,
+    IApiPrincipal,
+    IUser,
+    RolesEnum,
+    SecretTokenBindingType,
+    templateManifestSchema
+} from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -189,6 +196,66 @@ describe('Assistant file authority integration', () => {
         await runtime.uploadToFolder('', { originalname: 'private.txt', buffer: Buffer.from('B private') })
         actor = { ...actor, id: 'user-a' }
         await expect(runtime.read('private.txt')).resolves.toMatchObject({ contents: 'A private' })
+    })
+
+    it.each(['shared', 'user'] as const)(
+        'initializes %s template files through the real group ACL and current user scope',
+        async (scope) => {
+            assistant.workspaceDataScope = scope
+            assistant.options = {
+                templateSource: {
+                    templateId: 'fixture',
+                    templateKey: 'fixture',
+                    manifest: templateManifestSchema.parse({
+                        schemaVersion: 1,
+                        version: '1',
+                        files: {
+                            scope,
+                            entries: [
+                                {
+                                    kind: 'file',
+                                    path: 'welcome.md',
+                                    content: 'seed',
+                                    contentVersion: '1',
+                                    policy: 'create-only'
+                                }
+                            ]
+                        }
+                    })
+                }
+            }
+            const runtime = files.forRuntime(assistant.id)
+            await expect(runtime.read('welcome.md')).resolves.toMatchObject({ contents: 'seed' })
+            await runtime.save('welcome.md', 'user-b edit')
+            actor = { ...actor, id: 'user-a' }
+            await expect(runtime.read('welcome.md')).resolves.toMatchObject({
+                contents: scope === 'user' ? 'seed' : 'user-b edit'
+            })
+            actor = { ...actor, id: 'user-b' }
+            await expect(runtime.read('welcome.md')).resolves.toMatchObject({ contents: 'user-b edit' })
+            groupGrant = false
+            resolve.mockClear()
+            await expect(runtime.read('welcome.md')).rejects.toThrow(ForbiddenException)
+            expect(resolve).not.toHaveBeenCalled()
+        }
+    )
+
+    it('denies initial file creation before a revoked user can provision their volume', async () => {
+        assistant.workspaceDataScope = 'user'
+        assistant.options = {
+            templateSource: {
+                templateId: 'fixture',
+                templateKey: 'fixture',
+                manifest: templateManifestSchema.parse({
+                    schemaVersion: 1,
+                    version: '1',
+                    files: { scope: 'user', entries: [{ kind: 'directory', path: 'initial' }] }
+                })
+            }
+        }
+        groupGrant = false
+        await expect(files.forRuntime(assistant.id).list()).rejects.toThrow(ForbiddenException)
+        expect(resolve).not.toHaveBeenCalled()
     })
 
     it('does not turn canRun for one workspace into access to every Assistant in it', async () => {

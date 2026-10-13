@@ -462,6 +462,13 @@
           "Tenant": "租戶級",
           "Organization": "組織級",
           "Personal": "個人級"
+        },
+        "Composition": {
+          "primary": "入口助理",
+          "specialist": "專業角色助理",
+          "standalone": "獨立助理",
+          "workspace": "工作空間",
+          "knowledgebase": "知識庫"
         }
       }
     },
@@ -1359,14 +1366,14 @@
     },
     "Files": {
       "Pdf": {
-        "Previous": "\u4e0a\u4e00\u9801",
-        "Next": "\u4e0b\u4e00\u9801",
-        "ZoomOut": "\u7e2e\u5c0f",
-        "ZoomIn": "\u653e\u5927",
-        "FitWidth": "\u9069\u5408\u5bec\u5ea6",
-        "Loading": "\u6b63\u5728\u8f09\u5165 PDF...",
-        "Failed": "\u7121\u6cd5\u9810\u89bd\u6b64 PDF\uff0c\u8acb\u91cd\u8a66\u6216\u4e0b\u8f09\u6a94\u6848\u3002",
-        "Retry": "\u91cd\u8a66"
+        "Previous": "上一頁",
+        "Next": "下一頁",
+        "ZoomOut": "縮小",
+        "ZoomIn": "放大",
+        "FitWidth": "適合寬度",
+        "Loading": "正在載入 PDF...",
+        "Failed": "無法預覽此 PDF，請重試或下載檔案。",
+        "Retry": "重試"
       },
       "InstalledSkills": "已安裝技能",
       "WorkspaceSkillsWorkbenchDesc": "瀏覽已安裝技能，查看其文件樹，並在當前工作區直接編輯支援的文件。",
@@ -4153,7 +4160,12 @@
         "cli": "編程 CLI",
         "agent_runtime": "受管 Agent"
       },
-      "ExecutionEnvironment": { "all": "所有環境", "computer": "電腦", "sandbox": "沙盒", "remote": "遠端" },
+      "ExecutionEnvironment": {
+        "all": "所有環境",
+        "computer": "電腦",
+        "sandbox": "沙盒",
+        "remote": "遠端"
+      },
       "ExecutionAssistant": "Assistant ID",
       "ExecutionTool": "工具",
       "ExportCurrentUsagePage": "导出当前用量页",
@@ -8264,7 +8276,18 @@
       "Installation interrupted": "安裝已中斷",
       "Installation failed": "安裝失敗",
       "PrimaryRequired": "請在目前組織設定有權使用的預設語言模型，然後重新整理設定。",
-      "RefreshSettings": "重新整理設定"
+      "RefreshSettings": "重新整理設定",
+      "Requirements": "模板能力与依赖",
+      "LegacyRequirements": "相容舊版範本；能力由 Assistant 設定解析。",
+      "Required": "必需",
+      "Optional": "可选",
+      "UserFiles": "初始文件按用户隔离，每位用户首次使用时独立创建。",
+      "SharedFiles": "初始文件由获授权的用户共享。",
+      "PreserveFiles": "重试保留已有文件和台账数据。",
+      "ManageDependencies": "管理模板依赖",
+      "StructuralCapabilities": "範本中的 Assistant 能力，執行時仍受目前權限和資源綁定限制。",
+      "SeedMemoryCount": "初始記憶：{{count}} 筆",
+      "ServerSandbox": "伺服器沙箱"
     }
   },
   "ViewExtension": {

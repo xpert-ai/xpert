@@ -18,6 +18,7 @@ export function installationHash(value: unknown): string {
 export function templateInstallationSourceHash(
     template: Pick<
         TTemplate,
+        | 'manifest'
         | 'id'
         | 'export_data'
         | 'dependencies'
@@ -30,6 +31,7 @@ export function templateInstallationSourceHash(
 ): string {
     return installationHash({
         id: template.id,
+        manifest: template.manifest,
         export_data: template.export_data,
         dependencies: template.dependencies,
         pluginVersion: template.pluginVersion,

@@ -1,3 +1,5 @@
+import type { AssistantCapabilityDeclaration } from './assistant-capability.model'
+import type { TemplateManifest, TemplateReadiness } from './template-manifest.model'
 import { IBasePerTenantEntityModel } from '../base-entity.model'
 import { IconDefinition, TAvatar } from '../types'
 import { ModelSelectionMetadata, TCopilotModel } from './copilot-model.model'
@@ -5,12 +7,7 @@ import { ModelFeature } from './ai-model.model'
 import { MCPServerType, TMCPServer } from './xpert-tool-mcp.model'
 import { XpertTypeEnum } from './xpert.model'
 import type { TPromptWorkflow } from './prompt-workflow.model'
-import {
-  PluginTargetApp,
-  PluginTargetAppMeta,
-  PluginTemplateApplicationSummary,
-  XpertTemplatePluginDependencies
-} from '../plugin'
+import { PluginTargetApp, PluginTargetAppMeta, PluginTemplateApplicationSummary } from '../plugin'
 
 export interface IXpertTemplate extends IBasePerTenantEntityModel {
   key: string
@@ -117,7 +114,8 @@ export type TTemplate = {
   pluginVersion?: string
   contentHash?: string
   xpertName?: string
-  dependencies?: XpertTemplatePluginDependencies
+  manifest?: TemplateManifest
+  dependencies?: import('./assistant-template-dependencies.model').AssistantTemplateDependencies
   /** Explicit capability requirements/options, implemented by registered providers. */
   capabilities?: AssistantCapabilityDeclaration[]
   /** Capabilities composed into this resolved template variant. */
@@ -135,16 +133,12 @@ export type TXpertTemplate = TTemplate & {
   copilotModel?: Partial<TCopilotModel>
 }
 
-export type TXpertTemplateSummary = Omit<TXpertTemplate, 'export_data'>
+export type TXpertTemplateSummary = Omit<TXpertTemplate, 'export_data' | 'manifest'>
 
 /** Opt-in capabilities offered by the serving distribution for a template. */
 export type XpertTemplateCapability = string
 
-export interface AssistantCapabilityDeclaration {
-  key: string
-  /** Required capabilities cannot be disabled; optional capabilities default to off. */
-  required?: boolean
-}
+export type { AssistantCapabilityDeclaration } from './assistant-capability.model'
 
 /** Public model metadata for capability setup; never includes provider credentials or model configuration. */
 export interface XpertTemplateModelOption extends ModelSelectionMetadata {
@@ -156,6 +150,7 @@ export interface XpertTemplateModelOption extends ModelSelectionMetadata {
 }
 
 export interface XpertTemplateSetup {
+  readiness?: TemplateReadiness
   /** ID of a compatible organization default in `models`; absent if none qualifies. */
   defaultModelId?: string
   realtimeModels?: import('./realtime-voice.model').RealtimeModelOption[]

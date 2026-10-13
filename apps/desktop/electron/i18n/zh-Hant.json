@@ -1211,5 +1211,22 @@
   "Could not read installation status.": "無法讀取安裝狀態。",
   "Invalid installation request.": "無效的安裝請求。",
   "Invalid installation response.": "無效的安裝回應。",
-  "Installation scope changed.": "安裝範圍已變更。"
+  "Installation scope changed.": "安裝範圍已變更。",
+  "Template requirements": "範本能力與依賴",
+  "Legacy template: requirements were not declared.": "相容舊版範本；能力由 Assistant 配置解析。",
+  "Required": "必需",
+  "Optional": "選填",
+  "Initial files are isolated for each user.": "初始檔案按使用者隔離，每位使用者首次使用時獨立建立。",
+  "Initial files are shared by authorized users.": "初始檔案由獲授權的使用者共用。",
+  "Existing files and ledger entries are preserved on retry.": "重試保留既有檔案和台帳資料。",
+  "Manage template dependencies": "管理範本依賴",
+  "Assistant capabilities from the template. Runtime access depends on current permissions and bindings.": "範本中的 Assistant 能力，執行時仍受目前權限和資源綁定限制。",
+  "Seed memories": "初始記憶",
+  "Server sandbox": "伺服器沙箱",
+  "Included with this application": "應用包含",
+  "App composition primary": "入口助手",
+  "App composition specialist": "專業角色助手",
+  "App composition standalone": "獨立助手",
+  "App composition workspace": "工作空間",
+  "App composition knowledgebase": "知識庫"
 }

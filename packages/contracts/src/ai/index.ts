@@ -132,3 +132,9 @@ export * from './conversation-entry.model'
 export type { ThreadActivitySnapshot } from './thread-activity.model'
 
 export * from './template-installation.model'
+
+export * from './template-manifest.model'
+
+export * from './assistant-template.model'
+export * from './assistant-template-dependencies.model'
+export type { AssistantCapabilitySummary } from './assistant-capability.model'

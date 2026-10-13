@@ -1,3 +1,4 @@
+import { existingCreateOnlyTarget, publishCreateOnlyFile } from './volume-create-only'
 import { randomUUID } from 'node:crypto'
 import { assertPublicWorkspacePath, isManagedWorkspacePath } from './workspace-managed-path'
 import { removeVolumePath, type VolumeRemoveOptions } from './volume-remove'
@@ -339,6 +340,7 @@ export function getVolumeRootPath(client: VolumeClient, scope: VolumeScope) {
 }
 
 type TVolumeWriteOptions = {
+    createOnly?: boolean
     boundaryRoot?: string
     encoding?: BufferEncoding
     beforeCommit?: () => void | Promise<void>
@@ -368,7 +370,7 @@ export class VolumeHandle {
         assertPublicWorkspacePath(relativePath)
         const openedRoot = await this.openOrCreateRoot()
         try {
-            await VolumeHandle.writeFile(openedRoot.descriptorPath, relativePath, content, {
+            return await VolumeHandle.writeFile(openedRoot.descriptorPath, relativePath, content, {
                 ...options,
                 boundaryRoot: openedRoot.descriptorPath,
                 assertCanWrite: (relative, stat) => {
@@ -518,7 +520,7 @@ export class VolumeHandle {
             root,
             path.relative(root, parentPath),
             options?.boundaryRoot,
-            false,
+            options?.createOnly === true,
             (relative) => {
                 assertPublicWorkspacePath(relative)
                 options?.assertCanWrite?.(relative)
@@ -538,6 +540,7 @@ export class VolumeHandle {
             ensurePathWithinRoot(canonicalRoot, canonicalTargetPath)
             options?.assertCanWrite?.(path.relative(canonicalRoot, canonicalTargetPath).replace(/\\/g, '/'))
             const anchoredTarget = path.join(openedParent.descriptorPath, path.basename(targetPath))
+            if (options?.createOnly && (await existingCreateOnlyTarget(anchoredTarget))) return false
             const existing = await fsPromises.lstat(anchoredTarget).catch((error: NodeJS.ErrnoException) => {
                 if (error.code !== 'ENOENT') throw error
                 return null
@@ -569,8 +572,12 @@ export class VolumeHandle {
                 await options?.beforeCommit?.()
                 await assertWorkspaceLeases()
                 // The parent is FD-anchored. Rename never follows a final symlink introduced by a race.
-                await fsPromises.rename(temporary, anchoredTarget)
+                const created = options?.createOnly
+                    ? await publishCreateOnlyFile(temporary, anchoredTarget)
+                    : (await fsPromises.rename(temporary, anchoredTarget), true)
+                await fsPromises.rm(temporary, { force: true })
                 await openedParent.fileHandle.sync()
+                return created
             } finally {
                 await fsPromises.rm(temporary, { force: true })
             }

@@ -1,3 +1,5 @@
+import { CommandBus } from '@nestjs/cqrs'
+import { InitializeAssistantTemplateFilesCommand } from './assistant-files/initialize-assistant-template-files.command'
 import { LanguagesEnum, TXpertTemplate } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
 import { Injectable, Logger } from '@nestjs/common'
@@ -22,7 +24,8 @@ export class XpertTemplateWorkspaceInitializer {
 
     constructor(
         private readonly xpertTemplateService: XpertTemplateService,
-        private readonly promptWorkflowService: PromptWorkflowService
+        private readonly promptWorkflowService: PromptWorkflowService,
+        private readonly commands: CommandBus
     ) {}
 
     async initializeByTemplateId(
@@ -35,6 +38,8 @@ export class XpertTemplateWorkspaceInitializer {
         try {
             const template =
                 resolvedTemplate ?? (await this.xpertTemplateService.getTemplateDetail(templateId, language))
+            if (template.manifest?.files)
+                await this.commands.execute(new InitializeAssistantTemplateFilesCommand(xpertId, 'authoring'))
             const result = await this.promptWorkflowService.initializeDefaultsInWorkspace(
                 workspaceId,
                 template.promptWorkflows ?? [],

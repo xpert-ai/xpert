@@ -1044,7 +1044,12 @@
         "McpAppSessionExpired": "This App session has expired. Its saved result is still available.",
         "McpAppSessionUnavailable": "This App cannot resume. Its saved result is still available.",
         "McpAppMessageMismatch": "This App does not belong to the requested message.",
-        "McpAppHistoryQueryInvalid": "A valid message identifier is required."
+        "McpAppHistoryQueryInvalid": "A valid message identifier is required.",
+        "AssistantTemplateDeclarationConflict": "Conflicting or unsupported Assistant template declaration: {{field}}",
+        "TemplateRequirementsUnmet": "Required template capabilities or dependencies are not ready. Review the installation checks.",
+        "TemplateFileScopeConflict": "File isolation must match the template declaration.",
+        "TemplateDependencyBusy": "Template dependencies are being updated by another installation. Try again shortly.",
+        "TemplateDependencyChanged": "A plugin or resource no longer matches this Assistant’s installed version. Restore the pinned version before running."
     },
     "Mcp": {
         "Test": {
@@ -1215,5 +1220,12 @@
         "succeeded": "Task “{{title}}” succeeded and is awaiting acceptance.",
         "failed": "Task “{{title}}” failed.",
         "cancelled": "Task “{{title}}” was cancelled."
+    },
+    "TemplateRequirement": {
+        "ready": "Ready",
+        "unsupported": "Not supported yet",
+        "missing": "Missing; configure and refresh",
+        "incompatible": "Incompatible version or declaration",
+        "pending-configuration": "Configuration required after installation"
     }
 }

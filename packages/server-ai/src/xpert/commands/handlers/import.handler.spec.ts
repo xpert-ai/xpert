@@ -182,7 +182,13 @@ describe('XpertImportHandler', () => {
             xpertService,
             queryBus,
             xpertAgentService,
-            handler: new XpertImportHandler(xpertService as any, i18n as any, queryBus as any, xpertAgentService as any)
+            handler: new XpertImportHandler(
+                xpertService as any,
+                i18n as any,
+                queryBus as any,
+                xpertAgentService as any,
+                { execute: jest.fn() }
+            )
         }
     }
 

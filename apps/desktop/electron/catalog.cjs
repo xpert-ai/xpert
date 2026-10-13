@@ -1,3 +1,4 @@
+const { projectTemplateReadiness } = require('./template-readiness.cjs')
 const { localizedText } = require('./i18n/index.mjs')
 const { parseBusinessArea } = require('./business-area.cjs')
 const { parseAvatarUrl } = require('./avatar-url.cjs')
@@ -122,6 +123,14 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
       ]),
       botId: text(value.status?.xpertId) || null,
       initializationAccess: text(value.status?.initializationAccess),
+      composition: Array.isArray(value.composition)
+        ? value.composition.map((item) => ({
+            key: required(item.key, 'Composition key'),
+            kind: choice(item.kind, ['assistant', 'workspace', 'knowledgebase']),
+            role: item.role === undefined ? undefined : choice(item.role, ['primary', 'specialist', 'standalone']),
+            title: localized(item.title)
+          }))
+        : [],
       summary: localized(presentation?.initializationSummary),
       steps: Array.isArray(presentation?.initializationSteps)
         ? presentation.initializationSteps.map(localized).filter(Boolean)
@@ -159,12 +168,13 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
       throw new ClientError('Invalid template capabilities.', 400)
     return [...new Set(value)]
   }
-  const templateCheck = async (service, id, capabilities) => {
+  const templateCheck = async (service, id, capabilities, workspaceId) => {
     let check
     try {
       check = await service.request(
         `/api/xpert-template/${encodeURIComponent(id)}/setup?${new URLSearchParams({
-          capabilities: capabilities.join(',')
+          capabilities: capabilities.join(','),
+          ...(workspaceId ? { workspaceId } : {})
         })}`
       )
     } catch (error) {
@@ -303,7 +313,7 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
     async templateSetup(input) {
       const workspaces = await this.templateWorkspaces()
       const check = input?.id
-        ? await templateCheck(this, required(input.id, 'Template ID'), templateCapabilities(input))
+        ? await templateCheck(this, required(input.id, 'Template ID'), templateCapabilities(input), input.workspaceId)
         : null
       return {
         workspaces,
@@ -312,6 +322,7 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
         ...(check
           ? {
               preflight: {
+                readiness: projectTemplateReadiness(check.readiness, ClientError),
                 canInstall: check.canInstall,
                 reason: text(check.reason),
                 requiresModel: check.requiresModel === true || check.requiredModelFeatures.length > 0,

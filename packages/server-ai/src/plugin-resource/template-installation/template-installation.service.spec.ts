@@ -1,3 +1,4 @@
+jest.mock('./template-readiness.service', () => ({ TemplateReadinessService: class {} }))
 jest.mock('@xpert-ai/server-core', () => ({
     ResolveUserOrganizationAccessCommand: class {
         constructor(public input: unknown) {}
@@ -139,7 +140,14 @@ function harness() {
         commands,
         workspaces as unknown as XpertWorkspaceAccessService,
         templates as unknown as XpertTemplateService,
-        { databaseForExecution: async () => database } as TemplateInstallationLocks
+        { databaseForExecution: async () => database } as TemplateInstallationLocks,
+        {
+            prepare: jest.fn(async () => ({
+                manifest: undefined,
+                readiness: { legacy: true, canInstall: true, checks: [], dependencies: [] },
+                components: []
+            }))
+        }
     )
     const settle = async (id: string) => {
         for (let i = 0; i < 100 && locks.has(id); i++) await new Promise<void>((resolve) => setImmediate(resolve))

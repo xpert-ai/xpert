@@ -241,48 +241,15 @@ export interface XpertPluginBundleManifest {
   targetAppMeta?: PluginTargetAppMeta
 }
 
-export interface XpertTemplatePluginSkillDependency {
-  pluginName?: PluginName
-  componentKey: string
-  targetAgentKey?: string
-}
-
-export interface XpertTemplatePluginMcpServerDependency {
-  pluginName?: PluginName
-  componentKey: string
-  targetAgentKey?: string
-  policyOverrides?: XpertPluginMcpServerPolicy
-}
-
-export interface XpertTemplatePluginHookDependency {
-  pluginName?: PluginName
-  componentKey: string
-  targetAgentKey?: string
-  events?: string[]
-}
-
-export interface XpertTemplatePluginAppDependency {
-  pluginName?: PluginName
-  componentKey: string
-  auth?: 'on_install' | 'on_first_use'
-}
-
-export interface XpertTemplatePluginToolsetDependency {
-  pluginName?: PluginName
-  provider: string
-  templateNodeKey: string
-  targetAgentKey?: string
-  instanceName?: string
-}
-
-export interface XpertTemplatePluginDependencies {
-  plugins?: PluginName[]
-  skills?: XpertTemplatePluginSkillDependency[]
-  mcpServers?: XpertTemplatePluginMcpServerDependency[]
-  hooks?: XpertTemplatePluginHookDependency[]
-  apps?: XpertTemplatePluginAppDependency[]
-  toolsets?: XpertTemplatePluginToolsetDependency[]
-}
+/** @deprecated Use the Assistant template domain contracts. */
+export type {
+  AssistantTemplateSkillDependency as XpertTemplatePluginSkillDependency,
+  AssistantTemplateMcpServerDependency as XpertTemplatePluginMcpServerDependency,
+  AssistantTemplateHookDependency as XpertTemplatePluginHookDependency,
+  AssistantTemplateAppDependency as XpertTemplatePluginAppDependency,
+  AssistantTemplateToolsetDependency as XpertTemplatePluginToolsetDependency,
+  AssistantTemplateDependencies as XpertTemplatePluginDependencies
+} from './ai/assistant-template-dependencies.model'
 
 export interface PluginMarketplaceContribution {
   /** Project types defined by an App, separate from installation configuration. */

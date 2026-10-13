@@ -1211,5 +1211,22 @@
   "Could not read installation status.": "无法读取安装状态。",
   "Invalid installation request.": "安装请求无效。",
   "Invalid installation response.": "安装响应无效。",
-  "Installation scope changed.": "安装范围已变化，请重新打开模板。"
+  "Installation scope changed.": "安装范围已变化，请重新打开模板。",
+  "Template requirements": "模板能力与依赖",
+  "Legacy template: requirements were not declared.": "兼容旧版模板；能力由 Assistant 配置解析。",
+  "Required": "必需",
+  "Optional": "可选",
+  "Initial files are isolated for each user.": "初始文件按用户隔离，每位用户首次使用时独立创建。",
+  "Initial files are shared by authorized users.": "初始文件由获授权的用户共享。",
+  "Existing files and ledger entries are preserved on retry.": "重试保留已有文件和台账数据。",
+  "Manage template dependencies": "管理模板依赖",
+  "Assistant capabilities from the template. Runtime access depends on current permissions and bindings.": "模板中的 Assistant 能力，运行时仍受当前权限和资源绑定限制。",
+  "Seed memories": "初始记忆",
+  "Server sandbox": "服务端沙箱",
+  "Included with this application": "应用包含",
+  "App composition primary": "入口助手",
+  "App composition specialist": "专业角色助手",
+  "App composition standalone": "独立助手",
+  "App composition workspace": "工作空间",
+  "App composition knowledgebase": "知识库"
 }

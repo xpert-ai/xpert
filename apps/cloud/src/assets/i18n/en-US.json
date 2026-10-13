@@ -721,6 +721,13 @@
           "Tenant": "Tenant",
           "Organization": "Organization",
           "Personal": "Personal"
+        },
+        "Composition": {
+          "primary": "Primary assistant",
+          "specialist": "Specialist assistant",
+          "standalone": "Standalone assistant",
+          "workspace": "Workspace",
+          "knowledgebase": "Knowledge base"
         }
       }
     },
@@ -4832,7 +4839,18 @@
       "Installation interrupted": "Installation interrupted",
       "Installation failed": "Installation failed",
       "PrimaryRequired": "Configure an authorized primary language model in this organization, then refresh settings.",
-      "RefreshSettings": "Refresh settings"
+      "RefreshSettings": "Refresh settings",
+      "Requirements": "Template requirements",
+      "LegacyRequirements": "Legacy template; capabilities are derived from the Assistant configuration.",
+      "Required": "Required",
+      "Optional": "Optional",
+      "UserFiles": "Initial files are isolated for each user.",
+      "SharedFiles": "Initial files are shared by authorized users.",
+      "PreserveFiles": "Existing files and ledger entries are preserved on retry.",
+      "ManageDependencies": "Manage template dependencies",
+      "StructuralCapabilities": "Assistant capabilities from the template. Runtime access depends on current permissions and bindings.",
+      "SeedMemoryCount": "Seed memories: {{count}}",
+      "ServerSandbox": "Server sandbox"
     }
   },
   "STORY_DESIGNER": {

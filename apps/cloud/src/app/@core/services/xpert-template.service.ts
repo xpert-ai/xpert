@@ -58,9 +58,9 @@ export class XpertTemplateService {
     })
   }
 
-  getSetup(id: string, capabilities: string[] = []) {
+  getSetup(id: string, capabilities: string[] = [], workspaceId?: string) {
     return this.#httpClient.get<XpertTemplateSetup>(API_PREFIX + `/xpert-template/${encodeURIComponent(id)}/setup`, {
-      params: { capabilities: capabilities.join(',') }
+      params: { capabilities: capabilities.join(','), ...(workspaceId ? { workspaceId } : {}) }
     })
   }
 

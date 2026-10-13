@@ -1,4 +1,5 @@
-import type { TemplateInstallationStage } from '@xpert-ai/contracts'
+import type { TemplateInstallationStage, TemplateDependencyLock } from '@xpert-ai/contracts'
+import { templateDependencyLocksSchema } from '@xpert-ai/contracts'
 import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { Column, Entity, Index } from 'typeorm'
 import type { InstallationInput } from './template-installation.schema'
@@ -14,6 +15,15 @@ export class TemplateInstallationEntity extends TenantOrganizationBaseEntity {
     @Column({ type: 'varchar', length: 128 }) idempotencyKey: string
     @Column({ type: 'varchar', length: 64 }) requestHash: string
     @Column({ type: 'varchar', length: 64 }) sourceHash: string
+    @Column({
+        type: 'jsonb',
+        nullable: true,
+        transformer: {
+            to: (value: TemplateDependencyLock[] | null) => value,
+            from: (value: unknown) => (value == null ? null : templateDependencyLocksSchema.parse(value))
+        }
+    })
+    dependencyLocks: TemplateDependencyLock[] | null
     @Column({ type: 'varchar', length: 40 }) language: string
     @Column({ type: 'jsonb' }) input: InstallationInput
     /** Reserved before importing, including before the first Assistant INSERT. */

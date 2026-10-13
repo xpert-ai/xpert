@@ -1,7 +1,7 @@
 import { DialogRef } from '@angular/cdk/dialog'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { Router } from '@angular/router'
-import { TranslateService } from '@ngx-translate/core'
+import { TranslateService, TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, of } from 'rxjs'
 
 jest.mock('@cloud/app/@core', () => ({
@@ -15,8 +15,11 @@ jest.mock('@cloud/app/@core', () => ({
 jest.mock('@cloud/app/@core/state', () => ({ Store: class {}, API_PREFIX: '/api' }))
 jest.mock('@xpert-ai/headless-ui', () => ({
   XpDialogFrameImports: [],
-  ZardButtonComponent: class {},
-  ZardInputDirective: class {}
+  ZardButtonComponent: jest.requireActual(
+    '../../../../../../../../packages/ui/src/lib/components/button/button.component'
+  ).ZardButtonComponent,
+  ZardInputDirective: jest.requireActual('../../../../../../../../packages/ui/src/lib/components/input/input.directive')
+    .ZardInputDirective
 }))
 import { CopilotServerService, XpertAPIService, XpertTemplateService, XpertWorkspaceService } from '@cloud/app/@core'
 import { Store } from '@cloud/app/@core/state'
@@ -75,8 +78,9 @@ describe('Web template installation flow', () => {
     localStorage.clear()
     jest.clearAllMocks()
     organization.next('org')
+    templates.getSetup.mockImplementation(() => of(setup))
     await TestBed.configureTestingModule({
-      imports: [TemplateInstallationComponent],
+      imports: [TemplateInstallationComponent, TranslateModule.forRoot()],
       providers: [
         {
           provide: Store,
@@ -99,12 +103,9 @@ describe('Web template installation flow', () => {
         { provide: XpertAPIService, useValue: xperts },
         { provide: CopilotServerService, useValue: primary },
         { provide: Router, useValue: router },
-        { provide: DialogRef, useValue: dialog },
-        { provide: TranslateService, useValue: { currentLang: 'en' } }
+        { provide: DialogRef, useValue: dialog }
       ]
-    })
-      .overrideComponent(TemplateInstallationComponent, { set: { imports: [], template: '' } })
-      .compileComponents()
+    }).compileComponents()
     fixture = TestBed.createComponent(TemplateInstallationComponent)
     fixture.componentRef.setInput('templateId', 'template')
     await settle()
@@ -120,6 +121,24 @@ describe('Web template installation flow', () => {
     expect(component.canStart()).toBe(true)
     component.form.controls.model.setValue('revoked')
     expect(component.canStart()).toBe(false)
+  })
+  it('disables the real install button until missing dependencies are refreshed in the same workspace', async () => {
+    templates.getSetup.mockImplementation(() => of({ ...setup, canInstall: false }))
+    fixture.componentInstance.revision.update((value) => value + 1)
+    await settle()
+    const installButton = () =>
+      Array.from<HTMLButtonElement>(fixture.nativeElement.querySelectorAll('button')).find((button) =>
+        button.textContent.includes('XP.Installation.Install')
+      )
+    expect(installButton()?.disabled).toBe(true)
+    installButton()?.click()
+    await settle()
+    expect(transport.create).not.toHaveBeenCalled()
+    templates.getSetup.mockImplementation(() => of(setup))
+    fixture.componentInstance.revision.update((value) => value + 1)
+    await settle()
+    expect(templates.getSetup).toHaveBeenLastCalledWith('template', [], 'workspace')
+    expect(installButton()?.disabled).toBe(false)
   })
   it('publishes through the durable service and preserves pending configuration when opening either destination', async () => {
     const component = fixture.componentInstance

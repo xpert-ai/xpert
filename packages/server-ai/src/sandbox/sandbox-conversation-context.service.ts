@@ -1,3 +1,4 @@
+import { InitializeAssistantTemplateFilesCommand } from '../xpert/assistant-files/initialize-assistant-template-files.command'
 import { IChatConversation, IUser, SandboxTerminalErrorCode } from '@xpert-ai/contracts'
 import type { TSandboxConfigurable } from '@xpert-ai/contracts'
 import { RequestContext, resolveSandboxBackend } from '@xpert-ai/plugin-sdk'
@@ -186,6 +187,14 @@ export class SandboxConversationContextService {
             environmentId: effectiveSandboxEnvironmentId,
             workspaceDataScope: conversation.xpert?.workspaceDataScope
         }
+        if (
+            create &&
+            (conversation.xpert?.options?.templateDefinition?.manifest?.files ??
+                conversation.xpert?.options?.templateSource?.manifest?.files) &&
+            !effectiveProjectId &&
+            !effectiveSandboxEnvironmentId
+        )
+            await this.commandBus.execute(new InitializeAssistantTemplateFilesCommand(conversation.xpertId, 'runtime'))
         const workArea = create
             ? await this.workAreaResolver.resolve(workAreaInput)
             : await this.workAreaResolver.resolve(workAreaInput, { createDirectories: false })

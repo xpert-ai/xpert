@@ -44,6 +44,7 @@ export type TXpertTemplateDescriptor = {
     contentHash?: string
     xpertName?: string
     capabilities?: AssistantCapabilityDeclaration[]
+    manifest?: import('@xpert-ai/contracts').TemplateManifest
     dependencies?: XpertTemplatePluginDependencies
     application?: PluginTemplateApplicationSummary
 }

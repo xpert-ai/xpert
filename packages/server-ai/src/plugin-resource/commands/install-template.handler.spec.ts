@@ -1,3 +1,10 @@
+import { normalizeAssistantTemplate } from '../../xpert-template/definition/normalize-assistant-template'
+import { AssistantTemplateToolsetBinder } from './assistant-template-toolset-binder.service'
+jest.mock('../template-installation/template-dependency-installer.service', () => ({
+    TemplateDependencyInstaller: class {}
+}))
+jest.mock('../template-installation/template-readiness.service', () => ({ TemplateReadinessService: class {} }))
+import { resolveTemplateRuntimeDependencyComponents } from './template-runtime-dependencies'
 jest.mock('@nestjs/typeorm', () => ({
     InjectRepository: () => () => undefined,
     TypeOrmModule: {
@@ -51,7 +58,7 @@ jest.mock('../plugin-resource-installer.service', () => ({
 }))
 
 import { blankAssistantTemplate } from '../../xpert-template/capabilities/blank-assistant-template'
-import { AiModelTypeEnum, LanguagesEnum, XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, LanguagesEnum, XpertToolsetCategoryEnum, TemplateManifest } from '@xpert-ai/contracts'
 import { EnvironmentService } from '../../environment'
 import { XpertImportCommand } from '../../xpert/commands/import.command'
 import { XpertPublishCommand } from '../../xpert/commands/publish.command'
@@ -462,6 +469,18 @@ describe('PluginTemplateInstallHandler', () => {
         })
     })
 
+    it('applies a declared server sandbox and never selects the local computer provider', async () => {
+        const { handler, commandBus } = createHandler({
+            templateDsl: TEMPLATE_DSL,
+            manifest: { schemaVersion: 1, version: '1', execution: { sandbox: 'server' } },
+            sandboxProviders: [{ type: 'local-shell-sandbox' }, { type: 'nsjail' }]
+        })
+        await handler.execute(new PluginTemplateInstallCommand('template', 'workspace-1', LanguagesEnum.English))
+        const command = commandBus.execute.mock.calls[0]?.[0]
+        if (!(command instanceof XpertImportCommand)) throw new Error('Expected import')
+        expect(command.draft.team.features.sandbox).toEqual({ enabled: true, provider: 'nsjail' })
+    })
+
     it('fills a missing sandbox provider with the first available provider', async () => {
         const { handler, commandBus } = createHandler({
             templateDsl: createSandboxTemplateDsl(),
@@ -537,6 +556,7 @@ describe('PluginTemplateInstallHandler', () => {
 
 function createHandler(options?: {
     toolsets?: any[]
+    manifest?: TemplateManifest
     templateDsl?: string
     sandboxProviders?: Array<{ type: string }>
     defaultEnvironmentId?: string | null
@@ -615,7 +635,7 @@ function createHandler(options?: {
     }
     const installer = {
         resolveRuntimeComponents: jest.fn(() => Promise.resolve([])),
-        installComponentsForXpert: jest.fn(() =>
+        installComponentsForXpert: jest.fn((..._args: unknown[]) =>
             Promise.resolve({
                 installations: [],
                 pendingAuth: [],
@@ -631,6 +651,7 @@ function createHandler(options?: {
             Promise.resolve({
                 id: '@xpert-ai/plugin-canvas:canvas-assistant',
                 pluginName: '@xpert-ai/plugin-canvas',
+                ...(options?.manifest ? { manifest: options.manifest } : {}),
                 export_data: options?.templateDsl ?? TEMPLATE_DSL,
                 ...(options?.templateDsl
                     ? {}
@@ -691,8 +712,29 @@ function createHandler(options?: {
         environmentService as unknown as EnvironmentService,
         commandBus as any,
         xpertService as any,
-        toolsetRepo as any,
-        capabilities as unknown as AssistantCapabilityService
+        new AssistantTemplateToolsetBinder(
+            xpertService as unknown as import('../../xpert/xpert.service').XpertService,
+            toolsetRepo
+        ),
+        capabilities as unknown as AssistantCapabilityService,
+        {
+            prepare: jest.fn(async (template) => ({
+                manifest: template.manifest,
+                normalized: template.manifest ? normalizeAssistantTemplate(template) : undefined,
+                readiness: { legacy: true, canInstall: true, checks: [], dependencies: [] },
+                components: await resolveTemplateRuntimeDependencyComponents(
+                    installer,
+                    template.pluginName,
+                    template.dependencies
+                )
+            }))
+        },
+        {
+            install: async (xpert, components) => ({
+                ...(await installer.installComponentsForXpert(xpert, components)),
+                xpert: undefined
+            })
+        }
     )
 
     return {

@@ -1,3 +1,4 @@
+import { TemplateRequirementsComponent } from './template-requirements.component'
 import { ChangeDetectionStrategy, Component, effect, inject, input, output, signal, untracked } from '@angular/core'
 import { DialogRef } from '@angular/cdk/dialog'
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
@@ -36,7 +37,14 @@ const empty: InstallationSnapshot = {
 @Component({
   selector: 'xp-template-installation',
   standalone: true,
-  imports: [ReactiveFormsModule, TranslateModule, ...XpDialogFrameImports, ZardButtonComponent, ZardInputDirective],
+  imports: [
+    TemplateRequirementsComponent,
+    ReactiveFormsModule,
+    TranslateModule,
+    ...XpDialogFrameImports,
+    ZardButtonComponent,
+    ZardInputDirective
+  ],
   templateUrl: './template-installation.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex min-h-0 flex-1 flex-col overflow-hidden' }
@@ -124,7 +132,7 @@ export class TemplateInstallationComponent {
       if (!organization) return
       this.primaryAvailable.set(false)
       this.error.set('')
-      void firstValueFrom(this.templates.getSetup(id, capabilities))
+      void firstValueFrom(this.templates.getSetup(id, capabilities, this.workspaceId() || undefined))
         .then(async (setup) => {
           const primary =
             setup.requiresModel || setup.requiredModelFeatures.length
@@ -209,6 +217,12 @@ export class TemplateInstallationComponent {
           : {})
       }
     })
+  }
+  async manageDependencies() {
+    await this.router.navigate(['/plugins'], {
+      queryParams: { organizationId: this.organizationId(), workspaceId: this.workspaceId(), category: 'agent-plugins' }
+    })
+    this.dialog.close()
   }
   async open(operation: TemplateInstallation, configure = false) {
     if (!operation.assistantId || operation.status !== 'succeeded') return

@@ -1,3 +1,4 @@
+import { collectAssistantMiddleware } from '../../xpert-template/definition/assistant-capability-structure'
 import { ForbiddenException, Injectable } from '@nestjs/common'
 import {
     agentLabel,
@@ -74,8 +75,8 @@ export class RuntimeCapabilitiesService {
             ? await this.getDisabledSkillIds(xpert, assistantId)
             : new Set<string>()
 
-        const middlewareCapabilities = middlewareNodes
-            .map((node) => {
+        const middlewareCapabilities = (agentKey && graph ? collectAssistantMiddleware(graph, agentKey) : [])
+            .map(({ node, toolNames }) => {
                 const entity = toMiddlewareEntity(node.entity)
                 const provider = normalizeMiddlewareProvider(entity?.provider)
                 if (!entity || !provider || provider === SKILLS_MIDDLEWARE_NAME) {
@@ -100,9 +101,7 @@ export class RuntimeCapabilitiesService {
                               label,
                               description: resolveI18nText(meta?.description),
                               ...(Object.keys(runtimeMeta).length ? { meta: runtimeMeta } : {}),
-                              toolNames: Object.entries(entity.tools ?? {})
-                                  .filter(([, enabled]) => enabled !== false)
-                                  .map(([name]) => name)
+                              toolNames
                           },
                     commands: this.runtimeCommandService.normalizeMiddlewareRuntimeSlashCommands(
                         meta?.slashCommands ?? [],

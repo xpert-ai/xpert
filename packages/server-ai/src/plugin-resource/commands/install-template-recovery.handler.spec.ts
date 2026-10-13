@@ -1,3 +1,11 @@
+import { AssistantTemplateToolsetBinder } from './assistant-template-toolset-binder.service'
+jest.mock('../template-installation/template-dependency-installer.service', () => ({
+    TemplateDependencyInstaller: class {}
+}))
+import { TemplateDependencyInstaller } from '../template-installation/template-dependency-installer.service'
+jest.mock('../template-installation/template-readiness.service', () => ({ TemplateReadinessService: class {} }))
+import { TemplateReadinessService } from '../template-installation/template-readiness.service'
+import { resolveTemplateRuntimeDependencyComponents } from './template-runtime-dependencies'
 jest.mock('@nestjs/typeorm', () => ({
     ...jest.requireActual('@nestjs/typeorm'),
     TypeOrmModule: {
@@ -115,8 +123,12 @@ async function createFixture() {
         getTemplateDetail: jest.fn(async () => ({ id: templateId, export_data: JSON.stringify(draft) }))
     }
     const installer = {
+        resolveRuntimeComponents: jest.fn(async () => []),
         installComponentsForXpert: jest.fn(
-            async (): Promise<PluginResourceInstallResult> => ({ installations: [], pendingAuth: [] })
+            async (..._args: unknown[]): Promise<PluginResourceInstallResult> => ({
+                installations: [],
+                pendingAuth: []
+            })
         )
     }
     const initialize = jest.fn(async () => undefined)
@@ -140,6 +152,25 @@ async function createFixture() {
     const module = await Test.createTestingModule({
         providers: [
             PluginTemplateInstallHandler,
+            AssistantTemplateToolsetBinder,
+            {
+                provide: TemplateDependencyInstaller,
+                useValue: { install: (xpert, components) => installer.installComponentsForXpert(xpert, components) }
+            },
+            {
+                provide: TemplateReadinessService,
+                useValue: {
+                    prepare: jest.fn(async (template) => ({
+                        manifest: template.manifest,
+                        readiness: { legacy: true, canInstall: true, checks: [], dependencies: [] },
+                        components: await resolveTemplateRuntimeDependencyComponents(
+                            installer,
+                            template.pluginName,
+                            template.dependencies
+                        )
+                    }))
+                }
+            },
             { provide: PluginResourceInstallerService, useValue: installer },
             { provide: XpertWorkspaceAccessService, useValue: workspaceAccess },
             { provide: XpertTemplateService, useValue: templates },

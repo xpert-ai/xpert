@@ -11,14 +11,11 @@ import {
  * plugin runtime components that can be attached to an Xpert draft.
  */
 export async function resolveTemplateRuntimeDependencyComponents(
-    installer: PluginResourceInstallerService,
+    installer: Pick<PluginResourceInstallerService, 'resolveRuntimeComponents'>,
     defaultPluginName: string | undefined,
     dependencies?: XpertTemplatePluginDependencies
 ): Promise<RuntimeComponent[]> {
     const pluginName = normalizePluginName(defaultPluginName ?? '')
-    if (!pluginName) {
-        return []
-    }
 
     const components: PluginResourceInstallComponent[] = []
     for (const item of dependencies?.skills ?? []) {

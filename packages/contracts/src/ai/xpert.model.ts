@@ -325,6 +325,8 @@ export type TXpertWorkbenchOptions = {
  * `<plugin package>:<template key>` so a later sync resolves the same provider.
  */
 export type TXpertTemplateSource = {
+  manifest?: import('./template-manifest.model').TemplateManifest
+  dependencyLocks?: import('./template-manifest.model').TemplateDependencyLock[]
   templateId: string
   templateKey: string
   pluginName?: string
@@ -354,6 +356,8 @@ export type TXpertDataXpertOptions = {
 }
 
 export type TXpertOptions = {
+  templateDefinition?: import('./assistant-template.model').AssistantTemplateMetadata
+  templateDependencyLocks?: import('./template-installation.model').TemplateDependencyLock[]
   /** Default ChatKit message display for this Assistant. Omit to inherit the host application's default. */
   messagePresentation?: {
     mode?: 'transcript' | 'bubbles'

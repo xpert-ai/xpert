@@ -1044,7 +1044,12 @@
         "McpAppSessionExpired": "交互会话已过期，历史结果仍可查看。",
         "McpAppSessionUnavailable": "此应用无法恢复交互，历史结果仍可查看。",
         "McpAppMessageMismatch": "此应用不属于所请求的消息。",
-        "McpAppHistoryQueryInvalid": "需要提供有效的消息标识。"
+        "McpAppHistoryQueryInvalid": "需要提供有效的消息标识。",
+        "AssistantTemplateDeclarationConflict": "Assistant 模板声明冲突或暂不支持：{{field}}",
+        "TemplateRequirementsUnmet": "模板必需能力或依赖尚未就绪，请查看安装检查。",
+        "TemplateFileScopeConflict": "文件隔离策略必须与模板声明一致。",
+        "TemplateDependencyBusy": "模板依赖正在由另一个安装更新，请稍后重试。",
+        "TemplateDependencyChanged": "此助手绑定的插件或资源版本已变化，请恢复绑定版本后再运行。"
     },
     "Mcp": {
         "Test": {
@@ -1215,5 +1220,12 @@
         "succeeded": "任务「{{title}}」执行成功，等待验收。",
         "failed": "任务「{{title}}」执行失败。",
         "cancelled": "任务「{{title}}」已取消。"
+    },
+    "TemplateRequirement": {
+        "ready": "已就绪",
+        "unsupported": "当前版本尚不支持",
+        "missing": "缺失，请补齐后刷新",
+        "incompatible": "版本或声明不兼容",
+        "pending-configuration": "安装后需要配置"
     }
 }

@@ -1,3 +1,4 @@
+import { templateManifestSchema, templateDependencyLocksSchema } from '@xpert-ai/contracts'
 // Invariants: Assistant files belong to a data volume, not an XpertWorkspace entity.
 // Runtime access checks the exact published Assistant and current user grant;
 // authoring access is explicit and never a fallback after runtime denial.
@@ -41,9 +42,20 @@ export class AssistantFileAccessService implements ICommandHandler<ResolveAssist
             xpertId: xpert.id,
             workspaceDataScope: xpert.workspaceDataScope
         })
+        const options = command.entry === 'authoring' ? (xpert.draft?.team?.options ?? xpert.options) : xpert.options
+        const source = options?.templateSource
+        const declaredManifest = options?.templateDefinition?.manifest ?? source?.manifest
+        const manifest = declaredManifest === undefined ? undefined : templateManifestSchema.parse(declaredManifest)
+        const locks = options?.templateDependencyLocks ?? source?.dependencyLocks
+        if (manifest?.files && manifest.files.scope !== xpert.workspaceDataScope) throw this.denied()
         // Explicit file policy: authorized users collaborate with full CRUD in shared volumes;
         // user-isolated volumes grant the same operations only within the current user's root.
-        return { scope, capabilities: { canList: true, canRead: true, canWrite: true, canDelete: true } }
+        return {
+            scope,
+            dependencyLocks: locks ? templateDependencyLocksSchema.parse(locks) : undefined,
+            initialFiles: manifest?.files,
+            capabilities: { canList: true, canRead: true, canWrite: true, canDelete: true }
+        }
     }
 
     private denied() {

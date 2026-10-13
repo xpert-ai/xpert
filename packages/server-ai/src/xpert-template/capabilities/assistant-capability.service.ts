@@ -1,4 +1,6 @@
+import { normalizeAssistantTemplate } from '../definition/normalize-assistant-template'
 import {
+    templateManifestSchema,
     AiModelTypeEnum,
     RealtimeVoiceSelection,
     AssistantCapabilityConfiguration,
@@ -90,9 +92,21 @@ export class AssistantCapabilityService {
         installationDraft?: TXpertTeamDraft
     ): Promise<XpertTemplateSetup> {
         const { active, options } = this.resolve(template, selected)
+        let manifestValue = template.manifest
+        if (!manifestValue && template.export_data) {
+            try {
+                manifestValue = normalizeAssistantTemplate(template).manifest
+            } catch {
+                // The common readiness check reports invalid definitions; do not conceal that result with a setup error.
+            }
+        }
+        const manifest = templateManifestSchema.safeParse(manifestValue)
+        const modelFeatures = manifest.success ? (manifest.data.execution?.modelFeatures ?? []) : []
         const result: XpertTemplateSetup = {
             optionalCapabilities: options,
-            requiredModelFeatures: [...new Set(active.flatMap((provider) => provider.requiredModelFeatures ?? []))],
+            requiredModelFeatures: [
+                ...new Set([...modelFeatures, ...active.flatMap((provider) => provider.requiredModelFeatures ?? [])])
+            ],
             models: [],
             canInstall: true
         }

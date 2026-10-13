@@ -42,6 +42,8 @@ export class PluginTemplateInstallCommand extends Command<PluginResourceInstallR
             /** Server-reserved new identity, persisted before the first import write. */
             newXpertId?: string
             expectedSourceHash?: string
+            dependencyLocks?: import('@xpert-ai/contracts').TemplateDependencyLock[] | null
+            onDependenciesLocked?: (locks: import('@xpert-ai/contracts').TemplateDependencyLock[]) => Promise<void>
             publicationCompleted?: boolean
             onPublished?: () => Promise<void>
             onImported: (xpert: { id: string }) => Promise<void>

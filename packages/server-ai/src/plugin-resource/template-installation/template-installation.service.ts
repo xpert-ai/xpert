@@ -1,9 +1,10 @@
+import { TemplateReadinessService } from './template-readiness.service'
 // The database lock owns execution; the row owns recovery. No JWT or captured user is persisted.
 // A dead API releases its session lock. GET then reports interrupted; explicit retry reauthorizes.
 import { IUser, LanguagesEnum, TemplateInstallation } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { ResolveUserOrganizationAccessCommand } from '@xpert-ai/server-core'
-import { ConflictException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { ConflictException, ForbiddenException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { DataSource, QueryRunner } from 'typeorm'
 import { randomUUID } from 'node:crypto'
@@ -31,7 +32,8 @@ export class TemplateInstallationService {
         private readonly commands: CommandBus,
         private readonly workspaces: XpertWorkspaceAccessService,
         private readonly templates: XpertTemplateService,
-        private readonly locks: TemplateInstallationLocks
+        private readonly locks: TemplateInstallationLocks,
+        @Inject(TemplateReadinessService) private readonly readiness: Pick<TemplateReadinessService, 'prepare'>
     ) {}
 
     private get repository() {
@@ -65,6 +67,7 @@ export class TemplateInstallationService {
                 language as LanguagesEnum,
                 input.locale ? { locale: input.locale } : undefined
             )
+            const prepared = await this.readiness.prepare(template, input.workspaceId)
             const candidate = this.repository.create({
                 ...scope,
                 id: randomUUID(),
@@ -72,6 +75,7 @@ export class TemplateInstallationService {
                 idempotencyKey: input.idempotencyKey,
                 requestHash,
                 sourceHash: templateInstallationSourceHash(template),
+                dependencyLocks: prepared.readiness.dependencies,
                 language,
                 input,
                 assistantId: randomUUID(),
@@ -218,6 +222,8 @@ export class TemplateInstallationService {
                         resumeXpertId: row.imported ? row.assistantId : undefined,
                         newXpertId: row.imported ? undefined : row.assistantId,
                         expectedSourceHash: row.sourceHash,
+                        dependencyLocks: row.dependencyLocks,
+                        onDependenciesLocked: async (dependencyLocks) => checkpoint({ dependencyLocks }),
                         publicationCompleted: row.publicationCompleted,
                         onPublished: async () => checkpoint({ publicationCompleted: true }),
                         onImported: async (xpert) => {
@@ -266,6 +272,7 @@ export class TemplateInstallationService {
         const status = row.status === 'running' && !running ? 'interrupted' : row.status
         return {
             id: row.id,
+            dependencyLocks: row.dependencyLocks ?? undefined,
             templateId: row.input.templateId,
             workspaceId: row.workspaceId,
             status,

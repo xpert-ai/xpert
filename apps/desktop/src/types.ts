@@ -290,7 +290,7 @@ export interface HostMethods {
   discardApplicationConfiguration: { input: ApplicationInput; output: ApplicationSetup }
   templateWorkspaces: { input: undefined; output: WorkspaceOption[] }
   templateSetup: {
-    input: { id: string; capabilities?: string[] }
+    input: { id: string; capabilities?: string[]; workspaceId?: string }
     output: {
       workspaces: WorkspaceOption[]
       hasPrimaryLanguageModel: boolean

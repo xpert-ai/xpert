@@ -1,3 +1,9 @@
+import { stringify } from 'yaml'
+import {
+    PrepareAssistantDefinitionCommand,
+    InstallAssistantDefinitionDependenciesCommand
+} from '../../../plugin-resource/template-installation/template-readiness.command'
+import type { TXpertTemplate } from '@xpert-ai/contracts'
 import {
     AiModelTypeEnum,
     AiProviderRole,
@@ -19,8 +25,8 @@ import {
     TXpertTeamDraft
 } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/server-core'
-import { BadRequestException } from '@nestjs/common'
-import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
+import { BadRequestException, Inject } from '@nestjs/common'
+import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { t } from 'i18next'
 import { groupBy, omit } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
@@ -92,7 +98,8 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
         private readonly xpertService: XpertService,
         private readonly i18n: I18nService,
         private readonly queryBus: QueryBus,
-        private readonly xpertAgentService: XpertAgentService
+        private readonly xpertAgentService: XpertAgentService,
+        @Inject(CommandBus) private readonly commands: Pick<CommandBus, 'execute'>
     ) {}
 
     /**
@@ -109,31 +116,77 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
             throw new BadRequestException(t('server-ai:Error.PrimaryAgentNotFound'))
         }
 
+        // Imported source data cannot supply installation receipts or dependency locks.
+        draft.team.options = { ...draft.team.options }
+        delete draft.team.options.templateDefinition
+        delete draft.team.options.templateDependencyLocks
+        let portableTemplate: TXpertTemplate | undefined
+        let locks = command.options.dependencyLocks
+        let definition = command.options.templateDefinition
+        if (draft.template && command.options.targetXpertId) {
+            const target = await this.loadXpertById(command.options.targetXpertId)
+            draft.team.workspaceId = target.workspaceId
+            const requestedScope = draft.template.manifest?.files?.scope
+            if (requestedScope && requestedScope !== target.workspaceDataScope)
+                throw new BadRequestException(t('server-ai:Error.TemplateFileScopeConflict'))
+        }
+        if (draft.template && !definition) {
+            portableTemplate = {
+                id: 'imported-assistant',
+                name: draft.team.name,
+                title: draft.team.title ?? '',
+                description: '',
+                category: '',
+                copyright: '',
+                avatar: draft.team.avatar,
+                type: draft.team.type,
+                export_data: stringify(draft)
+            }
+            const prepared = await this.commands.execute(
+                new PrepareAssistantDefinitionCommand(portableTemplate, draft.team.workspaceId)
+            )
+            definition = prepared.definition.template
+            locks = prepared.locks
+        }
+        if (definition) draft.team.options.templateDefinition = definition
+        if (locks) draft.team.options.templateDependencyLocks = locks
+        const dataScope = definition?.manifest?.files?.scope ?? command.options.workspaceDataScope
         if (draft.team.features?.sandbox?.enabled) {
+            const providers = await this.xpertService.getSandboxProviders()
             draft.team.features = normalizeImportedSandboxFeatures(
                 draft.team.features,
-                await this.xpertService.getSandboxProviders()
+                definition ? providers.filter(({ type }) => type !== 'local-shell-sandbox') : providers
             )
         }
 
         const templateSource = this.resolveImportTemplateSource(command, draft)
 
         if (command.options?.targetXpertId) {
-            return this.overwriteExistingXpertDraft(
+            const updated = await this.overwriteExistingXpertDraft(
                 command.options.targetXpertId,
                 draft,
                 command.options?.normalizeCopilotModels === true,
                 templateSource
             )
+            if (portableTemplate)
+                await this.commands.execute(
+                    new InstallAssistantDefinitionDependenciesCommand(portableTemplate, updated, locks ?? [])
+                )
+            return updated
         }
 
-        return this.importAsNewXpert(
+        const imported = await this.importAsNewXpert(
             draft,
             command.options?.normalizeCopilotModels === true,
             templateSource,
-            command.options.workspaceDataScope,
+            dataScope,
             command.options.newXpertId
         )
+        if (portableTemplate)
+            await this.commands.execute(
+                new InstallAssistantDefinitionDependenciesCommand(portableTemplate, imported, locks ?? [])
+            )
+        return imported
     }
 
     /**
@@ -187,7 +240,7 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
         }
 
         await this.xpertService.saveDraft(xpert.id, {
-            ...omit(nextDraft, 'memories'),
+            ...omit(nextDraft, 'memories', 'template'),
             team: xpert
         })
 
@@ -279,7 +332,7 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
         const nextDraft = replaceAgentInDraft(
             {
                 ...(currentXpert.draft ?? {}),
-                ...omit(draft, 'memories'),
+                ...omit(draft, 'memories', 'template'),
                 team: nextTeam,
                 nodes: draft.nodes ?? [],
                 connections: draft.connections ?? []

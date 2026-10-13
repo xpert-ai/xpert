@@ -25,6 +25,7 @@ export interface ApplicationItem extends CatalogBase {
   botId: string | null
   initializationAccess: string
   summary: string
+  composition?: { key: string; kind: string; role?: string; title: string }[]
   steps: string[]
   screenshots: string[]
 }
@@ -99,6 +100,7 @@ export interface VoiceModelOption extends ModelOption {
 }
 
 export interface TemplatePreflight {
+  readiness?: import('@xpert-ai/contracts').TemplateReadiness
   realtimeModels?: VoiceModelOption[]
   canInstall: boolean
   reason: string

@@ -8,7 +8,6 @@ import {
   PluginTargetAppMeta,
   TAvatar,
   type TPromptWorkflow,
-  XpertTemplatePluginDependencies,
   XpertTypeEnum
 } from '@xpert-ai/contracts'
 import type { DynamicModule, INestApplicationContext } from '@nestjs/common'
@@ -106,6 +105,7 @@ export interface XpertPlugin<TConfig extends object = any> extends PluginLifecyc
 }
 
 export interface XpertTemplateContribution {
+  manifest?: import('@xpert-ai/contracts').TemplateManifest
   key: string
   id?: string
   name?: string
@@ -133,7 +133,7 @@ export interface XpertTemplateContribution {
   contentHash?: string
   xpertName?: string
   capabilities?: AssistantCapabilityDeclaration[]
-  dependencies?: XpertTemplatePluginDependencies
+  dependencies?: import('@xpert-ai/contracts').AssistantTemplateDependencies
   [key: string]: unknown
 }
 

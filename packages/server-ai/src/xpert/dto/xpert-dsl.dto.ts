@@ -137,6 +137,9 @@ export class XpertDraftDslDTO implements TXpertTeamDraft {
     connections: TXpertTeamConnection[]
 
     @Expose()
+    template?: import('@xpert-ai/contracts').AssistantTemplateMetadata
+
+    @Expose()
     memories?: any[]
 
     constructor(partial: Partial<XpertDraftDslDTO>) {

@@ -214,14 +214,19 @@ async function mountCatalog(t, handler, onUse = async () => {}) {
         if (Object.hasOwn(imports, id)) return imports[id]
         if (id === '../host') return host
         if (id === '../i18n') return imports['./i18n']
-        if (id === '../../electron/workbench-platform.mjs')
+        if (['../../electron/workbench-platform.mjs', '../electron/workbench-platform.mjs'].includes(id))
           return { platformCommandUrl: () => 'http://localhost/connectors' }
         if (['react', 'react/jsx-runtime'].includes(id)) return require(id)
         if (['./CatalogSetup', './PluginCatalog'].includes(id)) return renderer(id.slice(2) + '.tsx')
         if (id === './catalog-labels') return renderer('catalog-labels.ts')
         if (id.endsWith('/application-toolsets')) return require('../src/catalog/application-toolsets.ts')
         if (
-          ['./catalog/ApplicationToolsets', './ApplicationToolsetEditor', './catalog/TemplateInstallation'].includes(id)
+          [
+            './catalog/ApplicationToolsets',
+            './ApplicationToolsetEditor',
+            './catalog/TemplateInstallation',
+            './catalog/TemplateManifestDetails'
+          ].includes(id)
         )
           return renderer(posix.normalize(posix.join(dirname(file), id)) + '.tsx')
         throw new Error(`Unexpected import: ${id}`)
@@ -536,6 +541,48 @@ const templateResult = (method, input) => {
   if (method === 'listTemplateInstallations') return { items: [], total: 0 }
   return defaultResult(method, input)
 }
+test('required missing template dependencies block install and display the selected version and file scope', async (t) => {
+  const view = await mountCatalog(t, (method, input) => {
+    const result = templateResult(method, input)
+    if (method === 'templateSetup')
+      return {
+        ...result,
+        preflight: {
+          ...result.preflight,
+          canInstall: false,
+          reason: 'Missing dependency',
+          readiness: {
+            legacy: false,
+            canInstall: false,
+            manifestVersion: '1.0.0',
+            dependencies: [],
+            checks: [
+              {
+                kind: 'plugin',
+                key: 'required-plugin',
+                required: true,
+                status: 'missing',
+                message: 'Missing dependency',
+                version: '2.0.0'
+              }
+            ],
+            files: { scope: 'user', entries: [{ kind: 'ledger', path: 'office/tasks.json', version: '1.0' }] }
+          }
+        }
+      }
+    return result
+  })
+  await view.click('Agent templates')
+  await view.click('Initialize & install')
+  assert.match(document.body.textContent, /required-plugin/)
+  assert.match(document.body.textContent, /2\.0\.0/)
+  assert.match(document.body.textContent, /office\/tasks.json/)
+  assert.equal(
+    [...document.querySelectorAll('button')].find((button) => button.textContent.includes('Install & use')).disabled,
+    true
+  )
+  assert.equal(view.count('createTemplateInstallation'), 0)
+})
 test('template setup resumes the same failed operation and restores it when reopened without reinstalling', async (t) => {
   let current = installation
   let opened

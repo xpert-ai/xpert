@@ -16,6 +16,8 @@ export type XpertImportCommandOptions = {
     normalizeCopilotModels?: boolean
     templateId?: string
     sourceTemplateId?: string
+    templateDefinition?: import('@xpert-ai/contracts').AssistantTemplateMetadata
+    dependencyLocks?: import('@xpert-ai/contracts').TemplateDependencyLock[]
     templateSource?: TXpertTemplateSource
     /** Local workspace ownership selected by the creation entrypoint; never read from DSL. */
     workspaceDataScope?: XpertWorkspaceDataScope

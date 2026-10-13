@@ -1,3 +1,4 @@
+import { applicationComposition } from './plugin-application-composition'
 import { effectiveLoadedPlugins } from './effective-loaded-plugins'
 import { PluginApplicationSuiteService } from './plugin-application-suite.service'
 import { modelSelectionMetadata } from '../copilot-model/model-selection-metadata'
@@ -133,6 +134,7 @@ export class PluginApplicationService {
         const resolved = this.resolveApplication(pluginName, appName)
         return {
             application: resolved.application,
+            composition: applicationComposition(resolved.application),
             status: await this.getStatusForApplication(resolved.application),
             preflight: await this.getPreflightForApplication(resolved.application)
         }

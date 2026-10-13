@@ -1211,5 +1211,22 @@
   "Could not read installation status.": "Could not read installation status.",
   "Invalid installation request.": "Invalid installation request.",
   "Invalid installation response.": "Invalid installation response.",
-  "Installation scope changed.": "Installation scope changed."
+  "Installation scope changed.": "Installation scope changed.",
+  "Template requirements": "Template requirements",
+  "Legacy template: requirements were not declared.": "Legacy template; capabilities are derived from the Assistant configuration.",
+  "Required": "Required",
+  "Optional": "Optional",
+  "Initial files are isolated for each user.": "Initial files are isolated for each user.",
+  "Initial files are shared by authorized users.": "Initial files are shared by authorized users.",
+  "Existing files and ledger entries are preserved on retry.": "Existing files and ledger entries are preserved on retry.",
+  "Manage template dependencies": "Manage template dependencies",
+  "Assistant capabilities from the template. Runtime access depends on current permissions and bindings.": "Assistant capabilities from the template. Runtime access depends on current permissions and bindings.",
+  "Seed memories": "Seed memories",
+  "Server sandbox": "Server sandbox",
+  "Included with this application": "Included with this application",
+  "App composition primary": "Primary assistant",
+  "App composition specialist": "Specialist assistant",
+  "App composition standalone": "Standalone assistant",
+  "App composition workspace": "Workspace",
+  "App composition knowledgebase": "Knowledge base"
 }

@@ -1,3 +1,16 @@
+import { AssistantTemplateToolsetBinder } from './commands/assistant-template-toolset-binder.service'
+import { XpertAgentModule } from '../xpert-agent/xpert-agent.module'
+import { SandboxModule } from '../sandbox/sandbox.module'
+import {
+    PrepareAssistantDefinitionHandler,
+    InstallAssistantDefinitionDependenciesHandler
+} from './template-installation/assistant-definition-import.handler'
+import { TemplateDependencyInstaller } from './template-installation/template-dependency-installer.service'
+import {
+    TemplateReadinessService,
+    InspectTemplateReadinessHandler,
+    AssertAssistantTemplateDependenciesHandler
+} from './template-installation/template-readiness.service'
 import { TemplateInstallationController } from './template-installation/template-installation.controller'
 import { TemplateInstallationService } from './template-installation/template-installation.service'
 import { TemplateInstallationEntity } from './template-installation/template-installation.entity'
@@ -40,6 +53,8 @@ import { PluginMcpServerService } from './plugin-mcp-server.service'
 
 @Module({
     imports: [
+        forwardRef(() => XpertAgentModule),
+        forwardRef(() => SandboxModule),
         TypeOrmModule.forFeature([
             PluginResourceInstallation,
             TemplateInstallationEntity,
@@ -67,6 +82,13 @@ import { PluginMcpServerService } from './plugin-mcp-server.service'
     ],
     controllers: [PluginResourceController, PluginApplicationController, TemplateInstallationController],
     providers: [
+        AssistantTemplateToolsetBinder,
+        PrepareAssistantDefinitionHandler,
+        InstallAssistantDefinitionDependenciesHandler,
+        TemplateDependencyInstaller,
+        TemplateReadinessService,
+        InspectTemplateReadinessHandler,
+        AssertAssistantTemplateDependenciesHandler,
         TemplateInstallationService,
         TemplateInstallationLocks,
         PluginApplicationSetupService,

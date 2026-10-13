@@ -1211,5 +1211,22 @@
   "Could not read installation status.": "インストール状態を取得できませんでした。",
   "Invalid installation request.": "インストール要求が無効です。",
   "Invalid installation response.": "インストール応答が無効です。",
-  "Installation scope changed.": "インストール範囲が変更されました。"
+  "Installation scope changed.": "インストール範囲が変更されました。",
+  "Template requirements": "テンプレートの機能と依存関係",
+  "Legacy template: requirements were not declared.": "旧形式のテンプレート。Assistant 設定から機能を解析します。",
+  "Required": "必須",
+  "Optional": "任意",
+  "Initial files are isolated for each user.": "初期ファイルはユーザーごとに分離して作成されます。",
+  "Initial files are shared by authorized users.": "初期ファイルはアクセス権のあるユーザー間で共有されます。",
+  "Existing files and ledger entries are preserved on retry.": "再試行しても既存のファイルや台帳データは保持されます。",
+  "Manage template dependencies": "テンプレートの依存関係を管理",
+  "Assistant capabilities from the template. Runtime access depends on current permissions and bindings.": "テンプレートの Assistant 機能。実行時は現在の権限とリソース設定が適用されます。",
+  "Seed memories": "初期メモリー",
+  "Server sandbox": "サーバーサンドボックス",
+  "Included with this application": "このアプリに含まれるもの",
+  "App composition primary": "メインアシスタント",
+  "App composition specialist": "専門アシスタント",
+  "App composition standalone": "独立アシスタント",
+  "App composition workspace": "ワークスペース",
+  "App composition knowledgebase": "ナレッジベース"
 }

@@ -1,5 +1,6 @@
 <div xpDialogBody class="space-y-6">
   <p class="text-sm text-text-secondary">{{ template()?.description }}</p>
+  <xp-template-requirements [readiness]="setup()?.readiness" (manage)="manageDependencies()" />
   <form [formGroup]="form" class="space-y-4">
     <label class="block space-y-2">
       <span>{{ 'XP.Installation.Workspace' | translate: { Default: 'Target workspace' } }}</span>
@@ -121,11 +122,11 @@
         </p>
       }
       <div xpDialogActionGroup="inline" class="flex flex-wrap gap-2">
-        <button z-button zType="outline" [disabled]="state().busy" (click)="client.refresh()">
+        <button z-button zType="outline" [zDisabled]="state().busy" (click)="client.refresh()">
           {{ 'XP.Installation.Refresh' | translate: { Default: 'Refresh status' } }}
         </button>
         @if (operation.retryable) {
-          <button z-button [disabled]="state().busy" (click)="client.retry()">
+          <button z-button [zDisabled]="state().busy" (click)="client.retry()">
             {{ 'XP.Installation.Resume' | translate: { Default: 'Resume installation' } }}
           </button>
         }
@@ -140,7 +141,7 @@
           }
         }
         @if (operation.status !== 'running') {
-          <button z-button zType="outline" [disabled]="state().busy" (click)="client.newInstance()">
+          <button z-button zType="outline" [zDisabled]="state().busy" (click)="client.newInstance()">
             {{ 'XP.Installation.Another' | translate: { Default: 'Create another assistant' } }}
           </button>
         }
@@ -155,7 +156,7 @@
       }}
     </p>
     <div xpDialogActionGroup="inline">
-      <button z-button [disabled]="state().busy" (click)="client.refresh()">
+      <button z-button [zDisabled]="state().busy" (click)="client.refresh()">
         {{ 'XP.Installation.Check' | translate: { Default: 'Check installation status' } }}
       </button>
     </div>
@@ -178,7 +179,7 @@
       {{ 'XP.Installation.History' | translate: { Default: 'Installation history' } }}
     </summary>
     <div xpDialogActionGroup="inline" class="my-3">
-      <button z-button zType="outline" [disabled]="state().busy" (click)="client?.history()">
+      <button z-button zType="outline" [zDisabled]="state().busy" (click)="client?.history()">
         {{ 'XP.Installation.RefreshHistory' | translate: { Default: 'Refresh history' } }}
       </button>
     </div>
@@ -207,12 +208,12 @@
     {{ 'XP.Installation.Back' | translate: { Default: 'Back' } }}
   </button>
   @if (!state().operation && !state().uncertain) {
-    <button z-button zType="outline" [disabled]="state().busy" (click)="revision.set(revision() + 1)">
+    <button z-button zType="outline" [zDisabled]="state().busy" (click)="revision.set(revision() + 1)">
       {{ 'XP.Installation.RefreshSettings' | translate: { Default: 'Refresh settings' } }}
     </button>
   }
   @if (!state().operation && !state().uncertain) {
-    <button z-button [disabled]="!canStart()" (click)="start()">
+    <button z-button [zDisabled]="!canStart()" (click)="start()">
       {{ 'XP.Installation.Install' | translate: { Default: 'Install and publish' } }}
     </button>
   }

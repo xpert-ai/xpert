@@ -24,7 +24,7 @@ export function paginateTemplateCatalog(
     )
     return {
         items: matches.slice(offset, offset + limit).map((template) => {
-            const { export_data, ...summary } = template
+            const { export_data, manifest, ...summary } = template
             // Old provider objects may retain the SDK input alias after normalization.
             if ('dslContent' in summary) delete summary.dslContent
             // Plugin-wide marketplace content can contain hundreds of sibling templates.
