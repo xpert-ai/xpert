@@ -1,5 +1,22 @@
 # @xpert-ai/desktop
 
+## 0.3.2
+
+### Patch Changes
+
+- e42fc94: Make tenant and organization Agent Plugin installations directly available in the ChatKit Plugins menu. Remove workspace publishing and addition from Cloud and Desktop, prepare selected runtime resources on demand, and retain existing conversation versions, expert mappings and Connector configuration.
+
+  Tenant packages inherit into organizations without sharing Connector credentials. Existing databases created with the original Agent Plugin SQL schema should apply `20261012-agent-plugin-installation-scope.sql` to allow tenant-scoped records.
+
+- 7de8eae: Update ChatKit packages to 0.14.2 to preserve pending project confirmation when restoring conversations, and synchronize the API, Web and Desktop deployment lockfiles.
+- d9db433: Align desktop application setup with Xpert tool requirements: select existing configurations, create or edit app-managed tools, resume or discard unfinished configuration, and submit validated tool selections during installation. Show actionable server validation errors.
+- d9db433: Reuse the desktop model cascader across application, template and assistant settings with custom field labels. Preserve authorized provider logos from Xpert, connection, capability and context metadata for model search and comparison without exposing credentials or changing installation selections.
+
+  Keep the portaled model list scrollable inside desktop dialogs while preserving focus and background scroll locking.
+
+- f816d25: Update the ChatKit packages consumed by Xpert to 0.14.1 and synchronize the API, Web and Desktop deployment lockfiles.
+  - @xpert-ai/desktop-protocol@0.3.2
+
 ## 0.3.1
 
 ### Patch Changes
