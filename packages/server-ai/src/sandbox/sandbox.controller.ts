@@ -64,6 +64,7 @@ import { SandboxPreviewAuthGuard } from './sandbox-preview-auth.guard'
 import { SandboxPreviewSessionService } from './sandbox-preview-session.service'
 import { SandboxManagedServiceError } from './sandbox-managed-service.error'
 import { SandboxManagedServiceService } from './sandbox-managed-service.service'
+import { ResolveAssistantFileAccessCommand } from '../xpert/assistant-files/resolve-assistant-file-access.command'
 
 @ApiTags('Sandbox')
 @ApiBearerAuth()
@@ -214,7 +215,7 @@ export class SandboxController {
         const xpertId = this.normalizeVolumeScopeIdentifier(scope.xpertId, 'xpertId')
         const tenantId = RequestContext.currentTenantId()
         const currentUserId = RequestContext.currentUserId()
-        if (!tenantId || !currentUserId || currentUserId !== userId) {
+        if (!tenantId || !currentUserId) {
             throw new ForbiddenException(
                 t('server-ai:Error.UserXpertVolumePrivate', {
                     defaultValue: 'User-isolated Xpert files are private to the current user'
@@ -229,6 +230,16 @@ export class SandboxController {
             )
         }
 
+        if (currentUserId !== userId) {
+            const { scope: actorScope } = await this.commandBus.execute(
+                new ResolveAssistantFileAccessCommand(xpertId, 'read', 'runtime')
+            )
+            if (actorScope.catalog !== 'user-xperts' || actorScope.userId !== userId) {
+                throw new ForbiddenException(t('server-ai:Error.WorkspaceFileAccessDenied'))
+            }
+        }
+
+        // Preserve the URL's physical location so historical technical-account links keep their original bytes.
         const volume = this.volumeClient.resolve({ ...scope, userId, xpertId, tenantId })
         const subpath = this.normalizeVolumeRequestSubpath(paths)
         return this.serveVolumeFile(volume.serverRoot, subpath, download, req, res)

@@ -21,6 +21,7 @@ import { SandboxPreviewSessionService } from './sandbox-preview-session.service'
 import { XpertProjectAccessService } from '../xpert-project/services/project-access.service'
 import { SandboxManagedServiceError } from './sandbox-managed-service.error'
 import { SandboxController } from './sandbox.controller'
+import { ResolveAssistantFileAccessCommand } from '../xpert/assistant-files/resolve-assistant-file-access.command'
 
 jest.mock('@xpert-ai/server-core', () => ({
     GetDefaultTenantQuery: class GetDefaultTenantQuery {},
@@ -394,6 +395,11 @@ describe('SandboxController', () => {
     })
 
     it('rejects cross-user and cross-tenant access to user-xpert files', async () => {
+        commandBus.execute.mockImplementation(async (command) =>
+            command instanceof ResolveAssistantFileAccessCommand
+                ? { scope: { catalog: 'user-xperts', userId: 'user-1' } }
+                : { userId: 'user-2' }
+        )
         await expect(
             controller.getUserXpertVolumeFile(
                 'user-2',
@@ -417,6 +423,57 @@ describe('SandboxController', () => {
                 {} as Response
             )
         ).rejects.toBeInstanceOf(ForbiddenException)
+        expect(volumeClient.resolve).not.toHaveBeenCalled()
+    })
+
+    it.each([['technical', 'creator']])(
+        'allows %s to read the related %s file URL without redirecting historical bytes',
+        async (actor, requested) => {
+            jest.mocked(RequestContext.currentUserId).mockReturnValue(actor)
+            commandBus.execute.mockImplementation(async (command) =>
+                command instanceof ResolveAssistantFileAccessCommand
+                    ? { scope: { catalog: 'user-xperts', userId: 'creator' } }
+                    : { userId: 'creator' }
+            )
+            volumeClient.resolve.mockReturnValue({ serverRoot: '/missing/file' })
+            const response = new EventEmitter() as Response & { status: jest.Mock; send: jest.Mock }
+            response.status = jest.fn().mockReturnValue(response)
+            response.send = jest.fn().mockReturnValue(response)
+            await controller.getUserXpertVolumeFile(
+                requested,
+                'xpert-1',
+                ['note.txt'],
+                'tenant-1',
+                undefined,
+                { headers: {} } as Request,
+                response
+            )
+            expect(volumeClient.resolve).toHaveBeenCalledWith({
+                tenantId: 'tenant-1',
+                catalog: 'user-xperts',
+                userId: requested,
+                xpertId: 'xpert-1'
+            })
+            expect(commandBus.execute).toHaveBeenCalledWith(
+                new ResolveAssistantFileAccessCommand('xpert-1', 'read', 'runtime')
+            )
+        }
+    )
+
+    it('does not grant the creator access to the technical account legacy file URL', async () => {
+        jest.mocked(RequestContext.currentUserId).mockReturnValue('creator')
+        commandBus.execute.mockResolvedValue({ scope: { catalog: 'user-xperts', userId: 'creator' } })
+        await expect(
+            controller.getUserXpertVolumeFile(
+                'technical',
+                'xpert-1',
+                ['note.txt'],
+                'tenant-1',
+                undefined,
+                { headers: {} } as Request,
+                {} as Response
+            )
+        ).rejects.toThrow(ForbiddenException)
         expect(volumeClient.resolve).not.toHaveBeenCalled()
     })
 

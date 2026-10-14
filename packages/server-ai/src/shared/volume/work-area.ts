@@ -1,17 +1,12 @@
 import { XpertWorkspaceDataScope } from '@xpert-ai/contracts'
 import { Inject, Injectable } from '@nestjs/common'
+import { CommandBus } from '@nestjs/cqrs'
 import { t } from 'i18next'
 import path from 'node:path'
-import {
-    resolveXpertDataVolumeScope,
-    VOLUME_CLIENT,
-    VolumeClient,
-    VolumeHandle,
-    VolumeScope,
-    WorkspaceBinding
-} from './volume'
+import { VOLUME_CLIENT, VolumeClient, VolumeHandle, VolumeScope, WorkspaceBinding } from './volume'
 import { WorkspacePathMapperFactory } from './workspace-path-mapper.factory'
 import { XpertWorkAreaExtensionRegistry } from './work-area-extension.registry'
+import { ResolveAssistantWorkspaceScopeCommand } from '../../xpert/assistant-files/resolve-assistant-workspace-scope.command'
 
 const XPERT_FILE_MEMORY_WORKSPACE_PATH = '.xpert/memory'
 const KNOWLEDGE_FILES_PATH = 'files'
@@ -109,7 +104,8 @@ export class XpertWorkAreaResolver {
         @Inject(VOLUME_CLIENT)
         private readonly volumeClient: VolumeClient,
         private readonly workspaceMappers: WorkspacePathMapperFactory,
-        private readonly extensions: XpertWorkAreaExtensionRegistry
+        private readonly extensions: XpertWorkAreaExtensionRegistry,
+        private readonly commandBus: CommandBus
     ) {}
 
     /** Creates directories only for active use, after extension authorization succeeds. Never starts a sandbox. */
@@ -117,7 +113,7 @@ export class XpertWorkAreaResolver {
         input: XpertRuntimeWorkAreaInput,
         options: XpertWorkAreaResolveOptions = {}
     ): Promise<XpertRuntimeWorkArea> {
-        const volumeScope = this.resolveVolumeScope(input)
+        const volumeScope = await this.resolveVolumeScope(input)
         const volume = this.volumeClient.resolve(volumeScope)
         const relativePaths = this.resolveRelativePaths(input)
         const workspaceBinding = this.workspaceMappers.mapVolumeToWorkspace(input.provider, volume, {
@@ -161,12 +157,14 @@ export class XpertWorkAreaResolver {
     }) {
         const volume = await this.volumeClient
             .resolve(
-                resolveXpertDataVolumeScope({
-                    tenantId: input.tenantId,
-                    userId: input.userId,
-                    xpertId: input.xpertId,
-                    workspaceDataScope: input.workspaceDataScope
-                })
+                await this.commandBus.execute(
+                    new ResolveAssistantWorkspaceScopeCommand({
+                        tenantId: input.tenantId,
+                        userId: input.userId,
+                        xpertId: input.xpertId,
+                        workspaceDataScope: input.workspaceDataScope
+                    })
+                )
             )
             .ensureRoot()
         const memoryPath = XPERT_FILE_MEMORY_WORKSPACE_PATH
@@ -182,7 +180,7 @@ export class XpertWorkAreaResolver {
     }
 
     /** Project files remain in the project volume even when execution targets a separate environment. */
-    private resolveVolumeScope(input: XpertRuntimeWorkAreaInput): VolumeScope {
+    private async resolveVolumeScope(input: XpertRuntimeWorkAreaInput): Promise<VolumeScope> {
         if (input.projectId) {
             return {
                 tenantId: input.tenantId,
@@ -209,12 +207,14 @@ export class XpertWorkAreaResolver {
             )
         }
 
-        return resolveXpertDataVolumeScope({
-            tenantId: input.tenantId,
-            userId: input.userId,
-            xpertId: input.xpertId,
-            workspaceDataScope: input.workspaceDataScope
-        })
+        return this.commandBus.execute(
+            new ResolveAssistantWorkspaceScopeCommand({
+                tenantId: input.tenantId,
+                userId: input.userId,
+                xpertId: input.xpertId,
+                workspaceDataScope: input.workspaceDataScope
+            })
+        )
     }
 
     /**

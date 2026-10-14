@@ -1,4 +1,5 @@
 import { Global, Module } from '@nestjs/common'
+import { CqrsModule } from '@nestjs/cqrs'
 import { DiscoveryModule } from '@nestjs/core'
 import { SandboxWorkspaceMapperRegistry } from '@xpert-ai/plugin-sdk'
 import { createRuntimeVolumeClient, LocalShellWorkspacePathMapper, VOLUME_CLIENT, VolumeClient } from './volume'
@@ -8,7 +9,7 @@ import { XpertWorkAreaExtensionRegistry } from './work-area-extension.registry'
 
 @Global()
 @Module({
-    imports: [DiscoveryModule],
+    imports: [DiscoveryModule, CqrsModule],
     providers: [
         {
             provide: VOLUME_CLIENT,

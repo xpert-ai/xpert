@@ -1,3 +1,4 @@
+import { ResolveAssistantWorkspaceScopeCommand } from '../../xpert/assistant-files/resolve-assistant-workspace-scope.command'
 import {
     AIPermissionsEnum,
     CONVERSATION_MAP_FEATURE,
@@ -35,7 +36,7 @@ import { IsNull, Repository } from 'typeorm'
 import { XpertProfileIdentityService } from '../../xpert/xpert-profile-identity.service'
 import { XpertService } from '../../xpert/xpert.service'
 import { PublishedXpertAccessService } from '../../xpert/published-xpert-access.service'
-import { resolveXpertDataVolumeScope, VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../../shared/volume'
+import { VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../../shared/volume'
 import {
     describeExternalAssistantBinding,
     directExternalAssistantIds,
@@ -255,12 +256,14 @@ export class AgentViewHostDefinition implements ViewHostDefinitionContract {
             }
         }
 
-        const fileScope = resolveXpertDataVolumeScope({
-            tenantId: xpert.tenantId,
-            userId: RequestContext.currentUserId(),
-            xpertId: xpert.id,
-            workspaceDataScope: xpert.workspaceDataScope
-        })
+        const fileScope = await this.commandBus.execute(
+            new ResolveAssistantWorkspaceScopeCommand({
+                tenantId: xpert.tenantId,
+                userId: RequestContext.currentUserId(),
+                xpertId: xpert.id,
+                workspaceDataScope: xpert.workspaceDataScope
+            })
+        )
         const scopeId = xpert.id
         const dataScopeKey =
             fileScope.catalog === 'user-xperts'

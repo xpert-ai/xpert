@@ -1,3 +1,4 @@
+import { resolveXpertDataVolumeScope } from '../shared/volume/volume'
 jest.mock('@xpert-ai/plugin-sdk', () => {
     const actual = jest.requireActual('@xpert-ai/plugin-sdk')
     return {
@@ -95,8 +96,34 @@ async function flushAsyncWork() {
 
 describe('XpertFileMemoryMiddleware', () => {
     function createMiddleware(fileMemoryService: any, runner: any = { enqueue: jest.fn(), softDrain: jest.fn() }) {
-        return new XpertFileMemoryMiddleware(fileMemoryService, new FileMemoryRecallPlanner(), runner)
+        return new XpertFileMemoryMiddleware(fileMemoryService, new FileMemoryRecallPlanner(), runner, {
+            execute: jest.fn(({ input }) => Promise.resolve(resolveXpertDataVolumeScope(input)))
+        } as never)
     }
+
+    it('resolves personal file memory to the creator without replacing the history actor', async () => {
+        const memory = { listMemoryHeaders: jest.fn().mockResolvedValue([]) }
+        const middleware = new XpertFileMemoryMiddleware(
+            memory as never,
+            new FileMemoryRecallPlanner(),
+            {} as never,
+            {
+                execute: jest.fn(({ input }) =>
+                    Promise.resolve(resolveXpertDataVolumeScope({ ...input, userId: 'creator' }))
+                )
+            } as never
+        )
+        const context = { ...createContext(), projectId: undefined, userId: 'technical' }
+        const configured = await middleware.createMiddleware({}, context)
+        await configured.tools?.[0].invoke({ query: 'history' }, toolConfig())
+        expect(memory.listMemoryHeaders).toHaveBeenCalledWith(
+            expect.objectContaining({
+                userId: 'technical',
+                workspaceUserId: 'creator',
+                workspaceDataScope: 'user'
+            })
+        )
+    })
 
     it('exposes built-in memory tools and delegates to FileMemoryService', async () => {
         const fileMemoryService = {

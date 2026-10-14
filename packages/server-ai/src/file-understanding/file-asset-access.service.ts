@@ -1,3 +1,5 @@
+import { CommandBus } from '@nestjs/cqrs'
+import { ResolveAssistantWorkspaceScopeCommand } from '../xpert/assistant-files/resolve-assistant-workspace-scope.command'
 import { RequestContext, StorageFile, StorageFileService } from '@xpert-ai/server-core'
 import { ConflictException, ForbiddenException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -56,7 +58,8 @@ export class FileAssetAccessService {
         private readonly storageFileService: StorageFileService,
         private readonly conversationService: ChatConversationService,
         private readonly projectAccessService: XpertProjectAccessService,
-        private readonly publishedXpertAccessService: PublishedXpertAccessService
+        private readonly publishedXpertAccessService: PublishedXpertAccessService,
+        private readonly commandBus: CommandBus
     ) {}
 
     async resolve(input: ResolveFileAssetAccessInput): Promise<AuthorizedFileAsset> {
@@ -88,7 +91,7 @@ export class FileAssetAccessService {
         const conversation = await this.resolveConversation(input.authority, input.operation)
         this.assertConversationScope(asset, conversation)
         this.assertUserIsolatedConversationActor(conversation, actor.userId)
-        this.assertUserIsolatedConversationAssetOwner(asset, conversation)
+        await this.assertUserIsolatedConversationAssetOwner(asset, conversation)
 
         // Attaching to a Project is a mutation even when the asset already has
         // a link: projection may create or update bytes in the shared volume.
@@ -115,7 +118,7 @@ export class FileAssetAccessService {
         // A personal Xpert volume is not made public merely because a Project
         // conversation runs the same Xpert. Its owner may explicitly attach it,
         // after which the persisted ConversationFileLink becomes the shared grant.
-        if ((await this.isUserIsolatedXpertAsset(asset)) && !this.isOwnedBy(asset, actor.userId)) {
+        if ((await this.isUserIsolatedXpertAsset(asset)) && !(await this.isWorkspaceOwnedBy(asset, actor.userId))) {
             throw this.accessDenied()
         }
 
@@ -151,7 +154,7 @@ export class FileAssetAccessService {
             throw this.accessDenied()
         }
 
-        if (this.isOwnedBy(asset, actor.userId)) {
+        if (await this.isWorkspaceOwnedBy(asset, actor.userId)) {
             return { ...authorizedAsset, conversation }
         }
 
@@ -326,13 +329,13 @@ export class FileAssetAccessService {
         }
 
         if (operation === 'delete' || operation === 'parse' || operation === 'write') {
-            if (!this.isOwnedBy(asset, userId)) {
+            if (!(await this.isWorkspaceOwnedBy(asset, userId))) {
                 throw this.accessDenied()
             }
             return
         }
 
-        if (this.isOwnedBy(asset, userId)) {
+        if (await this.isWorkspaceOwnedBy(asset, userId)) {
             return
         }
 
@@ -387,8 +390,11 @@ export class FileAssetAccessService {
         }
     }
 
-    private assertUserIsolatedConversationAssetOwner(asset: FileAsset, conversation: ChatConversation) {
-        if (this.isUserIsolatedXpertConversation(conversation) && !this.isOwnedBy(asset, conversation.createdById)) {
+    private async assertUserIsolatedConversationAssetOwner(asset: FileAsset, conversation: ChatConversation) {
+        if (
+            this.isUserIsolatedXpertConversation(conversation) &&
+            !(await this.isWorkspaceOwnedBy(asset, conversation.createdById))
+        ) {
             throw this.accessDenied()
         }
     }
@@ -423,6 +429,18 @@ export class FileAssetAccessService {
         // closed for non-owners until an explicit ConversationFileLink exists.
         const xpert = await this.publishedXpertAccessService.getPublishedXpertInTenant(asset.xpertId).catch(() => null)
         return !xpert || xpert.workspaceDataScope === 'user'
+    }
+
+    private async isWorkspaceOwnedBy(asset: FileAsset, actorUserId: string): Promise<boolean> {
+        if (this.isOwnedBy(asset, actorUserId)) return true
+        if (asset.storageFileId || resolveFileAssetWorkspaceVolumeScope(asset)?.catalog !== 'user-xperts') return false
+        const xpert = await this.publishedXpertAccessService.getAccessiblePublishedXpertForCurrentUser(asset.xpertId)
+        if (xpert.workspaceDataScope !== 'user') return false
+        const scope = { tenantId: asset.tenantId, xpertId: asset.xpertId, workspaceDataScope: xpert.workspaceDataScope }
+        const owner = await this.commandBus.execute(
+            new ResolveAssistantWorkspaceScopeCommand({ ...scope, userId: actorUserId })
+        )
+        return asset.userId === owner.userId
     }
 
     private isOwnedBy(asset: FileAsset, userId: string) {

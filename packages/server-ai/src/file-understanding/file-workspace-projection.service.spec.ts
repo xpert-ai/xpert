@@ -18,6 +18,7 @@ jest.mock('@xpert-ai/server-config', () => ({
     environment: mockEnvironment
 }))
 
+import { resolveXpertDataVolumeScope } from '../shared/volume/volume'
 import fsPromises from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
@@ -183,7 +184,8 @@ describe('FileWorkspaceProjectionService', () => {
                         options?.serverPath === undefined ? volume.serverRoot : volume.path(options.serverPath)
                 })
             } as never,
-            new XpertWorkAreaExtensionRegistry()
+            new XpertWorkAreaExtensionRegistry(),
+            { execute: jest.fn(({ input }) => Promise.resolve(resolveXpertDataVolumeScope(input))) } as never
         )
         const service = createProjectionService(
             fileAssetRepository,

@@ -129,7 +129,7 @@ jest.mock('../shared/volume', () => ({
 
 import { TFile } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/server-core'
-import { VolumeSubtreeClient } from '../shared/volume'
+import { VolumeSubtreeClient, resolveXpertDataVolumeScope } from '../shared/volume'
 import { XpertService } from './xpert.service'
 
 describe('XpertService memory files', () => {
@@ -144,7 +144,7 @@ describe('XpertService memory files', () => {
             {} as any,
             {} as any,
             {} as any,
-            {} as any,
+            { execute: jest.fn(({ input }) => Promise.resolve(resolveXpertDataVolumeScope(input))) } as never,
             {} as any,
             {} as any,
             { list: jest.fn().mockReturnValue([]) } as any,

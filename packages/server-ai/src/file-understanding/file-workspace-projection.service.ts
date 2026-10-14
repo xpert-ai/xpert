@@ -104,22 +104,28 @@ export class FileWorkspaceProjectionService {
             let assetFolderRelativePath = normalizeRelativePath(baseRelativePath, 'files', asset.id)
             const projectionScope = resolveProjectionScope(workArea.volumeScope)
             const existingProjection = readWorkspaceProjection(asset.metadata)
-            const existingRelativePath =
-                existingProjection?.catalog === projectionScope.catalog &&
-                existingProjection.scopeId === projectionScope.scopeId
-                    ? normalizeWorkspaceRelativePath(existingProjection.relativePath)
-                    : null
+            // A sandbox copy does not transfer ownership or replace an attachment's source.
+            const preserveSource =
+                workArea.volumeScope.catalog === 'user-xperts' && workArea.volumeScope.userId !== asset.userId
+            const existingFileName =
+                typeof existingProjection?.relativePath === 'string'
+                    ? path.basename(existingProjection.relativePath)
+                    : asset.id
+            const fileName = normalizeFileName(storageFile?.originalName ?? asset.originalName ?? existingFileName)
+            const targetRelativePath = normalizeRelativePath(assetFolderRelativePath, fileName)
+            // The source metadata stays unchanged; locate its sandbox copy by the stable target path.
+            const existingRelativePath = preserveSource
+                ? targetRelativePath
+                : existingProjection?.catalog === projectionScope.catalog &&
+                    existingProjection.scopeId === projectionScope.scopeId
+                  ? normalizeWorkspaceRelativePath(existingProjection.relativePath)
+                  : null
             const hasCurrentProjection = existingRelativePath
                 ? await volumeFileExists(workArea.volume, existingRelativePath)
                 : false
 
             if (!hasCurrentProjection) {
-                const existingFileName =
-                    typeof existingProjection?.relativePath === 'string'
-                        ? path.basename(existingProjection.relativePath)
-                        : asset.id
-                const fileName = normalizeFileName(storageFile?.originalName ?? asset.originalName ?? existingFileName)
-                const relativePath = normalizeRelativePath(assetFolderRelativePath, fileName)
+                const relativePath = targetRelativePath
                 const buffer =
                     input.buffer ??
                     (storageFile
@@ -134,15 +140,17 @@ export class FileWorkspaceProjectionService {
                 const workspacePath = path.posix.join(workArea.workspaceRoot, relativePath)
                 asset.workspacePath = workspacePath
                 asset.capabilities = Array.from(new Set([...(asset.capabilities ?? []), 'workspace']))
-                asset.metadata = {
-                    ...(asset.metadata ?? {}),
-                    workspace: {
-                        relativePath,
-                        workspacePath,
-                        catalog: projectionScope.catalog,
-                        scopeId: projectionScope.scopeId,
-                        provider: sandboxProvider ?? null,
-                        projectedAt: new Date().toISOString()
+                if (!preserveSource) {
+                    asset.metadata = {
+                        ...(asset.metadata ?? {}),
+                        workspace: {
+                            relativePath,
+                            workspacePath,
+                            catalog: projectionScope.catalog,
+                            scopeId: projectionScope.scopeId,
+                            provider: sandboxProvider ?? null,
+                            projectedAt: new Date().toISOString()
+                        }
                     }
                 }
                 projectedAsset = await this.fileAssetRepository.save(asset)

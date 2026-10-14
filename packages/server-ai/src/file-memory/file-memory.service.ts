@@ -669,7 +669,7 @@ export class FileMemoryService {
                 getXpertFileMemoryVolumeScope(
                     xpert.tenantId,
                     xpert.id,
-                    xpert.userId,
+                    xpert.workspaceUserId ?? xpert.userId,
                     xpert.workspaceDataScope,
                     xpert.projectId
                 )
@@ -688,7 +688,7 @@ export class FileMemoryService {
                 getXpertFileMemoryVolumeScope(
                     xpert.tenantId,
                     xpert.id,
-                    xpert.userId,
+                    xpert.workspaceUserId ?? xpert.userId,
                     xpert.workspaceDataScope,
                     xpert.projectId
                 )

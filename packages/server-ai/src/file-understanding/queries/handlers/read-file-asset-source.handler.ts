@@ -37,6 +37,17 @@ export class ReadFileAssetSourceHandler implements IQueryHandler<ReadFileAssetSo
             return null
         }
 
+        // Access was checked above. Read the attachment's original volume, even
+        // when the conversation now executes in its technical actor's owner workspace.
+        if (
+            volumeScope.catalog === 'user-xperts' &&
+            fileAsset.userId &&
+            !fileAsset.projectId &&
+            fileAsset.tenantId === volumeScope.tenantId &&
+            fileAsset.xpertId === volumeScope.xpertId
+        ) {
+            volumeScope.userId = fileAsset.userId
+        }
         const volume = this.volumeClient.resolve(volumeScope)
         return await new VolumeSubtreeClient(volume, { allowRootWorkspace: true }).readBuffer('', relativePath)
     }

@@ -1,3 +1,4 @@
+import { resolveXpertDataVolumeScope } from '../shared/volume/volume'
 jest.mock('@xpert-ai/server-core', () => {
     const actual = jest.requireActual('@xpert-ai/server-core')
     return {
@@ -29,6 +30,7 @@ describe('FileAssetAccessService', () => {
     const publishedXpertAccessService = {
         getAccessiblePublishedXpertFamilyIds: jest.fn(),
         getAccessiblePublishedXpert: jest.fn(),
+        getAccessiblePublishedXpertForCurrentUser: jest.fn(),
         getPublishedXpertInTenant: jest.fn(),
         isPublishedXpertInFamily: jest.fn()
     }
@@ -38,7 +40,8 @@ describe('FileAssetAccessService', () => {
         storageFileService as never,
         conversationService as never,
         projectAccessService as never,
-        publishedXpertAccessService as never
+        publishedXpertAccessService as never,
+        { execute: jest.fn(({ input }) => Promise.resolve(resolveXpertDataVolumeScope(input))) } as never
     )
     const conversation = {
         id: 'conversation-1',
@@ -87,6 +90,9 @@ describe('FileAssetAccessService', () => {
             id: 'xpert-current',
             workspaceDataScope: 'shared'
         })
+        publishedXpertAccessService.getAccessiblePublishedXpertForCurrentUser.mockImplementation(
+            publishedXpertAccessService.getAccessiblePublishedXpert
+        )
         publishedXpertAccessService.getPublishedXpertInTenant.mockResolvedValue({
             id: 'xpert-current',
             workspaceDataScope: 'shared'
@@ -109,7 +115,8 @@ describe('FileAssetAccessService', () => {
                 storageFileService as never,
                 conversationService as never,
                 projects,
-                publishedXpertAccessService as never
+                publishedXpertAccessService as never,
+                { execute: jest.fn(({ input }) => Promise.resolve(resolveXpertDataVolumeScope(input))) } as never
             )
         }
         it('rejects ordinary deletion of an archived project file', async () => {

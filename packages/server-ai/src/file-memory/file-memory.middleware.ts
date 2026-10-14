@@ -8,12 +8,13 @@ import {
     TAgentMiddlewareMeta
 } from '@xpert-ai/contracts'
 import { BadRequestException, Injectable, Logger } from '@nestjs/common'
+import { CommandBus } from '@nestjs/cqrs'
+import { ResolveAssistantWorkspaceScopeCommand } from '../xpert/assistant-files/resolve-assistant-workspace-scope.command'
 import {
     AgentMiddleware,
     AgentMiddlewareStrategy,
     IAgentMiddlewareContext,
-    IAgentMiddlewareStrategy,
-    PromiseOrValue
+    IAgentMiddlewareStrategy
 } from '@xpert-ai/plugin-sdk'
 import { z } from 'zod/v3'
 import { FileMemoryService } from './file-memory.service'
@@ -260,15 +261,27 @@ export class XpertFileMemoryMiddleware implements IAgentMiddlewareStrategy {
     constructor(
         private readonly fileMemoryService: FileMemoryService,
         private readonly recallPlanner: FileMemoryRecallPlanner,
-        private readonly writebackRunner: FileMemoryWritebackRunner
+        private readonly writebackRunner: FileMemoryWritebackRunner,
+        private readonly commandBus: CommandBus
     ) {}
 
-    createMiddleware(
+    async createMiddleware(
         options: FileMemoryMiddlewareOptions = {},
         context: IAgentMiddlewareContext
-    ): PromiseOrValue<AgentMiddleware> {
+    ): Promise<AgentMiddleware> {
         assertFileMemorySandboxFeatureEnabled(context)
         const xpert = this.requireXpertScope(context)
+        if (!xpert.projectId && xpert.workspaceDataScope === 'user') {
+            const scope = await this.commandBus.execute(
+                new ResolveAssistantWorkspaceScopeCommand({
+                    tenantId: xpert.tenantId,
+                    userId: xpert.userId,
+                    xpertId: xpert.id,
+                    workspaceDataScope: xpert.workspaceDataScope
+                })
+            )
+            if (scope.userId !== xpert.userId) xpert.workspaceUserId = scope.userId
+        }
         let explicitWriteOccurred = false
         let lastRecallQuery = ''
         const surfacedPaths = new Set<string>()
@@ -493,7 +506,7 @@ export class XpertFileMemoryMiddleware implements IAgentMiddlewareStrategy {
         }
     }
 
-    private requireXpertScope(context: IAgentMiddlewareContext) {
+    private requireXpertScope(context: IAgentMiddlewareContext): FileMemoryXpertScope {
         if (!context.xpertId) {
             throw new BadRequestException('Xpert file memory requires xpertId in middleware context.')
         }

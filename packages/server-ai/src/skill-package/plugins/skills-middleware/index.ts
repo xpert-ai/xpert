@@ -1,3 +1,4 @@
+import { ResolveAssistantWorkspaceScopeCommand } from '../../../xpert/assistant-files/resolve-assistant-workspace-scope.command'
 import {
     RUNTIME_RESOURCE_SKILLS,
     RuntimeResourceMiddlewareContext
@@ -57,12 +58,7 @@ import { SkillPackageService } from '../../skill-package.service'
 import { SKILLS_MIDDLEWARE_NAME } from '../../types'
 import { SandboxAcquireBackendCommand, SandboxCopyTreeCommand } from '../../../sandbox'
 import type { WorkspaceBinding } from '../../../shared'
-import {
-    findValidatedProjectSkillFiles,
-    readProjectSkillManifest,
-    resolveXpertDataVolumeScope,
-    VolumeClient
-} from '../../../shared/volume'
+import { findValidatedProjectSkillFiles, readProjectSkillManifest, VolumeClient } from '../../../shared/volume'
 import { SkillRepositoryIndexService } from '../../../skill-repository/repository-index/skill-repository-index.service'
 import { XpertWorkspaceAccessService, getWorkspaceRoot } from '../../../xpert-workspace'
 
@@ -668,7 +664,9 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
                   userId
               }
             : xpertId
-              ? resolveXpertDataVolumeScope({ tenantId, xpertId, userId, workspaceDataScope })
+              ? await this.commandBus.execute(
+                    new ResolveAssistantWorkspaceScopeCommand({ tenantId, xpertId, userId, workspaceDataScope })
+                )
               : {
                     tenantId,
                     catalog: 'users' as const,

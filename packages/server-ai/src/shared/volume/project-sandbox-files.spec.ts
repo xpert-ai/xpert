@@ -1,3 +1,4 @@
+import { resolveXpertDataVolumeScope } from './volume'
 jest.mock('../../sandbox/middlewares/file-activity-storage.service', () => ({ FileActivityStorage: class {} }))
 jest.mock('@langchain/core/callbacks/dispatch', () => ({ dispatchCustomEvent: jest.fn().mockResolvedValue(undefined) }))
 
@@ -43,7 +44,8 @@ describe('Project Sandbox and business file paths', () => {
                         }
                     }
                 } as never,
-                new XpertWorkAreaExtensionRegistry()
+                new XpertWorkAreaExtensionRegistry(),
+                { execute: jest.fn(({ input }) => Promise.resolve(resolveXpertDataVolumeScope(input))) } as never
             )
             const scope = { tenantId: 'tenant-1', organizationId: 'org-1', userId: 'user-1', projectId: 'project-1' }
             const main = await resolver.resolve({ ...scope, provider, xpertId: 'main', conversationId: 'main-chat' })

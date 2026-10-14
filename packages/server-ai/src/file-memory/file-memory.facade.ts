@@ -114,7 +114,7 @@ export class FileMemoryFacade {
                 getXpertFileMemoryVolumeScope(
                     xpert.tenantId,
                     xpert.id,
-                    xpert.userId ?? RequestContext.currentUserId(),
+                    xpert.workspaceUserId ?? xpert.userId ?? RequestContext.currentUserId(),
                     xpert.workspaceDataScope
                 )
             ),

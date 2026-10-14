@@ -1,3 +1,4 @@
+import { ResolveAssistantWorkspaceScopeCommand } from './assistant-files/resolve-assistant-workspace-scope.command'
 import {
     ChecklistItem,
     convertToUrlPath,
@@ -49,7 +50,7 @@ import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity
 import { CopilotStoreBulkPutCommand } from '../copilot-store'
 import { CopilotStoreService } from '../copilot-store/copilot-store.service'
 import { SandboxService } from '../sandbox/sandbox.service'
-import { resolveXpertDataVolumeScope, VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../shared/volume'
+import { VOLUME_CLIENT, VolumeClient, VolumeSubtreeClient } from '../shared/volume'
 import { MyXpertWorkspaceQuery, XpertWorkspaceAccessService, XpertWorkspaceBaseService } from '../xpert-workspace'
 import type { XpertWorkspace } from '../xpert-workspace/workspace.entity'
 import { XpertPublishCommand } from './commands'
@@ -848,30 +849,23 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
 
     async getMemoryFiles(id: string, path?: string, deepth?: number): Promise<TFileDirectory[]> {
         const xpert = await this.findOne(id)
-        return this.createWorkspaceVolumeClient(xpert, RequestContext.currentUserId()).list(
-            XPERT_MEMORY_WORKSPACE_PATH,
-            {
-                path,
-                deepth
-            }
-        )
+        const workspace = await this.createWorkspaceVolumeClient(xpert, RequestContext.currentUserId())
+        return workspace.list(XPERT_MEMORY_WORKSPACE_PATH, {
+            path,
+            deepth
+        })
     }
 
     async getMemoryFile(id: string, filePath: string): Promise<TFile> {
         const xpert = await this.findOne(id)
-        return this.createWorkspaceVolumeClient(xpert, RequestContext.currentUserId()).readFile(
-            XPERT_MEMORY_WORKSPACE_PATH,
-            filePath
-        )
+        const workspace = await this.createWorkspaceVolumeClient(xpert, RequestContext.currentUserId())
+        return workspace.readFile(XPERT_MEMORY_WORKSPACE_PATH, filePath)
     }
 
     async saveMemoryFile(id: string, filePath: string, content: string): Promise<TFile> {
         const xpert = await this.findOne(id)
-        return this.createWorkspaceVolumeClient(xpert, RequestContext.currentUserId()).saveFile(
-            XPERT_MEMORY_WORKSPACE_PATH,
-            filePath,
-            content
-        )
+        const workspace = await this.createWorkspaceVolumeClient(xpert, RequestContext.currentUserId())
+        return workspace.saveFile(XPERT_MEMORY_WORKSPACE_PATH, filePath, content)
     }
 
     async uploadMemoryFile(
@@ -880,19 +874,14 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
         file: { originalname: string; buffer: Buffer; mimetype?: string }
     ): Promise<TFile> {
         const xpert = await this.findOne(id)
-        return this.createWorkspaceVolumeClient(xpert, RequestContext.currentUserId()).uploadFile(
-            XPERT_MEMORY_WORKSPACE_PATH,
-            folderPath,
-            file
-        )
+        const workspace = await this.createWorkspaceVolumeClient(xpert, RequestContext.currentUserId())
+        return workspace.uploadFile(XPERT_MEMORY_WORKSPACE_PATH, folderPath, file)
     }
 
     async deleteMemoryFile(id: string, filePath: string): Promise<void> {
         const xpert = await this.findOne(id)
-        await this.createWorkspaceVolumeClient(xpert, RequestContext.currentUserId()).deleteFile(
-            XPERT_MEMORY_WORKSPACE_PATH,
-            filePath
-        )
+        const workspace = await this.createWorkspaceVolumeClient(xpert, RequestContext.currentUserId())
+        await workspace.deleteFile(XPERT_MEMORY_WORKSPACE_PATH, filePath)
     }
 
     async getTriggerProviders() {
@@ -905,20 +894,25 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
         return this.sandboxService.listProviders()
     }
 
-    private createWorkspaceVolumeClient(xpert: Pick<Xpert, 'tenantId' | 'id' | 'workspaceDataScope'>, userId: string) {
-        return new VolumeSubtreeClient(this.createVolumeHandle(xpert, userId), {
+    private async createWorkspaceVolumeClient(
+        xpert: Pick<Xpert, 'tenantId' | 'id' | 'workspaceDataScope'>,
+        userId: string
+    ) {
+        return new VolumeSubtreeClient(await this.createVolumeHandle(xpert, userId), {
             allowRootWorkspace: true
         })
     }
 
-    private createVolumeHandle(xpert: Pick<Xpert, 'tenantId' | 'id' | 'workspaceDataScope'>, userId: string) {
+    private async createVolumeHandle(xpert: Pick<Xpert, 'tenantId' | 'id' | 'workspaceDataScope'>, userId: string) {
         return this.volumeClient.resolve(
-            resolveXpertDataVolumeScope({
-                tenantId: xpert.tenantId,
-                userId,
-                xpertId: xpert.id,
-                workspaceDataScope: xpert.workspaceDataScope
-            })
+            await this.commandBus.execute(
+                new ResolveAssistantWorkspaceScopeCommand({
+                    tenantId: xpert.tenantId,
+                    userId,
+                    xpertId: xpert.id,
+                    workspaceDataScope: xpert.workspaceDataScope
+                })
+            )
         )
     }
 }

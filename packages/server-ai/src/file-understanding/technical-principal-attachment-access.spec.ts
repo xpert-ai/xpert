@@ -11,6 +11,8 @@ import { FileAssetAccessService } from './file-asset-access.service'
 import { CreateWorkspaceFileAssetHandler } from './commands/handlers/create-workspace-file-asset.handler'
 import { CreateWorkspaceFileAssetCommand } from './commands/create-workspace-file-asset.command'
 import { VolumeHandle } from '../shared/volume'
+import { resolveXpertDataVolumeScope } from '../shared/volume/volume'
+import { ResolveAssistantFileAccessCommand } from '../xpert/assistant-files/resolve-assistant-file-access.command'
 import { FileAsset } from './entities'
 
 describe('technical principal attachment authorization', () => {
@@ -78,7 +80,8 @@ describe('technical principal attachment authorization', () => {
             {} as never,
             {} as never,
             {} as never,
-            publishedAccess
+            publishedAccess,
+            { execute: jest.fn(({ input }) => Promise.resolve(resolveXpertDataVolumeScope(input))) } as never
         )
         return { xpert, access, publishedAccess, readers }
     }
@@ -89,7 +92,7 @@ describe('technical principal attachment authorization', () => {
     })
 
     it('registers a real file while retaining the technical execution identity and file ownership', async () => {
-        const { access } = fixture()
+        const { access, publishedAccess } = fixture()
         const root = await fs.mkdtemp(path.join(os.tmpdir(), 'technical-user-attachment-'))
         try {
             await fs.writeFile(path.join(root, 'note.txt'), 'WeChat attachment')
@@ -106,7 +109,12 @@ describe('technical principal attachment authorization', () => {
                 } as never,
                 {} as never,
                 { resolve: () => volume } as never,
-                {} as never,
+                {
+                    execute: jest.fn(async (command: ResolveAssistantFileAccessCommand) => {
+                        await publishedAccess.getAccessiblePublishedXpert(command.assistantId)
+                        return { scope: { tenantId: 'tenant-1', catalog: 'xperts', xpertId: 'xpert-1' } }
+                    })
+                } as never,
                 access
             )
 
@@ -196,6 +204,7 @@ describe('technical principal attachment authorization', () => {
         const { access, xpert } = fixture()
         principal.apiKey.type = ApiKeyBindingType.WORKSPACE
         principal.apiKey.entityId = 'bound-workspace'
+        principal.resourceScope = { kind: 'workspace', workspaceId: 'bound-workspace' }
         xpert.workspaceId = 'other-workspace'
         await expect(access.assertUnderstandingScope({ xpertId: 'xpert-1' })).rejects.toBeInstanceOf(ForbiddenException)
     })

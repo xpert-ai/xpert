@@ -6,6 +6,8 @@ export type FileMemoryXpertScope = {
     id: string
     projectId?: string | null
     userId?: string | null
+    /** Storage owner; userId remains the actor used to authorize conversation history. */
+    workspaceUserId?: string | null
     workspaceDataScope?: XpertWorkspaceDataScope | null
 }
 
@@ -13,7 +15,8 @@ export function createFileMemoryScopeKey(xpert: FileMemoryXpertScope) {
     if (xpert.projectId) {
         return `${xpert.tenantId}:project:${xpert.projectId}:xpert:${xpert.id}`
     }
-    const userScopeKey = xpert.workspaceDataScope === 'user' ? `:${xpert.userId ?? 'missing-user'}` : ''
+    const userScopeKey =
+        xpert.workspaceDataScope === 'user' ? `:${xpert.workspaceUserId ?? xpert.userId ?? 'missing-user'}` : ''
     return `${xpert.tenantId}:${xpert.id}${userScopeKey}`
 }
 

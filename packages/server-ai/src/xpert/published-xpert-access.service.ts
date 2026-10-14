@@ -73,7 +73,7 @@ export class PublishedXpertAccessService {
             principal.apiKey.tenantId === principal.tenantId &&
             !principal.requestedUserId
         ) {
-            // Inherit authorization only; execution and file ownership keep the technical user id.
+            // Inherit authorization only; storage ownership is resolved separately from the technical actor.
             return principal.ownerUserId?.trim() || userId
         }
         return userId

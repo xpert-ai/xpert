@@ -8,6 +8,43 @@ describe('ReadFileAssetSourceHandler', () => {
         jest.restoreAllMocks()
     })
 
+    it.each(['human-owner', 'technical-user'])(
+        'reads a technical conversation attachment from its persisted %s volume',
+        async (fileOwner) => {
+            const asset = {
+                id: 'asset',
+                tenantId: 'tenant',
+                userId: fileOwner,
+                xpertId: 'assistant',
+                workspacePath: 'sessions/conversation/files/asset/note.txt'
+            }
+            const access = {
+                resolve: jest.fn().mockResolvedValue({
+                    asset,
+                    conversation: {
+                        id: 'conversation',
+                        tenantId: 'tenant',
+                        createdById: 'technical-user',
+                        xpertId: 'assistant',
+                        xpert: { workspaceDataScope: 'user' }
+                    }
+                })
+            }
+            const volumes = { resolve: jest.fn((scope) => new VolumeHandle(scope, '/tmp/source', '/tmp/source', '')) }
+            jest.spyOn(VolumeSubtreeClient.prototype, 'readBuffer').mockResolvedValue(Buffer.from('bytes'))
+            const handler = new ReadFileAssetSourceHandler(access as never, volumes)
+            await expect(
+                handler.execute(new ReadFileAssetSourceQuery('asset', { kind: 'conversation', threadId: 'thread' }))
+            ).resolves.toEqual(Buffer.from('bytes'))
+            expect(volumes.resolve).toHaveBeenCalledWith({
+                tenantId: 'tenant',
+                catalog: 'user-xperts',
+                xpertId: 'assistant',
+                userId: fileOwner
+            })
+        }
+    )
+
     it('uses the authorized conversation scope instead of mutable FileAsset scope fields', async () => {
         const fileAsset = {
             id: 'file-asset-1',

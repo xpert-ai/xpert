@@ -1,3 +1,4 @@
+import { authorizeAssistantWorkspace } from '../../../shared/runtime/workspace-files-app-data'
 import { BadRequestException, ForbiddenException, Inject } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -36,12 +37,7 @@ export class CreateWorkspaceFileAssetHandler implements ICommandHandler<CreateWo
     async execute(command: CreateWorkspaceFileAssetCommand) {
         const actorTenantId = RequestContext.currentTenantId()
         const actorUserId = RequestContext.currentUserId()
-        if (
-            !actorTenantId ||
-            !actorUserId ||
-            (command.input.tenantId && command.input.tenantId !== actorTenantId) ||
-            (command.input.userId && command.input.userId !== actorUserId)
-        ) {
+        if (!actorTenantId || !actorUserId || (command.input.tenantId && command.input.tenantId !== actorTenantId)) {
             throw new ForbiddenException()
         }
         const conversation =
@@ -78,7 +74,14 @@ export class CreateWorkspaceFileAssetHandler implements ICommandHandler<CreateWo
         const detectedMimeType = mime.lookup(originalName)
         let mimeType =
             normalizeOptionalString(input.mimeType) ?? (detectedMimeType ? String(detectedMimeType) : undefined)
-        const { volumeScope, catalog, scopeId } = this.resolveVolumeScope(input)
+        const { volumeScope, catalog, scopeId } = await this.resolveVolumeScope(input)
+        if (
+            command.input.userId &&
+            command.input.userId !== actorUserId &&
+            command.input.userId !== volumeScope.userId
+        ) {
+            throw new ForbiddenException()
+        }
         const volume = await this.volumeClient.resolve(volumeScope).ensureRoot()
         const openedFile = await VolumeHandle.openFileSnapshot(volume.serverRoot, filePath, {
             boundaryRoot: volume.serverRoot
@@ -103,7 +106,7 @@ export class CreateWorkspaceFileAssetHandler implements ICommandHandler<CreateWo
         const parseMode = resolveParseMode(input.parseMode)
         const tenantId = actorTenantId
         const organizationId = conversation?.organizationId ?? RequestContext.getOrganizationId()
-        const userId = actorUserId
+        const userId = volumeScope.catalog === 'user-xperts' ? volumeScope.userId : actorUserId
         const fileUrl =
             normalizeOptionalString(input.fileUrl) ?? normalizeOptionalString(input.url) ?? volume.publicUrl(filePath)
         const workspacePath = filePath
@@ -165,7 +168,7 @@ export class CreateWorkspaceFileAssetHandler implements ICommandHandler<CreateWo
         )
     }
 
-    private resolveVolumeScope(input: WorkspaceUnderstandFileInput): WorkspaceVolumeScopeResolution {
+    private async resolveVolumeScope(input: WorkspaceUnderstandFileInput): Promise<WorkspaceVolumeScopeResolution> {
         const tenantId = normalizeOptionalString(input.tenantId) ?? RequestContext.currentTenantId()
         if (!tenantId) {
             throw new BadRequestException(
@@ -188,6 +191,10 @@ export class CreateWorkspaceFileAssetHandler implements ICommandHandler<CreateWo
         const resolved = resolveWorkspaceVolumeScope(input, { tenantId, userId, defaultCatalog: 'users' })
         if (!resolved) {
             throw new BadRequestException(resolveWorkspaceVolumeScopeError(input, 'users'))
+        }
+        if (resolved.catalog === 'xperts' || resolved.catalog === 'user-xperts') {
+            const scope = await authorizeAssistantWorkspace(input, 'write', this.commandBus)
+            return { volumeScope: scope, catalog: scope.catalog, scopeId: scope.xpertId }
         }
         return resolved
     }

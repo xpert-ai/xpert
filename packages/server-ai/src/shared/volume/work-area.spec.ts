@@ -1,3 +1,4 @@
+import { resolveXpertDataVolumeScope } from './volume'
 import fsPromises from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
@@ -20,7 +21,8 @@ describe('XpertWorkAreaResolver', () => {
         resolver = new XpertWorkAreaResolver(
             new TestVolumeClient(volumeClient.resolve),
             createWorkspaceMappers() as never,
-            extensions
+            extensions,
+            { execute: jest.fn(({ input }) => Promise.resolve(resolveXpertDataVolumeScope(input))) } as never
         )
     })
 

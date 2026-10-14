@@ -3,6 +3,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { FileMemoryService } from './file-memory.service'
 import { XpertSandboxMemoryStore } from './sandbox-memory.store'
+import { VolumeHandle, VolumeScope } from '../shared/volume/volume'
 
 describe('FileMemoryService', () => {
     let tempRoot: string
@@ -19,6 +20,30 @@ describe('FileMemoryService', () => {
 
     afterEach(async () => {
         await fsPromises.rm(tempRoot, { recursive: true, force: true })
+    })
+
+    it('shares file memory through the resolved workspace owner while retaining the execution actor', async () => {
+        const memory = new FileMemoryService({
+            resolve: (scope: VolumeScope) => {
+                const root = path.join(tempRoot, scope.userId, scope.xpertId)
+                return new VolumeHandle(scope, root, root, '')
+            }
+        } as never)
+        const human = { tenantId: 'tenant', id: 'assistant', userId: 'human', workspaceDataScope: 'user' as const }
+        const technical = { ...human, userId: 'technical', workspaceUserId: 'human' }
+        const note = await memory.writeMemory(human, {
+            type: 'project',
+            title: 'Shared code',
+            summary: 'Code location',
+            content: 'Run the code from saic/'
+        })
+        await expect(memory.getMemory(technical, { memoryId: note.memoryId })).resolves.toMatchObject({
+            body: expect.stringContaining('Run the code from saic/')
+        })
+        expect(technical.userId).toBe('technical')
+        await expect(
+            memory.getMemory({ ...human, userId: 'other-human' }, { memoryId: note.memoryId })
+        ).rejects.toThrow()
     })
 
     it('writes, searches, reads, and records visible usage signals', async () => {

@@ -66,6 +66,7 @@ import { XpertModelAccessValidator } from './model-access-validator'
 import { XpertWorkspaceFilesService } from './xpert-workspace-files.service'
 import { AssistantFilesService } from './assistant-files/assistant-files.service'
 import { AssistantFileAccessService } from './assistant-files/assistant-file-access.service'
+import { AssistantWorkspaceScopeHandler } from './assistant-files/assistant-workspace-scope.handler'
 import { AssistantUserPreference } from './assistant-user-preference.entity'
 import { AssistantUserPreferenceService } from './assistant-user-preference.service'
 import { AssistantModelSelectionService } from './assistant-model-selection.service'
@@ -151,6 +152,7 @@ import { XpertTriggerConnectionService } from './trigger-connection.service'
         AssistantUserPreferenceService,
         AssistantModelSelectionService,
         AssistantFileAccessService,
+        AssistantWorkspaceScopeHandler,
         ...ScheduleTriggerStrategies,
         ...CommandHandlers,
         ...QueryHandlers

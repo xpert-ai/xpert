@@ -6,7 +6,7 @@ import { ForbiddenException } from '@nestjs/common'
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { VolumeHandle } from '../../shared/volume'
+import { VolumeHandle, resolveXpertDataVolumeScope } from '../../shared/volume'
 import { AgentViewHostDefinition } from './agent-view-host.definition'
 
 const createProfileIdentity = () =>
@@ -17,6 +17,14 @@ const createProfileIdentity = () =>
             versionIds: [xpert.id]
         }))
     }) as never
+
+function createDefinition(...args: ConstructorParameters<typeof AgentViewHostDefinition>) {
+    const definition = new AgentViewHostDefinition(...args)
+    Object.assign(definition, {
+        commandBus: { execute: jest.fn(({ input }) => Promise.resolve(resolveXpertDataVolumeScope(input))) }
+    })
+    return definition
+}
 
 describe('AgentViewHostDefinition', () => {
     it('loads the primary agent relation and derives middleware feature capabilities', async () => {
@@ -86,7 +94,7 @@ describe('AgentViewHostDefinition', () => {
                 }
             })
         }
-        const definition = new AgentViewHostDefinition(
+        const definition = createDefinition(
             xpertService as any,
             {} as any,
             middlewareRegistry as any,
@@ -169,7 +177,7 @@ describe('AgentViewHostDefinition', () => {
                 graph: { nodes: [], connections: [] }
             })
         }
-        const definition = new AgentViewHostDefinition(
+        const definition = createDefinition(
             xpertService as never,
             {} as never,
             { get: jest.fn() } as never,
@@ -220,7 +228,7 @@ describe('AgentViewHostDefinition', () => {
                 project: { id: 'project-1', name: 'Project 1', status: 'active' }
             })
         }
-        const definition = new AgentViewHostDefinition(
+        const definition = createDefinition(
             { findOneByIdWithinTenant: jest.fn().mockResolvedValue(xpert) } as never,
             {} as never,
             { get: jest.fn() } as never,
@@ -308,7 +316,7 @@ describe('AgentViewHostDefinition', () => {
         const xpertService = {
             findOneByIdWithinTenant: jest.fn(async (id: string) => (id === requester.id ? requester : executor))
         }
-        const definition = new AgentViewHostDefinition(
+        const definition = createDefinition(
             xpertService as any,
             {} as any,
             { get: jest.fn() } as any,
@@ -406,7 +414,7 @@ describe('AgentViewHostDefinition', () => {
                 }
             })
         }
-        const definition = new AgentViewHostDefinition(
+        const definition = createDefinition(
             xpertService as unknown as ConstructorParameters<typeof AgentViewHostDefinition>[0],
             {} as ConstructorParameters<typeof AgentViewHostDefinition>[1],
             middlewareRegistry as unknown as ConstructorParameters<typeof AgentViewHostDefinition>[2],
@@ -447,7 +455,7 @@ describe('AgentViewHostDefinition', () => {
         const publishedXpertAccessService = {
             getAccessiblePublishedXpert: jest.fn()
         }
-        const definition = new AgentViewHostDefinition(
+        const definition = createDefinition(
             xpertService as unknown as ConstructorParameters<typeof AgentViewHostDefinition>[0],
             publishedXpertAccessService as unknown as ConstructorParameters<typeof AgentViewHostDefinition>[1],
             {} as ConstructorParameters<typeof AgentViewHostDefinition>[2],
@@ -503,7 +511,7 @@ describe('AgentViewHostDefinition', () => {
                 workspaceDataScope: 'shared'
             })
         }
-        const definition = new AgentViewHostDefinition(
+        const definition = createDefinition(
             xpertService as never,
             {} as never,
             {} as never,

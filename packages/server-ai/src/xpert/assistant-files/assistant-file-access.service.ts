@@ -2,10 +2,10 @@
 // Runtime access checks the exact published Assistant and current user grant;
 // authoring access is explicit and never a fallback after runtime denial.
 import { ForbiddenException, Inject } from '@nestjs/common'
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
+import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
-import { resolveXpertDataVolumeScope } from '../../shared/volume'
+import { ResolveAssistantWorkspaceScopeCommand } from './resolve-assistant-workspace-scope.command'
 import { PublishedXpertAccessService } from '../published-xpert-access.service'
 import { XpertService } from '../xpert.service'
 import { AssistantFileAccess, ResolveAssistantFileAccessCommand } from './resolve-assistant-file-access.command'
@@ -16,7 +16,8 @@ export class AssistantFileAccessService implements ICommandHandler<ResolveAssist
         @Inject(PublishedXpertAccessService)
         private readonly published: Pick<PublishedXpertAccessService, 'getAccessiblePublishedXpertForCurrentUser'>,
         @Inject(XpertService)
-        private readonly xperts: Pick<XpertService, 'assertCanAuthorById' | 'findOneByIdWithinTenant'>
+        private readonly xperts: Pick<XpertService, 'assertCanAuthorById' | 'findOneByIdWithinTenant'>,
+        private readonly commandBus: CommandBus
     ) {}
 
     async execute(command: ResolveAssistantFileAccessCommand): Promise<AssistantFileAccess> {
@@ -35,14 +36,16 @@ export class AssistantFileAccessService implements ICommandHandler<ResolveAssist
         }
         if (xpert.tenantId !== tenantId) throw this.denied()
 
-        const scope = resolveXpertDataVolumeScope({
-            tenantId,
-            userId,
-            xpertId: xpert.id,
-            workspaceDataScope: xpert.workspaceDataScope
-        })
+        const scope = await this.commandBus.execute(
+            new ResolveAssistantWorkspaceScopeCommand({
+                tenantId,
+                userId,
+                xpertId: xpert.id,
+                workspaceDataScope: xpert.workspaceDataScope
+            })
+        )
         // Explicit file policy: authorized users collaborate with full CRUD in shared volumes;
-        // user-isolated volumes grant the same operations only within the current user's root.
+        // Technical accounts use their creator's root; other users keep their own root.
         return { scope, capabilities: { canList: true, canRead: true, canWrite: true, canDelete: true } }
     }
 

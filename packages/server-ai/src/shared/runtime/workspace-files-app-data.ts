@@ -11,7 +11,7 @@ function denied(): never {
     throw new ForbiddenException(t('server-ai:Error.WorkspaceFileAccessDenied'))
 }
 
-/** The published Assistant, never a requested catalog or the creator, determines the data volume. */
+/** Published Assistant policy and its server-resolved storage owner determine the data volume. */
 export async function authorizeAssistantWorkspace(
     binding: WorkspaceFileScope,
     operation: 'read' | 'write' | 'delete',
@@ -27,7 +27,6 @@ export async function authorizeAssistantWorkspace(
         !userId ||
         !organizationId ||
         (binding.tenantId && binding.tenantId !== tenantId) ||
-        (binding.userId && binding.userId !== userId) ||
         (binding.organizationId && binding.organizationId !== organizationId)
     )
         denied()
@@ -35,7 +34,8 @@ export async function authorizeAssistantWorkspace(
     if (
         scope.tenantId !== tenantId ||
         scope.xpertId !== assistantId ||
-        (scope.catalog === 'user-xperts' && scope.userId !== userId) ||
+        // A file reference may name the actor or the server-resolved owner, never another user.
+        (binding.userId && binding.userId !== userId && binding.userId !== scope.userId) ||
         // A previously private projection must never follow a policy change into a shared volume.
         ((binding.catalog === 'user-xperts' || binding.isolateByUser === true) && scope.catalog !== 'user-xperts') ||
         (binding.scopeId && binding.scopeId !== assistantId)
@@ -65,11 +65,13 @@ export function createWorkspaceAppData(
         userId: defaults.userId ?? RequestContext.currentUserId()
     })
     if (!binding.tenantId || !binding.organizationId || !binding.userId) denied()
+    const actorUserId = RequestContext.currentUserId()
     const pluginName = options.pluginName
     const requireUserIsolation = options.requireUserIsolation === true
     // Resolve on each operation: uninstalled plugins and changed installation scope fail closed.
     return new VolumeWorkspaceStorage(
         async (operation) => {
+            if (RequestContext.currentUserId() !== actorUserId) denied()
             const scope = await authorizeAssistantWorkspace(binding, operation, commands)
             if (requireUserIsolation && scope.catalog !== 'user-xperts') {
                 throw new BadRequestException({
