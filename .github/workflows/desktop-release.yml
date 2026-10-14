@@ -7,6 +7,7 @@ on:
       - '.deploy/desktop/**'
       - '.github/workflows/desktop-release.yml'
       - 'apps/desktop/**'
+      - 'libs/template-installation/**'
       - 'packages/desktop-protocol/**'
       - 'packages/contracts/**'
       - 'packages/shadcn-ui/**'

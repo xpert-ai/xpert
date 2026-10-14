@@ -18,7 +18,7 @@ function prepare(destination, sources = false, sourceRoot = root) {
   copy(path.join(sourceRoot, '.deploy/desktop/package.json'), path.join(destination, 'package.json'))
   for (const file of ['pnpm-workspace.yaml', '.npmrc', 'tsconfig.base.json'])
     copy(path.join(sourceRoot, file), path.join(destination, file))
-  for (const dir of packages) {
+  for (const dir of sources ? [...packages, 'libs/template-installation'] : packages) {
     if (sources) {
       fs.cpSync(path.join(sourceRoot, dir), path.join(destination, dir), {
         recursive: true,
