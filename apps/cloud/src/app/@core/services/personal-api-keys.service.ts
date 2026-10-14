@@ -6,7 +6,7 @@ import { API_PREFIX } from '../state/constants'
 @Injectable({ providedIn: 'root' })
 export class PersonalApiKeysService {
   readonly #http = inject(HttpClient)
-  readonly #url = `${API_PREFIX}/auth/personal-api-keys`
+  readonly #url = `${API_PREFIX}/api-key/personal`
 
   list() {
     return this.#http.get<PersonalApiKeySummary[]>(this.#url)

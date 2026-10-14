@@ -78,12 +78,12 @@ describe('AI sandbox runtime HTTP authentication', () => {
 
     beforeAll(async () => {
         const secretTokens = {
-            findOneByOptions: jest.fn(async (options: { where: { token: string } }) => tokens.get(options.where.token))
+            findBySecret: jest.fn(async (token: string) => tokens.get(token))
         }
         const users = { findOneByIdWithinTenant: jest.fn(async () => actor) }
         const apiKeyService = {
             findOneOrFailByIdString: jest.fn(async () => ({ record: apiKeys.get('sk-x-valid') })),
-            update: jest.fn(),
+            recordUse: jest.fn(),
             resolvePrincipal: jest.fn(
                 async (apiKey: IApiKey, options: Parameters<ApiKeyService['resolvePrincipal']>[1]) =>
                     buildApiKeyPrincipal(apiKey, {

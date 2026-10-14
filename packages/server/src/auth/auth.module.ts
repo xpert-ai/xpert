@@ -24,11 +24,6 @@ import { PendingSsoBindingChallengeService } from './sso/pending-sso-binding-cha
 import { CommandHandlers } from './commands/handlers'
 import { BasicStrategy, JwtStrategy, WsJwtStrategy, RefreshTokenStrategy } from './strategies'
 import { ReferralModule } from '../referral'
-import { User } from '../user/user.entity'
-import { PersonalApiKey } from './personal-api-key/personal-api-key.entity'
-import { PersonalApiKeyService } from './personal-api-key/personal-api-key.service'
-import { PersonalApiKeyStrategy } from './personal-api-key/personal-api-key.strategy'
-import { PersonalApiKeyController } from './personal-api-key/personal-api-key.controller'
 
 const providers = [AuthService, UserService, UserOrganizationService, EmailService]
 
@@ -45,7 +40,7 @@ const providers = [AuthService, UserService, UserOrganizationService, EmailServi
 			imports: [forwardRef(() => AuthModule)],
 			useExisting: AuthService
 		}),
-		TypeOrmModule.forFeature([UserOrganization, Organization, User, PersonalApiKey]),
+		TypeOrmModule.forFeature([UserOrganization, Organization]),
 		RedisModule,
 		EmailModule,
 		AccountBindingModule,
@@ -58,11 +53,9 @@ const providers = [AuthService, UserService, UserOrganizationService, EmailServi
 		DiscoveryModule,
 		ReferralModule
 	],
-	controllers: [AuthController, AuthSsoController, PersonalApiKeyController],
+	controllers: [AuthController, AuthSsoController],
 	providers: [
 		...providers,
-		PersonalApiKeyService,
-		PersonalApiKeyStrategy,
 		AuthSsoDiscoveryService,
 		AuthSsoBindingService,
 		PendingSsoBindingChallengeService,

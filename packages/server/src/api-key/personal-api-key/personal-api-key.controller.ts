@@ -14,17 +14,17 @@ import { ApiTags } from '@nestjs/swagger'
 import { t } from 'i18next'
 import { ZodValidationPipe } from '../../shared/pipes/zod-validation.pipe'
 import { personalApiKeyCreateSchema, PersonalApiKeyCreate } from './personal-api-key.schema'
-import { PersonalApiKeyService } from './personal-api-key.service'
+import { ApiKeyService } from '../api-key.service'
 
 @ApiTags('Personal API keys')
-@Controller('personal-api-keys')
+@Controller('personal')
 export class PersonalApiKeyController {
-	constructor(private readonly keys: PersonalApiKeyService) {}
+	constructor(private readonly keys: ApiKeyService) {}
 
 	@Get()
 	@Header('Cache-Control', 'no-store')
 	list() {
-		return this.keys.list()
+		return this.keys.listPersonal()
 	}
 
 	@Post()
@@ -43,12 +43,12 @@ export class PersonalApiKeyController {
 		)
 		input: PersonalApiKeyCreate
 	) {
-		return this.keys.create(input)
+		return this.keys.createPersonal(input)
 	}
 
 	@Delete(':id')
 	@HttpCode(204)
 	revoke(@Param('id', new ParseUUIDPipe()) id: string) {
-		return this.keys.revoke(id)
+		return this.keys.revokePersonal(id)
 	}
 }

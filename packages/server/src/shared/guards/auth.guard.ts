@@ -1,9 +1,9 @@
 import { ExecutionContext, Injectable } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
-import { AuthGuard as PassportAuthGaurd } from '@nestjs/passport'
+import { CoreAuthGuard } from './core-auth.guard'
 
 @Injectable()
-export class AuthGuard extends PassportAuthGaurd(['personal-api-key', 'jwt', 'basic']) {
+export class AuthGuard extends CoreAuthGuard {
 	constructor(private readonly _reflector: Reflector) {
 		super()
 	}
