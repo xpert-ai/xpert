@@ -20,25 +20,20 @@
           <z-icon zType="panel-left" />
         </button>
       }
-      <z-breadcrumb zSize="sm" class="min-w-0" zWrap="nowrap">
-        <li>
-          <a
-            [routerLink]="['/settings']"
-            class="rounded-sm hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            {{ 'XP.MENU.Settings' | translate: { Default: 'Settings' } }}
-          </a>
+      <z-breadcrumb zSize="lg" class="min-w-0 [&_ol]:text-sidebar-foreground" zWrap="nowrap">
+        <li class="min-w-0">
+          <xp-organization-selector variant="breadcrumb" class="block min-w-0" />
         </li>
         @if (activeGroup(); as group) {
           @if (!compact()) {
-            <li aria-hidden="true"><z-icon zType="chevron-right" class="size-3 text-muted-foreground" /></li>
-            <li class="text-muted-foreground">
+            <li aria-hidden="true"><z-icon zType="chevron-right" class="size-4 text-text-secondary" /></li>
+            <li>
               {{ 'XP.SettingsShell.' + group.key | translate: { Default: group.label } }}
             </li>
           }
         }
         @if (activeItem(); as item) {
-          <li aria-hidden="true"><z-icon zType="chevron-right" class="size-3 text-muted-foreground" /></li>
+          <li aria-hidden="true"><z-icon zType="chevron-right" class="size-4 text-text-secondary" /></li>
           <li class="min-w-0 truncate font-medium text-foreground" aria-current="page">
             {{ item.translationKey | translate: { Default: item.label } }}
           </li>
@@ -89,7 +84,7 @@
     >
       <img src="/assets/icon.png" alt="" class="size-7 object-contain" />
       <span>Xpert</span>
-      <span class="ml-auto text-xs font-normal text-muted-foreground">{{
+      <span class="ml-auto text-sm font-normal text-text-secondary">{{
         'XP.MENU.Settings' | translate: { Default: 'Settings' }
       }}</span>
     </a>
@@ -107,9 +102,9 @@
       </button>
     }
   </div>
-  <div class="shrink-0 space-y-3 px-3 pb-3">
-    <xp-organization-selector class="block min-w-0 [&>div]:mx-0 [&>div]:text-left" />
+  <div class="shrink-0 px-3 pb-3">
     <z-search-input
+      class="[&_input]:text-base [&_input]:text-sidebar-foreground"
       [value]="search()"
       (valueChange)="search.set($event)"
       [placeholder]="'XP.SettingsShell.Search' | translate"
@@ -123,21 +118,21 @@
   >
     @for (group of filteredGroups(); track group.key) {
       <z-sidebar-group>
-        <z-sidebar-group-label>{{
+        <z-sidebar-group-label class="text-sm text-text-secondary">{{
           'XP.SettingsShell.' + group.key | translate: { Default: group.label }
         }}</z-sidebar-group-label>
         @for (item of group.items; track item.path) {
           <a
-            class="flex h-9 w-full items-center gap-2.5 rounded-md px-3 text-sm transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            class="flex h-9 w-full items-center gap-2.5 rounded-md px-3 text-base transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             [routerLink]="'/settings/' + item.path"
             routerLinkActive
             #rla="routerLinkActive"
             [class]="
-              rla.isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium' : 'text-muted-foreground'
+              rla.isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium' : 'text-sidebar-foreground'
             "
             [attr.aria-current]="rla.isActive ? 'page' : null"
           >
-            <z-icon [zType]="item.icon" class="size-4" />
+            <z-icon [zType]="item.icon" class="size-5 shrink-0" />
             <span class="min-w-0 truncate" [class]="item.deprecated ? 'line-through' : ''">
               {{ item.translationKey | translate: { Default: item.label } }}
               @if (item.deprecated) {
@@ -155,10 +150,10 @@
   </nav>
   <div class="shrink-0 border-t border-sidebar-border p-3">
     <a
-      class="flex h-9 w-full items-center gap-2 rounded-md px-3 text-sm text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      class="flex h-9 w-full items-center gap-2 rounded-md px-3 text-base text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       [routerLink]="['/']"
     >
-      <z-icon zType="arrow-left" class="size-4" />{{ 'XP.SettingsShell.BackToApp' | translate }}
+      <z-icon zType="arrow-left" class="size-5 shrink-0" />{{ 'XP.SettingsShell.BackToApp' | translate }}
     </a>
   </div>
 </ng-template>

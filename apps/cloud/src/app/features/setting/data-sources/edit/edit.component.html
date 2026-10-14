@@ -20,7 +20,7 @@
 
   <main xpDialogBody>
     @if (dataSource()?.type; as type) {
-      <div class="mb-5 flex items-center gap-4 rounded-lg border border-divider-regular bg-components-panel-bg p-4">
+      <div class="mb-5 flex items-center gap-4 rounded-lg border border-border bg-components-panel-bg p-4">
         <img
           src="assets/images/db-logos/{{ type.type }}.png"
           width="48"
@@ -32,7 +32,7 @@
           <div class="truncate text-base font-semibold">{{ type.name }}</div>
           <div class="mt-1 flex items-center gap-2">
             <z-badge zType="outline" zShape="pill">{{ type.type }}</z-badge>
-            <span class="truncate text-xs text-text-tertiary">{{ type.protocol }}</span>
+            <span class="truncate text-xs text-muted-foreground">{{ type.protocol }}</span>
           </div>
         </div>
       </div>
@@ -52,7 +52,7 @@
       </z-form-field>
 
       @if (isXmla()) {
-        <div class="rounded-lg border border-divider-regular bg-components-panel-bg p-4">
+        <div class="rounded-lg border border-border bg-components-panel-bg p-4">
           <div class="flex flex-wrap items-center justify-between gap-4">
             <div class="flex flex-wrap items-center gap-2">
               <span class="text-sm text-text-secondary">

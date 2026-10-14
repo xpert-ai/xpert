@@ -9,7 +9,7 @@ import {
   ISkillRepositoryIndex,
   WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER
 } from '@cloud/app/@core'
-import { injectConfirmDelete } from '@xpert-ai/headless-ui'
+import { injectConfirmDelete, ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { finalize } from 'rxjs'
 import { SkillRepositoryService, ToastrService } from '../../../@core/services'
@@ -21,7 +21,7 @@ import { XpertSkillRepositoryComponent } from '../skill-repository/skill-reposit
   selector: 'xp-skill-repositories',
   templateUrl: './skill-repositories.component.html',
   styleUrls: ['./skill-repositories.component.scss'],
-  imports: [CommonModule, RouterModule, FormsModule, ReactiveFormsModule, TranslateModule]
+  imports: [ZardButtonComponent, CommonModule, RouterModule, FormsModule, ReactiveFormsModule, TranslateModule]
 })
 export class XpertSkillRepositoriesComponent {
   readonly repositoryService = inject(SkillRepositoryService)

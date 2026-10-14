@@ -1,10 +1,10 @@
-<div class="flex h-full w-full min-w-0 flex-col">
-  <div class="xp-page-header">
+<div class="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+  <div class="flex flex-col gap-6">
     <div class="min-w-0">
-      <div class="xp-page-title">
+      <h1 class="text-2xl font-semibold tracking-tight text-foreground">
         {{ 'XP.ModelGateway.AdminTitle' | translate: { Default: 'Model API gateway' } }}
-      </div>
-      <div class="mt-1 max-w-3xl text-sm text-text-tertiary">
+      </h1>
+      <div class="mt-1 max-w-3xl text-sm text-muted-foreground">
         {{
           'XP.ModelGateway.AdminDescription'
             | translate
@@ -16,7 +16,7 @@
     </div>
     <nav
       z-tab-nav-bar
-      class="xp-tab-nav-bar self-stretch max-w-full overflow-hidden"
+      class="w-full overflow-x-auto border-b border-border"
       color="accent"
       alignTabs="start"
       stretchTabs="false"
@@ -36,7 +36,7 @@
     </nav>
   </div>
 
-  <div class="xp-page-body flex min-h-0 w-full min-w-0 flex-1 flex-col gap-4 overflow-auto p-4">
+  <div class="flex w-full min-w-0 flex-col gap-4">
     @if (loading()) {
       <div class="flex min-h-52 items-center justify-center"><xp-spin /></div>
     } @else {
@@ -44,11 +44,12 @@
         @case ('calls') {
           <form class="flex flex-wrap items-end gap-2" [formGroup]="filterForm" (ngSubmit)="applyActiveSearch()">
             <z-form-field class="w-full max-w-md">
-              <z-form-label>
+              <label z-form-label for="settings-callsSearch">
                 {{ 'XP.ModelGateway.SearchCalls' | translate: { Default: 'Search calls' } }}
-              </z-form-label>
+              </label>
               <input
                 z-input
+                id="settings-callsSearch"
                 formControlName="callsSearch"
                 [placeholder]="
                   'XP.ModelGateway.SearchCallsPlaceholder'
@@ -60,8 +61,8 @@
               {{ 'XP.ACTIONS.Search' | translate: { Default: 'Search' } }}
             </button>
           </form>
-          <div class="overflow-auto rounded-xl border border-divider-regular bg-components-card-bg">
-            <table z-table zSize="compact" class="min-w-[76rem]">
+          <div class="overflow-auto rounded-lg border border-border bg-card">
+            <table z-table zSize="compact" class="min-w-[48rem]">
               <thead z-table-header>
                 <tr z-table-row>
                   <th z-table-head>{{ 'XP.ModelGateway.RequestId' | translate: { Default: 'Request ID' } }}</th>
@@ -87,7 +88,7 @@
                           {{ call.userName || call.userId }}
                         </div>
                         @if (call.userName && call.userName !== call.userId) {
-                          <code class="block truncate text-xs text-text-tertiary" [title]="call.userId">
+                          <code class="block truncate text-xs text-muted-foreground" [title]="call.userId">
                             {{ call.userId }}
                           </code>
                         }
@@ -107,12 +108,18 @@
                       }
                     </td>
                   </tr>
+                } @empty {
+                  <tr z-table-row>
+                    <td z-table-cell colspan="7" class="h-40 text-center text-muted-foreground">
+                      {{ 'XP.SettingsRemaining.NoRecords' | translate }}
+                    </td>
+                  </tr>
                 }
               </tbody>
             </table>
           </div>
           @if (callTotal()) {
-            <div class="flex flex-wrap items-center justify-between gap-3 text-sm text-text-tertiary">
+            <div class="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
               <span>
                 {{
                   'XP.ModelGateway.PageSummary'
@@ -130,7 +137,7 @@
                   zType="outline"
                   zSize="sm"
                   type="button"
-                  [disabled]="activePageNumber() === 1"
+                  [zDisabled]="activePageNumber() === 1"
                   (click)="previousPage()"
                 >
                   {{ 'XP.ModelGateway.PreviousPage' | translate: { Default: 'Previous' } }}
@@ -140,7 +147,7 @@
                   zType="outline"
                   zSize="sm"
                   type="button"
-                  [disabled]="activePageNumber() === activePageCount()"
+                  [zDisabled]="activePageNumber() === activePageCount()"
                   (click)="nextPage()"
                 >
                   {{ 'XP.ModelGateway.NextPage' | translate: { Default: 'Next' } }}
@@ -152,11 +159,12 @@
         @case ('keys') {
           <form class="flex flex-wrap items-end gap-2" [formGroup]="filterForm" (ngSubmit)="applyActiveSearch()">
             <z-form-field class="w-full max-w-md">
-              <z-form-label>
+              <label z-form-label for="settings-keysSearch">
                 {{ 'XP.ModelGateway.SearchKeys' | translate: { Default: 'Search API keys' } }}
-              </z-form-label>
+              </label>
               <input
                 z-input
+                id="settings-keysSearch"
                 formControlName="keysSearch"
                 [placeholder]="
                   'XP.ModelGateway.SearchKeysPlaceholder' | translate: { Default: 'Key name, prefix, or user ID' }
@@ -167,7 +175,7 @@
               {{ 'XP.ACTIONS.Search' | translate: { Default: 'Search' } }}
             </button>
           </form>
-          <div class="overflow-auto rounded-xl border border-divider-regular bg-components-card-bg">
+          <div class="overflow-auto rounded-lg border border-border bg-card">
             <table z-table zSize="compact" class="min-w-[68rem]">
               <thead z-table-header>
                 <tr z-table-row>
@@ -191,7 +199,7 @@
                           {{ key.userName || key.userId }}
                         </div>
                         @if (key.userName && key.userName !== key.userId) {
-                          <code class="block truncate text-xs text-text-tertiary" [title]="key.userId">
+                          <code class="block truncate text-xs text-muted-foreground" [title]="key.userId">
                             {{ key.userId }}
                           </code>
                         }
@@ -216,12 +224,18 @@
                       }
                     </td>
                   </tr>
+                } @empty {
+                  <tr z-table-row>
+                    <td z-table-cell colspan="7" class="h-40 text-center text-muted-foreground">
+                      {{ 'XP.SettingsRemaining.NoRecords' | translate }}
+                    </td>
+                  </tr>
                 }
               </tbody>
             </table>
           </div>
           @if (keyTotal()) {
-            <div class="flex flex-wrap items-center justify-between gap-3 text-sm text-text-tertiary">
+            <div class="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
               <span>
                 {{
                   'XP.ModelGateway.PageSummary'
@@ -239,7 +253,7 @@
                   zType="outline"
                   zSize="sm"
                   type="button"
-                  [disabled]="activePageNumber() === 1"
+                  [zDisabled]="activePageNumber() === 1"
                   (click)="previousPage()"
                 >
                   {{ 'XP.ModelGateway.PreviousPage' | translate: { Default: 'Previous' } }}
@@ -249,7 +263,7 @@
                   zType="outline"
                   zSize="sm"
                   type="button"
-                  [disabled]="activePageNumber() === activePageCount()"
+                  [zDisabled]="activePageNumber() === activePageCount()"
                   (click)="nextPage()"
                 >
                   {{ 'XP.ModelGateway.NextPage' | translate: { Default: 'Next' } }}
@@ -259,13 +273,13 @@
           }
         }
         @case ('settings') {
-          <form class="flex flex-col gap-4" [formGroup]="settingsForm" (ngSubmit)="saveSettings()">
-            <section class="rounded-xl border border-divider-regular bg-components-card-bg p-4">
+          <form class="flex w-full max-w-3xl flex-col gap-6" [formGroup]="settingsForm" (ngSubmit)="saveSettings()">
+            <section class="space-y-4 border-b border-border pb-6">
               <div>
                 <h2 class="font-semibold text-text-primary">
                   {{ 'XP.ModelGateway.RequestLimits' | translate: { Default: 'Request limits' } }}
                 </h2>
-                <p class="mt-1 text-sm text-text-tertiary">
+                <p class="mt-1 text-sm text-muted-foreground">
                   {{
                     'XP.ModelGateway.RequestLimitsHint'
                       | translate
@@ -279,15 +293,16 @@
 
               <div class="mt-4 grid gap-4 md:grid-cols-2">
                 <z-form-field appearance="fill" class="w-full">
-                  <z-form-label [zRequired]="true">
+                  <label z-form-label for="settings-requestsPerMinute" [zRequired]="true">
                     {{ 'XP.ModelGateway.RequestsPerMinute' | translate: { Default: 'Requests per minute' } }}
-                  </z-form-label>
+                  </label>
                   <input
                     z-input
                     type="number"
                     [min]="minRequestsPerMinute"
                     [max]="maxRequestsPerMinute"
                     step="1"
+                    id="settings-requestsPerMinute"
                     formControlName="requestsPerMinute"
                     [zStatus]="requestsPerMinuteCtrl.invalid && requestsPerMinuteCtrl.touched ? 'error' : undefined"
                   />
@@ -301,17 +316,18 @@
                 </z-form-field>
 
                 <z-form-field appearance="fill" class="w-full">
-                  <z-form-label [zRequired]="true">
+                  <label z-form-label for="settings-maxConcurrentRequests" [zRequired]="true">
                     {{
                       'XP.ModelGateway.MaxConcurrentRequests' | translate: { Default: 'Maximum concurrent requests' }
                     }}
-                  </z-form-label>
+                  </label>
                   <input
                     z-input
                     type="number"
                     [min]="minConcurrentRequests"
                     [max]="maxConcurrentRequests"
                     step="1"
+                    id="settings-maxConcurrentRequests"
                     formControlName="maxConcurrentRequests"
                     [zStatus]="
                       maxConcurrentRequestsCtrl.invalid && maxConcurrentRequestsCtrl.touched ? 'error' : undefined
@@ -329,13 +345,13 @@
               </div>
             </section>
 
-            <section class="rounded-xl border border-divider-regular bg-components-card-bg p-4">
+            <section class="space-y-4 border-b border-border pb-6">
               <div class="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h2 class="font-semibold text-text-primary">
                     {{ 'XP.ModelGateway.Retention' | translate: { Default: 'Request and response retention' } }}
                   </h2>
-                  <p class="mt-1 text-sm text-text-tertiary">
+                  <p class="mt-1 text-sm text-muted-foreground">
                     {{
                       'XP.ModelGateway.RetentionHint'
                         | translate
@@ -353,15 +369,16 @@
               @if (settingsForm.controls.storeBodies.value) {
                 <div class="mt-4 max-w-64">
                   <z-form-field appearance="fill" class="w-full">
-                    <z-form-label [zRequired]="true">
+                    <label z-form-label for="settings-bodyRetentionDays" [zRequired]="true">
                       {{ 'XP.ModelGateway.RetentionDays' | translate: { Default: 'Retention days' } }}
-                    </z-form-label>
+                    </label>
                     <input
                       z-input
                       type="number"
                       [min]="minBodyRetentionDays"
                       [max]="maxBodyRetentionDays"
                       step="1"
+                      id="settings-bodyRetentionDays"
                       formControlName="bodyRetentionDays"
                       [zStatus]="bodyRetentionDaysCtrl.invalid && bodyRetentionDaysCtrl.touched ? 'error' : undefined"
                     />
@@ -377,8 +394,8 @@
               }
             </section>
 
-            <div class="flex justify-end">
-              <button z-button type="submit" [disabled]="settingsForm.pristine || settingsForm.invalid">
+            <div class="flex justify-start">
+              <button z-button type="submit" [zDisabled]="settingsForm.pristine || settingsForm.invalid">
                 {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
               </button>
             </div>

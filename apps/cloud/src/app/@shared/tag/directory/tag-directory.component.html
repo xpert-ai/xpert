@@ -1,7 +1,7 @@
 <div class="space-y-6" [attr.aria-busy]="loading()">
   <div class="flex flex-wrap items-start justify-between gap-4">
     <div class="min-w-0 space-y-2">
-      <h2 class="flex items-center gap-3 text-2xl font-semibold text-text-primary">
+      <h2 class="flex items-center gap-3 text-lg font-semibold text-text-primary">
         {{ 'XP.TagDirectory.Title' | translate }}
         <span class="rounded-md border border-divider-regular px-2 py-0.5 text-sm font-normal">{{
           tags().length
@@ -12,7 +12,7 @@
       </p>
     </div>
     @if (canCreate()) {
-      <button z-button (click)="open('edit')" [disabled]="loading() || saving()">
+      <button z-button (click)="open('edit')" [zDisabled]="loading() || saving()">
         <z-icon zType="add" class="mr-2" />{{ 'XP.TagDirectory.Create' | translate }}
       </button>
     }
@@ -41,18 +41,16 @@
     >
   </div>
   <div class="flex flex-wrap gap-3">
-    <div class="relative min-w-48 flex-1">
-      <z-icon zType="search" class="absolute left-3 top-2.5 text-text-tertiary" /><input
-        z-input
-        class="w-full pl-10"
-        [ngModel]="search()"
-        (ngModelChange)="search.set($event)"
-        [placeholder]="'XP.TagDirectory.Search' | translate"
-        [attr.aria-label]="'XP.TagDirectory.Search' | translate"
-      />
-    </div>
+    <z-search-input
+      class="w-full sm:max-w-sm"
+      [ngModel]="search()"
+      (ngModelChange)="search.set($event)"
+      [placeholder]="'XP.TagDirectory.Search' | translate"
+      [aria-label]="'XP.TagDirectory.Search' | translate"
+      [clearLabel]="'XP.ACTIONS.Clear' | translate"
+    />
     <z-select
-      class="w-44"
+      class="w-full sm:w-44"
       [ngModel]="targetFilter()"
       (ngModelChange)="targetFilter.set($event)"
       [attr.aria-label]="'XP.TagDirectory.Targets' | translate"
@@ -64,7 +62,7 @@
     </z-select>
     @if (!isTenantScope()) {
       <z-select
-        class="w-40"
+        class="w-full sm:w-40"
         [ngModel]="sourceFilter()"
         (ngModelChange)="sourceFilter.set($event)"
         [attr.aria-label]="'XP.TagDirectory.Source' | translate"
@@ -93,28 +91,32 @@
       }
     </div>
   } @else {
-    <div class="overflow-x-auto rounded-xl border border-divider-regular">
-      <table class="w-full min-w-[680px] text-left text-sm" [attr.aria-label]="'XP.TagDirectory.Title' | translate">
-        <thead class="bg-hover-bg text-text-tertiary">
-          <tr>
-            <th class="px-4 py-3 font-normal" [attr.aria-sort]="ascending() ? 'ascending' : 'descending'">
+    <div class="overflow-x-auto rounded-lg border border-divider-regular">
+      <table
+        z-table
+        class="w-full min-w-[680px] text-left text-sm"
+        [attr.aria-label]="'XP.TagDirectory.Title' | translate"
+      >
+        <thead z-table-header class="bg-hover-bg text-text-tertiary">
+          <tr z-table-row>
+            <th z-table-head class="px-4 py-3 font-normal" [attr.aria-sort]="ascending() ? 'ascending' : 'descending'">
               <button z-button zType="ghost" class="px-0" (click)="ascending.set(!ascending())">
                 {{ 'XP.TagDirectory.Name' | translate }}<z-icon zType="chevrons-up-down" class="ml-1" />
               </button>
             </th>
-            <th class="px-4 py-3 font-normal">{{ 'XP.TagDirectory.Targets' | translate }}</th>
-            <th class="px-4 py-3 font-normal">{{ 'XP.TagDirectory.Source' | translate }}</th>
-            <th class="px-4 py-3 font-normal">{{ 'XP.TagDirectory.Usage' | translate }}</th>
-            <th class="px-4 py-3 font-normal">{{ 'XP.TagDirectory.Status' | translate }}</th>
-            <th class="w-12">
+            <th z-table-head class="px-4 py-3 font-normal">{{ 'XP.TagDirectory.Targets' | translate }}</th>
+            <th z-table-head class="px-4 py-3 font-normal">{{ 'XP.TagDirectory.Source' | translate }}</th>
+            <th z-table-head class="px-4 py-3 font-normal">{{ 'XP.TagDirectory.Usage' | translate }}</th>
+            <th z-table-head class="px-4 py-3 font-normal">{{ 'XP.TagDirectory.Status' | translate }}</th>
+            <th z-table-head class="w-12">
               <span class="sr-only">{{ 'XP.TagDirectory.Actions' | translate }}</span>
             </th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-divider-regular">
+        <tbody z-table-body class="divide-y divide-divider-regular">
           @for (tag of visible(); track tag.id) {
-            <tr class="hover:bg-hover-bg/50" [attr.data-tag-id]="tag.id">
-              <td class="max-w-72 px-4 py-5">
+            <tr z-table-row class="hover:bg-hover-bg/50" [attr.data-tag-id]="tag.id">
+              <td z-table-cell class="max-w-72 px-4 py-5">
                 <div class="flex min-w-0 items-center gap-3">
                   <div class="min-w-0">
                     <button
@@ -129,7 +131,7 @@
                   </div>
                 </div>
               </td>
-              <td class="max-w-60 px-4 py-5">
+              <td z-table-cell class="max-w-60 px-4 py-5">
                 <div class="flex flex-wrap gap-1">
                   @for (target of targetNames(tag); track target) {
                     <span class="whitespace-nowrap rounded border border-divider-regular px-1.5 py-0.5 text-xs">{{
@@ -140,7 +142,7 @@
                   }
                 </div>
               </td>
-              <td class="whitespace-nowrap px-4 py-5 text-xs text-text-tertiary">
+              <td z-table-cell class="whitespace-nowrap px-4 py-5 text-xs text-text-tertiary">
                 {{
                   (tag.organizationId
                     ? 'XP.TagDirectory.Organization'
@@ -153,7 +155,7 @@
                   <span class="block">{{ 'XP.TagDirectory.System' | translate }}</span>
                 }
               </td>
-              <td class="whitespace-nowrap px-4 py-5">
+              <td z-table-cell class="whitespace-nowrap px-4 py-5">
                 <button
                   z-button
                   zType="ghost"
@@ -166,7 +168,7 @@
                   }}<z-icon zType="chevron-right" class="ml-1" />
                 </button>
               </td>
-              <td class="whitespace-nowrap px-4 py-5">
+              <td z-table-cell class="whitespace-nowrap px-4 py-5">
                 <span
                   class="inline-flex items-center gap-2 text-xs"
                   [class]="tag.isActive === false ? 'text-text-tertiary' : 'text-text-success'"
@@ -176,7 +178,7 @@
                   }}</span
                 >
               </td>
-              <td class="pr-3">
+              <td z-table-cell class="pr-3">
                 @if (editable(tag)) {
                   <button
                     z-button
@@ -185,7 +187,7 @@
                     z-menu
                     [zMenuTriggerFor]="actions"
                     [zMenuTriggerData]="{ tag: tag }"
-                    [disabled]="saving()"
+                    [zDisabled]="saving()"
                     [attr.aria-label]="'XP.TagDirectory.Actions' | translate"
                   >
                     <z-icon zType="more_vert" />
@@ -205,8 +207,8 @@
               </td>
             </tr>
           } @empty {
-            <tr>
-              <td colspan="6" class="px-6 py-14 text-center text-text-tertiary">
+            <tr z-table-row>
+              <td z-table-cell colspan="6" class="px-6 py-14 text-center text-text-tertiary">
                 {{ 'XP.TagDirectory.Empty' | translate }}
               </td>
             </tr>

@@ -57,7 +57,12 @@ export type ModelAccessActionDialogResult = {
         <h2 xpDialogHeading>
           {{ 'XP.ModelAccess.Action.' + mode() + '.Title' | translate }}
         </h2>
-        <p xpDialogDescription>{{ 'XP.ModelAccessSettings.ActionDescription' | translate }}</p>
+        <p xpDialogDescription>
+          {{
+            (target() ? 'XP.ModelAccessSettings.ActionDescription' : 'XP.SettingsRemaining.RevokeKeyDescription')
+              | translate
+          }}
+        </p>
         <button
           xpDialogCloseButton
           z-button

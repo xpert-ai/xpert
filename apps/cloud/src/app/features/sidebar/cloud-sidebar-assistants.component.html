@@ -277,7 +277,7 @@
                   @if (!collapsed()) {
                     <span class="cloud-sidebar-assistants__content">
                       <span
-                        class="cloud-sidebar-assistants__name text-text-secondary! group-hover:text-text-primary! group-focus-within:text-text-primary!"
+                        class="cloud-sidebar-assistants__name text-sidebar-foreground! group-hover:text-text-primary! group-focus-within:text-text-primary!"
                       >
                         @if (assistantBusinessAreaName(xpert); as businessAreaName) {
                           @if (canFilterByAssistantBusinessArea(xpert)) {
@@ -345,7 +345,7 @@
                       (click)="toggleAssistantExpanded($event, xpert)"
                     >
                       <i
-                        class="cloud-sidebar-assistants__item-chevron text-text-secondary! group-hover:text-text-primary!"
+                        class="cloud-sidebar-assistants__item-chevron text-sidebar-foreground! group-hover:text-text-primary!"
                         [class.ri-arrow-right-s-line]="!isAssistantExpanded(xpert)"
                         [class.ri-arrow-down-s-line]="isAssistantExpanded(xpert)"
                         aria-hidden="true"
@@ -374,7 +374,7 @@
                         [class]="
                           isAssistantMenuItemActive(xpert, item)
                             ? 'cloud-sidebar-assistants__child-item is-active bg-components-list-option-active-bg text-text-primary'
-                            : 'cloud-sidebar-assistants__child-item bg-transparent text-text-secondary'
+                            : 'cloud-sidebar-assistants__child-item bg-transparent text-sidebar-foreground'
                         "
                         [attr.aria-label]="item.title"
                         [attr.aria-current]="isAssistantMenuItemActive(xpert, item) ? 'page' : null"
@@ -495,7 +495,7 @@
             <li>
               <button
                 type="button"
-                class="cloud-sidebar-assistants__more mx-auto flex min-h-11 cursor-pointer items-center border-0 bg-transparent px-3 text-left text-text-secondary underline-offset-2 hover:text-text-primary hover:underline focus-visible:text-text-primary focus-visible:underline focus-visible:outline-none"
+                class="cloud-sidebar-assistants__more mx-auto flex min-h-11 cursor-pointer items-center border-0 bg-transparent px-3 text-left text-sidebar-foreground underline-offset-2 hover:text-text-primary hover:underline focus-visible:text-text-primary focus-visible:underline focus-visible:outline-none"
                 [class]="embedded() ? 'mt-1 min-h-9! justify-center text-center' : ''"
                 [class.is-open]="moreExpanded()"
                 [attr.aria-expanded]="moreExpanded()"

@@ -34,6 +34,7 @@ export * from './organization-team-model'
 export * from './organization.model'
 
 export * from './role-permission.model'
+export * from './role-permission-modules'
 export * from './referral.model'
 export * from './seed.model'
 

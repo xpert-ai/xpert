@@ -5,7 +5,6 @@ import {
   DestroyRef,
   Input,
   OnChanges,
-  OnInit,
   SimpleChanges,
   inject,
   signal
@@ -13,8 +12,7 @@ import {
 import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 
 import { ActivatedRoute } from '@angular/router'
-import { ICustomSmtp, ICustomSmtpFindInput, IOrganization, IUser, SMTPSecureEnum } from '@xpert-ai/contracts'
-import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core'
+import { ICustomSmtp, ICustomSmtpFindInput, IOrganization, IUser } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { combineLatest } from 'rxjs'
 import { distinctUntilChanged, filter, map, pairwise, startWith } from 'rxjs/operators'
@@ -22,16 +20,24 @@ import { CustomSmtpService, Store, ToastrService } from '../../@core/services'
 import { patterns } from '../regex/regex-patterns.const'
 import { TranslationBaseComponent } from '../language/translation-base.component'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardFormImports, ZardInputDirective, ZardSwitchComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [FormsModule, ReactiveFormsModule, TranslateModule, FormlyModule, ZardButtonComponent],
+  imports: [
+    FormsModule,
+    ReactiveFormsModule,
+    TranslateModule,
+    ZardButtonComponent,
+    ZardInputDirective,
+    ZardSwitchComponent,
+    ...ZardFormImports
+  ],
   selector: 'xp-smtp',
   templateUrl: './smtp.component.html',
   styleUrls: ['./smtp.component.scss']
 })
-export class SMTPComponent extends TranslationBaseComponent implements OnInit, OnChanges, AfterViewInit {
+export class SMTPComponent extends TranslationBaseComponent implements OnChanges, AfterViewInit {
   private readonly _activatedRoute = inject(ActivatedRoute)
   private readonly fb = inject(FormBuilder)
   private readonly customSmtpService = inject(CustomSmtpService)
@@ -49,10 +55,6 @@ export class SMTPComponent extends TranslationBaseComponent implements OnInit, O
   private resolvedOrganization?: IOrganization
 
   loading: boolean
-  secureOptions = [
-    { label: SMTPSecureEnum.TRUE, value: true },
-    { label: SMTPSecureEnum.FALSE, value: false }
-  ]
   customSmtp: ICustomSmtp = {} as ICustomSmtp
   user: IUser
   readonly isValidated = signal(false)
@@ -74,9 +76,6 @@ export class SMTPComponent extends TranslationBaseComponent implements OnInit, O
       isValidate: [false]
     })
   }
-
-  //Fields for the form
-  schema: FormlyFieldConfig[] = []
 
   /**
   |--------------------------------------------------------------------------
@@ -105,96 +104,6 @@ export class SMTPComponent extends TranslationBaseComponent implements OnInit, O
 
       void this.getTenantSmtpSetting()
     })
-
-  ngOnInit(): void {
-    this.translateService
-      .get('XP.SHARED.SMTP', {
-        Default: {
-          Host: 'Host',
-          Port: 'Port',
-          Secure: 'Secure',
-          Username: 'Username',
-          Password: 'Password',
-          True: 'True',
-          False: 'False'
-        }
-      })
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((SMTP) => {
-        this.schema = [
-          {
-            fieldGroupClassName: 'xp-formly__row',
-            fieldGroup: [
-              {
-                className: 'xp-formly__col xp-formly__col-2',
-                key: 'host',
-                type: 'input',
-                props: {
-                  label: SMTP.Host,
-                  required: true
-                }
-              },
-              {
-                className: 'xp-formly__col xp-formly__col-2',
-                key: 'port',
-                type: 'input',
-                props: {
-                  label: SMTP.Port,
-                  type: 'number'
-                }
-              },
-              {
-                className: 'xp-formly__col xp-formly__col-2',
-                key: 'secure',
-                type: 'select',
-                props: {
-                  label: SMTP.Secure,
-                  options: [
-                    {
-                      value: false,
-                      label: SMTP.False
-                    },
-                    {
-                      value: true,
-                      label: SMTP.True
-                    }
-                  ]
-                }
-              },
-              {
-                className: 'xp-formly__col xp-formly__col-2',
-                key: 'fromAddress',
-                type: 'input',
-                props: {
-                  label: SMTP.EmailAddress || 'Email Address'
-                }
-              },
-              {
-                className: 'xp-formly__col xp-formly__col-2',
-                key: 'username',
-                type: 'input',
-                props: {
-                  label: SMTP.Username
-                }
-              },
-
-              {
-                className: 'xp-formly__col xp-formly__col-2',
-                key: 'password',
-                type: 'input',
-                props: {
-                  label: SMTP.Password
-                }
-              },
-              {
-                key: 'isValidate',
-                type: 'empty'
-              }
-            ]
-          }
-        ]
-      })
-  }
 
   ngOnChanges(change: SimpleChanges) {
     if (change['organization'] || change['isOrganization']) {
@@ -257,9 +166,8 @@ export class SMTPComponent extends TranslationBaseComponent implements OnInit, O
       })
     }
     this.form.markAsPristine()
-    this._cdr.detectChanges()
-
     this.loading = false
+    this._cdr.detectChanges()
   }
 
   private syncResolvedScope(routeIsOrganization?: boolean, organization: IOrganization | null = null) {
@@ -302,12 +210,12 @@ export class SMTPComponent extends TranslationBaseComponent implements OnInit, O
     })
   }
 
-  onFormChange(model) {
+  onFormChange() {
     this.isValidated.set(false)
   }
 
   onSubmit() {
-    if (this.form.invalid) {
+    if (this.form.invalid || this.form.pristine || !this.isValidated() || this.loading) {
       return
     }
 
@@ -320,7 +228,7 @@ export class SMTPComponent extends TranslationBaseComponent implements OnInit, O
 
   saveSetting() {
     const { value } = this.form
-    value['isValidate'] = this.isValidated
+    value['isValidate'] = this.isValidated()
 
     this.customSmtpService
       .saveSMTPSetting(value)
@@ -339,7 +247,7 @@ export class SMTPComponent extends TranslationBaseComponent implements OnInit, O
   updateSetting() {
     const { id } = this.form.value
     const { value } = this.form
-    value['isValidate'] = this.isValidated
+    value['isValidate'] = this.isValidated()
 
     this.customSmtpService
       .updateSMTPSetting(id, value)

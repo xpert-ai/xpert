@@ -1,19 +1,20 @@
-<form class="w-full px-4 py-4" [formGroup]="form" (ngSubmit)="save()">
+<form class="w-full max-w-3xl" [formGroup]="form" (ngSubmit)="save()">
   <section class="w-full">
     <div class="mb-4">
       <h2 class="text-lg font-semibold text-text-primary">
         {{ 'XP.MENU.TENANT.RETENTION' | translate: { Default: 'Data Management' } }}
       </h2>
+      <p class="mt-1 text-sm text-muted-foreground">{{ 'XP.SettingsRemaining.RetentionDescription' | translate }}</p>
     </div>
 
     <div class="space-y-4">
-      <div class="w-full rounded-lg border border-divider-regular bg-components-card-bg">
-        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-divider-regular px-4 py-3">
+      <div class="w-full border-t border-border pt-5">
+        <div class="flex flex-wrap items-center justify-between gap-4">
           <div class="min-w-0">
-            <div class="text-xs text-text-tertiary">
-              {{ 'XP.MENU.TENANT.DATA_TABLE' | translate: { Default: 'Data table' } }}
+            <div class="text-xs text-muted-foreground">
+              {{ 'XP.SettingsRemaining.ConversationHistory' | translate }}
             </div>
-            <div class="truncate font-mono text-base font-semibold text-text-primary">
+            <div class="truncate font-mono text-xs text-muted-foreground">
               {{ 'XP.MENU.TENANT.CHECKPOINT_RETENTION' | translate: { Default: 'copilot_checkpoint' } }}
             </div>
           </div>
@@ -23,17 +24,18 @@
           </z-switch>
         </div>
 
-        <div class="px-4 py-4">
+        <div class="py-4">
           <z-form-field appearance="fill" class="w-full max-w-64">
-            <z-form-label [zRequired]="true">
+            <label z-form-label for="checkpoint-days" [zRequired]="true">
               {{ 'XP.MENU.TENANT.CHECKPOINT_RETENTION_DAYS' | translate: { Default: 'Retention days' } }}
-            </z-form-label>
+            </label>
             <input
               z-input
               type="number"
               [min]="minRetentionDays"
               [max]="maxRetentionDays"
               step="1"
+              id="checkpoint-days"
               formControlName="retentionDays"
               [zStatus]="retentionDaysCtrl.invalid && retentionDaysCtrl.touched ? 'error' : undefined"
             />
@@ -48,13 +50,13 @@
         </div>
       </div>
 
-      <div class="w-full rounded-lg border border-divider-regular bg-components-card-bg">
-        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-divider-regular px-4 py-3">
+      <div class="w-full border-t border-border pt-5">
+        <div class="flex flex-wrap items-center justify-between gap-4">
           <div class="min-w-0">
-            <div class="text-xs text-text-tertiary">
-              {{ 'XP.MENU.TENANT.DATA_TABLE' | translate: { Default: 'Data table' } }}
+            <div class="text-xs text-muted-foreground">
+              {{ 'XP.SettingsRemaining.GatewayHistory' | translate }}
             </div>
-            <div class="truncate font-mono text-base font-semibold text-text-primary">
+            <div class="truncate font-mono text-xs text-muted-foreground">
               {{ 'XP.MENU.TENANT.MODEL_GATEWAY_CALL_RETENTION' | translate: { Default: 'model_gateway_call' } }}
             </div>
           </div>
@@ -64,17 +66,18 @@
           </z-switch>
         </div>
 
-        <div class="px-4 py-4">
+        <div class="py-4">
           <z-form-field appearance="fill" class="w-full max-w-64">
-            <z-form-label [zRequired]="true">
+            <label z-form-label for="gateway-days" [zRequired]="true">
               {{ 'XP.MENU.TENANT.MODEL_GATEWAY_CALL_RETENTION_DAYS' | translate: { Default: 'Retention days' } }}
-            </z-form-label>
+            </label>
             <input
               z-input
               type="number"
               [min]="minModelGatewayCallRetentionDays"
               [max]="maxModelGatewayCallRetentionDays"
               step="1"
+              id="gateway-days"
               formControlName="modelGatewayCallRetentionDays"
               [zStatus]="
                 modelGatewayCallRetentionDaysCtrl.invalid && modelGatewayCallRetentionDaysCtrl.touched
@@ -100,7 +103,7 @@
         zSize="sm"
         type="submit"
         [zLoading]="loading()"
-        [disabled]="loading() || form.pristine || form.invalid"
+        [zDisabled]="loading() || form.pristine || form.invalid"
       >
         {{ 'XP.ACTIONS.SAVE' | translate: { Default: 'Save' } }}
       </button>

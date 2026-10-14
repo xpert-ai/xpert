@@ -1,94 +1,86 @@
-<div class="flex flex-col justify-start items-start p-4">
-  <h2 class="xp-page-title">
-    {{ 'XP.MENU.Email Template' | translate: { Default: 'Email Template' } }}
-  </h2>
-  @if (organization()) {
-    <div class="xp-page-subtitle">
-      {{ 'XP.MENU.ForOrganization' | translate: { Default: 'For Organization' } }}:
-      {{ organization()?.name }}
+<div class="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+  @if (opened()) {
+    <xp-email-template (closed)="close()" />
+  } @else {
+    <header class="flex flex-wrap items-start justify-between gap-4">
+      <div class="space-y-2">
+        <h1 class="text-2xl font-semibold tracking-tight">{{ 'XP.MENU.Email Template' | translate }}</h1>
+        <p class="text-sm text-muted-foreground">{{ 'XP.SettingsRemaining.MailDescription' | translate }}</p>
+        @if (organization()) {
+          <z-badge zType="outline">{{ organization().name }}</z-badge>
+        }
+      </div>
+      <button z-button type="button" (click)="newEmailTemplate()">
+        <z-icon zType="add" />{{ 'EMAIL_TEMPLATES_PAGE.AddTemplate' | translate }}
+      </button>
+    </header>
+    @if (languageOptions().length) {
+      <div class="flex flex-wrap items-center gap-3">
+        <span class="text-sm font-medium">{{ 'XP.KEY_WORDS.Language' | translate }}</span
+        ><z-segmented
+          zSize="sm"
+          [zOptions]="languageOptions()"
+          [zAriaLabel]="'XP.KEY_WORDS.Language' | translate"
+          [(ngModel)]="languageCode"
+        />
+      </div>
+    }
+    <div class="overflow-x-auto rounded-lg border border-border">
+      <table z-table class="min-w-[34rem]">
+        <thead z-table-header>
+          <tr z-table-row>
+            <th z-table-head>{{ 'XP.KEY_WORDS.TemplateName' | translate }}</th>
+            <th z-table-head>{{ 'XP.KEY_WORDS.Subject' | translate }}</th>
+            <th z-table-head class="text-right">{{ 'XP.SettingsRemaining.Actions' | translate }}</th>
+          </tr>
+        </thead>
+        <tbody z-table-body>
+          @for (item of templates(); track item.name) {
+            <tr z-table-row>
+              <td z-table-cell>
+                <button z-button zType="link" type="button" class="px-0" (click)="open(item.name)">
+                  {{ item.name }}
+                </button>
+              </td>
+              <td z-table-cell class="max-w-sm truncate">{{ item.subject?.hbs }}</td>
+              <td z-table-cell>
+                <div class="flex justify-end gap-1">
+                  <button z-button zType="ghost" zSize="sm" type="button" (click)="edit(item.name)">
+                    {{ 'XP.ACTIONS.Edit' | translate }}</button
+                  ><button
+                    z-button
+                    zType="ghost"
+                    zSize="sm"
+                    type="button"
+                    class="text-destructive"
+                    (click)="delete(item)"
+                  >
+                    {{ 'XP.ACTIONS.Delete' | translate }}
+                  </button>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr z-table-row>
+              <td z-table-cell colspan="3" class="h-48 text-center">
+                <div class="space-y-2">
+                  <p class="font-medium">{{ 'XP.SettingsRemaining.NoMailTemplates' | translate }}</p>
+                  <p class="text-sm text-muted-foreground">
+                    {{ 'XP.SettingsRemaining.MailEmptyDescription' | translate }}
+                  </p>
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
     </div>
   }
 </div>
-
-<div class="flex justify-start items-center px-4 py-2">
-  <div class="font-semibold mr-2">{{ 'XP.KEY_WORDS.Language' | translate: { Default: 'Language' } }}:</div>
-  <z-segmented
-    zSize="lg"
-    [zOptions]="languageOptions()"
-    [zAriaLabel]="'XP.KEY_WORDS.Language' | translate: { Default: 'Language' }"
-    [(ngModel)]="languageCode"
-  />
-</div>
-
-<div class="w-full my-2 border-t border-solid border-divider-regular"></div>
-
-<div class="flex-1 px-4 flex flex-col overflow-auto">
-  <nav
-    class="min-h-full content-start gap-4 px-4 pt-4 grow shrink-0 pb-4 overflow-auto"
-    xpDynamicGrid
-    colWidth="280"
-    box="content-box"
-  >
-    <xp-card-create
-      [title]="'EMAIL_TEMPLATES_PAGE.AddTemplate' | translate: { Default: 'Add Template' }"
-      [helpTitle]="
-        'EMAIL_TEMPLATES_PAGE.AddTemplateHelp' | translate: { Default: 'Learn more about custom email template' }
-      "
-      helpUrl="/"
-      (create)="newEmailTemplate()"
-    />
-
-    @for (item of templates(); track item.name) {
-      <div class="xp-card w-full min-h-[160px] p-4 group bg-background-default-subtle hover:bg-hover-bg">
-        <div class="h-full flex flex-col cursor-pointer" (click)="open(item.name)">
-          <div class="flex items-start gap-2">
-            <div class="flex flex-col items-start">
-              <div class="font-bold text-base">{{ item.name }}</div>
-              <p class="text-sm flex items-center gap-1 text-text-secondary opacity-80">{{ item.subject.hbs }}</p>
-            </div>
-          </div>
-
-          <div class="w-full my-1 text-sm line-clamp-3" [title]="item.html.mjml">
-            {{ item.html.mjml }}
-          </div>
-
-          <div class="flex-1"></div>
-
-          <div class="flex justify-between items-end"></div>
-        </div>
-
-        <div class="absolute left-0 bottom-0 w-full p-1 hidden group-hover:flex">
-          <div class="flex-1"></div>
-
-          <button
-            class="group flex items-center justify-center bg-components-input-bg-normal !bg-transparent h-8 w-8 !p-2 rounded-md border-none hover:!bg-black/5"
-            type="button"
-            #mt="cdkMenuTriggerFor"
-            [cdkMenuTriggerFor]="menu"
-            [cdkMenuTriggerData]="{ item: item }"
-            [class.active]="mt.isOpen()"
-          >
-            <i class="ri-more-line"></i>
-          </button>
-        </div>
-      </div>
-    }
-  </nav>
-</div>
-
-@if (opened()) {
-  <div @fadeOut class="absolute top-0 left-0 w-full h-full flex flex-col z-[900] bg-black/10 backdrop-blur-[2px]">
-    <div class="shrink-0 w-full h-28" (click)="close()"></div>
-    <div class="w-full flex-1 flex justify-start rounded-t-3xl bg-background-default-subtle overflow-auto">
-      <xp-email-template (closed)="close()" />
-    </div>
-  </div>
-}
-
 <ng-template #newTempl>
-  <section xpDialogLayout="standard" class="w-[440px] max-w-full max-h-[calc(100dvh-32px)]">
+  <section xpDialogLayout="standard" class="w-full max-h-[calc(100dvh-32px)]">
     <header xpDialogHeader>
-      <h2 xpDialogHeading>{{ 'XP.MENU.Email Template' | translate }}</h2>
+      <h2 xpDialogHeading id="new-email-template-title">{{ 'XP.MENU.Email Template' | translate }}</h2>
       <button
         xpDialogCloseButton
         z-button
@@ -102,15 +94,30 @@
       </button>
     </header>
     <div xpDialogBody class="space-y-4">
-      <xp-language-selector class="block w-full" [(ngModel)]="languageCode" />
-      <xp-select
-        class="block w-full"
-        label="{{ 'XP.KEY_WORDS.TemplateName' | translate }}"
-        [selectOptions]="templateNames()"
-        valueKey="key"
-        displayBehaviour="descriptionOnly"
-        [(ngModel)]="name"
-      />
+      <div class="space-y-2">
+        <p class="text-sm font-medium">{{ 'XP.KEY_WORDS.Language' | translate }}</p>
+        <z-combobox
+          class="w-full"
+          zWidth="full"
+          [searchable]="true"
+          [ariaLabel]="'XP.KEY_WORDS.Language' | translate"
+          [placeholder]="'XP.KEY_WORDS.Language' | translate"
+          [options]="newLanguageOptions()"
+          [(ngModel)]="languageCode"
+        />
+      </div>
+      <div class="space-y-2">
+        <p class="text-sm font-medium">{{ 'XP.KEY_WORDS.TemplateName' | translate }}</p>
+        <z-combobox
+          class="w-full"
+          zWidth="full"
+          [ariaLabel]="'XP.KEY_WORDS.TemplateName' | translate"
+          [placeholder]="'XP.KEY_WORDS.TemplateName' | translate"
+          [options]="newTemplateOptions()"
+          [ngModel]="name()"
+          (ngModelChange)="name.set($event)"
+        />
+      </div>
     </div>
     <footer xpDialogFooter>
       <button z-button zType="outline" type="button" (click)="closeNewTemplate()">
@@ -120,20 +127,4 @@
       </button>
     </footer>
   </section>
-</ng-template>
-
-<ng-template #menu let-item="item">
-  <div class="xp-cdk-menu p-2" cdkMenu>
-    <button cdkMenuItem class="xp-cdk-menu-item p-1" (click)="edit(item.name)">
-      <i class="ri-pencil-line mr-1"></i>
-      <span>
-        {{ 'XP.ACTIONS.Edit' | translate: { Default: 'Edit' } }}
-      </span>
-    </button>
-
-    <button cdkMenuItem class="xp-cdk-menu-item danger p-1" (click)="delete(item.name)">
-      <i class="ri-delete-bin-line mr-1"></i>
-      <span>{{ 'XP.ACTIONS.Delete' | translate: { Default: 'Delete' } }}</span>
-    </button>
-  </div>
 </ng-template>

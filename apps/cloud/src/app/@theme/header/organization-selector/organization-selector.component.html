@@ -1,122 +1,151 @@
-<div
-  #menuTrigger="cdkMenuTriggerFor"
-  class="w-full mx-2 rounded-lg border border-divider-regular bg-components-card-bg/70 p-2 transition-colors hover:bg-hover-bg"
-  [class.cursor-pointer]="canOpenMenu()"
-  [class.cursor-default]="!canOpenMenu()"
-  [zTooltip]="('XP.Scope.Switch' | translate: { Default: 'Switch scope' }) + ': ' + scopeLabel()"
-  zPosition="right"
-  [zDisabled]="!isCollapsed()"
-  [cdkMenuTriggerFor]="canOpenMenu() ? menu : null"
-  (cdkMenuOpened)="loadOrganizations()"
-  (closed)="resetSearch()"
->
-  <div class="flex items-center gap-2">
-    @if (isTenantScope()) {
-      <div
-        class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary-100 text-primary-700 dark:bg-primary-500/15 dark:text-primary-300"
-      >
-        <i class="ri-building-4-line text-base"></i>
-      </div>
-    } @else if (currentOrganization()) {
-      <xp-org-avatar [organization]="currentOrganization()" class="block h-8 w-8 shrink-0 overflow-hidden rounded-xl" />
-    }
-
-    @if (!isCollapsed()) {
-      <div class="min-w-0 flex-1 pr-1">
-        <div class="truncate text-[10px] uppercase tracking-[0.24em] text-text-tertiary">
-          {{ scopeEyebrow() }}
-        </div>
+@if (variant() === 'breadcrumb') {
+  <button
+    z-button
+    zType="ghost"
+    type="button"
+    class="h-9 min-w-0 max-w-40 gap-1.5 px-2 text-base font-medium text-sidebar-foreground sm:max-w-64"
+    [disabled]="!canOpenMenu()"
+    [attr.aria-label]="
+      ('XP.Scope.Switch' | translate: { Default: 'Switch scope' }) +
+      ': ' +
+      (isTenantScope() ? scopeEyebrow() : scopeLabel())
+    "
+    [title]="isTenantScope() ? scopeEyebrow() : scopeLabel()"
+    [cdkMenuTriggerFor]="canOpenMenu() ? menu : null"
+    (cdkMenuOpened)="loadOrganizations()"
+    (cdkMenuClosed)="resetSearch()"
+  >
+    <span class="min-w-0 truncate">{{ isTenantScope() ? scopeEyebrow() : scopeLabel() }}</span>
+    <z-icon zType="chevron-down" class="size-4 shrink-0 text-text-secondary" />
+  </button>
+} @else {
+  <div
+    class="w-full mx-2 rounded-lg border border-divider-regular bg-components-card-bg/70 p-2 transition-colors hover:bg-hover-bg"
+    [class.cursor-pointer]="canOpenMenu()"
+    [class.cursor-default]="!canOpenMenu()"
+    [zTooltip]="('XP.Scope.Switch' | translate: { Default: 'Switch scope' }) + ': ' + scopeLabel()"
+    zPosition="right"
+    [zDisabled]="!isCollapsed()"
+    [cdkMenuTriggerFor]="canOpenMenu() ? menu : null"
+    (cdkMenuOpened)="loadOrganizations()"
+    (cdkMenuClosed)="resetSearch()"
+  >
+    <div class="flex items-center gap-2">
+      @if (isTenantScope()) {
         <div
-          class="truncate text-sm font-medium text-text-primary"
-          [zTooltip]="scopeLabel()"
-          zTooltipClass="max-w-80 break-all whitespace-normal"
+          class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary-100 text-primary-700 dark:bg-primary-500/15 dark:text-primary-300"
         >
-          {{ scopeLabel() }}
+          <i class="ri-building-4-line text-base"></i>
         </div>
-      </div>
-      <i class="ri-arrow-down-s-line shrink-0 text-text-tertiary"></i>
-    }
+      } @else if (currentOrganization()) {
+        <xp-org-avatar
+          [organization]="currentOrganization()"
+          class="block h-8 w-8 shrink-0 overflow-hidden rounded-xl"
+        />
+      }
+
+      @if (!isCollapsed()) {
+        <div class="min-w-0 flex-1 pr-1">
+          <div class="truncate text-[10px] uppercase tracking-[0.24em] text-text-tertiary">
+            {{ scopeEyebrow() }}
+          </div>
+          <div
+            class="truncate text-sm font-medium text-text-primary"
+            [zTooltip]="scopeLabel()"
+            zTooltipClass="max-w-80 break-all whitespace-normal"
+          >
+            {{ scopeLabel() }}
+          </div>
+        </div>
+        <i class="ri-arrow-down-s-line shrink-0 text-text-tertiary"></i>
+      }
+    </div>
   </div>
-</div>
+}
 
 <ng-template #menu>
-  <div cdkMenu class="cdk-menu__large max-w-sm" @overlayAnimation1>
-    <div class="sticky top-0 z-10 mb-1 w-full border-b border-solid border-divider-deep bg-components-card-bg">
+  <div
+    z-menu-content
+    class="w-72 max-w-[calc(100vw-2rem)] text-sidebar-foreground"
+    [attr.aria-label]="'XP.Scope.Switch' | translate: { Default: 'Switch scope' }"
+  >
+    <div class="border-b border-border p-1 pb-2">
       <z-search-input
-        class="mb-1 w-full"
+        class="w-full [&_input]:text-base"
         [placeholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
+        [aria-label]="'XP.Scope.OrganizationSection' | translate: { Default: 'Organizations' }"
         [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
         [(ngModel)]="searchTerm"
       />
     </div>
 
-    @if (organizationsLoading()) {
-      <div class="flex items-center gap-2 px-3 py-2 text-sm text-text-secondary" role="status" aria-live="polite">
-        <i class="ri-loader-4-line shrink-0 animate-spin text-base text-text-tertiary"></i>
-        <span class="truncate">
-          {{ 'XP.Organization.Loading' | translate: { Default: 'Loading organizations...' } }}
-        </span>
-      </div>
-    }
+    <div class="max-h-[min(24rem,60vh)] overflow-y-auto py-1">
+      @if (showTenantScopeItem()) {
+        <button
+          z-menu-item
+          type="button"
+          class="text-base"
+          [attr.aria-current]="isTenantScope() ? 'true' : null"
+          (menuItemTriggered)="selectTenantScope()"
+        >
+          <z-icon zType="ri-building-4-line" class="size-5" />
+          <span class="min-w-0 flex-1 truncate">{{
+            'XP.Scope.TenantEyebrow' | translate: { Default: 'Tenant Console' }
+          }}</span>
+          @if (isTenantScope()) {
+            <z-icon zType="check" class="size-4" />
+          }
+        </button>
+        <div class="my-1 border-t border-border" role="separator"></div>
+      }
 
-    @if (showTenantScopeItem()) {
-      <div class="px-3 pb-1 pt-2 text-[10px] uppercase tracking-[0.24em] text-text-tertiary">
-        {{ 'XP.Scope.TenantSection' | translate: { Default: 'Tenant Console' } }}
-      </div>
-      <div cdkMenuItem [class.active]="isTenantScope()" (click)="selectTenantScope()">
-        <div class="flex items-start gap-3 overflow-hidden">
-          <div
-            class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary-100 text-primary-700 dark:bg-primary-500/15 dark:text-primary-300"
-          >
-            <i class="ri-building-4-line text-base"></i>
-          </div>
-          <div class="min-w-0">
-            <div class="truncate font-medium text-text-primary">
-              {{ 'XP.Scope.TenantLabel' | translate: { Default: 'Tenant defaults and governance' } }}
-            </div>
-            <div class="truncate text-xs text-text-secondary">
-              {{
-                'XP.Scope.TenantHint'
-                  | translate: { Default: 'Manage tenant-wide defaults, organizations, and inherited configuration.' }
-              }}
-            </div>
-          </div>
-        </div>
-      </div>
-    }
-
-    @if (hasVisibleOrganizations()) {
-      <div class="px-3 pb-1 pt-2 text-[10px] uppercase tracking-[0.24em] text-text-tertiary">
+      <div class="px-3 py-2 text-sm font-medium text-text-secondary">
         {{ 'XP.Scope.OrganizationSection' | translate: { Default: 'Organizations' } }}
       </div>
-      @for (org of organizations(); track org.id) {
-        <div cdkMenuItem [class.active]="isActiveOrganization(org)" (click)="selectOrganization(org)">
-          <div class="flex items-center overflow-hidden text-ellipsis">
-            <xp-org-avatar [organization]="org" class="mr-2 block h-6 w-6 shrink-0 overflow-hidden rounded-full" />
-            <span class="whitespace-nowrap" [title]="org.name" [xpHighlight]="searchTerm()" [content]="org.name">{{
-              org.name
-            }}</span>
-          </div>
+      @if (organizationsLoading()) {
+        <div class="flex items-center gap-2 px-3 py-2 text-sm text-text-secondary" role="status" aria-live="polite">
+          <z-icon zType="loader-circle" class="size-4 shrink-0 animate-spin" />
+          <span>{{ 'XP.Organization.Loading' | translate: { Default: 'Loading organizations...' } }}</span>
         </div>
       }
-    } @else if (hasOrganizations() || search()) {
-      <div class="px-3 py-2 text-sm text-text-secondary">
-        {{ 'XP.Organization.EmptySearch' | translate: { Default: 'No matching organizations.' } }}
-      </div>
-    }
+      @for (org of organizations(); track org.id) {
+        <button
+          z-menu-item
+          type="button"
+          class="text-base"
+          [attr.aria-current]="isActiveOrganization(org) ? 'true' : null"
+          (menuItemTriggered)="selectOrganization(org)"
+        >
+          <xp-org-avatar [organization]="org" class="block size-5 shrink-0 overflow-hidden rounded-sm" />
+          <span class="min-w-0 flex-1 truncate" [title]="org.name" [xpHighlight]="searchTerm()" [content]="org.name">{{
+            org.name
+          }}</span>
+          @if (isActiveOrganization(org)) {
+            <z-icon zType="check" class="size-4" />
+          }
+        </button>
+      } @empty {
+        @if (!organizationsLoading()) {
+          <div class="px-3 py-2 text-sm text-text-secondary" role="status">
+            {{ 'XP.Organization.EmptySearch' | translate: { Default: 'No matching organizations.' } }}
+          </div>
+        }
+      }
 
-    @if (hasMoreOrganizations()) {
-      <button
-        z-button
-        zType="ghost"
-        zSize="sm"
-        type="button"
-        class="mt-1 w-full rounded-none"
-        [zLoading]="organizationsLoadingMore()"
-        (click)="loadMoreOrganizations()"
-      >
-        {{ 'XP.KEY_WORDS.LoadMore' | translate: { Default: 'Load more' } }}
-      </button>
-    }
+      @if (hasMoreOrganizations()) {
+        <button
+          z-button
+          zType="ghost"
+          zSize="sm"
+          type="button"
+          class="mt-1 w-full"
+          [zLoading]="organizationsLoadingMore()"
+          [disabled]="organizationsLoadingMore()"
+          (click)="loadMoreOrganizations()"
+        >
+          {{ 'XP.KEY_WORDS.LoadMore' | translate: { Default: 'Load more' } }}
+        </button>
+      }
+    </div>
   </div>
 </ng-template>

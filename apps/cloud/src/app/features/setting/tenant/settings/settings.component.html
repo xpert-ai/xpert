@@ -1,104 +1,103 @@
-<div class="flex justify-start items-center">
-  <div class="flex items-center gap-1">
-    <button z-button zType="default" zSize="sm" (click)="addNew()">
-      <z-icon nxDensity="cosy" zType="add"></z-icon>
-      {{ 'XP.ACTIONS.ADD' | translate: { Default: 'Add' } }}
+<section class="flex min-w-0 flex-col gap-4">
+  <header class="flex flex-wrap items-start justify-between gap-4">
+    <div class="space-y-1">
+      <h2 class="text-lg font-semibold">{{ 'XP.SettingsRemaining.Parameters' | translate }}</h2>
+      <p class="text-sm text-muted-foreground">{{ 'XP.SettingsRemaining.ParametersDescription' | translate }}</p>
+    </div>
+    <button z-button type="button" (click)="addNew()">{{ 'XP.ACTIONS.Add' | translate }}</button>
+  </header>
+  <div class="overflow-x-auto rounded-lg border border-border">
+    <table z-table class="min-w-[36rem]">
+      <thead z-table-header>
+        <tr z-table-row>
+          <th z-table-head>{{ 'XP.KEY_WORDS.Name' | translate }}</th>
+          <th z-table-head>{{ 'XP.KEY_WORDS.Value' | translate }}</th>
+          <th z-table-head class="text-right">{{ 'XP.KEY_WORDS.Actions' | translate }}</th>
+        </tr>
+      </thead>
+      <tbody z-table-body>
+        @for (item of listOfData.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize); track item.id) {
+          <tr z-table-row>
+            <td z-table-cell class="w-1/3">
+              @if (editCache[item.id].edit) {
+                <input
+                  z-input
+                  [(ngModel)]="editCache[item.id].data.name"
+                  [attr.aria-label]="'XP.KEY_WORDS.Name' | translate"
+                />
+              } @else {
+                <code class="text-sm">{{ item.name }}</code>
+              }
+            </td>
+            <td z-table-cell>
+              @if (editCache[item.id].edit) {
+                <input
+                  z-input
+                  [(ngModel)]="editCache[item.id].data.value"
+                  [attr.aria-label]="'XP.KEY_WORDS.Value' | translate"
+                />
+              } @else {
+                <span class="break-all">{{ item.value }}</span>
+              }
+            </td>
+            <td z-table-cell>
+              <div class="flex justify-end gap-1">
+                @if (editCache[item.id].edit) {
+                  <button z-button zSize="sm" type="button" (click)="saveEdit(item.id)">
+                    {{ 'XP.ACTIONS.Save' | translate }}</button
+                  ><button z-button zType="ghost" zSize="sm" type="button" (click)="cancelEdit(item.id)">
+                    {{ 'XP.ACTIONS.Cancel' | translate }}
+                  </button>
+                } @else {
+                  <button z-button zType="ghost" zSize="sm" type="button" (click)="startEdit(item.id)">
+                    {{ 'XP.ACTIONS.Edit' | translate }}</button
+                  ><button
+                    z-button
+                    zType="ghost"
+                    zSize="sm"
+                    type="button"
+                    class="text-destructive"
+                    (click)="deleteRow(item.id)"
+                  >
+                    {{ 'XP.ACTIONS.Delete' | translate }}
+                  </button>
+                }
+              </div>
+            </td>
+          </tr>
+        } @empty {
+          <tr z-table-row>
+            <td z-table-cell colspan="3" class="h-36 text-center text-muted-foreground">
+              {{ 'XP.SettingsRemaining.NoRecords' | translate }}
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  @if (listOfData.length > pageSize) {
+    <z-paginator
+      [length]="listOfData.length"
+      [pageIndex]="pageIndex"
+      [pageSize]="pageSize"
+      [pageSizeOptions]="[10, 20, 50]"
+      (page)="pageIndex = $event.pageIndex; pageSize = $event.pageSize"
+    />
+  }
+  <section class="flex flex-col items-start justify-between gap-4 border-t border-border pt-6 sm:flex-row">
+    <div class="space-y-1">
+      <h3 class="text-sm font-medium">{{ 'XP.SettingsRemaining.SourceDefinitions' | translate }}</h3>
+      <p class="text-sm text-muted-foreground">{{ 'XP.SettingsRemaining.SourceDefinitionsDescription' | translate }}</p>
+    </div>
+    <button
+      z-button
+      zType="outline"
+      type="button"
+      [zLoading]="syncing()"
+      [zDisabled]="syncing()"
+      (click)="syncDataSourceTypes()"
+    >
+      {{ 'XP.SettingsRemaining.SyncDefinitions' | translate }}
     </button>
-  </div>
-</div>
-
-<xp-table
-  class="overflow-hidden rounded-lg mt-2"
-  displayDensity="comfortable"
-  paging
-  [data]="listOfData"
-  [columns]="[
-    {
-      name: 'name',
-      caption: 'XP.KEY_WORDS.NAME' | translate: { Default: 'Name' },
-      cellTemplate: nameTempl
-    },
-    {
-      name: 'value',
-      caption: 'XP.KEY_WORDS.VALUE' | translate: { Default: 'Value' },
-      cellTemplate: valueTempl
-    },
-    {
-      name: 'action',
-      caption: 'XP.KEY_WORDS.ACTION' | translate: { Default: 'Action' },
-      cellTemplate: actionTempl,
-      stickyEnd: true
-    }
-  ]"
-></xp-table>
-
-<div class="border-b border-solid border-divider-regular my-4"></div>
-<div class="text-lg font-semibold text-text-primary my-2 px-2">
-  {{ 'XP.KEY_WORDS.DataSourceTypes' | translate: { Default: 'Data Source Types' } }}
-</div>
-<div class="flex justify-start items-center mt-2 px-4">
-  <button
-    type="button"
-    class="btn disabled:btn-disabled btn-primary btn-medium"
-    [disabled]="syncing()"
-    (click)="syncDataSourceTypes()"
-  >
-    <i class="ri-database-2-line mr-1"></i>
-    {{ 'XP.ACTIONS.SyncDataSourceTypes' | translate: { Default: 'Sync DataSource Types' } }}
-  </button>
-</div>
-
-<ng-template #nameTempl let-id="id" let-name="name">
-  @if (!editCache[id]?.edit) {
-    <span>{{ name }}</span>
-  } @else {
-    <xp-input [(ngModel)]="editCache[id].data.name" class="mt-2"></xp-input>
-  }
-</ng-template>
-
-<ng-template #valueTempl let-id="id" let-value="value">
-  @if (!editCache[id]?.edit) {
-    <span>{{ value }}</span>
-  } @else {
-    <xp-input [(ngModel)]="editCache[id].data.value" class="mt-2"></xp-input>
-  }
-</ng-template>
-
-<ng-template #actionTempl let-id="id">
-  <div class="flex items-center gap-2">
-    @if (editCache[id]?.edit) {
-      <button z-button zType="ghost" zSize="icon-sm" zShape="circle" class="text-text-tertiary" (click)="saveEdit(id)">
-        <div class="flex justify-center items-center">
-          <z-icon zType="save"></z-icon>
-        </div>
-      </button>
-    } @else {
-      <button z-button zType="ghost" zSize="icon-sm" zShape="circle" class="text-text-tertiary" (click)="startEdit(id)">
-        <div class="flex justify-center items-center">
-          <z-icon zType="edit"></z-icon>
-        </div>
-      </button>
-    }
-    <z-divider [vertical]="true" style="height: 20px"></z-divider>
-    @if (editCache[id]?.edit) {
-      <button
-        z-button
-        zType="destructive"
-        zSize="icon-sm"
-        zShape="circle"
-        class="text-text-tertiary"
-        (click)="cancelEdit(id)"
-      >
-        <div class="flex justify-center items-center">
-          <z-icon zType="undo"></z-icon>
-        </div>
-      </button>
-    } @else {
-      <button z-button zType="ghost" zSize="icon-sm" zShape="circle" (click)="deleteRow(id)">
-        <div class="flex justify-center items-center">
-          <z-icon zType="delete"></z-icon>
-        </div>
-      </button>
-    }
-  </div>
-</ng-template>
+  </section>
+</section>
