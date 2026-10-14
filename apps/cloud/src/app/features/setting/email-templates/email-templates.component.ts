@@ -1,15 +1,24 @@
 import {
   ZardButtonComponent,
+  ZardBadgeComponent,
+  ZardComboboxComponent,
+  ZardTableImports,
   XpDialogFrameImports,
-  DisappearFadeOut,
-  XpDynamicGridDirective,
-  XpSelectComponent,
   ZardSegmentedComponent,
   ZardIconComponent
 } from '@xpert-ai/headless-ui'
-import { CdkMenuModule } from '@angular/cdk/menu'
 
-import { Component, computed, effect, inject, model, signal, TemplateRef, viewChild } from '@angular/core'
+import {
+  Component,
+  computed,
+  effect,
+  inject,
+  model,
+  signal,
+  TemplateRef,
+  ViewContainerRef,
+  viewChild
+} from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
@@ -23,36 +32,33 @@ import { injectOrganization } from '@cloud/app/@core/state'
 import { LanguagesEnum } from '@xpert-ai/contracts'
 import { EmailTemplateComponent } from './template/template.component'
 
-import { BehaviorSubject, combineLatest } from 'rxjs'
-import { CardCreateComponent } from '../../../@shared/card'
-import { LanguageSelectorComponent } from '../../../@shared/language'
+import { BehaviorSubject, forkJoin } from 'rxjs'
 
 @Component({
   standalone: true,
+  host: { class: 'w-full min-w-0' },
   imports: [
     RouterModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    CdkMenuModule,
     ZardIconComponent,
     ZardButtonComponent,
-    XpSelectComponent,
+    ZardBadgeComponent,
+    ZardComboboxComponent,
+    ...ZardTableImports,
     ZardSegmentedComponent,
-    CardCreateComponent,
-    XpDynamicGridDirective,
-    LanguageSelectorComponent,
     EmailTemplateComponent,
     ...XpDialogFrameImports
   ],
   templateUrl: './email-templates.component.html',
-  styleUrls: ['./email-templates.component.scss'],
-  animations: [DisappearFadeOut]
+  styleUrls: ['./email-templates.component.scss']
 })
 export class EmailTemplatesComponent {
   readonly emailTemplateService = inject(EmailTemplateService)
   readonly languagesService = inject(LanguagesService)
   readonly #dialog = inject(Dialog)
+  readonly #viewContainerRef = inject(ViewContainerRef)
   readonly #toastr = injectToastr()
   readonly organization = injectOrganization()
 
@@ -117,6 +123,13 @@ export class EmailTemplatesComponent {
     }))
   )
 
+  readonly newLanguageOptions = computed(() =>
+    (this.allLanguages() ?? []).map((language) => ({ value: language.code, label: language.name }))
+  )
+  readonly newTemplateOptions = computed(() =>
+    this.templateNames().map((template) => ({ value: template.key, label: template.caption }))
+  )
+
   readonly opened = signal(false)
 
   private dialogRef: DialogRef = null
@@ -129,16 +142,16 @@ export class EmailTemplatesComponent {
 
   newEmailTemplate() {
     this.dialogRef = this.#dialog.open(this.newTempl(), {
+      viewContainerRef: this.#viewContainerRef,
       backdropClass: 'backdrop-blur-xs-black',
       panelClass: 'xp-overlay-pane-dialog',
-      maxWidth: 'calc(100vw - 32px)'
+      width: '440px',
+      maxWidth: 'calc(100vw - 32px)',
+      ariaLabelledBy: 'new-email-template-title'
     })
 
-    this.dialogRef.closed.subscribe({
-      next: () => {
-        //
-      }
-    })
+    // Apply centering as soon as the template is attached, before the deferred render hook.
+    this.dialogRef.overlayRef.updatePosition()
   }
 
   closeNewTemplate() {
@@ -174,13 +187,12 @@ export class EmailTemplatesComponent {
   }
 
   delete(item) {
-    combineLatest([
+    forkJoin([
       this.emailTemplateService.delete(item.subject.id),
       this.emailTemplateService.delete(item.html.id)
     ]).subscribe({
-      next: () => {
-        //
-      }
+      next: () => this.refresh$.next(),
+      error: () => this.#toastr.error('TOASTR.MESSAGE.ERRORS')
     })
   }
 

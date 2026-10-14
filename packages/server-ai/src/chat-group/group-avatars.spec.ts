@@ -46,7 +46,7 @@ describe('group public member avatars', () => {
         expect(users).toHaveBeenCalledWith(
             expect.objectContaining({
                 where: expect.objectContaining({ tenantId: 'tenant' }),
-                select: { id: true, imageUrl: true }
+                select: { id: true, firstName: true, lastName: true, username: true, email: true, imageUrl: true }
             })
         )
         expect(assistants).toHaveBeenCalledWith(
@@ -70,5 +70,16 @@ describe('group public member avatars', () => {
             ['a', 'A', null],
             ['c', 'C', null]
         ])
+    })
+
+    it('refreshes existing user labels from the profile without changing Assistant labels or saved records', async () => {
+        jest.spyOn(db.getRepository(User), 'find').mockResolvedValue([
+            Object.assign(new User(), { id: 'user', firstName: null, lastName: null, email: 'alice@example.com' })
+        ])
+        jest.spyOn(db.getRepository(Xpert), 'find').mockResolvedValue([])
+        const result = await publicMembers(db, group, members)
+        expect(result.map((member) => member.name)).toEqual(['alice@example.com', 'C'])
+        expect(members[0].name).toBe('A')
+        expect(result[0]).not.toHaveProperty('email')
     })
 })

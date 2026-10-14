@@ -11,7 +11,8 @@ import {
   ZardButtonComponent,
   ZardCheckboxComponent,
   ZardInputDirective,
-  ZardSearchInputComponent
+  ZardSearchInputComponent,
+  ZardTabsImports
 } from '@xpert-ai/headless-ui'
 import { combineLatest, firstValueFrom } from 'rxjs'
 import { map, take } from 'rxjs/operators'
@@ -46,6 +47,7 @@ type UserGroupWorkspacePanel = 'details' | 'members' | 'xperts'
     ZardCheckboxComponent,
     ZardInputDirective,
     ZardSearchInputComponent,
+    ...ZardTabsImports,
     UserAvatarComponent
   ],
   templateUrl: './groups.component.html',

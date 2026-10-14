@@ -32,7 +32,7 @@
   height: 2.25rem;
   align-items: center;
   margin: 0;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
   font-size: 0.875rem;
   font-weight: 500;
   line-height: 1.25rem;
@@ -61,7 +61,7 @@
   min-width: 0;
   border: 0;
   background: transparent;
-  color: var(--color-text-secondary);
+  color: var(--sidebar-foreground);
   cursor: pointer;
   text-align: left;
   transition:

@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
 import {
   ICopilotModel,
+  AssistantTemplateOverview,
   ITemplateSkillSyncResult,
   IXpert,
   TAvatar,
@@ -14,7 +15,7 @@ import {
 } from '@xpert-ai/contracts'
 import { API_PREFIX, PaginationParams, TKnowledgePipelineTemplate, toHttpParams } from '@cloud/app/@core/state'
 import { NGXLogger } from 'ngx-logger'
-import { EMPTY, expand, reduce } from 'rxjs'
+import { EMPTY, expand, scan } from 'rxjs'
 import { ISkillMarketConfig, IXpertMCPTemplate, IXpertTemplate, TXpertTemplate } from '../types'
 
 @Injectable({ providedIn: 'root' })
@@ -42,13 +43,13 @@ export class XpertTemplateService {
 
   /** Fetch lightweight pages for the existing client-side category/search controls. */
   getSummaries() {
-    return this.getCatalog({ limit: 500 }).pipe(
+    return this.getCatalog({ limit: 48 }).pipe(
       expand((page) =>
         page.items.length && page.offset + page.items.length < page.total
           ? this.getCatalog({ offset: page.offset + page.items.length, limit: page.limit })
           : EMPTY
       ),
-      reduce((items: TXpertTemplateSummary[], page) => [...items, ...page.items], [])
+      scan((items: TXpertTemplateSummary[], page) => [...items, ...page.items], [])
     )
   }
 
@@ -58,10 +59,16 @@ export class XpertTemplateService {
     })
   }
 
-  getSetup(id: string, capabilities: string[] = []) {
+  getSetup(id: string, capabilities: string[] = [], workspaceId?: string) {
     return this.#httpClient.get<XpertTemplateSetup>(API_PREFIX + `/xpert-template/${encodeURIComponent(id)}/setup`, {
-      params: { capabilities: capabilities.join(',') }
+      params: { capabilities: capabilities.join(','), ...(workspaceId ? { workspaceId } : {}) }
     })
+  }
+
+  getOverview(id: string) {
+    return this.#httpClient.get<AssistantTemplateOverview>(
+      API_PREFIX + `/xpert-template/${encodeURIComponent(id)}/overview`
+    )
   }
 
   installTemplate(

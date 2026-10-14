@@ -123,6 +123,7 @@ function areFeatureOrganizationsEqual(
   ],
   providers: [FeatureStoreService],
   selector: 'xp-feature-toggle',
+  host: { '[attr.aria-busy]': 'loading()' },
   templateUrl: './feature-toggle.component.html',
   styleUrls: ['./feature-toggle.component.scss']
 })

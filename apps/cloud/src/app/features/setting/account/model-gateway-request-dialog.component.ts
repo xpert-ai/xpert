@@ -30,8 +30,11 @@ export type ModelGatewayRequestDialogResult = {
       </header>
       <div xpDialogBody>
         <z-form-field class="w-full">
-          <z-form-label>{{ 'XP.ModelGateway.Reason' | translate: { Default: 'Reason' } }}</z-form-label>
+          <label z-form-label for="gateway-request-reason">{{
+            'XP.ModelGateway.Reason' | translate: { Default: 'Reason' }
+          }}</label>
           <textarea
+            id="gateway-request-reason"
             z-input
             class="min-h-28 resize-y"
             formControlName="reason"

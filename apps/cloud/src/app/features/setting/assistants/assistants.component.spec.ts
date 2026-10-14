@@ -1,6 +1,11 @@
 import { TestBed } from '@angular/core/testing'
 import { TranslateModule } from '@ngx-translate/core'
-import { of } from 'rxjs'
+import { of, Subject, throwError } from 'rxjs'
+import {
+  AssistantCode as AssistantCodeType,
+  AssistantBindingScope as BindingScope,
+  IAssistantBinding
+} from '@xpert-ai/contracts'
 import { ASSISTANT_REGISTRY } from '../../assistant/assistant.registry'
 import { AssistantsSettingsComponent } from './assistants.component'
 import { AssistantsSettingsFacade } from './assistants.facade'
@@ -75,8 +80,18 @@ jest.mock('@xpert-ai/headless-ui', () => {
     template: '<ng-content />'
   })(ZardCheckboxComponent)
 
+  class ZardBadgeComponent {}
+  angularCore.Component({ selector: 'z-badge', standalone: true, template: '<ng-content />' })(ZardBadgeComponent)
+  class ZardIconComponent {}
+  angularCore.Component({ selector: 'z-icon', standalone: true, template: '' })(ZardIconComponent)
+  class ZardSwitchComponent {}
+  angularCore.Component({ selector: 'z-switch', standalone: true, template: '<ng-content />' })(ZardSwitchComponent)
+
   return {
     ZardButtonComponent,
+    ZardBadgeComponent,
+    ZardIconComponent,
+    ZardSwitchComponent,
     ZardCheckboxComponent,
     ZardComboboxComponent,
     ZardComboboxOptionTemplateDirective,
@@ -347,6 +362,7 @@ describe('AssistantsSettingsComponent', () => {
 
   it('saves an organization override with the form values', async () => {
     const fixture = TestBed.createComponent(AssistantsSettingsComponent)
+    fixture.detectChanges()
     await fixture.whenStable()
 
     const component = fixture.componentInstance
@@ -371,6 +387,7 @@ describe('AssistantsSettingsComponent', () => {
 
   it('deletes an organization override when resetting to the tenant default', async () => {
     const fixture = TestBed.createComponent(AssistantsSettingsComponent)
+    fixture.detectChanges()
     await fixture.whenStable()
 
     const component = fixture.componentInstance
@@ -387,6 +404,7 @@ describe('AssistantsSettingsComponent', () => {
 
   it('preserves the saved selection while listing the accessible xperts for each scope', async () => {
     const fixture = TestBed.createComponent(AssistantsSettingsComponent)
+    fixture.detectChanges()
     await fixture.whenStable()
     fixture.detectChanges()
     await fixture.whenStable()
@@ -416,6 +434,7 @@ describe('AssistantsSettingsComponent', () => {
 
   it('keeps ClawXpert out of the admin assistants settings list', async () => {
     const fixture = TestBed.createComponent(AssistantsSettingsComponent)
+    fixture.detectChanges()
     await fixture.whenStable()
 
     const facade = fixture.debugElement.injector.get(AssistantsSettingsFacade)
@@ -423,5 +442,131 @@ describe('AssistantsSettingsComponent', () => {
 
     expect(assistantCodes).not.toContain(AssistantCode.CLAWXPERT)
     expect(assistantCodes).toContain(AssistantCode.CHAT_COMMON)
+  })
+
+  it('keeps tenant forms read-only for organization admins', async () => {
+    const fixture = TestBed.createComponent(AssistantsSettingsComponent)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    const facade = fixture.debugElement.injector.get(AssistantsSettingsFacade)
+    expect(facade.canManageTenant()).toBe(false)
+    expect(facade.tenantForm(AssistantCodeType.CHAT_COMMON).disabled).toBe(true)
+    expect(facade.organizationForm(AssistantCodeType.CHAT_COMMON).enabled).toBe(true)
+  })
+
+  it('enables tenant editing only for super admins', async () => {
+    store.user$ = of({ role: { name: RolesEnum.SUPER_ADMIN } })
+    const fixture = TestBed.createComponent(AssistantsSettingsComponent)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    const facade = fixture.debugElement.injector.get(AssistantsSettingsFacade)
+    expect(facade.canManageTenant()).toBe(true)
+    expect(facade.tenantForm(AssistantCodeType.CHAT_COMMON).enabled).toBe(true)
+  })
+
+  it('keeps organization forms disabled and skips reset without an organization', async () => {
+    store.selectOrganizationId.mockReturnValue(of(null))
+    const fixture = TestBed.createComponent(AssistantsSettingsComponent)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    const facade = fixture.debugElement.injector.get(AssistantsSettingsFacade)
+    expect(facade.organizationForm(AssistantCodeType.CHAT_COMMON).disabled).toBe(true)
+    await facade.resetOrganizationOverride(ASSISTANT_REGISTRY[0])
+    expect(assistantBindingService.delete).not.toHaveBeenCalled()
+  })
+
+  it('keeps the feature gate when no assistants are enabled', async () => {
+    store.hasFeatureEnabled.mockReturnValue(false)
+    const fixture = TestBed.createComponent(AssistantsSettingsComponent)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    const facade = fixture.debugElement.injector.get(AssistantsSettingsFacade)
+    expect(facade.assistants()).toEqual([])
+    expect(assistantBindingService.getEffective).not.toHaveBeenCalled()
+  })
+
+  it('shows a failed load state until retry succeeds', async () => {
+    const fixture = TestBed.createComponent(AssistantsSettingsComponent)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    const facade = fixture.debugElement.injector.get(AssistantsSettingsFacade)
+    assistantBindingService.getByScope.mockImplementationOnce(() => throwError(() => new Error('offline')))
+    await facade.retry()
+    expect(facade.loadFailed()).toBe(true)
+    expect(facade.loading()).toBe(false)
+    await facade.retry()
+    expect(facade.loadFailed()).toBe(false)
+    expect(facade.tenantConfig(AssistantCodeType.XPERT_SHARED)?.assistantId).toBe('workspace-assistant')
+  })
+
+  it('does not report a draft assistant as the effective binding', async () => {
+    const fixture = TestBed.createComponent(AssistantsSettingsComponent)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    const facade = fixture.debugElement.injector.get(AssistantsSettingsFacade)
+    facade.organizationForm(AssistantCodeType.CHAT_COMMON).patchValue({ assistantId: 'unsaved-assistant' })
+    expect(facade.effectiveAssistantLabel(AssistantCodeType.CHAT_COMMON)).toBe('common-assistant')
+  })
+
+  it.each(['save', 'restore'])('preserves another type draft after %s', async (operation) => {
+    const fixture = TestBed.createComponent(AssistantsSettingsComponent)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    const facade = fixture.debugElement.injector.get(AssistantsSettingsFacade)
+    const workspace = facade.organizationForm(AssistantCodeType.XPERT_SHARED)
+    workspace.patchValue({ assistantId: 'unsaved-workspace', enabled: false })
+    workspace.markAsDirty()
+    const common = facade.organizationForm(AssistantCodeType.CHAT_COMMON)
+    common.patchValue({ assistantId: 'common-override', enabled: true })
+    common.markAsDirty()
+
+    if (operation === 'save') {
+      await facade.saveConfig(ASSISTANT_REGISTRY[0], BindingScope.ORGANIZATION)
+    } else {
+      await facade.resetOrganizationOverride(ASSISTANT_REGISTRY[0])
+    }
+
+    expect(workspace.getRawValue()).toEqual({ assistantId: 'unsaved-workspace', enabled: false })
+    expect(workspace.dirty).toBe(true)
+    expect(common.pristine).toBe(true)
+    expect(facade.effectiveAssistantLabel(AssistantCodeType.XPERT_SHARED)).toBe('workspace-assistant')
+  })
+
+  it('shows the tenant saved value independently of the organization binding and drafts', async () => {
+    const fixture = TestBed.createComponent(AssistantsSettingsComponent)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    const facade = fixture.debugElement.injector.get(AssistantsSettingsFacade)
+    facade.tenantForm(AssistantCodeType.XPERT_SHARED).patchValue({ assistantId: 'tenant-draft' })
+    expect(facade.effectiveAssistantLabel(AssistantCodeType.XPERT_SHARED, BindingScope.TENANT)).toBe(
+      'workspace-assistant'
+    )
+    expect(facade.effectiveAssistantLabel(AssistantCodeType.CHAT_COMMON, BindingScope.TENANT)).toBe(
+      'XP.Assistant.NotConfigured'
+    )
+    expect(facade.effectiveAssistantLabel(AssistantCodeType.CHAT_COMMON, BindingScope.ORGANIZATION)).toBe(
+      'common-assistant'
+    )
+  })
+
+  it('ignores stale loads so they cannot replace newer configuration or reset drafts', async () => {
+    const fixture = TestBed.createComponent(AssistantsSettingsComponent)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    const facade = fixture.debugElement.injector.get(AssistantsSettingsFacade)
+    const stale = new Subject<IAssistantBinding[]>()
+    assistantBindingService.getByScope.mockReturnValueOnce(stale)
+    const pending = facade.retry()
+    await facade.retry()
+    const workspace = facade.organizationForm(AssistantCodeType.XPERT_SHARED)
+    workspace.patchValue({ assistantId: 'newer-draft' })
+    workspace.markAsDirty()
+    stale.next([])
+    stale.complete()
+    await pending
+    expect(workspace.getRawValue().assistantId).toBe('newer-draft')
+    expect(workspace.dirty).toBe(true)
+    expect(facade.tenantConfig(AssistantCodeType.XPERT_SHARED)?.assistantId).toBe('workspace-assistant')
+    expect(facade.loading()).toBe(false)
   })
 })

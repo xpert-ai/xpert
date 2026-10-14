@@ -118,3 +118,41 @@ test('a new dialog has a fresh cache and unsubscribed dialogs receive no further
   await nextDialog.load('experts')
   assert.equal(calls, 3)
 })
+
+test('template first page is visible while later pages are pending; refresh discards stale pagination', async () => {
+  const second = deferred()
+  let generation = 0
+  const cache = createCatalogCache(
+    async () => [],
+    async (offset) => {
+      if (offset === 0) return { items: [{ id: `first-${generation}`, kind: 'templates' }], nextOffset: 48 }
+      if (!generation) return second.promise
+      return { items: [{ id: 'new-last', kind: 'templates' }], nextOffset: null }
+    }
+  )
+  const loading = cache.load('templates')
+  await new Promise(setImmediate)
+  assert.equal(cache.getSnapshot('templates').loading, false)
+  assert.equal(cache.getSnapshot('templates').items[0].id, 'first-0')
+  generation++
+  await cache.load('templates', true)
+  second.resolve({ items: [{ id: 'stale' }], nextOffset: null })
+  await loading
+  assert.deepEqual(
+    cache.getSnapshot('templates').items.map((x) => x.id),
+    ['first-1', 'new-last']
+  )
+})
+
+test('a later page failure retains the first usable page and exposes retry error', async () => {
+  const cache = createCatalogCache(
+    async () => [],
+    async (offset) => {
+      if (offset) throw new Error('page failed')
+      return { items: [{ id: 'first', kind: 'templates' }], nextOffset: 48 }
+    }
+  )
+  await cache.load('templates')
+  assert.equal(cache.getSnapshot('templates').items.length, 1)
+  assert.equal(cache.getSnapshot('templates').error, 'page failed')
+})

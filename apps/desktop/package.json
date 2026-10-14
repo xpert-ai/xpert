@@ -88,6 +88,14 @@
     },
     "asarUnpack": [
       "resources/audio-capture/**"
+    ],
+    "protocols": [
+      {
+        "name": "Xpert Assistant Template",
+        "schemes": [
+          "xpert"
+        ]
+      }
     ]
   },
   "description": "Xpert Bosi - Your AI team leader.",

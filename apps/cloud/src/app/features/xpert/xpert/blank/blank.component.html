@@ -89,7 +89,14 @@
       </div>
     }
 
-    @if (isAgentType()) {
+    @if (isAgentType() && startMode() === 'template' && selectedTemplateId()) {
+      <xp-template-installation
+        [templateId]="selectedTemplateId()"
+        [initialWorkspaceId]="workspaceId()"
+        (completed)="close($event)"
+        (back)="lockStartMode ? close() : selectedTemplateId.set(null)"
+      />
+    } @else if (isAgentType()) {
       <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
         <z-stepper
           xpDialogBody

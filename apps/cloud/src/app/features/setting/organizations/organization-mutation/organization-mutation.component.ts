@@ -2,8 +2,7 @@ import { XpDialogFrameImports } from '@xpert-ai/headless-ui'
 import { DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
-import { Component, inject, model } from '@angular/core'
-import { FormsModule } from '@angular/forms'
+import { Component, inject, viewChild } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { IOrganizationCreateInput } from 'apps/cloud/src/app/@core/types'
@@ -13,7 +12,6 @@ import { OrganizationStepFormComponent } from '../organization-step-form/organiz
   imports: [
     ...XpDialogFrameImports,
     CommonModule,
-    FormsModule,
     DragDropModule,
     TranslateModule,
     ZardButtonComponent,
@@ -24,10 +22,15 @@ import { OrganizationStepFormComponent } from '../organization-step-form/organiz
 export class OrganizationMutationComponent {
   readonly dialogRef = inject(DialogRef<IOrganizationCreateInput>)
 
-  readonly organization = model<IOrganizationCreateInput>({} as IOrganizationCreateInput)
+  readonly stepForm = viewChild.required(OrganizationStepFormComponent)
 
   onApply() {
-    this.dialogRef.close(this.organization())
+    const form = this.stepForm().form
+    if (form.invalid) {
+      form.markAllAsTouched()
+      return
+    }
+    this.dialogRef.close(form.getRawValue() as IOrganizationCreateInput)
   }
 
   onCancel() {

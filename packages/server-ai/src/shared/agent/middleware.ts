@@ -121,8 +121,20 @@ export async function getAgentMiddlewares(
     bindApps?: (middleware: AgentMiddleware, context: IAgentMiddlewareContext) => AgentMiddleware
 ): Promise<AgentMiddleware[]> {
     const middlewares = getRuntimeEnabledMiddlewareNodes(graph, agent, options)
+    return (await createAgentMiddlewareEntries(middlewares, agentMiddlewareRegistry, context, options, bindApps)).map(
+        (entry) => entry.middleware
+    )
+}
 
-    const result: AgentMiddleware[] = []
+/** Instantiate exactly the host-selected nodes, including per-user connector bindings. */
+export async function createAgentMiddlewareEntries(
+    middlewares: TXpertTeamNode[],
+    agentMiddlewareRegistry: AgentMiddlewareRegistry,
+    context: Omit<IAgentMiddlewareContext, 'node'>,
+    options?: TXpertAgentRuntimeOptions,
+    bindApps?: (middleware: AgentMiddleware, context: IAgentMiddlewareContext) => AgentMiddleware
+): Promise<Array<{ key: string; middleware: AgentMiddleware }>> {
+    const result: Array<{ key: string; middleware: AgentMiddleware }> = []
     for (const middlewareNode of middlewares) {
         const entity = middlewareNode?.entity as unknown as IWFNMiddleware
         const provider = normalizeMiddlewareProvider(entity?.provider)
@@ -156,7 +168,7 @@ export async function getAgentMiddlewares(
             )
         }
         if (middleware && bindApps) middleware = bindApps(middleware, { ...context, node: { ...entity, provider } })
-        if (middleware) result.push(middleware)
+        if (middleware) result.push({ key: middlewareNode.key, middleware })
     }
 
     return result

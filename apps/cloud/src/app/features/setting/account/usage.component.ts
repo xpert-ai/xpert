@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common'
-import { Component, OnInit, computed, inject, signal } from '@angular/core'
-import { toSignal } from '@angular/core/rxjs-interop'
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core'
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
+import { RouterLink } from '@angular/router'
 import { MembershipService, getErrorMessage, injectToastr } from '../../../@core'
 import {
   IMembershipUsageBucket,
@@ -11,9 +12,12 @@ import {
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   ZardBadgeComponent,
+  ZardButtonComponent,
   ZardCardImports,
+  ZardEmptyComponent,
   ZardIconComponent,
   ZardProgressBarComponent,
+  ZardTabsImports,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
 import { forkJoin, map, take } from 'rxjs'
@@ -22,6 +26,7 @@ import {
   getMembershipUsageHeatmapRange,
   MembershipUsageHeatmapCell
 } from './usage-heatmap.utils'
+import { buildMembershipUsageTrend } from './usage-trend.utils'
 
 @Component({
   standalone: true,
@@ -29,10 +34,14 @@ import {
   imports: [
     CommonModule,
     TranslateModule,
+    RouterLink,
     ZardBadgeComponent,
+    ZardButtonComponent,
+    ZardEmptyComponent,
     ZardIconComponent,
     ZardProgressBarComponent,
     ...ZardTooltipImports,
+    ...ZardTabsImports,
     ...ZardCardImports
   ],
   templateUrl: './usage.component.html',
@@ -42,15 +51,21 @@ export class XpAccountUsageComponent implements OnInit {
   readonly #membership = inject(MembershipService)
   readonly #toastr = injectToastr()
   readonly #translate = inject(TranslateService)
+  readonly #destroyRef = inject(DestroyRef)
 
   readonly overview = signal<IMembershipUsageOverview | null>(null)
   readonly periods = signal<IUserMembershipPeriod[]>([])
   readonly activityBuckets = signal<IMembershipUsageBucket[]>([])
   readonly loading = signal(false)
+  readonly loadFailed = signal(false)
+  readonly asOf = signal(new Date())
   readonly #language = toSignal(this.#translate.onLangChange.pipe(map(({ lang }) => lang)), {
     initialValue: this.#translate.currentLang || this.#translate.getDefaultLang() || 'en'
   })
-  readonly heatmap = computed(() => buildMembershipUsageHeatmap(this.activityBuckets(), new Date(), this.#language()))
+  readonly heatmap = computed(() => buildMembershipUsageHeatmap(this.activityBuckets(), this.asOf(), this.#language()))
+  readonly trend = computed(() =>
+    buildMembershipUsageTrend(this.overview()?.buckets ?? [], this.asOf(), this.#language())
+  )
   readonly totalPoints = computed(
     () => this.overview()?.buckets.reduce((total, bucket) => total + bucket.pointsUsed, 0) ?? 0
   )
@@ -61,14 +76,22 @@ export class XpAccountUsageComponent implements OnInit {
   readonly scheduledPeriods = computed(() =>
     this.periods().filter(({ status }) => status === MembershipPeriodStatusEnum.Scheduled)
   )
+  readonly rankings = computed(() => [
+    { key: 'TopXperts', icon: 'orbit', items: this.overview()?.topXperts ?? [] },
+    { key: 'TopModels', icon: 'sparkles', items: this.overview()?.topModels ?? [] },
+    { key: 'TopThreads', icon: 'message-circle-more', items: this.topThreads() }
+  ])
 
   ngOnInit() {
     this.load()
   }
 
   load() {
+    if (this.loading()) return
     this.loading.set(true)
-    const activityRange = getMembershipUsageHeatmapRange(new Date())
+    this.loadFailed.set(false)
+    this.asOf.set(new Date())
+    const activityRange = getMembershipUsageHeatmapRange(this.asOf())
     forkJoin({
       overview: this.#membership.getOverview().pipe(take(1)),
       periods: this.#membership.getMyPeriods().pipe(take(1)),
@@ -78,18 +101,21 @@ export class XpAccountUsageComponent implements OnInit {
           end: activityRange.end.toISOString()
         })
         .pipe(take(1))
-    }).subscribe({
-      next: ({ overview, periods, activity }) => {
-        this.overview.set(overview)
-        this.periods.set(periods)
-        this.activityBuckets.set(activity?.buckets ?? [])
-        this.loading.set(false)
-      },
-      error: (error) => {
-        this.loading.set(false)
-        this.#toastr.error(getErrorMessage(error))
-      }
     })
+      .pipe(takeUntilDestroyed(this.#destroyRef))
+      .subscribe({
+        next: ({ overview, periods, activity }) => {
+          this.overview.set(overview)
+          this.periods.set(periods)
+          this.activityBuckets.set(activity?.buckets ?? [])
+          this.loading.set(false)
+        },
+        error: (error) => {
+          this.loading.set(false)
+          this.loadFailed.set(true)
+          this.#toastr.error(getErrorMessage(error))
+        }
+      })
   }
 
   usedPercent() {

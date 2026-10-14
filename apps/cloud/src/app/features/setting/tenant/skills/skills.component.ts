@@ -1,3 +1,4 @@
+import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject, signal, viewChild } from '@angular/core'
@@ -23,7 +24,7 @@ import { XpertSkillUploadDialogComponent } from '../../../xpert/workspace/skills
 @Component({
   standalone: true,
   selector: 'xp-tenant-skills',
-  imports: [CommonModule, TranslateModule, XpertSkillRepositoriesComponent],
+  imports: [ZardButtonComponent, CommonModule, TranslateModule, XpertSkillRepositoriesComponent],
   templateUrl: './skills.component.html'
 })
 export class TenantSkillsComponent {

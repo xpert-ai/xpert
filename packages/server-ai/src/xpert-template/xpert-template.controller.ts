@@ -1,3 +1,6 @@
+import { InspectTemplateReadinessCommand } from '../plugin-resource/template-installation/template-readiness.command'
+import { describeAssistantTemplate } from './definition/assistant-template-overview'
+import { z } from 'zod'
 import {
     AiModelTypeEnum,
     LanguagesEnum,
@@ -7,7 +10,7 @@ import {
     TemplateSkillSyncMode,
     XpertTemplateCapability
 } from '@xpert-ai/contracts'
-import { PaginationParams, ParseJsonPipe, TransformInterceptor } from '@xpert-ai/server-core'
+import { PaginationParams, ParseJsonPipe, TransformInterceptor, ZodValidationPipe } from '@xpert-ai/server-core'
 import { BadRequestException, Body, Controller, Get, Logger, Param, Post, Query, UseInterceptors } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
@@ -54,15 +57,22 @@ export class XpertTemplateController {
         @Query('category') category?: string,
         @Query('pluginName') pluginName?: string,
         @Query('offset') offset?: string,
-        @Query('limit') limit?: string
+        @Query('limit') limit?: string,
+        @Query('assistantsOnly') assistantsOnly?: string
     ) {
         return this.service.getCatalog(LanguagesMap[language] ?? language, {
+            assistantsOnly: assistantsOnly === 'true',
             search,
             category,
             pluginName,
             offset: Number(offset ?? 0),
             limit: Number(limit ?? 48)
         })
+    }
+
+    @Get('catalog-avatar/:id')
+    async catalogAvatar(@I18nLang() language: LanguagesEnum, @Param('id') id: string) {
+        return this.service.getCatalogAvatar(id, LanguagesMap[language] ?? language)
     }
 
     @Get('mcps')
@@ -110,18 +120,43 @@ export class XpertTemplateController {
         })
     }
 
+    @Get(':id/overview')
+    async templateOverview(@I18nLang() language: LanguagesEnum, @Param('id') id: string) {
+        return describeAssistantTemplate(await this.service.getTemplateDetail(id, LanguagesMap[language] ?? language))
+    }
+
     @Get(':id/setup')
     async templateSetup(
         @I18nLang() language: LanguagesEnum,
         @Param('id') id: string,
-        @Query('capabilities') capabilities?: string
+        @Query('capabilities') capabilities?: string,
+        @Query(
+            'workspaceId',
+            new ZodValidationPipe(
+                z.string().uuid().optional(),
+                () => new BadRequestException(t('server-ai:Error.TemplateInstallationInvalid'))
+            )
+        )
+        workspaceId?: string
     ) {
         const locale = LanguagesMap[language] ?? language
-        return this.capabilities.setup(
-            await this.service.getTemplateDetail(id, locale),
+        const template = await this.service.getTemplateDetail(id, locale)
+        const readiness = await this.commandBus.execute(new InspectTemplateReadinessCommand(template, workspaceId))
+        const setup = await this.capabilities.setup(
+            template,
             locale,
             parseTemplateCapabilities(capabilities ? capabilities.split(',') : undefined)
         )
+        return {
+            ...setup,
+            readiness,
+            canInstall: setup.canInstall && readiness.canInstall,
+            reason:
+                setup.reason ??
+                readiness.checks.find(
+                    (check) => check.required && !['ready', 'pending-configuration'].includes(check.status)
+                )?.message
+        }
     }
 
     @Post(':id/install')

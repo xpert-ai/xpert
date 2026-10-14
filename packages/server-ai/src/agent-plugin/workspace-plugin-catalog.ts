@@ -1,10 +1,12 @@
+import { resolveI18nText } from '@xpert-ai/contracts'
 import type { WorkspaceAgentPlugin } from '@xpert-ai/contracts'
 import type { AgentPluginPackage, AgentResourceBinding } from './agent-plugin.entity'
 
 export function workspacePluginCatalog(
     packages: AgentPluginPackage[],
     bindings: AgentResourceBinding[],
-    workspaceId: string
+    workspaceId: string,
+    language?: string
 ): WorkspaceAgentPlugin[] {
     const groups = new Map<string, AgentPluginPackage[]>()
     for (const pkg of packages) {
@@ -29,8 +31,9 @@ export function workspacePluginCatalog(
         const descriptor = pkg.descriptor
         return {
             id: pkg.id,
-            name: descriptor.extension?.interface?.displayName || descriptor.name,
-            description: descriptor.extension?.interface?.description || descriptor.description,
+            name: resolveI18nText(descriptor.extension?.interface?.displayName, language) || descriptor.name,
+            description:
+                resolveI18nText(descriptor.extension?.interface?.description, language) || descriptor.description,
             icon: descriptor.extension?.interface?.icon,
             version: descriptor.version || pkg.digest.slice(0, 8),
             status: binding?.enabled ? 'available' : binding ? 'disabled' : 'not_published',

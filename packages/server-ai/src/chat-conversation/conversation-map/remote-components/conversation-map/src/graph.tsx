@@ -40,6 +40,7 @@ import type { Prefs } from './bridge'
 import type { Labels } from './i18n'
 import { layout, type TopicNode, type NodeSize } from './layout'
 import { NodeDetails, NodeUpdatedAt } from './node-details'
+import { SegmentContent } from './segment-content'
 export type NodeAction = 'locate' | 'rename' | 'side-chat' | 'branch' | 'copy'
 type GraphActions = {
     labels: Labels
@@ -50,14 +51,27 @@ type GraphActions = {
     direction: 'TB' | 'LR'
     selected?: string
     pending: boolean
+    segmented?: boolean
 }
 const Actions = createContext<GraphActions | null>(null)
-export const icons = { project: Folder, conversation: MessagesSquare, thread: GitBranch, turn: MessageSquare }
+export const icons = {
+    project: Folder,
+    conversation: MessagesSquare,
+    thread: GitBranch,
+    turn: MessageSquare,
+    segment: MessagesSquare
+}
 function Topic({ data }: NodeProps<TopicNode>) {
     const ctx = useContext(Actions)!
     const { topic, expanded, summary } = data
     const Icon = icons[topic.kind]
     const selected = ctx.selected === topic.id
+    const title =
+        topic.kind === 'segment'
+            ? (topic.segmentThreads?.find((thread) => thread.current)?.title ??
+              topic.segmentThreads?.[0]?.title ??
+              ctx.labels.segment)
+            : topic.title
     return (
         <div
             className={`relative flex w-full flex-col rounded-lg border bg-card text-card-foreground shadow-xs ${selected ? 'border-info ring-2 ring-info/20' : 'border-border'}`}
@@ -81,7 +95,7 @@ function Topic({ data }: NodeProps<TopicNode>) {
                             <span
                                 className={`w-full text-base font-semibold ${summary ? 'line-clamp-2 whitespace-normal break-words' : 'truncate'}`}
                             >
-                                {topic.title}
+                                {title}
                             </span>
                             <span className="block text-sm text-muted-foreground">
                                 {ctx.labels[topic.kind]}
@@ -90,21 +104,30 @@ function Topic({ data }: NodeProps<TopicNode>) {
                             </span>
                         </Button>
                     </TooltipTrigger>
-                    <TooltipContent className="max-w-sm break-words">{topic.title}</TooltipContent>
+                    <TooltipContent className="max-w-sm break-words">{title}</TooltipContent>
                 </Tooltip>
-                {topic.conversationId && <NodeMenu node={topic} labels={ctx.labels} action={ctx.action} />}
+                {topic.conversationId && topic.kind !== 'segment' && (
+                    <NodeMenu node={topic} labels={ctx.labels} action={ctx.action} />
+                )}
             </div>
-            {topic.kind !== 'project' && (
-                <div className="px-3 pb-3">
-                    <NodeDetails node={topic} labels={ctx.labels} compact={!summary} />
-                </div>
+            {topic.kind === 'segment' && (
+                <SegmentContent node={topic} labels={ctx.labels} pending={ctx.pending} action={ctx.action} />
             )}
-            {(topic.updatedAt || topic.conversationId) && (
+            {topic.kind !== 'project' &&
+                topic.kind !== 'segment' &&
+                !(ctx.segmented && topic.kind === 'conversation') && (
+                    <div className="px-3 pb-3">
+                        <NodeDetails node={topic} labels={ctx.labels} compact={!summary} />
+                    </div>
+                )}
+            {(topic.updatedAt || (topic.conversationId && topic.kind !== 'segment')) && (
                 <div className="mx-3 flex min-h-10 shrink-0 items-center gap-1 border-t py-1">
                     <div className="min-w-0 flex-1">
                         <NodeUpdatedAt node={topic} labels={ctx.labels} locale={ctx.locale} />
                     </div>
-                    <NodeQuickActions node={topic} labels={ctx.labels} pending={ctx.pending} action={ctx.action} />
+                    {topic.kind !== 'segment' && (
+                        <NodeQuickActions node={topic} labels={ctx.labels} pending={ctx.pending} action={ctx.action} />
+                    )}
                 </div>
             )}
             <Handle
@@ -296,7 +319,7 @@ export function TopicGraph(props: GraphActions & { items: MapNode[]; expanded: S
     }
     return (
         <ReactFlowProvider>
-            <Actions.Provider value={props}>
+            <Actions.Provider value={{ ...props, segmented: props.prefs.mode === 'tree' }}>
                 <ReactFlow
                     nodes={flowNodes}
                     onNodesChange={onNodesChange}

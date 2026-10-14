@@ -12,6 +12,24 @@ describe('portable Agent Plugins 1.0.0', () => {
         await json('plugin.json', { $schema: schema + 'plugin.schema.json', name: 'example' })
     })
     afterEach(() => rm(root, { recursive: true, force: true }))
+    it('accepts localized interface metadata while preserving stable package identity', async () => {
+        await json('plugin.json', {
+            $schema: schema + 'plugin.schema.json',
+            name: 'office',
+            extensions: {
+                xpertai: {
+                    version: 2,
+                    interface: {
+                        displayName: { en_US: 'Office', zh_Hans: '办公室' },
+                        description: { en_US: 'Office work' }
+                    }
+                }
+            }
+        })
+        const result = await parseAgentPlugin(root)
+        expect(result.name).toBe('office')
+        expect(result.extension?.interface?.displayName).toEqual({ en_US: 'Office', zh_Hans: '办公室' })
+    })
     it('discovers skills without package.json and ignores native manifest overrides', async () => {
         await mkdir(join(root, 'skills/hello'), { recursive: true })
         await writeFile(join(root, 'skills/hello/SKILL.md'), '---\nname: hello\ndescription: Say hello\n---\nHello')
@@ -66,7 +84,7 @@ describe('portable Agent Plugins 1.0.0', () => {
         expect(parsed.extension).toEqual(extension)
         expect(parsed.diagnostics).toEqual([])
     })
-    it.each([null, { version: 2 }])(
+    it.each([null, { version: 3 }])(
         'reports invalid xpertai without falling back to the legacy key: %p',
         async (extension) => {
             await json('plugin.json', {
@@ -85,13 +103,79 @@ describe('portable Agent Plugins 1.0.0', () => {
         await json('plugin.json', {
             $schema: schema + 'plugin.schema.json',
             name: 'example',
-            extensions: { 'cn.xpertai': { version: 2 } }
+            extensions: { 'cn.xpertai': { version: 3 } }
         })
         const parsed = await parseAgentPlugin(root)
         expect(parsed.extension).toBeUndefined()
         expect(parsed.diagnostics).toEqual([
             expect.objectContaining({ component: 'cn.xpertai', code: 'invalid_extension' })
         ])
+    })
+    it.each([undefined, 'engineering'])('discovers version 2 templates with category %s', async (category) => {
+        await mkdir(join(root, 'templates'))
+        await json('templates/assistant.json', {
+            team: { type: 'agent', name: 'Example' },
+            nodes: [],
+            connections: [],
+            template: { schemaVersion: 2 }
+        })
+        await json('plugin.json', {
+            $schema: schema + 'plugin.schema.json',
+            name: 'example',
+            extensions: {
+                xpertai: {
+                    version: 2,
+                    templates: [{ key: 'example', path: 'templates/assistant.json', ...(category ? { category } : {}) }]
+                }
+            }
+        })
+        const result = await parseAgentPlugin(root)
+        expect(result.templates).toEqual([
+            { key: 'example', path: 'templates/assistant.json', ...(category ? { category } : {}) }
+        ])
+        expect(result.diagnostics).toEqual([])
+    })
+    it.each(['', '   ', 42, 'x'.repeat(101)])('rejects an invalid template category %s', async (category) => {
+        await json('plugin.json', {
+            $schema: schema + 'plugin.schema.json',
+            name: 'example',
+            extensions: {
+                xpertai: { version: 2, templates: [{ key: 'example', path: 'templates/assistant.json', category }] }
+            }
+        })
+        expect((await parseAgentPlugin(root)).diagnostics[0].code).toBe('invalid_extension')
+    })
+    it('isolates malformed and escaping templates from valid siblings', async () => {
+        await mkdir(join(root, 'templates'))
+        await json('templates/good.json', {
+            team: { type: 'agent' },
+            nodes: [],
+            connections: [],
+            template: { schemaVersion: 2 }
+        })
+        await json('templates/bad.json', { template: { schemaVersion: 99 } })
+        await symlink('/etc/hosts', join(root, 'templates/escape.json'))
+        await json('plugin.json', {
+            $schema: schema + 'plugin.schema.json',
+            name: 'example',
+            extensions: {
+                xpertai: {
+                    version: 2,
+                    templates: ['good', 'bad', 'escape'].map((key) => ({ key, path: `templates/${key}.json` }))
+                }
+            }
+        })
+        const result = await parseAgentPlugin(root)
+        expect(result.templates.map((item) => item.key)).toEqual(['good'])
+        expect(result.diagnostics.map((item) => item.code)).toEqual(['invalid_template', 'invalid_template'])
+    })
+    it('does not accept template declarations under extension version 1', async () => {
+        await json('plugin.json', {
+            $schema: schema + 'plugin.schema.json',
+            name: 'example',
+            extensions: { xpertai: { version: 1, templates: [] } }
+        })
+        expect((await parseAgentPlugin(root)).diagnostics[0].code).toBe('invalid_extension')
     })
     it('isolates invalid and unsupported servers', async () => {
         await json('mcp.json', {

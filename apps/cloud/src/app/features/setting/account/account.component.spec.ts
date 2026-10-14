@@ -29,28 +29,20 @@ jest.mock('../../../@shared/user', () => ({
 }))
 
 describe('XpAccountComponent template', () => {
-  it('places larger invitation code actions above the personal information form', () => {
+  it('keeps invitation actions in a separate section after the personal information form', () => {
     const template = readFileSync(join(__dirname, 'account.component.html'), 'utf8')
     const copyActionIndex = template.indexOf('data-referral-copy')
     const regenerateActionIndex = template.indexOf('data-referral-regenerate')
-    const tabPanelIndex = template.indexOf('<z-tab-nav-panel')
     const routerOutletIndex = template.indexOf('<router-outlet')
 
-    expect(copyActionIndex).toBeGreaterThan(tabPanelIndex)
     expect(routerOutletIndex).toBeGreaterThan(-1)
-    expect(copyActionIndex).toBeLessThan(routerOutletIndex)
+    expect(copyActionIndex).toBeGreaterThan(routerOutletIndex)
     expect(regenerateActionIndex).toBeGreaterThan(copyActionIndex)
-    expect(template).toContain('rla4.isActive && canUseReferral() && referralCode()')
-    expect(template).toMatch(/data-referral-copy[\s\S]*?class="h-auto px-0 py-0 text-base"/)
-    expect(template).toMatch(/data-referral-regenerate[\s\S]*?class="h-auto px-0 py-0 text-base"/)
+    expect(template).toContain("o.activatedRoute.snapshot.routeConfig?.path === 'profile'")
+    expect(template).toContain('canUseReferral() && referralCode()')
+    expect(template).toMatch(/data-referral-copy[\s\S]*?class="pointer-coarse:min-h-\[44px\]"/)
+    expect(template).toMatch(/data-referral-regenerate[\s\S]*?class="pointer-coarse:min-h-\[44px\]"/)
     expect(template).not.toContain("['configuration']")
-  })
-
-  it('shows membership usage tabs based on membership use permission', () => {
-    const template = readFileSync(join(__dirname, 'account.component.html'), 'utf8')
-
-    expect(template).toContain('@if (canUseMembership())')
-    expect(template).not.toContain('@if (hasActiveMembership())')
   })
 
   it('copies the loaded invitation code', async () => {

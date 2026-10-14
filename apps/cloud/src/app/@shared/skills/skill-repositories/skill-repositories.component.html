@@ -1,14 +1,17 @@
-<div class="mb-2 text-lg font-semibold text-foreground">
-  {{ 'Pro.Repositories' | translate: { Default: 'Repositories' } }}
-</div>
-<div class="mt-2 flex flex-wrap gap-3">
+<div class="flex flex-col divide-y divide-border overflow-hidden rounded-lg border border-border">
   @for (repo of repositories(); track repo.id) {
     <div
-      class="group relative flex flex-wrap min-w-[200px] cursor-pointer rounded-xl border px-4 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:bg-accent/60 hover:shadow-lg"
-      [ngClass]="repo.id === selectedRepositoryId() ? 'border-primary bg-card' : 'border-border bg-muted/60'"
-      (click)="selectRepository(repo)"
+      class="group relative flex flex-wrap items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/50"
+      [ngClass]="repo.id === selectedRepositoryId() ? 'bg-muted/60' : 'bg-card'"
     >
-      <div class="flex items-center gap-2 text-base font-semibold text-foreground">
+      <button
+        z-button
+        zType="ghost"
+        type="button"
+        class="min-w-0 justify-start px-0"
+        [attr.aria-pressed]="repo.id === selectedRepositoryId()"
+        (click)="selectRepository(repo)"
+      >
         <span
           class="h-2 w-2 rounded-full bg-current"
           [class.text-text-success]="!!repo.lastSyncAt"
@@ -22,7 +25,7 @@
             {{ 'XP.Skill.SystemManagedRepository' | translate: { Default: 'System' } }}
           </span>
         }
-      </div>
+      </button>
       <div class="mt-1 flex flex-1 items-center gap-2 text-xs text-muted-foreground">
         @if (repo.lastSyncAt) {
           <span class="text-muted-foreground">•</span>
@@ -31,25 +34,27 @@
       </div>
 
       @if (!readonlyMode()) {
-        <div
-          class="absolute right-2 top-2 flex items-center gap-1 rounded-lg bg-card p-1 opacity-0 transition-opacity group-hover:opacity-100"
-        >
+        <div class="ml-auto flex items-center gap-1">
           @if (!isSystemManaged(repo)) {
             <button
               type="button"
-              class="btn btn-ghost flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground"
+              z-button
+              zType="ghost"
+              zSize="icon-sm"
               (click)="editRepository(repo, $event)"
-              [title]="'XP.ACTIONS.Edit' | translate: { Default: 'Edit' }"
+              [attr.aria-label]="'XP.ACTIONS.Edit' | translate: { Default: 'Edit' }"
             >
               <i class="ri-pencil-line"></i>
             </button>
 
             <button
               type="button"
-              class="btn btn-ghost flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:text-destructive"
-              [disabled]="savingRepo()"
+              z-button
+              zType="ghost"
+              zSize="icon-sm"
+              [zDisabled]="savingRepo()"
               (click)="deleteRepository(repo, $event)"
-              [title]="'XP.ACTIONS.Delete' | translate: { Default: 'Delete' }"
+              [attr.aria-label]="'XP.ACTIONS.Delete' | translate: { Default: 'Delete' }"
             >
               <i class="ri-delete-bin-line"></i>
             </button>
@@ -57,9 +62,11 @@
 
           <button
             type="button"
-            class="btn btn-ghost flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground"
+            z-button
+            zType="ghost"
+            zSize="icon-sm"
             (click)="openRepository(repo, $event)"
-            [title]="'XP.ACTIONS.Setting' | translate: { Default: 'Setting' }"
+            [attr.aria-label]="'XP.ACTIONS.Setting' | translate: { Default: 'Setting' }"
           >
             <i class="ri-settings-3-line"></i>
           </button>

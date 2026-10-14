@@ -30,16 +30,14 @@ describe('model discovery dialog', () => {
           ]
         })
       ),
-      getModel: jest
-        .fn()
-        .mockReturnValue(
-          of({
-            id: 'saved-id',
-            modelName: 'saved',
-            modelType: 'llm',
-            modelProperties: { model_configuration: { ...configuration, maxConcurrency: 5 } }
-          })
-        ),
+      getModel: jest.fn().mockReturnValue(
+        of({
+          id: 'saved-id',
+          modelName: 'saved',
+          modelType: 'llm',
+          modelProperties: { model_configuration: { ...configuration, maxConcurrency: 5 } }
+        })
+      ),
       importModels: jest.fn().mockReturnValue(of({ added: 2, skipped: 0 }))
     }
     const close = jest.fn()

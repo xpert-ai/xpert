@@ -1,0 +1,220 @@
+<div xpDialogBody class="space-y-6">
+  <p class="text-sm text-text-secondary">{{ template()?.description }}</p>
+  <xp-template-requirements [readiness]="setup()?.readiness" (manage)="manageDependencies()" />
+  <form [formGroup]="form" class="space-y-4">
+    <label class="block space-y-2">
+      <span>{{ 'XP.Installation.Workspace' | translate: { Default: 'Target workspace' } }}</span>
+      <select
+        class="w-full rounded-lg border border-components-panel-border bg-components-panel-bg p-2 text-text-primary"
+        [value]="workspaceId()"
+        [disabled]="state().busy"
+        (change)="selectWorkspace($event)"
+      >
+        @for (workspace of workspaces(); track workspace.id) {
+          <option [value]="workspace.id">{{ workspace.name }}</option>
+        }
+      </select>
+    </label>
+    @if (!state().operation && !state().uncertain) {
+      <fieldset class="space-y-4" [disabled]="state().busy">
+        <label class="block space-y-2"
+          ><span>{{ 'XP.Installation.Title' | translate: { Default: 'Assistant name' } }}</span
+          ><input z-input formControlName="title" maxlength="100"
+        /></label>
+        @if (setup(); as setup) {
+          @if (!setup.canInstall) {
+            <p role="status" class="text-sm text-text-destructive">{{ setup.reason }}</p>
+          }
+          @if (!setup.requiresModel && !setup.requiredModelFeatures.length && !primaryAvailable()) {
+            <p role="status" class="text-sm text-text-destructive">
+              {{
+                'XP.Installation.PrimaryRequired'
+                  | translate
+                    : {
+                        Default:
+                          'Configure an authorized primary language model in this organization, then refresh settings.'
+                      }
+              }}
+            </p>
+          }
+          @if (setup.models.length) {
+            <label class="block space-y-2"
+              ><span>{{ 'XP.Installation.Model' | translate: { Default: 'Language model' } }}</span>
+              <select
+                class="w-full rounded-lg border border-components-panel-border bg-components-panel-bg p-2"
+                formControlName="model"
+              >
+                <option value="">
+                  {{ 'XP.Installation.DefaultModel' | translate: { Default: 'Organization default' } }}
+                </option>
+                @for (model of setup.models; track model.id) {
+                  <option [value]="model.id">{{ model.label }}</option>
+                }
+              </select>
+            </label>
+          }
+          @for (capability of setup.optionalCapabilities; track capability.key) {
+            <label class="flex items-start gap-2"
+              ><input
+                type="checkbox"
+                [checked]="capabilities().includes(capability.key)"
+                (change)="toggleCapability(capability.key, $event)"
+              /><span
+                >{{ capability.label
+                }}<small class="block text-text-secondary">{{ capability.description }}</small></span
+              ></label
+            >
+          }
+          @if (capabilities().includes('realtime-voice')) {
+            <label class="block space-y-2"
+              ><span>{{ 'XP.Installation.VoiceModel' | translate: { Default: 'Voice model' } }}</span>
+              <select
+                class="w-full rounded-lg border border-components-panel-border bg-components-panel-bg p-2"
+                formControlName="voiceModel"
+                (change)="form.controls.voice.setValue('')"
+              >
+                <option value="">{{ 'XP.Installation.SelectModel' | translate: { Default: 'Select a model' } }}</option>
+                @for (model of setup.realtimeModels; track model.id) {
+                  <option [value]="model.id">{{ model.label }}</option>
+                }
+              </select>
+            </label>
+            <label class="block space-y-2"
+              ><span>{{ 'XP.Installation.Voice' | translate: { Default: 'Voice' } }}</span>
+              <select
+                class="w-full rounded-lg border border-components-panel-border bg-components-panel-bg p-2"
+                formControlName="voice"
+              >
+                <option value="">{{ 'XP.Installation.SelectVoice' | translate: { Default: 'Select a voice' } }}</option>
+                @for (model of setup.realtimeModels; track model.id) {
+                  @if (model.id === form.controls.voiceModel.value) {
+                    @for (voice of model.voices; track voice.id) {
+                      <option [value]="voice.id">{{ voice.label }}</option>
+                    }
+                  }
+                }
+              </select>
+            </label>
+          }
+        }
+      </fieldset>
+    }
+  </form>
+  @if (state().operation; as operation) {
+    <section class="space-y-3 border-t border-components-panel-border pt-4" aria-live="polite">
+      <h3 role="status" class="font-semibold">
+        {{ 'XP.Installation.' + statusLabel(operation) | translate: { Default: statusLabel(operation) } }}
+      </h3>
+      <p class="text-sm text-text-secondary">
+        {{ 'XP.Installation.' + stages[operation.stage] | translate: { Default: stages[operation.stage] } }} ·
+        {{ 'XP.Installation.Attempt' | translate: { Default: 'Attempt {{count}}', count: operation.attempt } }}
+      </p>
+      <p class="text-xs text-text-secondary">
+        {{ 'XP.Installation.ID' | translate: { Default: 'Installation ID' } }}: {{ operation.id }}
+      </p>
+      @if (operation.error) {
+        <p role="alert" class="text-sm text-text-destructive">{{ operation.error.message }}</p>
+      }
+      @if (operation.pendingAuthInstallationIds.length) {
+        <p role="status" class="text-sm">
+          {{ 'XP.Installation.Pending' | translate: { Default: 'Assistant created. {{count}} connections still require
+          configuration in the workspace.', count: operation.pendingAuthInstallationIds.length } }}
+        </p>
+      }
+      <div xpDialogActionGroup="inline" class="flex flex-wrap gap-2">
+        <button z-button zType="outline" [zDisabled]="state().busy" (click)="client.refresh()">
+          {{ 'XP.Installation.Refresh' | translate: { Default: 'Refresh status' } }}
+        </button>
+        @if (operation.retryable) {
+          <button z-button [zDisabled]="state().busy" (click)="client.retry()">
+            {{ 'XP.Installation.Resume' | translate: { Default: 'Resume installation' } }}
+          </button>
+        }
+        @if (operation.status === 'succeeded') {
+          <button z-button (click)="open(operation)">
+            {{ 'XP.Installation.Open' | translate: { Default: 'Open assistant' } }}
+          </button>
+          @if (operation.pendingAuthInstallationIds.length) {
+            <button z-button zType="outline" (click)="open(operation, true)">
+              {{ 'XP.Installation.Configure' | translate: { Default: 'Configure connections' } }}
+            </button>
+          }
+        }
+        @if (operation.status !== 'running') {
+          <button z-button zType="outline" [zDisabled]="state().busy" (click)="client.newInstance()">
+            {{ 'XP.Installation.Another' | translate: { Default: 'Create another assistant' } }}
+          </button>
+        }
+      </div>
+    </section>
+  }
+  @if (state().uncertain) {
+    <p role="status">
+      {{
+        'XP.Installation.Uncertain'
+          | translate: { Default: 'Connection interrupted. Check status to continue the same installation safely.' }
+      }}
+    </p>
+    <div xpDialogActionGroup="inline">
+      <button z-button [zDisabled]="state().busy" (click)="client.refresh()">
+        {{ 'XP.Installation.Check' | translate: { Default: 'Check installation status' } }}
+      </button>
+    </div>
+  }
+  @if (state().error || error()) {
+    <p role="alert" class="text-sm text-text-destructive">{{ state().error || error() }}</p>
+  }
+  <p class="text-sm text-text-secondary">
+    {{
+      'XP.Installation.CloseHint'
+        | translate
+          : {
+              Default:
+                'You can close this window. Reopen this template and workspace to continue from installation history.'
+            }
+    }}
+  </p>
+  <details>
+    <summary class="cursor-pointer">
+      {{ 'XP.Installation.History' | translate: { Default: 'Installation history' } }}
+    </summary>
+    <div xpDialogActionGroup="inline" class="my-3">
+      <button z-button zType="outline" [zDisabled]="state().busy" (click)="client?.history()">
+        {{ 'XP.Installation.RefreshHistory' | translate: { Default: 'Refresh history' } }}
+      </button>
+    </div>
+    @for (item of state().history; track item.id) {
+      <button
+        type="button"
+        class="mb-2 block w-full rounded-lg border border-components-panel-border p-3 text-left hover:bg-hover-bg"
+        [disabled]="state().busy"
+        (click)="client.select(item)"
+      >
+        {{ item.createdAt }} · {{ 'XP.Installation.' + statusLabel(item) | translate: { Default: statusLabel(item) }
+        }}<span class="block text-xs text-text-secondary">{{ item.id }}</span>
+      </button>
+    }
+    @if (state().hasMore) {
+      <div xpDialogActionGroup="inline">
+        <button z-button zType="outline" (click)="client.history(true)">
+          {{ 'XP.Installation.More' | translate: { Default: 'Load more' } }}
+        </button>
+      </div>
+    }
+  </details>
+</div>
+<footer xpDialogFooter>
+  <button z-button zType="outline" (click)="back.emit()">
+    {{ 'XP.Installation.Back' | translate: { Default: 'Back' } }}
+  </button>
+  @if (!state().operation && !state().uncertain) {
+    <button z-button zType="outline" [zDisabled]="state().busy" (click)="revision.set(revision() + 1)">
+      {{ 'XP.Installation.RefreshSettings' | translate: { Default: 'Refresh settings' } }}
+    </button>
+  }
+  @if (!state().operation && !state().uncertain) {
+    <button z-button [zDisabled]="!canStart()" (click)="start()">
+      {{ 'XP.Installation.Install' | translate: { Default: 'Install and publish' } }}
+    </button>
+  }
+</footer>

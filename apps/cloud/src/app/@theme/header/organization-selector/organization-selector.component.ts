@@ -12,15 +12,22 @@ import {
   type IUserOrganization,
   UsersService
 } from '@cloud/app/@core/state'
-import { nonNullable, OverlayAnimation1 } from '@xpert-ai/headless-ui'
-import { XpHighlightDirective, ZardSearchInputComponent } from '@xpert-ai/headless-ui'
-import { debouncedSignal } from '@xpert-ai/headless-ui'
+import {
+  debouncedSignal,
+  nonNullable,
+  XpHighlightDirective,
+  ZardButtonComponent,
+  ZardIconComponent,
+  ZardMenuContentDirective,
+  ZardMenuItemDirective,
+  ZardSearchInputComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { uniqBy } from 'lodash-es'
 import { firstValueFrom } from 'rxjs'
 import { IOrganization, OrganizationsService, RequestScopeLevel, RolesEnum, ScopeService, Store } from '../../../@core'
 import { OrgAvatarComponent } from '../../../@shared/organization'
-import { ZardButtonComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 const ORGANIZATION_PAGE_SIZE = 10
 
@@ -38,11 +45,13 @@ const ORGANIZATION_PAGE_SIZE = 10
     CdkMenuModule,
     ...ZardTooltipImports,
     ZardButtonComponent,
+    ZardIconComponent,
+    ZardMenuContentDirective,
+    ZardMenuItemDirective,
     ZardSearchInputComponent,
     OrgAvatarComponent,
     XpHighlightDirective
-  ],
-  animations: [OverlayAnimation1]
+  ]
 })
 export class OrganizationSelectorComponent {
   private readonly store = inject(Store)
@@ -53,6 +62,7 @@ export class OrganizationSelectorComponent {
   readonly i18nService = injectI18nService()
 
   readonly isCollapsed = input<boolean>(false)
+  readonly variant = input<'card' | 'breadcrumb'>('card')
 
   readonly searchTerm = model<string>('')
   readonly search = debouncedSignal(this.searchTerm, 300)

@@ -75,4 +75,7 @@ export class ScheduledTaskExecution extends TenantOrganizationBaseEntity {
     @IsOptional()
     @Column({ type: 'text', nullable: true })
     lastError?: string | null
+
+    @Column({ type: 'varchar', length: 64, nullable: true })
+    failureCode?: 'LOCAL_RUNTIME_UNAVAILABLE' | null
 }

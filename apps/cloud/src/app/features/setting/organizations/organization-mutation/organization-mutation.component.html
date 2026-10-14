@@ -1,9 +1,9 @@
 <section xpDialogLayout="wide" xpDialogPurpose="workflow" class="w-[min(640px,calc(100vw-32px))] max-h-[84dvh]">
   <header cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle xpDialogHeader>
     <h2 xpDialogHeading>
-      {{ 'XP.ACTIONS.NEW' | translate: { Default: 'New' } }}
-      {{ 'XP.KEY_WORDS.ORGANIZATION' | translate: { Default: 'Organization' } }}
+      {{ 'XP.OrganizationSettings.Create' | translate }}
     </h2>
+    <p xpDialogDescription>{{ 'XP.OrganizationSettings.CreateHint' | translate }}</p>
     <button
       xpDialogCloseButton
       z-button
@@ -18,7 +18,7 @@
   </header>
 
   <div xpDialogBody>
-    <xp-organization-step-form #stepForm [(ngModel)]="organization"></xp-organization-step-form>
+    <xp-organization-step-form></xp-organization-step-form>
   </div>
 
   <footer xpDialogFooter>
@@ -26,8 +26,8 @@
       {{ 'XP.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
     </button>
 
-    <button z-button zType="default" (click)="onApply()">
-      {{ 'XP.ACTIONS.APPLY' | translate: { Default: 'Apply' } }}
+    <button z-button zType="default" [zDisabled]="stepForm().form.invalid" (click)="onApply()">
+      {{ 'XP.OrganizationSettings.Create' | translate }}
     </button>
   </footer>
 </section>

@@ -1,3 +1,5 @@
+import { AssertAssistantTemplateDependenciesCommand } from '../../../plugin-resource/template-installation/template-readiness.command'
+import { InitializeAssistantTemplateFilesCommand } from '../../../xpert/assistant-files/initialize-assistant-template-files.command'
 import { isAIMessage, MessageContent, ToolMessage } from '@langchain/core/messages'
 import { Command, CompiledStateGraph, GraphRecursionError, NodeInterrupt } from '@langchain/langgraph'
 import {
@@ -148,6 +150,22 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         })
         const hasSandboxWorkForId = Boolean(sandboxWorkFor.id)
         const hasExplicitSandboxEnvironment = sandboxWorkFor.type === 'environment' && hasSandboxWorkForId
+        const templateOptions = latestXpert.options
+        const dependencyLocks =
+            templateOptions?.templateDependencyLocks ?? templateOptions?.templateSource?.dependencyLocks
+        const initialFiles =
+            templateOptions?.templateDefinition?.manifest?.files ?? templateOptions?.templateSource?.manifest?.files
+        if (dependencyLocks?.length)
+            await this.commandBus.execute(
+                new AssertAssistantTemplateDependenciesCommand(
+                    workspaceXpertId,
+                    options.isDraft ? 'authoring' : 'runtime'
+                )
+            )
+        if (initialFiles && !options.projectId && !sandboxEnvironmentId)
+            await this.commandBus.execute(
+                new InitializeAssistantTemplateFilesCommand(workspaceXpertId, options.isDraft ? 'authoring' : 'runtime')
+            )
         const workArea = await this.workAreaResolver.resolve({
             tenantId,
             userId,

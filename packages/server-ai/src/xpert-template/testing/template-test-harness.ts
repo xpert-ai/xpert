@@ -1,3 +1,4 @@
+jest.mock('../lifecycle/template-publication.store', () => ({ TemplatePublicationStore: class {} }))
 jest.mock('../../skill-repository/skill-repository.service', () => ({
     SkillRepositoryService: class SkillRepositoryService {}
 }))
@@ -45,6 +46,7 @@ import { Repository } from 'typeorm'
 import { SkillRepositoryIndexService } from '../../skill-repository/repository-index/skill-repository-index.service'
 import { SkillRepositoryService } from '../../skill-repository/skill-repository.service'
 import { EnsureTemplateDirectoryCommand, ResolveTemplateSkillRefsCommand } from '../commands'
+import { AgentPluginTemplatesCommand } from '../../agent-plugin/templates/agent-plugin-template.command'
 import { EnsureTemplateDirectoryHandler } from '../commands/handlers/ensure-template-directory.handler'
 import { ResolveTemplateSkillRefsHandler } from '../commands/handlers/resolve-template-skill-refs.handler'
 import { XpertTemplate } from '../xpert-template.entity'
@@ -89,10 +91,15 @@ export function createService({
     } as ConfigService
     const initializer = new EnsureTemplateDirectoryHandler(configService)
     const commands = {
-        execute: jest.fn((command: EnsureTemplateDirectoryCommand | ResolveTemplateSkillRefsCommand) => {
-            if (command instanceof EnsureTemplateDirectoryCommand) return initializer.execute()
-            return resolver.execute(command)
-        })
+        execute: jest.fn(
+            (
+                command: EnsureTemplateDirectoryCommand | ResolveTemplateSkillRefsCommand | AgentPluginTemplatesCommand
+            ) => {
+                if (command instanceof AgentPluginTemplatesCommand) return Promise.resolve([])
+                if (command instanceof EnsureTemplateDirectoryCommand) return initializer.execute()
+                return resolver.execute(command)
+            }
+        )
     }
     const resolver = new ResolveTemplateSkillRefsHandler(
         skillRepositoryService as unknown as SkillRepositoryService,

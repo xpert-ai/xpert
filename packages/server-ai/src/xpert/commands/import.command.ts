@@ -3,6 +3,8 @@ import { TXpertTemplateSource, XpertWorkspaceDataScope } from '@xpert-ai/contrac
 import { XpertDraftDslDTO } from '../dto'
 
 export type XpertImportCommandOptions = {
+    /** Internal template installer only; never bind this from an HTTP request or DSL. */
+    newXpertId?: string
     targetXpertId?: string
     /**
      * Locale used to resolve localized template metadata before persistence.
@@ -14,6 +16,8 @@ export type XpertImportCommandOptions = {
     normalizeCopilotModels?: boolean
     templateId?: string
     sourceTemplateId?: string
+    templateDefinition?: import('@xpert-ai/contracts').AssistantTemplateMetadata
+    dependencyLocks?: import('@xpert-ai/contracts').TemplateDependencyLock[]
     templateSource?: TXpertTemplateSource
     /** Local workspace ownership selected by the creation entrypoint; never read from DSL. */
     workspaceDataScope?: XpertWorkspaceDataScope

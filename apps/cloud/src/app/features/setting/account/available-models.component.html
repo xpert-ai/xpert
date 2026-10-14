@@ -1,293 +1,399 @@
-<div class="mx-auto flex w-full max-w-7xl flex-col gap-6 p-4">
-  @if (state(); as data) {
-    <header
-      class="flex flex-col gap-3 rounded-2xl border border-divider-regular bg-components-card-bg p-5 sm:flex-row sm:items-center sm:justify-between"
-    >
-      <div>
-        <h1 class="text-lg font-semibold text-text-primary">
-          {{ 'XP.ModelAccess.Title' | translate: { Default: 'Model access' } }}
+<div class="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+  <header class="flex flex-wrap items-start justify-between gap-4">
+    <div>
+      <div class="flex flex-wrap items-center gap-3">
+        <h1 class="text-2xl font-semibold tracking-tight text-foreground">
+          {{ 'XP.ModelAccess.AvailableModels' | translate }}
         </h1>
-        <p class="mt-1 text-sm text-text-secondary">
-          {{
-            'XP.ModelAccess.Description'
-              | translate
-                : {
-                    Default:
-                      'Your available models combine direct access, plan access, and active personal grants in the tenant and current organization.'
-                  }
-          }}
-        </p>
+        <z-badge zType="outline">{{ 'XP.UsageDashboard.Personal' | translate }}</z-badge>
       </div>
-      @if (requestableModels().length) {
-        <button z-button type="button" (click)="apply()">
-          <i class="ri-add-line"></i>
-          {{ 'XP.ModelAccess.Apply' | translate: { Default: 'Apply for model' } }}
-        </button>
-      }
-    </header>
+      <p class="mt-2 text-sm text-muted-foreground">{{ 'XP.ModelAccess.Description' | translate }}</p>
+    </div>
+    @if (state() && requestableModels().length) {
+      <button z-button type="button" (click)="apply()">
+        <z-icon zType="plus" />{{ 'XP.ModelAccess.Apply' | translate }}
+      </button>
+    }
+  </header>
 
-    <section>
-      <z-accordion displayDensity="compact">
-        <z-accordion-item
-          zValue="available-models"
-          class="[&_[data-slot=accordion-body]>div]:px-0"
-          (opened)="loadAvailableModels()"
-        >
-          <z-accordion-header class="px-0">
-            <z-accordion-title class="text-base font-semibold text-text-primary">
-              {{ 'XP.ModelAccess.AvailableModels' | translate: { Default: 'Available models' } }}
-            </z-accordion-title>
-            @if (catalog()) {
-              <z-accordion-description class="!flex-none">
-                <z-badge zType="secondary" zShape="pill">{{ availableModels().length }}</z-badge>
-              </z-accordion-description>
-            }
-          </z-accordion-header>
-          <ng-template zAccordionContent>
-            @if (catalogLoading()) {
-              <div class="flex min-h-32 items-center justify-center">
-                <xp-spin />
-              </div>
-            } @else if (catalog()) {
-              @if (availableModels().length) {
-                <div class="mb-3 flex justify-end">
-                  <z-form-field class="w-full sm:max-w-sm">
-                    <z-form-label>
-                      {{ 'XP.ModelGateway.SearchModels' | translate: { Default: 'Search models' } }}
-                    </z-form-label>
-                    <input
-                      z-input
-                      [formControl]="availableModelSearchControl"
-                      [placeholder]="
-                        'XP.ModelGateway.SearchModelsPlaceholder'
-                          | translate: { Default: 'Model ID, provider, or model name' }
-                      "
-                    />
-                  </z-form-field>
-                </div>
-                @if (filteredAvailableModels().length) {
-                  <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    @for (item of filteredAvailableModels(); track item.key) {
-                      <z-card class="border border-divider-regular bg-components-card-bg shadow-none">
-                        <z-card-content class="space-y-3 p-4">
-                          <div class="flex items-start justify-between gap-3">
-                            <div class="min-w-0">
-                              <div class="truncate font-medium text-text-primary">
-                                {{ item.modelLabel ? (item.modelLabel | i18n) : item.model }}
-                              </div>
-                              <div class="mt-1 truncate text-xs text-text-tertiary">
-                                {{ item.providerLabel ? (item.providerLabel | i18n) : item.provider }}
-                              </div>
-                            </div>
-                            <z-badge zType="outline" zShape="pill" class="shrink-0 uppercase">{{
-                              item.modelType
-                            }}</z-badge>
-                          </div>
-                          <div class="flex flex-wrap items-center gap-2 text-xs text-text-secondary">
-                            <z-badge zType="secondary" zShape="pill">
-                              {{
-                                'XP.ModelAccess.Source.' + item.accessSource
-                                  | translate: { Default: item.accessSource ?? 'Plan included' }
-                              }}
-                            </z-badge>
-                            <span>{{ 'XP.ModelAccess.Scope.' + item.ownershipScope | translate }}</span>
-                          </div>
-                          @if (item.unavailableReason) {
-                            <div class="flex items-center gap-2 text-xs text-text-warning">
-                              <i class="ri-information-line"></i>
-                              {{ 'XP.ModelAccess.Unavailable.' + item.unavailableReason | translate }}
-                            </div>
-                          }
-                        </z-card-content>
-                      </z-card>
-                    }
-                  </div>
-                } @else {
-                  <z-empty
-                    [zDescription]="
-                      'XP.ModelGateway.NoMatchingModels' | translate: { Default: 'No models match your search.' }
-                    "
-                  />
-                }
-              } @else {
-                <z-empty
-                  zIcon="inbox"
-                  [zTitle]="'XP.ModelAccess.NoAvailableModels' | translate: { Default: 'No available models' }"
-                  [zDescription]="
-                    'XP.ModelAccess.NoAvailableModelsDescription'
-                      | translate: { Default: 'No models are directly available or included in your current plan.' }
-                  "
+  @if (state(); as data) {
+    <z-tab-group [preserveContent]="true" animationDuration="0ms">
+      <z-tab [label]="'XP.ModelSettings.Catalog' | translate" bodyClass="pt-6">
+        @if (catalogLoading()) {
+          <ng-container [ngTemplateOutlet]="loadingState" />
+        } @else if (catalog()) {
+          @if (availableModels().length) {
+            <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+              <div class="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+                <z-search-input
+                  class="w-full sm:w-72"
+                  [formControl]="availableModelSearchControl"
+                  [placeholder]="'XP.ModelGateway.SearchModelsPlaceholder' | translate"
+                  [aria-label]="'XP.ModelGateway.SearchModels' | translate"
+                  [clearLabel]="'XP.ModelSettings.ClearSearch' | translate"
                 />
-              }
-            } @else if (catalogLoadFailed()) {
+                <label class="relative w-full sm:w-44">
+                  <span class="sr-only">{{ 'XP.ModelSettings.Type' | translate }}</span>
+                  <xp-model-type-icon
+                    class="pointer-events-none absolute left-2.5 top-1/2 z-10 -translate-y-1/2 text-muted-foreground"
+                    [type]="modelType()"
+                  />
+                  <z-select class="w-full [&_button[role=combobox]]:pl-8" [formControl]="modelTypeControl">
+                    <z-select-item [zValue]="allModelTypes">
+                      <span class="flex items-center gap-2">
+                        <xp-model-type-icon [type]="allModelTypes" />
+                        {{ 'XP.ModelSettings.AllTypes' | translate }}
+                      </span>
+                    </z-select-item>
+                    @for (type of modelTypes(); track type) {
+                      <z-select-item [zValue]="type">
+                        <span class="flex items-center gap-2">
+                          <xp-model-type-icon [type]="type" />
+                          {{ 'XP.ModelAccess.ModelTypeValue.' + type | translate: { Default: type } }}
+                        </span>
+                      </z-select-item>
+                    }
+                  </z-select>
+                </label>
+              </div>
+              <p role="status" class="text-xs text-muted-foreground">
+                {{
+                  'XP.ModelSettings.ResultCount'
+                    | translate: { count: filteredAvailableModels().length, total: availableModels().length }
+                }}
+              </p>
+            </div>
+            @if (filteredAvailableModels().length) {
+              <z-accordion zType="multiple" class="space-y-3">
+                @for (group of providerGroups(); track group.provider) {
+                  @let providerName = group.label ? (group.label | i18n) : group.provider;
+                  <z-accordion-item
+                    [zValue]="'available-provider-' + group.provider"
+                    [expanded]="!collapsedProviders().has(group.provider)"
+                    (expandedChange)="setProviderExpanded(group.provider, $event)"
+                    class="[&_[data-slot=accordion-body]>div]:px-0"
+                  >
+                    <z-accordion-header class="rounded-lg px-0 hover:bg-muted/40">
+                      <z-accordion-title class="gap-3">
+                        <z-avatar
+                          zSize="sm"
+                          zShape="rounded"
+                          class="shrink-0 border border-border bg-background [&_img]:object-contain [&_img]:p-1"
+                          [zSrc]="group.icon ? (group.icon | i18n) : ''"
+                          [zFallback]="providerName | slice: 0 : 1"
+                        />
+                        <h2 class="min-w-0 break-words text-base font-semibold">{{ providerName }}</h2>
+                        <z-badge zType="secondary" class="shrink-0">{{
+                          'XP.ModelSettings.ProviderModelCount' | translate: { count: group.items.length }
+                        }}</z-badge>
+                        <div class="h-px min-w-4 flex-1 bg-border" aria-hidden="true"></div>
+                      </z-accordion-title>
+                    </z-accordion-header>
+                    <div
+                      class="overflow-x-auto rounded-lg border border-border"
+                      [attr.inert]="collapsedProviders().has(group.provider) ? '' : null"
+                      [attr.aria-hidden]="collapsedProviders().has(group.provider) ? 'true' : null"
+                    >
+                      <table z-table class="min-w-[840px]">
+                        <thead z-table-header class="bg-muted/40">
+                          <tr z-table-row>
+                            <th z-table-head class="w-14 whitespace-nowrap text-center">
+                              {{ 'XP.ModelSettings.Type' | translate }}
+                            </th>
+                            <th z-table-head>{{ 'XP.ModelAccess.Model' | translate }}</th>
+                            <th z-table-head>{{ 'XP.ModelSettings.Capabilities' | translate }}</th>
+                            <th z-table-head>
+                              {{ 'XP.ModelSettings.ContextSize' | translate }} <span class="font-normal">(tokens)</span>
+                            </th>
+                            <th z-table-head>{{ 'XP.ModelSettings.Access' | translate }}</th>
+                            <th
+                              z-table-head
+                              class="sticky right-0 border-l border-border bg-muted md:static md:border-l-0 md:bg-transparent"
+                            >
+                              {{ 'XP.ModelAccess.Details' | translate }}
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody z-table-body>
+                          @for (item of group.items; track item.key) {
+                            <tr xpAvailableModelRow [item]="item"></tr>
+                          }
+                        </tbody>
+                      </table>
+                    </div>
+                  </z-accordion-item>
+                }
+              </z-accordion>
+            } @else {
               <z-empty
+                zIcon="search"
+                [zTitle]="'XP.ModelGateway.NoMatchingModels' | translate"
+                [zDescription]="'XP.ModelSettings.NoMatchesHint' | translate"
+              >
+                <button z-button zType="outline" type="button" (click)="clearFilters()">
+                  {{ 'XP.ModelSettings.ClearFilters' | translate }}
+                </button>
+              </z-empty>
+            }
+          } @else {
+            <z-empty
+              zIcon="sparkles"
+              [zTitle]="'XP.ModelAccess.NoAvailableModels' | translate"
+              [zDescription]="'XP.ModelAccess.NoAvailableModelsDescription' | translate"
+            />
+          }
+        } @else if (catalogLoadFailed()) {
+          <z-empty
+            zIcon="sparkles"
+            [zTitle]="'XP.ModelAccess.LoadFailed' | translate"
+            [zDescription]="'XP.UsageDashboard.RetryHint' | translate"
+          >
+            <button z-button zType="outline" type="button" (click)="loadAvailableModels()">
+              {{ 'XP.ACTIONS.Retry' | translate }}
+            </button>
+          </z-empty>
+        }
+      </z-tab>
+
+      <z-tab [label]="'XP.ModelAccess.MyRequests' | translate" bodyClass="pt-6">
+        <z-card class="min-w-0 overflow-hidden shadow-none">
+          <z-card-header class="block px-5 py-5">
+            <div class="flex items-center gap-2">
+              <z-card-title class="text-base">{{ 'XP.ModelAccess.MyRequests' | translate }}</z-card-title>
+              <z-badge zType="secondary">{{ data.requests.length }}</z-badge>
+            </div>
+            <z-card-subtitle class="mt-2">{{ 'XP.ModelSettings.RequestsHint' | translate }}</z-card-subtitle>
+          </z-card-header>
+          <z-card-content class="p-0">
+            @if (data.requests.length) {
+              <div class="overflow-x-auto border-t border-border">
+                <table z-table class="min-w-[640px]">
+                  <thead z-table-header class="bg-muted/40">
+                    <tr z-table-row>
+                      <th z-table-head>{{ 'XP.ModelAccess.Model' | translate }}</th>
+                      <th z-table-head>{{ 'XP.ModelAccess.Status' | translate }}</th>
+                      <th z-table-head>{{ 'XP.ModelAccess.SubmittedAt' | translate }}</th>
+                      <th z-table-head>{{ 'XP.ModelAccess.Actions' | translate }}</th>
+                    </tr>
+                  </thead>
+                  <tbody z-table-body>
+                    @for (request of data.requests; track request.id) {
+                      <tr z-table-row>
+                        <td z-table-cell class="max-w-72 py-4">
+                          <p class="break-words font-medium">
+                            {{
+                              request.modelSnapshot.modelLabel
+                                ? (request.modelSnapshot.modelLabel | i18n)
+                                : request.model
+                            }}
+                          </p>
+                          <p class="mt-1 text-xs text-muted-foreground">
+                            {{
+                              request.modelSnapshot.providerLabel
+                                ? (request.modelSnapshot.providerLabel | i18n)
+                                : request.provider
+                            }}
+                            · {{ 'XP.ModelAccess.Scope.' + request.ownershipScope | translate }}
+                          </p>
+                          <p class="mt-1 line-clamp-2 text-xs text-muted-foreground" [title]="request.reason">
+                            {{ request.reason }}
+                          </p>
+                        </td>
+                        <td z-table-cell class="whitespace-nowrap">
+                          <z-badge zType="outline">{{
+                            'XP.ModelAccess.StatusValue.' + currentRequestStatus(request) | translate
+                          }}</z-badge>
+                        </td>
+                        <td z-table-cell class="whitespace-nowrap text-xs text-muted-foreground">
+                          {{ (request.createdAt | date: 'mediumDate') || '—' }}
+                        </td>
+                        <td z-table-cell>
+                          <div class="flex items-center gap-2">
+                            <button
+                              z-button
+                              zType="ghost"
+                              zSize="sm"
+                              type="button"
+                              [attr.aria-expanded]="expandedRequestId() === request.id"
+                              (click)="toggleRequest(request)"
+                            >
+                              {{ 'XP.ModelAccess.Details' | translate
+                              }}<z-icon
+                                [zType]="expandedRequestId() === request.id ? 'chevron-down' : 'chevron-right'"
+                              />
+                            </button>
+                            @if (request.status === requestedStatus) {
+                              <button z-button zType="outline" zSize="sm" type="button" (click)="withdraw(request)">
+                                {{ 'XP.ModelAccess.Withdraw' | translate }}
+                              </button>
+                            }
+                          </div>
+                        </td>
+                      </tr>
+                      @if (expandedRequestId() === request.id) {
+                        <tr z-table-row class="bg-muted/30 hover:bg-muted/30">
+                          <td z-table-cell colspan="4" class="px-5 py-4">
+                            <p class="text-xs font-medium">{{ 'XP.ModelAccess.Reason' | translate }}</p>
+                            <p class="mt-1 whitespace-pre-wrap break-words text-sm text-muted-foreground">
+                              {{ request.reason }}
+                            </p>
+                            @if (request.events?.length) {
+                              <p class="mt-5 text-xs font-medium">
+                                {{ 'XP.ModelSettings.RequestHistory' | translate }}
+                              </p>
+                              <ol class="mt-3 ml-1 space-y-4 border-l border-border pl-4">
+                                @for (event of request.events; track event.id) {
+                                  <li class="relative text-xs leading-relaxed text-muted-foreground">
+                                    <span class="absolute -left-[1.3rem] top-1 size-2 rounded-full bg-primary"></span>
+                                    <p class="font-medium text-foreground">
+                                      {{ 'XP.ModelAccess.Event.' + event.eventType | translate }}
+                                    </p>
+                                    <p>
+                                      {{ event.createdAt | date: 'medium' }} ·
+                                      {{
+                                        event.actorType === 'system'
+                                          ? ('XP.ModelAccess.SystemActor' | translate)
+                                          : event.actorName
+                                      }}
+                                    </p>
+                                    @if (event.systemReasonCode) {
+                                      <p class="mt-1">
+                                        {{ 'XP.ModelAccess.ClosedReason.' + event.systemReasonCode | translate }}
+                                      </p>
+                                    } @else if (event.eventType === 'model_suspended' && event.reason) {
+                                      <p class="mt-1">{{ 'XP.ModelAccess.Unavailable.' + event.reason | translate }}</p>
+                                    } @else if (event.reason) {
+                                      <p class="mt-1 whitespace-pre-wrap break-words">{{ event.reason }}</p>
+                                    }
+                                  </li>
+                                }
+                              </ol>
+                            }
+                          </td>
+                        </tr>
+                      }
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else {
+              <z-empty
+                class="border-t border-border py-12"
                 zIcon="inbox"
-                [zTitle]="'XP.ModelAccess.LoadFailed' | translate: { Default: 'Unable to load model access' }"
+                [zTitle]="'XP.ModelAccess.NoRequests' | translate"
+                [zDescription]="
+                  (requestAvailability() !== false
+                    ? 'XP.ModelAccess.NoRequestsDescription'
+                    : 'XP.ModelAccess.RequestsUnavailable'
+                  ) | translate
+                "
               />
             }
-          </ng-template>
-        </z-accordion-item>
-      </z-accordion>
-    </section>
+          </z-card-content>
+        </z-card>
+      </z-tab>
 
-    <section class="space-y-3">
-      <div class="flex items-center justify-between gap-3">
-        <h2 class="font-semibold text-text-primary">
-          {{ 'XP.ModelAccess.PersonalGrants' | translate: { Default: 'Personal grants' } }}
-        </h2>
-        <z-badge zType="secondary" zShape="pill">{{ grantModels().length }}</z-badge>
-      </div>
-      @if (grantModels().length) {
-        <div class="grid gap-3 md:grid-cols-2">
-          @for (item of grantModels(); track item.id) {
-            <z-card class="border border-divider-regular bg-components-card-bg shadow-none">
-              <z-card-content class="space-y-3 p-4">
-                <div class="flex items-start justify-between gap-3">
-                  <div class="min-w-0">
-                    <div class="truncate font-medium text-text-primary">
-                      {{ item.modelSnapshot.modelLabel ? (item.modelSnapshot.modelLabel | i18n) : item.model }}
-                    </div>
-                    <div class="mt-1 text-xs text-text-tertiary">
-                      {{ item.modelSnapshot.providerLabel ? (item.modelSnapshot.providerLabel | i18n) : item.provider }}
-                    </div>
-                  </div>
-                  <z-badge [zType]="item.lastUnavailableReason ? 'secondary' : 'default'" zShape="pill">
-                    {{ 'XP.ModelAccess.GrantStatus.active' | translate }}
-                  </z-badge>
-                </div>
-                <div class="flex flex-wrap items-center gap-2 text-xs text-text-secondary">
-                  <z-badge zType="secondary" zShape="pill">
-                    {{ 'XP.ModelAccess.PersonalGrant' | translate: { Default: 'Personal grant' } }}
-                  </z-badge>
-                  <span>{{ item.modelType }}</span>
-                  <span>·</span>
-                  <span>{{ 'XP.ModelAccess.Scope.' + item.ownershipScope | translate }}</span>
-                </div>
-                <div class="text-xs text-text-secondary">
-                  @if (item.validUntil) {
-                    {{ 'XP.ModelAccess.ValidUntil' | translate: { date: formatValidUntil(item.validUntil) } }}
-                  } @else {
-                    {{ 'XP.ModelAccess.Permanent' | translate: { Default: 'No expiration' } }}
-                  }
-                </div>
-                @if (item.lastUnavailableReason) {
-                  <div class="flex items-center gap-2 text-xs text-text-warning">
-                    <i class="ri-pause-circle-line"></i>
-                    {{ 'XP.ModelAccess.Unavailable.' + item.lastUnavailableReason | translate }}
-                  </div>
-                }
-              </z-card-content>
-            </z-card>
-          }
-        </div>
-      } @else {
-        <z-empty
-          zIcon="inbox"
-          [zTitle]="'XP.ModelAccess.NoGrants' | translate: { Default: 'No personal grants' }"
-          [zDescription]="
-            'XP.ModelAccess.NoPersonalGrantsDescription'
-              | translate: { Default: 'Approved personal model access will appear here.' }
-          "
-        />
-        @if (requestableModels().length) {
-          <div class="flex justify-center">
-            <button z-button type="button" (click)="apply()">
-              <i class="ri-add-line"></i>
-              {{ 'XP.ModelAccess.Apply' | translate: { Default: 'Apply for model' } }}
-            </button>
-          </div>
-        }
-      }
-    </section>
-
-    <section class="space-y-3">
-      <div class="flex items-center justify-between gap-3">
-        <h2 class="font-semibold text-text-primary">
-          {{ 'XP.ModelAccess.MyRequests' | translate: { Default: 'My requests' } }}
-        </h2>
-        <z-badge zType="secondary" zShape="pill">{{ data.requests.length }}</z-badge>
-      </div>
-      @if (data.requests.length) {
-        <div class="space-y-3">
-          @for (request of data.requests; track request.id) {
-            <z-card class="border border-divider-regular bg-components-card-bg shadow-none">
-              <z-card-content class="p-4">
-                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div class="min-w-0">
-                    <div class="font-medium text-text-primary">
-                      {{ request.modelSnapshot.modelLabel ? (request.modelSnapshot.modelLabel | i18n) : request.model }}
-                    </div>
-                    <p class="mt-1 text-sm text-text-secondary">{{ request.reason }}</p>
-                  </div>
-                  <div class="flex items-center gap-2">
-                    <z-badge zType="outline" zShape="pill">
-                      {{ 'XP.ModelAccess.StatusValue.' + currentRequestStatus(request) | translate }}
-                    </z-badge>
-                    @if (request.status === requestedStatus) {
-                      <button z-button zType="outline" zSize="sm" type="button" (click)="withdraw(request)">
-                        {{ 'XP.ModelAccess.Withdraw' | translate: { Default: 'Withdraw' } }}
-                      </button>
-                    }
-                  </div>
-                </div>
-
-                @if (request.events?.length) {
-                  <ol class="mt-4 space-y-3 border-l border-divider-regular pl-4">
-                    @for (event of request.events; track event.id) {
-                      <li class="relative text-xs text-text-secondary">
-                        <span class="absolute -left-[1.3rem] top-1 size-2 rounded-full bg-button-primary-bg"></span>
-                        <div class="font-medium text-text-primary">
-                          {{ 'XP.ModelAccess.Event.' + event.eventType | translate }}
-                        </div>
-                        <div>
-                          {{ event.createdAt | date: 'medium' }} ·
+      <z-tab [label]="'XP.ModelAccess.PersonalGrants' | translate" bodyClass="pt-6">
+        <z-card class="min-w-0 overflow-hidden shadow-none">
+          <z-card-header class="block px-5 py-5">
+            <div class="flex items-center gap-2">
+              <z-card-title class="text-base">{{ 'XP.ModelAccess.PersonalGrants' | translate }}</z-card-title>
+              <z-badge zType="secondary">{{ grantModels().length }}</z-badge>
+            </div>
+            <z-card-subtitle class="mt-2">{{ 'XP.ModelSettings.GrantsHint' | translate }}</z-card-subtitle>
+          </z-card-header>
+          <z-card-content class="p-0">
+            @if (grantModels().length) {
+              <div class="overflow-x-auto border-t border-border">
+                <table z-table class="min-w-[640px]">
+                  <thead z-table-header class="bg-muted/40">
+                    <tr z-table-row>
+                      <th z-table-head>{{ 'XP.ModelAccess.Model' | translate }}</th>
+                      <th z-table-head>{{ 'XP.ModelAccess.RequestScope' | translate }}</th>
+                      <th z-table-head>{{ 'XP.ModelAccess.Status' | translate }}</th>
+                      <th z-table-head>{{ 'XP.ModelAccess.ValidUntilLabel' | translate }}</th>
+                    </tr>
+                  </thead>
+                  <tbody z-table-body>
+                    @for (item of grantModels(); track item.id) {
+                      <tr z-table-row>
+                        <td z-table-cell class="max-w-64 py-4">
+                          <p class="break-words font-medium">
+                            {{ item.modelSnapshot.modelLabel ? (item.modelSnapshot.modelLabel | i18n) : item.model }}
+                          </p>
+                          <p class="mt-1 text-xs text-muted-foreground">
+                            {{
+                              item.modelSnapshot.providerLabel
+                                ? (item.modelSnapshot.providerLabel | i18n)
+                                : item.provider
+                            }}
+                            ·
+                            {{
+                              'XP.ModelAccess.ModelTypeValue.' + item.modelType | translate: { Default: item.modelType }
+                            }}
+                          </p>
+                        </td>
+                        <td z-table-cell class="whitespace-nowrap text-xs">
+                          {{ 'XP.ModelAccess.Scope.' + item.ownershipScope | translate }}
+                        </td>
+                        <td z-table-cell class="max-w-64">
+                          <z-badge [zType]="item.lastUnavailableReason ? 'secondary' : 'default'">{{
+                            'XP.ModelAccess.GrantStatus.active' | translate
+                          }}</z-badge>
+                          @if (item.lastUnavailableReason) {
+                            <p class="mt-2 flex items-start gap-2 text-xs text-text-warning">
+                              <z-icon zType="info" class="size-3.5 shrink-0" />{{
+                                'XP.ModelAccess.Unavailable.' + item.lastUnavailableReason | translate
+                              }}
+                            </p>
+                          }
+                        </td>
+                        <td z-table-cell class="whitespace-nowrap text-xs text-muted-foreground">
                           {{
-                            event.actorType === 'system'
-                              ? ('XP.ModelAccess.SystemActor' | translate: { Default: 'System' })
-                              : event.actorName
+                            item.validUntil
+                              ? formatValidUntil(item.validUntil)
+                              : ('XP.ModelAccess.Permanent' | translate)
                           }}
-                        </div>
-                        @if (event.systemReasonCode) {
-                          <div class="mt-1">
-                            {{ 'XP.ModelAccess.ClosedReason.' + event.systemReasonCode | translate }}
-                          </div>
-                        } @else if (event.eventType === 'model_suspended' && event.reason) {
-                          <div class="mt-1">
-                            {{ 'XP.ModelAccess.Unavailable.' + event.reason | translate }}
-                          </div>
-                        } @else if (event.reason) {
-                          <div class="mt-1">{{ event.reason }}</div>
-                        }
-                      </li>
+                        </td>
+                      </tr>
                     }
-                  </ol>
+                  </tbody>
+                </table>
+              </div>
+            } @else {
+              <z-empty
+                class="border-t border-border py-12"
+                zIcon="shield"
+                [zTitle]="'XP.ModelAccess.NoGrants' | translate"
+                [zDescription]="'XP.ModelAccess.NoPersonalGrantsDescription' | translate"
+              >
+                @if (requestableModels().length) {
+                  <button z-button zType="outline" type="button" (click)="apply()">
+                    {{ 'XP.ModelAccess.Apply' | translate }}
+                  </button>
                 }
-              </z-card-content>
-            </z-card>
-          }
-        </div>
-      } @else {
-        <z-empty
-          zIcon="inbox"
-          [zTitle]="'XP.ModelAccess.NoRequests' | translate: { Default: 'No requests yet' }"
-          [zDescription]="
-            requestAvailability() !== false
-              ? ('XP.ModelAccess.NoRequestsDescription'
-                | translate: { Default: 'Apply for a model that is not already included or granted.' })
-              : ('XP.ModelAccess.RequestsUnavailable'
-                | translate: { Default: 'Model access requests are unavailable in the current scope.' })
-          "
-        />
-      }
-    </section>
+              </z-empty>
+            }
+          </z-card-content>
+        </z-card>
+      </z-tab>
+    </z-tab-group>
   } @else if (state() === undefined) {
-    <div class="flex min-h-64 items-center justify-center">
-      <xp-spin />
-    </div>
+    <ng-container [ngTemplateOutlet]="loadingState" />
   } @else {
     <z-empty
-      zIcon="inbox"
-      [zTitle]="'XP.ModelAccess.LoadFailed' | translate: { Default: 'Unable to load model access' }"
-    />
+      zIcon="sparkles"
+      [zTitle]="'XP.ModelAccess.LoadFailed' | translate"
+      [zDescription]="'XP.UsageDashboard.RetryHint' | translate"
+    >
+      <button z-button zType="outline" type="button" (click)="retryState()">
+        {{ 'XP.ACTIONS.Retry' | translate }}
+      </button>
+    </z-empty>
   }
 </div>
+<ng-template #loadingState>
+  <div role="status" class="flex min-h-60 items-center justify-center gap-3 text-sm text-muted-foreground">
+    <z-icon zType="loader-circle" class="motion-safe:animate-spin" />{{ 'XP.KEY_WORDS.Loading' | translate }}
+  </div>
+</ng-template>

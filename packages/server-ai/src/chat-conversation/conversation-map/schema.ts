@@ -4,6 +4,7 @@ export const mapQuerySchema = z.object({
     projectId: z.string().uuid().nullable().optional(),
     conversationId: z.string().uuid().optional(),
     threadId: z.string().trim().min(1).max(100).optional(),
+    representation: z.enum(['turns', 'segments']).default('turns'),
     showHistory: z.boolean().default(false),
     showShared: z.boolean().default(false),
     search: z.string().trim().max(200).default(''),
@@ -48,7 +49,7 @@ export const mapActionSchema = z.discriminatedUnion('type', [
 export type MapAction = z.infer<typeof mapActionSchema>
 export const mapNodeSchema = z.object({
     id: z.string(),
-    kind: z.enum(['project', 'conversation', 'thread', 'turn']),
+    kind: z.enum(['project', 'conversation', 'thread', 'turn', 'segment']),
     title: z.string(),
     conversationTitle: z.string().optional(),
     updatedAt: z.string().datetime().optional(),
@@ -79,6 +80,11 @@ export const mapNodeSchema = z.object({
     branchReason: z.string().optional(),
     threadIds: z.array(z.string()).optional(),
     branchOptions: z.array(z.object({ threadId: z.string(), title: z.string() })).optional(),
+    messageCount: z.number().int().nonnegative().optional(),
+    endMessageId: z.string().optional(),
+    segmentThreads: z
+        .array(z.object({ threadId: z.string(), title: z.string(), current: z.boolean(), status: z.string() }))
+        .optional(),
     path: z.array(z.object({ id: z.string(), title: z.string() })).optional()
 })
 export type MapNode = z.infer<typeof mapNodeSchema>

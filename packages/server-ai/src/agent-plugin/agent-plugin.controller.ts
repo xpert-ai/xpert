@@ -1,3 +1,4 @@
+import { I18nLang } from 'nestjs-i18n'
 import { CommandBus } from '@nestjs/cqrs'
 import { ImportDefaultAgentPluginsCommand } from '@xpert-ai/plugin-sdk'
 import { ZodValidationPipe } from '@xpert-ai/server-core'
@@ -76,15 +77,15 @@ export class AgentPluginController {
         return this.commands.execute(new ImportDefaultAgentPluginsCommand())
     }
 
-    @Get('catalog') catalog() {
-        return this.installations.catalog()
+    @Get('catalog') catalog(@I18nLang() language: string) {
+        return this.installations.catalog(language)
     }
 
     @Get('workspace-options') workspaceOptions() {
         return this.service.workspaceOptions()
     }
-    @Get('workspaces/:id') workspaceCatalog(@Param('id') id: string) {
-        return this.service.workspaceCatalog(parseResourceInput(z.string().uuid(), id))
+    @Get('workspaces/:id') workspaceCatalog(@Param('id') id: string, @I18nLang() language: string) {
+        return this.service.workspaceCatalog(parseResourceInput(z.string().uuid(), id), language)
     }
     @Post('workspaces/:id/plugins') addToWorkspace(@Param('id') id: string, @Body() input: unknown) {
         return this.service.addToWorkspace(

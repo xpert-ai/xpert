@@ -283,7 +283,7 @@
   gap: 0.125rem;
   border-radius: 0.375rem;
   padding: 0 0.25rem 0 0.625rem;
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
 }
 
 .cloud-sidebar-assistants.is-embedded .cloud-sidebar-assistants__search,
@@ -409,7 +409,7 @@
 }
 
 .cloud-sidebar-assistants.is-embedded .cloud-sidebar-assistants__title {
-  color: var(--color-text-tertiary);
+  color: var(--color-text-secondary);
   font-size: 0.875rem;
   font-weight: 500;
   line-height: 1.25rem;
@@ -775,7 +775,8 @@
 }
 
 .cloud-sidebar-assistants__item-toggle {
-  @apply text-secondary hover:text-primary focus-visible:text-primary bg-transparent p-0 rounded-md cursor-pointer;
+  @apply bg-transparent p-0 rounded-md cursor-pointer;
+  color: var(--sidebar-foreground);
   position: relative;
   z-index: 2;
   display: inline-flex;

@@ -12,6 +12,8 @@ export type AssistantFileCapabilities = {
 }
 
 export type AssistantFileAccess = {
+    dependencyLocks?: import('@xpert-ai/contracts').TemplateDependencyLock[]
+    initialFiles?: import('@xpert-ai/contracts').TemplateFiles
     scope: XpertDataVolumeScope
     capabilities: AssistantFileCapabilities
 }

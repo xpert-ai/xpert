@@ -1,3 +1,4 @@
+import { TemplateInstallationComponent } from '../template-installation/template-installation.component'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
@@ -36,6 +37,7 @@ import {
   resolveI18nText,
   TAvatar,
   TXpertTeamDraft,
+  uuid,
   WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER,
   XpertTypeEnum
 } from '../../../../@core'
@@ -88,6 +90,7 @@ export type {
   selector: 'xpert-new-blank',
   standalone: true,
   imports: [
+    TemplateInstallationComponent,
     XpDialogActionGroupDirective,
     ...XpDialogFrameImports,
     BlankWizardCapabilitiesComponent,
@@ -587,7 +590,7 @@ export class XpertNewBlankComponent extends BlankWizardResources {
     avatar?: TAvatar
     copilotModel?: ICopilotModel
   }) {
-    this.name.set(basic.name)
+    this.name.set(`assistant-${uuid()}`)
     this.title.set(basic.title)
     this.description.set(resolveI18nText(basic.description, this._translate.currentLang) ?? undefined)
     this.avatar.set(basic.avatar)

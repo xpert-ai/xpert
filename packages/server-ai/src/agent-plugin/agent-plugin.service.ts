@@ -1,3 +1,4 @@
+import { resolveI18nText } from '@xpert-ai/contracts'
 import {
     BadRequestException,
     ConflictException,
@@ -131,7 +132,7 @@ export class AgentPluginService {
                             binding.definition.kind === 'agent_plugin' && binding.definition.packageId === pkg.id
                     )
             )
-            .map(importedPluginBinding)
+            .map((pkg) => importedPluginBinding(pkg))
         return { packages: packages.map(({ rootPath, ...item }) => item), bindings: [...defaults, ...bindings] }
     }
 
@@ -171,13 +172,13 @@ export class AgentPluginService {
         return { workspaces, experts: experts.map(({ id, name, title }) => ({ id, name: title || name })) }
     }
 
-    async workspaceCatalog(workspaceId: string) {
+    async workspaceCatalog(workspaceId: string, language?: string) {
         const scope = await this.assertWorkspaceEditor(workspaceId)
         const [packages, bindings] = await Promise.all([
             this.packages.find({ where: scope, order: { createdAt: 'DESC' } }),
             this.bindings.find({ where: scope, order: { createdAt: 'DESC' } })
         ])
-        return { items: workspacePluginCatalog(packages, bindings, workspaceId) }
+        return { items: workspacePluginCatalog(packages, bindings, workspaceId, language) }
     }
 
     async addToWorkspace(
@@ -211,7 +212,9 @@ export class AgentPluginService {
             if (current.length) throw new ConflictException(t('server-ai:Error.AgentPluginWorkspaceDisabled'))
             const saved = await this.createAuthorizedBinding(
                 {
-                    title: (pkg.descriptor.extension?.interface?.displayName || pkg.descriptor.name).slice(0, 200),
+                    title: (
+                        resolveI18nText(pkg.descriptor.extension?.interface?.displayName) || pkg.descriptor.name
+                    ).slice(0, 200),
                     workspaceIds: [workspaceId],
                     definition: { kind: 'agent_plugin', packageId: pkg.id, experts: input.experts }
                 },
@@ -271,7 +274,15 @@ export class AgentPluginService {
             const digest = await portablePackageDigest(root)
             const existing = await this.packages.findOne({ where: { ...agentPluginScopeWhere(scope), digest } })
             if (existing) {
-                const { rootPath, ...result } = existing
+                // Reimporting an unchanged package also upgrades old catalog snapshots.
+                await this.packages
+                    .createQueryBuilder()
+                    .update()
+                    .set({ descriptor: () => ':descriptor' })
+                    .setParameter('descriptor', JSON.stringify(descriptor))
+                    .where({ id: existing.id, ...agentPluginScopeWhere(scope) })
+                    .execute()
+                const { rootPath, ...result } = { ...existing, descriptor }
                 return result
             }
             const rootPath = resolve(
@@ -348,7 +359,7 @@ export class AgentPluginService {
             const previous =
                 stored ??
                 (await this.packages.find({ where }))
-                    .map(importedPluginBinding)
+                    .map((pkg) => importedPluginBinding(pkg))
                     .find((binding) => binding.id === input.replacesBindingId)
             if (!previous || previous.definition.kind !== input.definition.kind)
                 throw new BadRequestException(t('server-ai:Error.AgentResourceNotFound'))
@@ -477,7 +488,9 @@ export class AgentPluginService {
             await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`agent-plugin:${id}`])
             const binding =
                 (await manager.findOneBy(AgentResourceBinding, { ...where, id })) ??
-                (await this.packages.find({ where })).map(importedPluginBinding).find((item) => item.id === id)
+                (await this.packages.find({ where }))
+                    .map((pkg) => importedPluginBinding(pkg))
+                    .find((item) => item.id === id)
             if (!binding) throw new NotFoundException(t('server-ai:Error.AgentResourceNotFound'))
             binding.enabled = enabled
             return manager.save(AgentResourceBinding, this.bindings.create(binding))

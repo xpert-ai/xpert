@@ -1,4 +1,5 @@
 import type { HttpRequestMetricInput } from '@xpert-ai/server-ai'
+import { getViewDataRequestMetricRoute } from '@xpert-ai/server-core'
 import type { RequestHandler } from 'express'
 import { performance } from 'node:perf_hooks'
 import { captureHttpRouterMountTemplates, getHttpRequestRouteTemplate } from './http-route-templates'
@@ -24,7 +25,7 @@ export function createHttpRequestMetricsMiddleware(
       const contentType = response.getHeader('content-type')
       record({
         method: HTTP_METHODS.has(request.method) ? request.method : 'OTHER',
-        route: getHttpRequestRouteTemplate(request),
+        route: getViewDataRequestMetricRoute(request, getHttpRequestRouteTemplate(request)),
         statusCode: outcome === 'aborted' && !response.headersSent ? 499 : response.statusCode,
         responseType:
           typeof contentType === 'string' && contentType.split(';', 1)[0].trim().toLowerCase() === 'text/event-stream'

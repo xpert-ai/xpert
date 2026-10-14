@@ -35,6 +35,7 @@ import { QRCodeComponent } from 'apps/cloud/src/app/@shared/qrcode'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
 import { WORKSPACE_CONNECTOR_DIALOG } from './workspace-connector-dialog'
 import { navigateConnectorAuthorization } from './connector-authorization-navigation'
+import { ConnectorIntegrationFormComponent } from './connector-integration-form.component'
 
 type ConnectorStatusLabel = {
   key: string
@@ -45,6 +46,7 @@ type ConnectorStatusLabel = {
   selector: 'xpert-connectors',
   standalone: true,
   imports: [
+    ConnectorIntegrationFormComponent,
     NgTemplateOutlet,
     DialogModule,
     ReactiveFormsModule,
@@ -73,6 +75,7 @@ export class XpertConnectorsComponent {
   readonly #destroyRef = inject(DestroyRef)
   readonly #dialog = inject(Dialog)
   readonly connectorDialog = viewChild.required<TemplateRef<unknown>>('connectorDialog')
+  readonly integrationForm = viewChild(ConnectorIntegrationFormComponent)
   #dialogRef: DialogRef<unknown> | null = null
 
   readonly connectionContext = inject(WORKSPACE_CONNECTOR_DIALOG, { optional: true })
@@ -256,7 +259,12 @@ export class XpertConnectorsComponent {
     }
 
     const authMethod = this.selectedAuthMethod(binding, definition)
-    if (!authMethod || this.formFor(binding, definition).invalid) {
+    if (
+      definition.unavailable ||
+      !authMethod ||
+      this.credentialFormFor(authMethod)?.integration ||
+      this.formFor(binding, definition).invalid
+    ) {
       this.openConnectorDialog(definition)
       return
     }
@@ -288,6 +296,13 @@ export class XpertConnectorsComponent {
       return
     }
 
+    const integration = this.credentialFormFor(authMethod)?.integration
+    const selection = integration ? this.integrationForm()?.selection() : null
+    if (definition.unavailable || (integration && !selection)) {
+      this.#toastr.error('XP.Xpert.ConnectorCredentialsRequired')
+      return
+    }
+
     const usesEmbeddedAuthorization = this.usesEmbeddedAuthorization(authMethod)
     const connectionKey = binding?.id ?? definition.provider
     const reservedPopup =
@@ -298,6 +313,22 @@ export class XpertConnectorsComponent {
         : null
     this.connectingBindingId.set(connectionKey)
     try {
+      if (selection) {
+        binding ??= await firstValueFrom(
+          this.#connectorService.createBinding({
+            scope: { type: 'workspace', workspaceId },
+            provider: definition.provider,
+            authorizationMode: 'shared'
+          })
+        )
+        this.upsertBinding(binding)
+        const selected = await firstValueFrom(
+          this.#connectorService.prepareIntegration(binding.id, { authMethodId: authMethod.id, selection })
+        )
+        binding = { ...binding, appIntegrationId: selected.id }
+        this.upsertBinding(binding)
+        this.integrationForm()?.remember(selected)
+      }
       const values = this.connectorValues(binding, definition, authMethod)
       const input = {
         authMethodId: authMethod.id,
@@ -390,7 +421,7 @@ export class XpertConnectorsComponent {
   }
 
   authMethodsFor(definition: ConnectorStrategyDefinition): ConnectorAuthMethodDefinition[] {
-    return getConnectorAuthMethods(definition)
+    return getConnectorAuthMethods(definition).filter((method) => !method.deprecated)
   }
 
   formFor(binding: ConnectorBinding | null | undefined, definition: ConnectorStrategyDefinition) {

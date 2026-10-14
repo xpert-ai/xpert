@@ -1,3 +1,21 @@
+import { AssistantTemplateToolsetBinder } from './commands/assistant-template-toolset-binder.service'
+import { ReconcileTemplateSkillReferencesHandler } from './template-installation/reconcile-template-skills.handler'
+import { XpertAgentModule } from '../xpert-agent/xpert-agent.module'
+import { SandboxModule } from '../sandbox/sandbox.module'
+import {
+    PrepareAssistantDefinitionHandler,
+    InstallAssistantDefinitionDependenciesHandler
+} from './template-installation/assistant-definition-import.handler'
+import { TemplateDependencyInstaller } from './template-installation/template-dependency-installer.service'
+import {
+    TemplateReadinessService,
+    InspectTemplateReadinessHandler,
+    AssertAssistantTemplateDependenciesHandler
+} from './template-installation/template-readiness.service'
+import { TemplateInstallationController } from './template-installation/template-installation.controller'
+import { TemplateInstallationService } from './template-installation/template-installation.service'
+import { TemplateInstallationEntity } from './template-installation/template-installation.entity'
+import { TemplateInstallationLocks } from './template-installation/template-installation-locks'
 import { PluginApplicationSuiteService } from './plugin-application-suite.service'
 import { PluginApplicationToolsetsService } from './application-toolsets/plugin-application-toolsets.service'
 import { PluginApplicationSetupService } from './application-setup/plugin-application-setup.service'
@@ -36,8 +54,11 @@ import { PluginMcpServerService } from './plugin-mcp-server.service'
 
 @Module({
     imports: [
+        forwardRef(() => XpertAgentModule),
+        forwardRef(() => SandboxModule),
         TypeOrmModule.forFeature([
             PluginResourceInstallation,
+            TemplateInstallationEntity,
             PluginApplicationInstallation,
             SkillPackage,
             XpertToolset,
@@ -60,8 +81,18 @@ import { PluginMcpServerService } from './plugin-mcp-server.service'
         CopilotModule,
         McpPublicationModule
     ],
-    controllers: [PluginResourceController, PluginApplicationController],
+    controllers: [PluginResourceController, PluginApplicationController, TemplateInstallationController],
     providers: [
+        ReconcileTemplateSkillReferencesHandler,
+        AssistantTemplateToolsetBinder,
+        PrepareAssistantDefinitionHandler,
+        InstallAssistantDefinitionDependenciesHandler,
+        TemplateDependencyInstaller,
+        TemplateReadinessService,
+        InspectTemplateReadinessHandler,
+        AssertAssistantTemplateDependenciesHandler,
+        TemplateInstallationService,
+        TemplateInstallationLocks,
         PluginApplicationSetupService,
         PluginApplicationToolsetsService,
         PluginApplicationSuiteService,

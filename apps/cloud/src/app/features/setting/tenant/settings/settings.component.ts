@@ -13,12 +13,14 @@ interface ItemData {
   standalone: false,
   selector: 'xp-tenant-settings',
   templateUrl: 'settings.component.html',
-  styles: [':host {display: block; width: 100%; padding: 1rem;}']
+  host: { class: 'block w-full min-w-0' }
 })
 export class SettingsComponent implements OnInit {
   readonly dataSourceTypeAPI = inject(DataSourceTypesService)
   readonly #toastr = inject(ToastrService)
 
+  pageIndex = 0
+  pageSize = 20
   i = 0
   editCache: { [key: string]: { edit: boolean; data: ItemData } } = {}
 
@@ -52,6 +54,7 @@ export class SettingsComponent implements OnInit {
 
   addNew(item?: ItemData) {
     this.add(item)
+    this.pageIndex = Math.floor((this.listOfData.length - 1) / this.pageSize)
     this.startEdit(`${this.i}`)
   }
 
@@ -82,6 +85,7 @@ export class SettingsComponent implements OnInit {
     await this.tenantService.saveSettings({ [this.listOfData[index].name]: null })
     this.listOfData.splice(index, 1)
     this.listOfData = [...this.listOfData]
+    this.pageIndex = Math.min(this.pageIndex, Math.max(0, Math.ceil(this.listOfData.length / this.pageSize) - 1))
     this._cdr.detectChanges()
   }
 

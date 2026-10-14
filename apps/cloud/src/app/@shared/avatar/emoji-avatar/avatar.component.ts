@@ -1,3 +1,6 @@
+import { HttpClient } from '@angular/common/http'
+import { firstValueFrom } from 'rxjs'
+import { ElementRef, signal } from '@angular/core'
 import { CommonModule } from '@angular/common'
 import {
   booleanAttribute,
@@ -80,7 +83,14 @@ export class EmojiAvatarComponent {
     transform: booleanAttribute
   })
 
-  readonly resolvedAvatar = computed(() => this.avatar() ?? this.cva.value$() ?? null)
+  private readonly http = inject(HttpClient)
+  private readonly element = inject<ElementRef<HTMLElement>>(ElementRef)
+  private readonly assetUrl = signal<string | null>(null)
+  readonly sourceAvatar = computed(() => this.avatar() ?? this.cva.value$() ?? null)
+  readonly resolvedAvatar = computed(() => {
+    const avatar = this.sourceAvatar()
+    return avatar?.url?.startsWith('/api/xpert-template/catalog-avatar/') ? { ...avatar, url: this.assetUrl() } : avatar
+  })
   readonly avatarFallback = computed(() => buildAvatarFallback(this.fallbackLabel()))
   readonly emoji = computed(() => {
     const avatar = this.resolvedAvatar()
@@ -107,6 +117,29 @@ export class EmojiAvatarComponent {
   @HostBinding('class.focused') focused = false
 
   constructor() {
+    effect((cleanup) => {
+      const url = this.sourceAvatar()?.url
+      this.assetUrl.set(null)
+      if (!url?.startsWith('/api/xpert-template/catalog-avatar/')) return
+      let active = true
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (!entries.some((entry) => entry.isIntersecting)) return
+          observer.disconnect()
+          void firstValueFrom(this.http.get<{ url: string }>(url))
+            .then((asset) => {
+              if (active) this.assetUrl.set(asset.url)
+            })
+            .catch(() => {})
+        },
+        { rootMargin: '100px' }
+      )
+      observer.observe(this.element.nativeElement)
+      cleanup(() => {
+        active = false
+        observer.disconnect()
+      })
+    })
     effect(() => {
       if (this.cva.value$()) {
         this.avatar.set(this.cva.value$())

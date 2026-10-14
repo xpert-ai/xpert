@@ -1,3 +1,4 @@
+import { AssistantTemplateSetupRuntimeController } from './assistant-template-setup.controller'
 import { GROUP_CONTROLLERS } from './groups'
 import { GroupWorkbenchGuard } from './groups/group-workbench.guard'
 import { GroupScopeGuard } from './groups/group-scope.guard'
@@ -117,6 +118,7 @@ import { SuperAdminOrganizationScopeModule } from '../shared/super-admin-organiz
         forwardRef(() => XpertToolsetModule)
     ],
     controllers: [
+        AssistantTemplateSetupRuntimeController,
         ...GROUP_CONTROLLERS,
         ConversationArtifactsController,
         VoiceController,

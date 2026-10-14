@@ -4,26 +4,21 @@ import { BadRequestException } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { t } from 'i18next'
 import { FindXpertQuery } from '../../xpert/queries'
+import { projectExternalAssistantIds } from './project-initial-assistants'
 import {
     describeExternalAssistantBinding,
-    directExternalAssistantIds,
     matchesExternalAssistantExpectation,
     type ResolvedExternalAssistantBinding
 } from '../../xpert/external-assistant-binding'
 
-/**
- * Resolve portable roles only through the authenticated requester's direct Assistant edges.
- * Include each selected role's required dependency graph in the Project, without granting
- * those dependencies direct API access under the root Assistant's client secret.
- * Validate the complete graph before Project writes; never traverse optional or unselected roles.
- */
-export async function resolveProjectExternalXperts(
+/** Validate portable role expectations independently of the Project's persisted membership. */
+export async function validateProjectExternalAssistants(
     queryBus: QueryBus,
     requester: IXpert,
     input: ProjectEnsureInput
-): Promise<IXpert[]> {
+): Promise<void> {
     const expectations = normalizeProjectExternalAssistantExpectations(input.externalAssistantExpectations)
-    if (!expectations.length) return []
+    if (!expectations.length) return
     const requesterAgentKey = requiredProjectText(input.requesterAgentKey ?? '', 'requesterAgentKey', 100)
     if (requester.agent?.key !== requesterAgentKey) {
         throw new BadRequestException(
@@ -34,7 +29,7 @@ export async function resolveProjectExternalXperts(
     }
 
     const candidates = await Promise.all(
-        directExternalAssistantIds(requester, requesterAgentKey).map(async (candidateId) => {
+        projectExternalAssistantIds(requester, requesterAgentKey).map(async (candidateId) => {
             try {
                 return await queryBus.execute<FindXpertQuery, IXpert>(
                     new FindXpertQuery({ id: candidateId }, { relations: ['agent'] })
@@ -50,7 +45,6 @@ export async function resolveProjectExternalXperts(
         descriptor: describeExternalAssistantBinding(requester, candidate)
     }))
 
-    const resolved: IXpert[] = []
     for (const expectation of expectations) {
         const matches = bindings.filter(({ descriptor }) =>
             matchesExternalAssistantExpectation(descriptor, expectation)
@@ -83,53 +77,13 @@ export async function resolveProjectExternalXperts(
         if (match.descriptor.status !== 'available') {
             throw projectExternalAssistantError('ProjectAssistantBindingIncompatible', 'incompatible')
         }
-        // The requester Assistant and its direct, required graph edge are the
+        // The requester Assistant and its direct graph edge are the
         // authorization anchor for portable role resolution. Re-applying the
         // USER_XPERT token audience to the target here would reject every
         // valid external Assistant because that delegated token is purposely
         // scoped to the requester only. The candidate has already been fully
         // validated for publication, organization and portable identity.
-        resolved.push(match.candidate)
     }
-    return includeRequiredDependencies(queryBus, requester, resolved)
-}
-
-async function includeRequiredDependencies(queryBus: QueryBus, requester: IXpert, roots: IXpert[]) {
-    const resolved = new Map(roots.map((root) => [root.id, root]))
-    const visited = new Set<string>()
-    const visit = async (owner: IXpert, ancestors: Set<string>) => {
-        if (ancestors.has(owner.id))
-            throw projectExternalAssistantError('ProjectAssistantBindingIncompatible', 'incompatible')
-        if (visited.has(owner.id)) return
-        visited.add(owner.id)
-        const path = new Set([...ancestors, owner.id])
-        for (const id of directExternalAssistantIds(owner, owner.agent?.key ?? '')) {
-            if (path.has(id) || (resolved.size >= 32 && !resolved.has(id))) {
-                throw projectExternalAssistantError('ProjectAssistantBindingIncompatible', 'incompatible')
-            }
-            let candidate = resolved.get(id)
-            if (!candidate) {
-                try {
-                    candidate = await queryBus.execute<FindXpertQuery, IXpert>(
-                        new FindXpertQuery({ id }, { relations: ['agent'] })
-                    )
-                } catch {
-                    throw projectExternalAssistantError('ProjectAssistantBindingMissing', 'missing')
-                }
-            }
-            const binding = describeExternalAssistantBinding(owner, candidate)
-            if (candidate.tenantId !== requester.tenantId || binding.status === 'cross_organization') {
-                throw projectExternalAssistantError('ProjectAssistantBindingCrossOrganization', 'cross_organization')
-            }
-            if (binding.status !== 'available') {
-                throw projectExternalAssistantError('ProjectAssistantBindingUnpublished', 'unpublished')
-            }
-            resolved.set(candidate.id, candidate)
-            await visit(candidate, path)
-        }
-    }
-    for (const root of roots) await visit(root, new Set([requester.id]))
-    return [...resolved.values()]
 }
 
 export function requiredProjectText(value: string, field: string, maxLength: number): string {

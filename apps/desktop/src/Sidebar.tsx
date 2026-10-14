@@ -483,6 +483,7 @@ export function Sidebar({
       />
       {dialog && (
         <AssistantDialog
+          onOpenConversation={onSelect}
           bot={dialog.bot}
           webUrl={state.config.webUrl}
           mode={dialog.mode}

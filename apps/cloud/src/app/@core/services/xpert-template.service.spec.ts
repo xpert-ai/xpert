@@ -47,6 +47,7 @@ describe('Xpert template catalog requests', () => {
     service.getSummaries().subscribe(next)
     const first = http.expectOne((request) => request.url.endsWith('/catalog'))
     first.flush({ items: [{ id: 'first' }], total: 2, offset: 0, limit: 1, categories: [] })
+    expect(next).toHaveBeenCalledWith([{ id: 'first' }])
     const second = http.expectOne((request) => request.url.endsWith('/catalog'))
     expect(second.request.params.get('offset')).toBe('1')
     second.flush({ items: [{ id: 'second' }], total: 2, offset: 1, limit: 1, categories: [] })

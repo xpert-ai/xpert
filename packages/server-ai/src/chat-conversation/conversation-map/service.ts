@@ -15,6 +15,13 @@ import { PublishedXpertAccessService } from '../../xpert/published-xpert-access.
 import { WorkbenchAssistantConversationNavigationService } from '../workbench-assistant-conversation-navigation.service'
 import { humanMessageSummary, latestUpdate, matches, turnNodes } from './presentation'
 import type { MapAction, MapNode, MapPage, MapQuery } from './schema'
+import { ChatMessage } from '../../chat-message/chat-message.entity'
+import { readSegments } from './segment-reader'
+
+// New conversations can have messages before a title has been generated.
+function displayConversationTitle(title: string | null | undefined): string {
+    return title?.trim() ? title : t('server-ai:ConversationMap.Untitled')
+}
 
 @Injectable()
 export class ConversationMapService {
@@ -103,9 +110,63 @@ export class ConversationMapService {
         }
         if (query.conversationId) {
             const conversation = await this.conversation(context, query.conversationId)
+            const conversationTitle = displayConversationTitle(conversation.title)
             if ((conversation.projectId ?? null) !== projectId)
                 throw new ForbiddenException(t('server-ai:Error.ConversationAccessDenied'))
-            if (query.threadId) {
+            if (query.representation === 'segments' && !query.search && !query.threadId) {
+                await this.threads.ensurePrimary(conversation)
+                const all = await this.threads.listByConversation(conversation.id)
+                const editedParents = new Set(
+                    all
+                        .filter((thread) => thread.metadata.purpose === 'message-edit')
+                        .map((thread) => thread.parentThreadId)
+                )
+                const visible = all.filter(
+                    (thread) =>
+                        query.showHistory ||
+                        thread.threadId === conversation.threadId ||
+                        (thread.metadata.purpose !== 'message-edit' && !editedParents.has(thread.threadId))
+                )
+                const boundaries = new Set<string>()
+                for (let offset = 0; ; offset += 50) {
+                    const [sources, total] = await this.conversations.findReadableFamilyConversations(
+                        family,
+                        projectId,
+                        offset,
+                        50,
+                        conversation.id
+                    )
+                    for (const source of sources)
+                        if (source.branchSource?.messageId) boundaries.add(source.branchSource.messageId)
+                    if (!sources.length || offset + sources.length >= total) break
+                }
+                page.nodes = await readSegments(
+                    this.db.getRepository(ChatMessage),
+                    {
+                        conversationId: conversation.id,
+                        tenantId: context.tenantId,
+                        organizationId: context.organizationId
+                    },
+                    conversationTitle,
+                    visible.map((thread) => ({
+                        threadId: thread.threadId,
+                        headMessageId: thread.headMessageId,
+                        title:
+                            thread.metadata.title ||
+                            (thread.threadId === conversation.threadId
+                                ? t('server-ai:ConversationMap.Current')
+                                : thread.metadata.purpose === 'message-edit'
+                                  ? t('server-ai:ConversationMap.History')
+                                  : t('server-ai:ConversationMap.SideChat')),
+                        current: thread.threadId === conversation.threadId,
+                        status: thread.status ?? 'idle'
+                    })),
+                    boundaries
+                )
+                page.total = page.nodes.length
+                // Topology is atomic. Splitting it into pages would manufacture segment boundaries.
+                return page
+            } else if (query.threadId) {
                 const thread = await this.threads.requireByThreadId(query.threadId)
                 if (thread.conversationId !== conversation.id)
                     throw new ForbiddenException(t('server-ai:Error.ConversationAccessDenied'))
@@ -116,7 +177,7 @@ export class ConversationMapService {
                     conversation.id,
                     query.showShared,
                     '',
-                    conversation.title
+                    conversationTitle
                 )
                 page.nodes = turns.slice(query.offset, query.offset + query.limit)
                 page.total = turns.length
@@ -142,7 +203,7 @@ export class ConversationMapService {
                             kind: 'thread',
                             parentId: `conversation:${conversation.id}`,
                             conversationId: conversation.id,
-                            conversationTitle: conversation.title || t('server-ai:ConversationMap.Untitled'),
+                            conversationTitle,
                             threadId: thread.threadId,
                             parentThreadId: thread.parentThreadId,
                             sourceMessageId: thread.forkedFromMessageId ?? undefined,
@@ -173,7 +234,10 @@ export class ConversationMapService {
             page.total = total
             let scanned = 0
             for (const conversation of conversations) {
-                const summary = await this.threadSummary(conversation.threadId, conversation.id)
+                const summary: Pick<MapNode, 'updatedAt' | 'lastHumanMessage'> =
+                    query.representation === 'segments' && !query.search
+                        ? {}
+                        : await this.threadSummary(conversation.threadId, conversation.id)
                 const node: MapNode = {
                     ...summary,
                     id: `conversation:${conversation.id}`,
@@ -181,7 +245,7 @@ export class ConversationMapService {
                     parentId: `project:${projectId ?? 'unassigned'}`,
                     conversationId: conversation.id,
                     threadId: conversation.threadId,
-                    title: conversation.title || t('server-ai:ConversationMap.Untitled'),
+                    title: displayConversationTitle(conversation.title),
                     updatedAt: latestUpdate(
                         conversation.updatedAt,
                         conversation.createdAt,

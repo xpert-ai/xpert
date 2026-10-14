@@ -51,6 +51,10 @@ const schemas = [
             id: base.id,
             tenantId: base.tenantId,
             type: text,
+            firstName: text,
+            lastName: text,
+            username: text,
+            email: text,
             imageUrl: text
         }
     }),

@@ -1,10 +1,11 @@
+import { resolveI18nText } from '@xpert-ai/contracts'
 // Package imports are scope installations. Legacy bindings retain their exact references
 // and per-workspace configuration; workspace membership no longer controls plugin visibility.
 import { createHash } from 'node:crypto'
 import type { AgentPluginPackage, AgentResourceBinding } from './agent-plugin.entity'
 import type { AgentPluginScope } from './agent-plugin-scope'
 
-export function importedPluginBinding(pkg: AgentPluginPackage): AgentResourceBinding {
+export function importedPluginBinding(pkg: AgentPluginPackage, language?: string): AgentResourceBinding {
     const key = createHash('sha256').update(`installed-agent-plugin:${pkg.tenantId}:${pkg.id}`).digest('hex')
     const id = `${key.slice(0, 8)}-${key.slice(8, 12)}-5${key.slice(13, 16)}-8${key.slice(17, 20)}-${key.slice(20, 32)}`
     const definition: AgentResourceBinding['definition'] = {
@@ -18,8 +19,9 @@ export function importedPluginBinding(pkg: AgentPluginPackage): AgentResourceBin
         id,
         tenantId: pkg.tenantId,
         organizationId: pkg.organizationId ?? null,
-        title: pkg.descriptor.extension?.interface?.displayName || pkg.descriptor.name,
-        description: pkg.descriptor.extension?.interface?.description || pkg.descriptor.description,
+        title: resolveI18nText(pkg.descriptor.extension?.interface?.displayName, language) || pkg.descriptor.name,
+        description:
+            resolveI18nText(pkg.descriptor.extension?.interface?.description, language) || pkg.descriptor.description,
         version: createHash('sha256')
             .update(JSON.stringify([id, pkg.digest, definition]))
             .digest('hex'),
@@ -43,7 +45,8 @@ export function installedPluginBindings(
     packages: AgentPluginPackage[],
     bindings: AgentResourceBinding[],
     scope: AgentPluginScope,
-    workspaceId?: string
+    workspaceId?: string,
+    language?: string
 ): AgentResourceBinding[] {
     const groups = new Map<string, AgentPluginPackage[]>()
     for (const pkg of [...packages].sort(newest)) {
@@ -84,7 +87,7 @@ export function installedPluginBindings(
                 )
         )
         if (unconfigured && (!selected || newest(unconfigured, selected) < 0))
-            return importedPluginBinding(unconfigured)
-        return selected ?? importedPluginBinding(versions[0])
+            return importedPluginBinding(unconfigured, language)
+        return selected ?? importedPluginBinding(versions[0], language)
     })
 }

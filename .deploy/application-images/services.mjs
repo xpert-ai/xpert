@@ -57,6 +57,7 @@ export const services = [
       'tailwind.workspace.config.js',
       'tailwind.theme.vars.js',
       ...web.packages.map((directory) => `${directory}/`),
+      'libs/template-installation/',
       'packages/plugin-sdk/src/connector.ts',
       'packages/plugin-sdk/src/lib/connector/strategy.interface.ts'
     ],

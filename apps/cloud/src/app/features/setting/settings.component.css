@@ -1,19 +1,17 @@
-@reference "../../../styles/tailwind-reference.css";
 :host {
-  width: 100%;
   display: flex;
   flex: 1;
-  flex-direction: row;
-  max-width: 100%;
-  overflow: auto;
-  border-top-left-radius: var(--layout-shell-top-left-radius);
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
-.xp-nav__router {
+.settings-content {
   display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-}
-.link.active {
-  @apply bg-components-panel-bg dark:bg-components-list-option-active-bg;
 }

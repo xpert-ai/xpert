@@ -52,10 +52,52 @@ export class AgentPluginInstallationsService {
         })
     }
 
-    async catalog(): Promise<{ items: InstalledAgentPlugin[] }> {
+    /** Backfill only an already scope-authorized, digest-verified immutable package. */
+    async saveTemplateCatalog(
+        pkg: AgentPluginPackage,
+        templateCatalog: NonNullable<AgentPluginPackage['descriptor']['templateCatalog']>
+    ) {
+        await this.packages
+            .createQueryBuilder()
+            .update()
+            .set({ descriptor: () => ':descriptor' })
+            .setParameter('descriptor', JSON.stringify({ ...pkg.descriptor, templateCatalog }))
+            .where({
+                id: pkg.id,
+                digest: pkg.digest,
+                ...agentPluginScopeWhere({ tenantId: pkg.tenantId, organizationId: pkg.organizationId ?? null })
+            })
+            .execute()
+    }
+
+    /** Resolve only visible, enabled packages; an explicit digest never follows a newer import. */
+    async templatePackage(name: string, digest?: string, workspaceId?: string) {
+        const { scope, packages, bindings } = await this.visible()
+        const current = installedPluginBindings(packages, bindings, scope, workspaceId).find((binding) => {
+            const definition = binding.definition
+            return (
+                definition.kind === 'agent_plugin' &&
+                packages.some((pkg) => pkg.id === definition.packageId && pkg.descriptor.name === name)
+            )
+        })
+        if (!current?.enabled || current.definition.kind !== 'agent_plugin') return null
+        const packageId = current.definition.packageId
+        const active = packages.find((pkg) => pkg.id === packageId)!
+        if (!digest || digest === active.digest) return { pkg: active, binding: current }
+        const pinned = packages.find(
+            (pkg) =>
+                pkg.descriptor.name === name &&
+                pkg.digest === digest &&
+                (pkg.organizationId ?? null) === (active.organizationId ?? null)
+        )
+        const binding = pinned && importedPluginBinding(pinned)
+        return binding ? this.reference({ bindingId: binding.id, version: binding.version }, workspaceId) : null
+    }
+
+    async catalog(language?: string): Promise<{ items: InstalledAgentPlugin[] }> {
         const { scope, packages, bindings } = await this.visible()
         return {
-            items: installedPluginBindings(packages, bindings, scope).map((binding) => {
+            items: installedPluginBindings(packages, bindings, scope, undefined, language).map((binding) => {
                 const definition = binding.definition
                 const pkg = packages.find(
                     (item) => definition.kind === 'agent_plugin' && item.id === definition.packageId
@@ -74,6 +116,10 @@ export class AgentPluginInstallationsService {
                           ? 'configuration_required'
                           : 'available',
                     components: [
+                        ...(descriptor.templates ?? []).map(({ key }) => ({
+                            kind: 'assistant_template' as const,
+                            name: key
+                        })),
                         ...descriptor.skills.map(({ key }) => ({ kind: 'skill' as const, name: key })),
                         ...descriptor.servers.map(({ key }) => ({ kind: 'mcp' as const, name: key })),
                         ...(descriptor.extension?.middlewares ?? []).map(({ key }) => ({
@@ -107,7 +153,7 @@ export class AgentPluginInstallationsService {
         const binding =
             bindings.find((item) => item.id === reference.bindingId && item.version === reference.version) ??
             packages
-                .map(importedPluginBinding)
+                .map((pkg) => importedPluginBinding(pkg))
                 .find((item) => item.id === reference.bindingId && item.version === reference.version)
         if (!binding || !binding.enabled || binding.definition.kind !== 'agent_plugin') return null
         const packageId = binding.definition.packageId
@@ -146,6 +192,32 @@ export class AgentPluginInstallationsService {
             binding.definition.connectorServers ?? pkg.descriptor.extension?.connectors ?? {},
             binding.installations[assistant.workspaceId]?.connectors
         )
+    }
+
+    /** Persist ownership for template-selected MCP resources so the same runtime credential
+     * authority validates them. This never grants an account or installs unselected components. */
+    async registerTemplateMcp(
+        reference: RuntimeResourceReference,
+        workspaceId: string,
+        toolsets: string[],
+        connectors: NonNullable<AgentResourceBinding['installations'][string]['connectors']>
+    ) {
+        await this.bindings.manager.transaction(async (manager) => {
+            await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`agent-plugin:${reference.bindingId}`])
+            const resolved = await this.reference(reference, workspaceId)
+            if (!resolved) throw new ForbiddenException(t('server-ai:Error.AgentResourceUnavailable'))
+            const binding = resolved.binding
+            const previous = binding.installations[workspaceId] ?? { skills: [], toolsets: [] }
+            binding.installations = {
+                ...binding.installations,
+                [workspaceId]: {
+                    ...previous,
+                    toolsets: [...new Set([...previous.toolsets, ...toolsets])],
+                    connectors: { ...previous.connectors, ...connectors }
+                }
+            }
+            await manager.save(AgentResourceBinding, this.bindings.create(binding))
+        })
     }
 
     /** Caller has authorized the published Assistant; no authoring permission is implied or granted. */

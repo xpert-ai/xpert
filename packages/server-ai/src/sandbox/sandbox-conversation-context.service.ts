@@ -1,3 +1,4 @@
+import { InitializeAssistantTemplateFilesCommand } from '../xpert/assistant-files/initialize-assistant-template-files.command'
 import { IChatConversation, IUser, SandboxTerminalErrorCode } from '@xpert-ai/contracts'
 import type { TSandboxConfigurable } from '@xpert-ai/contracts'
 import { RequestContext, resolveSandboxBackend } from '@xpert-ai/plugin-sdk'
@@ -13,6 +14,7 @@ import { XpertProjectAccessService } from '../xpert-project/services/project-acc
 import { SandboxAcquireBackendCommand, SandboxFindBackendCommand } from './commands'
 import { resolveSandboxWorkFor } from './sandbox-work-for'
 import { t } from 'i18next'
+import { ResolveGroupRuntimeAccessCommand } from '../chat-group/group-runtime-access.command'
 
 export type ResolvedConversationSandboxContext = {
     backend: SandboxBackendProtocol
@@ -112,6 +114,19 @@ export class SandboxConversationContextService {
         }
 
         const effectiveSandboxEnvironmentId = conversation.options?.sandboxEnvironmentId?.trim() || null
+        const groupRuntime = conversation.purpose === 'group_assistant_runtime'
+        if (groupRuntime) {
+            await this.commandBus.execute(
+                new ResolveGroupRuntimeAccessCommand(
+                    {
+                        tenantId,
+                        organizationId: conversation.organizationId,
+                        userId
+                    },
+                    { type: 'runtime', conversationId }
+                )
+            )
+        }
         const effectiveProjectId = conversation.projectId?.trim() || null
         const requestedProjectId = params.projectId?.trim() || null
         if (requestedProjectId && requestedProjectId !== effectiveProjectId) {
@@ -134,7 +149,7 @@ export class SandboxConversationContextService {
                 organizationId: conversation.organizationId,
                 userId
             })
-        } else if (conversation.createdById !== userId) {
+        } else if (!groupRuntime && conversation.createdById !== userId) {
             throw new ForbiddenException(
                 t('server-ai:Error.ConversationWorkspaceAccessDenied', {
                     defaultValue: 'You cannot access files from this conversation'
@@ -186,6 +201,14 @@ export class SandboxConversationContextService {
             environmentId: effectiveSandboxEnvironmentId,
             workspaceDataScope: conversation.xpert?.workspaceDataScope
         }
+        if (
+            create &&
+            (conversation.xpert?.options?.templateDefinition?.manifest?.files ??
+                conversation.xpert?.options?.templateSource?.manifest?.files) &&
+            !effectiveProjectId &&
+            !effectiveSandboxEnvironmentId
+        )
+            await this.commandBus.execute(new InitializeAssistantTemplateFilesCommand(conversation.xpertId, 'runtime'))
         const workArea = create
             ? await this.workAreaResolver.resolve(workAreaInput)
             : await this.workAreaResolver.resolve(workAreaInput, { createDirectories: false })

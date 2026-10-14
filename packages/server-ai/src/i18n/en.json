@@ -53,7 +53,16 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "PersonalApiKeyNotFound": "Personal API key not found or already revoked.",
+        "PersonalApiKeyHumanRequired": "Personal API keys require a human user account.",
+        "PersonalApiKeyInvalidInput": "Provide a key name and a valid lifetime.",
         "RuntimeNotReady": "The API instance is not ready",
+        "ConnectorIntegrationInvalid": "Invalid system integration configuration.",
+        "ConnectorIntegrationUnavailable": "The selected system integration is unavailable or incomplete. Select an accessible integration.",
+        "ConnectorIntegrationCreateForbidden": "You do not have permission to create system integrations.",
+        "ConnectorIntegrationBusy": "Disconnect or cancel the current authorization before changing its system integration.",
+        "ConnectorProviderDependencyMissing": "Install and enable connector provider {{provider}} in this scope before connecting.",
+        "ConnectorAuthMethodRetired": "Select a supported authentication method to reconnect.",
         "PrimaryModelEmptyResponse": "The Primary LLM returned an empty response.",
         "PrimaryModelVerificationTimedOut": "Primary LLM verification timed out after 20 seconds.",
         "ClawXpertRecoveryRequiresMember": "Join the current organization before recovering your personal assistant.",
@@ -129,6 +138,12 @@
         "BosiSelectionLimit": "Select at most 50 capabilities and 50 connections.",
         "PersonalWorkspaceScopeRequired": "Preparing a personal workspace requires an authenticated user and a selected organization.",
         "PersonalWorkspaceOrganizationAccessDenied": "You cannot prepare a personal workspace in this organization.",
+        "TemplateInstallationInvalid": "Invalid template installation request.",
+        "TemplateInstallationScope": "A signed-in user and an accessible organization are required.",
+        "TemplateInstallationNotFound": "Template installation was not found.",
+        "TemplateInstallationKeyConflict": "This installation key was already used for different input. Start a new installation with a new key.",
+        "TemplateInstallationSourceChanged": "The template changed after installation started. Review the new template and start a new installation.",
+        "TemplateInstallationFailed": "Installation stopped. Correct the configuration or environment and retry this installation.",
         "TemplateInstallResumeMismatch": "The Assistant being restored no longer matches this workspace or template.",
         "AssistantAppearanceInvalid": "Invalid assistant name or avatar settings.",
         "ConversationArtifactUnavailable": "This saved file is not available in this conversation.",
@@ -842,6 +857,8 @@
         "ProjectPermissionRequired": "Project permission is required.",
         "ProjectExternalExpectationsLimit": "A Project ensure request cannot contain more than 32 External Assistant expectations.",
         "ProjectRequesterAgentMismatch": "The requester Agent must be the primary Agent of the Project Assistant.",
+        "ProjectInitialAssistantUnavailable": "Assistant {{assistantId}} or an External Assistant is unavailable in this Project scope. Check its published version and organization.",
+        "ProjectInitialAssistantsLimit": "Project initialization supports up to 256 distinct Assistants.",
         "ProjectAssistantBindingAmbiguous": "A required External Assistant binding is ambiguous.",
         "ProjectAssistantBindingUnpublished": "A required External Assistant is not published.",
         "ProjectAssistantBindingCrossOrganization": "A required External Assistant belongs to another Organization.",
@@ -1039,7 +1056,30 @@
         "McpAppSessionExpired": "This App session has expired. Its saved result is still available.",
         "McpAppSessionUnavailable": "This App cannot resume. Its saved result is still available.",
         "McpAppMessageMismatch": "This App does not belong to the requested message.",
-        "McpAppHistoryQueryInvalid": "A valid message identifier is required."
+        "McpAppHistoryQueryInvalid": "A valid message identifier is required.",
+        "AssistantTemplateDeclarationConflict": "Conflicting or unsupported Assistant template declaration: {{field}}",
+        "TemplateRequirementsUnmet": "Required template capabilities or dependencies are not ready. Review the installation checks.",
+        "TemplateFileScopeConflict": "File isolation must match the template declaration.",
+        "TemplateDependencyBusy": "Template dependencies are being updated by another installation. Try again shortly.",
+        "TemplateDependencyChanged": "A plugin or resource no longer matches this Assistant’s installed version. Restore the pinned version before running.",
+        "TemplateSetupChanged": "Assistant setup changed. Refresh before saving.",
+        "TemplateSetupInvalid": "Complete the required preferences and select an authorized connection.",
+        "TemplateRoutineInvalid": "Check the schedule, time zone, setup completion and required connections before enabling this routine.",
+        "TemplateOperationDenied": "The tool operation was denied. No action was performed.",
+        "TemplateConnectorsRequired": "Configure the required template connections before running tools.",
+        "AssistantTemplateNotFound": "Assistant template was not found.",
+        "TemplateRoutineExecutionFailed": "The routine failed. Open its result for details.",
+        "TemplateRoutineLocalUnavailable": "This routine requires local capabilities and cannot run in the server background. Connect Desktop and run it manually.",
+        "TemplateActivityChanged": "The routine result changed. Refresh and retry.",
+        "TemplateLifecycleInvalid": "Invalid template lifecycle request.",
+        "TemplateLifecycleStale": "The Assistant or source template changed. Reload the preview before continuing.",
+        "TemplatePublicationUnsupported": "Some runtime nodes require a portable adapter before publication. Review the preview.",
+        "TemplatePublicationVersion": "Publish with a version newer than the current release.",
+        "TemplateUpgradeNoSource": "This Assistant is not linked to a source template.",
+        "TemplateUpgradeChoices": "Choose keep or replace for every changed section.",
+        "TemplateUpgradePending": "Finish or roll back the pending upgrade first.",
+        "TemplateUpgradeUnsupported": "This change requires a portable runtime adapter, a new routine key, or a separate installation for a changed file scope.",
+        "TemplateUpgradeSourceUnavailable": "The source template is unavailable. You can still recover or roll back this saved upgrade."
     },
     "Mcp": {
         "Test": {
@@ -1210,5 +1250,18 @@
         "succeeded": "Task “{{title}}” succeeded and is awaiting acceptance.",
         "failed": "Task “{{title}}” failed.",
         "cancelled": "Task “{{title}}” was cancelled."
-    }
+    },
+    "TemplateRequirement": {
+        "ready": "Ready",
+        "unsupported": "Not supported yet",
+        "missing": "Missing; configure and refresh",
+        "incompatible": "Incompatible version or declaration",
+        "pending-configuration": "Configuration required after installation"
+    },
+    "TemplateSetup": {
+        "ApprovalRequired": "Your approval is required for this operation"
+    },
+    "TemplateUpgradeReleaseNotes": "Template upgrade",
+    "TemplateRollbackReleaseNotes": "Restore previous template content",
+    "TemplateCommunityPublisher": "Community publisher"
 }

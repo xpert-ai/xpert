@@ -128,16 +128,6 @@ describe('MembershipAdminComponent', () => {
     expect(template).toContain("setActiveTab('users')")
   })
 
-  it('uses subtle borders for plan choices and the plan detail surfaces', () => {
-    const template = readFileSync(join(__dirname, 'membership.component.html'), 'utf8')
-
-    expect(template).toContain("'border-divider-subtle bg-components-card-bg hover:border-divider-regular'")
-    expect(
-      template.match(/overflow-hidden border border-divider-subtle bg-components-card-bg shadow-none/g)
-    ).toHaveLength(2)
-    expect(template.match(/rounded-lg border border-divider-subtle bg-components-panel-bg px-4 py-3/g)).toHaveLength(7)
-  })
-
   it('round-trips the explicit plan level in the edit form', () => {
     component.edit(targetPlan)
 

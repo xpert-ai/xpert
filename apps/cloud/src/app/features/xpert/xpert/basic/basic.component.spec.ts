@@ -9,7 +9,8 @@ jest.mock('apps/cloud/src/app/@shared/copilot', () => ({ CopilotModelSelectCompo
 
 import { XpertComponent } from '../xpert.component'
 import { XpertService } from '../xpert.service'
-import { clearLegacyInheritedPrimaryAgentModel, XpertBasicComponent } from './basic.component'
+import { clearLegacyInheritedPrimaryAgentModel } from 'apps/cloud/src/app/@shared/xpert/assistant-settings/primary-agent-model.util'
+import { XpertBasicComponent } from './basic.component'
 
 const initialModel = {
   copilotId: 'copilot-qwen',
@@ -46,7 +47,7 @@ describe('clearLegacyInheritedPrimaryAgentModel', () => {
 
     expect(nodes?.[0]).toEqual(
       expect.objectContaining({
-        entity: expect.objectContaining({ copilotModel: undefined })
+        entity: expect.objectContaining({ copilotModel: null, copilotModelId: null })
       })
     )
   })
@@ -56,7 +57,9 @@ describe('clearLegacyInheritedPrimaryAgentModel', () => {
   })
 
   it('preserves an explicitly selected canvas Agent model', () => {
-    expect(clearLegacyInheritedPrimaryAgentModel(createDraft(canvasModel))).toBeNull()
+    const draft = createDraft(canvasModel)
+    draft.team.agent.copilotModel = canvasModel
+    expect(clearLegacyInheritedPrimaryAgentModel(draft)).toBeNull()
   })
 })
 

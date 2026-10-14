@@ -1,34 +1,54 @@
-<formly-form
-  #formly
-  class="flex-1 self-stretch"
-  [form]="form"
-  [fields]="schema"
-  [model]="customSmtp"
-  (modelChange)="onFormChange(customSmtp)"
->
-</formly-form>
-
-<div class="flex justify-start">
-  <div class="flex items-center gap-1">
-    <button
-      class="text-text-accent hover:text-text-accent"
-      z-button
-      zType="outline"
-      zSize="sm"
-      [disabled]="isValidated()"
-      (click)="validateSmtp()"
-    >
-      {{ 'XP.ACTIONS.Validate' | translate: { Default: 'Validate' } }}
-    </button>
-
-    <button
-      z-button
-      zType="default"
-      zSize="sm"
-      [disabled]="!isValidated() || form.invalid || form.pristine"
-      (click)="onSubmit()"
-    >
-      {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
-    </button>
-  </div>
-</div>
+<form class="flex w-full max-w-3xl flex-col gap-6" [formGroup]="form" (input)="onFormChange()" (ngSubmit)="onSubmit()">
+  <header class="space-y-1">
+    <h2 class="text-lg font-semibold">{{ 'XP.MENU.Custom SMTP' | translate }}</h2>
+    <p class="text-sm text-muted-foreground">{{ 'XP.SettingsRemaining.SmtpDescription' | translate }}</p>
+  </header>
+  <section class="space-y-4 border-t border-border pt-5">
+    <h3 class="text-sm font-medium">{{ 'XP.SettingsRemaining.MailServer' | translate }}</h3>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <div class="space-y-2">
+        <label z-form-label for="smtp-host">{{ 'XP.SHARED.SMTP.Host' | translate }}</label
+        ><input z-input id="smtp-host" type="text" autocomplete="off" formControlName="host" />
+        @if (form.controls.host.touched && form.controls.host.invalid) {
+          <p class="text-sm text-destructive">{{ 'XP.SettingsRemaining.ValidHost' | translate }}</p>
+        }
+      </div>
+      <div class="space-y-2">
+        <label z-form-label for="smtp-port">{{ 'XP.SHARED.SMTP.Port' | translate }}</label
+        ><input z-input id="smtp-port" type="number" formControlName="port" />
+      </div>
+      <div class="space-y-2">
+        <label z-form-label for="smtp-fromAddress">{{ 'XP.SHARED.SMTP.EmailAddress' | translate }}</label
+        ><input z-input id="smtp-fromAddress" type="text" autocomplete="off" formControlName="fromAddress" />
+      </div>
+      <div class="flex items-center justify-between gap-4 rounded-md border border-border p-3">
+        <span class="text-sm font-medium">{{ 'XP.SHARED.SMTP.Secure' | translate }}</span
+        ><z-switch formControlName="secure" (change)="onFormChange()"
+          ><span class="sr-only">{{ 'XP.SHARED.SMTP.Secure' | translate }}</span></z-switch
+        >
+      </div>
+    </div>
+  </section>
+  <section class="space-y-4 border-t border-border pt-5">
+    <h3 class="text-sm font-medium">{{ 'XP.SettingsRemaining.Authentication' | translate }}</h3>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <div class="space-y-2">
+        <label z-form-label for="smtp-username">{{ 'XP.SHARED.SMTP.Username' | translate }}</label
+        ><input z-input id="smtp-username" type="text" autocomplete="off" formControlName="username" />
+      </div>
+      <div class="space-y-2">
+        <label z-form-label for="smtp-password">{{ 'XP.SHARED.SMTP.Password' | translate }}</label
+        ><input z-input id="smtp-password" type="password" autocomplete="new-password" formControlName="password" />
+      </div>
+    </div>
+  </section>
+  <footer class="flex flex-wrap items-center gap-3 border-t border-border pt-5">
+    <button z-button zType="outline" type="button" [zDisabled]="isValidated() || loading" (click)="validateSmtp()">
+      {{ 'XP.ACTIONS.Validate' | translate }}</button
+    ><button z-button type="submit" [zDisabled]="!isValidated() || form.invalid || form.pristine || loading">
+      {{ 'XP.ACTIONS.Save' | translate }}</button
+    ><span class="text-xs text-muted-foreground" role="status">{{
+      (isValidated() ? 'XP.SettingsRemaining.Validated' : 'XP.SettingsRemaining.ValidateBeforeSave') | translate
+    }}</span>
+  </footer>
+</form>

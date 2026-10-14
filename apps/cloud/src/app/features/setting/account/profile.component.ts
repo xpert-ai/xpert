@@ -1,102 +1,123 @@
-import { Component, signal } from '@angular/core'
+import { Component, computed, effect, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { IUser, UsersService } from '@cloud/app/@core/state'
-import { linkedModel } from '@xpert-ai/headless-ui'
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
+import { UsersService } from '@cloud/app/@core/state'
 import { TranslateModule } from '@ngx-translate/core'
+import { IUser, IUserUpdateInput, LanguagesEnum } from '@xpert-ai/contracts'
+import {
+  ZardButtonComponent,
+  ZardComboboxComponent,
+  ZardFormFieldComponent,
+  ZardFormLabelComponent,
+  ZardInputDirective
+} from '@xpert-ai/headless-ui'
 import { isNil, omitBy } from 'lodash-es'
-import { IUserUpdateInput, LanguagesEnum, Store, ToastrService } from '../../../@core'
+import { catchError, firstValueFrom, map, of } from 'rxjs'
+import { getErrorMessage, LANGUAGES, RoleService, Store, ToastrService } from '../../../@core'
+import { timezones } from '../../../@core/constants'
 import { CreatedByPipe } from '../../../@shared/pipes'
-import { UserFormsModule } from '../../../@shared/user'
 
 @Component({
   standalone: true,
-  imports: [FormsModule, ReactiveFormsModule, UserFormsModule, TranslateModule],
   selector: 'xp-account-profile',
-  template: `<div class="flex flex-col items-center justify-start p-4">
-    <xp-user-basic-info-form
-      #form
-      class="block max-w-full md:max-w-[600px] lg:max-w-[900px]"
-      [emailDisabled]="true"
-      [(ngModel)]="user"
-    />
-
-    <div class="w-full flex justify-center items-center gap-2">
-      <button type="button" class="btn disabled:btn-disabled btn-large" (click)="reset()">
-        {{ 'XP.ACTIONS.Reset' | translate: { Default: 'Reset' } }}
-      </button>
-      <button
-        type="button"
-        class="btn disabled:btn-disabled btn-primary btn-large"
-        [disabled]="form.form.invalid || form.form.pristine"
-        (click)="save(form.form)"
-      >
-        {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
-      </button>
-    </div>
-  </div>`,
-  styles: [``]
+  templateUrl: './profile.component.html',
+  imports: [
+    ReactiveFormsModule,
+    TranslateModule,
+    ZardButtonComponent,
+    ZardComboboxComponent,
+    ZardFormFieldComponent,
+    ZardFormLabelComponent,
+    ZardInputDirective
+  ]
 })
 export class XpAccountProfileComponent {
-  readonly #user = toSignal(this.store.user$)
-  readonly reloadTrigger = signal(0)
-
-  readonly user = linkedModel<IUser & { password?: string }>({
-    initialValue: null,
-    compute: () => {
-      this.reloadTrigger()
-      return { ...this.#user() }
-    },
-    update: (user) => {
-      //
-    }
+  private readonly store = inject(Store)
+  private readonly userService = inject(UsersService)
+  private readonly toastr = inject(ToastrService)
+  readonly user = toSignal(this.store.user$)
+  private readonly roles = toSignal(
+    inject(RoleService)
+      .getAll()
+      .pipe(
+        map(({ items }) => items),
+        catchError(() => of([]))
+      ),
+    { initialValue: [] }
+  )
+  readonly roleLabel = computed(
+    () =>
+      this.user()?.role?.name ||
+      this.roles().find(({ id }) => id === this.user()?.roleId)?.name ||
+      this.user()?.roleId ||
+      '—'
+  )
+  readonly languages = LANGUAGES
+  readonly timeZones = timezones.map(({ value, name }) => ({ value: String(value), label: name }))
+  readonly saving = signal(false)
+  readonly form = new FormGroup({
+    firstName: new FormControl<string>(null),
+    lastName: new FormControl<string>(null),
+    username: new FormControl<string>(null, Validators.required),
+    email: new FormControl<string>({ value: null, disabled: true }),
+    imageUrl: new FormControl<string>(null),
+    preferredLanguage: new FormControl<string>(null),
+    timeZone: new FormControl<string>(null)
   })
 
-  constructor(
-    private readonly store: Store,
-    private readonly userService: UsersService,
-    private readonly _toastrService: ToastrService
-  ) {}
-
-  reset() {
-    this.reloadTrigger.update((state) => state + 1)
+  constructor() {
+    effect(() => this.form.reset(this.profileValues(this.user())))
   }
 
-  save(form: FormGroup) {
-    const { email, firstName, lastName, tags, preferredLanguage, username, password, imageUrl, timeZone } = this.user()
-    let request: IUserUpdateInput = {
-      email,
+  reset() {
+    if (!this.saving()) {
+      this.form.reset(this.profileValues(this.store.user))
+    }
+  }
+
+  async save() {
+    if (this.form.invalid || this.form.pristine || this.saving()) {
+      this.form.markAllAsTouched()
+      return
+    }
+
+    const { firstName, lastName, username, imageUrl, preferredLanguage, timeZone } = this.form.getRawValue()
+    const request: IUserUpdateInput = {
+      email: this.user()?.email,
       firstName,
       lastName,
-      tags,
+      tags: this.user()?.tags,
       username,
       imageUrl,
       preferredLanguage: preferredLanguage as LanguagesEnum,
       timeZone
     }
 
-    if (password) {
-      request = {
-        ...request,
-        hash: password
-      }
+    this.saving.set(true)
+    try {
+      const user = await firstValueFrom(this.userService.updateMe(request))
+      this.toastr.success('XP.NOTES.USERS.USER_UPDATED', {
+        Default: 'User Updated',
+        name: new CreatedByPipe().transform({ ...this.user(), ...request })
+      })
+      this.store.user = { ...this.store.user, ...omitBy(user, isNil) }
+      this.form.markAsPristine()
+    } catch (error) {
+      this.toastr.error(getErrorMessage(error))
+    } finally {
+      this.saving.set(false)
     }
+  }
 
-    this.userService.updateMe(request).subscribe({
-      next: (user) => {
-        this._toastrService.success(`XP.NOTES.USERS.USER_UPDATED`, {
-          Default: 'User Updated',
-          name: new CreatedByPipe().transform(this.user())
-        })
-        form.markAsPristine()
-        this.store.user = {
-          ...this.store.user,
-          ...omitBy(user, isNil)
-        }
-      },
-      error: (error) => {
-        this._toastrService.error(error)
-      }
-    })
+  private profileValues(user: IUser) {
+    return {
+      firstName: user?.firstName,
+      lastName: user?.lastName,
+      username: user?.username,
+      email: user?.email,
+      imageUrl: user?.imageUrl,
+      preferredLanguage: user?.preferredLanguage,
+      timeZone: user?.timeZone
+    }
   }
 }

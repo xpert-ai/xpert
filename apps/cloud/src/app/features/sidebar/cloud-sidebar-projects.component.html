@@ -4,7 +4,7 @@
       type="button"
       cdkOverlayOrigin
       #menuOrigin="cdkOverlayOrigin"
-      class="flex cursor-pointer items-center rounded-lg border-0 text-left text-base font-normal leading-5 text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+      class="flex cursor-pointer items-center rounded-lg border-0 text-left text-base font-normal leading-5 text-sidebar-foreground transition-colors hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
       [ngClass]="[
         collapsed()
           ? 'mx-auto size-10 min-h-10 justify-center gap-0 p-0'
@@ -74,7 +74,7 @@
     <p role="status" class="px-2 py-2 text-xs text-text-tertiary">{{ 'XP.XProject.LoadingProjects' | translate }}</p>
   } @else if (state().error) {
     <p role="alert" class="px-2 py-2 text-xs text-text-destructive">{{ state().error }}</p>
-    <button type="button" class="px-2 py-1 text-xs text-text-secondary hover:text-text-primary" (click)="reload()">
+    <button type="button" class="px-2 py-1 text-xs text-sidebar-foreground hover:text-text-primary" (click)="reload()">
       {{ 'XP.Common.ErrorState.Retry' | translate }}
     </button>
   } @else {
@@ -82,7 +82,7 @@
       @for (project of state().items; track project.id) {
         <li class="min-w-0">
           <a
-            class="flex min-h-9 min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-sm text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            class="flex min-h-9 min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-sm text-sidebar-foreground transition-colors hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             [routerLink]="['/project', project.id]"
             routerLinkActive="bg-components-list-option-active-bg text-text-primary!"
             ariaCurrentWhenActive="page"
@@ -99,7 +99,7 @@
     </ul>
   }
   <a
-    class="mt-1 flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-text-secondary hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    class="mt-1 flex items-center gap-1 rounded-md px-2 py-1.5 text-xs text-sidebar-foreground hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     routerLink="/project"
     (click)="selectProject()"
   >

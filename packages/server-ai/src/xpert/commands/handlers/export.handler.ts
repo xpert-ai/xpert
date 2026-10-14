@@ -1,3 +1,4 @@
+import { parseAssistantTemplateMetadata } from '../../../xpert-template/definition/assistant-template.schema'
 import {
     createAgentConnections,
     createXpertNodes,
@@ -53,6 +54,12 @@ export class XpertExportHandler implements ICommandHandler<XpertExportCommand> {
         }
 
         const dto = new XpertDraftDslDTO(draft)
+        const metadata = draft.team.options?.templateDefinition
+        if (metadata) dto.template = parseAssistantTemplateMetadata(metadata)
+        dto.team = { ...dto.team, options: { ...dto.team.options } }
+        delete dto.team.options.templateDefinition
+        delete dto.team.options.templateDependencyLocks
+        delete dto.team.options.templateSource
         if (includeMemory) {
             const result = await this.xpertService.findAllMemory(id, [LongTermMemoryTypeEnum.QA])
             dto.memories = result.items.map((memory) => new MemoryDslDTO(memory))

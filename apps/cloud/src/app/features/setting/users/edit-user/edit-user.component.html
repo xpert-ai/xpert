@@ -1,142 +1,117 @@
-<div class="flex flex-col gap-6 px-8 py-5">
-  <div class="flex min-w-0 flex-col gap-4">
-    <button
-      type="button"
-      class="inline-flex w-fit items-center gap-2 text-sm font-medium text-text-secondary transition-colors hover:text-text-primary"
-      (click)="backToList()"
-    >
-      <i class="ri-arrow-left-line text-base"></i>
-      <span>{{ 'XP.Users.BackToList' | translate: { Default: 'Back to users' } }}</span>
-    </button>
-
-    @if (user(); as currentUser) {
-      <div class="flex min-w-0 flex-col gap-2">
-        <div class="xp-page-title truncate">
-          {{ userLabel(currentUser) }}
+<div class="flex min-w-0 flex-col gap-6">
+  <button
+    type="button"
+    z-button
+    zType="link"
+    class="h-auto w-fit justify-start p-0 text-muted-foreground pointer-coarse:min-h-[44px]"
+    (click)="backToList()"
+  >
+    <z-icon zType="arrow-left" />{{ 'XP.Users.BackToList' | translate }}
+  </button>
+  @if (user(); as currentUser) {
+    <header class="flex min-w-0 items-start gap-3 sm:gap-4">
+      <z-avatar
+        [zSrc]="currentUser.imageUrl"
+        [zAlt]="userLabel(currentUser)"
+        [zFallback]="userInitials()"
+        zShape="rounded"
+        class="size-11 shrink-0 border border-border bg-muted sm:size-14"
+      />
+      <div class="min-w-0 flex-1">
+        <div class="flex flex-wrap items-center gap-3">
+          <h1 class="break-words text-2xl font-semibold tracking-tight text-foreground">
+            {{ userLabel(currentUser) }}
+          </h1>
+          <z-badge zType="secondary" [class]="currentUser.deletedAt ? 'text-muted-foreground' : 'text-text-success'">
+            {{ userStatusLabelKey(currentUser) | translate }}
+          </z-badge>
         </div>
-
-        <div class="flex flex-wrap items-center gap-2 text-sm text-text-tertiary">
-          <z-badge
-            zType="secondary"
-            zShape="pill"
-            [class.text-text-accent]="isTechnicalUser(currentUser)"
-            [class.text-text-primary]="!isTechnicalUser(currentUser)"
-          >
-            {{ userTypeLabelKey(currentUser.type) | translate: { Default: userTypeDefaultLabel(currentUser.type) } }}
-          </z-badge>
-
-          <z-badge
-            zType="secondary"
-            zShape="pill"
-            [class.text-text-tertiary]="currentUser.deletedAt"
-            [class.text-text-success]="!currentUser.deletedAt"
-          >
-            {{ userStatusLabelKey(currentUser) | translate: { Default: userStatusDefaultLabel(currentUser) } }}
-          </z-badge>
-
-          @if (currentUser.role; as role) {
-            <z-badge zType="secondary" zShape="pill" class="uppercase text-text-primary">
-              {{ role.name }}
-            </z-badge>
-          } @else {
-            <z-badge zType="outline" zShape="pill" class="text-text-tertiary">
-              {{ 'XP.USERS_PAGE.NoRole' | translate: { Default: 'No role' } }}
-            </z-badge>
+        <div class="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+          <span class="w-full break-all sm:w-auto">{{ currentUser.email || currentUser.username }}</span>
+          <span class="hidden h-3 border-l border-border sm:block" aria-hidden="true"></span>
+          <span>{{ userTypeLabelKey(currentUser.type) | translate }}</span>
+          @if (roleLabel(); as role) {
+            <span class="h-3 border-l border-border" aria-hidden="true"></span><span>{{ role }}</span>
           }
         </div>
-
-        @if (isTechnicalUser(currentUser)) {
-          <div class="text-sm text-text-tertiary">
-            {{
-              'XP.Users.TechnicalUserReadonlyHint'
-                | translate: { Default: 'Basic account fields are read-only for technical users.' }
-            }}
-          </div>
-        }
       </div>
-    } @else {
-      <div class="xp-page-title">
-        {{ 'XP.MENU.USERS' | translate: { Default: 'Users' } }}
-      </div>
-    }
-  </div>
-
-  @if (user(); as currentUser) {
+      <z-badge zType="outline" class="hidden shrink-0 sm:inline-flex">{{
+        (isTenantScope() ? 'XP.UserSettings.TenantScope' : 'XP.UserSettings.OrganizationScope') | translate
+      }}</z-badge>
+    </header>
     <z-tab-group
-      class="min-h-0"
+      class="min-w-0"
       fitInkBarToContent
       preserveContent
       [selectedIndex]="activeTabIndex()"
       (selectedIndexChange)="selectTabByIndex($event)"
     >
-      <z-tab [label]="'XP.Users.Tabs.Basic' | translate: { Default: 'Basic information' }" bodyClass="pt-5">
+      <z-tab [label]="'XP.Users.Tabs.Basic' | translate" bodyClass="pt-2">
         <xp-user-basic
           [allowRoleChange]="
-            canManageTenantUser() && (RolesEnum.ADMIN === me.role.name || RolesEnum.SUPER_ADMIN === me.role.name)
+            canManageTenantUser() && (RolesEnum.ADMIN === me.role?.name || RolesEnum.SUPER_ADMIN === me.role?.name)
           "
           [readOnly]="isTechnicalUser(currentUser) || !canManageTenantUser()"
           [showLinkedXpert]="isTechnicalUser(currentUser)"
         />
       </z-tab>
-
       @if (canShowMembershipTab() && !isTechnicalUser(currentUser)) {
-        <z-tab [label]="'XP.Users.Tabs.Membership' | translate: { Default: 'Membership' }" bodyClass="pt-5">
-          @if (currentUser.id; as userId) {
-            <xp-user-membership class="block" [userId]="userId" />
-          }
+        <z-tab [label]="'XP.Users.Tabs.Membership' | translate" bodyClass="pt-2">
+          <xp-user-membership class="block min-w-0" [userId]="currentUser.id" />
         </z-tab>
       }
-
       @if (isTenantScope() && !isTechnicalUser(currentUser)) {
-        <z-tab [label]="'XP.Users.Tabs.Organizations' | translate: { Default: 'Organizations' }" bodyClass="pt-5">
-          <xp-user-organizations />
-        </z-tab>
+        <z-tab [label]="'XP.UserDetail.Organizations' | translate" bodyClass="pt-2"><xp-user-organizations /></z-tab>
       }
-
       @if (canManageTenantUser() && !isTechnicalUser(currentUser)) {
-        <z-tab [label]="'XP.Users.Tabs.Security' | translate: { Default: 'Security' }" bodyClass="pt-5">
-          <section class="flex max-w-5xl flex-col gap-8">
-            <div class="max-w-xl">
-              <div class="mb-3 text-base font-semibold">
-                {{ 'XP.USERS_PAGE.ChangePassword' | translate: { Default: 'Change Password' } }}
-              </div>
-
-              <xp-user-change-password-form
-                #password
-                [(ngModel)]="newPassword"
-                class="block ng-untouched ng-pristine ng-valid"
-              />
-
-              <div class="flex justify-end pt-3">
-                <button z-button zType="default" (click)="changePassword()">
-                  {{ 'XP.ACTIONS.SAVE' | translate: { Default: 'Save' } }}
-                </button>
-              </div>
+        <z-tab [label]="'XP.Users.Tabs.Security' | translate" bodyClass="pt-2">
+          <section class="grid gap-5 border-b border-border pb-7 md:grid-cols-[150px_minmax(0,1fr)] md:gap-8">
+            <div>
+              <h2 class="text-sm font-semibold">{{ 'XP.UserDetail.ResetPassword' | translate }}</h2>
+              <p class="mt-1 text-xs text-muted-foreground">{{ 'XP.UserDetail.ResetPasswordHint' | translate }}</p>
             </div>
-
-            <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-              <div class="min-w-0">
-                <div class="font-semibold text-text-destructive">
-                  {{ 'XP.USERS_PAGE.DeleteUser' | translate: { Default: 'Delete this user' } }}
-                </div>
-                <div class="text-sm text-text-tertiary">
-                  {{
-                    'XP.USERS_PAGE.DeleteUserDesc' | translate: { Default: 'Delete this user and its associated data' }
-                  }}.
-                </div>
-              </div>
-
-              <button type="button" class="btn btn-large danger pressable shrink-0" (click)="deleteUser()">
-                {{ 'XP.USERS_PAGE.DeleteUser' | translate: { Default: 'Delete this user' } }}
+            <div class="max-w-md">
+              <xp-user-change-password-form #password [(ngModel)]="newPassword" [disabled]="loading()" class="block" />
+              <button
+                z-button
+                type="button"
+                class="mt-5 pointer-coarse:min-h-[44px]"
+                [zDisabled]="loading() || password.invalid || !newPassword()?.password"
+                [zLoading]="loading()"
+                (click)="changePassword()"
+              >
+                {{ 'XP.UserDetail.ResetPassword' | translate }}
               </button>
             </div>
+          </section>
+          <section class="mt-7 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+            <div>
+              <h2 class="text-sm font-semibold">{{ 'XP.USERS_PAGE.DeleteUser' | translate }}</h2>
+              <p class="mt-1 text-sm text-muted-foreground">{{ 'XP.USERS_PAGE.DeleteUserDesc' | translate }}</p>
+            </div>
+            <button
+              type="button"
+              z-button
+              zType="outline"
+              class="shrink-0 text-destructive pointer-coarse:min-h-[44px]"
+              [zDisabled]="loading()"
+              (click)="deleteUser()"
+            >
+              {{ 'XP.USERS_PAGE.DeleteUser' | translate }}
+            </button>
           </section>
         </z-tab>
       }
     </z-tab-group>
+  } @else if (userState().error) {
+    <div class="flex flex-col items-center gap-3 py-16 text-muted-foreground" role="alert">
+      <z-icon zType="circle-alert" />
+      <p>{{ 'XP.UserDetail.LoadFailed' | translate }}</p>
+      <button z-button zType="outline" (click)="reloadUser()">{{ 'XP.UserSettings.Retry' | translate }}</button>
+    </div>
+  } @else {
+    <div class="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground" role="status">
+      <z-icon zType="loader-circle" class="animate-spin" />{{ 'XP.UserSettings.Loading' | translate }}
+    </div>
   }
 </div>
-
-@if (loading()) {
-  <xp-spin class="absolute w-full h-full top-0 left-0" />
-}

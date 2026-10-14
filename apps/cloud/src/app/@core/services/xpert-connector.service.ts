@@ -13,11 +13,22 @@ import type {
   ConnectorSelectOption,
   ConnectorStrategyDefinition
 } from '@xpert-ai/plugin-sdk/connector'
+import type { ConnectorIntegrationOption, ConnectorIntegrationRequest } from '@xpert-ai/plugin-sdk/connector'
 import { API_CONNECTOR } from '../constants/app.constants'
 
 @Injectable({ providedIn: 'root' })
 export class XpertConnectorService {
   readonly #http = inject(HttpClient)
+
+  integrationOptions(workspaceId: string, provider: string, authMethodId: string) {
+    return this.#http.get<ConnectorIntegrationOption[]>(`${API_CONNECTOR}/integration-options`, {
+      params: { workspaceId, provider, authMethodId }
+    })
+  }
+
+  prepareIntegration(bindingId: string, input: ConnectorIntegrationRequest) {
+    return this.#http.post<ConnectorIntegrationOption>(`${API_CONNECTOR}/bindings/${bindingId}/integration`, input)
+  }
 
   list(workspaceId: string) {
     return this.#http.get<ConnectorInstance[]>(`${API_CONNECTOR}/${workspaceId}`)

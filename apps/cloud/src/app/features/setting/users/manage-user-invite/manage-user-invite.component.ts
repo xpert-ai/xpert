@@ -1,5 +1,6 @@
 import { CommonModule, DatePipe } from '@angular/common'
 import { Component, inject, LOCALE_ID } from '@angular/core'
+import { FormsModule } from '@angular/forms'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 
 import { InviteService, Store, ToastrService } from '@cloud/app/@core/state'
@@ -15,15 +16,27 @@ import { injectConfirmDelete } from '@xpert-ai/headless-ui'
 import { getErrorMessage } from 'apps/cloud/src/app/@core'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
-import { UserProfileInlineComponent } from 'apps/cloud/src/app/@shared/user'
+import { UserProfileInlineComponent } from 'apps/cloud/src/app/@shared/user/profile-inline/profile.component'
 import { formatDistanceToNow, isAfter } from 'date-fns'
-import { BehaviorSubject, combineLatestWith, map, switchMap, withLatestFrom } from 'rxjs'
+import {
+  BehaviorSubject,
+  catchError,
+  combineLatestWith,
+  defer,
+  map,
+  of,
+  startWith,
+  switchMap,
+  withLatestFrom
+} from 'rxjs'
 import { XpUsersComponent } from '../users.component'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   ZardBadgeComponent,
   ZardButtonComponent,
   ZardIconComponent,
+  ZardSearchInputComponent,
+  ZardSelectImports,
   ZardTableImports,
   type ZardTableSortDirection,
   ZardTooltipImports
@@ -48,9 +61,12 @@ type InviteRow = Omit<IInvite, 'createdAt' | 'expireDate'> & {
   standalone: true,
   selector: 'xp-manage-user-invite',
   templateUrl: './manage-user-invite.component.html',
-  styleUrls: ['./manage-user-invite.component.scss'],
+  host: { class: 'flex min-w-0 flex-col gap-4' },
   imports: [
     CommonModule,
+    FormsModule,
+    ZardSearchInputComponent,
+    ...ZardSelectImports,
     ZardBadgeComponent,
     ZardButtonComponent,
     ZardIconComponent,
@@ -69,25 +85,65 @@ export class ManageUserInviteComponent extends TranslationBaseComponent {
   private readonly locale = inject(LOCALE_ID)
   private readonly usersComponent = inject(XpUsersComponent)
 
+  readonly statusOptions: InviteDisplayStatus[] = [...Object.values(InviteStatusEnum), 'EXPIRED']
+  private readonly search$ = new BehaviorSubject('')
+  private readonly statusFilter$ = new BehaviorSubject<InviteDisplayStatus | 'all'>('all')
+
+  get search() {
+    return this.search$.value
+  }
+  set search(value: string) {
+    this.search$.next(value)
+  }
+  get statusFilter() {
+    return this.statusFilter$.value
+  }
+
+  onStatusFilterChange(value: string | number | Array<string | number>) {
+    const status = this.statusOptions.find((status) => status === value)
+    this.statusFilter$.next(status ?? 'all')
+  }
+
+  clearFilters() {
+    this.search = ''
+    this.statusFilter$.next('all')
+  }
+
   private readonly refresh$ = new BehaviorSubject<void>(null)
   private readonly sortState$ = new BehaviorSubject<InviteSortState>({
     active: 'createdAt',
     direction: 'desc'
   })
 
-  public readonly invites$ = this.store.selectedOrganization$.pipe(
+  public readonly state$ = this.store.selectedOrganization$.pipe(
     map((org) => org?.id),
     withLatestFrom(this.store.user$.pipe(map((user) => user?.tenantId))),
     combineLatestWith(this.refresh$),
     switchMap(([[organizationId, tenantId]]) => {
-      return this.inviteService.getAll(['invitedBy', 'role', 'organization', 'organizationContact'], {
-        organizationId,
-        tenantId
-      })
+      return defer(() =>
+        this.inviteService.getAll(['invitedBy', 'role', 'organization', 'organizationContact'], {
+          organizationId,
+          tenantId
+        })
+      ).pipe(
+        map(({ items }) => ({ status: 'ready' as const, rows: items.map((invite) => this.toInviteRow(invite)) })),
+        startWith({ status: 'loading' as const, rows: [] as InviteRow[] }),
+        catchError(() => of({ status: 'error' as const, rows: [] as InviteRow[] }))
+      )
     }),
-    map(({ items }) => items.map((invite) => this.toInviteRow(invite))),
-    combineLatestWith(this.sortState$),
-    map(([rows, sortState]) => this.sortInviteRows(rows, sortState))
+    combineLatestWith(this.sortState$, this.search$, this.statusFilter$),
+    map(([state, sortState, search, status]) => {
+      const query = search.trim().toLowerCase()
+      const rows = state.rows.filter(
+        (row) =>
+          (status === 'all' || row.displayStatus === status) &&
+          (!query ||
+            [row.email, row.role?.name, row.invitedBy ? userLabel(row.invitedBy) : ''].some((text) =>
+              text?.toLowerCase().includes(query)
+            ))
+      )
+      return { ...state, total: state.rows.length, rows: this.sortInviteRows(rows, sortState) }
+    })
   )
 
   private invitedSub = this.usersComponent.invitedEvent.pipe(takeUntilDestroyed()).subscribe(() => {

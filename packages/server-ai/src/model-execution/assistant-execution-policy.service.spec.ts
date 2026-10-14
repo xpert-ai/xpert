@@ -1,3 +1,4 @@
+import { ResolveGroupRuntimeAccessCommand } from '../chat-group/group-runtime-access.command'
 import { AiModelTypeEnum, UserType } from '@xpert-ai/contracts'
 import { Test } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
@@ -207,6 +208,73 @@ describe('execution model selection stays within its conversation', () => {
         return { service: module.get(AssistantExecutionPolicyService), executions, module }
     }
 
+    it('authorizes a group runtime for a member without changing the execution actor', async () => {
+        const f = await setup('group-thread')
+        const rows = f.module.get(getRepositoryToken(ChatConversation))
+        rows.findOne.mockResolvedValueOnce(null).mockResolvedValueOnce({
+            xpert: assistant,
+            threadId: 'group-thread',
+            purpose: 'group_assistant_runtime',
+            createdById: 'group-creator'
+        })
+        await f.service.resolve(actor, 'group-runtime')
+        expect(rows.findOne).toHaveBeenNthCalledWith(2, {
+            where: {
+                id: 'group-runtime',
+                tenantId: actor.tenantId,
+                organizationId: actor.organizationId,
+                purpose: 'group_assistant_runtime'
+            },
+            relations: ['xpert']
+        })
+        expect(f.module.get(CommandBus).execute).toHaveBeenCalledWith(
+            new ResolveGroupRuntimeAccessCommand(actor, { type: 'runtime', conversationId: 'group-runtime' })
+        )
+        expect(f.executions.findOne).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: expect.objectContaining({ createdById: actor.userId, threadId: 'group-thread' })
+            })
+        )
+        await f.module.close()
+    })
+    it('propagates revoked group access before model or provider resolution, even for the original creator', async () => {
+        const f = await setup('group-thread')
+        f.module.get(getRepositoryToken(ChatConversation)).findOne.mockResolvedValue({
+            xpert: assistant,
+            threadId: 'group-thread',
+            purpose: 'group_assistant_runtime',
+            createdById: actor.userId
+        })
+        jest.spyOn(f.module.get(CommandBus), 'execute')
+            .mockResolvedValueOnce({ type: UserType.USER })
+            .mockRejectedValueOnce(new Error('group denied'))
+        await expect(f.service.resolve(actor, 'group-runtime')).rejects.toThrow('group denied')
+        expect(f.module.get(PublishedXpertAccessService).getAccessiblePublishedXpert).not.toHaveBeenCalled()
+        expect(f.module.get(ModelAccessService).canUseCatalogModels).not.toHaveBeenCalled()
+        await f.module.close()
+    })
+    it('does not widen fallback lookup to another user private conversation', async () => {
+        const f = await setup('private-thread')
+        const rows = f.module.get(getRepositoryToken(ChatConversation))
+        rows.findOne.mockResolvedValue(null)
+        await expect(f.service.resolve(actor, 'other-private')).rejects.toThrow()
+        expect(rows.findOne.mock.calls.map(([query]) => query.where)).toEqual([
+            {
+                id: 'other-private',
+                tenantId: actor.tenantId,
+                organizationId: actor.organizationId,
+                createdById: actor.userId
+            },
+            {
+                id: 'other-private',
+                tenantId: actor.tenantId,
+                organizationId: actor.organizationId,
+                purpose: 'group_assistant_runtime'
+            }
+        ])
+        expect(f.module.get(PublishedXpertAccessService).getAccessiblePublishedXpert).not.toHaveBeenCalled()
+        await f.module.close()
+    })
     it('resolves the binding-selected Assistant for a project-only conversation and rejects another workspace', async () => {
         const f = await setup('thread', true)
         f.module

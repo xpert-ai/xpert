@@ -1,10 +1,11 @@
-import { mkdtemp, mkdir, rm, writeFile, symlink } from 'node:fs/promises'
+import { mkdtemp, mkdir, rm, writeFile, symlink, realpath } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { DataSource } from 'typeorm'
 import { DEFAULT_AGENT_PLUGINS_SOURCE } from '@xpert-ai/contracts'
 import { AgentPluginService, requireResourceAdmin } from '../agent-plugin.service'
 import { stagePortableGit } from '../agent-plugin-source'
+import { defaultAgentPluginsManifest } from './default-agent-plugins.schema'
 import { ImportDefaultAgentPluginsHandler } from './import-default-agent-plugins.handler'
 
 jest.mock('../agent-plugin.service', () => ({ AgentPluginService: class {}, requireResourceAdmin: jest.fn() }))
@@ -18,7 +19,7 @@ describe('official Agent plugin imports', () => {
     const plugins = { packages: { find: jest.fn() }, importStagedDirectory: jest.fn() }
     const stage = jest.mocked(stagePortableGit)
     const admin = jest.mocked(requireResourceAdmin)
-    const manifest = (plugins: Array<{ id: string }>) =>
+    const manifest = (plugins: Array<{ id: string; path?: string }>) =>
         writeFile(join(root, 'quickstart.json'), JSON.stringify({ version: 1, plugins }))
 
     beforeEach(async () => {
@@ -73,6 +74,43 @@ describe('official Agent plugin imports', () => {
             'xpert:agent-plugin-defaults:tenant:org'
         ])
         expect(connection.release).toHaveBeenCalled()
+    })
+
+    it('imports explicit nested paths and records the correct Git subdirectory', async () => {
+        await mkdir(join(root, 'assistants/office-ops'), { recursive: true })
+        const directory = await realpath(join(root, 'assistants/office-ops'))
+        await manifest([{ id: 'office-ops', path: 'assistants/office-ops' }])
+        const result = await handler.execute()
+        expect(result.items[0].id).toBe('office-ops')
+        expect(plugins.importStagedDirectory).toHaveBeenCalledWith(
+            directory,
+            expect.objectContaining({ subdirectory: 'agent-plugins/assistants/office-ops' })
+        )
+    })
+
+    it('accepts the full 110-package catalog and rejects path traversal or duplicate destinations', () => {
+        const plugins = Array.from({ length: 110 }, (_, index) => ({ id: `package-${index}` }))
+        expect(defaultAgentPluginsManifest.parse({ version: 1, plugins }).plugins).toHaveLength(110)
+        for (const path of [
+            '../escape',
+            '/absolute',
+            'assistants/../escape',
+            'assistants//office-ops',
+            'assistants\\office-ops'
+        ]) {
+            expect(
+                defaultAgentPluginsManifest.safeParse({ version: 1, plugins: [{ id: 'office-ops', path }] }).success
+            ).toBe(false)
+        }
+        expect(
+            defaultAgentPluginsManifest.safeParse({
+                version: 1,
+                plugins: [
+                    { id: 'one', path: 'assistants/one' },
+                    { id: 'two', path: 'assistants/one' }
+                ]
+            }).success
+        ).toBe(false)
     })
 
     it('requires organization administrator access before touching Git or the database', async () => {

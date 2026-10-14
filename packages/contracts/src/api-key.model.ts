@@ -6,16 +6,18 @@ import { IUser } from './user.model'
  * Represents an API key used for authentication and authorization.
  */
 export interface IApiKey extends IBasePerTenantAndOrganizationEntityModel {
+  /** Plaintext for resource keys; SHA-256 digest for USER credentials. */
   token: string
   name?: string
   /**
-   * Stable persisted binding kind for resolving the technical principal behind this key.
+   * Stable persisted binding kind for resolving the human or resource principal behind this key.
    * @deprecated Reading IApiPrincipal.apiKey.type for resource authorization is deprecated;
    * use IApiPrincipal.resourceScope.kind. This persisted identity discriminator remains supported.
    */
   type?: ApiKeyBindingType
   /**
-   * Persistence/technical-identity binding only. Examples:
+   * Persisted identity binding. Examples:
+   * - user => human owner userId
    * - assistant => xpertId
    * - workspace => workspaceId
    * - integration => integrationId
@@ -27,9 +29,12 @@ export interface IApiKey extends IBasePerTenantAndOrganizationEntityModel {
   validUntil?: Date
   expired?: boolean
   lastUsedAt?: Date
+  /** Display prefix for one-time personal credentials. */
+  prefix?: string | null
+  revokedAt?: Date | null
   /**
-   * Explicit technical principal bound to this apiKey.
-   * When set, it takes precedence over type/entityId resolution.
+   * Bound principal: a fixed human owner for USER keys, otherwise the technical principal.
+   * USER bindings must also match entityId; resource bindings prefer this explicit principal.
    */
   userId?: string
   user?: IUser
@@ -42,9 +47,11 @@ export interface IApiKey extends IBasePerTenantAndOrganizationEntityModel {
 export const API_PRINCIPAL_USER_ID_HEADER = 'x-principal-user-id'
 
 /**
- * Stable binding kinds used to resolve long-lived technical principals.
+ * Stable binding kinds used to resolve personal or resource credentials.
  */
 export enum ApiKeyBindingType {
+  /** A fixed human owner, without an Assistant or workspace audience. */
+  USER = 'user',
   ASSISTANT = 'assistant',
   WORKSPACE = 'workspace',
   INTEGRATION = 'integration',

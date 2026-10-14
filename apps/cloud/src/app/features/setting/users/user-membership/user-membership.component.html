@@ -1,292 +1,112 @@
 @if (canManage) {
-  <div class="flex max-w-6xl flex-col gap-6">
-    @if (membership(); as currentMembership) {
-      <section class="flex flex-col gap-4 rounded-lg border border-divider-regular p-4">
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-3 xl:grid-cols-6">
+  <div class="flex min-w-0 flex-col gap-7" [attr.aria-busy]="loading()">
+    <header class="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <h2 class="text-base font-semibold">{{ 'XP.Users.Tabs.Membership' | translate }}</h2>
+        <p class="mt-1 text-sm text-muted-foreground">{{ 'XP.UserDetail.MembershipHint' | translate }}</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button z-button zType="outline" type="button" [zDisabled]="loading()" (click)="openEditor(pointsEditor)">
+          <z-icon zType="sliders-horizontal" />{{ 'XP.UserDetail.AdjustPoints' | translate }}
+        </button>
+        <button z-button zType="outline" type="button" [zDisabled]="loading()" (click)="openEditor(planEditor)">
+          <z-icon zType="settings-2" />{{ 'XP.UserDetail.ManagePlan' | translate }}
+        </button>
+      </div>
+    </header>
+    @if (loadError()) {
+      <div
+        role="alert"
+        class="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border p-4 text-sm text-muted-foreground"
+      >
+        <span>{{ 'XP.UserDetail.MembershipLoadFailed' | translate }}</span
+        ><button z-button zType="outline" [zDisabled]="loading()" (click)="load()">
+          {{ 'XP.UserSettings.Retry' | translate }}
+        </button>
+      </div>
+    } @else if (loading() && !membership()) {
+      <p role="status" class="py-8 text-center text-sm text-muted-foreground">
+        {{ 'XP.UserSettings.Loading' | translate }}
+      </p>
+    } @else if (membership(); as currentMembership) {
+      <section class="rounded-lg border border-border p-5">
+        <div class="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <div class="text-sm text-text-tertiary">
-              {{ 'XP.Membership.CurrentScopePlan' | translate: { Default: 'Current management-scope plan' } }}
-            </div>
-            <div class="font-medium">{{ currentMembership.plan?.name || currentMembership.planId }}</div>
+            <h3 class="flex flex-wrap items-center gap-3 text-lg font-semibold">
+              {{ currentMembership.plan?.name || currentMembership.planId
+              }}<z-badge zType="outline">{{
+                'XP.Membership.MemberStatuses.' + currentMembership.status | translate
+              }}</z-badge>
+            </h3>
+            <p class="mt-2 text-xs text-muted-foreground">
+              {{ 'XP.Membership.PeriodEnd' | translate }} · {{ currentMembership.currentPeriodEnd | date: 'medium' }}
+            </p>
           </div>
+          <z-badge zType="secondary">{{
+            (isTenantScope ? 'XP.Membership.TenantScope' : 'XP.Membership.OrganizationScope') | translate
+          }}</z-badge>
+        </div>
+        <dl
+          class="grid gap-6 border-b border-border py-6 sm:grid-cols-2"
+          [class.lg:grid-cols-3]="canManagePersonalPoints"
+        >
           <div>
-            <div class="text-sm text-text-tertiary">
-              {{ 'XP.Membership.Status' | translate: { Default: 'Status' } }}
-            </div>
-            <z-badge zType="outline" zShape="pill" class="mt-1">
-              {{
-                'XP.Membership.MemberStatuses.' + currentMembership.status
-                  | translate: { Default: currentMembership.status }
-              }}
-            </z-badge>
-          </div>
-          <div>
-            <div class="text-sm text-text-tertiary">
-              {{ 'XP.Membership.Source' | translate: { Default: 'Source' } }}
-            </div>
-            <div class="font-medium">
-              {{
-                'XP.Membership.Sources.' + currentMembership.source | translate: { Default: currentMembership.source }
-              }}
-            </div>
-          </div>
-          <div>
-            <div class="text-sm text-text-tertiary">
-              {{ 'XP.Membership.RenewalMode' | translate: { Default: 'Renewal mode' } }}
-            </div>
-            <div class="font-medium">
-              {{
-                'XP.Membership.RenewalModes.' + currentMembership.renewalMode
-                  | translate: { Default: currentMembership.renewalMode }
-              }}
-            </div>
-          </div>
-          <div>
-            <div class="text-sm text-text-tertiary">
-              {{ 'XP.Membership.RemainingPoints' | translate: { Default: 'Remaining points' } }}
-            </div>
-            <div class="font-medium">
+            <dt class="text-xs text-muted-foreground">{{ 'XP.Membership.RemainingPoints' | translate }}</dt>
+            <dd class="mt-2 text-2xl font-semibold">
               @if (isUnlimited()) {
-                <span
-                  [attr.aria-label]="'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' }"
-                  [title]="'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' }"
-                  >∞</span
-                >
+                <span [attr.aria-label]="'XP.Membership.Unlimited' | translate">∞</span>
               } @else {
-                {{ remainingPoints() | number: '1.0-2' }}
+                {{ remainingPoints() | number: '1.0-3' }}
               }
-            </div>
+            </dd>
+          </div>
+          <div>
+            <dt class="text-xs text-muted-foreground">{{ 'XP.Membership.UsedPoints' | translate }}</dt>
+            <dd class="mt-2 text-xl font-semibold">
+              {{ currentMembership.pointsUsed | number: '1.0-3' }}
+              <span class="text-sm font-normal text-muted-foreground"
+                >/ {{ isUnlimited() ? '∞' : (currentMembership.pointsGranted | number: '1.0-3') }}</span
+              >
+            </dd>
+            <z-progress-bar class="mt-3" [progress]="usedPercent()" zShape="square" />
           </div>
           @if (canManagePersonalPoints) {
             <div>
-              <div class="text-sm text-text-tertiary">
-                {{ 'XP.Membership.PersonalPoints' | translate: { Default: 'Personal points' } }}
-              </div>
-              <div class="font-medium">{{ personalPointsBalance() | number: '1.0-2' }}</div>
+              <dt class="text-xs text-muted-foreground">{{ 'XP.Membership.PersonalPoints' | translate }}</dt>
+              <dd class="mt-2 text-2xl font-semibold">{{ personalPointsBalance() | number: '1.0-3' }}</dd>
+              <p class="mt-2 text-xs text-muted-foreground">{{ 'XP.Membership.PersonalPointsHint' | translate }}</p>
             </div>
           }
-        </div>
-
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div>
-            <div class="text-sm text-text-tertiary">
-              {{ 'XP.Membership.UsedPoints' | translate: { Default: 'Used points' } }}
-            </div>
-            <div class="font-medium">
-              @if (isUnlimited()) {
-                {{ currentMembership.pointsUsed | number: '1.0-2' }} / ∞
-              } @else {
-                {{ currentMembership.pointsUsed | number: '1.0-2' }} /
-                {{ currentMembership.pointsGranted | number: '1.0-2' }}
-              }
-            </div>
+        </dl>
+        <dl class="flex flex-wrap gap-x-6 gap-y-2 pt-4 text-xs">
+          <div class="flex gap-2">
+            <dt class="text-muted-foreground">{{ 'XP.Membership.Source' | translate }}</dt>
+            <dd>{{ 'XP.Membership.Sources.' + currentMembership.source | translate }}</dd>
           </div>
-          <div>
-            <div class="text-sm text-text-tertiary">
-              {{ 'XP.Membership.PeriodEnd' | translate: { Default: 'Period end' } }}
-            </div>
-            <div class="font-medium">{{ currentMembership.currentPeriodEnd | date: 'medium' }}</div>
+          <div class="flex gap-2">
+            <dt class="text-muted-foreground">{{ 'XP.Membership.RenewalMode' | translate }}</dt>
+            <dd>{{ 'XP.Membership.RenewalModes.' + currentMembership.renewalMode | translate }}</dd>
           </div>
-        </div>
-        <z-progress-bar [progress]="usedPercent()" zShape="square" />
-
-        <div class="flex flex-wrap justify-end gap-2 border-t border-divider-subtle pt-3">
-          @if (currentMembership.status === MembershipStatusEnum.Active) {
-            <button z-button zType="secondary" type="button" [disabled]="loading()" (click)="pause()">
-              {{ 'XP.Membership.Pause' | translate: { Default: 'Pause' } }}
-            </button>
-          }
-          @if (currentMembership.status === MembershipStatusEnum.Paused) {
-            <button z-button zType="secondary" type="button" [disabled]="loading()" (click)="resume()">
-              {{ 'XP.Membership.Resume' | translate: { Default: 'Resume' } }}
-            </button>
-          }
-          @if (currentMembership.status !== MembershipStatusEnum.Expired) {
-            <button z-button zType="destructive" type="button" [disabled]="loading()" (click)="revoke()">
-              {{ 'XP.Membership.Revoke' | translate: { Default: 'Revoke' } }}
-            </button>
-          }
-          @if (!isExternallyManagedMembership()) {
-            <button z-button zType="outline" type="button" [disabled]="loading()" (click)="renew()">
-              {{ 'XP.Membership.Renew' | translate: { Default: 'Renew' } }}
-            </button>
-          }
-        </div>
+        </dl>
       </section>
     } @else {
-      <div class="rounded-lg border border-dashed border-divider-regular p-5 text-text-tertiary">
-        {{
-          'XP.Membership.NoUserMembership' | translate: { Default: 'No membership has been created for this user yet.' }
-        }}
-      </div>
+      <p class="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
+        {{ 'XP.Membership.NoUserMembership' | translate }}
+      </p>
     }
-
-    @if (isTenantScope && scopeMemberships().length) {
-      <section class="flex flex-col gap-4 rounded-lg border border-divider-regular p-4">
-        <div>
-          <div class="font-semibold text-text-primary">
-            {{ 'XP.Membership.MembershipsByScope' | translate: { Default: 'Current plans by scope' } }}
-          </div>
-          <div class="text-sm text-text-tertiary">
-            {{
-              'XP.Membership.MembershipsByScopeHint'
-                | translate
-                  : {
-                      Default: "View the tenant plan, each organization's current plan, and upcoming periods."
-                    }
-            }}
-          </div>
-        </div>
-
-        <div class="divide-y divide-divider-subtle">
-          @for (scopeMembership of scopeMemberships(); track scopeMembership.id) {
-            <div class="flex flex-col gap-3 py-3 first:pt-0 last:pb-0">
-              <div class="grid grid-cols-1 items-center gap-3 md:grid-cols-[1.2fr_1fr_auto_1fr]">
-                <div class="min-w-0">
-                  <div class="truncate font-medium text-text-primary">{{ scopeMembershipLabel(scopeMembership) }}</div>
-                  <z-badge zType="outline" zShape="pill" class="mt-1">
-                    @if (scopeMembership.organizationId) {
-                      {{ 'XP.Membership.OrganizationScope' | translate: { Default: 'Organization membership' } }}
-                    } @else {
-                      {{ 'XP.Membership.TenantScope' | translate: { Default: 'Tenant membership' } }}
-                    }
-                  </z-badge>
-                </div>
-                <div class="min-w-0">
-                  <div class="text-sm text-text-tertiary">
-                    {{ 'XP.Membership.CurrentPlan' | translate: { Default: 'Current plan' } }}
-                  </div>
-                  <div class="flex min-w-0 flex-wrap items-center gap-2">
-                    <span class="truncate font-medium text-text-primary">
-                      {{ scopeMembership.plan?.name || scopeMembership.planId }}
-                    </span>
-                    @if (isEffectiveInScope(scopeMembership)) {
-                      <z-badge zType="secondary" zShape="pill">
-                        {{ 'XP.Membership.EffectiveInScope' | translate: { Default: 'Effective in this scope' } }}
-                      </z-badge>
-                    }
-                    @if (isCurrentScopeMembership(scopeMembership)) {
-                      <z-badge zType="outline" zShape="pill">
-                        {{
-                          'XP.Membership.CurrentManagementScope' | translate: { Default: 'Current management scope' }
-                        }}
-                      </z-badge>
-                    }
-                  </div>
-                </div>
-                <z-badge zType="outline" zShape="pill">
-                  {{
-                    'XP.Membership.MemberStatuses.' + scopeMembership.status
-                      | translate: { Default: scopeMembership.status }
-                  }}
-                </z-badge>
-                <div>
-                  <div class="text-sm text-text-tertiary">
-                    {{ 'XP.Membership.PeriodEnd' | translate: { Default: 'Period end' } }}
-                  </div>
-                  <div class="font-medium text-text-primary">
-                    {{ scopeMembership.currentPeriodEnd | date: 'medium' }}
-                  </div>
-                </div>
-              </div>
-
-              @if (upcomingPeriodsForMembership(scopeMembership.id).length) {
-                <div class="rounded-lg bg-components-panel-bg px-3">
-                  <div class="flex items-center justify-between gap-3 border-b border-divider-subtle py-3">
-                    <div class="text-sm font-medium text-text-primary">
-                      {{ 'XP.Membership.UpcomingPeriods' | translate: { Default: 'Upcoming periods' } }}
-                    </div>
-                    <z-badge zType="secondary" zShape="pill">
-                      {{ upcomingPeriodsForMembership(scopeMembership.id).length }}
-                    </z-badge>
-                  </div>
-                  @for (period of upcomingPeriodsForMembership(scopeMembership.id); track period.id) {
-                    <div
-                      class="grid grid-cols-1 items-center gap-3 border-b border-divider-subtle py-3 last:border-b-0 md:grid-cols-[1fr_1.5fr_1fr_auto]"
-                    >
-                      <div>
-                        <div class="text-sm text-text-tertiary">
-                          {{ 'XP.Membership.Plan' | translate: { Default: 'Plan' } }}
-                        </div>
-                        <div class="font-medium text-text-primary">{{ period.planSnapshot.name }}</div>
-                      </div>
-                      <div>
-                        <div class="text-sm text-text-tertiary">
-                          {{ 'XP.Membership.EffectivePeriod' | translate: { Default: 'Effective period' } }}
-                        </div>
-                        <div class="font-medium text-text-primary">
-                          {{ period.periodStart | date: 'medium' }} – {{ period.periodEnd | date: 'medium' }}
-                        </div>
-                      </div>
-                      <div>
-                        <div class="text-sm text-text-tertiary">
-                          {{ 'XP.Membership.CyclePoints' | translate: { Default: 'Plan cycle points' } }}
-                        </div>
-                        <div class="font-medium text-text-primary">
-                          @if (period.pointsGranted === null) {
-                            <span
-                              [attr.aria-label]="'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' }"
-                              [title]="'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' }"
-                              >∞</span
-                            >
-                          } @else {
-                            {{ period.pointsGranted | number: '1.0-2' }}
-                          }
-                        </div>
-                      </div>
-                      <div class="flex justify-end">
-                        @if (isExternallyManagedPeriod(period)) {
-                          <span class="text-sm text-text-tertiary">
-                            {{
-                              'XP.Membership.ExternalPeriodManagedHint'
-                                | translate: { Default: 'Refund and cancel in the billing system' }
-                            }}
-                          </span>
-                        } @else if (period.organizationId) {
-                          <span class="text-sm text-text-tertiary">
-                            {{
-                              'XP.Membership.ManageInOrganizationScope'
-                                | translate: { Default: 'Switch to the organization scope to manage' }
-                            }}
-                          </span>
-                        } @else if (!canCancelPeriod(period)) {
-                          <span class="text-sm text-text-tertiary">
-                            {{
-                              'XP.Membership.CancelLaterPeriodsFirst'
-                                | translate: { Default: 'Cancel later periods first' }
-                            }}
-                          </span>
-                        } @else {
-                          <button
-                            z-button
-                            zType="destructive"
-                            zSize="sm"
-                            type="button"
-                            [disabled]="loading()"
-                            (click)="cancelPeriod(period)"
-                          >
-                            {{ 'XP.Membership.CancelPeriod' | translate: { Default: 'Cancel period' } }}
-                          </button>
-                        }
-                      </div>
-                    </div>
-                  }
-                </div>
-              }
-            </div>
-          }
-        </div>
-      </section>
+    @if (isExternallyManagedMembership()) {
+      <p class="rounded-md bg-muted/50 p-4 text-sm text-muted-foreground">
+        {{ 'XP.Membership.ExternallyManagedMembershipHint' | translate }}
+      </p>
     }
-
-    @if (!isTenantScope && scheduledPeriods().length) {
-      <section class="flex flex-col gap-4 rounded-lg border border-divider-regular p-4">
+    @if (currentScheduledPeriods().length) {
+      <section class="flex flex-col gap-4">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <div class="font-semibold text-text-primary">
+            <div class="font-semibold text-foreground">
               {{ 'XP.Membership.UpcomingPeriods' | translate: { Default: 'Upcoming periods' } }}
             </div>
-            <div class="text-sm text-text-tertiary">
+            <div class="text-sm text-muted-foreground">
               {{
                 'XP.Membership.UpcomingPeriodsHint'
                   | translate
@@ -297,22 +117,22 @@
               }}
             </div>
           </div>
-          <z-badge zType="outline" zShape="pill">{{ scheduledPeriods().length }}</z-badge>
+          <z-badge zType="outline" zShape="pill">{{ currentScheduledPeriods().length }}</z-badge>
         </div>
 
-        <div class="divide-y divide-divider-subtle">
-          @for (period of scheduledPeriods(); track period.id) {
+        <div class="divide-y divide-border">
+          @for (period of currentScheduledPeriods(); track period.id) {
             <div
               class="grid grid-cols-1 items-center gap-3 py-3 first:pt-0 last:pb-0 md:grid-cols-[1fr_1.5fr_1fr_auto]"
             >
               <div>
-                <div class="text-sm text-text-tertiary">
+                <div class="text-sm text-muted-foreground">
                   {{ 'XP.Membership.Plan' | translate: { Default: 'Plan' } }}
                 </div>
                 <div class="font-medium">{{ period.planSnapshot.name }}</div>
               </div>
               <div>
-                <div class="text-sm text-text-tertiary">
+                <div class="text-sm text-muted-foreground">
                   {{ 'XP.Membership.EffectivePeriod' | translate: { Default: 'Effective period' } }}
                 </div>
                 <div class="font-medium">
@@ -320,7 +140,7 @@
                 </div>
               </div>
               <div>
-                <div class="text-sm text-text-tertiary">
+                <div class="text-sm text-muted-foreground">
                   {{ 'XP.Membership.CyclePoints' | translate: { Default: 'Plan cycle points' } }}
                 </div>
                 <div class="font-medium">
@@ -337,14 +157,14 @@
               </div>
               <div class="flex justify-end">
                 @if (isExternallyManagedPeriod(period)) {
-                  <span class="text-sm text-text-tertiary">
+                  <span class="text-sm text-muted-foreground">
                     {{
                       'XP.Membership.ExternalPeriodManagedHint'
                         | translate: { Default: 'Refund and cancel in the billing system' }
                     }}
                   </span>
                 } @else if (!canCancelPeriod(period)) {
-                  <span class="text-sm text-text-tertiary">
+                  <span class="text-sm text-muted-foreground">
                     {{ 'XP.Membership.CancelLaterPeriodsFirst' | translate: { Default: 'Cancel later periods first' } }}
                   </span>
                 } @else {
@@ -353,7 +173,7 @@
                     zType="destructive"
                     zSize="sm"
                     type="button"
-                    [disabled]="loading()"
+                    [zDisabled]="loading()"
                     (click)="cancelPeriod(period)"
                   >
                     {{ 'XP.Membership.CancelPeriod' | translate: { Default: 'Cancel period' } }}
@@ -366,172 +186,176 @@
       </section>
     }
 
-    @if (isExternallyManagedMembership()) {
-      <div class="rounded-lg border border-divider-regular bg-components-panel-bg p-4 text-sm text-text-tertiary">
-        {{
-          'XP.Membership.ExternallyManagedMembershipHint'
-            | translate
-              : {
-                  Default: 'This membership is managed by an external workflow and cannot be replaced or renewed here.'
-                }
-        }}
-      </div>
-    } @else {
-      <form [formGroup]="assignmentForm" class="flex flex-col gap-3 rounded-lg bg-components-panel-bg p-4">
-        <div class="font-semibold text-text-primary">
-          {{ 'XP.Membership.AssignPlan' | translate: { Default: 'Assign plan' } }}
-        </div>
-        <div class="grid grid-cols-1 gap-3 lg:grid-cols-[minmax(220px,1fr)_180px_minmax(240px,1fr)_auto]">
-          <z-form-field class="w-full">
-            <z-select class="w-full" formControlName="planId">
-              @for (plan of plans(); track plan.id) {
-                <z-select-item [zValue]="plan.id">{{ plan.name }}</z-select-item>
-              }
-            </z-select>
-          </z-form-field>
-          <z-form-field class="w-full">
-            <z-select class="w-full" formControlName="renewalMode">
-              <z-select-item [zValue]="MembershipRenewalModeEnum.Auto">
-                {{ 'XP.Membership.RenewalModes.auto' | translate: { Default: 'Auto renew' } }}
-              </z-select-item>
-              <z-select-item [zValue]="MembershipRenewalModeEnum.Manual">
-                {{ 'XP.Membership.RenewalModes.manual' | translate: { Default: 'Manual renew' } }}
-              </z-select-item>
-            </z-select>
-          </z-form-field>
-          <z-form-field class="w-full">
-            <input
-              z-input
-              formControlName="note"
-              [placeholder]="'XP.Membership.AssignNote' | translate: { Default: 'Assignment note' }"
-            />
-          </z-form-field>
-          <button
-            z-button
-            zType="default"
-            type="button"
-            [disabled]="loading() || assignmentForm.invalid"
-            (click)="assign()"
-          >
-            {{ 'XP.Membership.Assign' | translate: { Default: 'Assign' } }}
-          </button>
-        </div>
-      </form>
-    }
-
-    <section class="grid grid-cols-1 gap-4 xl:grid-cols-2">
-      <form [formGroup]="cyclePointsForm" class="flex flex-col gap-3 rounded-lg border border-divider-regular p-4">
-        <div>
-          <div class="font-semibold text-text-primary">
-            {{ 'XP.Membership.AdjustCyclePoints' | translate: { Default: 'Adjust cycle points' } }}
-          </div>
-          <div class="text-sm text-text-tertiary">
-            {{
-              'XP.Membership.CyclePointsHint' | translate: { Default: 'Only affects the current membership period.' }
-            }}
-          </div>
-        </div>
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[110px_110px_minmax(160px,1fr)_auto]">
-          <z-form-field class="w-full">
-            <z-select class="w-full" formControlName="direction">
-              <z-select-item zValue="increase">
-                {{ 'XP.Membership.Increase' | translate: { Default: 'Increase' } }}
-              </z-select-item>
-              <z-select-item zValue="decrease">
-                {{ 'XP.Membership.Decrease' | translate: { Default: 'Decrease' } }}
-              </z-select-item>
-            </z-select>
-          </z-form-field>
-          <z-form-field class="w-full">
-            <input
-              z-input
-              type="number"
-              min="0"
-              step="0.001"
-              formControlName="points"
-              [placeholder]="'XP.Membership.Points' | translate: { Default: 'Points' }"
-            />
-          </z-form-field>
-          <z-form-field class="w-full">
-            <input
-              z-input
-              formControlName="reason"
-              [placeholder]="'XP.Membership.AdjustReason' | translate: { Default: 'Adjustment reason' }"
-            />
-          </z-form-field>
-          <button
-            z-button
-            zType="secondary"
-            type="button"
-            [disabled]="loading() || cyclePointsForm.invalid || !canAdjustCyclePoints()"
-            (click)="adjust()"
-          >
-            {{ 'XP.Membership.Adjust' | translate: { Default: 'Adjust' } }}
-          </button>
-        </div>
-      </form>
-
-      @if (canManagePersonalPoints) {
-        <form [formGroup]="personalPointsForm" class="flex flex-col gap-3 rounded-lg border border-divider-regular p-4">
+    @if (isTenantScope && scopeMemberships().length) {
+      <details class="group border-b border-border pb-5">
+        <summary
+          class="flex min-h-10 cursor-pointer list-none items-center gap-2 text-sm font-semibold [&::-webkit-details-marker]:hidden"
+        >
+          <z-icon zType="chevron-right" class="size-4 transition-transform group-open:rotate-90" />{{
+            'XP.Membership.MembershipsByScope' | translate
+          }}
+        </summary>
+        <div class="mt-4">
           <div>
-            <div class="font-semibold text-text-primary">
-              {{ 'XP.Membership.AdjustPersonalPoints' | translate: { Default: 'Adjust personal points' } }}
-            </div>
-            <div class="text-sm text-text-tertiary">
+            <div class="text-sm text-muted-foreground">
               {{
-                'XP.Membership.PersonalPointsHint'
-                  | translate: { Default: 'Permanent balance. Membership cycle points are consumed first.' }
+                'XP.Membership.MembershipsByScopeHint'
+                  | translate
+                    : {
+                        Default: "View the tenant plan, each organization's current plan, and upcoming periods."
+                      }
               }}
             </div>
           </div>
-          <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-[110px_110px_minmax(160px,1fr)_auto]">
-            <z-form-field class="w-full">
-              <z-select class="w-full" formControlName="direction">
-                <z-select-item zValue="increase">
-                  {{ 'XP.Membership.Increase' | translate: { Default: 'Increase' } }}
-                </z-select-item>
-                <z-select-item zValue="decrease">
-                  {{ 'XP.Membership.Decrease' | translate: { Default: 'Decrease' } }}
-                </z-select-item>
-              </z-select>
-            </z-form-field>
-            <z-form-field class="w-full">
-              <input
-                z-input
-                type="number"
-                min="0"
-                step="0.001"
-                formControlName="points"
-                [placeholder]="'XP.Membership.Points' | translate: { Default: 'Points' }"
-              />
-            </z-form-field>
-            <z-form-field class="w-full">
-              <input
-                z-input
-                formControlName="reason"
-                [placeholder]="'XP.Membership.AdjustReason' | translate: { Default: 'Adjustment reason' }"
-              />
-            </z-form-field>
-            <button
-              z-button
-              zType="secondary"
-              type="button"
-              [disabled]="loading() || personalPointsForm.invalid"
-              (click)="adjustPersonal()"
-            >
-              {{ 'XP.Membership.Adjust' | translate: { Default: 'Adjust' } }}
-            </button>
-          </div>
-        </form>
-      }
-    </section>
 
-    <section class="overflow-hidden rounded-lg border border-divider-regular">
-      <div class="border-b border-divider-regular px-4 py-3">
-        <div class="font-semibold text-text-primary">
+          <div class="divide-y divide-border">
+            @for (scopeMembership of scopeMemberships(); track scopeMembership.id) {
+              <div class="flex flex-col gap-3 py-3 first:pt-0 last:pb-0">
+                <div class="grid grid-cols-1 items-center gap-3 md:grid-cols-[1.2fr_1fr_auto_1fr]">
+                  <div class="min-w-0">
+                    <div class="truncate font-medium text-foreground">{{ scopeMembershipLabel(scopeMembership) }}</div>
+                    <z-badge zType="outline" zShape="pill" class="mt-1">
+                      @if (scopeMembership.organizationId) {
+                        {{ 'XP.Membership.OrganizationScope' | translate: { Default: 'Organization membership' } }}
+                      } @else {
+                        {{ 'XP.Membership.TenantScope' | translate: { Default: 'Tenant membership' } }}
+                      }
+                    </z-badge>
+                  </div>
+                  <div class="min-w-0">
+                    <div class="text-sm text-muted-foreground">
+                      {{ 'XP.Membership.CurrentPlan' | translate: { Default: 'Current plan' } }}
+                    </div>
+                    <div class="flex min-w-0 flex-wrap items-center gap-2">
+                      <span class="truncate font-medium text-foreground">
+                        {{ scopeMembership.plan?.name || scopeMembership.planId }}
+                      </span>
+                      @if (isEffectiveInScope(scopeMembership)) {
+                        <z-badge zType="secondary" zShape="pill">
+                          {{ 'XP.Membership.EffectiveInScope' | translate: { Default: 'Effective in this scope' } }}
+                        </z-badge>
+                      }
+                      @if (isCurrentScopeMembership(scopeMembership)) {
+                        <z-badge zType="outline" zShape="pill">
+                          {{
+                            'XP.Membership.CurrentManagementScope' | translate: { Default: 'Current management scope' }
+                          }}
+                        </z-badge>
+                      }
+                    </div>
+                  </div>
+                  <z-badge zType="outline" zShape="pill">
+                    {{
+                      'XP.Membership.MemberStatuses.' + scopeMembership.status
+                        | translate: { Default: scopeMembership.status }
+                    }}
+                  </z-badge>
+                  <div>
+                    <div class="text-sm text-muted-foreground">
+                      {{ 'XP.Membership.PeriodEnd' | translate: { Default: 'Period end' } }}
+                    </div>
+                    <div class="font-medium text-foreground">
+                      {{ scopeMembership.currentPeriodEnd | date: 'medium' }}
+                    </div>
+                  </div>
+                </div>
+
+                @if (upcomingPeriodsForMembership(scopeMembership.id).length) {
+                  <div class="rounded-lg bg-muted/40 px-3">
+                    <div class="flex items-center justify-between gap-3 border-b border-border py-3">
+                      <div class="text-sm font-medium text-foreground">
+                        {{ 'XP.Membership.UpcomingPeriods' | translate: { Default: 'Upcoming periods' } }}
+                      </div>
+                      <z-badge zType="secondary" zShape="pill">
+                        {{ upcomingPeriodsForMembership(scopeMembership.id).length }}
+                      </z-badge>
+                    </div>
+                    @for (period of upcomingPeriodsForMembership(scopeMembership.id); track period.id) {
+                      <div
+                        class="grid grid-cols-1 items-center gap-3 border-b border-border py-3 last:border-b-0 md:grid-cols-[1fr_1.5fr_1fr_auto]"
+                      >
+                        <div>
+                          <div class="text-sm text-muted-foreground">
+                            {{ 'XP.Membership.Plan' | translate: { Default: 'Plan' } }}
+                          </div>
+                          <div class="font-medium text-foreground">{{ period.planSnapshot.name }}</div>
+                        </div>
+                        <div>
+                          <div class="text-sm text-muted-foreground">
+                            {{ 'XP.Membership.EffectivePeriod' | translate: { Default: 'Effective period' } }}
+                          </div>
+                          <div class="font-medium text-foreground">
+                            {{ period.periodStart | date: 'medium' }} – {{ period.periodEnd | date: 'medium' }}
+                          </div>
+                        </div>
+                        <div>
+                          <div class="text-sm text-muted-foreground">
+                            {{ 'XP.Membership.CyclePoints' | translate: { Default: 'Plan cycle points' } }}
+                          </div>
+                          <div class="font-medium text-foreground">
+                            @if (period.pointsGranted === null) {
+                              <span
+                                [attr.aria-label]="'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' }"
+                                [title]="'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' }"
+                                >∞</span
+                              >
+                            } @else {
+                              {{ period.pointsGranted | number: '1.0-2' }}
+                            }
+                          </div>
+                        </div>
+                        <div class="flex justify-end">
+                          @if (isExternallyManagedPeriod(period)) {
+                            <span class="text-sm text-muted-foreground">
+                              {{
+                                'XP.Membership.ExternalPeriodManagedHint'
+                                  | translate: { Default: 'Refund and cancel in the billing system' }
+                              }}
+                            </span>
+                          } @else if (period.organizationId) {
+                            <span class="text-sm text-muted-foreground">
+                              {{
+                                'XP.Membership.ManageInOrganizationScope'
+                                  | translate: { Default: 'Switch to the organization scope to manage' }
+                              }}
+                            </span>
+                          } @else if (!canCancelPeriod(period)) {
+                            <span class="text-sm text-muted-foreground">
+                              {{
+                                'XP.Membership.CancelLaterPeriodsFirst'
+                                  | translate: { Default: 'Cancel later periods first' }
+                              }}
+                            </span>
+                          } @else {
+                            <button
+                              z-button
+                              zType="destructive"
+                              zSize="sm"
+                              type="button"
+                              [zDisabled]="loading()"
+                              (click)="cancelPeriod(period)"
+                            >
+                              {{ 'XP.Membership.CancelPeriod' | translate: { Default: 'Cancel period' } }}
+                            </button>
+                          }
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </div>
+      </details>
+    }
+
+    <section class="min-w-0">
+      <div class="mb-3">
+        <div class="font-semibold text-foreground">
           {{ 'XP.Membership.OperationHistory' | translate: { Default: 'Operation history' } }}
         </div>
-        <div class="mt-1 text-sm text-text-tertiary">
+        <div class="mt-1 text-sm text-muted-foreground">
           {{
             'XP.Membership.OperationHistoryHint'
               | translate: { Default: 'Recent assignments, point changes, renewals, and status changes.' }
@@ -539,12 +363,12 @@
         </div>
       </div>
 
-      <div class="divide-y divide-divider-subtle">
+      <div class="divide-y divide-border">
         @for (entry of auditEntries(); track entry.id) {
-          <div class="grid gap-2 px-4 py-3 md:grid-cols-[minmax(0,1fr)_minmax(8rem,auto)_minmax(8rem,auto)]">
+          <div class="grid gap-2 py-4 md:grid-cols-[minmax(0,1fr)_minmax(8rem,auto)_minmax(8rem,auto)]">
             <div class="min-w-0">
               <div class="flex flex-wrap items-center gap-2">
-                <span class="text-sm font-medium text-text-primary">
+                <span class="text-sm font-medium text-foreground">
                   {{ 'XP.Membership.LedgerSource.' + entry.source | translate: { Default: entry.source } }}
                 </span>
                 <z-badge zType="outline" zShape="pill">{{ auditScopeLabel(entry) }}</z-badge>
@@ -554,27 +378,27 @@
                   </z-badge>
                 }
               </div>
-              <div class="mt-1 truncate text-sm text-text-tertiary" [title]="auditReason(entry)">
+              <div class="mt-1 truncate text-sm text-muted-foreground" [title]="auditReason(entry)">
                 {{ auditReason(entry) }}
               </div>
             </div>
             <div>
-              <div class="text-xs text-text-tertiary">
+              <div class="text-xs text-muted-foreground">
                 {{ 'XP.Membership.Operator' | translate: { Default: 'Operator' } }}
               </div>
-              <div class="mt-1 truncate text-sm text-text-primary" [title]="auditActorLabel(entry)">
+              <div class="mt-1 truncate text-sm text-foreground" [title]="auditActorLabel(entry)">
                 {{ auditActorLabel(entry) }}
               </div>
             </div>
             <div>
-              <div class="text-xs text-text-tertiary">
+              <div class="text-xs text-muted-foreground">
                 {{ 'XP.Membership.OperationTime' | translate: { Default: 'Time' } }}
               </div>
-              <div class="mt-1 text-sm text-text-primary">{{ entry.createdAt | date: 'medium' }}</div>
+              <div class="mt-1 text-sm text-foreground">{{ entry.createdAt | date: 'medium' }}</div>
             </div>
           </div>
         } @empty {
-          <div class="px-4 py-8 text-center text-sm text-text-tertiary">
+          <div class="px-4 py-8 text-center text-sm text-muted-foreground">
             {{ 'XP.Membership.NoOperationHistory' | translate: { Default: 'No membership operations yet.' } }}
           </div>
         }
@@ -582,3 +406,258 @@
     </section>
   </div>
 }
+
+<ng-template #planEditor>
+  <div xpDialogLayout="standard" class="w-[480px] max-w-full max-h-[85dvh]">
+    <header xpDialogHeader>
+      <h2 xpDialogHeading>{{ 'XP.UserDetail.ManagePlan' | translate }}</h2>
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        xpDialogCloseButton
+        [attr.aria-label]="'XP.UserDetail.Close' | translate"
+        (click)="closeEditor()"
+      >
+        <z-icon zType="x" />
+      </button>
+    </header>
+    <div xpDialogBody class="flex flex-col gap-6">
+      @if (isExternallyManagedMembership()) {
+        <p class="text-sm text-muted-foreground">{{ 'XP.Membership.ExternallyManagedMembershipHint' | translate }}</p>
+      } @else {
+        <form [formGroup]="assignmentForm" class="flex flex-col gap-4">
+          <div class="font-semibold text-foreground">
+            {{ 'XP.Membership.AssignPlan' | translate: { Default: 'Assign plan' } }}
+          </div>
+          <div class="grid grid-cols-1 gap-4">
+            <z-form-field class="flex min-w-0 flex-col gap-2 bg-transparent p-0">
+              <z-form-label>{{ 'XP.Membership.Plan' | translate }}</z-form-label
+              ><z-select class="w-full" formControlName="planId" [attr.aria-label]="'XP.Membership.Plan' | translate">
+                @for (plan of plans(); track plan.id) {
+                  <z-select-item [zValue]="plan.id">{{ plan.name }}</z-select-item>
+                }
+              </z-select>
+            </z-form-field>
+            <z-form-field class="flex min-w-0 flex-col gap-2 bg-transparent p-0">
+              <z-form-label>{{ 'XP.Membership.RenewalMode' | translate }}</z-form-label
+              ><z-select
+                class="w-full"
+                formControlName="renewalMode"
+                [attr.aria-label]="'XP.Membership.RenewalMode' | translate"
+              >
+                <z-select-item [zValue]="MembershipRenewalModeEnum.Auto">
+                  {{ 'XP.Membership.RenewalModes.auto' | translate: { Default: 'Auto renew' } }}
+                </z-select-item>
+                <z-select-item [zValue]="MembershipRenewalModeEnum.Manual">
+                  {{ 'XP.Membership.RenewalModes.manual' | translate: { Default: 'Manual renew' } }}
+                </z-select-item>
+              </z-select>
+            </z-form-field>
+            <z-form-field class="flex min-w-0 flex-col gap-2 bg-transparent p-0">
+              <input
+                z-input
+                formControlName="note"
+                [attr.aria-label]="'XP.Membership.AssignNote' | translate"
+                [placeholder]="'XP.Membership.AssignNote' | translate: { Default: 'Assignment note' }"
+              />
+            </z-form-field>
+            <button
+              xpDialogActionGroup="inline"
+              class="justify-self-end"
+              z-button
+              zType="default"
+              type="button"
+              [zDisabled]="loading() || assignmentForm.invalid"
+              (click)="assign()"
+            >
+              {{ 'XP.Membership.Assign' | translate: { Default: 'Assign' } }}
+            </button>
+          </div>
+        </form>
+      }
+      @if (membership(); as currentMembership) {
+        <div xpDialogActionGroup="inline" class="flex flex-wrap gap-2 border-t border-border pt-5">
+          @if (currentMembership.status === MembershipStatusEnum.Active) {
+            <button z-button zType="outline" [zDisabled]="loading()" (click)="pause()">
+              {{ 'XP.Membership.Pause' | translate }}
+            </button>
+          }
+          @if (currentMembership.status === MembershipStatusEnum.Paused) {
+            <button z-button zType="outline" [zDisabled]="loading()" (click)="resume()">
+              {{ 'XP.Membership.Resume' | translate }}
+            </button>
+          }
+          @if (!isExternallyManagedMembership()) {
+            <button z-button zType="outline" [zDisabled]="loading()" (click)="renew()">
+              {{ 'XP.Membership.Renew' | translate }}
+            </button>
+          }
+          @if (currentMembership.status !== MembershipStatusEnum.Expired) {
+            <button z-button zType="destructive" [zDisabled]="loading()" (click)="revoke()">
+              {{ 'XP.Membership.Revoke' | translate }}
+            </button>
+          }
+        </div>
+      }
+    </div>
+    <footer xpDialogFooter>
+      <button z-button zType="outline" (click)="closeEditor()">{{ 'XP.UserDetail.Close' | translate }}</button>
+    </footer>
+  </div>
+</ng-template>
+<ng-template #pointsEditor>
+  <div xpDialogLayout="standard" class="w-[480px] max-w-full max-h-[85dvh]">
+    <header xpDialogHeader>
+      <h2 xpDialogHeading>{{ 'XP.UserDetail.AdjustPoints' | translate }}</h2>
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        xpDialogCloseButton
+        [attr.aria-label]="'XP.UserDetail.Close' | translate"
+        (click)="closeEditor()"
+      >
+        <z-icon zType="x" />
+      </button>
+    </header>
+    <div xpDialogBody>
+      <z-tab-group preserveContent>
+        <z-tab [label]="'XP.Membership.CyclePoints' | translate">
+          <form [formGroup]="cyclePointsForm" class="flex flex-col gap-4">
+            <div>
+              <div class="font-semibold text-foreground">
+                {{ 'XP.Membership.AdjustCyclePoints' | translate: { Default: 'Adjust cycle points' } }}
+              </div>
+              <div class="text-sm text-muted-foreground">
+                {{
+                  'XP.Membership.CyclePointsHint'
+                    | translate: { Default: 'Only affects the current membership period.' }
+                }}
+              </div>
+            </div>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <z-form-field class="flex min-w-0 flex-col gap-2 bg-transparent p-0">
+                <z-form-label>{{ 'XP.UserDetail.AdjustmentDirection' | translate }}</z-form-label
+                ><z-select
+                  class="w-full"
+                  formControlName="direction"
+                  [attr.aria-label]="'XP.UserDetail.AdjustmentDirection' | translate"
+                >
+                  <z-select-item zValue="increase">
+                    {{ 'XP.Membership.Increase' | translate: { Default: 'Increase' } }}
+                  </z-select-item>
+                  <z-select-item zValue="decrease">
+                    {{ 'XP.Membership.Decrease' | translate: { Default: 'Decrease' } }}
+                  </z-select-item>
+                </z-select>
+              </z-form-field>
+              <z-form-field class="flex min-w-0 flex-col gap-2 bg-transparent p-0">
+                <input
+                  z-input
+                  type="number"
+                  min="0"
+                  step="0.001"
+                  formControlName="points"
+                  [attr.aria-label]="'XP.Membership.Points' | translate"
+                  [placeholder]="'XP.Membership.Points' | translate: { Default: 'Points' }"
+                />
+              </z-form-field>
+              <z-form-field class="flex min-w-0 flex-col gap-2 bg-transparent p-0">
+                <input
+                  z-input
+                  formControlName="reason"
+                  [attr.aria-label]="'XP.Membership.AdjustReason' | translate"
+                  [placeholder]="'XP.Membership.AdjustReason' | translate: { Default: 'Adjustment reason' }"
+                />
+              </z-form-field>
+              <button
+                xpDialogActionGroup="inline"
+                class="justify-self-end"
+                z-button
+                zType="secondary"
+                type="button"
+                [zDisabled]="loading() || cyclePointsForm.invalid || !canAdjustCyclePoints()"
+                (click)="adjust()"
+              >
+                {{ 'XP.Membership.Adjust' | translate: { Default: 'Adjust' } }}
+              </button>
+            </div>
+          </form>
+          @if (!canAdjustCyclePoints()) {
+            <p class="mt-3 text-xs text-muted-foreground">
+              {{ 'XP.UserDetail.CycleAdjustmentUnavailable' | translate }}
+            </p>
+          }
+        </z-tab>
+        @if (canManagePersonalPoints) {
+          <z-tab [label]="'XP.Membership.PersonalPoints' | translate">
+            <form [formGroup]="personalPointsForm" class="flex flex-col gap-4">
+              <div>
+                <div class="font-semibold text-foreground">
+                  {{ 'XP.Membership.AdjustPersonalPoints' | translate: { Default: 'Adjust personal points' } }}
+                </div>
+                <div class="text-sm text-muted-foreground">
+                  {{
+                    'XP.Membership.PersonalPointsHint'
+                      | translate: { Default: 'Permanent balance. Membership cycle points are consumed first.' }
+                  }}
+                </div>
+              </div>
+              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <z-form-field class="flex min-w-0 flex-col gap-2 bg-transparent p-0">
+                  <z-form-label>{{ 'XP.UserDetail.AdjustmentDirection' | translate }}</z-form-label
+                  ><z-select
+                    class="w-full"
+                    formControlName="direction"
+                    [attr.aria-label]="'XP.UserDetail.AdjustmentDirection' | translate"
+                  >
+                    <z-select-item zValue="increase">
+                      {{ 'XP.Membership.Increase' | translate: { Default: 'Increase' } }}
+                    </z-select-item>
+                    <z-select-item zValue="decrease">
+                      {{ 'XP.Membership.Decrease' | translate: { Default: 'Decrease' } }}
+                    </z-select-item>
+                  </z-select>
+                </z-form-field>
+                <z-form-field class="flex min-w-0 flex-col gap-2 bg-transparent p-0">
+                  <input
+                    z-input
+                    type="number"
+                    min="0"
+                    step="0.001"
+                    formControlName="points"
+                    [attr.aria-label]="'XP.Membership.Points' | translate"
+                    [placeholder]="'XP.Membership.Points' | translate: { Default: 'Points' }"
+                  />
+                </z-form-field>
+                <z-form-field class="flex min-w-0 flex-col gap-2 bg-transparent p-0">
+                  <input
+                    z-input
+                    formControlName="reason"
+                    [attr.aria-label]="'XP.Membership.AdjustReason' | translate"
+                    [placeholder]="'XP.Membership.AdjustReason' | translate: { Default: 'Adjustment reason' }"
+                  />
+                </z-form-field>
+                <button
+                  xpDialogActionGroup="inline"
+                  class="justify-self-end"
+                  z-button
+                  zType="secondary"
+                  type="button"
+                  [zDisabled]="loading() || personalPointsForm.invalid"
+                  (click)="adjustPersonal()"
+                >
+                  {{ 'XP.Membership.Adjust' | translate: { Default: 'Adjust' } }}
+                </button>
+              </div>
+            </form>
+          </z-tab>
+        }
+      </z-tab-group>
+    </div>
+    <footer xpDialogFooter>
+      <button z-button zType="outline" (click)="closeEditor()">{{ 'XP.UserDetail.Close' | translate }}</button>
+    </footer>
+  </div>
+</ng-template>

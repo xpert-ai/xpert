@@ -32,6 +32,7 @@
                 "group": "Architecture",
                 "pages": [
                   "en/architecture/ai-agent-architecture",
+                  "en/architecture/assistant-template-lifecycle",
                   "en/architecture/file-lifecycle-data-flow",
                   "en/architecture/file-access-preview-architecture"
                 ]
@@ -41,6 +42,8 @@
                 "pages": [
                   "en/guides/plugin",
                   "en/guides/assistant-capabilities",
+                  "en/guides/assistant-templates",
+                  "en/guides/assistant-template-authoring",
                   "en/guides/project-application-types",
                   "en/guides/group-chat",
                   "en/guides/project-tasks",
@@ -104,6 +107,7 @@
                 "group": "架构",
                 "pages": [
                   "zh-Hans/architecture/ai-agent-architecture",
+                  "zh-Hans/architecture/assistant-template-lifecycle",
                   "zh-Hans/architecture/file-lifecycle-data-flow",
                   "zh-Hans/architecture/file-access-preview-architecture"
                 ]
@@ -113,6 +117,8 @@
                 "pages": [
                   "zh-Hans/guides/plugin",
                   "zh-Hans/guides/assistant-capabilities",
+                  "zh-Hans/guides/assistant-templates",
+                  "zh-Hans/guides/assistant-template-authoring",
                   "zh-Hans/guides/project-application-types",
                   "zh-Hans/guides/group-chat",
                   "zh-Hans/guides/project-tasks",

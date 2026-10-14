@@ -1,10 +1,16 @@
-<div class="xp-page-header overflow-hidden">
+<div class="mx-auto w-full max-w-7xl shrink-0 px-4 pt-6 md:px-8 md:pt-8">
+  <a z-button zType="ghost" routerLink="/settings/integration" class="mb-4 -ml-3 w-fit pointer-coarse:min-h-[44px]">
+    <z-icon zType="arrow-left" />{{ 'XP.IntegrationSettings.BackToList' | translate }}
+  </a>
   <div class="flex flex-col gap-3">
     <div class="flex flex-col gap-1">
-      <h2 class="xp-page-title">
-        {{ pageTitle() || ('XP.Integration.SystemIntegration' | translate: { Default: 'System Integration' }) }}
-      </h2>
-      <p class="xp-page-subtitle text-text-tertiary">
+      <h1 class="text-2xl font-semibold tracking-tight">
+        {{
+          pageTitle() ||
+            ((paramId() ? 'XP.IntegrationSettings.EditTitle' : 'XP.Integration.AddIntegration') | translate)
+        }}
+      </h1>
+      <p class="mt-1 max-w-3xl text-sm leading-6 text-muted-foreground">
         @if (viewKey()) {
           @if (pageSubtitle(); as description) {
             {{ description | i18n }}
@@ -31,38 +37,44 @@
       </p>
     </div>
 
-    <nav
-      z-tab-nav-bar
-      class="xp-tab-nav-bar max-w-full self-stretch overflow-x-auto"
-      zSize="default"
-      color="accent"
-      alignTabs="start"
-      stretchTabs="false"
-      disableRipple
-      [tabPanel]="tabPanel"
-    >
-      @for (tab of tabs(); track tab.key) {
-        <a z-tab-link [routerLink]="tab.routerLink" [active]="tab.active" class="flex items-center gap-2">
-          <xp-icon [icon]="tab.icon" [size]="16" class="shrink-0 text-text-primary" />
-          <span>
-            @if (tab.kind === 'config') {
-              {{ 'XP.Knowledgebase.Configuration' | translate: { Default: 'Configuration' } }}
-            } @else {
-              {{ tab.title | i18n }}
-            }
-          </span>
-          @if (tab.badge !== undefined && tab.badge !== null && tab.badge !== '') {
-            <span class="rounded-full border border-divider-subtle px-2 py-0.5 text-xs text-text-secondary">
-              {{ tab.badge }}
+    @if (hasExtensionTabs()) {
+      <nav
+        z-tab-nav-bar
+        class="max-w-full self-stretch overflow-x-auto"
+        zSize="default"
+        color="accent"
+        alignTabs="start"
+        stretchTabs="false"
+        disableRipple
+        [tabPanel]="tabPanel"
+      >
+        @for (tab of tabs(); track tab.key) {
+          <a z-tab-link [routerLink]="tab.routerLink" [active]="tab.active" class="flex items-center gap-2">
+            <xp-icon [icon]="tab.icon" [size]="16" class="shrink-0 text-foreground" />
+            <span>
+              @if (tab.kind === 'config') {
+                {{ 'XP.Knowledgebase.Configuration' | translate: { Default: 'Configuration' } }}
+              } @else {
+                {{ tab.title | i18n }}
+              }
             </span>
-          }
-        </a>
-      }
-    </nav>
+            @if (tab.badge !== undefined && tab.badge !== null && tab.badge !== '') {
+              <z-badge zType="secondary">
+                {{ tab.badge }}
+              </z-badge>
+            }
+          </a>
+        }
+      </nav>
+    }
   </div>
 </div>
 
-<z-tab-nav-panel #tabPanel class="xp-page-body" [class.xp-integration-detail-panel]="viewKey()">
+<z-tab-nav-panel
+  #tabPanel
+  class="mx-auto w-full max-w-7xl min-w-0 px-4 pb-6 pt-6 md:px-8 md:pb-8"
+  [class]="viewKey() ? 'flex min-h-0 flex-1 flex-col overflow-hidden' : 'overflow-auto'"
+>
   @if (viewKey(); as viewKey) {
     @if (activeHostId(); as hostId) {
       <xp-settings-integration-extension-view

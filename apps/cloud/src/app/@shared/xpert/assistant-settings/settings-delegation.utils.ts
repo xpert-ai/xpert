@@ -100,8 +100,8 @@ export function updateSubAgent(draft: TXpertTeamDraft, key: string, value: SubAg
       description: value.description,
       prompt: value.prompt,
       leaderKey: parent.key,
-      copilotModel: value.copilotModel ?? undefined,
-      copilotModelId: undefined,
+      copilotModel: value.copilotModel ?? null,
+      copilotModelId: null,
       options: {
         ...(existing?.type === 'agent' ? existing.entity.options : {}),
         disableMessageHistory: value.disableMessageHistory

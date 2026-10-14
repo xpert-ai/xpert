@@ -1,9 +1,9 @@
 <div class="grid gap-4">
   <div>
-    <div class="text-base font-semibold text-text-primary">
+    <div class="text-base font-semibold text-foreground">
       {{ 'XP.UserGroup.Title' | translate: { Default: 'User Groups' } }}
     </div>
-    <div class="text-sm text-text-tertiary">
+    <div class="text-sm text-muted-foreground">
       {{
         'XP.UserGroup.Subtitle'
           | translate
@@ -15,14 +15,26 @@
     </div>
   </div>
 
+  <z-search-input
+    class="w-full sm:max-w-sm"
+    [ngModel]="search()"
+    (ngModelChange)="search.set($event)"
+    [placeholder]="'XP.OrganizationSettings.GroupSearch' | translate"
+    [clearLabel]="'XP.Referral.ClearSearch' | translate"
+  />
   @if (loading()) {
     <div class="flex min-h-[160px] items-center justify-center">
       <xp-spin />
     </div>
-  } @else if (!groups().length) {
-    <div class="rounded-lg border border-dashed border-divider-deep px-4 py-8 text-center text-sm text-text-tertiary">
+  } @else if (loadFailed()) {
+    <div role="alert" class="flex items-center justify-between gap-3 rounded-lg border border-border p-4 text-sm">
+      <p>{{ 'XP.OrganizationSettings.GroupsLoadFailed' | translate }}</p>
+      <button z-button zType="outline" (click)="refresh()">{{ 'XP.UserSettings.Retry' | translate }}</button>
+    </div>
+  } @else if (!visibleGroups().length) {
+    <div class="rounded-lg border border-dashed border-border px-4 py-8 text-center text-sm text-muted-foreground">
       {{
-        'XP.UserGroup.NoGroupsInOrganization'
+        (search() ? 'XP.OrganizationSettings.EmptySearch' : 'XP.UserGroup.NoGroupsInOrganization')
           | translate
             : {
                 Default: 'There are no user groups in this organization yet.'
@@ -31,8 +43,8 @@
     </div>
   } @else {
     <xp-table
-      class="overflow-hidden rounded-lg border border-divider-deep"
-      [data]="groups()"
+      class="overflow-hidden rounded-lg border border-border"
+      [data]="visibleGroups()"
       [columns]="[
         {
           name: 'name',

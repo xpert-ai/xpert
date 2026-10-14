@@ -1,348 +1,452 @@
-<div class="xp-page-header">
-  <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-    <div class="xp-page-title">
-      {{ 'XP.KEY_WORDS.Role&Permissions' | translate: { Default: 'Role & Permissions' } }}
-    </div>
-
-    <div class="flex flex-wrap justify-start gap-2 xl:justify-end">
-      @if (isTenantScope()) {
-        <button
-          z-button
-          zType="secondary"
-          type="button"
-          zSize="sm"
-          class="self-start"
-          [disabled]="syncingDefaults"
-          (click)="syncDefaultPermissions()"
-        >
-          <z-icon zType="refresh"></z-icon>
-          {{ 'XP.Role.SyncDefaults' | translate: { Default: 'Sync Defaults' } }}
-        </button>
-      }
-
-      <button z-button zType="default" type="button" zSize="sm" class="self-start" (click)="create()">
-        <z-icon zType="add"></z-icon>
-        {{ 'XP.MODEL.AccessControl.NewRole' | translate: { Default: 'New Role' } }}
-      </button>
-    </div>
-  </div>
-</div>
-
-<div class="xp-page-body">
-  @if (roles$ | async; as roles) {
-    <div class="grid grid-cols-1 gap-4 p-4 xl:grid-cols-12">
-      <z-card
-        class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none xl:col-span-3 2xl:col-span-3"
-      >
-        <z-card-header class="items-center border-b border-divider-regular py-5">
-          <div class="min-w-0">
-            <z-card-title>
-              {{ 'XP.Role.RoleList' | translate: { Default: 'Role List' } }}
-            </z-card-title>
-          </div>
-        </z-card-header>
-
-        <z-card-content class="p-2">
-          <z-radio-group
-            class="flex flex-col gap-1"
-            displayDensity="cosy"
-            [ngModel]="role?.id"
-            (ngModelChange)="onSelectedRoleId($event, roles)"
-          >
-            @for (option of roles; track option.id) {
-              <div
-                class="group flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-components-panel-bg"
-                [ngClass]="role?.id === option.id ? 'bg-components-panel-bg' : ''"
-              >
-                <z-radio class="min-w-0 flex-1 font-semibold text-text-primary" [value]="option.id">
-                  <span class="block min-w-0 truncate">
-                    {{ option.name }}
-                  </span>
-                </z-radio>
-
-                <div class="flex shrink-0 items-center gap-2">
-                  @if (!option.isSystem) {
-                    <button
-                      z-button
-                      zType="ghost"
-                      zSize="icon-xs"
-                      zShape="circle"
-                      type="button"
-                      class="opacity-0 transition-opacity group-hover:opacity-100"
-                      [zTooltip]="'XP.ACTIONS.Delete' | translate: { Default: 'Delete' }"
-                      (click)="$event.stopPropagation(); remove(option)"
-                    >
-                      <z-icon zType="delete"></z-icon>
-                    </button>
-                  }
-
-                  @if (role?.id === option.id) {
-                    <z-icon zType="chevron_right" class="shrink-0 text-text-secondary"></z-icon>
-                  }
-                </div>
-              </div>
-            } @empty {
-              <div class="flex flex-col items-center justify-center gap-3 px-4 py-12 text-center">
-                <div
-                  class="flex h-12 w-12 items-center justify-center rounded-full bg-components-panel-bg text-text-tertiary"
-                >
-                  <z-icon zType="shield"></z-icon>
-                </div>
-                <div class="text-sm font-semibold text-text-primary">
-                  {{ 'XP.Role.NoRoles' | translate: { Default: 'No roles yet' } }}
-                </div>
-                <div class="max-w-xs text-sm text-text-tertiary">
-                  {{
-                    'XP.Role.NoRolesHint'
-                      | translate
-                        : { Default: 'Create a role to start configuring role-based access for your organization.' }
-                  }}
-                </div>
-                <button z-button zType="default" type="button" zSize="sm" (click)="create()">
-                  <z-icon zType="add"></z-icon>
-                  {{ 'XP.MODEL.AccessControl.NewRole' | translate: { Default: 'New Role' } }}
-                </button>
-              </div>
-            }
-          </z-radio-group>
-        </z-card-content>
-      </z-card>
-
-      <div class="min-w-0 space-y-4 xl:col-span-9 2xl:col-span-9" [class.opacity-70]="loading">
-        @if (role) {
-          <z-card class="overflow-hidden border-0 bg-components-card-bg shadow-none">
-            <z-card-header class="items-center gap-4 py-5">
-              <div class="flex w-full flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <div class="min-w-0">
-                  <z-card-title class="truncate text-2xl font-semibold text-text-primary">
-                    {{ role.name }}
-                  </z-card-title>
-                  <z-card-subtitle class="mt-1 flex flex-wrap items-center gap-2 text-sm text-text-tertiary">
-                    <span>
-                      {{ enabledPermissionCount(allPermissions()) }} / {{ allPermissions().length }}
-                      {{ 'XP.Role.EnabledPermissions' | translate: { Default: 'enabled permissions' } }}
-                    </span>
-                  </z-card-subtitle>
-                </div>
-
-                <div class="flex shrink-0 items-center gap-2 self-start lg:self-auto">
-                  <button
-                    z-button
-                    zType="ghost"
-                    zSize="icon-sm"
-                    zShape="circle"
-                    type="button"
-                    [zTooltip]="'XP.ACTIONS.Rename' | translate: { Default: 'Rename' }"
-                    [disabled]="role.isSystem"
-                    (click)="rename(role)"
-                  >
-                    <z-icon zType="edit"></z-icon>
-                  </button>
-
-                  <z-divider vertical style="height: 20px"></z-divider>
-
-                  <button
-                    z-button
-                    zType="destructive"
-                    zSize="icon-sm"
-                    zShape="circle"
-                    type="button"
-                    [zTooltip]="'XP.ACTIONS.Delete' | translate: { Default: 'Delete' }"
-                    [disabled]="role.isSystem"
-                    (click)="remove(role)"
-                  >
-                    <z-icon zType="delete"></z-icon>
-                  </button>
-                </div>
-              </div>
-            </z-card-header>
-          </z-card>
-
-          <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
-            <z-card class="min-w-0 overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
-              <z-card-header class="items-center border-b border-divider-regular py-5">
-                <div class="flex w-full items-center justify-between gap-3">
-                  <div class="min-w-0">
-                    <z-card-title>
-                      {{ 'XP.MENU.Roles.General' | translate: { Default: 'General' } }}
-                    </z-card-title>
-                  </div>
-
-                  <div class="text-sm text-text-tertiary">
-                    {{ enabledPermissionCount(permissionGroups.GENERAL) }} / {{ permissionGroups.GENERAL.length }}
-                  </div>
-                </div>
-              </z-card-header>
-
-              <z-card-content class="p-2">
-                <ul role="list" class="space-y-1">
-                  @for (permission of permissionGroups.GENERAL; track permission) {
-                    <li
-                      role="listitem"
-                      class="rounded-lg px-3 py-2 hover:bg-hover-bg"
-                      [class.opacity-60]="isDisabledGeneralPermissions()"
-                    >
-                      <z-checkbox
-                        class="w-full items-center"
-                        displayDensity="cosy"
-                        labelClass="flex-1 text-sm leading-5 text-text-primary"
-                        [zDisabled]="isDisabledGeneralPermissions()"
-                        [ngModel]="enabledPermissions[permission]"
-                        (checkChange)="permissionChanged(permission, $event)"
-                      >
-                        <span class="inline-flex min-w-0 items-center leading-5 align-middle">
-                          <span
-                            class="min-w-0 truncate"
-                            [class]="
-                              isDeprecatedPermission(permission) ? 'line-through decoration-2 decoration-current' : ''
-                            "
-                          >
-                            {{ 'XP.ORGANIZATIONS_PAGE.PERMISSIONS.' + permission | translate: { Default: permission } }}
-                            @if (isDeprecatedPermission(permission)) {
-                              {{ 'XP.KEY_WORDS.DeprecatedSuffix' | translate: { Default: ' (Deprecated)' } }}
-                            }
-                          </span>
-                          @if (isDeprecatedPermission(permission)) {
-                            <z-icon
-                              zType="triangle-alert"
-                              class="ml-1 size-4 shrink-0 text-text-warning"
-                              [zTooltip]="'XP.KEY_WORDS.Deprecated' | translate: { Default: 'Deprecated' }"
-                              zPosition="top"
-                            />
-                          }
-                        </span>
-                      </z-checkbox>
-                    </li>
-                  }
-                </ul>
-              </z-card-content>
-            </z-card>
-
-            <z-card class="min-w-0 overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
-              <z-card-header class="items-center border-b border-divider-regular py-5">
-                <div class="flex w-full items-center justify-between gap-3">
-                  <div class="min-w-0">
-                    <z-card-title>
-                      {{ 'XP.MENU.Roles.Administration' | translate: { Default: 'Administration' } }}
-                    </z-card-title>
-                  </div>
-
-                  <div class="text-sm text-text-tertiary">
-                    {{ enabledPermissionCount(getAdministrationPermissions()) }} /
-                    {{ getAdministrationPermissions().length }}
-                  </div>
-                </div>
-              </z-card-header>
-
-              <z-card-content class="p-2">
-                <ul role="list" class="space-y-1">
-                  @for (permission of getAdministrationPermissions(); track permission) {
-                    <li
-                      role="listitem"
-                      class="rounded-lg px-3 py-2 hover:bg-hover-bg"
-                      [class.opacity-60]="isDisabledAdministrationPermissions()"
-                    >
-                      <z-checkbox
-                        class="w-full items-center"
-                        displayDensity="cosy"
-                        labelClass="flex-1 text-sm leading-5 text-text-primary"
-                        [zDisabled]="isDisabledAdministrationPermissions()"
-                        [ngModel]="enabledPermissions[permission]"
-                        (checkChange)="permissionChanged(permission, $event)"
-                      >
-                        <span class="inline-flex min-w-0 items-center leading-5 align-middle">
-                          <span
-                            class="min-w-0 truncate"
-                            [class]="
-                              isDeprecatedPermission(permission) ? 'line-through decoration-2 decoration-current' : ''
-                            "
-                          >
-                            {{ 'XP.ORGANIZATIONS_PAGE.PERMISSIONS.' + permission | translate: { Default: permission } }}
-                            @if (isDeprecatedPermission(permission)) {
-                              {{ 'XP.KEY_WORDS.DeprecatedSuffix' | translate: { Default: ' (Deprecated)' } }}
-                            }
-                          </span>
-                          @if (isDeprecatedPermission(permission)) {
-                            <z-icon
-                              zType="triangle-alert"
-                              class="ml-1 size-4 shrink-0 text-text-warning"
-                              [zTooltip]="'XP.KEY_WORDS.Deprecated' | translate: { Default: 'Deprecated' }"
-                              zPosition="top"
-                            />
-                          }
-                        </span>
-                      </z-checkbox>
-                    </li>
-                  }
-                </ul>
-              </z-card-content>
-            </z-card>
-          </div>
-        } @else {
-          <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
-            <z-card-content class="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
-              <div class="text-lg font-semibold text-text-primary">
-                {{ 'XP.Role.NoRoleSelected' | translate: { Default: 'Select a role' } }}
-              </div>
-              <div class="max-w-md text-sm text-text-tertiary">
-                {{
-                  'XP.Role.NoRoleSelectedHint'
-                    | translate
-                      : {
-                          Default:
-                            'Choose a role from the list to review permissions, rename it, or manage its access scope.'
-                        }
-                }}
-              </div>
-            </z-card-content>
-          </z-card>
-        }
+<div class="mx-auto w-full max-w-6xl px-4 py-6 text-foreground sm:px-6 lg:px-8 lg:py-8">
+  @if (!requestedRoleId()) {
+    <header class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div>
+        <h1 class="text-2xl font-semibold tracking-tight">{{ 'XP.RoleWorkspace.Title' | translate }}</h1>
+        <p class="mt-2 text-sm text-muted-foreground">{{ 'XP.RoleWorkspace.Description' | translate }}</p>
       </div>
+      <div class="flex flex-wrap items-center gap-2">
+        @if (isTenantScope()) {
+          <button
+            z-button
+            zType="outline"
+            type="button"
+            [zDisabled]="syncingDefaults"
+            (click)="syncDefaultPermissions()"
+          >
+            <z-icon zType="refresh-cw" class="size-4" [class.animate-spin]="syncingDefaults" />
+            {{ 'XP.Role.SyncDefaults' | translate }}
+          </button>
+        }
+        <button z-button type="button" (click)="create()">
+          <z-icon zType="plus" class="size-4" />{{ 'XP.Role.CreateTitle' | translate }}
+        </button>
+      </div>
+    </header>
+    <div class="mb-4 flex items-center justify-between gap-3">
+      <div class="relative w-full max-w-sm">
+        <z-icon
+          zType="search"
+          class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+        />
+        <input
+          z-input
+          class="pl-9"
+          [ngModel]="directoryQuery()"
+          (ngModelChange)="directoryQuery.set($event)"
+          [attr.aria-label]="'XP.RoleWorkspace.SearchRoles' | translate"
+          [placeholder]="'XP.RoleWorkspace.SearchRoles' | translate"
+        />
+      </div>
+      <span class="shrink-0 text-xs text-muted-foreground" aria-live="polite">{{
+        'XP.RoleWorkspace.RoleCount' | translate: { count: filteredRoles().length }
+      }}</span>
+    </div>
+  } @else {
+    <div class="mb-6 flex flex-wrap items-center justify-between gap-3">
+      <a
+        z-button
+        zType="ghost"
+        [routerLink]="[]"
+        [queryParams]="{ role: null }"
+        queryParamsHandling="merge"
+        class="-ml-3"
+      >
+        <z-icon zType="arrow-left" class="size-4" />{{ 'XP.RoleWorkspace.AllRoles' | translate }}
+      </a>
+      <z-combobox
+        class="w-48 max-w-full"
+        [options]="roleOptions()"
+        [ngModel]="requestedRoleId()"
+        (ngModelChange)="selectRole($event)"
+        [zClearable]="false"
+        [ariaLabel]="'XP.RoleWorkspace.SwitchRole' | translate"
+        [searchPlaceholder]="'XP.RoleWorkspace.SearchRoles' | translate"
+      />
     </div>
   }
-</div>
 
-<ng-template #roleNameDialog let-dialogRef="dialogRef">
-  <div xpDialogLayout="standard">
-    <header xpDialogHeader>
-      <h2 xpDialogHeading id="role-name-dialog-title">{{ roleNameDialogTitle }}</h2>
+  @if (rolesError()) {
+    <div class="rounded-xl border border-border p-8 text-center" role="alert">
+      <h2 class="font-medium">{{ 'XP.RoleWorkspace.RolesLoadError' | translate }}</h2>
+      <p class="my-3 text-sm text-muted-foreground">{{ rolesError() }}</p>
+      <button z-button zType="outline" (click)="refresh()">{{ 'XP.RoleWorkspace.Retry' | translate }}</button>
+    </div>
+  } @else if (rolesLoading() && !roles().length) {
+    <div class="flex justify-center gap-2 py-16 text-sm text-muted-foreground" role="status">
+      <z-icon zType="loader-circle" class="size-4 animate-spin" />{{ 'XP.RoleWorkspace.LoadingRoles' | translate }}
+    </div>
+  } @else if (!requestedRoleId()) {
+    <div class="overflow-hidden rounded-xl border border-border">
+      <table z-table zSize="compact" class="w-full">
+        <thead z-table-header>
+          <tr z-table-row>
+            <th z-table-head class="px-4">{{ 'XP.RoleWorkspace.Role' | translate }}</th>
+            <th z-table-head class="hidden sm:table-cell">{{ 'XP.RoleWorkspace.Management' | translate }}</th>
+            <th z-table-head class="px-4">
+              <span class="block text-right">{{ 'XP.RoleWorkspace.Actions' | translate }}</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody z-table-body>
+          @for (item of filteredRoles(); track item.id) {
+            <tr z-table-row>
+              <td z-table-cell class="px-4 py-4">
+                <a
+                  [routerLink]="[]"
+                  [queryParams]="{ role: item.id }"
+                  queryParamsHandling="merge"
+                  class="group flex min-w-0 items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <span
+                    class="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"
+                    ><z-icon [zType]="isReadonlyRole(item) ? icons.ShieldCheck : 'shield'" class="size-5"
+                  /></span>
+                  <span class="min-w-0"
+                    ><span class="block break-all font-medium group-hover:underline">{{ roleLabel(item) }}</span>
+                    @if (roleLabel(item) !== item.name) {
+                      <span class="mt-0.5 block break-all text-xs text-muted-foreground">{{ item.name }}</span>
+                    }
+                  </span>
+                </a>
+              </td>
+              <td z-table-cell class="hidden sm:table-cell">
+                <span
+                  class="inline-flex items-center gap-1.5 rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground"
+                  ><z-icon
+                    [zType]="isReadonlyRole(item) ? icons.LockKeyhole : icons.SlidersHorizontal"
+                    class="size-3.5"
+                  />{{
+                    (isReadonlyRole(item) ? 'XP.RoleWorkspace.Readonly' : 'XP.RoleWorkspace.Configurable') | translate
+                  }}</span
+                >
+              </td>
+              <td z-table-cell class="px-4 text-right">
+                <a
+                  z-button
+                  zType="ghost"
+                  zSize="sm"
+                  [routerLink]="[]"
+                  [queryParams]="{ role: item.id }"
+                  queryParamsHandling="merge"
+                  [attr.aria-label]="('XP.RoleWorkspace.ViewPermissions' | translate) + ': ' + roleLabel(item)"
+                >
+                  <span class="hidden sm:inline">{{ 'XP.RoleWorkspace.ViewPermissions' | translate }}</span
+                  ><z-icon zType="arrow-up-right" class="size-4" />
+                </a>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="3" class="px-4 py-12 text-center">
+                <h2 class="font-medium">
+                  {{ (directoryQuery() ? 'XP.RoleWorkspace.NoRolesFound' : 'XP.Role.NoRoles') | translate }}
+                </h2>
+                @if (directoryQuery()) {
+                  <button z-button zType="ghost" class="mt-3" (click)="directoryQuery.set('')">
+                    {{ 'XP.RoleWorkspace.ClearSearch' | translate }}
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <p class="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
+      <z-icon zType="info" class="size-3.5" />{{ 'XP.RoleWorkspace.DirectoryHint' | translate }}
+    </p>
+  } @else if (role(); as selected) {
+    <header class="mb-5 flex items-start justify-between gap-3">
+      <div class="flex min-w-0 items-center gap-3 sm:gap-4">
+        <span class="flex size-12 shrink-0 items-center justify-center rounded-xl border border-border bg-muted/50"
+          ><z-icon [zType]="readonlyRole() ? icons.ShieldCheck : 'shield'" class="size-6"
+        /></span>
+        <div class="min-w-0">
+          <h1 class="break-all text-2xl font-semibold tracking-tight">{{ roleLabel(selected) }}</h1>
+          <div class="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            <code class="break-all">{{ selected.name }}</code>
+            @if (!permissionsLoading() && !permissionsError()) {
+              <span
+                >{{ enabledCount() }} / {{ permissionRows().length }}
+                {{ 'XP.RoleWorkspace.Status.enabled' | translate }}</span
+              >
+            }
+          </div>
+        </div>
+      </div>
       <button
         z-button
         zType="ghost"
         zSize="icon"
-        xpDialogCloseButton
-        type="button"
-        [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
-        (click)="dialogRef.close(null)"
+        z-menu
+        [zMenuTriggerFor]="roleMenu"
+        [zMenuTriggerData]="{ item: selected }"
+        [attr.aria-label]="'XP.RoleWorkspace.RoleActions' | translate"
       >
-        <z-icon zType="x" />
+        <z-icon zType="ellipsis" />
       </button>
     </header>
-    <div xpDialogBody>
-      <label class="flex flex-col gap-2">
-        <span class="font-medium text-muted-foreground">{{ roleNameDialogLabel }}</span>
-        <input
+    @if (readonlyRole()) {
+      <div class="mb-6 flex items-start gap-3 rounded-lg border border-border bg-muted/40 px-4 py-3">
+        <z-icon [zType]="icons.LockKeyhole" class="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+        <div>
+          <p class="text-sm font-medium">{{ 'XP.RoleWorkspace.ReadonlyTitle' | translate }}</p>
+          <p class="mt-1 text-xs leading-5 text-muted-foreground">{{ 'XP.RoleWorkspace.ReadonlyHint' | translate }}</p>
+        </div>
+      </div>
+    } @else {
+      <p class="mb-5 flex items-start gap-2 text-xs leading-5 text-muted-foreground">
+        <z-icon [zType]="icons.CheckCheck" class="mt-0.5 size-4 shrink-0" />{{
+          (administrationReadonly() ? 'XP.RoleWorkspace.AdminReadonlyHint' : 'XP.RoleWorkspace.AutoSave') | translate
+        }}
+      </p>
+    }
+    <nav
+      z-tab-nav-bar
+      class="w-full overflow-x-auto border-b border-border"
+      color="accent"
+      alignTabs="start"
+      stretchTabs="false"
+      disableRipple
+      [attr.aria-label]="'XP.RoleWorkspace.PermissionCatalog' | translate"
+    >
+      <button z-tab-link type="button" [active]="activeTab() === 'active'" (click)="setTab('active')">
+        {{ 'XP.RoleWorkspace.Permissions' | translate
+        }}<span class="ml-2 rounded-md bg-muted px-1.5 text-xs text-muted-foreground">{{ activeCount() }}</span>
+      </button>
+      <button z-tab-link type="button" [active]="activeTab() === 'deprecated'" (click)="setTab('deprecated')">
+        {{ 'XP.RoleWorkspace.Deprecated' | translate
+        }}<span class="ml-2 rounded-md bg-muted px-1.5 text-xs text-muted-foreground">{{ deprecatedCount() }}</span>
+      </button>
+    </nav>
+    @if (activeTab() === 'deprecated') {
+      <p class="mt-4 flex items-start gap-2 text-xs leading-5 text-muted-foreground">
+        <z-icon zType="archive" class="mt-0.5 size-4 shrink-0" />{{ 'XP.RoleWorkspace.DeprecatedHint' | translate }}
+      </p>
+    }
+    <div class="my-5 flex flex-col gap-2 sm:flex-row">
+      <div class="relative min-w-0 flex-1">
+        <z-icon
+          zType="search"
+          class="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
+        /><input
           z-input
-          type="text"
-          autocomplete="off"
-          [(ngModel)]="roleNameDraft"
-          (keydown.enter)="roleNameDraft.trim() && dialogRef.close(roleNameDraft.trim())"
+          class="pl-9"
+          [ngModel]="query()"
+          (ngModelChange)="setQuery($event)"
+          [attr.aria-label]="'XP.RoleWorkspace.SearchPermissions' | translate"
+          [placeholder]="'XP.RoleWorkspace.SearchPermissions' | translate"
         />
-      </label>
+      </div>
+      <div class="grid grid-cols-2 gap-2 sm:flex">
+        <z-combobox
+          zWidth="full"
+          class="min-w-0 sm:w-40"
+          [options]="moduleOptions()"
+          [ngModel]="moduleFilter()"
+          (ngModelChange)="setModule($event)"
+          [searchable]="false"
+          [zClearable]="false"
+          [ariaLabel]="'XP.RoleWorkspace.ModuleFilter' | translate"
+        />
+        <z-combobox
+          zWidth="full"
+          class="min-w-0 sm:w-32"
+          [options]="statusOptions()"
+          [ngModel]="statusFilter()"
+          (ngModelChange)="setStatus($event)"
+          [searchable]="false"
+          [zClearable]="false"
+          [ariaLabel]="'XP.RoleWorkspace.StatusFilter' | translate"
+        />
+      </div>
     </div>
-    <footer xpDialogFooter>
-      <button z-button zType="outline" type="button" (click)="dialogRef.close(null)">
-        {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
-      </button>
-      <button
-        z-button
-        zType="default"
-        type="button"
-        [zDisabled]="!roleNameDraft.trim()"
-        (click)="dialogRef.close(roleNameDraft.trim())"
+    @if (permissionsLoading()) {
+      <div class="flex justify-center gap-2 py-12 text-sm text-muted-foreground" role="status">
+        <z-icon zType="loader-circle" class="size-4 animate-spin" />{{
+          'XP.RoleWorkspace.LoadingPermissions' | translate
+        }}
+      </div>
+    } @else if (permissionsError()) {
+      <div class="rounded-xl border border-border p-8 text-center" role="alert">
+        <h2 class="font-medium">{{ 'XP.RoleWorkspace.PermissionsLoadError' | translate }}</h2>
+        <p class="my-3 text-sm text-muted-foreground">{{ permissionsError() }}</p>
+        <button z-button zType="outline" (click)="loadPermissions()">{{ 'XP.RoleWorkspace.Retry' | translate }}</button>
+      </div>
+    } @else {
+      <div
+        class="mb-2 grid grid-cols-[minmax(0,1fr)_auto] gap-4 px-4 text-xs text-muted-foreground sm:grid-cols-[minmax(0,1fr)_6rem_8rem]"
       >
-        {{ roleNameDialogAction }}
+        <span>{{ 'XP.RoleWorkspace.Permissions' | translate }}</span
+        ><span class="hidden sm:block">{{ 'XP.RoleWorkspace.Category' | translate }}</span
+        ><span class="text-right">{{ 'XP.RoleWorkspace.State' | translate }}</span>
+      </div>
+      <z-accordion [multi]="true" displayMode="flat" displayDensity="compact" class="space-y-3">
+        @for (group of groups(); track group.id) {
+          <z-accordion-item
+            [zValue]="group.id"
+            [expanded]="!collapsedModules().has(group.id)"
+            (expandedChange)="setExpanded(group.id, $event)"
+            class="overflow-hidden rounded-lg border border-border"
+          >
+            <z-accordion-header class="bg-muted/40 px-4">
+              <span class="flex flex-1 items-center gap-2 text-sm font-medium"
+                ><z-icon [zType]="moduleIcons[group.id]" class="size-4 shrink-0 text-muted-foreground" />{{
+                  'XP.RoleWorkspace.Modules.' + group.id | translate
+                }}<span class="ml-auto text-xs font-normal tabular-nums text-muted-foreground"
+                  >{{ group.enabled }} / {{ group.rows.length }}
+                  {{ 'XP.RoleWorkspace.Status.enabled' | translate }}</span
+                ></span
+              >
+            </z-accordion-header>
+            <ng-template zAccordionContent>
+              <div class="-mx-4 -mb-3">
+                @for (row of group.rows; track row.id) {
+                  <div
+                    class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1 border-t border-border/60 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_6rem_8rem]"
+                    [attr.data-permission]="row.id"
+                  >
+                    <span class="min-w-0 break-words text-sm" [zTooltip]="row.id" zPosition="top">{{ row.label }}</span>
+                    <span
+                      class="col-start-1 row-start-2 inline-flex items-center gap-1 text-xs text-muted-foreground sm:col-start-auto sm:row-start-auto"
+                    >
+                      @if (row.administration) {
+                        <z-icon zType="shield" class="size-3" />
+                      }
+                      {{
+                        (row.administration ? 'XP.RoleWorkspace.Administration' : 'XP.RoleWorkspace.General')
+                          | translate
+                      }}
+                    </span>
+                    <div
+                      class="col-start-2 row-span-2 row-start-1 flex min-h-8 items-center justify-end gap-2 sm:col-start-auto sm:row-span-1 sm:row-start-auto"
+                    >
+                      @if (readonlyRole() || (row.administration && administrationReadonly())) {
+                        <span
+                          class="inline-flex items-center gap-1.5 text-xs"
+                          [class.text-muted-foreground]="!row.enabled"
+                          [zTooltip]="
+                            (readonlyRole() ? 'XP.RoleWorkspace.ReadonlyTitle' : 'XP.RoleWorkspace.AdminOnly')
+                              | translate
+                          "
+                          ><z-icon [zType]="row.enabled ? 'check' : 'minus'" class="size-3.5" />{{
+                            (row.enabled ? 'XP.RoleWorkspace.Status.enabled' : 'XP.RoleWorkspace.Status.disabled')
+                              | translate
+                          }}
+                          @if (!readonlyRole()) {
+                            <z-icon [zType]="icons.LockKeyhole" class="size-3" />
+                          }
+                        </span>
+                      } @else {
+                        <span class="hidden text-xs text-muted-foreground sm:inline" aria-live="polite">{{
+                          (savingPermission() === row.id
+                            ? 'XP.RoleWorkspace.Saving'
+                            : row.enabled
+                              ? 'XP.RoleWorkspace.Status.enabled'
+                              : 'XP.RoleWorkspace.Status.disabled'
+                          ) | translate
+                        }}</span>
+                        <z-switch
+                          [ngModel]="row.enabled"
+                          [disabled]="!!savingPermission()"
+                          (change)="permissionChanged(row.id, $event.checked, $event.source)"
+                          labelClass="sr-only"
+                          >{{ row.label }}</z-switch
+                        >
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+            </ng-template>
+          </z-accordion-item>
+        } @empty {
+          <div class="rounded-xl border border-dashed border-border px-4 py-12 text-center">
+            <z-icon zType="search" class="mx-auto mb-3 size-6 text-muted-foreground" />
+            <h2 class="text-sm font-medium">{{ 'XP.RoleWorkspace.NoPermissionsFound' | translate }}</h2>
+            <p class="my-2 text-xs text-muted-foreground">{{ 'XP.RoleWorkspace.NoPermissionsHint' | translate }}</p>
+            <button z-button zType="outline" class="mt-2" (click)="clearFilters()">
+              {{ 'XP.RoleWorkspace.ClearFilters' | translate }}
+            </button>
+          </div>
+        }
+      </z-accordion>
+      <div
+        class="mt-4 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground"
+        aria-live="polite"
+      >
+        <span>{{ 'XP.RoleWorkspace.PermissionCount' | translate: { count: filteredPermissions().length } }}</span>
+        @if (hasFilters()) {
+          <button z-button zType="ghost" zSize="sm" (click)="clearFilters()">
+            {{ 'XP.RoleWorkspace.ClearFilters' | translate }}
+          </button>
+        } @else {
+          <span>{{
+            (activeTab() === 'active' ? 'XP.RoleWorkspace.DeprecatedMoved' : 'XP.RoleWorkspace.HistoryPreserved')
+              | translate
+          }}</span>
+        }
+      </div>
+    }
+  } @else {
+    <div class="py-16 text-center text-sm text-muted-foreground" role="status">
+      {{ 'XP.RoleWorkspace.RoleNotFound' | translate }}
+    </div>
+  }
+  <ng-template #roleMenu let-item="item">
+    <div z-menu-content>
+      <button z-menu-item [zDisabled]="item.isSystem" (menuItemTriggered)="rename(item)">
+        <z-icon zType="pencil" class="size-4" />{{ 'XP.ACTIONS.Rename' | translate }}
       </button>
-    </footer>
-  </div>
-</ng-template>
+      <button z-menu-item zType="destructive" [zDisabled]="item.isSystem" (menuItemTriggered)="remove(item)">
+        <z-icon zType="trash-2" class="size-4" />{{ 'XP.Role.DeleteTitle' | translate }}
+      </button>
+    </div>
+  </ng-template>
+  <ng-template #roleNameDialog let-dialogRef="dialogRef">
+    <div xpDialogLayout="standard">
+      <header xpDialogHeader>
+        <h2 xpDialogHeading id="role-name-dialog-title">{{ roleNameDialogTitle }}</h2>
+        <button
+          z-button
+          zType="ghost"
+          zSize="icon"
+          xpDialogCloseButton
+          type="button"
+          [attr.aria-label]="'XP.ACTIONS.Close' | translate: { Default: 'Close' }"
+          (click)="dialogRef.close(null)"
+        >
+          <z-icon zType="x" />
+        </button>
+      </header>
+      <div xpDialogBody>
+        <label for="role-name" class="flex flex-col gap-2">
+          <span class="font-medium text-muted-foreground">{{ roleNameDialogLabel }}</span>
+          <input
+            z-input
+            id="role-name"
+            type="text"
+            autocomplete="off"
+            [(ngModel)]="roleNameDraft"
+            (keydown.enter)="roleNameDraft.trim() && dialogRef.close(roleNameDraft.trim())"
+          />
+        </label>
+      </div>
+      <footer xpDialogFooter>
+        <button z-button zType="outline" type="button" (click)="dialogRef.close(null)">
+          {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+        </button>
+        <button
+          z-button
+          zType="default"
+          type="button"
+          [zDisabled]="!roleNameDraft.trim()"
+          (click)="dialogRef.close(roleNameDraft.trim())"
+        >
+          {{ roleNameDialogAction }}
+        </button>
+      </footer>
+    </div>
+  </ng-template>
+</div>

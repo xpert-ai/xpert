@@ -1,3 +1,4 @@
+import { resolveI18nText } from '@xpert-ai/contracts'
 // One official Git snapshot supplies the whole batch. An organization lock serializes retries;
 // content digests reuse imported versions, while each package failure leaves the rest importable.
 import { BadRequestException, ConflictException } from '@nestjs/common'
@@ -67,21 +68,22 @@ export class ImportDefaultAgentPluginsHandler implements ICommandHandler<ImportD
                 (await this.plugins.packages.find({ where: agentPluginScopeWhere(scope) })).map((pkg) => pkg.digest)
             )
             const result: DefaultAgentPluginsImportResult = { commit: staged.commit, items: [] }
-            for (const { id } of manifest.plugins) {
+            for (const { id, path } of manifest.plugins) {
                 try {
-                    const root = await containedPath(staged.root, id)
+                    const directory = path ?? id
+                    const root = await containedPath(staged.root, directory)
                     const pkg = await this.plugins.importStagedDirectory(root, {
                         kind: 'git',
                         url: source.url,
                         ref: staged.commit,
                         commit: staged.commit,
-                        subdirectory: `${source.subdirectory}/${id}`
+                        subdirectory: `${source.subdirectory}/${directory}`
                     })
                     result.items.push({
                         id,
                         packageId: pkg.id,
                         status: existing.has(pkg.digest) ? 'existing' : 'imported',
-                        title: pkg.descriptor.extension?.interface?.displayName || pkg.descriptor.name,
+                        title: resolveI18nText(pkg.descriptor.extension?.interface?.displayName) || pkg.descriptor.name,
                         diagnosticCount: pkg.descriptor.diagnostics.length
                     })
                     existing.add(pkg.digest)

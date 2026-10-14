@@ -1051,7 +1051,7 @@ describe('XpertNewBlankComponent', () => {
 
     await component.createDirectly()
 
-    expect(xpertService.validateName).toHaveBeenCalledWith('template-agent')
+    expect(xpertService.validateName).toHaveBeenCalledWith(component.name())
     expect(skillPackageService.installRepositoryPackages).toHaveBeenCalledWith('workspace-1', 'repo-public')
     expect(xpertService.importDSL).toHaveBeenCalled()
   })
@@ -1303,7 +1303,7 @@ describe('XpertNewBlankComponent', () => {
 
     expect(templateService.getTemplate).toHaveBeenCalledWith('template-agent')
     expect(component.startStepInvalid()).toBe(false)
-    expect(component.name()).toBe('template-agent')
+    expect(component.name()).toMatch(/^assistant-[a-zA-Z0-9-]+$/)
     expect(component.title()).toBe('Template Agent')
     expect(component.description()).toBe('Template agent description')
     expect(component.selectedTriggers()).toEqual([
@@ -1361,7 +1361,7 @@ describe('XpertNewBlankComponent', () => {
     expect(component.startMode()).toBe('template')
     expect(component.selectedTemplateId()).toBe('@xpert-ai/plugin-salesclaw:salesclaw-business-assistant')
     expect(templateService.getTemplate).toHaveBeenCalledWith('@xpert-ai/plugin-salesclaw:salesclaw-business-assistant')
-    expect(component.name()).toBe('template-agent')
+    expect(component.name()).toMatch(/^assistant-[a-zA-Z0-9-]+$/)
     expect(component.title()).toBe('Template Agent')
     expect(component.description()).toBe('Template agent description')
 
@@ -1372,7 +1372,7 @@ describe('XpertNewBlankComponent', () => {
       expect.objectContaining({
         team: expect.objectContaining({
           latest: true,
-          name: 'template-agent',
+          name: component.name(),
           title: 'Template Agent',
           workspaceId: 'workspace-1'
         })
@@ -3036,7 +3036,7 @@ describe('XpertNewBlankComponent', () => {
     expect(xpertService.importDSL).toHaveBeenCalledWith(
       expect.objectContaining({
         team: expect.objectContaining({
-          name: 'template-agent',
+          name: component.name(),
           title: 'Template Agent',
           workspaceId: undefined
         })

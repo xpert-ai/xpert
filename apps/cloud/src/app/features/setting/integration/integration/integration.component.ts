@@ -4,7 +4,7 @@ import { IsDirty } from '@xpert-ai/headless-ui'
 import type { I18nObject, IIntegration, IconDefinition, XpertExtensionViewManifest } from '@xpert-ai/contracts'
 import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardDividerComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent, ZardBadgeComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { injectParams } from 'ngxtension/inject-params'
 import { of } from 'rxjs'
@@ -39,13 +39,15 @@ interface IntegrationShellTab {
   standalone: true,
   selector: 'xp-settings-integration',
   templateUrl: './integration.component.html',
-  styleUrls: ['./integration.component.scss'],
+  host: { class: 'relative flex min-h-0 w-full flex-1 flex-col' },
   imports: [
     RouterModule,
     TranslateModule,
     XpI18nPipe,
     IconComponent,
-    ZardDividerComponent,
+    ZardButtonComponent,
+    ZardIconComponent,
+    ZardBadgeComponent,
     ...ZardTabsImports,
     IntegrationConfigurationComponent,
     IntegrationExtensionViewComponent
@@ -120,10 +122,6 @@ export class IntegrationComponent implements IsDirty {
       : null
   })
   readonly pageTitle = computed(() => {
-    if (!this.viewKey()) {
-      return null
-    }
-
     const name = this.integration()?.name?.trim()
     return name || null
   })

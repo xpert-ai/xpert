@@ -8,6 +8,8 @@ import { WorkbenchAssistantMenuComponent } from './workbench-assistant-menu.comp
 import { ChatGroupService } from '../../../@core/services/chat-group.service'
 import { Dialog } from '@angular/cdk/dialog'
 
+jest.mock('../xpert/template-setup.component', () => ({ TemplateSetupComponent: class TemplateSetupComponent {} }))
+
 jest.mock('../../../@core', () => ({
   AssistantBindingService: class AssistantBindingService {},
   ScopeService: class ScopeService {},

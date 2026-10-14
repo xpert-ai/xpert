@@ -1,3 +1,4 @@
+import { CommandBus } from '@nestjs/cqrs'
 import { LanguagesEnum } from '@xpert-ai/contracts'
 import { Logger } from '@nestjs/common'
 import { Test } from '@nestjs/testing'
@@ -29,6 +30,7 @@ describe('XpertTemplateWorkspaceInitializer', () => {
         const moduleRef = await Test.createTestingModule({
             providers: [
                 XpertTemplateWorkspaceInitializer,
+                { provide: CommandBus, useValue: { execute: jest.fn() } },
                 { provide: XpertTemplateService, useValue: xpertTemplateService },
                 { provide: PromptWorkflowService, useValue: promptWorkflowService }
             ]
@@ -64,6 +66,7 @@ describe('XpertTemplateWorkspaceInitializer', () => {
         const moduleRef = await Test.createTestingModule({
             providers: [
                 XpertTemplateWorkspaceInitializer,
+                { provide: CommandBus, useValue: { execute: jest.fn() } },
                 { provide: XpertTemplateService, useValue: xpertTemplateService },
                 { provide: PromptWorkflowService, useValue: promptWorkflowService }
             ]

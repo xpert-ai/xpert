@@ -1,590 +1,574 @@
-<div
-  class="relative grid min-h-full grid-cols-1 gap-3 p-3 lg:h-full lg:min-h-0 lg:grid-cols-[18rem_minmax(0,1fr)] lg:overflow-hidden"
->
-  <section
-    class="flex max-h-[22rem] min-h-[18rem] flex-col overflow-hidden rounded-lg border border-divider-regular bg-components-card-bg lg:max-h-none lg:min-h-0"
-  >
-    <div class="border-b border-divider-regular px-4 py-4">
-      <div class="flex items-center justify-between gap-3">
-        <div class="min-w-0">
-          <h1 class="text-base font-semibold text-text-primary">
-            {{ 'XP.UserGroup.Title' | translate: { Default: 'User Groups' } }}
-          </h1>
-          @if (organization(); as organization) {
-            <div class="mt-1 flex min-w-0 items-center gap-1.5 text-xs text-text-tertiary">
-              <i class="ri-building-line shrink-0" aria-hidden="true"></i>
-              <span class="truncate">{{ organization.name }}</span>
-            </div>
-          }
-        </div>
-
-        <button
-          z-button
-          zType="default"
-          type="button"
-          zSize="sm"
-          class="min-h-10 shrink-0"
-          [disabled]="isBusy()"
-          (click)="startCreate()"
-        >
-          <i class="ri-add-line" aria-hidden="true"></i>
-          <span>{{ 'XP.ACTIONS.Add' | translate: { Default: 'Add' } }}</span>
-        </button>
-      </div>
-
-      <div class="mt-4 flex items-center justify-between text-xs text-text-tertiary">
-        <span>
-          {{ groups().length }}
-          {{ 'XP.UserGroup.Title' | translate: { Default: 'groups' } }}
-        </span>
-        @if (groupQuery()) {
-          <span>{{ filteredGroups().length }} / {{ groups().length }}</span>
-        }
-      </div>
-
-      <z-search-input
-        class="mt-2 w-full"
-        zSize="lg"
-        [value]="groupQuery()"
-        [aria-label]="'XP.UserGroup.SearchGroups' | translate: { Default: 'Search groups' }"
-        [placeholder]="'XP.UserGroup.SearchGroups' | translate: { Default: 'Search groups' }"
-        [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
-        (valueChange)="updateGroupQuery($event)"
-      />
-    </div>
-
-    <div class="min-h-0 flex-1 overflow-y-auto p-2">
-      @if (filteredGroups().length) {
-        <div class="flex flex-col gap-1">
-          @for (group of filteredGroups(); track group.id) {
-            <button
-              type="button"
-              class="group flex min-h-16 w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors"
-              [class.border-components-input-border-active]="selectedGroupId() === group.id"
-              [class.bg-components-list-option-active-bg]="selectedGroupId() === group.id"
-              [class.border-transparent]="selectedGroupId() !== group.id"
-              [class.hover:bg-hover-bg]="selectedGroupId() !== group.id"
-              [attr.aria-pressed]="selectedGroupId() === group.id"
-              (click)="openGroup(group.id)"
-            >
-              <span
-                class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-divider-regular bg-components-panel-bg text-xs font-semibold text-text-primary"
-              >
-                {{ groupInitials(group) }}
-              </span>
-
-              <span class="min-w-0 flex-1">
-                <span class="block truncate text-sm font-medium text-text-primary">{{ group.name }}</span>
-                <span class="mt-0.5 block truncate text-xs text-text-tertiary">
-                  @if (group.description?.trim()) {
-                    {{ group.description }}
-                  } @else {
-                    {{
-                      'XP.UserGroup.MemberCount'
-                        | translate: { Default: groupMemberCount(group) + ' members', count: groupMemberCount(group) }
-                    }}
-                  }
-                </span>
-              </span>
-
-              <span class="inline-flex shrink-0 items-center gap-1 text-xs text-text-tertiary">
-                <i class="ri-user-line" aria-hidden="true"></i>
-                {{ groupMemberCount(group) }}
-              </span>
-            </button>
-          }
-        </div>
-      } @else if (groups().length) {
-        <div class="flex min-h-40 flex-col items-center justify-center px-4 text-center">
-          <i class="ri-search-eye-line text-xl text-text-tertiary" aria-hidden="true"></i>
-          <div class="mt-2 text-sm font-medium text-text-primary">
-            {{ 'XP.UserGroup.NoMatchingGroups' | translate: { Default: 'No matching groups.' } }}
-          </div>
-        </div>
-      } @else {
-        <div class="flex min-h-48 flex-col items-center justify-center px-5 text-center">
-          <span
-            class="flex h-10 w-10 items-center justify-center rounded-lg bg-components-panel-bg text-lg text-text-secondary"
-          >
-            <i class="ri-group-line" aria-hidden="true"></i>
-          </span>
-          <div class="mt-3 text-sm font-medium text-text-primary">
-            {{ 'XP.UserGroup.CreateFirst' | translate: { Default: 'Create your first group' } }}
-          </div>
-          <div class="mt-1 max-w-52 text-xs leading-5 text-text-tertiary">
-            {{
-              'XP.UserGroup.FormHint' | translate: { Default: 'Bind organization users into a reusable access group.' }
-            }}
-          </div>
-        </div>
-      }
-    </div>
-  </section>
-
-  <section
-    class="flex min-h-[38rem] min-w-0 flex-col overflow-hidden rounded-lg border border-divider-regular bg-components-card-bg lg:min-h-0"
-  >
-    <header
-      class="flex flex-col gap-4 border-b border-divider-regular px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+<div class="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+  <header class="space-y-2">
+    <h1 class="text-2xl font-semibold tracking-tight">{{ 'XP.UserGroup.Title' | translate }}</h1>
+    <p class="text-sm text-muted-foreground">{{ 'XP.UserGroup.FormHint' | translate }}</p>
+  </header>
+  <div class="relative grid grid-cols-1 gap-6 lg:grid-cols-[17rem_minmax(0,1fr)]">
+    <section
+      class="flex max-h-96 min-h-48 flex-col overflow-hidden rounded-lg border border-border bg-card lg:max-h-[42rem] lg:min-h-0"
     >
-      <div class="min-w-0">
-        <div class="flex min-w-0 items-center gap-2">
-          <h2 class="truncate text-base font-semibold text-text-primary">
-            {{ name.getRawValue().trim() || ('XP.UserGroup.Create' | translate: { Default: 'Create Group' }) }}
-          </h2>
-        </div>
-        <div class="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-text-tertiary">
-          <span class="inline-flex items-center gap-1.5">
-            <i class="ri-user-line" aria-hidden="true"></i>
-            {{ selectedMemberCount() }} {{ 'XP.UserGroup.Members' | translate: { Default: 'members' } }}
-          </span>
-          <span class="inline-flex items-center gap-1.5">
-            <i class="ri-robot-2-line" aria-hidden="true"></i>
-            {{ selectedXpertCount() }}
-            {{ 'XP.UserGroup.XpertAccess' | translate: { Default: 'XPERT access' } }}
-          </span>
-        </div>
-      </div>
+      <div class="border-b border-border px-4 py-4">
+        <div class="flex items-center justify-between gap-3">
+          <div class="min-w-0">
+            <h2 class="text-base font-semibold text-text-primary">
+              {{ 'XP.UserGroup.Title' | translate: { Default: 'User Groups' } }}
+            </h2>
+            @if (organization(); as organization) {
+              <div class="mt-1 flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground">
+                <i class="ri-building-line shrink-0" aria-hidden="true"></i>
+                <span class="truncate">{{ organization.name }}</span>
+              </div>
+            }
+          </div>
 
-      <div class="flex shrink-0 items-center justify-end gap-2">
-        @if (!isNewGroup()) {
           <button
             z-button
-            zType="destructive"
+            zType="default"
+            type="button"
+            zSize="sm"
+            class="min-h-10 shrink-0"
+            [zDisabled]="isBusy()"
+            (click)="startCreate()"
+          >
+            <i class="ri-add-line" aria-hidden="true"></i>
+            <span>{{ 'XP.ACTIONS.Add' | translate: { Default: 'Add' } }}</span>
+          </button>
+        </div>
+
+        <div class="mt-4 flex items-center justify-between text-xs text-muted-foreground">
+          <span>
+            {{ groups().length }}
+            {{ 'XP.UserGroup.Title' | translate: { Default: 'groups' } }}
+          </span>
+          @if (groupQuery()) {
+            <span>{{ filteredGroups().length }} / {{ groups().length }}</span>
+          }
+        </div>
+
+        <z-search-input
+          class="mt-2 w-full"
+          zSize="default"
+          [value]="groupQuery()"
+          [aria-label]="'XP.UserGroup.SearchGroups' | translate: { Default: 'Search groups' }"
+          [placeholder]="'XP.UserGroup.SearchGroups' | translate: { Default: 'Search groups' }"
+          [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
+          (valueChange)="updateGroupQuery($event)"
+        />
+      </div>
+
+      <div class="min-h-0 flex-1 overflow-y-auto p-2">
+        @if (filteredGroups().length) {
+          <div class="flex flex-col gap-1">
+            @for (group of filteredGroups(); track group.id) {
+              <button
+                type="button"
+                class="group flex min-h-16 w-full items-center gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors"
+                [class.border-components-input-border-active]="selectedGroupId() === group.id"
+                [class.bg-components-list-option-active-bg]="selectedGroupId() === group.id"
+                [class.border-transparent]="selectedGroupId() !== group.id"
+                [class.hover:bg-hover-bg]="selectedGroupId() !== group.id"
+                [attr.aria-pressed]="selectedGroupId() === group.id"
+                (click)="openGroup(group.id)"
+              >
+                <span
+                  class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-components-panel-bg text-xs font-semibold text-text-primary"
+                >
+                  {{ groupInitials(group) }}
+                </span>
+
+                <span class="min-w-0 flex-1">
+                  <span class="block truncate text-sm font-medium text-text-primary">{{ group.name }}</span>
+                  <span class="mt-0.5 block truncate text-xs text-muted-foreground">
+                    @if (group.description?.trim()) {
+                      {{ group.description }}
+                    } @else {
+                      {{
+                        'XP.UserGroup.MemberCount'
+                          | translate: { Default: groupMemberCount(group) + ' members', count: groupMemberCount(group) }
+                      }}
+                    }
+                  </span>
+                </span>
+
+                <span class="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground">
+                  <i class="ri-user-line" aria-hidden="true"></i>
+                  {{ groupMemberCount(group) }}
+                </span>
+              </button>
+            }
+          </div>
+        } @else if (groups().length) {
+          <div class="flex min-h-40 flex-col items-center justify-center px-4 text-center">
+            <i class="ri-search-eye-line text-xl text-muted-foreground" aria-hidden="true"></i>
+            <div class="mt-2 text-sm font-medium text-text-primary">
+              {{ 'XP.UserGroup.NoMatchingGroups' | translate: { Default: 'No matching groups.' } }}
+            </div>
+          </div>
+        } @else {
+          <div class="flex min-h-28 flex-col lg:min-h-48 flex-col items-center justify-center px-5 text-center">
+            <span
+              class="flex h-10 w-10 items-center justify-center rounded-lg bg-components-panel-bg text-lg text-text-secondary"
+            >
+              <i class="ri-group-line" aria-hidden="true"></i>
+            </span>
+            <div class="mt-3 text-sm font-medium text-text-primary">
+              {{ 'XP.UserGroup.CreateFirst' | translate: { Default: 'Create your first group' } }}
+            </div>
+            <div class="mt-1 max-w-52 text-xs leading-5 text-muted-foreground">
+              {{
+                'XP.UserGroup.FormHint'
+                  | translate: { Default: 'Bind organization users into a reusable access group.' }
+              }}
+            </div>
+          </div>
+        }
+      </div>
+    </section>
+
+    <section class="flex min-h-0 min-w-0 flex-col overflow-hidden rounded-lg border border-border bg-card lg:min-h-0">
+      <header
+        class="flex flex-col gap-4 border-b border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <div class="min-w-0">
+          <div class="flex min-w-0 items-center gap-2">
+            <h2 class="truncate text-base font-semibold text-text-primary">
+              {{ name.getRawValue().trim() || ('XP.UserGroup.Create' | translate: { Default: 'Create Group' }) }}
+            </h2>
+          </div>
+          <div class="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+            <span class="inline-flex items-center gap-1.5">
+              <i class="ri-user-line" aria-hidden="true"></i>
+              {{ selectedMemberCount() }} {{ 'XP.UserGroup.Members' | translate: { Default: 'members' } }}
+            </span>
+            <span class="inline-flex items-center gap-1.5">
+              <i class="ri-robot-2-line" aria-hidden="true"></i>
+              {{ selectedXpertCount() }}
+              {{ 'XP.UserGroup.XpertAccess' | translate: { Default: 'XPERT access' } }}
+            </span>
+          </div>
+        </div>
+
+        <div class="flex shrink-0 items-center justify-end gap-2">
+          @if (!isNewGroup()) {
+            <button
+              z-button
+              zType="destructive"
+              type="button"
+              zSize="sm"
+              class="min-h-10"
+              [zDisabled]="isBusy()"
+              (click)="deleteSelected()"
+            >
+              <i class="ri-delete-bin-line" aria-hidden="true"></i>
+              <span>{{ 'XP.ACTIONS.Delete' | translate: { Default: 'Delete' } }}</span>
+            </button>
+          }
+
+          <button
+            z-button
+            zType="default"
             type="button"
             zSize="sm"
             class="min-h-10"
-            [disabled]="isBusy()"
-            (click)="deleteSelected()"
+            [zDisabled]="isBusy()"
+            (click)="save()"
           >
-            <i class="ri-delete-bin-line" aria-hidden="true"></i>
-            <span>{{ 'XP.ACTIONS.Delete' | translate: { Default: 'Delete' } }}</span>
+            <i class="ri-save-line" aria-hidden="true"></i>
+            <span>{{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}</span>
           </button>
-        }
+        </div>
+      </header>
 
-        <button
-          z-button
-          zType="default"
-          type="button"
-          zSize="sm"
-          class="min-h-10"
-          [disabled]="isBusy()"
-          (click)="save()"
+      <div class="border-b border-border px-3 pt-2">
+        <nav
+          z-tab-nav-bar
+          class="flex min-w-0 gap-1 overflow-x-auto"
+          [attr.aria-label]="'XP.UserGroup.WorkspaceTabsLabel' | translate: { Default: 'User group configuration' }"
         >
-          <i class="ri-save-line" aria-hidden="true"></i>
-          <span>{{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}</span>
-        </button>
+          <button
+            id="group-tab-details"
+            type="button"
+            z-tab-link
+            [active]="activePanel() === 'details'"
+            aria-controls="group-panel-content"
+            (click)="showPanel('details')"
+          >
+            <i class="ri-information-line" aria-hidden="true"></i>
+            <span>{{ 'XP.UserGroup.BasicInfo' | translate: { Default: 'Basic information' } }}</span>
+          </button>
+          <button
+            id="group-tab-members"
+            type="button"
+            z-tab-link
+            [active]="activePanel() === 'members'"
+            aria-controls="group-panel-content"
+            (click)="showPanel('members')"
+          >
+            <i class="ri-user-line" aria-hidden="true"></i>
+            <span>{{ 'XP.UserGroup.Members' | translate: { Default: 'Members' } }}</span>
+            <span class="rounded-md bg-components-panel-bg px-1.5 py-0.5 text-xs text-muted-foreground">
+              {{ selectedMemberCount() }}
+            </span>
+          </button>
+          <button
+            id="group-tab-xperts"
+            type="button"
+            z-tab-link
+            [active]="activePanel() === 'xperts'"
+            aria-controls="group-panel-content"
+            (click)="showPanel('xperts')"
+          >
+            <i class="ri-robot-2-line" aria-hidden="true"></i>
+            <span>{{ 'XP.UserGroup.XpertAccess' | translate: { Default: 'XPERT access' } }}</span>
+            <span class="rounded-md bg-components-panel-bg px-1.5 py-0.5 text-xs text-muted-foreground">
+              {{ selectedXpertCount() }}
+            </span>
+          </button>
+        </nav>
       </div>
-    </header>
 
-    <div class="border-b border-divider-regular px-3 pt-2">
       <div
-        class="flex min-w-0 gap-1 overflow-x-auto"
-        role="tablist"
-        [attr.aria-label]="'XP.UserGroup.WorkspaceTabsLabel' | translate: { Default: 'User group configuration' }"
+        id="group-panel-content"
+        class="min-h-0 flex-1 overflow-y-auto"
+        role="tabpanel"
+        [attr.aria-labelledby]="'group-tab-' + activePanel()"
       >
-        <button
-          id="group-tab-details"
-          type="button"
-          role="tab"
-          class="inline-flex min-h-11 shrink-0 items-center gap-2 border-b-2 px-3 text-sm font-medium transition-colors"
-          [class.border-text-accent]="activePanel() === 'details'"
-          [class.text-text-primary]="activePanel() === 'details'"
-          [class.border-transparent]="activePanel() !== 'details'"
-          [class.text-text-tertiary]="activePanel() !== 'details'"
-          [attr.aria-selected]="activePanel() === 'details'"
-          aria-controls="group-panel-content"
-          (click)="showPanel('details')"
-        >
-          <i class="ri-information-line" aria-hidden="true"></i>
-          <span>{{ 'XP.UserGroup.BasicInfo' | translate: { Default: 'Basic information' } }}</span>
-        </button>
-        <button
-          id="group-tab-members"
-          type="button"
-          role="tab"
-          class="inline-flex min-h-11 shrink-0 items-center gap-2 border-b-2 px-3 text-sm font-medium transition-colors"
-          [class.border-text-accent]="activePanel() === 'members'"
-          [class.text-text-primary]="activePanel() === 'members'"
-          [class.border-transparent]="activePanel() !== 'members'"
-          [class.text-text-tertiary]="activePanel() !== 'members'"
-          [attr.aria-selected]="activePanel() === 'members'"
-          aria-controls="group-panel-content"
-          (click)="showPanel('members')"
-        >
-          <i class="ri-user-line" aria-hidden="true"></i>
-          <span>{{ 'XP.UserGroup.Members' | translate: { Default: 'Members' } }}</span>
-          <span class="rounded-md bg-components-panel-bg px-1.5 py-0.5 text-xs text-text-tertiary">
-            {{ selectedMemberCount() }}
-          </span>
-        </button>
-        <button
-          id="group-tab-xperts"
-          type="button"
-          role="tab"
-          class="inline-flex min-h-11 shrink-0 items-center gap-2 border-b-2 px-3 text-sm font-medium transition-colors"
-          [class.border-text-accent]="activePanel() === 'xperts'"
-          [class.text-text-primary]="activePanel() === 'xperts'"
-          [class.border-transparent]="activePanel() !== 'xperts'"
-          [class.text-text-tertiary]="activePanel() !== 'xperts'"
-          [attr.aria-selected]="activePanel() === 'xperts'"
-          aria-controls="group-panel-content"
-          (click)="showPanel('xperts')"
-        >
-          <i class="ri-robot-2-line" aria-hidden="true"></i>
-          <span>{{ 'XP.UserGroup.XpertAccess' | translate: { Default: 'XPERT access' } }}</span>
-          <span class="rounded-md bg-components-panel-bg px-1.5 py-0.5 text-xs text-text-tertiary">
-            {{ selectedXpertCount() }}
-          </span>
-        </button>
-      </div>
-    </div>
+        @switch (activePanel()) {
+          @case ('details') {
+            <div class="mx-auto w-full max-w-3xl px-5 py-6">
+              <div>
+                <h3 class="text-sm font-semibold text-text-primary">
+                  {{ 'XP.UserGroup.BasicInfo' | translate: { Default: 'Basic information' } }}
+                </h3>
+                <p class="mt-1 text-sm leading-6 text-muted-foreground">
+                  {{
+                    'XP.UserGroup.FormHint'
+                      | translate: { Default: 'Bind organization users into a reusable access group.' }
+                  }}
+                </p>
+              </div>
 
-    <div
-      id="group-panel-content"
-      class="min-h-0 flex-1 overflow-y-auto"
-      role="tabpanel"
-      [attr.aria-labelledby]="'group-tab-' + activePanel()"
-    >
-      @switch (activePanel()) {
-        @case ('details') {
-          <div class="mx-auto w-full max-w-3xl px-5 py-6">
-            <div>
-              <h3 class="text-sm font-semibold text-text-primary">
-                {{ 'XP.UserGroup.BasicInfo' | translate: { Default: 'Basic information' } }}
-              </h3>
-              <p class="mt-1 text-sm leading-6 text-text-tertiary">
-                {{
-                  'XP.UserGroup.FormHint'
-                    | translate: { Default: 'Bind organization users into a reusable access group.' }
-                }}
-              </p>
-            </div>
-
-            <div class="mt-6 space-y-5">
-              <label class="flex flex-col gap-2">
-                <span class="text-sm font-medium text-text-primary">
-                  {{ 'XP.KEY_WORDS.Name' | translate: { Default: 'Name' } }}
-                  <span class="text-text-destructive" aria-hidden="true">*</span>
-                </span>
-                <input
-                  z-input
-                  type="text"
-                  class="min-h-11 w-full rounded-lg text-sm"
-                  [class.border-text-destructive]="name.touched && !name.getRawValue().trim()"
-                  [formControl]="name"
-                  [attr.aria-invalid]="name.touched && !name.getRawValue().trim()"
-                  aria-required="true"
-                  [placeholder]="'XP.UserGroup.NamePlaceholder' | translate: { Default: 'Enter group name' }"
-                />
-                @if (name.touched && !name.getRawValue().trim()) {
-                  <span class="text-xs text-text-destructive" role="alert">
-                    {{ 'XP.KEY_WORDS.NameRequired' | translate: { Default: 'Name is required' } }}
+              <div class="mt-6 space-y-5">
+                <label class="flex flex-col gap-2">
+                  <span class="text-sm font-medium text-text-primary">
+                    {{ 'XP.KEY_WORDS.Name' | translate: { Default: 'Name' } }}
+                    <span class="text-text-destructive" aria-hidden="true">*</span>
                   </span>
-                }
-              </label>
+                  <input
+                    z-input
+                    type="text"
+                    class="min-h-11 w-full rounded-lg text-sm"
+                    [class.border-text-destructive]="name.touched && !name.getRawValue().trim()"
+                    [formControl]="name"
+                    [attr.aria-invalid]="name.touched && !name.getRawValue().trim()"
+                    aria-required="true"
+                    [placeholder]="'XP.UserGroup.NamePlaceholder' | translate: { Default: 'Enter group name' }"
+                  />
+                  @if (name.touched && !name.getRawValue().trim()) {
+                    <span class="text-xs text-text-destructive" role="alert">
+                      {{ 'XP.KEY_WORDS.NameRequired' | translate: { Default: 'Name is required' } }}
+                    </span>
+                  }
+                </label>
 
-              <label class="flex flex-col gap-2">
-                <span class="text-sm font-medium text-text-primary">
-                  {{ 'XP.KEY_WORDS.Description' | translate: { Default: 'Description' } }}
-                </span>
-                <textarea
-                  z-input
-                  rows="4"
-                  class="w-full resize-y rounded-lg text-sm"
-                  [formControl]="description"
-                  [placeholder]="
-                    'XP.UserGroup.DescriptionPlaceholder'
-                      | translate: { Default: 'Describe who should belong to this group' }
-                  "
-                ></textarea>
-              </label>
-            </div>
-
-            <dl
-              class="mt-8 grid grid-cols-1 border-y border-divider-regular sm:grid-cols-2 sm:divide-x sm:divide-divider-regular"
-            >
-              <div class="flex items-center justify-between gap-4 py-4 sm:pr-5">
-                <dt class="text-sm text-text-tertiary">
-                  {{ 'XP.UserGroup.Members' | translate: { Default: 'Members' } }}
-                </dt>
-                <dd class="text-sm font-semibold text-text-primary">{{ selectedMemberCount() }}</dd>
+                <label class="flex flex-col gap-2">
+                  <span class="text-sm font-medium text-text-primary">
+                    {{ 'XP.KEY_WORDS.Description' | translate: { Default: 'Description' } }}
+                  </span>
+                  <textarea
+                    z-input
+                    rows="4"
+                    class="w-full resize-y rounded-lg text-sm"
+                    [formControl]="description"
+                    [placeholder]="
+                      'XP.UserGroup.DescriptionPlaceholder'
+                        | translate: { Default: 'Describe who should belong to this group' }
+                    "
+                  ></textarea>
+                </label>
               </div>
-              <div
-                class="flex items-center justify-between gap-4 border-t border-divider-regular py-4 sm:border-t-0 sm:pl-5"
+
+              <dl
+                class="mt-8 grid grid-cols-1 border-y border-border sm:grid-cols-2 sm:divide-x sm:divide-divider-regular"
               >
-                <dt class="text-sm text-text-tertiary">
-                  {{ 'XP.UserGroup.XpertAccess' | translate: { Default: 'XPERT access' } }}
-                </dt>
-                <dd class="text-sm font-semibold text-text-primary">{{ selectedXpertCount() }}</dd>
-              </div>
-            </dl>
-          </div>
-        }
+                <div class="flex items-center justify-between gap-4 py-4 sm:pr-5">
+                  <dt class="text-sm text-muted-foreground">
+                    {{ 'XP.UserGroup.Members' | translate: { Default: 'Members' } }}
+                  </dt>
+                  <dd class="text-sm font-semibold text-text-primary">{{ selectedMemberCount() }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-4 border-t border-border py-4 sm:border-t-0 sm:pl-5">
+                  <dt class="text-sm text-muted-foreground">
+                    {{ 'XP.UserGroup.XpertAccess' | translate: { Default: 'XPERT access' } }}
+                  </dt>
+                  <dd class="text-sm font-semibold text-text-primary">{{ selectedXpertCount() }}</dd>
+                </div>
+              </dl>
+            </div>
+          }
 
-        @case ('members') {
-          <div class="border-b border-divider-regular px-5 py-4">
-            <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-              <div class="min-w-0">
-                <h3 class="text-sm font-semibold text-text-primary">
-                  {{ 'XP.UserGroup.Members' | translate: { Default: 'Members' } }}
-                </h3>
-                <p class="mt-1 text-xs text-text-tertiary">
-                  {{
-                    'XP.UserGroup.MembersHint'
-                      | translate: { Default: 'Only active users in the current organization can be selected.' }
-                  }}
-                </p>
+          @case ('members') {
+            <div class="border-b border-border px-5 py-4">
+              <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                <div class="min-w-0">
+                  <h3 class="text-sm font-semibold text-text-primary">
+                    {{ 'XP.UserGroup.Members' | translate: { Default: 'Members' } }}
+                  </h3>
+                  <p class="mt-1 text-xs text-muted-foreground">
+                    {{
+                      'XP.UserGroup.MembersHint'
+                        | translate: { Default: 'Only active users in the current organization can be selected.' }
+                    }}
+                  </p>
+                </div>
+
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <z-search-input
+                    class="min-w-0 sm:w-64"
+                    zSize="default"
+                    [value]="memberQuery()"
+                    [aria-label]="'XP.UserGroup.SearchMembers' | translate: { Default: 'Search members' }"
+                    [placeholder]="'XP.UserGroup.SearchMembers' | translate: { Default: 'Search members' }"
+                    [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
+                    (valueChange)="updateMemberQuery($event)"
+                  />
+                  <div class="flex items-center gap-2">
+                    <button
+                      z-button
+                      zType="ghost"
+                      type="button"
+                      zSize="sm"
+                      class="min-h-10"
+                      [zDisabled]="!canSelectVisibleUsers()"
+                      (click)="selectVisibleMembers()"
+                    >
+                      {{ 'XP.UserGroup.SelectVisible' | translate: { Default: 'Select Visible' } }}
+                    </button>
+                    <button
+                      z-button
+                      zType="ghost"
+                      type="button"
+                      zSize="sm"
+                      class="min-h-10"
+                      [zDisabled]="!selectedMemberCount()"
+                      (click)="clearSelectedMembers()"
+                    >
+                      {{ 'XP.KEY_WORDS.Clear' | translate: { Default: 'Clear' } }}
+                    </button>
+                  </div>
+                </div>
               </div>
 
-              <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <z-search-input
-                  class="min-w-0 sm:w-64"
-                  zSize="lg"
-                  [value]="memberQuery()"
-                  [aria-label]="'XP.UserGroup.SearchMembers' | translate: { Default: 'Search members' }"
-                  [placeholder]="'XP.UserGroup.SearchMembers' | translate: { Default: 'Search members' }"
-                  [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
-                  (valueChange)="updateMemberQuery($event)"
-                />
-                <div class="flex items-center gap-2">
-                  <button
-                    z-button
-                    zType="ghost"
-                    type="button"
-                    zSize="sm"
-                    class="min-h-10"
-                    [disabled]="!canSelectVisibleUsers()"
-                    (click)="selectVisibleMembers()"
+              @if (hasInactiveSelectedUsers()) {
+                <div
+                  class="mt-3 flex items-start gap-2 rounded-lg bg-background-default-subtle px-3 py-2 text-sm text-text-warning"
+                >
+                  <i class="ri-alert-line mt-0.5 shrink-0" aria-hidden="true"></i>
+                  <span>
+                    {{
+                      'XP.UserGroup.RemoveInactiveMembersHint'
+                        | translate: { Default: 'Remove inactive members from this group before saving.' }
+                    }}
+                  </span>
+                </div>
+              }
+            </div>
+
+            <div class="px-5 py-4">
+              @if (!hasOrganizationUsers()) {
+                <div class="flex min-h-60 flex-col items-center justify-center text-center">
+                  <span
+                    class="flex h-10 w-10 items-center justify-center rounded-lg bg-components-panel-bg text-lg text-text-secondary"
                   >
-                    {{ 'XP.UserGroup.SelectVisible' | translate: { Default: 'Select Visible' } }}
-                  </button>
-                  <button
-                    z-button
-                    zType="ghost"
-                    type="button"
-                    zSize="sm"
-                    class="min-h-10"
-                    [disabled]="!selectedMemberCount()"
-                    (click)="clearSelectedMembers()"
-                  >
-                    {{ 'XP.KEY_WORDS.Clear' | translate: { Default: 'Clear' } }}
-                  </button>
+                    <i class="ri-user-add-line" aria-hidden="true"></i>
+                  </span>
+                  <div class="mt-3 text-sm font-medium text-text-primary">
+                    {{ 'XP.UserGroup.NoActiveMembers' | translate: { Default: 'No active organization members' } }}
+                  </div>
+                  <div class="mt-1 max-w-md text-xs leading-5 text-muted-foreground">
+                    {{
+                      'XP.UserGroup.NoActiveMembersHint'
+                        | translate
+                          : { Default: 'Invite or activate users in the current organization, then assign them here.' }
+                    }}
+                  </div>
+                </div>
+              } @else if (!visibleUsers().length) {
+                <div class="flex min-h-60 flex-col items-center justify-center text-center">
+                  <i class="ri-search-eye-line text-xl text-muted-foreground" aria-hidden="true"></i>
+                  <div class="mt-2 text-sm font-medium text-text-primary">
+                    {{ 'XP.UserGroup.NoMatchingMembers' | translate: { Default: 'No matching members' } }}
+                  </div>
+                  <div class="mt-1 text-xs text-muted-foreground">
+                    {{ 'XP.UserGroup.NoMatchingMembersHint' | translate: { Default: 'Try another search keyword.' } }}
+                  </div>
+                </div>
+              } @else {
+                <div class="overflow-hidden rounded-lg border border-border">
+                  @for (user of visibleUsers(); track user.id) {
+                    <div
+                      class="border-b border-border px-4 py-3 last:border-b-0"
+                      [class.bg-components-list-option-active-bg]="hasMember(user.id)"
+                      [class.opacity-70]="!isActiveOrganizationUser(user.id)"
+                    >
+                      <z-checkbox
+                        class="w-full items-center"
+                        displayDensity="cosy"
+                        labelClass="min-w-0 flex-1"
+                        [zDisabled]="!isActiveOrganizationUser(user.id)"
+                        [ngModel]="hasMember(user.id)"
+                        (checkChange)="toggleMember(user.id, $event)"
+                      >
+                        <span class="flex min-w-0 items-center gap-3">
+                          <xp-user-avatar
+                            [user]="user"
+                            class="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-border bg-components-panel-bg text-xs font-semibold text-text-primary"
+                          ></xp-user-avatar>
+                          <span class="min-w-0 flex-1">
+                            <span class="block truncate text-sm font-medium text-text-primary">{{
+                              userLabel(user)
+                            }}</span>
+                            <span class="mt-0.5 block truncate text-xs text-muted-foreground">
+                              {{ userSecondaryText(user) }}
+                            </span>
+                          </span>
+                          @if (!isActiveOrganizationUser(user.id)) {
+                            <span class="shrink-0 text-xs font-medium text-text-warning">
+                              {{ 'XP.UserGroup.InactiveMember' | translate: { Default: 'Inactive' } }}
+                            </span>
+                          }
+                        </span>
+                      </z-checkbox>
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+          }
+
+          @case ('xperts') {
+            <div class="border-b border-border px-5 py-4">
+              <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+                <div class="min-w-0">
+                  <h3 class="text-sm font-semibold text-text-primary">
+                    {{ 'XP.UserGroup.XpertAccess' | translate: { Default: 'XPERT access' } }}
+                  </h3>
+                  <p class="mt-1 text-xs text-muted-foreground">
+                    {{
+                      'XP.UserGroup.XpertAuthorizationHint'
+                        | translate: { Default: 'Choose which published xperts this group can access.' }
+                    }}
+                  </p>
+                </div>
+
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <z-search-input
+                    class="min-w-0 sm:w-64"
+                    zSize="default"
+                    [value]="xpertQuery()"
+                    [aria-label]="'XP.UserGroup.SearchXperts' | translate: { Default: 'Search published XPERTs' }"
+                    [placeholder]="'XP.UserGroup.SearchXperts' | translate: { Default: 'Search published XPERTs' }"
+                    [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
+                    (valueChange)="updateXpertQuery($event)"
+                  />
+                  <div class="flex items-center gap-2">
+                    <button
+                      z-button
+                      zType="ghost"
+                      type="button"
+                      zSize="sm"
+                      class="min-h-10"
+                      [zDisabled]="!canSelectVisibleXperts()"
+                      (click)="selectVisibleXperts()"
+                    >
+                      {{ 'XP.UserGroup.SelectVisible' | translate: { Default: 'Select Visible' } }}
+                    </button>
+                    <button
+                      z-button
+                      zType="ghost"
+                      type="button"
+                      zSize="sm"
+                      class="min-h-10"
+                      [zDisabled]="!selectedXpertCount()"
+                      (click)="clearSelectedXperts()"
+                    >
+                      {{ 'XP.KEY_WORDS.Clear' | translate: { Default: 'Clear' } }}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
 
-            @if (hasInactiveSelectedUsers()) {
-              <div
-                class="mt-3 flex items-start gap-2 rounded-lg bg-background-default-subtle px-3 py-2 text-sm text-text-warning"
-              >
-                <i class="ri-alert-line mt-0.5 shrink-0" aria-hidden="true"></i>
-                <span>
-                  {{
-                    'XP.UserGroup.RemoveInactiveMembersHint'
-                      | translate: { Default: 'Remove inactive members from this group before saving.' }
-                  }}
-                </span>
-              </div>
-            }
-          </div>
-
-          <div class="px-5 py-4">
-            @if (!hasOrganizationUsers()) {
-              <div class="flex min-h-60 flex-col items-center justify-center text-center">
-                <span
-                  class="flex h-10 w-10 items-center justify-center rounded-lg bg-components-panel-bg text-lg text-text-secondary"
-                >
-                  <i class="ri-user-add-line" aria-hidden="true"></i>
-                </span>
-                <div class="mt-3 text-sm font-medium text-text-primary">
-                  {{ 'XP.UserGroup.NoActiveMembers' | translate: { Default: 'No active organization members' } }}
+            <div class="px-5 py-4">
+              @if (xpertsLoading()) {
+                <div class="flex min-h-60 items-center justify-center">
+                  <xp-spin />
                 </div>
-                <div class="mt-1 max-w-md text-xs leading-5 text-text-tertiary">
-                  {{
-                    'XP.UserGroup.NoActiveMembersHint'
-                      | translate
-                        : { Default: 'Invite or activate users in the current organization, then assign them here.' }
-                  }}
-                </div>
-              </div>
-            } @else if (!visibleUsers().length) {
-              <div class="flex min-h-60 flex-col items-center justify-center text-center">
-                <i class="ri-search-eye-line text-xl text-text-tertiary" aria-hidden="true"></i>
-                <div class="mt-2 text-sm font-medium text-text-primary">
-                  {{ 'XP.UserGroup.NoMatchingMembers' | translate: { Default: 'No matching members' } }}
-                </div>
-                <div class="mt-1 text-xs text-text-tertiary">
-                  {{ 'XP.UserGroup.NoMatchingMembersHint' | translate: { Default: 'Try another search keyword.' } }}
-                </div>
-              </div>
-            } @else {
-              <div class="overflow-hidden rounded-lg border border-divider-regular">
-                @for (user of visibleUsers(); track user.id) {
-                  <div
-                    class="border-b border-divider-regular px-4 py-3 last:border-b-0"
-                    [class.bg-components-list-option-active-bg]="hasMember(user.id)"
-                    [class.opacity-70]="!isActiveOrganizationUser(user.id)"
+              } @else if (!availableXperts().length) {
+                <div class="flex min-h-60 flex-col items-center justify-center text-center">
+                  <span
+                    class="flex h-10 w-10 items-center justify-center rounded-lg bg-components-panel-bg text-lg text-text-secondary"
                   >
-                    <z-checkbox
-                      class="w-full items-center"
-                      displayDensity="cosy"
-                      labelClass="min-w-0 flex-1"
-                      [zDisabled]="!isActiveOrganizationUser(user.id)"
-                      [ngModel]="hasMember(user.id)"
-                      (checkChange)="toggleMember(user.id, $event)"
+                    <i class="ri-robot-2-line" aria-hidden="true"></i>
+                  </span>
+                  <div class="mt-3 text-sm font-medium text-text-primary">
+                    {{
+                      'XP.UserGroup.NoPublishedXperts'
+                        | translate: { Default: 'No published xperts are available in the current organization yet.' }
+                    }}
+                  </div>
+                </div>
+              } @else if (!filteredXperts().length) {
+                <div class="flex min-h-60 flex-col items-center justify-center text-center">
+                  <i class="ri-search-eye-line text-xl text-muted-foreground" aria-hidden="true"></i>
+                  <div class="mt-2 text-sm font-medium text-text-primary">
+                    {{ 'XP.UserGroup.NoMatchingXperts' | translate: { Default: 'No matching XPERTs' } }}
+                  </div>
+                </div>
+              } @else {
+                <div class="overflow-hidden rounded-lg border border-border">
+                  @for (xpert of filteredXperts(); track xpert.id) {
+                    <div
+                      class="border-b border-border px-4 py-3 last:border-b-0"
+                      [class.bg-components-list-option-active-bg]="isXpertSelected(xpert.id)"
                     >
-                      <span class="flex min-w-0 items-center gap-3">
-                        <xp-user-avatar
-                          [user]="user"
-                          class="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-divider-regular bg-components-panel-bg text-xs font-semibold text-text-primary"
-                        ></xp-user-avatar>
-                        <span class="min-w-0 flex-1">
-                          <span class="block truncate text-sm font-medium text-text-primary">{{
-                            userLabel(user)
-                          }}</span>
-                          <span class="mt-0.5 block truncate text-xs text-text-tertiary">
-                            {{ userSecondaryText(user) }}
+                      <z-checkbox
+                        class="w-full items-center"
+                        displayDensity="cosy"
+                        labelClass="min-w-0 flex-1"
+                        [ngModel]="isXpertSelected(xpert.id)"
+                        (checkChange)="toggleXpert(xpert.id)"
+                      >
+                        <span class="flex min-w-0 items-center gap-3">
+                          <span
+                            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-components-panel-bg text-xs font-semibold text-text-primary"
+                          >
+                            {{ xpertInitials(xpert) }}
+                          </span>
+                          <span class="min-w-0 flex-1">
+                            <span class="block truncate text-sm font-medium text-text-primary">
+                              {{ xpertLabel(xpert) }}
+                            </span>
+                            <span class="mt-0.5 block truncate text-xs text-muted-foreground">
+                              {{ xpert.description || ('XP.KEY_WORDS.NotSet' | translate: { Default: 'Not set' }) }}
+                            </span>
                           </span>
                         </span>
-                        @if (!isActiveOrganizationUser(user.id)) {
-                          <span class="shrink-0 text-xs font-medium text-text-warning">
-                            {{ 'XP.UserGroup.InactiveMember' | translate: { Default: 'Inactive' } }}
-                          </span>
-                        }
-                      </span>
-                    </z-checkbox>
-                  </div>
-                }
-              </div>
-            }
-          </div>
-        }
-
-        @case ('xperts') {
-          <div class="border-b border-divider-regular px-5 py-4">
-            <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-              <div class="min-w-0">
-                <h3 class="text-sm font-semibold text-text-primary">
-                  {{ 'XP.UserGroup.XpertAccess' | translate: { Default: 'XPERT access' } }}
-                </h3>
-                <p class="mt-1 text-xs text-text-tertiary">
-                  {{
-                    'XP.UserGroup.XpertAuthorizationHint'
-                      | translate: { Default: 'Choose which published xperts this group can access.' }
-                  }}
-                </p>
-              </div>
-
-              <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <z-search-input
-                  class="min-w-0 sm:w-64"
-                  zSize="lg"
-                  [value]="xpertQuery()"
-                  [aria-label]="'XP.UserGroup.SearchXperts' | translate: { Default: 'Search published XPERTs' }"
-                  [placeholder]="'XP.UserGroup.SearchXperts' | translate: { Default: 'Search published XPERTs' }"
-                  [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
-                  (valueChange)="updateXpertQuery($event)"
-                />
-                <div class="flex items-center gap-2">
-                  <button
-                    z-button
-                    zType="ghost"
-                    type="button"
-                    zSize="sm"
-                    class="min-h-10"
-                    [disabled]="!canSelectVisibleXperts()"
-                    (click)="selectVisibleXperts()"
-                  >
-                    {{ 'XP.UserGroup.SelectVisible' | translate: { Default: 'Select Visible' } }}
-                  </button>
-                  <button
-                    z-button
-                    zType="ghost"
-                    type="button"
-                    zSize="sm"
-                    class="min-h-10"
-                    [disabled]="!selectedXpertCount()"
-                    (click)="clearSelectedXperts()"
-                  >
-                    {{ 'XP.KEY_WORDS.Clear' | translate: { Default: 'Clear' } }}
-                  </button>
+                      </z-checkbox>
+                    </div>
+                  }
                 </div>
-              </div>
+              }
             </div>
-          </div>
-
-          <div class="px-5 py-4">
-            @if (xpertsLoading()) {
-              <div class="flex min-h-60 items-center justify-center">
-                <xp-spin />
-              </div>
-            } @else if (!availableXperts().length) {
-              <div class="flex min-h-60 flex-col items-center justify-center text-center">
-                <span
-                  class="flex h-10 w-10 items-center justify-center rounded-lg bg-components-panel-bg text-lg text-text-secondary"
-                >
-                  <i class="ri-robot-2-line" aria-hidden="true"></i>
-                </span>
-                <div class="mt-3 text-sm font-medium text-text-primary">
-                  {{
-                    'XP.UserGroup.NoPublishedXperts'
-                      | translate: { Default: 'No published xperts are available in the current organization yet.' }
-                  }}
-                </div>
-              </div>
-            } @else if (!filteredXperts().length) {
-              <div class="flex min-h-60 flex-col items-center justify-center text-center">
-                <i class="ri-search-eye-line text-xl text-text-tertiary" aria-hidden="true"></i>
-                <div class="mt-2 text-sm font-medium text-text-primary">
-                  {{ 'XP.UserGroup.NoMatchingXperts' | translate: { Default: 'No matching XPERTs' } }}
-                </div>
-              </div>
-            } @else {
-              <div class="overflow-hidden rounded-lg border border-divider-regular">
-                @for (xpert of filteredXperts(); track xpert.id) {
-                  <div
-                    class="border-b border-divider-regular px-4 py-3 last:border-b-0"
-                    [class.bg-components-list-option-active-bg]="isXpertSelected(xpert.id)"
-                  >
-                    <z-checkbox
-                      class="w-full items-center"
-                      displayDensity="cosy"
-                      labelClass="min-w-0 flex-1"
-                      [ngModel]="isXpertSelected(xpert.id)"
-                      (checkChange)="toggleXpert(xpert.id)"
-                    >
-                      <span class="flex min-w-0 items-center gap-3">
-                        <span
-                          class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-divider-regular bg-components-panel-bg text-xs font-semibold text-text-primary"
-                        >
-                          {{ xpertInitials(xpert) }}
-                        </span>
-                        <span class="min-w-0 flex-1">
-                          <span class="block truncate text-sm font-medium text-text-primary">
-                            {{ xpertLabel(xpert) }}
-                          </span>
-                          <span class="mt-0.5 block truncate text-xs text-text-tertiary">
-                            {{ xpert.description || ('XP.KEY_WORDS.NotSet' | translate: { Default: 'Not set' }) }}
-                          </span>
-                        </span>
-                      </span>
-                    </z-checkbox>
-                  </div>
-                }
-              </div>
-            }
-          </div>
+          }
         }
-      }
-    </div>
-  </section>
+      </div>
+    </section>
 
-  @if (isBusy()) {
-    <div
-      class="absolute inset-0 z-20 flex items-center justify-center rounded-lg bg-components-card-bg/60 backdrop-blur-[1px]"
-    >
-      <xp-spin />
-    </div>
-  }
+    @if (isBusy()) {
+      <div class="absolute inset-0 z-20 flex items-center justify-center rounded-lg bg-card/60 backdrop-blur-[1px]">
+        <xp-spin />
+      </div>
+    }
+  </div>
 </div>

@@ -150,14 +150,16 @@ async function mountCatalog(t, handler, onUse = async () => {}) {
     }
   }
   const modules = new Map()
+  let locale = 'en'
   function renderer(file) {
     if (modules.has(file)) return modules.get(file)
     const exports = {}
     modules.set(file, exports)
     const imports = {
       './host': host,
+      './i18n': { t: (key) => key, getLocale: () => locale, useLocale: () => locale },
+      '@xpert-ai/template-installation-client': require('./helpers/template-installation.cjs'),
       './app-activation': { subscribeAppActivation: () => () => {} },
-      './i18n': { t: (key) => key },
       '@xpert-ai/shadcn-ui': ui,
       'lucide-react': Object.fromEntries(
         [
@@ -174,7 +176,9 @@ async function mountCatalog(t, handler, onUse = async () => {}) {
         ].map((name) => [name, () => null])
       ),
       './avatar': { BotAvatar: () => null, PluginAvatar: () => null },
+      './catalog/CatalogAvatar': { CatalogAvatar: () => null },
       './catalog/catalog-cache': { createCatalogCache },
+      './catalog/template-source': require('../src/catalog/template-source.ts'),
       './catalog/business-area-filter': { catalogBusinessAreas, matchesBusinessArea },
       './catalog/blank-assistant': {
         blankAssistant: () => ({ id: 'blank', kind: 'templates', name: '', categories: [], tags: [] })
@@ -207,17 +211,28 @@ async function mountCatalog(t, handler, onUse = async () => {}) {
     }).outputText
     runInNewContext(code, {
       exports,
+      window: dom.window,
       Error,
       crypto: global.crypto,
       require(id) {
         if (Object.hasOwn(imports, id)) return imports[id]
         if (id === '../host') return host
         if (id === '../i18n') return imports['./i18n']
+        if (['../../electron/workbench-platform.mjs', '../electron/workbench-platform.mjs'].includes(id))
+          return { platformCommandUrl: () => 'http://localhost/connectors' }
         if (['react', 'react/jsx-runtime'].includes(id)) return require(id)
         if (['./CatalogSetup', './PluginCatalog'].includes(id)) return renderer(id.slice(2) + '.tsx')
         if (id === './catalog-labels') return renderer('catalog-labels.ts')
         if (id.endsWith('/application-toolsets')) return require('../src/catalog/application-toolsets.ts')
-        if (['./catalog/ApplicationToolsets', './ApplicationToolsetEditor'].includes(id))
+        if (
+          [
+            './catalog/ApplicationToolsets',
+            './ApplicationToolsetEditor',
+            './catalog/TemplateInstallation',
+            './catalog/TemplateManifestDetails',
+            './catalog/TemplateOverview'
+          ].includes(id)
+        )
           return renderer(posix.normalize(posix.join(dirname(file), id)) + '.tsx')
         throw new Error(`Unexpected import: ${id}`)
       }
@@ -240,7 +255,15 @@ async function mountCatalog(t, handler, onUse = async () => {}) {
         e(
           React.StrictMode,
           {},
-          e(CatalogDialog, { key, organization: key, webUrl: 'http://localhost', onClose() {}, onUse })
+          e(CatalogDialog, {
+            key,
+            installationScope: key,
+            organizationId: key,
+            organization: key,
+            webUrl: 'http://localhost',
+            onClose() {},
+            onUse
+          })
         )
       )
     )
@@ -260,6 +283,10 @@ async function mountCatalog(t, handler, onUse = async () => {}) {
     calls,
     click,
     render,
+    setLocale: async (value) => {
+      locale = value
+      await render('organization-one')
+    },
     dom,
     count: (method, input) =>
       calls.filter((call) => call.method === method && (input === undefined || call.input === input)).length
@@ -268,6 +295,7 @@ async function mountCatalog(t, handler, onUse = async () => {}) {
 
 function defaultResult(method, input) {
   if (method === 'listCatalog') return input === 'applications' ? [app] : input === 'experts' ? [expert] : []
+  if (method === 'templateCatalogPage') return { items: [], nextOffset: null }
   if (method === 'pluginLibrary') return library
   throw new Error(`Unexpected host call: ${method}`)
 }
@@ -486,4 +514,243 @@ test('native tool configuration requires an enabled tool and refreshes the saved
   assert.equal(document.getElementById('app-toolset-images').value, 'managed')
   assert.equal(document.querySelector('button[type="submit"]').disabled, false)
   assert.equal(view.count('initializeApplication'), 0)
+})
+
+const template = { ...expert, kind: 'templates', id: 'template', name: 'Installable template' }
+const installation = {
+  id: 'operation',
+  templateId: 'template',
+  workspaceId: 'one',
+  status: 'failed',
+  stage: 'publishing',
+  attempt: 1,
+  publish: true,
+  assistantId: 'assistant',
+  retryable: true,
+  resourceInstallationIds: [],
+  pendingAuthInstallationIds: [],
+  createdAt: '2026-10-13',
+  updatedAt: '2026-10-13',
+  error: { code: 'INSTALL_FAILED', message: 'Publish failed' }
+}
+const templateResult = (method, input) => {
+  if (method === 'templateCatalogPage') return { items: [template], nextOffset: null }
+  if (method === 'templateOverview')
+    return {
+      id: 'template',
+      title: 'Installable template',
+      publisher: 'Author',
+      description: 'Work',
+      instructions: 'Prepare drafts',
+      memories: [],
+      skills: [],
+      agents: [],
+      routines: [],
+      integrations: []
+    }
+  if (method === 'templateSetup')
+    return {
+      workspaces: library.workspaces,
+      hasPrimaryLanguageModel: true,
+      preflight: {
+        canInstall: true,
+        requiresModel: false,
+        models: [],
+        optionalCapabilities: [],
+        realtimeModels: [],
+        requiredModelFeatures: []
+      }
+    }
+  if (method === 'listTemplateInstallations') return { items: [], total: 0 }
+  return defaultResult(method, input)
+}
+test('required missing template dependencies block install and display the selected version and file scope', async (t) => {
+  const view = await mountCatalog(t, (method, input) => {
+    const result = templateResult(method, input)
+    if (method === 'templateSetup')
+      return {
+        ...result,
+        preflight: {
+          ...result.preflight,
+          canInstall: false,
+          reason: 'Missing dependency',
+          readiness: {
+            legacy: false,
+            canInstall: false,
+            manifestVersion: '1.0.0',
+            dependencies: [],
+            checks: [
+              {
+                kind: 'plugin',
+                key: 'required-plugin',
+                required: true,
+                status: 'missing',
+                message: 'Missing dependency',
+                version: '2.0.0'
+              }
+            ],
+            files: { scope: 'user', entries: [{ kind: 'ledger', path: 'office/tasks.json', version: '1.0' }] }
+          }
+        }
+      }
+    return result
+  })
+  await view.click('Agent templates')
+  await view.click('View template')
+  await view.click('Import Assistant')
+  assert.match(document.body.textContent, /required-plugin/)
+  assert.match(document.body.textContent, /2\.0\.0/)
+  assert.match(document.body.textContent, /office\/tasks.json/)
+  assert.equal(
+    [...document.querySelectorAll('button')].find((button) => button.textContent.includes('Install & use')).disabled,
+    true
+  )
+  assert.equal(view.count('createTemplateInstallation'), 0)
+})
+test('template setup resumes the same failed operation and restores it when reopened without reinstalling', async (t) => {
+  let current = installation
+  let opened
+  const view = await mountCatalog(
+    t,
+    (method, input) => {
+      if (method === 'createTemplateInstallation') return current
+      if (method === 'retryTemplateInstallation')
+        return (current = {
+          ...installation,
+          status: 'succeeded',
+          stage: 'completed',
+          retryable: false,
+          error: null,
+          attempt: 2,
+          pendingAuthInstallationIds: ['connection']
+        })
+      if (method === 'getTemplateInstallation') return current
+      return templateResult(method, input)
+    },
+    async (id) => {
+      opened = id
+    }
+  )
+  await view.click('Agent templates')
+  await view.click('View template')
+  await view.click('Import Assistant')
+  await view.click('Install & use')
+  assert.match(document.body.textContent, /Publish failed/)
+  assert.equal(view.count('createTemplateInstallation'), 1)
+  const input = view.calls.find((c) => c.method === 'createTemplateInstallation').input
+  assert.equal(input.publish, true)
+  assert.equal(input.workspaceId, 'one')
+  assert.ok(input.idempotencyKey)
+  await view.click('Resume installation')
+  assert.match(document.body.textContent, /Configuration required/)
+  assert.equal(view.count('retryTemplateInstallation', 'operation'), 1)
+  view.dom.window.xpertDesktop = { openPlatform: async () => false }
+  await view.click('Configure connections')
+  assert.match(document.body.textContent, /The operation failed. Please retry./)
+  let target
+  view.dom.window.xpertDesktop.openPlatform = async (value) => {
+    target = value
+    return true
+  }
+  await view.click('Configure connections')
+  assert.equal(target.target, 'workspace.connectors.manage')
+  assert.equal(target.workspaceId, 'one')
+  assert.equal(target.organizationId, 'organization-one')
+  assert.doesNotMatch(document.body.textContent, /The operation failed. Please retry./)
+  await view.click('Back to catalog')
+  await view.click('View template')
+  await view.click('Import Assistant')
+  assert.match(document.body.textContent, /Configuration required/)
+  assert.equal(view.count('createTemplateInstallation'), 1)
+  await view.click('Open assistant')
+  assert.equal(opened, 'assistant')
+  await view.render('organization-two')
+  await view.click('Agent templates')
+  await view.click('View template')
+  await view.click('Import Assistant')
+  assert.doesNotMatch(document.querySelector('form').textContent, /Configuration required/)
+})
+test('source-changed history shows the error without a resume action', async (t) => {
+  const operation = {
+    ...installation,
+    retryable: false,
+    error: { code: 'SOURCE_CHANGED', message: 'Template changed' }
+  }
+  const view = await mountCatalog(t, (method, input) => {
+    if (method === 'listTemplateInstallations') return { items: [operation], total: 1 }
+    if (method === 'getTemplateInstallation') return operation
+    return templateResult(method, input)
+  })
+  await view.click('Agent templates')
+  await view.click('View template')
+  await view.click('Import Assistant')
+  const record = [...document.querySelectorAll('button')].find((b) => b.textContent.includes('operation'))
+  assert.ok(record)
+  await React.act(async () => record.click())
+  assert.match(document.body.textContent, /Template changed/)
+  assert.equal(
+    [...document.querySelectorAll('button')].some((b) => b.textContent === 'Resume installation'),
+    false
+  )
+  assert.equal(view.count('createTemplateInstallation'), 0)
+})
+
+test('template introduction shows four sections without setup or installation until import is requested', async (t) => {
+  const calls = []
+  const view = await mountCatalog(t, async (method, input) => {
+    calls.push(method)
+    return templateResult(method, input)
+  })
+  await view.click('Agent templates')
+  await view.click('View template')
+  assert.match(document.body.textContent, /Prepare drafts/)
+  assert.equal(document.querySelector('[role="tablist"]').getAttribute('aria-orientation'), 'vertical')
+  assert.equal(calls.includes('templateSetup'), false)
+  assert.equal(calls.includes('installTemplate'), false)
+  for (const [label, hint, content] of [
+    ['Skills', 'Playbooks it can run', 'No portable skill dependencies declared.'],
+    ['Routines', 'Work it can run on a schedule', 'Routines start paused.'],
+    ['Integrations', 'Apps and services it can use', 'No external integrations declared.']
+  ]) {
+    await view.click(label + hint)
+    const selected = document.querySelector('[role="tabpanel"][data-state="active"]')
+    assert.ok(selected.textContent.includes(content))
+  }
+  await view.click('Import Assistant')
+  assert.equal(calls.includes('templateSetup'), true)
+  assert.equal(calls.includes('installTemplate'), false)
+})
+
+test('language changes replace cached catalog metadata without reinstalling templates', async (t) => {
+  let language = 'en'
+  let reads = 0
+  const view = await mountCatalog(t, (method, input) => {
+    if (method === 'listCatalog') return []
+    if (method === 'templateCatalogPage') {
+      reads++
+      return {
+        items: [
+          {
+            id: 'office',
+            kind: 'templates',
+            name: language === 'en' ? 'Office' : '办公室',
+            description: '',
+            publisher: 'Xpert',
+            categories: [],
+            tags: []
+          }
+        ],
+        nextOffset: null
+      }
+    }
+    throw new Error(`Unexpected mutation or request: ${method}`)
+  })
+  await view.click('Agent templates')
+  assert.match(document.body.textContent, /Office/)
+  const before = reads
+  language = 'zh-Hans'
+  await view.setLocale(language)
+  assert.match(document.body.textContent, /办公室/)
+  assert.doesNotMatch(document.body.textContent, /Office/)
+  assert.ok(reads > before)
 })

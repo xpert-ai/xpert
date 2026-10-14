@@ -13,6 +13,8 @@ export class XpertPublishCommand implements ICommand {
         public readonly environmentId: string | null | undefined,
         public readonly notes: string,
         public readonly marketplace?: TXpertPublishMarketplaceInput,
-        public readonly businessAreaId?: string | null
+        public readonly businessAreaId?: string | null,
+        /** Internal installer recovery: finish publication without touching the graph or a later draft. */
+        public readonly resumePublished = false
     ) {}
 }

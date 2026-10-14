@@ -71,31 +71,34 @@
     "
     data-platform-sidebar
     [attr.data-workbench-hidden]="workbenchImmersive()"
-    [attr.aria-hidden]="workbenchImmersive() ? 'true' : null"
-    [attr.inert]="workbenchImmersive() ? '' : null"
-    [style.opacity]="workbenchImmersive() ? 0 : 1"
+    [attr.data-settings-hidden]="settingsLayout()"
+    [attr.aria-hidden]="platformSidebarHidden() ? 'true' : null"
+    [attr.inert]="platformSidebarHidden() ? '' : null"
+    [style.opacity]="platformSidebarHidden() ? 0 : 1"
     [style.transition]="sidebarResizing() ? 'none' : null"
-    [style.width.px]="workbenchImmersive() ? 0 : renderedSidebarCollapsed() ? 50 : sidebarWidth()"
+    [style.width.px]="platformSidebarHidden() ? 0 : renderedSidebarCollapsed() ? 50 : sidebarWidth()"
     class="shrink-0 overflow-hidden transition-[width,opacity] duration-500 ease-out motion-reduce:transition-none"
-    [zWidth]="workbenchImmersive() ? 0 : sidebarWidth()"
+    [zWidth]="platformSidebarHidden() ? 0 : sidebarWidth()"
     [zCollapsible]="true"
     [zCollapsed]="renderedSidebarCollapsed()"
-    [zCollapsedWidth]="workbenchImmersive() ? 0 : 50"
+    [zCollapsedWidth]="platformSidebarHidden() ? 0 : 50"
     [zTrigger]="emptySidebarTrigger"
     (zCollapsedChange)="onCollapsedChange($event)"
   >
-    <xp-cloud-sidebar
-      [collapsed]="renderedSidebarCollapsed()"
-      [isMobile]="isMobile()"
-      [menus]="menus()"
-      [user]="user$()"
-      (collapsedChange)="onCollapsedChange($event)"
-      (brandClick)="onBrandClick()"
-      (entryGuideClick)="openEntryOnboardingGuide()"
-    />
+    @if (!settingsLayout()) {
+      <xp-cloud-sidebar
+        [collapsed]="renderedSidebarCollapsed()"
+        [isMobile]="isMobile()"
+        [menus]="menus()"
+        [user]="user$()"
+        (collapsedChange)="onCollapsedChange($event)"
+        (brandClick)="onBrandClick()"
+        (entryGuideClick)="openEntryOnboardingGuide()"
+      />
+    }
   </z-sidebar>
 
-  @if (!workbenchImmersive() && !isMobile() && !renderedSidebarCollapsed()) {
+  @if (!platformSidebarHidden() && !isMobile() && !renderedSidebarCollapsed()) {
     <div class="relative z-40 w-0 shrink-0">
       <button
         type="button"

@@ -66,6 +66,10 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
             ]
         })
 
+        if (command.resumePublished && xpert.publishAt) {
+            await this.finishPublication(xpert)
+            return xpert
+        }
         if (!xpert.draft) {
             throw new NotFoundException(`No draft found on Xpert '${xpert.name}'`)
         }
@@ -301,8 +305,8 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
                         )
                         const _entity = await this.xpertAgentService.update(oldAgent.id, entity)
                         node.entity = _entity
+                        newAgents.push(_entity)
                     }
-                    newAgents.push(oldAgent)
                 } else if (node.key === xpert.agent.key) {
                     if (xpert.agent.updatedAt.getTime() > new Date(node.entity.updatedAt).getTime()) {
                         throw new BadRequestException(
@@ -410,21 +414,24 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
         xpert.agent = undefined // Avoid updating the primary agent again and causing `updatedAt` inconsistency
 
         const _xpert = await this.xpertService.save(xpert)
+        await this.finishPublication(_xpert, previousGraph)
+        return _xpert
+    }
+
+    private async finishPublication(xpert: Xpert, previousGraph?: TXpertGraph) {
         // USER_XPERT sessions run as the real user, but scheduled/background
         // execution still needs a stable assistant principal prepared at publish.
-        await this.ensurePrincipalUser(_xpert)
+        await this.ensurePrincipalUser(xpert)
 
         // Publish triggers
         await this.commandBus.execute(
-            new XpertPublishTriggersCommand(_xpert, {
+            new XpertPublishTriggersCommand(xpert, {
                 strict: true,
                 previousGraph
             })
         )
 
-        await this.eventEmitter.emitAsync(EventName_XpertPublished, _xpert)
-
-        return _xpert
+        await this.eventEmitter.emitAsync(EventName_XpertPublished, xpert)
     }
 
     private async ensurePrincipalUser(xpert: Xpert) {
@@ -469,13 +476,9 @@ function resolveDraftPrimaryCopilotModel(xpert: Xpert, draft: TXpertTeamDraft) {
     const primaryNode = draft.nodes?.find(
         (node) => node.type === 'agent' && (node.key === primaryKey || node.entity?.key === primaryKey)
     )
-    return (
-        (primaryNode?.type === 'agent' ? primaryNode.entity.copilotModel : null) ??
-        draft.team?.agent?.copilotModel ??
-        xpert.agent?.copilotModel ??
-        draft.team?.copilotModel ??
-        xpert.copilotModel
-    )
+    // A complete draft node is authoritative, including an empty model meaning inheritance.
+    const agentModel = primaryNode?.type === 'agent' ? primaryNode.entity.copilotModel : xpert.agent?.copilotModel
+    return agentModel ?? draft.team?.copilotModel ?? xpert.copilotModel
 }
 
 function normalizeEnvironmentId(environmentId: string | null | undefined): string | null {
@@ -490,21 +493,25 @@ function normalizeEnvironmentId(environmentId: string | null | undefined): strin
  * @returns
  */
 export function pickXpertAgent(agent: Partial<IXpertAgent>) {
-    return pick(
-        agent,
-        'name',
-        'title',
-        'description',
-        'avatar',
-        'prompt',
-        'promptTemplates',
-        'parameters',
-        'outputVariables',
-        'options',
-        'leaderKey', // todo
-        'collaboratorNames',
-        'toolsetIds',
-        'knowledgebaseIds',
-        'copilotModel'
-    )
+    return {
+        ...pick(
+            agent,
+            'name',
+            'title',
+            'description',
+            'avatar',
+            'prompt',
+            'promptTemplates',
+            'parameters',
+            'outputVariables',
+            'options',
+            'leaderKey', // todo
+            'collaboratorNames',
+            'toolsetIds',
+            'knowledgebaseIds'
+        ),
+        // Legacy clients omit cleared fields in JSON. TypeORM needs null to remove the old binding.
+        copilotModel: agent.copilotModel ?? null,
+        copilotModelId: agent.copilotModel?.id ?? null
+    }
 }

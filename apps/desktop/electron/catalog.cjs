@@ -1,3 +1,5 @@
+const { projectTemplateOverview } = require('./template-overview.cjs')
+const { projectTemplateReadiness } = require('./template-readiness.cjs')
 const { localizedText } = require('./i18n/index.mjs')
 const { parseBusinessArea } = require('./business-area.cjs')
 const { parseAvatarUrl } = require('./avatar-url.cjs')
@@ -122,6 +124,14 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
       ]),
       botId: text(value.status?.xpertId) || null,
       initializationAccess: text(value.status?.initializationAccess),
+      composition: Array.isArray(value.composition)
+        ? value.composition.map((item) => ({
+            key: required(item.key, 'Composition key'),
+            kind: choice(item.kind, ['assistant', 'workspace', 'knowledgebase']),
+            role: item.role === undefined ? undefined : choice(item.role, ['primary', 'specialist', 'standalone']),
+            title: localized(item.title)
+          }))
+        : [],
       summary: localized(presentation?.initializationSummary),
       steps: Array.isArray(presentation?.initializationSteps)
         ? presentation.initializationSteps.map(localized).filter(Boolean)
@@ -129,6 +139,10 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
     }
   }
   const template = (value, locale) => ({
+    catalogAvatarId:
+      value.avatar?.url?.split('?')[0] === `/api/xpert-template/catalog-avatar/${encodeURIComponent(value.id)}`
+        ? value.id
+        : undefined,
     kind: 'templates',
     id: required(value?.id, 'Template ID'),
     name: localizedText(value.title, locale) || text(value.name),
@@ -159,12 +173,13 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
       throw new ClientError('Invalid template capabilities.', 400)
     return [...new Set(value)]
   }
-  const templateCheck = async (service, id, capabilities) => {
+  const templateCheck = async (service, id, capabilities, workspaceId) => {
     let check
     try {
       check = await service.request(
         `/api/xpert-template/${encodeURIComponent(id)}/setup?${new URLSearchParams({
-          capabilities: capabilities.join(',')
+          capabilities: capabilities.join(','),
+          ...(workspaceId ? { workspaceId } : {})
         })}`
       )
     } catch (error) {
@@ -183,6 +198,25 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
     return check
   }
   return {
+    ...require('./template-installations.cjs').createTemplateInstallationMethods(ClientError),
+    async catalogAvatar(id) {
+      scope(this)
+      const result = await this.request(
+        `/api/xpert-template/catalog-avatar/${encodeURIComponent(required(id, 'template id'))}`
+      )
+      return parseAvatarUrl(result?.url)
+    },
+    async templateCatalogPage(input = {}) {
+      scope(this)
+      const offset = Number.isSafeInteger(input.offset) && input.offset >= 0 ? input.offset : 0
+      const page = await this.request(`/api/xpert-template/catalog?assistantsOnly=true&limit=48&offset=${offset}`)
+      const entries = list(page?.items)
+      if (typeof page.total !== 'number') throw new ClientError('Invalid catalog pagination.', 502)
+      return {
+        items: entries.map((item) => template(item, this.config.locale)),
+        nextOffset: entries.length && offset + entries.length < page.total ? offset + entries.length : null
+      }
+    },
     async listCatalog(kind) {
       scope(this)
       if (kind === 'applications')
@@ -207,7 +241,7 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
       return kind === 'experts'
         ? items.map((item) => expert(item, this.config.locale))
         : items
-            .filter((item) => !item.application && ['agent', 'copilot'].includes(item.type))
+            .filter((item) => !item.hasApplication && !item.application && ['agent', 'copilot'].includes(item.type))
             .map((item) => template(item, this.config.locale))
     },
     async requestExpertAccess(input) {
@@ -299,10 +333,25 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
           name: text(item.name)
         }))
     },
+    async templateCatalogItem(input) {
+      const id = required(input?.id, 'Template ID')
+      return template(
+        await this.request(`/api/xpert-template/${encodeURIComponent(id)}`, { scope: 'organization' }),
+        this.config.locale
+      )
+    },
+    async templateOverview(input) {
+      scope(this)
+      const id = required(input?.id, 'Template ID')
+      return projectTemplateOverview(
+        await this.request(`/api/xpert-template/${encodeURIComponent(id)}/overview`),
+        ClientError
+      )
+    },
     async templateSetup(input) {
       const workspaces = await this.templateWorkspaces()
       const check = input?.id
-        ? await templateCheck(this, required(input.id, 'Template ID'), templateCapabilities(input))
+        ? await templateCheck(this, required(input.id, 'Template ID'), templateCapabilities(input), input.workspaceId)
         : null
       return {
         workspaces,
@@ -311,6 +360,7 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
         ...(check
           ? {
               preflight: {
+                readiness: projectTemplateReadiness(check.readiness, ClientError),
                 canInstall: check.canInstall,
                 reason: text(check.reason),
                 requiresModel: check.requiresModel === true || check.requiredModelFeatures.length > 0,
@@ -325,7 +375,17 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
                   voices,
                   defaultVoice
                 })),
-                models: modelOptions(check.models, this.config.locale)
+                models: modelOptions(check.models, this.config.locale).map((option) => {
+                  const model = check.models.find((item) => item.id === option.id)?.copilotModel
+                  return {
+                    ...option,
+                    copilotModel: {
+                      copilotId: required(model?.copilotId, 'Model provider'),
+                      model: required(model?.model, 'Model'),
+                      modelType: 'llm'
+                    }
+                  }
+                })
               }
             }
           : {})

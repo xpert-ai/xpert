@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { DataSource } from 'typeorm'
+import { User } from '@xpert-ai/server-core'
+import { Xpert } from '../xpert/xpert.entity'
 import { ChatConversation } from '../chat-conversation/conversation.entity'
 import { ChatMessage } from '../chat-message/chat-message.entity'
 import { GroupAccessService } from './group-access.service'
@@ -31,11 +33,36 @@ function fixture() {
         composer as unknown as GroupComposerService
     )
     const members = jest.spyOn(db.getRepository(GroupParticipant), 'findBy').mockResolvedValue([a, b, c, e])
+    jest.spyOn(db.getRepository(User), 'find').mockResolvedValue([])
+    jest.spyOn(db.getRepository(Xpert), 'find').mockResolvedValue([])
     return { group, a, b, c, e, db, access, composer, service, members }
 }
 
 describe('group human message routing', () => {
     afterEach(() => jest.restoreAllMocks())
+    it('accepts a mention using the displayed email fallback of an existing member', async () => {
+        const { service, group, b, db } = fixture()
+        b.name = b.subjectId
+        jest.spyOn(db.getRepository(User), 'find').mockResolvedValue([
+            Object.assign(new User(), { id: b.subjectId, email: 'member@example.com' })
+        ])
+        const publish = jest.spyOn(service, 'publish').mockResolvedValue(undefined)
+        const mention = '@member@example.com'
+        await service.submit(group.id, {
+            clientMessageId: randomUUID(),
+            text: `${mention} Hi`,
+            mentions: [{ participantId: b.id, start: 0, end: mention.length }]
+        })
+        expect(publish.mock.calls[0][2]).toMatchObject({ recipientIds: [b.id] })
+        await expect(
+            service.submit(group.id, {
+                clientMessageId: randomUUID(),
+                text: '@someone@example.com Hi',
+                mentions: [{ participantId: b.id, start: 0, end: '@someone@example.com'.length }]
+            })
+        ).rejects.toMatchObject({ status: 400 })
+        expect(publish).toHaveBeenCalledTimes(1)
+    })
     it('routes plain text to the group xpertId while preserving the authenticated human author', async () => {
         const { service, group, a, c } = fixture()
         const publish = jest.spyOn(service, 'publish').mockResolvedValue(undefined)

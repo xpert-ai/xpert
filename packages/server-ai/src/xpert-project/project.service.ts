@@ -26,7 +26,7 @@ import {
     TenantOrganizationAwareCrudService
 } from '@xpert-ai/server-core'
 import { yaml } from '@xpert-ai/server-common'
-import { BadRequestException, ConflictException, ForbiddenException, Injectable, Logger } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { OnEvent } from '@nestjs/event-emitter'
@@ -57,6 +57,7 @@ import { ProjectUpdateInputDTO } from './dto'
 import { ConnectorService } from '../connector/connector.service'
 import { XpertProjectXpertBindingService } from './services/project-xpert-binding.service'
 import { GetOwnedStorageFileQuery } from '../file-understanding/queries'
+import { createProjectWithAssistants } from './services/project-creation'
 import { ensureManagedProject } from './services/project-managed-provisioning'
 
 @Injectable()
@@ -81,73 +82,45 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 
     /** Create from the ordinary authenticated API without accepting persisted identity fields. */
     async createProject(input: IXpertProjectCreateInput) {
-        return this.create({
-            ...(await this.projectTypes.forCreate(input.projectType ?? GENERAL_PROJECT_TYPE)),
-            name: input.name,
-            avatar: input.avatar,
-            description: input.description,
-            status: input.status ?? 'active',
-            settings: input.settings,
-            copilotModelId: input.copilotModelId,
-            vcsId: input.vcsId
-        })
+        const roots = await Promise.all(
+            [...new Set((input.xpertIds ?? []).map((id) => id?.trim()).filter(Boolean))].map((id) =>
+                this.resolveAccessibleCurrentXpert(id)
+            )
+        )
+        return this.createWithInitialAssistants(
+            {
+                ...(await this.projectTypes.forCreate(input.projectType ?? GENERAL_PROJECT_TYPE)),
+                name: input.name,
+                avatar: input.avatar,
+                description: input.description,
+                status: input.status ?? 'active',
+                settings: input.settings,
+                copilotModelId: input.copilotModelId,
+                vcsId: input.vcsId
+            },
+            roots
+        )
     }
 
     public async create(entity: DeepPartial<XpertProject>, ...options: unknown[]): Promise<XpertProject> {
-        const settings = entity.settings as IXpertProject['settings'] | undefined
-        if (entity.id) {
-            const project = this.repository.create({
-                ...omit(entity, [
-                    'workspace',
-                    'workspaceId',
-                    'xperts',
-                    'members',
-                    'memberships',
-                    'toolsets',
-                    'knowledges'
-                ]),
-                tenantId: RequestContext.currentTenantId(),
-                organizationId: RequestContext.getOrganizationId(),
-                ownerId: RequestContext.currentUserId(),
-                createdById: RequestContext.currentUserId()
-            })
-            try {
-                await this.repository.insert(project)
-            } catch (error) {
-                if (error && typeof error === 'object' && 'code' in error && error.code === '23505') {
-                    throw new ConflictException(t('server-ai:Error.ProjectTypeConflict'))
-                }
-                throw error
-            }
-            await this.contentService.initialize(project)
-            return project
-        }
-        const project = await super.create(
+        return this.createWithInitialAssistants(entity, [], ...options)
+    }
+
+    private async createWithInitialAssistants(
+        entity: DeepPartial<XpertProject>,
+        roots: IXpert[],
+        ...options: unknown[]
+    ): Promise<XpertProject> {
+        return createProjectWithAssistants(
             {
-                ...omit(entity, [
-                    'workspace',
-                    'workspaceId',
-                    'xperts',
-                    'members',
-                    'memberships',
-                    'toolsets',
-                    'knowledges'
-                ]),
-                ...(settings
-                    ? {
-                          settings: {
-                              instruction: settings.instruction ?? '',
-                              mode: settings.mode,
-                              managementMode: settings.managementMode
-                          }
-                      }
-                    : {}),
-                ownerId: RequestContext.currentUserId()
+                repository: this.repository,
+                bindings: this.xpertBindingService,
+                create: (input) => super.create(input, ...options),
+                initialize: (project) => this.contentService.initialize(project)
             },
-            ...options
+            entity,
+            roots
         )
-        await this.contentService.initialize(project)
-        return project
     }
 
     /**
@@ -159,10 +132,9 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
             {
                 repository: this.repository,
                 queryBus: this.queryBus,
-                bindings: this.xpertBindingService,
                 types: this.projectTypes,
                 initialize: (project) => this.contentService.initialize(project),
-                create: (entity) => this.create(entity),
+                create: (entity, roots) => this.createWithInitialAssistants(entity, roots),
                 resolveXpert: (id) => this.resolveAccessibleCurrentXpert(id)
             },
             input
@@ -624,25 +596,28 @@ export class XpertProjectService extends TenantOrganizationAwareCrudService<Xper
 
         const { content: instruction } = await this.contentService.readInstructions(id)
         this.projectTypes.assertPlatformLifecycle(project)
-        const duplicate = await this.create({
-            ...project,
-            id: undefined, // Clear the ID to create a new project
-            tenantId: undefined,
-            organizationId: undefined,
-            createdAt: undefined,
-            updatedAt: undefined,
-            createdById: undefined,
-            updatedById: undefined,
-            name: `${project.name} - Copy`,
-            status: 'active',
-            settings: {
-                instruction,
-                mode: project.settings?.mode,
-                managementMode: project.settings?.managementMode
+        const roots = await Promise.all(project.xperts.map((xpert) => this.resolveAccessibleCurrentXpert(xpert.id)))
+        const duplicate = await this.createWithInitialAssistants(
+            {
+                ...project,
+                id: undefined, // Clear the ID to create a new project
+                tenantId: undefined,
+                organizationId: undefined,
+                createdAt: undefined,
+                updatedAt: undefined,
+                createdById: undefined,
+                updatedById: undefined,
+                name: `${project.name} - Copy`,
+                status: 'active',
+                settings: {
+                    instruction,
+                    mode: project.settings?.mode,
+                    managementMode: project.settings?.managementMode
+                },
+                attachments: project.attachments.map((_) => ({ id: _.id }))
             },
-            attachments: project.attachments.map((_) => ({ id: _.id }))
-        })
-        for (const xpert of project.xperts) await this.addXpert(duplicate.id, xpert.id)
+            roots
+        )
 
         const planRepository = this.repository.manager.getRepository(XpertProjectPlan)
         const taskRepository = this.repository.manager.getRepository(XpertProjectTask)

@@ -2,6 +2,7 @@ import { Dialog } from '@angular/cdk/dialog'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { TranslateModule } from '@ngx-translate/core'
 import { EMPTY, of } from 'rxjs'
+import { provideRouter } from '@angular/router'
 import { IRole, RolePermissionsService, RoleService, Store, ToastrService } from '../../../@core'
 import { RolesComponent } from './roles.component'
 
@@ -17,6 +18,7 @@ describe('role dialogs', () => {
     await TestBed.configureTestingModule({
       imports: [RolesComponent, TranslateModule.forRoot()],
       providers: [
+        provideRouter([]),
         { provide: RoleService, useValue: roles },
         { provide: RolePermissionsService, useValue: {} },
         { provide: Store, useValue: { user$: EMPTY } },

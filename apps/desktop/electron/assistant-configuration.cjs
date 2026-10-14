@@ -19,6 +19,134 @@ function createAssistantConfigurationMethods(ClientError) {
   const conflictMessage =
     'This assistant was changed in Xpert. Reload its settings or review the workflow in Xpert before editing.'
   return {
+    async templatePublicationPreview(input) {
+      const id = assistant(this, input)
+      return this.request(`/api/xpert/${encodeURIComponent(id)}/template-lifecycle/publication`, {
+        scope: 'organization',
+        method: 'GET',
+        retry: false,
+        timeout: 180000,
+        body: undefined
+      })
+    },
+    async templateUpgradePreview(input) {
+      const id = assistant(this, input)
+      const query = input.targetTemplateId
+        ? `?${new URLSearchParams({ targetTemplateId: String(input.targetTemplateId) })}`
+        : ''
+      return this.request(`/api/xpert/${encodeURIComponent(id)}/template-lifecycle/upgrade${query}`, {
+        scope: 'organization',
+        method: 'GET',
+        retry: false,
+        timeout: 180000,
+        body: undefined
+      })
+    },
+    async templateUpgradeSources(input) {
+      const id = assistant(this, input)
+      return this.request(`/api/xpert/${encodeURIComponent(id)}/template-lifecycle/upgrade/sources`, {
+        scope: 'organization',
+        method: 'GET',
+        retry: false,
+        timeout: 180000
+      })
+    },
+    async publishAssistantTemplate(input) {
+      const id = assistant(this, input)
+      return this.request(`/api/xpert/${encodeURIComponent(id)}/template-lifecycle/publication`, {
+        scope: 'organization',
+        method: 'POST',
+        retry: false,
+        timeout: 180000,
+        body: input.input
+      })
+    },
+    async revokeAssistantTemplate(input) {
+      const id = assistant(this, input)
+      return this.request(`/api/xpert/${encodeURIComponent(id)}/template-lifecycle/publication`, {
+        scope: 'organization',
+        method: 'DELETE',
+        retry: false,
+        timeout: 180000,
+        body: undefined
+      })
+    },
+    async applyTemplateUpgrade(input) {
+      const id = assistant(this, input)
+      return this.request(`/api/xpert/${encodeURIComponent(id)}/template-lifecycle/upgrade`, {
+        scope: 'organization',
+        method: 'POST',
+        retry: false,
+        timeout: 180000,
+        body: input.input
+      })
+    },
+    async resumeTemplateUpgrade(input) {
+      const id = assistant(this, input)
+      return this.request(`/api/xpert/${encodeURIComponent(id)}/template-lifecycle/upgrade/resume`, {
+        scope: 'organization',
+        method: 'POST',
+        retry: false,
+        timeout: 180000,
+        body: { operationId: input.operationId }
+      })
+    },
+    async rollbackTemplateUpgrade(input) {
+      const id = assistant(this, input)
+      return this.request(`/api/xpert/${encodeURIComponent(id)}/template-lifecycle/upgrade/rollback`, {
+        scope: 'organization',
+        method: 'POST',
+        retry: false,
+        timeout: 180000,
+        body: { operationId: input.operationId }
+      })
+    },
+    async templateActivity(input) {
+      const id = assistant(this, input)
+      return this.request(`/api/xpert/${encodeURIComponent(id)}/template-setup/activity`, { scope: 'organization' })
+    },
+    async readTemplateActivity(input) {
+      const id = assistant(this, input)
+      if (
+        !Array.isArray(input.keys) ||
+        input.keys.length > 50 ||
+        input.keys.some((key) => typeof key !== 'string' || key.length > 80)
+      )
+        throw new ClientError('Invalid assistant settings.')
+      return this.request(`/api/xpert/${encodeURIComponent(id)}/template-setup/activity/read`, {
+        scope: 'organization',
+        method: 'PUT',
+        retry: false,
+        body: { keys: input.keys }
+      })
+    },
+    async assistantTemplateSetup(input) {
+      const id = assistant(this, input)
+      return this.request(`/api/xpert/${encodeURIComponent(id)}/template-setup`, { scope: 'organization' })
+    },
+    async updateAssistantTemplateSetup(input) {
+      const id = assistant(this, input)
+      return this.request(`/api/xpert/${encodeURIComponent(id)}/template-setup`, {
+        scope: 'organization',
+        method: 'PUT',
+        retry: false,
+        body: input.update
+      })
+    },
+    async updateAssistantTemplateRoutine(input) {
+      const id = assistant(this, input)
+      if (typeof input.key !== 'string' || !/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/.test(input.key))
+        throw new ClientError('Invalid assistant settings.')
+      return this.request(
+        `/api/xpert/${encodeURIComponent(id)}/template-setup/routines/${encodeURIComponent(input.key)}`,
+        {
+          scope: 'organization',
+          method: 'PUT',
+          retry: false,
+          body: input.update
+        }
+      )
+    },
     async assistantConfiguration(input) {
       const id = assistant(this, input)
       const query =

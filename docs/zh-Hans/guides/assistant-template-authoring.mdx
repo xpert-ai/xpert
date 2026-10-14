@@ -1,0 +1,166 @@
+---
+title: 智能体模板编写与打包
+description: 用 Agent Plugin 或原生 Xpert Plugin 交付同一 Assistant 定义，明确 DSL、manifest、依赖、国际化和头像的归属。
+---
+
+仅包含技能、MCP 配置、模板、manifest 和素材的交付，优先使用 Agent Plugin。需要新增服务端控制器、实体、工具或策略实现时，使用原生 Xpert Plugin；两者都可以提供 Assistant Templates。运行时能力必须已由宿主或原生插件实现，声明文件本身不会生成服务端能力。
+
+用户操作见[模板生命周期](/zh-Hans/guides/assistant-templates)，接口与实现见[架构说明](/zh-Hans/architecture/assistant-template-lifecycle)。
+
+## 单一声明来源
+
+| 内容                                           | 声明位置                                                         | 用途                         |
+| ---------------------------------------------- | ---------------------------------------------------------------- | ---------------------------- |
+| Agent、指令、节点、连接、中间件                | DSL 的 `team`、`nodes`、`connections`                            | 实际执行图                   |
+| 沙箱能力                                       | `team.features.sandbox`                                          | 运行能力选择                 |
+| 可分发的初始知识                               | 顶层 `memories`                                                  | 安装时导入初始记忆           |
+| 技能、MCP、工具集等资源                        | `template.dependencies`                                          | 资源选择、安装与绑定         |
+| 文件、首次引导、连接器、例行任务、额外执行要求 | `template.manifest`                                              | 初始化及就绪检查             |
+| 本地化的市场文案                               | 模板 `presentation`                                              | 名称、描述与发布者显示       |
+| 应用业务亮点                                   | `appConfig.presentation.features`                                | 应用营销介绍，不授权执行     |
+| 模板来源与实际依赖锁                           | 实例 `options.templateSource`、`options.templateDependencyLocks` | 安装追踪，不打包为可移植内容 |
+
+`template.schemaVersion` 与 manifest 的 `schemaVersion` 均使用 `2`。manifest v2 不再重复声明 `memory`、`skills` 或 `execution.sandbox`。旧 v1 会做兼容归一化并拒绝冲突；没有 manifest 的旧模板仍按旧契约处理。
+
+## Agent Plugin 目录
+
+```text
+agent-plugins/assistants/office-ops/
+├── plugin.json
+├── templates/
+│   └── office-ops.json
+├── skills/
+│   └── office-getting-started/
+│       └── SKILL.md
+└── assets/
+    └── avatar.png
+```
+
+有 MCP 资源时添加 `mcp.json`。纯模板包也受支持，不要求 `package.json`、npm 安装脚本或 NestJS 模块。下面是结构示例，仍需提供所引用的有效模板文件：
+
+```json
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "office-ops",
+  "version": "1.0.0",
+  "description": "Office operations assistant templates.",
+  "extensions": {
+    "xpertai": {
+      "version": 2,
+      "interface": {
+        "displayName": { "en_US": "Office Ops", "zh_Hans": "办公运营助手" },
+        "description": { "en_US": "Office workflows", "zh_Hans": "办公运营流程" }
+      },
+      "templates": [
+        {
+          "key": "office-ops",
+          "path": "templates/office-ops.json",
+          "category": "operations",
+          "presentation": {
+            "title": { "en_US": "Office Ops", "zh_Hans": "办公运营助手" },
+            "description": { "en_US": "Maintain office ledgers.", "zh_Hans": "维护办公业务台账。" },
+            "pluginDisplayName": { "en_US": "Office Ops", "zh_Hans": "办公运营助手" }
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+Agent Plugins 标准版本 `1.0.0` 与 Xpert 扩展版本 `2` 是两个不同版本。模板路径必须位于包内 `templates/`，使用有效 JSON 或 YAML Assistant DSL。模板目录标识为 `agent-plugin/office-ops/office-ops`，由包名与模板 key 组成，不使用翻译后的名称作为身份。
+
+通过正常 Git/ZIP 导入流程校验并安装资源包，再在有权编辑的空间导入模板。复制文件只是分发，不会绕过导入校验或运行授权。无效模板产生独立诊断，不应让同包有效技能被误判为不可用。
+
+## 依赖绑定
+
+下面是嵌入有效 Assistant DSL 的元数据片段，并非完整运行图：
+
+```json
+{
+  "template": {
+    "schemaVersion": 2,
+    "dependencies": {
+      "skills": [
+        {
+          "source": { "kind": "agent-plugin", "name": "office-ops" },
+          "componentKey": "office-getting-started",
+          "targetAgentKey": "assistant"
+        }
+      ]
+    },
+    "manifest": {
+      "schemaVersion": 2,
+      "version": "1.0.0",
+      "files": {
+        "scope": "user",
+        "entries": [
+          { "kind": "directory", "path": "office" },
+          {
+            "kind": "file",
+            "path": "office/README.md",
+            "content": "Office records",
+            "contentVersion": "1",
+            "policy": "create-only"
+          },
+          {
+            "kind": "ledger",
+            "path": "office/shipments.json",
+            "structureVersion": "1",
+            "columns": [{ "key": "id", "label": "ID", "type": "string" }],
+            "policy": "create-only"
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+`targetAgentKey` 必须对应实际图中的 Agent；`componentKey` 对应来源包中的实际资源。Agent Plugin 来源选择器用于技能及 MCP 依赖，可用 `digest` 固定内容。未指定时，安装前解析并锁定当前摘要、绑定 ID 和绑定版本。
+
+原生插件依赖使用 `pluginName`，可通过 `dependencies.versions` 要求精确版本。Hooks、Apps、工具集等依赖按其原生契约声明，不能假定都接受 Agent Plugin 的 `source` 选择器。
+
+绑定连接的是“目标 Agent 与实际运行资源”，不是把业务能力文案绑定到插件名称。安装资源包不等于已经把包内全部资源加给 Assistant；运行时还会校验作用域、启用状态和锁定版本。
+
+## manifest 的其他要求
+
+| 字段         | 编写要求                                                                                         |
+| ------------ | ------------------------------------------------------------------------------------------------ |
+| `onboarding` | 指定 `skill`、`required`、`preferences` 和 `completionCriteria`；完成标准包含真实首个产出        |
+| `connectors` | 每项包含稳定 `key`、`provider`、`required`、`purpose`、`permissions`；同 provider 只能出现一次   |
+| `routines`   | 包含稳定 `key`、`trigger`、`expression`、`timezone`、`skill`、`output`；`enabled` 只能为 `false` |
+| `execution`  | 声明不能由图推导的 `modelFeatures`、`localCapabilities`、`offline` 要求，不重复声明沙箱          |
+
+定时表达式为五段 cron，时区选择 `user` 或 `organization`。事件触发目前不可执行，不应把它标成已支持。所有技能引用都应能解析到真实依赖。
+
+文件路径使用相对路径；绝对路径、`..`、反斜杠及保留目录 `.apps` 等被拒绝，Volume 层进一步检查路径和符号链接包含关系。台账必须是 `.json`；`create-only` 不会替换既有业务内容。
+
+外部写操作应在 `team.options.operationPolicy` 声明工具级策略，配合宿主审批执行。连接器权限声明、首次引导提示和技能文本均不代替授权。
+
+## 原生插件与 Plugin App
+
+原生 Xpert Plugin 保留模板贡献能力。模板使用相同的可移植 DSL、依赖和 manifest，不应维护另一套业务能力清单。需要服务器功能的插件可以同时交付实现和模板。
+
+`appConfig.assistantTemplateKey` 引用同一插件贡献的原始模板 key；`assistantSuite` 组织附加角色。应用的 `composition` 根据实际入口、角色、工作空间及声明的知识资源生成，不把插件里的所有内容当成应用组成。
+
+模板独立导入可以创建多个实例；组织业务应用通过其稳定身份复用初始化记录。应用初始化、插件升级与既有 Assistant 升级是独立操作。
+
+## 国际化与头像
+
+顶层标准 `name`、`description` 保持标准要求的字符串。Xpert 扩展的 `interface.displayName`、`interface.description` 和模板 `presentation` 接受 `I18nText`；采用 `en_US`、`zh_Hans` 等语言 key。缺少目标语言时使用回退文案。
+
+分类使用稳定 key，由客户端本地化。语言切换不修改包标识、依赖摘要或内部技能。`SKILL.md`、执行指令及业务文件不会因 UI 切换自动翻译。
+
+插件图标位于 `extensions.xpertai.interface.icon`，模板头像来自 DSL `team.avatar`，Agent 节点头像位于其 `entity.avatar`。三者是不同展示入口，需要一致时分别配置。图片由系统头像容器限制尺寸并裁切圆角。
+
+## 发布前检查
+
+1. 校验包、模板 DSL 和所有相对路径；逐项处理资源诊断。
+2. 预检依赖来源、版本、目标 Agent、模型和运行要求。
+3. 在干净目标空间导入，刷新并重试同一安装记录，确认没有重复实例。
+4. 验证文件创建不会覆盖现有内容；连接缺失、审批拒绝和任务暂停符合预期。
+5. 检查中英文目录、详情和头像；正文不携带真实凭据、业务数据或环境标识。
+6. 升级已有实例并检查本地修改冲突，最后显式发布。
+
+完整生命周期及验收范围见[功能指南](/zh-Hans/guides/assistant-templates)。

@@ -3,7 +3,7 @@
     type="button"
     cdkOverlayOrigin
     #menuOrigin="cdkOverlayOrigin"
-    class="mx-auto flex size-10 cursor-pointer items-center justify-center rounded-lg text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    class="mx-auto flex size-10 cursor-pointer items-center justify-center rounded-lg text-sidebar-foreground transition-colors hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     [class]="menuOpen() ? 'bg-components-list-option-active-bg text-text-primary!' : ''"
     [attr.aria-label]="'XP.Sidebar.RecentTasks' | translate: { Default: 'Recent tasks' }"
     [attr.aria-expanded]="menuOpen()"
@@ -50,7 +50,7 @@
     <h2 id="cloud-sidebar-recent-tasks-label" class="cloud-sidebar-recent-tasks__heading">
       <button
         type="button"
-        class="cloud-sidebar-recent-tasks__trigger flex h-9 w-full min-w-0 cursor-pointer items-center gap-2.5 rounded-lg border-0 bg-transparent px-2.5 py-1.5 text-left text-base font-normal leading-5 text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        class="cloud-sidebar-recent-tasks__trigger flex h-9 w-full min-w-0 cursor-pointer items-center gap-2.5 rounded-lg border-0 bg-transparent px-2.5 py-1.5 text-left text-base font-normal leading-5 text-sidebar-foreground transition-colors hover:bg-hover-bg hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         [attr.aria-expanded]="expanded()"
         aria-controls="cloud-sidebar-recent-tasks-list"
         (click)="toggleExpanded()"

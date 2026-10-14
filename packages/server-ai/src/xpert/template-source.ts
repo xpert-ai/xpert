@@ -4,6 +4,7 @@ import { normalizePluginName } from '@xpert-ai/server-core'
 type XpertTemplateSourceCarrier = Pick<IXpert, 'options' | 'draft'>
 type XpertTemplateSourceDescriptor = {
     id: string
+    manifest?: TXpertTemplateSource['manifest']
     key?: string
     pluginName?: string
     pluginDisplayName?: string
@@ -62,6 +63,7 @@ export function createXpertTemplateSource(
     return {
         templateId,
         templateKey,
+        ...(template.manifest ? { manifest: template.manifest } : {}),
         ...(pluginName ? { pluginName } : {}),
         ...(readString(template.pluginDisplayName)
             ? { pluginDisplayName: readString(template.pluginDisplayName) }

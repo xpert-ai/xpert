@@ -1,3 +1,5 @@
+import { Dialog } from '@angular/cdk/dialog'
+import { TemplateSetupComponent } from './template-setup.component'
 import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { ChangeDetectionStrategy, Component, computed, effect, inject, OnDestroy, signal } from '@angular/core'
@@ -36,6 +38,16 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   providers: [ChatPlatformService, { provide: ChatService, useExisting: ChatPlatformService }]
 })
 export class ChatXpertComponent {
+  readonly dialog = inject(Dialog)
+  openTemplateSetup() {
+    const id = this.xpert()?.id
+    if (id)
+      this.dialog.open(TemplateSetupComponent, {
+        data: id,
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog'
+      })
+  }
   readonly chatService = inject(ChatPlatformService)
   readonly homeService = inject(ChatHomeService)
   readonly chatHomeComponent = inject(ChatHomeComponent)

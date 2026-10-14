@@ -1,4 +1,14 @@
 <xpert-webapp class="w-full h-full overflow-y-auto">
+  @if (xpert()?.options?.templateDefinition?.manifest || xpert()?.options?.templateSource?.manifest) {
+    <button
+      action
+      type="button"
+      class="px-3 py-2 text-text-primary hover:bg-hover-bg rounded-lg"
+      (click)="openTemplateSetup()"
+    >
+      {{ 'TemplateSetup.Title' | translate }}
+    </button>
+  }
   @if (!xpert()) {
     <xp-chat-xperts class="w-full @lg:w-4/5 max-w-[50rem] overflow-x-auto no-touch-scrollbar" />
   }

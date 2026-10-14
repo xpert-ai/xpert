@@ -1,8 +1,8 @@
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { OverlayContainer } from '@angular/cdk/overlay'
 import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
-import { BehaviorSubject, of } from 'rxjs'
+import { TranslateModule } from '@ngx-translate/core'
+import { BehaviorSubject, of, Subject } from 'rxjs'
 import { OrganizationSelectorComponent } from './organization-selector.component'
 
 jest.mock('@cloud/app/@shared/i18n', () => ({
@@ -27,42 +27,10 @@ jest.mock('@cloud/app/@core/state', () => {
   }
 })
 
-jest.mock('@xpert-ai/headless-ui', () => {
-  const { Component, Directive, Input } = jest.requireActual('@angular/core')
-
-  @Directive({
-    standalone: true,
-    // eslint-disable-next-line @angular-eslint/directive-selector
-    selector: '[z-button]'
-  })
-  class ZardButtonComponent {}
-
-  @Component({
-    standalone: true,
-    selector: 'z-search-input',
-    template: ''
-  })
-  class ZardSearchInputComponent {}
-
-  @Directive({
-    standalone: true,
-    selector: '[xpHighlight]'
-  })
-  class XpHighlightDirective {
-    @Input() xpHighlight?: string
-    @Input() content?: string
-  }
-
-  return {
-    debouncedSignal: (value: unknown) => value,
-    XpHighlightDirective,
-    ZardSearchInputComponent,
-    nonNullable: <T>(value: T | null | undefined): value is T => value != null,
-    OverlayAnimation1: [],
-    ZardButtonComponent,
-    ZardTooltipImports: []
-  }
-})
+jest.mock('@xpert-ai/headless-ui', () => ({
+  ...jest.requireActual('@xpert-ai/headless-ui'),
+  debouncedSignal: (value: unknown) => value
+}))
 
 jest.mock('../../../@core', () => {
   class OrganizationsService {}
@@ -99,16 +67,6 @@ jest.mock('../../../@shared/organization', () => {
   return {
     OrgAvatarComponent
   }
-})
-
-describe('OrganizationSelectorComponent template', () => {
-  it('shows organization loading feedback while the menu data request is pending', () => {
-    const template = readFileSync(join(__dirname, 'organization-selector.component.html'), 'utf8')
-
-    expect(template).toContain('@if (organizationsLoading())')
-    expect(template).toContain('XP.Organization.Loading')
-    expect(template).toContain('ri-loader-4-line')
-  })
 })
 
 describe('OrganizationSelectorComponent', () => {
@@ -212,5 +170,119 @@ describe('OrganizationSelectorComponent', () => {
     expect(fixture.componentInstance.organizations()).toEqual([{ ...organization, name: 'Searched Organization' }])
 
     TestBed.resetTestingModule()
+  })
+})
+
+describe('OrganizationSelectorComponent dropdown', () => {
+  afterEach(() => TestBed.resetTestingModule())
+
+  async function setup(role = 'SUPER_ADMIN') {
+    const organization = { id: 'org-1', name: 'Example Organization', isActive: true }
+    const currentUser = {
+      id: 'user-1',
+      tenantId: 'tenant-1',
+      role: { name: role },
+      organizations: [{ organization }]
+    }
+    const user$ = new BehaviorSubject(currentUser)
+    const activeScope = signal<{ level: string; organizationId?: string }>({ level: 'tenant' })
+    const scopeService = {
+      activeScope,
+      canUseTenantScope: signal(role === 'SUPER_ADMIN'),
+      ensureValidScope: jest.fn(),
+      switchToOrganization: jest.fn(() => activeScope.set({ level: 'organization', organizationId: organization.id })),
+      switchToTenant: jest.fn(() => activeScope.set({ level: 'tenant' }))
+    }
+    const organizationsService = {
+      getPage: jest.fn(() => of({ items: [organization], total: 1 }))
+    }
+    await TestBed.configureTestingModule({
+      imports: [OrganizationSelectorComponent, TranslateModule.forRoot()],
+      providers: [
+        {
+          provide: jest.requireMock('../../../@core').Store,
+          useValue: {
+            user: currentUser,
+            user$: user$.asObservable(),
+            selectedOrganization: null,
+            featureContextHydrated: false
+          }
+        },
+        { provide: jest.requireMock('../../../@core').ScopeService, useValue: scopeService },
+        { provide: jest.requireMock('../../../@core').OrganizationsService, useValue: organizationsService },
+        {
+          provide: jest.requireMock('@cloud/app/@core/state').UsersService,
+          useValue: { getMe: jest.fn(() => Promise.resolve(currentUser)) }
+        },
+        {
+          provide: jest.requireMock('@cloud/app/@core/state').CurrentUserHydrationService,
+          useValue: { getFeatureHydration: jest.fn() }
+        }
+      ]
+    }).compileComponents()
+    const fixture = TestBed.createComponent(OrganizationSelectorComponent)
+    fixture.componentRef.setInput('variant', 'breadcrumb')
+    fixture.detectChanges()
+    const element = fixture.nativeElement as HTMLElement
+    const trigger = element.querySelector('button')!
+    const overlay = TestBed.inject(OverlayContainer).getContainerElement()
+    const open = async () => {
+      trigger.click()
+      fixture.detectChanges()
+      await fixture.whenStable()
+      fixture.detectChanges()
+    }
+    return { fixture, trigger, overlay, open, scopeService, organizationsService, organization }
+  }
+
+  it('switches scope through the existing service by keyboard and click, and marks the active item', async () => {
+    const { fixture, trigger, overlay, open, scopeService, organization } = await setup()
+    expect(trigger.textContent).toContain('XP.Scope.TenantEyebrow')
+    await open()
+    expect(overlay.querySelector('[aria-current="true"]')?.textContent).toContain('XP.Scope.TenantEyebrow')
+    const organizationItem = overlay.querySelectorAll<HTMLButtonElement>('[z-menu-item]')[1]
+    organizationItem.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', keyCode: 13, bubbles: true }))
+    fixture.detectChanges()
+    expect(scopeService.switchToOrganization).toHaveBeenCalledTimes(1)
+    expect(scopeService.switchToOrganization).toHaveBeenCalledWith(organization)
+    expect(overlay.querySelector('[role="menu"]')).toBeNull()
+    expect(trigger.textContent).toContain(organization.name)
+
+    await open()
+    expect(overlay.querySelector('[aria-current="true"]')?.textContent).toContain(organization.name)
+    overlay.querySelector<HTMLButtonElement>('[z-menu-item]')!.click()
+    fixture.detectChanges()
+    expect(scopeService.switchToTenant).toHaveBeenCalledTimes(1)
+    expect(trigger.textContent).toContain('XP.Scope.TenantEyebrow')
+  })
+
+  it('keeps the tenant option hidden for organization-only users', async () => {
+    const { fixture, overlay, open, scopeService, organization, organizationsService } = await setup('VIEWER')
+    scopeService.activeScope.set({ level: 'organization', organizationId: organization.id })
+    fixture.detectChanges()
+    await open()
+    expect(overlay.querySelectorAll('[z-menu-item]')).toHaveLength(1)
+    expect(overlay.textContent).not.toContain('XP.Scope.TenantEyebrow')
+    expect(organizationsService.getPage).not.toHaveBeenCalled()
+    expect(scopeService.switchToTenant).not.toHaveBeenCalled()
+  })
+
+  it('shows pending organization loading and resets search when the menu closes', async () => {
+    const { fixture, trigger, overlay, open, organizationsService } = await setup()
+    const request = new Subject<{ items: Array<{ id: string; name: string; isActive: boolean }>; total: number }>()
+    organizationsService.getPage.mockReturnValue(request.asObservable())
+    await open()
+    expect(overlay.querySelector('[role="status"]')?.textContent).toContain('XP.Organization.Loading')
+    request.next({ items: [], total: 0 })
+    request.complete()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    expect(overlay.querySelector('[role="status"]')?.textContent).toContain('XP.Organization.EmptySearch')
+
+    fixture.componentInstance.searchTerm.set('example')
+    trigger.click()
+    fixture.detectChanges()
+    expect(fixture.componentInstance.searchTerm()).toBe('')
+    expect(overlay.querySelector('[role="menu"]')).toBeNull()
   })
 })

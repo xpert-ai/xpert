@@ -8,9 +8,9 @@ export type NodeSize = { width: number; height: number }
 export function nodeDimensions(kind: MapNode['kind'], style: Prefs['style']) {
     const summary = style === 'summary'
     const heights = summary
-        ? { project: 144, conversation: 230, thread: 266, turn: 266 }
-        : { project: 112, conversation: 142, thread: 166, turn: 166 }
-    return { width: summary ? 320 : 280, height: heights[kind] }
+        ? { project: 144, conversation: 230, thread: 266, turn: 266, segment: 300 }
+        : { project: 112, conversation: 142, thread: 166, turn: 166, segment: 280 }
+    return { width: kind === 'segment' ? (summary ? 420 : 360) : summary ? 320 : 280, height: heights[kind] }
 }
 export function layout(
     items: MapNode[],

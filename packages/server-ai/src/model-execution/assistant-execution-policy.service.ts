@@ -1,4 +1,5 @@
 import { PublishedXpertAccessService } from '../xpert/published-xpert-access.service'
+import { ResolveGroupRuntimeAccessCommand } from '../chat-group/group-runtime-access.command'
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { ModelExecutionModel, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
@@ -55,7 +56,7 @@ export class AssistantExecutionPolicyService {
         // TypeORM omits undefined predicates; never turn a missing id into an arbitrary conversation.
         if (typeof conversationId !== 'string' || !conversationId.trim()) throw executionError('ConversationRequired')
         const user = await this.user(actor)
-        const conversation = await this.conversations.findOne({
+        let conversation = await this.conversations.findOne({
             where: {
                 id: conversationId,
                 tenantId: actor.tenantId,
@@ -64,6 +65,20 @@ export class AssistantExecutionPolicyService {
             },
             relations: ['xpert']
         })
+        conversation ??= await this.conversations.findOne({
+            where: {
+                id: conversationId,
+                tenantId: actor.tenantId,
+                organizationId: actor.organizationId,
+                purpose: 'group_assistant_runtime'
+            },
+            relations: ['xpert']
+        })
+        if (conversation?.purpose === 'group_assistant_runtime') {
+            await this.commandBus.execute(
+                new ResolveGroupRuntimeAccessCommand(actor, { type: 'runtime', conversationId })
+            )
+        }
         if (!conversation || (!runtimeAssistant && !conversation.xpert?.id)) throw executionError('Denied')
         if (runtimeAssistant && !conversation.projectId) throw executionError('Denied')
         const assistant = await this.assistant(actor, runtimeAssistant?.id ?? conversation.xpert.id)

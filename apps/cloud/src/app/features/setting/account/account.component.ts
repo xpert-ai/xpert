@@ -6,6 +6,7 @@ import { ReferralService } from '@cloud/app/@core/state'
 import { AiFeatureEnum, AIPermissionsEnum, FeatureEnum, UserType } from '@xpert-ai/contracts'
 import {
   ZardAlertDialogService,
+  ZardBadgeComponent,
   ZardButtonComponent,
   ZardDividerComponent,
   ZardTabsImports
@@ -27,6 +28,7 @@ import { UserAvatarEditorComponent } from '../../../@shared/user'
   imports: [
     ...ZardTabsImports,
     ZardButtonComponent,
+    ZardBadgeComponent,
     ZardDividerComponent,
     TranslateModule,
     RouterModule,

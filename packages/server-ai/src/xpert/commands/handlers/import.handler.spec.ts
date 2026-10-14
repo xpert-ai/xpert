@@ -1,3 +1,4 @@
+jest.mock('@xpert-ai/plugin-sdk', () => ({ RequestContext: jest.requireMock('@xpert-ai/server-core').RequestContext }))
 import { BadRequestException } from '@nestjs/common'
 
 jest.mock('@xpert-ai/contracts', () => ({
@@ -108,7 +109,8 @@ jest.mock('@xpert-ai/server-core', () => ({
     RequestContext: {
         getLanguageCode: jest.fn().mockReturnValue('en'),
         currentTenantId: jest.fn().mockReturnValue('tenant-1'),
-        getOrganizationId: jest.fn().mockReturnValue('org-1')
+        getOrganizationId: jest.fn().mockReturnValue('org-1'),
+        currentUserId: jest.fn().mockReturnValue('user-1')
     },
     normalizePluginName: (value: string) => {
         const lastAt = value.lastIndexOf('@')
@@ -180,7 +182,13 @@ describe('XpertImportHandler', () => {
             xpertService,
             queryBus,
             xpertAgentService,
-            handler: new XpertImportHandler(xpertService as any, i18n as any, queryBus as any, xpertAgentService as any)
+            handler: new XpertImportHandler(
+                xpertService as any,
+                i18n as any,
+                queryBus as any,
+                xpertAgentService as any,
+                { execute: jest.fn() }
+            )
         }
     }
 
@@ -245,6 +253,62 @@ describe('XpertImportHandler', () => {
             ]
         })
         expect(result.id).toBe('new-xpert')
+    })
+
+    it('recovers a reserved import after a seed write failure without creating a second Assistant', async () => {
+        const { handler, xpertService } = buildHandler()
+        const reserved = 'reserved-assistant'
+        const source = { templateId: 'template', templateKey: 'template' }
+        const created = {
+            id: reserved,
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            createdById: 'user-1',
+            workspaceId: 'workspace-1',
+            name: 'Imported Expert',
+            slug: 'imported-expert',
+            agent: { id: 'agent-new', key: 'Agent_new', name: 'Imported Expert' },
+            options: { templateSource: source }
+        }
+        xpertService.repository.findOne.mockResolvedValueOnce(null).mockResolvedValue(created)
+        xpertService.create.mockResolvedValue(created)
+        xpertService.createBulkMemories.mockRejectedValueOnce(new Error('seed interrupted'))
+        const draft: Partial<XpertDraftDslDTO> = {
+            team: {
+                name: 'Imported Expert',
+                type: XpertTypeEnum.Agent,
+                workspaceId: 'workspace-1',
+                agent: { key: 'primary' }
+            },
+            nodes: [
+                {
+                    key: 'primary',
+                    type: 'agent',
+                    position: { x: 0, y: 0 },
+                    entity: { key: 'primary', name: 'Imported Expert' }
+                }
+            ],
+            connections: [],
+            memories: [{ prefix: 'memory:qa', value: { question: 'q', answer: 'a' } }]
+        }
+        const command = () =>
+            new XpertImportCommand(structuredClone(draft), { newXpertId: reserved, templateSource: source })
+        await expect(handler.execute(command())).rejects.toThrow('seed interrupted')
+        expect((await handler.execute(command())).id).toBe(reserved)
+        expect(xpertService.create).toHaveBeenCalledTimes(1)
+        expect(xpertService.create).toHaveBeenCalledWith(expect.objectContaining({ id: reserved }))
+        expect(xpertService.createBulkMemories).toHaveBeenNthCalledWith(
+            1,
+            reserved,
+            { type: 'qa', memories: [{ question: 'q', answer: 'a' }] },
+            [`template-seed-${reserved}-0`]
+        )
+        expect(xpertService.createBulkMemories).toHaveBeenNthCalledWith(
+            2,
+            reserved,
+            { type: 'qa', memories: [{ question: 'q', answer: 'a' }] },
+            [`template-seed-${reserved}-0`]
+        )
     })
 
     it('uses only the local creation option to select user-isolated workspace data', async () => {

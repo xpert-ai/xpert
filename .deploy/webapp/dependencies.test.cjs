@@ -56,6 +56,40 @@ test('Docker installs every selected manifest before copying its complete build 
   }
 })
 
+test('the Web image includes every browser connector contract exported by the SDK entry point', () => {
+  const dockerfile = read('.deploy/webapp/Dockerfile')
+  const build = dockerfile.indexOf('RUN pnpm nx build cloud')
+  const entryPoint = 'packages/plugin-sdk/src/connector.ts'
+  const contracts = [...read(entryPoint).matchAll(/^export \* from ['"](.+)['"]/gm)].map((match) =>
+    path.posix.join(path.posix.dirname(entryPoint), `${match[1]}.ts`)
+  )
+  assert.ok(contracts.length > 0, 'Expected browser connector contract exports')
+  for (const file of [entryPoint, ...contracts]) {
+    assert.ok(fs.existsSync(path.join(root, file)), `Missing connector contract source: ${file}`)
+    const copy = dockerfile.indexOf(`COPY --chown=node:node ${file} ./${path.posix.dirname(file)}/\n`)
+    assert.ok(copy >= 0 && copy < build, `${file}: copy browser connector contract before compilation`)
+  }
+})
+
+test('the Web image includes the shared template installation client source', () => {
+  const dockerfile = read('.deploy/webapp/Dockerfile')
+  const build = dockerfile.indexOf('RUN pnpm nx build cloud')
+  const paths = JSON.parse(read('tsconfig.base.json')).compilerOptions.paths
+  const entries = paths['@xpert-ai/template-installation-client']
+  assert.ok(entries?.length, 'Expected the shared template installation client alias')
+  const copies = [...dockerfile.slice(0, build).matchAll(/^COPY --chown=node:node (\S+) \.\/(\S+)$/gm)]
+  for (const entry of entries) {
+    assert.ok(fs.existsSync(path.join(root, entry)), `Missing template installation source: ${entry}`)
+    assert.ok(
+      copies.some(([, source, destination]) => {
+        const target = destination.replace(/\/$/, '')
+        return source === target && (entry === source || entry.startsWith(`${source}/`))
+      }),
+      `${entry}: copy the shared client source into its alias path before compilation`
+    )
+  }
+})
+
 test('deployment locks keep server native modules out of Web and PTY out of the base API', () => {
   const containsPackage = (lock, name) => new RegExp(`^  ['"]?${name}@`, 'm').test(lock)
   const web = read('.deploy/webapp/pnpm-lock.yaml')

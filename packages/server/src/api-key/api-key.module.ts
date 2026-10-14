@@ -10,6 +10,7 @@ import { ApiKey } from './api-key.entity'
 import { ApiKeyService } from './api-key.service'
 import { QueryHandlers } from './queries/handlers'
 import { ApiKeyStrategy } from './api-key.strategy'
+import { PersonalApiKeyController } from './personal-api-key/personal-api-key.controller'
 
 @Module({
 	imports: [
@@ -20,7 +21,7 @@ import { ApiKeyStrategy } from './api-key.strategy'
 		UserModule,
 		IntegrationModule
 	],
-	controllers: [ApiKeyController],
+	controllers: [PersonalApiKeyController, ApiKeyController],
 	providers: [ApiKeyService, ApiKeyStrategy, ...QueryHandlers],
 	exports: [ApiKeyService]
 })

@@ -170,6 +170,7 @@ export class ConversationProjectService {
                     })
                 )
             }
+            const members = await this.bindings.resolveInitialMembers([currentXpert], { tenantId, organizationId })
             const projects = manager.getRepository(XpertProject)
             const projectId = randomUUID()
             const initialName =
@@ -210,7 +211,7 @@ export class ConversationProjectService {
                     organizationId,
                     ownerId: user.id,
                     createdById: user.id,
-                    xperts: [{ id: currentXpert.id }]
+                    xperts: members.map((member) => ({ id: member.id }))
                 })
             )
             if (confirmation) {

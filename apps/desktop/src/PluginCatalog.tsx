@@ -11,7 +11,13 @@ const statuses = {
   configuration_required: 'Configuration required',
   disabled: 'Disabled'
 }
-const components = { skill: 'Skill', mcp: 'Tools', middleware: 'Middleware', external_xpert: 'Digital expert' }
+const components: Record<PluginLibraryItem['components'][number]['kind'], string> = {
+  skill: 'Skill',
+  mcp: 'Tools',
+  middleware: 'Middleware',
+  external_xpert: 'Digital expert',
+  assistant_template: 'Assistant template'
+}
 
 export function PluginCatalog({ search, revision }: { search: string; revision: number }) {
   const [data, setData] = useState<PluginLibrary | null>(null)

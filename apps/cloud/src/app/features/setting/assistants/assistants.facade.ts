@@ -32,6 +32,7 @@ export class AssistantsSettingsFacade {
   readonly #formBuilder = inject(FormBuilder)
   readonly #toastr = inject(ToastrService)
   readonly #translate = inject(TranslateService)
+  private loadVersion = 0
 
   readonly featureOrganizations = toSignal(this.#store.featureOrganizations$.pipe(startWith([])))
   readonly featureTenant = toSignal(this.#store.featureTenant$.pipe(startWith([])))
@@ -89,6 +90,7 @@ export class AssistantsSettingsFacade {
   })
 
   readonly loading = signal(true)
+  readonly loadFailed = signal(false)
   readonly savingKey = signal<string | null>(null)
   readonly tenantConfigs = signal<Partial<Record<AssistantCode, IAssistantBinding>>>({})
   readonly organizationConfigs = signal<Partial<Record<AssistantCode, IAssistantBinding>>>({})
@@ -140,6 +142,22 @@ export class AssistantsSettingsFacade {
 
   effectiveConfig(code: AssistantCode) {
     return this.effectiveConfigs()[code] ?? null
+  }
+
+  effectiveAssistantLabel(code: AssistantCode, scope = AssistantBindingScope.ORGANIZATION) {
+    const config = scope === AssistantBindingScope.TENANT ? this.tenantConfig(code) : this.effectiveConfig(code)
+    if (
+      !config?.assistantId ||
+      (scope !== AssistantBindingScope.TENANT &&
+        this.effectiveConfig(code)?.sourceScope === AssistantBindingSourceScope.NONE)
+    ) {
+      return this.t('XP.Assistant.NotConfigured', 'Not Configured')
+    }
+    return this.getXpertLabel(this.xpertLookup()[config.assistantId]) || config.assistantId
+  }
+
+  retry() {
+    return this.loadConfigs()
   }
 
   sourceLabel(sourceScope?: string | null) {
@@ -199,6 +217,7 @@ export class AssistantsSettingsFacade {
   }
 
   async saveConfig(assistant: AssistantRegistryItem, scope: AssistantBindingScope) {
+    const organizationId = this.organizationId()
     const form =
       scope === AssistantBindingScope.TENANT ? this.tenantForm(assistant.code) : this.organizationForm(assistant.code)
     form.markAllAsTouched()
@@ -220,7 +239,9 @@ export class AssistantsSettingsFacade {
         })
       )
       this.#toastr.success('XP.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
-      await this.loadConfigs()
+      if (organizationId === this.organizationId()) {
+        await this.loadConfigs({ code: assistant.code, scope })
+      }
     } catch (error) {
       this.#toastr.error(
         getErrorMessage(error) || this.t('XP.Assistant.SaveFailed', 'Failed to save assistant configuration.')
@@ -231,7 +252,8 @@ export class AssistantsSettingsFacade {
   }
 
   async resetOrganizationOverride(assistant: AssistantRegistryItem) {
-    if (!this.organizationId()) {
+    const organizationId = this.organizationId()
+    if (!organizationId) {
       return
     }
 
@@ -241,7 +263,9 @@ export class AssistantsSettingsFacade {
     try {
       await firstValueFrom(this.#assistantBindingService.delete(assistant.code, AssistantBindingScope.ORGANIZATION))
       this.#toastr.success('XP.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
-      await this.loadConfigs()
+      if (organizationId === this.organizationId()) {
+        await this.loadConfigs({ code: assistant.code, scope: AssistantBindingScope.ORGANIZATION })
+      }
     } catch (error) {
       this.#toastr.error(
         getErrorMessage(error) ||
@@ -252,10 +276,12 @@ export class AssistantsSettingsFacade {
     }
   }
 
-  private async loadConfigs() {
+  private async loadConfigs(updated?: { code: AssistantCode; scope: AssistantBindingScope }) {
+    const version = ++this.loadVersion
     const assistants = this.assistants()
 
     this.loading.set(true)
+    this.loadFailed.set(false)
     try {
       const [tenantConfigs, organizationConfigs, effectiveConfigs]: [
         IAssistantBinding[],
@@ -275,6 +301,10 @@ export class AssistantsSettingsFacade {
         )
       ])
 
+      if (version !== this.loadVersion) {
+        return
+      }
+
       this.tenantConfigs.set(this.toConfigMap(tenantConfigs))
       this.organizationConfigs.set(this.toConfigMap(organizationConfigs))
       this.effectiveConfigs.set(
@@ -288,8 +318,21 @@ export class AssistantsSettingsFacade {
       )
 
       ASSISTANT_REGISTRY.forEach((assistant) => {
-        this.patchForm(this.tenantForm(assistant.code), this.tenantConfig(assistant.code))
-        this.patchForm(this.organizationForm(assistant.code), this.organizationConfig(assistant.code))
+        for (const scope of [AssistantBindingScope.TENANT, AssistantBindingScope.ORGANIZATION]) {
+          const form =
+            scope === AssistantBindingScope.TENANT
+              ? this.tenantForm(assistant.code)
+              : this.organizationForm(assistant.code)
+          // Saving one type must not discard drafts in the other forms.
+          if (!updated || !form.dirty || (updated.code === assistant.code && updated.scope === scope)) {
+            this.patchForm(
+              form,
+              scope === AssistantBindingScope.TENANT
+                ? this.tenantConfig(assistant.code)
+                : this.organizationConfig(assistant.code)
+            )
+          }
+        }
       })
 
       if (!this.canManageTenant()) {
@@ -299,11 +342,17 @@ export class AssistantsSettingsFacade {
         Object.values(this.organizationForms).forEach((form) => form.disable({ emitEvent: false }))
       }
     } catch (error) {
+      if (version !== this.loadVersion) {
+        return
+      }
+      this.loadFailed.set(true)
       this.#toastr.error(
         getErrorMessage(error) || this.t('XP.Assistant.LoadFailed', 'Failed to load assistant configurations.')
       )
     } finally {
-      this.loading.set(false)
+      if (version === this.loadVersion) {
+        this.loading.set(false)
+      }
     }
   }
 

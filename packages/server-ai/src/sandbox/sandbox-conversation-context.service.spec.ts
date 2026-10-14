@@ -1,3 +1,4 @@
+import { ResolveGroupRuntimeAccessCommand } from '../chat-group/group-runtime-access.command'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import type { CommandBus } from '@nestjs/cqrs'
 import type { Repository } from 'typeorm'
@@ -20,6 +21,7 @@ jest.mock('../shared/volume/work-area', () => ({
 }))
 
 jest.mock('@xpert-ai/plugin-sdk', () => ({
+    ...jest.requireActual('@xpert-ai/plugin-sdk'),
     resolveSandboxBackend: jest.fn().mockReturnValue({ execute: jest.fn() }),
     RequestContext: {
         currentTenantId: jest.fn(),
@@ -111,6 +113,45 @@ describe('SandboxConversationContextService', () => {
         expect(workAreaResolver.resolve).not.toHaveBeenCalled()
     })
 
+    it('allows an authorized group member sandbox context while retaining the actual actor', async () => {
+        conversationRepository.findOne.mockResolvedValue({
+            id: 'runtime',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            createdById: 'creator',
+            purpose: 'group_assistant_runtime',
+            xpertId: 'assistant',
+            xpert: { features: { sandbox: { enabled: true, provider: 'local-shell-sandbox' } } }
+        })
+        const context = await service.authorizeConversation({ conversationId: 'runtime' })
+        expect(context.userId).toBe('user-1')
+        expect(commandBus.execute).toHaveBeenCalledWith(
+            new ResolveGroupRuntimeAccessCommand(
+                {
+                    tenantId: 'tenant-1',
+                    organizationId: 'org-1',
+                    userId: 'user-1'
+                },
+                { type: 'runtime', conversationId: 'runtime' }
+            )
+        )
+        expect(workAreaResolver.resolve).not.toHaveBeenCalled()
+    })
+    it('denies revoked group access before filesystem or backend acquisition', async () => {
+        conversationRepository.findOne.mockResolvedValue({
+            id: 'runtime',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            createdById: 'user-1',
+            purpose: 'group_assistant_runtime',
+            xpertId: 'assistant',
+            xpert: { features: { sandbox: { enabled: true, provider: 'local-shell-sandbox' } } }
+        })
+        commandBus.execute.mockRejectedValue(new Error('group denied'))
+        await expect(service.resolveConversationSandbox({ conversationId: 'runtime' })).rejects.toThrow('group denied')
+        expect(commandBus.execute).toHaveBeenCalledTimes(1)
+        expect(workAreaResolver.resolve).not.toHaveBeenCalled()
+    })
     it('uses the authenticated actor for a personal conversation sandbox', async () => {
         conversationRepository.findOne.mockResolvedValue({
             createdById: 'user-conversation-owner',

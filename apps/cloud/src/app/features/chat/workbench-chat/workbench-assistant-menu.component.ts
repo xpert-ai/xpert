@@ -1,3 +1,4 @@
+import { TemplateSetupComponent } from '../xpert/template-setup.component'
 import {
   ChangeDetectionStrategy,
   Component,
@@ -215,6 +216,9 @@ import {
           }
         }
       </div>
+      @if (assistants().some(isActiveAssistant)) {
+        <button z-menu-item type="button" (click)="openTemplateSetup()">{{ 'TemplateSetup.Title' | translate }}</button>
+      }
       @if (canUseGroups()) {
         <div class="shrink-0 border-t border-divider-subtle pt-1">
           <button z-menu-item type="button" data-create-group (click)="createGroup()">
@@ -230,6 +234,18 @@ import {
 })
 export class WorkbenchAssistantMenuComponent {
   readonly activeId = input<string | null>(null)
+  readonly isActiveAssistant = (assistant: IXpert) => assistant.id === this.activeId()
+  openTemplateSetup() {
+    const id = this.activeId()
+    if (id) {
+      this.#dialog.open(TemplateSetupComponent, {
+        data: id,
+        backdropClass: 'backdrop-blur-xs-black',
+        panelClass: 'xp-overlay-pane-dialog'
+      })
+      this.selected.emit()
+    }
+  }
   readonly selected = output<void>()
   readonly query = signal('')
   readonly loading = signal(false)

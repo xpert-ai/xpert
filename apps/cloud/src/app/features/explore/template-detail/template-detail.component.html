@@ -1,0 +1,218 @@
+<main class="mx-auto w-full max-w-7xl px-5 pb-8 pt-3 md:px-10 md:pb-12 md:pt-4">
+  <div class="mb-6 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 md:mb-8">
+    <a
+      routerLink="/explore"
+      [queryParams]="{ catalog: 'templates' }"
+      class="shrink-0 py-2 text-sm text-muted-foreground hover:text-foreground"
+    >
+      ← {{ 'TemplateOverview.Back' | translate }}
+    </a>
+    <xp-explore-scope class="min-w-0 max-w-full" />
+  </div>
+  @if (loading()) {
+    <p role="status" class="py-16 text-muted-foreground">{{ 'TemplateOverview.Loading' | translate }}</p>
+  }
+  @if (error()) {
+    <div role="alert" class="space-y-4 py-12">
+      <p>{{ error() }}</p>
+      <button z-button zType="outline" (click)="load()">{{ 'TemplateOverview.Retry' | translate }}</button>
+    </div>
+  }
+  @if (detail(); as value) {
+    <header class="space-y-5 border-b border-border pb-10">
+      <p class="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+        {{ 'TemplateOverview.Template' | translate }}
+      </p>
+      <h1 class="text-3xl font-semibold tracking-tight md:text-4xl">{{ value.title }}</h1>
+      <p class="text-sm text-muted-foreground">
+        {{ 'TemplateOverview.By' | translate }} {{ value.publisher }}
+        @if (value.version) {
+          · v{{ value.version }}
+        }
+      </p>
+      <p class="max-w-4xl whitespace-pre-wrap text-base leading-7 text-muted-foreground">{{ value.description }}</p>
+      <div class="flex flex-wrap gap-3">
+        <button z-button type="button" (click)="install()">{{ 'TemplateOverview.Import' | translate }}</button>
+        <button z-button zType="outline" type="button" (click)="openDesktop()">
+          {{ 'TemplateLifecycle.OpenDesktop' | translate }}
+        </button>
+      </div>
+    </header>
+    <z-tab-group
+      class="mt-8 min-w-0 gap-8 [&_.z-tab-group__trigger]:justify-start"
+      [zTabsPosition]="wide()?.matches ? 'left' : 'top'"
+      [preserveContent]="true"
+    >
+      <z-tab [label]="'TemplateOverview.Memories' | translate" bodyClass="min-w-0 flex-1 p-4 md:p-6">
+        <ng-template zTabLabel
+          ><span class="text-left"
+            ><strong class="block">{{ 'TemplateOverview.Memories' | translate }}</strong
+            ><span class="text-xs text-muted-foreground">{{ 'TemplateOverview.MemoriesHint' | translate }}</span></span
+          ></ng-template
+        >
+        <section class="space-y-7" aria-label="Memories">
+          <div>
+            <h2 class="text-xl font-semibold">{{ 'TemplateOverview.Instructions' | translate }}</h2>
+            <p class="mt-3 whitespace-pre-wrap break-words leading-7 text-muted-foreground">
+              {{ value.instructions || value.description }}
+            </p>
+          </div>
+          <div class="space-y-4">
+            <h3 class="font-semibold">
+              {{ 'TemplateOverview.SeedMemories' | translate }} · {{ value.memories.length }}
+            </h3>
+            @for (memory of value.memories; track $index) {
+              <div class="border-b border-border pb-4">
+                <h4 class="font-medium">{{ memory.title }}</h4>
+                <p class="mt-2 whitespace-pre-wrap break-words leading-6 text-muted-foreground">
+                  {{ memory.content || ('TemplateOverview.StructuredMemory' | translate) }}
+                </p>
+              </div>
+            } @empty {
+              <p class="text-muted-foreground">{{ 'TemplateOverview.NoMemories' | translate }}</p>
+            }
+          </div>
+          @if (value.onboarding; as setup) {
+            <div class="space-y-3">
+              <h3 class="font-semibold">{{ 'TemplateOverview.FirstUse' | translate }}</h3>
+              <p class="leading-6 text-muted-foreground">{{ setup.completionCriteria }}</p>
+              <p>{{ 'TemplateOverview.Preferences' | translate }}: {{ setup.preferences.join('、') || '—' }}</p>
+            </div>
+          }
+          @if (value.files; as files) {
+            <div class="space-y-3">
+              <h3 class="font-semibold">{{ 'TemplateOverview.Files' | translate }}</h3>
+              <p class="text-muted-foreground">
+                {{
+                  (files.scope === 'user' ? 'TemplateOverview.PersonalFiles' : 'TemplateOverview.SharedFiles')
+                    | translate
+                }}
+              </p>
+              <ul class="space-y-2">
+                @for (path of files.paths; track path) {
+                  <li class="break-all font-mono text-sm">{{ path }}</li>
+                }
+              </ul>
+            </div>
+          }
+        </section>
+      </z-tab>
+      <z-tab [label]="'TemplateOverview.Skills' | translate" bodyClass="min-w-0 flex-1 p-4 md:p-6">
+        <ng-template zTabLabel
+          ><span class="text-left"
+            ><strong class="block">{{ 'TemplateOverview.Skills' | translate }}</strong
+            ><span class="text-xs text-muted-foreground">{{ 'TemplateOverview.SkillsHint' | translate }}</span></span
+          ></ng-template
+        >
+        <section class="space-y-6">
+          <h2 class="text-xl font-semibold">{{ 'TemplateOverview.Skills' | translate }}</h2>
+          @for (skill of value.skills; track $index) {
+            <div class="space-y-2 border-b border-border pb-4">
+              <h3 class="font-medium">{{ skill.componentKey }}</h3>
+              <p class="text-sm text-muted-foreground">{{ skill.source?.name || skill.pluginName }}</p>
+              @if (skill.componentKey === value.onboarding?.skill) {
+                <p>{{ 'TemplateOverview.FirstUse' | translate }} · {{ value.onboarding.completionCriteria }}</p>
+              }
+            </div>
+          } @empty {
+            <p class="text-muted-foreground">{{ 'TemplateOverview.NoSkills' | translate }}</p>
+          }
+          <h3 class="font-semibold">{{ 'TemplateOverview.TeamTools' | translate }}</h3>
+          @for (agent of value.agents; track agent.key) {
+            <div class="space-y-2">
+              <h4 class="font-medium">{{ agent.label }}</h4>
+              @for (middleware of agent.middleware; track $index) {
+                <p class="break-words text-sm text-muted-foreground">
+                  {{ middleware.provider }}
+                  @if (middleware.toolNames.length) {
+                    · {{ middleware.toolNames.join(', ') }}
+                  }
+                </p>
+              }
+            </div>
+          }
+        </section>
+      </z-tab>
+      <z-tab [label]="'TemplateOverview.Routines' | translate" bodyClass="min-w-0 flex-1 p-4 md:p-6">
+        <ng-template zTabLabel
+          ><span class="text-left"
+            ><strong class="block">{{ 'TemplateOverview.Routines' | translate }}</strong
+            ><span class="text-xs text-muted-foreground">{{ 'TemplateOverview.RoutinesHint' | translate }}</span></span
+          ></ng-template
+        >
+        <section class="space-y-6">
+          <h2 class="text-xl font-semibold">{{ 'TemplateOverview.Routines' | translate }}</h2>
+          <p class="leading-6 text-muted-foreground">{{ 'TemplateOverview.RoutinesDefault' | translate }}</p>
+          @for (routine of value.routines; track routine.key) {
+            <div class="space-y-3 border-b border-border pb-6">
+              <h3 class="font-medium">{{ routine.key }}</h3>
+              <p class="leading-6">{{ routine.output }}</p>
+              <p class="text-sm text-muted-foreground">
+                {{ 'TemplateOverview.Skill' | translate }}: {{ routine.skill }}
+              </p>
+              <p class="text-sm text-muted-foreground">
+                {{ routine.expression }} · {{ 'TemplateOverview.Timezone.' + routine.timezone | translate }}
+              </p>
+              @if (routine.trigger === 'event') {
+                <p class="text-sm text-muted-foreground">{{ 'TemplateOverview.EventUnsupported' | translate }}</p>
+              }
+            </div>
+          } @empty {
+            <p class="text-muted-foreground">{{ 'TemplateOverview.NoRoutines' | translate }}</p>
+          }
+        </section>
+      </z-tab>
+      <z-tab [label]="'TemplateOverview.Integrations' | translate" bodyClass="min-w-0 flex-1 p-4 md:p-6">
+        <ng-template zTabLabel
+          ><span class="text-left"
+            ><strong class="block">{{ 'TemplateOverview.Integrations' | translate }}</strong
+            ><span class="text-xs text-muted-foreground">{{
+              'TemplateOverview.IntegrationsHint' | translate
+            }}</span></span
+          ></ng-template
+        >
+        <section class="space-y-6">
+          <h2 class="text-xl font-semibold">{{ 'TemplateOverview.Integrations' | translate }}</h2>
+          <p class="leading-6 text-muted-foreground">{{ 'TemplateOverview.ConnectionNotice' | translate }}</p>
+          @for (item of value.integrations; track item.key) {
+            <div class="space-y-2 border-b border-border pb-4">
+              <h3 class="font-medium">
+                {{ item.label }}
+                <span class="ml-2 text-xs text-muted-foreground">{{
+                  (item.required ? 'TemplateOverview.Required' : 'TemplateOverview.Optional') | translate
+                }}</span>
+              </h3>
+              <p class="leading-6">{{ item.description }}</p>
+              @if (item.permissions.length) {
+                <p class="break-words text-sm text-muted-foreground">
+                  {{ 'TemplateOverview.Permissions' | translate }}: {{ item.permissions.join(', ') }}
+                </p>
+              }
+            </div>
+          } @empty {
+            <p class="text-muted-foreground">{{ 'TemplateOverview.NoIntegrations' | translate }}</p>
+          }
+          <div class="space-y-3">
+            <h3 class="font-semibold">{{ 'TemplateOverview.Policy' | translate }}</h3>
+            @if (value.operationPolicy; as policy) {
+              <p>
+                {{ 'TemplateOverview.DefaultPolicy' | translate }}:
+                {{ 'TemplateOverview.Decision.' + policy.default | translate }}
+              </p>
+              @for (rule of policy.rules; track rule.tool) {
+                <p class="break-words text-sm">
+                  <strong>{{ rule.tool }}</strong> · {{ 'TemplateOverview.Decision.' + rule.decision | translate }}
+                  @if (rule.reason) {
+                    — {{ rule.reason }}
+                  }
+                </p>
+              }
+            } @else {
+              <p class="text-muted-foreground">{{ 'TemplateOverview.NoPolicy' | translate }}</p>
+            }
+          </div>
+        </section>
+      </z-tab>
+    </z-tab-group>
+  }
+</main>

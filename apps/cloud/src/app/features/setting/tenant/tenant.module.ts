@@ -1,6 +1,6 @@
 import { NgModule } from '@angular/core'
 import { RouterModule } from '@angular/router'
-import { XpCommonModule, XpTableComponent } from '@xpert-ai/headless-ui'
+import { XpCommonModule, ZardTableImports, ZardPaginatorComponent } from '@xpert-ai/headless-ui'
 import { DemoComponent } from './demo/demo.component'
 import { SettingsComponent } from './settings/settings.component'
 import { TenantRoutingModule } from './tenant-routing.module'
@@ -17,7 +17,8 @@ import { SMTPComponent } from '../../../@shared/smtp/smtp.component'
     TenantRoutingModule,
     SMTPComponent,
     XpCommonModule,
-    XpTableComponent
+    ...ZardTableImports,
+    ZardPaginatorComponent
   ],
   exports: [],
   declarations: [XpTenantComponent, SettingsComponent, DemoComponent],

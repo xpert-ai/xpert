@@ -72,6 +72,40 @@ test('catalog follows pagination and does not leak DSL, application configuratio
   assert.ok(calls.every((call) => call.headers['organization-id'] === 'org-1'))
 })
 
+test('progressive template pages and protected avatars retain organization scope and narrow payloads', async () => {
+  const id = 'agent-plugin/office/desk'
+  const { service, calls } = fixture((path, options, url) => {
+    if (path === '/api/xpert-template/catalog') {
+      assert.equal(url.searchParams.get('limit'), '48')
+      assert.equal(url.searchParams.get('offset'), '48')
+      assert.equal(url.searchParams.get('assistantsOnly'), 'true')
+      return {
+        items: [
+          {
+            id,
+            title: 'Desk',
+            type: 'agent',
+            avatar: { url: `/api/xpert-template/catalog-avatar/${encodeURIComponent(id)}?v=revision` },
+            export_data: 'never-expose'
+          }
+        ],
+        total: 50
+      }
+    }
+    assert.equal(path, `/api/xpert-template/catalog-avatar/${encodeURIComponent(id)}`)
+    return { url: inlineAvatar }
+  })
+  const result = await dispatch(service, 'templateCatalogPage', { offset: 48 })
+  assert.equal(result.value.nextOffset, 49)
+  assert.equal(result.value.items[0].catalogAvatarId, id)
+  assert.doesNotMatch(JSON.stringify(result), /never-expose|private-account-token/)
+  assert.equal((await dispatch(service, 'catalogAvatar', id)).value, inlineAvatar)
+  assert.ok(calls.every((call) => call.headers['organization-id'] === 'org-1'))
+  service.profile.organizationId = null
+  await assert.rejects(service.templateCatalogPage(), /Select an organization/)
+  await assert.rejects(service.catalogAvatar(id), /Select an organization/)
+})
+
 test('expert discovery exposes the published business area separately from marketplace categories', async () => {
   const entry = expert('owned')
   entry.xpert.businessArea = { id: 'area-sales', name: 'Sales', secret: 'never-expose' }
@@ -431,8 +465,10 @@ test('capability template setup selects a compatible model without relying on th
     title: 'Sample Assistant'
   }
   const setup = await service.templateSetup(input)
-  assert.deepEqual(setup.preflight.models, [{ id: 'vision', label: 'Vision model', model: 'vision-model' }])
-  assert.doesNotMatch(JSON.stringify(setup), /never-expose|copilotModel|vision-provider/)
+  assert.deepEqual(setup.preflight.models, [
+    { id: 'vision', label: 'Vision model', model: 'vision-model', copilotModel: model }
+  ])
+  assert.doesNotMatch(JSON.stringify(setup), /never-expose|credentials/)
   await assert.rejects(service.installTemplate(input), /compatible model/)
   await assert.rejects(service.installTemplate({ ...input, modelId: 'forged' }), /compatible model/)
   assert.equal(calls.filter((call) => call.method === 'POST').length, 0)

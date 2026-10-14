@@ -1,383 +1,415 @@
-<div class="mx-auto flex w-full max-w-7xl flex-col gap-4 p-4">
-  <div class="grid gap-3 xl:grid-cols-12">
-    <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none xl:col-span-5">
-      <z-card-content class="p-5">
-        <div class="flex items-start justify-between gap-4">
-          <div class="min-w-0">
-            <div class="text-xs font-medium uppercase text-text-tertiary">
-              {{ 'XP.Membership.CurrentPlan' | translate: { Default: 'Current plan' } }}
-            </div>
-            <div class="mt-2 truncate text-2xl font-semibold text-text-primary" [title]="overview()?.plan?.name || '-'">
-              {{ overview()?.plan?.name || '-' }}
-            </div>
-            <div class="mt-2 text-sm text-text-tertiary">
-              {{ 'XP.Membership.Last30Days' | translate: { Default: 'Last 30 days' } }}
-            </div>
-          </div>
+<div class="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 md:px-8 md:py-8" [attr.aria-busy]="loading()">
+  <header class="flex flex-wrap items-start justify-between gap-4">
+    <div>
+      <div class="flex items-center gap-3">
+        <h1 class="text-2xl font-semibold tracking-tight text-foreground">
+          {{ 'XP.Membership.UsageOverview' | translate }}
+        </h1>
+        <z-badge zType="outline">{{ 'XP.UsageDashboard.Personal' | translate }}</z-badge>
+      </div>
+      <p class="mt-2 text-sm text-muted-foreground">{{ 'XP.UsageDashboard.Description' | translate }}</p>
+    </div>
+    <div class="flex items-center gap-2">
+      <z-badge zType="secondary" class="h-8 px-3">{{ 'XP.Membership.Last30Days' | translate }}</z-badge>
+      <button
+        z-button
+        zType="outline"
+        zSize="icon"
+        type="button"
+        [zDisabled]="loading()"
+        [attr.aria-label]="'XP.UsageDashboard.Refresh' | translate"
+        (click)="load()"
+      >
+        <z-icon zType="refresh" [class]="loading() ? 'motion-safe:animate-spin' : ''" />
+      </button>
+    </div>
+  </header>
 
-          <span
-            class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-components-panel-bg text-text-secondary"
-          >
-            <z-icon zType="credit-card"></z-icon>
-          </span>
-        </div>
-
-        <div class="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div class="rounded-lg bg-components-panel-bg p-3">
-            <div class="text-xs text-text-tertiary">
-              {{ 'XP.Membership.RemainingPoints' | translate: { Default: 'Remaining points' } }}
-            </div>
-            <div class="mt-1 text-xl font-semibold text-text-primary">
-              @if (overview()?.pointsRemaining === null) {
-                {{ 'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
-              } @else {
-                {{ overview()?.pointsRemaining | number: '1.0-2' }}
-              }
-            </div>
+  @if (loading() && !overview()) {
+    <div role="status" class="flex min-h-72 items-center justify-center gap-3 text-sm text-muted-foreground">
+      <z-icon zType="loader-circle" class="motion-safe:animate-spin" />
+      {{ 'XP.UsageDashboard.Loading' | translate }}
+    </div>
+  } @else if (loadFailed() && !overview()) {
+    <z-empty
+      zIcon="activity"
+      [zTitle]="'XP.UsageDashboard.LoadFailed' | translate"
+      [zDescription]="'XP.UsageDashboard.RetryHint' | translate"
+    >
+      <button z-button zType="outline" type="button" (click)="load()">{{ 'XP.ACTIONS.Retry' | translate }}</button>
+    </z-empty>
+  } @else {
+    @if (loadFailed()) {
+      <p role="alert" class="text-sm text-destructive">{{ 'XP.UsageDashboard.RefreshFailed' | translate }}</p>
+    }
+    <div class="grid grid-cols-2 gap-3 xl:grid-cols-4">
+      <z-card class="min-w-0 shadow-none">
+        <z-card-content class="p-4 md:p-5">
+          <div class="flex items-center justify-between gap-2 text-sm text-muted-foreground">
+            <span>{{ 'XP.Membership.UsedPoints' | translate }}</span
+            ><z-icon zType="activity" />
           </div>
-          <div class="rounded-lg bg-components-panel-bg p-3">
-            <div class="text-xs text-text-tertiary">
-              {{ 'XP.Membership.UsedPoints' | translate: { Default: 'Used points' } }}
-            </div>
-            <div class="mt-1 text-xl font-semibold text-text-primary">
-              {{ overview()?.consumedPoints ?? overview()?.pointsUsed | number: '1.0-0' }}
-            </div>
+          <div class="mt-3 break-words text-2xl font-semibold tracking-tight tabular-nums md:text-3xl">
+            {{ totalPoints() | number: '1.0-2' }}
           </div>
-          <div class="rounded-lg bg-components-panel-bg p-3">
-            <div class="text-xs text-text-tertiary">
-              {{ 'XP.Membership.PersonalPoints' | translate: { Default: 'Personal points' } }}
-            </div>
-            <div class="mt-1 text-xl font-semibold text-text-primary">
-              {{ overview()?.personalPointsBalance | number: '1.0-2' }}
-            </div>
-          </div>
-        </div>
-
-        @if (!isUnlimited()) {
-          <div class="mt-4">
-            <div class="mb-2 flex items-center justify-between gap-3 text-xs text-text-tertiary">
-              <span>{{ 'XP.Membership.QuotaPointUsage' | translate }}</span>
-              <span>{{ usedPercent() | number }}%</span>
-            </div>
-            <z-progress-bar [progress]="usedPercent()" zSize="sm" zShape="default" />
-          </div>
-        }
-      </z-card-content>
-    </z-card>
-
-    <div class="grid gap-3 md:grid-cols-3 xl:col-span-7">
-      <z-card class="border border-divider-regular bg-components-card-bg shadow-none">
-        <z-card-content class="flex h-full items-center gap-3 p-4">
-          <span
-            class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-components-panel-bg text-text-secondary"
-          >
-            <z-icon zType="activity"></z-icon>
-          </span>
-          <div class="min-w-0">
-            <div class="text-xs font-medium text-text-tertiary">
-              {{ 'XP.Membership.TotalPoints' | translate: { Default: 'Total points' } }}
-            </div>
-            <div class="mt-1 text-2xl font-semibold text-text-primary">{{ totalPoints() | number: '1.0-2' }}</div>
-          </div>
+          <p class="mt-2 text-xs text-muted-foreground">{{ 'XP.UsageDashboard.RecentConsumption' | translate }}</p>
         </z-card-content>
       </z-card>
-
-      <z-card class="border border-divider-regular bg-components-card-bg shadow-none">
-        <z-card-content class="flex h-full items-center gap-3 p-4">
-          <span
-            class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-components-panel-bg text-text-secondary"
-          >
-            <z-icon zType="calendar"></z-icon>
-          </span>
-          <div class="min-w-0">
-            <div class="text-xs font-medium text-text-tertiary">
-              {{ 'XP.Membership.ActiveDays' | translate: { Default: 'Active days' } }}
-            </div>
-            <div class="mt-1 text-2xl font-semibold text-text-primary">{{ overview()?.activeDays | number }}</div>
+      <z-card class="min-w-0 shadow-none">
+        <z-card-content class="p-4 md:p-5">
+          <div class="flex items-center justify-between gap-2 text-sm text-muted-foreground">
+            <span>{{ 'XP.Membership.ActiveDays' | translate }}</span
+            ><z-icon zType="calendar" />
           </div>
+          <div class="mt-3 text-2xl font-semibold tracking-tight tabular-nums md:text-3xl">
+            {{ overview()?.activeDays | number
+            }}<span class="ml-1 text-sm font-normal text-muted-foreground">/ 30</span>
+          </div>
+          <p class="mt-2 text-xs text-muted-foreground">{{ 'XP.Membership.Last30Days' | translate }}</p>
         </z-card-content>
       </z-card>
-
-      <z-card class="border border-divider-regular bg-components-card-bg shadow-none">
-        <z-card-content class="flex h-full items-center gap-3 p-4">
-          <span
-            class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-components-panel-bg text-text-secondary"
-          >
-            <z-icon zType="zap"></z-icon>
-          </span>
-          <div class="min-w-0">
-            <div class="text-xs font-medium text-text-tertiary">
-              {{ 'XP.Membership.PeakDailyPoints' | translate: { Default: 'Peak daily points' } }}
-            </div>
-            <div class="mt-1 text-2xl font-semibold text-text-primary">{{ peakDailyPoints() | number: '1.0-2' }}</div>
+      <z-card class="min-w-0 shadow-none">
+        <z-card-content class="p-4 md:p-5">
+          <div class="flex items-center justify-between gap-2 text-sm text-muted-foreground">
+            <span>{{ 'XP.Membership.PeakDailyPoints' | translate }}</span
+            ><z-icon zType="zap" />
           </div>
+          <div class="mt-3 break-words text-2xl font-semibold tracking-tight tabular-nums md:text-3xl">
+            {{ peakDailyPoints() | number: '1.0-2' }}
+          </div>
+          <p class="mt-2 text-xs text-muted-foreground">{{ 'XP.Membership.Last30Days' | translate }}</p>
+        </z-card-content>
+      </z-card>
+      <z-card class="min-w-0 shadow-none">
+        <z-card-content class="p-4 md:p-5">
+          <div class="flex items-center justify-between gap-2 text-sm text-muted-foreground">
+            <span>{{ 'XP.Membership.PersonalPoints' | translate }}</span
+            ><z-icon zType="credit-card" />
+          </div>
+          <div class="mt-3 break-words text-2xl font-semibold tracking-tight tabular-nums md:text-3xl">
+            {{
+              overview()?.personalPointsBalance == null ? '—' : (overview()?.personalPointsBalance | number: '1.0-2')
+            }}
+          </div>
+          <p class="mt-2 text-xs text-muted-foreground">{{ 'XP.UsageDashboard.PersonalPointsHint' | translate }}</p>
         </z-card-content>
       </z-card>
     </div>
-  </div>
 
-  <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
-    <z-card-header class="border-b border-divider-regular py-4">
-      <div class="flex items-center justify-between gap-3">
-        <div>
-          <z-card-title>{{
-            'XP.Membership.MembershipDetails' | translate: { Default: 'Membership details' }
-          }}</z-card-title>
-          <div class="mt-1 text-sm text-text-tertiary">
-            {{
-              'XP.Membership.MembershipDetailsHint'
-                | translate: { Default: 'Current benefits and periods that will take effect later.' }
-            }}
+    <div class="grid min-w-0 gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+      <z-card class="min-w-0 shadow-none">
+        <z-card-header class="justify-between px-5 pt-5">
+          <div>
+            <h2 class="font-semibold">{{ 'XP.UsageDashboard.Trend' | translate }}</h2>
+            <p class="mt-1 text-sm text-muted-foreground">{{ 'XP.UsageDashboard.TrendHint' | translate }}</p>
           </div>
-        </div>
-        @if (scheduledPeriods().length) {
-          <z-badge zType="outline" zShape="pill">
-            {{
-              'XP.Membership.UpcomingPeriodCount'
-                | translate: { count: scheduledPeriods().length, Default: scheduledPeriods().length + ' upcoming' }
-            }}
-          </z-badge>
-        }
-      </div>
-    </z-card-header>
-
-    <z-card-content class="grid gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.25fr)]">
-      <section class="rounded-lg bg-components-panel-bg p-4">
-        <div class="flex items-start justify-between gap-3">
-          <div class="min-w-0">
-            <div class="text-xs font-medium uppercase text-text-tertiary">
-              {{ 'XP.Membership.CurrentBenefits' | translate: { Default: 'Current benefits' } }}
+        </z-card-header>
+        <z-card-content class="px-5 pb-5 pt-4">
+          @if (trend().maximum > 0) {
+            <div class="flex h-52 gap-3 sm:h-60" role="group" [attr.aria-label]="'XP.UsageDashboard.Trend' | translate">
+              <div
+                class="flex w-10 shrink-0 flex-col justify-between pb-6 text-right text-[10px] tabular-nums text-muted-foreground"
+                aria-hidden="true"
+              >
+                <span>{{ trend().maximum | number: '1.0-0' }}</span>
+                <span>{{ trend().maximum / 2 | number: '1.0-0' }}</span>
+                <span>0</span>
+              </div>
+              <div class="relative flex min-w-0 flex-1 gap-1 pb-6 sm:gap-1.5">
+                <div
+                  class="pointer-events-none absolute inset-x-0 bottom-6 top-0 flex flex-col justify-between"
+                  aria-hidden="true"
+                >
+                  <div class="border-t border-dashed border-border"></div>
+                  <div class="border-t border-dashed border-border"></div>
+                  <div class="border-t border-border"></div>
+                </div>
+                @for (day of trend().days; track day.date; let i = $index; let last = $last) {
+                  <div
+                    class="relative z-10 flex h-full min-w-0 flex-1 items-end"
+                    role="img"
+                    [attr.aria-label]="heatmapTitle(day)"
+                    [title]="heatmapTitle(day)"
+                    [zTooltip]="heatmapTitle(day)"
+                  >
+                    <div
+                      class="w-full rounded-t-sm bg-primary/80 transition-colors hover:bg-primary"
+                      [style.height.%]="day.height"
+                    ></div>
+                    @if (i === 0 || i === 7 || i === 14 || i === 21 || last) {
+                      <span
+                        class="absolute -bottom-6 whitespace-nowrap text-[10px] text-muted-foreground"
+                        [class]="last ? 'right-0' : 'left-0'"
+                        aria-hidden="true"
+                        >{{ day.dateValue | date: 'M/d' }}</span
+                      >
+                    }
+                  </div>
+                }
+              </div>
             </div>
-            <div class="mt-1 truncate text-base font-semibold text-text-primary">
-              {{ overview()?.plan?.name || '-' }}
-            </div>
-            @if (overview()?.plan?.description) {
-              <div class="mt-1 text-sm text-text-tertiary">{{ overview()?.plan?.description }}</div>
+          } @else {
+            <z-empty
+              class="min-h-52 p-4 sm:min-h-60"
+              zIcon="activity"
+              [zTitle]="'XP.UsageDashboard.NoConsumption' | translate"
+              [zDescription]="'XP.UsageDashboard.NoConsumptionHint' | translate"
+            />
+          }
+          <div
+            class="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4 text-xs text-muted-foreground"
+          >
+            <span>{{ 'XP.UsageDashboard.ConsumptionHint' | translate }}</span>
+            <a
+              routerLink="/settings/account/billing"
+              class="inline-flex items-center gap-1 rounded-sm text-sm font-medium text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {{ 'XP.UsageDashboard.ViewDetails' | translate }}<z-icon zType="arrow-up-right" />
+            </a>
+          </div>
+        </z-card-content>
+      </z-card>
+      <z-card class="min-w-0 shadow-none">
+        <z-card-header class="px-5 pt-5">
+          <div>
+            <h2 class="font-semibold">{{ 'XP.UsageDashboard.Rankings' | translate }}</h2>
+            <p class="mt-1 text-sm text-muted-foreground">{{ 'XP.UsageDashboard.RankingsHint' | translate }}</p>
+          </div>
+        </z-card-header>
+        <z-card-content class="px-5 pb-5 pt-3">
+          <z-tab-group [stretchTabs]="true" animationDuration="0ms">
+            @for (ranking of rankings(); track ranking.key) {
+              <z-tab [label]="'XP.Membership.' + ranking.key | translate" bodyClass="pt-2">
+                <div class="max-h-64 overflow-y-auto overscroll-contain divide-y divide-border">
+                  @for (item of ranking.items; track item.key; let i = $index) {
+                    <div class="flex min-w-0 items-center gap-3 py-3.5">
+                      <span class="w-3 shrink-0 text-xs tabular-nums text-muted-foreground">{{ i + 1 }}</span>
+                      <span
+                        class="flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground"
+                        ><z-icon [zType]="ranking.icon"
+                      /></span>
+                      <div class="min-w-0 flex-1">
+                        <div class="truncate text-sm font-medium" [title]="item.label || item.key">
+                          {{ item.label || item.key }}
+                        </div>
+                      </div>
+                      <div class="shrink-0 text-right text-sm font-medium tabular-nums">
+                        {{ item.pointsUsed | number: '1.0-2'
+                        }}<span class="ml-1 text-xs font-normal text-muted-foreground">{{
+                          'XP.Membership.PointsShort' | translate
+                        }}</span>
+                      </div>
+                    </div>
+                  } @empty {
+                    <z-empty
+                      class="min-h-52 px-0 py-6"
+                      [zIcon]="ranking.icon"
+                      [zDescription]="'XP.Membership.NoRankingData' | translate"
+                    />
+                  }
+                </div>
+              </z-tab>
             }
-          </div>
-          <z-badge zType="secondary" zShape="pill">
-            {{ 'XP.Membership.MemberStatuses.active' | translate: { Default: 'Active' } }}
-          </z-badge>
-        </div>
+          </z-tab-group>
+        </z-card-content>
+      </z-card>
+    </div>
 
-        <dl class="mt-4 grid gap-3 text-sm sm:grid-cols-2">
-          <div>
-            <dt class="text-text-tertiary">
-              {{ 'XP.Membership.EffectivePeriod' | translate: { Default: 'Effective period' } }}
-            </dt>
-            <dd class="mt-1 font-medium text-text-primary">
-              {{ overview()?.currentPeriodStart | date: 'mediumDate' }} –
-              {{ overview()?.currentPeriodEnd | date: 'mediumDate' }}
-            </dd>
-          </div>
-          <div>
-            <dt class="text-text-tertiary">
-              {{ 'XP.Membership.AllowedModels' | translate: { Default: 'Allowed models' } }}
-            </dt>
-            <dd class="mt-1 font-medium text-text-primary">
-              @if (overview()?.plan?.allowedModels?.length) {
-                {{ overview()?.plan?.allowedModels?.length | number }}
-              } @else {
-                {{ 'XP.Membership.AllModels' | translate: { Default: 'All models' } }}
+    <z-card class="min-w-0 shadow-none">
+      <z-card-header class="flex-wrap justify-between gap-3 px-5 pt-5">
+        <div>
+          <h2 class="font-semibold">{{ 'XP.Membership.PointActivity' | translate }}</h2>
+          <p class="mt-1 text-sm text-muted-foreground">{{ 'XP.UsageDashboard.ActivityHint' | translate }}</p>
+        </div>
+        <div class="flex items-center gap-1 text-xs text-muted-foreground" aria-hidden="true">
+          <span class="mr-1">{{ 'XP.UsageDashboard.Less' | translate }}</span
+          ><span class="size-3 rounded-sm bg-muted"></span><span class="size-3 rounded-sm bg-text-success/20"></span
+          ><span class="size-3 rounded-sm bg-text-success/40"></span
+          ><span class="size-3 rounded-sm bg-text-success/60"></span
+          ><span class="size-3 rounded-sm bg-text-success"></span
+          ><span class="ml-1">{{ 'XP.UsageDashboard.More' | translate }}</span>
+        </div>
+      </z-card-header>
+      <z-card-content class="px-5 pb-5 pt-4">
+        <div class="overflow-x-auto pb-1">
+          <div class="min-w-[40rem]">
+            <div class="flex gap-1">
+              @for (week of heatmap().weeks; track week.key) {
+                <div class="grid min-w-0 flex-1 grid-rows-7 gap-1">
+                  @for (cell of week.cells; track $index) {
+                    @if (cell) {
+                      <div
+                        class="aspect-square w-full rounded-sm transition-colors"
+                        [ngClass]="{
+                          'bg-muted': cell.level === 0,
+                          'bg-text-success/20': cell.level === 1,
+                          'bg-text-success/40': cell.level === 2,
+                          'bg-text-success/60': cell.level === 3,
+                          'bg-text-success': cell.level === 4
+                        }"
+                        [zTooltip]="heatmapTitle(cell)"
+                        [attr.aria-label]="heatmapTitle(cell)"
+                      ></div>
+                    } @else {
+                      <div class="aspect-square w-full" aria-hidden="true"></div>
+                    }
+                  }
+                </div>
               }
-            </dd>
-          </div>
-          <div>
-            <dt class="text-text-tertiary">
-              {{ 'XP.Membership.ModelMultipliers' | translate: { Default: 'Settlement amount multipliers' } }}
-            </dt>
-            <dd class="mt-1 font-medium text-text-primary">
-              {{ overview()?.plan?.modelMultipliers?.length ?? 0 | number }}
-            </dd>
-          </div>
-          <div>
-            <dt class="text-text-tertiary">
-              {{ 'XP.Membership.RateLimits' | translate: { Default: 'Usage limits' } }}
-            </dt>
-            <dd class="mt-1 font-medium text-text-primary">
-              {{ overview()?.plan?.rateLimits?.length ?? 0 | number }}
-            </dd>
-          </div>
-        </dl>
-      </section>
+            </div>
 
-      <section class="overflow-hidden rounded-lg border border-divider-regular">
-        <div class="border-b border-divider-regular px-4 py-3">
-          <div class="font-semibold text-text-primary">
-            {{ 'XP.Membership.UpcomingPeriods' | translate: { Default: 'Upcoming periods' } }}
-          </div>
-          <div class="mt-1 text-sm text-text-tertiary">
-            {{
-              'XP.Membership.AccountUpcomingPeriodsHint'
-                | translate: { Default: 'These benefits start automatically after the current period ends.' }
-            }}
+            <div class="mt-2 flex gap-1">
+              @for (week of heatmap().weeks; track week.key) {
+                <div class="min-w-0 flex-1 overflow-visible whitespace-nowrap text-xs text-muted-foreground">
+                  {{ week.monthLabel }}
+                </div>
+              }
+            </div>
           </div>
         </div>
+      </z-card-content>
+    </z-card>
 
-        <div class="divide-y divide-divider-subtle">
-          @for (period of scheduledPeriods(); track period.id) {
-            <div class="grid gap-2 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
-              <div class="min-w-0">
-                <div class="truncate text-sm font-medium text-text-primary">{{ period.planSnapshot.name }}</div>
-                <div class="mt-1 text-xs text-text-tertiary">
-                  {{ period.periodStart | date: 'mediumDate' }} – {{ period.periodEnd | date: 'mediumDate' }}
+    <section aria-labelledby="usage-membership-heading">
+      <div class="mb-4 flex items-center justify-between gap-3">
+        <h2 id="usage-membership-heading" class="text-base font-semibold">
+          {{ 'XP.Membership.MembershipDetails' | translate }}
+        </h2>
+        <a
+          routerLink="/settings/account/billing"
+          class="inline-flex items-center gap-1 rounded-sm text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >{{ 'XP.Membership.UsageBilling' | translate }}<z-icon zType="arrow-up-right"
+        /></a>
+      </div>
+      <div class="grid min-w-0 gap-4 xl:grid-cols-2">
+        <z-card class="min-w-0 shadow-none">
+          <z-card-header class="justify-between px-5 pt-5">
+            <div class="min-w-0">
+              <div class="text-sm text-muted-foreground">{{ 'XP.Membership.CurrentPlan' | translate }}</div>
+              <h3 class="mt-2 break-words text-xl font-semibold">
+                {{ overview()?.plan?.name || ('XP.UsageDashboard.NoPlan' | translate) }}
+              </h3>
+            </div>
+            @if (overview()?.membership?.status; as status) {
+              <z-badge zType="secondary">{{ 'XP.Membership.MemberStatuses.' + status | translate }}</z-badge>
+            }
+          </z-card-header>
+          <z-card-content class="px-5 pb-5 pt-4">
+            @if (overview()?.plan) {
+              @if (overview()?.plan?.description) {
+                <p class="mb-4 text-sm text-muted-foreground">{{ overview()?.plan?.description }}</p>
+              }
+              <div class="grid grid-cols-2 gap-4">
+                <div>
+                  <div class="text-xs text-muted-foreground">{{ 'XP.Membership.RemainingPoints' | translate }}</div>
+                  <div class="mt-1 text-xl font-semibold tabular-nums">
+                    {{
+                      overview()?.pointsRemaining === null
+                        ? ('XP.Membership.Unlimited' | translate)
+                        : (overview()?.pointsRemaining | number: '1.0-2')
+                    }}
+                  </div>
+                </div>
+                <div>
+                  <div class="text-xs text-muted-foreground">
+                    {{ 'XP.UsageDashboard.CycleConsumption' | translate }}
+                  </div>
+                  <div class="mt-1 text-xl font-semibold tabular-nums">
+                    {{ overview()?.consumedPoints ?? overview()?.pointsUsed | number: '1.0-0' }}
+                  </div>
                 </div>
               </div>
-              <div class="text-sm font-medium text-text-secondary">
-                @if (period.pointsGranted === null) {
-                  {{ 'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
-                } @else {
-                  {{ period.pointsGranted | number: '1.0-2' }}
-                  {{ 'XP.Membership.PointsShort' | translate: { Default: 'pts' } }}
-                }
-              </div>
-            </div>
-          } @empty {
-            <div class="px-4 py-8 text-center text-sm text-text-tertiary">
-              {{
-                'XP.Membership.NoUpcomingPeriods' | translate: { Default: 'There are no upcoming membership periods.' }
-              }}
-            </div>
-          }
-        </div>
-      </section>
-    </z-card-content>
-  </z-card>
-
-  <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
-    <z-card-header class="pb-2 pt-4">
-      <z-card-title>{{ 'XP.Membership.PointActivity' | translate: { Default: 'Point activity' } }}</z-card-title>
-    </z-card-header>
-
-    <z-card-content class="px-4 pb-4 pt-0">
-      <div class="overflow-x-auto pb-1">
-        <div class="min-w-[52rem]">
-          <div class="flex gap-1">
-            @for (week of heatmap().weeks; track week.key) {
-              <div class="grid min-w-0 flex-1 grid-rows-7 gap-1">
-                @for (cell of week.cells; track $index) {
-                  @if (cell) {
-                    <div
-                      class="aspect-square w-full rounded-sm transition-colors"
-                      [ngClass]="{
-                        'bg-divider-subtle': cell.level === 0,
-                        'bg-text-success/20': cell.level === 1,
-                        'bg-text-success/40': cell.level === 2,
-                        'bg-text-success/60': cell.level === 3,
-                        'bg-text-success': cell.level === 4
-                      }"
-                      [zTooltip]="heatmapTitle(cell)"
-                      [attr.aria-label]="heatmapTitle(cell)"
-                    ></div>
-                  } @else {
-                    <div class="aspect-square w-full" aria-hidden="true"></div>
-                  }
-                }
-              </div>
+              @if (!isUnlimited()) {
+                <div class="mt-4">
+                  <div class="mb-2 flex justify-between gap-3 text-xs text-muted-foreground">
+                    <span>{{ 'XP.Membership.QuotaPointUsage' | translate }}</span
+                    ><span>{{ usedPercent() | number }}%</span>
+                  </div>
+                  <z-progress-bar [progress]="usedPercent()" zSize="sm" zShape="default" />
+                </div>
+              }
+              <dl class="mt-5 grid gap-4 border-t border-border pt-4 text-sm sm:grid-cols-2">
+                <div class="sm:col-span-2">
+                  <dt class="text-muted-foreground">{{ 'XP.Membership.EffectivePeriod' | translate }}</dt>
+                  <dd class="mt-1 font-medium">
+                    {{ overview()?.currentPeriodStart | date: 'mediumDate' }} –
+                    {{ overview()?.currentPeriodEnd | date: 'mediumDate' }}
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-muted-foreground">{{ 'XP.Membership.AllowedModels' | translate }}</dt>
+                  <dd class="mt-1 font-medium">
+                    {{
+                      overview()?.plan?.allowedModels?.length
+                        ? (overview()?.plan?.allowedModels?.length | number)
+                        : ('XP.Membership.AllModels' | translate)
+                    }}
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-muted-foreground">{{ 'XP.Membership.ModelMultipliers' | translate }}</dt>
+                  <dd class="mt-1 font-medium">
+                    {{
+                      'XP.UsageDashboard.RuleCount'
+                        | translate: { count: overview()?.plan?.modelMultipliers?.length ?? 0 }
+                    }}
+                  </dd>
+                </div>
+                <div>
+                  <dt class="text-muted-foreground">{{ 'XP.Membership.RateLimits' | translate }}</dt>
+                  <dd class="mt-1 font-medium">
+                    {{
+                      'XP.UsageDashboard.RuleCount' | translate: { count: overview()?.plan?.rateLimits?.length ?? 0 }
+                    }}
+                  </dd>
+                </div>
+              </dl>
+            } @else {
+              <p class="py-4 text-sm text-muted-foreground">{{ 'XP.UsageDashboard.NoPlanHint' | translate }}</p>
             }
-          </div>
-
-          <div class="mt-2 flex gap-1">
-            @for (week of heatmap().weeks; track week.key) {
-              <div class="min-w-0 flex-1 overflow-visible whitespace-nowrap text-xs text-text-tertiary">
-                {{ week.monthLabel }}
-              </div>
+          </z-card-content>
+        </z-card>
+        <z-card class="min-w-0 shadow-none">
+          <z-card-header class="justify-between px-5 pt-5">
+            <div>
+              <h3 class="font-semibold">{{ 'XP.Membership.UpcomingPeriods' | translate }}</h3>
+              <p class="mt-2 text-sm text-muted-foreground">
+                {{ 'XP.Membership.AccountUpcomingPeriodsHint' | translate }}
+              </p>
+            </div>
+            @if (scheduledPeriods().length) {
+              <z-badge zType="outline">{{ scheduledPeriods().length }}</z-badge>
             }
-          </div>
-        </div>
+          </z-card-header>
+          <z-card-content class="px-5 pb-5 pt-4">
+            <div class="divide-y divide-border">
+              @for (period of scheduledPeriods(); track period.id) {
+                <div class="flex flex-wrap items-center justify-between gap-3 py-4">
+                  <div class="min-w-0">
+                    <div class="break-words text-sm font-medium">{{ period.planSnapshot.name }}</div>
+                    <div class="mt-1 text-xs text-muted-foreground">
+                      {{ period.periodStart | date: 'mediumDate' }} – {{ period.periodEnd | date: 'mediumDate' }}
+                    </div>
+                  </div>
+                  <div class="text-sm font-medium tabular-nums">
+                    @if (period.pointsGranted === null) {
+                      {{ 'XP.Membership.Unlimited' | translate }}
+                    } @else {
+                      {{ period.pointsGranted | number: '1.0-2' }} {{ 'XP.Membership.PointsShort' | translate }}
+                    }
+                  </div>
+                </div>
+              } @empty {
+                <z-empty
+                  class="min-h-48 px-0 py-6"
+                  zIcon="calendar"
+                  [zDescription]="'XP.Membership.NoUpcomingPeriods' | translate"
+                />
+              }
+            </div>
+          </z-card-content>
+        </z-card>
       </div>
-    </z-card-content>
-  </z-card>
-
-  <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
-    <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
-      <z-card-header class="border-b border-divider-regular py-4">
-        <div class="flex items-center gap-2">
-          <z-icon zType="sparkles" class="text-text-tertiary"></z-icon>
-          <z-card-title>{{ 'XP.Membership.TopModels' | translate: { Default: 'Top models' } }}</z-card-title>
-        </div>
-      </z-card-header>
-      <z-card-content class="p-3">
-        @for (item of overview()?.topModels ?? []; track item.key) {
-          <div class="flex items-center justify-between gap-3 rounded-lg px-2 py-2 hover:bg-hover-bg">
-            <div class="min-w-0">
-              <div class="truncate text-sm font-medium text-text-primary" [title]="item.label || item.key">
-                {{ item.label || item.key }}
-              </div>
-            </div>
-            <z-badge zType="secondary" zShape="pill">
-              {{ item.pointsUsed | number: '1.0-2' }}
-              {{ 'XP.Membership.PointsShort' | translate: { Default: 'pts' } }}
-            </z-badge>
-          </div>
-        } @empty {
-          <div
-            class="rounded-lg border border-dashed border-divider-regular bg-components-panel-bg p-6 text-center text-sm text-text-tertiary"
-          >
-            {{ 'XP.Membership.NoRankingData' | translate: { Default: 'No ranking data yet.' } }}
-          </div>
-        }
-      </z-card-content>
-    </z-card>
-
-    <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
-      <z-card-header class="border-b border-divider-regular py-4">
-        <div class="flex items-center gap-2">
-          <z-icon zType="orbit" class="text-text-tertiary"></z-icon>
-          <z-card-title>{{ 'XP.Membership.TopXperts' | translate: { Default: 'Top Xperts' } }}</z-card-title>
-        </div>
-      </z-card-header>
-      <z-card-content class="p-3">
-        @for (item of overview()?.topXperts ?? []; track item.key) {
-          <div class="flex items-center justify-between gap-3 rounded-lg px-2 py-2 hover:bg-hover-bg">
-            <div class="min-w-0">
-              <div class="truncate text-sm font-medium text-text-primary" [title]="item.label || item.key">
-                {{ item.label || item.key }}
-              </div>
-            </div>
-            <z-badge zType="secondary" zShape="pill">
-              {{ item.pointsUsed | number: '1.0-2' }}
-              {{ 'XP.Membership.PointsShort' | translate: { Default: 'pts' } }}
-            </z-badge>
-          </div>
-        } @empty {
-          <div
-            class="rounded-lg border border-dashed border-divider-regular bg-components-panel-bg p-6 text-center text-sm text-text-tertiary"
-          >
-            {{ 'XP.Membership.NoRankingData' | translate: { Default: 'No ranking data yet.' } }}
-          </div>
-        }
-      </z-card-content>
-    </z-card>
-
-    <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
-      <z-card-header class="border-b border-divider-regular py-4">
-        <div class="flex items-center gap-2">
-          <z-icon zType="message-circle-more" class="text-text-tertiary"></z-icon>
-          <z-card-title>{{ 'XP.Membership.TopThreads' | translate: { Default: 'Top threads' } }}</z-card-title>
-        </div>
-      </z-card-header>
-      <z-card-content class="p-3">
-        @for (item of topThreads(); track item.key) {
-          <div class="flex items-center justify-between gap-3 rounded-lg px-2 py-2 hover:bg-hover-bg">
-            <div class="min-w-0">
-              <div class="truncate text-sm font-medium text-text-primary" [title]="item.label || item.key">
-                {{ item.label || item.key }}
-              </div>
-            </div>
-            <z-badge zType="secondary" zShape="pill">
-              {{ item.pointsUsed | number: '1.0-2' }}
-              {{ 'XP.Membership.PointsShort' | translate: { Default: 'pts' } }}
-            </z-badge>
-          </div>
-        } @empty {
-          <div
-            class="rounded-lg border border-dashed border-divider-regular bg-components-panel-bg p-6 text-center text-sm text-text-tertiary"
-          >
-            {{ 'XP.Membership.NoRankingData' | translate: { Default: 'No ranking data yet.' } }}
-          </div>
-        }
-      </z-card-content>
-    </z-card>
-  </div>
+    </section>
+  }
 </div>

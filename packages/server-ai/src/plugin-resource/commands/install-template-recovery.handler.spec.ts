@@ -1,3 +1,11 @@
+import { AssistantTemplateToolsetBinder } from './assistant-template-toolset-binder.service'
+jest.mock('../template-installation/template-dependency-installer.service', () => ({
+    TemplateDependencyInstaller: class {}
+}))
+import { TemplateDependencyInstaller } from '../template-installation/template-dependency-installer.service'
+jest.mock('../template-installation/template-readiness.service', () => ({ TemplateReadinessService: class {} }))
+import { TemplateReadinessService } from '../template-installation/template-readiness.service'
+import { resolveTemplateRuntimeDependencyComponents } from './template-runtime-dependencies'
 jest.mock('@nestjs/typeorm', () => ({
     ...jest.requireActual('@nestjs/typeorm'),
     TypeOrmModule: {
@@ -65,6 +73,7 @@ import { XpertWorkspaceAccessService } from '../../xpert-workspace'
 import { PluginResourceInstallerService, PluginResourceInstallResult } from '../plugin-resource-installer.service'
 import { PluginTemplateInstallCommand } from './install-template.command'
 import { PluginTemplateInstallHandler } from './install-template.handler'
+import { templateInstallationSourceHash } from '../template-installation/template-installation-source'
 
 const templateId = 'example-assistant'
 const workspaceId = 'workspace-1'
@@ -114,8 +123,12 @@ async function createFixture() {
         getTemplateDetail: jest.fn(async () => ({ id: templateId, export_data: JSON.stringify(draft) }))
     }
     const installer = {
+        resolveRuntimeComponents: jest.fn(async () => []),
         installComponentsForXpert: jest.fn(
-            async (): Promise<PluginResourceInstallResult> => ({ installations: [], pendingAuth: [] })
+            async (..._args: unknown[]): Promise<PluginResourceInstallResult> => ({
+                installations: [],
+                pendingAuth: []
+            })
         )
     }
     const initialize = jest.fn(async () => undefined)
@@ -132,10 +145,32 @@ async function createFixture() {
         findOneByIdWithinTenant: jest.fn(async (_id: string) => xpert),
         delete: jest.fn(async (_id: string) => undefined)
     }
-    const capabilities = { prepareInstallation: jest.fn(async () => undefined) }
+    const capabilities = {
+        prepareInstallation: jest.fn(async () => undefined),
+        configureRealtimeVoice: jest.fn(async () => undefined)
+    }
     const module = await Test.createTestingModule({
         providers: [
             PluginTemplateInstallHandler,
+            AssistantTemplateToolsetBinder,
+            {
+                provide: TemplateDependencyInstaller,
+                useValue: { install: (xpert, components) => installer.installComponentsForXpert(xpert, components) }
+            },
+            {
+                provide: TemplateReadinessService,
+                useValue: {
+                    prepare: jest.fn(async (template) => ({
+                        manifest: template.manifest,
+                        readiness: { legacy: true, canInstall: true, checks: [], dependencies: [] },
+                        components: await resolveTemplateRuntimeDependencyComponents(
+                            installer,
+                            template.pluginName,
+                            template.dependencies
+                        )
+                    }))
+                }
+            },
             { provide: PluginResourceInstallerService, useValue: installer },
             { provide: XpertWorkspaceAccessService, useValue: workspaceAccess },
             { provide: XpertTemplateService, useValue: templates },
@@ -292,5 +327,60 @@ describe('resumable template installation', () => {
         f.installer.installComponentsForXpert.mockRejectedValueOnce(new Error('installation failed'))
         await expect(f.handler.execute(command())).rejects.toThrow('installation failed')
         expect(f.xperts.delete).toHaveBeenCalledWith('xpert-1')
+    })
+
+    it('rejects changed source content before importing or touching an existing Assistant', async () => {
+        const f = await createFixture()
+        await expect(
+            f.handler.execute(
+                command({ newXpertId: 'reserved', expectedSourceHash: 'old-hash', onImported: f.checkpoint })
+            )
+        ).rejects.toThrow('source changed')
+        expect(f.commands.execute).not.toHaveBeenCalled()
+        expect(f.checkpoint).not.toHaveBeenCalled()
+    })
+
+    it('treats a reported initialization failure as a retryable installation failure', async () => {
+        const f = await createFixture()
+        const template = await f.templates.getTemplateDetail()
+        const initialize = f.initialize as jest.MockedFunction<() => Promise<unknown>>
+        initialize.mockResolvedValueOnce({ status: 'failed', created: [], skipped: [] })
+        const published = jest.fn(async () => undefined)
+        await expect(
+            f.handler.execute(
+                command({
+                    newXpertId: f.xpert.id,
+                    expectedSourceHash: templateInstallationSourceHash(template),
+                    onImported: f.checkpoint,
+                    onPublished: published
+                })
+            )
+        ).rejects.toThrow('initialization failed')
+        expect(published).toHaveBeenCalledTimes(1)
+        expect(f.xperts.delete).not.toHaveBeenCalled()
+        expect(f.initialize).toHaveBeenCalledWith(templateId, workspaceId, LanguagesEnum.English, f.xpert.id, template)
+    })
+
+    it.each([false, true])('resumes only unfinished publication side effects (completed=%s)', async (completed) => {
+        const f = await createFixture()
+        f.xpert.publishAt = new Date()
+        const draft = f.xpert.draft
+        const template = await f.templates.getTemplateDetail()
+        const published = jest.fn(async () => undefined)
+        await f.handler.execute(
+            command({
+                resumeXpertId: f.xpert.id,
+                onImported: f.checkpoint,
+                expectedSourceHash: templateInstallationSourceHash(template),
+                publicationCompleted: completed,
+                onPublished: published
+            })
+        )
+        expect(f.commands.execute).toHaveBeenCalledTimes(completed ? 0 : 1)
+        if (!completed)
+            expect(f.commands.execute).toHaveBeenCalledWith(expect.objectContaining({ resumePublished: true }))
+        expect(f.xpert.draft).toBe(draft)
+        expect(f.installer.installComponentsForXpert).not.toHaveBeenCalled()
+        expect(f.initialize).toHaveBeenCalledTimes(1)
     })
 })

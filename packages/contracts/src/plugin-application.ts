@@ -255,7 +255,16 @@ export interface PluginApplicationPreflight {
 }
 
 /** Complete application detail assembled from trusted plugin metadata and scoped runtime state. */
+export interface PluginApplicationCompositionItem {
+  key: string
+  kind: 'assistant' | 'workspace' | 'knowledgebase'
+  role?: 'primary' | 'specialist' | 'standalone'
+  templateKey?: string
+  title: string | I18nObject
+}
+
 export interface PluginApplicationDetail {
+  composition: PluginApplicationCompositionItem[]
   application: PluginTemplateApplicationSummary
   status: PluginApplicationStatusSummary
   preflight: PluginApplicationPreflight

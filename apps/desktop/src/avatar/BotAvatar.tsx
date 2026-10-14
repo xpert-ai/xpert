@@ -22,7 +22,7 @@ export function BotAvatar({
   const fallback = !bosi && !imageUrl && !emoji
   return (
     <span
-      className={`flex shrink-0 items-center justify-center rounded-lg ${fallback ? 'overflow-hidden text-[var(--xui-color-avatar-foreground)]' : 'text-accent-foreground'} ${size === 'profile' ? 'size-[72px]' : size === 'compact' ? 'size-10' : size === 'large' ? 'size-14' : 'size-12'}`}
+      className={`flex shrink-0 items-center justify-center rounded-lg ${imageUrl || fallback ? 'overflow-hidden' : ''} ${fallback ? 'text-[var(--xui-color-avatar-foreground)]' : 'text-accent-foreground'} ${size === 'profile' ? 'size-[72px]' : size === 'compact' ? 'size-10' : size === 'large' ? 'size-14' : 'size-12'}`}
       style={{
         background:
           bot.avatar?.background || (fallback ? `var(--xui-color-avatar-${avatarColorIndex(bot)})` : undefined),

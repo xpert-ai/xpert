@@ -206,12 +206,14 @@
             {{ 'XP.Explore.Application.Includes' | translate: { Default: 'Included with this application' } }}
           </h2>
           <div class="mt-5 space-y-3">
-            @for (feature of presentation()?.features ?? []; track feature.key) {
+            @for (item of appDetail.composition ?? []; track item.key) {
               <div class="flex gap-3 rounded-xl border border-border p-4">
                 <z-icon zType="check" zSize="sm" class="mt-0.5 text-primary" />
                 <div>
-                  <div class="text-sm font-semibold text-foreground">{{ feature.title | i18n }}</div>
-                  <div class="mt-1 text-xs leading-5 text-muted-foreground">{{ feature.description | i18n }}</div>
+                  <div class="text-sm font-semibold text-foreground">{{ item.title | i18n }}</div>
+                  <div class="mt-1 text-xs leading-5 text-muted-foreground">
+                    {{ 'XP.Explore.Application.Composition.' + (item.role ?? item.kind) | translate }}
+                  </div>
                 </div>
               </div>
             }

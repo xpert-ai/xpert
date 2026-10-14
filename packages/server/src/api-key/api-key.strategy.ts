@@ -3,6 +3,7 @@ import { QueryBus } from '@nestjs/cqrs'
 import { PassportStrategy } from '@nestjs/passport'
 import { IncomingMessage } from 'http'
 import { Strategy } from 'passport'
+import { ApiKeyBindingType } from '@xpert-ai/contracts'
 import {
 	applyRequestedOrganizationScopeHeaders,
 	resolveApiKeyRequestedOrganizationId,
@@ -25,7 +26,7 @@ export class ApiKeyStrategy extends PassportStrategy(Strategy, 'api-key') {
 	}
 
 	authenticate(req: IncomingMessage, options: { session: boolean }) {
-		let token = req.headers['x-api-key'] as string
+		let token = req.headers['x-api-key']
 		if (!token) {
 			const authHeader = req.headers['authorization']
 			if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -34,12 +35,19 @@ export class ApiKeyStrategy extends PassportStrategy(Strategy, 'api-key') {
 
 			token = authHeader.split(' ')[1]
 		}
+		if (typeof token !== 'string' || !token) {
+			return this.fail(401)
+		}
 
 		const requestedUserId = resolveApiKeyRequestedUserId(req)
 		const requestedOrganizationId = resolveApiKeyRequestedOrganizationId(req)
 
 		this.validateToken(token)
 			.then(async (apiKey) => {
+				if (apiKey.type === ApiKeyBindingType.USER) {
+					// Keep the requested organization while restoring the fixed human owner.
+					return this.success(this.apiKeyService.resolvePersonalUser(apiKey, requestedUserId))
+				}
 				if (!apiKey.createdBy) {
 					return this.fail(new UnauthorizedException('Invalid token'))
 				}

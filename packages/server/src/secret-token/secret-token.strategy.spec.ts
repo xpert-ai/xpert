@@ -1,5 +1,5 @@
 import { SecretTokenStrategy } from './secret-token.strategy'
-import { SecretTokenBindingType, UserType } from '@xpert-ai/contracts'
+import { ApiKeyBindingType, SecretTokenBindingType, UserType } from '@xpert-ai/contracts'
 import { UnauthorizedException } from '@nestjs/common'
 import type { DataSource } from 'typeorm'
 import type { ApiKeyService } from '../api-key/api-key.service'
@@ -35,7 +35,7 @@ describe('SecretTokenStrategy', () => {
 					createdById: 'owner-user-1'
 				}
 			}),
-			update: jest.fn().mockResolvedValue(undefined),
+			recordUse: jest.fn().mockResolvedValue(undefined),
 			resolvePrincipal: jest.fn().mockResolvedValue({
 				id: 'end-user-1',
 				tenantId: 'tenant-1',
@@ -137,6 +137,23 @@ describe('SecretTokenStrategy', () => {
 
 		expect(req.headers['organization-id']).toBeUndefined()
 		expect(req.headers['x-scope-level']).toBe(TENANT_SCOPE)
+	})
+
+	it('rejects a personal key row used as an API_KEY client-secret binding', async () => {
+		const { strategy, apiKeyService } = createStrategy(null)
+		apiKeyService.findOneOrFailByIdString.mockResolvedValue({
+			record: {
+				id: 'personal',
+				tenantId: 'tenant-1',
+				createdById: 'owner-user-1',
+				type: ApiKeyBindingType.USER
+			}
+		})
+		await expect(authenticate(strategy, { headers: { 'x-client-secret': 'cs-x-test' } })).rejects.toBeInstanceOf(
+			UnauthorizedException
+		)
+		expect(apiKeyService.resolvePrincipal).not.toHaveBeenCalled()
+		expect(apiKeyService.recordUse).not.toHaveBeenCalled()
 	})
 
 	it('resolves public xpert client secrets without loading an api key', async () => {

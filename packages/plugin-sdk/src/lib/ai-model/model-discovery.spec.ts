@@ -26,24 +26,22 @@ describe('OpenAI-compatible model discovery', () => {
   afterEach(() => jest.restoreAllMocks())
 
   it('deduplicates active models, suggests three types, and leaves opaque/unsupported names unclassified', async () => {
-    const fetchMock = jest
-      .spyOn(global, 'fetch')
-      .mockResolvedValue(
-        new Response(
-          JSON.stringify({
-            data: [
-              { id: 'qwen3' },
-              { id: 'qwen3-rerank' },
-              { id: 'text-embedding-v4' },
-              { id: 'qwen3' },
-              { id: 'opaque-id' },
-              { id: 'qwen-image' },
-              { id: 'disabled', active: false },
-              { id: 'speech', model_type: 'tts' }
-            ]
-          })
-        )
+    const fetchMock = jest.spyOn(global, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          data: [
+            { id: 'qwen3' },
+            { id: 'qwen3-rerank' },
+            { id: 'text-embedding-v4' },
+            { id: 'qwen3' },
+            { id: 'opaque-id' },
+            { id: 'qwen-image' },
+            { id: 'disabled', active: false },
+            { id: 'speech', model_type: 'tts' }
+          ]
+        })
       )
+    )
     const models = await discoverOpenAIModels({ ...options, predefinedModels: [known] })
     expect(fetchMock).toHaveBeenCalledWith(
       'https://example.test/v1/models',

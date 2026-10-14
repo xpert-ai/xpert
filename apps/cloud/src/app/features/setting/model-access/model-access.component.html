@@ -1,139 +1,198 @@
-<div class="flex h-full w-full min-w-0 flex-col">
-  <div class="xp-page-header">
-    <div class="min-w-0">
-      <div class="xp-page-title">
-        {{ 'XP.ModelAccess.AdminTitle' | translate: { Default: 'Model access approvals' } }}
-      </div>
-      <div class="mt-1 max-w-3xl text-sm text-text-tertiary">
-        {{
-          'XP.ModelAccess.AdminDescription'
-            | translate
-              : {
-                  Default:
-                    'Review personal model requests and manage grants in the current tenant or organization scope.'
-                }
-        }}
+<div class="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+  <header>
+    <div class="flex flex-wrap items-center gap-3">
+      <h1 class="text-2xl font-semibold tracking-tight">{{ 'XP.ModelAccessSettings.Title' | translate }}</h1>
+      <z-badge zType="outline">{{
+        (scopeLevel() === tenantScope ? 'XP.Assistant.TenantScope' : 'XP.Assistant.OrganizationScope') | translate
+      }}</z-badge>
+    </div>
+    <p class="mt-2 text-sm text-muted-foreground">{{ 'XP.ModelAccessSettings.Description' | translate }}</p>
+  </header>
+  <nav
+    z-tab-nav-bar
+    class="w-full max-w-full overflow-x-auto border-b border-border"
+    color="accent"
+    alignTabs="start"
+    stretchTabs="false"
+    disableRipple
+    zSize="default"
+  >
+    <button z-tab-link type="button" [active]="activeTab() === 'requests'" (click)="setTab('requests')">
+      {{ 'XP.ModelAccess.Requests' | translate: { Default: 'Requests' } }}
+      <span class="ml-1 text-xs text-muted-foreground">{{ requestTotal() }}</span>
+    </button>
+    <button z-tab-link type="button" [active]="activeTab() === 'grants'" (click)="setTab('grants')">
+      {{ 'XP.ModelAccess.Grants' | translate: { Default: 'Grants' } }}
+      <span class="ml-1 text-xs text-muted-foreground">{{ grantTotal() }}</span>
+    </button>
+    <button z-tab-link type="button" [active]="activeTab() === 'audit'" (click)="setTab('audit')">
+      {{ 'XP.ModelAccess.Audit' | translate: { Default: 'Audit' } }}
+      <span class="ml-1 text-xs text-muted-foreground">{{ eventTotal() }}</span>
+    </button>
+  </nav>
+  @if (!canEdit()) {
+    <p class="flex items-center gap-2 text-sm text-muted-foreground">
+      <z-icon zType="lock" />{{ 'XP.ModelAccessSettings.ReadOnly' | translate }}
+    </p>
+  }
+  <form class="flex min-w-0 flex-col gap-3" [formGroup]="filterForm" (ngSubmit)="applyFilters()">
+    <div class="flex flex-wrap items-center gap-2">
+      <z-search-input
+        formControlName="search"
+        class="min-w-0 flex-1 sm:max-w-sm pointer-coarse:[&_input]:min-h-[44px]"
+        [placeholder]="'XP.ModelAccessSettings.SearchPlaceholder' | translate"
+        [clearLabel]="'XP.ACTIONS.Clear' | translate"
+      />
+      <button z-button type="submit" [zDisabled]="loading()" class="pointer-coarse:min-h-[44px]">
+        {{ 'XP.ACTIONS.Search' | translate }}
+      </button>
+      <button
+        z-button
+        zType="ghost"
+        type="button"
+        [zDisabled]="loading()"
+        (click)="resetFilters()"
+        class="pointer-coarse:min-h-[44px]"
+      >
+        {{ 'XP.ACTIONS.Reset' | translate }}
+      </button>
+      <div class="ml-auto flex items-center gap-2 text-xs text-muted-foreground">
+        @if (!loadFailed()) {
+          <span role="status">{{ 'XP.ModelAccessSettings.Count' | translate: { count: activeTotal() } }}</span>
+        }
+        <button
+          z-button
+          zType="ghost"
+          zSize="icon"
+          type="button"
+          [zDisabled]="loading()"
+          (click)="load()"
+          class="pointer-coarse:size-[44px]"
+          [attr.aria-label]="'XP.ModelAccessSettings.Refresh' | translate"
+        >
+          <z-icon zType="refresh" [class]="loading() ? 'animate-spin motion-reduce:animate-none' : ''" />
+        </button>
       </div>
     </div>
-
-    <nav
-      z-tab-nav-bar
-      class="xp-tab-nav-bar self-stretch max-w-full overflow-hidden"
-      color="accent"
-      alignTabs="start"
-      stretchTabs="false"
-      disableRipple
-      zSize="default"
-    >
-      <button z-tab-link type="button" [active]="activeTab() === 'requests'" (click)="setTab('requests')">
-        {{ 'XP.ModelAccess.Requests' | translate: { Default: 'Requests' } }}
-        <span class="ml-1 text-xs text-text-tertiary">{{ requestTotal() }}</span>
-      </button>
-      <button z-tab-link type="button" [active]="activeTab() === 'grants'" (click)="setTab('grants')">
-        {{ 'XP.ModelAccess.Grants' | translate: { Default: 'Grants' } }}
-        <span class="ml-1 text-xs text-text-tertiary">{{ grantTotal() }}</span>
-      </button>
-      <button z-tab-link type="button" [active]="activeTab() === 'audit'" (click)="setTab('audit')">
-        {{ 'XP.ModelAccess.Audit' | translate: { Default: 'Audit' } }}
-        <span class="ml-1 text-xs text-text-tertiary">{{ eventTotal() }}</span>
-      </button>
-    </nav>
-  </div>
-
-  <div class="xp-page-body flex min-h-0 w-full min-w-0 flex-1 flex-col gap-4 p-4">
-    <form
-      class="grid gap-3 rounded-2xl border border-divider-regular bg-components-card-bg p-4 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(17rem,1fr)_auto]"
-      [formGroup]="filterForm"
-      (ngSubmit)="applyFilters()"
-    >
-      <z-form-field class="w-full">
-        <z-form-label>{{ 'XP.ModelAccess.Search' | translate: { Default: 'User or model' } }}</z-form-label>
-        <input z-input formControlName="search" />
-      </z-form-field>
-      <z-form-field class="w-full">
-        <z-form-label>{{ 'XP.ModelAccess.Channel' | translate: { Default: 'Access channel' } }}</z-form-label>
-        <z-select class="w-full" formControlName="channel">
-          <z-select-item zValue="">{{ 'XP.KEY_WORDS.All' | translate: { Default: 'All' } }}</z-select-item>
-          @for (channel of channels; track channel) {
-            <z-select-item [zValue]="channel">
-              {{ 'XP.ModelAccess.ChannelValue.' + channel | translate: { Default: channel } }}
-            </z-select-item>
-          }
-        </z-select>
-      </z-form-field>
-      <z-form-field class="w-full">
-        <z-form-label>{{ 'XP.ModelAccess.ModelType' | translate: { Default: 'Model type' } }}</z-form-label>
-        <z-select class="w-full" formControlName="modelType">
-          <z-select-item zValue="">{{ 'XP.KEY_WORDS.All' | translate: { Default: 'All' } }}</z-select-item>
-          @for (type of modelTypes; track type) {
-            <z-select-item [zValue]="type">
-              {{ 'XP.ModelAccess.ModelTypeValue.' + type | translate: { Default: type } }}
-            </z-select-item>
-          }
-        </z-select>
-      </z-form-field>
-      <z-form-field class="w-full">
-        <z-form-label>{{ 'XP.ModelAccess.Status' | translate: { Default: 'Status' } }}</z-form-label>
-        <z-select class="w-full" formControlName="status" [disabled]="activeTab() === 'audit'">
-          <z-select-item zValue="">{{ 'XP.KEY_WORDS.All' | translate: { Default: 'All' } }}</z-select-item>
-          @for (status of statusOptions(); track status) {
-            <z-select-item [zValue]="status">{{ 'XP.ModelAccess.StatusValue.' + status | translate }}</z-select-item>
-          }
-        </z-select>
-      </z-form-field>
-      <z-form-field class="w-full">
-        <z-form-label>
-          {{ 'XP.ModelAccess.ExpiresBefore' | translate: { Default: 'Expires before' } }}
-        </z-form-label>
-        <z-date-picker
-          class="w-full"
-          zFormat="yyyy-MM-dd"
-          formControlName="expiresBefore"
-          [disabled]="activeTab() !== 'grants'"
+    <div class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center">
+      <z-combobox
+        formControlName="channel"
+        zWidth="full"
+        class="min-w-0 sm:w-40 pointer-coarse:[&_button]:min-h-[44px]"
+        [options]="channelOptions()"
+        [placeholder]="'XP.ModelAccessSettings.AllChannels' | translate"
+        [searchable]="false"
+        [zClearable]="false"
+        [ariaLabel]="'XP.ModelAccess.Channel' | translate"
+      />
+      <z-combobox
+        formControlName="modelType"
+        zWidth="full"
+        class="min-w-0 sm:w-44 pointer-coarse:[&_button]:min-h-[44px]"
+        [options]="modelTypeOptions()"
+        [placeholder]="'XP.ModelAccessSettings.AllTypes' | translate"
+        [searchable]="false"
+        [zClearable]="false"
+        [ariaLabel]="'XP.ModelAccess.ModelType' | translate"
+      />
+      @if (activeTab() !== 'audit') {
+        <z-combobox
+          formControlName="status"
+          zWidth="full"
+          class="min-w-0 sm:w-36 pointer-coarse:[&_button]:min-h-[44px]"
+          [options]="filterStatusOptions()"
+          [placeholder]="'XP.ModelAccessSettings.AllStatuses' | translate"
+          [searchable]="false"
+          [zClearable]="false"
+          [ariaLabel]="'XP.ModelAccess.Status' | translate"
         />
-      </z-form-field>
-      <div class="flex items-end justify-end gap-2 px-3 pb-3 xl:ml-2">
-        <button z-button type="submit">
-          {{ 'XP.ACTIONS.Search' | translate: { Default: 'Search' } }}
-        </button>
-        <button z-button zType="outline" type="button" (click)="resetFilters()">
-          {{ 'XP.ACTIONS.Reset' | translate: { Default: 'Reset' } }}
+      }
+      @if (activeTab() === 'grants') {
+        <div class="col-span-2 flex min-w-0 items-center gap-2 sm:ml-auto">
+          <span class="shrink-0 text-xs text-muted-foreground" id="model-access-expiry-label">{{
+            'XP.ModelAccess.ExpiresBefore' | translate
+          }}</span>
+          <z-date-picker
+            role="group"
+            aria-labelledby="model-access-expiry-label"
+            class="min-w-0 flex-1 [&_button]:min-w-0 pointer-coarse:[&_button]:min-h-[44px]"
+            zFormat="yyyy-MM-dd"
+            formControlName="expiresBefore"
+            [placeholder]="'XP.ModelAccessSettings.AnyDate' | translate"
+          />
+        </div>
+      }
+    </div>
+  </form>
+  <section
+    class="flex min-w-0 flex-col gap-4"
+    [attr.aria-busy]="loading()"
+    [attr.aria-label]="
+      'XP.ModelAccess.' + (activeTab() === 'requests' ? 'Requests' : activeTab() === 'grants' ? 'Grants' : 'Audit')
+        | translate
+    "
+  >
+    @if (loading()) {
+      <div
+        role="status"
+        class="flex min-h-64 items-center justify-center gap-2 rounded-lg border border-border text-sm text-muted-foreground"
+      >
+        <z-icon zType="loader-circle" class="animate-spin motion-reduce:animate-none" />{{
+          'XP.Common.Loading' | translate
+        }}
+      </div>
+    } @else if (loadFailed()) {
+      <div role="alert" class="flex flex-wrap items-center gap-3 rounded-lg border border-border p-5 text-sm">
+        <z-icon zType="circle-alert" class="text-muted-foreground" />
+        <p class="min-w-0 flex-1">{{ 'XP.ModelAccessSettings.LoadFailed' | translate }}</p>
+        <button z-button zType="outline" type="button" (click)="load()">
+          {{ 'XP.UserSettings.Retry' | translate }}
         </button>
       </div>
-    </form>
-
-    @if (loading()) {
-      <div class="flex min-h-52 items-center justify-center"><xp-spin /></div>
+    } @else if (!activeTotal()) {
+      <div
+        class="flex min-h-64 flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border px-6 py-10 text-center"
+      >
+        <span class="mb-2 flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground"
+          ><z-icon zType="lock"
+        /></span>
+        <h2 class="text-sm font-medium">{{ 'XP.ModelAccessSettings.' + emptyTitle() | translate }}</h2>
+        <p class="max-w-md text-sm text-muted-foreground">
+          {{ 'XP.ModelAccessSettings.' + (filtered() ? 'NoResultsHint' : activeTab() + 'Hint') | translate }}
+        </p>
+        @if (filtered()) {
+          <button z-button zType="outline" type="button" class="mt-2" (click)="resetFilters()">
+            {{ 'XP.ModelAccessSettings.ClearFilters' | translate }}
+          </button>
+        }
+      </div>
     } @else {
-      <div class="flex min-h-0 flex-1 flex-col gap-4">
+      <div class="flex min-w-0 flex-col gap-4">
         @switch (activeTab()) {
           @case ('requests') {
-            <div class="min-h-0 overflow-auto rounded-xl border border-divider-regular bg-components-card-bg">
-              <table z-table zSize="compact" class="min-w-[80rem]">
-                <thead z-table-header class="text-text-secondary">
+            <div class="min-w-0 overflow-x-auto rounded-lg border border-border bg-card">
+              <table z-table zSize="compact" class="w-full min-w-[60rem]">
+                <thead z-table-header class="text-muted-foreground">
                   <tr z-table-row class="border-b bg-muted/30 hover:bg-muted/30">
-                    <th z-table-head scope="col" class="w-56 px-4 whitespace-nowrap">
+                    <th z-table-head scope="col" class="w-36 px-3 whitespace-nowrap">
                       {{ 'XP.ModelAccess.Applicant' | translate: { Default: 'Applicant' } }}
                     </th>
-                    <th z-table-head scope="col" class="w-64 px-4 whitespace-nowrap">
+                    <th z-table-head scope="col" class="w-56 px-3 whitespace-nowrap">
                       {{ 'XP.ModelAccess.Model' | translate: { Default: 'Model' } }}
                     </th>
-                    <th z-table-head scope="col" class="w-32 px-4 whitespace-nowrap">
-                      {{ 'XP.ModelAccess.Channel' | translate: { Default: 'Access channel' } }}
+                    <th z-table-head scope="col" class="w-32 px-3 whitespace-nowrap">
+                      {{ 'XP.ModelAccessSettings.ChannelScope' | translate }}
                     </th>
-                    <th z-table-head scope="col" class="w-32 px-4 whitespace-nowrap">
-                      {{ 'XP.ModelAccess.RequestScope' | translate: { Default: 'Request scope' } }}
-                    </th>
-                    <th z-table-head scope="col" class="min-w-72 px-4">
+                    <th z-table-head scope="col" class="min-w-40 px-3">
                       {{ 'XP.ModelAccess.Reason' | translate: { Default: 'Reason' } }}
                     </th>
-                    <th z-table-head scope="col" class="w-32 px-4 whitespace-nowrap">
+                    <th z-table-head scope="col" class="w-32 px-3 whitespace-nowrap">
                       {{ 'XP.ModelAccess.Status' | translate: { Default: 'Status' } }}
                     </th>
-                    <th z-table-head scope="col" class="w-48 px-4 whitespace-nowrap">
+                    <th z-table-head scope="col" class="w-36 px-3 whitespace-nowrap">
                       {{ 'XP.ModelAccess.SubmittedAt' | translate: { Default: 'Submitted at' } }}
                     </th>
-                    <th z-table-head scope="col" class="w-44 px-4 text-right whitespace-nowrap">
+                    <th z-table-head scope="col" class="w-44 px-3 text-right whitespace-nowrap">
                       {{ 'XP.ModelAccess.Actions' | translate: { Default: 'Actions' } }}
                     </th>
                   </tr>
@@ -141,18 +200,18 @@
                 <tbody z-table-body>
                   @for (request of requests(); track request.id) {
                     <tr z-table-row>
-                      <td z-table-cell class="px-4 py-3">
-                        <div class="max-w-52 truncate font-medium text-text-primary" [title]="request.requesterName">
+                      <td z-table-cell class="px-3 py-3">
+                        <div class="max-w-40 truncate font-medium text-foreground" [title]="request.requesterName">
                           {{ request.requesterName || '—' }}
                         </div>
                       </td>
-                      <td z-table-cell class="px-4 py-3">
-                        <div class="max-w-60 truncate font-medium text-text-primary">
+                      <td z-table-cell class="px-3 py-3">
+                        <div class="max-w-48 truncate font-medium text-foreground">
                           {{
                             request.modelSnapshot.modelLabel ? (request.modelSnapshot.modelLabel | i18n) : request.model
                           }}
                         </div>
-                        <div class="mt-1 text-xs text-text-tertiary">
+                        <div class="mt-1 text-xs text-muted-foreground">
                           {{
                             request.modelSnapshot.providerLabel
                               ? (request.modelSnapshot.providerLabel | i18n)
@@ -165,33 +224,34 @@
                           }}
                         </div>
                         @if (request.externalModelId) {
-                          <div class="mt-1 text-xs text-text-secondary">API · {{ request.externalModelId }}</div>
+                          <div class="mt-1 text-xs text-muted-foreground">API · {{ request.externalModelId }}</div>
                         }
                       </td>
-                      <td z-table-cell class="px-4 py-3">
+                      <td z-table-cell class="px-3 py-3">
                         <z-badge zType="secondary" zShape="pill">
                           {{
                             'XP.ModelAccess.ChannelValue.' + request.channel | translate: { Default: request.channel }
                           }}
                         </z-badge>
-                      </td>
-                      <td z-table-cell class="px-4 py-3">
-                        <z-badge zType="secondary" zShape="pill">
+                        <div class="mt-1 text-xs text-muted-foreground">
                           {{ 'XP.ModelAccess.Scope.' + request.ownershipScope | translate }}
-                        </z-badge>
+                        </div>
                       </td>
-                      <td z-table-cell class="px-4 py-3 text-text-secondary">
+                      <td z-table-cell class="px-3 py-3 text-muted-foreground">
                         <div class="max-w-80 line-clamp-2" [title]="request.reason">{{ request.reason }}</div>
                       </td>
-                      <td z-table-cell class="px-4 py-3">
-                        <z-badge zType="outline" zShape="pill">
+                      <td z-table-cell class="px-3 py-3">
+                        <z-badge [zType]="request.status === 'requested' ? 'secondary' : 'outline'">
                           {{ 'XP.ModelAccess.StatusValue.' + request.status | translate }}
                         </z-badge>
                       </td>
-                      <td z-table-cell class="px-4 py-3 whitespace-nowrap text-text-secondary">
-                        {{ request.createdAt | date: 'medium' }}
+                      <td z-table-cell class="px-3 py-3 whitespace-nowrap text-muted-foreground">
+                        <time [attr.datetime]="request.createdAt" [title]="request.createdAt | date: 'medium'"
+                          >{{ request.createdAt | date: 'yyyy-MM-dd'
+                          }}<span class="mt-1 block text-xs">{{ request.createdAt | date: 'HH:mm' }}</span></time
+                        >
                       </td>
-                      <td z-table-cell class="px-4 py-3">
+                      <td z-table-cell class="px-3 py-3">
                         <div class="flex justify-end gap-2">
                           @if (canEdit() && request.status === 'requested') {
                             <button z-button zType="outline" zSize="sm" type="button" (click)="reject(request)">
@@ -201,14 +261,14 @@
                               {{ 'XP.ModelAccess.Approve' | translate: { Default: 'Approve' } }}
                             </button>
                           } @else {
-                            <span class="text-text-tertiary">—</span>
+                            <span class="text-muted-foreground">—</span>
                           }
                         </div>
                       </td>
                     </tr>
                   } @empty {
                     <tr z-table-row>
-                      <td z-table-cell colspan="8" class="h-32 text-center text-text-tertiary">
+                      <td z-table-cell colspan="7" class="h-32 text-center text-muted-foreground">
                         {{ 'XP.ModelAccess.NoAdminRequests' | translate: { Default: 'No requests' } }}
                       </td>
                     </tr>
@@ -218,32 +278,29 @@
             </div>
           }
           @case ('grants') {
-            <div class="min-h-0 overflow-auto rounded-xl border border-divider-regular bg-components-card-bg">
-              <table z-table zSize="compact" class="min-w-[84rem]">
-                <thead z-table-header class="text-text-secondary">
+            <div class="min-w-0 overflow-x-auto rounded-lg border border-border bg-card">
+              <table z-table zSize="compact" class="w-full min-w-[60rem]">
+                <thead z-table-header class="text-muted-foreground">
                   <tr z-table-row class="border-b bg-muted/30 hover:bg-muted/30">
-                    <th z-table-head scope="col" class="w-56 px-4 whitespace-nowrap">
+                    <th z-table-head scope="col" class="w-36 px-3 whitespace-nowrap">
                       {{ 'XP.ModelAccess.User' | translate: { Default: 'User' } }}
                     </th>
-                    <th z-table-head scope="col" class="w-64 px-4 whitespace-nowrap">
+                    <th z-table-head scope="col" class="w-56 px-3 whitespace-nowrap">
                       {{ 'XP.ModelAccess.Model' | translate: { Default: 'Model' } }}
                     </th>
-                    <th z-table-head scope="col" class="w-32 px-4 whitespace-nowrap">
-                      {{ 'XP.ModelAccess.Channel' | translate: { Default: 'Access channel' } }}
+                    <th z-table-head scope="col" class="w-32 px-3 whitespace-nowrap">
+                      {{ 'XP.ModelAccessSettings.ChannelScope' | translate }}
                     </th>
-                    <th z-table-head scope="col" class="w-32 px-4 whitespace-nowrap">
-                      {{ 'XP.ModelAccess.RequestScope' | translate: { Default: 'Request scope' } }}
-                    </th>
-                    <th z-table-head scope="col" class="w-32 px-4 whitespace-nowrap">
+                    <th z-table-head scope="col" class="w-32 px-3 whitespace-nowrap">
                       {{ 'XP.ModelAccess.Status' | translate: { Default: 'Status' } }}
                     </th>
-                    <th z-table-head scope="col" class="w-48 px-4 whitespace-nowrap">
+                    <th z-table-head scope="col" class="w-36 px-3 whitespace-nowrap">
                       {{ 'XP.ModelAccess.ValidUntilLabel' | translate: { Default: 'Valid until' } }}
                     </th>
-                    <th z-table-head scope="col" class="min-w-72 px-4">
+                    <th z-table-head scope="col" class="min-w-40 px-3">
                       {{ 'XP.ModelAccess.Availability' | translate: { Default: 'Availability' } }}
                     </th>
-                    <th z-table-head scope="col" class="w-44 px-4 text-right whitespace-nowrap">
+                    <th z-table-head scope="col" class="w-44 px-3 text-right whitespace-nowrap">
                       {{ 'XP.ModelAccess.Actions' | translate: { Default: 'Actions' } }}
                     </th>
                   </tr>
@@ -251,16 +308,16 @@
                 <tbody z-table-body>
                   @for (grant of grants(); track grant.id) {
                     <tr z-table-row>
-                      <td z-table-cell class="px-4 py-3">
-                        <div class="max-w-52 truncate font-medium text-text-primary" [title]="grant.userName">
+                      <td z-table-cell class="px-3 py-3">
+                        <div class="max-w-40 truncate font-medium text-foreground" [title]="grant.userName">
                           {{ grant.userName || '—' }}
                         </div>
                       </td>
-                      <td z-table-cell class="px-4 py-3">
-                        <div class="max-w-60 truncate font-medium text-text-primary">
+                      <td z-table-cell class="px-3 py-3">
+                        <div class="max-w-48 truncate font-medium text-foreground">
                           {{ grant.modelSnapshot.modelLabel ? (grant.modelSnapshot.modelLabel | i18n) : grant.model }}
                         </div>
-                        <div class="mt-1 text-xs text-text-tertiary">
+                        <div class="mt-1 text-xs text-muted-foreground">
                           {{
                             grant.modelSnapshot.providerLabel
                               ? (grant.modelSnapshot.providerLabel | i18n)
@@ -272,32 +329,30 @@
                           }}
                         </div>
                         @if (grant.externalModelId) {
-                          <div class="mt-1 text-xs text-text-secondary">API · {{ grant.externalModelId }}</div>
+                          <div class="mt-1 text-xs text-muted-foreground">API · {{ grant.externalModelId }}</div>
                         }
                       </td>
-                      <td z-table-cell class="px-4 py-3">
+                      <td z-table-cell class="px-3 py-3">
                         <z-badge zType="secondary" zShape="pill">
                           {{ 'XP.ModelAccess.ChannelValue.' + grant.channel | translate: { Default: grant.channel } }}
                         </z-badge>
-                      </td>
-                      <td z-table-cell class="px-4 py-3">
-                        <z-badge zType="secondary" zShape="pill">
+                        <div class="mt-1 text-xs text-muted-foreground">
                           {{ 'XP.ModelAccess.Scope.' + grant.ownershipScope | translate }}
-                        </z-badge>
+                        </div>
                       </td>
-                      <td z-table-cell class="px-4 py-3">
-                        <z-badge zType="outline" zShape="pill">
+                      <td z-table-cell class="px-3 py-3">
+                        <z-badge [zType]="grant.status === 'active' ? 'secondary' : 'outline'">
                           {{ 'XP.ModelAccess.StatusValue.' + grant.status | translate }}
                         </z-badge>
                       </td>
-                      <td z-table-cell class="px-4 py-3 whitespace-nowrap text-text-secondary">
+                      <td z-table-cell class="px-3 py-3 whitespace-nowrap text-muted-foreground">
                         @if (grant.validUntil) {
                           {{ formatValidUntil(grant.validUntil) }}
                         } @else {
                           {{ 'XP.ModelAccess.Permanent' | translate: { Default: 'No expiration' } }}
                         }
                       </td>
-                      <td z-table-cell class="px-4 py-3 text-text-secondary">
+                      <td z-table-cell class="px-3 py-3 text-muted-foreground">
                         @if (grantUnavailableReason(grant); as unavailableReason) {
                           <span class="text-text-warning">
                             {{ 'XP.ModelAccess.Unavailable.' + unavailableReason | translate }}
@@ -306,7 +361,7 @@
                           {{ 'XP.ModelAccess.Available' | translate: { Default: 'Available' } }}
                         }
                       </td>
-                      <td z-table-cell class="px-4 py-3">
+                      <td z-table-cell class="px-3 py-3">
                         <div class="flex justify-end gap-2">
                           @if (canEdit() && grant.status === 'active') {
                             <button z-button zType="destructive" zSize="sm" type="button" (click)="revoke(grant)">
@@ -318,14 +373,14 @@
                               </button>
                             }
                           } @else {
-                            <span class="text-text-tertiary">—</span>
+                            <span class="text-muted-foreground">—</span>
                           }
                         </div>
                       </td>
                     </tr>
                   } @empty {
                     <tr z-table-row>
-                      <td z-table-cell colspan="8" class="h-32 text-center text-text-tertiary">
+                      <td z-table-cell colspan="7" class="h-32 text-center text-muted-foreground">
                         {{ 'XP.ModelAccess.NoAdminGrants' | translate: { Default: 'No grants' } }}
                       </td>
                     </tr>
@@ -335,29 +390,26 @@
             </div>
           }
           @case ('audit') {
-            <div class="min-h-0 overflow-auto rounded-xl border border-divider-regular bg-components-card-bg">
-              <table z-table zSize="compact" class="min-w-[80rem]">
-                <thead z-table-header class="text-text-secondary">
+            <div class="min-w-0 overflow-x-auto rounded-lg border border-border bg-card">
+              <table z-table zSize="compact" class="w-full min-w-[60rem]">
+                <thead z-table-header class="text-muted-foreground">
                   <tr z-table-row class="border-b bg-muted/30 hover:bg-muted/30">
-                    <th z-table-head scope="col" class="w-52 px-4 whitespace-nowrap">
+                    <th z-table-head scope="col" class="w-40 px-3 whitespace-nowrap">
                       {{ 'XP.ModelAccess.EventType' | translate: { Default: 'Event' } }}
                     </th>
-                    <th z-table-head scope="col" class="w-56 px-4 whitespace-nowrap">
+                    <th z-table-head scope="col" class="w-36 px-3 whitespace-nowrap">
                       {{ 'XP.ModelAccess.Actor' | translate: { Default: 'Actor' } }}
                     </th>
-                    <th z-table-head scope="col" class="w-64 px-4 whitespace-nowrap">
+                    <th z-table-head scope="col" class="w-56 px-3 whitespace-nowrap">
                       {{ 'XP.ModelAccess.Model' | translate: { Default: 'Model' } }}
                     </th>
-                    <th z-table-head scope="col" class="w-32 px-4 whitespace-nowrap">
-                      {{ 'XP.ModelAccess.Channel' | translate: { Default: 'Access channel' } }}
+                    <th z-table-head scope="col" class="w-32 px-3 whitespace-nowrap">
+                      {{ 'XP.ModelAccessSettings.ChannelScope' | translate }}
                     </th>
-                    <th z-table-head scope="col" class="w-32 px-4 whitespace-nowrap">
-                      {{ 'XP.ModelAccess.RequestScope' | translate: { Default: 'Request scope' } }}
-                    </th>
-                    <th z-table-head scope="col" class="min-w-72 px-4">
+                    <th z-table-head scope="col" class="min-w-40 px-3">
                       {{ 'XP.ModelAccess.Details' | translate: { Default: 'Details' } }}
                     </th>
-                    <th z-table-head scope="col" class="w-48 px-4 whitespace-nowrap">
+                    <th z-table-head scope="col" class="w-36 px-3 whitespace-nowrap">
                       {{ 'XP.ModelAccess.OccurredAt' | translate: { Default: 'Occurred at' } }}
                     </th>
                   </tr>
@@ -365,25 +417,25 @@
                 <tbody z-table-body>
                   @for (event of events(); track event.id) {
                     <tr z-table-row>
-                      <td z-table-cell class="px-4 py-3 font-medium text-text-primary">
+                      <td z-table-cell class="px-3 py-3 font-medium text-foreground">
                         {{ 'XP.ModelAccess.Event.' + event.eventType | translate }}
                       </td>
-                      <td z-table-cell class="px-4 py-3 text-text-secondary">
+                      <td z-table-cell class="px-3 py-3 text-muted-foreground">
                         {{
                           event.actorType === 'system'
                             ? ('XP.ModelAccess.SystemActor' | translate: { Default: 'System' })
                             : event.actorName || '—'
                         }}
                       </td>
-                      <td z-table-cell class="px-4 py-3">
-                        <div class="max-w-60 truncate font-medium text-text-primary">
+                      <td z-table-cell class="px-3 py-3">
+                        <div class="max-w-48 truncate font-medium text-foreground">
                           {{
                             event.modelSnapshot.modelLabel
                               ? (event.modelSnapshot.modelLabel | i18n)
                               : event.modelSnapshot.model
                           }}
                         </div>
-                        <div class="mt-1 text-xs text-text-tertiary">
+                        <div class="mt-1 text-xs text-muted-foreground">
                           {{
                             event.modelSnapshot.providerLabel
                               ? (event.modelSnapshot.providerLabel | i18n)
@@ -396,22 +448,20 @@
                           }}
                         </div>
                         @if (event.modelSnapshot.externalModelId) {
-                          <div class="mt-1 text-xs text-text-secondary">
+                          <div class="mt-1 text-xs text-muted-foreground">
                             API · {{ event.modelSnapshot.externalModelId }}
                           </div>
                         }
                       </td>
-                      <td z-table-cell class="px-4 py-3">
+                      <td z-table-cell class="px-3 py-3">
                         <z-badge zType="secondary" zShape="pill">
                           {{ 'XP.ModelAccess.ChannelValue.' + event.channel | translate: { Default: event.channel } }}
                         </z-badge>
-                      </td>
-                      <td z-table-cell class="px-4 py-3">
-                        <z-badge zType="secondary" zShape="pill">
+                        <div class="mt-1 text-xs text-muted-foreground">
                           {{ 'XP.ModelAccess.Scope.' + eventScope(event) | translate }}
-                        </z-badge>
+                        </div>
                       </td>
-                      <td z-table-cell class="px-4 py-3 text-text-secondary">
+                      <td z-table-cell class="px-3 py-3 text-muted-foreground">
                         @if (event.systemReasonCode) {
                           {{ 'XP.ModelAccess.ClosedReason.' + event.systemReasonCode | translate }}
                         } @else if (event.eventType === 'model_suspended' && event.reason) {
@@ -419,16 +469,19 @@
                         } @else if (event.reason) {
                           {{ event.reason }}
                         } @else {
-                          <span class="text-text-tertiary">—</span>
+                          <span class="text-muted-foreground">—</span>
                         }
                       </td>
-                      <td z-table-cell class="px-4 py-3 whitespace-nowrap text-text-secondary">
-                        {{ event.createdAt | date: 'medium' }}
+                      <td z-table-cell class="px-3 py-3 whitespace-nowrap text-muted-foreground">
+                        <time [attr.datetime]="event.createdAt" [title]="event.createdAt | date: 'medium'"
+                          >{{ event.createdAt | date: 'yyyy-MM-dd'
+                          }}<span class="mt-1 block text-xs">{{ event.createdAt | date: 'HH:mm' }}</span></time
+                        >
                       </td>
                     </tr>
                   } @empty {
                     <tr z-table-row>
-                      <td z-table-cell colspan="7" class="h-32 text-center text-text-tertiary">
+                      <td z-table-cell colspan="6" class="h-32 text-center text-muted-foreground">
                         {{ 'XP.ModelAccess.NoAudit' | translate: { Default: 'No audit events' } }}
                       </td>
                     </tr>
@@ -440,10 +493,8 @@
         }
 
         @if (activeTotal()) {
-          <div
-            class="mt-auto flex flex-col gap-3 border-t border-divider-regular pt-3 sm:flex-row sm:items-center sm:justify-between"
-          >
-            <div class="shrink-0 whitespace-nowrap text-sm text-text-tertiary">
+          <div class="flex flex-col gap-3 border-t border-border pt-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="shrink-0 whitespace-nowrap text-sm text-muted-foreground">
               {{
                 'XP.ModelAccess.PageSummary'
                   | translate
@@ -457,7 +508,7 @@
 
             <ng-template #paginationContent>
               @let pages = paginationPages();
-              <ul z-pagination-content>
+              <ul z-pagination-content class="flex-wrap">
                 <li z-pagination-item>
                   <button
                     z-pagination-button
@@ -510,5 +561,5 @@
         }
       </div>
     }
-  </div>
+  </section>
 </div>

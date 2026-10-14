@@ -1,3 +1,4 @@
+import { initializeTemplateFiles } from '../../shared/volume/initialize-template-files'
 import type { IArtifactWorkspaceFileReference } from '@xpert-ai/contracts'
 import { Inject, Injectable } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
@@ -30,8 +31,9 @@ export class AssistantFilesService {
         const authorize = (operation: AssistantFileOperation) =>
             this.commandBus.execute(new ResolveAssistantFileAccessCommand(assistantId, operation, entry))
         const client = async (operation: AssistantFileOperation) => {
-            const { scope } = await authorize(operation)
+            const { scope, initialFiles } = await authorize(operation)
             const volume = await this.volumeClient.resolve(scope).ensureRoot()
+            if (initialFiles) await initializeTemplateFiles(volume, initialFiles)
             return new VolumeSubtreeClient(volume, { allowRootWorkspace: true })
         }
         return {
@@ -46,10 +48,11 @@ export class AssistantFilesService {
                 (await client('write')).uploadFile('', path, file),
             delete: async (path: string) => (await client('delete')).deleteFile('', path),
             upload: async (file: Express.Multer.File): Promise<IArtifactWorkspaceFileReference> => {
-                const { scope } = await authorize('write')
+                const { scope, initialFiles } = await authorize('write')
                 const contentSha256 = createHash('sha256').update(file.buffer).digest('hex')
                 // This entry already chose runtime or Studio authority. Do not re-enter runtime ACL for drafts.
                 const volume = await this.volumeClient.resolve(scope).ensureRoot()
+                if (initialFiles) await initializeTemplateFiles(volume, initialFiles)
                 const written = await new VolumeSubtreeClient(volume, { allowRootWorkspace: true }).uploadFile(
                     '',
                     `uploads/${contentSha256}`,

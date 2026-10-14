@@ -4,7 +4,7 @@ import type { XpertProjectTypeRef } from '@xpert-ai/contracts'
 /** Lifecycle states that plugin-managed Projects may synchronize to the platform. */
 export type ProjectProvisioningStatus = 'active' | 'archived'
 
-/** Portable identity of one required, direct External Assistant binding. */
+/** Portable identity of one expected direct External Assistant binding. */
 export type ProjectExternalAssistantExpectation = {
   pluginName: string
   templateKey: string
@@ -19,7 +19,7 @@ export type ProjectEnsureInput = {
   projectId: string
   /** @deprecated Projects no longer belong to a Workspace. Accepted only for legacy callers. */
   workspaceId?: string
-  /** Assistant that must be connected to the Project. */
+  /** Creation seed: this Assistant and all recursive External Assistants join a new Project. Existing membership is preserved. */
   xpertId: string
   /** Primary requester Agent used as the trust anchor for direct External Assistants. */
   requesterAgentKey?: string
@@ -36,7 +36,7 @@ export type ProjectEnsureResult = {
   projectId: string
   /** @deprecated Echoed only when supplied by a legacy caller. */
   workspaceId?: string
-  /** Complete set of Assistants connected after synchronization. */
+  /** Persisted Assistant members; ensure never restores removed members or adds new graph dependencies to an existing Project. */
   xpertIds: string[]
   /** Whether this call inserted the Project or reconciled an existing one. */
   operation: 'created' | 'updated'

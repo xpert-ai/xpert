@@ -1,3 +1,4 @@
+const { createTemplateLinks } = require('./template-links.cjs')
 const { allowVoicePermission } = require('./voice-permission.cjs')
 const {
   app,
@@ -49,6 +50,17 @@ const rendererUrl = devUrl || pathToFileURL(path.join(__dirname, '../dist/index.
 const appIcon = path.join(__dirname, '../resources', process.platform === 'darwin' ? 'icon-macos.png' : 'logo.png')
 let window
 let service
+let earlyTemplateLink = process.argv.find((value) => value.startsWith('xpert://'))
+const templateLinks = createTemplateLinks({
+  directory: app.getPath('userData'),
+  getService: () => service,
+  notify: () => window?.webContents.send('xpert:template-link')
+})
+app.on('open-url', (event, url) => {
+  event.preventDefault()
+  if (!service) earlyTemplateLink = url
+  else if (templateLinks.receive(url)) showWindow()
+})
 let connectionSession
 let connectionReloadPending = false
 let audioCaptureTray
@@ -229,7 +241,12 @@ function createWindow(bounds = {}) {
 
 if (!app.requestSingleInstanceLock()) app.quit()
 else {
-  app.on('second-instance', () => {
+  app.on('second-instance', (_event, argv) => {
+    const link = argv.find((value) => value.startsWith('xpert://'))
+    if (link) {
+      if (service) templateLinks.receive(link)
+      else earlyTemplateLink = link
+    }
     if (!window || window.isDestroyed()) {
       if (app.isReady()) createWindow()
       return
@@ -273,6 +290,13 @@ else {
     powerMonitor.on('suspend', () => {
       void service.audioCapture.stop('sleep')
     })
+    if (app.isPackaged) app.setAsDefaultProtocolClient('xpert')
+    if (earlyTemplateLink) {
+      templateLinks.receive(earlyTemplateLink)
+      earlyTemplateLink = undefined
+    }
+    ipcMain.handle('xpert:template-link-read', (event) => (trusted(event) ? templateLinks.read() : null))
+    ipcMain.handle('xpert:template-link-dismiss', (event, id) => trusted(event) && templateLinks.dismiss(id))
     resetConnectionSession()
     installAssistantActivity({ app, activity: service.assistantActivity, getWindow: () => window })
     updateApplicationMenu()

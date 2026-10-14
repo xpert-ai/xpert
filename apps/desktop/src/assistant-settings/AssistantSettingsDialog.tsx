@@ -1,3 +1,4 @@
+import { TemplateSetupPanel } from './TemplateSetupPanel'
 import { useEffect, useRef, useState } from 'react'
 import {
   Button,
@@ -27,11 +28,13 @@ export function AssistantSettingsDialog({
   bot,
   webUrl,
   onClose,
+  onOpenConversation,
   onSaved
 }: {
   bot: Bot
   webUrl: string
   onClose: () => void
+  onOpenConversation?: (id: string, threadId: string) => void
   onSaved: (id: string) => Promise<void>
 }) {
   const [description, setDescription] = useState(bot.description)
@@ -153,6 +156,7 @@ export function AssistantSettingsDialog({
         >
           <Tabs defaultValue="profile" className="flex min-h-0 flex-col">
             <TabsList className="mx-6 mb-3 shrink-0">
+              <TabsTrigger value="template">{t('Template setup')}</TabsTrigger>
               <TabsTrigger value="profile">{t('Profile')}</TabsTrigger>
               <TabsTrigger value="configuration" disabled={!settings?.canEdit}>
                 {t('Model & capabilities')}
@@ -162,6 +166,20 @@ export function AssistantSettingsDialog({
               </TabsTrigger>
             </TabsList>
             <div className="min-h-0 overflow-y-auto px-6 pb-5">
+              <TabsContent value="template">
+                <TemplateSetupPanel
+                  botId={bot.id}
+                  webUrl={webUrl}
+                  onOpen={
+                    onOpenConversation
+                      ? (threadId) => {
+                          onClose()
+                          onOpenConversation(bot.id, threadId)
+                        }
+                      : undefined
+                  }
+                />
+              </TabsContent>
               <TabsContent value="profile" className="space-y-4">
                 <Button type="button" variant="outline" disabled={saving} onClick={() => setCustomizing(true)}>
                   {t('Customize your assistant')}

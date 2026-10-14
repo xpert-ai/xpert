@@ -1,10 +1,10 @@
 <div class="grid gap-4">
   <div class="flex flex-wrap items-center justify-between gap-3">
     <div>
-      <div class="text-base font-semibold text-text-primary">
+      <div class="text-base font-semibold">
         {{ 'XP.KEY_WORDS.Members' | translate: { Default: 'Members' } }}
       </div>
-      <div class="text-sm text-text-tertiary">
+      <div class="text-sm text-muted-foreground">
         {{
           'XP.Organization.MembersHint'
             | translate
@@ -18,7 +18,7 @@
 
     @if (canEdit) {
       <div class="flex items-center gap-1">
-        <button z-button zType="default" zSize="sm" (click)="openMemberSelect()">
+        <button z-button zType="default" (click)="openMemberSelect()">
           <z-icon zType="add"></z-icon>
           {{ 'XP.ACTIONS.ADD' | translate: { Default: 'Add' } }}
         </button>
@@ -26,55 +26,80 @@
     }
   </div>
 
-  <xp-table
-    class="overflow-hidden rounded-lg border border-divider-deep"
-    paging
-    [data]="memberships()"
-    [columns]="[
-      {
-        name: 'user',
-        caption: 'XP.KEY_WORDS.User' | translate: { Default: 'User' },
-        cellTemplate: userTempl
-      },
-      {
-        name: 'user.email',
-        caption: 'XP.KEY_WORDS.Email' | translate: { Default: 'Email' }
-      },
-      {
-        name: 'user.role.name',
-        caption: 'XP.KEY_WORDS.Role' | translate: { Default: 'Role' },
-        cellTemplate: roleTempl
-      },
-      {
-        name: 'isDefault',
-        caption: 'XP.KEY_WORDS.Default' | translate: { Default: 'Default' },
-        cellTemplate: defaultTempl
-      },
-      {
-        name: 'isActive',
-        caption: 'XP.KEY_WORDS.Active' | translate: { Default: 'Active' },
-        cellTemplate: activeTempl
-      },
-      {
-        name: 'action',
-        caption: 'XP.KEY_WORDS.ACTION' | translate: { Default: 'Action' },
-        cellTemplate: actionTempl,
-        stickyEnd: true
-      }
-    ]"
-  />
-
-  @if (!memberships().length) {
-    <div class="rounded-lg border border-dashed border-divider-deep px-4 py-8 text-center text-sm text-text-tertiary">
-      {{
-        'XP.Organization.NoMembers'
-          | translate
-            : {
-                Default:
-                  'No members have been added to this organization yet. Use Add to attach an existing tenant user.'
-              }
-      }}
+  <div class="flex items-center gap-3">
+    <z-search-input
+      class="w-full sm:max-w-sm"
+      [ngModel]="search()"
+      (ngModelChange)="search.set($event)"
+      [placeholder]="'XP.OrganizationSettings.MemberSearch' | translate"
+      [clearLabel]="'XP.Referral.ClearSearch' | translate"
+    />
+    <button
+      z-button
+      zType="ghost"
+      zSize="icon"
+      type="button"
+      class="ml-auto shrink-0"
+      [zDisabled]="loading()"
+      (click)="refresh()"
+      [attr.aria-label]="'XP.OrganizationSettings.RefreshMembers' | translate"
+    >
+      <z-icon zType="refresh" />
+    </button>
+  </div>
+  @if (loading()) {
+    <p role="status" class="py-10 text-center text-sm text-muted-foreground">
+      {{ 'XP.UserSettings.Loading' | translate }}
+    </p>
+  } @else if (loadFailed()) {
+    <div role="alert" class="flex items-center justify-between gap-3 rounded-lg border border-border p-4 text-sm">
+      <p>{{ 'XP.OrganizationSettings.MembersLoadFailed' | translate }}</p>
+      <button z-button zType="outline" (click)="refresh()">{{ 'XP.UserSettings.Retry' | translate }}</button>
     </div>
+  } @else {
+    <xp-table
+      class="overflow-hidden rounded-lg border border-border"
+      paging
+      [data]="visibleMemberships()"
+      [columns]="[
+        {
+          name: 'user',
+          caption: 'XP.KEY_WORDS.User' | translate: { Default: 'User' },
+          cellTemplate: userTempl
+        },
+        {
+          name: 'user.email',
+          caption: 'XP.KEY_WORDS.Email' | translate: { Default: 'Email' }
+        },
+        {
+          name: 'user.role.name',
+          caption: 'XP.KEY_WORDS.Role' | translate: { Default: 'Role' },
+          cellTemplate: roleTempl
+        },
+        {
+          name: 'isDefault',
+          caption: 'XP.KEY_WORDS.Default' | translate: { Default: 'Default' },
+          cellTemplate: defaultTempl
+        },
+        {
+          name: 'isActive',
+          caption: 'XP.KEY_WORDS.Active' | translate: { Default: 'Active' },
+          cellTemplate: activeTempl
+        },
+        {
+          name: 'action',
+          caption: 'XP.KEY_WORDS.ACTION' | translate: { Default: 'Action' },
+          cellTemplate: actionTempl,
+          stickyEnd: true
+        }
+      ]"
+    />
+
+    @if (!visibleMemberships().length) {
+      <p role="status" class="py-6 text-center text-sm text-muted-foreground">
+        {{ (search() ? 'XP.OrganizationSettings.EmptySearch' : 'XP.Organization.NoMembers') | translate }}
+      </p>
+    }
   }
 </div>
 
@@ -96,7 +121,10 @@
       [disabled]="!canEdit || membership.isDefault"
       zSize="sm"
       (ngModelChange)="updateDefaultMembership(membership, $event)"
-    />
+      ><span class="sr-only">{{
+        'XP.OrganizationSettings.MakeDefault' | translate: { name: userLabel(membership.user) }
+      }}</span></z-switch
+    >
   }
 </ng-template>
 
@@ -108,14 +136,24 @@
       [disabled]="!canEdit || canDeactivateMembership(membership)"
       zSize="sm"
       (ngModelChange)="updateMembershipActiveState(membership, $event)"
-    />
+      ><span class="sr-only">{{
+        'XP.OrganizationSettings.MemberActive' | translate: { name: userLabel(membership.user) }
+      }}</span></z-switch
+    >
   }
 </ng-template>
 
 <ng-template #actionTempl let-id="id">
   @let membership = membershipById(id);
   @if (membership && canEdit && canRemoveMembership(membership)) {
-    <button z-button zType="destructive" zSize="icon-sm" zShape="circle" (click)="removeMember(membership)">
+    <button
+      z-button
+      zType="ghost"
+      zSize="icon"
+      class="text-muted-foreground hover:text-destructive"
+      [attr.aria-label]="'XP.OrganizationSettings.RemoveMember' | translate: { name: userLabel(membership.user) }"
+      (click)="removeMember(membership)"
+    >
       <div class="flex items-center justify-center">
         <z-icon zType="delete"></z-icon>
       </div>

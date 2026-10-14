@@ -1,29 +1,36 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
-import { Component, computed, DestroyRef, inject, signal } from '@angular/core'
+import { Component, computed, DestroyRef, inject, linkedSignal, OnInit, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
+  AiModelTypeEnum,
+  I18nObject,
   IModelAccessCatalog,
+  IModelAccessCatalogItem,
   IModelAccessRequest,
   ModelAccessRequestStatusEnum,
   ModelAccessSourceEnum,
   UserModelGrantStatusEnum
 } from '@xpert-ai/contracts'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { XpI18nPipe } from '@xpert-ai/headless-ui'
 import {
+  ZardAvatarComponent,
   ZardAccordionImports,
   ZardBadgeComponent,
   ZardButtonComponent,
   ZardCardImports,
   ZardEmptyComponent,
-  ZardFormImports,
-  ZardInputDirective
+  ZardIconComponent,
+  ZardSearchInputComponent,
+  ZardSelectImports,
+  ZardTableImports,
+  ZardTabsImports
 } from '@xpert-ai/headless-ui'
-import { catchError, combineLatest, firstValueFrom, map, of, startWith } from 'rxjs'
+import { catchError, combineLatest, firstValueFrom, map, of, startWith, Subject, switchMap } from 'rxjs'
 import { ModelAccessService } from '../../../@core/services/model-access.service'
+import { injectAiProviders } from '../../../@core/services/copilot-server.service'
 import { injectToastr } from '../../../@core/services/toastr.service'
 import { getErrorMessage } from '../../../@core/types'
 import {
@@ -35,6 +42,15 @@ import {
   ModelAccessWithdrawDialogResult
 } from './model-access-withdraw-dialog.component'
 import { getCurrentModelAccessStatus } from '../model-access/model-access-status'
+import { AvailableModelRowComponent } from './available-model-row.component'
+import { ModelTypeIconComponent } from './model-type-icon.component'
+
+interface AvailableModelProviderGroup {
+  provider: string
+  label?: I18nObject | null
+  icon?: I18nObject
+  items: IModelAccessCatalogItem[]
+}
 
 @Component({
   standalone: true,
@@ -47,32 +63,45 @@ import { getCurrentModelAccessStatus } from '../model-access/model-access-status
     CommonModule,
     ReactiveFormsModule,
     TranslateModule,
-    XpSpinComponent,
     XpI18nPipe,
+    AvailableModelRowComponent,
+    ModelTypeIconComponent,
     ...ZardAccordionImports,
+    ZardAvatarComponent,
     ZardBadgeComponent,
     ZardButtonComponent,
     ZardEmptyComponent,
-    ZardInputDirective,
-    ...ZardFormImports,
+    ZardIconComponent,
+    ZardSearchInputComponent,
+    ...ZardSelectImports,
+    ...ZardTableImports,
+    ...ZardTabsImports,
     ...ZardCardImports
   ]
 })
-export class XpAccountAvailableModelsComponent {
+export class XpAccountAvailableModelsComponent implements OnInit {
   readonly #service = inject(ModelAccessService)
   readonly #frameDialog = inject(Dialog)
   readonly #translate = inject(TranslateService)
   readonly #toastr = injectToastr()
   readonly #destroyRef = inject(DestroyRef)
   #catalogSubscribed = false
+  readonly #stateRetry = new Subject<void>()
+  readonly #providers = injectAiProviders()
 
   readonly state = toSignal(
-    combineLatest([this.#service.myRequests$, this.#service.myGrants$]).pipe(
-      map(([requests, grants]) => ({ requests, grants })),
-      catchError((error) => {
-        this.#toastr.error(getErrorMessage(error))
-        return of(null)
-      })
+    this.#stateRetry.pipe(
+      startWith(undefined),
+      switchMap(() =>
+        combineLatest([this.#service.myRequests$, this.#service.myGrants$]).pipe(
+          map(([requests, grants]) => ({ requests, grants })),
+          startWith(undefined),
+          catchError((error) => {
+            this.#toastr.error(getErrorMessage(error))
+            return of(null)
+          })
+        )
+      )
     ),
     { initialValue: undefined }
   )
@@ -93,9 +122,21 @@ export class XpAccountAvailableModelsComponent {
   readonly availableModelSearch = toSignal(this.availableModelSearchControl.valueChanges.pipe(startWith('')), {
     initialValue: ''
   })
+  readonly allModelTypes = '__all__'
+  readonly modelTypeControl = new FormControl<AiModelTypeEnum | typeof this.allModelTypes>(this.allModelTypes, {
+    nonNullable: true
+  })
+  readonly modelType = toSignal(this.modelTypeControl.valueChanges, { initialValue: this.allModelTypes })
+  readonly collapsedProviders = linkedSignal({
+    source: () => ({ search: this.availableModelSearch(), type: this.modelType() }),
+    computation: () => new Set<string>()
+  })
+  readonly modelTypes = computed(() => [...new Set(this.availableModels().map((item) => item.modelType))])
   readonly filteredAvailableModels = computed(() => {
     const search = this.availableModelSearch().trim().toLowerCase()
-    const items = this.availableModels()
+    const items = this.availableModels().filter(
+      (item) => this.modelType() === this.allModelTypes || item.modelType === this.modelType()
+    )
     if (!search) {
       return items
     }
@@ -112,8 +153,54 @@ export class XpAccountAvailableModelsComponent {
       ].some((value) => value?.toLowerCase().includes(search))
     )
   })
+  readonly providerGroups = computed(() => {
+    const providers = new Map(this.#providers()?.map((provider) => [provider.provider, provider]))
+    const groups = new Map<string, AvailableModelProviderGroup>()
+    for (const item of this.filteredAvailableModels()) {
+      let group = groups.get(item.provider)
+      if (!group) {
+        const provider = providers.get(item.provider)
+        group = {
+          provider: item.provider,
+          label: item.providerLabel ?? provider?.label,
+          icon: provider?.icon_small,
+          items: []
+        }
+        groups.set(item.provider, group)
+      }
+      group.items.push(item)
+    }
+    return [...groups.values()]
+  })
 
   readonly requestedStatus = ModelAccessRequestStatusEnum.Requested
+  readonly expandedRequestId = signal<string | null>(null)
+
+  ngOnInit() {
+    this.loadAvailableModels()
+  }
+
+  retryState() {
+    this.#stateRetry.next()
+    this.loadAvailableModels()
+  }
+
+  clearFilters() {
+    this.availableModelSearchControl.setValue('')
+    this.modelTypeControl.setValue(this.allModelTypes)
+  }
+
+  toggleRequest(request: IModelAccessRequest) {
+    this.expandedRequestId.update((id) => (id === request.id ? null : request.id))
+  }
+
+  setProviderExpanded(provider: string, expanded: boolean) {
+    this.collapsedProviders.update((current) => {
+      const next = new Set(current)
+      expanded ? next.delete(provider) : next.add(provider)
+      return next
+    })
+  }
 
   loadAvailableModels() {
     if (this.#catalogSubscribed || this.catalogLoading()) {
