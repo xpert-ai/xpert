@@ -1,5 +1,13 @@
 # @xpert-ai/desktop
 
+## 0.3.5
+
+### Patch Changes
+
+- 453be50: Include the Assistant template installation and lifecycle updates in Bosi Desktop installers, with resumable installation, dependency setup, capability and routine overviews, activity history, publication, and upgrades.
+
+  Include the shared template installation client in isolated installer builds and translate invalid template requirements errors.
+
 ## 0.3.4
 
 ### Patch Changes
