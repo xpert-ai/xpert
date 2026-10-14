@@ -34,7 +34,10 @@ export function connectorMcpProvider(
                 !accessToken ||
                 typeof resource !== 'string' ||
                 !resource ||
-                (serverUrl !== undefined && serverUrl !== target.serverUrl) ||
+                (serverUrl !== undefined &&
+                    (typeof serverUrl !== 'string' ||
+                        !URL.canParse(serverUrl) ||
+                        new URL(serverUrl).href !== new URL(target.serverUrl).href)) ||
                 (target.resource !== undefined && new URL(resource).href !== new URL(target.resource).href) ||
                 !checkResourceAllowed({ requestedResource: target.serverUrl, configuredResource: resource }) ||
                 target.scopes?.some((scope) => !resolved.scopes?.includes(scope))

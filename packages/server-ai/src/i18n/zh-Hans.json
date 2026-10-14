@@ -54,6 +54,12 @@
     },
     "Error": {
         "RuntimeNotReady": "当前 API 副本尚未就绪",
+        "ConnectorIntegrationInvalid": "系统集成配置无效。",
+        "ConnectorIntegrationUnavailable": "所选系统集成不可用或配置不完整，请重新选择可访问的集成。",
+        "ConnectorIntegrationCreateForbidden": "你没有创建系统集成的权限。",
+        "ConnectorIntegrationBusy": "请先断开连接或取消当前授权，再更换系统集成。",
+        "ConnectorProviderDependencyMissing": "请先在当前范围安装并启用连接器 provider：{{provider}}。",
+        "ConnectorAuthMethodRetired": "请使用支持的认证方式重新连接。",
         "PrimaryModelEmptyResponse": "Primary LLM 返回了空响应。",
         "PrimaryModelVerificationTimedOut": "Primary LLM 验证超过 20 秒，请稍后重试。",
         "ClawXpertRecoveryRequiresMember": "请先加入当前组织，再恢复个人助理。",

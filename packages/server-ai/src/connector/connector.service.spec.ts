@@ -136,8 +136,9 @@ describe('ConnectorService', () => {
             sessions,
             workspaceAccess,
             {
-                getRuntime: jest.fn().mockReturnValue(strategy),
-                listRuntime: jest.fn().mockReturnValue([strategy])
+                getRuntime: jest.fn().mockResolvedValue(strategy),
+                findRuntime: jest.fn().mockResolvedValue(strategy),
+                listRuntime: jest.fn().mockResolvedValue([strategy])
             },
             personalAccounts,
             personalGrants,
@@ -148,6 +149,130 @@ describe('ConnectorService', () => {
 
     afterEach(() => {
         jest.restoreAllMocks()
+    })
+
+    it('restores a saved system integration when reconnecting and never accepts a caller override', async () => {
+        strategy.definition = {
+            provider: 'example',
+            label: 'Example',
+            authMethods: [
+                {
+                    id: 'oauth',
+                    type: 'oauth2',
+                    label: 'OAuth',
+                    appCredentials: { integration: { provider: 'example', fields: [] } }
+                }
+            ]
+        }
+        strategy.connect = jest.fn().mockResolvedValue({
+            status: 'pending',
+            authorizationUrl: 'https://example.test/auth',
+            metadata: { integrationId: 'selected' }
+        })
+        const binding = await service.createBinding({
+            scope: { type: 'workspace', workspaceId: 'workspace-1' },
+            provider: 'example',
+            authorizationMode: 'shared'
+        })
+        const stored = await connectors.findOne({ where: { id: binding.id } })
+        stored.appIntegrationId = 'selected'
+        await connectors.save(stored)
+
+        expect(await service.listBindings({ type: 'workspace', workspaceId: 'workspace-1' })).toEqual([
+            expect.objectContaining({ appIntegrationId: 'selected' })
+        ])
+        const result = await service.connectBinding(binding.id, {
+            authMethodId: 'oauth',
+            values: { integrationId: 'unapproved', clientSecret: 'never-forward' },
+            redirectUri: 'https://xpert.test/api/connector/oauth/callback'
+        })
+        expect(result.connector.appIntegrationId).toBe('selected')
+        expect(strategy.connect).toHaveBeenCalledWith(
+            expect.objectContaining({ values: { integrationId: 'selected' } })
+        )
+    })
+
+    it('preserves the provider-managed app lookup for existing project connector flows', async () => {
+        strategy.definition = {
+            provider: 'example',
+            label: 'Example',
+            authMethods: [
+                {
+                    id: 'oauth',
+                    type: 'oauth2',
+                    label: 'OAuth',
+                    appCredentials: { integration: { provider: 'example', fields: [] } }
+                }
+            ]
+        }
+        strategy.connect = jest.fn().mockResolvedValue({
+            status: 'pending',
+            authorizationUrl: 'https://example.test/auth',
+            metadata: { integrationId: 'project-app' }
+        })
+        const binding = await service.createBinding({
+            scope: { type: 'project', projectId: 'project-1' },
+            provider: 'example',
+            authorizationMode: 'shared'
+        })
+        await expect(
+            service.connectBinding(binding.id, { authMethodId: 'oauth', redirectUri: 'https://host.test/callback' })
+        ).resolves.toMatchObject({ status: 'pending' })
+        expect(strategy.connect).toHaveBeenCalledWith(
+            expect.objectContaining({ scope: { tenantId: 'tenant-1', organizationId: 'org-1' } })
+        )
+    })
+
+    it('recovers the app reference from old encrypted native credentials and remembers it after disconnect', async () => {
+        const binding = await service.createBinding({
+            scope: { type: 'workspace', workspaceId: 'workspace-1' },
+            provider: 'example',
+            authorizationMode: 'shared'
+        })
+        const stored = await connectors.findOne({ where: { id: binding.id } })
+        stored.status = 'active'
+        stored.credentialCiphertext = encryptSecret(
+            JSON.stringify({
+                version: 1,
+                authMethodId: 'oauth2',
+                credential: { data: { integrationId: 'previous-app', accessToken: 'private-token' } }
+            }),
+            environment.secretsEncryptionKey
+        )
+        await connectors.save(stored)
+        const before = await service.list('workspace-1')
+        expect(before[0].appIntegrationId).toBe('previous-app')
+        expect(JSON.stringify(before)).not.toContain('private-token')
+        await service.disconnect('workspace-1', binding.id)
+        expect((await service.list('workspace-1'))[0].appIntegrationId).toBe('previous-app')
+    })
+
+    it('supplies persisted scope to a provider callback independently of the callback request context', async () => {
+        strategy.definition = {
+            provider: 'example',
+            label: 'Example',
+            authMethods: [{ id: 'oauth', type: 'oauth2', label: 'OAuth' }]
+        }
+        const connect = jest.fn(async (input) => ({
+            status: 'pending' as const,
+            authorizationUrl: `https://example.test/auth?state=${input.state}`
+        }))
+        const exchange = jest.fn(async () => ({ data: { accessToken: 'token' } }))
+        strategy.connect = connect
+        strategy.exchangeAuthorizationCode = exchange
+        const started = await service.connect('workspace-1', 'example', {
+            authMethodId: 'oauth',
+            redirectUri: 'https://xpert.test/callback'
+        })
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('unrelated-tenant')
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('unrelated-org')
+        await service.completeOAuthCallback({
+            state: new URL(started.authorizationUrl).searchParams.get('state'),
+            code: 'code'
+        })
+        expect(exchange).toHaveBeenCalledWith(
+            expect.objectContaining({ scope: { tenantId: 'tenant-1', organizationId: 'org-1' } })
+        )
     })
 
     it('rejects legacy app integration ids instead of resolving system integrations', async () => {
