@@ -1,0 +1,127 @@
+<section class="flex w-full min-w-0 flex-col gap-6 p-6 lg:p-8">
+  <header class="flex flex-wrap items-start justify-between gap-4">
+    <div class="min-w-0 space-y-2">
+      <h1 class="text-2xl font-semibold text-foreground">{{ 'XP.PersonalApiKeys.Title' | translate }}</h1>
+      <p class="text-sm text-muted-foreground">{{ 'XP.PersonalApiKeys.AccessHint' | translate }}</p>
+    </div>
+    <button
+      z-button
+      type="button"
+      [zLoading]="creating()"
+      [zDisabled]="loading() || creating() || !!created()"
+      (click)="create()"
+    >
+      <z-icon zType="plus" aria-hidden="true" />{{ 'XP.PersonalApiKeys.Create' | translate }}
+    </button>
+  </header>
+
+  @if (created(); as result) {
+    <section class="space-y-3 rounded-xl border border-primary bg-muted p-4" aria-live="polite">
+      <h2 class="font-medium">{{ 'XP.PersonalApiKeys.SaveTitle' | translate }}</h2>
+      <p class="text-sm text-muted-foreground">{{ 'XP.PersonalApiKeys.SaveHint' | translate }}</p>
+      <code class="block select-all break-all rounded-md bg-background p-3 font-mono text-sm">{{ result.token }}</code>
+      <div class="flex flex-wrap gap-2">
+        <button z-button type="button" (click)="copy()">
+          <z-icon zType="copy" aria-hidden="true" />{{
+            (copied() ? 'XP.PersonalApiKeys.Copied' : 'XP.PersonalApiKeys.Copy') | translate
+          }}
+        </button>
+        <button z-button zType="outline" type="button" (click)="dismissSecret()">
+          {{ 'XP.PersonalApiKeys.Saved' | translate }}
+        </button>
+      </div>
+    </section>
+  }
+
+  <div class="flex items-center gap-3">
+    <z-search-input
+      class="w-full sm:max-w-sm"
+      [formControl]="searchControl"
+      [placeholder]="'XP.PersonalApiKeys.Search' | translate"
+      [aria-label]="'XP.PersonalApiKeys.Search' | translate"
+    />
+    <button
+      z-button
+      zType="outline"
+      zSize="icon"
+      type="button"
+      [zDisabled]="loading() || creating() || !!revoking()"
+      [attr.aria-label]="'XP.PersonalApiKeys.Refresh' | translate"
+      (click)="load()"
+    >
+      <z-icon zType="refresh" aria-hidden="true" />
+    </button>
+  </div>
+  @if (loading()) {
+    <p role="status" class="py-8 text-center text-muted-foreground">{{ 'XP.PersonalApiKeys.Loading' | translate }}</p>
+  } @else if (failed()) {
+    <div role="alert" class="space-y-3 py-8 text-center">
+      <p class="text-muted-foreground">{{ 'XP.PersonalApiKeys.LoadFailed' | translate }}</p>
+      <button z-button zType="outline" type="button" (click)="load()">
+        {{ 'XP.PersonalApiKeys.Retry' | translate }}
+      </button>
+    </div>
+  } @else if (!filteredKeys().length) {
+    <p class="py-8 text-center text-muted-foreground">
+      {{ (keys().length ? 'XP.PersonalApiKeys.NoMatches' : 'XP.PersonalApiKeys.Empty') | translate }}
+    </p>
+  } @else {
+    <div class="min-w-0 overflow-x-auto rounded-xl border border-border">
+      <table z-table>
+        <thead z-table-header>
+          <tr z-table-row>
+            <th z-table-head>{{ 'XP.PersonalApiKeys.Name' | translate }}</th>
+            <th z-table-head>{{ 'XP.PersonalApiKeys.Status' | translate }}</th>
+            <th z-table-head>{{ 'XP.PersonalApiKeys.CreatedAt' | translate }}</th>
+            <th z-table-head>{{ 'XP.PersonalApiKeys.ExpiresAt' | translate }}</th>
+            <th z-table-head>{{ 'XP.PersonalApiKeys.LastUsedAt' | translate }}</th>
+            <th z-table-head>
+              <span class="sr-only">{{ 'XP.PersonalApiKeys.Revoke' | translate }}</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody z-table-body>
+          @for (key of filteredKeys(); track key.id) {
+            <tr z-table-row>
+              <td z-table-cell>
+                <span class="block max-w-xs truncate font-medium" [title]="key.name">{{ key.name }}</span
+                ><code class="text-xs text-muted-foreground">{{ key.prefix }}…</code>
+              </td>
+              <td z-table-cell>
+                <z-badge zType="secondary">{{ 'XP.PersonalApiKeys.' + status(key) | translate }}</z-badge>
+              </td>
+              <td z-table-cell class="whitespace-nowrap">{{ key.createdAt | date: 'mediumDate' }}</td>
+              <td z-table-cell class="whitespace-nowrap">
+                {{ key.expiresAt ? (key.expiresAt | date: 'medium') : ('XP.PersonalApiKeys.Never' | translate) }}
+              </td>
+              <td z-table-cell class="whitespace-nowrap">
+                {{ key.lastUsedAt ? (key.lastUsedAt | date: 'medium') : ('XP.PersonalApiKeys.NotUsed' | translate) }}
+              </td>
+              <td z-table-cell>
+                @if (!key.revokedAt) {
+                  <button
+                    z-button
+                    zType="destructive"
+                    type="button"
+                    [zLoading]="revoking() === key.id"
+                    [zDisabled]="!!revoking()"
+                    (click)="revoke(key)"
+                  >
+                    {{ 'XP.PersonalApiKeys.Revoke' | translate }}
+                  </button>
+                }
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+
+  <section class="space-y-3 border-t border-border pt-6">
+    <h2 class="font-semibold">{{ 'XP.PersonalApiKeys.Usage' | translate }}</h2>
+    <p class="text-sm text-muted-foreground">{{ 'XP.PersonalApiKeys.UsageHint' | translate }}</p>
+    <pre class="overflow-x-auto rounded-xl bg-muted p-4 text-sm"><code>{{ example }}</code></pre>
+    <p class="text-sm text-muted-foreground">{{ 'XP.PersonalApiKeys.OrganizationHint' | translate }}</p>
+  </section>
+</section>

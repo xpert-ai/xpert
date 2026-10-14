@@ -45,6 +45,26 @@ describe('settings navigation', () => {
     expect(buildSettingsNavigation([account], access).map((group) => group.key)).toEqual(['Personal'])
   })
 
+  it('shows personal API keys below the profile independently of membership and model access', () => {
+    const groups = buildSettingsNavigation([account], {
+      membership: false,
+      models: false,
+      gateway: false,
+      personalApiKeys: true
+    })
+    expect(groups[0].items.map((item) => item.path)).toEqual([
+      'account/profile',
+      'account/api-keys',
+      'account/password'
+    ])
+    expect(findSettingsNavigationItem(groups, 'account/api-keys')?.translationKey).toBe('XP.PersonalApiKeys.Title')
+    expect(
+      buildSettingsNavigation([account], { ...access, personalApiKeys: false })[0].items.some(
+        (item) => item.path === 'account/api-keys'
+      )
+    ).toBe(false)
+  })
+
   it('retains active parent navigation on detail URLs without matching unrelated prefixes', () => {
     const groups = buildSettingsNavigation([{ path: 'users', label: 'Users', icon: 'users' }], access)
     expect(findSettingsNavigationItem(groups, 'users/user-id/security')?.path).toBe('users')

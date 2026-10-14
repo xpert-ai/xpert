@@ -53,6 +53,9 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "PersonalApiKeyNotFound": "Personal API key not found or already revoked.",
+        "PersonalApiKeyHumanRequired": "Personal API keys require a human user account.",
+        "PersonalApiKeyInvalidInput": "Provide a key name and a valid lifetime.",
         "RuntimeNotReady": "The API instance is not ready",
         "ConnectorIntegrationInvalid": "Invalid system integration configuration.",
         "ConnectorIntegrationUnavailable": "The selected system integration is unavailable or incomplete. Select an accessible integration.",

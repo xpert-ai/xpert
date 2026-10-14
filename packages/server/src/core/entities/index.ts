@@ -1,5 +1,6 @@
 import {
 	ApiKey,
+	PersonalApiKey,
 	Organization,
 	Tenant,
 	TenantSetting,
@@ -43,6 +44,7 @@ import {
 
 export const coreEntities = [
 	ApiKey,
+	PersonalApiKey,
 	Organization,
 	PasswordReset,
 	User,
