@@ -1,5 +1,6 @@
+import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
-import { Component, Input, OnChanges, computed, inject, signal } from '@angular/core'
+import { Component, Input, OnChanges, OnDestroy, TemplateRef, computed, inject, signal } from '@angular/core'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import {
   AIPermissionsEnum,
@@ -22,6 +23,10 @@ import {
 } from '@xpert-ai/contracts'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
+  XpDialogFrameImports,
+  XpDialogActionGroupDirective,
+  ZardIconComponent,
+  ZardTabsImports,
   ZardAlertDialogService,
   ZardBadgeComponent,
   ZardButtonComponent,
@@ -30,7 +35,7 @@ import {
   ZardProgressBarComponent,
   ZardSelectImports
 } from '@xpert-ai/headless-ui'
-import { Observable, firstValueFrom, forkJoin, of } from 'rxjs'
+import { Observable, firstValueFrom, forkJoin, of, take } from 'rxjs'
 
 type PointAdjustmentDirection = 'increase' | 'decrease'
 const POINT_ADJUSTMENT_VALIDATORS = [
@@ -44,6 +49,10 @@ const POINT_ADJUSTMENT_VALIDATORS = [
   selector: 'xp-user-membership',
   imports: [
     CommonModule,
+    ZardIconComponent,
+    ...XpDialogFrameImports,
+    XpDialogActionGroupDirective,
+    ...ZardTabsImports,
     ReactiveFormsModule,
     TranslateModule,
     ZardBadgeComponent,
@@ -55,7 +64,7 @@ const POINT_ADJUSTMENT_VALIDATORS = [
   ],
   templateUrl: './user-membership.component.html'
 })
-export class UserMembershipComponent implements OnChanges {
+export class UserMembershipComponent implements OnChanges, OnDestroy {
   @Input() userId: string
 
   readonly #membership = inject(MembershipService)
@@ -64,6 +73,27 @@ export class UserMembershipComponent implements OnChanges {
   readonly #translate = inject(TranslateService)
   readonly #alertDialog = inject(ZardAlertDialogService)
   readonly #formBuilder = inject(FormBuilder)
+
+  private readonly dialog = inject(Dialog)
+  private editorRef: DialogRef
+  readonly loadError = signal(false)
+  readonly currentScheduledPeriods = computed(() =>
+    this.scheduledPeriods().filter((period) => !this.isTenantScope || !period.organizationId)
+  )
+  openEditor(template: TemplateRef<unknown>) {
+    if (!this.canManage || this.loading()) return
+    this.editorRef = this.dialog.open(template, {
+      backdropClass: 'backdrop-blur-xs-black',
+      panelClass: 'xp-overlay-pane-dialog',
+      maxWidth: 'calc(100vw - 32px)'
+    })
+  }
+  closeEditor() {
+    this.editorRef?.close()
+  }
+  ngOnDestroy() {
+    this.closeEditor()
+  }
 
   readonly plans = signal<IMembershipPlan[]>([])
   readonly membership = signal<IUserMembership | null>(null)
@@ -122,15 +152,18 @@ export class UserMembershipComponent implements OnChanges {
   }
 
   load() {
+    this.loadError.set(false)
     this.loading.set(true)
     forkJoin({
-      plans: this.#membership.getPlans(),
-      memberships: this.#membership.getAdminUsers({ userId: this.userId, take: 1 }),
-      scopeMemberships: this.isTenantScope ? this.#membership.getAdminUserScopeMemberships(this.userId) : of([]),
-      periods: this.#membership.getAdminUserPeriods(this.userId),
-      audit: this.#membership.getAdminUserAudit(this.userId, { take: 20 }),
+      plans: this.#membership.getPlans().pipe(take(1)),
+      memberships: this.#membership.getAdminUsers({ userId: this.userId, take: 1 }).pipe(take(1)),
+      scopeMemberships: this.isTenantScope
+        ? this.#membership.getAdminUserScopeMemberships(this.userId).pipe(take(1))
+        : of([]),
+      periods: this.#membership.getAdminUserPeriods(this.userId).pipe(take(1)),
+      audit: this.#membership.getAdminUserAudit(this.userId, { take: 20 }).pipe(take(1)),
       personalPoints: this.canManagePersonalPoints
-        ? this.#membership.getPersonalPoints(this.userId)
+        ? this.#membership.getPersonalPoints(this.userId).pipe(take(1))
         : of({ balance: 0 })
     }).subscribe({
       next: ({ plans, memberships, scopeMemberships, periods, audit, personalPoints }) => {
@@ -147,7 +180,10 @@ export class UserMembershipComponent implements OnChanges {
         })
         this.loading.set(false)
       },
-      error: (error) => this.handleError(error)
+      error: (error) => {
+        this.loadError.set(true)
+        this.handleError(error)
+      }
     })
   }
 
@@ -189,6 +225,7 @@ export class UserMembershipComponent implements OnChanges {
       })
       .subscribe({
         next: () => {
+          this.closeEditor()
           this.assignmentForm.controls.note.reset()
           this.load()
         },
@@ -295,6 +332,7 @@ export class UserMembershipComponent implements OnChanges {
     this.loading.set(true)
     this.#membership.adjustUserPoints(this.userId, { pointDelta, reason: reason || null }).subscribe({
       next: (membership) => {
+        this.closeEditor()
         this.cyclePointsForm.reset({ direction: 'increase', points: 0, reason: '' })
         this.membership.set(membership)
         this.load()
@@ -325,6 +363,7 @@ export class UserMembershipComponent implements OnChanges {
       })
       .subscribe({
         next: () => {
+          this.closeEditor()
           this.personalPointsForm.reset({ direction: 'increase', points: 0, reason: '' })
           this.load()
         },
@@ -370,6 +409,7 @@ export class UserMembershipComponent implements OnChanges {
     }
     return (
       entry.membership?.organization?.name ||
+      (this.#store.selectedOrganization?.id === entry.organizationId ? this.#store.selectedOrganization.name : null) ||
       this.scopeMemberships().find(({ organizationId }) => organizationId === entry.organizationId)?.organization
         ?.name ||
       entry.organizationId
@@ -439,7 +479,10 @@ export class UserMembershipComponent implements OnChanges {
   private runAndReload(request: Observable<unknown>) {
     this.loading.set(true)
     request.subscribe({
-      next: () => this.load(),
+      next: () => {
+        this.closeEditor()
+        this.load()
+      },
       error: (error) => this.handleError(error)
     })
   }

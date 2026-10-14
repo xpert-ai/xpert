@@ -6,6 +6,12 @@ import { dirname } from 'node:path'
 
 const REQUEST_TIMEOUT_MS = 10_000
 const CONFIG_CACHE_TTL_MS = 5 * 60 * 1000
+type RegistryRequestQueue = {
+	active: number
+	limit: number
+	waiting: Array<() => void>
+}
+
 const REGISTRY_CONFIG_KEYS = new Set([
 	'registry',
 	'proxy',
@@ -41,6 +47,7 @@ function flattenRegistryConfig(data: Parameters<typeof flatten>[0], target: Para
 export class NpmPluginVersionClient {
 	private configuration?: Promise<Config>
 	private configurationExpiresAt = 0
+	private readonly requestQueues = new Map<string, RegistryRequestQueue>()
 
 	async resolveLatestVersion(packageName: string): Promise<string | undefined> {
 		if (this.configurationExpiresAt && this.configurationExpiresAt <= Date.now()) {
@@ -58,21 +65,64 @@ export class NpmPluginVersionClient {
 			}))
 		const configuredTag: unknown = config.get('tag')
 		const tag = typeof configuredTag === 'string' ? configuredTag : 'latest'
-		const options: npmFetch.Options & { signal: AbortSignal } = {
+		const configuredMaxSockets: unknown = config.get('maxsockets')
+		const maxSockets =
+			typeof configuredMaxSockets === 'number' && configuredMaxSockets >= 0
+				? configuredMaxSockets || Infinity
+				: 15
+		const options: npmFetch.Options = {
 			...config.flat,
 			spec: packageName,
 			preferOnline: true,
+			// Admission below owns npm's per-origin limit. Avoid a second, timed wait inside the HTTP agent.
+			maxSockets: Infinity,
 			// Recover transient failures without npm's long default retry delays.
 			retry: { retries: 1, minTimeout: 250, maxTimeout: 250 },
-			timeout: REQUEST_TIMEOUT_MS,
-			signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS)
+			timeout: REQUEST_TIMEOUT_MS
 		}
-		const tags: unknown = await npmFetch.json(`/-/package/${encodeURIComponent(packageName)}/dist-tags`, options)
-		if (!tags || typeof tags !== 'object' || Array.isArray(tags)) {
-			return undefined
+		const origin = new URL(npmFetch.pickRegistry(packageName, options)).origin
+		const release = await this.acquireRegistryRequest(origin, maxSockets)
+		try {
+			const requestOptions: npmFetch.Options & { signal: AbortSignal } = {
+				...options,
+				// Queue time is excluded; network activity, retries and body reads share this deadline.
+				signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS)
+			}
+			const tags: unknown = await npmFetch.json(
+				`/-/package/${encodeURIComponent(packageName)}/dist-tags`,
+				requestOptions
+			)
+			if (!tags || typeof tags !== 'object' || Array.isArray(tags)) {
+				return undefined
+			}
+			const version: unknown = Object.entries(tags).find(([name]) => name === tag)?.[1]
+			return typeof version === 'string' ? version : undefined
+		} finally {
+			release()
 		}
-		const version: unknown = Object.entries(tags).find(([name]) => name === tag)?.[1]
-		return typeof version === 'string' ? version : undefined
+	}
+
+	private acquireRegistryRequest(origin: string, limit: number): Promise<() => void> {
+		const queue: RegistryRequestQueue = this.requestQueues.get(origin) ?? { active: 0, limit, waiting: [] }
+		queue.limit = limit
+		this.requestQueues.set(origin, queue)
+		return new Promise((resolve) => {
+			queue.waiting.push(() => {
+				queue.active++
+				resolve(() => {
+					queue.active--
+					this.drainRegistryRequests(queue)
+					if (queue.active === 0) this.requestQueues.delete(origin)
+				})
+			})
+			this.drainRegistryRequests(queue)
+		})
+	}
+
+	private drainRegistryRequests(queue: RegistryRequestQueue) {
+		while (queue.active < queue.limit && queue.waiting.length) {
+			queue.waiting.shift()?.()
+		}
 	}
 
 	private async loadConfiguration(): Promise<Config> {

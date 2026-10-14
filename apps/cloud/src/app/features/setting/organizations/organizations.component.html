@@ -1,917 +1,575 @@
-<div class="flex min-h-full w-full flex-col bg-background">
-  <div class="flex w-full flex-col gap-6 px-8 py-6">
-    @if (showRegistrySection()) {
-      <section [ngClass]="isTenantScope() ? 'w-full bg-transparent' : 'w-full overflow-hidden'">
-        <div
-          [ngClass]="
-            isTenantScope()
-              ? 'flex flex-col gap-3 pb-4 lg:flex-row lg:items-center lg:justify-between'
-              : 'flex flex-col gap-3 pb-5 lg:flex-row lg:items-end lg:justify-between'
-          "
-          [class.border-b]="isTenantScope()"
-          [class.border-divider-regular]="isTenantScope()"
-        >
-          <div class="space-y-1">
-            @if (!isTenantScope() && selectedOrganization(); as organization) {
-              <div class="xp-page-title text-text-primary">{{ organization.name }}</div>
-            } @else if (isTenantScope()) {
-              <div class="xp-page-title relative text-text-primary">{{ registrySectionTitle() }}</div>
-            } @else {
-              <div class="text-lg font-semibold text-text-primary">{{ registrySectionTitle() }}</div>
-            }
-          </div>
-
-          @if (isTenantScope()) {
-            <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <z-input-group [zAddonBefore]="search">
-                <input
-                  z-input
-                  type="text"
-                  [ngModel]="searchText()"
-                  (ngModelChange)="searchText.set($event)"
-                  [placeholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search organizations' }"
-                />
-              </z-input-group>
-              <ng-template #search><i class="ri-search-line text-text-tertiary"></i></ng-template>
-
-              @if (canCreateOrganizations()) {
-                <button z-button zType="default" zSize="sm" (click)="addOrganization()">
-                  <z-icon nxDensity="cosy" zType="add"></z-icon>{{ 'XP.ACTIONS.ADD' | translate: { Default: 'Add' } }}
-                </button>
-              }
-            </div>
-          }
+<div class="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+  @if (isTenantScope() && !isTenantDetailView()) {
+    <header class="flex flex-wrap items-start justify-between gap-4">
+      <div>
+        <div class="flex flex-wrap items-center gap-3">
+          <h1 class="text-2xl font-semibold tracking-tight">{{ 'XP.KEY_WORDS.ORGANIZATION' | translate }}</h1>
+          <z-badge zType="outline">{{ 'XP.UserSettings.TenantScope' | translate }}</z-badge>
         </div>
+        <p class="mt-2 text-sm text-muted-foreground">{{ 'XP.OrganizationSettings.DirectoryHint' | translate }}</p>
+      </div>
+      @if (canCreateOrganizations()) {
+        <button z-button type="button" class="pointer-coarse:min-h-[44px]" (click)="addOrganization()">
+          <z-icon zType="add" />{{ 'XP.OrganizationSettings.Create' | translate }}
+        </button>
+      }
+    </header>
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <z-search-input
+        class="w-full sm:max-w-sm pointer-coarse:[&_input]:min-h-[44px]"
+        [ngModel]="searchText()"
+        (ngModelChange)="searchText.set($event)"
+        [placeholder]="'XP.OrganizationSettings.Search' | translate"
+        [clearLabel]="'XP.Referral.ClearSearch' | translate"
+      />
+      <div class="flex items-center gap-3 text-xs text-muted-foreground">
+        <span role="status">{{
+          'XP.OrganizationSettings.Count' | translate: { count: visibleOrganizations().length }
+        }}</span>
+        <button
+          z-button
+          zType="ghost"
+          zSize="icon"
+          type="button"
+          [zDisabled]="loading()"
+          (click)="refresh()"
+          [attr.aria-label]="'XP.ACTIONS.Refresh' | translate"
+          class="pointer-coarse:size-[44px]"
+        >
+          <z-icon zType="refresh" [class]="loading() ? 'animate-spin motion-reduce:animate-none' : ''" />
+        </button>
+      </div>
+    </div>
+  }
 
-        @if (loading()) {
-          <div class="flex min-h-[220px] items-center justify-center px-6 py-10 text-sm text-text-tertiary">
-            {{ 'XP.KEY_WORDS.Loading' | translate: { Default: 'Loading organizations...' } }}
-          </div>
-        } @else if (error()) {
-          <div class="flex min-h-[220px] flex-col items-center justify-center gap-3 px-6 py-10 text-center">
-            <i class="ri-error-warning-line text-2xl text-text-destructive"></i>
-            <div class="text-base font-semibold text-text-primary">
-              {{ 'XP.Organization.LoadFailed' | translate: { Default: 'Unable to load organizations' } }}
-            </div>
-            <div class="max-w-2xl text-sm text-text-tertiary">{{ error() }}</div>
-          </div>
-        } @else if (!visibleOrganizations().length) {
-          <div class="flex min-h-[220px] flex-col items-center justify-center gap-3 px-6 py-10 text-center">
-            <i class="ri-inbox-line text-2xl text-text-tertiary"></i>
-            <div class="text-base font-semibold text-text-primary">
-              {{ 'XP.Organization.EmptyStateTitle' | translate: { Default: 'No organizations available' } }}
-            </div>
-            <div class="max-w-xl text-sm text-text-tertiary">
-              {{
-                'XP.Organization.EmptyStateDescription'
-                  | translate
-                    : {
-                        Default:
-                          'There is no organization in the current scope yet. Add one from tenant scope or switch to an organization context first.'
-                      }
-              }}
-            </div>
-          </div>
-        } @else {
-          @if (isTenantScope()) {
-            <div class="overflow-x-auto">
-              <table class="w-full min-w-[1180px] text-left text-sm">
-                <thead class="bg-background-default-subtle text-text-secondary">
-                  <tr>
-                    <th class="w-20 px-4 py-3 font-semibold">
-                      {{ 'XP.KEY_WORDS.IsDefault' | translate: { Default: 'Default' } }}
-                    </th>
-                    <th class="w-24 px-4 py-3 font-semibold">
-                      {{ 'XP.KEY_WORDS.Logo' | translate: { Default: 'Logo' } }}
-                    </th>
-                    <th class="min-w-[280px] px-4 py-3 font-semibold">
-                      {{
-                        'XP.ORGANIZATIONS_PAGE.Organization.OrganizationId' | translate: { Default: 'Organization ID' }
-                      }}
-                    </th>
-                    <th class="px-4 py-3 font-semibold">
-                      {{ 'XP.KEY_WORDS.NAME' | translate: { Default: 'Name' } }}
-                    </th>
-                    <th class="px-4 py-3 font-semibold">
-                      {{ 'XP.KEY_WORDS.CURRENCY' | translate: { Default: 'Currency' } }}
-                    </th>
-                    <th class="px-4 py-3 font-semibold">
-                      {{ 'XP.KEY_WORDS.TimeZone' | translate: { Default: 'Time Zone' } }}
-                    </th>
-                    <th class="px-4 py-3 font-semibold">
-                      {{ 'XP.KEY_WORDS.Status' | translate: { Default: 'Status' } }}
-                    </th>
-                    <th class="px-4 py-3 font-semibold">
-                      {{ 'XP.KEY_WORDS.ACTION' | translate: { Default: 'Action' } }}
-                    </th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  @for (organization of visibleOrganizations(); track organization.id) {
-                    <tr
-                      class="organization-row group border-b border-divider-regular"
-                      [class.active]="isSelectedRow(organization)"
-                      (click)="selectOrganization(organization)"
-                    >
-                      <td class="px-4 py-4 align-middle">
-                        @if (organization.isDefault) {
-                          <i class="ri-shield-star-line text-lg text-primary"></i>
-                        } @else {
-                          <span class="text-text-quaternary">-</span>
-                        }
-                      </td>
-                      <td class="px-4 py-4 align-middle">
-                        <xp-org-avatar
-                          [organization]="organization"
-                          class="block h-10 w-10 overflow-hidden rounded-2xl border border-divider-regular bg-components-input-bg-normal"
-                        />
-                      </td>
-                      <td class="min-w-[280px] px-4 py-4 align-middle whitespace-nowrap">
-                        <div class="space-y-1 whitespace-nowrap">
-                          <div class="font-medium text-text-primary">{{ organizationIdentifier(organization) }}</div>
-                        </div>
-                      </td>
-                      <td class="px-4 py-4 align-middle truncate">
-                        <div class="space-y-1">
-                          <div class="font-medium text-text-primary">{{ organization.name }}</div>
-                          @if (organization.officialName) {
-                            <div class="text-xs text-text-tertiary">
-                              {{ organization.officialName }}
-                            </div>
-                          }
-                        </div>
-                      </td>
-                      <td class="px-4 py-4 align-middle text-text-secondary">
-                        {{ organization.currency || ('XP.KEY_WORDS.NotSet' | translate: { Default: 'Not set' }) }}
-                      </td>
-                      <td class="px-4 py-4 align-middle text-text-secondary">
-                        {{ organization.timeZone || ('XP.KEY_WORDS.NotSet' | translate: { Default: 'Not set' }) }}
-                      </td>
-                      <td class="px-4 py-4 align-middle">
-                        <span
-                          class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium"
-                          [ngClass]="organizationStatusTone(organization)"
-                        >
-                          {{ organizationStatusLabel(organization) }}
-                        </span>
-                      </td>
-                      <td class="px-4 py-4 align-middle">
-                        <div
-                          class="flex items-center gap-2 opacity-0 transition-opacity duration-150 ease-out group-hover:opacity-100"
-                          [class.opacity-100]="isSelectedRow(organization)"
-                        >
-                          <button
-                            type="button"
-                            class="btn action-btn h-7 w-7 rounded-lg flex items-center justify-center"
-                            (click)="openOrganizationDetails($event, organization)"
-                          >
-                            <i class="ri-edit-box-line"></i>
-                          </button>
-
-                          @if (canCreateOrganizations()) {
-                            <button
-                              type="button"
-                              class="btn action-btn danger h-7 w-7 rounded-lg flex items-center justify-center"
-                              (click)="deleteOrganization($event, organization)"
-                            >
-                              <i class="ri-delete-bin-2-line"></i>
-                            </button>
-                          }
-                        </div>
-                      </td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          } @else {
-            @if (selectedOrganization(); as organization) {
-              <div class="w-full px-6 pb-5 pt-1">
-                <dl class="flex w-full flex-wrap items-center gap-x-8 gap-y-5 xl:flex-nowrap xl:gap-x-10">
-                  <div
-                    class="flex min-w-0 basis-full items-center gap-3 md:basis-[calc(50%-1rem)] xl:basis-0 xl:flex-1"
-                  >
-                    <dt class="shrink-0 text-sm text-text-tertiary">
-                      {{ 'XP.KEY_WORDS.IsDefault' | translate: { Default: 'Default' } }}:
-                    </dt>
-                    <dd class="min-w-0">
-                      <span class="inline-flex items-center gap-2 text-base font-semibold leading-8 text-text-primary">
-                        @if (organization.isDefault) {
-                          <i class="ri-shield-star-line text-primary"></i>
-                        }
-                        {{
-                          organization.isDefault
-                            ? ('XP.KEY_WORDS.Yes' | translate: { Default: 'Yes' })
-                            : ('XP.KEY_WORDS.No' | translate: { Default: 'No' })
-                        }}
-                      </span>
-                    </dd>
-                  </div>
-
-                  <div
-                    class="flex min-w-0 basis-full items-center gap-3 md:basis-[calc(50%-1rem)] xl:basis-0 xl:flex-1"
-                  >
-                    <dt class="shrink-0 text-sm text-text-tertiary">
-                      {{ 'XP.Organization.LogoLabel' | translate: { Default: 'Logo' } }}:
-                    </dt>
-                    <dd class="min-w-0">
-                      <xp-org-avatar
-                        [organization]="organization"
-                        class="block h-12 w-12 overflow-hidden rounded-2xl bg-components-input-bg-normal"
-                      />
-                    </dd>
-                  </div>
-
-                  <div
-                    class="flex min-w-0 basis-full items-center gap-3 md:basis-[calc(50%-1rem)] xl:basis-0 xl:flex-1"
-                  >
-                    <dt class="shrink-0 text-sm text-text-tertiary">
-                      {{ 'XP.KEY_WORDS.CURRENCY' | translate: { Default: 'Currency' } }}:
-                    </dt>
-                    <dd class="min-w-0 text-base font-semibold leading-8 text-text-primary">
-                      {{ organization.currency || ('XP.KEY_WORDS.NotSet' | translate: { Default: 'Not set' }) }}
-                    </dd>
-                  </div>
-
-                  <div
-                    class="flex min-w-0 basis-full items-center gap-3 md:basis-[calc(50%-1rem)] xl:basis-0 xl:flex-1"
-                  >
-                    <dt class="shrink-0 text-sm text-text-tertiary">
-                      {{ 'XP.KEY_WORDS.TimeZone' | translate: { Default: 'Time Zone' } }}:
-                    </dt>
-                    <dd class="min-w-0 text-base font-semibold leading-8 text-text-primary">
-                      {{ organization.timeZone || ('XP.KEY_WORDS.NotSet' | translate: { Default: 'Not set' }) }}
-                    </dd>
-                  </div>
-
-                  <div
-                    class="flex min-w-0 basis-full items-center gap-3 md:basis-[calc(50%-1rem)] xl:basis-0 xl:flex-1"
-                  >
-                    <dt class="shrink-0 text-sm text-text-tertiary">
-                      {{ 'XP.KEY_WORDS.Status' | translate: { Default: 'Status' } }}:
-                    </dt>
-                    <dd class="min-w-0">
-                      <span
-                        class="text-base font-semibold leading-8"
-                        [ngClass]="organization?.isActive ? 'text-text-success' : 'text-text-destructive'"
-                      >
-                        {{ organizationStatusLabel(organization) }}
-                      </span>
-                    </dd>
-                  </div>
-                </dl>
-              </div>
-            }
-          }
-        }
-      </section>
-    }
-
-    @if (showDetailsSection()) {
-      <section class="w-full bg-transparent">
-        @if (selectedOrganization()) {
-          <div class="w-full" [ngClass]="isTenantDetailView() ? 'xp-page-header px-0 pt-0' : ''">
-            @if (isTenantDetailView()) {
-              <div class="min-w-0 flex flex-col gap-4">
-                <div class="min-w-0 flex flex-col">
+  @if (loading()) {
+    <div role="status" class="flex min-h-48 items-center justify-center gap-2 text-sm text-muted-foreground">
+      <z-icon zType="loader-circle" class="animate-spin motion-reduce:animate-none" />{{
+        'XP.UserSettings.Loading' | translate
+      }}
+    </div>
+  } @else if (error()) {
+    <div role="alert" class="flex flex-wrap items-center gap-4 rounded-lg border border-border p-5">
+      <z-icon zType="circle-alert" class="text-muted-foreground" />
+      <div class="min-w-0 flex-1">
+        <h2 class="font-medium">{{ 'XP.Organization.LoadFailed' | translate }}</h2>
+        <p class="mt-1 break-words text-sm text-muted-foreground">{{ error() }}</p>
+      </div>
+      <button z-button zType="outline" type="button" (click)="refresh()">
+        {{ 'XP.UserSettings.Retry' | translate }}
+      </button>
+    </div>
+  } @else if (isTenantScope() && !isTenantDetailView()) {
+    <section class="overflow-hidden rounded-lg border border-border">
+      <div
+        class="overflow-x-auto focus-visible:outline-2 focus-visible:outline-ring"
+        tabindex="0"
+        role="region"
+        [attr.aria-label]="'XP.KEY_WORDS.ORGANIZATION' | translate"
+      >
+        <table
+          z-table
+          zSize="compact"
+          class="w-full text-sm [&_th]:px-4 [&_td]:px-4 [&_td]:py-4"
+          [class]="visibleOrganizations().length ? 'min-w-[680px]' : ''"
+        >
+          <thead z-table-header [class]="visibleOrganizations().length ? '' : 'hidden sm:table-header-group'">
+            <tr z-table-row class="bg-muted/50 hover:bg-muted/50">
+              <th z-table-head scope="col" class="w-[40%]">{{ 'XP.KEY_WORDS.ORGANIZATION' | translate }}</th>
+              <th z-table-head scope="col">{{ 'XP.KEY_WORDS.CURRENCY' | translate }}</th>
+              <th z-table-head scope="col">{{ 'XP.KEY_WORDS.TimeZone' | translate }}</th>
+              <th z-table-head scope="col">{{ 'XP.KEY_WORDS.Status' | translate }}</th>
+              <th z-table-head scope="col" class="text-right">{{ 'XP.KEY_WORDS.ACTION' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody z-table-body>
+            @for (organization of visibleOrganizations(); track organization.id) {
+              <tr z-table-row>
+                <td z-table-cell>
                   <button
                     type="button"
-                    class="mb-3 inline-flex w-fit items-center gap-2 text-sm font-medium text-text-secondary transition-colors hover:text-text-primary"
-                    (click)="backToRegistry()"
+                    class="flex max-w-full items-center gap-3 rounded-md text-left hover:underline focus-visible:outline-2 focus-visible:outline-ring"
+                    (click)="openOrganizationDetails($event, organization)"
                   >
-                    <i class="ri-arrow-left-line text-base"></i>
-                    <span>{{ 'XP.Organization.BackToList' | translate: { Default: 'Back to list' } }}</span>
+                    <xp-org-avatar
+                      [organization]="organization"
+                      class="block size-10 shrink-0 overflow-hidden rounded-lg border border-border bg-muted"
+                    />
+                    <span class="min-w-0">
+                      <span class="flex flex-wrap items-center gap-2"
+                        ><span class="max-w-72 truncate font-medium" [title]="organization.name">{{
+                          organization.name
+                        }}</span>
+                        @if (organization.isDefault) {
+                          <z-badge zType="secondary">{{ 'XP.KEY_WORDS.Default' | translate }}</z-badge>
+                        }
+                      </span>
+                      @if (organization.officialName && organization.officialName !== organization.name) {
+                        <span
+                          class="mt-1 block max-w-72 truncate text-xs text-muted-foreground"
+                          [title]="organization.officialName"
+                          >{{ organization.officialName }}</span
+                        >
+                      }
+                    </span>
                   </button>
-                  <div class="xp-page-title">{{ selectedOrganization()?.name }}</div>
-                  @if (selectedOrganizationSubtitle()) {
-                    <div class="xp-page-subtitle max-w-3xl text-text-secondary">
-                      {{ selectedOrganizationSubtitle() }}
-                    </div>
+                </td>
+                <td z-table-cell class="text-muted-foreground">{{ organization.currency || '—' }}</td>
+                <td z-table-cell class="text-muted-foreground">
+                  {{ organization.timeZone || ('XP.KEY_WORDS.NotSet' | translate) }}
+                </td>
+                <td z-table-cell>
+                  <z-badge zType="secondary" [class]="organizationStatusTone(organization)">{{
+                    organizationStatusLabel(organization)
+                  }}</z-badge>
+                </td>
+                <td z-table-cell>
+                  <div class="flex justify-end gap-1">
+                    <button
+                      z-button
+                      zType="ghost"
+                      zSize="icon"
+                      type="button"
+                      (click)="openOrganizationDetails($event, organization)"
+                      [attr.aria-label]="'XP.OrganizationSettings.Open' | translate: { name: organization.name }"
+                      [title]="'XP.OrganizationSettings.Open' | translate: { name: organization.name }"
+                    >
+                      <z-icon zType="arrow-right" />
+                    </button>
+                    @if (canCreateOrganizations()) {
+                      <button
+                        z-button
+                        zType="ghost"
+                        zSize="icon"
+                        type="button"
+                        class="text-muted-foreground hover:text-destructive"
+                        (click)="deleteOrganization($event, organization)"
+                        [attr.aria-label]="'XP.OrganizationSettings.Delete' | translate: { name: organization.name }"
+                        [title]="'XP.OrganizationSettings.Delete' | translate: { name: organization.name }"
+                      >
+                        <z-icon zType="delete" />
+                      </button>
+                    }
+                  </div>
+                </td>
+              </tr>
+            } @empty {
+              <tr z-table-row class="hover:bg-transparent">
+                <td z-table-cell colspan="5">
+                  <div role="status" class="mx-auto flex max-w-sm flex-col items-center gap-2 px-4 py-12 text-center">
+                    <z-icon [zType]="searchText() ? 'search' : 'users'" class="mb-2 text-muted-foreground" />
+                    <p class="font-medium">
+                      {{
+                        (searchText() ? 'XP.OrganizationSettings.NoResults' : 'XP.Organization.EmptyStateTitle')
+                          | translate
+                      }}
+                    </p>
+                    <p class="text-sm text-muted-foreground">
+                      {{
+                        (searchText() ? 'XP.OrganizationSettings.SearchHint' : 'XP.Organization.EmptyStateDescription')
+                          | translate
+                      }}
+                    </p>
+                    @if (searchText()) {
+                      <button z-button zType="outline" type="button" class="mt-2" (click)="searchText.set('')">
+                        {{ 'XP.Referral.ClearSearch' | translate }}
+                      </button>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  } @else if (selectedOrganization(); as organization) {
+    <header class="space-y-4">
+      @if (isTenantDetailView()) {
+        <button
+          z-button
+          zType="ghost"
+          type="button"
+          class="-ml-3 w-fit text-muted-foreground"
+          (click)="backToRegistry()"
+        >
+          <z-icon zType="arrow-left" />{{ 'XP.Organization.BackToList' | translate }}
+        </button>
+      }
+      <div class="flex min-w-0 items-center gap-4">
+        <xp-org-avatar
+          [organization]="organization"
+          class="block size-12 shrink-0 overflow-hidden rounded-xl border border-border bg-muted"
+        />
+        <div class="min-w-0 flex-1">
+          <div class="flex flex-wrap items-center gap-2.5">
+            <h1 class="break-words text-2xl font-semibold tracking-tight">{{ organization.name }}</h1>
+            <z-badge zType="secondary" [class]="organizationStatusTone(organization)">{{
+              organizationStatusLabel(organization)
+            }}</z-badge>
+            @if (organization.isDefault) {
+              <z-badge zType="outline">{{ 'XP.KEY_WORDS.Default' | translate }}</z-badge>
+            }
+          </div>
+          <p class="mt-1.5 text-sm text-muted-foreground">{{ 'XP.OrganizationSettings.DetailHint' | translate }}</p>
+        </div>
+      </div>
+    </header>
+    <nav
+      z-tab-nav-bar
+      class="w-full max-w-full"
+      [tabPanel]="detailTabPanel"
+      [attr.aria-label]="'XP.KEY_WORDS.ORGANIZATION' | translate"
+    >
+      @for (tab of detailTabs(); track tab.id) {
+        <button z-tab-link type="button" [active]="selectedTab() === tab.id" (click)="selectedTab.set(tab.id)">
+          {{ tab.label | translate }}
+        </button>
+      }
+    </nav>
+    <z-tab-nav-panel #detailTabPanel class="block min-w-0 w-full">
+      @switch (selectedTab()) {
+        @case ('general') {
+          <form [formGroup]="form" (ngSubmit)="saveOrganization()" class="flex min-w-0 max-w-5xl flex-col gap-6">
+            <section class="grid min-w-0 gap-5 border-b border-border pb-6 md:grid-cols-[170px_minmax(0,1fr)] md:gap-8">
+              <div>
+                <h2 class="text-base font-semibold">
+                  {{ 'XP.ORGANIZATIONS_PAGE.Organization.BasicInfo' | translate }}
+                </h2>
+                <p class="mt-1.5 text-sm text-muted-foreground">
+                  {{ 'XP.OrganizationSettings.IdentityHint' | translate }}
+                </p>
+              </div>
+              <div class="grid min-w-0 gap-5 sm:grid-cols-2">
+                <div class="flex items-center gap-4 sm:col-span-2">
+                  <xp-org-avatar
+                    [organization]="organization"
+                    class="block size-14 shrink-0 overflow-hidden rounded-xl border border-border bg-muted"
+                  />
+                  <div class="space-y-2">
+                    <p class="text-sm font-medium">{{ 'XP.Organization.LogoLabel' | translate }}</p>
+                    @if (canEditSelectedOrganization()) {
+                      <input
+                        #avatarInput
+                        type="file"
+                        class="hidden"
+                        accept="image/*"
+                        (change)="onAvatarSelected($event)"
+                      />
+                      <button
+                        z-button
+                        zType="outline"
+                        type="button"
+                        [zDisabled]="uploadingAvatar() || saving()"
+                        [zLoading]="uploadingAvatar()"
+                        (click)="avatarInput.click()"
+                      >
+                        {{ 'XP.OrganizationSettings.ChangeLogo' | translate }}
+                      </button>
+                    }
+                  </div>
+                </div>
+                <label class="flex min-w-0 flex-col gap-2 text-sm font-medium"
+                  >{{ 'XP.KEY_WORDS.NAME' | translate }}
+                  <span class="sr-only">{{ 'XP.OrganizationSettings.Required' | translate }}</span>
+                  <input
+                    z-input
+                    formControlName="name"
+                    required
+                    [attr.aria-invalid]="form.controls.name.touched && form.controls.name.invalid"
+                  />
+                  @if (form.controls.name.touched && form.controls.name.invalid) {
+                    <span class="text-xs text-destructive">{{
+                      'XP.OrganizationSettings.NameRequired' | translate
+                    }}</span>
                   }
+                </label>
+                <label class="flex min-w-0 flex-col gap-2 text-sm font-medium"
+                  >{{ 'XP.ORGANIZATIONS_PAGE.Organization.OfficialName' | translate
+                  }}<input z-input formControlName="officialName"
+                /></label>
+                <label class="flex min-w-0 flex-col gap-2 text-sm font-medium sm:col-span-2"
+                  >{{ 'XP.ORGANIZATIONS_PAGE.Organization.ShortDescription' | translate
+                  }}<textarea z-input formControlName="short_description" rows="3" class="min-h-24 resize-y"></textarea>
+                </label>
+              </div>
+            </section>
+            <section class="grid min-w-0 gap-5 md:grid-cols-[170px_minmax(0,1fr)] md:gap-8">
+              <div>
+                <h2 class="text-base font-semibold">{{ 'XP.OrganizationSettings.LinksAndId' | translate }}</h2>
+                <p class="mt-1.5 text-sm text-muted-foreground">
+                  {{ 'XP.OrganizationSettings.LinksHint' | translate }}
+                </p>
+              </div>
+              <div class="grid min-w-0 gap-5 sm:grid-cols-2">
+                <label class="flex min-w-0 flex-col gap-2 text-sm font-medium"
+                  >{{ 'XP.ORGANIZATIONS_PAGE.Organization.Website' | translate
+                  }}<input z-input formControlName="website" inputmode="url" placeholder="https://…"
+                /></label>
+                <label class="flex min-w-0 flex-col gap-2 text-sm font-medium"
+                  >{{ 'XP.ORGANIZATIONS_PAGE.Organization.ProfileLink' | translate
+                  }}<input z-input formControlName="profile_link"
+                /></label>
+                <div class="min-w-0 space-y-2 sm:col-span-2">
+                  <p class="text-sm font-medium">
+                    {{ 'XP.ORGANIZATIONS_PAGE.Organization.OrganizationId' | translate }}
+                  </p>
+                  <div class="flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2">
+                    <code
+                      data-testid="organization-id-value"
+                      class="min-w-0 flex-1 break-all text-xs text-muted-foreground"
+                      >{{ organization.id }}</code
+                    >
+                    <button
+                      z-button
+                      zType="ghost"
+                      zSize="icon-sm"
+                      type="button"
+                      class="shrink-0"
+                      (click)="copyOrganizationId()"
+                      [attr.aria-label]="'XP.OrganizationSettings.CopyId' | translate"
+                      [title]="'XP.OrganizationSettings.CopyId' | translate"
+                    >
+                      <z-icon zType="copy" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            }
-
-            <nav
-              z-tab-nav-bar
-              class="xp-tab-nav-bar w-full max-w-full"
-              color="accent"
-              alignTabs="start"
-              stretchTabs="false"
-              disableRipple
-              zSize="default"
-              [tabPanel]="detailTabPanel"
-            >
-              <button
-                z-tab-link
-                type="button"
-                [active]="selectedTab() === 'general'"
-                (click)="selectedTab.set('general')"
-              >
-                {{ 'XP.Organization.TabGeneral' | translate: { Default: 'General' } }}
-              </button>
-              <button
-                z-tab-link
-                type="button"
-                [active]="selectedTab() === 'members'"
-                (click)="selectedTab.set('members')"
-              >
-                {{ 'XP.KEY_WORDS.Members' | translate: { Default: 'Members' } }}
-              </button>
-              <button
-                z-tab-link
-                type="button"
-                [active]="selectedTab() === 'user-groups'"
-                (click)="selectedTab.set('user-groups')"
-              >
-                {{ 'XP.UserGroup.Title' | translate: { Default: 'User Groups' } }}
-              </button>
-              <button
-                z-tab-link
-                type="button"
-                [active]="selectedTab() === 'controls'"
-                (click)="selectedTab.set('controls')"
-              >
-                {{ 'XP.Organization.TabControls' | translate: { Default: 'Controls' } }}
-              </button>
-              @if (!isTenantScope()) {
-                <button z-tab-link type="button" [active]="selectedTab() === 'tags'" (click)="selectedTab.set('tags')">
-                  {{ 'XP.KEY_WORDS.Tags' | translate: { Default: 'Tags' } }}
-                </button>
-                <button z-tab-link type="button" [active]="selectedTab() === 'demo'" (click)="selectedTab.set('demo')">
-                  {{ 'XP.ORGANIZATIONS_PAGE.Organization.DEMO' | translate: { Default: 'Demo' } }}
-                </button>
-                @if (canViewCustomSmtp()) {
-                  <button
-                    z-tab-link
-                    type="button"
-                    [active]="selectedTab() === 'smtp'"
-                    (click)="selectedTab.set('smtp')"
-                  >
-                    {{ 'XP.MENU.Custom SMTP' | translate: { Default: 'Custom SMTP' } }}
-                  </button>
-                }
-              }
-            </nav>
-          </div>
-
-          <z-tab-nav-panel #detailTabPanel class="xp-page-body flex w-full flex-col">
-            <div class="w-full min-w-0" [ngClass]="isTenantDetailView() ? 'px-0 pb-0 pt-6' : 'p-6'">
-              @switch (selectedTab()) {
-                @case ('general') {
-                  <form
-                    [formGroup]="form"
-                    class="grid w-full min-w-0 gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.8fr)]"
-                  >
-                    <div class="grid gap-x-6 gap-y-7 md:grid-cols-2">
-                      <div class="form-field md:col-span-2">
-                        <span class="form-label">
-                          {{
-                            'XP.ORGANIZATIONS_PAGE.Organization.OrganizationId'
-                              | translate: { Default: 'Organization ID' }
-                          }}
-                        </span>
-                        <span data-testid="organization-id-value" class="break-all text-base text-text-primary">
-                          {{ selectedOrganization()?.id || '-' }}
-                        </span>
-                      </div>
-
-                      <label class="form-field md:col-span-2">
-                        <span class="form-label">{{ 'XP.KEY_WORDS.NAME' | translate: { Default: 'Name' } }}</span>
-                        <input z-input formControlName="name" />
-                      </label>
-
-                      <label class="form-field">
-                        <span class="form-label">{{
-                          'XP.ORGANIZATIONS_PAGE.Organization.OfficialName' | translate: { Default: 'Official Name' }
-                        }}</span>
-                        <input z-input formControlName="officialName" />
-                      </label>
-
-                      <label class="form-field">
-                        <span class="form-label">{{
-                          'XP.ORGANIZATIONS_PAGE.Organization.ProfileLink' | translate: { Default: 'Profile Link' }
-                        }}</span>
-                        <input z-input formControlName="profile_link" />
-                      </label>
-
-                      <label class="form-field md:col-span-2">
-                        <span class="form-label">{{
-                          'XP.ORGANIZATIONS_PAGE.Organization.Website' | translate: { Default: 'Website' }
-                        }}</span>
-                        <input z-input formControlName="website" />
-                      </label>
-
-                      <label class="form-field md:col-span-2">
-                        <span class="form-label">{{
-                          'XP.ORGANIZATIONS_PAGE.Organization.ShortDescription'
-                            | translate: { Default: 'Short Description' }
-                        }}</span>
-                        <textarea z-input class="form-textarea" formControlName="short_description"></textarea>
-                      </label>
-                    </div>
-
-                    <div class="flex flex-col gap-4">
-                      <div class="info-panel">
-                        <input
-                          #avatarInput
-                          type="file"
-                          class="hidden"
-                          accept="image/*"
-                          (change)="onAvatarSelected($event)"
-                        />
-                        <div class="info-title">
-                          {{ 'XP.Organization.LogoLabel' | translate: { Default: 'Logo' } }}
-                        </div>
-                        @if (canEditSelectedOrganization()) {
-                          <button
-                            type="button"
-                            class="group relative block rounded-2xl border-0 bg-transparent p-0"
-                            (click)="avatarInput.click()"
-                          >
-                            <xp-org-avatar
-                              [organization]="selectedOrganization()!"
-                              class="block h-20 w-20 overflow-hidden rounded-2xl border border-divider-regular bg-components-input-bg-normal"
-                            />
-
-                            @if (uploadingAvatar()) {
-                              <div
-                                class="absolute inset-0 flex items-center justify-center rounded-2xl bg-components-panel-bg/80 text-xs font-medium text-text-primary"
-                              >
-                                {{ 'XP.KEY_WORDS.Uploading' | translate: { Default: 'Uploading' } }}
-                              </div>
-                            } @else {
-                              <div class="logo-edit-overlay" aria-hidden="true">
-                                <i class="ri-image-edit-line text-base"></i>
-                              </div>
-                            }
-                          </button>
-                        } @else {
-                          <div class="relative">
-                            <xp-org-avatar
-                              [organization]="selectedOrganization()!"
-                              class="block h-20 w-20 overflow-hidden rounded-2xl border border-divider-regular bg-components-input-bg-normal"
-                            />
-                          </div>
-                        }
-                      </div>
-
-                      <div class="info-panel">
-                        <div class="info-title">
-                          {{ 'XP.Organization.RecordSummary' | translate: { Default: 'Record summary' } }}
-                        </div>
-                        <dl class="space-y-3 text-sm">
-                          <div class="flex items-center justify-between gap-4">
-                            <dt class="text-text-tertiary">
-                              {{ 'XP.KEY_WORDS.Status' | translate: { Default: 'Status' } }}
-                            </dt>
-                            <dd class="font-medium text-text-primary">
-                              {{ organizationStatusLabel(selectedOrganization()!) }}
-                            </dd>
-                          </div>
-                          <div class="flex items-center justify-between gap-4">
-                            <dt class="text-text-tertiary">
-                              {{ 'XP.KEY_WORDS.IsDefault' | translate: { Default: 'Default' } }}
-                            </dt>
-                            <dd class="font-medium text-text-primary">
-                              {{
-                                selectedOrganization()?.isDefault
-                                  ? ('XP.KEY_WORDS.Yes' | translate: { Default: 'Yes' })
-                                  : ('XP.KEY_WORDS.No' | translate: { Default: 'No' })
-                              }}
-                            </dd>
-                          </div>
-                        </dl>
-                      </div>
-
-                      <div class="info-panel">
-                        <div class="info-title">
-                          {{ 'XP.Organization.ScopeRules' | translate: { Default: 'Scope rules' } }}
-                        </div>
-                        <p class="text-sm text-text-tertiary">
-                          @if (isTenantScope()) {
-                            {{
-                              'XP.Organization.ScopeRulesTenant'
-                                | translate
-                                  : {
-                                      Default:
-                                        'Tenant scope can inspect every organization and maintain every setting available on this page.'
-                                    }
-                            }}
-                          } @else {
-                            {{
-                              'XP.Organization.ScopeRulesOrganization'
-                                | translate
-                                  : {
-                                      Default:
-                                        'Organization scope is restricted to the current organization. Governance switches remain read-only here.'
-                                    }
-                            }}
-                          }
-                        </p>
-                      </div>
-                    </div>
-
-                    <div class="flex flex-wrap items-center justify-end gap-2 xl:col-span-2">
-                      <button
-                        type="button"
-                        class="btn btn-secondary btn-medium"
-                        (click)="resetForm()"
-                        [disabled]="form.pristine || !canEditSelectedOrganization()"
-                      >
-                        {{ 'XP.ACTIONS.CANCEL' | translate: { Default: 'Reset' } }}
-                      </button>
-
-                      @if (canEditSelectedOrganization()) {
-                        <button
-                          type="button"
-                          class="btn btn-primary btn-medium px-4"
-                          (click)="saveOrganization()"
-                          [disabled]="form.pristine || form.invalid || saving()"
-                        >
-                          @if (saving()) {
-                            {{ 'XP.KEY_WORDS.Saving' | translate: { Default: 'Saving...' } }}
-                          } @else {
-                            {{ 'XP.ACTIONS.SAVE' | translate: { Default: 'Save' } }}
-                          }
-                        </button>
-                      }
-                    </div>
-                  </form>
-                }
-
-                @case ('members') {
-                  <xp-organization-members
-                    class="w-full"
-                    [organizationId]="selectedOrganizationId()"
-                    [canEdit]="canManageSelectedMembers()"
-                  />
-                }
-
-                @case ('user-groups') {
-                  <xp-organization-user-groups class="w-full" [organizationId]="selectedOrganizationId()" />
-                }
-
-                @case ('controls') {
-                  <form [formGroup]="form" class="grid w-full min-w-0 gap-6 xl:grid-cols-2">
-                    <div class="grid gap-7">
-                      <label class="form-field">
-                        <span class="form-label">{{
-                          'XP.KEY_WORDS.CURRENCY' | translate: { Default: 'Currency' }
-                        }}</span>
-                        <input z-input formControlName="currency" />
-                      </label>
-
-                      <div class="form-field">
-                        <span class="form-label">{{
-                          'XP.KEY_WORDS.TimeZone' | translate: { Default: 'Time Zone' }
-                        }}</span>
-                        <z-select
-                          formControlName="timeZone"
-                          class="w-full"
-                          [zPlaceholder]="
-                            'XP.ORGANIZATIONS_PAGE.Organization.SelectTimeZone'
-                              | translate: { Default: 'Select a time zone' }
-                          "
-                        >
-                          <z-select-item [zValue]="noTimeZoneValue">
-                            {{ 'XP.KEY_WORDS.NotSet' | translate: { Default: 'Not set' } }}
-                          </z-select-item>
-                          @for (timezone of timezones; track timezone.value) {
-                            <z-select-item [zValue]="timezone.value">{{ timezone.name }}</z-select-item>
-                          }
-                        </z-select>
-                      </div>
-
-                      <div class="form-field">
-                        <span class="form-label">
-                          {{
-                            'XP.ORGANIZATIONS_PAGE.Organization.DefaultValueDateType'
-                              | translate: { Default: 'Default Value Date Type' }
-                          }}
-                        </span>
-                        <z-select formControlName="defaultValueDateType" class="w-full">
-                          <z-select-item zValue="TODAY">
-                            {{ 'XP.Organization.Today' | translate: { Default: 'Today' } }}
-                          </z-select-item>
-                          <z-select-item zValue="START_OF_MONTH">
-                            {{ 'XP.Organization.StartOfMonth' | translate: { Default: 'Start of month' } }}
-                          </z-select-item>
-                          <z-select-item zValue="END_OF_MONTH">
-                            {{ 'XP.Organization.EndOfMonth' | translate: { Default: 'End of month' } }}
-                          </z-select-item>
-                        </z-select>
-                      </div>
-
-                      <label class="form-field">
-                        <span class="form-label">
-                          {{
-                            'XP.ORGANIZATIONS_PAGE.Organization.InviteExpiryPeriod'
-                              | translate: { Default: 'Invite Expiry Period (in Days)' }
-                          }}
-                        </span>
-                        <input z-input type="number" min="1" formControlName="inviteExpiryPeriod" />
-                      </label>
-
-                      <div class="toggle-group">
-                        <div class="info-title">
-                          {{ 'XP.Organization.Navigation' | translate: { Default: 'Navigation' } }}
-                        </div>
-                        <div class="toggle-group-panel">
-                          <div class="toggle-setting">
-                            <div class="min-w-0">
-                              <div class="text-base font-semibold text-text-primary">
-                                {{
-                                  'XP.Organization.SidebarExpandedByDefault'
-                                    | translate: { Default: 'Open primary sidebar by default' }
-                                }}
-                              </div>
-                              <div class="mt-1 text-sm text-text-tertiary">
-                                {{
-                                  'XP.Organization.SidebarExpandedByDefaultHelp'
-                                    | translate
-                                      : {
-                                          Default: 'Expand the primary sidebar when members enter this organization.'
-                                        }
-                                }}
-                              </div>
-                            </div>
-                            <z-switch formControlName="sidebarExpandedByDefault" class="shrink-0" zSize="sm">
-                              <span class="sr-only">
-                                {{
-                                  'XP.Organization.SidebarExpandedByDefault'
-                                    | translate: { Default: 'Open primary sidebar by default' }
-                                }}
-                              </span>
-                            </z-switch>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="grid gap-7">
-                      <div class="toggle-group">
-                        <div class="info-title">
-                          {{ 'XP.Organization.Collaboration' | translate: { Default: 'Collaboration' } }}
-                        </div>
-                        <div class="toggle-group-panel">
-                          <div class="toggle-setting">
-                            <div class="min-w-0">
-                              <div class="text-base font-semibold text-text-primary">
-                                {{
-                                  'XP.ORGANIZATIONS_PAGE.Organization.InvitesAllowed'
-                                    | translate: { Default: 'Invites Allowed' }
-                                }}
-                              </div>
-                              <div class="mt-1 text-sm text-text-tertiary">
-                                {{
-                                  'XP.Organization.InvitesAllowedHelp'
-                                    | translate
-                                      : { Default: 'Allow this organization to accept and manage invitation links.' }
-                                }}
-                              </div>
-                            </div>
-                            <z-switch formControlName="invitesAllowed" class="shrink-0" zSize="sm">
-                              <span class="sr-only">
-                                {{
-                                  'XP.ORGANIZATIONS_PAGE.Organization.InvitesAllowed'
-                                    | translate: { Default: 'Invites Allowed' }
-                                }}
-                              </span>
-                            </z-switch>
-                          </div>
-                        </div>
-                      </div>
-
-                      @if (isTenantScope()) {
-                        <div class="toggle-group">
-                          <div class="info-title">
-                            {{ 'XP.Organization.Governance' | translate: { Default: 'Governance' } }}
-                          </div>
-                          <div class="toggle-group-panel">
-                            <div class="toggle-setting">
-                              <div class="min-w-0">
-                                <div class="text-base font-semibold text-text-primary">
-                                  {{ 'XP.KEY_WORDS.IsDefault' | translate: { Default: 'Set as default organization' } }}
-                                </div>
-                                <div class="mt-1 text-sm text-text-tertiary">
-                                  {{
-                                    'XP.Organization.DefaultHelp'
-                                      | translate
-                                        : {
-                                            Default:
-                                              'Tenant scope decides which organization becomes the default entry point for new sessions.'
-                                          }
-                                  }}
-                                </div>
-                              </div>
-                              <z-switch formControlName="isDefault" class="shrink-0" zSize="sm">
-                                <span class="sr-only">
-                                  {{ 'XP.KEY_WORDS.IsDefault' | translate: { Default: 'Set as default organization' } }}
-                                </span>
-                              </z-switch>
-                            </div>
-
-                            <div class="toggle-setting">
-                              <div class="min-w-0">
-                                <div class="text-base font-semibold text-text-primary">
-                                  {{ 'XP.KEY_WORDS.IsActive' | translate: { Default: 'Enable organization' } }}
-                                </div>
-                                <div class="mt-1 text-sm text-text-tertiary">
-                                  {{
-                                    'XP.Organization.ActiveHelp'
-                                      | translate
-                                        : {
-                                            Default:
-                                              'Disable access to freeze the organization without deleting its record.'
-                                          }
-                                  }}
-                                </div>
-                              </div>
-                              <z-switch formControlName="isActive" class="shrink-0" zSize="sm">
-                                <span class="sr-only">
-                                  {{ 'XP.KEY_WORDS.IsActive' | translate: { Default: 'Enable organization' } }}
-                                </span>
-                              </z-switch>
-                            </div>
-                          </div>
-                        </div>
-                      }
-                    </div>
-
-                    <div class="flex flex-wrap items-center justify-end gap-2 xl:col-span-2">
-                      <button
-                        type="button"
-                        class="btn btn-secondary btn-medium"
-                        (click)="resetForm()"
-                        [disabled]="form.pristine || !canEditSelectedOrganization()"
-                      >
-                        {{ 'XP.ACTIONS.CANCEL' | translate: { Default: 'Reset' } }}
-                      </button>
-
-                      @if (canEditSelectedOrganization()) {
-                        <button
-                          type="button"
-                          class="btn btn-primary btn-medium px-4"
-                          (click)="saveOrganization()"
-                          [disabled]="form.pristine || form.invalid || saving()"
-                        >
-                          @if (saving()) {
-                            {{ 'XP.KEY_WORDS.Saving' | translate: { Default: 'Saving...' } }}
-                          } @else {
-                            {{ 'XP.ACTIONS.SAVE' | translate: { Default: 'Save' } }}
-                          }
-                        </button>
-                      }
-                    </div>
-                  </form>
-                }
-
-                @case ('tags') {
-                  @if (!isTenantScope()) {
-                    <div class="grid w-full min-w-0 gap-6">
-                      <xp-tag-directory />
-                    </div>
-                  }
-                }
-
-                @case ('demo') {
-                  @if (!isTenantScope()) {
-                    <div class="grid w-full min-w-0 gap-6">
-                      <div class="space-y-5">
-                        <div class="space-y-2">
-                          <div class="info-title !mb-0">
-                            {{ 'XP.ORGANIZATIONS_PAGE.Organization.DEMO' | translate: { Default: 'Demo' } }}
-                          </div>
-                          <p class="text-sm text-text-tertiary">
-                            {{
-                              'XP.ORGANIZATIONS_PAGE.Organization.DataNetworkDescription'
-                                | translate
-                                  : {
-                                      Default:
-                                        'Generate or refresh demonstration data for the selected organization from a supported source.'
-                                    }
-                            }}
-                          </p>
-                        </div>
-
-                        <z-radio-group [formControl]="source" class="grid w-full gap-3 xl:grid-cols-3">
-                          <z-radio class="demo-source-option" [value]="organizationDemoNetworkEnum.github">
-                            <span class="demo-source-copy">
-                              <span class="demo-source-title">GitHub</span>
-                              <span class="demo-source-description">
-                                {{
-                                  'XP.Organization.GitHubSourceHelp'
-                                    | translate: { Default: 'Use the maintained GitHub demo source.' }
-                                }}
-                              </span>
-                            </span>
-                          </z-radio>
-
-                          <z-radio class="demo-source-option" [value]="organizationDemoNetworkEnum.aliyun">
-                            <span class="demo-source-copy">
-                              <span class="demo-source-title">Aliyun OSS</span>
-                              <span class="demo-source-description">
-                                {{
-                                  'XP.Organization.AliyunSourceHelp'
-                                    | translate: { Default: 'Use the mirrored Aliyun OSS source.' }
-                                }}
-                              </span>
-                            </span>
-                          </z-radio>
-
-                          <z-radio class="demo-source-option" [value]="null">
-                            <span class="demo-source-copy">
-                              <span class="demo-source-title">
-                                {{ 'XP.KEY_WORDS.Custom' | translate: { Default: 'Custom' } }}
-                              </span>
-                              <span class="demo-source-description">
-                                {{
-                                  'XP.Organization.CustomSourceHelp'
-                                    | translate: { Default: 'Provide your own file URL.' }
-                                }}
-                              </span>
-                            </span>
-                          </z-radio>
-                        </z-radio-group>
-
-                        @if (source.value === null) {
-                          <label class="form-field max-w-2xl">
-                            <span class="form-label">{{
-                              'XP.ORGANIZATIONS_PAGE.Organization.FileUrl' | translate: { Default: 'File URL' }
-                            }}</span>
-                            <input z-input class="form-input" [formControl]="fileUrl" />
-                          </label>
-                        }
-
-                        <div class="flex flex-wrap items-center gap-2 pt-2">
-                          <button
-                            type="button"
-                            class="btn btn-primary btn-medium px-4"
-                            (click)="generateDemo()"
-                            [disabled]="
-                              generatingDemo() || !canEditSelectedOrganization() || (!source.value && !fileUrl.value)
-                            "
-                          >
-                            @if (generatingDemo()) {
-                              {{ 'XP.KEY_WORDS.Loading' | translate: { Default: 'Generating...' } }}
-                            } @else if (selectedOrganization()?.createdDemo) {
-                              {{
-                                'XP.ORGANIZATIONS_PAGE.Organization.RegenerateDemo'
-                                  | translate: { Default: 'Re-generate Demo' }
-                              }}
-                            } @else {
-                              {{
-                                'XP.ORGANIZATIONS_PAGE.Organization.GENERATE_DEMO'
-                                  | translate: { Default: 'Generate Demo' }
-                              }}
-                            }
-                          </button>
-
-                          @if (!canEditSelectedOrganization()) {
-                            <span class="text-sm text-text-tertiary">
-                              {{
-                                'XP.Organization.ReadonlyActionHint'
-                                  | translate: { Default: 'You need edit permission to run demo generation.' }
-                              }}
-                            </span>
-                          }
-                        </div>
-                      </div>
-                    </div>
-                  }
-                }
-
-                @case ('smtp') {
-                  @if (!isTenantScope() && canViewCustomSmtp()) {
-                    <div class="grid w-full min-w-0 gap-6">
-                      <xp-smtp
-                        class="flex w-full min-w-0 flex-col gap-4"
-                        [isOrganization]="true"
-                        [organization]="selectedOrganization() || undefined"
-                      />
-                    </div>
-                  }
-                }
-              }
-            </div>
-          </z-tab-nav-panel>
-        } @else {
-          <div class="flex min-h-[320px] flex-col items-center justify-center gap-3 px-6 py-10 text-center">
-            <i class="ri-layout-grid-line text-2xl text-text-tertiary"></i>
-            <div class="text-base font-semibold text-text-primary">
-              {{ 'XP.Organization.SelectPromptTitle' | translate: { Default: 'Choose an organization' } }}
-            </div>
-            <div class="max-w-xl text-sm text-text-tertiary">
-              {{
-                'XP.Organization.SelectPromptDescription'
-                  | translate: { Default: 'Select a row from the registry above to open the details workspace.' }
-              }}
-            </div>
-          </div>
+            </section>
+            <ng-container *ngTemplateOutlet="saveActions" />
+          </form>
         }
-      </section>
-    }
-  </div>
+        @case ('members') {
+          <xp-organization-members [organizationId]="organization.id" [canEdit]="canManageSelectedMembers()" />
+        }
+        @case ('user-groups') {
+          <xp-organization-user-groups [organizationId]="organization.id" />
+        }
+        @case ('controls') {
+          <form [formGroup]="form" (ngSubmit)="saveOrganization()" class="flex min-w-0 max-w-5xl flex-col gap-6">
+            <section class="grid min-w-0 gap-5 border-b border-border pb-6 md:grid-cols-[170px_minmax(0,1fr)] md:gap-8">
+              <div>
+                <h2 class="text-base font-semibold">{{ 'XP.OrganizationSettings.Regional' | translate }}</h2>
+                <p class="mt-1.5 text-sm text-muted-foreground">
+                  {{ 'XP.OrganizationSettings.RegionalHint' | translate }}
+                </p>
+              </div>
+              <div class="grid min-w-0 gap-5 sm:grid-cols-2">
+                <label class="flex min-w-0 flex-col gap-2 text-sm font-medium"
+                  >{{ 'XP.KEY_WORDS.CURRENCY' | translate }}<input z-input formControlName="currency" required />
+                  @if (form.controls.currency.touched && form.controls.currency.invalid) {
+                    <span class="text-xs text-destructive">{{
+                      'XP.OrganizationSettings.CurrencyRequired' | translate
+                    }}</span>
+                  }
+                </label>
+                <div class="min-w-0 space-y-2">
+                  <p class="text-sm font-medium">{{ 'XP.KEY_WORDS.TimeZone' | translate }}</p>
+                  <z-combobox
+                    formControlName="timeZone"
+                    [options]="timeZoneOptions()"
+                    zWidth="full"
+                    [ariaLabel]="'XP.KEY_WORDS.TimeZone' | translate"
+                    [searchPlaceholder]="'XP.ProfileSettings.SearchTimeZone' | translate"
+                    [emptyText]="'XP.ProfileSettings.NoTimeZone' | translate"
+                    class="block min-w-0"
+                  />
+                </div>
+                <div class="min-w-0 space-y-2">
+                  <p id="organization-date-type-label" class="text-sm font-medium">
+                    {{ 'XP.ORGANIZATIONS_PAGE.Organization.DefaultValueDateType' | translate }}
+                  </p>
+                  <z-combobox
+                    formControlName="defaultValueDateType"
+                    zWidth="full"
+                    [searchable]="false"
+                    [ariaLabel]="'XP.ORGANIZATIONS_PAGE.Organization.DefaultValueDateType' | translate"
+                    [options]="[
+                      { value: 'TODAY', label: ('XP.Organization.Today' | translate) },
+                      { value: 'START_OF_MONTH', label: ('XP.Organization.StartOfMonth' | translate) },
+                      { value: 'END_OF_MONTH', label: ('XP.Organization.EndOfMonth' | translate) }
+                    ]"
+                  />
+                </div>
+              </div>
+            </section>
+            <section class="grid min-w-0 gap-5 border-b border-border pb-6 md:grid-cols-[170px_minmax(0,1fr)] md:gap-8">
+              <div>
+                <h2 class="text-base font-semibold">{{ 'XP.OrganizationSettings.Collaboration' | translate }}</h2>
+                <p class="mt-1.5 text-sm text-muted-foreground">
+                  {{ 'XP.OrganizationSettings.CollaborationHint' | translate }}
+                </p>
+              </div>
+              <div class="space-y-5">
+                <div class="flex items-center justify-between gap-4">
+                  <div>
+                    <p class="text-sm font-medium">
+                      {{ 'XP.ORGANIZATIONS_PAGE.Organization.InvitesAllowed' | translate }}
+                    </p>
+                    <p class="mt-1 text-sm text-muted-foreground">
+                      {{ 'XP.Organization.InvitesAllowedHelp' | translate }}
+                    </p>
+                  </div>
+                  <z-switch formControlName="invitesAllowed" class="shrink-0"
+                    ><span class="sr-only">{{
+                      'XP.ORGANIZATIONS_PAGE.Organization.InvitesAllowed' | translate
+                    }}</span></z-switch
+                  >
+                </div>
+                <label class="flex max-w-xs flex-col gap-2 text-sm font-medium"
+                  >{{ 'XP.ORGANIZATIONS_PAGE.Organization.InviteExpiryPeriod' | translate
+                  }}<input z-input type="number" min="1" formControlName="inviteExpiryPeriod" />
+                  @if (form.controls.inviteExpiryPeriod.touched && form.controls.inviteExpiryPeriod.invalid) {
+                    <span class="text-xs text-destructive">{{
+                      'XP.OrganizationSettings.ExpiryMinimum' | translate
+                    }}</span>
+                  }
+                </label>
+              </div>
+            </section>
+            <section class="grid min-w-0 gap-5 border-b border-border pb-6 md:grid-cols-[170px_minmax(0,1fr)] md:gap-8">
+              <div>
+                <h2 class="text-base font-semibold">{{ 'XP.Organization.Navigation' | translate }}</h2>
+              </div>
+              <div class="flex items-center justify-between gap-4">
+                <div>
+                  <p class="text-sm font-medium">{{ 'XP.Organization.SidebarExpandedByDefault' | translate }}</p>
+                  <p class="mt-1 text-sm text-muted-foreground">
+                    {{ 'XP.Organization.SidebarExpandedByDefaultHelp' | translate }}
+                  </p>
+                </div>
+                <z-switch formControlName="sidebarExpandedByDefault" class="shrink-0"
+                  ><span class="sr-only">{{ 'XP.Organization.SidebarExpandedByDefault' | translate }}</span></z-switch
+                >
+              </div>
+            </section>
+            @if (isTenantScope()) {
+              <section class="grid min-w-0 gap-5 md:grid-cols-[170px_minmax(0,1fr)] md:gap-8">
+                <div>
+                  <h2 class="text-base font-semibold">{{ 'XP.Organization.Governance' | translate }}</h2>
+                  <p class="mt-1.5 text-sm text-muted-foreground">
+                    {{ 'XP.OrganizationSettings.GovernanceHint' | translate }}
+                  </p>
+                </div>
+                <div class="space-y-5">
+                  <div class="flex items-center justify-between gap-4">
+                    <div>
+                      <p class="text-sm font-medium">{{ 'XP.KEY_WORDS.IsDefault' | translate }}</p>
+                      <p class="mt-1 text-sm text-muted-foreground">{{ 'XP.Organization.DefaultHelp' | translate }}</p>
+                    </div>
+                    <z-switch formControlName="isDefault" class="shrink-0"
+                      ><span class="sr-only">{{ 'XP.KEY_WORDS.IsDefault' | translate }}</span></z-switch
+                    >
+                  </div>
+                  <div class="flex items-center justify-between gap-4">
+                    <div>
+                      <p class="text-sm font-medium">{{ 'XP.KEY_WORDS.IsActive' | translate }}</p>
+                      <p class="mt-1 text-sm text-muted-foreground">{{ 'XP.Organization.ActiveHelp' | translate }}</p>
+                    </div>
+                    <z-switch formControlName="isActive" class="shrink-0"
+                      ><span class="sr-only">{{ 'XP.KEY_WORDS.IsActive' | translate }}</span></z-switch
+                    >
+                  </div>
+                </div>
+              </section>
+            } @else {
+              <p class="flex items-start gap-2 text-sm text-muted-foreground">
+                <z-icon zType="lock" class="shrink-0" />{{ governanceReadonlyHint() }}
+              </p>
+            }
+            <ng-container *ngTemplateOutlet="saveActions" />
+          </form>
+        }
+        @case ('tags') {
+          @if (!isTenantScope()) {
+            <xp-tag-directory />
+          }
+        }
+        @case ('demo') {
+          @if (!isTenantScope()) {
+            <section class="max-w-3xl space-y-5">
+              <div>
+                <h2 class="text-base font-semibold">{{ 'XP.ORGANIZATIONS_PAGE.Organization.DEMO' | translate }}</h2>
+                <p class="mt-1.5 text-sm text-muted-foreground">
+                  {{ 'XP.ORGANIZATIONS_PAGE.Organization.DataNetworkDescription' | translate }}
+                </p>
+              </div>
+              <z-radio-group [formControl]="source" class="grid gap-3 sm:grid-cols-3">
+                <z-radio [value]="organizationDemoNetworkEnum.github" class="rounded-lg border border-border p-4"
+                  ><span class="font-medium">GitHub</span></z-radio
+                >
+                <z-radio [value]="organizationDemoNetworkEnum.aliyun" class="rounded-lg border border-border p-4"
+                  ><span class="font-medium">{{ 'XP.OrganizationSettings.Aliyun' | translate }}</span></z-radio
+                >
+                <z-radio [value]="null" class="rounded-lg border border-border p-4"
+                  ><span class="font-medium">{{ 'XP.OrganizationSettings.CustomSource' | translate }}</span></z-radio
+                >
+              </z-radio-group>
+              @if (source.value === null) {
+                <label class="flex flex-col gap-2 text-sm font-medium"
+                  >{{ 'XP.ORGANIZATIONS_PAGE.Organization.FileUrl' | translate
+                  }}<input z-input [formControl]="fileUrl" inputmode="url" placeholder="https://…"
+                /></label>
+              }
+              <button
+                z-button
+                type="button"
+                [zLoading]="generatingDemo()"
+                [zDisabled]="generatingDemo() || !canEditSelectedOrganization() || (!source.value && !fileUrl.value)"
+                (click)="generateDemo()"
+              >
+                {{
+                  (organization.createdDemo
+                    ? 'XP.ORGANIZATIONS_PAGE.Organization.RegenerateDemo'
+                    : 'XP.ORGANIZATIONS_PAGE.Organization.GENERATE_DEMO'
+                  ) | translate
+                }}
+              </button>
+              @if (!canEditSelectedOrganization()) {
+                <p class="text-sm text-muted-foreground">{{ 'XP.Organization.ReadonlyActionHint' | translate }}</p>
+              }
+            </section>
+          }
+        }
+        @case ('smtp') {
+          @if (!isTenantScope() && canViewCustomSmtp()) {
+            <xp-smtp class="flex w-full min-w-0 flex-col gap-4" [isOrganization]="true" [organization]="organization" />
+          }
+        }
+      }
+    </z-tab-nav-panel>
+  } @else {
+    <div class="py-12 text-center">
+      <h2 class="font-medium">{{ 'XP.Organization.EmptyStateTitle' | translate }}</h2>
+      <p class="mt-2 text-sm text-muted-foreground">{{ 'XP.Organization.EmptyStateDescription' | translate }}</p>
+      @if (isTenantDetailView()) {
+        <button z-button zType="outline" type="button" class="mt-4" (click)="backToRegistry()">
+          {{ 'XP.Organization.BackToList' | translate }}
+        </button>
+      }
+    </div>
+  }
 </div>
+
+<ng-template #saveActions>
+  <footer class="flex flex-wrap items-center justify-end gap-2 border-t border-border pt-5">
+    @if (canEditSelectedOrganization()) {
+      <button z-button zType="outline" type="button" [zDisabled]="form.pristine || saving()" (click)="resetForm()">
+        {{ 'XP.OrganizationSettings.Reset' | translate }}
+      </button>
+      <button
+        z-button
+        type="button"
+        [zDisabled]="form.pristine || form.invalid || saving()"
+        [zLoading]="saving()"
+        (click)="saveOrganization()"
+      >
+        {{ 'XP.ACTIONS.SAVE' | translate }}
+      </button>
+    } @else {
+      <p class="flex items-center gap-2 text-sm text-muted-foreground">
+        <z-icon zType="lock" />{{ 'XP.OrganizationSettings.ReadOnly' | translate }}
+      </p>
+    }
+  </footer>
+</ng-template>

@@ -1,0 +1,117 @@
+<section xpDialogLayout="wide" class="max-h-[85dvh]">
+  <header xpDialogHeader>
+    <h2 xpDialogHeading class="break-words">{{ item.modelLabel ? (item.modelLabel | i18n) : item.model }}</h2>
+    <p xpDialogDescription>
+      {{ item.providerLabel ? (item.providerLabel | i18n) : item.provider }} ·
+      {{ 'XP.ModelSettings.PropertiesAndParameters' | translate }}
+    </p>
+    <button
+      xpDialogCloseButton
+      z-button
+      zType="ghost"
+      zSize="icon"
+      type="button"
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate"
+      (click)="close()"
+    >
+      <z-icon zType="x" />
+    </button>
+  </header>
+  <div xpDialogBody>
+    <dl class="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
+      <div class="col-span-2 sm:col-span-1">
+        <dt class="text-xs text-muted-foreground">{{ 'XP.ModelSettings.ModelId' | translate }}</dt>
+        <dd class="mt-1 break-all font-mono text-xs">{{ item.model }}</dd>
+      </div>
+      <div>
+        <dt class="text-xs text-muted-foreground">{{ 'XP.ModelSettings.Type' | translate }}</dt>
+        <dd class="mt-1">
+          {{ 'XP.ModelAccess.ModelTypeValue.' + item.modelType | translate: { Default: item.modelType } }}
+        </dd>
+      </div>
+      <div>
+        <dt class="text-xs text-muted-foreground">{{ 'XP.ModelSettings.Configuration' | translate }}</dt>
+        <dd class="mt-1 break-words">{{ item.copilotName || '—' }}</dd>
+      </div>
+      <div>
+        <dt class="text-xs text-muted-foreground">{{ 'XP.ModelSettings.Ownership' | translate }}</dt>
+        <dd class="mt-1">{{ 'XP.ModelAccess.Scope.' + item.ownershipScope | translate }}</dd>
+      </div>
+      @if (state()?.metadata?.contextSize; as contextSize) {
+        <div>
+          <dt class="text-xs text-muted-foreground">{{ 'XP.ModelSettings.ContextSize' | translate }}</dt>
+          <dd class="mt-1">{{ contextSize | number }} tokens</dd>
+        </div>
+      }
+    </dl>
+    @if (state()?.metadata?.model?.features?.length) {
+      <section class="mt-6">
+        <h3 class="mb-3 text-sm font-medium">{{ 'XP.ModelSettings.Capabilities' | translate }}</h3>
+        <div class="flex flex-wrap gap-2">
+          @for (feature of state().metadata.model.features; track feature) {
+            <xp-model-capability-tag [feature]="feature" />
+          }
+        </div>
+      </section>
+    }
+    <section class="mt-6 border-t border-border pt-5">
+      <h3 class="text-sm font-medium">{{ 'XP.ModelSettings.Parameters' | translate }}</h3>
+      <p class="mt-1 text-xs leading-relaxed text-muted-foreground">
+        {{ 'XP.ModelSettings.ParametersHint' | translate }}
+      </p>
+      @if (!state() || state()?.loading) {
+        <p role="status" class="flex items-center gap-2 py-6 text-sm text-muted-foreground">
+          <z-icon zType="loader-circle" class="animate-spin" />{{ 'XP.ModelSettings.LoadingProperties' | translate }}
+        </p>
+      } @else if (state().failed) {
+        <div role="alert" class="flex flex-wrap items-center gap-3 py-6 text-sm text-muted-foreground">
+          <span>{{ 'XP.ModelSettings.PropertiesFailed' | translate }}</span>
+          <button z-button zType="outline" zSize="sm" type="button" (click)="retry()">
+            {{ 'XP.ACTIONS.Retry' | translate }}
+          </button>
+        </div>
+      } @else if (state().rules.length) {
+        <div class="mt-4 overflow-x-auto rounded-lg border border-border">
+          <table z-table class="min-w-[440px]">
+            <thead z-table-header class="bg-muted/40">
+              <tr z-table-row>
+                <th z-table-head>{{ 'XP.ModelSettings.Parameter' | translate }}</th>
+                <th z-table-head>{{ 'XP.ModelSettings.DefaultValue' | translate }}</th>
+                <th z-table-head>{{ 'XP.ModelSettings.Range' | translate }}</th>
+              </tr>
+            </thead>
+            <tbody z-table-body>
+              @for (rule of state().rules; track $index) {
+                <tr z-table-row>
+                  <td z-table-cell class="max-w-64 py-3" [title]="rule.help ? (rule.help | i18n) : ''">
+                    <p class="text-sm font-medium">{{ rule.label ? (rule.label | i18n) : rule.name }}</p>
+                    <p class="mt-1 break-all font-mono text-xs text-muted-foreground">
+                      {{ rule.name }} · {{ rule.type }}
+                    </p>
+                  </td>
+                  <td z-table-cell class="max-w-40 break-words text-xs">
+                    {{ formatValue(rule.default) ?? ('XP.ModelSettings.NotProvided' | translate) }}
+                  </td>
+                  <td z-table-cell class="max-w-56 break-words text-xs text-muted-foreground">
+                    @if (rule.options?.length) {
+                      {{ rule.options.join(' / ') }}
+                    } @else if (rule.min !== undefined || rule.max !== undefined) {
+                      {{ rule.min ?? '—' }} ～ {{ rule.max ?? '—' }}
+                    } @else {
+                      {{ 'XP.ModelSettings.NotProvided' | translate }}
+                    }
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      } @else {
+        <p class="py-6 text-sm text-muted-foreground">{{ 'XP.ModelSettings.NoParameters' | translate }}</p>
+      }
+    </section>
+  </div>
+  <footer xpDialogFooter>
+    <button z-button zType="outline" type="button" (click)="close()">{{ 'XP.ACTIONS.Close' | translate }}</button>
+  </footer>
+</section>

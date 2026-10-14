@@ -1,0 +1,113 @@
+<section xpDialogLayout="wide" class="w-[min(900px,calc(100vw-32px))] max-h-[84dvh]">
+  <header xpDialogHeader>
+    <h2 xpDialogHeading>{{ 'XP.Copilot.Discovery.Title' | translate }}</h2>
+    <p xpDialogDescription>{{ 'XP.Copilot.Discovery.Description' | translate }}</p>
+    <button
+      xpDialogCloseButton
+      z-button
+      zType="ghost"
+      zSize="icon"
+      type="button"
+      [zDisabled]="saving()"
+      [attr.aria-label]="'XP.ACTIONS.Close' | translate"
+      (click)="dialogRef.close()"
+    >
+      <z-icon zType="x" />
+    </button>
+  </header>
+  <div xpDialogBody class="flex flex-col gap-4">
+    <input z-input type="search" [placeholder]="'XP.Copilot.Discovery.Search' | translate" [(ngModel)]="search" />
+    @if (loading()) {
+      <p role="status">{{ 'XP.Copilot.Discovery.Loading' | translate }}</p>
+    } @else {
+      @for (row of visibleRows(); track row.model) {
+        <div class="border-b border-divider-regular py-3">
+          <div class="flex flex-wrap items-center gap-3">
+            <span class="break-all">{{ row.label }}</span>
+            <span class="text-xs text-text-tertiary">{{
+              'XP.Copilot.Discovery.ModelSource.' + row.source | translate
+            }}</span>
+            <span class="text-sm text-text-secondary">{{
+              'XP.ModelAccess.ModelTypeValue.' + row.modelType | translate: { Default: row.modelType }
+            }}</span>
+            @if (!row.available) {
+              <span class="text-sm text-text-warning">{{ 'XP.Copilot.Discovery.NotReturnedPreview' | translate }}</span>
+            }
+            @if (!row.configured && row.typeSource === 'unknown') {
+              <span class="text-xs text-text-tertiary">{{ 'XP.Copilot.Discovery.DefaultType' | translate }}</span>
+            }
+            <button
+              z-button
+              zType="secondary"
+              type="button"
+              class="ml-auto"
+              [zDisabled]="saving()"
+              (click)="row.configured ? editModel(row) : update(row.model, { expanded: !row.expanded })"
+            >
+              <i class="ri-settings-5-line"></i>{{ 'XP.Copilot.Configure' | translate }}
+            </button>
+          </div>
+          @if (row.configuration; as config) {
+            <div class="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-text-tertiary">
+              <span>{{ 'XP.Copilot.Discovery.ContextSize' | translate }}: {{ config.contextSize | number }}</span>
+              <span>{{ 'XP.Copilot.Discovery.MaxConcurrency' | translate }}: {{ config.maxConcurrency | number }}</span>
+              @if (config.modelType === 'llm') {
+                <span
+                  >{{ 'XP.Copilot.Discovery.MaxOutputTokens' | translate }}: {{ config.maxOutputTokens | number }}</span
+                >
+                <span
+                  >{{ 'XP.Copilot.Discovery.DefaultMaxTokens' | translate }}:
+                  {{ config.defaultMaxTokens | number }}</span
+                >
+              }
+              @if (config.modelType === 'text-embedding') {
+                <span>{{ 'XP.Copilot.Discovery.BatchSize' | translate }}: {{ config.batchSize | number }}</span>
+                @if (config.dimensions) {
+                  <span>{{ 'XP.Copilot.Discovery.Dimensions' | translate }}: {{ config.dimensions | number }}</span>
+                }
+              }
+            </div>
+          }
+          @if (row.expanded && !row.configured) {
+            <div class="mt-4 flex flex-col gap-4">
+              <z-select
+                [zValue]="row.modelType"
+                [zDisabled]="saving()"
+                (zSelectionChange)="changeType(row.model, $event)"
+              >
+                @for (type of modelTypes; track type) {
+                  <z-select-item [zValue]="type">{{
+                    'XP.ModelAccess.ModelTypeValue.' + type | translate: { Default: type }
+                  }}</z-select-item>
+                }
+              </z-select>
+              <copilot-model-configuration
+                [configuration]="row.configuration"
+                (configurationChange)="update(row.model, { configuration: $event })"
+              />
+            </div>
+          }
+        </div>
+      } @empty {
+        <p class="text-text-tertiary">{{ 'XP.Copilot.Discovery.Empty' | translate }}</p>
+      }
+    }
+    @if (error()) {
+      <p role="alert" class="text-destructive">{{ error() }}</p>
+    }
+  </div>
+  <footer xpDialogFooter>
+    <button z-button zType="outline" type="button" [zDisabled]="saving()" (click)="dialogRef.close()">
+      {{ 'XP.ACTIONS.Cancel' | translate }}
+    </button>
+    <button
+      z-button
+      type="button"
+      [zDisabled]="invalid() || loading() || saving()"
+      [zLoading]="saving()"
+      (click)="save()"
+    >
+      {{ (newModels().length ? 'XP.Copilot.Discovery.SyncAndImport' : 'XP.Copilot.Discovery.SaveSync') | translate }}
+    </button>
+  </footer>
+</section>

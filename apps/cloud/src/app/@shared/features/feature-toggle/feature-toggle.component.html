@@ -68,7 +68,10 @@
       class="justify-self-end"
       [ngModel]="enabledFeature(feature)"
       (checkChange)="featureChanged($event, feature, featureCheckbox)"
-    ></z-checkbox>
+      ><span class="sr-only">{{
+        'XP.Feature.Features.' + feature.code + '.Name' | translate: { Default: feature.name }
+      }}</span></z-checkbox
+    >
   </div>
 </ng-template>
 
@@ -127,12 +130,12 @@
       </button>
     </div>
 
-    <div data-feature-summary class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div data-feature-summary class="grid grid-cols-2 gap-3 border-y border-border py-4 sm:grid-cols-4">
       @for (summary of summaryCards(features); track $index) {
-        <z-card class="border border-divider-regular bg-components-panel-bg shadow-none">
-          <z-card-content class="flex items-center gap-3 p-4">
+        <z-card class="border-0 bg-transparent shadow-none">
+          <z-card-content class="flex items-center gap-3 p-0">
             <span
-              class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-components-card-bg text-text-secondary"
+              class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-components-card-bg text-text-secondary"
             >
               <z-icon [zType]="summary.icon" />
             </span>
@@ -147,15 +150,15 @@
       }
     </div>
 
-    <div data-feature-groups-grid class="columns-xl gap-4">
+    <div data-feature-groups-grid class="flex flex-col gap-4">
       @for (group of visibleFeatureGroups(features); track $index) {
         <z-card
           data-feature-group-card
           [attr.data-feature-group-id]="group.id"
-          class="mb-4 inline-block w-full break-inside-avoid overflow-hidden border border-divider-regular bg-components-panel-bg shadow-none"
+          class="w-full overflow-hidden border border-border bg-card shadow-none"
         >
           <z-card-header
-            class="flex flex-row items-start justify-between gap-3 border-b border-divider-regular px-4 py-3"
+            class="flex flex-col gap-3 border-b border-border bg-muted/30 px-4 py-3 sm:flex-row sm:items-start sm:justify-between"
           >
             <div class="flex min-w-0 items-start gap-3">
               <span
@@ -227,7 +230,10 @@
                 (checkChange)="
                   featureChanged(nextFeatureCheckboxValue($event, group.feature), group.feature, featureParentCheckbox)
                 "
-              ></z-checkbox>
+                ><span class="sr-only">{{
+                  group.titleKey | translate: { Default: group.titleDefault }
+                }}</span></z-checkbox
+              >
             </div>
           </z-card-header>
 
@@ -243,7 +249,7 @@
     </div>
 
     @if (filteredFeatureCount(features) === 0) {
-      <z-card class="border border-divider-regular bg-components-panel-bg shadow-none">
+      <z-card class="border-0 bg-transparent shadow-none">
         <z-card-content class="flex min-h-[180px] flex-col items-center justify-center gap-2 p-8 text-center">
           <z-icon zType="search_off" class="text-3xl text-text-tertiary" />
           <div class="text-sm font-medium text-text-primary">
@@ -258,10 +264,9 @@
       </z-card>
     }
   </div>
-}
-
-@if (loading()) {
-  <div class="absolute left-0 top-0 flex h-full w-full items-center justify-center bg-components-panel-bg-blur">
-    <z-loader zSize="sm" />
+} @else if (loading()) {
+  <div role="status" class="flex min-h-64 w-full items-center justify-center gap-2 text-sm text-muted-foreground">
+    <z-loader zSize="sm" aria-hidden="true" />
+    <span>{{ 'XP.KEY_WORDS.Loading' | translate }}</span>
   </div>
 }

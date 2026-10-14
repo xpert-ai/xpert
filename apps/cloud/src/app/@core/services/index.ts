@@ -93,3 +93,5 @@ export * from './template-installation.service'
 export * from './assistant-template-setup.service'
 
 export * from './template-lifecycle.service'
+
+export * from './personal-api-keys.service'

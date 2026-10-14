@@ -91,7 +91,7 @@ export class PluginRuntimeGenerationStore {
 		})
 		// Fail closed for older manifests with no retained outcome after history expiration.
 		const status = outcome ?? (await this.readState(generation))?.status ?? 'failed'
-		if (status !== 'in_progress' && status !== 'completed' && status !== 'failed')
+		if (status !== 'in_progress' && status !== 'completed' && status !== 'failed' && status !== 'awaiting_restart')
 			throw new Error('Invalid desired plugin outcome')
 		return { generation, status, requirements }
 	}

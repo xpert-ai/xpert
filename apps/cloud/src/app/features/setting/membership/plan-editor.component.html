@@ -1,0 +1,392 @@
+@let vm = admin();
+<form [formGroup]="vm.planForm" (ngSubmit)="vm.save()">
+  <section class="min-w-0">
+    <header>
+      <div class="flex w-full flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div class="min-w-0">
+          <z-card-title>
+            {{
+              (vm.draft.id ? 'XP.Membership.EditPlan' : 'XP.Membership.CreatePlan')
+                | translate: { Default: vm.draft.id ? 'Edit plan' : 'Create plan' }
+            }}
+          </z-card-title>
+          <z-card-subtitle class="mt-1">
+            {{
+              'XP.Membership.PlanFormHint'
+                | translate: { Default: 'Define the point allowance, model access rules, and usage limits.' }
+            }}
+          </z-card-subtitle>
+        </div>
+
+        <div class="flex shrink-0 items-center gap-2">
+          <button z-button zType="secondary" type="button" [zDisabled]="vm.loading()" (click)="vm.cancel()">
+            {{ 'XP.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+          </button>
+          <button z-button zType="default" type="submit" [zDisabled]="vm.loading() || vm.planForm.invalid">
+            <z-icon zType="save"></z-icon>
+            {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <z-card-content class="space-y-6 p-0 pt-6">
+      <section class="border-b border-border pb-6 last:border-0 last:pb-0">
+        <div class="mb-3 text-sm font-semibold text-text-primary">
+          {{ 'XP.Membership.PlanIdentity' | translate: { Default: 'Plan identity' } }}
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <z-form-field class="w-full">
+            <label z-form-label for="settings-code">{{ 'XP.Membership.Code' | translate: { Default: 'Code' } }}</label>
+            <input z-input id="settings-code" formControlName="code" />
+          </z-form-field>
+
+          <z-form-field class="w-full">
+            <label z-form-label for="settings-name">{{ 'XP.Membership.Name' | translate: { Default: 'Name' } }}</label>
+            <input z-input id="settings-name" formControlName="name" />
+          </z-form-field>
+
+          <z-form-field class="w-full">
+            <label z-form-label for="settings-level">{{
+              'XP.Membership.Level' | translate: { Default: 'Level' }
+            }}</label>
+            <input
+              z-input
+              type="number"
+              min="0"
+              step="1"
+              id="settings-level"
+              formControlName="level"
+              [zStatus]="vm.planForm.controls.level.invalid && vm.planForm.controls.level.touched ? 'error' : undefined"
+            />
+            @if (vm.planForm.controls.level.invalid && vm.planForm.controls.level.touched) {
+              <z-form-message zType="error">
+                {{
+                  'XP.Membership.LevelValidation'
+                    | translate: { Default: 'Level must be a whole number of zero or greater.' }
+                }}
+              </z-form-message>
+            }
+          </z-form-field>
+
+          <z-form-field class="w-full">
+            <z-form-label>{{ 'XP.Membership.Status' | translate: { Default: 'Status' } }}</z-form-label>
+            <z-select class="w-full" formControlName="status" (zSelectionChange)="vm.setDraftStatus($event)">
+              <z-select-item [zValue]="vm.MembershipPlanStatusEnum.Active">
+                {{ 'XP.Membership.Statuses.active' | translate: { Default: 'Active' } }}
+              </z-select-item>
+              <z-select-item [zValue]="vm.MembershipPlanStatusEnum.Archived">
+                {{ 'XP.Membership.Statuses.archived' | translate: { Default: 'Archived' } }}
+              </z-select-item>
+            </z-select>
+          </z-form-field>
+
+          <div class="flex items-end">
+            <z-checkbox
+              class="min-h-9 items-center"
+              displayDensity="cosy"
+              formControlName="isDefault"
+              [zDisabled]="vm.planForm.controls.status.value === vm.MembershipPlanStatusEnum.Archived"
+              (checkChange)="vm.setDraftDefault($event)"
+            >
+              {{ 'XP.Membership.SetDefaultPlan' | translate: { Default: 'Set as default plan' } }}
+            </z-checkbox>
+          </div>
+        </div>
+      </section>
+
+      <section class="border-b border-border pb-6 last:border-0 last:pb-0">
+        <div class="mb-3 text-sm font-semibold text-text-primary">
+          {{ 'XP.Membership.PointRules' | translate: { Default: 'Point rules' } }}
+        </div>
+
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <z-form-field class="w-full">
+            <label z-form-label for="settings-includedPoints">
+              {{ 'XP.Membership.PointsPerPeriod' | translate: { Default: 'Points per period' } }}
+            </label>
+            <input
+              z-input
+              type="number"
+              min="0"
+              id="settings-includedPoints"
+              formControlName="includedPoints"
+              [disabled]="vm.planForm.controls.unlimited.value"
+            />
+            <z-checkbox
+              class="mt-1 min-h-8 items-center"
+              displayDensity="cosy"
+              formControlName="unlimited"
+              (checkChange)="vm.setDraftUnlimited($event)"
+            >
+              {{ 'XP.Membership.Unlimited' | translate: { Default: 'Unlimited' } }}
+            </z-checkbox>
+          </z-form-field>
+        </div>
+      </section>
+
+      <section class="border-b border-border pb-6 last:border-0 last:pb-0">
+        <div class="mb-3 text-sm font-semibold text-text-primary">
+          {{ 'XP.Membership.Description' | translate: { Default: 'Description' } }}
+        </div>
+        <z-form-field class="w-full">
+          <textarea z-input class="min-h-24 resize-y" formControlName="description"></textarea>
+        </z-form-field>
+      </section>
+
+      <section class="border-b border-border pb-6 last:border-0 last:pb-0">
+        <div class="mb-1 text-sm font-semibold text-text-primary">
+          {{ 'XP.Membership.ModelUsageRules' | translate: { Default: 'Model access and usage rules' } }}
+        </div>
+        <div class="mb-4 text-xs text-muted-foreground">
+          {{
+            'XP.Membership.ModelUsageRulesHint'
+              | translate
+                : {
+                    Default:
+                      'Choose available models and optionally customize settlement amount multipliers and usage limits.'
+                  }
+          }}
+        </div>
+
+        <div class="space-y-5">
+          <div class="border-t border-border pt-5">
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <div class="text-sm font-medium text-text-primary">
+                  {{ 'XP.Membership.AllowedModels' | translate: { Default: 'Allowed models' } }}
+                </div>
+                <div class="mt-1 text-xs text-muted-foreground">
+                  {{
+                    'XP.Membership.AllowedModelsHint'
+                      | translate: { Default: 'Choose which models members of this plan can use.' }
+                  }}
+                </div>
+              </div>
+              <z-checkbox
+                class="min-h-8 shrink-0 items-center"
+                displayDensity="cosy"
+                formControlName="allowAllModels"
+                (checkChange)="vm.setAllowAllModels($event)"
+              >
+                {{ 'XP.Membership.AllowAllModels' | translate: { Default: 'Allow all models' } }}
+              </z-checkbox>
+            </div>
+
+            @if (!vm.planForm.controls.allowAllModels.value) {
+              <div class="mt-4">
+                <z-select
+                  class="w-full"
+                  [zMultiple]="true"
+                  [zMaxLabelCount]="3"
+                  [zValue]="vm.allowedModelValues()"
+                  [zPlaceholder]="'XP.Membership.SelectModels' | translate: { Default: 'Select allowed models' }"
+                  (zSelectionChange)="vm.setAllowedModelValues($event)"
+                >
+                  @for (option of vm.allowedModelOptions(); track option.value) {
+                    <z-select-item [zValue]="option.value">{{ vm.modelTargetLabel(option) }}</z-select-item>
+                  }
+                </z-select>
+                @if (!vm.allowedModelOptions().length) {
+                  <div class="mt-2 text-xs text-muted-foreground">
+                    {{
+                      'XP.Membership.NoModelsAvailable'
+                        | translate: { Default: 'No configured Copilot models are available in this scope.' }
+                    }}
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
+          <div class="border-t border-border pt-5">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="text-sm font-medium text-text-primary">
+                  {{ 'XP.Membership.ModelMultipliers' | translate: { Default: 'Settlement amount multipliers' } }}
+                </div>
+                <div class="mt-1 text-xs text-muted-foreground">
+                  {{
+                    'XP.Membership.ModelMultipliersHint'
+                      | translate
+                        : {
+                            Default:
+                              'Multiply the settled model amount before converting it to points. The default multiplier is 1.'
+                          }
+                  }}
+                </div>
+              </div>
+              <button z-button zType="outline" zSize="sm" type="button" (click)="vm.addModelMultiplier()">
+                <z-icon zType="add"></z-icon>
+                {{ 'XP.ACTIONS.ADD' | translate: { Default: 'Add' } }}
+              </button>
+            </div>
+
+            @if (vm.modelMultipliers.length) {
+              <div class="mt-4 space-y-3">
+                @for (rule of vm.modelMultipliers; track $index) {
+                  <div
+                    class="grid grid-cols-1 items-end gap-3 rounded-lg bg-components-panel-bg p-3 xl:grid-cols-[minmax(0,1fr)_8rem_auto]"
+                  >
+                    <label class="flex min-w-0 flex-col gap-1">
+                      <span class="text-xs text-muted-foreground">
+                        {{ 'XP.Membership.ModelScope' | translate: { Default: 'Model scope' } }}
+                      </span>
+                      <z-select
+                        class="w-full"
+                        [zValue]="vm.modelMultiplierTargetValue(rule)"
+                        (zSelectionChange)="vm.setModelMultiplierTarget($index, $event)"
+                      >
+                        <z-select-item [zValue]="vm.globalModelTargetValue">
+                          {{ 'XP.Membership.AllModels' | translate: { Default: 'All models' } }}
+                        </z-select-item>
+                        @for (option of vm.modelOptions(); track option.value) {
+                          <z-select-item [zValue]="option.value">{{ vm.modelTargetLabel(option) }}</z-select-item>
+                        }
+                      </z-select>
+                    </label>
+
+                    <label class="flex flex-col gap-1">
+                      <span class="text-xs text-muted-foreground">
+                        {{ 'XP.Membership.Multiplier' | translate: { Default: 'Settlement amount multiplier' } }}
+                      </span>
+                      <input
+                        z-input
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        [attr.value]="rule.multiplier"
+                        (input)="vm.setModelMultiplierValue($index, $event)"
+                      />
+                    </label>
+
+                    <button
+                      z-button
+                      zType="ghost"
+                      zSize="icon"
+                      zShape="circle"
+                      type="button"
+                      class="text-muted-foreground hover:text-text-destructive"
+                      [attr.aria-label]="'XP.ACTIONS.DELETE' | translate: { Default: 'Delete' }"
+                      (click)="vm.removeModelMultiplier($index)"
+                    >
+                      <z-icon zType="delete"></z-icon>
+                    </button>
+                  </div>
+                }
+              </div>
+            } @else {
+              <div
+                class="mt-4 rounded-lg border border-dashed border-border px-4 py-5 text-center text-sm text-muted-foreground"
+              >
+                {{
+                  'XP.Membership.NoModelMultipliers'
+                    | translate: { Default: 'No custom multipliers. All models use a multiplier of 1.' }
+                }}
+              </div>
+            }
+          </div>
+
+          <div class="border-t border-border pt-5">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <div class="text-sm font-medium text-text-primary">
+                  {{ 'XP.Membership.RateLimits' | translate: { Default: 'Usage limits' } }}
+                </div>
+                <div class="mt-1 text-xs text-muted-foreground">
+                  {{
+                    'XP.Membership.RateLimitsHint'
+                      | translate: { Default: 'Limit the number of points members can consume within a period.' }
+                  }}
+                </div>
+              </div>
+              <button z-button zType="outline" zSize="sm" type="button" (click)="vm.addRateLimit()">
+                <z-icon zType="add"></z-icon>
+                {{ 'XP.ACTIONS.ADD' | translate: { Default: 'Add' } }}
+              </button>
+            </div>
+
+            @if (vm.rateLimits.length) {
+              <div class="mt-4 space-y-3">
+                @for (rule of vm.rateLimits; track $index) {
+                  <div
+                    class="grid grid-cols-1 items-end gap-3 rounded-lg bg-components-panel-bg p-3 xl:grid-cols-[minmax(0,1fr)_8rem_8rem_auto]"
+                  >
+                    <label class="flex min-w-0 flex-col gap-1">
+                      <span class="text-xs text-muted-foreground">
+                        {{ 'XP.Membership.ModelScope' | translate: { Default: 'Model scope' } }}
+                      </span>
+                      <z-select
+                        class="w-full"
+                        [zValue]="vm.rateLimitTargetValue(rule)"
+                        (zSelectionChange)="vm.setRateLimitTarget($index, $event)"
+                      >
+                        <z-select-item [zValue]="vm.globalModelTargetValue">
+                          {{ 'XP.Membership.AllModels' | translate: { Default: 'All models' } }}
+                        </z-select-item>
+                        @for (option of vm.modelOptions(); track option.value) {
+                          <z-select-item [zValue]="option.value">{{ vm.modelTargetLabel(option) }}</z-select-item>
+                        }
+                      </z-select>
+                    </label>
+
+                    <label class="flex flex-col gap-1">
+                      <span class="text-xs text-muted-foreground">
+                        {{ 'XP.Membership.Period' | translate: { Default: 'Period' } }}
+                      </span>
+                      <z-select
+                        class="w-full"
+                        [zValue]="rule.period"
+                        (zSelectionChange)="vm.setRateLimitPeriod($index, $event)"
+                      >
+                        @for (period of vm.rateLimitPeriods; track period) {
+                          <z-select-item [zValue]="period">
+                            {{ 'XP.Membership.RateLimitPeriods.' + period | translate: { Default: period } }}
+                          </z-select-item>
+                        }
+                      </z-select>
+                    </label>
+
+                    <label class="flex flex-col gap-1">
+                      <span class="text-xs text-muted-foreground">
+                        {{ 'XP.Membership.PointLimit' | translate: { Default: 'Point limit' } }}
+                      </span>
+                      <input
+                        z-input
+                        type="number"
+                        min="1"
+                        step="1"
+                        [attr.value]="rule.pointLimit"
+                        (input)="vm.setRateLimitValue($index, $event)"
+                      />
+                    </label>
+
+                    <button
+                      z-button
+                      zType="ghost"
+                      zSize="icon"
+                      zShape="circle"
+                      type="button"
+                      class="text-muted-foreground hover:text-text-destructive"
+                      [attr.aria-label]="'XP.ACTIONS.DELETE' | translate: { Default: 'Delete' }"
+                      (click)="vm.removeRateLimit($index)"
+                    >
+                      <z-icon zType="delete"></z-icon>
+                    </button>
+                  </div>
+                }
+              </div>
+            } @else {
+              <div
+                class="mt-4 rounded-lg border border-dashed border-border px-4 py-5 text-center text-sm text-muted-foreground"
+              >
+                {{ 'XP.Membership.NoRateLimits' | translate: { Default: 'No additional usage limits.' } }}
+              </div>
+            }
+          </div>
+        </div>
+      </section>
+    </z-card-content>
+  </section>
+</form>

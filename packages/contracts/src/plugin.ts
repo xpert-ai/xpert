@@ -35,6 +35,7 @@ export const PLUGIN_CONFIGURATION_STATUS = {
 
 export const PLUGIN_LOAD_STATUS = {
   LOADED: 'loaded',
+  PENDING_RESTART: 'pending_restart',
   FAILED: 'failed'
 } as const
 
@@ -86,7 +87,7 @@ export const PLUGIN_RESOURCE_ERROR_CODE = {
 /**
  * Classifies plugin scope and governance.
  * - `system`: built-in/platform-managed plugin that users cannot install/uninstall from org APIs.
- * - `tenant`: tenant-owned plugin that may register process-global runtime artifacts and is activated after an API restart.
+ * - `tenant`: tenant-owned plugin shared across organizations in its owning tenant.
  * - `organization`: tenant/org-managed plugin that can be installed and removed per organization.
  */
 export type PluginLevel = (typeof PLUGIN_LEVEL)[keyof typeof PLUGIN_LEVEL]
@@ -367,7 +368,15 @@ export interface PluginSourceConfig extends PluginCodeSourceConfig {
   [key: string]: unknown
 }
 
+export interface PluginRuntimePolicy {
+  install: 'hot' | 'restart'
+  update: 'hot' | 'restart'
+  uninstall: 'hot' | 'restart'
+}
+
 export interface PluginMeta {
+  /** Explicit lifecycle support, independent of scope. Declared in package.json xpert.plugin. */
+  runtimePolicy?: PluginRuntimePolicy
   name: PluginName
   version: string
   /**

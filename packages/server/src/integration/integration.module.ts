@@ -13,6 +13,8 @@ import { QueryHandlers } from './queries/handlers'
 import { RedisModule } from '../core/redis/redis.module'
 import { IntegrationQrController } from './integration-qr.controller'
 import { IntegrationQrService } from './integration-qr.service'
+import { ConnectorAppIntegrationService } from './connector-app/connector-app-integration.service'
+import { ResolveConnectorIntegrationHandler } from './connector-app/resolve-connector-integration.handler'
 
 @Module({
 	imports: [
@@ -27,11 +29,13 @@ import { IntegrationQrService } from './integration-qr.service'
 	controllers: [IntegrationController, IntegrationQrController],
 	providers: [
 		IntegrationService,
+		ConnectorAppIntegrationService,
+		ResolveConnectorIntegrationHandler,
 		IntegrationQrService,
 		IntegrationStrategyRegistry,
 		...CommandHandlers,
 		...QueryHandlers
 	],
-	exports: [IntegrationService, IntegrationQrService]
+	exports: [IntegrationService, IntegrationQrService, ConnectorAppIntegrationService]
 })
 export class IntegrationModule {}

@@ -1,107 +1,118 @@
-<div class="w-full xp-page-body-toolbar p-1">
-  <div></div>
-  <div class="flex items-center gap-1">
-    <button z-button zType="default" [cdkMenuTriggerFor]="orgMenu">
-      <div class="flex items-center">
-        <z-icon zType="add"></z-icon>
-        {{ 'XP.ACTIONS.ADD' | translate: { Default: 'Add' } }}
-      </div>
-    </button>
+<header class="mb-5 flex flex-wrap items-start justify-between gap-4">
+  <div>
+    <h2 class="text-base font-semibold">{{ 'XP.UserDetail.Organizations' | translate }}</h2>
+    <p class="mt-1 text-sm text-muted-foreground">{{ 'XP.UserDetail.OrganizationsHint' | translate }}</p>
   </div>
-</div>
-
-<div class="p-2">
-  <xp-table
-    class="overflow-hidden rounded-lg border border-divider-deep mt-2"
-    paging
-    [data]="userOrganizations()"
-    [columns]="[
-      {
-        name: 'organization.name',
-        caption: 'XP.KEY_WORDS.ORGANIZATION' | translate: { Default: 'Organization' }
-      },
-      {
-        name: 'isDefault',
-        caption: 'XP.KEY_WORDS.Default' | translate: { Default: 'Default' },
-        cellTemplate: defaultTempl
-      },
-      {
-        name: 'isActive',
-        caption: 'XP.KEY_WORDS.Active' | translate: { Default: 'Active' },
-        cellTemplate: activeTempl
-      },
-      {
-        name: 'organization.short_description',
-        caption: 'XP.KEY_WORDS.Description' | translate: { Default: 'Description' }
-      },
-      {
-        name: 'action',
-        caption: 'XP.KEY_WORDS.ACTION' | translate: { Default: 'Action' },
-        cellTemplate: actionTempl,
-        stickyEnd: true
-      }
-    ]"
-  />
-</div>
-
-<ng-template #userTempl let-user>
-  <xp-user-profile-inline [user]="user"></xp-user-profile-inline>
-</ng-template>
-
-<ng-template #defaultTempl let-isDefault="isDefault" let-id="id">
-  @let membership = membershipById(id);
-  @if (membership) {
-    <z-switch
-      [ngModel]="isDefault"
-      [disabled]="membership.isDefault"
-      zSize="sm"
-      (ngModelChange)="updateDefaultMembership(membership, $event)"
-    />
-  }
-</ng-template>
-
-<ng-template #activeTempl let-isActive="isActive" let-id="id">
-  @let membership = membershipById(id);
-  @if (membership) {
-    <z-switch
-      [ngModel]="isActive"
-      [disabled]="canDeactivateMembership(membership)"
-      zSize="sm"
-      (ngModelChange)="updateMembershipActiveState(membership, $event)"
-    />
-  }
-</ng-template>
-
-<ng-template #actionTempl let-loading="loading" let-id="id" let-organization="organization">
-  @let membership = membershipById(id);
-  @if (membership && canRemoveMembership(membership)) {
-    <button
-      z-button
-      zType="destructive"
-      zSize="icon-sm"
-      zShape="circle"
-      [disabled]="loading"
-      (click)="removeOrg(id, organization)"
-    >
-      <div class="flex justify-center items-center">
-        <z-icon zType="delete"></z-icon>
-      </div>
-    </button>
-  }
-</ng-template>
-
-<ng-template #orgMenu>
-  <div cdkMenu class="cdk-menu__medium">
-    @for (org of organizations(); track org) {
-      <button cdkMenuItem (click)="addOrg(org)">
-        {{ org.name }}
+  <button z-button type="button" [cdkMenuTriggerFor]="orgMenu" class="pointer-coarse:min-h-[44px]">
+    <z-icon zType="plus" />{{ 'XP.UserDetail.AddOrganization' | translate }}
+  </button>
+</header>
+<div class="overflow-hidden rounded-lg border border-border">
+  <div
+    class="max-w-full overflow-x-auto"
+    tabindex="0"
+    role="region"
+    [attr.aria-label]="'XP.UserDetail.Organizations' | translate"
+  >
+    <table z-table class="w-full whitespace-nowrap text-sm">
+      <thead z-thead>
+        <tr z-tr>
+          <th z-th>{{ 'XP.KEY_WORDS.ORGANIZATION' | translate }}</th>
+          <th z-th>{{ 'XP.UserDetail.DefaultOrganization' | translate }}</th>
+          <th z-th>{{ 'XP.UserDetail.MemberStatus' | translate }}</th>
+          <th z-th class="text-right">{{ 'XP.KEY_WORDS.ACTION' | translate }}</th>
+        </tr>
+      </thead>
+      <tbody z-tbody>
+        @for (membership of pageRows(); track membership.id) {
+          <tr z-tr>
+            <td z-td>
+              <div class="font-medium">{{ membership.organization?.name }}</div>
+              <p
+                class="mt-1 max-w-sm truncate text-xs text-muted-foreground"
+                [title]="membership.organization?.short_description || ''"
+              >
+                {{ membership.organization?.short_description || '—' }}
+              </p>
+            </td>
+            <td z-td>
+              <z-switch
+                [ngModel]="membership.isDefault"
+                [disabled]="membership.isDefault"
+                zSize="sm"
+                (ngModelChange)="updateDefaultMembership(membership, $event)"
+                ><span class="sr-only"
+                  >{{ 'XP.UserDetail.DefaultOrganization' | translate }} {{ membership.organization?.name }}</span
+                ></z-switch
+              >
+            </td>
+            <td z-td>
+              <z-switch
+                [ngModel]="membership.isActive"
+                [disabled]="canDeactivateMembership(membership)"
+                zSize="sm"
+                (ngModelChange)="updateMembershipActiveState(membership, $event)"
+                ><span class="sr-only"
+                  >{{ 'XP.UserDetail.MemberStatus' | translate }} {{ membership.organization?.name }}</span
+                ></z-switch
+              >
+            </td>
+            <td z-td class="text-right">
+              @if (canRemoveMembership(membership)) {
+                <button
+                  z-button
+                  zType="ghost"
+                  type="button"
+                  class="pointer-coarse:min-h-[44px]"
+                  (click)="removeOrg(membership.id, membership.organization)"
+                >
+                  {{ 'XP.UserDetail.Remove' | translate: { Default: 'Remove' } }}
+                </button>
+              }
+            </td>
+          </tr>
+        } @empty {
+          <tr z-tr>
+            <td z-td colspan="4" class="py-10 text-center text-muted-foreground">
+              {{ (userOrganizations() ? 'XP.UserDetail.NoOrganizations' : 'XP.UserSettings.Loading') | translate }}
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+  <footer class="flex flex-wrap items-center gap-3 border-t border-border px-4 py-3 text-xs text-muted-foreground">
+    <p class="mr-auto">{{ 'XP.UserDetail.KeepOrganizationHint' | translate }}</p>
+    @if (totalPages() > 1) {
+      <span>{{ currentPage() }} / {{ totalPages() }}</span
+      ><button
+        z-button
+        zType="outline"
+        zSize="icon-sm"
+        [zDisabled]="currentPage() === 1"
+        (click)="page.set(currentPage() - 1)"
+        [attr.aria-label]="'XP.UserDetail.PreviousPage' | translate"
+      >
+        <z-icon zType="chevron-left" /></button
+      ><button
+        z-button
+        zType="outline"
+        zSize="icon-sm"
+        [zDisabled]="currentPage() === totalPages()"
+        (click)="page.set(currentPage() + 1)"
+        [attr.aria-label]="'XP.UserDetail.NextPage' | translate"
+      >
+        <z-icon zType="chevron-right" />
       </button>
     }
-
-    @if (!organizations()?.length) {
-      <div class="p-4">
-        {{ 'XP.Users.NoMoreOrganizations' | translate: { Default: 'No more organizations can be added' } }}
-      </div>
+  </footer>
+</div>
+<ng-template #orgMenu
+  ><div cdkMenu class="cdk-menu__medium">
+    @for (org of organizations(); track org.id) {
+      <button cdkMenuItem (click)="addOrg(org)">{{ org.name }}</button>
+    } @empty {
+      <div class="p-4 text-sm text-muted-foreground">{{ 'XP.Users.NoMoreOrganizations' | translate }}</div>
     }
-  </div>
-</ng-template>
+  </div></ng-template
+>

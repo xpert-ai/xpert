@@ -159,6 +159,7 @@ async function mountCatalog(t, handler, onUse = async () => {}) {
       './host': host,
       './i18n': { t: (key) => key, getLocale: () => locale, useLocale: () => locale },
       '@xpert-ai/template-installation-client': require('./helpers/template-installation.cjs'),
+      './app-activation': { subscribeAppActivation: () => () => {} },
       '@xpert-ai/shadcn-ui': ui,
       'lucide-react': Object.fromEntries(
         [

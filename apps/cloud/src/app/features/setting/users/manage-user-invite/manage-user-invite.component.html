@@ -1,181 +1,263 @@
-<div class="flex-1 overflow-auto rounded-2xl border border-divider-regular bg-components-card-bg">
-  <table z-table zSize="compact" class="min-w-max text-sm">
-    <thead z-table-header class="text-text-secondary">
-      <tr z-table-row class="border-b bg-muted/30 hover:bg-muted/30">
-        <th z-table-head scope="col" class="sticky top-0 z-10 w-72 bg-background px-4 whitespace-nowrap">
-          <button
-            z-table-sort-header
-            [zDirection]="sortDirection('email')"
-            [zDisableClear]="true"
-            (zSortChange)="onSortChange('email', $event)"
-          >
-            {{ 'XP.INVITE_PAGE.Email' | translate: { Default: 'Email' } }}
-          </button>
-        </th>
+<div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+  <z-search-input
+    class="w-full sm:max-w-sm pointer-coarse:[&_input]:min-h-[44px]"
+    [placeholder]="'XP.UserSettings.SearchInvites' | translate"
+    [clearLabel]="'XP.ACTIONS.Clear' | translate"
+    [(ngModel)]="search"
+  />
+  <label class="flex w-full flex-col gap-1.5 text-xs font-medium text-muted-foreground sm:w-44">
+    <span>{{ 'XP.KEY_WORDS.Status' | translate }}</span>
+    <z-select
+      class="w-full pointer-coarse:[&_button]:min-h-[44px]"
+      [zValue]="statusFilter"
+      (zSelectionChange)="onStatusFilterChange($event)"
+    >
+      <z-select-item zValue="all">{{ 'XP.UserSettings.AllStatuses' | translate }}</z-select-item>
+      @for (status of statusOptions; track status) {
+        <z-select-item [zValue]="status">{{ 'XP.INVITE_PAGE.STATUS.' + status | translate }}</z-select-item>
+      }
+    </z-select>
+  </label>
+</div>
+@if (state$ | async; as state) {
+  <div class="flex min-h-8 flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+    <p role="status">
+      @if (state.status === 'ready') {
+        {{ 'XP.UserSettings.InviteCount' | translate: { count: state.rows.length, total: state.total } }}
+      }
+    </p>
+    @if (search || statusFilter !== 'all') {
+      <button
+        z-button
+        zType="ghost"
+        zSize="sm"
+        type="button"
+        class="pointer-coarse:min-h-[44px]"
+        (click)="clearFilters()"
+      >
+        {{ 'XP.UserSettings.ResetFilters' | translate }}
+      </button>
+    }
+  </div>
+  @if (state.status === 'loading') {
+    <div
+      role="status"
+      class="flex min-h-48 items-center justify-center gap-2 rounded-lg border border-border text-sm text-muted-foreground"
+    >
+      <z-icon zType="loader-circle" class="animate-spin motion-reduce:animate-none" />{{
+        'XP.UserSettings.Loading' | translate
+      }}
+    </div>
+  } @else if (state.status === 'error') {
+    <div
+      role="alert"
+      class="flex min-h-48 flex-col items-center justify-center gap-3 rounded-lg border border-border p-6 text-center"
+    >
+      <z-icon zType="circle-alert" class="text-muted-foreground" />
+      <p class="text-sm">{{ 'XP.UserSettings.LoadFailed' | translate }}</p>
+      <button z-button zType="outline" type="button" (click)="refresh()">
+        {{ 'XP.UserSettings.Retry' | translate }}
+      </button>
+    </div>
+  } @else if (state.rows.length) {
+    <div
+      tabindex="0"
+      role="region"
+      [attr.aria-label]="'XP.UserSettings.ScrollHint' | translate"
+      class="min-w-0 overflow-x-auto rounded-lg border border-border focus-visible:outline-2 focus-visible:outline-ring"
+    >
+      <table
+        z-table
+        zSize="compact"
+        class="w-full min-w-[900px] text-sm"
+        [attr.aria-label]="'XP.UserSettings.Invitations' | translate"
+      >
+        <thead z-table-header class="text-text-secondary">
+          <tr z-table-row class="border-b bg-muted/30 hover:bg-muted/30">
+            <th z-table-head scope="col" class="w-60 bg-muted px-3 whitespace-nowrap">
+              <button
+                z-table-sort-header
+                [zDirection]="sortDirection('email')"
+                [zDisableClear]="true"
+                (zSortChange)="onSortChange('email', $event)"
+              >
+                {{ 'XP.INVITE_PAGE.Email' | translate: { Default: 'Email' } }}
+              </button>
+            </th>
 
-        <th z-table-head scope="col" class="sticky top-0 z-10 w-48 bg-background px-4 whitespace-nowrap">
-          <button
-            z-table-sort-header
-            [zDirection]="sortDirection('role')"
-            [zDisableClear]="true"
-            (zSortChange)="onSortChange('role', $event)"
-          >
-            {{ 'XP.INVITE_PAGE.Role' | translate: { Default: 'Role' } }}
-          </button>
-        </th>
+            <th z-table-head scope="col" class="w-32 bg-muted px-3 whitespace-nowrap">
+              <button
+                z-table-sort-header
+                [zDirection]="sortDirection('role')"
+                [zDisableClear]="true"
+                (zSortChange)="onSortChange('role', $event)"
+              >
+                {{ 'XP.INVITE_PAGE.Role' | translate: { Default: 'Role' } }}
+              </button>
+            </th>
 
-        <th z-table-head scope="col" class="sticky top-0 z-10 w-64 bg-background px-4 whitespace-nowrap">
-          <button
-            z-table-sort-header
-            [zDirection]="sortDirection('invitedBy')"
-            [zDisableClear]="true"
-            (zSortChange)="onSortChange('invitedBy', $event)"
-          >
-            {{ 'XP.INVITE_PAGE.InvitedBy' | translate: { Default: 'Invited By' } }}
-          </button>
-        </th>
+            <th z-table-head scope="col" class="w-36 bg-muted px-3 whitespace-nowrap">
+              <button
+                z-table-sort-header
+                [zDirection]="sortDirection('invitedBy')"
+                [zDisableClear]="true"
+                (zSortChange)="onSortChange('invitedBy', $event)"
+              >
+                {{ 'XP.INVITE_PAGE.InvitedBy' | translate: { Default: 'Invited By' } }}
+              </button>
+            </th>
 
-        <th z-table-head scope="col" class="sticky top-0 z-10 w-44 bg-background px-4 whitespace-nowrap">
-          <button
-            z-table-sort-header
-            [zDirection]="sortDirection('createdAt')"
-            [zDisableClear]="true"
-            (zSortChange)="onSortChange('createdAt', $event)"
-          >
-            {{ 'XP.INVITE_PAGE.CreatedAt' | translate: { Default: 'Created At' } }}
-          </button>
-        </th>
+            <th z-table-head scope="col" class="w-36 bg-muted px-3 whitespace-nowrap">
+              <button
+                z-table-sort-header
+                [zDirection]="sortDirection('createdAt')"
+                [zDisableClear]="true"
+                (zSortChange)="onSortChange('createdAt', $event)"
+              >
+                {{ 'XP.INVITE_PAGE.CreatedAt' | translate: { Default: 'Created At' } }}
+              </button>
+            </th>
 
-        <th z-table-head scope="col" class="sticky top-0 z-10 w-44 bg-background px-4 whitespace-nowrap">
-          <button
-            z-table-sort-header
-            [zDirection]="sortDirection('expireDate')"
-            [zDisableClear]="true"
-            (zSortChange)="onSortChange('expireDate', $event)"
-          >
-            {{ 'XP.INVITE_PAGE.Expires' | translate: { Default: 'Expires' } }}
-          </button>
-        </th>
+            <th z-table-head scope="col" class="w-36 bg-muted px-3 whitespace-nowrap">
+              <button
+                z-table-sort-header
+                [zDirection]="sortDirection('expireDate')"
+                [zDisableClear]="true"
+                (zSortChange)="onSortChange('expireDate', $event)"
+              >
+                {{ 'XP.INVITE_PAGE.Expires' | translate: { Default: 'Expires' } }}
+              </button>
+            </th>
 
-        <th z-table-head scope="col" class="sticky top-0 z-10 w-40 bg-background px-4 whitespace-nowrap">
-          <button
-            z-table-sort-header
-            [zDirection]="sortDirection('status')"
-            [zDisableClear]="true"
-            (zSortChange)="onSortChange('status', $event)"
-          >
-            {{ 'XP.INVITE_PAGE.Status' | translate: { Default: 'Status' } }}
-          </button>
-        </th>
+            <th z-table-head scope="col" class="w-28 bg-muted px-3 whitespace-nowrap">
+              <button
+                z-table-sort-header
+                [zDirection]="sortDirection('status')"
+                [zDisableClear]="true"
+                (zSortChange)="onSortChange('status', $event)"
+              >
+                {{ 'XP.INVITE_PAGE.Status' | translate: { Default: 'Status' } }}
+              </button>
+            </th>
 
-        <th
-          z-table-head
-          zTableStickyEnd
-          [zTableStickyEnd]="0"
-          [zTableStickyZIndex]="10"
-          scope="col"
-          class="sticky top-0 z-10 w-28 bg-background px-4 text-right whitespace-nowrap"
-        >
-          {{ 'XP.INVITE_PAGE.Action' | translate: { Default: 'Action' } }}
-        </th>
-      </tr>
-    </thead>
-
-    <tbody z-table-body>
-      @if (invites$ | async; as invites) {
-        @for (invite of invites; track invite.id) {
-          <tr z-table-row class="bg-components-card-bg">
-            <td z-table-cell class="px-4 py-3 text-text-secondary">
-              <span class="block max-w-64 truncate" [title]="invite.email">
-                {{ invite.email }}
-              </span>
-            </td>
-
-            <td z-table-cell class="px-4 py-3">
-              @if (invite.role; as role) {
-                <z-badge zType="secondary" zShape="pill" class="max-w-40 truncate uppercase">
-                  {{ role.name }}
-                </z-badge>
-              } @else {
-                <z-badge zType="outline" zShape="pill" class="text-text-tertiary">
-                  {{ 'XP.USERS_PAGE.NoRole' | translate: { Default: 'No Role' } }}
-                </z-badge>
-              }
-            </td>
-
-            <td z-table-cell class="px-4 py-3">
-              @if (invite.invitedBy) {
-                <xp-user-profile-inline class="min-w-0" [user]="invite.invitedBy" small />
-              } @else {
-                <span class="text-text-tertiary">
-                  {{ 'XP.KEY_WORDS.NotSet' | translate: { Default: 'Not set' } }}
-                </span>
-              }
-            </td>
-
-            <td z-table-cell class="px-4 py-3 text-text-secondary whitespace-nowrap">
-              {{ invite.createdAt || ('XP.KEY_WORDS.NotSet' | translate: { Default: 'Not set' }) }}
-            </td>
-
-            <td z-table-cell class="px-4 py-3 text-text-secondary whitespace-nowrap">
-              {{ invite.expireDate }}
-            </td>
-
-            <td z-table-cell class="px-4 py-3">
-              <z-badge zType="secondary" zShape="pill" class="gap-2 text-text-primary">
-                <span class="inline-block h-2 w-2 rounded-full" [ngClass]="statusTone(invite.displayStatus)"></span>
-                {{ invite.statusText }}
-              </z-badge>
-            </td>
-
-            <td
-              z-table-cell
+            <th
+              z-table-head
               zTableStickyEnd
               [zTableStickyEnd]="0"
-              [zTableStickyZIndex]="5"
-              class="bg-components-card-bg px-4 py-3 text-right"
+              [zTableStickyZIndex]="10"
+              scope="col"
+              class="w-28 bg-muted px-3 text-right whitespace-nowrap"
             >
-              <div class="flex items-center justify-end gap-1">
-                @if (canResend(invite.displayStatus)) {
+              {{ 'XP.INVITE_PAGE.Action' | translate: { Default: 'Action' } }}
+            </th>
+          </tr>
+        </thead>
+
+        <tbody z-table-body>
+          @for (invite of state.rows; track invite.id) {
+            <tr z-table-row class="bg-card">
+              <td z-table-cell class="px-3 py-3 text-text-secondary">
+                <span class="block max-w-44 truncate" [title]="invite.email">
+                  {{ invite.email }}
+                </span>
+              </td>
+
+              <td z-table-cell class="px-3 py-3">
+                @if (invite.role; as role) {
+                  <z-badge zType="secondary" class="max-w-28 truncate uppercase">
+                    {{ role.name }}
+                  </z-badge>
+                } @else {
+                  <z-badge zType="outline" class="text-text-tertiary">
+                    {{ 'XP.USERS_PAGE.NoRole' | translate: { Default: 'No Role' } }}
+                  </z-badge>
+                }
+              </td>
+
+              <td z-table-cell class="px-3 py-3">
+                @if (invite.invitedBy) {
+                  <xp-user-profile-inline class="min-w-0" [user]="invite.invitedBy" small />
+                } @else {
+                  <span class="text-text-tertiary">
+                    {{ 'XP.KEY_WORDS.NotSet' | translate: { Default: 'Not set' } }}
+                  </span>
+                }
+              </td>
+
+              <td z-table-cell class="px-3 py-3 text-text-secondary whitespace-nowrap">
+                {{ invite.createdAt || ('XP.KEY_WORDS.NotSet' | translate: { Default: 'Not set' }) }}
+              </td>
+
+              <td z-table-cell class="px-3 py-3 text-text-secondary whitespace-nowrap">
+                {{ invite.expireDate }}
+              </td>
+
+              <td z-table-cell class="px-3 py-3">
+                <z-badge zType="secondary" class="gap-2 text-text-primary">
+                  <span class="inline-block h-2 w-2 rounded-full" [ngClass]="statusTone(invite.displayStatus)"></span>
+                  {{ invite.statusText }}
+                </z-badge>
+              </td>
+
+              <td
+                z-table-cell
+                zTableStickyEnd
+                [zTableStickyEnd]="0"
+                [zTableStickyZIndex]="5"
+                class="bg-card px-3 py-3 text-right"
+              >
+                <div class="flex items-center justify-end gap-1">
+                  @if (canResend(invite.displayStatus)) {
+                    <button
+                      z-button
+                      zType="ghost"
+                      zSize="icon"
+                      type="button"
+                      class="text-muted-foreground pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px]"
+                      [attr.aria-label]="'XP.ACTIONS.Resend' | translate"
+                      [zTooltip]="'XP.ACTIONS.Resend' | translate: { Default: 'Resend' }"
+                      zPosition="top"
+                      (click)="
+                        resendInvite(invite.id, invite.email, invite.role, invite.organization, invite.displayStatus)
+                      "
+                    >
+                      <z-icon zType="refresh"></z-icon>
+                    </button>
+                  }
+
                   <button
                     z-button
                     zType="ghost"
                     zSize="icon"
-                    zShape="circle"
-                    class="text-text-tertiary"
-                    [zTooltip]="'XP.ACTIONS.Resend' | translate: { Default: 'Resend' }"
+                    type="button"
+                    class="text-destructive pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px]"
+                    [attr.aria-label]="'XP.ACTIONS.Delete' | translate"
+                    [zTooltip]="'XP.ACTIONS.Delete' | translate: { Default: 'Delete' }"
                     zPosition="top"
-                    (click)="
-                      resendInvite(invite.id, invite.email, invite.role, invite.organization, invite.displayStatus)
-                    "
+                    (click)="deleteInvite(invite.id, invite.email)"
                   >
-                    <z-icon zType="refresh"></z-icon>
+                    <z-icon zType="delete"></z-icon>
                   </button>
-                }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
 
-                <button
-                  z-button
-                  zType="ghost"
-                  zSize="icon"
-                  zShape="circle"
-                  class="text-text-destructive"
-                  [zTooltip]="'XP.ACTIONS.Delete' | translate: { Default: 'Delete' }"
-                  zPosition="top"
-                  (click)="deleteInvite(invite.id, invite.email)"
-                >
-                  <z-icon zType="delete"></z-icon>
-                </button>
-              </div>
-            </td>
-          </tr>
-        } @empty {
-          <tr z-table-row>
-            <td z-table-cell colspan="7" class="py-8 text-center text-text-tertiary">
-              {{ 'XP.KEY_WORDS.NoData' | translate: { Default: 'No data' } }}
-            </td>
-          </tr>
-        }
-      }
-    </tbody>
-  </table>
-</div>
+    <p class="text-xs text-muted-foreground lg:hidden">{{ 'XP.UserSettings.ScrollHint' | translate }}</p>
+  } @else {
+    <div
+      class="flex min-h-52 flex-col items-center justify-center rounded-lg border border-dashed border-border p-6 text-center"
+    >
+      <z-icon zType="mail" class="mb-3 text-muted-foreground" zSize="lg" />
+      <h2 class="text-sm font-medium">
+        {{ (state.total ? 'XP.UserSettings.NoMatchingInvites' : 'XP.UserSettings.NoInvites') | translate }}
+      </h2>
+      <p class="mt-1 max-w-md text-sm text-muted-foreground">
+        {{ (state.total ? 'XP.UserSettings.NoUsersHint' : 'XP.UserSettings.NoInvitesHint') | translate }}
+      </p>
+    </div>
+  }
+}

@@ -146,4 +146,8 @@ export class CopilotConfigFormComponent {
   onAddedModel(model: ICopilotProviderModel) {
     this.#copilotServer.refresh()
   }
+
+  onModelsImported() {
+    this.#copilotServer.refresh()
+  }
 }

@@ -10,7 +10,8 @@ import {
   ModelUsagePricingSnapshot,
   ParameterRule,
   PriceInfo,
-  PriceType
+  PriceType,
+  readModelConfiguration
 } from '@xpert-ai/contracts'
 import { Injectable, Logger } from '@nestjs/common'
 import * as fs from 'fs'
@@ -23,6 +24,7 @@ import type { AIGCModelClient, AsyncAIGCModelClient } from './types/aigc'
 import { CommonParameterRules, IAIModel, TChatModelOptions } from './types/model'
 import { ModelProfile } from './types/profile'
 import { calculateModelPrice, isModelUsagePricingConfig, resolveModelUsagePricingSnapshot } from './pricing'
+import { applyModelConfiguration } from './model-configuration'
 
 @Injectable()
 export abstract class AIModel implements IAIModel {
@@ -129,6 +131,18 @@ export abstract class AIModel implements IAIModel {
   getModelSchema(model: string, credentials?: Record<string, any>): AIModelEntity | null {
     const models = this.predefinedModels()
     const schema = models.find((_) => _.model === model)
+
+    const configuration = readModelConfiguration(credentials)
+    if (configuration) {
+      if (configuration.modelType !== this.modelType) {
+        throw new Error('Saved model configuration does not match its model type')
+      }
+      return applyModelConfiguration(
+        model,
+        configuration,
+        schema ?? this.getCustomizableModelSchemaFromCredentials(model, credentials)
+      )
+    }
 
     if (schema) {
       return schema

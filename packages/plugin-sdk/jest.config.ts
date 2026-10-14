@@ -33,5 +33,8 @@ export default {
   transformIgnorePatterns: ['/node_modules/(?!@xpert-ai/chatkit-types/|\\.pnpm/@xpert-ai\\+chatkit-types@)'],
   moduleFileExtensions: ['ts', 'js', 'html'],
   testEnvironment: 'node',
+  moduleNameMapper: {
+    '^@xpert-ai/contracts$': '<rootDir>/../contracts/src/index.ts'
+  },
   coverageDirectory: '../../coverage/packages/plugin-sdk'
 }

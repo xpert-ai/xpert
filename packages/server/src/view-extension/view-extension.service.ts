@@ -21,6 +21,7 @@ import { ViewHostDefinitionRegistry } from './host-definition.registry'
 import { ViewExtensionFileActionFile, ViewHostResolutionOptions } from './host-definition.interface'
 import { ViewExtensionPermissionService } from './view-extension.permission.service'
 import { ViewExtensionCacheService } from './view-extension.cache.service'
+import { identifyViewDataRequest } from './view-request-metrics'
 import {
 	buildBaseViewHostContext,
 	isSupportedRemoteComponentRuntime,
@@ -115,6 +116,7 @@ export class ViewExtensionService {
 		const resolved = await this.resolveProviderManifest(context, viewKey)
 
 		this.permissionService.ensureManifestVisible(resolved.manifest)
+		identifyViewDataRequest(RequestContext.currentRequest(), context, resolved.manifest)
 		validateQuery(query, resolved.manifest.dataSource)
 
 		const cacheEnabled = resolved.manifest.dataSource.cache?.enabled !== false

@@ -1,117 +1,131 @@
 jest.mock('echarts/core', () => ({ registerTheme: jest.fn() }))
 
 import { signal } from '@angular/core'
-import { fakeAsync, TestBed, tick } from '@angular/core/testing'
-import { UsersService } from '@cloud/app/@core/state'
+import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testing'
+import { TranslateModule } from '@ngx-translate/core'
+import { IUser, RolesEnum } from '@xpert-ai/contracts'
 import { BehaviorSubject, of } from 'rxjs'
-import { ToastrService, XpertAPIService } from '../../../../@core'
+import { ToastrService, UsersService } from '@cloud/app/@core/state'
+import { XpertAPIService } from '../../../../@core'
 import { XpEditUserComponent } from '../edit-user/edit-user.component'
 import { UserBasicComponent } from './user-basic.component'
 
 describe('UserBasicComponent', () => {
-  it('loads the linked Xpert only for read-only technical user details', fakeAsync(() => {
-    const userId$ = new BehaviorSubject('user-1')
-    const xpertService = {
-      getByPrincipalUser: jest.fn().mockReturnValue(
-        of({
-          id: 'xpert-1',
-          name: 'linked-xpert'
-        })
-      )
-    }
+  let fixture: ComponentFixture<UserBasicComponent>
+  let component: UserBasicComponent
+  let currentUser: ReturnType<typeof signal<IUser>>
+  let userId$: BehaviorSubject<string>
+  let update: jest.Mock
+  let reloadUser: jest.Mock
+  let getByPrincipalUser: jest.Mock
 
-    TestBed.configureTestingModule({
-      imports: [UserBasicComponent],
+  beforeEach(async () => {
+    currentUser = signal<IUser>({
+      id: 'user-1',
+      firstName: 'Admin',
+      email: 'first@example.com',
+      username: 'admin',
+      roleId: 'role-admin',
+      role: { id: 'role-admin', name: RolesEnum.SUPER_ADMIN }
+    })
+    userId$ = new BehaviorSubject('user-1')
+    update = jest.fn().mockResolvedValue({})
+    reloadUser = jest.fn()
+    getByPrincipalUser = jest.fn().mockReturnValue(of({ id: 'xpert-1', name: 'linked-xpert' }))
+    await TestBed.configureTestingModule({
+      imports: [UserBasicComponent, TranslateModule.forRoot()],
       providers: [
         {
           provide: XpEditUserComponent,
           useValue: {
             userId$,
-            user: signal({ id: 'user-1' })
+            user: currentUser,
+            roles: signal([{ id: 'role-admin', name: RolesEnum.SUPER_ADMIN }]),
+            isTenantScope: signal(false),
+            roleLabel: () => currentUser().role?.name,
+            reloadUser
           }
         },
-        { provide: UsersService, useValue: {} },
-        { provide: XpertAPIService, useValue: xpertService },
-        { provide: ToastrService, useValue: {} }
+        { provide: UsersService, useValue: { update } },
+        { provide: XpertAPIService, useValue: { getByPrincipalUser } },
+        { provide: ToastrService, useValue: { success: jest.fn(), error: jest.fn() } }
       ]
-    }).overrideComponent(UserBasicComponent, {
-      set: {
-        imports: [],
-        template: ''
-      }
-    })
+    }).compileComponents()
+    fixture = TestBed.createComponent(UserBasicComponent)
+    component = fixture.componentInstance
+  })
 
-    const fixture = TestBed.createComponent(UserBasicComponent)
+  it('shows organization read-only details as text, with the resolved role and correct reason', () => {
+    fixture.componentRef.setInput('readOnly', true)
+    fixture.detectChanges()
+    const root: HTMLElement = fixture.nativeElement
+    expect(root.querySelectorAll('input, z-combobox')).toHaveLength(0)
+    expect(root.textContent).toContain('XP.UserDetail.OrganizationReadOnlyHint')
+    expect(root.textContent).toContain('SUPER_ADMIN')
+    expect(root.textContent).not.toContain('XP.Users.TechnicalUserReadonlyHint')
+  })
+
+  it('loads the linked assistant only for technical users', fakeAsync(() => {
     fixture.detectChanges()
     tick()
-    expect(xpertService.getByPrincipalUser).not.toHaveBeenCalled()
-
+    expect(getByPrincipalUser).not.toHaveBeenCalled()
     fixture.componentRef.setInput('readOnly', true)
     fixture.componentRef.setInput('showLinkedXpert', true)
     fixture.detectChanges()
     tick()
-    expect(xpertService.getByPrincipalUser).toHaveBeenCalledTimes(1)
-    expect(xpertService.getByPrincipalUser).toHaveBeenCalledWith('user-1')
-    expect(fixture.componentInstance.linkedXpert()).toMatchObject({ id: 'xpert-1' })
+    expect(getByPrincipalUser).toHaveBeenCalledWith('user-1')
+    expect(component.linkedXpert()).toMatchObject({ id: 'xpert-1' })
+    expect(fixture.nativeElement.textContent).toContain('XP.Users.TechnicalUserReadonlyHint')
   }))
 
-  it('uses the latest loaded user id when the editable form model loses its id', async () => {
-    const firstUserId = '123e4567-e89b-42d3-a456-426614174000'
-    const latestUserId = '223e4567-e89b-42d3-a456-426614174000'
-    const userId$ = new BehaviorSubject(firstUserId)
-    const currentUser = signal({
-      id: firstUserId,
-      email: 'first@example.com',
-      username: 'first@example.com'
-    })
-    const update = jest.fn().mockRejectedValue(new Error('stop after update request'))
-    const danger = jest.fn()
-
-    TestBed.configureTestingModule({
-      imports: [UserBasicComponent],
-      providers: [
-        {
-          provide: XpEditUserComponent,
-          useValue: {
-            userId$,
-            user: currentUser
-          }
-        },
-        { provide: UsersService, useValue: { update } },
-        { provide: XpertAPIService, useValue: { getByPrincipalUser: jest.fn() } },
-        { provide: ToastrService, useValue: { danger } }
-      ]
-    }).overrideComponent(UserBasicComponent, {
-      set: {
-        imports: [],
-        template: ''
-      }
-    })
-
-    const fixture = TestBed.createComponent(UserBasicComponent)
+  it('retains the latest loaded user id independently of form values and refreshes the identity after saving', async () => {
+    fixture.componentRef.setInput('allowRoleChange', true)
     fixture.detectChanges()
-
-    userId$.next(latestUserId)
-    currentUser.set({
-      id: latestUserId,
-      email: 'latest@example.com',
-      username: 'latest@example.com'
-    })
+    userId$.next('user-2')
+    currentUser.set({ ...currentUser(), id: 'user-2', email: 'latest@example.com' })
     fixture.detectChanges()
-
-    const editableUser = { ...fixture.componentInstance.user }
-    Reflect.deleteProperty(editableUser, 'id')
-    Reflect.set(fixture.componentInstance, 'user', editableUser)
-
-    await fixture.componentInstance.save()
-
+    component.form.controls.firstName.setValue('Updated')
+    component.form.markAsDirty()
+    await component.save()
     expect(update).toHaveBeenCalledWith(
-      latestUserId,
-      expect.objectContaining({
-        email: 'latest@example.com',
-        username: 'latest@example.com'
-      })
+      'user-2',
+      expect.objectContaining({ firstName: 'Updated', email: 'latest@example.com', roleId: 'role-admin' })
     )
-    expect(danger).toHaveBeenCalled()
+    expect(component.form.pristine).toBe(true)
+    expect(reloadUser).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not send a role change without the existing role-change permission', async () => {
+    fixture.componentRef.setInput('allowRoleChange', false)
+    fixture.detectChanges()
+    component.form.patchValue({ firstName: 'Changed', roleId: 'another-role' })
+    component.form.markAsDirty()
+    await component.save()
+    expect(component.form.controls.roleId.disabled).toBe(true)
+    expect(update).toHaveBeenCalledWith('user-1', expect.not.objectContaining({ roleId: expect.anything() }))
+  })
+
+  it('blocks read-only, pristine, and invalid submissions', async () => {
+    fixture.detectChanges()
+    expect(fixture.nativeElement.querySelector('button[type=submit]').disabled).toBe(true)
+    await component.save()
+    component.form.controls.email.setValue('invalid-email')
+    component.form.markAsDirty()
+    await component.save()
+    expect(component.form.controls.email.touched).toBe(true)
+    fixture.componentRef.setInput('readOnly', true)
+    fixture.detectChanges()
+    await component.save()
+    expect(update).not.toHaveBeenCalled()
+  })
+
+  it('resets dirty fields back to the loaded user', () => {
+    fixture.detectChanges()
+    component.form.controls.firstName.setValue('Unsaved')
+    component.form.markAsDirty()
+    expect(component.hasChanges()).toBe(true)
+    component.reset()
+    expect(component.form.controls.firstName.value).toBe('Admin')
+    expect(component.hasChanges()).toBe(false)
   })
 })

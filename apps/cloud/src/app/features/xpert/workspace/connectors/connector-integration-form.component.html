@@ -1,0 +1,73 @@
+<div class="grid gap-3" data-connector-integration>
+  <div class="text-sm font-medium text-text-primary">{{ 'XP.Xpert.ConnectorSystemIntegration' | translate }}</div>
+  @if (loading()) {
+    <p class="text-sm text-text-secondary">{{ 'XP.Xpert.ConnectorIntegrationLoading' | translate }}</p>
+  } @else if (error()) {
+    <p role="alert" class="text-sm text-text-danger">{{ error() }}</p>
+  } @else if (readonly()) {
+    <p class="text-sm text-text-secondary">
+      {{ selectedName() || ('XP.Xpert.ConnectorIntegrationUnavailable' | translate) }}
+    </p>
+  } @else {
+    <div class="flex gap-2">
+      <button
+        z-button
+        type="button"
+        [zType]="mode() === 'existing' ? 'default' : 'outline'"
+        (click)="configure('existing')"
+      >
+        {{ 'XP.Xpert.ConnectorUseExistingIntegration' | translate }}
+      </button>
+      <button z-button type="button" [zType]="mode() === 'new' ? 'default' : 'outline'" (click)="configure('new')">
+        {{ 'XP.Xpert.ConnectorCreateIntegration' | translate }}
+      </button>
+    </div>
+    <div class="grid gap-3" [formGroup]="form">
+      @if (mode() === 'existing') {
+        <z-form-field>
+          <z-select
+            class="w-full"
+            formControlName="integrationId"
+            [zPlaceholder]="'XP.Xpert.ConnectorSelectIntegration' | translate"
+          >
+            @for (option of options(); track option.id) {
+              <z-select-item [zValue]="option.id"
+                >{{ option.name }} ·
+                {{
+                  (option.organizationId
+                    ? 'XP.Xpert.ConnectorIntegrationOrganization'
+                    : 'XP.Xpert.ConnectorIntegrationTenant'
+                  ) | translate
+                }}</z-select-item
+              >
+            }
+          </z-select>
+          @if (!options().length || (savedIntegrationId() && !selectedName())) {
+            <z-form-message>{{ 'XP.Xpert.ConnectorIntegrationUnavailable' | translate }}</z-form-message>
+          }
+        </z-form-field>
+      } @else {
+        @for (field of config().fields; track field.name) {
+          <z-form-field>
+            <z-form-label
+              >{{ field.label | i18n }}
+              @if (field.required) {
+                <span aria-hidden="true">*</span>
+              }
+            </z-form-label>
+            <input
+              z-input
+              [formControlName]="field.name"
+              [attr.data-integration-field]="field.name"
+              [type]="field.secret || field.type === 'password' ? 'password' : 'text'"
+              [attr.autocomplete]="field.secret || field.type === 'password' ? 'new-password' : 'off'"
+              [attr.name]="'connector-app-' + field.name"
+            />
+          </z-form-field>
+        }
+        <p class="text-xs text-text-secondary">{{ 'XP.Xpert.ConnectorIntegrationCallback' | translate }}</p>
+        <code class="break-all text-xs text-text-secondary">{{ callbackUrl }}</code>
+      }
+    </div>
+  }
+</div>

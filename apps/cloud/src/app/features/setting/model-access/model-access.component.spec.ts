@@ -1,13 +1,15 @@
 import { Dialog } from '@angular/cdk/dialog'
+import { TranslateModule } from '@ngx-translate/core'
 import { TestBed } from '@angular/core/testing'
 import {
   AIPermissionsEnum,
+  IModelAccessRequest,
   ModelAccessChannelEnum,
   ModelAccessRequestStatusEnum,
   RequestScopeLevel
 } from '@xpert-ai/contracts'
 import { Store } from '@cloud/app/@core/state'
-import { BehaviorSubject, of } from 'rxjs'
+import { BehaviorSubject, of, Subject } from 'rxjs'
 import { ModelAccessService } from '../../../@core/services/model-access.service'
 import { ToastrService } from '../../../@core/services/toastr.service'
 import { ModelAccessAdminComponent } from './model-access.component'
@@ -49,7 +51,7 @@ describe('ModelAccessAdminComponent', () => {
       open: jest.fn()
     }
     await TestBed.configureTestingModule({
-      imports: [ModelAccessAdminComponent],
+      imports: [ModelAccessAdminComponent, TranslateModule.forRoot()],
       providers: [
         { provide: ModelAccessService, useValue: service },
         { provide: Store, useValue: store },
@@ -163,6 +165,52 @@ describe('ModelAccessAdminComponent', () => {
     expect(component.eventScope({ organizationId: 'org-1' })).toBe('organization')
     expect(component.eventScope({ organizationId: null })).toBe('tenant')
   })
+
+  it('clears tab-specific filters and reloads when moving to audit', () => {
+    const load = jest.spyOn(component, 'load').mockResolvedValue(undefined)
+    component.activeTab.set('grants')
+    component.filterForm.patchValue({ status: 'active', expiresBefore: new Date(2027, 2, 14), channel: 'external_api' })
+    component.setTab('audit')
+    expect(component.filterForm.getRawValue()).toEqual(
+      expect.objectContaining({ status: '', expiresBefore: null, channel: 'external_api' })
+    )
+    expect(load).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not let an older scope response replace the latest records', async () => {
+    const older = new Subject<{ items: IModelAccessRequest[]; total: number }>()
+    service.getAdminRequests.mockReturnValueOnce(older)
+    const firstLoad = component.load()
+    service.getAdminRequests.mockReturnValueOnce(of({ items: [], total: 0 }))
+    await component.load()
+    older.next({ items: [], total: 99 })
+    await firstLoad
+    expect(component.requestTotal()).toBe(0)
+    expect(component.loading()).toBe(false)
+  })
+
+  it.each([
+    ['reject', 'rejectRequest', { reason: 'Not needed' }, { reason: 'Not needed' }],
+    ['revoke', 'revokeGrant', { reason: 'No longer needed' }, { reason: 'No longer needed' }],
+    ['extend', 'extendGrant', { validUntil: null, note: 'Permanent' }, { validUntil: null, note: 'Permanent' }]
+  ] as const)('preserves the %s action payload and refreshes records', async (action, method, result, payload) => {
+    dialog.open.mockReturnValue({ closed: of(result) })
+    const load = jest.spyOn(component, 'load').mockResolvedValue(undefined)
+    await component[action]({ id: 'target' } as never)
+    expect(service[method]).toHaveBeenCalledWith('target', payload)
+    expect(load).toHaveBeenCalledTimes(1)
+  })
+
+  it.each(['approve', 'reject', 'extend', 'revoke'] as const)(
+    'does not mutate data when %s is cancelled',
+    async (action) => {
+      dialog.open.mockReturnValue({ closed: of(null) })
+      await component[action]({ id: 'target' } as never)
+      for (const method of ['approveRequest', 'rejectRequest', 'extendGrant', 'revokeGrant'] as const) {
+        expect(service[method]).not.toHaveBeenCalled()
+      }
+    }
+  )
 
   it('approves a request and reloads all management lists', async () => {
     dialog.open.mockReturnValue({

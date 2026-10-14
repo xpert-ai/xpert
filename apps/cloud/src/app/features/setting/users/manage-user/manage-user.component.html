@@ -1,132 +1,154 @@
-<div
-  class="flex flex-col gap-3 rounded-2xl bg-components-panel-bg px-4 py-3 md:flex-row md:items-center md:justify-between"
->
-  <z-search-input
-    class="min-w-0 flex-1 md:max-w-md"
-    [placeholder]="'XP.KEY_WORDS.Search' | translate: { Default: 'Search' }"
-    [clearLabel]="'XP.ACTIONS.Clear' | translate: { Default: 'Clear search' }"
-    [(ngModel)]="search"
-  />
-
-  <div class="flex flex-col gap-3 lg:flex-row lg:items-center">
-    <div class="flex flex-wrap items-center gap-1">
+<div class="flex flex-col gap-3">
+  <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <z-search-input
+      class="w-full sm:max-w-sm pointer-coarse:[&_input]:min-h-[44px]"
+      [placeholder]="'XP.UserSettings.SearchUsers' | translate"
+      [clearLabel]="'XP.ACTIONS.Clear' | translate"
+      [(ngModel)]="search"
+    />
+    <div
+      class="flex w-fit max-w-full items-center gap-1 rounded-lg bg-muted p-1"
+      role="group"
+      [attr.aria-label]="'XP.Users.UserType' | translate"
+    >
       @for (option of userTypeQuickFilters; track option.value ?? 'all') {
         <button
           z-button
           type="button"
           zSize="sm"
-          [zType]="isUserTypeQuickFilterActive(option.value) ? 'default' : 'ghost'"
+          [zType]="isUserTypeQuickFilterActive(option.value) ? 'secondary' : 'ghost'"
+          [class]="isUserTypeQuickFilterActive(option.value) ? 'bg-background shadow-sm' : 'text-muted-foreground'"
+          class="pointer-coarse:min-h-[44px]"
+          [attr.aria-pressed]="isUserTypeQuickFilterActive(option.value)"
           (click)="selectUserTypeQuickFilter(option.value)"
         >
           {{ option.labelKey | translate: { Default: option.defaultLabel } }}
         </button>
       }
     </div>
-
-    <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-      <label class="shrink-0 text-sm text-text-tertiary">
-        {{ 'XP.KEY_WORDS.Role' | translate: { Default: 'Role' } }}
-      </label>
-
-      @if (availableRoles$ | async; as availableRoles) {
-        <z-select
-          class="w-full max-w-full sm:min-w-56 sm:w-auto"
-          [zMultiple]="true"
-          [zValue]="roles"
-          [zMaxLabelCount]="2"
-          [zPlaceholder]="'FORM.PLACEHOLDERS.ROLE' | translate: { Default: 'Select roles' }"
-          (zSelectionChange)="onRolesSelectionChange($event)"
-        >
-          @for (role of availableRoles; track role) {
-            <z-select-item [zValue]="role">
-              {{ role }}
-            </z-select-item>
-          }
-        </z-select>
-      }
-    </div>
-
-    <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-      <label class="shrink-0 text-sm text-text-tertiary">
-        {{ 'XP.KEY_WORDS.Status' | translate: { Default: 'Status' } }}
-      </label>
-
+  </div>
+  <div class="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,.8fr)_minmax(0,1.4fr)]">
+    <label class="flex min-w-0 flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+      <span>{{ 'XP.KEY_WORDS.Role' | translate }}</span>
       <z-select
-        class="w-full max-w-full sm:w-40"
+        class="w-full min-w-0 pointer-coarse:[&_button]:min-h-[44px]"
+        [zMultiple]="true"
+        [zClearable]="true"
+        [zValue]="roles"
+        [zMaxLabelCount]="1"
+        [zPlaceholder]="'XP.UserSettings.AllRoles' | translate"
+        (zSelectionChange)="onRolesSelectionChange($event)"
+      >
+        @for (role of availableRoles$ | async; track role) {
+          <z-select-item [zValue]="role">{{ role }}</z-select-item>
+        }
+      </z-select>
+    </label>
+    <label class="flex min-w-0 flex-col gap-1.5 text-xs font-medium text-muted-foreground">
+      <span>{{ 'XP.KEY_WORDS.Status' | translate }}</span>
+      <z-select
+        class="w-full min-w-0 pointer-coarse:[&_button]:min-h-[44px]"
         [zValue]="status"
-        [zPlaceholder]="'XP.KEY_WORDS.Status' | translate: { Default: 'Status' }"
         (zSelectionChange)="onStatusSelectionChange($event)"
       >
         @for (option of statusOptions; track option.value) {
-          <z-select-item [zValue]="option.value">
-            {{ option.labelKey | translate: { Default: option.defaultLabel } }}
-          </z-select-item>
+          <z-select-item [zValue]="option.value">{{
+            option.labelKey | translate: { Default: option.defaultLabel }
+          }}</z-select-item>
         }
       </z-select>
-    </div>
-
-    <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
-      <label class="shrink-0 text-sm text-text-tertiary">
-        {{ 'XP.KEY_WORDS.ORGANIZATION' | translate: { Default: 'Organization' } }}
-      </label>
-
-      @if (availableOrganizations$ | async; as availableOrganizations) {
-        <z-select
-          class="w-full max-w-full sm:min-w-64 sm:w-auto"
-          [zMultiple]="true"
-          [zValue]="organizationIds"
-          [zMaxLabelCount]="2"
-          [zPlaceholder]="'XP.KEY_WORDS.ORGANIZATION' | translate: { Default: 'Organization' }"
-          (zSelectionChange)="onOrganizationSelectionChange($event)"
-        >
-          @for (organization of availableOrganizations; track organization.id || organization.name) {
-            @if (organization.id) {
-              <z-select-item [zValue]="organization.id">
-                {{ organization.name }}
-              </z-select-item>
-            }
+    </label>
+    <label class="col-span-2 flex min-w-0 flex-col gap-1.5 text-xs font-medium text-muted-foreground sm:col-span-1">
+      <span>{{ 'XP.KEY_WORDS.ORGANIZATION' | translate }}</span>
+      <z-select
+        class="w-full min-w-0 pointer-coarse:[&_button]:min-h-[44px]"
+        [zMultiple]="true"
+        [zClearable]="true"
+        [zValue]="organizationIds"
+        [zMaxLabelCount]="1"
+        [zPlaceholder]="'XP.UserSettings.AllOrganizations' | translate"
+        (zSelectionChange)="onOrganizationSelectionChange($event)"
+      >
+        @for (organization of availableOrganizations$ | async; track organization.id || organization.name) {
+          @if (organization.id) {
+            <z-select-item [zValue]="organization.id">{{ organization.name }}</z-select-item>
           }
-        </z-select>
-      }
-    </div>
+        }
+      </z-select>
+    </label>
   </div>
 </div>
-
-@if (users$ | async; as users) {
-  <div class="flex items-center justify-between px-1 text-sm text-text-tertiary">
-    <span>
-      {{ users.length }}
-      {{ 'XP.KEY_WORDS.Users' | translate: { Default: 'Users' } }}
-    </span>
-
+@if (state$ | async; as state) {
+  <div class="flex min-h-8 flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+    <p role="status">
+      @if (state.status === 'ready') {
+        {{ 'XP.UserSettings.UserCount' | translate: { count: state.users.length } }}
+      }
+    </p>
     @if (roles.length || !isDefaultUserTypeFilter() || status !== allStatusFilter || organizationIds.length) {
-      <button z-button zType="ghost" zSize="sm" type="button" (click)="clearFilters()">
-        {{ 'XP.KEY_WORDS.Clear' | translate: { Default: 'Clear' } }}
+      <button
+        z-button
+        zType="ghost"
+        zSize="sm"
+        type="button"
+        class="pointer-coarse:min-h-[44px]"
+        (click)="clearFilters()"
+      >
+        {{ 'XP.UserSettings.ResetFilters' | translate }}
       </button>
     }
   </div>
-
-  @if (users.length) {
-    <div class="min-h-0 overflow-auto rounded-xl border border-divider-regular bg-components-card-bg">
-      <table z-table zSize="compact" class="min-w-max text-sm">
+  @if (state.status === 'loading') {
+    <div
+      role="status"
+      class="flex min-h-48 items-center justify-center gap-2 rounded-lg border border-border text-sm text-muted-foreground"
+    >
+      <z-icon zType="loader-circle" class="animate-spin motion-reduce:animate-none" />{{
+        'XP.UserSettings.Loading' | translate
+      }}
+    </div>
+  } @else if (state.status === 'error') {
+    <div
+      role="alert"
+      class="flex min-h-48 flex-col items-center justify-center gap-3 rounded-lg border border-border p-6 text-center"
+    >
+      <z-icon zType="circle-alert" class="text-muted-foreground" />
+      <p class="text-sm">{{ 'XP.UserSettings.LoadFailed' | translate }}</p>
+      <button z-button zType="outline" type="button" (click)="refresh$.next()">
+        {{ 'XP.UserSettings.Retry' | translate }}
+      </button>
+    </div>
+  } @else if (state.users.length) {
+    <div
+      tabindex="0"
+      role="region"
+      [attr.aria-label]="'XP.UserSettings.ScrollHint' | translate"
+      class="min-w-0 overflow-x-auto rounded-lg border border-border focus-visible:outline-2 focus-visible:outline-ring"
+    >
+      <table
+        z-table
+        zSize="compact"
+        class="w-full min-w-[920px] text-sm"
+        [attr.aria-label]="'XP.UserSettings.Directory' | translate"
+      >
         <thead z-table-header class="text-text-secondary">
           <tr z-table-row class="border-b bg-muted/30 hover:bg-muted/30">
-            <th z-table-head scope="col" class="sticky top-0 z-10 w-80 bg-background px-4 whitespace-nowrap">
+            <th z-table-head scope="col" class="w-52 bg-muted px-3 whitespace-nowrap">
               {{ 'XP.KEY_WORDS.User' | translate: { Default: 'User' } }}
             </th>
-            <th z-table-head scope="col" class="sticky top-0 z-10 w-40 bg-background px-4 whitespace-nowrap">
+            <th z-table-head scope="col" class="w-28 bg-muted px-3 whitespace-nowrap">
               {{ 'XP.Users.UserType' | translate: { Default: 'User type' } }}
             </th>
-            <th z-table-head scope="col" class="sticky top-0 z-10 w-64 bg-background px-4 whitespace-nowrap">
+            <th z-table-head scope="col" class="w-52 bg-muted px-3 whitespace-nowrap">
               {{ 'XP.KEY_WORDS.ORGANIZATION' | translate: { Default: 'Organization' } }}
             </th>
-            <th z-table-head scope="col" class="sticky top-0 z-10 w-32 bg-background px-4 whitespace-nowrap">
+            <th z-table-head scope="col" class="w-24 bg-muted px-3 whitespace-nowrap">
               {{ 'XP.KEY_WORDS.Status' | translate: { Default: 'Status' } }}
             </th>
-            <th z-table-head scope="col" class="sticky top-0 z-10 w-40 bg-background px-4 whitespace-nowrap">
+            <th z-table-head scope="col" class="w-28 bg-muted px-3 whitespace-nowrap">
               {{ 'XP.KEY_WORDS.UpdatedAt' | translate: { Default: 'Updated' } }}
             </th>
-            <th z-table-head scope="col" class="sticky top-0 z-10 w-56 bg-background px-4 whitespace-nowrap">
+            <th z-table-head scope="col" class="w-36 bg-muted px-3 whitespace-nowrap">
               {{ 'XP.KEY_WORDS.Role' | translate: { Default: 'Role' } }}
             </th>
             @if (canEditUsers()) {
@@ -136,7 +158,7 @@
                 [zTableStickyEnd]="0"
                 [zTableStickyZIndex]="10"
                 scope="col"
-                class="sticky top-0 z-10 w-32 bg-background px-4 text-left whitespace-nowrap"
+                class="w-24 bg-muted px-3 text-left whitespace-nowrap"
               >
                 {{ 'XP.KEY_WORDS.ACTION' | translate: { Default: 'Action' } }}
               </th>
@@ -145,39 +167,52 @@
         </thead>
 
         <tbody z-table-body>
-          @for (user of users; track user.id) {
+          @for (user of state.users; track user.id) {
             <tr
               z-table-row
-              class="group bg-components-card-bg"
-              [class.cursor-pointer]="canOpenUsers()"
+              class="group bg-card"
+              [class]="canOpenUsers() ? 'cursor-pointer' : ''"
               (click)="openUser(user)"
             >
-              <td z-table-cell class="px-4 py-3">
+              <td z-table-cell class="px-3 py-3">
                 <div class="flex min-w-0 items-center gap-3">
                   <div class="relative h-8 w-8 shrink-0">
                     <img
-                      class="h-full w-full rounded-full object-cover object-center"
+                      class="h-full w-full rounded-md object-cover object-center"
                       [src]="user.imageUrl || '/assets/images/avatar-default.svg'"
                       [alt]="userIdentityTitle(user)"
                     />
                     @if (user.deletedAt) {
                       <span
-                        class="absolute right-0 bottom-0 h-2 w-2 rounded-full bg-text-tertiary ring ring-components-card-bg"
+                        class="absolute right-0 bottom-0 h-2 w-2 rounded-md bg-text-tertiary ring ring-components-card-bg"
                       ></span>
                     } @else {
                       <span
-                        class="absolute right-0 bottom-0 h-2 w-2 rounded-full bg-text-success ring ring-components-card-bg"
+                        class="absolute right-0 bottom-0 h-2 w-2 rounded-md bg-text-success ring ring-components-card-bg"
                       ></span>
                     }
                   </div>
 
                   <div class="min-w-0">
-                    <div class="max-w-64 truncate font-medium text-text-primary" [title]="userIdentityTitle(user)">
-                      {{ userIdentityTitle(user) || ('XP.KEY_WORDS.NotSet' | translate: { Default: 'Not set' }) }}
-                    </div>
+                    @if (canOpenUsers()) {
+                      <button
+                        type="button"
+                        class="block max-w-52 truncate rounded-sm text-left font-medium text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-ring"
+                        [title]="userIdentityTitle(user)"
+                        (click)="openUser(user); $event.stopPropagation()"
+                      >
+                        {{ userIdentityTitle(user) || ('XP.KEY_WORDS.NotSet' | translate) }}
+                      </button>
+                    } @else {
+                      <span
+                        class="block max-w-52 truncate font-medium text-foreground"
+                        [title]="userIdentityTitle(user)"
+                        >{{ userIdentityTitle(user) || ('XP.KEY_WORDS.NotSet' | translate) }}</span
+                      >
+                    }
 
                     @if (userIdentitySubtitle(user)) {
-                      <div class="max-w-64 truncate text-xs text-text-tertiary" [title]="userIdentitySubtitle(user)">
+                      <div class="max-w-52 truncate text-xs text-text-tertiary" [title]="userIdentitySubtitle(user)">
                         {{ userIdentitySubtitle(user) }}
                       </div>
                     }
@@ -185,18 +220,13 @@
                 </div>
               </td>
 
-              <td z-table-cell class="px-4 py-3">
-                <z-badge
-                  zType="secondary"
-                  zShape="pill"
-                  class="max-w-36 truncate"
-                  [ngClass]="userTypeBadgeClass(user.type)"
-                >
+              <td z-table-cell class="px-3 py-3">
+                <z-badge zType="secondary" class="max-w-36 truncate" [ngClass]="userTypeBadgeClass(user.type)">
                   {{ userTypeLabelKey(user.type) | translate: { Default: userTypeDefaultLabel(user.type) } }}
                 </z-badge>
               </td>
 
-              <td z-table-cell class="px-4 py-3">
+              <td z-table-cell class="px-3 py-3">
                 @if (user.displayOrganizations.length) {
                   <div class="flex min-w-0 max-w-60 flex-wrap gap-1">
                     @for (
@@ -205,17 +235,16 @@
                     ) {
                       <z-badge
                         zType="secondary"
-                        zShape="pill"
                         class="min-w-0 max-w-full"
                         [zTooltip]="organization.name"
-                        zTooltipClass="max-w-80 break-all whitespace-normal"
+                        zTooltipClass="max-w-64 break-all whitespace-normal"
                       >
                         <span class="min-w-0 max-w-full truncate">{{ organization.name }}</span>
                       </z-badge>
                     }
 
                     @if (user.displayOrganizations.length > 2) {
-                      <z-badge zType="outline" zShape="pill" class="text-text-tertiary">
+                      <z-badge zType="outline" class="text-text-tertiary">
                         +{{ user.displayOrganizations.length - 2 }}
                       </z-badge>
                     }
@@ -227,19 +256,19 @@
                 }
               </td>
 
-              <td z-table-cell class="px-4 py-3">
+              <td z-table-cell class="px-3 py-3">
                 @if (user.deletedAt) {
-                  <z-badge zType="secondary" zShape="pill" class="text-text-tertiary">
+                  <z-badge zType="secondary" class="text-text-tertiary">
                     {{ 'XP.KEY_WORDS.Disabled' | translate: { Default: 'Disabled' } }}
                   </z-badge>
                 } @else {
-                  <z-badge zType="secondary" zShape="pill" class="text-text-success">
+                  <z-badge zType="secondary" class="text-text-success">
                     {{ 'XP.KEY_WORDS.Active' | translate: { Default: 'Active' } }}
                   </z-badge>
                 }
               </td>
 
-              <td z-table-cell class="px-4 py-3 text-text-secondary whitespace-nowrap">
+              <td z-table-cell class="px-3 py-3 text-text-secondary whitespace-nowrap">
                 @if (user.updatedAt) {
                   {{ user.updatedAt | relative }}
                 } @else {
@@ -247,18 +276,17 @@
                 }
               </td>
 
-              <td z-table-cell class="px-4 py-3">
+              <td z-table-cell class="px-3 py-3">
                 @if (user.role; as role) {
                   <z-badge
                     zType="secondary"
-                    zShape="pill"
                     class="max-w-48 truncate uppercase"
                     [ngClass]="roleBadgeClassMap[role.name] ?? defaultRoleBadgeClass"
                   >
                     {{ role.name }}
                   </z-badge>
                 } @else {
-                  <z-badge zType="outline" zShape="pill" class="text-text-tertiary">
+                  <z-badge zType="outline" class="text-text-tertiary">
                     {{ 'XP.USERS_PAGE.NoRole' | translate: { Default: 'No Role' } }}
                   </z-badge>
                 }
@@ -270,16 +298,15 @@
                   zTableStickyEnd
                   [zTableStickyEnd]="0"
                   [zTableStickyZIndex]="5"
-                  class="bg-components-card-bg px-4 py-3 text-left"
+                  class="bg-card px-3 py-3 text-left"
                 >
                   <div class="flex items-center justify-start gap-1">
                     <button
                       z-button
                       zType="ghost"
                       zSize="icon"
-                      zShape="circle"
                       type="button"
-                      class="text-text-tertiary"
+                      class="text-muted-foreground pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px]"
                       [routerLink]="['/settings/users/', user.id]"
                       [attr.aria-label]="'XP.ACTIONS.Edit' | translate: { Default: 'Edit' }"
                       (click)="$event.stopPropagation()"
@@ -292,9 +319,8 @@
                         z-button
                         zType="ghost"
                         zSize="icon"
-                        zShape="circle"
                         type="button"
-                        class="text-text-destructive"
+                        class="text-destructive pointer-coarse:min-h-[44px] pointer-coarse:min-w-[44px]"
                         [attr.aria-label]="'XP.ACTIONS.Delete' | translate: { Default: 'Delete' }"
                         (click)="remove(user); $event.stopPropagation()"
                       >
@@ -311,12 +337,14 @@
     </div>
   } @else {
     <div
-      class="flex min-h-64 flex-col items-center justify-center rounded-xl border border-dashed border-divider-regular bg-components-panel-bg px-6 py-10 text-center"
+      class="flex min-h-52 flex-col items-center justify-center rounded-lg border border-dashed border-border p-6 text-center"
     >
-      <z-icon zType="users" class="text-text-tertiary" zSize="lg"></z-icon>
-      <div class="mt-3 text-sm font-medium text-text-primary">
-        {{ 'XP.KEY_WORDS.NoData' | translate: { Default: 'No data' } }}
-      </div>
+      <z-icon zType="users" class="mb-3 text-muted-foreground" zSize="lg" />
+      <h2 class="text-sm font-medium">{{ 'XP.UserSettings.NoUsers' | translate }}</h2>
+      <p class="mt-1 text-sm text-muted-foreground">{{ 'XP.UserSettings.NoUsersHint' | translate }}</p>
     </div>
+  }
+  @if (state.status === 'ready' && state.users.length) {
+    <p class="text-xs text-muted-foreground lg:hidden">{{ 'XP.UserSettings.ScrollHint' | translate }}</p>
   }
 }

@@ -1,3 +1,4 @@
+import { Clipboard } from '@angular/cdk/clipboard'
 import { Dialog } from '@angular/cdk/dialog'
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
@@ -5,7 +6,13 @@ import { FormBuilder, FormControl, FormsModule, ReactiveFormsModule, Validators 
 import { ActivatedRoute, Router } from '@angular/router'
 import { IFeatureOrganization, IOrganizationCreateInput, IUser, OrganizationDemoNetworkEnum } from '@xpert-ai/contracts'
 import { CURRENT_USER_FULL_RELATIONS, UsersService } from '@cloud/app/@core/state'
-import { injectConfirmDelete, XpTableComponent } from '@xpert-ai/headless-ui'
+import {
+  injectConfirmDelete,
+  ZardBadgeComponent,
+  ZardComboboxComponent,
+  ZardSearchInputComponent,
+  ZardTableImports
+} from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { distinctUntilChanged, map } from 'rxjs/operators'
@@ -18,24 +25,20 @@ import {
   StorageFileService,
   Store,
   ToastrService,
-  getErrorMessage,
-  routeAnimations
+  getErrorMessage
 } from '../../../@core'
 import { timezones } from '../../../@core/constants/timezone'
 import { OrganizationMutationComponent } from './organization-mutation/organization-mutation.component'
 import {
   ZardInputDirective,
-  ZardStepperImports,
-  ZardInputGroupComponent,
   ZardIconComponent,
   ZardTabsImports,
   ZardRadioComponent,
   ZardRadioGroupComponent,
   ZardButtonComponent,
-  ZardSelectImports,
   ZardSwitchComponent
 } from '@xpert-ai/headless-ui'
-import { OrgAvatarComponent, OrgAvatarEditorComponent } from '@cloud/app/@shared/organization'
+import { OrgAvatarComponent } from '@cloud/app/@shared/organization'
 import { TagDirectoryComponent } from '../../../@shared/tag/directory/tag-directory.component'
 import { CommonModule } from '@angular/common'
 import { OrganizationMembersComponent } from './organization-members/organization-members.component'
@@ -50,19 +53,18 @@ type OrganizationDetailsTab = 'general' | 'members' | 'user-groups' | 'controls'
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    ...ZardStepperImports,
     ...ZardTabsImports,
-    ...ZardSelectImports,
-    ZardInputGroupComponent,
     ZardInputDirective,
     ZardIconComponent,
     ZardRadioComponent,
     ZardRadioGroupComponent,
     ZardButtonComponent,
     ZardSwitchComponent,
-    OrgAvatarEditorComponent,
     OrgAvatarComponent,
-    XpTableComponent,
+    ZardBadgeComponent,
+    ZardComboboxComponent,
+    ZardSearchInputComponent,
+    ...ZardTableImports,
     TagDirectoryComponent,
     OrganizationMembersComponent,
     OrganizationUserGroupsComponent,
@@ -70,8 +72,7 @@ type OrganizationDetailsTab = 'general' | 'members' | 'user-groups' | 'controls'
   ],
   selector: 'xp-organizations',
   templateUrl: './organizations.component.html',
-  styleUrls: ['./organizations.component.css'],
-  animations: [routeAnimations],
+  host: { class: 'block min-w-0 w-full' },
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class OrganizationsComponent {
@@ -88,10 +89,9 @@ export class OrganizationsComponent {
   readonly #storageFileService = inject(StorageFileService)
 
   readonly confirmDelete = injectConfirmDelete()
+  private readonly clipboard = inject(Clipboard)
 
-  readonly requestScopeLevel = RequestScopeLevel
   readonly organizationDemoNetworkEnum = OrganizationDemoNetworkEnum
-  readonly timezones = timezones
   readonly noTimeZoneValue = '__none__'
 
   readonly activeScope = toSignal(this.#store.selectActiveScope(), {
@@ -149,8 +149,6 @@ export class OrganizationsComponent {
     () => this.isTenantScope() && this.#store.hasPermission(PermissionsEnum.ALL_ORG_EDIT)
   )
   readonly isTenantDetailView = computed(() => this.isTenantScope() && !!this.routeOrganizationId())
-  readonly showRegistrySection = computed(() => !this.isTenantScope() || !this.isTenantDetailView())
-  readonly showDetailsSection = computed(() => !this.isTenantScope() || this.isTenantDetailView())
   readonly canEditSelectedOrganization = computed(
     () => !!this.selectedOrganization() && this.#store.hasPermission(PermissionsEnum.ALL_ORG_EDIT)
   )
@@ -189,19 +187,41 @@ export class OrganizationsComponent {
         .some((value) => `${value}`.toLowerCase().includes(search))
     )
   })
-  readonly selectedOrganizationId = computed(() => this.selectedOrganization()?.id ?? null)
-  readonly selectedOrganizationTags = computed(() => this.selectedOrganization()?.tags ?? [])
-  readonly registrySectionTitle = computed(() => {
-    this.activeLanguage()
-    return this.isTenantScope()
-      ? this.#translate.instant('XP.Organization.RegistryTitle', {
-          Default: 'Organization Registry'
-        })
-      : this.#translate.instant('XP.Organization.CurrentOrganizationTitle', {
-          Default: 'Current organization'
-        })
+  readonly detailTabs = computed(() => {
+    const tabs: Array<{ id: OrganizationDetailsTab; label: string }> = [
+      { id: 'general', label: 'XP.Organization.TabGeneral' },
+      { id: 'members', label: 'XP.KEY_WORDS.Members' },
+      { id: 'user-groups', label: 'XP.UserGroup.Title' },
+      { id: 'controls', label: 'XP.Organization.TabControls' }
+    ]
+    if (!this.isTenantScope()) {
+      tabs.push(
+        { id: 'tags', label: 'XP.KEY_WORDS.Tags' },
+        { id: 'demo', label: 'XP.ORGANIZATIONS_PAGE.Organization.DEMO' }
+      )
+      if (this.canViewCustomSmtp()) tabs.push({ id: 'smtp', label: 'XP.MENU.Custom SMTP' })
+    }
+    return tabs
   })
-  readonly selectedOrganizationSubtitle = computed(() => this.selectedOrganization()?.short_description?.trim() || null)
+  readonly timeZoneOptions = computed(() => {
+    this.activeLanguage()
+    return [
+      { value: this.noTimeZoneValue, label: this.#translate.instant('XP.KEY_WORDS.NotSet') },
+      ...timezones.map(({ value, name }) => ({ value: String(value), label: name }))
+    ]
+  })
+
+  copyOrganizationId() {
+    const id = this.selectedOrganizationId()
+    if (!id) return
+    if (this.clipboard.copy(id)) {
+      this.#toastrService.success('XP.OrganizationSettings.IdCopied')
+    } else {
+      this.#toastrService.error('XP.OrganizationSettings.CopyFailed')
+    }
+  }
+
+  readonly selectedOrganizationId = computed(() => this.selectedOrganization()?.id ?? null)
 
   #loadToken = 0
 
@@ -252,6 +272,7 @@ export class OrganizationsComponent {
   }
 
   async addOrganization() {
+    if (!this.canCreateOrganizations()) return
     const organization = await firstValueFrom(
       this.#dialog.open<IOrganizationCreateInput>(OrganizationMutationComponent, {
         backdropClass: 'backdrop-blur-xs-black',
@@ -354,13 +375,13 @@ export class OrganizationsComponent {
 
   async saveOrganization() {
     const organization = this.selectedOrganization()
-    if (!organization || this.form.invalid || !this.canEditSelectedOrganization()) {
+    if (!organization || this.form.invalid || this.saving() || !this.canEditSelectedOrganization()) {
       return
     }
 
     this.saving.set(true)
     try {
-      const payload = this.form.getRawValue() as any
+      const payload = this.form.getRawValue() as Partial<IOrganizationCreateInput>
       const timeZone = payload.timeZone === this.noTimeZoneValue ? '' : payload.timeZone
       await firstValueFrom(
         this.#organizationsService.update(organization.id, {
@@ -435,14 +456,6 @@ export class OrganizationsComponent {
 
   refresh() {
     this.refreshTick.update((value) => value + 1)
-  }
-
-  isSelectedRow(organization: IOrganization) {
-    return organization?.id === this.selectedOrganizationId()
-  }
-
-  organizationIdentifier(organization: IOrganization) {
-    return organization?.id || '-'
   }
 
   organizationStatusLabel(organization: IOrganization) {
@@ -615,8 +628,7 @@ export class OrganizationsComponent {
       return currentSelectionId
     }
 
-    return
-    organizations.find((organization) => organization.isDefault)?.id ?? organizations[0]?.id ?? null
+    return null
   }
 
   private sortOrganizations(organizations: IOrganization[]) {

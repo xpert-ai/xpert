@@ -1,129 +1,81 @@
-<div class="xp-page-header">
-  <div class="w-full flex flex-col items-center gap-3 py-5">
-    <xp-user-avatar-editor [user]="user()" />
-    <!-- <img class="avatar w-16 h-16 rounded-full flex"
-      [src]="user?.imageUrl || '/assets/images/avatar-default.svg'" alt="{{user | user}}" /> -->
-    <div class="text-sm font-medium text-text-primary">{{ user()?.email }}</div>
-  </div>
-
-  <nav
-    z-tab-nav-bar
-    class="xp-tab-nav-bar w-full"
-    color="accent"
-    alignTabs="center"
-    stretchTabs="false"
-    disableRipple
-    [tabPanel]="tabPanel"
-  >
-    @if (canUseMembership()) {
-      <span
-        z-tab-link
-        [routerLink]="['usage']"
-        routerLinkActive
-        #rla="routerLinkActive"
-        [routerLinkActiveOptions]="{ exact: true }"
-        [active]="rla.isActive"
-      >
-        {{ 'XP.Membership.UsageOverview' | translate: { Default: 'Usage Overview' } }}
-      </span>
-      <span
-        z-tab-link
-        [routerLink]="['billing']"
-        routerLinkActive
-        #rla2="routerLinkActive"
-        [routerLinkActiveOptions]="{ exact: true }"
-        [active]="rla2.isActive"
-      >
-        {{ 'XP.Membership.UsageBilling' | translate: { Default: 'Usage & Billing' } }}
-      </span>
-    }
-    @if (!isTechnicalUser()) {
-      <span
-        z-tab-link
-        [routerLink]="['models']"
-        routerLinkActive
-        #rla3="routerLinkActive"
-        [routerLinkActiveOptions]="{ exact: true }"
-        [active]="rla3.isActive"
-      >
-        {{ 'XP.Membership.AllowedModels' | translate: { Default: 'Available models' } }}
-      </span>
-    }
-    @if (canUseModelGateway()) {
-      <span
-        z-tab-link
-        [routerLink]="['api']"
-        routerLinkActive
-        #rlaApi="routerLinkActive"
-        [routerLinkActiveOptions]="{ exact: true }"
-        [active]="rlaApi.isActive"
-      >
-        {{ 'XP.ModelGateway.ExternalApi' | translate: { Default: 'External API' } }}
-      </span>
-    }
-    <span
-      z-tab-link
-      [routerLink]="['profile']"
-      routerLinkActive
-      #rla4="routerLinkActive"
-      [routerLinkActiveOptions]="{ exact: true }"
-      [active]="rla4.isActive"
-    >
-      {{ 'XP.KEY_WORDS.PersonalInformation' | translate: { Default: 'Personal Information' } }}
-    </span>
-    <span
-      z-tab-link
-      [routerLink]="['password']"
-      routerLinkActive
-      #rla5="routerLinkActive"
-      [routerLinkActiveOptions]="{ exact: true }"
-      [active]="rla5.isActive"
-    >
-      {{ 'XP.KEY_WORDS.Password' | translate: { Default: 'Password' } }}
-    </span>
-  </nav>
-</div>
-
-<z-tab-nav-panel
-  #tabPanel
-  class="xp-page-body flex w-full flex-col items-center"
-  [@routeAnimations]="o.isActivated && o.activatedRoute.routeConfig.path"
+<div
+  class="flex w-full min-w-0 flex-1 flex-col"
+  [class]="
+    o.isActivated && o.activatedRoute.snapshot.routeConfig?.path === 'profile'
+      ? 'mx-auto max-w-5xl gap-6 px-4 py-6 md:px-8 md:py-8'
+      : ''
+  "
 >
-  @if (rla4.isActive && canUseReferral() && referralCode()) {
-    <div class="flex items-center gap-2">
-      <button
-        data-referral-copy
-        z-button
-        zType="link"
-        zSize="sm"
-        type="button"
-        class="h-auto px-0 py-0 text-base"
-        [zDisabled]="referralCodeRegenerating()"
-        (click)="copyReferralCode()"
-      >
-        @if (referralCodeCopied()) {
-          {{ 'XP.Referral.Copied' | translate: { Default: 'Copied' } }}
-        } @else {
-          {{ 'XP.Referral.CopyCode' | translate: { Default: 'Copy invitation code' } }}
-        }
-      </button>
-      <button
-        data-referral-regenerate
-        z-button
-        zType="link"
-        zSize="sm"
-        type="button"
-        class="h-auto px-0 py-0 text-base"
-        [zDisabled]="referralCodeRegenerating()"
-        (click)="regenerateReferralCode()"
-      >
-        @if (referralCodeRegenerating()) {
-          {{ 'XP.Referral.RegeneratingCode' | translate: { Default: 'Regenerating...' } }}
-        } @else {
-          {{ 'XP.Referral.RegenerateCode' | translate: { Default: 'Regenerate invitation code' } }}
-        }
-      </button>
-    </div>
+  @if (o.isActivated && o.activatedRoute.snapshot.routeConfig?.path === 'profile') {
+    <header>
+      <div class="flex items-center gap-3">
+        <h1 class="text-2xl font-semibold tracking-tight text-foreground">
+          {{ 'XP.KEY_WORDS.PersonalInformation' | translate }}
+        </h1>
+        <z-badge zType="outline">{{ 'XP.UsageDashboard.Personal' | translate }}</z-badge>
+      </div>
+      <p class="mt-2 text-sm text-muted-foreground">{{ 'XP.ProfileSettings.Description' | translate }}</p>
+    </header>
+    <section
+      class="flex items-center gap-5 border-b border-border pb-6"
+      [attr.aria-label]="'XP.ProfileSettings.Avatar' | translate"
+    >
+      <xp-user-avatar-editor [user]="user()" class="shrink-0" />
+      <div class="min-w-0">
+        <p class="truncate text-base font-medium text-foreground">{{ user() | user }}</p>
+        <p class="mt-1 break-all text-sm text-muted-foreground">{{ user()?.email }}</p>
+        <p class="mt-2 text-xs leading-relaxed text-muted-foreground">
+          {{ 'XP.ProfileSettings.AvatarHint' | translate }}
+        </p>
+      </div>
+    </section>
   }
-  <router-outlet #o="outlet"></router-outlet>
-</z-tab-nav-panel>
+  <router-outlet #o="outlet" class="hidden"></router-outlet>
+  @if (o.isActivated && o.activatedRoute.snapshot.routeConfig?.path === 'profile') {
+    @if (canUseReferral() && referralCode()) {
+      <section
+        class="flex flex-wrap items-center justify-between gap-4 border-t border-border pt-5"
+        [attr.aria-label]="'XP.ProfileSettings.InvitationCode' | translate"
+      >
+        <div>
+          <h2 class="text-sm font-medium text-foreground">{{ 'XP.ProfileSettings.InvitationCode' | translate }}</h2>
+          <p class="mt-1 text-xs text-muted-foreground">{{ 'XP.ProfileSettings.InvitationHint' | translate }}</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button
+            data-referral-copy
+            z-button
+            zType="outline"
+            zSize="sm"
+            type="button"
+            class="pointer-coarse:min-h-[44px]"
+            [zDisabled]="referralCodeRegenerating()"
+            (click)="copyReferralCode()"
+          >
+            @if (referralCodeCopied()) {
+              {{ 'XP.Referral.Copied' | translate: { Default: 'Copied' } }}
+            } @else {
+              {{ 'XP.Referral.CopyCode' | translate: { Default: 'Copy invitation code' } }}
+            }
+          </button>
+          <button
+            data-referral-regenerate
+            z-button
+            zType="outline"
+            zSize="sm"
+            type="button"
+            class="pointer-coarse:min-h-[44px]"
+            [zDisabled]="referralCodeRegenerating()"
+            (click)="regenerateReferralCode()"
+          >
+            @if (referralCodeRegenerating()) {
+              {{ 'XP.Referral.RegeneratingCode' | translate: { Default: 'Regenerating...' } }}
+            } @else {
+              {{ 'XP.Referral.RegenerateCode' | translate: { Default: 'Regenerate invitation code' } }}
+            }
+          </button>
+        </div>
+      </section>
+    }
+  }
+</div>

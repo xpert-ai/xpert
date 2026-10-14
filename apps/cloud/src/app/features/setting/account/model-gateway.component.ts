@@ -16,17 +16,17 @@ import {
   ModelGatewayApiKeyStatusEnum
 } from '@xpert-ai/contracts'
 import {
-  ZardAccordionImports,
   ZardBadgeComponent,
   ZardButtonComponent,
   ZardCardImports,
   ZardEmptyComponent,
-  ZardFormImports,
   ZardIconComponent,
-  ZardInputDirective,
-  ZardTableImports
+  ZardSearchInputComponent,
+  ZardTableImports,
+  ZardTabsImports,
+  ZardTooltipImports
 } from '@xpert-ai/headless-ui'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { EyeOff } from 'lucide-angular'
 import { firstValueFrom, startWith } from 'rxjs'
 import { API_PREFIX, Store } from '@cloud/app/@core/state'
 import { ModelGatewayService } from '../../../@core/services/model-gateway.service'
@@ -58,16 +58,15 @@ import { getCurrentModelAccessStatus } from '../model-access/model-access-status
     CommonModule,
     ReactiveFormsModule,
     TranslateModule,
-    XpSpinComponent,
-    ...ZardAccordionImports,
     ZardBadgeComponent,
     ZardButtonComponent,
     ZardEmptyComponent,
     ZardIconComponent,
-    ZardInputDirective,
-    ...ZardFormImports,
+    ZardSearchInputComponent,
     ...ZardCardImports,
-    ...ZardTableImports
+    ...ZardTableImports,
+    ...ZardTabsImports,
+    ...ZardTooltipImports
   ],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -83,6 +82,10 @@ export class XpAccountModelGatewayComponent implements OnInit {
   #loadSequence = 0
 
   readonly loading = signal(false)
+  readonly loadFailed = signal(false)
+  readonly selectedTabIndex = signal(0)
+  readonly revealedKeys = signal(new Set<string>())
+  readonly eyeOffIcon = EyeOff
   readonly catalog = signal<IModelGatewayCatalog | null>(null)
   readonly requests = signal<IModelAccessRequest[]>([])
   readonly grants = signal<IUserModelGrant[]>([])
@@ -133,6 +136,8 @@ export class XpAccountModelGatewayComponent implements OnInit {
   async load() {
     const loadSequence = ++this.#loadSequence
     this.loading.set(true)
+    this.loadFailed.set(false)
+    this.revealedKeys.set(new Set())
     try {
       const [catalog, requests, grants, keys, calls] = await Promise.all([
         firstValueFrom(this.#service.getCatalog()),
@@ -153,6 +158,7 @@ export class XpAccountModelGatewayComponent implements OnInit {
       this.callTotal.set(calls.total)
     } catch (error) {
       if (loadSequence === this.#loadSequence) {
+        this.loadFailed.set(true)
         this.#toastr.error(getErrorMessage(error))
       }
     } finally {
@@ -312,6 +318,14 @@ export class XpAccountModelGatewayComponent implements OnInit {
     } catch (error) {
       this.#toastr.error(getErrorMessage(error))
     }
+  }
+
+  toggleKey(id: string) {
+    this.revealedKeys.update((current) => {
+      const next = new Set(current)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
   }
 
   currentRequestStatus(request: IModelAccessRequest) {

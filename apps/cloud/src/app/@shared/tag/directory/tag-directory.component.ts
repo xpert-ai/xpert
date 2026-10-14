@@ -1,5 +1,7 @@
 import {
   ZardButtonComponent,
+  ZardSearchInputComponent,
+  ZardTableImports,
   XpDialogFrameImports,
   XpDialogActionGroupDirective,
   ZardInputDirective,
@@ -50,6 +52,8 @@ type PanelMode = 'edit' | 'usage' | 'disable' | 'enable' | 'delete'
     ReactiveFormsModule,
     TranslateModule,
     ZardButtonComponent,
+    ZardSearchInputComponent,
+    ...ZardTableImports,
     ZardCheckboxComponent,
     ...ZardFormImports,
     ZardIconComponent,

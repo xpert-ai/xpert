@@ -17,6 +17,7 @@ import {
     ResolveAgentPluginTemplateDependencyHandler,
     AssertAgentPluginTemplateDependencyHandler
 } from './templates/agent-plugin-template.handler'
+import { ResolvePluginConnectorsHandler } from './queries/resolve-plugin-connectors.handler'
 
 @Global()
 @Module({
@@ -37,6 +38,7 @@ import {
         ImportDefaultAgentPluginsHandler,
         RuntimeResourceService,
         AgentPluginConnectorService,
+        ResolvePluginConnectorsHandler,
         AgentPluginInstallationsService,
         { provide: 'XpertAgentPluginService', useExisting: AgentPluginService },
         { provide: 'XpertRuntimeResourceService', useExisting: RuntimeResourceService }

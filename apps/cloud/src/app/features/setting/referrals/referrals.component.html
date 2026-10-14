@@ -1,167 +1,219 @@
-<div class="flex h-full w-full min-w-0 flex-col overflow-hidden">
-  <div
-    class="xp-page-header gap-4 border-b border-divider-regular bg-components-card-bg pb-4 md:flex-row md:items-end md:justify-between"
-  >
-    <div class="min-w-0">
-      <h1 class="xp-page-title text-text-primary">
-        {{ 'XP.Referral.Relationships' | translate: { Default: 'Invitation relationships' } }}
+<div class="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+  <header>
+    <div class="flex flex-wrap items-center gap-3">
+      <h1 class="text-2xl font-semibold tracking-tight text-foreground">
+        {{ 'XP.Referral.Relationships' | translate }}
       </h1>
-      <p class="mt-1 max-w-3xl text-sm text-text-tertiary">
-        {{
-          'XP.Referral.RelationshipsDescription'
-            | translate: { Default: 'Read-only direct account invitation relationships in this tenant.' }
-        }}
-      </p>
+      <z-badge zType="outline">{{ 'XP.UserSettings.TenantScope' | translate }}</z-badge>
     </div>
+    <p class="mt-2 text-sm text-muted-foreground">{{ 'XP.Referral.DirectoryDescription' | translate }}</p>
+  </header>
 
-    <form [formGroup]="filterForm" class="flex w-full min-w-0 items-center gap-2 md:w-auto" (ngSubmit)="search()">
-      <label for="referral-search" class="sr-only">
-        {{ 'XP.Referral.SearchPlaceholder' | translate: { Default: 'Search user or code' } }}
-      </label>
-      <input
-        id="referral-search"
-        z-input
-        type="search"
-        formControlName="search"
-        class="min-w-0 flex-1 md:w-80"
-        autocomplete="off"
-        [placeholder]="'XP.Referral.SearchPlaceholder' | translate: { Default: 'Search user or code' }"
-      />
-      <button z-button zType="secondary" type="submit" [zDisabled]="loading()">
-        {{ 'XP.ACTIONS.Search' | translate: { Default: 'Search' } }}
-      </button>
-    </form>
-  </div>
-
-  <div class="xp-page-body flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-auto p-4">
-    <div
-      class="flex min-h-[28rem] min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-divider-regular bg-components-card-bg"
-    >
-      @if (relations().length) {
-        <div class="min-h-0 flex-1 overflow-x-auto">
-          <table z-table zSize="compact" class="min-w-[52rem] table-fixed">
-            <thead z-table-header>
-              <tr z-table-row>
-                <th z-table-head class="w-[29%] px-4">
-                  {{ 'XP.Referral.Referrer' | translate: { Default: 'Inviter' } }}
-                </th>
-                <th z-table-head class="w-[29%] px-4">
-                  {{ 'XP.Referral.Referred' | translate: { Default: 'Invitee' } }}
-                </th>
-                <th z-table-head class="w-[18%] px-4">
-                  {{ 'XP.Referral.UsedCode' | translate: { Default: 'Used code' } }}
-                </th>
-                <th z-table-head class="w-[24%] px-4">
-                  {{ 'XP.Referral.BoundAt' | translate: { Default: 'Bound at' } }}
-                </th>
-              </tr>
-            </thead>
-            <tbody z-table-body>
-              @for (relation of relations(); track relation.id) {
-                <tr z-table-row>
-                  <td z-table-cell class="px-4">
-                    <div class="truncate font-medium text-text-primary" [title]="accountLabel(relation.referrer)">
-                      {{ accountLabel(relation.referrer) }}
-                    </div>
-                    @if (!relation.referrer.deleted && relation.referrer.email) {
-                      <div class="truncate text-xs text-text-tertiary" [title]="relation.referrer.email">
-                        {{ relation.referrer.email }}
-                      </div>
-                    }
-                  </td>
-                  <td z-table-cell class="px-4">
-                    <div class="truncate font-medium text-text-primary" [title]="accountLabel(relation.referred)">
-                      {{ accountLabel(relation.referred) }}
-                    </div>
-                    @if (!relation.referred.deleted && relation.referred.email) {
-                      <div class="truncate text-xs text-text-tertiary" [title]="relation.referred.email">
-                        {{ relation.referred.email }}
-                      </div>
-                    }
-                  </td>
-                  <td z-table-cell class="px-4">
-                    <code class="text-text-primary">{{ relation.usedCode }}</code>
-                  </td>
-                  <td z-table-cell class="whitespace-nowrap px-4 text-text-secondary">
-                    {{ relation.boundAt | date: 'medium' }}
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      } @else {
-        <div class="flex min-h-0 flex-1 items-center justify-center px-6 py-12">
-          <div class="flex max-w-md flex-col items-center text-center">
-            <div
-              class="flex size-14 items-center justify-center rounded-2xl bg-components-panel-bg text-text-secondary"
-            >
-              <z-icon zType="link" zSize="xl" />
-            </div>
-            <div class="mt-4 text-base font-semibold text-text-primary">
-              @if (loading()) {
-                {{ 'XP.KEY_WORDS.Loading' | translate: { Default: 'Loading...' } }}
-              } @else if (loadFailed()) {
-                {{ 'XP.Referral.LoadError' | translate: { Default: 'Invitation relationships could not be loaded.' } }}
-              } @else {
-                {{ 'XP.Referral.Empty' | translate: { Default: 'No invitation relationships found.' } }}
-              }
-            </div>
-            @if (!loading() && !loadFailed()) {
-              <p class="mt-1 text-sm leading-6 text-text-tertiary">
-                {{
-                  'XP.Referral.RelationshipsDescription'
-                    | translate: { Default: 'Read-only direct account invitation relationships in this tenant.' }
-                }}
-              </p>
-              @if (filterForm.controls.search.value) {
-                <button z-button zType="ghost" zSize="sm" type="button" class="mt-4" (click)="clearSearch()">
-                  {{ 'XP.KEY_WORDS.Reset' | translate: { Default: 'Clear search' } }}
-                </button>
-              }
-            }
-          </div>
-        </div>
-      }
-
-      <div
-        class="flex min-h-12 flex-wrap items-center justify-between gap-3 border-t border-divider-regular px-4 py-2 text-sm text-text-tertiary"
-      >
-        <span>
-          {{
-            'XP.Referral.PageSummary'
-              | translate
-                : {
-                    page: pageIndex() + 1,
-                    pages: pageCount(),
-                    total: total(),
-                    Default: 'Page ' + (pageIndex() + 1) + ' of ' + pageCount() + ' · ' + total() + ' total'
-                  }
-          }}
+  <section class="flex min-w-0 flex-col gap-3" [attr.aria-label]="'XP.Referral.Relationships' | translate">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <form [formGroup]="filterForm" class="flex w-full min-w-0 items-center gap-2 sm:max-w-md" (ngSubmit)="search()">
+        <z-search-input
+          formControlName="search"
+          class="min-w-0 flex-1 pointer-coarse:[&_input]:min-h-[44px]"
+          [placeholder]="'XP.Referral.SearchPlaceholder' | translate"
+          [clearLabel]="'XP.Referral.ClearSearch' | translate"
+          (valueChange)="onSearchInput($event)"
+        />
+        <button z-button zType="outline" type="submit" [zDisabled]="loading()" class="pointer-coarse:min-h-[44px]">
+          {{ 'XP.ACTIONS.Search' | translate }}
+        </button>
+      </form>
+      <div class="flex w-full items-center gap-3 text-xs text-muted-foreground sm:w-auto">
+        <span role="status" class="mr-auto tabular-nums sm:mr-0">
+          @if (loading()) {
+            {{ 'XP.UserSettings.Loading' | translate }}
+          } @else {
+            {{ 'XP.Referral.RelationCount' | translate: { count: total() } }}
+          }
         </span>
-        <div class="flex items-center gap-2">
-          <button
-            z-button
-            zType="secondary"
-            zSize="sm"
-            type="button"
-            [zDisabled]="loading() || pageIndex() === 0"
-            (click)="previousPage()"
-          >
-            {{ 'XP.Referral.Previous' | translate: { Default: 'Previous' } }}
-          </button>
-          <button
-            z-button
-            zType="secondary"
-            zSize="sm"
-            type="button"
-            [zDisabled]="loading() || pageIndex() + 1 >= pageCount()"
-            (click)="nextPage()"
-          >
-            {{ 'XP.Referral.Next' | translate: { Default: 'Next' } }}
-          </button>
-        </div>
+        <button
+          z-button
+          zType="ghost"
+          zSize="icon"
+          type="button"
+          class="pointer-coarse:size-[44px]"
+          [zDisabled]="loading()"
+          (click)="refresh()"
+          [attr.aria-label]="'XP.Referral.Refresh' | translate"
+          [title]="'XP.Referral.Refresh' | translate"
+        >
+          <z-icon zType="refresh" [class]="loading() ? 'animate-spin motion-reduce:animate-none' : ''" />
+        </button>
       </div>
     </div>
-  </div>
+
+    @if (loadFailed()) {
+      <div role="alert" class="flex flex-wrap items-center gap-3 rounded-lg border border-border p-4 text-sm">
+        <z-icon zType="circle-alert" class="shrink-0 text-muted-foreground" />
+        <div class="min-w-0 flex-1">
+          <p class="font-medium">{{ 'XP.Referral.LoadError' | translate }}</p>
+          <p class="mt-1 text-xs text-muted-foreground">{{ 'XP.Referral.RetryHint' | translate }}</p>
+        </div>
+        <button z-button zType="outline" type="button" (click)="retry()" class="pointer-coarse:min-h-[44px]">
+          {{ 'XP.UserSettings.Retry' | translate }}
+        </button>
+      </div>
+    }
+
+    <div class="overflow-hidden rounded-lg border border-border" [attr.aria-busy]="loading()">
+      <div
+        class="min-w-0 overflow-x-auto focus-visible:outline-2 focus-visible:outline-ring"
+        [attr.tabindex]="relations().length ? 0 : null"
+        role="region"
+        [attr.aria-label]="'XP.Referral.Relationships' | translate"
+      >
+        <table
+          z-table
+          zSize="compact"
+          class="w-full table-fixed text-sm [&_th]:px-4 [&_td]:px-4 [&_td]:py-3"
+          [class]="relations().length ? 'min-w-[760px]' : ''"
+          [attr.aria-label]="'XP.Referral.Relationships' | translate"
+        >
+          <thead z-table-header [class]="relations().length ? '' : 'hidden sm:table-header-group'">
+            <tr z-table-row class="bg-muted/50 hover:bg-muted/50">
+              <th z-table-head scope="col" class="w-[29%] px-4">{{ 'XP.Referral.Referrer' | translate }}</th>
+              <th z-table-head scope="col" class="w-[29%] px-4">{{ 'XP.Referral.Referred' | translate }}</th>
+              <th z-table-head scope="col" class="w-[18%] px-4">{{ 'XP.Referral.UsedCode' | translate }}</th>
+              <th z-table-head scope="col" class="w-[24%] px-4">{{ 'XP.Referral.BoundAt' | translate }}</th>
+            </tr>
+          </thead>
+          <tbody z-table-body>
+            @for (relation of relations(); track relation.id) {
+              <tr z-table-row>
+                <td z-table-cell class="px-4 py-4">
+                  <div
+                    class="truncate font-medium"
+                    [class]="relation.referrer.deleted ? 'text-muted-foreground' : 'text-foreground'"
+                    [title]="accountLabel(relation.referrer)"
+                  >
+                    {{ accountLabel(relation.referrer) }}
+                  </div>
+                  @if (!relation.referrer.deleted && relation.referrer.name && relation.referrer.email) {
+                    <div class="mt-1 truncate text-xs text-muted-foreground" [title]="relation.referrer.email">
+                      {{ relation.referrer.email }}
+                    </div>
+                  }
+                </td>
+                <td z-table-cell class="px-4 py-4">
+                  <div class="flex min-w-0 items-center gap-3">
+                    <z-icon zType="arrow-right" class="shrink-0 text-muted-foreground" aria-hidden="true" />
+                    <div class="min-w-0">
+                      <div
+                        class="truncate font-medium"
+                        [class]="relation.referred.deleted ? 'text-muted-foreground' : 'text-foreground'"
+                        [title]="accountLabel(relation.referred)"
+                      >
+                        {{ accountLabel(relation.referred) }}
+                      </div>
+                      @if (!relation.referred.deleted && relation.referred.name && relation.referred.email) {
+                        <div class="mt-1 truncate text-xs text-muted-foreground" [title]="relation.referred.email">
+                          {{ relation.referred.email }}
+                        </div>
+                      }
+                    </div>
+                  </div>
+                </td>
+                <td z-table-cell class="px-4 py-4">
+                  <code class="rounded-md bg-muted px-2 py-1 text-xs">{{ relation.usedCode }}</code>
+                </td>
+                <td z-table-cell class="px-4 py-4 text-muted-foreground">
+                  <time class="whitespace-nowrap" [attr.datetime]="relation.boundAt | date: 'yyyy-MM-ddTHH:mm:ssZZZZZ'">
+                    <span class="block text-foreground">{{ relation.boundAt | date: 'mediumDate' }}</span>
+                    <span class="mt-1 block text-xs">{{ relation.boundAt | date: 'mediumTime' }}</span>
+                  </time>
+                </td>
+              </tr>
+            } @empty {
+              <tr z-table-row class="hover:bg-transparent">
+                <td z-table-cell colspan="4" class="text-center">
+                  @if (loading()) {
+                    <div
+                      role="status"
+                      class="flex items-center justify-center gap-2 py-10 text-sm text-muted-foreground"
+                    >
+                      <z-icon zType="loader-circle" class="animate-spin motion-reduce:animate-none" />{{
+                        'XP.UserSettings.Loading' | translate
+                      }}
+                    </div>
+                  } @else if (loadFailed()) {
+                    <p class="py-10 text-sm text-muted-foreground">{{ 'XP.Referral.Unavailable' | translate }}</p>
+                  } @else {
+                    <div role="status" class="mx-auto flex max-w-sm flex-col items-center px-4 py-8">
+                      <div
+                        class="mb-4 flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground"
+                      >
+                        <z-icon [zType]="appliedSearch() ? 'search' : 'link'" />
+                      </div>
+                      <p class="font-medium">
+                        {{ (appliedSearch() ? 'XP.Referral.NoResults' : 'XP.Referral.Empty') | translate }}
+                      </p>
+                      <p class="mt-1 text-sm text-muted-foreground">
+                        {{ (appliedSearch() ? 'XP.Referral.SearchHint' : 'XP.Referral.EmptyHint') | translate }}
+                      </p>
+                      @if (appliedSearch()) {
+                        <button
+                          z-button
+                          zType="outline"
+                          type="button"
+                          class="mt-4 pointer-coarse:min-h-[44px]"
+                          (click)="clearSearch()"
+                        >
+                          {{ 'XP.Referral.ClearSearch' | translate }}
+                        </button>
+                      }
+                    </div>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <footer
+        class="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3 text-xs text-muted-foreground"
+      >
+        <span class="inline-flex items-center gap-1.5"
+          ><z-icon zType="lock" class="size-3.5" />{{ 'XP.Referral.ReadOnly' | translate }}</span
+        >
+        @if (total() > 0) {
+          <div class="flex items-center gap-2">
+            <span class="mr-1 tabular-nums">{{
+              'XP.Referral.PagePosition' | translate: { page: pageIndex() + 1, pages: pageCount() }
+            }}</span>
+            <button
+              z-button
+              zType="outline"
+              zSize="icon-sm"
+              type="button"
+              class="pointer-coarse:size-[44px]"
+              [zDisabled]="loading() || pageIndex() === 0"
+              (click)="previousPage()"
+              [attr.aria-label]="'XP.Referral.Previous' | translate"
+              [title]="'XP.Referral.Previous' | translate"
+            >
+              <z-icon zType="chevron-left" />
+            </button>
+            <button
+              z-button
+              zType="outline"
+              zSize="icon-sm"
+              type="button"
+              class="pointer-coarse:size-[44px]"
+              [zDisabled]="loading() || pageIndex() + 1 >= pageCount()"
+              (click)="nextPage()"
+              [attr.aria-label]="'XP.Referral.Next' | translate"
+              [title]="'XP.Referral.Next' | translate"
+            >
+              <z-icon zType="chevron-right" />
+            </button>
+          </div>
+        }
+      </footer>
+    </div>
+  </section>
 </div>

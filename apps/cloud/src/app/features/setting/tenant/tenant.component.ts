@@ -1,13 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { AiFeatureEnum, FeatureEnum, PermissionsEnum, Store, routeAnimations } from '../../../@core'
+import { AiFeatureEnum, FeatureEnum, PermissionsEnum, Store } from '../../../@core'
 
 @Component({
   standalone: false,
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'xp-settings-tenant',
   templateUrl: 'tenant.component.html',
-  animations: [routeAnimations],
   styles: [
     `
       :host {

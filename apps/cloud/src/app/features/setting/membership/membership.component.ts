@@ -1,3 +1,4 @@
+import { MembershipPlanEditorComponent } from './plan-editor.component'
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject, OnInit, signal } from '@angular/core'
 import { FormBuilder, FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
@@ -67,6 +68,7 @@ const COPILOT_ROLE_NAMES: Record<AiProviderRole, string> = {
   selector: 'xp-membership-admin',
   imports: [
     CommonModule,
+    MembershipPlanEditorComponent,
     FormsModule,
     ReactiveFormsModule,
     RouterLink,

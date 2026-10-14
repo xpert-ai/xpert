@@ -21,7 +21,7 @@
   </header>
 
   <div xpDialogBody class="grid gap-4 space-y-0 md:grid-cols-[220px_minmax(0,1fr)]">
-    <aside class="flex min-w-0 flex-col border-b border-divider-regular pb-4 md:border-b-0 md:border-r md:pr-4">
+    <aside class="flex min-w-0 flex-col border-b border-border pb-4 md:border-b-0 md:border-r md:pr-4">
       <div class="mb-3 flex items-center justify-between gap-3">
         <div class="min-w-0">
           <h3 class="truncate text-sm font-medium">
@@ -46,7 +46,7 @@
                 [value]="item.id"
                 [class]="
                   dataSourceType()?.id === item.id
-                    ? 'w-full items-center rounded-lg border border-divider-regular bg-components-card-bg px-3 py-2 text-text-primary shadow-sm'
+                    ? 'w-full items-center rounded-lg border border-border bg-card px-3 py-2 text-text-primary shadow-sm'
                     : 'w-full items-center rounded-lg border border-transparent px-3 py-2 text-text-secondary hover:bg-hover-bg hover:text-text-primary'
                 "
               >
@@ -60,7 +60,7 @@
                   />
                   <span class="min-w-0 flex-1">
                     <span class="block truncate text-sm font-medium">{{ item.name }}</span>
-                    <span class="block truncate text-xs text-text-tertiary">{{ item.type }}</span>
+                    <span class="block truncate text-xs text-muted-foreground">{{ item.type }}</span>
                   </span>
                 </span>
               </z-radio>
@@ -80,7 +80,7 @@
     <section class="min-w-0">
       @if (dataSourceType(); as type) {
         <form [formGroup]="formGroup" class="min-w-0">
-          <div class="mb-5 flex flex-wrap items-center justify-between gap-4 border-b border-divider-regular pb-4">
+          <div class="mb-5 flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4">
             <div class="flex min-w-0 items-center gap-3">
               <img
                 src="assets/images/db-logos/{{ type.type }}.png"
@@ -93,7 +93,7 @@
                 <div class="truncate text-base font-semibold">{{ type.name }}</div>
                 <div class="mt-1 flex items-center gap-2">
                   <z-badge zType="outline" zShape="pill">{{ type.type }}</z-badge>
-                  <span class="truncate text-xs text-text-tertiary">{{ type.protocol }}</span>
+                  <span class="truncate text-xs text-muted-foreground">{{ type.protocol }}</span>
                 </div>
               </div>
             </div>
@@ -116,7 +116,7 @@
             </z-form-field>
 
             @if (isXmla()) {
-              <div class="rounded-lg border border-divider-regular bg-components-panel-bg p-4">
+              <div class="rounded-lg border border-border bg-components-panel-bg p-4">
                 <div class="flex flex-wrap items-center justify-between gap-4">
                   <div class="flex flex-wrap items-center gap-2">
                     <span class="text-sm text-text-secondary">

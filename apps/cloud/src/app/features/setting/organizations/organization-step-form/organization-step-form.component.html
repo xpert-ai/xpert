@@ -1,46 +1,52 @@
-<z-stepper #stepper="zStepper" class="w-full [--z-stepper-header-max-width:32rem] [--z-stepper-item-max-width:14rem]">
-  <z-step
-    [stepControl]="basic"
-    [label]="'XP.ORGANIZATIONS_PAGE.Organization.BasicInfo' | translate: { Default: 'Basic Info' }"
-  >
-    <form [formGroup]="basic" class="flex flex-wrap gap-2">
-      <z-form-field appearance="fill">
-        <z-form-label>{{ 'XP.KEY_WORDS.NAME' | translate: { Default: 'Name' } }}</z-form-label>
-        <input z-input formControlName="name" />
-      </z-form-field>
-
-      <z-form-field appearance="fill">
-        <z-form-label>{{ 'XP.KEY_WORDS.CURRENCY' | translate: { Default: 'Currency' } }}</z-form-label>
-        <input z-input formControlName="currency" />
-      </z-form-field>
-
-      <z-form-field appearance="fill">
-        <z-form-label>{{
-          'XP.ORGANIZATIONS_PAGE.Organization.DefaultValueDateType' | translate: { Default: 'Default Value Date Type' }
-        }}</z-form-label>
-        <input z-input formControlName="defaultValueDateType" />
-      </z-form-field>
-    </form>
-  </z-step>
-
-  <z-step
-    [stepControl]="orgSettingsForm"
-    [label]="'XP.ORGANIZATIONS_PAGE.Organization.OtherInfo' | translate: { Default: 'Other Info' }"
-  >
-    <form [formGroup]="orgSettingsForm" class="flex flex-wrap gap-2">
-      <z-checkbox formControlName="invitesAllowed">
-        {{ 'XP.ORGANIZATIONS_PAGE.Organization.InvitesAllowed' | translate: { Default: 'Invites Allowed' } }}
-      </z-checkbox>
-
-      <z-form-field appearance="fill">
-        <z-form-label>
-          {{
-            'XP.ORGANIZATIONS_PAGE.Organization.InviteExpiryPeriod'
-              | translate: { Default: 'Invite Expiry Period (in Days)' }
-          }}
-        </z-form-label>
-        <input z-input formControlName="inviteExpiryPeriod" type="number" />
-      </z-form-field>
-    </form>
-  </z-step>
-</z-stepper>
+<form [formGroup]="form" class="grid min-w-0 gap-5 sm:grid-cols-2">
+  <label class="flex min-w-0 flex-col gap-2 text-sm font-medium sm:col-span-2">
+    {{ 'XP.KEY_WORDS.NAME' | translate }}
+    <input
+      z-input
+      formControlName="name"
+      required
+      autocomplete="organization"
+      [attr.aria-invalid]="form.controls.name.touched && form.controls.name.invalid"
+    />
+    @if (form.controls.name.touched && form.controls.name.invalid) {
+      <span class="text-xs text-destructive">{{ 'XP.OrganizationSettings.NameRequired' | translate }}</span>
+    }
+  </label>
+  <label class="flex min-w-0 flex-col gap-2 text-sm font-medium">
+    {{ 'XP.KEY_WORDS.CURRENCY' | translate }}
+    <input z-input formControlName="currency" required />
+    @if (form.controls.currency.touched && form.controls.currency.invalid) {
+      <span class="text-xs text-destructive">{{ 'XP.OrganizationSettings.CurrencyRequired' | translate }}</span>
+    }
+  </label>
+  <div class="min-w-0 space-y-2">
+    <p class="text-sm font-medium">{{ 'XP.ORGANIZATIONS_PAGE.Organization.DefaultValueDateType' | translate }}</p>
+    <z-combobox
+      formControlName="defaultValueDateType"
+      zWidth="full"
+      [searchable]="false"
+      [ariaLabel]="'XP.ORGANIZATIONS_PAGE.Organization.DefaultValueDateType' | translate"
+      [options]="[
+        { value: 'TODAY', label: ('XP.Organization.Today' | translate) },
+        { value: 'START_OF_MONTH', label: ('XP.Organization.StartOfMonth' | translate) },
+        { value: 'END_OF_MONTH', label: ('XP.Organization.EndOfMonth' | translate) }
+      ]"
+    />
+  </div>
+  <div class="flex items-center justify-between gap-4 border-t border-border pt-5 sm:col-span-2">
+    <div>
+      <p class="text-sm font-medium">{{ 'XP.ORGANIZATIONS_PAGE.Organization.InvitesAllowed' | translate }}</p>
+      <p class="mt-1 text-sm text-muted-foreground">{{ 'XP.Organization.InvitesAllowedHelp' | translate }}</p>
+    </div>
+    <z-switch formControlName="invitesAllowed" class="shrink-0"
+      ><span class="sr-only">{{ 'XP.ORGANIZATIONS_PAGE.Organization.InvitesAllowed' | translate }}</span></z-switch
+    >
+  </div>
+  <label class="flex min-w-0 flex-col gap-2 text-sm font-medium">
+    {{ 'XP.ORGANIZATIONS_PAGE.Organization.InviteExpiryPeriod' | translate }}
+    <input z-input formControlName="inviteExpiryPeriod" type="number" min="1" />
+    @if (form.controls.inviteExpiryPeriod.touched && form.controls.inviteExpiryPeriod.invalid) {
+      <span class="text-xs text-destructive">{{ 'XP.OrganizationSettings.ExpiryMinimum' | translate }}</span>
+    }
+  </label>
+</form>

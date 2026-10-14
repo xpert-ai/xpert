@@ -146,6 +146,8 @@
 
 
 
+
+
           }}. You can continue using this page.', pluginNames: runtimeRestart.backgroundPluginNames().join(', ') } }}
         } @else {
           {{
@@ -344,7 +346,13 @@
                       class="relative z-10 rounded-xl border-[0.5px] bg-components-card-bg border-components-panel-border p-4 pb-3 shadow-sm"
                       class="relative z-10 rounded-xl border-[0.5px] bg-components-card-bg border-components-panel-border p-4 pb-3 shadow-sm"
                     >
-                      @if (plugin.loadStatus === 'failed') {
+                      @if (plugin.loadStatus === 'pending_restart') {
+                        <span
+                          class="absolute right-0 top-0 rounded-tr-xl bg-background-default-subtle px-2 text-xs text-text-secondary"
+                        >
+                          {{ 'XP.Plugin.PendingRestart' | translate }}
+                        </span>
+                      } @else if (plugin.loadStatus === 'failed') {
                         <div class="absolute right-0 top-0 flex max-w-[45%] pl-[13px]">
                           <svg
                             width="13"
@@ -477,6 +485,11 @@
                               >
                                 {{ plugin.meta.description | i18n }}
                               </div>
+                              @if (plugin.loadStatus === 'pending_restart') {
+                                <p class="mt-2 text-sm text-text-secondary">
+                                  {{ 'XP.Plugin.PendingRestartDescription' | translate }}
+                                </p>
+                              }
                               @if (plugin.loadStatus === 'failed') {
                                 <div class="mt-2 rounded-lg border border-status-error- bg bg-status-error-bg/10 p-2">
                                   <div class="flex items-start gap-2">

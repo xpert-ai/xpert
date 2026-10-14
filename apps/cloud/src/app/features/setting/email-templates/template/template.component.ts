@@ -26,6 +26,7 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
+  host: { class: 'w-full min-w-0' },
   imports: [
     FormsModule,
     ReactiveFormsModule,
@@ -181,6 +182,8 @@ export class EmailTemplateComponent implements AfterViewInit {
   }
 
   async submitForm() {
+    if (this.form.invalid || this.form.pristine) return
+
     try {
       const { tenantId } = this.store.user
       const { id: organizationId } = this.organization ?? {}

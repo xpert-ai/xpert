@@ -6,16 +6,12 @@ import { ActivatedRoute, Router } from '@angular/router'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { IsDirty } from '@xpert-ai/headless-ui'
 import type { IIntegration, TIntegrationProvider, TIntegrationQrCompletion } from '@xpert-ai/contracts'
-import { XpInputComponent, XpSpinComponent } from '@xpert-ai/headless-ui'
+import { XpSpinComponent } from '@xpert-ai/headless-ui'
 import { XpI18nPipe } from '@xpert-ai/headless-ui'
-import { DisplayBehaviour } from '@xpert-ai/headless-ui'
-import { ContentLoaderModule } from '@ngneat/content-loader'
-import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { EmojiAvatarComponent, IconComponent } from 'apps/cloud/src/app/@shared/avatar'
+import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { CardProComponent } from 'apps/cloud/src/app/@shared/card'
 import { ParameterFormComponent } from 'apps/cloud/src/app/@shared/forms'
-import { XpSelectComponent } from '@cloud/app/@shared/common'
 import { environment } from '@cloud/environments/environment'
 import { ZardButtonComponent, ZardIconComponent, ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import omit from 'lodash-es/omit'
@@ -33,6 +29,7 @@ import {
   type IntegrationTestProbe,
   type IntegrationTestResult
 } from '../../../../@core'
+import { IntegrationProviderSelectComponent } from '../integration-provider-select.component'
 import { IntegrationQrDialogComponent, IntegrationQrDialogData } from './integration-qr-dialog.component'
 
 export function resolveProviderHelpLinks(provider?: TIntegrationProvider) {
@@ -47,29 +44,25 @@ export function resolveProviderHelpLinks(provider?: TIntegrationProvider) {
   standalone: true,
   selector: 'xp-settings-integration-configuration',
   templateUrl: './configuration.component.html',
+  host: { class: 'relative block w-full min-w-0' },
   imports: [
     TranslateModule,
     FormsModule,
     ReactiveFormsModule,
-    FormlyModule,
     TextFieldModule,
     ...ZardTooltipImports,
     ZardIconComponent,
     ZardInputDirective,
     ZardButtonComponent,
-    ContentLoaderModule,
-    XpSelectComponent,
-    XpInputComponent,
+    IntegrationProviderSelectComponent,
     XpSpinComponent,
     EmojiAvatarComponent,
     ParameterFormComponent,
     CardProComponent,
-    XpI18nPipe,
-    IconComponent
+    XpI18nPipe
   ]
 })
 export class IntegrationConfigurationComponent implements IsDirty, OnDestroy {
-  readonly DisplayBehaviour = DisplayBehaviour
   readonly pro = environment.pro
 
   readonly integrationAPI = inject(IntegrationService)
@@ -97,16 +90,6 @@ export class IntegrationConfigurationComponent implements IsDirty, OnDestroy {
 
   readonly providersResource = toSignal(this.integrationAPI.getProviders(), { initialValue: [] })
   readonly optionsForm = viewChild('optionsForm', { read: ParameterFormComponent })
-
-  readonly providers = computed(() =>
-    this.providersResource()?.map((provider) => ({
-      value: provider.name,
-      label: provider.label,
-      description: provider.description,
-      avatar: provider.avatar,
-      _icon: provider.icon
-    }))
-  )
 
   readonly formGroup = new FormGroup({
     id: new FormControl(null),
@@ -226,6 +209,16 @@ export class IntegrationConfigurationComponent implements IsDirty, OnDestroy {
 
       this.runTest(false, false)
     })
+  }
+
+  selectProvider(provider: string | null) {
+    this.formGroup.controls.provider.setValue(provider)
+    this.formGroup.controls.provider.markAsDirty()
+  }
+
+  updateOptions(options: IIntegration['options']) {
+    this.optionsControl.setValue(options)
+    this.optionsControl.markAsDirty()
   }
 
   get optionsControl() {

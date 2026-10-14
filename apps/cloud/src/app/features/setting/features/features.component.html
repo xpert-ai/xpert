@@ -1,20 +1,17 @@
-<div class="xp-page-header">
-  <div class="w-full flex justify-between items-center">
-    <div class="xp-page-title">{{ 'XP.MENU.MANAGE_FEATURES' | translate: { Default: 'Manage Features' } }}</div>
+<div class="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+  <header class="flex flex-wrap items-start justify-between gap-4">
+    <div class="space-y-2">
+      <h1 class="text-2xl font-semibold tracking-tight">{{ 'XP.MENU.MANAGE_FEATURES' | translate }}</h1>
+      <p class="text-sm text-muted-foreground">{{ 'XP.SettingsRemaining.FeaturesDescription' | translate }}</p>
+    </div>
     @if (canUpgrade()) {
-      <div class="flex justify-end items-center p-2">
-        <button type="button" class="btn btn-large btn-secondary" (click)="upgrade()">
-          <i class="ri-loop-left-line mr-1"></i>{{ 'XP.KEY_WORDS.Upgrade' | translate: { Default: 'Upgrade' } }}
-        </button>
-      </div>
+      <button z-button zType="outline" type="button" [zDisabled]="loading()" (click)="upgrade()">
+        <i class="ri-loop-left-line" aria-hidden="true"></i>{{ 'XP.KEY_WORDS.Upgrade' | translate }}
+      </button>
     }
-  </div>
+  </header>
+  <div class="min-w-0"><router-outlet /></div>
 </div>
-
-<div class="xp-page-body flex flex-col items-center p-4">
-  <router-outlet></router-outlet>
-</div>
-
 @if (loading()) {
-  <xp-spin class="absolute top-0 left-0 w-full h-full" />
+  <xp-spin class="absolute inset-0" />
 }

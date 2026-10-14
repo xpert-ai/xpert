@@ -1,4 +1,3 @@
-import { resolveI18nText } from '@xpert-ai/contracts'
 // Published bindings authorize installation; runtime credentials still require the
 // current actor, exact Connector grant, workspace/project and resource checks.
 import {
@@ -16,11 +15,9 @@ import { t } from 'i18next'
 import { AgentPluginPackage, AgentResourceBinding } from './agent-plugin.entity'
 import { ConnectorService } from '../connector/connector.service'
 import { isEqual } from 'lodash'
-import {
-    McpOAuthConnectorStrategy,
-    mcpConnectorProvider,
-    type McpOAuthConnectorConfig
-} from '../connector/mcp-oauth.strategy'
+import { agentPluginConnectorProviders } from './agent-plugin-connector-providers'
+import { McpOAuthConnectorStrategy } from '../connector/mcp-oauth.strategy'
+import { adaptMcpConnector } from '../connector/mcp-native-connector-adapter'
 import { connectorMcpProvider } from '../connector/connector-mcp-provider'
 import {
     configureMcpConnectorAuthProviderResolver,
@@ -40,20 +37,9 @@ export class AgentPluginConnectorService implements OnApplicationBootstrap, OnMo
         private readonly registry: ConnectorStrategyRegistry
     ) {}
 
-    async onApplicationBootstrap() {
-        // Include older/disabled versions: their accounts must remain disconnectable.
-        for (const binding of await this.bindings.find()) {
-            if (binding.definition.kind !== 'agent_plugin' || !binding.definition.connectorServers) continue
-            const pkg = await this.packages.findOneBy({
-                id: binding.definition.packageId,
-                tenantId: binding.tenantId,
-                organizationId: agentPluginScopeWhere({
-                    tenantId: binding.tenantId,
-                    organizationId: binding.organizationId ?? null
-                }).organizationId
-            })
-            if (pkg?.organizationId) this.register(pkg, binding.definition.connectorServers)
-        }
+    onApplicationBootstrap() {
+        // ConnectorProviderService resolves persisted strategies on demand, including
+        // historical accounts; failed imported components must not block API startup.
         configureMcpConnectorAuthProviderResolver((request) => this.provider(request))
     }
 
@@ -67,42 +53,24 @@ export class AgentPluginConnectorService implements OnApplicationBootstrap, OnMo
         organizationId = pkg.organizationId
     ) {
         const providers = new Map<string, string>()
-        for (const [key, requirement] of Object.entries(requirements)) {
-            const server = pkg.descriptor.servers.find((item) => item.key === key)
-            if (
-                !server ||
-                Object.keys(server.config.headers ?? {}).some((name) => name.toLowerCase() === 'authorization')
+        for (const [key, { provider, strategy }] of agentPluginConnectorProviders(pkg, requirements, organizationId)) {
+            if (strategy instanceof McpOAuthConnectorStrategy) {
+                const existing = this.registry
+                    .listRuntime(organizationId)
+                    .find((item) => item.definition.provider === provider)
+                if (!existing) {
+                    this.registry.register(provider, strategy, { kind: 'builtin', scopeKey: organizationId })
+                } else if (!existing.definition.icon && strategy.definition.icon) {
+                    existing.definition.icon = strategy.definition.icon
+                }
+            }
+            providers.set(
+                key,
+                strategy
+                    ? (adaptMcpConnector(strategy, this.registry.listRuntime(organizationId)).definition
+                          .canonicalProvider ?? provider)
+                    : provider
             )
-                throw invalidConfiguration()
-            if (requirement.type === 'existing') {
-                providers.set(key, requirement.provider)
-                continue
-            }
-            // Tenant packages register their OAuth provider in the consuming organization on demand.
-            if (!organizationId) continue
-            const icon = pkg.descriptor.extension?.interface?.icon
-            const config: McpOAuthConnectorConfig = {
-                tenantId: pkg.tenantId,
-                organizationId,
-                serverUrl: server.config.url,
-                title: `${resolveI18nText(pkg.descriptor.extension?.interface?.displayName) ?? pkg.descriptor.name} (${key})`,
-                icon: icon ? { type: 'image', value: icon } : undefined,
-                scopes: requirement.scopes,
-                clientRegistration: requirement.clientRegistration
-            }
-            const provider = mcpConnectorProvider(config)
-            const existing = this.registry
-                .listRuntime(organizationId)
-                .find((item) => item.definition.provider === provider)
-            if (!existing) {
-                this.registry.register(provider, new McpOAuthConnectorStrategy(config), {
-                    kind: 'builtin',
-                    scopeKey: organizationId
-                })
-            } else if (!existing.definition.icon && config.icon) {
-                existing.definition.icon = config.icon
-            }
-            providers.set(key, provider)
         }
         return providers
     }
@@ -114,9 +82,17 @@ export class AgentPluginConnectorService implements OnApplicationBootstrap, OnMo
     ) {
         const providers = this.register(pkg, requirements)
         const available = await this.connectors.listBindings({ type: 'workspace', workspaceId })
+        const definitions = await this.connectors.definitionsForScope({ type: 'workspace', workspaceId })
         const result: { [server: string]: AgentPluginConnectorBinding } = {}
         for (const [key, provider] of providers) {
-            let binding = available.find((item) => item.provider === provider)
+            let binding =
+                available.find((item) => item.provider === provider) ??
+                available.find((item) =>
+                    definitions.some(
+                        (definition) =>
+                            definition.provider === item.provider && definition.canonicalProvider === provider
+                    )
+                )
             if (!binding) {
                 if (requirements[key].type === 'existing') throw invalidConfiguration()
                 binding = await this.connectors.createBinding({
@@ -127,7 +103,7 @@ export class AgentPluginConnectorService implements OnApplicationBootstrap, OnMo
                 available.push(binding)
             }
             if (binding.authorizationMode !== 'shared') throw invalidConfiguration()
-            result[key] = { bindingId: binding.id, provider }
+            result[key] = { bindingId: binding.id, provider: binding.provider }
         }
         return result
     }
@@ -151,13 +127,14 @@ export class AgentPluginConnectorService implements OnApplicationBootstrap, OnMo
         const result: { [server: string]: AgentPluginConnectorBinding } = {}
         for (const [key, provider] of providers) {
             const existing = previous[key]
-            const option = options.items.find(
+            const candidates = options.items.filter(
                 (item) =>
-                    item.provider === provider &&
+                    (item.provider === provider || item.canonicalProvider === provider) &&
                     item.authorizationMode === 'shared' &&
                     (!existing || item.bindingId === existing.bindingId)
             )
-            if (option) result[key] = { bindingId: option.bindingId, provider }
+            const option = candidates.find((item) => item.provider === provider) ?? candidates[0]
+            if (option) result[key] = { bindingId: option.bindingId, provider: option.provider }
         }
         return result
     }

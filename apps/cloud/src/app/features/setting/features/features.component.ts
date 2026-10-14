@@ -5,11 +5,11 @@ import { RequestScopeLevel } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { FeatureService, Store, injectToastr } from '../../../@core/services'
 import { getErrorMessage } from '../../../@core/types'
-import { XpSpinComponent } from '@xpert-ai/headless-ui'
+import { XpSpinComponent, ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [RouterOutlet, TranslateModule, XpSpinComponent],
+  imports: [RouterOutlet, TranslateModule, XpSpinComponent, ZardButtonComponent],
   providers: [FeatureService],
   selector: 'xp-features',
   templateUrl: './features.component.html',

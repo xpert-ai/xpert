@@ -1,10 +1,8 @@
-<div class="xp-page-header">
-  <div class="xp-page-title">{{ 'XP.MENU.Custom SMTP' | translate: { Default: 'Custom SMTP' } }}</div>
-</div>
-
-<div
-  class="xp-page-body flex flex-col items-center p-4"
-  [@routeAnimations]="o.isActivated && o.activatedRoute.routeConfig.path"
->
-  <router-outlet #o="outlet"></router-outlet>
+<div class="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
+  <header class="space-y-2">
+    <h1 class="text-2xl font-semibold tracking-tight">{{ 'XP.MENU.Custom SMTP' | translate }}</h1>
+  </header>
+  <div class="w-full min-w-0" [@routeAnimations]="o.isActivated && o.activatedRoute.routeConfig.path">
+    <router-outlet #o="outlet" />
+  </div>
 </div>

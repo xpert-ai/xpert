@@ -49,18 +49,23 @@ import {
       </header>
       <div xpDialogBody>
         <z-form-field class="w-full">
-          <z-form-label>{{ 'XP.ModelGateway.KeyName' | translate: { Default: 'Key name' } }}</z-form-label>
-          <input z-input formControlName="name" maxlength="100" />
+          <label z-form-label for="gateway-key-name">{{
+            'XP.ModelGateway.KeyName' | translate: { Default: 'Key name' }
+          }}</label>
+          <input id="gateway-key-name" z-input formControlName="name" maxlength="100" autocomplete="off" />
         </z-form-field>
         <z-form-field class="w-full">
           <z-form-label>{{ 'XP.ModelGateway.Lifetime' | translate: { Default: 'Lifetime' } }}</z-form-label>
-          <z-select class="w-full" formControlName="lifetime">
-            @for (lifetime of lifetimes; track lifetime) {
-              <z-select-item [zValue]="lifetime">
-                {{ 'XP.ModelGateway.LifetimeValue.' + lifetime | translate: { Default: lifetime } }}
-              </z-select-item>
-            }
-          </z-select>
+          <label class="block">
+            <span class="sr-only">{{ 'XP.ModelGateway.Lifetime' | translate }}</span>
+            <z-select class="w-full" formControlName="lifetime">
+              @for (lifetime of lifetimes; track lifetime) {
+                <z-select-item [zValue]="lifetime">
+                  {{ 'XP.ModelGateway.LifetimeValue.' + lifetime | translate: { Default: lifetime } }}
+                </z-select-item>
+              }
+            </z-select>
+          </label>
         </z-form-field>
       </div>
       <footer xpDialogFooter>

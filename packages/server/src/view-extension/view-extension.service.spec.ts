@@ -12,6 +12,7 @@ import {
 } from '@xpert-ai/contracts'
 import { ViewExtensionService } from './view-extension.service'
 import type { ViewExtensionFileActionFile } from './host-definition.interface'
+import { getViewDataRequestMetricRoute } from './view-request-metrics'
 
 describe('ViewExtensionService file actions', () => {
 	const manifest = {
@@ -110,6 +111,7 @@ describe('ViewExtensionService file actions', () => {
 		}
 		const cacheService = {
 			getOrSetSlotViews: jest.fn(async (_context, _slot, _ttl, loader) => loader()),
+			getOrSetViewData: jest.fn(async (_context, _view, _query, _ttl, loader) => loader()),
 			invalidateView: jest.fn()
 		}
 		const service = new ViewExtensionService(
@@ -120,6 +122,52 @@ describe('ViewExtensionService file actions', () => {
 		)
 		return { service, provider, hostDefinition, permissionService, cacheService }
 	}
+
+	it.each([true, false])('identifies validated views before loading data (cache enabled: %s)', async (cached) => {
+		const { service, provider, cacheService } = createService()
+		const request = new Request('http://localhost')
+		jest.spyOn(RequestContext, 'currentRequest').mockReturnValue(request)
+		provider.getViewManifests.mockResolvedValue([
+			{ ...manifest, dataSource: { mode: 'platform', cache: { enabled: cached } } }
+		])
+		provider.getViewData.mockImplementation(async () => {
+			expect(
+				getViewDataRequestMetricRoute(request, '/api/view-hosts/:hostType/:hostId/views/:viewKey/data')
+			).toBe('/api/view-hosts/agent/:hostId/views/provider__review/data')
+			throw new Error('provider failure')
+		})
+		if (cached) cacheService.getOrSetViewData.mockImplementation(async () => ({ items: [] }))
+		const result = service.getViewData('agent', 'private-id', 'provider__review', {})
+		if (cached) {
+			await expect(result).resolves.toEqual({ items: [] })
+			expect(provider.getViewData).not.toHaveBeenCalled()
+		} else {
+			await expect(result).rejects.toThrow('provider failure')
+		}
+		expect(getViewDataRequestMetricRoute(request, '/api/view-hosts/:hostType/:hostId/views/:viewKey/data')).toBe(
+			'/api/view-hosts/agent/:hostId/views/provider__review/data'
+		)
+	})
+
+	it.each(['missing', 'forbidden'])('does not identify a %s view from raw request parameters', async (reason) => {
+		const { service, permissionService } = createService()
+		const request = new Request('http://localhost')
+		jest.spyOn(RequestContext, 'currentRequest').mockReturnValue(request)
+		if (reason === 'forbidden')
+			permissionService.ensureManifestVisible.mockImplementation(() => {
+				throw new ForbiddenException()
+			})
+		await expect(
+			service.getViewData(
+				'agent',
+				'private-id',
+				reason === 'missing' ? 'provider__arbitrary' : 'provider__review',
+				{}
+			)
+		).rejects.toThrow()
+		const template = '/api/view-hosts/:hostType/:hostId/views/:viewKey/data'
+		expect(getViewDataRequestMetricRoute(request, template)).toBe(template)
+	})
 
 	it('previews permission-filtered feature associations without activating views or exposing executable schemas', async () => {
 		const { service, provider, hostDefinition, permissionService } = createService()

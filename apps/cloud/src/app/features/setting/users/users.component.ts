@@ -6,13 +6,7 @@ import { injectOrganization, Store } from '@cloud/app/@core/state'
 import { BehaviorSubject, Subject, firstValueFrom } from 'rxjs'
 import { distinctUntilChanged, map, startWith } from 'rxjs/operators'
 import { NgxPermissionsService } from 'ngx-permissions'
-import {
-  IUser,
-  PermissionsEnum,
-  ROUTE_ANIMATIONS_ELEMENTS,
-  RequestScopeLevel,
-  routeAnimations
-} from '../../../@core/index'
+import { IUser, PermissionsEnum, RequestScopeLevel } from '../../../@core/index'
 import { InviteMutationComponent } from '../../../@shared/invite'
 import { TranslationBaseComponent } from '../../../@shared/language'
 import { SharedUiModule } from '../../../@shared/ui.module'
@@ -24,13 +18,11 @@ import { UserMutationComponent, UserUploadComponent } from '../../../@shared/use
   standalone: true,
   selector: 'xp-users',
   templateUrl: './users.component.html',
-  styleUrls: ['./users.component.scss'],
-  animations: [routeAnimations],
+  host: { class: 'block min-w-0 w-full' },
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [SharedModule, SharedUiModule]
 })
 export class XpUsersComponent extends TranslationBaseComponent {
-  routeAnimationsElements = ROUTE_ANIMATIONS_ELEMENTS
   userLabel = userLabel
 
   private readonly store = inject(Store)
@@ -60,6 +52,7 @@ export class XpUsersComponent extends TranslationBaseComponent {
     }
   )
   readonly isListRoute = computed(() => this.childRoutePath() === '')
+  readonly isDirectoryRoute = computed(() => this.isListRoute() || this.childRoutePath() === 'invites')
   readonly canManageInvites = computed(() => {
     this.activeScope()
     this.permissions()
