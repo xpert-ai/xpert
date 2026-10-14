@@ -21,6 +21,10 @@ import {
 } from './template-readiness.command'
 import { ResolveAssistantFileAccessCommand } from '../../xpert/assistant-files/resolve-assistant-file-access.command'
 import { installationHash, InstallationSourceChangedError } from './template-installation-source'
+import {
+    ResolveAgentPluginTemplateDependencyCommand,
+    AssertAgentPluginTemplateDependencyCommand
+} from '../../agent-plugin/templates/agent-plugin-template.command'
 
 const versionsSchema = z
     .array(z.object({ pluginName: z.string().min(1).max(214), version: z.string().min(1).max(100) }).strict())
@@ -36,7 +40,8 @@ export class TemplateReadinessService {
         @Inject(LOADED_PLUGINS) private readonly loaded: LoadedPluginRecord[],
         private readonly middleware: AgentMiddlewareRegistry,
         private readonly sandbox: SandboxProviderRegistry,
-        private readonly toolsetRegistry: ToolsetRegistry
+        private readonly toolsetRegistry: ToolsetRegistry,
+        private readonly commands: CommandBus
     ) {}
 
     async inspect(template: TXpertTemplate, workspaceId?: string) {
@@ -62,7 +67,9 @@ export class TemplateReadinessService {
                     ...(dependencies?.hooks ?? []),
                     ...(dependencies?.apps ?? []),
                     ...(dependencies?.toolsets ?? [])
-                ].map((item) => item.pluginName ?? template.pluginName ?? '')
+                ]
+                    .filter((item) => !('source' in item && item.source))
+                    .map((item) => item.pluginName ?? template.pluginName ?? '')
             ]
                 .map(normalizePluginName)
                 .filter(Boolean)
@@ -137,6 +144,36 @@ export class TemplateReadinessService {
         // Resolve every selector separately: a partial match must never silently drop a missing resource.
         for (const kind of ['skills', 'mcpServers', 'hooks', 'apps'] as const) {
             for (const selector of dependencies?.[kind] ?? []) {
+                if ('source' in selector && selector.source?.kind === 'agent-plugin') {
+                    try {
+                        const resolved = await this.commands.execute(
+                            new ResolveAgentPluginTemplateDependencyCommand(
+                                kind === 'skills' ? 'skill' : 'mcp_server',
+                                selector,
+                                workspaceId
+                            )
+                        )
+                        components.push(resolved.component)
+                        const existing = readiness.dependencies.find(
+                            (lock) => lock.pluginName === resolved.lock.pluginName && lock.source
+                        )
+                        if (existing) {
+                            for (const component of resolved.lock.components)
+                                if (
+                                    !existing.components.some(
+                                        (item) => item.type === component.type && item.key === component.key
+                                    )
+                                )
+                                    existing.components.push(component)
+                        } else readiness.dependencies.push(resolved.lock)
+                        readiness.checks.push(requirementCheck('resource', `${kind}:${selector.componentKey}`, 'ready'))
+                    } catch {
+                        readiness.checks.push(
+                            requirementCheck('resource', `${kind}:${selector.componentKey}`, 'missing')
+                        )
+                    }
+                    continue
+                }
                 const pluginName = normalizePluginName(selector.pluginName ?? template.pluginName ?? '')
                 try {
                     const resolved = await resolveTemplateRuntimeDependencyComponents(
@@ -240,6 +277,10 @@ export class TemplateReadinessService {
     async assertDependencies(locks: TemplateDependencyLock[]) {
         for (const lock of locks) {
             try {
+                if (lock.source?.kind === 'agent-plugin') {
+                    await this.commands.execute(new AssertAgentPluginTemplateDependencyCommand(lock))
+                    continue
+                }
                 const version = this.pluginVersion(lock.pluginName)
                 if (version !== lock.version) throw new Error('Version changed')
                 for (const provider of lock.providers ?? []) {

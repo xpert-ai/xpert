@@ -2431,7 +2431,7 @@
         "ApplicationList": "应用库",
         "ApplicationListHint": "应用由可信插件的 App 配置提供。",
         "TemplateList": "智能体模板库",
-        "TemplateListHint": "可复用的系统内置及插件 Assistant 模板，不包含已封装为应用的模板。",
+        "TemplateListHint": "可复用的系统内置及插件 智能体模板，不包含已封装为应用的模板。",
         "Tags": "标签",
         "InstallationStatus": "状态",
         "ApplicationScope": "作用域",
@@ -2478,7 +2478,10 @@
         "TemplateSource": {
           "Label": "来源",
           "builtin": "系统内置",
-          "plugin": "插件提供"
+          "plugin": "Xpert 插件",
+          "shared": "共享模板",
+          "agent-plugin": "智能体插件",
+          "other": "其他来源"
         },
         "TemplateType": {
           "Label": "类型",
@@ -10161,7 +10164,15 @@
         "Utils": "🛠️ 实用程序",
         "Analysis": "📊 数据分析",
         "Browser": "🧭 浏览器",
-        "Project": "🤝 项目组"
+        "Project": "🤝 项目组",
+        "engineering": "工程研发",
+        "sales": "销售与客户",
+        "marketing": "市场营销",
+        "design": "设计创意",
+        "personal": "个人事务",
+        "recruiting-people": "招聘与人才",
+        "product": "产品管理",
+        "operations": "运营管理"
       },
       "SelectAWorkspace": "选择一个工作空间",
       "Checking": "检查中",
@@ -12004,9 +12015,9 @@
     "Back": "返回模板市场",
     "Loading": "正在加载模板…",
     "Retry": "重试",
-    "Template": "Assistant 模板",
+    "Template": "智能体模板",
     "By": "发布者",
-    "Import": "导入为 Assistant",
+    "Import": "导入为智能体",
     "View": "查看模板",
     "Memories": "记忆",
     "MemoriesHint": "它最初知道什么",
@@ -12050,5 +12061,73 @@
     },
     "Error": "无法加载模板介绍。",
     "Invalid": "模板介绍响应格式无效。"
+  },
+  "TemplateActivity": {
+    "Title": "例行任务结果",
+    "Unread": "未读",
+    "Empty": "还没有例行任务结果。",
+    "Open": "打开结果",
+    "Read": "标为已读",
+    "Status": {
+      "pending": "等待执行",
+      "running": "执行中",
+      "paused": "已暂停",
+      "awaiting_approval": "等待审批",
+      "succeeded": "已完成",
+      "failed": "执行失败"
+    }
+  },
+  "TemplateLifecycle": {
+    "Title": "模板发布与升级",
+    "PreviewPublication": "预览发布内容",
+    "CheckUpdates": "检查模板更新",
+    "Excluded": "分享前请检查全部文本。发布内容不包含账号与模型绑定、业务文件、运行记忆、用户偏好及已启用的例行任务。",
+    "Unsupported": "以下内容需要可移植适配器",
+    "PortableContent": "可分发的模板内容",
+    "Version": "模板版本",
+    "ReleaseNotes": "版本说明",
+    "Visibility": "可见范围",
+    "Team": "当前组织",
+    "Public": "平台全部已登录用户",
+    "Reviewed": "我已检查可分发内容，并移除了文本中的私有信息。",
+    "Publish": "发布模板",
+    "Published": "模板已发布。",
+    "Withdrawn": "已撤回",
+    "ShareLink": "分享链接",
+    "CopyLink": "复制链接",
+    "Withdraw": "撤回模板",
+    "SourceVersion": "来源版本",
+    "NoBaseline": "此安装没有比较基线，请逐项检查并选择变更处理方式。",
+    "UpToDate": "模板内容已是最新。",
+    "Conflict": "发现本地修改",
+    "Compare": "比较变更",
+    "Before": "当前内容",
+    "After": "模板内容",
+    "Choose": "选择如何处理此变更",
+    "Keep": "保留本地内容",
+    "Replace": "采用模板内容",
+    "Preserved": "升级保留助手身份、会话、文件和账号绑定。新增例行任务保持暂停。先保存升级草稿，再明确发布。",
+    "SaveDraft": "保存升级草稿",
+    "PublishUpgrade": "发布升级",
+    "Rollback": "恢复上一版内容",
+    "Copied": "链接已复制。",
+    "CopyFailed": "复制失败，请选中链接后手动复制。",
+    "OpenDesktop": "在桌面客户端中打开",
+    "Section": {
+      "presentation": "展示信息",
+      "instructions": "Agent 指令",
+      "runtime": "运行配置与图",
+      "definition": "模板要求与操作策略"
+    },
+    "State": {
+      "draft": "升级草稿已保存",
+      "failed": "升级需要恢复",
+      "published": "升级已发布",
+      "rolled-back": "已恢复上一版内容"
+    },
+    "SelectSource": "选择模板来源",
+    "TargetSource": "目标模板来源",
+    "CurrentSource": "当前模板来源",
+    "SourceMigration": "模板来源迁移"
   }
 }

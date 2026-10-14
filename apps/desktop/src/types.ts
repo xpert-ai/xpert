@@ -213,6 +213,11 @@ export interface HostMethods {
     output: import('./assistant-settings/types').AssistantSettings
   }
   assistantTemplateSetup: { input: { botId: string }; output: import('@xpert-ai/contracts').AssistantTemplateSetup }
+  templateActivity: { input: { botId: string }; output: import('@xpert-ai/contracts').TemplateActivity }
+  readTemplateActivity: {
+    input: { botId: string; keys: string[] }
+    output: import('@xpert-ai/contracts').TemplateActivity
+  }
   updateAssistantTemplateSetup: {
     input: { botId: string; update: import('@xpert-ai/contracts').TemplateSetupUpdate }
     output: import('@xpert-ai/contracts').AssistantTemplateSetup
@@ -284,6 +289,8 @@ export interface HostMethods {
     input: { artifactId: string; artifactVersionId: string }
     output: { base64: string; sha256: string; size: number; mimeType: string; name: string }
   }
+  templateCatalogPage: { input: { offset: number }; output: { items: CatalogItem[]; nextOffset: number | null } }
+  catalogAvatar: { input: string; output: string | null }
   listCatalog: { input: Exclude<CatalogKind, 'plugins'>; output: CatalogItem[] }
   requestExpertAccess: { input: { id: string; reason: string }; output: ExpertItem }
   applicationSetup: { input: ApplicationInput; output: ApplicationSetup }
@@ -329,11 +336,43 @@ export interface HostMethods {
     input: { workspaceId: string; skip: number }
     output: { items: import('@xpert-ai/contracts').TemplateInstallation[]; total: number }
   }
+  templatePublicationPreview: {
+    input: { botId: string }
+    output: import('@xpert-ai/contracts').TemplatePublicationPreview
+  }
+  templateUpgradeSources: { input: { botId: string }; output: import('@xpert-ai/contracts').TemplateUpgradeSource[] }
+  templateUpgradePreview: {
+    input: { botId: string; targetTemplateId?: string }
+    output: import('@xpert-ai/contracts').TemplateUpgradePreview
+  }
+  publishAssistantTemplate: {
+    input: { botId: string; input: import('@xpert-ai/contracts').TemplatePublicationInput }
+    output: NonNullable<import('@xpert-ai/contracts').TemplatePublicationPreview['publication']>
+  }
+  revokeAssistantTemplate: { input: { botId: string }; output: { revoked: boolean } }
+  applyTemplateUpgrade: {
+    input: { botId: string; input: import('@xpert-ai/contracts').TemplateUpgradeInput }
+    output: import('@xpert-ai/contracts').TemplateUpgradeOperation
+  }
+  resumeTemplateUpgrade: {
+    input: { botId: string; operationId: string }
+    output: import('@xpert-ai/contracts').TemplateUpgradeOperation
+  }
+  rollbackTemplateUpgrade: {
+    input: { botId: string; operationId: string }
+    output: import('@xpert-ai/contracts').TemplateUpgradeOperation
+  }
+  templateCatalogItem: { input: { id: string }; output: import('./catalog-types').TemplateItem }
   logout: { input: undefined; output: AppState }
 }
 declare global {
   interface Window {
     xpertDesktop?: {
+      templateLinks?: {
+        read: () => Promise<{ id: string; origin: string } | null>
+        dismiss: (id: string) => Promise<boolean>
+        onChange: (callback: () => void) => () => void
+      }
       requestMicrophonePermission?: () => Promise<
         | { success: true }
         | {

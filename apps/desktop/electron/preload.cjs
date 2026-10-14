@@ -51,6 +51,15 @@ contextBridge.exposeInMainWorld('xpertDesktop', {
       if (--avatarPointerSubscribers === 0) ipcRenderer.send('xpert:avatar-pointer-tracking', false)
     }
   },
+  templateLinks: {
+    read: () => ipcRenderer.invoke('xpert:template-link-read'),
+    dismiss: (id) => ipcRenderer.invoke('xpert:template-link-dismiss', id),
+    onChange: (callback) => {
+      const listener = () => callback()
+      ipcRenderer.on('xpert:template-link', listener)
+      return () => ipcRenderer.removeListener('xpert:template-link', listener)
+    }
+  },
   invoke: async (method, argument) => {
     const result = await ipcRenderer.invoke('xpert:request', method, argument)
     // Recreate the renderer only after its save request has completed.

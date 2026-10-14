@@ -3,6 +3,23 @@ import { z } from 'zod'
 
 const text = z.string().trim().min(1).max(300)
 const selector = z.object({ pluginName: text.optional(), componentKey: text, targetAgentKey: text.optional() }).strict()
+const portableSelector = selector.extend({
+    source: z
+        .object({
+            kind: z.literal('agent-plugin'),
+            name: z
+                .string()
+                .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+                .max(64),
+            digest: z
+                .string()
+                .regex(/^[a-f0-9]{64}$/)
+                .optional()
+        })
+        .strict()
+        .optional()
+})
+const singleOwner = (value: { pluginName?: string; source?: object }) => !(value.pluginName && value.source)
 const approval = z.enum(['prompt', 'approve', 'deny'])
 const policy = z
     .object({
@@ -29,9 +46,13 @@ export const assistantTemplateDependenciesSchema = z
             .array(z.object({ pluginName: text, version: text }).strict())
             .max(100)
             .optional(),
-        skills: z.array(selector).max(100).optional(),
+        skills: z.array(portableSelector.refine(singleOwner, 'Select one dependency source')).max(100).optional(),
         mcpServers: z
-            .array(selector.extend({ policyOverrides: policy.optional() }))
+            .array(
+                portableSelector
+                    .extend({ policyOverrides: policy.optional() })
+                    .refine(singleOwner, 'Select one dependency source')
+            )
             .max(100)
             .optional(),
         hooks: z

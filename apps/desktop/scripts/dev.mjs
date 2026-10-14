@@ -9,7 +9,7 @@ if (!rendererUrl) {
   await server.close()
   throw new Error('The Desktop development server did not provide a local URL.')
 }
-const child = spawn(electron, ['.'], {
+const child = spawn(electron, ['.', ...process.argv.slice(2)], {
   stdio: 'inherit',
   env: { ...process.env, XPERT_DESKTOP_DEV_URL: rendererUrl }
 })

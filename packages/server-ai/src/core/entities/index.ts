@@ -1,3 +1,5 @@
+import { TemplatePublicationEntity } from '../../xpert-template/lifecycle/template-publication.entity'
+import { TemplateUpgradeEntity } from '../../xpert/template-lifecycle/template-upgrade.entity'
 import { TemplateInstallationEntity } from '../../plugin-resource/template-installation/template-installation.entity'
 import { McpAppHistory } from '../../mcp-app-runtime/mcp-app-history.entity'
 import { GROUP_ENTITIES } from '../../chat-group/group.entities'
@@ -133,6 +135,8 @@ import {
 } from './internal'
 
 export const ALL_AI_ENTITIES = [
+    TemplatePublicationEntity,
+    TemplateUpgradeEntity,
     TemplateInstallationEntity,
     McpAppHistory,
     ...GROUP_ENTITIES,

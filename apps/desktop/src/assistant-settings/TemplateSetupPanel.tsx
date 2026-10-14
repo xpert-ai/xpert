@@ -1,10 +1,20 @@
+import { TemplateLifecyclePanel } from './TemplateLifecyclePanel'
 import { useEffect, useState } from 'react'
 import { Button, Input, Label } from '@xpert-ai/shadcn-ui'
 import type { AssistantTemplateSetup, TemplateSetupUpdate, TemplateRoutineStatus } from '@xpert-ai/contracts'
 import { invoke } from '../host'
 import { t } from '../i18n'
+import { TemplateActivityPanel } from './TemplateActivityPanel'
 
-export function TemplateSetupPanel({ botId, webUrl }: { botId: string; webUrl: string }) {
+export function TemplateSetupPanel({
+  botId,
+  webUrl,
+  onOpen
+}: {
+  botId: string
+  webUrl: string
+  onOpen?: (threadId: string) => void
+}) {
   const [setup, setSetup] = useState<AssistantTemplateSetup | null>(null)
   const [preferences, setPreferences] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState(false)
@@ -159,6 +169,8 @@ export function TemplateSetupPanel({ botId, webUrl }: { botId: string; webUrl: s
       <Button type="button" variant="outline" disabled={busy} onClick={() => void reload()}>
         {t('Refresh')}
       </Button>
+      <TemplateLifecyclePanel botId={botId} webUrl={webUrl} />
+      <TemplateActivityPanel botId={botId} onOpen={onOpen} />
     </div>
   )
 }

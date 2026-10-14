@@ -4,6 +4,8 @@ import { CommandBus } from '@nestjs/cqrs'
 import { ZodValidationPipe } from '@xpert-ai/server-core'
 import { templateSetupUpdateSchema, type TemplateSetupUpdate } from '@xpert-ai/contracts'
 import { AssistantTemplateSetupCommand } from './template-setup.command'
+import { templateActivityReadSchema, type TemplateActivityRead } from '@xpert-ai/contracts'
+import { TemplateActivityCommand } from '../../xpert-task/template-routines/template-activity.command'
 import {
     TemplateRoutinesCommand,
     templateRoutineUpdateSchema,
@@ -13,6 +15,23 @@ import {
 @Controller(':assistantId/template-setup')
 export class AssistantTemplateSetupController {
     constructor(private readonly commands: CommandBus) {}
+    @Get('activity')
+    activity(@Param('assistantId') id: string) {
+        return this.commands.execute(new TemplateActivityCommand(id))
+    }
+    @Put('activity/read')
+    readActivity(
+        @Param('assistantId') id: string,
+        @Body(
+            new ZodValidationPipe(
+                templateActivityReadSchema,
+                () => new BadRequestException(t('server-ai:Error.TemplateActivityChanged'))
+            )
+        )
+        input: TemplateActivityRead
+    ) {
+        return this.commands.execute(new TemplateActivityCommand(id, input))
+    }
     @Get()
     get(@Param('assistantId') id: string) {
         return this.commands.execute(new AssistantTemplateSetupCommand(id))

@@ -20,6 +20,14 @@ export const businessCategories = [
 ] as const
 const labels = new Map<string, string>([
   ...businessCategories,
+  ['engineering', 'Engineering & development'],
+  ['sales', 'Sales & customers'],
+  ['marketing', 'Marketing'],
+  ['design', 'Design & creativity'],
+  ['personal', 'Personal'],
+  ['recruiting-people', 'Recruiting & people'],
+  ['product', 'Product management'],
+  ['operations', 'Operations management'],
   ['Analysis', 'Data analysis'],
   ['Writing', 'Writing'],
   ['Workflow', 'Workflow'],

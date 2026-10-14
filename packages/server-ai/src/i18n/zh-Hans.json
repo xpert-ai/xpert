@@ -1055,7 +1055,19 @@
         "TemplateRoutineInvalid": "请检查时间规则、时区、首次引导及必需连接后再启用例行任务。",
         "TemplateOperationDenied": "工具操作已拒绝，未执行该操作。",
         "TemplateConnectorsRequired": "请先配置模板所需的必需连接，再执行工具。",
-        "AssistantTemplateNotFound": "未找到 Assistant 模板。"
+        "AssistantTemplateNotFound": "未找到 Assistant 模板。",
+        "TemplateRoutineExecutionFailed": "例行任务执行失败，请打开结果查看详情。",
+        "TemplateRoutineLocalUnavailable": "此任务需要本机能力，无法在服务端后台执行。请连接 Desktop 后手动运行。",
+        "TemplateActivityChanged": "任务结果状态已变化，请刷新后重试。",
+        "TemplateLifecycleInvalid": "模板发布或升级请求无效。",
+        "TemplateLifecycleStale": "助手或来源模板已变化，请重新加载预览后继续。",
+        "TemplatePublicationUnsupported": "部分运行节点缺少可移植适配器，请查看发布预览。",
+        "TemplatePublicationVersion": "请使用高于当前发布版本的新版本号。",
+        "TemplateUpgradeNoSource": "此助手没有关联来源模板。",
+        "TemplateUpgradeChoices": "请为每个变更部分选择保留本地内容或采用模板内容。",
+        "TemplateUpgradePending": "请先完成或回退当前待处理的升级。",
+        "TemplateUpgradeUnsupported": "此变更需要可移植运行适配器；变更已有例行任务请使用新任务键，变更文件隔离范围请另行安装。",
+        "TemplateUpgradeSourceUnavailable": "来源模板已不可用，仍可恢复或回退已保存的升级。"
     },
     "Mcp": {
         "Test": {
@@ -1236,5 +1248,8 @@
     },
     "TemplateSetup": {
         "ApprovalRequired": "此操作需要你确认"
-    }
+    },
+    "TemplateUpgradeReleaseNotes": "模板升级",
+    "TemplateRollbackReleaseNotes": "恢复上一版模板内容",
+    "TemplateCommunityPublisher": "社区发布者"
 }

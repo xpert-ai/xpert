@@ -1,3 +1,4 @@
+import { resolveI18nText } from '@xpert-ai/contracts'
 // Published bindings authorize installation; runtime credentials still require the
 // current actor, exact Connector grant, workspace/project and resource checks.
 import {
@@ -84,7 +85,7 @@ export class AgentPluginConnectorService implements OnApplicationBootstrap, OnMo
                 tenantId: pkg.tenantId,
                 organizationId,
                 serverUrl: server.config.url,
-                title: `${pkg.descriptor.extension?.interface?.displayName ?? pkg.descriptor.name} (${key})`,
+                title: `${resolveI18nText(pkg.descriptor.extension?.interface?.displayName) ?? pkg.descriptor.name} (${key})`,
                 icon: icon ? { type: 'image', value: icon } : undefined,
                 scopes: requirement.scopes,
                 clientRegistration: requirement.clientRegistration

@@ -1,3 +1,4 @@
+import { resolveI18nText } from '@xpert-ai/contracts'
 import type { AgentPluginDiagnostic, AgentPluginXpertExtension, RuntimeResourceBindingInput } from '@xpert-ai/contracts'
 
 export interface PackageSummary {
@@ -12,6 +13,7 @@ export interface PackageSummary {
     diagnostics: AgentPluginDiagnostic[]
     skills: Array<{ key: string }>
     servers: Array<{ key: string }>
+    templates?: Array<{ key: string; path: string }>
     extension?: AgentPluginXpertExtension
   }
 }
@@ -41,21 +43,25 @@ export interface PluginGroup {
   status: PluginStatus
 }
 
-export function packageTitle(pkg: PackageSummary): string {
-  return pkg.descriptor.extension?.interface?.displayName || pkg.descriptor.name
+export function packageTitle(pkg: PackageSummary, language?: string): string {
+  return resolveI18nText(pkg.descriptor.extension?.interface?.displayName, language) || pkg.descriptor.name
 }
 
-export function packageDescription(pkg: PackageSummary): string {
-  return pkg.descriptor.extension?.interface?.description || pkg.descriptor.description || ''
+export function packageDescription(pkg: PackageSummary, language?: string): string {
+  return resolveI18nText(pkg.descriptor.extension?.interface?.description, language) || pkg.descriptor.description || ''
 }
 
-export function packageVersion(pkg: PackageSummary): string {
+export function packageVersion(pkg: PackageSummary, language?: string): string {
   return pkg.descriptor.version || pkg.digest.slice(0, 8)
 }
 
 // The manifest name is the package identity; display titles and version labels are not identifiers.
 // Input order is newest import/binding first, as returned by the admin API.
-export function groupPluginPackages(packages: PackageSummary[], bindings: BindingSummary[]): PluginGroup[] {
+export function groupPluginPackages(
+  packages: PackageSummary[],
+  bindings: BindingSummary[],
+  language?: string
+): PluginGroup[] {
   const groups = new Map<string, PackageSummary[]>()
   for (const pkg of packages) {
     const versions = groups.get(pkg.descriptor.name) ?? []
@@ -75,8 +81,8 @@ export function groupPluginPackages(packages: PackageSummary[], bindings: Bindin
     const displayPackage = versions.find((pkg) => pkg.id === current?.definition.packageId) ?? versions[0]
     return {
       name,
-      title: packageTitle(versions[0]),
-      description: packageDescription(versions[0]),
+      title: packageTitle(versions[0], language),
+      description: packageDescription(versions[0], language),
       icon: versions[0].descriptor.extension?.interface?.icon,
       packages: versions,
       bindings: matches,

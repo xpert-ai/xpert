@@ -57,15 +57,22 @@ export class XpertTemplateController {
         @Query('category') category?: string,
         @Query('pluginName') pluginName?: string,
         @Query('offset') offset?: string,
-        @Query('limit') limit?: string
+        @Query('limit') limit?: string,
+        @Query('assistantsOnly') assistantsOnly?: string
     ) {
         return this.service.getCatalog(LanguagesMap[language] ?? language, {
+            assistantsOnly: assistantsOnly === 'true',
             search,
             category,
             pluginName,
             offset: Number(offset ?? 0),
             limit: Number(limit ?? 48)
         })
+    }
+
+    @Get('catalog-avatar/:id')
+    async catalogAvatar(@I18nLang() language: LanguagesEnum, @Param('id') id: string) {
+        return this.service.getCatalogAvatar(id, LanguagesMap[language] ?? language)
     }
 
     @Get('mcps')

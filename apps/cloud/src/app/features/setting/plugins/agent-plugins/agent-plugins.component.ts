@@ -1,3 +1,4 @@
+import { injectLanguage } from '@cloud/app/@core/providers/translate'
 import {
   ZardButtonComponent,
   XpDialogFrameImports,
@@ -18,7 +19,7 @@ import { Component, computed, effect, inject, signal, TemplateRef, untracked } f
 import { HttpClient } from '@angular/common/http'
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
-import { ActivatedRoute } from '@angular/router'
+import { ActivatedRoute, RouterLink } from '@angular/router'
 import { firstValueFrom, map } from 'rxjs'
 import { API_PREFIX } from '@cloud/app/@core/state/constants'
 import { injectActiveScope } from '@cloud/app/@core/state'
@@ -48,6 +49,7 @@ interface ResourceOptions {
   selector: 'xp-agent-plugins',
   imports: [
     CommonModule,
+    RouterLink,
     A11yModule,
     DialogModule,
     CdkMenuModule,
@@ -100,7 +102,8 @@ export class AgentPluginsComponent {
   readonly status = signal<PluginStatus | 'all'>('all')
   readonly page = signal(0)
   readonly pageSize = 8
-  readonly groups = computed(() => groupPluginPackages(this.packages(), this.bindings()))
+  readonly language = injectLanguage()
+  readonly groups = computed(() => groupPluginPackages(this.packages(), this.bindings(), this.language()))
   readonly filteredGroups = computed(() => {
     const query = this.search().trim().toLocaleLowerCase()
     return this.groups().filter(
@@ -130,8 +133,8 @@ export class AgentPluginsComponent {
       (expert) => !this.expertMappings()[expert.reference]
     )
   )
-  readonly packageTitle = packageTitle
-  readonly packageDescription = packageDescription
+  readonly packageTitle = (pkg: PackageSummary) => packageTitle(pkg, this.language())
+  readonly packageDescription = (pkg: PackageSummary) => packageDescription(pkg, this.language())
   readonly packageVersion = packageVersion
   readonly statusClasses: { [key in PluginStatus]: string } = {
     published: 'bg-state-success-hover/10 text-text-success',
@@ -334,8 +337,8 @@ export class AgentPluginsComponent {
     this.selectedPackageId.set(pkg.id)
     this.expertMappings.set({ ...binding?.definition.experts })
     this.binding.reset({
-      title: binding?.title || packageTitle(pkg),
-      description: binding?.description ?? packageDescription(pkg)
+      title: binding?.title || this.packageTitle(pkg),
+      description: binding?.description ?? this.packageDescription(pkg)
     })
     this.notice.set(false)
   }

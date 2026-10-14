@@ -1,6 +1,17 @@
 import { Command } from '@nestjs/cqrs'
 import type { TemplateReadiness, TXpertTemplate } from '@xpert-ai/contracts'
 
+export class ReconcileTemplateSkillReferencesCommand extends Command<import('@xpert-ai/contracts').TXpertTeamDraft> {
+    constructor(
+        readonly assistant: import('@xpert-ai/contracts').IXpert,
+        readonly draft: import('@xpert-ai/contracts').TXpertTeamDraft,
+        readonly before: import('@xpert-ai/contracts').TemplateDependencyLock[],
+        readonly after: import('@xpert-ai/contracts').TemplateDependencyLock[]
+    ) {
+        super()
+    }
+}
+
 /** Inspect requirements in the current organization; returns only public installation metadata. */
 export class InspectTemplateReadinessCommand extends Command<TemplateReadiness> {
     constructor(

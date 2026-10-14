@@ -77,7 +77,8 @@ export function normalizeAssistantTemplate(
     } else manifest = inputManifest
     for (const kind of ['skills', 'mcpServers', 'hooks', 'apps', 'toolsets'] as const) {
         const entries = dependencies[kind]
-        if (entries?.some((item) => !(item.pluginName ?? template.pluginName))) conflict(`${kind}.pluginName`)
+        if (entries?.some((item) => !('source' in item && item.source) && !(item.pluginName ?? template.pluginName)))
+            conflict(`${kind}.pluginName`)
     }
     dependencies = {
         ...dependencies,
@@ -86,7 +87,11 @@ export function normalizeAssistantTemplate(
                 .filter((kind) => dependencies[kind])
                 .map((kind) => [
                     kind,
-                    dependencies[kind].map((item) => ({ ...item, pluginName: item.pluginName ?? template.pluginName }))
+                    dependencies[kind].map((item) =>
+                        'source' in item && item.source
+                            ? item
+                            : { ...item, pluginName: item.pluginName ?? template.pluginName }
+                    )
                 ])
         )
     }

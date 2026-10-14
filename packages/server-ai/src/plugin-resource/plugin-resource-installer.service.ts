@@ -86,6 +86,9 @@ export type PluginResourceInstallResult = {
 }
 
 export type RuntimeComponent = {
+    runtimeSource?: 'agent-plugin'
+    /** Host-resolved portable server, including an authorized Connector reference, never credentials. */
+    portableServer?: import('@xpert-ai/contracts').TMCPServer
     pluginName: string
     pluginVersion?: string
     component: PluginBundleComponentRegistration
@@ -185,13 +188,14 @@ export function buildPluginManagedMcpToolsetEntity(
         description: `Plugin-managed MCP server from ${runtimeComponent.pluginName}`,
         schema: JSON.stringify({
             mcpServers: {
-                [runtimeComponent.component.componentKey]: parsed.server
+                [runtimeComponent.component.componentKey]: runtimeComponent.portableServer ?? parsed.server
             }
         }),
         options: {
             disableToolDefault: policy.enabledTools !== undefined,
-            needSandbox: true,
-            pluginManaged: true,
+            needSandbox: runtimeComponent.runtimeSource !== 'agent-plugin',
+            pluginManaged: runtimeComponent.runtimeSource !== 'agent-plugin',
+            ...(runtimeComponent.runtimeSource ? { runtimeSource: runtimeComponent.runtimeSource } : {}),
             pluginName: runtimeComponent.pluginName,
             componentKey: runtimeComponent.component.componentKey,
             ...(xpertId ? { xpertId } : {}),
@@ -1087,7 +1091,11 @@ export class PluginResourceInstallerService {
         const query = this.toolsetRepo
             .createQueryBuilder('toolset')
             .where('toolset.workspaceId = :workspaceId', { workspaceId })
-            .andWhere("toolset.options ->> 'pluginManaged' = 'true'")
+            .andWhere(
+                runtimeComponent.runtimeSource === 'agent-plugin'
+                    ? "toolset.options ->> 'runtimeSource' = 'agent-plugin'"
+                    : "toolset.options ->> 'pluginManaged' = 'true'"
+            )
             .andWhere("toolset.options ->> 'pluginName' = :pluginName", { pluginName: runtimeComponent.pluginName })
             .andWhere("toolset.options ->> 'componentKey' = :componentKey", {
                 componentKey: runtimeComponent.component.componentKey

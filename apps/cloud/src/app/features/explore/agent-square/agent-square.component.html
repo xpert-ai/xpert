@@ -320,6 +320,37 @@
 
   <div class="min-w-0 space-y-5 bg-background">
     <section class="min-w-0 space-y-5">
+      @if (catalog() === 'templates') {
+        <div
+          role="group"
+          [attr.aria-label]="'XP.Explore.AgentSquare.TemplateSource.Label' | translate"
+          class="flex flex-wrap items-center gap-2"
+        >
+          <button
+            z-button
+            zType="outline"
+            type="button"
+            [attr.aria-pressed]="!selectedTemplateSources().length"
+            [class]="!selectedTemplateSources().length ? 'bg-muted' : ''"
+            (click)="selectedTemplateSources.set([]); selectedTemplateCategories.set([]); visibleTemplateCount.set(24)"
+          >
+            {{ 'XP.Explore.AgentSquare.All' | translate }} {{ assistantTemplates().length }}
+          </button>
+          @for (group of templateSourceGroups(); track group.source) {
+            <button
+              z-button
+              zType="outline"
+              type="button"
+              [attr.aria-pressed]="selectedTemplateSources().includes(group.source)"
+              [class]="selectedTemplateSources().includes(group.source) ? 'bg-muted' : ''"
+              (click)="toggleTemplateSource(group.source)"
+            >
+              {{ 'XP.Explore.AgentSquare.TemplateSource.' + group.source | translate }} {{ group.count }}
+            </button>
+          }
+        </div>
+      }
+
       <div
         role="group"
         [attr.aria-label]="
@@ -330,16 +361,22 @@
         <button
           type="button"
           [class]="
-            selectedBusinessCategories().length === 0 &&
-            (catalog() !== 'experts' || selectedBusinessAreaIds().length === 0)
+            (
+              catalog() === 'templates'
+                ? selectedTemplateCategories().length === 0
+                : selectedBusinessCategories().length === 0 &&
+                  (catalog() !== 'experts' || selectedBusinessAreaIds().length === 0)
+            )
               ? 'shrink-0 cursor-pointer rounded-md bg-muted px-3 py-2 text-sm font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
               : 'shrink-0 cursor-pointer rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
           "
           [attr.aria-pressed]="
-            selectedBusinessCategories().length === 0 &&
-            (catalog() !== 'experts' || selectedBusinessAreaIds().length === 0)
+            catalog() === 'templates'
+              ? selectedTemplateCategories().length === 0
+              : selectedBusinessCategories().length === 0 &&
+                (catalog() !== 'experts' || selectedBusinessAreaIds().length === 0)
           "
-          (click)="resetExpertFilters()"
+          (click)="catalog() === 'templates' ? selectedTemplateCategories.set([]) : resetExpertFilters()"
         >
           {{ 'XP.Explore.AgentSquare.All' | translate: { Default: 'All' } }}
         </button>
@@ -364,24 +401,42 @@
             </button>
           }
         }
-        @for (category of businessCategories; track category) {
-          <button
-            type="button"
-            [class]="
-              selectedBusinessCategories().includes(category)
-                ? 'shrink-0 cursor-pointer rounded-md bg-muted px-3 py-2 text-sm font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
-                : 'shrink-0 cursor-pointer rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
-            "
-            [attr.aria-pressed]="selectedBusinessCategories().includes(category)"
-            [attr.title]="
-              ('XP.Explore.AgentSquare.MarketplaceCategories' | translate: { Default: 'Marketplace categories' }) +
-              ': ' +
-              (businessLabelKey(category) | translate)
-            "
-            (click)="toggleBusinessCategory(category)"
-          >
-            {{ businessLabelKey(category) | translate }}
-          </button>
+        @if (catalog() === 'templates') {
+          @for (category of templateCategories(); track category) {
+            <button
+              type="button"
+              [class]="
+                selectedTemplateCategories().includes(category)
+                  ? 'shrink-0 cursor-pointer rounded-md bg-muted px-3 py-2 text-sm font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+                  : 'shrink-0 cursor-pointer rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+              "
+              [attr.aria-pressed]="selectedTemplateCategories().includes(category)"
+              (click)="toggleTemplateCategory(category)"
+            >
+              {{ 'XP.Xpert.Categories.' + category | translate: { Default: category } }}
+              {{ templateCategoryCount(category) }}
+            </button>
+          }
+        } @else {
+          @for (category of businessCategories; track category) {
+            <button
+              type="button"
+              [class]="
+                selectedBusinessCategories().includes(category)
+                  ? 'shrink-0 cursor-pointer rounded-md bg-muted px-3 py-2 text-sm font-semibold text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+                  : 'shrink-0 cursor-pointer rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+              "
+              [attr.aria-pressed]="selectedBusinessCategories().includes(category)"
+              [attr.title]="
+                ('XP.Explore.AgentSquare.MarketplaceCategories' | translate: { Default: 'Marketplace categories' }) +
+                ': ' +
+                (businessLabelKey(category) | translate)
+              "
+              (click)="toggleBusinessCategory(category)"
+            >
+              {{ businessLabelKey(category) | translate }}
+            </button>
+          }
         }
       </div>
     </section>
@@ -751,6 +806,21 @@
       }
 
       @case ('templates') {
+        @if (!loadingTemplates() && loadingMoreTemplates()) {
+          <div role="status" class="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
+            <z-icon zType="loader-circle" class="animate-spin" />
+            {{ 'XP.Common.Loading' | translate: { Default: 'Loading…' } }}
+          </div>
+        }
+        @if (templates().length && templateLoadError(); as error) {
+          <div role="alert" class="mb-3 flex items-center gap-3 text-sm text-destructive">
+            {{ error }}
+            <button z-button zType="outline" type="button" (click)="loadTemplates()">
+              {{ 'XP.Explore.AgentSquare.TryAgain' | translate: { Default: 'Try again' } }}
+            </button>
+          </div>
+        }
+
         @if (loadingTemplates()) {
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             @for (placeholder of [1, 2, 3, 4, 5, 6, 7, 8]; track placeholder) {
@@ -761,31 +831,35 @@
           <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             @for (template of visibleTemplates(); track template.id) {
               <article
-                class="group/template relative flex min-h-40 flex-col rounded-xl border border-border bg-card p-5 shadow-sm transition-colors hover:border-primary/60"
+                class="group/template relative isolate flex min-h-40 flex-col rounded-xl border border-border bg-card p-5 shadow-sm transition-colors hover:border-primary/60"
               >
-                <div class="flex min-w-0 items-center gap-3">
-                  <emoji-avatar
-                    class="shrink-0 overflow-hidden rounded-xl shadow-sm"
-                    [avatar]="template.avatar"
-                    [alt]="templateTitle(template)"
-                    [fallbackLabel]="templateTitle(template)"
-                  />
-                  <div class="min-w-0">
-                    <h4 class="truncate text-base font-semibold text-foreground" [title]="templateTitle(template)">
-                      <a [routerLink]="['/explore/templates', template.id]" class="hover:underline">{{
-                        templateTitle(template)
-                      }}</a>
-                    </h4>
-                    <p class="mt-1 truncate text-xs text-muted-foreground">
-                      {{ templateProvider(template) }}
-                    </p>
+                <a
+                  [routerLink]="['/explore/templates', template.id]"
+                  [attr.aria-label]="templateTitle(template)"
+                  class="outline-none after:absolute after:inset-0 after:z-10 after:rounded-xl focus-visible:after:ring-2 focus-visible:after:ring-ring"
+                >
+                  <div class="flex min-w-0 items-center gap-3">
+                    <emoji-avatar
+                      class="shrink-0 overflow-hidden rounded-xl shadow-sm"
+                      [avatar]="template.avatar"
+                      [alt]="templateTitle(template)"
+                      [fallbackLabel]="templateTitle(template)"
+                    />
+                    <div class="min-w-0">
+                      <h4 class="truncate text-base font-semibold text-foreground" [title]="templateTitle(template)">
+                        {{ templateTitle(template) }}
+                      </h4>
+                      <p class="mt-1 truncate text-xs text-muted-foreground">
+                        {{ templateProvider(template) }}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <p class="mt-4 line-clamp-3 min-h-[60px] text-sm leading-5 text-muted-foreground">
-                  {{ templateSummary(template) }}
-                </p>
+                  <p class="mt-4 line-clamp-3 min-h-[60px] text-sm leading-5 text-muted-foreground">
+                    {{ templateSummary(template) }}
+                  </p>
+                </a>
                 <div
-                  class="absolute bottom-0 left-0 w-full p-2 flex justify-between min-h-7 flex-wrap gap-2 rounded-2xl backdrop-blur-sm bg-card/5 opacity-0 group-hover/template:opacity-100 transition-opacity duration-200"
+                  class="pointer-events-none absolute bottom-0 left-0 z-20 w-full p-2 flex justify-between min-h-7 flex-wrap gap-2 rounded-2xl backdrop-blur-sm bg-card/5 opacity-0 group-hover/template:opacity-100 group-focus-within/template:opacity-100 transition-opacity duration-200"
                 >
                   <div class="flex flex-wrap items-center gap-2">
                     <span class="rounded-md bg-muted px-2 py-1 text-xs font-medium text-muted-foreground">
@@ -800,10 +874,13 @@
                       </span>
                     }
                   </div>
-                  <a z-button zType="outline" [routerLink]="['/explore/templates', template.id]">{{
-                    'TemplateOverview.View' | translate
-                  }}</a>
-                  <button z-button zType="default" type="button" (click)="openTemplate(template, $event)">
+                  <button
+                    z-button
+                    zType="default"
+                    type="button"
+                    class="pointer-events-auto"
+                    (click)="openTemplate(template, $event)"
+                  >
                     {{ 'XP.Explore.AgentSquare.UseTemplate' | translate: { Default: 'Use template' } }}
                   </button>
                 </div>

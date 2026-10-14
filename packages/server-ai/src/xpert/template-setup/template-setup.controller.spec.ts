@@ -24,6 +24,17 @@ describe('template setup HTTP boundaries', () => {
     })
     afterAll(() => app.close())
     beforeEach(() => execute.mockClear())
+    it('validates persisted activity acknowledgements at HTTP boundary', async () => {
+        const key = '22222222-2222-4222-8222-222222222222:succeeded'
+        expect((await put('/assistant/template-setup/activity/read', { keys: [key] })).status).toBe(200)
+        expect(execute.mock.calls[0][0].acknowledgement).toEqual({ keys: [key] })
+        execute.mockClear()
+        expect((await put('/assistant/template-setup/activity/read', { keys: [key], userId: 'someone' })).status).toBe(
+            400
+        )
+        expect((await put('/assistant/template-setup/activity/read', { keys: ['invalid'] })).status).toBe(400)
+        expect(execute).not.toHaveBeenCalled()
+    })
     it('accepts parsed preference updates', async () => {
         expect(
             (await put('/assistant/template-setup', { revision: 0, preferences: { language: ' Chinese ' } })).status

@@ -1,3 +1,7 @@
+import { TemplateAuthoring } from './template-lifecycle/template-authoring'
+import { TemplatePublicationService } from './template-lifecycle/template-publication.service'
+import { TemplateUpgradeService } from './template-lifecycle/template-upgrade.service'
+import { TemplateLifecycleController } from './template-lifecycle/template-lifecycle.controller'
 import { AssistantTemplateSetupController } from './template-setup/template-setup.controller'
 import { AssistantTemplateSetupService } from './template-setup/template-setup.service'
 import { InitializeAssistantTemplateFilesHandler } from './assistant-files/initialize-assistant-template-files.command'
@@ -118,6 +122,7 @@ import { XpertTriggerConnectionService } from './trigger-connection.service'
         forwardRef(() => XpertProjectModule)
     ],
     controllers: [
+        TemplateLifecycleController,
         AssistantTemplateSetupController,
         AssistantTriggerController,
         AssistantConfigurationController,
@@ -129,6 +134,9 @@ import { XpertTriggerConnectionService } from './trigger-connection.service'
         XpertAccessController
     ],
     providers: [
+        TemplateAuthoring,
+        TemplatePublicationService,
+        TemplateUpgradeService,
         AssistantTemplateSetupService,
         InitializeAssistantTemplateFilesHandler,
         AssistantAppearanceService,

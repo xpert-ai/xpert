@@ -211,7 +211,9 @@ export class TemplateInstallationComponent {
       capabilities: this.capabilities(),
       basic: {
         title: this.form.controls.title.value.trim(),
-        ...(model ? { copilotModel: { copilotId: model.copilotId, model: model.model } } : {}),
+        ...(model
+          ? { copilotModel: { copilotId: model.copilotId, model: model.model, modelType: model.modelType } }
+          : {}),
         ...(this.capabilities().includes('realtime-voice')
           ? { realtimeVoice: { modelId: this.form.controls.voiceModel.value, voice: this.form.controls.voice.value } }
           : {})

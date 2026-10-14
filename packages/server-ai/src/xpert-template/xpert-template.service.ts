@@ -1,3 +1,5 @@
+import { TemplatePublicationStore } from './lifecycle/template-publication.store'
+import { AgentPluginTemplatesCommand } from '../agent-plugin/templates/agent-plugin-template.command'
 import { t } from 'i18next'
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { Inject, Injectable, Logger, NotFoundException, OnApplicationBootstrap, Optional } from '@nestjs/common'
@@ -97,6 +99,8 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
     @Inject(CommandBus)
     private readonly commands: CommandBus
 
+    @Inject(TemplatePublicationStore) private readonly publications: TemplatePublicationStore
+
     constructor(
         @InjectRepository(XpertTemplate)
         readonly xtRepository: Repository<XpertTemplate>,
@@ -165,34 +169,65 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
         }
     }
 
-    async getAll(language: LanguagesEnum, query?: TXpertTemplateQuery) {
-        const [templatesData, pluginTemplates] = await Promise.all([
+    async getAll(language: LanguagesEnum, query?: TXpertTemplateQuery, summaryOnly = false) {
+        const [templatesData, pluginTemplates, publications, agentTemplates] = await Promise.all([
             this.readTemplatesFile(),
-            this.getPluginTemplates(language, query)
+            this.getPluginTemplates(language, query),
+            this.publications?.list() ?? [],
+            this.commands.execute(new AgentPluginTemplatesCommand(undefined, language, summaryOnly))
         ])
         const group = templatesData.templates[language]?.recommendedApps?.length
             ? templatesData.templates[language]
             : templatesData.templates[fallbackLanguage]
-        const recommendedApps = [...(group?.recommendedApps ?? []), ...pluginTemplates]
+        const recommendedApps = [
+            ...(group?.recommendedApps ?? []).map((template) => ({
+                ...template,
+                source: template.source ?? 'builtin'
+            })),
+            ...pluginTemplates,
+            ...publications,
+            ...agentTemplates
+        ]
             .filter((template) => matchesTemplateQuery(template, query))
-            .sort((left, right) => getTemplateOrder(left) - getTemplateOrder(right) || left.id.localeCompare(right.id))
+            .sort(
+                (left, right) =>
+                    Number(left.source === 'builtin') - Number(right.source === 'builtin') ||
+                    getTemplateOrder(left) - getTemplateOrder(right) ||
+                    left.id.localeCompare(right.id)
+            )
 
         return {
             ...(group ?? { categories: [], recommendedApps: [] }),
             categories: mergeTemplateCategories(
                 group?.categories,
-                pluginTemplates.map((template) => template.category)
+                [...pluginTemplates, ...agentTemplates].map((template) => template.category)
             ),
             recommendedApps
         }
     }
 
     async getCatalog(language: LanguagesEnum, query: TXpertTemplateCatalogQuery = {}) {
-        const catalog = await this.getAll(language)
+        const catalog = await this.getAll(language, undefined, true)
         return paginateTemplateCatalog(
             catalog.recommendedApps.map((item) => toXpertTemplate(item)),
             query
         )
+    }
+
+    async getCatalogAvatar(id: string, language: LanguagesEnum) {
+        let template: TXpertTemplateDescriptor | undefined
+        if (id.startsWith('agent-plugin/')) {
+            ;[template] = await this.commands.execute(new AgentPluginTemplatesCommand(id, language, true))
+        } else {
+            template = (await this.getPluginTemplates(language)).find((item) => item.id === id)
+            if (!template) {
+                const data = await this.readTemplatesFile()
+                template = findTemplateDescriptorById(data, id, language) ?? undefined
+            }
+        }
+        if (!template?.avatar?.url?.startsWith('data:image/'))
+            throw new NotFoundException(t('server-ai:Error.AssistantTemplateNotFound'))
+        return { url: template.avatar.url }
     }
 
     async getMarketplaceRecommendedTemplates(
@@ -243,6 +278,12 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
         language: LanguagesEnum,
         query?: TXpertTemplateQuery
     ): Promise<TXpertTemplateDescriptor> {
+        if (id.startsWith('shared-')) return this.publications.get(id)
+        if (id.startsWith('agent-plugin/')) {
+            const [template] = await this.commands.execute(new AgentPluginTemplatesCommand(id, language))
+            if (!template) throw new NotFoundException(t('server-ai:Error.AssistantTemplateNotFound'))
+            return template
+        }
         if (id === BOSI_TEMPLATE_ID) {
             const base = await this.getTemplateSourceDetail(BOSI_BASE_TEMPLATE_ID, language, query)
             return bosiTemplate(toXpertTemplate(base))

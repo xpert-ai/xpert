@@ -1,4 +1,5 @@
 import { TemplateRoutinesHandler } from './template-routines/template-routines.handler'
+import { TemplateActivityHandler } from './template-routines/template-activity.handler'
 import { ActorTokenModule, RedisModule, TenantModule, User } from '@xpert-ai/server-core'
 import { Module, forwardRef } from '@nestjs/common'
 import { BullModule } from '@nestjs/bull'
@@ -52,6 +53,7 @@ import { ConnectorModule } from '../connector/connector.module'
     controllers: [XpertTaskController],
     providers: [
         TemplateRoutinesHandler,
+        TemplateActivityHandler,
         SchedulerDetailViewProvider,
         XpertTaskService,
         TaskSchedulerProcessor,

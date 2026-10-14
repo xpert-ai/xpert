@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 import type { AssistantTemplateOverview } from '@xpert-ai/contracts'
 import { Button, Tabs, TabsContent, TabsList, TabsTrigger } from '@xpert-ai/shadcn-ui'
 import { invoke } from '../host'
-import { t } from '../i18n'
+import { t, useLocale } from '../i18n'
 
 const sections = [
   ['memories', 'Memories', 'What it knows at the start'],
@@ -25,6 +25,7 @@ function Copy({ children }: { children: ReactNode }) {
 }
 
 export function TemplateOverview({ id, onInstall }: { id: string; onInstall: () => void }) {
+  const locale = useLocale()
   const [detail, setDetail] = useState<AssistantTemplateOverview | null>(null)
   const [error, setError] = useState('')
   const [revision, setRevision] = useState(0)
@@ -42,7 +43,7 @@ export function TemplateOverview({ id, onInstall }: { id: string; onInstall: () 
     return () => {
       current = false
     }
-  }, [id, revision])
+  }, [id, revision, locale])
   if (error)
     return (
       <div role="alert" className="space-y-4 px-6 py-10">
@@ -131,7 +132,7 @@ export function TemplateOverview({ id, onInstall }: { id: string; onInstall: () 
           {detail.skills.length ? (
             detail.skills.map((skill, index) => (
               <Block key={index} title={skill.componentKey}>
-                <Copy>{skill.pluginName}</Copy>
+                <Copy>{skill.source?.name || skill.pluginName}</Copy>
                 {skill.componentKey === detail.onboarding?.skill && (
                   <p>
                     {t('Getting started')} · {detail.onboarding.completionCriteria}

@@ -16,6 +16,24 @@ const binding = (id: string, packageId: string, fields: Partial<BindingSummary> 
 })
 
 describe('agent plugin catalog', () => {
+  it('switches catalog text and retains grouping, selected package and legacy strings', () => {
+    const source = pkg('localized', 'office')
+    source.descriptor.extension = {
+      version: 2,
+      interface: {
+        displayName: { en_US: 'Office', zh_Hans: '办公室' },
+        description: { en_US: 'Office work', zh_Hans: '办公事务' }
+      }
+    }
+    const [zh] = groupPluginPackages([source], [], 'zh-CN')
+    const [en] = groupPluginPackages([source], [], 'en-US')
+    expect(zh.title).toBe('办公室')
+    expect(zh.description).toBe('办公事务')
+    expect(en.title).toBe('Office')
+    expect(zh.name).toBe(en.name)
+    expect(zh.displayPackage).toBe(en.displayPackage)
+    expect(groupPluginPackages([pkg('old', 'Legacy')], [], 'zh-CN')[0].title).toBe('Legacy')
+  })
   it('groups by manifest identity while preserving distinct imports with identical version labels', () => {
     const groups = groupPluginPackages([pkg('new', 'documents'), pkg('old', 'documents'), pkg('other', 'pdf')], [])
     expect(groups).toHaveLength(2)

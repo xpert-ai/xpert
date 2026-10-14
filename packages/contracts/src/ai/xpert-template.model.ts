@@ -133,7 +133,10 @@ export type TXpertTemplate = TTemplate & {
   copilotModel?: Partial<TCopilotModel>
 }
 
-export type TXpertTemplateSummary = Omit<TXpertTemplate, 'export_data' | 'manifest'>
+export type TXpertTemplateSummary = Omit<TXpertTemplate, 'export_data' | 'manifest'> & {
+  /** Catalog membership discriminator; full application configuration is detail-only. */
+  hasApplication?: boolean
+}
 
 /** Opt-in capabilities offered by the serving distribution for a template. */
 export type XpertTemplateCapability = string
@@ -163,6 +166,7 @@ export interface XpertTemplateSetup {
 }
 
 export interface TXpertTemplateCatalogQuery {
+  assistantsOnly?: boolean
   search?: string
   category?: string
   pluginName?: string

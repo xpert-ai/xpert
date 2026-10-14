@@ -6,9 +6,10 @@ export interface PluginLibraryItem {
   version: string
   scope: 'tenant' | 'organization'
   status: 'available' | 'configuration_required' | 'disabled'
-  components: { kind: 'skill' | 'mcp' | 'middleware' | 'external_xpert'; name: string }[]
+  components: InstalledAgentPlugin['components']
 }
 
 export interface PluginLibrary {
   items: PluginLibraryItem[]
 }
+import type { InstalledAgentPlugin } from '@xpert-ai/contracts'

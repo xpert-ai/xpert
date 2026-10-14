@@ -1,3 +1,5 @@
+import { lastValueFrom, tap } from 'rxjs'
+import { injectLanguage } from '@cloud/app/@core/providers/translate'
 import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import {
@@ -47,12 +49,12 @@ type ExpertSort = 'match' | 'updated'
 type CatalogSort = 'comprehensive' | 'name'
 type ApplicationStatus = PluginApplicationCatalogItem['status']['status']
 type ApplicationScope = PluginApplicationCatalogItem['application']['scope']
-type TemplateSource = 'builtin' | 'plugin'
+type TemplateSource = 'agent-plugin' | 'plugin' | 'builtin' | 'shared' | 'other'
 
 const DEFAULT_CATALOG: AgentSquareCatalog = 'experts'
 const APPLICATION_STATUSES: ApplicationStatus[] = ['ready', 'not_installed', 'initializing', 'degraded', 'failed']
 const APPLICATION_SCOPES: ApplicationScope[] = ['organization', 'tenant', 'personal']
-const TEMPLATE_SOURCES: TemplateSource[] = ['builtin', 'plugin']
+const TEMPLATE_SOURCES: TemplateSource[] = ['agent-plugin', 'plugin', 'builtin', 'shared', 'other']
 
 @Component({
   standalone: true,
@@ -133,6 +135,7 @@ export class ExploreAgentSquareComponent {
   readonly templates = signal<TXpertTemplateSummary[]>([])
   readonly visibleTemplateCount = signal(24)
   readonly visibleTemplates = computed(() => this.filteredTemplates().slice(0, this.visibleTemplateCount()))
+  readonly loadingMoreTemplates = signal(false)
   readonly loadingTemplates = signal(false)
   readonly templateLoadError = signal<string | null>(null)
   readonly selectedTemplateCategories = signal<string[]>([])
@@ -251,28 +254,44 @@ export class ExploreAgentSquareComponent {
   readonly assistantTemplates = computed(() =>
     this.templates().filter(
       (template) =>
-        !template.application && (template.type === XpertTypeEnum.Agent || template.type === XpertTypeEnum.Copilot)
+        !template.hasApplication &&
+        !template.application &&
+        (template.type === XpertTypeEnum.Agent || template.type === XpertTypeEnum.Copilot)
     )
   )
-  readonly templateCategories = computed(() =>
-    Array.from(
-      new Set(
-        this.assistantTemplates()
-          .map((template) => template.category)
-          .filter(Boolean)
-      )
-    ).sort()
+  readonly templateSourceGroups = computed(() =>
+    TEMPLATE_SOURCES.map((source) => ({
+      source,
+      count: this.assistantTemplates().filter((item) => this.templateSource(item) === source).length
+    })).filter((group) => group.count > 0)
   )
+  readonly sourceTemplates = computed(() =>
+    this.assistantTemplates()
+      .filter(
+        (item) =>
+          !this.selectedTemplateSources().length || this.selectedTemplateSources().includes(this.templateSource(item))
+      )
+      .sort(
+        (left, right) =>
+          TEMPLATE_SOURCES.indexOf(this.templateSource(left)) - TEMPLATE_SOURCES.indexOf(this.templateSource(right))
+      )
+  )
+  readonly templateCategories = computed(() => [
+    ...new Set(
+      this.sourceTemplates()
+        .map((item) => item.category)
+        .filter(Boolean)
+    )
+  ])
+  templateCategoryCount(category: string) {
+    return this.sourceTemplates().filter((item) => item.category === category).length
+  }
   readonly filteredTemplates = computed(() => {
     const search = this.search().trim().toLowerCase()
-    const sharedCategories = new Set<string>(this.selectedBusinessCategories())
     const categories = this.selectedTemplateCategories()
     const sources = this.selectedTemplateSources()
     const types = this.selectedTemplateTypes()
     const items = this.assistantTemplates().filter((template) => {
-      if (sharedCategories.size && !sharedCategories.has(template.category)) {
-        return false
-      }
       if (categories.length && !categories.includes(template.category)) {
         return false
       }
@@ -286,6 +305,9 @@ export class ExploreAgentSquareComponent {
     })
 
     return [...items].sort((left, right) => {
+      const sourceOrder =
+        TEMPLATE_SOURCES.indexOf(this.templateSource(left)) - TEMPLATE_SOURCES.indexOf(this.templateSource(right))
+      if (sourceOrder) return sourceOrder
       if (this.expertSort() === 'updated') {
         return (
           (right.order ?? Number.MIN_SAFE_INTEGER) - (left.order ?? Number.MIN_SAFE_INTEGER) ||
@@ -298,6 +320,8 @@ export class ExploreAgentSquareComponent {
       return (left.order ?? Number.MAX_SAFE_INTEGER) - (right.order ?? Number.MAX_SAFE_INTEGER)
     })
   })
+
+  readonly language = injectLanguage()
 
   #scopeVersion = 0
   #loadedScopeKey: string | null = null
@@ -314,7 +338,7 @@ export class ExploreAgentSquareComponent {
       this.visibleTemplateCount.set(24)
     })
     effect(() => {
-      const scopeKey = this.scope.key()
+      const scopeKey = `${this.scope.key()}:${this.language()}`
       const catalog = this.catalog()
       const query = this.currentExpertQuery()
       untracked(() => {
@@ -445,20 +469,31 @@ export class ExploreAgentSquareComponent {
     }
     const version = this.#scopeVersion
     this.#templatesLoaded = true
+    this.loadingMoreTemplates.set(true)
     this.loadingTemplates.set(true)
     this.templateLoadError.set(null)
     try {
-      const result = await firstValueFrom(this.#templateService.getSummaries())
-      if (version === this.#scopeVersion) this.templates.set(result)
+      await lastValueFrom(
+        this.#templateService.getSummaries().pipe(
+          tap((items) => {
+            if (version === this.#scopeVersion) {
+              this.templates.set(items)
+              this.loadingTemplates.set(false)
+            }
+          })
+        )
+      )
     } catch (error) {
       if (version !== this.#scopeVersion) return
       this.#templatesLoaded = false
-      this.templates.set([])
       const message = getErrorMessage(error)
       this.templateLoadError.set(message)
       this.#toastr.error(message)
     } finally {
-      if (version === this.#scopeVersion) this.loadingTemplates.set(false)
+      if (version === this.#scopeVersion) {
+        this.loadingTemplates.set(false)
+        this.loadingMoreTemplates.set(false)
+      }
     }
   }
 
@@ -517,11 +552,13 @@ export class ExploreAgentSquareComponent {
   }
 
   toggleTemplateCategory(category: string) {
-    this.toggle(this.selectedTemplateCategories, category)
+    this.selectedTemplateCategories.update((selected) => (selected[0] === category ? [] : [category]))
   }
 
   toggleTemplateSource(source: TemplateSource) {
-    this.toggle(this.selectedTemplateSources, source)
+    this.selectedTemplateSources.update((selected) => (selected[0] === source ? [] : [source]))
+    this.selectedTemplateCategories.set([])
+    this.visibleTemplateCount.set(24)
   }
 
   toggleTemplateType(type: XpertTypeEnum) {
@@ -786,16 +823,29 @@ export class ExploreAgentSquareComponent {
   }
 
   templateSource(template: TXpertTemplateSummary): TemplateSource {
-    return template.source === 'plugin' ? 'plugin' : 'builtin'
+    switch (template.source) {
+      case 'agent-plugin':
+      case 'plugin':
+      case 'builtin':
+      case 'shared':
+        return template.source
+      case undefined:
+        return 'builtin'
+      default:
+        return 'other'
+    }
   }
 
   templateProvider(template: TXpertTemplateSummary) {
-    if (this.templateSource(template) === 'plugin') {
+    if (['plugin', 'agent-plugin'].includes(this.templateSource(template))) {
       return (
         template.pluginDisplayName ||
         template.pluginName ||
         this.#translate.instant('XP.Explore.AgentSquare.TemplateSource.plugin', { Default: 'Plugin provided' })
       )
+    }
+    if (this.templateSource(template) === 'shared') {
+      return this.#translate.instant('XP.Explore.AgentSquare.TemplateSource.shared', { Default: 'Shared template' })
     }
     return this.#translate.instant('XP.Explore.AgentSquare.TemplateSource.builtin', { Default: 'Built in' })
   }

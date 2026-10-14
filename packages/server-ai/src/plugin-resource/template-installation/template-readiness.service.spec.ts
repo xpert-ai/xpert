@@ -3,6 +3,7 @@ jest.mock('../../xpert/xpert.service', () => ({ XpertService: class {} }))
 jest.mock('../../xpert-workspace/workspace-access.service', () => ({ XpertWorkspaceAccessService: class {} }))
 jest.mock('../../xpert-toolset/xpert-toolset.entity', () => ({ XpertToolset: class {} }))
 import { Test } from '@nestjs/testing'
+import { CommandBus } from '@nestjs/cqrs'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { LOADED_PLUGINS, LoadedPluginRecord } from '@xpert-ai/server-core'
 import {
@@ -61,6 +62,7 @@ describe('scoped template dependency preparation', () => {
         const module = await Test.createTestingModule({
             providers: [
                 TemplateReadinessService,
+                { provide: CommandBus, useValue: { execute: jest.fn() } },
                 ...[AgentMiddlewareRegistry, SandboxProviderRegistry, ToolsetRegistry].map((provide) => ({
                     provide,
                     useValue: { get: (key: string) => ({ key }), getSource: () => ({ kind: 'builtin' }) }

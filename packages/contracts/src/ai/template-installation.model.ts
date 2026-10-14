@@ -52,6 +52,16 @@ export const templateDependencyLocksSchema = z
       .object({
         pluginName: z.string().trim().min(1).max(300),
         version: z.string().trim().min(1).max(300),
+        source: z
+          .object({
+            kind: z.literal('agent-plugin'),
+            name: z.string().min(1).max(300),
+            digest: z.string().regex(/^[a-f0-9]{64}$/),
+            bindingId: z.string().uuid(),
+            bindingVersion: z.string().min(1).max(300)
+          })
+          .strict()
+          .optional(),
         providers: z
           .array(
             z.object({ kind: z.enum(['middleware', 'sandbox', 'toolset']), key: z.string().min(1).max(300) }).strict()

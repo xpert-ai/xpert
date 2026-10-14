@@ -347,6 +347,17 @@
             }
             <h3 class="mb-3 font-semibold">{{ 'XP.AgentPlugins.IncludedCapabilities' | translate }}</h3>
             <ul class="mb-5 divide-y divide-divider-regular text-sm">
+              @for (template of pkg.descriptor.templates || []; track template.key) {
+                <li class="flex items-center gap-3 py-3">
+                  <i class="ri-robot-line text-text-tertiary" aria-hidden="true"></i>
+                  <a
+                    class="min-w-0 break-words underline"
+                    [routerLink]="['/explore/templates', 'agent-plugin/' + pkg.descriptor.name + '/' + template.key]"
+                    >{{ template.key }}</a
+                  >
+                  <span class="ml-auto text-xs text-text-tertiary">{{ 'TemplateOverview.Template' | translate }}</span>
+                </li>
+              }
               @for (skill of pkg.descriptor.skills; track skill.key) {
                 <li class="flex items-center gap-3 py-3">
                   <i class="ri-sparkling-line text-text-tertiary" aria-hidden="true"></i

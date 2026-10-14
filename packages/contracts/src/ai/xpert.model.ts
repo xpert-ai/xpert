@@ -325,6 +325,8 @@ export type TXpertWorkbenchOptions = {
  * `<plugin package>:<template key>` so a later sync resolves the same provider.
  */
 export type TXpertTemplateSource = {
+  /** Portable section hashes at installation/update, used for three-way conflict detection. */
+  baseline?: Partial<Record<import('./template-lifecycle.model').TemplateUpgradeSection, string>>
   manifest?: import('./template-manifest.model').TemplateManifest
   dependencyLocks?: import('./template-manifest.model').TemplateDependencyLock[]
   templateId: string
@@ -661,6 +663,7 @@ export type TXpertGraph = {
 }
 
 export type TXpertTeamDraft = TXpertGraph & {
+  template?: import('./assistant-template.model').AssistantTemplateMetadata
   team: Partial<IXpert>
   savedAt?: Date
   checklist?: ChecklistItem[]

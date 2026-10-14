@@ -150,13 +150,14 @@ async function mountCatalog(t, handler, onUse = async () => {}) {
     }
   }
   const modules = new Map()
+  let locale = 'en'
   function renderer(file) {
     if (modules.has(file)) return modules.get(file)
     const exports = {}
     modules.set(file, exports)
     const imports = {
       './host': host,
-      './i18n': { t: (key) => key, getLocale: () => 'en' },
+      './i18n': { t: (key) => key, getLocale: () => locale, useLocale: () => locale },
       '@xpert-ai/template-installation-client': require('./helpers/template-installation.cjs'),
       '@xpert-ai/shadcn-ui': ui,
       'lucide-react': Object.fromEntries(
@@ -174,7 +175,9 @@ async function mountCatalog(t, handler, onUse = async () => {}) {
         ].map((name) => [name, () => null])
       ),
       './avatar': { BotAvatar: () => null, PluginAvatar: () => null },
+      './catalog/CatalogAvatar': { CatalogAvatar: () => null },
       './catalog/catalog-cache': { createCatalogCache },
+      './catalog/template-source': require('../src/catalog/template-source.ts'),
       './catalog/business-area-filter': { catalogBusinessAreas, matchesBusinessArea },
       './catalog/blank-assistant': {
         blankAssistant: () => ({ id: 'blank', kind: 'templates', name: '', categories: [], tags: [] })
@@ -279,6 +282,10 @@ async function mountCatalog(t, handler, onUse = async () => {}) {
     calls,
     click,
     render,
+    setLocale: async (value) => {
+      locale = value
+      await render('organization-one')
+    },
     dom,
     count: (method, input) =>
       calls.filter((call) => call.method === method && (input === undefined || call.input === input)).length
@@ -287,6 +294,7 @@ async function mountCatalog(t, handler, onUse = async () => {}) {
 
 function defaultResult(method, input) {
   if (method === 'listCatalog') return input === 'applications' ? [app] : input === 'experts' ? [expert] : []
+  if (method === 'templateCatalogPage') return { items: [], nextOffset: null }
   if (method === 'pluginLibrary') return library
   throw new Error(`Unexpected host call: ${method}`)
 }
@@ -525,7 +533,7 @@ const installation = {
   error: { code: 'INSTALL_FAILED', message: 'Publish failed' }
 }
 const templateResult = (method, input) => {
-  if (method === 'listCatalog' && input === 'templates') return [template]
+  if (method === 'templateCatalogPage') return { items: [template], nextOffset: null }
   if (method === 'templateOverview')
     return {
       id: 'template',
@@ -710,4 +718,38 @@ test('template introduction shows four sections without setup or installation un
   await view.click('Import Assistant')
   assert.equal(calls.includes('templateSetup'), true)
   assert.equal(calls.includes('installTemplate'), false)
+})
+
+test('language changes replace cached catalog metadata without reinstalling templates', async (t) => {
+  let language = 'en'
+  let reads = 0
+  const view = await mountCatalog(t, (method, input) => {
+    if (method === 'listCatalog') return []
+    if (method === 'templateCatalogPage') {
+      reads++
+      return {
+        items: [
+          {
+            id: 'office',
+            kind: 'templates',
+            name: language === 'en' ? 'Office' : '办公室',
+            description: '',
+            publisher: 'Xpert',
+            categories: [],
+            tags: []
+          }
+        ],
+        nextOffset: null
+      }
+    }
+    throw new Error(`Unexpected mutation or request: ${method}`)
+  })
+  await view.click('Agent templates')
+  assert.match(document.body.textContent, /Office/)
+  const before = reads
+  language = 'zh-Hans'
+  await view.setLocale(language)
+  assert.match(document.body.textContent, /办公室/)
+  assert.doesNotMatch(document.body.textContent, /Office/)
+  assert.ok(reads > before)
 })

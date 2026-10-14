@@ -166,7 +166,7 @@ export class AssistantCapabilityService {
             (item) =>
                 item.copilotModel.copilotId === model?.copilotId &&
                 item.copilotModel.model === model?.model &&
-                model?.modelType === AiModelTypeEnum.LLM
+                (!model?.modelType || model.modelType === AiModelTypeEnum.LLM)
         )
         if (!choice) throw new BadRequestException(t('server-ai:Error.TemplateCapabilityModelRequired'))
         draft.team.copilotModel = choice.copilotModel

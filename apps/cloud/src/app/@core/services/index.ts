@@ -91,3 +91,5 @@ export * from './setup-plugins.service'
 export * from './chat-group.service'
 export * from './template-installation.service'
 export * from './assistant-template-setup.service'
+
+export * from './template-lifecycle.service'

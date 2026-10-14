@@ -1,13 +1,22 @@
 import type { PluginName, XpertPluginMcpServerPolicy } from '../plugin'
 
+/** Portable package identity. The installer pins an omitted digest before writing an Assistant. */
+export interface AgentPluginTemplateDependencySource {
+  kind: 'agent-plugin'
+  name: string
+  digest?: string
+}
+
 export interface AssistantTemplateSkillDependency {
   pluginName?: PluginName
+  source?: AgentPluginTemplateDependencySource
   componentKey: string
   targetAgentKey?: string
 }
 
 export interface AssistantTemplateMcpServerDependency {
   pluginName?: PluginName
+  source?: AgentPluginTemplateDependencySource
   componentKey: string
   targetAgentKey?: string
   policyOverrides?: XpertPluginMcpServerPolicy

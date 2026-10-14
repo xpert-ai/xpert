@@ -1,6 +1,8 @@
 // Template installs share tenant skill indexes and workspace skill files. Serialize the
 // resource phase across workers; waiting must release the business database connection.
 import { Inject, Injectable } from '@nestjs/common'
+import { CommandBus } from '@nestjs/cqrs'
+import { InstallAgentPluginTemplateResourcesCommand } from '../../agent-plugin/templates/agent-plugin-template.command'
 import { IXpert, TemplateDependencyLock } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { DataSource, QueryRunner } from 'typeorm'
@@ -16,7 +18,8 @@ export class TemplateDependencyInstaller {
         @Inject(PluginResourceInstallerService)
         private readonly installer: Pick<PluginResourceInstallerService, 'installComponentsForXpert'>,
         @Inject(TemplateReadinessService)
-        private readonly readiness: Pick<TemplateReadinessService, 'assertDependencies'>
+        private readonly readiness: Pick<TemplateReadinessService, 'assertDependencies'>,
+        private readonly commands: CommandBus
     ) {}
 
     async install(xpert: IXpert, components: RuntimeComponent[], locks: TemplateDependencyLock[]) {
@@ -26,6 +29,14 @@ export class TemplateDependencyInstaller {
         const runner = await this.acquire(tenantId)
         try {
             await this.readiness.assertDependencies(locks)
+            if (
+                components.some(
+                    (item) => item.runtimeSource === 'agent-plugin' && item.component.componentType === 'mcp_server'
+                )
+            )
+                return await this.commands.execute(
+                    new InstallAgentPluginTemplateResourcesCommand(xpert, components, locks)
+                )
             return await this.installer.installComponentsForXpert(xpert, components)
         } finally {
             try {

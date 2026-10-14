@@ -15,7 +15,7 @@ import {
 } from '@xpert-ai/contracts'
 import { API_PREFIX, PaginationParams, TKnowledgePipelineTemplate, toHttpParams } from '@cloud/app/@core/state'
 import { NGXLogger } from 'ngx-logger'
-import { EMPTY, expand, reduce } from 'rxjs'
+import { EMPTY, expand, scan } from 'rxjs'
 import { ISkillMarketConfig, IXpertMCPTemplate, IXpertTemplate, TXpertTemplate } from '../types'
 
 @Injectable({ providedIn: 'root' })
@@ -43,13 +43,13 @@ export class XpertTemplateService {
 
   /** Fetch lightweight pages for the existing client-side category/search controls. */
   getSummaries() {
-    return this.getCatalog({ limit: 500 }).pipe(
+    return this.getCatalog({ limit: 48 }).pipe(
       expand((page) =>
         page.items.length && page.offset + page.items.length < page.total
           ? this.getCatalog({ offset: page.offset + page.items.length, limit: page.limit })
           : EMPTY
       ),
-      reduce((items: TXpertTemplateSummary[], page) => [...items, ...page.items], [])
+      scan((items: TXpertTemplateSummary[], page) => [...items, ...page.items], [])
     )
   }
 

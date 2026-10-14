@@ -1,3 +1,4 @@
+import { TemplateLifecycleComponent } from './template-lifecycle.component'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { Component, inject, signal } from '@angular/core'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
@@ -8,10 +9,13 @@ import type { AssistantTemplateSetup, TemplateSetupUpdate } from '@xpert-ai/cont
 import { firstValueFrom } from 'rxjs'
 import { getErrorMessage } from '../../../@core'
 import { AssistantTemplateSetupService } from '../../../@core/services/assistant-template-setup.service'
+import { TemplateActivityComponent } from './template-activity.component'
 
 @Component({
   standalone: true,
   imports: [
+    TemplateActivityComponent,
+    TemplateLifecycleComponent,
     ReactiveFormsModule,
     RouterModule,
     TranslateModule,
@@ -146,6 +150,8 @@ import { AssistantTemplateSetupService } from '../../../@core/services/assistant
       } @else {
         <p role="status">{{ 'TemplateSetup.Loading' | translate }}</p>
       }
+      <xp-template-lifecycle [assistantId]="id" />
+      <xp-template-activity [assistantId]="id" (opened)="dialog.close()" />
     </div>
     <footer xpDialogFooter>
       <button z-button zType="outline" type="button" [zDisabled]="busy()" (click)="reload()">

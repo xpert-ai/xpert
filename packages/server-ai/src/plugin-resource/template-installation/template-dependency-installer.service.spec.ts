@@ -2,6 +2,7 @@ import { XpertTypeEnum, PLUGIN_COMPONENT_TYPE } from '@xpert-ai/contracts'
 jest.mock('../plugin-resource-installer.service', () => ({ PluginResourceInstallerService: class {} }))
 jest.mock('./template-readiness.service', () => ({ TemplateReadinessService: class {} }))
 import { Test } from '@nestjs/testing'
+import { CommandBus } from '@nestjs/cqrs'
 import { DataSource } from 'typeorm'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { PluginResourceInstallerService } from '../plugin-resource-installer.service'
@@ -38,6 +39,7 @@ describe('template dependency concurrency', () => {
         const module = await Test.createTestingModule({
             providers: [
                 TemplateDependencyInstaller,
+                { provide: CommandBus, useValue: { execute: jest.fn() } },
                 { provide: DataSource, useValue: { createQueryRunner: runner } },
                 { provide: TemplateReadinessService, useValue: readiness },
                 { provide: PluginResourceInstallerService, useValue: installer }

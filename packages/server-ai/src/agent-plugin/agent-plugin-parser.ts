@@ -6,16 +6,27 @@ import { readFile, readdir, realpath, stat } from 'node:fs/promises'
 import { isAbsolute, relative, resolve } from 'node:path'
 import { parse as parseYaml } from 'yaml'
 import { z } from 'zod/v3'
-import type { AgentPluginDiagnostic, AgentPluginXpertExtension } from '@xpert-ai/contracts'
+import type { AgentPluginDiagnostic, AgentPluginXpertExtension, TXpertTemplate } from '@xpert-ai/contracts'
 import manifestSchema from './schemas/plugin.schema'
 import mcpSchema from './schemas/mcp.schema'
 import { agentPluginConnectorsSchema } from './agent-plugin-connector.schema'
+import { normalizeAssistantTemplate } from '../xpert-template/definition/normalize-assistant-template'
 
 const ajv = new Ajv({ strict: false, allErrors: true })
 addFormats(ajv)
 const validateManifest = ajv.compile(manifestSchema)
 ajv.addSchema(mcpSchema)
 const validateServer = ajv.getSchema(`${mcpSchema.$id}#/$defs/server`)!
+const presentationText = z.union([
+    z.string().trim().min(1),
+    z
+        .object({
+            en_US: z.string().trim().min(1),
+            zh_Hans: z.string().trim().min(1).optional(),
+            zh_Hant: z.string().trim().min(1).optional()
+        })
+        .strict()
+])
 const manifestShape = z.object({
     $schema: z.literal(manifestSchema.$id),
     name: z.string(),
@@ -28,12 +39,38 @@ export const jsonValue: z.ZodType<import('@xpert-ai/contracts').JSONValue> = z.l
 )
 const extensionShape = z
     .object({
-        version: z.literal(1),
+        version: z.union([z.literal(1), z.literal(2)]),
+        templates: z
+            .array(
+                z
+                    .object({
+                        key: z
+                            .string()
+                            .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+                            .max(64),
+                        path: z
+                            .string()
+                            .regex(/^templates\/[a-zA-Z0-9_./-]+\.(yaml|yml|json)$/)
+                            .max(300),
+                        category: z.string().trim().min(1).max(100).optional(),
+                        presentation: z
+                            .object({
+                                title: presentationText.optional(),
+                                description: presentationText.optional(),
+                                pluginDisplayName: presentationText.optional()
+                            })
+                            .strict()
+                            .optional()
+                    })
+                    .strict()
+            )
+            .max(100)
+            .optional(),
         connectors: agentPluginConnectorsSchema.optional(),
         interface: z
             .object({
-                displayName: z.string().optional(),
-                description: z.string().optional(),
+                displayName: presentationText.optional(),
+                description: presentationText.optional(),
                 icon: z.string().optional()
             })
             .strict()
@@ -55,8 +92,10 @@ const extensionShape = z
     })
     .strict()
     .refine((value) => {
-        const keys = [...(value.middlewares ?? []), ...(value.experts ?? [])].map(({ key }) => key)
-        return new Set(keys).size === keys.length
+        const keys = [...(value.middlewares ?? []), ...(value.experts ?? []), ...(value.templates ?? [])].map(
+            ({ key }) => key
+        )
+        return new Set(keys).size === keys.length && (value.version === 2 || !value.templates)
     }, 'Extension component keys must be unique')
 const remoteShape = z
     .object({ type: z.literal('streamable-http'), url: z.string(), headers: z.record(z.string()).optional() })
@@ -69,6 +108,9 @@ export interface PortablePlugin {
     extension?: AgentPluginXpertExtension
     skills: Array<{ key: string; description: string; path: string }>
     servers: Array<{ key: string; config: PortableRemoteServer }>
+    templates?: AgentPluginXpertExtension['templates']
+    /** Server-generated import snapshot. Never accepted from plugin.json. */
+    templateCatalog?: { [key: string]: Pick<TXpertTemplate, 'name' | 'title' | 'description' | 'avatar' | 'type'> }
     diagnostics: AgentPluginDiagnostic[]
 }
 
@@ -134,6 +176,30 @@ export async function parseAgentPlugin(root: string): Promise<PortablePlugin> {
         const result = extensionShape.safeParse(extension)
         if (result.success) plugin.extension = result.data as AgentPluginXpertExtension
         else report(extensionNamespace, 'invalid_extension', result.error)
+    }
+    plugin.templates = []
+    for (const entry of plugin.extension?.templates ?? []) {
+        try {
+            if (entry.path.split('/').some((part) => part === '..' || part === '.'))
+                throw new Error('Invalid template path')
+            const file = await containedPath(root, entry.path)
+            const info = await stat(file)
+            if (!info.isFile() || info.size > 4 * 1024 * 1024) throw new Error('Invalid or oversized template')
+            const template = normalizeAssistantTemplate({ export_data: await readFile(file, 'utf8') })
+            if (template.legacy) throw new Error('Agent Plugin templates require template.schemaVersion 2')
+            const team = template.definition.team
+            plugin.templateCatalog ??= {}
+            plugin.templateCatalog[entry.key] = {
+                name: team.name || entry.key,
+                title: team.title || team.name || entry.key,
+                description: team.description || '',
+                avatar: team.avatar ?? null,
+                type: team.type
+            }
+            plugin.templates.push(entry)
+        } catch (error) {
+            report(entry.path, 'invalid_template', error)
+        }
     }
     try {
         const directory = await containedPath(root, 'skills')

@@ -10,13 +10,7 @@ export interface ScheduledTaskExecutionStore {
     find(taskId: string, occurrenceKey: string): Promise<ScheduledTaskExecution | null>
     findExpired(now: Date, limit: number): Promise<ScheduledTaskExecution[]>
     insertIfAbsent(execution: DeepPartial<ScheduledTaskExecution>): Promise<void>
-    claimExpired(
-        id: string,
-        ownerId: string,
-        now: Date,
-        leaseExpiresAt: Date,
-        attempt: number
-    ): Promise<boolean>
+    claimExpired(id: string, ownerId: string, now: Date, leaseExpiresAt: Date, attempt: number): Promise<boolean>
     updateOwned(
         id: string,
         ownerId: string,
@@ -192,16 +186,23 @@ export class ScheduledTaskExecutionCoordinator {
         status: ScheduledTaskExecutionStatus,
         error?: unknown
     ): Promise<void> {
-        await this.store.updateOwned(
+        const patch: DeepPartial<ScheduledTaskExecution> = {
+            status,
+            leaseExpiresAt: null,
+            completedAt: new Date(),
+            lastError: error ? getErrorMessage(error) : null,
+            failureCode:
+                error instanceof Error && 'code' in error && error.code === 'LOCAL_RUNTIME_UNAVAILABLE'
+                    ? 'LOCAL_RUNTIME_UNAVAILABLE'
+                    : null
+        }
+        const updated = await this.store.updateOwned(
             execution.id,
             this.#ownerId,
             ScheduledTaskExecutionStatus.RUNNING,
-            {
-                status,
-                leaseExpiresAt: null,
-                completedAt: new Date(),
-                lastError: error ? getErrorMessage(error) : null
-            }
+            patch
         )
+        if (!updated && status === ScheduledTaskExecutionStatus.FAILED)
+            await this.store.updateOwned(execution.id, this.#ownerId, ScheduledTaskExecutionStatus.PENDING, patch)
     }
 }

@@ -329,6 +329,30 @@ describe('Assistant capabilities (OSS)', () => {
         await expect(service.prepareInstallation(template, draft, language, ['documents'], model, [])).rejects.toThrow()
         expect(draft).toEqual(before)
     })
+    it('accepts an omitted LLM type from persisted installation input but rejects a different model type', async () => {
+        providers.push(createProvider('documents', [ModelFeature.TOOL_CALL]))
+        const draft = parseCapabilityTemplateDraft(template.export_data)
+        await service.prepareInstallation(
+            template,
+            draft,
+            language,
+            ['documents'],
+            { copilotId: model.copilotId, model: model.model },
+            []
+        )
+        expect(draft.team.copilotModel.modelType).toBe(AiModelTypeEnum.LLM)
+        await expect(
+            service.prepareInstallation(
+                template,
+                draft,
+                language,
+                ['documents'],
+                { ...model, modelType: AiModelTypeEnum.REALTIME },
+                []
+            )
+        ).rejects.toThrow()
+    })
+
     it('composes selected providers into a stable variant and preserves selection when reloading', async () => {
         const provider = createProvider('documents', [ModelFeature.VISION])
         providers.push(provider)

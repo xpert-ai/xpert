@@ -18,7 +18,7 @@ export function describeAssistantTemplate(template: TXpertTemplate): AssistantTe
     }))
     for (const item of dependencies.mcpServers ?? [])
         integrations.push({
-            key: `mcp:${item.pluginName}:${item.componentKey}`,
+            key: `mcp:${item.source?.name ?? item.pluginName}:${item.componentKey}`,
             kind: 'mcp',
             label: item.componentKey,
             description: '',
@@ -48,7 +48,10 @@ export function describeAssistantTemplate(template: TXpertTemplate): AssistantTe
         title: template.title || template.name,
         description: template.description || '',
         publisher: template.copyright || template.pluginDisplayName || template.pluginName || 'Xpert',
-        version: manifest?.version || definition.team.version,
+        version:
+            (template.source === 'shared' ? template.pluginVersion : undefined) ||
+            manifest?.version ||
+            definition.team.version,
         instructions: typeof instructions === 'string' ? instructions : '',
         memories: (definition.memories ?? []).map(({ prefix, value }) => {
             if (typeof value === 'string') return { title: prefix, content: value }

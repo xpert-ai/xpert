@@ -1,4 +1,5 @@
 import { taskCronExpression, cronMinuteOccurrence } from './template-routines/template-schedule'
+import { assertBackgroundRuntime } from './template-routines/background-runtime'
 import {
     generateCronExpression,
     getAgentMiddlewareNodes,
@@ -422,7 +423,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
 
     async onModuleInit() {
         const { items: jobs, total } = await this.getActiveJobs()
-        jobs.filter((job) => job.options).forEach((job) => {
+        jobs.filter((job) => job.options || job.schedule).forEach((job) => {
             try {
                 this.scheduleCronJob(job, job.runAsUser ?? job.createdBy)
             } catch (err) {
@@ -477,6 +478,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
             await this.pauseInvalidProjectTask(task, getErrorMessage(error))
             throw error
         })
+        if (task.xpert) assertBackgroundRuntime(task.xpert)
         const chatOptions = applyScheduledTaskOidcContext(task, actor, options, this.outboundActorTokenProvider)
         if (scheduledExecution) {
             await this.requireScheduledTaskExecutionCoordinator().markRunning(scheduledExecution)

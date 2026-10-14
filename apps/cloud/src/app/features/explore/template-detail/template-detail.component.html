@@ -1,13 +1,13 @@
-<main class="mx-auto w-full max-w-7xl px-5 py-8 md:px-10 md:py-12">
-  <div class="mb-10 flex flex-wrap items-center justify-between gap-4">
+<main class="mx-auto w-full max-w-7xl px-5 pb-8 pt-3 md:px-10 md:pb-12 md:pt-4">
+  <div class="mb-6 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 md:mb-8">
     <a
       routerLink="/explore"
       [queryParams]="{ catalog: 'templates' }"
-      class="text-sm text-muted-foreground hover:text-foreground"
+      class="shrink-0 py-2 text-sm text-muted-foreground hover:text-foreground"
     >
       ← {{ 'TemplateOverview.Back' | translate }}
     </a>
-    <xp-explore-scope />
+    <xp-explore-scope class="min-w-0 max-w-full" />
   </div>
   @if (loading()) {
     <p role="status" class="py-16 text-muted-foreground">{{ 'TemplateOverview.Loading' | translate }}</p>
@@ -31,7 +31,12 @@
         }
       </p>
       <p class="max-w-4xl whitespace-pre-wrap text-base leading-7 text-muted-foreground">{{ value.description }}</p>
-      <button z-button type="button" (click)="install()">{{ 'TemplateOverview.Import' | translate }}</button>
+      <div class="flex flex-wrap gap-3">
+        <button z-button type="button" (click)="install()">{{ 'TemplateOverview.Import' | translate }}</button>
+        <button z-button zType="outline" type="button" (click)="openDesktop()">
+          {{ 'TemplateLifecycle.OpenDesktop' | translate }}
+        </button>
+      </div>
     </header>
     <z-tab-group
       class="mt-8 min-w-0 gap-8 [&_.z-tab-group__trigger]:justify-start"
@@ -104,7 +109,7 @@
           @for (skill of value.skills; track $index) {
             <div class="space-y-2 border-b border-border pb-4">
               <h3 class="font-medium">{{ skill.componentKey }}</h3>
-              <p class="text-sm text-muted-foreground">{{ skill.pluginName }}</p>
+              <p class="text-sm text-muted-foreground">{{ skill.source?.name || skill.pluginName }}</p>
               @if (skill.componentKey === value.onboarding?.skill) {
                 <p>{{ 'TemplateOverview.FirstUse' | translate }} · {{ value.onboarding.completionCriteria }}</p>
               }

@@ -10,7 +10,10 @@ export type InstallationIntent = Pick<
     NonNullable<TemplateInstallationInput['basic']>,
     'title' | 'prompt' | 'description' | 'workspaceDataScope' | 'realtimeVoice'
   > & {
-    copilotModel?: { copilotId: string; model: string }
+    copilotModel?: Pick<
+      NonNullable<NonNullable<TemplateInstallationInput['basic']>['copilotModel']>,
+      'copilotId' | 'model' | 'modelType'
+    >
   }
 }
 export interface InstallationTransport {

@@ -135,6 +135,11 @@ function PersonalAssistantDialog({
   )
 }
 
-export function AssistantDialog(props: Parameters<typeof PersonalAssistantDialog>[0] & { webUrl: string }) {
+export function AssistantDialog(
+  props: Parameters<typeof PersonalAssistantDialog>[0] & {
+    webUrl: string
+    onOpenConversation?: (id: string, threadId: string) => void
+  }
+) {
   return props.mode === 'edit' ? <AssistantSettingsDialog {...props} /> : <PersonalAssistantDialog {...props} />
 }

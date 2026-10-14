@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { resolveI18nText, TAvatar } from '@xpert-ai/contracts'
 import { yaml } from '@xpert-ai/server-common'
 
@@ -7,7 +8,20 @@ export type XpertTemplateDslMetadata = {
     avatar?: TAvatar
 }
 
+// Only content-derived presentation is cached. Visibility is always resolved by the caller.
+const metadataCache = new Map<string, XpertTemplateDslMetadata>()
+
 export function readXpertTemplateDslMetadata(dslContent: string, language: string): XpertTemplateDslMetadata {
+    const key = language + ':' + createHash('sha256').update(dslContent).digest('hex')
+    const cached = metadataCache.get(key)
+    if (cached) return cached
+    const metadata = parseMetadata(dslContent, language)
+    if (metadataCache.size >= 512) metadataCache.delete(metadataCache.keys().next().value)
+    metadataCache.set(key, metadata)
+    return metadata
+}
+
+function parseMetadata(dslContent: string, language: string): XpertTemplateDslMetadata {
     let document: unknown
     try {
         document = yaml.parse(dslContent)

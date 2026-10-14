@@ -35,13 +35,7 @@ class MemoryScheduledTaskExecutionStore implements ScheduledTaskExecutionStore {
         } as ScheduledTaskExecution)
     }
 
-    async claimExpired(
-        id: string,
-        ownerId: string,
-        _now: Date,
-        leaseExpiresAt: Date,
-        attempt: number
-    ) {
+    async claimExpired(id: string, ownerId: string, _now: Date, leaseExpiresAt: Date, attempt: number) {
         const record = [...this.records.values()].find((item) => item.id === id)
         if (!record || !record.leaseExpiresAt || record.leaseExpiresAt > _now) return false
         record.ownerId = ownerId
@@ -73,6 +67,19 @@ const task = {
 const scheduledAt = new Date('2026-08-19T01:50:00.000Z')
 
 describe('ScheduledTaskExecutionCoordinator', () => {
+    it('records pre-execution local runtime failure as terminal instead of retrying forever', async () => {
+        const store = new MemoryScheduledTaskExecutionStore()
+        const coordinator = new ScheduledTaskExecutionCoordinator(store, 'api')
+        const run = await coordinator.claim(task, 'offline', scheduledAt)
+        const error = Object.assign(new Error('offline'), { code: 'LOCAL_RUNTIME_UNAVAILABLE' })
+        await coordinator.finish(run, ScheduledTaskExecutionStatus.FAILED, error)
+        expect(await store.find(task.id, 'offline')).toMatchObject({
+            status: 'failed',
+            failureCode: 'LOCAL_RUNTIME_UNAVAILABLE',
+            leaseExpiresAt: null
+        })
+        expect(await coordinator.claim(task, 'offline', scheduledAt)).toBeNull()
+    })
     it('allows one owner and rejects a concurrent second claim', async () => {
         const store = new MemoryScheduledTaskExecutionStore()
         const first = new ScheduledTaskExecutionCoordinator(store, 'api-1')

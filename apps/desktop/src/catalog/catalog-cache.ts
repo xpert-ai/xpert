@@ -4,6 +4,7 @@ export type CatalogDataKind = Exclude<CatalogKind, 'plugins'>
 export interface CatalogSnapshot {
   items: CatalogItem[]
   loading: boolean
+  loadingMore?: boolean
   error: string
 }
 
@@ -11,7 +12,10 @@ const empty: CatalogSnapshot = { items: [], loading: true, error: '' }
 const plugins: CatalogSnapshot = { items: [], loading: false, error: '' }
 
 // Each Dialog owns its cache; the host remounts it when the account or organization changes.
-export function createCatalogCache(fetchItems: (kind: CatalogDataKind) => Promise<CatalogItem[]>) {
+export function createCatalogCache(
+  fetchItems: (kind: CatalogDataKind) => Promise<CatalogItem[]>,
+  fetchTemplatePage?: (offset: number) => Promise<{ items: CatalogItem[]; nextOffset: number | null }>
+) {
   const entries = new Map<CatalogDataKind, CatalogSnapshot>()
   const requests = new Map<CatalogDataKind, symbol>()
   const listeners = new Set<() => void>()
@@ -33,6 +37,20 @@ export function createCatalogCache(fetchItems: (kind: CatalogDataKind) => Promis
       entries.set(kind, { items: entries.get(kind)?.items || [], loading: true, error: '' })
       notify()
       try {
+        if (kind === 'templates' && fetchTemplatePage) {
+          let offset: number | null = 0
+          const items: CatalogItem[] = []
+          while (offset !== null) {
+            const page = await fetchTemplatePage(offset)
+            if (requests.get(kind) !== request) return
+            items.push(...page.items)
+            entries.set(kind, { items: [...items], loading: false, loadingMore: page.nextOffset !== null, error: '' })
+            notify()
+            if (page.nextOffset !== null && page.nextOffset <= offset) throw new Error('Invalid catalog pagination.')
+            offset = page.nextOffset
+          }
+          return
+        }
         const items = await fetchItems(kind)
         if (requests.get(kind) === request) entries.set(kind, { items, loading: false, error: '' })
       } catch (reason) {

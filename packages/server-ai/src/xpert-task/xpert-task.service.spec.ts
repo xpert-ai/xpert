@@ -65,6 +65,15 @@ describe('XpertTaskService', () => {
         jest.restoreAllMocks()
     })
 
+    it('restores raw-cron template routines on API restart', async () => {
+        const service = createService(createCommandBusMock())
+        const task = createTaskFixture({ options: null, schedule: '0 9 * * 1-5' })
+        jest.spyOn(service, 'getActiveJobs').mockResolvedValue({ items: [task], total: 1 })
+        const schedule = jest.spyOn(service, 'scheduleCronJob').mockImplementation()
+        await service.onModuleInit()
+        expect(schedule).toHaveBeenCalledWith(task, task.runAsUser ?? task.createdBy)
+    })
+
     it('immediately removes in-memory jobs when a Project run-as member is removed', async () => {
         const repository = createRepositoryMock<XpertTask>()
         const tasks = [

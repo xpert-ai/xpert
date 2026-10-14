@@ -63,6 +63,7 @@ export function App() {
     setSettings(true)
   }, [])
   const [catalog, setCatalog] = useState(false)
+  const [linkedTemplate, setLinkedTemplate] = useState<string | null>(null)
   const [dark, setDark] = useState(false)
   const [preview, setPreview] = useState<Pick<ConnectionConfig, 'theme' | 'appearance' | 'locale'> | null>(null)
   const signOut = useCallback(async () => {
@@ -99,6 +100,23 @@ export function App() {
     state?.profile?.user.id ?? null,
     state?.profile?.organizationId ?? null
   ])
+
+  useEffect(() => {
+    let active = true
+    const read = () =>
+      void window.xpertDesktop?.templateLinks?.read().then((link) => {
+        if (active && link && state?.profile?.organizationId) {
+          setLinkedTemplate(link.id)
+          setCatalog(true)
+        }
+      })
+    read()
+    const unsubscribe = window.xpertDesktop?.templateLinks?.onChange(read)
+    return () => {
+      active = false
+      unsubscribe?.()
+    }
+  }, [binding])
 
   const bindingRef = useRef(binding)
   bindingRef.current = binding
@@ -411,6 +429,7 @@ export function App() {
       {catalog && state.profile && (
         <CatalogDialog
           key={binding}
+          templateId={linkedTemplate ?? undefined}
           installationScope={binding}
           organizationId={state.profile.organizationId || ''}
           organization={
@@ -418,7 +437,11 @@ export function App() {
             t('Current organization')
           }
           webUrl={state.config.webUrl}
-          onClose={() => setCatalog(false)}
+          onClose={() => {
+            setCatalog(false)
+            if (linkedTemplate) void window.xpertDesktop?.templateLinks?.dismiss(linkedTemplate)
+            setLinkedTemplate(null)
+          }}
           onUse={async (id) => {
             const current = ++request.current
             setPending(true)
@@ -436,6 +459,8 @@ export function App() {
               selectBot(id)
               setError('')
               setCatalog(false)
+              if (linkedTemplate) await window.xpertDesktop?.templateLinks?.dismiss(linkedTemplate)
+              setLinkedTemplate(null)
             } finally {
               if (current === request.current) setPending(false)
             }

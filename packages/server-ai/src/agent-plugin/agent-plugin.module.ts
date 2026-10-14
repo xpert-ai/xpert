@@ -1,4 +1,5 @@
 import { CqrsModule } from '@nestjs/cqrs'
+import { InstallAgentPluginTemplateResourcesHandler } from './templates/install-template-resources.handler'
 import { ImportDefaultAgentPluginsHandler } from './defaults/import-default-agent-plugins.handler'
 import { Global, Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
@@ -10,6 +11,12 @@ import { ConnectorModule } from '../connector/connector.module'
 import { AgentPluginConnectorService } from './agent-plugin-connector.service'
 import { AgentPluginInstallationsService } from './agent-plugin-installations.service'
 import { PluginResourceModule } from '../plugin-resource/plugin-resource.module'
+import {
+    AgentPluginTemplateService,
+    AgentPluginTemplatesHandler,
+    ResolveAgentPluginTemplateDependencyHandler,
+    AssertAgentPluginTemplateDependencyHandler
+} from './templates/agent-plugin-template.handler'
 
 @Global()
 @Module({
@@ -21,6 +28,11 @@ import { PluginResourceModule } from '../plugin-resource/plugin-resource.module'
     ],
     controllers: [AgentPluginController],
     providers: [
+        InstallAgentPluginTemplateResourcesHandler,
+        AgentPluginTemplateService,
+        AgentPluginTemplatesHandler,
+        ResolveAgentPluginTemplateDependencyHandler,
+        AssertAgentPluginTemplateDependencyHandler,
         AgentPluginService,
         ImportDefaultAgentPluginsHandler,
         RuntimeResourceService,

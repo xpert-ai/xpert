@@ -197,6 +197,7 @@ describe('ExploreAgentSquareComponent', () => {
           provide: TranslateService,
           useValue: {
             currentLang: 'en-US',
+            onLangChange: new Subject(),
             instant: (_key: string, params?: Record<string, unknown>) =>
               `${params?.['Default'] ?? _key}`.replace(
                 /\{\{(\w+)\}\}/g,
@@ -243,6 +244,26 @@ describe('ExploreAgentSquareComponent', () => {
     fixture.componentInstance.templates.set([builtin, plugin, appTemplate, project])
 
     expect(fixture.componentInstance.assistantTemplates()).toEqual([builtin, plugin])
+  })
+
+  it('separates source counts and keeps source/category filters in the requested order', () => {
+    const component = fixture.componentInstance
+    component.templates.set([
+      createTemplate('builtin', { source: 'builtin', category: 'writing' }),
+      createTemplate('native', { source: 'plugin', category: 'engineering' }),
+      createTemplate('shared', { source: 'shared', category: 'assistant' }),
+      createTemplate('agent', { source: 'agent-plugin', category: 'operations' })
+    ])
+    expect(component.filteredTemplates().map((item) => item.id)).toEqual(['agent', 'native', 'builtin', 'shared'])
+    expect(component.templateSourceGroups()).toEqual(
+      ['agent-plugin', 'plugin', 'builtin', 'shared'].map((source) => ({ source, count: 1 }))
+    )
+    expect(component.templateCategories()).toEqual(['operations', 'engineering', 'writing', 'assistant'])
+    component.toggleTemplateSource('agent-plugin')
+    expect(component.filteredTemplates().map((item) => item.id)).toEqual(['agent'])
+    expect(component.templateCategories()).toEqual(['operations'])
+    expect(component.templateCategoryCount('operations')).toBe(1)
+    expect(component.templateSourceGroups()).toHaveLength(4)
   })
 
   it('renders legacy JSON-string i18n descriptions as localized catalog text', () => {
@@ -318,7 +339,7 @@ describe('ExploreAgentSquareComponent', () => {
     expect(fixture.componentInstance.featuredApplication()).toBe(application)
   })
 
-  it('applies the shared business category rail to App and Assistant template cards', () => {
+  it('keeps template categories independent from expert and App categories', () => {
     const matchingApplication = createApplication('factory')
     const otherApplication = createApplication('sales')
     otherApplication.marketplace.category = 'sales'
@@ -330,7 +351,13 @@ describe('ExploreAgentSquareComponent', () => {
     fixture.componentInstance.selectedBusinessCategories.set(['business-operations'])
 
     expect(fixture.componentInstance.filteredApplications()).toEqual([matchingApplication])
+    expect(fixture.componentInstance.filteredTemplates()).toEqual([matchingTemplate, otherTemplate])
+    fixture.componentInstance.toggleTemplateCategory('sales')
+    expect(fixture.componentInstance.filteredTemplates()).toEqual([otherTemplate])
+    fixture.componentInstance.toggleTemplateCategory('business-operations')
     expect(fixture.componentInstance.filteredTemplates()).toEqual([matchingTemplate])
+    fixture.componentInstance.toggleTemplateCategory('business-operations')
+    expect(fixture.componentInstance.filteredTemplates()).toEqual([matchingTemplate, otherTemplate])
   })
 
   it('keeps the shared business category rail single-select', () => {
@@ -485,6 +512,22 @@ describe('ExploreAgentSquareComponent', () => {
     })
   })
 
+  it('shows the first template page immediately and preserves it after a later page fails', async () => {
+    const pages = new Subject<TXpertTemplate[]>()
+    templateService.getSummaries.mockReturnValue(pages)
+    const loading = fixture.componentInstance.loadTemplates()
+    const first = createTemplate('first-page')
+    pages.next([first])
+    expect(fixture.componentInstance.templates()).toEqual([first])
+    expect(fixture.componentInstance.loadingTemplates()).toBe(false)
+    expect(fixture.componentInstance.loadingMoreTemplates()).toBe(true)
+    pages.error(new Error('Later page unavailable'))
+    await loading
+    expect(fixture.componentInstance.templates()).toEqual([first])
+    expect(fixture.componentInstance.loadingMoreTemplates()).toBe(false)
+    expect(fixture.componentInstance.templateLoadError()).toBeTruthy()
+  })
+
   it('clears all old scope results and ignores late expert, featured, App and template responses', async () => {
     const oldExperts = new Subject<IXpertMarketplaceListResponse>()
     const oldApps = new Subject<PluginApplicationCatalogItem[]>()
@@ -512,6 +555,7 @@ describe('ExploreAgentSquareComponent', () => {
     oldExperts.next({ ...EMPTY_RESPONSE, items: [createPublished('late')], total: 99 })
     oldApps.next([createApplication('late-app')])
     oldTemplates.next([createTemplate('late-template')])
+    oldTemplates.complete()
     await oldTemplateLoad
     await Promise.resolve()
     expect(fixture.componentInstance.experts()).toEqual([])

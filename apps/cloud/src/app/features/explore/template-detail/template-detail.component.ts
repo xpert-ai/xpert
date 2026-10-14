@@ -1,3 +1,4 @@
+import { injectLanguage } from '@cloud/app/@core/providers/translate'
 import { Dialog } from '@angular/cdk/dialog'
 import { BreakpointObserver } from '@angular/cdk/layout'
 import { ChangeDetectionStrategy, Component, effect, inject, signal, untracked } from '@angular/core'
@@ -21,6 +22,7 @@ import { ExploreScopeComponent } from '../explore-scope.component'
   host: { class: 'block min-h-full bg-background text-foreground' }
 })
 export class TemplateDetailComponent {
+  readonly language = injectLanguage()
   readonly scope = inject(ExploreScopeService)
   readonly route = inject(ActivatedRoute)
   readonly router = inject(Router)
@@ -37,8 +39,14 @@ export class TemplateDetailComponent {
     effect(() => {
       this.params()
       this.scope.key()
+      this.language()
       untracked(() => void this.load())
     })
+  }
+  openDesktop() {
+    const id = this.params().get('id')
+    if (id)
+      window.location.href = `xpert://template/import?origin=${encodeURIComponent(location.origin)}&id=${encodeURIComponent(id)}`
   }
   async load() {
     const generation = ++this.generation

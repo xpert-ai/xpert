@@ -139,6 +139,10 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
     }
   }
   const template = (value, locale) => ({
+    catalogAvatarId:
+      value.avatar?.url?.split('?')[0] === `/api/xpert-template/catalog-avatar/${encodeURIComponent(value.id)}`
+        ? value.id
+        : undefined,
     kind: 'templates',
     id: required(value?.id, 'Template ID'),
     name: localizedText(value.title, locale) || text(value.name),
@@ -195,6 +199,24 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
   }
   return {
     ...require('./template-installations.cjs').createTemplateInstallationMethods(ClientError),
+    async catalogAvatar(id) {
+      scope(this)
+      const result = await this.request(
+        `/api/xpert-template/catalog-avatar/${encodeURIComponent(required(id, 'template id'))}`
+      )
+      return parseAvatarUrl(result?.url)
+    },
+    async templateCatalogPage(input = {}) {
+      scope(this)
+      const offset = Number.isSafeInteger(input.offset) && input.offset >= 0 ? input.offset : 0
+      const page = await this.request(`/api/xpert-template/catalog?assistantsOnly=true&limit=48&offset=${offset}`)
+      const entries = list(page?.items)
+      if (typeof page.total !== 'number') throw new ClientError('Invalid catalog pagination.', 502)
+      return {
+        items: entries.map((item) => template(item, this.config.locale)),
+        nextOffset: entries.length && offset + entries.length < page.total ? offset + entries.length : null
+      }
+    },
     async listCatalog(kind) {
       scope(this)
       if (kind === 'applications')
@@ -219,7 +241,7 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
       return kind === 'experts'
         ? items.map((item) => expert(item, this.config.locale))
         : items
-            .filter((item) => !item.application && ['agent', 'copilot'].includes(item.type))
+            .filter((item) => !item.hasApplication && !item.application && ['agent', 'copilot'].includes(item.type))
             .map((item) => template(item, this.config.locale))
     },
     async requestExpertAccess(input) {
@@ -310,6 +332,13 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
           id: required(item.id, 'Workspace ID'),
           name: text(item.name)
         }))
+    },
+    async templateCatalogItem(input) {
+      const id = required(input?.id, 'Template ID')
+      return template(
+        await this.request(`/api/xpert-template/${encodeURIComponent(id)}`, { scope: 'organization' }),
+        this.config.locale
+      )
     },
     async templateOverview(input) {
       scope(this)

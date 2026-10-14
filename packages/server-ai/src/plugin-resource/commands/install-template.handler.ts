@@ -1,3 +1,4 @@
+import { templateBaseline } from '../../xpert-template/lifecycle/template-baseline'
 import { AssistantTemplateToolsetBinder } from './assistant-template-toolset-binder.service'
 import { TemplateDependencyInstaller } from '../template-installation/template-dependency-installer.service'
 import { TemplateReadinessService } from '../template-installation/template-readiness.service'
@@ -131,6 +132,7 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
             sourceTemplateId: template.id,
             templateSource: {
                 ...source,
+                baseline: templateBaseline(template.export_data),
                 ...(prepared.readiness.legacy ? { dependencyLocks: prepared.readiness.dependencies } : {})
             },
             templateDefinition: normalized?.definition.template,

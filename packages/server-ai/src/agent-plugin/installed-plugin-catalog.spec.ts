@@ -30,6 +30,25 @@ const legacy = (source: AgentPluginPackage, workspaceId = 'original'): AgentReso
 })
 
 describe('installed Agent Plugin scope catalog', () => {
+    it('localizes imported metadata without changing references or overriding configured names', () => {
+        const source = pkg('localized')
+        source.descriptor.extension = {
+            version: 2,
+            interface: {
+                displayName: { en_US: 'Office', zh_Hans: '办公室' },
+                description: { en_US: 'Office work', zh_Hans: '办公事务' }
+            }
+        }
+        const english = importedPluginBinding(source, 'en-US')
+        const chinese = importedPluginBinding(source, 'zh-CN')
+        expect(chinese.title).toBe('办公室')
+        expect(chinese.description).toBe('办公事务')
+        expect(chinese.id).toBe(english.id)
+        expect(chinese.version).toBe(english.version)
+        expect(importedPluginBinding(source, 'fr-FR').title).toBe('Office')
+        const configured = { ...english, title: 'My office' }
+        expect(installedPluginBindings([source], [configured], scope, undefined, 'zh-CN')[0].title).toBe('My office')
+    })
     it('uses explicit IS NULL for tenant records, never an unscoped organization query', () => {
         expect(agentPluginScopeWhere({ tenantId: 'tenant', organizationId: null })).toEqual({
             tenantId: 'tenant',

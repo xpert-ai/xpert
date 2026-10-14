@@ -1,3 +1,4 @@
+import { TemplatePublicationStore } from './lifecycle/template-publication.store'
 import { TenantModule, UserModule } from '@xpert-ai/server-core'
 import { forwardRef, Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
@@ -32,6 +33,7 @@ import { CommandHandlers } from './commands/handlers'
     ],
     controllers: [XpertTemplateController],
     providers: [
+        TemplatePublicationStore,
         XpertTemplateService,
         ...CommandHandlers,
         TemplateSkillSyncService,
@@ -42,6 +44,7 @@ import { CommandHandlers } from './commands/handlers'
         RealtimeVoiceCapabilityProvider
     ],
     exports: [
+        TemplatePublicationStore,
         XpertTemplateService,
         TemplateSkillSyncService,
         AssistantCapabilityService,

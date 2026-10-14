@@ -130,7 +130,7 @@ import {
     TStateChannel,
     hasMultipleInputs,
     filterDisabledTools,
-    getAgentMiddlewares,
+    createAgentMiddlewareEntries,
     inheritMiddlewareToolDisplayMetadata,
     getRuntimeEnabledMiddlewareNodes,
     getRuntimeEnabledSubAgentConnections,
@@ -989,9 +989,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             middleware.tools?.forEach((tool) => toolMap.set(tool.name, tool))
             builtinMiddlewareEntries.push({ key, middleware })
         }
-        const visibleAgentMiddlewares: AgentMiddleware[] = await getAgentMiddlewares(
-            graph,
-            agent,
+        const visibleMiddlewareEntries = await createAgentMiddlewareEntries(
+            visibleMiddlewareNodes,
             this.agentMiddlewareRegistry,
             middlewareContext,
             {
@@ -1010,13 +1009,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                       })
                     : middleware
         )
-        const visibleMiddlewareEntries = visibleMiddlewareNodes.reduce<
-            Array<{ key: string; middleware: AgentMiddleware }>
-        >((entries, node, index) => {
-            const middleware = visibleAgentMiddlewares[index]
-            if (middleware) entries.push({ key: node.key, middleware })
-            return entries
-        }, [])
         const effectiveVisibleAgentMiddlewares = visibleMiddlewareEntries.map(({ middleware }) => middleware)
         const runtimeMiddlewareEntries = await createPlanModeMiddlewareEntries(
             this.agentMiddlewareRegistry,

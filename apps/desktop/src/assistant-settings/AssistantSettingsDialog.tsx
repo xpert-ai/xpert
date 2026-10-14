@@ -28,11 +28,13 @@ export function AssistantSettingsDialog({
   bot,
   webUrl,
   onClose,
+  onOpenConversation,
   onSaved
 }: {
   bot: Bot
   webUrl: string
   onClose: () => void
+  onOpenConversation?: (id: string, threadId: string) => void
   onSaved: (id: string) => Promise<void>
 }) {
   const [description, setDescription] = useState(bot.description)
@@ -165,7 +167,18 @@ export function AssistantSettingsDialog({
             </TabsList>
             <div className="min-h-0 overflow-y-auto px-6 pb-5">
               <TabsContent value="template">
-                <TemplateSetupPanel botId={bot.id} webUrl={webUrl} />
+                <TemplateSetupPanel
+                  botId={bot.id}
+                  webUrl={webUrl}
+                  onOpen={
+                    onOpenConversation
+                      ? (threadId) => {
+                          onClose()
+                          onOpenConversation(bot.id, threadId)
+                        }
+                      : undefined
+                  }
+                />
               </TabsContent>
               <TabsContent value="profile" className="space-y-4">
                 <Button type="button" variant="outline" disabled={saving} onClick={() => setCustomizing(true)}>

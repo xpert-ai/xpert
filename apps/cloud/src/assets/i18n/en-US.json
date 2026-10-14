@@ -3648,7 +3648,17 @@
       "RefreshConnectorsTooltip": "Refresh connector list and connection status",
       "ConnectorUnavailable": "The connector is unavailable in this workspace.",
       "ConnectorManageWorkspace": "Manage workspace connections",
-      "ConnectorWorkspaceMigration": "Personal connections are no longer supported. A workspace administrator must delete this connection and create a workspace connection."
+      "ConnectorWorkspaceMigration": "Personal connections are no longer supported. A workspace administrator must delete this connection and create a workspace connection.",
+      "Categories": {
+        "engineering": "Engineering & development",
+        "sales": "Sales & customers",
+        "marketing": "Marketing",
+        "design": "Design & creativity",
+        "personal": "Personal",
+        "recruiting-people": "Recruiting & people",
+        "product": "Product management",
+        "operations": "Operations management"
+      }
     },
     "ORGANIZATIONS_PAGE": {
       "PERMISSIONS": {
@@ -5438,5 +5448,73 @@
     },
     "Error": "Could not load the template introduction.",
     "Invalid": "Invalid template overview response."
+  },
+  "TemplateActivity": {
+    "Title": "Routine results",
+    "Unread": "Unread",
+    "Empty": "No routine results yet.",
+    "Open": "Open result",
+    "Read": "Mark as read",
+    "Status": {
+      "pending": "Pending",
+      "running": "Running",
+      "paused": "Paused",
+      "awaiting_approval": "Awaiting approval",
+      "succeeded": "Completed",
+      "failed": "Failed"
+    }
+  },
+  "TemplateLifecycle": {
+    "Title": "Template publishing & upgrades",
+    "PreviewPublication": "Preview publication",
+    "CheckUpdates": "Check for template updates",
+    "Excluded": "Review all text before sharing. Account and model bindings, business files, runtime memories, preferences and enabled routines are excluded.",
+    "Unsupported": "Portable adapters are required for",
+    "PortableContent": "Portable template content",
+    "Version": "Template version",
+    "ReleaseNotes": "Release notes",
+    "Visibility": "Visibility",
+    "Team": "Current organization",
+    "Public": "All signed-in platform users",
+    "Reviewed": "I reviewed the portable content and removed private information from its text.",
+    "Publish": "Publish template",
+    "Published": "Template published.",
+    "Withdrawn": "Withdrawn",
+    "ShareLink": "Share link",
+    "CopyLink": "Copy link",
+    "Withdraw": "Withdraw template",
+    "SourceVersion": "Source version",
+    "NoBaseline": "This installation has no comparison baseline. Review every changed section explicitly.",
+    "UpToDate": "Template content is up to date.",
+    "Conflict": "Local changes detected",
+    "Compare": "Compare changes",
+    "Before": "Current content",
+    "After": "Template content",
+    "Choose": "Choose how to handle this change",
+    "Keep": "Keep my content",
+    "Replace": "Use template content",
+    "Preserved": "Upgrades preserve the Assistant identity, conversations, files and account bindings. New routines stay paused. Save a draft, then publish it explicitly.",
+    "SaveDraft": "Save upgrade draft",
+    "PublishUpgrade": "Publish upgrade",
+    "Rollback": "Restore previous content",
+    "Copied": "Link copied.",
+    "CopyFailed": "Copy failed. Select and copy the link manually.",
+    "OpenDesktop": "Open in Desktop",
+    "Section": {
+      "presentation": "Presentation",
+      "instructions": "Agent instructions",
+      "runtime": "Runtime & graph",
+      "definition": "Template requirements & policy"
+    },
+    "State": {
+      "draft": "Upgrade draft saved",
+      "failed": "Upgrade needs recovery",
+      "published": "Upgrade published",
+      "rolled-back": "Previous content restored"
+    },
+    "SelectSource": "Select template source",
+    "TargetSource": "Target template source",
+    "CurrentSource": "Current template source",
+    "SourceMigration": "Template source migration"
   }
 }

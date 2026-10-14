@@ -34,7 +34,13 @@ describe('Web template installation flow', () => {
     requiresModel: true,
     requiredModelFeatures: ['tool_call'],
     defaultModelId: 'compatible',
-    models: [{ id: 'compatible', label: 'Compatible', copilotModel: { copilotId: 'provider', model: 'model' } }],
+    models: [
+      {
+        id: 'compatible',
+        label: 'Compatible',
+        copilotModel: { copilotId: 'provider', model: 'model', modelType: 'llm' }
+      }
+    ],
     optionalCapabilities: [],
     realtimeModels: []
   }
@@ -148,7 +154,7 @@ describe('Web template installation flow', () => {
         idempotencyKey: expect.any(String),
         publish: true,
         workspaceId: 'workspace',
-        basic: { title: 'Template', copilotModel: { copilotId: 'provider', model: 'model' } }
+        basic: { title: 'Template', copilotModel: { copilotId: 'provider', model: 'model', modelType: 'llm' } }
       })
     )
     expect(component.statusLabel(component.state().operation)).toBe('Configuration required')

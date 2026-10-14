@@ -1,6 +1,6 @@
 import { PluginCatalog } from './PluginCatalog'
-import { t } from './i18n'
-import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
+import { t, useLocale } from './i18n'
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import {
   Button,
   Dialog,
@@ -15,7 +15,7 @@ import {
   TabsTrigger
 } from '@xpert-ai/shadcn-ui'
 import { ArrowLeft, ArrowUpRight, LoaderCircle, Plus, RefreshCw, Search, X } from 'lucide-react'
-import { BotAvatar } from './avatar'
+import { CatalogAvatar } from './catalog/CatalogAvatar'
 import { ApplicationCard } from './catalog/ApplicationCard'
 import { CatalogSetup } from './CatalogSetup'
 import { TemplateOverview } from './catalog/TemplateOverview'
@@ -25,6 +25,13 @@ import type { CatalogItem, CatalogKind } from './catalog-types'
 import { catalogBusinessAreas, matchesBusinessArea } from './catalog/business-area-filter'
 import { blankAssistant } from './catalog/blank-assistant'
 import { createCatalogCache } from './catalog/catalog-cache'
+import {
+  templateSource,
+  templateSourceGroups,
+  templateSourceLabels,
+  sortTemplateSources,
+  type TemplateSource
+} from './catalog/template-source'
 
 const tabs: { id: CatalogKind; label: string }[] = [
   { id: 'experts', label: 'Digital experts' },
@@ -34,6 +41,7 @@ const tabs: { id: CatalogKind; label: string }[] = [
 ]
 
 export function CatalogDialog({
+  templateId,
   installationScope,
   organizationId,
   organization,
@@ -41,6 +49,7 @@ export function CatalogDialog({
   onClose,
   onUse
 }: {
+  templateId?: string
   organizationId: string
   installationScope: string
   organization: string
@@ -49,12 +58,26 @@ export function CatalogDialog({
   onUse: (botId: string) => Promise<void>
 }) {
   const [kind, setKind] = useState<CatalogKind>('experts')
-  const [cache] = useState(() => createCatalogCache((kind) => invoke('listCatalog', kind)))
-  const { items, loading, error: loadError } = useSyncExternalStore(cache.subscribe, () => cache.getSnapshot(kind))
+  const locale = useLocale()
+  const cache = useMemo(
+    () =>
+      createCatalogCache(
+        (kind) => invoke('listCatalog', kind),
+        (offset) => invoke('templateCatalogPage', { offset })
+      ),
+    [locale, organizationId, installationScope]
+  )
+  const {
+    items,
+    loading,
+    loadingMore,
+    error: loadError
+  } = useSyncExternalStore(cache.subscribe, () => cache.getSnapshot(kind))
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('all')
+  const [source, setSource] = useState<TemplateSource | 'all'>('all')
   const [businessAreaId, setBusinessAreaId] = useState<string | null>(null)
   const [selected, setSelected] = useState<CatalogItem | null>(null)
   const [installingTemplate, setInstallingTemplate] = useState(false)
@@ -72,6 +95,7 @@ export function CatalogDialog({
   }, [cache, kind])
   useEffect(() => {
     setCategory('all')
+    setSource('all')
     setBusinessAreaId(null)
     setSearch('')
     setNotice('')
@@ -79,7 +103,30 @@ export function CatalogDialog({
     if (kind === 'plugins') setPluginsVisited(true)
     else void cache.load(kind)
   }, [cache, kind])
-  const filtered = items.filter(
+  useEffect(() => {
+    if (!templateId) return
+    let active = true
+    setKind('templates')
+    void invoke('templateCatalogItem', { id: templateId })
+      .then((item) => {
+        if (active) {
+          setSelected(item)
+          setInstallingTemplate(false)
+        }
+      })
+      .catch((error) => {
+        if (active) setError(String(error))
+      })
+    return () => {
+      active = false
+    }
+  }, [templateId])
+  const sourceItems =
+    kind === 'templates'
+      ? sortTemplateSources(items).filter((item) => source === 'all' || templateSource(item) === source)
+      : items
+  const sourceGroups = kind === 'templates' ? templateSourceGroups(items) : []
+  const filtered = sourceItems.filter(
     (item) =>
       matchesBusinessArea(item, kind === 'experts' ? businessAreaId : null) &&
       (category === 'all' || item.categories.includes(category)) &&
@@ -90,7 +137,7 @@ export function CatalogDialog({
   const businessAreas = catalogBusinessAreas(items)
   const categories =
     kind === 'templates'
-      ? [...new Set(items.flatMap((item) => item.categories))].map((id) => [id, categoryLabel(id)])
+      ? [...new Set(sourceItems.flatMap((item) => item.categories))].map((id) => [id, categoryLabel(id)])
       : businessCategories
   const use = async (id: string) => {
     setBusy(true)
@@ -261,13 +308,44 @@ export function CatalogDialog({
             hidden={kind !== 'plugins'}
             className="flex min-h-0 flex-1 flex-col data-[state=inactive]:hidden"
           >
-            {pluginsVisited && <PluginCatalog search={search} revision={pluginRevision} />}
+            {pluginsVisited && <PluginCatalog key={locale} search={search} revision={pluginRevision} />}
           </TabsContent>
           {kind !== 'plugins' && (
             <TabsContent
               value={kind}
               className="min-h-0 flex-1 overflow-y-auto bg-muted/20 px-6 py-5 [scrollbar-gutter:stable]"
             >
+              {kind === 'templates' && (
+                <div role="group" aria-label={t('Template sources')} className="mb-4 flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    aria-pressed={source === 'all'}
+                    className={source === 'all' ? 'bg-accent text-accent-foreground' : ''}
+                    onClick={() => {
+                      setSource('all')
+                      setCategory('all')
+                    }}
+                  >
+                    {t('All')} {items.length}
+                  </Button>
+                  {sourceGroups.map((group) => (
+                    <Button
+                      key={group.source}
+                      variant="outline"
+                      size="sm"
+                      aria-pressed={source === group.source}
+                      className={source === group.source ? 'bg-accent text-accent-foreground' : ''}
+                      onClick={() => {
+                        setSource(source === group.source ? 'all' : group.source)
+                        setCategory('all')
+                      }}
+                    >
+                      {t(templateSourceLabels[group.source])} {group.count}
+                    </Button>
+                  ))}
+                </div>
+              )}
               <div
                 role="group"
                 aria-label={t('Catalog categories')}
@@ -309,10 +387,17 @@ export function CatalogDialog({
                     className={`shrink-0 ${category === id ? 'bg-accent text-accent-foreground' : 'text-muted-foreground'}`}
                     onClick={() => setCategory(category === id ? 'all' : id)}
                   >
-                    {t(label)}
+                    {t(label)}{' '}
+                    {kind === 'templates' && sourceItems.filter((item) => item.categories.includes(id)).length}
                   </Button>
                 ))}
               </div>
+              {loadingMore && (
+                <div role="status" className="mb-3 flex items-center gap-2 text-sm text-muted-foreground">
+                  <LoaderCircle className="size-4 animate-spin" />
+                  {t('Loading {{section}}…', { section: t('Agent templates') })}
+                </div>
+              )}
               {(error || loadError) && (
                 <div
                   role="alert"
@@ -369,13 +454,14 @@ export function CatalogDialog({
                         className="group/catalog relative isolate flex h-44 flex-col overflow-hidden rounded-xl border bg-background p-4 outline-none transition-shadow hover:shadow-sm focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <div className="mb-2 flex shrink-0 items-start gap-3">
-                          <BotAvatar bot={item} />
+                          <CatalogAvatar item={item} />
                           <div className="min-w-0 flex-1">
                             <h3 className="line-clamp-2 text-base leading-5 font-semibold" title={item.name}>
                               {item.name}
                             </h3>
                             <p className="mt-1 truncate text-xs text-muted-foreground" title={item.publisher}>
                               {item.publisher || 'Xpert'}
+                              {item.kind === 'templates' && ` · ${t(templateSourceLabels[templateSource(item)])}`}
                             </p>
                           </div>
                         </div>

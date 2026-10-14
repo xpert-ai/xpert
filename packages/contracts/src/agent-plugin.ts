@@ -87,10 +87,23 @@ export interface RuntimeResourceCatalog {
  */
 export interface AgentPluginXpertExtension {
   /** Extension schema version, independent of the Agent Plugins spec version. */
-  version: 1
+  version: 1 | 2
+  /** Version 2: package-contained Assistant DSL; runtime state is never packaged. */
+  templates?: Array<{
+    key: string
+    path: string
+    /** Marketplace category identifier for this Assistant template. Defaults to assistant. */
+    category?: string
+    /** Localized catalog copy; does not change the packaged DSL or skill content. */
+    presentation?: {
+      title?: I18nText
+      description?: I18nText
+      pluginDisplayName?: I18nText
+    }
+  }>
   interface?: {
-    displayName?: string
-    description?: string
+    displayName?: I18nText
+    description?: I18nText
     icon?: string
   }
   /** Presets for already installed middleware providers. */
@@ -174,7 +187,7 @@ export interface WorkspaceAgentPlugin {
   icon?: string
   version: string
   status: 'available' | 'not_published' | 'disabled'
-  components: Array<{ kind: 'skill' | 'mcp' | 'middleware' | 'external_xpert'; name: string }>
+  components: Array<{ kind: 'skill' | 'mcp' | 'middleware' | 'external_xpert' | 'assistant_template'; name: string }>
   expertReferences: string[]
 }
 

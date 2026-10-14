@@ -32,6 +32,7 @@ export interface ApplicationItem extends CatalogBase {
 export interface TemplateItem extends CatalogBase {
   kind: 'templates'
   source: string
+  catalogAvatarId?: string
 }
 export type CatalogItem = ExpertItem | ApplicationItem | TemplateItem
 export interface ApplicationSetup {

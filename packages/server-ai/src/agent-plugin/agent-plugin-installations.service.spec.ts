@@ -58,6 +58,18 @@ describe('installed plugins through the ChatKit catalog and runtime', () => {
         transaction: (fn: (manager: object) => Promise<unknown>) => Promise<unknown>
     }
 
+    it('pins an older template digest, applies organization precedence, and revokes disabled packages', async () => {
+        const older = packages[0]
+        const newer = { ...older, id: 'new-package', digest: 'new-digest', createdAt: new Date('2026-10-02') }
+        packages.unshift(newer)
+        expect((await installations.templatePackage('documents')).pkg.id).toBe('new-package')
+        expect((await installations.templatePackage('documents', 'digest')).pkg.id).toBe('package')
+        const hidden = { ...newer, id: 'other-org', organizationId: 'other', digest: 'other-digest' }
+        packages.unshift(hidden)
+        expect(await installations.templatePackage('documents', 'other-digest')).toBeNull()
+        records.push({ ...importedPluginBinding(newer), enabled: false })
+        expect(await installations.templatePackage('documents', 'digest')).toBeNull()
+    })
     beforeEach(() => {
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue(scope.tenantId)
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(scope.organizationId)
