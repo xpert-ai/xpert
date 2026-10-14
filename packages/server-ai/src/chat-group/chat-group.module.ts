@@ -1,4 +1,5 @@
 import { forwardRef, Module } from '@nestjs/common'
+import { ResolveGroupRuntimeAccessHandler } from './group-runtime-access.handler'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { ChatConversationModule } from '../chat-conversation/conversation.module'
@@ -47,6 +48,7 @@ import { DeliverGroupTaskResultHandler } from './group-project/group-task-result
         SseStreamModule
     ],
     providers: [
+        ResolveGroupRuntimeAccessHandler,
         AuthorizeGroupTaskCallerHandler,
         GroupTaskTargetService,
         ListGroupTaskTargetsHandler,

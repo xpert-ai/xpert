@@ -14,6 +14,7 @@ import { XpertProjectAccessService } from '../xpert-project/services/project-acc
 import { SandboxAcquireBackendCommand, SandboxFindBackendCommand } from './commands'
 import { resolveSandboxWorkFor } from './sandbox-work-for'
 import { t } from 'i18next'
+import { ResolveGroupRuntimeAccessCommand } from '../chat-group/group-runtime-access.command'
 
 export type ResolvedConversationSandboxContext = {
     backend: SandboxBackendProtocol
@@ -113,6 +114,19 @@ export class SandboxConversationContextService {
         }
 
         const effectiveSandboxEnvironmentId = conversation.options?.sandboxEnvironmentId?.trim() || null
+        const groupRuntime = conversation.purpose === 'group_assistant_runtime'
+        if (groupRuntime) {
+            await this.commandBus.execute(
+                new ResolveGroupRuntimeAccessCommand(
+                    {
+                        tenantId,
+                        organizationId: conversation.organizationId,
+                        userId
+                    },
+                    { type: 'runtime', conversationId }
+                )
+            )
+        }
         const effectiveProjectId = conversation.projectId?.trim() || null
         const requestedProjectId = params.projectId?.trim() || null
         if (requestedProjectId && requestedProjectId !== effectiveProjectId) {
@@ -135,7 +149,7 @@ export class SandboxConversationContextService {
                 organizationId: conversation.organizationId,
                 userId
             })
-        } else if (conversation.createdById !== userId) {
+        } else if (!groupRuntime && conversation.createdById !== userId) {
             throw new ForbiddenException(
                 t('server-ai:Error.ConversationWorkspaceAccessDenied', {
                     defaultValue: 'You cannot access files from this conversation'
