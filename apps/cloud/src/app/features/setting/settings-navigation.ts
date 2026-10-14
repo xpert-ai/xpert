@@ -16,7 +16,7 @@ export interface SettingsNavigationGroup {
 
 export function buildSettingsNavigation(
   menus: SettingsMenuItem[],
-  account: { membership: boolean; models: boolean; gateway: boolean }
+  account: { membership: boolean; models: boolean; gateway: boolean; personalApiKeys?: boolean }
 ): SettingsNavigationGroup[] {
   const personal: SettingsNavigationItem[] = [
     ...(account.membership
@@ -61,6 +61,16 @@ export function buildSettingsNavigation(
       translationKey: 'XP.KEY_WORDS.PersonalInformation',
       icon: 'user'
     },
+    ...(account.personalApiKeys
+      ? [
+          {
+            path: 'account/api-keys',
+            label: 'Personal API keys',
+            translationKey: 'XP.PersonalApiKeys.Title',
+            icon: 'ri-key-2-line'
+          }
+        ]
+      : []),
     { path: 'account/password', label: 'Password', translationKey: 'XP.KEY_WORDS.Password', icon: 'lock' }
   ]
   const groups: SettingsNavigationGroup[] = [

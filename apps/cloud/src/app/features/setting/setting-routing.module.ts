@@ -11,6 +11,7 @@ import {
   modelGatewayAccountGate
 } from './account/membership-access.guard'
 import { XpAccountPasswordComponent } from './account/password.component'
+import { personalApiKeysAccountGate } from './account/personal-api-keys/personal-api-keys.guard'
 import { XpAccountProfileComponent } from './account/profile.component'
 import { XpSettingComponent } from './settings.component'
 import { environment } from '../../../environments/environment'
@@ -46,6 +47,12 @@ export const routes: Routes = [
             path: '',
             redirectTo: 'usage',
             pathMatch: 'full'
+          },
+          {
+            path: 'api-keys',
+            loadChildren: () => import('./account/personal-api-keys/routes').then((m) => m.routes),
+            canActivate: [personalApiKeysAccountGate],
+            data: { title: 'settings/account/api-keys', scopeContext: 'dual-scope' }
           },
           {
             path: 'usage',

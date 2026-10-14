@@ -311,10 +311,11 @@ export class SecretTokenStrategy extends PassportStrategy(Strategy, 'client-secr
 			relations: ['createdBy', 'user']
 		})
 		if (apiKey) {
+			if (apiKey.type === ApiKeyBindingType.USER) throw new UnauthorizedException()
 			if (apiKey.validUntil && apiKey.validUntil <= new Date()) {
 				throw new UnauthorizedException('ApiKey expired')
 			}
-			await this.apiKeyService.update(apiKey.id, { lastUsedAt: new Date() })
+			await this.apiKeyService.recordUse(apiKey)
 		}
 
 		return { apiKey, secretToken }

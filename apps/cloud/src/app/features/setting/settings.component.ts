@@ -120,6 +120,7 @@ export class XpSettingComponent {
     return buildSettingsNavigation(this.menus(), {
       membership: this.store.hasPermission(AIPermissionsEnum.MEMBERSHIP_USE),
       models: regularUser,
+      personalApiKeys: this.user()?.type === UserType.USER,
       gateway:
         regularUser &&
         this.store.hasFeatureEnabled(AiFeatureEnum.FEATURE_MODEL_GATEWAY) &&

@@ -89,3 +89,5 @@ export * from './ai-workspace-files.service'
 
 export * from './setup-plugins.service'
 export * from './chat-group.service'
+
+export * from './personal-api-keys.service'

@@ -35,6 +35,7 @@ export type UserListOptions = {
 
 export const CURRENT_USER_BOOTSTRAP_SELECT: UserMeSelect = {
   id: true,
+  type: true,
   email: true,
   username: true,
   firstName: true,
