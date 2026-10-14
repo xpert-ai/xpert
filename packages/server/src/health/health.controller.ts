@@ -33,7 +33,7 @@ export class HealthController {
 	@Get('ready')
 	readiness(@Res({ passthrough: true }) response: Response) {
 		const readiness = this.runtimeLifecycle.readiness()
-		if (readiness.status === 'draining') {
+		if (readiness.status !== 'ready') {
 			response.status(HttpStatus.SERVICE_UNAVAILABLE)
 		}
 		response.setHeader('Cache-Control', 'no-store')

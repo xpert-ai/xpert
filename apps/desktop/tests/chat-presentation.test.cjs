@@ -119,6 +119,7 @@ test('presentation and Assistant/group navigation reuse the frame with isolated 
   let groupId = null
   let selectionVersion = 0
   const reads = []
+  const sessions = []
   const render = () =>
     root.render(
       React.createElement(ChatPanel, {
@@ -129,12 +130,21 @@ test('presentation and Assistant/group navigation reuse the frame with isolated 
         dark: false,
         initialThread: 'existing-thread',
         onConversationRead: (...args) => reads.push(args),
+        onSessionChange: (session) => sessions.push(JSON.parse(JSON.stringify(session))),
         onAppearanceSaved: async () => appearanceSaves++
       })
     )
   await React.act(render)
   const element = document.querySelector('xpertai-chatkit')
   assert.ok(element)
+  await React.act(() =>
+    element.dispatchEvent(new dom.window.CustomEvent('chatkit.thread.change', { detail: { threadId: 'new-thread' } }))
+  )
+  assert.deepEqual(sessions.at(-1), { botId: 'test-bot', threadId: 'new-thread' })
+  await React.act(() =>
+    element.dispatchEvent(new dom.window.CustomEvent('chatkit.thread.change', { detail: { threadId: null } }))
+  )
+  assert.deepEqual(sessions.at(-1), { botId: 'test-bot', threadId: null })
   assert.equal(received[0].messagePresentation.mode, 'bubbles')
   const originalApi = received[0].api
   await React.act(() => element.dispatchEvent(new dom.window.Event('chatkit.ready')))
@@ -182,6 +192,16 @@ test('presentation and Assistant/group navigation reuse the frame with isolated 
   await React.act(() => appearanceDialog.onClose())
   appearanceDialog = undefined
   await React.act(() => navigate({ assistantId: 'navigated-assistant', threadId: 'next-thread' }))
+  const beforeDelegated = sessions.length
+  await React.act(() =>
+    navigate({ assistantId: 'navigated-assistant', threadId: 'next-thread', conversationId: 'delegated' })
+  )
+  assert.equal(sessions.length, beforeDelegated + 1)
+  assert.deepEqual(sessions.at(-1), {
+    botId: 'test-bot',
+    threadId: 'next-thread',
+    conversation: { assistantId: 'navigated-assistant', conversationId: 'delegated' }
+  })
   await React.act(() => customize('test-bot'))
   assert.equal(appearanceDialog, undefined, 'old assistant events are ignored after workbench navigation')
   await React.act(() => customize('navigated-assistant'))

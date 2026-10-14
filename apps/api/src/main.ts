@@ -1,5 +1,5 @@
 import './polyfills'
-import { seedDefault, seedModule } from '@xpert-ai/server-core'
+import { seedDefault, seedModule, holdFailedPluginStartup } from '@xpert-ai/server-core'
 import yargs from 'yargs'
 import { pluginConfig } from './plugin-config'
 import { runTenantAdminCli } from './tenant-admin-cli'
@@ -50,5 +50,5 @@ if (command === 'seedModule') {
       process.exit(1)
     })
 } else {
-  bootstrap({ title: 'Xpert AI', version: '1.0' })
+  bootstrap({ title: 'Xpert AI', version: '1.0' }).catch(holdFailedPluginStartup)
 }

@@ -80,6 +80,27 @@ describe('RuntimeControlService', () => {
 		expect(instances.retireInstance).toHaveBeenCalledWith('api-old', 'boot-1')
 	})
 
+	it('forwards explicit outage consent from an authorized interactive operator', async () => {
+		await service.requestRestart({ confirmation: RUNTIME_RESTART_CONFIRMATION, allowDowntime: true })
+		expect(coordinator.requestRestart).toHaveBeenCalledWith(
+			expect.objectContaining({ source: 'interactive', allowDowntime: true })
+		)
+	})
+
+	it.each(['api-key', 'regular-user', 'other-tenant'])(
+		'does not let outage consent bypass authorization for %s',
+		async (actor) => {
+			if (actor === 'api-key')
+				jest.spyOn(RequestContext, 'currentApiKey').mockReturnValue({ id: 'key' } as IApiKey)
+			if (actor === 'regular-user') jest.spyOn(RequestContext, 'hasRole').mockReturnValue(false)
+			if (actor === 'other-tenant') jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-other')
+			await expect(
+				service.requestRestart({ confirmation: RUNTIME_RESTART_CONFIRMATION, allowDowntime: true })
+			).rejects.toBeInstanceOf(ForbiddenException)
+			expect(coordinator.requestRestart).not.toHaveBeenCalled()
+		}
+	)
+
 	it.each(['api-key', 'regular-user', 'other-tenant'])('rejects membership changes by %s', async (actor) => {
 		if (actor === 'api-key') jest.spyOn(RequestContext, 'currentApiKey').mockReturnValue({ id: 'key' } as IApiKey)
 		if (actor === 'regular-user') jest.spyOn(RequestContext, 'hasRole').mockReturnValue(false)

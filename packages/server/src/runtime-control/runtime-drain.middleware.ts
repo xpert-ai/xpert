@@ -1,3 +1,4 @@
+import { t } from 'i18next'
 import { Injectable, NestMiddleware } from '@nestjs/common'
 import { NextFunction, Request, Response } from 'express'
 import { RuntimeLifecycleService } from './runtime-lifecycle.service'
@@ -18,8 +19,11 @@ export class RuntimeDrainMiddleware implements NestMiddleware {
 			response.setHeader('Connection', 'close')
 			response.status(503).json({
 				statusCode: 503,
-				errorCode: 'RUNTIME_DRAINING',
-				message: 'The API instance is draining for restart'
+				errorCode: this.lifecycle.readiness().status === 'draining' ? 'RUNTIME_DRAINING' : 'RUNTIME_NOT_READY',
+				message:
+					this.lifecycle.readiness().status === 'draining'
+						? 'The API instance is draining for restart'
+						: t('server-ai:Error.RuntimeNotReady', { defaultValue: 'The API instance is not ready' })
 			})
 			return
 		}

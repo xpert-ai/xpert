@@ -1,5 +1,5 @@
 // Invariants: checks never download; installation requires a downloaded update and
-// an explicit renderer action. State outlives window recreation and account changes.
+// an explicit user action. State outlives window recreation and account changes.
 const { EventEmitter } = require('node:events')
 
 class DesktopUpdater extends EventEmitter {

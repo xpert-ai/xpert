@@ -1,6 +1,6 @@
 import { CreateGroupDialog } from './groups/CreateGroupDialog'
 import { VoiceProvider } from './voice/VoiceProvider'
-import type { ConversationNotice } from './assistant-list-types'
+import type { ConversationNotice, DesktopLastSession } from './assistant-list-types'
 import { t, useLocale, setLocale, localizeValidation, clearValidation } from './i18n'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@xpert-ai/shadcn-ui'
@@ -27,18 +27,26 @@ export function App() {
   const [fatal, setFatal] = useState('')
   const [bots, setBots] = useState<Bot[]>([])
   const [selected, setSelected] = useState<string | null>(null)
+  const selectedRef = useRef<string | null>(null)
+  const navigationVersion = useRef(0)
+  const restorePending = useRef(true)
+  const [navigationReady, setNavigationReady] = useState(false)
   const [initialVoice, setInitialVoice] = useState<{ assistantId: string; conversationId: string } | null>(null)
   const [initialThread, setInitialThread] = useState<string | null>(null)
   const [notice, setNotice] = useState<ConversationNotice>()
   const [selectionVersion, setSelectionVersion] = useState(0)
   const [bosiReady, setBosiReady] = useState(false)
   const selectBot = (id: string, threadId: string | null = null) => {
+    navigationVersion.current++
+    selectedRef.current = id
+    setBosiReady(true)
     setSelectedGroup(null)
     setSelected(id)
     setInitialVoice(null)
     setInitialThread(threadId)
     setSelectionVersion((value) => value + 1)
     setNotice(undefined)
+    rememberSession({ botId: id, threadId })
   }
   const onConversationRead = useCallback((botId: string, threadId: string | null) => {
     setNotice((value) => ({ botId, threadId, revision: (value?.revision ?? 0) + 1 }))
@@ -48,15 +56,33 @@ export function App() {
   const [settings, setSettings] = useState(false)
   const [settingsSection, setSettingsSection] = useState<SettingsSection>('general')
   const settingsOpener = useRef<HTMLElement | null>(null)
-  const openSettings = (section: SettingsSection = 'general') => {
+  const openSettings = useCallback((section: SettingsSection = 'general') => {
     settingsOpener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
     setSettingsSection(section)
     setCatalog(false)
     setSettings(true)
-  }
+  }, [])
   const [catalog, setCatalog] = useState(false)
   const [dark, setDark] = useState(false)
   const [preview, setPreview] = useState<Pick<ConnectionConfig, 'theme' | 'appearance' | 'locale'> | null>(null)
+  const signOut = useCallback(async () => {
+    try {
+      const next = await invoke('logout')
+      setPreview(null)
+      setSettings(false)
+      setState(next)
+    } catch (error) {
+      setError(error instanceof Error ? error.message : t('The operation failed. Please retry.'))
+    }
+  }, [])
+  const menuReady = state !== null
+  useEffect(() => {
+    if (!menuReady) return
+    return window.xpertDesktop?.onMenuAction?.((action) => {
+      if (action === 'settings') openSettings()
+      else if (action === 'sign-out') void signOut()
+    })
+  }, [menuReady, openSettings, signOut])
   const locale = useLocale()
   const savedLocale = useRef<ConnectionConfig['locale'] | undefined>(undefined)
   useEffect(() => {
@@ -67,10 +93,25 @@ export function App() {
   const appearance = preview?.appearance ?? state?.config.appearance
   const request = useRef(0)
   const loadingBots = useRef<number | null>(null)
-  const binding = `${state?.config.apiUrl || ''}:${state?.profile?.user.tenantId || ''}:${state?.profile?.user.id || ''}:${state?.profile?.organizationId || ''}`
+  const binding = JSON.stringify([
+    state?.config.apiUrl ?? null,
+    state?.profile?.user.tenantId ?? null,
+    state?.profile?.user.id ?? null,
+    state?.profile?.organizationId ?? null
+  ])
 
   const bindingRef = useRef(binding)
   bindingRef.current = binding
+  const rememberSession = useCallback(
+    (session: DesktopLastSession) => {
+      if (bindingRef.current !== binding || selectedRef.current !== session.botId) return
+      void invoke('rememberSession', { scope: binding, session }).catch((error) => {
+        if (bindingRef.current === binding)
+          setError(error instanceof Error ? error.message : t('The operation failed. Please retry.'))
+      })
+    },
+    [binding]
+  )
 
   const initialize = useCallback(async () => {
     setFatal('')
@@ -100,6 +141,7 @@ export function App() {
   const loadBots = useCallback(async ({ background = false }: { background?: boolean } = {}) => {
     if (background && loadingBots.current === request.current) return
     const current = ++request.current
+    const navigation = navigationVersion.current
     loadingBots.current = current
     if (!background) {
       setPending(true)
@@ -108,9 +150,25 @@ export function App() {
     try {
       const items = await invoke('listBots')
       if (current !== request.current) return
+      const restored = restorePending.current ? await invoke('restoreSession') : null
+      if (current !== request.current) return
+      restorePending.current = false
+      setNavigationReady(true)
       setBots(items)
       setError('')
-      setSelected((id) => (items.some((item) => item.id === id) ? id : items[0]?.id || null))
+      if (navigation === navigationVersion.current && restored && items.some((item) => item.id === restored.botId)) {
+        selectedRef.current = restored.botId
+        setSelected(restored.botId)
+        setInitialThread(restored.threadId)
+        setInitialVoice(restored.conversation ?? null)
+        setBosiReady(true)
+        setSelectionVersion((value) => value + 1)
+      } else if (!items.some((item) => item.id === selectedRef.current)) {
+        selectedRef.current = items[0]?.id ?? null
+        setSelected(selectedRef.current)
+        setInitialThread(null)
+        setInitialVoice(null)
+      }
     } catch (error) {
       if (current !== request.current) return
       if (!background) setError(error instanceof Error ? error.message : t('Could not load Bots.'))
@@ -126,18 +184,24 @@ export function App() {
   }, [])
   useEffect(() => {
     request.current++
+    navigationVersion.current++
+    restorePending.current = true
+    selectedRef.current = null
+    setNavigationReady(false)
     setBots([])
     setSelectedGroup(null)
     setCreateGroup(false)
     setBosiReady(false)
     setSelected(null)
     setInitialThread(null)
+    setInitialVoice(null)
     setNotice(undefined)
     setCatalog(false)
     setError('')
     if (state?.profile?.organizationId) void loadBots()
     return () => {
       request.current++
+      selectedRef.current = null
     }
     // Binding scopes Bot selection to its server, tenant, user and organization.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -209,7 +273,11 @@ export function App() {
                   selected={selectedGroup ? null : selected}
                   selectedGroup={selectedGroup}
                   groupRevision={groupRevision}
-                  onSelectGroup={setSelectedGroup}
+                  onSelectGroup={(id) => {
+                    navigationVersion.current++
+                    selectedRef.current = null
+                    setSelectedGroup(id)
+                  }}
                   onCreateGroup={() => setCreateGroup(true)}
                   pending={pending}
                   error={error}
@@ -231,7 +299,7 @@ export function App() {
                   }}
                   onSettings={() => openSettings()}
                   onBrowse={() => setCatalog(true)}
-                  onLogout={async () => setState(await invoke('logout'))}
+                  onLogout={signOut}
                   onOrganization={async (id) => {
                     request.current++
                     setBots([])
@@ -247,14 +315,15 @@ export function App() {
                 />
               </AssistantPreviewScope>
               <main className="flex min-w-0 flex-1 flex-col">
-                {!selectedGroup && !bosiReady && state.profile.organizationId ? (
+                {!selectedGroup && !bosiReady && navigationReady && state.profile.organizationId ? (
                   <BosiOnboarding
                     key={binding}
                     organizationId={state.profile.organizationId}
                     onReady={async (id, threadId) => {
                       if (bindingRef.current !== binding) return
+                      const navigation = navigationVersion.current
                       await loadBots()
-                      if (bindingRef.current !== binding) return
+                      if (bindingRef.current !== binding || navigation !== navigationVersion.current) return
                       selectBot(id, threadId)
                       setBosiReady(true)
                     }}
@@ -267,6 +336,7 @@ export function App() {
                     initialThread={initialThread}
                     initialVoice={initialVoice}
                     onConversationRead={onConversationRead}
+                    onSessionChange={rememberSession}
                     bot={bot}
                     config={{ ...state.config, appearance, locale }}
                     dark={dark}
@@ -302,6 +372,8 @@ export function App() {
           key={binding}
           onClose={() => setCreateGroup(false)}
           onCreated={(id) => {
+            navigationVersion.current++
+            selectedRef.current = null
             setSelectedGroup(id)
             setCreateGroup(false)
             setGroupRevision((value) => value + 1)

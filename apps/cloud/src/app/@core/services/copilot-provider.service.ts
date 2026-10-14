@@ -2,7 +2,8 @@ import { inject, Injectable } from '@angular/core'
 import { AiModelTypeEnum, OrganizationBaseCrudService } from '@cloud/app/@core/state'
 import { NGXLogger } from 'ngx-logger'
 import { API_COPILOT_PROVIDER } from '../constants/app.constants'
-import { ICopilotProvider, ICopilotProviderModel, ParameterRule, ProviderModel } from '../types'
+import { ICopilotProvider, ICopilotProviderModel, ParameterRule } from '../types'
+import { ModelDiscoveryResult, ModelImportInput, ModelImportResult, ProviderModelCatalog } from '@xpert-ai/contracts'
 
 @Injectable({ providedIn: 'root' })
 export class CopilotProviderService extends OrganizationBaseCrudService<ICopilotProvider> {
@@ -22,9 +23,15 @@ export class CopilotProviderService extends OrganizationBaseCrudService<ICopilot
   }
 
   getModels(providerId: string) {
-    return this.httpClient.get<{ custom: ICopilotProviderModel[]; builtin: ProviderModel[] }>(
-      this.apiBaseUrl + `/${providerId}/model`
-    )
+    return this.httpClient.get<ProviderModelCatalog>(this.apiBaseUrl + `/${providerId}/model`)
+  }
+
+  discoverModels(providerId: string) {
+    return this.httpClient.get<ModelDiscoveryResult>(`${this.apiBaseUrl}/${providerId}/model-discovery`)
+  }
+
+  importModels(providerId: string, input: ModelImportInput) {
+    return this.httpClient.post<ModelImportResult>(`${this.apiBaseUrl}/${providerId}/model-discovery`, input)
   }
 
   getModel(providerId: string, modelId: string) {

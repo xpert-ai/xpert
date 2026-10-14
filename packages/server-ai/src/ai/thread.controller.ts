@@ -51,7 +51,9 @@ import { CopilotCheckpointGetTupleQuery } from '../copilot-checkpoint'
 import { UnimplementedException } from '../core'
 import {
     FindAgentExecutionsQuery,
+    GetAgentExecutionRunSummaryQuery,
     GetThreadContextUsageQuery,
+    TAgentExecutionRunSummary,
     XpertAgentExecutionOneQuery
 } from '../xpert-agent-execution'
 import { AiService } from './ai.service'
@@ -409,9 +411,11 @@ export class ThreadsController {
 
     @Get(':thread_id/runs/:run_id')
     async getThreadRun(@Param('thread_id') thread_id: string, @Param('run_id') run_id: string) {
-        const execution =
-            (await this.ensureThreadRunAccess(thread_id, run_id)) ??
-            (await this.queryBus.execute(new XpertAgentExecutionOneQuery(run_id)))
+        await this.ensureThreadAccess(thread_id)
+        const execution = await this.queryBus.execute(new GetAgentExecutionRunSummaryQuery(run_id))
+        if (execution.threadId !== thread_id) {
+            throw new ForbiddenException()
+        }
         return transformRun(execution)
     }
 
@@ -523,7 +527,7 @@ export class ThreadsController {
     }
 }
 
-function transformRun(execution: IXpertAgentExecution) {
+function transformRun(execution: TAgentExecutionRunSummary) {
     return {
         run_id: execution.id,
         thread_id: execution.threadId,

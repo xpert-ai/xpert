@@ -12,20 +12,28 @@ import { CommandHandlers } from './commands/handlers'
 import { QueryHandlers } from './queries/handlers'
 import { AIModelModule } from '../ai-model'
 import { ModelAccessModule } from '../model-access'
+import { ModelDiscoveryController } from './model-discovery/model-discovery.controller'
+import { ModelDiscoveryService } from './model-discovery/model-discovery.service'
 
 @Module({
-	imports: [
-		RouterModule.register([{ path: '/copilot-provider', module: CopilotProviderModule }]),
-		TypeOrmModule.forFeature([CopilotProvider, CopilotProviderModel]),
-		forwardRef(() => UserModule),
-		TenantModule,
-		CqrsModule,
+    imports: [
+        RouterModule.register([{ path: '/copilot-provider', module: CopilotProviderModule }]),
+        TypeOrmModule.forFeature([CopilotProvider, CopilotProviderModel]),
+        forwardRef(() => UserModule),
+        TenantModule,
+        CqrsModule,
 
-		AIModelModule,
-		ModelAccessModule
-	],
-	controllers: [CopilotProviderController],
-	providers: [CopilotProviderService, CopilotProviderModelService, ...CommandHandlers, ...QueryHandlers],
-	exports: [CopilotProviderService]
+        AIModelModule,
+        ModelAccessModule
+    ],
+    controllers: [ModelDiscoveryController, CopilotProviderController],
+    providers: [
+        CopilotProviderService,
+        CopilotProviderModelService,
+        ModelDiscoveryService,
+        ...CommandHandlers,
+        ...QueryHandlers
+    ],
+    exports: [CopilotProviderService]
 })
 export class CopilotProviderModule {}

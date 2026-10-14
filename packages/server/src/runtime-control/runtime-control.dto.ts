@@ -7,6 +7,7 @@ import { Type } from 'class-transformer'
 import {
 	ArrayMaxSize,
 	IsArray,
+	IsBoolean,
 	IsIn,
 	IsNotEmpty,
 	IsOptional,
@@ -46,6 +47,10 @@ export class RuntimeRestartRequestDto {
 	@IsString()
 	@MaxLength(500)
 	reason?: string
+
+	@IsOptional()
+	@IsBoolean()
+	allowDowntime?: boolean
 
 	@IsOptional()
 	@IsArray()

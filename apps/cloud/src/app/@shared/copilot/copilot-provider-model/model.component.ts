@@ -1,11 +1,9 @@
 import { XpDialogFrameImports, ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CdkListboxModule } from '@angular/cdk/listbox'
 
 import {
   ChangeDetectionStrategy,
-  ChangeDetectorRef,
   Component,
   computed,
   effect,
@@ -17,7 +15,7 @@ import {
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
-import { KebabToCamelCasePipe } from '@xpert-ai/headless-ui'
+import { ZardRadioComponent, ZardRadioGroupComponent } from '@xpert-ai/headless-ui'
 import { myRxResource, XpI18nPipe } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { XpSpinComponent } from '@xpert-ai/headless-ui'
@@ -29,6 +27,16 @@ import {
   ToastrService
 } from '../../../@core'
 import { CopilotCredentialFormComponent } from '../credential-form/form.component'
+import {
+  configurationFromModel,
+  defaultModelConfiguration,
+  isDiscoverableModelType,
+  ProviderModelCatalog,
+  ModelConfiguration,
+  modelConfigurationSchema,
+  readModelConfiguration
+} from '@xpert-ai/contracts'
+import { ModelConfigurationComponent } from '../model-configuration/configuration.component'
 
 @Component({
   standalone: true,
@@ -42,26 +50,32 @@ import { CopilotCredentialFormComponent } from '../credential-form/form.componen
     ReactiveFormsModule,
     TranslateModule,
     DragDropModule,
-    CdkListboxModule,
+    ZardRadioComponent,
+    ZardRadioGroupComponent,
     ...ZardTooltipImports,
     ZardInputDirective,
     XpI18nPipe,
-    KebabToCamelCasePipe,
     XpSpinComponent,
-    CopilotCredentialFormComponent
+    CopilotCredentialFormComponent,
+    ModelConfigurationComponent
   ]
 })
 export class CopilotProviderModelComponent {
   readonly #dialogRef = inject(DialogRef)
-  readonly #data = inject<{ provider: ICopilotProvider; modelId: string }>(DIALOG_DATA)
+  readonly #data = inject<{
+    provider: ICopilotProvider
+    modelId: string
+    allowDelete?: boolean
+    catalog?: ProviderModelCatalog
+  }>(DIALOG_DATA)
   readonly #translate = inject(TranslateService)
   readonly #toastr = inject(ToastrService)
   readonly #copilotProviderService = injectCopilotProviderService()
-  readonly #cdr = inject(ChangeDetectorRef)
 
   // Inputs
   readonly copilotProvider = signal(this.#data.provider)
   readonly modelId = signal(this.#data.modelId)
+  readonly allowDelete = this.#data.allowDelete !== false
 
   // Outputs
   readonly deleted = output<void>()
@@ -85,7 +99,10 @@ export class CopilotProviderModelComponent {
   readonly model = this.#model.value
 
   readonly model_credential_schema = computed(() => this.copilotProvider().provider?.model_credential_schema)
-  readonly supported_model_types = computed(() => this.copilotProvider().provider?.supported_model_types)
+  readonly supported_model_types = computed(() => {
+    const types = this.copilotProvider().provider?.supported_model_types
+    return this.configuration() ? types?.filter(isDiscoverableModelType) : types
+  })
   readonly credential_form_schemas = computed(() => {
     return this.model_credential_schema()?.credential_form_schemas
   })
@@ -107,9 +124,19 @@ export class CopilotProviderModelComponent {
   readonly credentials = model<Record<string, any> | null>(null)
   readonly modelTypes = model<AiModelTypeEnum[]>([])
   readonly modelName = model<string>()
+  readonly configuration = signal<ModelConfiguration | null>(null)
+
+  private savedProperties() {
+    return { ...this.credentials(), ...(this.configuration() ? { model_configuration: this.configuration() } : {}) }
+  }
 
   get invalid() {
-    return this.credentialForm().invalid || !this.modelTypes()?.[0] || !this.modelName()
+    return (
+      this.credentialForm()?.invalid ||
+      !this.modelTypes()?.[0] ||
+      !this.modelName() ||
+      (this.configuration() && !modelConfigurationSchema.safeParse(this.configuration()).success)
+    )
   }
 
   constructor() {
@@ -119,14 +146,26 @@ export class CopilotProviderModelComponent {
         this.modelName.set(value.modelName)
         this.modelTypes.set([value.modelType])
         this.credentials.set(value.modelProperties)
-
-        // todo 未解决 cdkList 未及时响应 modelTypes 的值更新
-        this.#cdr.markForCheck()
-        setTimeout(() => {
-          this.#cdr.detectChanges()
-        }, 1000)
-      } else if (this.modelTypes().length === 0 && this.supported_model_types()) {
+        this.configuration.set(readModelConfiguration(value.modelProperties) ?? null)
+      } else if (!this.modelId() && this.modelTypes().length === 0 && this.supported_model_types()) {
         this.modelTypes.set([this.supported_model_types()[0]])
+      }
+    })
+    effect(() => {
+      const catalog = this.#data.catalog
+      if (this.modelId() || !catalog?.discoverySupported) return
+      const type = this.modelTypes()[0]
+      const name = this.modelName()
+      if (!isDiscoverableModelType(type)) return
+      const saved = catalog.custom?.find((model) => model.modelName === name && model.modelType === type)
+      const builtin = catalog.builtin?.find((model) => model.model === name && model.model_type === type)
+      this.configuration.set(readModelConfiguration(saved?.modelProperties) ?? configurationFromModel(type, builtin))
+    })
+    effect(() => {
+      const type = this.modelTypes()[0]
+      const configuration = this.configuration()
+      if (configuration && isDiscoverableModelType(type) && configuration.modelType !== type) {
+        this.configuration.set(defaultModelConfiguration(type))
       }
     })
   }
@@ -157,7 +196,7 @@ export class CopilotProviderModelComponent {
         providerName: this.copilotProvider().providerName,
         modelType: this.modelTypes()[0],
         modelName: this.modelName(),
-        modelProperties: this.credentials()
+        modelProperties: this.savedProperties()
       })
       .subscribe({
         next: (providerModel) => {
@@ -180,7 +219,7 @@ export class CopilotProviderModelComponent {
       .updateModel(this.copilotProvider().id, this.modelId(), {
         modelType: this.modelTypes()[0],
         modelName: this.modelName(),
-        modelProperties: this.credentials()
+        modelProperties: this.savedProperties()
       })
       .subscribe({
         next: (providerModel) => {

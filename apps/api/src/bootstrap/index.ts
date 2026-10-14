@@ -1,3 +1,10 @@
+import {
+  beginPluginStartup,
+  startPluginStartupStep,
+  markPluginStartupListening,
+  selectPluginStartup,
+  PluginStartupTimeoutError
+} from '@xpert-ai/server-core'
 import { captureSignedJsonBody } from './signed-json-body'
 import { environment as env, getConfig, setConfig } from '@xpert-ai/server-config'
 import {
@@ -56,6 +63,7 @@ import { configureTrustProxy } from './trust-proxy'
 import { withSchemaSyncProtection } from './schema-sync-bootstrap'
 
 export async function bootstrap(options: { title: string; version: string }) {
+  beginPluginStartup(getConfig().assetOptions.serverRoot)
   captureHttpRouterMountTemplates()
   // Pre-bootstrap the application configuration
   const config = await preBootstrapApplicationConfig({})
@@ -67,6 +75,7 @@ export async function bootstrap(options: { title: string; version: string }) {
   @Module({ imports: [BootstrapModule, PluginModule.init()] })
   class RootModule {}
 
+  startPluginStartupStep('(application)', 'container-create')
   const app = await NestFactory.create<NestExpressApplication>(RootModule, {
     bodyParser: false,
     bufferLogs: true,
@@ -178,9 +187,11 @@ export async function bootstrap(options: { title: string; version: string }) {
 
   // Listen App
   const port = process.env.PORT || 3000
+  startPluginStartupStep('(application)', 'application-listen')
   await app.listen(port, '0.0.0.0', () => {
     NestLogger.log('Listening at http://localhost:' + port + '/' + globalPrefix)
   })
+  markPluginStartupListening()
 }
 
 /**
@@ -234,7 +245,7 @@ export async function preBootstrapPlugins(options: { failOnPluginRegistrationErr
   const defaultGlobalPlugins = defaultPlugins.filter((plugin) => plugin.level !== 'system')
   const defaultSystemPlugins = defaultPlugins.filter((plugin) => plugin.level === 'system')
 
-  const organizationPluginConfigs = await loadOrganizationPluginConfigs()
+  const organizationPluginConfigs = selectPluginStartup(await loadOrganizationPluginConfigs({ strict: true }))
   const persistedGlobalGroup = organizationPluginConfigs.find(
     (group) => (group.scopeKey ?? group.organizationId) === GLOBAL_ORGANIZATION_SCOPE
   )
@@ -331,7 +342,7 @@ export async function preBootstrapPlugins(options: { failOnPluginRegistrationErr
     } catch (error) {
       console.error(error)
       NestLogger.error(`Failed to register plugins for organization ${group.organizationId}: ${error.message}`)
-      if (options.failOnPluginRegistrationError) {
+      if (options.failOnPluginRegistrationError || error instanceof PluginStartupTimeoutError) {
         throw error
       }
     }

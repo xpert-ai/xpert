@@ -1,6 +1,8 @@
 import {
     AiFeatureEnum,
     AiModelTypeEnum,
+    isConfiguredModelAvailable,
+    usesConfiguredModelCatalog,
     AIPermissionsEnum,
     IModelAccessAdminQuery,
     IModelAccessCatalog,
@@ -32,7 +34,8 @@ import {
     TUserModelGrantExtendInput,
     TUserModelGrantRevokeInput,
     UserModelGrantStatusEnum,
-    UserType
+    UserType,
+    readModelConfiguration
 } from '@xpert-ai/contracts'
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
@@ -2084,6 +2087,7 @@ export class ModelAccessService {
         }
         const catalogModelExists = Boolean(predefined || custom)
         const providerSchema = provider.getProviderSchema()
+        const configuration = readModelConfiguration(custom?.modelProperties)
         return {
             tenantId: input.tenantId,
             organizationId,
@@ -2103,10 +2107,14 @@ export class ModelAccessService {
                 en_US: custom?.modelName ?? input.copilotModelId,
                 zh_Hans: custom?.modelName ?? input.copilotModelId
             },
-            capabilities: predefined?.features ?? this.customCapabilities(custom?.modelProperties),
+            capabilities:
+                configuration?.modelType === AiModelTypeEnum.LLM
+                    ? configuration.features
+                    : (predefined?.features ?? this.customCapabilities(custom?.modelProperties)),
             deprecated: predefined?.deprecated === true,
             enabled:
                 catalogModelExists &&
+                isConfiguredModelAvailable(copilot.modelProvider, custom) &&
                 copilot.enabled === true &&
                 copilot.modelProvider.isValid !== false &&
                 custom?.isValid !== false &&
@@ -2387,10 +2395,13 @@ export class ModelAccessService {
                 continue
             }
 
-            if (provider.getProviderModels()?.some((model) => !!model.model && model.deprecated !== true)) {
+            if (
+                !usesConfiguredModelCatalog(modelProvider) &&
+                provider.getProviderModels()?.some((model) => !!model.model && model.deprecated !== true)
+            ) {
                 return true
             }
-            if (copilot.copilotModel?.model) {
+            if (!usesConfiguredModelCatalog(modelProvider) && copilot.copilotModel?.model) {
                 return true
             }
 
@@ -2400,7 +2411,12 @@ export class ModelAccessService {
                     providerId: modelProvider.id
                 }
             })
-            if (customModels.some((model) => !!model.modelName && model.isValid !== false)) {
+            if (
+                customModels.some(
+                    (model) =>
+                        !!model.modelName && model.isValid !== false && isConfiguredModelAvailable(modelProvider, model)
+                )
+            ) {
                 return true
             }
         }

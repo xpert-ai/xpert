@@ -75,6 +75,8 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 			existing.source = input.source
 			existing.sourceConfig = persistedSourceConfig
 			existing.level = input.level ?? existing.level
+			existing.meta = input.meta ?? existing.meta
+			existing.pendingRestart = input.pendingRestart ?? existing.pendingRestart
 			existing.config = serializePluginConfig(decryptedConfig)
 			existing.configurationStatus = input.configurationStatus ?? null
 			existing.configurationError = input.configurationError ?? null
@@ -98,6 +100,8 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 			source: input.source,
 			sourceConfig: normalizedSourceConfig,
 			level: input.level,
+			meta: input.meta,
+			pendingRestart: input.pendingRestart ?? false,
 			config: serializePluginConfig(decryptedConfig),
 			configurationStatus: input.configurationStatus ?? null,
 			configurationError: input.configurationError ?? null
@@ -236,6 +240,11 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 			scopeKey: scope.scopeKey,
 			pluginName: In(normalizedNames)
 		})
+		// Keep loaded code alive until restart, but prevent the disk manifest from reinstalling it.
+		this.removeFromManifest(
+			getOrganizationManifestPath(organizationId, { tenantId, defaultTenantId, scopeKey: scope.scopeKey }),
+			new Set(normalizedNames)
+		)
 		if (scope.isSystem) {
 			await this.repo.delete({
 				scopeKey: IsNull(),
@@ -370,6 +379,10 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 			}
 		}
 
+		this.removeFromManifest(manifestPath, normalizedTargets)
+	}
+
+	private removeFromManifest(manifestPath: string, normalizedTargets: Set<string>) {
 		if (existsSync(manifestPath)) {
 			try {
 				const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as string[]
@@ -378,7 +391,7 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 					writeFileSync(manifestPath, JSON.stringify(filteredManifest, null, 2))
 				}
 			} catch (error) {
-				this.logger.warn(`Failed to update plugin manifest for org ${organizationId}`, error)
+				this.logger.warn(`Failed to update plugin manifest ${manifestPath}`, error)
 			}
 		}
 	}

@@ -1183,5 +1183,9 @@
   "Tenant": "テナント",
   "Organization": "組織",
   "Available": "利用可能",
-  "Sign in first.": "先にログインしてください。"
+  "Sign in first.": "先にログインしてください。",
+  "Check for updates…": "アップデートを確認…",
+  "Updates are not available in this build.": "このビルドではアップデートを利用できません。",
+  "Bosi is up to date.": "Bosi は最新です。",
+  "Bosi {{version}} is available.": "Bosi {{version}} にアップデートできます。"
 }

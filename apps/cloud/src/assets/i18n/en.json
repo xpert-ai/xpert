@@ -1769,9 +1769,12 @@
       "CurrentScopeActiveRuntimes": "active runtimes in the current tenant and organization"
     },
     "Plugin": {
+      "RestartConfirmDescription": "Active requests will finish before restarting. If only one instance is available, the service will be briefly unavailable and connections will resume afterward.",
+      "PendingRestartDescription": "Installed. Restart the service to use this plugin.",
+      "PendingRestart": "Restart required",
       "RuntimeApplyingTitle": "Plugin changes are being applied",
-      "RuntimeApplyingDescription": "API replicas are restarting in background batches for {{pluginNames}}. You can continue using this page.",
-      "RuntimeApplyingGenericDescription": "API replicas are restarting in background batches. You can continue using this page.",
+      "RuntimeApplyingDescription": "Synchronizing {{pluginNames}} across the service. This page will update when ready.",
+      "RuntimeApplyingGenericDescription": "Synchronizing plugins across the service. This page will update when ready.",
       "LoadingMarketplaceHelp": "Fetching the plugin list. Additional metadata updates in the background.",
       "UpdatingMarketplace": "Updating the plugin list...",
       "ArtifactNamespace": "Artifact namespace",
@@ -3930,6 +3933,40 @@
       }
     },
     "Copilot": {
+      "Discovery": {
+        "Title": "Fetch models",
+        "Description": "Sync models incrementally and preserve saved parameters. Confirming uses configured models only; imported models missing from this response keep their settings but become unavailable.",
+        "ContextSize": "Context window (tokens)",
+        "MaxConcurrency": "Client concurrency limit",
+        "MaxOutputTokens": "Maximum output tokens",
+        "DefaultMaxTokens": "Default output tokens",
+        "Dimensions": "Embedding dimensions (optional)",
+        "BatchSize": "Embedding batch size",
+        "ConfigurationHint": "Missing specifications use editable defaults, not verified provider limits. Concurrency applies to one model client, not the account quota. Leave dimensions empty to use the embedding model default.",
+        "InvalidConfiguration": "Use positive integers. Default output ≤ maximum output ≤ context window. Concurrency must be 1–1000; embedding batch size must be 1–2048.",
+        "Search": "Search model ID or name",
+        "Loading": "Fetching available models…",
+        "Empty": "No matching models",
+        "Imported": "Sync complete: {{added}} added, {{skipped}} existing models preserved",
+        "Features": {
+          "tool-call": "Tool calling",
+          "multi-tool-call": "Parallel tool calls",
+          "stream-tool-call": "Streaming tool calls",
+          "vision": "Images",
+          "video": "Video",
+          "structured-output": "Structured output"
+        },
+        "DefaultType": "Default type; adjust in configuration",
+        "NotReturnedPreview": "Not returned · Unavailable after sync",
+        "NotReturned": "Not returned · Unavailable",
+        "SyncAndImport": "Sync and import new models",
+        "SaveSync": "Save sync results",
+        "ModelSource": {
+          "builtin": "Built-in",
+          "discovered": "API import",
+          "manual": "Manual configuration"
+        }
+      },
       "ExecutionInvalidFilters": "Check the task ID, text lengths and date range.",
       "ExecutionAssistantName": "Assistant",
       "ExecutionAll": "All",

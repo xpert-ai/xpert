@@ -1,8 +1,36 @@
 import { HumanMessage } from '@langchain/core/messages'
-import { AiModelTypeEnum, FetchFrom, ModelFeature } from '@xpert-ai/contracts'
+import { AiModelTypeEnum, defaultModelConfiguration, FetchFrom, ModelFeature } from '@xpert-ai/contracts'
 import { prepareMessagesForModel, resolveModelVisionSupport, setModelVisionSupport } from './model-capabilities'
 
 describe('model capabilities', () => {
+    it('honors edited imported vision support over legacy flags in both directions', () => {
+        const configuration = defaultModelConfiguration(AiModelTypeEnum.LLM)
+        expect(
+            resolveModelVisionSupport('imported', [
+                {
+                    modelProperties: {
+                        vision_support: 'support',
+                        model_configuration: configuration
+                    }
+                }
+            ])
+        ).toBe(false)
+        expect(
+            resolveModelVisionSupport('imported', [
+                {
+                    modelProperties: {
+                        model_configuration: {
+                            ...configuration,
+                            modelType: AiModelTypeEnum.LLM,
+                            maxOutputTokens: 2048,
+                            defaultMaxTokens: 2048,
+                            features: [ModelFeature.VISION]
+                        }
+                    }
+                }
+            ])
+        ).toBe(true)
+    })
     it('uses custom model vision metadata before provider model features', () => {
         expect(
             resolveModelVisionSupport(

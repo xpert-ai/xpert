@@ -178,6 +178,8 @@ test('sidebar ignores DOM focus and keeps rows and conversation mounted during n
           : bots
       if (method === 'sidebarState') return { items: [], copies: [], sections: [] }
       if (method === 'botActivity') return []
+      if (method === 'restoreSession') return null
+      if (method === 'rememberSession') return
       throw new Error(`Unexpected host call: ${method}`)
     }
   }

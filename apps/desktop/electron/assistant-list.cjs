@@ -7,6 +7,21 @@ const count = (value) => {
   return Number.isFinite(number) ? Math.max(0, Math.min(Number.MAX_SAFE_INTEGER, Math.floor(number))) : 0
 }
 
+function parseLastSession(value) {
+  const id = (value) =>
+    typeof value === 'string' && /^[a-zA-Z0-9_.:-]{1,200}$/.test(value) && !['.', '..'].includes(value)
+  if (!value || !id(value.botId) || !(value.threadId === null || id(value.threadId))) return null
+  const session = { botId: value.botId, threadId: value.threadId }
+  if (value.conversation !== undefined) {
+    if (!value.threadId || !id(value.conversation?.assistantId) || !id(value.conversation?.conversationId)) return null
+    session.conversation = {
+      assistantId: value.conversation.assistantId,
+      conversationId: value.conversation.conversationId
+    }
+  }
+  return session
+}
+
 function createAssistantListMethods(ClientError) {
   function scope(service) {
     if (!service.profile?.organizationId) throw new ClientError('Select an organization first.', 403)
@@ -37,6 +52,44 @@ function createAssistantListMethods(ClientError) {
     return { id: value.id, title: text(value.title), threadId: text(value.threadId) }
   }
   return {
+    rememberSession(input) {
+      const key = scope(this)
+      if (input?.scope !== key) throw new ClientError('The workspace changed. Please retry.', 409)
+      const session = parseLastSession(input.session)
+      if (!session) throw new ClientError('Unsupported operation.')
+      bot(this, session.botId)
+      const value = this.sidebarState()
+      if (JSON.stringify(value.lastSession) === JSON.stringify(session)) return
+      value.lastSession = session
+      this.sidebars[key] = value
+      this.persist()
+    },
+    async restoreSession() {
+      const key = scope(this)
+      const session = parseLastSession(this.sidebarState().lastSession)
+      if (!session || !this.bots.some((item) => item.id === session.botId)) return null
+      if (!session.threadId) return session
+      try {
+        if (session.conversation) {
+          const restored = await this.workbenchSession({
+            botId: session.botId,
+            target: 'assistant.conversation',
+            conversationId: session.conversation.conversationId,
+            threadId: session.threadId
+          })
+          if (restored.assistantId !== session.conversation.assistantId)
+            throw new ClientError('This conversation does not belong to the assistant.', 403)
+        } else await conversation(this, session)
+        return session
+      } catch (error) {
+        if (key !== scope(this) || ![403, 404].includes(error.status)) throw error
+        // Deleted/inaccessible conversations fall back to a new chat with the same Assistant.
+        const fallback = { botId: session.botId, threadId: null }
+        if (JSON.stringify(this.sidebarState().lastSession) === JSON.stringify(session))
+          this.rememberSession({ scope: key, session: fallback })
+        return fallback
+      }
+    },
     clearBotProfile(botId) {
       bot(this, botId)
       const value = this.sidebarState()

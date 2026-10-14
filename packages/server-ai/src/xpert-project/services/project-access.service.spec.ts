@@ -115,6 +115,22 @@ describe('XpertProjectAccessService', () => {
         await expect(service.assertCanRead('project-1')).rejects.toBeInstanceOf(ForbiddenException)
     })
 
+    it('does not authorize or migrate legacy members without a current membership', async () => {
+        jest.mocked(projectRepository.findOne).mockResolvedValue({
+            id: 'project-1',
+            tenantId: 'tenant-1',
+            organizationId: 'org-1',
+            ownerId: 'owner-1',
+            members: [{ id: 'user-1' }]
+        } as XpertProject)
+        jest.mocked(membershipRepository.findOne).mockResolvedValue(null)
+        const service = createService()
+
+        await expect(service.assertCanRead('project-1')).rejects.toBeInstanceOf(ForbiddenException)
+        jest.mocked(membershipRepository.findOne).mockResolvedValue({ role: 'member' } as XpertProjectMembership)
+        await expect(service.assertCanRead('project-1')).resolves.toMatchObject({ role: 'member' })
+    })
+
     it('rejects a Project outside the current tenant or Organization without probing membership', async () => {
         jest.mocked(projectRepository.findOne).mockResolvedValue(null)
         const service = createService()

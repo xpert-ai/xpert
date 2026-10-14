@@ -49,6 +49,7 @@ export class PluginRuntimeRestartService {
   readonly pending = signal<PendingPluginRuntimeRestart | null>(this.readPending())
   readonly convergence = signal<PendingPluginRuntimeConvergence | null>(this.readConvergence())
   readonly restartCapability = signal<IRuntimeRestartCapability | null>(null)
+  readonly completedRevision = signal(0)
   readonly canRestart = computed(() => this.restartCapability()?.allowed === true)
   readonly requiresManualRestart = computed(
     () => !!this.pending() && !this.pending()?.restartId && !this.pending()?.generation
@@ -201,6 +202,7 @@ export class PluginRuntimeRestartService {
     const restart = await firstValueFrom(
       this.#runtimeControlAPI.restart({
         confirmation: RUNTIME_RESTART_CONFIRMATION,
+        allowDowntime: true,
         reason: 'Activate staged process-level plugin changes',
         runtimeRequirements: this.pending()?.runtimeRequirements
       })
@@ -253,9 +255,14 @@ export class PluginRuntimeRestartService {
 
   private async monitorPluginConvergence(generation: number) {
     try {
-      await this.pollPluginConvergence(generation)
+      const status = await this.pollPluginConvergence(generation)
+      if (status.status === 'awaiting_restart') {
+        this.convertConvergenceToManualRestart(generation)
+        return
+      }
       if (this.convergence()?.generation === generation) {
         this.setConvergence(null)
+        this.completedRevision.update((revision) => revision + 1)
       }
     } catch (error) {
       this.convertConvergenceToManualRestart(generation, getErrorMessage(error))
@@ -267,6 +274,7 @@ export class PluginRuntimeRestartService {
       await this.pollRestart(restartId, initialDelay)
       if (this.pending()?.restartId === restartId) {
         this.clearPending()
+        this.completedRevision.update((revision) => revision + 1)
       }
     } catch (error) {
       const current = this.pending()
@@ -283,9 +291,16 @@ export class PluginRuntimeRestartService {
 
   private async monitorPendingGeneration(generation: number) {
     try {
-      await this.pollPluginConvergence(generation)
+      const status = await this.pollPluginConvergence(generation)
+      if (status.status === 'awaiting_restart' && this.pending()?.generation === generation) {
+        const pending = { ...this.pending()! }
+        delete pending.generation
+        this.setPending(pending)
+        return
+      }
       if (this.pending()?.generation === generation) {
         this.clearPending()
+        this.completedRevision.update((revision) => revision + 1)
       }
     } catch (error) {
       const current = this.pending()
@@ -309,7 +324,7 @@ export class PluginRuntimeRestartService {
           if (status?.status === 'failed') {
             throw new Error(status.error || 'Plugin runtime convergence failed')
           }
-          return status?.status === 'completed' ? status : null
+          return status?.status === 'completed' || status?.status === 'awaiting_restart' ? status : null
         }),
         filter((status) => status !== null),
         take(1)
@@ -337,7 +352,7 @@ export class PluginRuntimeRestartService {
     )
   }
 
-  private convertConvergenceToManualRestart(generation: number, error: string) {
+  private convertConvergenceToManualRestart(generation: number, error?: string) {
     const current = this.convergence()
     if (current?.generation !== generation) {
       return

@@ -20,7 +20,7 @@ import { AgentPluginsComponent } from './agent-plugins/agent-plugins.component'
 import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, computed, effect, inject, model, signal, TemplateRef, viewChild } from '@angular/core'
+import { Component, computed, effect, inject, model, signal, TemplateRef, untracked, viewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
 import {
@@ -329,6 +329,15 @@ export class PluginsComponent {
   // }
 
   constructor() {
+    effect(() => {
+      if (this.runtimeRestart.completedRevision()) {
+        untracked(() => {
+          this.reloadInstalledPlugins()
+          this.refreshStrategyCaches()
+        })
+      }
+    })
+
     effect(
       () => {
         this.#activeScope()

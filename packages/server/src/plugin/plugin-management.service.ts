@@ -28,7 +28,8 @@ import {
 	registerPluginsAsync,
 	upsertPluginLoadFailure
 } from './plugin.helper'
-import { isRestartRequiredPluginLevel, resolvePluginLevel } from './plugin-instance.entity'
+import { requiresPluginRestart } from './plugin-runtime-policy'
+import { resolvePluginLevel } from './plugin-instance.entity'
 import { PluginInstanceService } from './plugin-instance.service'
 import { loadPlugin } from './plugin-loader'
 import { getOrganizationPluginPath, getOrganizationPluginRoot } from './organization-plugin.store'
@@ -382,10 +383,21 @@ export class PluginManagementService {
 			persistedSourceConfig = omitTransientPluginSourceConfig(sourceConfig)
 			const organizationBaseDir = getOrganizationPluginRoot(targetOrganizationId, scopeStoreOptions)
 
-			if (isRestartRequiredPluginLevel(level)) {
-				// System and tenant-level plugins can own controllers, ORM metadata and other process-global
-				// Nest artifacts. Stage and persist it, but never mutate the live module graph.
-				// The next API process loads the staged runtime during normal bootstrap.
+			const existingRuntime = this.loadedPlugins.find(
+				(item) =>
+					item.scopeKey === scope.scopeKey &&
+					normalizePluginName(item.packageName ?? item.name) === normalizePluginName(packageName)
+			)
+			if (
+				requiresPluginRestart(
+					compatibilityInfo?.runtimePolicy,
+					level,
+					existingRuntime ? 'update' : 'install'
+				) ||
+				(existingRuntime &&
+					requiresPluginRestart(existingRuntime.instance.meta?.runtimePolicy, level, 'update'))
+			) {
+				// Stage plugins whose lifecycle requires bootstrap-time registration.
 				const { errors } = await registerPluginsAsync(
 					{
 						module: this.moduleRef,
@@ -425,7 +437,9 @@ export class PluginManagementService {
 						`Plugin "${packageName}" was staged in ${scope.scopeKey} but declares level=${stagedLevel} instead of level=${level}`
 					)
 				}
-				const artifactNamespace = stagedCompatibility.artifactNamespace
+				const artifactNamespace =
+					stagedCompatibility.artifactNamespace ??
+					(level === PLUGIN_LEVEL.ORGANIZATION ? derivePluginArtifactNamespace(packageName) : undefined)
 				if (!artifactNamespace) {
 					throw new BadRequestException(
 						`${level === PLUGIN_LEVEL.SYSTEM ? 'System' : 'Tenant'}-level plugin "${packageName}" must declare xpert.plugin.artifactNamespace in package.json`
@@ -441,7 +455,7 @@ export class PluginManagementService {
 					pluginName: normalizePluginName(packageName),
 					packageName
 				})
-				await this.pluginSchemaSync?.synchronize({
+				const stagedMeta = await this.pluginSchemaSync?.synchronize({
 					pluginName: packageName,
 					pluginBaseDir,
 					source,
@@ -472,6 +486,8 @@ export class PluginManagementService {
 						pluginName: normalizePluginName(packageName),
 						packageName: normalizePluginName(packageName),
 						version: stagedCompatibility.version ?? body.version,
+						meta: stagedMeta,
+						pendingRestart: true,
 						source,
 						sourceConfig: persistedSourceConfig,
 						level,
@@ -481,6 +497,7 @@ export class PluginManagementService {
 					},
 					{ syncLoadedConfig: false }
 				)
+				clearPluginLoadFailure(scope.scopeKey, packageName, packageName)
 				const stagedVersion = stagedCompatibility.version ?? body.version
 				const stagedRuntimeRevision = source === 'code' ? `runtime:${runtimePluginName}` : undefined
 				const convergence = options.deferActivation
@@ -556,6 +573,15 @@ export class PluginManagementService {
 					workspacePath,
 					codeLoadMode: source === 'code' ? 'staged-package' : undefined
 				})
+				if (
+					requiresPluginRestart(
+						stagedPlugin.meta.runtimePolicy,
+						level,
+						existingRuntime ? 'update' : 'install'
+					)
+				) {
+					throw new BadRequestException(t('server:Error.PluginRuntimePolicyChanged'))
+				}
 				await this.pluginSchemaSync.synchronize({
 					pluginName: packageName,
 					pluginBaseDir: stagedPluginBaseDir,
@@ -739,6 +765,8 @@ export class PluginManagementService {
 				pluginName,
 				packageName,
 				version: plugin.meta?.version,
+				meta: plugin.meta,
+				pendingRestart: false,
 				source,
 				sourceConfig: persistedSourceConfig,
 				level: resolvedLevel,

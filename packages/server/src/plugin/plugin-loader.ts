@@ -160,6 +160,7 @@ export async function loadPlugin(modName: string, opts: PluginLoadOptions = {}):
 		plugin.meta.level = packageLevel ?? plugin.meta.level
 	}
 
+	plugin.meta.runtimePolicy = sdkCompatibility?.runtimePolicy
 	return plugin
 }
 

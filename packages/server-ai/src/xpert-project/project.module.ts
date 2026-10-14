@@ -59,7 +59,6 @@ import {
     XpertProjectAutomationService,
     XpertProjectAutomationSchedulerService,
     XpertProjectAutomationProcessor,
-    XpertProjectMigrationService,
     XpertProjectPlanService,
     XpertProjectTaskService
 } from './services'
@@ -176,7 +175,6 @@ import { ProjectTaskDecisionService } from './runtime/project-task-decision.serv
         XpertProjectAutomationService,
         XpertProjectAutomationSchedulerService,
         XpertProjectAutomationProcessor,
-        XpertProjectMigrationService,
         VcsService,
         ProjectViewHostDefinition,
         XpertProjectFeatureGuard,

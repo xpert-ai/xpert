@@ -14,3 +14,6 @@ export * from './plugin-update.utils'
 export * from './commands'
 export * from './queries'
 export * from './types'
+
+export * from './plugin-startup-state'
+export * from './plugin-startup-step'

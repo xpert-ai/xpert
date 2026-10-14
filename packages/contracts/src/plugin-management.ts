@@ -23,6 +23,9 @@ export interface IPlugin extends IBasePerTenantAndOrganizationEntityModel {
   source?: PluginSource
   sourceConfig?: PluginSourceConfig | null
   level?: PluginLevel
+  meta?: PluginMeta | null
+  /** Persisted installation intent; live runtime reports determine actual availability. */
+  pendingRestart?: boolean
   config: Record<string, any>
   configurationStatus?: PluginConfigurationStatus | null
   configurationError?: string | null

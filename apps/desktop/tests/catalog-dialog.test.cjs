@@ -156,6 +156,7 @@ async function mountCatalog(t, handler, onUse = async () => {}) {
     modules.set(file, exports)
     const imports = {
       './host': host,
+      './app-activation': { subscribeAppActivation: () => () => {} },
       './i18n': { t: (key) => key },
       '@xpert-ai/shadcn-ui': ui,
       'lucide-react': Object.fromEntries(

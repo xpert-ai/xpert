@@ -8,6 +8,14 @@ contextBridge.exposeInMainWorld('xpertDesktop', {
     ipcRenderer.on('xpert:new-group', listener)
     return () => ipcRenderer.removeListener('xpert:new-group', listener)
   },
+  onMenuAction: (callback) => {
+    const listener = (_event, action) => {
+      if (['settings', 'sign-out'].includes(action)) callback(action)
+    }
+    ipcRenderer.on('xpert:menu-action', listener)
+    ipcRenderer.send('xpert:menu-ready')
+    return () => ipcRenderer.removeListener('xpert:menu-action', listener)
+  },
   onWindowActivated: (callback) => {
     const listener = () => callback()
     ipcRenderer.on('xpert:window-activated', listener)
