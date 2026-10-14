@@ -71,6 +71,25 @@ test('the Web image includes every browser connector contract exported by the SD
   }
 })
 
+test('the Web image includes the shared template installation client source', () => {
+  const dockerfile = read('.deploy/webapp/Dockerfile')
+  const build = dockerfile.indexOf('RUN pnpm nx build cloud')
+  const paths = JSON.parse(read('tsconfig.base.json')).compilerOptions.paths
+  const entries = paths['@xpert-ai/template-installation-client']
+  assert.ok(entries?.length, 'Expected the shared template installation client alias')
+  const copies = [...dockerfile.slice(0, build).matchAll(/^COPY --chown=node:node (\S+) \.\/(\S+)$/gm)]
+  for (const entry of entries) {
+    assert.ok(fs.existsSync(path.join(root, entry)), `Missing template installation source: ${entry}`)
+    assert.ok(
+      copies.some(([, source, destination]) => {
+        const target = destination.replace(/\/$/, '')
+        return source === target && (entry === source || entry.startsWith(`${source}/`))
+      }),
+      `${entry}: copy the shared client source into its alias path before compilation`
+    )
+  }
+})
+
 test('deployment locks keep server native modules out of Web and PTY out of the base API', () => {
   const containsPackage = (lock, name) => new RegExp(`^  ['"]?${name}@`, 'm').test(lock)
   const web = read('.deploy/webapp/pnpm-lock.yaml')

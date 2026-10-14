@@ -257,6 +257,7 @@ test('pending notes authorize only the application affected by a source fix', (t
   let before = f.commit()
   for (const [file, expected] of [
     ['apps/cloud/src/example.ts', 'xpert-webapp'],
+    ['libs/template-installation/client.ts', 'xpert-webapp'],
     ['.deploy/nsjail-runner/runner.py', 'xpert-nsjail-runner'],
     ['.deploy/api/pnpm-lock.production.yaml', 'xpert-api'],
     ['tools/release/catalog-dependencies.mjs', 'xpert-api'],
