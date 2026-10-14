@@ -17,7 +17,6 @@ import { environment } from '@xpert-ai/server-config'
 import { t } from 'i18next'
 import {
     assertConnectorDefinition,
-    ConnectorStrategyRegistry,
     ConnectorRuntimeFactoryCapability,
     getConnectorAuthorizationModes,
     getConnectorAuthMethods
@@ -63,6 +62,8 @@ import { ConnectorPersonalAccount } from './connector-personal-account.entity'
 import { ConnectorPersonalGrant } from './connector-personal-grant.entity'
 import { ConnectorRuntimeAudit } from './connector-runtime-audit.entity'
 import { Connector } from './connector.entity'
+import { ConnectorProviderService } from './connector-provider.service'
+import { connectorCatalog } from './connector-catalog'
 import {
     connectorLegacyBindingMessage,
     connectorOAuthConfigurationChangedMessage,
@@ -100,7 +101,7 @@ type ConnectorDeletionRepositories = {
 
 type ConnectorAccessService = Pick<XpertWorkspaceAccessService, 'assertCanRead' | 'assertCanManage' | 'assertCanRun'>
 
-type ConnectorStrategyRegistryService = Pick<ConnectorStrategyRegistry, 'getRuntime' | 'listRuntime'>
+type ConnectorProviders = Pick<ConnectorProviderService, 'getRuntime' | 'listRuntime' | 'findRuntime'>
 
 type ConnectorConnectServiceInput = ConnectorConnectRequest & {
     redirectUri: string
@@ -185,8 +186,8 @@ export class ConnectorService implements ConnectorRuntimeFactory {
         private readonly sessionRepository: OAuthSessionRepository,
         @Inject(XpertWorkspaceAccessService)
         private readonly workspaceAccessService: ConnectorAccessService,
-        @Inject(ConnectorStrategyRegistry)
-        private readonly connectorStrategyRegistry: ConnectorStrategyRegistryService,
+        @Inject(ConnectorProviderService)
+        private readonly connectorProviders: ConnectorProviders,
         @Optional()
         @InjectRepository(ConnectorPersonalAccount)
         private readonly personalAccountRepository?: PersonalAccountRepository,
@@ -214,11 +215,7 @@ export class ConnectorService implements ConnectorRuntimeFactory {
     }
 
     async definitions(workspaceId: string): Promise<ConnectorStrategyDefinition[]> {
-        await this.workspaceAccessService.assertCanRead(workspaceId)
-        const organizationId = RequestContext.getOrganizationId()
-        return this.connectorStrategyRegistry
-            .listRuntime(organizationId)
-            .map((strategy) => toPublicDefinition(strategy.definition))
+        return this.definitionsForScope({ type: 'workspace', workspaceId })
     }
 
     async providerOptions(workspaceId: string): Promise<ConnectorProviderSelectOption[]> {
@@ -233,9 +230,9 @@ export class ConnectorService implements ConnectorRuntimeFactory {
     async selectOptions(workspaceId: string, provider?: string): Promise<ConnectorSelectOption[]> {
         const organizationId = RequestContext.getOrganizationId()
         const definitions = new Map(
-            this.connectorStrategyRegistry
-                .listRuntime(organizationId)
-                .map((strategy) => [strategy.definition.provider, strategy.definition])
+            (
+                await this.connectorProviders.listRuntime(organizationId, RequestContext.currentTenantId(), workspaceId)
+            ).map((strategy) => [strategy.definition.provider, strategy.definition])
         )
 
         return (await this.list(workspaceId))
@@ -263,9 +260,22 @@ export class ConnectorService implements ConnectorRuntimeFactory {
 
     async definitionsForScope(scope: ConnectorScope): Promise<ConnectorStrategyDefinition[]> {
         const access = await this.assertScopeRead(normalizeConnectorScope(scope))
-        return this.connectorStrategyRegistry
-            .listRuntime(access.organizationId)
-            .map((strategy) => toPublicDefinition(strategy.definition))
+        const strategies = await this.connectorProviders.listRuntime(
+            access.organizationId,
+            RequestContext.currentTenantId(),
+            scope.type === 'workspace' ? scope.workspaceId : undefined
+        )
+        const bindings = await this.findBindings(scope)
+        for (const binding of bindings) {
+            if (strategies.some((item) => item.definition.provider === binding.provider)) continue
+            const historical = await this.connectorProviders.findRuntime(
+                binding.provider,
+                binding.organizationId,
+                binding.tenantId
+            )
+            if (historical?.definition.canonicalProvider) strategies.push(historical)
+        }
+        return connectorCatalog(strategies, bindings).map((strategy) => toPublicDefinition(strategy.definition))
     }
 
     async createBinding(input: ConnectorBindingCreateRequest): Promise<ConnectorBinding> {
@@ -278,7 +288,7 @@ export class ConnectorService implements ConnectorRuntimeFactory {
         const access = await this.assertScopeManage(scope)
         const tenantId = RequestContext.currentTenantId()
         const userId = RequestContext.currentUserId()
-        const strategy = this.connectorStrategyRegistry.getRuntime(provider, access.organizationId)
+        const strategy = await this.connectorProviders.getRuntime(provider, access.organizationId, tenantId)
         assertConnectorDefinition(strategy.definition)
         assertAuthorizationModeSupported(strategy.definition, authorizationMode)
 
@@ -339,9 +349,13 @@ export class ConnectorService implements ConnectorRuntimeFactory {
         if (projectId) await this.assertProjectUseXpert(projectId, xpertId)
         const scopes = projectId && includeWorkspace ? [workspaceScope, scope] : [scope]
         const definitions = new Map(
-            this.connectorStrategyRegistry
-                .listRuntime(xpert.workspace?.organizationId)
-                .map((strategy) => [strategy.definition.provider, toPublicDefinition(strategy.definition)])
+            (
+                await this.connectorProviders.listRuntime(
+                    xpert.workspace?.organizationId ?? RequestContext.getOrganizationId(),
+                    RequestContext.currentTenantId(),
+                    xpert.workspaceId
+                )
+            ).map((strategy) => [strategy.definition.provider, toPublicDefinition(strategy.definition)])
         )
         const canManageWorkspace = await this.assertScopeManage(workspaceScope).then(
             () => true,
@@ -358,8 +372,17 @@ export class ConnectorService implements ConnectorRuntimeFactory {
                           () => false
                       )
             for (const binding of bindings) {
-                const definition = definitions.get(binding.provider)
+                const strategy = definitions.has(binding.provider)
+                    ? undefined
+                    : await this.connectorProviders.findRuntime(
+                          binding.provider,
+                          binding.organizationId,
+                          binding.tenantId
+                      )
+                const definition =
+                    definitions.get(binding.provider) ?? (strategy && toPublicDefinition(strategy.definition))
                 if (!definition) continue
+                definitions.set(binding.provider, definition)
                 const authorizationMode = connectorAuthorizationMode(binding)
                 items.push({
                     bindingId: binding.id,
@@ -373,6 +396,7 @@ export class ConnectorService implements ConnectorRuntimeFactory {
                     granted: authorizationMode === 'shared' && binding.status === 'active',
                     label: definition.label,
                     runtimeUsage: definition.runtimeUsage,
+                    canonicalProvider: definition.canonicalProvider,
                     description: definition.description,
                     icon: definition.icon,
                     authMethods: getConnectorAuthMethods(definition),
@@ -406,7 +430,7 @@ export class ConnectorService implements ConnectorRuntimeFactory {
         const tenantId = RequestContext.currentTenantId()
         const organizationId = RequestContext.getOrganizationId()
         const userId = RequestContext.currentUserId()
-        const strategy = this.connectorStrategyRegistry.getRuntime(provider, organizationId)
+        const strategy = await this.connectorProviders.getRuntime(provider, organizationId, tenantId)
         assertConnectorDefinition(strategy.definition)
         assertAuthorizationModeSupported(strategy.definition, 'shared')
 
@@ -487,7 +511,11 @@ export class ConnectorService implements ConnectorRuntimeFactory {
         const binding = await this.requireBinding(connectorId)
         await this.assertBindingManage(binding)
         if (input.xpertId) await this.assertBindingXpert(binding, input.xpertId)
-        const strategy = this.connectorStrategyRegistry.getRuntime(binding.provider, binding.organizationId)
+        const strategy = await this.connectorProviders.getRuntime(
+            binding.provider,
+            binding.organizationId,
+            binding.tenantId
+        )
         assertConnectorDefinition(strategy.definition)
         assertAuthorizationModeSupported(strategy.definition, 'shared')
         if (connectorAuthorizationMode(binding) === 'personal') {
@@ -515,7 +543,15 @@ export class ConnectorService implements ConnectorRuntimeFactory {
         const tenantId = RequestContext.currentTenantId()
         const userId = requiredConnectorText(RequestContext.currentUserId(), 'userId')
         const authMethod = resolveAuthMethod(strategy.definition, input.authMethodId)
-        const values = resolveConnectorValues(authMethod, input)
+        if (authMethod.deprecated) throw new BadRequestException(t('server-ai:Error.ConnectorAuthMethodRetired'))
+        binding.appIntegrationId ??= this.storedAppIntegrationId(binding)
+        // Inline app selection is a workspace flow; project connectors keep their provider-managed configuration.
+        const values =
+            authMethod.type === 'oauth2' &&
+            authMethod.appCredentials?.integration &&
+            (binding.workspaceId || binding.appIntegrationId)
+                ? { integrationId: requiredConnectorText(binding.appIntegrationId, 'integrationId') }
+                : resolveConnectorValues(authMethod, input)
         const connectionAttemptId = randomUUID()
         if (connection.ownerKind === 'shared') {
             await this.revokeSharedCredential(connection.binding, 'rotate', strategy)
@@ -543,6 +579,7 @@ export class ConnectorService implements ConnectorRuntimeFactory {
         let result: Awaited<ReturnType<NonNullable<ConnectorStrategyRuntime['connect']>>>
         try {
             result = await this.startStrategyConnection(strategy, authMethod, {
+                scope: { tenantId: binding.tenantId, organizationId: binding.organizationId ?? null },
                 authMethodId: authMethod.id,
                 values,
                 redirectUri: input.redirectUri,
@@ -600,7 +637,7 @@ export class ConnectorService implements ConnectorRuntimeFactory {
                 xpertId: optionalConnectorText(input.xpertId, 'xpertId'),
                 connectionAttemptId,
                 provider: binding.provider,
-                appIntegrationId: null,
+                appIntegrationId: binding.appIntegrationId ?? null,
                 redirectUri: input.redirectUri,
                 authorizationUrl: result.authorizationUrl,
                 pollIntervalSeconds: result.pollIntervalSeconds ?? null,
@@ -956,7 +993,11 @@ export class ConnectorService implements ConnectorRuntimeFactory {
             }
         }
 
-        const strategy = this.connectorStrategyRegistry.getRuntime(binding.provider, binding.organizationId)
+        const strategy = await this.connectorProviders.getRuntime(
+            binding.provider,
+            binding.organizationId,
+            binding.tenantId
+        )
         const metadata = this.decryptSessionMetadata(session.metadataCiphertext)
         const authMethodId = resolveSessionAuthMethodId(metadata, owner, strategy.definition)
         let result: ConnectorConnectionPollResult | null = null
@@ -1347,11 +1388,16 @@ export class ConnectorService implements ConnectorRuntimeFactory {
         metadata: ConnectorSessionMetadata,
         code: string
     ) {
-        const strategy = this.connectorStrategyRegistry.getRuntime(session.provider, session.organizationId)
+        const strategy = await this.connectorProviders.getRuntime(
+            session.provider,
+            session.organizationId,
+            session.tenantId
+        )
         const authMethodId = resolveSessionAuthMethodId(metadata, owner, strategy.definition)
 
         if (strategy.exchangeAuthorizationCode) {
             const credential = await strategy.exchangeAuthorizationCode({
+                scope: { tenantId: session.tenantId, organizationId: session.organizationId ?? null },
                 authMethodId,
                 values: metadata.values,
                 metadata: metadata.strategy ?? null,
@@ -1393,9 +1439,7 @@ export class ConnectorService implements ConnectorRuntimeFactory {
 
         const providerStrategy =
             strategy ??
-            this.connectorStrategyRegistry
-                .listRuntime(binding.organizationId)
-                .find((candidate) => candidate.definition.provider === binding.provider)
+            (await this.connectorProviders.findRuntime(binding.provider, binding.organizationId, binding.tenantId))
         if (!providerStrategy?.revokeCredential) {
             return
         }
@@ -1421,6 +1465,7 @@ export class ConnectorService implements ConnectorRuntimeFactory {
         await this.workspaceAccessService.assertCanManage(workspaceId)
         const connector = await this.requireConnector({ workspaceId, connectorId, authorizationMode: 'shared' })
         await this.revokeSharedCredential(connector, 'disconnect')
+        connector.appIntegrationId ??= this.storedAppIntegrationId(connector)
         Object.assign(connector, disconnectedCredentialState())
         await this.connectorRepository.save(connector)
         await this.consumeSupersededSessions(connector)
@@ -1522,8 +1567,8 @@ export class ConnectorService implements ConnectorRuntimeFactory {
         for (const bindingId of selectedBindingIds) {
             const binding = await this.requireBinding(bindingId, scope.tenantId ?? undefined)
             if (
-                this.connectorStrategyRegistry.getRuntime(binding.provider, binding.organizationId).definition
-                    .runtimeUsage === 'credential'
+                (await this.connectorProviders.getRuntime(binding.provider, binding.organizationId, binding.tenantId))
+                    .definition.runtimeUsage === 'credential'
             )
                 throw new ForbiddenException(connectorAccessDeniedMessage())
             if (connectorAuthorizationMode(binding) !== 'shared')
@@ -1658,7 +1703,11 @@ export class ConnectorService implements ConnectorRuntimeFactory {
         this.assertConnectionActive(connection)
 
         const credentialCiphertext = owner.credentialCiphertext
-        const strategy = this.connectorStrategyRegistry.getRuntime(binding.provider, binding.organizationId)
+        const strategy = await this.connectorProviders.getRuntime(
+            binding.provider,
+            binding.organizationId,
+            binding.tenantId
+        )
         let stored = this.decryptCredential(owner, strategy.definition)
         if (isExpired(owner.expiresAt)) {
             if (isExpired(owner.refreshExpiresAt)) {
@@ -1673,6 +1722,7 @@ export class ConnectorService implements ConnectorRuntimeFactory {
 
         const runtimeCredentials = strategy.resolveRuntimeCredential
             ? await strategy.resolveRuntimeCredential({
+                  scope: { tenantId: binding.tenantId, organizationId: binding.organizationId ?? null },
                   authMethodId: stored.authMethodId,
                   credential: stored.credential
               })
@@ -1712,6 +1762,10 @@ export class ConnectorService implements ConnectorRuntimeFactory {
         try {
             if (strategy.refreshConnectionCredential) {
                 refreshed = await strategy.refreshConnectionCredential({
+                    scope: {
+                        tenantId: connection.binding.tenantId,
+                        organizationId: connection.binding.organizationId ?? null
+                    },
                     authMethodId: stored.authMethodId,
                     credential: stored.credential
                 })
@@ -2300,6 +2354,7 @@ export class ConnectorService implements ConnectorRuntimeFactory {
             projectId: connector.projectId ?? null,
             provider: connector.provider,
             authMethodId: owner?.authMethodId ?? null,
+            appIntegrationId: connector.appIntegrationId ?? this.storedAppIntegrationId(connector),
             status: owner?.status ?? 'disconnected',
             profile: owner?.profile ?? null,
             scopes: owner?.scopes ?? undefined,
@@ -2312,6 +2367,17 @@ export class ConnectorService implements ConnectorRuntimeFactory {
             updatedById: connector.updatedById ?? null,
             createdAt: connector.createdAt?.toISOString(),
             updatedAt: connector.updatedAt?.toISOString()
+        }
+    }
+
+    private storedAppIntegrationId(connector: Connector): string | null {
+        if (!connector.credentialCiphertext || connectorAuthorizationMode(connector) !== 'shared') return null
+        try {
+            const value: unknown = JSON.parse(decryptSecret(connector.credentialCiphertext, this.encryptionKey))
+            const stored = parseStoredCredential(value)
+            return stringValue(stored.credential.data.integrationId) ?? null
+        } catch {
+            return null
         }
     }
 

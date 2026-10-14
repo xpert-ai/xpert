@@ -27,7 +27,7 @@ import { guardedOAuthFetch } from '../mcp-publication/mcp-oauth.service'
 
 export interface McpOAuthConnectorConfig {
     tenantId: string
-    organizationId: string
+    organizationId: string | null
     serverUrl: string
     title: string
     icon?: ConnectorMultiAuthDefinition['icon']
@@ -49,7 +49,7 @@ type State = z.infer<typeof stateSchema>
 export function mcpConnectorProvider(config: McpOAuthConnectorConfig) {
     const identity = [
         config.tenantId,
-        config.organizationId,
+        config.organizationId ?? null,
         new URL(config.serverUrl).href,
         [...new Set(config.scopes ?? [])].sort(),
         config.clientRegistration ?? 'dynamic'
@@ -159,7 +159,8 @@ export class McpOAuthConnectorStrategy implements ConnectorMultiAuthStrategy {
     private readState(payload: unknown): State {
         if (typeof payload !== 'string') throw oauthError()
         const state = stateSchema.parse(JSON.parse(payload))
-        if (state.serverUrl !== this.config.serverUrl) throw oauthError()
+        // Use the same URL identity as the provider key, including legacy persisted spellings.
+        if (new URL(state.serverUrl).href !== new URL(this.config.serverUrl).href) throw oauthError()
         return state
     }
 

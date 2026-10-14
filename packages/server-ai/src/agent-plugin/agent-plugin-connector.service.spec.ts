@@ -41,6 +41,8 @@ describe('Agent Plugin Connector binding boundary', () => {
     let owners: jest.Mock
     let credential: jest.Mock
     let connectorBindings: jest.Mock
+    let connectorDefinitions: jest.Mock
+    let runtimeOptions: jest.Mock
     let currentToolset: jest.Mock
     let request: McpConsumerAuthProviderRequest
 
@@ -65,6 +67,8 @@ describe('Agent Plugin Connector binding boundary', () => {
             credentials: { accessToken: 'test-only', resource: requirement.resource }
         })
         connectorBindings = jest.fn()
+        connectorDefinitions = jest.fn().mockResolvedValue([])
+        runtimeOptions = jest.fn()
         service = new AgentPluginConnectorService(
             {
                 findOneBy: jest.fn().mockResolvedValue(null),
@@ -87,7 +91,9 @@ describe('Agent Plugin Connector binding boundary', () => {
             { find: owners } as unknown as Repository<AgentResourceBinding>,
             {
                 getRuntimeConnectorCredentialForScope: credential,
-                listBindings: connectorBindings
+                listBindings: connectorBindings,
+                definitionsForScope: connectorDefinitions,
+                runtimeOptions
             } as unknown as ConnectorService,
             {} as ConnectorStrategyRegistry
         )
@@ -114,6 +120,64 @@ describe('Agent Plugin Connector binding boundary', () => {
             else await expect(install).rejects.toThrow()
         }
     )
+
+    it('reuses a historical binding for an upgraded manifest without changing the stored identity', async () => {
+        jest.spyOn(service, 'register').mockReturnValue(new Map([['test', 'github']]))
+        connectorBindings.mockResolvedValue([
+            { id: 'old-binding', provider: 'mcp-oauth:old', authorizationMode: 'shared' }
+        ])
+        connectorDefinitions.mockResolvedValue([{ provider: 'mcp-oauth:old', canonicalProvider: 'github' }])
+        await expect(
+            service.install({} as AgentPluginPackage, 'workspace', {
+                test: { type: 'existing', provider: 'github', resource: 'https://api.githubcopilot.com/mcp/' }
+            })
+        ).resolves.toEqual({ test: { bindingId: 'old-binding', provider: 'mcp-oauth:old' } })
+        runtimeOptions.mockResolvedValue({
+            items: [
+                {
+                    bindingId: 'old-binding',
+                    provider: 'mcp-oauth:old',
+                    canonicalProvider: 'github',
+                    authorizationMode: 'shared'
+                }
+            ]
+        })
+        await expect(
+            service.runtimeBindings({} as AgentPluginPackage, 'assistant', {
+                test: { type: 'existing', provider: 'github', resource: 'https://api.githubcopilot.com/mcp/' }
+            })
+        ).resolves.toEqual({ test: { bindingId: 'old-binding', provider: 'mcp-oauth:old' } })
+    })
+
+    it('prefers an exact native binding over a historical alias unless the dependency is already pinned', async () => {
+        jest.spyOn(service, 'register').mockReturnValue(new Map([['test', 'github']]))
+        const items = [
+            {
+                id: 'old-binding',
+                bindingId: 'old-binding',
+                provider: 'mcp-oauth:old',
+                canonicalProvider: 'github',
+                authorizationMode: 'shared'
+            },
+            { id: 'native-binding', bindingId: 'native-binding', provider: 'github', authorizationMode: 'shared' }
+        ]
+        connectorBindings.mockResolvedValue(items)
+        connectorDefinitions.mockResolvedValue([{ provider: 'mcp-oauth:old', canonicalProvider: 'github' }])
+        const requirements = {
+            test: { type: 'existing' as const, provider: 'github', resource: 'https://api.githubcopilot.com/mcp/' }
+        }
+        await expect(service.install({} as AgentPluginPackage, 'workspace', requirements)).resolves.toEqual({
+            test: { bindingId: 'native-binding', provider: 'github' }
+        })
+        runtimeOptions.mockResolvedValue({ items })
+        await expect(service.runtimeBindings({} as AgentPluginPackage, 'assistant', requirements)).resolves.toEqual({
+            test: { bindingId: 'native-binding', provider: 'github' }
+        })
+        const previous = { test: { bindingId: 'old-binding', provider: 'mcp-oauth:old' } }
+        await expect(
+            service.runtimeBindings({} as AgentPluginPackage, 'assistant', requirements, previous)
+        ).resolves.toEqual(previous)
+    })
 
     it('passes only the exact dependency binding and validated actor to Connector', async () => {
         const provider = await resolveMcpConsumerAuthProvider(request)

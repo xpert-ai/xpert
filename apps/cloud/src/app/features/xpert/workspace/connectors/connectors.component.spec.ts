@@ -192,6 +192,11 @@ async function setup(options?: {
   const connectorSearchQuery = signal('')
   const closeDialog = jest.fn()
   const connectorService = {
+    integrationOptions: jest.fn(() =>
+      of([{ id: 'saved-app', name: 'Saved GitHub application', organizationId: null }])
+    ),
+    prepareIntegration: jest.fn(() => of({ id: 'saved-app', name: 'Saved GitHub application', organizationId: null })),
+    createBinding: jest.fn(() => of({ ...workspaceBinding, provider: 'github' })),
     scopedDefinitions: jest.fn(() => of(options?.definitions ?? [connectorDefinition])),
     listBindings: jest.fn(() => of(options?.bindings ?? [])),
     connect: jest.fn(() =>
@@ -292,6 +297,155 @@ async function setup(options?: {
 }
 
 describe('XpertConnectorsComponent', () => {
+  it('reuses the existing dialog and remembered application when reconnecting', async () => {
+    const definition: ConnectorStrategyDefinition = {
+      ...githubDefinition,
+      authMethods: [
+        {
+          id: 'github-app-oauth',
+          type: 'oauth2',
+          label: 'OAuth',
+          appCredentials: {
+            integration: {
+              provider: 'github',
+              fields: [
+                { name: 'clientId', label: 'Client ID', required: true },
+                { name: 'clientSecret', label: 'Secret', secret: true, required: true }
+              ]
+            }
+          }
+        }
+      ]
+    }
+    const binding: ConnectorBinding = { ...githubBinding, appIntegrationId: 'saved-app', status: 'error' }
+    const { fixture, component, connectorService } = await setup({ definitions: [definition], bindings: [binding] })
+    jest.spyOn(window, 'open').mockReturnValue(createAuthorizationPopup().popup)
+    component.quickConnect(definition)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    expect(connectorService.connectBinding).not.toHaveBeenCalled()
+    expect(document.body.textContent).toContain('Saved GitHub application')
+    expect(component.integrationForm()!.callbackUrl).toBe('http://localhost:3000/api/connector/oauth/callback')
+    await component.connect(binding, definition)
+    expect(connectorService.prepareIntegration).toHaveBeenCalledWith(binding.id, {
+      authMethodId: 'github-app-oauth',
+      selection: { type: 'existing', integrationId: 'saved-app' }
+    })
+    expect(connectorService.connectBinding).toHaveBeenCalledWith(binding.id, { authMethodId: 'github-app-oauth' })
+    fixture.destroy()
+  })
+
+  it.each([
+    { label: 'GitHub', expectedName: /^GitHub-[A-F0-9]{8}$/ },
+    { label: 'G'.repeat(100), expectedName: /^G{91}-[A-F0-9]{8}$/ }
+  ])(
+    'automatically names an application for $label without a name field and reuses it after OAuth fails',
+    async ({ label, expectedName }) => {
+      const definition: ConnectorStrategyDefinition = {
+        ...githubDefinition,
+        label,
+        authMethods: [
+          {
+            id: 'github-app-oauth',
+            type: 'oauth2',
+            label: 'OAuth',
+            appCredentials: {
+              integration: {
+                provider: 'github',
+                fields: [
+                  { name: 'clientId', label: 'Client ID', required: true },
+                  { name: 'clientSecret', label: 'Secret', secret: true, required: true }
+                ]
+              }
+            }
+          }
+        ]
+      }
+      const { fixture, component, connectorService } = await setup({ definitions: [definition] })
+      jest.spyOn(window, 'open').mockReturnValue(createAuthorizationPopup().popup)
+      connectorService.connectBinding.mockImplementation(() => {
+        throw new Error('OAuth temporarily unavailable')
+      })
+      component.quickConnect(definition)
+      fixture.detectChanges()
+      await fixture.whenStable()
+      const form = component.integrationForm()!
+      form.configure('new')
+      fixture.detectChanges()
+      expect(document.querySelector('[data-integration-field=clientSecret]')?.getAttribute('autocomplete')).toBe(
+        'new-password'
+      )
+      expect(
+        Array.from(document.querySelectorAll('[data-integration-field]'), (input) =>
+          input.getAttribute('data-integration-field')
+        )
+      ).toEqual(['clientId', 'clientSecret'])
+      form.form.patchValue({ clientId: 'client', clientSecret: 'private-secret' })
+      const selection = form.selection()
+      expect(selection).toEqual({
+        type: 'new',
+        requestId: expect.any(String),
+        name: expect.stringMatching(expectedName),
+        values: { clientId: 'client', clientSecret: 'private-secret' }
+      })
+      expect(form.selection()).toEqual(selection)
+      await component.connect(null, definition)
+      fixture.detectChanges()
+      await fixture.whenStable()
+      expect(connectorService.createBinding).toHaveBeenCalledTimes(1)
+      expect(connectorService.prepareIntegration.mock.calls[0]).toEqual([
+        workspaceBinding.id,
+        {
+          authMethodId: 'github-app-oauth',
+          selection: {
+            type: 'new',
+            requestId: expect.any(String),
+            name: expect.stringMatching(expectedName),
+            values: { clientId: 'client', clientSecret: 'private-secret' }
+          }
+        }
+      ])
+      expect(form.mode()).toBe('existing')
+      expect(form.form.controls.clientSecret).toBeUndefined()
+      expect(component.bindingFor(definition)?.appIntegrationId).toBe('saved-app')
+      await component.connect(component.bindingFor(definition), definition)
+      expect(connectorService.createBinding).toHaveBeenCalledTimes(1)
+      expect(connectorService.prepareIntegration).toHaveBeenLastCalledWith(workspaceBinding.id, {
+        authMethodId: 'github-app-oauth',
+        selection: { type: 'existing', integrationId: 'saved-app' }
+      })
+      expect(connectorService.connectBinding).toHaveBeenLastCalledWith(workspaceBinding.id, {
+        authMethodId: 'github-app-oauth'
+      })
+      fixture.destroy()
+    }
+  )
+
+  it('requires application selection before creating a binding or opening OAuth', async () => {
+    const definition: ConnectorStrategyDefinition = {
+      ...githubDefinition,
+      authMethods: [
+        {
+          id: 'github-app-oauth',
+          type: 'oauth2',
+          label: 'OAuth',
+          appCredentials: { integration: { provider: 'github', fields: [] } }
+        }
+      ]
+    }
+    const { fixture, component, connectorService } = await setup({ definitions: [definition] })
+    const popup = jest.spyOn(window, 'open').mockReturnValue(null)
+    component.quickConnect(definition)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    await component.connect(null, definition)
+    expect(connectorService.createBinding).not.toHaveBeenCalled()
+    expect(connectorService.prepareIntegration).not.toHaveBeenCalled()
+    expect(popup).not.toHaveBeenCalled()
+    fixture.destroy()
+  })
+
   it('automatically enters Desktop OAuth in the current browser tab without a second click or popup', async () => {
     const openSpy = jest.spyOn(window, 'open').mockReturnValue(null)
     const { fixture, connectorService } = await setup({

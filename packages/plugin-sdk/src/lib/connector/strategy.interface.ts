@@ -35,6 +35,11 @@ export type ConnectorAppCredentialField = {
 
 export type ConnectorAppCredentialsConfig = {
   fields?: ConnectorAppCredentialField[]
+  /** Persist application credentials in a system integration; connections only retain its ID. */
+  integration?: {
+    provider: string
+    fields: ConnectorAppCredentialField[]
+  }
   help?: {
     label: RuntimeI18nText
     url: string
@@ -58,6 +63,8 @@ export type ConnectorAuthorizationPresentation = {
 type ConnectorAuthMethodBase = {
   id: string
   label: RuntimeI18nText
+  /** Retained for stored credentials and in-flight callbacks, not new authorizations. */
+  deprecated?: boolean
   authorizationPresentation?: ConnectorAuthorizationPresentation
 }
 
@@ -85,6 +92,12 @@ export type ConnectorPermissionDeclaration = {
 }
 
 export type ConnectorDefinitionBase = {
+  /** Explicit MCP resources whose old generic OAuth connections this provider can replace. */
+  mcpOAuthResources?: string[]
+  /** Native provider used by a compatibility definition that retains its old provider ID. */
+  canonicalProvider?: string
+  /** Imported dependency is visible but its provider is not installed in this scope. */
+  unavailable?: string
   runtimeUsage?: 'middleware' | 'credential'
   provider: string
   label: RuntimeI18nText
@@ -320,6 +333,8 @@ export type ConnectorInstance = {
   authorizationMode?: ConnectorAuthorizationMode
   provider: string
   authMethodId?: string | null
+  /** Selected application configuration, never its secrets. */
+  appIntegrationId?: string | null
   status: ConnectorStatus
   profile?: ConnectorProfile | null
   scopes?: string[]
@@ -347,6 +362,7 @@ export type ConnectorBindingCreateRequest = {
 }
 
 export type ConnectorRuntimeOption = {
+  canonicalProvider?: string
   scope?: ConnectorScope
   canManage?: boolean
   managementUrl?: string
@@ -532,7 +548,10 @@ export type ConnectorCredential = {
   profile?: ConnectorProfile | null
 }
 
+export type ConnectorProviderScope = { tenantId: string; organizationId: string | null }
+
 export type ConnectorConnectInput = {
+  scope?: ConnectorProviderScope
   authMethodId: string
   values?: ConnectorAppCredentialPayload
   redirectUri: string
@@ -554,6 +573,7 @@ export type ConnectorConnectResult =
     }
 
 export type ConnectorAuthorizationCodeInput = {
+  scope?: ConnectorProviderScope
   authMethodId: string
   values?: ConnectorAppCredentialPayload
   metadata?: Record<string, unknown> | null
@@ -590,6 +610,7 @@ export type ConnectorConnectionPollResult =
     }
 
 export type ConnectorCredentialRefreshInput = {
+  scope?: ConnectorProviderScope
   authMethodId: string
   credential: ConnectorCredential
 }
@@ -603,6 +624,7 @@ export type ConnectorCredentialRevokeInput = {
 }
 
 export type ConnectorRuntimeCredentialResolveInput = {
+  scope?: ConnectorProviderScope
   authMethodId: string
   credential: ConnectorCredential
 }

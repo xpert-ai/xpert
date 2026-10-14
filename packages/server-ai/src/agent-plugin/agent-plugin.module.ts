@@ -10,6 +10,7 @@ import { ConnectorModule } from '../connector/connector.module'
 import { AgentPluginConnectorService } from './agent-plugin-connector.service'
 import { AgentPluginInstallationsService } from './agent-plugin-installations.service'
 import { PluginResourceModule } from '../plugin-resource/plugin-resource.module'
+import { ResolvePluginConnectorsHandler } from './queries/resolve-plugin-connectors.handler'
 
 @Global()
 @Module({
@@ -25,6 +26,7 @@ import { PluginResourceModule } from '../plugin-resource/plugin-resource.module'
         ImportDefaultAgentPluginsHandler,
         RuntimeResourceService,
         AgentPluginConnectorService,
+        ResolvePluginConnectorsHandler,
         AgentPluginInstallationsService,
         { provide: 'XpertAgentPluginService', useExisting: AgentPluginService },
         { provide: 'XpertRuntimeResourceService', useExisting: RuntimeResourceService }

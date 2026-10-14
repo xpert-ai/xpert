@@ -54,6 +54,12 @@
     },
     "Error": {
         "RuntimeNotReady": "The API instance is not ready",
+        "ConnectorIntegrationInvalid": "Invalid system integration configuration.",
+        "ConnectorIntegrationUnavailable": "The selected system integration is unavailable or incomplete. Select an accessible integration.",
+        "ConnectorIntegrationCreateForbidden": "You do not have permission to create system integrations.",
+        "ConnectorIntegrationBusy": "Disconnect or cancel the current authorization before changing its system integration.",
+        "ConnectorProviderDependencyMissing": "Install and enable connector provider {{provider}} in this scope before connecting.",
+        "ConnectorAuthMethodRetired": "Select a supported authentication method to reconnect.",
         "PrimaryModelEmptyResponse": "The Primary LLM returned an empty response.",
         "PrimaryModelVerificationTimedOut": "Primary LLM verification timed out after 20 seconds.",
         "ClawXpertRecoveryRequiresMember": "Join the current organization before recovering your personal assistant.",

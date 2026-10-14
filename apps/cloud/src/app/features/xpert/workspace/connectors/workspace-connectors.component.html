@@ -150,7 +150,7 @@
                       type="button"
                       class="!size-10 shrink-0 cursor-pointer rounded-lg !bg-hover-bg text-text-secondary transition-[background-color,color,transform] hover:!bg-components-list-option-active-bg hover:text-text-primary active:scale-95 disabled:cursor-default"
                       data-connector-action="quick-connect"
-                      [zDisabled]="loading() || isConnecting(binding, definition)"
+                      [zDisabled]="!!definition.unavailable || loading() || isConnecting(binding, definition)"
                       [attr.aria-label]="'XP.Xpert.ConnectConnector' | translate: { Default: 'Connect connector' }"
                       (click)="quickConnect(definition)"
                     >
@@ -201,7 +201,7 @@
                     type="button"
                     class="!size-10 shrink-0 cursor-pointer rounded-lg !bg-hover-bg text-text-secondary transition-[background-color,color,transform] hover:!bg-components-list-option-active-bg hover:text-text-primary active:scale-95 disabled:cursor-default"
                     data-connector-action="quick-connect"
-                    [zDisabled]="loading() || isConnecting(binding)"
+                    [zDisabled]="!!definition.unavailable || loading() || isConnecting(binding)"
                     [attr.aria-label]="'XP.Xpert.ConnectConnector' | translate: { Default: 'Connect connector' }"
                     (click)="quickConnect(definition)"
                   >
@@ -321,6 +321,20 @@
           <p class="min-w-0 text-sm leading-6 text-text-secondary [overflow-wrap:anywhere]">
             {{ descriptionFor(definition) | i18n }}
           </p>
+          @if (definition.unavailable) {
+            <p role="alert" class="text-sm text-text-secondary">{{ definition.unavailable }}</p>
+          }
+          @if (credentialForm?.integration; as integration) {
+            <xpert-connector-integration-form
+              [workspaceId]="workspaceId()!"
+              [provider]="definition.provider"
+              [defaultName]="(definition.label | i18n) || definition.provider"
+              [authMethodId]="authMethod!.id"
+              [config]="integration"
+              [savedIntegrationId]="binding?.appIntegrationId"
+              [readonly]="!canManageWorkspace() || binding?.status === 'active' || binding?.status === 'pending'"
+            />
+          }
           @if (binding?.authorizationMode === 'personal') {
             <p class="text-sm text-text-secondary">{{ 'XP.Xpert.ConnectorWorkspaceMigration' | translate }}</p>
           }
@@ -494,7 +508,7 @@
                 zType="default"
                 type="button"
                 data-connector-action="connect"
-                [zDisabled]="loading() || isConnecting(binding, definition)"
+                [zDisabled]="!!definition.unavailable || loading() || isConnecting(binding, definition)"
                 [zLoading]="isConnecting(binding, definition)"
                 (click)="connect(binding, definition)"
               >
@@ -539,7 +553,7 @@
                 zType="default"
                 type="button"
                 data-connector-action="connect"
-                [zDisabled]="loading() || isConnecting(binding)"
+                [zDisabled]="!!definition.unavailable || loading() || isConnecting(binding)"
                 [zLoading]="isConnecting(binding)"
                 (click)="connect(binding, definition)"
               >
