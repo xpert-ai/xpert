@@ -1,98 +1,117 @@
 <div class="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
-  <div class="flex flex-col gap-6">
+  <header>
     <h1 class="text-2xl font-semibold tracking-tight text-foreground">
       {{ 'XP.MENU.MANAGE_TENANT' | translate: { Default: 'Manage Tenant' } }}
     </h1>
-    <p class="text-sm text-muted-foreground">{{ 'XP.SettingsRemaining.TenantDescription' | translate }}</p>
+    <p class="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+      {{ 'XP.SettingsRemaining.TenantDescription' | translate }}
+    </p>
+  </header>
 
+  <div class="grid min-w-0 items-start gap-5 min-[900px]:grid-cols-[14rem_minmax(0,1fr)] min-[900px]:gap-6">
     <nav
-      z-tab-nav-bar
-      class="w-full overflow-x-auto border-b border-border"
-      color="accent"
-      alignTabs="start"
-      stretchTabs="false"
-      disableRipple
-      [tabPanel]="tabPanel"
+      class="min-w-0 rounded-lg border border-border bg-card p-2"
+      [attr.aria-label]="'XP.MENU.MANAGE_TENANT' | translate"
     >
-      <a
-        z-tab-link
-        [routerLink]="['./settings']"
-        routerLinkActive
-        #rla="routerLinkActive"
-        [routerLinkActiveOptions]="{ exact: true }"
-        [active]="rla.isActive"
-      >
-        <z-icon nxDensity="cosy" zType="room_preferences"></z-icon>
-        {{ 'XP.MENU.TENANT.SETTINGS' | translate: { Default: 'Settings' } }}
-      </a>
-
-      <a
-        z-tab-link
-        [routerLink]="['./skills']"
-        routerLinkActive
-        #rlaSkills="routerLinkActive"
-        [routerLinkActiveOptions]="{ exact: true }"
-        [active]="rlaSkills.isActive"
-      >
-        <z-icon zType="auto_awesome"></z-icon>
-        {{ 'XP.KEY_WORDS.Skills' | translate: { Default: 'Skills' } }}
-      </a>
-
-      <a
-        z-tab-link
-        [routerLink]="['./tags']"
-        routerLinkActive
-        #rla2="routerLinkActive"
-        [routerLinkActiveOptions]="{ exact: true }"
-        [active]="rla2.isActive"
-      >
-        <z-icon zType="sell"></z-icon>
-        {{ 'XP.KEY_WORDS.Tags' | translate: { Default: 'Tags' } }}
-      </a>
-
-      @if (canViewCustomSmtp()) {
+      <div class="grid min-w-0 grid-cols-2 gap-1 sm:grid-cols-3 min-[900px]:flex min-[900px]:flex-col">
         <a
-          z-tab-link
-          [routerLink]="['./smtp']"
+          z-button
+          zType="ghost"
+          class="h-auto min-h-11 min-w-0 justify-start gap-3 px-3 py-2 text-left text-base leading-5 whitespace-normal text-foreground min-[900px]:w-full pointer-coarse:min-h-[44px]"
+          ariaCurrentWhenActive="page"
+          [routerLink]="['./settings']"
           routerLinkActive
-          #rlaSmtp="routerLinkActive"
+          #rla="routerLinkActive"
           [routerLinkActiveOptions]="{ exact: true }"
-          [active]="rlaSmtp.isActive"
+          [class]="rla.isActive ? 'bg-muted font-semibold' : 'font-medium'"
         >
-          <z-icon zType="alternate_email"></z-icon>
-          {{ 'XP.MENU.Custom SMTP' | translate: { Default: 'Custom SMTP' } }}
+          <z-icon zType="room_preferences" class="shrink-0" />
+          {{ 'XP.MENU.TENANT.SETTINGS' | translate: { Default: 'Settings' } }}
         </a>
-      }
 
-      <a
-        z-tab-link
-        [routerLink]="['./retention']"
-        routerLinkActive
-        #rlaRetention="routerLinkActive"
-        [routerLinkActiveOptions]="{ exact: true }"
-        [active]="rlaRetention.isActive"
-      >
-        <z-icon zType="database"></z-icon>
-        {{ 'XP.MENU.TENANT.RETENTION' | translate: { Default: 'Retention' } }}
-      </a>
-
-      @if (canViewMembership()) {
         <a
-          z-tab-link
-          [routerLink]="['./membership']"
+          z-button
+          zType="ghost"
+          class="h-auto min-h-11 min-w-0 justify-start gap-3 px-3 py-2 text-left text-base leading-5 whitespace-normal text-foreground min-[900px]:w-full pointer-coarse:min-h-[44px]"
+          ariaCurrentWhenActive="page"
+          [routerLink]="['./skills']"
           routerLinkActive
-          #rlaMembership="routerLinkActive"
+          #rlaSkills="routerLinkActive"
           [routerLinkActiveOptions]="{ exact: true }"
-          [active]="rlaMembership.isActive"
+          [class]="rlaSkills.isActive ? 'bg-muted font-semibold' : 'font-medium'"
         >
-          <z-icon zType="credit-card"></z-icon>
-          {{ 'XP.MENU.TENANT.MEMBERSHIP_MANAGEMENT' | translate: { Default: 'Membership Management' } }}
+          <z-icon zType="auto_awesome" class="shrink-0" />
+          {{ 'XP.KEY_WORDS.Skills' | translate: { Default: 'Skills' } }}
         </a>
-      }
+
+        <a
+          z-button
+          zType="ghost"
+          class="h-auto min-h-11 min-w-0 justify-start gap-3 px-3 py-2 text-left text-base leading-5 whitespace-normal text-foreground min-[900px]:w-full pointer-coarse:min-h-[44px]"
+          ariaCurrentWhenActive="page"
+          [routerLink]="['./tags']"
+          routerLinkActive
+          #rla2="routerLinkActive"
+          [routerLinkActiveOptions]="{ exact: true }"
+          [class]="rla2.isActive ? 'bg-muted font-semibold' : 'font-medium'"
+        >
+          <z-icon zType="sell" class="shrink-0" />
+          {{ 'XP.KEY_WORDS.Tags' | translate: { Default: 'Tags' } }}
+        </a>
+
+        @if (canViewCustomSmtp()) {
+          <a
+            z-button
+            zType="ghost"
+            class="h-auto min-h-11 min-w-0 justify-start gap-3 px-3 py-2 text-left text-base leading-5 whitespace-normal text-foreground min-[900px]:w-full pointer-coarse:min-h-[44px]"
+            ariaCurrentWhenActive="page"
+            [routerLink]="['./smtp']"
+            routerLinkActive
+            #rlaSmtp="routerLinkActive"
+            [routerLinkActiveOptions]="{ exact: true }"
+            [class]="rlaSmtp.isActive ? 'bg-muted font-semibold' : 'font-medium'"
+          >
+            <z-icon zType="alternate_email" class="shrink-0" />
+            {{ 'XP.MENU.Custom SMTP' | translate: { Default: 'Custom SMTP' } }}
+          </a>
+        }
+
+        <a
+          z-button
+          zType="ghost"
+          class="h-auto min-h-11 min-w-0 justify-start gap-3 px-3 py-2 text-left text-base leading-5 whitespace-normal text-foreground min-[900px]:w-full pointer-coarse:min-h-[44px]"
+          ariaCurrentWhenActive="page"
+          [routerLink]="['./retention']"
+          routerLinkActive
+          #rlaRetention="routerLinkActive"
+          [routerLinkActiveOptions]="{ exact: true }"
+          [class]="rlaRetention.isActive ? 'bg-muted font-semibold' : 'font-medium'"
+        >
+          <z-icon zType="database" class="shrink-0" />
+          {{ 'XP.MENU.TENANT.RETENTION' | translate: { Default: 'Retention' } }}
+        </a>
+
+        @if (canViewMembership()) {
+          <a
+            z-button
+            zType="ghost"
+            class="h-auto min-h-11 min-w-0 justify-start gap-3 px-3 py-2 text-left text-base leading-5 whitespace-normal text-foreground min-[900px]:w-full pointer-coarse:min-h-[44px]"
+            ariaCurrentWhenActive="page"
+            [routerLink]="['./membership']"
+            routerLinkActive
+            #rlaMembership="routerLinkActive"
+            [routerLinkActiveOptions]="{ exact: true }"
+            [class]="rlaMembership.isActive ? 'bg-muted font-semibold' : 'font-medium'"
+          >
+            <z-icon zType="credit-card" class="shrink-0" />
+            {{ 'XP.MENU.TENANT.MEMBERSHIP_MANAGEMENT' | translate: { Default: 'Membership Management' } }}
+          </a>
+        }
+      </div>
     </nav>
-  </div>
 
-  <z-tab-nav-panel #tabPanel class="flex w-full min-w-0 flex-col">
-    <router-outlet></router-outlet>
-  </z-tab-nav-panel>
+    <div class="flex w-full min-w-0 flex-col rounded-lg border border-border bg-card p-5 sm:p-6">
+      <router-outlet></router-outlet>
+    </div>
+  </div>
 </div>
