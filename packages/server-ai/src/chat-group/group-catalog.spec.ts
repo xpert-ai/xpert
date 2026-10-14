@@ -55,7 +55,7 @@ describe('group sidebar summaries', () => {
         jest.spyOn(db.getRepository(ChatMessage), 'createQueryBuilder').mockReturnValue(query)
         jest.spyOn(query, 'where').mockReturnValue(query)
         jest.spyOn(db.getRepository(User), 'find').mockResolvedValue([
-            Object.assign(new User(), { id: 'me', imageUrl: 'https://example.com/avatar.png' })
+            Object.assign(new User(), { id: 'me', email: 'me@example.com', imageUrl: 'https://example.com/avatar.png' })
         ])
         jest.spyOn(db.getRepository(Xpert), 'find').mockResolvedValue([])
         const [result] = await service.list()
@@ -82,7 +82,7 @@ describe('group sidebar summaries', () => {
             memberCount: 1,
             unread: true,
             pinned: true,
-            members: [{ id: 'member', avatar: { url: 'https://example.com/avatar.png' } }]
+            members: [{ id: 'member', name: 'me@example.com', avatar: { url: 'https://example.com/avatar.png' } }]
         })
         expect(JSON.stringify(result)).not.toContain('private-thread')
         expect(result.members[0]).not.toHaveProperty('subjectId')

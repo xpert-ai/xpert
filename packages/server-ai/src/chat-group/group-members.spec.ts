@@ -32,6 +32,8 @@ describe('group membership lifecycle', () => {
             ),
             findBy: jest.fn(async (entity: unknown) => (entity === GroupParticipant ? [member] : [])),
             find: jest.fn().mockResolvedValue([]),
+            getRepository: jest.fn(() => ({ findOne: jest.fn().mockResolvedValue(group) })),
+            countBy: jest.fn().mockResolvedValue(2),
             update: jest.fn().mockResolvedValue({ affected: 1 })
         }
         const db = {
@@ -112,6 +114,28 @@ describe('group membership lifecycle', () => {
         await expect(service.remove('group', 'member')).rejects.toThrow('owner required')
         expect(access.authorize).toHaveBeenCalledWith('group', true)
         expect(db.transaction).not.toHaveBeenCalled()
+    })
+
+    it('uses an email fallback when creating the owner of a group', async () => {
+        const { service, access, manager } = setup()
+        access.user.mockResolvedValue({ id: 'human', email: 'owner@example.com' })
+        await service.create({ title: 'Team', assistantId: 'assistant' })
+        expect(manager.create).toHaveBeenCalledWith(
+            GroupParticipant,
+            expect.objectContaining({ kind: 'user', role: 'owner', name: 'owner@example.com' })
+        )
+    })
+
+    it.each([false, true])('uses the current username when inviting a user (rejoining: %s)', async (rejoining) => {
+        const { service, access, manager, member } = setup()
+        access.user.mockResolvedValue({ id: 'human', username: 'member', email: 'member@example.com' })
+        member.kind = 'user'
+        member.subjectId = 'human'
+        member.name = 'human'
+        manager.findOneBy.mockResolvedValueOnce(rejoining ? member : null)
+        const result = await service.add('group', { kind: 'user', subjectId: 'human' })
+        expect(result).toMatchObject({ kind: 'user', name: 'member', active: true })
+        expect(access.user).toHaveBeenCalledWith({ tenantId: 'tenant', organizationId: 'org' }, 'human')
     })
 
     it.each(['owner', 'default-assistant'])('protects the %s from removal', async (protectedMember) => {

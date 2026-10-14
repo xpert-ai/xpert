@@ -16,6 +16,7 @@ import { GroupAccessService } from './group-access.service'
 import { z } from 'zod'
 import { groupCreateSchema, groupMemberSchema } from './group.schema'
 import { groupConflict } from './group.errors'
+import { groupUserName } from './group-user-name'
 
 /** Public participant projection; runtime IDs and technical principals stay server-side. */
 export function publicMember(member: GroupParticipant): ChatGroupParticipant {
@@ -41,7 +42,7 @@ export async function publicMembers(
         userIds.length
             ? db.getRepository(User).find({
                   where: { id: In(userIds), tenantId: group.tenantId },
-                  select: { id: true, imageUrl: true }
+                  select: { id: true, firstName: true, lastName: true, username: true, email: true, imageUrl: true }
               })
             : [],
         assistantIds.length
@@ -52,14 +53,15 @@ export async function publicMembers(
             : []
     ])
     return members.map((member) => {
-        const imageUrl = users.find((user) => user.id === member.subjectId)?.imageUrl
+        const user = member.kind === 'user' ? users.find((user) => user.id === member.subjectId) : undefined
+        const imageUrl = user?.imageUrl
         const avatar =
             member.kind === 'user'
                 ? imageUrl
                     ? { url: imageUrl }
                     : null
                 : (assistants.find((assistant) => assistant.id === member.subjectId)?.avatar ?? null)
-        return { ...publicMember(member), avatar }
+        return { ...publicMember(member), name: user ? groupUserName(user, member.name) : member.name, avatar }
     })
 }
 
@@ -108,7 +110,7 @@ export class GroupMembersService {
                     groupId,
                     kind: 'user',
                     subjectId: userId,
-                    name: user.name || user.firstName || userId,
+                    name: groupUserName(user),
                     role: 'owner',
                     active: true
                 })
@@ -172,6 +174,7 @@ export class GroupMembersService {
             if (count >= 32 && !existing?.active) throw groupConflict()
             if (existing) {
                 existing.active = true
+                if (user) existing.name = groupUserName(user)
                 group.revision++
                 await manager.save(group)
                 return publicMember(await manager.save(existing))
@@ -207,7 +210,7 @@ export class GroupMembersService {
                     groupId,
                     kind: input.kind,
                     subjectId: assistant?.id ?? user.id,
-                    name: assistant ? assistant.title || assistant.name : user.name || user.firstName || user.id,
+                    name: assistant ? assistant.title || assistant.name : groupUserName(user),
                     runtimeConversationId: runtime?.id,
                     runtimeThreadId: runtime?.threadId,
                     principalUserId: principal?.id,

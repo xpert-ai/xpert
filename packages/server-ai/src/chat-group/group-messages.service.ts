@@ -84,7 +84,8 @@ export class GroupMessagesService {
     async submit(groupId: string, input: ChatGroupSendInput) {
         const { group, actor } = await this.access.authorize(groupId)
         const members = await this.db.getRepository(GroupParticipant).findBy({ groupId, active: true })
-        let recipients = groupMentionRecipients(input.text, input.mentions ?? [], members)
+        const profiles = input.mentions?.length ? await publicMembers(this.db, group, members) : members
+        let recipients = groupMentionRecipients(input.text, input.mentions ?? [], profiles)
         if (!recipients.length) {
             const primary = members.find((member) => member.kind === 'assistant' && member.subjectId === group.xpertId)
             if (!primary) throw groupDenied()

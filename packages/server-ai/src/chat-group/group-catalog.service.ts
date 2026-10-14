@@ -8,6 +8,7 @@ import { GroupParticipant } from './group.entity'
 import { ChatConversation } from '../chat-conversation/conversation.entity'
 import { ChatMessage } from '../chat-message/chat-message.entity'
 import { publicMembers } from './group-members.service'
+import { groupUserName } from './group-user-name'
 
 /** Member-scoped sidebar data and invitation candidates; private runtime details never leave this service. */
 @Injectable()
@@ -67,7 +68,12 @@ export class GroupCatalogService {
                 memberCount: participants.length,
                 members: participants.slice(0, 4).map((member) => {
                     const profile = profiles.find((item) => item.id === member.id)
-                    return { id: member.id, kind: member.kind, name: member.name, avatar: profile?.avatar }
+                    return {
+                        id: member.id,
+                        kind: member.kind,
+                        name: profile?.name ?? member.name,
+                        avatar: profile?.avatar
+                    }
                 }),
                 pinned: preference.pinned,
                 archived: preference.archived,
@@ -89,20 +95,23 @@ export class GroupCatalogService {
                 kind: 'assistant' as const
             }))
         }
-        const rows = await this.db
+        const query = this.db
             .getRepository(UserOrganization)
             .createQueryBuilder('membership')
             .innerJoinAndSelect('membership.user', 'user')
             .where({ tenantId, organizationId, isActive: true })
             .andWhere('user.type = :type', { type: UserType.USER })
-            .andWhere('(user.firstName ILIKE :search OR user.lastName ILIKE :search)', {
-                search: `%${search.replace(/[%_\\]/g, '\\$&')}%`
-            })
-            .take(50)
-            .getMany()
+        const term = search.trim()
+        if (term) {
+            query.andWhere(
+                '(user.firstName ILIKE :search OR user.lastName ILIKE :search OR user.email ILIKE :search OR user.username ILIKE :search)',
+                { search: `%${term.replace(/[%_\\]/g, '\\$&')}%` }
+            )
+        }
+        const rows = await query.take(50).getMany()
         return rows.map((row) => ({
             subjectId: row.user.id,
-            name: row.user.name || row.user.firstName || row.user.id,
+            name: groupUserName(row.user),
             avatar: row.user.imageUrl ? { url: row.user.imageUrl } : null,
             kind: 'user' as const
         }))
