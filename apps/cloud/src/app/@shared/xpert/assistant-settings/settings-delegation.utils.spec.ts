@@ -103,8 +103,10 @@ describe('delegation settings graph edits', () => {
       position: { x: 30, y: 40 },
       entity: { title: 'Reviewer', prompt: 'Check carefully', options: { hidden: false, disableMessageHistory: true } }
     })
-    expect(result.nodes[1].entity.copilotModel).toBeUndefined()
-    expect(result.nodes[1].entity.copilotModelId).toBeUndefined()
+    expect(JSON.parse(JSON.stringify(result)).nodes[1].entity).toMatchObject({
+      copilotModel: null,
+      copilotModelId: null
+    })
     expect(result.connections).toContainEqual(draft.connections[1])
     expect(result.connections.at(-1)).toMatchObject({ from: 'leader', to: 'child', required: true })
     expect(draft.nodes[1].entity.title).toBe('Old')

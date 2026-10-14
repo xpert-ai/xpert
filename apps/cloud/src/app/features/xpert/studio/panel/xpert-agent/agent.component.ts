@@ -483,8 +483,8 @@ export class XpertStudioPanelAgentComponent {
 
   updateCopilotModel(model: ICopilotModel | null) {
     this.apiService.updateXpertAgent(this.key(), {
-      copilotModel: model ?? undefined,
-      copilotModelId: undefined
+      copilotModel: model ?? null,
+      copilotModelId: model?.id ?? null
     })
   }
 

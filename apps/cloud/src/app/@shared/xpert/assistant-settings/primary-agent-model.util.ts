@@ -12,7 +12,7 @@ export function clearLegacyInheritedPrimaryAgentModel(
     return null
   }
 
-  const legacyTeamModel = draft.team.agent?.copilotModel ?? draft.team.copilotModel
+  const legacyTeamModel = draft.team.copilotModel
   if (!primaryNode.entity.copilotModel || !isEqual(primaryNode.entity.copilotModel, legacyTeamModel)) {
     return null
   }
@@ -23,8 +23,8 @@ export function clearLegacyInheritedPrimaryAgentModel(
           ...node,
           entity: {
             ...node.entity,
-            copilotModel: undefined,
-            copilotModelId: undefined
+            copilotModel: null,
+            copilotModelId: null
           }
         }
       : node

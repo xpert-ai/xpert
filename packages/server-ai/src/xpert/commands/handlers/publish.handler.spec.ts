@@ -32,7 +32,14 @@ jest.mock('../../types', () => ({
 
 import { BusinessArea, RequestContext } from '@xpert-ai/server-core'
 import type { Repository } from 'typeorm'
-import { IWorkflowNode, WorkflowNodeTypeEnum, XpertTypeEnum } from '@xpert-ai/contracts'
+import {
+    AiModelTypeEnum,
+    IWorkflowNode,
+    IXpertAgent,
+    TXpertTeamDraft,
+    WorkflowNodeTypeEnum,
+    XpertTypeEnum
+} from '@xpert-ai/contracts'
 import { XpertAgentService } from '../../../xpert-agent/xpert-agent.service'
 import { PromptWorkflowService } from '../../../prompt-workflow'
 import { XpertPrincipalService } from '../../xpert-principal.service'
@@ -41,6 +48,8 @@ import { XpertService } from '../../xpert.service'
 import { XpertPublishCommand } from '../publish.command'
 import { XpertPublishTriggersCommand } from '../publish-triggers.command'
 import { XpertPublishHandler } from './publish.handler'
+import { assistantModelCandidates } from '../../assistant-model-selection.util'
+import { resolveEffectiveCopilotModel } from '../../../xpert-agent/effective-copilot-model'
 
 describe('XpertPublishHandler', () => {
     it('resolves the agent provider when circular loading emits Object as its parameter type', async () => {
@@ -118,8 +127,18 @@ describe('XpertPublishHandler', () => {
                 .mockImplementation(async (entity: Xpert) => ({ ...entity, id: 'backup-xpert' })),
             create: jest.fn().mockImplementation(async (entity: Xpert) => ({ ...entity, id: 'backup-xpert' }))
         }
+        const storedAgents = new Map([xpert.agent, ...xpert.agents].map((agent) => [agent.id, { ...agent }]))
         const xpertAgentService = {
-            create: jest.fn().mockResolvedValue({})
+            create: jest.fn().mockResolvedValue({}),
+            update: jest.fn(async (id: string, entity: Partial<IXpertAgent>) => {
+                const saved = {
+                    ...storedAgents.get(id),
+                    // TypeORM skips undefined; only an explicit null clears a persisted binding.
+                    ...Object.fromEntries(Object.entries(entity).filter(([, value]) => value !== undefined))
+                }
+                storedAgents.set(id, saved)
+                return saved
+            })
         }
         const xpertPrincipalService = {
             ensurePrincipalUser: jest.fn().mockResolvedValue({
@@ -161,12 +180,136 @@ describe('XpertPublishHandler', () => {
             businessAreaRepository,
             commandBus,
             eventEmitter,
+            storedAgents,
             xpert
         }
     }
 
     afterEach(() => {
         jest.clearAllMocks()
+    })
+
+    describe('published model inheritance', () => {
+        const previousModel = {
+            id: 'old-binding',
+            copilotId: 'provider',
+            model: 'deepseek',
+            modelType: AiModelTypeEnum.LLM
+        }
+        const assistantModel = {
+            id: 'base-binding',
+            copilotId: 'provider',
+            model: 'doubao',
+            modelType: AiModelTypeEnum.LLM
+        }
+        const updatedAt = new Date('2026-10-01T00:00:00Z')
+
+        function setup(nodeModel: IXpertAgent['copilotModel']) {
+            const agent: IXpertAgent = {
+                id: 'agent-1',
+                key: 'Agent_primary',
+                updatedAt,
+                copilotModel: previousModel,
+                copilotModelId: previousModel.id
+            }
+            const child: IXpertAgent = { ...agent, id: 'agent-2', key: 'Agent_child' }
+            const draft: TXpertTeamDraft = JSON.parse(
+                JSON.stringify({
+                    team: {
+                        agent,
+                        copilotModel: assistantModel,
+                        options: { modelSelection: { allowedModels: [previousModel, assistantModel] } }
+                    },
+                    nodes: [agent, child].map((entity) => ({
+                        type: 'agent',
+                        key: entity.key,
+                        position: { x: 0, y: 0 },
+                        entity: { ...entity, copilotModel: nodeModel }
+                    })),
+                    connections: [{ type: 'agent', key: 'primary/child', from: agent.key, to: child.key }]
+                })
+            )
+            return createHandler({ agent, agents: [child], copilotModel: previousModel, draft })
+        }
+
+        it.each([undefined, null])(
+            'clears inherited primary and child bindings after JSON serialization (%s)',
+            async (nodeModel) => {
+                const { handler, xpert, storedAgents } = setup(nodeModel)
+                await handler.publish(xpert, '1', xpert.draft)
+
+                const primary = storedAgents.get('agent-1')
+                const child = storedAgents.get('agent-2')
+                for (const agent of [primary, child]) {
+                    expect(agent).toMatchObject({ copilotModel: null, copilotModelId: null })
+                    expect(resolveEffectiveCopilotModel(xpert, agent, {})).toEqual(assistantModel)
+                }
+                expect(
+                    xpert.graph.nodes.every(
+                        (node) =>
+                            node.type === 'agent' &&
+                            node.entity.copilotModel === null &&
+                            node.entity.copilotModelId === null
+                    )
+                ).toBe(true)
+                expect(xpert.agents[0]).toMatchObject({ copilotModel: null, copilotModelId: null })
+                const models = assistantModelCandidates({ ...xpert, agent: primary })
+                expect(models.map(({ model, default: isDefault }) => [model.model, isDefault])).toEqual([
+                    ['doubao', true],
+                    ['deepseek', false]
+                ])
+                expect(xpert.options.modelSelection.allowedModels.map((model) => model.model)).toEqual(['deepseek'])
+
+                // Reopening and publishing a later base-model change must keep inheritance intact.
+                xpert.agent = primary
+                xpert.agents = [child]
+                const nextModel = { ...assistantModel, model: 'qwen' }
+                const nextDraft: TXpertTeamDraft = JSON.parse(
+                    JSON.stringify({
+                        ...xpert.graph,
+                        team: { ...xpert, copilotModel: nextModel }
+                    })
+                )
+                await handler.publish(xpert, '1', nextDraft)
+                expect(assistantModelCandidates({ ...xpert, agent: storedAgents.get('agent-1') })[0].model.model).toBe(
+                    'qwen'
+                )
+                expect(resolveEffectiveCopilotModel(xpert, storedAgents.get('agent-2'), {})).toEqual(nextModel)
+            }
+        )
+
+        it('preserves intentional primary and child overrides including model options', async () => {
+            const override = { ...previousModel, options: { temperature: 0.2 } }
+            const { handler, xpert, storedAgents } = setup(override)
+            await handler.publish(xpert, '1', xpert.draft)
+
+            for (const agent of storedAgents.values()) {
+                expect(agent.copilotModel).toEqual(override)
+                expect(agent.copilotModelId).toBe(override.id)
+                expect(resolveEffectiveCopilotModel(xpert, agent, {})).toEqual(override)
+            }
+            expect(
+                assistantModelCandidates({ ...xpert, agent: storedAgents.get('agent-1') }).map(
+                    ({ model }) => model.model
+                )
+            ).toEqual(['deepseek', 'doubao'])
+            expect(xpert.options.modelSelection.allowedModels.map((model) => model.model)).toEqual(['doubao'])
+        })
+
+        it.each([undefined, 'new-binding'])(
+            'replaces stale binding IDs when selecting an explicit model (%s)',
+            async (id) => {
+                const override = { ...previousModel, id, model: 'qwen' }
+                const { handler, xpert, storedAgents } = setup(override)
+                await handler.publish(xpert, '1', xpert.draft)
+
+                for (const agent of storedAgents.values()) {
+                    expect(agent.copilotModel).toEqual(override)
+                    expect(agent.copilotModelId).toBe(id ?? null)
+                    expect(resolveEffectiveCopilotModel(xpert, agent, {})).toEqual(override)
+                }
+            }
+        )
     })
 
     it('publishes through the prototype instance used by Nest forwardRef resolution', async () => {

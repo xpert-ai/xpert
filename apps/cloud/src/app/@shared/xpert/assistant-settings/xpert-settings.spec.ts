@@ -71,10 +71,14 @@ describe('unified Assistant settings draft merge', () => {
     after.models.primary = alternative
     const result = applyXpertSettingsChanges(draft, before, after, 'models')
     expect(result.team.agent.copilotModel).toEqual(alternative)
-    expect(result.nodes[0].entity).toEqual(expect.objectContaining({ prompt: 'Preserve me', copilotModel: undefined }))
-    draft.nodes = [
-      { ...draft.nodes[0], type: 'agent', entity: { key: 'leader', copilotModel: { ...primary, model: 'explicit' } } }
-    ]
+    expect(JSON.parse(JSON.stringify(result)).nodes[0].entity).toMatchObject({
+      prompt: 'Preserve me',
+      copilotModel: null,
+      copilotModelId: null
+    })
+    const explicit = { ...primary, model: 'explicit' }
+    draft.team.agent.copilotModel = explicit
+    draft.nodes = [{ ...draft.nodes[0], type: 'agent', entity: { key: 'leader', copilotModel: explicit } }]
     expect(applyXpertSettingsChanges(draft, before, after, 'models').nodes).toBe(draft.nodes)
   })
 

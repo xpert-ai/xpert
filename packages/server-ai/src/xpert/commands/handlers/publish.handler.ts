@@ -305,8 +305,8 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
                         )
                         const _entity = await this.xpertAgentService.update(oldAgent.id, entity)
                         node.entity = _entity
+                        newAgents.push(_entity)
                     }
-                    newAgents.push(oldAgent)
                 } else if (node.key === xpert.agent.key) {
                     if (xpert.agent.updatedAt.getTime() > new Date(node.entity.updatedAt).getTime()) {
                         throw new BadRequestException(
@@ -476,13 +476,9 @@ function resolveDraftPrimaryCopilotModel(xpert: Xpert, draft: TXpertTeamDraft) {
     const primaryNode = draft.nodes?.find(
         (node) => node.type === 'agent' && (node.key === primaryKey || node.entity?.key === primaryKey)
     )
-    return (
-        (primaryNode?.type === 'agent' ? primaryNode.entity.copilotModel : null) ??
-        draft.team?.agent?.copilotModel ??
-        xpert.agent?.copilotModel ??
-        draft.team?.copilotModel ??
-        xpert.copilotModel
-    )
+    // A complete draft node is authoritative, including an empty model meaning inheritance.
+    const agentModel = primaryNode?.type === 'agent' ? primaryNode.entity.copilotModel : xpert.agent?.copilotModel
+    return agentModel ?? draft.team?.copilotModel ?? xpert.copilotModel
 }
 
 function normalizeEnvironmentId(environmentId: string | null | undefined): string | null {
@@ -497,21 +493,25 @@ function normalizeEnvironmentId(environmentId: string | null | undefined): strin
  * @returns
  */
 export function pickXpertAgent(agent: Partial<IXpertAgent>) {
-    return pick(
-        agent,
-        'name',
-        'title',
-        'description',
-        'avatar',
-        'prompt',
-        'promptTemplates',
-        'parameters',
-        'outputVariables',
-        'options',
-        'leaderKey', // todo
-        'collaboratorNames',
-        'toolsetIds',
-        'knowledgebaseIds',
-        'copilotModel'
-    )
+    return {
+        ...pick(
+            agent,
+            'name',
+            'title',
+            'description',
+            'avatar',
+            'prompt',
+            'promptTemplates',
+            'parameters',
+            'outputVariables',
+            'options',
+            'leaderKey', // todo
+            'collaboratorNames',
+            'toolsetIds',
+            'knowledgebaseIds'
+        ),
+        // Legacy clients omit cleared fields in JSON. TypeORM needs null to remove the old binding.
+        copilotModel: agent.copilotModel ?? null,
+        copilotModelId: agent.copilotModel?.id ?? null
+    }
 }
