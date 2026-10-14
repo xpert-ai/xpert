@@ -11,7 +11,11 @@ import { XpertProjectService } from '../../xpert-project/project.service'
 import { XpertProjectAccessService } from '../../xpert-project/services/project-access.service'
 import { PublishedXpertAccessService } from '../../xpert/published-xpert-access.service'
 import { ConversationMapService } from './service'
-import { mapQuerySchema } from './schema'
+import { mapPageSchema, mapQuerySchema } from './schema'
+
+jest.mock('i18next', () => ({
+    t: (key: string) => (key === 'server-ai:ConversationMap.Untitled' ? '未命名对话' : key)
+}))
 
 const context: XpertResolvedViewHostContext = {
     slots: [],
@@ -76,6 +80,10 @@ function fixture() {
     const navigation = Object.assign(Object.create(WorkbenchAssistantConversationNavigationService.prototype), {
         resolve: jest.fn().mockResolvedValue({ conversationId, threadId: 'main', xpertId: 'assistant', projectId })
     })
+    const messages = { find: jest.fn() }
+    const db = Object.assign(Object.create(DataSource.prototype), {
+        getRepository: jest.fn().mockReturnValue(messages)
+    })
     const service = new ConversationMapService(
         conversations,
         threads,
@@ -84,9 +92,9 @@ function fixture() {
         published,
         navigation,
         commands,
-        Object.create(DataSource.prototype)
+        db
     )
-    return { service, conversations, repository, threads, commands, access, projects, navigation }
+    return { service, conversations, repository, threads, commands, access, projects, navigation, messages, db }
 }
 beforeEach(() => {
     jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user')
@@ -156,6 +164,159 @@ describe('ConversationMapService', () => {
         const query = mapQuerySchema.parse({ projectId, conversationId })
         expect((await f.service.read(context, query)).nodes.map((node) => node.threadId)).toEqual(['main', 'side'])
         expect((await f.service.read(context, { ...query, showHistory: true })).nodes).toHaveLength(3)
+    })
+    it.each([null, undefined, '', ' \t '])(
+        'returns valid conversation, branch, turn and search pages when the title is %p',
+        async (title) => {
+            const f = fixture()
+            const conversation = { id: conversationId, threadId: 'main', xpertId: 'assistant-old', title }
+            f.repository.findAndCount.mockResolvedValue([[conversation], 1])
+            f.conversations.assertAccess.mockResolvedValue(conversation)
+            f.threads.requireByThreadId.mockResolvedValue({ conversationId, threadId: 'main' })
+            // A newly created conversation already has its first question, but no generated title or answer.
+            f.threads.findVisibleMessages.mockResolvedValue({
+                items: [{ id: 'h', role: 'human', content: 'Delivery risk', createdInThreadId: 'main' }]
+            })
+            for (const parameters of [
+                {},
+                { conversationId },
+                { conversationId, threadId: 'main' },
+                { search: 'Delivery' }
+            ]) {
+                const page = await f.service.read(context, mapQuerySchema.parse(parameters))
+                // Exercise the same response contract as the View, including JSON serialization.
+                const parsed = mapPageSchema.parse(JSON.parse(JSON.stringify(page)))
+                expect(parsed.nodes.length).toBeGreaterThan(0)
+                for (const node of parsed.nodes) {
+                    expect(node.kind === 'conversation' ? node.title : node.conversationTitle).toBe('未命名对话')
+                }
+            }
+        }
+    )
+    it('preserves an existing title when reading turns', async () => {
+        const f = fixture()
+        f.threads.requireByThreadId.mockResolvedValue({ conversationId, threadId: 'main' })
+        const page = await f.service.read(
+            context,
+            mapQuerySchema.parse({ projectId, conversationId, threadId: 'main' })
+        )
+        expect(mapPageSchema.parse(JSON.parse(JSON.stringify(page))).nodes[0].conversationTitle).toBe('Planning')
+    })
+    it('returns the complete tree topology with shared history, without turn pagination or null titles', async () => {
+        const f = fixture()
+        f.conversations.assertAccess.mockResolvedValue({
+            id: conversationId,
+            threadId: 'main',
+            xpertId: 'assistant-old',
+            projectId,
+            title: null
+        })
+        const messages = [
+            { id: 'h', role: 'human', content: 'Delivery risk' },
+            { id: 'a', role: 'ai', content: 'Answer', parentId: 'h' },
+            { id: 'b', role: 'human', content: 'Continue main', parentId: 'a' },
+            { id: 'c', role: 'human', content: 'Continue side', parentId: 'a' }
+        ]
+        f.messages.find.mockResolvedValue(messages)
+        f.repository.findAndCount.mockResolvedValue([[], 0])
+        const page = await f.service.read(
+            context,
+            mapQuerySchema.parse({
+                projectId,
+                conversationId,
+                representation: 'segments',
+                limit: 1,
+                offset: 10,
+                showShared: false
+            })
+        )
+        expect(mapPageSchema.parse(JSON.parse(JSON.stringify(page))).nodes).toHaveLength(3)
+        expect(page.nodes.map((node) => [node.endMessageId, node.messageCount])).toEqual([
+            ['a', 2],
+            ['b', 1],
+            ['c', 1]
+        ])
+        expect(page.nodes.map((node) => node.lastHumanMessage?.text)).toEqual([
+            'Delivery risk',
+            'Continue main',
+            'Continue side'
+        ])
+        expect(page.nodes.every((node) => !('messages' in node))).toBe(true)
+        expect(page.nodes.every((node) => node.conversationTitle === '未命名对话')).toBe(true)
+        expect(page.nextOffset).toBeNull()
+        expect(f.threads.findVisibleMessages).not.toHaveBeenCalled()
+        expect(f.messages.find).toHaveBeenCalledTimes(2)
+        expect(f.conversations.findReadableFamilyConversations).toHaveBeenCalledWith(
+            ['assistant', 'assistant-old'],
+            projectId,
+            0,
+            50,
+            conversationId
+        )
+        const history = await f.service.read(
+            context,
+            mapQuerySchema.parse({ projectId, conversationId, representation: 'segments', showHistory: true })
+        )
+        expect(history.nodes).toHaveLength(4)
+        expect(history.nodes.find((node) => node.threadId === 'old' && node.messageCount === 0)).toBeDefined()
+        expect(f.threads.findVisibleMessages).not.toHaveBeenCalled()
+        expect(f.messages.find).toHaveBeenCalledTimes(4)
+    })
+    it('does not load message histories for tree root conversation cards', async () => {
+        const f = fixture()
+        const page = await f.service.read(context, mapQuerySchema.parse({ projectId, representation: 'segments' }))
+        expect(page.nodes[0]).toMatchObject({ kind: 'conversation', title: 'Planning' })
+        expect(page.nodes[0].lastHumanMessage).toBeUndefined()
+        expect(f.threads.findVisibleMessages).not.toHaveBeenCalled()
+        expect(f.messages.find).not.toHaveBeenCalled()
+    })
+    it('splits the source path at accessible independent conversation forks', async () => {
+        const f = fixture()
+        f.threads.listByConversation.mockResolvedValue([{ threadId: 'main', metadata: {}, headMessageId: 'c' }])
+        f.repository.findAndCount.mockResolvedValue([[{ id: 'copy', branchSource: { messageId: 'a' } }], 1])
+        f.messages.find.mockResolvedValue([
+            { id: 'h', role: 'human', content: 'Question' },
+            { id: 'a', role: 'ai', content: 'Reply', parentId: 'h' },
+            { id: 'c', role: 'human', content: 'Continue', parentId: 'a' }
+        ])
+        const page = await f.service.read(
+            context,
+            mapQuerySchema.parse({ projectId, conversationId, representation: 'segments' })
+        )
+        expect(page.nodes.map((node) => node.endMessageId)).toEqual(['a', 'c'])
+        expect(page.nodes[1].parentId).toBe(page.nodes[0].id)
+    })
+    it('keeps legacy branch, turn and search reads even when segment representation is available', async () => {
+        const f = fixture()
+        f.threads.requireByThreadId.mockResolvedValue({ conversationId, threadId: 'main' })
+        const legacy = await f.service.read(context, mapQuerySchema.parse({ projectId, conversationId }))
+        expect(legacy.nodes.every((node) => node.kind === 'thread')).toBe(true)
+        const turns = await f.service.read(
+            context,
+            mapQuerySchema.parse({ projectId, conversationId, threadId: 'main', representation: 'segments' })
+        )
+        expect(turns.nodes.every((node) => node.kind === 'turn')).toBe(true)
+        const search = await f.service.read(
+            context,
+            mapQuerySchema.parse({ projectId, search: 'Delivery', representation: 'segments' })
+        )
+        expect(search.nodes.every((node) => node.kind === 'turn')).toBe(true)
+    })
+    it('checks conversation access and project scope before reading tree paths', async () => {
+        const f = fixture()
+        await expect(
+            f.service.read(
+                context,
+                mapQuerySchema.parse({ conversationId, projectId: null, representation: 'segments' })
+            )
+        ).rejects.toBeInstanceOf(ForbiddenException)
+        expect(f.threads.findVisibleMessages).not.toHaveBeenCalled()
+        f.conversations.assertAccess.mockRejectedValue(new ForbiddenException())
+        await expect(
+            f.service.read(context, mapQuerySchema.parse({ conversationId, projectId, representation: 'segments' }))
+        ).rejects.toBeInstanceOf(ForbiddenException)
+        expect(f.threads.listByConversation).not.toHaveBeenCalled()
+        expect(f.messages.find).not.toHaveBeenCalled()
     })
     it('reads the latest human question on the current branch for conversation cards', async () => {
         const f = fixture()

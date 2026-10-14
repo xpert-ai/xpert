@@ -114,6 +114,7 @@ describe('ChatConversationService workspace files', () => {
                 where: jest.fn().mockReturnThis(),
                 andWhere: jest.fn().mockReturnThis(),
                 leftJoin: jest.fn().mockReturnThis(),
+                select: jest.fn().mockReturnThis(),
                 orderBy: jest.fn().mockReturnThis(),
                 addOrderBy: jest.fn().mockReturnThis(),
                 skip: jest.fn().mockReturnThis(),
@@ -164,6 +165,33 @@ describe('ChatConversationService workspace files', () => {
                 ForbiddenException
             )
             expect(query.getManyAndCount).not.toHaveBeenCalled()
+        })
+        it('projects only source-boundary metadata while retaining family, owner and organization policy', async () => {
+            const query = builder()
+            await service.findReadableFamilyConversations(['published'], null, 50, 50, 'source')
+            expect(query.where).toHaveBeenCalledWith('conversation.tenantId = :tenantId', { tenantId: 'tenant-1' })
+            expect(query.andWhere).toHaveBeenCalledWith('conversation.organizationId = :organizationId', {
+                organizationId: 'org-1'
+            })
+            expect(query.andWhere).toHaveBeenCalledWith('conversation.xpertId IN (:...xpertIds)', {
+                xpertIds: ['published']
+            })
+            expect(query.andWhere).toHaveBeenCalledWith('conversation.projectId IS NULL')
+            expect(query.andWhere).toHaveBeenCalledWith(
+                '(conversation.createdById = :actorId OR (xpert.createdById = :actorId AND xpert.userId = conversation.createdById))',
+                { actorId: 'user-1' }
+            )
+            expect(query.andWhere).toHaveBeenCalledWith(
+                `conversation."branchSource" ->> 'conversationId' = :sourceConversationId`,
+                { sourceConversationId: 'source' }
+            )
+            expect(query.select).toHaveBeenCalledWith([
+                'conversation.id',
+                'conversation.branchSource',
+                'conversation.updatedAt'
+            ])
+            expect(query.skip).toHaveBeenCalledWith(50)
+            expect(query.take).toHaveBeenCalledWith(50)
         })
     })
 

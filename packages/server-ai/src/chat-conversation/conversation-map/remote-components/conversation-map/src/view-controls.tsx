@@ -53,11 +53,13 @@ export function ChoiceSelect({
 export function DisplaySettings({
     labels: l,
     prefs,
-    update
+    update,
+    segments = false
 }: {
     labels: Labels
     prefs: Prefs
     update: (change: Partial<Prefs>) => void
+    segments?: boolean
 }) {
     const id = useId()
     return (
@@ -97,14 +99,16 @@ export function DisplaySettings({
                         ))}
                     </RadioGroup>
                 </fieldset>
-                <div className="flex items-center gap-2 border-t pt-4">
-                    <Checkbox
-                        id={`${id}-shared`}
-                        checked={prefs.showShared}
-                        onCheckedChange={(value) => update({ showShared: value === true })}
-                    />
-                    <Label htmlFor={`${id}-shared`}>{l.shared}</Label>
-                </div>
+                {!segments && (
+                    <div className="flex items-center gap-2 border-t pt-4">
+                        <Checkbox
+                            id={`${id}-shared`}
+                            checked={prefs.showShared}
+                            onCheckedChange={(value) => update({ showShared: value === true })}
+                        />
+                        <Label htmlFor={`${id}-shared`}>{l.shared}</Label>
+                    </div>
+                )}
                 <div className="flex items-center gap-2">
                     <Checkbox
                         id={`${id}-history`}

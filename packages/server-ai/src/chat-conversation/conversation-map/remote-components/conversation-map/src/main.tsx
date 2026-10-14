@@ -28,6 +28,7 @@ import { ChoiceSelect, DisplaySettings } from './view-controls'
 import { NodeUpdatedAt } from './node-details'
 import { OutlineList } from './outline-list'
 import { TopicGraph, icons, type NodeAction } from './graph'
+import { mapRepresentation, registerSegments, treeProjection } from './tree-mode'
 type Edit = { type: 'create' | 'rename' | 'branch'; node?: MapNode }
 function App() {
     const historyId = useId()
@@ -75,9 +76,15 @@ function App() {
         const timer = setTimeout(() => setQuery(search.trim()), 300)
         return () => clearTimeout(timer)
     }, [search])
+    const representation = mapRepresentation(prefs.mode, query)
     const params = useMemo(
-        () => ({ projectId: prefs.projectId, showHistory: prefs.showHistory, showShared: prefs.showShared }),
-        [prefs.projectId, prefs.showHistory, prefs.showShared]
+        () => ({
+            projectId: prefs.projectId,
+            showHistory: prefs.showHistory,
+            showShared: prefs.showShared,
+            representation
+        }),
+        [prefs.projectId, prefs.showHistory, prefs.showShared, representation]
     )
     const snapshot = useRef({ page, items, expanded, selected })
     snapshot.current = { page, items, expanded, selected }
@@ -113,6 +120,15 @@ function App() {
                     nextExpanded.add(node.id)
                     nextLoaded.add(node.id)
                     nextMore[node.id] = branches.nextOffset
+                    if (representation === 'segments') {
+                        registerSegments(
+                            branches.nodes,
+                            nextExpanded,
+                            nextLoaded,
+                            new Set(old.items.map((item) => item.id))
+                        )
+                        continue
+                    }
                     for (const branch of branches.nodes) {
                         if (
                             !nextExpanded.has(branch.id) &&
@@ -134,7 +150,7 @@ function App() {
                 }
             }
             setPage(result)
-            setItems(nodes)
+            setItems(representation === 'segments' ? treeProjection(nodes) : nodes)
             setExpanded(nextExpanded)
             setLoaded(nextLoaded)
             setMore(nextMore)
@@ -144,7 +160,7 @@ function App() {
         } finally {
             if (epoch.current === version) setBusy(false)
         }
-    }, [ready, params, query, revision, locale])
+    }, [ready, params, query, revision, locale, representation])
     useEffect(() => {
         void reset()
         return () => {
@@ -180,13 +196,24 @@ function App() {
                 offset
             )
             if (epoch.current !== version) return
-            setItems((old) => [
-                ...old.filter((item) => !result.nodes.some((next) => next.id === item.id)),
-                ...result.nodes
-            ])
-            setLoaded((old) => new Set(old).add(node.id))
+            setItems((old) => {
+                const nodes = [
+                    ...old.filter((item) => !result.nodes.some((next) => next.id === item.id)),
+                    ...result.nodes
+                ]
+                return representation === 'segments' ? treeProjection(nodes) : nodes
+            })
+            setLoaded((old) => {
+                const next = new Set(old).add(node.id)
+                registerSegments(result.nodes, new Set(), next)
+                return next
+            })
             setMore((old) => ({ ...old, [node.id]: result.nextOffset }))
-            setExpanded((old) => new Set(old).add(node.id))
+            setExpanded((old) => {
+                const next = new Set(old).add(node.id)
+                registerSegments(result.nodes, next, new Set(), new Set(items.map((item) => item.id)))
+                return next
+            })
         } catch (e) {
             if (epoch.current === version) setError(String(e))
         } finally {
@@ -200,7 +227,8 @@ function App() {
                 next.delete(node.id)
                 return next
             })
-        else if (loaded.has(node.id) || node.kind === 'project') setExpanded((old) => new Set(old).add(node.id))
+        else if (loaded.has(node.id) || node.kind === 'project' || node.kind === 'segment')
+            setExpanded((old) => new Set(old).add(node.id))
         else void loadChildren(node)
     }
     const idempotency = (key: string) => {
@@ -342,10 +370,13 @@ function App() {
             const result = await read({ ...params, searchOffset: page.nextSearchOffset ?? 0 }, query, page.nextOffset)
             if (epoch.current === version) {
                 setPage(result)
-                setItems((old) => [
-                    ...old.filter((node) => !result.nodes.some((next) => next.id === node.id)),
-                    ...result.nodes
-                ])
+                setItems((old) => {
+                    const nodes = [
+                        ...old.filter((node) => !result.nodes.some((next) => next.id === node.id)),
+                        ...result.nodes
+                    ]
+                    return representation === 'segments' ? treeProjection(nodes) : nodes
+                })
             }
         } catch (e) {
             if (epoch.current === version) setError(String(e))
@@ -393,11 +424,16 @@ function App() {
         expandable: true
     }
     const graphItems = useMemo(
-        () => [root, ...items],
-        [page?.projectId, page?.projectTitle, page?.projectUpdatedAt, items, locale]
+        () => [
+            root,
+            ...items.filter((node) =>
+                representation === 'segments' ? node.kind !== 'thread' && node.kind !== 'turn' : node.kind !== 'segment'
+            )
+        ],
+        [page?.projectId, page?.projectTitle, page?.projectUpdatedAt, items, locale, representation]
     )
     const visibleItems = query
-        ? items.map((node) => ({ node, depth: 1, guides: [] }))
+        ? items.filter((node) => node.kind !== 'segment').map((node) => ({ node, depth: 1, guides: [] }))
         : outlineNodes(graphItems, expanded).filter(({ node }) => node.kind !== 'project')
     return (
         <main className="flex h-full min-h-0 flex-col bg-background text-foreground">
@@ -481,7 +517,12 @@ function App() {
                     />
                     <Label htmlFor={historyId}>{l.history}</Label>
                 </div>
-                <DisplaySettings labels={l} prefs={prefs} update={updatePrefs} />
+                <DisplaySettings
+                    labels={l}
+                    prefs={prefs}
+                    update={updatePrefs}
+                    segments={representation === 'segments'}
+                />
                 {busy && <Loader2 className="size-4 animate-spin" aria-label={l.loading} />}
             </div>
             {error && (
@@ -619,7 +660,10 @@ function App() {
                 )}
             </section>
             <footer className="flex flex-wrap items-center gap-3 border-t px-4 py-2 text-xs text-muted-foreground">
-                {(['project', 'conversation', 'thread', 'turn'] as const).map((kind) => {
+                {(representation === 'segments'
+                    ? (['project', 'conversation', 'segment'] as const)
+                    : (['project', 'conversation', 'thread', 'turn'] as const)
+                ).map((kind) => {
                     const Icon = icons[kind]
                     return (
                         <span key={kind} className="flex items-center gap-1">
