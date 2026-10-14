@@ -7,9 +7,6 @@
       <z-badge zType="outline">
         {{ (isTenantScope() ? 'XP.Assistant.TenantScope' : 'XP.Assistant.OrganizationScope') | translate }}
       </z-badge>
-      @if (isOrganizationScope() && facade.organizationName()) {
-        <span class="text-sm text-muted-foreground">{{ facade.organizationName() }}</span>
-      }
     </div>
     <p class="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
       {{
@@ -19,7 +16,7 @@
     </p>
   </header>
 
-  <div class="flex w-full min-w-0 max-w-4xl flex-col gap-4" [attr.aria-busy]="facade.loading()">
+  <div class="min-w-0" [attr.aria-busy]="facade.loading()">
     @if (facade.loading()) {
       <div
         role="status"
@@ -36,172 +33,222 @@
           {{ 'XP.UserSettings.Retry' | translate }}
         </button>
       </div>
-    } @else {
-      @if (!canEdit()) {
-        <div class="flex items-start gap-2 rounded-lg bg-muted/50 px-4 py-3 text-sm text-muted-foreground">
-          <z-icon zType="lock" class="mt-0.5 shrink-0" />
-          <p>
-            {{
-              (isTenantScope() ? 'XP.Assistant.TenantPermissionRequired' : 'XP.Assistant.OrganizationRequired')
-                | translate
-            }}
-          </p>
-        </div>
-      }
-
-      @for (assistant of facade.assistants(); track assistant.code) {
-        <section
-          class="min-w-0 overflow-hidden rounded-lg border border-border bg-card"
-          [attr.aria-labelledby]="'assistant-title-' + assistant.code"
+    } @else if (selectedAssistant(); as selected) {
+      <div class="grid min-w-0 items-start gap-5 min-[900px]:grid-cols-[14rem_minmax(0,1fr)] min-[900px]:gap-6">
+        <nav
+          class="min-w-0 rounded-lg border border-border bg-card p-2"
+          [attr.aria-label]="'XP.AssistantSettings.Types' | translate"
         >
-          <div class="flex flex-wrap items-start justify-between gap-3 px-4 pt-4 sm:px-5 sm:pt-5">
-            <div class="flex min-w-0 flex-1 items-start gap-3">
-              <span
-                class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground"
-                aria-hidden="true"
+          <div class="flex min-w-0 gap-1 overflow-x-auto min-[900px]:flex-col">
+            @for (assistant of facade.assistants(); track assistant.code) {
+              <button
+                z-button
+                zType="ghost"
+                type="button"
+                class="h-11 shrink-0 justify-start gap-3 px-3 text-base text-foreground min-[900px]:w-full pointer-coarse:min-h-[44px]"
+                [class]="selected.code === assistant.code ? 'bg-muted font-semibold' : 'font-medium'"
+                [attr.aria-current]="selected.code === assistant.code ? 'true' : null"
+                aria-controls="assistant-configuration"
+                (click)="selectedCode.set(assistant.code)"
               >
-                <z-icon zType="sparkles" />
-              </span>
-              <div class="min-w-0">
-                <h2 [id]="'assistant-title-' + assistant.code" class="text-base font-semibold text-foreground">
+                <z-icon [zType]="assistantIcon(assistant.code)" class="shrink-0" />
+                <span>{{ assistant.labelKey | translate: { Default: assistant.defaultLabel } }}</span>
+                @if (form(assistant.code).dirty) {
+                  <span
+                    class="ml-auto size-1.5 shrink-0 rounded-full bg-primary"
+                    [attr.title]="'XP.AssistantSettings.UnsavedChanges' | translate"
+                  >
+                    <span class="sr-only">{{ 'XP.AssistantSettings.UnsavedChanges' | translate }}</span>
+                  </span>
+                }
+              </button>
+            }
+          </div>
+        </nav>
+
+        @for (assistant of [selected]; track assistant.code) {
+          <section
+            id="assistant-configuration"
+            class="min-w-0 overflow-hidden rounded-lg border border-border bg-card"
+            [attr.aria-labelledby]="'assistant-title-' + assistant.code"
+          >
+            <header class="flex flex-wrap items-start justify-between gap-3 border-b border-border p-5 sm:p-6">
+              <div class="min-w-0 flex-1">
+                <h2 [id]="'assistant-title-' + assistant.code" class="text-lg font-semibold text-foreground">
                   {{ assistant.labelKey | translate: { Default: assistant.defaultLabel } }}
                 </h2>
-                <p class="mt-1 text-sm leading-5 text-muted-foreground">
+                <p class="mt-2 text-sm leading-6 text-muted-foreground">
                   {{ assistant.descriptionKey | translate: { Default: assistant.defaultDescription } }}
                 </p>
               </div>
-            </div>
-            <z-badge zType="secondary">
-              {{
-                (isTenantScope()
-                  ? 'XP.AssistantSettings.TenantDefault'
-                  : config(assistant.code)
-                    ? 'XP.AssistantSettings.OrganizationOverride'
-                    : 'XP.AssistantSettings.InheritTenant'
-                ) | translate
-              }}
-            </z-badge>
-          </div>
+              <z-badge zType="secondary">
+                {{
+                  (isTenantScope()
+                    ? 'XP.AssistantSettings.TenantDefault'
+                    : config(assistant.code)
+                      ? 'XP.AssistantSettings.OrganizationOverride'
+                      : 'XP.AssistantSettings.InheritTenant'
+                  ) | translate
+                }}
+              </z-badge>
+            </header>
 
-          @if (isOrganizationScope()) {
-            <div
-              class="mx-4 mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md bg-muted/50 px-3 py-2 text-xs sm:mx-5"
-              role="status"
+            <form
+              [formGroup]="form(assistant.code)"
+              (ngSubmit)="canEdit() && !facade.savingKey() && facade.saveConfig(assistant, scope())"
             >
-              <span class="text-muted-foreground">{{ 'XP.AssistantSettings.EffectiveAssistant' | translate }}</span>
-              <span class="min-w-0 break-all font-medium text-foreground">{{
-                facade.effectiveAssistantLabel(assistant.code)
-              }}</span>
-              @if (facade.effectiveConfig(assistant.code)?.assistantId) {
-                <span class="text-muted-foreground"
-                  >{{ facade.sourceLabel(facade.effectiveConfig(assistant.code)?.sourceScope) }} ·
-                  {{ facade.effectiveStatusLabel(facade.effectiveConfig(assistant.code)) }}</span
-                >
-              }
-            </div>
-          }
-
-          <form [formGroup]="form(assistant.code)">
-            <div class="grid min-w-0 gap-4 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end sm:p-5">
-              <div class="grid min-w-0 gap-2">
-                <span class="text-sm font-medium text-foreground">{{
-                  'XP.AssistantSettings.BoundExpert' | translate
-                }}</span>
-                <z-combobox
-                  zWidth="full"
-                  class="block min-w-0 pointer-coarse:[&_button]:min-h-[44px]"
-                  [value]="facade.assistantSelectionValue(scope(), assistant.code)"
-                  [options]="facade.assistantXpertOptions(scope(), assistant.code)"
-                  [zDisabled]="!canEdit()"
-                  [ariaLabel]="
-                    (assistant.labelKey | translate) + ' · ' + ('XP.AssistantSettings.BoundExpert' | translate)
-                  "
-                  [placeholder]="'XP.Assistant.AssistantIdPlaceholder' | translate"
-                  [searchPlaceholder]="'XP.Assistant.AssistantIdPlaceholder' | translate"
-                  [emptyText]="'XP.Assistant.EmptySearch' | translate"
-                  (zValueChange)="facade.selectAssistantXpert(scope(), assistant.code, $event)"
-                >
-                  <ng-template zComboboxOption let-option>
-                    <div class="flex min-w-0 flex-1 flex-col gap-1 py-1">
-                      <span class="text-sm font-medium text-foreground">{{ option.data?.label }}</span>
-                      @if (option.data?.description) {
-                        <span class="line-clamp-3 text-xs text-muted-foreground">{{ option.data?.description }}</span>
-                      }
-                      @if (option.data?.meta) {
-                        <span class="break-all font-mono text-xs text-muted-foreground">{{ option.data?.meta }}</span>
-                      }
-                    </div>
-                  </ng-template>
-                </z-combobox>
-              </div>
-              <z-switch
-                formControlName="enabled"
-                labelPosition="before"
-                class="min-h-9 justify-between gap-3 sm:ml-2 pointer-coarse:min-h-[44px]"
-              >
-                {{ 'XP.Assistant.Enabled' | translate }}
-                <span class="sr-only">{{ assistant.labelKey | translate }}</span>
-              </z-switch>
-            </div>
-
-            <footer class="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3 sm:px-5">
-              <p class="text-xs text-muted-foreground" role="status">
-                @if (form(assistant.code).dirty) {
-                  {{ 'XP.AssistantSettings.UnsavedChanges' | translate }}
-                } @else if (isOrganizationScope() && !config(assistant.code)) {
-                  {{ 'XP.AssistantSettings.InheritHint' | translate }}
-                } @else if (config(assistant.code); as savedConfig) {
-                  {{ facade.sourceStateLabel(savedConfig) }} ·
-                  {{ (savedConfig.enabled ? 'XP.Assistant.Enabled' : 'XP.KEY_WORDS.Disabled') | translate }}
-                } @else {
-                  {{ 'XP.AssistantSettings.NotBound' | translate }}
+              <div class="grid min-w-0 gap-6 p-5 sm:p-6">
+                @if (!canEdit()) {
+                  <div class="flex items-start gap-2 rounded-md bg-muted/50 px-3 py-3 text-sm text-muted-foreground">
+                    <z-icon zType="lock" class="mt-0.5 shrink-0" />
+                    <p>
+                      {{
+                        (isTenantScope()
+                          ? 'XP.Assistant.TenantPermissionRequired'
+                          : 'XP.Assistant.OrganizationRequired'
+                        ) | translate
+                      }}
+                    </p>
+                  </div>
                 }
-              </p>
-              <div class="ml-auto flex flex-wrap items-center gap-2">
-                @if (isOrganizationScope()) {
+                <div class="grid min-w-0 gap-2">
+                  <span class="text-sm font-medium text-foreground">
+                    {{ 'XP.AssistantSettings.BoundExpert' | translate }} <span aria-hidden="true">*</span>
+                  </span>
+                  <z-combobox
+                    zWidth="full"
+                    class="block min-w-0 [&_button]:min-h-10 pointer-coarse:[&_button]:min-h-[44px]"
+                    [value]="facade.assistantSelectionValue(scope(), assistant.code)"
+                    [options]="facade.assistantXpertOptions(scope(), assistant.code)"
+                    [zDisabled]="!canEdit() || !!facade.savingKey()"
+                    [ariaLabel]="
+                      (assistant.labelKey | translate) + ' · ' + ('XP.AssistantSettings.BoundExpert' | translate)
+                    "
+                    [placeholder]="'XP.AssistantSettings.SelectExpert' | translate"
+                    [searchPlaceholder]="'XP.Assistant.AssistantIdPlaceholder' | translate"
+                    [emptyText]="'XP.Assistant.EmptySearch' | translate"
+                    (zValueChange)="facade.selectAssistantXpert(scope(), assistant.code, $event)"
+                  >
+                    <ng-template zComboboxOption let-option>
+                      <div class="flex min-w-0 flex-1 flex-col gap-1 py-1">
+                        <span class="text-sm font-medium text-foreground">{{ option.data?.label }}</span>
+                        @if (option.data?.description) {
+                          <span class="line-clamp-3 text-xs text-muted-foreground">{{ option.data?.description }}</span>
+                        }
+                        @if (option.data?.meta) {
+                          <span class="break-all font-mono text-xs text-muted-foreground">{{ option.data?.meta }}</span>
+                        }
+                      </div>
+                    </ng-template>
+                  </z-combobox>
+                  <p class="text-xs leading-5 text-muted-foreground">
+                    {{ 'XP.AssistantSettings.ExpertHint' | translate }}
+                  </p>
+                </div>
+                <z-switch
+                  formControlName="enabled"
+                  labelPosition="before"
+                  [disabled]="!!facade.savingKey()"
+                  class="flex min-h-10 w-full justify-between gap-3 pointer-coarse:min-h-[44px]"
+                >
+                  {{ 'XP.AssistantSettings.EnableAssistant' | translate }}
+                  <span class="sr-only">{{ assistant.labelKey | translate }}</span>
+                </z-switch>
+
+                <div class="border-t border-border pt-5" role="status">
+                  <div class="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                    <span>{{ 'XP.AssistantSettings.EffectiveAssistant' | translate }}</span>
+                    @if (effectiveConfig(assistant.code)?.assistantId) {
+                      <span>{{
+                        (effectiveConfig(assistant.code)?.enabled ? 'XP.Assistant.Enabled' : 'XP.KEY_WORDS.Disabled')
+                          | translate
+                      }}</span>
+                    }
+                  </div>
+                  <div class="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                    <z-icon
+                      [zType]="effectiveConfig(assistant.code)?.assistantId ? 'bot' : 'info'"
+                      class="shrink-0 text-muted-foreground"
+                    />
+                    <strong class="min-w-0 break-all font-medium text-foreground">{{
+                      facade.effectiveAssistantLabel(assistant.code, scope())
+                    }}</strong>
+                    @if (effectiveConfig(assistant.code)?.assistantId) {
+                      <span class="text-xs text-muted-foreground">
+                        {{
+                          isTenantScope()
+                            ? ('XP.AssistantSettings.TenantDefault' | translate)
+                            : facade.sourceLabel(facade.effectiveConfig(assistant.code)?.sourceScope)
+                        }}
+                      </span>
+                    }
+                  </div>
+                  @if (!effectiveConfig(assistant.code)?.assistantId) {
+                    <p class="mt-2 text-xs leading-5 text-muted-foreground">
+                      {{
+                        (isTenantScope()
+                          ? 'XP.AssistantSettings.TenantNotConfiguredHint'
+                          : 'XP.AssistantSettings.OrganizationNotConfiguredHint'
+                        ) | translate
+                      }}
+                    </p>
+                  }
+                </div>
+              </div>
+
+              <footer
+                class="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-4 sm:px-6"
+              >
+                <p class="flex items-center gap-2 text-xs text-muted-foreground" role="status">
+                  @if (form(assistant.code).dirty) {
+                    <span class="size-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true"></span>
+                    {{ 'XP.AssistantSettings.UnsavedChanges' | translate }}
+                  } @else if (isOrganizationScope()) {
+                    {{
+                      (config(assistant.code)
+                        ? 'XP.AssistantSettings.OrganizationConfigured'
+                        : 'XP.AssistantSettings.InheritHint'
+                      ) | translate
+                    }}
+                  } @else {
+                    {{ 'XP.AssistantSettings.SaveTenantDefault' | translate }}
+                  }
+                </p>
+                <div class="ml-auto flex flex-wrap items-center gap-2">
+                  @if (isOrganizationScope()) {
+                    <button
+                      z-button
+                      zType="outline"
+                      type="button"
+                      class="pointer-coarse:min-h-[44px]"
+                      [zDisabled]="!canEdit() || !config(assistant.code) || !!facade.savingKey()"
+                      [zLoading]="facade.savingKey() === assistant.code + ':organization:delete'"
+                      (click)="facade.resetOrganizationOverride(assistant)"
+                    >
+                      {{ 'XP.AssistantSettings.RestoreInheritance' | translate }}
+                    </button>
+                  }
                   <button
                     z-button
-                    zType="outline"
-                    type="button"
+                    type="submit"
                     class="pointer-coarse:min-h-[44px]"
-                    [zDisabled]="
-                      !facade.organizationId() ||
-                      !facade.organizationConfig(assistant.code) ||
-                      facade.savingKey() === assistant.code + ':organization:delete'
-                    "
-                    (click)="facade.resetOrganizationOverride(assistant)"
+                    [zDisabled]="!canEdit() || form(assistant.code).invalid || !!facade.savingKey()"
+                    [zLoading]="facade.savingKey() === savingKey(assistant.code)"
                   >
-                    @if (facade.savingKey() === assistant.code + ':organization:delete') {
-                      <z-icon zType="loader-circle" class="animate-spin motion-reduce:animate-none" />
-                    }
-                    {{ 'XP.AssistantSettings.RestoreInheritance' | translate }}
+                    {{ 'XP.AssistantSettings.SaveConfiguration' | translate }}
                   </button>
-                }
-                <button
-                  z-button
-                  type="button"
-                  (click)="facade.saveConfig(assistant, scope())"
-                  class="pointer-coarse:min-h-[44px]"
-                  [zDisabled]="
-                    !canEdit() || form(assistant.code).invalid || facade.savingKey() === savingKey(assistant.code)
-                  "
-                >
-                  @if (facade.savingKey() === savingKey(assistant.code)) {
-                    <z-icon zType="loader-circle" class="animate-spin motion-reduce:animate-none" />
-                  }
-                  {{ 'XP.KEY_WORDS.Save' | translate }}
-                </button>
-              </div>
-            </footer>
-          </form>
-        </section>
-      } @empty {
-        <div class="rounded-lg border border-dashed border-border p-8 text-center">
-          <z-icon zType="sparkles" class="mb-3 text-muted-foreground" />
-          <p class="text-sm font-medium">{{ 'XP.AssistantSettings.EmptyTitle' | translate }}</p>
-          <p class="mt-1 text-sm text-muted-foreground">{{ 'XP.AssistantSettings.EmptyDescription' | translate }}</p>
-        </div>
-      }
+                </div>
+              </footer>
+            </form>
+          </section>
+        }
+      </div>
+    } @else {
+      <div class="rounded-lg border border-dashed border-border p-8 text-center">
+        <z-icon zType="sparkles" class="mb-3 text-muted-foreground" />
+        <p class="text-sm font-medium">{{ 'XP.AssistantSettings.EmptyTitle' | translate }}</p>
+        <p class="mt-1 text-sm text-muted-foreground">{{ 'XP.AssistantSettings.EmptyDescription' | translate }}</p>
+      </div>
     }
   </div>
 </div>

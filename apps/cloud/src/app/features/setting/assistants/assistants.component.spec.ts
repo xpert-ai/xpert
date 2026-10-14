@@ -1,7 +1,11 @@
 import { TestBed } from '@angular/core/testing'
 import { TranslateModule } from '@ngx-translate/core'
-import { of, throwError } from 'rxjs'
-import { AssistantCode as AssistantCodeType } from '@xpert-ai/contracts'
+import { of, Subject, throwError } from 'rxjs'
+import {
+  AssistantCode as AssistantCodeType,
+  AssistantBindingScope as BindingScope,
+  IAssistantBinding
+} from '@xpert-ai/contracts'
 import { ASSISTANT_REGISTRY } from '../../assistant/assistant.registry'
 import { AssistantsSettingsComponent } from './assistants.component'
 import { AssistantsSettingsFacade } from './assistants.facade'
@@ -502,5 +506,67 @@ describe('AssistantsSettingsComponent', () => {
     const facade = fixture.debugElement.injector.get(AssistantsSettingsFacade)
     facade.organizationForm(AssistantCodeType.CHAT_COMMON).patchValue({ assistantId: 'unsaved-assistant' })
     expect(facade.effectiveAssistantLabel(AssistantCodeType.CHAT_COMMON)).toBe('common-assistant')
+  })
+
+  it.each(['save', 'restore'])('preserves another type draft after %s', async (operation) => {
+    const fixture = TestBed.createComponent(AssistantsSettingsComponent)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    const facade = fixture.debugElement.injector.get(AssistantsSettingsFacade)
+    const workspace = facade.organizationForm(AssistantCodeType.XPERT_SHARED)
+    workspace.patchValue({ assistantId: 'unsaved-workspace', enabled: false })
+    workspace.markAsDirty()
+    const common = facade.organizationForm(AssistantCodeType.CHAT_COMMON)
+    common.patchValue({ assistantId: 'common-override', enabled: true })
+    common.markAsDirty()
+
+    if (operation === 'save') {
+      await facade.saveConfig(ASSISTANT_REGISTRY[0], BindingScope.ORGANIZATION)
+    } else {
+      await facade.resetOrganizationOverride(ASSISTANT_REGISTRY[0])
+    }
+
+    expect(workspace.getRawValue()).toEqual({ assistantId: 'unsaved-workspace', enabled: false })
+    expect(workspace.dirty).toBe(true)
+    expect(common.pristine).toBe(true)
+    expect(facade.effectiveAssistantLabel(AssistantCodeType.XPERT_SHARED)).toBe('workspace-assistant')
+  })
+
+  it('shows the tenant saved value independently of the organization binding and drafts', async () => {
+    const fixture = TestBed.createComponent(AssistantsSettingsComponent)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    const facade = fixture.debugElement.injector.get(AssistantsSettingsFacade)
+    facade.tenantForm(AssistantCodeType.XPERT_SHARED).patchValue({ assistantId: 'tenant-draft' })
+    expect(facade.effectiveAssistantLabel(AssistantCodeType.XPERT_SHARED, BindingScope.TENANT)).toBe(
+      'workspace-assistant'
+    )
+    expect(facade.effectiveAssistantLabel(AssistantCodeType.CHAT_COMMON, BindingScope.TENANT)).toBe(
+      'XP.Assistant.NotConfigured'
+    )
+    expect(facade.effectiveAssistantLabel(AssistantCodeType.CHAT_COMMON, BindingScope.ORGANIZATION)).toBe(
+      'common-assistant'
+    )
+  })
+
+  it('ignores stale loads so they cannot replace newer configuration or reset drafts', async () => {
+    const fixture = TestBed.createComponent(AssistantsSettingsComponent)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    const facade = fixture.debugElement.injector.get(AssistantsSettingsFacade)
+    const stale = new Subject<IAssistantBinding[]>()
+    assistantBindingService.getByScope.mockReturnValueOnce(stale)
+    const pending = facade.retry()
+    await facade.retry()
+    const workspace = facade.organizationForm(AssistantCodeType.XPERT_SHARED)
+    workspace.patchValue({ assistantId: 'newer-draft' })
+    workspace.markAsDirty()
+    stale.next([])
+    stale.complete()
+    await pending
+    expect(workspace.getRawValue().assistantId).toBe('newer-draft')
+    expect(workspace.dirty).toBe(true)
+    expect(facade.tenantConfig(AssistantCodeType.XPERT_SHARED)?.assistantId).toBe('workspace-assistant')
+    expect(facade.loading()).toBe(false)
   })
 })

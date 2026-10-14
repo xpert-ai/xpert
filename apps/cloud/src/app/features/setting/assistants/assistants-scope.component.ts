@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
+import { MessageCircle, PanelsTopLeft } from 'lucide-angular'
 import {
   ZardButtonComponent,
   ZardBadgeComponent,
@@ -34,6 +35,15 @@ import { AssistantsSettingsFacade } from './assistants.facade'
 export class AssistantsScopeComponent {
   readonly facade = inject(AssistantsSettingsFacade)
   readonly scope = input.required<AssistantBindingScope>()
+  readonly selectedCode = signal<AssistantCode | null>(null)
+  readonly selectedAssistant = computed(() => {
+    const assistants = this.facade.assistants()
+    return assistants.find((assistant) => assistant.code === this.selectedCode()) ?? assistants[0] ?? null
+  })
+
+  assistantIcon(code: AssistantCode) {
+    return code === AssistantCode.CHAT_COMMON ? MessageCircle : PanelsTopLeft
+  }
 
   form(code: AssistantCode) {
     return this.isTenantScope() ? this.facade.tenantForm(code) : this.facade.organizationForm(code)
@@ -41,6 +51,10 @@ export class AssistantsScopeComponent {
 
   config(code: AssistantCode) {
     return this.isTenantScope() ? this.facade.tenantConfig(code) : this.facade.organizationConfig(code)
+  }
+
+  effectiveConfig(code: AssistantCode) {
+    return this.isTenantScope() ? this.facade.tenantConfig(code) : this.facade.effectiveConfig(code)
   }
 
   canEdit() {
