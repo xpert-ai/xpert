@@ -1,5 +1,4 @@
 import {
-    AllowPersonalApiKeys,
     AllowClientSecretBindings,
     ApiKeyOrClientSecretAuthGuard,
     Public,
@@ -36,7 +35,6 @@ import { FileAssetAccessService, type FileAssetOperation } from './file-asset-ac
 @ApiTags('AI/Files')
 @ApiBearerAuth()
 @Public()
-@AllowPersonalApiKeys()
 @AllowClientSecretBindings(SecretTokenBindingType.ENTERPRISE_XPERT)
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
 @UseInterceptors(TransformInterceptor)

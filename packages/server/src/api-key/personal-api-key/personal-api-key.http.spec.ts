@@ -16,7 +16,6 @@ import { IncomingMessage } from 'node:http'
 import { Strategy } from 'passport'
 import { PassportStrategy } from '@nestjs/passport'
 import { And, Equal, FindOneOptions, IsNull, Not, Or } from 'typeorm'
-import { AllowPersonalApiKeys } from '../../shared/decorators/allow-personal-api-keys.decorator'
 import { Public } from '../../shared/decorators/public.decorator'
 import { AuthGuard } from '../../shared/guards/auth.guard'
 import { PermissionGuard } from '../../shared/guards/permission.guard'
@@ -55,7 +54,6 @@ class IdentityController {
 
 	@Public()
 	@UseGuards(ApiKeyOrClientSecretAuthGuard)
-	@AllowPersonalApiKeys()
 	@Get('ai')
 	ai() {
 		return this.me()
@@ -63,7 +61,6 @@ class IdentityController {
 
 	@Get('protected')
 	@Public()
-	@AllowPersonalApiKeys()
 	@UseGuards(ApiKeyOrClientSecretAuthGuard, PermissionGuard)
 	@Permissions('personal-key-test-permission')
 	protectedResource() {
@@ -100,6 +97,7 @@ describe('Personal API key HTTP authentication and validation', () => {
 		recover: jest.fn()
 	}
 	const authorization = { execute: jest.fn() }
+	const users = { findCurrentUser: jest.fn() }
 
 	beforeAll(async () => {
 		for (const [name, family] of [
@@ -120,7 +118,7 @@ describe('Personal API key HTTP authentication and validation', () => {
 				ApiKeyService,
 				UseApiKeyHandler,
 				{ provide: getRepositoryToken(ApiKey), useValue: repository },
-				{ provide: UserService, useValue: { findCurrentUser: jest.fn(async () => owner) } },
+				{ provide: UserService, useValue: users },
 				{ provide: FactoryResetService, useValue: {} },
 				{ provide: IntegrationService, useValue: {} },
 				{ provide: QueryBus, useValue: { execute: (query: UseApiKeyQuery) => handler.execute(query) } },
@@ -144,16 +142,18 @@ describe('Personal API key HTTP authentication and validation', () => {
 	beforeEach(() => {
 		jest.restoreAllMocks()
 		jest.resetAllMocks()
-		repository.findOne.mockResolvedValue(
-			Object.assign(new ApiKey(), {
-				id: 'key',
-				type: ApiKeyBindingType.USER,
-				token: hashPersonalApiKey(token),
-				entityId: owner.id,
-				userId: owner.id,
-				tenantId: owner.tenantId,
-				user: { ...owner }
-			})
+		users.findCurrentUser.mockResolvedValue(owner)
+		const personalKey = Object.assign(new ApiKey(), {
+			id: 'key',
+			type: ApiKeyBindingType.USER,
+			token: hashPersonalApiKey(token),
+			entityId: owner.id,
+			userId: owner.id,
+			tenantId: owner.tenantId,
+			user: { ...owner }
+		})
+		repository.findOne.mockImplementation(async (options: FindOneOptions<ApiKey>) =>
+			!Array.isArray(options.where) && options.where?.token === personalKey.token ? personalKey : null
 		)
 		repository.find.mockResolvedValue([])
 		repository.findAndCount.mockResolvedValue([[], 0])
@@ -162,14 +162,13 @@ describe('Personal API key HTTP authentication and validation', () => {
 	})
 
 	it.each(['authorization', 'x-api-key'])(
-		'denies personal %s credentials on user and management APIs',
+		'denies personal %s credentials on ordinary management APIs',
 		async (header) => {
 			const headers = {
 				[header]: header === 'authorization' ? `Bearer ${token}` : token,
 				'content-type': 'application/json'
 			}
 			for (const [method, path] of [
-				['GET', '/user/me'],
 				['GET', '/identity'],
 				['GET', '/personal'],
 				['POST', '/personal'],
@@ -187,6 +186,15 @@ describe('Personal API key HTTP authentication and validation', () => {
 			expect(repository.update).not.toHaveBeenCalled()
 		}
 	)
+
+	it.each(['authorization', 'x-api-key'])('uses the existing API-key user endpoint with %s', async (header) => {
+		const response = await fetch(origin + '/user/me', {
+			headers: { [header]: header === 'authorization' ? `Bearer ${token}` : token }
+		})
+		expect(response.status).toBe(200)
+		expect(await response.json()).toEqual(owner)
+		expect(users.findCurrentUser).toHaveBeenCalledWith(owner.id, undefined, undefined)
+	})
 
 	it.each(['/identity/ai'])('authenticates as the human through %s', async (path) => {
 		const response = await fetch(origin + path, {
@@ -329,7 +337,7 @@ describe('Personal API key HTTP authentication and validation', () => {
 		repository.findOne.mockImplementation(async (options: FindOneOptions<ApiKey>) =>
 			!Array.isArray(options.where) && options.where.token === token ? collision : null
 		)
-		for (const path of ['/identity', '/identity/ai']) {
+		for (const path of ['/identity', '/identity/ai', '/user/me']) {
 			expect((await fetch(origin + path, { headers: { authorization: `Bearer ${token}` } })).status).toBe(401)
 		}
 		expect(repository.update).not.toHaveBeenCalled()
@@ -489,7 +497,7 @@ describe('Personal API key HTTP authentication and validation', () => {
 				})
 			).status
 		).toBe(204)
-		for (const path of ['/identity', '/identity/ai'])
+		for (const path of ['/identity', '/identity/ai', '/user/me'])
 			expect((await fetch(origin + path, { headers })).status).toBe(401)
 	})
 
@@ -506,7 +514,7 @@ describe('Personal API key HTTP authentication and validation', () => {
 					...change
 				})
 			)
-			for (const path of ['/identity', '/identity/ai'])
+			for (const path of ['/identity', '/identity/ai', '/user/me'])
 				expect((await fetch(origin + path, { headers: { authorization: `Bearer ${token}` } })).status).toBe(401)
 			expect(repository.update).not.toHaveBeenCalled()
 		}

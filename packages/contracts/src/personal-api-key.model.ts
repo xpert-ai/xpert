@@ -1,4 +1,4 @@
-/** A personal credential accesses AI APIs as its human owner, subject to their current permissions. */
+/** A personal credential uses existing API-key endpoints as its human owner, subject to their current permissions. */
 export const PERSONAL_API_KEY_LIFETIMES = ['30', '90', '365', 'never'] as const
 export type PersonalApiKeyLifetime = (typeof PERSONAL_API_KEY_LIFETIMES)[number]
 

@@ -8,7 +8,6 @@ import {
     TAssistantModelPreferenceInput
 } from '@xpert-ai/contracts'
 import {
-    AllowPersonalApiKeys,
     AllowClientSecretBindings,
     ApiKeyOrClientSecretAuthGuard,
     Public,
@@ -46,7 +45,6 @@ const ASSISTANT_RELATIONS = RUNTIME_CAPABILITY_XPERT_RELATIONS
 @ApiTags('AI/Assistants')
 @ApiBearerAuth()
 @Public()
-@AllowPersonalApiKeys()
 @AllowClientSecretBindings(SecretTokenBindingType.ENTERPRISE_XPERT)
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
 @UseInterceptors(TransformInterceptor)

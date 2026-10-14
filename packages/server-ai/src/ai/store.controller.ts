@@ -1,12 +1,6 @@
 import { BaseStore } from '@langchain/langgraph'
 import { ICopilotModel } from '@xpert-ai/contracts'
-import {
-    AllowPersonalApiKeys,
-    ApiKeyOrClientSecretAuthGuard,
-    Public,
-    RequestContext,
-    TransformInterceptor
-} from '@xpert-ai/server-core'
+import { ApiKeyOrClientSecretAuthGuard, Public, RequestContext, TransformInterceptor } from '@xpert-ai/server-core'
 import { Body, Controller, Delete, Get, Logger, Post, Put, Query, UseGuards, UseInterceptors } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
@@ -16,7 +10,6 @@ import { XpertService } from '../xpert'
 @ApiTags('AI/Store')
 @ApiBearerAuth()
 @Public()
-@AllowPersonalApiKeys()
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
 @UseInterceptors(TransformInterceptor)
 @Controller('store')

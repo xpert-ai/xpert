@@ -1,5 +1,4 @@
 import {
-    AllowPersonalApiKeys,
     AllowClientSecretBindings,
     ApiKeyOrClientSecretAuthGuard,
     Public,
@@ -50,7 +49,6 @@ import {
 @ApiTags('AI/Contexts')
 @ApiBearerAuth()
 @Public()
-@AllowPersonalApiKeys()
 @AllowClientSecretBindings(SecretTokenBindingType.ENTERPRISE_XPERT)
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
 @UseInterceptors(TransformInterceptor)

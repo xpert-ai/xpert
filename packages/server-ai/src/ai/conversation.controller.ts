@@ -21,7 +21,6 @@ import {
 } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import {
-    AllowPersonalApiKeys,
     AllowClientSecretBindings,
     ApiKeyOrClientSecretAuthGuard,
     OperatorValue,
@@ -120,7 +119,6 @@ type MessageMutationRequest = Partial<
 @ApiTags('AI/Conversations')
 @ApiBearerAuth()
 @Public()
-@AllowPersonalApiKeys()
 @AllowClientSecretBindings(SecretTokenBindingType.ENTERPRISE_XPERT)
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
 @UseInterceptors(TransformInterceptor)

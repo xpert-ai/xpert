@@ -1,7 +1,6 @@
 import { Body, Controller, Get, Param, Put, UseGuards } from '@nestjs/common'
 import { SecretTokenBindingType, ChatGroupProjectInput } from '@xpert-ai/contracts'
 import {
-    AllowPersonalApiKeys,
     Public,
     ApiKeyOrClientSecretAuthGuard,
     AllowClientSecretBindings,
@@ -14,7 +13,6 @@ import { groupProjectSchema } from '../../chat-group/group-project/group-project
 import { groupInvalid } from '../../chat-group/group.errors'
 
 @Public()
-@AllowPersonalApiKeys()
 @AllowClientSecretBindings(SecretTokenBindingType.USER_CONVERSATION)
 @UseGuards(ApiKeyOrClientSecretAuthGuard, GroupScopeGuard)
 @Controller('groups/:groupId/project')

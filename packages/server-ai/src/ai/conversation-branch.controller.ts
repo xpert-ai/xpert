@@ -3,7 +3,6 @@ import { CommandBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { SecretTokenBindingType, TConversationBranchRequest } from '@xpert-ai/contracts'
 import {
-    AllowPersonalApiKeys,
     AllowClientSecretBindings,
     ApiKeyOrClientSecretAuthGuard,
     Public,
@@ -16,7 +15,6 @@ import { ConversationDTO } from './dto/conversation.dto'
 @ApiTags('AI/Conversations')
 @ApiBearerAuth()
 @Public()
-@AllowPersonalApiKeys()
 @AllowClientSecretBindings(SecretTokenBindingType.ENTERPRISE_XPERT)
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
 @UseInterceptors(TransformInterceptor)

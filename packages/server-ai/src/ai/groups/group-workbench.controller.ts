@@ -1,5 +1,5 @@
 import { SecretTokenBindingType } from '@xpert-ai/contracts'
-import { AllowPersonalApiKeys, ApiKeyOrClientSecretAuthGuard, AllowClientSecretBindings } from '@xpert-ai/server-core'
+import { ApiKeyOrClientSecretAuthGuard, AllowClientSecretBindings } from '@xpert-ai/server-core'
 import { Controller, Get, Param, UseGuards, UseInterceptors } from '@nestjs/common'
 import {
     Public,
@@ -12,7 +12,6 @@ import { GroupScopeGuard } from './group-scope.guard'
 import { GroupWorkbenchGuard } from './group-workbench.guard'
 
 @Public()
-@AllowPersonalApiKeys()
 @AllowClientSecretBindings(SecretTokenBindingType.USER_CONVERSATION)
 @UseGuards(ApiKeyOrClientSecretAuthGuard, GroupScopeGuard)
 @Controller('groups/:groupId/workbench')
@@ -26,7 +25,6 @@ export class GroupWorkbenchContextController {
 
 /** Reuses private conversation Views without duplicating manifests, data or action handlers. */
 @Public()
-@AllowPersonalApiKeys()
 @AllowClientSecretBindings(SecretTokenBindingType.USER_CONVERSATION)
 @UseGuards(ApiKeyOrClientSecretAuthGuard, GroupScopeGuard, GroupWorkbenchGuard)
 @UseInterceptors(TransformInterceptor)

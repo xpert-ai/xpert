@@ -1,5 +1,5 @@
 import { SecretTokenBindingType } from '@xpert-ai/contracts'
-import { AllowPersonalApiKeys, ApiKeyOrClientSecretAuthGuard, AllowClientSecretBindings } from '@xpert-ai/server-core'
+import { ApiKeyOrClientSecretAuthGuard, AllowClientSecretBindings } from '@xpert-ai/server-core'
 import { GroupRuntimeViewService } from '../../chat-group/group-runtime-view.service'
 import { GroupCatalogService } from '../../chat-group/group-catalog.service'
 import { GroupInteractionsService } from '../../chat-group/group-interactions.service'
@@ -26,7 +26,6 @@ import {
 import { groupInvalid } from '../../chat-group/group.errors'
 
 @Public()
-@AllowPersonalApiKeys()
 @AllowClientSecretBindings(SecretTokenBindingType.USER_CONVERSATION)
 @UseGuards(ApiKeyOrClientSecretAuthGuard, GroupScopeGuard)
 @Controller('groups')

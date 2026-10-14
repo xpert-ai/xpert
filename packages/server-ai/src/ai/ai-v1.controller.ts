@@ -8,7 +8,6 @@ import {
 } from '@xpert-ai/contracts'
 import { keepAlive, takeUntilClose } from '@xpert-ai/server-common'
 import {
-    AllowPersonalApiKeys,
     ApiKeyOrClientSecretAuthGuard,
     ApiKeyDecorator,
     Public,
@@ -63,7 +62,6 @@ const MAX_USER_CHATKIT_SESSION_EXPIRES_AFTER = 3600
 @ApiTags('AI/v1')
 @ApiBearerAuth()
 @Public()
-@AllowPersonalApiKeys()
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
 @Controller('v1')
 export class AIV1Controller {
@@ -223,8 +221,6 @@ export class AIV1Controller {
     }
 
     @Post('chatkit/sessions')
-    // Derived client secrets do not inherit the personal key's audience or revocation.
-    @AllowPersonalApiKeys(false)
     async createChatkitSession(
         @ApiKeyDecorator() apiKey: IApiKey,
         @Body(new ZodValidationPipe(chatkitSessionSchema, chatkitSessionInvalid)) body: ChatkitSessionInput

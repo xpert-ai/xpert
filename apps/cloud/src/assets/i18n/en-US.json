@@ -56,7 +56,7 @@
   "XP": {
     "PersonalApiKeys": {
       "Title": "Personal API keys",
-      "AccessHint": "Personal keys access AI APIs as you, subject to your current permissions. They cannot access account or administration APIs. Keep them private.",
+      "AccessHint": "Personal keys use existing API-key-enabled endpoints as you, subject to your current permissions. Keep them private.",
       "Create": "Create personal API key",
       "Name": "Name",
       "NameRequired": "Enter a name of up to 100 characters.",
@@ -93,8 +93,8 @@
       "RevokeTitle": "Revoke personal API key?",
       "RevokeHint": "“{{name}}” will stop working immediately. Applications using it will need a new key.",
       "Usage": "Use your API key",
-      "UsageHint": "For AI API requests, send the key in the Authorization: Bearer header or the x-api-key header. Existing resource permissions still apply.",
-      "OrganizationHint": "For organization-scoped AI APIs, also send organization-id and x-scope-level: organization. You must have access to that organization."
+      "UsageHint": "Send the key in the Authorization: Bearer header or the x-api-key header. Existing API resource permissions still apply.",
+      "OrganizationHint": "For organization-scoped APIs, also send organization-id and x-scope-level: organization. You must have access to that organization."
     },
     "SettingsRemaining": {
       "NoRecords": "No records yet",

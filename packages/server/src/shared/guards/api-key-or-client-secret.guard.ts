@@ -4,7 +4,6 @@ import { AuthGuard as PassportAuthGaurd } from '@nestjs/passport'
 import { IApiPrincipal, SecretTokenBindingType } from '@xpert-ai/contracts'
 import { isObservable, lastValueFrom, Observable } from 'rxjs'
 import { ALLOWED_CLIENT_SECRET_BINDINGS_METADATA } from '../decorators/allowed-client-secret-bindings.decorator'
-import { ALLOW_PERSONAL_API_KEYS_METADATA } from '../decorators/allow-personal-api-keys.decorator'
 import { CoreAuthGuard } from './core-auth.guard'
 
 const CLIENT_SECRET_PREFIX = 'cs-x-'
@@ -13,16 +12,6 @@ const CLIENT_SECRET_PREFIX = 'cs-x-'
 export class ApiKeyOrClientSecretAuthGuard extends PassportAuthGaurd('api-key') {
 	constructor(private readonly _reflector: Reflector) {
 		super()
-	}
-
-	override getAuthenticateOptions(context: ExecutionContext) {
-		return {
-			allowPersonal:
-				this._reflector.getAllAndOverride<boolean>(ALLOW_PERSONAL_API_KEYS_METADATA, [
-					context.getHandler(),
-					context.getClass()
-				]) === true
-		}
 	}
 
 	async canActivate(context: ExecutionContext): Promise<boolean> {

@@ -268,7 +268,7 @@ describe('AI sandbox runtime HTTP authentication', () => {
     })
 
     it.each(['authorization', 'x-api-key'])(
-        'denies personal %s credentials minting broader ChatKit grants',
+        'uses the existing ChatKit issuance path as the human owner with %s',
         async (header) => {
             const personalToken = `sk-user-${'p'.repeat(43)}`
             apiKeys.set(personalToken, {
@@ -287,8 +287,15 @@ describe('AI sandbox runtime HTTP authentication', () => {
                 },
                 body: JSON.stringify({ assistant: { id: 'assistant' } })
             })
-            expect(response.status).toBe(401)
-            expect(createHashed).not.toHaveBeenCalled()
+            expect(response.status).toBe(201)
+            expect(createHashed).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    type: SecretTokenBindingType.USER_XPERT,
+                    entityId: 'assistant',
+                    createdById: actor.id,
+                    tenantId: actor.tenantId
+                })
+            )
         }
     )
 

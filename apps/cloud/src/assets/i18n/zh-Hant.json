@@ -42,7 +42,7 @@
   "XP": {
     "PersonalApiKeys": {
       "Title": "個人 API 密鑰",
-      "AccessHint": "個人密鑰僅用於以你的身份調用 AI 接口，遵循你的現有權限，不能訪問帳號或管理接口。請妥善保管。",
+      "AccessHint": "個人密鑰與其他 API Key 使用相同的開放接口，以你的本人身份訪問，遵循你的現有權限。請妥善保管。",
       "Create": "創建個人 API 密鑰",
       "Name": "名稱",
       "NameRequired": "請輸入名稱，最多 100 個字符。",
@@ -79,8 +79,8 @@
       "RevokeTitle": "撤銷個人 API 密鑰？",
       "RevokeHint": "“{{name}}”將立即失效。使用此密鑰的應用需要更換密鑰。",
       "Usage": "使用 API 密鑰",
-      "UsageHint": "調用 AI 接口時，在 Authorization: Bearer 或 x-api-key 請求頭中傳入密鑰，接口仍執行現有資源權限檢查。",
-      "OrganizationHint": "訪問組織範圍的 AI 接口時，還需傳入 organization-id 和 x-scope-level: organization，且你必須具有該組織的訪問權限。"
+      "UsageHint": "在 Authorization: Bearer 或 x-api-key 請求頭中傳入密鑰，接口仍執行原有的資源權限檢查。",
+      "OrganizationHint": "訪問組織範圍的接口時，還需傳入 organization-id 和 x-scope-level: organization，且你必須具有該組織的訪問權限。"
     },
     "AgentPlugins": {
       "DefaultImportTitle": "官方 Agent 外掛",

@@ -11,7 +11,6 @@ import {
 } from './api-key-principal'
 import { ApiKeyService } from './api-key.service'
 import { UseApiKeyQuery } from './queries'
-import { PERSONAL_API_KEY_PREFIX } from './personal-api-key/personal-api-key-token'
 
 @Injectable()
 export class ApiKeyStrategy extends PassportStrategy(Strategy, 'api-key') {
@@ -26,7 +25,7 @@ export class ApiKeyStrategy extends PassportStrategy(Strategy, 'api-key') {
 		throw new Error('Method not implemented.')
 	}
 
-	authenticate(req: IncomingMessage, options?: { session?: boolean; allowPersonal?: boolean }) {
+	authenticate(req: IncomingMessage, options: { session: boolean }) {
 		let token = req.headers['x-api-key']
 		if (!token) {
 			const authHeader = req.headers['authorization']
@@ -36,11 +35,7 @@ export class ApiKeyStrategy extends PassportStrategy(Strategy, 'api-key') {
 
 			token = authHeader.split(' ')[1]
 		}
-		if (
-			typeof token !== 'string' ||
-			!token ||
-			(token.startsWith(PERSONAL_API_KEY_PREFIX) && options?.allowPersonal !== true)
-		) {
+		if (typeof token !== 'string' || !token) {
 			return this.fail(401)
 		}
 
@@ -50,7 +45,6 @@ export class ApiKeyStrategy extends PassportStrategy(Strategy, 'api-key') {
 		this.validateToken(token)
 			.then(async (apiKey) => {
 				if (apiKey.type === ApiKeyBindingType.USER) {
-					if (options?.allowPersonal !== true) return this.fail(401)
 					// Keep the requested organization while restoring the fixed human owner.
 					return this.success(this.apiKeyService.resolvePersonalUser(apiKey, requestedUserId))
 				}

@@ -1,11 +1,5 @@
 import { IApiKey } from '@xpert-ai/contracts'
-import {
-    AllowPersonalApiKeys,
-    ApiKeyOrClientSecretAuthGuard,
-    ApiKeyDecorator,
-    Public,
-    TransformInterceptor
-} from '@xpert-ai/server-core'
+import { ApiKeyOrClientSecretAuthGuard, ApiKeyDecorator, Public, TransformInterceptor } from '@xpert-ai/server-core'
 import {
     Body,
     Controller,
@@ -34,7 +28,6 @@ import { CreateKnowledgebaseDTO } from '../knowledgebase/dto'
 @ApiTags('AI/Knowledges')
 @ApiBearerAuth()
 @Public()
-@AllowPersonalApiKeys()
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
 @UseInterceptors(TransformInterceptor)
 @Controller('knowledges')

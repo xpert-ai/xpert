@@ -2,7 +2,6 @@ import { Controller, Get, Param, Res, UseGuards } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { SecretTokenBindingType } from '@xpert-ai/contracts'
 import {
-    AllowPersonalApiKeys,
     AllowClientSecretBindings,
     ApiKeyOrClientSecretAuthGuard,
     Public,
@@ -12,7 +11,6 @@ import type { Response } from 'express'
 import { ReadConversationArtifactCommand } from '../chat-conversation/commands/read-conversation-artifact.command'
 
 @Public()
-@AllowPersonalApiKeys()
 @AllowClientSecretBindings(SecretTokenBindingType.ENTERPRISE_XPERT)
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
 @Controller('conversations/:conversationId/artifacts')

@@ -50,7 +50,7 @@
   "XP": {
     "PersonalApiKeys": {
       "Title": "个人 API 密钥",
-      "AccessHint": "个人密钥仅用于以你的身份调用 AI 接口，遵循你的现有权限，不能访问账号或管理接口。请妥善保管。",
+      "AccessHint": "个人密钥与其他 API Key 使用相同的开放接口，以你的本人身份访问，遵循你的现有权限。请妥善保管。",
       "Create": "创建个人 API 密钥",
       "Name": "名称",
       "NameRequired": "请输入名称，最多 100 个字符。",
@@ -87,8 +87,8 @@
       "RevokeTitle": "撤销个人 API 密钥？",
       "RevokeHint": "“{{name}}”将立即失效。使用此密钥的应用需要更换密钥。",
       "Usage": "使用 API 密钥",
-      "UsageHint": "调用 AI 接口时，在 Authorization: Bearer 或 x-api-key 请求头中传入密钥，接口仍执行现有资源权限检查。",
-      "OrganizationHint": "访问组织范围的 AI 接口时，还需传入 organization-id 和 x-scope-level: organization，且你必须具有该组织的访问权限。"
+      "UsageHint": "在 Authorization: Bearer 或 x-api-key 请求头中传入密钥，接口仍执行原有的资源权限检查。",
+      "OrganizationHint": "访问组织范围的接口时，还需传入 organization-id 和 x-scope-level: organization，且你必须具有该组织的访问权限。"
     },
     "Groups": {
       "Pin": "置顶",
