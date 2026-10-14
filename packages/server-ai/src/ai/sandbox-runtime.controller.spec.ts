@@ -20,7 +20,7 @@ import { RequestContext, RequestContextMiddleware } from '@xpert-ai/plugin-sdk'
 import { I18nService } from 'nestjs-i18n'
 import { AuthGuard } from '../../../server/src/shared/guards/auth.guard'
 import { SecretTokenStrategy } from '../../../server/src/secret-token/secret-token.strategy'
-import type { SecretTokenService } from '../../../server/src/secret-token/secret-token.service'
+import { SecretTokenService } from '../../../server/src/secret-token/secret-token.service'
 import type { ApiKeyService } from '../../../server/src/api-key/api-key.service'
 import { ApiKeyStrategy } from '../../../server/src/api-key/api-key.strategy'
 import { buildApiKeyPrincipal } from '../../../server/src/api-key/api-key-principal'
@@ -33,6 +33,11 @@ import { WorkspacePathMapperFactory } from '../shared/volume/workspace-path-mapp
 import { VOLUME_CLIENT } from '../shared/volume/volume'
 import { XpertProjectAccessService } from '../xpert-project/services/project-access.service'
 import { SandboxController } from '../sandbox/sandbox.controller'
+import { AIV1Controller } from './ai-v1.controller'
+import { KnowledgebaseService } from '../knowledgebase'
+import { KnowledgeDocumentService } from '../knowledge-document'
+import { PublishedXpertAccessService } from '../xpert'
+import { WorkbenchAssistantConversationNavigationService } from '../chat-conversation/workbench-assistant-conversation-navigation.service'
 import { SandboxRuntimeController } from './sandbox-runtime.controller'
 import { SandboxManagedServiceError } from '../sandbox/sandbox-managed-service.error'
 import { SandboxManagedServiceErrorCode } from '@xpert-ai/contracts'
@@ -55,6 +60,7 @@ describe('AI sandbox runtime HTTP authentication', () => {
     const apiKeys = new Map<string, IApiKey>()
     const threads = { findOne: jest.fn() }
     const conversations = { findOneBy: jest.fn() }
+    const createHashed = jest.fn()
     const services = { listByThreadId: jest.fn(), stopByThreadId: jest.fn(), listByConversationId: jest.fn() }
     let app: INestApplication
     let origin: string
@@ -78,12 +84,14 @@ describe('AI sandbox runtime HTTP authentication', () => {
 
     beforeAll(async () => {
         const secretTokens = {
-            findBySecret: jest.fn(async (token: string) => tokens.get(token))
+            findBySecret: jest.fn(async (token: string) => tokens.get(token)),
+            createHashed
         }
         const users = { findOneByIdWithinTenant: jest.fn(async () => actor) }
         const apiKeyService = {
             findOneOrFailByIdString: jest.fn(async () => ({ record: apiKeys.get('sk-x-valid') })),
             recordUse: jest.fn(),
+            resolvePersonalUser: jest.fn(() => actor),
             resolvePrincipal: jest.fn(
                 async (apiKey: IApiKey, options: Parameters<ApiKeyService['resolvePrincipal']>[1]) =>
                     buildApiKeyPrincipal(apiKey, {
@@ -116,6 +124,14 @@ describe('AI sandbox runtime HTTP authentication', () => {
             { provide: WorkspacePathMapperFactory, useValue: {} },
             { provide: XpertProjectAccessService, useValue: {} },
             { provide: VOLUME_CLIENT, useValue: {} },
+            { provide: KnowledgebaseService, useValue: {} },
+            { provide: KnowledgeDocumentService, useValue: {} },
+            { provide: SecretTokenService, useValue: secretTokens },
+            {
+                provide: PublishedXpertAccessService,
+                useValue: { getAccessiblePublishedXpert: jest.fn(async () => ({ id: 'assistant' })) }
+            },
+            { provide: WorkbenchAssistantConversationNavigationService, useValue: {} },
             TestJwtStrategy,
             TestBasicStrategy,
             {
@@ -134,7 +150,7 @@ describe('AI sandbox runtime HTTP authentication', () => {
                     )
             }
         ]
-        @Module({ controllers: [SandboxRuntimeController], providers })
+        @Module({ controllers: [SandboxRuntimeController, AIV1Controller], providers })
         class RuntimeModule {}
         @Module({ controllers: [SandboxController], providers })
         class ManagementModule {}
@@ -225,6 +241,67 @@ describe('AI sandbox runtime HTTP authentication', () => {
     it('accepts an Assistant-bound API key', async () => {
         expect((await request(undefined, 'sk-x-valid')).status).toBe(200)
         expect(services.listByThreadId).toHaveBeenCalledWith('thread')
+    })
+
+    it('accepts a personal key on the AI route as its human owner, while denying management routes', async () => {
+        const personalToken = `sk-user-${'p'.repeat(43)}`
+        apiKeys.set(personalToken, {
+            id: 'personal',
+            token: 'stored-personal-digest',
+            type: ApiKeyBindingType.USER,
+            entityId: actor.id,
+            userId: actor.id,
+            tenantId: actor.tenantId
+        })
+        const response = await request(undefined, personalToken)
+        expect(response.status).toBe(200)
+        expect(await response.json()).toEqual({ actor: actor.id, canCreate: true })
+        expect(
+            (
+                await fetch(`${origin}/api/sandbox/threads/thread/services`, {
+                    headers: { Authorization: `Bearer ${personalToken}` }
+                })
+            ).status
+        ).toBe(401)
+        services.listByThreadId.mockRejectedValueOnce(new ForbiddenException())
+        expect((await request(undefined, personalToken)).status).toBe(403)
+    })
+
+    it.each(['authorization', 'x-api-key'])(
+        'denies personal %s credentials minting broader ChatKit grants',
+        async (header) => {
+            const personalToken = `sk-user-${'p'.repeat(43)}`
+            apiKeys.set(personalToken, {
+                id: 'personal',
+                token: 'stored-personal-digest',
+                type: ApiKeyBindingType.USER,
+                entityId: actor.id,
+                userId: actor.id,
+                tenantId: actor.tenantId
+            })
+            const response = await fetch(`${origin}/api/ai/v1/chatkit/sessions`, {
+                method: 'POST',
+                headers: {
+                    [header]: header === 'authorization' ? `Bearer ${personalToken}` : personalToken,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ assistant: { id: 'assistant' } })
+            })
+            expect(response.status).toBe(401)
+            expect(createHashed).not.toHaveBeenCalled()
+        }
+    )
+
+    it('preserves JWT and resource-key ChatKit session issuance', async () => {
+        for (const token of [sign({ id: actor.id }, signingSecret), 'sk-x-valid']) {
+            const response = await fetch(`${origin}/api/ai/v1/chatkit/sessions`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ assistant: { id: 'assistant' } })
+            })
+            expect(response.status).toBe(201)
+        }
+        expect(createHashed).toHaveBeenCalledTimes(2)
     })
 
     it('accepts a client secret backed by an Assistant API key', async () => {

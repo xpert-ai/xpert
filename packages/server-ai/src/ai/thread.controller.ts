@@ -13,6 +13,7 @@ import {
     USAGE_HOUR_FORMAT
 } from '@xpert-ai/contracts'
 import {
+    AllowPersonalApiKeys,
     AllowClientSecretBindings,
     ApiKeyOrClientSecretAuthGuard,
     CurrentUser,
@@ -98,6 +99,7 @@ function startSseHeartbeat(res: Response) {
 @ApiTags('AI/Threads')
 @ApiBearerAuth()
 @Public()
+@AllowPersonalApiKeys()
 @AllowClientSecretBindings(SecretTokenBindingType.ENTERPRISE_XPERT)
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
 @UseInterceptors(TransformInterceptor)

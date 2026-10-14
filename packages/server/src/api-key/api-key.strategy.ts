@@ -26,7 +26,7 @@ export class ApiKeyStrategy extends PassportStrategy(Strategy, 'api-key') {
 		throw new Error('Method not implemented.')
 	}
 
-	authenticate(req: IncomingMessage, options?: { session?: boolean; personalOnly?: boolean }) {
+	authenticate(req: IncomingMessage, options?: { session?: boolean; allowPersonal?: boolean }) {
 		let token = req.headers['x-api-key']
 		if (!token) {
 			const authHeader = req.headers['authorization']
@@ -39,7 +39,7 @@ export class ApiKeyStrategy extends PassportStrategy(Strategy, 'api-key') {
 		if (
 			typeof token !== 'string' ||
 			!token ||
-			(options?.personalOnly && !token.startsWith(PERSONAL_API_KEY_PREFIX))
+			(token.startsWith(PERSONAL_API_KEY_PREFIX) && options?.allowPersonal !== true)
 		) {
 			return this.fail(401)
 		}
@@ -50,10 +50,10 @@ export class ApiKeyStrategy extends PassportStrategy(Strategy, 'api-key') {
 		this.validateToken(token)
 			.then(async (apiKey) => {
 				if (apiKey.type === ApiKeyBindingType.USER) {
+					if (options?.allowPersonal !== true) return this.fail(401)
 					// Keep the requested organization while restoring the fixed human owner.
 					return this.success(this.apiKeyService.resolvePersonalUser(apiKey, requestedUserId))
 				}
-				if (options?.personalOnly) return this.fail(401)
 				if (!apiKey.createdBy) {
 					return this.fail(new UnauthorizedException('Invalid token'))
 				}

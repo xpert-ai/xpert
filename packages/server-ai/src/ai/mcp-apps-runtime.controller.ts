@@ -1,7 +1,7 @@
 import { t } from 'i18next'
 import { McpAppHistoryQuery, mcpAppHistoryQuerySchema } from '../mcp-app-runtime/mcp-app-history.schema'
 import { BadRequestException, Body, Controller, Delete, Get, Param, Post, Query, UseGuards } from '@nestjs/common'
-import { ApiKeyOrClientSecretAuthGuard, Public, ZodValidationPipe } from '@xpert-ai/server-core'
+import { AllowPersonalApiKeys, ApiKeyOrClientSecretAuthGuard, Public, ZodValidationPipe } from '@xpert-ai/server-core'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { McpAppReviveQuery, McpAppsService } from '../xpert-toolset/mcp-apps.service'
 
@@ -9,6 +9,7 @@ import { McpAppReviveQuery, McpAppsService } from '../xpert-toolset/mcp-apps.ser
 @ApiTags('MCP Apps')
 @ApiBearerAuth()
 @Public()
+@AllowPersonalApiKeys()
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
 @Controller('mcp-apps')
 export class McpAppsRuntimeController {

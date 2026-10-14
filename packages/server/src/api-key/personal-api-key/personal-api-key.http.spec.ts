@@ -1,5 +1,8 @@
 jest.mock('../../user/user.service', () => ({ UserService: class UserService {} }))
 jest.mock('../../integration', () => ({ IntegrationService: class IntegrationService {} }))
+jest.mock('../../user/factory-reset/factory-reset.service', () => ({
+	FactoryResetService: class FactoryResetService {}
+}))
 
 import { Controller, Get, INestApplication, UseGuards } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
@@ -13,6 +16,7 @@ import { IncomingMessage } from 'node:http'
 import { Strategy } from 'passport'
 import { PassportStrategy } from '@nestjs/passport'
 import { And, Equal, FindOneOptions, IsNull, Not, Or } from 'typeorm'
+import { AllowPersonalApiKeys } from '../../shared/decorators/allow-personal-api-keys.decorator'
 import { Public } from '../../shared/decorators/public.decorator'
 import { AuthGuard } from '../../shared/guards/auth.guard'
 import { PermissionGuard } from '../../shared/guards/permission.guard'
@@ -26,12 +30,17 @@ import { ApiKeyStrategy } from '../api-key.strategy'
 import { ApiKey } from '../api-key.entity'
 import { UseApiKeyHandler } from '../queries/handlers/api-key.use.handler'
 import { UseApiKeyQuery } from '../queries/api-key.use.query'
+import { UserController } from '../../user/user.controller'
+import { FactoryResetService } from '../../user/factory-reset/factory-reset.service'
 import { UserService } from '../../user/user.service'
 import { IntegrationService } from '../../integration'
 import { hashPersonalApiKey } from './personal-api-key-token'
 
 const owner: IUser = { id: 'owner', tenantId: 'tenant', type: UserType.USER, roleId: 'role' }
 const token = `sk-user-${'a'.repeat(43)}`
+
+@Controller('user')
+class CurrentUserController extends UserController {}
 
 @Controller('identity')
 class IdentityController {
@@ -46,13 +55,16 @@ class IdentityController {
 
 	@Public()
 	@UseGuards(ApiKeyOrClientSecretAuthGuard)
+	@AllowPersonalApiKeys()
 	@Get('ai')
 	ai() {
 		return this.me()
 	}
 
 	@Get('protected')
-	@UseGuards(PermissionGuard)
+	@Public()
+	@AllowPersonalApiKeys()
+	@UseGuards(ApiKeyOrClientSecretAuthGuard, PermissionGuard)
 	@Permissions('personal-key-test-permission')
 	protectedResource() {
 		return this.me()
@@ -102,13 +114,14 @@ describe('Personal API key HTTP authentication and validation', () => {
 			new RegisteredStrategy(family)
 		}
 		const module = await Test.createTestingModule({
-			controllers: [PersonalApiKeyController, IdentityController, ApiKeyController],
+			controllers: [PersonalApiKeyController, IdentityController, ApiKeyController, CurrentUserController],
 			providers: [
 				ApiKeyStrategy,
 				ApiKeyService,
 				UseApiKeyHandler,
 				{ provide: getRepositoryToken(ApiKey), useValue: repository },
-				{ provide: UserService, useValue: {} },
+				{ provide: UserService, useValue: { findCurrentUser: jest.fn(async () => owner) } },
+				{ provide: FactoryResetService, useValue: {} },
 				{ provide: IntegrationService, useValue: {} },
 				{ provide: QueryBus, useValue: { execute: (query: UseApiKeyQuery) => handler.execute(query) } },
 				{ provide: CACHE_MANAGER, useValue: { get: async () => null, set: async () => undefined } },
@@ -148,7 +161,34 @@ describe('Personal API key HTTP authentication and validation', () => {
 		repository.update.mockResolvedValue({ affected: 1 })
 	})
 
-	it.each(['/identity', '/identity/ai'])('authenticates as the human through %s', async (path) => {
+	it.each(['authorization', 'x-api-key'])(
+		'denies personal %s credentials on user and management APIs',
+		async (header) => {
+			const headers = {
+				[header]: header === 'authorization' ? `Bearer ${token}` : token,
+				'content-type': 'application/json'
+			}
+			for (const [method, path] of [
+				['GET', '/user/me'],
+				['GET', '/identity'],
+				['GET', '/personal'],
+				['POST', '/personal'],
+				['DELETE', '/personal/9becdf78-75b7-412f-8e25-190cc7e72bc3'],
+				['POST', '']
+			]) {
+				const response = await fetch(origin + path, {
+					method,
+					headers,
+					...(method === 'POST' ? { body: JSON.stringify({ name: 'not allowed' }) } : {})
+				})
+				expect({ method, path, status: response.status }).toEqual({ method, path, status: 401 })
+			}
+			expect(repository.save).not.toHaveBeenCalled()
+			expect(repository.update).not.toHaveBeenCalled()
+		}
+	)
+
+	it.each(['/identity/ai'])('authenticates as the human through %s', async (path) => {
 		const response = await fetch(origin + path, {
 			headers: { authorization: `Bearer ${token}`, 'organization-id': 'org', 'x-scope-level': 'organization' }
 		})
@@ -166,7 +206,9 @@ describe('Personal API key HTTP authentication and validation', () => {
 	})
 
 	it('accepts x-api-key without replacing tenant identity from untrusted headers', async () => {
-		const response = await fetch(origin + '/identity', { headers: { 'x-api-key': token, 'tenant-id': 'foreign' } })
+		const response = await fetch(origin + '/identity/ai', {
+			headers: { 'x-api-key': token, 'tenant-id': 'foreign' }
+		})
 		expect(response.status).toBe(200)
 		expect(await response.json()).toMatchObject({
 			user: owner,
@@ -188,14 +230,15 @@ describe('Personal API key HTTP authentication and validation', () => {
 
 	it('rejects identity overrides and expired/revoked authentication failures', async () => {
 		const headers = { authorization: `Bearer ${token}`, 'x-principal-user-id': 'someone-else' }
-		expect((await fetch(origin + '/identity', { headers })).status).toBe(401)
+		expect((await fetch(origin + '/identity/ai', { headers })).status).toBe(401)
 		repository.update.mockResolvedValue({ affected: 0 })
 		expect((await fetch(origin + '/identity/ai', { headers: { 'x-api-key': token } })).status).toBe(401)
 	})
 
 	it('preserves existing JWT/basic strategy paths and denies technical keys on normal management APIs', async () => {
 		for (const authorization of ['Bearer existing', 'Basic existing']) {
-			expect((await fetch(origin + '/identity', { headers: { authorization } })).status).toBe(200)
+			for (const path of ['/identity', '/identity/ai', '/user/me'])
+				expect((await fetch(origin + path, { headers: { authorization } })).status).toBe(200)
 		}
 		expect((await fetch(origin + '/identity', { headers: { authorization: 'Resource existing' } })).status).toBe(
 			401
@@ -207,7 +250,7 @@ describe('Personal API key HTTP authentication and validation', () => {
 		const create = jest.spyOn(keys, 'createPersonal').mockResolvedValue({ token: 'one-time-secret', key: null })
 		const response = await fetch(origin + '/personal', {
 			method: 'POST',
-			headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+			headers: { authorization: 'Bearer existing', 'content-type': 'application/json' },
 			body: JSON.stringify({ name: ' CLI ' })
 		})
 		expect(response.status).toBe(201)
@@ -223,7 +266,7 @@ describe('Personal API key HTTP authentication and validation', () => {
 	])('rejects invalid input and ownership overrides', async (body) => {
 		const response = await fetch(origin + '/personal', {
 			method: 'POST',
-			headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+			headers: { authorization: 'Bearer existing', 'content-type': 'application/json' },
 			body: JSON.stringify(body)
 		})
 		expect(response.status).toBe(400)
@@ -233,7 +276,7 @@ describe('Personal API key HTTP authentication and validation', () => {
 
 	it('validates key IDs and returns no body after revoke', async () => {
 		const revoke = jest.spyOn(keys, 'revokePersonal').mockResolvedValue(undefined)
-		const headers = { authorization: `Bearer ${token}` }
+		const headers = { authorization: 'Bearer existing' }
 		expect((await fetch(origin + '/personal/not-uuid', { method: 'DELETE', headers })).status).toBe(400)
 		expect(revoke).not.toHaveBeenCalled()
 		const id = '9becdf78-75b7-412f-8e25-190cc7e72bc3'
@@ -293,7 +336,7 @@ describe('Personal API key HTTP authentication and validation', () => {
 	})
 
 	it('rejects personal type/credential injection through the old create and update endpoints', async () => {
-		const headers = { authorization: `Bearer ${token}`, 'content-type': 'application/json' }
+		const headers = { authorization: 'Bearer existing', 'content-type': 'application/json' }
 		for (const body of [{ type: ApiKeyBindingType.USER }, { token }, { revokedAt: null }, { id: owner.id }]) {
 			expect((await fetch(origin, { method: 'POST', headers, body: JSON.stringify(body) })).status).toBe(400)
 		}
@@ -437,8 +480,15 @@ describe('Personal API key HTTP authentication and validation', () => {
 			return { affected: 1 }
 		})
 		const headers = { authorization: `Bearer ${token}` }
-		expect((await fetch(origin + '/identity', { headers })).status).toBe(200)
-		expect((await fetch(origin + '/personal/' + id, { method: 'DELETE', headers })).status).toBe(204)
+		expect((await fetch(origin + '/identity/ai', { headers })).status).toBe(200)
+		expect(
+			(
+				await fetch(origin + '/personal/' + id, {
+					method: 'DELETE',
+					headers: { authorization: 'Bearer existing' }
+				})
+			).status
+		).toBe(204)
 		for (const path of ['/identity', '/identity/ai'])
 			expect((await fetch(origin + path, { headers })).status).toBe(401)
 	})

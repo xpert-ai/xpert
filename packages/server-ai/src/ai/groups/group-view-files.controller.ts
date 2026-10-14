@@ -1,5 +1,5 @@
 import { SecretTokenBindingType } from '@xpert-ai/contracts'
-import { ApiKeyOrClientSecretAuthGuard, AllowClientSecretBindings } from '@xpert-ai/server-core'
+import { AllowPersonalApiKeys, ApiKeyOrClientSecretAuthGuard, AllowClientSecretBindings } from '@xpert-ai/server-core'
 import { Body, Controller, Delete, Param, Post, Req, Res, UseGuards } from '@nestjs/common'
 import { Public, UseValidationPipe, UUIDValidationPipe } from '@xpert-ai/server-core'
 import type { Request, Response } from 'express'
@@ -14,6 +14,7 @@ import { groupDenied } from '../../chat-group/group.errors'
 
 /** The existing View file sessions keep their owner, scope, grant and cookie checks. */
 @Public()
+@AllowPersonalApiKeys()
 @AllowClientSecretBindings(SecretTokenBindingType.USER_CONVERSATION)
 @UseGuards(ApiKeyOrClientSecretAuthGuard, GroupScopeGuard)
 @Controller('groups/:groupId/workbench/workspace-files/view-sessions')

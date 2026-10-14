@@ -13,7 +13,12 @@ import {
 } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { TSandboxManagedServiceStartInput } from '@xpert-ai/contracts'
-import { ApiKeyOrClientSecretAuthGuard, Public, TransformInterceptor } from '@xpert-ai/server-core'
+import {
+    AllowPersonalApiKeys,
+    ApiKeyOrClientSecretAuthGuard,
+    Public,
+    TransformInterceptor
+} from '@xpert-ai/server-core'
 import { Request, Response } from 'express'
 import { SandboxManagedServiceService } from '../sandbox/sandbox-managed-service.service'
 import { SandboxManagedServiceError } from '../sandbox/sandbox-managed-service.error'
@@ -25,6 +30,7 @@ import { AssistantThreadScopeGuard } from './assistant-thread-scope.guard'
 @ApiTags('AI/Sandbox')
 @ApiBearerAuth()
 @Public()
+@AllowPersonalApiKeys()
 @UseGuards(ApiKeyOrClientSecretAuthGuard, AssistantThreadScopeGuard)
 @UseInterceptors(TransformInterceptor)
 @Controller('sandbox/threads/:threadId/services')

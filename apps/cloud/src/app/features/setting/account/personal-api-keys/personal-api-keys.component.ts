@@ -59,7 +59,7 @@ export class PersonalApiKeysComponent implements OnInit {
     const term = this.search().trim().toLocaleLowerCase()
     return this.keys().filter((key) => `${key.name} ${key.prefix}`.toLocaleLowerCase().includes(term))
   })
-  readonly example = `curl '${this.#document.defaultView?.location.origin ?? ''}${API_PREFIX}/user/me' \\\n  -H 'Authorization: Bearer YOUR_PERSONAL_API_KEY'`
+  readonly example = `curl '${this.#document.defaultView?.location.origin ?? ''}${API_PREFIX}/ai/assistants/search' \\\n  -H 'Authorization: Bearer YOUR_PERSONAL_API_KEY' \\\n  -H 'Content-Type: application/json' \\\n  -d '{"limit":10,"offset":0}'`
 
   ngOnInit() {
     void this.load()

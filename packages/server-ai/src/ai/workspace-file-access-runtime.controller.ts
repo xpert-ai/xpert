@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Head, Param, Post, Req, Res, UseGuards }
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { SecretTokenBindingType } from '@xpert-ai/contracts'
 import {
+    AllowPersonalApiKeys,
     AllowClientSecretBindings,
     ApiKeyOrClientSecretAuthGuard,
     Public,
@@ -20,6 +21,7 @@ import { AssistantFileAccess, AssistantFileAccessGuard } from './assistant-file-
 @ApiTags('WorkspaceFilesRuntime')
 @ApiBearerAuth()
 @Public()
+@AllowPersonalApiKeys()
 @AllowClientSecretBindings(SecretTokenBindingType.ENTERPRISE_XPERT)
 @UseGuards(ApiKeyOrClientSecretAuthGuard, AssistantFileAccessGuard)
 @Controller('workspace-files/view-sessions')

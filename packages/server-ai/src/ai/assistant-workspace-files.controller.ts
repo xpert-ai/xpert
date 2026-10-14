@@ -15,7 +15,13 @@ import {
 } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
-import { ApiKeyOrClientSecretAuthGuard, Public, UUIDValidationPipe, ZodValidationPipe } from '@xpert-ai/server-core'
+import {
+    AllowPersonalApiKeys,
+    ApiKeyOrClientSecretAuthGuard,
+    Public,
+    UUIDValidationPipe,
+    ZodValidationPipe
+} from '@xpert-ai/server-core'
 import type { Response } from 'express'
 import { t } from 'i18next'
 import { AssistantFilesService } from '../xpert/assistant-files/assistant-files.service'
@@ -38,6 +44,7 @@ const uploadOptions = { limits: { fileSize: WORKSPACE_FILE_UPLOAD_MAX_BYTES } }
 @ApiTags('AssistantWorkspaceFiles')
 @ApiBearerAuth()
 @Public()
+@AllowPersonalApiKeys()
 @UseGuards(ApiKeyOrClientSecretAuthGuard, AssistantFileAccessGuard)
 @AssistantFileAccess('workspace')
 @Controller('assistants/:assistantId/workspace')

@@ -1,5 +1,6 @@
 import { Body, Inject, Controller, Get, Param, Post, Put, Query, UseGuards, UseInterceptors } from '@nestjs/common'
 import {
+    AllowPersonalApiKeys,
     AllowClientSecretBindings,
     ApiKeyOrClientSecretAuthGuard,
     Public,
@@ -12,6 +13,7 @@ import { runtimeResourcesSchema } from './runtime-resource-selection'
 import { parseResourceInput } from './agent-plugin.controller'
 
 @Public()
+@AllowPersonalApiKeys()
 @AllowClientSecretBindings(SecretTokenBindingType.ENTERPRISE_XPERT)
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
 @UseInterceptors(TransformInterceptor)

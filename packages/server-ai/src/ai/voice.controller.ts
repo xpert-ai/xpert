@@ -1,5 +1,11 @@
 import { BadRequestException, Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common'
-import { ApiKeyOrClientSecretAuthGuard, Public, UUIDValidationPipe, ZodValidationPipe } from '@xpert-ai/server-core'
+import {
+    AllowPersonalApiKeys,
+    ApiKeyOrClientSecretAuthGuard,
+    Public,
+    UUIDValidationPipe,
+    ZodValidationPipe
+} from '@xpert-ai/server-core'
 import { t } from 'i18next'
 import { z } from 'zod'
 import { AssistantThreadScopeGuard } from './assistant-thread-scope.guard'
@@ -8,6 +14,7 @@ import { VoiceTaskService } from '../realtime-voice/voice-task.service'
 import { voiceStartSchema } from '../realtime-voice/voice.schema'
 
 @Public()
+@AllowPersonalApiKeys()
 @UseGuards(ApiKeyOrClientSecretAuthGuard, AssistantThreadScopeGuard)
 @Controller('threads/:threadId/voice')
 export class VoiceController {
@@ -50,6 +57,7 @@ export class VoiceController {
 }
 
 @Public()
+@AllowPersonalApiKeys()
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
 @Controller('assistants/:assistantId/voice')
 export class VoiceCapabilityController {

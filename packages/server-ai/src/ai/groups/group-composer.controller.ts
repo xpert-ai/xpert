@@ -1,5 +1,5 @@
 import { SecretTokenBindingType } from '@xpert-ai/contracts'
-import { ApiKeyOrClientSecretAuthGuard, AllowClientSecretBindings } from '@xpert-ai/server-core'
+import { AllowPersonalApiKeys, ApiKeyOrClientSecretAuthGuard, AllowClientSecretBindings } from '@xpert-ai/server-core'
 import { parseRuntimeResources } from '../../agent-plugin/runtime-resource-selection'
 import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common'
 import { Public, UUIDValidationPipe, ZodValidationPipe } from '@xpert-ai/server-core'
@@ -17,6 +17,7 @@ import { groupInvalid } from '../../chat-group/group.errors'
 import { workspaceFilesQuerySchema, WorkspaceFilesQuery } from '../assistant-workspace-files.schema'
 
 @Public()
+@AllowPersonalApiKeys()
 @AllowClientSecretBindings(SecretTokenBindingType.USER_CONVERSATION)
 @UseGuards(ApiKeyOrClientSecretAuthGuard, GroupScopeGuard)
 @Controller('groups/:groupId/members/:participantId/composer')

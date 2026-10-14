@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common'
 import { SecretTokenBindingType } from '@xpert-ai/contracts'
 import {
+    AllowPersonalApiKeys,
     AllowClientSecretBindings,
     ApiKeyOrClientSecretAuthGuard,
     Public,
@@ -20,6 +21,7 @@ import { assertAssistantAudience } from './assistant-audience'
 
 /** Read-only ChatKit facade. OAuth and connection mutations remain on the administrator API. */
 @Public()
+@AllowPersonalApiKeys()
 @AllowClientSecretBindings(SecretTokenBindingType.ENTERPRISE_XPERT)
 @UseGuards(ApiKeyOrClientSecretAuthGuard)
 @UseInterceptors(TransformInterceptor)
