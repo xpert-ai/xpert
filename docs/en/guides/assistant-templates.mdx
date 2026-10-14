@@ -1,0 +1,84 @@
+---
+title: Assistant templates and their lifecycle
+description: Shared Web and Desktop behavior for discovery, recoverable installation, setup, background work, sharing, and upgrades.
+---
+
+An Assistant Template delivers a reusable Assistant definition and its initialization requirements. Importing creates an independent Assistant in an editable workspace. Models, accounts, preferences, and business data belong to the destination environment. Web and Desktop use the same server installation and lifecycle contracts.
+
+Authors can start with [Authoring and packaging templates](/en/guides/assistant-template-authoring). Platform developers should read [Template lifecycle architecture](/en/architecture/assistant-template-lifecycle).
+
+## Catalog and sources
+
+The marketplace and Discover & add order templates by source before pagination:
+
+| Order | Source           | Contents                                                                                   |
+| ----- | ---------------- | ------------------------------------------------------------------------------------------ |
+| 1     | Agent Plugins    | Assistant Templates declared by file-based packages                                        |
+| 2     | Xpert Plugins    | Templates contributed by native plugins; app-associated templates are managed through Apps |
+| 3     | Built-in         | Xpert Templates distributed with the platform                                              |
+| 4     | Shared templates | User publications visible to the current viewer                                            |
+
+Source counts cover the visible Assistant catalog, excluding app resources and non-Assistant entries outside this catalog. Categories and their counts follow the selected source. Search filters cards without replacing source totals with search-hit counts. Counts accumulate while pages load; they are not fixed product totals.
+
+The catalog uses lightweight summaries and loads avatars on demand. Full definitions are read for details or installation. Results from a previous organization or language cannot overwrite the new scope.
+
+## Preview and import
+
+Click a template card to open its details, or select **Use template** to configure installation. Four capability sections are derived from actual template declarations:
+
+| Section      | Contents                                                                              |
+| ------------ | ------------------------------------------------------------------------------------- |
+| Memories     | Responsibilities, working instructions, initial knowledge, and first-use requirements |
+| Skills       | Declared skills and their playbooks                                                   |
+| Routines     | Configurable automatic tasks, timing, and expected outputs                            |
+| Integrations | Required applications, connectors, and permissions                                    |
+
+Installation checks the destination workspace, model and runtime capabilities, resource dependencies, and initialization requirements. Users can change the new Assistant's basic information. Unsupported mandatory requirements block installation; requirements needing user configuration appear as follow-up steps.
+
+A durable installation record contains the Assistant ID, stage, attempt count, and retryability. Users can resume status inspection after refreshing or reopening a client. Retry reuses the original operation and resources already created. Creating another independent Assistant requires a new installation intent.
+
+Created, published, authorized, and ready for business execution are separate states. Installation success does not guarantee external authorization or upgrade other installed instances.
+
+## First use, files, and integrations
+
+Onboarding stores progress per user and Assistant, collects declared preferences such as language and timezone, and produces the first actual result according to its completion criteria. Interrupted onboarding resumes existing progress.
+
+Templates can declare directories, files, and JSON ledgers. Initialization uses `create-only`: missing content is created and existing business files are preserved. The `user` data scope isolates each user's data; `shared` supports authorized collaborators. File scope does not replace workspace or business-resource access controls.
+
+Connector declarations specify services and required permissions without embedding credentials. Users select a connection they may use in the destination environment, or an authorized connection manager completes authorization. Missing, expired, and insufficient-scope states are distinct. Optional integrations can be skipped without granting execution access to their tools. Missing mandatory integrations limit the corresponding business operations.
+
+Runtime operation policy applies `allow`, `approve`, or `deny` to actual tool names. Rejected approval prevents invocation of the tool handler. Natural-language reminders in a template cannot substitute for this policy.
+
+## Routines and background results
+
+Routine declarations start disabled. Importing does not start execution. The first explicit configuration creates a personal task; users must enable it and confirm its timezone and next run. The same user, Assistant, and routine key reuse one task.
+
+Scheduled routines are supported. Event-trigger declarations are not executable yet: mandatory event routines block readiness, while optional ones are marked unavailable. Server background tasks do not require Web or Desktop to remain open. A local-only capability cannot run as a server task and returns `LOCAL_RUNTIME_UNAVAILABLE`.
+
+Activity records show running, completed, failed, and waiting-for-approval states. Read state is per user, and clients refresh approximately every 15 seconds. These are in-app activities, not email, SMS, or operating-system push notifications.
+
+## Sharing and link import
+
+Publication checks portability. Organization sharing remains limited to authorized viewers. Public sharing serves authenticated platform users, not anonymous visitors. Revocation stops new discovery and imports without deleting Assistants already created by recipients.
+
+Publication projects an allowlist of portable fields, excluding account bindings, user preferences, runtime memory, business files, enabled-task state, and instance scope identifiers. Authors must still inspect free text; automatic removal of every secret is not guaranteed. Unsupported graph and middleware configurations block publication rather than promising lossless conversion of arbitrary workflows.
+
+Desktop links open a preview for the user to confirm. A pending link can resume after sign-in, with fresh source and access checks. Opening a link does not automatically install a template.
+
+## Upgrades and recovery
+
+An upgrade compares the template baseline, current local configuration, and new source across presentation, instructions, runtime graph/configuration, and template requirements. After resolving conflicts, users save a draft and explicitly publish it. Stale previews are rejected and must be refreshed.
+
+Upgrades preserve Assistant identity, conversations, business files, preferences, and compatible connection selections. Incompatible existing routine definitions or data scopes block automatic merging. New routines remain paused. An explicit migration preview can move a native-plugin source to an Agent Plugin source without silently changing dependencies.
+
+Interrupted operations can resume. An operation snapshot can restore the previous configuration. Rollback does not undo external writes or business-file changes and is not an arbitrary historical-version backup service.
+
+## Template series and scope
+
+The plugin repository's `agent-plugins/assistants/` directory contains 90 categorized role packages with a consistent avatar series, including Office Ops. Office Ops uses the same file-based structure and combines seven skills, five JSON ledgers, and three initially paused routines. Display names, descriptions, and categories support localization; internal skill documents need not be translated.
+
+These capabilities deliver comparable business assistants within Xpert. They do not parse third-party private template formats. The destination platform must provide the models, sandboxes, middleware, and connectors a template requires.
+
+## Acceptance scope
+
+The user accepted platform functionality and Web/Desktop test-environment validation on 2026-10-14. Real provider-account testing remains environment-specific: live authorization and business reads/writes for Notion, Slack, Linear, Google Sheets, Gmail, and Calendar are not established by generic-flow validation. Desktop-link testing in the macOS development environment does not establish Windows, Linux, or signed-installer coverage.

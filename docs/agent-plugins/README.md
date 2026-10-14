@@ -2,6 +2,10 @@
 
 A standard Agent Plugin is a resource package containing a root-level `plugin.json`, `skills/<name>/SKILL.md`, and `mcp.json`. It does not require `package.json` and does not execute npm scripts, hooks, or server modules. Native Xpert plugins retain their existing installation mechanism and scope rules.
 
+## Assistant templates
+
+Agent Plugins can also distribute Assistant Templates through `extensions.xpertai.version: 2`. See [Authoring and packaging Assistant templates](../en/guides/assistant-template-authoring.mdx) ([中文](../zh-Hans/guides/assistant-template-authoring.mdx)) for package-contained DSL, dependency binding, localization, and avatars, and [Template lifecycle architecture](../en/architecture/assistant-template-lifecycle.mdx) ([中文](../zh-Hans/architecture/assistant-template-lifecycle.mdx)) for installation and upgrade contracts. Template-only packages do not require skills, MCP configuration, or a native NestJS module.
+
 ## Administrator workflow
 
 1. Open **Plugins → Agent Plugins** in the organization scope. The administrator must have management permission for the target workspace.

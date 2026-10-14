@@ -1,0 +1,166 @@
+---
+title: Authoring and packaging Assistant templates
+description: Deliver one Assistant definition through Agent Plugins or native Xpert Plugins, with clear ownership of DSL, manifest, dependencies, localization, and avatars.
+---
+
+Prefer an Agent Plugin when delivery consists of skills, MCP configuration, templates, manifests, and assets. Use a native Xpert Plugin when adding server controllers, entities, tools, or strategy implementations. Both can provide Assistant Templates. Required runtime capabilities must already be implemented by the host or a native plugin; declarations do not generate server functionality.
+
+See the [lifecycle guide](/en/guides/assistant-templates) for user behavior and the [architecture reference](/en/architecture/assistant-template-lifecycle) for implementation and APIs.
+
+## One declaration per concern
+
+| Concern                                                                    | Declaration                                                          | Purpose                                                |
+| -------------------------------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------ |
+| Agents, instructions, nodes, edges, middleware                             | DSL `team`, `nodes`, `connections`                                   | Executable graph                                       |
+| Sandbox capability                                                         | `team.features.sandbox`                                              | Runtime selection                                      |
+| Distributable initial knowledge                                            | Top-level `memories`                                                 | Initial memory import                                  |
+| Skills, MCP, toolsets, and other resources                                 | `template.dependencies`                                              | Resource selection, installation, and binding          |
+| Files, onboarding, connectors, routines, additional execution requirements | `template.manifest`                                                  | Initialization and readiness checks                    |
+| Localized marketplace copy                                                 | Template `presentation`                                              | Display title, description, and publisher              |
+| App business highlights                                                    | `appConfig.presentation.features`                                    | Marketing description, not execution authorization     |
+| Source and resolved dependency locks                                       | Instance `options.templateSource`, `options.templateDependencyLocks` | Installation tracking, excluded from portable packages |
+
+Use `2` for both `template.schemaVersion` and manifest `schemaVersion`. Manifest v2 no longer repeats `memory`, `skills`, or `execution.sandbox`. Legacy v1 is normalized with conflict checks; templates without a manifest retain legacy behavior.
+
+## Agent Plugin structure
+
+```text
+agent-plugins/assistants/office-ops/
+├── plugin.json
+├── templates/
+│   └── office-ops.json
+├── skills/
+│   └── office-getting-started/
+│       └── SKILL.md
+└── assets/
+    └── avatar.png
+```
+
+Add `mcp.json` when shipping MCP resources. Template-only packages are supported without `package.json`, npm installation scripts, or a NestJS module. This structural example still requires the referenced valid template file:
+
+```json
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "office-ops",
+  "version": "1.0.0",
+  "description": "Office operations assistant templates.",
+  "extensions": {
+    "xpertai": {
+      "version": 2,
+      "interface": {
+        "displayName": { "en_US": "Office Ops", "zh_Hans": "办公运营助手" },
+        "description": { "en_US": "Office workflows", "zh_Hans": "办公运营流程" }
+      },
+      "templates": [
+        {
+          "key": "office-ops",
+          "path": "templates/office-ops.json",
+          "category": "operations",
+          "presentation": {
+            "title": { "en_US": "Office Ops", "zh_Hans": "办公运营助手" },
+            "description": { "en_US": "Maintain office ledgers.", "zh_Hans": "维护办公业务台账。" },
+            "pluginDisplayName": { "en_US": "Office Ops", "zh_Hans": "办公运营助手" }
+          }
+        }
+      ]
+    }
+  }
+}
+```
+
+Agent Plugins standard version `1.0.0` and Xpert extension version `2` are independent. Template files must be valid JSON or YAML Assistant DSL contained under the package's `templates/` directory. The catalog ID is `agent-plugin/office-ops/office-ops`, derived from package name and template key, not translated display text.
+
+Import the package through the normal Git/ZIP validation flow, then import its template into an editable workspace. Copying files distributes a package; it does not bypass validation or runtime authorization. Invalid templates produce separate diagnostics rather than invalidating otherwise valid skills in the package.
+
+## Dependency binding
+
+The following metadata fragment belongs inside a valid Assistant DSL; it is not a complete executable graph:
+
+```json
+{
+  "template": {
+    "schemaVersion": 2,
+    "dependencies": {
+      "skills": [
+        {
+          "source": { "kind": "agent-plugin", "name": "office-ops" },
+          "componentKey": "office-getting-started",
+          "targetAgentKey": "assistant"
+        }
+      ]
+    },
+    "manifest": {
+      "schemaVersion": 2,
+      "version": "1.0.0",
+      "files": {
+        "scope": "user",
+        "entries": [
+          { "kind": "directory", "path": "office" },
+          {
+            "kind": "file",
+            "path": "office/README.md",
+            "content": "Office records",
+            "contentVersion": "1",
+            "policy": "create-only"
+          },
+          {
+            "kind": "ledger",
+            "path": "office/shipments.json",
+            "structureVersion": "1",
+            "columns": [{ "key": "id", "label": "ID", "type": "string" }],
+            "policy": "create-only"
+          }
+        ]
+      }
+    }
+  }
+}
+```
+
+`targetAgentKey` must identify an actual graph Agent. `componentKey` selects an actual resource in the source package. Agent Plugin source selectors support skill and MCP dependencies and may pin content with `digest`. When omitted, installation resolves and locks the digest, binding ID, and binding version before creating the Assistant.
+
+Native dependencies use `pluginName`; `dependencies.versions` can require exact versions. Hooks, Apps, and toolsets follow their native contracts. Do not assume every dependency accepts an Agent Plugin `source` selector.
+
+Binding connects a target Agent to actual runtime resources, not a marketing capability to a plugin name. Installing a package does not add every resource to the Assistant. Runtime checks still enforce scope, enabled state, and locked versions.
+
+## Other manifest requirements
+
+| Field        | Authoring requirements                                                                                                           |
+| ------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| `onboarding` | Declare `skill`, `required`, `preferences`, and `completionCriteria`, including a real first output                              |
+| `connectors` | Each entry has stable `key`, `provider`, `required`, `purpose`, and `permissions`; each provider appears once                    |
+| `routines`   | Declare stable `key`, `trigger`, `expression`, `timezone`, `skill`, and `output`; `enabled` must be `false`                      |
+| `execution`  | Declare `modelFeatures`, `localCapabilities`, and `offline` requirements not derivable from the graph; do not repeat the sandbox |
+
+Scheduled expressions use five-field cron and a `user` or `organization` timezone. Event triggers are not executable yet and must not be advertised as supported. Every skill reference should resolve to an actual dependency.
+
+Use relative file paths. Absolute paths, `..`, backslashes, reserved `.apps` paths, and similar unsafe forms are rejected. Volume performs additional canonical-path and symlink containment checks. Ledgers must use `.json`; `create-only` preserves existing business content.
+
+Declare tool-level policies in `team.options.operationPolicy` for external writes, enforced through host approval. Connector permissions, onboarding text, and skill instructions do not replace authorization.
+
+## Native plugins and Plugin Apps
+
+Native Xpert Plugins retain template contributions. They use the same portable DSL, dependencies, and manifest rather than maintaining a second capability inventory. A plugin requiring server functionality can ship both its implementation and templates.
+
+`appConfig.assistantTemplateKey` references the original template key contributed by the same plugin; `assistantSuite` organizes additional roles. App `composition` derives from the actual entry, roles, workspace, and declared knowledge resources, not all contents of a plugin.
+
+Standalone template imports can create multiple instances. Organization apps reuse initialization records by stable identity. App initialization, plugin upgrades, and existing Assistant upgrades are separate operations.
+
+## Localization and avatars
+
+Keep standard top-level `name` and `description` fields as strings. Xpert `interface.displayName`, `interface.description`, and template `presentation` accept `I18nText`, using locale keys such as `en_US` and `zh_Hans`. Missing translations use fallback text.
+
+Categories use stable keys localized by clients. Language changes do not alter package identity, dependency digests, or internal skills. `SKILL.md`, execution instructions, and business files are not automatically translated with the UI.
+
+The plugin icon lives in `extensions.xpertai.interface.icon`; the template avatar comes from DSL `team.avatar`; Agent-node avatars use `entity.avatar`. Configure these distinct display surfaces separately when they should match. System avatar containers constrain size and clip rounded corners.
+
+## Before publishing
+
+1. Validate the package, template DSL, and relative paths; resolve component diagnostics.
+2. Check dependency sources, versions, target Agents, models, and runtime requirements.
+3. Import into a clean destination, refresh and retry the same operation, and check for duplicate instances.
+4. Verify existing files remain intact and missing connections, rejected approvals, and paused routines behave as declared.
+5. Review both languages, detail pages, and avatars. Exclude credentials, business data, and environment identifiers.
+6. Upgrade an existing instance, inspect conflicts with local edits, then explicitly publish.
+
+See the [feature guide](/en/guides/assistant-templates) for lifecycle behavior and acceptance scope.
