@@ -18,6 +18,7 @@ import { guardedOAuthFetch } from '../mcp-publication/mcp-oauth.service'
 import { PublishedXpertAccessService } from '../xpert/published-xpert-access.service'
 import { importedPluginBinding } from './installed-plugin-catalog'
 import { ForbiddenException } from '@nestjs/common'
+import type { ConnectorStrategyRuntime } from '@xpert-ai/plugin-sdk'
 
 jest.mock('i18next', () => ({ t: (key: string, options?: { defaultValue?: string }) => options?.defaultValue ?? key }))
 jest.mock('../mcp-publication/mcp-oauth.service', () => ({ guardedOAuthFetch: jest.fn() }))
@@ -227,6 +228,94 @@ describe('Agent Plugin connectors through the Connector API', () => {
         expect(result.status).toBe('active')
         expect(result.connector.provider).toBe(githubProvider)
         expect(nativeConnect).toHaveBeenCalled()
+        expect(guardedOAuthFetch).not.toHaveBeenCalled()
+    })
+
+    it('refreshes adapted native credentials through the legacy hook after a cold replica restart', async () => {
+        const api = await replica()
+        const app = { appId: 'legacy-app', appSecret: 'legacy-secret' }
+        const profile = { name: 'Connected User' }
+        const expired = new Date(Date.now() - 60_000).toISOString()
+        const expiresAt = new Date(Date.now() + 3_600_000).toISOString()
+        const refreshExpiresAt = new Date(Date.now() + 86_400_000).toISOString()
+        const refreshCredential = jest
+            .fn()
+            .mockResolvedValueOnce({
+                appId: app.appId,
+                accessToken: 'first-refreshed-access',
+                refreshToken: 'rotated-refresh',
+                expiresAt: expired,
+                refreshExpiresAt,
+                scopes: ['read'],
+                profile
+            })
+            .mockResolvedValueOnce({
+                appId: app.appId,
+                accessToken: 'second-refreshed-access',
+                refreshToken: 'second-refresh',
+                expiresAt,
+                refreshExpiresAt,
+                scopes: ['read'],
+                profile
+            })
+        const native: ConnectorStrategyRuntime = {
+            definition: {
+                provider: 'github',
+                label: 'GitHub',
+                mcpOAuthResources: [githubConfig.serverUrl],
+                authMethods: [{ id: 'oauth', label: 'OAuth', type: 'oauth2' }]
+            },
+            connect: jest.fn().mockResolvedValue({
+                status: 'active',
+                credential: {
+                    data: { app, accessToken: 'expired-access', refreshToken: 'original-refresh' },
+                    expiresAt: expired
+                }
+            }),
+            exchangeAuthorizationCode: jest.fn(),
+            resolveRuntimeCredential: (input) => ({ accessToken: input.credential.data.accessToken }),
+            refreshCredential
+        }
+        replicas[0].get(ConnectorStrategyRegistry).register('github', native, {
+            kind: 'builtin',
+            scopeKey: scope.organizationId
+        })
+        const started = await api.connect(workspaceId, githubProvider, {
+            authMethodId: 'oauth',
+            redirectUri: 'https://xpert.example.test/callback'
+        })
+        expect(started.status).toBe('active')
+
+        const restarted = await replica()
+        replicas[1].get(ConnectorStrategyRegistry).register('github', native, {
+            kind: 'builtin',
+            scopeKey: scope.organizationId
+        })
+        const reference = { bindingId: started.connector.id, provider: githubProvider }
+        const runtimeScope = {
+            ...scope,
+            userId: 'user',
+            xpertId: 'assistant',
+            conversationId: 'conversation',
+            executionId: 'execution',
+            connectorBindingIds: [reference.bindingId]
+        }
+        await expect(restarted.getRuntimeConnectorCredentialForScope(reference, runtimeScope)).resolves.toMatchObject({
+            ...reference,
+            authMethodId: 'oauth',
+            credentials: { accessToken: 'first-refreshed-access' },
+            scopes: ['read'],
+            profile
+        })
+        const refreshed = await restarted.getRuntimeConnectorCredentialForScope(reference, runtimeScope)
+        expect(refreshed).toMatchObject({
+            ...reference,
+            credentials: { accessToken: 'second-refreshed-access' },
+            expiresAt
+        })
+        expect(refreshCredential).toHaveBeenNthCalledWith(1, { app, refreshToken: 'original-refresh' })
+        expect(refreshCredential).toHaveBeenNthCalledWith(2, { app, refreshToken: 'rotated-refresh' })
+        expect(JSON.stringify(refreshed)).not.toContain(app.appSecret)
         expect(guardedOAuthFetch).not.toHaveBeenCalled()
     })
 

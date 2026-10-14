@@ -4,6 +4,7 @@ import { BadRequestException } from '@nestjs/common'
 import { getConnectorAuthMethods, type ConnectorStrategyRuntime } from '@xpert-ai/plugin-sdk'
 import { t } from 'i18next'
 import { McpOAuthConnectorStrategy } from './mcp-oauth.strategy'
+import { normalizeLegacyCredential, parseConnectorValues } from './connector-credential'
 
 export function adaptMcpConnector(
     strategy: ConnectorStrategyRuntime,
@@ -38,11 +39,17 @@ export function adaptMcpConnector(
             legacy(input.authMethodId)
                 ? strategy.exchangeAuthorizationCode(input)
                 : native.exchangeAuthorizationCode(input),
-        refreshConnectionCredential: (input) => {
+        refreshConnectionCredential: async (input) => {
             if (legacy(input.authMethodId)) return strategy.refreshConnectionCredential(input)
-            if (!native.refreshConnectionCredential)
+            if (native.refreshConnectionCredential) return native.refreshConnectionCredential(input)
+            const { refreshToken, app: storedApp } = input.credential.data
+            if (!native.refreshCredential || typeof refreshToken !== 'string' || !refreshToken)
                 throw new BadRequestException(t('server-ai:Error.ConnectorIntegrationUnavailable'))
-            return native.refreshConnectionCredential(input)
+            const app =
+                storedApp && typeof storedApp === 'object' && !Array.isArray(storedApp)
+                    ? parseConnectorValues(storedApp)
+                    : undefined
+            return normalizeLegacyCredential(await native.refreshCredential({ app, refreshToken }), app)
         },
         resolveRuntimeCredential: (input) =>
             legacy(input.authMethodId)

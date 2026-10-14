@@ -37,7 +37,6 @@ import type {
     ConnectorCredentialRevokeReason,
     ConnectorInstance,
     ConnectorOAuthCompleteRequest,
-    ConnectorOAuthCredential,
     ConnectorOAuthStatusResponse,
     ConnectorOAuthStartRequest,
     ConnectorOAuthStartResponse,
@@ -64,6 +63,7 @@ import { ConnectorRuntimeAudit } from './connector-runtime-audit.entity'
 import { Connector } from './connector.entity'
 import { ConnectorProviderService } from './connector-provider.service'
 import { connectorCatalog } from './connector-catalog'
+import { normalizeLegacyCredential, parseConnectorValues } from './connector-credential'
 import {
     connectorLegacyBindingMessage,
     connectorOAuthConfigurationChangedMessage,
@@ -2743,25 +2743,6 @@ function legacyScopes(definition: ConnectorStrategyDefinition) {
     return definition.auth?.type === 'oauth2' ? definition.auth.scopes : undefined
 }
 
-function normalizeLegacyCredential(
-    credential: ConnectorOAuthCredential,
-    fallbackApp?: Record<string, unknown>
-): ConnectorCredential {
-    return {
-        data: {
-            appId: credential.appId,
-            ...(credential.brand ? { brand: credential.brand } : {}),
-            app: credential.app ? parseConnectorValues(credential.app) : fallbackApp,
-            accessToken: credential.accessToken,
-            ...(credential.refreshToken ? { refreshToken: credential.refreshToken } : {})
-        },
-        expiresAt: credential.expiresAt,
-        refreshExpiresAt: credential.refreshExpiresAt,
-        scopes: credential.scopes,
-        profile: credential.profile
-    }
-}
-
 function normalizeLegacyPollResult(
     result: Awaited<ReturnType<NonNullable<ConnectorStrategyRuntime['pollAuthorization']>>>,
     values?: Record<string, unknown>
@@ -2917,18 +2898,6 @@ function hasCredentialPayload(input: unknown) {
 
 function hasCredentialValue(value: unknown) {
     return value !== undefined && value !== null && (typeof value !== 'string' || !!value.trim())
-}
-
-function parseConnectorValues(value: unknown): ConnectorValues {
-    if (!isRecord(value)) {
-        throw new BadRequestException(
-            t('server-ai:Error.ConnectorCredentialValuesInvalid', {
-                defaultValue: 'Connector credential values are invalid'
-            })
-        )
-    }
-
-    return { ...value }
 }
 
 function stringValue(value: unknown) {
