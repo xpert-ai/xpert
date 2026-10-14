@@ -18,6 +18,7 @@ import { ArrowLeft, ArrowUpRight, LoaderCircle, Plus, RefreshCw, Search, X } fro
 import { BotAvatar } from './avatar'
 import { ApplicationCard } from './catalog/ApplicationCard'
 import { CatalogSetup } from './CatalogSetup'
+import { TemplateOverview } from './catalog/TemplateOverview'
 import { invoke } from './host'
 import { actionLabel, businessCategories, canUseExpert, categoryLabel, statusLabel } from './catalog-labels'
 import type { CatalogItem, CatalogKind } from './catalog-types'
@@ -56,6 +57,7 @@ export function CatalogDialog({
   const [category, setCategory] = useState('all')
   const [businessAreaId, setBusinessAreaId] = useState<string | null>(null)
   const [selected, setSelected] = useState<CatalogItem | null>(null)
+  const [installingTemplate, setInstallingTemplate] = useState(false)
   const [creating, setCreating] = useState(false)
   const [busy, setBusy] = useState(false)
   const [pluginRevision, setPluginRevision] = useState(0)
@@ -103,6 +105,7 @@ export function CatalogDialog({
   }
   const open = (item: CatalogItem) => {
     setNotice('')
+    setInstallingTemplate(false)
     if (item.kind === 'experts' && canUseExpert(item)) void use(item.id)
     else if (item.kind === 'applications' && item.status === 'ready' && item.botId) void use(item.botId)
     else setSelected(item)
@@ -147,7 +150,9 @@ export function CatalogDialog({
               {selected
                 ? creating
                   ? t('Choose a workspace, model and capabilities')
-                  : statusLabel(selected)
+                  : selected.kind === 'templates' && !installingTemplate
+                    ? t('Assistant template')
+                    : statusLabel(selected)
                 : t('Discover digital experts, apps, plugins and templates for {{organization}}', { organization })}
             </DialogDescription>
           </div>
@@ -162,7 +167,14 @@ export function CatalogDialog({
             <X />
           </Button>
         </DialogHeader>
-        {selected && (
+        {selected?.kind === 'templates' && !creating && !installingTemplate && (
+          <TemplateOverview
+            key={`${organizationId}:${selected.id}`}
+            id={selected.id}
+            onInstall={() => setInstallingTemplate(true)}
+          />
+        )}
+        {selected && (selected.kind !== 'templates' || creating || installingTemplate) && (
           <CatalogSetup
             installationScope={installationScope}
             organizationId={organizationId}
@@ -393,7 +405,7 @@ export function CatalogDialog({
                             disabled={busy || (item.kind === 'experts' && item.access === 'requested')}
                             onClick={() => open(item)}
                           >
-                            {actionLabel(item)}
+                            {item.kind === 'templates' ? t('View template') : actionLabel(item)}
                             <ArrowUpRight className="size-3.5" />
                           </Button>
                         </div>

@@ -587,7 +587,9 @@ it('lists a scoped catalog without resolving bodies, then resolves only the chos
     expect(detail.locale).toBe('zh-Hans')
     expect(detail.contentHash).toBe('body-v1')
     expect(JSON.parse(detail.export_data).team.agent.prompt).toBe('zh-Hans')
-    await expect(service.getTemplateDetail('@xpert-ai/agency:missing', LanguagesEnum.English)).rejects.toThrow()
+    await expect(service.getTemplateDetail('@xpert-ai/agency:missing', LanguagesEnum.English)).rejects.toMatchObject({
+        status: 404
+    })
     expect(resolveTemplate).toHaveBeenCalledTimes(1)
     const preferred = await service.getTemplateDetail('@xpert-ai/agency:role-8', LanguagesEnum.English)
     expect(resolveTemplate).toHaveBeenLastCalledWith({}, 'role-8', 'zh-Hans')

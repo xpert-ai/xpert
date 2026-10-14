@@ -2,6 +2,7 @@ import {
     AssistantTemplateDefinition,
     AssistantTemplateMetadata,
     TXpertTemplate,
+    assistantOperationPolicySchema,
     templateManifestSchema
 } from '@xpert-ai/contracts'
 import { BadRequestException } from '@nestjs/common'
@@ -16,6 +17,7 @@ export function normalizeAssistantTemplate(
     template: Pick<TXpertTemplate, 'export_data' | 'manifest' | 'dependencies' | 'pluginName'>
 ) {
     const draft = parseCapabilityTemplateDraft(template.export_data)
+    if (draft.team.options?.operationPolicy) assistantOperationPolicySchema.parse(draft.team.options.operationPolicy)
     const raw: unknown = parse(template.export_data)
     const envelope = z
         .object({

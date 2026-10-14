@@ -1,3 +1,4 @@
+const { projectTemplateOverview } = require('./template-overview.cjs')
 const { projectTemplateReadiness } = require('./template-readiness.cjs')
 const { localizedText } = require('./i18n/index.mjs')
 const { parseBusinessArea } = require('./business-area.cjs')
@@ -309,6 +310,14 @@ module.exports.createCatalogMethods = function createCatalogMethods(ClientError)
           id: required(item.id, 'Workspace ID'),
           name: text(item.name)
         }))
+    },
+    async templateOverview(input) {
+      scope(this)
+      const id = required(input?.id, 'Template ID')
+      return projectTemplateOverview(
+        await this.request(`/api/xpert-template/${encodeURIComponent(id)}/overview`),
+        ClientError
+      )
     },
     async templateSetup(input) {
       const workspaces = await this.templateWorkspaces()

@@ -24,6 +24,7 @@ import { AgentMiddlewareRegistry } from '@xpert-ai/plugin-sdk'
 import { Brackets, Repository, UpdateResult } from 'typeorm'
 import { of } from 'rxjs'
 import { z } from 'zod'
+import { init } from 'i18next'
 import { ChatConversationUpsertCommand } from '../chat-conversation'
 import { XpertAgentExecutionUpsertCommand } from '../xpert-agent-execution'
 import { XpertChatCommand } from '../xpert/commands'
@@ -57,6 +58,9 @@ type AgentMiddlewareRegistryMock = {
 }
 
 describe('XpertTaskService', () => {
+    beforeAll(async () => {
+        await init({ lng: 'en', resources: {} })
+    })
     afterEach(() => {
         jest.restoreAllMocks()
     })
@@ -305,7 +309,7 @@ describe('XpertTaskService', () => {
 
         const conversationCommand = findCommand(commandBus, ChatConversationUpsertCommand)
         expect(conversationCommand.entity).toMatchObject({
-            status: 'busy',
+            status: 'idle',
             taskId: 'task-1',
             xpertId: 'xpert-1',
             options: {

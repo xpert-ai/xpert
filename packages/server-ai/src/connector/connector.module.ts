@@ -1,3 +1,4 @@
+import { ResolveTemplateConnectorsHandler } from './template-connectors.handler'
 import { Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { DiscoveryModule, RouterModule } from '@nestjs/core'
@@ -32,7 +33,7 @@ import { RuntimeCapabilityModule } from '../shared/runtime/runtime-capability.mo
         XpertWorkspaceModule
     ],
     controllers: [ConnectorController],
-    providers: [ConnectorService, ConnectorStrategyRegistry],
+    providers: [ConnectorService, ConnectorStrategyRegistry, ResolveTemplateConnectorsHandler],
     exports: [ConnectorService, ConnectorStrategyRegistry]
 })
 export class ConnectorModule {}

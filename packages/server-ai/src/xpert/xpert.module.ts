@@ -1,3 +1,5 @@
+import { AssistantTemplateSetupController } from './template-setup/template-setup.controller'
+import { AssistantTemplateSetupService } from './template-setup/template-setup.service'
 import { InitializeAssistantTemplateFilesHandler } from './assistant-files/initialize-assistant-template-files.command'
 import { AssistantConfigurationController } from './configuration/assistant-configuration.controller'
 import { AssistantAppearanceController } from './assistant-appearance/assistant-appearance.controller'
@@ -116,6 +118,7 @@ import { XpertTriggerConnectionService } from './trigger-connection.service'
         forwardRef(() => XpertProjectModule)
     ],
     controllers: [
+        AssistantTemplateSetupController,
         AssistantTriggerController,
         AssistantConfigurationController,
         AssistantAppearanceController,
@@ -126,6 +129,7 @@ import { XpertTriggerConnectionService } from './trigger-connection.service'
         XpertAccessController
     ],
     providers: [
+        AssistantTemplateSetupService,
         InitializeAssistantTemplateFilesHandler,
         AssistantAppearanceService,
         AssistantTriggerService,

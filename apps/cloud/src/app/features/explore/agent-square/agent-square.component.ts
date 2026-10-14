@@ -12,7 +12,7 @@ import {
   untracked,
   WritableSignal
 } from '@angular/core'
-import { ActivatedRoute, Router } from '@angular/router'
+import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 import {
   getErrorMessage,
   injectToastr,
@@ -59,6 +59,7 @@ const TEMPLATE_SOURCES: TemplateSource[] = ['builtin', 'plugin']
   selector: 'xp-explore-agent-square',
   imports: [
     CommonModule,
+    RouterLink,
     TranslateModule,
     EmojiAvatarComponent,
     IconComponent,

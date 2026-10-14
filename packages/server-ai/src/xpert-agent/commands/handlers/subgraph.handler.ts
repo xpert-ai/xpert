@@ -1,3 +1,8 @@
+import { createGraphNodeChannel } from '../../graph-node-channel'
+import { templateConnectorSelection } from '../../../xpert/template-setup/template-connector-selection'
+import { AssistantTemplateSetupCommand } from '../../../xpert/template-setup/template-setup.command'
+import { createTemplateOperationPolicy } from '../../../xpert/template-setup/template-operation-policy'
+import { createTemplateRuntimeMiddleware } from '../../../xpert/template-setup/template-runtime.middleware'
 import { MiddlewareMcpAppsService } from '../../../mcp-app-runtime/middleware-mcp-apps.service'
 import { createInterruptAfterNode } from '../../../shared/agent/interrupt-after'
 import { authorizeAgentInvocation } from '../../../agent-invocation/invocation-errors'
@@ -44,7 +49,6 @@ import {
     getCurrentGraph,
     getWorkflowTriggers,
     GRAPH_NODE_SUMMARIZE_CONVERSATION,
-    isAgentKey,
     isAgentWorkflowNode,
     isAgentWorkflowNodeType,
     IWFNMiddleware,
@@ -825,11 +829,23 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             map.set(item.tool.name, item.tool)
             return map
         }, new Map())
-        const visibleMiddlewareNodes = getRuntimeEnabledMiddlewareNodes(graph, agent, {
-            runtimeCapabilities: options.runtimeCapabilities
-        })
+        const declaredConnectors =
+            runtimeXpert.options?.templateDefinition?.manifest?.connectors ??
+            runtimeXpert.options?.templateSource?.manifest?.connectors
+        const templateSetup = declaredConnectors?.length
+            ? await this.commandBus.execute(new AssistantTemplateSetupCommand(runtimeXpert.id))
+            : undefined
+        const templateSelection = templateConnectorSelection(
+            getRuntimeEnabledMiddlewareNodes(graph, agent, {
+                runtimeCapabilities: options.runtimeCapabilities
+            }),
+            templateSetup
+        )
+        const visibleMiddlewareNodes = templateSelection.nodes
         const usageRecorder = createExecutionModelUsageRecorder(resolveExecutionId, persistExecutionUsage)
-        const connectorBindingIds = getRuntimeConnectorBindingIds(options.runtimeCapabilities)
+        const connectorBindingIds = [
+            ...new Set([...getRuntimeConnectorBindingIds(options.runtimeCapabilities), ...templateSelection.bindingIds])
+        ]
         const middlewareRuntimeScope: AgentMiddlewareRuntimeScope = {
             tenantId: runtimeXpert.tenantId,
             organizationId: runtimeOrganizationId,
@@ -879,6 +895,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             runtime: middlewareRuntime
         }
         const builtinMiddlewareEntries: Array<{ key: string; middleware: AgentMiddleware }> = []
+        const templateRuntime = createTemplateRuntimeMiddleware(runtimeXpert, this.commandBus)
+        if (templateRuntime) builtinMiddlewareEntries.push({ key: templateRuntime.name, middleware: templateRuntime })
         builtinMiddlewareEntries.push(
             await createThreadReferenceMiddleware(this.agentMiddlewareRegistry, middlewareContext)
         )
@@ -1037,6 +1055,14 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
               ]
             : []
         const middlewareEntries: Array<{ key: string; middleware: AgentMiddleware }> = [
+            ...(runtimeXpert.options?.operationPolicy
+                ? [
+                      {
+                          key: 'assistant_operation_policy',
+                          middleware: createTemplateOperationPolicy(runtimeXpert.options.operationPolicy)
+                      }
+                  ]
+                : []),
             ...resourceGuard.map((middleware) => ({ key: 'runtime_resource_authorization', middleware })),
             ...(titleMiddleware
                 ? [
@@ -1226,26 +1252,7 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             // Default channels for nodes
             ...Object.fromEntries(
                 uniq([...(hiddenAgent ? [] : [agent.key]), ...workflowNodes]).map((key) => {
-                    // for agent
-                    if (isAgentKey(key)) {
-                        const agent = graph.nodes.find((_) => _.type === 'agent' && _.key === key)
-                        return [channelName(key), createAgentChannel(agent.entity as IXpertAgent)]
-                    }
-                    // for workflow
-                    return [
-                        channelName(key),
-                        Annotation<Record<string, unknown>>({
-                            reducer: (a, b) => {
-                                return b
-                                    ? {
-                                          ...a,
-                                          ...b
-                                      }
-                                    : a
-                            },
-                            default: () => ({})
-                        })
-                    ]
+                    return [channelName(key), createGraphNodeChannel(graph.nodes.find((node) => node.key === key))]
                 })
             ),
             // Channels for workflow nodes

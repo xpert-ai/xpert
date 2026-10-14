@@ -15,6 +15,7 @@ export type TAssistantModelSelectionPreference = {
  * another single-purpose preference entity.
  */
 export type TAssistantUserPreferenceDomainMap = {
+  templateSetup: import('./assistant-template-setup.model').AssistantTemplateSetupState
   modelSelection: TAssistantModelSelectionPreference
   conversationSidebar: Record<string, TChatConversationSidebarState>
 }

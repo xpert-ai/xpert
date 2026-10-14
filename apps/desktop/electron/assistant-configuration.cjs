@@ -19,6 +19,33 @@ function createAssistantConfigurationMethods(ClientError) {
   const conflictMessage =
     'This assistant was changed in Xpert. Reload its settings or review the workflow in Xpert before editing.'
   return {
+    async assistantTemplateSetup(input) {
+      const id = assistant(this, input)
+      return this.request(`/api/xpert/${encodeURIComponent(id)}/template-setup`, { scope: 'organization' })
+    },
+    async updateAssistantTemplateSetup(input) {
+      const id = assistant(this, input)
+      return this.request(`/api/xpert/${encodeURIComponent(id)}/template-setup`, {
+        scope: 'organization',
+        method: 'PUT',
+        retry: false,
+        body: input.update
+      })
+    },
+    async updateAssistantTemplateRoutine(input) {
+      const id = assistant(this, input)
+      if (typeof input.key !== 'string' || !/^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,127}$/.test(input.key))
+        throw new ClientError('Invalid assistant settings.')
+      return this.request(
+        `/api/xpert/${encodeURIComponent(id)}/template-setup/routines/${encodeURIComponent(input.key)}`,
+        {
+          scope: 'organization',
+          method: 'PUT',
+          retry: false,
+          body: input.update
+        }
+      )
+    },
     async assistantConfiguration(input) {
       const id = assistant(this, input)
       const query =

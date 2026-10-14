@@ -772,7 +772,9 @@
                   />
                   <div class="min-w-0">
                     <h4 class="truncate text-base font-semibold text-foreground" [title]="templateTitle(template)">
-                      {{ templateTitle(template) }}
+                      <a [routerLink]="['/explore/templates', template.id]" class="hover:underline">{{
+                        templateTitle(template)
+                      }}</a>
                     </h4>
                     <p class="mt-1 truncate text-xs text-muted-foreground">
                       {{ templateProvider(template) }}
@@ -798,6 +800,9 @@
                       </span>
                     }
                   </div>
+                  <a z-button zType="outline" [routerLink]="['/explore/templates', template.id]">{{
+                    'TemplateOverview.View' | translate
+                  }}</a>
                   <button z-button zType="default" type="button" (click)="openTemplate(template, $event)">
                     {{ 'XP.Explore.AgentSquare.UseTemplate' | translate: { Default: 'Use template' } }}
                   </button>

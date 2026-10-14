@@ -65,10 +65,10 @@ describe('versioned template declarations', () => {
         ])
             expect(templateManifestSchema.safeParse(manifest).success).toBe(false)
     })
-    it('blocks required future capabilities and leaves optional routines off', () => {
+    it('allows install before onboarding configuration', () => {
         const onboarding = { skill: 'setup', preferences: ['timezone'], completionCriteria: 'Confirmed preferences' }
         const required = templateManifestSchema.parse({ schemaVersion: 1, version: '1', onboarding })
-        expect(inspectTemplateManifest({ ...base, manifest: required }).readiness.canInstall).toBe(false)
+        expect(inspectTemplateManifest({ ...base, manifest: required }).readiness.canInstall).toBe(true)
         const optional = templateManifestSchema.parse({
             schemaVersion: 1,
             version: '1',
@@ -76,8 +76,21 @@ describe('versioned template declarations', () => {
         })
         expect(inspectTemplateManifest({ ...base, manifest: optional }).readiness).toMatchObject({
             canInstall: true,
-            checks: [{ required: false, status: 'unsupported' }]
+            checks: [{ required: false, status: 'pending-configuration' }]
         })
+    })
+    it('rejects ambiguous account selection for repeated connector providers', () => {
+        const connector = { provider: 'calendar', purpose: 'Read calendars', permissions: [] }
+        expect(
+            templateManifestSchema.safeParse({
+                schemaVersion: 2,
+                version: '1',
+                connectors: [
+                    { ...connector, key: 'work' },
+                    { ...connector, key: 'personal' }
+                ]
+            }).success
+        ).toBe(false)
     })
     it('adapts a legacy single skill declaration without duplication', () => {
         const manifest = templateManifestSchema.parse({

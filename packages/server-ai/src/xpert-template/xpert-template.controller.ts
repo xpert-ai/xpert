@@ -1,4 +1,5 @@
 import { InspectTemplateReadinessCommand } from '../plugin-resource/template-installation/template-readiness.command'
+import { describeAssistantTemplate } from './definition/assistant-template-overview'
 import { z } from 'zod'
 import {
     AiModelTypeEnum,
@@ -110,6 +111,11 @@ export class XpertTemplateController {
             mode: body?.mode,
             validateOnly: body?.validateOnly
         })
+    }
+
+    @Get(':id/overview')
+    async templateOverview(@I18nLang() language: LanguagesEnum, @Param('id') id: string) {
+        return describeAssistantTemplate(await this.service.getTemplateDetail(id, LanguagesMap[language] ?? language))
     }
 
     @Get(':id/setup')

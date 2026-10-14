@@ -89,12 +89,22 @@ export const templateManifestV1Schema = z
       .optional(),
     files: templateFilesSchema.optional(),
     onboarding: z
-      .object({ skill: key, required, preferences: z.array(key).max(50), completionCriteria: text })
+      .object({
+        skill: key,
+        required,
+        preferences: z
+          .array(key)
+          .max(50)
+          .refine((items) => new Set(items).size === items.length),
+        completionCriteria: text
+      })
       .strict()
       .optional(),
     connectors: z
       .array(z.object({ key, provider: text, required, purpose: text, permissions: z.array(text).max(50) }).strict())
       .max(50)
+      .refine((items) => new Set(items.map((item) => item.key)).size === items.length)
+      .refine((items) => new Set(items.map((item) => item.provider)).size === items.length)
       .optional(),
     routines: z
       .array(
@@ -112,6 +122,7 @@ export const templateManifestV1Schema = z
           .strict()
       )
       .max(50)
+      .refine((items) => new Set(items.map((item) => item.key)).size === items.length)
       .optional(),
     execution: z
       .object({

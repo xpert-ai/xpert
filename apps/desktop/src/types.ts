@@ -212,6 +212,15 @@ export interface HostMethods {
     input: { botId: string; capabilities?: string[] }
     output: import('./assistant-settings/types').AssistantSettings
   }
+  assistantTemplateSetup: { input: { botId: string }; output: import('@xpert-ai/contracts').AssistantTemplateSetup }
+  updateAssistantTemplateSetup: {
+    input: { botId: string; update: import('@xpert-ai/contracts').TemplateSetupUpdate }
+    output: import('@xpert-ai/contracts').AssistantTemplateSetup
+  }
+  updateAssistantTemplateRoutine: {
+    input: { botId: string; key: string; update: { enabled: boolean; expression: string; timeZone: string } }
+    output: import('@xpert-ai/contracts').TemplateRoutineStatus[]
+  }
   saveAssistantConfiguration: {
     input: {
       botId: string
@@ -289,6 +298,7 @@ export interface HostMethods {
   }
   discardApplicationConfiguration: { input: ApplicationInput; output: ApplicationSetup }
   templateWorkspaces: { input: undefined; output: WorkspaceOption[] }
+  templateOverview: { input: { id: string }; output: import('@xpert-ai/contracts').AssistantTemplateOverview }
   templateSetup: {
     input: { id: string; capabilities?: string[]; workspaceId?: string }
     output: {

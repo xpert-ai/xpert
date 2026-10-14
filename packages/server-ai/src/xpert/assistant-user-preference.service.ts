@@ -1,10 +1,11 @@
+import { isDeepStrictEqual } from 'node:util'
 import {
     ASSISTANT_USER_PREFERENCES_VERSION,
     TAssistantUserPreferenceDomain,
     TAssistantUserPreferenceDomainMap
 } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
-import { ForbiddenException, Injectable } from '@nestjs/common'
+import { ConflictException, ForbiddenException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { t } from 'i18next'
 import { DeepPartial, FindOptionsWhere, IsNull, Repository } from 'typeorm'
@@ -24,6 +25,46 @@ export class AssistantUserPreferenceService {
         @InjectRepository(AssistantUserPreference)
         private readonly repository: Repository<AssistantUserPreference>
     ) {}
+
+    /** Compare the entire domain, preserving unrelated preferences and rejecting stale edits. */
+    async compareAndSetDomain<K extends TAssistantUserPreferenceDomain>(
+        assistantId: string,
+        domain: K,
+        previous: TAssistantUserPreferenceDomainMap[K] | null,
+        value: TAssistantUserPreferenceDomainMap[K]
+    ): Promise<void> {
+        const scope = this.preferenceScope()
+        await this.repository.manager
+            .transaction(async (manager) => {
+                const repository = manager.getRepository(AssistantUserPreference)
+                await manager.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [
+                    JSON.stringify([scope.tenantId, scope.organizationId, scope.userId, assistantId])
+                ])
+                const where = this.preferenceWhere(scope, assistantId)
+                // Existing preference writers use atomic SQL updates. Lock the row so a
+                // concurrent change in another domain cannot be lost by this save.
+                const current = await repository.findOne({ where, lock: { mode: 'pessimistic_write' } })
+                if (!isDeepStrictEqual(current?.preferences?.[domain] ?? null, previous))
+                    throw new ConflictException(t('server-ai:Error.TemplateSetupChanged'))
+                if (current) {
+                    current.preferences = { ...current.preferences, [domain]: value }
+                    await repository.save(current)
+                } else {
+                    await repository.save(
+                        repository.create({
+                            ...scope,
+                            assistantId,
+                            preferences: { version: ASSISTANT_USER_PREFERENCES_VERSION, [domain]: value }
+                        })
+                    )
+                }
+            })
+            .catch((error) => {
+                if (this.isUniqueViolation(error))
+                    throw new ConflictException(t('server-ai:Error.TemplateSetupChanged'))
+                throw error
+            })
+    }
 
     async getPreferences(assistantId: string): Promise<AssistantUserPreference | null> {
         const scope = this.preferenceScope()

@@ -356,6 +356,7 @@ export type TXpertDataXpertOptions = {
 }
 
 export type TXpertOptions = {
+  operationPolicy?: import('./assistant-template-setup.model').AssistantOperationPolicy
   templateDefinition?: import('./assistant-template.model').AssistantTemplateMetadata
   templateDependencyLocks?: import('./template-installation.model').TemplateDependencyLock[]
   /** Default ChatKit message display for this Assistant. Omit to inherit the host application's default. */

@@ -1,3 +1,4 @@
+import { taskCronExpression, cronMinuteOccurrence } from './template-routines/template-schedule'
 import {
     generateCronExpression,
     getAgentMiddlewareNodes,
@@ -566,7 +567,9 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         const conversation = await this.commandBus.execute<ChatConversationUpsertCommand, ChatConversation>(
             new ChatConversationUpsertCommand({
                 id: params.conversationId ?? undefined,
-                status: 'busy',
+                // Admission owns the transition to busy together with the writer claim.
+                // A pre-marked busy thread would reject its own first scheduled run.
+                status: 'idle',
                 taskId: params.conversationTaskId ?? undefined,
                 xpertId: params.xpertId ?? undefined,
                 projectId: params.projectId ?? undefined,
@@ -626,7 +629,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         const MaximumRuns = 10
         let runs = 0
 
-        const cronTime = generateCronExpression(task.options)
+        const cronTime = taskCronExpression(task)
         const scheduleJob = () => {
             const job = CronJob.from({
                 cronTime: cronTime,
@@ -663,7 +666,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
                     })
                 }
             })
-            if (task.options.frequency === TaskFrequency.Once) {
+            if (task.options?.frequency === TaskFrequency.Once) {
                 job.runOnce = true
             }
             this.schedulerRegistry.addCronJob(task.id, job)
@@ -758,7 +761,7 @@ export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTa
         error?: unknown
     ) {
         await this.requireScheduledTaskExecutionCoordinator().finish(execution, status, error)
-        if (status === ScheduledTaskExecutionStatus.SUCCEEDED && task.options.frequency === TaskFrequency.Once) {
+        if (status === ScheduledTaskExecutionStatus.SUCCEEDED && task.options?.frequency === TaskFrequency.Once) {
             this.deleteJob(task.id)
             await this.repository.update(task.id, { status: ScheduleTaskStatus.PAUSED })
         }
@@ -3406,6 +3409,7 @@ function buildScheduleIdempotencyKey(task: IXpertTask, scheduledAt = new Date())
 }
 
 export function resolveScheduledOccurrence(task: IXpertTask, reference = new Date()) {
+    if (task.schedule) return cronMinuteOccurrence(task, reference)
     const timeZone = task.timeZone || 'UTC'
     const cronTime = new CronTime(generateCronExpression(task.options), timeZone)
     const lookbackDays =

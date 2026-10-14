@@ -225,7 +225,8 @@ async function mountCatalog(t, handler, onUse = async () => {}) {
             './catalog/ApplicationToolsets',
             './ApplicationToolsetEditor',
             './catalog/TemplateInstallation',
-            './catalog/TemplateManifestDetails'
+            './catalog/TemplateManifestDetails',
+            './catalog/TemplateOverview'
           ].includes(id)
         )
           return renderer(posix.normalize(posix.join(dirname(file), id)) + '.tsx')
@@ -525,6 +526,19 @@ const installation = {
 }
 const templateResult = (method, input) => {
   if (method === 'listCatalog' && input === 'templates') return [template]
+  if (method === 'templateOverview')
+    return {
+      id: 'template',
+      title: 'Installable template',
+      publisher: 'Author',
+      description: 'Work',
+      instructions: 'Prepare drafts',
+      memories: [],
+      skills: [],
+      agents: [],
+      routines: [],
+      integrations: []
+    }
   if (method === 'templateSetup')
     return {
       workspaces: library.workspaces,
@@ -573,7 +587,8 @@ test('required missing template dependencies block install and display the selec
     return result
   })
   await view.click('Agent templates')
-  await view.click('Initialize & install')
+  await view.click('View template')
+  await view.click('Import Assistant')
   assert.match(document.body.textContent, /required-plugin/)
   assert.match(document.body.textContent, /2\.0\.0/)
   assert.match(document.body.textContent, /office\/tasks.json/)
@@ -608,7 +623,8 @@ test('template setup resumes the same failed operation and restores it when reop
     }
   )
   await view.click('Agent templates')
-  await view.click('Initialize & install')
+  await view.click('View template')
+  await view.click('Import Assistant')
   await view.click('Install & use')
   assert.match(document.body.textContent, /Publish failed/)
   assert.equal(view.count('createTemplateInstallation'), 1)
@@ -633,14 +649,16 @@ test('template setup resumes the same failed operation and restores it when reop
   assert.equal(target.organizationId, 'organization-one')
   assert.doesNotMatch(document.body.textContent, /The operation failed. Please retry./)
   await view.click('Back to catalog')
-  await view.click('Initialize & install')
+  await view.click('View template')
+  await view.click('Import Assistant')
   assert.match(document.body.textContent, /Configuration required/)
   assert.equal(view.count('createTemplateInstallation'), 1)
   await view.click('Open assistant')
   assert.equal(opened, 'assistant')
   await view.render('organization-two')
   await view.click('Agent templates')
-  await view.click('Initialize & install')
+  await view.click('View template')
+  await view.click('Import Assistant')
   assert.doesNotMatch(document.querySelector('form').textContent, /Configuration required/)
 })
 test('source-changed history shows the error without a resume action', async (t) => {
@@ -655,7 +673,8 @@ test('source-changed history shows the error without a resume action', async (t)
     return templateResult(method, input)
   })
   await view.click('Agent templates')
-  await view.click('Initialize & install')
+  await view.click('View template')
+  await view.click('Import Assistant')
   const record = [...document.querySelectorAll('button')].find((b) => b.textContent.includes('operation'))
   assert.ok(record)
   await React.act(async () => record.click())
@@ -665,4 +684,30 @@ test('source-changed history shows the error without a resume action', async (t)
     false
   )
   assert.equal(view.count('createTemplateInstallation'), 0)
+})
+
+test('template introduction shows four sections without setup or installation until import is requested', async (t) => {
+  const calls = []
+  const view = await mountCatalog(t, async (method, input) => {
+    calls.push(method)
+    return templateResult(method, input)
+  })
+  await view.click('Agent templates')
+  await view.click('View template')
+  assert.match(document.body.textContent, /Prepare drafts/)
+  assert.equal(document.querySelector('[role="tablist"]').getAttribute('aria-orientation'), 'vertical')
+  assert.equal(calls.includes('templateSetup'), false)
+  assert.equal(calls.includes('installTemplate'), false)
+  for (const [label, hint, content] of [
+    ['Skills', 'Playbooks it can run', 'No portable skill dependencies declared.'],
+    ['Routines', 'Work it can run on a schedule', 'Routines start paused.'],
+    ['Integrations', 'Apps and services it can use', 'No external integrations declared.']
+  ]) {
+    await view.click(label + hint)
+    const selected = document.querySelector('[role="tabpanel"][data-state="active"]')
+    assert.ok(selected.textContent.includes(content))
+  }
+  await view.click('Import Assistant')
+  assert.equal(calls.includes('templateSetup'), true)
+  assert.equal(calls.includes('installTemplate'), false)
 })

@@ -1049,7 +1049,13 @@
         "TemplateRequirementsUnmet": "Required template capabilities or dependencies are not ready. Review the installation checks.",
         "TemplateFileScopeConflict": "File isolation must match the template declaration.",
         "TemplateDependencyBusy": "Template dependencies are being updated by another installation. Try again shortly.",
-        "TemplateDependencyChanged": "A plugin or resource no longer matches this Assistant’s installed version. Restore the pinned version before running."
+        "TemplateDependencyChanged": "A plugin or resource no longer matches this Assistant’s installed version. Restore the pinned version before running.",
+        "TemplateSetupChanged": "Assistant setup changed. Refresh before saving.",
+        "TemplateSetupInvalid": "Complete the required preferences and select an authorized connection.",
+        "TemplateRoutineInvalid": "Check the schedule, time zone, setup completion and required connections before enabling this routine.",
+        "TemplateOperationDenied": "The tool operation was denied. No action was performed.",
+        "TemplateConnectorsRequired": "Configure the required template connections before running tools.",
+        "AssistantTemplateNotFound": "Assistant template was not found."
     },
     "Mcp": {
         "Test": {
@@ -1227,5 +1233,8 @@
         "missing": "Missing; configure and refresh",
         "incompatible": "Incompatible version or declaration",
         "pending-configuration": "Configuration required after installation"
+    },
+    "TemplateSetup": {
+        "ApprovalRequired": "Your approval is required for this operation"
     }
 }

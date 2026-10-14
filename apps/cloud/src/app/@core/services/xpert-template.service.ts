@@ -2,6 +2,7 @@ import { HttpClient } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
 import {
   ICopilotModel,
+  AssistantTemplateOverview,
   ITemplateSkillSyncResult,
   IXpert,
   TAvatar,
@@ -62,6 +63,12 @@ export class XpertTemplateService {
     return this.#httpClient.get<XpertTemplateSetup>(API_PREFIX + `/xpert-template/${encodeURIComponent(id)}/setup`, {
       params: { capabilities: capabilities.join(','), ...(workspaceId ? { workspaceId } : {}) }
     })
+  }
+
+  getOverview(id: string) {
+    return this.#httpClient.get<AssistantTemplateOverview>(
+      API_PREFIX + `/xpert-template/${encodeURIComponent(id)}/overview`
+    )
   }
 
   installTemplate(

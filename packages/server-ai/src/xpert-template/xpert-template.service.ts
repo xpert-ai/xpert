@@ -1,5 +1,6 @@
+import { t } from 'i18next'
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
-import { Inject, Injectable, Logger, OnApplicationBootstrap, Optional } from '@nestjs/common'
+import { Inject, Injectable, Logger, NotFoundException, OnApplicationBootstrap, Optional } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import {
@@ -260,7 +261,7 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
         )
 
         if (!details) {
-            throw new Error(`Unable to find template for ${id}`)
+            throw new NotFoundException(t('server-ai:Error.AssistantTemplateNotFound'))
         }
 
         return this.withTemplateExportData(id, details)

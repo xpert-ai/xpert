@@ -55,16 +55,32 @@ export function inspectTemplateManifest(template: TXpertTemplate): {
     }
     if (manifest.onboarding)
         readiness.checks.push(
-            requirementCheck('onboarding', manifest.onboarding.skill, 'unsupported', manifest.onboarding.required)
+            requirementCheck(
+                'onboarding',
+                manifest.onboarding.skill,
+                'pending-configuration',
+                manifest.onboarding.required
+            )
         )
     for (const connector of manifest.connectors ?? [])
-        readiness.checks.push(requirementCheck('connectors', connector.provider, 'unsupported', connector.required))
+        readiness.checks.push(
+            requirementCheck('connectors', connector.provider, 'pending-configuration', connector.required)
+        )
     for (const routine of manifest.routines ?? [])
-        readiness.checks.push(requirementCheck('routines', routine.key, 'unsupported', routine.required))
+        readiness.checks.push(
+            requirementCheck(
+                'routines',
+                routine.key,
+                routine.trigger === 'schedule' ? 'ready' : 'unsupported',
+                routine.required
+            )
+        )
     for (const capability of manifest.execution?.localCapabilities ?? [])
         readiness.checks.push(requirementCheck('execution', capability, 'unsupported'))
     if (manifest.execution?.offline === 'local-only')
         readiness.checks.push(requirementCheck('execution', 'local-only', 'unsupported'))
-    readiness.canInstall = !readiness.checks.some((check) => check.required && check.status !== 'ready')
+    readiness.canInstall = !readiness.checks.some(
+        (check) => check.required && !['ready', 'pending-configuration'].includes(check.status)
+    )
     return { manifest, readiness, normalized }
 }
