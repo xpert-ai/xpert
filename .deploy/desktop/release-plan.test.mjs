@@ -263,6 +263,60 @@ test('dependency-only version bumps do not accidentally release Desktop', (t) =>
   f.version('0.1.1')
   assert.equal(f.plan(f.initial, f.commit(), 'push', 'refs/heads/main').build, false)
 })
+test('a missing Desktop changeset can be repaired after a dependency-only version bump', (t) => {
+  const f = fixture(t)
+  f.version('0.3.3')
+  const baseline = f.commit()
+  f.note('contracts', 'patch', '@xpert-ai/contracts')
+  f.write('apps/desktop/source.txt', 'Assistant template installation and lifecycle updates')
+  const source = f.commit()
+  assert.deepEqual(f.plan(baseline, source, 'push', 'refs/heads/main'), {
+    build: false,
+    reason: 'No new Desktop changeset'
+  })
+
+  f.remove('contracts')
+  f.version('0.3.4')
+  const dependencyBump = f.commit()
+  assert.deepEqual(f.plan(source, dependencyBump, 'push', 'refs/heads/main'), {
+    build: false,
+    reason: 'No Desktop changeset: dependency-only or unrequested version bump'
+  })
+
+  f.note('desktop-repair')
+  const repair = f.commit()
+  for (const [event, ref, branch] of [
+    ['pull_request', 'refs/pull/1/merge', 'develop'],
+    ['push', 'refs/heads/main', 'main']
+  ]) {
+    const candidate = f.plan(dependencyBump, repair, event, ref, dependencyBump)
+    assert.equal(candidate.build, true)
+    assert.equal(candidate.stable, false)
+    assert.equal(candidate.baseVersion, '0.3.5')
+    assert.equal(candidate.version, `0.3.5-candidate.${branch}.${repair.slice(0, 12)}`)
+    assert.equal(candidate.tag, `desktop-v${candidate.version}`)
+    assert.deepEqual(candidate.changesets, ['.changeset/desktop-repair.md'])
+    assert.deepEqual(candidate.matrix.include, platforms)
+    assert.equal(candidate.matrix.include.length, 6)
+  }
+
+  f.remove('desktop-repair')
+  f.version('0.3.5')
+  const versioned = f.commit()
+  const stable = f.plan(repair, versioned, 'push', 'refs/heads/main', versioned)
+  assert.equal(stable.build, true)
+  assert.equal(stable.stable, true)
+  assert.equal(stable.version, '0.3.5')
+  assert.equal(stable.tag, 'desktop-v0.3.5')
+  assert.deepEqual(stable.changesets, ['.changeset/desktop-repair.md'])
+  assert.deepEqual(stable.matrix.include, platforms)
+
+  // The repair must land before its version PR so the push baseline contains the release request.
+  assert.deepEqual(f.plan(dependencyBump, versioned, 'push', 'refs/heads/main'), {
+    build: false,
+    reason: 'No Desktop changeset: dependency-only or unrequested version bump'
+  })
+})
 test('wrong version or unconsumed Desktop notes fail closed', (t) => {
   const f = fixture(t)
   f.note('desktop')
