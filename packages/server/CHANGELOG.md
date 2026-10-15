@@ -1,5 +1,20 @@
 # @xpert-ai/server-core
 
+## 3.10.7
+
+### Patch Changes
+
+- 4bf9514: Allow integrations without a registered strategy, including GitHub, to be updated and deleted. Reuse the existing scoped registry lookup for optional validation and lifecycle hooks, while preserving lookup errors and failures from registered hooks. Required strategy operations remain unchanged.
+- Updated dependencies [5afe7d1]
+- Updated dependencies [94dd967]
+- Updated dependencies [8ecf7b0]
+- Updated dependencies [94dd967]
+- Updated dependencies [616bab6]
+- Updated dependencies [616bab6]
+- Updated dependencies [ddeb74f]
+    - @xpert-ai/contracts@3.22.0
+    - @xpert-ai/plugin-sdk@3.23.0
+
 ## 3.10.6
 
 ### Patch Changes
