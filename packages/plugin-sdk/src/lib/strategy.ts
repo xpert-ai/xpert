@@ -187,14 +187,19 @@ export class BaseStrategyRegistry<S> implements OnModuleInit {
    * @returns
    */
   get(type: string, organizationId?: string): S {
-    organizationId ??= RequestContext.getOrganizationId()
-    const strategy = this.resolveStrategyScopeKeys(organizationId)
-      .map((scopeKey) => this.strategies.get(scopeKey)?.get(type))
-      .find((item): item is S => !!item)
+    const strategy = this.tryGet(type, organizationId)
     if (!strategy) {
       throw new Error(`No strategy found for type '${type}' for strategy '${this.strategyKey}'`)
     }
     return strategy
+  }
+
+  /** Resolves an optional strategy with the same scope precedence as get. */
+  tryGet(type: string, organizationId?: string): S | undefined {
+    organizationId ??= RequestContext.getOrganizationId()
+    return this.resolveStrategyScopeKeys(organizationId)
+      .map((scopeKey) => this.strategies.get(scopeKey)?.get(type))
+      .find((item): item is S => !!item)
   }
 
   /**

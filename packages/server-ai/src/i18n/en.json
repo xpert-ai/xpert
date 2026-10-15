@@ -602,6 +602,7 @@
         "KeywordIndexPostgresRequired": "Knowledge keyword indexes currently require PostgreSQL.",
         "KeywordIndexMissing": "Knowledge keyword indexes are missing. Create the required PostgreSQL indexes before enabling keyword retrieval.",
         "IntegrationNotFound": "Integration '{{id}}' not found",
+        "IntegrationProviderUnavailable": "The integration provider is unavailable. Check that its plugin is installed and loaded, then retry.",
         "InvalidDocumentProcessingMode": "Document processing mode must be full or rechunk.",
         "TransformSnapshotMissing": "No saved conversion result is available. Run the converter once before re-chunking.",
         "TransformSnapshotStale": "The saved conversion result no longer matches the current converter settings.",

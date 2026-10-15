@@ -602,6 +602,7 @@
         "KeywordIndexPostgresRequired": "知识库关键词索引当前仅支持 PostgreSQL。",
         "KeywordIndexMissing": "缺少知识库关键词索引，请先手动创建所需的 PostgreSQL 索引再启用关键词检索。",
         "IntegrationNotFound": "未找到系统集成‘{{id}}’",
+        "IntegrationProviderUnavailable": "系统集成提供方暂不可用，请确认对应插件已安装并成功加载后重试。",
         "InvalidDocumentProcessingMode": "文档处理模式必须是 full 或 rechunk。",
         "TransformSnapshotMissing": "没有可用的转换结果快照，请先完整执行一次转换器。",
         "TransformSnapshotStale": "保存的转换结果与当前转换器配置不再匹配。",

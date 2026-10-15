@@ -37,6 +37,24 @@ describe('BaseStrategyRegistry', () => {
     jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(organizationId)
   }
 
+  it('returns undefined for an absent optional strategy while required lookup still throws', () => {
+    mockRequestScope('tenant-1')
+    const registry = new TestStrategyRegistry<object>()
+
+    expect(registry.tryGet('missing')).toBeUndefined()
+    expect(() => registry.get('missing')).toThrow("No strategy found for type 'missing'")
+  })
+
+  it('does not suppress scope resolution failures during optional lookup', () => {
+    mockRequestScope('tenant-1')
+    jest.spyOn(RequestContext, 'getScope').mockImplementation(() => {
+      throw new Error('Scope unavailable')
+    })
+    const registry = new TestStrategyRegistry<object>()
+
+    expect(() => registry.tryGet('missing')).toThrow('Scope unavailable')
+  })
+
   it('prefers organization strategies over global ones when listing and resolving by type', () => {
     class GlobalSharedStrategy {
       readonly id = 'global-shared'
@@ -120,6 +138,7 @@ describe('BaseStrategyRegistry', () => {
     jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
 
     expect(registry.get('tenant-global', 'org-1')).toBe(tenantOneGlobal)
+    expect(registry.tryGet('tenant-global')).toBe(tenantOneGlobal)
     expect(registry.list('org-1')).toEqual([tenantOneGlobal])
     ;(RequestContext.getScope as jest.Mock).mockReturnValue({
       tenantId: 'tenant-2',
@@ -129,6 +148,7 @@ describe('BaseStrategyRegistry', () => {
     ;(RequestContext.currentTenantId as jest.Mock).mockReturnValue('tenant-2')
 
     expect(registry.get('tenant-global', 'org-2')).toBe(tenantTwoGlobal)
+    expect(registry.tryGet('tenant-global', 'org-2')).toBe(tenantTwoGlobal)
     expect(registry.list('org-2')).toEqual([tenantTwoGlobal])
   })
 
@@ -176,6 +196,7 @@ describe('BaseStrategyRegistry', () => {
     expect(() => registry.get('default-global', GLOBAL_ORGANIZATION_SCOPE)).toThrow(
       "No strategy found for type 'default-global'"
     )
+    expect(registry.tryGet('default-global', GLOBAL_ORGANIZATION_SCOPE)).toBeUndefined()
     expect(registry.list(GLOBAL_ORGANIZATION_SCOPE)).toEqual([otherTenantGlobal, builtin])
 
     mockRequestScope('tenant-default', 'org-default')
@@ -255,6 +276,10 @@ describe('BaseStrategyRegistry', () => {
     expect(registry.get('shared', 'org-other')).toBe(organizationShared)
     expect(registry.get('shared', GLOBAL_ORGANIZATION_SCOPE)).toBe(tenantShared)
     expect(registry.get('system-only', 'org-other')).toBe(systemOnly)
+    expect(registry.tryGet('shared')).toBe(organizationShared)
+    expect(registry.tryGet('shared', GLOBAL_ORGANIZATION_SCOPE)).toBe(tenantShared)
+    expect(registry.tryGet('system-only')).toBe(systemOnly)
+    expect(registry.tryGet('builtin-only')).toBe(builtinOnly)
     expect(registry.list('org-other')).toEqual([organizationShared, tenantOnly, systemOnly, builtinOnly])
   })
 
