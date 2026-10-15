@@ -1,12 +1,12 @@
 import 'reflect-metadata'
-import { BadRequestException, ServiceUnavailableException } from '@nestjs/common'
+import { BadRequestException } from '@nestjs/common'
 import { DiscoveryService, ModulesContainer, Reflector } from '@nestjs/core'
 import { CommandBus } from '@nestjs/cqrs'
 import { Test } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { RequestScopeLevel } from '@xpert-ai/contracts'
 import { IntegrationStrategyRegistry, RequestContext, type IntegrationStrategy } from '@xpert-ai/plugin-sdk'
-import { BUILTIN_GLOBAL_SCOPE, getTenantGlobalScopeKey } from '../../../plugin-sdk/src/lib/types'
+import { BUILTIN_GLOBAL_SCOPE, getTenantGlobalScopeKey, setDefaultTenantId } from '../../../plugin-sdk/src/lib/types'
 import { UserService } from '../user'
 import { IntegrationDelCommand } from './commands/delete.command'
 import { IntegrationUpsertCommand } from './commands/upsert.command'
@@ -29,7 +29,6 @@ jest.mock('../core/crud', () => ({
 }))
 jest.mock('../user', () => ({ UserService: class UserService {} }))
 jest.mock('./integration.entity', () => ({ Integration: class Integration {} }))
-jest.mock('i18next', () => ({ t: (_key: string, options: { defaultValue: string }) => options.defaultValue }))
 
 describe('Integration lifecycle', () => {
 	let registry: IntegrationStrategyRegistry
@@ -39,6 +38,7 @@ describe('Integration lifecycle', () => {
 	let previous: Integration
 
 	beforeEach(async () => {
+		setDefaultTenantId('default-tenant')
 		jest.spyOn(RequestContext, 'getScope').mockReturnValue({
 			tenantId: 'tenant',
 			level: RequestScopeLevel.TENANT,
@@ -71,7 +71,10 @@ describe('Integration lifecycle', () => {
 		jest.spyOn(service, 'findOne').mockResolvedValue(previous)
 	})
 
-	afterEach(() => jest.restoreAllMocks())
+	afterEach(() => {
+		jest.restoreAllMocks()
+		setDefaultTenantId(null)
+	})
 
 	function register(hooks: Partial<IntegrationStrategy> = {}, provider = 'github') {
 		const strategy: IntegrationStrategy = {
@@ -83,15 +86,22 @@ describe('Integration lifecycle', () => {
 		return strategy
 	}
 
-	it('deletes a built-in integration with no registered strategy', async () => {
-		await expect(remove.execute(new IntegrationDelCommand(previous.id))).resolves.toBeUndefined()
-		expect(service.delete).toHaveBeenCalledWith(previous.id)
-	})
+	it.each(['github', 'provider-without-strategy'])(
+		'deletes a %s integration with no registered strategy',
+		async (provider) => {
+			previous.provider = provider
+			await expect(remove.execute(new IntegrationDelCommand(previous.id))).resolves.toBeUndefined()
+			expect(service.delete).toHaveBeenCalledWith(previous.id)
+		}
+	)
 
-	it('continues to create integrations without an optional validation strategy', async () => {
-		await upsert.execute(new IntegrationUpsertCommand({ name: 'GitHub', provider: 'github' }))
-		expect(service.create).toHaveBeenCalledWith({ name: 'GitHub', provider: 'github' })
-	})
+	it.each(['github', 'provider-without-strategy'])(
+		'creates a %s integration without an optional validation strategy',
+		async (provider) => {
+			await upsert.execute(new IntegrationUpsertCommand({ name: 'Integration', provider }))
+			expect(service.create).toHaveBeenCalledWith({ name: 'Integration', provider })
+		}
+	)
 
 	it('does not treat a registry failure as an absent optional validation strategy', async () => {
 		jest.spyOn(RequestContext, 'getScope').mockImplementation(() => {
@@ -103,10 +113,14 @@ describe('Integration lifecycle', () => {
 		expect(service.create).not.toHaveBeenCalled()
 	})
 
-	it('updates a built-in integration with no registered strategy', async () => {
-		await upsert.execute(new IntegrationUpsertCommand({ id: previous.id, name: 'Renamed' }))
-		expect(service.update).toHaveBeenCalledWith(previous.id, expect.objectContaining({ name: 'Renamed' }))
-	})
+	it.each(['github', 'provider-without-strategy'])(
+		'updates a %s integration with no registered strategy',
+		async (provider) => {
+			previous.provider = provider
+			await upsert.execute(new IntegrationUpsertCommand({ id: previous.id, name: 'Renamed' }))
+			expect(service.update).toHaveBeenCalledWith(previous.id, expect.objectContaining({ name: 'Renamed' }))
+		}
+	)
 
 	it('allows changing provider when the previous provider has no strategy', async () => {
 		register({}, 'replacement')
@@ -177,7 +191,7 @@ describe('Integration lifecycle', () => {
 	})
 
 	it.each(['delete', 'update', 'provider change'])(
-		'blocks %s when the plugin strategy has been unloaded',
+		'allows %s when the plugin strategy has been unloaded',
 		async (operation) => {
 			const onDelete = jest.fn()
 			const scopeKey = getTenantGlobalScopeKey('tenant')
@@ -193,6 +207,7 @@ describe('Integration lifecycle', () => {
 				},
 				{ kind: 'plugin', scopeKey, pluginName }
 			)
+			expect(registry.get(provider)).toMatchObject({ onDelete })
 			registry.remove(scopeKey, pluginName)
 
 			const result =
@@ -204,47 +219,69 @@ describe('Integration lifecycle', () => {
 								...(operation === 'provider change' ? { provider: 'github' } : { name: 'Renamed' })
 							})
 						)
-			await expect(result).rejects.toThrow(ServiceUnavailableException)
+			await result
 			expect(onDelete).not.toHaveBeenCalled()
-			expect(service.delete).not.toHaveBeenCalled()
-			expect(service.update).not.toHaveBeenCalled()
+			expect(service.delete).toHaveBeenCalledTimes(operation === 'delete' ? 1 : 0)
+			expect(service.update).toHaveBeenCalledTimes(operation === 'delete' ? 0 : 1)
 		}
 	)
 
-	it('blocks creation when the plugin strategy is unavailable', async () => {
-		await expect(
-			upsert.execute(
-				new IntegrationUpsertCommand({
-					name: 'Plugin integration',
-					provider: 'missing-plugin'
-				})
-			)
-		).rejects.toThrow(ServiceUnavailableException)
-		expect(service.create).not.toHaveBeenCalled()
-	})
-
-	it('blocks switching to an unavailable provider before cleaning up the current integration', async () => {
+	it('cleans up the current integration when switching to a provider without a strategy', async () => {
 		const onDelete = jest.fn()
 		register({ onDelete })
-		await expect(
-			upsert.execute(
-				new IntegrationUpsertCommand({
-					id: previous.id,
-					provider: 'missing-plugin'
-				})
-			)
-		).rejects.toThrow(ServiceUnavailableException)
-		expect(onDelete).not.toHaveBeenCalled()
-		expect(service.update).not.toHaveBeenCalled()
+		await upsert.execute(new IntegrationUpsertCommand({ id: previous.id, provider: 'provider-without-strategy' }))
+		expect(onDelete).toHaveBeenCalledWith(previous)
+		expect(service.update).toHaveBeenCalledWith(
+			previous.id,
+			expect.objectContaining({ provider: 'provider-without-strategy' })
+		)
 	})
 
-	it('reports a useful error for an unavailable plugin', async () => {
-		previous.provider = 'missing-plugin'
-		await expect(remove.execute(new IntegrationDelCommand(previous.id))).rejects.toMatchObject({
-			status: 503,
-			message:
-				'The integration provider is unavailable. Check that its plugin is installed and loaded, then retry.'
-		})
+	it('matches the registry type instead of the strategy metadata name', async () => {
+		const onDelete = jest.fn()
+		previous.provider = 'registered-type'
+		register(
+			{ meta: { name: 'different-metadata-name', label: { en_US: 'Integration' } }, onDelete },
+			previous.provider
+		)
+		await remove.execute(new IntegrationDelCommand(previous.id))
+		expect(onDelete).toHaveBeenCalledWith(previous)
+		expect(service.delete).toHaveBeenCalledWith(previous.id)
+	})
+
+	it('uses the organization hook before the tenant fallback and excludes other tenants', async () => {
+		const onOrganizationDelete = jest.fn()
+		const onTenantDelete = jest.fn()
+		const onOtherTenantDelete = jest.fn()
+		const provider = 'scoped-provider'
+		previous.provider = provider
+		for (const [scopeKey, onDelete] of [
+			['organization', onOrganizationDelete],
+			[getTenantGlobalScopeKey('tenant'), onTenantDelete],
+			[getTenantGlobalScopeKey('another-tenant'), onOtherTenantDelete]
+		] as const) {
+			registry.register(
+				provider,
+				{
+					meta: { name: provider, label: { en_US: 'Scoped integration' } },
+					execute: jest.fn(),
+					onDelete
+				},
+				{ kind: 'plugin', scopeKey, pluginName: '@test/scoped-plugin' }
+			)
+		}
+
+		jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('organization')
+		await remove.execute(new IntegrationDelCommand(previous.id))
+		expect(onOrganizationDelete).toHaveBeenCalledTimes(1)
+		expect(onTenantDelete).not.toHaveBeenCalled()
+		expect(onOtherTenantDelete).not.toHaveBeenCalled()
+
+		jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('another-organization')
+		await remove.execute(new IntegrationDelCommand(previous.id))
+		expect(onOrganizationDelete).toHaveBeenCalledTimes(1)
+		expect(onTenantDelete).toHaveBeenCalledTimes(1)
+		expect(onOtherTenantDelete).not.toHaveBeenCalled()
 	})
 
 	it('still requires a strategy for explicit integration testing', async () => {
