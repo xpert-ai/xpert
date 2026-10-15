@@ -13,6 +13,7 @@ export type SettingsExtensionMenuItem = {
   icon: string
   scopeContext?: SettingsExtensionScope
   data?: {
+    translationKey?: string
     permissionKeys?: string[]
     featureKey?: AiFeatureEnum | FeatureEnum | (AiFeatureEnum | FeatureEnum)[]
   }
