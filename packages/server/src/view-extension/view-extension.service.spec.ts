@@ -12,7 +12,7 @@ import {
 } from '@xpert-ai/contracts'
 import { ViewExtensionService } from './view-extension.service'
 import type { ViewExtensionFileActionFile } from './host-definition.interface'
-import { getViewDataRequestMetricRoute } from './view-request-metrics'
+import { getViewRequestMetricRoute } from './view-request-metrics'
 
 describe('ViewExtensionService file actions', () => {
 	const manifest = {
@@ -64,6 +64,8 @@ describe('ViewExtensionService file actions', () => {
 			supports: jest.fn(async () => true),
 			getViewManifests: jest.fn(async (_context: XpertResolvedViewHostContext, _slot: string) => [manifest]),
 			getViewData: jest.fn(),
+			executeViewAction: jest.fn(async () => ({ success: true })),
+			getViewParameterOptions: jest.fn(async () => ({ items: [] })),
 			resolveViewFile: jest.fn(async () => ({
 				reference: {
 					source: 'platform.workspace.files',
@@ -106,6 +108,7 @@ describe('ViewExtensionService file actions', () => {
 		const permissionService = {
 			assertHostReadable: jest.fn(),
 			filterVisibleManifests: jest.fn((manifests) => manifests),
+			filterVisibleActions: jest.fn((actions) => actions),
 			ensureManifestVisible: jest.fn(),
 			ensureActionVisible: jest.fn()
 		}
@@ -131,9 +134,9 @@ describe('ViewExtensionService file actions', () => {
 			{ ...manifest, dataSource: { mode: 'platform', cache: { enabled: cached } } }
 		])
 		provider.getViewData.mockImplementation(async () => {
-			expect(
-				getViewDataRequestMetricRoute(request, '/api/view-hosts/:hostType/:hostId/views/:viewKey/data')
-			).toBe('/api/view-hosts/agent/:hostId/views/provider__review/data')
+			expect(getViewRequestMetricRoute(request, '/api/view-hosts/:hostType/:hostId/views/:viewKey/data')).toBe(
+				'/api/view-hosts/agent/:hostId/views/provider__review/data'
+			)
 			throw new Error('provider failure')
 		})
 		if (cached) cacheService.getOrSetViewData.mockImplementation(async () => ({ items: [] }))
@@ -144,7 +147,7 @@ describe('ViewExtensionService file actions', () => {
 		} else {
 			await expect(result).rejects.toThrow('provider failure')
 		}
-		expect(getViewDataRequestMetricRoute(request, '/api/view-hosts/:hostType/:hostId/views/:viewKey/data')).toBe(
+		expect(getViewRequestMetricRoute(request, '/api/view-hosts/:hostType/:hostId/views/:viewKey/data')).toBe(
 			'/api/view-hosts/agent/:hostId/views/provider__review/data'
 		)
 	})
@@ -166,7 +169,145 @@ describe('ViewExtensionService file actions', () => {
 			)
 		).rejects.toThrow()
 		const template = '/api/view-hosts/:hostType/:hostId/views/:viewKey/data'
-		expect(getViewDataRequestMetricRoute(request, template)).toBe(template)
+		expect(getViewRequestMetricRoute(request, template)).toBe(template)
+	})
+
+	it.each([
+		'manifest',
+		'remote-component/entry',
+		'parameters/:parameterKey/options',
+		'actions/:actionKey',
+		'actions/:actionKey/file'
+	])('identifies an authorized view before serving %s', async (suffix) => {
+		const { service, provider } = createService()
+		const request = new Request('http://localhost')
+		jest.spyOn(RequestContext, 'currentRequest').mockReturnValue(request)
+		provider.getViewManifests.mockResolvedValue([
+			{
+				...manifest,
+				view: {
+					type: 'remote_component',
+					runtime: 'vue',
+					protocolVersion: 1,
+					component: { isolation: 'iframe', entry: 'review' }
+				},
+				parameters: [{ key: 'filter', label: { en_US: 'Filter' }, type: 'string' }]
+			}
+		])
+		const template = `/api/ai/groups/:groupId/workbench/:hostType/:hostId/views/:viewKey/${suffix}`
+		const expectIdentified = () =>
+			expect(getViewRequestMetricRoute(request, template)).toBe(
+				`/api/ai/groups/:groupId/workbench/agent/:hostId/views/provider__review/${suffix}`
+			)
+		provider.getRemoteComponentEntry.mockImplementation(async () => {
+			expectIdentified()
+			return { html: '<main>Review</main>' }
+		})
+		provider.getViewParameterOptions.mockImplementation(async () => {
+			expectIdentified()
+			return { items: [] }
+		})
+		provider.executeViewAction.mockImplementation(async () => {
+			expectIdentified()
+			return { success: true }
+		})
+		provider.executeViewFileAction.mockImplementation(async () => {
+			expectIdentified()
+			return { success: true, refresh: true }
+		})
+		switch (suffix) {
+			case 'manifest':
+				await service.getViewManifest('agent', 'assistant-1', 'provider__review')
+				break
+			case 'remote-component/entry':
+				await service.getRemoteComponentEntry('agent', 'assistant-1', 'provider__review')
+				break
+			case 'parameters/:parameterKey/options':
+				await service.getViewParameterOptions('agent', 'assistant-1', 'provider__review', 'filter', {})
+				break
+			case 'actions/:actionKey':
+				await service.executeAction('agent', 'assistant-1', 'provider__review', 'json_action', {})
+				break
+			case 'actions/:actionKey/file':
+				await service.executeFileAction(
+					'agent',
+					'assistant-1',
+					'provider__review',
+					'preview_material_excel',
+					{},
+					{ buffer: Buffer.from('file') }
+				)
+				break
+		}
+		expectIdentified()
+	})
+
+	it.each(['json', 'file'])('retains the outer view when a %s action reads another view', async (transport) => {
+		const { service, provider } = createService()
+		const request = new Request('http://localhost')
+		jest.spyOn(RequestContext, 'currentRequest').mockReturnValue(request)
+		provider.getViewManifests.mockResolvedValue([manifest, { ...manifest, key: 'nested' }])
+		const loadNestedView = async () => {
+			await service.getViewData('agent', 'assistant-1', 'provider__nested', {})
+			return { success: true, refresh: false }
+		}
+		provider.executeViewAction.mockImplementation(loadNestedView)
+		provider.executeViewFileAction.mockImplementation(loadNestedView)
+		if (transport === 'json') {
+			await service.executeAction('agent', 'assistant-1', 'provider__review', 'json_action', {})
+		} else {
+			await service.executeFileAction(
+				'agent',
+				'assistant-1',
+				'provider__review',
+				'preview_material_excel',
+				{},
+				{ buffer: Buffer.from('file') }
+			)
+		}
+		const suffix = transport === 'json' ? 'actions/:actionKey' : 'actions/:actionKey/file'
+		expect(
+			getViewRequestMetricRoute(
+				request,
+				`/api/ai/groups/:groupId/workbench/:hostType/:hostId/views/:viewKey/${suffix}`
+			)
+		).toBe(`/api/ai/groups/:groupId/workbench/agent/:hostId/views/provider__review/${suffix}`)
+	})
+
+	describe.each(['json', 'file'])('rejected %s actions', (transport) => {
+		it.each(['missing', 'forbidden-view', 'forbidden-action'])(
+			'does not identify a rejected action (%s)',
+			async (reason) => {
+				const { service, permissionService } = createService()
+				const request = new Request('http://localhost')
+				jest.spyOn(RequestContext, 'currentRequest').mockReturnValue(request)
+				if (reason === 'forbidden-view')
+					permissionService.ensureManifestVisible.mockImplementation(() => {
+						throw new ForbiddenException()
+					})
+				if (reason === 'forbidden-action')
+					permissionService.ensureActionVisible.mockImplementation(() => {
+						throw new ForbiddenException()
+					})
+				const action = transport === 'json' ? 'json_action' : 'preview_material_excel'
+				const actionKey = reason === 'missing' ? 'unknown' : action
+				await expect(
+					transport === 'json'
+						? service.executeAction('agent', 'assistant-1', 'provider__review', actionKey, {})
+						: service.executeFileAction(
+								'agent',
+								'assistant-1',
+								'provider__review',
+								actionKey,
+								{},
+								{ buffer: Buffer.from('file') }
+							)
+				).rejects.toThrow()
+				const suffix = transport === 'json' ? 'actions/:actionKey' : 'actions/:actionKey/file'
+				const template = `/api/ai/groups/:groupId/workbench/:hostType/:hostId/views/:viewKey/${suffix}`
+				expect(getViewRequestMetricRoute(request, template)).toBe(template)
+			}
+		)
 	})
 
 	it('previews permission-filtered feature associations without activating views or exposing executable schemas', async () => {
