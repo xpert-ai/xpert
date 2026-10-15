@@ -1,5 +1,5 @@
-import { ComponentFixture, signal } from '@angular/core'
-import { TestBed } from '@angular/core/testing'
+import { signal } from '@angular/core'
+import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { provideHttpClient } from '@angular/common/http'
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing'
 import { TranslateModule } from '@ngx-translate/core'
@@ -14,6 +14,26 @@ jest.mock('@cloud/app/@core', () => ({
   getErrorMessage: (error: unknown) => (error instanceof Error ? error.message : 'Request failed'),
   injectToastr: () => ({ error: jest.fn() })
 }))
+
+const settle = async () => {
+  for (let index = 0; index < 8; index++) await Promise.resolve()
+}
+const idleImport = {
+  operationId: null,
+  phase: 'idle',
+  commit: null,
+  total: 0,
+  currentId: null,
+  items: [],
+  updatedAt: new Date().toISOString()
+}
+const importing = {
+  ...idleImport,
+  operationId: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
+  phase: 'importing',
+  commit: 'official',
+  total: 110
+}
 
 const pkg = (id: string, version: string): PackageSummary => ({
   id,
@@ -60,11 +80,13 @@ describe('AgentPluginsComponent installation configuration', () => {
     http = TestBed.inject(HttpTestingController)
     fixture.detectChanges()
     flushCatalog()
+    http.expectOne((request) => request.url.endsWith('/agent-plugins/defaults')).flush(idleImport)
     await fixture.whenStable()
   })
   afterEach(() => {
     http.verify()
     TestBed.resetTestingModule()
+    jest.useRealTimers()
   })
 
   it('loads the current binding and keeps scope and title while choosing another imported version', () => {
@@ -136,6 +158,9 @@ describe('AgentPluginsComponent installation configuration', () => {
     fixture.detectChanges()
     http.expectOne((request) => request.url.endsWith('/agent-plugins')).flush({ packages: [], bindings: [] })
     http.expectOne((request) => request.url.endsWith('/agent-plugins/options')).flush({ workspaces: [], experts: [] })
+    http
+      .expectOne((request) => request.url.endsWith('/agent-plugins/defaults') && request.method === 'GET')
+      .flush(idleImport)
     staleData.flush({ packages: [oldPackage], bindings: [currentBinding] })
     staleOptions.flush(options)
     await pending
@@ -180,7 +205,7 @@ describe('AgentPluginsComponent installation configuration', () => {
         { id: 'pdf', status: 'failed', error: 'Invalid package' }
       ]
     }
-    request.flush(result)
+    request.flush({ ...importing, ...result, phase: 'completed' })
     await Promise.resolve()
     await Promise.resolve()
     await Promise.resolve()
@@ -197,10 +222,101 @@ describe('AgentPluginsComponent installation configuration', () => {
     fixture.detectChanges()
     http.expectOne((request) => request.url.endsWith('/agent-plugins')).flush({ packages: [], bindings: [] })
     http.expectOne((request) => request.url.endsWith('/agent-plugins/options')).flush({ workspaces: [], experts: [] })
-    request.flush({ commit: 'other-org', items: [] })
+    http
+      .expectOne((request) => request.url.endsWith('/agent-plugins/defaults') && request.method === 'GET')
+      .flush(idleImport)
+    request.flush({ ...importing, commit: 'other-org' })
     await pending
     expect(component.defaultImportResult()).toBeNull()
     expect(component.packages()).toEqual([])
     expect(component.importingDefaults()).toBe(false)
+  })
+  it('polls the same receipt, preserves partial progress and recovers a transient gateway failure', async () => {
+    jest.useFakeTimers()
+    let finished = false
+    void component.importDefaults().then(() => {
+      finished = true
+    })
+    http.expectOne((request) => request.url.endsWith('/defaults')).flush(importing)
+    await settle()
+    expect(component.defaultImportProgress().total).toBe(110)
+    expect(finished).toBe(false)
+    await jest.advanceTimersByTimeAsync(2000)
+    const retry = http.expectOne((request) => request.url.endsWith('/defaults'))
+    expect(retry.request.body).toEqual({ operationId: importing.operationId })
+    retry.flush('Timeout', { status: 504, statusText: 'Gateway Timeout' })
+    await settle()
+    expect(component.defaultImportDisconnected()).toBe(true)
+    expect(component.importingDefaults()).toBe(true)
+    await jest.advanceTimersByTimeAsync(2000)
+    const items = [{ id: 'documents', status: 'imported' }]
+    http.expectOne((request) => request.url.endsWith('/defaults')).flush({ ...importing, items })
+    await settle()
+    expect(component.defaultImportProgress().items).toEqual(items)
+    expect(component.defaultImportDisconnected()).toBe(false)
+    await jest.advanceTimersByTimeAsync(2000)
+    http.expectOne((request) => request.url.endsWith('/defaults')).flush({ ...importing, phase: 'completed', items })
+    await settle()
+    flushCatalog()
+    await settle()
+    expect(finished).toBe(true)
+    expect(component.importingDefaults()).toBe(false)
+    await jest.advanceTimersByTimeAsync(4000)
+    http.expectNone((request) => request.url.endsWith('/defaults'))
+  })
+
+  it('restores a running import after navigation and stops polling on destruction', async () => {
+    jest.useFakeTimers()
+    mockScope.set({ level: 'organization', organizationId: 'organization-two' })
+    fixture.detectChanges()
+    flushCatalog()
+    http.expectOne((request) => request.url.endsWith('/defaults')).flush(importing)
+    await settle()
+    expect(component.importingDefaults()).toBe(true)
+    await jest.advanceTimersByTimeAsync(2000)
+    const resumed = http.expectOne((request) => request.url.endsWith('/defaults'))
+    expect(resumed.request.body).toEqual({ operationId: importing.operationId })
+    resumed.flush(importing)
+    await settle()
+    fixture.destroy()
+    await settle()
+    await jest.advanceTimersByTimeAsync(4000)
+    http.expectNone((request) => request.url.endsWith('/defaults'))
+  })
+
+  it('does not submit duplicate imports and displays a failed receipt', async () => {
+    jest.useFakeTimers()
+    void component.importDefaults()
+    void component.importDefaults()
+    const request = http.expectOne((request) => request.url.endsWith('/defaults'))
+    request.flush({ ...importing, phase: 'failed', error: 'Repository unavailable' })
+    await settle()
+    flushCatalog()
+    await settle()
+    expect(component.defaultImportError()).toBe('Repository unavailable')
+    expect(component.busy()).toBe(false)
+    await jest.advanceTimersByTimeAsync(4000)
+    http.expectNone((request) => request.url.endsWith('/defaults'))
+  })
+
+  it('ignores an in-flight progress response after switching organizations', async () => {
+    jest.useFakeTimers()
+    const pending = component.importDefaults()
+    http.expectOne((request) => request.url.endsWith('/defaults')).flush(importing)
+    await settle()
+    await jest.advanceTimersByTimeAsync(2000)
+    const previousScope = http.expectOne((request) => request.url.endsWith('/defaults'))
+    mockScope.set({ level: 'organization', organizationId: 'organization-two' })
+    fixture.detectChanges()
+    flushCatalog()
+    http.expectOne((request) => request.url.endsWith('/defaults')).flush(idleImport)
+    await settle()
+    previousScope.flush({ ...importing, items: [{ id: 'private-plugin', status: 'imported' }] })
+    await pending
+    expect(component.defaultImportProgress()).toEqual(idleImport)
+    expect(component.defaultImportResult()).toBeNull()
+    expect(component.busy()).toBe(false)
+    await jest.advanceTimersByTimeAsync(4000)
+    http.expectNone((request) => request.url.endsWith('/defaults'))
   })
 })

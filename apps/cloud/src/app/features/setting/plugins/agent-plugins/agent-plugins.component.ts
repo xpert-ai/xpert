@@ -8,15 +8,19 @@ import {
   type ZardSelectValue
 } from '@xpert-ai/headless-ui'
 import { DefaultAgentPluginsResultComponent } from '@cloud/app/@shared/agent-plugins/default-agent-plugins-result.component'
-import { DEFAULT_AGENT_PLUGINS_SOURCE, type DefaultAgentPluginsImportResult } from '@xpert-ai/contracts'
+import {
+  DEFAULT_AGENT_PLUGINS_SOURCE,
+  type DefaultAgentPluginsImportResult,
+  type DefaultAgentPluginsImportProgress
+} from '@xpert-ai/contracts'
 import { A11yModule } from '@angular/cdk/a11y'
 import { BreakpointObserver } from '@angular/cdk/layout'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { CommonModule } from '@angular/common'
 import { Dialog, DialogModule, DialogRef } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { Component, computed, effect, inject, signal, TemplateRef, untracked } from '@angular/core'
-import { HttpClient } from '@angular/common/http'
+import { Component, computed, DestroyRef, effect, inject, signal, TemplateRef, untracked } from '@angular/core'
+import { HttpClient, HttpErrorResponse } from '@angular/common/http'
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import { ActivatedRoute, RouterLink } from '@angular/router'
@@ -82,6 +86,9 @@ export class AgentPluginsComponent {
   private importDialog?: DialogRef
   private generation = 0
   private refreshSequence = 0
+  private defaultSequence = 0
+  private defaultPollTimer?: ReturnType<typeof setTimeout>
+  private wakeDefaultPoll?: () => void
   readonly compact = toSignal(
     inject(BreakpointObserver)
       .observe('(max-width: 1023.98px)')
@@ -94,6 +101,9 @@ export class AgentPluginsComponent {
   readonly notice = signal(false)
   readonly defaultImportResult = signal<DefaultAgentPluginsImportResult | null>(null)
   readonly importingDefaults = signal(false)
+  readonly defaultImportProgress = signal<DefaultAgentPluginsImportProgress | null>(null)
+  readonly defaultImportError = signal<string | null>(null)
+  readonly defaultImportDisconnected = signal(false)
   readonly defaultSource = DEFAULT_AGENT_PLUGINS_SOURCE.browseUrl
   readonly packages = signal<PackageSummary[]>([])
   readonly bindings = signal<BindingSummary[]>([])
@@ -155,6 +165,7 @@ export class AgentPluginsComponent {
   })
 
   constructor() {
+    inject(DestroyRef).onDestroy(() => this.stopDefaultPolling())
     effect(() => {
       this.scope()
       untracked(() => {
@@ -169,10 +180,15 @@ export class AgentPluginsComponent {
         this.notice.set(false)
         this.defaultImportResult.set(null)
         this.importingDefaults.set(false)
+        this.defaultImportProgress.set(null)
+        this.defaultImportError.set(null)
+        this.defaultImportDisconnected.set(false)
+        this.stopDefaultPolling()
         this.search.set('')
         this.status.set('all')
         this.page.set(0)
         void this.refresh()
+        void this.restoreDefaultImport()
       })
     })
   }
@@ -251,19 +267,87 @@ export class AgentPluginsComponent {
   }
   async importDefaults() {
     if (this.busy() || this.desktopScopeMismatch()) return
-    const generation = this.generation
+    this.stopDefaultPolling()
+    const sequence = this.defaultSequence
     this.defaultImportResult.set(null)
+    this.defaultImportError.set(null)
+    this.defaultImportDisconnected.set(false)
     this.importingDefaults.set(true)
+    this.busy.set(true)
     try {
-      await this.run(async () => {
-        const result = await firstValueFrom(
-          this.http.post<DefaultAgentPluginsImportResult>(`${this.endpoint}/defaults`, {})
-        )
-        if (generation === this.generation) this.defaultImportResult.set(result)
-      })
+      const progress = await firstValueFrom(
+        this.http.post<DefaultAgentPluginsImportProgress>(`${this.endpoint}/defaults`, {})
+      )
+      await this.monitorDefaultImport(progress, sequence)
+    } catch (error) {
+      if (sequence === this.defaultSequence) this.defaultImportError.set(getErrorMessage(error))
     } finally {
-      if (generation === this.generation) this.importingDefaults.set(false)
+      if (sequence === this.defaultSequence) {
+        this.importingDefaults.set(false)
+        this.busy.set(false)
+      }
     }
+  }
+
+  private async restoreDefaultImport() {
+    const sequence = this.defaultSequence
+    try {
+      const progress = await firstValueFrom(
+        this.http.get<DefaultAgentPluginsImportProgress>(`${this.endpoint}/defaults`)
+      )
+      await this.monitorDefaultImport(progress, sequence, false)
+    } catch (error) {
+      if (sequence === this.defaultSequence) this.defaultImportError.set(getErrorMessage(error))
+    } finally {
+      if (sequence === this.defaultSequence && this.importingDefaults()) {
+        this.importingDefaults.set(false)
+        this.busy.set(false)
+      }
+    }
+  }
+
+  private async monitorDefaultImport(progress: DefaultAgentPluginsImportProgress, sequence: number, refresh = true) {
+    let unavailableSince: number | null = null
+    while (sequence === this.defaultSequence) {
+      this.defaultImportProgress.set(progress)
+      this.defaultImportError.set(progress.error ?? null)
+      if (progress.commit) this.defaultImportResult.set({ commit: progress.commit, items: progress.items })
+      if (!['fetching', 'importing'].includes(progress.phase) || !progress.operationId) {
+        if (refresh && progress.phase !== 'idle') await this.refresh()
+        return
+      }
+      refresh = true
+      this.importingDefaults.set(true)
+      this.busy.set(true)
+      await new Promise<void>((resolve) => {
+        this.wakeDefaultPoll = resolve
+        this.defaultPollTimer = setTimeout(resolve, 2000)
+      })
+      if (sequence !== this.defaultSequence) return
+      try {
+        // A resume request also recovers a worker lost during an API restart, without starting a new job.
+        progress = await firstValueFrom(
+          this.http.post<DefaultAgentPluginsImportProgress>(`${this.endpoint}/defaults`, {
+            operationId: progress.operationId
+          })
+        )
+        if (sequence !== this.defaultSequence) return
+        this.defaultImportDisconnected.set(false)
+        unavailableSince = null
+      } catch (error) {
+        if (!(error instanceof HttpErrorResponse) || ![0, 502, 503, 504].includes(error.status)) throw error
+        unavailableSince ??= Date.now()
+        if (Date.now() - unavailableSince > 180_000) throw error
+        if (sequence === this.defaultSequence) this.defaultImportDisconnected.set(true)
+      }
+    }
+  }
+
+  private stopDefaultPolling() {
+    this.defaultSequence++
+    clearTimeout(this.defaultPollTimer)
+    this.wakeDefaultPoll?.()
+    this.wakeDefaultPoll = undefined
   }
 
   importGit() {

@@ -84,6 +84,9 @@
     },
     "AgentPlugins": {
       "DefaultImportTitle": "官方 Agent 外掛",
+      "DefaultImportFetching": "正在取得官方插件清單，可離開此頁，稍後回來查看進度。",
+      "DefaultImportProgress": "已處理 {{completed}} / {{total}} 個插件。可稍後回來查看進度。",
+      "DefaultImportReconnecting": "連線暫時中斷，正在重新取得安裝進度…",
       "ImportDefaults": "一鍵匯入預設外掛",
       "SetupImportDefaults": "匯入預設 Agent 外掛（建議）",
       "DefaultImportDescription": "在目前租戶或組織內安裝官方資源包。已有內容會複用，單個失敗不影響其餘安裝。",

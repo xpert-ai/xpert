@@ -1079,7 +1079,8 @@
         "TemplateUpgradeChoices": "Choose keep or replace for every changed section.",
         "TemplateUpgradePending": "Finish or roll back the pending upgrade first.",
         "TemplateUpgradeUnsupported": "This change requires a portable runtime adapter, a new routine key, or a separate installation for a changed file scope.",
-        "TemplateUpgradeSourceUnavailable": "The source template is unavailable. You can still recover or roll back this saved upgrade."
+        "TemplateUpgradeSourceUnavailable": "The source template is unavailable. You can still recover or roll back this saved upgrade.",
+        "DefaultAgentPluginsImportChanged": "The import operation has changed. Refresh the page and try again."
     },
     "Mcp": {
         "Test": {

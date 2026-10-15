@@ -329,6 +329,9 @@
     },
     "AgentPlugins": {
       "DefaultImportTitle": "Official Agent plugins",
+      "DefaultImportFetching": "Fetching official plugins. You can leave this page and return to check progress.",
+      "DefaultImportProgress": "Processed {{completed}} of {{total}} plugins. You can return later to check progress.",
+      "DefaultImportReconnecting": "Connection interrupted. Reconnecting to installation progress…",
       "ImportDefaults": "Import default plugins",
       "SetupImportDefaults": "Import default Agent plugins (recommended)",
       "DefaultImportDescription": "Install official resource packages in the current tenant or organization. Existing content is reused. A failed package does not stop the remaining installations.",

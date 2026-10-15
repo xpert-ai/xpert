@@ -1,6 +1,9 @@
 import { CqrsModule } from '@nestjs/cqrs'
 import { InstallAgentPluginTemplateResourcesHandler } from './templates/install-template-resources.handler'
 import { ImportDefaultAgentPluginsHandler } from './defaults/import-default-agent-plugins.handler'
+import { DefaultAgentPluginsService } from './defaults/default-agent-plugins.service'
+import { DefaultAgentPluginsStore } from './defaults/default-agent-plugins.store'
+import { DefaultAgentPluginsImporter } from './defaults/default-agent-plugins.importer'
 import { Global, Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { AgentPluginPackage, AgentResourceBinding } from './agent-plugin.entity'
@@ -36,6 +39,9 @@ import { ResolvePluginConnectorsHandler } from './queries/resolve-plugin-connect
         AssertAgentPluginTemplateDependencyHandler,
         AgentPluginService,
         ImportDefaultAgentPluginsHandler,
+        DefaultAgentPluginsService,
+        DefaultAgentPluginsStore,
+        DefaultAgentPluginsImporter,
         RuntimeResourceService,
         AgentPluginConnectorService,
         ResolvePluginConnectorsHandler,

@@ -19,3 +19,15 @@ export interface DefaultAgentPluginsImportResult {
   commit: string
   items: DefaultAgentPluginImportItem[]
 }
+
+/** Scope-owned receipt for a background import; completed items survive API restarts. */
+export interface DefaultAgentPluginsImportProgress {
+  operationId: string | null
+  phase: 'idle' | 'fetching' | 'importing' | 'completed' | 'failed'
+  commit: string | null
+  total: number
+  currentId: string | null
+  items: DefaultAgentPluginImportItem[]
+  updatedAt: string
+  error?: string
+}

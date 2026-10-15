@@ -474,6 +474,9 @@
     },
     "AgentPlugins": {
       "DefaultImportTitle": "官方 Agent 插件",
+      "DefaultImportFetching": "正在获取官方插件清单，可以离开此页，稍后回来查看进度。",
+      "DefaultImportProgress": "已处理 {{completed}} / {{total}} 个插件。可以稍后回来查看进度。",
+      "DefaultImportReconnecting": "连接暂时中断，正在重新获取安装进度…",
       "ImportDefaults": "一键导入默认插件",
       "SetupImportDefaults": "导入默认 Agent 插件（推荐）",
       "DefaultImportDescription": "在当前租户或组织内安装官方资源包。已有内容会复用，单个失败不影响其余安装。",

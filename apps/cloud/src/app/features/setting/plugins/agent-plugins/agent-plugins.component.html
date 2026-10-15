@@ -55,7 +55,32 @@
           }}
         </button>
       </div>
-      <xp-default-agent-plugins-result [result]="defaultImportResult()" />
+      @if (importingDefaults()) {
+        <p role="status" class="text-sm text-text-secondary">
+          @if (defaultImportProgress()?.phase === 'fetching') {
+            {{ 'XP.AgentPlugins.DefaultImportFetching' | translate }}
+          } @else {
+            {{
+              'XP.AgentPlugins.DefaultImportProgress'
+                | translate
+                  : {
+                      completed: defaultImportProgress()?.items.length ?? 0,
+                      total: defaultImportProgress()?.total ?? 0
+                    }
+            }}
+          }
+        </p>
+      } @else {
+        <xp-default-agent-plugins-result [result]="defaultImportResult()" />
+      }
+      @if (defaultImportDisconnected()) {
+        <p role="status" class="text-sm text-text-secondary">
+          {{ 'XP.AgentPlugins.DefaultImportReconnecting' | translate }}
+        </p>
+      }
+      @if (defaultImportError(); as message) {
+        <p role="alert" class="break-words text-sm text-text-destructive">{{ message }}</p>
+      }
     </div>
     <div class="mb-6 flex flex-wrap items-center justify-end gap-3">
       <z-search-input
