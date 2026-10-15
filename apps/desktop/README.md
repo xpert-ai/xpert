@@ -18,7 +18,10 @@ Sidebar and a Right Content Panel. The right panel embeds the official
 `@xpert-ai/chatkit-web-component`; it does not implement a second chat UI.
 
 The desktop uses an amber primary color (`#f59e0b`) with a 12px radius token
-(10px inputs, 16px cards/dialogs). ChatKit receives the same primary token and
+(10px inputs, 16px cards/dialogs). ChatKit uses the current Assistant's character
+color, solid avatar background or generated fallback avatar color as its accent primary
+when available, otherwise the configured ChatKit
+accent or desktop primary token, and
 its native `round` radius preset; coverage inside the hosted frame depends on ChatKit.
 Both light and dark appearance modes use this theme.
 
@@ -32,7 +35,9 @@ under **Connections & capabilities**. Search filters these destinations by their
 The main content scrolls independently while the back button and save bar stay visible. ChatKit options include its
 native radius/density presets, 14–18px base font size, text/code font families,
 accent color/level, grayscale hue/tint/shade and light/dark surface colors.
-Blank ChatKit accent/font fields inherit the desktop values; other blank colors
+Assistant character colors take priority over the ChatKit accent setting and update
+when switching Assistants or saving their appearance. Group chats use the configured
+ChatKit accent. Blank ChatKit accent/font fields inherit the desktop values; other blank colors
 use their defaults. Fonts must already be installed; this UI does not load font URLs.
 
 Changes preview immediately. **取消更改** restores the saved values; **保存设置**

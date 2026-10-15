@@ -67,7 +67,11 @@ export function getChatKitMessagePresentation(
   return { mode: appearance.chatkit.messagePresentation ?? 'transcript' }
 }
 
-export function getChatKitTheme(dark: boolean, appearance = defaultAppearance()): ChatKitTheme {
+export function getChatKitTheme(
+  dark: boolean,
+  appearance = defaultAppearance(),
+  assistantColor?: string
+): ChatKitTheme {
   const { chatkit } = appearance
   const mode = dark ? 'dark' : 'light'
   const colors = desktopColors(appearance, mode)
@@ -77,7 +81,7 @@ export function getChatKitTheme(dark: boolean, appearance = defaultAppearance())
     radius: chatkit.radius,
     density: chatkit.density,
     color: {
-      accent: { primary: chatkit.accentPrimary || colors.primary, level: chatkit.accentLevel },
+      accent: { primary: assistantColor || chatkit.accentPrimary || colors.primary, level: chatkit.accentLevel },
       ...(chatkit.grayscale ? { grayscale: chatkit.grayscale } : {}),
       ...(surface.background || surface.foreground
         ? {
