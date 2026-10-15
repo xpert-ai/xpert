@@ -368,6 +368,22 @@ It only works with a loopback API address and is absent from packaged apps.
 `test:local` validates login, organization scope, Bot discovery, two scoped
 ChatKit sessions, JWT refresh, frame assets and logout, without printing secrets.
 
+To check catalog loading and native background/foreground transitions with an isolated
+profile, run these commands from `apps/desktop`:
+
+```sh
+corepack pnpm exec vite build
+corepack pnpm exec electron tests/fixtures/catalog-focus.electron.cjs
+```
+
+This uses the production renderer, preload and native activation bridge with 96
+synthetic templates and 200 ms per page. It reports painted startup/list/tab-return
+times, verifies five native reactivations make no catalog requests, and checks that
+manual refresh keeps cards visible. It does not measure production API latency.
+Closing and reopening discovery starts a fresh scoped catalog; switching between
+its tabs reuses cached data. Set `BOSI_CATALOG_REPORT` and `BOSI_CATALOG_SCREENSHOT`
+to save the JSON measurements and a screenshot.
+
 See [verification.md](docs/verification.md) for the tested local environment and
 remaining integration limits, and [design-qa.md](design-qa.md) for visual QA.
 
