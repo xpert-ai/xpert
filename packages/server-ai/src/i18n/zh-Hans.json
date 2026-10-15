@@ -1079,7 +1079,13 @@
         "TemplateUpgradeChoices": "请为每个变更部分选择保留本地内容或采用模板内容。",
         "TemplateUpgradePending": "请先完成或回退当前待处理的升级。",
         "TemplateUpgradeUnsupported": "此变更需要可移植运行适配器；变更已有例行任务请使用新任务键，变更文件隔离范围请另行安装。",
-        "TemplateUpgradeSourceUnavailable": "来源模板已不可用，仍可恢复或回退已保存的升级。"
+        "TemplateUpgradeSourceUnavailable": "来源模板已不可用，仍可恢复或回退已保存的升级。",
+        "DefaultAgentPluginsImportChanged": "导入任务已变化，请刷新页面后重试。",
+        "AgentPluginUpdateGitRequired": "ZIP 插件需要上传新版 ZIP 文件来更新。",
+        "AgentPluginUpdateChanged": "更新任务已变更，请刷新后重试。",
+        "AgentPluginUpdateBusy": "当前范围内已有 Agent 插件更新任务，请等待完成。",
+        "AgentPluginUpdateBranchRequired": "请选择用于更新的 Git 分支。",
+        "AgentPluginUpdateIdentityChanged": "来源中的插件标识已变更，未安装更新。"
     },
     "Mcp": {
         "Test": {

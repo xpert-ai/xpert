@@ -1,6 +1,6 @@
 import type { AgentPluginInstallationsService } from './agent-plugin-installations.service'
 jest.mock('./agent-plugin-installations.service', () => ({ AgentPluginInstallationsService: class {} }))
-import { CommandBus } from '@nestjs/cqrs'
+import type { DefaultAgentPluginsService } from './defaults/default-agent-plugins.service'
 import { BadRequestException, ForbiddenException, ConflictException } from '@nestjs/common'
 import { ModuleRef } from '@nestjs/core'
 import { Repository } from 'typeorm'
@@ -59,6 +59,9 @@ describe('workspace editor Agent Plugins', () => {
         query.mockReset()
         const manager = {
             query,
+            findOneBy: jest.fn(async (_entity, where) =>
+                where.id === pkg.id ? pkg : records.find((record) => record.id === where.id)
+            ),
             findOne: jest
                 .fn()
                 .mockImplementation(async (_entity, { where }) => records.find(({ id }) => id === where.id)),
@@ -73,6 +76,7 @@ describe('workspace editor Agent Plugins', () => {
         })
         service = new AgentPluginService(
             {
+                manager,
                 find: jest.fn().mockResolvedValue([pkg]),
                 findOneBy: jest.fn().mockImplementation(async ({ id }) => (id === 'package' ? pkg : null))
             } as unknown as Repository<AgentPluginPackage>,
@@ -187,7 +191,11 @@ describe('workspace editor Agent Plugins', () => {
         ).rejects.toBeInstanceOf(ForbiddenException)
     })
     it('rejects forged scope or configuration fields at the HTTP boundary', () => {
-        const controller = new AgentPluginController(service, {} as CommandBus, {} as AgentPluginInstallationsService)
+        const controller = new AgentPluginController(
+            service,
+            {} as DefaultAgentPluginsService,
+            {} as AgentPluginInstallationsService
+        )
         const id = '00000000-0000-4000-8000-000000000001'
         expect(() => controller.addToWorkspace(id, { packageId: id, experts: {}, workspaceIds: ['other'] })).toThrow()
         expect(() => controller.addToWorkspace('../other', { packageId: id, experts: {} })).toThrow()

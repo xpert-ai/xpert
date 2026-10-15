@@ -51,6 +51,7 @@ describe('installed plugins through the ChatKit catalog and runtime', () => {
     let lock: jest.Mock
     let assistantAccess: jest.Mock
     let manager: {
+        getRepository: jest.Mock
         query: jest.Mock
         findOneBy: jest.Mock
         save: jest.Mock
@@ -104,6 +105,7 @@ describe('installed plugins through the ChatKit catalog and runtime', () => {
             records.filter((record) => (Array.isArray(where) ? where : [where]).some((item) => matches(record, item)))
         )
         manager = {
+            getRepository: jest.fn((entity) => ({ find: entity === AgentPluginPackage ? findPackages : findBindings })),
             query: lock,
             findOneBy: jest.fn(async (_type, where) => records.find((record) => matches(record, where)) ?? null),
             save: jest.fn(async (_type, record: AgentResourceBinding) => {
@@ -197,6 +199,15 @@ describe('installed plugins through the ChatKit catalog and runtime', () => {
         expect(workspaceUpdate).toHaveBeenLastCalledWith(
             { ...scope, organizationId: 'second-org', id: 'skill-second' },
             expect.anything()
+        )
+    })
+    it('reserves automatic template references without changing their identity or version', async () => {
+        const original = { ...importedPluginBinding(packages[0]), cleanupEligible: true }
+        records.push(original)
+        await installations.retainTemplateReference({ bindingId: original.id, version: original.version })
+        expect(manager.save).toHaveBeenCalledWith(
+            AgentResourceBinding,
+            expect.objectContaining({ id: original.id, version: original.version, cleanupEligible: false })
         )
     })
     it('preserves old conversation IDs, versions and existing installations', async () => {

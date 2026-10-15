@@ -26,6 +26,7 @@ describe('Agent Plugin Assistant template adapter', () => {
     const packages = {
         runtimeCatalog: jest.fn(),
         templatePackage: jest.fn(),
+        retainTemplateReference: jest.fn().mockResolvedValue(undefined),
         reference: jest.fn(),
         saveTemplateCatalog: jest.fn()
     }

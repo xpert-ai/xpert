@@ -1079,7 +1079,13 @@
         "TemplateUpgradeChoices": "Choose keep or replace for every changed section.",
         "TemplateUpgradePending": "Finish or roll back the pending upgrade first.",
         "TemplateUpgradeUnsupported": "This change requires a portable runtime adapter, a new routine key, or a separate installation for a changed file scope.",
-        "TemplateUpgradeSourceUnavailable": "The source template is unavailable. You can still recover or roll back this saved upgrade."
+        "TemplateUpgradeSourceUnavailable": "The source template is unavailable. You can still recover or roll back this saved upgrade.",
+        "DefaultAgentPluginsImportChanged": "The import operation has changed. Refresh the page and try again.",
+        "AgentPluginUpdateGitRequired": "ZIP plugins must be updated by uploading a new ZIP file.",
+        "AgentPluginUpdateChanged": "This update operation has changed. Refresh and retry.",
+        "AgentPluginUpdateBusy": "Another Agent plugin update is running in this scope.",
+        "AgentPluginUpdateBranchRequired": "Choose a Git branch to follow for updates.",
+        "AgentPluginUpdateIdentityChanged": "The source contains a different plugin name. No update was installed."
     },
     "Mcp": {
         "Test": {

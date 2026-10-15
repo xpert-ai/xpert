@@ -18,15 +18,15 @@ import {
     type WorkspaceAgentPluginAddResult,
     type WorkspaceAgentPluginOptions
 } from '@xpert-ai/contracts'
-import { Repository } from 'typeorm'
-import { createHash, randomUUID } from 'node:crypto'
-import { mkdir, mkdtemp, readdir, rm, stat } from 'node:fs/promises'
-import { join, resolve } from 'node:path'
+import { Repository, type EntityManager } from 'typeorm'
+import { createHash } from 'node:crypto'
+import { mkdtemp, readdir, rm, stat } from 'node:fs/promises'
+import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { t } from 'i18next'
 import { AgentPluginPackage, AgentResourceBinding } from './agent-plugin.entity'
 import { parseAgentPlugin } from './agent-plugin-parser'
-import { extractPortableZip, portablePackageDigest, copyPortablePackage, stagePortableGit } from './agent-plugin-source'
+import { extractPortableZip, portablePackageDigest, stagePortableGit } from './agent-plugin-source'
 import type { RuntimeComponent } from '../plugin-resource/plugin-resource-installer.service'
 import Ajv from 'ajv'
 import { connectorMcpAuth, portableMcpSchema } from './agent-plugin-mcp'
@@ -35,6 +35,9 @@ import { publishedResourceVersion } from './published-resource-version'
 import { workspacePluginCatalog } from './workspace-plugin-catalog'
 import { agentPluginScope, agentPluginScopeWhere } from './agent-plugin-scope'
 import { importedPluginBinding } from './installed-plugin-catalog'
+import { lockPackageScope, packageIntact, stagePackageFiles, removePackageFiles } from './maintenance/package-storage'
+import { activatePackage, currentPackageBinding } from './maintenance/activate-package'
+import { retirePackageFiles, collectPackageGarbage } from './maintenance/package-garbage'
 
 export function resourceScope() {
     const tenantId = RequestContext.currentTenantId()
@@ -186,10 +189,10 @@ export class AgentPluginService {
         input: WorkspaceAgentPluginAddInput
     ): Promise<WorkspaceAgentPluginAddResult> {
         const scope = await this.assertWorkspaceEditor(workspaceId)
-        const pkg = await this.packages.findOneBy({ ...scope, id: input.packageId })
-        if (!pkg) throw new NotFoundException(t('server-ai:Error.AgentPluginNotFound'))
         // Serialize additions by package family and workspace across API instances. Other workspaces are never replaced.
         return this.bindings.manager.transaction(async (manager) => {
+            const pkg = await manager.findOneBy(AgentPluginPackage, { ...scope, id: input.packageId })
+            if (!pkg) throw new NotFoundException(t('server-ai:Error.AgentPluginNotFound'))
             await manager.query('SELECT pg_advisory_xact_lock(hashtext($1), hashtext($2))', [
                 `${scope.tenantId}:${scope.organizationId}`,
                 `${workspaceId}:${pkg.descriptor.name}`
@@ -267,49 +270,68 @@ export class AgentPluginService {
     }
 
     /** Internal staged content only; HTTP imports must pass through Git/ZIP validation first. */
-    async importStagedDirectory(root: string, source: AgentPluginPackage['source']) {
+    async importStagedDirectory(
+        root: string,
+        source: AgentPluginPackage['source'],
+        activate = false,
+        manager: EntityManager = this.packages.manager
+    ) {
         const scope = requireResourceAdmin()
         try {
             const descriptor = await parseAgentPlugin(root)
             const digest = await portablePackageDigest(root)
-            const existing = await this.packages.findOne({ where: { ...agentPluginScopeWhere(scope), digest } })
-            if (existing) {
-                // Reimporting an unchanged package also upgrades old catalog snapshots.
-                await this.packages
-                    .createQueryBuilder()
-                    .update()
-                    .set({ descriptor: () => ':descriptor' })
-                    .setParameter('descriptor', JSON.stringify(descriptor))
-                    .where({ id: existing.id, ...agentPluginScopeWhere(scope) })
-                    .execute()
-                const { rootPath, ...result } = { ...existing, descriptor }
-                return result
-            }
-            const rootPath = resolve(
-                process.env.XPERT_AGENT_PLUGIN_PATH || 'storage/agent-plugins',
-                scope.tenantId,
-                scope.organizationId ?? '_tenant',
-                randomUUID()
-            )
-            await mkdir(rootPath, { recursive: true })
+            let stagedPath: string | undefined
+            let committed = false
             try {
-                const skipped = await copyPortablePackage(root, rootPath)
-                descriptor.diagnostics.push(
-                    ...skipped.map((component) => ({
-                        component,
-                        code: 'unsafe_path',
-                        message: 'Skipped a broken, cyclic or escaping package path'
-                    }))
-                )
-                if ((await portablePackageDigest(rootPath)) !== digest) throw new Error('Plugin changed during import')
-                const saved = await this.packages.save(
-                    this.packages.create({ ...scope, rootPath, digest, descriptor, source })
-                )
-                const { rootPath: storedPath, ...result } = saved
+                const result = await manager.transaction(async (manager) => {
+                    await lockPackageScope(manager, scope)
+                    const previous = activate ? await currentPackageBinding(manager, scope, descriptor.name) : undefined
+                    const repository = manager.getRepository(AgentPluginPackage)
+                    const existing = await repository.findOne({ where: { ...agentPluginScopeWhere(scope), digest } })
+                    const intact = existing && (await packageIntact(existing.rootPath, digest, scope))
+                    let rootPath = existing?.rootPath
+                    if (!intact) {
+                        const staged = await stagePackageFiles(root, digest, scope)
+                        rootPath = stagedPath = staged.rootPath
+                        descriptor.diagnostics.push(
+                            ...staged.skipped.map((component) => ({
+                                component,
+                                code: 'unsafe_path',
+                                message: 'Skipped a broken, cyclic or escaping package path'
+                            }))
+                        )
+                        if (existing) await retirePackageFiles(manager, scope, [existing.rootPath])
+                    }
+                    // Never rewrite package identity, creation time or bindings during repair/reimport.
+                    const saved = existing
+                        ? await repository.save({ ...existing, descriptor, rootPath, ...(activate ? { source } : {}) })
+                        : await repository.save(repository.create({ ...scope, rootPath, digest, descriptor, source }))
+                    if (
+                        activate &&
+                        (previous?.definition.kind !== 'agent_plugin' || previous.definition.packageId !== saved.id)
+                    )
+                        await activatePackage(manager, saved, previous)
+                    const { rootPath: storedPath, ...item } = saved
+                    return {
+                        ...item,
+                        importStatus: existing
+                            ? intact
+                                ? ('existing' as const)
+                                : ('repaired' as const)
+                            : ('imported' as const)
+                    }
+                })
+                committed = true
+                // Collection is best-effort and durable; a cleanup failure must not roll back a successful repair.
+                await manager
+                    .transaction(async (manager) => {
+                        await lockPackageScope(manager, scope)
+                        await collectPackageGarbage(manager, scope)
+                    })
+                    .catch(() => undefined)
                 return result
-            } catch (error) {
-                await rm(rootPath, { recursive: true, force: true })
-                throw error
+            } finally {
+                if (!committed && stagedPath) await removePackageFiles(stagedPath, scope)
             }
         } catch (error) {
             throw new BadRequestException(
@@ -456,6 +478,11 @@ export class AgentPluginService {
             }
         }
         return this.bindings.manager.transaction(async (manager) => {
+            if (definition.kind === 'agent_plugin') {
+                await lockPackageScope(manager, scope)
+                if (!(await manager.findOneBy(AgentPluginPackage, { ...where, id: definition.packageId })))
+                    throw new NotFoundException(t('server-ai:Error.AgentPluginNotFound'))
+            }
             const { replacesBindingId, ...values } = input
             if (replacesBindingId)
                 await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`agent-plugin:${replacesBindingId}`])
@@ -485,14 +512,16 @@ export class AgentPluginService {
         const scope = requireResourceAdmin()
         const where = agentPluginScopeWhere(scope)
         return this.bindings.manager.transaction(async (manager) => {
+            await lockPackageScope(manager, scope)
             await manager.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`agent-plugin:${id}`])
             const binding =
                 (await manager.findOneBy(AgentResourceBinding, { ...where, id })) ??
-                (await this.packages.find({ where }))
+                (await manager.find(AgentPluginPackage, { where }))
                     .map((pkg) => importedPluginBinding(pkg))
                     .find((item) => item.id === id)
             if (!binding) throw new NotFoundException(t('server-ai:Error.AgentResourceNotFound'))
             binding.enabled = enabled
+            binding.cleanupEligible = false
             return manager.save(AgentResourceBinding, this.bindings.create(binding))
         })
     }

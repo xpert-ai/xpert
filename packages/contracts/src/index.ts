@@ -111,3 +111,5 @@ export * from './ai/execution-activity.model'
 export * from './setup-plugins'
 
 export * from './default-agent-plugins'
+
+export * from './agent-plugin-maintenance'

@@ -1,6 +1,13 @@
+import { AgentPluginMaintenanceController } from './maintenance/agent-plugin-maintenance.controller'
+import { AgentPluginCleanupService } from './maintenance/agent-plugin-cleanup.service'
+import { AgentPluginUpdateService } from './maintenance/agent-plugin-update.service'
+import { AgentPluginUpdateStore } from './maintenance/agent-plugin-update.store'
 import { CqrsModule } from '@nestjs/cqrs'
 import { InstallAgentPluginTemplateResourcesHandler } from './templates/install-template-resources.handler'
 import { ImportDefaultAgentPluginsHandler } from './defaults/import-default-agent-plugins.handler'
+import { DefaultAgentPluginsService } from './defaults/default-agent-plugins.service'
+import { DefaultAgentPluginsStore } from './defaults/default-agent-plugins.store'
+import { DefaultAgentPluginsImporter } from './defaults/default-agent-plugins.importer'
 import { Global, Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { AgentPluginPackage, AgentResourceBinding } from './agent-plugin.entity'
@@ -27,8 +34,11 @@ import { ResolvePluginConnectorsHandler } from './queries/resolve-plugin-connect
         ConnectorModule,
         PluginResourceModule
     ],
-    controllers: [AgentPluginController],
+    controllers: [AgentPluginController, AgentPluginMaintenanceController],
     providers: [
+        AgentPluginCleanupService,
+        AgentPluginUpdateService,
+        AgentPluginUpdateStore,
         InstallAgentPluginTemplateResourcesHandler,
         AgentPluginTemplateService,
         AgentPluginTemplatesHandler,
@@ -36,6 +46,9 @@ import { ResolvePluginConnectorsHandler } from './queries/resolve-plugin-connect
         AssertAgentPluginTemplateDependencyHandler,
         AgentPluginService,
         ImportDefaultAgentPluginsHandler,
+        DefaultAgentPluginsService,
+        DefaultAgentPluginsStore,
+        DefaultAgentPluginsImporter,
         RuntimeResourceService,
         AgentPluginConnectorService,
         ResolvePluginConnectorsHandler,

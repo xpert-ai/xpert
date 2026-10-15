@@ -129,6 +129,7 @@ export class AgentPluginTemplateService {
                 item.component.componentKey === command.selector.componentKey
         )
         if (!resource) this.changed()
+        await this.installations.retainTemplateReference({ bindingId: binding.id, version: binding.version })
         return {
             component: {
                 ...resource,
