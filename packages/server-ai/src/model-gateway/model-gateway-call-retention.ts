@@ -8,6 +8,7 @@ import {
     ModelGatewayCallStatusEnum
 } from '@xpert-ai/contracts'
 import { TenantSetting } from '@xpert-ai/server-core'
+import { getDefaultTenantId } from '@xpert-ai/plugin-sdk'
 import type { EntityManager } from 'typeorm'
 import { MembershipPointLedger } from '../membership/membership-point-ledger.entity'
 import { ModelGatewayCall } from './model-gateway-call.entity'
@@ -18,6 +19,10 @@ import {
 } from './model-gateway-usage'
 
 export async function purgeModelGatewayCallBatch(manager: EntityManager, batchSize: number): Promise<number> {
+    const defaultTenantId = getDefaultTenantId()
+    if (!defaultTenantId) {
+        return 0
+    }
     const escape = (name: string) => manager.connection.driver.escape(name)
     const table = (path: string) => path.split('.').map(escape).join('.')
     const repository = manager.getRepository(MembershipPointLedger)
@@ -31,11 +36,11 @@ WITH candidates AS (
     SELECT c.*
     FROM ${callTable} c
     JOIN ${settingTable} te
-        ON te."tenantId" IS NOT DISTINCT FROM c."tenantId"
+        ON te."tenantId" = $7::uuid
         AND te.name = $1
         AND lower(COALESCE(te.value, '')) IN ('1', 'true', 'yes', 'on')
     LEFT JOIN ${settingTable} td
-        ON td."tenantId" IS NOT DISTINCT FROM c."tenantId"
+        ON td."tenantId" = te."tenantId"
         AND td.name = $2
     WHERE c.status = ANY($5::varchar[])
         AND COALESCE(c."completedAt", c."createdAt") < now() - make_interval(
@@ -70,7 +75,8 @@ SELECT count(*)::int AS count FROM deleted
             DEFAULT_MODEL_GATEWAY_CALL_RETENTION_DAYS,
             MAX_MODEL_GATEWAY_CALL_RETENTION_DAYS,
             [ModelGatewayCallStatusEnum.Succeeded, ModelGatewayCallStatusEnum.Failed],
-            batchSize
+            batchSize,
+            defaultTenantId
         ]
     )
     if (

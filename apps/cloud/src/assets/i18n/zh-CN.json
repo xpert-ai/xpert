@@ -1493,6 +1493,8 @@
         "TITLE": "租户",
         "SETTINGS": "设置",
         "DEMO": "演示数据",
+        "RETENTION_GLOBAL_DESCRIPTION": "由默认租户统一配置，清理开关和保留天数适用于所有租户，包括未单独配置的租户。会话恢复、分支引用所需的数据仍受保护。",
+        "RETENTION_MANAGED_SETTING": "数据清理策略只能由默认租户在“数据管理”中配置。",
         "RETENTION": "数据管理",
         "DATA_TABLE": "数据表",
         "CHECKPOINT_RETENTION": "copilot_checkpoint",

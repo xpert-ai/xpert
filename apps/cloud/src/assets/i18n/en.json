@@ -2342,6 +2342,8 @@
       "MANAGE_ORGANIZATIONS": "Manage Organizations",
       "TENANT": {
         "TITLE": "Tenant",
+        "RETENTION_GLOBAL_DESCRIPTION": "Configured by the default tenant. These cleanup settings apply to all tenants, including those without their own settings. Data required for conversation recovery and branching is preserved.",
+        "RETENTION_MANAGED_SETTING": "Cleanup policies can only be configured under Data Management in the default tenant.",
         "RETENTION": "Data Management",
         "DATA_TABLE": "Data table",
         "CHECKPOINT_RETENTION": "copilot_checkpoint",
