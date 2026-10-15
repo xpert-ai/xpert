@@ -4,7 +4,7 @@ import { json } from 'express'
 import { get, Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { createHttpRequestMetricsMiddleware } from './http-request-metrics'
-import { identifyViewDataRequest } from '../../../../packages/server/src/view-extension/view-request-metrics'
+import { identifyViewRequest } from '../../../../packages/server/src/view-extension/view-request-metrics'
 import type { XpertExtensionViewManifest, XpertResolvedViewHostContext } from '@xpert-ai/contracts'
 
 jest.mock('@xpert-ai/server-core', () =>
@@ -77,7 +77,7 @@ describe('HTTP API request metrics', () => {
     async (status) => {
       const router = express.Router()
       router.get('/:hostType/:hostId/views/:viewKey/data', (request, response) => {
-        identifyViewDataRequest(request, viewContext, viewManifest)
+        identifyViewRequest(request, viewContext, viewManifest)
         elapsed += 650
         response.status(status).end()
       })
@@ -114,6 +114,55 @@ describe('HTTP API request metrics', () => {
     expect(JSON.stringify(requests)).not.toMatch(/arbitrary|private-id/)
   })
 
+  describe.each(['/api/view-hosts', '/api/ai/groups/:groupId/workbench'])('view routes at %s', (prefix) => {
+    it.each([
+      ['GET', 'data'],
+      ['GET', 'manifest'],
+      ['GET', 'remote-component/entry'],
+      ['GET', 'parameters/:parameterKey/options'],
+      ['POST', 'actions/:actionKey'],
+      ['POST', 'actions/:actionKey/file']
+    ])('identifies %s %s without exposing resource or action parameters', async (method, suffix) => {
+      const template = `${prefix}/:hostType/:hostId/views/:viewKey/${suffix}`
+      app.all(template, (request, response) => {
+        identifyViewRequest(request, viewContext, viewManifest)
+        elapsed += 650
+        response.end()
+      })
+      const url = template
+        .replace(':groupId', 'private-group')
+        .replace(':hostType', 'agent')
+        .replace(':hostId', 'private-host')
+        .replace(':viewKey', viewManifest.key)
+        .replace(':actionKey', 'private-action')
+        .replace(':parameterKey', 'private-parameter')
+      await fetch(`${origin}${url}?search=private-search`, { method }).then((response) => response.text())
+      expect(requests).toEqual([
+        expect.objectContaining({
+          method,
+          route: `${prefix}/agent/:hostId/views/provider__review/${suffix}`,
+          durationMs: 650,
+          outcome: 'completed'
+        })
+      ])
+      expect(JSON.stringify(requests)).not.toContain('private-')
+    })
+
+    it.each(['GET', 'POST'])('keeps an unresolved %s view in its template', async (method) => {
+      const suffix = method === 'GET' ? 'data' : 'actions/:actionKey'
+      const template = `${prefix}/:hostType/:hostId/views/:viewKey/${suffix}`
+      app.all(template, (_request, response) => response.sendStatus(403))
+      const url = template
+        .replace(':groupId', 'private-group')
+        .replace(':hostType', 'arbitrary-host')
+        .replace(':hostId', 'private-host')
+        .replace(':viewKey', 'arbitrary-view')
+        .replace(':actionKey', 'arbitrary-action')
+      await fetch(`${origin}${url}`, { method }).then((response) => response.text())
+      expect(requests).toEqual([expect.objectContaining({ route: template, statusCode: 403 })])
+    })
+  })
+
   it('retains the outer resolved view across nested calls and isolates concurrent requests', async () => {
     let releaseReview: () => void
     let markReviewStarted: () => void
@@ -125,13 +174,13 @@ describe('HTTP API request metrics', () => {
     })
     app.get('/api/view-hosts/:hostType/:hostId/views/:viewKey/data', async (request, response) => {
       if (request.params.viewKey === 'provider__review') {
-        identifyViewDataRequest(request, viewContext, viewManifest)
-        identifyViewDataRequest(request, viewContext, { ...viewManifest, key: 'nested__detail' })
+        identifyViewRequest(request, viewContext, viewManifest)
+        identifyViewRequest(request, viewContext, { ...viewManifest, key: 'nested__detail' })
         markReviewStarted()
         await released
       } else {
         await reviewStarted
-        identifyViewDataRequest(
+        identifyViewRequest(
           request,
           { ...viewContext, hostType: 'project' },
           { ...viewManifest, hostType: 'project', key: 'provider__tasks' }
@@ -150,13 +199,29 @@ describe('HTTP API request metrics', () => {
     ])
   })
 
-  it('does not relabel other endpoints that internally load a view', async () => {
-    app.get('/api/groups/:id', (request, response) => {
-      identifyViewDataRequest(request, viewContext, viewManifest)
+  it.each([
+    '/api/groups/:id',
+    '/api/other/:hostType/:hostId/views/:viewKey/data',
+    '/api/view-hosts/:hostType/:hostId/views/:viewKey/other'
+  ])('does not relabel an unrelated endpoint that internally loads a view: %s', async (template) => {
+    app.get(template, (request, response) => {
+      identifyViewRequest(request, viewContext, viewManifest)
       response.end()
     })
-    await fetch(`${origin}/api/groups/private-id`).then((r) => r.text())
-    expect(requests).toEqual([expect.objectContaining({ route: '/api/groups/:id' })])
+    const url = template.replace(/:[A-Za-z]+/g, 'private-value')
+    await fetch(`${origin}${url}`).then((r) => r.text())
+    expect(requests).toEqual([expect.objectContaining({ route: template })])
+  })
+
+  it('keeps encoded view keys inside one path segment', async () => {
+    app.get('/api/view-hosts/:hostType/:hostId/views/:viewKey/data', (request, response) => {
+      identifyViewRequest(request, viewContext, { ...viewManifest, key: 'provider__review/detail' })
+      response.end()
+    })
+    await fetch(`${origin}/api/view-hosts/agent/private-id/views/provider__review%2Fdetail/data`).then((r) => r.text())
+    expect(requests).toEqual([
+      expect.objectContaining({ route: '/api/view-hosts/agent/:hostId/views/provider__review%2Fdetail/data' })
+    ])
   })
 
   it('includes auth failures and error responses without changing them', async () => {

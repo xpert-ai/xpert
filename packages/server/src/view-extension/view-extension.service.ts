@@ -21,7 +21,7 @@ import { ViewHostDefinitionRegistry } from './host-definition.registry'
 import { ViewExtensionFileActionFile, ViewHostResolutionOptions } from './host-definition.interface'
 import { ViewExtensionPermissionService } from './view-extension.permission.service'
 import { ViewExtensionCacheService } from './view-extension.cache.service'
-import { identifyViewDataRequest } from './view-request-metrics'
+import { identifyViewRequest } from './view-request-metrics'
 import {
 	buildBaseViewHostContext,
 	isSupportedRemoteComponentRuntime,
@@ -116,7 +116,7 @@ export class ViewExtensionService {
 		const resolved = await this.resolveProviderManifest(context, viewKey)
 
 		this.permissionService.ensureManifestVisible(resolved.manifest)
-		identifyViewDataRequest(RequestContext.currentRequest(), context, resolved.manifest)
+		identifyViewRequest(RequestContext.currentRequest(), context, resolved.manifest)
 		validateQuery(query, resolved.manifest.dataSource)
 
 		const cacheEnabled = resolved.manifest.dataSource.cache?.enabled !== false
@@ -136,6 +136,7 @@ export class ViewExtensionService {
 		const resolved = await this.resolveProviderManifest(context, viewKey)
 
 		this.permissionService.ensureManifestVisible(resolved.manifest)
+		identifyViewRequest(RequestContext.currentRequest(), context, resolved.manifest)
 
 		return {
 			...resolved.manifest,
@@ -152,6 +153,7 @@ export class ViewExtensionService {
 		const resolved = await this.resolveProviderManifest(context, viewKey)
 
 		this.permissionService.ensureManifestVisible(resolved.manifest)
+		identifyViewRequest(RequestContext.currentRequest(), context, resolved.manifest)
 
 		const view = resolved.manifest.view
 		if (view.type !== 'remote_component') {
@@ -194,6 +196,7 @@ export class ViewExtensionService {
 		const resolved = await this.resolveProviderManifest(context, viewKey)
 
 		this.permissionService.ensureManifestVisible(resolved.manifest)
+		identifyViewRequest(RequestContext.currentRequest(), context, resolved.manifest)
 
 		if (!resolved.manifest.parameters?.some((item) => item.key === parameterKey)) {
 			throw new NotFoundException(`Parameter '${parameterKey}' was not found for view '${viewKey}'`)
@@ -225,6 +228,7 @@ export class ViewExtensionService {
 			throw new NotFoundException(`Action '${actionKey}' was not found for view '${viewKey}'`)
 		}
 		this.permissionService.ensureActionVisible(action, context)
+		identifyViewRequest(RequestContext.currentRequest(), context, resolved.manifest)
 
 		if ((action.transport ?? 'json') !== 'json') {
 			throw new BadRequestException(`Action '${actionKey}' does not support JSON transport`)
@@ -263,6 +267,7 @@ export class ViewExtensionService {
 			throw new NotFoundException(`Action '${actionKey}' was not found for view '${viewKey}'`)
 		}
 		this.permissionService.ensureActionVisible(action, context)
+		identifyViewRequest(RequestContext.currentRequest(), context, resolved.manifest)
 
 		if ((action.transport ?? 'json') !== 'file') {
 			throw new BadRequestException(`Action '${actionKey}' does not support file transport`)
