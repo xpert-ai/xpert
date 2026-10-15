@@ -13,6 +13,8 @@ export class SandboxAcquireBackendCommand extends Command<TSandboxConfigurable> 
             workspaceBinding?: SandboxProviderCreateOptions['workspaceBinding']
             volumeScope?: VolumeScope
             environmentId?: string
+            /** Application authorization/cache context; never forwarded to providers. */
+            conversationId?: string
             tenantId?: string
             organizationId?: string | null
             workFor: SandboxProviderCreateOptions['workFor']

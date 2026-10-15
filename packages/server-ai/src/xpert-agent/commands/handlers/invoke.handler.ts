@@ -189,6 +189,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                         workingDirectory: initialWorkspaceBinding?.workspacePath,
                         workspaceBinding: initialWorkspaceBinding ?? undefined,
                         volumeScope,
+                        conversationId: options.conversationId,
                         tenantId,
                         workFor: sandboxWorkFor
                     })

@@ -215,6 +215,7 @@ export class SandboxConversationContextService {
 
         const acquire = new SandboxAcquireBackendCommand({
             tenantId,
+            conversationId,
             provider,
             workingDirectory: workArea.workingDirectory,
             workspaceBinding: workArea.workspaceBinding,

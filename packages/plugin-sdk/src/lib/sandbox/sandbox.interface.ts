@@ -24,6 +24,13 @@ export type SandboxWorkspaceBinding = {
   workspaceRoot: string
 }
 
+/** A mount resolved by the application after resource authorization. Never accept it from HTTP input. */
+export type SandboxWorkspaceMount = {
+  source: string
+  destination: string
+  readOnly: boolean
+}
+
 export type SandboxProviderCreateOptions = {
   /**
    * Working space directory for the sandbox instance
@@ -39,6 +46,8 @@ export type SandboxProviderCreateOptions = {
    * Canonical sandbox environment identifier that owns the container lifecycle.
    */
   environmentId?: string
+  /** Authorized mount configuration; providers enforce physical mount identity, not business access. */
+  workspaceMounts?: SandboxWorkspaceMount[]
   /**
    * Tenant identifier
    */
