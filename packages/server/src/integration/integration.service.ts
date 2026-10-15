@@ -30,17 +30,16 @@ export class IntegrationService extends TenantOrganizationAwareCrudService<Integ
 		return this.strategyRegistry.get(type, organizationId ?? RequestContext.getOrganizationId())
 	}
 
+	private resolveOptionalIntegrationStrategy(provider: string) {
+		return this.strategyRegistry.listRegistrations().find(({ type }) => type === provider)?.strategy
+	}
+
 	async applyStrategyValidation<T extends Partial<IIntegration>>(integration: T): Promise<T> {
 		if (!integration.provider) {
 			return integration
 		}
 
-		let strategy = null
-		try {
-			strategy = this.getIntegrationStrategy(integration.provider)
-		} catch {
-			return integration
-		}
+		const strategy = this.resolveOptionalIntegrationStrategy(integration.provider)
 
 		if (!strategy?.validateConfig) {
 			return integration
@@ -63,7 +62,7 @@ export class IntegrationService extends TenantOrganizationAwareCrudService<Integ
 	}
 
 	async runStrategyUpdateHook(previous: IIntegration, current: IIntegration) {
-		const strategy = previous?.provider ? this.getIntegrationStrategy(previous.provider) : null
+		const strategy = previous?.provider ? this.resolveOptionalIntegrationStrategy(previous.provider) : null
 
 		try {
 			if (previous?.provider !== current?.provider) {
@@ -78,7 +77,7 @@ export class IntegrationService extends TenantOrganizationAwareCrudService<Integ
 	}
 
 	async runStrategyDeleteHook(integration: IIntegration) {
-		const strategy = integration?.provider ? this.getIntegrationStrategy(integration.provider) : null
+		const strategy = integration?.provider ? this.resolveOptionalIntegrationStrategy(integration.provider) : null
 
 		try {
 			await strategy?.onDelete?.(integration)
@@ -108,7 +107,9 @@ export class IntegrationService extends TenantOrganizationAwareCrudService<Integ
 	}
 
 	async ensurePrincipalUser(
-		integrationOrId: string | (Partial<IIntegration> & { id: string; tenantId: string; organizationId?: string | null })
+		integrationOrId:
+			| string
+			| (Partial<IIntegration> & { id: string; tenantId: string; organizationId?: string | null })
 	): Promise<IUser> {
 		const integration =
 			typeof integrationOrId === 'string'
@@ -222,10 +223,7 @@ function getIntegrationFeatureArrayProperty(value: unknown, key: string) {
 
 	const candidate = Reflect.get(value, key)
 	const allowedValues = new Set<string>(Object.values(IntegrationFeatureEnum))
-	if (
-		!Array.isArray(candidate) ||
-		!candidate.every((item) => typeof item === 'string' && allowedValues.has(item))
-	) {
+	if (!Array.isArray(candidate) || !candidate.every((item) => typeof item === 'string' && allowedValues.has(item))) {
 		return null
 	}
 
