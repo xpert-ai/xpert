@@ -8,6 +8,7 @@ import {
     ToolMessageFieldsWithToolCallId,
     isAIMessage,
     isHumanMessage,
+    isSystemMessage,
     isToolMessage
 } from '@langchain/core/messages'
 import { BaseLanguageModel } from '@langchain/core/language_models/base'
@@ -197,6 +198,79 @@ export function findCompressSplitPoint(
     }
 
     return { splitPoint: lastSplitPoint, softenedProtection: false }
+}
+
+/** Keep the current request verbatim while summarizing completed work in a long tool loop. */
+export function selectCompressionHistory(
+    messages: BaseMessage[],
+    fraction: number,
+    protectedTurns: number,
+    allowToolCycles: boolean
+): { historyToCompress: BaseMessage[]; historyToKeep: BaseMessage[]; softenedProtection: boolean } {
+    const split = findCompressSplitPoint(messages, fraction, protectedTurns)
+    const fallback = {
+        historyToCompress: messages.slice(0, split.splitPoint),
+        historyToKeep: messages.slice(split.splitPoint),
+        softenedProtection: split.softenedProtection
+    }
+    // Manual compression retains its existing state-free, whole-turn semantics.
+    if (!allowToolCycles) return fallback
+
+    const latestUserIndex = getUserTurnIndices(messages)[0]
+    if (latestUserIndex === undefined) return fallback
+    const sizes = messages.map((message) => JSON.stringify(message).length)
+    const totalSize = sizes.reduce((sum, size) => sum + size, 0)
+    const keepTarget = totalSize * (1 - fraction)
+    if (sizes.slice(latestUserIndex).reduce((sum, size) => sum + size, 0) <= keepTarget) return fallback
+
+    const pending = new Set<string>()
+    const boundaries: number[] = []
+    let completedCycles = 0
+    for (let i = latestUserIndex + 1; i < messages.length; i++) {
+        const message = messages[i]
+        if (isAIMessage(message)) {
+            // Never split across an unfinished parallel call group.
+            if (pending.size) break
+            if (message.tool_calls?.length) {
+                if (message.tool_calls.some((call) => !call.id)) break
+                for (const call of message.tool_calls) {
+                    if (!call.id || pending.has(call.id)) return fallback
+                    pending.add(call.id)
+                }
+                // Keeping the next call also keeps at least the newest tool cycle,
+                // including a pending call whose results have not arrived yet.
+                if (completedCycles > 0) boundaries.push(i)
+            }
+        } else if (isToolMessage(message)) {
+            if (!pending.delete(message.tool_call_id)) return fallback
+            if (!pending.size) completedCycles++
+        }
+    }
+    if (!boundaries.length) return fallback
+
+    const pinned = messages
+        .slice(0, latestUserIndex + 1)
+        .filter((message, index) => index === latestUserIndex || isSystemMessage(message))
+    const pinnedSize = pinned.reduce((sum, message) => sum + JSON.stringify(message).length, 0)
+    // A large user input cannot be reduced by summarizing tool cycles. Avoid
+    // an expensive summary that repeats that input without reaching the target.
+    if (pinnedSize >= keepTarget) return fallback
+    const targetSize = totalSize * fraction
+    let boundary = boundaries[0]
+    let prefixSize = 0
+    const candidates = new Set(boundaries)
+    for (let i = 0; i < messages.length; i++) {
+        if (candidates.has(i) && prefixSize - pinnedSize <= targetSize) boundary = i
+        prefixSize += sizes[i]
+    }
+
+    return {
+        // Include the request in the summary input for grounding; also retain its
+        // original message in the live history so exact task IDs/constraints survive.
+        historyToCompress: messages.slice(0, boundary),
+        historyToKeep: [...pinned, ...messages.slice(boundary)],
+        softenedProtection: false
+    }
 }
 
 /**
@@ -542,7 +616,7 @@ export class ContextCompressionHistory {
             }
             reservedReferenceTokens -= output.minimumTokens
             const remainingBudget = budget - usedTokens - reservedReferenceTokens
-            if (output.tokens <= remainingBudget) {
+            if (output.tokens <= remainingBudget || output.tokens <= output.minimumTokens) {
                 usedTokens += output.tokens
                 history.unshift(message)
                 continue
@@ -596,10 +670,14 @@ export class ContextCompressionHistory {
                         role = 'Assistant'
                     } else if (isToolMessage(msg)) {
                         const toolMsg = msg as ToolMessage
-                        role = `Tool(${toolMsg.name || 'unknown'})`
+                        role = `Tool(${toolMsg.name || 'unknown'}, call_id=${toolMsg.tool_call_id})`
                     }
                     const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
-                    return `[${idx + 1}] ${role}: ${content}`
+                    const calls =
+                        isAIMessage(msg) && msg.tool_calls?.length
+                            ? `\nTool calls: ${JSON.stringify(msg.tool_calls)}`
+                            : ''
+                    return `[${idx + 1}] ${role}: ${content}${calls}`
                 })
                 .join('\n\n')
 

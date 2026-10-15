@@ -488,6 +488,56 @@ describe('context compression bug regressions', () => {
         }
     }
 
+    it('compresses a single long writing task through beforeModel with the Bid 85/30 configuration', async () => {
+        const f = createContext({
+            modelResponse:
+                '<state_snapshot>Earlier chapter sections were saved; continue the authorized task.</state_snapshot>'
+        })
+        const middleware = await new ContextCompressionMiddleware().createMiddleware(
+            { threshold: 0.85, preserveFraction: 0.3, protectedUserTurns: 1, enableTwoPhaseCompression: true },
+            f.context
+        )
+        const request = new HumanMessage({
+            id: 'task-request',
+            content: 'Write taskId=exact-id; preserve citations and do not publish.'
+        })
+        const cycles = Array.from({ length: 8 }, (_, index) => [
+            new AIMessage({
+                content: '',
+                tool_calls: [
+                    {
+                        id: `write-${index}`,
+                        name: 'sandbox_append_file',
+                        args: { path: 'chapter.md', content: `Section ${index}. `.repeat(1500) }
+                    }
+                ]
+            }),
+            new ToolMessage({ tool_call_id: `write-${index}`, name: 'sandbox_append_file', content: 'Saved.' })
+        ]).flat()
+        const state = { messages: [request, ...cycles] }
+        const update = await getBeforeModel(middleware)(
+            state,
+            createRuntimeConfig(f.subscriber, 'Write the chapter', {
+                context_size: 32768,
+                max_tokens: 4096
+            })
+        )
+
+        if (!update || !update.messages) throw new Error('Missing compressed history')
+        expect(f.model.invoke).toHaveBeenCalledTimes(1)
+        expect(update.messages[0]).toBeInstanceOf(RemoveMessage)
+        expect(update.messages[1].content).toContain('<state_snapshot>')
+        expect(update.messages.filter((message) => message.id === request.id)).toHaveLength(1)
+        expect(update.messages.find((message) => message.id === request.id)?.content).toBe(request.content)
+        expect(update.messages.slice(-2).map((message) => message.content)).toEqual(
+            cycles.slice(-2).map((message) => message.content)
+        )
+        expect(JSON.stringify(update.messages)).not.toContain('Section 0.')
+        expect(JSON.stringify(f.model.invoke.mock.calls)).toContain('Section 0.')
+        expect(JSON.stringify(update.messages).length).toBeLessThan(JSON.stringify(state.messages).length / 2)
+        expect(f.subscriber.next.mock.calls.at(-1)?.[0].data.data.data.status).toBe('success')
+    })
+
     it('uses the original single XML summary call internally and excludes surrounding scratchpad text', async () => {
         const snapshot =
             '<state_snapshot><active_user_constraints>Reply only received.</active_user_constraints></state_snapshot>'
