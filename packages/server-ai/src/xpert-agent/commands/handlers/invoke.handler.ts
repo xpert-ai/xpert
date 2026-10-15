@@ -216,7 +216,10 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
             agentKey: agentKeyOrName
         })
         if (!options.environment && xpert.environmentId) {
-            const environment = await this.envService.findOne(xpert.environmentId)
+            // Published Assistant users may run its dependencies without reading the authoring workspace.
+            const environment = options.isDraft
+                ? await this.envService.findOne(xpert.environmentId)
+                : await this.envService.findOneForRuntime(xpert.environmentId)
             options.environment = environment
         }
         options.environment = mergeEnvironmentWithEnvState(options.environment, getContextEnvState(options.context))
