@@ -1,0 +1,17 @@
+{
+    "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+    "name": "template-subagent-acceptance",
+    "version": "1.0.0",
+    "description": "Dedicated task sub-agent acceptance fixture.",
+    "extensions": {
+        "xpertai": {
+            "version": 2,
+            "role": "subagent",
+            "interface": {
+                "displayName": "子智能体验收：费用复核",
+                "description": "按需运行费用复核模板及其内部计算 Agent。"
+            },
+            "templates": [{ "key": "expense-review", "path": "templates/expense-review.json" }]
+        }
+    }
+}

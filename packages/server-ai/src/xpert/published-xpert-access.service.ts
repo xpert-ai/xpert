@@ -35,6 +35,7 @@ type PublishedXpertQueryOptions = {
     order?: Record<string, 'ASC' | 'DESC' | 'asc' | 'desc'>
     take?: number
     skip?: number
+    excludeIds?: string[]
 }
 
 @Injectable()
@@ -447,6 +448,17 @@ export class PublishedXpertAccessService {
                     .orWhere('workspaceMember.id = :userId', { userId })
                     .orWhere('member.id = :userId', { userId })
                     .orWhere(
+                        new Brackets((organizationSharedQb) => {
+                            organizationSharedQb
+                                .where('workspace.tenantId = :tenantId', { tenantId })
+                                .andWhere('workspace.organizationId = :organizationId', { organizationId })
+                                .andWhere(
+                                    `COALESCE((workspace.settings)::jsonb -> 'access' ->> 'visibility', 'private') = 'organization-shared'`
+                                )
+                                .andWhere("(workspace.status IS NULL OR workspace.status <> 'archived')")
+                        })
+                    )
+                    .orWhere(
                         new Brackets((tenantSharedQb) => {
                             tenantSharedQb
                                 .where('xpert.organizationId IS NULL')
@@ -559,6 +571,13 @@ export class PublishedXpertAccessService {
             query.addSelect(`xpert.${name}`, `order_${name}`)
         })
 
+        if (options?.excludeIds?.length) {
+            query.andWhere('xpert.id NOT IN (:...excludedIds)', { excludedIds: options.excludeIds })
+        }
+        // Raw ID queries do not apply TypeORM's entity pagination when joins are present.
+        // DISTINCT precedes LIMIT, so multiple access grants cannot consume page slots.
+        if (!options?.order?.id) query.addOrderBy('xpert.id', 'ASC')
+        query.limit(options?.take).offset(options?.skip)
         const rows = await query.getRawMany<{ id: string }>()
 
         return this.loadByIds(
@@ -614,6 +633,13 @@ export class PublishedXpertAccessService {
         Object.keys(options?.order ?? {}).forEach((name) => {
             query.addSelect(`xpert.${name}`, `order_${name}`)
         })
+        if (options?.excludeIds?.length) {
+            query.andWhere('xpert.id NOT IN (:...excludedIds)', { excludedIds: options.excludeIds })
+        }
+        // Raw ID queries do not apply TypeORM's entity pagination when joins are present.
+        // DISTINCT precedes LIMIT, so multiple access grants cannot consume page slots.
+        if (!options?.order?.id) query.addOrderBy('xpert.id', 'ASC')
+        query.limit(options?.take).offset(options?.skip)
         const rows = await query.getRawMany<{ id: string }>()
         return this.loadByIds(
             rows.map((row) => row.id),

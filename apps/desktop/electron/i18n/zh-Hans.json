@@ -1,6 +1,7 @@
 {
   "Select a compatible model for this assistant.": "请为此助手选择兼容的模型。",
   "Invalid template capabilities.": "模板能力参数无效。",
+  "Invalid template requirements response.": "模板要求响应格式无效。",
   "The template is not ready to install.": "此模板尚未满足初始化条件。",
   "Invalid tool output attachment.": "工具输出附件无效。",
   "The image preview does not match the requested attachment.": "图片预览与请求的附件不匹配。",

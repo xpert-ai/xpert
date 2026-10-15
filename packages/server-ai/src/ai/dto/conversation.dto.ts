@@ -1,3 +1,5 @@
+import { resourceSkillsSchema } from '../../agent-plugin/commands/agent-plugin-commands.schema'
+import type { RuntimeResourceSkillReference } from '@xpert-ai/contracts'
 import { readChatMessageEnvelope } from '../../chat-message/message-envelope.schema'
 import {
     IChatConversation,
@@ -169,6 +171,9 @@ export class ChatMessageDTO {
     runtimeCapabilities?: TRuntimeCapabilitiesSelectionWithRecommended
 
     @Expose()
+    resourceSkills?: RuntimeResourceSkillReference[]
+
+    @Expose()
     model?: string
 
     constructor(partial: Partial<IChatMessage>) {
@@ -184,6 +189,10 @@ export class ChatMessageDTO {
         )
         if (runtimeCapabilities) {
             this.runtimeCapabilities = runtimeCapabilities
+        }
+        if (isObjectValue(partial.thirdPartyMessage) && 'resourceSkills' in partial.thirdPartyMessage) {
+            const parsed = resourceSkillsSchema.safeParse(partial.thirdPartyMessage.resourceSkills)
+            if (parsed.success) this.resourceSkills = parsed.data as RuntimeResourceSkillReference[]
         }
         this.model = readModelMetadata(partial.thirdPartyMessage)
     }

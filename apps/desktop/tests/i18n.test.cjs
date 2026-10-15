@@ -25,12 +25,23 @@ test('all supported languages cover every English message and preserve interpola
     for (const key of keys) {
       assert.ok(resources[locale][key].trim(), `${locale}: ${key}`)
       assert.deepEqual(placeholders(resources[locale][key]), placeholders(key), `${locale}: ${key}`)
-      if (locale === 'en') assert.equal(resources.en[key], key)
     }
   }
   assert.equal(translate('unsupported', 'Sign in'), 'Sign in')
   assert.equal(translate('ja', 'Chat with {{name}}', { name: '<b>{{name}}</b>' }), '<b>{{name}}</b> とチャット')
   assert.equal(translate('zh-Hant', 'Unknown plugin content'), 'Unknown plugin content')
+})
+
+test('semantic template keys resolve to display text and use the English resource as fallback', () => {
+  for (const [key, english, chinese] of [
+    ['App composition knowledgebase', 'Knowledge base', '知识库'],
+    ['Template connection: ready', 'Connected', '已连接'],
+    ['Invalid template requirements response.', 'Invalid template requirements response.', '模板要求响应格式无效。']
+  ]) {
+    assert.equal(translate('en', key), english)
+    assert.equal(translate('unsupported', key), english)
+    assert.equal(translate('zh-Hans', key), chinese)
+  }
 })
 
 test('desktop source messages and native menus have translations; JSX cannot introduce untranslated prose', () => {

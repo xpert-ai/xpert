@@ -1,4 +1,5 @@
 import { dirname, join } from 'node:path'
+import { runtimeTemplateDescriptors, type RuntimeTemplateDescriptor } from './templates/runtime-template'
 import { connectorMcpAuth, matchesPortableMcpSchema } from './agent-plugin-mcp'
 import { AgentPluginConnectorService } from './agent-plugin-connector.service'
 import { publishedResourceVersion } from './published-resource-version'
@@ -12,6 +13,7 @@ import type {
     IWFNMiddleware,
     IXpert,
     RuntimeResourceCatalog,
+    RuntimeResourceCatalogPurpose,
     RuntimeResourceCatalogItem,
     RuntimeResourceKind,
     RuntimeResourcesSelection
@@ -40,6 +42,7 @@ export interface ResolvedRuntimeResources {
     toolsetIds: string[]
     middlewares: Array<{ key: string; entity: IWFNMiddleware }>
     experts: IXpert[]
+    templates?: RuntimeTemplateDescriptor[]
 }
 export const emptyRuntimeResources = (): ResolvedRuntimeResources => ({
     selection: { revision: 0, resources: [] },
@@ -75,7 +78,14 @@ export class RuntimeResourceService {
 
     async catalog(
         assistantId: string,
-        query: { projectId?: string; search?: string; kind?: RuntimeResourceKind; offset?: number; limit?: number }
+        query: {
+            projectId?: string
+            search?: string
+            kind?: RuntimeResourceKind
+            purpose?: RuntimeResourceCatalogPurpose
+            offset?: number
+            limit?: number
+        }
     ): Promise<RuntimeResourceCatalog> {
         const assistant = await this.assistant(assistantId, query.projectId)
         const managed = await this.plugins.bindings.find({
@@ -84,7 +94,7 @@ export class RuntimeResourceService {
         })
         const installed =
             !query.kind || query.kind === 'agent_plugin'
-                ? await this.installations.runtimeCatalog(assistant.workspaceId)
+                ? await this.installations.installedCatalog(assistant.workspaceId)
                 : []
         const bindings = [
             ...managed.filter((binding) => binding.definition.kind !== 'agent_plugin'),
@@ -92,12 +102,14 @@ export class RuntimeResourceService {
         ]
         const items: RuntimeResourceCatalogItem[] = []
         for (const binding of bindings) {
+            const pkg = installed.find((item) => item.binding.id === binding.id)?.pkg
             if (
                 !binding.enabled ||
                 binding.supersededById ||
                 isResourceInGraph(binding, assistant) ||
                 (binding.definition.kind !== 'agent_plugin' && !binding.workspaceIds.includes(assistant.workspaceId)) ||
-                (query.kind && binding.definition.kind !== query.kind)
+                (query.kind && binding.definition.kind !== query.kind) ||
+                (query.purpose !== 'selection' && pkg?.descriptor.extension?.role === 'assistant')
             )
                 continue
             if (
@@ -105,11 +117,7 @@ export class RuntimeResourceService {
                 !`${binding.title} ${binding.description ?? ''}`.toLowerCase().includes(query.search.toLowerCase())
             )
                 continue
-            const item = await this.describe(
-                binding,
-                assistant,
-                installed.find((item) => item.binding.id === binding.id)?.pkg
-            )
+            const item = await this.describe(binding, assistant, pkg)
             try {
                 if (binding.definition.kind === 'agent_plugin') {
                     items.push(item)
@@ -254,6 +262,15 @@ export class RuntimeResourceService {
             base.icon = pkg.descriptor.extension?.interface?.icon
             base.status = base.diagnostics.length ? 'partial' : 'ready'
             base.components = [
+                ...(pkg.descriptor.extension?.role === 'assistant'
+                    ? []
+                    : (pkg.descriptor.templates ?? []).map(({ key }) => ({
+                          key,
+                          kind: 'assistant_template' as const,
+                          title: pkg.descriptor.templateCatalog?.[key]?.title || key,
+                          description: pkg.descriptor.templateCatalog?.[key]?.description,
+                          status: 'ready' as const
+                      }))),
                 ...pkg.descriptor.skills.map(({ key }) => ({ key, kind: 'skill' as const, status: 'ready' as const })),
                 ...pkg.descriptor.servers.map(({ key }) => ({ key, kind: 'mcp' as const, status: 'ready' as const })),
                 ...(pkg.descriptor.extension?.middlewares ?? []).map(({ key }) => ({
@@ -429,6 +446,8 @@ export class RuntimeResourceService {
                     throw new BadRequestException(t('server-ai:Error.ConnectorWorkspaceConnectionRequired'))
                 packages.set(definition.packageId, definition)
                 const pkg = await this.installations.package(binding, assistant.workspaceId)
+                result.templates ??= []
+                result.templates.push(...(await runtimeTemplateDescriptors(pkg, reference)))
                 for (const middleware of pkg.descriptor.extension?.middlewares ?? [])
                     addMiddleware(`resource_${binding.id}_${middleware.key}`, middleware.provider, middleware.options)
                 for (const expert of pkg.descriptor.extension?.experts ?? [])

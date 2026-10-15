@@ -1,6 +1,10 @@
 <div xpDialogBody class="space-y-6">
   <p class="text-sm text-text-secondary">{{ template()?.description }}</p>
-  <xp-template-requirements [readiness]="setup()?.readiness" (manage)="manageDependencies()" />
+  <div xpDialogActionGroup="inline">
+    <button z-button zType="link" type="button" (click)="viewDetails()">
+      {{ 'XP.ACTIONS.ViewDetails' | translate }}
+    </button>
+  </div>
   <form [formGroup]="form" class="space-y-4">
     <label class="block space-y-2">
       <span>{{ 'XP.Installation.Workspace' | translate: { Default: 'Target workspace' } }}</span>

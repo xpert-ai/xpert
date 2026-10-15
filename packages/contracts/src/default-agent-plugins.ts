@@ -8,7 +8,7 @@ export const DEFAULT_AGENT_PLUGINS_SOURCE = {
 
 export interface DefaultAgentPluginImportItem {
   id: string
-  status: 'imported' | 'existing' | 'failed'
+  status: 'imported' | 'existing' | 'repaired' | 'failed'
   packageId?: string
   title?: string
   diagnosticCount?: number
@@ -18,4 +18,16 @@ export interface DefaultAgentPluginImportItem {
 export interface DefaultAgentPluginsImportResult {
   commit: string
   items: DefaultAgentPluginImportItem[]
+}
+
+/** Scope-owned receipt for a background import; completed items survive API restarts. */
+export interface DefaultAgentPluginsImportProgress {
+  operationId: string | null
+  phase: 'idle' | 'fetching' | 'importing' | 'completed' | 'failed'
+  commit: string | null
+  total: number
+  currentId: string | null
+  items: DefaultAgentPluginImportItem[]
+  updatedAt: string
+  error?: string
 }

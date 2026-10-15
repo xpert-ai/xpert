@@ -929,6 +929,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     const thirdPartyMessage =
                         persistedRuntimeCapabilities ||
                         persistedInput?.commandSource ||
+                        persistedInput?.resourceSkills ||
                         isGoalRun ||
                         primaryModelSelection
                             ? {
@@ -941,6 +942,9 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                       ? {
                                             runtimeCapabilities: persistedRuntimeCapabilities
                                         }
+                                      : {}),
+                                  ...(persistedInput?.resourceSkills
+                                      ? { resourceSkills: persistedInput.resourceSkills }
                                       : {}),
                                   ...(persistedInput?.commandSource
                                       ? {

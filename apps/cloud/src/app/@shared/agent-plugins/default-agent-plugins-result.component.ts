@@ -33,6 +33,7 @@ export class DefaultAgentPluginsResultComponent {
     const items = this.result()?.items ?? []
     return {
       imported: items.filter((item) => item.status === 'imported').length,
+      repaired: items.filter((item) => item.status === 'repaired').length,
       existing: items.filter((item) => item.status === 'existing').length,
       failed: items.filter((item) => item.status === 'failed').length
     }

@@ -8,6 +8,7 @@ const ts = require('typescript')
 const React = require('react')
 const { JSDOM } = require('jsdom')
 const { createCatalogCache } = require('../src/catalog/catalog-cache.ts')
+const { subscribeAppActivation } = require('../src/app-activation.ts')
 const { catalogBusinessAreas, matchesBusinessArea } = require('../src/catalog/business-area-filter.ts')
 // Match Vite's React deduplication instead of resolving Radix's nested peer copy in Node.
 const uiRequire = createRequire(join(__dirname, '../../../packages/shadcn-ui/package.json'))
@@ -64,6 +65,13 @@ const library = {
 // Exercise the actual catalog components and Radix tab lifecycle; replace only presentation and host I/O.
 async function mountCatalog(t, handler, onUse = async () => {}) {
   const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost/', pretendToBeVisual: true })
+  const activations = new Set()
+  dom.window.xpertDesktop = {
+    onWindowActivated: (listener) => {
+      activations.add(listener)
+      return () => activations.delete(listener)
+    }
+  }
   const keys = [
     'window',
     'document',
@@ -159,7 +167,7 @@ async function mountCatalog(t, handler, onUse = async () => {}) {
       './host': host,
       './i18n': { t: (key) => key, getLocale: () => locale, useLocale: () => locale },
       '@xpert-ai/template-installation-client': require('./helpers/template-installation.cjs'),
-      './app-activation': { subscribeAppActivation: () => () => {} },
+      './app-activation': { subscribeAppActivation },
       '@xpert-ai/shadcn-ui': ui,
       'lucide-react': Object.fromEntries(
         [
@@ -288,6 +296,7 @@ async function mountCatalog(t, handler, onUse = async () => {}) {
       await render('organization-one')
     },
     dom,
+    activate: () => React.act(async () => activations.forEach((listener) => listener())),
     count: (method, input) =>
       calls.filter((call) => call.method === method && (input === undefined || call.input === input)).length
   }
@@ -299,6 +308,18 @@ function defaultResult(method, input) {
   if (method === 'pluginLibrary') return library
   throw new Error(`Unexpected host call: ${method}`)
 }
+
+test('other discovery tabs still update activation-dependent access and installation status', async (t) => {
+  const view = await mountCatalog(t, defaultResult)
+  await view.activate()
+  assert.equal(view.count('listCatalog', 'experts'), 2)
+  await view.click('Apps')
+  await view.activate()
+  assert.equal(view.count('listCatalog', 'applications'), 2)
+  await view.click('Plugins')
+  await view.activate()
+  assert.equal(view.count('pluginLibrary'), 2)
+})
 
 test('dialog caches the installation catalog without workspace controls, refreshes explicitly, and resets with organization', async (t) => {
   const view = await mountCatalog(t, defaultResult)
@@ -564,6 +585,48 @@ const templateResult = (method, input) => {
   if (method === 'listTemplateInstallations') return { items: [], total: 0 }
   return defaultResult(method, input)
 }
+test('native reactivation preserves template cards, filters and scroll without fetching again', async (t) => {
+  const view = await mountCatalog(t, templateResult)
+  await view.click('Agent templates')
+  await view.click('Other sources 1')
+  const card = [...document.querySelectorAll('button')].find((button) => button.textContent === 'View template')
+  const panel = card.closest('[role="tabpanel"]')
+  panel.scrollTop = 320
+  const before = view.calls.length
+  for (let index = 0; index < 5; index++) {
+    await view.activate()
+    view.dom.window.dispatchEvent(new view.dom.window.Event('focus'))
+  }
+  assert.equal(view.calls.length, before)
+  assert.equal(card.isConnected, true)
+  assert.equal(panel.scrollTop, 320)
+  assert.equal(
+    document.querySelector('[aria-label="Template sources"] [aria-pressed="true"]').textContent.trim(),
+    'Other sources 1'
+  )
+  await view.click('Apps')
+  await view.click('Agent templates')
+  assert.equal(view.count('templateCatalogPage'), 1)
+  await view.click('Refresh catalog')
+  assert.equal(view.count('templateCatalogPage'), 2, 'explicit refresh still fetches fresh data')
+})
+
+test('manual template refresh keeps existing cards mounted while the response is pending', async (t) => {
+  let finish
+  let reads = 0
+  const view = await mountCatalog(t, (method, input) => {
+    if (method === 'templateCatalogPage' && ++reads > 1) return new Promise((resolve) => (finish = resolve))
+    return templateResult(method, input)
+  })
+  await view.click('Agent templates')
+  const card = [...document.querySelectorAll('button')].find((button) => button.textContent === 'View template')
+  await view.click('Refresh catalog')
+  assert.equal(card.isConnected, true)
+  assert.equal(document.querySelector('[aria-label="Refresh catalog"]').disabled, true)
+  await React.act(async () => finish({ items: [template], nextOffset: null }))
+  assert.equal(card.isConnected, true)
+})
+
 test('required missing template dependencies block install and display the selected version and file scope', async (t) => {
   const view = await mountCatalog(t, (method, input) => {
     const result = templateResult(method, input)

@@ -63,7 +63,7 @@ export class CreateNodeConsumePendingSteerFollowUpsHandler implements ICommandHa
                     this.queryBus,
                     humanState,
                     attachmentOptions,
-                    { xpert }
+                    { xpert, resourceSkillContext: command.input.resourceSkillContext }
                 )
                 const configurable = (config?.configurable ?? {}) as Partial<TAgentRunnableConfigurable>
                 const rootAgentKey = configurable.rootAgentKey ?? agentKey

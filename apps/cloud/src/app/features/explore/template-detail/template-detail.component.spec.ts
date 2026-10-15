@@ -4,11 +4,12 @@ import { NO_ERRORS_SCHEMA, signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { ActivatedRoute, convertToParamMap, provideRouter, Router } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
-import { of, Subject } from 'rxjs'
-import type { AssistantTemplateOverview } from '@xpert-ai/contracts'
+import { of, Subject, throwError } from 'rxjs'
+import type { AssistantTemplateOverview, TemplateReadiness, XpertTemplateSetup } from '@xpert-ai/contracts'
 import { XpertTemplateService } from '@cloud/app/@core'
 import { ExploreScopeService } from '../explore-scope.service'
 import { TemplateDetailComponent } from './template-detail.component'
+import { TemplateRequirementsComponent } from './template-requirements.component'
 
 jest.mock('@cloud/app/@core', () => ({
   XpertTemplateService: class {},
@@ -31,7 +32,7 @@ const overview: AssistantTemplateOverview = {
   integrations: []
 }
 describe('TemplateDetailComponent', () => {
-  const api = { getOverview: jest.fn() }
+  const api = { getOverview: jest.fn(), getSetup: jest.fn() }
   const scope = { key: signal('org-a'), isTenant: jest.fn(() => false), choose: jest.fn() }
   const dialog = { open: jest.fn(() => ({ closed: of(undefined) })) }
   beforeEach(async () => {
@@ -39,6 +40,7 @@ describe('TemplateDetailComponent', () => {
     scope.key.set('org-a')
     scope.isTenant.mockReturnValue(false)
     api.getOverview.mockReturnValue(of(overview))
+    api.getSetup.mockReturnValue(of({ readiness: undefined }))
     await TestBed.configureTestingModule({
       imports: [TranslateModule.forRoot()],
       providers: [
@@ -58,15 +60,16 @@ describe('TemplateDetailComponent', () => {
     })
       .overrideComponent(TemplateDetailComponent, {
         set: {
-          imports: [TranslateModule],
+          imports: [TranslateModule, TemplateRequirementsComponent],
           schemas: [NO_ERRORS_SCHEMA]
         }
       })
       .compileComponents()
   })
-  it('browses four sections and legacy empty states without opening installation', async () => {
+  it('browses template sections and legacy empty states without opening installation', async () => {
     const fixture = TestBed.createComponent(TemplateDetailComponent)
     fixture.detectChanges()
+    await fixture.whenStable()
     await fixture.whenStable()
     fixture.detectChanges()
     expect(fixture.nativeElement.textContent).toContain('Prepare drafts')
@@ -107,6 +110,68 @@ describe('TemplateDetailComponent', () => {
         data: expect.objectContaining({ initialTemplateId: 'scoped-template' })
       })
     )
+  })
+  it('shows requirements on the detail page without starting installation', async () => {
+    const readiness: TemplateReadiness = {
+      canInstall: true,
+      legacy: false,
+      manifestVersion: '1.0.3',
+      checks: [{ kind: 'plugin', key: 'example-plugin', required: true, status: 'missing', message: 'Missing plugin' }],
+      dependencies: [],
+      files: { scope: 'user', entries: [{ kind: 'file', path: 'assistant/brief.md', version: '1' }] }
+    }
+    api.getSetup.mockReturnValue(of({ readiness }))
+    const fixture = TestBed.createComponent(TemplateDetailComponent)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    expect(api.getSetup).toHaveBeenCalledWith('office')
+    expect(fixture.nativeElement.textContent).toContain('example-plugin')
+    expect(fixture.nativeElement.textContent).toContain('assistant/brief.md')
+    expect(dialog.open).not.toHaveBeenCalled()
+    const navigate = jest.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true)
+    const manage = Array.from<HTMLButtonElement>(fixture.nativeElement.querySelectorAll('button')).find((button) =>
+      button.textContent.includes('XP.Installation.ManageDependencies')
+    )
+    manage.click()
+    expect(navigate).toHaveBeenCalledWith(['/plugins'], { queryParams: { category: 'agent-plugins' } })
+  })
+  it('keeps the overview usable when requirements fail and allows retry', async () => {
+    api.getSetup.mockReturnValueOnce(throwError(() => new Error('Requirements unavailable')))
+    const fixture = TestBed.createComponent(TemplateDetailComponent)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    expect(fixture.componentInstance.detail()).toEqual(overview)
+    expect(fixture.nativeElement.textContent).toContain('Requirements unavailable')
+    await fixture.componentInstance.loadRequirements()
+    expect(fixture.componentInstance.requirementsError()).toBe('')
+  })
+  it('does not inspect organization requirements in tenant scope', async () => {
+    scope.isTenant.mockReturnValue(true)
+    const fixture = TestBed.createComponent(TemplateDetailComponent)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    await fixture.whenStable()
+    fixture.detectChanges()
+    expect(api.getSetup).not.toHaveBeenCalled()
+    expect(fixture.nativeElement.textContent).toContain('XP.Scope.SelectOrganization')
+  })
+  it('discards requirements from the previous organization', async () => {
+    const stale = new Subject<XpertTemplateSetup>()
+    api.getSetup.mockReturnValueOnce(stale)
+    const fixture = TestBed.createComponent(TemplateDetailComponent)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    scope.key.set('org-b')
+    fixture.detectChanges()
+    await fixture.whenStable()
+    stale.error(new Error('Previous organization unavailable'))
+    await fixture.whenStable()
+    expect(fixture.componentInstance.requirementsError()).toBe('')
+    expect(fixture.componentInstance.requirementsLoading()).toBe(false)
   })
   it('routes application-owned templates through governed application setup', async () => {
     const fixture = TestBed.createComponent(TemplateDetailComponent)

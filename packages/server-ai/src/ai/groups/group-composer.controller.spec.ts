@@ -55,7 +55,14 @@ describe('group Composer HTTP validation and member scope', () => {
         expect(composer.member).toHaveBeenCalledWith(id, id, id)
         expect(composer.resourceCatalog).toHaveBeenCalledWith({ subjectId: id }, { offset: 2, limit: 50 })
     })
-    it.each(['limit=101', 'offset=-1', 'userId=spoofed', 'kind=unknown'])(
+    it('preserves selection lookup purpose after validating group member scope', async () => {
+        expect((await fetch(`${origin}?purpose=selection`)).status).toBe(200)
+        expect(composer.resourceCatalog).toHaveBeenCalledWith(
+            { subjectId: id },
+            { offset: 0, limit: 50, purpose: 'selection' }
+        )
+    })
+    it.each(['limit=101', 'offset=-1', 'userId=spoofed', 'kind=unknown', 'purpose=unknown'])(
         'rejects invalid resource query %s before member or resource work',
         async (query) => {
             expect((await fetch(`${origin}?${query}`)).status).toBe(400)

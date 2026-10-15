@@ -156,3 +156,52 @@ test('a later page failure retains the first usable page and exposes retry error
   assert.equal(cache.getSnapshot('templates').items.length, 1)
   assert.equal(cache.getSnapshot('templates').error, 'page failed')
 })
+
+test('refresh preserves all visible templates until every replacement page is ready', async () => {
+  let refresh = false
+  const second = deferred()
+  const cache = createCatalogCache(
+    async () => [],
+    async (offset) => {
+      if (!refresh) return { items: [{ id: 'one' }, { id: 'two' }], nextOffset: null }
+      return offset ? second.promise : { items: [{ id: 'new-one' }], nextOffset: 48 }
+    }
+  )
+  await cache.load('templates')
+  refresh = true
+  const pending = cache.load('templates', true)
+  await new Promise(setImmediate)
+  assert.deepEqual(
+    cache.getSnapshot('templates').items.map((item) => item.id),
+    ['one', 'two']
+  )
+  assert.equal(cache.getSnapshot('templates').loading, true)
+  second.resolve({ items: [{ id: 'new-two' }], nextOffset: null })
+  await pending
+  assert.deepEqual(
+    cache.getSnapshot('templates').items.map((item) => item.id),
+    ['new-one', 'new-two']
+  )
+  assert.equal(cache.getSnapshot('templates').loading, false)
+})
+
+test('a failed replacement page retains the complete previous template catalog', async () => {
+  let refresh = false
+  const cache = createCatalogCache(
+    async () => [],
+    async (offset) => {
+      if (!refresh) return { items: [{ id: 'one' }, { id: 'two' }], nextOffset: null }
+      if (offset) throw new Error('Page unavailable')
+      return { items: [{ id: 'new-one' }], nextOffset: 48 }
+    }
+  )
+  await cache.load('templates')
+  refresh = true
+  await cache.load('templates', true)
+  assert.deepEqual(
+    cache.getSnapshot('templates').items.map((item) => item.id),
+    ['one', 'two']
+  )
+  assert.equal(cache.getSnapshot('templates').loading, false)
+  assert.equal(cache.getSnapshot('templates').error, 'Page unavailable')
+})

@@ -1,5 +1,5 @@
 import { ForbiddenException, NotFoundException } from '@nestjs/common'
-import { CommandBus, CqrsModule } from '@nestjs/cqrs'
+import { CommandBus, CqrsModule, QueryBus } from '@nestjs/cqrs'
 import { Test, TestingModule } from '@nestjs/testing'
 import {
     ApiKeyBindingType,
@@ -7,7 +7,8 @@ import {
     IUser,
     RolesEnum,
     SecretTokenBindingType,
-    templateManifestSchema
+    templateManifestSchema,
+    type TemplateAgentSource
 } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { mkdtemp, rm } from 'node:fs/promises'
@@ -25,6 +26,11 @@ import { AssistantFileAccessService } from './assistant-file-access.service'
 import { AssistantFilesService } from './assistant-files.service'
 import { WorkspaceFilesRuntimeCapabilityService } from '../../shared/runtime/workspace-files-runtime-capability.service'
 import { DefaultRuntimeCapabilityRegistry } from '@xpert-ai/plugin-sdk'
+import {
+    AuthorizeTemplateExecutionCommand,
+    AuthorizeTemplateExecutionHandler
+} from '../../agent-plugin/templates/resolve-template-execution.command'
+import type { RuntimeResourceService } from '../../agent-plugin/runtime-resource.service'
 
 // Bind legacy consumers to the same test actor without introducing another deprecated context import.
 jest.mock('@xpert-ai/server-core', () => ({
@@ -317,6 +323,78 @@ describe('Assistant file authority integration', () => {
         groupGrant = true
         await expect(runtime.list()).rejects.toThrow(ForbiddenException)
     })
+
+    function templateAuthority() {
+        const source: TemplateAgentSource = {
+            kind: 'agent_plugin_template',
+            bindingId: 'package-binding',
+            version: 'version-one',
+            digest: 'digest-one',
+            packageName: 'reviewers',
+            templateKey: 'reviewer'
+        }
+        const resources = { resolve: jest.fn(async () => ({ templates: [source] })) }
+        const queries = { execute: jest.fn(async () => ({ agent: { team: assistant } })) }
+        const handler = new AuthorizeTemplateExecutionHandler(
+            resources as unknown as RuntimeResourceService,
+            queries as unknown as QueryBus,
+            module.get(CommandBus)
+        )
+        const authorize = (requested = source, assistantId = assistant.id) =>
+            handler.execute(
+                new AuthorizeTemplateExecutionCommand(
+                    assistantId,
+                    { revision: 1, resources: [{ bindingId: source.bindingId, version: source.version }] },
+                    requested
+                )
+            )
+        return { authorize, source, resources, queries }
+    }
+
+    it('reauthorizes template delegation and cached replay against the live delegated user grant', async () => {
+        await expect(workspaceAccess.assertCanAuthor(workspace.id)).rejects.toThrow(ForbiddenException)
+        principal = {
+            ...actor,
+            principalType: 'client_secret',
+            clientSecretBindingType: SecretTokenBindingType.USER_XPERT,
+            resourceScope: { kind: 'assistant', xpertId: assistant.id }
+        } as IApiPrincipal
+        const task = templateAuthority()
+        await expect(task.authorize()).resolves.toBe(assistant)
+        groupGrant = false
+        // The immutable session audience alone still passes ordinary metadata access.
+        await expect(published.getAccessiblePublishedXpert(assistant.id)).resolves.toBe(assistant)
+        task.resources.resolve.mockClear()
+        task.queries.execute.mockClear()
+        await expect(task.authorize()).rejects.toThrow(ForbiddenException)
+        expect(task.resources.resolve).not.toHaveBeenCalled()
+        expect(task.queries.execute).not.toHaveBeenCalled()
+        expect(resolve).not.toHaveBeenCalled()
+    })
+
+    it.each(['tenant', 'organization', 'assistant', 'unpublished'] as const)(
+        'rejects template delegation with a mismatched %s authority before resource preparation',
+        async (scope) => {
+            const task = templateAuthority()
+            if (scope === 'tenant') actor = { ...actor, tenantId: 'tenant-other' }
+            if (scope === 'organization') assistant.organizationId = 'org-other'
+            if (scope === 'unpublished') assistant.publishAt = null
+            await expect(
+                task.authorize(task.source, scope === 'assistant' ? 'other-assistant' : assistant.id)
+            ).rejects.toThrow()
+            expect(task.resources.resolve).not.toHaveBeenCalled()
+            expect(task.queries.execute).not.toHaveBeenCalled()
+        }
+    )
+
+    it.each(['bindingId', 'version', 'digest', 'packageName', 'templateKey'] as const)(
+        'rejects a forged template %s even with valid Assistant access',
+        async (field) => {
+            const task = templateAuthority()
+            await expect(task.authorize({ ...task.source, [field]: 'forged' })).rejects.toThrow()
+            expect(task.queries.execute).not.toHaveBeenCalled()
+        }
+    )
 
     it('retains traversal protection in authorized file operations', async () => {
         const runtime = files.forRuntime(assistant.id)

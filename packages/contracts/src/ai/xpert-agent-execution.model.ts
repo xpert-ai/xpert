@@ -119,6 +119,7 @@ export enum XpertAgentExecutionStatusEnum {
 }
 
 export type TAgentExecutionMetadata = {
+  templateSource?: import('../agent-plugin').TemplateAgentSource
   businessOutcome?: import('@xpert-ai/chatkit-types').TAgentExecutionOutcome
   /** Recorded by the invocation boundary; never inferred from agent names. */
   invocationKind?: 'external_assistant' | 'sub_agent'

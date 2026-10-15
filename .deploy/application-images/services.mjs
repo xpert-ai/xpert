@@ -71,8 +71,9 @@ export const services = [
     image_name: 'xpert-nsjail-runner',
     dockerfile: '.deploy/nsjail-runner/Dockerfile',
     node_options: '',
-    health_check: '',
+    health_check: '.deploy/nsjail-runner/check-image.cjs',
     inputs: [...pipelineInputs, '.deploy/nsjail-runner/', 'packages/nsjail-runner/'],
+    requiredReleaseInputs: ['.deploy/nsjail-runner/'],
     shared: []
   }
 ]
@@ -82,5 +83,12 @@ export function affectsImage(service, files) {
     (file) =>
       !/(^|\/)(README|CHANGELOG|AGENTS)\.md$/.test(file) &&
       service.inputs.some((input) => (input.endsWith('/') ? file.startsWith(input) : file === input))
+  )
+}
+
+export function requiresImageRelease(service, files) {
+  return affectsImage(
+    { inputs: service.requiredReleaseInputs ?? [] },
+    files.filter((file) => !/(^|\/)test_[^/]+\.py$/.test(file))
   )
 }

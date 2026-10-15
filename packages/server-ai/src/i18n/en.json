@@ -53,6 +53,9 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "TemplateSubagentParameterInvalid": "Template input parameter {{name}} conflicts with a reserved runtime field.",
+        "TemplateSubagentDependencyUnavailable": "Template sub-agent dependency is unavailable: {{dependency}} ({{status}}). Configure the required resource first.",
+        "TemplateSubagentFailed": "The template sub-agent task failed.",
         "PersonalApiKeyNotFound": "Personal API key not found or already revoked.",
         "PersonalApiKeyHumanRequired": "Personal API keys require a human user account.",
         "PersonalApiKeyInvalidInput": "Provide a key name and a valid lifetime.",
@@ -257,6 +260,9 @@
         "AgentInvocationContinuationStale": "Agent invocation continuation is no longer current",
         "AgentResourceOrganizationRequired": "An organization context is required.",
         "AgentResourceAdminRequired": "An administrator is required to manage Agent Plugins.",
+        "PluginCommandSourceChanged": "The selected plugin content has changed. Re-import and select a valid version.",
+        "PluginCommandSkillUnavailable": "This skill is not available in the selected plugin version.",
+        "PluginCommandInstructionsTooLarge": "The selected skill instructions exceed the message size limit.",
         "AgentResourceUnavailable": "This resource is no longer available.",
         "AgentResourceConflict": "Selected middleware configurations conflict.",
         "AgentResourcePluginConfigConflict": "Selected plugins disagree on {{provider}}.{{field}}. Configure it explicitly on the Assistant or change the plugin selection.",
@@ -1079,7 +1085,13 @@
         "TemplateUpgradeChoices": "Choose keep or replace for every changed section.",
         "TemplateUpgradePending": "Finish or roll back the pending upgrade first.",
         "TemplateUpgradeUnsupported": "This change requires a portable runtime adapter, a new routine key, or a separate installation for a changed file scope.",
-        "TemplateUpgradeSourceUnavailable": "The source template is unavailable. You can still recover or roll back this saved upgrade."
+        "TemplateUpgradeSourceUnavailable": "The source template is unavailable. You can still recover or roll back this saved upgrade.",
+        "DefaultAgentPluginsImportChanged": "The import operation has changed. Refresh the page and try again.",
+        "AgentPluginUpdateGitRequired": "ZIP plugins must be updated by uploading a new ZIP file.",
+        "AgentPluginUpdateChanged": "This update operation has changed. Refresh and retry.",
+        "AgentPluginUpdateBusy": "Another Agent plugin update is running in this scope.",
+        "AgentPluginUpdateBranchRequired": "Choose a Git branch to follow for updates.",
+        "AgentPluginUpdateIdentityChanged": "The source contains a different plugin name. No update was installed."
     },
     "Mcp": {
         "Test": {

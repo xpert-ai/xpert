@@ -34,6 +34,12 @@ export class AssistantTemplateToolsetBinder {
         if (toolsets.length) await this.attachTemplateToolsetsToXpert(xpert.id, toolsets)
     }
 
+    /** Resolve configured toolsets into a task snapshot without updating an Assistant draft. */
+    async bindRuntime(draft: TXpertTeamDraft, workspaceId: string, dependencies?: XpertTemplatePluginDependencies) {
+        const resolutions = await this.resolveTemplateToolsetDependencies(workspaceId, undefined, dependencies)
+        for (const resolution of resolutions) this.applyTemplateToolsetResolution(draft, resolution)
+    }
+
     private async resolveTemplateToolsetDependencies(
         workspaceId: string | undefined,
         defaultPluginName: string | undefined,

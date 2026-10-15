@@ -187,6 +187,10 @@ ${taskEntity.descriptionSuffix ?? ''}`
                     agentKey,
                     { id: xpertId },
                     {
+                        executionDefinition: params.executionDefinition,
+                        planMode: params.planMode,
+                        workspacePath: params.workspacePath,
+                        workspaceRoot: params.workspaceRoot,
                         thread_id,
                         isDraft: params.isDraft,
                         mute: params.mute,

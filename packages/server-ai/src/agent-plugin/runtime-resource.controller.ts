@@ -1,9 +1,24 @@
-import { Body, Inject, Controller, Get, Param, Post, Put, Query, UseGuards, UseInterceptors } from '@nestjs/common'
+import { RuntimeResourceCommandsService } from './commands/runtime-resource-commands.service'
+import { resourceCommandsInputSchema } from './commands/agent-plugin-commands.schema'
+import {
+    BadRequestException,
+    Body,
+    Inject,
+    Controller,
+    Get,
+    Param,
+    Post,
+    Put,
+    Query,
+    UseGuards,
+    UseInterceptors
+} from '@nestjs/common'
 import {
     AllowClientSecretBindings,
     ApiKeyOrClientSecretAuthGuard,
     Public,
-    TransformInterceptor
+    TransformInterceptor,
+    ZodValidationPipe
 } from '@xpert-ai/server-core'
 import { SecretTokenBindingType, RuntimeResourcesSelection } from '@xpert-ai/contracts'
 import { z } from 'zod/v3'
@@ -17,7 +32,17 @@ import { parseResourceInput } from './agent-plugin.controller'
 @UseInterceptors(TransformInterceptor)
 @Controller()
 export class RuntimeResourceController {
-    constructor(@Inject('XpertRuntimeResourceService') private readonly service: RuntimeResourceService) {}
+    constructor(
+        @Inject('XpertRuntimeResourceService') private readonly service: RuntimeResourceService,
+        private readonly commands: RuntimeResourceCommandsService
+    ) {}
+    @Post('assistants/:id/resources/commands') commandsCatalog(
+        @Param('id') id: string,
+        @Body(new ZodValidationPipe(resourceCommandsInputSchema, (error) => new BadRequestException(error.flatten())))
+        input: z.output<typeof resourceCommandsInputSchema>
+    ) {
+        return this.commands.list(id, input.runtimeResources as RuntimeResourcesSelection, input.projectId)
+    }
     @Get('assistants/:id/resources') catalog(@Param('id') id: string, @Query() query: unknown) {
         return this.service.catalog(
             id,
@@ -27,6 +52,7 @@ export class RuntimeResourceController {
                         projectId: z.string().uuid().optional(),
                         search: z.string().max(200).optional(),
                         kind: z.enum(['agent_plugin', 'middleware', 'external_xpert']).optional(),
+                        purpose: z.enum(['browse', 'selection']).optional(),
                         offset: z.coerce.number().int().min(0).default(0),
                         limit: z.coerce.number().int().min(1).max(100).default(50)
                     })

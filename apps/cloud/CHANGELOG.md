@@ -1,5 +1,57 @@
 # @xpert-ai/xpert-ui
 
+## 3.20.4
+
+### Patch Changes
+
+- 4e29238: Resolve Agent Plugin connector definitions from persisted tenant and organization configuration so catalogs, OAuth callbacks and runtime calls work across API replicas and restarts. Preserve historical connector identities and authentication methods when a native provider replaces generic MCP OAuth.
+
+  Allow supported connectors to select or create a system integration in the connection dialog, remember its ID for reconnects, and resolve application credentials using the connection's persisted scope. Generate integration names automatically and deduplicate retries. GitHub requires the companion GitHub Connector plugin update to expose this flow and replace dynamic client registration.
+
+- 3b7f2cd: Extend the existing api_key table and authentication flow with USER-bound personal keys in account settings, with one-time secret display, hashed storage, expiration and revocation. Use the same endpoints and authentication flow as existing API keys, restoring the personal key's human owner and current permissions. Preserve ordinary login-only management endpoints and the existing resource-key and ChatKit session flows; no personal-key-specific route opt-in is required.
+
+  Instances that tested the separate-table draft can preserve those credentials with the one-time `packages/server/src/api-key/personal-api-key/migrate-personal-api-keys.sql` script after schema synchronization.
+
+## 3.20.3
+
+### Patch Changes
+
+- f60db7b: Exclude expired and unready replica registrations from plugin rollouts, validate returning replicas before admitting traffic, and restart one candidate at a time. Preserve healthy peers on failure, add bounded plugin startup diagnostics and an event-loop-independent watchdog, and restore verified last-known-good plugin configurations without retrying failed recovery indefinitely.
+
+  Protect the last healthy replica unless an authorized operator explicitly permits downtime. Pin replacement admission to the active generation's cumulative plugin manifest so queued updates cannot block the current rollout or inherit outage consent.
+
+- 558b1cd: Add provider model discovery and incremental imports for LLM, embedding, and rerank models. Preserve edited configuration across synchronization, expose model sources and editable limits, and apply the synchronized catalog to model selection and execution access.
+
+## 3.20.2
+
+### Patch Changes
+
+- e42fc94: Make tenant and organization Agent Plugin installations directly available in the ChatKit Plugins menu. Remove workspace publishing and addition from Cloud and Desktop, prepare selected runtime resources on demand, and retain existing conversation versions, expert mappings and Connector configuration.
+
+  Tenant packages inherit into organizations without sharing Connector credentials. Existing databases created with the original Agent Plugin SQL schema should apply `20261012-agent-plugin-installation-scope.sql` to allow tenant-scoped records.
+
+- 7de8eae: Update ChatKit packages to 0.14.2 to preserve pending project confirmation when restoring conversations, and synchronize the API, Web and Desktop deployment lockfiles.
+- 02f3081: Release API and Web application images alongside the shared ClawXpert initialization recovery contracts and MCP App history / View runtime plugin SDK updates. Keep both application images aligned with the updated shared packages.
+- f816d25: Update the ChatKit packages consumed by Xpert to 0.14.1 and synchronize the API, Web and Desktop deployment lockfiles.
+
+## 3.20.1
+
+### Patch Changes
+
+- 75f1cd3: Support browser microphone recording with optional shared tab audio through declared View client commands and a host permission dialog. Produce independent 24 kHz PCM WAV chunks, preserve ordered retryable delivery in page memory, and carry the initiating View runtime scope to event and file actions. Add translated source selection and upload-lifetime guidance.
+
+  Keep capture state and controls scoped to the initiating identity, View and Project, respect capture ID selection, and stop on device loss, scope changes or recording limits. Confirm meeting creation before starting capture, release devices on failed or cancelled startup, and preserve the final audio block before the stopped event. Add regression coverage for permission cleanup, delivery retries, scope changes, PCM processing and browser/native command separation.
+
+- ae1fb5f: Add scoped knowledgebase discovery, readiness and action-permission APIs with authorization-aware cursor pagination. Preserve the legacy list behavior with deprecation guidance, and fail indexing when supplied generated-image semantics are invalid instead of indexing placeholder content.
+
+  Clarify runtime and provisioning API responsibilities, and organize the SDK guides into English documentation with updated navigation, branding, package assets and cross-references.
+
+- e55a7dc: Improve application marketplace cards in Web and Desktop with full-bleed previews, app logos and compact translucent glass overlays. Reveal descriptions and actions on hover or keyboard focus, keep them available on touch devices, and size cards to prevent internal vertical scrolling or clipped actions at narrow widths. Use fixed-size panels with transform animations and matching loading placeholders.
+
+  Preserve validated image, SVG and emoji application icons in the Desktop catalog and setup details, provide preview and logo fallbacks, and show publisher and tag information in application details. Add catalog regression coverage for supported icons and rejected URLs.
+
+- 9286a0f: Refine marketplace application cards with theme-aware translucent gradients, compact logos, and cover-aligned blur layers that stay aligned while details expand. Improve dark-theme text contrast and keep the web card glass independent of backdrop sampling.
+
 ## 3.20.0
 
 ### Minor Changes

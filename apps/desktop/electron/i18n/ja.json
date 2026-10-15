@@ -1,6 +1,7 @@
 {
   "Select a compatible model for this assistant.": "このアシスタントに対応したモデルを選択してください。",
   "Invalid template capabilities.": "テンプレートの機能設定が無効です。",
+  "Invalid template requirements response.": "テンプレート要件の応答形式が無効です。",
   "The template is not ready to install.": "テンプレートを初期化する準備ができていません。",
   "Invalid tool output attachment.": "ツール出力の添付ファイルが無効です。",
   "The image preview does not match the requested attachment.": "画像プレビューが要求された添付ファイルと一致しません。",

@@ -1,6 +1,7 @@
 {
   "Select a compatible model for this assistant.": "Select a compatible model for this assistant.",
   "Invalid template capabilities.": "Invalid template capabilities.",
+  "Invalid template requirements response.": "Invalid template requirements response.",
   "The template is not ready to install.": "The template is not ready to install.",
   "Invalid tool output attachment.": "Invalid tool output attachment.",
   "The image preview does not match the requested attachment.": "The image preview does not match the requested attachment.",

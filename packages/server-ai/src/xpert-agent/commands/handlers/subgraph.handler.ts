@@ -1,3 +1,6 @@
+import { TemplateSubagentRuntimeService } from '../../template-subagents/template-subagent-runtime.service'
+import { createTemplateSubagentsMiddleware } from '../../template-subagents/template-subagents.middleware'
+import { resolveExecutionWorkflow } from '../../../shared/agent/execution-definition'
 import { createGraphNodeChannel } from '../../graph-node-channel'
 import { templateConnectorSelection } from '../../../xpert/template-setup/template-connector-selection'
 import { AssistantTemplateSetupCommand } from '../../../xpert/template-setup/template-setup.command'
@@ -103,7 +106,7 @@ import {
     XpertAgentExecutionUpsertCommand
 } from '../../../xpert-agent-execution'
 import { ToolsetGetToolsCommand } from '../../../xpert-toolset'
-import { GetXpertWorkflowQuery, GetXpertChatModelQuery, TXpertWorkflowQueryOutput } from '../../../xpert/queries'
+import { GetXpertChatModelQuery } from '../../../xpert/queries'
 import { CreateNodeConsumePendingSteerFollowUpsCommand } from '../create-node-consume-pending-steer-follow-ups.command'
 import { CreateNodeStagePendingSteerFollowUpsCommand } from '../create-node-stage-pending-steer-follow-ups.command'
 import { XpertAgentSubgraphCommand } from '../subgraph.command'
@@ -187,6 +190,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
     @Inject(AgentInvocationGraphService)
     private readonly invocationGraph: AgentInvocationGraphService
 
+    @Inject(TemplateSubagentRuntimeService)
+    private readonly templateSubagents: TemplateSubagentRuntimeService
+
     constructor(
         private readonly copilotCheckpointSaver: CopilotCheckpointSaver,
         private readonly commandBus: CommandBus,
@@ -244,8 +250,12 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             graph: xpertGraph,
             next: agentNext,
             fail: agentFail
-        } = await this.queryBus.execute<GetXpertWorkflowQuery, TXpertWorkflowQueryOutput>(
-            new GetXpertWorkflowQuery(xpert.id, agentKeyOrName, command.options?.isDraft)
+        } = await resolveExecutionWorkflow(
+            this.queryBus,
+            xpert.id,
+            agentKeyOrName,
+            command.options?.isDraft,
+            options.executionDefinition
         )
         if (!agent) {
             throw new NotFoundException(
@@ -264,6 +274,13 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         }
 
         const dynamicResources = isStart && !leaderKey ? options.runtimeResources : undefined
+        const resourceSkillContext =
+            isStart && !leaderKey
+                ? {
+                      selection: dynamicResources?.selection ?? { revision: 0, resources: [] },
+                      projectId: options.projectId
+                  }
+                : undefined
         if (dynamicResources)
             graph = applyRuntimeResourceGraph(
                 graph,
@@ -473,6 +490,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
 
         // Workflow Task tool
         const taskTools = await createWorkflowTaskTools(agentKey, graph, {
+            executionDefinition: options.executionDefinition,
+            planMode: options.planMode,
+            workspacePath: options.workspacePath,
+            workspaceRoot: options.workspaceRoot,
             environment,
             subscriber,
             isDraft: command.options.isDraft,
@@ -494,7 +515,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         // Memory tools
         if (team.memory?.enabled && team.memory?.qa?.enabled) {
             tools.push(
-                ...initializeMemoryTools(options.store, runtimeXpert.id).map((tool) => ({
+                ...initializeMemoryTools(
+                    options.store,
+                    options.executionDefinition?.memoryNamespace ?? runtimeXpert.id
+                ).map((tool) => ({
                     toolset: {
                         provider: 'memories',
                         title: translate({ en_US: 'Memory', zh_Hans: '记忆' })
@@ -539,6 +563,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 const item = await this.invocationGraph.compileLocal(
                     follower,
                     {
+                        executionDefinition: options.executionDefinition,
+                        planMode: options.planMode,
                         mute: options.mute,
                         unmutes: options.unmutes,
                         store: options.store,
@@ -622,6 +648,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 const { stateGraph, nextNodes, failNode } = await this.invocationGraph.compileLocal(
                     node.entity,
                     {
+                        executionDefinition: options.executionDefinition,
+                        planMode: options.planMode,
                         mute: options.mute,
                         unmutes: options.unmutes,
                         store: options.store,
@@ -712,6 +740,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 const { workflowNode, navigator, nextNodes, channel, tool, caller, toolset, variables } =
                     await this.commandBus.execute<CreateWorkflowNodeCommand, TWorkflowGraphNode>(
                         new CreateWorkflowNodeCommand(runtimeXpert.id, graph, node, parentKey, {
+                            executionDefinition: options.executionDefinition,
+                            planMode: options.planMode,
+                            workspacePath: options.workspacePath,
+                            workspaceRoot: options.workspaceRoot,
                             mute: options.mute,
                             store: options.store,
                             isDraft: options.isDraft,
@@ -832,9 +864,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         const declaredConnectors =
             runtimeXpert.options?.templateDefinition?.manifest?.connectors ??
             runtimeXpert.options?.templateSource?.manifest?.connectors
-        const templateSetup = declaredConnectors?.length
-            ? await this.commandBus.execute(new AssistantTemplateSetupCommand(runtimeXpert.id))
-            : undefined
+        const templateSetup =
+            options.executionDefinition?.setup ??
+            (declaredConnectors?.length
+                ? await this.commandBus.execute(new AssistantTemplateSetupCommand(runtimeXpert.id))
+                : undefined)
         const templateSelection = templateConnectorSelection(
             getRuntimeEnabledMiddlewareNodes(graph, agent, {
                 runtimeCapabilities: options.runtimeCapabilities
@@ -877,7 +911,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             ...connectorScope
         })
         const middlewareContext: Omit<IAgentMiddlewareContext, 'node'> & RuntimeResourceMiddlewareContext = {
-            [RUNTIME_RESOURCE_SKILLS]: dynamicResources?.skillSources ?? [],
+            [RUNTIME_RESOURCE_SKILLS]:
+                options.executionDefinition?.skills[agent.key] ?? dynamicResources?.skillSources ?? [],
             tenantId: runtimeXpert.tenantId,
             organizationId: runtimeOrganizationId,
             userId: runtimeUserId,
@@ -895,7 +930,11 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             runtime: middlewareRuntime
         }
         const builtinMiddlewareEntries: Array<{ key: string; middleware: AgentMiddleware }> = []
-        const templateRuntime = createTemplateRuntimeMiddleware(runtimeXpert, this.commandBus)
+        const templateRuntime = createTemplateRuntimeMiddleware(
+            runtimeXpert,
+            this.commandBus,
+            options.executionDefinition?.taskSetup
+        )
         if (templateRuntime) builtinMiddlewareEntries.push({ key: templateRuntime.name, middleware: templateRuntime })
         builtinMiddlewareEntries.push(
             await createThreadReferenceMiddleware(this.agentMiddlewareRegistry, middlewareContext)
@@ -928,6 +967,32 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 })
         )
         builtinMiddlewareEntries.push({ key: collaboratorsMiddleware.name, middleware: collaboratorsMiddleware })
+        if (dynamicResources?.templates?.length) {
+            const middleware = createTemplateSubagentsMiddleware(
+                dynamicResources.templates,
+                (template, input, config) =>
+                    this.templateSubagents.invoke(
+                        template,
+                        input,
+                        config,
+                        { ...delegationScope, options, occupiedNames: [], agentKey },
+                        effectiveCopilotModel
+                    )
+            )
+            builtinMiddlewareEntries.push({ key: middleware.name, middleware })
+        }
+        if (options.executionDefinition) {
+            builtinMiddlewareEntries.push({
+                key: 'templateAuthorization',
+                middleware: {
+                    name: 'templateAuthorization',
+                    wrapToolCall: async (request, handler) => {
+                        await options.executionDefinition.authorize()
+                        return handler(request)
+                    }
+                }
+            })
+        }
         if (isFileUnderstandingEnabled(agent)) {
             const fileUnderstandingStrategy = this.agentMiddlewareRegistry.get(FILE_UNDERSTANDING_MIDDLEWARE_NAME)
             // Platform middleware: it is hidden from the graph UI but is still
@@ -1327,7 +1392,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                         )
                     }
                 }
-                if (!humanMessages.length && state.human) {
+                if (
+                    (!humanMessages.length || (resourceSkillContext && state.human?.resourceSkills !== undefined)) &&
+                    state.human
+                ) {
                     // Add attachments
                     humanMessages.push(
                         await createHumanMessage(
@@ -1335,7 +1403,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                             this.queryBus,
                             state,
                             agent.options?.attachment ?? agent.options?.vision,
-                            { xpert: promptWorkflowXpert }
+                            {
+                                xpert: promptWorkflowXpert,
+                                resourceSkillContext
+                            }
                         )
                     )
                 }
@@ -1553,7 +1624,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                                 agentChannel,
                                 xpert: promptWorkflowXpert,
                                 subscriber,
-                                attachmentOptions: agent.options?.attachment ?? agent.options?.vision
+                                attachmentOptions: agent.options?.attachment ?? agent.options?.vision,
+                                resourceSkillContext
                             })
                         )
                     ).withConfig({

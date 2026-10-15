@@ -14,6 +14,7 @@ import { invoke } from './host'
 import { getChatKitMessagePresentation, getChatKitTheme } from './theme'
 import type { Bot, ConnectionConfig } from './types'
 import { AssistantAppearanceDialog } from './avatar/AssistantAppearanceDialog'
+import { assistantAccentColor } from './avatar/color'
 import type { DesktopLastSession } from './assistant-list-types'
 
 // A thin React lifecycle adapter; ChatKit owns every conversation interaction.
@@ -41,6 +42,7 @@ export function ChatPanel({
   onAppearanceSaved: () => Promise<void>
 }) {
   const botId = bot?.id ?? ''
+  const accentColor = assistantAccentColor(groupId ? undefined : bot)
   const name = groupId ? t('Group conversation') : (bot?.name ?? '')
   const sessionKey = JSON.stringify([groupId, botId, selectionVersion])
   const activeSessionKey = useRef(sessionKey)
@@ -195,7 +197,7 @@ export function ChatPanel({
         }
       },
       locale: config.locale,
-      theme: getChatKitTheme(document.documentElement.classList.contains('dark'), config.appearance),
+      theme: getChatKitTheme(document.documentElement.classList.contains('dark'), config.appearance, accentColor),
       messagePresentation: groupId ? { mode: 'bubbles' } : getChatKitMessagePresentation(config.appearance),
       layout: { maxWidth: 960 },
       initialThread: activeThread,
@@ -274,7 +276,7 @@ export function ChatPanel({
 
   useEffect(() => {
     if (frameReady && instance.current && optionsRef.current) {
-      const theme = getChatKitTheme(dark, config.appearance)
+      const theme = getChatKitTheme(dark, config.appearance, accentColor)
       const messagePresentation = groupId
         ? { mode: 'bubbles' as const }
         : getChatKitMessagePresentation(config.appearance)
@@ -301,7 +303,7 @@ export function ChatPanel({
       optionsRef.current = options
       instance.current.setOptions(options)
     }
-  }, [dark, frameReady, config.appearance, config.locale, name, groupId, computerState])
+  }, [dark, frameReady, config.appearance, config.locale, name, groupId, computerState, accentColor])
 
   useEffect(() => {
     if (!frameReady || !instance.current || !optionsRef.current) return

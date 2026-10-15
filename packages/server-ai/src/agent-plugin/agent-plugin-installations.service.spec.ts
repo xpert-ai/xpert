@@ -51,6 +51,7 @@ describe('installed plugins through the ChatKit catalog and runtime', () => {
     let lock: jest.Mock
     let assistantAccess: jest.Mock
     let manager: {
+        getRepository: jest.Mock
         query: jest.Mock
         findOneBy: jest.Mock
         save: jest.Mock
@@ -104,6 +105,7 @@ describe('installed plugins through the ChatKit catalog and runtime', () => {
             records.filter((record) => (Array.isArray(where) ? where : [where]).some((item) => matches(record, item)))
         )
         manager = {
+            getRepository: jest.fn((entity) => ({ find: entity === AgentPluginPackage ? findPackages : findBindings })),
             query: lock,
             findOneBy: jest.fn(async (_type, where) => records.find((record) => matches(record, where)) ?? null),
             save: jest.fn(async (_type, record: AgentResourceBinding) => {
@@ -167,6 +169,108 @@ describe('installed plugins through the ChatKit catalog and runtime', () => {
         expect(manager.save).not.toHaveBeenCalled()
         expect(JSON.stringify(result)).not.toMatch(/rootPath|tenantId|organizationId|connectorServers/)
     })
+    it('offers a template-only package and lists each template without provisioning', async () => {
+        packages[0].descriptor.skills = []
+        packages[0].descriptor.templates = [
+            { key: 'reviewer', path: 'reviewer.json' },
+            { key: 'writer', path: 'writer.json' }
+        ]
+        packages[0].descriptor.templateCatalog = {
+            reviewer: {
+                name: 'reviewer',
+                title: 'Reviewer',
+                description: 'Review evidence',
+                avatar: null,
+                type: XpertTypeEnum.Agent
+            },
+            writer: {
+                name: 'writer',
+                title: 'Writer',
+                description: 'Write a report',
+                avatar: null,
+                type: XpertTypeEnum.Agent
+            }
+        }
+        const result = await runtime.catalog('assistant', { kind: 'agent_plugin' })
+        expect(result.items[0]).toMatchObject({
+            status: 'ready',
+            components: [
+                {
+                    kind: 'assistant_template',
+                    key: 'reviewer',
+                    title: 'Reviewer',
+                    description: 'Review evidence',
+                    status: 'ready'
+                },
+                {
+                    kind: 'assistant_template',
+                    key: 'writer',
+                    title: 'Writer',
+                    description: 'Write a report',
+                    status: 'ready'
+                }
+            ]
+        })
+        expect(install).not.toHaveBeenCalled()
+    })
+    it.each([undefined, 'capability', 'assistant', 'subagent'] as const)(
+        'filters only assistant role %p from candidates without changing installed or selected resources',
+        async (role) => {
+            packages[0].descriptor.extension = { version: 2, role }
+            const binding = importedPluginBinding(packages[0])
+            const reference = selected(binding)
+            const candidates = await runtime.catalog('assistant', { kind: 'agent_plugin' })
+            expect(candidates.total).toBe(role === 'assistant' ? 0 : 1)
+            expect(candidates.items).toHaveLength(candidates.total)
+            expect((await installations.catalog()).items).toHaveLength(1)
+            expect(await installations.installedCatalog()).toHaveLength(1)
+            const restored = await runtime.catalog('assistant', { purpose: 'selection' })
+            expect(restored.items[0]).toMatchObject({
+                bindingId: binding.id,
+                version: binding.version,
+                title: 'documents',
+                status: 'ready'
+            })
+            const resolved = await runtime.resolve('assistant', reference)
+            expect(resolved.selection).toEqual(reference)
+            expect(resolved.skillIds).toEqual(['skill-new-workspace'])
+        }
+    )
+    it('filters assistant-role candidates before search totals and pagination', async () => {
+        const original = packages[0]
+        packages = ['a-template', 'b-visible', 'c-template', 'd-visible'].map((name, index) => ({
+            ...original,
+            id: `package-${index}`,
+            descriptor: {
+                ...original.descriptor,
+                name,
+                extension: { version: 2, role: index % 2 === 0 ? 'assistant' : 'capability' }
+            }
+        }))
+        const page = await runtime.catalog('assistant', { offset: 1, limit: 1 })
+        expect(page.total).toBe(2)
+        expect(page.items.map((item) => item.title)).toEqual(['d-visible'])
+        expect(await runtime.catalog('assistant', { search: 'template' })).toEqual({ items: [], total: 0 })
+        expect((await runtime.catalog('assistant', { purpose: 'selection', search: 'template' })).total).toBe(2)
+    })
+    it('keeps a conversation pinned to its old package after an assistant-role upgrade', async () => {
+        const previous = packages[0]
+        const reference = selected(importedPluginBinding(previous))
+        await runtime.resolve('assistant', reference)
+        packages.unshift({
+            ...previous,
+            id: 'assistant-upgrade',
+            digest: 'new-digest',
+            createdAt: new Date('2026-10-02'),
+            descriptor: { ...previous.descriptor, extension: { version: 2, role: 'assistant' } }
+        })
+        expect(await runtime.catalog('assistant', { kind: 'agent_plugin' })).toEqual({ items: [], total: 0 })
+        expect((await runtime.resolve('assistant', reference)).selection).toEqual(reference)
+        expect((await installations.reference(reference.resources[0])).pkg.id).toBe(previous.id)
+        expect(install).toHaveBeenCalledTimes(1)
+        records.push({ ...importedPluginBinding(packages[0]), enabled: false })
+        await expect(runtime.resolve('assistant', reference)).rejects.toThrow()
+    })
     it('prepares only the selected plugin without workspace editor permissions and reuses the result', async () => {
         const binding = importedPluginBinding(packages[0])
         const result = await runtime.resolve('assistant', selected(binding))
@@ -197,6 +301,15 @@ describe('installed plugins through the ChatKit catalog and runtime', () => {
         expect(workspaceUpdate).toHaveBeenLastCalledWith(
             { ...scope, organizationId: 'second-org', id: 'skill-second' },
             expect.anything()
+        )
+    })
+    it('reserves automatic template references without changing their identity or version', async () => {
+        const original = { ...importedPluginBinding(packages[0]), cleanupEligible: true }
+        records.push(original)
+        await installations.retainTemplateReference({ bindingId: original.id, version: original.version })
+        expect(manager.save).toHaveBeenCalledWith(
+            AgentResourceBinding,
+            expect.objectContaining({ id: original.id, version: original.version, cleanupEligible: false })
         )
     })
     it('preserves old conversation IDs, versions and existing installations', async () => {

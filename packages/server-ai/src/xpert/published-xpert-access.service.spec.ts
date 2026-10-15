@@ -35,6 +35,8 @@ function createQueryBuilderMock(options?: { count?: number; rows?: { id: string 
         addOrderBy: jest.fn().mockReturnThis(),
         take: jest.fn().mockReturnThis(),
         skip: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        offset: jest.fn().mockReturnThis(),
         getRawMany: jest.fn().mockResolvedValue(options?.rows ?? []),
         getCount: jest.fn().mockResolvedValue(options?.count ?? 0)
     }
@@ -835,6 +837,9 @@ describe('PublishedXpertAccessService', () => {
         })
         expect(qb.skip).toHaveBeenCalledWith(10)
         expect(qb.take).toHaveBeenCalledWith(20)
+        expect(qb.limit).toHaveBeenCalledWith(20)
+        expect(qb.offset).toHaveBeenCalledWith(10)
+        expect(qb.addOrderBy).toHaveBeenCalledWith('xpert.id', 'ASC')
     })
 
     it('rejects access when none of creator, workspace membership, or user-group membership grants access', async () => {

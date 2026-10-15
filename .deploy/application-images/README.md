@@ -45,7 +45,13 @@ shared build inputs, Dockerfile or dependency lock requests a new candidate for
 the fixing commit. It reuses the pending note and does not require another note
 just to retry a failed build. Only affected applications are rebuilt; the highest
 pending bump still determines their candidate base version. Source-only changes
-without an application note are built and checked, but never published.
+without an application note are built and checked, but never published. NsJail
+runtime inputs are stricter: changes under `.deploy/nsjail-runner/` (except
+README/CHANGELOG/AGENTS and `test_*.py` files) require a matching image release
+declaration. Both Git hooks and CI reject a missing declaration, including
+deletions and renames. A pending NsJail note can authorize subsequent repairs.
+The exact NsJail image is checked for isolation and managed `.apps` protection
+before it is saved for publication.
 
 ## Candidate and stable versions
 
