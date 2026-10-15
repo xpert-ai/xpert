@@ -20,6 +20,8 @@ import { XpertWorkspaceAccessService } from '../../xpert-workspace/workspace-acc
 import { XpertToolset } from '../../xpert-toolset/xpert-toolset.entity'
 import { TemplateReadinessService } from './template-readiness.service'
 import { InstallationSourceChangedError } from './template-installation-source'
+import { AssertProjectAssistantAccessCommand } from '../../xpert-project/commands/assert-project-assistant-access.command'
+import { ResolveAssistantFileAccessCommand } from '../../xpert/assistant-files/resolve-assistant-file-access.command'
 
 describe('scoped template dependency preparation', () => {
     const base: TXpertTemplate = {
@@ -82,6 +84,26 @@ describe('scoped template dependency preparation', () => {
         jest.spyOn(RequestContext, 'getScope').mockReturnValue(undefined)
     })
     afterEach(() => jest.restoreAllMocks())
+
+    it.each([undefined, 'project'])(
+        'reauthorizes runtime preparation in its actual task workspace: %s',
+        async (projectId) => {
+            const h = await harness()
+            const commands = h.module.get(CommandBus)
+            await h.service.prepareRuntime(base, 'assistant', 'workspace', undefined, projectId)
+            expect(commands.execute).toHaveBeenCalledWith(
+                projectId
+                    ? new AssertProjectAssistantAccessCommand(projectId, 'assistant')
+                    : new ResolveAssistantFileAccessCommand('assistant', 'capabilities', 'runtime')
+            )
+            expect(h.access.assertCanAuthor).not.toHaveBeenCalled()
+            jest.mocked(commands.execute).mockRejectedValueOnce(new Error('revoked'))
+            await expect(
+                h.service.prepareRuntime(base, 'assistant', 'workspace', undefined, projectId)
+            ).rejects.toThrow('revoked')
+            await h.module.close()
+        }
+    )
 
     it('prefers organization scope and pins a runtime-only prerequisite without selecting its resources', async () => {
         const h = await harness()

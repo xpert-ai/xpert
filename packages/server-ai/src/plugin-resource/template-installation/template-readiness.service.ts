@@ -20,6 +20,7 @@ import {
     InspectTemplateReadinessCommand
 } from './template-readiness.command'
 import { ResolveAssistantFileAccessCommand } from '../../xpert/assistant-files/resolve-assistant-file-access.command'
+import { AssertProjectAssistantAccessCommand } from '../../xpert-project/commands/assert-project-assistant-access.command'
 import { installationHash, InstallationSourceChangedError } from './template-installation-source'
 import {
     ResolveAgentPluginTemplateDependencyCommand,
@@ -46,6 +47,40 @@ export class TemplateReadinessService {
 
     async inspect(template: TXpertTemplate, workspaceId?: string) {
         if (workspaceId) await this.workspaces.assertCanAuthor(workspaceId)
+        return this.inspectRequirements(template, workspaceId)
+    }
+
+    /** Runtime access is checked separately from authoring; run-only users can delegate templates. */
+    async prepareRuntime(
+        template: TXpertTemplate,
+        assistantId: string,
+        workspaceId: string,
+        expected?: TemplateDependencyLock[],
+        projectId?: string
+    ) {
+        await this.commands.execute(
+            projectId
+                ? new AssertProjectAssistantAccessCommand(projectId, assistantId)
+                : new ResolveAssistantFileAccessCommand(assistantId, 'capabilities', 'runtime')
+        )
+        const result = await this.inspectRequirements(template, workspaceId)
+        if (expected && installationHash(expected) !== installationHash(result.readiness.dependencies))
+            throw new InstallationSourceChangedError()
+        if (!result.readiness.canInstall) {
+            const check = result.readiness.checks.find(
+                (check) => check.required && !['ready', 'pending-configuration'].includes(check.status)
+            )
+            throw new BadRequestException(
+                t('server-ai:Error.TemplateSubagentDependencyUnavailable', {
+                    dependency: check?.key,
+                    status: check?.status
+                })
+            )
+        }
+        return result
+    }
+
+    private async inspectRequirements(template: TXpertTemplate, workspaceId?: string) {
         const result = inspectTemplateManifest(template)
         const { readiness, manifest, normalized } = result
         const components: RuntimeComponent[] = []

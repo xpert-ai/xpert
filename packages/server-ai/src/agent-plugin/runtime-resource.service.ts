@@ -1,4 +1,5 @@
 import { dirname, join } from 'node:path'
+import { runtimeTemplateDescriptors, type RuntimeTemplateDescriptor } from './templates/runtime-template'
 import { connectorMcpAuth, matchesPortableMcpSchema } from './agent-plugin-mcp'
 import { AgentPluginConnectorService } from './agent-plugin-connector.service'
 import { publishedResourceVersion } from './published-resource-version'
@@ -41,6 +42,7 @@ export interface ResolvedRuntimeResources {
     toolsetIds: string[]
     middlewares: Array<{ key: string; entity: IWFNMiddleware }>
     experts: IXpert[]
+    templates?: RuntimeTemplateDescriptor[]
 }
 export const emptyRuntimeResources = (): ResolvedRuntimeResources => ({
     selection: { revision: 0, resources: [] },
@@ -260,6 +262,15 @@ export class RuntimeResourceService {
             base.icon = pkg.descriptor.extension?.interface?.icon
             base.status = base.diagnostics.length ? 'partial' : 'ready'
             base.components = [
+                ...(pkg.descriptor.extension?.role === 'assistant'
+                    ? []
+                    : (pkg.descriptor.templates ?? []).map(({ key }) => ({
+                          key,
+                          kind: 'assistant_template' as const,
+                          title: pkg.descriptor.templateCatalog?.[key]?.title || key,
+                          description: pkg.descriptor.templateCatalog?.[key]?.description,
+                          status: 'ready' as const
+                      }))),
                 ...pkg.descriptor.skills.map(({ key }) => ({ key, kind: 'skill' as const, status: 'ready' as const })),
                 ...pkg.descriptor.servers.map(({ key }) => ({ key, kind: 'mcp' as const, status: 'ready' as const })),
                 ...(pkg.descriptor.extension?.middlewares ?? []).map(({ key }) => ({
@@ -435,6 +446,8 @@ export class RuntimeResourceService {
                     throw new BadRequestException(t('server-ai:Error.ConnectorWorkspaceConnectionRequired'))
                 packages.set(definition.packageId, definition)
                 const pkg = await this.installations.package(binding, assistant.workspaceId)
+                result.templates ??= []
+                result.templates.push(...(await runtimeTemplateDescriptors(pkg, reference)))
                 for (const middleware of pkg.descriptor.extension?.middlewares ?? [])
                     addMiddleware(`resource_${binding.id}_${middleware.key}`, middleware.provider, middleware.options)
                 for (const expert of pkg.descriptor.extension?.experts ?? [])

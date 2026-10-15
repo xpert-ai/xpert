@@ -1,3 +1,7 @@
+import {
+    AuthorizeTemplateExecutionHandler,
+    ResolveTemplateExecutionHandler
+} from './templates/resolve-template-execution.command'
 import { AgentPluginMaintenanceController } from './maintenance/agent-plugin-maintenance.controller'
 import { AgentPluginCleanupService } from './maintenance/agent-plugin-cleanup.service'
 import { AgentPluginUpdateService } from './maintenance/agent-plugin-update.service'
@@ -36,6 +40,8 @@ import { ResolvePluginConnectorsHandler } from './queries/resolve-plugin-connect
     ],
     controllers: [AgentPluginController, AgentPluginMaintenanceController],
     providers: [
+        ResolveTemplateExecutionHandler,
+        AuthorizeTemplateExecutionHandler,
         AgentPluginCleanupService,
         AgentPluginUpdateService,
         AgentPluginUpdateStore,

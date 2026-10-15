@@ -1,28 +1,38 @@
 import { HumanMessage, SystemMessage, ToolMessage } from '@langchain/core/messages'
 import { tool } from '@langchain/core/tools'
 import { CommandBus } from '@nestjs/cqrs'
-import { templateManifestSchema, type IXpert } from '@xpert-ai/contracts'
+import {
+    templateManifestSchema,
+    type IXpert,
+    type AssistantTemplateSetup,
+    type TemplateSetupUpdate
+} from '@xpert-ai/contracts'
 import type { AgentMiddleware } from '@xpert-ai/plugin-sdk'
 import { z } from 'zod/v3'
 import { t } from 'i18next'
 import { AssistantTemplateSetupCommand } from './template-setup.command'
 
-export function createTemplateRuntimeMiddleware(assistant: IXpert, commands: CommandBus): AgentMiddleware | undefined {
+export function createTemplateRuntimeMiddleware(
+    assistant: IXpert,
+    commands: CommandBus,
+    taskSetup?: (update?: TemplateSetupUpdate) => Promise<AssistantTemplateSetup>
+): AgentMiddleware | undefined {
     const declared = assistant.options?.templateDefinition?.manifest ?? assistant.options?.templateSource?.manifest
     if (!declared) return undefined
     const manifest = templateManifestSchema.parse(declared)
     if (!manifest.onboarding && !manifest.connectors?.length) return undefined
-    const read = () => commands.execute(new AssistantTemplateSetupCommand(assistant.id))
+    const read = () => (taskSetup ? taskSetup() : commands.execute(new AssistantTemplateSetupCommand(assistant.id)))
     const savePreferences = tool(
         async ({ preferences, firstResult }) => {
             const setup = await read()
-            const next = await commands.execute(
-                new AssistantTemplateSetupCommand(assistant.id, {
-                    revision: setup.state.revision,
-                    preferences,
-                    ...(firstResult ? { firstResult } : {})
-                })
-            )
+            const update = {
+                revision: setup.state.revision,
+                preferences,
+                ...(firstResult ? { firstResult } : {})
+            }
+            const next = taskSetup
+                ? await taskSetup(update)
+                : await commands.execute(new AssistantTemplateSetupCommand(assistant.id, update))
             return JSON.stringify({ preferences: next.state.preferences, completed: !!next.state.completedAt })
         },
         {

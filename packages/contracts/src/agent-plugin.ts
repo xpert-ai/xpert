@@ -29,6 +29,14 @@ export interface RuntimeResourceReference {
   version: string
 }
 
+/** Immutable template identity used by task-level Agent executions. */
+export interface TemplateAgentSource extends RuntimeResourceReference {
+  kind: 'agent_plugin_template'
+  packageName: string
+  digest: string
+  templateKey: string
+}
+
 /**
  * Complete conversation selection, independent of graph runtimeCapabilities.
  * Updates apply to the next execution without changing the Assistant graph.
@@ -65,7 +73,9 @@ export interface RuntimeResourceCatalogItem extends RuntimeResourceReference {
   /** Package components and their individual availability. Plugins are selected as a whole. */
   components: Array<{
     key: string
-    kind: 'skill' | 'mcp' | 'middleware' | 'external_xpert'
+    kind: 'skill' | 'mcp' | 'middleware' | 'external_xpert' | 'assistant_template'
+    title?: string
+    description?: string
     status: RuntimeResourceStatus
   }>
 }

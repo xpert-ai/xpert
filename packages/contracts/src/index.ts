@@ -87,6 +87,7 @@ export type {
   RuntimeResourceCatalogPurpose,
   RuntimeResourceStatus,
   RuntimeResourceReference,
+  TemplateAgentSource,
   RuntimeResourcesSelection,
   AgentPluginDiagnostic,
   RuntimeResourceCatalogItem,

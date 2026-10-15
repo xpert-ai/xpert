@@ -169,6 +169,50 @@ describe('installed plugins through the ChatKit catalog and runtime', () => {
         expect(manager.save).not.toHaveBeenCalled()
         expect(JSON.stringify(result)).not.toMatch(/rootPath|tenantId|organizationId|connectorServers/)
     })
+    it('offers a template-only package and lists each template without provisioning', async () => {
+        packages[0].descriptor.skills = []
+        packages[0].descriptor.templates = [
+            { key: 'reviewer', path: 'reviewer.json' },
+            { key: 'writer', path: 'writer.json' }
+        ]
+        packages[0].descriptor.templateCatalog = {
+            reviewer: {
+                name: 'reviewer',
+                title: 'Reviewer',
+                description: 'Review evidence',
+                avatar: null,
+                type: XpertTypeEnum.Agent
+            },
+            writer: {
+                name: 'writer',
+                title: 'Writer',
+                description: 'Write a report',
+                avatar: null,
+                type: XpertTypeEnum.Agent
+            }
+        }
+        const result = await runtime.catalog('assistant', { kind: 'agent_plugin' })
+        expect(result.items[0]).toMatchObject({
+            status: 'ready',
+            components: [
+                {
+                    kind: 'assistant_template',
+                    key: 'reviewer',
+                    title: 'Reviewer',
+                    description: 'Review evidence',
+                    status: 'ready'
+                },
+                {
+                    kind: 'assistant_template',
+                    key: 'writer',
+                    title: 'Writer',
+                    description: 'Write a report',
+                    status: 'ready'
+                }
+            ]
+        })
+        expect(install).not.toHaveBeenCalled()
+    })
     it.each([undefined, 'capability', 'assistant', 'subagent'] as const)(
         'filters only assistant role %p from candidates without changing installed or selected resources',
         async (role) => {
