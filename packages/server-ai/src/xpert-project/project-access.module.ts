@@ -6,10 +6,17 @@ import { XpertProjectMembership } from './entities/project-membership.entity'
 import { XpertProjectAccessService } from './services/project-access.service'
 import { Xpert } from '../xpert/xpert.entity'
 import { XpertProjectXpertBindingService } from './services/project-xpert-binding.service'
+import { CqrsModule } from '@nestjs/cqrs'
+import { AssertProjectAssistantAccessHandler } from './commands/assert-project-assistant-access.command'
 
 @Module({
-    imports: [TypeOrmModule.forFeature([XpertProject, XpertProjectMembership, Xpert])],
-    providers: [ProjectAccessRuntimeService, XpertProjectXpertBindingService, XpertProjectAccessService],
+    imports: [CqrsModule, TypeOrmModule.forFeature([XpertProject, XpertProjectMembership, Xpert])],
+    providers: [
+        AssertProjectAssistantAccessHandler,
+        ProjectAccessRuntimeService,
+        XpertProjectXpertBindingService,
+        XpertProjectAccessService
+    ],
     exports: [ProjectAccessRuntimeService, XpertProjectXpertBindingService, XpertProjectAccessService]
 })
 export class XpertProjectAccessModule {}

@@ -1,6 +1,6 @@
-import { UserType, ChatGroupSummary, ChatGroupCandidate } from '@xpert-ai/contracts'
+import { UserType, ChatGroupSummary, ChatGroupCandidate, XpertTypeEnum } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
-import { DataSource, In } from 'typeorm'
+import { DataSource, In, IsNull } from 'typeorm'
 import { UserOrganization } from '@xpert-ai/server-core'
 import { GroupAccessService } from './group-access.service'
 import { PublishedXpertAccessService } from '../xpert/published-xpert-access.service'
@@ -9,6 +9,7 @@ import { ChatConversation } from '../chat-conversation/conversation.entity'
 import { ChatMessage } from '../chat-message/chat-message.entity'
 import { publicMembers } from './group-members.service'
 import { groupUserName } from './group-user-name'
+import { Xpert } from '../xpert/xpert.entity'
 
 /** Member-scoped sidebar data and invitation candidates; private runtime details never leave this service. */
 @Injectable()
@@ -82,15 +83,34 @@ export class GroupCatalogService {
         })
     }
     /** Use existing published-Assistant access; invitations to an existing group require its owner. */
-    async candidates(kind: 'user' | 'assistant', search = '', groupId?: string): Promise<ChatGroupCandidate[]> {
+    async candidates(
+        kind: 'user' | 'assistant',
+        search = '',
+        groupId?: string,
+        page: { limit: number; offset: number } = { limit: 50, offset: 0 }
+    ): Promise<ChatGroupCandidate[]> {
         const { tenantId, organizationId, userId } = this.access.scope()
         await this.access.user({ tenantId, organizationId }, userId)
         if (groupId) await this.access.authorize(groupId, true)
+        const members = groupId
+            ? await this.db.getRepository(GroupParticipant).find({
+                  where: { tenantId, organizationId, groupId, kind, active: true },
+                  select: { subjectId: true }
+              })
+            : []
+        const memberIds = members.map((member) => member.subjectId)
         if (kind === 'assistant') {
-            const items = await this.assistants.findAccessiblePublishedXperts({ search, take: 50 })
+            const items = await this.assistants.findAccessiblePublishedXperts({
+                where: { type: XpertTypeEnum.Agent, latest: true },
+                search,
+                order: { createdAt: 'DESC', id: 'ASC' },
+                take: page.limit,
+                skip: page.offset,
+                excludeIds: await this.assistantFamilyIds(tenantId, memberIds)
+            })
             return items.map((assistant) => ({
                 subjectId: assistant.id,
-                name: assistant.title || assistant.name,
+                name: assistant.title || assistant.titleCN || assistant.name || assistant.slug || assistant.id,
                 avatar: assistant.avatar ?? null,
                 kind: 'assistant' as const
             }))
@@ -101,6 +121,7 @@ export class GroupCatalogService {
             .innerJoinAndSelect('membership.user', 'user')
             .where({ tenantId, organizationId, isActive: true })
             .andWhere('user.type = :type', { type: UserType.USER })
+        if (memberIds.length) query.andWhere('user.id NOT IN (:...memberIds)', { memberIds })
         const term = search.trim()
         if (term) {
             query.andWhere(
@@ -108,12 +129,39 @@ export class GroupCatalogService {
                 { search: `%${term.replace(/[%_\\]/g, '\\$&')}%` }
             )
         }
-        const rows = await query.take(50).getMany()
+        const rows = await query
+            .orderBy('membership.userId', 'ASC')
+            .addOrderBy('membership.id', 'ASC')
+            .take(page.limit)
+            .skip(page.offset)
+            .getMany()
         return rows.map((row) => ({
             subjectId: row.user.id,
             name: groupUserName(row.user),
             avatar: row.user.imageUrl ? { url: row.user.imageUrl } : null,
             kind: 'user' as const
         }))
+    }
+    /** An existing historical version excludes its current version too, within the same resource family. */
+    private async assistantFamilyIds(tenantId: string, memberIds: string[]): Promise<string[]> {
+        if (!memberIds.length) return []
+        const repository = this.db.getRepository(Xpert)
+        const members = await repository.find({
+            where: { id: In(memberIds), tenantId },
+            select: { id: true, tenantId: true, organizationId: true, workspaceId: true, type: true, slug: true },
+            withDeleted: true
+        })
+        const families = members
+            .filter((member) => member.slug)
+            .map((member) => ({
+                tenantId,
+                organizationId: member.organizationId ?? IsNull(),
+                workspaceId: member.workspaceId ?? IsNull(),
+                type: member.type,
+                slug: member.slug,
+                latest: true
+            }))
+        const latest = families.length ? await repository.find({ where: families, select: { id: true } }) : []
+        return [...new Set([...memberIds, ...latest.map((assistant) => assistant.id)])]
     }
 }

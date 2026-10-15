@@ -17,7 +17,7 @@
         z-button
         zType="secondary"
         class="shrink-0 gap-1.5"
-        [zDisabled]="busy()"
+        [zDisabled]="busy() || updating()"
         (click)="openImport(importTemplate)"
       >
         <i class="ri-add-line text-lg" aria-hidden="true"></i>{{ 'XP.AgentPlugins.Import' | translate }}
@@ -55,7 +55,32 @@
           }}
         </button>
       </div>
-      <xp-default-agent-plugins-result [result]="defaultImportResult()" />
+      @if (importingDefaults()) {
+        <p role="status" class="text-sm text-text-secondary">
+          @if (defaultImportProgress()?.phase === 'fetching') {
+            {{ 'XP.AgentPlugins.DefaultImportFetching' | translate }}
+          } @else {
+            {{
+              'XP.AgentPlugins.DefaultImportProgress'
+                | translate
+                  : {
+                      completed: defaultImportProgress()?.items.length ?? 0,
+                      total: defaultImportProgress()?.total ?? 0
+                    }
+            }}
+          }
+        </p>
+      } @else {
+        <xp-default-agent-plugins-result [result]="defaultImportResult()" />
+      }
+      @if (defaultImportDisconnected()) {
+        <p role="status" class="text-sm text-text-secondary">
+          {{ 'XP.AgentPlugins.DefaultImportReconnecting' | translate }}
+        </p>
+      }
+      @if (defaultImportError(); as message) {
+        <p role="alert" class="break-words text-sm text-text-destructive">{{ message }}</p>
+      }
     </div>
     <div class="mb-6 flex flex-wrap items-center justify-end gap-3">
       <z-search-input
@@ -81,7 +106,7 @@
         <button
           type="button"
           class="btn btn-ghost btn-small shrink-0"
-          [disabled]="busy() || loading()"
+          [disabled]="busy() || updating() || loading()"
           (click)="refresh()"
         >
           {{ 'XP.AgentPlugins.Retry' | translate }}
@@ -120,7 +145,7 @@
                 <button
                   type="button"
                   class="flex w-full min-w-0 items-center gap-3 text-left outline-offset-4"
-                  [disabled]="busy()"
+                  [disabled]="busy() || updating()"
                   [attr.aria-label]="group.title"
                   [attr.aria-pressed]="selectedName() === group.name"
                   (click)="openGroup(group)"
@@ -162,7 +187,7 @@
                 <button
                   type="button"
                   class="btn btn-ghost btn-small h-8 w-8"
-                  [disabled]="busy()"
+                  [disabled]="busy() || updating()"
                   [cdkMenuTriggerFor]="rowMenu"
                   [attr.aria-label]="('XP.AgentPlugins.ManagePlugin' | translate) + ' ' + group.title"
                 >
@@ -247,7 +272,7 @@
           <button
             type="button"
             class="btn btn-ghost btn-small h-8 w-8"
-            [disabled]="busy()"
+            [disabled]="busy() || updating()"
             (click)="closeDetails()"
             [attr.aria-label]="'XP.AgentPlugins.Close' | translate"
           >
@@ -264,7 +289,11 @@
         @if (group.currentBindings.length > 1 || !replacesBindingId()) {
           <label class="mb-4 flex flex-col gap-1.5 text-xs text-text-secondary">
             {{ 'XP.AgentPlugins.PublishingConfiguration' | translate }}
-            <z-select [zDisabled]="busy()" [zValue]="replacesBindingId()" (zSelectionChange)="chooseBinding($event)">
+            <z-select
+              [zDisabled]="busy() || updating()"
+              [zValue]="replacesBindingId()"
+              (zSelectionChange)="chooseBinding($event)"
+            >
               @for (item of group.currentBindings; track item.id) {
                 <z-select-item [zValue]="item.id">
                   {{ $index + 1 }}. {{ item.title }} · {{ bindingVersion(item) }}
@@ -280,7 +309,7 @@
             <z-select
               class="min-w-0 flex-1"
               [zValue]="selectedPackageId()"
-              [zDisabled]="busy()"
+              [zDisabled]="busy() || updating()"
               (zSelectionChange)="changeVersion($event)"
             >
               @for (pkg of group.packages; track pkg.id) {
@@ -292,6 +321,65 @@
             </button>
           </span>
         </label>
+        @if (selectedPackage(); as pkg) {
+          <div class="mb-5 flex flex-col gap-3 border-b border-divider-regular pb-5">
+            @if (pkg.source?.kind === 'git') {
+              <label class="flex flex-col gap-1.5 text-sm">
+                {{ 'XP.AgentPlugins.UpdateBranch' | translate }}
+                <input z-input [formControl]="updateBranch" />
+              </label>
+              <button
+                z-button
+                zType="outline"
+                [disabled]="busy() || updating() || updateBranch.invalid"
+                (click)="updatePlugin()"
+              >
+                {{ (updating() ? 'XP.AgentPlugins.Updating' : 'XP.AgentPlugins.UpdateLatest') | translate }}
+              </button>
+              <p class="text-xs text-text-tertiary">{{ 'XP.AgentPlugins.UpdateHint' | translate }}</p>
+            } @else {
+              <p class="text-xs text-text-tertiary">{{ 'XP.AgentPlugins.ZipUpdateHint' | translate }}</p>
+            }
+            @if (
+              updateBelongsToSelected() && updateProgress()?.phase === 'completed' && updateProgress()?.result;
+              as result
+            ) {
+              <p role="status" class="text-sm text-text-success">
+                {{ 'XP.AgentPlugins.UpdateResult_' + result.status | translate }}
+              </p>
+            }
+            <button z-button zType="outline" [disabled]="busy() || updating()" (click)="previewCleanup()">
+              {{ 'XP.AgentPlugins.PreviewCleanup' | translate }}
+            </button>
+            @if (cleanupPreview(); as preview) {
+              <p class="text-xs text-text-tertiary">{{ 'XP.AgentPlugins.CleanupHint' | translate }}</p>
+              <ul class="divide-y divide-divider-regular text-sm">
+                @for (item of preview.items; track item.packageId) {
+                  <li class="flex justify-between gap-3 py-2">
+                    <span>{{ item.version }}</span>
+                    <span>{{
+                      'XP.AgentPlugins.Cleanup_' + (preview.deleted.includes(item.packageId) ? 'deleted' : item.reason)
+                        | translate
+                    }}</span>
+                  </li>
+                }
+              </ul>
+              @if (preview.pendingFileCleanup) {
+                <p role="status" class="text-sm text-text-secondary">
+                  {{ 'XP.AgentPlugins.CleanupPending' | translate: { count: preview.pendingFileCleanup } }}
+                </p>
+              }
+              <button
+                z-button
+                zType="outline"
+                [disabled]="busy() || updating() || (!cleanupCandidates().length && !preview.pendingFileCleanup)"
+                (click)="cleanupOldVersions()"
+              >
+                {{ 'XP.AgentPlugins.CleanupOldVersions' | translate: { count: cleanupCandidates().length } }}
+              </button>
+            }
+          </div>
+        }
         <nav
           class="mb-6 flex gap-6 border-b border-divider-regular"
           [attr.aria-label]="'XP.AgentPlugins.PluginDetails' | translate"
@@ -320,7 +408,12 @@
               <span>{{
                 (item.enabled ? 'XP.AgentPlugins.Status_published' : 'XP.AgentPlugins.Status_disabled') | translate
               }}</span>
-              <button type="button" class="btn btn-ghost btn-small" [disabled]="busy()" (click)="toggleBinding(item)">
+              <button
+                type="button"
+                class="btn btn-ghost btn-small"
+                [disabled]="busy() || updating()"
+                (click)="toggleBinding(item)"
+              >
                 {{ (item.enabled ? 'XP.AgentPlugins.Disable' : 'XP.AgentPlugins.Enable') | translate }}
               </button>
             </div>
@@ -339,7 +432,7 @@
               <button
                 type="button"
                 class="btn btn-secondary btn-small mb-5 self-start"
-                [disabled]="busy()"
+                [disabled]="busy() || updating()"
                 (click)="loadBinding(); detailTab.set('overview')"
               >
                 {{ 'XP.AgentPlugins.NewConfiguration' | translate }}
@@ -415,7 +508,7 @@
             <button
               type="button"
               class="mb-1 flex w-full items-center justify-between gap-2 rounded-lg px-3 py-3 text-left text-sm hover:bg-hover-bg"
-              [disabled]="busy()"
+              [disabled]="busy() || updating()"
               [class]="selectedPackageId() === pkg.id ? 'bg-background-default-subtle' : ''"
               (click)="selectVersion(pkg.id); detailTab.set('overview')"
             >
@@ -453,7 +546,7 @@
                 <button
                   type="button"
                   class="btn btn-ghost btn-small shrink-0"
-                  [disabled]="busy()"
+                  [disabled]="busy() || updating()"
                   (click)="toggleBinding(item)"
                 >
                   {{ (item.enabled ? 'XP.AgentPlugins.Disable' : 'XP.AgentPlugins.Enable') | translate }}
@@ -477,7 +570,7 @@
           <button
             type="button"
             class="btn btn-primary btn-medium min-w-0 flex-1"
-            [disabled]="busy() || loading() || binding.invalid || missingMappings()"
+            [disabled]="busy() || updating() || loading() || binding.invalid || missingMappings()"
             (click)="saveConfiguration()"
           >
             @if (busy()) {
@@ -485,7 +578,12 @@
             }
             {{ 'XP.AgentPlugins.SaveConfiguration' | translate }}
           </button>
-          <button type="button" class="btn btn-secondary btn-medium px-6" [disabled]="busy()" (click)="closeDetails()">
+          <button
+            type="button"
+            class="btn btn-secondary btn-medium px-6"
+            [disabled]="busy() || updating()"
+            (click)="closeDetails()"
+          >
             {{ 'XP.AgentPlugins.Cancel' | translate }}
           </button>
         </div>
@@ -510,7 +608,7 @@
         z-button
         zType="ghost"
         zSize="icon"
-        [zDisabled]="busy()"
+        [zDisabled]="busy() || updating()"
         (click)="closeImport()"
         [attr.aria-label]="'XP.AgentPlugins.Close' | translate"
       >
@@ -537,7 +635,7 @@
       }
     </div>
     <footer xpDialogFooter>
-      <button type="button" z-button zType="outline" [zDisabled]="busy()" (click)="zipInput.click()">
+      <button type="button" z-button zType="outline" [zDisabled]="busy() || updating()" (click)="zipInput.click()">
         <i class="ri-upload-2-line" aria-hidden="true"></i>{{ 'XP.AgentPlugins.UploadZip' | translate }}
       </button>
       <button type="submit" z-button [zLoading]="busy()" [zDisabled]="busy() || git.invalid">

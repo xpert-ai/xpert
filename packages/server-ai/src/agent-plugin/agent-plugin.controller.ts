@@ -1,6 +1,5 @@
 import { I18nLang } from 'nestjs-i18n'
-import { CommandBus } from '@nestjs/cqrs'
-import { ImportDefaultAgentPluginsCommand } from '@xpert-ai/plugin-sdk'
+import { DefaultAgentPluginsService } from './defaults/default-agent-plugins.service'
 import { ZodValidationPipe } from '@xpert-ai/server-core'
 import { importDefaultAgentPluginsInput } from './defaults/default-agent-plugins.schema'
 import { t } from 'i18next'
@@ -10,6 +9,7 @@ import {
     Inject,
     Controller,
     Get,
+    HttpCode,
     Param,
     Post,
     Put,
@@ -63,18 +63,24 @@ export function parseResourceInput<T>(schema: z.ZodType<T>, input: unknown): T {
 export class AgentPluginController {
     constructor(
         @Inject('XpertAgentPluginService') private readonly service: AgentPluginService,
-        private readonly commands: CommandBus,
+        private readonly defaults: DefaultAgentPluginsService,
         private readonly installations: AgentPluginInstallationsService
     ) {}
 
     @Post('defaults')
+    @HttpCode(202)
     importDefaults(
         @Body(
             new ZodValidationPipe(importDefaultAgentPluginsInput, (error) => new BadRequestException(error.flatten()))
         )
-        _input: z.output<typeof importDefaultAgentPluginsInput>
+        input: z.output<typeof importDefaultAgentPluginsInput>
     ) {
-        return this.commands.execute(new ImportDefaultAgentPluginsCommand())
+        return this.defaults.start(input)
+    }
+
+    @Get('defaults')
+    defaultImportStatus() {
+        return this.defaults.status()
     }
 
     @Get('catalog') catalog(@I18nLang() language: string) {

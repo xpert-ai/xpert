@@ -12,13 +12,14 @@ import {
   XpertViewRuntimeScopeInput
 } from '@xpert-ai/contracts'
 import { injectApiBaseUrl } from '../providers'
+import { ViewExtensionRouteService } from './view-extension-route.service'
 import { viewFileContentRoute } from './view-file-content-route'
 
 @Injectable({ providedIn: 'root' })
 export class ViewExtensionApiService {
   private readonly httpClient = inject(HttpClient)
+  private readonly routes = inject(ViewExtensionRouteService)
   private readonly apiBaseUrl = injectApiBaseUrl()
-  private readonly baseUrl = `${this.apiBaseUrl}${API_PREFIX}/view-hosts`
   private readonly workspaceFilesBaseUrl = `${this.apiBaseUrl}${API_PREFIX}/ai/workspace-files`
 
   getSlotViews(
@@ -33,7 +34,7 @@ export class ViewExtensionApiService {
     }
 
     return this.httpClient.get<XpertExtensionViewManifest[]>(
-      `${this.baseUrl}/${encodeURIComponent(hostType)}/${encodeURIComponent(hostId)}/slots/${encodeURIComponent(slot)}/views`,
+      `${this.routes.getHostUrl(hostType, hostId, options.runtimeScope)}/slots/${encodeURIComponent(slot)}/views`,
       { params, headers: createRuntimeScopeHeaders(options.runtimeScope) }
     )
   }
@@ -76,7 +77,7 @@ export class ViewExtensionApiService {
     }
 
     return this.httpClient.get<XpertViewDataResult>(
-      `${this.baseUrl}/${encodeURIComponent(hostType)}/${encodeURIComponent(hostId)}/views/${encodeURIComponent(viewKey)}/data`,
+      `${this.routes.getHostUrl(hostType, hostId, runtimeScope)}/views/${encodeURIComponent(viewKey)}/data`,
       { params, headers: createRuntimeScopeHeaders(runtimeScope) }
     )
   }
@@ -88,7 +89,7 @@ export class ViewExtensionApiService {
     runtimeScope?: XpertViewRuntimeScopeInput
   ) {
     return this.httpClient.get(
-      `${this.baseUrl}/${encodeURIComponent(hostType)}/${encodeURIComponent(hostId)}/views/${encodeURIComponent(viewKey)}/remote-component/entry`,
+      `${this.routes.getHostUrl(hostType, hostId, runtimeScope)}/views/${encodeURIComponent(viewKey)}/remote-component/entry`,
       { responseType: 'text', headers: createRuntimeScopeHeaders(runtimeScope) }
     )
   }
@@ -157,7 +158,7 @@ export class ViewExtensionApiService {
     }
 
     return this.httpClient.get(
-      `${this.baseUrl}/${encodeURIComponent(hostType)}/${encodeURIComponent(hostId)}/views/${encodeURIComponent(viewKey)}/parameters/${encodeURIComponent(parameterKey)}/options`,
+      `${this.routes.getHostUrl(hostType, hostId, runtimeScope)}/views/${encodeURIComponent(viewKey)}/parameters/${encodeURIComponent(parameterKey)}/options`,
       { params, headers: createRuntimeScopeHeaders(runtimeScope) }
     )
   }
@@ -175,7 +176,7 @@ export class ViewExtensionApiService {
     runtimeScope?: XpertViewRuntimeScopeInput
   ) {
     return this.httpClient.post<XpertViewActionResult>(
-      `${this.baseUrl}/${encodeURIComponent(hostType)}/${encodeURIComponent(hostId)}/views/${encodeURIComponent(viewKey)}/actions/${encodeURIComponent(actionKey)}`,
+      `${this.routes.getHostUrl(hostType, hostId, runtimeScope)}/views/${encodeURIComponent(viewKey)}/actions/${encodeURIComponent(actionKey)}`,
       body,
       { headers: createRuntimeScopeHeaders(runtimeScope) }
     )
@@ -216,7 +217,7 @@ export class ViewExtensionApiService {
     }
 
     return this.httpClient.post<XpertViewActionResult>(
-      `${this.baseUrl}/${encodeURIComponent(hostType)}/${encodeURIComponent(hostId)}/views/${encodeURIComponent(viewKey)}/actions/${encodeURIComponent(actionKey)}/file`,
+      `${this.routes.getHostUrl(hostType, hostId, runtimeScope)}/views/${encodeURIComponent(viewKey)}/actions/${encodeURIComponent(actionKey)}/file`,
       formData,
       { headers: createRuntimeScopeHeaders(runtimeScope) }
     )

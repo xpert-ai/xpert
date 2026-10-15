@@ -72,6 +72,8 @@ export class NativeAgentCompiler {
             TAgentSubgraphResult
         >(
             new XpertAgentSubgraphCommand(agent.key, xpert, {
+                executionDefinition: config.executionDefinition,
+                planMode: config.planMode,
                 mute: config.mute,
                 unmutes: config.unmutes,
                 store: config.store,

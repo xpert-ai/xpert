@@ -17,6 +17,7 @@ const id = '11111111-1111-4111-8111-111111111111'
 describe('group HTTP boundary', () => {
     const messages = { submit: jest.fn(), snapshot: jest.fn(), preferences: jest.fn() }
     const outbox = { flush: jest.fn() }
+    const catalog = { candidates: jest.fn() }
     const interactions = { claim: jest.fn(), respond: jest.fn() }
     let app: INestApplication
     let origin: string
@@ -29,7 +30,7 @@ describe('group HTTP boundary', () => {
             controllers: [GroupsController],
             providers: [
                 { provide: GroupRuntimeViewService, useValue: {} },
-                { provide: GroupCatalogService, useValue: {} },
+                { provide: GroupCatalogService, useValue: catalog },
                 { provide: GroupInteractionsService, useValue: interactions },
                 { provide: GroupMessagesService, useValue: messages },
                 { provide: GroupMembersService, useValue: {} },
@@ -50,6 +51,7 @@ describe('group HTTP boundary', () => {
     afterAll(async () => app?.close())
     beforeEach(() => {
         jest.clearAllMocks()
+        catalog.candidates.mockResolvedValue([])
         messages.submit.mockResolvedValue({ id })
         messages.snapshot.mockResolvedValue({ id })
     })
@@ -99,6 +101,33 @@ describe('group HTTP boundary', () => {
                 })
             ).status
         ).toBe(400)
+    })
+    it.each(['/groups/candidates', `/groups/${id}/candidates`])('paginates candidates through %s', async (path) => {
+        expect((await fetch(`${origin}${path}?kind=assistant&search=%20Expert%20&limit=25&offset=50`)).status).toBe(200)
+        expect(catalog.candidates).toHaveBeenCalledWith(
+            'assistant',
+            'Expert',
+            path === '/groups/candidates' ? undefined : id,
+            { limit: 25, offset: 50 }
+        )
+    })
+    it.each([
+        'limit=0',
+        'limit=101',
+        'limit=1.5',
+        'offset=-1',
+        'offset=abc',
+        'offset=1000001',
+        'userId=spoof',
+        'excludeIds=x',
+        'organizationId=x'
+    ])('rejects unsafe candidate query %s', async (query) => {
+        expect((await fetch(`${origin}/groups/${id}/candidates?${query}`)).status).toBe(400)
+        expect(catalog.candidates).not.toHaveBeenCalled()
+    })
+    it('keeps candidate owner authorization failures intact', async () => {
+        catalog.candidates.mockRejectedValueOnce(new ForbiddenException())
+        expect((await fetch(`${origin}/groups/${id}/candidates`)).status).toBe(403)
     })
     it('coerces pagination and rejects arbitrary fields', async () => {
         expect((await fetch(`${origin}/groups/${id}?before=10&limit=3`)).status).toBe(200)

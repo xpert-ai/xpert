@@ -1,15 +1,25 @@
 jest.mock('../agent-plugin-installations.service', () => ({ AgentPluginInstallationsService: class {} }))
 import { AgentPluginInstallationsService } from '../agent-plugin-installations.service'
 import { Test } from '@nestjs/testing'
-import { CommandBus } from '@nestjs/cqrs'
 import type { INestApplication } from '@nestjs/common'
 import { AgentPluginController } from '../agent-plugin.controller'
-import { ImportDefaultAgentPluginsCommand } from '@xpert-ai/plugin-sdk'
+import { DefaultAgentPluginsService } from './default-agent-plugins.service'
+jest.mock('./default-agent-plugins.service', () => ({ DefaultAgentPluginsService: class {} }))
 
 describe('default Agent plugins HTTP boundary', () => {
     let app: INestApplication
     let url: string
-    const execute = jest.fn(async () => ({ commit: 'fixed', items: [] }))
+    const progress = {
+        operationId: 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',
+        phase: 'fetching',
+        commit: null,
+        total: 0,
+        currentId: null,
+        items: [],
+        updatedAt: new Date().toISOString()
+    }
+    const start = jest.fn(async (_input: object) => progress)
+    const status = jest.fn(async () => progress)
     const createBinding = jest.fn(async (input) => input)
     beforeAll(async () => {
         const module = await Test.createTestingModule({
@@ -20,10 +30,14 @@ describe('default Agent plugins HTTP boundary', () => {
                     useValue: { catalog: jest.fn(async () => ({ items: [] })) }
                 },
                 { provide: 'XpertAgentPluginService', useValue: { createBinding } },
-                { provide: CommandBus, useValue: { execute } }
+                { provide: DefaultAgentPluginsService, useValue: { start, status } }
             ]
         }).compile()
         app = module.createNestApplication({ logger: false })
+        app.use((request: { i18nContext?: { lang: string } }, _response: unknown, next: () => void) => {
+            request.i18nContext = { lang: 'en' }
+            next()
+        })
         await app.listen(0, '127.0.0.1')
         url = await app.getUrl()
     })
@@ -36,20 +50,27 @@ describe('default Agent plugins HTTP boundary', () => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)
         })
-    it('uses only the shared default-import command', async () => {
+    it('returns an accepted receipt and exposes progress without waiting for imports', async () => {
         const response = await post({})
-        expect(response.status).toBe(201)
-        expect(await response.json()).toEqual({ commit: 'fixed', items: [] })
-        expect(execute).toHaveBeenCalledWith(expect.any(ImportDefaultAgentPluginsCommand))
+        expect(response.status).toBe(202)
+        expect(await response.json()).toEqual(progress)
+        expect(start).toHaveBeenCalledWith({})
+        const query = await fetch(`${url}/agent-plugins/defaults`)
+        expect(query.status).toBe(200)
+        expect(await query.json()).toEqual(progress)
+        expect((await post({ operationId: progress.operationId })).status).toBe(202)
+        expect(start).toHaveBeenLastCalledWith({ operationId: progress.operationId })
     })
-    it.each([{ url: 'https://evil.example' }, { organizationId: 'other' }, { workspaceIds: ['workspace'] }])(
-        'rejects source, scope and publication overrides',
-        async (input) => {
-            execute.mockClear()
-            expect((await post(input)).status).toBe(400)
-            expect(execute).not.toHaveBeenCalled()
-        }
-    )
+    it.each([
+        { url: 'https://evil.example' },
+        { organizationId: 'other' },
+        { workspaceIds: ['workspace'] },
+        { operationId: 'invalid' }
+    ])('rejects source, scope and publication overrides', async (input) => {
+        start.mockClear()
+        expect((await post(input)).status).toBe(400)
+        expect(start).not.toHaveBeenCalled()
+    })
     it('serves the installation catalog without a workspace parameter', async () => {
         const response = await fetch(`${url}/agent-plugins/catalog`)
         expect(response.status).toBe(200)

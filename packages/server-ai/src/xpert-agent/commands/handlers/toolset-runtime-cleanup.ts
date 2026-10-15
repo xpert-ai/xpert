@@ -84,7 +84,7 @@ function registerGraphRuntimeCleanup(rootController: AbortController, close: () 
     return shouldInstallGraphHook
 }
 
-async function closeGraphRuntimeCleanups(rootController: AbortController) {
+export async function closeGraphRuntimeCleanups(rootController: AbortController) {
     const cleanups = graphRuntimeCleanups.get(rootController)
     if (!cleanups?.size) {
         return

@@ -58,6 +58,7 @@ import {
   AiThreadService,
   ArtifactService,
   ChatConversationService,
+  GroupWorkbenchApiService,
   IChatConversation,
   ViewExtensionApiService,
   getErrorMessage,
@@ -94,6 +95,7 @@ import {
   type ClawXpertWorkbenchLayoutState
 } from './clawxpert-workbench-layout-storage.service'
 import { ClawXpertWorkbenchViewUrlState } from './clawxpert-workbench-view-url-state.service'
+import { createGroupWorkbenchScope } from './group-workbench-scope'
 import { ClawXpertFacade } from './clawxpert.facade'
 import { ChatTasksComponent } from '../tasks/tasks.component'
 import {
@@ -242,6 +244,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   readonly #artifactService = inject(ArtifactService)
   readonly #conversationService = inject(ChatConversationService)
   readonly #viewExtensionApi = inject(ViewExtensionApiService)
+  readonly #groupWorkbenchApi = inject(GroupWorkbenchApiService)
   readonly #translate = inject(TranslateService)
   readonly #toastr = injectToastr()
   readonly #clientCommands = inject(ViewClientCommandRegistry)
@@ -551,7 +554,19 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
 
     return tab.kind === 'browser' ? 'preview' : tab.kind
   })
-  readonly fixedViewHostId = computed(() => (this.facade.viewState() === 'ready' ? this.facade.xpertId() : null))
+  readonly groupWorkbenchScope = createGroupWorkbenchScope({
+    groupId: () => this.facade.group?.()?.id ?? null,
+    identity: this.facade.identity,
+    assistantId: this.facade.xpertId,
+    ready: () => !this.facade.loading() && this.facade.viewState() === 'ready',
+    api: this.#groupWorkbenchApi,
+    onError: (error) => this.#toastr.error(getErrorMessage(error))
+  })
+  readonly fixedViewHostId = computed(() =>
+    this.facade.viewState() === 'ready' && (!this.facade.group?.() || this.groupWorkbenchScope())
+      ? this.facade.xpertId()
+      : null
+  )
   readonly loadingFixedViews = signal(false)
   readonly fixedViewError = signal<string | null>(null)
   readonly availableWorkbenchViews = signal<ClawXpertFixedViewMenuItem[]>([])
@@ -568,6 +583,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
   )
   readonly resolvedConversation = signal<IChatConversation | null>(null)
   readonly viewRuntimeScope = computed<XpertViewRuntimeScopeInput>(() => {
+    if (this.facade.group?.()) return this.groupWorkbenchScope() ?? { groupId: this.facade.group().id }
     const projectId = this.runtimeProjectId()
     return {
       projectId,
@@ -831,7 +847,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
     effect(() => {
       const hostId = this.fixedViewHostId()
       const runtimeScope = this.viewRuntimeScope()
-      const scopeKey = `${hostId ?? 'none'}:${runtimeScope.projectId ?? 'personal'}:${runtimeScope.conversationId ?? 'new'}`
+      const scopeKey = `${hostId ?? 'none'}:${runtimeScope.groupId ?? 'private'}:${runtimeScope.projectId ?? 'personal'}:${runtimeScope.conversationId ?? 'new'}`
       if (scopeKey === this.#assistantWorkbenchContextScopeKey) {
         return
       }
@@ -848,7 +864,7 @@ export class ClawXpertConversationDetailComponent implements OnDestroy {
         this.#artifactScopeProjectId = runtimeScope.projectId ?? null
         this.clearArtifactTabs()
       }
-      const scopeKey = `${runtimeScope.projectId ?? 'personal'}:${runtimeScope.conversationId ?? 'new'}`
+      const scopeKey = `${runtimeScope.groupId ?? 'private'}:${runtimeScope.projectId ?? 'personal'}:${runtimeScope.conversationId ?? 'new'}`
       if (!hostId) {
         this.#fixedViewsHostId = null
         this.#fixedViewsScopeKey = null

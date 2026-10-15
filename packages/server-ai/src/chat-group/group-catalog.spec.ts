@@ -98,6 +98,7 @@ describe('group member candidates', () => {
             user: jest.fn().mockResolvedValue(undefined),
             authorize: jest.fn().mockResolvedValue(undefined)
         }
+        jest.spyOn(db.getRepository(GroupParticipant), 'find').mockResolvedValue([])
         const assistants = { findAccessiblePublishedXperts: jest.fn() }
         const service = new GroupCatalogService(
             db,
@@ -116,7 +117,14 @@ describe('group member candidates', () => {
             { kind: 'assistant', subjectId: 'assistant', name: 'Expert', avatar }
         ])
         expect(access.authorize).toHaveBeenCalledWith('group', true)
-        expect(assistants.findAccessiblePublishedXperts).toHaveBeenCalledWith({ search: 'Expert', take: 50 })
+        expect(assistants.findAccessiblePublishedXperts).toHaveBeenCalledWith({
+            where: { type: 'agent', latest: true },
+            search: 'Expert',
+            take: 50,
+            skip: 0,
+            order: { createdAt: 'DESC', id: 'ASC' },
+            excludeIds: []
+        })
     })
     it('returns only public user profile fields within the selected organization', async () => {
         const { service } = create()

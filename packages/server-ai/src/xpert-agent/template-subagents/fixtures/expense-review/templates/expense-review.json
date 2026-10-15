@@ -1,0 +1,48 @@
+{
+    "team": {
+        "name": "ExpenseReview",
+        "title": "费用复核子智能体",
+        "description": "复核费用明细、计算合计并判断是否超出预算。",
+        "type": "agent",
+        "version": "1",
+        "agent": { "key": "ExpenseReview" }
+    },
+    "nodes": [
+        {
+            "key": "ExpenseReview",
+            "type": "agent",
+            "position": { "x": 0, "y": 0 },
+            "entity": {
+                "key": "ExpenseReview",
+                "name": "ExpenseReview",
+                "title": "费用复核",
+                "prompt": "你是费用复核专员。必须先委派内部 MathVerifier 计算每项金额、合计及预算差额，将完整费用明细和预算传给它。收到计算结果后，检查是否超预算，返回简明中文报告和 JSON：reviewer 固定为 expense-template-v1，calculator_receipt 原样引用计算 Agent 的回执，total 为合计，budget 为预算，remaining 为预算减合计，within_budget 为布尔值。不得伪造内部计算结果。如果委派失败，明确报告失败。",
+                "options": { "disableMessageHistory": true }
+            }
+        },
+        {
+            "key": "MathVerifier",
+            "type": "agent",
+            "position": { "x": 0, "y": 220 },
+            "entity": {
+                "key": "MathVerifier",
+                "name": "MathVerifier",
+                "title": "内部计算复核",
+                "description": "计算委派任务中的费用行金额、合计和预算差额。",
+                "leaderKey": "ExpenseReview",
+                "prompt": "逐项计算任务中数量乘单价，再求和，与预算比较。仅返回 JSON，包含 calculator_receipt 固定为 math-verifier-v1，line_totals 数组，total 合计，budget 预算，remaining 预算减合计。输入不完整时返回 missing_fields，不猜测。",
+                "options": { "disableMessageHistory": true }
+            }
+        }
+    ],
+    "connections": [
+        {
+            "key": "ExpenseReview/MathVerifier",
+            "type": "agent",
+            "from": "ExpenseReview",
+            "to": "MathVerifier",
+            "required": true
+        }
+    ],
+    "template": { "schemaVersion": 2, "dependencies": {} }
+}

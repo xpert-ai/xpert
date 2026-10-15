@@ -1,8 +1,10 @@
-<section class="flex w-full min-w-0 flex-col gap-6 p-6 lg:p-8">
+<section class="mx-auto flex w-full min-w-0 max-w-6xl flex-col gap-6 px-4 py-6 md:px-8 md:py-8">
   <header class="flex flex-wrap items-start justify-between gap-4">
     <div class="min-w-0 space-y-2">
-      <h1 class="text-2xl font-semibold text-foreground">{{ 'XP.PersonalApiKeys.Title' | translate }}</h1>
-      <p class="text-sm text-muted-foreground">{{ 'XP.PersonalApiKeys.AccessHint' | translate }}</p>
+      <h1 class="text-2xl font-semibold tracking-tight text-foreground">
+        {{ 'XP.PersonalApiKeys.Title' | translate }}
+      </h1>
+      <p class="max-w-3xl text-sm leading-6 text-muted-foreground">{{ 'XP.PersonalApiKeys.AccessHint' | translate }}</p>
     </div>
     <button
       z-button
@@ -33,7 +35,7 @@
     </section>
   }
 
-  <div class="flex items-center gap-3">
+  <div class="flex items-center justify-between gap-3">
     <z-search-input
       class="w-full sm:max-w-sm"
       [formControl]="searchControl"
@@ -66,7 +68,7 @@
       {{ (keys().length ? 'XP.PersonalApiKeys.NoMatches' : 'XP.PersonalApiKeys.Empty') | translate }}
     </p>
   } @else {
-    <div class="min-w-0 overflow-x-auto rounded-xl border border-border">
+    <div class="min-w-0 overflow-x-auto rounded-lg border border-border bg-card">
       <table z-table>
         <thead z-table-header>
           <tr z-table-row>
@@ -101,7 +103,8 @@
                 @if (!key.revokedAt) {
                   <button
                     z-button
-                    zType="destructive"
+                    zType="ghost"
+                    class="text-destructive hover:text-destructive"
                     type="button"
                     [zLoading]="revoking() === key.id"
                     [zDisabled]="!!revoking()"
@@ -118,10 +121,19 @@
     </div>
   }
 
-  <section class="space-y-3 border-t border-border pt-6">
-    <h2 class="font-semibold">{{ 'XP.PersonalApiKeys.Usage' | translate }}</h2>
-    <p class="text-sm text-muted-foreground">{{ 'XP.PersonalApiKeys.UsageHint' | translate }}</p>
-    <pre class="overflow-x-auto rounded-xl bg-muted p-4 text-sm"><code>{{ example }}</code></pre>
-    <p class="text-sm text-muted-foreground">{{ 'XP.PersonalApiKeys.OrganizationHint' | translate }}</p>
-  </section>
+  <details class="group border-t border-border pt-6">
+    <summary class="flex cursor-pointer list-none items-center gap-2 font-medium text-foreground">
+      <z-icon zType="code-xml" />
+      {{ 'XP.PersonalApiKeys.Usage' | translate }}
+      <z-icon
+        zType="chevron-down"
+        class="ml-auto transition-transform group-open:rotate-180 motion-reduce:transition-none"
+      />
+    </summary>
+    <div class="mt-4 space-y-3">
+      <p class="text-sm text-muted-foreground">{{ 'XP.PersonalApiKeys.UsageHint' | translate }}</p>
+      <pre class="overflow-x-auto rounded-xl bg-muted p-4 text-sm"><code>{{ example }}</code></pre>
+      <p class="text-sm text-muted-foreground">{{ 'XP.PersonalApiKeys.OrganizationHint' | translate }}</p>
+    </div>
+  </details>
 </section>

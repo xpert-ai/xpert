@@ -23,19 +23,34 @@ export class SandboxAcquireBackendHandler implements ICommandHandler<
     constructor(private readonly registry: SandboxProviderRegistry) {}
 
     find(params: SandboxAcquireBackendCommand['params']): TSandboxConfigurable | null {
-        const { workFor, provider, workingDirectory, workspaceBinding, volumeScope } = params
+        const { workFor, provider, workingDirectory, workspaceBinding, volumeScope, conversationId } = params
         const protectProjectContent = workFor.type === 'project' || volumeScope?.catalog === 'projects'
         return (
             this.instances
                 .get(this.getSessionKey(workFor.type, workFor.id))
-                ?.get(this.getInstanceKey(provider, workingDirectory, workspaceBinding, protectProjectContent))
-                ?.configurable ?? null
+                ?.get(
+                    this.getInstanceKey(
+                        provider,
+                        workingDirectory,
+                        workspaceBinding,
+                        protectProjectContent,
+                        conversationId
+                    )
+                )?.configurable ?? null
         )
     }
 
     async execute(command: SandboxAcquireBackendCommand): Promise<TSandboxConfigurable> {
-        const { workFor, provider, workingDirectory, workspaceBinding, environmentId, tenantId, volumeScope } =
-            command.params
+        const {
+            workFor,
+            provider,
+            workingDirectory,
+            workspaceBinding,
+            environmentId,
+            tenantId,
+            volumeScope,
+            conversationId
+        } = command.params
         if (!workFor?.id) {
             throw new Error('Sandbox session id is required')
         }
@@ -45,7 +60,13 @@ export class SandboxAcquireBackendHandler implements ICommandHandler<
 
         const sessionKey = this.getSessionKey(workFor.type, workFor.id)
         const protectProjectContent = workFor.type === 'project' || volumeScope?.catalog === 'projects'
-        const instanceKey = this.getInstanceKey(provider, workingDirectory, workspaceBinding, protectProjectContent)
+        const instanceKey = this.getInstanceKey(
+            provider,
+            workingDirectory,
+            workspaceBinding,
+            protectProjectContent,
+            conversationId
+        )
         const sessionMap = this.instances.get(sessionKey) ?? new Map<string, SandboxInstance>()
         const existing = sessionMap.get(instanceKey)
         if (existing) {
@@ -117,10 +138,11 @@ export class SandboxAcquireBackendHandler implements ICommandHandler<
         provider?: string | null,
         workingDirectory?: string | null,
         workspaceBinding?: SandboxProviderCreateOptions['workspaceBinding'],
-        protectProjectContent = false
+        protectProjectContent = false,
+        conversationId?: string
     ) {
         const workspaceIdentity = this.getWorkspaceBindingIdentity(workspaceBinding)
-        return `${provider ?? '__default__'}:${workingDirectory ?? '__default__'}:${workspaceIdentity}:${protectProjectContent}`
+        return `${provider ?? '__default__'}:${workingDirectory ?? '__default__'}:${workspaceIdentity}:${protectProjectContent}:${conversationId ?? ''}`
     }
 
     private getWorkspaceBindingIdentity(workspaceBinding?: SandboxProviderCreateOptions['workspaceBinding']) {

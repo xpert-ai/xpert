@@ -59,6 +59,7 @@ jest.mock('../../../@core', () => ({
   ChatConversationService: jest.requireActual('../../../@core/services/chat-conversation.service')
     .ChatConversationService,
   ViewExtensionApiService: class ViewExtensionApiService {},
+  GroupWorkbenchApiService: class GroupWorkbenchApiService {},
   getErrorMessage: (error: any) => error?.message ?? '',
   injectToastr: () => ({
     warning: jest.fn(),
@@ -331,6 +332,7 @@ import {
   AiThreadService,
   ArtifactService,
   ChatConversationService,
+  GroupWorkbenchApiService,
   IChatConversation,
   ViewExtensionApiService
 } from '../../../@core'
@@ -533,6 +535,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     viewState: ReturnType<typeof signal<'ready' | 'wizard' | 'error' | 'organization-required'>>
     resolvedPreference: ReturnType<typeof signal<{ assistantId: string } | null>>
     xpertId: ReturnType<typeof signal<string | null>>
+    group: ReturnType<typeof signal<{ id: string } | null>>
     initialLayout: ReturnType<typeof signal<XpertWorkbenchInitialLayoutEnum | null>>
     defaultViewKey: ReturnType<typeof signal<string | null>>
     currentWorkspaceId: ReturnType<typeof signal<string | null>>
@@ -569,6 +572,7 @@ describe('ClawXpertConversationDetailComponent', () => {
   let viewExtensionApi: {
     getSlotViews: jest.Mock
   }
+  let groupWorkbenchApi: { getContext: jest.Mock }
   let skillTrialIntent: {
     peek: jest.Mock
     consume: jest.Mock
@@ -629,6 +633,7 @@ describe('ClawXpertConversationDetailComponent', () => {
       viewState: signal('ready'),
       resolvedPreference: signal({ assistantId: 'assistant-1' }),
       xpertId: signal('assistant-1'),
+      group: signal<{ id: string } | null>(null),
       initialLayout: signal<XpertWorkbenchInitialLayoutEnum | null>(XpertWorkbenchInitialLayoutEnum.TwoColumns),
       defaultViewKey: signal(null),
       currentWorkspaceId: signal('workspace-1'),
@@ -720,6 +725,7 @@ describe('ClawXpertConversationDetailComponent', () => {
     viewExtensionApi = {
       getSlotViews: jest.fn(() => of([]))
     }
+    groupWorkbenchApi = { getContext: jest.fn() }
     projectApi = {
       availableForXpert: jest.fn(() => of({ items: [], total: 0 })),
       create: jest.fn(() => of({ id: 'project-created', name: 'Launch project' }))
@@ -751,6 +757,10 @@ describe('ClawXpertConversationDetailComponent', () => {
           useValue: viewExtensionApi
         },
         {
+          provide: GroupWorkbenchApiService,
+          useValue: groupWorkbenchApi
+        },
+        {
           provide: XpertProjectApiService,
           useValue: projectApi
         },
@@ -773,6 +783,39 @@ describe('ClawXpertConversationDetailComponent', () => {
     TestBed.resetTestingModule()
     clearWorkbenchLayoutTestStorage()
     jest.clearAllMocks()
+  })
+
+  it('waits for the dedicated group context before discovering shared views', async () => {
+    const response = new Subject<{ assistantId: string; conversationId: string; projectId: string | null }>()
+    groupWorkbenchApi.getContext.mockReturnValue(response)
+    facade.group.set({ id: 'group-1' })
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    expect(groupWorkbenchApi.getContext).toHaveBeenCalledWith('group-1')
+    expect(fixture.componentInstance.fixedViewHostId()).toBeNull()
+    expect(viewExtensionApi.getSlotViews).not.toHaveBeenCalled()
+
+    response.next({ assistantId: 'assistant-1', conversationId: 'shared-runtime', projectId: null })
+    await settle(fixture)
+    expect(viewExtensionApi.getSlotViews).toHaveBeenLastCalledWith('agent', 'assistant-1', 'agent.workbench', {
+      runtimeScope: { groupId: 'group-1', projectId: null, conversationId: 'shared-runtime' }
+    })
+    expect(fixture.componentInstance.fixedViewHostId()).toBe('assistant-1')
+  })
+
+  it('does not discover personal views after group context access is denied', async () => {
+    const response = new Subject<never>()
+    groupWorkbenchApi.getContext.mockReturnValue(response)
+    facade.group.set({ id: 'group-1' })
+    const fixture = TestBed.createComponent(ClawXpertConversationDetailComponent)
+    await settle(fixture)
+
+    response.error(new Error('Forbidden'))
+    await settle(fixture)
+    expect(fixture.componentInstance.fixedViewHostId()).toBeNull()
+    expect(fixture.componentInstance.viewRuntimeScope()).toEqual({ groupId: 'group-1' })
+    expect(viewExtensionApi.getSlotViews).not.toHaveBeenCalled()
   })
 
   it('uses the configured two-column layout without opening the files tab while resolving conversation context', async () => {

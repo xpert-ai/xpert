@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { DataSource, EntitySchema } from 'typeorm'
 import { User, UserOrganization } from '@xpert-ai/server-core'
 import { UserType } from '@xpert-ai/contracts'
+import { GroupParticipant } from './group.entity'
 import { GroupCatalogService } from './group-catalog.service'
 import { GroupAccessService } from './group-access.service'
 import { PublishedXpertAccessService } from '../xpert/published-xpert-access.service'
@@ -28,6 +29,19 @@ postgres('group member candidate queries on PostgreSQL', () => {
             url: databaseUrl,
             schema,
             entities: [
+                new EntitySchema({
+                    name: 'GroupParticipant',
+                    target: GroupParticipant,
+                    columns: {
+                        id: { type: 'varchar', primary: true },
+                        tenantId: text,
+                        organizationId: text,
+                        groupId: text,
+                        subjectId: text,
+                        kind: text,
+                        active: { type: 'boolean' }
+                    }
+                }),
                 new EntitySchema<User>({
                     name: 'User',
                     target: User,
@@ -127,6 +141,24 @@ postgres('group member candidate queries on PostgreSQL', () => {
             expect(access.user).toHaveBeenCalledWith(scope, 'named')
         }
     )
+
+    it('filters active human members before applying pagination, but permits removed members', async () => {
+        const repository = db.getRepository(GroupParticipant)
+        await repository.save([
+            { id: 'member-email', ...scope, groupId: 'paged-group', subjectId: 'email', kind: 'user', active: true },
+            {
+                id: 'member-username',
+                ...scope,
+                groupId: 'paged-group',
+                subjectId: 'username',
+                kind: 'user',
+                active: false
+            }
+        ])
+        const first = await service.candidates('user', 'invitee', 'paged-group', { limit: 1, offset: 0 })
+        expect(first.map((item) => item.subjectId)).toEqual(['username'])
+        expect(await service.candidates('user', 'invitee', 'paged-group', { limit: 1, offset: 1 })).toEqual([])
+    })
 
     it.each([
         [' ALICE ', ['named']],

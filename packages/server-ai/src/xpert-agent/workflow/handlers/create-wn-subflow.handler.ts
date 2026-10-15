@@ -130,6 +130,8 @@ export class CreateWNSubflowHandler implements ICommandHandler<CreateWNSubflowCo
                     agentKey,
                     { id: _xpertId },
                     {
+                        executionDefinition: command.options.executionDefinition,
+                        planMode: command.options.planMode,
                         isDraft,
                         mute: command.options.mute,
                         store: command.options.store,

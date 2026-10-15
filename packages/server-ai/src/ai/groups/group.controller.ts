@@ -48,14 +48,17 @@ export class GroupsController {
     candidates(
         @Query(new ZodValidationPipe(groupCandidatesSchema, groupInvalid)) input: z.output<typeof groupCandidatesSchema>
     ) {
-        return this.catalog.candidates(input.kind, input.search)
+        return this.catalog.candidates(input.kind, input.search, undefined, {
+            limit: input.limit,
+            offset: input.offset
+        })
     }
     @Get(':groupId/candidates')
     memberCandidates(
         @Param('groupId', UUIDValidationPipe) id: string,
         @Query(new ZodValidationPipe(groupCandidatesSchema, groupInvalid)) input: z.output<typeof groupCandidatesSchema>
     ) {
-        return this.catalog.candidates(input.kind, input.search, id)
+        return this.catalog.candidates(input.kind, input.search, id, { limit: input.limit, offset: input.offset })
     }
     @Post()
     create(@Body(new ZodValidationPipe(groupCreateSchema, groupInvalid)) input: z.output<typeof groupCreateSchema>) {

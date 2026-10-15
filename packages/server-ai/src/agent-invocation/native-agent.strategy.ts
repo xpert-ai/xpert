@@ -11,7 +11,11 @@ import {
 
 /** Only the host graph adapter supplies this capability; never accepted from request JSON. */
 export const NativeAgentExecution = createRuntimeCapability<{
-    execute(invocationId: string): Promise<AgentRuntimeObservation>
+    execute(
+        invocationId: string,
+        request: AgentRuntimeStart,
+        context: AgentRuntimeContext
+    ): Promise<AgentRuntimeObservation>
 }>('xpert.internal.native_agent_execution')
 
 @Injectable()
@@ -25,7 +29,7 @@ export class NativeAgentRuntimeStrategy implements IAgentRuntimeStrategy {
     }
 
     async start(_request: AgentRuntimeStart, context: AgentRuntimeContext): Promise<AgentRuntimeObservation> {
-        return context.capabilities.require(NativeAgentExecution).execute(context.invocationId)
+        return context.capabilities.require(NativeAgentExecution).execute(context.invocationId, _request, context)
     }
 
     async inspect(_handle: AgentRuntimeHandle): Promise<AgentRuntimeObservation> {

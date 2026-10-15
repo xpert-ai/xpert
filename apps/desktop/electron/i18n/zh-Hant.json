@@ -354,6 +354,7 @@
   "Enter a valid email address.": "請輸入有效的電子郵件地址。",
   "Enter a valid URL.": "請輸入有效的 URL。",
   "Invalid input.": "輸入值無效。",
+  "Invalid response.": "回應格式無效。",
   "Choose your desktop language. ChatKit follows where supported.": "選擇桌面語言；ChatKit 將在其版本支援的範圍內跟隨。",
   "Desktop Shell": "桌面 Shell",
   "Shell": "Shell",
