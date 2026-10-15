@@ -123,6 +123,8 @@ export type GroupControlInput = z.output<typeof groupControlSchema>
 export const groupCandidatesSchema = z
     .object({
         kind: z.enum(['user', 'assistant']).default('assistant'),
-        search: z.string().trim().max(100).default('')
+        search: z.string().trim().max(100).default(''),
+        limit: z.coerce.number().int().min(1).max(100).default(50),
+        offset: z.coerce.number().int().min(0).max(1_000_000).default(0)
     })
     .strict()

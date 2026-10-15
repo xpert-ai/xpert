@@ -55,3 +55,22 @@ test('native File menu opens the same create dialog through a scoped app event',
   create.click()
   assert.equal(invoked, 1)
 })
+
+test('loads every page of group creation candidates within organization scope', async () => {
+  const { createGroupMethods } = require('../electron/groups.cjs')
+  const calls = []
+  const methods = createGroupMethods(Error)
+  const candidates = Array.from({ length: 125 }, (_, i) => ({ subjectId: `expert-${i}`, name: `Expert ${i}` }))
+  const context = {
+    request: async (path, options) => {
+      calls.push({ path, options })
+      const query = new URL(path, 'https://example.test').searchParams
+      const offset = Number(query.get('offset'))
+      return candidates.slice(offset, offset + Number(query.get('limit')))
+    }
+  }
+  assert.deepEqual(await methods.groupCandidates.call(context), candidates)
+  assert.equal(calls.length, 2)
+  assert.equal(calls[1].path, '/api/ai/groups/candidates?kind=assistant&limit=100&offset=100')
+  assert.ok(calls.every(({ options }) => options.scope === 'organization'))
+})
