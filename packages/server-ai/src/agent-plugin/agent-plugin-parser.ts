@@ -9,6 +9,7 @@ import { z } from 'zod/v3'
 import type { AgentPluginDiagnostic, AgentPluginXpertExtension, TXpertTemplate } from '@xpert-ai/contracts'
 import manifestSchema from './schemas/plugin.schema'
 import mcpSchema from './schemas/mcp.schema'
+import { parseAgentPluginCommands } from './commands/agent-plugin-commands.schema'
 import { agentPluginConnectorsSchema } from './agent-plugin-connector.schema'
 import { normalizeAssistantTemplate } from '../xpert-template/definition/normalize-assistant-template'
 
@@ -174,7 +175,11 @@ export async function parseAgentPlugin(root: string): Promise<PortablePlugin> {
         diagnostics
     }
     if (extension !== undefined) {
-        const result = extensionShape.safeParse(extension)
+        const result = extensionShape.safeParse(
+            object(extension)
+                ? Object.fromEntries(Object.entries(extension).filter(([key]) => key !== 'commands'))
+                : extension
+        )
         if (result.success) plugin.extension = result.data as AgentPluginXpertExtension
         else report(extensionNamespace, 'invalid_extension', result.error)
     }
@@ -234,6 +239,9 @@ export async function parseAgentPlugin(root: string): Promise<PortablePlugin> {
         }
     } catch (error) {
         if (!absent(error)) report('skills', 'invalid_component', error)
+    }
+    if (plugin.extension && object(extension) && extension.commands !== undefined) {
+        plugin.extension.commands = parseAgentPluginCommands(extension.commands, plugin.skills, report)
     }
     try {
         const config = await readJson(root, 'mcp.json')

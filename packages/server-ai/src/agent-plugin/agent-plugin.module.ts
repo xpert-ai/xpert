@@ -1,3 +1,5 @@
+import { RuntimeResourceCommandsService } from './commands/runtime-resource-commands.service'
+import { ResourceSkillInstructionsHandler } from './commands/resource-skill-instructions.handler'
 import {
     AuthorizeTemplateExecutionHandler,
     ResolveTemplateExecutionHandler
@@ -40,6 +42,8 @@ import { ResolvePluginConnectorsHandler } from './queries/resolve-plugin-connect
     ],
     controllers: [AgentPluginController, AgentPluginMaintenanceController],
     providers: [
+        RuntimeResourceCommandsService,
+        ResourceSkillInstructionsHandler,
         ResolveTemplateExecutionHandler,
         AuthorizeTemplateExecutionHandler,
         AgentPluginCleanupService,
@@ -62,6 +66,12 @@ import { ResolvePluginConnectorsHandler } from './queries/resolve-plugin-connect
         { provide: 'XpertAgentPluginService', useExisting: AgentPluginService },
         { provide: 'XpertRuntimeResourceService', useExisting: RuntimeResourceService }
     ],
-    exports: [AgentPluginService, RuntimeResourceService, 'XpertAgentPluginService', 'XpertRuntimeResourceService']
+    exports: [
+        RuntimeResourceCommandsService,
+        AgentPluginService,
+        RuntimeResourceService,
+        'XpertAgentPluginService',
+        'XpertRuntimeResourceService'
+    ]
 })
 export class AgentPluginModule {}

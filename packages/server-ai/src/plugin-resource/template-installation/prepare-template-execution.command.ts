@@ -33,7 +33,15 @@ export class PrepareTemplateExecutionHandler implements ICommandHandler<PrepareT
     ) {}
 
     async execute({ template, owner, locks, projectId }: PrepareTemplateExecutionCommand) {
-        const prepared = await this.readiness.prepareRuntime(template, owner.id, owner.workspaceId, locks, projectId)
+        const sandbox = owner.features?.sandbox
+        const prepared = await this.readiness.prepareRuntime(
+            template,
+            owner.id,
+            owner.workspaceId,
+            locks,
+            projectId,
+            sandbox?.enabled ? sandbox.provider : undefined
+        )
         const draft = structuredClone(prepared.normalized.definition)
         const installations = await this.installer.bindExistingRuntimeComponents(draft, owner, prepared.components)
         await this.toolsets.bindRuntime(draft, owner.workspaceId, prepared.normalized.dependencies)

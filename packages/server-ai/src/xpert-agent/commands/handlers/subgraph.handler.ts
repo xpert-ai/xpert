@@ -274,6 +274,13 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
         }
 
         const dynamicResources = isStart && !leaderKey ? options.runtimeResources : undefined
+        const resourceSkillContext =
+            isStart && !leaderKey
+                ? {
+                      selection: dynamicResources?.selection ?? { revision: 0, resources: [] },
+                      projectId: options.projectId
+                  }
+                : undefined
         if (dynamicResources)
             graph = applyRuntimeResourceGraph(
                 graph,
@@ -1385,7 +1392,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                         )
                     }
                 }
-                if (!humanMessages.length && state.human) {
+                if (
+                    (!humanMessages.length || (resourceSkillContext && state.human?.resourceSkills !== undefined)) &&
+                    state.human
+                ) {
                     // Add attachments
                     humanMessages.push(
                         await createHumanMessage(
@@ -1393,7 +1403,10 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                             this.queryBus,
                             state,
                             agent.options?.attachment ?? agent.options?.vision,
-                            { xpert: promptWorkflowXpert }
+                            {
+                                xpert: promptWorkflowXpert,
+                                resourceSkillContext
+                            }
                         )
                     )
                 }
@@ -1611,7 +1624,8 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                                 agentChannel,
                                 xpert: promptWorkflowXpert,
                                 subscriber,
-                                attachmentOptions: agent.options?.attachment ?? agent.options?.vision
+                                attachmentOptions: agent.options?.attachment ?? agent.options?.vision,
+                                resourceSkillContext
                             })
                         )
                     ).withConfig({

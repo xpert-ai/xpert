@@ -29,6 +29,30 @@ export interface RuntimeResourceReference {
   version: string
 }
 
+/** Presentation only. Executable instructions stay in the referenced SKILL.md. */
+export interface AgentPluginCommandPresentation {
+  label?: I18nText
+  description?: I18nText
+  argsHint?: string
+}
+
+export interface AgentPluginCommand extends AgentPluginCommandPresentation {
+  /** Arguments interpreted by the skill, not separately executable commands. */
+  subcommands?: Record<string, AgentPluginCommandPresentation>
+}
+
+/** A skill in an exact selected plugin version; never a workspace skill authorization. */
+export interface RuntimeResourceSkillReference extends RuntimeResourceReference {
+  skillKey: string
+}
+
+export interface RuntimeResourceCommand {
+  skill: RuntimeResourceSkillReference
+  packageName: string
+  description: string
+  command: AgentPluginCommand
+}
+
 /** Immutable template identity used by task-level Agent executions. */
 export interface TemplateAgentSource extends RuntimeResourceReference {
   kind: 'agent_plugin_template'
@@ -106,6 +130,8 @@ export interface AgentPluginXpertExtension {
   version: 1 | 2
   /** Only assistant is excluded from ChatKit discovery; template availability is independent. */
   role?: AgentPluginRole
+  /** Skill-keyed shortcuts. Omitted skills have no command shortcut. */
+  commands?: Record<string, AgentPluginCommand>
   /** Version 2: package-contained Assistant DSL; runtime state is never packaged. */
   templates?: Array<{
     key: string

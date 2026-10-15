@@ -56,14 +56,15 @@ export class TemplateReadinessService {
         assistantId: string,
         workspaceId: string,
         expected?: TemplateDependencyLock[],
-        projectId?: string
+        projectId?: string,
+        sandboxProvider?: string
     ) {
         await this.commands.execute(
             projectId
                 ? new AssertProjectAssistantAccessCommand(projectId, assistantId)
                 : new ResolveAssistantFileAccessCommand(assistantId, 'capabilities', 'runtime')
         )
-        const result = await this.inspectRequirements(template, workspaceId)
+        const result = await this.inspectRequirements(template, workspaceId, { sandboxProvider })
         if (expected && installationHash(expected) !== installationHash(result.readiness.dependencies))
             throw new InstallationSourceChangedError()
         if (!result.readiness.canInstall) {
@@ -80,7 +81,11 @@ export class TemplateReadinessService {
         return result
     }
 
-    private async inspectRequirements(template: TXpertTemplate, workspaceId?: string) {
+    private async inspectRequirements(
+        template: TXpertTemplate,
+        workspaceId?: string,
+        runtime?: { sandboxProvider?: string }
+    ) {
         const result = inspectTemplateManifest(template)
         const { readiness, manifest, normalized } = result
         const components: RuntimeComponent[] = []
@@ -141,10 +146,22 @@ export class TemplateReadinessService {
             const sandbox = normalized.definition.team.features?.sandbox
             if (sandbox?.enabled) {
                 const providers = await this.xperts.getSandboxProviders()
-                const provider = sandbox.provider || providers.find((item) => item.type !== 'local-shell-sandbox')?.type
-                if (!provider || provider === 'local-shell-sandbox')
+                const provider =
+                    sandbox.provider ||
+                    (runtime
+                        ? runtime.sandboxProvider
+                        : providers.find((item) => item.type !== 'local-shell-sandbox')?.type)
+                if (
+                    !provider ||
+                    provider === 'local-shell-sandbox' ||
+                    (runtime && !providers.some((item) => item.type === provider))
+                )
                     readiness.checks.push(requirementCheck('execution', 'server-sandbox', 'missing'))
-                else addProvider('sandbox', provider, () => this.sandbox.getSource(this.sandbox.get(provider)))
+                else {
+                    // Pin the same effective provider that readiness validates and the child graph will execute.
+                    if (runtime) sandbox.provider = provider
+                    addProvider('sandbox', provider, () => this.sandbox.getSource(this.sandbox.get(provider)))
+                }
             }
         }
         for (const pluginName of [...names].sort()) {

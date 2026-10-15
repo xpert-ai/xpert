@@ -13,7 +13,7 @@ import {
     RequestContext,
     SYSTEM_GLOBAL_SCOPE
 } from '@xpert-ai/plugin-sdk'
-import { TXpertTemplate, XpertTypeEnum } from '@xpert-ai/contracts'
+import { TXpertTemplate, XpertTypeEnum, type TXpertSandboxFeature } from '@xpert-ai/contracts'
 import { PluginResourceInstallerService } from '../plugin-resource-installer.service'
 import { XpertService } from '../../xpert/xpert.service'
 import { XpertWorkspaceAccessService } from '../../xpert-workspace/workspace-access.service'
@@ -42,7 +42,7 @@ describe('scoped template dependency preparation', () => {
         instance: { meta: { version } },
         ctx: {}
     })
-    async function harness() {
+    async function harness(providers: string[] = []) {
         const loaded = [plugin(SYSTEM_GLOBAL_SCOPE, '1.0.0'), plugin('org', '2.0.0')]
         const installer = {
             resolveRuntimeComponents: jest.fn(async (_name, selectors) =>
@@ -72,7 +72,10 @@ describe('scoped template dependency preparation', () => {
                 { provide: LOADED_PLUGINS, useValue: loaded },
                 { provide: PluginResourceInstallerService, useValue: installer },
                 { provide: XpertWorkspaceAccessService, useValue: access },
-                { provide: XpertService, useValue: { getSandboxProviders: async () => [] } },
+                {
+                    provide: XpertService,
+                    useValue: { getSandboxProviders: async () => providers.map((type) => ({ type })) }
+                },
                 { provide: getRepositoryToken(XpertToolset), useValue: { find: jest.fn(async () => []) } }
             ]
         }).compile()
@@ -84,6 +87,90 @@ describe('scoped template dependency preparation', () => {
         jest.spyOn(RequestContext, 'getScope').mockReturnValue(undefined)
     })
     afterEach(() => jest.restoreAllMocks())
+
+    const sandboxTemplate = (sandbox: TXpertSandboxFeature): TXpertTemplate => ({
+        ...base,
+        export_data: JSON.stringify({
+            team: { name: 'test', type: 'agent', agent: { key: 'primary' }, features: { sandbox } },
+            nodes: [{ key: 'primary', type: 'agent', entity: { key: 'primary' }, position: { x: 0, y: 0 } }],
+            connections: [],
+            template: { schemaVersion: 2, manifest: { schemaVersion: 2, version: '1' } }
+        })
+    })
+
+    it('binds the authorized parent provider before checking and pinning runtime dependencies', async () => {
+        const h = await harness(['nsjail'])
+        jest.spyOn(h.module.get(SandboxProviderRegistry), 'getSource').mockReturnValue({
+            kind: 'plugin',
+            pluginName: '@test/dep',
+            pluginVersion: '2.0.0',
+            scopeKey: 'org'
+        })
+        const template = sandboxTemplate({ enabled: true })
+        const result = await h.service.prepareRuntime(
+            template,
+            'assistant',
+            'workspace',
+            undefined,
+            undefined,
+            'nsjail'
+        )
+        expect(result.normalized.definition.team.features.sandbox).toEqual({ enabled: true, provider: 'nsjail' })
+        expect(result.readiness.dependencies).toContainEqual(
+            expect.objectContaining({
+                pluginName: '@test/dep',
+                version: '2.0.0',
+                providers: [{ kind: 'sandbox', key: 'nsjail' }]
+            })
+        )
+        expect(template.export_data).not.toContain('nsjail')
+        h.loaded[1] = plugin('org', '3.0.0')
+        await expect(
+            h.service.prepareRuntime(
+                template,
+                'assistant',
+                'workspace',
+                result.readiness.dependencies,
+                undefined,
+                'nsjail'
+            )
+        ).rejects.toThrow()
+        await h.module.close()
+    })
+
+    it('preserves a template provider and never enables a disabled template sandbox', async () => {
+        const h = await harness(['nsjail', 'other-sandbox'])
+        for (const sandbox of [{ enabled: true, provider: 'nsjail' }, { enabled: false }]) {
+            const result = await h.service.prepareRuntime(
+                sandboxTemplate(sandbox),
+                'assistant',
+                'workspace',
+                undefined,
+                undefined,
+                'other-sandbox'
+            )
+            expect(result.normalized.definition.team.features.sandbox).toEqual(sandbox)
+        }
+        await h.module.close()
+    })
+
+    it.each([undefined, 'missing-provider', 'local-shell-sandbox'])(
+        'rejects an unconfigured or unavailable runtime provider: %s',
+        async (provider) => {
+            const h = await harness(['nsjail', 'local-shell-sandbox'])
+            await expect(
+                h.service.prepareRuntime(
+                    sandboxTemplate({ enabled: true }),
+                    'assistant',
+                    'workspace',
+                    undefined,
+                    undefined,
+                    provider
+                )
+            ).rejects.toThrow()
+            await h.module.close()
+        }
+    )
 
     it.each([undefined, 'project'])(
         'reauthorizes runtime preparation in its actual task workspace: %s',
