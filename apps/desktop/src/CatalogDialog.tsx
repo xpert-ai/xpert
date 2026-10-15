@@ -94,7 +94,10 @@ export function CatalogDialog({
     }
     void cache.load(kind, true)
   }, [cache, kind])
-  useEffect(() => subscribeAppActivation(reload), [reload])
+  useEffect(() => {
+    // Templates are a browsable snapshot; native activation must not discard its cards or pagination.
+    if (kind !== 'templates') return subscribeAppActivation(reload)
+  }, [kind, reload])
   useEffect(() => {
     setCategory('all')
     setSource('all')
@@ -413,7 +416,7 @@ export function CatalogDialog({
                   {notice}
                 </div>
               )}
-              {loading && kind === 'applications' ? (
+              {loading && !items.length && kind === 'applications' ? (
                 <div
                   role="status"
                   aria-label={t('Loading {{section}}…', { section: t('Apps') })}
@@ -426,7 +429,7 @@ export function CatalogDialog({
                     />
                   ))}
                 </div>
-              ) : loading ? (
+              ) : loading && !items.length ? (
                 <div
                   role="status"
                   className="flex h-56 items-center justify-center gap-2 text-sm text-muted-foreground"
@@ -437,7 +440,7 @@ export function CatalogDialog({
               ) : filtered.length ? (
                 <div
                   className={`grid gap-4 ${kind === 'applications' ? 'grid-cols-[repeat(auto-fill,minmax(min(100%,22rem),1fr))]' : 'grid-cols-[repeat(auto-fill,minmax(min(100%,280px),1fr))]'}`}
-                  aria-busy={busy}
+                  aria-busy={busy || loading || loadingMore}
                 >
                   {filtered.map((item) =>
                     item.kind === 'applications' ? (
