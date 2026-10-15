@@ -5,7 +5,7 @@ import { ChangeDetectionStrategy, Component, effect, inject, signal, untracked }
 import { toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
-import type { AssistantTemplateOverview } from '@xpert-ai/contracts'
+import type { AssistantTemplateOverview, TemplateReadiness } from '@xpert-ai/contracts'
 import { ZardButtonComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
 import { getErrorMessage, XpertTemplateService } from '@cloud/app/@core'
@@ -13,10 +13,18 @@ import { type BlankXpertWizardResult, XpertNewBlankComponent } from '../../xpert
 import { createAgentTemplateWizardData } from '../agents/agent-template-wizard'
 import { ExploreScopeService } from '../explore-scope.service'
 import { ExploreScopeComponent } from '../explore-scope.component'
+import { TemplateRequirementsComponent } from './template-requirements.component'
 
 @Component({
   standalone: true,
-  imports: [RouterLink, TranslateModule, ZardButtonComponent, ...ZardTabsImports, ExploreScopeComponent],
+  imports: [
+    RouterLink,
+    TranslateModule,
+    ZardButtonComponent,
+    ...ZardTabsImports,
+    ExploreScopeComponent,
+    TemplateRequirementsComponent
+  ],
   templateUrl: './template-detail.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'block min-h-full bg-background text-foreground' }
@@ -33,6 +41,9 @@ export class TemplateDetailComponent {
   readonly detail = signal<AssistantTemplateOverview | null>(null)
   readonly loading = signal(false)
   readonly error = signal('')
+  readonly readiness = signal<TemplateReadiness | undefined>(undefined)
+  readonly requirementsLoading = signal(false)
+  readonly requirementsError = signal('')
   private generation = 0
 
   constructor() {
@@ -53,14 +64,36 @@ export class TemplateDetailComponent {
     this.loading.set(true)
     this.error.set('')
     this.detail.set(null)
+    this.readiness.set(undefined)
+    this.requirementsError.set('')
+    this.requirementsLoading.set(false)
     try {
       const detail = await firstValueFrom(this.api.getOverview(this.params().get('templateId')))
-      if (generation === this.generation) this.detail.set(detail)
+      if (generation === this.generation) {
+        this.detail.set(detail)
+        if (!this.scope.isTenant()) void this.loadRequirements(detail.id, generation)
+      }
     } catch (error) {
       if (generation === this.generation) this.error.set(getErrorMessage(error))
     } finally {
       if (generation === this.generation) this.loading.set(false)
     }
+  }
+  async loadRequirements(id = this.detail()?.id, generation = this.generation) {
+    if (!id || this.scope.isTenant()) return
+    this.requirementsLoading.set(true)
+    this.requirementsError.set('')
+    try {
+      const setup = await firstValueFrom(this.api.getSetup(id))
+      if (generation === this.generation) this.readiness.set(setup.readiness)
+    } catch (error) {
+      if (generation === this.generation) this.requirementsError.set(getErrorMessage(error))
+    } finally {
+      if (generation === this.generation) this.requirementsLoading.set(false)
+    }
+  }
+  async manageDependencies() {
+    await this.router.navigate(['/plugins'], { queryParams: { category: 'agent-plugins' } })
   }
   async install() {
     let detail = this.detail()
