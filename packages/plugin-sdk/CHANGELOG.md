@@ -1,5 +1,21 @@
 # @xpert-ai/plugin-sdk
 
+## 3.23.0
+
+### Minor Changes
+
+- 616bab6: Add the SandboxWorkspaceMount contract and optional workspaceMounts provider creation option for mounts resolved after application authorization. Include conversation scope in application-side Sandbox acquisition and cache identity without forwarding business authorization context to providers.
+
+### Patch Changes
+
+- Updated dependencies [5afe7d1]
+- Updated dependencies [94dd967]
+- Updated dependencies [8ecf7b0]
+- Updated dependencies [94dd967]
+- Updated dependencies [616bab6]
+- Updated dependencies [ddeb74f]
+  - @xpert-ai/contracts@3.22.0
+
 ## 3.22.2
 
 ### Patch Changes

@@ -1,5 +1,18 @@
 # @xpert-ai/desktop
 
+## 0.3.6
+
+### Patch Changes
+
+- ddeb74f: Upgrade the shared ChatKit catalog to 0.15.0 and align workspace and deployment locks. Deliver selected-plugin skill command shortcuts, descriptive subcommand labels, theme-aware code blocks, and concise external Assistant messages alongside the authorized command execution and template sub-agent Sandbox provider fixes.
+- 616bab6: Keep the Desktop ChatKit accent color synchronized with the selected Assistant's avatar color, including changes after the chat loads. Group conversations and Assistants without an avatar color retain the configured theme fallback.
+- 2a64d9c: Keep template cards stable when the desktop app returns to the foreground. Templates refresh only on explicit refresh or scope/language changes; manual refresh retains visible cards until all replacement template pages are ready. Other discovery tabs retain their existing activation updates.
+- 2f69532: Add English, Simplified Chinese, Traditional Chinese, and Japanese translations for invalid group candidate responses, restoring Desktop translation coverage and release builds.
+- 1a60257: Include published Agents from organization-shared workspaces in group invitation candidates while preserving tenant, organization, group-owner, and authoring permission boundaries. Show only the latest Agent versions and exclude active group members, including other versions of an Agent already in the group, before pagination.
+
+  Apply stable database pagination and let Desktop load all candidate pages. The API keeps its array response and accepts optional limit and offset parameters; the ChatKit load-more interface requires the matching SDK and ChatKit releases.
+  - @xpert-ai/desktop-protocol@0.3.5
+
 ## 0.3.5
 
 ### Patch Changes
