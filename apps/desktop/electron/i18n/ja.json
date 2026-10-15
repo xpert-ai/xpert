@@ -354,6 +354,7 @@
   "Enter a valid email address.": "有効なメールアドレスを入力してください。",
   "Enter a valid URL.": "有効な URL を入力してください。",
   "Invalid input.": "入力値が無効です。",
+  "Invalid response.": "応答形式が無効です。",
   "Choose your desktop language. ChatKit follows where supported.": "デスクトップの言語を選択します。ChatKit は対応する言語に切り替わります。",
   "Desktop Shell": "デスクトップ Shell",
   "Shell": "Shell",
