@@ -40,6 +40,7 @@ export const jsonValue: z.ZodType<import('@xpert-ai/contracts').JSONValue> = z.l
 const extensionShape = z
     .object({
         version: z.union([z.literal(1), z.literal(2)]),
+        role: z.enum(['capability', 'assistant', 'subagent']).optional(),
         templates: z
             .array(
                 z

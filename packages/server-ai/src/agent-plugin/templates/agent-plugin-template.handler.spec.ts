@@ -24,7 +24,7 @@ jest.mock('../../xpert-toolset/xpert-toolset.entity', () => ({ XpertToolset: cla
 describe('Agent Plugin Assistant template adapter', () => {
     let root: string, pkg: AgentPluginPackage, service: AgentPluginTemplateService
     const packages = {
-        runtimeCatalog: jest.fn(),
+        installedCatalog: jest.fn(),
         templatePackage: jest.fn(),
         retainTemplateReference: jest.fn().mockResolvedValue(undefined),
         reference: jest.fn(),
@@ -90,7 +90,7 @@ describe('Agent Plugin Assistant template adapter', () => {
             source: { kind: 'zip' }
         }
         const resolved = { pkg, binding: importedPluginBinding(pkg) }
-        packages.runtimeCatalog.mockResolvedValue([resolved])
+        packages.installedCatalog.mockResolvedValue([resolved])
         packages.templatePackage.mockResolvedValue(resolved)
         packages.reference.mockResolvedValue(resolved)
         service = (
@@ -106,6 +106,19 @@ describe('Agent Plugin Assistant template adapter', () => {
         jest.clearAllMocks()
         await rm(root, { recursive: true, force: true })
     })
+    it.each([undefined, 'assistant', 'capability', 'subagent'] as const)(
+        'keeps role %p templates in both the marketplace summaries and import details',
+        async (role) => {
+            pkg.descriptor.extension.role = role
+            const summary = await service.templates(undefined, 'en-US', true)
+            const details = await service.templates(summary[0].id)
+            expect(summary).toHaveLength(1)
+            expect(details).toHaveLength(1)
+            expect(summary[0].id).toBe(details[0].id)
+            expect(details[0].dependencies.skills[0].source.digest).toBe(pkg.digest)
+            expect(details[0].export_data).toContain('hello')
+        }
+    )
     it('publishes DSL-derived presentation and pins its own skills without a native owner', async () => {
         const [template] = await service.templates()
         expect(template).toMatchObject({
@@ -146,9 +159,11 @@ describe('Agent Plugin Assistant template adapter', () => {
     it('rechecks visible/enabled installations and localization on every summary request', async () => {
         expect((await service.templates(undefined, 'en-US', true))[0].title).toBe('Desk')
         expect((await service.templates(undefined, 'zh-Hans', true))[0].title).toBe('办公助手')
-        packages.runtimeCatalog.mockResolvedValue([{ pkg, binding: { ...importedPluginBinding(pkg), enabled: false } }])
+        packages.installedCatalog.mockResolvedValue([
+            { pkg, binding: { ...importedPluginBinding(pkg), enabled: false } }
+        ])
         expect(await service.templates(undefined, 'en-US', true)).toEqual([])
-        packages.runtimeCatalog.mockResolvedValue([])
+        packages.installedCatalog.mockResolvedValue([])
         expect(await service.templates(undefined, 'zh-Hans', true)).toEqual([])
     })
     it('backfills old descriptors only after verifying their package', async () => {
@@ -205,7 +220,9 @@ describe('Agent Plugin Assistant template adapter', () => {
     })
     it('omits disabled packages and never exposes another template for an unknown id', async () => {
         expect(await service.templates('agent-plugin/example/missing')).toEqual([])
-        packages.runtimeCatalog.mockResolvedValue([{ pkg, binding: { ...importedPluginBinding(pkg), enabled: false } }])
+        packages.installedCatalog.mockResolvedValue([
+            { pkg, binding: { ...importedPluginBinding(pkg), enabled: false } }
+        ])
         expect(await service.templates()).toEqual([])
     })
 })

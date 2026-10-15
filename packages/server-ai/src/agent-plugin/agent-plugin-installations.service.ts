@@ -47,7 +47,8 @@ export class AgentPluginInstallationsService {
         return { scope, packages, bindings }
     }
 
-    async runtimeCatalog(workspaceId: string) {
+    /** Shared installation inventory: template discovery must not inherit ChatKit filtering. */
+    async installedCatalog(workspaceId?: string) {
         const { scope, packages, bindings } = await this.visible()
         return installedPluginBindings(packages, bindings, scope, workspaceId).map((binding) => {
             const definition = binding.definition

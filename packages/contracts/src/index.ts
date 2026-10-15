@@ -83,6 +83,8 @@ export * from './view-extension'
 export * from './runtime-control'
 export type {
   RuntimeResourceKind,
+  AgentPluginRole,
+  RuntimeResourceCatalogPurpose,
   RuntimeResourceStatus,
   RuntimeResourceReference,
   RuntimeResourcesSelection,

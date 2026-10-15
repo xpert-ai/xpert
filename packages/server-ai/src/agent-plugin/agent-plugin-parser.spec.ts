@@ -12,6 +12,34 @@ describe('portable Agent Plugins 1.0.0', () => {
         await json('plugin.json', { $schema: schema + 'plugin.schema.json', name: 'example' })
     })
     afterEach(() => rm(root, { recursive: true, force: true }))
+    it.each([undefined, 'capability', 'assistant', 'subagent'])(
+        'preserves the optional package role %p in both extension versions',
+        async (role) => {
+            for (const version of [1, 2]) {
+                const extension = { version, ...(role ? { role } : {}) }
+                await json('plugin.json', {
+                    $schema: schema + 'plugin.schema.json',
+                    name: 'example',
+                    extensions: { xpertai: extension }
+                })
+                const parsed = await parseAgentPlugin(root)
+                expect(parsed.extension).toEqual(extension)
+                expect(parsed.diagnostics).toEqual([])
+            }
+        }
+    )
+    it.each(['connector', ['assistant'], null, 1])('reports invalid package role %p', async (role) => {
+        await json('plugin.json', {
+            $schema: schema + 'plugin.schema.json',
+            name: 'example',
+            extensions: { xpertai: { version: 2, role } }
+        })
+        const parsed = await parseAgentPlugin(root)
+        expect(parsed.extension).toBeUndefined()
+        expect(parsed.diagnostics).toEqual([
+            expect.objectContaining({ component: 'xpertai', code: 'invalid_extension' })
+        ])
+    })
     it('accepts localized interface metadata while preserving stable package identity', async () => {
         await json('plugin.json', {
             $schema: schema + 'plugin.schema.json',

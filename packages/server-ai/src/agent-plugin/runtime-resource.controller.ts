@@ -27,6 +27,7 @@ export class RuntimeResourceController {
                         projectId: z.string().uuid().optional(),
                         search: z.string().max(200).optional(),
                         kind: z.enum(['agent_plugin', 'middleware', 'external_xpert']).optional(),
+                        purpose: z.enum(['browse', 'selection']).optional(),
                         offset: z.coerce.number().int().min(0).default(0),
                         limit: z.coerce.number().int().min(1).max(100).default(50)
                     })

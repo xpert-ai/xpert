@@ -12,6 +12,7 @@ import type {
     IWFNMiddleware,
     IXpert,
     RuntimeResourceCatalog,
+    RuntimeResourceCatalogPurpose,
     RuntimeResourceCatalogItem,
     RuntimeResourceKind,
     RuntimeResourcesSelection
@@ -75,7 +76,14 @@ export class RuntimeResourceService {
 
     async catalog(
         assistantId: string,
-        query: { projectId?: string; search?: string; kind?: RuntimeResourceKind; offset?: number; limit?: number }
+        query: {
+            projectId?: string
+            search?: string
+            kind?: RuntimeResourceKind
+            purpose?: RuntimeResourceCatalogPurpose
+            offset?: number
+            limit?: number
+        }
     ): Promise<RuntimeResourceCatalog> {
         const assistant = await this.assistant(assistantId, query.projectId)
         const managed = await this.plugins.bindings.find({
@@ -84,7 +92,7 @@ export class RuntimeResourceService {
         })
         const installed =
             !query.kind || query.kind === 'agent_plugin'
-                ? await this.installations.runtimeCatalog(assistant.workspaceId)
+                ? await this.installations.installedCatalog(assistant.workspaceId)
                 : []
         const bindings = [
             ...managed.filter((binding) => binding.definition.kind !== 'agent_plugin'),
@@ -92,12 +100,14 @@ export class RuntimeResourceService {
         ]
         const items: RuntimeResourceCatalogItem[] = []
         for (const binding of bindings) {
+            const pkg = installed.find((item) => item.binding.id === binding.id)?.pkg
             if (
                 !binding.enabled ||
                 binding.supersededById ||
                 isResourceInGraph(binding, assistant) ||
                 (binding.definition.kind !== 'agent_plugin' && !binding.workspaceIds.includes(assistant.workspaceId)) ||
-                (query.kind && binding.definition.kind !== query.kind)
+                (query.kind && binding.definition.kind !== query.kind) ||
+                (query.purpose !== 'selection' && pkg?.descriptor.extension?.role === 'assistant')
             )
                 continue
             if (
@@ -105,11 +115,7 @@ export class RuntimeResourceService {
                 !`${binding.title} ${binding.description ?? ''}`.toLowerCase().includes(query.search.toLowerCase())
             )
                 continue
-            const item = await this.describe(
-                binding,
-                assistant,
-                installed.find((item) => item.binding.id === binding.id)?.pkg
-            )
+            const item = await this.describe(binding, assistant, pkg)
             try {
                 if (binding.definition.kind === 'agent_plugin') {
                     items.push(item)

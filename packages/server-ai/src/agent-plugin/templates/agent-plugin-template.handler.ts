@@ -28,7 +28,8 @@ export class AgentPluginTemplateService {
 
     async templates(id?: string, language?: string, summaryOnly = false): Promise<TXpertTemplate[]> {
         const result: TXpertTemplate[] = []
-        for (const { binding, pkg } of await this.installations.runtimeCatalog(undefined)) {
+        // Every role may supply templates, including assistant-only packages hidden from ChatKit.
+        for (const { binding, pkg } of await this.installations.installedCatalog()) {
             if (
                 !binding.enabled ||
                 !(pkg.descriptor.templates ?? []).some(

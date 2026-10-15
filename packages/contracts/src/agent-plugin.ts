@@ -8,6 +8,12 @@ import type { I18nText } from './i18n.model'
  */
 export type RuntimeResourceKind = 'agent_plugin' | 'middleware' | 'external_xpert'
 
+/** Package usage role; omission preserves legacy ChatKit visibility. */
+export type AgentPluginRole = 'capability' | 'assistant' | 'subagent'
+
+/** Selection lookup retains metadata for existing references hidden from discovery. */
+export type RuntimeResourceCatalogPurpose = 'browse' | 'selection'
+
 /**
  * Availability in the current user/project context; execution still revalidates access.
  * partial means some components are usable; requires_auth needs Connector authorization;
@@ -88,6 +94,8 @@ export interface RuntimeResourceCatalog {
 export interface AgentPluginXpertExtension {
   /** Extension schema version, independent of the Agent Plugins spec version. */
   version: 1 | 2
+  /** Only assistant is excluded from ChatKit discovery; template availability is independent. */
+  role?: AgentPluginRole
   /** Version 2: package-contained Assistant DSL; runtime state is never packaged. */
   templates?: Array<{
     key: string
