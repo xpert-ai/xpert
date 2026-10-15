@@ -63,6 +63,8 @@ export interface XpertViewHostCapabilities {
 }
 
 export interface XpertViewRuntimeScopeInput {
+  /** Route through the group boundary; the server resolves and validates its runtime. */
+  groupId?: string | null
   projectId?: string | null
   conversationId?: string | null
 }

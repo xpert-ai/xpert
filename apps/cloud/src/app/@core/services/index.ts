@@ -74,6 +74,8 @@ export * from './skill-repository.service'
 export * from './skill-repository-index.service'
 export * from './skill-package.service'
 export * from './view-extension-api.service'
+export * from './view-extension-route.service'
+export * from './group-workbench-api.service'
 export * from './plugin-application.service'
 export * from './workbench-presentation.service'
 
