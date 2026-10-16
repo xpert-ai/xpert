@@ -53,6 +53,9 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "InvalidUserGroupInput": "Invalid user group input.",
+        "InvalidUserGroupMembers": "Some users are not active members of the current organization.",
+        "UserGroupNotFound": "The requested user group was not found in the current organization.",
         "TenantSettingScopeImmutable": "A setting cannot be moved to another tenant.",
         "RetentionDefaultTenantRequired": "Only a SuperAdmin in the default tenant can configure retention for all tenants.",
         "TemplateSubagentParameterInvalid": "Template input parameter {{name}} conflicts with a reserved runtime field.",

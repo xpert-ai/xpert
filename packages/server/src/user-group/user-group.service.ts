@@ -1,8 +1,9 @@
 import { PermissionsEnum } from '@xpert-ai/contracts'
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { DeepPartial, FindManyOptions, FindOneOptions, FindOptionsWhere, In, Repository } from 'typeorm'
-import { RequestContext } from '../core/context'
+import { DeepPartial, FindManyOptions, FindOneOptions, FindOptionsWhere, In, IsNull, Repository } from 'typeorm'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { t } from 'i18next'
 import { TenantOrganizationAwareCrudService } from '../core/crud'
 import { Organization, User, UserOrganization } from '../core/entities/internal'
 import { UserGroup } from './user-group.entity'
@@ -116,10 +117,35 @@ export class UserGroupService extends TenantOrganizationAwareCrudService<UserGro
 		}
 	}
 
+	private activeMemberWhere(organizationId: string): FindOptionsWhere<User> {
+		const tenantId = this.currentTenantId()
+		return {
+			tenantId,
+			deletedAt: IsNull(),
+			organizations: { tenantId, organizationId, isActive: true }
+		}
+	}
+
+	async findMemberCandidates(organizationId?: string) {
+		this.requireOrganizationScope()
+		const resolvedOrganizationId = await this.resolveAccessibleOrganizationId(organizationId)
+		return this.userRepository.find({
+			select: ['id', 'firstName', 'lastName', 'email', 'username', 'imageUrl'],
+			where: this.activeMemberWhere(resolvedOrganizationId),
+			order: { firstName: 'ASC', email: 'ASC' }
+		})
+	}
+
 	private async validateMemberIds(memberIds: string[], organizationId?: string) {
 		const resolvedOrganizationId = await this.resolveAccessibleOrganizationId(organizationId)
-		const tenantId = this.currentTenantId()
-		const ids = [...new Set((memberIds ?? []).filter(Boolean))]
+		if (!Array.isArray(memberIds) || memberIds.some((id) => typeof id !== 'string' || !id.trim())) {
+			throw new BadRequestException(
+				t('server-ai:Error.InvalidUserGroupInput', {
+					defaultValue: 'Invalid user group input.'
+				})
+			)
+		}
+		const ids = [...new Set(memberIds)]
 
 		if (!ids.length) {
 			return []
@@ -128,31 +154,20 @@ export class UserGroupService extends TenantOrganizationAwareCrudService<UserGro
 		const users = await this.userRepository.find({
 			select: ['id'],
 			where: {
-				id: In(ids),
-				tenantId
+				...this.activeMemberWhere(resolvedOrganizationId),
+				id: In(ids)
 			}
 		})
 
 		if (users.length !== ids.length) {
-			throw new BadRequestException('Some users were not found in the current tenant.')
+			throw new BadRequestException(
+				t('server-ai:Error.InvalidUserGroupMembers', {
+					defaultValue: 'Some users are not active members of the current organization.'
+				})
+			)
 		}
 
-		const memberships = await this.userOrganizationRepository.find({
-			select: ['userId'],
-			where: {
-				tenantId,
-				organizationId: resolvedOrganizationId,
-				isActive: true,
-				userId: In(ids)
-			}
-		})
-
-		const memberIdsInOrg = new Set(memberships.map((membership) => membership.userId))
-		if (memberIdsInOrg.size !== ids.length) {
-			throw new BadRequestException('Some users are not active members of the current organization.')
-		}
-
-		return ids.map((id) => ({ id }) as User)
+		return users
 	}
 
 	async updateMembers(id: string, memberIds: string[], organizationId?: string) {
@@ -206,13 +221,22 @@ export class UserGroupService extends TenantOrganizationAwareCrudService<UserGro
 		)
 	}
 
-	private stripManagedMetadata(entity: DeepPartial<UserGroup>): DeepPartial<UserGroup> {
-		const sanitized = { ...entity }
-		delete sanitized.managedBy
-		delete sanitized.managedEntityType
-		delete sanitized.managedEntityId
-
-		return sanitized
+	private async prepareWrite(
+		entity: DeepPartial<UserGroup>,
+		organizationId: string
+	): Promise<DeepPartial<UserGroup>> {
+		return {
+			...(entity.name !== undefined ? { name: entity.name } : {}),
+			...(entity.description !== undefined ? { description: entity.description } : {}),
+			...(entity.members !== undefined
+				? {
+						members: await this.validateMemberIds(
+							entity.members?.map((member) => member?.id),
+							organizationId
+						)
+					}
+				: {})
+		}
 	}
 
 	public async findAll(filter?: FindManyOptions<UserGroup>) {
@@ -228,18 +252,36 @@ export class UserGroupService extends TenantOrganizationAwareCrudService<UserGro
 		return super.findOne(id, options)
 	}
 
-	public async create(entity: DeepPartial<UserGroup>, ...options: any[]): Promise<UserGroup> {
-		this.requireOrganizationScope()
-		return super.create(this.stripManagedMetadata(entity), ...options)
+	public async create(entity: DeepPartial<UserGroup>): Promise<UserGroup> {
+		const organizationId = this.requireOrganizationScope()
+		return super.create(await this.prepareWrite(entity, organizationId))
 	}
 
-	public async update(
-		id: string | number | FindOptionsWhere<UserGroup>,
-		partialEntity: DeepPartial<UserGroup>,
-		...options: any[]
-	) {
-		this.requireOrganizationScope()
-		return super.update(id, this.stripManagedMetadata(partialEntity), ...options)
+	public async update(id: string | number | FindOptionsWhere<UserGroup>, partialEntity: DeepPartial<UserGroup>) {
+		const organizationId = this.requireOrganizationScope()
+		const group = await this.repository.findOne({
+			where: {
+				...(typeof id === 'object' ? id : { id: String(id) }),
+				tenantId: this.currentTenantId(),
+				organizationId
+			}
+		})
+		if (!group) {
+			throw new NotFoundException(
+				t('server-ai:Error.UserGroupNotFound', {
+					defaultValue: 'The requested user group was not found in the current organization.'
+				})
+			)
+		}
+		return this.repository.save({
+			...group,
+			...(await this.prepareWrite(partialEntity, organizationId)),
+			updatedById: RequestContext.currentUserId()
+		})
+	}
+
+	public async save(entity: DeepPartial<UserGroup>): Promise<UserGroup> {
+		return entity.id ? this.update(entity.id, entity) : this.create(entity)
 	}
 
 	public async delete(criteria: string | FindOptionsWhere<UserGroup>, options?: FindOneOptions<UserGroup>) {
