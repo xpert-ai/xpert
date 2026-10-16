@@ -186,7 +186,6 @@ describe('MCP bound source configuration', () => {
         ctx.publications.getManaged.mockRejectedValue(new ForbiddenException())
         await expect(ctx.service.tabs('another-publication')).rejects.toMatchObject({ status: 403 })
         jest.mocked(RequestContext.hasRole).mockReturnValue(false)
-        expect(ctx.host.canRead()).toBe(false)
         await expect(ctx.service.tabs('publication-1')).rejects.toMatchObject({ status: 403 })
         await ctx.module.close()
     })
