@@ -32,6 +32,11 @@
       "types": "./dist/data-workbench.d.ts",
       "import": "./dist/data-workbench.esm.js",
       "default": "./dist/data-workbench.cjs.js"
+    },
+    "./artifact-document": {
+      "types": "./dist/artifact-document.d.ts",
+      "import": "./dist/artifact-document.esm.js",
+      "default": "./dist/artifact-document.cjs.js"
     }
   },
   "publishConfig": {
