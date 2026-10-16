@@ -22,12 +22,30 @@ jest.mock('../skill-package/skill-package.entity', () => ({ SkillPackage: class 
 jest.mock('../xpert-toolset/xpert-toolset.entity', () => ({ XpertToolset: class {} }))
 jest.mock('../xpert/published-xpert-access.service', () => ({ PublishedXpertAccessService: class {} }))
 
-type ScopedRecord = { id?: string; tenantId?: string; organizationId?: string; version?: string; enabled?: boolean }
+type ScopedRecord = {
+    id?: string
+    tenantId?: string
+    organizationId?: string
+    version?: string
+    enabled?: boolean
+    descriptor?: AgentPluginPackage['descriptor']
+    definition?: AgentResourceBinding['definition']
+}
 type Where = { [key in keyof ScopedRecord]?: ScopedRecord[key] | FindOperator<string> }
 function matches(record: ScopedRecord, where: Where) {
     return Object.entries(where).every(([key, value]) => {
         const actual = record[key as keyof ScopedRecord]
-        return value instanceof FindOperator && value.type === 'isNull' ? actual == null : actual === value
+        if (value instanceof FindOperator) {
+            if (value.type === 'isNull') return actual == null
+            if (value.type === 'raw' && key === 'descriptor')
+                return record.descriptor?.name === value.objectLiteralParameters.packageName
+            if (value.type === 'raw' && key === 'definition')
+                return (
+                    record.definition?.kind === 'agent_plugin' &&
+                    value.objectLiteralParameters.packageIds.includes(record.definition.packageId)
+                )
+        }
+        return actual === value
     })
 }
 
@@ -50,6 +68,8 @@ describe('installed plugins through the ChatKit catalog and runtime', () => {
     let workspaceUpdate: jest.Mock
     let lock: jest.Mock
     let assistantAccess: jest.Mock
+    let findPackages: jest.Mock
+    let findBindings: jest.Mock
     let manager: {
         getRepository: jest.Mock
         query: jest.Mock
@@ -98,10 +118,10 @@ describe('installed plugins through the ChatKit catalog and runtime', () => {
             .mockImplementation(async (_component, workspaceId) => ({ runtimeId: `skill-${workspaceId}` }))
         connectorReferences = jest.fn().mockResolvedValue({})
         assistantAccess = jest.fn().mockResolvedValue(assistant)
-        const findPackages = jest.fn(async ({ where }: { where: Where | Where[] }) =>
+        findPackages = jest.fn(async ({ where }: { where: Where | Where[] }) =>
             packages.filter((record) => (Array.isArray(where) ? where : [where]).some((item) => matches(record, item)))
         )
-        const findBindings = jest.fn(async ({ where }: { where: Where | Where[] }) =>
+        findBindings = jest.fn(async ({ where }: { where: Where | Where[] }) =>
             records.filter((record) => (Array.isArray(where) ? where : [where]).some((item) => matches(record, item)))
         )
         manager = {
@@ -154,6 +174,61 @@ describe('installed plugins through the ChatKit catalog and runtime', () => {
         )
     })
     afterEach(() => jest.restoreAllMocks())
+
+    it('narrows targeted inventory reads while retaining organization overrides and immediate revocation', async () => {
+        const organization = packages[0]
+        const tenant = { ...organization, id: 'tenant-package', organizationId: null }
+        const unrelated = {
+            ...organization,
+            id: 'unrelated',
+            descriptor: { ...organization.descriptor, name: 'other' }
+        }
+        packages.push(tenant, unrelated, { ...organization, id: 'hidden', organizationId: 'other-org' })
+        records.push(importedPluginBinding(organization), importedPluginBinding(unrelated))
+        expect((await installations.installedCatalog(undefined, 'documents')).map(({ pkg }) => pkg.id)).toEqual([
+            'package'
+        ])
+        expect(await findPackages.mock.results[0].value).toHaveLength(2)
+        expect(await findBindings.mock.results[0].value).toHaveLength(1)
+        records[0].enabled = false
+        expect((await installations.installedCatalog(undefined, 'documents'))[0].binding.enabled).toBe(false)
+        expect((await installations.installedCatalog(undefined, 'documents'))[0].pkg.id).toBe(organization.id)
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('different-org')
+        expect((await installations.installedCatalog(undefined, 'documents'))[0].pkg.id).toBe(tenant.id)
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('different-tenant')
+        expect(await installations.installedCatalog(undefined, 'documents')).toEqual([])
+    })
+
+    it('skips binding queries when no package with the requested name is visible', async () => {
+        expect(await installations.installedCatalog(undefined, 'missing')).toEqual([])
+        expect(findBindings).not.toHaveBeenCalled()
+    })
+
+    it('selects the same version and legacy workspace binding with a package filter as with the full inventory', async () => {
+        const older = packages[0]
+        const newer = { ...older, id: 'newer', digest: 'newer-digest', createdAt: new Date('2026-10-02') }
+        packages.push(newer, { ...older, id: 'unrelated', descriptor: { ...older.descriptor, name: 'unrelated' } })
+        const legacy = {
+            ...importedPluginBinding(older),
+            id: 'legacy',
+            workspaceIds: ['workspace'],
+            definition: { kind: 'agent_plugin' as const, packageId: older.id, experts: {} }
+        }
+        records.push(legacy)
+        const targeted = () => installations.installedCatalog('workspace', 'documents')
+        const full = async () =>
+            (await installations.installedCatalog('workspace')).filter(({ pkg }) => pkg.descriptor.name === 'documents')
+        expect(await targeted()).toEqual(await full())
+        expect((await targeted())[0].pkg.id).toBe(newer.id)
+        const configured = { ...importedPluginBinding(newer), enabled: false }
+        records.push(configured)
+        expect(await targeted()).toEqual(await full())
+        expect((await targeted())[0].binding.enabled).toBe(false)
+        packages.splice(packages.indexOf(newer), 1)
+        records.splice(records.indexOf(configured), 1)
+        expect(await targeted()).toEqual(await full())
+        expect((await targeted())[0].binding.id).toBe(legacy.id)
+    })
 
     const selected = (binding: AgentResourceBinding) => ({
         revision: 3,

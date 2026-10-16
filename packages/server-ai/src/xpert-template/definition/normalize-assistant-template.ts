@@ -12,10 +12,16 @@ import { t } from 'i18next'
 import { parseCapabilityTemplateDraft } from '../capabilities/template-draft'
 import { parseAssistantTemplateDependencies, assistantTemplateMetadataSchema } from './assistant-template.schema'
 
+type TemplateInput = Pick<TXpertTemplate, 'export_data' | 'manifest' | 'dependencies' | 'pluginName'>
+
 /** Common source normalization for plugin delivery and ordinary exported DSLs. Never mutates the input. */
-export function normalizeAssistantTemplate(
-    template: Pick<TXpertTemplate, 'export_data' | 'manifest' | 'dependencies' | 'pluginName'>
-) {
+export function normalizeAssistantTemplate(template: TemplateInput) {
+    const normalized = normalizeAssistantTemplateDefinition(template)
+    return { ...normalized, exportData: stringify(normalized.definition) }
+}
+
+/** Normalize and validate without generating an export for callers that only consume the definition. */
+export function normalizeAssistantTemplateDefinition(template: TemplateInput) {
     const draft = parseCapabilityTemplateDraft(template.export_data)
     if (draft.team.options?.operationPolicy) assistantOperationPolicySchema.parse(draft.team.options.operationPolicy)
     const raw: unknown = parse(template.export_data)
@@ -101,7 +107,7 @@ export function normalizeAssistantTemplate(
         ...(envelope.memories ? { memories: envelope.memories.map(({ prefix, value }) => ({ prefix, value })) } : {}),
         template: metadata
     }
-    return { definition, manifest, dependencies, legacy, exportData: stringify(definition) }
+    return { definition, manifest, dependencies, legacy }
 }
 
 function equal(a: unknown, b: unknown): boolean {
