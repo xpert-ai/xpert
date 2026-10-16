@@ -31,6 +31,7 @@ import {
     HttpCode,
     HttpStatus,
     Logger,
+    NotFoundException,
     Optional,
     Param,
     Patch,
@@ -163,13 +164,18 @@ export class ThreadsController {
     async getThreadState(@Param('thread_id') thread_id: string, @Query() query: any) {
         await this.ensureThreadAccess(thread_id)
         console.log(query)
-        const tuple = await this.queryBus.execute(
+        const tuple = await this.queryBus.execute<CopilotCheckpointGetTupleQuery, CheckpointTuple | undefined>(
             new CopilotCheckpointGetTupleQuery({
                 thread_id,
                 checkpoint_ns: '',
                 checkpoint_id: query.checkpoint_id
             })
         )
+        if (!tuple) {
+            throw new NotFoundException(
+                t('server-ai:Error.ThreadStateNotFound', { defaultValue: 'No saved state was found for this thread.' })
+            )
+        }
         return transformThreadState(tuple)
     }
 
