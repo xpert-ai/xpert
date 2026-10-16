@@ -37,7 +37,8 @@ test('release matrix preserves existing tags and publishes Python with its pinne
     document: `${version}-lo7`,
     'document-python': `${version}-py3.12.10`,
     'document-node': version,
-    'document-java': version
+    'document-java': version,
+    compute: version
   })
 })
 
@@ -80,6 +81,7 @@ test('suite patch synchronization keeps the matrix and runtime definitions align
   run(root, 'verify-catalog.mjs')
   const { include } = JSON.parse(run(root, 'build-matrix.mjs'))
   assert.equal(include.find((image) => image.family === 'document-python').versionTag, '1.2.3-py3.12.10')
+  assert.equal(include.find((image) => image.family === 'compute').versionTag, '1.2.3')
   const definition = await readJson(
     path.join(root, '../server-ai/src/sandbox/sandbox-job/runtime-definitions/document-python-3.12-v1.json')
   )
