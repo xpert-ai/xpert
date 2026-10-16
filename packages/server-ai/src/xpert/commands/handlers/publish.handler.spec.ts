@@ -451,26 +451,26 @@ describe('XpertPublishHandler', () => {
         ).rejects.toThrow(BadRequestException)
     })
 
-    it('still requires a user group when the publisher is not the creator', async () => {
+    it('allows an authorized publisher to publish without a user group', async () => {
         ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-2')
 
         const { handler } = createHandler()
 
-        await expect(handler.execute(new XpertPublishCommand('xpert-1', false, '', 'release notes'))).rejects.toThrow(
-            BadRequestException
-        )
+        await expect(
+            handler.execute(new XpertPublishCommand('xpert-1', false, '', 'release notes'))
+        ).resolves.toBeDefined()
     })
 
-    it('still requires a user group for organization-scoped xperts when the publisher is not the creator', async () => {
+    it('does not couple organization-scoped publishing to user groups', async () => {
         ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-2')
 
         const { handler } = createHandler({
             organizationId: 'org-1'
         })
 
-        await expect(handler.execute(new XpertPublishCommand('xpert-1', false, '', 'release notes'))).rejects.toThrow(
-            BadRequestException
-        )
+        await expect(
+            handler.execute(new XpertPublishCommand('xpert-1', false, '', 'release notes'))
+        ).resolves.toBeDefined()
     })
 
     it('ensures the xpert principal user before publishing any runnable xpert', async () => {

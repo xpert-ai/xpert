@@ -53,6 +53,13 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "AssistantSharingForbidden": "You cannot manage sharing for this assistant in the current organization.",
+        "AssistantSharingNotFound": "The assistant was not found in the current organization.",
+        "AssistantSharingInvalidGroups": "Choose user groups from the current organization.",
+        "AssistantSharingChanged": "Sharing has changed. Reload before saving.",
+        "AssistantSharingInvalidInput": "Invalid sharing request.",
+        "AssistantSharingUseEndpoint": "Use the assistant sharing settings to change access.",
+        "AssistantManagedGroup": "This access group is managed by its assistant.",
         "InvalidUserGroupInput": "Invalid user group input.",
         "InvalidUserGroupMembers": "Some users are not active members of the current organization.",
         "UserGroupNotFound": "The requested user group was not found in the current organization.",

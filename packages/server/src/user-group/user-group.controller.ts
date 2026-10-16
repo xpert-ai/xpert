@@ -14,7 +14,7 @@ import {
 	UseInterceptors
 } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { CrudController, PaginationParams } from '../core'
+import { PaginationParams } from '../core'
 import { TransformInterceptor } from '../core/interceptors'
 import { Permissions } from '../shared/decorators'
 import { PermissionGuard } from '../shared/guards'
@@ -33,10 +33,8 @@ import {
 @ApiTags('UserGroup')
 @UseInterceptors(TransformInterceptor)
 @Controller()
-export class UserGroupController extends CrudController<UserGroup> {
-	constructor(private readonly service: UserGroupService) {
-		super(service)
-	}
+export class UserGroupController {
+	constructor(private readonly service: UserGroupService) {}
 
 	@UseGuards(PermissionGuard)
 	@Permissions(PermissionsEnum.ORG_USERS_VIEW)
@@ -75,14 +73,14 @@ export class UserGroupController extends CrudController<UserGroup> {
 	@UseGuards(PermissionGuard)
 	@Permissions(PermissionsEnum.ORG_USERS_EDIT)
 	@Post()
-	override async create(@Body(userGroupValidationPipe(userGroupCreateSchema)) entity: UserGroupCreateInput) {
+	async create(@Body(userGroupValidationPipe(userGroupCreateSchema)) entity: UserGroupCreateInput) {
 		return this.service.create(entity)
 	}
 
 	@UseGuards(PermissionGuard)
 	@Permissions(PermissionsEnum.ORG_USERS_EDIT)
 	@Put(':id')
-	override async update(
+	async update(
 		@Param('id', UUIDValidationPipe) id: string,
 		@Body(userGroupValidationPipe(userGroupUpdateSchema)) entity: UserGroupUpdateInput
 	) {

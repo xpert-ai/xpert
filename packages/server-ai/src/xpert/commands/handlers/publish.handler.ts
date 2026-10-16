@@ -110,11 +110,6 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
             )
         }
 
-        const currentUserId = RequestContext.currentUserId()
-        if (!xpert.userGroups?.length && xpert.createdById !== currentUserId) {
-            throw new BadRequestException('Published xperts must be assigned to at least one user group.')
-        }
-
         this.logger.verbose(`Draft of xpert '${xpert.name}':\n${JSON.stringify(xpert.draft, null, 2)}`)
 
         const { items: allVersionXperts } = await this.xpertService.findAll({

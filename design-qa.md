@@ -1,71 +1,53 @@
-# Bid Studio 初始化抽屉设计 QA
+# Assistant sharing design QA
 
-## Comparison target
+**Findings**
 
-- Source visual truth: user-provided annotated initialization-drawer reference.
-- Rendered implementation: `design-qa-app-detail.png`
-- Route: `http://localhost:4200/explore/apps/bid?plugin=%40xpert-ai%2Fplugin-bid&setup=1`
-- State: authenticated organization context, Bid Studio already enabled, initialization drawer open, both required models preselected.
+No actionable P0/P1/P2 issues remain in the sharing component. Two issues found during review were corrected:
 
-## Viewport and normalization
+- [P2, fixed] The share button was shorter than the adjacent member selector. The toolbar now stretches the Zard button to the selector height (`h-auto min-h-10`); the final desktop capture shows aligned controls.
+- [P2, fixed] Native `disabled` bindings did not drive Zard's disabled styling and host state. All sharing actions now use `zDisabled`. Browser inspection confirmed the unselected Share action is disabled and becomes enabled after a valid selection. The Angular regression clicks the actual button and checks its disabled state before and after submission.
 
-- Source pixels: `1050 × 1726`; the source is a tall drawer-only annotated crop.
-- Implementation pixels: `1280 × 720`.
-- Implementation CSS viewport: `1280 × 720`; browser device pixel ratio: `2`; the in-app browser capture is normalized to CSS-pixel dimensions.
-- The source and implementation are not the same outer crop. Comparison therefore focuses on the visible 520px initialization drawer regions named by the annotations and does not claim pixel-precise equality for unrelated vertical spacing.
+**Comparison evidence**
 
-## Full-view comparison evidence
+- Source visual truth: `/Users/xpertai/.codex/generated_images/01a142b4-c2f5-7813-9ade-cd22fa09ac81/exec-7b536fea-f5bd-42ef-b19a-6e0d19fb4fb5.png` (selected option 2, 1697 × 927 pixels).
+- Implementation URL: `http://127.0.0.1:4319/?mode=personal`.
+- Implementation screenshot: `/Users/xpertai/Pro/xpert/.cache/sharing-preview/desktop-qa.png` (1697 × 927 pixels).
+- CSS viewport: approximately 1697 × 927. Browser zoom reported DPR 0.75; the capture backend returned 2263 × 1235 pixels with unused canvas at the right and bottom. The 1:1 DOM content at the top left was cropped to 1697 × 927, without resampling. Element bounds and the 14px root were verified through the rendered DOM.
+- State: light theme, personal sharing, two existing recipients, one pending selection, resource manager without group permission. Source and final normalized implementation were opened together in the same comparison input.
+- Supplementary captures: `.cache/sharing-preview/dark-qa.png`, `groups-qa.png`, `mobile-qa.png`. Mobile CSS viewport is 391 × 844; document scroll width equals viewport width (391). Production component controls remain visible without horizontal overflow.
+- Main content and its controls are legible at 1:1 in the full-view images; no additional magnified region was necessary. The toolbar, recipient rows and inherited-access footer received focused inspection within those images.
 
-- The rendered drawer preserves the source hierarchy: title, app icon, initialization summary, three resource steps, model configuration, data-scope notice, and persistent footer.
-- The model configuration is no longer wrapped in an additional bordered card.
-- The primary and secondary footer actions share one two-column row and remain fully visible at the bottom of the drawer.
-- The implementation uses the product's existing foreground, border, muted-background, radius, and button tokens; the app icon remains the plugin-provided Bid Studio asset.
+**Intentional differences and required fidelity surfaces**
 
-## Focused region comparison evidence
+- Fonts/typography: use Cloud's existing `--font-xp-sans`, 14px root and semantic text sizes/weights. The implementation is denser than the generated concept, following the user's explicit theme/density instruction. Headings, helper text and recipient identities retain distinct hierarchy; mobile text wraps without clipping.
+- Spacing/layout: preserve the concept's tabs, flat member list, primary share action and inherited-access footer. Use standard Zard spacing/radii and Tailwind dividers; no nested structural cards. The actual application sidebars are unchanged except for the sharing navigation label. Preview sidebars are fixtures, not a replacement implementation or a fidelity target.
+- Colors/tokens: foreground, muted foreground, background, border and primary states use the application's semantic theme. Light and dark captures show readable controls and consistent surface contrast.
+- Image/asset fidelity: retain the existing application user-avatar component and icon library. Decorative avatar colors from the concept intentionally yield to the existing theme and actual user imagery. No generated brand illustrations or logos are introduced into production.
+- Copy/content: preserve organization-only sharing and use-only permission language. “用户组授权” and its explanatory warning are hidden without group permission, as explicitly requested after the concept was selected. “可使用” is a fixed permission label, since editing/delegation is outside this feature. Removal explains that inherited/group access can remain.
 
-- Model configuration: both fields render through the shared `copilot-model-select` component. The Embedding selector is constrained to `TEXT_EMBEDDING`; the visual selector is constrained to `LLM` models with the `VISION` feature. The opened Embedding menu showed provider grouping, search, capabilities, and the expected `multimodal-embedding-v1` option.
-- Footer: “打开应用/应用到当前组织” and “取消” render at equal width in one row. Cancel closes the drawer, and “查看初始化详情” reopens it.
-- A separate cropped image was not required because the complete model and footer regions are legible in the full implementation capture and were compared together with the source in the same visual input.
+**Comparison history**
 
-## Required fidelity surfaces
+1. First rendered comparison: blocked by mismatched toolbar heights. Fixed with stretched Zard action geometry; recaptured at the same desktop viewport.
+2. Interaction comparison: blocked by incorrect Zard disabled binding. Fixed with `zDisabled`, added real-button regression, and recaptured the selected state.
+3. Final combined source/implementation comparison: no actionable P0/P1/P2 issues. Additional dark and mobile captures confirm theme behavior and overflow handling.
 
-- Fonts and typography: hierarchy, weights, line wrapping, and compact control text are consistent with the existing Xpert design system; no actionable mismatch.
-- Spacing and layout rhythm: removed the redundant model card, retained clear 20px field rhythm, and changed the footer to an equal two-column layout; no overflow or hidden persistent controls.
-- Colors and visual tokens: existing semantic background, border, foreground, muted, and primary button tokens are used throughout.
-- Image quality and asset fidelity: the plugin-provided Bid Studio icon is preserved with no placeholder, emoji, or reconstructed asset.
-- Copy and content: source labels, initialization summary, steps, model labels, data-scope copy, and actions are preserved. The enabled-instance primary label correctly resolves to “打开应用”.
+**Validation and limits**
 
-## Findings
+- Browser exercised personal member selection, sharing/removal, group selection/save, inherited access and dark-mode switching using fixture APIs. The final preview tab reported no console errors.
+- Angular tests cover hidden group tabs/no group requests, read-only access, failed loads, stale organization replies, disabled controls and failed/duplicate submissions.
+- Backend tests separately exercise actual PostgreSQL grants, revocations, active organization membership, cross-scope rejection, managed-group isolation, publication snapshots and concurrent writes.
+- This is a rendered production-component preview with fixture navigation and APIs. It does not certify deployment, authenticated end-to-end operation in a running full Cloud app, or every locale/device combination.
 
-- No actionable P0, P1, or P2 findings.
-- Acceptable product-system difference: `copilot-model-select` is visually denser than the legacy native select shown under the source annotation, because the requested shared component also exposes provider identity, clearing, capabilities, and parameter controls.
+**Implementation checklist**
 
-## Open questions
+- [x] Apply option 2 structure using existing Zard controls and Cloud tokens.
+- [x] Hide group authorization without group visibility permission.
+- [x] Fix and recheck toolbar alignment and disabled actions.
+- [x] Verify light/dark and desktop/narrow states.
+- [x] Keep backend authorization independent of UI visibility.
 
-- None for the requested adjustment.
+**Follow-up polish**
 
-## Comparison history
-
-- Iteration 1: compared the annotated source and browser-rendered implementation together. No P0/P1/P2 differences were found, so no post-comparison visual fix iteration was required.
-
-## Primary interactions and runtime checks
-
-- Opened the Embedding Copilot model menu and verified filtered model choices.
-- Closed and reopened the initialization drawer.
-- Reloaded the final `localhost` route and confirmed no new console errors. Two retained errors in the browser log came from an earlier failed `127.0.0.1` origin check and were not reproduced on the final route.
-- Targeted model-ID contract tests: 3 passed.
-- Cloud development build: passed.
-
-## Implementation checklist
-
-- [x] Remove the redundant model-area card.
-- [x] Reuse `copilot-model-select` for Embedding and visual models.
-- [x] Preserve the existing initialization API model-ID contract.
-- [x] Put primary and secondary footer actions in one row.
-- [x] Verify selector, drawer, console, test, and build behavior.
-
-## Follow-up polish
-
-- None required for this change.
+No blocking visual follow-up. Full application deployment acceptance remains a separate environment check.
 
 final result: passed

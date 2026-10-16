@@ -1,3 +1,4 @@
+import { UserType, UserGroupManagedByEnum } from '@xpert-ai/contracts'
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common'
 import { DeepPartial, In, IsNull, Repository } from 'typeorm'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
@@ -18,13 +19,14 @@ jest.mock('@xpert-ai/plugin-sdk', () => ({
 jest.mock('../core/context', () => ({
 	RequestContext: jest.requireMock('@xpert-ai/plugin-sdk').RequestContext
 }))
-jest.mock('i18next', () => ({ t: (_key: string, options: { defaultValue: string }) => options.defaultValue }))
+jest.mock('i18next', () => ({ t: (key: string, options?: { defaultValue: string }) => options?.defaultValue ?? key }))
 
 const tenantId = 'tenant-a'
 const organizationId = 'org-a'
 const activeWhere = {
 	tenantId,
 	deletedAt: IsNull(),
+	type: UserType.USER,
 	organizations: { tenantId, organizationId, isActive: true }
 }
 
@@ -164,4 +166,23 @@ describe('UserGroupService membership boundaries', () => {
 		)
 		expect(groupRepository.save).not.toHaveBeenCalled()
 	})
+	it.each(['update', 'updateMembers', 'delete'] as const)(
+		'prevents organization group administrators from changing internal Assistant grants via %s',
+		async (method) => {
+			groupRepository.findOne.mockResolvedValue({
+				id: 'managed',
+				tenantId,
+				organizationId,
+				managedBy: UserGroupManagedByEnum.XPERT_SHARING
+			})
+			const action =
+				method === 'update'
+					? service.update('managed', { name: 'Changed' })
+					: method === 'updateMembers'
+						? service.updateMembers('managed', ['active-user'])
+						: service.delete('managed')
+			await expect(action).rejects.toBeInstanceOf(ForbiddenException)
+			expect(groupRepository.save).not.toHaveBeenCalled()
+		}
+	)
 })

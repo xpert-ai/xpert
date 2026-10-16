@@ -1,6 +1,7 @@
 // Invariants: version backup, Agent changes and the published graph commit together.
 // A row lock and snapshot check reject concurrent edits; authorization precedes this boundary.
 // External activation runs after commit and can be resumed without publishing another version.
+import { assistantSharingLock } from '../sharing/sharing-lock'
 import { normalizeXpertAgentConfig, TagCategoryEnum } from '@xpert-ai/contracts'
 import { ConflictException, Injectable, ForbiddenException } from '@nestjs/common'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
@@ -21,6 +22,9 @@ export class XpertPublicationPersistence {
     async run<T>(snapshot: Xpert, write: (store: PublicationStore) => Promise<T>): Promise<T> {
         if (snapshot.workspaceId) await this.access.assertCanAuthor(snapshot.workspaceId)
         return this.database.transaction(async (manager) => {
+            await manager.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [
+                assistantSharingLock(snapshot)
+            ])
             const row = await manager.getRepository(Xpert).findOne({
                 where: {
                     id: snapshot.id,
@@ -41,6 +45,11 @@ export class XpertPublicationPersistence {
             ) {
                 throw new ConflictException(t('server-ai:Error.XpertPublicationStale'))
             }
+            const currentAccess = await manager.getRepository(Xpert).findOne({
+                where: { id: snapshot.id, tenantId: snapshot.tenantId },
+                relations: ['userGroups']
+            })
+            snapshot.userGroups = currentAccess.userGroups
             return write(new PublicationStore(manager, this.access, snapshot))
         })
     }
@@ -76,7 +85,11 @@ export class PublicationStore {
     async saveTeam(entity: Xpert): Promise<Xpert> {
         const repository = this.manager.getRepository(Xpert)
         await assertValidTagAssociations(repository, this.access, entity, TagCategoryEnum.XPERT)
-        return repository.save({ ...entity, agentConfig: normalizeXpertAgentConfig(entity.agentConfig) })
+        return repository.save({
+            ...entity,
+            userGroups: this.source.userGroups,
+            agentConfig: normalizeXpertAgentConfig(entity.agentConfig)
+        })
     }
 
     async createBackup(entity: DeepPartial<Xpert>): Promise<Xpert> {
@@ -85,6 +98,7 @@ export class PublicationStore {
         return repository.save(
             repository.create({
                 ...entity,
+                userGroups: this.source.userGroups,
                 agentConfig: normalizeXpertAgentConfig(entity.agentConfig),
                 updatedById: RequestContext.currentUserId()
             })

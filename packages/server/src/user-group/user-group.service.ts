@@ -1,4 +1,4 @@
-import { PermissionsEnum } from '@xpert-ai/contracts'
+import { PermissionsEnum, UserType } from '@xpert-ai/contracts'
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { DeepPartial, FindManyOptions, FindOneOptions, FindOptionsWhere, In, IsNull, Repository } from 'typeorm'
@@ -103,12 +103,14 @@ export class UserGroupService extends TenantOrganizationAwareCrudService<UserGro
 			? where.map((item) => ({
 					...(item ?? {}),
 					tenantId,
-					organizationId
+					organizationId,
+					managedBy: IsNull()
 				}))
 			: ({
 					...(where ?? {}),
 					tenantId,
-					organizationId
+					organizationId,
+					managedBy: IsNull()
 				} as FindOptionsWhere<UserGroup>)
 
 		return {
@@ -122,6 +124,7 @@ export class UserGroupService extends TenantOrganizationAwareCrudService<UserGro
 		return {
 			tenantId,
 			deletedAt: IsNull(),
+			type: UserType.USER,
 			organizations: { tenantId, organizationId, isActive: true }
 		}
 	}
@@ -190,6 +193,8 @@ export class UserGroupService extends TenantOrganizationAwareCrudService<UserGro
 			throw new ForbiddenException('Cross-organization access requires tenant scope.')
 		}
 
+		this.assertDirectoryGroup(group)
+
 		group.members = await this.validateMemberIds(memberIds, resolvedOrganizationId)
 
 		return this.repository.save(group)
@@ -241,7 +246,7 @@ export class UserGroupService extends TenantOrganizationAwareCrudService<UserGro
 
 	public async findAll(filter?: FindManyOptions<UserGroup>) {
 		this.requireOrganizationScope()
-		return super.findAll(filter)
+		return super.findAll(this.scopeOrganizationFilter(this.requireOrganizationScope(), filter))
 	}
 
 	public async findOne(
@@ -249,7 +254,9 @@ export class UserGroupService extends TenantOrganizationAwareCrudService<UserGro
 		options?: FindOneOptions<UserGroup>
 	): Promise<UserGroup> {
 		this.requireOrganizationScope()
-		return super.findOne(id, options)
+		const group = await super.findOne(id, options)
+		this.assertDirectoryGroup(group)
+		return group
 	}
 
 	public async create(entity: DeepPartial<UserGroup>): Promise<UserGroup> {
@@ -273,6 +280,7 @@ export class UserGroupService extends TenantOrganizationAwareCrudService<UserGro
 				})
 			)
 		}
+		this.assertDirectoryGroup(group)
 		return this.repository.save({
 			...group,
 			...(await this.prepareWrite(partialEntity, organizationId)),
@@ -284,8 +292,21 @@ export class UserGroupService extends TenantOrganizationAwareCrudService<UserGro
 		return entity.id ? this.update(entity.id, entity) : this.create(entity)
 	}
 
+	private assertDirectoryGroup(group: UserGroup) {
+		if (group.managedBy) throw new ForbiddenException(t('server-ai:Error.AssistantManagedGroup'))
+	}
+
 	public async delete(criteria: string | FindOptionsWhere<UserGroup>, options?: FindOneOptions<UserGroup>) {
-		this.requireOrganizationScope()
-		return super.delete(criteria, options)
+		const organizationId = this.requireOrganizationScope()
+		const group = await this.repository.findOne({
+			where: {
+				...(typeof criteria === 'string' ? { id: criteria } : criteria),
+				tenantId: this.currentTenantId(),
+				organizationId
+			}
+		})
+		if (!group) throw new NotFoundException(t('server-ai:Error.UserGroupNotFound'))
+		this.assertDirectoryGroup(group)
+		return super.delete(group.id, options)
 	}
 }

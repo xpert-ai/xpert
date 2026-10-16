@@ -48,7 +48,8 @@ postgres('publication atomicity on PostgreSQL', () => {
                     },
                     // Match the eager many-to-many joins on the real Assistant's tags.
                     relations: {
-                        toolsets: { type: 'many-to-many', target: 'TestToolset', joinTable: true, eager: true }
+                        toolsets: { type: 'many-to-many', target: 'TestToolset', joinTable: true, eager: true },
+                        userGroups: { type: 'many-to-many', target: 'TestToolset', joinTable: true }
                     }
                 }),
                 new EntitySchema<TestToolset>({
@@ -137,6 +138,39 @@ postgres('publication atomicity on PostgreSQL', () => {
         expect(write).not.toHaveBeenCalled()
         expect((await database.getRepository(Xpert).findOneByOrFail({ id: snapshot.id })).version).toBe('1')
     })
+
+    it.each([true, false])(
+        'publishes and backs up current grants after a concurrent sharing change (initial grant: %s)',
+        async (initialGrant) => {
+            const snapshot = await seed()
+            const group = await database.getRepository(TestToolset).save({ id: randomUUID() })
+            const relation = () => database.createQueryBuilder().relation(Xpert, 'userGroups').of(snapshot.id)
+            if (initialGrant) await relation().add(group.id)
+            const before = await database.getRepository(Xpert).findOneOrFail({
+                where: { id: snapshot.id },
+                relations: ['userGroups']
+            })
+            const staleInput = { ...snapshot, userGroups: before.userGroups }
+            if (initialGrant) await relation().remove(group.id)
+            else await relation().add(group.id)
+
+            const backup = await persistence.run(staleInput, async (store) => {
+                await store.saveTeam({ ...snapshot, userGroups: before.userGroups, version: '2' })
+                return store.createBackup({
+                    tenantId: snapshot.tenantId,
+                    organizationId: snapshot.organizationId,
+                    version: '1',
+                    userGroups: before.userGroups
+                })
+            })
+            for (const id of [snapshot.id, backup.id]) {
+                const saved = await database
+                    .getRepository(Xpert)
+                    .findOneOrFail({ where: { id }, relations: ['userGroups'] })
+                expect(saved.userGroups.map((item) => item.id)).toEqual(initialGrant ? [] : [group.id])
+            }
+        }
+    )
 
     it('persists activation recovery with the graph and clears only its checkpoint after success', async () => {
         const snapshot = await seed()
