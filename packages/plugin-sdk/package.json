@@ -12,6 +12,11 @@
   "main": "./index.cjs",
   "module": "./index.js",
   "exports": {
+    "./analytics": {
+      "types": "./dist/analytics.d.ts",
+      "import": "./dist/analytics.esm.js",
+      "default": "./dist/analytics.cjs.js"
+    },
     "./package.json": "./package.json",
     ".": {
       "types": "./dist/index.d.ts",

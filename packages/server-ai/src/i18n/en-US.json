@@ -53,6 +53,8 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "AnalyticsAccessDenied": "Analytics access denied",
+        "AnalyticsQueryInvalid": "Analytics query is unavailable or invalid",
         "PersonalApiKeyNotFound": "Personal API key not found or already revoked.",
         "PersonalApiKeyHumanRequired": "Personal API keys require a human user account.",
         "PersonalApiKeyInvalidInput": "Provide a key name and a valid lifetime.",
