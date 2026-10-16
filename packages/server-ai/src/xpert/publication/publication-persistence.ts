@@ -28,6 +28,8 @@ export class XpertPublicationPersistence {
                     organizationId: snapshot.organizationId ?? IsNull()
                 },
                 select: ['id', 'version', 'draft', 'environmentId', 'copilotModelId'],
+                // Eager tag joins include nullable rows; PostgreSQL must lock only the Assistant.
+                loadEagerRelations: false,
                 lock: { mode: 'pessimistic_write' }
             })
             if (
@@ -49,6 +51,7 @@ export class XpertPublicationPersistence {
             const current = await repository.findOne({
                 where: { id: xpert.id, tenantId: xpert.tenantId, organizationId: xpert.organizationId ?? IsNull() },
                 select: ['id', 'version', 'options'],
+                loadEagerRelations: false,
                 lock: { mode: 'pessimistic_write' }
             })
             if (!current || current.version !== xpert.version)

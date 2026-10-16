@@ -44,6 +44,20 @@ export function graphHash(graph) {
           'copilotModelId'
         ])
           delete entity[key]
+        // TypeORM materializes omitted nullable Agent columns during publication.
+        for (const key of [
+          'name',
+          'title',
+          'description',
+          'avatar',
+          'prompt',
+          'promptTemplates',
+          'parameters',
+          'outputVariables',
+          'options'
+        ]) {
+          if (entity[key] == null) delete entity[key]
+        }
         entity.copilotModel = modelSelection(entity.copilotModel)
       }
       if (node.type === 'xpert') return { key: node.key, type: node.type, id: entity.id, version: entity.version }

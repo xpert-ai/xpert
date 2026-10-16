@@ -46,7 +46,10 @@ postgres('publication atomicity on PostgreSQL', () => {
                         agentConfig: { type: 'json', nullable: true },
                         options: { type: 'json', nullable: true }
                     },
-                    relations: { toolsets: { type: 'many-to-many', target: 'TestToolset', joinTable: true } }
+                    // Match the eager many-to-many joins on the real Assistant's tags.
+                    relations: {
+                        toolsets: { type: 'many-to-many', target: 'TestToolset', joinTable: true, eager: true }
+                    }
                 }),
                 new EntitySchema<TestToolset>({
                     name: 'TestToolset',

@@ -97,7 +97,8 @@ async function fixture(t, { existing = true } = {}) {
       response.end(JSON.stringify(data))
     }
     if (fail?.(item)) return send({ message: 'injected failure' }, 503)
-    if (url.pathname === '/api/plugin/by-names') return send([{ name: profile.plugin.name, version: '1.0' }])
+    if (url.pathname === '/api/plugin/by-names')
+      return send([{ name: profile.plugin.name, currentVersion: '1.0', loadStatus: 'loaded' }])
     if (url.pathname.startsWith('/api/xpert-template/')) {
       const key = decodeURIComponent(url.pathname.split('/')[3]).split(':').at(-1)
       if (request.method === 'GET')
@@ -123,7 +124,15 @@ async function fixture(t, { existing = true } = {}) {
     const [, , , id, action, childAction] = url.pathname.split('/')
     const team = teams.get(id)
     if (!team) return send({ message: 'not found' }, 404)
-    if (request.method === 'GET') return send(action === 'team' ? { ...team, draft: undefined } : team)
+    if (request.method === 'GET') {
+      // Relations are opt-in on the real APIs; the plain authoring response omits the model.
+      const relations = action === 'team' ? (JSON.parse(url.searchParams.get('data') || '{}').relations ?? []) : []
+      return send({
+        ...team,
+        draft: action === 'team' ? undefined : team.draft,
+        copilotModel: relations.includes('copilotModel') ? team.copilotModel : undefined
+      })
+    }
     if (action === 'sync-template') {
       const graph = structuredClone(team.graph)
       graph.nodes
@@ -144,6 +153,9 @@ async function fixture(t, { existing = true } = {}) {
     if (action === 'publish') {
       assert.equal(url.searchParams.get('newVersion'), 'true')
       team.graph = { nodes: team.draft.nodes, connections: team.draft.connections }
+      for (const node of team.graph.nodes.filter((node) => node.type === 'agent')) {
+        node.entity = { avatar: null, promptTemplates: null, outputVariables: null, ...node.entity }
+      }
       team.options = team.draft.team.options
       team.copilotModel = team.draft.team.copilotModel
       team.draft = null

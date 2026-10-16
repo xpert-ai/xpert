@@ -34,7 +34,10 @@ export async function runSuite(context) {
   const load = async (id, definition) => {
     // /team may omit the select:false draft; the authoring endpoint is authoritative.
     const live = await request('GET', `/xpert/${encodeURIComponent(id)}`)
-    const team = await request('GET', `/xpert/${encodeURIComponent(id)}/team`)
+    const data = encodeURIComponent(
+      JSON.stringify({ relations: ['copilotModel', 'agent', 'agent.copilotModel', 'agents.copilotModel'] })
+    )
+    const team = await request('GET', `/xpert/${encodeURIComponent(id)}/team?data=${data}`)
     if (live.id !== id || team.id !== id || live.workspaceId !== workspaceId || live.latest === false) {
       throw new LocalPluginCliError('Assistant identity/workspace does not match the release target.')
     }
@@ -66,12 +69,13 @@ export async function runSuite(context) {
     const plugin = (Array.isArray(descriptors) ? descriptors : descriptors.items)?.find(
       (item) => item.name === profile.plugin.name || item.packageName === profile.plugin.name
     )
+    const pluginVersion = plugin?.currentVersion ?? plugin?.version
     if (
       !plugin ||
       plugin.pendingRestart ||
       plugin.restartRequired ||
       (plugin.loadStatus && plugin.loadStatus !== 'loaded') ||
-      (profile.plugin.version && plugin.version !== profile.plugin.version)
+      (profile.plugin.version && pluginVersion !== profile.plugin.version)
     ) {
       throw new LocalPluginCliError('Expected plugin version is not ready in this scope.')
     }
@@ -99,7 +103,7 @@ export async function runSuite(context) {
     const teams = new Map()
     if (receipt) {
       if (
-        receipt.plugin.version !== plugin.version ||
+        receipt.plugin.version !== pluginVersion ||
         definitions.some((item) => receipt.entries[item.key]?.templateHash !== templates.get(item.key))
       ) {
         throw new LocalPluginCliError(
@@ -171,7 +175,7 @@ export async function runSuite(context) {
         runId: context.runId,
         profile: profile.key,
         mode: args.refresh ? 'refresh' : 'create',
-        plugin: { name: profile.plugin.name, version: plugin.version },
+        plugin: { name: profile.plugin.name, version: pluginVersion },
         scope,
         environmentOverride: args.environmentId,
         entries,
