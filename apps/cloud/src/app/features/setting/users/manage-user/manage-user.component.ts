@@ -2,9 +2,9 @@ import { Component, computed, inject } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { ToastrService, UsersService } from '@cloud/app/@core/state'
 import {
-  type IOrganization,
   type IUser,
-  type IUserOrganization,
+  type IUserDirectoryItem,
+  type IUserDirectoryQuery,
   PermissionsEnum,
   RolesEnum,
   UserType
@@ -16,14 +16,13 @@ import {
   OrganizationsService,
   RequestScopeLevel,
   RoleService,
-  Store,
-  UsersOrganizationsService
+  Store
 } from 'apps/cloud/src/app/@core'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
-import { includes } from 'lodash-es'
 import {
   BehaviorSubject,
+  EMPTY,
   catchError,
   combineLatest,
   firstValueFrom,
@@ -43,6 +42,8 @@ import {
   ZardButtonComponent,
   ZardIconComponent,
   ZardSearchInputComponent,
+  ZardPaginatorComponent,
+  type ZardPageEvent,
   ZardSelectImports,
   ZardTableImports,
   ZardTooltipImports
@@ -50,9 +51,7 @@ import {
 import { distinctUntilChanged } from 'rxjs/operators'
 
 type UserStatusFilter = 'all' | 'active' | 'disabled'
-type UserTableRow = IUser & {
-  displayOrganizations: IOrganization[]
-}
+type UserTableRow = IUserDirectoryItem
 
 const MANAGED_USER_TYPES = [UserType.USER, UserType.COMMUNICATION]
 const DEFAULT_USER_TYPES = [UserType.USER]
@@ -102,6 +101,7 @@ const USER_STATUS_OPTIONS: Array<{ value: UserStatusFilter; labelKey: string; de
     ZardButtonComponent,
     ZardIconComponent,
     ZardSearchInputComponent,
+    ZardPaginatorComponent,
     ...ZardSelectImports,
     ...ZardTableImports,
     ...ZardTooltipImports,
@@ -114,7 +114,6 @@ export class ManageUserComponent extends TranslationBaseComponent {
   private userService = inject(UsersService)
   private readonly roleService = inject(RoleService)
   private readonly organizationsService = inject(OrganizationsService)
-  private readonly userOrganizationsService = inject(UsersOrganizationsService)
   private readonly _confirmDelete = inject(XpConfirmDeleteService)
   private toastrService = inject(ToastrService)
 
@@ -146,23 +145,34 @@ export class ManageUserComponent extends TranslationBaseComponent {
   readonly isTenantScope = computed(() => this.activeScope().level === RequestScopeLevel.TENANT)
   readonly canOpenUsers = this.usersComponent.canOpenUsers
   readonly canEditUsers = this.usersComponent.canEditUsers
-  private readonly scopeLevel$ = this.store.selectActiveScope().pipe(
-    map((scope) => scope.level),
-    distinctUntilChanged()
-  )
+  private readonly scope$ = this.store
+    .selectActiveScope()
+    .pipe(
+      distinctUntilChanged(
+        (left, right) =>
+          left.level === right.level &&
+          (left.level === RequestScopeLevel.TENANT ||
+            (right.level === RequestScopeLevel.ORGANIZATION && left.organizationId === right.organizationId))
+      )
+    )
 
   roles$ = new BehaviorSubject<string[]>([])
   readonly availableRoles$ = this.roleService.getAll().pipe(
     map(({ items }) => items.map(({ name }) => name)),
     shareReplay({ bufferSize: 1, refCount: true })
   )
-  readonly availableOrganizations$ = this.scopeLevel$.pipe(
-    switchMap((scopeLevel) =>
-      scopeLevel === RequestScopeLevel.TENANT && this.canViewAllOrganizations()
-        ? this.organizationsService.getAll().pipe(map(({ items }) => this.sortOrganizations(items)))
-        : this.userOrganizationsService
-            .getAllInOrg(['organization'])
-            .pipe(map(({ items }) => this.organizationsFromMemberships(items)))
+  readonly availableOrganizations$ = this.scope$.pipe(
+    switchMap((scope) =>
+      scope.level === RequestScopeLevel.TENANT && this.canViewAllOrganizations()
+        ? this.organizationsService
+            .getAll()
+            .pipe(map(({ items }) => [...items].sort((left, right) => left.name.localeCompare(right.name))))
+        : of(
+            scope.level === RequestScopeLevel.ORGANIZATION &&
+              this.store.selectedOrganization?.id === scope.organizationId
+              ? [this.store.selectedOrganization]
+              : []
+          )
     ),
     shareReplay({ bufferSize: 1, refCount: true })
   )
@@ -237,38 +247,61 @@ export class ManageUserComponent extends TranslationBaseComponent {
   }
 
   readonly refresh$ = new BehaviorSubject<void>(null)
+  private readonly pagination$ = new BehaviorSubject({ pageIndex: 0, pageSize: 20 })
+  private total = 0
   public readonly state$ = combineLatest([
-    this.refresh$,
-    this.scopeLevel$,
+    this.scope$,
     this.roles$,
     this.userTypes$,
     this.search$,
     this.status$,
     this.organizationIds$
   ]).pipe(
-    switchMap(([, scopeLevel, roles, userTypes, search, status, organizationIds]) =>
-      (scopeLevel === RequestScopeLevel.TENANT
-        ? combineLatest([
-            this.userService.getAll(['role'], undefined, undefined, {
-              types: userTypes.length ? userTypes : MANAGED_USER_TYPES,
-              withDeleted: true
-            }),
-            this.userOrganizationsService.getAll(['organization'])
-          ]).pipe(
-            map(([users, { items }]) => this.mapUsersWithMemberships(users, items)),
-            map((users) => this.filterUsers(users, search, roles, userTypes, status, organizationIds, true))
-          )
-        : this.userOrganizationsService.getAllInOrg(['user', 'user.role', 'organization']).pipe(
-            map(({ items }) => this.mapMembershipsToUsers(items)),
-            map((users) => this.filterUsers(users, search, roles, userTypes, status, organizationIds, true))
-          )
-      ).pipe(
-        map((users) => ({ status: 'ready' as const, users })),
-        startWith({ status: 'loading' as const, users: [] as UserTableRow[] }),
-        catchError(() => of({ status: 'error' as const, users: [] as UserTableRow[] }))
+    switchMap(([, roles, userTypes, search, status, organizationIds]) => {
+      this.total = 0
+      this.pagination$.next({ pageIndex: 0, pageSize: this.pagination$.value.pageSize })
+      const filters: IUserDirectoryQuery = {
+        types: userTypes.length ? userTypes : MANAGED_USER_TYPES,
+        roles,
+        search: search.trim(),
+        status,
+        organizationIds
+      }
+      return combineLatest([this.refresh$, this.pagination$]).pipe(
+        switchMap(([, page]) =>
+          this.userService
+            .getDirectory({
+              ...filters,
+              take: page.pageSize,
+              skip: page.pageIndex * page.pageSize
+            })
+            .pipe(
+              switchMap(({ items, total }) => {
+                this.total = total
+                const lastPage = Math.max(0, Math.ceil(total / page.pageSize) - 1)
+                if (page.pageIndex > lastPage) {
+                  this.pagination$.next({ ...page, pageIndex: lastPage })
+                  return EMPTY
+                }
+                return of({ status: 'ready' as const, users: items, total, ...page })
+              }),
+              startWith({ status: 'loading' as const, users: [] as UserTableRow[], total: this.total, ...page }),
+              catchError(() =>
+                of({ status: 'error' as const, users: [] as UserTableRow[], total: this.total, ...page })
+              )
+            )
+        )
       )
-    )
+    }),
+    shareReplay({ bufferSize: 1, refCount: true })
   )
+
+  onPage(event: ZardPageEvent) {
+    this.pagination$.next({
+      pageIndex: event.pageSize === this.pagination$.value.pageSize ? event.pageIndex : 0,
+      pageSize: event.pageSize
+    })
+  }
 
   private refreshSub = this.usersComponent.refresh$.pipe(takeUntilDestroyed()).subscribe(() => {
     this.refresh$.next()
@@ -310,133 +343,10 @@ export class ManageUserComponent extends TranslationBaseComponent {
     }
   }
 
-  private mapUsersWithMemberships(users: IUser[], memberships: IUserOrganization[]) {
-    const organizationsByUserId = new Map<string, IOrganization[]>()
-
-    for (const membership of memberships ?? []) {
-      if (membership.userId) {
-        organizationsByUserId.set(
-          membership.userId,
-          this.mergeOrganizations(
-            organizationsByUserId.get(membership.userId) ?? [],
-            this.organizationsFromMembership(membership)
-          )
-        )
-      }
-    }
-
-    return users
-      .map((user) => this.toUserRow(user, user.id ? (organizationsByUserId.get(user.id) ?? []) : []))
-      .sort((left, right) => userLabel(left).localeCompare(userLabel(right)))
-  }
-
-  private mapMembershipsToUsers(memberships: IUserOrganization[]) {
-    const users = new Map<string, UserTableRow>()
-
-    for (const membership of memberships ?? []) {
-      const user = membership?.user
-      if (user?.id) {
-        const existing = users.get(user.id)
-        users.set(
-          user.id,
-          this.toUserRow(
-            user,
-            this.mergeOrganizations(existing?.displayOrganizations ?? [], this.organizationsFromMembership(membership))
-          )
-        )
-      }
-    }
-
-    return [...users.values()].sort((left, right) => userLabel(left).localeCompare(userLabel(right)))
-  }
-
-  private filterUsers(
-    users: UserTableRow[],
-    search: string,
-    roles: string[],
-    userTypes: UserType[],
-    status: UserStatusFilter,
-    organizationIds: string[],
-    allowRoleFilter: boolean
-  ) {
-    const searchText = search?.toLowerCase().trim()
-    const filteredByType = userTypes?.length
-      ? users.filter((user) => includes(userTypes, this.normalizedUserType(user)))
-      : users
-    const filteredByRole =
-      allowRoleFilter && roles?.length
-        ? filteredByType.filter((user) => user.role?.name && includes(roles, user.role.name))
-        : filteredByType
-    const filteredByStatus =
-      status === 'active'
-        ? filteredByRole.filter((user) => !user.deletedAt)
-        : status === 'disabled'
-          ? filteredByRole.filter((user) => !!user.deletedAt)
-          : filteredByRole
-    const filteredByOrganization = organizationIds?.length
-      ? filteredByStatus.filter((user) =>
-          user.displayOrganizations.some(
-            (organization) => organization.id && includes(organizationIds, organization.id)
-          )
-        )
-      : filteredByStatus
-
-    if (!searchText) {
-      return filteredByOrganization
-    }
-
-    return filteredByOrganization.filter(
-      (user) =>
-        user.name?.toLowerCase().includes(searchText) ||
-        user.lastName?.toLowerCase().includes(searchText) ||
-        user.firstName?.toLowerCase().includes(searchText) ||
-        user.email?.toLowerCase().includes(searchText) ||
-        user.username?.toLowerCase().includes(searchText) ||
-        user.mobile?.toLowerCase().includes(searchText) ||
-        user.displayOrganizations.some((organization) => organization.name?.toLowerCase().includes(searchText)) ||
-        this.userTypeDefaultLabel(user.type).toLowerCase().includes(searchText)
-    )
-  }
-
-  private toUserRow(user: IUser, organizations: IOrganization[]): UserTableRow {
-    return {
-      ...user,
-      displayOrganizations: this.sortOrganizations(organizations)
-    }
-  }
-
-  private organizationsFromMembership(membership: IUserOrganization): IOrganization[] {
-    return membership.organization ? [membership.organization] : []
-  }
-
-  private organizationsFromMemberships(memberships: IUserOrganization[]) {
-    return this.mergeOrganizations(
-      [],
-      memberships.flatMap((membership) => this.organizationsFromMembership(membership))
-    )
-  }
-
   private canViewAllOrganizations() {
     return [PermissionsEnum.ALL_ORG_VIEW, PermissionsEnum.ALL_ORG_EDIT].some((permission) =>
       this.store.hasPermission(permission)
     )
-  }
-
-  private mergeOrganizations(left: IOrganization[], right: IOrganization[]) {
-    const organizations = new Map<string, IOrganization>()
-
-    for (const organization of [...left, ...right]) {
-      const key = organization.id ?? organization.name
-      if (key && !organizations.has(key)) {
-        organizations.set(key, organization)
-      }
-    }
-
-    return this.sortOrganizations([...organizations.values()])
-  }
-
-  private sortOrganizations(organizations: IOrganization[]) {
-    return [...organizations].sort((left, right) => left.name.localeCompare(right.name))
   }
 
   isTechnicalUser(user: IUser) {

@@ -53,6 +53,7 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "InvalidUserDirectoryQuery": "Provide valid user filters and pagination.",
         "AssistantSharingForbidden": "You cannot manage sharing for this assistant in the current organization.",
         "AssistantSharingNotFound": "The assistant was not found in the current organization.",
         "AssistantSharingInvalidGroups": "Choose user groups from the current organization.",

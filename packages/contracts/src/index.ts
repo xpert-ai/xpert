@@ -54,6 +54,7 @@ export * from './user-organization.model'
 export * from './user-group.model'
 export * from './user-me-context.model'
 export * from './user.model'
+export * from './user-directory.model'
 
 export * from './custom-smtp.model'
 export * from './date-picker.model'
