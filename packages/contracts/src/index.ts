@@ -120,3 +120,5 @@ export * from './setup-plugins'
 export * from './default-agent-plugins'
 
 export * from './agent-plugin-maintenance'
+
+export * from './assistant-sharing.model'

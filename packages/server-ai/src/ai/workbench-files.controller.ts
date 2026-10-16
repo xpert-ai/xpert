@@ -14,7 +14,8 @@ import {
     UseInterceptors
 } from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
-import { Public, TransformInterceptor, UUIDValidationPipe } from '@xpert-ai/server-core'
+import { AllowClientSecretBindings, Public, TransformInterceptor, UUIDValidationPipe } from '@xpert-ai/server-core'
+import { SecretTokenBindingType } from '@xpert-ai/contracts'
 import type { Response } from 'express'
 import { t } from 'i18next'
 import { ChatConversationService } from '../chat-conversation/conversation.service'
@@ -24,6 +25,7 @@ import { sendWorkbenchFileDownload } from './workbench-file-download'
 // Conversation /files belongs to parsed FileAssets. Workspace directories use
 // /workspace/files; retain the non-conflicting legacy singular-file routes.
 @Public()
+@AllowClientSecretBindings(SecretTokenBindingType.USER_CONVERSATION)
 @UseGuards(WorkbenchFilesAuthGuard)
 @UseInterceptors(TransformInterceptor)
 @Controller('conversations/:conversationId')

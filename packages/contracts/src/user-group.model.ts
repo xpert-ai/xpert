@@ -2,6 +2,7 @@ import { IBasePerTenantAndOrganizationEntityModel } from './base-entity.model'
 import { IUser } from './user.model'
 
 export enum UserGroupManagedByEnum {
+  XPERT_SHARING = 'xpert-sharing',
   XPERT_MARKETPLACE = 'xpert-marketplace'
 }
 

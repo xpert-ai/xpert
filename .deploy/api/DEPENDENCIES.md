@@ -49,8 +49,16 @@ It preserves the nested publish roots of contracts/plugin-sdk and includes the
 uncompiled desktop-protocol JavaScript package. Docker and local packaging use
 the same assembly path. Missing outputs, mismatched package versions, or
 compiler-added dependencies missing from source declarations fail.
-Docker validates the assembled layout, then installs production dependencies
-with `--frozen-lockfile`; its build-stage installs use the build lock likewise.
+Docker validates the assembled layout against the production lock. Both build
+and production installs use their respective locks with `--frozen-lockfile`.
+
+Docker installs production dependencies in a separate Debian stage using only
+source workspace manifests, workspace configuration and the production lock.
+The final stage overlays the validated runtime assembly without reinstalling
+dependencies. This keeps code-only changes from invalidating the install layer
+and lets it run alongside the Alpine build. Native modules are never copied from
+Alpine into Debian. Installation runs as `node`, avoiding a recursive ownership
+change after every build. The final image still checks its native bindings.
 
 Do not generate or repair deployment locks during the image build: the resolved
 dependency graph must be reviewed with the source changes.

@@ -459,58 +459,62 @@ test('rejects an installation scope that conflicts with the declared plugin leve
   assert.match(result.stderr, /declares xpert\.plugin\.level=system and must use tenant scope; received organization/i)
 })
 
-test('writes a secret-free deployment manifest after verification', async (t) => {
-  const workspacePath = createPluginWorkspace({
-    xpert: { plugin: { level: 'system' } }
-  })
-  t.after(() => fs.rmSync(workspacePath, { force: true, recursive: true }))
-  const manifestPath = path.join(workspacePath, 'deployment.json')
-  const server = await listen(async (request, response) => {
-    response.setHeader('content-type', 'application/json')
-    if (request.url === '/api/plugin/refresh') {
-      response.end(JSON.stringify({ success: true }))
-      return
-    }
-    response.end(
-      JSON.stringify([
-        {
-          name: '@xpert-ai/plugin-test-deploy',
-          version: '0.1.0',
-          level: 'system',
-          loadStatus: 'loaded'
-        }
-      ])
+for (const loadStatus of ['loaded', 'pending_restart']) {
+  test(`writes a secret-free deployment manifest and honors ${loadStatus}`, async (t) => {
+    const workspacePath = createPluginWorkspace({
+      xpert: { plugin: { level: 'system' } }
+    })
+    t.after(() => fs.rmSync(workspacePath, { force: true, recursive: true }))
+    const manifestPath = path.join(workspacePath, 'deployment.json')
+    const server = await listen(async (request, response) => {
+      response.setHeader('content-type', 'application/json')
+      if (request.url === '/api/plugin/refresh') {
+        response.end(JSON.stringify({ success: true }))
+        return
+      }
+      response.end(
+        JSON.stringify([
+          {
+            name: '@xpert-ai/plugin-test-deploy',
+            currentVersion: '0.1.0',
+            level: 'system',
+            loadStatus
+          }
+        ])
+      )
+    })
+    t.after(() => server.close())
+
+    const result = await runCli(
+      DEPLOY_SCRIPT_PATH,
+      [
+        workspacePath,
+        '--skip-build',
+        '--skip-test',
+        '--no-keychain',
+        '--api-url',
+        server.url,
+        '--scope',
+        'tenant',
+        '--tenant-id',
+        'tenant-test',
+        '--manifest-file',
+        manifestPath
+      ],
+      { XPERT_TOKEN: 'manifest-secret-token' }
     )
+
+    assert.equal(result.code, 0, result.stderr)
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
+    assert.equal(manifest.schemaVersion, 'xpert-local-plugin-deployment@1')
+    assert.equal(manifest.plugin.declaredLevel, 'system')
+    assert.equal(manifest.plugin.installScope, 'tenant')
+    assert.equal(manifest.plugin.tenantId, 'tenant-test')
+    assert.equal(manifest.validation.build, 'skipped')
+    assert.equal(manifest.validation.test, 'skipped')
+    assert.equal(manifest.deployment.descriptor.loadStatus, loadStatus)
+    assert.equal(manifest.deployment.restartRequired, loadStatus === 'pending_restart')
+    if (loadStatus === 'pending_restart') assert.match(result.stdout, /API restart required before activation/)
+    assert.doesNotMatch(JSON.stringify(manifest), /manifest-secret-token/)
   })
-  t.after(() => server.close())
-
-  const result = await runCli(
-    DEPLOY_SCRIPT_PATH,
-    [
-      workspacePath,
-      '--skip-build',
-      '--skip-test',
-      '--no-keychain',
-      '--api-url',
-      server.url,
-      '--scope',
-      'tenant',
-      '--tenant-id',
-      'tenant-test',
-      '--manifest-file',
-      manifestPath
-    ],
-    { XPERT_TOKEN: 'manifest-secret-token' }
-  )
-
-  assert.equal(result.code, 0, result.stderr)
-  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
-  assert.equal(manifest.schemaVersion, 'xpert-local-plugin-deployment@1')
-  assert.equal(manifest.plugin.declaredLevel, 'system')
-  assert.equal(manifest.plugin.installScope, 'tenant')
-  assert.equal(manifest.plugin.tenantId, 'tenant-test')
-  assert.equal(manifest.validation.build, 'skipped')
-  assert.equal(manifest.validation.test, 'skipped')
-  assert.equal(manifest.deployment.descriptor.loadStatus, 'loaded')
-  assert.doesNotMatch(JSON.stringify(manifest), /manifest-secret-token/)
-})
+}

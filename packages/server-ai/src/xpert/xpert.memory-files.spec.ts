@@ -1,3 +1,4 @@
+jest.mock('./sharing/sharing.service', () => ({ AssistantSharingService: class {} }))
 jest.mock('@xpert-ai/server-core', () => ({
     RequestContext: {
         currentUserId: jest.fn()
@@ -140,16 +141,16 @@ describe('XpertService memory files', () => {
         ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-1')
 
         service = new XpertService(
-            {} as any,
-            {} as any,
-            {} as any,
-            {} as any,
-            {} as any,
-            {} as any,
-            {} as any,
-            { list: jest.fn().mockReturnValue([]) } as any,
-            { listProviders: jest.fn().mockReturnValue([]) } as any,
-            { resolve: mockVolumeClient } as any
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            { list: jest.fn().mockReturnValue([]) } as never,
+            { listProviders: jest.fn().mockReturnValue([]) } as never,
+            { resolve: mockVolumeClient } as never,
+            null
         )
     })
 

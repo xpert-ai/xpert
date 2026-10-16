@@ -1,437 +1,278 @@
-<div class="relative flex h-full flex-col bg-components-panel-bg">
-  <div class="border-b border-divider-regular px-4 py-4 sm:px-6">
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-      <div>
-        <div class="text-lg font-semibold text-text-primary">
-          {{ 'XP.Xpert.XpertUserGroups' | translate: { Default: 'Xpert User Groups' } }}
-        </div>
-        <div class="mt-1 text-sm text-text-tertiary">
-          {{
-            'XP.UserGroup.RuntimeAccessHint'
-              | translate
-                : { Default: 'Published xperts can only be used by members of the selected organization groups.' }
-          }}
-        </div>
-      </div>
-
-      <div class="rounded-2xl border border-divider-regular bg-components-card-bg px-4 py-3 text-sm text-text-primary">
-        {{ xpert()?.title || xpert()?.name }}
-      </div>
-    </div>
+<header class="flex items-center justify-between gap-4 border-b border-border px-6 py-4">
+  <div class="min-w-0">
+    <h1 class="text-lg font-semibold text-foreground">{{ 'XP.Sharing.Title' | translate }}</h1>
+    <p class="mt-1 text-sm text-muted-foreground">
+      {{ 'XP.Sharing.Subtitle' | translate: { name: xpert()?.title || xpert()?.name } }}
+    </p>
   </div>
-
-  <div class="grid flex-1 gap-4 overflow-hidden px-4 py-4 sm:px-6 xl:grid-cols-[22rem_minmax(0,1fr)]">
-    <section
-      class="flex min-h-[20rem] flex-col overflow-hidden rounded-3xl border border-divider-regular bg-components-card-bg"
+  <span class="hidden shrink-0 rounded-xl border border-border px-3 py-2 text-sm sm:block">{{
+    xpert()?.title || xpert()?.name
+  }}</span>
+</header>
+<div class="flex-1 overflow-y-auto px-6 py-5 sm:px-8" [attr.aria-busy]="loading()">
+  @if (loading()) {
+    <div class="flex items-center justify-center gap-3 py-16" role="status">
+      <xp-spin /><span>{{ 'XP.Sharing.Loading' | translate }}</span>
+    </div>
+  } @else if (error()) {
+    <div class="space-y-3 py-8" role="alert">
+      <p class="text-sm text-muted-foreground">{{ error() }}</p>
+      <button z-button zType="outline" class="h-9 rounded-lg px-3 pointer-coarse:min-h-[44px]" (click)="load()">
+        {{ 'XP.Sharing.Retry' | translate }}
+      </button>
+    </div>
+  } @else if (state(); as access) {
+    <nav
+      z-tab-nav-bar
+      class="flex gap-4 overflow-x-auto border-b border-border"
+      [attr.aria-label]="'XP.Sharing.Title' | translate"
     >
-      <div class="border-b border-divider-regular px-5 py-5">
-        <div class="flex items-start justify-between gap-3">
-          <div>
-            <div class="text-lg font-semibold text-text-primary">
-              {{ 'XP.UserGroup.SelectedGroups' | translate: { Default: 'Selected Groups' } }}
-            </div>
-            <div class="mt-1 text-sm text-text-tertiary">
-              {{
-                'XP.UserGroup.SelectedGroupsHint'
-                  | translate
-                    : {
-                        Default: 'Choose which organization groups are allowed to access this xpert after publication.'
-                      }
-              }}
-            </div>
-          </div>
-
-          <button
-            type="button"
-            class="rounded-xl border border-divider-regular px-3 py-2 text-sm font-medium text-text-primary transition hover:bg-hover-bg"
-            [disabled]="isBusy() || (isTenantXpert() && !selectedOrganization())"
-            (click)="openGroupsSettings()"
-          >
-            {{ 'XP.UserGroup.ManageGroups' | translate: { Default: 'Manage Groups' } }}
-          </button>
-        </div>
-
-        @if (isTenantXpert()) {
-          <div class="mt-4 rounded-2xl border border-divider-regular bg-components-panel-bg p-4">
-            <div class="text-xs uppercase tracking-wide text-text-tertiary">
-              {{ 'ORGANIZATION' | translate: { Default: 'Organization' } }}
-            </div>
-            <div class="mt-2 text-sm leading-6 text-text-tertiary">
-              {{
-                'XP.UserGroup.AuthorizationByOrganizationHint'
-                  | translate
-                    : {
-                        Default:
-                          'Tenant xperts are authorized per organization. Choose one organization, then configure which of its groups can access this xpert.'
-                      }
-              }}
-            </div>
-
-            <div class="mt-4 flex flex-col gap-3">
-              <select
-                class="w-full rounded-2xl border border-divider-regular bg-components-card-bg px-4 py-3 text-sm text-text-primary outline-none transition focus:border-primary-500"
-                [disabled]="isBusy() || !organizationOptions().length"
-                [value]="selectedOrganizationId() ?? ''"
-                (change)="changeOrganization($any($event.target).value)"
+      <button z-tab-link type="button" [active]="panel() === 'users'" (click)="showPanel('users')">
+        {{ 'XP.Sharing.Personal' | translate }}
+      </button>
+      @if (access.capabilities.canUseGroups) {
+        <button z-tab-link type="button" [active]="panel() === 'groups'" (click)="showPanel('groups')">
+          {{ 'XP.Sharing.Groups' | translate }}
+        </button>
+      }
+      <button z-tab-link type="button" [active]="panel() === 'inherited'" (click)="showPanel('inherited')">
+        {{ 'XP.Sharing.Inherited' | translate }}
+      </button>
+    </nav>
+    @if (!canManage()) {
+      <p class="mt-5 rounded-lg bg-muted px-4 py-3 text-sm text-muted-foreground">
+        {{ 'XP.Sharing.ReadOnly' | translate }}
+      </p>
+    }
+    @if (panel() === 'users') {
+      <section class="py-8">
+        <h2 class="text-xl font-semibold">{{ 'XP.Sharing.ShareMembers' | translate }}</h2>
+        <p class="mt-2 text-sm text-muted-foreground">
+          {{ 'XP.Sharing.OrganizationOnly' | translate: { name: access.organization.name } }}
+        </p>
+        @if (canManage()) {
+          <div class="mt-5 grid max-w-4xl items-start gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+            <z-tag-select
+              class="min-w-0"
+              mode="multiple"
+              [enableSuggestions]="true"
+              [checkable]="true"
+              [options]="userOptions()"
+              [value]="selectedUsers()"
+              [displayWith]="displayUser"
+              [allowCreate]="false"
+              [zDisabled]="saving()"
+              [placeholder]="'XP.Sharing.SearchMembers' | translate"
+              (valueChange)="selectUsers($event)"
+              (zSearchTermChange)="query.set($event)"
+            />
+            <div class="flex items-center justify-end gap-3">
+              <span class="text-sm text-muted-foreground">{{ 'XP.Sharing.CanUse' | translate }}</span>
+              <button
+                z-button
+                class="h-9 min-w-24 gap-2 rounded-lg px-4 pointer-coarse:min-h-[44px]"
+                type="button"
+                [zDisabled]="!selectedUsers().length || saving() || candidatesLoading() || !!candidateError()"
+                [zLoading]="saving()"
+                (click)="share()"
               >
-                @if (!organizationOptions().length) {
-                  <option value="">
-                    {{
-                      'XP.UserGroup.NoOrganizationsAvailable'
-                        | translate: { Default: 'No organizations available for authorization.' }
-                    }}
-                  </option>
-                }
-
-                @for (organization of organizationOptions(); track organization.id) {
-                  <option [value]="organization.id">{{ organizationLabel(organization) }}</option>
-                }
-              </select>
-
-              @if (selectedOrganization()) {
-                <div
-                  class="inline-flex w-fit items-center gap-2 rounded-full border border-divider-regular bg-components-card-bg px-3 py-2 text-sm text-text-primary"
-                >
-                  <span class="text-xs uppercase tracking-wide text-text-tertiary">
-                    {{ 'XP.UserGroup.SelectedOrganization' | translate: { Default: 'Selected Organization' } }}
-                  </span>
-                  <span class="font-medium">{{ organizationLabel(selectedOrganization()) }}</span>
-                </div>
-              }
+                {{ 'XP.Sharing.Share' | translate }}
+              </button>
             </div>
           </div>
-        } @else if (selectedOrganization()) {
-          <div class="mt-4 rounded-2xl border border-divider-regular bg-components-panel-bg px-4 py-4">
-            <div class="text-xs uppercase tracking-wide text-text-tertiary">
-              {{ 'ORGANIZATION' | translate: { Default: 'Organization' } }}
-            </div>
-            <div class="mt-2 text-sm font-medium text-text-primary">
-              {{ organizationLabel(selectedOrganization()) }}
-            </div>
-          </div>
-        }
-
-        <div class="mt-4 grid gap-3 sm:grid-cols-2">
-          <div class="rounded-2xl border border-divider-regular bg-components-panel-bg px-4 py-4">
-            <div class="text-xs uppercase tracking-wide text-text-tertiary">
-              {{ 'XP.UserGroup.Title' | translate: { Default: 'User Groups' } }}
-            </div>
-            <div class="mt-2 text-2xl font-semibold text-text-primary">{{ selectedGroupCount() }}</div>
-          </div>
-
-          <div class="rounded-2xl border border-divider-regular bg-components-panel-bg px-4 py-4">
-            <div class="text-xs uppercase tracking-wide text-text-tertiary">
-              {{ 'XP.UserGroup.Members' | translate: { Default: 'Members' } }}
-            </div>
-            <div class="mt-2 text-2xl font-semibold text-text-primary">{{ selectedMemberCount() }}</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="flex flex-1 flex-col gap-4 overflow-y-auto px-5 py-5">
-        <div class="rounded-2xl border border-divider-regular bg-components-panel-bg p-4">
-          <div class="text-sm font-medium text-text-primary">
-            {{ 'XP.UserGroup.AccessRule' | translate: { Default: 'Access Rule' } }}
-          </div>
-          <div class="mt-2 text-sm leading-6 text-text-tertiary">
-            {{
-              'XP.UserGroup.AccessRuleHint'
-                | translate
-                  : {
-                      Default:
-                        'If no group is selected, organization users cannot use this published xpert at runtime. Tenant-level xperts remain available to their creator.'
-                    }
-            }}
-          </div>
-        </div>
-
-        <div class="rounded-2xl border border-divider-regular bg-components-panel-bg p-4">
-          <div class="flex items-center justify-between gap-3">
-            <div>
-              <div class="text-sm font-medium text-text-primary">
-                {{ 'XP.UserGroup.SelectedGroups' | translate: { Default: 'Selected Groups' } }}
-              </div>
-              <div class="mt-1 text-xs text-text-tertiary">
-                {{ selectedGroupCount() }} {{ 'XP.KEY_WORDS.Selected' | translate: { Default: 'selected' } }}
-              </div>
-            </div>
-
-            <button
-              type="button"
-              class="rounded-xl border border-divider-regular px-3 py-2 text-xs font-medium text-text-tertiary transition hover:bg-hover-bg"
-              [disabled]="!selectedGroupCount() || isBusy() || !targetOrganizationId()"
-              (click)="clearSelection()"
-            >
-              {{ 'XP.KEY_WORDS.Clear' | translate: { Default: 'Clear' } }}
+          <p class="mt-3 text-sm text-muted-foreground">{{ 'XP.Sharing.UseOnly' | translate }}</p>
+          @if (users().length < total()) {
+            <button z-button zType="link" [zDisabled]="candidatesLoading()" (click)="loadCandidates(true)">
+              {{ 'XP.Sharing.MoreMembers' | translate }}
             </button>
-          </div>
-
-          @if (selectedGroups().length) {
-            <div class="mt-4 flex flex-wrap gap-2">
-              @for (group of selectedGroups(); track group.id) {
+          }
+        }
+      </section>
+      <section class="border-t border-border py-6">
+        <h2 class="mb-2 text-base font-semibold">
+          {{ 'XP.Sharing.SharedCount' | translate: { count: access.users.length } }}
+        </h2>
+        <div class="divide-y divide-border">
+          @for (user of access.users; track user.id) {
+            <div class="flex flex-wrap items-center gap-3 py-4">
+              <xp-user-avatar
+                [user]="user"
+                class="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-sm"
+              />
+              <div class="min-w-0 flex-1">
+                <div class="truncate text-sm font-medium">{{ userLabel(user) }}</div>
+                <div class="mt-0.5 truncate text-xs text-muted-foreground">{{ user.email }}</div>
+              </div>
+              <span class="text-sm text-muted-foreground">{{ 'XP.Sharing.CanUse' | translate }}</span>
+              @if (canManage()) {
                 <button
-                  type="button"
-                  class="inline-flex items-center gap-2 rounded-full border border-divider-regular bg-components-card-bg px-3 py-2 text-sm text-text-primary transition hover:bg-hover-bg"
-                  [disabled]="isBusy() || !targetOrganizationId()"
-                  (click)="toggleGroup(group.id, false)"
+                  z-button
+                  zType="ghost"
+                  class="h-8 rounded-lg px-3 text-muted-foreground hover:text-destructive pointer-coarse:min-h-[44px]"
+                  [zDisabled]="saving()"
+                  (click)="remove(user.id)"
+                  [attr.aria-label]="('XP.Sharing.Remove' | translate) + ' ' + userLabel(user)"
                 >
-                  <span
-                    class="flex h-6 w-6 items-center justify-center rounded-full border border-divider-regular bg-components-panel-bg text-[11px] font-semibold text-text-primary"
-                  >
-                    {{ groupInitials(group) }}
-                  </span>
-                  <span class="max-w-[10rem] truncate">{{ group.name }}</span>
+                  {{ 'XP.Sharing.Remove' | translate }}
                 </button>
               }
             </div>
-          } @else {
-            <div
-              class="mt-4 rounded-2xl border border-dashed border-divider-regular px-4 py-5 text-sm text-text-tertiary"
-            >
-              @if (targetOrganizationId()) {
-                {{
-                  'XP.UserGroup.EmptySelectionHint'
-                    | translate: { Default: 'Select one or more groups from the right panel to allow runtime access.' }
-                }}
-              } @else {
-                {{
-                  'XP.UserGroup.SelectOrganizationFirstHint'
-                    | translate
-                      : { Default: 'Select an organization first to configure which groups can access this xpert.' }
-                }}
-              }
-            </div>
+          } @empty {
+            <p class="py-6 text-sm text-muted-foreground">{{ 'XP.Sharing.NoShares' | translate }}</p>
           }
         </div>
-      </div>
-
-      <div class="border-t border-divider-regular px-5 py-4">
-        <div class="flex items-center justify-between gap-3">
-          <button
-            type="button"
-            class="rounded-xl border border-divider-regular px-4 py-2 text-sm font-medium text-text-tertiary transition hover:bg-hover-bg"
-            [disabled]="!hasChanges() || isBusy() || !targetOrganizationId()"
-            (click)="resetSelection()"
-          >
-            {{ 'XP.KEY_WORDS.Reset' | translate: { Default: 'Reset' } }}
-          </button>
-
-          <button
-            type="button"
-            class="rounded-xl border border-primary-500 bg-primary-500 px-5 py-2.5 text-sm font-medium text-primary-50 transition hover:opacity-90"
-            [disabled]="!hasChanges() || isBusy() || !targetOrganizationId()"
-            (click)="save()"
-          >
-            {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <section
-      class="flex min-h-[20rem] flex-col overflow-hidden rounded-3xl border border-divider-regular bg-components-card-bg"
-    >
-      <div class="border-b border-divider-regular px-5 py-5">
-        <div class="flex items-start justify-between gap-3">
+        <p class="mt-3 text-xs text-muted-foreground">{{ 'XP.Sharing.RemoveHint' | translate }}</p>
+      </section>
+    } @else if (panel() === 'groups' && access.capabilities.canUseGroups) {
+      <section class="py-8">
+        <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <div class="text-lg font-semibold text-text-primary">
-              {{ 'XP.UserGroup.Title' | translate: { Default: 'User Groups' } }}
-            </div>
-            <div class="mt-1 text-sm text-text-tertiary">
-              {{
-                'XP.UserGroup.GroupPickerHint'
-                  | translate
-                    : { Default: 'Search and select the organization groups that should be allowed to use this xpert.' }
-              }}
-            </div>
+            <h2 class="text-xl font-semibold">{{ 'XP.Sharing.Groups' | translate }}</h2>
+            <p class="mt-2 text-sm text-muted-foreground">{{ 'XP.Sharing.GroupHint' | translate }}</p>
           </div>
-
-          <div class="flex flex-wrap items-center justify-end gap-2">
-            @if (selectedOrganization()) {
-              <div
-                class="rounded-full border border-divider-regular bg-components-panel-bg px-3 py-1 text-xs text-text-tertiary"
-              >
-                {{ organizationLabel(selectedOrganization()) }}
-              </div>
-            }
-            <div
-              class="rounded-full border border-divider-regular bg-components-panel-bg px-3 py-1 text-xs text-text-tertiary"
+          @if (access.capabilities.canManageGroups) {
+            <a
+              z-button
+              zType="outline"
+              class="h-9 rounded-lg px-3 pointer-coarse:min-h-[44px]"
+              routerLink="/settings/groups"
+              >{{ 'XP.Sharing.ManageGroups' | translate }}</a
             >
-              {{ filteredGroups().length }} {{ 'XP.KEY_WORDS.Users' | translate: { Default: 'items' } }}
-            </div>
-          </div>
+          }
         </div>
-
-        <div class="mt-4 flex flex-col gap-3 lg:flex-row">
-          <input
-            type="text"
-            class="w-full rounded-2xl border border-divider-regular bg-components-panel-bg px-4 py-3 text-sm text-text-primary outline-none transition focus:border-primary-500"
-            [value]="query()"
-            [placeholder]="'XP.UserGroup.SearchGroups' | translate: { Default: 'Search groups' }"
-            [disabled]="!targetOrganizationId()"
-            (input)="updateQuery($any($event.target).value)"
-          />
-
-          <div class="flex items-center gap-2">
-            <button
-              type="button"
-              class="rounded-xl border border-divider-regular px-3 py-2 text-sm font-medium text-text-primary transition hover:bg-hover-bg"
-              [disabled]="!canSelectVisibleGroups() || isBusy() || !targetOrganizationId()"
-              (click)="selectVisibleGroups()"
-            >
-              {{ 'XP.UserGroup.SelectVisible' | translate: { Default: 'Select Visible' } }}
-            </button>
-            <button
-              type="button"
-              class="rounded-xl border border-divider-regular px-3 py-2 text-sm font-medium text-text-tertiary transition hover:bg-hover-bg"
-              [disabled]="!selectedGroupCount() || isBusy() || !targetOrganizationId()"
-              (click)="clearSelection()"
-            >
-              {{ 'XP.KEY_WORDS.Clear' | translate: { Default: 'Clear' } }}
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <div class="flex flex-1 flex-col overflow-y-auto p-5">
-        @if (isTenantXpert() && !hasAvailableOrganizations()) {
-          <div
-            class="flex flex-1 flex-col items-start justify-center rounded-3xl border border-dashed border-divider-regular bg-components-panel-bg px-5 py-8"
-          >
-            <div class="text-base font-semibold text-text-primary">
-              {{
-                'XP.UserGroup.NoOrganizationsAvailable'
-                  | translate: { Default: 'No organizations available for authorization.' }
-              }}
+        @if (access.groups.length) {
+          <div class="mt-5 border-b border-border pb-5">
+            <h3 class="mb-2 text-sm font-medium">{{ 'XP.Sharing.SelectedGroups' | translate }}</h3>
+            <div class="flex flex-wrap gap-2">
+              @for (group of access.groups; track group.id) {
+                <span class="rounded-lg bg-muted px-3 py-2 text-sm">{{ group.name }}</span>
+              }
             </div>
-            <div class="mt-2 max-w-lg text-sm text-text-tertiary">
-              {{
-                'XP.UserGroup.NoOrganizationsAvailableHint'
-                  | translate
-                    : {
-                        Default:
-                          'You need access to at least one organization before you can bind organization groups to this tenant xpert.'
-                      }
-              }}
-            </div>
-          </div>
-        } @else if (!targetOrganizationId()) {
-          <div
-            class="flex flex-1 flex-col items-start justify-center rounded-3xl border border-dashed border-divider-regular bg-components-panel-bg px-5 py-8"
-          >
-            <div class="text-base font-semibold text-text-primary">
-              {{
-                'XP.UserGroup.SelectOrganizationFirst' | translate: { Default: 'Select an organization to continue.' }
-              }}
-            </div>
-            <div class="mt-2 text-sm text-text-tertiary">
-              {{
-                'XP.UserGroup.SelectOrganizationFirstHint'
-                  | translate
-                    : { Default: 'Select an organization first to configure which groups can access this xpert.' }
-              }}
-            </div>
-          </div>
-        } @else if (!availableGroups().length) {
-          <div
-            class="flex flex-1 flex-col items-start justify-center rounded-3xl border border-dashed border-divider-regular bg-components-panel-bg px-5 py-8"
-          >
-            <div class="text-base font-semibold text-text-primary">
-              {{ 'XP.UserGroup.Empty' | translate: { Default: 'No user groups yet.' } }}
-            </div>
-            <div class="mt-2 max-w-lg text-sm text-text-tertiary">
-              {{
-                'XP.UserGroup.EmptyGroupsHint'
-                  | translate
-                    : { Default: 'Create organization groups first, then return here to bind them to this xpert.' }
-              }}
-            </div>
-            <button
-              type="button"
-              class="mt-5 rounded-xl border border-primary-500 bg-primary-500 px-4 py-2 text-sm font-medium text-primary-50 transition hover:opacity-90"
-              [disabled]="isBusy() || (isTenantXpert() && !selectedOrganization())"
-              (click)="openGroupsSettings()"
-            >
-              {{ 'XP.UserGroup.ManageGroups' | translate: { Default: 'Manage Groups' } }}
-            </button>
-          </div>
-        } @else if (!filteredGroups().length) {
-          <div
-            class="flex flex-1 flex-col items-start justify-center rounded-3xl border border-dashed border-divider-regular bg-components-panel-bg px-5 py-8"
-          >
-            <div class="text-base font-semibold text-text-primary">
-              {{ 'XP.UserGroup.NoMatchingGroups' | translate: { Default: 'No matching groups.' } }}
-            </div>
-            <div class="mt-2 text-sm text-text-tertiary">
-              {{ 'XP.UserGroup.NoMatchingMembersHint' | translate: { Default: 'Try another search keyword.' } }}
-            </div>
-          </div>
-        } @else {
-          <div class="grid gap-3 xl:grid-cols-2 2xl:grid-cols-3">
-            @for (group of filteredGroups(); track group.id) {
-              <button
-                type="button"
-                class="rounded-2xl border p-4 text-left transition"
-                [class.border-primary-500]="isSelected(group.id)"
-                [class.bg-hover-bg]="isSelected(group.id)"
-                [class.border-divider-regular]="!isSelected(group.id)"
-                [class.hover:bg-hover-bg]="!isSelected(group.id)"
-                [disabled]="isBusy() || !targetOrganizationId()"
-                (click)="toggleGroup(group.id, !isSelected(group.id))"
-              >
-                <div class="flex items-start gap-3">
-                  <div
-                    class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-divider-regular bg-components-panel-bg text-sm font-semibold text-text-primary"
-                  >
-                    {{ groupInitials(group) }}
-                  </div>
-
-                  <div class="min-w-0 grow">
-                    <div class="flex items-center gap-2">
-                      <div class="truncate text-sm font-semibold text-text-primary">{{ group.name }}</div>
-                      @if (isSelected(group.id)) {
-                        <div
-                          class="rounded-full border border-primary-500 px-2 py-0.5 text-[11px] font-medium text-primary-600"
-                        >
-                          {{ 'XP.KEY_WORDS.Selected' | translate: { Default: 'Selected' } }}
-                        </div>
-                      }
-                    </div>
-
-                    <div class="mt-1 line-clamp-2 text-xs text-text-tertiary">
-                      @if (group.description?.trim()) {
-                        {{ group.description }}
-                      } @else {
-                        {{
-                          'XP.UserGroup.MemberCount'
-                            | translate
-                              : { Default: groupMemberCount(group) + ' members', count: groupMemberCount(group) }
-                        }}
-                      }
-                    </div>
-                  </div>
-
-                  <div
-                    class="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border"
-                    [class.border-primary-500]="isSelected(group.id)"
-                    [class.border-divider-regular]="!isSelected(group.id)"
-                  >
-                    @if (isSelected(group.id)) {
-                      <span class="h-2.5 w-2.5 rounded-full bg-primary-500"></span>
-                    }
-                  </div>
-                </div>
-              </button>
-            }
           </div>
         }
-      </div>
-    </section>
-  </div>
-
-  @if (isBusy()) {
-    <div class="absolute inset-0 z-10 flex items-center justify-center bg-components-card-bg/60 backdrop-blur-[1px]">
-      <xp-spin />
-    </div>
+        @if (canManage()) {
+          <input
+            #groupSearch
+            z-input
+            class="mt-5"
+            type="search"
+            [value]="query()"
+            (input)="query.set(groupSearch.value)"
+            [placeholder]="'XP.Sharing.SearchGroups' | translate"
+            [attr.aria-label]="'XP.Sharing.SearchGroups' | translate"
+          />
+          <div class="mt-4 divide-y divide-border">
+            @for (group of groups(); track group.id) {
+              <z-checkbox
+                class="w-full py-4"
+                displayDensity="cosy"
+                [ngModel]="selectedGroups().includes(group.id)"
+                [zDisabled]="saving()"
+                (checkChange)="toggleGroup(group.id, $event)"
+              >
+                <span class="block text-sm font-medium">{{ group.name }}</span
+                ><span class="mt-1 block text-xs text-muted-foreground">{{ group.description }}</span>
+              </z-checkbox>
+            } @empty {
+              @if (!candidatesLoading() && !candidateError()) {
+                <p class="py-8 text-sm text-muted-foreground">{{ 'XP.Sharing.NoGroups' | translate }}</p>
+              }
+            }
+          </div>
+          @if (groups().length < total()) {
+            <button z-button zType="link" [zDisabled]="candidatesLoading()" (click)="loadCandidates(true)">
+              {{ 'XP.Sharing.More' | translate }}
+            </button>
+          }
+          <div class="mt-6 flex justify-end gap-3 border-t border-border pt-5">
+            <button
+              z-button
+              zType="outline"
+              class="h-9 min-w-20 rounded-lg px-4 pointer-coarse:min-h-[44px]"
+              [zDisabled]="!hasGroupChanges() || saving()"
+              (click)="resetGroups()"
+            >
+              {{ 'XP.Sharing.Reset' | translate }}
+            </button>
+            <button
+              z-button
+              class="h-9 min-w-24 gap-2 rounded-lg px-4 pointer-coarse:min-h-[44px]"
+              [zDisabled]="!hasGroupChanges() || saving() || !!candidateError() || candidatesLoading()"
+              [zLoading]="saving()"
+              (click)="saveGroups()"
+            >
+              {{ 'XP.Sharing.Save' | translate }}
+            </button>
+          </div>
+        }
+      </section>
+    } @else if (panel() === 'inherited') {
+      <section class="divide-y divide-border py-6">
+        @if (access.inherited.creator; as creator) {
+          <div class="flex items-center gap-3 py-5">
+            <xp-user-avatar
+              [user]="creator"
+              class="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted"
+            />
+            <div>
+              <h2 class="text-sm font-medium">{{ userLabel(creator) }}</h2>
+              <p class="mt-1 text-sm text-muted-foreground">{{ 'XP.Sharing.Creator' | translate }}</p>
+            </div>
+          </div>
+        }
+        @if (access.inherited.workspace; as workspace) {
+          <div class="flex items-start gap-3 py-5">
+            <i class="ri-team-line text-xl" aria-hidden="true"></i>
+            <div>
+              <h2 class="text-base font-semibold">{{ workspace.name }}</h2>
+              <p class="mt-2 text-sm text-muted-foreground">
+                {{
+                  (workspace.organizationShared ? 'XP.Sharing.OrganizationWorkspace' : 'XP.Sharing.WorkspaceMembers')
+                    | translate: { count: workspace.memberCount }
+                }}
+              </p>
+            </div>
+          </div>
+        }
+        <p class="py-5 text-sm text-muted-foreground">{{ 'XP.Sharing.InheritedHint' | translate }}</p>
+      </section>
+    }
+    @if (panel() !== 'inherited' && canManage()) {
+      @if (candidatesLoading()) {
+        <p class="py-3 text-sm text-muted-foreground" role="status">{{ 'XP.Sharing.Loading' | translate }}</p>
+      }
+      @if (candidateError()) {
+        <div class="flex items-center gap-3 py-4" role="alert">
+          <p class="text-sm text-muted-foreground">{{ candidateError() }}</p>
+          <button
+            z-button
+            zType="outline"
+            class="h-9 rounded-lg px-3 pointer-coarse:min-h-[44px]"
+            (click)="loadCandidates()"
+          >
+            {{ 'XP.Sharing.Retry' | translate }}
+          </button>
+        </div>
+      }
+    }
+    @if (panel() !== 'inherited') {
+      <footer class="flex flex-wrap items-center gap-4 border-t border-border py-6">
+        <i class="ri-team-line text-xl" aria-hidden="true"></i>
+        <div class="min-w-0 flex-1">
+          <h2 class="text-base font-semibold">{{ 'XP.Sharing.WorkspaceAccess' | translate }}</h2>
+          <p class="mt-1 text-sm text-muted-foreground">{{ 'XP.Sharing.WorkspaceHint' | translate }}</p>
+        </div>
+        <button
+          z-button
+          zType="ghost"
+          class="h-9 gap-2 rounded-lg px-3 text-muted-foreground pointer-coarse:min-h-[44px]"
+          (click)="showPanel('inherited')"
+        >
+          {{ 'XP.Sharing.ViewInherited' | translate }}<i class="ri-arrow-right-s-line" aria-hidden="true"></i>
+        </button>
+      </footer>
+    }
+  } @else {
+    <p class="py-8 text-sm text-muted-foreground">{{ 'XP.Sharing.SelectOrganization' | translate }}</p>
   }
 </div>

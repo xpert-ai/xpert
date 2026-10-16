@@ -49,6 +49,12 @@ export class XpertDslDTO {
     starters?: string[]
 
     @Expose()
+    @Transform(({ value }) => {
+        if (!value) return value
+        const portable: TXpertOptions = { ...value }
+        delete portable.pendingPublication
+        return portable
+    })
     options?: TXpertOptions
 
     @Expose()
