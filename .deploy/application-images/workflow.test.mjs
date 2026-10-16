@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { test } from 'node:test'
+import { runInNewContext } from 'node:vm'
 
 const toolsRequire = createRequire(new URL('./release-tools/package.json', import.meta.url))
 const parseRequire = createRequire(toolsRequire.resolve('@changesets/parse'))
@@ -95,7 +96,7 @@ test('image artifacts are exported only after health checks, without publishing 
 
 test('publication requires every build to pass and loads the matching artifact without rebuilding', () => {
   assert.deepEqual(jobs.publish.needs, ['prepare', 'build'])
-  assert.equal(jobs.publish.if, "github.event_name == 'push' && needs.prepare.outputs.publish == 'true'")
+  assert.match(jobs.publish.if, /always\(\) && !cancelled\(\)/)
   assert.equal(jobs.publish.environment, 'production')
   assert.ok(!jobs.publish.steps.some((step) => step.uses === 'docker/build-push-action@v6'))
   assert.ok(jobs.publish.steps.some((step) => step.run?.startsWith('docker load ')))
@@ -108,4 +109,28 @@ test('publication requires every build to pass and loads the matching artifact w
   assert.equal(push.env.IMAGE_SHA, '${{ needs.prepare.outputs.sha }}')
   assert.equal(imageBuild.steps[0].with.ref, '${{ inputs.sha }}')
   assert.equal(jobs.publish.steps[0].with.ref, '${{ needs.prepare.outputs.sha }}')
+})
+
+test('publication tolerates skipped optional validators but rejects failed or cancelled builds', () => {
+  const evaluate = ({
+    event = 'push',
+    prepare = 'success',
+    build = 'success',
+    publish = 'true',
+    cancelled = false
+  } = {}) =>
+    runInNewContext(jobs.publish.if, {
+      always: () => true,
+      cancelled: () => cancelled,
+      github: { event_name: event },
+      needs: { prepare: { result: prepare, outputs: { publish } }, build: { result: build } }
+    })
+  // An explicit status function prevents GitHub's implicit success() from
+  // propagating skipped optional ancestors into this publication job.
+  assert.equal(evaluate(), true)
+  for (const build of ['failure', 'cancelled', 'skipped']) assert.equal(evaluate({ build }), false)
+  assert.equal(evaluate({ prepare: 'failure' }), false)
+  assert.equal(evaluate({ event: 'pull_request' }), false)
+  assert.equal(evaluate({ publish: 'false' }), false)
+  assert.equal(evaluate({ cancelled: true }), false)
 })

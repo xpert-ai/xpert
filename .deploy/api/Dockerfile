@@ -25,7 +25,7 @@ COPY --chown=node:node packages/plugins/vlm-default/package.json ./packages/plug
 COPY --chown=node:node pnpm-workspace.yaml ./
 COPY --chown=node:node .npmrc ./
 
-FROM node:20-alpine AS build
+FROM node:20-alpine AS build-dependencies
 
 ARG NODE_OPTIONS="--max-old-space-size=4096"
 ENV NODE_OPTIONS=${NODE_OPTIONS}
@@ -49,19 +49,20 @@ COPY --chown=node:node .nxignore ./
 
 RUN pnpm install --frozen-lockfile
 
+FROM build-dependencies AS build
+
 COPY --chown=node:node nx.json ./
 COPY --chown=node:node tsconfig.base.json ./
 COPY --chown=node:node packages ./packages
 COPY --chown=node:node apps/api ./apps/api
-COPY --chown=node:node .deploy/api/dependencies.cjs .deploy/api/package.json .deploy/api/package-prod.json .deploy/api/pnpm-lock.build.yaml .deploy/api/pnpm-lock.production.yaml ./.deploy/api/
+COPY --chown=node:node .deploy/api/build.mjs .deploy/api/dependencies.cjs .deploy/api/package.json .deploy/api/package-prod.json .deploy/api/pnpm-lock.build.yaml .deploy/api/pnpm-lock.production.yaml ./.deploy/api/
 RUN rm -rf packages/angular packages/ui packages/sandbox-runtime packages/nsjail-runner packages/plugins/local-shell-sandbox
 
 # All package manifests were installed above; reject any source-layout drift.
 RUN node .deploy/api/dependencies.cjs check && \
     pnpm install --lockfile-only --frozen-lockfile --ignore-scripts --offline
-RUN pnpm build:plugins
-RUN node -e "console.log('API build V8 heap limit (MiB):', require('node:v8').getHeapStatistics().heap_size_limit / 1024 / 1024)" && \
-    pnpm nx build api --verbose
+RUN node --test apps/api/config/buildable-libraries.test.cjs
+RUN node .deploy/api/build.mjs
 RUN node .deploy/api/dependencies.cjs prepare-runtime /srv/xpert/api-runtime && \
     cd /srv/xpert/api-runtime && \
     pnpm install --prod --lockfile-only --frozen-lockfile --ignore-scripts --offline

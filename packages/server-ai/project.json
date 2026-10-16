@@ -42,7 +42,35 @@
             "options": {
                 "command": "node packages/server-ai/scripts/build-remote-components.mjs",
                 "cwd": "."
-            }
+            },
+            "cache": true,
+            "inputs": [
+                "^production",
+                "{projectRoot}/src/**/remote-components/**/*",
+                "!{projectRoot}/src/**/remote-components/**/app.js",
+                "!{projectRoot}/src/**/remote-components/**/app.css",
+                "{projectRoot}/scripts/build-remote*.mjs",
+                "{projectRoot}/tsconfig*.json",
+                "{projectRoot}/package.json",
+                "{projectRoot}/src/chat-conversation/conversation-map/schema.ts",
+                "{projectRoot}/src/shared/coding-tools/**/*",
+                "{workspaceRoot}/packages/contracts/src/**/*",
+                "{workspaceRoot}/packages/plugin-sdk/src/**/*",
+                "{workspaceRoot}/packages/shadcn-ui/src/**/*",
+                "{workspaceRoot}/tsconfig.base.json",
+                "{workspaceRoot}/package.json",
+                "{workspaceRoot}/pnpm-lock.yaml",
+                "{projectRoot}/src/view-extension/remote-context.ts",
+                "{workspaceRoot}/packages/contracts/package.json",
+                "{workspaceRoot}/packages/plugin-sdk/package.json",
+                "{workspaceRoot}/packages/shadcn-ui/package.json"
+            ],
+            "dependsOn": [
+                {
+                    "target": "build",
+                    "projects": ["plugin-sdk"]
+                }
+            ]
         },
         "publish": {
             "executor": "nx:run-commands",
@@ -70,5 +98,13 @@
             }
         }
     },
-    "tags": []
+    "tags": [],
+    "namedInputs": {
+        "default": [
+            "{projectRoot}/**/*",
+            "sharedGlobals",
+            "!{projectRoot}/src/**/remote-components/**/app.js",
+            "!{projectRoot}/src/**/remote-components/**/app.css"
+        ]
+    }
 }

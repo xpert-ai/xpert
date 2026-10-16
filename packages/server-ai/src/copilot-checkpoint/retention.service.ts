@@ -8,6 +8,7 @@ import {
 import { Injectable, Logger } from '@nestjs/common'
 import { Cron } from '@nestjs/schedule'
 import { InjectRepository } from '@nestjs/typeorm'
+import { getDefaultTenantId } from '@xpert-ai/plugin-sdk'
 import { QueryRunner, Repository } from 'typeorm'
 import { CopilotCheckpoint } from './copilot-checkpoint.entity'
 
@@ -43,14 +44,16 @@ export class CopilotCheckpointRetentionService {
     ): Promise<CopilotCheckpointRetentionExecuteResult> {
         const startedAt = Date.now()
         const config = resolveOptions(options)
+        const defaultTenantId = getDefaultTenantId()
         let deletedCheckpointCount = 0
         let deletedWriteCount = 0
         let batches = 0
 
-        while (batches < config.maxBatchesPerRun) {
+        while (defaultTenantId && batches < config.maxBatchesPerRun) {
             const rows = await this.checkpointRepository.manager.query(buildCandidateBatchSql(), [
                 ...buildCandidateParams(config),
-                config.batchSize
+                config.batchSize,
+                defaultTenantId
             ])
             const ids = rows.map((row) => readString(row, 'id')).filter((id) => id.length > 0)
             if (!ids.length) {
@@ -189,11 +192,11 @@ COALESCE(
 function buildTenantSettingJoinSql() {
     return `
 JOIN tenant_setting te
-	ON te."tenantId" IS NOT DISTINCT FROM c."tenantId"
+	ON te."tenantId" = $6::uuid
 	AND te.name = $1
 	AND lower(COALESCE(te.value, '')) IN ('1', 'true', 'yes', 'on')
 LEFT JOIN tenant_setting td
-	ON td."tenantId" IS NOT DISTINCT FROM c."tenantId"
+	ON td."tenantId" = te."tenantId"
 	AND td.name = $2`
 }
 
