@@ -22,7 +22,7 @@ export class TenantSettingMutationGuard implements CanActivate {
 			(request.body?.tenant && request.body.tenant.id !== tenantId)
 		) {
 			throw new ForbiddenException(
-				t('server:Error.TenantSettingScopeImmutable', {
+				t('server-ai:Error.TenantSettingScopeImmutable', {
 					defaultValue: 'A setting cannot be moved to another tenant.'
 				})
 			)

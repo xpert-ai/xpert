@@ -100,7 +100,7 @@ export class TenantSettingService extends TenantAwareCrudService<TenantSetting> 
 			(!this.canManageRetention() || tenantId !== getDefaultTenantId())
 		) {
 			throw new ForbiddenException(
-				t('server:Error.RetentionDefaultTenantRequired', {
+				t('server-ai:Error.RetentionDefaultTenantRequired', {
 					defaultValue: 'Only a SuperAdmin in the default tenant can configure retention for all tenants.'
 				})
 			)

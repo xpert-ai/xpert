@@ -1,7 +1,5 @@
 {
 	"Error": {
-		"TenantSettingScopeImmutable": "A setting cannot be moved to another tenant.",
-		"RetentionDefaultTenantRequired": "Only a SuperAdmin in the default tenant can configure retention for all tenants.",
 		"PluginRuntimePolicyInvalid": "Plugin runtimePolicy must declare install, update and uninstall as hot or restart.",
 		"PluginRuntimePolicyChanged": "Plugin runtime policy changed during installation. Retry with the current package metadata.",
 		"PluginAppDataNamespaceUnavailable": "A loaded plugin with a registered application namespace is required.",
