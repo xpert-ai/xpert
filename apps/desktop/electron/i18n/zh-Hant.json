@@ -1,6 +1,7 @@
 {
   "Select a compatible model for this assistant.": "請為此助手選擇相容的模型。",
   "Invalid template capabilities.": "範本能力參數無效。",
+  "Invalid template requirements response.": "範本要求回應格式無效。",
   "The template is not ready to install.": "此範本尚未符合初始化條件。",
   "Invalid tool output attachment.": "工具輸出附件無效。",
   "The image preview does not match the requested attachment.": "圖片預覽與請求的附件不符。",
@@ -353,6 +354,7 @@
   "Enter a valid email address.": "請輸入有效的電子郵件地址。",
   "Enter a valid URL.": "請輸入有效的 URL。",
   "Invalid input.": "輸入值無效。",
+  "Invalid response.": "回應格式無效。",
   "Choose your desktop language. ChatKit follows where supported.": "選擇桌面語言；ChatKit 將在其版本支援的範圍內跟隨。",
   "Desktop Shell": "桌面 Shell",
   "Shell": "Shell",

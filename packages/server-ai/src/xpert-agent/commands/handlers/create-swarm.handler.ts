@@ -1,3 +1,4 @@
+import { resolveExecutionWorkflow } from '../../../shared/agent/execution-definition'
 import { isAIMessage } from '@langchain/core/messages'
 import { RunnableLambda } from '@langchain/core/runnables'
 import { installThreadPauseGuards } from '../../../shared/agent/thread-pause'
@@ -20,7 +21,6 @@ import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/c
 import { I18nService } from 'nestjs-i18n'
 import { CopilotCheckpointSaver } from '../../../copilot-checkpoint'
 import { XpertAgentExecutionOneQuery, XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution'
-import { GetXpertWorkflowQuery } from '../../../xpert/queries'
 import { messageEvent } from '../../agent'
 import { XpertAgentSwarmCommand } from '../create-swarm.command'
 import { XpertAgentSubgraphCommand } from '../subgraph.command'
@@ -48,10 +48,13 @@ export class XpertAgentSwarmHandler implements ICommandHandler<XpertAgentSwarmCo
         const abortController = new AbortController()
         signal?.addEventListener('abort', () => abortController.abort())
 
-        const { agent, graph: xpertGraph } = await this.queryBus.execute<
-            GetXpertWorkflowQuery,
-            { agent: IXpertAgent; graph: TXpertGraph; next: TXpertTeamNode[]; fail: TXpertTeamNode[] }
-        >(new GetXpertWorkflowQuery(xpert.id, agentKeyOrName, command.options?.isDraft))
+        const { agent, graph: xpertGraph } = await resolveExecutionWorkflow(
+            this.queryBus,
+            xpert.id,
+            agentKeyOrName,
+            command.options?.isDraft,
+            options.executionDefinition
+        )
         if (!agent) {
             throw new NotFoundException(
                 `Xpert agent not found for '${xpert.name}' and key or name '${agentKeyOrName}', draft is ${command.options?.isDraft}`

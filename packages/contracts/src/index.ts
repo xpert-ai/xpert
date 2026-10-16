@@ -83,14 +83,21 @@ export * from './view-extension'
 export * from './runtime-control'
 export type {
   RuntimeResourceKind,
+  AgentPluginRole,
+  RuntimeResourceCatalogPurpose,
   RuntimeResourceStatus,
   RuntimeResourceReference,
+  TemplateAgentSource,
   RuntimeResourcesSelection,
   AgentPluginDiagnostic,
   RuntimeResourceCatalogItem,
   RuntimeResourceView,
   RuntimeResourceCatalog,
   AgentPluginXpertExtension,
+  AgentPluginCommand,
+  AgentPluginCommandPresentation,
+  RuntimeResourceCommand,
+  RuntimeResourceSkillReference,
   AgentPluginConnectorAuth,
   AgentPluginConnectorBinding,
   RuntimeResourceDefinition,
@@ -111,3 +118,5 @@ export * from './ai/execution-activity.model'
 export * from './setup-plugins'
 
 export * from './default-agent-plugins'
+
+export * from './agent-plugin-maintenance'

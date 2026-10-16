@@ -1,6 +1,7 @@
 {
   "Select a compatible model for this assistant.": "このアシスタントに対応したモデルを選択してください。",
   "Invalid template capabilities.": "テンプレートの機能設定が無効です。",
+  "Invalid template requirements response.": "テンプレート要件の応答形式が無効です。",
   "The template is not ready to install.": "テンプレートを初期化する準備ができていません。",
   "Invalid tool output attachment.": "ツール出力の添付ファイルが無効です。",
   "The image preview does not match the requested attachment.": "画像プレビューが要求された添付ファイルと一致しません。",
@@ -353,6 +354,7 @@
   "Enter a valid email address.": "有効なメールアドレスを入力してください。",
   "Enter a valid URL.": "有効な URL を入力してください。",
   "Invalid input.": "入力値が無効です。",
+  "Invalid response.": "応答形式が無効です。",
   "Choose your desktop language. ChatKit follows where supported.": "デスクトップの言語を選択します。ChatKit は対応する言語に切り替わります。",
   "Desktop Shell": "デスクトップ Shell",
   "Shell": "Shell",

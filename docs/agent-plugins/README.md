@@ -6,6 +6,8 @@ A standard Agent Plugin is a resource package containing a root-level `plugin.js
 
 Agent Plugins can also distribute Assistant Templates through `extensions.xpertai.version: 2`. See [Authoring and packaging Assistant templates](../en/guides/assistant-template-authoring.mdx) ([中文](../zh-Hans/guides/assistant-template-authoring.mdx)) for package-contained DSL, dependency binding, localization, and avatars, and [Template lifecycle architecture](../en/architecture/assistant-template-lifecycle.mdx) ([中文](../zh-Hans/architecture/assistant-template-lifecycle.mdx)) for installation and upgrade contracts. Template-only packages do not require skills, MCP configuration, or a native NestJS module.
 
+Non-assistant-role packages can also expose templates as [task sub-agents](./TEMPLATE-SUBAGENTS.md), selected as a package and launched only when the parent Agent delegates work.
+
 ## Administrator workflow
 
 1. Open **Plugins → Agent Plugins** in the organization scope. The administrator must have management permission for the target workspace.

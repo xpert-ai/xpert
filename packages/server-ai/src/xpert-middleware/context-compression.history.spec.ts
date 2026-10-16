@@ -1,12 +1,143 @@
 import { load } from '@langchain/core/load'
-import { AIMessage, BaseMessage, ToolMessage } from '@langchain/core/messages'
+import {
+    AIMessage,
+    BaseMessage,
+    HumanMessage,
+    SystemMessage,
+    ToolMessage,
+    isAIMessage,
+    isToolMessage
+} from '@langchain/core/messages'
 import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { ContextCompressionHistory } from './context-compression.history'
+import { ContextCompressionHistory, selectCompressionHistory } from './context-compression.history'
+
+describe('long task compression boundaries', () => {
+    const request = new HumanMessage({
+        id: 'request',
+        content: 'Write taskId=exact-id. Preserve source citations. Do not publish.'
+    })
+    const cycle = (id: string, count = 1): BaseMessage[] => [
+        new AIMessage({
+            content: '',
+            tool_calls: Array.from({ length: count }, (_, index) => ({
+                id: `${id}-${index}`,
+                name: 'sandbox_append_file',
+                args: { path: 'chapter.md', content: id.repeat(4000) }
+            }))
+        }),
+        ...Array.from(
+            { length: count },
+            (_, index) =>
+                new ToolMessage({
+                    tool_call_id: `${id}-${index}`,
+                    name: 'sandbox_append_file',
+                    content: `Saved ${id}-${index}`
+                })
+        )
+    ]
+    const select = (messages: BaseMessage[], automatic = true) => selectCompressionHistory(messages, 0.7, 1, automatic)
+
+    function expectPaired(messages: BaseMessage[]) {
+        const pending = new Set<string>()
+        for (const message of messages) {
+            if (isAIMessage(message)) {
+                expect(pending.size).toBe(0)
+                for (const call of message.tool_calls ?? []) {
+                    if (!call.id) throw new Error('Missing tool call ID')
+                    pending.add(call.id)
+                }
+            } else if (isToolMessage(message)) {
+                expect(pending.delete(message.tool_call_id)).toBe(true)
+            }
+        }
+        expect(pending.size).toBe(0)
+    }
+
+    it('summarizes old write arguments in one user turn and retains the exact request and newest cycle', () => {
+        const system = new SystemMessage('Only use authorized project files.')
+        const latest = cycle('latest')
+        const messages = [system, request, ...cycle('old-a'), ...cycle('old-b'), ...cycle('old-c'), ...latest]
+        const original = JSON.stringify(messages)
+        const result = select(messages)
+
+        expect(result.historyToCompress).toContain(messages[2])
+        expect(result.historyToKeep.slice(0, 2)).toEqual([system, request])
+        expect(result.historyToKeep.at(1)).toBe(request)
+        expect(result.historyToKeep.slice(-latest.length)).toEqual(latest)
+        expect(result.historyToKeep).not.toContain(messages[2])
+        expectPaired(result.historyToCompress)
+        expectPaired(result.historyToKeep)
+        expect(JSON.stringify(messages)).toBe(original)
+    })
+
+    it('keeps complete parallel call groups on each side of the split', () => {
+        const messages = [request, ...cycle('first', 3), ...cycle('second', 2), ...cycle('third', 3)]
+        const result = select(messages)
+        expect(result.historyToCompress.length).toBeGreaterThan(1)
+        expectPaired(result.historyToCompress)
+        expectPaired(result.historyToKeep)
+    })
+
+    it('keeps a pending parallel group together with its already received result', () => {
+        const pending = cycle('pending', 2).slice(0, 2)
+        const result = select([request, ...cycle('first'), ...cycle('second'), ...pending])
+        expectPaired(result.historyToCompress)
+        expect(result.historyToKeep.slice(-pending.length)).toEqual(pending)
+    })
+
+    it('does not split a single cycle or split across a missing result', () => {
+        const single = [request, ...cycle('only', 3)]
+        expect(select(single).historyToCompress).toEqual([])
+        const incomplete = [request, ...cycle('unfinished', 2).slice(0, 2), ...cycle('later')]
+        expect(select(incomplete).historyToCompress).toEqual([])
+    })
+
+    it('does not summarize a huge pinned request merely to remove a small tool cycle', () => {
+        const messages = [new HumanMessage('Exact source text. '.repeat(50000)), ...cycle('first'), ...cycle('second')]
+        expect(select(messages).historyToCompress).toEqual([])
+    })
+
+    it('retains manual whole-turn behavior and ordinary short latest turns', () => {
+        const single = [request, ...cycle('first'), ...cycle('second')]
+        expect(select(single, false).historyToCompress).toEqual([])
+        const recent = new HumanMessage('Stop and report the current result.')
+        const multi = [...single, recent, new AIMessage('Stopped.')]
+        expect(select(multi)).toEqual(select(multi, false))
+        expect(select(multi).historyToKeep).toEqual(multi.slice(-2))
+    })
+
+    it('can compress again after checkpoint serialization without losing the original request', async () => {
+        const history = new ContextCompressionHistory()
+        const first = select([request, ...cycle('first'), ...cycle('second'), ...cycle('third')])
+        const restored = await load<BaseMessage[]>(
+            JSON.stringify(
+                history.buildNewHistory(
+                    '<state_snapshot>Earlier work saved to chapter.md.</state_snapshot>',
+                    first.historyToKeep,
+                    'compression-1',
+                    7,
+                    20000
+                )
+            )
+        )
+        const second = select([...restored, ...cycle('fourth'), ...cycle('fifth')])
+        expect(second.historyToCompress.length).toBeGreaterThan(0)
+        expect(second.historyToKeep.filter((message) => message.id === request.id)).toHaveLength(1)
+        expect(second.historyToKeep.find((message) => message.id === request.id)?.content).toBe(request.content)
+        expectPaired(second.historyToKeep)
+    })
+})
 
 describe('context compression message persistence', () => {
     const history = new ContextCompressionHistory()
+
+    it('keeps a short tool receipt when a truncation reference would be larger, even at zero budget', async () => {
+        const receipt = new ToolMessage({ tool_call_id: 'write', name: 'sandbox_append_file', content: 'Saved.' })
+        const messages = [receipt]
+        expect(await history.truncateHistoryToBudget(messages, 0)).toBe(messages)
+    })
 
     it('keeps repeated usage invalidation bounded across message serialization and restoration', async () => {
         const source = new AIMessage({

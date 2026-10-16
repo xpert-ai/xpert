@@ -49,6 +49,19 @@ describe('SandboxAcquireBackendHandler', () => {
         expect(provider.create).toHaveBeenCalledTimes(1)
     })
 
+    it('keeps conversation context in the application cache without exposing it to providers', async () => {
+        provider.create.mockResolvedValue({ execute: jest.fn() })
+        const params = { provider: 'local-shell-sandbox', workFor: { type: 'user' as const, id: 'user-1' } }
+        await handler.execute(new SandboxAcquireBackendCommand(params))
+        const group = await handler.execute(
+            new SandboxAcquireBackendCommand({ ...params, conversationId: 'group-runtime' })
+        )
+        expect(provider.create).toHaveBeenCalledTimes(2)
+        expect(provider.create.mock.calls.every(([options]) => !('conversationId' in options))).toBe(true)
+        expect(handler.find({ ...params, conversationId: 'group-runtime' })).toBe(group)
+        expect(handler.find({ ...params, conversationId: 'other-runtime' })).toBeNull()
+    })
+
     it('returns a non-retryable provider error when the configured provider is missing', async () => {
         registry.list.mockReturnValue([])
         await expect(

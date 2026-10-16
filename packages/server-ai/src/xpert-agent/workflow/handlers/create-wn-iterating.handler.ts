@@ -131,6 +131,8 @@ export class CreateWNIteratingHandler implements ICommandHandler<CreateWNIterati
                     agentKey,
                     { id: _xpertId },
                     {
+                        executionDefinition: command.options.executionDefinition,
+                        planMode: command.options.planMode,
                         isDraft,
                         mute: command.options.mute,
                         store: command.options.store,

@@ -75,6 +75,7 @@ COPY .deploy/nsjail-runner/runner.py /app/runner.py
 COPY .deploy/nsjail-runner/network.py /app/network.py
 COPY .deploy/nsjail-runner/net_proxy.py /app/net_proxy.py
 COPY .deploy/nsjail-runner/poc_validate.py /app/poc_validate.py
+COPY .deploy/nsjail-runner/verify_app_data.py /app/verify_app_data.py
 COPY .deploy/nsjail-runner/seccomp.policy /etc/xpert-nsjail/seccomp.policy
 RUN chmod 0755 /app/runner.py /app/net_proxy.py /app/poc_validate.py /usr/local/bin/nsjail
 

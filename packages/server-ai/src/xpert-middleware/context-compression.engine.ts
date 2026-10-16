@@ -42,7 +42,7 @@ import {
     PromptWindowEstimate,
     isStateContainer
 } from './context-compression.shared'
-import { findCompressSplitPoint } from './context-compression.history'
+import { selectCompressionHistory } from './context-compression.history'
 import {
     estimateTokens,
     estimateTokenCountSync,
@@ -569,14 +569,14 @@ export class ContextCompressionEngine {
                 return finishToolCompression()
             }
 
-            const splitResult = findCompressSplitPoint(
+            const splitResult = selectCompressionHistory(
                 truncatedHistory,
                 1 - options.preserveFraction,
-                options.protectedUserTurns
+                options.protectedUserTurns,
+                execution.reason !== 'manual'
             )
 
-            const historyToCompress = truncatedHistory.slice(0, splitResult.splitPoint)
-            const historyToKeep = truncatedHistory.slice(splitResult.splitPoint)
+            const { historyToCompress, historyToKeep } = splitResult
 
             if (historyToCompress.length === 0) {
                 if (!fitsPromptBudget(currentPromptWindowEstimate, tokenLimit)) return reportBudgetFailure()

@@ -1,3 +1,4 @@
+import { TemplateSubagentRuntimeService } from './template-subagents/template-subagent-runtime.service'
 import { ActorTokenModule, RedisModule, TenantModule } from '@xpert-ai/server-core'
 import { forwardRef, Module } from '@nestjs/common'
 import { DiscoveryModule, RouterModule } from '@nestjs/core'
@@ -56,6 +57,7 @@ import { McpAppBundleService } from '../mcp-publication/mcp-app-bundle.service'
     ],
     controllers: [XpertAgentController],
     providers: [
+        TemplateSubagentRuntimeService,
         XpertAgentService,
         ConversationTitleService,
         XpertTitleMiddlewareService,

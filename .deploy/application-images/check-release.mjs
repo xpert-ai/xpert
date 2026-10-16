@@ -4,6 +4,7 @@
 import { execFileSync, spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
+import { requiresImageRelease, services } from './services.mjs'
 
 const zeroSha = /^0{40}$/
 const git = (cwd, ...args) =>
@@ -18,15 +19,18 @@ function resolveCommit(cwd, ref) {
 }
 
 function relevant(files) {
-  return files.some(
-    (file) =>
-      (file.startsWith('.changeset/') && file !== '.changeset/README.md') ||
-      /(^|\/)package\.json$/.test(file) ||
-      [
-        '.deploy/application-images/services.mjs',
-        '.deploy/api/dependencies.cjs',
-        '.deploy/webapp/dependencies.cjs'
-      ].includes(file)
+  return (
+    services.some((service) => requiresImageRelease(service, files)) ||
+    files.some(
+      (file) =>
+        (file.startsWith('.changeset/') && file !== '.changeset/README.md') ||
+        /(^|\/)package\.json$/.test(file) ||
+        [
+          '.deploy/application-images/services.mjs',
+          '.deploy/api/dependencies.cjs',
+          '.deploy/webapp/dependencies.cjs'
+        ].includes(file)
+    )
   )
 }
 

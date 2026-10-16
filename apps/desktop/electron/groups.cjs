@@ -9,7 +9,19 @@ function createGroupMethods(ClientError) {
       return this.request('/api/ai/groups', { scope: 'organization' })
     },
     async groupCandidates() {
-      return this.request('/api/ai/groups/candidates?kind=assistant', { scope: 'organization' })
+      const candidates = []
+      const seen = new Set()
+      const limit = 100
+      for (let offset = 0; ; offset += limit) {
+        const page = await this.request(`/api/ai/groups/candidates?kind=assistant&limit=${limit}&offset=${offset}`, {
+          scope: 'organization'
+        })
+        if (!Array.isArray(page)) throw new ClientError('Invalid response.')
+        const fresh = page.filter((candidate) => !seen.has(candidate.subjectId))
+        for (const candidate of fresh) seen.add(candidate.subjectId)
+        candidates.push(...fresh)
+        if (page.length < limit || !fresh.length) return candidates
+      }
     },
     async createGroup(input) {
       if (

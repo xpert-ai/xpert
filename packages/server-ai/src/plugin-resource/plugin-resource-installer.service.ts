@@ -42,6 +42,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm'
 import { RequestContext, XpertToolProviderRegistry } from '@xpert-ai/plugin-sdk'
 import { dirname, isAbsolute, relative, resolve } from 'node:path'
+import { createHash } from 'node:crypto'
 import { mkdir, readFile, realpath } from 'node:fs/promises'
 import { t } from 'i18next'
 import { IsNull, Repository } from 'typeorm'
@@ -601,6 +602,62 @@ export class PluginResourceInstallerService {
         return `app:${runtimeComponent.pluginName}:${runtimeComponent.component.componentKey}`
     }
 
+    /** Bind existing, hash-matched resources to an in-memory task graph. Never installs or edits an Assistant. */
+    async bindExistingRuntimeComponents(draft: TXpertTeamDraft, owner: IXpert, components: RuntimeComponent[]) {
+        const installations: PluginResourceInstallation[] = []
+        for (const component of components) {
+            const target = component.targetAgentKey ?? draft.team.agent?.key
+            if (
+                !draft.nodes.some((node) => node.type === 'agent' && node.key === target) &&
+                !(draft.team.agent?.key === target && draft.team.agent.options?.hidden)
+            )
+                throw new BadRequestException(t('server-ai:Error.TemplateRequirementsUnmet'))
+            const installation = await this.findInstallation(
+                owner.workspaceId,
+                null,
+                null,
+                component.pluginName,
+                component.component.componentType,
+                component.component.componentKey
+            )
+            if (
+                !installation?.enabled ||
+                installation.definitionHash !== component.component.definitionHash ||
+                installation.status !== PLUGIN_RESOURCE_INSTALLATION_STATUS.READY
+            )
+                throw new BadRequestException(
+                    t('server-ai:Error.TemplateSubagentDependencyUnavailable', {
+                        dependency: `${component.pluginName}/${component.component.componentKey}`,
+                        status: installation?.enabled ? installation.status : 'unavailable'
+                    })
+                )
+            const provider =
+                component.component.componentType === 'skill'
+                    ? SKILLS_MIDDLEWARE_NAME
+                    : component.component.componentType === 'hook'
+                      ? PLUGIN_HOOKS_MIDDLEWARE_NAME
+                      : undefined
+            if (provider && !this.findMiddlewareNode(draft, target, provider)) {
+                // Reconstruction must generate identical node keys for checkpoint recovery.
+                const key = `Middleware_${createHash('sha256')
+                    .update(JSON.stringify([target, provider]))
+                    .digest('hex')
+                    .slice(0, 24)}`
+                this.createMiddlewareNode(
+                    draft,
+                    target,
+                    provider,
+                    provider === SKILLS_MIDDLEWARE_NAME ? 'Skills Middleware' : 'Plugin Hooks',
+                    -280,
+                    key
+                )
+            }
+            this.attachRuntimeComponent(draft, installation, component, target)
+            installations.push(installation)
+        }
+        return installations
+    }
+
     private attachRuntimeComponent(
         draft: TXpertTeamDraft,
         installation: PluginResourceInstallation,
@@ -770,9 +827,9 @@ export class PluginResourceInstallerService {
         agentKey: string,
         provider: string,
         title: string,
-        xOffset: number
+        xOffset: number,
+        key = genXpertMiddlewareKey()
     ) {
-        const key = genXpertMiddlewareKey()
         const entity: IWFNMiddleware = {
             id: key,
             key,

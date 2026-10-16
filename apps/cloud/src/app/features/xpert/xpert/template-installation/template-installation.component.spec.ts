@@ -128,6 +128,17 @@ describe('Web template installation flow', () => {
     component.form.controls.model.setValue('revoked')
     expect(component.canStart()).toBe(false)
   })
+  it('opens the dedicated detail page and closes the installation dialog', async () => {
+    expect(fixture.nativeElement.querySelector('xp-template-requirements')).toBeNull()
+    const detailsButton = Array.from<HTMLButtonElement>(fixture.nativeElement.querySelectorAll('button')).find(
+      (button) => button.textContent.includes('XP.ACTIONS.ViewDetails')
+    )
+    detailsButton.click()
+    await settle()
+    expect(router.navigate).toHaveBeenCalledWith(['/explore/templates', 'template'])
+    expect(dialog.close).toHaveBeenCalled()
+    expect(transport.create).not.toHaveBeenCalled()
+  })
   it('disables the real install button until missing dependencies are refreshed in the same workspace', async () => {
     templates.getSetup.mockImplementation(() => of({ ...setup, canInstall: false }))
     fixture.componentInstance.revision.update((value) => value + 1)

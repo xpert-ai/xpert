@@ -64,7 +64,11 @@ import {
     RequestScopeLevel,
     PLUGIN_COMPONENT_TYPE,
     PLUGIN_RESOURCE_ERROR_CODE,
-    PLUGIN_RESOURCE_INSTALLATION_STATUS
+    PLUGIN_RESOURCE_INSTALLATION_STATUS,
+    PLUGIN_RESOURCE_RUNTIME_TYPE,
+    XpertTypeEnum,
+    type IXpert,
+    type TXpertTeamDraft
 } from '@xpert-ai/contracts'
 import { BadRequestException, NotFoundException } from '@nestjs/common'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
@@ -75,10 +79,70 @@ import {
     PluginResourceInstallerService,
     selectPluginResourceComponents
 } from './plugin-resource-installer.service'
+import type { RuntimeComponent } from './plugin-resource-installer.service'
 import { parsePluginMcpCapabilityDeclarations, parsePluginMcpServerConfig } from './plugin-mcp-server-contract'
 
 describe('PluginResourceInstallerService helpers', () => {
     afterEach(() => jest.restoreAllMocks())
+    it('binds existing task dependencies deterministically without installation or Assistant writes', async () => {
+        const query = { where: jest.fn(), andWhere: jest.fn(), getOne: jest.fn() }
+        query.where.mockReturnValue(query)
+        query.andWhere.mockReturnValue(query)
+        const row = {
+            enabled: true,
+            definitionHash: 'digest',
+            status: PLUGIN_RESOURCE_INSTALLATION_STATUS.READY,
+            runtimeType: PLUGIN_RESOURCE_RUNTIME_TYPE.SKILL_PACKAGE,
+            runtimeId: 'skill'
+        }
+        query.getOne.mockResolvedValue(row)
+        const repository = { createQueryBuilder: () => query, save: jest.fn() }
+        const xperts = { updateDraft: jest.fn() }
+        const service = new PluginResourceInstallerService(
+            repository as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            {} as never,
+            xperts as never,
+            {} as never
+        )
+        const owner: IXpert = {
+            id: 'owner',
+            slug: 'owner',
+            name: 'Owner',
+            type: XpertTypeEnum.Agent,
+            workspaceId: 'workspace'
+        }
+        const draft: TXpertTeamDraft = {
+            team: { agent: { key: 'primary' } },
+            nodes: [{ key: 'primary', type: 'agent', entity: { key: 'primary' }, position: { x: 0, y: 0 } }],
+            connections: []
+        }
+        const components: RuntimeComponent[] = [
+            {
+                pluginName: 'package',
+                pluginVersion: 'v1',
+                rootDir: '/package',
+                component: { componentType: 'skill', componentKey: 'review', definitionHash: 'digest' }
+            }
+        ]
+        const first = structuredClone(draft),
+            resumed = structuredClone(draft)
+        await service.bindExistingRuntimeComponents(first, owner, components)
+        await service.bindExistingRuntimeComponents(resumed, owner, components)
+        expect(first).toEqual(resumed)
+        expect(first.nodes).toHaveLength(2)
+        expect(repository.save).not.toHaveBeenCalled()
+        expect(xperts.updateDraft).not.toHaveBeenCalled()
+        query.getOne.mockResolvedValueOnce({ ...row, enabled: false })
+        await expect(service.bindExistingRuntimeComponents(structuredClone(draft), owner, components)).rejects.toThrow()
+        query.getOne.mockResolvedValueOnce({ ...row, definitionHash: 'new-version' })
+        await expect(service.bindExistingRuntimeComponents(structuredClone(draft), owner, components)).rejects.toThrow()
+    })
     it('accepts a static capability descriptor file reference without starting the MCP server', () => {
         expect(
             parsePluginMcpServerConfig(

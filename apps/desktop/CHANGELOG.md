@@ -1,5 +1,55 @@
 # @xpert-ai/desktop
 
+## 0.3.4
+
+### Patch Changes
+
+- @xpert-ai/desktop-protocol@0.3.4
+
+## 0.3.3
+
+### Patch Changes
+
+- dd9fe6b: Add native Settings, Check for updates and Sign out menu actions, disable Developer Tools in packaged apps, and publish verified stable Bosi releases automatically.
+- dd9fe6b: Restore the last visited Assistant and conversation when reopening Bosi. Keep navigation scoped to the service, tenant, account and organization, and fall back to a new chat when the remembered conversation is no longer accessible.
+  - @xpert-ai/desktop-protocol@0.3.3
+
+## 0.3.2
+
+### Patch Changes
+
+- e42fc94: Make tenant and organization Agent Plugin installations directly available in the ChatKit Plugins menu. Remove workspace publishing and addition from Cloud and Desktop, prepare selected runtime resources on demand, and retain existing conversation versions, expert mappings and Connector configuration.
+
+  Tenant packages inherit into organizations without sharing Connector credentials. Existing databases created with the original Agent Plugin SQL schema should apply `20261012-agent-plugin-installation-scope.sql` to allow tenant-scoped records.
+
+- 7de8eae: Update ChatKit packages to 0.14.2 to preserve pending project confirmation when restoring conversations, and synchronize the API, Web and Desktop deployment lockfiles.
+- d9db433: Align desktop application setup with Xpert tool requirements: select existing configurations, create or edit app-managed tools, resume or discard unfinished configuration, and submit validated tool selections during installation. Show actionable server validation errors.
+- d9db433: Reuse the desktop model cascader across application, template and assistant settings with custom field labels. Preserve authorized provider logos from Xpert, connection, capability and context metadata for model search and comparison without exposing credentials or changing installation selections.
+
+  Keep the portaled model list scrollable inside desktop dialogs while preserving focus and background scroll locking.
+
+- f816d25: Update the ChatKit packages consumed by Xpert to 0.14.1 and synchronize the API, Web and Desktop deployment lockfiles.
+  - @xpert-ai/desktop-protocol@0.3.2
+
+## 0.3.1
+
+### Patch Changes
+
+- 47db99b: Improve macOS recording reliability with a private, hardware-clocked Core Audio tap that starts during system silence and follows the negotiated sample rate. Preserve audio buffer ownership, bound queued input, and separate device startup from first-frame timeouts. Handle cancellation and blocked device shutdown, preserve actionable permission errors, and finish saving stopped captures before removing delivered audio from the cache. Keep synthetic test modes out of the shipped recorder and document packaged app launch requirements for correct macOS permission attribution.
+- a4dced5: Reuse catalog results and pending requests while the discovery dialog is open, preserve the plugin workspace and list when switching tabs, and avoid remounting the catalog when returning from details. Refresh affected catalogs after installation and keep cached application and expert access status synchronized with setup results. Reset the cache when the account or organization changes.
+- 480ec3e: Fix Desktop dialog background flicker during foreground hover animations by blurring the background content instead of sampling it through a fullscreen backdrop filter. Preserve live background blur, nested dialog layering and card glass effects, and restore the unfiltered background when dialogs close.
+
+  Pause pointer-following avatars behind modal dialogs without resetting their pose, resume them when uncovered, and avoid redundant SVG transform updates. Add regression coverage for modal visibility, foreground avatars and animation cleanup.
+
+- ba7e09f: Fix Desktop candidate build selection after synchronizing released versions from main while retaining pending Changesets. Keep stable release consumption checks and request new candidate installers with the repaired release pipeline.
+- e55a7dc: Improve application marketplace cards in Web and Desktop with full-bleed previews, app logos and compact translucent glass overlays. Reveal descriptions and actions on hover or keyboard focus, keep them available on touch devices, and size cards to prevent internal vertical scrolling or clipped actions at narrow widths. Use fixed-size panels with transform animations and matching loading placeholders.
+
+  Preserve validated image, SVG and emoji application icons in the Desktop catalog and setup details, provide preview and logo fallbacks, and show publisher and tag information in application details. Add catalog regression coverage for supported icons and rejected URLs.
+
+- 9286a0f: Refine marketplace application cards with theme-aware translucent gradients, compact logos, and cover-aligned blur layers that stay aligned while details expand. Improve dark-theme text contrast and keep the web card glass independent of backdrop sampling.
+- Updated dependencies [75f1cd3]
+  - @xpert-ai/desktop-protocol@0.3.1
+
 ## 0.3.0
 
 ### Minor Changes
