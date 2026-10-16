@@ -1,6 +1,26 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { compilationTimings } from './benchmark-build.mjs'
+import { execFileSync } from 'node:child_process'
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { assertMatchingBuildLocks, compilationTimings } from './benchmark-build.mjs'
+
+test('large build locks are compared without buffering their contents', (t) => {
+  const root = mkdtempSync(join(tmpdir(), 'api-benchmark-lock-'))
+  t.after(() => rmSync(root, { recursive: true, force: true }))
+  const git = (...args) => execFileSync('git', args, { cwd: root, stdio: 'pipe', encoding: 'utf8' }).trim()
+  git('init', '-q')
+  mkdirSync(join(root, '.deploy/api'), { recursive: true })
+  const lock = join(root, '.deploy/api/pnpm-lock.build.yaml')
+  writeFileSync(lock, '# lock\n'.repeat(200000))
+  git('add', '.')
+  const baseline = git('write-tree')
+  assert.doesNotThrow(() => assertMatchingBuildLocks(root, baseline, baseline))
+  writeFileSync(lock, 'different dependencies')
+  git('add', '.')
+  assert.throws(() => assertMatchingBuildLocks(root, baseline, git('write-tree')), /identical API build/)
+})
 
 test('legacy compilation includes plugins and API, excluding dependency install', () => {
   const result = compilationTimings(`#10 [build 1/3] RUN pnpm install --frozen-lockfile

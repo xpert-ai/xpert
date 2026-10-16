@@ -34,6 +34,12 @@ function run(command, args, options = {}) {
   return result.stdout?.trim()
 }
 
+export function assertMatchingBuildLocks(root, baseline, candidate) {
+  // Compare Git blob IDs; the lock exceeds spawnSync's default stdout buffer.
+  const blob = (ref) => run('git', ['rev-parse', `${ref}:.deploy/api/pnpm-lock.build.yaml`], { cwd: root })
+  if (blob(baseline) !== blob(candidate)) throw new Error('Compare commits with identical API build dependency locks')
+}
+
 async function build(context, logFile, platform, cold) {
   const output = openSync(logFile, 'w')
   const args = [
@@ -82,10 +88,7 @@ async function benchmark() {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
   const baseline = run('git', ['rev-parse', '--verify', `${values.baseline}^{commit}`], { cwd: root })
   const candidate = run('git', ['rev-parse', '--verify', `${values.candidate}^{commit}`], { cwd: root })
-  const read = (ref, file) => run('git', ['show', `${ref}:${file}`], { cwd: root })
-  if (read(baseline, '.deploy/api/pnpm-lock.build.yaml') !== read(candidate, '.deploy/api/pnpm-lock.build.yaml')) {
-    throw new Error('Compare commits with identical API build dependency locks')
-  }
+  assertMatchingBuildLocks(root, baseline, candidate)
   const output = values.output ? resolve(values.output) : mkdtempSync(join(tmpdir(), 'xpert-api-benchmark-'))
   mkdirSync(output, { recursive: true })
   const work = mkdtempSync(join(tmpdir(), 'xpert-api-benchmark-context-'))

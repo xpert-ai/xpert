@@ -45,10 +45,13 @@
             },
             "cache": true,
             "inputs": [
+                "^production",
                 "{projectRoot}/src/**/remote-components/**/*",
                 "!{projectRoot}/src/**/remote-components/**/app.js",
                 "!{projectRoot}/src/**/remote-components/**/app.css",
                 "{projectRoot}/scripts/build-remote*.mjs",
+                "{projectRoot}/tsconfig*.json",
+                "{projectRoot}/package.json",
                 "{projectRoot}/src/chat-conversation/conversation-map/schema.ts",
                 "{projectRoot}/src/shared/coding-tools/**/*",
                 "{workspaceRoot}/packages/contracts/src/**/*",
