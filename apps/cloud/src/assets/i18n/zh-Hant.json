@@ -172,6 +172,10 @@
       "CleanupOldVersions": "清理未引用舊版本（{{count}}）"
     },
     "XpertSettings": {
+      "Retry": "重試",
+      "NetworkError": "無法連線至伺服器，請檢查網路連線後重試。",
+      "LoadingConfiguration": "正在載入助理設定…",
+      "LoadFailed": "載入助理設定失敗，請重試。",
       "RealtimeVoice": {
         "Title": "即時語音通話",
         "Description": "使用獨立的即時語音模型進行通話並交辦任務。",

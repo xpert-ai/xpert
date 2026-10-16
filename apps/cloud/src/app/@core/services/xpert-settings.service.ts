@@ -1,10 +1,15 @@
 import { Dialog, DialogRef } from '@angular/cdk/dialog'
+import { HttpErrorResponse } from '@angular/common/http'
 import { Injectable, ViewContainerRef, inject, signal } from '@angular/core'
 import { TranslateService } from '@ngx-translate/core'
 import { AssistantBindingScope, AssistantCode, type IAssistantBinding, type TXpertTeamDraft } from '@xpert-ai/contracts'
 import { getErrorMessage } from '../types'
-import type { XpertSettingsDialogComponent } from '../../@shared/xpert/assistant-settings/xpert-settings-dialog.component'
-import { firstValueFrom, Subscription } from 'rxjs'
+import { firstValueFrom, Subject, Subscription, takeUntil } from 'rxjs'
+import {
+  XpertSettingsLoaderComponent,
+  type XpertSettingsLoaderData,
+  type XpertSettingsLoadState
+} from '../../@shared/xpert/assistant-settings/xpert-settings-loader.component'
 import { isEqual } from 'lodash-es'
 import { buildEditableXpertDraft } from '../../features/xpert/draft/editable-draft.util'
 import { DraftSaveQueue } from '../../@shared/xpert/assistant-settings/draft-save-queue'
@@ -26,7 +31,7 @@ export class XpertSettingsService {
   private readonly api = inject(XpertAPIService)
   private readonly translate = inject(TranslateService)
   private readonly toastr = inject(ToastrService)
-  private dialogRef: DialogRef<unknown, XpertSettingsDialogComponent> | null = null
+  private dialogRef: DialogRef<unknown, XpertSettingsLoaderComponent> | null = null
   private opening = false
   private readonly sections = new Map<string, XpertSettingsSection>()
 
@@ -58,92 +63,151 @@ export class XpertSettingsService {
     this.opening = true
     const organizationId = this.store.organizationId
     const subscriptions = new Subscription()
-    try {
-      const source =
-        activeSource?.id === id && activeSource.draft() ? activeSource : await this.loadSource(id, organizationId)
-      const candidate =
-        resolvedBinding === undefined
-          ? await firstValueFrom(this.bindings.get(AssistantCode.CLAWXPERT, AssistantBindingScope.USER)).catch(
-              () => null
-            )
-          : resolvedBinding
-      const binding = candidate?.assistantId === id && candidate.enabled !== false ? candidate : null
-      if (organizationId !== this.store.organizationId) return
-      const requestedSection = section ?? this.sections.get(id) ?? 'general'
-      const { XpertSettingsDialogComponent } =
-        await import('../../@shared/xpert/assistant-settings/xpert-settings-dialog.component')
-      if (organizationId !== this.store.organizationId) return
-      this.dialogRef = this.dialog.open(XpertSettingsDialogComponent, {
-        viewContainerRef,
-        backdropClass: 'backdrop-blur-xs-black',
-        panelClass: 'xp-overlay-pane-dialog',
-        maxWidth: 'calc(100vw - 32px)',
-        disableClose: true,
-        ariaLabel: this.translate.instant('XP.XpertSettings.Title'),
-        data: {
-          source,
-          saveMode,
-          binding,
-          organizationId,
-          section: requestedSection === 'personalization' && !binding ? 'general' : requestedSection,
-          selectSection: (value: XpertSettingsSection) => this.sections.set(id, value),
-          publish:
-            saveMode === 'draft'
-              ? undefined
-              : async () => {
-                  if (organizationId !== this.store.organizationId)
-                    throw new Error(this.translate.instant('XP.AssistantSettings.BindingChanged'))
-                  const latest = await firstValueFrom(this.api.getTeam(id))
-                  if (organizationId !== this.store.organizationId)
-                    throw new Error(this.translate.instant('XP.AssistantSettings.BindingChanged'))
-                  await firstValueFrom(
-                    this.api.publish(id, false, {
-                      environmentId: latest.environmentId ?? null,
-                      releaseNotes: this.translate.instant('XP.XpertSettings.PublishReleaseNotes')
-                    })
-                  )
-                  // Publication replaces agent timestamps and clears the server draft. Rebase before the next edit.
-                  await source.reload?.()
-                }
+    const state = signal<XpertSettingsLoadState>({ status: 'loading' })
+    let disposed = false
+    let loading = false
+    let cancelLoad: Subject<void> | undefined
+    let source: XpertSettingsSource | undefined
+    let binding: IAssistantBinding | null = null
+    const load = async () => {
+      if (disposed || loading) return
+      loading = true
+      state.set({ status: 'loading' })
+      const cancelled = new Subject<void>()
+      cancelLoad = cancelled
+      try {
+        const [loadedSource, candidate, { XpertSettingsDialogComponent }] = await Promise.all([
+          activeSource?.id === id && activeSource.draft()
+            ? activeSource
+            : this.loadSource(id, organizationId, cancelled),
+          resolvedBinding === undefined
+            ? firstValueFrom(
+                this.bindings.get(AssistantCode.CLAWXPERT, AssistantBindingScope.USER).pipe(takeUntil(cancelled))
+              )
+            : resolvedBinding,
+          import('../../@shared/xpert/assistant-settings/xpert-settings-dialog.component')
+        ])
+        if (disposed || organizationId !== this.store.organizationId) return
+        source = loadedSource
+        binding = candidate?.assistantId === id && candidate.enabled !== false ? candidate : null
+        const requestedSection = section ?? this.sections.get(id) ?? 'general'
+        state.set({
+          status: 'ready',
+          component: XpertSettingsDialogComponent,
+          data: {
+            source: loadedSource,
+            saveMode,
+            binding,
+            organizationId,
+            section: requestedSection === 'personalization' && !binding ? 'general' : requestedSection,
+            selectSection: (value: XpertSettingsSection) => this.sections.set(id, value),
+            publish:
+              saveMode === 'draft'
+                ? undefined
+                : async () => {
+                    if (organizationId !== this.store.organizationId)
+                      throw new Error(this.translate.instant('XP.AssistantSettings.BindingChanged'))
+                    const latest = await firstValueFrom(this.api.getTeam(id))
+                    if (organizationId !== this.store.organizationId)
+                      throw new Error(this.translate.instant('XP.AssistantSettings.BindingChanged'))
+                    await firstValueFrom(
+                      this.api.publish(id, false, {
+                        environmentId: latest.environmentId ?? null,
+                        releaseNotes: this.translate.instant('XP.XpertSettings.PublishReleaseNotes')
+                      })
+                    )
+                    // Publication replaces agent timestamps and clears the server draft. Rebase before the next edit.
+                    await loadedSource.reload?.()
+                  }
+          }
+        })
+      } catch (error) {
+        if (!disposed && organizationId === this.store.organizationId) {
+          state.set({
+            status: 'error',
+            message:
+              error instanceof HttpErrorResponse && error.status === 0
+                ? this.translate.instant('XP.XpertSettings.NetworkError')
+                : getErrorMessage(error)
+          })
         }
-      })
-      const closed = firstValueFrom(this.dialogRef.closed)
+      } finally {
+        cancelled.next()
+        cancelled.complete()
+        loading = false
+      }
+    }
+    try {
+      const ref = this.dialog.open<unknown, XpertSettingsLoaderData, XpertSettingsLoaderComponent>(
+        XpertSettingsLoaderComponent,
+        {
+          viewContainerRef,
+          backdropClass: 'backdrop-blur-xs-black',
+          panelClass: 'xp-overlay-pane-dialog',
+          maxWidth: 'calc(100vw - 32px)',
+          disableClose: true,
+          ariaLabel: this.translate.instant('XP.XpertSettings.Title'),
+          data: { state, retry: () => void load() }
+        }
+      )
+      this.dialogRef = ref
+      const closed = firstValueFrom(ref.closed)
+      subscriptions.add(
+        ref.closed.subscribe(() => {
+          disposed = true
+          cancelLoad?.next()
+        })
+      )
       subscriptions.add(
         this.store.selectOrganizationId().subscribe((current) => {
-          if (current !== organizationId) this.dialogRef?.close()
+          if (current !== organizationId) ref.close()
         })
       )
       subscriptions.add(
         this.bindings.changes$.subscribe((change) => {
-          if (binding && change.code === binding.code && change.scope === binding.scope) this.dialogRef?.close()
+          if (
+            change.code === AssistantCode.CLAWXPERT &&
+            change.scope === AssistantBindingScope.USER &&
+            (state().status !== 'ready' || binding)
+          )
+            ref.close()
         })
       )
+      void load()
       await closed
-      return source.draft()
+      return source?.draft()
     } catch (error) {
       this.toastr.error(getErrorMessage(error))
     } finally {
+      disposed = true
+      cancelLoad?.next()
       subscriptions.unsubscribe()
       this.dialogRef = null
       this.opening = false
     }
   }
 
-  private async loadSource(id: string, organizationId: string | null): Promise<XpertSettingsSource> {
+  private async loadSource(
+    id: string,
+    organizationId: string | null,
+    cancelled: Subject<void>
+  ): Promise<XpertSettingsSource> {
     const team = await firstValueFrom(
-      this.api.getTeam(id, {
-        relations: [
-          'agent',
-          'agent.copilotModel',
-          'agents',
-          'agents.copilotModel',
-          'executors',
-          'executors.agent',
-          'executors.copilotModel',
-          'copilotModel',
-          'knowledgebase'
-        ]
-      })
+      this.api
+        .getTeam(id, {
+          relations: [
+            'agent',
+            'agent.copilotModel',
+            'agents',
+            'agents.copilotModel',
+            'executors',
+            'executors.agent',
+            'executors.copilotModel',
+            'copilotModel',
+            'knowledgebase'
+          ]
+        })
+        .pipe(takeUntil(cancelled))
     )
     const draft = signal(buildEditableXpertDraft(team))
     let savedDraft = structuredClone(draft())

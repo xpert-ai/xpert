@@ -270,6 +270,10 @@
       "CleanupOldVersions": "清理未引用旧版本（{{count}}）"
     },
     "XpertSettings": {
+      "Retry": "重试",
+      "NetworkError": "无法连接服务器，请检查网络连接后重试。",
+      "LoadingConfiguration": "正在加载助理配置…",
+      "LoadFailed": "加载助理配置失败，请重试。",
       "RealtimeVoice": {
         "Title": "实时语音通话",
         "Description": "使用独立的实时语音模型进行通话并交办任务。",

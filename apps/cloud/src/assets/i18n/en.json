@@ -422,6 +422,10 @@
       "CleanupOldVersions": "Clean unused versions ({{count}})"
     },
     "XpertSettings": {
+      "Retry": "Retry",
+      "NetworkError": "Unable to connect to the server. Check your connection and try again.",
+      "LoadingConfiguration": "Loading assistant configuration…",
+      "LoadFailed": "Could not load assistant configuration. Please try again.",
       "RealtimeVoice": {
         "Title": "Realtime voice calls",
         "Description": "Use a separate realtime model for live conversations and task handoff.",
