@@ -5,17 +5,15 @@ import type { IMcpPublication, McpPublicationConfiguration, McpPublicationConfig
 jest.mock('../../../@core', () => {
   const { inject } = require('@angular/core')
   class McpPublicationService {}
-  class ViewExtensionApiService {}
   class ToastrService {}
   return {
     McpPublicationService,
-    ViewExtensionApiService,
     ToastrService,
     injectToastr: () => inject(ToastrService),
     getErrorMessage: (error: Error) => error.message
   }
 })
-import { McpPublicationService, ViewExtensionApiService, ToastrService } from '../../../@core'
+import { McpPublicationService, ToastrService } from '../../../@core'
 import { McpPublicationPluginTabsComponent } from './mcp-publication-plugin-tabs'
 
 const tab: McpPublicationConfigurationTab = {
@@ -38,12 +36,10 @@ async function setup(configurations = [tab]) {
     sourceConfiguration: jest.fn(() => of(saved)),
     updateSourceConfiguration: jest.fn(() => of(saved))
   }
-  const views = { getSlotViews: jest.fn(() => of([])) }
   await TestBed.configureTestingModule({
     imports: [McpPublicationPluginTabsComponent],
     providers: [
       { provide: McpPublicationService, useValue: service },
-      { provide: ViewExtensionApiService, useValue: views },
       { provide: ToastrService, useValue: { success: jest.fn(), error: jest.fn() } }
     ]
   })
@@ -55,7 +51,7 @@ async function setup(configurations = [tab]) {
   fixture.componentRef.setInput('publication', { id: 'publication-1' } as IMcpPublication)
   fixture.detectChanges()
   await fixture.whenStable()
-  return { fixture, component: fixture.componentInstance, service, views }
+  return { fixture, component: fixture.componentInstance, service }
 }
 
 describe('MCP plugin tabs', () => {
@@ -74,21 +70,12 @@ describe('MCP plugin tabs', () => {
     })
   })
 
-  it('shows all configuration sources and explicit extension views, including views without config fields', async () => {
-    const { component, views } = await setup([tab, { ...tab, toolsetId: 'source-2', pluginName: '@example/second' }])
-    views.getSlotViews.mockReturnValue(of([{ key: 'custom:help', title: { en_US: 'Help' } }]))
-    await component.loadTabs('publication-1')
-    expect(component.tabs().map(({ key }) => key)).toEqual([
-      'configuration:source-1',
-      'configuration:source-2',
-      'view:custom:help'
-    ])
-    expect(views.getSlotViews).toHaveBeenCalledWith('mcp-publication', 'publication-1', 'detail.main_tabs')
-    await component.select(component.tabs()[2])
-    expect(component.selectedTab()?.kind).toBe('view')
+  it('shows a tab for every configurable bound source', async () => {
+    const { component } = await setup([tab, { ...tab, toolsetId: 'source-2', pluginName: '@example/second' }])
+    expect(component.tabs().map(({ key }) => key)).toEqual(['configuration:source-1', 'configuration:source-2'])
   })
 
-  it('adds no tab when neither configuration nor explicit views exist', async () => {
+  it('adds no tab when no bound source has configuration fields', async () => {
     const { component } = await setup([])
     expect(component.tabs()).toEqual([])
   })

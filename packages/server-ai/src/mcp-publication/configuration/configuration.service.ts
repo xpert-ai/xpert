@@ -35,11 +35,6 @@ export class McpSourceConfigurationService {
         private readonly workspaceAccess: XpertWorkspaceAccessService
     ) {}
 
-    async sources(publicationId: string): Promise<McpPublicationPluginSource[]> {
-        const { sources } = await this.boundSources(publicationId)
-        return sources.map(({ source }) => source)
-    }
-
     async tabs(publicationId: string): Promise<McpPublicationConfigurationTab[]> {
         const { publication, sources } = await this.boundSources(publicationId)
         return sources.flatMap(({ source, strategy }) => {

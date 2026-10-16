@@ -6,8 +6,7 @@
   [zType]="active() && selectedKey() === tab.key ? 'secondary' : 'ghost'"
   (click)="select(tab)"
 >
-  {{ (tab.kind === 'configuration' ? tab.configuration.title : tab.view.title) | i18n }} @if (tabs().length > 1 &&
-  tab.kind === 'configuration') {
+  {{ tab.configuration.title | i18n }} @if (tabs().length > 1) {
   <span class="text-xs text-text-tertiary">· {{ tab.configuration.name }}</span>
   }
 </button>
@@ -18,16 +17,7 @@
 }
 
 <ng-template #content>
-  @if (selectedTab(); as tab) { @if (tab.kind === 'view') {
-  <xp-extension-host-outlet
-    mode="single-view"
-    hostType="mcp-publication"
-    slot="detail.main_tabs"
-    [hostId]="publication().id"
-    [viewKey]="tab.view.key"
-    [fillAvailableHeight]="true"
-  />
-  } @else {
+  @if (selectedTab(); as tab) {
   <section class="space-y-4">
     <div class="flex items-center justify-between gap-3">
       <div>
@@ -69,5 +59,5 @@
     </form>
     }
   </section>
-  } }
+  }
 </ng-template>

@@ -2,14 +2,7 @@ import type { I18nObject, IconDefinition } from '../types'
 import type { JsonSchemaObjectType } from '../ai/types'
 import type { XpertViewAssistantIdentity } from './assistant-profile'
 
-export type XpertViewHostType =
-  | 'integration'
-  | 'knowledgebase'
-  | 'agent'
-  | 'project'
-  | 'sandbox'
-  | 'mcp-publication'
-  | string
+export type XpertViewHostType = 'integration' | 'knowledgebase' | 'agent' | 'project' | 'sandbox' | string
 
 export type XpertViewSlotMode = 'tabs' | 'sections' | 'widgets' | 'sidebar'
 
