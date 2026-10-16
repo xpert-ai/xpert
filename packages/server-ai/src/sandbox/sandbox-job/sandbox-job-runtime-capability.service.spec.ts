@@ -387,13 +387,13 @@ describe('SandboxJobRuntimeCapabilityService action validation', () => {
         const job = sandboxJob({ runtimeRef: null, provider: 'fake-runtime' })
         const save = jest.fn().mockImplementation(async (value) => value)
         const destroy = jest.fn().mockResolvedValue(undefined)
-        const deleteFile = jest.fn().mockResolvedValue(undefined)
+        const destroyRuntimeJob = jest.fn().mockResolvedValue(undefined)
         const service = createService(
             {},
             { findOne: jest.fn().mockResolvedValue(job), save },
             {},
             { get: jest.fn().mockReturnValue({ destroy }) },
-            { resolve: jest.fn().mockReturnValue({ deleteFile }) }
+            { resolve: jest.fn().mockReturnValue({ destroyRuntimeJob }) }
         )
 
         await service.cancel({ jobId: 'job-1' })
@@ -407,7 +407,7 @@ describe('SandboxJobRuntimeCapabilityService action validation', () => {
         )
         expect(job.cleanupPending).toBe(false)
         expect(job.cleanedAt).toBeInstanceOf(Date)
-        expect(deleteFile).toHaveBeenCalledWith('')
+        expect(destroyRuntimeJob).toHaveBeenCalled()
     })
 })
 

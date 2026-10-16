@@ -712,6 +712,17 @@ export class VolumeHandle {
         }
     }
 
+    /** Internal lifecycle operation; public file APIs must never remove a Volume root. */
+    async destroyRuntimeJob(): Promise<void> {
+        if (this.scope.catalog !== 'runtime-jobs' || !this.scope.jobId)
+            throw new Error(t('server-ai:Error.SandboxJobVolumeRequired'))
+        try {
+            await VolumeHandle.removePath(path.dirname(this.serverRoot), path.basename(this.serverRoot))
+        } catch (error: unknown) {
+            if (!error || typeof error !== 'object' || !('code' in error) || error.code !== 'ENOENT') throw error
+        }
+    }
+
     async deleteFile(filePath: string): Promise<void> {
         try {
             if (!normalizeRelativePathForVolume(filePath)) {
