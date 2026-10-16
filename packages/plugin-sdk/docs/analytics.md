@@ -38,3 +38,10 @@ PostgreSQL discovery uses the platform Workbench adapter's comments, types and k
 - After execution, source revision and provider registration are checked again. Missing/ambiguous columns, invalid cells, duplicate grain and inconsistent completeness fail closed.
 - No shared result cache. `sourceFetchedAt` means source query time, not last business-data change; `dataAsOf` is optional and source-owned.
 - `int64` and `decimal` use exact strings. Timestamps include a timezone. Renderers must reject unsupported precision rather than silently round canonical data.
+
+## Reusable Artifacts changes
+
+`listArtifacts.resourceIdPrefix` matches a literal resource ID prefix, never a pattern, within the caller's existing access scope. Storage-specific matching stays inside the platform Artifacts service.
+`ensureArtifactVersion.expectedCurrentVersionId` enables compare-and-set inside the existing Artifact row lock; null means no current version. An idempotent retry may reuse the current version but cannot resurrect an old save over a newer one. Callers that omit it retain existing behavior.
+
+No dashboard table, renderer schema or data-xpert dependency is added to the platform.

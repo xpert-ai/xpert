@@ -12,6 +12,8 @@ import {
 } from '@nestjs/common'
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm'
 import { RuntimeCapabilityProvider } from '../shared/runtime/runtime-capability-provider.decorator'
+import { assertArtifactVersionPrecondition } from './artifact-version-concurrency'
+import { artifactResourcePrefixPattern } from './artifact-source-filter'
 import type { ArtifactAccessEvent, IUser } from '@xpert-ai/contracts'
 import { environment } from '@xpert-ai/server-config'
 import { RequestContext as ServerRequestContext, UserOrganizationService, UserService } from '@xpert-ai/server-core'
@@ -678,6 +680,7 @@ export class ArtifactsService implements ArtifactsApi {
         return this.withLockedArtifact(artifact, async (lockedArtifact, repositories) => {
             const artifactId = normalizeRequiredString(lockedArtifact.id, 'artifact.id')
             const existing = await repositories.version.findOne({ where: { artifactId, idempotencyKey } })
+            assertArtifactVersionPrecondition(input, lockedArtifact.currentVersionId, existing?.id)
             if (existing) {
                 if (!existing.sha256 || !safeEqualString(existing.sha256, sha256)) {
                     throw new BadRequestException(
@@ -749,6 +752,11 @@ export class ArtifactsService implements ArtifactsApi {
             .orderBy('artifact.updatedAt', 'DESC')
             .skip((page - 1) * pageSize)
             .take(pageSize)
+        if (input.resourceIdPrefix) {
+            qb.andWhere('artifact.resourceId LIKE :resourceIdPrefix', {
+                resourceIdPrefix: artifactResourcePrefixPattern(input.resourceIdPrefix)
+            })
+        }
 
         if (scope.organizationId) {
             qb.andWhere('artifact.organizationId = :organizationId', { organizationId: scope.organizationId })

@@ -53,6 +53,7 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "ArtifactVersionConflict": "Artifact was changed by another save. Reopen it before saving again.",
         "AnalyticsAccessDenied": "Analytics access denied",
         "AnalyticsQueryInvalid": "Analytics query is unavailable or invalid",
         "PersonalApiKeyNotFound": "Personal API key not found or already revoked.",
