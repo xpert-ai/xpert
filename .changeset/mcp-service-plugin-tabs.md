@@ -5,7 +5,7 @@
 '@xpert-ai/xpert-ui': patch
 ---
 
-Expose configuration tabs for existing MCP Publication plugin sources and a typed MCP view-host context. Preserve schema UI metadata, mask saved secrets and reject stale saves. Enable the existing view-extension slot on MCP service pages without changing ordinary toolset registration or installation.
+Expose configuration tabs for existing MCP Publication plugin sources, rendered from each bound provider's `configSchema`. Preserve schema UI metadata, mask saved secrets and reject stale saves without changing ordinary toolset registration or installation.
 
 Allow native providers to validate connection values before persistence. Preserve array secrets by their source reference when entries are moved or removed, and reject ambiguous or mismatched references. Avoid eager tag joins when locking connection rows on PostgreSQL.
 

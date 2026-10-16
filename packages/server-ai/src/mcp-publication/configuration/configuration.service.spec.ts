@@ -15,7 +15,6 @@ import { McpPublicationService } from '../mcp-publication.service'
 import { XpertToolset } from '../../xpert-toolset/xpert-toolset.entity'
 import { XpertWorkspaceAccessService } from '../../xpert-workspace'
 import { McpSourceConfigurationService } from './configuration.service'
-import { McpPublicationViewHostDefinition } from './mcp-publication-view-host.definition'
 import { McpSourceConfigurationController } from './configuration.controller'
 
 const schema: JsonSchemaObjectType = {
@@ -77,7 +76,6 @@ async function setup(options?: { schema?: JsonSchemaObjectType; credentials?: Re
         controllers: [McpSourceConfigurationController],
         providers: [
             McpSourceConfigurationService,
-            McpPublicationViewHostDefinition,
             { provide: McpPublicationService, useValue: publications },
             { provide: getRepositoryToken(XpertToolset), useValue: repository },
             { provide: ToolsetRegistry, useValue: registry },
@@ -90,7 +88,6 @@ async function setup(options?: { schema?: JsonSchemaObjectType; credentials?: Re
     return {
         module,
         service: module.get(McpSourceConfigurationService),
-        host: module.get(McpPublicationViewHostDefinition),
         toolset,
         publication,
         publications,
@@ -132,9 +129,6 @@ describe('MCP bound source configuration', () => {
         expect(tabs[0].schema).toEqual(schema)
         expect(tabs[0].title.zh_Hans).toBe('配置连接')
         expect(JSON.stringify(tabs)).not.toContain('private-value')
-        const host = await ctx.host.resolve('publication-1')
-        expect(host.hostSnapshot.sources).toHaveLength(3)
-        expect(JSON.stringify(host)).not.toContain('credentials')
         expect(ctx.repository.find).toHaveBeenCalledWith(
             expect.objectContaining({
                 where: expect.objectContaining({

@@ -28,7 +28,6 @@ import { McpTaskExecutionService } from './mcp-task-execution.service'
 import { XpertWorkspaceModule } from '../xpert-workspace'
 import { McpSourceConfigurationController } from './configuration/configuration.controller'
 import { McpSourceConfigurationService } from './configuration/configuration.service'
-import { McpPublicationViewHostDefinition } from './configuration/mcp-publication-view-host.definition'
 
 @Module({
     imports: [
@@ -47,7 +46,6 @@ import { McpPublicationViewHostDefinition } from './configuration/mcp-publicatio
     ],
     providers: [
         McpSourceConfigurationService,
-        McpPublicationViewHostDefinition,
         McpFilesGuard,
         McpFilesService,
         McpPublicationService,

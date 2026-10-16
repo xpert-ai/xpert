@@ -12,11 +12,6 @@ export interface McpPublicationPluginSource {
   pluginName: string
 }
 
-export interface McpPublicationViewHostSnapshot {
-  id: string
-  sources: McpPublicationPluginSource[]
-}
-
 /** A configuration tab edits the existing bound source; it never creates a toolset. */
 export interface McpPublicationConfigurationTab extends McpPublicationPluginSource {
   title: I18nObject

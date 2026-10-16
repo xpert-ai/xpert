@@ -18,18 +18,14 @@ import type {
   IMcpPublication,
   IMcpPublicationCapability,
   McpPublicationConfiguration,
-  McpPublicationConfigurationTab,
-  XpertExtensionViewManifest
+  McpPublicationConfigurationTab
 } from '@xpert-ai/contracts'
 import { XpI18nPipe, ZardButtonComponent } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
-import { getErrorMessage, injectToastr, McpPublicationService, ViewExtensionApiService } from '../../../@core'
-import { ExtensionHostOutletComponent } from '../../../@shared/view-extension'
+import { getErrorMessage, injectToastr, McpPublicationService } from '../../../@core'
 import { JSONSchemaFormComponent } from '../../../@shared/forms/json-schema-form/form.component'
 
-type PluginTab =
-  | { kind: 'configuration'; key: string; configuration: McpPublicationConfigurationTab }
-  | { kind: 'view'; key: string; view: XpertExtensionViewManifest }
+type PluginTab = { key: string; configuration: McpPublicationConfigurationTab }
 
 @Component({
   selector: 'xp-mcp-publication-plugin-tabs',
@@ -40,8 +36,7 @@ type PluginTab =
     TranslateModule,
     XpI18nPipe,
     ZardButtonComponent,
-    JSONSchemaFormComponent,
-    ExtensionHostOutletComponent
+    JSONSchemaFormComponent
   ],
   templateUrl: './mcp-publication-plugin-tabs.html',
   host: { class: 'contents' },
@@ -49,7 +44,6 @@ type PluginTab =
 })
 export class McpPublicationPluginTabsComponent {
   readonly #publications = inject(McpPublicationService)
-  readonly #views = inject(ViewExtensionApiService)
   readonly #toastr = injectToastr()
   readonly publication = input.required<IMcpPublication & { capabilities?: IMcpPublicationCapability[] }>()
   readonly active = input(false)
@@ -86,21 +80,13 @@ export class McpPublicationPluginTabsComponent {
     this.error.set(null)
     this.reset.emit()
     try {
-      const [configurations, views] = await Promise.all([
-        firstValueFrom(this.#publications.configurationTabs(publicationId)),
-        firstValueFrom(this.#views.getSlotViews('mcp-publication', publicationId, 'detail.main_tabs'))
-      ])
+      const configurations = await firstValueFrom(this.#publications.configurationTabs(publicationId))
       if (sequence !== this.#loadSequence) return
-      this.tabs.set([
-        ...configurations.map(
-          (configuration): PluginTab => ({
-            kind: 'configuration',
-            key: `configuration:${configuration.toolsetId}`,
-            configuration
-          })
-        ),
-        ...views.map((view): PluginTab => ({ kind: 'view', key: `view:${view.key}`, view }))
-      ])
+      this.tabs.set(
+        configurations.map(
+          (configuration): PluginTab => ({ key: `configuration:${configuration.toolsetId}`, configuration })
+        )
+      )
     } catch (error) {
       if (sequence === this.#loadSequence) this.error.set(getErrorMessage(error))
     }
@@ -118,7 +104,7 @@ export class McpPublicationPluginTabsComponent {
     this.loading.set(false)
     this.error.set(null)
     this.activate.emit()
-    if (tab.kind !== 'configuration' || !tab.configuration.canEdit) return
+    if (!tab.configuration.canEdit) return
     this.loading.set(true)
     try {
       const configuration = await firstValueFrom(
@@ -139,7 +125,7 @@ export class McpPublicationPluginTabsComponent {
   async save() {
     const tab = this.selectedTab()
     const configuration = this.configuration()
-    if (tab?.kind !== 'configuration' || !configuration || this.form()?.invalid || this.saving()) return
+    if (!tab || !configuration || this.form()?.invalid || this.saving()) return
     const sequence = this.#configurationSequence
     this.saving.set(true)
     try {

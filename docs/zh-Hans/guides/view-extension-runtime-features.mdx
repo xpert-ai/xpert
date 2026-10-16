@@ -33,31 +33,6 @@ readonly slots: XpertViewSlot[] = [
 
 Slot keys describe host extension areas. Business-specific names belong in provider, tool, or view keys. Other host slots include `detail.main_tabs` and `detail.sections`. New Assistant Workbench providers should use `AGENT_WORKBENCH_SLOT` from `@xpert-ai/contracts`, whose value is `agent.workbench`.
 
-## MCP 服务页签
-
-MCP 管理选中服务后，在默认页签后显示该服务实际绑定的插件配置和扩展视图。
-
-- Provider 的 `configSchema.properties` 非空时，宿主生成配置页签，标题优先使用 `configSchema.title`，否则使用 Provider 的 `label`。字段原样交给 JSON Schema 表单，包括 `x-ui.visibleWhen`、`remoteSelect` 和 `secretInput`。
-- 配置编辑绑定的现有工具集，不创建连接、不重新选择提供程序。密码以掩码回显；提交原掩码保留密码，提交空字符串会清空密码。保存使用 `updatedAt` 修订标识防止并发覆盖。不同来源独立配置，同一工具集被多个服务绑定时仍共享其配置。
-- 其他自定义页签复用 `@ViewExtensionProvider()`，host 为 `mcp-publication`，slot 为 `detail.main_tabs`，支持已有声明式视图和 `remote_component`。宿主同时汇总所有匹配 Provider 的视图，无配置字段的插件也可以显式贡献视图。
-- 没有配置字段和扩展视图的插件不新增页签。默认基本信息、能力、认证、权限策略、指令、审计、测试保持可用。
-
-Provider 可通过以下明确的绑定身份决定是否支持当前服务：
-
-```typescript
-supports(context: XpertResolvedViewHostContext) {
-  if (context.hostType !== 'mcp-publication') return false
-  const snapshot = context.hostSnapshot as McpPublicationViewHostSnapshot
-  return snapshot.sources.some(source =>
-    source.pluginName === '@example/plugin' && source.provider === 'example'
-  )
-}
-```
-
-`hostType` 为 `mcp-publication` 时，`context.hostSnapshot` 为 `McpPublicationViewHostSnapshot`，由服务端按 Publication 的能力绑定解析，包含服务 ID 及各来源的 `toolsetId`、`name`、`provider`、`pluginName`，不包含连接凭据。扩展视图沿用现有 manifest、数据和 action 权限检查；MCP 管理仅允许超级管理员访问，组织范围不能读取或修改共享租户连接的凭据。工作空间绑定另行检查工作空间写权限。
-
-配置接口为 `GET /api/mcp-publications/:id/plugin-configurations`、`GET /api/mcp-publications/:id/plugin-configurations/:toolsetId` 和同路径 `PUT`。更新请求包含 `values` 和 `revision`；响应中的密码掩码不得作为实际凭据传入数据库。已绑定来源的校验和密码还原均在服务端执行。
-
 ## Workbench Opening Policy
 
 Cloud, Desktop, and iOS request `agent.workbench`. Host access, Feature activation, and resource permissions determine availability. Opening behavior is configured separately:
