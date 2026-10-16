@@ -14,21 +14,27 @@ import {
 	UseInterceptors
 } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { CrudController, PaginationParams } from '../core'
+import { PaginationParams } from '../core'
 import { TransformInterceptor } from '../core/interceptors'
 import { Permissions } from '../shared/decorators'
 import { PermissionGuard } from '../shared/guards'
 import { ParseJsonPipe, UUIDValidationPipe } from '../shared/pipes'
 import { UserGroup } from './user-group.entity'
 import { UserGroupService } from './user-group.service'
+import {
+	UserGroupCreateInput,
+	UserGroupUpdateInput,
+	userGroupCreateSchema,
+	userGroupMemberIdsSchema,
+	userGroupUpdateSchema,
+	userGroupValidationPipe
+} from './user-group.schema'
 
 @ApiTags('UserGroup')
 @UseInterceptors(TransformInterceptor)
 @Controller()
-export class UserGroupController extends CrudController<UserGroup> {
-	constructor(private readonly service: UserGroupService) {
-		super(service)
-	}
+export class UserGroupController {
+	constructor(private readonly service: UserGroupService) {}
 
 	@UseGuards(PermissionGuard)
 	@Permissions(PermissionsEnum.ORG_USERS_VIEW)
@@ -50,6 +56,13 @@ export class UserGroupController extends CrudController<UserGroup> {
 
 	@UseGuards(PermissionGuard)
 	@Permissions(PermissionsEnum.ORG_USERS_VIEW)
+	@Get('member-candidates')
+	async getMemberCandidates(@Query('organizationId') organizationId?: string) {
+		return this.service.findMemberCandidates(organizationId)
+	}
+
+	@UseGuards(PermissionGuard)
+	@Permissions(PermissionsEnum.ORG_USERS_VIEW)
 	@Get(':id')
 	async getOne(@Param('id', UUIDValidationPipe) id: string) {
 		return this.service.findOne(id, {
@@ -60,14 +73,17 @@ export class UserGroupController extends CrudController<UserGroup> {
 	@UseGuards(PermissionGuard)
 	@Permissions(PermissionsEnum.ORG_USERS_EDIT)
 	@Post()
-	async createOne(@Body() entity: Partial<UserGroup>) {
+	async create(@Body(userGroupValidationPipe(userGroupCreateSchema)) entity: UserGroupCreateInput) {
 		return this.service.create(entity)
 	}
 
 	@UseGuards(PermissionGuard)
 	@Permissions(PermissionsEnum.ORG_USERS_EDIT)
 	@Put(':id')
-	async updateOne(@Param('id', UUIDValidationPipe) id: string, @Body() entity: Partial<UserGroup>) {
+	async update(
+		@Param('id', UUIDValidationPipe) id: string,
+		@Body(userGroupValidationPipe(userGroupUpdateSchema)) entity: UserGroupUpdateInput
+	) {
 		await this.service.update(id, entity)
 		return this.service.findOne(id, {
 			relations: ['members']
@@ -79,7 +95,7 @@ export class UserGroupController extends CrudController<UserGroup> {
 	@Put(':id/members')
 	async updateMembers(
 		@Param('id', UUIDValidationPipe) id: string,
-		@Body() memberIds: string[],
+		@Body(userGroupValidationPipe(userGroupMemberIdsSchema)) memberIds: string[],
 		@Query('organizationId') organizationId?: string
 	) {
 		return this.service.updateMembers(id, memberIds, organizationId)

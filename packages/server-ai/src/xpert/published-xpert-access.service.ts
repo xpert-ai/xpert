@@ -1,3 +1,4 @@
+import { activeSharingMemberSql, validSharingGroupSql } from './sharing/sharing-policy'
 import {
     IApiPrincipal,
     IXpert,
@@ -401,7 +402,7 @@ export class PublishedXpertAccessService {
             .leftJoin(
                 'xpert.userGroups',
                 'userGroup',
-                'userGroup.tenantId = :tenantId AND userGroup.organizationId = :organizationId',
+                `userGroup.tenantId = :tenantId AND userGroup.organizationId = :organizationId AND ${validSharingGroupSql('userGroup', 'xpert')}`,
                 {
                     tenantId,
                     organizationId
@@ -446,7 +447,10 @@ export class PublishedXpertAccessService {
                     .where('xpert.createdById = :userId', { userId })
                     .orWhere('workspace.ownerId = :userId', { userId })
                     .orWhere('workspaceMember.id = :userId', { userId })
-                    .orWhere('member.id = :userId', { userId })
+                    .orWhere(
+                        `member.id = :userId AND ${activeSharingMemberSql(':userId', ':tenantId', ':organizationId')}`,
+                        { userId }
+                    )
                     .orWhere(
                         new Brackets((organizationSharedQb) => {
                             organizationSharedQb

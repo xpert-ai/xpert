@@ -425,4 +425,21 @@ describe('SecretTokenStrategy', () => {
 			authenticate(strategy, { headers: { authorization: 'Bearer cs-x-expired' } })
 		).rejects.toBeInstanceOf(UnauthorizedException)
 	})
+	it.each(['revoked', 'deleted'] as const)(
+		'rejects a %s conversation credential before restoring its user',
+		async (state) => {
+			const { strategy, secretTokenService, userService } = createStrategy('org-1')
+			if (state === 'deleted') secretTokenService.findBySecret.mockRejectedValue(new UnauthorizedException())
+			else
+				secretTokenService.findBySecret.mockResolvedValue({
+					type: SecretTokenBindingType.USER_CONVERSATION,
+					validUntil: new Date(Date.now() + 60_000),
+					expired: true
+				} as never)
+			await expect(
+				authenticate(strategy, { headers: { authorization: 'Bearer cs-x-revoked' } })
+			).rejects.toBeInstanceOf(UnauthorizedException)
+			expect(userService.findOneByIdWithinTenant).not.toHaveBeenCalled()
+		}
+	)
 })

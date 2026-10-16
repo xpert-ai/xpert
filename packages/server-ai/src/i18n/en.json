@@ -53,6 +53,16 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "AssistantSharingForbidden": "You cannot manage sharing for this assistant in the current organization.",
+        "AssistantSharingNotFound": "The assistant was not found in the current organization.",
+        "AssistantSharingInvalidGroups": "Choose user groups from the current organization.",
+        "AssistantSharingChanged": "Sharing has changed. Reload before saving.",
+        "AssistantSharingInvalidInput": "Invalid sharing request.",
+        "AssistantSharingUseEndpoint": "Use the assistant sharing settings to change access.",
+        "AssistantManagedGroup": "This access group is managed by its assistant.",
+        "InvalidUserGroupInput": "Invalid user group input.",
+        "InvalidUserGroupMembers": "Some users are not active members of the current organization.",
+        "UserGroupNotFound": "The requested user group was not found in the current organization.",
         "TenantSettingScopeImmutable": "A setting cannot be moved to another tenant.",
         "RetentionDefaultTenantRequired": "Only a SuperAdmin in the default tenant can configure retention for all tenants.",
         "TemplateSubagentParameterInvalid": "Template input parameter {{name}} conflicts with a reserved runtime field.",
@@ -1093,7 +1103,11 @@
         "AgentPluginUpdateChanged": "This update operation has changed. Refresh and retry.",
         "AgentPluginUpdateBusy": "Another Agent plugin update is running in this scope.",
         "AgentPluginUpdateBranchRequired": "Choose a Git branch to follow for updates.",
-        "AgentPluginUpdateIdentityChanged": "The source contains a different plugin name. No update was installed."
+        "AgentPluginUpdateIdentityChanged": "The source contains a different plugin name. No update was installed.",
+        "TemplateToolBindingRequired": "Bind template tool {{key}} to exactly one installed toolset before synchronizing.",
+        "XpertPublicationStale": "The Assistant changed during publication. Reload it before retrying.",
+        "XpertPublicationInvalid": "Invalid publication recovery request.",
+        "XpertPublicationActivationPending": "The version was committed but activation is pending. Resume publication without creating another version."
     },
     "Mcp": {
         "Test": {

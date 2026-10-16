@@ -45,6 +45,7 @@ import { normalizeImportedSandboxFeatures } from '../../import-draft.utils'
 import { createTemplateSourceFromIds, resolveTemplateSourceFromOptions } from '../../template-source'
 import { XpertImportCommand } from '../import.command'
 import { loadReservedTemplateAssistant } from '../../template-import-recovery'
+import { preserveTemplateInstanceBindings } from '../../template-sync/instance-bindings'
 
 const SYSTEM_FIELDS = ['tenantId', 'organizationId', 'id', 'createdById', 'updatedById']
 const OVERWRITE_PROTECTED_TEAM_FIELDS = [
@@ -118,6 +119,7 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
 
         // Imported source data cannot supply installation receipts or dependency locks.
         draft.team.options = { ...draft.team.options }
+        delete draft.team.options.pendingPublication
         delete draft.team.options.templateDefinition
         delete draft.team.options.templateDependencyLocks
         let portableTemplate: TXpertTemplate | undefined
@@ -166,7 +168,8 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
                 command.options.targetXpertId,
                 draft,
                 command.options?.normalizeCopilotModels === true,
-                templateSource
+                templateSource,
+                command.options.preserveInstanceBindings === true
             )
             if (portableTemplate)
                 await this.commands.execute(
@@ -283,8 +286,10 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
         targetXpertId: string,
         draft: XpertDraftDslDTO,
         normalizeCopilotModels = false,
-        templateSource?: TXpertTemplateSource | null
+        templateSource?: TXpertTemplateSource | null,
+        preserveInstanceBindings = false
     ): Promise<IXpert> {
+        if (preserveInstanceBindings) await this.xpertService.assertCanAuthorById(targetXpertId)
         const currentXpert = await this.loadXpertById(targetXpertId)
         if (draft.team.type !== currentXpert.type) {
             throw new BadRequestException('DSL type does not match the current xpert.')
@@ -298,6 +303,13 @@ export class XpertImportHandler implements ICommandHandler<XpertImportCommand> {
         if (normalizeCopilotModels) {
             const modelSyncContext = await this.prepareManagedLlmModelSyncContext(draft)
             await this.syncImportDraftLlmModels(draft, modelSyncContext)
+        }
+        if (preserveInstanceBindings) {
+            preserveTemplateInstanceBindings(
+                draft,
+                currentXpert,
+                buildMiddlewareModelTargetCatalog(this.xpertAgentService.getMiddlewareStrategies())
+            )
         }
 
         const currentTeam = {

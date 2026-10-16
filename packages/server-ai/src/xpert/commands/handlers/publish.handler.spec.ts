@@ -1,5 +1,7 @@
+jest.mock('../../publication/publication-persistence', () => ({
+    XpertPublicationPersistence: class XpertPublicationPersistence {}
+}))
 import { BadRequestException } from '@nestjs/common'
-import { PARAMTYPES_METADATA } from '@nestjs/common/constants'
 import { CommandBus } from '@nestjs/cqrs'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { Test } from '@nestjs/testing'
@@ -40,51 +42,36 @@ import {
     WorkflowNodeTypeEnum,
     XpertTypeEnum
 } from '@xpert-ai/contracts'
-import { XpertAgentService } from '../../../xpert-agent/xpert-agent.service'
 import { PromptWorkflowService } from '../../../prompt-workflow'
 import { XpertPrincipalService } from '../../xpert-principal.service'
 import { Xpert } from '../../xpert.entity'
 import { XpertService } from '../../xpert.service'
 import { XpertPublishCommand } from '../publish.command'
 import { XpertPublishTriggersCommand } from '../publish-triggers.command'
+import { PublicationStore, XpertPublicationPersistence } from '../../publication/publication-persistence'
 import { XpertPublishHandler } from './publish.handler'
 import { assistantModelCandidates } from '../../assistant-model-selection.util'
 import { resolveEffectiveCopilotModel } from '../../../xpert-agent/effective-copilot-model'
 
 describe('XpertPublishHandler', () => {
-    it('resolves the agent provider when circular loading emits Object as its parameter type', async () => {
-        const parameterTypes: unknown[] = Reflect.getMetadata(PARAMTYPES_METADATA, XpertPublishHandler)
-        // The production bundle evaluates this handler before the agent service export is initialized.
-        Reflect.defineMetadata(
-            PARAMTYPES_METADATA,
-            parameterTypes.map((type, index) => (index === 1 ? Object : type)),
-            XpertPublishHandler
-        )
-
-        try {
-            const moduleRef = await Test.createTestingModule({
-                providers: [
-                    XpertPublishHandler,
-                    ...[
-                        XpertService,
-                        XpertAgentService,
-                        I18nService,
-                        CommandBus,
-                        EventEmitter2,
-                        getRepositoryToken(BusinessArea),
-                        PromptWorkflowService,
-                        XpertPrincipalService
-                    ].map((provide) => ({ provide, useValue: {} }))
-                ]
-            }).compile()
-            try {
-                expect(moduleRef.get(XpertPublishHandler)).toBeInstanceOf(XpertPublishHandler)
-            } finally {
-                await moduleRef.close()
-            }
-        } finally {
-            Reflect.defineMetadata(PARAMTYPES_METADATA, parameterTypes, XpertPublishHandler)
-        }
+    it('wires the transactional publication provider through Nest', async () => {
+        const moduleRef = await Test.createTestingModule({
+            providers: [
+                XpertPublishHandler,
+                ...[
+                    XpertService,
+                    I18nService,
+                    CommandBus,
+                    EventEmitter2,
+                    getRepositoryToken(BusinessArea),
+                    PromptWorkflowService,
+                    XpertPrincipalService,
+                    XpertPublicationPersistence
+                ].map((provide) => ({ provide, useValue: {} }))
+            ]
+        }).compile()
+        expect(moduleRef.get(XpertPublishHandler)).toBeInstanceOf(XpertPublishHandler)
+        await moduleRef.close()
     })
 
     function createHandler(xpertOverrides: Partial<Xpert> = {}) {
@@ -118,6 +105,7 @@ describe('XpertPublishHandler', () => {
 
         const xpertService = {
             findOne: jest.fn().mockResolvedValue(xpert),
+            assertCanAuthorById: jest.fn().mockResolvedValue(undefined),
             findAll: jest.fn().mockResolvedValue({ items: [xpert] }),
             validate: jest.fn().mockResolvedValue([]),
             validateTagAssociations: jest.fn().mockResolvedValue(undefined),
@@ -161,19 +149,34 @@ describe('XpertPublishHandler', () => {
             })
         }
 
+        const store = {
+            saveTeam: xpertService.save,
+            createBackup: (entity: Partial<Xpert>) => xpertService.createVersionBackup(entity, xpert.id),
+            createAgent: xpertAgentService.create,
+            updateAgent: xpertAgentService.update,
+            deleteAgent: jest.fn()
+        }
+        const persistence = {
+            completeActivation: jest.fn().mockResolvedValue(undefined),
+            run: jest.fn(async (_snapshot: Xpert, write: (store: PublicationStore) => Promise<Xpert>) =>
+                write(store as unknown as PublicationStore)
+            )
+        }
         const handler = new XpertPublishHandler(
             xpertService as unknown as XpertService,
-            xpertAgentService as unknown as XpertAgentService,
             { translate: jest.fn() } as unknown as I18nService,
             commandBus as unknown as CommandBus,
             eventEmitter as unknown as EventEmitter2,
             businessAreaRepository as unknown as Repository<BusinessArea>,
             undefined,
-            xpertPrincipalService as unknown as XpertPrincipalService
+            xpertPrincipalService as unknown as XpertPrincipalService,
+            persistence as unknown as XpertPublicationPersistence
         )
 
         return {
             handler,
+            persistence,
+            store,
             xpertService,
             xpertAgentService,
             xpertPrincipalService,
@@ -346,10 +349,10 @@ describe('XpertPublishHandler', () => {
     })
 
     it('passes the persisted source identity when backing up version tag associations', async () => {
-        const { handler, xpertService, xpert } = createHandler({ version: '1' })
+        const { handler, xpertService, xpert, store } = createHandler({ version: '1' })
         xpert.tags = [{ id: '11111111-1111-4111-8111-111111111111', isActive: false }]
 
-        await handler.saveTeamVersion(xpert, '2')
+        await handler.saveTeamVersion(xpert, '2', store as unknown as PublicationStore)
 
         expect(xpertService.createVersionBackup).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -373,8 +376,14 @@ describe('XpertPublishHandler', () => {
         const result = await handler.execute(new XpertPublishCommand('xpert-1', false, '', 'release notes'))
 
         expect(result).toBe(publishResult)
-        expect(xpert.environmentId).toBeNull()
-        expect(publishSpy).toHaveBeenCalledWith(xpert, '1', xpert.draft, undefined)
+        expect(publishSpy.mock.calls[0][0].environmentId).toBeNull()
+        expect(publishSpy).toHaveBeenCalledWith(
+            expect.objectContaining({ id: xpert.id }),
+            '1',
+            xpert.draft,
+            undefined,
+            expect.any(Object)
+        )
     })
 
     it('keeps a concrete environment binding after trimming surrounding whitespace', async () => {
@@ -385,7 +394,7 @@ describe('XpertPublishHandler', () => {
 
         await handler.execute(new XpertPublishCommand('xpert-1', false, '  env-1  ', 'release notes'))
 
-        expect(xpert.environmentId).toBe('env-1')
+        expect(jest.mocked(handler.publish).mock.calls[0][0].environmentId).toBe('env-1')
     })
 
     it('passes marketplace metadata into the publish snapshot step', async () => {
@@ -401,7 +410,13 @@ describe('XpertPublishHandler', () => {
 
         await handler.execute(new XpertPublishCommand('xpert-1', false, '', 'release notes', marketplace))
 
-        expect(publishSpy).toHaveBeenCalledWith(xpert, '1', xpert.draft, marketplace)
+        expect(publishSpy).toHaveBeenCalledWith(
+            expect.objectContaining({ id: xpert.id }),
+            '1',
+            xpert.draft,
+            marketplace,
+            expect.any(Object)
+        )
     })
 
     it('assigns an organization business area independently from marketplace metadata', async () => {
@@ -419,8 +434,10 @@ describe('XpertPublishHandler', () => {
                 organizationId: 'org-1'
             }
         })
-        expect(xpert.businessAreaId).toBe('area-1')
-        expect(xpert.businessArea).toEqual(expect.objectContaining({ id: 'area-1', name: 'Operations' }))
+        expect(jest.mocked(handler.publish).mock.calls[0][0].businessAreaId).toBe('area-1')
+        expect(jest.mocked(handler.publish).mock.calls[0][0].businessArea).toEqual(
+            expect.objectContaining({ id: 'area-1', name: 'Operations' })
+        )
     })
 
     it('rejects a business area from a different organization', async () => {
@@ -434,26 +451,26 @@ describe('XpertPublishHandler', () => {
         ).rejects.toThrow(BadRequestException)
     })
 
-    it('still requires a user group when the publisher is not the creator', async () => {
+    it('allows an authorized publisher to publish without a user group', async () => {
         ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-2')
 
         const { handler } = createHandler()
 
-        await expect(handler.execute(new XpertPublishCommand('xpert-1', false, '', 'release notes'))).rejects.toThrow(
-            BadRequestException
-        )
+        await expect(
+            handler.execute(new XpertPublishCommand('xpert-1', false, '', 'release notes'))
+        ).resolves.toBeDefined()
     })
 
-    it('still requires a user group for organization-scoped xperts when the publisher is not the creator', async () => {
+    it('does not couple organization-scoped publishing to user groups', async () => {
         ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-2')
 
         const { handler } = createHandler({
             organizationId: 'org-1'
         })
 
-        await expect(handler.execute(new XpertPublishCommand('xpert-1', false, '', 'release notes'))).rejects.toThrow(
-            BadRequestException
-        )
+        await expect(
+            handler.execute(new XpertPublishCommand('xpert-1', false, '', 'release notes'))
+        ).resolves.toBeDefined()
     })
 
     it('ensures the xpert principal user before publishing any runnable xpert', async () => {
@@ -536,12 +553,12 @@ describe('XpertPublishHandler', () => {
     })
 
     it('preserves workspace data scope in a published version backup', async () => {
-        const { handler, xpert, xpertService } = createHandler({
+        const { handler, xpert, xpertService, store } = createHandler({
             version: '1',
             workspaceDataScope: 'user'
         })
 
-        await handler.saveTeamVersion(xpert, '2')
+        await handler.saveTeamVersion(xpert, '2', store as unknown as PublicationStore)
 
         expect(xpertService.createVersionBackup).toHaveBeenCalledWith(
             expect.objectContaining({
@@ -550,5 +567,84 @@ describe('XpertPublishHandler', () => {
             }),
             xpert.id
         )
+    })
+
+    it('preserves the current environment when publication does not provide an override', async () => {
+        ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-1')
+        const { handler } = createHandler({ environmentId: 'kept-environment' })
+        const result = await handler.execute(new XpertPublishCommand('xpert-1', false, undefined, 'update'))
+        expect(result.environmentId).toBe('kept-environment')
+    })
+
+    it('does not mutate the loaded version or draft when a transactional graph save fails', async () => {
+        ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-1')
+        const { handler, xpert, store, persistence, commandBus } = createHandler({ version: '1' })
+        const draft = structuredClone(xpert.draft)
+        store.saveTeam
+            .mockResolvedValueOnce({ ...xpert, version: '2' })
+            .mockRejectedValueOnce(new Error('tool foreign key'))
+        await expect(handler.execute(new XpertPublishCommand(xpert.id, true, undefined, 'update'))).rejects.toThrow(
+            'tool foreign key'
+        )
+        expect(persistence.run).toHaveBeenCalledTimes(1)
+        expect(xpert.version).toBe('1')
+        expect(xpert.draft).toEqual(draft)
+        expect(commandBus.execute).not.toHaveBeenCalled()
+    })
+
+    it('reports committed activation failure separately so recovery does not create another version', async () => {
+        ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-1')
+        const { handler, commandBus } = createHandler({ version: '1' })
+        commandBus.execute.mockRejectedValue(new Error('trigger unavailable'))
+        await expect(
+            handler.execute(new XpertPublishCommand('xpert-1', true, undefined, 'update'))
+        ).rejects.toMatchObject({
+            response: { code: 'XPERT_PUBLICATION_ACTIVATION_PENDING', version: '2' }
+        })
+    })
+
+    it('rejects activation recovery for a different version or an unpublished Assistant', async () => {
+        for (const publishAt of [null, new Date()]) {
+            const { handler, persistence, commandBus } = createHandler({ version: '3', publishAt })
+            await expect(
+                handler.execute(
+                    new XpertPublishCommand('xpert-1', false, undefined, '', undefined, undefined, true, '2')
+                )
+            ).rejects.toThrow()
+            expect(persistence.run).not.toHaveBeenCalled()
+            expect(commandBus.execute).not.toHaveBeenCalled()
+        }
+    })
+
+    it('denies command-level publication before reading or writing when authoring access was revoked', async () => {
+        const { handler, xpertService, persistence } = createHandler()
+        xpertService.assertCanAuthorById.mockRejectedValue(new Error('forbidden'))
+        await expect(handler.execute(new XpertPublishCommand('xpert-1', true, undefined, ''))).rejects.toThrow(
+            'forbidden'
+        )
+        expect(xpertService.findOne).not.toHaveBeenCalled()
+        expect(persistence.run).not.toHaveBeenCalled()
+    })
+
+    it('recovers removed triggers from the durable previous graph without changing versions', async () => {
+        const previousGraph = { nodes: [], connections: [] }
+        const { handler, commandBus, persistence } = createHandler({
+            version: '2',
+            publishAt: new Date(),
+            options: { pendingPublication: { version: '2', previousGraph } }
+        })
+        await handler.execute(new XpertPublishCommand('xpert-1', false, undefined, '', undefined, undefined, true, '2'))
+        expect(commandBus.execute).toHaveBeenCalledWith(
+            expect.objectContaining({ options: { strict: true, previousGraph } })
+        )
+        expect(persistence.completeActivation).toHaveBeenCalledTimes(1)
+        expect(persistence.run).not.toHaveBeenCalled()
+    })
+
+    it('does not repeat activation after an acknowledged version has already completed', async () => {
+        const { handler, commandBus, persistence } = createHandler({ version: '2', publishAt: new Date() })
+        await handler.execute(new XpertPublishCommand('xpert-1', false, undefined, '', undefined, undefined, true, '2'))
+        expect(commandBus.execute).not.toHaveBeenCalled()
+        expect(persistence.run).not.toHaveBeenCalled()
     })
 })

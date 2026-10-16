@@ -24,6 +24,7 @@ jobs:
       - run: node --test .deploy/api/catalog-declarations.test.cjs
       - run: node --test tools/release/catalog-dependencies.test.mjs
       - run: node --test .deploy/api/dependencies.test.cjs
+      - run: node --test .deploy/api/build.test.mjs .deploy/api/benchmark-build.test.mjs
       - run: corepack enable
       - name: Check workspace dependency lock
         run: corepack pnpm install --lockfile-only --frozen-lockfile --ignore-scripts

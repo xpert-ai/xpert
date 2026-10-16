@@ -5,7 +5,16 @@ import { TXpertTemplate, XpertTypeEnum } from '@xpert-ai/contracts'
 import { t } from 'i18next'
 import { stringify } from 'yaml'
 import { TemplatePublicationEntity } from './template-publication.entity'
-import { portableDraft } from './portable-template'
+import { portableDraft, portableTemplateSchema } from './portable-template'
+import { z } from 'zod'
+
+const publicationSummarySchema = z.object({
+    id: z.string(),
+    version: z.string(),
+    contentHash: z.string(),
+    releaseNotes: z.string(),
+    presentation: portableTemplateSchema.shape.presentation
+})
 
 @Injectable()
 export class TemplatePublicationStore {
@@ -31,6 +40,19 @@ export class TemplatePublicationStore {
             this.descriptor(row)
         )
     }
+    async listSummaries(): Promise<TXpertTemplate[]> {
+        if (!RequestContext.currentUserId()) return []
+        // Select presentation in PostgreSQL so browsing never hydrates instructions or builds YAML.
+        const rows = await this.reader()
+            .select('publication.id', 'id')
+            .addSelect('publication.version', 'version')
+            .addSelect('publication.contentHash', 'contentHash')
+            .addSelect('publication.releaseNotes', 'releaseNotes')
+            .addSelect("publication.content -> 'presentation'", 'presentation')
+            .orderBy('publication.updatedAt', 'DESC')
+            .getRawMany<unknown>()
+        return rows.map((row) => this.summary(publicationSummarySchema.parse(row)))
+    }
     async get(id: string): Promise<TXpertTemplate> {
         if (!RequestContext.currentUserId() || !/^shared-[a-f0-9-]{36}$/.test(id)) this.missing()
         const row = await this.reader()
@@ -43,12 +65,20 @@ export class TemplatePublicationStore {
         throw new NotFoundException(t('server-ai:Error.AssistantTemplateNotFound'))
     }
     private descriptor(row: TemplatePublicationEntity): TXpertTemplate {
+        const draft = portableDraft(row.content)
+        return {
+            ...this.summary({ ...row, presentation: row.content.presentation }),
+            export_data: stringify(draft),
+            dependencies: draft.template?.dependencies
+        }
+    }
+    private summary(row: z.output<typeof publicationSummarySchema>): TXpertTemplate {
         return {
             id: `shared-${row.id}`,
             key: `shared-${row.id}`,
-            name: row.content.presentation.title,
-            title: row.content.presentation.title,
-            description: row.content.presentation.description,
+            name: row.presentation.title,
+            title: row.presentation.title,
+            description: row.presentation.description,
             type: XpertTypeEnum.Agent,
             category: 'assistant',
             copyright: t('server-ai:TemplateCommunityPublisher'),
@@ -57,9 +87,8 @@ export class TemplatePublicationStore {
             pluginVersion: row.version,
             contentHash: row.contentHash,
             releaseNotes: row.releaseNotes,
-            export_data: stringify(portableDraft(row.content)),
-            targetApps: ['xpert'],
-            dependencies: portableDraft(row.content).template?.dependencies
+            export_data: '',
+            targetApps: ['xpert']
         }
     }
 }

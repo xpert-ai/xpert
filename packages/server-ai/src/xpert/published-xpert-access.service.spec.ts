@@ -114,7 +114,9 @@ describe('PublishedXpertAccessService', () => {
         expect(qb.leftJoin).toHaveBeenCalledWith(
             'xpert.userGroups',
             'userGroup',
-            'userGroup.tenantId = :tenantId AND userGroup.organizationId = :organizationId',
+            expect.stringContaining(
+                'userGroup.tenantId = :tenantId AND userGroup.organizationId = :organizationId AND'
+            ),
             expect.objectContaining({
                 tenantId: 'tenant-1',
                 organizationId: 'org-requested'

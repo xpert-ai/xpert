@@ -1,4 +1,8 @@
+import { AssistantSharingModule } from './sharing/sharing.module'
+import { AssistantSharingController } from './sharing/sharing.controller'
 import { TemplateAuthoring } from './template-lifecycle/template-authoring'
+import { XpertPublicationPersistence } from './publication/publication-persistence'
+import { XpertPublicationController } from './publication/publication.controller'
 import { TemplatePublicationService } from './template-lifecycle/template-publication.service'
 import { TemplateUpgradeService } from './template-lifecycle/template-upgrade.service'
 import { TemplateLifecycleController } from './template-lifecycle/template-lifecycle.controller'
@@ -49,7 +53,6 @@ import { XpertProfileController } from './xpert-profile.controller'
 import { XpertTagUsageController } from './xpert-tag-usage.controller'
 import { XpertProfileIndicatorsService } from './xpert-profile-indicators.service'
 import { XpertProfileIdentityService } from './xpert-profile-identity.service'
-import { PublishedXpertAccessService } from './published-xpert-access.service'
 import { AssistantBindingModule } from '../assistant-binding/assistant-binding.module'
 import { AgentViewHostDefinition } from '../view-extension/hosts/agent-view-host.definition'
 import { ViewMiddlewareRuntimeService } from '../view-extension/view-middleware-runtime.service'
@@ -92,6 +95,7 @@ import { XpertTriggerConnectionService } from './trigger-connection.service'
             XpertFrequentQuestionCache,
             AssistantUserPreference
         ]),
+        AssistantSharingModule,
         DiscoveryModule,
         IntegrationModule,
         TenantModule,
@@ -122,6 +126,8 @@ import { XpertTriggerConnectionService } from './trigger-connection.service'
         forwardRef(() => XpertProjectModule)
     ],
     controllers: [
+        AssistantSharingController,
+        XpertPublicationController,
         TemplateLifecycleController,
         AssistantTemplateSetupController,
         AssistantTriggerController,
@@ -134,6 +140,7 @@ import { XpertTriggerConnectionService } from './trigger-connection.service'
         XpertAccessController
     ],
     providers: [
+        XpertPublicationPersistence,
         TemplateAuthoring,
         TemplatePublicationService,
         TemplateUpgradeService,
@@ -149,7 +156,6 @@ import { XpertTriggerConnectionService } from './trigger-connection.service'
         WorkflowTriggerRegistry,
         AgentViewHostDefinition,
         ViewMiddlewareRuntimeService,
-        PublishedXpertAccessService,
         XpertProfileIdentityService,
         XpertProfileIndicatorsService,
         XpertAuthoringService,
@@ -170,11 +176,11 @@ import { XpertTriggerConnectionService } from './trigger-connection.service'
         ...QueryHandlers
     ],
     exports: [
+        AssistantSharingModule,
         XpertWorkspaceFilesService,
         AssistantFilesService,
         XpertService,
         XpertPrincipalService,
-        PublishedXpertAccessService,
         XpertProfileIdentityService,
         XpertTemplateWorkspaceInitializer,
         AssistantUserPreferenceService,

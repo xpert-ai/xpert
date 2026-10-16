@@ -1,3 +1,4 @@
+import { AssistantSharingService } from './sharing/sharing.service'
 import {
     ChecklistItem,
     convertToUrlPath,
@@ -21,14 +22,7 @@ import {
     TXpertTeamDraft
 } from '@xpert-ai/contracts'
 import { getErrorMessage } from '@xpert-ai/server-common'
-import {
-    OptionParams,
-    PaginationParams,
-    RequestContext,
-    Tag,
-    transformWhere,
-    UserGroupService
-} from '@xpert-ai/server-core'
+import { OptionParams, PaginationParams, RequestContext, Tag, transformWhere } from '@xpert-ai/server-core'
 import {
     BadRequestException,
     ForbiddenException,
@@ -71,14 +65,14 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
         public readonly repository: Repository<Xpert>,
         workspaceAccessService: XpertWorkspaceAccessService,
         private readonly storeService: CopilotStoreService,
-        private readonly userGroupService: UserGroupService,
         protected readonly commandBus: CommandBus,
         protected readonly queryBus: QueryBus,
         private readonly eventEmitter: EventEmitter2,
         private readonly triggerRegistry: WorkflowTriggerRegistry,
         private readonly sandboxService: SandboxService,
         @Inject(VOLUME_CLIENT)
-        private readonly volumeClient: VolumeClient
+        private readonly volumeClient: VolumeClient,
+        private readonly sharing: AssistantSharingService
     ) {
         super(repository, workspaceAccessService)
     }
@@ -93,7 +87,8 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
 
     async updateXpert(id: string, entity: Partial<Xpert>) {
         const _entity = await super.findOne(id)
-        const { workspaceDataScope, ...mutableEntity } = entity
+        const { workspaceDataScope, userGroups, ...mutableEntity } = entity
+        if (userGroups !== undefined) throw new BadRequestException(t('server-ai:Error.AssistantSharingUseEndpoint'))
         if (
             workspaceDataScope !== undefined &&
             workspaceDataScope !== (_entity.workspaceDataScope ?? DEFAULT_XPERT_WORKSPACE_DATA_SCOPE)
@@ -197,6 +192,7 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
     }
 
     async create(entity: DeepPartial<Xpert>, ...options: unknown[]) {
+        if (entity.userGroups?.length) throw new BadRequestException(t('server-ai:Error.AssistantSharingUseEndpoint'))
         await this.validateTagAssociations(entity)
         return await super.create(
             {
@@ -613,122 +609,29 @@ export class XpertService extends XpertWorkspaceBaseService<Xpert> {
     }
 
     async getUserGroups(id: string, organizationId?: string) {
-        const resolvedOrganizationId = await this.userGroupService.resolveAccessibleOrganizationId(organizationId)
-        const xpert = await this.findOne(id, {
-            relations: ['userGroups']
-        })
-
-        return (xpert.userGroups ?? []).filter((group) => group.organizationId === resolvedOrganizationId)
-    }
-
-    async getUserGroupAuthorizations(groupId?: string, organizationId?: string) {
-        const resolvedOrganizationId = await this.userGroupService.resolveAccessibleOrganizationId(organizationId)
-        if (groupId) {
-            await this.findAuthorizationGroup(groupId, resolvedOrganizationId)
-        }
-
-        const xperts = await this.findPublishedOrganizationXpertsForAuthorization(resolvedOrganizationId)
-        return this.buildUserGroupAuthorizationResult(xperts, groupId)
-    }
-
-    async updateUserGroupAuthorizations(groupId: string, xpertIds: string[], organizationId?: string) {
-        const resolvedOrganizationId = await this.userGroupService.resolveAccessibleOrganizationId(organizationId)
-        const group = await this.findAuthorizationGroup(groupId, resolvedOrganizationId)
-        const xperts = await this.findPublishedOrganizationXpertsForAuthorization(resolvedOrganizationId)
-        const selectedIds = new Set((xpertIds ?? []).filter(Boolean))
-        const availableIds = new Set(xperts.map((xpert) => xpert.id))
-
-        if ([...selectedIds].some((id) => !availableIds.has(id))) {
-            throw new NotFoundException(
-                'Some XPERTs were not found among published assistants in the current organization.'
-            )
-        }
-
-        const changedXperts = xperts.filter((xpert) => {
-            const isSelected = selectedIds.has(xpert.id)
-            const isCurrentlySelected = xpert.userGroups?.some((userGroup) => userGroup.id === groupId) ?? false
-            if (isSelected === isCurrentlySelected) {
-                return false
-            }
-
-            xpert.userGroups = isSelected
-                ? [...(xpert.userGroups ?? []), group]
-                : (xpert.userGroups ?? []).filter((userGroup) => userGroup.id !== groupId)
-            return true
-        })
-
-        if (changedXperts.length) {
-            await this.repository.save(changedXperts)
-        }
-
-        return this.buildUserGroupAuthorizationResult(xperts, groupId)
+        this.assertSharingOrganization(organizationId)
+        await this.sharing.assertManage(id, this.repository.manager, true)
+        return (await this.sharing.get(id)).groups
     }
 
     async updateUserGroups(id: string, ids: string[], organizationId?: string) {
-        const resolvedOrganizationId = await this.userGroupService.resolveAccessibleOrganizationId(organizationId)
-        const xpert = await this.findOne(id, {
-            relations: ['userGroups']
-        })
-
-        const uniqueIds = [...new Set((ids ?? []).filter(Boolean))]
-        const groups =
-            uniqueIds.length > 0
-                ? await this.userGroupService.findByIdsInOrganization(resolvedOrganizationId, uniqueIds)
-                : []
-
-        if (groups.length !== uniqueIds.length) {
-            throw new NotFoundException('Some user groups were not found in the current organization.')
-        }
-
-        const preservedGroups = (xpert.userGroups ?? []).filter(
-            (group) => group.organizationId !== resolvedOrganizationId
-        )
-        xpert.userGroups = [...preservedGroups, ...groups]
-        await this.repository.save(xpert)
-        return this.getUserGroups(id, resolvedOrganizationId)
+        this.assertSharingOrganization(organizationId)
+        return this.sharing.setGroups(id, ids)
     }
 
-    private async findAuthorizationGroup(groupId: string, organizationId: string) {
-        const groups = await this.userGroupService.findByIdsInOrganization(organizationId, [groupId])
-        if (groups.length !== 1) {
-            throw new NotFoundException('The requested user group was not found in the current organization.')
-        }
-
-        return groups[0]
+    private assertSharingOrganization(organizationId?: string) {
+        if (organizationId && organizationId !== RequestContext.getOrganizationId())
+            throw new ForbiddenException(t('server-ai:Error.AssistantSharingForbidden'))
     }
 
-    private async findPublishedOrganizationXpertsForAuthorization(organizationId: string) {
-        const tenantId = RequestContext.currentTenantId()
-        if (!tenantId) {
-            throw new HttpException(
-                'Tenant context is required for XPERT user group authorization.',
-                HttpStatus.BAD_REQUEST
-            )
-        }
-
-        return this.repository.find({
-            where: {
-                tenantId,
-                organizationId,
-                latest: true,
-                publishAt: Not(IsNull())
-            },
-            relations: ['userGroups'],
-            order: {
-                updatedAt: 'DESC'
-            }
-        })
+    async getUserGroupAuthorizations(groupId?: string, organizationId?: string) {
+        this.assertSharingOrganization(organizationId)
+        return this.sharing.getGroupAuthorizations(groupId)
     }
 
-    private buildUserGroupAuthorizationResult(xperts: Xpert[], groupId?: string) {
-        return {
-            items: xperts,
-            selectedXpertIds: groupId
-                ? xperts
-                      .filter((xpert) => xpert.userGroups?.some((userGroup) => userGroup.id === groupId))
-                      .map((xpert) => xpert.id)
-                : []
-        }
+    async updateUserGroupAuthorizations(groupId: string, xpertIds: string[], organizationId?: string) {
+        this.assertSharingOrganization(organizationId)
+        return this.sharing.updateGroupAuthorizations(groupId, xpertIds)
     }
 
     async findBySlug(slug: string, relations?: string[]) {

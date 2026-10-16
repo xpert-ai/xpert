@@ -1,3 +1,5 @@
+import { sharingLegacyIdsSchema } from './sharing/sharing.schema'
+import { ZodValidationPipe } from '@xpert-ai/server-core'
 import {
     AiModelTypeEnum,
     AIPermissionsEnum,
@@ -598,7 +600,7 @@ export class XpertController extends CrudController<Xpert> {
 
     @UseGuards(XpertGuard)
     @Get(':id/user-groups')
-    async getUserGroups(@Param('id') id: string, @Query('organizationId') organizationId?: string) {
+    async getUserGroups(@Param('id', UUIDValidationPipe) id: string, @Query('organizationId') organizationId?: string) {
         return this.service.getUserGroups(id, organizationId)
     }
 
@@ -620,8 +622,14 @@ export class XpertController extends CrudController<Xpert> {
     @Permissions(PermissionsEnum.ORG_USERS_EDIT)
     @Put('user-groups/:groupId/authorizations')
     async updateUserGroupAuthorizations(
-        @Param('groupId') groupId: string,
-        @Body() xpertIds: string[],
+        @Param('groupId', UUIDValidationPipe) groupId: string,
+        @Body(
+            new ZodValidationPipe(
+                sharingLegacyIdsSchema,
+                () => new BadRequestException(t('server-ai:Error.AssistantSharingInvalidInput'))
+            )
+        )
+        xpertIds: string[],
         @Query('organizationId') organizationId?: string
     ) {
         const result = await this.service.updateUserGroupAuthorizations(groupId, xpertIds, organizationId)
@@ -634,8 +642,14 @@ export class XpertController extends CrudController<Xpert> {
     @UseGuards(XpertGuard)
     @Put(':id/user-groups')
     async updateUserGroups(
-        @Param('id') id: string,
-        @Body() ids: string[],
+        @Param('id', UUIDValidationPipe) id: string,
+        @Body(
+            new ZodValidationPipe(
+                sharingLegacyIdsSchema,
+                () => new BadRequestException(t('server-ai:Error.AssistantSharingInvalidInput'))
+            )
+        )
+        ids: string[],
         @Query('organizationId') organizationId?: string
     ) {
         return this.service.updateUserGroups(id, ids, organizationId)
