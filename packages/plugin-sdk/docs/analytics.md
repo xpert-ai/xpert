@@ -16,7 +16,7 @@ The platform and renderer do not interpret SQL, MDX, REST paths or ontology Acti
 
 Implement `AnalyticsQueryProvider`, decorate with `@AnalyticsProvider('vendor.operation')`, and include the provider in the plugin module. Declare supported source types and operation contract versions. Optional `descriptor.connectionType` contributes a non-SQL connection schema through DataSourceType sync.
 
-`execute(binding, parameters, context)` receives typed scalar parameters and authenticated source context. Connection options stay on the server. Honor `signal`, `maxRows`, `timeoutMs`; return explicit columns even for zero rows. Providers must enforce read-only operations at the source, not merely advertise them.
+`execute(binding, parameters, context)` receives typed scalar parameters and authenticated source context. Connection options stay on the server. Honor `signal`, `maxRows`, `timeoutMs` and the absolute `deadlineAt`; return explicit columns even for zero rows. Providers must enforce read-only operations at the source, not merely advertise them.
 
 Use the root SDK entry on the server. Browser code uses `@xpert-ai/plugin-sdk/analytics`, which contains schemas/normalization without Nest runtime imports.
 
@@ -39,9 +39,26 @@ PostgreSQL discovery uses the platform Workbench adapter's comments, types and k
 - No shared result cache. `sourceFetchedAt` means source query time, not last business-data change; `dataAsOf` is optional and source-owned.
 - `int64` and `decimal` use exact strings. Timestamps include a timezone. Renderers must reject unsupported precision rather than silently round canonical data.
 
+For composed queries, the platform assigns `executionId` before provider execution. Forward `signal`, `deadlineAt` and `ancestry` through the optional third argument of `AnalyticsRuntimeApi.query`. These are trusted execution constraints, not fields accepted from an HTTP body or Binding payload. Child queries cannot extend the parent deadline; the platform checks provider cycles and nesting depth.
+
 ## Reusable Artifacts changes
 
 `listArtifacts.resourceIdPrefix` matches a literal resource ID prefix, never a pattern, within the caller's existing access scope. Storage-specific matching stays inside the platform Artifacts service.
 `ensureArtifactVersion.expectedCurrentVersionId` enables compare-and-set inside the existing Artifact row lock; null means no current version. An idempotent retry may reuse the current version but cannot resurrect an old save over a newer one. Callers that omit it retain existing behavior.
 
 No dashboard table, renderer schema or data-xpert dependency is added to the platform.
+
+## Presentation is independent of providers
+
+Bindings specify data access and the output contract, not page layout. The Live Dashboard plugin supports two consumers of the same Dataset:
+
+- Standard mode uses Bindings, Controls and chart/table definitions with the Data Analytics renderer.
+- HTML mode saves Bindings, Controls and HTML/JavaScript together. The page selects a `bindingId` and passes declared control values; it renders the returned Dataset fields itself.
+
+The generic [isolated HTML document host](artifact-documents.md) provides the iframe and message protocol. The dashboard plugin owns version lookup and its query callback; the backend resolves the saved Binding and reauthorizes the current actor. Pages cannot supply replacement providers, data sources or native query payloads. Source providers do not implement page rendering or depend on a dashboard plugin.
+
+## Workspace script provider
+
+[Workspace live script queries](workspace-dataset-pipelines.md) documents the implemented `@xpert-ai/plugin-analytics-workspace-script` example. Its Python/JavaScript entrypoints, file/source aliases, CSV helpers and execution evidence belong to the plugin. The platform supplies the reusable Analytics, Workspace Files, Artifacts and Sandbox Jobs capabilities, including execution-time invocation and parent deadline/cancellation propagation.
+
+Each query executes the script against current authorized inputs and returns the same Dataset contract to either presentation mode. Script or dependency reuse must not turn a dashboard refresh into reuse of a previous result. Deployment requires compatible SDK/contracts exports, a compute runtime artifact and a matching Runtime Binding; local source validation does not establish published-package compatibility.
