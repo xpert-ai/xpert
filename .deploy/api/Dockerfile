@@ -2,18 +2,9 @@ ARG HOST
 ARG PORT
 ARG LOG_LEVEL
 
-FROM node:20-alpine AS build
-
-LABEL maintainer="meta.digital.cloud@gmail.com"
-LABEL org.opencontainers.image.source=https://github.com/xpert-ai/xpert
-
-ENV CI=true
-
-RUN apk --update add bash jq python3 make g++ && npm i -g npm && \
-    corepack enable && corepack prepare pnpm@10.24.0 --activate
-RUN mkdir /srv/xpert && chown -R node:node /srv/xpert
-
-USER node:node
+# Invariants: production dependencies are installed on Debian, independently of
+# compiled output. Keep workspace manifests and publish-directory links intact.
+FROM node:20-alpine AS manifests
 
 WORKDIR /srv/xpert
 
@@ -31,10 +22,28 @@ COPY --chown=node:node packages/plugins/cli-model-profiles/package.json ./packag
 COPY --chown=node:node packages/plugins/draft/package.json ./packages/plugins/draft/
 COPY --chown=node:node packages/plugins/vlm-default/package.json ./packages/plugins/vlm-default/
 
-COPY --chown=node:node .deploy/api/package.json ./
-COPY --chown=node:node .deploy/api/pnpm-lock.build.yaml ./pnpm-lock.yaml
 COPY --chown=node:node pnpm-workspace.yaml ./
 COPY --chown=node:node .npmrc ./
+
+FROM node:20-alpine AS build
+
+ARG NODE_OPTIONS="--max-old-space-size=4096"
+ENV NODE_OPTIONS=${NODE_OPTIONS}
+
+LABEL maintainer="meta.digital.cloud@gmail.com"
+LABEL org.opencontainers.image.source=https://github.com/xpert-ai/xpert
+
+ENV CI=true
+
+RUN apk --update add bash jq python3 make g++ && npm i -g npm && \
+    corepack enable && corepack prepare pnpm@10.24.0 --activate
+WORKDIR /srv/xpert
+RUN chown node:node /srv/xpert
+USER node:node
+
+COPY --chown=node:node --from=manifests /srv/xpert/ ./
+COPY --chown=node:node .deploy/api/package.json ./
+COPY --chown=node:node .deploy/api/pnpm-lock.build.yaml ./pnpm-lock.yaml
 COPY --chown=node:node .eslintrc.json ./
 COPY --chown=node:node .nxignore ./
 
@@ -51,14 +60,14 @@ RUN rm -rf packages/angular packages/ui packages/sandbox-runtime packages/nsjail
 RUN node .deploy/api/dependencies.cjs check && \
     pnpm install --lockfile-only --frozen-lockfile --ignore-scripts --offline
 RUN pnpm build:plugins
-RUN pnpm nx run server-ai:build-remote-components
-RUN pnpm nx build api --verbose
+RUN node -e "console.log('API build V8 heap limit (MiB):', require('node:v8').getHeapStatistics().heap_size_limit / 1024 / 1024)" && \
+    pnpm nx build api --verbose
 RUN node .deploy/api/dependencies.cjs prepare-runtime /srv/xpert/api-runtime && \
     cd /srv/xpert/api-runtime && \
     pnpm install --prod --lockfile-only --frozen-lockfile --ignore-scripts --offline
 
 #////////////////////////////////////////////////////////////////////////////////
-FROM node:20 AS production
+FROM node:20 AS production-dependencies
 
 ENV NODE_OPTIONS="--max-old-space-size=2048" \
     NODE_ENV=production \
@@ -98,6 +107,17 @@ WORKDIR /srv/xpert
 RUN npm install pm2 -g
 RUN corepack enable && corepack prepare pnpm@10.24.0 --activate
 
+# Source manifests and the production lock are the only application inputs to install.
+COPY --chown=node:node --from=manifests /srv/xpert/packages ./packages
+COPY --chown=node:node --from=manifests /srv/xpert/pnpm-workspace.yaml /srv/xpert/.npmrc ./
+COPY --chown=node:node .deploy/api/package-prod.json ./package.json
+COPY --chown=node:node .deploy/api/pnpm-lock.production.yaml ./pnpm-lock.yaml
+RUN chown node:node /srv/xpert
+USER node:node
+RUN pnpm install --prod --frozen-lockfile
+
+FROM production-dependencies AS production
+
 COPY --chown=node:node wait ./
 # Assembly preserves nested publish directories and uses source dependency
 # declarations with compiler-generated entry points and the production lock.
@@ -109,10 +129,7 @@ COPY --chown=node:node .deploy/api/healthcheck.cjs ./
 COPY --chown=node:node .deploy/api/check-native-modules.cjs ./
 RUN chmod +x wait entrypoint.compose.sh entrypoint.prod.sh
 
-RUN pnpm install --prod --frozen-lockfile && \
-    touch ormlogs.log && chown -R node:node /srv/xpert
-
-USER node:node
+RUN touch ormlogs.log
 
 # Exercise native bindings as the runtime user, not just dependency resolution.
 RUN node check-native-modules.cjs

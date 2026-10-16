@@ -2,7 +2,12 @@ import { createRequire } from 'node:module'
 const require = createRequire(import.meta.url)
 const api = require('../api/dependencies.cjs')
 const web = require('../webapp/dependencies.cjs')
-const pipelineInputs = ['.dockerignore', '.deploy/application-images/', '.github/workflows/docker-publish.yml']
+const pipelineInputs = [
+  '.dockerignore',
+  '.deploy/application-images/',
+  '.github/workflows/docker-publish.yml',
+  '.github/workflows/build-application-images.yml'
+]
 const nodeInputs = [
   ...pipelineInputs,
   'package.json',
