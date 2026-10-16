@@ -1,6 +1,5 @@
 import { AIPermissionsEnum, PermissionsEnum, RolesEnum } from '@xpert-ai/contracts'
 
-// Runtime guards still enforce the five codes removed from this list, so the roles page keeps them on the normal tab.
 export const DEPRECATED_ROLE_PERMISSIONS = [
   PermissionsEnum.ADMIN_DASHBOARD_VIEW,
   PermissionsEnum.VIEW_ALL_EMAILS,

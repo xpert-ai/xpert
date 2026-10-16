@@ -124,7 +124,6 @@ describe('roles workspace', () => {
     expect(component.enabledPermissions().has(PermissionsEnum.ORG_USERS_EDIT)).toBe(false)
   })
   it('does not replace the new role when a previous permission save finishes', async () => {
-    // A deferred first emission represents a pending HTTP mutation.
     const saved = deferred<object>()
     permissions.update.mockReturnValue(from(saved.promise))
     await open(admin.id)
