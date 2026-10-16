@@ -100,7 +100,12 @@ jobs:
   publish:
     name: Publish ${{ matrix.image_name }}
     needs: [prepare, build]
-    if: github.event_name == 'push' && needs.prepare.outputs.publish == 'true'
+    # Optional dependency validators may be skipped for API-only/Web-only pushes.
+    # Require the completed build explicitly, without inheriting their skipped status.
+    if: >-
+      always() && !cancelled() && github.event_name == 'push' &&
+      needs.prepare.result == 'success' && needs.build.result == 'success' &&
+      needs.prepare.outputs.publish == 'true'
     runs-on: ubuntu-latest
     environment: production
     permissions:
