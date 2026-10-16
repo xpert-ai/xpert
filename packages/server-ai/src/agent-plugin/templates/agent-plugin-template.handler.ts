@@ -9,7 +9,7 @@ import { AgentPluginInstallationsService, pluginRuntimeComponents } from '../age
 import { AgentPluginPackage } from '../agent-plugin.entity'
 import { containedPath } from '../agent-plugin-parser'
 import { portablePackageDigest } from '../agent-plugin-source'
-import { normalizeAssistantTemplate } from '../../xpert-template/definition/normalize-assistant-template'
+import { normalizeAssistantTemplateDefinition } from '../../xpert-template/definition/normalize-assistant-template'
 import {
     AgentPluginTemplatesCommand,
     ResolveAgentPluginTemplateDependencyCommand,
@@ -28,8 +28,16 @@ export class AgentPluginTemplateService {
 
     async templates(id?: string, language?: string, summaryOnly = false): Promise<TXpertTemplate[]> {
         const result: TXpertTemplate[] = []
+        // Template keys contain no slashes; the preceding path is the declared package name.
+        const separator = id?.lastIndexOf('/') ?? -1
+        if (
+            id &&
+            (!id.startsWith('agent-plugin/') || separator <= 'agent-plugin/'.length || separator === id.length - 1)
+        )
+            return result
+        const packageName = id?.slice('agent-plugin/'.length, separator)
         // Every role may supply templates, including assistant-only packages hidden from ChatKit.
-        for (const { binding, pkg } of await this.installations.installedCatalog()) {
+        for (const { binding, pkg } of await this.installations.installedCatalog(undefined, packageName)) {
             if (
                 !binding.enabled ||
                 !(pkg.descriptor.templates ?? []).some(
@@ -42,22 +50,7 @@ export class AgentPluginTemplateService {
                     if (id && agentPluginTemplateId(pkg.descriptor.name, entry.key) !== id) continue
                     const snapshot = pkg.descriptor.templateCatalog[entry.key]
                     if (!snapshot) continue
-                    result.push({
-                        ...snapshot,
-                        id: agentPluginTemplateId(pkg.descriptor.name, entry.key),
-                        key: entry.key,
-                        title: resolveI18nText(entry.presentation?.title, language) || snapshot.title,
-                        description: resolveI18nText(entry.presentation?.description, language) || snapshot.description,
-                        pluginDisplayName:
-                            resolveI18nText(entry.presentation?.pluginDisplayName, language) ||
-                            resolveI18nText(pkg.descriptor.extension?.interface?.displayName, language) ||
-                            pkg.descriptor.name,
-                        category: entry.category ?? 'assistant',
-                        source: 'agent-plugin',
-                        copyright: '',
-                        pluginVersion: pkg.descriptor.version || pkg.digest,
-                        export_data: ''
-                    })
+                    result.push(this.summary(pkg, entry, snapshot, language))
                 }
                 continue
             }
@@ -72,14 +65,9 @@ export class AgentPluginTemplateService {
             for (const entry of pkg.descriptor.templates ?? []) {
                 const templateId = agentPluginTemplateId(pkg.descriptor.name, entry.key)
                 if (id && templateId !== id) continue
-                const normalized = normalizeAssistantTemplate({
+                const normalized = normalizeAssistantTemplateDefinition({
                     export_data: await readFile(await containedPath(pkg.rootPath, entry.path), 'utf8')
                 })
-                const dependencies = normalized.dependencies
-                for (const selector of [...(dependencies.skills ?? []), ...(dependencies.mcpServers ?? [])]) {
-                    if (selector.source?.name === pkg.descriptor.name && !selector.source.digest)
-                        selector.source.digest = pkg.digest
-                }
                 const team = normalized.definition.team
                 snapshot[entry.key] = {
                     name: team.name || entry.key,
@@ -87,6 +75,15 @@ export class AgentPluginTemplateService {
                     description: team.description || '',
                     avatar: team.avatar ?? null,
                     type: team.type
+                }
+                if (summaryOnly) {
+                    result.push(this.summary(pkg, entry, snapshot[entry.key], language))
+                    continue
+                }
+                const dependencies = normalized.dependencies
+                for (const selector of [...(dependencies.skills ?? []), ...(dependencies.mcpServers ?? [])]) {
+                    if (selector.source?.name === pkg.descriptor.name && !selector.source.digest)
+                        selector.source.digest = pkg.digest
                 }
                 const export_data = stringify(normalized.definition)
                 result.push({
@@ -115,6 +112,31 @@ export class AgentPluginTemplateService {
             if (summaryOnly && !id) await this.installations.saveTemplateCatalog(pkg, snapshot)
         }
         return result
+    }
+
+    private summary(
+        pkg: AgentPluginPackage,
+        entry: NonNullable<AgentPluginPackage['descriptor']['templates']>[number],
+        snapshot: NonNullable<AgentPluginPackage['descriptor']['templateCatalog']>[string],
+        language?: string
+    ): TXpertTemplate {
+        return {
+            ...snapshot,
+            type: snapshot.type ?? XpertTypeEnum.Agent,
+            id: agentPluginTemplateId(pkg.descriptor.name, entry.key),
+            key: entry.key,
+            title: resolveI18nText(entry.presentation?.title, language) || snapshot.title,
+            description: resolveI18nText(entry.presentation?.description, language) || snapshot.description,
+            pluginDisplayName:
+                resolveI18nText(entry.presentation?.pluginDisplayName, language) ||
+                resolveI18nText(pkg.descriptor.extension?.interface?.displayName, language) ||
+                pkg.descriptor.name,
+            category: entry.category ?? 'assistant',
+            source: 'agent-plugin',
+            copyright: '',
+            pluginVersion: pkg.descriptor.version || pkg.digest,
+            export_data: ''
+        }
     }
 
     async resolve(command: ResolveAgentPluginTemplateDependencyCommand) {
