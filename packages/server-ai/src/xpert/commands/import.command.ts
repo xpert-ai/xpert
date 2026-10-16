@@ -14,6 +14,8 @@ export type XpertImportCommandOptions = {
      * Runs the managed import normalization path for primary and middleware LLM models.
      */
     normalizeCopilotModels?: boolean
+    /** Template refresh only: retain the installed instance's models and resource bindings. */
+    preserveInstanceBindings?: boolean
     templateId?: string
     sourceTemplateId?: string
     templateDefinition?: import('@xpert-ai/contracts').AssistantTemplateMetadata

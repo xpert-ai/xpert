@@ -1091,7 +1091,11 @@
         "AgentPluginUpdateChanged": "更新任务已变更，请刷新后重试。",
         "AgentPluginUpdateBusy": "当前范围内已有 Agent 插件更新任务，请等待完成。",
         "AgentPluginUpdateBranchRequired": "请选择用于更新的 Git 分支。",
-        "AgentPluginUpdateIdentityChanged": "来源中的插件标识已变更，未安装更新。"
+        "AgentPluginUpdateIdentityChanged": "来源中的插件标识已变更，未安装更新。",
+        "TemplateToolBindingRequired": "同步前请将模板工具 {{key}} 绑定到唯一的已安装工具集。",
+        "XpertPublicationStale": "数字专家在发布期间已发生变更，请重新读取后重试。",
+        "XpertPublicationInvalid": "发布恢复请求无效。",
+        "XpertPublicationActivationPending": "版本已提交，但激活尚未完成。请恢复发布，不要重复创建版本。"
     },
     "Mcp": {
         "Test": {

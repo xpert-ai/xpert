@@ -30,7 +30,8 @@ import { PluginTemplateSyncDependenciesCommand } from '../../../plugin-resource/
 describe('XpertSyncTemplateHandler', () => {
     const buildHandler = (xpert: Record<string, unknown>, templateOverrides: Record<string, unknown> = {}) => {
         const xpertService = {
-            findOne: jest.fn().mockResolvedValue(xpert)
+            findOne: jest.fn().mockResolvedValue(xpert),
+            assertCanAuthorById: jest.fn().mockResolvedValue(undefined)
         }
         const xpertTemplateService = {
             getTemplateDetail: jest.fn().mockResolvedValue({
@@ -388,6 +389,15 @@ describe('XpertSyncTemplateHandler', () => {
         await expect(handler.execute(new XpertSyncTemplateCommand('xpert-1'))).rejects.toBeInstanceOf(
             BadRequestException
         )
+        expect(xpertTemplateService.getTemplateDetail).not.toHaveBeenCalled()
+        expect(commandBus.execute).not.toHaveBeenCalled()
+    })
+
+    it('requires authoring access before loading a template or updating a draft', async () => {
+        const { handler, xpertService, xpertTemplateService, commandBus } = buildHandler({ id: 'denied' })
+        xpertService.assertCanAuthorById.mockRejectedValue(new Error('forbidden'))
+        await expect(handler.execute(new XpertSyncTemplateCommand('denied'))).rejects.toThrow('forbidden')
+        expect(xpertService.findOne).not.toHaveBeenCalled()
         expect(xpertTemplateService.getTemplateDetail).not.toHaveBeenCalled()
         expect(commandBus.execute).not.toHaveBeenCalled()
     })
