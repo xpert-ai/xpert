@@ -245,6 +245,38 @@ describe('AgentChatDispatchHandoffProcessor', () => {
         )
     })
 
+    it('restores current authenticated user permissions only for the trusted producer marker', async () => {
+        const hydrated = {
+            id: 'viewer',
+            tenantId: 'tenant-id',
+            role: { rolePermissions: [{ permission: 'DATA_SOURCE_VIEW', enabled: true }] }
+        }
+        const commandBus = { execute: jest.fn() }
+        let captured
+        commandBus.execute.mockImplementation((command) => {
+            if (command.constructor.name === 'ResolveRuntimeUserCommand') return Promise.resolve(hydrated)
+            captured = RequestContext.currentUser()
+            return of()
+        })
+        const processor = createProcessor({
+            commandBus,
+            handoffQueueService: { enqueue: jest.fn().mockResolvedValue({ id: 'callback' }) }
+        })
+        const message = {
+            ...createMessage({}),
+            headers: { source: 'chat' as const },
+            payload: {
+                request: { action: 'send' as const, message: { input: { input: 'hello' } } },
+                options: { xpertId: 'xpert-id' },
+                callback: { messageType: 'channel.lark.chat_stream_event.v1' }
+            }
+        }
+        Object.assign(message.headers, { userId: 'viewer', organizationId: 'org-1', authenticatedUserId: 'viewer' })
+        const result = await processor.process(message, createContext())
+        expect(result).toEqual({ status: 'ok' })
+        expect(captured).toEqual(hydrated)
+    })
+
     it('keeps legacy header userId behavior when runtimePrincipal is absent', async () => {
         const commandBus = { execute: jest.fn() }
         const processor = createProcessor({

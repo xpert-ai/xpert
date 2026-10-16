@@ -1,3 +1,4 @@
+import { ResolveRuntimeUserCommand } from '@xpert-ai/server-core'
 import { withGroupRuntime } from '../../../chat-group/group-runtime-context'
 import {
     PrepareGroupChatCommand,
@@ -470,10 +471,9 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
             ...(language ? { language } : {})
         }
         const user = userId
-            ? {
-                  id: userId,
-                  tenantId: message.tenantId
-              }
+            ? message.headers?.authenticatedUserId === userId
+                ? await this.commandBus.execute(new ResolveRuntimeUserCommand(message.tenantId, userId, organizationId))
+                : { id: userId, tenantId: message.tenantId }
             : undefined
 
         return {
