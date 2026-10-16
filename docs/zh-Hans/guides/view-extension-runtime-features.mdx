@@ -45,17 +45,16 @@ MCP 管理选中服务后，在默认页签后显示该服务实际绑定的插�
 Provider 可通过以下明确的绑定身份决定是否支持当前服务：
 
 ```typescript
-import { isMcpPublicationViewHostContext, type XpertResolvedViewHostContext } from '@xpert-ai/contracts'
-
 supports(context: XpertResolvedViewHostContext) {
-  return isMcpPublicationViewHostContext(context) &&
-    context.hostSnapshot.sources.some(source =>
-      source.pluginName === '@example/plugin' && source.provider === 'example'
-    )
+  if (context.hostType !== 'mcp-publication') return false
+  const snapshot = context.hostSnapshot as McpPublicationViewHostSnapshot
+  return snapshot.sources.some(source =>
+    source.pluginName === '@example/plugin' && source.provider === 'example'
+  )
 }
 ```
 
-MCP 服务的宿主数据放在通用的 `context.hostSnapshot` 中，类型为 `McpPublicationViewHostSnapshot`。`isMcpPublicationViewHostContext()` 先按 `hostType === 'mcp-publication'` 区分宿主，再校验快照结构，之后即可直接读取类型化字段。`hostSnapshot` 由服务端按 Publication 的能力绑定解析，包含服务 ID 及各来源的 `toolsetId`、`name`、`provider`、`pluginName`，不包含连接凭据。扩展视图沿用现有 manifest、数据和 action 权限检查；MCP 管理仅允许超级管理员访问，组织范围不能读取或修改共享租户连接的凭据。工作空间绑定另行检查工作空间写权限。
+`hostType` 为 `mcp-publication` 时，`context.hostSnapshot` 为 `McpPublicationViewHostSnapshot`，由服务端按 Publication 的能力绑定解析，包含服务 ID 及各来源的 `toolsetId`、`name`、`provider`、`pluginName`，不包含连接凭据。扩展视图沿用现有 manifest、数据和 action 权限检查；MCP 管理仅允许超级管理员访问，组织范围不能读取或修改共享租户连接的凭据。工作空间绑定另行检查工作空间写权限。
 
 配置接口为 `GET /api/mcp-publications/:id/plugin-configurations`、`GET /api/mcp-publications/:id/plugin-configurations/:toolsetId` 和同路径 `PUT`。更新请求包含 `values` 和 `revision`；响应中的密码掩码不得作为实际凭据传入数据库。已绑定来源的校验和密码还原均在服务端执行。
 

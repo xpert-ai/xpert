@@ -4,7 +4,6 @@ import type { McpApiKeySubjectType } from './mcp-auth.model'
 import type { McpCapabilityDescriptor, McpCapabilityType } from './mcp-capability.model'
 import type { I18nObject } from '../types'
 import type { JsonSchemaObjectType } from './types'
-import type { XpertResolvedViewHostContext } from '../view-extension/model'
 
 export interface McpPublicationPluginSource {
   toolsetId: string
@@ -13,49 +12,9 @@ export interface McpPublicationPluginSource {
   pluginName: string
 }
 
-export const MCP_PUBLICATION_VIEW_HOST_TYPE = 'mcp-publication' as const
-
 export interface McpPublicationViewHostSnapshot {
   id: string
   sources: McpPublicationPluginSource[]
-}
-
-export interface McpPublicationViewHostContext extends XpertResolvedViewHostContext {
-  hostType: typeof MCP_PUBLICATION_VIEW_HOST_TYPE
-  hostSnapshot: McpPublicationViewHostSnapshot
-}
-
-function isMcpPublicationPluginSource(value: unknown): value is McpPublicationPluginSource {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'toolsetId' in value &&
-    typeof value.toolsetId === 'string' &&
-    'name' in value &&
-    typeof value.name === 'string' &&
-    'provider' in value &&
-    typeof value.provider === 'string' &&
-    'pluginName' in value &&
-    typeof value.pluginName === 'string'
-  )
-}
-
-export function isMcpPublicationViewHostSnapshot(value: unknown): value is McpPublicationViewHostSnapshot {
-  return (
-    typeof value === 'object' &&
-    value !== null &&
-    'id' in value &&
-    typeof value.id === 'string' &&
-    'sources' in value &&
-    Array.isArray(value.sources) &&
-    value.sources.every(isMcpPublicationPluginSource)
-  )
-}
-
-export function isMcpPublicationViewHostContext(
-  context: XpertResolvedViewHostContext
-): context is McpPublicationViewHostContext {
-  return context.hostType === MCP_PUBLICATION_VIEW_HOST_TYPE && isMcpPublicationViewHostSnapshot(context.hostSnapshot)
 }
 
 /** A configuration tab edits the existing bound source; it never creates a toolset. */

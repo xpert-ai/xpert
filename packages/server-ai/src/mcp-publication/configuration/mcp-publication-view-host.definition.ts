@@ -1,18 +1,13 @@
 import { Injectable } from '@nestjs/common'
-import {
-    MCP_PUBLICATION_VIEW_HOST_TYPE,
-    RolesEnum,
-    type McpPublicationViewHostSnapshot,
-    type XpertViewSlot
-} from '@xpert-ai/contracts'
+import { RolesEnum, type McpPublicationViewHostSnapshot, type XpertViewSlot } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { ViewHostDefinition, type ViewHostDefinitionContract } from '@xpert-ai/server-core'
 import { McpSourceConfigurationService } from './configuration.service'
 
 @Injectable()
-@ViewHostDefinition(MCP_PUBLICATION_VIEW_HOST_TYPE)
+@ViewHostDefinition('mcp-publication')
 export class McpPublicationViewHostDefinition implements ViewHostDefinitionContract {
-    readonly hostType = MCP_PUBLICATION_VIEW_HOST_TYPE
+    readonly hostType = 'mcp-publication'
     readonly slots: XpertViewSlot[] = [{ key: 'detail.main_tabs', mode: 'tabs', order: 0 }]
 
     constructor(private readonly configurations: McpSourceConfigurationService) {}

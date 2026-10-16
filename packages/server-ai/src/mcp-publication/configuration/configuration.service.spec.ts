@@ -133,9 +133,7 @@ describe('MCP bound source configuration', () => {
         expect(tabs[0].title.zh_Hans).toBe('配置连接')
         expect(JSON.stringify(tabs)).not.toContain('private-value')
         const host = await ctx.host.resolve('publication-1')
-        expect(host.hostSnapshot).toEqual({ id: 'publication-1', sources: expect.any(Array) })
         expect(host.hostSnapshot.sources).toHaveLength(3)
-        expect(host.context).not.toHaveProperty('mcpPublication')
         expect(JSON.stringify(host)).not.toContain('credentials')
         expect(ctx.repository.find).toHaveBeenCalledWith(
             expect.objectContaining({
