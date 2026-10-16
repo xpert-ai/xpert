@@ -204,6 +204,7 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
         const runtime = this.createDraftXpertMiddlewareRuntime(draftContext)
         const middleware = await strategy.createMiddleware(body?.options, {
             tenantId: RequestContext.currentTenantId(),
+            organizationId: RequestContext.getOrganizationId(),
             userId: RequestContext.currentUserId(),
             xpertId: draftContext.xpertId,
             workspaceId: draftContext.workspaceId,
@@ -234,6 +235,7 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
         const runtime = this.createDraftXpertMiddlewareRuntime(draftContext)
         const middleware = await strategy.createMiddleware(body?.options, {
             tenantId: RequestContext.currentTenantId(),
+            organizationId: RequestContext.getOrganizationId(),
             userId: RequestContext.currentUserId(),
             xpertId: draftContext.xpertId,
             workspaceId: draftContext.workspaceId,

@@ -347,6 +347,9 @@ describe('XpertAgentService', () => {
         expect(createMiddleware).toHaveBeenCalledWith(
             {},
             expect.objectContaining({
+                tenantId: 'tenant-1',
+                organizationId: 'organization-1',
+                userId: 'user-1',
                 xpertId: 'xpert-1',
                 workspaceId: 'workspace-1',
                 xpertFeatures: {
@@ -407,6 +410,9 @@ describe('XpertAgentService', () => {
         expect(createMiddleware).toHaveBeenCalledWith(
             {},
             expect.objectContaining({
+                tenantId: 'tenant-1',
+                organizationId: 'organization-1',
+                userId: 'user-1',
                 xpertId: 'xpert-1',
                 workspaceId: 'workspace-1',
                 xpertFeatures: {
