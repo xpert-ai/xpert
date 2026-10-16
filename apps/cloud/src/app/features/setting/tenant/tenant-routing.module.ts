@@ -7,6 +7,7 @@ import { featureGate } from '../../feature-gate'
 import { SettingsComponent } from './settings/settings.component'
 import { XpTenantComponent } from './tenant.component'
 import { TenantTagMaintainComponent } from './maintain/maintain.component'
+import { tenantRetentionGuard } from './retention/retention.guard'
 
 export function redirectTo() {
   return '/dashboard'
@@ -47,6 +48,7 @@ const routes: Routes = [
       },
       {
         path: 'retention',
+        canActivate: [tenantRetentionGuard],
         loadComponent: () => import('./retention/retention.component').then((m) => m.TenantRetentionComponent),
         data: {
           title: 'settings/tenant/retention'

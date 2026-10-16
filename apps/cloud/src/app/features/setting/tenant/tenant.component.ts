@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { AiFeatureEnum, FeatureEnum, PermissionsEnum, Store } from '../../../@core'
+import { catchError, of } from 'rxjs'
+import { AiFeatureEnum, FeatureEnum, PermissionsEnum, Store, TenantService } from '../../../@core'
 
 @Component({
   standalone: false,
@@ -21,6 +22,14 @@ import { AiFeatureEnum, FeatureEnum, PermissionsEnum, Store } from '../../../@co
 })
 export class XpTenantComponent {
   private readonly store = inject(Store)
+  readonly canManageRetention = toSignal(
+    inject(TenantService)
+      .canManageRetention()
+      .pipe(catchError(() => of(false))),
+    {
+      initialValue: false
+    }
+  )
   readonly featureContextHydrated = toSignal(this.store.featureContextHydrated$, {
     initialValue: this.store.featureContextHydrated
   })

@@ -76,20 +76,22 @@
           </a>
         }
 
-        <a
-          z-button
-          zType="ghost"
-          class="h-auto min-h-11 min-w-0 justify-start gap-3 px-3 py-2 text-left text-base leading-5 whitespace-normal text-foreground min-[900px]:w-full pointer-coarse:min-h-[44px]"
-          ariaCurrentWhenActive="page"
-          [routerLink]="['./retention']"
-          routerLinkActive
-          #rlaRetention="routerLinkActive"
-          [routerLinkActiveOptions]="{ exact: true }"
-          [class]="rlaRetention.isActive ? 'bg-muted font-semibold' : 'font-medium'"
-        >
-          <z-icon zType="database" class="shrink-0" />
-          {{ 'XP.MENU.TENANT.RETENTION' | translate: { Default: 'Retention' } }}
-        </a>
+        @if (canManageRetention()) {
+          <a
+            z-button
+            zType="ghost"
+            class="h-auto min-h-11 min-w-0 justify-start gap-3 px-3 py-2 text-left text-base leading-5 whitespace-normal text-foreground min-[900px]:w-full pointer-coarse:min-h-[44px]"
+            ariaCurrentWhenActive="page"
+            [routerLink]="['./retention']"
+            routerLinkActive
+            #rlaRetention="routerLinkActive"
+            [routerLinkActiveOptions]="{ exact: true }"
+            [class]="rlaRetention.isActive ? 'bg-muted font-semibold' : 'font-medium'"
+          >
+            <z-icon zType="database" class="shrink-0" />
+            {{ 'XP.MENU.TENANT.RETENTION' | translate: { Default: 'Retention' } }}
+          </a>
+        }
 
         @if (canViewMembership()) {
           <a

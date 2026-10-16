@@ -4,7 +4,16 @@
       <h2 class="text-lg font-semibold text-text-primary">
         {{ 'XP.MENU.TENANT.RETENTION' | translate: { Default: 'Data Management' } }}
       </h2>
-      <p class="mt-1 text-sm text-muted-foreground">{{ 'XP.SettingsRemaining.RetentionDescription' | translate }}</p>
+      <p class="mt-1 text-sm text-muted-foreground">
+        {{
+          'XP.MENU.TENANT.RETENTION_GLOBAL_DESCRIPTION'
+            | translate
+              : {
+                  Default:
+                    'Configured by the default tenant. These cleanup settings apply to all tenants, including those without their own settings. Data required for conversation recovery and branching is preserved.'
+                }
+        }}
+      </p>
     </div>
 
     <div class="space-y-4">
