@@ -1,3 +1,4 @@
+import { SandboxJobInvocationSession } from './sandbox-job-invocation'
 import {
     createVerifiedReadOnlyInputSnapshot,
     ensureExactRuntimeJobDirectory,
@@ -23,6 +24,7 @@ import {
 } from './sandbox-job-files'
 import { createHash } from 'node:crypto'
 import { stat } from 'node:fs/promises'
+import { t } from 'i18next'
 import path from 'node:path'
 import { Inject, Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
@@ -38,6 +40,7 @@ import {
     type SandboxJobProgress,
     type SandboxJobActionHealth,
     type SandboxJobRunInput,
+    type SandboxJobRunOptions,
     type SandboxJobRunResult,
     type SandboxJobsApi,
     type SandboxJobSnapshot,
@@ -77,6 +80,7 @@ const RUNTIME_JOB_WORKSPACE_DIRECTORY = 'workspace'
 type ActiveSandbox = {
     runtime: SandboxRuntimeInstance
     resolution: SandboxRuntimeResolution
+    invocations?: SandboxJobInvocationSession
 }
 
 /**
@@ -121,17 +125,18 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
      * Reuses prior success, reattaches active work, or executes a new attempt
      * after resolving a trusted Action, Definition, and healthy Binding.
      */
-    async run(input: SandboxJobRunInput): Promise<SandboxJobRunResult> {
+    async run(input: SandboxJobRunInput, options?: SandboxJobRunOptions): Promise<SandboxJobRunResult> {
+        options?.signal?.throwIfAborted()
         const { action, definition } = await this.requireRunnableAction(input)
         let job = await this.findIdempotent(input.scope.tenantId, input.idempotencyKey)
         if (job?.status === 'succeeded') return this.toSucceeded(job)
         if (job && (job.status === 'waiting' || job.status === 'starting' || job.status === 'running')) {
             try {
-                return await this.waitForAttachedJob(job.id as string, definition.hardDeadlineMs)
+                return await this.waitForAttachedJob(job.id as string, definition.hardDeadlineMs, options?.signal)
             } catch (error) {
                 const current = await this.repository.findOne({ where: { id: job.id as string } })
                 if (!(error instanceof SandboxJobRuntimeError) || current?.status !== 'lost') throw error
-                return this.run(input)
+                return this.run(input, options)
             }
         }
         if (job?.cleanupPending) await this.requirePreviousAttemptCleanup(job)
@@ -139,13 +144,14 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
             readOnlyFileMounts: hasReadOnlySeekableInputs(input)
         })
         const prepared = await this.prepareAttempt(job, input, action, definition, resolution)
-        if (prepared.attached) return this.waitForAttachedJob(prepared.job.id as string, definition.hardDeadlineMs)
+        if (prepared.attached)
+            return this.waitForAttachedJob(prepared.job.id as string, definition.hardDeadlineMs, options?.signal)
         job = prepared.job
         const jobId = job.id as string
-        const lease = await this.waitForCapacity(job, input, definition)
+        const lease = await this.waitForCapacity(job, input, definition, options)
 
         try {
-            return await this.execute(job, input, action, definition, resolution)
+            return await this.execute(job, input, action, definition, resolution, options)
         } finally {
             await this.capacity.release(lease).catch((error) => {
                 this.logger.warn(`Failed to release sandbox job capacity lease ${jobId}: ${messageOf(error)}`)
@@ -159,13 +165,14 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
         if (!job)
             throw new SandboxJobRuntimeError('SANDBOX_CANCELLED', 'Sandbox job was not found.', false, input.jobId)
         const active = this.active.get(input.jobId)
-        if (active?.runtime.terminate) await Promise.resolve(active.runtime.terminate()).catch(() => undefined)
         job.status = 'cancelled'
         job.progress = lifecycleSandboxJobProgress(job.progress, 'cancelled')
         job.errorCode = 'SANDBOX_CANCELLED'
         job.errorMessage = 'Sandbox job was cancelled.'
         job.finishedAt = new Date()
         await this.repository.save(job)
+        active?.invocations?.close()
+        if (active?.runtime.terminate) await Promise.resolve(active.runtime.terminate()).catch(() => undefined)
         const cleaned = await this.destroySandbox(job, active?.resolution)
         if (cleaned) await this.cleanupVolume(job)
         return this.toSnapshot(job)
@@ -335,12 +342,22 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
     private async waitForCapacity(
         job: SandboxJobEntity,
         input: SandboxJobRunInput,
-        definition: SandboxRuntimeDefinition
+        definition: SandboxRuntimeDefinition,
+        options?: SandboxJobRunOptions
     ): Promise<SandboxJobCapacityLease> {
         const jobId = job.id as string
         let lastCapacityMessage: string | null = null
         let nextHeartbeatAt = 0
         for (;;) {
+            if (options?.signal?.aborted) {
+                await this.cancel({ jobId })
+                throw new SandboxJobRuntimeError(
+                    'SANDBOX_CANCELLED',
+                    t('server-ai:Error.SandboxJobCancelled'),
+                    false,
+                    jobId
+                )
+            }
             const current = await this.repository.findOne({ where: { id: jobId } })
             if (!current || current.status === 'cancelled') {
                 throw new SandboxJobRuntimeError(
@@ -387,14 +404,25 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
         input: SandboxJobRunInput,
         action: RegisteredSandboxAction,
         definition: SandboxRuntimeDefinition,
-        resolution: SandboxRuntimeResolution
+        resolution: SandboxRuntimeResolution,
+        options?: SandboxJobRunOptions
     ): Promise<SandboxJobRunResult> {
         const jobId = job.id as string
         const volume = await this.volumeClient
             .resolve({ tenantId: input.scope.tenantId, catalog: 'runtime-jobs', jobId })
             .ensureRoot()
         let runtime: SandboxRuntimeInstance | undefined
+        let invocations: SandboxJobInvocationSession | undefined
+        let invocationDeadline: ReturnType<typeof setTimeout> | undefined
+        let invocationTimedOut = false
+        const abort = () => {
+            void Promise.resolve()
+                .then(() => runtime?.terminate?.())
+                .catch(() => undefined)
+        }
+        options?.signal?.addEventListener('abort', abort, { once: true })
         try {
+            options?.signal?.throwIfAborted()
             job.status = 'starting'
             job.progress = lifecycleSandboxJobProgress(job.progress, 'starting')
             job.startedAt = new Date()
@@ -447,10 +475,24 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
                         this.logger.warn(`Failed to persist sandbox job progress ${jobId}: ${messageOf(error)}`)
                     })
             }
+            options?.signal?.throwIfAborted()
+            if (options?.invocation) {
+                invocations = new SandboxJobInvocationSession(jobId, runtime, options)
+                this.active.get(jobId).invocations = invocations
+                invocationDeadline = setTimeout(() => {
+                    invocationTimedOut = true
+                    invocations?.close()
+                    abort()
+                }, timeoutMs)
+                invocationDeadline.unref()
+            }
             const response = await runtime.execute(buildRunnerCommand(definition, runtime.workspaceRoot), {
                 timeoutMs,
                 maxOutputBytes: 4 * 1024 * 1024,
-                onOutput: (output) => progressDecoder.push(output).forEach(scheduleProgress)
+                onOutput: (output) => {
+                    progressDecoder.push(output).forEach(scheduleProgress)
+                    invocations?.push(output)
+                }
             })
             progressDecoder.flush().forEach(scheduleProgress)
             await progressWrites
@@ -482,8 +524,12 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
                 throw new SandboxJobRuntimeError('SANDBOX_CANCELLED', 'Sandbox export was cancelled.', false, jobId)
             }
             if (response.exitCode !== 0) throw classifyRunnerFailure(response.output, jobId)
+            await invocations?.finish()
+            if (invocationDeadline) clearTimeout(invocationDeadline)
+            options?.signal?.throwIfAborted()
             await this.assertReadOnlyInputsUnchanged(readOnlyFiles, jobId)
             const outputs = await this.collectOutputs(runtime, runtime.workspaceRoot, input.outputs)
+            options?.signal?.throwIfAborted()
             job.outputs = outputs
             job.status = 'succeeded'
             job.progress = lifecycleSandboxJobProgress(job.progress, 'complete', 1)
@@ -495,14 +541,28 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
         } catch (error) {
             const persisted = await this.repository.findOne({ where: { id: jobId } })
             const runtimeError =
-                persisted?.status === 'cancelled'
+                persisted?.status === 'cancelled' || options?.signal?.aborted
                     ? new SandboxJobRuntimeError(
                           'SANDBOX_CANCELLED',
-                          persisted.errorMessage ?? 'Sandbox job was cancelled.',
+                          t('server-ai:Error.SandboxJobCancelled'),
                           false,
                           jobId
                       )
-                    : normalizeRuntimeError(error, jobId)
+                    : invocationTimedOut
+                      ? new SandboxJobRuntimeError(
+                            'EXPORT_TIMEOUT',
+                            t('server-ai:Error.SandboxInvocationTimeout'),
+                            true,
+                            jobId
+                        )
+                      : invocations?.error
+                        ? new SandboxJobRuntimeError(
+                              'SANDBOX_INVOCATION_FAILED',
+                              t('server-ai:Error.SandboxInvocationFailed'),
+                              false,
+                              jobId
+                          )
+                        : normalizeRuntimeError(error, jobId)
             if (persisted?.status === 'cancelled') {
                 job = persisted
                 throw runtimeError
@@ -518,6 +578,9 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
             await this.repository.save(job)
             throw runtimeError
         } finally {
+            if (invocationDeadline) clearTimeout(invocationDeadline)
+            invocations?.close()
+            options?.signal?.removeEventListener('abort', abort)
             this.active.delete(jobId)
             const cleaned = await this.destroySandbox(job, resolution)
             if (cleaned) await this.cleanupVolume(job)
@@ -771,9 +834,20 @@ export class SandboxJobRuntimeCapabilityService implements SandboxJobsApi, OnMod
         return outputs
     }
 
-    private async waitForAttachedJob(jobId: string, timeoutMs: number): Promise<SandboxJobRunResult> {
+    private async waitForAttachedJob(
+        jobId: string,
+        timeoutMs: number,
+        signal?: AbortSignal
+    ): Promise<SandboxJobRunResult> {
         let deadline = Date.now() + timeoutMs
         while (Date.now() < deadline) {
+            if (signal?.aborted)
+                throw new SandboxJobRuntimeError(
+                    'SANDBOX_CANCELLED',
+                    t('server-ai:Error.SandboxJobCancelled'),
+                    false,
+                    jobId
+                )
             const current = await this.repository.findOne({ where: { id: jobId } })
             if (!current)
                 throw new SandboxJobRuntimeError(

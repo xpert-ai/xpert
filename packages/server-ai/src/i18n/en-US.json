@@ -53,6 +53,9 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "SandboxJobCancelled": "Sandbox job was cancelled.",
+        "SandboxInvocationFailed": "Sandbox host invocation failed or was denied.",
+        "SandboxInvocationTimeout": "Sandbox host invocation exceeded the execution deadline.",
         "SandboxJobVolumeRequired": "Only an isolated job volume can be reclaimed",
         "RuntimeUserUnavailable": "Runtime user is unavailable",
         "ArtifactVersionConflict": "Artifact was changed by another save. Reopen it before saving again.",
