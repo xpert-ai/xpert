@@ -1,9 +1,15 @@
 import type { I18nObject, IconDefinition } from '../types'
 import type { JsonSchemaObjectType } from '../ai/types'
 import type { XpertViewAssistantIdentity } from './assistant-profile'
-import type { McpPublicationPluginSource } from '../ai/mcp-publication.model'
 
-export type XpertViewHostType = 'integration' | 'knowledgebase' | 'agent' | 'project' | 'sandbox' | string
+export type XpertViewHostType =
+  | 'integration'
+  | 'knowledgebase'
+  | 'agent'
+  | 'project'
+  | 'sandbox'
+  | 'mcp-publication'
+  | string
 
 export type XpertViewSlotMode = 'tabs' | 'sections' | 'widgets' | 'sidebar'
 
@@ -143,8 +149,6 @@ export interface XpertViewRuntimeScope {
 export type XpertViewHostState = Record<string, unknown>
 
 export interface XpertResolvedViewHostContext extends XpertViewHostContext {
-  /** Server-resolved sources of an MCP service. Contains no connection values or credentials. */
-  mcpPublication?: { id: string; sources: McpPublicationPluginSource[] }
   assistant?: XpertViewAssistantIdentity
   slots: XpertViewSlot[]
   hostSnapshot?: unknown

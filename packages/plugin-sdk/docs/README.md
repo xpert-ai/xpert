@@ -133,6 +133,17 @@ The host owns the public MCP endpoint identity. It combines the plugin's stable 
 
 [View Extension Protocol](./en/view-extension-protocol.md)
 
+Host-specific data is delivered in the generic `context.hostSnapshot` and narrowed by `hostType`.
+On MCP service pages (`mcp-publication`), use `isMcpPublicationViewHostContext()` from `@xpert-ai/contracts`
+to read the bound sources as `McpPublicationViewHostSnapshot`; it contains no connection values or credentials:
+
+```typescript
+supports(context: XpertResolvedViewHostContext) {
+  return isMcpPublicationViewHostContext(context) &&
+    context.hostSnapshot.sources.some((source) => source.pluginName === '@example/plugin')
+}
+```
+
 ## Browser collaboration client
 
 Remote Components should import the framework-neutral collaboration client from the browser-safe entry point:
