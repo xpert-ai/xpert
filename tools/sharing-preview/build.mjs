@@ -16,10 +16,6 @@ source = source
   .replaceAll("'apps/cloud/src/app/@core'", "'../../../tools/sharing-preview/fixtures'")
   .replaceAll("'../xpert.component'", "'../../../tools/sharing-preview/fixtures'")
   .replaceAll("'apps/cloud/src/app/@shared/user'", "'./avatar'")
-  .replace(
-    "styleUrl: './authorization.component.css'",
-    "styles: [':host { display:flex; height:100%; min-width:0; flex:1; flex-direction:column; background:var(--components-panel-bg); color:var(--foreground) }']"
-  )
 await fs.writeFile(path.join(output, 'src/authorization.component.ts'), source)
 await fs.copyFile(
   path.join(root, componentRoot, 'authorization.component.html'),

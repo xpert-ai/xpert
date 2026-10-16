@@ -32,7 +32,7 @@ type Panel = 'users' | 'groups' | 'inherited'
   selector: 'xpert-authorization',
   standalone: true,
   templateUrl: './authorization.component.html',
-  styleUrl: './authorization.component.css',
+  host: { class: 'flex h-full min-w-0 flex-1 flex-col bg-components-panel-bg text-foreground' },
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FormsModule,

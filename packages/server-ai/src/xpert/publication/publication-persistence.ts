@@ -56,7 +56,9 @@ export class XpertPublicationPersistence {
 
     async completeActivation(xpert: Xpert): Promise<void> {
         await this.database.transaction(async (manager) => {
-            const repository = manager.getRepository(Xpert)
+            // This checkpoint update only needs scalar columns, not recursive Assistant relations.
+            const repository =
+                manager.getRepository<Pick<Xpert, 'id' | 'tenantId' | 'organizationId' | 'version' | 'options'>>(Xpert)
             const current = await repository.findOne({
                 where: { id: xpert.id, tenantId: xpert.tenantId, organizationId: xpert.organizationId ?? IsNull() },
                 select: ['id', 'version', 'options'],
