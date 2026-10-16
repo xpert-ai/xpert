@@ -324,6 +324,7 @@ describe('createMapStreamEvents', () => {
                         id: 'tool-call-1',
                         type: 'component',
                         data: expect.objectContaining({
+                            tool: 'query_data_xpert',
                             status: 'success',
                             output: '{"ok":true}',
                             artifact: meta,
