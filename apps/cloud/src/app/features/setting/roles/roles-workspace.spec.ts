@@ -4,6 +4,7 @@ import { RouterTestingHarness } from '@angular/router/testing'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, Subject, from, of, throwError } from 'rxjs'
 import {
+  AIPermissionsEnum,
   IRole,
   IRolePermission,
   IUser,
@@ -192,16 +193,100 @@ describe('roles workspace', () => {
     expect(component.permissionsError()).toBe('')
     expect(component.enabledCount()).toBe(1)
   })
-  it('retains all deprecated permissions and their existing editing rules', async () => {
+  it('shows runtime permissions on the normal tab and keeps unused legacy permissions deprecated', async () => {
     await open(admin.id)
-    expect(component.permissionRows()).toHaveLength(
-      PermissionGroups.GENERAL.length + component.getAdministrationPermissions().length
+    const catalogLength = PermissionGroups.GENERAL.length + component.getAdministrationPermissions().length
+    const activePermissions = [
+      PermissionsEnum.ORG_INVITE_VIEW,
+      AIPermissionsEnum.KNOWLEDGEBASE_EDIT,
+      PermissionsEnum.DATA_SOURCE_VIEW,
+      PermissionsEnum.SUPER_ADMIN_EDIT,
+      PermissionsEnum.ACCESS_DELETE_ALL_DATA
+    ]
+    const deprecatedPermissions = [
+      PermissionsEnum.ADMIN_DASHBOARD_VIEW,
+      PermissionsEnum.VIEW_ALL_EMAILS,
+      PermissionsEnum.ORG_DEMO_EDIT,
+      AIPermissionsEnum.COPILOT_VIEW,
+      PermissionsEnum.CHANGE_SELECTED_ORGANIZATION,
+      PermissionsEnum.ACCESS_DELETE_ACCOUNT
+    ]
+    expect(component.permissionRows()).toHaveLength(catalogLength)
+    expect(component.enabledCount()).toBe(1)
+    expect(component.deprecatedCount()).toBe(deprecatedPermissions.length)
+    expect(component.activeCount()).toBe(catalogLength - deprecatedPermissions.length)
+    expect(component.filteredPermissions()).toHaveLength(component.activeCount())
+    expect(component.filteredPermissions().every((row) => !row.deprecated)).toBe(true)
+    activePermissions.forEach((id) => {
+      expect(component.filteredPermissions().some((row) => row.id === id)).toBe(true)
+    })
+    deprecatedPermissions.forEach((id) => {
+      expect(component.filteredPermissions().some((row) => row.id === id)).toBe(false)
+    })
+    expect(component.permissionRows().find((row) => row.id === AIPermissionsEnum.KNOWLEDGEBASE_EDIT)?.module).toBe('ai')
+    expect(component.permissionRows().find((row) => row.id === PermissionsEnum.DATA_SOURCE_VIEW)?.module).toBe('data')
+    expect(component.permissionRows().find((row) => row.id === PermissionsEnum.ORG_INVITE_VIEW)?.module).toBe('members')
+    expect(component.permissionRows().find((row) => row.id === PermissionsEnum.SUPER_ADMIN_EDIT)?.module).toBe(
+      'members'
     )
-    component.setTab('deprecated')
-    expect(component.filteredPermissions().every((row) => row.deprecated)).toBe(true)
+    expect(component.permissionRows().find((row) => row.id === PermissionsEnum.ACCESS_DELETE_ALL_DATA)?.module).toBe(
+      'members'
+    )
+    expect(component.permissionRows().find((row) => row.id === PermissionsEnum.SUPER_ADMIN_EDIT)?.administration).toBe(
+      true
+    )
+    expect(
+      component.permissionRows().find((row) => row.id === PermissionsEnum.ACCESS_DELETE_ALL_DATA)?.administration
+    ).toBe(true)
+    expect(component.permissionRows().find((row) => row.id === PermissionsEnum.ORG_INVITE_VIEW)?.administration).toBe(
+      false
+    )
+    expect(
+      component.permissionRows().find((row) => row.id === AIPermissionsEnum.KNOWLEDGEBASE_EDIT)?.administration
+    ).toBe(false)
+    expect(component.permissionRows().find((row) => row.id === PermissionsEnum.DATA_SOURCE_VIEW)?.administration).toBe(
+      false
+    )
+    component.setModule('ai')
+    expect(component.filteredPermissions().some((row) => row.id === AIPermissionsEnum.KNOWLEDGEBASE_EDIT)).toBe(true)
+    expect(component.filteredPermissions().some((row) => row.id === AIPermissionsEnum.COPILOT_VIEW)).toBe(false)
+    component.setQuery('knowledgebase_edit')
+    component.setStatus('disabled')
+    expect(component.filteredPermissions().map((row) => row.id)).toEqual([AIPermissionsEnum.KNOWLEDGEBASE_EDIT])
+    component.setStatus('enabled')
+    expect(component.filteredPermissions()).toEqual([])
+    component.setModule('data')
+    component.setStatus('all')
+    expect(component.filteredPermissions()).toEqual([])
+    component.clearFilters()
+    component.setModule('members')
     expect(component.filteredPermissions().some((row) => row.id === PermissionsEnum.ORG_INVITE_VIEW)).toBe(true)
+    expect(component.filteredPermissions().some((row) => row.id === PermissionsEnum.SUPER_ADMIN_EDIT)).toBe(true)
+    expect(component.filteredPermissions().some((row) => row.id === PermissionsEnum.ACCESS_DELETE_ALL_DATA)).toBe(true)
+    expect(component.filteredPermissions().some((row) => row.id === PermissionsEnum.ADMIN_DASHBOARD_VIEW)).toBe(false)
+    component.setModule('data')
+    expect(component.filteredPermissions().some((row) => row.id === PermissionsEnum.DATA_SOURCE_VIEW)).toBe(true)
+    expect(component.filteredPermissions().some((row) => row.id === PermissionsEnum.VIEW_ALL_EMAILS)).toBe(false)
+    component.setTab('deprecated')
+    expect(component.activeCount() + component.deprecatedCount()).toBe(catalogLength)
+    expect(component.enabledCount()).toBe(1)
+    expect(component.moduleOptions().map((option) => option.value)).toEqual(['all', 'ai', 'members', 'data'])
+    expect(component.filteredPermissions().map((row) => row.id)).toEqual(deprecatedPermissions)
+    expect(component.filteredPermissions().every((row) => row.deprecated)).toBe(true)
+    component.setQuery('copilot_view')
+    component.setModule('ai')
+    component.setStatus('disabled')
+    expect(component.filteredPermissions().map((row) => row.id)).toEqual([AIPermissionsEnum.COPILOT_VIEW])
+    component.setQuery('knowledgebase_edit')
+    expect(component.filteredPermissions()).toEqual([])
+    component.setTab('active')
     await component.permissionChanged(PermissionsEnum.ORG_INVITE_VIEW, true)
-    expect(permissions.create).toHaveBeenCalled()
+    expect(permissions.create).toHaveBeenCalledWith({
+      roleId: admin.id,
+      tenantId: 'tenant',
+      permission: PermissionsEnum.ORG_INVITE_VIEW,
+      enabled: true
+    })
   })
   it('combines permission ID, module and enabled-state filters', async () => {
     await open(admin.id)
