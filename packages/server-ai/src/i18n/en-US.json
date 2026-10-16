@@ -1091,7 +1091,11 @@
         "AgentPluginUpdateChanged": "This update operation has changed. Refresh and retry.",
         "AgentPluginUpdateBusy": "Another Agent plugin update is running in this scope.",
         "AgentPluginUpdateBranchRequired": "Choose a Git branch to follow for updates.",
-        "AgentPluginUpdateIdentityChanged": "The source contains a different plugin name. No update was installed."
+        "AgentPluginUpdateIdentityChanged": "The source contains a different plugin name. No update was installed.",
+        "TemplateToolBindingRequired": "Bind template tool {{key}} to exactly one installed toolset before synchronizing.",
+        "XpertPublicationStale": "The Assistant changed during publication. Reload it before retrying.",
+        "XpertPublicationInvalid": "Invalid publication recovery request.",
+        "XpertPublicationActivationPending": "The version was committed but activation is pending. Resume publication without creating another version."
     },
     "Mcp": {
         "Test": {

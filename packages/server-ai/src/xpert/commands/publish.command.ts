@@ -15,6 +15,7 @@ export class XpertPublishCommand implements ICommand {
         public readonly marketplace?: TXpertPublishMarketplaceInput,
         public readonly businessAreaId?: string | null,
         /** Internal installer recovery: finish publication without touching the graph or a later draft. */
-        public readonly resumePublished = false
+        public readonly resumePublished = false,
+        public readonly expectedPublishedVersion?: string
     ) {}
 }

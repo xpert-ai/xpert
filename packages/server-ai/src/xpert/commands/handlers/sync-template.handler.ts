@@ -28,6 +28,7 @@ export class XpertSyncTemplateHandler implements ICommandHandler<XpertSyncTempla
     ) {}
 
     async execute(command: XpertSyncTemplateCommand): Promise<TXpertTemplateSyncResult> {
+        await this.xpertService.assertCanAuthorById(command.xpertId)
         const xpert = await this.xpertService.findOne(command.xpertId)
         const currentSource = resolveXpertTemplateSource(xpert)
         if (!currentSource) {
@@ -66,6 +67,7 @@ export class XpertSyncTemplateHandler implements ICommandHandler<XpertSyncTempla
             new XpertImportCommand(parsed, {
                 targetXpertId: xpert.id,
                 normalizeCopilotModels: true,
+                preserveInstanceBindings: true,
                 language,
                 templateId: currentSource.templateId,
                 sourceTemplateId: template.id,

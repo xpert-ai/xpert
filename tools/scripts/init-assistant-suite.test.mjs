@@ -1,651 +1,347 @@
 import assert from 'node:assert/strict'
+import { spawn } from 'node:child_process'
 import fs from 'node:fs'
 import http from 'node:http'
 import os from 'node:os'
 import path from 'node:path'
-import process from 'node:process'
 import test from 'node:test'
-import { spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 
-const scriptDir = path.dirname(fileURLToPath(import.meta.url))
-const SCRIPT_PATH = path.join(scriptDir, 'init-assistant-suite.mjs')
-
-/** Creates a portable one-role suite profile for CLI integration tests. */
-function createProfile(overrides = {}) {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'xpert-assistant-suite-'))
-  const profilePath = path.join(directory, 'suite.json')
-  const profile = {
-    schemaVersion: 'xpert-assistant-suite@1',
-    key: 'test-acceptance-v1',
-    plugin: { name: '@xpert-ai/plugin-test-suite', version: '1.2.3' },
-    roles: [
-      {
-        key: 'bom',
-        templateKey: 'bom-engineer',
-        name: 'test-bom-engineer',
-        title: 'Test BOM Engineer',
-        primaryAgentKey: 'Agent_BomEngineer'
-      }
-    ],
-    orchestrator: {
-      key: 'orchestrator',
-      templateKey: 'orchestrator',
-      name: 'test-orchestrator',
-      title: 'Test Orchestrator',
-      primaryAgentKey: 'Agent_LifecycleOrchestrator',
-      externalRoleKeys: ['bom']
-    },
-    ...overrides
-  }
-  fs.writeFileSync(profilePath, JSON.stringify(profile))
-  return { directory, profile, profilePath }
-}
-
-/** Runs the suite CLI with credentials and scope environment isolated from the host process. */
-function runCli(args, env = {}) {
-  return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, [SCRIPT_PATH, ...args], {
+const script = fileURLToPath(new URL('./init-assistant-suite.mjs', import.meta.url))
+function run(args, env = {}) {
+  return new Promise((resolve) => {
+    const child = spawn(process.execPath, [script, ...args], {
       env: {
         ...process.env,
         XPERT_API_URL: '',
-        XPERT_ASSISTANT_SUITE_MANIFEST: '',
         XPERT_ORG_ID: '',
-        XPERT_TENANT_ID: '',
-        XPERT_TOKEN: '',
+        XPERT_TENANT_ID: 'tenant',
+        XPERT_TOKEN: 'secret-test-token',
         XPERT_USERNAME: '',
         XPERT_PASSWORD: '',
-        XPERT_USERNAME_KEYCHAIN_SERVICE: '',
-        XPERT_PASSWORD_KEYCHAIN_SERVICE: '',
+        XPERT_ASSISTANT_SUITE_MANIFEST: '',
         ...env
-      },
-      stdio: ['ignore', 'pipe', 'pipe']
+      }
     })
-    let stdout = ''
-    let stderr = ''
+    let output = ''
     child.stdout.on('data', (chunk) => {
-      stdout += chunk.toString()
+      output += chunk
     })
     child.stderr.on('data', (chunk) => {
-      stderr += chunk.toString()
+      output += chunk
     })
-    child.on('error', reject)
-    child.on('close', (code) => resolve({ code, stderr, stdout }))
+    child.on('close', (code) => resolve({ code, output }))
   })
 }
 
-/** Starts a disposable HTTP API used to verify the exact authoring request sequence. */
-async function listen(handler) {
-  const server = http.createServer(handler)
-  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
-  const address = server.address()
-  assert.ok(address && typeof address === 'object')
-  return {
-    close: () => new Promise((resolve) => server.close(resolve)),
-    url: `http://127.0.0.1:${address.port}`
+async function fixture(t, { existing = true } = {}) {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'suite-release-'))
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }))
+  const role = (key, dependencies = []) => ({
+    key,
+    templateKey: key,
+    name: key,
+    title: key,
+    primaryAgentKey: `Agent_${key}`,
+    externalRoleKeys: dependencies
+  })
+  const profile = {
+    schemaVersion: 'xpert-assistant-suite@1',
+    key: 'suite',
+    plugin: { name: '@xpert-ai/test', version: '1.0' },
+    roles: [role('writer', ['figures']), role('figures'), role('commercial')],
+    orchestrator: role('main', ['writer'])
   }
-}
-
-/** Reads an optional JSON request body. */
-function readRequestBody(request) {
-  return new Promise((resolve) => {
-    let body = ''
-    request.on('data', (chunk) => {
-      body += chunk.toString()
-    })
-    request.on('end', () => resolve(body ? JSON.parse(body) : null))
-  })
-}
-
-/** Produces the graph shape returned by the official Xpert team endpoint. */
-function team({ id, name, title, templateKey, agentKey, draft, graph, version }) {
-  return {
-    id,
-    name,
-    title,
-    version,
-    options: {
-      templateSource: { pluginName: '@xpert-ai/plugin-test-suite', templateKey }
-    },
-    ...(draft ? { draft } : {}),
-    graph: graph ?? {
-      nodes: [{ key: agentKey, type: 'agent', entity: { key: agentKey, leaderKey: null } }],
+  const definitions = [...profile.roles, profile.orchestrator]
+  const teams = new Map(),
+    requests = [],
+    published = []
+  let fail,
+    afterPublish,
+    templateRevision = 'new'
+  const create = (definition) => ({
+    id: definition.key,
+    name: `${definition.name}-run`,
+    title: definition.title,
+    workspaceId: 'workspace',
+    latest: true,
+    version: existing ? '1' : null,
+    environmentId: `environment-${definition.key}`,
+    copilotModel: { copilotId: 'provider', model: 'custom', options: { temperature: 0.42 } },
+    options: { templateSource: { pluginName: profile.plugin.name, templateKey: definition.templateKey } },
+    graph: {
+      nodes: [
+        {
+          key: definition.primaryAgentKey,
+          type: 'agent',
+          entity: { key: definition.primaryAgentKey, prompt: 'old', copilotModel: null }
+        }
+      ],
       connections: []
-    }
-  }
-}
-
-test('dry-run validates a suite locally and preserves a null publication environment', async (t) => {
-  const fixture = createProfile()
-  t.after(() => fs.rmSync(fixture.directory, { force: true, recursive: true }))
-
-  const result = await runCli([
-    '--profile',
-    fixture.profilePath,
-    '--workspace-id',
-    'workspace-test',
-    '--org-id',
-    'org-test',
-    '--run-id',
-    'acceptance-01',
-    '--dry-run',
-    '--no-keychain'
-  ])
-
-  assert.equal(result.code, 0, result.stderr)
-  assert.match(result.stdout, /Scope: organization/)
-  assert.match(result.stdout, /Environment: null/)
-  assert.match(result.stdout, /Existing instance policy: create only/)
-  assert.match(result.stdout, /No API request was sent/)
-})
-
-test('publishes nested role delegation without exposing the nested role to the orchestrator', async (t) => {
-  const fixture = createProfile({
-    roles: [
-      {
-        key: 'writer',
-        templateKey: 'writer',
-        name: 'writer',
-        title: 'Writer',
-        primaryAgentKey: 'Agent_Writer',
-        externalRoleKeys: ['figures']
-      },
-      { key: 'figures', templateKey: 'figures', name: 'figures', title: 'Figures', primaryAgentKey: 'Agent_Figures' }
-    ],
-    orchestrator: {
-      key: 'main',
-      templateKey: 'main',
-      name: 'main',
-      title: 'Main',
-      primaryAgentKey: 'Agent_Main',
-      externalRoleKeys: ['writer']
-    }
+    },
+    draft: null
   })
-  t.after(() => fs.rmSync(fixture.directory, { force: true, recursive: true }))
-  const installed = new Map(),
-    drafts = new Map(),
-    published = new Map(),
-    publishOrder = []
-  const definitions = [...fixture.profile.roles, fixture.profile.orchestrator]
-  const server = await listen(async (request, response) => {
-    const body = await readRequestBody(request),
-      url = request.url
-    response.setHeader('content-type', 'application/json')
-    const send = (value) => response.end(JSON.stringify(value))
-    if (url === '/api/plugin/by-names') return send([{ name: fixture.profile.plugin.name, version: '1.2.3' }])
-    if (request.method === 'GET' && url.startsWith('/api/xpert-template/'))
-      return send({
-        pluginName: fixture.profile.plugin.name,
-        key: decodeURIComponent(url.slice('/api/xpert-template/'.length))
-      })
-    if (request.method === 'GET' && url.startsWith('/api/xpert/by-workspace/')) return send({ items: [] })
-    if (request.method === 'POST' && url.endsWith('/install')) {
-      const key = decodeURIComponent(url.slice('/api/xpert-template/'.length, -'/install'.length)).split(':').at(-1)
-      const definition = definitions.find((item) => item.templateKey === key)
-      installed.set(key, body.basic)
-      const graph = {
-        team: { agent: { key: definition.primaryAgentKey } },
-        nodes: [{ key: definition.primaryAgentKey, type: 'agent', entity: { key: definition.primaryAgentKey } }],
-        connections: []
+  if (existing) for (const definition of definitions) teams.set(definition.key, create(definition))
+  const server = http.createServer(async (request, response) => {
+    let raw = ''
+    for await (const chunk of request) raw += chunk
+    const body = raw ? JSON.parse(raw) : undefined
+    const url = new URL(request.url, 'http://localhost')
+    const item = { method: request.method, path: url.pathname, query: url.searchParams, body }
+    requests.push(item)
+    assert.equal(request.headers['organization-id'], 'org')
+    assert.equal(request.headers['tenant-id'], 'tenant')
+    assert.equal(request.headers['x-scope-level'], 'organization')
+    const send = (data, status = 200) => {
+      response.writeHead(status, { 'content-type': 'application/json' })
+      response.end(JSON.stringify(data))
+    }
+    if (fail?.(item)) return send({ message: 'injected failure' }, 503)
+    if (url.pathname === '/api/plugin/by-names') return send([{ name: profile.plugin.name, version: '1.0' }])
+    if (url.pathname.startsWith('/api/xpert-template/')) {
+      const key = decodeURIComponent(url.pathname.split('/')[3]).split(':').at(-1)
+      if (request.method === 'GET')
+        return send({
+          key: `${profile.plugin.name}:${key}`,
+          pluginName: profile.plugin.name,
+          export_data: `template-${templateRevision}-${key}`
+        })
+      const definition = definitions.find((item) => item.key === key)
+      const team = create(definition)
+      team.name = body.basic.name
+      team.draft = {
+        team: { agent: { key: definition.primaryAgentKey }, copilotModel: team.copilotModel, options: team.options },
+        ...structuredClone(team.graph)
       }
-      drafts.set(key, graph)
-      if (body.publish) published.set(key, graph)
+      teams.set(key, team)
       return send({ xpert: { id: key } })
     }
-    const match = /^\/api\/xpert\/([^/]+)(.*)$/.exec(url)
-    if (match) {
-      const [, key, tail] = match,
-        definition = definitions.find((item) => item.templateKey === key)
-      if (request.method === 'POST' && tail === '/draft') {
-        drafts.set(key, body)
-        return send({ success: true })
-      }
-      if (request.method === 'POST' && tail.startsWith('/publish?')) {
-        published.set(key, drafts.get(key))
-        publishOrder.push(key)
-        return send({ success: true })
-      }
-      if (request.method === 'GET' && ['', '/team'].includes(tail))
-        return send(
-          team({
-            id: key,
-            ...installed.get(key),
-            templateKey: key,
-            agentKey: definition.primaryAgentKey,
-            version: published.has(key) ? 1 : null,
-            graph: published.get(key),
-            draft: tail ? undefined : drafts.get(key)
-          })
-        )
+    if (url.pathname.startsWith('/api/xpert/by-workspace/')) {
+      const { where } = JSON.parse(url.searchParams.get('data'))
+      return send({ items: [...teams.values()].filter((team) => team.name === where.name) })
     }
-    response.statusCode = 404
-    send({ message: `Unhandled ${request.method} ${url}` })
-  })
-  t.after(() => server.close())
-  const result = await runCli(
-    [
-      '--profile',
-      fixture.profilePath,
-      '--workspace-id',
-      'workspace',
-      '--org-id',
-      'org',
-      '--run-id',
-      'nested',
-      '--api-url',
-      server.url,
-      '--no-keychain'
-    ],
-    { XPERT_TOKEN: 'test-token' }
-  )
-  assert.equal(result.code, 0, result.stderr)
-  assert.deepEqual(publishOrder, ['writer', 'main'])
-  assert.deepEqual(
-    published.get('main').connections.map((edge) => edge.to),
-    ['writer']
-  )
-  assert.deepEqual(
-    published.get('writer').connections.map((edge) => [edge.from, edge.to, edge.required]),
-    [['Agent_Writer', 'figures', true]]
-  )
-  assert.equal(
-    published.get('main').nodes.find((node) => node.key === 'writer').entity.graph.connections[0].to,
-    'figures'
-  )
-})
-
-test('rejects nested dependency cycles before making requests', async (t) => {
-  const fixture = createProfile({
-    roles: [
-      {
-        key: 'bom',
-        templateKey: 'bom',
-        name: 'bom',
-        title: 'BOM',
-        primaryAgentKey: 'Agent_Bom',
-        externalRoleKeys: ['bom']
-      }
-    ]
-  })
-  t.after(() => fs.rmSync(fixture.directory, { force: true, recursive: true }))
-  const result = await runCli(['--profile', fixture.profilePath, '--dry-run', '--no-keychain'])
-  assert.notEqual(result.code, 0)
-  assert.match(result.stderr, /dependency cycle/)
-})
-
-test('installs roles first and publishes an Orchestrator with one direct required external Xpert', async (t) => {
-  const fixture = createProfile()
-  t.after(() => fs.rmSync(fixture.directory, { force: true, recursive: true }))
-  const manifestPath = path.join(fixture.directory, 'receipt.json')
-  const requests = []
-  let savedDraft = null
-  let published = false
-  const installed = new Map()
-
-  const server = await listen(async (request, response) => {
-    const body = await readRequestBody(request)
-    requests.push({ body, method: request.method, path: request.url })
-    response.setHeader('content-type', 'application/json')
-
-    if (request.url === '/api/plugin/by-names') {
-      response.end(JSON.stringify([{ name: '@xpert-ai/plugin-test-suite', version: '1.2.3' }]))
-      return
-    }
-    if (request.method === 'GET' && request.url.startsWith('/api/xpert-template/')) {
-      const template = decodeURIComponent(request.url.slice('/api/xpert-template/'.length))
-      response.end(JSON.stringify({ pluginName: '@xpert-ai/plugin-test-suite', key: template }))
-      return
-    }
-    if (request.method === 'GET' && request.url.startsWith('/api/xpert/by-workspace/')) {
-      response.end(JSON.stringify({ items: [] }))
-      return
-    }
-    if (request.method === 'POST' && request.url.startsWith('/api/xpert-template/')) {
-      const template = decodeURIComponent(request.url.slice('/api/xpert-template/'.length, -'/install'.length))
-        .split(':')
-        .at(-1)
-      const id = template === 'orchestrator' ? 'orchestrator-id' : 'role-id'
-      installed.set(id, { name: body.basic.name, title: body.basic.title, template })
-      response.end(JSON.stringify({ xpert: { id } }))
-      return
-    }
-    if (request.method === 'POST' && request.url === '/api/xpert/orchestrator-id/draft') {
-      savedDraft = body
-      response.end(JSON.stringify({ success: true }))
-      return
-    }
-    if (request.method === 'POST' && request.url === '/api/xpert/orchestrator-id/publish?newVersion=false') {
-      published = true
-      response.end(JSON.stringify({ success: true }))
-      return
-    }
-    if (request.method === 'GET' && request.url === '/api/xpert/role-id/team') {
-      const item = installed.get('role-id')
-      response.end(
-        JSON.stringify(
-          team({
-            id: 'role-id',
-            name: item.name,
-            title: item.title,
-            templateKey: 'bom-engineer',
-            agentKey: 'Agent_BomEngineer',
-            version: 1
-          })
-        )
-      )
-      return
-    }
-    if (
-      request.method === 'GET' &&
-      ['/api/xpert/orchestrator-id/team', '/api/xpert/orchestrator-id'].includes(request.url)
-    ) {
-      const item = installed.get('orchestrator-id')
-      const draft = {
-        team: {
-          agent: { key: 'Agent_LifecycleOrchestrator' },
-          options: {
-            templateSource: { pluginName: '@xpert-ai/plugin-test-suite', templateKey: 'orchestrator' }
-          }
-        },
-        nodes: [{ key: 'Agent_LifecycleOrchestrator', type: 'agent' }],
-        connections: []
-      }
-      response.end(
-        JSON.stringify(
-          team({
-            id: 'orchestrator-id',
-            name: item.name,
-            title: item.title,
-            templateKey: 'orchestrator',
-            agentKey: 'Agent_LifecycleOrchestrator',
-            version: published ? 1 : null,
-            draft: request.url.endsWith('/team') ? undefined : draft,
-            graph: published ? { nodes: savedDraft.nodes, connections: savedDraft.connections } : undefined
-          })
-        )
-      )
-      return
-    }
-
-    response.statusCode = 404
-    response.end(JSON.stringify({ message: `Unhandled ${request.method} ${request.url}` }))
-  })
-  t.after(() => server.close())
-
-  const result = await runCli(
-    [
-      '--profile',
-      fixture.profilePath,
-      '--workspace-id',
-      'workspace-test',
-      '--org-id',
-      'org-test',
-      '--run-id',
-      'acceptance-02',
-      '--api-url',
-      server.url,
-      '--manifest-file',
-      manifestPath,
-      '--no-keychain'
-    ],
-    { XPERT_TOKEN: 'suite-secret-token' }
-  )
-
-  assert.equal(result.code, 0, result.stderr)
-  assert.ok(savedDraft)
-  assert.deepEqual(savedDraft.connections, [
-    {
-      key: 'Agent_LifecycleOrchestrator/role-id',
-      type: 'xpert',
-      from: 'Agent_LifecycleOrchestrator',
-      to: 'role-id',
-      required: true
-    }
-  ])
-  const installRequests = requests.filter((item) => item.path.endsWith('/install'))
-  assert.equal(installRequests[0].body.publish, true)
-  assert.equal(installRequests[1].body.publish, false)
-  const publishRequest = requests.find((item) => item.path.includes('/publish?'))
-  assert.equal(publishRequest.body.environmentId, null)
-  assert.doesNotMatch(result.stdout + result.stderr, /suite-secret-token/)
-
-  const receipt = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
-  assert.equal(receipt.schemaVersion, 'xpert-assistant-suite-installation@1')
-  assert.equal(receipt.scope.organizationId, 'org-test')
-  assert.equal(receipt.scope.environmentId, null)
-  assert.equal(receipt.orchestrator.requiredExternalConnections, 1)
-  assert.equal(receipt.readyForTesting, true)
-})
-
-test('refreshes an exact existing suite, restores required bindings, and republishes every Assistant', async (t) => {
-  const fixture = createProfile()
-  t.after(() => fs.rmSync(fixture.directory, { force: true, recursive: true }))
-  const requests = []
-  let savedDraft = null
-  let orchestratorPublished = false
-
-  const server = await listen(async (request, response) => {
-    const body = await readRequestBody(request)
-    requests.push({ body, method: request.method, path: request.url })
-    response.setHeader('content-type', 'application/json')
-
-    if (request.url === '/api/plugin/by-names') {
-      response.end(JSON.stringify([{ name: '@xpert-ai/plugin-test-suite', version: '1.2.3' }]))
-      return
-    }
-    if (request.method === 'GET' && request.url.startsWith('/api/xpert-template/')) {
-      const template = decodeURIComponent(request.url.slice('/api/xpert-template/'.length))
-      response.end(JSON.stringify({ pluginName: '@xpert-ai/plugin-test-suite', key: template }))
-      return
-    }
-    if (request.method === 'GET' && request.url.startsWith('/api/xpert/by-workspace/')) {
-      const data = JSON.parse(new URL(request.url, server.url).searchParams.get('data'))
-      const isOrchestrator = data.where.name === 'test-orchestrator-refresh-01'
-      assert.equal(data.where.latest, true)
-      response.end(
-        JSON.stringify({
-          items: [
-            { id: 'historical-version', name: data.where.name, latest: false },
-            { id: isOrchestrator ? 'orchestrator-id' : 'role-id', name: data.where.name, latest: true }
-          ]
+    const [, , , id, action, childAction] = url.pathname.split('/')
+    const team = teams.get(id)
+    if (!team) return send({ message: 'not found' }, 404)
+    if (request.method === 'GET') return send(action === 'team' ? { ...team, draft: undefined } : team)
+    if (action === 'sync-template') {
+      const graph = structuredClone(team.graph)
+      graph.nodes
+        .filter((node) => node.type === 'agent')
+        .forEach((node) => {
+          node.entity.prompt = 'new'
         })
-      )
-      return
-    }
-    if (request.method === 'POST' && request.url.endsWith('/sync-template')) {
-      response.end(JSON.stringify({ success: true }))
-      return
-    }
-    if (request.method === 'POST' && request.url === '/api/xpert/orchestrator-id/draft') {
-      savedDraft = body
-      response.end(JSON.stringify({ success: true }))
-      return
-    }
-    if (request.method === 'POST' && request.url.endsWith('/publish?newVersion=false')) {
-      if (request.url.startsWith('/api/xpert/orchestrator-id/')) orchestratorPublished = true
-      response.end(JSON.stringify({ success: true }))
-      return
-    }
-    if (request.method === 'GET' && request.url === '/api/xpert/role-id/team') {
-      response.end(
-        JSON.stringify(
-          team({
-            id: 'role-id',
-            name: 'test-bom-engineer-refresh-01',
-            title: 'Test BOM Engineer refresh-01',
-            templateKey: 'bom-engineer',
-            agentKey: 'Agent_BomEngineer',
-            version: 2
-          })
-        )
-      )
-      return
-    }
-    if (request.method === 'GET' && request.url === '/api/xpert/orchestrator-id/team') {
-      const draft = savedDraft ?? {
-        team: {
-          agent: { key: 'Agent_LifecycleOrchestrator' },
-          options: {
-            templateSource: { pluginName: '@xpert-ai/plugin-test-suite', templateKey: 'orchestrator' }
-          }
-        },
-        nodes: [{ key: 'Agent_LifecycleOrchestrator', type: 'agent' }],
-        connections: []
+      team.draft = {
+        team: { agent: { key: `Agent_${id}` }, copilotModel: team.copilotModel, options: team.options },
+        ...graph
       }
-      response.end(
-        JSON.stringify(
-          team({
-            id: 'orchestrator-id',
-            name: 'test-orchestrator-refresh-01',
-            title: 'Test Orchestrator refresh-01',
-            templateKey: 'orchestrator',
-            agentKey: 'Agent_LifecycleOrchestrator',
-            version: 2,
-            draft,
-            graph: orchestratorPublished ? { nodes: savedDraft.nodes, connections: savedDraft.connections } : undefined
-          })
-        )
-      )
-      return
+      return send({ xpertId: id })
     }
-
-    response.statusCode = 404
-    response.end(JSON.stringify({ message: `Unhandled ${request.method} ${request.url}` }))
+    if (action === 'draft') {
+      team.draft = body
+      return send(body)
+    }
+    if (action === 'publish') {
+      assert.equal(url.searchParams.get('newVersion'), 'true')
+      team.graph = { nodes: team.draft.nodes, connections: team.draft.connections }
+      team.options = team.draft.team.options
+      team.copilotModel = team.draft.team.copilotModel
+      team.draft = null
+      team.version = String(Number(team.version || 0) + 1)
+      team.environmentId = body.environmentId
+      published.push(id)
+      if (afterPublish?.(item)) {
+        request.socket.destroy()
+        return
+      }
+      return send(team)
+    }
+    if (action === 'publication' && childAction === 'resume') {
+      assert.equal(body.version, team.version)
+      return send(team)
+    }
+    return send({ message: 'not handled' }, 404)
   })
-  t.after(() => server.close())
-
-  const result = await runCli(
-    [
-      '--profile',
-      fixture.profilePath,
-      '--workspace-id',
-      'workspace-test',
-      '--org-id',
-      'org-test',
-      '--run-id',
-      'refresh-01',
-      '--api-url',
-      server.url,
-      '--refresh',
-      '--no-keychain'
-    ],
-    { XPERT_TOKEN: 'suite-secret-token' }
-  )
-
-  assert.equal(result.code, 0, result.stderr)
-  assert.match(result.stdout, /refresh exact existing batch/)
-  assert.equal(requests.filter((item) => item.path.endsWith('/sync-template')).length, 2)
-  assert.equal(requests.filter((item) => item.path.endsWith('/install')).length, 0)
-  assert.equal(requests.filter((item) => item.path.endsWith('/publish?newVersion=false')).length, 2)
-  assert.deepEqual(savedDraft.connections, [
-    {
-      key: 'Agent_LifecycleOrchestrator/role-id',
-      type: 'xpert',
-      from: 'Agent_LifecycleOrchestrator',
-      to: 'role-id',
-      required: true
-    }
-  ])
-})
-
-test('rejects using refresh as partial-run recovery', async (t) => {
-  const fixture = createProfile()
-  t.after(() => fs.rmSync(fixture.directory, { force: true, recursive: true }))
-
-  const result = await runCli([
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
+  t.after(() => new Promise((resolve) => server.close(resolve)))
+  const profilePath = path.join(directory, 'profile.json'),
+    manifest = path.join(directory, 'release.json')
+  fs.writeFileSync(profilePath, JSON.stringify(profile))
+  const args = [
     '--profile',
-    fixture.profilePath,
+    profilePath,
     '--workspace-id',
-    'workspace-test',
+    'workspace',
     '--org-id',
-    'org-test',
+    'org',
     '--run-id',
-    'refresh-02',
+    'run',
+    '--api-url',
+    `http://127.0.0.1:${server.address().port}`,
+    '--manifest-file',
+    manifest,
+    '--no-keychain'
+  ]
+  return {
+    profile,
+    profilePath,
+    manifest,
+    teams,
+    requests,
+    published,
+    args,
+    fail: (value) => {
+      fail = value
+    },
+    afterPublish: (value) => {
+      afterPublish = value
+    },
+    reviseTemplate: () => {
+      templateRevision = 'later'
+    }
+  }
+}
+
+test('refreshes every role, including unreferenced specialists, after preparing all drafts and in dependency order', async (t) => {
+  const f = await fixture(t)
+  const result = await run([...f.args, '--refresh'])
+  assert.equal(result.code, 0, result.output)
+  assert.deepEqual(f.published, ['figures', 'writer', 'commercial', 'main'])
+  const firstPublish = f.requests.findIndex((item) => item.path.endsWith('/publish'))
+  assert.equal(f.requests.slice(0, firstPublish).filter((item) => item.path.endsWith('/sync-template')).length, 4)
+  for (const team of f.teams.values()) {
+    assert.equal(team.version, '2')
+    assert.equal(team.environmentId, `environment-${team.id}`)
+    assert.equal(team.copilotModel.options.temperature, 0.42)
+  }
+  const writer = f.teams.get('writer')
+  assert.equal(writer.graph.nodes.find((node) => node.type === 'xpert').entity.version, '2')
+  const receipt = JSON.parse(fs.readFileSync(f.manifest, 'utf8'))
+  assert.equal(receipt.readyForTesting, true)
+  assert.equal(fs.statSync(f.manifest).mode & 0o777, 0o600)
+  assert.doesNotMatch(result.output + fs.readFileSync(f.manifest, 'utf8'), /secret-test-token/)
+})
+
+test('installs all Assistants as drafts and publishes each exactly once', async (t) => {
+  const f = await fixture(t, { existing: false })
+  const result = await run(f.args)
+  assert.equal(result.code, 0, result.output)
+  assert.equal(f.requests.filter((item) => item.path.endsWith('/install') && item.body.publish === false).length, 4)
+  assert.deepEqual(f.published, ['figures', 'writer', 'commercial', 'main'])
+})
+
+test('resumes a failed publication without re-syncing or publishing successful roles again', async (t) => {
+  const f = await fixture(t)
+  f.fail((item) => item.path === '/api/xpert/writer/publish')
+  assert.notEqual((await run([...f.args, '--refresh'])).code, 0)
+  assert.deepEqual(f.published, ['figures'])
+  const syncCount = f.requests.filter((item) => item.path.endsWith('/sync-template')).length
+  f.fail(null)
+  const resumed = await run([...f.args, '--resume'])
+  assert.equal(resumed.code, 0, resumed.output)
+  assert.deepEqual(f.published, ['figures', 'writer', 'commercial', 'main'])
+  assert.equal(f.requests.filter((item) => item.path.endsWith('/sync-template')).length, syncCount)
+})
+
+test('reconciles a committed publication whose response was lost and resumes activation without another version', async (t) => {
+  const f = await fixture(t)
+  f.afterPublish((item) => item.path === '/api/xpert/figures/publish')
+  assert.notEqual((await run([...f.args, '--refresh'])).code, 0)
+  f.afterPublish(null)
+  const resumed = await run([...f.args, '--resume'])
+  assert.equal(resumed.code, 0, resumed.output)
+  assert.equal(f.published.filter((id) => id === 'figures').length, 1)
+  assert.equal(f.teams.get('figures').version, '2')
+  assert.ok(f.requests.some((item) => item.path === '/api/xpert/figures/publication/resume'))
+})
+
+test('resumes a failed synchronization while preserving completed drafts', async (t) => {
+  const f = await fixture(t)
+  f.fail((item) => item.path === '/api/xpert/figures/sync-template')
+  assert.notEqual((await run([...f.args, '--refresh'])).code, 0)
+  f.fail(null)
+  const resumed = await run([...f.args, '--resume'])
+  assert.equal(resumed.code, 0, resumed.output)
+  assert.equal(f.requests.filter((item) => item.path === '/api/xpert/writer/sync-template').length, 1)
+})
+
+test('refuses to resume after an external draft edit or a template change', async (t) => {
+  for (const change of ['draft', 'template']) {
+    const f = await fixture(t)
+    f.fail((item) => item.path === '/api/xpert/figures/publish')
+    assert.notEqual((await run([...f.args, '--refresh'])).code, 0)
+    f.fail(null)
+    if (change === 'draft') f.teams.get('writer').draft.nodes[0].entity.prompt = 'human edit'
+    else f.reviseTemplate()
+    const offset = f.requests.length
+    const resumed = await run([...f.args, '--resume'])
+    assert.notEqual(resumed.code, 0)
+    assert.equal(
+      f.requests.slice(offset).filter((item) => item.method === 'POST' && item.path !== '/api/plugin/by-names').length,
+      0
+    )
+  }
+})
+
+test('preflights every target and rejects wrong workspace before any draft mutation', async (t) => {
+  const f = await fixture(t)
+  f.teams.get('main').workspaceId = 'other-workspace'
+  assert.notEqual((await run([...f.args, '--refresh'])).code, 0)
+  assert.equal(f.requests.filter((item) => item.path.endsWith('/sync-template')).length, 0)
+})
+
+test('uses a previous installation receipt to update exact IDs even after instance renames', async (t) => {
+  const f = await fixture(t)
+  assert.equal((await run([...f.args, '--refresh'])).code, 0)
+  for (const team of f.teams.values()) team.name = `custom-${team.id}`
+  const nextManifest = f.manifest + '.next'
+  const result = await run([...f.args, '--refresh', '--installation-file', f.manifest, '--manifest-file', nextManifest])
+  assert.equal(result.code, 0, result.output)
+  assert.equal(f.teams.get('main').version, '3')
+})
+
+test('rejects cycles, duplicate edges, and accidental overwrite', async (t) => {
+  const f = await fixture(t)
+  const collision = await run(f.args)
+  assert.notEqual(collision.code, 0)
+  assert.match(collision.output, /already exists/)
+  f.profile.roles[1].externalRoleKeys = ['writer']
+  fs.writeFileSync(f.profilePath, JSON.stringify(f.profile))
+  assert.match((await run([...f.args, '--dry-run'])).output, /cycle/)
+  f.profile.roles[1].externalRoleKeys = []
+  f.profile.orchestrator.externalRoleKeys = ['writer', 'writer']
+  fs.writeFileSync(f.profilePath, JSON.stringify(f.profile))
+  assert.match((await run([...f.args, '--dry-run'])).output, /Duplicate external/)
+})
+
+test('disconnects retired suite roles while retaining their historical Assistants', async (t) => {
+  const f = await fixture(t)
+  assert.equal((await run([...f.args, '--refresh'])).code, 0)
+  f.profile.roles = f.profile.roles.filter((role) => role.key !== 'figures')
+  f.profile.roles.find((role) => role.key === 'writer').externalRoleKeys = []
+  fs.writeFileSync(f.profilePath, JSON.stringify(f.profile))
+  const result = await run([
+    ...f.args,
     '--refresh',
-    '--resume',
-    '--dry-run',
-    '--no-keychain'
+    '--installation-file',
+    f.manifest,
+    '--manifest-file',
+    f.manifest + '.retire'
   ])
-
-  assert.notEqual(result.code, 0)
-  assert.match(result.stderr, /--refresh and --resume are mutually exclusive/)
-})
-
-test('refuses to overwrite a colliding Assistant unless resume is explicit', async (t) => {
-  const fixture = createProfile()
-  t.after(() => fs.rmSync(fixture.directory, { force: true, recursive: true }))
-  let installRequests = 0
-  const server = await listen(async (request, response) => {
-    const body = await readRequestBody(request)
-    response.setHeader('content-type', 'application/json')
-    if (request.url === '/api/plugin/by-names') {
-      response.end(JSON.stringify([{ name: '@xpert-ai/plugin-test-suite', version: '1.2.3' }]))
-      return
-    }
-    if (request.method === 'GET' && request.url.startsWith('/api/xpert-template/')) {
-      const template = decodeURIComponent(request.url.slice('/api/xpert-template/'.length))
-      response.end(JSON.stringify({ pluginName: '@xpert-ai/plugin-test-suite', key: template }))
-      return
-    }
-    if (request.method === 'GET' && request.url.startsWith('/api/xpert/by-workspace/')) {
-      const data = JSON.parse(new URL(request.url, server.url).searchParams.get('data'))
-      response.end(JSON.stringify({ items: [{ id: 'existing-id', name: data.where.name }] }))
-      return
-    }
-    if (request.method === 'POST' && request.url.endsWith('/install')) {
-      installRequests += 1
-    }
-    response.statusCode = 500
-    response.end(JSON.stringify({ message: body ? 'unexpected mutation' : 'unexpected request' }))
-  })
-  t.after(() => server.close())
-
-  const result = await runCli(
-    [
-      '--profile',
-      fixture.profilePath,
-      '--workspace-id',
-      'workspace-test',
-      '--org-id',
-      'org-test',
-      '--run-id',
-      'acceptance-03',
-      '--api-url',
-      server.url,
-      '--no-keychain'
-    ],
-    { XPERT_TOKEN: 'suite-secret-token' }
+  assert.equal(result.code, 0, result.output)
+  assert.equal(f.teams.get('figures').version, '2')
+  assert.equal(
+    f.teams.get('writer').graph.nodes.some((node) => node.key === 'figures'),
+    false
   )
-
-  assert.notEqual(result.code, 0)
-  assert.equal(installRequests, 0)
-  assert.match(result.stderr, /already exists.*new --run-id.*--resume/i)
 })
 
-test('rejects duplicate external role declarations during local profile validation', async (t) => {
-  const fixture = createProfile({
-    orchestrator: {
-      key: 'orchestrator',
-      templateKey: 'orchestrator',
-      name: 'test-orchestrator',
-      title: 'Test Orchestrator',
-      primaryAgentKey: 'Agent_LifecycleOrchestrator',
-      externalRoleKeys: ['bom', 'bom']
-    }
-  })
-  t.after(() => fs.rmSync(fixture.directory, { force: true, recursive: true }))
-
-  const result = await runCli([
-    '--profile',
-    fixture.profilePath,
-    '--workspace-id',
-    'workspace-test',
-    '--org-id',
-    'org-test',
-    '--dry-run',
-    '--no-keychain'
-  ])
-
-  assert.notEqual(result.code, 0)
-  assert.match(result.stderr, /Duplicate external role key: bom/)
+test('rejects a recovery scope mismatch without rewriting its receipt', async (t) => {
+  const f = await fixture(t)
+  f.fail((item) => item.path === '/api/xpert/figures/publish')
+  assert.notEqual((await run([...f.args, '--refresh'])).code, 0)
+  const before = fs.readFileSync(f.manifest, 'utf8')
+  const resumed = await run([...f.args, '--resume', '--org-id', 'another-org'])
+  assert.notEqual(resumed.code, 0)
+  assert.equal(fs.readFileSync(f.manifest, 'utf8'), before)
 })

@@ -1,4 +1,6 @@
 import { TemplateAuthoring } from './template-lifecycle/template-authoring'
+import { XpertPublicationPersistence } from './publication/publication-persistence'
+import { XpertPublicationController } from './publication/publication.controller'
 import { TemplatePublicationService } from './template-lifecycle/template-publication.service'
 import { TemplateUpgradeService } from './template-lifecycle/template-upgrade.service'
 import { TemplateLifecycleController } from './template-lifecycle/template-lifecycle.controller'
@@ -122,6 +124,7 @@ import { XpertTriggerConnectionService } from './trigger-connection.service'
         forwardRef(() => XpertProjectModule)
     ],
     controllers: [
+        XpertPublicationController,
         TemplateLifecycleController,
         AssistantTemplateSetupController,
         AssistantTriggerController,
@@ -134,6 +137,7 @@ import { XpertTriggerConnectionService } from './trigger-connection.service'
         XpertAccessController
     ],
     providers: [
+        XpertPublicationPersistence,
         TemplateAuthoring,
         TemplatePublicationService,
         TemplateUpgradeService,
