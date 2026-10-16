@@ -1,9 +1,12 @@
 import type { McpPrincipal } from '@xpert-ai/contracts'
-import { User } from '@xpert-ai/server-core'
+import { PermissionsEnum } from '@xpert-ai/contracts'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { Role, RolePermission, User } from '@xpert-ai/server-core'
 import { ForbiddenException } from '@nestjs/common'
 import type { Repository } from 'typeorm'
 import { McpPublication } from './entities'
 import { McpPublicationAuthorizationService } from './mcp-publication-authorization.service'
+import { runWithCapturedRequestContext } from '../shared/request-context'
 
 describe('McpPublicationAuthorizationService', () => {
     let findOne: jest.Mock
@@ -25,6 +28,41 @@ describe('McpPublicationAuthorizationService', () => {
 
         findOne.mockResolvedValue(user(false))
         await expect(service.assertCanRun(publication(), principal())).rejects.toBeInstanceOf(ForbiddenException)
+        expect(findOne).toHaveBeenCalledTimes(2)
+    })
+
+    it('hydrates current role permissions for platform capabilities and observes revocation on the next call', async () => {
+        let enabled = true
+        findOne.mockImplementation(async (options: { relations: string[] }) => {
+            const actor = user(true)
+            if (options.relations.includes('role') && options.relations.includes('role.rolePermissions')) {
+                actor.role = Object.assign(new Role(), {
+                    rolePermissions: [
+                        Object.assign(new RolePermission(), {
+                            permission: PermissionsEnum.DATA_SOURCE_VIEW,
+                            enabled
+                        })
+                    ]
+                })
+            }
+            return actor
+        })
+        const canView = async () => {
+            const actor = await service.assertCanRun(publication(), principal())
+            return runWithCapturedRequestContext(
+                {
+                    user: actor,
+                    headers: {
+                        'tenant-id': principal().tenantId,
+                        'organization-id': principal().organizationId
+                    }
+                },
+                () => RequestContext.hasPermission(PermissionsEnum.DATA_SOURCE_VIEW)
+            )
+        }
+        expect(await canView()).toBe(true)
+        enabled = false
+        expect(await canView()).toBe(false)
         expect(findOne).toHaveBeenCalledTimes(2)
     })
 
