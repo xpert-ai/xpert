@@ -10,6 +10,7 @@ import { XpertProjectService } from '../xpert-project/project.service'
 import { XpertProjectTypeService } from '../xpert-project/services/project-type.service'
 import { AgentPluginModule } from '../agent-plugin/agent-plugin.module'
 import { XpertProjectModule } from '../xpert-project/project.module'
+import { EnsureXpertProjectMemberHandler } from '../xpert-project/commands/handlers/ensure-project-member.handler'
 import { ApiKeyOrClientSecretAuthGuard, ViewExtensionModule, ViewExtensionService } from '@xpert-ai/server-core'
 import { ForbiddenException, Global, INestApplication, Module } from '@nestjs/common'
 import { RouterModule } from '@nestjs/core'
@@ -198,6 +199,7 @@ describe('ChatGroupModule integration boundary', () => {
     })
 
     it('exports Composer dependencies from their owning production modules', () => {
+        expect(Reflect.getMetadata('providers', XpertProjectModule)).toContain(EnsureXpertProjectMemberHandler)
         expect(Reflect.getMetadata('exports', XpertProjectModule)).toEqual(
             expect.arrayContaining([
                 XpertProjectTypeService,

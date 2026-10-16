@@ -7,6 +7,7 @@ import { XpertPrincipalService } from '../xpert/xpert-principal.service'
 import { GroupAccessService } from './group-access.service'
 import { GroupParticipant } from './group.entity'
 import { GroupMembersService } from './group-members.service'
+import { EnsureXpertProjectMemberCommand } from '../xpert-project/commands/ensure-project-member.command'
 
 describe('group membership lifecycle', () => {
     function setup() {
@@ -144,6 +145,55 @@ describe('group membership lifecycle', () => {
         else member.subjectId = 'assistant'
         await expect(service.remove('group', 'member')).rejects.toMatchObject({ status: 409 })
         expect(manager.update).not.toHaveBeenCalled()
+        expect(commands.execute).not.toHaveBeenCalled()
+    })
+
+    it.each(['new', 'inactive', 'active'])(
+        'ensures bound Project membership for a %s human participant',
+        async (state) => {
+            const { service, group, member, manager, commands } = setup()
+            group.projectId = 'project'
+            member.kind = 'user'
+            member.subjectId = 'human'
+            member.active = state === 'active'
+            manager.findOneBy.mockResolvedValueOnce(state === 'new' ? null : member)
+
+            await service.add('group', { kind: 'user', subjectId: 'human' })
+
+            expect(commands.execute).toHaveBeenCalledWith(
+                new EnsureXpertProjectMemberCommand('project', 'human', manager as unknown as EntityManager)
+            )
+            expect(commands.execute.mock.invocationCallOrder[0]).toBeLessThan(manager.save.mock.invocationCallOrder[0])
+        }
+    )
+
+    it.each(['unbound', 'assistant'])('does not grant Project membership for %s invitations', async (kind) => {
+        const { service, group, manager, commands } = setup()
+        group.projectId = kind === 'assistant' ? 'project' : null
+        manager.findOneBy.mockResolvedValueOnce(null)
+        await service.add('group', { kind: kind === 'assistant' ? 'assistant' : 'user', subjectId: 'human' })
+        expect(commands.execute).not.toHaveBeenCalled()
+    })
+
+    it('does not activate a participant or change the group if Project membership is denied', async () => {
+        const { service, group, member, manager, commands } = setup()
+        group.projectId = 'project'
+        member.active = false
+        commands.execute.mockRejectedValue(new Error('project manager required'))
+        await expect(service.add('group', { kind: 'user', subjectId: 'human' })).rejects.toThrow(
+            'project manager required'
+        )
+        expect(member.active).toBe(false)
+        expect(group.revision).toBe(1)
+        expect(manager.save).not.toHaveBeenCalled()
+    })
+
+    it('does not grant Project access when the group is full', async () => {
+        const { service, group, manager, commands } = setup()
+        group.projectId = 'project'
+        manager.findOneBy.mockResolvedValueOnce(null)
+        manager.countBy.mockResolvedValueOnce(32)
+        await expect(service.add('group', { kind: 'user', subjectId: 'human' })).rejects.toMatchObject({ status: 409 })
         expect(commands.execute).not.toHaveBeenCalled()
     })
 
