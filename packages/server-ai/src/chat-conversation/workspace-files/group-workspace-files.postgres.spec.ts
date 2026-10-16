@@ -81,6 +81,7 @@ const groupFileTestEntities = [
             xpertId: uuid,
             projectId: uuid,
             threadId: uuid,
+            options: { type: 'jsonb', nullable: true },
             purpose: text
         }
     }),
@@ -436,6 +437,37 @@ postgres('group Workbench file HTTP authorization with PostgreSQL', () => {
         expect(resolveVolume).not.toHaveBeenCalled()
     })
 
+    it.each([false, true])('denies unverified group environment references (ordinary login: %s)', async (login) => {
+        ordinaryLogin = login
+        for (const environmentId of [randomUUID(), randomUUID()]) {
+            await db.getRepository(ChatConversation).update(runtime.id, {
+                options: { sandboxEnvironmentId: environmentId }
+            })
+            for (const [, operation] of operations) expect((await operation()).status).toBe(403)
+        }
+        expect(resolveVolume).not.toHaveBeenCalled()
+        expect(await readFile(join(root, 'report.txt'), 'utf8')).toBe('original')
+    })
+
+    it('denies direct file calls when an environment reference appears after Assistant file access', async () => {
+        await files.getWorkspaceFiles(runtime.id)
+        await db.getRepository(ChatConversation).update(runtime.id, {
+            options: { sandboxEnvironmentId: randomUUID() }
+        })
+        resolveVolume.mockClear()
+        for (const operation of [
+            () => files.getWorkspaceFiles(runtime.id),
+            () => files.readWorkspaceFile(runtime.id, 'report.txt'),
+            () => files.getWorkspaceFileDownload(runtime.id, 'report.txt'),
+            () => files.saveWorkspaceFile(runtime.id, 'report.txt', 'bad'),
+            () => files.uploadWorkspaceFile(runtime.id, '', { originalname: 'bad.txt', buffer: Buffer.from('bad') }),
+            () => files.deleteWorkspaceFile(runtime.id, 'report.txt')
+        ])
+            await expect(operation()).rejects.toBeInstanceOf(ForbiddenException)
+        expect(resolveVolume).not.toHaveBeenCalled()
+        expect(await readFile(join(root, 'report.txt'), 'utf8')).toBe('original')
+    })
+
     it('retains ordinary conversation/attachment denial and file containment', async () => {
         await expect(files.assertAccess(runtime.id)).rejects.toBeInstanceOf(ForbiddenException)
         await expect(files.getAttachments(runtime.id)).rejects.toBeInstanceOf(ForbiddenException)
@@ -459,7 +491,10 @@ postgres('group Workbench file HTTP authorization with PostgreSQL', () => {
             id: assistantId,
             tenantId: scope.tenantId
         })
-        await db.getRepository(ChatConversation).update(runtime.id, { projectId: randomUUID() })
+        await db.getRepository(ChatConversation).update(runtime.id, {
+            projectId: randomUUID(),
+            options: { sandboxEnvironmentId: randomUUID() }
+        })
         projects.assertCanEdit.mockRejectedValue(new ForbiddenException())
         expect((await request('files')).status).toBe(200)
         const read = await request('file?path=report.txt')

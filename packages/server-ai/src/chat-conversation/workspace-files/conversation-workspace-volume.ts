@@ -2,6 +2,7 @@ import { BadRequestException } from '@nestjs/common'
 import type { CommandBus } from '@nestjs/cqrs'
 import type { ChatConversation } from '../conversation.entity'
 import { VolumeClient, VolumeSubtreeClient } from '../../shared/volume'
+import { groupDenied } from '../../chat-group/group.errors'
 import {
     AssistantFileOperation,
     ResolveAssistantFileAccessCommand
@@ -30,6 +31,8 @@ export async function createConversationWorkspaceVolumeClient(
     }
     const environmentId = conversation.options?.sandboxEnvironmentId?.trim()
     if (environmentId) {
+        // A stored environment ID is not sharing authority. This platform has no live Computer binding resolver.
+        if (conversation.purpose === 'group_assistant_runtime') throw groupDenied()
         return {
             client: new VolumeSubtreeClient(
                 volumes.resolve({
