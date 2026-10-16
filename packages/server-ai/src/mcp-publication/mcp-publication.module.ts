@@ -25,21 +25,29 @@ import { WorkspaceFilesRuntimeModule } from '../shared/runtime/workspace-files-r
 import { McpFilesController, McpFilesGuard } from './mcp-files.controller'
 import { McpFilesService } from './mcp-files.service'
 import { McpTaskExecutionService } from './mcp-task-execution.service'
+import { XpertWorkspaceModule } from '../xpert-workspace'
+import { McpSourceConfigurationController } from './configuration/configuration.controller'
+import { McpSourceConfigurationService } from './configuration/configuration.service'
+import { McpPublicationViewHostDefinition } from './configuration/mcp-publication-view-host.definition'
 
 @Module({
     imports: [
         TypeOrmModule.forFeature([...MCP_PUBLICATION_ENTITIES, XpertToolset, User]),
         RedisModule,
+        XpertWorkspaceModule,
         WorkspaceFilesRuntimeModule,
         XpertToolsetModule
     ],
     controllers: [
+        McpSourceConfigurationController,
         McpPublicationController,
         McpPublicationManagementController,
         McpOAuthMetadataController,
         McpFilesController
     ],
     providers: [
+        McpSourceConfigurationService,
+        McpPublicationViewHostDefinition,
         McpFilesGuard,
         McpFilesService,
         McpPublicationService,

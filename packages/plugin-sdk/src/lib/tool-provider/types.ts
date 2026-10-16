@@ -118,6 +118,8 @@ export type XpertDecoratedToolMethod<
 ) => PromiseOrValue<ZodInfer<TOutputSchema> | XpertToolResult<ZodInfer<TOutputSchema>> | XpertPreparedToolResult>
 
 export interface XpertToolProviderInstance {
+  /** Validate connection values before saving. Reject invalid input without exposing credentials in errors. */
+  validateConfig?(config: unknown): PromiseOrValue<void>
   /** Compatibility hook for legacy providers; prefer resource and prompt method decorators. */
   getMcpExtensions?(): Pick<McpCapabilityDefinitions, 'resources' | 'resourceTemplates' | 'prompts'>
   getMiddlewareExtensions?(

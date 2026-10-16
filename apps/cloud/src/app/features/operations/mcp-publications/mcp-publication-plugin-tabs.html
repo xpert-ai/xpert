@@ -1,0 +1,73 @@
+@for (tab of tabs(); track tab.key) {
+<button
+  z-button
+  type="button"
+  zSize="sm"
+  [zType]="active() && selectedKey() === tab.key ? 'secondary' : 'ghost'"
+  (click)="select(tab)"
+>
+  {{ (tab.kind === 'configuration' ? tab.configuration.title : tab.view.title) | i18n }} @if (tabs().length > 1 &&
+  tab.kind === 'configuration') {
+  <span class="text-xs text-text-tertiary">· {{ tab.configuration.name }}</span>
+  }
+</button>
+} @if (error() && !selectedTab()) {
+<button z-button type="button" zType="ghost" zSize="sm" (click)="loadTabs(publication().id)">
+  {{ 'XP.McpPublication.RetryPluginTabs' | translate: { Default: 'Retry plugin tabs' } }}
+</button>
+}
+
+<ng-template #content>
+  @if (selectedTab(); as tab) { @if (tab.kind === 'view') {
+  <xp-extension-host-outlet
+    mode="single-view"
+    hostType="mcp-publication"
+    slot="detail.main_tabs"
+    [hostId]="publication().id"
+    [viewKey]="tab.view.key"
+    [fillAvailableHeight]="true"
+  />
+  } @else {
+  <section class="space-y-4">
+    <div class="flex items-center justify-between gap-3">
+      <div>
+        <h3 class="font-semibold text-text-primary">{{ tab.configuration.title | i18n }}</h3>
+        <p class="text-sm text-text-secondary">{{ tab.configuration.name }} · {{ tab.configuration.pluginName }}</p>
+      </div>
+      @if (tab.configuration.canEdit) {
+      <button z-button type="button" zType="outline" [disabled]="loading() || saving()" (click)="select(tab, true)">
+        {{ 'XP.McpPublication.ReloadConfiguration' | translate: { Default: 'Reload configuration' } }}
+      </button>
+      }
+    </div>
+    @if (!tab.configuration.canEdit) {
+    <p class="text-sm text-text-secondary">
+      {{ 'XP.McpPublication.ConfigurationOwnerScope' | translate: { Default: 'Open the owning tenant scope to configure
+      this shared service.' } }}
+    </p>
+    } @else if (loading()) {
+    <p class="text-sm text-text-secondary">{{ 'XP.Common.Loading' | translate: { Default: 'Loading...' } }}</p>
+    } @else if (error()) {
+    <p role="alert" class="text-sm text-text-destructive">{{ error() }}</p>
+    } @else if (configuration(); as config) {
+    <form class="space-y-4" (ngSubmit)="save()">
+      <json-schema-form
+        #configurationForm
+        [schema]="tab.configuration.schema"
+        [ngModelOptions]="{ standalone: true }"
+        [ngModel]="config.values"
+        (ngModelChange)="updateValues($event)"
+        [readonly]="saving()"
+      />
+      <p class="text-xs text-text-tertiary">
+        {{ 'XP.McpPublication.ConfigurationSecretsHint' | translate: { Default: 'Saved passwords are masked. Leave them
+        unchanged to keep them, or replace the value to update them.' } }}
+      </p>
+      <button z-button type="submit" [disabled]="saving() || configurationForm.invalid">
+        {{ 'XP.ACTIONS.Save' | translate: { Default: 'Save' } }}
+      </button>
+    </form>
+    }
+  </section>
+  } }
+</ng-template>

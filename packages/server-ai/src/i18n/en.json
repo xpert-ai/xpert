@@ -53,6 +53,11 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "McpSourceConfigurationInvalid": "The plugin configuration is invalid. Check the declared fields and values.",
+        "McpSourceConfigurationOwnerScope": "Configure this shared service from its owning tenant scope.",
+        "McpSourceConfigurationNotFound": "This configurable plugin source is not bound to the MCP service.",
+        "McpSourceConfigurationChanged": "The configuration changed. Reload it before saving again.",
+        "McpPublicationDisableBeforeDelete": "Disable the MCP service before deleting it.",
         "AssistantSharingForbidden": "You cannot manage sharing for this assistant in the current organization.",
         "AssistantSharingNotFound": "The assistant was not found in the current organization.",
         "AssistantSharingInvalidGroups": "Choose user groups from the current organization.",

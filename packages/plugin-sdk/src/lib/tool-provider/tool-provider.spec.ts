@@ -91,6 +91,24 @@ class DecoratedTestProvider {
 }
 
 describe('decorated business Tool adapters', () => {
+  it('delegates configuration validation to the provider and awaits asynchronous rejection', async () => {
+    class ValidatingProvider extends DecoratedTestProvider {
+      readonly validateConfig = jest.fn(async (values: unknown) => {
+        await Promise.resolve()
+        z.object({ host: z.string().min(1) }).parse(values)
+      })
+    }
+    const provider = new ValidatingProvider()
+    const strategy = new DecoratedToolsetStrategy(provider)
+    await expect(strategy.validateConfig({ host: '' })).rejects.toThrow()
+    await expect(strategy.validateConfig({ host: 'localhost' })).resolves.toBeUndefined()
+    expect(provider.validateConfig).toHaveBeenLastCalledWith({ host: 'localhost' })
+  })
+
+  it('keeps configuration validation optional for existing providers', async () => {
+    await expect(new DecoratedToolsetStrategy(new DecoratedTestProvider()).validateConfig({})).resolves.toBeUndefined()
+  })
+
   it('propagates the declared default policy without changing behavior metadata', async () => {
     const tools = (
       await new DecoratedToolsetStrategy(new DecoratedTestProvider(), 'test', '1').create({ name: 'Test' })
