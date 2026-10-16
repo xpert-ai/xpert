@@ -94,7 +94,12 @@ export class GroupStreamService {
                 try {
                     const snapshot = await this.messages.snapshot(groupId, undefined, 100)
                     if (stopped) return
-                    const signature = JSON.stringify([snapshot.revision, snapshot.runs])
+                    // Runtime input consumption can change without a public message or group revision.
+                    const signature = JSON.stringify([
+                        snapshot.revision,
+                        snapshot.runs,
+                        snapshot.messages.map((message) => [message.id, message.deliveries])
+                    ])
                     cursor.revision = snapshot.revision
                     if (first || signature !== lastSnapshot) {
                         if (first && resync) emit({ type: 'resync' })

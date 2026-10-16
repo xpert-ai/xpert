@@ -112,4 +112,45 @@ describe('group observers', () => {
         expect(next[0].data).toEqual({ type: 'resync' })
         second.unsubscribe()
     })
+
+    it('emits an acknowledgement while thinking even when revision, run state and output are unchanged', async () => {
+        const message = {
+            id: messageId,
+            clientMessageId: messageId,
+            sequence: 1,
+            text: 'Question',
+            createdAt: new Date().toISOString(),
+            communication: {
+                intent: 'request' as const,
+                senderId: snapshot.viewerParticipantId,
+                recipientIds: [participantId],
+                rootMessageId: messageId,
+                rootUserId: randomUUID(),
+                hop: 0
+            },
+            deliveries: [{ participantId, status: 'starting' as const }]
+        }
+        messages.snapshot.mockResolvedValue({ ...snapshot, messages: [message] })
+        const events: SseMessageEvent[] = []
+        const subscription = (await service.observe(groupId)).subscribe((event) => events.push(event))
+        await jest.advanceTimersByTimeAsync(1)
+        expect(events).toHaveLength(1)
+        messages.snapshot.mockResolvedValue({
+            ...snapshot,
+            messages: [{ ...message, deliveries: [{ participantId, status: 'consumed' }] }]
+        })
+        await jest.advanceTimersByTimeAsync(1000)
+        expect(events).toHaveLength(2)
+        expect(events[1].data).toMatchObject({
+            type: 'snapshot',
+            snapshot: {
+                revision: snapshot.revision,
+                runs: snapshot.runs,
+                messages: [{ deliveries: [{ participantId, status: 'consumed' }] }]
+            }
+        })
+        await jest.advanceTimersByTimeAsync(1000)
+        expect(events).toHaveLength(2)
+        subscription.unsubscribe()
+    })
 })
