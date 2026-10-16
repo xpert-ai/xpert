@@ -89,6 +89,11 @@ import { SandboxAcquireBackendCommand } from '../../../sandbox/commands'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
 import { CompleteToolCallsQuery } from '../../queries'
 import { getExecutionContext } from '../../../shared/agent/execution-context'
+import { RetainExecutionSandbox } from '../../../sandbox/sandbox-execution-lease.service'
+
+const sandboxExecutionLeases = {
+    run: <T>(prepare: (retain: RetainExecutionSandbox) => Promise<Observable<T>>) => prepare(async () => undefined)
+}
 
 describe('XpertAgentInvokeHandler', () => {
     let commandBus: { execute: jest.Mock }
@@ -141,7 +146,8 @@ describe('XpertAgentInvokeHandler', () => {
             executionCancelService as unknown as ExecutionCancelService,
             workAreaResolver as unknown as XpertWorkAreaResolver,
             undefined,
-            chatMessageRepository as any
+            chatMessageRepository as never,
+            sandboxExecutionLeases as never
         )
         ;(RequestContext.currentTenantId as jest.Mock).mockReturnValue('tenant-1')
         ;(RequestContext.getOrganizationId as jest.Mock).mockReturnValue('org-1')
@@ -999,6 +1005,7 @@ describe('XpertAgentInvokeHandler', () => {
             workAreaResolver as never,
             undefined,
             chatMessageRepository as never,
+            sandboxExecutionLeases as never,
             control as never
         )
         commandBus.execute.mockImplementation(async (command) =>
@@ -1054,6 +1061,7 @@ describe('XpertAgentInvokeHandler', () => {
             workAreaResolver as never,
             undefined,
             chatMessageRepository as never,
+            sandboxExecutionLeases as never,
             control as never
         )
         commandBus.execute.mockImplementation(async (command) =>
