@@ -1,13 +1,13 @@
-<z-chip-row [removable]="removable()" [disabled]="disabled()" (removed)="removed.emit()">
-  {{ label() }}
+<z-chip-row
+  class="min-h-6 gap-1 rounded-md border-border/60 bg-muted px-2 py-0 text-sm leading-5 text-foreground shadow-none dark:bg-muted dark:text-foreground data-disabled:opacity-100"
+  [removable]="removable()"
+  [disabled]="disabled()"
+  (removed)="removed.emit()"
+>
+  <span class="block truncate" [title]="label()">{{ label() }}</span>
   @if (removable()) {
-    <button
-      type="button"
-      zChipRemove
-      [attr.aria-label]="'Remove ' + label()"
-      (mousedown)="$event.preventDefault()"
-    >
-      <z-icon zType="cancel" />
+    <button type="button" zChipRemove [attr.aria-label]="'Remove ' + label()" (mousedown)="$event.preventDefault()">
+      <z-icon zType="x" class="size-3" />
     </button>
   }
 </z-chip-row>

@@ -50,4 +50,15 @@ No actionable P0/P1/P2 issues remain in the sharing component. Two issues found 
 
 No blocking visual follow-up. Full application deployment acceptance remains a separate environment check.
 
+**Follow-up: shared multi-select and page buttons (2026-10-16)**
+
+The user's annotated screenshot requested a more consistent original multi-select and page-local button styles. This supersedes the earlier stretched-toolbar treatment.
+
+- Baseline: `.cache/sharing-preview/desktop-qa.png`; updated desktop: `.cache/sharing-preview/style-desktop.png`. Both 1697 × 927 captures were opened together. The updated state has two selected members to check chip spacing. The annotation source is `/var/folders/zr/dr3n4hcx5h1fr9c63_gncck40000gn/T/codex-clipboard-d5954339-031d-4e07-9028-7ffa81538073.png`.
+- The shared Zard tag-select now uses a compact inner text input, theme-colored rectangular chips, an unobtrusive remove icon, and a single chevron. Removing the nested full-height input prevents double padding. Existing application font and text sizing remain unchanged.
+- The selection toolbar is limited to `max-w-4xl`. Page-local primary/secondary actions have fixed heights and consistent padding/radii. The global button component is unchanged. At the 14px Cloud root, field and Share button both measure 31.5px in empty and selected states, and chips measure 21px. The action no longer stretches when selections wrap.
+- Supplementary evidence: `.cache/sharing-preview/style-options.png`, `style-dark.png`, `style-mobile.png`. Suggestion rows use the shared text scale and themed hover/selection state. At 391 × 844 the selector occupies its own row, actions align right below it, and document width stays 391px. Dark-mode tokens remain legible. Capture normalization uses the same top-left, unscaled DOM crop described above.
+- Existing tag-select, chip, Dialog and sharing-page tests: 27 passed. The preview recompiles the actual component templates. Font, spacing, colors, existing vector icons and copy were checked; no new image assets or business copy were introduced.
+- No actionable P0/P1/P2 findings remain. This continues to be fixture-based visual acceptance, not deployment verification.
+
 final result: passed
