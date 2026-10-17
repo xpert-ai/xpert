@@ -44,6 +44,8 @@ For composed queries, the platform assigns `executionId` before provider executi
 ## Reusable Artifacts changes
 
 `listArtifacts.resourceIdPrefix` matches a literal resource ID prefix, never a pattern, within the caller's existing access scope. Storage-specific matching stays inside the platform Artifacts service.
+
+`listArtifacts.includeCurrentVersion` optionally includes each result's active current-version metadata (for example its latest title). The platform loads pointers for the authorized, paginated result in one scoped batch; it does not expand access or load document content. Plugins should use this metadata instead of maintaining a separate copy of versioned titles.
 `ensureArtifactVersion.expectedCurrentVersionId` enables compare-and-set inside the existing Artifact row lock; null means no current version. An idempotent retry may reuse the current version but cannot resurrect an old save over a newer one. Callers that omit it retain existing behavior.
 
 No dashboard table, renderer schema or data-xpert dependency is added to the platform.
