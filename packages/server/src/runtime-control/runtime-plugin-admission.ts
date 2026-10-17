@@ -4,6 +4,7 @@ import { admitPluginStartup, canRestorePluginStartup, isPluginStartupListening }
 import type { RuntimeLifecycleService } from './runtime-lifecycle.service'
 import type { PluginRuntimeGenerationStore } from './plugin-runtime-generation.store'
 import { evaluateRuntimeRequirements } from './plugin-runtime-requirements'
+import { resolveRolloutAdmission } from './plugin-rollout-admission'
 import type { RolloutAdmission } from './runtime-rollout-policy'
 
 export type RestartRegistry = Pick<
@@ -33,22 +34,23 @@ export class RuntimePluginAdmission {
 		)
 	}
 	async refresh(
-		generations: Pick<PluginRuntimeGenerationStore, 'readDesired'>,
+		generations: Pick<PluginRuntimeGenerationStore, 'readDesired' | 'readRequirements'>,
 		rollout?: RolloutAdmission
-	): Promise<void> {
+	): Promise<{ manifest?: RolloutAdmission; desiredGeneration: number }> {
 		const desired = await generations.readDesired()
-		const continuous = this.admitted && Date.now() < this.checkedUntil && this.registry.isLeaseValid()
 		const state = this.registry.getPluginState()
+		const admission = await resolveRolloutAdmission(generations, desired, rollout, state)
+		const continuous = this.admitted && Date.now() < this.checkedUntil && this.registry.isLeaseValid()
 		const matches =
 			!!state && (!desired || evaluateRuntimeRequirements(desired.requirements, state).status === 'satisfied')
-		// Only the active operation's replacement may join against its pinned full manifest.
+		// Only the active operation's replacement may join against a verified rollout manifest.
 		// Other new/returning boots still have to satisfy the latest desired generation.
 		const matchesRollout =
 			!!state &&
-			!!rollout &&
+			!!admission &&
 			desired?.status === 'in_progress' &&
-			desired.generation >= rollout.generation &&
-			evaluateRuntimeRequirements(rollout.requirements, state).status === 'satisfied'
+			desired.generation >= admission.generation &&
+			evaluateRuntimeRequirements(admission.requirements, state).status === 'satisfied'
 		// During a failed/in-progress rollout, keep existing healthy boots serving their previous version.
 		// New/returning boots are fenced until current, or explicitly restored after a failed candidate.
 		this.admitted =
@@ -68,5 +70,6 @@ export class RuntimePluginAdmission {
 		if (this.isStable() && !this.committed) {
 			this.committed = admitPluginStartup(state)
 		}
+		return { manifest: admission, desiredGeneration: desired?.generation ?? 0 }
 	}
 }
