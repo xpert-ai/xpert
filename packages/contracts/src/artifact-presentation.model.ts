@@ -1,3 +1,9 @@
+/** Host-owned opening avoids inheriting a remote component's iframe sandbox. */
+export const ARTIFACT_PRESENTATION_OPEN_COMMAND = 'artifact.presentation.open'
+export interface ArtifactPresentationOpenRequest {
+  url: string
+}
+
 /** A viewer always operates on one published, immutable version. Drafts are not share targets. */
 export interface ArtifactPresentationTarget {
   artifactId: string
