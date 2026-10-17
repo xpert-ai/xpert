@@ -70,6 +70,7 @@ describe('workbench syntax positions are not function calls', () => {
     'WITH q(id) AS (SELECT 1), r(id) AS (SELECT id FROM q) SELECT * FROM r',
     'WITH `q`(`id`) AS (SELECT 1) SELECT * FROM `q`',
     'SELECT * FROM (WITH q(id) AS (SELECT 1) SELECT * FROM q) s',
+    "SELECT TO_CHAR(DATE_TRUNC('month', ordered_at), 'YYYY-MM') AS month FROM orders",
     'SELECT CAST(1 AS DECIMAL(10,2))',
     'SELECT"column"FROM"table"',
     'SELECT CAST(COALESCE(amount, 0) AS NUMERIC(10,2)) FROM orders',

@@ -14,6 +14,8 @@ import { DataSourceService } from './data-source.service'
 import { EventHandlers } from './events/handlers'
 import { QueryHandlers } from './queries/handlers'
 import { DataSourceTypeModule } from '../data-source-type'
+import { AnalyticsRuntimeService } from './analytics/analytics-runtime.service'
+import { AnalyticsController } from './analytics/analytics.controller'
 
 @Module({
 	imports: [
@@ -25,8 +27,15 @@ import { DataSourceTypeModule } from '../data-source-type'
 		SharedModule,
 		CqrsModule
 	],
-	providers: [DataSourceService, DataSourceRuntimeService, ...EventHandlers, ...CommandHandlers, ...QueryHandlers],
-	controllers: [DataSourceController],
+	providers: [
+		DataSourceService,
+		DataSourceRuntimeService,
+		AnalyticsRuntimeService,
+		...EventHandlers,
+		...CommandHandlers,
+		...QueryHandlers
+	],
+	controllers: [AnalyticsController, DataSourceController],
 	exports: [TypeOrmModule, DataSourceService]
 })
 export class DataSourceModule {}

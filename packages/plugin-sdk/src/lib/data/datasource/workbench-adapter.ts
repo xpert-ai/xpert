@@ -1,3 +1,9 @@
+/**
+ * Why this exists: existing SQL Workbench plugins share this SDK implementation.
+ * Metadata and transaction SQL still couple it to PostgreSQL/MySQL/Doris.
+ * TODO: delegate dialect behavior to plugin-owned strategies behind DatabaseWorkbenchAdapter.
+ * Keep host authorization/execution limits and generic Dataset/Binding independent of dialects.
+ */
 import type {
   DatabaseCapabilities,
   DatabaseColumn,
@@ -31,7 +37,11 @@ const string = (value: DatabaseValue | undefined) => (value == null ? '' : Strin
 const cell = (result: DatabaseResult, row: DatabaseValue[], name: string) =>
   row[result.columns.findIndex((column) => column.name.toLowerCase() === name.toLowerCase())]
 
-/** One adapter per physical connection. A host session must not share it across users. */
+/**
+ * One adapter per physical connection. A host session must not share it across users.
+ * @deprecated Legacy SDK-owned SQL dialects. New plugins should implement DatabaseWorkbenchAdapter
+ * with plugin-owned dialect behavior. Retained for compatibility with existing plugins.
+ */
 export class SqlDatabaseWorkbenchAdapter implements DatabaseWorkbenchAdapter {
   private version?: string
   private transactionOpen = false
@@ -154,8 +164,8 @@ export class SqlDatabaseWorkbenchAdapter implements DatabaseWorkbenchAdapter {
     const p = (i: number) => (this.engine === 'postgres' ? `$${i}` : '?')
     const metadata = await this.raw(
       this.engine === 'postgres'
-        ? `SELECT a.attname AS column_name, pg_catalog.format_type(a.atttypid,a.atttypmod) AS data_type, CASE WHEN a.attnotnull THEN 'NO' ELSE 'YES' END AS is_nullable, a.attnum AS ordinal_position, pg_get_expr(d.adbin,d.adrelid) AS column_default FROM pg_catalog.pg_attribute a JOIN pg_catalog.pg_class c ON c.oid=a.attrelid JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace LEFT JOIN pg_catalog.pg_attrdef d ON d.adrelid=a.attrelid AND d.adnum=a.attnum WHERE n.nspname=$1 AND c.relname=$2 AND a.attnum>0 AND NOT a.attisdropped ORDER BY a.attnum LIMIT 1000`
-        : `SELECT column_name, column_type AS data_type, is_nullable, ordinal_position, column_default FROM information_schema.columns WHERE table_schema = ${p(1)} AND table_name = ${p(2)} ORDER BY ordinal_position LIMIT 1000`,
+        ? `SELECT a.attname AS column_name, pg_catalog.format_type(a.atttypid,a.atttypmod) AS data_type, CASE WHEN a.attnotnull THEN 'NO' ELSE 'YES' END AS is_nullable, a.attnum AS ordinal_position, pg_get_expr(d.adbin,d.adrelid) AS column_default, pg_catalog.col_description(c.oid,a.attnum) AS column_comment FROM pg_catalog.pg_attribute a JOIN pg_catalog.pg_class c ON c.oid=a.attrelid JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace LEFT JOIN pg_catalog.pg_attrdef d ON d.adrelid=a.attrelid AND d.adnum=a.attnum WHERE n.nspname=$1 AND c.relname=$2 AND a.attnum>0 AND NOT a.attisdropped ORDER BY a.attnum LIMIT 1000`
+        : `SELECT column_name, column_type AS data_type, is_nullable, ordinal_position, column_default, column_comment FROM information_schema.columns WHERE table_schema = ${p(1)} AND table_name = ${p(2)} ORDER BY ordinal_position LIMIT 1000`,
       [namespace, object.name]
     )
     const columns: DatabaseColumn[] = metadata.rows.map((row, index) => ({
@@ -164,6 +174,7 @@ export class SqlDatabaseWorkbenchAdapter implements DatabaseWorkbenchAdapter {
       dataType: string(cell(metadata, row, 'data_type')),
       nullable: string(cell(metadata, row, 'is_nullable')) === 'YES',
       ordinal: number(cell(metadata, row, 'ordinal_position')),
+      comment: string(cell(metadata, row, 'column_comment')) || undefined,
       defaultValue: cell(metadata, row, 'column_default') == null ? null : string(cell(metadata, row, 'column_default'))
     }))
     if (!columns.length) throw new Error('object_not_found_or_denied')
