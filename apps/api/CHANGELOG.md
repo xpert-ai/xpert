@@ -1,5 +1,31 @@
 # @xpert-ai/xpert-api
 
+## 3.22.0
+
+### Minor Changes
+
+- c4f9bb3: Add organization member sharing and scoped user-group authorization for Assistants. Separate resource sharing from organization group management, enforce active organization membership and runtime-only grants, and keep access changes consistent across published versions.
+
+  Use the existing Zard UI theme for the sharing page and hide group authorization when the account cannot view organization user groups.
+
+### Patch Changes
+
+- 7591451: Reuse compiled workspace libraries for API bundling and type checking. Build API, plugins and remote UI through one dependency graph with bounded concurrency, retain compatible UI commands, and record task/compiler timings for reproducible Docker build comparisons.
+- fc76e54: Speed up API image builds with registry caching, an independent Debian production-dependency layer, and removal of the redundant standalone remote-component build. Honor the configured build heap limit while preserving frozen locks, native-module checks, and verified-image publication.
+- 02345e3: Upgrade all shared ChatKit packages to 0.16.0 and align workspace, API, Web, and Desktop dependency locks. Include floating Workbench chat, image reference thumbnails, and the latest message interaction and workspace preview improvements.
+- 2e488be: Manage data retention exclusively from the default tenant and apply its cleanup switches and retention periods to all tenants. Ignore other tenants' previous retention overrides, preserve conversation references and pending settlements, and retain model usage facts when removing expired call records. Only default-tenant SuperAdmins can change these global policies; missing or disabled default policies do not trigger cleanup.
+
+  Keep retention parameters out of the generic tenant settings editor and only display saved changes after the request succeeds. Failed saves preserve the original value and editable draft and show an error.
+
+- e91caec: Clarify that Assistant final replies are posted directly to the group and should address its members, with a brief closing remark or new information after a tool-sent message instead of a repeated execution report. Preserve the existing message publication behavior.
+- 55ddc1f: Synchronize human group invitations with membership in the group's bound Project in one transaction. Preserve existing Project roles, restore removed users as ordinary members, and retain Project management and organization access checks.
+- 3cb19b9: Project group message delivery as consumed once the exact input is accepted by the Assistant runtime, without waiting for a reply or changing dispatch recovery state. Refresh group streams when consumption changes and keep queued steer inputs unacknowledged until consumed.
+- a0fc95e: Authorize native Workbench file operations for active group members through the persisted group/Assistant runtime binding. Recheck credential audience, tenant and organization scope, expiry and live membership on each file request, retaining Assistant file and Project write authorization and ordinary conversation isolation.
+
+  Deny non-Project group runtime environment file access until a live environment sharing policy can authorize the exact binding and owner; a persisted sandbox environment reference alone does not grant file access.
+
+- bb2b948: Keep rolling plugin updates available when replacement replicas load a later published plugin manifest during a bulk update. Use the same exact manifest for readiness and rollout completion while preserving queued convergence and healthy replica capacity.
+
 ## 3.21.6
 
 ### Patch Changes

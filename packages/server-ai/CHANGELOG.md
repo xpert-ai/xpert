@@ -1,5 +1,26 @@
 # @xpert-ai/server-ai
 
+## 3.14.0
+
+### Minor Changes
+
+- c4f9bb3: Add organization member sharing and scoped user-group authorization for Assistants. Separate resource sharing from organization group management, enforce active organization membership and runtime-only grants, and keep access changes consistent across published versions.
+
+    Use the existing Zard UI theme for the sharing page and hide group authorization when the account cannot view organization user groups.
+
+### Patch Changes
+
+- 2e488be: Manage data retention exclusively from the default tenant and apply its cleanup switches and retention periods to all tenants. Ignore other tenants' previous retention overrides, preserve conversation references and pending settlements, and retain model usage facts when removing expired call records. Only default-tenant SuperAdmins can change these global policies; missing or disabled default policies do not trigger cleanup.
+
+    Keep retention parameters out of the generic tenant settings editor and only display saved changes after the request succeeds. Failed saves preserve the original value and editable draft and show an error.
+
+- Updated dependencies [c4f9bb3]
+- Updated dependencies [2e488be]
+    - @xpert-ai/contracts@3.23.0
+    - @xpert-ai/server-core@3.10.8
+    - @xpert-ai/desktop-protocol@0.3.6
+    - @xpert-ai/plugin-sdk@3.23.1
+
 ## 3.13.0
 
 ### Minor Changes
