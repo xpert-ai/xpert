@@ -2,3 +2,4 @@
 export * from './lib/artifact-document/protocol'
 export * from './lib/artifact-document/runtime'
 export * from './lib/artifact-document/host'
+export * from './lib/artifact-document/dependencies'

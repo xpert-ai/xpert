@@ -4,7 +4,9 @@ const { resolve } = require('node:path')
 const { build } = require('esbuild')
 const { chromium } = require('playwright')
 const { createServer } = require('node:http')
+const { createHash } = require('node:crypto')
 const verifyHostBoundaries = require('./artifact-document-host.cjs')
+const verifyDependencyEnvironments = require('./artifact-document-dependencies.cjs')
 
 async function main() {
   const bundle = await build({
@@ -13,9 +15,14 @@ async function main() {
     platform: 'browser',
     format: 'iife',
     globalName: 'DocumentHost',
+    metafile: true,
     write: false,
     tsconfig: resolve(__dirname, '../tsconfig.json')
   })
+  assert.ok(
+    !Object.keys(bundle.metafile.inputs).some((path) => path.includes('@noble/hashes')),
+    'Artifact browser bundle must not depend on @noble/hashes'
+  )
   const browser = await chromium.launch({ headless: true, channel: 'chrome' })
   let hits = 0
   const trap = createServer((_request, response) => {
@@ -30,12 +37,22 @@ async function main() {
     page.on('request', (request) => network.push(request.url()))
     await page.setContent('<html><head></head><body><iframe id="document"></iframe></body></html>')
     await page.addScriptTag({ content: bundle.outputFiles[0].text })
-    await page.evaluate(() => {
+    const source = 'window.ExampleLibrary={version:"1.2.3",text:"</script><script>throw Error(123)</script>中文"};'
+    const dependency = {
+      id: 'example',
+      version: '1.2.3',
+      global: 'ExampleLibrary',
+      format: 'classic-script',
+      source,
+      sha256: createHash('sha256').update(source).digest('hex')
+    }
+    await page.evaluate((dependency) => {
       window.executions = []
       window.errors = []
       window.results = []
       DocumentHost.installArtifactDocumentFramePolicy(document)
       window.host = DocumentHost.mountArtifactDocument(document.querySelector('iframe'), {
+        dependencies: [dependency],
         html: '<html><body><select id="region"></select><output id="result"></output><script>try{eval("1+1");window.evalBlocked=false}catch{window.evalBlocked=true}window.addEventListener("message",e=>{if(e.ports[0])window.testPort=e.ports[0]});window.xpertLiveArtifact.bindSelect(document.querySelector("select"),{bindingId:"sales",controlId:"region",fieldId:"region"});window.xpertLiveArtifact.subscribe("sales",d=>document.querySelector("output").textContent=d.rows[0].value);</script></body></html>',
         context: { bindingIds: ['sales'], defaults: { region: null }, theme: 'light', locale: 'en' },
         query: async (input) => {
@@ -51,9 +68,13 @@ async function main() {
         onError: (code) => window.errors.push(code),
         onResult: (value) => window.results.push(value)
       })
-    })
+    }, dependency)
     const frame = page.frames()[1]
     await frame.waitForFunction(() => window.testPort)
+    assert.deepEqual(await frame.evaluate(() => window.ExampleLibrary), {
+      version: '1.2.3',
+      text: '</script><script>throw Error(123)</script>中文'
+    })
     await frame.evaluate(() => window.xpertLiveArtifact.query('sales', { region: null }))
     assert.equal(await frame.locator('output').textContent(), 'all')
     await page.evaluate(() => window.host.refresh())
@@ -137,9 +158,11 @@ async function main() {
     assert.equal(hits, 0, 'No request reached the listening HTTP server; CDP can still report CSP-blocked requests')
     await page.evaluate(() => window.host.dispose())
     const hostChecks = await verifyHostBoundaries(browser, bundle.outputFiles[0].text)
+    const dependencyChecks = await verifyDependencyEnvironments(browser, bundle.outputFiles[0].text, dependency)
     console.log(
       JSON.stringify({
         passed: [
+          'exact dependency bytes without script termination',
           'query',
           'refresh retains controls',
           'select options and filtered preservation',
@@ -153,6 +176,7 @@ async function main() {
           'latest result wins',
           'external resources',
           'self navigation',
+          ...dependencyChecks,
           ...hostChecks
         ]
       })

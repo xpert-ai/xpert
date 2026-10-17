@@ -1,4 +1,5 @@
 import { artifactDocumentHtml } from './protocol'
+import { renderArtifactDocumentDependencies, type ArtifactDocumentDependencyAsset } from './dependencies'
 
 export const ARTIFACT_DOCUMENT_CSP = [
   "default-src 'none'",
@@ -15,10 +16,14 @@ export const ARTIFACT_DOCUMENT_CSP = [
 ].join('; ')
 
 /** Host-owned prefix precedes all authored markup, including malformed/duplicate heads. */
-export function renderArtifactDocument(html: string, sessionId: string): string {
+export function renderArtifactDocument(
+  html: string,
+  sessionId: string,
+  dependencies: ArtifactDocumentDependencyAsset[] = []
+): string {
   artifactDocumentHtml.parse(html)
   if (!/^[a-f0-9]{32}$/.test(sessionId)) throw new Error('Invalid Artifact document session ID')
-  return `<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${ARTIFACT_DOCUMENT_CSP}"><script>${ARTIFACT_DOCUMENT_RUNTIME.replace('__XPERT_DOCUMENT_SESSION__', sessionId)}</script>${html}`
+  return `<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${ARTIFACT_DOCUMENT_CSP}"><script>${ARTIFACT_DOCUMENT_RUNTIME.replace('__XPERT_DOCUMENT_SESSION__', sessionId)}</script>${renderArtifactDocumentDependencies(dependencies)}${html}`
 }
 
 const ARTIFACT_DOCUMENT_RUNTIME = String.raw`

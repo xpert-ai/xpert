@@ -22,9 +22,15 @@ export const artifactDocumentQuery = z
   .strict()
 
 /** Flat UI filter values keyed by declared control IDs; validated again by the backend Binding. */
-export type ArtifactDocumentControls = z.output<typeof artifactDocumentControls>
+// Explicit wire types preserve null and required keys in declarations built by non-strict host tsconfigs.
+export type ArtifactDocumentControls = Record<string, string | number | boolean | null>
 /** Correlates a document request with one host result; the host owns binding resolution and authorization. */
-export type ArtifactDocumentQuery = z.output<typeof artifactDocumentQuery>
+export interface ArtifactDocumentQuery {
+  type: 'query'
+  requestId: string
+  bindingId: string
+  controls: ArtifactDocumentControls
+}
 
 /** Only public presentation context may cross into the untrusted frame. Never include credentials here. */
 export const artifactDocumentContext = z
@@ -40,7 +46,12 @@ export const artifactDocumentContext = z
   .strict()
 
 /** A snapshot for one mount. Artifact/version/actor identity belongs in the trusted query callback closure. */
-export type ArtifactDocumentContext = z.output<typeof artifactDocumentContext>
+export interface ArtifactDocumentContext {
+  bindingIds: string[]
+  defaults: ArtifactDocumentControls
+  theme: 'light' | 'dark'
+  locale: string
+}
 
 /** Format/UTF-8 size gate, not a sanitizer. Isolation and server authorization enforce security. */
 export const artifactDocumentHtml = z

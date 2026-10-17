@@ -11,6 +11,7 @@ import {
   type ArtifactDocumentQuery
 } from './protocol'
 import { renderArtifactDocument } from './runtime'
+import type { ArtifactDocumentDependencyAsset } from './dependencies'
 
 const readySchema = z
   .object({
@@ -28,6 +29,8 @@ const diagnosticSchema = z
 export interface ArtifactDocumentHostOptions<T> {
   /** Complete untrusted HTML; scripts run only inside the isolated frame. */
   html: string
+  /** Exact packaged bytes pinned to this Artifact version, never URLs or library names from the document. */
+  dependencies?: ArtifactDocumentDependencyAsset[]
   /** Public binding IDs and presentation defaults for this document generation. */
   context: ArtifactDocumentContext
   /** Resolve against saved Bindings on the server with the current user's access; never execute a query definition from HTML. */
@@ -61,7 +64,7 @@ export function mountArtifactDocument<T>(
     byte.toString(16).padStart(2, '0')
   ).join('')
   // Validate/render before allocating a channel or installing listeners.
-  const source = renderArtifactDocument(options.html, sessionId)
+  const source = renderArtifactDocument(options.html, sessionId, options.dependencies)
   const channel = new MessageChannel()
   const bindingIds = new Set(context.bindingIds)
   const requestIds = new Set<string>()
@@ -102,7 +105,12 @@ export function mountArtifactDocument<T>(
       observe(options.onError, 'DOCUMENT_INVALID_REQUEST')
       return
     }
-    const input = parsed.data
+    const input: ArtifactDocumentQuery = {
+      type: parsed.data.type,
+      requestId: parsed.data.requestId,
+      bindingId: parsed.data.bindingId,
+      controls: parsed.data.controls
+    }
     if (!bindingIds.has(input.bindingId)) {
       reject(input.requestId, 'DOCUMENT_BINDING_DENIED')
       return

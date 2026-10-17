@@ -13,7 +13,32 @@
 
 在专用文档宿主页调用 `installArtifactDocumentFramePolicy(document)`，再挂载 iframe；未安装时 mount 会拒绝挂载。该策略作用于整个宿主页，禁止子框架的 URL 导航；允许 `srcdoc`。不要装到需要加载其他远程 iframe 的应用根文档。
 
-`mountArtifactDocument(frame, { html, context, query, onBusy, onResult, onError })` 返回 `refresh()` 和 `dispose()`。上下文只含 Binding ID（最多 64 个）、默认控件值（最多 24 个）、语言及主题；它在挂载时严格校验并复制，后续修改原对象不会扩大允许的 Binding 集合。Artifact ID、版本和身份由可信回调闭包持有，不交给文档选择。
+`mountArtifactDocument(frame, { html, dependencies, context, query, onBusy, onResult, onError })` 返回 `refresh()` 和 `dispose()`。上下文只含 Binding ID（最多 64 个）、默认控件值（最多 24 个）、语言及主题；它在挂载时严格校验并复制，后续修改原对象不会扩大允许的 Binding 集合。Artifact ID、版本和身份由可信回调闭包持有，不交给文档选择。
+
+## 固定前端依赖
+
+可选的 `dependencies` 接受 `ArtifactDocumentDependencyAsset[]`：每项包含 `id`、精确 `version`、
+`format: 'classic-script'`、导出的 `global`、UTF-8 源码的 `sha256` 和 `source`。
+对应的 `ArtifactDocumentDependencyLock` 不包含源码，适合返回给 Agent 和保存在页面定义中。
+插件负责允许哪些库、构建 bundle 及其许可证；平台不导入 ECharts、Three.js 或任何业务图表库。
+
+`verifyArtifactDocumentDependencies(assets, locks)` 校验完整性、完整且有序的依赖集合、唯一 ID/global，
+拒绝 URL 字段、保留的 SDK 全局名称、单包超过 4 MB 或合计超过 8 MB 的代码。
+最多允许 8 项。摘要只证明完整性，不是权限判断：调用方必须从可信包或授权 Artifact 快照解析资产，
+不能根据页面传来的名称、URL 或源码任意下载和执行。
+
+摘要校验使用 SDK 内部无第三方依赖的同步 SHA-256（FIPS 180-4），不要求 Web Crypto、
+Node 内置模块或安全上下文，因此浏览器 HTTPS、普通 HTTP 内网、隔离文档与 Node 均使用同一实现。
+该实现仅用于有大小限制的公开依赖源码校验，不作为密码、密钥或签名 API 对外导出。
+
+宿主在 CSP 和页面 SDK 之后、作者 HTML 之前同步注入依赖。
+通过 `script.textContent` 安装精确源码，避免字符串中的结束标签改变 HTML 结构；无需 `eval`。
+依赖运行在同一个隔离文档内，不能因此访问宿主 DOM、凭据或通用 Action。
+部署端预检应使用同一 SDK 与相同资产，不能使用 CDN 或另一个版本替代。
+
+为了在插件升级后重开历史版本，插件应将依赖实际代码与定义一起纳入不可变 Artifact Version，
+由该版本的内容摘要覆盖。只存版本号或 hash、再从当前插件目录寻找代码，不能保证历史可用性。
+读取时验证版本内容摘要及每项依赖锁；修改页面默认继承原快照，升级依赖必须显式生成新版本。
 
 SDK 使用独立 MessageChannel，只接受当前 iframe、当前挂载随机标识的一次初始化请求；旧文档的延迟消息不能初始化新挂载。每条查询严格解析、检查 Binding 白名单、拒绝当前一分钟窗口内的重放，执行中的请求 ID 跨窗口继续受保护，最多 8 个并发、每分钟 60 次。关闭宿主后丢弃返回结果并清理 busy 状态；实际服务端取消/期限由查询能力负责。
 
