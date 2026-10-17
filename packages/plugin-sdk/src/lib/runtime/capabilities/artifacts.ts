@@ -184,6 +184,8 @@ export type ArtifactLinkRecord = ArtifactScopeInput & {
 
 /** Filter used when listing Artifacts visible to the current plugin/runtime scope. */
 export type ListArtifactsInput = {
+  /** Include current-version metadata in one batch, without reading Workspace file bytes. */
+  includeCurrentVersion?: boolean
   pluginName?: string | null
   resourceType?: string | null
   resourceId?: string | null

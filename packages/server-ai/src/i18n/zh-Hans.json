@@ -1087,7 +1087,15 @@
         "TemplateUpgradeChoices": "请为每个变更部分选择保留本地内容或采用模板内容。",
         "TemplateUpgradePending": "请先完成或回退当前待处理的升级。",
         "TemplateUpgradeUnsupported": "此变更需要可移植运行适配器；变更已有例行任务请使用新任务键，变更文件隔离范围请另行安装。",
-        "TemplateUpgradeSourceUnavailable": "来源模板已不可用，仍可恢复或回退已保存的升级。"
+        "TemplateUpgradeSourceUnavailable": "来源模板已不可用，仍可恢复或回退已保存的升级。",
+        "ArtifactDraftAccessDenied": "ARTIFACT_DRAFT_ACCESS_DENIED: 无权访问此草稿。",
+        "ArtifactDraftRevisionInvalid": "ARTIFACT_DRAFT_REVISION_INVALID: 草稿修订号无效。",
+        "ArtifactDraftMimeInvalid": "ARTIFACT_DRAFT_MIME_INVALID: 此文件类型不能用作 Artifact 草稿。",
+        "ArtifactDraftFileInvalid": "ARTIFACT_DRAFT_FILE_INVALID: 需要平台 Workspace 文件引用。",
+        "ArtifactDraftContentChanged": "ARTIFACT_DRAFT_CONTENT_CHANGED: 草稿文件内容已变化，请重新保存经过验证的快照。",
+        "ArtifactDraftConflict": "ARTIFACT_DRAFT_CONFLICT: 草稿已变化，请重新打开最新修订后再修改或发布。",
+        "ArtifactDraftNotFound": "ARTIFACT_DRAFT_NOT_FOUND: 未找到草稿。",
+        "ArtifactDraftBaseConflict": "ARTIFACT_DRAFT_BASE_CONFLICT: 正式版本已变化，请核对并合并草稿后再发布。"
     },
     "Mcp": {
         "Test": {

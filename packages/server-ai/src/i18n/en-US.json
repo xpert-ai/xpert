@@ -1087,7 +1087,15 @@
         "TemplateUpgradeChoices": "Choose keep or replace for every changed section.",
         "TemplateUpgradePending": "Finish or roll back the pending upgrade first.",
         "TemplateUpgradeUnsupported": "This change requires a portable runtime adapter, a new routine key, or a separate installation for a changed file scope.",
-        "TemplateUpgradeSourceUnavailable": "The source template is unavailable. You can still recover or roll back this saved upgrade."
+        "TemplateUpgradeSourceUnavailable": "The source template is unavailable. You can still recover or roll back this saved upgrade.",
+        "ArtifactDraftAccessDenied": "ARTIFACT_DRAFT_ACCESS_DENIED: You do not have access to this draft.",
+        "ArtifactDraftRevisionInvalid": "ARTIFACT_DRAFT_REVISION_INVALID: The draft revision is invalid.",
+        "ArtifactDraftMimeInvalid": "ARTIFACT_DRAFT_MIME_INVALID: This file type cannot be used for an Artifact draft.",
+        "ArtifactDraftFileInvalid": "ARTIFACT_DRAFT_FILE_INVALID: A platform Workspace file reference is required.",
+        "ArtifactDraftContentChanged": "ARTIFACT_DRAFT_CONTENT_CHANGED: Draft file content changed. Save a new verified snapshot.",
+        "ArtifactDraftConflict": "ARTIFACT_DRAFT_CONFLICT: The draft changed. Reopen the latest revision before editing or publishing.",
+        "ArtifactDraftNotFound": "ARTIFACT_DRAFT_NOT_FOUND: The draft was not found.",
+        "ArtifactDraftBaseConflict": "ARTIFACT_DRAFT_BASE_CONFLICT: The published version changed. Review and reconcile the draft before publishing."
     },
     "Mcp": {
         "Test": {
