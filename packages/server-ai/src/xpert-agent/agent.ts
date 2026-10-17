@@ -409,6 +409,8 @@ export function createMapStreamEvents(
                 if (tool_call_id) {
                     const component: any = {
                         // category: 'Computer',
+                        // Completion logs must stand alone: View subscribers cannot join the transcript's start delta.
+                        tool: rest.name,
                         status: 'success',
                         end_date: new Date()
                     }

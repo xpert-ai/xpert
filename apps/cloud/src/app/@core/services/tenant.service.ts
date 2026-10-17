@@ -36,6 +36,10 @@ export class TenantService {
     return firstValueFrom(this.http.post<ITenantSetting>(`${API_PREFIX}/tenant-setting`, request))
   }
 
+  canManageRetention() {
+    return this.http.get<boolean>(`${API_PREFIX}/tenant-setting/retention-access`)
+  }
+
   generateDemo(id: string) {
     return this.http.post<ITenant>(`${this.API_URL}/${id}/demo`, {})
   }

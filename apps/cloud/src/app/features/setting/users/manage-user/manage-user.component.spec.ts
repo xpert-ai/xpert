@@ -5,50 +5,63 @@ import { signal } from '@angular/core'
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { provideRouter } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
-import { IUser, IUserOrganization, RolesEnum, UserType } from '@xpert-ai/contracts'
+import {
+  type IPagination,
+  type IUserDirectoryItem,
+  type IUserDirectoryQuery,
+  RolesEnum,
+  UserType
+} from '@xpert-ai/contracts'
 import { XpConfirmDeleteService } from '@xpert-ai/headless-ui'
 import { BehaviorSubject, of, Subject, throwError } from 'rxjs'
-import {
-  OrganizationsService,
-  RequestScopeLevel,
-  RoleService,
-  Store,
-  UsersOrganizationsService
-} from '../../../../@core'
-import { ToastrService, UsersService } from '@cloud/app/@core/state'
+import { OrganizationsService, RequestScopeLevel, RoleService, Store } from '../../../../@core'
+import { ToastrService, UsersService, type ActiveScope } from '@cloud/app/@core/state'
 import { XpUsersComponent } from '../users.component'
 import { ManageUserComponent } from './manage-user.component'
 
-const users: IUser[] = [
-  { id: 'alice', firstName: 'Alice', email: 'alice@example.com', role: { name: RolesEnum.ADMIN }, type: UserType.USER },
+const organization = { id: 'org-1', name: 'Research' }
+const users: IUserDirectoryItem[] = [
+  {
+    id: 'alice',
+    firstName: 'Alice',
+    email: 'alice@example.com',
+    role: { name: RolesEnum.ADMIN },
+    type: UserType.USER,
+    displayOrganizations: [organization]
+  },
   {
     id: 'bob',
     firstName: 'Bob',
     email: 'bob@example.com',
     role: { name: RolesEnum.VIEWER },
     type: UserType.USER,
-    deletedAt: new Date()
-  },
-  { id: 'service', firstName: 'Service', role: { name: RolesEnum.VIEWER }, type: UserType.COMMUNICATION }
+    deletedAt: new Date(),
+    displayOrganizations: [organization]
+  }
 ]
-const organization = { id: 'org-1', name: 'Research' }
-const memberships: IUserOrganization[] = users.map((user) => ({ user, userId: user.id, organization }))
+const technical: IUserDirectoryItem = {
+  id: 'service',
+  firstName: 'Service',
+  type: UserType.COMMUNICATION,
+  displayOrganizations: [organization]
+}
 
 describe('ManageUserComponent', () => {
   let fixture: ComponentFixture<ManageUserComponent>
   let component: ManageUserComponent
-  let scope$: BehaviorSubject<{ level: RequestScopeLevel }>
-  let getAll: jest.Mock
-  let getAllInOrg: jest.Mock
+  let scope$: BehaviorSubject<ActiveScope>
+  let getDirectory: jest.Mock
   let canEdit: ReturnType<typeof signal<boolean>>
   let refresh$: BehaviorSubject<void>
-  let state: { status: string; users: Array<IUser & { displayOrganizations: (typeof organization)[] }> }
+  let state: { status: string; users: IUserDirectoryItem[]; total: number; pageIndex: number; pageSize: number }
 
   beforeEach(async () => {
-    scope$ = new BehaviorSubject({ level: RequestScopeLevel.ORGANIZATION })
+    scope$ = new BehaviorSubject<ActiveScope>({
+      level: RequestScopeLevel.ORGANIZATION,
+      organizationId: organization.id
+    })
     canEdit = signal(true)
-    getAll = jest.fn(() => of(users))
-    getAllInOrg = jest.fn(() => of({ items: memberships }))
+    getDirectory = jest.fn((_query: IUserDirectoryQuery) => of({ items: users, total: users.length }))
     refresh$ = new BehaviorSubject<void>(undefined)
     await TestBed.configureTestingModule({
       imports: [ManageUserComponent, TranslateModule.forRoot()],
@@ -56,14 +69,18 @@ describe('ManageUserComponent', () => {
         provideRouter([]),
         {
           provide: Store,
-          useValue: { activeScope: scope$.value, selectActiveScope: () => scope$, hasPermission: () => true }
+          useValue: {
+            activeScope: scope$.value,
+            selectedOrganization: organization,
+            selectActiveScope: () => scope$,
+            hasPermission: () => true
+          }
         },
         {
           provide: XpUsersComponent,
           useValue: { canOpenUsers: signal(true), canEditUsers: canEdit, navUser: jest.fn(), refresh$ }
         },
-        { provide: UsersService, useValue: { getAll } },
-        { provide: UsersOrganizationsService, useValue: { getAllInOrg, getAll: () => of({ items: memberships }) } },
+        { provide: UsersService, useValue: { getDirectory } },
         { provide: OrganizationsService, useValue: { getAll: () => of({ items: [organization] }) } },
         {
           provide: RoleService,
@@ -76,76 +93,137 @@ describe('ManageUserComponent', () => {
     fixture = TestBed.createComponent(ManageUserComponent)
     component = fixture.componentInstance
   })
-
   afterEach(() => TestBed.resetTestingModule())
 
-  it('retains organization-scoped membership loading, user type, role, status, organization and search filters', () => {
+  it('requests only the first page and uses the server total instead of the visible row count', () => {
+    getDirectory.mockReturnValue(of({ items: users, total: 43 }))
     const subscription = component.state$.subscribe((value) => (state = value))
-    expect(getAll).not.toHaveBeenCalled()
-    expect(getAllInOrg).toHaveBeenCalledWith(['user', 'user.role', 'organization'])
-    expect(state.users.map((user) => user.id)).toEqual(['alice', 'bob'])
-    component.selectUserTypeQuickFilter(null)
-    expect(state.users).toHaveLength(3)
-    component.roles = [RolesEnum.VIEWER]
-    component.status = 'disabled'
-    expect(state.users.map((user) => user.id)).toEqual(['bob'])
-    component.clearFilters()
-    component.organizationIds = ['different-org']
-    expect(state.users).toHaveLength(0)
-    component.organizationIds = [organization.id]
-    component.search = ' ALICE@EXAMPLE.COM '
-    expect(state.users.map((user) => user.id)).toEqual(['alice'])
-    component.search = 'research'
-    expect(state.users).toHaveLength(2)
+    expect(getDirectory).toHaveBeenLastCalledWith({
+      take: 20,
+      skip: 0,
+      types: [UserType.USER],
+      search: '',
+      roles: [],
+      status: 'all',
+      organizationIds: []
+    })
+    expect(state.total).toBe(43)
+    expect(state.users).toEqual(users)
+    fixture.detectChanges()
+    expect(getDirectory).toHaveBeenCalledTimes(1)
+    expect(fixture.nativeElement.querySelector('z-paginator')).not.toBeNull()
     subscription.unsubscribe()
   })
 
-  it('preserves tenant loading with disabled users and limits destructive actions to regular users in tenant scope', async () => {
+  it('passes every filter to the server and resets the page without filtering the returned page locally', () => {
+    getDirectory.mockReturnValue(of({ items: users, total: 60 }))
+    const subscription = component.state$.subscribe((value) => (state = value))
+    component.onPage({ pageIndex: 2, pageSize: 20, length: 60 })
+    expect(getDirectory.mock.lastCall[0]).toMatchObject({ take: 20, skip: 40 })
+    component.selectUserTypeQuickFilter(null)
+    component.roles = [RolesEnum.VIEWER]
+    component.status = 'disabled'
+    component.organizationIds = [organization.id]
+    component.search = ' ALICE@EXAMPLE.COM '
+    expect(getDirectory.mock.lastCall[0]).toEqual({
+      take: 20,
+      skip: 0,
+      types: [UserType.USER, UserType.COMMUNICATION],
+      roles: [RolesEnum.VIEWER],
+      status: 'disabled',
+      organizationIds: [organization.id],
+      search: 'ALICE@EXAMPLE.COM'
+    })
+    expect(state.users).toEqual(users)
+    component.clearFilters()
+    expect(getDirectory.mock.lastCall[0]).toMatchObject({
+      types: [UserType.USER],
+      roles: [],
+      status: 'all',
+      organizationIds: [],
+      skip: 0
+    })
+    subscription.unsubscribe()
+  })
+
+  it('supports page size changes and returns to page one', () => {
+    getDirectory.mockReturnValue(of({ items: users, total: 120 }))
+    const subscription = component.state$.subscribe((value) => (state = value))
+    component.onPage({ pageIndex: 3, pageSize: 20, length: 120 })
+    component.onPage({ pageIndex: 1, pageSize: 50, length: 120 })
+    expect(getDirectory.mock.lastCall[0]).toMatchObject({ take: 50, skip: 0 })
+    expect(state.pageSize).toBe(50)
+    expect(state.pageIndex).toBe(0)
+    subscription.unsubscribe()
+  })
+
+  it('moves to the last remaining page after a refresh shrinks the result set', () => {
+    getDirectory.mockReturnValue(of({ items: users, total: 41 }))
+    const subscription = component.state$.subscribe((value) => (state = value))
+    component.onPage({ pageIndex: 2, pageSize: 20, length: 41 })
+    getDirectory.mockReturnValueOnce(of({ items: [], total: 40 })).mockReturnValue(of({ items: users, total: 40 }))
+    refresh$.next()
+    expect(getDirectory.mock.lastCall[0]).toMatchObject({ skip: 20, take: 20 })
+    expect(state.pageIndex).toBe(1)
+    expect(state.status).toBe('ready')
+    subscription.unsubscribe()
+  })
+
+  it('reloads page one when switching organizations at the same scope level and cancels stale requests', () => {
+    getDirectory.mockReturnValue(of({ items: users, total: 60 }))
+    const subscription = component.state$.subscribe((value) => (state = value))
+    const request = new Subject<IPagination<IUserDirectoryItem>>()
+    getDirectory.mockReturnValueOnce(request)
+    component.onPage({ pageIndex: 2, pageSize: 20, length: 60 })
+    expect(state.status).toBe('loading')
+    expect(state.users).toEqual([])
+    scope$.next({ level: RequestScopeLevel.ORGANIZATION, organizationId: 'org-2' })
+    expect(request.observed).toBe(false)
+    expect(getDirectory.mock.lastCall[0]).toMatchObject({ skip: 0 })
+    expect(state.pageIndex).toBe(0)
+    request.next({ items: [technical], total: 1 })
+    expect(state.users).toEqual(users)
+    subscription.unsubscribe()
+  })
+
+  it('preserves the failed page for retry and keeps filters usable after failure', () => {
+    getDirectory.mockReturnValue(of({ items: users, total: 60 }))
+    const subscription = component.state$.subscribe((value) => (state = value))
+    getDirectory.mockReturnValueOnce(throwError(() => new Error('offline')))
+    component.onPage({ pageIndex: 1, pageSize: 20, length: 60 })
+    expect(state.status).toBe('error')
+    component.refresh$.next()
+    expect(getDirectory.mock.lastCall[0]).toMatchObject({ skip: 20 })
+    expect(state.status).toBe('ready')
+    component.search = 'Bob'
+    expect(getDirectory.mock.lastCall[0]).toMatchObject({ skip: 0, search: 'Bob' })
+    const refresh = jest.spyOn(component.refresh$, 'next')
+    fixture.destroy()
+    refresh$.next()
+    expect(refresh).not.toHaveBeenCalled()
+    subscription.unsubscribe()
+  })
+
+  it('limits destructive actions to regular users in tenant scope', async () => {
     scope$.next({ level: RequestScopeLevel.TENANT })
     fixture.detectChanges()
     await fixture.whenStable()
     fixture.detectChanges()
-    expect(getAll).toHaveBeenCalledWith(['role'], undefined, undefined, { types: [UserType.USER], withDeleted: true })
     const root: HTMLElement = fixture.nativeElement
     expect(root.querySelectorAll('[aria-label="XP.ACTIONS.Delete"]')).toHaveLength(2)
+    getDirectory.mockReturnValue(of({ items: [technical], total: 1 }))
     component.selectUserTypeQuickFilter(UserType.COMMUNICATION)
     fixture.detectChanges()
     expect(root.querySelectorAll('[aria-label="XP.ACTIONS.Delete"]')).toHaveLength(0)
     canEdit.set(false)
     fixture.detectChanges()
     expect(root.querySelectorAll('[aria-label="XP.ACTIONS.Edit"]')).toHaveLength(0)
-    scope$.next({ level: RequestScopeLevel.ORGANIZATION })
+    getDirectory.mockReturnValue(of({ items: users, total: 2 }))
+    scope$.next({ level: RequestScopeLevel.ORGANIZATION, organizationId: organization.id })
     canEdit.set(true)
     component.clearFilters()
     fixture.detectChanges()
     expect(root.querySelectorAll('[aria-label="XP.ACTIONS.Edit"]')).toHaveLength(2)
     expect(root.querySelectorAll('[aria-label="XP.ACTIONS.Delete"]')).toHaveLength(0)
-  })
-
-  it('exposes loading and recoverable errors without terminating refreshes', () => {
-    const request$ = new Subject<{ items: IUserOrganization[] }>()
-    getAllInOrg.mockReturnValue(request$)
-    const subscription = component.state$.subscribe((value) => (state = value))
-    expect(state.status).toBe('loading')
-    request$.error(new Error('offline'))
-    expect(state.status).toBe('error')
-    getAllInOrg.mockReturnValue(of({ items: memberships }))
-    component.refresh$.next()
-    expect(state.status).toBe('ready')
-    expect(state.users).toHaveLength(2)
-    subscription.unsubscribe()
-  })
-
-  it('keeps filter changes usable after an error and cleans up the import refresh subscription', () => {
-    getAllInOrg.mockReturnValue(throwError(() => new Error('offline')))
-    const subscription = component.state$.subscribe((value) => (state = value))
-    getAllInOrg.mockReturnValue(of({ items: memberships }))
-    component.search = 'Bob'
-    expect(state.users.map((user) => user.id)).toEqual(['bob'])
-    const refresh = jest.spyOn(component.refresh$, 'next')
-    fixture.destroy()
-    refresh$.next()
-    expect(refresh).not.toHaveBeenCalled()
-    subscription.unsubscribe()
   })
 })

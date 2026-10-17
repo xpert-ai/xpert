@@ -11,11 +11,15 @@
         (click)="onOptionClick(option)"
       >
         @if (checkable()) {
-          <z-checkbox class="pointer-events-none w-full" [ngModel]="isSelected(option)">
-            <span class="truncate">{{ option.label }}</span>
+          <z-checkbox
+            class="pointer-events-none min-w-0 w-full"
+            labelClass="min-w-0 flex-1 text-sm leading-5 font-normal"
+            [ngModel]="isSelected(option)"
+          >
+            <span class="block truncate" [title]="option.label">{{ option.label }}</span>
           </z-checkbox>
         } @else {
-          <span class="truncate">{{ option.label }}</span>
+          <span class="truncate" [title]="option.label">{{ option.label }}</span>
         }
       </div>
     }

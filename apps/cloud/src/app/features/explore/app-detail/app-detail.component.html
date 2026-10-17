@@ -275,7 +275,7 @@
             }
           </div>
 
-          @if (modelRequirements().embedding || modelRequirements().vision) {
+          @if (modelRequirements().embedding || modelRequirements().vision || modelRequirements().speechToText) {
             <div class="mt-8 space-y-5">
               @if (modelRequirements().embedding) {
                 <div>
@@ -293,6 +293,22 @@
                     [readonly]="initializing()"
                     [modelType]="modelType.TEXT_EMBEDDING"
                     [(ngModel)]="embeddingModel"
+                    [ngModelOptions]="{ standalone: true }"
+                  />
+                </div>
+              }
+              @if (modelRequirements().speechToText) {
+                <div>
+                  <div class="text-sm font-semibold text-foreground">
+                    {{ 'XP.Explore.Application.SpeechToTextModel' | translate }}
+                  </div>
+                  <copilot-model-select
+                    class="mt-2 block w-full"
+                    hiddenLabel
+                    required
+                    [readonly]="initializing()"
+                    [modelType]="modelType.SPEECH2TEXT"
+                    [(ngModel)]="speechToTextModel"
                     [ngModelOptions]="{ standalone: true }"
                   />
                 </div>
@@ -355,9 +371,12 @@
               {{ preflightMessage() }}
             </div>
             @if (
-              ['primary_model_required', 'embedding_model_required', 'vision_model_required'].includes(
-                appDetail.preflight.reason ?? ''
-              )
+              [
+                'primary_model_required',
+                'embedding_model_required',
+                'vision_model_required',
+                'speech_to_text_model_required'
+              ].includes(appDetail.preflight.reason ?? '')
             ) {
               <a
                 routerLink="/settings/copilot"

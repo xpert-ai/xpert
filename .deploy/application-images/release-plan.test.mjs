@@ -417,6 +417,14 @@ test('pipeline changes validate all applications, but publish only declared cand
     ['xpert-api']
   )
 })
+test('reusable image build changes still validate all applications', (t) => {
+  const f = fixture(t)
+  const before = f.initial
+  f.write('.github/workflows/build-application-images.yml', 'fix')
+  const plan = f.plan(before, f.commit())
+  assert.equal(plan.validationMatrix.include.length, 3)
+  assert.equal(plan.publish, false)
+})
 test('highest pending bump determines a newly requested candidate version', (t) => {
   const f = fixture(t)
   f.note('minor', [web.name], 'minor')

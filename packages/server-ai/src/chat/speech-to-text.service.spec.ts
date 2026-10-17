@@ -84,10 +84,17 @@ describe('SpeechToTextService', () => {
         const transcript = new Promise<SpeechToTextTranscribeResult>((resolve) => {
             finishTranscription = resolve
         })
-        const transcribe = jest.spyOn(service, 'transcribeUploadedFile').mockReturnValue(transcript)
+        let beginReading: () => void
+        const reading = new Promise<void>((resolve) => {
+            beginReading = resolve
+        })
+        const transcribe = jest.spyOn(service, 'transcribeUploadedFile').mockImplementation(() => {
+            beginReading()
+            return transcript
+        })
 
         const result = service.transcribe(bufferInput)
-        await Promise.resolve()
+        await reading
         expect(transcribe).toHaveBeenCalled()
         expect(provider.deleteFile).not.toHaveBeenCalled()
         finishTranscription({ text: 'finished reading' })

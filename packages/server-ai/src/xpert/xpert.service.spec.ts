@@ -96,29 +96,30 @@ describe('XpertService command facade', () => {
                 isTenantShared: !workspace.organizationId
             }))
         }
-        const userGroupService = {
-            findAll: jest.fn(),
-            findOne: jest.fn(),
-            resolveAccessibleOrganizationId: jest.fn().mockResolvedValue('org-1'),
-            findByIdsInOrganization: jest.fn()
-        }
         const commandBus = { execute: jest.fn().mockResolvedValue(undefined) }
         const queryBus = { execute: jest.fn() }
         const eventEmitter = { emitAsync: jest.fn().mockResolvedValue([]) }
         const triggerRegistry = { get: jest.fn(), list: jest.fn().mockReturnValue([]) }
         const sandboxService = { listProviders: jest.fn().mockReturnValue([]) }
 
+        const sharing = {
+            assertManage: jest.fn(),
+            get: jest.fn(),
+            setGroups: jest.fn(),
+            getGroupAuthorizations: jest.fn(),
+            updateGroupAuthorizations: jest.fn()
+        }
         const service = new XpertService(
             repository as unknown as ConstructorParameters<typeof XpertService>[0],
             workspaceAccessService as unknown as ConstructorParameters<typeof XpertService>[1],
             storeService as unknown as ConstructorParameters<typeof XpertService>[2],
-            userGroupService as unknown as ConstructorParameters<typeof XpertService>[3],
-            commandBus as unknown as ConstructorParameters<typeof XpertService>[4],
-            queryBus as unknown as ConstructorParameters<typeof XpertService>[5],
-            eventEmitter as unknown as ConstructorParameters<typeof XpertService>[6],
-            triggerRegistry as unknown as ConstructorParameters<typeof XpertService>[7],
-            sandboxService as unknown as ConstructorParameters<typeof XpertService>[8],
-            { resolve: jest.fn() } as unknown as ConstructorParameters<typeof XpertService>[9]
+            commandBus as unknown as ConstructorParameters<typeof XpertService>[3],
+            queryBus as unknown as ConstructorParameters<typeof XpertService>[4],
+            eventEmitter as unknown as ConstructorParameters<typeof XpertService>[5],
+            triggerRegistry as unknown as ConstructorParameters<typeof XpertService>[6],
+            sandboxService as unknown as ConstructorParameters<typeof XpertService>[7],
+            { resolve: jest.fn() } as unknown as ConstructorParameters<typeof XpertService>[8],
+            sharing as never
         )
 
         return {
@@ -129,8 +130,8 @@ describe('XpertService command facade', () => {
             triggerRegistry,
             queryBus,
             workspaceAccessService,
-            userGroupService,
-            tagRepository
+            tagRepository,
+            sharing
         }
     }
 
@@ -841,73 +842,26 @@ describe('XpertService command facade', () => {
         )
     })
 
-    it('loads published XPERT authorizations without workspace authoring reads', async () => {
-        const { repository, service, userGroupService } = createService()
-        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
-        userGroupService.findByIdsInOrganization.mockResolvedValue([{ id: 'group-1' }])
-        repository.find.mockResolvedValue([
-            {
-                id: 'xpert-1',
-                userGroups: [{ id: 'group-1' }]
-            },
-            {
-                id: 'xpert-2',
-                userGroups: []
-            }
-        ])
-
-        const result = await service.getUserGroupAuthorizations('group-1', 'org-1')
-
-        expect(userGroupService.resolveAccessibleOrganizationId).toHaveBeenCalledWith('org-1')
-        expect(repository.find).toHaveBeenCalledWith(
-            expect.objectContaining({
-                where: expect.objectContaining({
-                    tenantId: 'tenant-1',
-                    organizationId: 'org-1',
-                    latest: true
-                }),
-                relations: ['userGroups']
-            })
+    it('routes legacy user group reads and writes through the sharing capability', async () => {
+        const { service, sharing } = createService()
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
+        sharing.getGroupAuthorizations.mockResolvedValue({ items: [], selectedXpertIds: [] })
+        await service.getUserGroupAuthorizations('group-1', 'org-1')
+        await service.updateUserGroupAuthorizations('group-1', ['xpert-1'], 'org-1')
+        expect(sharing.getGroupAuthorizations).toHaveBeenCalledWith('group-1')
+        expect(sharing.updateGroupAuthorizations).toHaveBeenCalledWith('group-1', ['xpert-1'])
+        await expect(service.updateUserGroupAuthorizations('group-1', [], 'foreign')).rejects.toBeInstanceOf(
+            ForbiddenException
         )
-        expect(result.selectedXpertIds).toEqual(['xpert-1'])
+        expect(sharing.updateGroupAuthorizations).toHaveBeenCalledTimes(1)
     })
 
-    it('updates a user group authorization in bulk while preserving other groups', async () => {
-        const { repository, service, userGroupService } = createService()
-        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
-        const group = { id: 'group-1', organizationId: 'org-1' }
-        const otherGroup = { id: 'group-2', organizationId: 'org-1' }
-        userGroupService.findByIdsInOrganization.mockResolvedValue([group])
-        const xperts = [
-            {
-                id: 'xpert-1',
-                userGroups: [otherGroup]
-            },
-            {
-                id: 'xpert-2',
-                userGroups: [group, otherGroup]
-            }
-        ]
-        repository.find.mockResolvedValue(xperts)
-        repository.save.mockImplementation(async (entities) => entities)
-
-        const result = await service.updateUserGroupAuthorizations('group-1', ['xpert-1'], 'org-1')
-
-        expect(repository.save).toHaveBeenCalledWith(xperts)
-        expect(xperts[0].userGroups).toEqual([otherGroup, group])
-        expect(xperts[1].userGroups).toEqual([otherGroup])
-        expect(result.selectedXpertIds).toEqual(['xpert-1'])
-    })
-
-    it('rejects unpublished or cross-organization XPERT ids in bulk authorization updates', async () => {
-        const { repository, service, userGroupService } = createService()
-        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
-        userGroupService.findByIdsInOrganization.mockResolvedValue([{ id: 'group-1' }])
-        repository.find.mockResolvedValue([{ id: 'xpert-1', userGroups: [] }])
-
-        await expect(service.updateUserGroupAuthorizations('group-1', ['xpert-out-of-scope'], 'org-1')).rejects.toThrow(
-            'Some XPERTs were not found among published assistants in the current organization.'
-        )
+    it('prevents general Assistant updates from bypassing sharing policy', async () => {
+        const { service, repository } = createService()
+        repository.findOne.mockResolvedValue({ id: 'xpert-1' })
+        await expect(
+            service.updateXpert('xpert-1', { userGroups: [{ id: 'group-1', name: 'Group' }] })
+        ).rejects.toBeInstanceOf(BadRequestException)
         expect(repository.save).not.toHaveBeenCalled()
     })
 })

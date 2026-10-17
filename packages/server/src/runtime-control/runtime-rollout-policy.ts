@@ -1,4 +1,4 @@
-/** Invariants: queued changes cannot alter a candidate's admission manifest or inherit outage consent. */
+/** Invariants: queued changes cannot rewrite the operation's snapshot or inherit outage consent. */
 import type { IRuntimePluginRequirement } from '@xpert-ai/contracts'
 import type { RestartOperationInput, RestartOperationMetadata, RestartTargetState } from './runtime-restart.types'
 import { mergeRuntimeRequirements } from './plugin-runtime-requirements'

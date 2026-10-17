@@ -1,7 +1,20 @@
 import { ChangeDetectorRef, Component, OnInit, inject, signal } from '@angular/core'
-import { isNil } from '@xpert-ai/contracts'
+import {
+  COPILOT_CHECKPOINT_RETENTION_DAYS_SETTING,
+  COPILOT_CHECKPOINT_RETENTION_ENABLED_SETTING,
+  MODEL_GATEWAY_CALL_RETENTION_DAYS_SETTING,
+  MODEL_GATEWAY_CALL_RETENTION_ENABLED_SETTING,
+  isNil
+} from '@xpert-ai/contracts'
 import { DataSourceTypesService } from '@cloud/app/@core/state'
-import { TenantService, ToastrService } from '../../../../@core'
+import { TenantService, ToastrService, getErrorMessage } from '../../../../@core'
+
+const retentionSettingNames = new Set<string>([
+  COPILOT_CHECKPOINT_RETENTION_ENABLED_SETTING,
+  COPILOT_CHECKPOINT_RETENTION_DAYS_SETTING,
+  MODEL_GATEWAY_CALL_RETENTION_ENABLED_SETTING,
+  MODEL_GATEWAY_CALL_RETENTION_DAYS_SETTING
+])
 
 interface ItemData {
   id?: string
@@ -33,7 +46,7 @@ export class SettingsComponent implements OnInit {
   async ngOnInit() {
     const settings = await this.tenantService.getSettings()
     Object.keys(settings)
-      .filter((name) => !isNil(settings[name]))
+      .filter((name) => !isNil(settings[name]) && !retentionSettingNames.has(name))
       .forEach((name) => {
         this.add({ name, value: settings[name] })
       })
@@ -71,13 +84,24 @@ export class SettingsComponent implements OnInit {
   }
 
   async saveEdit(id: string) {
-    const index = this.listOfData.findIndex((item) => item.id === id)
-    Object.assign(this.listOfData[index], this.editCache[id].data)
-    this.editCache[id].edit = false
+    const row = this.listOfData.find((item) => item.id === id)
+    const data = { ...this.editCache[id].data }
+    if (retentionSettingNames.has(data.name)) {
+      this.#toastr.error('XP.MENU.TENANT.RETENTION_MANAGED_SETTING', undefined, {
+        Default: 'Cleanup policies can only be configured under Data Management in the default tenant.'
+      })
+      return
+    }
 
-    await this.tenantService.saveSettings({
-      [this.editCache[id].data.name]: this.editCache[id].data.value
-    })
+    try {
+      await this.tenantService.saveSettings({ [data.name]: data.value })
+      Object.assign(row, data)
+      this.editCache[id].edit = false
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
+    } finally {
+      this._cdr.markForCheck()
+    }
   }
 
   async deleteRow(id: string) {

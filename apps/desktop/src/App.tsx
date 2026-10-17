@@ -17,9 +17,10 @@ import { defaultAppearance } from './appearance-types'
 import { AssistantPreviewScope } from './profile/PreviewScope'
 import type { SettingsSection } from './settings/sections'
 import { BosiOnboarding } from './bosi/BosiOnboarding'
-import { subscribeAppActivation } from './app-activation'
+import { notifyEmbeddedAppActivation, subscribeAppActivation } from './app-activation'
 
 export function App() {
+  useEffect(() => subscribeAppActivation(() => notifyEmbeddedAppActivation()), [])
   const [selectedGroup, setSelectedGroup] = useState<string | null>(null)
   const [createGroup, setCreateGroup] = useState(false)
   const [groupRevision, setGroupRevision] = useState(0)

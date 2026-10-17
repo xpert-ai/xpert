@@ -82,7 +82,7 @@
   <div class="flex min-h-8 flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
     <p role="status">
       @if (state.status === 'ready') {
-        {{ 'XP.UserSettings.UserCount' | translate: { count: state.users.length } }}
+        {{ 'XP.UserSettings.UserCount' | translate: { count: state.total } }}
       }
     </p>
     @if (roles.length || !isDefaultUserTypeFilter() || status !== allStatusFilter || organizationIds.length) {
@@ -344,6 +344,15 @@
       <p class="mt-1 text-sm text-muted-foreground">{{ 'XP.UserSettings.NoUsersHint' | translate }}</p>
     </div>
   }
+  <z-paginator
+    [length]="state.total"
+    [pageIndex]="state.pageIndex"
+    [pageSize]="state.pageSize"
+    [pageSizeOptions]="[10, 20, 50, 100]"
+    [showFirstLastButtons]="true"
+    [disabled]="state.status !== 'ready'"
+    (page)="onPage($event)"
+  />
   @if (state.status === 'ready' && state.users.length) {
     <p class="text-xs text-muted-foreground lg:hidden">{{ 'XP.UserSettings.ScrollHint' | translate }}</p>
   }

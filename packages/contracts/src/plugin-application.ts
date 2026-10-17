@@ -62,6 +62,7 @@ export interface PluginMarketplaceAppModelRequirements {
   primary?: boolean
   embedding?: boolean
   vision?: boolean
+  speechToText?: boolean
   embeddingLabel?: string | I18nObject
   visionLabel?: string | I18nObject
 }
@@ -241,10 +242,12 @@ export interface PluginApplicationPreflight {
     | 'primary_model_required'
     | 'embedding_model_required'
     | 'vision_model_required'
+    | 'speech_to_text_model_required'
     | 'toolset_provider_required'
     | 'toolset_configuration_required'
   embeddingModels: PluginApplicationModelOption[]
   visionModels: PluginApplicationModelOption[]
+  speechToTextModels?: PluginApplicationModelOption[]
   /** Organization Embedding-role default when it is present in embeddingModels. */
   defaultEmbeddingModelId?: string | null
   /** Organization Primary-role default when it is vision-capable and present in visionModels. */
@@ -279,6 +282,7 @@ export interface PluginApplicationInitializeInput {
   appName: string
   embeddingModelId?: string
   visionModelId?: string
+  speechToTextModelId?: string
   toolsets?: PluginApplicationToolsetSelection[]
   operationId: string
 }

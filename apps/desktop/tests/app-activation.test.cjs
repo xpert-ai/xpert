@@ -71,6 +71,30 @@ test('browser fallback responds only to a hidden tab becoming visible', () => {
   assert.equal(refreshes, 1)
 })
 
+test('native activation reaches nested opaque views without inspecting their documents', () => {
+  const { notifyEmbeddedAppActivation } = renderer('app-activation.ts')
+  const received = []
+  const view = { frames: [], postMessage: (message, origin) => received.push(['view', message, origin]) }
+  const chat = { frames: [view], postMessage: (message, origin) => received.push(['chat', message, origin]) }
+  const closed = {
+    postMessage: () => {
+      throw new Error('Frame closed')
+    }
+  }
+  notifyEmbeddedAppActivation({ frames: [closed, chat] })
+  assert.deepEqual(
+    received.map(([name]) => name),
+    ['chat', 'view']
+  )
+  for (const [, message, origin] of received) {
+    assert.equal(
+      JSON.stringify(message),
+      JSON.stringify({ channel: 'xpertai.host_lifecycle', protocolVersion: 1, type: 'activated' })
+    )
+    assert.equal(origin, '*')
+  }
+})
+
 test('native sidebar consumes host snapshots without a renderer timer, including while hidden', async (t) => {
   const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost/', pretendToBeVisual: true })
   const previous = { window: global.window, document: global.document, act: global.IS_REACT_ACT_ENVIRONMENT }

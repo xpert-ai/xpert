@@ -82,6 +82,8 @@ export class FakeRedis {
 				this.hashes.get(options.keys[0])?.get(replicaId) !== previous
 			)
 				return 0
+			if (options.arguments[5] !== '' && ((await this.get(options.keys[3])) ?? '0') !== options.arguments[5])
+				return 0
 			await this.hSet(options.keys[0], replicaId, next)
 			if (Number(options.arguments[4]) > 0) await this.hSet(options.keys[2], replicaId, options.arguments[4])
 			return 1

@@ -1,6 +1,7 @@
 import {
     RequestContext,
     type SandboxJobRunInput,
+    type SandboxJobRunOptions,
     type SandboxRuntimeCreateOptions,
     type SandboxRuntimeInstance
 } from '@xpert-ai/plugin-sdk'
@@ -191,6 +192,211 @@ describe('SandboxJobRuntimeCapabilityService action validation', () => {
 
         expect(readBuffer).not.toHaveBeenCalled()
         expect(uploadFiles).toHaveBeenCalledWith([['/workspace/input/job.json', expect.any(Buffer)]])
+    })
+
+    it('keeps large stdout and invocation-looking text inert when the bridge is not enabled', async () => {
+        const harness = await createExecuteHarness()
+        try {
+            harness.runtime.execute.mockImplementation(async (_command, options) => {
+                options.onOutput({ stream: 'stdout', text: 'x'.repeat(140_000) + '\nXPERT_SANDBOX_INVOKE {}\n' })
+                return successfulExecution()
+            })
+            await expect(harness.execute()).resolves.toMatchObject({ status: 'succeeded' })
+            expect(harness.runtime.terminate).not.toHaveBeenCalled()
+        } finally {
+            await harness.dispose()
+        }
+    })
+
+    it('dispatches declared callbacks and publishes their responses through the selected Runtime Provider', async () => {
+        const harness = await createExecuteHarness()
+        const handle = jest.fn().mockResolvedValue({ rows: [1] })
+        try {
+            harness.runtime.execute.mockImplementation(async (_command, options) => {
+                options.onOutput({
+                    stream: 'stdout',
+                    text: 'XPERT_SANDBOX_INVOKE {"id":"one","operation":"read","payload":{}}\n'
+                })
+                return successfulExecution()
+            })
+            await expect(
+                harness.execute({ invocation: { operations: ['read'], maxCalls: 1, maxBytes: 1000, handle } })
+            ).resolves.toMatchObject({ status: 'succeeded' })
+            expect(handle).toHaveBeenCalledWith(
+                'read',
+                {},
+                expect.objectContaining({ jobId: 'job-1', signal: expect.any(AbortSignal) })
+            )
+            expect(harness.runtime.uploadFiles).toHaveBeenCalledWith([
+                ['/workspace/invocations/one.json', expect.any(Buffer)]
+            ])
+        } finally {
+            await harness.dispose()
+        }
+    })
+
+    it('records rejected callbacks as non-retryable failures without persisting host error details', async () => {
+        const harness = await createExecuteHarness()
+        const handle = jest.fn().mockRejectedValue(new Error('private connection detail'))
+        try {
+            harness.runtime.execute.mockImplementation(async (_command, options) => {
+                options.onOutput({
+                    stream: 'stdout',
+                    text: 'XPERT_SANDBOX_INVOKE {"id":"one","operation":"read","payload":{}}\n'
+                })
+                return successfulExecution()
+            })
+            await expect(
+                harness.execute({ invocation: { operations: ['read'], maxCalls: 1, maxBytes: 1000, handle } })
+            ).rejects.toMatchObject({ code: 'SANDBOX_INVOCATION_FAILED', retryable: false })
+            expect(JSON.stringify(harness.repository.save.mock.calls)).not.toContain('private connection detail')
+            expect(harness.provider.destroy).toHaveBeenCalled()
+        } finally {
+            await harness.dispose()
+        }
+    })
+
+    it('classifies caller abort as cancellation and stops the Runtime', async () => {
+        const harness = await createExecuteHarness()
+        const controller = new AbortController()
+        try {
+            harness.runtime.execute.mockImplementation(async () => {
+                controller.abort()
+                return successfulExecution()
+            })
+            await expect(harness.execute({ signal: controller.signal })).rejects.toMatchObject({
+                code: 'SANDBOX_CANCELLED',
+                retryable: false
+            })
+            expect(harness.job.status).toBe('cancelled')
+            expect(harness.runtime.terminate).toHaveBeenCalled()
+            expect(harness.provider.destroy).toHaveBeenCalled()
+        } finally {
+            await harness.dispose()
+        }
+    })
+
+    it('bounds host callbacks by the execution deadline even if the script has already exited', async () => {
+        const harness = await createExecuteHarness({ timeoutMs: 25 })
+        const handle = jest.fn().mockImplementation(() => new Promise(() => undefined))
+        try {
+            harness.runtime.execute.mockImplementation(async (_command, options) => {
+                options.onOutput({
+                    stream: 'stdout',
+                    text: 'XPERT_SANDBOX_INVOKE {"id":"one","operation":"read","payload":{}}\n'
+                })
+                return successfulExecution()
+            })
+            await expect(
+                harness.execute({ invocation: { operations: ['read'], maxCalls: 1, maxBytes: 1000, handle } })
+            ).rejects.toMatchObject({ code: 'EXPORT_TIMEOUT' })
+            expect(handle).toHaveBeenCalledTimes(1)
+            expect(harness.runtime.terminate).toHaveBeenCalled()
+            expect(harness.provider.destroy).toHaveBeenCalled()
+        } finally {
+            await harness.dispose()
+        }
+    })
+
+    it('ends the callback deadline before persisting outputs but still observes caller cancellation there', async () => {
+        const harness = await createExecuteHarness({ timeoutMs: 25 })
+        const controller = new AbortController()
+        try {
+            harness.runtime.execute.mockImplementation(async (_command, options) => {
+                options.onOutput({
+                    stream: 'stdout',
+                    text: 'XPERT_SANDBOX_INVOKE {"id":"one","operation":"read","payload":{}}\n'
+                })
+                return successfulExecution()
+            })
+            harness.workspaceFiles.uploadBuffer.mockImplementation(async () => {
+                await new Promise((resolve) => setTimeout(resolve, 50))
+                expect(harness.runtime.terminate).not.toHaveBeenCalled()
+                controller.abort()
+                return {
+                    filePath: 'exports/result.txt',
+                    workspacePath: '/workspace/exports/result.txt',
+                    catalog: 'users',
+                    size: 6
+                }
+            })
+            await expect(
+                harness.execute({
+                    signal: controller.signal,
+                    invocation: {
+                        operations: ['read'],
+                        maxCalls: 1,
+                        maxBytes: 1000,
+                        handle: jest.fn().mockResolvedValue({})
+                    }
+                })
+            ).rejects.toMatchObject({ code: 'SANDBOX_CANCELLED' })
+            expect(harness.job.status).toBe('cancelled')
+        } finally {
+            await harness.dispose()
+        }
+    })
+
+    it('cancels in-flight host work through the Job cancellation API', async () => {
+        const harness = await createExecuteHarness()
+        let started: () => void = () => undefined
+        const called = new Promise<void>((resolve) => {
+            started = resolve
+        })
+        let childSignal: AbortSignal | undefined
+        const handle = jest.fn().mockImplementation((_operation, _payload, context) => {
+            childSignal = context.signal
+            started()
+            return new Promise(() => undefined)
+        })
+        try {
+            harness.repository.findOne.mockImplementation(async () => harness.job)
+            harness.runtime.execute.mockImplementation(async (_command, options) => {
+                options.onOutput({
+                    stream: 'stdout',
+                    text: 'XPERT_SANDBOX_INVOKE {"id":"one","operation":"read","payload":{}}\n'
+                })
+                return successfulExecution()
+            })
+            const execution = expect(
+                harness.execute({ invocation: { operations: ['read'], maxCalls: 1, maxBytes: 1000, handle } })
+            ).rejects.toMatchObject({ code: 'SANDBOX_CANCELLED' })
+            await called
+            await expect(harness.service.cancel({ jobId: 'job-1' })).resolves.toMatchObject({ status: 'cancelled' })
+            await execution
+            expect(childSignal?.aborted).toBe(true)
+        } finally {
+            await harness.dispose()
+        }
+    })
+
+    it('cancels only an attached caller wait without replacing callbacks or cancelling the shared job', async () => {
+        const controller = new AbortController()
+        const job = sandboxJob({})
+        const repository = {
+            findOne: jest.fn().mockImplementation(async () => {
+                controller.abort()
+                return job
+            }),
+            save: jest.fn()
+        }
+        const handle = jest.fn()
+        await expect(
+            createService({}, repository).run(
+                {
+                    action: ACTION,
+                    actionVersion: ACTION_VERSION,
+                    idempotencyKey: 'shared-job',
+                    scope: scope(),
+                    payload: {},
+                    outputs: outputs()
+                },
+                { signal: controller.signal, invocation: { operations: ['read'], maxCalls: 1, maxBytes: 1000, handle } }
+            )
+        ).rejects.toMatchObject({ code: 'SANDBOX_CANCELLED' })
+        expect(job.status).toBe('running')
+        expect(repository.save).not.toHaveBeenCalled()
+        expect(handle).not.toHaveBeenCalled()
     })
 
     it('executes against a stable seekable-input snapshot outside the mounted Job workspace', async () => {
@@ -387,13 +593,13 @@ describe('SandboxJobRuntimeCapabilityService action validation', () => {
         const job = sandboxJob({ runtimeRef: null, provider: 'fake-runtime' })
         const save = jest.fn().mockImplementation(async (value) => value)
         const destroy = jest.fn().mockResolvedValue(undefined)
-        const deleteFile = jest.fn().mockResolvedValue(undefined)
+        const destroyRuntimeJob = jest.fn().mockResolvedValue(undefined)
         const service = createService(
             {},
             { findOne: jest.fn().mockResolvedValue(job), save },
             {},
             { get: jest.fn().mockReturnValue({ destroy }) },
-            { resolve: jest.fn().mockReturnValue({ deleteFile }) }
+            { resolve: jest.fn().mockReturnValue({ destroyRuntimeJob }) }
         )
 
         await service.cancel({ jobId: 'job-1' })
@@ -407,7 +613,7 @@ describe('SandboxJobRuntimeCapabilityService action validation', () => {
         )
         expect(job.cleanupPending).toBe(false)
         expect(job.cleanedAt).toBeInstanceOf(Date)
-        expect(deleteFile).toHaveBeenCalledWith('')
+        expect(destroyRuntimeJob).toHaveBeenCalled()
     })
 })
 
@@ -468,7 +674,7 @@ function sandboxJob(overrides: object) {
     }
 }
 
-async function createExecuteHarness(options: { declaredSha256?: string } = {}) {
+async function createExecuteHarness(options: { declaredSha256?: string; timeoutMs?: number } = {}) {
     const temporaryRoot = await mkdtemp(path.join(os.tmpdir(), 'xpert-sandbox-job-execute-'))
     const sourcePath = path.join(temporaryRoot, 'source.mov')
     const sourceBuffer = Buffer.from('stable seekable media')
@@ -517,6 +723,7 @@ async function createExecuteHarness(options: { declaredSha256?: string } = {}) {
             .mockImplementation(async (paths: string[]) =>
                 paths.map((filePath) => ({ path: filePath, content: Buffer.from('output'), error: null }))
             ),
+        terminate: jest.fn().mockResolvedValue(undefined),
         execute: jest.fn().mockResolvedValue(successfulExecution())
     } satisfies SandboxRuntimeInstance & {
         uploadFiles: jest.Mock
@@ -561,6 +768,7 @@ async function createExecuteHarness(options: { declaredSha256?: string } = {}) {
         action: ACTION,
         actionVersion: ACTION_VERSION,
         idempotencyKey: 'document-export:export-1:snapshot',
+        timeoutMs: options.timeoutMs,
         scope: scope(),
         payload: {},
         files: [
@@ -609,10 +817,14 @@ async function createExecuteHarness(options: { declaredSha256?: string } = {}) {
         hostRoot,
         runtime,
         provider,
+        service,
+        repository,
+        workspaceFiles,
+        job,
         get createOptions() {
             return createOptions
         },
-        execute: () =>
+        execute: (options?: SandboxJobRunOptions) =>
             (
                 service as unknown as {
                     execute: (
@@ -620,10 +832,11 @@ async function createExecuteHarness(options: { declaredSha256?: string } = {}) {
                         input: SandboxJobRunInput,
                         action: object,
                         definition: object,
-                        resolution: object
+                        resolution: object,
+                        options?: SandboxJobRunOptions
                     ) => Promise<unknown>
                 }
-            ).execute(job, input, action, definition, resolution),
+            ).execute(job, input, action, definition, resolution, options),
         dispose: () => rm(temporaryRoot, { recursive: true, force: true })
     }
 }

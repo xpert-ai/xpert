@@ -2,7 +2,7 @@
 // execution prepares only the selected, scope-authorized package and never creates Connector grants.
 import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository, type EntityManager } from 'typeorm'
+import { Raw, Repository, type EntityManager } from 'typeorm'
 import {
     PLUGIN_COMPONENT_TYPE,
     type InstalledAgentPlugin,
@@ -31,25 +31,44 @@ export class AgentPluginInstallationsService {
         private readonly connectors: AgentPluginConnectorService
     ) {}
 
-    private async visible(manager?: EntityManager) {
+    private async visible(manager?: EntityManager, packageName?: string) {
         const scope = agentPluginScope()
         const where = visibleAgentPluginScopes(scope)
+        const packageRepository = manager?.getRepository(AgentPluginPackage) ?? this.packages
+        const bindingRepository = manager?.getRepository(AgentResourceBinding) ?? this.bindings
+        const packagesPromise = packageRepository.find({
+            where: packageName
+                ? where.map((item) => ({
+                      ...item,
+                      descriptor: Raw((alias) => `${alias} ->> 'name' = :packageName`, { packageName })
+                  }))
+                : where,
+            order: { createdAt: 'DESC', id: 'ASC' }
+        })
         const [packages, bindings] = await Promise.all([
-            (manager?.getRepository(AgentPluginPackage) ?? this.packages).find({
-                where,
-                order: { createdAt: 'DESC', id: 'ASC' }
-            }),
-            (manager?.getRepository(AgentResourceBinding) ?? this.bindings).find({
-                where,
-                order: { createdAt: 'DESC', id: 'ASC' }
-            })
+            packagesPromise,
+            packageName
+                ? packagesPromise.then((packages) =>
+                      packages.length
+                          ? bindingRepository.find({
+                                where: where.map((item) => ({
+                                    ...item,
+                                    definition: Raw((alias) => `${alias} ->> 'packageId' IN (:...packageIds)`, {
+                                        packageIds: packages.map((pkg) => pkg.id)
+                                    })
+                                })),
+                                order: { createdAt: 'DESC', id: 'ASC' }
+                            })
+                          : []
+                  )
+                : bindingRepository.find({ where, order: { createdAt: 'DESC', id: 'ASC' } })
         ])
         return { scope, packages, bindings }
     }
 
     /** Shared installation inventory: template discovery must not inherit ChatKit filtering. */
-    async installedCatalog(workspaceId?: string) {
-        const { scope, packages, bindings } = await this.visible()
+    async installedCatalog(workspaceId?: string, packageName?: string) {
+        const { scope, packages, bindings } = await this.visible(undefined, packageName)
         return installedPluginBindings(packages, bindings, scope, workspaceId).map((binding) => {
             const definition = binding.definition
             return {

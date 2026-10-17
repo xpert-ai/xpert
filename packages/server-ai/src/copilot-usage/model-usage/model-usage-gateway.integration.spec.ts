@@ -7,7 +7,7 @@ import {
     ModelGatewayUsageChannelEnum,
     ModelGatewayUsageSourceEnum
 } from '@xpert-ai/contracts'
-import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { RequestContext, setDefaultTenantId } from '@xpert-ai/plugin-sdk'
 import { TenantSetting } from '@xpert-ai/server-core'
 import { randomUUID } from 'node:crypto'
 import { DataSource, EntitySchema, type EntitySchemaColumnOptions } from 'typeorm'
@@ -159,6 +159,7 @@ postgres('external API usage in the Usage Center (PostgreSQL)', () => {
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
     })
     beforeEach(async () => {
+        setDefaultTenantId(tenantId)
         await database.getRepository(MembershipPointLedger).clear()
         await database.getRepository(ModelGatewayCall).clear()
         await database.getRepository(TenantSetting).clear()
@@ -166,6 +167,7 @@ postgres('external API usage in the Usage Center (PostgreSQL)', () => {
         jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
     })
     afterAll(async () => {
+        setDefaultTenantId(null)
         jest.restoreAllMocks()
         if (database.isInitialized) {
             try {
@@ -465,21 +467,59 @@ postgres('external API usage in the Usage Center (PostgreSQL)', () => {
         }
     })
 
-    it('archives only expired terminal calls for tenants with retention enabled', async () => {
+    it('applies default tenant retention to all tenants while protecting pending and recent calls', async () => {
         await enableRetention()
         const completedAt = new Date('2000-09-01T12:00:00Z')
         const expired = await gateway({ completedAt })
-        const disabled = await gateway({ completedAt, tenantId: randomUUID() })
+        const otherTenant = await gateway({ completedAt, tenantId: randomUUID() })
+        await database.getRepository(TenantSetting).save({
+            tenantId: otherTenant.tenantId,
+            name: MODEL_GATEWAY_CALL_RETENTION_ENABLED_SETTING,
+            value: 'false'
+        })
         const pending = await gateway({ completedAt, status: ModelGatewayCallStatusEnum.SettlementPending })
         const started = await gateway({ completedAt: null, status: ModelGatewayCallStatusEnum.Started })
         const recent = await gateway({ completedAt: new Date() })
         await gateway({ completedAt, status: ModelGatewayCallStatusEnum.Failed, totalTokens: 0, priceAmount: null })
-        expect(await gatewayService.purgeExpiredCalls()).toMatchObject({ deleted: 2 })
+        expect(await gatewayService.purgeExpiredCalls()).toMatchObject({ deleted: 3 })
         const remaining = await database.getRepository(ModelGatewayCall).find()
-        expect(remaining.map((call) => call.id).sort()).toEqual([disabled.id, pending.id, started.id, recent.id].sort())
-        expect(await database.getRepository(MembershipPointLedger).find()).toMatchObject([
-            { id: expired.id, source: MembershipLedgerSourceEnum.ModelUsage, pointsDelta: 0 }
-        ])
+        expect(remaining.map((call) => call.id).sort()).toEqual([pending.id, started.id, recent.id].sort())
+        expect(await database.getRepository(MembershipPointLedger).find()).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    id: expired.id,
+                    tenantId,
+                    source: MembershipLedgerSourceEnum.ModelUsage,
+                    pointsDelta: 0
+                }),
+                expect.objectContaining({
+                    id: otherTenant.id,
+                    tenantId: otherTenant.tenantId,
+                    source: MembershipLedgerSourceEnum.ModelUsage,
+                    pointsDelta: 0
+                })
+            ])
+        )
+    })
+
+    it.each([null, 'false'])('does not purge any tenant when default retention is %s', async (enabled) => {
+        const otherTenantId = randomUUID()
+        await database.getRepository(TenantSetting).save({
+            tenantId: otherTenantId,
+            name: MODEL_GATEWAY_CALL_RETENTION_ENABLED_SETTING,
+            value: 'true'
+        })
+        if (enabled !== null) {
+            await database.getRepository(TenantSetting).save({
+                tenantId,
+                name: MODEL_GATEWAY_CALL_RETENTION_ENABLED_SETTING,
+                value: enabled
+            })
+        }
+        await gateway({ tenantId: otherTenantId, completedAt: new Date('2000-09-01T12:00:00Z') })
+        expect(await gatewayService.purgeExpiredCalls()).toMatchObject({ deleted: 0 })
+        expect(await database.getRepository(ModelGatewayCall).count()).toBe(1)
+        expect(await database.getRepository(MembershipPointLedger).count()).toBe(0)
     })
 
     it('keeps internal and legacy usage alongside gateway calls without including internal settlement rows', async () => {

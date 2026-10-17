@@ -1,7 +1,9 @@
+import { hasApplicationSpeechModel } from '../xpert/publication/speech-model-repair'
+import { XpertPublishCommand } from '../xpert/commands/publish.command'
 import { applicationComposition } from './plugin-application-composition'
 import { effectiveLoadedPlugins } from './effective-loaded-plugins'
 import { PluginApplicationSuiteService } from './plugin-application-suite.service'
-import { modelSelectionMetadata } from '../copilot-model/model-selection-metadata'
+import { applicationModelOptions } from './application-models'
 import {
     AiModelTypeEnum,
     AiProviderRole,
@@ -43,8 +45,7 @@ import {
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { In, LessThan, Repository } from 'typeorm'
-import { CopilotWithProviderDto } from '../copilot/dto'
-import { CopilotOneByRoleQuery, FindCopilotModelsQuery } from '../copilot/queries'
+import { CopilotOneByRoleQuery } from '../copilot/queries'
 import { Knowledgebase } from '../knowledgebase/knowledgebase.entity'
 import { KnowledgebaseService } from '../knowledgebase/knowledgebase.service'
 import { Xpert } from '../xpert/xpert.entity'
@@ -215,6 +216,9 @@ export class PluginApplicationService {
             throw new BadRequestException(preflight.reason ?? 'scope_not_supported')
         }
         if (!preflight.canInitialize) {
+            if (preflight.reason === 'speech_to_text_model_required') {
+                throw new BadRequestException(t('server-ai:Error.ApplicationSpeechModelRequired'))
+            }
             if (preflight.reason === 'toolset_provider_required') {
                 throw new BadRequestException(
                     t('server-ai:Error.ApplicationToolsetProviderRequired', {
@@ -251,6 +255,9 @@ export class PluginApplicationService {
                   ModelFeature.VISION,
                   preflight.defaultVisionModelId
               )
+            : null
+        const speechToTextModel = requirements.speechToText
+            ? await this.resolveRequiredModel(input.speechToTextModelId, AiModelTypeEnum.SPEECH2TEXT)
             : null
         if (application.config.assistantSuite) {
             if (!this.assistantSuites) throw new BadRequestException('application_suite_runtime_unavailable')
@@ -377,7 +384,8 @@ export class PluginApplicationService {
                         this.requestLanguage(),
                         {
                             name: assistantName,
-                            title: this.localized(application.displayName, 'Application')
+                            title: this.localized(application.displayName, 'Application'),
+                            ...(speechToTextModel ? { speechToTextModel: speechToTextModel.config } : {})
                         },
                         true
                     )
@@ -390,6 +398,9 @@ export class PluginApplicationService {
                 createdXpertId = xpertId
             }
 
+            if (existingXpert && speechToTextModel && !hasApplicationSpeechModel(existingXpert)) {
+                await this.commandBus.execute(XpertPublishCommand.repairSpeechModel(xpertId, speechToTextModel.config))
+            }
             installation.xpertId = xpertId
             installation.status = PLUGIN_APPLICATION_INSTALLATION_STATUS.READY
             installation.errorCode = null
@@ -527,6 +538,7 @@ export class PluginApplicationService {
                 reason,
                 embeddingModels: [],
                 visionModels: [],
+                speechToTextModels: [],
                 defaultEmbeddingModelId: null,
                 defaultVisionModelId: null,
                 primaryModelAvailable: !modelRequirements.primary,
@@ -534,12 +546,13 @@ export class PluginApplicationService {
             }
         }
 
-        const [embeddingModels, visionModels, primaryModels] = await Promise.all([
+        const [embeddingModels, visionModels, primaryModels, speechToTextModels] = await Promise.all([
             modelRequirements.embedding ? this.modelOptions(AiModelTypeEnum.TEXT_EMBEDDING) : Promise.resolve([]),
             modelRequirements.vision
                 ? this.modelOptions(AiModelTypeEnum.LLM, ModelFeature.VISION)
                 : Promise.resolve([]),
-            modelRequirements.primary ? this.modelOptions(AiModelTypeEnum.LLM) : Promise.resolve([])
+            modelRequirements.primary ? this.modelOptions(AiModelTypeEnum.LLM) : Promise.resolve([]),
+            modelRequirements.speechToText ? this.modelOptions(AiModelTypeEnum.SPEECH2TEXT) : Promise.resolve([])
         ])
         const primaryModelAvailable = !modelRequirements.primary || primaryModels.length > 0
         const [defaultEmbeddingModelId, defaultVisionModelId] = await Promise.all([
@@ -553,6 +566,8 @@ export class PluginApplicationService {
         if (modelRequirements.primary && !primaryModelAvailable) reason = 'primary_model_required'
         else if (modelRequirements.embedding && !embeddingModels.length) reason = 'embedding_model_required'
         else if (modelRequirements.vision && !visionModels.length) reason = 'vision_model_required'
+        if (!reason && modelRequirements.speechToText && !speechToTextModels.length)
+            reason = 'speech_to_text_model_required'
         const toolsetRequirements = await this.applicationToolsets.preflight(
             application,
             existingInstallation === undefined ? await this.findCurrentInstallation(application) : existingInstallation
@@ -574,6 +589,7 @@ export class PluginApplicationService {
             ...(reason ? { reason } : {}),
             embeddingModels,
             visionModels,
+            speechToTextModels,
             defaultEmbeddingModelId,
             defaultVisionModelId,
             primaryModelAvailable,
@@ -767,6 +783,21 @@ export class PluginApplicationService {
             installation.errorMessage = 'One or more initialized App resources are missing.'
             return this.installationRepo.save(installation)
         }
+        if (application.config.modelRequirements?.speechToText) {
+            const assistant = await this.xpertRepo.findOne({
+                where: {
+                    id: installation.xpertId,
+                    tenantId: installation.tenantId,
+                    organizationId: installation.organizationId
+                }
+            })
+            if (!hasApplicationSpeechModel(assistant)) {
+                installation.status = PLUGIN_APPLICATION_INSTALLATION_STATUS.DEGRADED
+                installation.errorCode = 'speech_to_text_model_missing'
+                installation.errorMessage = t('server-ai:Error.ApplicationSpeechModelRequired')
+                return this.installationRepo.save(installation)
+            }
+        }
         return installation
     }
 
@@ -801,26 +832,11 @@ export class PluginApplicationService {
         return role && ORGANIZATION_INITIALIZER_ROLES.has(role) ? ('allowed' as const) : ('role_required' as const)
     }
 
-    /** Returns only models visible through the current request's governed model query. */
     private async modelOptions(
         modelType: AiModelTypeEnum,
         requiredFeature?: ModelFeature
     ): Promise<PluginApplicationModelOption[]> {
-        const copilots = await this.queryBus.execute<FindCopilotModelsQuery, CopilotWithProviderDto[]>(
-            new FindCopilotModelsQuery(modelType)
-        )
-        return copilots.flatMap((copilot) =>
-            copilot.providerWithModels.models
-                .filter((model) => !requiredFeature || model.features?.includes(requiredFeature))
-                .map((model) => ({
-                    id: this.modelOptionId(copilot.id, model.model),
-                    copilotId: copilot.id,
-                    model: model.model,
-                    label: model.label,
-                    modelType: model.model_type,
-                    ...modelSelectionMetadata(copilot, model, RequestContext.getLanguageCode())
-                }))
-        )
+        return applicationModelOptions(this.queryBus, modelType, requiredFeature)
     }
 
     private async resolveRequiredModel(
@@ -834,6 +850,8 @@ export class PluginApplicationService {
             ? (await this.modelOptions(modelType, requiredFeature)).find((item) => item.id === resolvedId)
             : null
         if (!option) {
+            if (modelType === AiModelTypeEnum.SPEECH2TEXT)
+                throw new BadRequestException(t('server-ai:Error.ApplicationSpeechModelRequired'))
             throw new BadRequestException(requiredFeature ? 'invalid_vision_model' : 'invalid_embedding_model')
         }
         return {

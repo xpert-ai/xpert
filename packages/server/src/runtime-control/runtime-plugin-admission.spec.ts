@@ -15,7 +15,8 @@ describe('RuntimePluginAdmission', () => {
 	let registry: RestartRegistry
 	let admission: RuntimePluginAdmission
 	const readDesired = jest.fn<ReturnType<PluginRuntimeGenerationStore['readDesired']>, []>()
-	const generations = { readDesired }
+	const readRequirements = jest.fn<ReturnType<PluginRuntimeGenerationStore['readRequirements']>, [number]>()
+	const generations = { readDesired, readRequirements }
 	const state: RuntimePluginState = {
 		reportedAt: '',
 		plugins: [{ scopeKey: 'global', pluginName: 'test', version: '1' }],
@@ -29,6 +30,7 @@ describe('RuntimePluginAdmission', () => {
 	beforeEach(() => {
 		jest.useFakeTimers()
 		jest.clearAllMocks()
+		readRequirements.mockReset()
 		jest.mocked(isPluginStartupListening).mockReturnValue(true)
 		jest.mocked(canRestorePluginStartup).mockReturnValue(false)
 		lifecycle = new RuntimeLifecycleService()
@@ -105,5 +107,32 @@ describe('RuntimePluginAdmission', () => {
 		readDesired.mockResolvedValue({ ...desired, status: 'failed' })
 		await admission.refresh(generations)
 		expect(lifecycle.readiness().status).toBe('ready')
+	})
+
+	it('does not preserve continuous admission if reading queued snapshots crosses its validation deadline', async () => {
+		await admission.refresh(generations)
+		readDesired.mockResolvedValue({ ...desired, generation: 3 })
+		readRequirements.mockImplementationOnce(
+			() => new Promise((resolve) => setTimeout(() => resolve(undefined), 6_000))
+		)
+		const refreshing = admission.refresh(generations, {
+			generation: 1,
+			requirements: [{ ...desired.requirements[0], version: '0' }]
+		})
+		await jest.advanceTimersByTimeAsync(6_000)
+		await refreshing
+		expect(lifecycle.readiness().status).toBe('unready')
+	})
+
+	it('does not use queued snapshots to admit a failed rollout or an unrelated returning boot', async () => {
+		const rollout = { generation: 1, requirements: [{ ...desired.requirements[0], version: '0' }] }
+		readRequirements.mockResolvedValue([{ ...desired.requirements[0], version: '1' }])
+		readDesired.mockResolvedValue({ ...desired, generation: 3, status: 'failed' })
+		await admission.refresh(generations, rollout)
+		expect(lifecycle.readiness().status).toBe('unready')
+		readDesired.mockResolvedValue({ ...desired, generation: 3 })
+		await admission.refresh(generations)
+		expect(lifecycle.readiness().status).toBe('unready')
+		expect(readRequirements).not.toHaveBeenCalled()
 	})
 })
