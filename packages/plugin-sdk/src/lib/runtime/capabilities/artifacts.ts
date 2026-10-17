@@ -72,6 +72,12 @@ export type CreateArtifactVersionInput = ArtifactVersionInput & {
 /** Idempotently creates or reuses one immutable Artifact content version. */
 export type EnsureArtifactVersionInput = CreateArtifactVersionInput & {
   idempotencyKey: string
+  /**
+   * Compare-and-set guard when promoting a version to current; ignored when setCurrent is false.
+   * null requires no current version; omission preserves legacy behavior. Retrying the current
+   * immutable version is allowed, while a stale save targeting a different version returns a conflict.
+   */
+  expectedCurrentVersionId?: string | null
 }
 
 /** Access policy requested for an Artifact link. */
@@ -178,9 +184,13 @@ export type ArtifactLinkRecord = ArtifactScopeInput & {
 
 /** Filter used when listing Artifacts visible to the current plugin/runtime scope. */
 export type ListArtifactsInput = {
+  /** Include current-version metadata in one batch, without reading Workspace file bytes. */
+  includeCurrentVersion?: boolean
   pluginName?: string | null
   resourceType?: string | null
   resourceId?: string | null
+  /** Literal resource ID prefix, never a pattern; narrows results without granting access. */
+  resourceIdPrefix?: string | null
   status?: ArtifactStatus | 'all' | null
   page?: number | null
   pageSize?: number | null

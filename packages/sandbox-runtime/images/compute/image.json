@@ -1,0 +1,22 @@
+{
+  "imageFamily": "compute",
+  "repositories": {
+    "ghcr": "ghcr.io/xpert-ai/xpert-sandbox-compute",
+    "dockerhub": "metadc/xpert-sandbox-compute",
+    "acr": "registry.cn-hangzhou.aliyuncs.com/metad/xpert-sandbox-compute"
+  },
+  "runtimeContractVersion": "1",
+  "profileName": "compute/node-python/v1",
+  "platforms": ["linux/amd64", "linux/arm64"],
+  "capabilities": ["compute.javascript", "compute.python", "sandbox.action.v1"],
+  "dockerfile": "images/compute/Dockerfile",
+  "manifest": "images/compute/runtime/manifest.json",
+  "runner": "images/browser/runtime/runner-host.mjs",
+  "runtimeDefinition": "../server-ai/src/sandbox/sandbox-job/runtime-definitions/compute-node-python-v1.json",
+  "artifactCatalogTemplate": "images/compute/artifact-catalog.template.json",
+  "smokeCommand": ["node", "/opt/xpert/sandbox-runtime/compute-smoke.mjs"],
+  "baseImages": {
+    "node": "node:20-bookworm-slim@sha256:2cf067cfed83d5ea958367df9f966191a942351a2df77d6f0193e162b5febfc0",
+    "python": "python:3.12-slim-bookworm@sha256:782412e85d0f0984994c290652577d4018aff08145c85b262bb63dc0c7522254"
+  }
+}

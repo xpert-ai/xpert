@@ -14,6 +14,7 @@ export function imageVersionTag(image, suiteVersion) {
       field = 'libreOfficeMajorVersion'
       prefix = 'lo'
       break
+    case 'compute':
     case 'document-node':
     case 'document-java':
       return suiteVersion

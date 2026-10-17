@@ -12,6 +12,9 @@ import {
 } from '@nestjs/common'
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm'
 import { RuntimeCapabilityProvider } from '../shared/runtime/runtime-capability-provider.decorator'
+import { assertArtifactVersionPrecondition } from './artifact-version-concurrency'
+import { artifactResourcePrefixPattern } from './artifact-source-filter'
+import { loadArtifactCurrentVersions } from './artifact-current-versions'
 import type { ArtifactAccessEvent, IUser } from '@xpert-ai/contracts'
 import { environment } from '@xpert-ai/server-config'
 import { RequestContext as ServerRequestContext, UserOrganizationService, UserService } from '@xpert-ai/server-core'
@@ -601,43 +604,45 @@ export class ArtifactsService implements ArtifactsApi {
             throw new BadRequestException('Artifact version size does not match the workspace file')
         }
 
-        const previous = await this.versionRepository.findOne({
-            where: { artifactId: normalizeRequiredString(artifact.id, 'artifact.id') },
-            order: { versionNumber: 'DESC' }
-        })
-        const versionNumber = Number(previous?.versionNumber ?? 0) + 1
-        const version = await this.versionRepository.save(
-            this.versionRepository.create({
-                tenantId: artifact.tenantId,
-                organizationId: artifact.organizationId,
-                createdById: defaults.userId ?? artifact.userId ?? undefined,
-                artifactId: normalizeRequiredString(artifact.id, 'artifact.id'),
-                artifact,
-                versionNumber,
-                status: 'active',
-                sourceVersionId: versionInput.sourceVersionId,
-                checksum: versionInput.checksum,
-                workspaceFileRef: versionInput.workspaceFileRef,
-                mimeType: versionInput.mimeType,
-                fileName: versionInput.fileName ?? file.name,
-                title: versionInput.title,
-                description: versionInput.description,
-                size,
-                sha256,
-                workspaceId: artifact.workspaceId,
-                projectId: artifact.projectId,
-                xpertId: artifact.xpertId,
-                userId: artifact.userId,
-                metadata: versionInput.metadata ?? null
+        return this.withLockedArtifact(artifact, async (lockedArtifact, repositories) => {
+            const previous = await repositories.version.findOne({
+                where: { artifactId: normalizeRequiredString(lockedArtifact.id, 'artifact.id') },
+                order: { versionNumber: 'DESC' }
             })
-        )
+            const versionNumber = Number(previous?.versionNumber ?? 0) + 1
+            const version = await repositories.version.save(
+                repositories.version.create({
+                    tenantId: lockedArtifact.tenantId,
+                    organizationId: lockedArtifact.organizationId,
+                    createdById: defaults.userId ?? lockedArtifact.userId ?? undefined,
+                    artifactId: normalizeRequiredString(lockedArtifact.id, 'artifact.id'),
+                    artifact: lockedArtifact,
+                    versionNumber,
+                    status: 'active',
+                    sourceVersionId: versionInput.sourceVersionId,
+                    checksum: versionInput.checksum,
+                    workspaceFileRef: versionInput.workspaceFileRef,
+                    mimeType: versionInput.mimeType,
+                    fileName: versionInput.fileName ?? file.name,
+                    title: versionInput.title,
+                    description: versionInput.description,
+                    size,
+                    sha256,
+                    workspaceId: lockedArtifact.workspaceId,
+                    projectId: lockedArtifact.projectId,
+                    xpertId: lockedArtifact.xpertId,
+                    userId: lockedArtifact.userId,
+                    metadata: versionInput.metadata ?? null
+                })
+            )
 
-        if (versionInput.setCurrent !== false) {
-            artifact.currentVersionId = normalizeRequiredString(version.id, 'version.id')
-            artifact.status = 'active'
-            await this.artifactRepository.save(artifact)
-        }
-        return serializeArtifactVersion(version)
+            if (versionInput.setCurrent !== false) {
+                lockedArtifact.currentVersionId = normalizeRequiredString(version.id, 'version.id')
+                lockedArtifact.status = 'active'
+                await repositories.artifact.save(lockedArtifact)
+            }
+            return serializeArtifactVersion(version)
+        })
     }
 
     private async listArtifactVersionsWithDefaults(
@@ -678,6 +683,7 @@ export class ArtifactsService implements ArtifactsApi {
         return this.withLockedArtifact(artifact, async (lockedArtifact, repositories) => {
             const artifactId = normalizeRequiredString(lockedArtifact.id, 'artifact.id')
             const existing = await repositories.version.findOne({ where: { artifactId, idempotencyKey } })
+            assertArtifactVersionPrecondition(input, lockedArtifact.currentVersionId, existing?.id)
             if (existing) {
                 if (!existing.sha256 || !safeEqualString(existing.sha256, sha256)) {
                     throw new BadRequestException(
@@ -749,6 +755,11 @@ export class ArtifactsService implements ArtifactsApi {
             .orderBy('artifact.updatedAt', 'DESC')
             .skip((page - 1) * pageSize)
             .take(pageSize)
+        if (input.resourceIdPrefix) {
+            qb.andWhere('artifact.resourceId LIKE :resourceIdPrefix', {
+                resourceIdPrefix: artifactResourcePrefixPattern(input.resourceIdPrefix)
+            })
+        }
 
         if (scope.organizationId) {
             qb.andWhere('artifact.organizationId = :organizationId', { organizationId: scope.organizationId })
@@ -774,8 +785,14 @@ export class ArtifactsService implements ArtifactsApi {
         }
 
         const [items, total] = await qb.getManyAndCount()
+        // Query parameters may be strings; SDK callers pass a boolean. Neither changes authorization.
+        const includeCurrentVersion: unknown = input.includeCurrentVersion
+        const currentVersions =
+            includeCurrentVersion === true || includeCurrentVersion === 'true'
+                ? await loadArtifactCurrentVersions(items, this.versionRepository)
+                : new Map<string, ArtifactVersion>()
         return {
-            items: items.map((artifact) => serializeArtifact(artifact)),
+            items: items.map((artifact) => serializeArtifact(artifact, currentVersions.get(artifact.id))),
             total,
             page,
             pageSize

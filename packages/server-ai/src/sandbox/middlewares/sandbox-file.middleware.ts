@@ -9,7 +9,9 @@ import {
     EditOperation,
     IAgentMiddlewareContext,
     IAgentMiddlewareStrategy,
-    PromiseOrValue
+    PromiseOrValue,
+    workspaceRelativeFilePathSchema,
+    workspaceFileMutationMetadata
 } from '@xpert-ai/plugin-sdk'
 import { isAbsolute, resolve } from 'node:path'
 import { z } from 'zod/v3'
@@ -43,7 +45,7 @@ const indentationSchema = z
     .optional()
 
 const readToolSchema = z.object({
-    file_path: z.string().min(1, 'File path is required.').describe(WORKSPACE_RELATIVE_PATH_REQUIREMENT),
+    file_path: workspaceRelativeFilePathSchema.describe(WORKSPACE_RELATIVE_PATH_REQUIREMENT),
     offset: z.number().optional().describe('The 1-indexed line number to start reading from (defaults to 1)'),
     limit: z.number().optional().describe('Maximum number of lines to return (defaults to 2000)'),
     mode: z
@@ -77,47 +79,57 @@ const grepToolSchema = z.object({
     include: z.string().optional().describe('File pattern to include in the search (e.g. "*.js", "*.{ts,tsx}")')
 })
 
-const editToolSchema = z.object({
-    file_path: z.string().min(1, 'File path is required.').describe(WORKSPACE_RELATIVE_PATH_REQUIREMENT),
-    old_string: z.string().describe('Exact text to replace (must match file content)'),
-    new_string: z.string().describe('Replacement text'),
-    replace_all: z.boolean().optional().describe('Replace all occurrences (default false)')
-})
+const editToolSchema = z
+    .object({
+        file_path: workspaceRelativeFilePathSchema.describe(WORKSPACE_RELATIVE_PATH_REQUIREMENT),
+        old_string: z.string().describe('Exact text to replace (must match file content)'),
+        new_string: z.string().describe('Replacement text'),
+        replace_all: z.boolean().optional().describe('Replace all occurrences (default false)')
+    })
+    .strict()
 
-const multiEditToolSchema = z.object({
-    file_path: z.string().min(1, 'File path is required.').describe(WORKSPACE_RELATIVE_PATH_REQUIREMENT),
-    edits: z
-        .array(
-            z.object({
-                oldString: z
-                    .string()
-                    .min(1, 'Old string is required.')
-                    .describe('Exact text to replace (must match file content)'),
-                newString: z.string().describe('Replacement text'),
-                replaceAll: z.boolean().optional().describe('Replace all occurrences (default false)')
-            })
-        )
-        .min(1, 'At least one edit is required.')
-        .describe('Array of edit operations to perform sequentially on the file')
-})
+const multiEditToolSchema = z
+    .object({
+        file_path: workspaceRelativeFilePathSchema.describe(WORKSPACE_RELATIVE_PATH_REQUIREMENT),
+        edits: z
+            .array(
+                z
+                    .object({
+                        oldString: z
+                            .string()
+                            .min(1, 'Old string is required.')
+                            .describe('Exact text to replace (must match file content)'),
+                        newString: z.string().describe('Replacement text'),
+                        replaceAll: z.boolean().optional().describe('Replace all occurrences (default false)')
+                    })
+                    .strict()
+            )
+            .min(1, 'At least one edit is required.')
+            .describe('Array of edit operations to perform sequentially on the file')
+    })
+    .strict()
 
-const writeToolSchema = z.object({
-    file_path: z.string().min(1, 'File path is required.').describe(WORKSPACE_RELATIVE_PATH_REQUIREMENT),
-    content: z
-        .any()
-        .describe(
-            'Complete file content as a single string. Special characters (quotes, newlines, etc.) must be properly escaped in JSON.'
-        )
-})
+const writeToolSchema = z
+    .object({
+        file_path: workspaceRelativeFilePathSchema.describe(WORKSPACE_RELATIVE_PATH_REQUIREMENT),
+        content: z
+            .string()
+            .describe(
+                'Complete file content as a single string. Special characters (quotes, newlines, etc.) must be properly escaped in JSON.'
+            )
+    })
+    .strict()
 
-const appendToolSchema = z.object({
-    file_path: z.string().min(1, 'File path is required.').describe(WORKSPACE_RELATIVE_PATH_REQUIREMENT),
-    content: z
-        .any()
-        .describe(
-            'Content to append to the file. Special characters (quotes, newlines, etc.) must be properly escaped in JSON.'
-        )
-})
+const appendToolSchema = z
+    .object({
+        file_path: workspaceRelativeFilePathSchema.describe(WORKSPACE_RELATIVE_PATH_REQUIREMENT),
+        content: z
+            .string()
+            .describe(
+                'Content to append to the file. Special characters (quotes, newlines, etc.) must be properly escaped in JSON.'
+            )
+    })
+    .strict()
 
 const listDirToolSchema = z.object({
     dir_path: z.string().min(1, 'Directory path is required.').describe(WORKSPACE_RELATIVE_PATH_REQUIREMENT),
@@ -206,7 +218,8 @@ export class SandboxFileMiddleware implements IAgentMiddlewareStrategy {
                 name: 'sandbox_read_file',
                 description:
                     'Reads a file in the sandbox with 1-indexed line numbers, supporting slice and indentation-aware block modes.',
-                schema: readToolSchema
+                schema: readToolSchema,
+                verboseParsingErrors: true
             }
         )
 
@@ -264,7 +277,9 @@ export class SandboxFileMiddleware implements IAgentMiddlewareStrategy {
                 name: 'sandbox_edit_file',
                 description:
                     'Edit a file by replacing exact text. Returns edit metadata and errors when matches are missing or ambiguous.',
-                schema: editToolSchema
+                schema: editToolSchema,
+                verboseParsingErrors: true,
+                metadata: workspaceFileMutationMetadata
             }
         )
 
@@ -274,14 +289,13 @@ export class SandboxFileMiddleware implements IAgentMiddlewareStrategy {
                 const backend = getBackend(config)
                 const resolvedFilePath = resolveSandboxPath(config, file_path)
                 return withToolMessage(toolCallId, 'sandbox_write_file', file_path, { file_path }, async () => {
-                    const normalizedContent = Array.isArray(content) ? content.join('') : content
                     const result = await observeFileChanges(
                         this.fileActivityStorage,
                         context,
                         backend,
                         toolCallId,
                         'sandbox_write_file',
-                        () => backend.write(resolvedFilePath, normalizedContent),
+                        () => backend.write(resolvedFilePath, content),
                         file_path
                     )
                     return stringifyPortableFileResult(result, file_path)
@@ -310,7 +324,9 @@ INCORRECT format (DO NOT USE):
   {"file_path": "/path/to/file.js", "content": "const x = 1;"},
   {"content": "const y = 2;"}
 ]`,
-                schema: writeToolSchema
+                schema: writeToolSchema,
+                verboseParsingErrors: true,
+                metadata: workspaceFileMutationMetadata
             }
         )
 
@@ -320,14 +336,13 @@ INCORRECT format (DO NOT USE):
                 const backend = getBackend(config)
                 const resolvedFilePath = resolveSandboxPath(config, file_path)
                 return withToolMessage(toolCallId, 'sandbox_append_file', file_path, { file_path }, async () => {
-                    const normalizedContent = Array.isArray(content) ? content.join('') : content
                     const result = await observeFileChanges(
                         this.fileActivityStorage,
                         context,
                         backend,
                         toolCallId,
                         'sandbox_append_file',
-                        () => backend.append(resolvedFilePath, normalizedContent),
+                        () => backend.append(resolvedFilePath, content),
                         file_path
                     )
                     return stringifyPortableFileResult(result, file_path)
@@ -343,7 +358,9 @@ CRITICAL FORMAT REQUIREMENTS:
 1. Parameters must be a SINGLE object with two fields: file_path and content
 2. The content field must be a SINGLE string
 3. All special characters (quotes, newlines, etc.) must be properly JSON-escaped`,
-                schema: appendToolSchema
+                schema: appendToolSchema,
+                verboseParsingErrors: true,
+                metadata: workspaceFileMutationMetadata
             }
         )
 
@@ -369,7 +386,9 @@ CRITICAL FORMAT REQUIREMENTS:
                 name: 'sandbox_multi_edit_file',
                 description:
                     'Perform multiple sequential edits on a single file in one operation. All edits are applied sequentially, with each edit operating on the result of the previous edit. All edits must succeed for the operation to succeed (atomic). Use this when you need to make multiple changes to the same file.',
-                schema: multiEditToolSchema
+                schema: multiEditToolSchema,
+                verboseParsingErrors: true,
+                metadata: workspaceFileMutationMetadata
             }
         )
 

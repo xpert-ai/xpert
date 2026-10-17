@@ -1,3 +1,4 @@
+import { authenticatedRuntimeUserHeaders } from '../shared/runtime-user-headers'
 import { sharingLegacyIdsSchema } from './sharing/sharing.schema'
 import { ZodValidationPipe } from '@xpert-ai/server-core'
 import {
@@ -1518,7 +1519,8 @@ export class XpertController extends CrudController<Xpert> {
                 ...(userId ? { userId } : {}),
                 ...(language ? { language } : {}),
                 ...(request.conversationId ? { conversationId: request.conversationId } : {}),
-                source: 'chat'
+                source: 'chat',
+                ...authenticatedRuntimeUserHeaders()
             }
         }
 

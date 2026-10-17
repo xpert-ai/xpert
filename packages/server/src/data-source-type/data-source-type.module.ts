@@ -2,7 +2,7 @@ import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { DiscoveryModule, RouterModule } from '@nestjs/core'
-import { DataSourceStrategyRegistry } from '@xpert-ai/plugin-sdk'
+import { AnalyticsProviderRegistry, DataSourceStrategyRegistry } from '@xpert-ai/plugin-sdk'
 import { SharedModule } from '../shared'
 import { TenantModule } from '../tenant'
 import { DataSourceTypeController } from './data-source-type.controller'
@@ -19,7 +19,7 @@ import { DataSourceTypeService } from './data-source-type.service'
 		CqrsModule
 	],
 	controllers: [DataSourceTypeController],
-	providers: [DataSourceTypeService, DataSourceStrategyRegistry],
-	exports: [TypeOrmModule, DataSourceTypeService, DataSourceStrategyRegistry]
+	providers: [DataSourceTypeService, DataSourceStrategyRegistry, AnalyticsProviderRegistry],
+	exports: [TypeOrmModule, DataSourceTypeService, DataSourceStrategyRegistry, AnalyticsProviderRegistry]
 })
 export class DataSourceTypeModule {}

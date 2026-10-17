@@ -572,6 +572,74 @@ describe('XpertAgentInvokeHandler', () => {
         )
     })
 
+    it.each([undefined, 'docker-sandbox'])(
+        'maps file paths with the acquired provider (configured: %s)',
+        async (provider) => {
+            const graph = createGraph()
+            workAreaResolver.resolve.mockImplementation((input) => {
+                const area = createTestWorkArea(input)
+                return input.provider === 'docker-sandbox'
+                    ? {
+                          ...area,
+                          workspaceRoot: '/workspace',
+                          workingDirectory: '/workspace',
+                          sharedPath: { ...area.sharedPath, workspacePath: '/workspace/shared' },
+                          memoryPath: { ...area.memoryPath, workspacePath: '/workspace/.xpert/memory' }
+                      }
+                    : area
+            })
+            commandBus.execute.mockImplementation(async (command: unknown) => {
+                if (command instanceof SandboxAcquireBackendCommand)
+                    return { provider: 'docker-sandbox', workingDirectory: '/workspace' }
+                if (command instanceof CompileGraphCommand) {
+                    expect(command.options.workspaceRoot).toBe('/workspace')
+                    expect(command.options.workspacePath).toBe('/workspace')
+                    return createCompiledGraph(graph)
+                }
+                return null
+            })
+            const stream = await handler.execute(
+                new XpertAgentInvokeCommand(
+                    { human: { input: 'Write and register a workspace script' } },
+                    'agent-1',
+                    {
+                        id: 'xpert-1',
+                        workspaceDataScope: 'user',
+                        features: {
+                            sandbox: { enabled: true, provider },
+                            opener: { enabled: false, message: '', questions: [] },
+                            suggestion: { enabled: false, prompt: '' },
+                            textToSpeech: { enabled: false },
+                            speechToText: { enabled: false }
+                        }
+                    },
+                    {
+                        isDraft: false,
+                        thread_id: 'thread-1',
+                        rootExecutionId: 'execution-1',
+                        execution: { id: 'execution-1', threadId: 'thread-1' },
+                        subscriber: new Subscriber<MessageEvent>(),
+                        store: null
+                    }
+                )
+            )
+            await consumeStream(stream)
+            expect(graph.streamEvents.mock.calls[0][0]).toMatchObject({
+                sys: {
+                    volume: '/tmp/xpert-workspace',
+                    workspace_root: '/workspace',
+                    workspace_path: '/workspace',
+                    shared_workspace_path: '/workspace/shared',
+                    memory_workspace_path: '/workspace/.xpert/memory'
+                }
+            })
+            expect(workAreaResolver.resolve).toHaveBeenCalledTimes(provider ? 1 : 2)
+            expect(workAreaResolver.resolve).toHaveBeenLastCalledWith(
+                expect.objectContaining({ provider: 'docker-sandbox', xpertId: 'xpert-1' })
+            )
+        }
+    )
+
     it('fails sandbox-enabled invocation when backend acquire fails', async () => {
         const graph = createGraph()
 
