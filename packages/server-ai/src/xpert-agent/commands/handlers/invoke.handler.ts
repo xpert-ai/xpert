@@ -166,7 +166,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
             await this.commandBus.execute(
                 new InitializeAssistantTemplateFilesCommand(workspaceXpertId, options.isDraft ? 'authoring' : 'runtime')
             )
-        const workArea = await this.workAreaResolver.resolve({
+        const workAreaInput = {
             tenantId,
             userId,
             provider: sandboxFeature?.provider,
@@ -175,7 +175,8 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
             projectId: options.projectId,
             conversationId: options.conversationId,
             environmentId: sandboxEnvironmentId
-        })
+        }
+        let workArea = await this.workAreaResolver.resolve(workAreaInput)
         const volumeScope = workArea.volumeScope
         const initialWorkspaceBinding =
             hasSandboxWorkForId && sandboxFeature?.provider ? workArea.workspaceBinding : null
@@ -197,6 +198,11 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                 this.#logger.warn(`Sandbox backend acquire failed: ${getErrorMessage(err)}`)
                 throw err
             }
+        }
+        // Acquisition may select a configured/default provider. Use its mapper for
+        // plugin file capabilities too, instead of mixing a host root with a container cwd.
+        if (sandboxContext?.provider && sandboxContext.provider !== workAreaInput.provider) {
+            workArea = await this.workAreaResolver.resolve({ ...workAreaInput, provider: sandboxContext.provider })
         }
         const volumePath = workArea.volumePath
         const workspacePath =

@@ -27,7 +27,8 @@ jest.mock('@xpert-ai/plugin-sdk', () => {
     return {
         __esModule: true,
         BaseSandbox,
-        AgentMiddlewareStrategy: () => (target: unknown) => target
+        AgentMiddlewareStrategy: () => (target: unknown) => target,
+        ...jest.requireActual('../../../../plugin-sdk/src/lib/runtime/workspace-file-tools')
     }
 })
 
@@ -120,6 +121,77 @@ describe('SandboxFileMiddleware', () => {
             const schema = agentMiddleware.tools.find((tool) => tool.name === name)?.schema
             if (!schema || !('shape' in schema)) throw new Error('Expected object schema')
             expect(Object.keys(schema.shape).sort()).toEqual(expected)
+        }
+    })
+
+    const createFileTools = () =>
+        new SandboxFileMiddleware({ persist: jest.fn() }).createMiddleware(
+            {},
+            {
+                tenantId: 'tenant-1',
+                userId: 'user-1',
+                xpertFeatures: createXpertFeatures(),
+                node: { id: 'files', key: 'files', type: WorkflowNodeTypeEnum.MIDDLEWARE, provider: 'SandboxFile' },
+                runtime: {} as never,
+                tools: new Map()
+            }
+        )
+
+    it.each([
+        { name: 'sandbox_read_file', valid: {}, invalid: [] },
+        {
+            name: 'sandbox_write_file',
+            valid: { content: 'page' },
+            invalid: [{ html: 'page' }, { content: ['page'] }, {}]
+        },
+        {
+            name: 'sandbox_append_file',
+            valid: { content: 'page' },
+            invalid: [{ html: 'page' }, { content: ['page'] }, {}]
+        },
+        {
+            name: 'sandbox_edit_file',
+            valid: { old_string: 'old', new_string: 'new' },
+            invalid: [{ old_string: 'old', new_string: 'new', replaceAll: true }]
+        },
+        {
+            name: 'sandbox_multi_edit_file',
+            valid: { edits: [{ oldString: 'old', newString: 'new' }] },
+            invalid: [{ edits: [] }, { edits: [{ oldString: 'old', newString: 'new', replace_all: true }] }]
+        }
+    ])('rejects invalid $name arguments before invoking the backend', async ({ name, valid, invalid }) => {
+        const created = await createFileTools()
+        const fileTool = created.tools.find((tool) => tool.name === name)
+        const backend = {
+            workingDirectory: '/workspace',
+            read: jest.fn(),
+            write: jest.fn(),
+            append: jest.fn(),
+            edit: jest.fn(),
+            multiEdit: jest.fn()
+        }
+        const config = { configurable: { sandbox: { backend } } }
+        for (const file_path of ['  .html', '../page.html', '/workspace/page.html']) {
+            await expect(fileTool.invoke({ ...valid, file_path }, config)).rejects.toThrow('file_path')
+        }
+        for (const args of invalid) {
+            await expect(fileTool.invoke({ file_path: 'page.html', ...args }, config)).rejects.toThrow()
+        }
+        for (const operation of [backend.read, backend.write, backend.append, backend.edit, backend.multiEdit]) {
+            expect(operation).not.toHaveBeenCalled()
+        }
+    })
+
+    it('declares mutation intent only on tools that change file content', async () => {
+        const created = await createFileTools()
+        expect(created.tools.filter((tool) => tool.metadata?.workspaceFileOperation).map((tool) => tool.name)).toEqual([
+            'sandbox_write_file',
+            'sandbox_append_file',
+            'sandbox_edit_file',
+            'sandbox_multi_edit_file'
+        ])
+        for (const tool of created.tools.filter((tool) => tool.metadata?.workspaceFileOperation)) {
+            expect(tool.metadata.workspaceFileOperation).toEqual({ type: 'mutation', pathArgument: 'file_path' })
         }
     })
 
