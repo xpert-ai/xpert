@@ -1,5 +1,12 @@
 # @xpert-ai/desktop
 
+## 0.3.7
+
+### Patch Changes
+
+- 02345e3: Upgrade all shared ChatKit packages to 0.16.0 and align workspace, API, Web, and Desktop dependency locks. Include floating Workbench chat, image reference thumbnails, and the latest message interaction and workspace preview improvements.
+  - @xpert-ai/desktop-protocol@0.3.6
+
 ## 0.3.6
 
 ### Patch Changes

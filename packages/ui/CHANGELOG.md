@@ -1,5 +1,11 @@
 # @xpert-ai/headless-ui
 
+## 0.1.1
+
+### Patch Changes
+
+- c5299e6: Align tag-select fields, selected chips and suggestions with the shared theme and compact input density. Keep Assistant sharing buttons at a consistent page-local height with responsive alignment.
+
 ## 0.1.0
 
 ### Minor Changes
