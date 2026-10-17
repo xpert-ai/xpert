@@ -205,6 +205,37 @@ describe('PluginApplicationService', () => {
         ])
     })
 
+    it.each([
+        [undefined, ['https://cdn.example.com/marketplace.webp']],
+        [[], []],
+        [['/app-cover.png'], ['/app-cover.png']]
+    ])('uses the same cover precedence for catalog and detail (%j)', async (screenshots, expected) => {
+        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue(null)
+        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue(null)
+        const service = createService(
+            [
+                {
+                    type: 'app',
+                    name: 'example-app',
+                    appConfig: {
+                        scope: 'organization',
+                        assistantTemplateKey: 'example-assistant',
+                        workspace: { mode: 'dedicated', name: 'Example' },
+                        presentation: { screenshots }
+                    }
+                }
+            ],
+            SYSTEM_GLOBAL_SCOPE,
+            {},
+            { screenshots: ['https://cdn.example.com/marketplace.webp'] }
+        )
+
+        const catalog = await service.getCatalog()
+        const detail = await service.getDetail('@acme/plugin-example-app', 'example-app')
+        expect(catalog[0].application.config.presentation?.screenshots).toEqual(expected)
+        expect(detail.application.config.presentation?.screenshots).toEqual(expected)
+    })
+
     it('does not infer an App configuration from names or an Assistant template alone', () => {
         const service = createService([
             {

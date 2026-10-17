@@ -23,8 +23,8 @@ import {
     PluginApplicationModelOption,
     PluginApplicationPreflight,
     PluginApplicationStatusSummary,
-    PluginMarketplaceContribution,
     PluginTemplateApplicationSummary,
+    PluginTargetAppMarketplaceMetadata,
     RolesEnum,
     resolveI18nText
 } from '@xpert-ai/contracts'
@@ -450,13 +450,7 @@ export class PluginApplicationService {
             const pluginName = normalizePluginName(plugin.packageName ?? plugin.name ?? meta?.name ?? '')
             if (!meta || !pluginName) continue
             const metadataEntries = Object.values(meta.targetAppMeta ?? {}) as Array<{
-                marketplace?: {
-                    contents?: PluginMarketplaceContribution[]
-                    category?: PluginApplicationCatalogMetadata['category']
-                    subcategory?: string
-                    featured?: boolean
-                    updatedAt?: string
-                }
+                marketplace?: PluginTargetAppMarketplaceMetadata
             }>
             for (const metadata of metadataEntries) {
                 const marketplace = metadata?.marketplace
@@ -465,7 +459,7 @@ export class PluginApplicationService {
                     if (app.type !== 'app' || !app.name?.trim() || !app.appConfig) continue
                     const id = `${pluginName}:${app.name}`
                     if (applications.has(id)) continue
-                    const declaredConfig = resolvePluginApplicationConfigAssets(plugin, app.appConfig)
+                    const declaredConfig = resolvePluginApplicationConfigAssets(plugin, app.appConfig, marketplace)
                     // Keep legacy plugin declarations compatible without granting organization-wide authoring.
                     const appConfig = {
                         ...declaredConfig,
