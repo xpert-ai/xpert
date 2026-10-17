@@ -1,3 +1,4 @@
+import { publishedAgentDelegation } from './published-agent/with-published-agent'
 import { activeSharingMemberSql, validSharingGroupSql } from './sharing/sharing-policy'
 import {
     IApiPrincipal,
@@ -686,7 +687,14 @@ export class PublishedXpertAccessService {
         // Enforce the token audience before loading the requested assistant so
         // a USER_XPERT secret cannot be replayed against another Xpert id.
         if (userXpertId && userXpertId !== id) {
-            throw new ForbiddenException('You do not have access to this assistant.')
+            const delegated = publishedAgentDelegation()
+            if (delegated?.requesterXpertId !== userXpertId || delegated.xpertId !== id) {
+                throw new ForbiddenException('You do not have access to this assistant.')
+            }
+            // Validate the original audience and current actor access on every delegated read.
+            // The context grants no access to other Assistants and cannot outlive revoked access.
+            await this.getAccessiblePublishedResource(id, userXpertId)
+            return this.getPublishedXpertInTenant(id, options)
         }
 
         const xpert = await this.getPublishedXpertInTenant(id, options)
