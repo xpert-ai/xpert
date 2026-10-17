@@ -67,6 +67,8 @@ test('presentation and Assistant/group navigation reuse the frame with isolated 
   let appearanceDialog
   let appearanceSaves = 0
   let navigate
+  let workbenchConnection
+  const connectionRequests = []
   const sessionRequests = []
   const shell = {
     handlers: {},
@@ -79,7 +81,15 @@ test('presentation and Assistant/group navigation reuse the frame with isolated 
     {
       react: React,
       'react/jsx-runtime': require('react/jsx-runtime'),
-      './WorkspaceConnection': { useWorkspaceConnection: () => ({ connect() {}, status: null }) },
+      './WorkspaceConnection': {
+        useWorkspaceConnection: (_url, assistantId) => ({
+          connect(request) {
+            connectionRequests.push({ assistantId, request })
+            return Promise.resolve({ status: 'connected' })
+          },
+          status: null
+        })
+      },
       './avatar/AssistantAppearanceDialog': {
         AssistantAppearanceDialog: (props) => {
           appearanceDialog = props
@@ -89,8 +99,9 @@ test('presentation and Assistant/group navigation reuse the frame with isolated 
       '../electron/connection/urls.mjs': { apiRootUrl: (url) => url },
       './files/DeliveredFile': { useDeliveredFile: () => ({ open() {}, dialog: null }) },
       './workbench': {
-        createWorkbenchHandler: (_botId, _url, onSession) => {
+        createWorkbenchHandler: (_botId, _url, onSession, connection) => {
           navigate = onSession
+          workbenchConnection = connection
           return () => {}
         }
       },
@@ -145,6 +156,18 @@ test('presentation and Assistant/group navigation reuse the frame with isolated 
   await React.act(render)
   const element = document.querySelector('xpertai-chatkit')
   assert.ok(element)
+  assert.equal(workbenchConnection.assistantId(), 'test-bot')
+  const connectionRequest = { assistantId: 'test-bot', bindingId: 'github' }
+  await workbenchConnection.connect(connectionRequest)
+  await received[0].composer.resources.onConnect(connectionRequest)
+  assert.deepEqual(
+    connectionRequests.slice(0, 2),
+    [
+      { assistantId: 'test-bot', request: connectionRequest },
+      { assistantId: 'test-bot', request: connectionRequest }
+    ],
+    'view commands and composer connections share the same flow'
+  )
   await React.act(() =>
     element.dispatchEvent(new dom.window.CustomEvent('chatkit.thread.change', { detail: { threadId: 'new-thread' } }))
   )
@@ -205,6 +228,13 @@ test('presentation and Assistant/group navigation reuse the frame with isolated 
   await React.act(() => appearanceDialog.onClose())
   appearanceDialog = undefined
   await React.act(() => navigate({ assistantId: 'navigated-assistant', threadId: 'next-thread' }))
+  assert.equal(workbenchConnection.assistantId(), 'navigated-assistant')
+  await workbenchConnection.connect({ assistantId: 'navigated-assistant', bindingId: 'github' })
+  assert.equal(
+    connectionRequests.at(-1).assistantId,
+    'navigated-assistant',
+    'the view uses the updated connection hook'
+  )
   const beforeDelegated = sessions.length
   await React.act(() =>
     navigate({ assistantId: 'navigated-assistant', threadId: 'next-thread', conversationId: 'delegated' })
@@ -222,12 +252,14 @@ test('presentation and Assistant/group navigation reuse the frame with isolated 
 
   const previousSessionKey = received.at(-1).sessionKey
   const previousVoice = voiceBindings.at(-1)
+  const oldConnection = workbenchConnection
   bot = {
     id: 'second-bot',
     name: 'Second assistant',
     avatar: { appearance: { version: 1, kind: 'character', id: 'custom', color: '#16a34a' } }
   }
   await React.act(render)
+  assert.equal(oldConnection.assistantId(), undefined, 'disposed view commands cannot authorize another Assistant')
   assert.equal(document.querySelector('xpertai-chatkit'), element, 'Assistant switching preserves the iframe host')
   assert.equal(received.at(-1).api.xpertId, 'second-bot')
   assert.equal(received.at(-1).theme.color.accent.primary, '#16a34a')
