@@ -31,6 +31,11 @@ export function setModelVisionSupport<T extends object>(model: T, supportsVision
     return model
 }
 
+/** The resolved host configuration also governs capability-aware middleware. */
+export function getModelVisionSupport(model: object): boolean | undefined {
+    return visionSupport.get(model)
+}
+
 export function setModelPreparesOwnMessages<T extends object>(model: T): T {
     modelsPreparingOwnMessages.add(model)
     return model
