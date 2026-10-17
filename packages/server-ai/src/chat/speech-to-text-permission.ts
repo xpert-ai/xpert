@@ -6,7 +6,6 @@ import {
 } from '@xpert-ai/server-core'
 import {
     Permissions,
-    RequestContext as PluginRequestContext,
     RequirePermissionOperation,
     SPEECH_TO_TEXT_PERMISSION_SERVICE_TOKEN,
     SPEECH_TO_TEXT_SERVICE_TOKEN,
@@ -15,11 +14,8 @@ import {
     SpeechToTextTranscribeInput,
     SpeechToTextTranscribeResult
 } from '@xpert-ai/plugin-sdk'
-import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/common'
-import type { IApiPrincipal } from '@xpert-ai/contracts'
-import { SecretTokenBindingType } from '@xpert-ai/contracts'
+import { Injectable } from '@nestjs/common'
 import { SpeechToTextService } from './speech-to-text.service'
-import { PublishedXpertAccessService } from '../xpert'
 
 const SPEECH_TO_TEXT_ALL_OPERATIONS = ['transcribe'] as const
 function resolveSpeechToTextOperations(permissions: Permissions): Set<SpeechToTextPermissionOperation> {
@@ -47,73 +43,12 @@ function createGuardedSpeechToTextPermissionService(
 
 @Injectable()
 export class PluginSpeechToTextPermissionService implements SpeechToTextPermissionService {
-    constructor(
-        private readonly speechToTextService: SpeechToTextService,
-        private readonly publishedXpertAccessService: PublishedXpertAccessService
-    ) {}
+    constructor(private readonly speechToTextService: SpeechToTextService) {}
 
     @RequirePermissionOperation('speech_to_text', 'transcribe')
     async transcribe(input: SpeechToTextTranscribeInput): Promise<SpeechToTextTranscribeResult> {
-        const tenantId = this.normalizeString(input.tenantId) || PluginRequestContext.currentTenantId()
-        if (!tenantId) {
-            return this.speechToTextService.transcribe(input)
-        }
-
-        const actor = PluginRequestContext.currentUser()
-        if (!actor?.id) {
-            throw new BadRequestException('speech_to_text_actor_required')
-        }
-        if (this.normalizeString(actor.tenantId) !== tenantId) {
-            throw new ForbiddenException('speech_to_text_actor_tenant_mismatch')
-        }
-        const organizationId = this.normalizeString(input.organizationId)
-        const currentOrganizationId = this.normalizeString(PluginRequestContext.getOrganizationId())
-        if (organizationId && currentOrganizationId && organizationId !== currentOrganizationId) {
-            throw new ForbiddenException('speech_to_text_actor_organization_mismatch')
-        }
-
-        await this.assertTargetXpertAccess(input, organizationId)
+        // The shared service authorizes before model access for both plugin and HTTP callers.
         return this.speechToTextService.transcribe(input)
-    }
-
-    private validateTargetXpertId(input: SpeechToTextTranscribeInput): void {
-        if (!this.normalizeString(input.xpertId)) {
-            throw new BadRequestException('speech_to_text_xpert_id_required')
-        }
-    }
-
-    private resolveCurrentApiPrincipal(): IApiPrincipal | null {
-        return PluginRequestContext.currentApiPrincipal() as IApiPrincipal | null
-    }
-
-    private async assertTargetXpertAccess(input: SpeechToTextTranscribeInput, organizationId: string): Promise<void> {
-        this.validateTargetXpertId(input)
-        const xpertId = this.normalizeString(input.xpertId)
-        const principal = this.resolveCurrentApiPrincipal()
-        const scope = principal?.resourceScope
-
-        if (scope?.kind === 'assistant') {
-            if (this.normalizeString(scope.xpertId) !== xpertId) {
-                throw new ForbiddenException('speech_to_text_xpert_delegation_mismatch')
-            }
-
-            const isPublicXpertSession =
-                principal.principalType === 'client_secret' &&
-                principal.clientSecretBindingType === SecretTokenBindingType.PUBLIC_XPERT
-            if (!principal.requestedUserId && !isPublicXpertSession) {
-                const xpert = await this.publishedXpertAccessService.getPublishedXpertInTenant(xpertId)
-                if (organizationId && this.normalizeString(xpert.organizationId) !== organizationId) {
-                    throw new ForbiddenException('speech_to_text_xpert_organization_mismatch')
-                }
-                return
-            }
-        }
-
-        await this.publishedXpertAccessService.getAccessiblePublishedXpert(xpertId)
-    }
-
-    private normalizeString(value: unknown): string {
-        return typeof value === 'string' ? value.trim() : ''
     }
 }
 

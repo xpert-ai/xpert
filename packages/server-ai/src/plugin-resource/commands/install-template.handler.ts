@@ -123,6 +123,12 @@ export class PluginTemplateInstallHandler implements ICommandHandler<PluginTempl
                 providers
             )
         }
+        if (command.basic?.speechToTextModel) {
+            draft.team.features = {
+                ...draft.team.features,
+                speechToText: { enabled: true, copilotModel: command.basic.speechToTextModel }
+            }
+        }
         await this.capabilities.configureRealtimeVoice(draft, command.basic?.realtimeVoice)
         if (command.basic?.prompt !== undefined) updateAssistantPrompt(draft, command.basic.prompt)
         const importOptions: XpertImportCommandOptions = {

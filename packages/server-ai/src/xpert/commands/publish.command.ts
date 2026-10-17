@@ -1,5 +1,5 @@
 import { ICommand } from '@nestjs/cqrs'
-import type { TXpertPublishMarketplaceInput } from '@xpert-ai/contracts'
+import type { TCopilotModel, TXpertPublishMarketplaceInput } from '@xpert-ai/contracts'
 
 /**
  * Release and if create a new version
@@ -16,6 +16,12 @@ export class XpertPublishCommand implements ICommand {
         public readonly businessAreaId?: string | null,
         /** Internal installer recovery: finish publication without touching the graph or a later draft. */
         public readonly resumePublished = false,
-        public readonly expectedPublishedVersion?: string
+        public readonly expectedPublishedVersion?: string,
+        /** Internal app repair: bind a speech model to the published graph only when no draft exists. */
+        public readonly speechToTextModel?: TCopilotModel
     ) {}
+
+    static repairSpeechModel(id: string, model: TCopilotModel): XpertPublishCommand {
+        return new XpertPublishCommand(id, false, undefined, '', undefined, undefined, false, undefined, model)
+    }
 }

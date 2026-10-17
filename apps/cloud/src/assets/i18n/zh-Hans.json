@@ -2627,6 +2627,7 @@
         "ScreenshotAlt": "{{app}} 的应用截图",
         "EnableApp": "启用 {{app}}",
         "EmbeddingModel": "Embedding 模型",
+        "SpeechToTextModel": "语音转写模型",
         "VisionModel": "视觉理解模型",
         "GoToModelSettings": "前往模型配置",
         "DetailsUnavailable": "应用详情不可用",
@@ -2656,6 +2657,7 @@
           "PrimaryModelRequired": "当前组织还没有可用的主语言模型，请先完成模型配置。",
           "EmbeddingModelRequired": "当前组织还没有可用的 Embedding 模型，请先完成模型配置。",
           "VisionModelRequired": "当前组织还没有支持视觉理解的模型，请先完成模型配置。",
+          "SpeechToTextModelRequired": "当前组织没有可用的语音转写模型，请先配置模型。",
           "ScopeNotSupported": "此作用域的应用初始化尚未开放。"
         },
         "Status": {

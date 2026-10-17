@@ -53,6 +53,8 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "ApplicationSpeechModelRequired": "Select an available speech-to-text model for this application in the current organization.",
+        "ApplicationSpeechModelDraftPending": "This Assistant has an unpublished draft. Configure its speech-to-text model and publish it in Studio before retrying.",
         "InvalidUserDirectoryQuery": "Provide valid user filters and pagination.",
         "AssistantSharingForbidden": "You cannot manage sharing for this assistant in the current organization.",
         "AssistantSharingNotFound": "The assistant was not found in the current organization.",

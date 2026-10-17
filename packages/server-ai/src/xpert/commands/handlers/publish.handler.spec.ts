@@ -1,7 +1,7 @@
 jest.mock('../../publication/publication-persistence', () => ({
     XpertPublicationPersistence: class XpertPublicationPersistence {}
 }))
-import { BadRequestException } from '@nestjs/common'
+import { BadRequestException, ConflictException } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { Test } from '@nestjs/testing'
@@ -190,6 +190,64 @@ describe('XpertPublishHandler', () => {
 
     afterEach(() => {
         jest.clearAllMocks()
+    })
+
+    describe('application speech-model repair', () => {
+        const model = { copilotId: 'speech-provider', model: 'speech', modelType: AiModelTypeEnum.SPEECH2TEXT }
+        const published = { draft: null, publishAt: new Date(), version: '1', graph: { nodes: [], connections: [] } }
+
+        it('publishes the selected model from the current graph through the normal authorized transaction', async () => {
+            const f = createHandler(published)
+            const result = await f.handler.execute(XpertPublishCommand.repairSpeechModel(f.xpert.id, model))
+            expect(f.xpertService.assertCanAuthorById).toHaveBeenCalledWith(f.xpert.id)
+            expect(f.xpertService.validate).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    team: expect.objectContaining({
+                        features: expect.objectContaining({ speechToText: { enabled: true, copilotModel: model } })
+                    })
+                }),
+                expect.anything()
+            )
+            expect(f.persistence.run.mock.calls[0][0].draft).toBeNull()
+            expect(result.features.speechToText).toEqual({ enabled: true, copilotModel: model })
+            expect(result.id).toBe(f.xpert.id)
+            expect(result.draft).toBeNull()
+        })
+
+        it('refuses an existing draft and leaves it untouched', async () => {
+            const draft: TXpertTeamDraft = { team: { title: 'Unreviewed draft' }, nodes: [], connections: [] }
+            const f = createHandler({ ...published, draft })
+            await expect(f.handler.execute(XpertPublishCommand.repairSpeechModel(f.xpert.id, model))).rejects.toThrow(
+                ConflictException
+            )
+            expect(f.xpert.draft).toEqual(draft)
+            expect(f.persistence.run).not.toHaveBeenCalled()
+            expect(f.xpertService.save).not.toHaveBeenCalled()
+        })
+
+        it('propagates a concurrent-edit rejection without saving or activating the repair', async () => {
+            const f = createHandler(published)
+            f.persistence.run.mockRejectedValue(new ConflictException('stale'))
+            await expect(f.handler.execute(XpertPublishCommand.repairSpeechModel(f.xpert.id, model))).rejects.toThrow(
+                ConflictException
+            )
+            expect(f.xpertService.save).not.toHaveBeenCalled()
+            expect(f.eventEmitter.emitAsync).not.toHaveBeenCalled()
+        })
+
+        it('rechecks authoring permission and does not overwrite a model repaired by another request', async () => {
+            const f = createHandler({
+                ...published,
+                features: { speechToText: { enabled: true, copilotModel: model } }
+            } as Partial<Xpert>)
+            await f.handler.execute(XpertPublishCommand.repairSpeechModel(f.xpert.id, { ...model, model: 'other' }))
+            expect(f.xpertService.assertCanAuthorById).toHaveBeenCalledWith(f.xpert.id)
+            expect(f.persistence.run).not.toHaveBeenCalled()
+            f.xpertService.assertCanAuthorById.mockRejectedValue(new Error('denied'))
+            await expect(f.handler.execute(XpertPublishCommand.repairSpeechModel(f.xpert.id, model))).rejects.toThrow(
+                'denied'
+            )
+        })
     })
 
     describe('published model inheritance', () => {

@@ -12,6 +12,7 @@ export const applicationInitializeSchema = z
         operationId: identifier,
         embeddingModelId: identifier.optional(),
         visionModelId: identifier.optional(),
+        speechToTextModelId: identifier.optional(),
         toolsets: z
             .array(z.object({ key: identifier, toolsetId: z.string().uuid() }).strict())
             .max(100)
@@ -26,6 +27,7 @@ export const applicationInitializeSchema = z
         operationId: input.operationId,
         ...(input.embeddingModelId ? { embeddingModelId: input.embeddingModelId } : {}),
         ...(input.visionModelId ? { visionModelId: input.visionModelId } : {}),
+        ...(input.speechToTextModelId ? { speechToTextModelId: input.speechToTextModelId } : {}),
         ...(input.toolsets
             ? { toolsets: input.toolsets.map((item) => ({ key: item.key, toolsetId: item.toolsetId })) }
             : {})

@@ -928,6 +928,7 @@
         "ScreenshotAlt": "Screenshot of {{app}}",
         "EnableApp": "Enable {{app}}",
         "EmbeddingModel": "Embedding model",
+        "SpeechToTextModel": "Speech-to-text model",
         "VisionModel": "Vision model",
         "GoToModelSettings": "Go to model settings",
         "DetailsUnavailable": "Application details are unavailable",
@@ -957,6 +958,7 @@
           "PrimaryModelRequired": "The current organization has no available primary language model. Configure a model first.",
           "EmbeddingModelRequired": "The current organization has no available embedding model. Configure a model first.",
           "VisionModelRequired": "The current organization has no model with vision support. Configure a model first.",
+          "SpeechToTextModelRequired": "The current organization has no available speech-to-text model. Configure a model first.",
           "ScopeNotSupported": "Application initialization is not available for this scope yet."
         },
         "Status": {

@@ -524,6 +524,7 @@
         "ScreenshotAlt": "{{app}} 的應用程式截圖",
         "EnableApp": "啟用 {{app}}",
         "EmbeddingModel": "Embedding 模型",
+        "SpeechToTextModel": "語音轉寫模型",
         "VisionModel": "視覺理解模型",
         "GoToModelSettings": "前往模型設定",
         "DetailsUnavailable": "應用程式詳情不可用",
@@ -553,6 +554,7 @@
           "PrimaryModelRequired": "目前組織還沒有可用的主要語言模型，請先完成模型設定。",
           "EmbeddingModelRequired": "目前組織還沒有可用的 Embedding 模型，請先完成模型設定。",
           "VisionModelRequired": "目前組織還沒有支援視覺理解的模型，請先完成模型設定。",
+          "SpeechToTextModelRequired": "目前組織沒有可用的語音轉寫模型，請先設定模型。",
           "ScopeNotSupported": "此作用域的應用程式初始化尚未開放。"
         },
         "Status": {

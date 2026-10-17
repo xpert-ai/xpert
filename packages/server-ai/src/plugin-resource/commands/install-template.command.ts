@@ -17,6 +17,7 @@ export type PluginTemplateInstallBasic = {
     description?: string
     avatar?: TAvatar
     copilotModel?: TCopilotModel
+    speechToTextModel?: TCopilotModel
     workspaceDataScope?: XpertWorkspaceDataScope
 }
 

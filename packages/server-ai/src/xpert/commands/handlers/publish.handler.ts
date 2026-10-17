@@ -38,6 +38,7 @@ import { XpertPrincipalService } from '../../xpert-principal.service'
 import { t } from 'i18next'
 import { normalizeAssistantAllowedModels } from '../../assistant-model-selection.util'
 import { PublicationStore, XpertPublicationPersistence } from '../../publication/publication-persistence'
+import { createSpeechModelRepairDraft, hasApplicationSpeechModel } from '../../publication/speech-model-repair'
 
 @CommandHandler(XpertPublishCommand)
 export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand> {
@@ -86,7 +87,11 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
         }
         if (xpert.options?.pendingPublication)
             throw new ConflictException(t('server-ai:Error.XpertPublicationActivationPending'))
-        if (!xpert.draft) {
+        if (command.speechToTextModel && hasApplicationSpeechModel(xpert)) return xpert
+        const sourceDraft = command.speechToTextModel
+            ? createSpeechModelRepairDraft(xpert, command.speechToTextModel)
+            : xpert.draft
+        if (!sourceDraft) {
             throw new NotFoundException(`No draft found on Xpert '${xpert.name}'`)
         }
 
@@ -140,7 +145,7 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
         }
 
         // Check
-        const draft = structuredClone(xpert.draft)
+        const draft = structuredClone(sourceDraft)
         if (this.promptWorkflowService) {
             const commandProfile = draft.team.commandProfile ?? xpert.commandProfile
             if (commandProfile) {
