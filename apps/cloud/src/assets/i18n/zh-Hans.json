@@ -12744,5 +12744,9 @@
     "TargetSource": "目标模板来源",
     "CurrentSource": "当前模板来源",
     "SourceMigration": "模板来源迁移"
+  },
+  "ArtifactPresentation": {
+    "UnavailableHint": "正式版本或访问权限可能已变化，请重新打开以检查。",
+    "Reopen": "重新打开分享页"
   }
 }

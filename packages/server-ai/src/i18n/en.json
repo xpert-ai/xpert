@@ -1126,7 +1126,12 @@
         "TemplateToolBindingRequired": "Bind template tool {{key}} to exactly one installed toolset before synchronizing.",
         "XpertPublicationStale": "The Assistant changed during publication. Reload it before retrying.",
         "XpertPublicationInvalid": "Invalid publication recovery request.",
-        "XpertPublicationActivationPending": "The version was committed but activation is pending. Resume publication without creating another version."
+        "XpertPublicationActivationPending": "The version was committed but activation is pending. Resume publication without creating another version.",
+        "ArtifactPresentationOperationDenied": "This operation is not available in a read-only presentation.",
+        "ArtifactPresentationChanged": "The published version changed. Reopen the shared page to load it.",
+        "ArtifactPresentationUnavailable": "The presentation plugin is unavailable.",
+        "ArtifactPresentationAccessDenied": "An authenticated team share is required.",
+        "ArtifactPresentationInputInvalid": "Invalid presentation request."
     },
     "Mcp": {
         "Test": {

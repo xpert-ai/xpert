@@ -130,6 +130,8 @@ export interface AnalyticsProviderDescriptor {
   dataSourceTypes: string[]
   /** Supported operation/version pairs; providers must enforce read-only behavior at the source. */
   operations: Array<{ name: string; contractVersion: number; readOnly: true }>
+  /** Declares a provider-wide collaboration constraint; does not grant source or file access. */
+  sharing?: { mode: 'viewer_permissions' | 'owner_only'; reasonCode?: string }
   /** Optional new source type and configuration schema, never connection values; omit for existing types. */
   connectionType?: { type: string; name: string; configuration: Record<string, JSONValue> }
 }

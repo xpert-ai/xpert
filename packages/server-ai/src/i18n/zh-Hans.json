@@ -1126,7 +1126,12 @@
         "TemplateToolBindingRequired": "同步前请将模板工具 {{key}} 绑定到唯一的已安装工具集。",
         "XpertPublicationStale": "数字专家在发布期间已发生变更，请重新读取后重试。",
         "XpertPublicationInvalid": "发布恢复请求无效。",
-        "XpertPublicationActivationPending": "版本已提交，但激活尚未完成。请恢复发布，不要重复创建版本。"
+        "XpertPublicationActivationPending": "版本已提交，但激活尚未完成。请恢复发布，不要重复创建版本。",
+        "ArtifactPresentationOperationDenied": "只读展示不支持此操作。",
+        "ArtifactPresentationChanged": "正式版本已变化，请重新打开分享页。",
+        "ArtifactPresentationUnavailable": "展示插件不可用。",
+        "ArtifactPresentationAccessDenied": "需要经过认证的团队分享权限。",
+        "ArtifactPresentationInputInvalid": "展示请求无效。"
     },
     "Mcp": {
         "Test": {
