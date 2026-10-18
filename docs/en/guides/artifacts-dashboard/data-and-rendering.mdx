@@ -63,7 +63,9 @@ await live.query('sales', { region: null })
 await live.refresh('sales')
 ```
 
-Place this snippet inside an async function. IDs must come from actual previews. Subscribe before the first query so toolbar refresh updates the page. `bindSelect` maintains typed select values from received rows; the candidate list does not grant additional access.
+Place this snippet inside an async function. IDs must come from actual previews. Subscribe before the first query so toolbar refresh updates the page. `bindSelect` maintains typed select values from received rows; the candidate list does not grant additional access. `bindSelect` queries only one Binding. A shared filter must send the same typed controls to every affected Binding and update each chart, total and detail table; identical control IDs do not broadcast queries automatically.
+
+Mark native data-filter `<select>` elements with `data-dashboard-control="<controlId>"`; mark purely visual options such as chart type with `data-dashboard-presentation`. Preflight checks that data filters actually query their associated Bindings instead of only filtering cached browser rows. Previously saved pages still open; add these markers when editing and saving them again. Custom controls still require separate acceptance testing.
 
 ## Frontend dependencies
 
@@ -77,4 +79,4 @@ The browser submits a saved target, Binding ID and declared controls. The servic
 
 HTML executes under `sandbox="allow-scripts"` and a no-network CSP. Inline JavaScript is allowed; CSP blocks external scripts and `eval`. Libraries do not unlock parent DOM, Web Storage, direct networking or general host Actions. Page code can change its display, not its data permissions.
 
-Before an HTML save, the same document SDK and dependency bytes run with real preview data. Initial-render preflight does not certify business semantics or exhaustively test interactions. Page-authored polling can call `live.refresh`; there is no unified automatic-refresh scheduler or data change-stream push.
+Before an HTML save, the same document SDK and dependency bytes run with real preview data. Preflight requires an initial query for every declared Binding, exercises a bounded set of visible, enabled native selects and buttons, and checks select value types, shared-control propagation and runtime errors during toolbar refresh. These interactions reuse the default preview data; actual filtered results require separate query verification. Preflight does not certify business semantics or exhaustively test interactions. Page-authored polling can call `live.refresh(bindingId)`; there is no unified automatic-refresh scheduler or data change-stream push.

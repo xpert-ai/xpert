@@ -61,7 +61,9 @@ await live.query('sales', { region: null })
 await live.refresh('sales')
 ```
 
-该片段放在异步函数中；Binding、字段和控件必须来自实际预览。订阅要先于首次查询，避免工具栏刷新无法更新页面。`bindSelect` 可维护带类型的下拉选项；候选值来自已返回数据，不是新的数据访问权限。
+该片段放在异步函数中；Binding、字段和控件必须来自实际预览。订阅要先于首次查询，避免工具栏刷新无法更新页面。`bindSelect` 可维护带类型的下拉选项；候选值来自已返回数据，不是新的数据访问权限。`bindSelect` 只查询一个 Binding；跨来源共用筛选须向每个受影响 Binding 传递相同的带类型控件值，并分别更新图表、总额和明细。多个 Binding 使用同名 controlId 不会自动广播查询。
+
+原生数据筛选 `<select>` 使用 `data-dashboard-control="<controlId>"` 显式关联声明的控件；只改变图表类型等展示选项使用 `data-dashboard-presentation`。预检会检查筛选是否实际触发关联 Binding 查询，不能仅过滤浏览器已有行。现有已保存页面仍可打开；修改后重新保存时，应补齐这些标记。自定义控件仍需单独验收。
 
 ## 前端依赖
 
@@ -75,4 +77,4 @@ await live.refresh('sales')
 
 HTML 在 `sandbox="allow-scripts"` 和无网络 CSP 下运行。允许内联 JavaScript；外部脚本和 `eval` 被 CSP 禁止。依赖注入不会开放父 DOM、Web Storage、直接网络或宿主通用 Actions。页面可以改变自己的显示，但不能扩大数据权限。
 
-HTML 保存前使用相同文档 SDK、依赖快照和真实预览数据执行初始渲染预检。预检不是业务口径认证，也不穷举全部交互和筛选组合。页面轮询可调用 `live.refresh`；目前没有统一自动刷新调度或数据变更推送。
+HTML 保存前使用相同文档 SDK、依赖快照和真实预览数据执行预检：每个声明 Binding 必须发出初始查询，在限定数量的可见、可用原生下拉框和按钮上执行交互，检查下拉值类型、共享控件传播与工具栏刷新时的运行错误。这些交互复用默认预览数据，实际筛选结果仍需通过真实查询单独验证。预检不是业务口径认证，也不穷举全部交互和筛选组合。页面轮询可调用 `live.refresh(bindingId)`；目前没有统一自动刷新调度或数据变更推送。
