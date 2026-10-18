@@ -2,16 +2,11 @@ import { AIPermissionsEnum, PermissionsEnum, RolesEnum } from '@xpert-ai/contrac
 
 export const DEPRECATED_ROLE_PERMISSIONS = [
   PermissionsEnum.ADMIN_DASHBOARD_VIEW,
-  PermissionsEnum.ORG_INVITE_VIEW,
   PermissionsEnum.VIEW_ALL_EMAILS,
   PermissionsEnum.ORG_DEMO_EDIT,
-  AIPermissionsEnum.KNOWLEDGEBASE_EDIT,
   AIPermissionsEnum.COPILOT_VIEW,
-  PermissionsEnum.DATA_SOURCE_VIEW,
   PermissionsEnum.CHANGE_SELECTED_ORGANIZATION,
-  PermissionsEnum.SUPER_ADMIN_EDIT,
-  PermissionsEnum.ACCESS_DELETE_ACCOUNT,
-  PermissionsEnum.ACCESS_DELETE_ALL_DATA
+  PermissionsEnum.ACCESS_DELETE_ACCOUNT
 ] as const
 
 const DEPRECATED_ROLE_PERMISSION_SET = new Set<string>(DEPRECATED_ROLE_PERMISSIONS)
