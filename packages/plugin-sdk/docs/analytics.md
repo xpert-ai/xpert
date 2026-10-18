@@ -92,3 +92,11 @@ The generic [isolated HTML document host](artifact-documents.md) provides the if
 [Workspace live script queries](workspace-dataset-pipelines.md) documents the implemented `@xpert-ai/plugin-analytics-workspace-script` example. Its Python/JavaScript entrypoints, file/source aliases, CSV helpers and execution evidence belong to the plugin. The platform supplies the reusable Analytics, Workspace Files, Artifacts and Sandbox Jobs capabilities, including execution-time invocation and parent deadline/cancellation propagation.
 
 Each query executes the script against current authorized inputs and returns the same Dataset contract to either presentation mode. Script or dependency reuse must not turn a dashboard refresh into reuse of a previous result. Deployment requires compatible SDK/contracts exports, a compute runtime artifact and a matching Runtime Binding; local source validation does not establish published-package compatibility.
+
+## Declarative Workspace files
+
+The `file.table` provider in `@xpert-ai/plugin-analytics-files` registers the `workspace-files` source type. Its administrator-owned catalog specifies authorized Workspace file references, explicit CSV/JSON/XLSX readers, field types and business descriptions. Provider discovery returns its native query schema and real bounded previews. Queries select/filter/group/aggregate/sort; neither Binding payloads nor controls may replace file references or reader options.
+
+The plugin reuses `WorkspaceFilesRuntimeCapability` for file access and `ProjectAccessRuntimeCapability` for human Project membership. Assistant files retain the exact published Assistant ACL, and private file references bind the current viewer. Parsing, format dependencies, decimal aggregation and Worker execution remain plugin-owned. No parser or file-query dialect is added to the platform.
+
+Each execution rereads the current source and records a content digest. Input limits fail closed before partial-input aggregation; output limits preserve Dataset completeness. Artifact history pins declarations, not file bytes. See the plugin's bilingual configuration and verification documentation for formula-cache, type and format limits.

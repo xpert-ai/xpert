@@ -28,6 +28,9 @@ Pages use stable field IDs, not display labels. `decimal` and `int64` remain exa
 | `mcp.tool`               | Approved tools on an existing platform MCP connection              | `@xpert-ai/plugin-analytics-mcp`              |
 | `rest.json`              | Approved read-only JSON operations on existing OpenAPI connections | `@xpert-ai/plugin-analytics-rest`             |
 | `workspace_script.query` | An exact registered script Artifact/version                        | `@xpert-ai/plugin-analytics-workspace-script` |
+| `file.table`             | Declarative CSV/JSON/XLSX selection, filtering and aggregation     | `@xpert-ai/plugin-analytics-files`            |
+
+`file.table` reuses WorkspaceFiles with an administrator-approved file catalog, explicit formats and typed business columns. Every refresh rereads the current file and rechecks viewer permissions; Bindings and controls cannot replace paths, reader configuration or identity. CSV/JSON/XLSX support filtering, grouping, sum/count/min/max and sorting; complex preparation and cross-source composition remain script tasks. XLSX formulas are never evaluated; explicit cached mode only reads existing results. Artifact versions pin the query, not source bytes. Oversized input fails; output truncation retains completeness metadata.
 
 Providers implement discovery and execution. The platform validates registration, source access, parameters and results. Discovery returns `items`, `inspectRequest`, `nextRequest` and a native `queryContract`. Agents must use returned identities and syntax instead of guessing from names.
 

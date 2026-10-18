@@ -28,6 +28,9 @@ description: '不同查询格式如何通过 Dataset/Binding 接入标准图表�
 | `mcp.tool`               | 平台现有 MCP 连接中获准查询的工具        | `@xpert-ai/plugin-analytics-mcp`              |
 | `rest.json`              | 已有 OpenAPI 连接中批准的只读 JSON 操作  | `@xpert-ai/plugin-analytics-rest`             |
 | `workspace_script.query` | 已登记脚本定义的精确 Artifact/version    | `@xpert-ai/plugin-analytics-workspace-script` |
+| `file.table`             | CSV/JSON/XLSX 声明式筛选、聚合与排序     | `@xpert-ai/plugin-analytics-files`            |
+
+`file.table` 复用 WorkspaceFiles，通过管理员配置的文件目录、显式格式与字段口径提供声明式查询。每次刷新重新读取文件并检查当前访问者权限，文件路径、读取配置与身份不能由 Binding 或控件覆盖。支持 CSV/JSON/XLSX 的筛选、分组、sum/count/min/max 和排序；复杂清洗及跨来源组合继续使用脚本。XLSX 不执行公式，显式缓存模式仅使用已有结果。Artifact 版本固定查询定义，不冻结源文件数据。输入超限直接失败，返回结果截断保留完整性标记。
 
 Provider 实现发现与执行，平台校验注册、数据源权限、参数和返回结果。发现返回 `items`、`inspectRequest`、`nextRequest` 以及原生 `queryContract`；Agent 必须使用返回的身份和格式，不根据名称猜测来源。
 
