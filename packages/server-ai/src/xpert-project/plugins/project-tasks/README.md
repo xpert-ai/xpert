@@ -24,6 +24,20 @@ The project's general agent explicitly uses `callerType: project_agent` and `age
 
 Creation and update tools use strict input schemas with explicit bounds. All tools provide localized `metadata.toolName` values and detailed validation errors. The host propagates the middleware icon, and tool events use the stable provider name `project-tasks`.
 
+## Plugin task projections
+
+`platform.project.tasks.graph(context)` only reads saved tasks and current execution facts. Plugins call `refresh(context)` after committing domain changes; the `{ status: 'queued' }` response confirms a persisted refresh request, not completion of task synchronization. The graph can briefly show the previous state while the worker runs. Refresh authorization and the worker's access check both use the trusted tenant, organization and user from that request.
+
+Refresh uses the platform Managed Queue (`@xpert-ai/platform / project-task-projection / refresh`) and its existing Redis connections, identity restoration, retries, stalled-job recovery and shutdown draining. Each acknowledged request has a unique lightweight wake-up job; a 250 ms delay and scoped Redis revision/completion markers coalesce expensive snapshots. A fixed project job ID is deliberately avoided: BullMQ would drop refreshes arriving while that job is active. Redundant deliveries skip already synchronized revisions. Redis keys include the environment queue prefix, tenant, organization and project; coalescing markers expire after seven days and can be reconstructed from retained jobs.
+
+Each API limits this handler to one local execution. The existing RedisLockService additionally protects each project across replicas with a renewable 120-second lease. Plugin `snapshot` and `linked` callbacks run outside database transactions and have 30-second wait limits. Task and execution writes use a short transaction and its own manager, with a 2-second lock timeout and 5-second statement timeout. After locking the project row, the writer verifies the Redis lease and refresh revision, and verifies them again before committing. Redis checks are bounded and fail closed. This ordering prevents an expired worker from overwriting its successor; no plugin callback acquires another database connection while holding the project lock.
+
+Failures preserve the saved graph, retain scoped diagnostics when possible, and throw to the platform queue (60 attempts with 5-second backoff). The next successful synchronization clears its diagnostic. Retries beyond that budget require another refresh. Callback timeouts discard late snapshots but cannot cancel arbitrary plugin work. Redis outages return a synchronization-status warning without hiding saved tasks. Recovery depends on the platform queue's Redis persistence; it does not replay Agent executions.
+
+No new database table or migration is required. Deploy the host before plugins that use `refresh`; Bid intentionally does not fall back to write-on-read `graph`. A domain write whose enqueue fails remains saved and needs a subsequent refresh request. `{ status: 'queued' }` is returned only after the queue accepts the wake-up job.
+
+The integration suite is `services/task-projection/project-task-projection.integration.spec.ts`. Set `XPERT_PROJECTION_TEST_DATABASE_URL` and `XPERT_PROJECTION_TEST_REDIS_URL` to disposable test services. It uses its own PostgreSQL schema with a two-connection pool, flushes the test Redis database, and exercises real platform queue delivery, coalescing, access restoration, trailing refresh, lease takeover, rollback and retries.
+
 ## Migration and scope
 
 `ProjectToolset`, `CreateProjectToolsetCommand`, its handler, and the Toolset barrel exports have been removed. The original six task management and delegation tool names remain stable; result acceptance adds `project_decide_task`. External code importing the old class or command should configure the `project-tasks` middleware instead. Direct Project-to-Toolset binding remains unsupported.

@@ -12,43 +12,51 @@ import { t } from 'i18next'
 // Keep schema-dialect compatibility without coercing, removing or defaulting input values.
 // allErrors gathers the full failure count; inputDiagnostics bounds only the returned details.
 const options = { strict: false, validateSchema: false, allErrors: true }
-const engines = {
-    draft7: addFormats(new Ajv(options)),
-    draft2019: addFormats(new Ajv2019(options)),
-    draft2020: addFormats(new Ajv2020(options))
+const engineFactories = {
+    draft7: () => addFormats(new Ajv(options)),
+    draft2019: () => addFormats(new Ajv2019(options)),
+    draft2020: () => addFormats(new Ajv2020(options))
 }
-const validator: jsonSchemaValidator = {
+const engines = {
+    draft7: engineFactories.draft7(),
+    draft2019: engineFactories.draft2019(),
+    draft2020: engineFactories.draft2020()
+}
+const createValidator = (isolated: boolean): jsonSchemaValidator => ({
     getValidator<T>(schema: JsonSchemaType) {
         const dialect =
             typeof schema.$schema === 'string'
                 ? schema.$schema.replace(/#$/, '').replace(/^http:/, 'https:')
                 : undefined
-        const engine =
+        const engineKey =
             !dialect || dialect === 'https://json-schema.org/draft/2020-12/schema'
-                ? engines.draft2020
+                ? 'draft2020'
                 : dialect === 'https://json-schema.org/draft/2019-09/schema'
-                  ? engines.draft2019
+                  ? 'draft2019'
                   : dialect === 'https://json-schema.org/draft-07/schema' ||
                       dialect === 'https://json-schema.org/draft-06/schema'
-                    ? engines.draft7
+                    ? 'draft7'
                     : null
-        if (!engine)
+        if (!engineKey)
             throw new Error(
                 t('server-ai:Error.McpUnsupportedSchemaDialect', {
                     dialect: dialect?.slice(0, 200),
                     defaultValue: 'Unsupported JSON Schema dialect: {{dialect}}.'
                 })
             )
+        // Remote schemas can reuse $id across servers/refreshes; never retain them in the shared registry.
+        const engine = isolated ? engineFactories[engineKey]() : engines[engineKey]
         const validate = engine.compile<T>(schema)
         return (input: unknown) =>
             validate(input)
                 ? { valid: true, data: input, errorMessage: undefined }
                 : { valid: false, data: undefined, errorMessage: inputDiagnostics(validate.errors ?? []) }
     }
-}
+})
+const validator = createValidator(false)
 
-export function mcpInputSchema(schema: JsonSchemaType) {
-    return fromJsonSchema(schema, validator)
+export function mcpInputSchema(schema: JsonSchemaType, options?: { isolated?: boolean }) {
+    return fromJsonSchema(schema, options?.isolated ? createValidator(true) : validator)
 }
 
 function inputDiagnostics(errors: ErrorObject[]) {

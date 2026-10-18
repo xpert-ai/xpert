@@ -6,6 +6,7 @@ import type { Tool } from '@modelcontextprotocol/sdk/types.js'
 import { ListToolsResultSchema } from '@modelcontextprotocol/sdk/types.js'
 import type { HITLRequest, HITLResponse } from '@xpert-ai/contracts'
 import { z } from 'zod'
+import { t } from 'i18next'
 import {
     MCP_CLIENT_CAPABILITIES_META_KEY,
     MCP_TASK_EXTENSION_ID,
@@ -64,19 +65,41 @@ export class McpConsumerTools {
         this.taskRunner = runner
     }
 
-    async list(serverName?: string): Promise<Tool[]> {
+    async list(
+        serverName?: string,
+        options?: { signal?: AbortSignal; maxTools?: number; maxPages?: number }
+    ): Promise<Tool[]> {
+        const seen = new Set<string>()
+        let pages = 0
+        const checkPage = (size: number, cursor?: string) => {
+            options?.signal?.throwIfAborted()
+            pages++
+            if (
+                size > (options?.maxTools ?? 10000) ||
+                (cursor && pages >= (options?.maxPages ?? 100)) ||
+                (cursor && seen.has(cursor))
+            )
+                throw new Error(
+                    t('server-ai:Error.McpToolDiscoveryLimit', {
+                        defaultValue: 'MCP tool discovery exceeded its limit or repeated a cursor'
+                    })
+                )
+            if (cursor) seen.add(cursor)
+        }
         if (this.connection.usesModernHttp(serverName)) {
             const tools: Tool[] = []
             let cursor: string | undefined
             do {
+                options?.signal?.throwIfAborted()
                 const response = await this.connection.requestExtension(
                     serverName,
                     { method: 'tools/list', params: cursor ? { cursor } : {} },
                     ListToolsResultSchema,
-                    { routing: { method: 'tools/list' } }
+                    { routing: { method: 'tools/list' }, signal: options?.signal }
                 )
                 tools.push(...response.tools)
                 cursor = response.nextCursor
+                checkPage(tools.length, cursor)
             } while (cursor)
             return tools
         }
@@ -84,9 +107,11 @@ export class McpConsumerTools {
         const tools: Tool[] = []
         let cursor: string | undefined
         do {
-            const response = await client.listTools(cursor ? { cursor } : undefined)
+            options?.signal?.throwIfAborted()
+            const response = await client.listTools(cursor ? { cursor } : undefined, { signal: options?.signal })
             tools.push(...response.tools)
             cursor = response.nextCursor
+            checkPage(tools.length, cursor)
         } while (cursor)
         return tools
     }

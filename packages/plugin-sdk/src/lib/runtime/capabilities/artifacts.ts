@@ -165,6 +165,8 @@ export type ArtifactLinkRecord = ArtifactScopeInput & {
   versionMode: ArtifactLinkVersionMode
   slug: string
   publicUrl: string
+  /** Authenticated standalone presentation page; requires a registered presentation provider. */
+  presentationUrl?: string
   accessMode: ArtifactAccessMode
   status: ArtifactLinkStatus
   customPrincipals?: string[] | null

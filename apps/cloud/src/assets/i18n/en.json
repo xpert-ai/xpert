@@ -8076,5 +8076,9 @@
     "TargetSource": "Target template source",
     "CurrentSource": "Current template source",
     "SourceMigration": "Template source migration"
+  },
+  "ArtifactPresentation": {
+    "UnavailableHint": "The published version or your access may have changed. Reopen to check again.",
+    "Reopen": "Reopen shared page"
   }
 }

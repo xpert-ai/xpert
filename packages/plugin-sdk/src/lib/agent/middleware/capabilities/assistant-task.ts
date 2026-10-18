@@ -40,6 +40,12 @@ export type AgentMiddlewareExternalAssistantExpectation = {
   agentKey: string
 }
 
+export type AgentMiddlewarePublishedAgentTarget = {
+  requesterXpertId: string
+  expectation: AgentMiddlewareExternalAssistantExpectation
+}
+export type AgentMiddlewareResolvedAgent = { xpertId: string; workspaceId: string; agentKey: string }
+
 /** Resolve the executor from the requester's required, direct published external-Assistant connections. */
 export type AgentMiddlewareAssistantTaskTarget = {
   kind: 'external_assistant'
@@ -170,6 +176,13 @@ export type AgentMiddlewareAssistantTaskCancelResult = {
 
 /** Host Assistant Task API. Feature-detect optional methods before calling them. */
 export interface AgentMiddlewareAssistantTaskApi {
+  /** Resolve an Agent entrypoint in an accessible published Assistant in the requester's workspace. Ambiguous matches are rejected. */
+  resolvePublishedAgent?(input: AgentMiddlewarePublishedAgentTarget): Promise<AgentMiddlewareResolvedAgent>
+  /** Delegate a trusted plugin operation to the resolved resource with live access checks; preserve the original credential audience. */
+  withPublishedAgent?<T>(
+    input: AgentMiddlewarePublishedAgentTarget,
+    operation: (target: AgentMiddlewareResolvedAgent) => Promise<T>
+  ): Promise<T>
   /**
    * Verify that a running native delegate is the requester's bound external role.
    *

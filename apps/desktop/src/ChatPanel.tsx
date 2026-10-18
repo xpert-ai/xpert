@@ -149,19 +149,27 @@ export function ChatPanel({
       viewRail: { enabled: true },
       onClientCommand: groupId
         ? undefined
-        : createWorkbenchHandler(botId, config.webUrl, (session) => {
-            if (!disposed) {
-              activeAssistant = session.assistantId
-              activeThread = session.threadId
-              activeConversation =
-                session.conversationId && session.threadId
-                  ? { assistantId: session.assistantId, conversationId: session.conversationId }
-                  : undefined
-              setShellAssistantId(session.assistantId)
-              setThreadId(session.threadId)
-              remember()
+        : createWorkbenchHandler(
+            botId,
+            config.webUrl,
+            (session) => {
+              if (!disposed) {
+                activeAssistant = session.assistantId
+                activeThread = session.threadId
+                activeConversation =
+                  session.conversationId && session.threadId
+                    ? { assistantId: session.assistantId, conversationId: session.conversationId }
+                    : undefined
+                setShellAssistantId(session.assistantId)
+                setThreadId(session.threadId)
+                remember()
+              }
+            },
+            {
+              assistantId: () => (disposed ? undefined : activeAssistant),
+              connect: (request) => connectRef.current(request)
             }
-          })
+          )
     }
     const options: ChatKitOptions = {
       ...(!groupId ? shell.handlers : {}),

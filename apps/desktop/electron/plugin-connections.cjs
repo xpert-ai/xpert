@@ -2,6 +2,65 @@
 const { randomUUID } = require('node:crypto')
 
 module.exports.createPluginConnectionMethods = (ClientError) => ({
+  async preparePluginConnection(input) {
+    const generation = this.generation
+    const organizationId = this.profile?.organizationId
+    const assistantId = input?.assistantId
+    const provider = input?.provider
+    const current = () => generation === this.generation && organizationId === this.profile?.organizationId
+    const failure = (code) => ({ success: false, code })
+    if (
+      typeof assistantId !== 'string' ||
+      !/^[a-zA-Z0-9_.:-]{1,200}$/.test(assistantId) ||
+      typeof provider !== 'string' ||
+      !/^[a-z][a-z0-9_-]{0,63}$/.test(provider)
+    )
+      return failure('invalid_payload')
+    if (!organizationId || !this.bots.some((bot) => (bot.assistantId || bot.id) === assistantId))
+      return failure('forbidden')
+    const options = await this.request(
+      `/api/ai/assistants/${encodeURIComponent(assistantId)}/connectors?includeWorkspace=true`,
+      {
+        scope: 'organization'
+      }
+    )
+    if (!current()) return failure('context_changed')
+    const workspace = options.workspaceScope ?? options.scope
+    if (workspace?.type !== 'workspace' || typeof workspace.workspaceId !== 'string')
+      return failure('workspace_management_required')
+    // An already authorized shared binding is usable without management rights.
+    const active = options.items?.find(
+      (item) =>
+        item.provider === provider &&
+        (item.scope ?? options.scope)?.type === 'workspace' &&
+        (item.scope ?? options.scope)?.workspaceId === workspace.workspaceId &&
+        item.authorizationMode === 'shared' &&
+        item.status === 'active' &&
+        item.granted === true
+    )
+    if (active) return { success: true, data: { assistantId, bindingId: active.bindingId } }
+    if (!options.canManageWorkspace) return failure('workspace_management_required')
+    const query = new URLSearchParams({ scopeType: 'workspace', scopeId: workspace.workspaceId })
+    const definitions = await this.request(`/api/connector/definitions?${query}`, { scope: 'organization' })
+    if (!current()) return failure('context_changed')
+    if (!definitions.some((definition) => definition.provider === provider)) return failure('connector_not_installed')
+    const bindings = await this.request(`/api/connector/bindings?${query}`, { scope: 'organization' })
+    if (!current()) return failure('context_changed')
+    // Keep legacy personal bindings so the existing authorization page can explain migration.
+    const binding =
+      bindings.find((item) => item.provider === provider) ??
+      (await this.request('/api/connector/bindings', {
+        scope: 'organization',
+        method: 'POST',
+        body: {
+          scope: { type: 'workspace', workspaceId: workspace.workspaceId },
+          provider,
+          authorizationMode: 'shared'
+        }
+      }))
+    if (!current()) return failure('context_changed')
+    return { success: true, data: { assistantId, bindingId: binding.id } }
+  },
   async pluginConnection(input) {
     const generation = this.generation
     const organizationId = this.profile?.organizationId

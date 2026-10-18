@@ -6,7 +6,7 @@ import { ModelFeature, XpertParameterTypeEnum } from '@xpert-ai/contracts'
 import { z } from 'zod'
 import i18next from 'i18next'
 import { setModelVisionSupport } from '../../copilot-model/model-capabilities'
-import { ModelCallOptions, prepareModelCall } from './model-call'
+import { exposeModelProfile, ModelCallOptions, prepareModelCall } from './model-call'
 
 const first = tool(async () => 'first result', { name: 'first', description: 'First tool', schema: z.object({}) })
 const second = tool(async () => 'second result', { name: 'second', description: 'Second tool', schema: z.object({}) })
@@ -30,6 +30,31 @@ const outputAgent: ModelCallOptions['agent'] = {
         { name: 'title', type: XpertParameterTypeEnum.STRING, variableSelector: 'title', operation: 'overwrite' }
     ]
 }
+
+describe('exposeModelProfile', () => {
+    it('exposes host-resolved vision support even when a provider does not supply metadata', () => {
+        const { model, bindTools } = createModel(true)
+        expect(exposeModelProfile(model)).toBe(model)
+        expect(model).toHaveProperty('profile.imageInputs', true)
+        expect(model.bindTools).toBe(bindTools)
+    })
+
+    it.each([true, false])('uses the resolved setting %s over stale provider capability metadata', (supportsVision) => {
+        const { model } = createModel(supportsVision)
+        Object.assign(model, { metadata: { profile: { imageInputs: !supportsVision, maxInputTokens: 1234 } } })
+        exposeModelProfile(model)
+        expect(model).toHaveProperty('profile', { imageInputs: supportsVision, maxInputTokens: 1234 })
+        setModelVisionSupport(model, !supportsVision)
+        exposeModelProfile(model)
+        expect(model).toHaveProperty('profile.imageInputs', !supportsVision)
+    })
+
+    it('does not invent image capability for an unregistered model', () => {
+        const model = RunnableLambda.from(async () => new AIMessage('response'))
+        exposeModelProfile(model)
+        expect(model).not.toHaveProperty('profile')
+    })
+})
 
 describe('prepareModelCall', () => {
     beforeAll(async () => {

@@ -9,6 +9,14 @@ import {
 import computeDefinition from './runtime-definitions/compute-node-python-v1.json'
 
 describe('SandboxRuntimeDefinitionRegistry', () => {
+    it.each(['document/python-3.12/v1', 'document/libreoffice-v1'])(
+        'uses immutable inputs and provider-owned writable output for %s',
+        (profile) => {
+            const definition = new SandboxRuntimeDefinitionRegistry().require(profile)
+            expect(definition.security.readOnlyWorkspace).toBe(true)
+            expect(definition.requirements.readOnlyWorkspace).toBe(true)
+        }
+    )
     it('loads an offline compute profile with enforced input immutability and bounded resources', () => {
         const definition = new SandboxRuntimeDefinitionRegistry().require(COMPUTE_RUNTIME_PROFILE)
         expect(definition.networkPolicy).toEqual({ mode: 'none' })

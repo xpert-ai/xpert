@@ -77,10 +77,14 @@ export class ProjectTaskProviderRegistry extends BaseStrategyRegistry<IProjectTa
 
 /** ORM-independent project task management; actor values come from trusted server context. */
 export interface ProjectTasksApi {
+  /** Read the saved graph and current execution facts. Never invokes provider snapshot/linked callbacks. */
   graph(context: ProjectTaskContext): Promise<ProjectTaskGraph>
+  /** After committing domain changes, enqueue a durable coalesced refresh; does not wait for provider callbacks. */
+  refresh(context: ProjectTaskContext): Promise<{ status: 'queued' }>
   change(context: ProjectTaskContext, input: ProjectTaskGraphChange): Promise<ProjectTaskGraph>
   resolveExecution(context: ProjectTaskContext, taskExecutionId: string): Promise<ProjectTaskExecutionTarget>
 }
 export const ProjectTasksRuntimeCapability = createRuntimeCapability<ProjectTasksApi>('platform.project.tasks', {
-  description: 'Read project task graphs, manage schedules, and resolve exact execution conversations.'
+  description:
+    'Read project task graphs, request background synchronization, manage schedules, and resolve exact execution conversations.'
 })
