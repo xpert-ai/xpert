@@ -1,5 +1,71 @@
 # @xpert-ai/xpert-api
 
+## 3.22.0
+
+### Minor Changes
+
+- c4f9bb3: Add organization member sharing and scoped user-group authorization for Assistants. Separate resource sharing from organization group management, enforce active organization membership and runtime-only grants, and keep access changes consistent across published versions.
+
+  Use the existing Zard UI theme for the sharing page and hide group authorization when the account cannot view organization user groups.
+
+### Patch Changes
+
+- 7591451: Reuse compiled workspace libraries for API bundling and type checking. Build API, plugins and remote UI through one dependency graph with bounded concurrency, retain compatible UI commands, and record task/compiler timings for reproducible Docker build comparisons.
+- fc76e54: Speed up API image builds with registry caching, an independent Debian production-dependency layer, and removal of the redundant standalone remote-component build. Honor the configured build heap limit while preserving frozen locks, native-module checks, and verified-image publication.
+- 02345e3: Upgrade all shared ChatKit packages to 0.16.0 and align workspace, API, Web, and Desktop dependency locks. Include floating Workbench chat, image reference thumbnails, and the latest message interaction and workspace preview improvements.
+- 2e488be: Manage data retention exclusively from the default tenant and apply its cleanup switches and retention periods to all tenants. Ignore other tenants' previous retention overrides, preserve conversation references and pending settlements, and retain model usage facts when removing expired call records. Only default-tenant SuperAdmins can change these global policies; missing or disabled default policies do not trigger cleanup.
+
+  Keep retention parameters out of the generic tenant settings editor and only display saved changes after the request succeeds. Failed saves preserve the original value and editable draft and show an error.
+
+- e91caec: Clarify that Assistant final replies are posted directly to the group and should address its members, with a brief closing remark or new information after a tool-sent message instead of a repeated execution report. Preserve the existing message publication behavior.
+- 55ddc1f: Synchronize human group invitations with membership in the group's bound Project in one transaction. Preserve existing Project roles, restore removed users as ordinary members, and retain Project management and organization access checks.
+- 3cb19b9: Project group message delivery as consumed once the exact input is accepted by the Assistant runtime, without waiting for a reply or changing dispatch recovery state. Refresh group streams when consumption changes and keep queued steer inputs unacknowledged until consumed.
+- a0fc95e: Authorize native Workbench file operations for active group members through the persisted group/Assistant runtime binding. Recheck credential audience, tenant and organization scope, expiry and live membership on each file request, retaining Assistant file and Project write authorization and ordinary conversation isolation.
+
+  Deny non-Project group runtime environment file access until a live environment sharing policy can authorize the exact binding and owner; a persisted sandbox environment reference alone does not grant file access.
+
+- bb2b948: Keep rolling plugin updates available when replacement replicas load a later published plugin manifest during a bulk update. Use the same exact manifest for readiness and rollout completion while preserving queued convergence and healthy replica capacity.
+
+## 3.21.6
+
+### Patch Changes
+
+- 1a6452e: Resolve application covers centrally: prefer app presentation screenshots, inherit marketplace screenshots when absent, and preserve explicit empty arrays. Apply the same manifest-declared bundle path, image format, size and symlink boundaries to both sources.
+
+## 3.21.5
+
+### Patch Changes
+
+- 5afe7d1: Add the optional package-level Agent Plugin role: capability, assistant, or subagent. Hide only assistant-role packages from ChatKit discovery while keeping all valid templates in the Assistant marketplace.
+
+  Support selection-purpose catalog reads so existing conversations retain resource metadata and pinned references. Role changes do not revoke execution access or alter template dependencies. Deploy this API before the matching ChatKit update and import role-bearing packages only after upgrading the parser.
+
+- 94dd967: Add background Agent plugin updates from a selected Git branch and a preview for cleaning unused old versions. Preserve existing Assistant and conversation references, configured versions, and disabled state. Reimports verify and repair missing or damaged files without changing package or binding identities. Retired files use a durable cleanup queue so failures can be retried safely.
+
+  Existing SQL-managed databases must apply the included Agent plugin maintenance migration before deployment; existing bindings remain protected by default.
+
+  Reuse locked database connections for template reference reservations and background maintenance work so concurrent requests cannot starve their lock holders of a connection.
+
+- 8ecf7b0: Expose non-assistant-role package templates as conversation sub-agent capabilities. Preserve package selection and existing skills/MCP tools while adding one lazy delegation tool per template.
+
+  Execute authorized template snapshots through the native Agent invocation runtime without installing or publishing Assistants. Pin dependency/model configuration, isolate task state, files and onboarding, and preserve checkpoint approvals, cancellation and execution ownership. Assistant-only packages and the template marketplace retain their existing behavior.
+
+  Revalidate published Assistant access or Project membership and Assistant binding before invocation, replay and task initialization. Reject revoked access and changed package snapshots before resolving dependencies or writing task files.
+
+  Deploy with the matching SDK and ChatKit template-component changes. Runtime dependencies and shared connections must already be configured; delegation does not install dependencies or schedule template routines.
+
+- ddeb74f: Upgrade the shared ChatKit catalog to 0.15.0 and align workspace and deployment locks. Deliver selected-plugin skill command shortcuts, descriptive subcommand labels, theme-aware code blocks, and concise external Assistant messages alongside the authorized command execution and template sub-agent Sandbox provider fixes.
+- 616bab6: Allow automatic context compression during long tasks at complete tool cycle boundaries. Preserve the current user request, recent and in-flight tool calls, and matching tool results so compressed histories remain valid. Keep manual compression at whole-turn boundaries.
+- 94dd967: Run one-click official Agent plugin imports as background jobs so large catalogs no longer keep a single HTTP request open. Persist progress per tenant and organization, show incremental results, and resume the same Git snapshot after page reloads or API restarts without repeating completed imports. Duplicate requests reuse the running job, and partial package failures remain visible.
+- 1a60257: Include published Agents from organization-shared workspaces in group invitation candidates while preserving tenant, organization, group-owner, and authoring permission boundaries. Show only the latest Agent versions and exclude active group members, including other versions of an Agent already in the group, before pagination.
+
+  Apply stable database pagination and let Desktop load all candidate pages. The API keeps its array response and accepts optional limit and offset parameters; the ChatKit load-more interface requires the matching SDK and ChatKit releases.
+
+- 616bab6: Add an optional group identifier to the Workbench runtime scope and resolve group views through the authorized group context API. Keep views bound to the resolved Assistant and conversation, ignore stale responses when switching groups, and avoid falling back to personal views while group context is loading.
+- 4bf9514: Allow integrations without a registered strategy, including GitHub, to be updated and deleted. Reuse the existing scoped registry lookup for optional validation and lifecycle hooks, while preserving lookup errors and failures from registered hooks. Required strategy operations remain unchanged.
+- 616bab6: Resolve published Assistant environments through runtime authorization so users allowed to run an Assistant can use its configured environment without authoring workspace access. Draft execution retains authoring access checks.
+- 616bab6: Add the SandboxWorkspaceMount contract and optional workspaceMounts provider creation option for mounts resolved after application authorization. Include conversation scope in application-side Sandbox acquisition and cache identity without forwarding business authorization context to providers.
+
 ## 3.21.4
 
 ### Patch Changes

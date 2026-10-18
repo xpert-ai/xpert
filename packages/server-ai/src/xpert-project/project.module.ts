@@ -69,7 +69,6 @@ import { XpertProjectMembership } from './entities/project-membership.entity'
 import { XpertProjectInvitation } from './entities/project-invitation.entity'
 import { XpertTask } from '../xpert-task/xpert-task.entity'
 import { XpertModule } from '../xpert/xpert.module'
-import { XpertProjectAccessService } from './services/project-access.service'
 import { XpertProjectContentService } from './services/project-content.service'
 import { XpertProjectMembershipService } from './services/project-membership.service'
 import { XpertProjectInvitationService } from './services/project-invitation.service'
@@ -83,6 +82,9 @@ import { XpertAgentModule } from '../xpert-agent'
 
 import { ProjectTaskGraphController } from './project-task-graph.controller'
 import { ProjectTaskGraphService } from './services/project-task-graph.service'
+import { ProjectTaskProjectionCoordinator } from './services/task-projection/project-task-projection.coordinator'
+import { ProjectTaskProjectionStore } from './services/task-projection/project-task-projection.store'
+import { ProjectTaskProjectionService } from './services/task-projection/project-task-projection.service'
 import { ProjectTasksViewProvider } from './views/project-tasks.provider'
 import { ProjectTasksMiddleware } from './plugins/project-tasks/project-tasks.middleware'
 import { ProjectTasksCapabilityProvider } from './plugins/project-tasks/project-tasks.capability'
@@ -159,6 +161,9 @@ import { ProjectTaskDecisionService } from './runtime/project-task-decision.serv
         ProjectTypeProviderRegistry,
         ProjectTaskProviderRegistry,
         ProjectTaskGraphService,
+        ProjectTaskProjectionCoordinator,
+        ProjectTaskProjectionStore,
+        ProjectTaskProjectionService,
         ProjectTasksViewProvider,
         XpertProjectTypeService,
         ProjectProvisioningRuntimeService,

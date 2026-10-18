@@ -53,6 +53,9 @@
         "ReferenceOnlyPrompt": "未包含文件正文，不支持直接按文本读取。请使用支持该格式的可用工具；对于 ZIP，先列出或解压条目，再处理所需的子文件。此引用不会改变文件访问权限。"
     },
     "Error": {
+        "ProjectTaskProjectionRetry": "任务同步已有新请求或正在由其他实例处理，将由队列重试。",
+        "ProjectTaskProjectionUnavailable": "暂时无法读取任务同步状态，已保存的任务仍可查看。",
+        "ProjectTaskProjectionTimeout": "任务同步超时；已保存任务保持不变，系统将重试同步。",
         "McpToolDiscoveryLimit": "MCP 工具发现超出限制或返回了重复的游标。",
         "RestClientAccessDenied": "REST 连接访问被拒绝。",
         "ApiKeyCredentialsInvalid": "API Key 认证配置无效。",

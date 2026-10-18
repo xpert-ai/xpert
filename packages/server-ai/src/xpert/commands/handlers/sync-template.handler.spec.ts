@@ -25,6 +25,7 @@ import { XpertService } from '../../xpert.service'
 import { XpertImportCommand } from '../import.command'
 import { XpertSyncTemplateCommand } from '../sync-template.command'
 import { XpertSyncTemplateHandler } from './sync-template.handler'
+import { InspectTemplateReadinessCommand } from '../../../plugin-resource/template-installation/template-readiness.command'
 import { PluginTemplateSyncDependenciesCommand } from '../../../plugin-resource/commands/sync-template-dependencies.command'
 
 describe('XpertSyncTemplateHandler', () => {
@@ -58,7 +59,16 @@ describe('XpertSyncTemplateHandler', () => {
             })
         }
         const commandBus = {
-            execute: jest.fn().mockResolvedValue(xpert)
+            execute: jest
+                .fn()
+                .mockImplementation(async (command) =>
+                    command instanceof InspectTemplateReadinessCommand
+                        ? {
+                              canInstall: true,
+                              dependencies: [{ pluginName: '@xpert-ai/plugin-example', version: '2', components: [] }]
+                          }
+                        : xpert
+                )
         }
         return {
             xpertService,
@@ -86,7 +96,7 @@ describe('XpertSyncTemplateHandler', () => {
         )
         await handler.execute(new XpertSyncTemplateCommand('xpert-1'))
         expect(xpertTemplateService.getTemplateDetail).toHaveBeenCalledWith(id, 'en')
-        const imported = commandBus.execute.mock.calls[0][0] as XpertImportCommand
+        const imported = commandBus.execute.mock.calls[1][0] as XpertImportCommand
         expect(imported.options.templateSource.templateId).toBe(id)
     })
 
@@ -134,7 +144,7 @@ describe('XpertSyncTemplateHandler', () => {
         const result = await handler.execute(new XpertSyncTemplateCommand('xpert-1'))
 
         expect(xpertTemplateService.getTemplateDetail).toHaveBeenCalledWith('@xpert-ai/plugin-example:assistant', 'en')
-        const importCommand = commandBus.execute.mock.calls[0][0] as XpertImportCommand
+        const importCommand = commandBus.execute.mock.calls[1][0] as XpertImportCommand
         expect(importCommand).toBeInstanceOf(XpertImportCommand)
         expect(importCommand.draft.team.name).toBe('My Assistant')
         expect(importCommand.options).toEqual(
@@ -175,7 +185,7 @@ describe('XpertSyncTemplateHandler', () => {
         await handler.execute(new XpertSyncTemplateCommand('xpert-1'))
 
         expect(xpertTemplateService.getTemplateDetail).toHaveBeenCalledWith('@xpert-ai/plugin-example:assistant', 'en')
-        expect(commandBus.execute).toHaveBeenCalledTimes(1)
+        expect(commandBus.execute).toHaveBeenCalledTimes(2)
     })
 
     it('reconciles declared runtime dependencies after replacing the existing draft', async () => {
@@ -206,9 +216,9 @@ describe('XpertSyncTemplateHandler', () => {
 
         await handler.execute(new XpertSyncTemplateCommand('xpert-1'))
 
-        expect(commandBus.execute).toHaveBeenCalledTimes(2)
-        expect(commandBus.execute.mock.calls[0][0]).toBeInstanceOf(XpertImportCommand)
-        const dependencyCommand = commandBus.execute.mock.calls[1][0] as PluginTemplateSyncDependenciesCommand
+        expect(commandBus.execute).toHaveBeenCalledTimes(3)
+        expect(commandBus.execute.mock.calls[1][0]).toBeInstanceOf(XpertImportCommand)
+        const dependencyCommand = commandBus.execute.mock.calls[2][0] as PluginTemplateSyncDependenciesCommand
         expect(dependencyCommand).toBeInstanceOf(PluginTemplateSyncDependenciesCommand)
         expect(dependencyCommand).toEqual(
             expect.objectContaining({
@@ -276,7 +286,7 @@ describe('XpertSyncTemplateHandler', () => {
 
         await handler.execute(new XpertSyncTemplateCommand('xpert-1'))
 
-        const importCommand = commandBus.execute.mock.calls[0][0] as XpertImportCommand
+        const importCommand = commandBus.execute.mock.calls[1][0] as XpertImportCommand
         expect(importCommand.draft.nodes).toEqual(
             expect.arrayContaining([
                 expect.objectContaining({ key: 'Agent_LifecycleOrchestrator', type: 'agent' }),
@@ -328,7 +338,7 @@ describe('XpertSyncTemplateHandler', () => {
 
         await handler.execute(new XpertSyncTemplateCommand('xpert-1'))
 
-        const importCommand = commandBus.execute.mock.calls[0][0] as XpertImportCommand
+        const importCommand = commandBus.execute.mock.calls[1][0] as XpertImportCommand
         expect(importCommand.draft.nodes).toEqual([])
         expect(importCommand.draft.connections).toEqual([])
     })
@@ -351,8 +361,8 @@ describe('XpertSyncTemplateHandler', () => {
 
         await handler.execute(new XpertSyncTemplateCommand('xpert-1'))
 
-        expect(commandBus.execute).toHaveBeenCalledTimes(1)
-        expect(commandBus.execute.mock.calls[0][0]).toBeInstanceOf(XpertImportCommand)
+        expect(commandBus.execute).toHaveBeenCalledTimes(2)
+        expect(commandBus.execute.mock.calls[1][0]).toBeInstanceOf(XpertImportCommand)
     })
 
     it('enriches an older tracked source from its data-xpert plugin declaration', async () => {
@@ -376,7 +386,45 @@ describe('XpertSyncTemplateHandler', () => {
         await handler.execute(new XpertSyncTemplateCommand('xpert-1'))
 
         expect(xpertTemplateService.getTemplateDetail).toHaveBeenCalledWith('@xpert-ai/plugin-example:assistant', 'en')
+        expect(commandBus.execute).toHaveBeenCalledTimes(2)
+    })
+
+    it('refreshes installed dependency pins in the draft without changing the publication', async () => {
+        const oldLocks = [{ pluginName: '@xpert-ai/plugin-example', version: '1', components: [] }]
+        const xpert = {
+            id: 'xpert-1',
+            name: 'Company Assistant',
+            workspaceId: 'workspace-1',
+            options: {
+                templateSource: { templateId: '@xpert-ai/plugin-example:assistant' },
+                templateDependencyLocks: oldLocks
+            }
+        }
+        const { handler, commandBus } = buildHandler(xpert)
+        await handler.execute(new XpertSyncTemplateCommand('xpert-1'))
+        const inspect = commandBus.execute.mock.calls[0][0] as InspectTemplateReadinessCommand
+        expect(inspect).toBeInstanceOf(InspectTemplateReadinessCommand)
+        expect(inspect.workspaceId).toBe('workspace-1')
+        const imported = commandBus.execute.mock.calls[1][0] as XpertImportCommand
+        expect(imported.options.dependencyLocks).toEqual([
+            { pluginName: '@xpert-ai/plugin-example', version: '2', components: [] }
+        ])
+        expect(xpert.options.templateDependencyLocks).toEqual(oldLocks)
+    })
+
+    it('rejects unavailable dependencies before changing the draft or resources', async () => {
+        const { handler, commandBus } = buildHandler({
+            id: 'xpert-1',
+            name: 'Company Assistant',
+            workspaceId: 'workspace-1',
+            options: { templateSource: { templateId: '@xpert-ai/plugin-example:assistant' } }
+        })
+        commandBus.execute.mockResolvedValueOnce({ canInstall: false, dependencies: [] })
+        await expect(handler.execute(new XpertSyncTemplateCommand('xpert-1'))).rejects.toBeInstanceOf(
+            BadRequestException
+        )
         expect(commandBus.execute).toHaveBeenCalledTimes(1)
+        expect(commandBus.execute.mock.calls[0][0]).toBeInstanceOf(InspectTemplateReadinessCommand)
     })
 
     it('rejects xperts that are not linked to a template', async () => {

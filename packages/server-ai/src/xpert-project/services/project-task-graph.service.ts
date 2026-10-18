@@ -1,7 +1,7 @@
 import { latestImplementationExecutor } from '../runtime/project-task-executor'
 import { observeProjectTaskInvocations } from '../runtime/project-task-invocation-view'
-// Provider snapshots are replayable read models. Projection never starts Agents,
-// and runtime success does not override a provider's business acceptance status.
+// Task graph reads never acquire projection locks or invoke plugin callbacks.
+// Runtime success does not override a provider's business acceptance status.
 import { createHash } from 'node:crypto'
 import {
     BadRequestException,
@@ -37,16 +37,11 @@ import { projectTaskRuntimeTiming } from './project-task-runtime-timing'
 import { ChatMessage } from '../../chat-message/chat-message.entity'
 import { Xpert } from '../../xpert/xpert.entity'
 import { avatarForChat } from '../../shared/avatar'
-import { registeredProjectTaskTypes, invalidProjectTaskType } from './project-task-types'
+import { registeredProjectTaskTypes } from './project-task-types'
 import { AgentInvocationEntity } from '../../agent-invocation/invocation.entity'
-import { assertProjectTaskProgress } from './project-task-progress'
 
-export function projectTaskIdentity(projectId: string, provider: string, key: string): string {
-    const hex = createHash('sha256')
-        .update(JSON.stringify([projectId, provider, key]))
-        .digest('hex')
-    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-a${hex.slice(17, 20)}-${hex.slice(20, 32)}`
-}
+import { ProjectTaskProjectionService } from './task-projection/project-task-projection.service'
+export { projectTaskIdentity } from './project-task-identity'
 
 @Injectable()
 @RuntimeCapabilityProvider(ProjectTasksRuntimeCapability)
@@ -54,7 +49,8 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
     constructor(
         @InjectRepository(XpertProjectTask) private readonly tasks: Repository<XpertProjectTask>,
         private readonly access: ProjectAccessRuntimeService,
-        private readonly providers: ProjectTaskProviderRegistry
+        private readonly providers: ProjectTaskProviderRegistry,
+        private readonly projection: ProjectTaskProjectionService
     ) {}
 
     private where(context: ProjectTaskContext) {
@@ -73,134 +69,14 @@ export class ProjectTaskGraphService implements ProjectTasksApi {
 
     async graph(context: ProjectTaskContext): Promise<ProjectTaskGraph> {
         const access = await this.assertRead(context)
-        const diagnostics: ProjectTaskGraph['diagnostics'] = []
-        for (const provider of this.providers.list(context.actor.organizationId ?? undefined)) {
-            try {
-                const taskTypes = registeredProjectTaskTypes(provider)
-                const links = await this.tasks.manager.transaction(async (manager) => {
-                    // Serialize snapshot acquisition too: an older snapshot cannot overwrite a newer one.
-                    await manager.findOneOrFail(XpertProject, {
-                        where: { id: context.projectId, tenantId: context.actor.tenantId },
-                        lock: { mode: 'pessimistic_write' }
-                    })
-                    const snapshot = await provider.snapshot(context)
-                    if (!snapshot) return
-                    const identity = (key: string) => projectTaskIdentity(context.projectId, provider.key, key)
-                    const existing = await manager.find(XpertProjectTask, {
-                        where: { ...this.where(context), providerKey: provider.key }
-                    })
-                    const nodes: ProjectTaskNode[] = snapshot.tasks.map((item) => ({
-                        id: identity(item.key),
-                        title: item.title,
-                        status: item.status,
-                        progress: item.progress ?? null,
-                        kind: item.kind,
-                        taskType: item.taskType ?? null,
-                        parentTaskId: item.parentKey ? identity(item.parentKey) : null,
-                        predecessorIds: item.predecessorKeys.map(identity),
-                        providerKey: provider.key,
-                        sourceKey: item.key,
-                        revision: 0,
-                        plannedStartAt: null,
-                        plannedEndAt: null,
-                        estimatedDurationMs: null,
-                        actualStartAt: null,
-                        actualEndAt: null,
-                        diagnostic: item.diagnostic ?? null,
-                        assigneeXpertId: item.assigneeXpertId ?? null
-                    }))
-                    validateProjectTaskGraph(nodes)
-                    for (const item of snapshot.tasks) {
-                        assertProjectTaskProgress(item.progress)
-                        if (!item.key.trim() || !item.title.trim()) throw Error('PROJECT_TASK_SOURCE_INVALID')
-                        if (item.taskType != null && !taskTypes.has(item.taskType)) throw invalidProjectTaskType()
-                        if (new Set(item.executions.map((execution) => execution.key)).size !== item.executions.length)
-                            throw Error('PROJECT_TASK_ATTEMPT_DUPLICATE')
-                        for (const execution of item.executions) {
-                            if (!execution.key.trim() || !Number.isInteger(execution.attempt) || execution.attempt < 1)
-                                throw Error('PROJECT_TASK_ATTEMPT_INVALID')
-                            for (const date of [execution.startedAt, execution.completedAt]) {
-                                if (date && !Number.isFinite(Date.parse(date)))
-                                    throw Error('PROJECT_TASK_EXECUTION_DATE_INVALID')
-                            }
-                        }
-                    }
-                    for (const [index, item] of snapshot.tasks.entries()) {
-                        const node = nodes[index]
-                        const sourceRevision = createHash('sha256').update(JSON.stringify(item)).digest('hex')
-                        const old = existing.find((task) => task.id === node.id)
-                        if (old?.sourceRevision === sourceRevision) continue
-                        const row =
-                            old ??
-                            manager.create(XpertProjectTask, {
-                                id: node.id,
-                                projectId: context.projectId,
-                                tenantId: context.actor.tenantId,
-                                organizationId: context.actor.organizationId,
-                                createdById: context.actor.userId,
-                                steps: []
-                            })
-                        Object.assign(row, {
-                            name: item.title,
-                            title: item.title,
-                            status: item.status,
-                            ...(item.progress !== undefined ? { progress: item.progress } : {}),
-                            kind: item.kind,
-                            ...(item.taskType !== undefined ? { type: item.taskType } : {}),
-                            providerKey: provider.key,
-                            sourceKey: item.key,
-                            sourceRevision,
-                            parentTaskId: node.parentTaskId,
-                            predecessorIds: node.predecessorIds,
-                            diagnostic: node.diagnostic,
-                            assigneeXpertId: item.assigneeXpertId ?? null
-                        })
-                        await manager.save(row)
-                        for (const execution of item.executions) {
-                            const executionId = projectTaskIdentity(node.id, provider.key, execution.key)
-                            const previous = await manager.findOneBy(XpertProjectTaskExecution, {
-                                id: executionId,
-                                ...this.where(context)
-                            })
-                            await manager.save(
-                                XpertProjectTaskExecution,
-                                manager.create(XpertProjectTaskExecution, {
-                                    ...previous,
-                                    id: executionId,
-                                    ...execution,
-                                    sourceKey: execution.key,
-                                    taskId: node.id,
-                                    projectId: context.projectId,
-                                    tenantId: context.actor.tenantId,
-                                    organizationId: context.actor.organizationId,
-                                    createdById: context.actor.userId,
-                                    startedAt: execution.startedAt ? new Date(execution.startedAt) : null,
-                                    completedAt: execution.completedAt ? new Date(execution.completedAt) : null
-                                })
-                            )
-                        }
-                    }
-                    for (const removed of existing.filter((row) => !nodes.some((node) => node.id === row.id))) {
-                        if (removed.status === 'cancelled') continue
-                        removed.status = 'cancelled'
-                        removed.sourceRevision = null
-                        removed.diagnostic = t('server-ai:Error.ProjectTaskRemovedFromPlan')
-                        await manager.save(removed)
-                    }
-                    return nodes.map((node) => ({ sourceKey: node.sourceKey!, taskId: node.id }))
-                })
-                if (links) await provider.linked?.(context, links)
-            } catch (error) {
-                diagnostics.push({
-                    providerKey: provider.key,
-                    message: error instanceof Error ? error.message : String(error)
-                })
-            }
-        }
         return {
-            ...(await this.readGraph(context, diagnostics)),
+            ...(await this.readGraph(context, await this.projection.diagnostics(context))),
             canEditPlan: !access.archived && ['owner', 'manager', 'editor'].includes(access.role)
         }
+    }
+
+    async refresh(context: ProjectTaskContext) {
+        return this.projection.request(context)
     }
 
     private async readGraph(

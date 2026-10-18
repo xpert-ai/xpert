@@ -1,3 +1,4 @@
+import { ProjectTaskProjectionService } from './task-projection/project-task-projection.service'
 import { Test } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { ProjectTaskProviderRegistry } from '@xpert-ai/plugin-sdk'
@@ -28,6 +29,10 @@ describe('project task presentation capabilities', () => {
         const module = await Test.createTestingModule({
             providers: [
                 ProjectTaskGraphService,
+                {
+                    provide: ProjectTaskProjectionService,
+                    useValue: { diagnostics: async () => [], request: jest.fn() }
+                },
                 {
                     provide: getRepositoryToken(XpertProjectTask),
                     useValue: {

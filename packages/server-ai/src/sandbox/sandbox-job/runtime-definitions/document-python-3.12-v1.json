@@ -16,6 +16,7 @@
     },
     "security": {
         "runAsNonRoot": true,
+        "readOnlyWorkspace": true,
         "readOnlyRootFilesystem": true,
         "noNewPrivileges": true,
         "dropCapabilities": "all"
@@ -25,6 +26,7 @@
         "ephemeral": true,
         "resourceLimits": true,
         "networkPolicy": true,
+        "readOnlyWorkspace": true,
         "readOnlyRootFilesystem": true
     },
     "expectedManifest": {

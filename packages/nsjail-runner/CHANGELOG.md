@@ -1,5 +1,11 @@
 # @xpert-ai/nsjail-runner
 
+## 0.2.2
+
+### Patch Changes
+
+- 1acb35c: Request a develop candidate for the NsJail runtime updates synchronized from main. Include the managed application-data verification script in the image and gate candidate publication on the image's protocol, isolation, and application-data checks.
+
 ## 0.2.1
 
 ### Patch Changes

@@ -95,6 +95,7 @@ const methods = new Set([
   'templateCatalogPage',
   'catalogAvatar',
   'pluginConnection',
+  'preparePluginConnection',
   'startPluginConnection',
   'checkPluginConnection',
   'cancelPluginConnection',

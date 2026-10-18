@@ -9,6 +9,7 @@ import { RequestContext } from '@xpert-ai/server-core'
 import { BadRequestException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { yaml } from '@xpert-ai/server-common'
+import { t } from 'i18next'
 import { normalizePluginName } from '@xpert-ai/server-core'
 import { XpertTemplateService } from '../../../xpert-template/xpert-template.service'
 import { parseCapabilityTemplateId } from '../../../xpert-template/capabilities/template-capability-reference'
@@ -17,6 +18,7 @@ import { createXpertTemplateSource, resolveXpertTemplateSource } from '../../tem
 import { XpertService } from '../../xpert.service'
 import { XpertImportCommand } from '../import.command'
 import { XpertSyncTemplateCommand } from '../sync-template.command'
+import { InspectTemplateReadinessCommand } from '../../../plugin-resource/template-installation/template-readiness.command'
 import { PluginTemplateSyncDependenciesCommand } from '../../../plugin-resource/commands/sync-template-dependencies.command'
 
 @CommandHandler(XpertSyncTemplateCommand)
@@ -59,6 +61,16 @@ export class XpertSyncTemplateHandler implements ICommandHandler<XpertSyncTempla
             throw new BadRequestException(`Source template '${currentSource.templateId}' has no Xpert team definition.`)
         }
 
+        // Explicit template updates refresh the draft's dependency pins from the same
+        // authorized readiness resolution used by installation. Runtime still validates
+        // the published pins until the user publishes this draft.
+        const readiness = await this.commandBus.execute(
+            new InspectTemplateReadinessCommand(template, xpert.workspaceId)
+        )
+        if (!readiness.canInstall) {
+            throw new BadRequestException(t('server-ai:Error.TemplateRequirementsUnmet'))
+        }
+
         // The template owns portable graph content; the instance keeps its name and organization-local bindings.
         parsed.team.name = xpert.name
         preserveInstalledExternalXpertBindings(parsed, xpert)
@@ -71,7 +83,8 @@ export class XpertSyncTemplateHandler implements ICommandHandler<XpertSyncTempla
                 language,
                 templateId: currentSource.templateId,
                 sourceTemplateId: template.id,
-                templateSource
+                templateSource,
+                dependencyLocks: readiness.dependencies
             })
         )
         // Reconcile runtime resources after graph import so targetAgentKey

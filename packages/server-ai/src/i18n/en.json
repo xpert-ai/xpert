@@ -53,6 +53,9 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "ProjectTaskProjectionRetry": "Task synchronization was superseded or is owned by another worker; the queue will retry.",
+        "ProjectTaskProjectionUnavailable": "Task synchronization status is temporarily unavailable; saved tasks remain readable.",
+        "ProjectTaskProjectionTimeout": "Task synchronization timed out; the saved tasks are preserved and synchronization will retry.",
         "McpToolDiscoveryLimit": "MCP tool discovery exceeded its limit or repeated a cursor",
         "RestClientAccessDenied": "REST connection access denied.",
         "ApiKeyCredentialsInvalid": "API key credentials are invalid.",

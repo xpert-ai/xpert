@@ -1,5 +1,74 @@
 # @xpert-ai/server-ai
 
+## 3.14.0
+
+### Minor Changes
+
+- c4f9bb3: Add organization member sharing and scoped user-group authorization for Assistants. Separate resource sharing from organization group management, enforce active organization membership and runtime-only grants, and keep access changes consistent across published versions.
+
+    Use the existing Zard UI theme for the sharing page and hide group authorization when the account cannot view organization user groups.
+
+### Patch Changes
+
+- 2e488be: Manage data retention exclusively from the default tenant and apply its cleanup switches and retention periods to all tenants. Ignore other tenants' previous retention overrides, preserve conversation references and pending settlements, and retain model usage facts when removing expired call records. Only default-tenant SuperAdmins can change these global policies; missing or disabled default policies do not trigger cleanup.
+
+    Keep retention parameters out of the generic tenant settings editor and only display saved changes after the request succeeds. Failed saves preserve the original value and editable draft and show an error.
+
+- Updated dependencies [c4f9bb3]
+- Updated dependencies [2e488be]
+    - @xpert-ai/contracts@3.23.0
+    - @xpert-ai/server-core@3.10.8
+    - @xpert-ai/desktop-protocol@0.3.6
+    - @xpert-ai/plugin-sdk@3.23.1
+
+## 3.13.0
+
+### Minor Changes
+
+- ddeb74f: Add presentation-only skill command and subcommand metadata to portable Agent Plugins. Resolve shortcuts from pinned selections, re-authorize explicit skill activation, and preserve literal subcommand arguments in task messages and history.
+
+### Patch Changes
+
+- 5afe7d1: Add the optional package-level Agent Plugin role: capability, assistant, or subagent. Hide only assistant-role packages from ChatKit discovery while keeping all valid templates in the Assistant marketplace.
+
+    Support selection-purpose catalog reads so existing conversations retain resource metadata and pinned references. Role changes do not revoke execution access or alter template dependencies. Deploy this API before the matching ChatKit update and import role-bearing packages only after upgrading the parser.
+
+- 94dd967: Add background Agent plugin updates from a selected Git branch and a preview for cleaning unused old versions. Preserve existing Assistant and conversation references, configured versions, and disabled state. Reimports verify and repair missing or damaged files without changing package or binding identities. Retired files use a durable cleanup queue so failures can be retried safely.
+
+    Existing SQL-managed databases must apply the included Agent plugin maintenance migration before deployment; existing bindings remain protected by default.
+
+    Reuse locked database connections for template reference reservations and background maintenance work so concurrent requests cannot starve their lock holders of a connection.
+
+- 8ecf7b0: Expose non-assistant-role package templates as conversation sub-agent capabilities. Preserve package selection and existing skills/MCP tools while adding one lazy delegation tool per template.
+
+    Execute authorized template snapshots through the native Agent invocation runtime without installing or publishing Assistants. Pin dependency/model configuration, isolate task state, files and onboarding, and preserve checkpoint approvals, cancellation and execution ownership. Assistant-only packages and the template marketplace retain their existing behavior.
+
+    Revalidate published Assistant access or Project membership and Assistant binding before invocation, replay and task initialization. Reject revoked access and changed package snapshots before resolving dependencies or writing task files.
+
+    Deploy with the matching SDK and ChatKit template-component changes. Runtime dependencies and shared connections must already be configured; delegation does not install dependencies or schedule template routines.
+
+- 616bab6: Allow automatic context compression during long tasks at complete tool cycle boundaries. Preserve the current user request, recent and in-flight tool calls, and matching tool results so compressed histories remain valid. Keep manual compression at whole-turn boundaries.
+- 94dd967: Run one-click official Agent plugin imports as background jobs so large catalogs no longer keep a single HTTP request open. Persist progress per tenant and organization, show incremental results, and resume the same Git snapshot after page reloads or API restarts without repeating completed imports. Duplicate requests reuse the running job, and partial package failures remain visible.
+- 1a60257: Include published Agents from organization-shared workspaces in group invitation candidates while preserving tenant, organization, group-owner, and authoring permission boundaries. Show only the latest Agent versions and exclude active group members, including other versions of an Agent already in the group, before pagination.
+
+    Apply stable database pagination and let Desktop load all candidate pages. The API keeps its array response and accepts optional limit and offset parameters; the ChatKit load-more interface requires the matching SDK and ChatKit releases.
+
+- 616bab6: Resolve published Assistant environments through runtime authorization so users allowed to run an Assistant can use its configured environment without authoring workspace access. Draft execution retains authoring access checks.
+- 616bab6: Add the SandboxWorkspaceMount contract and optional workspaceMounts provider creation option for mounts resolved after application authorization. Include conversation scope in application-side Sandbox acquisition and cache identity without forwarding business authorization context to providers.
+- ddeb74f: Bind an enabled template sub-agent's unspecified Sandbox provider to the parent Assistant's configured provider before dependency validation and execution snapshotting. Preserve explicit template providers and reject unavailable providers before creating task state.
+- Updated dependencies [5afe7d1]
+- Updated dependencies [94dd967]
+- Updated dependencies [8ecf7b0]
+- Updated dependencies [94dd967]
+- Updated dependencies [616bab6]
+- Updated dependencies [4bf9514]
+- Updated dependencies [616bab6]
+- Updated dependencies [ddeb74f]
+    - @xpert-ai/contracts@3.22.0
+    - @xpert-ai/server-core@3.10.7
+    - @xpert-ai/plugin-sdk@3.23.0
+    - @xpert-ai/desktop-protocol@0.3.5
+
 ## 3.12.4
 
 ### Patch Changes
