@@ -1,5 +1,11 @@
 # @xpert-ai/xpert-ui
 
+## 3.21.1
+
+### Patch Changes
+
+- 2e7af88: Include the shared MCP Client Runtime SDK capability in application releases. The API provides governed read-only tool discovery and calls using existing connections, current-viewer authorization and pinned schema contracts.
+
 ## 3.21.0
 
 ### Minor Changes
