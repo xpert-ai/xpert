@@ -39,6 +39,8 @@ import {
     McpConsumerOAuthSession
 } from '../mcp-consumer/auth'
 import { McpConsumerCapabilitiesController, McpConsumerCapabilitiesService } from '../mcp-consumer'
+import { McpClientConnectionService } from '../mcp-consumer/runtime/mcp-client-connection.service'
+import { McpClientRuntimeService } from '../mcp-consumer/runtime/mcp-client-runtime.service'
 
 @Module({
     imports: [
@@ -81,6 +83,8 @@ import { McpConsumerCapabilitiesController, McpConsumerCapabilitiesService } fro
         McpAppToolApprovalService,
         McpConsumerOAuthService,
         McpConsumerCapabilitiesService,
+        McpClientRuntimeService,
+        McpClientConnectionService,
         McpSubscriptionService,
         ToolRuntimeService,
         ToolsetRegistry,

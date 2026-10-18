@@ -53,6 +53,9 @@
         "ReferenceOnlyPrompt": "未包含文件正文，不支持直接按文本读取。请使用支持该格式的可用工具；对于 ZIP，先列出或解压条目，再处理所需的子文件。此引用不会改变文件访问权限。"
     },
     "Error": {
+        "McpToolDiscoveryLimit": "MCP 工具发现超出限制或返回了重复的游标。",
+        "McpClientAccessDenied": "无权访问 MCP 连接。",
+        "McpClientUnavailable": "MCP 操作不可用、定义已变化或返回了无效结果。",
         "SandboxJobCancelled": "沙箱任务已取消。",
         "SandboxInvocationFailed": "沙箱宿主调用失败或被拒绝。",
         "SandboxInvocationTimeout": "沙箱宿主调用超过执行时限。",

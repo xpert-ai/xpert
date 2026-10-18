@@ -28,6 +28,18 @@ Optional `provider.discover(request, context)` returns a versioned `AnalyticsDis
 
 PostgreSQL discovery uses the platform Workbench adapter's comments, types and keys. data-xpert discovery uses Assistant resource bindings, current actor policies, published entity analysis contracts and permitted Action input schemas. These implementations stay in their source plugins.
 
+## Existing MCP connections
+
+The generic [MCP Client Runtime](./mcp-client.md) exposes
+`McpClientRuntimeCapability` (`platform.mcp.client`). Analytics plugins use
+`client.tools.list(scope)` and `client.tools.call(scope, { toolName, contractHash, arguments })`.
+The initial tools API enforces read-only selection and current-viewer authorization on the host.
+
+`@xpert-ai/plugin-analytics-mcp` implements the `mcp.tool` provider. Its dataset catalog,
+parameter paths, JSON projection and completeness rules remain plugin-owned; it does not add
+MCP branches to Dataset normalization or the dashboard renderer. Build and deploy the matching
+SDK/host capability before using the plugin; an older published SDK is insufficient.
+
 ## Execution
 
 - `GET /api/data-source/analytics/sources`: authorized IDs and supported providers, never credentials.

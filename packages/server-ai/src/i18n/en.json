@@ -53,6 +53,9 @@
         "ReferenceOnlyPrompt": "File contents are not included. Direct text reading is unsupported. Use an available tool that supports this format; for ZIP files, list or extract entries and process the needed child files. This reference does not change file access permissions."
     },
     "Error": {
+        "McpToolDiscoveryLimit": "MCP tool discovery exceeded its limit or repeated a cursor",
+        "McpClientAccessDenied": "MCP connection access denied.",
+        "McpClientUnavailable": "The MCP operation is unavailable, changed, or returned an invalid result.",
         "SandboxJobCancelled": "Sandbox job was cancelled.",
         "SandboxInvocationFailed": "Sandbox host invocation failed or was denied.",
         "SandboxInvocationTimeout": "Sandbox host invocation exceeded the execution deadline.",
