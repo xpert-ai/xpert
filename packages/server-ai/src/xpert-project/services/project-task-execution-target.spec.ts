@@ -1,3 +1,4 @@
+import { ProjectTaskProjectionService } from './task-projection/project-task-projection.service'
 import { ProjectTaskGraphService, projectTaskIdentity } from './project-task-graph.service'
 import { Test } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
@@ -17,6 +18,7 @@ async function fixture() {
     const module = await Test.createTestingModule({
         providers: [
             ProjectTaskGraphService,
+            { provide: ProjectTaskProjectionService, useValue: { diagnostics: async () => [], request: jest.fn() } },
             { provide: getRepositoryToken(XpertProjectTask), useValue: { manager } },
             { provide: ProjectAccessRuntimeService, useValue: access },
             { provide: ProjectTaskProviderRegistry, useValue: providers }

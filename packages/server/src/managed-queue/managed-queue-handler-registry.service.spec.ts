@@ -99,9 +99,15 @@ describe('ManagedQueueHandlerRegistryService', () => {
 			jobName: 'job-a'
 		})
 
-		const first = registered?.({ id: 'job-1', name: 'job-a', data: {}, attemptsMade: 0 }, context)
+		const first = registered?.(
+			{ id: 'job-1', name: 'job-a', data: {}, attemptsMade: 0, updateData: jest.fn() },
+			context
+		)
 		await Promise.resolve()
-		const second = registered?.({ id: 'job-2', name: 'job-a', data: {}, attemptsMade: 0 }, context)
+		const second = registered?.(
+			{ id: 'job-2', name: 'job-a', data: {}, attemptsMade: 0, updateData: jest.fn() },
+			context
+		)
 		await Promise.resolve()
 
 		expect(starts).toEqual(['job-1'])
