@@ -25,11 +25,18 @@ description: '不同查询格式如何通过 Dataset/Binding 接入标准图表�
 | `postgres.sql`           | 受控只读 SQL 与参数                      | `@xpert-ai/plugin-analytics-postgres`         |
 | `mysql.sql`、`doris.sql` | 各自的只读 SQL 契约，共用现有 MySQL 驱动 | `@xpert-ai/plugin-analytics-mysql`            |
 | `data-xpert.ontology`    | 已发布且允许执行的本体只读 Action        | `@xpert-ai/plugin-analytics-data-xpert`       |
+| `mcp.tool`               | 平台现有 MCP 连接中获准查询的工具        | `@xpert-ai/plugin-analytics-mcp`              |
 | `workspace_script.query` | 已登记脚本定义的精确 Artifact/version    | `@xpert-ai/plugin-analytics-workspace-script` |
 
 Provider 实现发现与执行，平台校验注册、数据源权限、参数和返回结果。发现返回 `items`、`inspectRequest`、`nextRequest` 以及原生 `queryContract`；Agent 必须使用返回的身份和格式，不根据名称猜测来源。
 
 SQL Provider 使用平台驱动；本体 Provider 使用当前访问者的受限身份；脚本只能访问已声明的文件和来源别名。连接凭据不进入 Binding 或浏览器。
+
+MCP Provider 复用平台 `McpClientRuntimeApi.tools.list/call` 的只读调用能力，由数据源配置声明数据集、获准的工具和结果字段映射。
+访问者需要数据源权限以及 MCP 连接所属工作区的读取权限。Agent 根据实时 Tool Schema 和业务说明
+填写参数，优先使用 `structuredContent`；纯文本 JSON 必须显式配置。工具错误、契约变化和撤销权限
+都会拒绝查询。刷新重新调用工具，分页结果保留部分数据标记。此适配器需要配套的新 SDK/平台能力；
+本地协议测试不代表已经完成部署后的 SSO 或 Agent 验收。
 
 平台入口为 `GET /api/data-source/analytics/sources`、`POST /api/data-source/analytics/discover` 和 `POST /api/data-source/analytics/query`。这些是需要授权的能力接口，不是生成页面的直接取数入口。
 

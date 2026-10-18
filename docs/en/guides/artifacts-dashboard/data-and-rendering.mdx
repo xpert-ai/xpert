@@ -25,11 +25,20 @@ Pages use stable field IDs, not display labels. `decimal` and `int64` remain exa
 | `postgres.sql`           | Governed read-only SQL and parameters                            | `@xpert-ai/plugin-analytics-postgres`         |
 | `mysql.sql`, `doris.sql` | Separate read-only SQL contracts using the existing MySQL driver | `@xpert-ai/plugin-analytics-mysql`            |
 | `data-xpert.ontology`    | Published, permitted read-only ontology Actions                  | `@xpert-ai/plugin-analytics-data-xpert`       |
+| `mcp.tool`               | Approved tools on an existing platform MCP connection            | `@xpert-ai/plugin-analytics-mcp`              |
 | `workspace_script.query` | An exact registered script Artifact/version                      | `@xpert-ai/plugin-analytics-workspace-script` |
 
 Providers implement discovery and execution. The platform validates registration, source access, parameters and results. Discovery returns `items`, `inspectRequest`, `nextRequest` and a native `queryContract`. Agents must use returned identities and syntax instead of guessing from names.
 
 SQL providers use platform drivers. The ontology provider uses a scoped identity for the current viewer. Scripts access only declared file and source aliases. Credentials stay out of Bindings and browser code.
+
+The MCP provider uses the platform's `McpClientRuntimeApi.tools.list/call` with its read-only
+policy and an administrator-configured dataset/tool catalog. The current viewer needs source access and read access to the MCP
+connection's workspace. Live Tool Schemas and authored result mappings determine parameters
+and Dataset fields; `structuredContent` is preferred, with explicit single-text JSON support.
+Tool errors, contract changes and revoked tools fail instead of becoming data. Tool calls are
+fresh on refresh, while paged results retain their partial scope. This adapter needs the matching
+new SDK/host capability; local protocol tests do not establish deployed SSO or Agent acceptance.
 
 Platform endpoints are `GET /api/data-source/analytics/sources`, `POST /api/data-source/analytics/discover` and `POST /api/data-source/analytics/query`. These authorized capability interfaces are not direct query endpoints for generated pages.
 
