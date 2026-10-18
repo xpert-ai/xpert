@@ -76,6 +76,7 @@ export class XpertProjectTypeService {
                         title: definition.title,
                         icon: definition.icon,
                         binding: definition.binding,
+                        taskConcurrency: definition.taskConcurrency,
                         available: true,
                         pluginName,
                         appName: app.name,
