@@ -63,6 +63,12 @@ traversal stays explicitly partial. Deploy the matching SDK and host before inst
 
 For composed queries, the platform assigns `executionId` before provider execution. Forward `signal`, `deadlineAt` and `ancestry` through the optional third argument of `AnalyticsRuntimeApi.query`. These are trusted execution constraints, not fields accepted from an HTTP body or Binding payload. Child queries cannot extend the parent deadline; the platform checks provider cycles and nesting depth.
 
+## Authorization and revocation
+
+HTTP and WebSocket JWT validation loads current database role permissions, including for third-party identities. Explicit token permission claims narrow those grants; they cannot recreate deleted or disabled permissions. An empty claim grants no permissions; missing or null claims retain the current database grants for older tokens. Permissions newly granted outside an explicit token ceiling require a refreshed token.
+
+Permission guards reuse role permissions freshly loaded by authentication for the current request, including token restrictions, without issuing a duplicate policy query. Enabled grants must match the current tenant and role. A loaded empty list denies access and never triggers a broader database lookup. When authentication has not loaded the permission relation, the guard queries current tenant/role policy without a cross-request decision cache. Authentication must reload permissions on each request, so revocation applies to subsequent requests without waiting for token expiry. This is a request-time authorization snapshot, not cancellation of operations already authorized and running; capability and resource access checks remain necessary during execution.
+
 ## Reusable Artifacts changes
 
 `listArtifacts.resourceIdPrefix` matches a literal resource ID prefix, never a pattern, within the caller's existing access scope. Storage-specific matching stays inside the platform Artifacts service.
