@@ -40,6 +40,16 @@ parameter paths, JSON projection and completeness rules remain plugin-owned; it 
 MCP branches to Dataset normalization or the dashboard renderer. Build and deploy the matching
 SDK/host capability before using the plugin; an older published SDK is insufficient.
 
+## Existing REST/OpenAPI connections
+
+The generic [REST Client Runtime](./rest-client.md) exposes
+`RestClientRuntimeCapability` (`platform.rest.client`) with `operations.list/call`.
+It reuses saved OpenAPI toolsets, credentials and current-viewer workspace permissions.
+`@xpert-ai/plugin-analytics-rest` supplies the `rest.json` provider with an approved
+dataset catalog, typed JSON projection and bounded offset/cursor pagination. Binding
+payloads cannot supply URLs, headers, credentials or result mappings. Incomplete page
+traversal stays explicitly partial. Deploy the matching SDK and host before installation.
+
 ## Execution
 
 - `GET /api/data-source/analytics/sources`: authorized IDs and supported providers, never credentials.

@@ -20,13 +20,14 @@ Pages use stable field IDs, not display labels. `decimal` and `int64` remain exa
 
 ## Providers
 
-| Provider                 | Native operation                                                 | Plugin                                        |
-| ------------------------ | ---------------------------------------------------------------- | --------------------------------------------- |
-| `postgres.sql`           | Governed read-only SQL and parameters                            | `@xpert-ai/plugin-analytics-postgres`         |
-| `mysql.sql`, `doris.sql` | Separate read-only SQL contracts using the existing MySQL driver | `@xpert-ai/plugin-analytics-mysql`            |
-| `data-xpert.ontology`    | Published, permitted read-only ontology Actions                  | `@xpert-ai/plugin-analytics-data-xpert`       |
-| `mcp.tool`               | Approved tools on an existing platform MCP connection            | `@xpert-ai/plugin-analytics-mcp`              |
-| `workspace_script.query` | An exact registered script Artifact/version                      | `@xpert-ai/plugin-analytics-workspace-script` |
+| Provider                 | Native operation                                                   | Plugin                                        |
+| ------------------------ | ------------------------------------------------------------------ | --------------------------------------------- |
+| `postgres.sql`           | Governed read-only SQL and parameters                              | `@xpert-ai/plugin-analytics-postgres`         |
+| `mysql.sql`, `doris.sql` | Separate read-only SQL contracts using the existing MySQL driver   | `@xpert-ai/plugin-analytics-mysql`            |
+| `data-xpert.ontology`    | Published, permitted read-only ontology Actions                    | `@xpert-ai/plugin-analytics-data-xpert`       |
+| `mcp.tool`               | Approved tools on an existing platform MCP connection              | `@xpert-ai/plugin-analytics-mcp`              |
+| `rest.json`              | Approved read-only JSON operations on existing OpenAPI connections | `@xpert-ai/plugin-analytics-rest`             |
+| `workspace_script.query` | An exact registered script Artifact/version                        | `@xpert-ai/plugin-analytics-workspace-script` |
 
 Providers implement discovery and execution. The platform validates registration, source access, parameters and results. Discovery returns `items`, `inspectRequest`, `nextRequest` and a native `queryContract`. Agents must use returned identities and syntax instead of guessing from names.
 
@@ -41,6 +42,8 @@ fresh on refresh, while paged results retain their partial scope. This adapter n
 new SDK/host capability; local protocol tests do not establish deployed SSO or Agent acceptance.
 
 Platform endpoints are `GET /api/data-source/analytics/sources`, `POST /api/data-source/analytics/discover` and `POST /api/data-source/analytics/query`. These authorized capability interfaces are not direct query endpoints for generated pages.
+
+The REST/JSON provider reuses `RestClientRuntimeApi.operations.list/call`, existing OpenAPI credentials and workspace access. Administrators configure operation catalogs, field semantics, JSON projection and pagination; Agents supply schema-valid arguments. GET and explicitly read-only JSON POST operations support bounded offset/cursor pagination. Page/row limits remain partial results. Bindings cannot override endpoints, methods, credentials or result mappings; redirects, changed contracts and revoked access fail. This adapter requires the matching new SDK and host runtime.
 
 ## Standard and HTML rendering
 

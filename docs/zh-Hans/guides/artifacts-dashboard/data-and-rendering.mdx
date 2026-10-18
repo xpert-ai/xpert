@@ -26,6 +26,7 @@ description: '不同查询格式如何通过 Dataset/Binding 接入标准图表�
 | `mysql.sql`、`doris.sql` | 各自的只读 SQL 契约，共用现有 MySQL 驱动 | `@xpert-ai/plugin-analytics-mysql`            |
 | `data-xpert.ontology`    | 已发布且允许执行的本体只读 Action        | `@xpert-ai/plugin-analytics-data-xpert`       |
 | `mcp.tool`               | 平台现有 MCP 连接中获准查询的工具        | `@xpert-ai/plugin-analytics-mcp`              |
+| `rest.json`              | 已有 OpenAPI 连接中批准的只读 JSON 操作  | `@xpert-ai/plugin-analytics-rest`             |
 | `workspace_script.query` | 已登记脚本定义的精确 Artifact/version    | `@xpert-ai/plugin-analytics-workspace-script` |
 
 Provider 实现发现与执行，平台校验注册、数据源权限、参数和返回结果。发现返回 `items`、`inspectRequest`、`nextRequest` 以及原生 `queryContract`；Agent 必须使用返回的身份和格式，不根据名称猜测来源。
@@ -39,6 +40,8 @@ MCP Provider 复用平台 `McpClientRuntimeApi.tools.list/call` 的只读调用�
 本地协议测试不代表已经完成部署后的 SSO 或 Agent 验收。
 
 平台入口为 `GET /api/data-source/analytics/sources`、`POST /api/data-source/analytics/discover` 和 `POST /api/data-source/analytics/query`。这些是需要授权的能力接口，不是生成页面的直接取数入口。
+
+REST/JSON 适配器复用平台 `RestClientRuntimeApi.operations.list/call` 和已有 OpenAPI 工具集的连接、认证及工作区权限。管理员配置操作目录、字段语义、JSON 映射和分页策略，Agent 只声明符合操作契约的参数。支持 GET 和显式声明 `x-xpert-read-only: true` 的 JSON POST，以及有界 offset/cursor 分页；页数或行数上限触发时保留部分结果标识。端点、方法、凭据和结果映射不能由 Binding 覆盖；重定向、契约变化和权限撤销会拒绝查询。需配套新 SDK 和平台运行时，旧版本不能仅安装插件使用。
 
 ## 标准渲染与 HTML 渲染
 
