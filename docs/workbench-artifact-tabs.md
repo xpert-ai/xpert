@@ -33,6 +33,13 @@ and its other consumers. Generated-file tabs embed the document component on its
 own. Editing follows workspace write access and the existing supported editor
 formats. External file URLs are read-only.
 
+## Live dashboard resource cards
+
+This file describes generated-file previews. Live Dashboard cards use a registered
+plugin View in ChatKit's own Workbench, with saved target restoration and a separate
+Artifact draft/publication lifecycle. They do not open the dashboard JSON as a file.
+See [Artifacts Dashboard](./en/guides/artifacts-dashboard/overview.mdx).
+
 ## Scope
 
 This feature is implemented entirely in `xpert`. It uses existing file-output

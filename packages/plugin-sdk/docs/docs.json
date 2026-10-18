@@ -24,7 +24,12 @@
       },
       {
         "group": "Views and Resource Cards",
-        "pages": ["en/view-extension-protocol", "en/RESOURCE-CARDS", "en/RESOURCE-CARDS-VALIDATION"]
+        "pages": [
+          "en/view-extension-protocol",
+          "artifact-presentations",
+          "en/RESOURCE-CARDS",
+          "en/RESOURCE-CARDS-VALIDATION"
+        ]
       }
     ],
     "global": {

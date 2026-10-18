@@ -97,3 +97,5 @@ export * from './assistant-template-setup.service'
 export * from './template-lifecycle.service'
 
 export * from './personal-api-keys.service'
+
+export * from './artifact-presentation.service'

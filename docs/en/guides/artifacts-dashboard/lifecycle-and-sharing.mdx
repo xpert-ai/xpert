@@ -1,0 +1,61 @@
+---
+title: 'Editing, resource cards and sharing'
+description: 'Drafts, human publication, ChatKit navigation and read-only sharing under one Artifact identity.'
+---
+
+## Creation and save evidence
+
+Agents discover authorized sources with `dashboard_list_sources` and `dashboard_discover`, then obtain real preview receipts through `dashboard_preview` or `dashboard_preview_binding`. Applicable categorical filters require a non-default probe. Creation accepts valid receipts from the current run and revalidates access and data.
+
+Standard pages use `dashboard_create`. HTML pages are written with platform SandboxFile tools and saved through `dashboard_create_html`. Scripts use the same file tools, followed by `workspace_dataset_register`. The specialized `dashboard_write_html` and `workspace_dataset_write_file` tools have been replaced.
+
+A file-write acknowledgement is not a dashboard save. Platform `createMutationEvidence` tracks pending changes; the plugin defines the successful domain receipt. The Agent needs an Artifact ID, `status: draft` and `draftRevision` before claiming a save. Failure or exhausted tool rounds cannot be reported as a save, publication or new formal version.
+
+## Drafts and formal versions
+
+| Operation               | Behavior                                                                            |
+| ----------------------- | ----------------------------------------------------------------------------------- |
+| Create or Agent edit    | Saves the current working draft, advances its revision, preserves Artifact identity |
+| Style-only edit         | Preserves omitted fields and existing Bindings; still runs data and HTML checks     |
+| Source or metric change | Requires discovery, preview and receipts for the complete replacement Binding set   |
+| Human publication       | Confirms a frozen draft revision and creates an immutable version transactionally   |
+| Historical viewing      | Reads the old definition and dependencies, then queries with current access         |
+
+`dashboard_open` returns the selected target, stable `editId`, `expectedRevision` and `expectedCurrentVersionId`. HTML editing receives a separate Workspace copy. Read and edit it with SandboxFile, then call `dashboard_update`. Explicit historical versions are read-only and do not prepare an editing copy. Without a selection, use `dashboard_list` to resolve the target instead of guessing the most recent item.
+
+Platform `artifact_draft` stores the latest content reference, checksum, revision and formal-version base. Save and publish share the Artifact row lock and compare-and-set checks. Changed bases cause conflicts, not silent overwrites, rebases or duplicate dashboards. An identical confirmed-publication retry reuses the version.
+
+Agents have no formal publication tool. Changes made during a confirmation cause publication to fail rather than publish unreviewed content. Intermediate draft revisions are not browsable history. There is no one-click rollback, version comparison or collaborative merge UI.
+
+## Resource cards and Workbench
+
+After successful create, update or open operations, the plugin uses platform `emitResourceCard` to emit a reference with a title, icon and draft/formal-version status. Cards contain no HTML, SQL, result rows or credentials. Delivery failure does not roll back the saved content or trigger duplicate creation.
+
+Clicking a card opens `live-dashboard__live-dashboard` in **ChatKit's own Workbench**, selecting the Artifact through `selectionId`. Historical targets include `parameters.versionId`. Cards switch the same dashboard View; repeated initialization preserves local edits, and stale responses cannot replace a later target.
+
+Draft cards display the state recorded in that reply but open the current saved draft. Explicit historical cards pin their formal version. Reopening chat restores persisted cards; reloading restores the Workbench target. Loading history alone does not auto-open dashboards.
+
+This is distinct from ordinary generated-file preview: the JSON definition is not opened as a report, and no host-navigation mode is needed. `assistant.context.set` supplies the selected target to the Agent for navigation, never as authorization.
+
+## Team presentation
+
+The owner enables sharing in Workbench, following the latest formal version or pinning one. Draft-only dashboards cannot be shared, and sharing itself never publishes.
+
+The platform returns a `presentationUrl` at `/artifacts/view/:slug`. The page requires login and organization membership. Drafts, editing, publication and link management stay with the owner. Queries use the viewer's permissions, not the creator's identity.
+
+Platform `ArtifactPresentationRegistry` selects a provider by plugin and resource type. The plugin interprets the saved package and read-only `query` / `query-binding` operations; the platform owns link policy, formal targets, identity and isolation.
+
+- `GET /api/artifacts/shared-links/:slug/presentation` returns an authorized formal target, viewer entry and allowed operations.
+- `POST /api/artifacts/shared-links/:slug/presentation/query` accepts `{ target, operation, input }`; access and version are checked before and after execution.
+- Publication while a latest-following page is open causes a target conflict; reopen to avoid mixing old HTML with new Bindings.
+- Changing a share target replaces its link. Revocation denies subsequent access and queries, but cannot retract data already seen.
+
+The standalone toolbar starts as a translucent floating button. Hover expands it; click pins it. Escape, close and canvas clicks collapse it without taking space from the canvas.
+
+## Controlled opening
+
+The authoring View declares and invokes `artifact.presentation.open`. The platform opens only a same-origin `/artifacts/view/:slug` page, clears its opener and reports blocked popups. This avoids inheriting the remote iframe sandbox, which would prevent the login application from starting.
+
+An Artifact feature provider registers the command through explicit AppModule composition and unregisters it on destruction. `ViewClientCommandRegistry` remains generic. The command opens shared pages; cards still use ChatKit Workbench navigation. The read-only bridge exposes no client-command, file or write channel.
+
+Workspace script providers currently declare `owner_only`: private definitions and inputs are not shared automatically. SQL and ontology sources continue to check each viewer. Anonymous dashboard sharing and team editing are outside this feature.

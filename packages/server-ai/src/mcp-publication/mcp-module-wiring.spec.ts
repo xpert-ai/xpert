@@ -5,8 +5,20 @@ import { XpertToolsetModule } from '../xpert-toolset'
 import { McpConsumerCapabilitiesService } from '../mcp-consumer'
 import { ToolRuntimeService } from '../tool-runtime'
 import { McpPublicationModule } from './mcp-publication.module'
+import { McpClientRuntimeService } from '../mcp-consumer/runtime/mcp-client-runtime.service'
+import { McpClientConnectionService } from '../mcp-consumer/runtime/mcp-client-connection.service'
+import { McpClientRuntimeCapability, RUNTIME_CAPABILITY_PROVIDER } from '@xpert-ai/plugin-sdk'
 
 describe('MCP module wiring', () => {
+    it('wires the MCP client capability to the shared connection lifecycle', () => {
+        const providers = Reflect.getMetadata(MODULE_METADATA.PROVIDERS, XpertToolsetModule) as object[]
+        expect(providers.filter((provider) => provider === McpClientRuntimeService)).toHaveLength(1)
+        expect(providers.filter((provider) => provider === McpClientConnectionService)).toHaveLength(1)
+        expect(Reflect.getMetadata(RUNTIME_CAPABILITY_PROVIDER, McpClientRuntimeService)).toEqual(
+            McpClientRuntimeCapability
+        )
+        expect(Reflect.getMetadata('design:paramtypes', McpClientRuntimeService)).toEqual([McpClientConnectionService])
+    })
     it.each([
         ['McpPublicationModule', McpPublicationModule],
         ['XpertToolsetModule', XpertToolsetModule]

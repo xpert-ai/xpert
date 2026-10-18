@@ -1,0 +1,74 @@
+---
+title: 'Data contracts and rendering'
+description: 'How native query formats share Dataset/Binding across standard charts and isolated HTML pages.'
+---
+
+Each provider retains its native query language and returns a common result contract. Chart binding does not require every source to become SQL.
+
+## Binding and Dataset
+
+| Object              | Contents                                                                                          | Responsibility                                                            |
+| ------------------- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `AnalyticsBinding`  | `schemaVersion: 1`, `id`, `dataSourceId`, `providerId`, `operation`, `contractVersion`, `payload` | Declares the source and operation; only its provider interprets `payload` |
+| `parameters`        | Parameter name, control ID, scalar type, defaults, nullability and allowed values                 | Maps filters to validated native parameters                               |
+| `output`            | Dataset ID, stable field IDs, native fields or semantic references, types, units and grain        | Defines the shared result projection                                      |
+| `AnalyticalDataset` | `fields`, `rows`, `grain`, `completeness`, `freshness`, `provenance`                              | Serves charts, tables and custom pages                                    |
+
+Pages use stable field IDs, not display labels. `decimal` and `int64` remain exact strings. Empty results retain their fields. A nonempty `grain` must be unique. Partial, sampled, paginated or truncated rows cannot establish a complete business total.
+
+`sourceFetchedAt` is the source fetch time, not the last business-data modification. `dataAsOf` appears only when supplied by the source. Execution IDs and audit references support traceability, not authorization.
+
+## Providers
+
+| Provider                 | Native operation                                                 | Plugin                                        |
+| ------------------------ | ---------------------------------------------------------------- | --------------------------------------------- |
+| `postgres.sql`           | Governed read-only SQL and parameters                            | `@xpert-ai/plugin-analytics-postgres`         |
+| `mysql.sql`, `doris.sql` | Separate read-only SQL contracts using the existing MySQL driver | `@xpert-ai/plugin-analytics-mysql`            |
+| `data-xpert.ontology`    | Published, permitted read-only ontology Actions                  | `@xpert-ai/plugin-analytics-data-xpert`       |
+| `mcp.tool`               | Approved tools on an existing platform MCP connection            | `@xpert-ai/plugin-analytics-mcp`              |
+| `workspace_script.query` | An exact registered script Artifact/version                      | `@xpert-ai/plugin-analytics-workspace-script` |
+
+Providers implement discovery and execution. The platform validates registration, source access, parameters and results. Discovery returns `items`, `inspectRequest`, `nextRequest` and a native `queryContract`. Agents must use returned identities and syntax instead of guessing from names.
+
+SQL providers use platform drivers. The ontology provider uses a scoped identity for the current viewer. Scripts access only declared file and source aliases. Credentials stay out of Bindings and browser code.
+
+The MCP provider uses the platform's `McpClientRuntimeApi.tools.list/call` with its read-only
+policy and an administrator-configured dataset/tool catalog. The current viewer needs source access and read access to the MCP
+connection's workspace. Live Tool Schemas and authored result mappings determine parameters
+and Dataset fields; `structuredContent` is preferred, with explicit single-text JSON support.
+Tool errors, contract changes and revoked tools fail instead of becoming data. Tool calls are
+fresh on refresh, while paged results retain their partial scope. This adapter needs the matching
+new SDK/host capability; local protocol tests do not establish deployed SSO or Agent acceptance.
+
+Platform endpoints are `GET /api/data-source/analytics/sources`, `POST /api/data-source/analytics/discover` and `POST /api/data-source/analytics/query`. These authorized capability interfaces are not direct query endpoints for generated pages.
+
+## Standard and HTML rendering
+
+Standard mode references Dataset fields through `charts` and `tables` and reuses the Data Analytics renderer. Chart types are bar, line, area, pie and scatter. Categorical charts must encode every grain dimension in `x`/`color`. The renderer does not implicitly aggregate; totals require an appropriately aggregated Binding.
+
+HTML mode saves a complete HTML/CSS/JavaScript page with the same Bindings. The SDK's browser-safe `artifact-document` entry provides isolation; the plugin provides lifecycle and query callbacks. Page code owns layout and drawing, while data access uses saved Bindings.
+
+```javascript
+const live = window.xpertLiveArtifact
+live.subscribe('sales', (dataset) => render(dataset))
+await live.ready()
+await live.query('sales', { region: null })
+// Refresh retains the latest control values for this Binding.
+await live.refresh('sales')
+```
+
+Place this snippet inside an async function. IDs must come from actual previews. Subscribe before the first query so toolbar refresh updates the page. `bindSelect` maintains typed select values from received rows; the candidate list does not grant additional access.
+
+## Frontend dependencies
+
+The platform owns dependency locks, integrity checks, size limits and isolated injection. The plugin owns the allowlist, source bytes, licenses and `dashboard_libraries` tool. It currently packages ECharts 5.6.0 and Three.js 0.185.1 core.
+
+The saved `xpert.live-dashboard.package/v1` includes the manifest and actual dependency source. Historical versions load their own snapshot. Omitting `libraries` during an update preserves it; explicit replacement requires preflight and a save. CDN loading and external imports are unavailable.
+
+## Query boundary
+
+The browser submits a saved target, Binding ID and declared controls. The service loads the Binding from the saved draft or formal version and reauthorizes the viewer. SQL, provider, source, full Binding and undeclared control overrides are rejected.
+
+HTML executes under `sandbox="allow-scripts"` and a no-network CSP. Inline JavaScript is allowed; CSP blocks external scripts and `eval`. Libraries do not unlock parent DOM, Web Storage, direct networking or general host Actions. Page code can change its display, not its data permissions.
+
+Before an HTML save, the same document SDK and dependency bytes run with real preview data. Initial-render preflight does not certify business semantics or exhaustively test interactions. Page-authored polling can call `live.refresh`; there is no unified automatic-refresh scheduler or data change-stream push.

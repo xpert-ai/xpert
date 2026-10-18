@@ -56,6 +56,9 @@
         "ProjectTaskProjectionRetry": "任务同步已有新请求或正在由其他实例处理，将由队列重试。",
         "ProjectTaskProjectionUnavailable": "暂时无法读取任务同步状态，已保存的任务仍可查看。",
         "ProjectTaskProjectionTimeout": "任务同步超时；已保存任务保持不变，系统将重试同步。",
+        "McpToolDiscoveryLimit": "MCP 工具发现超出限制或返回了重复的游标。",
+        "McpClientAccessDenied": "无权访问 MCP 连接。",
+        "McpClientUnavailable": "MCP 操作不可用、定义已变化或返回了无效结果。",
         "SandboxJobCancelled": "沙箱任务已取消。",
         "SandboxInvocationFailed": "沙箱宿主调用失败或被拒绝。",
         "SandboxInvocationTimeout": "沙箱宿主调用超过执行时限。",
@@ -1129,7 +1132,12 @@
         "TemplateToolBindingRequired": "同步前请将模板工具 {{key}} 绑定到唯一的已安装工具集。",
         "XpertPublicationStale": "数字专家在发布期间已发生变更，请重新读取后重试。",
         "XpertPublicationInvalid": "发布恢复请求无效。",
-        "XpertPublicationActivationPending": "版本已提交，但激活尚未完成。请恢复发布，不要重复创建版本。"
+        "XpertPublicationActivationPending": "版本已提交，但激活尚未完成。请恢复发布，不要重复创建版本。",
+        "ArtifactPresentationOperationDenied": "只读展示不支持此操作。",
+        "ArtifactPresentationChanged": "正式版本已变化，请重新打开分享页。",
+        "ArtifactPresentationUnavailable": "展示插件不可用。",
+        "ArtifactPresentationAccessDenied": "需要经过认证的团队分享权限。",
+        "ArtifactPresentationInputInvalid": "展示请求无效。"
     },
     "Mcp": {
         "Test": {

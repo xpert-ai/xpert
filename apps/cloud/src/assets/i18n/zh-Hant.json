@@ -9830,5 +9830,9 @@
     "TargetSource": "目標範本來源",
     "CurrentSource": "目前範本來源",
     "SourceMigration": "範本來源遷移"
+  },
+  "ArtifactPresentation": {
+    "UnavailableHint": "正式版本或存取權限可能已變更，請重新開啟以檢查。",
+    "Reopen": "重新開啟分享頁"
   }
 }

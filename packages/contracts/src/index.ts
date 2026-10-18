@@ -124,3 +124,4 @@ export * from './default-agent-plugins'
 export * from './agent-plugin-maintenance'
 
 export * from './assistant-sharing.model'
+export * from './artifact-presentation.model'
