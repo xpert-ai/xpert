@@ -236,6 +236,49 @@ describe('Personal API key HTTP authentication and validation', () => {
 		expect((await fetch(origin + '/identity/protected', { headers })).status).toBe(200)
 	})
 
+	it('reuses freshly loaded personal-key permissions and observes revocation without an extra policy lookup', async () => {
+		let enabled = true
+		repository.findOne.mockImplementation(async (options: FindOneOptions<ApiKey>) =>
+			!Array.isArray(options.where) && options.where?.token === hashPersonalApiKey(token)
+				? Object.assign(new ApiKey(), {
+						id: 'key',
+						type: ApiKeyBindingType.USER,
+						token: hashPersonalApiKey(token),
+						entityId: owner.id,
+						userId: owner.id,
+						tenantId: owner.tenantId,
+						user: {
+							...owner,
+							role: {
+								rolePermissions: [
+									{
+										tenantId: owner.tenantId,
+										roleId: owner.roleId,
+										permission: 'personal-key-test-permission',
+										enabled
+									}
+								]
+							}
+						}
+					})
+				: null
+		)
+		for (const granted of [true, false, true]) {
+			enabled = granted
+			const response = await fetch(origin + '/identity/protected', {
+				headers: { authorization: `Bearer ${token}` }
+			})
+			expect(response.status).toBe(granted ? 200 : 403)
+		}
+		expect(repository.findOne).toHaveBeenCalledTimes(3)
+		expect(repository.findOne).toHaveBeenLastCalledWith(
+			expect.objectContaining({
+				relations: ['user', 'user.role', 'user.role.rolePermissions', 'user.employee']
+			})
+		)
+		expect(authorization.execute).not.toHaveBeenCalled()
+	})
+
 	it('rejects identity overrides and expired/revoked authentication failures', async () => {
 		const headers = { authorization: `Bearer ${token}`, 'x-principal-user-id': 'someone-else' }
 		expect((await fetch(origin + '/identity/ai', { headers })).status).toBe(401)

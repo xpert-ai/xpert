@@ -1,10 +1,11 @@
+import { apiKeyHeaders } from '../api-key-headers'
 import { CallbackManagerForToolRun } from '@langchain/core/callbacks/manager'
 import { RunnableConfig } from '@langchain/core/runnables'
 import { ToolParams } from '@langchain/core/tools'
 import { ApiAuthType, ApiToolBundle, IXpertTool, XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
 import axios, { AxiosResponse } from 'axios'
 import type { OperationObject, ParameterObject } from 'openapi-typescript/src/types'
-import { ToolParameterValidationError, ToolProviderCredentialValidationError } from '../../../errors'
+import { ToolParameterValidationError } from '../../../errors'
 import { ApiBasedToolSchemaParser } from '../../../utils/parser'
 import type { TToolModelUsageReporter } from '@xpert-ai/plugin-sdk'
 import { BaseTool } from '../../../../shared/tools/toolset'
@@ -74,30 +75,7 @@ export class OpenAPITool extends BaseTool {
         // }
 
         if (credentials.auth_type === ApiAuthType.API_KEY) {
-            let api_key_header = ApiAuthType.API_KEY
-
-            if (credentials.api_key_header) {
-                api_key_header = credentials.api_key_header
-            }
-
-            if (!credentials.api_key_value) {
-                throw new ToolProviderCredentialValidationError('Missing api_key_value')
-            } else if (typeof credentials.api_key_value !== 'string') {
-                throw new ToolProviderCredentialValidationError('api_key_value must be a string')
-            }
-
-            if (credentials.api_key_header_prefix) {
-                const api_key_header_prefix = credentials.api_key_header_prefix
-                if (api_key_header_prefix === 'basic' && credentials.api_key_value) {
-                    credentials.api_key_value = `Basic ${credentials.api_key_value}`
-                } else if (api_key_header_prefix === 'bearer' && credentials.api_key_value) {
-                    credentials.api_key_value = `Bearer ${credentials.api_key_value}`
-                } else if (api_key_header_prefix === 'custom') {
-                    // Do nothing
-                }
-            }
-
-            headers[api_key_header] = credentials.api_key_value
+            Object.assign(headers, apiKeyHeaders(credentials))
         }
 
         const needed_parameters = this.api_bundle.parameters.filter((parameter) => parameter.required)
